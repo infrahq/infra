@@ -29,10 +29,15 @@ Features:
 * Synchronize groups via GitHub, Okta, Microsoft AD
 * Enforce RBAC rules across clusters
 * RBAC based on common templates
+* (Coming soon) Multi-namespace support for limited access users
 
 
 
 ## Get Started
+
+### Presequisites
+
+* Kubernetes cluster
 
 ### Installing
 
@@ -55,13 +60,15 @@ One time password generated for admin: 9kd1-19d8jajl4i10-2
 
 ### Logging in
 
-Run `infra login` logs you into infra. If you're an admin, you'll be automatically logged in via cluster access.
+Run `infra login` to log into infra.
+
 
 ### Viewing the UI
 
 To view the ui, run `infra ui`. You'll automatically be logged if you're logged in on the CLI.
 
 ![Screen Shot 2021-01-22 at 2 40 10 PM](https://user-images.githubusercontent.com/251292/105537327-c1828f00-5cbf-11eb-9e8a-00b96678a121.png)
+
 
 ### Listing clusters
 
@@ -72,6 +79,7 @@ $ infra clusters
 NAME            ENDPOINT                    STATUS
 default         https://35.192.192.29       Up
 ```
+
 
 ### Adding a user
 
@@ -112,12 +120,13 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 ```
 
+
 ### Accessing the cluster via Infra
 
 To update your kubeconfig, run `infra update`. Infra automatically does this when running `infra login`. 
 
 ```
-$ infra login 35.192.192.29 
+$ infra login 35.192.192.29
 Username: test@acme.com
 Password: ***** <password from above> *****
 Create a new password: *******************
