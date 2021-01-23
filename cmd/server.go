@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/infrahq/infra/server"
+	"github.com/infrahq/infra/internal/server"
 	"github.com/spf13/cobra"
 )
 
