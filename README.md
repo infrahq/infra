@@ -76,8 +76,8 @@ Infra automatically adds the installed cluster as a target cluster. To view clus
 
 ```
 $ infra clusters
-NAME            ENDPOINT                    STATUS
-default         https://35.192.192.29       Up
+NAME            ENDPOINT                    USERS        STATUS
+default         https://35.192.192.29       1            Up
 ```
 
 
@@ -161,10 +161,10 @@ Access denied.
 ```
 
 
-### Viewing audit log
+### Auditing events
 
 ```
-$ infra logs
+$ infra events
 USER                 ACTION           KIND            RESOURCE                    ALLOWED     AGE   
 test@acme.com        LIST             POD                                         Y           1m
 test@acme.com        GET              POD             infra-a0k29dk1-102dk12      Y           1m
