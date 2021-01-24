@@ -8,7 +8,7 @@ Fast, secure team access for Kubernetes.
 * Docs: https://infrahq.com/docs
 * Slack: https://infra-slack.slack.com
 
-> We take security very seriously. If you have found a security vulnerability please disclose it privately and responsibly to us by email at [security@infrahq.com](mailto:security@infrahq.com)
+> We take security very seriously. If you have found a security vulnerability please disclose it privately to us by email via [security@infrahq.com](mailto:security@infrahq.com)
 
 ## Introduction
 
@@ -29,7 +29,7 @@ Features:
 * Single binary
 * Configure via yaml
 * Enforce RBAC rules across clusters
-* RBAC based on common templates
+* (Coming soon) Dynamic cluster discovery
 * (Coming soon) Tunneling for cross-network access
 * (Coming soon) Support for Postgresql
 * (Coming soon) Audit log
@@ -171,84 +171,23 @@ Access denied.
 
 Great. Infra has blocked the user based on the "view" role we provided.
 
-## Accessing the UI
-
-## Adding Groups
-
-## Configuring Infra via YAML
-
-## Adding additional Kubernetes clusters
-
-Switching to the target Kubernetes cluster. Then run `infra connect`:
-
-```
-$ infra connect --name default
-✓ Adding service account
-✓ Registered Kubernetes endpoint with Infra
-
-102d91kd192d129ac
-```
-
-To verify the cluster has been added, run `infra clusters`
-
-```
-$ infra clusters
-NAME            ID                     ENDPOINT                    USERS        STATUS
-default         102d91kd192d129ac      https://35.192.192.29       1            Up
-```
-
-Infra automatically adds this cluster to your kubectl:
-```
-$ kubectl config get-contexts
-CURRENT   NAME                                                          CLUSTER                                                       AUTHINFO                                                      NAMESPACE
-*         infra-default                                                 infra-default                                                 infra-default
-          gke_test-central1-demo                                        gke_test-central1-demo                                        gke_test-central1-demo 
-          minikube                                                      minikube                                                      minikube
-```
-
-To view access for the newly added cluster, run `infra inspect <cluster name>`:
-
-```
-$ infra inspect default
-USER            ROLES              LAST ACCESSED
-admin           admin              1m
-```
-
-Next, we'll add new users to the cluster.
-
-### Giving user permissions
-
-```
-$ infra users
-USER                PERMISSIONS               IDENTITY
-test@acme.com       none                      password
-```
-
-```
-$ infra permissions
-NAME                DESCRIPTION               
-view                Read-only access
-edit                Read & write access
-admin               Full cluster access                
-```
-
-```
-$ infra grant test@acme.com admin
-```
-
 ## Advanced
 
-### Automated install
+### Accessing the UI
 
-Infra can be configured to be deployed on clusters by default via a configmap
-
-### Viewing the UI
+Infra's dashboard is always available at `https://<infra hostname>/dashboard`
 
 To view the ui, run `infra ui`. You'll automatically be logged if you're logged in on the CLI. Otherwise you'll be greeted with a login screen.
 
 ![Screen Shot 2021-01-22 at 2 40 10 PM](https://user-images.githubusercontent.com/251292/105537327-c1828f00-5cbf-11eb-9e8a-00b96678a121.png)
 
-### Configuring Infra
+### Adding Groups
+
+### Configuring Infra via YAML
+
+### Configuring roles
+
+### Adding additional Kubernetes clusters
 
 ### Auditing access
 
