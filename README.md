@@ -22,13 +22,16 @@ Use cases:
 * Access Kubernetes API from internal or third party tools
 
 Features:
-* Unified access point for any number of Kubernetes clusters
-* User identity & login via username/password, GitHub, Okta, Microsoft
-* Synchronize groups via GitHub, Okta, Microsoft AD
-* Easy to use UI & CLI for users
 * Single binary
-* Configure via yaml
-* Enforce RBAC rules across clusters
+* Add & remove users
+* CLI for cluster access
+
+* (Coming soon) UI
+* (Coming soon) User identity & login via username/password, GitHub, Okta, Microsoft
+* (Coming soon) Synchronize groups via GitHub, Okta, Microsoft AD
+* (Coming soon) Multiple clusters
+* (Coming soon) Configure via yaml
+* (Coming soon) Enforce RBAC rules across clusters
 * (Coming soon) Dynamic cluster discovery
 * (Coming soon) Tunneling for cross-network access
 * (Coming soon) Support for Postgresql
