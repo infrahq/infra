@@ -26,17 +26,18 @@ Features:
 * Add & remove users
 * CLI for cluster access
 
-* (Coming soon) UI
-* (Coming soon) User identity & login via username/password, GitHub, Okta, Microsoft
-* (Coming soon) Synchronize groups via GitHub, Okta, Microsoft AD
-* (Coming soon) Multiple clusters
-* (Coming soon) Configure via yaml
-* (Coming soon) Enforce RBAC rules across clusters
-* (Coming soon) Dynamic cluster discovery
-* (Coming soon) Tunneling for cross-network access
-* (Coming soon) Support for Postgresql
-* (Coming soon) Audit log
-* (Coming soon) Multi-namespace and multi-cluster queries
+Coming Soon:
+* UI
+* Support for GSuite, GitHub, Okta, Microsoft AD identity providers
+* Synchronize groups from identity providers
+* Multiple clusters
+* Configuration via yaml
+* Enforce RBAC rules across clusters
+* Dynamic cluster discovery
+* Tunneling for cross-network access
+* Support for Postgresql storage back-end
+* Audit log
+* Multi-namespace and multi-cluster queries
 
 Supported infrastructure:
 * Kubernetes clusters
@@ -50,8 +51,8 @@ Supported infrastructure:
 
 **Installation options:**
 * Kubernetes
-* Docker (coming soon)
-* Linux server (coming soon)
+* Docker (Coming soon)
+* Linux server (Coming soon)
 
 ### Kubernetes
 
