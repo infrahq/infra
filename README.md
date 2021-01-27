@@ -24,22 +24,22 @@ Use cases:
 Features:
 * Single binary
 * Add & remove users
-* CLI for cluster access
+* CLI for user to log in and access
 
 Coming Soon:
-* UI
-* Support for GSuite, GitHub, Okta, Microsoft AD identity providers
-* Synchronize groups from identity providers
-* Multiple clusters
 * Configuration via yaml
+* Support for GSuite, GitHub, Okta, Microsoft AD identity providers
+* Groups (incl. sync from identity providers)
 * Enforce RBAC rules across clusters
+* UI
+* Multiple clusters
 * Dynamic cluster discovery
 * Tunneling for cross-network access
 * Support for Postgresql storage back-end
 * Audit log
 * Multi-namespace and multi-cluster queries
 
-Supported infrastructure:
+Supported deployment locations:
 * Kubernetes clusters
 * (Coming soon) Docker 
 * (Coming soon) SSH
