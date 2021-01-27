@@ -9,7 +9,7 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "infra",
-	Short: "Infra: Kubernetes access management",
+	Short: "Infra: user management",
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
 	},
@@ -18,6 +18,7 @@ var rootCmd = &cobra.Command{
 // Execute runs the root command
 func Execute() {
 	rootCmd.AddCommand(serverCmd)
+	rootCmd.AddCommand(loginCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
