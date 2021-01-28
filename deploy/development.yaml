@@ -47,6 +47,12 @@ spec:
         imagePullPolicy: Never
         ports:
         - containerPort: 3090
+        volumeMounts:
+        - name: infra-storage
+          mountPath: /db/
+      volumes:
+      - name: infra-storage
+        emptyDir: {}
 ---
 apiVersion: v1
 kind: Service

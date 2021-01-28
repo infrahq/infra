@@ -8,9 +8,17 @@ import (
 	"net/url"
 
 	"github.com/julienschmidt/httprouter"
+	"gorm.io/gorm"
 
 	"k8s.io/client-go/rest"
 )
+
+// User is a
+type User struct {
+	gorm.Model
+	username string
+	password string
+}
 
 // Run runs the infra server
 func Run() {
