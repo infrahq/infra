@@ -78,7 +78,25 @@ infra-service    LoadBalancer   10.12.11.116   32.71.121.168   80:32322/TCP   1m
 ```
 $ mv ~/Downloads/infra /usr/local/bin/infra && chmod +x /usr/local/bin/infra
 $ infra
-...
+Infra: manage Kubernetes access
+
+Usage:
+  infra [flags]
+  infra [command]
+
+Available Commands:
+  help        Help about any command
+  users       List all users across all groups
+  groups      List available groups
+  roles       List available roles
+  login       Login to an Infra server
+  logout      Log out of an Infra server
+  server      Run the infra server
+
+Flags:
+  -h, --help   help for infra
+
+Use "infra [command] --help" for more information about a command.
 ```
 
 ### Logging in
@@ -156,15 +174,16 @@ NAME           DESCRIPTION         GRANTED USERS
 view           Read-only access    2
 ```
 
-## Advanced
-
-### Accessing the UI
+### Accessing the dashboard
 
 Infra's dashboard is always available at `https://<infra hostname>/dashboard`
 
 To view the ui, run `infra ui`. You'll automatically be logged if you're logged in on the CLI. Otherwise you'll be greeted with a login screen.
 
 ![Screen Shot 2021-01-22 at 2 40 10 PM](https://user-images.githubusercontent.com/251292/105537327-c1828f00-5cbf-11eb-9e8a-00b96678a121.png)
+
+
+## Advanced
 
 ### Auditing access
 
