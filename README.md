@@ -142,6 +142,16 @@ NAME                  USERS          ROLES
 developers@acme.com   2              view
 ```
 
+### Listing roles
+
+To view all roles in the cluster, use `infra roles`:
+
+```
+$ infra roles
+NAME           DESCRIPTION         GRANTED USERS
+view           Read-only access    2
+```
+
 ## Advanced
 
 ### Accessing the UI
