@@ -5,7 +5,10 @@ go 1.15
 require (
 	github.com/gophercloud/gophercloud v0.1.0 // indirect
 	github.com/julienschmidt/httprouter v1.3.0
+	github.com/mattn/go-sqlite3 v1.14.6 // indirect
 	github.com/spf13/cobra v1.1.1
+	gorm.io/driver/sqlite v1.1.4 // indirect
+	gorm.io/gorm v1.20.12 // indirect
 	k8s.io/apimachinery v0.20.2 // indirect
 	k8s.io/client-go v0.20.0
 	k8s.io/klog v1.0.0 // indirect
