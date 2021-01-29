@@ -45,14 +45,18 @@ spec:
       - name: server
         image: infrahq/infra
         imagePullPolicy: Never
+        stdin: true
+        tty: true
         ports:
         - containerPort: 3090
         volumeMounts:
-        - name: infra-storage
-          mountPath: /db/
+        - name: infra-dev-storage
+          mountPath: /go/src/github.com/infrahq/infra
       volumes:
-      - name: infra-storage
-        emptyDir: {}
+      - name: infra-dev-storage
+        hostPath:
+          path: /Users/jmorgan/go/src/github.com/infrahq/infra
+          
 ---
 apiVersion: v1
 kind: Service

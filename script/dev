@@ -1,5 +1,9 @@
 #!/bin/bash
 
-docker build . -t infrahq/infra:latest
-kubectl delete -f deploy
-kubectl apply -f deploy
+docker build . -f Dockerfile.dev -t infrahq/infra:latest
+kubectl delete -f deploy/development.yaml
+kubectl apply -f deploy/development.yaml
+
+while [[ $(kubectl get pods -n infra -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do echo "Waiting for pod" && sleep 1; done
+
+kubectl exec -i -t $(kubectl get pods -n infra -o name) -n infra -- bash
