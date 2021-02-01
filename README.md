@@ -1,7 +1,5 @@
 # Infra
 
-Identity and access management for Kubernetes. Instead of creating separate credentials and writing scripts to map permissions to Kubernetes, developers & IT teams can integrate existing identity providers (GitHub Auth, Okta, Microsoft AD, or Google accounts) to securely provide developers with access to Kubernetes. 
-
 ![infra](https://user-images.githubusercontent.com/251292/105530843-64cea680-5cb6-11eb-9d97-e3210ef79914.png)
 
 * Website: https://infrahq.com
@@ -12,7 +10,7 @@ Identity and access management for Kubernetes. Instead of creating separate cred
 
 ## Introduction
 
-Infra is a tool for providing centralized access to any Kubernetes cluster for any user.
+Identity and access management for Kubernetes. Instead of creating separate credentials and writing scripts to map permissions to Kubernetes, developers & IT teams can integrate existing identity providers (GitHub Auth, Okta, Microsoft AD, or Google accounts) to securely provide developers with access to Kubernetes.
 
 Use cases:
 * Fine-grained permissions
