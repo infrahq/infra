@@ -33,18 +33,19 @@ Create a configuration file:
 identity:
   providers:
     - kind: oidc
-      name: “Acme GSuite”
+      name: example-gsuite
       config: 
-        client-id: *
-        client-secret: *
-        endpoint: *
-        scope: *
-        serviceaccount: *
+        client-id: acme-12345678.apps.googleusercontent.com
+        client-secret: example-secret
+        issuer-url: https://accounts.google.com
+        redirect-url: https://acme.internal:3090/v1/webapi/oidc/callback
+        scope: ['https://www.googleapis.com/auth/admin.directory.group.readonly', 'openid', 'email']
       groups:
         - developers@acme.com
 
 permissions:
-  - group: developers@acme.com
+  - from: example-gsuite
+    group: developers@acme.com
     role: view
 ```
 
