@@ -38,7 +38,7 @@ identity:
         client-id: acme-12345678.apps.googleusercontent.com
         client-secret: example-secret
         issuer-url: https://accounts.google.com
-        redirect-url: https://acme.internal:3090/v1/webapi/oidc/callback
+        redirect-url: https://acme.internal:3090/v1/oidc/callback
         scope: ['https://www.googleapis.com/auth/admin.directory.group.readonly', 'openid', 'email']
       groups:
         - developers@acme.com
