@@ -15,10 +15,11 @@ Identity and access management for Kubernetes. Instead of creating separate cred
 Infra is a tool for providing centralized access to any Kubernetes cluster for any user.
 
 Use cases:
-* On-boarding and off-boarding users
-* Mapping existing users & groups (in GSuite, Okta, etc) into Kubernetes groups
-* Multi-cloud cluster access
 * Fine-grained permissions
+* Multi-cloud cluster access
+* Mapping existing users & groups (in GSuite, Okta, etc) into Kubernetes groups
+* On-boarding and off-boarding users
+
 
 ## Architecture
 
