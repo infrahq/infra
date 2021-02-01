@@ -36,9 +36,9 @@ identity:
       config: 
         client-id: *
         client-secret: *
-        id-token: *
-        idp-issuer-url: *
-        refresh-token: *
+        endpoint: *
+        scope: *
+        serviceaccount: *
       groups:
         - developers@acme.com
 
