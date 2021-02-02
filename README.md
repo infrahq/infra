@@ -1,7 +1,5 @@
 # Infra
 
-Fast, secure team access for Kubernetes.
-
 ![infra](https://user-images.githubusercontent.com/251292/105530843-64cea680-5cb6-11eb-9d97-e3210ef79914.png)
 
 * Website: https://infrahq.com
@@ -12,13 +10,14 @@ Fast, secure team access for Kubernetes.
 
 ## Introduction
 
-Infra is a tool for providing centralized access to any Kubernetes cluster for any user.
+Identity and access management for Kubernetes. Instead of creating separate credentials and writing scripts to map permissions to Kubernetes, developers & IT teams can integrate existing identity providers (GitHub Auth, Okta, Microsoft AD, or Google accounts) to securely provide developers with access to Kubernetes.
 
 Use cases:
-* On-boarding and off-boarding users
-* Mapping existing users & groups (in GSuite, Okta, etc) into Kubernetes groups
-* Multi-cloud cluster access
 * Fine-grained permissions
+* Multi-cloud cluster access
+* Mapping existing users & groups (in GSuite, Okta, etc) into Kubernetes groups
+* On-boarding and off-boarding users
+
 
 ## Architecture
 
@@ -36,11 +35,11 @@ identity:
     - name: google
       kind: oidc
       config: 
-        client-id: *
-        client-secret: *
-        id-token: *
-        idp-issuer-url: *
-        refresh-token: *
+        client-id: acme-12345678.apps.googleusercontent.com
+        client-secret: example-secret
+        issuer-url: https://accounts.google.com
+        redirect-url: https://infra.acme.com:3090/v1/oidc/callback
+        scope: ['https://www.googleapis.com/auth/admin.directory.group.readonly', 'openid', 'email']
       groups:
         - developers@acme.com
 
