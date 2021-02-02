@@ -29,10 +29,12 @@ Use cases:
 Create a configuration file:
 
 ```yaml
+domain: infra.acme.com
+
 identity:
   providers:
-    - kind: oidc
-      name: “Acme GSuite”
+    - name: google
+      kind: oidc
       config: 
         client-id: *
         client-secret: *
@@ -43,8 +45,10 @@ identity:
         - developers@acme.com
 
 permissions:
-  - group: developers@acme.com
+  - provider: google
+    group: developers@acme.com
     role: view
+    namespace: default            # optional namespace
 ```
 
 Install Infra via `kubectl`:
@@ -66,6 +70,8 @@ $ kubectl get svc -n infra
 NAME             TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)        AGE
 infra-service    LoadBalancer   10.12.11.116   32.71.121.168   80:32322/TCP   1m
 ```
+
+Next, optionally map your dns (`infra.acme.internal` in our example) to this domain via your DNS provider.
 
 ## Using Infra
 
@@ -106,7 +112,7 @@ Run `infra login` to log into the infra server via the CLI using the password fr
 > Note: make sure you log into a Google account that's part of the group you specified when configuring Infra.
 
 ```
-$ infra login 32.71.121.168
+$ infra login infra.acme.internal
 ... Opening Google login URL...
 
 ✓ Logged in
@@ -149,9 +155,9 @@ List users that have been synchronized to Infra:
 
 ```
 $ infra users
-USER                 ROLES            NAMESPACE
-jeff@acme.com        view             *
-michael@acme.com     view             *
+USER                 PROVIDER             ROLES            NAMESPACE
+jeff@acme.com        google               view             default
+michael@acme.com     google               view             default
 ```
 
 ### Listing groups
@@ -160,8 +166,8 @@ To view groups that have been synchronized to Infra, use `infra groups`:
 
 ```
 $ infra groups
-NAME                  USERS          ROLES
-developers@acme.com   2              view
+NAME                  PROVIDER        USERS          ROLES
+developers@acme.com   google          2              view
 ```
 
 ### Listing roles
@@ -170,8 +176,8 @@ To view all roles in the cluster, use `infra roles`:
 
 ```
 $ infra roles
-NAME           DESCRIPTION         GRANTED USERS
-view           Read-only access    2
+NAME        NAEMSPACE       DESCRIPTION         GRANTED GROUPS     GRANTED USERS
+view        default         Read-only access    1                  2
 ```
 
 ### Accessing the dashboard
