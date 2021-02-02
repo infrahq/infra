@@ -70,7 +70,7 @@ NAME             TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)        AG
 infra-service    LoadBalancer   10.12.11.116   32.71.121.168   80:32322/TCP   1m
 ```
 
-Next, optionally map your dns (`infra.acme.internal` in our example) to this domain via your DNS provider.
+Next, optionally map your dns (`infra.acme.com` in our example) to this domain via your DNS provider.
 
 ## Using Infra
 
@@ -111,7 +111,7 @@ Run `infra login` to log into the infra server via the CLI using the password fr
 > Note: make sure you log into a Google account that's part of the group you specified when configuring Infra.
 
 ```
-$ infra login infra.acme.internal
+$ infra login infra.acme.com
 ... Opening Google login URL...
 
 ✓ Logged in
