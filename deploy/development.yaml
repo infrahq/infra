@@ -42,21 +42,26 @@ spec:
       serviceAccountName: infra-serviceaccount
       automountServiceAccountToken: true
       containers:
-      - name: server
-        image: infrahq/infra
-        imagePullPolicy: Never
-        stdin: true
-        tty: true
-        ports:
-        - containerPort: 3090
-        volumeMounts:
-        - name: infra-dev-storage
-          mountPath: /go/src/github.com/infrahq/infra
+        - name: server
+          image: infrahq/infra
+          imagePullPolicy: Never
+          stdin: true
+          tty: true
+          ports:
+            - containerPort: 3090
+          volumeMounts:
+            - name: infra-dev-storage
+              mountPath: /go/src/github.com/infrahq/infra
+            - name: config-volume
+              mountPath: /etc/infra/config.yaml
+              subPath: config.yaml
       volumes:
-      - name: infra-dev-storage
-        hostPath:
-          path: /Users/jmorgan/go/src/github.com/infrahq/infra
-          
+        - name: infra-dev-storage
+          hostPath:
+            path: /Users/jmorgan/go/src/github.com/infrahq/infra
+        - name: config-volume
+          configMap:
+            name: infra-config
 ---
 apiVersion: v1
 kind: Service
@@ -71,3 +76,25 @@ spec:
     - port: 3090
       targetPort: 3090
       nodePort: 30090
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: infra-config
+  namespace: infra
+data:
+  config.yaml: |
+    providers:
+      - kind: oidc
+        name: gsuite
+        config:
+          client-id: 424911365001.apps.googleusercontent.com
+          client-secret: 0a892jd018j2d01jd012082101212
+          id-token: ""
+          idp-issuer-url: "https://accounts.google.com"
+          refresh-token: ""
+        groups:
+          - developers@acme.com
+    permissions:
+      - group: developers@acme.com
+        role: view
