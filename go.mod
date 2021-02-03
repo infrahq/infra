@@ -7,6 +7,7 @@ require (
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/mattn/go-sqlite3 v1.14.6 // indirect
 	github.com/spf13/cobra v1.1.1
+	gopkg.in/yaml.v2 v2.2.8
 	gorm.io/driver/sqlite v1.1.4 // indirect
 	gorm.io/gorm v1.20.12
 	k8s.io/apimachinery v0.20.2 // indirect
