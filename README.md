@@ -25,31 +25,6 @@ Use cases:
 
 ## Installing
 
-Create a configuration file:
-
-```yaml
-domain: infra.acme.com
-
-identity:
-  providers:
-    - name: google
-      kind: oidc
-      config: 
-        client-id: acme-12345678.apps.googleusercontent.com
-        client-secret: example-secret
-        issuer-url: https://accounts.google.com
-        redirect-url: https://infra.acme.com:3090/v1/oidc/callback
-        scope: ['https://www.googleapis.com/auth/admin.directory.group.readonly', 'openid', 'email']
-      groups:
-        - developers@acme.com
-
-permissions:
-  - provider: google
-    group: developers@acme.com
-    role: view
-    namespace: default            # optional namespace
-```
-
 Install Infra via `kubectl`:
 
 ```
@@ -208,3 +183,29 @@ To view the ui, run `infra ui`. You'll automatically be logged if you're logged 
 * Audit log
 * Multi-namespace and multi-cluster queries
 
+### Configuring Infra to be scripted 
+
+Create a configuration file:
+
+```yaml
+domain: infra.acme.com
+
+identity:
+  providers:
+    - name: google
+      kind: oidc
+      config: 
+        client-id: acme-12345678.apps.googleusercontent.com
+        client-secret: example-secret
+        issuer-url: https://accounts.google.com
+        redirect-url: https://infra.acme.com:3090/v1/oidc/callback
+        scope: ['https://www.googleapis.com/auth/admin.directory.group.readonly', 'openid', 'email']
+      groups:
+        - developers@acme.com
+
+permissions:
+  - provider: google
+    group: developers@acme.com
+    role: view
+    namespace: default            # optional namespace
+```
