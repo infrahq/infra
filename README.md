@@ -150,8 +150,8 @@ To view all roles in the cluster, use `infra roles`:
 
 ```
 $ infra roles
-NAME        NAEMSPACE       DESCRIPTION         GRANTED GROUPS     GRANTED USERS
-view        default         Read-only access    1                  2
+NAME        NAMESPACE           GRANTED GROUPS      GRANTED USERS        DESCRIPTION 
+view        default             1                   2                    Read-only access
 ```
 
 ### Accessing the dashboard
