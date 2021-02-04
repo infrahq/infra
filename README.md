@@ -72,6 +72,7 @@ Available Commands:
   login       Login to an Infra server
   logout      Log out of an Infra server
   server      Run the infra server
+  install     Install infra-engine on a target server
 
 Flags:
   -h, --help   help for infra
