@@ -113,12 +113,21 @@ jeff@acme.com        google               view             default
 
 Users can be added in 2 ways: 
 -  infra.yaml for scriptability and integration into existing infrastructure as code tools such as Terraform, Ansible, Pulumi, and more. 
-- manually add 
+- [optional] manually add users: 
+
+``` 
+$ infra users add michael@acme.com --roles view --namespace default
+User michael@infrahq.com added with the following permissions: 
+USER                    PROVIDER             ROLES            NAMESPACE
+michael@acme.com        manual               view             default 
+
+One-time password for login: 
+$9fX5n@4l;3
+infra login infra.acme.com
+``` 
 
 
-```
 
-```
 
 ### Listing groups
 
