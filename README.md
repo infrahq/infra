@@ -45,10 +45,18 @@ Next, optionally map your dns (`infra.acme.com` in our example) to this domain v
 
 ### Installing the CLI
 
-* Mac: `brew cask install infra' 
-* Windows: `winget install --id infra.infra`  
+* Mac: 
+
+  `brew cask install infra`
+
+* Windows: 
+
+  `winget install --id infra.infra`  
+
 * Linux: 
+
   `sudo curl -L "https://infrahq.com/download/linux-$(uname -m)" -o /usr/local/bin/infra`
+
   `sudo chmod +x /usr/local/bin/infra` 
 
 ```
@@ -56,8 +64,8 @@ $ infra
 Infra: manage Kubernetes access
 
 Usage:
-  infra [flags]
   infra [command]
+  infra [flags]
 
 Available Commands:
   help        Help about any command
@@ -67,7 +75,7 @@ Available Commands:
   login       Login to an Infra server
   logout      Log out of an Infra server
   server      Run the infra server
-  install     Install infra-engine on a target server
+  install     Install infra-engine on a target Kubernetes cluster
 
 Flags:
   -h, --help   help for infra
@@ -75,9 +83,66 @@ Flags:
 Use "infra [command] --help" for more information about a command.
 ```
 
+### Login 
+
+Run `infra login` to log into the infra server via the CLI
+
+```
+$ infra login infra.acme.com
+... Opening Google login URL...
+
+✓ Logged in
+✓ Kubeconfig updated
+```
+
+Infra has updated your Kubeconfig with an entry for connecting to the cluster 
+
+## Administration
+
+### Listing users
+
+List users that have been synchronized to Infra:
+
+```
+$ infra users
+USER                 PROVIDER             ROLES            NAMESPACE
+jeff@acme.com        google               view             default
+```
+
+### Adding users 
+
+Users can be added in 2 ways: 
+-  infra.yaml for scriptability and integration into existing infrastructure as code tools such as Terraform, Ansible, Pulumi, and more. 
+- manually add 
+
+
+```
+
+```
+
+### Listing groups
+
+To view groups that have been synchronized to Infra, use `infra groups`:
+
+```
+$ infra groups
+NAME                  PROVIDER        USERS          ROLES
+developers@acme.com   google          2              view
+```
+
+### Listing roles
+
+To view all roles in the cluster, use `infra roles`:
+
+```
+$ infra roles
+NAME        NAMESPACE           GRANTED GROUPS      GRANTED USERS        DESCRIPTION 
+view        default             1                   2                    Read-only access
+```
+
 ### Logging in
 
-Run `infra login` to log into the infra server via the CLI using the password from the previous step:
+ using the password from the previous step:
 
 > Note: make sure you log into a Google account that's part of the group you specified when configuring Infra.
 
@@ -115,39 +180,6 @@ Since we specified view access to this user group, they cannot create or delete 
 ```
 $ kubectl run nginx --image=nginx
 403 Forbidden
-```
-
-## Administration
-
-### Listing users
-
-List users that have been synchronized to Infra:
-
-```
-$ infra users
-USER                 PROVIDER             ROLES            NAMESPACE
-jeff@acme.com        google               view             default
-michael@acme.com     google               view             default
-```
-
-### Listing groups
-
-To view groups that have been synchronized to Infra, use `infra groups`:
-
-```
-$ infra groups
-NAME                  PROVIDER        USERS          ROLES
-developers@acme.com   google          2              view
-```
-
-### Listing roles
-
-To view all roles in the cluster, use `infra roles`:
-
-```
-$ infra roles
-NAME        NAMESPACE           GRANTED GROUPS      GRANTED USERS        DESCRIPTION 
-view        default             1                   2                    Read-only access
 ```
 
 ### Accessing the dashboard
