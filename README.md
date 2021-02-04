@@ -123,11 +123,10 @@ michael@acme.com        manual               view             default
 
 One-time password for login: 
 $9fX5n@4l;3
+
+Please login using:
 infra login infra.acme.com
 ``` 
-
-
-
 
 ### Listing groups
 
@@ -167,6 +166,7 @@ Infra has updated your Kubeconfig with an entry for connecting to the cluster vi
 
 ```
 $ kubectl get pods -A
+NAMESPACE     NAME                                                           READY   STATUS    RESTARTS   AGE
 kube-system   event-exporter-gke-564fb97f9-wvwrf                             2/2     Running   0          4d3h
 kube-system   fluentbit-gke-5b49s                                            2/2     Running   0          4d3h
 kube-system   fluentbit-gke-6f2xf                                            2/2     Running   0          4d3h
