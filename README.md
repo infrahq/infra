@@ -29,12 +29,6 @@ Install Infra via `kubectl`:
 
 ```
 $ kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/master/kubernetes/infra.yaml
-clusterrolebinding created...
-namespace created...
-serviceaccount created...
-configmap created...
-service created...
-deployment created...
 ```
 
 Then find the service on which Infra is listening:
@@ -51,12 +45,13 @@ Next, optionally map your dns (`infra.acme.com` in our example) to this domain v
 
 ### Installing the CLI
 
-* [Download](https://infrahq.com/download) the CLI for your platform
-
-* Move it to your `/usr/local/bin`:
+* Mac: `brew cask install infra' 
+* Windows: `winget install --id infra.infra`  
+* Linux: 
+  `sudo curl -L "https://infrahq.com/download/linux-$(uname -m)" -o /usr/local/bin/infra`
+  `sudo chmod +x /usr/local/bin/infra` 
 
 ```
-$ mv ~/Downloads/infra /usr/local/bin/infra && chmod +x /usr/local/bin/infra
 $ infra
 Infra: manage Kubernetes access
 
