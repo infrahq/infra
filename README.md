@@ -117,7 +117,7 @@ Users can be added in 2 ways:
 
 ``` 
 $ infra users add michael@acme.com --roles view --namespace default
-User michael@infrahq.com added with the following permissions: 
+User michael@acme.com added with the following permissions: 
 USER                    PROVIDER             ROLES            NAMESPACE
 michael@acme.com        manual               view             default 
 
@@ -148,48 +148,6 @@ NAME        NAMESPACE           GRANTED GROUPS      GRANTED USERS        DESCRIP
 view        default             1                   2                    Read-only access
 ```
 
-### Logging in
-
- using the password from the previous step:
-
-> Note: make sure you log into a Google account that's part of the group you specified when configuring Infra.
-
-```
-$ infra login infra.acme.com
-... Opening Google login URL...
-
-✓ Logged in
-✓ Kubeconfig updated
-```
-
-Infra has updated your Kubeconfig with an entry for connecting to the cluster via Infra:
-
-```
-$ kubectl get pods -A
-NAMESPACE     NAME                                                           READY   STATUS    RESTARTS   AGE
-kube-system   event-exporter-gke-564fb97f9-wvwrf                             2/2     Running   0          4d3h
-kube-system   fluentbit-gke-5b49s                                            2/2     Running   0          4d3h
-kube-system   fluentbit-gke-6f2xf                                            2/2     Running   0          4d3h
-kube-system   gke-metrics-agent-h2crq                                        1/1     Running   0          4d3h
-kube-system   gke-metrics-agent-w5xbj                                        1/1     Running   0          4d3h
-kube-system   konnectivity-agent-h8wzm                                       1/1     Running   0          4d3h
-kube-system   konnectivity-agent-vrrs4                                       1/1     Running   0          4d3h
-kube-system   kube-dns-6bd88c9b66-j7jpj                                      4/4     Running   0          4d3h
-kube-system   kube-dns-6bd88c9b66-qfwln                                      4/4     Running   0          4d3h
-kube-system   kube-dns-autoscaler-7f89fb6b79-jr6dc                           1/1     Running   0          4d3h
-kube-system   kube-proxy-gke-infra-app-production-production-6804f449-4jmx   1/1     Running   0          4d3h
-kube-system   kube-proxy-gke-infra-app-production-production-6804f449-uriy   1/1     Running   0          4d3h
-kube-system   l7-default-backend-5b76b455d-2lw7n                             1/1     Running   0          4d3h
-kube-system   metrics-server-v0.3.6-7c5cb99b6f-kzcqr                         2/2     Running   0          4d3h
-kube-system   stackdriver-metadata-agent-cluster-level-7d7947fd69-bxtxz      2/2     Running   0          4d3h
-```
-
-Since we specified view access to this user group, they cannot create or delete any resources:
-
-```
-$ kubectl run nginx --image=nginx
-403 Forbidden
-```
 
 ### Accessing the dashboard
 
