@@ -39,25 +39,33 @@ NAME             TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)        AG
 infra-service    LoadBalancer   10.12.11.116   32.71.121.168   80:32322/TCP   1m
 ```
 
+For users wishing to use infra-engine through a VPC or ingress, please see advanced set-up. 
+
 Next, optionally map your dns (`infra.acme.com` in our example) to this domain via your DNS provider.
 
 ## Using Infra
 
 ### Installing the CLI
 
-* Mac: 
+**Mac:** 
 
-  `brew cask install infra`
+```
+brew cask install infra
+```
 
-* Windows: 
+**Windows:** 
 
-  `winget install --id infra.infra`  
+```
+winget install --id infra.infra
+```  
 
-* Linux: 
+**Linux:** 
 
-  `sudo curl -L "https://infrahq.com/download/linux-$(uname -m)" -o /usr/local/bin/infra`
+```
+sudo curl -L "https://infrahq.com/download/linux-$(uname -m)" -o /usr/local/bin/infra
 
-  `sudo chmod +x /usr/local/bin/infra` 
+sudo chmod +x /usr/local/bin/infra
+```
 
 ```
 $ infra
@@ -135,7 +143,7 @@ To view groups that have been synchronized to Infra, use `infra groups`:
 ```
 $ infra groups
 NAME                  PROVIDER        USERS          ROLES
-developers@acme.com   google          2              view
+developers@acme.com   google          1              view
 ```
 
 ### Listing roles
@@ -145,7 +153,7 @@ To view all roles in the cluster, use `infra roles`:
 ```
 $ infra roles
 NAME        NAMESPACE           GRANTED GROUPS      GRANTED USERS        DESCRIPTION 
-view        default             1                   2                    Read-only access
+view        default             1                   1                    Read-only access
 ```
 
 
@@ -158,25 +166,9 @@ To view the ui, run `infra ui`. You'll automatically be logged if you're logged 
 ![Screen Shot 2021-01-22 at 2 40 10 PM](https://user-images.githubusercontent.com/251292/105537327-c1828f00-5cbf-11eb-9e8a-00b96678a121.png)
 
 
-## Advanced
-
-### Auditing access
-
-### Adding additional Kubernetes clusters
-
-## Coming Soon
-
-* Configuration via yaml
-* Support for GSuite, GitHub, Okta, Microsoft AD identity providers
-* Groups (incl. sync from identity providers)
-* Enforce RBAC rules across clusters
-* UI
-* Multiple clusters
-* Dynamic cluster discovery
-* Tunneling for cross-network access
-* Support for Postgresql storage back-end
-* Audit log
-* Multi-namespace and multi-cluster queries
+## Advanced (Coming Soon)
+* Adding additional Kubernetes clusters
+* Auditing access/logs (when & who did what )
 
 ### Configuring Infra to be scripted 
 
