@@ -132,7 +132,6 @@ backupstoragelocations.velero.io                              ✔     ✔       
 bgpconfigurations.crd.projectcalico.org                       ✔     ✔       ✔       ✔
 bindings                                                            ✔               
 certificatesigningrequests.certificates.k8s.io                ✔     ✔       ✔       ✔
-clusterauthtokens.cluster.cattle.io                           ✔     ✔       ✔       ✔
 clusterinformations.crd.projectcalico.org                     ✔     ✔       ✔       ✔
 clusterrolebindings.rbac.authorization.k8s.io                 ✔     ✔       ✔       ✔
 clusterroles.rbac.authorization.k8s.io                        ✔     ✔       ✔       ✔
