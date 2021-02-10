@@ -279,7 +279,7 @@ identity:
       kind: oidc
       config: 
         client-id: acme-12345678.apps.googleusercontent.com
-        client-secret: example-secret
+        client-secret: /etc/infra/client-secret
         issuer-url: https://accounts.google.com
         redirect-url: https://infra.acme.com:3090/v1/oidc/callback
         scope: ['https://www.googleapis.com/auth/admin.directory.group.readonly', 'openid', 'email']
