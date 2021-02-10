@@ -14,7 +14,7 @@ Identity and access management for Kubernetes. Instead of creating separate cred
 
 Use cases:
 * Fine-grained permissions
-* Multi-cloud cluster access
+* Cloud vendor-agnostic / Multi-cloud cluster access
 * Mapping existing users & groups (in GSuite, Okta, etc) into Kubernetes groups
 * On-boarding and off-boarding users
 
