@@ -10,7 +10,7 @@
 
 ## Introduction
 
-Identity and access management for Kubernetes. Instead of creating separate credentials and writing scripts to map permissions to Kubernetes, developers & IT teams can integrate existing identity providers (GitHub Auth, Okta, Microsoft AD, or Google accounts) to securely provide developers with access to Kubernetes.
+Identity and access management for Kubernetes. Instead of creating separate credentials and writing scripts to map permissions to Kubernetes, developers & IT teams can integrate existing identity providers (Okta, Google accounts, GitHub auth, Azure active directory) to securely provide developers with access to Kubernetes.
 
 Use cases:
 * Fine-grained permissions
@@ -289,6 +289,6 @@ identity:
 permissions:
   - provider: google
     group: developers@acme.com
-    role: view
+    role: admin
     namespace: default            # optional namespace
 ```
