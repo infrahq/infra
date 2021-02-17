@@ -22,7 +22,7 @@ Use cases:
 
 ## Architecture
 
-![Screen Shot 2021-01-27 at 11 05 44 PM](https://user-images.githubusercontent.com/251292/106088560-3573cb80-60f4-11eb-8f6f-8ae6688418f4.png)
+![Screen Shot 2021-01-27 at 11 05 44 PM](https://user-images.githubusercontent.com/3325447/108264403-7b411400-7135-11eb-8e0a-07990150773d.png)
 
 ## Installing
 
