@@ -240,6 +240,7 @@ To view groups that have been synchronized to Infra, use `infra groups`:
 $ infra groups
 NAME                  PROVIDER        USERS          ROLES
 developers@acme.com   google          1              admin
+local                 local           1              view
 ```
 
 ### Listing roles
