@@ -16,7 +16,7 @@ Use cases:
 * Fine-grained permissions
 * Mapping existing users & groups (in GSuite, Okta, etc) into Kubernetes groups
 * On-boarding and off-boarding users
-* Cloud vendor-agnostic / Multi-cloud cluster access
+* Cloud vendor-agnostic
 * Audit logs (who did what, when)
 
 
