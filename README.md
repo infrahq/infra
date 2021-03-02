@@ -1,6 +1,6 @@
 # Infra
 
-![infra](https://user-images.githubusercontent.com/3325447/109728484-45178180-7b84-11eb-9641-fcd14218b7cd.png)
+![infra](https://user-images.githubusercontent.com/3325447/109728544-68423100-7b84-11eb-8fc0-759df7c3b974.png)
 
 * Website: https://infrahq.com
 * Docs: https://infrahq.com/docs
