@@ -15,7 +15,8 @@ Identity and access management for Kubernetes. Instead of creating separate cred
 Use cases:
 * Fine-grained permissions
 * Mapping existing users & groups (in Okta, Azure AD, Google, etc) into Kubernetes groups
-* On-boarding and off-boarding users (no more out of sync Kubeconfig)
+* On-boarding and off-boarding users (automatically sync users against identity providers)
+* No more out of sync Kubeconfig
 * Cloud vendor-agnostic
 * Audit logs (who did what, when)
 
