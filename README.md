@@ -262,7 +262,7 @@ Infra's dashboard is always available at `https://<infra hostname>/dashboard`
 
 To view the ui, run `infra ui`. You'll automatically be logged if you're logged in on the CLI. Otherwise you'll be greeted with a login screen.
 
-![Screen Shot 2021-01-22 at 2 40 10 PM](https://user-images.githubusercontent.com/251292/105537327-c1828f00-5cbf-11eb-9e8a-00b96678a121.png)
+![product](https://user-images.githubusercontent.com/3325447/110035058-2db5d100-7d09-11eb-96c2-ab51f5e03e54.png)
 
 
 ## Advanced (Coming Soon)
