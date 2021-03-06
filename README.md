@@ -38,7 +38,7 @@ Then find the service on which Infra is listening:
 ```
 $ kubectl get svc -n infra
 NAME             TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)        AGE
-infra-engine    LoadBalancer   10.12.11.116   32.71.121.168   80:32322/TCP   1m
+infra-engine     LoadBalancer   10.12.11.116   32.71.121.168   80:32322/TCP   1m
 ```
 
 For users wishing to use infra-engine through a VPC or ingress, please see advanced set-up. 
