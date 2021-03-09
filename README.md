@@ -23,7 +23,7 @@ Use cases:
 
 ## Architecture
 
-![architecture](https://user-images.githubusercontent.com/3325447/110035578-da904e00-7d09-11eb-9546-eef4145fac27.png)
+![architecture](https://user-images.githubusercontent.com/3325447/110492186-f60ba800-80bf-11eb-9613-a469136d57bd.png)
 
 ## Installing
 
