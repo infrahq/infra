@@ -1,7 +1,10 @@
 # Infra
-
 <p align="center">
+  <br/>
+  <br/>
   <img src="https://user-images.githubusercontent.com/3325447/109728544-68423100-7b84-11eb-8fc0-759df7c3b974.png" height="128" />
+  <br/>
+  <br/>
 </p>
 
 * Website: https://infrahq.com
@@ -26,7 +29,11 @@ Use cases:
 ## Architecture
 
 <p align="center">
+  <br/>
+  <br/>
   <img src="https://user-images.githubusercontent.com/3325447/110492186-f60ba800-80bf-11eb-9613-a469136d57bd.png" />
+  <br/>
+  <br/>
 </p>
 
 ## Installing
