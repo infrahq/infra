@@ -27,6 +27,10 @@ Use cases:
 
 ![architecture](https://user-images.githubusercontent.com/3325447/110492186-f60ba800-80bf-11eb-9613-a469136d57bd.png)
 
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/3325447/110492186-f60ba800-80bf-11eb-9613-a469136d57bd.png" />
+</p>
+
 ## Installing
 
 Install Infra via `kubectl`:
