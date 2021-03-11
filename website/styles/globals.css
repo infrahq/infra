@@ -1,16 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 html,
-body {
+body,
+#__next {
   padding: 0;
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
-    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
-}
+  font-family: -apple-system, sans-serif;
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
+  @apply w-full;
+  @apply h-full;
 
-* {
-  box-sizing: border-box;
+  background: linear-gradient(180deg, #262829 0%, #151718 100%);
 }
