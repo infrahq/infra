@@ -12,5 +12,5 @@ body,
   @apply w-full;
   @apply h-full;
 
-  background: linear-gradient(180deg, #262829 0%, #151718 100%);
+  background: linear-gradient(180deg, #2A2C2D 0%, #151718 100%);
 }
