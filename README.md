@@ -63,6 +63,34 @@ The default generated password for logging into Infra
 kubectl get -secret in k8s- 
 ```
 
+## Configuring Users/Groups 
+
+By default, you can manually add/remove users via `infra users add` or `infra users remove`. In this case Infra will act as it's own identity provider. The output will be the user name and one-time password for logging into Infra. 
+
+### Configuring Infra to be scripted 
+
+Create a configuration file:
+
+```yaml
+identity:
+  providers:
+    - name: google
+      kind: oidc
+      config: 
+        client-id: acme-12345678.apps.googleusercontent.com
+        client-secret: /etc/infra/client-secret
+        issuer-url: https://accounts.google.com
+        redirect-url: https://infra.acme.com:3090/v1/oidc/callback
+        scope: ['https://www.googleapis.com/auth/admin.directory.group.readonly', 'openid', 'email']
+      groups:
+        - developers@acme.com
+
+permissions:
+  - provider: google
+    group: developers@acme.com
+    role: admin
+    namespace: default            # optional namespace
+```
 
 
 
@@ -91,20 +119,6 @@ Flags:
 
 Use "infra [command] --help" for more information about a command.
 ```
-
-### Login 
-
-Run `infra login` to log into the infra server via the CLI
-
-```
-$ infra login infra.acme.com
-... Opening Google login URL...
-
-✓ Logged in
-✓ Kubeconfig updated
-```
-
-Infra has updated your Kubeconfig with an entry for connecting to the cluster 
 
 ## Administration
 
@@ -252,45 +266,4 @@ $ infra roles
 NAME        NAMESPACE           GRANTED GROUPS      GRANTED USERS        DESCRIPTION 
 admin       default             1                   1                    Admin access
 view        default             1                   1                    Read-only access
-```
-
-
-### Accessing the dashboard
-
-Infra's dashboard is always available at `https://<infra hostname>/dashboard`
-
-To view the ui, run `infra ui`. You'll automatically be logged if you're logged in on the CLI. Otherwise you'll be greeted with a login screen.
-
-![product](https://user-images.githubusercontent.com/3325447/110035290-779eb700-7d09-11eb-952b-f18190a1ddb3.png)
-
-
-## Advanced (Coming Soon)
-* Adding additional Kubernetes clusters
-* Auditing access/logs (when & who did what )
-
-### Configuring Infra to be scripted 
-
-Create a configuration file:
-
-```yaml
-domain: infra.acme.com
-
-identity:
-  providers:
-    - name: google
-      kind: oidc
-      config: 
-        client-id: acme-12345678.apps.googleusercontent.com
-        client-secret: /etc/infra/client-secret
-        issuer-url: https://accounts.google.com
-        redirect-url: https://infra.acme.com:3090/v1/oidc/callback
-        scope: ['https://www.googleapis.com/auth/admin.directory.group.readonly', 'openid', 'email']
-      groups:
-        - developers@acme.com
-
-permissions:
-  - provider: google
-    group: developers@acme.com
-    role: admin
-    namespace: default            # optional namespace
 ```
