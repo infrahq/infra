@@ -55,10 +55,9 @@ func main() {
 				Name:  "start",
 				Usage: "Start the Infra Engine",
 				Action: func(c *cli.Context) error {
-					options := &server.Options{
+					server.Run(&server.Options{
 						Port: 3001,
-					}
-					server.Run(options)
+					})
 					return nil
 				},
 			},
