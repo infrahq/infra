@@ -47,7 +47,12 @@ $ kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/master/kubern
 
 2. Install Infra CLI 
 
-3. You will need to find the IP address of your Kubernetes cluster 
+
+3. Open a terminal and log into Infra 
+```
+infra login IP_address_of_your_Kubernetes_cluster
+```
+To find your cluster IP / password: 
 ``` 
 $ kubectl cluster-info
 
@@ -57,12 +62,6 @@ The default generated password for logging into Infra
 ```
 kubectl get -secret in k8s- 
 ```
-
-4. Open a terminal and log into Infra 
-```
-infra login IP_address_of_your_Kubernetes_cluster
-```
-Note: you'll be prompted to change your password on first login. 
 
 
 
