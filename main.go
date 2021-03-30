@@ -36,7 +36,7 @@ func main() {
 			},
 			{
 				Name:  "login",
-				Usage: "Login to an Infra registry",
+				Usage: "Login to an Infra Engine",
 				Action: func(c *cli.Context) error {
 					fmt.Println("NOT IMPLEMENTED")
 					return nil
@@ -44,7 +44,7 @@ func main() {
 			},
 			{
 				Name:  "logout",
-				Usage: "Log out of an Infra registry",
+				Usage: "Log out of an Infra Engine",
 				Action: func(c *cli.Context) error {
 					fmt.Println("NOT IMPLEMENTED")
 					return nil
