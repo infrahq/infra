@@ -38,12 +38,11 @@ Use cases:
 
 ## Installing
 
-1. Deploy Infra via `kubectl`:
+1. Deploy Infra:
 
 ```
 $ kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/master/kubernetes/infra.yaml
 ```
-(This sets up a deployment of the Infra Registry) 
 
 2. Install Infra CLI 
 
