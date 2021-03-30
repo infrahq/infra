@@ -5,13 +5,9 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/http/httputil"
-	"net/url"
 
 	"github.com/julienschmidt/httprouter"
 	"gopkg.in/yaml.v2"
-
-	"k8s.io/client-go/rest"
 )
 
 // Options provides the configuration options for the Infra server
@@ -39,18 +35,16 @@ type config struct {
 // Run runs the infra server
 func Run(options *Options) error {
 	// Load the config file
-	raw, err := ioutil.ReadFile(options.ConfigPath)
-	if err != nil {
-		return err
-	}
+	raw, _ := ioutil.ReadFile(options.ConfigPath)
+	// if err != nil {
+	// 	panic(err)
+	// }
 
 	config := config{}
-	err = yaml.Unmarshal(raw, &config)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("--- m:\n%v\n\n", config)
+	_ = yaml.Unmarshal(raw, &config)
+	// if err != nil {
+	// 	panic(err)
+	// }
 
 	// TODO: Parse OIDC config
 
@@ -58,27 +52,8 @@ func Run(options *Options) error {
 
 	// TODO: load
 
-	// Run proxy
-	kubeConfig, err := rest.InClusterConfig()
-	if err != nil {
-		panic(err.Error())
-	}
-
-	url, err := url.Parse(kubeConfig.Host)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	transport, err := rest.TransportFor(kubeConfig)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	proxy := httputil.NewSingleHostReverseProxy(url)
-	proxy.Transport = transport
-
 	handler := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		proxy.ServeHTTP(w, r)
+
 	}
 
 	router := httprouter.New()

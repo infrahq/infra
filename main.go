@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/infrahq/infra/internal/server"
 	"github.com/urfave/cli/v2"
 )
 
@@ -14,7 +15,7 @@ func main() {
 		Commands: []*cli.Command{
 			{
 				Name:  "user",
-				Usage: "options for task templates",
+				Usage: "Manage users",
 				Subcommands: []*cli.Command{
 					{
 						Name:  "add",
@@ -54,7 +55,10 @@ func main() {
 				Name:  "start",
 				Usage: "Start the Infra Engine",
 				Action: func(c *cli.Context) error {
-					fmt.Println("NOT IMPLEMENTED")
+					options := &server.Options{
+						Port: 3001,
+					}
+					server.Run(options)
 					return nil
 				},
 			},
