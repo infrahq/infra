@@ -94,7 +94,7 @@ permissions:
 
 
 
-### CLI Reference 
+## Infra CLI 
 
 ```
 $ infra
