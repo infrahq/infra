@@ -23,7 +23,7 @@ Use cases:
 * On-boarding and off-boarding users (automatically sync users against identity providers)
 * No more out of sync Kubeconfig
 * Cloud vendor-agnostic
-* Audit logs (who did what, when)
+* Coming soon: Audit logs (who did what, when)
 
 
 ## Architecture
@@ -38,47 +38,36 @@ Use cases:
 
 ## Installing
 
-Install Infra via `kubectl`:
+1. Deploy Infra via `kubectl`:
 
 ```
 $ kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/master/kubernetes/infra.yaml
 ```
+(This sets up a deployment of the Infra Registry) 
 
-Then find the service on which Infra is listening:
+2. Install Infra CLI 
 
+3. You will need to find the IP address of your Kubernetes cluster 
+``` 
+$ kubectl cluster-info
+
+Kubernetes control plane is running at https://xxx.xxx.xxx.xxx
 ```
-$ kubectl get svc -n infra
-NAME             TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)        AGE
-infra-engine     LoadBalancer   10.12.11.116   32.71.121.168   80:32322/TCP   1m
+The default generated password for logging into Infra 
 ```
-
-For users wishing to use infra-engine through a VPC or ingress, please see advanced set-up. 
-
-Next, optionally map your dns (`infra.acme.com` in our example) to this domain via your DNS provider.
-
-## Using Infra
-
-### Installing the CLI
-
-**Mac:** 
-
-```
-brew cask install infra
+kubectl get -secret in k8s- 
 ```
 
-**Windows:** 
-
+4. Open a terminal and log into Infra 
 ```
-winget install --id infra.infra
-```  
-
-**Linux:** 
-
+infra login IP_address_of_your_Kubernetes_cluster
 ```
-sudo curl -L "https://infrahq.com/download/linux-$(uname -m)" -o /usr/local/bin/infra
+Note: you'll be prompted to change your password on first login. 
 
-sudo chmod +x /usr/local/bin/infra
-```
+
+
+
+### CLI Reference 
 
 ```
 $ infra
