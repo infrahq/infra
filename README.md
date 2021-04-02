@@ -23,7 +23,7 @@ Use cases:
 * On-boarding and off-boarding users (automatically sync users against identity providers)
 * No more out of sync Kubeconfig
 * Cloud vendor-agnostic
-* Audit logs (who did what, when)
+* Coming soon: Audit logs (who did what, when)
 
 
 ## Architecture
@@ -36,49 +36,24 @@ Use cases:
   <br/>
 </p>
 
-## Installing
+## Quick Start
 
-Install Infra via `kubectl`:
+1. Deploy Infra:
 
 ```
 $ kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/master/kubernetes/infra.yaml
 ```
 
-Then find the service on which Infra is listening:
+2. Install Infra CLI 
+
+
+3. Log into Infra 
 
 ```
-$ kubectl get svc -n infra
-NAME             TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)        AGE
-infra-engine     LoadBalancer   10.12.11.116   32.71.121.168   80:32322/TCP   1m
+$ infra login cluster_IP
 ```
 
-For users wishing to use infra-engine through a VPC or ingress, please see advanced set-up. 
-
-Next, optionally map your dns (`infra.acme.com` in our example) to this domain via your DNS provider.
-
-## Using Infra
-
-### Installing the CLI
-
-**Mac:** 
-
-```
-brew cask install infra
-```
-
-**Windows:** 
-
-```
-winget install --id infra.infra
-```  
-
-**Linux:** 
-
-```
-sudo curl -L "https://infrahq.com/download/linux-$(uname -m)" -o /usr/local/bin/infra
-
-sudo chmod +x /usr/local/bin/infra
-```
+## Infra CLI 
 
 ```
 $ infra
@@ -103,20 +78,6 @@ Flags:
 
 Use "infra [command] --help" for more information about a command.
 ```
-
-### Login 
-
-Run `infra login` to log into the infra server via the CLI
-
-```
-$ infra login infra.acme.com
-... Opening Google login URL...
-
-✓ Logged in
-✓ Kubeconfig updated
-```
-
-Infra has updated your Kubeconfig with an entry for connecting to the cluster 
 
 ## Administration
 
@@ -266,27 +227,11 @@ admin       default             1                   1                    Admin a
 view        default             1                   1                    Read-only access
 ```
 
-
-### Accessing the dashboard
-
-Infra's dashboard is always available at `https://<infra hostname>/dashboard`
-
-To view the ui, run `infra ui`. You'll automatically be logged if you're logged in on the CLI. Otherwise you'll be greeted with a login screen.
-
-![product](https://user-images.githubusercontent.com/3325447/110035290-779eb700-7d09-11eb-952b-f18190a1ddb3.png)
-
-
-## Advanced (Coming Soon)
-* Adding additional Kubernetes clusters
-* Auditing access/logs (when & who did what )
-
 ### Configuring Infra to be scripted 
 
 Create a configuration file:
 
 ```yaml
-domain: infra.acme.com
-
 identity:
   providers:
     - name: google
