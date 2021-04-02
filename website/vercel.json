@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/docs", "destination": "https://docs.infrahq.com/" }
+  ]
+}
