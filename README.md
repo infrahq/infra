@@ -53,6 +53,7 @@ brew cask install infra
 Windows: 
 
 winget install --id infra.infra
+
 Linux: 
 
 sudo curl -L "https://infrahq.com/download/linux-$(uname -m)" -o /usr/local/bin/infra
