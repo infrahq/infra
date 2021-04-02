@@ -36,7 +36,7 @@ Use cases:
   <br/>
 </p>
 
-## Installing
+## Quick Start
 
 1. Deploy Infra:
 
@@ -52,11 +52,6 @@ $ kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/master/kubern
 ```
 $ infra login cluster_IP
 ```
-
-
-## Configuring Users/Groups 
-
-By default, you can manually add/remove users via `infra users add` or `infra users remove`. In this case Infra will act as it's own identity provider. The output will be the user name and one-time password for logging into Infra. 
 
 ## Infra CLI 
 
