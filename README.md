@@ -31,7 +31,7 @@ Use cases:
 <p align="center">
   <br/>
   <br/>
-  <img src="https://user-images.githubusercontent.com/3325447/110492186-f60ba800-80bf-11eb-9613-a469136d57bd.png" />
+  <img src="https://user-images.githubusercontent.com/251292/113448649-395cec00-93ca-11eb-9c70-ea4c5c9f82da.png" />
   <br/>
   <br/>
 </p>
