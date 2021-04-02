@@ -52,7 +52,7 @@ brew cask install infra
 # Windows
 winget install --id infra.infra
 
-Linux
+# Linux
 curl -L "https://github.com/infrahq/infra/releases/download/latest/infra-linux-$(uname -m)" -o /usr/local/bin/infra
 ```
 
@@ -79,9 +79,8 @@ Available Commands:
   groups        List available groups
   roles         List available roles
   permissions   List configured permissions
-  login         Login to an Infra server
-  logout        Log out of an Infra server
-  install       Install infra-engine on a target Kubernetes cluster
+  login         Log in to an Infra engine
+  logout        Log out of an Infra engine
 
 Flags:
   -h, --help   help for infra
@@ -93,7 +92,7 @@ Use "infra [command] --help" for more information about a command.
 
 ### Listing users
 
-List users that have been synchronized to Infra:
+List users that have been added to Infra:
 
 ```
 $ infra users
