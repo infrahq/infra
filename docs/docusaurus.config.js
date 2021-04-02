@@ -6,25 +6,18 @@ module.exports = {
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico',
-  organizationName: 'facebook', // Usually your GitHub org/user name.
-  projectName: 'docusaurus', // Usually your repo name.
+  organizationName: 'infrahq', // Usually your GitHub org/user name.
+  projectName: 'infra', // Usually your repo name.
   themeConfig: {
     navbar: {
-      title: 'Infra ',
+      title: 'Infra',
       logo: {
         alt: 'My Site Logo',
         src: 'img/logo.svg',
       },
       items: [
         {
-          to: 'docs/',
-          activeBasePath: 'docs',
-          label: 'Docs',
-          position: 'left',
-        },
-        {to: 'blog', label: 'Blog', position: 'left'},
-        {
-          href: 'https://github.com/facebook/docusaurus',
+          href: 'https://github.com/infrahq/infra',
           label: 'GitHub',
           position: 'right',
         },
