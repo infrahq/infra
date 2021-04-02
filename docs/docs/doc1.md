@@ -1,205 +1,299 @@
 ---
 id: doc1
-title: Style Guide
-sidebar_label: Style Guide
+title: Quick Start
+sidebar_label: Quick Start
 slug: /
 ---
 
-You can write content using [GitHub-flavored Markdown syntax](https://github.github.com/gfm/).
 
-## Markdown Syntax
+# Infra
+<p align="center">
+  <br/>
+  <br/>
+  <img src="https://user-images.githubusercontent.com/3325447/109728544-68423100-7b84-11eb-8fc0-759df7c3b974.png" height="128" />
+  <br/>
+  <br/>
+</p>
 
-To serve as an example page when styling markdown based Docusaurus sites.
+* Website: https://infrahq.com
+* Docs: https://infrahq.com/docs
+* Slack: https://infra-slack.slack.com
 
-## Headers
+> We take security very seriously. If you have found a security vulnerability please disclose it privately to us by email via [security@infrahq.com](mailto:security@infrahq.com)
 
-# H1 - Create the best documentation
+## Introduction
 
-## H2 - Create the best documentation
+Identity and access management for Kubernetes. Instead of creating separate credentials and writing scripts to map permissions to Kubernetes, developers & IT teams can integrate existing identity providers (Okta, Google accounts, GitHub auth, Azure active directory) to securely provide developers with access to Kubernetes.
 
-### H3 - Create the best documentation
+Use cases:
+* Fine-grained permissions
+* Mapping existing users & groups (in Okta, Azure AD, Google, etc) into Kubernetes groups
+* On-boarding and off-boarding users (automatically sync users against identity providers)
+* No more out of sync Kubeconfig
+* Cloud vendor-agnostic
+* Coming soon: Audit logs (who did what, when)
 
-#### H4 - Create the best documentation
 
-##### H5 - Create the best documentation
+## Architecture
 
-###### H6 - Create the best documentation
+<p align="center">
+  <br/>
+  <br/>
+  <img src="https://user-images.githubusercontent.com/251292/113448649-395cec00-93ca-11eb-9c70-ea4c5c9f82da.png" />
+  <br/>
+  <br/>
+</p>
 
----
+## Quick Start
 
-## Emphasis
-
-Emphasis, aka italics, with _asterisks_ or _underscores_.
-
-Strong emphasis, aka bold, with **asterisks** or **underscores**.
-
-Combined emphasis with **asterisks and _underscores_**.
-
-Strikethrough uses two tildes. ~~Scratch this.~~
-
----
-
-## Lists
-
-1. First ordered list item
-1. Another item
-
-- Unordered sub-list.
-
-1. Actual numbers don't matter, just that it's a number
-1. Ordered sub-list
-1. And another item.
-
-- Unordered list can use asterisks
-
-* Or minuses
-
-- Or pluses
-
----
-
-## Links
-
-[I'm an inline-style link](https://www.google.com/)
-
-[I'm an inline-style link with title](https://www.google.com/ "Google's Homepage")
-
-[I'm a reference-style link][arbitrary case-insensitive reference text]
-
-[You can use numbers for reference-style link definitions][1]
-
-Or leave it empty and use the [link text itself].
-
-URLs and URLs in angle brackets will automatically get turned into links. http://www.example.com/ or <http://www.example.com/> and sometimes example.com (but not on GitHub, for example).
-
-Some text to show that the reference links can follow later.
-
-[arbitrary case-insensitive reference text]: https://www.mozilla.org/
-[1]: http://slashdot.org/
-[link text itself]: http://www.reddit.com/
-
----
-
-## Images
-
-Here's our logo (hover to see the title text):
-
-Inline-style: ![alt text](https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon48.png 'Logo Title Text 1')
-
-Reference-style: ![alt text][logo]
-
-[logo]: https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon48.png 'Logo Title Text 2'
-
-Images from any folder can be used by providing path to file. Path should be relative to the original markdown file or absolute to the `/static` folder.
-
-![img](/img/logo.svg)
-
----
-
-## Code
-
-```javascript
-var s = 'JavaScript syntax highlighting';
-alert(s);
-```
-
-```python
-s = "Python syntax highlighting"
-print(s)
-```
+1. Deploy Infra:
 
 ```
-No language indicated, so no syntax highlighting.
-But let's throw in a <b>tag</b>.
+kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/master/kubernetes/infra.yaml
 ```
 
-```js {2}
-function highlightMe() {
-  console.log('This line can be highlighted!');
-}
+2. Install Infra CLI 
+```
+# macOS
+brew cask install infra
+
+# Windows
+winget install --id infra.infra
+
+# Linux
+curl -L "https://github.com/infrahq/infra/releases/download/latest/infra-linux-$(uname -m)" -o /usr/local/bin/infra
 ```
 
----
 
-## Tables
+3. Log into Infra 
 
-Colons can be used to align columns.
+```
+infra login
+```
 
-| Tables        |      Are      |   Cool |
-| ------------- | :-----------: | -----: |
-| col 3 is      | right-aligned | \$1600 |
-| col 2 is      |   centered    |   \$12 |
-| zebra stripes |   are neat    |    \$1 |
+## Infra CLI 
 
-There must be at least 3 dashes separating each header cell. The outer pipes (|) are optional, and you don't need to make the raw Markdown line up prettily. You can also use inline Markdown.
+```
+$ infra
+Infra: manage Kubernetes access
 
-| Markdown | Less      | Pretty     |
-| -------- | --------- | ---------- |
-| _Still_  | `renders` | **nicely** |
-| 1        | 2         | 3          |
+Usage:
+  infra [command]
+  infra [flags]
 
----
+Available Commands:
+  help          Help about any command
+  users         List all users across all groups
+  groups        List available groups
+  roles         List available roles
+  permissions   List configured permissions
+  login         Log in to an Infra engine
+  logout        Log out of an Infra engine
 
-## Blockquotes
+Flags:
+  -h, --help   help for infra
 
-> Blockquotes are very handy in email to emulate reply text. This line is part of the same quote.
+Use "infra [command] --help" for more information about a command.
+```
 
-Quote break.
+## Administration
 
-> This is a very long line that will still be quoted properly when it wraps. Oh boy let's keep writing to make sure this is long enough to actually wrap for everyone. Oh, you can _put_ **Markdown** into a blockquote.
+### Listing users
 
----
+List users that have been added to Infra:
 
-## Inline HTML
+```
+$ infra users
+USER                 PROVIDER             ROLES            NAMESPACE
+jeff@acme.com        google               admin            default
+```
 
-<dl>
-  <dt>Definition list</dt>
-  <dd>Is something people use sometimes.</dd>
+### Listing access 
 
-  <dt>Markdown in HTML</dt>
-  <dd>Does *not* work **very** well. Use HTML <em>tags</em>.</dd>
-</dl>
+List the user's access permissions
 
----
+```
+$ infra permissions -u jeff@acme.com
 
-## Line Breaks
+NAME                                                          LIST  CREATE  UPDATE  DELETE
+alertmanagers.monitoring.coreos.com                           ✔     ✔       ✔       ✔
+apiservices.apiregistration.k8s.io                            ✔     ✔       ✔       ✔
+backups.velero.io                                             ✔     ✔       ✔       ✔
+backupstoragelocations.velero.io                              ✔     ✔       ✔       ✔
+bgpconfigurations.crd.projectcalico.org                       ✔     ✔       ✔       ✔
+bindings                                                            ✔               
+certificatesigningrequests.certificates.k8s.io                ✔     ✔       ✔       ✔
+clusterinformations.crd.projectcalico.org                     ✔     ✔       ✔       ✔
+clusterrolebindings.rbac.authorization.k8s.io                 ✔     ✔       ✔       ✔
+clusterroles.rbac.authorization.k8s.io                        ✔     ✔       ✔       ✔
+componentstatuses                                             ✔                     
+configmaps                                                    ✔     ✔       ✔       ✔
+controllerrevisions.apps                                      ✔     ✔       ✔       ✔
+cronjobs.batch                                                ✔     ✔       ✔       ✔
+csidrivers.storage.k8s.io                                     ✔     ✔       ✔       ✔
+csinodes.storage.k8s.io                                       ✔     ✔       ✔       ✔
+customresourcedefinitions.apiextensions.k8s.io                ✔     ✔       ✔       ✔
+daemonsets.apps                                               ✔     ✔       ✔       ✔
+daemonsets.extensions                                         ✔     ✔       ✔       ✔
+deletebackuprequests.velero.io                                ✔     ✔       ✔       ✔
+deployments.apps                                              ✔     ✔       ✔       ✔
+deployments.extensions                                        ✔     ✔       ✔       ✔
+downloadrequests.velero.io                                    ✔     ✔       ✔       ✔
+endpoints                                                     ✔     ✔       ✔       ✔
+events                                                        ✔     ✔       ✔       ✔
+events.events.k8s.io                                          ✔     ✔       ✔       ✔
+felixconfigurations.crd.projectcalico.org                     ✔     ✔       ✔       ✔
+globalnetworkpolicies.crd.projectcalico.org                   ✔     ✔       ✔       ✔
+globalnetworksets.crd.projectcalico.org                       ✔     ✔       ✔       ✔
+horizontalpodautoscalers.autoscaling                          ✔     ✔       ✔       ✔
+hostendpoints.crd.projectcalico.org                           ✔     ✔       ✔       ✔
+ingresses.extensions                                          ✔     ✔       ✔       ✔
+ingresses.networking.k8s.io                                   ✔     ✔       ✔       ✔
+ippools.crd.projectcalico.org                                 ✔     ✔       ✔       ✔
+jobs.batch                                                    ✔     ✔       ✔       ✔
+leases.coordination.k8s.io                                    ✔     ✔       ✔       ✔
+limitranges                                                   ✔     ✔       ✔       ✔
+localsubjectaccessreviews.authorization.k8s.io                      ✔               
+mutatingwebhookconfigurations.admissionregistration.k8s.io    ✔     ✔       ✔       ✔
+namespaces                                                    ✔     ✔       ✔       ✔
+networkpolicies.crd.projectcalico.org                         ✔     ✔       ✔       ✔
+networkpolicies.extensions                                    ✔     ✔       ✔       ✔
+networkpolicies.networking.k8s.io                             ✔     ✔       ✔       ✔
+nodes                                                         ✔     ✔       ✔       ✔
+nodes.metrics.k8s.io                                          ✔                     
+persistentvolumeclaims                                        ✔     ✔       ✔       ✔
+persistentvolumes                                             ✔     ✔       ✔       ✔
+poddisruptionbudgets.policy                                   ✔     ✔       ✔       ✔
+pods                                                          ✔     ✔       ✔       ✔
+pods.metrics.k8s.io                                           ✔                     
+podsecuritypolicies.extensions                                ✔     ✔       ✔       ✔
+podsecuritypolicies.policy                                    ✔     ✔       ✔       ✔
+podtemplates                                                  ✔     ✔       ✔       ✔
+podvolumebackups.velero.io                                    ✔     ✔       ✔       ✔
+podvolumerestores.velero.io                                   ✔     ✔       ✔       ✔
+priorityclasses.scheduling.k8s.io                             ✔     ✔       ✔       ✔
+prometheuses.monitoring.coreos.com                            ✔     ✔       ✔       ✔
+prometheusrules.monitoring.coreos.com                         ✔     ✔       ✔       ✔
+replicasets.apps                                              ✔     ✔       ✔       ✔
+replicasets.extensions                                        ✔     ✔       ✔       ✔
+replicationcontrollers                                        ✔     ✔       ✔       ✔
+resourcequotas                                                ✔     ✔       ✔       ✔
+resticrepositories.velero.io                                  ✔     ✔       ✔       ✔
+restores.velero.io                                            ✔     ✔       ✔       ✔
+rolebindings.rbac.authorization.k8s.io                        ✔     ✔       ✔       ✔
+roles.rbac.authorization.k8s.io                               ✔     ✔       ✔       ✔
+runtimeclasses.node.k8s.io                                    ✔     ✔       ✔       ✔
+schedules.velero.io                                           ✔     ✔       ✔       ✔
+secrets                                                       ✔     ✔       ✔       ✔
+selfsubjectaccessreviews.authorization.k8s.io                       ✔               
+selfsubjectrulesreviews.authorization.k8s.io                        ✔               
+serverstatusrequests.velero.io                                ✔     ✔       ✔       ✔
+serviceaccounts                                               ✔     ✔       ✔       ✔
+services                                                      ✔     ✔       ✔       ✔
+statefulsets.apps                                             ✔     ✔       ✔       ✔
+storageclasses.storage.k8s.io                                 ✔     ✔       ✔       ✔
+studyjobs.kubeflow.org                                        ✔     ✔       ✔       ✔
+subjectaccessreviews.authorization.k8s.io                           ✔               
+tfjobs.kubeflow.org                                           ✔     ✔       ✔       ✔
+tokenreviews.authentication.k8s.io                                  ✔               
+validatingwebhookconfigurations.admissionregistration.k8s.io  ✔     ✔       ✔       ✔
+volumeattachments.storage.k8s.io                              ✔     ✔       ✔       ✔
+volumesnapshotlocations.velero.io                             ✔     ✔       ✔       ✔
+No namespace given, this implies cluster scope (try -n if this is not intended)
+```
 
-Here's a line for us to start with.
 
-This line is separated from the one above by two newlines, so it will be a _separate paragraph_.
+### Adding users 
 
-This line is also a separate paragraph, but... This line is only separated by a single newline, so it's a separate line in the _same paragraph_.
+Users can be added in 2 ways: 
+-  infra.yaml for scriptability and integration into existing infrastructure as code tools such as Terraform, Ansible, Pulumi, and more. 
+- [optional] manually add users: 
 
----
+``` 
+$ infra users add michael@acme.com --roles view --namespace default
+User michael@acme.com added with the following permissions: 
+USER                    PROVIDER             ROLES            NAMESPACE
+michael@acme.com        local                view             default 
 
-## Admonitions
+Please login using:
+infra login --token
 
-:::note
+and provide the token:
 
-This is a note
+-----BEGIN INFRA TOKEN-----
+MzEuMjkuMTY4LjI5Omphc2RoMSExMGFzODEyIWo5MTBka2w6TFMwdExTMUNSVWRKVGlCRFJWSlVTVVpK
+UTBGVVJTMHRMUzB0Q2sxSlNVUkxha05EUVdoTFowRjNTVUpCWjBsUlZVSnZTbVEyVUZaVk9HcHdlU3Ro
+VG5SMlNsSldha0ZPUW1kcmNXaHJhVWM1ZHpCQ1FWRnpSa0ZFUVhZS1RWTXdkMHQzV1VSV1VWRkVSWGxT
+YUUxNlRtMWFiVmw1V2xNeGJFNHlSVE5NVkZGNlRrUk5kRTlIUlhsWlV6RnFXbFJTYkZwcVZYcFBSMDEz
+VG1wUmR3cElhR05PVFdwRmQwMTZUWGhOVkd0NVRVUkZORmRvWTA1TmFsbDNUWHBOZDAxcVFYbE5SRVUw
+VjJwQmRrMVRNSGRMZDFsRVZsRlJSRVY1VW1oTmVrNXRDbHB0V1hsYVV6RnNUakpGTTB4VVVYcE9SRTEw
+VDBkRmVWbFRNV3BhVkZKc1dtcFZlazlIVFhkT2FsRjNaMmRGYVUxQk1FZERVM0ZIVTBsaU0wUlJSVUlL
+UVZGVlFVRTBTVUpFZDBGM1oyZEZTMEZ2U1VKQlVVTnVhR3czVEV3elpHeGFXa0ZuVkhWb2JVbDBlVEUw
+WnpkcVZGRlZSRmh4Y0hWclRrd3paR1YyTHdwdFZHcEJUVEpEWTBGcVNETnlTMDkzWnpWVmVraDBRVE56
+VTNKdmRtWkllRTVhUmtGRFpsbDRXbFZaY1VsRWJqRTRjakJXTDJKVGJIb3lkbUZuUjBSRENubEpjbXh1
+Y0U1blpUUkZVelYyU25KUVdYRkpNRnBUVVZGblluZDZSV0ZpV0RWbmRHUlJNSFpoVG5WVGEwZ3pabGxH
+UWxvMFZHcFpVV1ZDWkZFdlJWVUtZMkZHZUdkMGNuSnhkamRoTVhObU56TnZNbFJzVDJwUWQxWnFabmh1
+TUdNNWNHOXpaMWhwUVVaaE1HeGxkMEpJTlVkbFJrUk9ZV2RxYzNKQ1JscFpVZ3BDVG1KUVVUbFplR1l5
+YnpkNVNURTViRmhwTWpKQ05YQkRaa2RhTm1oUkx6bG5iV1JsYURjNVQwbFJORzFJUzFsT2JERlNiR2xI
+T0dsdEt6RktiakJGQ2t0VWVFSmFjemRYYW1aTVZYRmtWMDVMVlVWWFNGZHRNR0pTZEVKbmRpdGxabWhW
+Um5wNWJsSTNTVUpZUVdkTlFrRkJSMnBSYWtKQlRVRTBSMEV4VldRS1JIZEZRaTkzVVVWQmQwbERRa1JC
+VUVKblRsWklVazFDUVdZNFJVSlVRVVJCVVVndlRVSXdSMEV4VldSRVoxRlhRa0pVWlROQmVHOVFUbXMy
+UmxWbGFRb3dObk5qUzFKdkwyWlphVnBIUkVGT1FtZHJjV2hyYVVjNWR6QkNRVkZ6UmtGQlQwTkJVVVZC
+VDFoU1luSlNNek5JVWxnMk5FaEZTM3AxV0d4RFUzVkhDbTkyZVV4TllUWlVUelV4WlV0T1FVZHRWaXRN
+YldGVGNHOVhkemh1UlRaa1pGcHRMMUJPZHpCRFduQjRRUzgwWjFOQ2NFZ3JZbWxHVDBnd01rWkJlaXNL
+WjNKV1IyVjNMM1F5YjI1Vk5sZGxVbk53WWtkR1MyRlJUalp5VDBWVU5HeFZhMmcxVlU1U1pXRlFMM0ZG
+UTA5cVlsQkhSM0JFUzFKMWMzaFlOM1prT1FwMWRVZHpMM1ZsZUVOV05ucFZkRU55YkRSb1ZGUjRSVU5V
+YmtwM1JsUlVZVEpoWkRKS2FtcEJhblpNTlVacGNXMXdPRXczYVhGTmJYVlRXbnBJVW14cENtZFZiRE5H
+Vlhaa1dXSm5NMmxPVFU0M1NFbzBkM0oyY1hneE0zUjRWek12UXpJelowNWphM1JHTWxKUVNIVlNaMUJM
+YVZwbVoyUjVlV1pLYmxJelR6a0thVFYyY1c4dlNuZEJlbEZ1ZVdJd2VuVlNkRzlHY20xNVdWSm9SUzlL
+TVVaeVRVZ3hRakZUWkN0elpEbDFhRXM0TkVSU1ZuTlNlQzgyV2pScVZFRTlQUW90TFMwdExVVk9SQ0JE
+UlZKVVNVWkpRMEZVUlMwdExTMHRDZz09Cg==
+-----END INFRA TOKEN-----
+``` 
 
-:::
+### Listing groups
 
-:::tip
+To view groups that have been synchronized to Infra, use `infra groups`:
 
-This is a tip
+```
+$ infra groups
+NAME                  PROVIDER        USERS          ROLES
+developers@acme.com   google          1              admin
+local                 local           1              view
+```
 
-:::
+### Listing roles
 
-:::important
+To view all roles in the cluster, use `infra roles`:
 
-This is important
+```
+$ infra roles
+NAME        NAMESPACE           GRANTED GROUPS      GRANTED USERS        DESCRIPTION 
+admin       default             1                   1                    Admin access
+view        default             1                   1                    Read-only access
+```
 
-:::
+### Configuring Infra to be scripted 
 
-:::caution
+Create a configuration file:
 
-This is a caution
+```yaml
+identity:
+  providers:
+    - name: google
+      kind: oidc
+      config: 
+        client-id: acme-12345678.apps.googleusercontent.com
+        client-secret: /etc/infra/client-secret
+        issuer-url: https://accounts.google.com
+        redirect-url: https://infra.acme.com:3090/v1/oidc/callback
+        scope: ['https://www.googleapis.com/auth/admin.directory.group.readonly', 'openid', 'email']
+      groups:
+        - developers@acme.com
 
-:::
-
-:::warning
-
-This is a warning
-
-:::
+permissions:
+  - provider: google
+    group: developers@acme.com
+    role: admin
+    namespace: default            # optional namespace
+```
