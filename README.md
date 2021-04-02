@@ -45,6 +45,18 @@ $ kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/master/kubern
 ```
 
 2. Install Infra CLI 
+```
+Mac: 
+
+brew cask install infra
+
+Windows: 
+
+winget install --id infra.infra
+Linux: 
+
+sudo curl -L "https://infrahq.com/download/linux-$(uname -m)" -o /usr/local/bin/infra
+```
 
 
 3. Log into Infra 
