@@ -10,7 +10,7 @@ export default function Home () {
       </Head>
       <main className='w-full h-full flex flex-col items-center justify-center select-none'>
         <img className='flex-none' src="/logo.svg" />
-        <h2 className='text-gray-400 mt-6 font-medium'><a className='hover:underline' href="mailto:contact@infrahq.com">Contact Us</a></h2>
+        <h2 className='text-gray-400 mt-6 font-medium'><a href="mailto:contact@infrahq.com">Contact Us</a></h2>
       </main>
     </>
   )
