@@ -41,7 +41,7 @@ Use cases:
 1. Deploy Infra:
 
 ```
-$ kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/master/kubernetes/infra.yaml
+kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/master/kubernetes/infra.yaml
 ```
 
 2. Install Infra CLI 
