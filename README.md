@@ -60,7 +60,7 @@ curl -L "https://github.com/infrahq/infra/releases/download/latest/infra-linux-$
 3. Log into Infra 
 
 ```
-$ infra login
+infra login
 ```
 
 ## Infra CLI 
