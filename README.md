@@ -58,33 +58,6 @@ infra login IP_address_of_your_Kubernetes_cluster
 
 By default, you can manually add/remove users via `infra users add` or `infra users remove`. In this case Infra will act as it's own identity provider. The output will be the user name and one-time password for logging into Infra. 
 
-### Configuring Infra to be scripted 
-
-Create a configuration file:
-
-```yaml
-identity:
-  providers:
-    - name: google
-      kind: oidc
-      config: 
-        client-id: acme-12345678.apps.googleusercontent.com
-        client-secret: /etc/infra/client-secret
-        issuer-url: https://accounts.google.com
-        redirect-url: https://infra.acme.com:3090/v1/oidc/callback
-        scope: ['https://www.googleapis.com/auth/admin.directory.group.readonly', 'openid', 'email']
-      groups:
-        - developers@acme.com
-
-permissions:
-  - provider: google
-    group: developers@acme.com
-    role: admin
-    namespace: default            # optional namespace
-```
-
-
-
 ## Infra CLI 
 
 ```
@@ -257,4 +230,29 @@ $ infra roles
 NAME        NAMESPACE           GRANTED GROUPS      GRANTED USERS        DESCRIPTION 
 admin       default             1                   1                    Admin access
 view        default             1                   1                    Read-only access
+```
+
+### Configuring Infra to be scripted 
+
+Create a configuration file:
+
+```yaml
+identity:
+  providers:
+    - name: google
+      kind: oidc
+      config: 
+        client-id: acme-12345678.apps.googleusercontent.com
+        client-secret: /etc/infra/client-secret
+        issuer-url: https://accounts.google.com
+        redirect-url: https://infra.acme.com:3090/v1/oidc/callback
+        scope: ['https://www.googleapis.com/auth/admin.directory.group.readonly', 'openid', 'email']
+      groups:
+        - developers@acme.com
+
+permissions:
+  - provider: google
+    group: developers@acme.com
+    role: admin
+    namespace: default            # optional namespace
 ```
