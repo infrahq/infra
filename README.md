@@ -289,9 +289,3 @@ permissions:
     role: admin
     namespace: default            # optional namespace
 ```
-
-### FAQ
-
-Q: How do I find my Kubernetes cluster IP? 
-
-A: You can determine the Kubernetes cluster IP address by running `kubectl cluster-info` 
