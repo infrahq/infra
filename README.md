@@ -23,7 +23,7 @@ Use cases:
 * On-boarding and off-boarding users (automatically sync users against identity providers)
 * No more out of sync Kubeconfig
 * Cloud vendor-agnostic
-* Audit logs (who did what, when)
+* Coming soon: Audit logs (who did what, when)
 
 
 ## Architecture
@@ -31,54 +31,39 @@ Use cases:
 <p align="center">
   <br/>
   <br/>
-  <img src="https://user-images.githubusercontent.com/3325447/110492186-f60ba800-80bf-11eb-9613-a469136d57bd.png" />
+  <img src="https://user-images.githubusercontent.com/251292/113448649-395cec00-93ca-11eb-9c70-ea4c5c9f82da.png" />
   <br/>
   <br/>
 </p>
 
-## Installing
+## Quick Start
 
-Install Infra via `kubectl`:
-
-```
-$ kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/master/kubernetes/infra.yaml
-```
-
-Then find the service on which Infra is listening:
+1. Deploy Infra:
 
 ```
-$ kubectl get svc -n infra
-NAME             TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)        AGE
-infra-engine     LoadBalancer   10.12.11.116   32.71.121.168   80:32322/TCP   1m
+kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/master/kubernetes/infra.yaml
 ```
 
-For users wishing to use infra-engine through a VPC or ingress, please see advanced set-up. 
-
-Next, optionally map your dns (`infra.acme.com` in our example) to this domain via your DNS provider.
-
-## Using Infra
-
-### Installing the CLI
-
-**Mac:** 
-
+2. Install Infra CLI 
 ```
+# macOS
 brew cask install infra
-```
 
-**Windows:** 
-
-```
+# Windows
 winget install --id infra.infra
-```  
 
-**Linux:** 
+# Linux
+curl -L "https://github.com/infrahq/infra/releases/download/latest/infra-linux-$(uname -m)" -o /usr/local/bin/infra
+```
+
+
+3. Log into Infra 
 
 ```
-sudo curl -L "https://infrahq.com/download/linux-$(uname -m)" -o /usr/local/bin/infra
-
-sudo chmod +x /usr/local/bin/infra
+infra login
 ```
+
+## Infra CLI 
 
 ```
 $ infra
@@ -94,9 +79,8 @@ Available Commands:
   groups        List available groups
   roles         List available roles
   permissions   List configured permissions
-  login         Login to an Infra server
-  logout        Log out of an Infra server
-  install       Install infra-engine on a target Kubernetes cluster
+  login         Log in to an Infra engine
+  logout        Log out of an Infra engine
 
 Flags:
   -h, --help   help for infra
@@ -104,25 +88,11 @@ Flags:
 Use "infra [command] --help" for more information about a command.
 ```
 
-### Login 
-
-Run `infra login` to log into the infra server via the CLI
-
-```
-$ infra login infra.acme.com
-... Opening Google login URL...
-
-✓ Logged in
-✓ Kubeconfig updated
-```
-
-Infra has updated your Kubeconfig with an entry for connecting to the cluster 
-
 ## Administration
 
 ### Listing users
 
-List users that have been synchronized to Infra:
+List users that have been added to Infra:
 
 ```
 $ infra users
@@ -237,11 +207,40 @@ User michael@acme.com added with the following permissions:
 USER                    PROVIDER             ROLES            NAMESPACE
 michael@acme.com        local                view             default 
 
-One-time password for login: 
-$9fX5n@4l;3
-
 Please login using:
-infra login infra.acme.com
+infra login --token
+
+and provide the token:
+
+-----BEGIN INFRA TOKEN-----
+MzEuMjkuMTY4LjI5Omphc2RoMSExMGFzODEyIWo5MTBka2w6TFMwdExTMUNSVWRKVGlCRFJWSlVTVVpK
+UTBGVVJTMHRMUzB0Q2sxSlNVUkxha05EUVdoTFowRjNTVUpCWjBsUlZVSnZTbVEyVUZaVk9HcHdlU3Ro
+VG5SMlNsSldha0ZPUW1kcmNXaHJhVWM1ZHpCQ1FWRnpSa0ZFUVhZS1RWTXdkMHQzV1VSV1VWRkVSWGxT
+YUUxNlRtMWFiVmw1V2xNeGJFNHlSVE5NVkZGNlRrUk5kRTlIUlhsWlV6RnFXbFJTYkZwcVZYcFBSMDEz
+VG1wUmR3cElhR05PVFdwRmQwMTZUWGhOVkd0NVRVUkZORmRvWTA1TmFsbDNUWHBOZDAxcVFYbE5SRVUw
+VjJwQmRrMVRNSGRMZDFsRVZsRlJSRVY1VW1oTmVrNXRDbHB0V1hsYVV6RnNUakpGTTB4VVVYcE9SRTEw
+VDBkRmVWbFRNV3BhVkZKc1dtcFZlazlIVFhkT2FsRjNaMmRGYVUxQk1FZERVM0ZIVTBsaU0wUlJSVUlL
+UVZGVlFVRTBTVUpFZDBGM1oyZEZTMEZ2U1VKQlVVTnVhR3czVEV3elpHeGFXa0ZuVkhWb2JVbDBlVEUw
+WnpkcVZGRlZSRmh4Y0hWclRrd3paR1YyTHdwdFZHcEJUVEpEWTBGcVNETnlTMDkzWnpWVmVraDBRVE56
+VTNKdmRtWkllRTVhUmtGRFpsbDRXbFZaY1VsRWJqRTRjakJXTDJKVGJIb3lkbUZuUjBSRENubEpjbXh1
+Y0U1blpUUkZVelYyU25KUVdYRkpNRnBUVVZGblluZDZSV0ZpV0RWbmRHUlJNSFpoVG5WVGEwZ3pabGxH
+UWxvMFZHcFpVV1ZDWkZFdlJWVUtZMkZHZUdkMGNuSnhkamRoTVhObU56TnZNbFJzVDJwUWQxWnFabmh1
+TUdNNWNHOXpaMWhwUVVaaE1HeGxkMEpJTlVkbFJrUk9ZV2RxYzNKQ1JscFpVZ3BDVG1KUVVUbFplR1l5
+YnpkNVNURTViRmhwTWpKQ05YQkRaa2RhTm1oUkx6bG5iV1JsYURjNVQwbFJORzFJUzFsT2JERlNiR2xI
+T0dsdEt6RktiakJGQ2t0VWVFSmFjemRYYW1aTVZYRmtWMDVMVlVWWFNGZHRNR0pTZEVKbmRpdGxabWhW
+Um5wNWJsSTNTVUpZUVdkTlFrRkJSMnBSYWtKQlRVRTBSMEV4VldRS1JIZEZRaTkzVVVWQmQwbERRa1JC
+VUVKblRsWklVazFDUVdZNFJVSlVRVVJCVVVndlRVSXdSMEV4VldSRVoxRlhRa0pVWlROQmVHOVFUbXMy
+UmxWbGFRb3dObk5qUzFKdkwyWlphVnBIUkVGT1FtZHJjV2hyYVVjNWR6QkNRVkZ6UmtGQlQwTkJVVVZC
+VDFoU1luSlNNek5JVWxnMk5FaEZTM3AxV0d4RFUzVkhDbTkyZVV4TllUWlVUelV4WlV0T1FVZHRWaXRN
+YldGVGNHOVhkemh1UlRaa1pGcHRMMUJPZHpCRFduQjRRUzgwWjFOQ2NFZ3JZbWxHVDBnd01rWkJlaXNL
+WjNKV1IyVjNMM1F5YjI1Vk5sZGxVbk53WWtkR1MyRlJUalp5VDBWVU5HeFZhMmcxVlU1U1pXRlFMM0ZG
+UTA5cVlsQkhSM0JFUzFKMWMzaFlOM1prT1FwMWRVZHpMM1ZsZUVOV05ucFZkRU55YkRSb1ZGUjRSVU5V
+YmtwM1JsUlVZVEpoWkRKS2FtcEJhblpNTlVacGNXMXdPRXczYVhGTmJYVlRXbnBJVW14cENtZFZiRE5H
+Vlhaa1dXSm5NMmxPVFU0M1NFbzBkM0oyY1hneE0zUjRWek12UXpJelowNWphM1JHTWxKUVNIVlNaMUJM
+YVZwbVoyUjVlV1pLYmxJelR6a0thVFYyY1c4dlNuZEJlbEZ1ZVdJd2VuVlNkRzlHY20xNVdWSm9SUzlL
+TVVaeVRVZ3hRakZUWkN0elpEbDFhRXM0TkVSU1ZuTlNlQzgyV2pScVZFRTlQUW90TFMwdExVVk9SQ0JE
+UlZKVVNVWkpRMEZVUlMwdExTMHRDZz09Cg==
+-----END INFRA TOKEN-----
 ``` 
 
 ### Listing groups
@@ -266,27 +265,11 @@ admin       default             1                   1                    Admin a
 view        default             1                   1                    Read-only access
 ```
 
-
-### Accessing the dashboard
-
-Infra's dashboard is always available at `https://<infra hostname>/dashboard`
-
-To view the ui, run `infra ui`. You'll automatically be logged if you're logged in on the CLI. Otherwise you'll be greeted with a login screen.
-
-![product](https://user-images.githubusercontent.com/3325447/110035290-779eb700-7d09-11eb-952b-f18190a1ddb3.png)
-
-
-## Advanced (Coming Soon)
-* Adding additional Kubernetes clusters
-* Auditing access/logs (when & who did what )
-
 ### Configuring Infra to be scripted 
 
 Create a configuration file:
 
 ```yaml
-domain: infra.acme.com
-
 identity:
   providers:
     - name: google
@@ -306,3 +289,9 @@ permissions:
     role: admin
     namespace: default            # optional namespace
 ```
+
+### FAQ
+
+Q: How do I find my Kubernetes cluster IP? 
+
+A: You can determine the Kubernetes cluster IP address by running `kubectl cluster-info` 
