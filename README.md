@@ -50,7 +50,7 @@ $ kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/master/kubern
 3. Log into Infra 
 
 ```
-$ infra login cluster_IP
+$ infra login
 ```
 
 ## Infra CLI 
