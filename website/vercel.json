@@ -1,5 +1,0 @@
-{
-  "rewrites": [
-    { "source": "/docs/:match*", "destination": "https://docs.infrahq.com/:match*" }
-  ]
-}
