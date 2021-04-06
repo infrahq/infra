@@ -2,27 +2,24 @@
 
 ## Infra Engine
 
-Infra Engine is a proxy service for managing access to infrastructure.
+Infra Engine is a proxy that provides access to infrastructure to users & services. It is loosely inspired by the Google [Beyondcorp Access Proxy (AP)](https://research.google/pubs/pub45728/).
 
 ### Goals
+* Proxy requests to back-end infrastructure
 * Easy to use CLI & Rest API
-* Single binary for Linux, macOS, Windows, with easy deployment on Kubernetes
-* Distribute credentials to users & services based on identity (i.e. JWT tokens, etc.)
-* Authenticate requests based on credentials
-* Authorize requests based on identity, roles & permissions
-* Proxy requests to back-end services
+* Single binary for Linux, macOS, Windows, with easy deployment via Docker, Kubernetes
+* Distribute credentials to users & services based on identity (OIDC, Service Name, etc)
+* Authenticate users & services based on credentials
+* Authorize users & services based roles & permissions
 * Log every request for audit purposes
-* [Later] Collect metrics & statistics based on identity
-* [Later] Infra Registry: synchronize identities and 
-* [Later] Infra Registry: Register infrastructure for discovery
-* [Later] Infra Registry: Report access logs for analysis in a single places
+* [Later] Support for multiple protocols (e.g. PostgreSQL, SSH, MongoDB, etc)
 
 ### Deployment methods
 * Kubernetes
-* [Later] Raw binary
+* [Later] Raw binary on server
 * [Later] Docker / Docker compose
-* [Later] Cloud-hosted
 * [Later] Static library for serverless / mobile / client use cases
+* [Later] Cloud-hosted
 
 ### Technology used:
 * Go
@@ -38,7 +35,7 @@ How Infra works with Envoy:
 Infra Registry is a centralized service for collaboration and managing 2+ Infra Engines
 
 ### Goals:
-* Single directory to federate identity across Infra Engines
+* Single directory to federate identity, roles, permissions across Infra Engines
 * Secret storage for multiple Infra Engines
 * Distribute credentials across multiple Infra Engines
 
