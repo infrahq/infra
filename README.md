@@ -76,7 +76,7 @@ michael@acme.com        local                view             default
 
 Please login using:
 
-infra login 35.91.102.10 --token VDBkRmVWbFRNV3BhVkZKc1dtcFazlIVFhkT2FsRjNaMmRGYVUxQk1
+infra login 35.91.102.10 --token VDBkRmVWbFRNV3BhVkZKc1dtcFazlIVFhkT2FsRjNaMmRGYVUxQk1kd18jdj10
 ``` 
 
 ## Infra CLI
