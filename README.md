@@ -11,8 +11,6 @@
 * Docs: https://infrahq.com/docs
 * Slack: https://infra-slack.slack.com
 
-> We take security very seriously. If you have found a security vulnerability please disclose it privately to us by email via [security@infrahq.com](mailto:security@infrahq.com)
-
 ## Introduction
 
 Identity and access management for Kubernetes. Instead of creating separate credentials and writing scripts to map permissions to Kubernetes, developers & IT teams can integrate existing identity providers (Okta, Google accounts, GitHub auth, Azure active directory) to securely provide developers with access to Kubernetes.
@@ -256,3 +254,6 @@ permissions:
     role: admin
     namespace: default            # optional namespace
 ```
+
+## Security
+We take security very seriously. If you have found a security vulnerability please disclose it privately to us by email via [security@infrahq.com](mailto:security@infrahq.com)
