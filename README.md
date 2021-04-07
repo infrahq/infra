@@ -41,7 +41,7 @@ Use cases:
 1. Deploy Infra:
 
 ```
-kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/master/kubernetes/infra.yaml
+kubectl apply -f https://raw.githubusercontent.com/nfrahq/infra/master/kubernetes/infra.yaml
 ```
 
 2. Install Infra CLI 
@@ -56,14 +56,13 @@ winget install --id infra.infra
 curl -L "https://github.com/infrahq/infra/releases/download/latest/infra-linux-$(uname -m)" -o /usr/local/bin/infra
 ```
 
-
 3. Log into Infra 
 
 ```
-infra login
+infra login 35.91.102.10  # Kubernetes master node IP
 ```
 
-## Infra CLI 
+## Infra CLI
 
 ```
 $ infra
@@ -201,7 +200,7 @@ Users can be added in 2 ways:
 -  infra.yaml for scriptability and integration into existing infrastructure as code tools such as Terraform, Ansible, Pulumi, and more. 
 - [optional] manually add users: 
 
-``` 
+```
 $ infra users add michael@acme.com --roles view --namespace default
 User michael@acme.com added with the following permissions: 
 USER                    PROVIDER             ROLES            NAMESPACE
