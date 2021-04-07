@@ -207,7 +207,7 @@ USER                    PROVIDER             ROLES            NAMESPACE
 michael@acme.com        local                view             default 
 
 Please login using:
-infra login --token
+infra login 35.91.102.10 --token
 
 and provide the token:
 
