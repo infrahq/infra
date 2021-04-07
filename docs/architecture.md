@@ -30,6 +30,9 @@ How Infra works with Envoy:
 * Shell out to Envoy
 * [Later] Include Envoy a library
 
+![engine](https://user-images.githubusercontent.com/251292/113944925-57b05680-97d3-11eb-8d4f-2da859c4e417.png)
+
+
 ## Infra Registry
 
 Infra Registry is a centralized service for collaboration and managing 2+ Infra Engines
