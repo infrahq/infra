@@ -34,71 +34,28 @@ Use cases:
   <br/>
 </p>
 
-## Quick Start
+## Install Infra Engine
 
-### Method 1 via Infra CLI 
-#### Install Infra CLI
-```
-# macOS
-brew cask install infra
-
-# Windows
-winget install --id infra.infra
-
-# Linux
-curl -L "https://github.com/infrahq/infra/releases/download/latest/infra-linux-$(uname -m)" -o /usr/local/bin/infra
-```
-#### Use infra install command 
-```
-infra install 
-```
-By default, this will read your default kubeconfig file and display the kubernetes clusters available as targets. 
-
-Example1: 
-```
-infra install 
-
-Please select the cluster to install infra-engine on:
-> docker-desktop
-> gke_infra-app-production_us-central1  
-> Infra App Production
-> minikube
-> 
-
-... 
-Installing infra-engine on gke_infra-app-production_us-central1
-\ 
-|
-/
--
-\
-|
-Setting up -some verbose message
-
-Install complete. 
-
-User `admin` 
-Please enter admin password: 
-************* 
-
-For future, you can login via 
-infra login 192.168.1.1 
-
-Create your first user using 
-infra users add username (recommended to use e-mail) 
-
-```
-
-### Method 2 via Scripts 
-
-
-### Deploy Infra
+Deploy via `kubectl`:
 
 ```
 kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/master/deploy/infra.yaml
 ```
 
-### Install Infra CLI
+then check the load balancer exposed by Infra Engine:
+
+```
+NAME            TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)        AGE
+infra-service   LoadBalancer   10.12.11.116   31.58.101.169   80:32326/TCP   386d
+```
+
+optionally map a DNS e.g. `infra.acme.com` name to `31.58.101.169`.
+
+
+## Using Infra CLI
+
+### Installing
+
 ```
 # macOS
 brew cask install infra
@@ -110,34 +67,13 @@ winget install --id infra.infra
 curl -L "https://github.com/infrahq/infra/releases/download/latest/infra-linux-$(uname -m)" -o /usr/local/bin/infra
 ```
 
-### Log in as admin
-
-To log in as the admin, first get the master node hostname or IP address
+### Logging in
 
 ```
-$ kubectl cluster-info
-Kubernetes control plane is running at https://35.238.165.174  # Master node IP
-GLBCDefaultBackend is running at https://35.238.165.174/api/v1/namespaces/kube-system/services/default-http-backend:http/proxy
-KubeDNS is running at https://35.238.165.174/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
-Metrics-server is running at https://35.238.165.174/api/v1/namespaces/kube-system/services/https:metrics-server:/proxy
-
-32.195.119.174
+$ infra login 31.58.101.169
 ```
 
-and then find the admin first time login token
-
-```
-$ kubectl get secrets/admin-token --namespace infra --template={{.data.token}} | base64 -d
-VkRCa1JtVldiRlJOVjNCaFZrWktjMWR0Y0ZhemxJVkZoa1QyRnNSak5hTW1SR1lWVXhR
-```
-
-and the master node IP
-
-```
-infra login 32.195.119.174 --token VkRCa1JtVldiRlJOVjNCaFZrWktjMWR0Y0ZhemxJVkZoa1QyRnNSak5hTW1SR1lWVXhR
-```
-
-### Add a user
+### Adding a user
 
 ```
 $ infra users add michael@acme.com
@@ -147,37 +83,11 @@ michael@acme.com        local                view             default
 
 Please share the following login with michael@acme.com:
 
-infra login 32.195.119.174 --token VDBkRmVWbFRNV3BhVkZKc1dtcFazlIVFhkT2FsRjNaMmRGYVUxQk1kd18jdj10
-``` 
-
-Note: users can also be added via `infra.yaml` (see below) for scriptability and integration into existing infrastructure as code tools such as Terraform, Ansible, Pulumi, and more. 
-
-## Infra CLI
-
-```
-$ infra
-Infra: manage Kubernetes access
-
-Usage:
-  infra [command]
-  infra [flags]
-
-Available Commands:
-  help          Help about any command
-  users         List all users across all groups
-  groups        List available groups
-  roles         List available roles
-  permissions   List configured permissions
-  login         Log in to an Infra engine
-  logout        Log out of an Infra engine
-
-Flags:
-  -h, --help   help for infra
-
-Use "infra [command] --help" for more information about a command.
+infra login 31.58.101.169 --token VDBkRmVWbFRNV3BhVkZKc1dtcFazlIVFhkT2FsRjNaMmRGYVUxQk1kd18jdj10
 ```
 
-## Administration
+Note: users can also be added via `infra.yaml` (see below) for scriptability and integration into existing infrastructure as code tools such as Terraform, Ansible, Pulumi, and more.
+
 
 ### Listing users
 
@@ -186,7 +96,8 @@ List users that have been added to Infra:
 ```
 $ infra users
 USER                 PROVIDER             ROLES            NAMESPACE
-jeff@acme.com        google               admin            default
+jeff@acme.com        local                admin            default
+michael@acme.com     local                view             default 
 ```
 
 ### Listing access 
@@ -290,8 +201,8 @@ To view groups that have been synchronized to Infra, use `infra groups`:
 ```
 $ infra groups
 NAME                  PROVIDER        USERS          ROLES
-developers@acme.com   google          1              admin
 local                 local           1              view
+developers@acme.com   google          1              admin
 ```
 
 ### Listing roles
@@ -305,9 +216,34 @@ admin       default             1                   1                    Admin a
 view        default             1                   1                    Read-only access
 ```
 
-### Configuring Infra to be scripted 
+## CLI Reference
 
-Create a configuration file:
+```
+$ infra
+Infra: manage Kubernetes access
+
+Usage:
+  infra [command]
+  infra [flags]
+
+Available Commands:
+  help          Help about any command
+  users         List all users across all groups
+  groups        List available groups
+  roles         List available roles
+  permissions   List configured permissions
+  login         Log in to an Infra engine
+  logout        Log out of an Infra engine
+
+Flags:
+  -h, --help   help for infra
+
+Use "infra [command] --help" for more information about a command.
+```
+
+## Configuration
+
+For scriptability, Infra Engine can be configured using a yaml file
 
 ```yaml
 identity:
