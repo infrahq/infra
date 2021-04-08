@@ -56,21 +56,21 @@ curl -L "https://github.com/infrahq/infra/releases/download/latest/infra-linux-$
 
 ### Log in as admin
 
-Get the one time login token
-
-```
-$ kubectl get secrets/admin-token --namespace infra --template={{.data.token}} | base64 -d
-VkRCa1JtVldiRlJOVjNCaFZrWktjMWR0Y0ZhemxJVkZoa1QyRnNSak5hTW1SR1lWVXhR
-```
-
-and the master node IP:
+To log in as the admin, first get the master node IP address
 
 ```
 $ kubectl cluster-info | awk -F/ '{print $3}' | head -1
 32.195.119.174
 ```
 
-Then use that information to log in as the admin:
+and then find the admin first time login token
+
+```
+$ kubectl get secrets/admin-token --namespace infra --template={{.data.token}} | base64 -d
+VkRCa1JtVldiRlJOVjNCaFZrWktjMWR0Y0ZhemxJVkZoa1QyRnNSak5hTW1SR1lWVXhR
+```
+
+and the master node IP
 
 ```
 infra login 32.195.119.174 --token VkRCa1JtVldiRlJOVjNCaFZrWktjMWR0Y0ZhemxJVkZoa1QyRnNSak5hTW1SR1lWVXhR
