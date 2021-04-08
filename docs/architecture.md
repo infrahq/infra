@@ -31,6 +31,8 @@ How Infra works with Envoy:
 * Shell out to Envoy (Later: include it as a binary)
 * All data flows through Envoy for performance
 
+![engine](https://user-images.githubusercontent.com/251292/113945009-7dd5f680-97d3-11eb-8835-4debaa5a1f9f.png)
+
 ### Example 1: User accessing Kubernetes
 
 1. User logs in via CLI `infra login <Infra Engine Hostname>` (hitting the login endpoint i.e. `/v1/login`)
