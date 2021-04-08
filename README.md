@@ -76,11 +76,7 @@ Then log in as the admin:
 infra login 32.195.119.174 --token VkRCa1JtVldiRlJOVjNCaFZrWktjMWR0Y0ZhemxJVkZoa1QyRnNSak5hTW1SR1lWVXhR
 ```
 
-### Add users
-
-Users can be added in 2 ways: 
--  infra.yaml for scriptability and integration into existing infrastructure as code tools such as Terraform, Ansible, Pulumi, and more. 
-- [optional] manually add users: 
+### Add a user
 
 ```
 $ infra users add michael@acme.com
@@ -92,6 +88,8 @@ Please share the following login with michael@acme.com:
 
 infra login 32.195.119.174 --token VDBkRmVWbFRNV3BhVkZKc1dtcFazlIVFhkT2FsRjNaMmRGYVUxQk1kd18jdj10
 ``` 
+
+Note: users can also be added via `infra.yaml` (see below) for scriptability and integration into existing infrastructure as code tools such as Terraform, Ansible, Pulumi, and more. 
 
 ## Infra CLI
 
