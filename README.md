@@ -36,6 +36,62 @@ Use cases:
 
 ## Quick Start
 
+### Method 1 via Infra CLI 
+#### Install Infra CLI
+```
+# macOS
+brew cask install infra
+
+# Windows
+winget install --id infra.infra
+
+# Linux
+curl -L "https://github.com/infrahq/infra/releases/download/latest/infra-linux-$(uname -m)" -o /usr/local/bin/infra
+```
+#### Use infra install command 
+```
+infra install 
+```
+By default, this will read your default kubeconfig file and display the kubernetes clusters available as targets. 
+
+Example1: 
+```
+infra install 
+
+Please select the cluster to install infra-engine on:
+> docker-desktop
+> gke_infra-app-production_us-central1  
+> Infra App Production
+> minikube
+> 
+
+... 
+Installing infra-engine on gke_infra-app-production_us-central1
+\ 
+|
+/
+-
+\
+|
+Setting up -some verbose message
+
+Install complete. 
+
+User `admin` 
+Please enter admin password: 
+************* 
+
+For future, you can login via 
+infra login 192.168.1.1 
+
+Create your first user using 
+infra users add username (recommended to use e-mail) 
+
+```
+
+### Method 2 via Scripts 
+
+
 ### Deploy Infra
 
 ```
