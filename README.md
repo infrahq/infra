@@ -36,13 +36,13 @@ Use cases:
 
 ## Quick Start
 
-1. Deploy Infra:
+### Deploy Infra
 
 ```
 kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/master/deploy/infra.yaml
 ```
 
-2. Install Infra CLI 
+### Install Infra CLI
 ```
 # macOS
 brew cask install infra
@@ -54,27 +54,43 @@ winget install --id infra.infra
 curl -L "https://github.com/infrahq/infra/releases/download/latest/infra-linux-$(uname -m)" -o /usr/local/bin/infra
 ```
 
-3. Log into Infra 
+### Log in as admin
+
+Get the one time login token
 
 ```
-infra login 35.91.102.10  # Kubernetes master node IP
+$ kubectl get secrets/admin-token --namespace infra --template={{.data.token}} | base64 -d
+VkRCa1JtVldiRlJOVjNCaFZrWktjMWR0Y0ZhemxJVkZoa1QyRnNSak5hTW1SR1lWVXhR
 ```
 
-### Adding users 
+and the master node IP:
+
+```
+$ kubectl cluster-info | awk -F/ '{print $3}' | head -1
+32.195.119.174
+```
+
+Then log in as the admin:
+
+```
+infra login 32.195.119.174 --token VkRCa1JtVldiRlJOVjNCaFZrWktjMWR0Y0ZhemxJVkZoa1QyRnNSak5hTW1SR1lWVXhR
+```
+
+### Add users
 
 Users can be added in 2 ways: 
 -  infra.yaml for scriptability and integration into existing infrastructure as code tools such as Terraform, Ansible, Pulumi, and more. 
 - [optional] manually add users: 
 
 ```
-$ infra users add michael@acme.com --roles view --namespace default
-User michael@acme.com added with the following permissions: 
+$ infra users add michael@acme.com
+User michael@acme.com added with the following permissions:
 USER                    PROVIDER             ROLES            NAMESPACE
 michael@acme.com        local                view             default 
 
 Please share the following login with michael@acme.com:
 
-infra login 35.91.102.10 --token VDBkRmVWbFRNV3BhVkZKc1dtcFazlIVFhkT2FsRjNaMmRGYVUxQk1kd18jdj10
+infra login 32.195.119.174 --token VDBkRmVWbFRNV3BhVkZKc1dtcFazlIVFhkT2FsRjNaMmRGYVUxQk1kd18jdj10
 ``` 
 
 ## Infra CLI
