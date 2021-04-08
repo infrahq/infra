@@ -72,7 +72,7 @@ User michael@acme.com added with the following permissions:
 USER                    PROVIDER             ROLES            NAMESPACE
 michael@acme.com        local                view             default 
 
-Please login using:
+Please share the following login with michael@acme.com:
 
 infra login 35.91.102.10 --token VDBkRmVWbFRNV3BhVkZKc1dtcFazlIVFhkT2FsRjNaMmRGYVUxQk1kd18jdj10
 ``` 
