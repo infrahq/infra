@@ -96,7 +96,7 @@ List users that have been added to Infra:
 ```
 $ infra users
 USER                 PROVIDER             ROLES            NAMESPACE
-jeff@acme.com        local                admin            default
+admin.               local                admin            default
 michael@acme.com     local                view             default 
 ```
 
@@ -105,7 +105,7 @@ michael@acme.com     local                view             default
 List the user's access permissions
 
 ```
-$ infra permissions -u jeff@acme.com
+$ infra permissions -u admin
 
 NAME                                                          LIST  CREATE  UPDATE  DELETE
 alertmanagers.monitoring.coreos.com                           ✔     ✔       ✔       ✔
