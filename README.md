@@ -49,7 +49,7 @@ NAME            TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)        AGE
 infra-service   LoadBalancer   10.12.11.116   31.58.101.169   80:32326/TCP   386d
 ```
 
-optionally map a DNS e.g. `infra.acme.com` name to `31.58.101.169`.
+optionally map a DNS name e.g. `infra.acme.com` to `31.58.101.169`.
 
 
 ## Using Infra CLI
