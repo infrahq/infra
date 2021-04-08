@@ -246,18 +246,17 @@ Use "infra [command] --help" for more information about a command.
 For scriptability, Infra Engine can be configured using a yaml file
 
 ```yaml
-identity:
-  providers:
-    - name: google
-      kind: oidc
-      config: 
-        client-id: acme-12345678.apps.googleusercontent.com
-        client-secret: /etc/infra/client-secret
-        issuer-url: https://accounts.google.com
-        redirect-url: https://infra.acme.com:3090/v1/oidc/callback
-        scope: ['https://www.googleapis.com/auth/admin.directory.group.readonly', 'openid', 'email']
-      groups:
-        - developers@acme.com
+providers:
+  - name: google
+    kind: oidc
+    config: 
+      client-id: acme-12345678.apps.googleusercontent.com
+      client-secret: /etc/infra/client-secret
+      issuer-url: https://accounts.google.com
+      redirect-url: https://infra.acme.com:3090/v1/oidc/callback
+      scope: ['https://www.googleapis.com/auth/admin.directory.group.readonly', 'openid', 'email']
+    groups:
+      - developers@acme.com
 
 permissions:
   - provider: google
