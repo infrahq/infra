@@ -70,7 +70,7 @@ $ kubectl cluster-info | awk -F/ '{print $3}' | head -1
 32.195.119.174
 ```
 
-Then log in as the admin:
+Then use that information to log in as the admin:
 
 ```
 infra login 32.195.119.174 --token VkRCa1JtVldiRlJOVjNCaFZrWktjMWR0Y0ZhemxJVkZoa1QyRnNSak5hTW1SR1lWVXhR
