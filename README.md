@@ -46,7 +46,7 @@ then check the load balancer exposed by Infra Engine:
 
 ```
 NAME            TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)        AGE
-infra-service   LoadBalancer   10.12.11.116   31.58.101.169   80:32326/TCP   386d
+infra-service   LoadBalancer   10.12.11.116   31.58.101.169   80:32326/TCP   1m
 ```
 
 optionally map a DNS name e.g. `infra.acme.com` to `31.58.101.169`.
