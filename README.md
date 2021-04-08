@@ -56,10 +56,15 @@ curl -L "https://github.com/infrahq/infra/releases/download/latest/infra-linux-$
 
 ### Log in as admin
 
-To log in as the admin, first get the master node IP address
+To log in as the admin, first get the master node hostname or IP address
 
 ```
-$ kubectl cluster-info | awk -F/ '{print $3}' | head -1
+$ kubectl cluster-info
+Kubernetes control plane is running at https://35.238.165.174  # Master node IP
+GLBCDefaultBackend is running at https://35.238.165.174/api/v1/namespaces/kube-system/services/default-http-backend:http/proxy
+KubeDNS is running at https://35.238.165.174/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+Metrics-server is running at https://35.238.165.174/api/v1/namespaces/kube-system/services/https:metrics-server:/proxy
+
 32.195.119.174
 ```
 
