@@ -34,7 +34,7 @@ Use cases:
   <br/>
 </p>
 
-## Install Infra Engine
+## Install on Kubernetes
 
 Deploy via `kubectl`:
 
