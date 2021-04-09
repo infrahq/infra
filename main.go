@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 
-	"github.com/infrahq/infra/internal/server"
 	"github.com/urfave/cli/v2"
 )
 
@@ -55,9 +55,13 @@ func main() {
 				Name:  "start",
 				Usage: "Start the Infra Engine",
 				Action: func(c *cli.Context) error {
-					server.Run(&server.Options{
-						Port: 3001,
-					})
+					cmd := exec.Command("envoy")
+					cmd.Stdout = os.Stdout
+					cmd.Stderr = os.Stderr
+					err := cmd.Run()
+					if err != nil {
+						log.Fatalf("cmd.Run() failed with %s\n", err)
+					}
 					return nil
 				},
 			},
