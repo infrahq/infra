@@ -10,7 +10,8 @@
 * Non-goal: Infra Cloud does not need access to customer environment (think Datadog agent)
 
 ### High-level architecture
-![cloud architecture](https://user-images.githubusercontent.com/251292/114212823-42047380-9930-11eb-89ad-95225724c315.png)
+![cloud architecture](https://user-images.githubusercontent.com/251292/114213582-22ba1600-9931-11eb-9ea7-b4edd516a5da.png)
+
 
 ### Pricing
 * Usage-based pricing based on amount of data AND/OR number of identities managed (TBD)
