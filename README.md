@@ -96,7 +96,7 @@ List users that have been added to Infra:
 ```
 $ infra users
 USER                 PROVIDER             ROLES            NAMESPACE
-admin.               local                admin            default
+admin                local                admin            default
 michael@acme.com     local                view             default 
 ```
 
