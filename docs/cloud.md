@@ -9,13 +9,13 @@
 * Non-goal: single source of failure for customers
 * Non-goal: Infra Cloud does not need access to customer environment (think Datadog agent)
 
-### High-level architecture
+### Architecture
 ![cloud architecture](https://user-images.githubusercontent.com/251292/114213582-22ba1600-9931-11eb-9ea7-b4edd516a5da.png)
-
 
 ### Pricing
 * Usage-based pricing based on amount of data AND/OR number of identities managed (TBD)
 * E.g. $x/identity or $y/million events audited
+* Gracious free tier
 
 ### User Experience
 * See [Figma mockup](https://www.figma.com/file/WjpyKmfMHeUapLDWRVYb1G/Cloud-User-Flow?node-id=0%3A1)
