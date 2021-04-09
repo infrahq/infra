@@ -1,7 +1,7 @@
 # Infra Cloud
 
 ### Goals
-* One place for teams to manage 2+ Infra Engines for data
+* One place for teams to manage 2+ Infra Engines
 * Single source of truth for data that cannot be implemented as code / configuration (i.e. users, groups, audit logs, etc)
 * Central sink & index for audit log data
 * Limited-to-no risk for customers to use Infra Cloud
