@@ -4,10 +4,10 @@
 * One place for teams to manage 2+ Infra Engines
 * Single source of truth for data that cannot be implemented as code / configuration (i.e. users, groups, audit logs, etc)
 * Central sink & index for audit log data
-* Limited-to-no risk for customers to use Infra Cloud
+* Minimize risk for customers to use Infra Cloud
 * Non-goal: proxy all customer data through our own environment
 * Non-goal: single source of failure for customers
-* Non-goal: no access required to customer environment (think Datadog agent)
+* Non-goal: Infra Cloud does not need access to customer environment (think Datadog agent)
 
 ### High-level architecture
 ![cloud architecture](https://user-images.githubusercontent.com/251292/114212823-42047380-9930-11eb-89ad-95225724c315.png)
