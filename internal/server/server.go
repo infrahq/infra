@@ -53,7 +53,6 @@ func Run(options *Options) error {
 	// TODO: load
 
 	handler := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-
 	}
 
 	router := httprouter.New()

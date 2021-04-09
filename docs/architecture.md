@@ -2,7 +2,7 @@
 
 ## Infra Engine
 
-Infra Engine is a proxy that provides access to infrastructure to users & services. It is loosely inspired by the Google [Beyondcorp Access Proxy (AP)](https://research.google/pubs/pub45728), the [Cloud SQL Auth proxy](https://cloud.google.com/sql/docs/postgres/sql-proxy) and other similar projects.
+Infra Engine manages access to infrastructure. It is loosely inspired by the Google Beyondcorp project, specifically the [Beyondcorp Access Proxy (AP)](https://research.google/pubs/pub45728), the [Cloud SQL Auth proxy](https://cloud.google.com/sql/docs/postgres/sql-proxy) and other similar projects.
 
 ### Goals
 * Distribute credentials to users & services based on identity (OIDC, Service Name, etc)
@@ -23,8 +23,7 @@ Infra Engine is a proxy that provides access to infrastructure to users & servic
 
 ### Technology used
 * Go
-* [Envoy](https://www.envoyproxy.io/) 
-* SQLite (Later: PostgreSQL)
+* [Envoy](https://www.envoyproxy.io/)
 
 How Infra works with Envoy:
 * File configuration
@@ -55,10 +54,6 @@ How Infra works with Envoy:
 6. Infra Engine proxies the upstream request on behalf of the user and returns the result
 7. The entire request lifecycle is logged to stdout
 
-### Open Questions
-* How do we proxy access to multiple back-ends? Hostname headers? How would that work for other protocols such as SSH, MySQL, PostgreSQL?
-* What if the cluster is compromised? How do we avoid storing root secrets in the Infra Engine? How could Infra Registry help with this?
-
 
 ## Infra Registry
 Infra Registry is a centralized service for collaboration and managing 2+ Infra Engines
@@ -68,3 +63,7 @@ Infra Registry is a centralized service for collaboration and managing 2+ Infra 
 * Secret storage for multiple Infra Engines
 * No separate product from Infra Engine - instead a "registry mode" (think Docker Engine and "swarm mode")
 
+## Open Questions
+* How do we proxy access to multiple back-ends? Hostname headers? How would that work for other protocols such as SSH, MySQL, PostgreSQL?
+* What if the cluster is compromised? How do we avoid storing root secrets in the Infra Engine? How could Infra Registry help with this?
+* Should we store data in a SQL database? Or should the proxy be "stateless"?
