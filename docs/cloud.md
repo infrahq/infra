@@ -22,8 +22,8 @@
 * `infra login` logs in to Infra Cloud by default
 
 ### Open Questions
-* Alternative to Infra Cloud is building your own version with the Infra Engine API – is this a good model?
 * Pricing model?
 * Security/risk model for customers?
 * Defensibility (vs AWS)
 * Est. costs?
+* Alternative to Infra Cloud? Building your own version with the Infra Engine API – is this a good model?
