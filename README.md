@@ -24,6 +24,10 @@ Use cases:
 * Coming soon: Audit logs (who did what, when)
 
 
+## Documentation
+* [API Documentation](https://github.com/infrahq/infra/blob/main/docs/api.md)
+* [Developing Infra](https://github.com/infrahq/infra/blob/main/docs/development.md)
+
 ## Architecture
 
 <p align="center">
