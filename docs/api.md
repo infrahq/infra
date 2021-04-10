@@ -13,7 +13,7 @@ Infra Engine uses API keys to authenticate requests.
 ### Finding your API key
 
 ```
-kubectl get secret/infra-sk  --template={{.data.sk}} --namespace infra | base64 -d
+kubectl get secret/infra-sk --template={{.data.sk}} --namespace infra | base64 -d
 ```
 
 ## Users
@@ -30,7 +30,7 @@ DELETE /v1/users/:id
 ### Create a user
 
 * **URL:** `/v1/users`
-* **Method:** PUT
+* **Method:** POST
 * **Auth Required:** Yes
 
 **Parameters**
