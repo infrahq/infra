@@ -3,8 +3,8 @@
 ## Contents
 
 - [Authentication](#authentication)
-- [Tokens](#tokens)
 - [Users](#users)
+- [Tokens](#tokens)
 
 ## Authentication
 
@@ -29,7 +29,7 @@ DELETE /v1/users/:id
 
 ### Create a user
 
-* **URL:** `/v1/users/`
+* **URL:** `/v1/users`
 * **Method:** PUT
 * **Auth Required:** Yes
 
@@ -64,8 +64,19 @@ curl https://api.infrahq.com/v1/users \
 
 ```
 curl https://api.infrahq.com/v1/users/us_910dj1208jd1082jd810 \
-  -H "Authorization: Bearer
+  -u "sk_alsngunbznbmcn91u9uesdcionsdlkn38"
 ```
+
+Response
+
+```
+{
+  [
+    { username: "testuser" }
+  ]
+}
+```
+
 
 ### Delete a user
 
@@ -73,9 +84,9 @@ curl https://api.infrahq.com/v1/users/us_910dj1208jd1082jd810 \
 * **Method:** DELETE
 * **Auth Required:** Yes
 
-### Get a user
+### List users
 
-* **URL:** `/v1/users/`
+* **URL:** `/v1/users`
 * **Method:** GET
 * **Auth Required:** Yes
 
@@ -84,16 +95,9 @@ Response
 ```
 {
   [
-    { username: '}
+    { username: "testuser1" },
+    { username: "testuser2" }
   ]
-}
-```
-
-Error
-
-```
-{
-  error: '
 }
 ```
 
