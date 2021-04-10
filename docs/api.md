@@ -109,10 +109,11 @@ Tokens are used to provide **users** access to infrastructure.
 
 ```
   POST /v1/tokens
+  POST /v1/tokens/:id/refresh
 ```
 
 ### Create a token
-* **URL:** `/v1/tokens/`
+* **URL:** `/v1/tokens`
 * **Method:** POST
 * **Auth Required:** No
 
@@ -120,7 +121,7 @@ Tokens are used to provide **users** access to infrastructure.
 
 * `password` if logging in via password
 
-**Example**
+**Examples**
 
 ```
 curl https://api.inrahq.com/v1/tokens \
@@ -131,13 +132,42 @@ curl https://api.inrahq.com/v1/tokens \
 Response:
 ```
 {
-  token: "ja781pubnsqckjboa6gdaoiy2dbap2dap27dha[28dhapsyfgh97qph2dh12d71hgg98723dnks;ljdjal;sdkjf;3hj08fu"
+  token: "ja781pubnsqckjboa6gdaoiy2dbap2dap27dha28dhapsyfgh97qph2dh12d71hgg98723dnkhj08fu"
 }
+```
+
+```
+curl https://api.inrahq.com/v1/tokens \
+  -d username="testuser"
 ```
 
 Response (if using SSO):
 ```
 {
   sso_url: "https://accounts.google.com/o/oauth2/v2/auth?scope=https%3A//www.googleapis.com/auth/drive.metadata.readonly&access_type=offline&include_granted_scopes=true&response_type=code&state=state_parameter_passthrough_value&redirect_uri=https%3A//oauth2.example.com/code&client_id=client_id"
+}
+```
+
+### Refresh a token
+
+* **URL:** `/v1/tokens/:id/refresh`
+* **Method:** POST
+* **Auth Required:** Yes
+
+**Parameters**
+
+* `token` existing token
+
+**Example**
+
+```
+curl https://api.inrahq.com/v1/tokens \
+  -d token="ja781pubnsqckjboa6gdaoiy2dbap2dap27dha28dhapsyfgh97qph2dh12d71hgg98723dnkhj08fu"
+```
+
+Response:
+```
+{
+  token: "kjnspdfgiljo2i4jf29jfp2j39d029j3d2ij3d1ljd1pj29dp0j193do2i3jdp0239jd"
 }
 ```
