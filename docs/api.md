@@ -103,13 +103,19 @@ Response
 
 ## Tokens
 
-Tokens are used to provide **users** access to infrastructure.
+Tokens are used to provide **user** access. Token format is a standard signed JWT (JSON Web Tokens) with the following claims:
+
+```
+{
+  user: "us_29kf02j3a0i291k",
+  exp: 1516239022 # expiry date
+}
+```
 
 ### Endpoints
 
 ```
   POST /v1/tokens
-  POST /v1/tokens/:id/refresh
 ```
 
 ### Create a token
@@ -121,7 +127,7 @@ Tokens are used to provide **users** access to infrastructure.
 
 * `password` if logging in via password
 
-**Examples**
+**Example 1: Password login**
 
 ```
 curl https://api.inrahq.com/v1/tokens \
@@ -132,42 +138,34 @@ curl https://api.inrahq.com/v1/tokens \
 Response:
 ```
 {
-  token: "ja781pubnsqckjboa6gdaoiy2dbap2dap27dha28dhapsyfgh97qph2dh12d71hgg98723dnkhj08fu"
+  token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoidXNfMWlqMmQxajJpZGoxMjkiLCJleHAiOjE1MTYyMzkwMjJ9.qmUwklTyKkE6uFpVylNdQc6NLpjcqxsiH7uYPBA_c6E"
 }
 ```
+
+**Example 2: SSO login**
 
 ```
 curl https://api.inrahq.com/v1/tokens \
   -d username="testuser"
 ```
 
-Response (if using SSO):
+Response:
 ```
 {
   sso_url: "https://accounts.google.com/o/oauth2/v2/auth?scope=https%3A//www.googleapis.com/auth/drive.metadata.readonly&access_type=offline&include_granted_scopes=true&response_type=code&state=state_parameter_passthrough_value&redirect_uri=https%3A//oauth2.example.com/code&client_id=client_id"
 }
 ```
 
-### Refresh a token
-
-* **URL:** `/v1/tokens/:id/refresh`
-* **Method:** POST
-* **Auth Required:** Yes
-
-**Parameters**
-
-* `token` existing token
-
-**Example**
+**Example 3: Refresh a token**
 
 ```
 curl https://api.inrahq.com/v1/tokens \
-  -d token="ja781pubnsqckjboa6gdaoiy2dbap2dap27dha28dhapsyfgh97qph2dh12d71hgg98723dnkhj08fu"
+  -H "Authentication: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoidXNfMWlqMmQxajJpZGoxMjkiLCJleHAiOjE1MTYyMzkwMjJ9.qmUwklTyKkE6uFpVylNdQc6NLpjcqxsiH7uYPBA_c6E"
 ```
 
 Response:
 ```
 {
-  token: "kjnspdfgiljo2i4jf29jfp2j39d029j3d2ij3d1ljd1pj29dp0j193do2i3jdp0239jd"
+  token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoidXNfMWlqMmQxajJpZGoxMjkiLCJleHAiOjE1MTYyNDAxOTJ9.oNdZ_Yh5tdCuovzggdjbuqf6CWttiOoMzbiojU0B76Q"
 }
 ```
