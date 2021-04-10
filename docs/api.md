@@ -1,5 +1,9 @@
 # API Documentation
 
+- [Authentication](#authentication)
+- [Tokens](#tokens)
+- [Users](#users)
+
 ## Authentication
 
 Infra Engine uses API keys to authenticate requests.
