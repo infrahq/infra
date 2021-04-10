@@ -1,5 +1,7 @@
 # API Documentation
 
+## Contents
+
 - [Authentication](#authentication)
 - [Tokens](#tokens)
 - [Users](#users)
