@@ -16,47 +16,6 @@ Infra Engine uses API keys to authenticate requests.
 kubectl get secret/infra-sk  --template={{.data.sk}} --namespace infra | base64 -d
 ```
 
-## Tokens
-
-Tokens are used to provide **users** access to infrastructure via the Infra Engine.
-
-### Endpoints
-
-```
-  POST /v1/tokens
-```
-
-### Create a token
-* **URL:** `/v1/tokens/`
-* **Method:** POST
-* **Auth Required:** No
-
-**Parameters**
-
-* `password` if logging in via password
-
-**Example**
-
-```
-curl https://api.inrahq.com/v1/tokens \
-  -d username="testuser"
-  -d password="testpassword"
-```
-
-Response:
-```
-{
-  token: "ja781pubnsqckjboa6gdaoiy2dbap2dap27dha[28dhapsyfgh97qph2dh12d71hgg98723dnks;ljdjal;sdkjf;3hj08fu"
-}
-```
-
-Response (if using SSO):
-```
-{
-  sso_url: "https://accounts.google.com/o/oauth2/v2/auth?scope=https%3A//www.googleapis.com/auth/drive.metadata.readonly&access_type=offline&include_granted_scopes=true&response_type=code&state=state_parameter_passthrough_value&redirect_uri=https%3A//oauth2.example.com/code&client_id=client_id"
-}
-```
-
 ## Users
 
 ### Endpoints
@@ -135,5 +94,46 @@ Error
 ```
 {
   error: '
+}
+```
+
+## Tokens
+
+Tokens are used to provide **users** access to infrastructure.
+
+### Endpoints
+
+```
+  POST /v1/tokens
+```
+
+### Create a token
+* **URL:** `/v1/tokens/`
+* **Method:** POST
+* **Auth Required:** No
+
+**Parameters**
+
+* `password` if logging in via password
+
+**Example**
+
+```
+curl https://api.inrahq.com/v1/tokens \
+  -d username="testuser"
+  -d password="testpassword"
+```
+
+Response:
+```
+{
+  token: "ja781pubnsqckjboa6gdaoiy2dbap2dap27dha[28dhapsyfgh97qph2dh12d71hgg98723dnks;ljdjal;sdkjf;3hj08fu"
+}
+```
+
+Response (if using SSO):
+```
+{
+  sso_url: "https://accounts.google.com/o/oauth2/v2/auth?scope=https%3A//www.googleapis.com/auth/drive.metadata.readonly&access_type=offline&include_granted_scopes=true&response_type=code&state=state_parameter_passthrough_value&redirect_uri=https%3A//oauth2.example.com/code&client_id=client_id"
 }
 ```
