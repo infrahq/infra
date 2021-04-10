@@ -7,7 +7,7 @@
 
 ### Developing
 
-To run the development server:
+To run Infra Engine in development:
 
 ```
 go run . 
