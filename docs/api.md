@@ -103,12 +103,12 @@ Response
 
 ## Tokens
 
-Tokens are used to provide **user** access. Token format is a standard signed JWT (JSON Web Tokens) with the following claims:
+Tokens are used to provide **user** access. Token format is a standard signed JWT (JSON Web Token) format with the following claims:
 
 ```
 {
-  user: "us_29kf02j3a0i291k",
-  exp: 1516239022 # expiry date
+  user: "us_29kf02j3a0i291k",  # user id
+  exp: 1516239022              # expiry date
 }
 ```
 
