@@ -112,23 +112,6 @@ List the user's access permissions
 $ infra permissions -u admin
 
 NAME                                                          LIST  CREATE  UPDATE  DELETE
-alertmanagers.monitoring.coreos.com                           ✔     ✔       ✔       ✔
-apiservices.apiregistration.k8s.io                            ✔     ✔       ✔       ✔
-backups.velero.io                                             ✔     ✔       ✔       ✔
-backupstoragelocations.velero.io                              ✔     ✔       ✔       ✔
-bgpconfigurations.crd.projectcalico.org                       ✔     ✔       ✔       ✔
-bindings                                                            ✔               
-certificatesigningrequests.certificates.k8s.io                ✔     ✔       ✔       ✔
-clusterinformations.crd.projectcalico.org                     ✔     ✔       ✔       ✔
-clusterrolebindings.rbac.authorization.k8s.io                 ✔     ✔       ✔       ✔
-clusterroles.rbac.authorization.k8s.io                        ✔     ✔       ✔       ✔
-componentstatuses                                             ✔                     
-configmaps                                                    ✔     ✔       ✔       ✔
-controllerrevisions.apps                                      ✔     ✔       ✔       ✔
-cronjobs.batch                                                ✔     ✔       ✔       ✔
-csidrivers.storage.k8s.io                                     ✔     ✔       ✔       ✔
-csinodes.storage.k8s.io                                       ✔     ✔       ✔       ✔
-customresourcedefinitions.apiextensions.k8s.io                ✔     ✔       ✔       ✔
 daemonsets.apps                                               ✔     ✔       ✔       ✔
 daemonsets.extensions                                         ✔     ✔       ✔       ✔
 deletebackuprequests.velero.io                                ✔     ✔       ✔       ✔
@@ -139,27 +122,6 @@ endpoints                                                     ✔     ✔       
 events                                                        ✔     ✔       ✔       ✔
 events.events.k8s.io                                          ✔     ✔       ✔       ✔
 felixconfigurations.crd.projectcalico.org                     ✔     ✔       ✔       ✔
-globalnetworkpolicies.crd.projectcalico.org                   ✔     ✔       ✔       ✔
-globalnetworksets.crd.projectcalico.org                       ✔     ✔       ✔       ✔
-horizontalpodautoscalers.autoscaling                          ✔     ✔       ✔       ✔
-hostendpoints.crd.projectcalico.org                           ✔     ✔       ✔       ✔
-ingresses.extensions                                          ✔     ✔       ✔       ✔
-ingresses.networking.k8s.io                                   ✔     ✔       ✔       ✔
-ippools.crd.projectcalico.org                                 ✔     ✔       ✔       ✔
-jobs.batch                                                    ✔     ✔       ✔       ✔
-leases.coordination.k8s.io                                    ✔     ✔       ✔       ✔
-limitranges                                                   ✔     ✔       ✔       ✔
-localsubjectaccessreviews.authorization.k8s.io                      ✔               
-mutatingwebhookconfigurations.admissionregistration.k8s.io    ✔     ✔       ✔       ✔
-namespaces                                                    ✔     ✔       ✔       ✔
-networkpolicies.crd.projectcalico.org                         ✔     ✔       ✔       ✔
-networkpolicies.extensions                                    ✔     ✔       ✔       ✔
-networkpolicies.networking.k8s.io                             ✔     ✔       ✔       ✔
-nodes                                                         ✔     ✔       ✔       ✔
-nodes.metrics.k8s.io                                          ✔                     
-persistentvolumeclaims                                        ✔     ✔       ✔       ✔
-persistentvolumes                                             ✔     ✔       ✔       ✔
-poddisruptionbudgets.policy                                   ✔     ✔       ✔       ✔
 pods                                                          ✔     ✔       ✔       ✔
 pods.metrics.k8s.io                                           ✔                     
 podsecuritypolicies.extensions                                ✔     ✔       ✔       ✔
