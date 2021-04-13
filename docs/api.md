@@ -2,19 +2,17 @@
 
 ## Contents
 
-- [Authentication](#authentication)
+- [API Authentication](#authentication)
+- [Destinations](#destinations)
 - [Users](#users)
-- [Tokens](#tokens)
+- [Services](#services)
+- [Keys](#keys)
+- [Identity Providers](#identity_providers)
 
 ## Authentication
 
-Infra Engine uses API keys to authenticate requests.
+### Authenticating as a user
 
-### Finding your API key
-
-```
-kubectl get secret/infra-sk --template={{.data.sk}} --namespace infra | base64 -d
-```
 
 ## Users
 
@@ -63,8 +61,7 @@ curl https://api.infrahq.com/v1/users \
 **Example**
 
 ```
-curl https://api.infrahq.com/v1/users/us_910dj1208jd1082jd810 \
-  -u "sk_alsngunbznbmcn91u9uesdcionsdlkn38"
+curl https://api.infrahq.com/v1/users/us_910dj1208jd1082jd810
 ```
 
 Response
@@ -103,7 +100,14 @@ Response
 
 ## Tokens
 
-Tokens are used to provide **users** access to infrastructure.
+Tokens are used to provide **user** access. Token format is a standard signed JWT (JSON Web Token) format with the following claims:
+
+```
+{
+  user: "us_29kf02j3a0i291k",  # user id
+  exp: 1516239022              # expiry date
+}
+```
 
 ### Endpoints
 
@@ -112,7 +116,7 @@ Tokens are used to provide **users** access to infrastructure.
 ```
 
 ### Create a token
-* **URL:** `/v1/tokens/`
+* **URL:** `/v1/tokens`
 * **Method:** POST
 * **Auth Required:** No
 
@@ -120,10 +124,10 @@ Tokens are used to provide **users** access to infrastructure.
 
 * `password` if logging in via password
 
-**Example**
+**Example 1: Password login**
 
 ```
-curl https://api.inrahq.com/v1/tokens \
+curl https://api.infrahq.com/v1/tokens \
   -d username="testuser"
   -d password="testpassword"
 ```
@@ -131,13 +135,34 @@ curl https://api.inrahq.com/v1/tokens \
 Response:
 ```
 {
-  token: "ja781pubnsqckjboa6gdaoiy2dbap2dap27dha[28dhapsyfgh97qph2dh12d71hgg98723dnks;ljdjal;sdkjf;3hj08fu"
+  token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoidXNfMWlqMmQxajJpZGoxMjkiLCJleHAiOjE1MTYyMzkwMjJ9.qmUwklTyKkE6uFpVylNdQc6NLpjcqxsiH7uYPBA_c6E"
 }
 ```
 
-Response (if using SSO):
+**Example 2: SSO login**
+
+```
+curl https://api.inrahq.com/v1/tokens \
+  -d username="testuser"
+```
+
+Response:
 ```
 {
   sso_url: "https://accounts.google.com/o/oauth2/v2/auth?scope=https%3A//www.googleapis.com/auth/drive.metadata.readonly&access_type=offline&include_granted_scopes=true&response_type=code&state=state_parameter_passthrough_value&redirect_uri=https%3A//oauth2.example.com/code&client_id=client_id"
+}
+```
+
+**Example 3: Refresh a token**
+
+```
+curl https://api.inrahq.com/v1/tokens \
+  -H "Authentication: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoidXNfMWlqMmQxajJpZGoxMjkiLCJleHAiOjE1MTYyMzkwMjJ9.qmUwklTyKkE6uFpVylNdQc6NLpjcqxsiH7uYPBA_c6E"
+```
+
+Response:
+```
+{
+  token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoidXNfMWlqMmQxajJpZGoxMjkiLCJleHAiOjE1MTYyNDAxOTJ9.oNdZ_Yh5tdCuovzggdjbuqf6CWttiOoMzbiojU0B76Q"
 }
 ```
