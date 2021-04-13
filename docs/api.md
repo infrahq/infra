@@ -4,17 +4,18 @@
 
 - [Authentication](#authentication)
 - [Users](#users)
-- [Tokens](#tokens)
+- [Providers](#providers)
+- [Credentials](#tokens)
+  - Kubernetes
+  - SSH
+  - MongoDB
+  - Postgres
 
 ## Authentication
 
-Infra Engine uses API keys to authenticate requests.
+### Authenticating as a user
 
-### Finding your API key
-
-```
-kubectl get secret/infra-sk --template={{.data.sk}} --namespace infra | base64 -d
-```
+### Authenticating with API keys (Coming Soon)
 
 ## Users
 
@@ -63,8 +64,7 @@ curl https://api.infrahq.com/v1/users \
 **Example**
 
 ```
-curl https://api.infrahq.com/v1/users/us_910dj1208jd1082jd810 \
-  -u "sk_alsngunbznbmcn91u9uesdcionsdlkn38"
+curl https://api.infrahq.com/v1/users/us_910dj1208jd1082jd810
 ```
 
 Response
@@ -130,7 +130,7 @@ Tokens are used to provide **user** access. Token format is a standard signed JW
 **Example 1: Password login**
 
 ```
-curl https://api.inrahq.com/v1/tokens \
+curl https://api.infrahq.com/v1/tokens \
   -d username="testuser"
   -d password="testpassword"
 ```
