@@ -1,34 +1,32 @@
 # API Documentation
 
 ## Contents
+- [Authenticating](#authenticating)
+- [Identity Providers](#idps)
+- [Secret Storage](#secrets)
 
-- [API Authentication](#authentication)
+### Resources
 - [Destinations](#destinations)
-- [Users](#users)
-- [Services](#services)
-- [Keys](#keys)
-- [Identity Providers](#identity_providers)
+- [Sources](#sources)
 
-## Authentication
+## Authenticating
 
-### Authenticating as a user
+## Sources
 
-### Authenticating with API keys (Coming Soon)
-
-## Users
+Sources are users or services that access infrastructure [Destinations](#destinations) via Infra.
 
 ### Endpoints
 
 ```
-  POST /v1/users
-   GET /v1/users/:id
-DELETE /v1/users/:id
-   GET /v1/users
+  POST /v1/sources
+   GET /v1/sources/:id
+DELETE /v1/sources/:id
+   GET /v1/sources
 ```
 
-### Create a user
+### Create a source
 
-* **URL:** `/v1/users`
+* **URL:** `/v1/sources`
 * **Method:** POST
 * **Auth Required:** Yes
 
