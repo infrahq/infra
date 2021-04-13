@@ -6,8 +6,8 @@
 - [Destinations](#destinations)
 - [Users](#users)
 - [Services](#services)
-- [Identity Providers](#identity_providers)
 - [Keys](#keys)
+- [Identity Providers](#identity_providers)
 
 ## Authentication
 
