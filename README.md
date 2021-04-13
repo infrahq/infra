@@ -212,6 +212,21 @@ Use "infra [command] --help" for more information about a command.
 For scriptability, Infra Engine can be configured using a yaml file
 
 ```yaml
+# define manual users without the need of using providers 
+users: 
+
+# define destinations for infra-engine to connect with 
+destinations: 
+  dev:  
+    db: 
+      postgres:  
+    s3:
+    ecr: 
+  prod: 
+    db: 
+      postgres: 
+
+# adding an external identity provider (IdP) to infra-engine for syncing 
 providers:
   - name: google
     kind: oidc
