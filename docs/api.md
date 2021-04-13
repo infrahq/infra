@@ -2,14 +2,12 @@
 
 ## Contents
 
-- [Authentication](#authentication)
+- [API Authentication](#authentication)
+- [Destinations](#destinations)
 - [Users](#users)
-- [Providers](#providers)
-- [Credentials](#tokens)
-  - Kubernetes
-  - SSH
-  - MongoDB
-  - Postgres
+- [Services](#services)
+- [Identity Providers](#identity_providers)
+- [Keys](#keys)
 
 ## Authentication
 
