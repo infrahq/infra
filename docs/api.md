@@ -11,7 +11,6 @@
 - [Sources](#sources)
 - [Destinations](#destinations)
 - [Permissions](#permissions)
-- [Credentials](#credentials)
 
 
 ## Authentication
@@ -299,39 +298,5 @@ Response
         "ca_client": "=-----BEGIN CERTIFICATE-----MIIDmzCCAoOgAwIBAgIEU9e2rzANBgkqhkiG9w0B...-----END CERTIFICATE-----"
     }
   ]
-}
-```
-
-## Credentials
-
-Credentials grant access to destination to a requesting source.
-
-### Endpoints
-
-```
-  POST /v1/creds
-```
-
-### Create a credential
-* **URL:** `/v1/creds`
-* **Method:** POST
-* **Auth Required:** Yes
-
-**Parameters**
-
-* `destination` 
-
-**Example**
-
-```
-curl https://api.infrahq.com/v1/creds \
-  -d destination="dst_aj08jda20dj9a2lh" \
-  -u "testuser:password"
-```
-
-Response:
-```
-{
-  token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoidXNfMWlqMmQxajJpZGoxMjkiLCJleHAiOjE1MTYyMzkwMjJ9.qmUwklTyKkE6uFpVylNdQc6NLpjcqxsiH7uYPBA_c6E"
 }
 ```
