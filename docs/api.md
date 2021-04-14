@@ -1,14 +1,10 @@
 # API Reference
 
 ## Contents
-- [Authenticating](#authenticating)
 - [Sources](#sources)
 - [Destinations](#destinations)
 - [Credentials](#credentials)
 
-## Authenticating
-
-To authenticate with Infra, log in using 
 
 ## Sources
 
@@ -80,7 +76,7 @@ Response:
 **Example**
 
 ```bash
-curl https://api.infrahq.com/v1/s/src_a0s8jfws08jfs038s038j
+curl https://api.infrahq.com/v1/sources/src_910dj1208jd1082jd810
 ```
 
 Response
@@ -89,9 +85,9 @@ Response
 {
   [
     {
-      id: "src_a0s8jfws08jfs038s038j",
+      id: "src_910dj1208jd1082jd810",
       object: "source",
-      pod: "app"
+      name: "testuser"
     }
   ]
 }
@@ -107,24 +103,44 @@ Response
 **Example**
 
 ```
+curl -X DELETE https://api.infrahq.com/v1/sources/src_a0s8jfws08jfs038s038j
+```
 
+Note that if this source has been imported via an identity provider, they continue to be imported and updated, but will remain in a blacklist.
 
-### List users
+### List sources
 
 * **URL:** `/v1/sources`
 * **Method:** GET
 * **Auth Required:** Yes
+
+**Example**
+
+```
+curl https://api.infrahq.com/v1/sources
+```
 
 Response
 
 ```
 {
   [
-    { username: "testuser1" },
-    { username: "testuser2" }
+    {
+      id: "src_a0s8jfws08jfs038s038j",
+      object: "source",
+      name: "app",
+      pod: "app"
+    },
+    {
+      id: "src_a0s8jfws08jfs038s038j",
+      object: "source",
+      pod: "app"
+    }
   ]
 }
 ```
+
+
 
 ## Credentials
 
