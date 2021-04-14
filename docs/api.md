@@ -5,7 +5,7 @@
 ### Overview
 - [Authentication](#authentication)
 - [Pagination](#authentication)
-- [Using secrets](#secrets)
+- [Referencing Secrets](#secrets)
 
 ### Resources
 - [Sources](#sources)
