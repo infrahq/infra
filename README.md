@@ -104,6 +104,29 @@ admin                local                admin            default
 michael@acme.com     local                view             default 
 ```
 
+### Listing groups
+
+To view groups that have been synchronized to Infra, use `infra groups`:
+
+```
+$ infra groups
+NAME                  PROVIDER        USERS          ROLES
+local                 local           1              view
+developers@acme.com   google          1              admin
+```
+
+### Listing roles
+
+To view all roles in the cluster, use `infra roles`:
+
+```
+$ infra roles
+NAME        NAMESPACE           GRANTED GROUPS      GRANTED USERS        DESCRIPTION 
+admin       default             1                   1                    Admin access
+view        default             1                   1                    Read-only access
+```
+
+
 ### Listing access 
 
 List the user's access permissions
@@ -158,28 +181,6 @@ validatingwebhookconfigurations.admissionregistration.k8s.io  ✔     ✔       
 volumeattachments.storage.k8s.io                              ✔     ✔       ✔       ✔
 volumesnapshotlocations.velero.io                             ✔     ✔       ✔       ✔
 No namespace given, this implies cluster scope (try -n if this is not intended)
-```
-
-### Listing groups
-
-To view groups that have been synchronized to Infra, use `infra groups`:
-
-```
-$ infra groups
-NAME                  PROVIDER        USERS          ROLES
-local                 local           1              view
-developers@acme.com   google          1              admin
-```
-
-### Listing roles
-
-To view all roles in the cluster, use `infra roles`:
-
-```
-$ infra roles
-NAME        NAMESPACE           GRANTED GROUPS      GRANTED USERS        DESCRIPTION 
-admin       default             1                   1                    Admin access
-view        default             1                   1                    Read-only access
 ```
 
 ## CLI Reference

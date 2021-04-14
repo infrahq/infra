@@ -1,53 +1,85 @@
-# API Documentation
+# API Reference
 
 ## Contents
-- [Authenticating](#authenticating)
-- [Identity Providers](#idps)
-- [Secret Storage](#secrets)
 
-### Resources
-- [Destinations](#destinations)
-- [Sources](#sources)
+### Overview
+- [Authentication](#authentication)
+- [Pagination](#authentication)
+- [Referencing Secrets](#secrets)
 
-## Authenticating
+### Core Resources
+- [Users](#users)
+- [Groups](#groups)
+- [Roles](#roles)
+- [Permissions](#permissions)
 
-## Sources
-
-Sources are users or services that access infrastructure [Destinations](#destinations) via Infra.
+## Authentication
 
 ### Endpoints
 
 ```
-  POST /v1/sources
-   GET /v1/sources/:id
-DELETE /v1/sources/:id
-   GET /v1/sources
+POST /v1/login
 ```
 
-### Create a source
+### Login
 
-* **URL:** `/v1/sources`
+* **URL:** `/v1/login`
 * **Method:** POST
 * **Auth Required:** Yes
-
-**Parameters**
 
 * `username` (required)
 
 **Example**
 
-```
-curl https://api.infrahq.com/v1/users \
+```bash
+curl https://api.infrahq.com/v1/login \
   -d username="testuser"
 ```
 
-**Response**
+Response:
+
+```json
+{
+  "sso_url": "https://example.okta.com/login..."
+}
+```
+
+## Users
+
+### Endpoints
 
 ```
+  POST /v1/users
+   GET /v1/users/:id
+DELETE /v1/users/:id
+   GET /v1/users
+```
+
+### Create a user
+
+* **URL:** `/v1/users`
+* **Method:** POST
+* **Auth Required:** Yes
+
+**Parameters**
+
+* `username` (optional)
+* `password`
+
+**Example**
+
+```bash
+curl https://api.infrahq.com/v1/users \
+  -d username="testuser" \
+  -d password="mypassword"
+```
+
+Response:
+
+```json
 {
-  id: "us_910dj1208jd1082jd810",
-  object: "user",
-  username: "testuser"
+  "id": "usr_910dj1208jd1082jd810",
+  "username": "testuser"
 }
 ```
 
@@ -59,20 +91,19 @@ curl https://api.infrahq.com/v1/users \
 
 **Example**
 
-```
-curl https://api.infrahq.com/v1/users/us_910dj1208jd1082jd810
+```bash
+curl https://api.infrahq.com/v1/users/usr_910dj1208jd1082jd810
 ```
 
 Response
 
-```
+```json
 {
-  [
-    { username: "testuser" }
-  ]
+  "id": "usr_910dj1208jd1082jd810",
+  "object": "user",
+  "username": "testuser"
 }
 ```
-
 
 ### Delete a user
 
@@ -80,88 +111,39 @@ Response
 * **Method:** DELETE
 * **Auth Required:** Yes
 
+**Example**
+
+```
+curl -X DELETE https://api.infrahq.com/v1/users/usr_a0s8jfws08jfs038s038j
+```
+
+Note that if this source has been imported via an identity provider, they continue to be imported and updated, but will remain in a blacklist.
+
 ### List users
 
 * **URL:** `/v1/users`
 * **Method:** GET
 * **Auth Required:** Yes
 
+**Example**
+
+```
+curl https://api.infrahq.com/v1/users
+```
+
 Response
 
-```
+```json
 {
-  [
-    { username: "testuser1" },
-    { username: "testuser2" }
+  "object": "list",
+  "url": "/v1/users",
+  "has_more": false,
+  "data": [
+    {
+      "object": "users",
+      "id": "usr_910dj1208jd1082jd810",
+      "name": "testuser"
+    }
   ]
-}
-```
-
-## Tokens
-
-Tokens are used to provide **user** access. Token format is a standard signed JWT (JSON Web Token) format with the following claims:
-
-```
-{
-  user: "us_29kf02j3a0i291k",  # user id
-  exp: 1516239022              # expiry date
-}
-```
-
-### Endpoints
-
-```
-  POST /v1/tokens
-```
-
-### Create a token
-* **URL:** `/v1/tokens`
-* **Method:** POST
-* **Auth Required:** No
-
-**Parameters**
-
-* `password` if logging in via password
-
-**Example 1: Password login**
-
-```
-curl https://api.infrahq.com/v1/tokens \
-  -d username="testuser"
-  -d password="testpassword"
-```
-
-Response:
-```
-{
-  token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoidXNfMWlqMmQxajJpZGoxMjkiLCJleHAiOjE1MTYyMzkwMjJ9.qmUwklTyKkE6uFpVylNdQc6NLpjcqxsiH7uYPBA_c6E"
-}
-```
-
-**Example 2: SSO login**
-
-```
-curl https://api.inrahq.com/v1/tokens \
-  -d username="testuser"
-```
-
-Response:
-```
-{
-  sso_url: "https://accounts.google.com/o/oauth2/v2/auth?scope=https%3A//www.googleapis.com/auth/drive.metadata.readonly&access_type=offline&include_granted_scopes=true&response_type=code&state=state_parameter_passthrough_value&redirect_uri=https%3A//oauth2.example.com/code&client_id=client_id"
-}
-```
-
-**Example 3: Refresh a token**
-
-```
-curl https://api.inrahq.com/v1/tokens \
-  -H "Authentication: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoidXNfMWlqMmQxajJpZGoxMjkiLCJleHAiOjE1MTYyMzkwMjJ9.qmUwklTyKkE6uFpVylNdQc6NLpjcqxsiH7uYPBA_c6E"
-```
-
-Response:
-```
-{
-  token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoidXNfMWlqMmQxajJpZGoxMjkiLCJleHAiOjE1MTYyNDAxOTJ9.oNdZ_Yh5tdCuovzggdjbuqf6CWttiOoMzbiojU0B76Q"
 }
 ```
