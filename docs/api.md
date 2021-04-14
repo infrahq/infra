@@ -8,10 +8,10 @@
 - [Referencing Secrets](#secrets)
 
 ### Core Resources
-- [Sources](#sources)
-- [Destinations](#destinations)
+- [Users](#users)
+- [Groups](#groups)
+- [Roles](#roles)
 - [Permissions](#permissions)
-
 
 ## Authentication
 
@@ -44,39 +44,32 @@ Response:
 }
 ```
 
-## Sources
-
-Sources are users or services that access infrastructure [Destinations](#destinations) via Infra.
+## Users
 
 ### Endpoints
 
 ```
-  POST /v1/sources
-   GET /v1/sources/:id
-DELETE /v1/sources/:id
-   GET /v1/sources
+  POST /v1/users
+   GET /v1/users/:id
+DELETE /v1/users/:id
+   GET /v1/users
 ```
 
-### Create a source
+### Create a user
 
-* **URL:** `/v1/sources`
+* **URL:** `/v1/users`
 * **Method:** POST
 * **Auth Required:** Yes
 
 **Parameters**
 
-* `name` (required)
 * `username` (optional)
-* `password` (optional)
-* `kubernetes` (optional)
-  * `kubernetes.pod` (optional) the pod name
-  * `kubernetes.label` (optional) the pod label
+* `password`
 
-**Example 1: Person**
+**Example**
 
 ```bash
-curl https://api.infrahq.com/v1/sources \
-  -d name="testuser" \
+curl https://api.infrahq.com/v1/users \
   -d username="testuser" \
   -d password="mypassword"
 ```
@@ -85,79 +78,57 @@ Response:
 
 ```json
 {
-  "id": "src_910dj1208jd1082jd810",
-  "object": "source",
-  "name": "testuser",
+  "id": "usr_910dj1208jd1082jd810",
   "username": "testuser"
 }
 ```
 
-**Example 2: Kubernetes Pod**
+### Retrieve a user
 
-```bash
-curl https://api.infrahq.com/v1/sources \
-  -d name="app" \
-  -d "kubernetes.pod"="app"
-```
-
-Response:
-
-```json
-{
-  "id": "src_a0s8jfws08jfs038s038j",
-  "object": "source",
-  "name": "app",
-  "pod": "app"
-}
-```
-
-### Retrieve a source
-
-* **URL:** `/v1/sources/:id`
+* **URL:** `/v1/users/:id`
 * **Method:** GET
 * **Auth Required:** Yes
 
 **Example**
 
 ```bash
-curl https://api.infrahq.com/v1/sources/src_910dj1208jd1082jd810
+curl https://api.infrahq.com/v1/users/usr_910dj1208jd1082jd810
 ```
 
 Response
 
 ```json
 {
-  "id": "src_910dj1208jd1082jd810",
-  "object": "source",
-  "name": "testuser"
+  "id": "usr_910dj1208jd1082jd810",
+  "object": "user",
+  "username": "testuser"
 }
 ```
 
+### Delete a user
 
-### Delete a source
-
-* **URL:** `/v1/source/:id`
+* **URL:** `/v1/users/:id`
 * **Method:** DELETE
 * **Auth Required:** Yes
 
 **Example**
 
 ```
-curl -X DELETE https://api.infrahq.com/v1/sources/src_a0s8jfws08jfs038s038j
+curl -X DELETE https://api.infrahq.com/v1/users/usr_a0s8jfws08jfs038s038j
 ```
 
 Note that if this source has been imported via an identity provider, they continue to be imported and updated, but will remain in a blacklist.
 
-### List sources
+### List users
 
-* **URL:** `/v1/sources`
+* **URL:** `/v1/users`
 * **Method:** GET
 * **Auth Required:** Yes
 
 **Example**
 
 ```
-curl https://api.infrahq.com/v1/sources
+curl https://api.infrahq.com/v1/users
 ```
 
 Response
@@ -165,19 +136,13 @@ Response
 ```json
 {
   "object": "list",
-  "url": "/v1/sources",
+  "url": "/v1/users",
   "has_more": false,
   "data": [
     {
-      "object": "source",
-      "id": "src_910dj1208jd1082jd810",
+      "object": "users",
+      "id": "usr_910dj1208jd1082jd810",
       "name": "testuser"
-    },
-    {
-      "object": "source",
-      "id": "src_a0s8jfws08jfs038s038j",
-      "name": "app",
-      "pod": "app"
     }
   ]
 }
