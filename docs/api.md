@@ -1,15 +1,16 @@
-# API Documentation
+# API Reference
 
 ## Contents
 - [Authenticating](#authenticating)
-- [Identity Providers](#idps)
-- [Secret Storage](#secrets)
 
-### Resources
-- [Destinations](#destinations)
+### Core Resources
 - [Sources](#sources)
+- [Destinations](#destinations)
+- [Credentials](#credentials)
 
 ## Authenticating
+
+To authenticate with Infra, log in using 
 
 ## Sources
 
@@ -32,57 +33,87 @@ DELETE /v1/sources/:id
 
 **Parameters**
 
-* `username` (required)
+* `name` (required)
+* `password` (optional)
+* `pod` (optional) the pod name
 
-**Example**
+**Example 1: Person**
 
-```
+```bash
 curl https://api.infrahq.com/v1/users \
-  -d username="testuser"
+  -d name="testuser" \
+  -d password="mypassword" 
 ```
 
-**Response**
+Response:
 
-```
+```json
 {
-  id: "us_910dj1208jd1082jd810",
-  object: "user",
+  id: "src_910dj1208jd1082jd810",
+  object: "source",
   username: "testuser"
 }
 ```
 
-### Retrieve a user
+**Example 2: Kubernetes Pod**
 
-* **URL:** `/v1/users/:id`
+```bash
+curl https://api.infrahq.com/v1/users \
+  -d name="app" \
+  -d pod="app"
+```
+
+Response:
+
+```json
+{
+  id: "src_a0s8jfws08jfs038s038j",
+  object: "source",
+  pod: "app"
+}
+```
+
+### Retrieve a source
+
+* **URL:** `/v1/sources/:id`
 * **Method:** GET
 * **Auth Required:** Yes
 
 **Example**
 
-```
-curl https://api.infrahq.com/v1/users/us_910dj1208jd1082jd810
+```bash
+curl https://api.infrahq.com/v1/s/src_a0s8jfws08jfs038s038j
 ```
 
 Response
 
-```
+```json
 {
   [
-    { username: "testuser" }
+    {
+      id: "src_a0s8jfws08jfs038s038j",
+      object: "source",
+      pod: "app"
+    }
   ]
 }
 ```
 
 
-### Delete a user
+### Delete a source
 
-* **URL:** `/v1/users/:id`
+* **URL:** `/v1/source/:id`
 * **Method:** DELETE
 * **Auth Required:** Yes
 
+**Example**
+
+```
+
+
 ### List users
 
-* **URL:** `/v1/users`
+* **URL:** `/v1/sources`
 * **Method:** GET
 * **Auth Required:** Yes
 
@@ -97,38 +128,31 @@ Response
 }
 ```
 
-## Tokens
+## Credentials
 
-Tokens are used to provide **user** access. Token format is a standard signed JWT (JSON Web Token) format with the following claims:
-
-```
-{
-  user: "us_29kf02j3a0i291k",  # user id
-  exp: 1516239022              # expiry date
-}
-```
+Credentials grant access to a destination
 
 ### Endpoints
 
 ```
-  POST /v1/tokens
+  POST /v1/creds
 ```
 
-### Create a token
-* **URL:** `/v1/tokens`
+### Create a credential
+* **URL:** `/v1/creds`
 * **Method:** POST
-* **Auth Required:** No
+* **Auth Required:** Yes
 
 **Parameters**
 
 * `password` if logging in via password
 
-**Example 1: Password login**
+**Example 1: Kubernetes**
 
 ```
-curl https://api.infrahq.com/v1/tokens \
-  -d username="testuser"
-  -d password="testpassword"
+curl https://api.infrahq.com/v1/creds \
+  -d destination="production_cluster" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoidXNfMWlqMmQxajJpZGoxMjkiLCJleHAiOjE1MTYyMzkwMjJ9.qmUwklTyKkE6uFpVylNdQc6NLpjcqxsiH7uYPBA_c6E"
 ```
 
 Response:
@@ -138,30 +162,4 @@ Response:
 }
 ```
 
-**Example 2: SSO login**
-
-```
-curl https://api.inrahq.com/v1/tokens \
-  -d username="testuser"
-```
-
-Response:
-```
-{
-  sso_url: "https://accounts.google.com/o/oauth2/v2/auth?scope=https%3A//www.googleapis.com/auth/drive.metadata.readonly&access_type=offline&include_granted_scopes=true&response_type=code&state=state_parameter_passthrough_value&redirect_uri=https%3A//oauth2.example.com/code&client_id=client_id"
-}
-```
-
-**Example 3: Refresh a token**
-
-```
-curl https://api.inrahq.com/v1/tokens \
-  -H "Authentication: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoidXNfMWlqMmQxajJpZGoxMjkiLCJleHAiOjE1MTYyMzkwMjJ9.qmUwklTyKkE6uFpVylNdQc6NLpjcqxsiH7uYPBA_c6E"
-```
-
-Response:
-```
-{
-  token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoidXNfMWlqMmQxajJpZGoxMjkiLCJleHAiOjE1MTYyNDAxOTJ9.oNdZ_Yh5tdCuovzggdjbuqf6CWttiOoMzbiojU0B76Q"
-}
-```
+**Example 2: SSH**
