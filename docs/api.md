@@ -289,7 +289,7 @@ Response
   "object": "list",
   "url": "/v1/destinations",
   "has_more": false,
-  [
+  "data": [
     {
       "id": "dst_aj08jda20dj9a2lh",
       "object": "destination",
