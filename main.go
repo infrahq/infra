@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 
 	"github.com/urfave/cli/v2"
 )
@@ -52,16 +51,10 @@ func main() {
 				},
 			},
 			{
-				Name:  "start",
+				Name:  "server",
 				Usage: "Start the Infra Engine",
 				Action: func(c *cli.Context) error {
-					cmd := exec.Command("envoy")
-					cmd.Stdout = os.Stdout
-					cmd.Stderr = os.Stderr
-					err := cmd.Run()
-					if err != nil {
-						log.Fatalf("cmd.Run() failed with %s\n", err)
-					}
+					Server()
 					return nil
 				},
 			},
