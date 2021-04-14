@@ -43,7 +43,7 @@ DELETE /v1/sources/:id
 **Example 1: Person**
 
 ```bash
-curl https://api.infrahq.com/v1/users \
+curl https://api.infrahq.com/v1/sources \
   -d name="testuser" \
   -d password="mypassword" 
 ```
@@ -61,7 +61,7 @@ Response:
 **Example 2: Kubernetes Pod**
 
 ```bash
-curl https://api.infrahq.com/v1/users \
+curl https://api.infrahq.com/v1/sources \
   -d name="app" \
   -d pod="app"
 ```
@@ -177,7 +177,7 @@ DELETE /v1/destinations/:id
 **Example**
 
 ```bash
-curl https://api.infrahq.com/v1/users \
+curl https://api.infrahq.com/v1/sources \
   -d name="staging" \
   -d "kubernetes.master"="31.29.291.281" \
   -d "kubernetes.ca_client"=-----BEGIN CERTIFICATE-----MIIDmzCCAoOgAwIBAgIEU9e2rzANBgkqhkiG9w0B...-----END CERTIFICATE----- \
