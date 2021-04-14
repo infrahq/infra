@@ -7,7 +7,7 @@
 - [Pagination](#authentication)
 - [Referencing Secrets](#secrets)
 
-### Resources
+### Core Resources
 - [Sources](#sources)
 - [Destinations](#destinations)
 - [Credentials](#credentials)
