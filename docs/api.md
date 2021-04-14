@@ -45,7 +45,7 @@ DELETE /v1/sources/:id
 ```bash
 curl https://api.infrahq.com/v1/sources \
   -d name="testuser" \
-  -d password="mypassword" 
+  -d password="mypassword"
 ```
 
 Response:
@@ -63,7 +63,7 @@ Response:
 ```bash
 curl https://api.infrahq.com/v1/sources \
   -d name="app" \
-  -d pod="app"
+  -d "kubernetes.pod"="app"
 ```
 
 Response:
