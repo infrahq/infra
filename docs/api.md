@@ -1,6 +1,13 @@
 # API Reference
 
 ## Contents
+
+### Overview
+- [Authentication](#authentication)
+- [Pagination](#authentication)
+- [Using secrets](#secrets)
+
+### Resources
 - [Sources](#sources)
 - [Destinations](#destinations)
 - [Credentials](#credentials)
@@ -84,13 +91,9 @@ Response
 
 ```json
 {
-  [
-    {
-      "id": "src_910dj1208jd1082jd810",
-      "object": "source",
-      "name": "testuser"
-    }
-  ]
+  "id": "src_910dj1208jd1082jd810",
+  "object": "source",
+  "name": "testuser"
 }
 ```
 
@@ -125,15 +128,18 @@ Response
 
 ```json
 {
+  "object": "list",
+  "url": "/v1/sources",
+  "has_more": false,
   [
     {
-      "id": "src_910dj1208jd1082jd810",
       "object": "source",
+      "id": "src_910dj1208jd1082jd810",
       "name": "testuser"
     },
     {
-      "id": "src_a0s8jfws08jfs038s038j",
       "object": "source",
+      "id": "src_a0s8jfws08jfs038s038j",
       "name": "app",
       "pod": "app"
     }
@@ -152,11 +158,116 @@ DELETE /v1/destinations/:id
    GET /v1/destinations
 ```
 
+### Connect a destination
 
+* **URL:** `/v1/destinations`
+* **Method:** POST
+* **Auth Required:** Yes
+
+**Parameters**
+
+* `name` (required)
+* `kubernetes` (optional) For adding Kubernetes clusters
+  * `kubernetes.master` (optional) Kubernetes master node endpoint
+  * `kubernetes.ca_client` (optional) Kubernetes client CA
+  * `kubernetes.service_account_token` (optional) Kubernetes service account token
+
+**Example**
+
+```bash
+curl https://api.infrahq.com/v1/users \
+  -d name="staging" \
+  -d "kubernetes.master"="31.29.291.281" \
+  -d "kubernetes.ca_client"=-----BEGIN CERTIFICATE-----MIIDmzCCAoOgAwIBAgIEU9e2rzANBgkqhkiG9w0B...-----END CERTIFICATE----- \
+  -d "kubernetes.service_account_token"="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoidXNfMWlqMmQxajJpZGoxMjkiLCJleHAiOjE1MTYyMzkwMjJ9.qmUwklTyKkE6uFpVylNdQc6NLpjcqxsiH7uYPBA_c6E"
+```
+
+Response:
+
+```json
+{
+  "id": "dst_aj08jda20dj9a2lh",
+  "object": "destination",
+  "username": "staging",
+  "kubernetes": {
+    "master": "31.29.291.281",
+    "ca_client": "=-----BEGIN CERTIFICATE-----MIIDmzCCAoOgAwIBAgIEU9e2rzANBgkqhkiG9w0B...-----END CERTIFICATE-----"
+}
+```
+
+### Retrieve a destination
+
+* **URL:** `/v1/destinations/:id`
+* **Method:** GET
+* **Auth Required:** Yes
+
+**Example**
+
+```bash
+curl https://api.infrahq.com/v1/destinations/dst_aj08jda20dj9a2lh
+```
+
+Response
+
+```json
+{
+  "id": "dst_aj08jda20dj9a2lh",
+  "object": "destination",
+  "username": "staging",
+  "kubernetes": {
+    "master": "31.29.291.281",
+    "ca_client": "=-----BEGIN CERTIFICATE-----MIIDmzCCAoOgAwIBAgIEU9e2rzANBgkqhkiG9w0B...-----END CERTIFICATE-----"
+}
+```
+
+
+### Disconnect a destination
+
+* **URL:** `/v1/destinations/:id`
+* **Method:** DELETE
+* **Auth Required:** Yes
+
+**Example**
+
+```
+curl -X DELETE https://api.infrahq.com/v1/destinations/dst_aj08jda20dj9a2lh
+```
+
+### List destinations
+
+* **URL:** `/v1/destinations`
+* **Method:** GET
+* **Auth Required:** Yes
+
+**Example**
+
+```
+curl https://api.infrahq.com/v1/sources
+```
+
+Response
+
+```json
+{
+  "object": "list",
+  "url": "/v1/destinations",
+  "has_more": false,
+  [
+    {
+      "id": "dst_aj08jda20dj9a2lh",
+      "object": "destination",
+      "username": "staging",
+      "kubernetes": {
+        "master": "31.29.291.281",
+        "ca_client": "=-----BEGIN CERTIFICATE-----MIIDmzCCAoOgAwIBAgIEU9e2rzANBgkqhkiG9w0B...-----END CERTIFICATE-----"
+    }
+  ]
+}
+```
 
 ## Credentials
 
-Credentials grant access to a destination
+Credentials grant access to destination to a requesting source.
 
 ### Endpoints
 
@@ -171,14 +282,14 @@ Credentials grant access to a destination
 
 **Parameters**
 
-* `password` if logging in via password
+* `destination` 
 
-**Example 1: Kubernetes**
+**Example**
 
 ```
 curl https://api.infrahq.com/v1/creds \
-  -d destination="production_cluster" \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoidXNfMWlqMmQxajJpZGoxMjkiLCJleHAiOjE1MTYyMzkwMjJ9.qmUwklTyKkE6uFpVylNdQc6NLpjcqxsiH7uYPBA_c6E"
+  -d destination="dst_aj08jda20dj9a2lh" \
+  -u "testuser:password"
 ```
 
 Response:
@@ -187,5 +298,3 @@ Response:
   token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoidXNfMWlqMmQxajJpZGoxMjkiLCJleHAiOjE1MTYyMzkwMjJ9.qmUwklTyKkE6uFpVylNdQc6NLpjcqxsiH7uYPBA_c6E"
 }
 ```
-
-**Example 2: SSH**
