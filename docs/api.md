@@ -43,9 +43,9 @@ Response:
 
 ```json
 {
-  id: "src_910dj1208jd1082jd810",
-  object: "source",
-  username: "testuser"
+  "id": "src_910dj1208jd1082jd810",
+  "object": "source",
+  "username": "testuser"
 }
 ```
 
@@ -61,9 +61,10 @@ Response:
 
 ```json
 {
-  id: "src_a0s8jfws08jfs038s038j",
-  object: "source",
-  pod: "app"
+  "id": "src_a0s8jfws08jfs038s038j",
+  "object": "source",
+  "name": "app",
+  "pod": "app"
 }
 ```
 
@@ -85,9 +86,9 @@ Response
 {
   [
     {
-      id: "src_910dj1208jd1082jd810",
-      object: "source",
-      name: "testuser"
+      "id": "src_910dj1208jd1082jd810",
+      "object": "source",
+      "name": "testuser"
     }
   ]
 }
@@ -122,22 +123,33 @@ curl https://api.infrahq.com/v1/sources
 
 Response
 
-```
+```json
 {
   [
     {
-      id: "src_a0s8jfws08jfs038s038j",
-      object: "source",
-      name: "app",
-      pod: "app"
+      "id": "src_910dj1208jd1082jd810",
+      "object": "source",
+      "name": "testuser"
     },
     {
-      id: "src_a0s8jfws08jfs038s038j",
-      object: "source",
-      pod: "app"
+      "id": "src_a0s8jfws08jfs038s038j",
+      "object": "source",
+      "name": "app",
+      "pod": "app"
     }
   ]
 }
+```
+
+## Destinations
+
+### Endpoints
+
+```
+  POST /v1/destinations
+   GET /v1/destinations/:id
+DELETE /v1/destinations/:id
+   GET /v1/destinations
 ```
 
 
