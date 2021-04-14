@@ -36,7 +36,9 @@ DELETE /v1/sources/:id
 
 * `name` (required)
 * `password` (optional)
-* `pod` (optional) the pod name
+* `kubernetes` (optional)
+  * `kubernetes.pod` (optional) the pod name
+  * `kubernetes.label` (optional) the pod label
 
 **Example 1: Person**
 
