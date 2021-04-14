@@ -2,8 +2,6 @@
 
 ## Contents
 - [Authenticating](#authenticating)
-
-### Core Resources
 - [Sources](#sources)
 - [Destinations](#destinations)
 - [Credentials](#credentials)
