@@ -10,8 +10,40 @@
 ### Core Resources
 - [Sources](#sources)
 - [Destinations](#destinations)
+- [Permissions](#permissions)
 - [Credentials](#credentials)
 
+
+## Authentication (as a user)
+
+### Endpoints
+
+```
+POST /v1/login
+```
+
+### Login
+
+* **URL:** `/v1/login`
+* **Method:** POST
+* **Auth Required:** Yes
+
+* `username` (required)
+
+**Example**
+
+```bash
+curl https://api.infrahq.com/v1/login \
+  -d username="testuser"
+```
+
+Response:
+
+```json
+{
+  "sso_url": "https://example.okta.com/login..."
+}
+```
 
 ## Sources
 
@@ -35,6 +67,7 @@ DELETE /v1/sources/:id
 **Parameters**
 
 * `name` (required)
+* `username` (optional)
 * `password` (optional)
 * `kubernetes` (optional)
   * `kubernetes.pod` (optional) the pod name
@@ -45,6 +78,7 @@ DELETE /v1/sources/:id
 ```bash
 curl https://api.infrahq.com/v1/sources \
   -d name="testuser" \
+  -d username="testuser" \
   -d password="mypassword"
 ```
 
@@ -54,6 +88,7 @@ Response:
 {
   "id": "src_910dj1208jd1082jd810",
   "object": "source",
+  "name": "testuser",
   "username": "testuser"
 }
 ```
