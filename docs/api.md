@@ -168,7 +168,7 @@ Response
   "object": "list",
   "url": "/v1/sources",
   "has_more": false,
-  [
+  "data": [
     {
       "object": "source",
       "id": "src_910dj1208jd1082jd810",
