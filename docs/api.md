@@ -14,7 +14,7 @@
 - [Credentials](#credentials)
 
 
-## Authentication (as a user)
+## Authentication
 
 ### Endpoints
 
