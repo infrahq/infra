@@ -11,7 +11,6 @@
 - [Users](#users)
 - [Groups](#groups)
 - [Roles](#roles)
-- [Permissions](#permissions)
 
 ## Authentication
 
@@ -49,75 +48,8 @@ Response:
 ### Endpoints
 
 ```
-  POST /v1/users
-   GET /v1/users/:id
-DELETE /v1/users/:id
    GET /v1/users
 ```
-
-### Create a user
-
-* **URL:** `/v1/users`
-* **Method:** POST
-* **Auth Required:** Yes
-
-**Parameters**
-
-* `username` (optional)
-* `password`
-
-**Example**
-
-```bash
-curl https://api.infrahq.com/v1/users \
-  -d username="testuser" \
-  -d password="mypassword"
-```
-
-Response:
-
-```json
-{
-  "id": "usr_910dj1208jd1082jd810",
-  "username": "testuser"
-}
-```
-
-### Retrieve a user
-
-* **URL:** `/v1/users/:id`
-* **Method:** GET
-* **Auth Required:** Yes
-
-**Example**
-
-```bash
-curl https://api.infrahq.com/v1/users/usr_910dj1208jd1082jd810
-```
-
-Response
-
-```json
-{
-  "id": "usr_910dj1208jd1082jd810",
-  "object": "user",
-  "username": "testuser"
-}
-```
-
-### Delete a user
-
-* **URL:** `/v1/users/:id`
-* **Method:** DELETE
-* **Auth Required:** Yes
-
-**Example**
-
-```
-curl -X DELETE https://api.infrahq.com/v1/users/usr_a0s8jfws08jfs038s038j
-```
-
-Note that if this source has been imported via an identity provider, they continue to be imported and updated, but will remain in a blacklist.
 
 ### List users
 
@@ -147,3 +79,8 @@ Response
   ]
 }
 ```
+
+## Groups
+
+## Roles
+
