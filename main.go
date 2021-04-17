@@ -5,12 +5,16 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/docker/go-units"
 	"github.com/olekukonko/tablewriter"
 	"github.com/urfave/cli/v2"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
 func PrintTable(header []string, data [][]string) {
@@ -42,16 +46,33 @@ func main() {
 					{
 						Name:  "add",
 						Usage: "add a new user",
-						Action: func(c *cli.Context) error {
-							fmt.Println("NOT IMPLEMENTED")
-							return nil
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:     "username",
+								Aliases:  []string{"u"},
+								Required: true,
+							},
+							&cli.StringFlag{
+								Name:     "password",
+								Aliases:  []string{"p"},
+								Required: true,
+							},
 						},
-					},
-					{
-						Name:  "remove",
-						Usage: "remove a user",
 						Action: func(c *cli.Context) error {
-							fmt.Println("NOT IMPLEMENTED")
+							form := url.Values{}
+							form.Add("username", c.String("username"))
+							form.Add("password", c.String("password"))
+
+							_, err := http.PostForm("http://localhost:30090/v1/users", url.Values{
+								"username": {c.String("username")},
+								"password": {c.String("password")},
+							})
+							if err != nil {
+								panic("http request failed")
+							}
+
+							fmt.Println("User added")
+
 							return nil
 						},
 					},
@@ -60,25 +81,27 @@ func main() {
 						Usage:   "list users",
 						Aliases: []string{"ls"},
 						Action: func(c *cli.Context) error {
-							type user struct {
-								ID       string `json:"id"`
-								Username string `json:"username"`
-								Created  int64  `json:"created"`
-								Updated  int64  `json:"updated"`
-							}
-
-							res, err := http.Get("http://localhost:3001/v1/users")
+							res, err := http.Get("http://localhost:30090/v1/users")
 							if err != nil {
 								panic("http request failed")
 							}
 
-							var users []user
-							if err = json.NewDecoder(res.Body).Decode(&users); err != nil {
+							type response struct {
+								Data []struct {
+									ID       string `json:"id"`
+									Username string `json:"username"`
+									Created  int64  `json:"created"`
+									Updated  int64  `json:"updated"`
+								}
+							}
+
+							var decoded response
+							if err = json.NewDecoder(res.Body).Decode(&decoded); err != nil {
 								panic(err)
 							}
 
 							rows := [][]string{}
-							for _, user := range users {
+							for _, user := range decoded.Data {
 								createdAt := time.Unix(user.Created, 0)
 
 								rows = append(rows, []string{user.Username, user.ID, units.HumanDuration(time.Now().UTC().Sub(createdAt)) + " ago"})
@@ -94,10 +117,66 @@ func main() {
 			{
 				Name:  "login",
 				Usage: "Login to an Infra Engine",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:     "username",
+						Aliases:  []string{"u"},
+						Required: true,
+					},
+					&cli.StringFlag{
+						Name:     "password",
+						Aliases:  []string{"p"},
+						Required: true,
+					},
+				},
 				Action: func(c *cli.Context) error {
-					// Open login window
+					form := url.Values{}
+					form.Add("username", c.String("username"))
+					form.Add("password", c.String("password"))
 
-					//
+					res, err := http.Post("http://localhost:30090/v1/login", "application/x-www-form-urlencoded", strings.NewReader(form.Encode()))
+					if err != nil {
+						panic("http request failed")
+					}
+
+					type tokenResponse struct {
+						Token string `json:"token"`
+					}
+
+					var tr tokenResponse
+
+					if err = json.NewDecoder(res.Body).Decode(&tr); err != nil {
+						panic(err)
+					}
+
+					// fmt.Printf("%+v\n", tr.Token)
+
+					loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+					// if you want to change the loading rules (which files in which order), you can do so here
+					configOverrides := &clientcmd.ConfigOverrides{}
+					// if you want to change override values or bind them to flags, there are methods to help you
+					kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
+					_, err = kubeConfig.RawConfig()
+
+					// Create kubeconfig
+					config := clientcmdapi.NewConfig()
+					config.Clusters["infra"] = &clientcmdapi.Cluster{
+						Server: "http://localhost:30090/v1/proxy",
+					}
+					config.AuthInfos["infra"] = &clientcmdapi.AuthInfo{
+						Token: tr.Token,
+					}
+					config.Contexts["infra"] = &clientcmdapi.Context{
+						Cluster:  "infra",
+						AuthInfo: "infra",
+					}
+					config.CurrentContext = "infra"
+					err = clientcmd.WriteToFile(*config, "config.yaml")
+					fmt.Printf("%+v\n", config)
+					fmt.Println("Kubeconfig updated")
+
+					// Insert into kubeconfig
+
 					return nil
 				},
 			},

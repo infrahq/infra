@@ -1,0 +1,83 @@
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: infra
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: infra-serviceaccount
+  namespace: infra
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: infra-clusterrolebinding
+subjects:
+- kind: ServiceAccount
+  name: infra-serviceaccount
+  namespace: infra
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: infra-deployment
+  namespace: infra
+  labels:
+    app: infra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: infra
+  template:
+    metadata:
+      labels:
+        app: infra
+    spec:
+      serviceAccountName: infra-serviceaccount
+      automountServiceAccountToken: true
+      containers:
+        - name: server
+          image: infrahq/infra
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 3001
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/infra/config.yaml
+              subPath: config.yaml
+      volumes:
+        - name: config-volume
+          configMap:
+            name: infra-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: infra-service
+  namespace: infra
+spec:
+  type: NodePort
+  selector:
+    app: infra
+  ports:
+    - port: 3001
+      targetPort: 3001
+      nodePort: 30090
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: infra-config
+  namespace: infra
+data:
+  config.yaml: |
+    permissions:
+      - group: developers@acme.com
+        role: view
