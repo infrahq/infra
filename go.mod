@@ -8,6 +8,7 @@ require (
 	github.com/docker/go-units v0.4.0
 	github.com/gin-gonic/autotls v0.0.3 // indirect
 	github.com/gin-gonic/gin v1.7.1
+	github.com/go-playground/validator v9.31.0+incompatible // indirect
 	github.com/mattn/go-sqlite3 v1.14.7 // indirect
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/rs/xid v1.3.0
