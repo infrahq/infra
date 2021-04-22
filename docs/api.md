@@ -10,6 +10,8 @@
 - [Users](#users)
 - [Tokens](#tokens)
 - [Providers](#providers)
+- (Coming Soon) [Groups](#roles)
+- (Coming Soon) [Groups](#groups)
 - (Coming Soon) [Destinations](#destinations)
 
 ## Overview
