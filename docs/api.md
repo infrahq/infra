@@ -5,82 +5,63 @@
 ### Overview
 - [Authentication](#authentication)
 - [Pagination](#authentication)
-- [Referencing Secrets](#secrets)
 
 ### Core Resources
 - [Users](#users)
-- [Groups](#groups)
-- [Roles](#roles)
+- [Tokens](#tokens)
+- [Providers](#providers)
+- (Coming Soon) [Destinations](#destinations)
 
-## Authentication
+## Overview
 
-### Endpoints
+### Authentication
 
-```
-POST /v1/login
-```
+### Pagination
 
-### Login
+## Core Resources
 
-* **URL:** `/v1/login`
-* **Method:** POST
-* **Auth Required:** Yes
-
-* `username` (required)
-
-**Example**
-
-```bash
-curl https://api.infrahq.com/v1/login \
-  -d username="testuser"
-```
-
-Response:
-
-```json
-{
-  "sso_url": "https://example.okta.com/login..."
-}
-```
-
-## Users
-
-### Endpoints
+### Users
 
 ```
+  POST /v1/users
+  POST /v1/users/:id
    GET /v1/users
+   GET /v1/users/:id
+DELETE /v1/users/:id
 ```
 
-### List users
+### Tokens
 
-* **URL:** `/v1/users`
-* **Method:** GET
-* **Auth Required:** Yes
-
-**Example**
+Tokens are used to access [Destinations](#destinations).
 
 ```
-curl https://api.infrahq.com/v1/users
+  POST /v1/tokens
+  POST /v1/tokens/:id
+   GET /v1/tokens
+   GET /v1/tokens/:id
+DELETE /v1/tokens/:id
 ```
 
-Response
+### Destinations
 
-```json
-{
-  "object": "list",
-  "url": "/v1/users",
-  "has_more": false,
-  "data": [
-    {
-      "object": "users",
-      "id": "usr_910dj1208jd1082jd810",
-      "name": "testuser"
-    }
-  ]
-}
+Destinations are infrastructure endpoints that
+
+```
+  POST /v1/destinations
+  POST /v1/destinations/:id
+   GET /v1/destinations
+   GET /v1/destinations/:id
+DELETE /v1/destinations/:id
 ```
 
-## Groups
+### Providers
 
-## Roles
+Providers are used to automatically create and authenticate users. Infra comes with a default local provider (that uses username + password).
 
+```
+  POST /v1/providers
+  POST /v1/providers/:id
+   GET /v1/providers
+   GET /v1/providers/:id
+DELETE /v1/providers/:id
+```

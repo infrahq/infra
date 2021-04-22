@@ -14,4 +14,8 @@ go run .
 
 ### Building
 
+```
+go build
+```
+
 ### Releasing
