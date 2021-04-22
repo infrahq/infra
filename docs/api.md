@@ -10,9 +10,10 @@
 - [Users](#users)
 - [Tokens](#tokens)
 - [Providers](#providers)
-- (Coming Soon) [Groups](#roles)
-- (Coming Soon) [Groups](#groups)
 - (Coming Soon) [Destinations](#destinations)
+- (Coming Soon) [Services](#services)
+- (Coming Soon) [Roles](#roles)
+- (Coming Soon) [Groups](#groups)
 
 ## Overview
 
@@ -42,18 +43,6 @@ Tokens are used to access [Destinations](#destinations).
    GET /v1/tokens
    GET /v1/tokens/:id
 DELETE /v1/tokens/:id
-```
-
-### Destinations
-
-Destinations are infrastructure endpoints that
-
-```
-  POST /v1/destinations
-  POST /v1/destinations/:id
-   GET /v1/destinations
-   GET /v1/destinations/:id
-DELETE /v1/destinations/:id
 ```
 
 ### Providers
