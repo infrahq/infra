@@ -1,8 +1,12 @@
-package main
+package server
 
 import (
 	"github.com/rs/xid"
 	"gorm.io/gorm"
+)
+
+const (
+	USER_ID_PREFIX = "usr"
 )
 
 type User struct {
@@ -14,6 +18,6 @@ type User struct {
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
-	u.ID = "usr_" + xid.New().String()
+	u.ID = USER_ID_PREFIX + xid.New().String()
 	return nil
 }

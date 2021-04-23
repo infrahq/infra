@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"crypto/tls"
@@ -14,18 +14,24 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/gin-gonic/autotls"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
-type ServerOptions struct {
+type Options struct {
 	AdminPassword string
-	JWTSecret     string
+	Domain        string
 }
 
-func Server(options *ServerOptions) error {
+type Claims struct {
+	jwt.StandardClaims
+	User string `json:"user"`
+}
+
+func Run(options *Options) error {
 	db, err := gorm.Open(sqlite.Open("infra.db"), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
@@ -51,6 +57,24 @@ func Server(options *ServerOptions) error {
 	router := gin.New()
 
 	router.GET("/v1/users", func(c *gin.Context) {
+		authorization := c.Request.Header.Get("Authorization")
+		if authorization == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			return
+		}
+
+		claims := jwt.MapClaims{}
+		_, err := jwt.ParseWithClaims(strings.Split(authorization, " ")[1], claims, func(token *jwt.Token) (interface{}, error) {
+			return []byte("secret"), nil
+		})
+
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			return
+		}
+
+		fmt.Println(claims)
+
 		var users []User
 		db.Find(&users)
 		c.JSON(http.StatusOK, gin.H{"object": "list", "url": "/v1/users", "has_more": false, "data": users})
@@ -154,11 +178,6 @@ func Server(options *ServerOptions) error {
 			return
 		}
 
-		type Claims struct {
-			jwt.StandardClaims
-			User string `json:"user"`
-		}
-
 		// Create token
 		unsigned := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
 			jwt.StandardClaims{
@@ -209,13 +228,12 @@ func Server(options *ServerOptions) error {
 	stripProxy := http.StripPrefix("/v1/proxy", proxy)
 	proxyHandler := func(c *gin.Context) {
 		authorization := c.Request.Header.Get("Authorization")
-
 		claims := jwt.MapClaims{}
 		jwt.ParseWithClaims(strings.Split(authorization, " ")[1], claims, func(token *jwt.Token) (interface{}, error) {
 			return []byte("secret"), nil
 		})
 
-		fmt.Printf("%+v\n", claims)
+		fmt.Println(claims)
 
 		c.Request.Header.Set("Impersonate-User", claims["user"].(string))
 		c.Request.Header.Del("Authorization")
@@ -230,22 +248,13 @@ func Server(options *ServerOptions) error {
 	router.PATCH("/v1/proxy/*all", proxyHandler)
 	router.DELETE("/v1/proxy/*all", proxyHandler)
 
-	// // SCIM endpoints
-	// router.GET("/scim/v2/Users", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	// 	fmt.Printf("%+v\n", r)
-	// })
-	// router.POST("/scim/v2/Users", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	// 	fmt.Printf("%+v\n", r)
-	// })
-	// router.PUT("/scim/v2/Users", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	// 	fmt.Printf("%+v\n", r)
-	// })
-	// router.PATCH("/scim/v2/Users", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	// 	fmt.Printf("%+v\n", r)
-	// })
+	if options.Domain == "" {
+		router.Run(":3001")
+	} else {
+		log.Fatal(autotls.Run(router, options.Domain))
+	}
 
 	fmt.Printf("Listening on port %v\n", 3001)
-	router.Run(":3001")
 
 	return nil
 }
