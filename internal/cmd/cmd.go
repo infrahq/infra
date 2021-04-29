@@ -210,8 +210,6 @@ func Run() {
 								log.Fatal(err)
 							}
 
-							fmt.Println(res.StatusCode)
-
 							if res.StatusCode != http.StatusCreated {
 								log.Fatal(decoded.Error)
 							}
@@ -230,9 +228,9 @@ func Run() {
 							fmt.Println("User " + decoded.Email + " added. Please share the following command with them so they can log in:")
 							fmt.Println()
 							if host == "" {
-								fmt.Println("infra login --token " + decodedTokenResponse.Token + " " + host)
-							} else {
 								fmt.Println("infra login --token " + decodedTokenResponse.Token + " <INFRA HOST>")
+							} else {
+								fmt.Println("infra login --token " + decodedTokenResponse.Token + " " + host)
 							}
 
 							fmt.Println()
@@ -436,7 +434,7 @@ func Run() {
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:  "tls-domain",
-						Usage: "Domain to use for LetsEncrypt TLsS certificates",
+						Usage: "Domain to use for LetsEncrypt TLS certificates",
 					},
 				},
 				Action: func(c *cli.Context) error {
