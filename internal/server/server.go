@@ -10,10 +10,10 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
-	"time"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/autotls"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -26,55 +26,66 @@ type Options struct {
 	Domain        string
 }
 
-type Claims struct {
-	jwt.StandardClaims
-	User string `json:"user"`
-}
-
-func Run(options *Options) error {
+func initDB() (*gorm.DB, error) {
 	db, err := gorm.Open(sqlite.Open("infra.db"), &gorm.Config{})
 	if err != nil {
-		panic("failed to connect database")
+		return nil, err
 	}
+
 	db.AutoMigrate(&User{})
+	db.AutoMigrate(&Token{})
 
-	adminPassword := options.AdminPassword
+	return db, nil
+}
 
-	// TODO: make this a better default
-	if adminPassword == "" {
-		adminPassword = "password"
-	}
-	var admin User
-	if err = db.Where("username = ?", "admin").First(&admin).Error; err != nil {
-		password, err := bcrypt.GenerateFromPassword([]byte(adminPassword), bcrypt.DefaultCost)
-		if err != nil {
-			panic("could not hash password")
+func TokenAuth(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		fmt.Println("Using Token Auth")
+
+		authuser, _, _ := c.Request.BasicAuth()
+
+		tokensk := ""
+		if strings.HasPrefix(authuser, "sk_") {
+			tokensk = strings.Replace(authuser, "sk_", "", -1)
 		}
-		db.Create(&User{Username: "admin", HashedPassword: password})
-	}
 
-	gin.SetMode(gin.ReleaseMode)
-	router := gin.New()
-
-	router.GET("/v1/users", func(c *gin.Context) {
 		authorization := c.Request.Header.Get("Authorization")
-		if authorization == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		if strings.HasPrefix(authorization, "Bearer sk_") {
+			tokensk = strings.Replace(authorization, "Bearer sk_", "", -1)
+		}
+
+		if len(tokensk) != TOKEN_LENGTH {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 			return
 		}
 
-		claims := jwt.MapClaims{}
-		_, err := jwt.ParseWithClaims(strings.Split(authorization, " ")[1], claims, func(token *jwt.Token) (interface{}, error) {
-			return []byte("secret"), nil
-		})
-
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		id := tokensk[0:16]
+		var token Token
+		if err := db.Where("id = ?", "tk_"+id).First(&token).Error; err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 			return
 		}
 
-		fmt.Println(claims)
+		secret := tokensk[16:TOKEN_LENGTH]
+		if err := bcrypt.CompareHashAndPassword(token.HashedSecret, []byte(secret)); err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
 
+		var user User
+		if err := db.Where("id = ?", token.UserID).First(&user).Error; err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+
+		c.Set("user", user)
+
+		c.Next()
+	}
+}
+
+func addRoutes(router *gin.Engine, db *gorm.DB) (err error) {
+	router.GET("/v1/users", func(c *gin.Context) {
 		var users []User
 		db.Find(&users)
 		c.JSON(http.StatusOK, gin.H{"object": "list", "url": "/v1/users", "has_more": false, "data": users})
@@ -105,8 +116,7 @@ func Run(options *Options) error {
 
 	router.POST("/v1/users", func(c *gin.Context) {
 		type binds struct {
-			Username string `form:"username" binding:"required"`
-			Password string `form:"password" binding:"required"`
+			Email string `form:"email" binding:"required"`
 		}
 
 		var form binds
@@ -115,17 +125,13 @@ func Run(options *Options) error {
 			return
 		}
 
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(form.Password), bcrypt.DefaultCost)
-		if err != nil {
+		user := &User{Email: form.Email}
+		if err = db.Create(user).Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		user := &User{Username: form.Username, HashedPassword: hashedPassword}
-		if err = db.Create(&user).Error; err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
+		// Create a token and return it alongside user
 		c.JSON(http.StatusCreated, user)
 	})
 
@@ -154,50 +160,43 @@ func Run(options *Options) error {
 		c.JSON(http.StatusOK, gin.H{"object": "user", "id": params.ID, "deleted": true})
 	})
 
-	// Generate credentials for user
 	router.POST("/v1/tokens", func(c *gin.Context) {
-		type binding struct {
-			Username string `form:"username" binding:"required"`
-			Password string `form:"password" binding:"required"`
+		type Params struct {
+			User  string `form:"user"`
+			Token string `form:"token"`
 		}
 
-		var params binding
+		var params Params
 		if err := c.ShouldBind(&params); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		var user User
-		if err := db.First(&user, "username = ?", params.Username).Error; err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "incorrect credentials"})
-			return
+		// TODO: verify infra permissions before allowing to specify the user field
+		var targetUser User
+		if params.User == "" {
+			// Get user from token
+			userInterface, exists := c.Get("user")
+			if !exists {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
+				return
+			}
+			targetUser = userInterface.(User)
+		} else {
+			if err := db.First(&targetUser, "id = ?", params.User).Error; err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+				return
+			}
 		}
 
-		if err = bcrypt.CompareHashAndPassword(user.HashedPassword, []byte(params.Password)); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "incorrect credentials"})
-			return
-		}
-
-		// Create token
-		unsigned := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
-			jwt.StandardClaims{
-				Issuer:    "http://127.0.0.1:3001", // TODO: replace me with domain or listen address
-				IssuedAt:  time.Now().Unix(),
-				Subject:   user.ID,
-				Audience:  "", // TODO: insert Kubernetes (or other destination) token
-				ExpiresAt: time.Now().Add(time.Minute * 5).Unix(),
-			},
-			user.Username,
-		})
-
-		// TODO: use a real key here
-		token, err := unsigned.SignedString([]byte("secret"))
+		created, token, err := NewToken(db, targetUser.ID)
 		if err != nil {
-			panic(err)
+			c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		}
 
-		c.JSON(http.StatusOK, gin.H{
-			"token": token,
+		c.JSON(http.StatusCreated, gin.H{
+			"token":   token,
+			"expires": created.Expires,
 		})
 	})
 
@@ -206,6 +205,7 @@ func Run(options *Options) error {
 		log.Println("could not parse kubernetes endpoint")
 	}
 
+	// TODO: abstract this out into a Kubernetes destination
 	// Load ca
 	ca, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
 	if err != nil {
@@ -227,34 +227,63 @@ func Run(options *Options) error {
 
 	stripProxy := http.StripPrefix("/v1/proxy", proxy)
 	proxyHandler := func(c *gin.Context) {
-		authorization := c.Request.Header.Get("Authorization")
-		claims := jwt.MapClaims{}
-		jwt.ParseWithClaims(strings.Split(authorization, " ")[1], claims, func(token *jwt.Token) (interface{}, error) {
-			return []byte("secret"), nil
-		})
+		rawUser, exists := c.Get("user")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
+			return
+		}
+		user := rawUser.(User)
 
-		fmt.Println(claims)
+		fmt.Println("Proxying", user.Email)
 
-		c.Request.Header.Set("Impersonate-User", claims["user"].(string))
+		c.Request.Header.Set("Impersonate-User", user.Email)
 		c.Request.Header.Del("Authorization")
 		c.Request.Header.Add("Authorization", "Bearer "+string(satoken))
+
 		stripProxy.ServeHTTP(c.Writer, c.Request)
 	}
 
 	// Proxy endpoints
+	// TODO: this should be catch-all based on headers
 	router.GET("/v1/proxy/*all", proxyHandler)
 	router.POST("/v1/proxy/*all", proxyHandler)
 	router.PUT("/v1/proxy/*all", proxyHandler)
 	router.PATCH("/v1/proxy/*all", proxyHandler)
 	router.DELETE("/v1/proxy/*all", proxyHandler)
 
-	if options.Domain == "" {
-		router.Run(":3001")
-	} else {
-		log.Fatal(autotls.Run(router, options.Domain))
+	return
+}
+
+func Run(options *Options) {
+	db, err := initDB()
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	fmt.Printf("Listening on port %v\n", 3001)
+	gin.SetMode(gin.ReleaseMode)
 
-	return nil
+	unixRouter := gin.New()
+	addRoutes(unixRouter, db)
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err = os.MkdirAll(filepath.Join(homeDir, ".infra"), os.ModePerm); err != nil {
+		log.Fatal(err)
+	}
+	os.Remove(filepath.Join(homeDir, ".infra", "infra.sock"))
+	go unixRouter.RunUnix(filepath.Join(homeDir, ".infra", "infra.sock"))
+
+	router := gin.New()
+	router.Use(TokenAuth(db))
+	addRoutes(router, db)
+	if options.Domain == "" {
+		fmt.Printf("Listening on port %v\n", 3001)
+		router.Run(":3001")
+	} else {
+		if err = autotls.Run(router, options.Domain); err != nil {
+			log.Fatal(err)
+		}
+	}
 }

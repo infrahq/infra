@@ -42,13 +42,13 @@ Non-humans accessing infrastructure, including:
 
 Groups are a set of users or machines that can share access.
 
-### Providers
+### Sources
 
-Providers allow a way to synchronize users, groups and machines in bulk to Infra.
+Sources are sources of identity, and allow a way to synchronize users, groups and machines in bulk to Infra.
 
-Providers do two things:
+Sources do two things:
 * Automatically provision users, groups or machines identities in Infra.
-* Allow users, groups or machines to prove their identity
+* Allow users, groups or machines to prove their identity via single sign on (e.g. logging in with Okta)
 
 ### Roles
 
@@ -64,7 +64,7 @@ Credentials are the destination-specific credentials that are distributed to use
 * Provide access, usually include:
   * Endpoint to reach destination
   * Raw credentials
-  * Special format specific to desination (e.g. KubeConfig for Kubernetes, Database URL)
+  * Special convenience formats specific to desination (e.g. KubeConfig for Kubernetes, Database URL)
 
 ## Authentication
 
@@ -73,16 +73,14 @@ The authentication to the Infra Engine API is powered via Tokens. Tokens authent
 An example token is:
 
 ```
-tk_010lxvij102dj8gsidjfsp893h
+sk_Qg4Bo5CWCZuqYqGutmK8LYT2wJ492Ed8zKnDi5YFRSA8
 ```
 
-## Gateway Mode
+## Mesh Mode
 
-Some destinations support **gateway mode**. With **gateway mode**, all access is routed through Infra. This is the default for many destinations that have little support for identity providers such as Google Kubernetes Engine. Gateway mode is most useful for User access but can be used with Machines too.
+Certain destinations support **Mesh Mode**. With **Mesh Mode**, all access is routed through Infra. This is required for many destinations that have little support for identity providers such as Google Kubernetes Engine. Mesh Mode is most useful for User access but can be used with Machines too.
 
-With gateway mode, users and machines only use Infra Engine **Tokens** (they never receive actual credentials for destinations), and connect only to the Infra Engine.
-
-### When to use Gateway mode
+### When to use Mesh Mode
 
 1. The destination does not provide a way to create user credentials
 2. The destination does not support identity provider protocols
@@ -90,7 +88,9 @@ With gateway mode, users and machines only use Infra Engine **Tokens** (they nev
 4. There is a need for advanced auditing logs (behind knowing who logged in where)
 5. For security reasons, users or machines cannot have have actual 
 
-### (Coming Soon) Gateway mode with non TCP requests (e.g. SSH, etc)
+### (Coming Soon) Mesh Mode with non TCP requests (e.g. SSH, etc)
 
-## Security model
+## Secrets 
+
+## Security
 

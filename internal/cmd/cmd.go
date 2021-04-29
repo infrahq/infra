@@ -1,15 +1,17 @@
 package cmd
 
 import (
+	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/docker/go-units"
@@ -20,7 +22,7 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
-func PrintTable(header []string, data [][]string) {
+func printTable(header []string, data [][]string) {
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader(header)
 	table.SetAutoWrapText(false)
@@ -32,32 +34,53 @@ func PrintTable(header []string, data [][]string) {
 	table.SetRowSeparator("")
 	table.SetHeaderLine(false)
 	table.SetBorder(false)
-	table.SetTablePadding("\t")
+	table.SetTablePadding("\t\t")
 	table.SetNoWhiteSpace(true)
 	table.AppendBulk(data)
 	table.Render()
 }
 
-func readToken() (string, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-
-	if err := os.MkdirAll(filepath.Join(homeDir, ".infra"), os.ModePerm); err != nil {
-		return "", err
-	}
-
-	data, err := ioutil.ReadFile(filepath.Join(homeDir, ".infra"))
-	if err != nil {
-		return "", err
-	}
-
-	return string(data), nil
+type Config struct {
+	Host    string `json:"host"`
+	Token   string `json:"token"`
+	Expires int64  `json:"expires"`
 }
 
-func writeToken(token string) error {
-	// Create the .infra directory if it does not exist
+func removeConfig() error {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	os.Remove(filepath.Join(homeDir, ".infra", "token"))
+	return nil
+}
+
+func readConfig() (config *Config, err error) {
+	config = &Config{}
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return
+	}
+
+	contents, err := ioutil.ReadFile(filepath.Join(homeDir, ".infra", "config"))
+	if os.IsNotExist(err) {
+		return config, nil
+	}
+
+	if err != nil {
+		return
+	}
+
+	if err = json.Unmarshal(contents, &config); err != nil {
+		return
+	}
+
+	return
+}
+
+func writeConfig(config *Config) error {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return err
@@ -67,50 +90,149 @@ func writeToken(token string) error {
 		return err
 	}
 
-	if err = ioutil.WriteFile(filepath.Join(homeDir, ".infra", "token"), []byte(token), 0644); err != nil {
+	contents, err := json.Marshal(config)
+	if err != nil {
+		return err
+	}
+
+	if err = ioutil.WriteFile(filepath.Join(homeDir, ".infra", "config"), []byte(contents), 0644); err != nil {
 		return err
 	}
 
 	return nil
 }
 
+func unixSockHttpClient(path string) *http.Client {
+	return &http.Client{
+		Transport: &http.Transport{
+			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+				return net.Dial("unix", path)
+			},
+		},
+	}
+}
+
+func normalizeHost(host string) string {
+	if host == "" {
+		return "http://unix"
+	}
+	return host
+}
+
+type BasicAuthTransport struct {
+	Username string
+	Password string
+}
+
+func (bat BasicAuthTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req.Header.Set("Authorization", fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", bat.Username, bat.Password)))))
+	return http.DefaultTransport.RoundTrip(req)
+}
+
+func (bat *BasicAuthTransport) Client() *http.Client {
+	return &http.Client{Transport: bat}
+}
+
 func Run() {
+	config, err := readConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	host := config.Host
+	token := config.Token
+
+	fmt.Println(host, token)
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	httpClient := &http.Client{}
+	if config.Host == "" {
+		httpClient = unixSockHttpClient(filepath.Join(homeDir, ".infra", "infra.sock"))
+	} else {
+		bat := BasicAuthTransport{
+			Username: token,
+			Password: "",
+		}
+		httpClient = bat.Client()
+	}
+
 	app := &cli.App{
-		Usage: "Infra: Identity Engine",
+		Usage: "manage user & machine access to infrastructure",
 		Commands: []*cli.Command{
 			{
 				Name:  "users",
 				Usage: "Manage users",
 				Subcommands: []*cli.Command{
 					{
-						Name:  "add",
-						Usage: "add a new user",
-						Flags: []cli.Flag{
-							&cli.StringFlag{
-								Name:     "username",
-								Aliases:  []string{"u"},
-								Required: true,
-							},
-							&cli.StringFlag{
-								Name:     "password",
-								Aliases:  []string{"p"},
-								Required: true,
-							},
-						},
+						Name:      "add",
+						Usage:     "Add a new user",
+						ArgsUsage: "EMAIL",
 						Action: func(c *cli.Context) error {
-							form := url.Values{}
-							form.Add("username", c.String("username"))
-							form.Add("password", c.String("password"))
-
-							_, err := http.PostForm("http://localhost:3001/v1/users", url.Values{
-								"username": {c.String("username")},
-								"password": {c.String("password")},
-							})
-							if err != nil {
-								panic("http request failed")
+							if c.NArg() <= 0 {
+								cli.ShowCommandHelp(c, "add")
+								return nil
 							}
 
-							fmt.Println("User added")
+							email := c.Args().Get(0)
+
+							form := url.Values{}
+							form.Add("email", email)
+
+							res, err := httpClient.PostForm(normalizeHost(host)+"/v1/users", form)
+							if err != nil {
+								log.Fatal(err)
+							}
+
+							type response struct {
+								ID      string `json:"id"`
+								Email   string `json:"email"`
+								Created int64  `json:"created"`
+								Updated int64  `json:"updated"`
+								Error   string `json:"error"`
+							}
+
+							var decoded response
+							if err = json.NewDecoder(res.Body).Decode(&decoded); err != nil {
+								panic(err)
+							}
+
+							form = url.Values{}
+							form.Add("user", decoded.ID)
+							res, err = httpClient.PostForm(normalizeHost(host)+"/v1/tokens", form)
+							if err != nil {
+								log.Fatal(err)
+							}
+
+							fmt.Println(res.StatusCode)
+
+							if res.StatusCode != http.StatusCreated {
+								log.Fatal(decoded.Error)
+							}
+
+							type tokenResponse struct {
+								Token   string `json:"token"`
+								Expires int64  `json:"expires"`
+							}
+
+							var decodedTokenResponse tokenResponse
+							if err = json.NewDecoder(res.Body).Decode(&decodedTokenResponse); err != nil {
+								panic(err)
+							}
+
+							fmt.Println()
+							fmt.Println("User " + decoded.Email + " added. Please share the following command with them so they can log in:")
+							fmt.Println()
+							if host == "" {
+								fmt.Println("infra login --token " + decodedTokenResponse.Token + " " + host)
+							} else {
+								fmt.Println("infra login --token " + decodedTokenResponse.Token + " <INFRA HOST>")
+							}
+
+							fmt.Println()
 
 							return nil
 						},
@@ -120,33 +242,37 @@ func Run() {
 						Usage:   "list users",
 						Aliases: []string{"ls"},
 						Action: func(c *cli.Context) error {
-							res, err := http.Get("http://localhost:3001/v1/users")
+							res, err := httpClient.Get(normalizeHost(host) + "/v1/users")
 							if err != nil {
-								panic("http request failed")
+								return err
 							}
 
 							type response struct {
 								Data []struct {
-									ID       string `json:"id"`
-									Username string `json:"username"`
-									Created  int64  `json:"created"`
-									Updated  int64  `json:"updated"`
+									ID      string `json:"id"`
+									Email   string `json:"email"`
+									Created int64  `json:"created"`
+									Updated int64  `json:"updated"`
 								}
+								Error string `json:"error"`
 							}
 
 							var decoded response
 							if err = json.NewDecoder(res.Body).Decode(&decoded); err != nil {
-								panic(err)
+								log.Fatal(err)
+							}
+
+							if decoded.Error != "" {
+								log.Fatal(decoded.Error)
 							}
 
 							rows := [][]string{}
 							for _, user := range decoded.Data {
 								createdAt := time.Unix(user.Created, 0)
-
-								rows = append(rows, []string{user.Username, user.ID, units.HumanDuration(time.Now().UTC().Sub(createdAt)) + " ago"})
+								rows = append(rows, []string{user.ID, "token", user.Email, units.HumanDuration(time.Now().UTC().Sub(createdAt)) + " ago"})
 							}
 
-							PrintTable([]string{"USERNAME", "ID", "CREATED"}, rows)
+							printTable([]string{"USER ID", "SOURCE", "EMAIL", "CREATED"}, rows)
 
 							return nil
 						},
@@ -155,15 +281,15 @@ func Run() {
 						Name:  "delete",
 						Usage: "delete a user",
 						Action: func(c *cli.Context) error {
-							req, err := http.NewRequest(http.MethodDelete, "http://localhost:3001/v1/users/"+c.Args().Get(0), nil)
+							user := c.Args().Get(0)
+							req, err := http.NewRequest(http.MethodDelete, normalizeHost(host)+"/v1/users/"+user, nil)
 							if err != nil {
-								panic(err)
+								log.Fatal(err)
 							}
 
-							client := &http.Client{}
-							res, err := client.Do(req)
+							res, err := httpClient.Do(req)
 							if err != nil {
-								panic(err)
+								log.Fatal(err)
 							}
 							defer res.Body.Close()
 
@@ -175,7 +301,7 @@ func Run() {
 
 							var decoded response
 							if err = json.NewDecoder(res.Body).Decode(&decoded); err != nil {
-								panic(err)
+								log.Fatal(err)
 							}
 
 							if decoded.Deleted {
@@ -192,63 +318,98 @@ func Run() {
 				},
 			},
 			{
-				Name:  "login",
-				Usage: "Login to an Infra Engine",
+				Name:      "login",
+				Usage:     "Login to an Infra Engine",
+				ArgsUsage: "HOST",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
-						Name:     "username",
-						Aliases:  []string{"u"},
-						Required: true,
-					},
-					&cli.StringFlag{
-						Name:     "password",
-						Aliases:  []string{"p"},
-						Required: true,
+						Name:    "token",
+						Aliases: []string{"t"},
+						Usage:   "token to authenticate with",
 					},
 				},
 				Action: func(c *cli.Context) error {
-					form := url.Values{}
-					form.Add("username", c.String("username"))
-					form.Add("password", c.String("password"))
+					host := c.Args().First()
+					if host == "" {
+						cli.ShowCommandHelp(c, "json")
+						return cli.Exit("Missing argument HOST", 1)
+					}
 
-					res, err := http.Post("http://localhost:3001/v1/tokens", "application/x-www-form-urlencoded", strings.NewReader(form.Encode()))
+					// Get token from
+					token := c.String("token")
+
+					req, err := http.NewRequest("POST", normalizeHost(host)+"/v1/tokens", nil)
 					if err != nil {
-						panic("http request failed")
+						return err
 					}
 
-					type tokenResponse struct {
-						Token string `json:"token"`
+					req.SetBasicAuth(token, "")
+
+					client := &http.Client{}
+					res, err := client.Do(req)
+					if err != nil {
+						return err
 					}
 
-					var tr tokenResponse
-					if err = json.NewDecoder(res.Body).Decode(&tr); err != nil {
-						panic(err)
+					body, err := ioutil.ReadAll(res.Body)
+					if err != nil {
+						return err
 					}
 
-					writeToken(tr.Token)
+					type loginResponse struct {
+						Token   string
+						Expires int64
+						Error   string
+					}
 
+					var response loginResponse
+					if err = json.Unmarshal(body, &response); err != nil {
+						return cli.Exit(err, 1)
+					}
+
+					fmt.Println(response)
+
+					if res.StatusCode != http.StatusCreated {
+						return cli.Exit(response.Error, 1)
+					}
+
+					if err = writeConfig(&Config{
+						Host:    host,
+						Token:   response.Token,
+						Expires: response.Expires,
+					}); err != nil {
+						fmt.Println(err)
+						return err
+					}
+
+					fmt.Println(readConfig())
+
+					// Generate exec kubeconfig
 					loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-					// if you want to change the loading rules (which files in which order), you can do so here
 					configOverrides := &clientcmd.ConfigOverrides{}
-					// if you want to change override values or bind them to flags, there are methods to help you
 					kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
-					_, err = kubeConfig.RawConfig()
+					if _, err = kubeConfig.RawConfig(); err != nil {
+						log.Fatal(err)
+					}
 
-					// Create kubeconfig
 					config := clientcmdapi.NewConfig()
 					config.Clusters["infra"] = &clientcmdapi.Cluster{
-						Server: "http://localhost:3001/v1/proxy",
+						Server: host + "/v1/proxy",
 					}
 					config.AuthInfos["infra"] = &clientcmdapi.AuthInfo{
-						Token: tr.Token,
+						Token: response.Token,
 					}
 					config.Contexts["infra"] = &clientcmdapi.Context{
 						Cluster:  "infra",
 						AuthInfo: "infra",
 					}
 					config.CurrentContext = "infra"
-					err = clientcmd.WriteToFile(*config, "config.yaml")
+					if err = clientcmd.WriteToFile(*config, "config.yaml"); err != nil {
+						log.Fatal(err)
+					}
+
 					fmt.Println("Kubeconfig updated")
+
 					return nil
 				},
 			},
@@ -256,27 +417,21 @@ func Run() {
 				Name:  "logout",
 				Usage: "Log out of an Infra Engine",
 				Action: func(c *cli.Context) error {
-					fmt.Println("NOT IMPLEMENTED")
 					return nil
 				},
 			},
 			{
-				Name:  "server",
+				Name:  "start",
 				Usage: "Start the Infra Engine",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
-						Name:  "admin-password",
-						Usage: "Initial admin password",
-					},
-					&cli.StringFlag{
-						Name:  "domain", // TODO: should this be a comma-separated list of domains? or a wildcard? or subdomain?
-						Usage: "Domain to use for LetsEncrypt certificates",
+						Name:  "tls-domain",
+						Usage: "Domain to use for LetsEncrypt TLsS certificates",
 					},
 				},
 				Action: func(c *cli.Context) error {
 					server.Run(&server.Options{
-						AdminPassword: c.String("admin-password"),
-						Domain:        c.String("domain"),
+						Domain: c.String("tls-domain"),
 					})
 					return nil
 				},
@@ -284,8 +439,8 @@ func Run() {
 		},
 	}
 
-	err := app.Run(os.Args)
-	if err != nil {
-		log.Fatal(err)
+	if err := app.Run(os.Args); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
 }
