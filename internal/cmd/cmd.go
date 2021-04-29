@@ -134,6 +134,11 @@ func (bat *BasicAuthTransport) Client() *http.Client {
 }
 
 func Run() {
+	// executable, err := os.Executable()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
 	config, err := readConfig()
 	if err != nil {
 		log.Fatal(err)
@@ -141,8 +146,6 @@ func Run() {
 
 	host := config.Host
 	token := config.Token
-
-	fmt.Println(host, token)
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -382,16 +385,7 @@ func Run() {
 						return err
 					}
 
-					fmt.Println(readConfig())
-
-					// Generate exec kubeconfig
-					loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-					configOverrides := &clientcmd.ConfigOverrides{}
-					kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
-					if _, err = kubeConfig.RawConfig(); err != nil {
-						log.Fatal(err)
-					}
-
+					// Generate new kubeconfig entry
 					config := clientcmdapi.NewConfig()
 					config.Clusters["infra"] = &clientcmdapi.Cluster{
 						Server: host + "/v1/proxy",
@@ -403,12 +397,26 @@ func Run() {
 						Cluster:  "infra",
 						AuthInfo: "infra",
 					}
-					config.CurrentContext = "infra"
-					if err = clientcmd.WriteToFile(*config, "config.yaml"); err != nil {
+
+					tempFile, _ := ioutil.TempFile("", "")
+					defer os.Remove(tempFile.Name())
+					config.CurrentContext = "infra" // TODO: should we do this?
+					if err = clientcmd.WriteToFile(*config, tempFile.Name()); err != nil {
 						log.Fatal(err)
 					}
 
-					fmt.Println("Kubeconfig updated")
+					// Load default config and merge new config in
+					loadingRules := clientcmd.ClientConfigLoadingRules{Precedence: []string{tempFile.Name(), clientcmd.RecommendedHomeFile}}
+					mergedConfig, err := loadingRules.Load()
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					if err = clientcmd.WriteToFile(*mergedConfig, clientcmd.RecommendedHomeFile); err != nil {
+						log.Fatal(err)
+					}
+
+					fmt.Println("Kubeconfig updated.")
 
 					return nil
 				},
@@ -417,6 +425,8 @@ func Run() {
 				Name:  "logout",
 				Usage: "Log out of an Infra Engine",
 				Action: func(c *cli.Context) error {
+					// TODO: delete all tokens remotely with current user ID
+					removeConfig()
 					return nil
 				},
 			},
