@@ -43,7 +43,7 @@ spec:
       serviceAccountName: infra-serviceaccount
       automountServiceAccountToken: true
       containers:
-        - name: server
+        - name: infra
           image: infrahq/infra
           imagePullPolicy: Never
           ports:

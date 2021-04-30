@@ -5,3 +5,4 @@ infra
 build
 infra.db
 .git
+scripts
