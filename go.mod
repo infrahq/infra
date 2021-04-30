@@ -14,5 +14,7 @@ require (
 	google.golang.org/appengine v1.6.6 // indirect
 	gorm.io/driver/sqlite v1.1.4
 	gorm.io/gorm v1.21.7
+	k8s.io/api v0.21.0
+	k8s.io/apimachinery v0.21.0
 	k8s.io/client-go v0.21.0
 )

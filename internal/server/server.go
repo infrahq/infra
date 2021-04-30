@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
@@ -19,11 +20,15 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	rbacv1 "k8s.io/api/rbac/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 type Options struct {
-	AdminPassword string
-	Domain        string
+	Domain string
 }
 
 func initDB() (*gorm.DB, error) {
@@ -40,8 +45,6 @@ func initDB() (*gorm.DB, error) {
 
 func TokenAuth(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		fmt.Println("Using Token Auth")
-
 		authuser, _, _ := c.Request.BasicAuth()
 
 		tokensk := ""
@@ -78,13 +81,114 @@ func TokenAuth(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		c.Set("user", user)
+		c.Set("user", user.ID)
+		c.Set("token", token.ID)
 
 		c.Next()
 	}
 }
 
 func addRoutes(router *gin.Engine, db *gorm.DB) (err error) {
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		caFile := config.TLSClientConfig.CAFile
+		saToken := config.BearerToken
+
+		ca, err := ioutil.ReadFile(caFile)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(ca)
+
+		remote, err := url.Parse(config.Host)
+		if err != nil {
+			log.Println("could not parse kubernetes endpoint")
+		}
+
+		proxy := httputil.NewSingleHostReverseProxy(remote)
+		proxy.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs: caCertPool,
+			},
+		}
+
+		stripProxy := http.StripPrefix("/v1/proxy", proxy)
+		proxyHandler := func(c *gin.Context) {
+			userID := c.GetString("user")
+			user := &User{ID: userID}
+			db.First(&user)
+
+			c.Request.Header.Set("Impersonate-User", user.Email)
+			c.Request.Header.Del("Authorization")
+			c.Request.Header.Add("Authorization", "Bearer "+string(saToken))
+
+			stripProxy.ServeHTTP(c.Writer, c.Request)
+		}
+
+		// Proxy endpoints
+		// TODO: for usability, should this be based on headers, not a /v1/proxy subpath?
+		router.GET("/v1/proxy/*all", proxyHandler)
+		router.POST("/v1/proxy/*all", proxyHandler)
+		router.PUT("/v1/proxy/*all", proxyHandler)
+		router.PATCH("/v1/proxy/*all", proxyHandler)
+		router.DELETE("/v1/proxy/*all", proxyHandler)
+	}
+
+	updateCRB := func() {
+		subjects := []rbacv1.Subject{}
+
+		var users []User
+		db.Find(&users)
+
+		for _, v := range users {
+			subjects = append(subjects, rbacv1.Subject{
+				APIGroup: "rbac.authorization.k8s.io",
+				Kind:     "User",
+				Name:     v.Email,
+			})
+		}
+
+		crb := &rbacv1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "infra-view",
+			},
+			Subjects: subjects,
+			RoleRef: rbacv1.RoleRef{
+				APIGroup: "rbac.authorization.k8s.io",
+				Kind:     "ClusterRole",
+				Name:     "view",
+			},
+		}
+
+		if config != nil {
+			// Creates the clientset
+			clientset, err := kubernetes.NewForConfig(config)
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			_, err = clientset.RbacV1().ClusterRoleBindings().Update(context.TODO(), crb, metav1.UpdateOptions{})
+			if err != nil {
+				if k8sErrors.IsNotFound(err) {
+					_, err = clientset.RbacV1().ClusterRoleBindings().Create(context.TODO(), crb, metav1.CreateOptions{})
+					if err != nil {
+						fmt.Println(err)
+					} else {
+						fmt.Println("Cluster role binding added")
+					}
+				} else {
+					fmt.Println(err)
+				}
+			} else {
+				fmt.Println("Cluster role binding patched")
+			}
+		}
+	}
+
 	router.GET("/v1/users", func(c *gin.Context) {
 		var users []User
 		db.Find(&users)
@@ -131,7 +235,8 @@ func addRoutes(router *gin.Engine, db *gorm.DB) (err error) {
 			return
 		}
 
-		// Create a token and return it alongside user
+		updateCRB()
+
 		c.JSON(http.StatusCreated, user)
 	})
 
@@ -146,7 +251,8 @@ func addRoutes(router *gin.Engine, db *gorm.DB) (err error) {
 			return
 		}
 
-		result := db.Delete(&User{ID: params.ID})
+		user := &User{ID: params.ID}
+		result := db.First(&user).Delete(&user)
 		if result.Error != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
 			return
@@ -157,13 +263,15 @@ func addRoutes(router *gin.Engine, db *gorm.DB) (err error) {
 			return
 		}
 
+		updateCRB()
+
+		// Remove user from view ClusterRoleBinding
 		c.JSON(http.StatusOK, gin.H{"object": "user", "id": params.ID, "deleted": true})
 	})
 
 	router.POST("/v1/tokens", func(c *gin.Context) {
 		type Params struct {
-			User  string `form:"user"`
-			Token string `form:"token"`
+			User string `form:"user"`
 		}
 
 		var params Params
@@ -173,26 +281,20 @@ func addRoutes(router *gin.Engine, db *gorm.DB) (err error) {
 		}
 
 		// TODO: verify infra permissions before allowing to specify the user field
-		var targetUser User
-		if params.User == "" {
-			// Get user from token
-			userInterface, exists := c.Get("user")
-			if !exists {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
-				return
-			}
-			targetUser = userInterface.(User)
-		} else {
-			if err := db.First(&targetUser, "id = ?", params.User).Error; err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
-				return
-			}
+		targetUser := params.User
+		if targetUser == "" {
+			targetUser = c.GetString("user")
 		}
 
-		created, token, err := NewToken(db, targetUser.ID)
+		created, token, err := NewToken(db, targetUser)
 		if err != nil {
 			c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		}
+
+		// Delete original token
+		// TODO: should we do this earlier?
+		oldToken := &Token{ID: c.GetString("token")}
+		db.Delete(&oldToken)
 
 		c.JSON(http.StatusCreated, gin.H{
 			"token":   token,
@@ -200,61 +302,12 @@ func addRoutes(router *gin.Engine, db *gorm.DB) (err error) {
 		})
 	})
 
-	remote, err := url.Parse("https://kubernetes.default")
-	if err != nil {
-		log.Println("could not parse kubernetes endpoint")
-	}
-
-	// TODO: abstract this out into a Kubernetes destination
-	// Load ca
-	ca, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
-	if err != nil {
-		log.Println("could not open cluster ca")
-	}
-	satoken, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
-	if err != nil {
-		log.Println("could not open service account token")
-	}
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(ca)
-
-	proxy := httputil.NewSingleHostReverseProxy(remote)
-	proxy.Transport = &http.Transport{
-		TLSClientConfig: &tls.Config{
-			RootCAs: caCertPool,
-		},
-	}
-
-	stripProxy := http.StripPrefix("/v1/proxy", proxy)
-	proxyHandler := func(c *gin.Context) {
-		rawUser, exists := c.Get("user")
-		if !exists {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
-			return
-		}
-		user := rawUser.(User)
-
-		fmt.Println("Proxying", user.Email)
-
-		c.Request.Header.Set("Impersonate-User", user.Email)
-		c.Request.Header.Del("Authorization")
-		c.Request.Header.Add("Authorization", "Bearer "+string(satoken))
-
-		stripProxy.ServeHTTP(c.Writer, c.Request)
-	}
-
-	// Proxy endpoints
-	// TODO: this should be catch-all based on headers
-	router.GET("/v1/proxy/*all", proxyHandler)
-	router.POST("/v1/proxy/*all", proxyHandler)
-	router.PUT("/v1/proxy/*all", proxyHandler)
-	router.PATCH("/v1/proxy/*all", proxyHandler)
-	router.DELETE("/v1/proxy/*all", proxyHandler)
-
 	return
 }
 
 func Run(options *Options) {
+	fmt.Println("Starting Infra Engine")
+
 	db, err := initDB()
 	if err != nil {
 		log.Fatal(err)
