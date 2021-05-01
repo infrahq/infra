@@ -368,8 +368,6 @@ func Run() {
 						return cli.Exit(err, 1)
 					}
 
-					fmt.Println(response)
-
 					if res.StatusCode != http.StatusCreated {
 						return cli.Exit(response.Error, 1)
 					}

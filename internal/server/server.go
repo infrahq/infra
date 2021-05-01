@@ -17,6 +17,7 @@ import (
 
 	"github.com/gin-gonic/autotls"
 	"github.com/gin-gonic/gin"
+
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -284,17 +285,14 @@ func addRoutes(router *gin.Engine, db *gorm.DB) (err error) {
 		targetUser := params.User
 		if targetUser == "" {
 			targetUser = c.GetString("user")
+			oldToken := &Token{ID: c.GetString("token")}
+			db.Delete(&oldToken)
 		}
 
 		created, token, err := NewToken(db, targetUser)
 		if err != nil {
 			c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		}
-
-		// Delete original token
-		// TODO: should we do this earlier?
-		oldToken := &Token{ID: c.GetString("token")}
-		db.Delete(&oldToken)
 
 		c.JSON(http.StatusCreated, gin.H{
 			"token":   token,
