@@ -89,7 +89,7 @@ func TokenAuth(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-func addRoutes(router *gin.Engine, db *gorm.DB) (err error) {
+func addRoutes(router *gin.Engine, db *gorm.DB, host string) (err error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		fmt.Println(err)
@@ -297,6 +297,7 @@ func addRoutes(router *gin.Engine, db *gorm.DB) (err error) {
 		c.JSON(http.StatusCreated, gin.H{
 			"token":   token,
 			"expires": created.Expires,
+			"host":    host,
 		})
 	})
 
@@ -313,8 +314,13 @@ func Run(options *Options) {
 
 	gin.SetMode(gin.ReleaseMode)
 
+	host := ""
+	if options.Domain != "" {
+		host = "https://" + options.Domain
+	}
+
 	unixRouter := gin.New()
-	addRoutes(unixRouter, db)
+	addRoutes(unixRouter, db, host)
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		log.Fatal(err)
@@ -328,7 +334,7 @@ func Run(options *Options) {
 
 	router := gin.New()
 	router.Use(TokenAuth(db))
-	addRoutes(router, db)
+	addRoutes(router, db, host)
 	if options.Domain == "" {
 		fmt.Printf("Listening on port %v\n", 3001)
 		router.Run(":3001")

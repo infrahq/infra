@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/docker/go-units"
@@ -116,6 +117,15 @@ func normalizeHost(host string) string {
 	if host == "" {
 		return "http://unix"
 	}
+
+	if strings.HasPrefix(host, "http://") {
+		host = strings.Replace(host, "http://", "https://", -1)
+	}
+
+	if !strings.HasPrefix(host, "https://") {
+		host = "https://" + host
+	}
+
 	return host
 }
 
@@ -217,6 +227,7 @@ func Run() {
 							type tokenResponse struct {
 								Token   string `json:"token"`
 								Expires int64  `json:"expires"`
+								Host    string `json:"host"`
 							}
 
 							var decodedTokenResponse tokenResponse
@@ -227,10 +238,10 @@ func Run() {
 							fmt.Println()
 							fmt.Println("User " + decoded.Email + " added. Please share the following command with them so they can log in:")
 							fmt.Println()
-							if host == "" {
-								fmt.Println("infra login --token " + decodedTokenResponse.Token + " <INFRA HOST>")
+							if decodedTokenResponse.Host == "" {
+								fmt.Println("infra login --token " + decodedTokenResponse.Token)
 							} else {
-								fmt.Println("infra login --token " + decodedTokenResponse.Token + " " + host)
+								fmt.Println("infra login --token " + decodedTokenResponse.Token + " " + decodedTokenResponse.Host)
 							}
 
 							fmt.Println()
@@ -431,13 +442,13 @@ func Run() {
 				Usage: "Start the Infra Engine",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
-						Name:  "tls-domain",
+						Name:  "domain",
 						Usage: "Domain to use for LetsEncrypt TLS certificates",
 					},
 				},
 				Action: func(c *cli.Context) error {
 					server.Run(&server.Options{
-						Domain: c.String("tls-domain"),
+						Domain: c.String("domain"),
 					})
 					return nil
 				},
