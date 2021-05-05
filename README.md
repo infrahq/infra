@@ -38,23 +38,30 @@ Use cases:
   <br/>
 </p>
 
-## Install on Kubernetes
+## Install Infra Engine on Kubernetes
 
 Deploy via `kubectl`:
 
 ```
-kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/master/deploy/infra.yaml
+# Create a namespace for Infra
+$ kubectl create namespace infra
+
+# Use an optional domain for accessing Infra Engine externally
+$ kubectl create configmap --namespace infra domain --from-literal='domain=example.infrahq.com'
+
+# Install the Infra engine
+$ kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/master/deploy/infra.yaml
 ```
 
-then check the load balancer exposed by Infra Engine:
+Create a new admin user:
 
 ```
-NAME            TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)        AGE
-infra-service   LoadBalancer   10.12.11.116   31.58.101.169   80:32326/TCP   1m
+$ kubectl exec -it --namespace infra infra-0 -- infra users create --permissions admin admin@acme.com
+
+User admin@acme.com added. Please share the following command with them so they can log in:
+
+infra login --token sk_EFI4dPZQjEnPTYG5JCL4mr0mOQDuloTVyR1HjlpPlEaITQZM https://example.infrahq.com
 ```
-
-optionally map a DNS name e.g. `infra.acme.com` to `31.58.101.169`.
-
 
 ## Using Infra CLI
 
@@ -62,35 +69,41 @@ optionally map a DNS name e.g. `infra.acme.com` to `31.58.101.169`.
 
 ```
 # macOS
-brew cask install infra
+brew install infrahq/tap/infra
 
 # Windows
-winget install --id infra.infra
+winget install --id com.infrahq.infra
 
 # Linux
 curl -L "https://github.com/infrahq/infra/releases/download/latest/infra-linux-$(uname -m)" -o /usr/local/bin/infra
 ```
 
-### Logging in
+### Logging in as admin
 
 ```
-$ infra login 31.58.101.169
+$ infra login --token sk_EFI4dPZQjEnPTYG5JCL4mr0mOQDuloTVyR1HjlpPlEaITQZM 34.105.182.10
 ```
 
-### Adding a user
+### Verify you're logged in
 
 ```
-$ infra users add michael@acme.com
+$ infra status
+User: admin@acme.com
+Cluster: 34.105.182.10
+```
+
+### Adding another user
+
+```
+$ infra users create michael@acme.com
 User michael@acme.com added with the following permissions:
-USER                    PROVIDER             ROLES            NAMESPACE
-michael@acme.com        local                view             default 
+USER                    PROVIDER             PERMISSIONS
+michael@acme.com        token                view
 
 Please share the following login with michael@acme.com:
 
-infra login 31.58.101.169 --token VDBkRmVWbFRNV3BhVkZKc1dtcFazlIVFhkT2FsRjNaMmRGYVUxQk1kd18jdj10
+infra login --token sk_Kc1dtcFazlIVFhkT2FsRjNaMmRGYVUxQk1kd18jdj10 34.105.182.10
 ```
-
-Note: users can also be added via `infra.yaml` (see below) for scriptability and integration into existing infrastructure as code tools such as Terraform, Ansible, Pulumi, and more.
 
 
 ### Listing users
@@ -98,10 +111,10 @@ Note: users can also be added via `infra.yaml` (see below) for scriptability and
 List users that have been added to Infra:
 
 ```
-$ infra users
-USER                 PROVIDER             ROLES            NAMESPACE
-admin                local                admin            default
-michael@acme.com     local                view             default 
+$ infra users list
+USER                 PROVIDER             ROLES
+admin@acme.com       local                admin
+michael@acme.com     local                view
 ```
 
 ### Listing groups
@@ -120,12 +133,11 @@ developers@acme.com   google          1              admin
 To view all roles in the cluster, use `infra roles`:
 
 ```
-$ infra roles
+$ infra permissions
 NAME        NAMESPACE           GRANTED GROUPS      GRANTED USERS        DESCRIPTION 
 admin       default             1                   1                    Admin access
 view        default             1                   1                    Read-only access
 ```
-
 
 ### Listing access 
 

@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"context"
@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/docker/go-units"
-	"github.com/infrahq/infra/internal/server"
 	"github.com/olekukonko/tablewriter"
 	"github.com/urfave/cli/v2"
 	"k8s.io/client-go/tools/clientcmd"
@@ -39,68 +38,6 @@ func printTable(header []string, data [][]string) {
 	table.SetNoWhiteSpace(true)
 	table.AppendBulk(data)
 	table.Render()
-}
-
-type Config struct {
-	Host    string `json:"host"`
-	Token   string `json:"token"`
-	Expires int64  `json:"expires"`
-}
-
-func removeConfig() error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	os.Remove(filepath.Join(homeDir, ".infra", "token"))
-	return nil
-}
-
-func readConfig() (config *Config, err error) {
-	config = &Config{}
-
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return
-	}
-
-	contents, err := ioutil.ReadFile(filepath.Join(homeDir, ".infra", "config"))
-	if os.IsNotExist(err) {
-		return config, nil
-	}
-
-	if err != nil {
-		return
-	}
-
-	if err = json.Unmarshal(contents, &config); err != nil {
-		return
-	}
-
-	return
-}
-
-func writeConfig(config *Config) error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	if err = os.MkdirAll(filepath.Join(homeDir, ".infra"), os.ModePerm); err != nil {
-		return err
-	}
-
-	contents, err := json.Marshal(config)
-	if err != nil {
-		return err
-	}
-
-	if err = ioutil.WriteFile(filepath.Join(homeDir, ".infra", "config"), []byte(contents), 0644); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func unixSockHttpClient(path string) *http.Client {
@@ -143,12 +80,7 @@ func (bat *BasicAuthTransport) Client() *http.Client {
 	return &http.Client{Transport: bat}
 }
 
-func Run() {
-	// executable, err := os.Executable()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
+func CmdRun() {
 	config, err := readConfig()
 	if err != nil {
 		log.Fatal(err)
@@ -225,9 +157,16 @@ func Run() {
 							}
 
 							type tokenResponse struct {
-								Token   string `json:"token"`
-								Expires int64  `json:"expires"`
-								Host    string `json:"host"`
+								Token struct {
+									ID      string `json:"id"`
+									Created int64  `json:"created"`
+									Updated int64  `json:"updated"`
+									Expires int64  `json:"expires"`
+									UserID  string
+								}
+								SecretToken string `json:"secret_token"`
+								Host        string `json:"host"`
+								Error       string
 							}
 
 							var decodedTokenResponse tokenResponse
@@ -239,9 +178,9 @@ func Run() {
 							fmt.Println("User " + decoded.Email + " added. Please share the following command with them so they can log in:")
 							fmt.Println()
 							if decodedTokenResponse.Host == "" {
-								fmt.Println("infra login --token " + decodedTokenResponse.Token)
+								fmt.Println("infra login --token " + decodedTokenResponse.SecretToken)
 							} else {
-								fmt.Println("infra login --token " + decodedTokenResponse.Token + " " + decodedTokenResponse.Host)
+								fmt.Println("infra login --token " + decodedTokenResponse.SecretToken + " " + decodedTokenResponse.Host)
 							}
 
 							fmt.Println()
@@ -281,10 +220,10 @@ func Run() {
 							rows := [][]string{}
 							for _, user := range decoded.Data {
 								createdAt := time.Unix(user.Created, 0)
-								rows = append(rows, []string{user.ID, "token", user.Email, units.HumanDuration(time.Now().UTC().Sub(createdAt)) + " ago"})
+								rows = append(rows, []string{user.ID, "infra", user.Email, units.HumanDuration(time.Now().UTC().Sub(createdAt)) + " ago"})
 							}
 
-							printTable([]string{"USER ID", "SOURCE", "EMAIL", "CREATED"}, rows)
+							printTable([]string{"USER ID", "PROVIDER", "EMAIL", "CREATED"}, rows)
 
 							return nil
 						},
@@ -368,13 +307,20 @@ func Run() {
 						return err
 					}
 
-					type loginResponse struct {
-						Token   string
-						Expires int64
-						Error   string
+					type tokenResponse struct {
+						Token struct {
+							ID      string `json:"id"`
+							Created int64  `json:"created"`
+							Updated int64  `json:"updated"`
+							Expires int64  `json:"expires"`
+							UserID  string
+						}
+						SecretToken string `json:"secret_token"`
+						Host        string `json:"host"`
+						Error       string
 					}
 
-					var response loginResponse
+					var response tokenResponse
 					if err = json.Unmarshal(body, &response); err != nil {
 						return cli.Exit(err, 1)
 					}
@@ -385,8 +331,9 @@ func Run() {
 
 					if err = writeConfig(&Config{
 						Host:    host,
-						Token:   response.Token,
-						Expires: response.Expires,
+						Token:   response.SecretToken,
+						Expires: response.Token.Expires,
+						User:    response.Token.UserID,
 					}); err != nil {
 						fmt.Println(err)
 						return err
@@ -398,7 +345,7 @@ func Run() {
 						Server: host + "/v1/proxy",
 					}
 					config.AuthInfos["infra"] = &clientcmdapi.AuthInfo{
-						Token: response.Token,
+						Token: response.SecretToken,
 					}
 					config.Contexts["infra"] = &clientcmdapi.Context{
 						Cluster:  "infra",
@@ -429,15 +376,6 @@ func Run() {
 				},
 			},
 			{
-				Name:  "logout",
-				Usage: "Log out of an Infra Engine",
-				Action: func(c *cli.Context) error {
-					// TODO: delete all tokens remotely with current user ID
-					removeConfig()
-					return nil
-				},
-			},
-			{
 				Name:  "start",
 				Usage: "Start the Infra Engine",
 				Flags: []cli.Flag{
@@ -445,10 +383,15 @@ func Run() {
 						Name:  "domain",
 						Usage: "Domain to use for LetsEncrypt TLS certificates",
 					},
+					&cli.StringFlag{
+						Name:  "db-path",
+						Usage: "Path to database",
+					},
 				},
 				Action: func(c *cli.Context) error {
-					server.Run(&server.Options{
+					ServerRun(&ServerOptions{
 						Domain: c.String("domain"),
+						DBPath: c.String("db-path"),
 					})
 					return nil
 				},

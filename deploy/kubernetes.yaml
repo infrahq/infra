@@ -1,14 +1,36 @@
-
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: infra
----
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: infra-serviceaccount
-  namespace: infra
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: infra-clusterrole
+rules:
+  - apiGroups: [""]
+    resources:
+      - users
+      - groups
+    verbs:
+      - impersonate
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - rolebindings
+      - roles
+      - clusterrole
+      - clusterrolebindings
+    verbs:
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -17,24 +39,34 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: infra-serviceaccount
-  namespace: infra
+  namespace: default
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: cluster-admin
+  name: infra-clusterrole
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: infra
+  labels:
+    app: infra
+spec:
+  type: LoadBalancer
+  selector:
+    app: infra
+  ports:
+    - port: 443
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: infra-deployment
-  namespace: infra
-  labels:
-    app: infra
+  name: infra
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: infra
+  replicas: 1
   template:
     metadata:
       labels:
@@ -46,39 +78,13 @@ spec:
         - name: server
           image: gcr.io/infra-app-development/testing:0.0.1
           imagePullPolicy: Always
-          args: ["start", "--tls-domain", "example.infrahq.com"]
+          args: ["start", "--domain", "test.infrahq.com", "--db-path", "/var/run/infra"]
           ports:
             - containerPort: 443
           volumeMounts:
-            - name: config-volume
-              mountPath: /etc/infra/config.yaml
-              subPath: config.yaml
+            - name: db
+              mountPath: /var/run/infra
       volumes:
-        - name: config-volume
-          configMap:
-            name: infra-config
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: infra-service
-  namespace: infra
-spec:
-  type: LoadBalancer
-  selector:
-    app: infra
-  ports:
-    - port: 443
-      protocol: TCP
-      targetPort: 443
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: infra-config
-  namespace: infra
-data:
-  config.yaml: |
-    permissions:
-      - group: developers@acme.com
-        role: view
+        - name: db
+          emptyDir: {}
+

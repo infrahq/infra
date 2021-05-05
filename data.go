@@ -1,4 +1,4 @@
-package server
+package main
 
 import (
 	"crypto/rand"
@@ -13,6 +13,10 @@ const (
 )
 
 func randString(n int) string {
+	if n < 0 {
+		return randString(0)
+	}
+
 	const alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 	var bytes = make([]byte, n)
 	rand.Read(bytes)
@@ -24,13 +28,8 @@ func randString(n int) string {
 
 const (
 	USER_ID_PREFIX         = "usr"
-	PROVIDER_ID_PREFIX     = "pvdr"
 	TOKEN_ID_PREFIX        = "tk"
 	TOKEN_SECRET_ID_PREFIX = "sk"
-)
-
-const (
-	PROVIDER_TOKEN = "token"
 )
 
 type User struct {

@@ -1,4 +1,4 @@
-package server
+package main
 
 import (
 	"context"
@@ -28,12 +28,26 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-type Options struct {
+type ServerOptions struct {
 	Domain string
+	DBPath string
 }
 
-func initDB() (*gorm.DB, error) {
-	db, err := gorm.Open(sqlite.Open("infra.db"), &gorm.Config{})
+func initDB(dbPath string) (*gorm.DB, error) {
+	if dbPath == "" {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		dbPath = filepath.Join(homeDir, ".infra")
+	}
+
+	if err := os.MkdirAll(filepath.Join(dbPath, ".infra"), os.ModePerm); err != nil {
+		return nil, err
+	}
+
+	db, err := gorm.Open(sqlite.Open(filepath.Join(dbPath, "infra.db")), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
@@ -295,19 +309,19 @@ func addRoutes(router *gin.Engine, db *gorm.DB, host string) (err error) {
 		}
 
 		c.JSON(http.StatusCreated, gin.H{
-			"token":   token,
-			"expires": created.Expires,
-			"host":    host,
+			"token":        created,
+			"secret_token": token,
+			"host":         host,
 		})
 	})
 
 	return
 }
 
-func Run(options *Options) {
+func ServerRun(options *ServerOptions) {
 	fmt.Println("Starting Infra Engine")
 
-	db, err := initDB()
+	db, err := initDB(options.DBPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -319,6 +333,7 @@ func Run(options *Options) {
 		host = "https://" + options.Domain
 	}
 
+	// Listen on a local unix socket for easy admin bootstrapping
 	unixRouter := gin.New()
 	addRoutes(unixRouter, db, host)
 	homeDir, err := os.UserHomeDir()
@@ -332,6 +347,7 @@ func Run(options *Options) {
 	os.Remove(filepath.Join(homeDir, ".infra", "infra.sock"))
 	go unixRouter.RunUnix(filepath.Join(homeDir, ".infra", "infra.sock"))
 
+	// Listen on a port for external users & connections
 	router := gin.New()
 	router.Use(TokenAuth(db))
 	addRoutes(router, db, host)
