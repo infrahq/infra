@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -21,7 +22,60 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
-func printTable(header []string, data [][]string) {
+type Config struct {
+	Host    string `json:"host"`
+	User    string `json:"user"`
+	Token   string `json:"token"`
+	Expires int64  `json:"expires"`
+}
+
+func ReadConfig() (config *Config, err error) {
+	config = &Config{}
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return
+	}
+
+	contents, err := ioutil.ReadFile(filepath.Join(homeDir, ".infra", "config"))
+	if os.IsNotExist(err) {
+		return config, nil
+	}
+
+	if err != nil {
+		return
+	}
+
+	if err = json.Unmarshal(contents, &config); err != nil {
+		return
+	}
+
+	return
+}
+
+func WriteConfig(config *Config) error {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	if err = os.MkdirAll(filepath.Join(homeDir, ".infra"), os.ModePerm); err != nil {
+		return err
+	}
+
+	contents, err := json.Marshal(config)
+	if err != nil {
+		return err
+	}
+
+	if err = ioutil.WriteFile(filepath.Join(homeDir, ".infra", "config"), []byte(contents), 0644); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func PrintTable(header []string, data [][]string) {
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader(header)
 	table.SetAutoWrapText(false)
@@ -39,7 +93,7 @@ func printTable(header []string, data [][]string) {
 	table.Render()
 }
 
-func unixSockHttpClient(path string) *http.Client {
+func NewUnixHttpClient(path string) *http.Client {
 	return &http.Client{
 		Transport: &http.Transport{
 			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
@@ -71,10 +125,10 @@ func (bat *BasicAuthTransport) Client() *http.Client {
 	return &http.Client{Transport: bat}
 }
 
-func CmdRun() {
-	config, err := readConfig()
+func CmdRun() error {
+	config, err := ReadConfig()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	host := config.Host
@@ -82,12 +136,12 @@ func CmdRun() {
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	httpClient := &http.Client{}
 	if config.Host == "" {
-		httpClient = unixSockHttpClient(filepath.Join(homeDir, ".infra", "infra.sock"))
+		httpClient = NewUnixHttpClient(filepath.Join(homeDir, ".infra", "infra.sock"))
 	} else {
 		bat := BasicAuthTransport{
 			Username: token,
@@ -148,13 +202,7 @@ func CmdRun() {
 							}
 
 							type tokenResponse struct {
-								Token struct {
-									ID      string `json:"id"`
-									Created int64  `json:"created"`
-									Updated int64  `json:"updated"`
-									Expires int64  `json:"expires"`
-									UserID  string
-								}
+								Token
 								SecretToken string `json:"secret_token"`
 								Host        string `json:"host"`
 								Error       string
@@ -173,7 +221,6 @@ func CmdRun() {
 							} else {
 								fmt.Println("infra login --token " + decodedTokenResponse.SecretToken + " " + decodedTokenResponse.Host)
 							}
-
 							fmt.Println()
 
 							return nil
@@ -190,22 +237,17 @@ func CmdRun() {
 							}
 
 							type response struct {
-								Data []struct {
-									ID      string `json:"id"`
-									Email   string `json:"email"`
-									Created int64  `json:"created"`
-									Updated int64  `json:"updated"`
-								}
+								Data  []User
 								Error string `json:"error"`
 							}
 
 							var decoded response
 							if err = json.NewDecoder(res.Body).Decode(&decoded); err != nil {
-								log.Fatal(err)
+								return err
 							}
 
 							if decoded.Error != "" {
-								log.Fatal(decoded.Error)
+								return err
 							}
 
 							rows := [][]string{}
@@ -214,7 +256,7 @@ func CmdRun() {
 								rows = append(rows, []string{user.ID, "infra", user.Email, units.HumanDuration(time.Now().UTC().Sub(createdAt)) + " ago"})
 							}
 
-							printTable([]string{"USER ID", "PROVIDER", "EMAIL", "CREATED"}, rows)
+							PrintTable([]string{"USER ID", "PROVIDER", "EMAIL", "CREATED"}, rows)
 
 							return nil
 						},
@@ -243,15 +285,15 @@ func CmdRun() {
 
 							var decoded response
 							if err = json.NewDecoder(res.Body).Decode(&decoded); err != nil {
-								log.Fatal(err)
+								return err
 							}
 
 							if decoded.Deleted {
 								fmt.Println("User deleted")
 							} else if len(decoded.Error) > 0 {
-								fmt.Println("Could not delete user: " + decoded.Error)
+								return errors.New(decoded.Error)
 							} else {
-								fmt.Println("Could not delete user")
+								return errors.New("could not delete user")
 							}
 
 							return nil
@@ -271,19 +313,24 @@ func CmdRun() {
 					},
 				},
 				Action: func(c *cli.Context) error {
-					host := c.Args().First()
+					hostArg := c.Args().First()
+					client := &http.Client{}
+
+					if hostArg == "" {
+						hostArg = host
+						client = httpClient
+					}
 
 					// Get token from
 					token := c.String("token")
 
-					req, err := http.NewRequest("POST", normalizeHost(host)+"/v1/tokens", nil)
+					req, err := http.NewRequest("POST", normalizeHost(hostArg)+"/v1/tokens", nil)
 					if err != nil {
 						return err
 					}
 
 					req.SetBasicAuth(token, "")
 
-					client := &http.Client{}
 					res, err := client.Do(req)
 					if err != nil {
 						return err
@@ -297,10 +344,10 @@ func CmdRun() {
 					type tokenResponse struct {
 						Token struct {
 							ID      string `json:"id"`
+							User    string `json:"user"`
 							Created int64  `json:"created"`
 							Updated int64  `json:"updated"`
 							Expires int64  `json:"expires"`
-							UserID  string
 						}
 						SecretToken string `json:"secret_token"`
 						Host        string `json:"host"`
@@ -316,11 +363,11 @@ func CmdRun() {
 						return cli.Exit(response.Error, 1)
 					}
 
-					if err = writeConfig(&Config{
+					if err = WriteConfig(&Config{
 						Host:    host,
 						Token:   response.SecretToken,
 						Expires: response.Token.Expires,
-						User:    response.Token.UserID,
+						User:    response.Token.User,
 					}); err != nil {
 						fmt.Println(err)
 						return err
@@ -372,17 +419,17 @@ func CmdRun() {
 					},
 				},
 				Action: func(c *cli.Context) error {
-					ServerRun(&ServerOptions{
+					return ServerRun(&ServerOptions{
 						DBPath: c.String("db-path"),
 					})
-					return nil
 				},
 			},
 		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
+
+	return nil
 }

@@ -1,12 +1,7 @@
 package main
 
 import (
-	"context"
-	"crypto/tls"
-	"crypto/x509"
-	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -16,47 +11,10 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
-	rbacv1 "k8s.io/api/rbac/v1"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
-type ServerOptions struct {
-	DBPath string
-}
-
-func initDB(dbPath string) (*gorm.DB, error) {
-	if dbPath == "" {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		dbPath = filepath.Join(homeDir, ".infra")
-	}
-
-	if err := os.MkdirAll(filepath.Join(dbPath, ".infra"), os.ModePerm); err != nil {
-		return nil, err
-	}
-
-	db, err := gorm.Open(sqlite.Open(filepath.Join(dbPath, "infra.db")), &gorm.Config{})
-	if err != nil {
-		return nil, err
-	}
-
-	db.AutoMigrate(&User{})
-	db.AutoMigrate(&Token{})
-
-	return db, nil
-}
-
-func TokenAuth(db *gorm.DB) gin.HandlerFunc {
+func TokenAuth(data *Data) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authuser, _, _ := c.Request.BasicAuth()
 
@@ -70,26 +28,26 @@ func TokenAuth(db *gorm.DB) gin.HandlerFunc {
 			tokensk = strings.Replace(authorization, "Bearer sk_", "", -1)
 		}
 
-		if len(tokensk) != TOKEN_LENGTH {
+		if len(tokensk) != SECRET_KEY_LENGTH {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 			return
 		}
 
-		id := tokensk[0:16]
-		var token Token
-		if err := db.Where("id = ?", "tk_"+id).First(&token).Error; err != nil {
+		id := tokensk[0:ID_LENGTH]
+		token, err := data.GetToken("tk_"+id, true)
+		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 			return
 		}
 
-		secret := tokensk[16:TOKEN_LENGTH]
+		secret := tokensk[ID_LENGTH:SECRET_KEY_LENGTH]
 		if err := bcrypt.CompareHashAndPassword(token.HashedSecret, []byte(secret)); err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 			return
 		}
 
-		var user User
-		if err := db.Where("id = ?", token.UserID).First(&user).Error; err != nil {
+		user, err := data.GetUser(token.User)
+		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 			return
 		}
@@ -101,110 +59,54 @@ func TokenAuth(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-func addRoutes(router *gin.Engine, db *gorm.DB, host string) (err error) {
-	config, err := rest.InClusterConfig()
+func ProxyHandler(data *Data, kubernetes *Kubernetes) gin.HandlerFunc {
+	remote, err := url.Parse(kubernetes.Config.Host)
 	if err != nil {
 		fmt.Println(err)
-	} else {
-		caFile := config.TLSClientConfig.CAFile
-		saToken := config.BearerToken
-
-		ca, err := ioutil.ReadFile(caFile)
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		caCertPool := x509.NewCertPool()
-		caCertPool.AppendCertsFromPEM(ca)
-
-		remote, err := url.Parse(config.Host)
-		if err != nil {
-			log.Println("could not parse kubernetes endpoint")
-		}
-
-		proxy := httputil.NewSingleHostReverseProxy(remote)
-		proxy.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{
-				RootCAs: caCertPool,
-			},
-		}
-
-		stripProxy := http.StripPrefix("/v1/proxy", proxy)
-		proxyHandler := func(c *gin.Context) {
-			userID := c.GetString("user")
-			user := &User{ID: userID}
-			db.First(&user)
-
-			c.Request.Header.Set("Impersonate-User", user.Email)
-			c.Request.Header.Del("Authorization")
-			c.Request.Header.Add("Authorization", "Bearer "+string(saToken))
-
-			stripProxy.ServeHTTP(c.Writer, c.Request)
-		}
-
-		// Proxy endpoints
-		// TODO: for usability, should this be based on headers, not a /v1/proxy subpath?
-		router.GET("/v1/proxy/*all", proxyHandler)
-		router.POST("/v1/proxy/*all", proxyHandler)
-		router.PUT("/v1/proxy/*all", proxyHandler)
-		router.PATCH("/v1/proxy/*all", proxyHandler)
-		router.DELETE("/v1/proxy/*all", proxyHandler)
 	}
 
-	updateCRB := func() {
-		subjects := []rbacv1.Subject{}
-
-		var users []User
-		db.Find(&users)
-
-		for _, v := range users {
-			subjects = append(subjects, rbacv1.Subject{
-				APIGroup: "rbac.authorization.k8s.io",
-				Kind:     "User",
-				Name:     v.Email,
-			})
+	proxy := httputil.NewSingleHostReverseProxy(remote)
+	proxy.Transport = kubernetes.Config.Transport
+	return func(c *gin.Context) {
+		userID := c.GetString("user")
+		user, err := data.GetUser(userID)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "invalid user"})
+			return
 		}
 
-		crb := &rbacv1.ClusterRoleBinding{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "infra-view",
-			},
-			Subjects: subjects,
-			RoleRef: rbacv1.RoleRef{
-				APIGroup: "rbac.authorization.k8s.io",
-				Kind:     "ClusterRole",
-				Name:     "view",
-			},
-		}
+		c.Request.Header.Del("Authorization")
+		c.Request.Header.Set("Impersonate-User", user.Email)
 
-		if config != nil {
-			// Creates the clientset
-			clientset, err := kubernetes.NewForConfig(config)
-			if err != nil {
-				fmt.Println(err)
-			}
+		http.StripPrefix("/v1/proxy", proxy).ServeHTTP(c.Writer, c.Request)
+	}
+}
 
-			_, err = clientset.RbacV1().ClusterRoleBindings().Update(context.TODO(), crb, metav1.UpdateOptions{})
-			if err != nil {
-				if k8sErrors.IsNotFound(err) {
-					_, err = clientset.RbacV1().ClusterRoleBindings().Create(context.TODO(), crb, metav1.CreateOptions{})
-					if err != nil {
-						fmt.Println(err)
-					} else {
-						fmt.Println("Cluster role binding added")
-					}
-				} else {
-					fmt.Println(err)
-				}
-			} else {
-				fmt.Println("Cluster role binding patched")
-			}
-		}
+func UpdateKubernetesClusterRoleBindings(data *Data, kubernetes *Kubernetes) error {
+	if data == nil || kubernetes == nil {
+		return nil
 	}
 
+	users, err := data.ListUsers()
+	if err != nil {
+		return err
+	}
+
+	emails := []string{}
+	for _, v := range users {
+		emails = append(emails, v.Email)
+	}
+
+	return kubernetes.UpdateRoleBindings(emails)
+}
+
+func addRoutes(router *gin.Engine, data *Data, kubernetes *Kubernetes) error {
 	router.GET("/v1/users", func(c *gin.Context) {
-		var users []User
-		db.Find(&users)
+		users, err := data.ListUsers()
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusOK, gin.H{"object": "list", "url": "/v1/users", "has_more": false, "data": users})
 	})
 
@@ -219,12 +121,8 @@ func addRoutes(router *gin.Engine, db *gorm.DB, host string) (err error) {
 			return
 		}
 
-		var user User
-		if err := db.Where("id = ?", params.ID).First(&user).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
-				return
-			}
+		user, err := data.GetUser(params.ID)
+		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
@@ -242,13 +140,16 @@ func addRoutes(router *gin.Engine, db *gorm.DB, host string) (err error) {
 			return
 		}
 
-		user := &User{Email: form.Email}
-		if err = db.Create(user).Error; err != nil {
+		user, err := data.CreateUser(form.Email)
+		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		updateCRB()
+		if err := UpdateKubernetesClusterRoleBindings(data, kubernetes); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 
 		c.JSON(http.StatusCreated, user)
 	})
@@ -264,19 +165,20 @@ func addRoutes(router *gin.Engine, db *gorm.DB, host string) (err error) {
 			return
 		}
 
-		user := &User{ID: params.ID}
-		result := db.First(&user).Delete(&user)
-		if result.Error != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
+		if _, err := data.GetUser(params.ID); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "user does not exist"})
 			return
 		}
 
-		if result.RowsAffected == 0 {
-			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		if err := data.DeleteUser(params.ID); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		updateCRB()
+		if err := UpdateKubernetesClusterRoleBindings(data, kubernetes); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 
 		// Remove user from view ClusterRoleBinding
 		c.JSON(http.StatusOK, gin.H{"object": "user", "id": params.ID, "deleted": true})
@@ -293,58 +195,85 @@ func addRoutes(router *gin.Engine, db *gorm.DB, host string) (err error) {
 			return
 		}
 
-		// TODO: verify infra permissions before allowing to specify the user field
+		// TODO(jmorganca): verify permissions before allowing to specify the user field
 		targetUser := params.User
 		if targetUser == "" {
 			targetUser = c.GetString("user")
-			oldToken := &Token{ID: c.GetString("token")}
-			db.Delete(&oldToken)
+			data.DeleteToken(c.GetString("token"))
 		}
 
-		created, token, err := NewToken(db, targetUser)
+		created, sk, err := data.CreateToken(targetUser)
 		if err != nil {
 			c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		}
 
 		c.JSON(http.StatusCreated, gin.H{
 			"token":        created,
-			"secret_token": token,
-			"host":         host,
+			"secret_token": sk,
 		})
 	})
 
-	return
+	if kubernetes != nil {
+		proxyHandler := ProxyHandler(data, kubernetes)
+		router.GET("/v1/proxy/*all", proxyHandler)
+		router.POST("/v1/proxy/*all", proxyHandler)
+		router.PUT("/v1/proxy/*all", proxyHandler)
+		router.PATCH("/v1/proxy/*all", proxyHandler)
+		router.DELETE("/v1/proxy/*all", proxyHandler)
+	}
+
+	return nil
 }
 
-func ServerRun(options *ServerOptions) {
-	fmt.Println("Starting Infra Engine")
+type ServerOptions struct {
+	DBPath string
+}
 
-	db, err := initDB(options.DBPath)
+func ServerRun(options *ServerOptions) error {
+	data, err := NewData(options.DBPath)
 	if err != nil {
-		log.Fatal(err)
+		return err
+	}
+
+	defer data.Close()
+
+	kubernetes, err := NewKubernetes()
+	if err != nil {
+		fmt.Println("warning: no kubernetes cluster detected.")
 	}
 
 	gin.SetMode(gin.ReleaseMode)
 
-	host := ""
-
-	// Listen on a local unix socket for easy admin bootstrapping
 	unixRouter := gin.New()
-	addRoutes(unixRouter, db, host)
+	if err = addRoutes(unixRouter, data, kubernetes); err != nil {
+		return err
+	}
+
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	if err = os.MkdirAll(filepath.Join(homeDir, ".infra"), os.ModePerm); err != nil {
-		log.Fatal(err)
+		return err
 	}
-	os.Remove(filepath.Join(homeDir, ".infra", "infra.sock"))
-	go unixRouter.RunUnix(filepath.Join(homeDir, ".infra", "infra.sock"))
 
-	// Listen on a port for external users & connections
+	os.Remove(filepath.Join(homeDir, ".infra", "infra.sock"))
+	go func() {
+		if err := unixRouter.RunUnix(filepath.Join(homeDir, ".infra", "infra.sock")); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
 	router := gin.New()
-	router.Use(TokenAuth(db))
-	addRoutes(router, db, host)
-	router.Run(":2378")
+	router.Use(TokenAuth(data))
+	if err = addRoutes(router, data, kubernetes); err != nil {
+		return err
+	}
+
+	if err = router.Run(":2378"); err != nil {
+		return err
+	}
+
+	return nil
 }

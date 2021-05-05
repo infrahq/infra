@@ -1,5 +1,9 @@
 package main
 
+import "log"
+
 func main() {
-	CmdRun()
+	if err := CmdRun(); err != nil {
+		log.Fatal(err)
+	}
 }
