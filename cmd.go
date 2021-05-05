@@ -12,7 +12,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/docker/go-units"
@@ -53,14 +52,6 @@ func unixSockHttpClient(path string) *http.Client {
 func normalizeHost(host string) string {
 	if host == "" {
 		return "http://unix"
-	}
-
-	if strings.HasPrefix(host, "http://") {
-		host = strings.Replace(host, "http://", "https://", -1)
-	}
-
-	if !strings.HasPrefix(host, "https://") {
-		host = "https://" + host
 	}
 
 	return host
@@ -281,10 +272,6 @@ func CmdRun() {
 				},
 				Action: func(c *cli.Context) error {
 					host := c.Args().First()
-					if host == "" {
-						cli.ShowCommandHelp(c, "json")
-						return cli.Exit("Missing argument HOST", 1)
-					}
 
 					// Get token from
 					token := c.String("token")
@@ -380,17 +367,12 @@ func CmdRun() {
 				Usage: "Start the Infra Engine",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
-						Name:  "domain",
-						Usage: "Domain to use for LetsEncrypt TLS certificates",
-					},
-					&cli.StringFlag{
 						Name:  "db-path",
 						Usage: "Path to database",
 					},
 				},
 				Action: func(c *cli.Context) error {
 					ServerRun(&ServerOptions{
-						Domain: c.String("domain"),
 						DBPath: c.String("db-path"),
 					})
 					return nil

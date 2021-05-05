@@ -1,13 +1,19 @@
 apiVersion: v1
+kind: Namespace
+metadata:
+  name: infra
+---
+apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: infra-serviceaccount
-  namespace: kube-system
+  name: infra
+  namespace: infra
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: infra-clusterrole
+  name: infra
+  namespace: infra
 rules:
   - apiGroups: [""]
     resources:
@@ -15,6 +21,11 @@ rules:
       - groups
     verbs:
       - impersonate
+  - apiGroups: [""]
+    resources:
+      - endpoints
+    verbs:
+      - get
   - apiGroups:
       - rbac.authorization.k8s.io
     resources:
@@ -35,20 +46,22 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: infra-clusterrolebinding
+  name: infra
+  namespace: infra
 subjects:
 - kind: ServiceAccount
-  name: infra-serviceaccount
+  name: infra
   namespace: default
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: infra-clusterrole
+  name: infra
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: infra
+  namespace: infra
   labels:
     app: infra
 spec:
@@ -56,35 +69,40 @@ spec:
   selector:
     app: infra
   ports:
-    - port: 443
+    - port: 2378
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: infra
+  namespace: infra
 spec:
   selector:
     matchLabels:
       app: infra
   replicas: 1
+  serviceName: infra
   template:
     metadata:
       labels:
         app: infra
     spec:
-      serviceAccountName: infra-serviceaccount
+      serviceAccountName: infra
       automountServiceAccountToken: true
       containers:
         - name: server
-          image: gcr.io/infra-app-development/testing:0.0.1
-          imagePullPolicy: Always
-          args: ["start", "--domain", "test.infrahq.com", "--db-path", "/var/run/infra"]
+          image: infrahq/infra:0.0.1
+          # imagePullPolicy: Always
           ports:
-            - containerPort: 443
+            - containerPort: 2378
           volumeMounts:
             - name: db
-              mountPath: /var/run/infra
-      volumes:
-        - name: db
-          emptyDir: {}
-
+              mountPath: /var/opt/infra
+  volumeClaimTemplates:
+  - metadata:
+      name: db
+    spec:
+      accessModes: ["ReadWriteMany"]
+      resources:
+        requests:
+          storage: 1Gi

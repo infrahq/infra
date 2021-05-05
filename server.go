@@ -15,7 +15,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gin-gonic/autotls"
 	"github.com/gin-gonic/gin"
 
 	"golang.org/x/crypto/bcrypt"
@@ -29,7 +28,6 @@ import (
 )
 
 type ServerOptions struct {
-	Domain string
 	DBPath string
 }
 
@@ -329,9 +327,6 @@ func ServerRun(options *ServerOptions) {
 	gin.SetMode(gin.ReleaseMode)
 
 	host := ""
-	if options.Domain != "" {
-		host = "https://" + options.Domain
-	}
 
 	// Listen on a local unix socket for easy admin bootstrapping
 	unixRouter := gin.New()
@@ -351,12 +346,5 @@ func ServerRun(options *ServerOptions) {
 	router := gin.New()
 	router.Use(TokenAuth(db))
 	addRoutes(router, db, host)
-	if options.Domain == "" {
-		fmt.Printf("Listening on port %v\n", 3001)
-		router.Run(":3001")
-	} else {
-		if err = autotls.Run(router, options.Domain); err != nil {
-			log.Fatal(err)
-		}
-	}
+	router.Run(":2378")
 }
