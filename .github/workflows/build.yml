@@ -12,28 +12,18 @@ jobs:
       steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
-      - run: GOARCH=amd64 CGO_ENABLED=1 go build -o infra-darwin-amd64 .
-      - run: GOARCH=arm64 CGO_ENABLED=1 go build -o infra-darwin-arm64 .
+      - run: CGO_ENABLED=1 go build -o infra-darwin-amd64 .
       - uses: actions/upload-artifact@v2
         with:
           name: infra-darwin-amd64
           path: ./infra-darwin-amd64
-      - uses: actions/upload-artifact@v2
-        with:
-          name: infra-darwin-arm64
-          path: ./infra-darwin-arm64
   build_linux:
       runs-on: ubuntu-latest
       steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
-      - run: GOARCH=amd64 CGO_ENABLED=1 go build -ldflags "-linkmode external -extldflags -static" -o infra-linux-amd64 .
-      - run: GOARCH=arm64 CGO_ENABLED=1 go build -ldflags "-linkmode external -extldflags -static" -o infra-linux-arm64 .
+      - run: CGO_ENABLED=1 go build -ldflags "-linkmode external -extldflags -static" -o infra-linux-amd64 .
       - uses: actions/upload-artifact@v2
         with:
           name: infra-linux-amd64
           path: ./infra-linux-amd64
-      - uses: actions/upload-artifact@v2
-        with:
-          name: infra-linux-arm64
-          path: ./infra-linux-arm64
