@@ -1,0 +1,22 @@
+on: [push, pull_request]
+name: Test
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-go@v2
+    - run: go test ./...
+  build:
+      strategy:
+        matrix:
+          os: [ubuntu-latest, macos-latest, windows-latest]
+      runs-on: ${{ matrix.os }}
+      steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+      - run: CGO_ENABLED=1 go build -ldflags "-linkmode external -extldflags -static" .
+      - uses: actions/upload-artifact@v2
+        with:
+          name: binary
+          path: ./infra
