@@ -233,7 +233,7 @@ permissions:
     group: developers
     role: view
   - provider: acme-okta
-    group: admin
+    group: admins
     clusterRole: admin
 ```
 
