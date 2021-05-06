@@ -53,7 +53,7 @@ Finally, create your first user:
 ```
 $ kubectl exec -it --namespace infra infra-0 -- infra users add jeff@acme.com
 
-User admin@acme.com added. Please share the following command with them so they can log in:
+User jeff@acme.com added. Please share the following command with them so they can log in:
 
 infra login --token sk_EFI4dPZQjEnPTYG5JCL4mr0mOQDuloTVyR1HjlpPlEaITQZM 31.58.101.169
 ```
