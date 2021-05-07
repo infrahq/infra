@@ -2,9 +2,11 @@
 website
 docs
 infra
-build
 release
 .git
 scripts
 gon.json
 .env
+Makefile
+Dockerfile
+build

@@ -36,13 +36,13 @@ Identity and access management for Kubernetes. Instead of creating separate cred
 
 Deploy via `kubectl`:
 
-```
+```bash
 $ kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/master/deploy/infra.yaml
 ```
 
 Wait for Kubernetes to expose an endpoint:
 
-```
+```bash
 $ kubectl get svc --namespace infra
 NAME      TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)        AGE
 infra     LoadBalancer   10.12.11.116   31.58.101.169   80:32326/TCP   1m
@@ -50,7 +50,7 @@ infra     LoadBalancer   10.12.11.116   31.58.101.169   80:32326/TCP   1m
 
 Finally, create your first user:
 
-```
+```bash
 $ kubectl exec -it --namespace infra infra-0 -- infra users add jeff@acme.com
 
 User jeff@acme.com added. Please share the following command with them so they can log in:
@@ -60,7 +60,7 @@ infra login --token sk_EFI4dPZQjEnPTYG5JCL4mr0mOQDuloTVyR1HjlpPlEaITQZM 31.58.10
 
 ## Installing Infra CLI
 
-```
+```bash
 # macOS
 brew install infrahq/tap/infra
 
@@ -77,7 +77,7 @@ curl -L "https://github.com/infrahq/infra/releases/download/latest/infra-linux-$
 
 To log in as your first user, run the `infra login` command generated above:
 
-```
+```bash
 $ infra login --token sk_EFI4dPZQjEnPTYG5JCL4mr0mOQDuloTVyR1HjlpPlEaITQZM 31.58.101.169
 Kubeconfig updated.
 ```
@@ -86,30 +86,41 @@ Kubeconfig updated.
 
 List users that have been added to Infra:
 
-```
+```bash
 $ infra users list
-ID                      NAME                  PROVIDER           CREATED           
-usr_180jhsxjnxui1       jeff@acme.com         infra              2 minutes ago
+ID                      NAME                  PROVIDER           CREATED                PERMISSIONS
+usr_180jhsxjnxui1       jeff@acme.com         infra              2 minutes ago          admin
+usr_mgna7u291s012       michael@acme.com      infra              2 minutes ago          view
 ```
 
-### List users with permissions
+### Add a user
 
-List users that have been added to Infra:
+```bash
+$ infra users add michael@acme.com
+usr_mgna7u291s012
 
-```
-$ infra users list -a
-ID                      NAME                  PROVIDER           CREATED             NAMESPACE          ROLE
-usr_180jhsxjnxui1       jeff@acme.com         infra              2 minutes ago       *                  view
-                                                                                     wordpress          edit
-usr_xm97sqlhgau40       michael@acme.com      infra              5 minutes ago       *                  view
-                                                                                     wordpress          edit
+Please share the following login with michael@acme.com:
+
+infra login --token sk_Kc1dtcFazlIVFhkT2FsRjNaMmRGYVUxQk1kd18jdj10 31.58.101.169
 ```
 
-### Inspect a user
+### Delete a user
 
+```bash
+$ infra users delete michael@acme.com
+usr_mgna7u291s012
 ```
-$ infra users inspect jeff@acme.com --namespace wordpress
-NAME                                                          LIST  CREATE  UPDATE  DELETE
+
+### Inspect a user's permissions
+
+```bash
+$ infra user permissions jeff@acme.com
+INFRA RESOURCE                                                LIST  CREATE  UPDATE  DELETE
+users                                                         ✔     ✔       ✔       ✔
+groups                                                        ✔     ✔       ✔       ✔
+providers                                                     ✔     ✔       ✔       ✔
+
+KUBERNETES RESOURCE                                           LIST  CREATE  UPDATE  DELETE
 daemonsets.apps                                               ✔     ✔       ✔       ✔
 daemonsets.extensions                                         ✔     ✔       ✔       ✔
 deployments.apps                                              ✔     ✔       ✔       ✔
@@ -141,23 +152,6 @@ validatingwebhookconfigurations.admissionregistration.k8s.io  ✔     ✔       
 volumeattachments.storage.k8s.io                              ✔     ✔       ✔       ✔
 ```
 
-### Add a user
-
-```
-$ infra users add michael@acme.com
-
-Please share the following login with michael@acme.com:
-
-infra login --token sk_Kc1dtcFazlIVFhkT2FsRjNaMmRGYVUxQk1kd18jdj10 31.58.101.169
-```
-
-### Delete a user
-
-```
-$ infra users delete michael@acme.com
-User deleted.
-```
-
 ### Connect a provider
 
 ```
@@ -167,27 +161,27 @@ $ infra providers add okta
 Create a scoped API key by following instructions: https://infrahq.com/docs/okta
 ✔ API Key: "SWSS ajd80aj2071h0h0e7fh20h3f03gf02g6q3fg293o6fg2369"
 
-✔ Okta added.
+✔ Okta added
 ```
 
 ### List groups and users from a provider
 
 ```
 $ infra groups list
-ID                      NAME                PROVIDER        USERS          CREATED
-grp_ka93j10j48wl9       admin               okta            2              2 minutes ago
-grp_smd810sk18720       developers          okta            6              2 minutes ago
+ID                      NAME                PROVIDER        USERS          CREATED             PERMISSIONS
+grp_ka93j10j48wl9       admin               okta            2              2 minutes ago       view
+grp_smd810sk18720       developers          okta            6              2 minutes ago       view
 
 $ infra users list
-ID                      NAME                  PROVIDER           CREATED
-usr_xm97sqlhgau40       michael@acme.com      infra okta         10 minutes ago
-usr_180jhsxjnxui1       jeff@acme.com         infra okta         13 minutes ago
-usr_aja2od8a2od8a       stu@acme.com          okta               2 minutes ago
-usr_nv92379237ahl       suzie@acme.com        okta               2 minutes ago
-usr_xm97sqlhgau40       lucy@acme.com         okta               2 minutes ago
-usr_cm0a8jf38a021       joe@acme.com          okta               2 minutes ago
-usr_oz9783197911b       brian@acme.com        okta               2 minutes ago
-usr_4hv6s9ah27dsj       pete@acme.com         okta               2 minutes ago
+ID                      NAME                  PROVIDER           CREATED               PERMISSIONS
+usr_xm97sqlhgau40       michael@acme.com      infra okta         10 minutes ago        view
+usr_180jhsxjnxui1       jeff@acme.com         infra okta         13 minutes ago        admin
+usr_aja2od8a2od8a       stu@acme.com          okta               2 minutes ago         view
+usr_nv92379237ahl       suzie@acme.com        okta               2 minutes ago         view
+usr_xm97sqlhgau40       lucy@acme.com         okta               2 minutes ago         view
+usr_cm0a8jf38a021       joe@acme.com          okta               2 minutes ago         view
+usr_oz9783197911b       brian@acme.com        okta               2 minutes ago         view
+usr_4hv6s9ah27dsj       pete@acme.com         okta               2 minutes ago         view
 ```
 
 ## CLI Reference
@@ -235,6 +229,41 @@ permissions:
   - provider: acme-okta
     group: admins
     clusterRole: admin
+```
+
+## Develop
+
+Clone the project:
+
+```bash
+git clone https://github.com/infrahq/infra
+cd infra
+```
+
+Run locally:
+
+```bash
+go run .
+```
+
+## Test
+
+Run tests:
+
+```bash
+go test ./...
+```
+
+## Release
+
+Setup
+
+* [GitHub CLI](https://github.com/cli/cli)
+* [gon](https://github.com/mitchellh/gon) for signing MacOS binaries: `go get https://github.com/mitchellh/gon`
+
+```
+make release         # Build, sign and upload binaries
+make release/docker  # Build and upload Docker image
 ```
 
 ## Security
