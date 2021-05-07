@@ -1,3 +1,5 @@
+tag := $(or $(git describe --tags), v0.0.1)
+
 .PHONY: build
 build:
 	GOOS=darwin GOARCH=arm64 go build -o build/infra-darwin-arm64 .
@@ -14,7 +16,7 @@ sign:
 release:
 	make build
 	make sign
-	gh release upload v0.0.1 build/* --clobber
+	gh release upload $(tag) build/* --clobber
 
 test:
 	go test ./...
