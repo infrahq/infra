@@ -9,6 +9,6 @@
         "application_identity" : "DA4E3E8E0C8E9DE38353CED71EC172A5CC4F16DD"
     },
     "zip" :{
-        "output_path" : "./release/infra-darwin-binaries.zip"
+        "output_path" : "./build/infra-darwin-binaries.zip"
     }
 }

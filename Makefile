@@ -6,19 +6,15 @@ build:
 	GOOS=linux GOARCH=amd64 go build -o build/infra-linux-amd64 .
 	GOOS=windows GOARCH=amd64 go build -o build/infra-windows-amd64 .
 
-build-sign:
-	gon .gon.json > /dev/null
-	unzip -o -d release release/infra-darwin-binaries.zip > /dev/null
-	rm release/infra-darwin-binaries.zip > /dev/null
-
-build-docker:
-	docker build -t infrahq/infra .
+sign:
+	gon .gon.json
+	unzip -o -d build build/infra-darwin-binaries.zip
+	rm build/infra-darwin-binaries.zip
 
 release:
-	# Upload to GitHub
-
-release-dokcer:
-	# Upload to DOcker
+	make build
+	make sign
+	gh release upload v0.0.1 build/* --clobber
 
 test:
 	go test ./...
