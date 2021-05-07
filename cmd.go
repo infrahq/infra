@@ -289,7 +289,7 @@ func CmdRun() error {
 							}
 
 							if decoded.Deleted {
-								fmt.Println("User deleted")
+								fmt.Println("user deleted")
 							} else if len(decoded.Error) > 0 {
 								return errors.New(decoded.Error)
 							} else {
