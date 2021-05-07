@@ -7,3 +7,4 @@ release
 .git
 scripts
 gon.json
+.env

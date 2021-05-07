@@ -3,3 +3,4 @@ infra
 build
 infra.db
 release
+.env
