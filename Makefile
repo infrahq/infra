@@ -1,3 +1,4 @@
+.PHONY: build
 build:
 	GOOS=darwin GOARCH=arm64 go build -o build/infra-darwin-arm64 .
 	GOOS=darwin GOARCH=amd64 go build -o build/infra-darwin-amd64 .
