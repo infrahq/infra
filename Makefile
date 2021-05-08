@@ -8,6 +8,12 @@ build:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/infra-linux-amd64 .
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o build/infra-windows-amd64 .
 
+test:
+	go test ./...
+
+clean:
+	rm -rf build release
+
 sign:
 	gon .gon.json
 	unzip -o -d build build/infra-darwin-binaries.zip
@@ -18,13 +24,12 @@ release:
 	make sign
 	gh release upload $(tag) build/* --clobber
 
+build/docker:
+	docker buildx build --platform linux/amd64,linux/arm64 . -t infrahq/infra:$(tag:v%=%)
+	docker buildx build --platform linux/amd64,linux/arm64 . -t infrahq/infra
+
 release/docker:
 	make build
 	docker buildx build --push --platform linux/amd64,linux/arm64 . -t infrahq/infra:$(tag:v%=%)
 	docker buildx build --push --platform linux/amd64,linux/arm64 . -t infrahq/infra
 
-test:
-	go test ./...
-
-clean:
-	rm -rf build release
