@@ -1,64 +1,72 @@
-<p align="center">
-  <br/>
-  <br/>
-  <img src="https://user-images.githubusercontent.com/3325447/109728544-68423100-7b84-11eb-8fc0-759df7c3b974.png" height="128" />
-  <br/>
-  <br/>
-</p>
-
-* Website: https://infrahq.com
-* Docs: https://infrahq.com/docs
-* Slack: https://infra-slack.slack.com
+<br />
+<br />
+<img alt="Infra" src="https://user-images.githubusercontent.com/251292/117556309-5920a900-b035-11eb-9725-da10418b5333.png" height="60" />
+<br />
+<br />
+<br />
 
 ## Introduction
+Infra is Kubernetes Identity & Access Management (IAM) made easy. Securely connect any user or machine to any cluster.
+<br/>
+<br/>
+<br/>
+<br/>
+![Architecture](https://user-images.githubusercontent.com/251292/117556405-a8b3a480-b036-11eb-9219-c28891e68e81.png)
+<br/>
+<br/>
+<br/>
 
-Identity and access management for Kubernetes. Instead of creating separate credentials and writing scripts to map permissions to Kubernetes, developers & IT teams can integrate existing identity providers (Okta, Google accounts, GitHub auth, Azure active directory) to securely provide developers with access to Kubernetes.
+## Major features:
+* One-command login
+* Automatic Kubeconfigs & credential rotation
+* Sync & log-in users via popular identity providers (Okta, Azure AD, GitHub, Google Accounts)
+* Fine-grained permission templates for common tasks
+* CLI & REST API for programmatic access
+* _Coming soon:_ Audit logs (who did what, when)
 
-## Use cases
-- Fine-grained permissions
-- Mapping existing users & groups (in Okta, Azure AD, Google, etc) into Kubernetes groups
-- On-boarding and off-boarding users (automatically sync users against identity providers)
-- No more out of sync Kubeconfig
-- Cloud vendor-agnostic
-- Coming soon: Audit logs (who did what, when)
+## Quickstart (Okta)
 
-## Architecture
+### Deploy Infra via `kubectl`
 
-<p align="center">
-  <br/>
-  <br/>
-  <img src="https://user-images.githubusercontent.com/251292/113448649-395cec00-93ca-11eb-9c70-ea4c5c9f82da.png" />
-  <br/>
-  <br/>
-</p>
-
-## Installing on Kubernetes
-
-Deploy via `kubectl`:
-
-```bash
+```
 $ kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/master/deploy/infra.yaml
 ```
 
 Wait for Kubernetes to expose an endpoint:
 
-```bash
+```
 $ kubectl get svc --namespace infra
 NAME      TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)        AGE
 infra     LoadBalancer   10.12.11.116   31.58.101.169   80:32326/TCP   1m
 ```
 
-Finally, create your first user:
+### Configure Infra
 
-```bash
-$ kubectl exec -it --namespace infra infra-0 -- infra users add jeff@acme.com
+```yaml
+$ kubectl -n infra apply -f - <
+providers:
+  - name: okta
+    okta:
+      domain: acme.okta.com   # Your okta domain
+      users:                  # Okta users you'd like to sync
+        - jeff@acme.com 
+        - michael@acme.com
 
-User jeff@acme.com added. Please share the following command with them so they can log in:
-
-infra login --token sk_EFI4dPZQjEnPTYG5JCL4mr0mOQDuloTVyR1HjlpPlEaITQZM 31.58.101.169
+permissions:
+  - user: jeff@acme.com
+    permissions:              # permission templates: view, logs, exec, edit, admin
+      - view
+      - logs
+    namespaces:               # optional namespaces to scope access
+      - default
+  - user: michael@acme.com
+    permissions:
+      - admin
 ```
 
-## Installing Infra CLI
+### Log in as user
+
+First install the Infra CLI:
 
 ```bash
 # macOS
@@ -71,15 +79,33 @@ winget install --id com.infrahq.infra
 curl -L "https://github.com/infrahq/infra/releases/download/latest/infra-linux-$(uname -m)" -o /usr/local/bin/infra
 ```
 
-## Usage Examples
+Then log in:
 
-### Log in
+```
+$ infra login 31.58.101.169
+✔ Opening Okta login window
+✔ Kubeconfig updated and context changed to `infra:jeff@acme.com`
+```
 
-To log in as your first user, run the `infra login` command generated above:
+That's it! Infra will automatically switch you to the new context. Now run any `kubectl` command as usual.
 
-```bash
-$ infra login --token sk_EFI4dPZQjEnPTYG5JCL4mr0mOQDuloTVyR1HjlpPlEaITQZM 31.58.101.169
-Kubeconfig updated.
+### Enabling Okta user sync
+
+1. Create an Okta API key (see here)
+2. Next, add your Okta API key to the secret created with Infra:
+
+```
+$ kubectl -n infra edit secret okta-api-key from-literal="okta-api-key=aj9d8023jad928dja928dja928"
+```
+
+## Using Infra CLI
+
+### Open an admin shell
+
+```
+$ kubectl -n infra exec -it infra-0 -- sh
+$ infra users ls
+ID                      NAME                  PROVIDER           CREATED                PERMISSION
 ```
 
 ### List users
@@ -88,38 +114,15 @@ List users that have been added to Infra:
 
 ```bash
 $ infra users list
-ID                      NAME                  PROVIDER           CREATED                PERMISSIONS
-usr_180jhsxjnxui1       jeff@acme.com         infra              2 minutes ago          admin
-usr_mgna7u291s012       michael@acme.com      infra              2 minutes ago          view
-```
-
-### Add a user
-
-```bash
-$ infra users add michael@acme.com
-usr_mgna7u291s012
-
-Please share the following login with michael@acme.com:
-
-infra login --token sk_Kc1dtcFazlIVFhkT2FsRjNaMmRGYVUxQk1kd18jdj10 31.58.101.169
-```
-
-### Delete a user
-
-```bash
-$ infra users delete michael@acme.com
-usr_mgna7u291s012
+ID                      NAME                  PROVIDER           CREATED                PERMISSION
+usr_180jhsxjnxui1       jeff@acme.com         okta               2 minutes ago          admin
+usr_mgna7u291s012       michael@acme.com      okta               2 minutes ago          view
 ```
 
 ### Inspect a user's permissions
 
 ```bash
 $ infra user permissions jeff@acme.com
-INFRA RESOURCE                                                LIST  CREATE  UPDATE  DELETE
-users                                                         ✔     ✔       ✔       ✔
-groups                                                        ✔     ✔       ✔       ✔
-providers                                                     ✔     ✔       ✔       ✔
-
 KUBERNETES RESOURCE                                           LIST  CREATE  UPDATE  DELETE
 daemonsets.apps                                               ✔     ✔       ✔       ✔
 daemonsets.extensions                                         ✔     ✔       ✔       ✔
@@ -152,83 +155,22 @@ validatingwebhookconfigurations.admissionregistration.k8s.io  ✔     ✔       
 volumeattachments.storage.k8s.io                              ✔     ✔       ✔       ✔
 ```
 
-### Connect a provider
+### Add a one-off user
 
-```
-$ infra providers add okta
-✔ Domain: acme.okta.com
+```bash
+$ infra users add michael@acme.com
+usr_mgna7u291s012
 
-Create a scoped API key by following instructions: https://infrahq.com/docs/okta
-✔ API Key: "SWSS ajd80aj2071h0h0e7fh20h3f03gf02g6q3fg293o6fg2369"
+Please share the following login with michael@acme.com:
 
-✔ Okta added
-```
-
-### List groups and users from a provider
-
-```
-$ infra groups list
-ID                      NAME                PROVIDER        USERS          CREATED             PERMISSIONS
-grp_ka93j10j48wl9       admin               okta            2              2 minutes ago       view
-grp_smd810sk18720       developers          okta            6              2 minutes ago       view
-
-$ infra users list
-ID                      NAME                  PROVIDER           CREATED               PERMISSIONS
-usr_xm97sqlhgau40       michael@acme.com      infra okta         10 minutes ago        view
-usr_180jhsxjnxui1       jeff@acme.com         infra okta         13 minutes ago        admin
-usr_aja2od8a2od8a       stu@acme.com          okta               2 minutes ago         view
-usr_nv92379237ahl       suzie@acme.com        okta               2 minutes ago         view
-usr_xm97sqlhgau40       lucy@acme.com         okta               2 minutes ago         view
-usr_cm0a8jf38a021       joe@acme.com          okta               2 minutes ago         view
-usr_oz9783197911b       brian@acme.com        okta               2 minutes ago         view
-usr_4hv6s9ah27dsj       pete@acme.com         okta               2 minutes ago         view
+infra login --token sk_Kc1dtcFazlIVFhkT2FsRjNaMmRGYVUxQk1kd18jdj10 31.58.101.169
 ```
 
-## CLI Reference
+### Delete a one-off user
 
-```
-$ infra
-Infra Engine
-
-Usage:
-  infra [command]
-  infra [flags]
-
-Available Commands:
-  users         Manage users
-  groups        Manage groups
-  providers     Manage identity providers
-  login         Log in to an Infra Engine
-  start         Start Infra Engine
-
-Flags:
-  -h, --help    Print more information about a command
-
-Use "infra [command] --help" for more information about a command.
-```
-
-## Configuration
-
-For scriptability, Infra Engine can be configured using a yaml file
-
-```yaml
-providers:
-  - name: acme-okta
-    kind: okta
-    config:
-      api_key: /etc/infra/okta-api-key
-      domain: acme.okta.com
-    groups:
-      - developers
-      - admins
-
-permissions:
-  - provider: acme-okta
-    group: developers
-    role: view
-  - provider: acme-okta
-    group: admins
-    clusterRole: admin
+```bash
+$ infra users delete michael@acme.com
+usr_mgna7u291s012
 ```
 
 ## Develop
