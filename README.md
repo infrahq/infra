@@ -1,38 +1,42 @@
-<br />
-<br />
-<img alt="Infra" src="https://user-images.githubusercontent.com/251292/117556309-5920a900-b035-11eb-9725-da10418b5333.png" height="60" />
-<br />
-<br />
-<br />
+<br/>
+<br/>
+<p align="center">
+  <img src="./docs/images/logo.svg" height="48" />
+  <br/>
+  <br/>
+</p>
 
 ## Introduction
-Infra is Kubernetes Identity & Access Management (IAM) made easy. Securely connect any user or machine to any cluster.
+Securely connect any user or machine to your Kubernetes clusters.
+
+Infra is identity management built ground-up for Kubernetes. It provides an easy, secure, streamlined way for both humans & machines to access clusters. No more insecure all-or-nothing access, credential sharing, long scripts to map permissions, or identity provider sprawl.
+
+### Features
+* Secure access in one command: `infra login`
+* Automatic credential rotation
+* Sync users & groups via Okta _(Azure AD, GitHub, Google Accounts coming soon)_
+* Fine-grained permissions
+* CLI & REST API for programmatic access
+* Audit logs for who did what, when _(coming soon)_
+
 <br/>
 <br/>
-<br/>
-<br/>
-![Architecture](https://user-images.githubusercontent.com/251292/117556405-a8b3a480-b036-11eb-9219-c28891e68e81.png)
-<br/>
+<p align="center">
+  <img src="./docs/images/pic.svg" />
+</p>
 <br/>
 <br/>
 
-## Major features:
-* One-command login
-* Automatic Kubeconfigs & credential rotation
-* Sync & log-in users via popular identity providers (Okta, Azure AD, GitHub, Google Accounts)
-* Fine-grained permission templates for common tasks
-* CLI & REST API for programmatic access
-* _Coming soon:_ Audit logs (who did what, when)
 
 ## Quickstart (Okta)
 
-### Deploy Infra via `kubectl`
+### Install Infra
 
 ```
-$ kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/master/deploy/infra.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/master/deploy/kubernetes.yaml
 ```
 
-Wait for Kubernetes to expose an endpoint:
+Find which endpoint Infra is exposed on:
 
 ```
 $ kubectl get svc --namespace infra
@@ -40,72 +44,85 @@ NAME      TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)        AGE
 infra     LoadBalancer   10.12.11.116   31.58.101.169   80:32326/TCP   1m
 ```
 
+### Configure Okta
+
+1. Create a [new Okta OIDC App](https://dev-02708987-admin.okta.com/admin/apps/oauth2-wizard/create?applicationType=WEB). For **Application Name** choose **Infra**. For **Login redirect URIs** choose `http://localhost:3001`
+2. Next, click on the **Okta API Scopes** tab. Grant permissions for `okta.users.read` and `okta.groups.read`.
+3. Go back to the **General** tab. Take note of the **Client ID** and **Client secret** for the next step.
+
 ### Configure Infra
 
-```yaml
-$ kubectl -n infra apply -f - <
-providers:
-  - name: okta
-    okta:
-      domain: acme.okta.com   # Your okta domain
-      users:                  # Okta users you'd like to sync
-        - jeff@acme.com 
-        - michael@acme.com
+First, update Infra's secrets with your newly created Okta **Client ID** and **Client secret** from the last step:
 
-permissions:
-  - user: jeff@acme.com
-    permissions:              # permission templates: view, logs, exec, edit, admin
-      - view
-      - logs
-    namespaces:               # optional namespaces to scope access
-      - default
-  - user: michael@acme.com
-    permissions:
-      - admin
+```bash
+$ kubectl -n infra edit secret infra --from-literal=okta-client-id=<your okta client id> --from-literal=okta-client-secret=<your okta client secret>
 ```
 
-### Log in as user
+Next, update the Infra configuration
 
-First install the Infra CLI:
+```yaml
+$ cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: infra
+  namespace: infra
+data:
+  config.yaml: |
+    okta:
+      domain: acme.okta.com       # Your okta domain
+      groups:
+        - developers              # Groups to sync
+      users:
+        - admin@acme.com          # Individual users to sync
+    permissions:
+      - group: developers
+        permissions:              # permission templates: view, logs, exec, edit, admin
+          - edit
+      - user: admin@acme.com
+        permissions:
+          - admin
+EOF
+```
+
+### Log in
+
+Install the Infra CLI:
 
 ```bash
 # macOS
-brew install infrahq/tap/infra
+$ brew install infrahq/tap/infra
 
 # Windows
-winget install --id com.infrahq.infra
+$ winget install --id com.infrahq.infra
 
 # Linux
-curl -L "https://github.com/infrahq/infra/releases/download/latest/infra-linux-$(uname -m)" -o /usr/local/bin/infra
+$ curl -L "https://github.com/infrahq/infra/releases/download/latest/infra-linux-$(uname -m)" -o /usr/local/bin/infra
 ```
 
-Then log in:
+Next, log in via the external IP exposed by Infra:
 
 ```
 $ infra login 31.58.101.169
 ✔ Opening Okta login window
-✔ Kubeconfig updated and context changed to `infra:jeff@acme.com`
+✔ Okta login successful
+✔ Kubeconfig updated
+✔ Context changed to `infra:jeff@acme.com`
 ```
 
-That's it! Infra will automatically switch you to the new context. Now run any `kubectl` command as usual.
-
-### Enabling Okta user sync
-
-1. Create an Okta API key (see here)
-2. Next, add your Okta API key to the secret created with Infra:
-
-```
-$ kubectl -n infra edit secret okta-api-key from-literal="okta-api-key=aj9d8023jad928dja928dja928"
-```
+Infra will automatically switch you to the new context. Now run any `kubectl` command as usual.
 
 ## Using Infra CLI
 
 ### Open an admin shell
 
 ```
-$ kubectl -n infra exec -it infra-0 -- sh
+kubectl -n infra exec -it infra-0 -- sh
+
 $ infra users ls
 ID                      NAME                  PROVIDER           CREATED                PERMISSION
+usr_180jhsxjnxui1       jeff@acme.com         okta               2 minutes ago          admin
+usr_mgna7u291s012       michael@acme.com      okta               2 minutes ago          view
 ```
 
 ### List users
@@ -158,10 +175,8 @@ volumeattachments.storage.k8s.io                              ✔     ✔       
 ### Add a one-off user
 
 ```bash
-$ infra users add michael@acme.com
-usr_mgna7u291s012
-
-Please share the following login with michael@acme.com:
+$ infra users add michael@acme.com --permission=view
+User added. Please share the following login with michael@acme.com:
 
 infra login --token sk_Kc1dtcFazlIVFhkT2FsRjNaMmRGYVUxQk1kd18jdj10 31.58.101.169
 ```
@@ -169,7 +184,7 @@ infra login --token sk_Kc1dtcFazlIVFhkT2FsRjNaMmRGYVUxQk1kd18jdj10 31.58.101.169
 ### Delete a one-off user
 
 ```bash
-$ infra users delete michael@acme.com
+$ infra users delete usr_mgna7u291s012
 usr_mgna7u291s012
 ```
 

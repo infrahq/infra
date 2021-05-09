@@ -9,8 +9,9 @@ require (
 	github.com/gin-gonic/gin v1.7.1
 	github.com/google/go-cmp v0.5.4 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
+	github.com/okta/okta-sdk-golang/v2 v2.3.0 // indirect
 	github.com/olekukonko/tablewriter v0.0.5
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	github.com/urfave/cli/v2 v2.3.0
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	golang.org/x/net v0.0.0-20210410081132-afb366fc7cd1 // indirect
