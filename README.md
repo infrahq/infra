@@ -9,7 +9,7 @@
 ## Introduction
 Securely connect any user or machine to your Kubernetes clusters.
 
-Infra is identity management built ground-up for Kubernetes. It integrates with existing identity providers like Okta or GitHub and makes it easy and secore for both humans & machines to access clusters with the right permissions. No more insecure all-or-nothing access, credential sharing, long scripts to map permissions, or identity provider sprawl.
+Infra is identity management built ground-up for Kubernetes. It integrates with existing identity providers like Okta or GitHub and makes it easy and secure for both humans & machines to access clusters with the right permissions. No more insecure all-or-nothing access, credential sharing, long scripts to map permissions, or identity provider sprawl.
 
 ### Features
 * Secure access in one command: `infra login`
