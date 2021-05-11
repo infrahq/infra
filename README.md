@@ -7,96 +7,58 @@
 </p>
 
 ## Introduction
-Securely connect any user or machine to your Kubernetes clusters.
+Infra makes managing Kubernetes access easy & secure.
 
-Infra is identity management built ground-up for Kubernetes. It integrates with existing identity providers like Okta or GitHub and makes it easy and secure for both humans & machines to access clusters with the right permissions.
+No more out-of-sync Kubeconfigs, lengthy scripts to map permissions, or untraceable service accounts.
 
-No more insecure all-or-nothing access, credential sharing, long scripts to map permissions, or identity provider sprawl.
+Instead, Infra enables teams to **dynamically** grant access to _right users or machines_ with the _right permissions_ for _the right amount of time_. Under the hood, Infra takes care of provisioning identities, creating & revoking credentials and generating fine-grained permissions on-the-fly.
 
-### Features
-* Secure access in one command: `infra login`
-* Automatic credential rotation
-* Sync users & groups via Okta _(Azure AD, GitHub, Google Accounts coming soon)_
-* Fine-grained permissions
-* CLI & REST API for programmatic access
-* Audit logs for who did what, when _(coming soon)_
-
-<br/>
 <br/>
 <p align="center">
   <img src="./docs/images/pic.svg" />
 </p>
 <br/>
-<br/>
 
+### Features
+* Cluster access in one command: `infra login`
+* Fine-grained permissions
+* Onboard & offboard users via Okta (Azure AD, Google, GitHub coming soon)
+* Audit logs for who did what, when (coming soon)
+* CLI & REST API for programmatic access
+* `infra.yaml` configuration file
 
-## Quickstart (Okta)
+## Demo
 
-### Configure Okta
+```
+$ infra login infra.acme.com
+[x] Okta
+[ ] GitHub
+[ ] Google Accounts
+[ ] Token
 
-1. Log into Okta as an Administrator
-2. Under the left menu click **Applications > Applications**. Click **Add Application** then **Create New App**. Select "OpenID Connect" from the dropdown, then click **Create**
-3. For **Application name** write **Infra**. Optionally: add [the infra logo](./docs/images/okta.png). For **Login redirect URIs** write `http://localhost:2379/auth/callback`. Click **Save**.
-4. On the **General** tab, under **General Settings**, click **Edit** then enable the **Refresh Token** checkbox.
-5. Under the **Assignments** tab, assign Infra to one or more users or groups.
-6. Next, click on the **Okta API Scopes** tab. Grant permissions for `okta.users.read` and `okta.groups.read`.
-7. Back to the **General** tab, note the **Client ID** and **Client Secret** for the next step.
+✔ Logging in with Okta... success
+✔ Logged in as michael@acme.com
+✔ Kubeconfig updated
 
-### Install and configure Infra
+$ kubectl get pods -A
+kube-system           coredns-55ff57f948-h6jjk                         1/1     Running   0          6d7h
+kube-system           coredns-55ff57f948-w8prx                         1/1     Running   0          6d7h
+kube-system           kube-proxy-5flfd                                 1/1     Running   0          6d7h
+kube-system           kube-proxy-f952f                                 1/1     Running   0          6d7h
+kube-system           kube-proxy-t99vf                                 1/1     Running   0          6d7h
+kube-system           metrics-server-5fbdc54f8c-5m84f                  1/1     Running   0          6d5h
+...
+```
 
-Install Infra via `kubectl`:
+## Install
+
+### Install Infra Engine
 
 ```
 $ kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/master/deploy/kubernetes.yaml
 ```
 
-Update Infra's secrets with your newly created Okta **Client Secret** from the previous step:
-
-```
-$ kubectl -n infra edit secret infra --from-literal=okta-client-secret=In6P_qEoEVugEgk_7Z-Vkl6CysG1QapBBCzS5O7m # Client Secret from previous step
-```
-
-Next, update the Infra configuration:
-
-```yaml
-$ cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: infra
-  namespace: infra
-data:
-  config.yaml: |
-    providers:
-      - okta:
-          domain: acme.okta.com             # (Replace) Your Okta domain
-          client-id: 0oapn0qwiQPiMIyR35d6   # (Replace) Client ID from previous step
-    permissions:
-      - user: *                             # Give all assigned users view permissions by default
-        permission: view                    # Possible permissions: view, edit, admin
-      - user: admin@acme.com                # (Replace/remove) Give a single user admin permission
-        permission: admin
-      - group: devops                       # (Replace/remove) Give a group edit permission. This is the name of your group in Okta
-        permission: edit
-EOF
-```
-
-### Log in
-
-Install the Infra CLI:
-
-```bash
-# macOS
-$ brew install infrahq/tap/infra
-
-# Windows
-$ winget install --id com.infrahq.infra
-
-# Linux
-$ curl -L "https://github.com/infrahq/infra/releases/download/latest/infra-linux-$(uname -m)" -o /usr/local/bin/infra
-```
-
-Find the endpoint which Infra is exposed on:
+Find the endpoint on which Infra Engine is exposed:
 
 ```
 $ kubectl get svc --namespace infra
@@ -104,59 +66,26 @@ NAME      TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)        AGE
 infra     LoadBalancer   10.12.11.116   31.58.101.169   80:32326/TCP   1m
 ```
 
-In this case Infra is exposed on `31.58.101.169`
+In this case Infra Engine will be exposed on `31.58.101.169`.
 
-```
-$ infra login 31.58.101.169
-✔ Opening Okta login window
-✔ Okta login successful
-✔ Kubeconfig updated
-✔ Context changed to `infra:jeff@acme.com`
-```
-
-Infra will automatically switch you to the new context. Now run any `kubectl` command as usual.
-
-## Using Infra CLI
-
-### Open an admin shell
-
-```
-kubectl -n infra exec -it infra-0 -- sh
-
-$ infra users ls
-ID                      NAME                  PROVIDER           CREATED                PERMISSION
-usr_180jhsxjnxui1       jeff@acme.com         okta               2 minutes ago          admin
-usr_mgna7u291s012       michael@acme.com      okta               2 minutes ago          view
-```
-
-### List users
-
-List users that have been added to Infra:
+### Install Infra CLI
 
 ```bash
-$ infra users list
-ID                      NAME                  PROVIDER           CREATED                PERMISSION
-usr_180jhsxjnxui1       jeff@acme.com         okta               2 minutes ago          admin
-usr_mgna7u291s012       michael@acme.com      okta               2 minutes ago          view
+# macOS
+$ curl --url "https://github.com/infrahq/infra/releases/download/latest/infra-darwin-$(uname -m)" --output /usr/local/bin/infra && chmod +x /usr/local/bin/infra
+
+# Linux
+$ curl --url "https://github.com/infrahq/infra/releases/download/latest/infra-linux-$(uname -m)" --output /usr/local/bin/infra && chmod +x /usr/local/bin/infra
+
+# Windows 10
+$ curl.exe --url "https://github.com/infrahq/infra/releases/download/latest/infra-windows-amd64.exe" --output infra.exe
 ```
 
-### Add a one-off user
-
-```
-$ infra users add bot@acme.com --permission=view
-usr_oafia0301us10
-
-To log in as bot@acme.com run:
-
-infra login --token sk_Kc1dtcFazlIVFhkT2FsRjNaMmRGYVUxQk1kd18jdj10 31.58.101.169
-```
-
-### Delete a one-off user
-
-```bash
-$ infra users delete usr_mgna7u291s012
-usr_mgna7u291s012
-```
+## Documentation
+* [Okta](./docs/okta.md)
+* [CLI Reference](./docs/cli.md)
+* [Configuration Reference](./docs/configuration.md)
+* [API Reference](./docs/api.md)
 
 ## Develop
 
@@ -190,7 +119,7 @@ Setup
 
 ```
 make release         # Build, sign and upload binaries
-make release/docker  # Build and upload Docker image
+make release/docker  # Build and push Docker images
 ```
 
 ## Security
