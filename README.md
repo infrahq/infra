@@ -20,11 +20,11 @@ Instead, Infra enables teams to **dynamically** grant access to _right users or 
 <br/>
 
 ### Features
-* Cluster access in one command: `infra login`
+* One-command cluster access: `infra login`
 * Fine-grained permissions
 * Onboard & offboard users via Okta (Azure AD, Google, GitHub coming soon)
 * Audit logs for who did what, when (coming soon)
-* CLI & REST API for programmatic access
+* CLI & REST API
 * `infra.yaml` configuration file
 
 ## Demo

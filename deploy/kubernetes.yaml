@@ -13,7 +13,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: infra
-  namespace: infra
 rules:
   - apiGroups: [""]
     resources:
@@ -21,37 +20,32 @@ rules:
       - groups
     verbs:
       - impersonate
-  - apiGroups: [""]
-    resources:
-      - endpoints
-    verbs:
-      - get
   - apiGroups:
       - rbac.authorization.k8s.io
     resources:
-      - rolebindings
       - roles
-      - clusterrole
+      - rolebindings
+      - clusterroles
       - clusterrolebindings
     verbs:
       - create
       - delete
-      - deletecollection
       - get
       - list
       - patch
       - update
       - watch
+      - bind
+      - escalate
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: infra
-  namespace: infra
 subjects:
 - kind: ServiceAccount
   name: infra
-  namespace: default
+  namespace: infra
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -69,7 +63,8 @@ spec:
   selector:
     app: infra
   ports:
-    - port: 2378
+    - port: 443
+      targetPort: 8443
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -80,7 +75,7 @@ spec:
   selector:
     matchLabels:
       app: infra
-  replicas: 1
+  replicas: 1 
   serviceName: infra
   template:
     metadata:
@@ -92,22 +87,24 @@ spec:
       containers:
         - name: server
           image: infrahq/infra:0.0.1
+          imagePullPolicy: Always # remove me
+          args: ["engine", "--config", "/var/run/infra/config/infra.yaml", "--db", "/var/run/infra/data/db", "--tls-cache", "/var/run/infra/data/cache"]
           ports:
-            - containerPort: 2378
+            - containerPort: 8443
           volumeMounts:
-            - name: db
-              mountPath: /var/opt/infra
+            - name: data
+              mountPath: /var/run/infra/data
             - name: config
-              mountPath: /etc/config
+              mountPath: /var/run/infra/config
       volumes:
         - name: config
           configMap:
             name: infra
   volumeClaimTemplates:
   - metadata:
-      name: db
+      name: data
     spec:
-      accessModes: ["ReadWriteMany"]
+      accessModes: ["ReadWriteOnce"]
       resources:
         requests:
           storage: 1Gi
@@ -117,7 +114,18 @@ kind: ConfigMap
 metadata:
   name: infra
   namespace: infra
-```
+data:
+  infra.yaml: |-
+    providers:
+      okta:
+        domain: dev-02708987.okta.com
+        client-id: 0oapn0qwiQPiMIyR35d6
+        client-secret: vU-bIjeFyMB7j_s0sn7WRzVb9weW0QdX7HgjyKtz
+        api-token: 00VLdAuim7IrJBGCykVM61Q11_eV8Rsl4dVf3KTXW2
+    permissions:
+      - user: jeff@infrahq.com
+        permission: admin
+---
 apiVersion: v1
 kind: Secret
 metadata:

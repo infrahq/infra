@@ -130,7 +130,7 @@ $ infra users delete USER
 #### Example
 
 ```
-$ infra users delete michael@acme.com
+$ infra users delete usr_mgna7u291s012
 usr_mgna7u291s012
 ```
 

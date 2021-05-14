@@ -4,8 +4,10 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"time"
 
 	bolt "github.com/boltdb/bolt"
@@ -13,18 +15,22 @@ import (
 )
 
 const (
-	ID_LENGTH         = 12
-	SECRET_KEY_LENGTH = 32
+	IDLength        = 12
+	SecretKeyLength = 32
 )
+
+var Permissions = []string{"view", "edit", "admin"}
 
 type Data struct {
 	db *bolt.DB
 }
 
 type User struct {
-	ID      string `json:"id"`
-	Email   string `json:"email"`
-	Created int64  `json:"created"`
+	ID         string   `json:"id"`
+	Email      string   `json:"email"`
+	Created    int64    `json:"created"`
+	Providers  []string `json:"providers"`
+	Permission string   `json:"permission"`
 }
 
 type Token struct {
@@ -51,15 +57,6 @@ func randString(n int) string {
 }
 
 func NewData(dbpath string) (data *Data, err error) {
-	if dbpath == "" {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			return nil, err
-		}
-
-		dbpath = filepath.Join(homeDir, ".infra")
-	}
-
 	if err = os.MkdirAll(dbpath, os.ModePerm); err != nil {
 		return
 	}
@@ -90,18 +87,30 @@ func (d *Data) Close() error {
 	return d.db.Close()
 }
 
-func (d *Data) CreateUser(email string) (*User, error) {
-	id := "usr_" + randString(ID_LENGTH)
-
-	user := &User{
-		ID:      id,
-		Email:   email,
-		Created: time.Now().Unix(),
+func (d *Data) PutUser(u *User) error {
+	if u == nil {
+		return errors.New("nil user provided")
 	}
 
-	buf, err := json.Marshal(user)
+	if u.ID == "" {
+		u.ID = "usr_" + randString(IDLength)
+	}
+
+	if u.Created == 0 {
+		u.Created = time.Now().Unix()
+	}
+
+	if u.Permission == "" {
+		u.Permission = "view"
+	}
+
+	if u.Providers == nil {
+		u.Providers = []string{}
+	}
+
+	buf, err := json.Marshal(u)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = d.db.Update(func(tx *bolt.Tx) error {
@@ -110,14 +119,38 @@ func (d *Data) CreateUser(email string) (*User, error) {
 			return errors.New("users bucket does not exist")
 		}
 
-		return b.Put([]byte(id), buf)
+		return b.Put([]byte(u.ID), buf)
 	})
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return user, nil
+	return nil
+}
+
+func (d *Data) FindUser(email string) (user *User, err error) {
+	err = d.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("users"))
+		if b == nil {
+			return nil
+		}
+
+		c := b.Cursor()
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			var cur User
+			if err := json.Unmarshal(v, &cur); err != nil {
+				return err
+			}
+			if cur.Email == email {
+				user = &cur
+				return nil
+			}
+		}
+		return nil
+	})
+
+	return user, err
 }
 
 func (d *Data) DeleteUser(id string) error {
@@ -173,18 +206,22 @@ func (d *Data) ListUsers() (users []User, err error) {
 		})
 	})
 
+	sort.Slice(users, func(i, j int) bool {
+		return users[i].Created > users[j].Created
+	})
+
 	return users, err
 }
 
+// TODO(jmorganca): make this PutToken and change params to accept a *Token
 func (d *Data) CreateToken(user string) (token *Token, sk string, err error) {
-	secret := randString(SECRET_KEY_LENGTH)
+	id := randString(IDLength)
+	secret := randString(SecretKeyLength)
 
 	hashedSecret, err := bcrypt.GenerateFromPassword([]byte(secret), bcrypt.DefaultCost)
 	if err != nil {
 		return
 	}
-
-	id := randString(ID_LENGTH)
 
 	token = &Token{
 		ID:           "tk_" + id,
@@ -199,17 +236,17 @@ func (d *Data) CreateToken(user string) (token *Token, sk string, err error) {
 		return
 	}
 
-	d.db.Update(func(tx *bolt.Tx) error {
+	err = d.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte("tokens"))
 		if err != nil {
 			return nil
 		}
 
-		if err = b.Put([]byte(id), buf); err != nil {
-			return err
-		}
-		return nil
+		return b.Put([]byte(token.ID), buf)
 	})
+	if err != nil {
+		return
+	}
 
 	token.HashedSecret = []byte{}
 
@@ -229,7 +266,7 @@ func (d *Data) DeleteToken(id string) error {
 
 func (d *Data) GetToken(id string, secret bool) (token *Token, err error) {
 	var buf []byte
-	d.db.Update(func(tx *bolt.Tx) error {
+	err = d.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("tokens"))
 		if b == nil {
 			return errors.New("token bucket does not exist")
@@ -242,6 +279,11 @@ func (d *Data) GetToken(id string, secret bool) (token *Token, err error) {
 
 		return nil
 	})
+	if err != nil {
+		return
+	}
+
+	fmt.Println(string(buf))
 
 	err = json.Unmarshal(buf, &token)
 	if err != nil {

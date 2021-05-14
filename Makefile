@@ -6,7 +6,7 @@ build:
 	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o build/infra-darwin-amd64 .
 	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o build/infra-linux-arm64 .
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/infra-linux-amd64 .
-	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o build/infra-windows-amd64 .
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o build/infra-windows-amd64.exe .
 
 test:
 	go test ./...
@@ -29,7 +29,6 @@ build/docker:
 	docker buildx build --platform linux/amd64,linux/arm64 . -t infrahq/infra
 
 release/docker:
-	make build
 	docker buildx build --push --platform linux/amd64,linux/arm64 . -t infrahq/infra:$(tag:v%=%)
 	docker buildx build --push --platform linux/amd64,linux/arm64 . -t infrahq/infra
 

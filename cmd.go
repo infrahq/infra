@@ -13,8 +13,10 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
+	"github.com/cli/browser"
 	"github.com/docker/go-units"
 	"github.com/olekukonko/tablewriter"
 	"github.com/urfave/cli/v2"
@@ -87,7 +89,7 @@ func PrintTable(header []string, data [][]string) {
 	table.SetRowSeparator("")
 	table.SetHeaderLine(false)
 	table.SetBorder(false)
-	table.SetTablePadding("\t\t")
+	table.SetTablePadding("\t")
 	table.SetNoWhiteSpace(true)
 	table.AppendBulk(data)
 	table.Render()
@@ -108,7 +110,14 @@ func normalizeHost(host string) string {
 		return "http://unix"
 	}
 
-	return host
+	u, err := url.Parse(host)
+	if err != nil {
+		return host
+	}
+
+	u.Scheme = "https"
+
+	return u.String()
 }
 
 type BasicAuthTransport struct {
@@ -151,19 +160,183 @@ func CmdRun() error {
 	}
 
 	app := &cli.App{
-		Usage: "manage user & machine access to infrastructure",
+		Usage: "manage user & machine access to Kubernetes",
 		Commands: []*cli.Command{
+			{
+				Name:      "login",
+				Usage:     "Log in to an Infra Engine",
+				ArgsUsage: "HOST",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:    "token",
+						Aliases: []string{"t"},
+						Usage:   "token to authenticate with",
+					},
+				},
+				Action: func(c *cli.Context) error {
+					hostArg := c.Args().First()
+					client := &http.Client{}
+
+					if hostArg == "" {
+						hostArg = host
+						client = httpClient
+					}
+
+					// Get token from
+					token := c.String("token")
+
+					form := url.Values{}
+
+					if token == "" {
+						res, err := client.Get(normalizeHost(hostArg) + "/v1/providers")
+						if err != nil {
+							return err
+						}
+
+						type providersResponse struct {
+							Okta struct {
+								ClientID string `json:"client-id"`
+								Domain   string `json:"domain"`
+							}
+							Error string `json:"error"`
+						}
+
+						var decoded providersResponse
+						if err = json.NewDecoder(res.Body).Decode(&decoded); err != nil {
+							return err
+						}
+
+						// Start OIDC flow
+						// Get auth code from Okta
+						// Send auth code to Infra to log in as a user
+						state := randString(12)
+						authorizeUrl := "https://" + decoded.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + decoded.Okta.ClientID + "&response_type=code&scope=openid+email&nonce=" + randString(10) + "&state=" + state
+
+						fmt.Println("Opening browser window...")
+						server, err := NewLocalServer()
+						if err != nil {
+							return err
+						}
+
+						err = browser.OpenURL(authorizeUrl)
+						if err != nil {
+							return err
+						}
+
+						code, recvstate, err := server.Wait()
+						if err != nil {
+							return err
+						}
+
+						if state != recvstate {
+							return errors.New("received state is not the same as sent state")
+						}
+
+						form.Add("code", code)
+					}
+
+					req, err := http.NewRequest("POST", normalizeHost(hostArg)+"/v1/tokens", strings.NewReader(form.Encode()))
+					if err != nil {
+						return err
+					}
+
+					req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+					if token != "" {
+						req.SetBasicAuth(token, "")
+					}
+
+					res, err := client.Do(req)
+					if err != nil {
+						return err
+					}
+
+					body, err := ioutil.ReadAll(res.Body)
+					if err != nil {
+						return err
+					}
+
+					type tokenResponse struct {
+						Token struct {
+							ID      string `json:"id"`
+							User    string `json:"user"`
+							Created int64  `json:"created"`
+							Updated int64  `json:"updated"`
+							Expires int64  `json:"expires"`
+						}
+						SecretToken string `json:"secret_token"`
+						Host        string `json:"host"`
+						Error       string
+					}
+
+					var response tokenResponse
+					if err = json.Unmarshal(body, &response); err != nil {
+						return cli.Exit(err, 1)
+					}
+
+					if res.StatusCode != http.StatusCreated {
+						return cli.Exit(response.Error, 1)
+					}
+
+					if err = WriteConfig(&Config{
+						Host:    normalizeHost(hostArg),
+						Token:   response.SecretToken,
+						Expires: response.Token.Expires,
+						User:    response.Token.User,
+					}); err != nil {
+						fmt.Println(err)
+						return err
+					}
+
+					// Load default config and merge new config in
+					loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+					defaultConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
+					config, err := defaultConfig.RawConfig()
+					if err != nil {
+						return err
+					}
+
+					config.Clusters[hostArg] = &clientcmdapi.Cluster{
+						Server: normalizeHost(hostArg) + "/v1/proxy",
+					}
+					config.AuthInfos[hostArg] = &clientcmdapi.AuthInfo{
+						Token: response.SecretToken,
+					}
+					config.Contexts[hostArg] = &clientcmdapi.Context{
+						Cluster:  hostArg,
+						AuthInfo: hostArg,
+					}
+					config.CurrentContext = hostArg
+
+					fmt.Println(config, config.AuthInfos)
+
+					if err = clientcmd.WriteToFile(config, clientcmd.RecommendedHomeFile); err != nil {
+						log.Fatal(err)
+					}
+
+					fmt.Println("Kubeconfig updated.")
+
+					return nil
+				},
+			},
 			{
 				Name:  "users",
 				Usage: "Manage users",
 				Subcommands: []*cli.Command{
 					{
-						Name:      "add",
-						Usage:     "Add a new user",
+						Name:      "create",
+						Usage:     "Create a user",
 						ArgsUsage: "EMAIL",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:    "permission",
+								Aliases: []string{"p"},
+								Usage:   "Permission to assign user",
+							},
+						},
 						Action: func(c *cli.Context) error {
 							if c.NArg() <= 0 {
-								cli.ShowCommandHelp(c, "add")
+								cli.ShowCommandHelp(c, "create")
 								return nil
 							}
 
@@ -171,6 +344,10 @@ func CmdRun() error {
 
 							form := url.Values{}
 							form.Add("email", email)
+
+							if c.String("permission") != "" {
+								form.Add("permission", c.String("permission"))
+							}
 
 							res, err := httpClient.PostForm(normalizeHost(host)+"/v1/users", form)
 							if err != nil {
@@ -253,10 +430,19 @@ func CmdRun() error {
 							rows := [][]string{}
 							for _, user := range decoded.Data {
 								createdAt := time.Unix(user.Created, 0)
-								rows = append(rows, []string{user.ID, "infra", user.Email, units.HumanDuration(time.Now().UTC().Sub(createdAt)) + " ago"})
+
+								providers := ""
+								for i, p := range user.Providers {
+									if i > 0 {
+										providers += ","
+									}
+									providers += p
+								}
+
+								rows = append(rows, []string{user.ID, providers, user.Email, units.HumanDuration(time.Now().UTC().Sub(createdAt)) + " ago", user.Permission})
 							}
 
-							PrintTable([]string{"USER ID", "PROVIDER", "EMAIL", "CREATED"}, rows)
+							PrintTable([]string{"USER ID", "PROVIDERS", "EMAIL", "CREATED", "PERMISSION"}, rows)
 
 							return nil
 						},
@@ -289,7 +475,7 @@ func CmdRun() error {
 							}
 
 							if decoded.Deleted {
-								fmt.Println("user deleted")
+								fmt.Println(decoded.ID)
 							} else if len(decoded.Error) > 0 {
 								return errors.New(decoded.Error)
 							} else {
@@ -302,125 +488,28 @@ func CmdRun() error {
 				},
 			},
 			{
-				Name:      "login",
-				Usage:     "Login to an Infra Engine",
-				ArgsUsage: "HOST",
+				Name:  "engine",
+				Usage: "Start Infra Engine",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
-						Name:    "token",
-						Aliases: []string{"t"},
-						Usage:   "token to authenticate with",
-					},
-				},
-				Action: func(c *cli.Context) error {
-					hostArg := c.Args().First()
-					client := &http.Client{}
-
-					if hostArg == "" {
-						hostArg = host
-						client = httpClient
-					}
-
-					// Get token from
-					token := c.String("token")
-
-					req, err := http.NewRequest("POST", normalizeHost(hostArg)+"/v1/tokens", nil)
-					if err != nil {
-						return err
-					}
-
-					req.SetBasicAuth(token, "")
-
-					res, err := client.Do(req)
-					if err != nil {
-						return err
-					}
-
-					body, err := ioutil.ReadAll(res.Body)
-					if err != nil {
-						return err
-					}
-
-					type tokenResponse struct {
-						Token struct {
-							ID      string `json:"id"`
-							User    string `json:"user"`
-							Created int64  `json:"created"`
-							Updated int64  `json:"updated"`
-							Expires int64  `json:"expires"`
-						}
-						SecretToken string `json:"secret_token"`
-						Host        string `json:"host"`
-						Error       string
-					}
-
-					var response tokenResponse
-					if err = json.Unmarshal(body, &response); err != nil {
-						return cli.Exit(err, 1)
-					}
-
-					if res.StatusCode != http.StatusCreated {
-						return cli.Exit(response.Error, 1)
-					}
-
-					if err = WriteConfig(&Config{
-						Host:    host,
-						Token:   response.SecretToken,
-						Expires: response.Token.Expires,
-						User:    response.Token.User,
-					}); err != nil {
-						fmt.Println(err)
-						return err
-					}
-
-					// Generate new kubeconfig entry
-					config := clientcmdapi.NewConfig()
-					config.Clusters["infra"] = &clientcmdapi.Cluster{
-						Server: host + "/v1/proxy",
-					}
-					config.AuthInfos["infra"] = &clientcmdapi.AuthInfo{
-						Token: response.SecretToken,
-					}
-					config.Contexts["infra"] = &clientcmdapi.Context{
-						Cluster:  "infra",
-						AuthInfo: "infra",
-					}
-
-					tempFile, _ := ioutil.TempFile("", "")
-					defer os.Remove(tempFile.Name())
-					config.CurrentContext = "infra" // TODO: should we do this?
-					if err = clientcmd.WriteToFile(*config, tempFile.Name()); err != nil {
-						log.Fatal(err)
-					}
-
-					// Load default config and merge new config in
-					loadingRules := clientcmd.ClientConfigLoadingRules{Precedence: []string{tempFile.Name(), clientcmd.RecommendedHomeFile}}
-					mergedConfig, err := loadingRules.Load()
-					if err != nil {
-						log.Fatal(err)
-					}
-
-					if err = clientcmd.WriteToFile(*mergedConfig, clientcmd.RecommendedHomeFile); err != nil {
-						log.Fatal(err)
-					}
-
-					fmt.Println("Kubeconfig updated.")
-
-					return nil
-				},
-			},
-			{
-				Name:  "start",
-				Usage: "Start the Infra Engine",
-				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:  "db-path",
+						Name:  "db",
 						Usage: "Path to database",
+					},
+					&cli.StringFlag{
+						Name:    "config",
+						Aliases: []string{"c"},
+						Usage:   "Path to configuration file",
+					},
+					&cli.StringFlag{
+						Name:  "tls-cache",
+						Usage: "TLS certficate cache",
 					},
 				},
 				Action: func(c *cli.Context) error {
 					return ServerRun(&ServerOptions{
-						DBPath: c.String("db-path"),
+						DBPath:     c.String("db"),
+						ConfigPath: c.String("config"),
+						TLSCache:   c.String("tls-cache"),
 					})
 				},
 			},
