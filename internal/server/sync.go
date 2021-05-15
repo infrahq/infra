@@ -72,6 +72,9 @@ func syncUsers(d *data.Data, provider string, emails []string) error {
 	}
 
 	emailsMap := make(map[string]bool)
+	for _, email := range emails {
+		emailsMap[email] = true
+	}
 
 	// delete users who aren't in okta
 	for _, user := range users {

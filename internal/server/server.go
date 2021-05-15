@@ -101,7 +101,7 @@ func ServerRun(options *ServerOptions) error {
 		return err
 	}
 
-	kubernetes, err := kubernetes.NewKubernetes()
+	kube, err := kubernetes.NewKubernetes()
 	if err != nil {
 		fmt.Println("warning: no kubernetes cluster detected.")
 	}
@@ -118,12 +118,13 @@ func ServerRun(options *ServerOptions) error {
 	sync.Start(func() {
 		emails, _ := okta.Emails()
 		syncUsers(data, "okta", emails)
+		UpdatePermissions(data, kube)
 	})
 
 	gin.SetMode(gin.ReleaseMode)
 
 	unixRouter := gin.New()
-	if err = addRoutes(unixRouter, data, kubernetes, config, false); err != nil {
+	if err = addRoutes(unixRouter, data, kube, config, false); err != nil {
 		return err
 	}
 
@@ -144,15 +145,13 @@ func ServerRun(options *ServerOptions) error {
 	}()
 
 	router := gin.New()
-	if err = addRoutes(router, data, kubernetes, config, true); err != nil {
+	if err = addRoutes(router, data, kube, config, true); err != nil {
 		return err
 	}
 
 	m := &autocert.Manager{
 		Prompt: autocert.AcceptTOS,
 	}
-
-	fmt.Println("Using certificate cache", options.TLSCache)
 
 	if options.TLSCache != "" {
 		m.Cache = autocert.DirCache(options.TLSCache)
