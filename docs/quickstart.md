@@ -47,8 +47,7 @@ $ curl.exe --url "https://github.com/infrahq/infra/releases/download/latest/infr
 ```
 
 ```
-# from above
-$ infra login --token sk_r6Khd35Dt3Q4KgyuPFw2NkRkGpgorI8uyDgpW215quR7 infra.acme.com
+$ infra login --token sk_r6Khd35Dt3Q4KgyuPFw2NkRkGpgorI8uyDgpW215quR7 infra.acme.com        # from above
 Kubeconfig updated
 ```
 
