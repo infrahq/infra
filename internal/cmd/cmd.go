@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"context"
@@ -16,6 +16,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/infrahq/infra/internal/data"
+	"github.com/infrahq/infra/internal/server"
+	"github.com/infrahq/infra/internal/util"
+
 	"github.com/cli/browser"
 	"github.com/docker/go-units"
 	"github.com/olekukonko/tablewriter"
@@ -31,7 +35,7 @@ type Config struct {
 	Expires int64  `json:"expires"`
 }
 
-func ReadConfig() (config *Config, err error) {
+func readConfig() (config *Config, err error) {
 	config = &Config{}
 
 	homeDir, err := os.UserHomeDir()
@@ -55,7 +59,7 @@ func ReadConfig() (config *Config, err error) {
 	return
 }
 
-func WriteConfig(config *Config) error {
+func writeConfig(config *Config) error {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return err
@@ -77,7 +81,7 @@ func WriteConfig(config *Config) error {
 	return nil
 }
 
-func PrintTable(header []string, data [][]string) {
+func printTable(header []string, data [][]string) {
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader(header)
 	table.SetAutoWrapText(false)
@@ -134,8 +138,8 @@ func (bat *BasicAuthTransport) Client() *http.Client {
 	return &http.Client{Transport: bat}
 }
 
-func CmdRun() error {
-	config, err := ReadConfig()
+func Run() error {
+	config, err := readConfig()
 	if err != nil {
 		return err
 	}
@@ -209,11 +213,11 @@ func CmdRun() error {
 						// Start OIDC flow
 						// Get auth code from Okta
 						// Send auth code to Infra to log in as a user
-						state := randString(12)
-						authorizeUrl := "https://" + decoded.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + decoded.Okta.ClientID + "&response_type=code&scope=openid+email&nonce=" + randString(10) + "&state=" + state
+						state := util.RandString(12)
+						authorizeUrl := "https://" + decoded.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + decoded.Okta.ClientID + "&response_type=code&scope=openid+email&nonce=" + util.RandString(10) + "&state=" + state
 
 						fmt.Println("Opening browser window...")
-						server, err := NewLocalServer()
+						server, err := newLocalServer()
 						if err != nil {
 							return err
 						}
@@ -223,7 +227,7 @@ func CmdRun() error {
 							return err
 						}
 
-						code, recvstate, err := server.Wait()
+						code, recvstate, err := server.wait()
 						if err != nil {
 							return err
 						}
@@ -278,7 +282,7 @@ func CmdRun() error {
 						return cli.Exit(response.Error, 1)
 					}
 
-					if err = WriteConfig(&Config{
+					if err = writeConfig(&Config{
 						Host:    normalizeHost(hostArg),
 						Token:   response.SecretToken,
 						Expires: response.Token.Expires,
@@ -307,8 +311,6 @@ func CmdRun() error {
 						AuthInfo: hostArg,
 					}
 					config.CurrentContext = hostArg
-
-					fmt.Println(config, config.AuthInfos)
 
 					if err = clientcmd.WriteToFile(config, clientcmd.RecommendedHomeFile); err != nil {
 						log.Fatal(err)
@@ -379,7 +381,7 @@ func CmdRun() error {
 							}
 
 							type tokenResponse struct {
-								Token
+								data.Token
 								SecretToken string `json:"secret_token"`
 								Host        string `json:"host"`
 								Error       string
@@ -414,7 +416,7 @@ func CmdRun() error {
 							}
 
 							type response struct {
-								Data  []User
+								Data  []data.User
 								Error string `json:"error"`
 							}
 
@@ -442,7 +444,7 @@ func CmdRun() error {
 								rows = append(rows, []string{user.ID, providers, user.Email, units.HumanDuration(time.Now().UTC().Sub(createdAt)) + " ago", user.Permission})
 							}
 
-							PrintTable([]string{"USER ID", "PROVIDERS", "EMAIL", "CREATED", "PERMISSION"}, rows)
+							printTable([]string{"USER ID", "PROVIDERS", "EMAIL", "CREATED", "PERMISSION"}, rows)
 
 							return nil
 						},
@@ -506,7 +508,7 @@ func CmdRun() error {
 					},
 				},
 				Action: func(c *cli.Context) error {
-					return ServerRun(&ServerOptions{
+					return server.ServerRun(&server.ServerOptions{
 						DBPath:     c.String("db"),
 						ConfigPath: c.String("config"),
 						TLSCache:   c.String("tls-cache"),

@@ -1,30 +1,27 @@
-package main
+package server
 
 import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/infrahq/infra/internal/data"
+	"github.com/infrahq/infra/internal/kubernetes"
+	"github.com/infrahq/infra/internal/util"
 	"github.com/square/go-jose/jwt"
-	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/oauth2"
-	"gopkg.in/yaml.v2"
 )
 
-func TokenAuth(data *Data) gin.HandlerFunc {
+func TokenAuth(db *data.Data) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authuser, _, _ := c.Request.BasicAuth()
 
@@ -38,7 +35,7 @@ func TokenAuth(data *Data) gin.HandlerFunc {
 			tokensk = strings.Replace(authorization, "Bearer sk_", "", -1)
 		}
 
-		if len(tokensk) != IDLength+SecretKeyLength {
+		if len(tokensk) != data.IDLength+data.SecretKeyLength {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 			fmt.Println("Secret key length invalid")
 			return
@@ -46,17 +43,17 @@ func TokenAuth(data *Data) gin.HandlerFunc {
 
 		fmt.Println("sk", tokensk)
 
-		id := tokensk[0:IDLength]
+		id := tokensk[0:data.IDLength]
 
 		fmt.Println("id", id)
-		token, err := data.GetToken("tk_"+id, true)
+		token, err := db.GetToken("tk_"+id, true)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 			fmt.Println(err)
 			return
 		}
 
-		secret := tokensk[IDLength : IDLength+SecretKeyLength]
+		secret := tokensk[data.IDLength : data.IDLength+data.SecretKeyLength]
 		if err := bcrypt.CompareHashAndPassword(token.HashedSecret, []byte(secret)); err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 			return
@@ -67,7 +64,7 @@ func TokenAuth(data *Data) gin.HandlerFunc {
 			return
 		}
 
-		user, err := data.GetUser(token.User)
+		user, err := db.GetUser(token.User)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "no user"})
 			return
@@ -80,7 +77,7 @@ func TokenAuth(data *Data) gin.HandlerFunc {
 	}
 }
 
-func ProxyHandler(data *Data, kubernetes *Kubernetes) gin.HandlerFunc {
+func ProxyHandler(data *data.Data, kubernetes *kubernetes.Kubernetes) gin.HandlerFunc {
 	remote, err := url.Parse(kubernetes.Config.Host)
 	if err != nil {
 		fmt.Println(err)
@@ -117,38 +114,7 @@ func ProxyHandler(data *Data, kubernetes *Kubernetes) gin.HandlerFunc {
 	}
 }
 
-func UpdateKubernetesClusterRoleBindings(data *Data, kubernetes *Kubernetes) error {
-	if data == nil {
-		return errors.New("data cannot be nil")
-
-	}
-	if kubernetes == nil {
-		return errors.New("data cannot be nil")
-	}
-
-	users, err := data.ListUsers()
-	if err != nil {
-		return err
-	}
-
-	roleBindings := []RoleBinding{}
-	for _, user := range users {
-		roleBindings = append(roleBindings, RoleBinding{User: user.Email, Role: user.Permission})
-	}
-
-	return kubernetes.UpdateRoleBindings(roleBindings)
-}
-
-func ValidPermission(permission string) bool {
-	for _, p := range Permissions {
-		if p == permission {
-			return true
-		}
-	}
-	return false
-}
-
-func addRoutes(router *gin.Engine, data *Data, kubernetes *Kubernetes, config *ServerConfig, auth bool) error {
+func addRoutes(router *gin.Engine, d *data.Data, kube *kubernetes.Kubernetes, config *ServerConfig, auth bool) error {
 	router.GET("/v1/providers", func(c *gin.Context) {
 		// TODO: define this better
 		c.JSON(http.StatusOK, gin.H{
@@ -209,7 +175,7 @@ func addRoutes(router *gin.Engine, data *Data, kubernetes *Kubernetes, config *S
 
 			email := out["email"].(string)
 
-			user, err := data.FindUser(email)
+			user, err := d.FindUser(email)
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "user does not exist"})
 				return
@@ -219,7 +185,7 @@ func addRoutes(router *gin.Engine, data *Data, kubernetes *Kubernetes, config *S
 		} else {
 			if auth {
 				// TODO: refactor this
-				TokenAuth(data)(c)
+				TokenAuth(d)(c)
 				if c.GetString("user") == "" {
 					c.JSON(http.StatusBadRequest, gin.H{"error": "invalid token"})
 					return
@@ -228,33 +194,34 @@ func addRoutes(router *gin.Engine, data *Data, kubernetes *Kubernetes, config *S
 			targetUser = params.User
 			if targetUser == "" {
 				targetUser = c.GetString("user")
-				data.DeleteToken(c.GetString("token"))
+				d.DeleteToken(c.GetString("token"))
 			}
 		}
 
-		created, sk, err := data.CreateToken(targetUser)
+		token := &data.Token{
+			User: targetUser,
+		}
+
+		sk, err := d.PutToken(token)
 		if err != nil {
 			c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 			return
 		}
 
-		token, err := data.GetToken(created.ID, true)
-		fmt.Println("retrieved", token, err)
-
-		fmt.Println("Created token for user", targetUser, created)
+		token.HashedSecret = []byte{}
 
 		c.JSON(http.StatusCreated, gin.H{
-			"token":        created,
+			"token":        token,
 			"secret_token": sk,
 		})
 	})
 
 	if auth {
-		router.Use(TokenAuth(data))
+		router.Use(TokenAuth(d))
 	}
 
 	router.GET("/v1/users", func(c *gin.Context) {
-		users, err := data.ListUsers()
+		users, err := d.ListUsers()
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -274,24 +241,24 @@ func addRoutes(router *gin.Engine, data *Data, kubernetes *Kubernetes, config *S
 			return
 		}
 
-		if form.Permission != "" && !ValidPermission(form.Permission) {
+		if form.Permission != "" && !util.ValidPermission(form.Permission) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid permission"})
 			return
 		}
 
-		user := &User{
+		user := &data.User{
 			Email:      form.Email,
 			Providers:  []string{"token"},
 			Permission: form.Permission,
 		}
 
-		err := data.PutUser(user)
+		err := d.PutUser(user)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		if err := UpdateKubernetesClusterRoleBindings(data, kubernetes); err != nil {
+		if err := UpdatePermissions(d, kube); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
@@ -310,17 +277,17 @@ func addRoutes(router *gin.Engine, data *Data, kubernetes *Kubernetes, config *S
 			return
 		}
 
-		if _, err := data.GetUser(params.ID); err != nil {
+		if _, err := d.GetUser(params.ID); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "user does not exist"})
 			return
 		}
 
-		if err := data.DeleteUser(params.ID); err != nil {
+		if err := d.DeleteUser(params.ID); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		if err := UpdateKubernetesClusterRoleBindings(data, kubernetes); err != nil {
+		if err := UpdatePermissions(d, kube); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
@@ -329,8 +296,8 @@ func addRoutes(router *gin.Engine, data *Data, kubernetes *Kubernetes, config *S
 		c.JSON(http.StatusOK, gin.H{"object": "user", "id": params.ID, "deleted": true})
 	})
 
-	if kubernetes != nil {
-		proxyHandler := ProxyHandler(data, kubernetes)
+	if kube != nil {
+		proxyHandler := ProxyHandler(d, kube)
 		router.GET("/v1/proxy/*all", proxyHandler)
 		router.POST("/v1/proxy/*all", proxyHandler)
 		router.PUT("/v1/proxy/*all", proxyHandler)
@@ -339,132 +306,4 @@ func addRoutes(router *gin.Engine, data *Data, kubernetes *Kubernetes, config *S
 	}
 
 	return nil
-}
-
-type ServerOptions struct {
-	DBPath     string
-	ConfigPath string
-	TLSCache   string
-}
-
-type OktaConfig struct {
-	Domain       string `yaml:"domain" json:"domain"`
-	ClientID     string `yaml:"client-id" json:"client-id"`
-	ClientSecret string `yaml:"client-secret"` // TODO(jmorganca): move this to a secret
-	ApiToken     string `yaml:"api-token"`     // TODO(jmorganca): move this to a secret
-}
-
-type ServerConfig struct {
-	Providers struct {
-		Okta OktaConfig `yaml:"okta" json:"okta"`
-	}
-	Permissions []struct {
-		User       string
-		Group      string
-		Permission string
-	}
-}
-
-func loadConfig(path string) (*ServerConfig, error) {
-	contents, err := ioutil.ReadFile(path)
-	if os.IsNotExist(err) {
-		return &ServerConfig{}, nil
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	var config ServerConfig
-	err = yaml.Unmarshal([]byte(contents), &config)
-	if err != nil {
-		return nil, err
-	}
-
-	return &config, nil
-}
-
-func ServerRun(options *ServerOptions) error {
-	if options.DBPath == "" {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			return err
-		}
-
-		options.DBPath = filepath.Join(homeDir, ".infra")
-	}
-
-	data, err := NewData(options.DBPath)
-	if err != nil {
-		return err
-	}
-
-	defer data.Close()
-
-	config, err := loadConfig(options.ConfigPath)
-	if err != nil {
-		return err
-	}
-
-	kubernetes, err := NewKubernetes()
-	if err != nil {
-		fmt.Println("warning: no kubernetes cluster detected.")
-	}
-
-	okta := &Okta{
-		Domain:     config.Providers.Okta.Domain,
-		ClientID:   config.Providers.Okta.ClientID,
-		ApiToken:   config.Providers.Okta.ApiToken,
-		Data:       data,
-		Kubernetes: kubernetes,
-	}
-
-	// TODO (jmorganca): sync should be outside of Okta - with other providers and Kubernetes
-	okta.Start()
-
-	gin.SetMode(gin.ReleaseMode)
-
-	unixRouter := gin.New()
-	if err = addRoutes(unixRouter, data, kubernetes, config, false); err != nil {
-		return err
-	}
-
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	if err = os.MkdirAll(filepath.Join(homeDir, ".infra"), os.ModePerm); err != nil {
-		return err
-	}
-
-	os.Remove(filepath.Join(homeDir, ".infra", "infra.sock"))
-	go func() {
-		if err := unixRouter.RunUnix(filepath.Join(homeDir, ".infra", "infra.sock")); err != nil {
-			log.Fatal(err)
-		}
-	}()
-
-	router := gin.New()
-	if err = addRoutes(router, data, kubernetes, config, true); err != nil {
-		return err
-	}
-
-	m := &autocert.Manager{
-		Prompt: autocert.AcceptTOS,
-	}
-
-	fmt.Println("Using certificate cache", options.TLSCache)
-
-	if options.TLSCache != "" {
-		m.Cache = autocert.DirCache(options.TLSCache)
-	}
-
-	tlsServer := &http.Server{
-		Addr:      ":8443",
-		TLSConfig: m.TLSConfig(),
-		Handler:   router,
-	}
-
-	return tlsServer.ListenAndServeTLS("", "")
 }

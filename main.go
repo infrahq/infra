@@ -1,9 +1,13 @@
 package main
 
-import "log"
+import (
+	"log"
+
+	"github.com/infrahq/infra/internal/cmd"
+)
 
 func main() {
-	if err := CmdRun(); err != nil {
+	if err := cmd.Run(); err != nil {
 		log.Fatal(err)
 	}
 }

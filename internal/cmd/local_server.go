@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"context"
@@ -17,7 +17,7 @@ type LocalServer struct {
 	srv        *http.Server
 }
 
-func NewLocalServer() (*LocalServer, error) {
+func newLocalServer() (*LocalServer, error) {
 	ls := &LocalServer{ResultChan: make(chan CodeResponse, 1), srv: &http.Server{Addr: ":8301"}}
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		params := r.URL.Query()
@@ -37,7 +37,7 @@ func NewLocalServer() (*LocalServer, error) {
 	return ls, nil
 }
 
-func (l *LocalServer) Wait() (string, string, error) {
+func (l *LocalServer) wait() (string, string, error) {
 	result := <-l.ResultChan
 	l.srv.Shutdown(context.Background())
 	return result.Code, result.State, result.Error

@@ -1,9 +1,11 @@
-package main
+package kubernetes
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/infrahq/infra/internal/data"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -100,4 +102,23 @@ func (k *Kubernetes) UpdateRoleBindings(roleBindings []RoleBinding) error {
 		}
 	}
 	return nil
+}
+
+func (k *Kubernetes) UpdateKubernetesClusterRoleBindings(data *data.Data) error {
+	if data == nil {
+		return errors.New("data cannot be nil")
+
+	}
+
+	users, err := data.ListUsers()
+	if err != nil {
+		return err
+	}
+
+	roleBindings := []RoleBinding{}
+	for _, user := range users {
+		roleBindings = append(roleBindings, RoleBinding{User: user.Email, Role: user.Permission})
+	}
+
+	return k.UpdateRoleBindings(roleBindings)
 }
