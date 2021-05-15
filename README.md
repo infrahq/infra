@@ -30,8 +30,8 @@ No more out-of-sync Kubeconfigs, lengthy scripts to map permissions, or untracea
 * [Quickstart](./docs/quickstart.md)
 * [Okta](./docs/okta.md)
 * [CLI Reference](./docs/cli.md)
-* [Configuration Reference](./docs/configuration.md)
 * [API Reference](./docs/api.md)
+* [`infra.yaml` Reference](./docs/configuration.md)
 
 ## Develop
 
