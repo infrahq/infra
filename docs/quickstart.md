@@ -47,12 +47,36 @@ $ curl.exe --url "https://github.com/infrahq/infra/releases/download/latest/infr
 ```
 
 ```
+# from above
 $ infra login --token sk_r6Khd35Dt3Q4KgyuPFw2NkRkGpgorI8uyDgpW215quR7 infra.acme.com
 Kubeconfig updated
 ```
 
+You are now logged in to the cluster via Infra. You can now share access via the Infra CLI.
+
+### Create another read-only user
+
+```
+$ infra users create bob@acme.com --permission view
+
+User admin@acme.com added. Please share the following command with them so they can log in:
+
+infra login --token sk_r6Khd35Dt3Q4KgyuPFw2NkRkGpgorI8uyDgpW215quR7
+```
+
+### List users
+
 ```
 $ infra users ls
 USER ID         	PROVIDERS	EMAIL              	CREATED       	PERMISSION 
+usr_bja9d8h3971s    token       bob@acme.com        1 minute ago    view
 usr_108j3d018j3d    token       admin@acme.com      3 minutes ago   admin
 ```
+
+### Delete a user
+
+```
+$ infra users delete usr_bja9d8h3971s
+usr_bja9d8h3971s
+```
+
