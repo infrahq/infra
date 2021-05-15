@@ -19,7 +19,7 @@ No more out-of-sync Kubeconfigs, lengthy scripts to map permissions, or untracea
 <br/>
 
 ### Features
-* One-command cluster access: `infra login`
+* One-command access: `infra login`
 * Fine-grained permissions
 * Onboard & offboard users via Okta (Azure AD, Google, GitHub coming soon)
 * Audit logs for who did what, when (coming soon)

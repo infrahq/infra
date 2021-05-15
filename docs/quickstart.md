@@ -30,7 +30,7 @@ $ kubectl exec -n infra infra-0 -- infra users create admin@acme.com --permissio
 
 User admin@acme.com added. Please share the following command with them so they can log in:
 
-infra login --token sk_r6Khd35Dt3Q4KgyuPFw2NkRkGpgorI8uyDgpW215quR7 infra.acme.com
+infra login --token sk_r6Khd35Dt3Q4KgyuPFw2NkRkGpgorI8uyDgpW215quR7
 ```
 
 ### Install Infra CLI and log in
