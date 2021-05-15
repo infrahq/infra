@@ -6,7 +6,6 @@
 </p>
 <br/>
 <br/>
-<br/>
 
 ## Introduction
 Infra makes managing Kubernetes access easy & secure.
