@@ -2,7 +2,6 @@
 
 * [Introduction](#introduction)
     * [Authentication](#authentication)
-    * [Pagination](#pagination)
 * [Users](#users)
     * [Create a user](#create-a-user)
     * [List all users](#list-all-users)
@@ -17,7 +16,23 @@
 
 ### Authentication
 
-### Pagination
+To authenticate with Infra Engine, use tokens. Tokens can be provided in two ways:
+* `username` with Basic Auth
+* `Bearer` token auth
+
+For example, using Basic auth:
+
+```
+curl https://infra.acme.com/v1/users \
+    -u sk_mnrdvosho472npiwdnakjsdn9as74sdo1dfi:
+```
+
+Using Bearer token auth:
+
+```
+curl https://infra.acme.com/v1/users \
+    -H "Authorization: Bearer sk_mnrdvosho472npiwdnakjsdn9as74sdo1dfi"
+```
 
 ## Users
 
@@ -95,7 +110,6 @@ curl https://infra.acme.com/v1/users \
             "permission": "view"
         },
     ],
-    "has_more":false,
     "object":"list",
     "url":"/v1/users"
 }

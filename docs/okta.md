@@ -1,5 +1,7 @@
 # Okta
 
+## Contents
+
 * [Prerequisites](#prerequisites)
 * [Setup](#setup)
     * [Configure Okta Login](#configure-okta-login)
@@ -11,9 +13,7 @@
 
 ## Prerequisites
 
-* An Okta account with administrator access
-* [Infra Engine](../README.md#install-infra-engine)
-* [Infra CLI](../README.md#install-infra-cli)
+* An Okta administrator account
 
 ## Setup
 
@@ -26,11 +26,6 @@
 5. Back to the **General** tab, note the **Client ID** and **Client Secret** for the next step.
 
 Store the client secret as a Kubernetes secret for Infra to read:
-
-```
-$ kubectl -n infra edit secret infra \
-    --from-literal=okta-client-secret=In6P_qEoEVugEgk_7Z-Vkl6CysG1QapBBCzS5O7m
-```
 
 ### Configure Okta Directory Sync
 
@@ -47,11 +42,17 @@ Then, create an API key for Infra to synchronize users:
 1. Navigate to **Security > API**, then click the **Tokens** tab.
 2. Create a new Token by clicking **Create Token**. Add this token to Infra as a secret t oread
 
+### Configure Infra Engine
+
+Add secrets from the previous step:
+
 ```
-$ kubectl -n infra edit secret infra --from-literal=okta-api-token=00nQtyRYAXOaA03xRJ5Ok2o6Tg8f19ku9DD3ySS8U9
+$ kubectl -n infra edit secret infra \
+    --from-literal=okta-client-secret=In6P_qEoEVugEgk_7Z-Vkl6CysG1QapBBCzS5O7m \   # Client Secret
+    --from-literal=okta-api-token=00nQtyRYAXOaA03xRJ5Ok2o6Tg8f19ku9DD3ySS8U9       # API Token
 ```
 
-### Configure Infra Engine
+Then update Infra Engine's configuration:
 
 ```yaml
 $ cat <<EOF | kubectl apply -f -
@@ -79,7 +80,7 @@ EOF
 ### Log in with Okta
 
 ```
-$ infra login 31.58.101.169
+$ infra login infra.acme.com
 ✔ Logging in with Okta... success
 ✔ Logged in as michael@acme.com
 ✔ Kubeconfig updated

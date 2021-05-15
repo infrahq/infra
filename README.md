@@ -10,7 +10,9 @@
 ## Introduction
 Infra makes managing Kubernetes access easy & secure.
 
-No more out-of-sync Kubeconfigs, lengthy scripts to map permissions, or untraceable service accounts. Instead, Infra enables teams to **dynamically** grant access to _right users or machines_ with the _right permissions_ for _the right amount of time_. Under the hood, Infra takes care of provisioning identities, creating & revoking credentials and generating fine-grained permissions on-the-fly.
+No more out-of-sync Kubeconfigs, lengthy scripts to map permissions, or untraceable service accounts. 
+
+Infra enables teams to **dynamically** grant access to _right users or machines_ with the _right permissions_ for _the right amount of time_. Under the hood, Infra takes care of provisioning identities, creating & revoking credentials and generating fine-grained permissions on-the-fly.
 
 <br/>
 <p align="center">
@@ -24,14 +26,17 @@ No more out-of-sync Kubeconfigs, lengthy scripts to map permissions, or untracea
 * Onboard & offboard users via Okta (Azure AD, Google, GitHub coming soon)
 * Audit logs for who did what, when (coming soon)
 * CLI & REST API
-* `infra.yaml` configuration file
+* Configure via `infra.yaml`
 
 ## Documentation
+
 * [Quickstart](./docs/quickstart.md)
-* [Okta](./docs/okta.md)
+* Add Users
+  * [Token](./docs/token.md)
+  * [Okta](./docs/okta.md)
+* [Configuration Reference](./docs/configuration.md)
 * [CLI Reference](./docs/cli.md)
 * [API Reference](./docs/api.md)
-* [`infra.yaml` Reference](./docs/configuration.md)
 
 ## Develop
 
