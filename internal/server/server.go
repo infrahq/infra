@@ -1,9 +1,9 @@
 package server
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -14,50 +14,12 @@ import (
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/providers"
 	"golang.org/x/crypto/acme/autocert"
-	"gopkg.in/yaml.v2"
 )
 
 type ServerOptions struct {
 	DBPath     string
 	ConfigPath string
 	TLSCache   string
-}
-
-type OktaConfig struct {
-	Domain       string `yaml:"domain" json:"domain"`
-	ClientID     string `yaml:"client-id" json:"client-id"`
-	ClientSecret string `yaml:"client-secret"` // TODO(jmorganca): move this to a secret
-	ApiToken     string `yaml:"api-token"`     // TODO(jmorganca): move this to a secret
-}
-
-type ServerConfig struct {
-	Providers struct {
-		Okta OktaConfig `yaml:"okta" json:"okta"`
-	}
-	Permissions []struct {
-		User       string
-		Group      string
-		Permission string
-	}
-}
-
-func loadConfig(path string) (*ServerConfig, error) {
-	contents, err := ioutil.ReadFile(path)
-	if os.IsNotExist(err) {
-		return &ServerConfig{}, nil
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	var config ServerConfig
-	err = yaml.Unmarshal([]byte(contents), &config)
-	if err != nil {
-		return nil, err
-	}
-
-	return &config, nil
 }
 
 func UpdatePermissions(data *data.Data, kube *kubernetes.Kubernetes) error {
@@ -77,6 +39,28 @@ func UpdatePermissions(data *data.Data, kube *kubernetes.Kubernetes) error {
 	}
 
 	return kube.UpdateRoleBindings(roleBindings)
+}
+
+func getSelfSignedOrLetsEncryptCert(certManager *autocert.Manager) func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+	return func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+		// dirCache, ok := certManager.Cache.(autocert.DirCache)
+		// if !ok {
+		// 	dirCache = "certs"
+		// }
+
+		fmt.Println(hello.ServerName)
+		fmt.Println(hello)
+
+		// Try to use letsencrypt
+		certificate, err := certManager.GetCertificate(hello)
+		if err == nil {
+			return certificate, nil
+		}
+
+		// Generate self-signed certificates
+		fmt.Println("Falling back to self-signed ceritficate", err)
+		return nil, errors.New("not implemented")
+	}
 }
 
 func ServerRun(options *ServerOptions) error {
@@ -149,17 +133,20 @@ func ServerRun(options *ServerOptions) error {
 		return err
 	}
 
-	m := &autocert.Manager{
+	manager := &autocert.Manager{
 		Prompt: autocert.AcceptTOS,
 	}
 
 	if options.TLSCache != "" {
-		m.Cache = autocert.DirCache(options.TLSCache)
+		manager.Cache = autocert.DirCache(options.TLSCache)
 	}
+
+	tlsConfig := manager.TLSConfig()
+	tlsConfig.GetCertificate = getSelfSignedOrLetsEncryptCert(manager)
 
 	tlsServer := &http.Server{
 		Addr:      ":8443",
-		TLSConfig: m.TLSConfig(),
+		TLSConfig: tlsConfig,
 		Handler:   router,
 	}
 

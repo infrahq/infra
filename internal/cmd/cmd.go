@@ -46,7 +46,7 @@ func printTable(header []string, data [][]string) {
 	table.Render()
 }
 
-func NewUnixHttpClient(path string) *http.Client {
+func unixHttpClient(path string) *http.Client {
 	return &http.Client{
 		Transport: &http.Transport{
 			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
@@ -69,6 +69,59 @@ func normalizeHost(host string) string {
 	u.Scheme = "https"
 
 	return u.String()
+}
+
+type Config struct {
+	Host    string `json:"host"`
+	User    string `json:"user"`
+	Token   string `json:"token"`
+	Expires int64  `json:"expires"`
+}
+
+func readConfig() (config *Config, err error) {
+	config = &Config{}
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return
+	}
+
+	contents, err := ioutil.ReadFile(filepath.Join(homeDir, ".infra", "config"))
+	if os.IsNotExist(err) {
+		return config, nil
+	}
+
+	if err != nil {
+		return
+	}
+
+	if err = json.Unmarshal(contents, &config); err != nil {
+		return
+	}
+
+	return
+}
+
+func writeConfig(config *Config) error {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	if err = os.MkdirAll(filepath.Join(homeDir, ".infra"), os.ModePerm); err != nil {
+		return err
+	}
+
+	contents, err := json.Marshal(config)
+	if err != nil {
+		return err
+	}
+
+	if err = ioutil.WriteFile(filepath.Join(homeDir, ".infra", "config"), []byte(contents), 0644); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type BasicAuthTransport struct {
@@ -101,7 +154,7 @@ func Run() error {
 
 	httpClient := &http.Client{}
 	if config.Host == "" {
-		httpClient = NewUnixHttpClient(filepath.Join(homeDir, ".infra", "infra.sock"))
+		httpClient = unixHttpClient(filepath.Join(homeDir, ".infra", "infra.sock"))
 	} else {
 		bat := BasicAuthTransport{
 			Username: token,

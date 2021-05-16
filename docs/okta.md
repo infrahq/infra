@@ -47,7 +47,7 @@ Then, create an API key for Infra to synchronize users:
 Add secrets from the previous step:
 
 ```
-$ kubectl -n infra edit secret infra \
+$ kubectl -n infra edit secret/infra \
     --from-literal=okta-client-secret=In6P_qEoEVugEgk_7Z-Vkl6CysG1QapBBCzS5O7m \   # Client Secret
     --from-literal=okta-api-token=00nQtyRYAXOaA03xRJ5Ok2o6Tg8f19ku9DD3ySS8U9       # API Token
 ```

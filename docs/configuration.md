@@ -4,8 +4,8 @@
 * [Reference](#reference)
   * [`providers`](#providers)
     * [`okta`](#okta)
-  * [`permissions`](#permissions)
-    * [`user`](#user)
+  * [`users`](#users)
+    * [`email`](#email)
     * [`permission`](#permission)
     * [`namespace`](#namespace)
 
@@ -19,10 +19,10 @@ providers:
     client-secret: /etc/secrets/infra/okta-client-secret
     api-token: /etc/secrets/infra/okta-api-token
 
-permissions:
-  - user: admin@acme.com
+users:
+  - email: admin@acme.com
     permission: admin
-  - user: jeff@acme.com
+  - email: jeff@acme.com
     permission: edit
     namespace: default
 ```
@@ -49,22 +49,22 @@ providers:
     api-token: /etc/secrets/infra/okta-api-token
 ```
 
-### `permissions`
+### `users`
 
 ### Example
 
 ```yaml
-permissions:
-  - user: admin@acme.com
+users:
+  - email: admin@acme.com
     permission: admin
-  - user: jeff@acme.com
+  - email: jeff@acme.com
     permission: edit
     namespace: default
 ```
 
-### `user`
+### `email`
 
-`user` is a specific user by email
+`email` is a user's email
 
 ### `permission`
 

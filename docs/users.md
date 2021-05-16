@@ -1,5 +1,9 @@
 # Token
 
+Infra comes with the `Token` provider installed by default. It allows you to create users that log in via one-time tokens.
+
+Tokens have a format that looks like: `sk_r6Khd35Dt3Q4KgyuPFw2NkRkGpgorI8uyDgpW215quR7`
+
 ## Contents
 
 * [Setup](#setup)
