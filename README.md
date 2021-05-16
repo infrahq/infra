@@ -30,43 +30,54 @@ Infra enables teams to **dynamically** grant access to _right users or machines_
 
 ### Quickstart
 
-####  1. Deploy Infra Engine
+####  1. Deploy Infra Engine on Kubernetes
 
 ```
 $ kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/master/deploy/kubernetes.yaml
-...
+```
 
+Infra exposes a LoadBalancer endpoint:
+
+```
 $ kubectl get svc --namespace infra
 NAME      TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)        AGE
 infra     LoadBalancer   10.12.11.116   31.58.101.169   80:32326/TCP   1m
 ```
 
-Optionally, map a domain (e.g. `infra.acme.com` to `31.58.101.169`).
+Optionally, map a domain to the exposed endpoint (e.g. `infra.acme.com` to `31.58.101.169`).
 
-Next, generate an admin token.
+#### 2. Configure Infra Engine
+
+Infra is configured via an `infra.yaml` file:
+
+```yaml
+$ cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: infra
+  namespace: infra
+data:
+  infra.yaml: |-
+    users:
+      - email: admin@acme.com
+        permission: admin
+      - email: jeff@acme.com
+        permission: edit
+        namespace: default
+EOF
+```
+
+#### 3. Log in via Infra CLI
+
+Generate an login token via `kubectl`:
 
 ```
-$ kubectl exec -n infra infra-0 -- infra token create --user jeffadmin@acme.com
+$ kubectl -n infra exec infra-0 -- infra token create --user admin@acme.com
 sk_r6Khd35Dt3Q4KgyuPFw2NkRkGpgorI8uyDgpW215quR7
 ```
 
-#### 2. Configure
-
-Add users:
-
-```yaml
-$ cat <<EOF | kubectl -n infra apply -f -
-users:
-  - email: admin@acme.com
-    permission: admin
-  - email: jeff@acme.com
-    permission: edit
-    namespace: default
-```
-
-#### 3. Login
-
-Install Infra CLI
+Install Infra CLI on your client machine:
 
 ```bash
 # macOS
@@ -79,6 +90,8 @@ $ curl --url "https://github.com/infrahq/infra/releases/download/latest/infra-li
 $ curl.exe --url "https://github.com/infrahq/infra/releases/download/latest/infra-windows-amd64.exe" --output infra.exe
 ```
 
+Finally, log in as `admin@acme.com`:
+
 ```
 $ infra login --token sk_r6Khd35Dt3Q4KgyuPFw2NkRkGpgorI8uyDgpW215quR7 infra.acme.com
 ✔ Logging in with Okta... success
@@ -86,11 +99,20 @@ $ infra login --token sk_r6Khd35Dt3Q4KgyuPFw2NkRkGpgorI8uyDgpW215quR7 infra.acme
 ✔ Kubeconfig updated
 ```
 
-That's it. You now have cluster access as admin@acme.com.
+That's it. You now have cluster access as `admin@acme.com`:
+
+```
+$ kubectl get pods -A
+kube-system   coredns-56b458df85-7z4ds          1/1     Running   0          2d4h
+kube-system   coredns-56b458df85-wx48l          1/1     Running   0          2d4h
+kube-system   kube-proxy-cxn9c                  1/1     Running   0          2d4h
+kube-system   kube-proxy-nmnpb                  1/1     Running   0          2d4h
+kube-system   metrics-server-5fbdc54f8c-nf85v   1/1     Running   0          46h
+```
 
 ## Documentation
 * [Managing users](./docs/users.md)
-* [Okta](./docs/okta.md)
+* [Integrate Okta](./docs/okta.md)
 * [Configuration File](./docs/configuration.md)
 * [CLI Reference](./docs/cli.md)
 * [API Reference](./docs/api.md)

@@ -26,21 +26,20 @@ $ curl.exe --url "https://github.com/infrahq/infra/releases/download/latest/infr
 
 ## Overview
 
-### Admin shell
+### Admin mode
 
-To use the Infra CLI without logging in locally, you can open an admin shell to Infra Engine:
+Running `infra` commands on the host machine or container of the Infra Engine. This allows you to run commands without having to be logged in from an external client machine.
 
-#### Example: Kubernetes
+For example, using Kubernetes via `kubectl`:
 
 ```
 kubectl -n infra exec -it infra-0 sh
 
-# infra users
-ID                      NAME                  PROVIDER           CREATED                PERMISSION
+# infra users ls
 usr_180jhsxjnxui1       jeff@acme.com         okta               2 minutes ago          admin
 usr_mgna7u291s012       michael@acme.com      okta               2 minutes ago          view
 ```
- 
+
 ### Global Flags
 
 | Flag                 | Type       | Description                     |
