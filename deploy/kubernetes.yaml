@@ -108,24 +108,6 @@ spec:
       resources:
         requests:
           storage: 1Gi
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: infra
-  namespace: infra
-data:
-  infra.yaml: |-
-    providers:
-      okta:
-        domain: dev-02708987.okta.com
-        client-id: 0oapn0qwiQPiMIyR35d6
-        client-secret: vU-bIjeFyMB7j_s0sn7WRzVb9weW0QdX7HgjyKtz
-        api-token: 00VLdAuim7IrJBGCykVM61Q11_eV8Rsl4dVf3KTXW2
-    users:
-      - user: jeff@infrahq.com
-        permission: admin
----
 apiVersion: v1
 kind: Secret
 metadata:

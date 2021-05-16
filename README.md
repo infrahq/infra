@@ -48,7 +48,7 @@ Optionally, map a domain to the exposed endpoint (e.g. `infra.acme.com` to `31.5
 
 #### 2. Configure Infra Engine
 
-Infra is configured via an `infra.yaml` file:
+Configure infra via an `infra.yaml` file:
 
 ```yaml
 $ cat <<EOF | kubectl apply -f -
@@ -58,12 +58,12 @@ metadata:
   name: infra
   namespace: infra
 data:
-  infra.yaml: |-
+  infra.yaml: |
     users:
       - email: admin@acme.com
         permission: admin
       - email: jeff@acme.com
-        permission: edit
+        permission: view
         namespace: default
 EOF
 ```
@@ -73,7 +73,7 @@ EOF
 Generate an login token via `kubectl`:
 
 ```
-$ kubectl -n infra exec infra-0 -- infra token create --user admin@acme.com
+$ kubectl -n infra exec infra-0 -- infra token create --user jeff@acme.com
 sk_r6Khd35Dt3Q4KgyuPFw2NkRkGpgorI8uyDgpW215quR7
 ```
 
@@ -95,11 +95,11 @@ Finally, log in as `admin@acme.com`:
 ```
 $ infra login --token sk_r6Khd35Dt3Q4KgyuPFw2NkRkGpgorI8uyDgpW215quR7 infra.acme.com
 ✔ Logging in with Okta... success
-✔ Logged in as admin@acme.com
+✔ Logged in as jeff@acme.com
 ✔ Kubeconfig updated
 ```
 
-That's it. You now have cluster access as `admin@acme.com`:
+That's it. You now have cluster access as `jeff@acme.com` with `view` permissions.
 
 ```
 $ kubectl get pods -A
@@ -108,6 +108,8 @@ kube-system   coredns-56b458df85-wx48l          1/1     Running   0          2d4
 kube-system   kube-proxy-cxn9c                  1/1     Running   0          2d4h
 kube-system   kube-proxy-nmnpb                  1/1     Running   0          2d4h
 kube-system   metrics-server-5fbdc54f8c-nf85v   1/1     Running   0          46h
+
+$ kubectl delete -n kube-system pod/kube-proxy-cxn9c # permission denied
 ```
 
 ## Documentation

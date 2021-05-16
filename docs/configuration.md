@@ -78,4 +78,4 @@ users:
 
 ### `namespace`
 
-* `namespace` is a Kubernetes namespace
+* `namespace` is a Kubernetes namespace to scope permissions for
