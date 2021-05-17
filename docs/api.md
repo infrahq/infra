@@ -9,8 +9,10 @@
     * [Delete a user](#delete-a-user)
 * [Tokens](#tokens)
     * [Create a token](#create-a-token)
+    * [List all tokens](#list-all-tokens)
+    * [Delete a token](#delete-a-token)
 * [Providers](#providers)
-    * [Retrieve provider information](#retrieve-provider-information)
+    * [Retrieve provider info](#retrieve-provider-info)
 
 ## Introduction
 
@@ -56,7 +58,6 @@ curl https://infra.acme.com/v1/users \
 | Parameter    | Type     | Description                             |
 | :--------    | :------- | :-------------------------------------- |
 | `email`      | `string` | **Required** Email of user              |
-| `permission` | `string` | Permission to assign (default `view`)   |
 
 
 #### Request
@@ -65,7 +66,6 @@ curl https://infra.acme.com/v1/users \
 curl https://infra.acme.com/v1/users \
     -u sk_mnrdvosho472npiwdnakjsdn9as74sdo1dfi: \
     -d email=test@acme.com
-    -d permission=edit
 ```
 
 #### Response
@@ -75,8 +75,7 @@ curl https://infra.acme.com/v1/users \
     "id": "usr_LB4MsQycuLEH",
     "email": "test@infrahq.com",
     "created": 1620855986,
-    "providers": ["token"],
-    "permission": "edit"
+    "providers": ["okta"]
 }
 ```
 
@@ -106,11 +105,9 @@ curl https://infra.acme.com/v1/users \
             "id": "usr_mvm8YVTvOGY4",
             "email": "tom@acme.com",
             "created": 1620845768,
-            "providers": ["okta"],
-            "permission": "view"
+            "providers": ["okta"]
         },
     ],
-    "object":"list",
     "url":"/v1/users"
 }
 ```
@@ -140,11 +137,10 @@ curl https://infra.acme.com/v1/users/usr_LB4MsQycuLEH \
     "id": "usr_LB4MsQycuLEH",
     "email": "test@infrahq.com",
     "created": 1620855986,
-    "providers": ["token"],
+    "providers": ["okta"],
     "permission": "view"
 }
 ```
-
 
 ### Delete a user
 
@@ -169,7 +165,6 @@ curl https://infra.acme.com/v1/users/usr_LB4MsQycuLEH \
 ```json
 {
     "id":"usr_LB4MsQycuLEH",
-    "object": "user",
     "deleted": true,
 }
 ```
@@ -186,15 +181,17 @@ curl https://infra.acme.com/v1/users/usr_LB4MsQycuLEH \
 
 ```http
     POST /v1/tokens
+     GET /v1/tokens
+  DELETE /v1/tokens
 ```
 
 #### Parameters
 
-| Parameter    | Type     | Description                       |
-| :--------    | :------- | :-------------------------------- |
-| `code`       | `string` | Authorization code from provider  |
-| `provider`   | `string` | Provider to verify code           |
-| `user`       | `string` | User for which to generate token  |
+| Parameter         | Type     | Description                       |
+| :--------         | :------- | :-------------------------------- |
+| `code`            | `string` | Authorization code from provider  |
+| `code_provider`   | `string` | Provider to verify code           |
+| `user`            | `string` | User for which to generate token  |
 
 #### Request (Rotate a token)
 
@@ -230,6 +227,72 @@ curl https://infra.acme.com/v1/tokens \
         "created": 1620857501,
     },
     "secret_token": "sk_1xeLhL379bJOkytFbDizJixDrcqbbbnZM78gI7HLjqJp"
+}
+```
+
+### List all tokens
+
+```http
+    GET /v1/tokens
+```
+
+#### Parameters
+
+No parameters
+
+#### Request
+
+```
+curl https://infra.acme.com/v1/tokens \
+    -u sk_mnrdvosho472npiwdnakjsdn9as74sdo1dfi:
+```
+
+#### Response
+
+```json
+{
+    "data": [
+        {
+            "id": "tk_1xeLhL379bJO",
+            "expires": 1620861101,
+            "created": 1620857501,
+            "user": {
+                "id": "usr_mvm8YVTvOGY4",
+                "email": "tom@acme.com",
+                "created": 1620845768,
+                "providers": ["okta"],
+                "permission": "view",
+            },
+        },
+    ],
+    "url":"/v1/tokens"
+}
+```
+
+### Delete a token
+
+```http
+    DELETE /v1/tokens/:id
+```
+
+#### Parameters
+
+No parameters.
+
+#### Request
+
+```
+curl https://infra.acme.com/v1/tokens/tk_1xeLhL379bJO \
+    -u sk_mnrdvosho472npiwdnakjsdn9as74sdo1dfi: \
+    -X DELETE
+```
+
+#### Response
+
+```json
+{
+    "id":"tk_1xeLhL379bJO",
+    "deleted": true,
 }
 ```
 

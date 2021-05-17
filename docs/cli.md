@@ -28,16 +28,22 @@ $ curl.exe --url "https://github.com/infrahq/infra/releases/download/latest/infr
 
 ### Admin mode
 
-Running `infra` commands on the host machine or container of the Infra Engine. This allows you to run commands without having to be logged in from an external client machine.
+Running `infra` commands on the host machine or container of the Infra Engine automatically provides **admin** permissions.
+
+This allows you to run commands without having to be logged in from an external client machine.
 
 For example, using Kubernetes via `kubectl`:
 
 ```
 kubectl -n infra exec -it infra-0 sh
 
-# infra users ls
-usr_180jhsxjnxui1       jeff@acme.com         okta               2 minutes ago          admin
-usr_mgna7u291s012       michael@acme.com      okta               2 minutes ago          view
+# infra users list
+USER            	EMAIL              	CREATED           	PERMISSION	PROVIDERS  
+usr_sTDLRxYyufcr	elon@acme.com   	About a minute ago	view      	okta      	
+usr_uqTdSSZiVJUh	tom@acme.com    	About a minute ago	view      	okta      	
+usr_w5Lh4ICi7JlX	mark@acme.com   	About a minute ago	view      	okta      	
+usr_KrvryrZTwgzz	michael@acme.com	About a minute ago	view      	infra,okta	
+usr_TuVclkaTYDUN	jeff@acme.com   	About a minute ago	admin      	infra,okta
 ```
 
 ### Global Flags
@@ -99,9 +105,12 @@ $ infra users list
 
 ```
 $ infra users list
-ID                      NAME                  PROVIDER           CREATED                PERMISSION
-usr_180jhsxjnxui1       jeff@acme.com         okta               2 minutes ago          admin
-usr_mgna7u291s012       michael@acme.com      okta               2 minutes ago          view
+USER            	EMAIL              	CREATED           	PERMISSION	PROVIDERS  
+usr_sTDLRxYyufcr	elon@acme.com   	About a minute ago	view      	okta      	
+usr_uqTdSSZiVJUh	tom@acme.com    	About a minute ago	view      	okta      	
+usr_w5Lh4ICi7JlX	mark@acme.com   	About a minute ago	view      	okta      	
+usr_KrvryrZTwgzz	michael@acme.com	About a minute ago	view      	infra,okta	
+usr_TuVclkaTYDUN	jeff@acme.com   	About a minute ago	admin      	infra,okta
 ```
 
 ### `infra users create`

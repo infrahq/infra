@@ -7,7 +7,9 @@ require (
 	github.com/cli/browser v1.1.0
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/docker/go-units v0.4.0
+	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/gin-gonic/gin v1.7.1
+	github.com/go-fsnotify/fsnotify v0.0.0-20180321022601-755488143dae // indirect
 	github.com/go-playground/assert/v2 v2.0.1
 	github.com/go-playground/validator/v10 v10.6.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
@@ -24,6 +26,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/ugorji/go v1.2.5 // indirect
 	github.com/urfave/cli/v2 v2.3.0
+	go.etcd.io/bbolt v1.3.5
 	golang.org/x/crypto v0.0.0-20210506145944-38f3c27a63bf
 	golang.org/x/net v0.0.0-20210510120150-4163338589ed // indirect
 	golang.org/x/oauth2 v0.0.0-20210427180440-81ed05c6b58c
@@ -32,6 +35,8 @@ require (
 	google.golang.org/appengine v1.6.7 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v2 v2.4.0
+	gorm.io/driver/sqlite v1.1.4
+	gorm.io/gorm v1.21.10
 	k8s.io/api v0.21.0
 	k8s.io/apimachinery v0.21.0
 	k8s.io/client-go v0.21.0

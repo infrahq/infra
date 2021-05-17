@@ -108,8 +108,15 @@ spec:
       resources:
         requests:
           storage: 1Gi
+---
 apiVersion: v1
 kind: Secret
+metadata:
+  name: infra
+  namespace: infra
+---
+apiVersion: v1
+kind: ConfigMap
 metadata:
   name: infra
   namespace: infra

@@ -1,8 +1,6 @@
 package server
 
 import (
-	"crypto/tls"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,9 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/gin-gonic/gin"
-	"github.com/infrahq/infra/internal/data"
-	"github.com/infrahq/infra/internal/kubernetes"
-	"github.com/infrahq/infra/internal/providers"
+	bolt "go.etcd.io/bbolt"
 	"golang.org/x/crypto/acme/autocert"
 )
 
@@ -22,48 +18,39 @@ type ServerOptions struct {
 	TLSCache   string
 }
 
-func UpdatePermissions(data *data.Data, kube *kubernetes.Kubernetes) error {
-	if data == nil {
-		return errors.New("data cannot be nil")
+var PermissionOrdering = []string{"view", "edit", "admin"}
 
-	}
+func IsEqualOrHigherPermission(a string, b string) bool {
+	indexa := 0
+	indexb := 0
 
-	users, err := data.ListUsers()
-	if err != nil {
-		return err
-	}
-
-	roleBindings := []kubernetes.RoleBinding{}
-	for _, user := range users {
-		roleBindings = append(roleBindings, kubernetes.RoleBinding{User: user.Email, Role: user.Permission})
-	}
-
-	return kube.UpdateRoleBindings(roleBindings)
-}
-
-func getSelfSignedOrLetsEncryptCert(certManager *autocert.Manager) func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-	return func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-		// dirCache, ok := certManager.Cache.(autocert.DirCache)
-		// if !ok {
-		// 	dirCache = "certs"
-		// }
-
-		fmt.Println(hello.ServerName)
-		fmt.Println(hello)
-
-		// Try to use letsencrypt
-		certificate, err := certManager.GetCertificate(hello)
-		if err == nil {
-			return certificate, nil
+	for i, p := range PermissionOrdering {
+		if a == p {
+			indexa = i
 		}
 
-		// Generate self-signed certificates
-		fmt.Println("Falling back to self-signed ceritficate", err)
-		return nil, errors.New("not implemented")
+		if b == p {
+			indexb = i
+		}
 	}
+
+	return indexa >= indexb
 }
 
-func ServerRun(options *ServerOptions) error {
+// Gets users permissions from config, with a catch-all of view
+// TODO (jmorganca): should this be nothing instead of view?
+func PermissionForEmail(email string, cfg *Config) string {
+	for _, p := range cfg.Permissions {
+		if p.Email == email {
+			return p.Permission
+		}
+	}
+
+	// Default to view
+	return "view"
+}
+
+func Run(options *ServerOptions) error {
 	if options.DBPath == "" {
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
@@ -73,42 +60,50 @@ func ServerRun(options *ServerOptions) error {
 		options.DBPath = filepath.Join(homeDir, ".infra")
 	}
 
-	data, err := data.NewData(options.DBPath)
+	db, err := NewDB(options.DBPath)
 	if err != nil {
 		return err
 	}
 
-	defer data.Close()
+	defer db.Close()
 
-	config, err := loadConfig(options.ConfigPath)
-	if err != nil {
-		return err
-	}
-
-	kube, err := kubernetes.NewKubernetes()
+	kube, err := NewKubernetes()
 	if err != nil {
 		fmt.Println("warning: no kubernetes cluster detected.")
 	}
 
-	okta := &providers.Okta{
-		Domain:   config.Providers.Okta.Domain,
-		ClientID: config.Providers.Okta.ClientID,
-		ApiToken: config.Providers.Okta.ApiToken,
+	config, err := NewConfig(options.ConfigPath)
+	if err != nil {
+		return err
 	}
 
 	sync := Sync{}
-
-	// TODO (jmorganca): fix error handling here
 	sync.Start(func() {
-		emails, _ := okta.Emails()
-		syncUsers(data, "okta", emails)
-		UpdatePermissions(data, kube)
+		if config.Providers.Okta.Domain != "" {
+			emails, err := config.Providers.Okta.Emails()
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			db.Update(func(tx *bolt.Tx) error {
+				return SyncUsers(tx, emails, "okta")
+			})
+		}
+
+		kube.UpdatePermissions(db, config)
 	})
+	defer sync.Stop()
 
 	gin.SetMode(gin.ReleaseMode)
 
 	unixRouter := gin.New()
-	if err = addRoutes(unixRouter, data, kube, config, false); err != nil {
+
+	// Skip auth when accessing infra engine over
+	unixRouter.Use(func(c *gin.Context) {
+		c.Set("skipauth", true)
+	})
+
+	if err = addRoutes(unixRouter, db, kube, config); err != nil {
 		return err
 	}
 
@@ -129,7 +124,7 @@ func ServerRun(options *ServerOptions) error {
 	}()
 
 	router := gin.New()
-	if err = addRoutes(router, data, kube, config, true); err != nil {
+	if err = addRoutes(router, db, kube, config); err != nil {
 		return err
 	}
 
@@ -141,12 +136,9 @@ func ServerRun(options *ServerOptions) error {
 		manager.Cache = autocert.DirCache(options.TLSCache)
 	}
 
-	tlsConfig := manager.TLSConfig()
-	tlsConfig.GetCertificate = getSelfSignedOrLetsEncryptCert(manager)
-
 	tlsServer := &http.Server{
 		Addr:      ":8443",
-		TLSConfig: tlsConfig,
+		TLSConfig: manager.TLSConfig(),
 		Handler:   router,
 	}
 

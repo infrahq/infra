@@ -16,9 +16,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/infrahq/infra/internal/data"
+	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server"
-	"github.com/infrahq/infra/internal/util"
 
 	"github.com/cli/browser"
 	"github.com/docker/go-units"
@@ -138,6 +137,29 @@ func (bat *BasicAuthTransport) Client() *http.Client {
 	return &http.Client{Transport: bat}
 }
 
+func checkAndDecode(res *http.Response, i interface{}) error {
+	data, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+
+	er := &server.ErrorResponse{}
+	err = json.Unmarshal(data, &er)
+	if err != nil {
+		return err
+	}
+
+	if er.Error != "" {
+		return errors.New(er.Error)
+	}
+
+	if res.StatusCode >= http.StatusBadRequest {
+		return errors.New("received error status code: " + http.StatusText(res.StatusCode))
+	}
+
+	return json.Unmarshal(data, &i)
+}
+
 func Run() error {
 	config, err := readConfig()
 	if err != nil {
@@ -197,24 +219,16 @@ func Run() error {
 							return err
 						}
 
-						type providersResponse struct {
-							Okta struct {
-								ClientID string `json:"client-id"`
-								Domain   string `json:"domain"`
-							}
-							Error string `json:"error"`
-						}
-
-						var decoded providersResponse
-						if err = json.NewDecoder(res.Body).Decode(&decoded); err != nil {
+						var response server.RetrieveProvidersResponse
+						if err = checkAndDecode(res, &response); err != nil {
 							return err
 						}
 
 						// Start OIDC flow
 						// Get auth code from Okta
 						// Send auth code to Infra to log in as a user
-						state := util.RandString(12)
-						authorizeUrl := "https://" + decoded.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + decoded.Okta.ClientID + "&response_type=code&scope=openid+email&nonce=" + util.RandString(10) + "&state=" + state
+						state := generate.RandString(12)
+						authorizeUrl := "https://" + response.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + response.Okta.ClientID + "&response_type=code&scope=openid+email&nonce=" + generate.RandString(10) + "&state=" + state
 
 						fmt.Println("Opening browser window...")
 						server, err := newLocalServer()
@@ -236,7 +250,7 @@ func Run() error {
 							return errors.New("received state is not the same as sent state")
 						}
 
-						form.Add("code", code)
+						form.Add("okta-code", code)
 					}
 
 					req, err := http.NewRequest("POST", normalizeHost(hostArg)+"/v1/tokens", strings.NewReader(form.Encode()))
@@ -255,31 +269,10 @@ func Run() error {
 						return err
 					}
 
-					body, err := ioutil.ReadAll(res.Body)
+					var response server.CreateTokenResponse
+					err = checkAndDecode(res, &response)
 					if err != nil {
 						return err
-					}
-
-					type tokenResponse struct {
-						Token struct {
-							ID      string `json:"id"`
-							User    string `json:"user"`
-							Created int64  `json:"created"`
-							Updated int64  `json:"updated"`
-							Expires int64  `json:"expires"`
-						}
-						SecretToken string `json:"secret_token"`
-						Host        string `json:"host"`
-						Error       string
-					}
-
-					var response tokenResponse
-					if err = json.Unmarshal(body, &response); err != nil {
-						return cli.Exit(err, 1)
-					}
-
-					if res.StatusCode != http.StatusCreated {
-						return cli.Exit(response.Error, 1)
 					}
 
 					if err = writeConfig(&Config{
@@ -329,13 +322,6 @@ func Run() error {
 						Name:      "create",
 						Usage:     "Create a user",
 						ArgsUsage: "EMAIL",
-						Flags: []cli.Flag{
-							&cli.StringFlag{
-								Name:    "permission",
-								Aliases: []string{"p"},
-								Usage:   "Permission to assign user",
-							},
-						},
 						Action: func(c *cli.Context) error {
 							if c.NArg() <= 0 {
 								cli.ShowCommandHelp(c, "create")
@@ -343,64 +329,21 @@ func Run() error {
 							}
 
 							email := c.Args().Get(0)
-
 							form := url.Values{}
 							form.Add("email", email)
 
-							if c.String("permission") != "" {
-								form.Add("permission", c.String("permission"))
-							}
-
 							res, err := httpClient.PostForm(normalizeHost(host)+"/v1/users", form)
 							if err != nil {
-								log.Fatal(err)
+								return err
 							}
 
-							type response struct {
-								ID      string `json:"id"`
-								Email   string `json:"email"`
-								Created int64  `json:"created"`
-								Updated int64  `json:"updated"`
-								Error   string `json:"error"`
-							}
-
-							var decoded response
-							if err = json.NewDecoder(res.Body).Decode(&decoded); err != nil {
-								panic(err)
-							}
-
-							form = url.Values{}
-							form.Add("user", decoded.ID)
-							res, err = httpClient.PostForm(normalizeHost(host)+"/v1/tokens", form)
+							var response server.CreateUserResponse
+							err = checkAndDecode(res, &response)
 							if err != nil {
-								log.Fatal(err)
+								return err
 							}
 
-							if res.StatusCode != http.StatusCreated {
-								log.Fatal(decoded.Error)
-							}
-
-							type tokenResponse struct {
-								data.Token
-								SecretToken string `json:"secret_token"`
-								Host        string `json:"host"`
-								Error       string
-							}
-
-							var decodedTokenResponse tokenResponse
-							if err = json.NewDecoder(res.Body).Decode(&decodedTokenResponse); err != nil {
-								panic(err)
-							}
-
-							fmt.Println()
-							fmt.Println("User " + decoded.Email + " added. Please share the following command with them so they can log in:")
-							fmt.Println()
-							if decodedTokenResponse.Host == "" {
-								fmt.Println("infra login --token " + decodedTokenResponse.SecretToken)
-							} else {
-								fmt.Println("infra login --token " + decodedTokenResponse.SecretToken + " " + decodedTokenResponse.Host)
-							}
-							fmt.Println()
+							fmt.Println(response.ID)
 
 							return nil
 						},
@@ -415,22 +358,14 @@ func Run() error {
 								return err
 							}
 
-							type response struct {
-								Data  []data.User
-								Error string `json:"error"`
-							}
-
-							var decoded response
-							if err = json.NewDecoder(res.Body).Decode(&decoded); err != nil {
-								return err
-							}
-
-							if decoded.Error != "" {
+							var response server.ListUsersResponse
+							err = checkAndDecode(res, &response)
+							if err != nil {
 								return err
 							}
 
 							rows := [][]string{}
-							for _, user := range decoded.Data {
+							for _, user := range response.Data {
 								createdAt := time.Unix(user.Created, 0)
 
 								providers := ""
@@ -441,10 +376,10 @@ func Run() error {
 									providers += p
 								}
 
-								rows = append(rows, []string{user.ID, providers, user.Email, units.HumanDuration(time.Now().UTC().Sub(createdAt)) + " ago", user.Permission})
+								rows = append(rows, []string{user.ID, user.Email, units.HumanDuration(time.Now().UTC().Sub(createdAt)) + " ago", providers, user.Permission})
 							}
 
-							printTable([]string{"USER ID", "PROVIDERS", "EMAIL", "CREATED", "PERMISSION"}, rows)
+							printTable([]string{"USER", "EMAIL", "CREATED", "PROVIDERS", "PERMISSION"}, rows)
 
 							return nil
 						},
@@ -453,6 +388,11 @@ func Run() error {
 						Name:  "delete",
 						Usage: "delete a user",
 						Action: func(c *cli.Context) error {
+							if c.NArg() <= 0 {
+								cli.ShowCommandHelp(c, "delete")
+								return nil
+							}
+
 							user := c.Args().Get(0)
 							req, err := http.NewRequest(http.MethodDelete, normalizeHost(host)+"/v1/users/"+user, nil)
 							if err != nil {
@@ -465,23 +405,118 @@ func Run() error {
 							}
 							defer res.Body.Close()
 
-							type response struct {
-								ID      string `json:"id"`
-								Deleted bool   `json:"deleted"`
-								Error   string `json:"error"`
-							}
-
-							var decoded response
-							if err = json.NewDecoder(res.Body).Decode(&decoded); err != nil {
+							var response server.DeleteResponse
+							err = checkAndDecode(res, &response)
+							if err != nil {
 								return err
 							}
 
-							if decoded.Deleted {
-								fmt.Println(decoded.ID)
-							} else if len(decoded.Error) > 0 {
-								return errors.New(decoded.Error)
-							} else {
-								return errors.New("could not delete user")
+							if response.Deleted {
+								fmt.Println(response.ID)
+							}
+
+							return nil
+						},
+					},
+				},
+			},
+			{
+				Name:  "tokens",
+				Usage: "Manage tokens",
+				Subcommands: []*cli.Command{
+					{
+						Name:      "create",
+						Usage:     "Create a token",
+						ArgsUsage: "USER",
+						Action: func(c *cli.Context) error {
+							if c.NArg() <= 0 {
+								cli.ShowCommandHelp(c, "create")
+								return nil
+							}
+
+							user := c.Args().Get(0)
+
+							form := url.Values{}
+							form.Add("user", user)
+							res, err := httpClient.PostForm(normalizeHost(host)+"/v1/tokens", form)
+							if err != nil {
+								return err
+							}
+
+							var response server.CreateTokenResponse
+							err = checkAndDecode(res, &response)
+							if err != nil {
+								return err
+							}
+
+							fmt.Println(response.SecretToken)
+
+							return nil
+						},
+					},
+					{
+						Name:    "list",
+						Usage:   "list tokens",
+						Aliases: []string{"ls"},
+						Action: func(c *cli.Context) error {
+							res, err := httpClient.Get(normalizeHost(host) + "/v1/tokens")
+							if err != nil {
+								return err
+							}
+
+							var response server.ListTokensResponse
+							err = checkAndDecode(res, &response)
+							if err != nil {
+								return err
+							}
+
+							rows := [][]string{}
+							for _, expanded := range response.Data {
+								createdAt := time.Unix(expanded.Created, 0)
+								expiresAt := time.Unix(expanded.Expires, 0)
+								expires := ""
+								if expiresAt.After(time.Now()) {
+									expires = "In " + strings.ToLower(units.HumanDuration(time.Until(expiresAt)))
+								} else {
+									expires = units.HumanDuration(time.Since(expiresAt)) + " ago"
+								}
+								rows = append(rows, []string{expanded.ID, expanded.User.Email, units.HumanDuration(time.Now().UTC().Sub(createdAt)) + " ago", expires})
+							}
+
+							printTable([]string{"TOKEN", "EMAIL", "CREATED", "EXPIRY"}, rows)
+
+							return nil
+						},
+					},
+					{
+						Name:  "delete",
+						Usage: "delete a token",
+						Action: func(c *cli.Context) error {
+							if c.NArg() <= 0 {
+								cli.ShowCommandHelp(c, "delete")
+								return nil
+							}
+
+							token := c.Args().Get(0)
+							req, err := http.NewRequest(http.MethodDelete, normalizeHost(host)+"/v1/tokens/"+token, nil)
+							if err != nil {
+								log.Fatal(err)
+							}
+
+							res, err := httpClient.Do(req)
+							if err != nil {
+								log.Fatal(err)
+							}
+							defer res.Body.Close()
+
+							var response server.DeleteResponse
+							err = checkAndDecode(res, &response)
+							if err != nil {
+								return err
+							}
+
+							if response.Deleted {
+								fmt.Println(response.ID)
 							}
 
 							return nil
@@ -508,7 +543,7 @@ func Run() error {
 					},
 				},
 				Action: func(c *cli.Context) error {
-					return server.ServerRun(&server.ServerOptions{
+					return server.Run(&server.ServerOptions{
 						DBPath:     c.String("db"),
 						ConfigPath: c.String("config"),
 						TLSCache:   c.String("tls-cache"),

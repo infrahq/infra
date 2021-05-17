@@ -1,4 +1,4 @@
-package util
+package generate
 
 import "crypto/rand"
 
@@ -15,13 +15,4 @@ func RandString(n int) string {
 	}
 
 	return string(bytes)
-}
-
-func ValidPermission(permission string) bool {
-	for _, p := range []string{"view", "edit", "admin"} {
-		if p == permission {
-			return true
-		}
-	}
-	return false
 }

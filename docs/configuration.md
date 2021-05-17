@@ -4,8 +4,8 @@
 * [Reference](#reference)
   * [`providers`](#providers)
     * [`okta`](#okta)
-  * [`users`](#users)
-    * [`email`](#email)
+  * [`permissions`](#permissions)
+    * [`user`](#user)
     * [`permission`](#permission)
     * [`namespace`](#namespace)
 
@@ -19,12 +19,13 @@ providers:
     client-secret: /etc/secrets/infra/okta-client-secret
     api-token: /etc/secrets/infra/okta-api-token
 
-users:
-  - email: admin@acme.com
+permissions:
+  - user: admin@acme.com
     permission: admin
-  - email: jeff@acme.com
+  - user: suzie@acme.com
     permission: edit
-    namespace: default
+  - user: bob@acme.com
+    permission: view
 ```
 
 ## Reference
@@ -35,8 +36,8 @@ users:
 
 * `domain`: Okta domain
 * `client-id`: Client ID for the Okta application
-* `client-secret`: Client Secret for the Okta application
-* `api-token`: Read-only Okta API Token
+* `client-secret`: Path to file containing client secret for the Okta Application
+* `api-token`: Path to file containing Okta API Token
 
 Example:
 
@@ -54,7 +55,7 @@ providers:
 ### Example
 
 ```yaml
-users:
+permissions:
   - email: admin@acme.com
     permission: admin
   - email: jeff@acme.com
@@ -62,19 +63,19 @@ users:
     namespace: default
 ```
 
-### `email`
+### `user`
 
-`email` is a user's email
+`user` is a user's email
 
 ### `permission`
 
 `permission` defines a permission level, giving users access to specific resources and tasks they need
 
-| Permission | Description                     |
-| :--------  | :-------------------------      |
-| view       | View & list any resource        |
-| edit       | View & list any resource        |
-| admin      | Full acces                      |
+| Permission | Description                        |
+| :--------  | :------------------------------    |
+| view       | View & list any resource           |
+| edit       | Create, edit, delete any resource  |
+| admin      | Full acces                         |
 
 ### `namespace`
 

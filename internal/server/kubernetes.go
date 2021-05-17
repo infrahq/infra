@@ -1,9 +1,12 @@
-package kubernetes
+package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"sync"
 
+	bolt "go.etcd.io/bbolt"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,6 +17,7 @@ import (
 
 type Kubernetes struct {
 	Config *rest.Config
+	mu     sync.Mutex
 }
 
 type RoleBinding struct {
@@ -24,7 +28,6 @@ type RoleBinding struct {
 func NewKubernetes() (*Kubernetes, error) {
 	k := &Kubernetes{}
 
-	// TODO(jmorganca): support remote cluster for testing
 	config, err := rest.InClusterConfig()
 	if err == rest.ErrNotInCluster {
 		kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{})
@@ -45,12 +48,35 @@ func NewKubernetes() (*Kubernetes, error) {
 	return k, err
 }
 
-// TODO(jmorganca): protect this from race conditions
-func (k *Kubernetes) UpdateRoleBindings(roleBindings []RoleBinding) error {
-	fmt.Println("Updating role bindings")
+func (k *Kubernetes) UpdatePermissions(db *bolt.DB, cfg *Config) error {
+	if db == nil || cfg == nil {
+		return errors.New("parameter cannot be nil")
+	}
+
+	k.mu.Lock()
+	defer k.mu.Unlock()
+
+	var users []User
+
+	err := db.View(func(tx *bolt.Tx) (err error) {
+		users, err = ListUsers(tx)
+		return err
+	})
+	if err != nil {
+		return err
+	}
+
+	rbs := []RoleBinding{}
+	for _, user := range users {
+		permission := PermissionForEmail(user.Email, cfg)
+		if permission != "" {
+			rbs = append(rbs, RoleBinding{User: user.Email, Role: permission})
+		}
+	}
+
 	subjects := make(map[string][]rbacv1.Subject)
 
-	for _, rb := range roleBindings {
+	for _, rb := range rbs {
 		subjects[rb.Role] = append(subjects[rb.Role], rbacv1.Subject{
 			APIGroup: "rbac.authorization.k8s.io",
 			Kind:     "User",
@@ -76,7 +102,7 @@ func (k *Kubernetes) UpdateRoleBindings(roleBindings []RoleBinding) error {
 	if k.Config != nil {
 		clientset, err := kubernetes.NewForConfig(k.Config)
 		if err != nil {
-			fmt.Println(err)
+			return err
 		}
 
 		for _, crb := range crbs {
@@ -85,17 +111,14 @@ func (k *Kubernetes) UpdateRoleBindings(roleBindings []RoleBinding) error {
 				if k8sErrors.IsNotFound(err) {
 					_, err = clientset.RbacV1().ClusterRoleBindings().Create(context.TODO(), crb, metav1.CreateOptions{})
 					if err != nil {
-						fmt.Println(err)
-					} else {
-						fmt.Println("Cluster role binding added")
+						return err
 					}
 				} else {
-					fmt.Println(err)
+					return err
 				}
-			} else {
-				fmt.Println("Cluster role binding patched")
 			}
 		}
 	}
+
 	return nil
 }

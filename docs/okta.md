@@ -69,8 +69,9 @@ data:
         client-id: 0oapn0qwiQPiMIyR35d6                       # REPLACE ME: Your Client ID
         client-secret: /etc/secrets/infra/okta-client-secret
         api-token: /etc/secrets/infra/okta-api-token
-    users:                                                    # All users get view permissions by default
-      - email: michael@acme.com                               # EXAMPLE: Give a single user admin permission
+
+    permissions:
+      - user: michael@acme.com
         permission: admin
 EOF
 ```
