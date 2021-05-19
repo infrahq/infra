@@ -75,8 +75,10 @@ spec:
   selector:
     matchLabels:
       app: infra
-  replicas: 1 
+  replicas: 1
   serviceName: infra
+  updateStrategy:
+    type: RollingUpdate
   template:
     metadata:
       labels:
@@ -96,10 +98,17 @@ spec:
               mountPath: /var/run/infra/data
             - name: config
               mountPath: /var/run/infra/config
+            - name: secrets
+              mountPath: /var/run/infra/secrets
       volumes:
         - name: config
           configMap:
             name: infra
+            optional: true
+        - name: secrets
+          secret:
+            secretName: infra
+            optional: true
   volumeClaimTemplates:
   - metadata:
       name: data
@@ -108,15 +117,3 @@ spec:
       resources:
         requests:
           storage: 1Gi
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: infra
-  namespace: infra
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: infra
-  namespace: infra
