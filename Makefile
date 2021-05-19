@@ -4,7 +4,7 @@ repo := infrahq/early-access
 .PHONY: build
 build:
 	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o build/infra-darwin-arm64 -ldflags="-s -w" .
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o build/infra-darwin-amd64 -ldflags="-s -w" .
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o build/infra-darwin-x86_64 -ldflags="-s -w" .
 	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o build/infra-linux-arm64 -ldflags="-s -w" .
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/infra-linux-amd64 -ldflags="-s -w" .
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o build/infra-windows-amd64.exe -ldflags="-s -w" .
