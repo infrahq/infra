@@ -22,6 +22,7 @@ sign:
 release:
 	make build
 	make sign
+	gh release create $(tag) --title $(tag) -n ""
 	gh release upload $(tag) build/* --clobber
 
 build/docker:
