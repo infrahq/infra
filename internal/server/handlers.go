@@ -20,8 +20,8 @@ import (
 
 func parsetoken(db *bolt.DB, req *http.Request) (user *User, token *Token, err error) {
 	sk, _, _ := req.BasicAuth()
-	authorization := req.Header.Get("Authorization")
-	if authorization != "" {
+	if sk == "" {
+		authorization := req.Header.Get("Authorization")
 		sk = strings.Replace(authorization, "Bearer ", "", -1)
 	}
 
@@ -34,7 +34,7 @@ func parsetoken(db *bolt.DB, req *http.Request) (user *User, token *Token, err e
 	id := sk[0:IDLength]
 
 	err = db.View(func(tx *bolt.Tx) error {
-		token, err := GetToken(tx, "tk_"+id, true)
+		token, err = GetToken(tx, "tk_"+id, true)
 		if err != nil {
 			return err
 		}
@@ -71,7 +71,8 @@ func TokenAuthMiddleware(db *bolt.DB) gin.HandlerFunc {
 
 		user, token, err := parsetoken(db, c.Request)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
+			fmt.Println(err)
 			return
 		}
 
@@ -98,6 +99,7 @@ func PermissionMiddleware(permission string, cfg *Config) gin.HandlerFunc {
 		p := PermissionForEmail(email, cfg)
 		if !IsEqualOrHigherPermission(p, permission) {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			fmt.Println("user has permission " + p + " required: " + permission)
 			return
 		}
 
@@ -187,7 +189,7 @@ func oktaToken(db *bolt.DB, cfg *Config, code string) (token *Token, sk string, 
 			return err
 		}
 		uid := user.ID
-		token := &Token{
+		token = &Token{
 			User: uid,
 		}
 
@@ -226,6 +228,7 @@ func addRoutes(router *gin.Engine, db *bolt.DB, kube *Kubernetes, cfg *Config) e
 		if params.OktaCode != "" && cfg.Providers.Okta.Valid() {
 			token, sk, err := oktaToken(db, cfg, params.OktaCode)
 			if err != nil {
+				fmt.Println(err)
 				c.JSON(http.StatusBadRequest, ErrorResponse{"invalid code"})
 				return
 			}
@@ -244,7 +247,7 @@ func addRoutes(router *gin.Engine, db *bolt.DB, kube *Kubernetes, cfg *Config) e
 			var token Token
 			var sk string
 			err := db.Update(func(tx *bolt.Tx) error {
-				token.User = curtoken.ID
+				token.User = curuser.ID
 				sk, err = PutToken(tx, &token)
 				if err != nil {
 					return err
@@ -265,16 +268,15 @@ func addRoutes(router *gin.Engine, db *bolt.DB, kube *Kubernetes, cfg *Config) e
 			return
 		}
 
-		if !c.GetBool("skipauth") && curuser == nil && IsEqualOrHigherPermission(PermissionForEmail(curuser.Email, cfg), "admin") {
+		if !c.GetBool("skipauth") && (curuser == nil || !IsEqualOrHigherPermission(PermissionForEmail(curuser.Email, cfg), "admin")) {
 			c.JSON(http.StatusUnauthorized, ErrorResponse{"unauthorized"})
 			return
 		}
 
 		var token Token
 		var sk string
-		var uid string
 
-		token.User = uid
+		token.User = params.User
 		err = db.Update(func(tx *bolt.Tx) (err error) {
 			sk, err = PutToken(tx, &token)
 			if err != nil {

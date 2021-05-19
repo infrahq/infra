@@ -22,9 +22,8 @@ type ProviderConfig struct {
 }
 
 type Permission struct {
-	Email      string `yaml:"email"`
+	User       string `yaml:"user"`
 	Permission string `yaml:"permission"`
-	Namespace  string `yaml:"namespace"`
 }
 
 type Config struct {
@@ -33,12 +32,13 @@ type Config struct {
 }
 
 func NewConfig(path string) (config *Config, err error) {
+	config = &Config{}
+
 	contents, err := ioutil.ReadFile(path)
 	if err != nil {
 		return
 	}
 
-	config = &Config{}
 	err = yaml.Unmarshal([]byte(contents), &config)
 	if err != nil {
 		return
@@ -57,7 +57,7 @@ func NewConfig(path string) (config *Config, err error) {
 		if err != nil {
 			return nil, err
 		}
-		config.Providers.Okta.ClientSecret = string(bytes)
+		config.Providers.Okta.ApiToken = string(bytes)
 	}
 
 	return
@@ -106,7 +106,7 @@ func (o *OktaConfig) EmailFromCode(code string) (string, error) {
 		RedirectURL:  "http://localhost:8301",
 		Scopes:       []string{"openid", "email"},
 		Endpoint: oauth2.Endpoint{
-			TokenURL: "https://" + o.Domain + "/v1/token",
+			TokenURL: "https://" + o.Domain + "/oauth2/v1/token",
 			AuthURL:  "https://" + o.Domain + "/oauth2/v1/authorize",
 		},
 	}
@@ -127,4 +127,36 @@ func (o *OktaConfig) EmailFromCode(code string) (string, error) {
 	email := out["email"].(string)
 
 	return email, nil
+}
+
+var PermissionOrdering = []string{"view", "edit", "admin"}
+
+func IsEqualOrHigherPermission(a string, b string) bool {
+	indexa := 0
+	indexb := 0
+
+	for i, p := range PermissionOrdering {
+		if a == p {
+			indexa = i
+		}
+
+		if b == p {
+			indexb = i
+		}
+	}
+
+	return indexa >= indexb
+}
+
+// Gets users permissions from config, with a catch-all of view
+// TODO (jmorganca): should this be nothing instead of view?
+func PermissionForEmail(email string, cfg *Config) string {
+	for _, p := range cfg.Permissions {
+		if p.User == email {
+			return p.Permission
+		}
+	}
+
+	// Default to view
+	return "view"
 }

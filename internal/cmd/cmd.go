@@ -230,7 +230,7 @@ func Run() error {
 						state := generate.RandString(12)
 						authorizeUrl := "https://" + response.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + response.Okta.ClientID + "&response_type=code&scope=openid+email&nonce=" + generate.RandString(10) + "&state=" + state
 
-						fmt.Println("Opening browser window...")
+						fmt.Println("✓ Logging in with Okta...")
 						server, err := newLocalServer()
 						if err != nil {
 							return err
@@ -261,6 +261,7 @@ func Run() error {
 					req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 					if token != "" {
+						fmt.Println("✓ Logging in with Token...")
 						req.SetBasicAuth(token, "")
 					}
 
@@ -275,8 +276,16 @@ func Run() error {
 						return err
 					}
 
+					fmt.Println("✓ Logged in")
+
+					// Create a kubeconfig
+					url, err := url.Parse(normalizeHost(hostArg))
+					if err != nil {
+						return err
+					}
+
 					if err = writeConfig(&Config{
-						Host:    normalizeHost(hostArg),
+						Host:    url.Hostname(),
 						Token:   response.SecretToken,
 						Expires: response.Token.Expires,
 						User:    response.Token.User,
@@ -306,10 +315,10 @@ func Run() error {
 					config.CurrentContext = hostArg
 
 					if err = clientcmd.WriteToFile(config, clientcmd.RecommendedHomeFile); err != nil {
-						log.Fatal(err)
+						return err
 					}
 
-					fmt.Println("Kubeconfig updated.")
+					fmt.Println("✓ Kubeconfig updated")
 
 					return nil
 				},
