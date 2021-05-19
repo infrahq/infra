@@ -9,6 +9,7 @@
     * [`infra users list`](#infra-users-list)
     * [`infra users create`](#infra-users-create)
     * [`infra users delete`](#infra-users-delete)
+    * [`infra users inspect` (Coming Soon)](#infra-users-inspect)
     * [`infra engine`](#infra-engine)
 
 ## Install
@@ -154,6 +155,57 @@ $ infra users delete USER
 ```
 $ infra users delete usr_mgna7u291s012
 usr_mgna7u291s012
+```
+
+### `infra users inspect` (Coming Soon)
+
+Inspect a user's permissions
+
+#### Usage
+
+```
+$ infra users inspect USER
+```
+
+#### Example
+
+```
+$ infra user inspect usr_mgna7u291s012
+INFRA RESOURCE                                                LIST  CREATE  UPDATE  DELETE
+users                                                         ✔     ✔       ✔       ✔
+groups                                                        ✔     ✔       ✔       ✔
+providers                                                     ✔     ✔       ✔       ✔
+
+KUBERNETES RESOURCE                                           LIST  CREATE  UPDATE  DELETE
+daemonsets.apps                                               ✔     ✔       ✔       ✔
+daemonsets.extensions                                         ✔     ✔       ✔       ✔
+deployments.apps                                              ✔     ✔       ✔       ✔
+deployments.extensions                                        ✔     ✔       ✔       ✔
+endpoints                                                     ✔     ✔       ✔       ✔
+events                                                        ✔     ✔       ✔       ✔
+events.events.k8s.io                                          ✔     ✔       ✔       ✔
+pods                                                          ✔     ✔       ✔       ✔
+pods.metrics.k8s.io                                           ✔                     
+podsecuritypolicies.extensions                                ✔     ✔       ✔       ✔
+podsecuritypolicies.policy                                    ✔     ✔       ✔       ✔
+replicasets.apps                                              ✔     ✔       ✔       ✔
+replicasets.extensions                                        ✔     ✔       ✔       ✔
+replicationcontrollers                                        ✔     ✔       ✔       ✔
+resourcequotas                                                ✔     ✔       ✔       ✔
+rolebindings.rbac.authorization.k8s.io                        ✔     ✔       ✔       ✔
+roles.rbac.authorization.k8s.io                               ✔     ✔       ✔       ✔
+runtimeclasses.node.k8s.io                                    ✔     ✔       ✔       ✔
+secrets                                                       ✔     ✔       ✔       ✔ 
+selfsubjectaccessreviews.authorization.k8s.io                       ✔               
+selfsubjectrulesreviews.authorization.k8s.io                        ✔               
+serviceaccounts                                               ✔     ✔       ✔       ✔
+services                                                      ✔     ✔       ✔       ✔
+statefulsets.apps                                             ✔     ✔       ✔       ✔
+storageclasses.storage.k8s.io                                 ✔     ✔       ✔       ✔
+subjectaccessreviews.authorization.k8s.io                           ✔               
+tokenreviews.authentication.k8s.io                                  ✔               
+validatingwebhookconfigurations.admissionregistration.k8s.io  ✔     ✔       ✔       ✔
+volumeattachments.storage.k8s.io                              ✔     ✔       ✔       ✔
 ```
 
 ### `infra engine`
