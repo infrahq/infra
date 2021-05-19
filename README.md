@@ -56,13 +56,13 @@ Next, Install the Infra CLI:
 
 ```bash
 # macOS
-$ curl --url "https://github.com/infrahq/early-access/releases/download/latest/infra-darwin-$(uname -m)" --output /usr/local/bin/infra && chmod +x /usr/local/bin/infra
+$ curl -L "https://github.com/infrahq/early-access/releases/latest/download/infra-darwin-$(uname -m)" -o /usr/local/bin/infra && chmod +x /usr/local/bin/infra
 
 # Linux
-$ curl --url "https://github.com/infrahq/early-access/releases/download/latest/infra-linux-$(uname -m)" --output /usr/local/bin/infra && chmod +x /usr/local/bin/infra
+$ curl -L "https://github.com/infrahq/early-access/releases/latest/download/infra-linux-$(uname -m)" -o /usr/local/bin/infra && chmod +x /usr/local/bin/infra
 
 # Windows 10
-$ curl.exe --url "https://github.com/infrahq/early-access/releases/download/latest/infra-windows-amd64.exe" --output infra.exe
+$ curl.exe -L "https://github.com/infrahq/early-access/releases/download/latest/infra-windows-amd64.exe" -o infra.exe
 ```
 
 ## Usage
