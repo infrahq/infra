@@ -1,4 +1,5 @@
 tag := $(or $(git describe --tags), v0.0.1)
+repo := infrahq/early-access
 
 .PHONY: build
 build:
@@ -22,8 +23,8 @@ sign:
 release:
 	make build
 	make sign
-	gh release create $(tag) --title $(tag) -n ""
-	gh release upload $(tag) build/* --clobber
+	-gh release create $(tag) --title $(tag) -n "" -R $(repo)
+	gh release upload $(tag) build/* --clobber -R $(repo)
 
 build/docker:
 	docker buildx build --platform linux/amd64,linux/arm64 . -t infrahq/infra:$(tag:v%=%)

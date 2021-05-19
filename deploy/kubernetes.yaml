@@ -77,8 +77,6 @@ spec:
       app: infra
   replicas: 1
   serviceName: infra
-  updateStrategy:
-    type: RollingUpdate
   template:
     metadata:
       labels:
