@@ -16,8 +16,8 @@ providers:
   okta:
     domain: acme.okta.com
     client-id: 0oapn0qwiQPiMIyR35d6
-    client-secret: /etc/secrets/infra/okta-client-secret
-    api-token: /etc/secrets/infra/okta-api-token
+    client-secret: /var/run/infra/secrets/okta-client-secret
+    api-token: /var/run/infra/secrets/okta-api-token
 
 permissions:
   - user: admin@acme.com

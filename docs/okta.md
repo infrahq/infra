@@ -47,9 +47,9 @@ Then, create an API key for Infra to synchronize users:
 Add secrets from the previous step:
 
 ```
-$ kubectl -n infra edit secret/infra \
-    --from-literal=okta-client-secret=In6P_qEoEVugEgk_7Z-Vkl6CysG1QapBBCzS5O7m \   # Client Secret
-    --from-literal=okta-api-token=00nQtyRYAXOaA03xRJ5Ok2o6Tg8f19ku9DD3ySS8U9       # API Token
+$ kubectl -n infra create secret generic infra \
+    --from-literal="okta-client-secret=In6P_qEoEVugEgk_7Z-Vkl6CysG1QapBBCzS5O7m" \
+    --from-literal="okta-api-token=00nQtyRYAXOaA03xRJ5Ok2o6Tg8f19ku9DD3ySS8U9"
 ```
 
 Then update Infra Engine's configuration:
@@ -67,13 +67,19 @@ data:
       okta:
         domain: acme.okta.com                                 # REPLACE ME: Your Okta domain
         client-id: 0oapn0qwiQPiMIyR35d6                       # REPLACE ME: Your Client ID
-        client-secret: /etc/secrets/infra/okta-client-secret
-        api-token: /etc/secrets/infra/okta-api-token
+        client-secret: /var/run/infra/secrets/okta-client-secret
+        api-token: /var/run/infra/secrets/okta-api-token
 
     permissions:
       - user: michael@acme.com
         permission: admin
 EOF
+```
+
+Finally, rollout a new version of Infra to reflect the new configuration:
+
+```
+$ kubectl rollout restart -n infra statefulset/infra
 ```
 
 ## Usage

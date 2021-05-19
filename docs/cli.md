@@ -9,7 +9,10 @@
     * [`infra users list`](#infra-users-list)
     * [`infra users create`](#infra-users-create)
     * [`infra users delete`](#infra-users-delete)
-    * [`infra users inspect` (Coming Soon)](#infra-users-inspect)
+    * [`infra users inspect` (Coming Soon)](#infra-users-inspect-coming-soon)
+    * [`infra tokens list`](#infra-users-list)
+    * [`infra tokens create`](#infra-tokens-create)
+    * [`infra tokens delete`](#infra-tokens-delete)
     * [`infra engine`](#infra-engine)
 
 ## Install
@@ -209,6 +212,69 @@ tokenreviews.authentication.k8s.io                                  ✔
 validatingwebhookconfigurations.admissionregistration.k8s.io  ✔     ✔       ✔       ✔
 volumeattachments.storage.k8s.io                              ✔     ✔       ✔       ✔
 ```
+
+HI
+
+### `infra tokens list`
+
+#### Usage
+
+```
+$ infra tokens list
+```
+
+#### Example
+
+```
+$ infra users list
+USER            	EMAIL              	CREATED         PROVIDERS  	PERMISSION	  
+usr_k3Egu0A9Jdah	bot@infrahq.com    	9 seconds ago	         	view      	
+usr_cHHfCsZu3by7	michael@infrahq.com	6 hours ago  	okta     	view      	
+usr_jojpIOMrBM6F	elon@infrahq.com   	6 hours ago  	okta     	view      	
+usr_mBOjQx8RjC00	mark@infrahq.com   	6 hours ago  	okta     	view      	
+usr_o7WreRsehzyn	tom@infrahq.com    	6 hours ago  	okta     	view      	
+usr_uOQSaCwEDzYk	jeff@infrahq.com   	6 hours ago  	okta     	view    
+```
+
+### `infra tokens create`
+
+Create a token for a user
+
+#### Usage
+
+```
+$ infra tokens create USER
+```
+
+#### Example
+
+```
+$ infra token create usr_k3Egu0A9Jdah
+sk_GqwGycdQhW00maZ9HeuizGp3VJfEmods2ik70pmy8cZt
+```
+
+The user can now log in via:
+```
+$ infra login --token sk_GqwGycdQhW00maZ9HeuizGp3VJfEmods2ik70pmy8cZt <infra endpoint>
+```
+
+### `infra tokens delete`
+
+Delete a token
+
+#### Usage
+
+```
+$ infra tokens delete TOKEN
+```
+
+#### Example
+
+```
+$ infra tokens delete tk_jg08aj08s40w
+tk_jg08aj08s40w
+```
+
 
 ### `infra engine`
 
