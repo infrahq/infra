@@ -53,9 +53,12 @@ func Run(options *ServerOptions) error {
 				fmt.Println(err)
 			}
 
-			db.Update(func(tx *bolt.Tx) error {
+			err = db.Update(func(tx *bolt.Tx) error {
 				return SyncUsers(tx, emails, "okta")
 			})
+			if err != nil {
+				fmt.Println(err)
+			}
 		}
 
 		kube.UpdatePermissions(db, config)

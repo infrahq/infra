@@ -13,7 +13,9 @@
 
 ## Prerequisites
 
+* [Install Infra](../README.md#install)
 * An Okta administrator account
+
 
 ## Setup
 

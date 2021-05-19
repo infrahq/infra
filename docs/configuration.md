@@ -75,7 +75,7 @@ permissions:
 | :--------  | :------------------------------    |
 | view       | View & list any resource           |
 | edit       | Create, edit, delete any resource  |
-| admin      | Full acces                         |
+| admin      | Full access                        |
 
 ### `namespace`
 
