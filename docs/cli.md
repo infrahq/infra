@@ -39,12 +39,13 @@ For example, using Kubernetes via `kubectl`:
 kubectl -n infra exec -it infra-0 sh
 
 # infra users list
-USER            	EMAIL              	CREATED           	PERMISSION	PROVIDERS  
-usr_sTDLRxYyufcr	elon@acme.com   	About a minute ago	view      	okta      	
-usr_uqTdSSZiVJUh	tom@acme.com    	About a minute ago	view      	okta      	
-usr_w5Lh4ICi7JlX	mark@acme.com   	About a minute ago	view      	okta      	
-usr_KrvryrZTwgzz	michael@acme.com	About a minute ago	view      	infra,okta	
-usr_TuVclkaTYDUN	jeff@acme.com   	About a minute ago	admin      	infra,okta
+USER            	EMAIL              	CREATED         PROVIDERS  	PERMISSION	  
+usr_k3Egu0A9Jdah	bot@infrahq.com    	9 seconds ago	         	view      	
+usr_cHHfCsZu3by7	michael@infrahq.com	6 hours ago  	okta     	view      	
+usr_jojpIOMrBM6F	elon@infrahq.com   	6 hours ago  	okta     	view      	
+usr_mBOjQx8RjC00	mark@infrahq.com   	6 hours ago  	okta     	view      	
+usr_o7WreRsehzyn	tom@infrahq.com    	6 hours ago  	okta     	view      	
+usr_uOQSaCwEDzYk	jeff@infrahq.com   	6 hours ago  	okta     	view      
 ```
 
 ### Global Flags
@@ -106,12 +107,13 @@ $ infra users list
 
 ```
 $ infra users list
-USER            	EMAIL              	CREATED           	PERMISSION	PROVIDERS  
-usr_sTDLRxYyufcr	elon@acme.com   	About a minute ago	view      	okta      	
-usr_uqTdSSZiVJUh	tom@acme.com    	About a minute ago	view      	okta      	
-usr_w5Lh4ICi7JlX	mark@acme.com   	About a minute ago	view      	okta      	
-usr_KrvryrZTwgzz	michael@acme.com	About a minute ago	view      	infra,okta	
-usr_TuVclkaTYDUN	jeff@acme.com   	About a minute ago	admin      	infra,okta
+USER            	EMAIL              	CREATED         PROVIDERS  	PERMISSION	  
+usr_k3Egu0A9Jdah	bot@infrahq.com    	9 seconds ago	         	view      	
+usr_cHHfCsZu3by7	michael@infrahq.com	6 hours ago  	okta     	view      	
+usr_jojpIOMrBM6F	elon@infrahq.com   	6 hours ago  	okta     	view      	
+usr_mBOjQx8RjC00	mark@infrahq.com   	6 hours ago  	okta     	view      	
+usr_o7WreRsehzyn	tom@infrahq.com    	6 hours ago  	okta     	view      	
+usr_uOQSaCwEDzYk	jeff@infrahq.com   	6 hours ago  	okta     	view    
 ```
 
 ### `infra users create`

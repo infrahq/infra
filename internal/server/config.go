@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"io/ioutil"
-	"os"
 
 	"github.com/okta/okta-sdk-golang/v2/okta"
 	"github.com/square/go-jose/jwt"
@@ -46,7 +45,7 @@ func NewConfig(path string) (config *Config, err error) {
 	}
 
 	if config.Providers.Okta.ClientSecret != "" {
-		bytes, err := os.ReadFile(config.Providers.Okta.ClientSecret)
+		bytes, err := ioutil.ReadFile(config.Providers.Okta.ClientSecret)
 		if err != nil {
 			return nil, err
 		}
@@ -54,7 +53,7 @@ func NewConfig(path string) (config *Config, err error) {
 	}
 
 	if config.Providers.Okta.ApiToken != "" {
-		bytes, err := os.ReadFile(config.Providers.Okta.ApiToken)
+		bytes, err := ioutil.ReadFile(config.Providers.Okta.ApiToken)
 		if err != nil {
 			return nil, err
 		}

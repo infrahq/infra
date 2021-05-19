@@ -91,10 +91,10 @@ $ infra login infra.acme.com
 
 ```
 $ infra users ls
-USER ID         	PROVIDERS	EMAIL             CREATED     	  PERMISSION
-usr_vfZjSZctMptn	okta     	michael@acme.com  2 minutes ago   admin
-usr_mvm8YVTvOGY4	okta     	tom@acme.com      2 minutes ago	  view      	
-usr_Lgr5pQIkrrM4	okta     	elon@acme.com     2 minutes ago	  view      	
-usr_g7UcCe7CUdHA	okta     	jeff@acme.com     2 minutes ago	  view      	   	
-usr_wH4Oc9QdPxpj	okta     	mark@acme.com     2 minutes ago	  view  
+USER            	EMAIL              	CREATED         PROVIDERS  	PERMISSION	      	
+usr_cHHfCsZu3by7	michael@infrahq.com	3 minutes ago   okta     	view      	
+usr_jojpIOMrBM6F	elon@infrahq.com   	3 minutes ago   okta     	view      	
+usr_mBOjQx8RjC00	mark@infrahq.com   	3 minutes ago   okta     	view      	
+usr_o7WreRsehzyn	tom@infrahq.com    	3 minutes ago   okta     	view      	
+usr_uOQSaCwEDzYk	jeff@infrahq.com   	3 minutes ago  	okta     	view  
 ```
