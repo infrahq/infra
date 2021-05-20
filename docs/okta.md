@@ -84,8 +84,8 @@ data:
         api-token: /var/run/infra/secrets/okta-api-token
 
     permissions:
-      - user: michael@acme.com
-        permission: admin
+      - user: michael@acme.com                               # REPLACE ME
+        permission: admin                                    # REPLACE ME
 EOF
 ```
 
