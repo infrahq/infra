@@ -108,15 +108,15 @@ func PermissionMiddleware(permission string, cfg *Config) gin.HandlerFunc {
 	}
 }
 
-func ProxyHandler(kubernetes *Kubernetes) gin.HandlerFunc {
+func ProxyHandler(kubernetes *Kubernetes) (handler gin.HandlerFunc, err error) {
 	remote, err := url.Parse(kubernetes.Config.Host)
 	if err != nil {
-		fmt.Println(err)
+		return
 	}
 
 	ca, err := ioutil.ReadFile(kubernetes.Config.TLSClientConfig.CAFile)
 	if err != nil {
-		fmt.Println(err)
+		return
 	}
 
 	caCertPool := x509.NewCertPool()
@@ -134,7 +134,7 @@ func ProxyHandler(kubernetes *Kubernetes) gin.HandlerFunc {
 		c.Request.Header.Set("Impersonate-User", email)
 		c.Request.Header.Add("Authorization", "Bearer "+string(kubernetes.Config.BearerToken))
 		http.StripPrefix("/v1/proxy", proxy).ServeHTTP(c.Writer, c.Request)
-	}
+	}, err
 }
 
 type RetrieveProvidersResponse struct {
@@ -446,7 +446,10 @@ func addRoutes(router *gin.Engine, db *bolt.DB, kube *Kubernetes, cfg *Config) e
 	})
 
 	if kube != nil {
-		proxyHandler := ProxyHandler(kube)
+		proxyHandler, err := ProxyHandler(kube)
+		if err != nil {
+			return err
+		}
 		router.GET("/v1/proxy/*all", TokenAuthMiddleware(db), proxyHandler)
 		router.POST("/v1/proxy/*all", TokenAuthMiddleware(db), proxyHandler)
 		router.PUT("/v1/proxy/*all", TokenAuthMiddleware(db), proxyHandler)

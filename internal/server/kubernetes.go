@@ -12,7 +12,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	rest "k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 type Kubernetes struct {
@@ -29,15 +28,7 @@ func NewKubernetes() (*Kubernetes, error) {
 	k := &Kubernetes{}
 
 	config, err := rest.InClusterConfig()
-	if err == rest.ErrNotInCluster {
-		kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{})
-		config, err = kubeConfig.ClientConfig()
-		if err != nil {
-			return nil, err
-		}
-
-		fmt.Println("Using out-of-cluster Kubeconfig")
-	} else if err != nil {
+	if err != nil {
 		return nil, err
 	} else {
 		fmt.Println("Using in-cluster Kubeconfig")

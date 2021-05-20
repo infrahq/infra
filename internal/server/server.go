@@ -37,7 +37,7 @@ func Run(options *ServerOptions) error {
 
 	kube, err := NewKubernetes()
 	if err != nil {
-		fmt.Println("warning: could not connect to kubernetes api", err)
+		return err
 	}
 
 	config, err := NewConfig(options.ConfigPath)
@@ -69,7 +69,6 @@ func Run(options *ServerOptions) error {
 
 	unixRouter := gin.New()
 	unixRouter.Use(gin.Logger())
-	// Skip auth when accessing infra engine over
 	unixRouter.Use(func(c *gin.Context) {
 		c.Set("skipauth", true)
 	})
