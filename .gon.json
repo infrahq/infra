@@ -1,5 +1,5 @@
 {
-    "source" : ["./build/infra-darwin-arm64", "./build/infra-darwin-amd64"],
+    "source" : ["./build/infra-darwin-arm64", "./build/infra-darwin-x86_64"],
     "bundle_id" : "com.infrahq.infra",
     "apple_id": {
         "username": "jeff@infra.app",
