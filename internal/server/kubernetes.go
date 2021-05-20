@@ -29,7 +29,7 @@ func NewKubernetes() (*Kubernetes, error) {
 
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		return nil, err
+		return k, err
 	} else {
 		fmt.Println("Using in-cluster Kubeconfig")
 	}
@@ -42,6 +42,10 @@ func NewKubernetes() (*Kubernetes, error) {
 func (k *Kubernetes) UpdatePermissions(db *bolt.DB, cfg *Config) error {
 	if db == nil || cfg == nil {
 		return errors.New("parameter cannot be nil")
+	}
+
+	if k.Config == nil {
+		return errors.New("invalid kubernetes config")
 	}
 
 	k.mu.Lock()

@@ -445,7 +445,7 @@ func addRoutes(router *gin.Engine, db *bolt.DB, kube *Kubernetes, cfg *Config) e
 		c.JSON(http.StatusOK, DeleteResponse{true, params.ID})
 	})
 
-	if kube != nil {
+	if kube != nil && kube.Config != nil {
 		proxyHandler, err := ProxyHandler(kube)
 		if err != nil {
 			return err

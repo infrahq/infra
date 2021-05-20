@@ -37,7 +37,7 @@ func Run(options *ServerOptions) error {
 
 	kube, err := NewKubernetes()
 	if err != nil {
-		return err
+		fmt.Println("warning: could connect to Kubernetes API", err)
 	}
 
 	config, err := NewConfig(options.ConfigPath)
