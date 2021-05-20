@@ -37,13 +37,14 @@ Identity and access management for Kubernetes. Instead of creating separate cred
 ### Install Infra Engine on Kubernetes
 
 ```
-$ kubectl apply -f https://raw.githubusercontent.com/infrahq/early-access/master/deploy/kubernetes.yaml
+kubectl apply -f https://raw.githubusercontent.com/infrahq/early-access/master/deploy/kubernetes.yaml
 ```
 
 Infra exposes a LoadBalancer endpoint:
 
 ```
-$ kubectl get svc --namespace infra
+kubectl get svc --namespace infra
+
 NAME      TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)        AGE
 infra     LoadBalancer   10.12.11.116   31.58.101.169   80:32326/TCP   1m
 ```
@@ -54,23 +55,29 @@ Optionally, map a domain to the exposed endpoint (e.g. `infra.acme.com` to `31.5
 
 Next, Install the Infra CLI:
 
+**macOS** 
 ```bash
-# macOS
-$ curl -L "https://github.com/infrahq/early-access/releases/latest/download/infra-darwin-$(uname -m)" -o /usr/local/bin/infra && chmod +x /usr/local/bin/infra
-
-# Linux
-$ curl -L "https://github.com/infrahq/early-access/releases/latest/download/infra-linux-$(uname -m)" -o /usr/local/bin/infra && chmod +x /usr/local/bin/infra
-
-# Windows 10
-$ curl.exe -L "https://github.com/infrahq/early-access/releases/download/latest/infra-windows-amd64.exe" -o infra.exe
+curl -L "https://github.com/infrahq/early-access/releases/latest/download/infra-darwin-$(uname -m)" -o /usr/local/bin/infra && chmod +x /usr/local/bin/infra
+``` 
+**Linux**
+```bash
+curl -L "https://github.com/infrahq/early-access/releases/latest/download/infra-linux-$(uname -m)" -o /usr/local/bin/infra && chmod +x /usr/local/bin/infra
+```
+**Windows 10**
+```bash
+curl.exe -L "https://github.com/infrahq/early-access/releases/download/latest/infra-windows-amd64.exe" -o infra.exe
 ```
 
-## Documentation
+## Adding Identity Sources
+
 * [Manually Create & Delete Users](./docs/manual.md)
 * [Okta](./docs/okta.md)
+
+## Documentation
 * [Configuration Reference](./docs/configuration.md)
 * [CLI Reference](./docs/cli.md)
 * [API Reference](./docs/api.md)
+
 
 ## Develop
 
