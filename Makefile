@@ -1,5 +1,5 @@
 tag := $(or $(git describe --tags), v0.0.1)
-repo := infrahq/early-access
+repo := infrahq/infra
 
 .PHONY: build
 build:
