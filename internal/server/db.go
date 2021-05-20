@@ -141,6 +141,9 @@ func ListTokens(tx *bolt.Tx, user string) (tokens []Token, err error) {
 		if err = json.Unmarshal(v, &token); err != nil {
 			return err
 		}
+
+		token.HashedSecret = []byte{}
+
 		if user == "" || token.User == user {
 			tokens = append(tokens, token)
 		}
