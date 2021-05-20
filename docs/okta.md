@@ -50,6 +50,7 @@ Then, create a API token for this read-only user:
 1. Log in as this new user
 2. Navigate to **Security > API**, then click the **Tokens** tab.
 3. Create a new Token by clicking **Create Token**. Name it **Infra**
+
 ![image](https://user-images.githubusercontent.com/3325447/119014216-bc7bd680-b965-11eb-81db-24f53354291c.png)
 
 4. Note this token for the next step.
