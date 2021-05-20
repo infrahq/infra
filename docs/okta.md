@@ -24,9 +24,6 @@
 1. Log into Okta as an Administrator
 2. Under the left menu click **Applications > Applications**. Click **Create App Integration** then select **OIDC – OpenID Connect** and **Web Application**, then click **Next**.
 
-
-![image](https://user-images.githubusercontent.com/3325447/119012720-44f97780-b964-11eb-9e33-df0c4857bc92.png)
-
 ![image](https://user-images.githubusercontent.com/3325447/119013012-90ac2100-b964-11eb-9266-b5f3ab3b7392.png)
 
 
