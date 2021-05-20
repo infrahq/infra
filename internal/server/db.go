@@ -92,6 +92,8 @@ func PutToken(tx *bolt.Tx, token *Token) (sk string, err error) {
 		return "", err
 	}
 
+	token.HashedSecret = []byte{}
+
 	sk = "sk_" + id + string(secret)
 
 	return

@@ -241,7 +241,7 @@ func addRoutes(router *gin.Engine, db *bolt.DB, kube *Kubernetes, cfg *Config) e
 		// token for oneself
 		if params.User == "" {
 			if curuser == nil && curtoken == nil {
-				c.JSON(http.StatusBadRequest, ErrorResponse{"invalid user"})
+				c.JSON(http.StatusUnauthorized, ErrorResponse{"invalid token"})
 				return
 			}
 			var token Token
@@ -282,8 +282,6 @@ func addRoutes(router *gin.Engine, db *bolt.DB, kube *Kubernetes, cfg *Config) e
 			if err != nil {
 				return err
 			}
-
-			token.HashedSecret = []byte{}
 
 			return nil
 		})
