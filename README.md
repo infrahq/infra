@@ -53,19 +53,22 @@ Optionally, map a domain to the exposed endpoint (e.g. `infra.acme.com` to `31.5
 
 ### Install Infra CLI
 
-Next, Install the Infra CLI:
+On **macOS**:
 
-**macOS** 
 ```bash
-curl -L "https://github.com/infrahq/early-access/releases/latest/download/infra-darwin-$(uname -m)" -o /usr/local/bin/infra && chmod +x /usr/local/bin/infra
-``` 
-**Linux**
-```bash
-curl -L "https://github.com/infrahq/early-access/releases/latest/download/infra-linux-$(uname -m)" -o /usr/local/bin/infra && chmod +x /usr/local/bin/infra
+curl -L "https://github.com/infrahq/infra/releases/latest/download/infra-darwin-$(uname -m)" -o /usr/local/bin/infra && chmod +x /usr/local/bin/infra
 ```
-**Windows 10**
-```bash
-curl.exe -L "https://github.com/infrahq/early-access/releases/download/latest/infra-windows-amd64.exe" -o infra.exe
+
+On **Linux**:
+
+```
+curl -L "https://github.com/infrahq/infra/releases/latest/download/infra-linux-$(uname -m)" -o /usr/local/bin/infra && chmod +x /usr/local/bin/infra
+```
+
+On **Windows**:
+
+```
+curl.exe -L "https://github.com/infrahq/infra/releases/download/latest/infra-windows-amd64.exe" -o infra.exe
 ```
 
 ## Adding Identity Sources

@@ -17,16 +17,7 @@
 
 ## Install
 
-```bash
-# macOS
-$ curl --url "https://github.com/infrahq/infra/releases/download/latest/infra-darwin-$(uname -m)" --output /usr/local/bin/infra && chmod +x /usr/local/bin/infra
-
-# Linux
-$ curl --url "https://github.com/infrahq/infra/releases/download/latest/infra-linux-$(uname -m)" --output /usr/local/bin/infra && chmod +x /usr/local/bin/infra
-
-# Windows 10
-$ curl.exe --url "https://github.com/infrahq/infra/releases/download/latest/infra-windows-amd64.exe" --output infra.exe
-```
+See [Install Infra CLI](../README.md#install-infra-cli)
 
 ## Overview
 
