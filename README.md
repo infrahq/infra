@@ -1,9 +1,12 @@
 <br/>
 <br/>
 <br/>
+<br/>
 <p align="center">
   <img src="./docs/images/logo.svg" height="38" />
 </p>
+<br/>
+<br/>
 <br/>
 
 * Website: https://infrahq.com
@@ -24,11 +27,8 @@ Identity and access management for Kubernetes. Instead of creating separate cred
 ## Architecture
 
 <p align="center">
-  <br/>
-  <img src="https://user-images.githubusercontent.com/251292/119069334-f8d62380-b9b3-11eb-8440-94836c9be5c6.png" />
-  <br/>
+  <img src="https://user-images.githubusercontent.com/251292/119071196-5c158500-b9b7-11eb-9992-3d83d9b1411d.png" />
 </p>
-
 
 ## Install
 
