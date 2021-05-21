@@ -72,7 +72,7 @@ On **Windows**:
 curl.exe -L "https://github.com/infrahq/infra/releases/download/latest/infra-windows-amd64.exe" -o infra.exe
 ```
 
-## Adding Identity Sources
+### Add Users (Identity sources to sync) 
 * [Okta](./docs/okta.md)
 * [Manually Create & Delete Users](./docs/manual.md)
 
