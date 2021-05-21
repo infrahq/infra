@@ -27,7 +27,7 @@ Identity and access management for Kubernetes. Instead of creating separate cred
 ## Architecture
 
 <p align="center">
-  <img src="https://user-images.githubusercontent.com/251292/119071196-5c158500-b9b7-11eb-9992-3d83d9b1411d.png" />
+  <img src="./docs/images/arch.svg" />
 </p>
 
 ## Install
