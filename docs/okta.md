@@ -27,7 +27,7 @@
 ![image](https://user-images.githubusercontent.com/3325447/119013012-90ac2100-b964-11eb-9266-b5f3ab3b7392.png)
 
 
-3. For **App integration name** write **Infra**. Optionally: add [the infra logo](./docs/images/okta.png). For **Sign-in redirect URIs** write `http://localhost:8301`. Click **Save**.
+3. For **App integration name** write **Infra**. For **Sign-in redirect URIs** write `http://localhost:8301`. Click **Save**.
 
 ![image](https://user-images.githubusercontent.com/3325447/119013336-e1237e80-b964-11eb-983d-dbc60fff5ab5.png)
 

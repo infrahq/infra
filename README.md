@@ -1,17 +1,7 @@
 <br/>
-<br/>
-<br/>
-<br/>
 <p align="center">
-  <img src="./docs/images/logo.svg" height="38" />
+  <img src="./docs/images/header.svg" width="838" />
 </p>
-<br/>
-<br/>
-<br/>
-
-* Website: https://infrahq.com
-* Docs: https://infrahq.com/docs
-* Slack: https://infra-slack.slack.com
 
 ## Introduction
 Identity and access management for Kubernetes. Instead of creating separate credentials and writing scripts to map permissions to Kubernetes, developers & IT teams can integrate existing identity providers (Okta, Google accounts, GitHub auth, Azure active directory) to securely provide developers with access to Kubernetes.
@@ -27,7 +17,7 @@ Identity and access management for Kubernetes. Instead of creating separate cred
 ## Architecture
 
 <p align="center">
-  <img src="./docs/images/arch.svg" />
+  <img width="838" src="./docs/images/arch.svg" />
 </p>
 
 ## Install
