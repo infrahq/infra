@@ -2,7 +2,7 @@
 <br/>
 <br/>
 <p align="center">
-  <img src="./docs/images/logo.svg" height="48" />
+  <img src="./docs/images/logo.svg" height="38" />
 </p>
 <br/>
 
@@ -25,9 +25,7 @@ Identity and access management for Kubernetes. Instead of creating separate cred
 
 <p align="center">
   <br/>
-  <br/>
-  <img src="https://user-images.githubusercontent.com/251292/113448649-395cec00-93ca-11eb-9c70-ea4c5c9f82da.png" />
-  <br/>
+  <img src="https://user-images.githubusercontent.com/251292/119069334-f8d62380-b9b3-11eb-8440-94836c9be5c6.png" />
   <br/>
 </p>
 
