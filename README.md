@@ -42,12 +42,15 @@ Infra exposes a LoadBalancer endpoint:
 
 ```
 kubectl get svc --namespace infra
+```
 
+Optionally, map a domain to the exposed endpoint (e.g. `infra.acme.com` to `31.58.101.169`):
+
+```
+$ kubectl get svc --namespace infra
 NAME      TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)        AGE
 infra     LoadBalancer   10.12.11.116   31.58.101.169   80:32326/TCP   1m
 ```
-
-Optionally, map a domain to the exposed endpoint (e.g. `infra.acme.com` to `31.58.101.169`).
 
 ### Install Infra CLI
 
@@ -70,9 +73,9 @@ curl.exe -L "https://github.com/infrahq/infra/releases/download/latest/infra-win
 ```
 
 ## Adding Identity Sources
-
-* [Manually Create & Delete Users](./docs/manual.md)
 * [Okta](./docs/okta.md)
+* [Manually Create & Delete Users](./docs/manual.md)
+
 
 ## Documentation
 * [Configuration Reference](./docs/configuration.md)
