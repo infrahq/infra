@@ -94,6 +94,23 @@ func (k *Kubernetes) UpdatePermissions(db *bolt.DB, cfg *Config) error {
 		})
 	}
 
+	// Create empty crbs
+	for _, p := range PermissionOrdering {
+		if len(subjects[p]) == 0 {
+			crbs = append(crbs, &rbacv1.ClusterRoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "infra-" + p,
+				},
+				Subjects: []rbacv1.Subject{},
+				RoleRef: rbacv1.RoleRef{
+					APIGroup: "rbac.authorization.k8s.io",
+					Kind:     "ClusterRole",
+					Name:     p,
+				},
+			})
+		}
+	}
+
 	if k.Config != nil {
 		clientset, err := kubernetes.NewForConfig(k.Config)
 		if err != nil {
