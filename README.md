@@ -46,7 +46,7 @@ infra     LoadBalancer   10.12.11.116   31.58.101.169   80:32326/TCP   1m
 
 On **macOS**:
 
-```bash
+```
 curl -L "https://github.com/infrahq/infra/releases/latest/download/infra-darwin-$(uname -m)" -o /usr/local/bin/infra && chmod +x /usr/local/bin/infra
 ```
 
