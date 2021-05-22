@@ -61,7 +61,7 @@ On **Windows**:
 curl.exe -L "https://github.com/infrahq/infra/releases/download/latest/infra-windows-amd64.exe" -o infra.exe
 ```
 
-### Add Users
+## Adding Users
 * [Okta](./docs/okta.md)
 * [Manually manage users](./docs/manual.md)
 
