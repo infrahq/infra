@@ -1,4 +1,3 @@
-<br/>
 <p align="center">
   <img src="./docs/images/header.svg" width="838" />
 </p>
