@@ -1,4 +1,4 @@
-# Manually add & remove users
+# Manually manage users
 
 ## Configure Infra
 

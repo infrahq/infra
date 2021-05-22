@@ -4,7 +4,7 @@
 </p>
 
 ## Introduction
-Identity and access management for Kubernetes. Instead of creating separate credentials and writing scripts to map permissions to Kubernetes, developers & IT teams can integrate existing identity providers (Okta, Google accounts, GitHub auth, Azure active directory) to securely provide developers with access to Kubernetes.
+Infra is identity and access management for Kubernetes. Instead of creating separate credentials and writing scripts to map permissions to Kubernetes, developers & IT teams can integrate existing identity providers (Okta, Google accounts, GitHub auth, Azure active directory) to securely provide developers with access to Kubernetes.
 
 ### Features
 * One-command access: `infra login`
@@ -62,9 +62,9 @@ On **Windows**:
 curl.exe -L "https://github.com/infrahq/infra/releases/download/latest/infra-windows-amd64.exe" -o infra.exe
 ```
 
-### Add Users (Identity sources to sync) 
+### Add Users
 * [Okta](./docs/okta.md)
-* [Manually Create & Delete Users](./docs/manual.md)
+* [Manually manage users](./docs/manual.md)
 
 
 ## Documentation
