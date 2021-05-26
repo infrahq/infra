@@ -49,7 +49,7 @@ func (k *Kubernetes) UpdatePermissions(db *gorm.DB, cfg *Config) error {
 	defer k.mu.Unlock()
 
 	var users []User
-	if result := db.Find(users); result.Error != nil {
+	if result := db.Find(&users); result.Error != nil {
 		return result.Error
 	}
 

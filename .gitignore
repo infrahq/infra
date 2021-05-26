@@ -4,3 +4,4 @@ build
 infra.db
 release
 .env
+.test

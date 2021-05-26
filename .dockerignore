@@ -10,3 +10,5 @@ gon.json
 Makefile
 Dockerfile
 build
+internal/ui
+.test

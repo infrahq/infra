@@ -9,8 +9,6 @@
     * [Delete a user](#delete-a-user)
 * [Tokens](#tokens)
     * [Create a token](#create-a-token)
-    * [List all tokens](#list-all-tokens)
-    * [Delete a token](#delete-a-token)
 * [Providers](#providers)
     * [Retrieve provider info](#retrieve-provider-info)
 
@@ -18,22 +16,13 @@
 
 ### Authentication
 
-To authenticate with Infra Engine, use tokens. Tokens can be provided in two ways:
-* `username` with Basic Auth
-* `Bearer` token auth
-
-For example, using Basic auth:
-
-```
-curl https://infra.acme.com/v1/users \
-    -u sk_mnrdvosho472npiwdnakjsdn9as74sdo1dfi:
-```
+To authenticate with Infra, use tokens via the http `Authorization` header.
 
 Using Bearer token auth:
 
 ```
-curl https://infra.acme.com/v1/users \
-    -H "Authorization: Bearer sk_mnrdvosho472npiwdnakjsdn9as74sdo1dfi"
+curl https://infra.example.com/v1/users \
+    -H "Authorization: Bearer Bearer eyJhbGci..._rY2PSRP5HA-g"
 ```
 
 ## Users
@@ -43,7 +32,6 @@ curl https://infra.acme.com/v1/users \
 ```http
       POST /v1/users
        GET /v1/users
-       GET /v1/users/:id
     DELETE /v1/users/:id
 ```
 
@@ -58,24 +46,27 @@ curl https://infra.acme.com/v1/users \
 | Parameter    | Type     | Description                             |
 | :--------    | :------- | :-------------------------------------- |
 | `email`      | `string` | **Required** Email of user              |
+| `password`   | `string` | **Required** Password of user           |
 
 
 #### Request
 
 ```bash
-curl https://infra.acme.com/v1/users \
-    -u sk_mnrdvosho472npiwdnakjsdn9as74sdo1dfi: \
-    -d email=test@acme.com
+curl https://infra.example.com/v1/users \
+    -H "Authorization: Bearer eyJhbGci..._rY2PSRP5HA-g" \
+    -d email=user@example.com \
+    -d password=passw0rd
 ```
 
 #### Response
 
 ```json
 {
-    "id": "usr_LB4MsQycuLEH",
-    "email": "test@infrahq.com",
+    "id": "1",
+    "email": "user@example.com",
     "created": 1620855986,
-    "providers": ["okta"]
+    "updated": 1620855986,
+    "provider": "infra"
 }
 ```
 
@@ -93,7 +84,7 @@ No parameters
 
 ```
 curl https://infra.acme.com/v1/users \
-    -u sk_mnrdvosho472npiwdnakjsdn9as74sdo1dfi:
+    -H "Authorization: Bearer eyJhbGci..._rY2PSRP5HA-g"
 ```
 
 #### Response
@@ -102,43 +93,13 @@ curl https://infra.acme.com/v1/users \
 {
     "data": [
         {
-            "id": "usr_mvm8YVTvOGY4",
-            "email": "tom@acme.com",
-            "created": 1620845768,
-            "providers": ["okta"]
+            "id": "1",
+            "email": "user@example.com",
+            "created": 1620855986,
+            "updated": 1620855986,
+            "provider": "infra"
         },
-    ],
-    "url":"/v1/users"
-}
-```
-
-
-### Retrieve a user
-
-```http
-    GET /v1/users/:id
-```
-
-#### Parameters
-
-No parameters.
-
-#### Request
-
-```
-curl https://infra.acme.com/v1/users/usr_LB4MsQycuLEH \
-    -u sk_mnrdvosho472npiwdnakjsdn9as74sdo1dfi:
-```
-
-#### Response
-
-```json
-{
-    "id": "usr_LB4MsQycuLEH",
-    "email": "test@infrahq.com",
-    "created": 1620855986,
-    "providers": ["okta"],
-    "permission": "view"
+    ]
 }
 ```
 
@@ -156,7 +117,7 @@ No parameters.
 
 ```
 curl https://infra.acme.com/v1/users/usr_LB4MsQycuLEH \
-    -u sk_mnrdvosho472npiwdnakjsdn9as74sdo1dfi: \
+    -H "Authorization: Bearer eyJhbGci..._rY2PSRP5HA-g" \
     -X DELETE
 ```
 
@@ -164,7 +125,6 @@ curl https://infra.acme.com/v1/users/usr_LB4MsQycuLEH \
 
 ```json
 {
-    "id":"usr_LB4MsQycuLEH",
     "deleted": true,
 }
 ```
@@ -181,38 +141,30 @@ curl https://infra.acme.com/v1/users/usr_LB4MsQycuLEH \
 
 ```http
     POST /v1/tokens
-     GET /v1/tokens
-  DELETE /v1/tokens
 ```
 
 #### Parameters
 
-| Parameter         | Type     | Description                       |
-| :--------         | :------- | :-------------------------------- |
-| `code`            | `string` | Authorization code from provider  |
-| `code_provider`   | `string` | Provider to verify code           |
-| `user`            | `string` | User for which to generate token  |
+| Parameter         | Type     | Description                                   |
+| :--------         | :------- | :--------------------------------             |
+| `code`            | `string` | Authorization code from provider (e.g. Okta)  |
+| `email`           | `string` | User's email username                         |
+| `password`        | `string` | User's password                               |
 
-#### Request (Rotate a token)
 
-```
-curl https://infra.acme.com/v1/tokens \
-    -u sk_mnrdvosho472npiwdnakjsdn9as74sdo1dfi:
-```
-
-#### Request (Create token for another user)
+#### Request (Username & password)
 
 ```
 curl https://infra.acme.com/v1/tokens \
-    -u sk_mnrdvosho472npiwdnakjsdn9as74sdo1dfi:
-    -d user=usr_LB4MsQycuLEH
+    -d email=user@acme.com \
+    -d password=passw0rd
 ```
 
 #### Request (Exchange provider code for token)
 
 ```
 curl https://infra.acme.com/v1/tokens \
-    -d code=n9v7shdfv07shvps87hvpse8hspe8ch
+    -d code=n9v7shdfv07shvps87hvp \
     -d provider=okta
 ```
 
@@ -220,79 +172,7 @@ curl https://infra.acme.com/v1/tokens \
 
 ```json
 {
-    "token": {
-        "id": "tk_1xeLhL379bJO",
-        "user": "usr_LB4MsQycuLEH",
-        "expires": 1620861101,
-        "created": 1620857501,
-    },
-    "secret_token": "sk_1xeLhL379bJOkytFbDizJixDrcqbbbnZM78gI7HLjqJp"
-}
-```
-
-### List all tokens
-
-```http
-    GET /v1/tokens
-```
-
-#### Parameters
-
-No parameters
-
-#### Request
-
-```
-curl https://infra.acme.com/v1/tokens \
-    -u sk_mnrdvosho472npiwdnakjsdn9as74sdo1dfi:
-```
-
-#### Response
-
-```json
-{
-    "data": [
-        {
-            "id": "tk_1xeLhL379bJO",
-            "expires": 1620861101,
-            "created": 1620857501,
-            "user": {
-                "id": "usr_mvm8YVTvOGY4",
-                "email": "tom@acme.com",
-                "created": 1620845768,
-                "providers": ["okta"],
-                "permission": "view",
-            },
-        },
-    ],
-    "url":"/v1/tokens"
-}
-```
-
-### Delete a token
-
-```http
-    DELETE /v1/tokens/:id
-```
-
-#### Parameters
-
-No parameters.
-
-#### Request
-
-```
-curl https://infra.acme.com/v1/tokens/tk_1xeLhL379bJO \
-    -u sk_mnrdvosho472npiwdnakjsdn9as74sdo1dfi: \
-    -X DELETE
-```
-
-#### Response
-
-```json
-{
-    "id":"tk_1xeLhL379bJO",
-    "deleted": true,
+    "token": "eyJhbGci..._rY2PSRP5HA-g"
 }
 ```
 
@@ -315,7 +195,7 @@ No parameters
 #### Request
 
 ```
-curl https://infra.acme.com/v1/providers
+curl https://infra.example.com/v1/providers
 ```
 
 #### Response
@@ -324,7 +204,7 @@ curl https://infra.acme.com/v1/providers
 {
     "okta": {
         "client-id": "08jf308jesfdksnf9w3un",
-        "domain": "okta.acme.com"
+        "domain": "example.okta.com"
     }
 }
 ```

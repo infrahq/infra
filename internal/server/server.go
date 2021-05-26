@@ -1,3 +1,6 @@
+//go:generate npm run export --silent --prefix ../ui
+//go:generate go-bindata -pkg server -nocompress -o ./bindata_ui.go -fs -prefix "../ui/out/" ../ui/out/...
+
 package server
 
 import (
@@ -14,14 +17,38 @@ import (
 	"math/big"
 	"net"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/NYTimes/gziphandler"
 	"github.com/gin-gonic/gin"
 	"github.com/infrahq/infra/internal/generate"
 	"golang.org/x/crypto/acme/autocert"
+	"gorm.io/gorm"
 )
+
+type StaticFileSystem struct {
+	base http.FileSystem
+}
+
+func (sfs StaticFileSystem) Open(name string) (http.File, error) {
+	f, err := sfs.base.Open(name)
+	if os.IsNotExist(err) {
+		if f, err := sfs.base.Open(name + ".html"); err == nil {
+			return f, nil
+		}
+		return sfs.base.Open("index.html")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return f, nil
+}
 
 type Sync struct {
 	stop chan bool
@@ -173,6 +200,8 @@ type ServerOptions struct {
 	DBPath     string
 	ConfigPath string
 	TLSCache   string
+	UI         bool
+	UIDev      bool
 }
 
 func Run(options *ServerOptions) error {
@@ -188,6 +217,13 @@ func Run(options *ServerOptions) error {
 	db, err := NewDB(options.DBPath)
 	if err != nil {
 		return err
+	}
+
+	var settings Settings
+	err = db.First(&settings).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		settings.TokenSecret = []byte(generate.RandString(32))
+		db.Save(&settings)
 	}
 
 	kube, err := NewKubernetes()
@@ -227,7 +263,7 @@ func Run(options *ServerOptions) error {
 		c.Set("skipauth", true)
 	})
 
-	if err = addRoutes(unixRouter, db, kube, config); err != nil {
+	if err = addRoutes(unixRouter, db, kube, config, &settings); err != nil {
 		return err
 	}
 
@@ -249,25 +285,38 @@ func Run(options *ServerOptions) error {
 
 	router := gin.New()
 	router.Use(gin.Logger())
-	if err = addRoutes(router, db, kube, config); err != nil {
+	if err = addRoutes(router, db, kube, config, &settings); err != nil {
 		return err
 	}
 
-	go router.Run(":8000")
+	if options.UIDev {
+		remote, _ := url.Parse("http://localhost:3000")
+		devProxy := httputil.NewSingleHostReverseProxy(remote)
+		router.NoRoute(func(c *gin.Context) {
+			devProxy.ServeHTTP(c.Writer, c.Request)
+		})
+	} else if options.UI {
+		router.NoRoute(func(c *gin.Context) {
+			gziphandler.GzipHandler(http.FileServer(&StaticFileSystem{base: AssetFile()})).ServeHTTP(c.Writer, c.Request)
+		})
+	}
+
+	go router.Run(":80")
+
+	if err := os.MkdirAll(options.TLSCache, os.ModePerm); err != nil {
+		return err
+	}
 
 	manager := &autocert.Manager{
 		Prompt: autocert.AcceptTOS,
-	}
-
-	if options.TLSCache != "" {
-		manager.Cache = autocert.DirCache(options.TLSCache)
+		Cache:  autocert.DirCache(options.TLSCache),
 	}
 
 	tlsConfig := manager.TLSConfig()
 	tlsConfig.GetCertificate = getSelfSignedOrLetsEncryptCert(manager)
 
 	tlsServer := &http.Server{
-		Addr:      ":8443",
+		Addr:      ":443",
 		TLSConfig: tlsConfig,
 		Handler:   router,
 	}

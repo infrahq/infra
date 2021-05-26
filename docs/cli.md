@@ -10,10 +10,7 @@
     * [`infra users create`](#infra-users-create)
     * [`infra users delete`](#infra-users-delete)
     * [`infra users inspect` (Coming Soon)](#infra-users-inspect-coming-soon)
-    * [`infra tokens list`](#infra-users-list)
-    * [`infra tokens create`](#infra-tokens-create)
-    * [`infra tokens delete`](#infra-tokens-delete)
-    * [`infra engine`](#infra-engine)
+    * [`infra server`](#infra-server)
 
 ## Install
 
@@ -23,7 +20,7 @@ See [Install Infra CLI](../README.md#install-infra-cli)
 
 ### Admin mode
 
-Running `infra` commands on the host machine or container of the Infra Engine automatically provides **admin** permissions.
+Running `infra` commands on the host machine or container of the Infra automatically provides **admin** permissions.
 
 This allows you to run commands without having to be logged in from an external client machine.
 
@@ -33,13 +30,12 @@ For example, using Kubernetes via `kubectl`:
 kubectl -n infra exec -it infra-0 sh
 
 # infra users list
-USER            	EMAIL              	CREATED         PROVIDERS  	PERMISSION	  
-usr_k3Egu0A9Jdah	bot@infrahq.com    	9 seconds ago	         	view      	
-usr_cHHfCsZu3by7	michael@infrahq.com	6 hours ago  	okta     	view      	
-usr_jojpIOMrBM6F	elon@infrahq.com   	6 hours ago  	okta     	view      	
-usr_mBOjQx8RjC00	mark@infrahq.com   	6 hours ago  	okta     	view      	
-usr_o7WreRsehzyn	tom@infrahq.com    	6 hours ago  	okta     	view      	
-usr_uOQSaCwEDzYk	jeff@infrahq.com   	6 hours ago  	okta     	view      
+EMAIL              	PROVIDER	PERMISSION	CREATED            
+jeff@example.com  	okta    	admin     	About a minute ago	
+michael@example.com	okta    	view      	About a minute ago	
+elon@example.com   	okta    	view      	About a minute ago	
+tom@example.com    	okta    	view      	About a minute ago	
+mark@example.com   	okta    	view      	About a minute ago
 ```
 
 ### Global Flags
@@ -60,32 +56,32 @@ $ infra login [flags] HOST
 
 #### Flags
 
-| Flag              | Type       | Description                    |
-| :---------------- | :-------   | :----------------------------- |
-| `--token, -t`     | `string`   | Token if logging in via token  |
+None
+
+#### Example (Username & Password)
+
+```
+$ infra login infra.example.com
+? Choose a login provider  [Use arrows to move, type to filter]
+  Okta [example.okta.com]
+> Username & password
+? Email user@example.com
+? Password **********
+✔ Logging in with username username & password... success.
+✔ Logged in...
+✔ Kubeconfig updated
+```
 
 
 #### Example (Okta)
 
 ```
 $ infra login infra.acme.com
-
-Choose a login method:
-[x] Okta
-[ ] GitLab
-[ ] Token
-
+? Choose a login provider  [Use arrows to move, type to filter]
+> Okta [example.okta.com]
+  Username & password
 ✔ Logging in with Okta... success.
-✔ Successfully logged in as michael@acme.com
-✔ Kubeconfig updated
-```
-
-#### Example (Token)
-
-```
-$ infra login --token sk_ad9278ajdhs7odfso73hosi37fhso37l infra.acme.com
-✔ Logging in with token... success.
-✔ Successfully logged in as michael@acme.com
+✔ Logged in...
 ✔ Kubeconfig updated
 ```
 
@@ -102,12 +98,12 @@ $ infra users list
 ```
 $ infra users list
 USER            	EMAIL              	CREATED         PROVIDERS  	PERMISSION	  
-usr_k3Egu0A9Jdah	bot@infrahq.com    	9 seconds ago	         	view      	
-usr_cHHfCsZu3by7	michael@infrahq.com	6 hours ago  	okta     	view      	
-usr_jojpIOMrBM6F	elon@infrahq.com   	6 hours ago  	okta     	view      	
-usr_mBOjQx8RjC00	mark@infrahq.com   	6 hours ago  	okta     	view      	
-usr_o7WreRsehzyn	tom@infrahq.com    	6 hours ago  	okta     	view      	
-usr_uOQSaCwEDzYk	jeff@infrahq.com   	6 hours ago  	okta     	view    
+usr_k3Egu0A9Jdah	bot@example.com    	9 seconds ago	         	view      	
+usr_cHHfCsZu3by7	michael@example.com	6 hours ago  	okta     	view      	
+usr_jojpIOMrBM6F	elon@example.com   	6 hours ago  	okta     	view      	
+usr_mBOjQx8RjC00	mark@example.com   	6 hours ago  	okta     	view      	
+usr_o7WreRsehzyn	tom@example.com    	6 hours ago  	okta     	view      	
+usr_uOQSaCwEDzYk	jeff@example.com   	6 hours ago  	okta     	view    
 ```
 
 ### `infra users create`
@@ -115,25 +111,17 @@ usr_uOQSaCwEDzYk	jeff@infrahq.com   	6 hours ago  	okta     	view
 #### Usage
 
 ```
-$ infra users create [flags] EMAIL
+$ infra users create [flags] EMAIL PASSWORD
 ```
 
 #### Flags
 
-| Flag                   | Type       | Description                               |
-| :-----------------     | :-------   | :---------------------------------------- |
-| `--permission, -p`     | `string`   | Permission to grant user, default `view`  |
-
+None
 
 #### Example
 
 ```
-$ infra users create michael@acme.com --permission view
-usr_mgna7u291s012
-
-Please share the following login with michael@acme.com:
-
-infra login --token sk_Kc1dtcFazlIVFhkT2FsRjNaMmRGYVUxQk1kd18jdj10 31.58.101.169
+$ infra users create michael@acme.com passw0rd
 ```
 
 ### `infra users delete`
@@ -149,8 +137,7 @@ $ infra users delete USER
 #### Example
 
 ```
-$ infra users delete usr_mgna7u291s012
-usr_mgna7u291s012
+$ infra users delete michael@acme.com
 ```
 
 ### `infra users inspect` (Coming Soon)
@@ -166,13 +153,8 @@ $ infra users inspect USER
 #### Example
 
 ```
-$ infra user inspect usr_mgna7u291s012
-INFRA RESOURCE                                                LIST  CREATE  UPDATE  DELETE
-users                                                         ✔     ✔       ✔       ✔
-groups                                                        ✔     ✔       ✔       ✔
-providers                                                     ✔     ✔       ✔       ✔
-
-KUBERNETES RESOURCE                                           LIST  CREATE  UPDATE  DELETE
+$ infra user inspect michael@acme.com
+RESOURCE                                                      LIST  CREATE  UPDATE  DELETE
 daemonsets.apps                                               ✔     ✔       ✔       ✔
 daemonsets.extensions                                         ✔     ✔       ✔       ✔
 deployments.apps                                              ✔     ✔       ✔       ✔
@@ -204,88 +186,28 @@ validatingwebhookconfigurations.admissionregistration.k8s.io  ✔     ✔       
 volumeattachments.storage.k8s.io                              ✔     ✔       ✔       ✔
 ```
 
-HI
+### `infra server`
 
-### `infra tokens list`
-
-#### Usage
-
-```
-$ infra tokens list
-```
-
-#### Example
-
-```
-$ infra users list
-USER            	EMAIL              	CREATED         PROVIDERS  	PERMISSION	  
-usr_k3Egu0A9Jdah	bot@infrahq.com    	9 seconds ago	         	view      	
-usr_cHHfCsZu3by7	michael@infrahq.com	6 hours ago  	okta     	view      	
-usr_jojpIOMrBM6F	elon@infrahq.com   	6 hours ago  	okta     	view      	
-usr_mBOjQx8RjC00	mark@infrahq.com   	6 hours ago  	okta     	view      	
-usr_o7WreRsehzyn	tom@infrahq.com    	6 hours ago  	okta     	view      	
-usr_uOQSaCwEDzYk	jeff@infrahq.com   	6 hours ago  	okta     	view    
-```
-
-### `infra tokens create`
-
-Create a token for a user
+Starts the Infra Server
 
 #### Usage
 
 ```
-$ infra tokens create USER
-```
-
-#### Example
-
-```
-$ infra token create usr_k3Egu0A9Jdah
-sk_GqwGycdQhW00maZ9HeuizGp3VJfEmods2ik70pmy8cZt
-```
-
-The user can now log in via:
-```
-$ infra login --token sk_GqwGycdQhW00maZ9HeuizGp3VJfEmods2ik70pmy8cZt <infra endpoint>
-```
-
-### `infra tokens delete`
-
-Delete a token
-
-#### Usage
-
-```
-$ infra tokens delete TOKEN
-```
-
-#### Example
-
-```
-$ infra tokens delete tk_jg08aj08s40w
-tk_jg08aj08s40w
-```
-
-
-### `infra engine`
-
-Starts the Infra Engine
-
-#### Usage
-
-```
-$ infra engine [--config, -c]
+$ infra server [--config, -c]
 ```
 
 #### Flags
 
-| Flag               | Type       | Description                                                 |
-| :----------------- | :-------   | :---------------------------------------------------------- |
-| `--config, -c`     | `string`   | Location of `infra.yaml` [config file](./configuration.md)  |
-| `--db`             | `string`   | Directory to store database, defaults to `~/.infra`         |
+| Flag               | Type       | Description                                                       |
+| :----------------- | :-------   | :----------------------------------------------------------       |
+| `--config, -c`     | `string`   | Location of `infra.yaml` [config file](./configuration.md)        |
+| `--db`             | `string`   | Directory to store database, defaults to `~/.infra/db`            |
+| `--tls-cache       | `string`   | Directory to cache tls certificates, defaults to `~/.infra/cache` |
+| `--ui`             | `string`   | Directory to store database, defaults to `~/.infra`               |
+| `--ui-dev`         | `string`   | Proxy to ui requests to development server                        |
 
 #### Example
 
 ```
-$ infra engine --config ./infra.yaml
+$ infra server --config ./infra.yaml
 ```

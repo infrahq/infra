@@ -1,15 +1,11 @@
 package cmd
 
 import (
-	"bytes"
 	"context"
-	"crypto/sha256"
 	"crypto/tls"
-	"crypto/x509"
+	"sort"
 
-	"encoding/base64"
 	"encoding/json"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -23,12 +19,14 @@ import (
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/cli/browser"
 	"github.com/docker/go-units"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server"
 	"github.com/muesli/termenv"
 	"github.com/olekukonko/tablewriter"
+	"github.com/square/go-jose/jwt"
 	"github.com/urfave/cli/v2"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -54,7 +52,6 @@ func printTable(header []string, data [][]string) {
 
 type Config struct {
 	Host  string `json:"host"`
-	CA    string `json:"ca"`
 	Token string `json:"token"`
 }
 
@@ -150,30 +147,51 @@ func normalizeHost(host string) (string, error) {
 		return "", err
 	}
 
-	u.Path = "/api/v1/namespaces/infra/services/infra/proxy"
-
 	return u.String(), nil
 }
 
-func GetCertificatesPEM(address string) (string, error) {
-	conn, err := tls.Dial("tcp", address, &tls.Config{
-		InsecureSkipVerify: true,
-	})
-	if err != nil {
-		return "", err
+type TokenTransport struct {
+	Token     string
+	Transport http.RoundTripper
+}
+
+func (t *TokenTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if t.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+t.Token)
 	}
-	defer conn.Close()
-	var b bytes.Buffer
-	for _, cert := range conn.ConnectionState().PeerCertificates {
-		err := pem.Encode(&b, &pem.Block{
-			Type:  "CERTIFICATE",
-			Bytes: cert.Raw,
-		})
+	return t.Transport.RoundTrip(req)
+}
+
+func blue(s string) string {
+	return termenv.String(s).Bold().Foreground(termenv.ColorProfile().Color("#0057FF")).String()
+}
+
+func client(host string, token string, insecure bool) (client *http.Client, err error) {
+	if host == "" {
+		homeDir, err := os.UserHomeDir()
 		if err != nil {
-			return "", err
+			return nil, err
 		}
+		return unixHttpClient(filepath.Join(homeDir, ".infra", "infra.sock")), nil
+	} else if insecure {
+		return &http.Client{
+			Transport: &TokenTransport{
+				Token: token,
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{
+						InsecureSkipVerify: true,
+					},
+				},
+			},
+		}, nil
+	} else {
+		return &http.Client{
+			Transport: &TokenTransport{
+				Token:     token,
+				Transport: http.DefaultTransport,
+			},
+		}, nil
 	}
-	return b.String(), nil
 }
 
 func Run() error {
@@ -182,39 +200,32 @@ func Run() error {
 		return err
 	}
 
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	token := config.Token
+
 	host, err := normalizeHost(config.Host)
 	if err != nil {
 		host = config.Host
 	}
 
-	// token := config.Token
-	// ca := config.CA
-
-	httpClient := &http.Client{}
-	if config.Host == "" {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			return err
-		}
-		httpClient = unixHttpClient(filepath.Join(homeDir, ".infra", "infra.sock"))
-	}
-
-	p := termenv.ColorProfile()
-
 	app := &cli.App{
 		Usage: "manage user & machine access to Kubernetes",
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:    "insecure",
+				Aliases: []string{"i"},
+				Usage:   "ignore tls warnings",
+			},
+		},
 		Commands: []*cli.Command{
 			{
 				Name:      "login",
 				Usage:     "Log in to Infra",
 				ArgsUsage: "HOST",
-				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:    "token",
-						Aliases: []string{"t"},
-						Usage:   "token to authenticate with",
-					},
-				},
 				Action: func(c *cli.Context) error {
 					if c.NArg() <= 0 {
 						cli.ShowCommandHelp(c, "create")
@@ -233,124 +244,61 @@ func Run() error {
 
 					hostname := parsed.Hostname()
 
-					// TODO: consider case where CA has changed (i.e. cluster certificate rotation, new cluster on same IP)
-					ca := config.CA
-
-					// TODO: get CA digest from elsewhere (token, idp, etc)
-					if ca == "" {
-						insecureClient := &http.Client{
-							Transport: &http.Transport{
-								TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-							},
-						}
-
-						res, err := insecureClient.Get(host + "/v1/ca")
-						if err != nil {
-							return err
-						}
-
-						var response server.RetrieveCAResponse
-						err = checkAndDecode(res, &response)
-						if err != nil {
-							return err
-						}
-
-						// Verify certificates manually in case
-						opts := x509.VerifyOptions{
-							DNSName:       res.TLS.ServerName,
-							Intermediates: x509.NewCertPool(),
-						}
-						for _, cert := range res.TLS.PeerCertificates[1:] {
-							opts.Intermediates.AddCert(cert)
-						}
-
-						_, err = res.TLS.PeerCertificates[0].Verify(opts)
-						if err != nil {
-							if _, ok := err.(x509.UnknownAuthorityError); !ok {
-								return err
-							}
-
-							h := sha256.New()
-							h.Write([]byte(response.CA))
-
-							proceed := false
-							fmt.Print("Could not verify certificate for cluster ")
-							fmt.Print(termenv.String(hostname).Bold())
-							fmt.Printf(" (cluster ca fingerprint sha256:%s)\n", base64.URLEncoding.EncodeToString(h.Sum(nil)))
-							prompt := &survey.Confirm{
-								Message: "Are you sure you want to continue (yes/no)?",
-							}
-
-							err := survey.AskOne(prompt, &proceed, survey.WithIcons(func(icons *survey.IconSet) {
-								icons.Question.Text = termenv.String("?").Bold().Foreground(p.Color("#0155F9")).String()
-							}))
-							if err != nil {
-								fmt.Println(err.Error())
-								return err
-							}
-
-							if !proceed {
-								return nil
-							}
-
-							// write config
-							url, err := url.Parse(host)
-							if err != nil {
-								return err
-							}
-							config.Host = url.Host
-							config.CA = response.CA
-							writeConfig(config)
-
-							ca = response.CA
-						}
-					}
-
-					rootCAs, _ := x509.SystemCertPool()
-					if rootCAs == nil {
-						rootCAs = x509.NewCertPool()
-					}
-					rootCAs.AppendCertsFromPEM([]byte(ca))
-
-					client := &http.Client{
-						Transport: &http.Transport{
-							TLSClientConfig: &tls.Config{
-								RootCAs: rootCAs,
-							},
-						},
-					}
-
-					res, err := client.Get(host + "/v1/providers")
+					httpClient, err := client(host, token, c.Bool("insecure"))
 					if err != nil {
 						return err
 					}
 
-					fmt.Println(res.StatusCode)
+					res, err := httpClient.Get(host + "/v1/providers")
+					if err != nil {
+						return err
+					}
+
+					var response server.RetrieveProvidersResponse
+					if err = checkAndDecode(res, &response); err != nil {
+						return err
+					}
+
+					// TODO (jmorganca): clean this up to check a list based on the api results
+					okta := fmt.Sprintf("Okta [%s]", response.Okta.Domain)
+					userpass := "Username & password"
+
+					options := []string{}
+					if response.Okta.ClientID != "" && response.Okta.Domain != "" {
+						options = append(options, okta)
+					}
+					options = append(options, userpass)
+
+					var option string
+
+					if len(options) > 1 {
+						prompt := &survey.Select{
+							Message: "Choose a login provider",
+							Options: options,
+						}
+						err = survey.AskOne(prompt, &option, survey.WithIcons(func(icons *survey.IconSet) {
+							icons.Question.Text = blue("?")
+						}))
+						if err == terminal.InterruptErr {
+							return nil
+						}
+					} else {
+						option = options[0]
+					}
 
 					form := url.Values{}
 
-					token := ""
-
-					if token == "" {
-						res, err := client.Get(host + "/v1/providers")
-						if err != nil {
-							return err
-						}
-
-						var response server.RetrieveProvidersResponse
-						if err = checkAndDecode(res, &response); err != nil {
-							return err
-						}
-
+					switch {
+					// Okta
+					case option == okta:
 						// Start OIDC flow
 						// Get auth code from Okta
 						// Send auth code to Infra to log in as a user
 						state := generate.RandString(12)
 						authorizeUrl := "https://" + response.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + response.Okta.ClientID + "&response_type=code&scope=openid+email&nonce=" + generate.RandString(10) + "&state=" + state
 
-						fmt.Print(termenv.String("✓ ").Bold().Foreground(p.Color("#0057FF")))
-						fmt.Println("Logging in with Okta...")
-						server, err := newLocalServer()
+						fmt.Println(blue("✓") + " Logging in with Okta...")
+						ls, err := newLocalServer()
 						if err != nil {
 							return err
 						}
@@ -360,7 +308,7 @@ func Run() error {
 							return err
 						}
 
-						code, recvstate, err := server.wait()
+						code, recvstate, err := ls.wait()
 						if err != nil {
 							return err
 						}
@@ -370,6 +318,34 @@ func Run() error {
 						}
 
 						form.Add("okta-code", code)
+
+					case option == userpass:
+						email := ""
+						emailPrompt := &survey.Input{
+							Message: "Email",
+						}
+						err = survey.AskOne(emailPrompt, &email, survey.WithShowCursor(true), survey.WithValidator(survey.Required), survey.WithIcons(func(icons *survey.IconSet) {
+							icons.Question.Text = blue("?")
+						}))
+						if err == terminal.InterruptErr {
+							return nil
+						}
+
+						password := ""
+						passwordPrompt := &survey.Password{
+							Message: "Password",
+						}
+						err = survey.AskOne(passwordPrompt, &password, survey.WithShowCursor(true), survey.WithValidator(survey.Required), survey.WithIcons(func(icons *survey.IconSet) {
+							icons.Question.Text = blue("?")
+						}))
+						if err == terminal.InterruptErr {
+							return nil
+						}
+
+						form.Add("email", email)
+						form.Add("password", password)
+
+						fmt.Println(blue("✓") + " Logging in with username & password...")
 					}
 
 					req, err := http.NewRequest("POST", host+"/v1/tokens", strings.NewReader(form.Encode()))
@@ -379,32 +355,22 @@ func Run() error {
 
 					req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-					if token != "" {
-						fmt.Print(termenv.String("✓ ").Bold().Foreground(p.Color("#0057FF")))
-						fmt.Println("Logging in with Token...")
-
-						// TODO (jmorganca): edit this to use jwt
-						req.SetBasicAuth(token, "")
-					}
-
-					res, err = client.Do(req)
+					res, err = httpClient.Do(req)
 					if err != nil {
 						return err
 					}
 
-					var response server.CreateTokenResponse
-					err = checkAndDecode(res, &response)
+					var createTokenResponse server.CreateTokenResponse
+					err = checkAndDecode(res, &createTokenResponse)
 					if err != nil {
 						return err
 					}
 
-					fmt.Print(termenv.String("✓ ").Bold().Foreground(p.Color("#0057FF")))
-					fmt.Println("Logged in...")
+					fmt.Println(blue("✓") + " Logged in...")
 
 					if err = writeConfig(&Config{
 						Host:  hostname,
-						Token: response.Token,
-						CA:    ca,
+						Token: createTokenResponse.Token,
 					}); err != nil {
 						fmt.Println(err)
 						return err
@@ -419,11 +385,15 @@ func Run() error {
 					}
 
 					config.Clusters[hostname] = &clientcmdapi.Cluster{
-						Server:                   host + "/v1/proxy/",
-						CertificateAuthorityData: []byte(ca),
+						Server: host + "/v1/proxy",
 					}
+
+					if c.Bool("insecure") {
+						config.Clusters[hostname].InsecureSkipTLSVerify = true
+					}
+
 					config.AuthInfos[hostname] = &clientcmdapi.AuthInfo{
-						Token: response.Token,
+						Token: createTokenResponse.Token,
 					}
 					config.Contexts[hostname] = &clientcmdapi.Context{
 						Cluster:  hostname,
@@ -435,8 +405,7 @@ func Run() error {
 						return err
 					}
 
-					fmt.Print(termenv.String("✓ ").Bold().Foreground(p.Color("#0057FF")))
-					fmt.Println("Kubeconfig updated")
+					fmt.Println(blue("✓") + " Kubeconfig updated")
 
 					return nil
 				},
@@ -448,16 +417,23 @@ func Run() error {
 					{
 						Name:      "create",
 						Usage:     "Create a user",
-						ArgsUsage: "EMAIL",
+						ArgsUsage: "EMAIL PASSWORD",
 						Action: func(c *cli.Context) error {
-							if c.NArg() <= 0 {
+							if c.NArg() <= 1 {
 								cli.ShowCommandHelp(c, "create")
 								return nil
 							}
 
 							email := c.Args().Get(0)
+							password := c.Args().Get(1)
 							form := url.Values{}
 							form.Add("email", email)
+							form.Add("password", password)
+
+							httpClient, err := client(host, token, c.Bool("insecure"))
+							if err != nil {
+								return err
+							}
 
 							res, err := httpClient.PostForm(host+"/v1/users", form)
 							if err != nil {
@@ -470,8 +446,6 @@ func Run() error {
 								return err
 							}
 
-							fmt.Println(response.Email)
-
 							return nil
 						},
 					},
@@ -480,6 +454,11 @@ func Run() error {
 						Usage:   "list users",
 						Aliases: []string{"ls"},
 						Action: func(c *cli.Context) error {
+							httpClient, err := client(host, token, c.Bool("insecure"))
+							if err != nil {
+								return err
+							}
+
 							res, err := httpClient.Get(host + "/v1/users")
 							if err != nil {
 								return err
@@ -491,12 +470,33 @@ func Run() error {
 								return err
 							}
 
-							rows := [][]string{}
-							for _, user := range response.Data {
-								rows = append(rows, []string{user.Email, units.HumanDuration(time.Now().UTC().Sub(user.CreatedAt)) + " ago", user.Provider, user.Permission})
+							email := ""
+							if token != "" {
+								tok, err := jwt.ParseSigned(token)
+								if err != nil {
+									return err
+								}
+								out := make(map[string]interface{})
+								if err := tok.UnsafeClaimsWithoutVerification(&out); err != nil {
+									return err
+								}
+								email = out["email"].(string)
 							}
 
-							printTable([]string{"EMAIL", "CREATED", "PROVIDER", "PERMISSION"}, rows)
+							sort.Slice(response.Data, func(i, j int) bool {
+								return response.Data[i].Created > response.Data[j].Created
+							})
+
+							rows := [][]string{}
+							for _, user := range response.Data {
+								star := ""
+								if user.Email == email {
+									star = "*"
+								}
+								rows = append(rows, []string{user.Email + star, user.Provider, user.Permission, units.HumanDuration(time.Now().UTC().Sub(time.Unix(user.Created, 0))) + " ago"})
+							}
+
+							printTable([]string{"EMAIL", "PROVIDER", "PERMISSION", "CREATED"}, rows)
 
 							return nil
 						},
@@ -516,6 +516,11 @@ func Run() error {
 								log.Fatal(err)
 							}
 
+							httpClient, err := client(host, token, c.Bool("insecure"))
+							if err != nil {
+								return err
+							}
+
 							res, err := httpClient.Do(req)
 							if err != nil {
 								log.Fatal(err)
@@ -527,11 +532,6 @@ func Run() error {
 							if err != nil {
 								return err
 							}
-
-							if response.Deleted {
-								fmt.Println(response.ID)
-							}
-
 							return nil
 						},
 					},
@@ -543,7 +543,8 @@ func Run() error {
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:  "db",
-						Usage: "Path to database",
+						Usage: "Directory to store database",
+						Value: filepath.Join(homeDir, ".infra", "db"),
 					},
 					&cli.StringFlag{
 						Name:    "config",
@@ -552,7 +553,16 @@ func Run() error {
 					},
 					&cli.StringFlag{
 						Name:  "tls-cache",
-						Usage: "TLS certficate cache",
+						Usage: "Directory to store cached letsencrypt & self-signed TLS certificates",
+						Value: filepath.Join(homeDir, ".infra", "cache"),
+					},
+					&cli.BoolFlag{
+						Name:  "ui",
+						Usage: "Enable ui",
+					},
+					&cli.BoolFlag{
+						Name:  "ui-dev",
+						Usage: "Proxy to a development ui",
 					},
 				},
 				Action: func(c *cli.Context) error {
@@ -560,6 +570,8 @@ func Run() error {
 						DBPath:     c.String("db"),
 						ConfigPath: c.String("config"),
 						TLSCache:   c.String("tls-cache"),
+						UI:         c.Bool("ui"),
+						UIDev:      c.Bool("ui-dev"),
 					})
 				},
 			},

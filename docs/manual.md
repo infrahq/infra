@@ -14,8 +14,8 @@ metadata:
 data:
   infra.yaml: |
     permissions:
-      - user: example@acme.com
-        permission: view
+      - user: admin@example.com
+        permission: admin
 EOF
 ```
 
@@ -24,23 +24,22 @@ EOF
 Create the user and login token via `kubectl`:
 
 ```
-$ kubectl -n infra exec infra-0 -- infra user create example@acme.com
-usr_js08jsec08
-
-$ kubectl -n infra exec infra-0 -- infra token create usr_js08jsec08
-sk_r6Khd35Dt3Q4KgyuPFw2NkRkGpgorI8uyDgpW215quR7
+$ kubectl -n infra exec infra-0 -- infra user create admin@example.com passw0rd
+admin@example.com
 ```
 
-Finally, log in as `example@acme.com` with the token created in the previous step:
+Finally, log in as `admin@example.com` with the token created in the previous step:
 
 ```
-$ infra login --token sk_r6Khd35Dt3Q4KgyuPFw2NkRkGpgorI8uyDgpW215quR7 infra.acme.com
-✔ Logging in with Token... success
-✔ Logged in as example@acme.com
+$ infra login infra.example.com
+? Email admin@example.com
+? Password **********
+✔ Logging in with username & password... success
+✔ Logged in...
 ✔ Kubeconfig updated
 ```
 
-That's it. You now have cluster access as `example@acme.com` with read-only `view` permissions.
+That's it. You now have cluster access as `admin@example.com` with with `admin` permissions.
 
 ```
 $ kubectl get pods -A
@@ -49,6 +48,4 @@ kube-system   coredns-56b458df85-wx48l          1/1     Running   0          2d4
 kube-system   kube-proxy-cxn9c                  1/1     Running   0          2d4h
 kube-system   kube-proxy-nmnpb                  1/1     Running   0          2d4h
 kube-system   metrics-server-5fbdc54f8c-nf85v   1/1     Running   0          46h
-
-$ kubectl delete -n kube-system pod/kube-proxy-cxn9c # permission denied
 ```

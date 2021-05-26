@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.2.12
+	github.com/NYTimes/gziphandler v0.0.0-20170623195520-56545f4a5d46
 	github.com/cli/browser v1.1.0
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/docker/go-units v0.4.0

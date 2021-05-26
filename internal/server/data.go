@@ -9,10 +9,19 @@ import (
 )
 
 type User struct {
-	gorm.Model
+	ID       uint   `gorm:"primaryKey"`
 	Email    string `json:"email"`
 	Password []byte `json:"-"`
 	Provider string `json:"provider"`
+	Created  int64  `json:"created" gorm:"autoCreateTime"`
+	Updated  int64  `json:"updated" gorm:"autoUpdateTime"`
+}
+
+type Settings struct {
+	ID          uint  `gorm:"primaryKey"`
+	Created     int64 `json:"created" gorm:"autoCreateTime"`
+	Updated     int64 `json:"updated" gorm:"autoUpdateTime"`
+	TokenSecret []byte
 }
 
 func NewDB(dbpath string) (*gorm.DB, error) {
@@ -26,6 +35,7 @@ func NewDB(dbpath string) (*gorm.DB, error) {
 	}
 
 	db.AutoMigrate(&User{})
+	db.AutoMigrate(&Settings{})
 
 	return db, nil
 }
@@ -55,6 +65,9 @@ func SyncUsers(db *gorm.DB, emails []string, provider string) error {
 
 			for _, user := range users {
 				if !emailsMap[user.Email] {
+
+					// Only delete user if they don't have built in auth
+					// TODO (jmorganca): properly refactor this into a provider check
 					if user.Provider == "okta" && len(user.Password) == 0 {
 						if result := tx.Delete(&user); result.Error != nil {
 							return result.Error

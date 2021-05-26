@@ -78,13 +78,13 @@ data:
   infra.yaml: |
     providers:
       okta:
-        domain: acme.okta.com                                 # REPLACE ME: Your Okta domain
+        domain: example.okta.com                              # REPLACE ME: Your Okta domain
         client-id: 0oapn0qwiQPiMIyR35d6                       # REPLACE ME: Your Client ID
         client-secret: /var/run/infra/secrets/okta-client-secret
         api-token: /var/run/infra/secrets/okta-api-token
 
     permissions:
-      - user: michael@acme.com                               # REPLACE ME
+      - user: michael@example.com                            # REPLACE ME
         permission: admin                                    # REPLACE ME
 EOF
 ```
@@ -100,9 +100,11 @@ $ kubectl rollout restart -n infra statefulset/infra
 ### Log in with Okta
 
 ```
-$ infra login infra.acme.com
+$ infra login infra.example.com
+? Choose a login provider  [Use arrows to move, type to filter]
+> Okta [example.okta.com]
 ✔ Logging in with Okta... success
-✔ Logged in as michael@acme.com
+✔ Logged in...
 ✔ Kubeconfig updated
 ```
 
@@ -110,10 +112,10 @@ $ infra login infra.acme.com
 
 ```
 $ infra users ls
-USER            	EMAIL              	CREATED         PROVIDERS  	PERMISSION	      	
-usr_cHHfCsZu3by7	michael@infrahq.com	3 minutes ago   okta     	view      	
-usr_jojpIOMrBM6F	elon@infrahq.com   	3 minutes ago   okta     	view      	
-usr_mBOjQx8RjC00	mark@infrahq.com   	3 minutes ago   okta     	view      	
-usr_o7WreRsehzyn	tom@infrahq.com    	3 minutes ago   okta     	view      	
-usr_uOQSaCwEDzYk	jeff@infrahq.com   	3 minutes ago  	okta     	view  
+EMAIL              	PROVIDER	PERMISSION	CREATED            
+jeff@example.com*  	okta    	admin     	About a minute ago	
+michael@example.com	okta    	view      	About a minute ago	
+elon@example.com   	okta    	view      	About a minute ago	
+tom@example.com    	okta    	view      	About a minute ago	
+mark@example.com   	okta    	view      	About a minute ago
 ```
