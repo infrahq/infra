@@ -43,7 +43,7 @@ NAME      TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)        AGE
 infra     LoadBalancer   10.12.11.116   31.58.101.169   80:32326/TCP   1m
 ```
 
-Optionally, map a domain to the exposed endpoint (e.g. `infra.acme.com` to `31.58.101.169`)
+Optionally, map a domain to the exposed endpoint (e.g. `infra.example.com` to `31.58.101.169`)
 
 ### Install Infra CLI
 
