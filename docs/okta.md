@@ -14,7 +14,7 @@
 ## Prerequisites
 
 * [Install Infra](../README.md#install)
-* An Okta administrator account
+* An Okta administrator account to create an Okta Application and will be used to create a read-only Okta user for Infra to use
 
 
 ## Setup
