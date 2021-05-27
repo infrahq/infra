@@ -10,7 +10,7 @@ import (
 
 type User struct {
 	ID       uint   `gorm:"primaryKey"`
-	Email    string `json:"email"`
+	Email    string `json:"email" gorm:"unique"`
 	Password []byte `json:"-"`
 	Provider string `json:"provider"`
 	Created  int64  `json:"created" gorm:"autoCreateTime"`
@@ -49,13 +49,13 @@ func SyncUsers(db *gorm.DB, emails []string, provider string) error {
 			user.Email = email
 			user.Provider = "okta"
 
-			if result := tx.Save(&user); result.Error != nil {
-				return result.Error
+			if err := tx.Save(&user).Error; err != nil {
+				return err
 			}
 
 			var users []User
-			if result := tx.Find(&users); result.Error != nil {
-				return result.Error
+			if err := tx.Find(&users).Error; err != nil {
+				return err
 			}
 
 			emailsMap := make(map[string]bool)
@@ -69,13 +69,13 @@ func SyncUsers(db *gorm.DB, emails []string, provider string) error {
 					// Only delete user if they don't have built in auth
 					// TODO (jmorganca): properly refactor this into a provider check
 					if user.Provider == "okta" && len(user.Password) == 0 {
-						if result := tx.Delete(&user); result.Error != nil {
-							return result.Error
+						if err := tx.Delete(&user).Error; err != nil {
+							return err
 						}
 					} else {
 						user.Provider = "infra"
-						if result := tx.Save(&user); result.Error != nil {
-							return result.Error
+						if err := tx.Save(&user).Error; err != nil {
+							return err
 						}
 					}
 				}

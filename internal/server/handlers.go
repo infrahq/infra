@@ -3,6 +3,7 @@ package server
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -45,8 +46,22 @@ func TokenAuthMiddleware(secret []byte) gin.HandlerFunc {
 			return
 		}
 
+		cl := jwt.Claims{}
 		out := make(map[string]interface{})
-		if err := tok.Claims(secret, &out); err != nil {
+		if err := tok.Claims(secret, &cl, &out); err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+
+		err = cl.Validate(jwt.Expected{
+			Issuer: "infra",
+			Time:   time.Now(),
+		})
+		switch {
+		case errors.Is(err, jwt.ErrExpired):
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "expired"})
+			return
+		case err != nil:
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 			return
 		}
@@ -223,13 +238,13 @@ func addRoutes(router *gin.Engine, db *gorm.DB, kube *Kubernetes, cfg *Config, s
 		}
 
 		var user User
-		if result := db.Where("email = ?", emailParams.Email).First(&user); result.Error != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "incorrect credentials"})
+		if err := db.Where("email = ?", emailParams.Email).First(&user).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "unauthorized"})
 			return
 		}
 
-		if err = bcrypt.CompareHashAndPassword(user.Password, []byte(params.Password)); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "incorrect credentials"})
+		if err = bcrypt.CompareHashAndPassword(user.Password, []byte(emailParams.Password)); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "unauthorized"})
 			return
 		}
 
@@ -246,9 +261,8 @@ func addRoutes(router *gin.Engine, db *gorm.DB, kube *Kubernetes, cfg *Config, s
 
 	router.GET("/v1/users", TokenAuthMiddleware(settings.TokenSecret), PermissionMiddleware("view", cfg), func(c *gin.Context) {
 		var users []User
-		result := db.Find(&users)
-
-		if result.Error != nil {
+		err := db.Find(&users).Error
+		if err != nil {
 			c.JSON(http.StatusInternalServerError, ErrorResponse{"could not list users"})
 			return
 		}
@@ -284,8 +298,8 @@ func addRoutes(router *gin.Engine, db *gorm.DB, kube *Kubernetes, cfg *Config, s
 		user.Password = hashedPassword
 		user.Provider = "infra"
 
-		result := db.Create(&user)
-		if result.Error != nil {
+		err = db.Create(&user).Error
+		if err != nil {
 			c.JSON(http.StatusInternalServerError, ErrorResponse{"could not create user"})
 			return
 		}
@@ -313,14 +327,14 @@ func addRoutes(router *gin.Engine, db *gorm.DB, kube *Kubernetes, cfg *Config, s
 			return
 		}
 
-		result := db.Where("email = ?", params.Email).Delete(User{})
-		if result.Error != nil {
-			c.JSON(http.StatusInternalServerError, ErrorResponse{"could not delete user"})
+		err := db.Where("email = ?", params.Email).Delete(User{}).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusBadRequest, ErrorResponse{"user does not exist"})
 			return
 		}
 
-		if result.RowsAffected == 0 {
-			c.JSON(http.StatusBadRequest, ErrorResponse{"user does not exist"})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, ErrorResponse{"could not delete user"})
 			return
 		}
 
