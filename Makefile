@@ -1,10 +1,6 @@
-tag := $(or $(git describe --tags), v0.0.1)
+tag := $(shell git describe --tags)
 repo := infrahq/infra
-
-.PHONY: build
-build:
-	CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -o build/infra-darwin-arm64 -ldflags="-s -w" .
-	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o build/infra-darwin-x86_64 -ldflags="-s -w" .
+pwd = $(shell pwd)
 
 generate:
 	go generate ./...
@@ -14,6 +10,21 @@ test:
 
 clean:
 	rm -rf build release
+
+.PHONY: build
+build:
+	CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -o build/infra-darwin-arm64 -ldflags="-s -w" .
+	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o build/infra-darwin-x86_64 -ldflags="-s -w" .
+
+	make build/docker
+
+	docker create --name temp infrahq/infra
+	docker cp temp:/bin/infra ./build/infra-linux-arm64
+	docker rm -f temp
+
+	docker --context builder create --name temp infrahq/infra
+	docker --context builder cp temp:/bin/infra ./build/infra-linux-amd64
+	docker --context builder rm -f temp
 
 sign:
 	gon .gon.json
@@ -32,9 +43,13 @@ dev/docker:
 	kubectl rollout restart -n infra statefulset/infra
 
 build/docker:
-	docker buildx build --platform linux/amd64,linux/arm64 . -t infrahq/infra:$(tag:v%=%)
-	docker buildx build --platform linux/amd64,linux/arm64 . -t infrahq/infra
+	docker build . -t infrahq/infra -t infrahq/infra:$(tag:v%=%)
+	docker --context builder build . -t infrahq/infra -t infrahq/infra:$(tag:v%=%)
 
 release/docker:
-	docker buildx build --push --platform linux/amd64,linux/arm64 . -t infrahq/infra:$(tag:v%=%)
-	docker buildx build --push --platform linux/amd64,linux/arm64 . -t infrahq/infra
+	docker build . -t infrahq/infra -t infrahq/infra:$(tag:v%=%)
+	docker push infrahq/infra
+	docker push infrahq/infra:$(tag:v%=%)
+	docker --context builder build . -t infrahq/infra  -t infrahq/infra:$(tag:v%=%)
+	docker --context builder push infrahq/infra
+	docker --context builder push infrahq/infra:$(tag:v%=%)
