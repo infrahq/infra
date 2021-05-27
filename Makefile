@@ -1,6 +1,5 @@
 tag := $(shell git describe --tags)
 repo := infrahq/infra
-pwd = $(shell pwd)
 
 generate:
 	go generate ./...
@@ -10,21 +9,19 @@ test:
 
 clean:
 	rm -rf build release
+	docker rm temp
 
 .PHONY: build
 build:
 	CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -o build/infra-darwin-arm64 -ldflags="-s -w" .
 	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o build/infra-darwin-x86_64 -ldflags="-s -w" .
 
-	make build/docker
+# TODO (jmorganca): find a better way to cross-compile linux & windows binaries
+	docker buildx build --load --platform linux/amd64 . -t infrahq/infra:amd64
+	docker create --platform linux/amd64 --name temp infrahq/infra:amd64 && docker cp temp:/bin/infra ./build/infra-linux-amd64 && docker rm -f temp
 
-	docker create --name temp infrahq/infra
-	docker cp temp:/bin/infra ./build/infra-linux-arm64
-	docker rm -f temp
-
-	docker --context builder create --name temp infrahq/infra
-	docker --context builder cp temp:/bin/infra ./build/infra-linux-amd64
-	docker --context builder rm -f temp
+	docker buildx build --load --platform linux/arm64 . -t infrahq/infra:arm64
+	docker create --name temp infrahq/infra:arm64 && docker cp temp:/bin/infra ./build/infra-linux-arm64 && docker rm -f temp
 
 sign:
 	gon .gon.json
@@ -42,14 +39,6 @@ dev/docker:
 	kubectl apply -f ./deploy/dev.yaml
 	kubectl rollout restart -n infra statefulset/infra
 
-build/docker:
-	docker build . -t infrahq/infra -t infrahq/infra:$(tag:v%=%)
-	docker --context builder build . -t infrahq/infra -t infrahq/infra:$(tag:v%=%)
-
 release/docker:
-	docker build . -t infrahq/infra -t infrahq/infra:$(tag:v%=%)
-	docker push infrahq/infra
-	docker push infrahq/infra:$(tag:v%=%)
-	docker --context builder build . -t infrahq/infra  -t infrahq/infra:$(tag:v%=%)
-	docker --context builder push infrahq/infra
-	docker --context builder push infrahq/infra:$(tag:v%=%)
+	docker buildx build --push --platform linux/amd64,linux/arm64 . -t infrahq/infra
+	docker buildx build --push --platform linux/amd64,linux/arm64 . -t infrahq/infra:$(tag:v%=%)
