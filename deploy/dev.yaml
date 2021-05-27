@@ -59,12 +59,10 @@ metadata:
   labels:
     app: infra
 spec:
+  type: LoadBalancer
   selector:
     app: infra
   ports:
-    - name: http
-      port: 80
-      targetPort: 80
     - name: https
       port: 443
       targetPort: 443
@@ -89,10 +87,10 @@ spec:
       automountServiceAccountToken: true
       containers:
         - name: server
-          image: infrahq/infra:0.0.1
-          args: ["engine", "--config", "/var/run/infra/config/infra.yaml", "--db", "/var/run/infra/data/db", "--tls-cache", "/var/run/infra/data/cache"]
+          image: infrahq/infra:dev
+          imagePullPolicy: Never
+          args: ["server", "--config", "/var/run/infra/config/infra.yaml", "--db", "/var/run/infra/data/db", "--tls-cache", "/var/run/infra/data/cache", "--ui"]
           ports:
-            - containerPort: 80
             - containerPort: 443
           volumeMounts:
             - name: data

@@ -5,20 +5,20 @@ import (
 	"io/ioutil"
 
 	"github.com/okta/okta-sdk-golang/v2/okta"
-	"github.com/square/go-jose/jwt"
 	"golang.org/x/oauth2"
+	"gopkg.in/square/go-jose.v2/jwt"
 	"gopkg.in/yaml.v2"
 )
 
-type OktaConfig struct {
+type Okta struct {
 	Domain       string `yaml:"domain" json:"domain"`
 	ClientID     string `yaml:"client-id" json:"client-id"`
 	ClientSecret string `yaml:"client-secret" json:"-"`
 	ApiToken     string `yaml:"api-token" json:"-"`
 }
 
-type ProviderConfig struct {
-	Okta OktaConfig `yaml:"okta"`
+type Provider struct {
+	Okta Okta `yaml:"okta"`
 }
 
 type Permission struct {
@@ -27,8 +27,8 @@ type Permission struct {
 }
 
 type Config struct {
-	Providers   ProviderConfig `yaml:"providers"`
-	Permissions []Permission   `yaml:"permissions"`
+	Providers   Provider     `yaml:"providers"`
+	Permissions []Permission `yaml:"permissions"`
 }
 
 func NewConfig(path string) (config *Config, err error) {
@@ -63,11 +63,11 @@ func NewConfig(path string) (config *Config, err error) {
 	return
 }
 
-func (o *OktaConfig) Valid() bool {
+func (o *Okta) Valid() bool {
 	return o.ClientID != "" && o.Domain != ""
 }
 
-func (o *OktaConfig) Emails() ([]string, error) {
+func (o *Okta) Emails() ([]string, error) {
 	ctx, client, err := okta.NewClient(context.TODO(), okta.WithOrgUrl("https://"+o.Domain), okta.WithRequestTimeout(30), okta.WithRateLimitMaxRetries(3), okta.WithToken(o.ApiToken))
 	if err != nil {
 		return nil, err
@@ -98,7 +98,7 @@ func (o *OktaConfig) Emails() ([]string, error) {
 	return emails, nil
 }
 
-func (o *OktaConfig) EmailFromCode(code string) (string, error) {
+func (o *Okta) EmailFromCode(code string) (string, error) {
 	ctx := context.Background()
 	conf := &oauth2.Config{
 		ClientID:     o.ClientID,

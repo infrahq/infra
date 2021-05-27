@@ -21,13 +21,19 @@ Infra is identity and access management for Kubernetes. Instead of creating sepa
 
 ## Install
 
-### Install Infra Engine on Kubernetes
+### Install on Kubernetes
+
+Install Infra 
 
 ```
 kubectl apply -f https://raw.githubusercontent.com/infrahq/early-access/master/deploy/kubernetes.yaml
 ```
 
-Infra exposes a LoadBalancer endpoint:
+Next, infra via a load balanacer
+
+```
+kuebctl expose -n infra deployment infra
+```
 
 ```
 kubectl get svc --namespace infra

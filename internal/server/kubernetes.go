@@ -3,10 +3,9 @@ package server
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 
-	bolt "go.etcd.io/bbolt"
+	"gorm.io/gorm"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,8 +29,6 @@ func NewKubernetes() (*Kubernetes, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		return k, err
-	} else {
-		fmt.Println("Using in-cluster Kubeconfig")
 	}
 
 	k.Config = config
@@ -39,7 +36,7 @@ func NewKubernetes() (*Kubernetes, error) {
 	return k, err
 }
 
-func (k *Kubernetes) UpdatePermissions(db *bolt.DB, cfg *Config) error {
+func (k *Kubernetes) UpdatePermissions(db *gorm.DB, cfg *Config) error {
 	if db == nil || cfg == nil {
 		return errors.New("parameter cannot be nil")
 	}
@@ -52,13 +49,8 @@ func (k *Kubernetes) UpdatePermissions(db *bolt.DB, cfg *Config) error {
 	defer k.mu.Unlock()
 
 	var users []User
-
-	err := db.View(func(tx *bolt.Tx) (err error) {
-		users, err = ListUsers(tx)
-		return err
-	})
-	if err != nil {
-		return err
+	if result := db.Find(&users); result.Error != nil {
+		return result.Error
 	}
 
 	rbs := []RoleBinding{}
