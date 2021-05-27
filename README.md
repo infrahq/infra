@@ -26,7 +26,7 @@ Infra is identity and access management for Kubernetes. Instead of creating sepa
 Install via `kubectl`:
 
 ```
-kubectl apply -f https://raw.githubusercontent.com/infrahq/early-access/master/deploy/kubernetes.yaml
+kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/master/deploy/kubernetes.yaml
 ```
 
 Infra exposes a `LoadBalancer` service by default:
