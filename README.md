@@ -23,29 +23,27 @@ Infra is identity and access management for Kubernetes. Instead of creating sepa
 
 ### Install on Kubernetes
 
-Install Infra 
+Install via `kubectl`:
 
 ```
 kubectl apply -f https://raw.githubusercontent.com/infrahq/early-access/master/deploy/kubernetes.yaml
 ```
 
-Next, infra via a load balanacer
-
-```
-kuebctl expose -n infra deployment infra
-```
+Infra exposes a `LoadBalancer` service by default:
 
 ```
 kubectl get svc --namespace infra
 ```
 
-Optionally, map a domain to the exposed endpoint (e.g. `infra.acme.com` to `31.58.101.169`):
+In this case, Infra is exposed on IP `31.58.101.169`
 
 ```
 $ kubectl get svc --namespace infra
 NAME      TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)        AGE
 infra     LoadBalancer   10.12.11.116   31.58.101.169   80:32326/TCP   1m
 ```
+
+Optionally, map a domain to the exposed endpoint (e.g. `infra.acme.com` to `31.58.101.169`)
 
 ### Install Infra CLI
 
