@@ -167,7 +167,7 @@ func blue(s string) string {
 }
 
 func client(host string, token string, insecure bool) (client *http.Client, err error) {
-	if host == "" {
+	if host == "" || host == "http://unix" {
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
 			return nil, err
