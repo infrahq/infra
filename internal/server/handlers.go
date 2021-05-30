@@ -219,7 +219,9 @@ func addRoutes(router *gin.Engine, db *gorm.DB, kube *Kubernetes, cfg *Config, s
 				return
 			}
 
+			c.SetSameSite(http.SameSiteStrictMode)
 			c.SetCookie("token", token, 3600, "/", c.Request.Host, false, true)
+
 			c.JSON(http.StatusCreated, CreateTokenResponse{token})
 			return
 		}
@@ -255,6 +257,7 @@ func addRoutes(router *gin.Engine, db *gorm.DB, kube *Kubernetes, cfg *Config, s
 			return
 		}
 
+		c.SetSameSite(http.SameSiteStrictMode)
 		c.SetCookie("token", token, 3600, "/", c.Request.Host, false, true)
 		c.JSON(http.StatusCreated, CreateTokenResponse{token})
 	})
