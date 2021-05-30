@@ -170,6 +170,19 @@ var rootCmd = &cobra.Command{
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		cmd.SilenceUsage = true
 	},
+	Example: heredoc.Doc(`
+		# Log into an Infra server
+		$ infra login infra.example.com
+
+		# Create a user
+		$ infra users create test@test.com p4ssw0rd
+
+		# List users
+		$ infra users ls
+
+		# Delete a user
+		$ infra users delete test@test.com
+		`),
 }
 
 var loginCmd = &cobra.Command{
@@ -177,7 +190,8 @@ var loginCmd = &cobra.Command{
 	Short: "Log in to Infra server",
 	Args:  cobra.ExactArgs(1),
 	Example: heredoc.Doc(`
-			$ infra login infra.example.com`),
+		$ infra login infra.example.com
+		`),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		serverUrl, err := serverUrlFromString(args[0])
 		if err != nil {
@@ -593,6 +607,8 @@ func addStandardClientFlags(cmd *cobra.Command) {
 }
 
 func Run() error {
+	cobra.EnableCommandSorting = false
+
 	clientConfig = viper.New()
 	clientConfig.SetDefault("token", "")
 	clientConfig.SetDefault("host", "")
@@ -603,11 +619,11 @@ func Run() error {
 
 	rootCmd.AddCommand(loginCmd)
 
+	addStandardClientFlags(usersCmd)
 	usersCmd.AddCommand(usersCreateCmd)
 	usersCmd.AddCommand(usersListCmd)
 	usersCmd.AddCommand(usersDeleteCmd)
 	rootCmd.AddCommand(usersCmd)
-	addStandardClientFlags(usersCmd)
 
 	rootCmd.AddCommand(newServerCmd())
 
