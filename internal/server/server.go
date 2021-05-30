@@ -201,7 +201,7 @@ type ServerOptions struct {
 	ConfigPath string
 	TLSCache   string
 	UI         bool
-	UIDev      bool
+	UIProxy    bool
 }
 
 func Run(options *ServerOptions) error {
@@ -289,7 +289,7 @@ func Run(options *ServerOptions) error {
 		return err
 	}
 
-	if options.UIDev {
+	if options.UIProxy {
 		remote, _ := url.Parse("http://localhost:3000")
 		devProxy := httputil.NewSingleHostReverseProxy(remote)
 		router.NoRoute(func(c *gin.Context) {
