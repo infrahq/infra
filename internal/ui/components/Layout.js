@@ -5,7 +5,8 @@ import {
   UsersIcon,
   XIcon,
   ViewGridIcon,
-  CogIcon
+  CogIcon,
+  CheckCircleIcon
 } from '@heroicons/react/outline'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
@@ -13,6 +14,7 @@ import { useRouter } from 'next/router'
 const navigation = [
   { name: 'Infrastructure', href: '/', icon: ViewGridIcon },
   { name: 'Users', href: '/users', icon: UsersIcon },
+  { name: 'Permissions', href: '/permissions', icon: CheckCircleIcon },
   { name: 'Settings', href: '/settings', icon: CogIcon },
 ]
 
@@ -114,7 +116,7 @@ export default function Layout ({ children }) {
               <div className="flex items-center py-2 px-6 text-center select-none">
                 <img src="/logo.svg" alt="infra" className="max-h-5"/>
               </div>
-              <nav className="mt-5 flex-1 px-3 bg-white space-y-2 select-none">
+              <nav className="mt-5 flex-1 px-3 bg-white space-y-1 select-none">
                 {navigation.map(item => (
                   <Link href={item.href} key={item.name}>
                     <a
