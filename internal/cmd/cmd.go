@@ -39,9 +39,6 @@ import (
 var (
 	clientConfigFile string
 	clientConfig     *viper.Viper = viper.New()
-
-	serverConfigFile string
-	serverConfig     *viper.Viper = viper.New()
 )
 
 func printTable(header []string, data [][]string) {
@@ -516,30 +513,21 @@ var usersListCmd = &cobra.Command{
 }
 
 func newServerCmd() *cobra.Command {
+	var options server.ServerOptions
+
 	serverCmd := &cobra.Command{
 		Use:   "server",
 		Short: "Start Infra server",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return server.Run(&server.ServerOptions{
-				DBPath:     serverConfig.GetString("db"),
-				TLSCache:   serverConfig.GetString("tlsCache"),
-				ConfigPath: serverConfig.GetString("config"),
-				UI:         serverConfig.GetBool("ui"),
-				UIProxy:    serverConfig.GetBool("uiProxy"),
-			})
+			return server.Run(&options)
 		},
 	}
 
-	serverCmd.Flags().String("db", "", "directory to store database")
-	serverCmd.Flags().String("tls-cache", "", "directory to cache self-signed and letsencrypt tls certificates")
-	serverCmd.Flags().StringP("config", "c", "", "server config file")
-	serverCmd.Flags().Bool("ui", false, "expose ui")
-	serverCmd.Flags().Bool("ui-proxy", false, "proxy requests to alternate ui process on port 3000")
-	serverConfig.BindPFlag("db", serverCmd.Flags().Lookup("db"))
-	serverConfig.BindPFlag("tls-cache", serverCmd.Flags().Lookup("tls-cache"))
-	serverConfig.BindPFlag("config", serverCmd.Flags().Lookup("config"))
-	serverConfig.BindPFlag("ui", serverCmd.Flags().Lookup("ui"))
-	serverConfig.BindPFlag("ui-proxy", serverCmd.Flags().Lookup("ui-proxy"))
+	serverCmd.Flags().StringVar(&options.DBPath, "db", "", "directory to store database")
+	serverCmd.Flags().StringVar(&options.TLSCache, "tls-cache", "", "directory to cache self-signed and letsencrypt tls certificates")
+	serverCmd.Flags().StringVarP(&options.ConfigPath, "config", "c", "", "server config file")
+	serverCmd.Flags().BoolVar(&options.UI, "ui", false, "enable ui")
+	serverCmd.Flags().BoolVar(&options.UIProxy, "ui-proxy", false, "disable built-in ui, but proxy requests to alternate ui process on port 3000")
 
 	return serverCmd
 }
@@ -565,27 +553,6 @@ func initClientConfig() {
 	clientConfig.ReadInConfig()
 }
 
-func initServerConfig() {
-	if serverConfigFile != "" {
-		serverConfig.SetConfigFile(clientConfigFile)
-	} else {
-		home, err := homedir.Dir()
-		cobra.CheckErr(err)
-
-		err = os.MkdirAll(filepath.Join(home, ".infra"), os.ModePerm)
-		cobra.CheckErr(err)
-
-		serverConfig.AddConfigPath(filepath.Join(home, ".infra"))
-		serverConfig.SetConfigName("server")
-		serverConfig.SetConfigType("yaml")
-	}
-
-	serverConfig.SetEnvPrefix("INFRA_SERVER")
-	serverConfig.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	serverConfig.AutomaticEnv()
-	serverConfig.ReadInConfig()
-}
-
 func addStandardClientFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().BoolP("insecure", "i", false, "skip TLS verification")
 	clientConfig.BindPFlag("insecure", cmd.PersistentFlags().Lookup("insecure"))
@@ -600,7 +567,6 @@ func Run() error {
 	clientConfig.SetDefault("insecure", false)
 
 	cobra.OnInitialize(initClientConfig)
-	cobra.OnInitialize(initServerConfig)
 
 	rootCmd.AddCommand(loginCmd)
 	addStandardClientFlags(loginCmd)
