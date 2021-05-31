@@ -377,11 +377,10 @@ var usersCmd = &cobra.Command{
 }
 
 var usersCreateCmd = &cobra.Command{
-	Use:   "create EMAIL PASSWORD",
-	Short: "create a user",
-	Args:  cobra.ExactArgs(2),
-	Example: heredoc.Doc(`
-			$ infra users create admin@example.com p4assw0rd`),
+	Use:     "create EMAIL PASSWORD",
+	Short:   "create a user",
+	Args:    cobra.ExactArgs(2),
+	Example: "$ infra users create admin@example.com p4assw0rd",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		httpClient, err := client()
 		if err != nil {
