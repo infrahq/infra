@@ -186,12 +186,10 @@ var rootCmd = &cobra.Command{
 }
 
 var loginCmd = &cobra.Command{
-	Use:   "login HOST",
-	Short: "Log in to Infra server",
-	Args:  cobra.ExactArgs(1),
-	Example: heredoc.Doc(`
-		$ infra login infra.example.com
-		`),
+	Use:     "login HOST",
+	Short:   "Log in to Infra server",
+	Args:    cobra.ExactArgs(1),
+	Example: "$ infra login infra.example.com",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		serverUrl, err := serverUrlFromString(args[0])
 		if err != nil {
@@ -589,11 +587,7 @@ func initServerConfig() {
 }
 
 func addStandardClientFlags(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringP("token", "t", "", "token to use for authentication")
-	cmd.PersistentFlags().StringP("host", "H", "", "remote infra server hostname to connect to (e.g. infra.example.com)")
-	cmd.PersistentFlags().BoolP("insecure", "i", false, "skip tls verification")
-	clientConfig.BindPFlag("token", cmd.PersistentFlags().Lookup("token"))
-	clientConfig.BindPFlag("host", cmd.PersistentFlags().Lookup("host"))
+	cmd.PersistentFlags().BoolP("insecure", "i", false, "skip TLS verification")
 	clientConfig.BindPFlag("insecure", cmd.PersistentFlags().Lookup("insecure"))
 }
 
