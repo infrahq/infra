@@ -3,7 +3,7 @@
 * [Install](#install)
 * [Overview](#introduction)
     * [Global flags](#global-flags)
-    * [Admin shell](#admin-shell)
+    * [Admin mode](#admin-mode)
 * [Commands](#commands)
     * [`infra login`](#infra-login)
     * [`infra users list`](#infra-users-list)
@@ -30,19 +30,22 @@ For example, using Kubernetes via `kubectl`:
 kubectl -n infra exec -it infra-0 sh
 
 # infra users list
-EMAIL              	PROVIDER	PERMISSION	CREATED            
-jeff@example.com  	okta    	admin     	About a minute ago	
-michael@example.com	okta    	view      	About a minute ago	
-elon@example.com   	okta    	view      	About a minute ago	
-tom@example.com    	okta    	view      	About a minute ago	
-mark@example.com   	okta    	view      	About a minute ago
+EMAIL              	PROVIDER	PERMISSION	CREATED    
+admin@example.com  	infra   	view      	3 days ago	
+tom@example.com    	okta    	view      	3 days ago	
+jeff@example.com*  	okta    	admin     	3 days ago	
+michael@example.com	okta    	view      	3 days ago	
+elon@example.com   	okta    	view      	3 days ago	
+mark@example.com   	okta    	view      	3 days ago
 ```
 
 ### Global Flags
 
-| Flag                 | Type       | Description                     |
-| :----------------    | :-------   | :-----------------------------  |
-| `--insecure, -i`     | `string`   | Trust self-signed certificates  |
+| Flag                 | Type       | Description                       |
+| :----------------    | :-------   | :-----------------------------    |
+| `--insecure, -i`     | `string`   | Disable TLS verification          |
+| `--host, -H`         | `string`   | Infra server host to connect to   |
+| `--token, -t`        | `string`   | Authentication token              |
 
 ## Commands
 
@@ -97,13 +100,13 @@ $ infra users list
 
 ```
 $ infra users list
-USER            	EMAIL              	CREATED         PROVIDERS  	PERMISSION	  
-usr_k3Egu0A9Jdah	bot@example.com    	9 seconds ago	         	view      	
-usr_cHHfCsZu3by7	michael@example.com	6 hours ago  	okta     	view      	
-usr_jojpIOMrBM6F	elon@example.com   	6 hours ago  	okta     	view      	
-usr_mBOjQx8RjC00	mark@example.com   	6 hours ago  	okta     	view      	
-usr_o7WreRsehzyn	tom@example.com    	6 hours ago  	okta     	view      	
-usr_uOQSaCwEDzYk	jeff@example.com   	6 hours ago  	okta     	view    
+EMAIL              	PROVIDER	PERMISSION	CREATED    
+admin@example.com  	infra   	view      	3 days ago	
+tom@example.com    	okta    	view      	3 days ago	
+jeff@example.com*  	okta    	admin     	3 days ago	
+michael@example.com	okta    	view      	3 days ago	
+elon@example.com   	okta    	view      	3 days ago	
+mark@example.com   	okta    	view      	3 days ago 
 ```
 
 ### `infra users create`
@@ -201,10 +204,10 @@ $ infra server [--config, -c]
 | Flag               | Type       | Description                                                       |
 | :----------------- | :-------   | :----------------------------------------------------------       |
 | `--config, -c`     | `string`   | Location of `infra.yaml` [config file](./configuration.md)        |
-| `--db`             | `string`   | Directory to store database, defaults to `~/.infra/db`            |
+| `--db`             | `string`   | Directory to store database, defaults to `~/.infra`               |
 | `--tls-cache       | `string`   | Directory to cache tls certificates, defaults to `~/.infra/cache` |
-| `--ui`             | `string`   | Directory to store database, defaults to `~/.infra`               |
-| `--ui-dev`         | `string`   | Proxy to ui requests to development server                        |
+| `--ui`             | `string`   | Enable UI                                                         |
+| `--ui-proxy`       | `string`   | Proxy to ui requests to development server                        |
 
 #### Example
 
