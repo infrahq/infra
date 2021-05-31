@@ -231,8 +231,6 @@ func Run(options *ServerOptions) error {
 		fmt.Println("warning: could connect to Kubernetes API", err)
 	}
 
-	fmt.Println(options)
-
 	var config Config
 	err = LoadConfig(&config, options.ConfigPath)
 	if err != nil {
