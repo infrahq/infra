@@ -38,10 +38,10 @@ type StaticFileSystem struct {
 func (sfs StaticFileSystem) Open(name string) (http.File, error) {
 	f, err := sfs.base.Open(name)
 	if os.IsNotExist(err) {
-		if f, err := sfs.base.Open(name + ".html"); err == nil {
-			return f, nil
+		if f, err = sfs.base.Open(name + ".html"); err != nil {
+			return sfs.base.Open("404.html")
 		}
-		return sfs.base.Open("index.html")
+		return f, nil
 	}
 
 	if err != nil {
@@ -298,7 +298,7 @@ func Run(options *ServerOptions) error {
 		})
 	} else if options.UI {
 		router.NoRoute(func(c *gin.Context) {
-			gziphandler.GzipHandler(http.FileServer(&assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo})).ServeHTTP(c.Writer, c.Request)
+			gziphandler.GzipHandler(http.FileServer(&StaticFileSystem{base: &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo}})).ServeHTTP(c.Writer, c.Request)
 		})
 	}
 
