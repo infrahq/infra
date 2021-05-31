@@ -1,5 +1,5 @@
 //go:generate npm run export --silent --prefix ../ui
-//go:generate go-bindata -pkg server -nocompress -o ./bindata_ui.go -fs -prefix "../ui/out/" ../ui/out/...
+//go:generate go-bindata -pkg server -nocompress -o ./bindata_ui.go -prefix "../ui/out/" ../ui/out/...
 
 package server
 
@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/NYTimes/gziphandler"
+	assetfs "github.com/elazarl/go-bindata-assetfs"
 	"github.com/gin-gonic/gin"
 	"github.com/infrahq/infra/internal/generate"
 	"golang.org/x/crypto/acme/autocert"
@@ -297,7 +298,7 @@ func Run(options *ServerOptions) error {
 		})
 	} else if options.UI {
 		router.NoRoute(func(c *gin.Context) {
-			gziphandler.GzipHandler(http.FileServer(&StaticFileSystem{base: AssetFile()})).ServeHTTP(c.Writer, c.Request)
+			gziphandler.GzipHandler(http.FileServer(&assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo})).ServeHTTP(c.Writer, c.Request)
 		})
 	}
 

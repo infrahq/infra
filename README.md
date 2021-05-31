@@ -78,6 +78,14 @@ curl.exe -L "https://github.com/infrahq/infra/releases/download/latest/infra-win
 
 ## Develop
 
+Install tools:
+
+```
+brew install nodejs
+brew install go
+go get -u github.com/kevinburke/go-bindata/...
+```
+
 Clone the project:
 
 ```bash
