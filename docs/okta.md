@@ -112,10 +112,10 @@ $ infra login infra.example.com
 
 ```
 $ infra users ls
-EMAIL              	PROVIDER	PERMISSION	CREATED            
-jeff@example.com*  	okta    	admin     	About a minute ago	
-michael@example.com	okta    	view      	About a minute ago	
-elon@example.com   	okta    	view      	About a minute ago	
-tom@example.com    	okta    	view      	About a minute ago	
-mark@example.com   	okta    	view      	About a minute ago
+EMAIL              	  PROVIDER	PERMISSION	CREATED            
+jeff@example.com  	  okta    	view      	About a minute ago	
+michael@example.com*	okta    	admin      	About a minute ago	
+elon@example.com   	  okta    	view      	About a minute ago	
+tom@example.com    	  okta    	view      	About a minute ago	
+mark@example.com   	  okta    	view      	About a minute ago
 ```

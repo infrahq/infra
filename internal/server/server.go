@@ -201,7 +201,7 @@ type ServerOptions struct {
 	ConfigPath string
 	TLSCache   string
 	UI         bool
-	UIDev      bool
+	UIProxy    bool
 }
 
 func Run(options *ServerOptions) error {
@@ -231,9 +231,10 @@ func Run(options *ServerOptions) error {
 		fmt.Println("warning: could connect to Kubernetes API", err)
 	}
 
-	config, err := NewConfig(options.ConfigPath)
+	var config Config
+	err = LoadConfig(&config, options.ConfigPath)
 	if err != nil {
-		fmt.Println("warning: could not open config file", err)
+		fmt.Println("warning: could not open config file: ", err)
 	}
 
 	sync := Sync{}
@@ -248,9 +249,8 @@ func Run(options *ServerOptions) error {
 			if err != nil {
 				fmt.Println(err)
 			}
+			kube.UpdatePermissions(db, &config)
 		}
-
-		kube.UpdatePermissions(db, config)
 	})
 
 	defer sync.Stop()
@@ -263,7 +263,7 @@ func Run(options *ServerOptions) error {
 		c.Set("skipauth", true)
 	})
 
-	if err = addRoutes(unixRouter, db, kube, config, &settings); err != nil {
+	if err = addRoutes(unixRouter, db, kube, &config, &settings); err != nil {
 		return err
 	}
 
@@ -285,11 +285,11 @@ func Run(options *ServerOptions) error {
 
 	router := gin.New()
 	router.Use(gin.Logger())
-	if err = addRoutes(router, db, kube, config, &settings); err != nil {
+	if err = addRoutes(router, db, kube, &config, &settings); err != nil {
 		return err
 	}
 
-	if options.UIDev {
+	if options.UIProxy {
 		remote, _ := url.Parse("http://localhost:3000")
 		devProxy := httputil.NewSingleHostReverseProxy(remote)
 		router.NoRoute(func(c *gin.Context) {

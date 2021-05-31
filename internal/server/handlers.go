@@ -308,7 +308,7 @@ func addRoutes(router *gin.Engine, db *gorm.DB, kube *Kubernetes, cfg *Config, s
 		}
 
 		if err := kube.UpdatePermissions(db, cfg); err != nil {
-			fmt.Println("could not update kubernetes permissions, err")
+			fmt.Println("could not update kubernetes permissions: ", err)
 		}
 
 		c.JSON(http.StatusCreated, CreateUserResponse{user})

@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 
 	"github.com/okta/okta-sdk-golang/v2/okta"
@@ -31,36 +32,36 @@ type Config struct {
 	Permissions []Permission `yaml:"permissions"`
 }
 
-func NewConfig(path string) (config *Config, err error) {
-	config = &Config{}
-
+func LoadConfig(config *Config, path string) error {
 	contents, err := ioutil.ReadFile(path)
 	if err != nil {
-		return
+		return err
 	}
 
 	err = yaml.Unmarshal([]byte(contents), &config)
 	if err != nil {
-		return
+		return err
 	}
 
 	if config.Providers.Okta.ClientSecret != "" {
 		bytes, err := ioutil.ReadFile(config.Providers.Okta.ClientSecret)
 		if err != nil {
-			return nil, err
+			fmt.Println("warning: could not open file: ", config.Providers.Okta.ClientSecret)
+		} else {
+			config.Providers.Okta.ApiToken = string(bytes)
 		}
-		config.Providers.Okta.ClientSecret = string(bytes)
 	}
 
 	if config.Providers.Okta.ApiToken != "" {
 		bytes, err := ioutil.ReadFile(config.Providers.Okta.ApiToken)
 		if err != nil {
-			return nil, err
+			fmt.Println("warning: could not open file: ", config.Providers.Okta.ApiToken)
+		} else {
+			config.Providers.Okta.ApiToken = string(bytes)
 		}
-		config.Providers.Okta.ApiToken = string(bytes)
 	}
 
-	return
+	return nil
 }
 
 func (o *Okta) Valid() bool {
