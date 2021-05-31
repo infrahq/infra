@@ -4,7 +4,6 @@
 * [Reference](#reference)
   * [`url`](#url)
   * [`providers`](#providers)
-    * [`builtin`](#builtin)
     * [`okta`](#okta)
   * [`permissions`](#permissions)
     * [`user`](#user)
@@ -33,10 +32,6 @@ permissions:
 ## Reference
 
 ### `providers`
-
-#### `builtin`
-
-Builtin is Infra's built-in identity provider that uses usernames & passwords to authenticate users.
 
 #### `okta`
 
