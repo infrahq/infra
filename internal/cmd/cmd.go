@@ -518,33 +518,30 @@ var usersListCmd = &cobra.Command{
 }
 
 func newServerCmd() *cobra.Command {
-	var (
-		db       string
-		tlsCache string
-		config   string
-		ui       bool
-		uiProxy  bool
-	)
-
 	serverCmd := &cobra.Command{
 		Use:   "server",
 		Short: "Start Infra server",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return server.Run(&server.ServerOptions{
-				DBPath:     serverConfig.GetString("server.db"),
-				TLSCache:   serverConfig.GetString("server.tlsCache"),
-				UI:         serverConfig.GetBool("server.ui"),
-				UIProxy:    serverConfig.GetBool("server.uiProxy"),
-				ConfigPath: "",
+				DBPath:     serverConfig.GetString("db"),
+				TLSCache:   serverConfig.GetString("tlsCache"),
+				ConfigPath: serverConfig.GetString("config"),
+				UI:         serverConfig.GetBool("ui"),
+				UIProxy:    serverConfig.GetBool("uiProxy"),
 			})
 		},
 	}
 
-	serverCmd.Flags().StringVar(&db, "db", "", "directory to store database")
-	serverCmd.Flags().StringVar(&tlsCache, "tls-cache", "", "directory to cache self-signed and letsencrypt tls certificates")
-	serverCmd.Flags().StringVarP(&config, "config", "c", "", "server config file")
-	serverCmd.Flags().BoolVar(&ui, "ui", false, "expose ui")
-	serverCmd.Flags().BoolVar(&uiProxy, "ui-proxy", false, "proxy requests to alternate ui process on port 3000")
+	serverCmd.Flags().String("db", "", "directory to store database")
+	serverCmd.Flags().String("tls-cache", "", "directory to cache self-signed and letsencrypt tls certificates")
+	serverCmd.Flags().StringP("config", "c", "", "server config file")
+	serverCmd.Flags().Bool("ui", false, "expose ui")
+	serverCmd.Flags().Bool("ui-proxy", false, "proxy requests to alternate ui process on port 3000")
+	serverConfig.BindPFlag("db", serverCmd.Flags().Lookup("db"))
+	serverConfig.BindPFlag("tls-cache", serverCmd.Flags().Lookup("tls-cache"))
+	serverConfig.BindPFlag("config", serverCmd.Flags().Lookup("config"))
+	serverConfig.BindPFlag("ui", serverCmd.Flags().Lookup("ui"))
+	serverConfig.BindPFlag("ui-proxy", serverCmd.Flags().Lookup("ui-proxy"))
 
 	return serverCmd
 }
