@@ -202,10 +202,7 @@ var loginCmd = &cobra.Command{
 
 		clientConfig.Set("host", host)
 
-		insecure, err := cmd.Flags().GetBool("insecure")
-		if err != nil {
-			return err
-		}
+		insecure := clientConfig.GetBool("insecure")
 
 		httpClient, err := client()
 		if err != nil {
@@ -486,10 +483,7 @@ var usersListCmd = &cobra.Command{
 			return err
 		}
 
-		token, err := cmd.Flags().GetString("token")
-		if err != nil {
-			return err
-		}
+		token := clientConfig.GetString("token")
 
 		email := ""
 		if token != "" {
@@ -618,6 +612,7 @@ func Run() error {
 	cobra.OnInitialize(initServerConfig)
 
 	rootCmd.AddCommand(loginCmd)
+	addStandardClientFlags(loginCmd)
 
 	addStandardClientFlags(usersCmd)
 	usersCmd.AddCommand(usersCreateCmd)
