@@ -192,7 +192,8 @@ func Run(options Options) error {
 	if options.UI || options.UIProxy {
 		// Login middleware for UI to avoid flash of content
 		router.Use(func(c *gin.Context) {
-			if filepath.Ext(c.Request.URL.Path) != "" {
+			ext := filepath.Ext(c.Request.URL.Path)
+			if ext != "" && ext != ".html" {
 				c.Next()
 				return
 			}
