@@ -2,13 +2,11 @@
 
 * [Example](#example)
 * [Reference](#reference)
-  * [`url`](#url)
   * [`providers`](#providers)
     * [`okta`](#okta)
   * [`permissions`](#permissions)
-    * [`user`](#user)
-    * [`permission`](#permission)
-    * [`namespace`](#namespace)
+    * [`name`](#permission)
+    * [`users`](#user)
 
 ## Example
 
@@ -17,16 +15,16 @@ providers:
   okta:
     domain: acme.okta.com
     client-id: 0oapn0qwiQPiMIyR35d6
-    client-secret: /var/run/infra/secrets/okta-client-secret
-    api-token: /var/run/infra/secrets/okta-api-token
+    client-secret: jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2
+    api-token: 001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd
 
 permissions:
-  - user: admin@acme.com
-    permission: admin
-  - user: suzie@acme.com
-    permission: edit
-  - user: bob@acme.com
-    permission: view
+  - name: admin
+    users: ["admin@example.com"]
+  - name: write
+    users: ["suzie@example.com", "john@example.com"]
+  - name: readonly
+    users: ["bob@example.com", "tony@example.com", "alice@example.com"]
 ```
 
 ## Reference
@@ -37,8 +35,8 @@ permissions:
 
 * `domain`: Okta domain
 * `client-id`: Client ID for the Okta application
-* `client-secret`: Path to file containing client secret for the Okta Application
-* `api-token`: Path to file containing Okta API Token
+* `client-secret`: Client Secret for the Okta application
+* `api-token`: Okta API Token
 
 Example:
 
@@ -47,8 +45,8 @@ providers:
   okta:
     domain: acme.okta.com
     client-id: 0oapn0qwiQPiMIyR35d6
-    client-secret: /etc/secrets/infra/okta-client-secret
-    api-token: /etc/secrets/infra/okta-api-token
+    client-secret: jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2
+    api-token: 001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd
 ```
 
 ### `users`
@@ -57,11 +55,12 @@ providers:
 
 ```yaml
 permissions:
-  - email: admin@acme.com
-    permission: admin
-  - email: jeff@acme.com
-    permission: edit
-    namespace: default
+  - name: admin
+    users: ["admin@example.com"]
+  - name: write
+    users: ["suzie@example.com", "john@example.com"]
+  - name: readonly
+    users: ["bob@example.com", "tony@example.com", "alice@example.com"]
 ```
 
 ### `user`
@@ -74,10 +73,7 @@ permissions:
 
 | Permission | Description                        |
 | :--------  | :------------------------------    |
-| view       | View & list any resource           |
-| edit       | Create, edit, delete any resource  |
-| admin      | Full access                        |
+| view       | Read-only for most resources       |
+| edit       | Read & write most resources        |
+| admin      | Read & write any resource          |
 
-### `namespace`
-
-* `namespace` is a Kubernetes namespace to scope permissions for

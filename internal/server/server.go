@@ -4,201 +4,28 @@
 package server
 
 import (
-	"bytes"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/tls"
-	"crypto/x509"
-	"crypto/x509/pkix"
-	"encoding/pem"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
-	"math/big"
-	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/NYTimes/gziphandler"
 	assetfs "github.com/elazarl/go-bindata-assetfs"
 	"github.com/gin-gonic/gin"
-	"github.com/infrahq/infra/internal/generate"
+	"github.com/imdario/mergo"
+	"github.com/infrahq/infra/internal/okta"
 	"golang.org/x/crypto/acme/autocert"
+	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
 )
 
-type StaticFileSystem struct {
-	base http.FileSystem
-}
-
-func (sfs StaticFileSystem) Open(name string) (http.File, error) {
-	f, err := sfs.base.Open(name)
-	if os.IsNotExist(err) {
-		if f, err = sfs.base.Open(name + ".html"); err != nil {
-			return sfs.base.Open("404.html")
-		}
-		return f, nil
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return f, nil
-}
-
-type Sync struct {
-	stop chan bool
-}
-
-func generateSelfSignedCert(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-	ca := &x509.Certificate{
-		SerialNumber: big.NewInt(2019),
-		Subject: pkix.Name{
-			CommonName:   generate.RandString(25),
-			Organization: []string{generate.RandString(25)},
-		},
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().AddDate(0, 1, 0),
-		IsCA:                  true,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
-		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
-		BasicConstraintsValid: true,
-	}
-
-	caPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
-	if err != nil {
-		return nil, err
-	}
-
-	caBytes, err := x509.CreateCertificate(rand.Reader, ca, ca, &caPrivKey.PublicKey, caPrivKey)
-	if err != nil {
-		return nil, err
-	}
-
-	caPEM := new(bytes.Buffer)
-	pem.Encode(caPEM, &pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: caBytes,
-	})
-
-	caPrivKeyPEM := new(bytes.Buffer)
-	pem.Encode(caPrivKeyPEM, &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(caPrivKey),
-	})
-
-	cert := &x509.Certificate{
-		SerialNumber: big.NewInt(1658),
-		Subject: pkix.Name{
-			CommonName:   generate.RandString(25),
-			Organization: []string{generate.RandString(25)},
-		},
-		IPAddresses:  []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback},
-		NotBefore:    time.Now(),
-		NotAfter:     time.Now().AddDate(0, 1, 0),
-		SubjectKeyId: []byte{1, 2, 3, 4, 6},
-		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
-		KeyUsage:     x509.KeyUsageDigitalSignature,
-	}
-
-	if hello.ServerName != "" {
-		cert.DNSNames = []string{hello.ServerName}
-	} else {
-		tcp, ok := hello.Conn.LocalAddr().(*net.TCPAddr)
-		if !ok {
-			return nil, errors.New("could not determine ip")
-		}
-		cert.IPAddresses = append(cert.IPAddresses, tcp.IP)
-	}
-
-	certPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
-	if err != nil {
-		return nil, err
-	}
-
-	certBytes, err := x509.CreateCertificate(rand.Reader, cert, ca, &certPrivKey.PublicKey, caPrivKey)
-	if err != nil {
-		return nil, err
-	}
-
-	certPEM := new(bytes.Buffer)
-	pem.Encode(certPEM, &pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: certBytes,
-	})
-
-	certPrivKeyPEM := new(bytes.Buffer)
-	pem.Encode(certPrivKeyPEM, &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(certPrivKey),
-	})
-
-	keypair, err := tls.X509KeyPair(certPEM.Bytes(), certPrivKeyPEM.Bytes())
-	if err != nil {
-		return nil, err
-	}
-
-	return &keypair, nil
-}
-
-func getSelfSignedOrLetsEncryptCert(certManager *autocert.Manager) func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-	selfSignCache := make(map[string]*tls.Certificate)
-
-	return func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-
-		cert, err := certManager.GetCertificate(hello)
-		if err == nil {
-			return cert, nil
-		}
-
-		name := hello.ServerName
-		if name == "" {
-			name = hello.Conn.LocalAddr().String()
-		}
-
-		cert, ok := selfSignCache[name]
-		if !ok {
-			cert, err = generateSelfSignedCert(hello)
-			if err != nil {
-				return nil, err
-			}
-			selfSignCache[name] = cert
-		}
-
-		return cert, nil
-	}
-}
-
-const SYNC_INTERVAL_SECONDS = 10
-
-func (s *Sync) Start(sync func()) {
-	ticker := time.NewTicker(SYNC_INTERVAL_SECONDS * time.Second)
-	sync()
-
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				sync()
-			case <-s.stop:
-				ticker.Stop()
-				return
-			}
-		}
-	}()
-}
-
-func (s *Sync) Stop() {
-	s.stop <- true
-}
-
-type ServerOptions struct {
+type Options struct {
 	DBPath     string
 	ConfigPath string
 	TLSCache   string
@@ -206,43 +33,102 @@ type ServerOptions struct {
 	UIProxy    bool
 }
 
-func Run(options *ServerOptions) error {
-	if options.DBPath == "" {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			return err
+func updatePermissions(config *Config, db *gorm.DB) error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		for _, p := range config.Permissions {
+			var dbp Permission
+			err := tx.Where(&Permission{Name: p.Name}).First(&dbp).Error
+			if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+				return err
+			}
+
+			// For now ignore references to permissions that don't exist
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				continue
+			}
+
+			var usersToAssociate []User
+			err = tx.Where("email IN ?", p.Users).Not(&User{PermissionID: dbp.ID}).Find(&usersToAssociate).Error
+			if err != nil {
+				return err
+			}
+
+			err = tx.Model(&dbp).Association("Users").Append(usersToAssociate)
+			if err != nil {
+				return err
+			}
 		}
 
-		options.DBPath = filepath.Join(homeDir, ".infra")
+		return nil
+	})
+}
+
+func Run(options Options) error {
+	// Load configuration from file
+	var config Config
+	if options.ConfigPath != "" {
+		contents, err := ioutil.ReadFile(options.ConfigPath)
+		if err != nil {
+			fmt.Println("Could not open config file path: ", options.ConfigPath)
+		} else {
+			err = yaml.Unmarshal([]byte(contents), &config)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
+	// Initialize database
 	db, err := NewDB(options.DBPath)
 	if err != nil {
 		return err
 	}
 
-	var settings Settings
-	err = db.First(&settings).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		settings.TokenSecret = []byte(generate.RandString(32))
-		db.Save(&settings)
+	err = updatePermissions(&config, db)
+	if err != nil {
+		return err
 	}
 
-	kube, err := NewKubernetes()
+	var s Settings
+	err = db.First(&s).Error
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
+
+	var dbConfig Config
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		yaml.Unmarshal(s.Config, &dbConfig)
+	}
+
+	// Migrate / initialize db configuration and save
+	InitConfig(&dbConfig)
+
+	bs, err := yaml.Marshal(dbConfig)
+	if err != nil {
+		return err
+	}
+	s.Config = bs
+	db.Save(&s)
+
+	// Create merged config from configuration file and database file
+	if err := mergo.Merge(&dbConfig, &config); err != nil {
+		return err
+	}
+
+	// Create a new Kubernetes instance
+	kubernetes, err := NewKubernetes(db)
 	if err != nil {
 		fmt.Println("warning: could connect to Kubernetes API", err)
 	}
 
-	var config Config
-	err = LoadConfig(&config, options.ConfigPath)
-	if err != nil {
-		fmt.Println("warning: could not open config file: ", err)
-	}
+	var cs ConfigStore
+	cs.set(&dbConfig)
 
 	sync := Sync{}
 	sync.Start(func() {
-		if config.Providers.Okta.Domain != "" {
-			emails, err := config.Providers.Okta.Emails()
+		if cs.get().Providers.Okta.Domain != "" {
+			emails, err := okta.Emails(cs.get().Providers.Okta.Domain, cs.get().Providers.Okta.ClientID, cs.get().Providers.Okta.ApiToken)
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -251,7 +137,13 @@ func Run(options *ServerOptions) error {
 			if err != nil {
 				fmt.Println(err)
 			}
-			kube.UpdatePermissions(db, &config)
+
+			err = updatePermissions(cs.get(), db)
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			kubernetes.UpdatePermissions()
 		}
 	})
 
@@ -265,7 +157,13 @@ func Run(options *ServerOptions) error {
 		c.Set("skipauth", true)
 	})
 
-	if err = addRoutes(unixRouter, db, kube, &config, &settings); err != nil {
+	handlers := &Handlers{
+		db:         db,
+		cs:         &cs,
+		kubernetes: kubernetes,
+	}
+
+	if err = handlers.addRoutes(unixRouter); err != nil {
 		return err
 	}
 
@@ -287,7 +185,7 @@ func Run(options *ServerOptions) error {
 
 	router := gin.New()
 	router.Use(gin.Logger())
-	if err = addRoutes(router, db, kube, &config, &settings); err != nil {
+	if err = handlers.addRoutes(router); err != nil {
 		return err
 	}
 

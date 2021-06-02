@@ -16,6 +16,7 @@ import (
 type Kubernetes struct {
 	Config *rest.Config
 	mu     sync.Mutex
+	db     *gorm.DB
 }
 
 type RoleBinding struct {
@@ -23,8 +24,12 @@ type RoleBinding struct {
 	Role string
 }
 
-func NewKubernetes() (*Kubernetes, error) {
-	k := &Kubernetes{}
+func NewKubernetes(db *gorm.DB) (*Kubernetes, error) {
+	if db == nil {
+		return nil, errors.New("db is nil")
+	}
+
+	k := &Kubernetes{db: db}
 
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -36,11 +41,7 @@ func NewKubernetes() (*Kubernetes, error) {
 	return k, err
 }
 
-func (k *Kubernetes) UpdatePermissions(db *gorm.DB, cfg *Config) error {
-	if db == nil || cfg == nil {
-		return errors.New("parameter cannot be nil")
-	}
-
+func (k *Kubernetes) UpdatePermissions() error {
 	if k.Config == nil {
 		return errors.New("invalid kubernetes config")
 	}
@@ -48,16 +49,19 @@ func (k *Kubernetes) UpdatePermissions(db *gorm.DB, cfg *Config) error {
 	k.mu.Lock()
 	defer k.mu.Unlock()
 
-	var users []User
-	if result := db.Find(&users); result.Error != nil {
+	var permissions []Permission
+	if result := k.db.Preload("Users").Find(&permissions); result.Error != nil {
 		return result.Error
 	}
 
 	rbs := []RoleBinding{}
-	for _, user := range users {
-		permission := PermissionForEmail(user.Email, cfg)
-		if permission != "" {
-			rbs = append(rbs, RoleBinding{User: user.Email, Role: permission})
+	emptyRbs := []string{}
+	for _, permission := range permissions {
+		for _, user := range permission.Users {
+			rbs = append(rbs, RoleBinding{User: user.Email, Role: permission.KubernetesRole})
+		}
+		if len(permission.Users) == 0 {
+			emptyRbs = append(emptyRbs, permission.Name)
 		}
 	}
 
@@ -87,20 +91,18 @@ func (k *Kubernetes) UpdatePermissions(db *gorm.DB, cfg *Config) error {
 	}
 
 	// Create empty crbs
-	for _, p := range PermissionOrdering {
-		if len(subjects[p]) == 0 {
-			crbs = append(crbs, &rbacv1.ClusterRoleBinding{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "infra-" + p,
-				},
-				Subjects: []rbacv1.Subject{},
-				RoleRef: rbacv1.RoleRef{
-					APIGroup: "rbac.authorization.k8s.io",
-					Kind:     "ClusterRole",
-					Name:     p,
-				},
-			})
-		}
+	for _, e := range emptyRbs {
+		crbs = append(crbs, &rbacv1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "infra-" + e,
+			},
+			Subjects: []rbacv1.Subject{},
+			RoleRef: rbacv1.RoleRef{
+				APIGroup: "rbac.authorization.k8s.io",
+				Kind:     "ClusterRole",
+				Name:     e,
+			},
+		})
 	}
 
 	if k.Config != nil {

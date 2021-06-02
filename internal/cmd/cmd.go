@@ -30,16 +30,62 @@ import (
 	"github.com/muesli/termenv"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"github.com/square/go-jose/jwt"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
-var (
-	clientConfigFile string
-	clientConfig     *viper.Viper = viper.New()
-)
+type Config struct {
+	Host     string `yaml:"host"`
+	Token    string `yaml:"token"`
+	Insecure bool   `yaml:"insecure,omitempty"`
+}
+
+func readConfig() (config *Config, err error) {
+	config = &Config{}
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return
+	}
+
+	contents, err := ioutil.ReadFile(filepath.Join(homeDir, ".infra", "config"))
+	if os.IsNotExist(err) {
+		return config, nil
+	}
+
+	if err != nil {
+		return
+	}
+
+	if err = json.Unmarshal(contents, &config); err != nil {
+		return
+	}
+
+	return
+}
+
+func writeConfig(config *Config) error {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	if err = os.MkdirAll(filepath.Join(homeDir, ".infra"), os.ModePerm); err != nil {
+		return err
+	}
+
+	contents, err := json.Marshal(config)
+	if err != nil {
+		return err
+	}
+
+	if err = ioutil.WriteFile(filepath.Join(homeDir, ".infra", "config"), []byte(contents), 0644); err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func printTable(header []string, data [][]string) {
 	table := tablewriter.NewWriter(os.Stdout)
@@ -108,9 +154,7 @@ func unixClient(path string) *http.Client {
 	}
 }
 
-func serverUrl() (*url.URL, error) {
-	host := clientConfig.GetString("host")
-
+func serverUrl(host string) (*url.URL, error) {
 	if host == "" {
 		return urlx.Parse("http://unix")
 	}
@@ -129,10 +173,8 @@ func serverUrlFromString(host string) (*url.URL, error) {
 	return u, nil
 }
 
-func client() (client *http.Client, err error) {
-	token := clientConfig.GetString("token")
-
-	if clientConfig.GetString("host") == "" {
+func client(host string, token string, insecure bool) (client *http.Client, err error) {
+	if host == "" {
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
 			return nil, err
@@ -140,7 +182,7 @@ func client() (client *http.Client, err error) {
 		return unixClient(filepath.Join(homeDir, ".infra", "infra.sock")), nil
 	}
 
-	if clientConfig.GetBool("insecure") {
+	if insecure {
 		return &http.Client{
 			Transport: &TokenTransport{
 				Token: token,
@@ -194,12 +236,12 @@ var loginCmd = &cobra.Command{
 		}
 
 		host := serverUrl.String()
+		insecure, err := cmd.PersistentFlags().GetBool("insecure")
+		if err != nil {
+			return err
+		}
 
-		clientConfig.Set("host", host)
-
-		insecure := clientConfig.GetBool("insecure")
-
-		httpClient, err := client()
+		httpClient, err := client(host, "", insecure)
 		if err != nil {
 			return err
 		}
@@ -215,11 +257,11 @@ var loginCmd = &cobra.Command{
 		}
 
 		// TODO (jmorganca): clean this up to check a list based on the api results
-		okta := fmt.Sprintf("Okta [%s]", response.Okta.Domain)
+		okta := fmt.Sprintf("Okta [%s]", response.OktaDomain)
 		userpass := "Username & password"
 
 		options := []string{}
-		if response.Okta.ClientID != "" && response.Okta.Domain != "" {
+		if response.OktaClientID != "" && response.OktaDomain != "" {
 			options = append(options, okta)
 		}
 		options = append(options, userpass)
@@ -250,7 +292,7 @@ var loginCmd = &cobra.Command{
 			// Get auth code from Okta
 			// Send auth code to Infra to log in as a user
 			state := generate.RandString(12)
-			authorizeUrl := "https://" + response.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + response.Okta.ClientID + "&response_type=code&scope=openid+email&nonce=" + generate.RandString(10) + "&state=" + state
+			authorizeUrl := "https://" + response.OktaDomain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + response.OktaClientID + "&response_type=code&scope=openid+email&nonce=" + generate.RandString(10) + "&state=" + state
 
 			fmt.Println(blue("✓") + " Logging in with Okta...")
 			ls, err := newLocalServer()
@@ -323,44 +365,45 @@ var loginCmd = &cobra.Command{
 
 		fmt.Println(blue("✓") + " Logged in...")
 
-		clientConfig.Set("token", createTokenResponse.Token)
-		clientConfig.Set("insecure", insecure)
+		config := &Config{
+			Host:     host,
+			Token:    createTokenResponse.Token,
+			Insecure: insecure,
+		}
 
-		if err := clientConfig.SafeWriteConfig(); err != nil {
-			err = clientConfig.WriteConfig()
-			if err != nil {
-				return err
-			}
+		err = writeConfig(config)
+		if err != nil {
+			return err
 		}
 
 		// Load default config and merge new config in
 		loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 		defaultConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
-		config, err := defaultConfig.RawConfig()
+		kubeConfig, err := defaultConfig.RawConfig()
 		if err != nil {
 			return err
 		}
 
 		hostname := serverUrl.Hostname()
 
-		config.Clusters[hostname] = &clientcmdapi.Cluster{
+		kubeConfig.Clusters[hostname] = &clientcmdapi.Cluster{
 			Server: serverUrl.String() + "/v1/proxy",
 		}
 
 		if insecure {
-			config.Clusters[hostname].InsecureSkipTLSVerify = true
+			kubeConfig.Clusters[hostname].InsecureSkipTLSVerify = true
 		}
 
-		config.AuthInfos[hostname] = &clientcmdapi.AuthInfo{
+		kubeConfig.AuthInfos[hostname] = &clientcmdapi.AuthInfo{
 			Token: createTokenResponse.Token,
 		}
-		config.Contexts[hostname] = &clientcmdapi.Context{
+		kubeConfig.Contexts[hostname] = &clientcmdapi.Context{
 			Cluster:  hostname,
 			AuthInfo: hostname,
 		}
-		config.CurrentContext = hostname
+		kubeConfig.CurrentContext = hostname
 
-		if err = clientcmd.WriteToFile(config, clientcmd.RecommendedHomeFile); err != nil {
+		if err = clientcmd.WriteToFile(kubeConfig, clientcmd.RecommendedHomeFile); err != nil {
 			return err
 		}
 
@@ -382,12 +425,17 @@ var usersCreateCmd = &cobra.Command{
 	Args:    cobra.ExactArgs(2),
 	Example: "$ infra users create admin@example.com p4assw0rd",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		httpClient, err := client()
+		config, err := readConfig()
 		if err != nil {
 			return err
 		}
 
-		serverUrl, err := serverUrl()
+		httpClient, err := client(config.Host, config.Token, config.Insecure)
+		if err != nil {
+			return err
+		}
+
+		serverUrl, err := serverUrl(config.Host)
 		if err != nil {
 			return err
 		}
@@ -420,12 +468,17 @@ var usersDeleteCmd = &cobra.Command{
 	Example: heredoc.Doc(`
 			$ infra users delete user@example.com`),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		httpClient, err := client()
+		config, err := readConfig()
 		if err != nil {
 			return err
 		}
 
-		serverUrl, err := serverUrl()
+		httpClient, err := client(config.Host, config.Token, config.Insecure)
+		if err != nil {
+			return err
+		}
+
+		serverUrl, err := serverUrl(config.Host)
 		if err != nil {
 			return err
 		}
@@ -456,12 +509,17 @@ var usersListCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "List users",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		httpClient, err := client()
+		config, err := readConfig()
 		if err != nil {
 			return err
 		}
 
-		serverUrl, err := serverUrl()
+		httpClient, err := client(config.Host, config.Token, config.Insecure)
+		if err != nil {
+			return err
+		}
+
+		serverUrl, err := serverUrl(config.Host)
 		if err != nil {
 			return err
 		}
@@ -477,11 +535,9 @@ var usersListCmd = &cobra.Command{
 			return err
 		}
 
-		token := clientConfig.GetString("token")
-
 		email := ""
-		if token != "" {
-			tok, err := jwt.ParseSigned(token)
+		if config.Token != "" {
+			tok, err := jwt.ParseSigned(config.Token)
 			if err != nil {
 				return err
 			}
@@ -502,7 +558,7 @@ var usersListCmd = &cobra.Command{
 			if user.Email == email {
 				star = "*"
 			}
-			rows = append(rows, []string{user.Email + star, user.Provider, user.Permission, units.HumanDuration(time.Now().UTC().Sub(time.Unix(user.Created, 0))) + " ago"})
+			rows = append(rows, []string{user.Email + star, user.Provider, user.Permission.Name, units.HumanDuration(time.Now().UTC().Sub(time.Unix(user.Created, 0))) + " ago"})
 		}
 
 		printTable([]string{"EMAIL", "PROVIDER", "PERMISSION", "CREATED"}, rows)
@@ -511,72 +567,50 @@ var usersListCmd = &cobra.Command{
 	},
 }
 
-func newServerCmd() *cobra.Command {
-	var options server.ServerOptions
+func newServerCmd() (*cobra.Command, error) {
+	var options server.Options
 
 	serverCmd := &cobra.Command{
 		Use:   "server",
 		Short: "Start Infra server",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return server.Run(&options)
+			return server.Run(options)
 		},
 	}
 
-	serverCmd.Flags().StringVar(&options.DBPath, "db", "", "directory to store database")
-	serverCmd.Flags().StringVar(&options.TLSCache, "tls-cache", "", "directory to cache self-signed and letsencrypt tls certificates")
-	serverCmd.Flags().StringVarP(&options.ConfigPath, "config", "c", "", "server config file")
-	serverCmd.Flags().BoolVar(&options.UI, "ui", false, "enable ui")
-	serverCmd.Flags().BoolVar(&options.UIProxy, "ui-proxy", false, "disable built-in ui, but proxy requests to alternate ui process on port 3000")
-
-	return serverCmd
-}
-
-func initClientConfig() {
-	if clientConfigFile != "" {
-		clientConfig.SetConfigFile(clientConfigFile)
-	} else {
-		home, err := homedir.Dir()
-		cobra.CheckErr(err)
-
-		err = os.MkdirAll(filepath.Join(home, ".infra"), os.ModePerm)
-		cobra.CheckErr(err)
-
-		clientConfig.AddConfigPath(filepath.Join(home, ".infra"))
-		clientConfig.SetConfigName("client")
-		clientConfig.SetConfigType("yaml")
+	home, err := homedir.Dir()
+	if err != nil {
+		return nil, err
 	}
 
-	clientConfig.SetEnvPrefix("INFRA")
-	clientConfig.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	clientConfig.AutomaticEnv()
-	clientConfig.ReadInConfig()
-}
+	serverCmd.Flags().StringVarP(&options.ConfigPath, "config", "c", "", "server config file")
+	serverCmd.Flags().StringVar(&options.DBPath, "db", filepath.Join(home, ".infra", "infra.db"), "path to database file")
+	serverCmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(home, ".infra", "cache"), "path to directory to cache tls self-signed and Let's Encrypt certificates")
+	serverCmd.Flags().BoolVar(&options.UI, "ui", false, "enable experimental UI")
+	serverCmd.Flags().BoolVar(&options.UIProxy, "ui-proxy", false, "proxy ui requests to localhost:3000")
 
-func addStandardClientFlags(cmd *cobra.Command) {
-	cmd.PersistentFlags().BoolP("insecure", "i", false, "skip TLS verification")
-	clientConfig.BindPFlag("insecure", cmd.PersistentFlags().Lookup("insecure"))
+	return serverCmd, nil
 }
 
 func Run() error {
 	cobra.EnableCommandSorting = false
 
-	clientConfig = viper.New()
-	clientConfig.SetDefault("token", "")
-	clientConfig.SetDefault("host", "")
-	clientConfig.SetDefault("insecure", false)
-
-	cobra.OnInitialize(initClientConfig)
-
 	rootCmd.AddCommand(loginCmd)
-	addStandardClientFlags(loginCmd)
+	loginCmd.PersistentFlags().BoolP("insecure", "i", false, "skip TLS verification")
 
-	addStandardClientFlags(usersCmd)
 	usersCmd.AddCommand(usersCreateCmd)
 	usersCmd.AddCommand(usersListCmd)
 	usersCmd.AddCommand(usersDeleteCmd)
+	usersCmd.PersistentFlags().BoolP("insecure", "i", false, "skip TLS verification")
+
 	rootCmd.AddCommand(usersCmd)
 
-	rootCmd.AddCommand(newServerCmd())
+	serverCmd, err := newServerCmd()
+	if err != nil {
+		return err
+	}
+
+	rootCmd.AddCommand(serverCmd)
 
 	return rootCmd.Execute()
 }

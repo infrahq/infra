@@ -13,13 +13,20 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/infrahq/infra/internal/okta"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
 	"gorm.io/gorm"
 )
 
-func TokenAuthMiddleware(secret []byte) gin.HandlerFunc {
+type Handlers struct {
+	db         *gorm.DB
+	cs         *ConfigStore
+	kubernetes *Kubernetes
+}
+
+func (h *Handlers) TokenAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.GetBool("skipauth") {
 			c.Next()
@@ -48,7 +55,7 @@ func TokenAuthMiddleware(secret []byte) gin.HandlerFunc {
 
 		cl := jwt.Claims{}
 		out := make(map[string]interface{})
-		if err := tok.Claims(secret, &cl, &out); err != nil {
+		if err := tok.Claims([]byte(h.cs.get().System.TokenSecret), &cl, &out); err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 			return
 		}
@@ -73,8 +80,8 @@ func TokenAuthMiddleware(secret []byte) gin.HandlerFunc {
 	}
 }
 
-func createToken(email string, secret []byte) (string, error) {
-	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.HS256, Key: secret}, (&jose.SignerOptions{}).WithType("JWT"))
+func (h *Handlers) createToken(email string) (string, error) {
+	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.HS256, Key: []byte(h.cs.get().System.TokenSecret)}, (&jose.SignerOptions{}).WithType("JWT"))
 	if err != nil {
 		return "", err
 	}
@@ -98,7 +105,7 @@ func createToken(email string, secret []byte) (string, error) {
 	return raw, nil
 }
 
-func PermissionMiddleware(permission string, cfg *Config) gin.HandlerFunc {
+func (h *Handlers) PermissionMiddleware(permission string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.GetBool("skipauth") {
 			c.Next()
@@ -111,25 +118,26 @@ func PermissionMiddleware(permission string, cfg *Config) gin.HandlerFunc {
 			return
 		}
 
-		p := PermissionForEmail(email, cfg)
-		if !IsEqualOrHigherPermission(p, permission) {
+		var u User
+		h.db.Where("email = ?", email).First(&u)
+
+		if !IsEqualOrHigherPermission(u.Permission.Name, permission) {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-			fmt.Println("user has permission " + p + " required: " + permission)
+			fmt.Println("user has permission " + u.Permission.Name + " required: " + permission)
 			return
 		}
 
-		c.Set("permission", p)
 		c.Next()
 	}
 }
 
-func ProxyHandler(kubernetes *Kubernetes) (handler gin.HandlerFunc, err error) {
-	remote, err := url.Parse(kubernetes.Config.Host)
+func (h *Handlers) ProxyHandler() (handler gin.HandlerFunc, err error) {
+	remote, err := url.Parse(h.kubernetes.Config.Host)
 	if err != nil {
 		return
 	}
 
-	ca, err := ioutil.ReadFile(kubernetes.Config.TLSClientConfig.CAFile)
+	ca, err := ioutil.ReadFile(h.kubernetes.Config.TLSClientConfig.CAFile)
 	if err != nil {
 		return
 	}
@@ -147,13 +155,14 @@ func ProxyHandler(kubernetes *Kubernetes) (handler gin.HandlerFunc, err error) {
 		email := c.GetString("email")
 		c.Request.Header.Del("Authorization")
 		c.Request.Header.Set("Impersonate-User", email)
-		c.Request.Header.Add("Authorization", "Bearer "+string(kubernetes.Config.BearerToken))
+		c.Request.Header.Add("Authorization", "Bearer "+string(h.kubernetes.Config.BearerToken))
 		http.StripPrefix("/v1/proxy", proxy).ServeHTTP(c.Writer, c.Request)
 	}, err
 }
 
 type RetrieveProvidersResponse struct {
-	Provider
+	OktaDomain   string
+	OktaClientID string
 }
 
 type CreateTokenResponse struct {
@@ -166,7 +175,7 @@ type CreateUserResponse struct {
 
 type ListUsersResponseData struct {
 	User
-	Permission string `json:"permission"`
+	Permission Permission `json:"permission"`
 }
 
 type ListUsersResponse struct {
@@ -181,9 +190,12 @@ type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
-func addRoutes(router *gin.Engine, db *gorm.DB, kube *Kubernetes, cfg *Config, settings *Settings) error {
+func (h *Handlers) addRoutes(router *gin.Engine) error {
 	router.GET("/v1/providers", func(c *gin.Context) {
-		c.JSON(http.StatusOK, RetrieveProvidersResponse{cfg.Providers})
+		c.JSON(http.StatusOK, RetrieveProvidersResponse{
+			h.cs.get().Providers.Okta.Domain,
+			h.cs.get().Providers.Okta.ClientID,
+		})
 	})
 
 	router.POST("/v1/tokens", func(c *gin.Context) {
@@ -204,15 +216,21 @@ func addRoutes(router *gin.Engine, db *gorm.DB, kube *Kubernetes, cfg *Config, s
 
 		// Via Okta
 		// TODO (jmorganca): support web-based login for okta
+		// TODO (jmorganca): check okta edge cases in client verification
 		var err error
-		if params.OktaCode != "" && cfg.Providers.Okta.Valid() {
-			email, err := cfg.Providers.Okta.EmailFromCode(params.OktaCode)
+		if params.OktaCode != "" {
+			email, err := okta.EmailFromCode(
+				params.OktaCode,
+				h.cs.get().Providers.Okta.Domain,
+				h.cs.get().Providers.Okta.ClientID,
+				h.cs.get().Providers.Okta.ClientSecret,
+			)
 			if err != nil {
 				c.JSON(http.StatusBadRequest, ErrorResponse{"invalid code"})
 				return
 			}
 
-			token, err := createToken(email, settings.TokenSecret)
+			token, err := h.createToken(email)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, ErrorResponse{"failed to create token"})
 				fmt.Println(err)
@@ -241,7 +259,7 @@ func addRoutes(router *gin.Engine, db *gorm.DB, kube *Kubernetes, cfg *Config, s
 		}
 
 		var user User
-		if err := db.Where("email = ?", emailParams.Email).First(&user).Error; err != nil {
+		if err := h.db.Where("email = ?", emailParams.Email).First(&user).Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "unauthorized"})
 			return
 		}
@@ -251,7 +269,7 @@ func addRoutes(router *gin.Engine, db *gorm.DB, kube *Kubernetes, cfg *Config, s
 			return
 		}
 
-		token, err := createToken(params.Email, settings.TokenSecret)
+		token, err := h.createToken(params.Email)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, ErrorResponse{"could not create token"})
 			fmt.Println(err)
@@ -264,9 +282,9 @@ func addRoutes(router *gin.Engine, db *gorm.DB, kube *Kubernetes, cfg *Config, s
 		c.JSON(http.StatusCreated, CreateTokenResponse{token})
 	})
 
-	router.GET("/v1/users", TokenAuthMiddleware(settings.TokenSecret), PermissionMiddleware("view", cfg), func(c *gin.Context) {
+	router.GET("/v1/users", h.TokenAuthMiddleware(), h.PermissionMiddleware("view"), func(c *gin.Context) {
 		var users []User
-		err := db.Find(&users).Error
+		err := h.db.Preload("Permission").Find(&users).Error
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, ErrorResponse{"could not list users"})
 			return
@@ -274,13 +292,13 @@ func addRoutes(router *gin.Engine, db *gorm.DB, kube *Kubernetes, cfg *Config, s
 
 		data := make([]ListUsersResponseData, 0)
 		for _, u := range users {
-			data = append(data, ListUsersResponseData{u, PermissionForEmail(u.Email, cfg)})
+			data = append(data, ListUsersResponseData{u, u.Permission})
 		}
 
 		c.JSON(http.StatusOK, ListUsersResponse{data})
 	})
 
-	router.POST("/v1/users", TokenAuthMiddleware(settings.TokenSecret), func(c *gin.Context) {
+	router.POST("/v1/users", h.TokenAuthMiddleware(), func(c *gin.Context) {
 		type binds struct {
 			Email    string `form:"email" binding:"email,required"`
 			Password string `form:"password" binding:"required"`
@@ -303,20 +321,20 @@ func addRoutes(router *gin.Engine, db *gorm.DB, kube *Kubernetes, cfg *Config, s
 		user.Password = hashedPassword
 		user.Provider = "infra"
 
-		err = db.Create(&user).Error
+		err = h.db.Create(&user).Error
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, ErrorResponse{"could not create user"})
 			return
 		}
 
-		if err := kube.UpdatePermissions(db, cfg); err != nil {
+		if err := h.kubernetes.UpdatePermissions(); err != nil {
 			fmt.Println("could not update kubernetes permissions: ", err)
 		}
 
 		c.JSON(http.StatusCreated, CreateUserResponse{user})
 	})
 
-	router.DELETE("/v1/users/:id", TokenAuthMiddleware(settings.TokenSecret), PermissionMiddleware("admin", cfg), func(c *gin.Context) {
+	router.DELETE("/v1/users/:id", h.TokenAuthMiddleware(), h.PermissionMiddleware("admin"), func(c *gin.Context) {
 		type binds struct {
 			Email string `uri:"id" binding:"required"`
 		}
@@ -332,9 +350,15 @@ func addRoutes(router *gin.Engine, db *gorm.DB, kube *Kubernetes, cfg *Config, s
 			return
 		}
 
-		err := db.Where("email = ?", params.Email).Delete(User{}).Error
+		var user User
+		err := h.db.Where("email = ?", params.Email).First(&user).Error
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusBadRequest, ErrorResponse{"user does not exist"})
+			return
+		}
+
+		if user.Provider != "infra" {
+			c.JSON(http.StatusBadRequest, ErrorResponse{"user managed by identity provider"})
 			return
 		}
 
@@ -343,24 +367,30 @@ func addRoutes(router *gin.Engine, db *gorm.DB, kube *Kubernetes, cfg *Config, s
 			return
 		}
 
-		if err := kube.UpdatePermissions(db, cfg); err != nil {
-			c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
+		err = h.db.Delete(&user).Error
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, ErrorResponse{"could not delete user"})
+			return
+		}
+
+		if err := h.kubernetes.UpdatePermissions(); err != nil {
+			fmt.Println("could not update kubernetes permissions: ", err)
 			return
 		}
 
 		c.JSON(http.StatusOK, DeleteResponse{true})
 	})
 
-	if kube != nil && kube.Config != nil {
-		proxyHandler, err := ProxyHandler(kube)
+	if h.kubernetes != nil && h.kubernetes.Config != nil {
+		proxyHandler, err := h.ProxyHandler()
 		if err != nil {
 			return err
 		}
-		router.GET("/v1/proxy/*all", TokenAuthMiddleware(settings.TokenSecret), proxyHandler)
-		router.POST("/v1/proxy/*all", TokenAuthMiddleware(settings.TokenSecret), proxyHandler)
-		router.PUT("/v1/proxy/*all", TokenAuthMiddleware(settings.TokenSecret), proxyHandler)
-		router.PATCH("/v1/proxy/*all", TokenAuthMiddleware(settings.TokenSecret), proxyHandler)
-		router.DELETE("/v1/proxy/*all", TokenAuthMiddleware(settings.TokenSecret), proxyHandler)
+		router.GET("/v1/proxy/*all", h.TokenAuthMiddleware(), proxyHandler)
+		router.POST("/v1/proxy/*all", h.TokenAuthMiddleware(), proxyHandler)
+		router.PUT("/v1/proxy/*all", h.TokenAuthMiddleware(), proxyHandler)
+		router.PATCH("/v1/proxy/*all", h.TokenAuthMiddleware(), proxyHandler)
+		router.DELETE("/v1/proxy/*all", h.TokenAuthMiddleware(), proxyHandler)
 	}
 
 	return nil
