@@ -327,6 +327,8 @@ func (h *Handlers) addRoutes(router *gin.Engine) error {
 			return
 		}
 
+		updatePermissions(h.cs.get(), h.db)
+
 		if err := h.kubernetes.UpdatePermissions(); err != nil {
 			fmt.Println("could not update kubernetes permissions: ", err)
 		}
