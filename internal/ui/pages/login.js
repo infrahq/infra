@@ -1,10 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useCookies } from 'react-cookie'
 import { useRouter } from 'next/router'
 
 export default function Login() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+
+  const [cookies] = useCookies(['token'])
+  if (process.browser && cookies.login) {
+    router.replace("/")
+    return null
+  }
 
   const handleSubmit = useCallback(e => {
     e.preventDefault()

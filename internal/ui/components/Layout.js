@@ -1,4 +1,5 @@
 import { Fragment, useState } from 'react'
+import { useCookies } from 'react-cookie'
 import { Dialog, Transition } from '@headlessui/react'
 import {
   MenuIcon,
@@ -25,6 +26,12 @@ function classNames(...classes) {
 export default function Layout ({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const router = useRouter()
+  const [cookies] = useCookies(['token'])
+
+  if (process.browser && !cookies.login) {
+    router.replace("/login")
+    return null
+  }
 
   return (
     <div className="h-screen flex overflow-hidden bg-white">

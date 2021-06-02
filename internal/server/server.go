@@ -21,6 +21,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/NYTimes/gziphandler"
@@ -290,16 +291,48 @@ func Run(options *ServerOptions) error {
 		return err
 	}
 
-	if options.UIProxy {
-		remote, _ := url.Parse("http://localhost:3000")
-		devProxy := httputil.NewSingleHostReverseProxy(remote)
-		router.NoRoute(func(c *gin.Context) {
-			devProxy.ServeHTTP(c.Writer, c.Request)
+	if options.UI || options.UIProxy {
+		// Login middleware for UI to avoid flash of content
+		router.Use(func(c *gin.Context) {
+			if filepath.Ext(c.Request.URL.Path) != "" {
+				c.Next()
+				return
+			}
+
+			// check token cookie
+			login, err := c.Cookie("token")
+
+			if err != nil && !strings.HasPrefix(c.Request.URL.Path, "/login") {
+				c.Redirect(301, "/login")
+				return
+			}
+
+			if login != "" && strings.HasPrefix(c.Request.URL.Path, "/login") {
+				keys, ok := c.Request.URL.Query()["next"]
+
+				if !ok || len(keys[0]) < 1 {
+					c.Redirect(301, "/")
+				} else {
+					c.Redirect(301, keys[0])
+				}
+
+				return
+			}
+
+			c.Next()
 		})
-	} else if options.UI {
-		router.NoRoute(func(c *gin.Context) {
-			gziphandler.GzipHandler(http.FileServer(&StaticFileSystem{base: &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo}})).ServeHTTP(c.Writer, c.Request)
-		})
+
+		if options.UIProxy {
+			remote, _ := url.Parse("http://localhost:3000")
+			devProxy := httputil.NewSingleHostReverseProxy(remote)
+			router.NoRoute(func(c *gin.Context) {
+				devProxy.ServeHTTP(c.Writer, c.Request)
+			})
+		} else if options.UI {
+			router.NoRoute(func(c *gin.Context) {
+				gziphandler.GzipHandler(http.FileServer(&StaticFileSystem{base: &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo}})).ServeHTTP(c.Writer, c.Request)
+			})
+		}
 	}
 
 	go router.Run(":80")
