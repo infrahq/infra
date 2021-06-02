@@ -199,14 +199,14 @@ func Run(options Options) error {
 			}
 
 			// check token cookie
-			login, err := c.Cookie("token")
+			token, err := c.Cookie("token")
 
 			if err != nil && !strings.HasPrefix(c.Request.URL.Path, "/login") {
 				c.Redirect(301, "/login")
 				return
 			}
 
-			if login != "" && strings.HasPrefix(c.Request.URL.Path, "/login") {
+			if token != "" && strings.HasPrefix(c.Request.URL.Path, "/login") {
 				keys, ok := c.Request.URL.Query()["next"]
 
 				if !ok || len(keys[0]) < 1 {
