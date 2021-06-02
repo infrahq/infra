@@ -1,4 +1,4 @@
-import { Menu, Transition, Dialog } from '@headlessui/react'
+import { Transition, Dialog } from '@headlessui/react'
 import { Fragment, useRef, useState } from 'react'
 import { ExclamationIcon } from '@heroicons/react/outline'
 import useSWR from 'swr'
@@ -8,10 +8,6 @@ import relativeTime from 'dayjs/plugin/relativeTime'
 import Layout from '../components/Layout'
 
 dayjs.extend(relativeTime)
-
-function classNames(...classes) {
-  return classes.filter(Boolean).join(' ')
-}
 
 function Modal ({ open, setOpen }) {
   const cancelButtonRef = useRef()
@@ -146,7 +142,7 @@ function Table () {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.email}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{dayjs(user.created * 1000).fromNow()}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.provider}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.permission}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.permission.name}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <a disabled={user.provider !== "infra"} href="#" className="text-blue-600 hover:text-blue-900 disabled:text-black" onClick={() => setOpen(true)}>
                         Delete
