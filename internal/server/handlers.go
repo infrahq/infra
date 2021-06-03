@@ -119,7 +119,11 @@ func (h *Handlers) RoleMiddleware(roles ...string) gin.HandlerFunc {
 		}
 
 		var u User
-		h.db.Preload("Permissions").Where("email = ?", email).First(&u)
+		err := h.db.Preload("Permissions").Where("email = ?", email).First(&u).Error
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "error"})
+			return
+		}
 
 		for _, p := range u.Permissions {
 			for _, allowed := range roles {
@@ -201,6 +205,10 @@ type ErrorResponse struct {
 }
 
 func (h *Handlers) addRoutes(router *gin.Engine) error {
+	router.GET("/healthz", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
 	router.GET("/v1/providers", func(c *gin.Context) {
 		c.JSON(http.StatusOK, RetrieveProvidersResponse{
 			h.cs.get().Providers.Okta.Domain,
