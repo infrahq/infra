@@ -308,22 +308,6 @@ func (h *Handlers) addRoutes(router *gin.Engine) error {
 		c.JSON(http.StatusOK, ListUsersResponse{data})
 	})
 
-	router.GET("/v1/permissions", h.TokenAuthMiddleware(), h.RoleMiddleware("view", "edit", "admin"), func(c *gin.Context) {
-		var permissions []Permission
-		err := h.db.Preload("Users").Find(&permissions).Error
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, ErrorResponse{"could not list users"})
-			return
-		}
-
-		data := make([]ListPermissionsResponseData, 0)
-		for _, p := range permissions {
-			data = append(data, ListPermissionsResponseData{p})
-		}
-
-		c.JSON(http.StatusOK, ListPermissionsResponse{data})
-	})
-
 	router.POST("/v1/users", h.TokenAuthMiddleware(), h.RoleMiddleware("edit", "admin"), func(c *gin.Context) {
 		type binds struct {
 			Email    string `form:"email" binding:"email,required"`
