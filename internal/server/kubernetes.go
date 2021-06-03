@@ -50,18 +50,28 @@ func (k *Kubernetes) UpdatePermissions() error {
 	defer k.mu.Unlock()
 
 	var permissions []Permission
-	if result := k.db.Preload("Users").Find(&permissions); result.Error != nil {
-		return result.Error
+	err := k.db.Preload("User").Preload("Role").Find(&permissions).Error
+	if err != nil {
+		return err
 	}
 
 	rbs := []RoleBinding{}
-	emptyRbs := []string{}
+	numUsers := make(map[string]int)
 	for _, permission := range permissions {
-		for _, user := range permission.Users {
-			rbs = append(rbs, RoleBinding{User: user.Email, Role: permission.KubernetesRole})
-		}
-		if len(permission.Users) == 0 {
-			emptyRbs = append(emptyRbs, permission.Name)
+		rbs = append(rbs, RoleBinding{User: permission.UserEmail, Role: permission.Role.KubernetesRole})
+		numUsers[permission.Role.KubernetesRole] += 1
+	}
+
+	var roles []Role
+	err = k.db.Find(&roles).Error
+	if err != nil {
+		return err
+	}
+
+	emptyRoles := []string{}
+	for _, r := range roles {
+		if numUsers[r.KubernetesRole] == 0 {
+			emptyRoles = append(emptyRoles, r.KubernetesRole)
 		}
 	}
 
@@ -90,8 +100,8 @@ func (k *Kubernetes) UpdatePermissions() error {
 		})
 	}
 
-	// Create empty crbs
-	for _, e := range emptyRbs {
+	// Create empty crbs for roles with no users
+	for _, e := range emptyRoles {
 		crbs = append(crbs, &rbacv1.ClusterRoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "infra-" + e,

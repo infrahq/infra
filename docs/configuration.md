@@ -14,17 +14,17 @@
 providers:
   okta:
     domain: acme.okta.com
-    client-id: 0oapn0qwiQPiMIyR35d6
-    client-secret: jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2
-    api-token: 001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd
+    clientID: 0oapn0qwiQPiMIyR35d6
+    clientSecret: jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2
+    apiToken: 001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd
 
 permissions:
-  - name: admin
-    users: ["admin@example.com"]
-  - name: write
-    users: ["suzie@example.com", "john@example.com"]
-  - name: readonly
-    users: ["bob@example.com", "tony@example.com", "alice@example.com"]
+  - user: admin@infrahq.com
+    role: admin
+  - user: jeff@infrahq.com
+    role: edit
+  - user: michael@infrahq.com
+    role: view
 ```
 
 ## Reference
@@ -55,23 +55,23 @@ providers:
 
 ```yaml
 permissions:
-  - name: admin
-    users: ["admin@example.com"]
-  - name: write
-    users: ["suzie@example.com", "john@example.com"]
-  - name: readonly
-    users: ["bob@example.com", "tony@example.com", "alice@example.com"]
+  - user: admin@infrahq.com
+    role: admin
+  - user: jeff@infrahq.com
+    role: edit
+  - user: michael@infrahq.com
+    role: view
 ```
 
 ### `user`
 
 `user` is a user's email
 
-### `permission`
+### `role`
 
-`permission` defines a permission level, giving users access to specific resources and tasks they need
+`role` defines a permission level, giving users access to specific resources and tasks they need
 
-| Permission | Description                        |
+| Role       | Description                        |
 | :--------  | :------------------------------    |
 | view       | Read-only for most resources       |
 | edit       | Read & write most resources        |

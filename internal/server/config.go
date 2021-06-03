@@ -22,8 +22,8 @@ type Config struct {
 	} `json:"system" yaml:"system"`
 
 	Permissions []struct {
-		Name  string   `json:"name" yaml:"name"`
-		Users []string `json:"users" yaml:"users"`
+		User string `json:"user" yaml:"user"`
+		Role string `json:"role" yaml:"role"`
 	} `yaml:"permissions,omitempty"`
 }
 

@@ -558,10 +558,17 @@ var usersListCmd = &cobra.Command{
 			if user.Email == email {
 				star = "*"
 			}
-			rows = append(rows, []string{user.Email + star, user.Provider, user.Permission.Name, units.HumanDuration(time.Now().UTC().Sub(time.Unix(user.Created, 0))) + " ago"})
+			roles := ""
+			for i, p := range user.Permissions {
+				if i > 0 {
+					roles += ","
+				}
+				roles += p.Role.Name
+			}
+			rows = append(rows, []string{user.Email + star, user.Provider, units.HumanDuration(time.Now().UTC().Sub(time.Unix(user.Created, 0))) + " ago", roles})
 		}
 
-		printTable([]string{"EMAIL", "PROVIDER", "PERMISSION", "CREATED"}, rows)
+		printTable([]string{"EMAIL", "PROVIDER", "CREATED", "ROLES"}, rows)
 
 		return nil
 	},
