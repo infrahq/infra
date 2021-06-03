@@ -67,8 +67,20 @@ spec:
       port: 443
       targetPort: 443
 ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: infra
+  namespace: infra
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: infra
   namespace: infra
@@ -77,13 +89,11 @@ spec:
     matchLabels:
       app: infra
   replicas: 1
-  serviceName: infra
   template:
     metadata:
       labels:
         app: infra
     spec:
-      serviceAccountName: infra
       automountServiceAccountToken: true
       containers:
         - name: server
@@ -99,6 +109,21 @@ spec:
               mountPath: /var/run/infra/config
             - name: secrets
               mountPath: /var/run/infra/secrets
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 80
+            periodSeconds: 3
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - infra
+            topologyKey: kubernetes.io/hostname
       volumes:
         - name: config
           configMap:
@@ -108,11 +133,6 @@ spec:
           secret:
             secretName: infra
             optional: true
-  volumeClaimTemplates:
-  - metadata:
-      name: data
-    spec:
-      accessModes: ["ReadWriteOnce"]
-      resources:
-        requests:
-          storage: 1Gi
+        - name: data
+          persistentVolumeClaim:
+            claimName: infra

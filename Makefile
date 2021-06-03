@@ -37,7 +37,7 @@ release:
 dev/docker:
 	docker build . -t infrahq/infra:dev
 	kubectl apply -f ./deploy/dev.yaml
-	kubectl rollout restart -n infra statefulset/infra
+	kubectl rollout restart -n infra deployment/infra
 
 release/docker:
 	docker buildx build --push --platform linux/amd64,linux/arm64 . -t infrahq/infra
