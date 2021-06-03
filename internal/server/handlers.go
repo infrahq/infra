@@ -105,7 +105,7 @@ func (h *Handlers) createToken(email string) (string, error) {
 	return raw, nil
 }
 
-func (h *Handlers) PermissionMiddleware(permission string) gin.HandlerFunc {
+func (h *Handlers) RoleMiddleware(roles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.GetBool("skipauth") {
 			c.Next()
@@ -119,15 +119,18 @@ func (h *Handlers) PermissionMiddleware(permission string) gin.HandlerFunc {
 		}
 
 		var u User
-		h.db.Where("email = ?", email).First(&u)
+		h.db.Preload("Permissions").Where("email = ?", email).First(&u)
 
-		if !IsEqualOrHigherPermission(u.Permission.Name, permission) {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-			fmt.Println("user has permission " + u.Permission.Name + " required: " + permission)
-			return
+		for _, p := range u.Permissions {
+			for _, allowed := range roles {
+				if p.RoleName == allowed {
+					c.Next()
+					return
+				}
+			}
 		}
 
-		c.Next()
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 	}
 }
 
@@ -175,11 +178,18 @@ type CreateUserResponse struct {
 
 type ListUsersResponseData struct {
 	User
-	Permission Permission `json:"permission"`
 }
 
 type ListUsersResponse struct {
 	Data []ListUsersResponseData `json:"data"`
+}
+
+type ListPermissionsResponseData struct {
+	Permission
+}
+
+type ListPermissionsResponse struct {
+	Data []ListPermissionsResponseData `json:"data"`
 }
 
 type DeleteResponse struct {
@@ -282,9 +292,9 @@ func (h *Handlers) addRoutes(router *gin.Engine) error {
 		c.JSON(http.StatusCreated, CreateTokenResponse{token})
 	})
 
-	router.GET("/v1/users", h.TokenAuthMiddleware(), h.PermissionMiddleware("view"), func(c *gin.Context) {
+	router.GET("/v1/users", h.TokenAuthMiddleware(), h.RoleMiddleware("view", "edit", "admin"), func(c *gin.Context) {
 		var users []User
-		err := h.db.Preload("Permission").Find(&users).Error
+		err := h.db.Preload("Permissions.Role").Find(&users).Error
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, ErrorResponse{"could not list users"})
 			return
@@ -292,13 +302,29 @@ func (h *Handlers) addRoutes(router *gin.Engine) error {
 
 		data := make([]ListUsersResponseData, 0)
 		for _, u := range users {
-			data = append(data, ListUsersResponseData{u, u.Permission})
+			data = append(data, ListUsersResponseData{u})
 		}
 
 		c.JSON(http.StatusOK, ListUsersResponse{data})
 	})
 
-	router.POST("/v1/users", h.TokenAuthMiddleware(), func(c *gin.Context) {
+	router.GET("/v1/permissions", h.TokenAuthMiddleware(), h.RoleMiddleware("view", "edit", "admin"), func(c *gin.Context) {
+		var permissions []Permission
+		err := h.db.Preload("Users").Find(&permissions).Error
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, ErrorResponse{"could not list users"})
+			return
+		}
+
+		data := make([]ListPermissionsResponseData, 0)
+		for _, p := range permissions {
+			data = append(data, ListPermissionsResponseData{p})
+		}
+
+		c.JSON(http.StatusOK, ListPermissionsResponse{data})
+	})
+
+	router.POST("/v1/users", h.TokenAuthMiddleware(), h.RoleMiddleware("edit", "admin"), func(c *gin.Context) {
 		type binds struct {
 			Email    string `form:"email" binding:"email,required"`
 			Password string `form:"password" binding:"required"`
@@ -310,14 +336,20 @@ func (h *Handlers) addRoutes(router *gin.Engine) error {
 			return
 		}
 
+		var user User
+		user.Email = form.Email
+		count := h.db.Where(&user).First(&user).RowsAffected
+		if count > 0 {
+			c.JSON(http.StatusBadRequest, ErrorResponse{"user with this email already exists"})
+			return
+		}
+
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(form.Password), bcrypt.DefaultCost)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, ErrorResponse{"could not create user"})
 			return
 		}
 
-		var user User
-		user.Email = form.Email
 		user.Password = hashedPassword
 		user.Provider = "infra"
 
@@ -327,8 +359,6 @@ func (h *Handlers) addRoutes(router *gin.Engine) error {
 			return
 		}
 
-		updatePermissions(h.cs.get(), h.db)
-
 		if err := h.kubernetes.UpdatePermissions(); err != nil {
 			fmt.Println("could not update kubernetes permissions: ", err)
 		}
@@ -336,7 +366,7 @@ func (h *Handlers) addRoutes(router *gin.Engine) error {
 		c.JSON(http.StatusCreated, CreateUserResponse{user})
 	})
 
-	router.DELETE("/v1/users/:id", h.TokenAuthMiddleware(), h.PermissionMiddleware("admin"), func(c *gin.Context) {
+	router.DELETE("/v1/users/:id", h.TokenAuthMiddleware(), h.RoleMiddleware("edit", "admin"), func(c *gin.Context) {
 		type binds struct {
 			Email string `uri:"id" binding:"required"`
 		}

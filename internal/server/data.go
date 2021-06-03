@@ -13,25 +13,34 @@ type User struct {
 	ID       uint   `gorm:"primaryKey"`
 	Created  int64  `json:"created" gorm:"autoCreateTime"`
 	Updated  int64  `json:"updated" gorm:"autoUpdateTime"`
-	Email    string `json:"email" gorm:"unique"`
+	Email    string `json:"email" gorm:"index:,unique"`
 	Password []byte `json:"-"`
 	Provider string `json:"provider"`
 
-	Permission   Permission `json:"permission"`
-	PermissionID uint       `json:"-"`
+	Permissions []Permission `json:"permissions" gorm:"foreignKey:UserEmail;references:Email"`
 }
 
 type Permission struct {
-	ID          uint   `json:"id" yaml:"-" gorm:"primaryKey"`
-	Created     int64  `json:"created" yaml:"-" gorm:"autoCreateTime"`
-	Updated     int64  `json:"updated" yaml:"-" gorm:"autoUpdateTime"`
+	ID      uint  `gorm:"primaryKey"`
+	Created int64 `json:"created" yaml:"-" gorm:"autoCreateTime"`
+	Updated int64 `json:"updated" yaml:"-" gorm:"autoUpdateTime"`
+
+	UserEmail string `json:"-"`
+	User      User   `json:"-" gorm:"foreignKey:UserEmail;references:Email"`
+	RoleName  string `json:"-"`
+	Role      Role   `json:"role" gorm:"foreignKey:RoleName;references:Name"`
+}
+
+type Role struct {
+	ID      uint  `json:"id" yaml:"-" gorm:"primaryKey"`
+	Created int64 `json:"created" yaml:"-" gorm:"autoCreateTime"`
+	Updated int64 `json:"updated" yaml:"-" gorm:"autoUpdateTime"`
+
 	Name        string `json:"name" yaml:"name" gorm:"unique"`
 	Description string `json:"description" yaml:"description"`
 
 	KubernetesRole      string `json:"kubernetesRole" yaml:"kubernetesRole"`
 	KubernetesNamespace string `json:"kubernetesNamespace" yaml:"kubernetesNamespace"`
-
-	Users []User `json:"-"`
 }
 
 type Settings struct {
@@ -41,7 +50,13 @@ type Settings struct {
 	Config  []byte `json:"config"`
 }
 
-var DefaultPermissions = []Permission{
+var (
+	DefaultRoleView  = "view"
+	DefaultRoleEdit  = "edit"
+	DefaultRoleAdmin = "admin"
+)
+
+var DefaultRoles = []Role{
 	{
 		Name:           "view",
 		Description:    "Read most resources",
@@ -71,11 +86,12 @@ func NewDB(dbpath string) (*gorm.DB, error) {
 
 	db.AutoMigrate(&User{})
 	db.AutoMigrate(&Permission{})
+	db.AutoMigrate(&Role{})
 	db.AutoMigrate(&Settings{})
 
 	// Add default permissions
-	for _, p := range DefaultPermissions {
-		err := db.Where(&Permission{Name: p.Name}).First(&p).Error
+	for _, p := range DefaultRoles {
+		err := db.Where(&Role{Name: p.Name}).First(&p).Error
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
@@ -134,7 +150,7 @@ func IsEqualOrHigherPermission(a string, b string) bool {
 	indexa := 0
 	indexb := 0
 
-	for i, p := range DefaultPermissions {
+	for i, p := range DefaultRoles {
 		if a == p.Name {
 			indexa = i
 		}

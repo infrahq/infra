@@ -35,25 +35,38 @@ type Options struct {
 
 func updatePermissions(config *Config, db *gorm.DB) error {
 	return db.Transaction(func(tx *gorm.DB) error {
+		var dps []Permission
+		err := db.Find(&dps).Error
+		if err != nil {
+			return err
+		}
+
+		// Delete permissions not found
+		for _, dp := range dps {
+			found := false
+			for _, p := range config.Permissions {
+				if p.Role == dp.RoleName && p.User == dp.UserEmail {
+					found = true
+				}
+			}
+
+			if !found {
+				err = db.Delete(&dp).Error
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		// Create new permissions
 		for _, p := range config.Permissions {
-			var dbp Permission
-			err := tx.Where(&Permission{Name: p.Name}).First(&dbp).Error
+			permission := Permission{UserEmail: p.User, RoleName: p.Role}
+			err := tx.Where(&permission).First(&permission).Error
 			if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 				return err
 			}
 
-			// For now ignore references to permissions that don't exist
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				continue
-			}
-
-			var usersToAssociate []User
-			err = tx.Where("email IN ?", p.Users).Not(&User{PermissionID: dbp.ID}).Find(&usersToAssociate).Error
-			if err != nil {
-				return err
-			}
-
-			err = tx.Model(&dbp).Association("Users").Append(usersToAssociate)
+			err = tx.Save(&permission).Error
 			if err != nil {
 				return err
 			}
@@ -104,6 +117,11 @@ func Run(options Options) error {
 	// Migrate / initialize db configuration and save
 	InitConfig(&dbConfig)
 
+	// Create merged config from configuration file and database file
+	if err := mergo.Merge(&dbConfig, &config); err != nil {
+		return err
+	}
+
 	bs, err := yaml.Marshal(dbConfig)
 	if err != nil {
 		return err
@@ -111,16 +129,13 @@ func Run(options Options) error {
 	s.Config = bs
 	db.Save(&s)
 
-	// Create merged config from configuration file and database file
-	if err := mergo.Merge(&dbConfig, &config); err != nil {
-		return err
-	}
-
 	// Create a new Kubernetes instance
 	kubernetes, err := NewKubernetes(db)
 	if err != nil {
 		fmt.Println("warning: could connect to Kubernetes API", err)
 	}
+
+	go kubernetes.UpdatePermissions()
 
 	var cs ConfigStore
 	cs.set(&dbConfig)
@@ -134,11 +149,6 @@ func Run(options Options) error {
 			}
 
 			err = SyncUsers(db, emails, "okta")
-			if err != nil {
-				fmt.Println(err)
-			}
-
-			err = updatePermissions(cs.get(), db)
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -189,8 +199,13 @@ func Run(options Options) error {
 		return err
 	}
 
-	if options.UI || options.UIProxy {
-		// Login middleware for UI to avoid flash of content
+	if options.UIProxy {
+		remote, _ := url.Parse("http://localhost:3000")
+		devProxy := httputil.NewSingleHostReverseProxy(remote)
+		router.NoRoute(func(c *gin.Context) {
+			devProxy.ServeHTTP(c.Writer, c.Request)
+		})
+	} else if options.UI {
 		router.Use(func(c *gin.Context) {
 			ext := filepath.Ext(c.Request.URL.Path)
 			if ext != "" && ext != ".html" {
@@ -221,17 +236,9 @@ func Run(options Options) error {
 			c.Next()
 		})
 
-		if options.UIProxy {
-			remote, _ := url.Parse("http://localhost:3000")
-			devProxy := httputil.NewSingleHostReverseProxy(remote)
-			router.NoRoute(func(c *gin.Context) {
-				devProxy.ServeHTTP(c.Writer, c.Request)
-			})
-		} else if options.UI {
-			router.NoRoute(func(c *gin.Context) {
-				gziphandler.GzipHandler(http.FileServer(&StaticFileSystem{base: &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo}})).ServeHTTP(c.Writer, c.Request)
-			})
-		}
+		router.NoRoute(func(c *gin.Context) {
+			gziphandler.GzipHandler(http.FileServer(&StaticFileSystem{base: &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo}})).ServeHTTP(c.Writer, c.Request)
+		})
 	}
 
 	go router.Run(":80")
