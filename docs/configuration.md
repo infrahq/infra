@@ -12,11 +12,11 @@
 
 ```yaml
 providers:
-  okta:
+  - kind: okta
     domain: acme.okta.com
-    clientID: 0oapn0qwiQPiMIyR35d6
-    clientSecret: jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2
-    apiToken: 001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd
+    client-id: 0oapn0qwiQPiMIyR35d6
+    client-secret: jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2
+    api-token: 001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd
 
 permissions:
   - user: admin@infrahq.com
@@ -42,7 +42,7 @@ Example:
 
 ```yaml
 providers:
-  okta:
+  - kind: okta
     domain: acme.okta.com
     client-id: 0oapn0qwiQPiMIyR35d6
     client-secret: jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2

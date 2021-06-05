@@ -4,7 +4,6 @@
 package server
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -18,11 +17,8 @@ import (
 	"github.com/NYTimes/gziphandler"
 	assetfs "github.com/elazarl/go-bindata-assetfs"
 	"github.com/gin-gonic/gin"
-	"github.com/imdario/mergo"
 	"github.com/infrahq/infra/internal/okta"
 	"golang.org/x/crypto/acme/autocert"
-	"gopkg.in/yaml.v2"
-	"gorm.io/gorm"
 )
 
 type Options struct {
@@ -33,61 +29,14 @@ type Options struct {
 	UIProxy    bool
 }
 
-func updatePermissions(config *Config, db *gorm.DB) error {
-	return db.Transaction(func(tx *gorm.DB) error {
-		var dps []Permission
-		err := db.Find(&dps).Error
-		if err != nil {
-			return err
-		}
-
-		// Delete permissions not found
-		for _, dp := range dps {
-			found := false
-			for _, p := range config.Permissions {
-				if p.Role == dp.RoleName && p.User == dp.UserEmail {
-					found = true
-				}
-			}
-
-			if !found {
-				err = db.Delete(&dp).Error
-				if err != nil {
-					return err
-				}
-			}
-		}
-
-		// Create new permissions
-		for _, p := range config.Permissions {
-			permission := Permission{UserEmail: p.User, RoleName: p.Role}
-			err := tx.Where(&permission).First(&permission).Error
-			if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-				return err
-			}
-
-			err = tx.Save(&permission).Error
-			if err != nil {
-				return err
-			}
-		}
-
-		return nil
-	})
-}
-
 func Run(options Options) error {
 	// Load configuration from file
-	var config Config
+	var contents []byte
+	var err error
 	if options.ConfigPath != "" {
-		contents, err := ioutil.ReadFile(options.ConfigPath)
+		contents, err = ioutil.ReadFile(options.ConfigPath)
 		if err != nil {
 			fmt.Println("Could not open config file path: ", options.ConfigPath)
-		} else {
-			err = yaml.Unmarshal([]byte(contents), &config)
-			if err != nil {
-				return err
-			}
 		}
 	}
 
@@ -97,64 +46,39 @@ func Run(options Options) error {
 		return err
 	}
 
-	err = updatePermissions(&config, db)
-	if err != nil {
-		return err
-	}
-
-	var s Settings
-	err = db.First(&s).Error
-
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return err
-	}
-
-	var dbConfig Config
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		yaml.Unmarshal(s.Config, &dbConfig)
-	}
-
-	// Migrate / initialize db configuration and save
-	InitConfig(&dbConfig)
-
-	// Create merged config from configuration file and database file
-	if err := mergo.Merge(&dbConfig, &config); err != nil {
-		return err
-	}
-
-	bs, err := yaml.Marshal(dbConfig)
-	if err != nil {
-		return err
-	}
-	s.Config = bs
-	db.Save(&s)
+	// Import config file
+	ImportConfig(db, contents)
 
 	// Create a new Kubernetes instance
 	kubernetes, err := NewKubernetes(db)
 	if err != nil {
-		fmt.Println("warning: could connect to Kubernetes API", err)
+		fmt.Println("warning: could not connect to Kubernetes API", err)
 	}
 
 	go kubernetes.UpdatePermissions()
 
-	var cs ConfigStore
-	cs.set(&dbConfig)
-
 	sync := Sync{}
 	sync.Start(func() {
-		if cs.get().Providers.Okta.Domain != "" {
-			emails, err := okta.Emails(cs.get().Providers.Okta.Domain, cs.get().Providers.Okta.ClientID, cs.get().Providers.Okta.ApiToken)
-			if err != nil {
-				fmt.Println(err)
-			}
+		var providers []Provider
 
-			err = SyncUsers(db, emails, "okta")
-			if err != nil {
-				fmt.Println(err)
-			}
-
-			kubernetes.UpdatePermissions()
+		if err := db.Not(&Provider{Kind: DefaultInfraProviderKind}).Find(&providers).Error; err != nil {
+			fmt.Println(err)
 		}
+
+		for _, p := range providers {
+			if p.Kind == "okta" {
+				emails, err := okta.Emails(p.Domain, p.ClientID, p.ApiToken)
+				if err != nil {
+					fmt.Println(err)
+				}
+
+				err = p.SyncUsers(db, emails)
+				if err != nil {
+					fmt.Println(err)
+				}
+			}
+		}
+		kubernetes.UpdatePermissions()
 	})
 
 	defer sync.Stop()
@@ -169,7 +93,6 @@ func Run(options Options) error {
 
 	handlers := &Handlers{
 		db:         db,
-		cs:         &cs,
 		kubernetes: kubernetes,
 	}
 
@@ -206,22 +129,41 @@ func Run(options Options) error {
 			devProxy.ServeHTTP(c.Writer, c.Request)
 		})
 	} else if options.UI {
+		// Middleware to improve flashes of content if not logged in, and vice-versa if visiting /login with an existing valid token
 		router.Use(func(c *gin.Context) {
 			ext := filepath.Ext(c.Request.URL.Path)
+			// Only redirect non-html files/pages
 			if ext != "" && ext != ".html" {
 				c.Next()
 				return
 			}
 
 			// check token cookie
+			// TODO(jmorganca): validate this cookie
 			token, err := c.Cookie("token")
 
-			if err != nil && !strings.HasPrefix(c.Request.URL.Path, "/login") {
-				c.Redirect(301, "/login")
-				return
+			// if there's no token
+			if err != nil {
+				var settings Settings
+				err = db.First(&settings).Error
+				if err != nil {
+					c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "error"})
+					return
+				}
+
+				// Check if there are no users -> redirect to signup
+				var count int64
+				db.Find(&User{}).Count(&count)
+				if count == 0 && !settings.DisableSignup && !strings.HasPrefix(c.Request.URL.Path, "/signup") {
+					c.Redirect(301, "/signup")
+					return
+				} else if count > 0 && !strings.HasPrefix(c.Request.URL.Path, "/login") {
+					c.Redirect(301, "/login")
+					return
+				}
 			}
 
-			if token != "" && strings.HasPrefix(c.Request.URL.Path, "/login") {
+			if token != "" && (strings.HasPrefix(c.Request.URL.Path, "/login") || strings.HasPrefix(c.Request.URL.Path, "/signup")) {
 				keys, ok := c.Request.URL.Query()["next"]
 
 				if !ok || len(keys[0]) < 1 {
@@ -229,7 +171,6 @@ func Run(options Options) error {
 				} else {
 					c.Redirect(301, keys[0])
 				}
-
 				return
 			}
 
