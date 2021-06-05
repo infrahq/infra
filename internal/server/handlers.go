@@ -250,7 +250,7 @@ func (h *Handlers) addRoutes(router *gin.Engine) error {
 
 		// Via Okta
 		// TODO (jmorganca): support web-based login for okta
-		// TODO (jmorganca): check okta edge cases in client verificationsettings
+		// TODO (jmorganca): check okta edge cases in client verification
 		var err error
 		if params.OktaCode != "" {
 			var provider Provider
