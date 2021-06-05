@@ -22,7 +22,6 @@ import (
 
 type Handlers struct {
 	db         *gorm.DB
-	cs         *ConfigStore
 	kubernetes *Kubernetes
 }
 
@@ -55,7 +54,15 @@ func (h *Handlers) TokenAuthMiddleware() gin.HandlerFunc {
 
 		cl := jwt.Claims{}
 		out := make(map[string]interface{})
-		if err := tok.Claims([]byte(h.cs.get().System.TokenSecret), &cl, &out); err != nil {
+
+		var settings Settings
+		err = h.db.First(&settings).Error
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+
+		if err := tok.Claims([]byte(settings.TokenSecret), &cl, &out); err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 			return
 		}
@@ -81,7 +88,13 @@ func (h *Handlers) TokenAuthMiddleware() gin.HandlerFunc {
 }
 
 func (h *Handlers) createToken(email string) (string, error) {
-	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.HS256, Key: []byte(h.cs.get().System.TokenSecret)}, (&jose.SignerOptions{}).WithType("JWT"))
+	var settings Settings
+	err := h.db.First(&settings).Error
+	if err != nil {
+		return "", err
+	}
+
+	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.HS256, Key: []byte(settings.TokenSecret)}, (&jose.SignerOptions{}).WithType("JWT"))
 	if err != nil {
 		return "", err
 	}
@@ -168,8 +181,7 @@ func (h *Handlers) ProxyHandler() (handler gin.HandlerFunc, err error) {
 }
 
 type RetrieveProvidersResponse struct {
-	OktaDomain   string
-	OktaClientID string
+	Data []Provider `json:"data"`
 }
 
 type CreateTokenResponse struct {
@@ -210,16 +222,20 @@ func (h *Handlers) addRoutes(router *gin.Engine) error {
 	})
 
 	router.GET("/v1/providers", func(c *gin.Context) {
-		c.JSON(http.StatusOK, RetrieveProvidersResponse{
-			h.cs.get().Providers.Okta.Domain,
-			h.cs.get().Providers.Okta.ClientID,
-		})
+		var providers []Provider
+		if err := h.db.Find(&providers).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, ErrorResponse{err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, RetrieveProvidersResponse{providers})
 	})
 
 	router.POST("/v1/tokens", func(c *gin.Context) {
 		type Params struct {
 			// Via Okta
-			OktaCode string `form:"okta-code"`
+			OktaDomain string `form:"okta-domain"`
+			OktaCode   string `form:"okta-code"`
 
 			// Via email + password
 			Email    string `form:"email" validate:"email"`
@@ -234,14 +250,20 @@ func (h *Handlers) addRoutes(router *gin.Engine) error {
 
 		// Via Okta
 		// TODO (jmorganca): support web-based login for okta
-		// TODO (jmorganca): check okta edge cases in client verification
+		// TODO (jmorganca): check okta edge cases in client verificationsettings
 		var err error
 		if params.OktaCode != "" {
+			var provider Provider
+			if err := h.db.Where(&Provider{Kind: "okta", Domain: params.OktaDomain}).First(&provider).Error; err != nil {
+				c.JSON(http.StatusBadRequest, ErrorResponse{"no provider with okta domain"})
+				return
+			}
+
 			email, err := okta.EmailFromCode(
 				params.OktaCode,
-				h.cs.get().Providers.Okta.Domain,
-				h.cs.get().Providers.Okta.ClientID,
-				h.cs.get().Providers.Okta.ClientSecret,
+				provider.Domain,
+				provider.ClientID,
+				provider.ClientSecret,
 			)
 			if err != nil {
 				c.JSON(http.StatusBadRequest, ErrorResponse{"invalid code"})
@@ -278,12 +300,12 @@ func (h *Handlers) addRoutes(router *gin.Engine) error {
 
 		var user User
 		if err := h.db.Where("email = ?", emailParams.Email).First(&user).Error; err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "unauthorized"})
+			c.JSON(http.StatusUnauthorized, ErrorResponse{"unauthorized"})
 			return
 		}
 
 		if err = bcrypt.CompareHashAndPassword(user.Password, []byte(emailParams.Password)); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "unauthorized"})
+			c.JSON(http.StatusUnauthorized, ErrorResponse{"unauthorized"})
 			return
 		}
 
@@ -302,7 +324,7 @@ func (h *Handlers) addRoutes(router *gin.Engine) error {
 
 	router.GET("/v1/users", h.TokenAuthMiddleware(), h.RoleMiddleware("view", "edit", "admin"), func(c *gin.Context) {
 		var users []User
-		err := h.db.Preload("Permissions.Role").Find(&users).Error
+		err := h.db.Preload("Permissions.Role").Preload("Providers").Find(&users).Error
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, ErrorResponse{"could not list users"})
 			return
@@ -329,25 +351,26 @@ func (h *Handlers) addRoutes(router *gin.Engine) error {
 		}
 
 		var user User
-		user.Email = form.Email
-		count := h.db.Where(&user).First(&user).RowsAffected
-		if count > 0 {
-			c.JSON(http.StatusBadRequest, ErrorResponse{"user with this email already exists"})
-			return
-		}
+		err := h.db.Transaction(func(tx *gorm.DB) error {
+			var infraProvider Provider
+			if err := tx.Where(&Provider{Kind: DefaultInfraProviderKind}).First(&infraProvider).Error; err != nil {
+				return err
+			}
 
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(form.Password), bcrypt.DefaultCost)
+			if tx.Model(&infraProvider).Where(&User{Email: form.Email}).Association("Users").Count() > 0 {
+				return errors.New("user with this email already exists")
+			}
+
+			err := infraProvider.CreateUser(tx, form.Email, form.Password)
+			if err != nil {
+				return err
+			}
+
+			return nil
+		})
+
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, ErrorResponse{"could not create user"})
-			return
-		}
-
-		user.Password = hashedPassword
-		user.Provider = "infra"
-
-		err = h.db.Create(&user).Error
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, ErrorResponse{"could not create user"})
+			c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
 			return
 		}
 
@@ -358,9 +381,10 @@ func (h *Handlers) addRoutes(router *gin.Engine) error {
 		c.JSON(http.StatusCreated, CreateUserResponse{user})
 	})
 
-	router.DELETE("/v1/users/:id", h.TokenAuthMiddleware(), h.RoleMiddleware("edit", "admin"), func(c *gin.Context) {
+	// TODO (jmorganca): make this delete by ID instead of email
+	router.DELETE("/v1/users/:email", h.TokenAuthMiddleware(), h.RoleMiddleware("edit", "admin"), func(c *gin.Context) {
 		type binds struct {
-			Email string `uri:"id" binding:"required"`
+			Email string `uri:"email" binding:"required"`
 		}
 
 		var params binds
@@ -374,35 +398,107 @@ func (h *Handlers) addRoutes(router *gin.Engine) error {
 			return
 		}
 
-		var user User
-		err := h.db.Where("email = ?", params.Email).First(&user).Error
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusBadRequest, ErrorResponse{"user does not exist"})
-			return
-		}
+		err := h.db.Transaction(func(tx *gorm.DB) error {
+			var user User
+			err := h.db.Preload("Providers").Where("email = ?", params.Email).First(&user).Error
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return errors.New("user does not exist")
+			}
 
-		if user.Provider != "infra" {
-			c.JSON(http.StatusBadRequest, ErrorResponse{"user managed by identity provider"})
-			return
-		}
+			if tx.Model(&user).Where(&Provider{Kind: DefaultInfraProviderKind}).Association("Providers").Count() == 0 {
+				return errors.New("user managed by identity provider")
+			}
 
+			if err != nil {
+				return errors.New("could not delete user")
+			}
+
+			var infraProvider Provider
+			if err := tx.Where(&Provider{Kind: DefaultInfraProviderKind}).First(&infraProvider).Error; err != nil {
+				return err
+			}
+
+			err = infraProvider.DeleteUser(tx, &user)
+			if err != nil {
+				return errors.New("could not delete user")
+			}
+
+			return nil
+		})
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, ErrorResponse{"could not delete user"})
-			return
-		}
-
-		err = h.db.Delete(&user).Error
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, ErrorResponse{"could not delete user"})
+			c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
 			return
 		}
 
 		if err := h.kubernetes.UpdatePermissions(); err != nil {
 			fmt.Println("could not update kubernetes permissions: ", err)
-			return
 		}
 
 		c.JSON(http.StatusOK, DeleteResponse{true})
+	})
+
+	router.POST("/v1/admin/signup", func(c *gin.Context) {
+		type binds struct {
+			Email    string `form:"email" binding:"email,required"`
+			Password string `form:"password" binding:"required"`
+		}
+
+		var form binds
+		if err := c.Bind(&form); err != nil {
+			c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
+			return
+		}
+
+		var settings Settings
+		if err := h.db.First(&settings).Error; err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "could not create admin user"})
+			return
+		}
+
+		if settings.DisableSignup {
+			c.JSON(http.StatusBadRequest, ErrorResponse{"admin signup disabled"})
+			return
+		}
+
+		err := h.db.Transaction(func(tx *gorm.DB) error {
+			var exists User
+			count := tx.First(&exists).RowsAffected
+			if count > 0 {
+				return errors.New("users already exist and admin must be the first user")
+			}
+
+			var provider Provider
+			provider.Kind = DefaultInfraProviderKind
+			if err := tx.Where(&provider).First(&provider).Error; err != nil {
+				return err
+			}
+
+			if err := provider.CreateUser(tx, form.Email, form.Password); err != nil {
+				return err
+			}
+
+			permission := Permission{UserEmail: form.Email, RoleName: DefaultRoleAdmin}
+			return tx.Create(&permission).Error
+		})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, ErrorResponse{err.Error()})
+			return
+		}
+
+		if err := h.kubernetes.UpdatePermissions(); err != nil {
+			fmt.Println("could not update kubernetes permissions: ", err)
+		}
+
+		token, err := h.createToken(form.Email)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, ErrorResponse{"could not create token"})
+			return
+		}
+
+		c.SetSameSite(http.SameSiteStrictMode)
+		c.SetCookie("token", token, 3600, "/", c.Request.Host, false, true)
+		c.SetCookie("login", "1", 3600, "/", c.Request.Host, false, false)
+		c.Status(http.StatusCreated)
 	})
 
 	if h.kubernetes != nil && h.kubernetes.Config != nil {

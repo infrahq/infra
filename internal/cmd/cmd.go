@@ -3,18 +3,17 @@ package cmd
 import (
 	"context"
 	"crypto/tls"
-	"log"
-	"sort"
-
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -256,18 +255,22 @@ var loginCmd = &cobra.Command{
 			return err
 		}
 
-		// TODO (jmorganca): clean this up to check a list based on the api results
-		okta := fmt.Sprintf("Okta [%s]", response.OktaDomain)
-		userpass := "Username & password"
+		sort.Slice(response.Data, func(i, j int) bool {
+			return response.Data[i].ID > response.Data[j].ID
+		})
 
 		options := []string{}
-		if response.OktaClientID != "" && response.OktaDomain != "" {
-			options = append(options, okta)
+		for _, p := range response.Data {
+			if p.Kind == "okta" {
+				options = append(options, fmt.Sprintf("Okta [%s]", p.Domain))
+			} else if p.Kind == "infra" {
+				options = append(options, "Username & password")
+			} else {
+				options = append(options, p.Kind)
+			}
 		}
-		options = append(options, userpass)
 
-		var option string
-
+		var option int
 		if len(options) > 1 {
 			prompt := &survey.Select{
 				Message: "Choose a login provider",
@@ -279,20 +282,18 @@ var loginCmd = &cobra.Command{
 			if err == terminal.InterruptErr {
 				return nil
 			}
-		} else {
-			option = options[0]
 		}
 
 		form := url.Values{}
 
 		switch {
 		// Okta
-		case option == okta:
+		case response.Data[option].Kind == "okta":
 			// Start OIDC flow
 			// Get auth code from Okta
 			// Send auth code to Infra to log in as a user
 			state := generate.RandString(12)
-			authorizeUrl := "https://" + response.OktaDomain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + response.OktaClientID + "&response_type=code&scope=openid+email&nonce=" + generate.RandString(10) + "&state=" + state
+			authorizeUrl := "https://" + response.Data[option].Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + response.Data[option].ClientID + "&response_type=code&scope=openid+email&nonce=" + generate.RandString(10) + "&state=" + state
 
 			fmt.Println(blue("✓") + " Logging in with Okta...")
 			ls, err := newLocalServer()
@@ -314,9 +315,10 @@ var loginCmd = &cobra.Command{
 				return errors.New("received state is not the same as sent state")
 			}
 
+			form.Add("okta-domain", response.Data[option].Domain)
 			form.Add("okta-code", code)
 
-		case option == userpass:
+		case response.Data[option].Kind == "infra":
 			email := ""
 			emailPrompt := &survey.Input{
 				Message: "Email",
@@ -565,10 +567,17 @@ var usersListCmd = &cobra.Command{
 				}
 				roles += p.Role.Name
 			}
-			rows = append(rows, []string{user.Email + star, user.Provider, units.HumanDuration(time.Now().UTC().Sub(time.Unix(user.Created, 0))) + " ago", roles})
+			providers := ""
+			for i, p := range user.Providers {
+				if i > 0 {
+					providers += ","
+				}
+				providers += p.Kind
+			}
+			rows = append(rows, []string{user.Email + star, providers, units.HumanDuration(time.Now().UTC().Sub(time.Unix(user.Created, 0))) + " ago", roles})
 		}
 
-		printTable([]string{"EMAIL", "PROVIDER", "CREATED", "ROLES"}, rows)
+		printTable([]string{"EMAIL", "PROVIDERS", "CREATED", "ROLES"}, rows)
 
 		return nil
 	},
