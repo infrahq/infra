@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -250,7 +251,7 @@ var loginCmd = &cobra.Command{
 			return err
 		}
 
-		var response server.RetrieveProvidersResponse
+		var response struct{ Data []server.Provider }
 		if err = checkAndDecode(res, &response); err != nil {
 			return err
 		}
@@ -359,8 +360,8 @@ var loginCmd = &cobra.Command{
 			return err
 		}
 
-		var createTokenResponse server.CreateTokenResponse
-		err = checkAndDecode(res, &createTokenResponse)
+		var tokenResponse struct{ Token string }
+		err = checkAndDecode(res, &tokenResponse)
 		if err != nil {
 			return err
 		}
@@ -369,7 +370,7 @@ var loginCmd = &cobra.Command{
 
 		config := &Config{
 			Host:     host,
-			Token:    createTokenResponse.Token,
+			Token:    tokenResponse.Token,
 			Insecure: insecure,
 		}
 
@@ -397,7 +398,7 @@ var loginCmd = &cobra.Command{
 		}
 
 		kubeConfig.AuthInfos[hostname] = &clientcmdapi.AuthInfo{
-			Token: createTokenResponse.Token,
+			Token: tokenResponse.Token,
 		}
 		kubeConfig.Contexts[hostname] = &clientcmdapi.Context{
 			Cluster:  hostname,
@@ -453,11 +454,13 @@ var usersCreateCmd = &cobra.Command{
 			return err
 		}
 
-		var response server.CreateUserResponse
-		err = checkAndDecode(res, &response)
+		var user server.User
+		err = checkAndDecode(res, &user)
 		if err != nil {
 			return err
 		}
+
+		fmt.Println(user.ID)
 
 		return nil
 	},
@@ -502,6 +505,8 @@ var usersDeleteCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
+		fmt.Println(user)
 		return nil
 	},
 }
@@ -531,7 +536,7 @@ var usersListCmd = &cobra.Command{
 			return err
 		}
 
-		var response server.ListUsersResponse
+		var response struct{ Data []server.User }
 		err = checkAndDecode(res, &response)
 		if err != nil {
 			return err
@@ -574,10 +579,67 @@ var usersListCmd = &cobra.Command{
 				}
 				providers += p.Kind
 			}
-			rows = append(rows, []string{user.Email + star, providers, units.HumanDuration(time.Now().UTC().Sub(time.Unix(user.Created, 0))) + " ago", roles})
+			rows = append(rows, []string{user.ID, user.Email + star, providers, units.HumanDuration(time.Now().UTC().Sub(time.Unix(user.Created, 0))) + " ago", roles})
 		}
 
-		printTable([]string{"EMAIL", "PROVIDERS", "CREATED", "ROLES"}, rows)
+		printTable([]string{"ID", "EMAIL", "PROVIDERS", "CREATED", "ROLES"}, rows)
+
+		return nil
+	},
+}
+
+var providersCmd = &cobra.Command{
+	Use:     "providers",
+	Aliases: []string{"provider"},
+	Short:   "Manage identity providers",
+}
+
+var providersListCmd = &cobra.Command{
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List providers",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		config, err := readConfig()
+		if err != nil {
+			return err
+		}
+
+		httpClient, err := client(config.Host, config.Token, config.Insecure)
+		if err != nil {
+			return err
+		}
+
+		serverUrl, err := serverUrl(config.Host)
+		if err != nil {
+			return err
+		}
+
+		res, err := httpClient.Get(serverUrl.String() + "/v1/providers")
+		if err != nil {
+			return err
+		}
+
+		var response struct{ Data []server.Provider }
+		err = checkAndDecode(res, &response)
+		if err != nil {
+			return err
+		}
+
+		sort.Slice(response.Data, func(i, j int) bool {
+			return response.Data[i].Created > response.Data[j].Created
+		})
+
+		rows := [][]string{}
+		for _, provider := range response.Data {
+			info := ""
+			if provider.Kind == "okta" {
+				info = provider.Domain
+			}
+
+			rows = append(rows, []string{provider.ID, provider.Kind, strconv.Itoa(len(provider.Users)), units.HumanDuration(time.Now().UTC().Sub(time.Unix(provider.Created, 0))) + " ago", info})
+		}
+
+		printTable([]string{"ID", "KIND", "USERS", "CREATED", "DETAILS"}, rows)
 
 		return nil
 	},
@@ -620,6 +682,10 @@ func Run() error {
 	usersCmd.PersistentFlags().BoolP("insecure", "i", false, "skip TLS verification")
 
 	rootCmd.AddCommand(usersCmd)
+
+	providersCmd.AddCommand(providersListCmd)
+	providersCmd.PersistentFlags().BoolP("insecure", "i", false, "skip TLS verification")
+	rootCmd.AddCommand(providersCmd)
 
 	serverCmd, err := newServerCmd()
 	if err != nil {

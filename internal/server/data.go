@@ -7,7 +7,6 @@ import (
 	"path"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/infrahq/infra/internal/generate"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v2"
@@ -41,7 +40,7 @@ type Provider struct {
 	Created      int64   `json:"created" yaml:"-" gorm:"autoCreateTime"`
 	Updated      int64   `json:"updated" yaml:"-" gorm:"autoUpdateTime"`
 	Kind         string  `json:"kind" yaml:"kind"`
-	Domain       string  `json:"domain" yaml:"domain,omitempty"`
+	Domain       string  `json:"domain" yaml:"domain,omitempty" gorm:"unique"`
 	ClientID     string  `json:"clientID" yaml:"clientID,omitempty"`
 	ClientSecret string  `json:"-" yaml:"clientSecret,omitempty"`
 	ApiToken     string  `json:"-" yaml:"apiToken,omitempty"`
@@ -94,7 +93,7 @@ var DefaultRoles = []Role{
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 	if u.ID == "" {
-		u.ID = uuid.New().String()
+		u.ID = generate.RandString(14)
 	}
 	return
 }
@@ -105,14 +104,14 @@ func (u *User) BeforeDelete(tx *gorm.DB) error {
 
 func (p *Permission) BeforeCreate(tx *gorm.DB) (err error) {
 	if p.ID == "" {
-		p.ID = uuid.New().String()
+		p.ID = generate.RandString(14)
 	}
 	return
 }
 
 func (p *Provider) BeforeCreate(tx *gorm.DB) (err error) {
 	if p.ID == "" {
-		p.ID = uuid.New().String()
+		p.ID = generate.RandString(14)
 	}
 	return
 }
@@ -213,14 +212,14 @@ func (p *Provider) SyncUsers(db *gorm.DB, emails []string) error {
 
 func (r *Role) BeforeCreate(tx *gorm.DB) (err error) {
 	if r.ID == "" {
-		r.ID = uuid.New().String()
+		r.ID = generate.RandString(14)
 	}
 	return
 }
 
 func (s *Settings) BeforeCreate(tx *gorm.DB) (err error) {
 	if s.ID == "" {
-		s.ID = uuid.New().String()
+		s.ID = generate.RandString(14)
 	}
 	return
 }

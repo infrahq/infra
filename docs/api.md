@@ -5,7 +5,6 @@
 * [Users](#users)
     * [Create a user](#create-a-user)
     * [List all users](#list-all-users)
-    * [Retrieve a user](#retrieve-a-user)
     * [Delete a user](#delete-a-user)
 * [Tokens](#tokens)
     * [Create a token](#create-a-token)
