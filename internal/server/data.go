@@ -2,15 +2,69 @@ package server
 
 import (
 	"errors"
+	"log"
 	"os"
 	"path"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/infrahq/infra/internal/generate"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v2"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
+
+type User struct {
+	ID          string       `gorm:"primaryKey"`
+	Created     int64        `json:"created" gorm:"autoCreateTime"`
+	Updated     int64        `json:"updated" gorm:"autoUpdateTime"`
+	Email       string       `json:"email" gorm:"unique"`
+	Password    []byte       `json:"-"`
+	Providers   []Provider   `json:"providers" gorm:"many2many:users_providers"`
+	Permissions []Permission `json:"permissions" gorm:"foreignKey:UserEmail;references:Email"`
+}
+
+type Permission struct {
+	ID        string `gorm:"primaryKey"`
+	Created   int64  `json:"created" yaml:"-" gorm:"autoCreateTime"`
+	Updated   int64  `json:"updated" yaml:"-" gorm:"autoUpdateTime"`
+	UserEmail string `json:"-" yaml:"user"`
+	User      User   `json:"user" yaml:"-" gorm:"foreignKey:UserEmail;references:Email"`
+	RoleName  string `json:"-" yaml:"role"`
+	Role      Role   `json:"role" yaml:"-" gorm:"foreignKey:RoleName;references:Name"`
+}
+
+type Provider struct {
+	ID           string  `gorm:"primaryKey"`
+	Created      int64   `json:"created" yaml:"-" gorm:"autoCreateTime"`
+	Updated      int64   `json:"updated" yaml:"-" gorm:"autoUpdateTime"`
+	Kind         string  `json:"kind" yaml:"kind"`
+	Domain       string  `json:"domain" yaml:"domain,omitempty"`
+	ClientID     string  `json:"clientID" yaml:"clientID,omitempty"`
+	ClientSecret string  `json:"-" yaml:"clientSecret,omitempty"`
+	ApiToken     string  `json:"-" yaml:"apiToken,omitempty"`
+	Users        []*User `json:"-" yaml:"-" gorm:"many2many:users_providers"`
+}
+
+type Role struct {
+	ID             string `gorm:"primaryKey"`
+	Created        int64  `json:"created" yaml:"-" gorm:"autoCreateTime"`
+	Updated        int64  `json:"updated" yaml:"-" gorm:"autoUpdateTime"`
+	Name           string `json:"name" yaml:"name" gorm:"unique"`
+	Description    string `json:"description" yaml:"description"`
+	KubernetesRole string `json:"kubernetesRole" yaml:"kubernetesRole"`
+}
+
+type Settings struct {
+	ID            string `gorm:"primaryKey"`
+	Created       int64  `json:"-" yaml:"-" gorm:"autoCreateTime"`
+	Updated       int64  `json:"-" yaml:"-" gorm:"autoUpdateTime"`
+	Domain        string `json:"-" yaml:"domain,omitempty"`
+	TokenSecret   string `json:"-" yaml:"tokenSecret,omitempty"`
+	DisableSignup bool   `json:"disableSignup" yaml:"disableSignup,omitempty"`
+}
 
 var (
 	DefaultRoleView  = "view"
@@ -38,58 +92,29 @@ var DefaultRoles = []Role{
 	},
 }
 
-type User struct {
-	ID          uint         `gorm:"primaryKey"`
-	Created     int64        `json:"created" gorm:"autoCreateTime"`
-	Updated     int64        `json:"updated" gorm:"autoUpdateTime"`
-	Email       string       `json:"email" gorm:"unique"`
-	Password    []byte       `json:"-"`
-	Providers   []Provider   `json:"providers" gorm:"many2many:users_providers"`
-	Permissions []Permission `json:"permissions" gorm:"foreignKey:UserEmail;references:Email"`
-}
-
-type Permission struct {
-	ID        uint   `yaml:"-" gorm:"primaryKey"`
-	Created   int64  `json:"created" yaml:"-" gorm:"autoCreateTime"`
-	Updated   int64  `json:"updated" yaml:"-" gorm:"autoUpdateTime"`
-	UserEmail string `json:"-" yaml:"user"`
-	User      User   `json:"user" yaml:"-" gorm:"foreignKey:UserEmail;references:Email"`
-	RoleName  string `json:"-" yaml:"role"`
-	Role      Role   `json:"role" yaml:"-" gorm:"foreignKey:RoleName;references:Name"`
-}
-
-type Provider struct {
-	ID           uint    `yaml:"-" gorm:"primaryKey"`
-	Created      int64   `json:"created" yaml:"-" gorm:"autoCreateTime"`
-	Updated      int64   `json:"updated" yaml:"-" gorm:"autoUpdateTime"`
-	Kind         string  `json:"kind" yaml:"kind"`
-	Domain       string  `json:"domain" yaml:"domain,omitempty"`
-	ClientID     string  `json:"clientID" yaml:"clientID,omitempty"`
-	ClientSecret string  `json:"-" yaml:"clientSecret,omitempty"`
-	ApiToken     string  `json:"-" yaml:"apiToken,omitempty"`
-	Users        []*User `json:"-" yaml:"-" gorm:"many2many:users_providers"`
-}
-
-type Role struct {
-	ID             uint   `json:"id" yaml:"-" gorm:"primaryKey"`
-	Created        int64  `json:"created" yaml:"-" gorm:"autoCreateTime"`
-	Updated        int64  `json:"updated" yaml:"-" gorm:"autoUpdateTime"`
-	Name           string `json:"name" yaml:"name" gorm:"unique"`
-	Description    string `json:"description" yaml:"description"`
-	KubernetesRole string `json:"kubernetesRole" yaml:"kubernetesRole"`
-}
-
-type Settings struct {
-	ID            uint   `yaml:"-" gorm:"primaryKey"`
-	Created       int64  `json:"-" yaml:"-" gorm:"autoCreateTime"`
-	Updated       int64  `json:"-" yaml:"-" gorm:"autoUpdateTime"`
-	Domain        string `json:"-" yaml:"domain,omitempty"`
-	TokenSecret   string `json:"-" yaml:"tokenSecret,omitempty"`
-	DisableSignup bool   `json:"disableSignup" yaml:"disableSignup,omitempty"`
+func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
+	if u.ID == "" {
+		u.ID = uuid.New().String()
+	}
+	return
 }
 
 func (u *User) BeforeDelete(tx *gorm.DB) error {
 	return tx.Model(u).Association("Providers").Clear()
+}
+
+func (p *Permission) BeforeCreate(tx *gorm.DB) (err error) {
+	if p.ID == "" {
+		p.ID = uuid.New().String()
+	}
+	return
+}
+
+func (p *Provider) BeforeCreate(tx *gorm.DB) (err error) {
+	if p.ID == "" {
+		p.ID = uuid.New().String()
+	}
+	return
 }
 
 func (p *Provider) BeforeDelete(tx *gorm.DB) error {
@@ -102,13 +127,6 @@ func (p *Provider) BeforeDelete(tx *gorm.DB) error {
 		p.DeleteUser(tx, &u)
 	}
 
-	return nil
-}
-
-func (s *Settings) BeforeSave(tx *gorm.DB) error {
-	if s.TokenSecret == "" {
-		s.TokenSecret = generate.RandString(32)
-	}
 	return nil
 }
 
@@ -138,9 +156,8 @@ func (p *Provider) CreateUser(db *gorm.DB, email string, password string) error 
 			}
 		}
 
-		// Associate user if not associated
-		if tx.Model(&user).Where(p).Association("Providers").Count() == 0 {
-			tx.Model(&user).Association("Providers").Append(p)
+		if tx.Model(&user).Where(&Provider{ID: p.ID}).Association("Providers").Count() == 0 {
+			tx.Model(&user).Where(&Provider{ID: p.ID}).Association("Providers").Append(p)
 		}
 
 		return nil
@@ -194,13 +211,34 @@ func (p *Provider) SyncUsers(db *gorm.DB, emails []string) error {
 	})
 }
 
+func (r *Role) BeforeCreate(tx *gorm.DB) (err error) {
+	if r.ID == "" {
+		r.ID = uuid.New().String()
+	}
+	return
+}
+
+func (s *Settings) BeforeCreate(tx *gorm.DB) (err error) {
+	if s.ID == "" {
+		s.ID = uuid.New().String()
+	}
+	return
+}
+
+func (s *Settings) BeforeSave(tx *gorm.DB) error {
+	if s.TokenSecret == "" {
+		s.TokenSecret = generate.RandString(32)
+	}
+	return nil
+}
+
 type Config struct {
 	Providers   []Provider   `yaml:"providers"`
 	Permissions []Permission `yaml:"permissions"`
 }
 
 func ImportProviders(db *gorm.DB, providers []Provider) error {
-	var idsToKeep []uint
+	var idsToKeep []string
 	for _, p := range providers {
 		err := db.FirstOrCreate(&p, &Provider{Kind: p.Kind, Domain: p.Domain}).Error
 		if err != nil {
@@ -225,7 +263,7 @@ func ImportProviders(db *gorm.DB, providers []Provider) error {
 
 func ImportPermissions(db *gorm.DB, permissions []Permission) error {
 	// Create permissions that don't exist
-	var idsToKeep []uint
+	var idsToKeep []string
 	for _, p := range permissions {
 		err := db.FirstOrCreate(&p, &p).Error
 		if err != nil {
@@ -301,7 +339,18 @@ func NewDB(dbpath string) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	db, err := gorm.Open(sqlite.Open(dbpath), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(dbpath), &gorm.Config{
+		Logger: logger.New(
+			log.New(os.Stdout, "\r\n", log.LstdFlags),
+			logger.Config{
+				SlowThreshold:             time.Second,
+				LogLevel:                  logger.Error,
+				IgnoreRecordNotFoundError: true,
+				Colorful:                  true,
+			},
+		),
+	})
+
 	if err != nil {
 		return nil, err
 	}

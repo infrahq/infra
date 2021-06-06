@@ -256,7 +256,7 @@ var loginCmd = &cobra.Command{
 		}
 
 		sort.Slice(response.Data, func(i, j int) bool {
-			return response.Data[i].ID > response.Data[j].ID
+			return response.Data[i].Created > response.Data[j].Created
 		})
 
 		options := []string{}
