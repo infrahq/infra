@@ -25,6 +25,14 @@ type Handlers struct {
 	kubernetes *Kubernetes
 }
 
+type DeleteResponse struct {
+	Deleted bool `json:"deleted"`
+}
+
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
+
 func (h *Handlers) TokenAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.GetBool("skipauth") {
@@ -178,14 +186,6 @@ func (h *Handlers) ProxyHandler() (handler gin.HandlerFunc, err error) {
 		c.Request.Header.Add("Authorization", "Bearer "+string(h.kubernetes.Config.BearerToken))
 		http.StripPrefix("/v1/proxy", proxy).ServeHTTP(c.Writer, c.Request)
 	}, err
-}
-
-type DeleteResponse struct {
-	Deleted bool `json:"deleted"`
-}
-
-type ErrorResponse struct {
-	Error string `json:"error"`
 }
 
 func (h *Handlers) addRoutes(router *gin.Engine) error {
