@@ -21,8 +21,8 @@ type User struct {
 	Updated     int64        `json:"updated" gorm:"autoUpdateTime"`
 	Email       string       `json:"email" gorm:"unique"`
 	Password    []byte       `json:"-"`
-	Providers   []Provider   `json:"providers" gorm:"many2many:users_providers"`
-	Permissions []Permission `json:"permissions" gorm:"foreignKey:UserEmail;references:Email"`
+	Providers   []Provider   `json:"providers,omitempty" gorm:"many2many:users_providers"`
+	Permissions []Permission `json:"permissions,omitempty" gorm:"foreignKey:UserEmail;references:Email"`
 }
 
 type Permission struct {
@@ -30,21 +30,21 @@ type Permission struct {
 	Created   int64  `json:"created" yaml:"-" gorm:"autoCreateTime"`
 	Updated   int64  `json:"updated" yaml:"-" gorm:"autoUpdateTime"`
 	UserEmail string `json:"-" yaml:"user"`
-	User      User   `json:"user" yaml:"-" gorm:"foreignKey:UserEmail;references:Email"`
+	User      User   `json:"user,omitempty" yaml:"-" gorm:"foreignKey:UserEmail;references:Email"`
 	RoleName  string `json:"-" yaml:"role"`
-	Role      Role   `json:"role" yaml:"-" gorm:"foreignKey:RoleName;references:Name"`
+	Role      Role   `json:"role,omitempty" yaml:"-" gorm:"foreignKey:RoleName;references:Name"`
 }
 
 type Provider struct {
-	ID           string  `gorm:"primaryKey"`
-	Created      int64   `json:"created" yaml:"-" gorm:"autoCreateTime"`
-	Updated      int64   `json:"updated" yaml:"-" gorm:"autoUpdateTime"`
-	Kind         string  `json:"kind" yaml:"kind"`
-	Domain       string  `json:"domain" yaml:"domain,omitempty" gorm:"unique"`
-	ClientID     string  `json:"clientID" yaml:"clientID,omitempty"`
-	ClientSecret string  `json:"-" yaml:"clientSecret,omitempty"`
-	ApiToken     string  `json:"-" yaml:"apiToken,omitempty"`
-	Users        []*User `json:"-" yaml:"-" gorm:"many2many:users_providers"`
+	ID           string `gorm:"primaryKey"`
+	Created      int64  `json:"created" yaml:"-" gorm:"autoCreateTime"`
+	Updated      int64  `json:"updated" yaml:"-" gorm:"autoUpdateTime"`
+	Kind         string `json:"kind" yaml:"kind"`
+	Domain       string `json:"domain" yaml:"domain,omitempty" gorm:"unique"`
+	ClientID     string `json:"clientID" yaml:"clientID,omitempty"`
+	ClientSecret string `json:"-" yaml:"clientSecret,omitempty"`
+	ApiToken     string `json:"-" yaml:"apiToken,omitempty"`
+	Users        []User `json:"users,omitempty" yaml:"-" gorm:"many2many:users_providers"`
 }
 
 type Role struct {

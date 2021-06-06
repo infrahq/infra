@@ -467,7 +467,7 @@ var usersCreateCmd = &cobra.Command{
 }
 
 var usersDeleteCmd = &cobra.Command{
-	Use:   "delete EMAIL",
+	Use:   "delete ID",
 	Short: "delete a user",
 	Args:  cobra.ExactArgs(1),
 	Example: heredoc.Doc(`
@@ -632,14 +632,124 @@ var providersListCmd = &cobra.Command{
 		rows := [][]string{}
 		for _, provider := range response.Data {
 			info := ""
-			if provider.Kind == "okta" {
+			switch provider.Kind {
+			case "okta":
 				info = provider.Domain
+			case "infra":
+				info = "Built-in provider"
 			}
-
 			rows = append(rows, []string{provider.ID, provider.Kind, strconv.Itoa(len(provider.Users)), units.HumanDuration(time.Now().UTC().Sub(time.Unix(provider.Created, 0))) + " ago", info})
 		}
 
-		printTable([]string{"ID", "KIND", "USERS", "CREATED", "DETAILS"}, rows)
+		printTable([]string{"ID", "KIND", "USERS", "CREATED", "DESCRIPTION"}, rows)
+
+		return nil
+	},
+}
+
+func newProvidersCreateCmd() *cobra.Command {
+	var apiToken, domain, clientID, clientSecret string
+
+	cmd := &cobra.Command{
+		Use:     "create KIND",
+		Aliases: []string{"add"},
+		Short:   "Create a provider connection",
+		Args:    cobra.ExactArgs(1),
+		Example: heredoc.Doc(`
+			$ infra providers create okta --domain example.okta.com \
+				--apiToken 001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd \
+				--clientID 0oapn0qwiQPiMIyR35d6 \
+				--clientSecret jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2`),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			config, err := readConfig()
+			if err != nil {
+				return err
+			}
+
+			httpClient, err := client(config.Host, config.Token, config.Insecure)
+			if err != nil {
+				return err
+			}
+
+			serverUrl, err := serverUrl(config.Host)
+			if err != nil {
+				return err
+			}
+
+			form := url.Values{}
+			form.Add("kind", args[0])
+			form.Add("apiToken", apiToken)
+			form.Add("domain", domain)
+			form.Add("clientID", clientID)
+			form.Add("clientSecret", clientSecret)
+
+			res, err := httpClient.PostForm(serverUrl.String()+"/v1/providers", form)
+			if err != nil {
+				return err
+			}
+
+			var provider server.Provider
+			err = checkAndDecode(res, &provider)
+			if err != nil {
+				return err
+			}
+
+			fmt.Println(provider.ID)
+
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVar(&apiToken, "api-token", "", "Api Token")
+	cmd.Flags().StringVar(&domain, "domain", "", "Identity provider domain (e.g. example.okta.com)")
+	cmd.Flags().StringVar(&clientID, "client-id", "", "Client ID for single sign on")
+	cmd.Flags().StringVar(&clientSecret, "client-secret", "", "Client Secret for single sign on")
+
+	return cmd
+}
+
+var providersDeleteCmd = &cobra.Command{
+	Use:     "delete ID",
+	Aliases: []string{"rm"},
+	Short:   "Delete a provider connection",
+	Args:    cobra.ExactArgs(1),
+	Example: heredoc.Doc(`
+			$ infra providers delete n7bha2pxjpa01a`),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		config, err := readConfig()
+		if err != nil {
+			return err
+		}
+
+		httpClient, err := client(config.Host, config.Token, config.Insecure)
+		if err != nil {
+			return err
+		}
+
+		serverUrl, err := serverUrl(config.Host)
+		if err != nil {
+			return err
+		}
+
+		id := args[0]
+		req, err := http.NewRequest(http.MethodDelete, serverUrl.String()+"/v1/providers/"+id, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		res, err := httpClient.Do(req)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer res.Body.Close()
+
+		var response server.DeleteResponse
+		err = checkAndDecode(res, &response)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println(id)
 
 		return nil
 	},
@@ -670,7 +780,7 @@ func newServerCmd() (*cobra.Command, error) {
 	return serverCmd, nil
 }
 
-func GenerateCmd() (*cobra.Command, error) {
+func NewRootCmd() (*cobra.Command, error) {
 	cobra.EnableCommandSorting = false
 
 	rootCmd.AddCommand(loginCmd)
@@ -684,6 +794,8 @@ func GenerateCmd() (*cobra.Command, error) {
 	rootCmd.AddCommand(usersCmd)
 
 	providersCmd.AddCommand(providersListCmd)
+	providersCmd.AddCommand(newProvidersCreateCmd())
+	providersCmd.AddCommand(providersDeleteCmd)
 	providersCmd.PersistentFlags().BoolP("insecure", "i", false, "skip TLS verification")
 	rootCmd.AddCommand(providersCmd)
 
@@ -698,7 +810,7 @@ func GenerateCmd() (*cobra.Command, error) {
 }
 
 func Run() error {
-	cmd, err := GenerateCmd()
+	cmd, err := NewRootCmd()
 	if err != nil {
 		return err
 	}

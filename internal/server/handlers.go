@@ -346,10 +346,10 @@ func (h *Handlers) CreateProvider(c *gin.Context) {
 
 		case "okta":
 			type oktaBinds struct {
-				OktaApiToken     string `form:"oktaApiToken" binding:"required"`
-				OktaDomain       string `form:"oktaDomain" binding:"required,fqdn"`
-				OktaClientID     string `form:"oktaClientID" binding:"required"`
-				OktaClientSecret string `form:"oktaClientSecret" binding:"required"`
+				ApiToken     string `form:"apiToken" binding:"required"`
+				Domain       string `form:"domain" binding:"required,fqdn"`
+				ClientID     string `form:"clientID" binding:"required"`
+				ClientSecret string `form:"clientSecret" binding:"required"`
 			}
 
 			var oktaParams oktaBinds
@@ -357,18 +357,18 @@ func (h *Handlers) CreateProvider(c *gin.Context) {
 				return err
 			}
 
-			count := tx.Where(&Provider{Kind: "okta", Domain: oktaParams.OktaDomain}).First(&Provider{}).RowsAffected
+			count := tx.Where(&Provider{Kind: "okta", Domain: oktaParams.Domain}).First(&Provider{}).RowsAffected
 			if count > 0 {
 				return errors.New("okta provider with this domain already exists")
 			}
 
 			provider.Kind = "okta"
-			provider.ApiToken = oktaParams.OktaApiToken
-			provider.Domain = oktaParams.OktaDomain
-			provider.ClientID = oktaParams.OktaClientID
-			provider.ClientSecret = oktaParams.OktaClientSecret
+			provider.ApiToken = oktaParams.ApiToken
+			provider.Domain = oktaParams.Domain
+			provider.ClientID = oktaParams.ClientID
+			provider.ClientSecret = oktaParams.ClientSecret
 
-			result := tx.FirstOrCreate(&provider)
+			result := tx.Where(&Provider{Kind: "okta", Domain: oktaParams.Domain}).Create(&provider)
 			if result.Error != nil {
 				return result.Error
 			}

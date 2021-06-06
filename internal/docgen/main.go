@@ -14,7 +14,7 @@ func main() {
 	}
 	defer f.Close()
 
-	rootCmd, err := cmd.GenerateCmd()
+	rootCmd, err := cmd.NewRootCmd()
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
