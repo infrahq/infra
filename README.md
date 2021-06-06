@@ -69,12 +69,9 @@ curl.exe -L "https://github.com/infrahq/infra/releases/download/latest/infra-win
 * [Okta](./docs/okta.md)
 * [Manually manage users](./docs/manual.md)
 
-
 ## Documentation
 * [Configuration Reference](./docs/configuration.md)
 * [CLI Reference](./docs/cli.md)
-* [API Reference](./docs/api.md)
-
 
 ## Develop
 
@@ -97,6 +94,12 @@ Run locally:
 
 ```bash
 go run .
+```
+
+## Generate docs
+
+```
+go run ./internal/docgen
 ```
 
 ## Test

@@ -30,7 +30,7 @@ import (
 	"github.com/muesli/termenv"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
-	"github.com/square/go-jose/jwt"
+	"gopkg.in/square/go-jose.v2/jwt"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
@@ -670,7 +670,7 @@ func newServerCmd() (*cobra.Command, error) {
 	return serverCmd, nil
 }
 
-func Run() error {
+func GenerateCmd() (*cobra.Command, error) {
 	cobra.EnableCommandSorting = false
 
 	rootCmd.AddCommand(loginCmd)
@@ -689,10 +689,19 @@ func Run() error {
 
 	serverCmd, err := newServerCmd()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	rootCmd.AddCommand(serverCmd)
 
-	return rootCmd.Execute()
+	return rootCmd, nil
+}
+
+func Run() error {
+	cmd, err := GenerateCmd()
+	if err != nil {
+		return err
+	}
+
+	return cmd.Execute()
 }
