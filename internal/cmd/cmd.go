@@ -37,9 +37,8 @@ import (
 )
 
 type Config struct {
-	Host     string `json:"host"`
-	Token    string `json:"token"`
-	Insecure bool   `json:"insecure,omitempty"`
+	Host  string `json:"host"`
+	Token string `json:"token"`
 }
 
 func readConfig() (config *Config, err error) {
