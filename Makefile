@@ -7,6 +7,10 @@ generate:
 test:
 	go test ./...
 
+.PHONY: docs
+docs:
+	go run ./internal/docgen
+
 clean:
 	rm -rf build release
 	docker rm temp
