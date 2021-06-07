@@ -274,7 +274,7 @@ var loginCmd = &cobra.Command{
 		var option int
 		if len(options) > 1 {
 			prompt := &survey.Select{
-				Message: "Choose a login source",
+				Message: "Choose a login provider",
 				Options: options,
 			}
 			err = survey.AskOne(prompt, &option, survey.WithIcons(func(icons *survey.IconSet) {
@@ -581,32 +581,32 @@ var usersListCmd = &cobra.Command{
 				}
 				roles += p.Role.Name
 			}
-			sources := ""
+			providers := ""
 			for i, p := range user.Providers {
 				if i > 0 {
-					sources += ","
+					providers += ","
 				}
-				sources += p.Kind
+				providers += p.Kind
 			}
-			rows = append(rows, []string{user.ID, user.Email, sources, units.HumanDuration(time.Now().UTC().Sub(time.Unix(user.Created, 0))) + " ago", roles})
+			rows = append(rows, []string{user.ID, user.Email, providers, units.HumanDuration(time.Now().UTC().Sub(time.Unix(user.Created, 0))) + " ago", roles})
 		}
 
-		printTable([]string{"USER ID", "EMAIL", "sourceS", "CREATED", "ROLES"}, rows)
+		printTable([]string{"USER ID", "EMAIL", "PROVIDERS", "CREATED", "ROLES"}, rows)
 
 		return nil
 	},
 }
 
-var sourcesCmd = &cobra.Command{
-	Use:     "sources",
-	Aliases: []string{"source"},
-	Short:   "Manage identity sources",
+var providersCmd = &cobra.Command{
+	Use:     "providers",
+	Aliases: []string{"provider"},
+	Short:   "Manage identity providers",
 }
 
-var sourcesListCmd = &cobra.Command{
+var providersListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
-	Short:   "List sources",
+	Short:   "List providers",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		config, err := readConfig()
 		if err != nil {
@@ -640,33 +640,33 @@ var sourcesListCmd = &cobra.Command{
 		})
 
 		rows := [][]string{}
-		for _, source := range response.Data {
+		for _, provider := range response.Data {
 			info := ""
-			switch source.Kind {
+			switch provider.Kind {
 			case "okta":
-				info = source.Domain
+				info = provider.Domain
 			case "infra":
-				info = "Built-in source"
+				info = "Built-in provider"
 			}
-			rows = append(rows, []string{source.ID, source.Kind, strconv.Itoa(len(source.Users)), units.HumanDuration(time.Now().UTC().Sub(time.Unix(source.Created, 0))) + " ago", info})
+			rows = append(rows, []string{provider.ID, provider.Kind, strconv.Itoa(len(provider.Users)), units.HumanDuration(time.Now().UTC().Sub(time.Unix(provider.Created, 0))) + " ago", info})
 		}
 
-		printTable([]string{"SOURCE ID", "KIND", "USERS", "CREATED", "DESCRIPTION"}, rows)
+		printTable([]string{"PROVIDER ID", "KIND", "USERS", "CREATED", "DESCRIPTION"}, rows)
 
 		return nil
 	},
 }
 
-func newsourcesCreateCmd() *cobra.Command {
+func newprovidersCreateCmd() *cobra.Command {
 	var apiToken, domain, clientID, clientSecret string
 
 	cmd := &cobra.Command{
 		Use:     "create KIND",
 		Aliases: []string{"add"},
-		Short:   "Create a source connection",
+		Short:   "Create a provider connection",
 		Args:    cobra.ExactArgs(1),
 		Example: heredoc.Doc(`
-			$ infra sources create okta \
+			$ infra providers create okta \
 				--domain example.okta.com \
 				--apiToken 001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd \
 				--clientID 0oapn0qwiQPiMIyR35d6 \
@@ -700,20 +700,20 @@ func newsourcesCreateCmd() *cobra.Command {
 				return err
 			}
 
-			var source server.Provider
-			err = checkAndDecode(res, &source)
+			var provider server.Provider
+			err = checkAndDecode(res, &provider)
 			if err != nil {
 				return err
 			}
 
-			fmt.Println(source.ID)
+			fmt.Println(provider.ID)
 
 			return nil
 		},
 	}
 
 	cmd.Flags().StringVar(&apiToken, "api-token", "", "Api Token")
-	cmd.Flags().StringVar(&domain, "domain", "", "Identity source domain (e.g. example.okta.com)")
+	cmd.Flags().StringVar(&domain, "domain", "", "Identity provider domain (e.g. example.okta.com)")
 	cmd.Flags().StringVar(&clientID, "client-id", "", "Client ID for single sign on")
 	cmd.Flags().StringVar(&clientSecret, "client-secret", "", "Client Secret for single sign on")
 
@@ -765,13 +765,13 @@ var logoutCmd = &cobra.Command{
 	},
 }
 
-var sourcesDeleteCmd = &cobra.Command{
+var providersDeleteCmd = &cobra.Command{
 	Use:     "delete ID",
 	Aliases: []string{"rm"},
-	Short:   "Delete a source connection",
+	Short:   "Delete a provider connection",
 	Args:    cobra.ExactArgs(1),
 	Example: heredoc.Doc(`
-			$ infra sources delete n7bha2pxjpa01a`),
+			$ infra providers delete n7bha2pxjpa01a`),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		config, err := readConfig()
 		if err != nil {
@@ -951,11 +951,11 @@ func NewRootCmd() (*cobra.Command, error) {
 
 	rootCmd.AddCommand(usersCmd)
 
-	sourcesCmd.AddCommand(sourcesListCmd)
-	sourcesCmd.AddCommand(newsourcesCreateCmd())
-	sourcesCmd.AddCommand(sourcesDeleteCmd)
-	sourcesCmd.PersistentFlags().BoolP("insecure", "i", false, "skip TLS verification")
-	rootCmd.AddCommand(sourcesCmd)
+	providersCmd.AddCommand(providersListCmd)
+	providersCmd.AddCommand(newprovidersCreateCmd())
+	providersCmd.AddCommand(providersDeleteCmd)
+	providersCmd.PersistentFlags().BoolP("insecure", "i", false, "skip TLS verification")
+	rootCmd.AddCommand(providersCmd)
 
 	rootCmd.AddCommand(loginCmd)
 	loginCmd.PersistentFlags().BoolP("insecure", "i", false, "skip TLS verification")
