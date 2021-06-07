@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/okta"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/square/go-jose.v2"
@@ -33,7 +34,7 @@ type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
-func (h *Handlers) TokenAuthMiddleware() gin.HandlerFunc {
+func (h *Handlers) JWTMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.GetBool("skipauth") {
 			c.Next()
@@ -70,7 +71,7 @@ func (h *Handlers) TokenAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		if err := tok.Claims([]byte(settings.TokenSecret), &cl, &out); err != nil {
+		if err := tok.Claims([]byte(settings.JWTSecret), &cl, &out); err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 			return
 		}
@@ -95,35 +96,49 @@ func (h *Handlers) TokenAuthMiddleware() gin.HandlerFunc {
 	}
 }
 
-func (h *Handlers) createToken(email string) (string, error) {
-	var settings Settings
-	err := h.db.First(&settings).Error
-	if err != nil {
-		return "", err
-	}
+func (h *Handlers) TokenMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.GetBool("skipauth") {
+			c.Next()
+			return
+		}
 
-	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.HS256, Key: []byte(settings.TokenSecret)}, (&jose.SignerOptions{}).WithType("JWT"))
-	if err != nil {
-		return "", err
-	}
+		// Check bearer header
+		authorization := c.Request.Header.Get("Authorization")
+		raw := strings.Replace(authorization, "Bearer ", "", -1)
 
-	cl := jwt.Claims{
-		Issuer:   "infra",
-		Expiry:   jwt.NewNumericDate(time.Now().Add(time.Hour * 1)),
-		IssuedAt: jwt.NewNumericDate(time.Now()),
-	}
-	custom := struct {
-		Email string `json:"email"`
-	}{
-		email,
-	}
+		// Check cookie
+		if raw == "" {
+			raw, _ = c.Cookie("token")
+		}
 
-	raw, err := jwt.Signed(signer).Claims(cl).Claims(custom).CompactSerialize()
-	if err != nil {
-		return "", err
-	}
+		if raw == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
 
-	return raw, nil
+		if len(raw) != 36 {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+
+		id := raw[0:12]
+		secret := raw[12:36]
+
+		var token Token
+		if err := h.db.Preload("User").First(&token, "id = ?", id).Error; err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+
+		if err := token.CheckSecret(secret); err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+
+		c.Set("user", token.User)
+		c.Next()
+	}
 }
 
 func (h *Handlers) RoleMiddleware(roles ...string) gin.HandlerFunc {
@@ -133,20 +148,28 @@ func (h *Handlers) RoleMiddleware(roles ...string) gin.HandlerFunc {
 			return
 		}
 
-		email := c.GetString("email")
-		if email == "" {
+		raw, ok := c.Get("user")
+		if !ok {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 			return
 		}
 
-		var u User
-		err := h.db.Preload("Permissions").Where("email = ?", email).First(&u).Error
+		user, ok := raw.(User)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+
+		fmt.Println(user)
+
+		var permissions []Permission
+		err := h.db.Where("user_email = ?", user.Email).Find(&permissions).Error
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "error"})
 			return
 		}
 
-		for _, p := range u.Permissions {
+		for _, p := range permissions {
 			for _, allowed := range roles {
 				if p.RoleName == allowed {
 					c.Next()
@@ -157,6 +180,41 @@ func (h *Handlers) RoleMiddleware(roles ...string) gin.HandlerFunc {
 
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 	}
+}
+
+func (h *Handlers) createJWT(email string) (string, time.Time, error) {
+	var settings Settings
+	err := h.db.First(&settings).Error
+	if err != nil {
+		return "", time.Time{}, err
+	}
+
+	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.HS256, Key: []byte(settings.JWTSecret)}, (&jose.SignerOptions{}).WithType("JWT"))
+	if err != nil {
+		return "", time.Time{}, err
+	}
+
+	expiry := time.Now().Add(time.Minute * 5)
+
+	cl := jwt.Claims{
+		Issuer:   "infra",
+		Expiry:   jwt.NewNumericDate(expiry),
+		IssuedAt: jwt.NewNumericDate(time.Now()),
+	}
+	custom := struct {
+		Email string `json:"email"`
+		Nonce string `json:"nonce"`
+	}{
+		email,
+		generate.RandString(10),
+	}
+
+	raw, err := jwt.Signed(signer).Claims(cl).Claims(custom).CompactSerialize()
+	if err != nil {
+		return "", time.Time{}, err
+	}
+
+	return raw, expiry, nil
 }
 
 func (h *Handlers) ProxyHandler() (handler gin.HandlerFunc, err error) {
@@ -226,7 +284,7 @@ func (h *Handlers) CreateUser(c *gin.Context) {
 			return errors.New("user with this email already exists")
 		}
 
-		err := infraProvider.CreateUser(tx, form.Email, form.Password)
+		err := infraProvider.CreateUser(tx, &user, form.Email, form.Password)
 		if err != nil {
 			return err
 		}
@@ -257,19 +315,17 @@ func (h *Handlers) DeleteUser(c *gin.Context) {
 		return
 	}
 
-	err := h.db.Transaction(func(tx *gorm.DB) error {
-		var self User
-		err := tx.First(&self, "email = ?", c.GetString("email")).Error
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return err
-		}
+	var self User
+	raw, _ := c.Get("user")
+	self, _ = raw.(User)
 
+	err := h.db.Transaction(func(tx *gorm.DB) error {
 		if self.ID == params.ID {
 			return errors.New("cannot delete self")
 		}
 
 		var user User
-		err = tx.First(&user, "id = ?", params.ID).Error
+		err := tx.First(&user, "id = ?", params.ID).Error
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("user does not exist")
 		}
@@ -380,6 +436,8 @@ func (h *Handlers) CreateProvider(c *gin.Context) {
 		return
 	}
 
+	provider.SyncUsers(h.db)
+
 	c.JSON(http.StatusCreated, provider)
 }
 
@@ -416,7 +474,29 @@ func (h *Handlers) DeleteProvider(c *gin.Context) {
 	c.JSON(http.StatusOK, DeleteResponse{true})
 }
 
-func (h *Handlers) CreateToken(c *gin.Context) {
+func (h *Handlers) CreateCreds(c *gin.Context) {
+	intf, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, ErrorResponse{"unauthorized"})
+		return
+	}
+
+	user, ok := intf.(User)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, ErrorResponse{"unauthorized"})
+		return
+	}
+
+	token, expiry, err := h.createJWT(user.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{"could not create credentials"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"token": token, "expirationTimestamp": expiry.Format(time.RFC3339)})
+}
+
+func (h *Handlers) Login(c *gin.Context) {
 	type Params struct {
 		// Via Okta
 		OktaDomain string `form:"okta-domain"`
@@ -425,6 +505,9 @@ func (h *Handlers) CreateToken(c *gin.Context) {
 		// Via email + password
 		Email    string `form:"email" validate:"email"`
 		Password string `form:"password"`
+
+		// Via refresh token token
+		Token string `form:"token" validate:"len=32"`
 	}
 
 	var params Params
@@ -433,11 +516,29 @@ func (h *Handlers) CreateToken(c *gin.Context) {
 		return
 	}
 
-	// Via Okta
-	// TODO (jmorganca): support web-based login for okta
-	// TODO (jmorganca): check okta edge cases in client verification
-	var err error
-	if params.OktaCode != "" {
+	var user User
+	var token Token
+
+	switch {
+	case params.Token != "":
+		id := params.Token[:12]
+		secret := params.Token[12:36]
+
+		if err := h.db.First(&token, "id = ?", id).Error; err != nil {
+			c.JSON(http.StatusUnauthorized, ErrorResponse{"unauthorized"})
+			return
+		}
+
+		if err := token.CheckSecret(secret); err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+
+		if time.Now().After(time.Unix(token.Expires, 0)) {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "expired"})
+			return
+		}
+	case params.OktaCode != "":
 		var provider Provider
 		if err := h.db.Where(&Provider{Kind: "okta", Domain: params.OktaDomain}).First(&provider).Error; err != nil {
 			c.JSON(http.StatusBadRequest, ErrorResponse{"no provider with okta domain"})
@@ -455,59 +556,88 @@ func (h *Handlers) CreateToken(c *gin.Context) {
 			return
 		}
 
-		token, err := h.createToken(email)
+		err = h.db.Where("email = ?", email).First(&user).Error
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, ErrorResponse{"failed to create token"})
+			c.JSON(http.StatusBadRequest, ErrorResponse{"user does not exist"})
+			return
+		}
+
+	default:
+		type EmailParams struct {
+			Email    string `form:"email" validate:"required,email"`
+			Password string `form:"password" validate:"required,email"`
+		}
+
+		var emailParams EmailParams
+		if err := c.ShouldBind(&emailParams); err != nil {
+			c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
 			fmt.Println(err)
 			return
 		}
 
-		c.SetSameSite(http.SameSiteStrictMode)
-		c.SetCookie("token", token, 3600, "/", c.Request.Host, false, true)
-		c.SetCookie("login", "1", 3600, "/", c.Request.Host, false, false)
+		if err := h.db.Where("email = ?", emailParams.Email).First(&user).Error; err != nil {
+			c.JSON(http.StatusUnauthorized, ErrorResponse{"unauthorized"})
+			return
+		}
 
-		c.JSON(http.StatusCreated, gin.H{"token": token})
-		return
+		if err := bcrypt.CompareHashAndPassword(user.Password, []byte(emailParams.Password)); err != nil {
+			c.JSON(http.StatusUnauthorized, ErrorResponse{"unauthorized"})
+			return
+		}
 	}
 
-	// Via email + password
-	type EmailParams struct {
-		Email    string `form:"email" validate:"required,email"`
-		Password string `form:"password" validate:"required,email"`
+	// Rotate token if specified
+	if token.ID != "" {
+		if err := h.db.Where(&Token{ID: token.ID}).Delete(&Token{}).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, ErrorResponse{"could not create token"})
+			return
+		}
 	}
 
-	var emailParams EmailParams
-	if err := c.ShouldBind(&emailParams); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
-		fmt.Println(err)
-		return
-	}
-
-	var user User
-	if err := h.db.Where("email = ?", emailParams.Email).First(&user).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, ErrorResponse{"unauthorized"})
-		return
-	}
-
-	if err = bcrypt.CompareHashAndPassword(user.Password, []byte(emailParams.Password)); err != nil {
-		c.JSON(http.StatusUnauthorized, ErrorResponse{"unauthorized"})
-		return
-	}
-
-	token, err := h.createToken(params.Email)
+	var newToken Token
+	secret, err := NewToken(h.db, user.ID, &newToken)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{"could not create token"})
-		fmt.Println(err)
 		return
 	}
 
 	c.SetSameSite(http.SameSiteStrictMode)
-	c.SetCookie("token", token, 3600, "/", c.Request.Host, false, true)
-	c.SetCookie("login", "1", 3600, "/", c.Request.Host, false, false)
-	c.JSON(http.StatusCreated, gin.H{"Token": token})
+	c.SetCookie("token", newToken.ID+secret, 10800, "/", c.Request.Host, false, true)
+	c.JSON(http.StatusOK, gin.H{"token": newToken.ID + secret})
 }
 
-func (h *Handlers) AdminSignup(c *gin.Context) {
+func (h *Handlers) Logout(c *gin.Context) {
+	type Params struct {
+		Token string `form:"token" validate:"required,len=36"`
+	}
+
+	var params Params
+	if err := c.ShouldBind(&params); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
+		return
+	}
+
+	intf, exists := c.Get("token")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, ErrorResponse{"unauthorized"})
+		return
+	}
+
+	token, ok := intf.(Token)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, ErrorResponse{"unauthorized"})
+		return
+	}
+
+	if err := h.db.Where(&Token{UserID: token.UserID}).Delete(&Token{}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{"could not delete sesssion"})
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (h *Handlers) Signup(c *gin.Context) {
 	type binds struct {
 		Email    string `form:"email" binding:"email,required"`
 		Password string `form:"password" binding:"required"`
@@ -530,6 +660,7 @@ func (h *Handlers) AdminSignup(c *gin.Context) {
 		return
 	}
 
+	var user User
 	err := h.db.Transaction(func(tx *gorm.DB) error {
 		var exists User
 		count := tx.First(&exists).RowsAffected
@@ -543,7 +674,7 @@ func (h *Handlers) AdminSignup(c *gin.Context) {
 			return err
 		}
 
-		if err := provider.CreateUser(tx, form.Email, form.Password); err != nil {
+		if err := provider.CreateUser(tx, &user, form.Email, form.Password); err != nil {
 			return err
 		}
 
@@ -555,44 +686,49 @@ func (h *Handlers) AdminSignup(c *gin.Context) {
 		return
 	}
 
-	if err := h.kubernetes.UpdatePermissions(); err != nil {
-		fmt.Println("could not update kubernetes permissions: ", err)
-	}
-
-	token, err := h.createToken(form.Email)
+	var newToken Token
+	secret, err := NewToken(h.db, user.ID, &newToken)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{"could not create token"})
 		return
 	}
 
+	if err := h.kubernetes.UpdatePermissions(); err != nil {
+		fmt.Println("could not update kubernetes permissions: ", err)
+	}
+
 	c.SetSameSite(http.SameSiteStrictMode)
-	c.SetCookie("token", token, 3600, "/", c.Request.Host, false, true)
-	c.SetCookie("login", "1", 3600, "/", c.Request.Host, false, false)
+	c.SetCookie("token", newToken.ID+secret, 10800, "/", c.Request.Host, false, true)
 	c.Status(http.StatusCreated)
 }
 
 func (h *Handlers) addRoutes(router *gin.Engine) error {
-	router.GET("/v1/users", h.TokenAuthMiddleware(), h.RoleMiddleware("view", "edit", "admin"), h.ListUsers)
-	router.POST("/v1/users", h.TokenAuthMiddleware(), h.RoleMiddleware("edit", "admin"), h.CreateUser)
-	router.DELETE("/v1/users/:id", h.TokenAuthMiddleware(), h.RoleMiddleware("edit", "admin"), h.DeleteUser)
+	router.GET("/v1/healthz", h.Healthz)
+
+	router.GET("/v1/users", h.TokenMiddleware(), h.ListUsers)
+	router.POST("/v1/users", h.TokenMiddleware(), h.RoleMiddleware("edit", "admin"), h.CreateUser)
+	router.DELETE("/v1/users/:id", h.TokenMiddleware(), h.RoleMiddleware("edit", "admin"), h.DeleteUser)
 
 	router.GET("/v1/providers", h.ListProviders)
-	router.POST("/v1/providers", h.TokenAuthMiddleware(), h.RoleMiddleware("admin"), h.CreateProvider)
-	router.DELETE("/v1/providers/:id", h.TokenAuthMiddleware(), h.RoleMiddleware("admin"), h.DeleteProvider)
+	router.POST("/v1/providers", h.TokenMiddleware(), h.RoleMiddleware("admin"), h.CreateProvider)
+	router.DELETE("/v1/providers/:id", h.TokenMiddleware(), h.RoleMiddleware("admin"), h.DeleteProvider)
 
-	router.POST("/v1/tokens", h.CreateToken)
-	router.POST("/v1/admin/signup", h.AdminSignup)
+	router.POST("/v1/creds", h.TokenMiddleware(), h.CreateCreds)
+
+	router.POST("/v1/login", h.Login)
+	router.POST("/v1/logout", h.TokenMiddleware(), h.Logout)
+	router.POST("/v1/signup", h.Signup)
 
 	if h.kubernetes != nil && h.kubernetes.Config != nil {
 		proxyHandler, err := h.ProxyHandler()
 		if err != nil {
 			return err
 		}
-		router.GET("/v1/proxy/*all", h.TokenAuthMiddleware(), proxyHandler)
-		router.POST("/v1/proxy/*all", h.TokenAuthMiddleware(), proxyHandler)
-		router.PUT("/v1/proxy/*all", h.TokenAuthMiddleware(), proxyHandler)
-		router.PATCH("/v1/proxy/*all", h.TokenAuthMiddleware(), proxyHandler)
-		router.DELETE("/v1/proxy/*all", h.TokenAuthMiddleware(), proxyHandler)
+		router.GET("/v1/proxy/*all", h.JWTMiddleware(), proxyHandler)
+		router.POST("/v1/proxy/*all", h.JWTMiddleware(), proxyHandler)
+		router.PUT("/v1/proxy/*all", h.JWTMiddleware(), proxyHandler)
+		router.PATCH("/v1/proxy/*all", h.JWTMiddleware(), proxyHandler)
+		router.DELETE("/v1/proxy/*all", h.JWTMiddleware(), proxyHandler)
 	}
 
 	return nil

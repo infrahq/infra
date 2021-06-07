@@ -17,7 +17,6 @@ import (
 	"github.com/NYTimes/gziphandler"
 	assetfs "github.com/elazarl/go-bindata-assetfs"
 	"github.com/gin-gonic/gin"
-	"github.com/infrahq/infra/internal/okta"
 	"golang.org/x/crypto/acme/autocert"
 )
 
@@ -61,23 +60,14 @@ func Run(options Options) error {
 	sync.Start(func() {
 		var providers []Provider
 
-		if err := db.Not(&Provider{Kind: DefaultInfraProviderKind}).Find(&providers).Error; err != nil {
+		if err := db.Find(&providers).Error; err != nil {
 			fmt.Println(err)
 		}
 
 		for _, p := range providers {
-			if p.Kind == "okta" {
-				emails, err := okta.Emails(p.Domain, p.ClientID, p.ApiToken)
-				if err != nil {
-					fmt.Println(err)
-				}
-
-				err = p.SyncUsers(db, emails)
-				if err != nil {
-					fmt.Println(err)
-				}
-			}
+			err = p.SyncUsers(db)
 		}
+
 		kubernetes.UpdatePermissions()
 	})
 

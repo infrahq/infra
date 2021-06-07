@@ -1,6 +1,8 @@
 package server
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"errors"
 	"log"
 	"os"
@@ -8,6 +10,7 @@ import (
 	"time"
 
 	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/internal/okta"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v2"
 	"gorm.io/driver/sqlite"
@@ -61,8 +64,19 @@ type Settings struct {
 	Created       int64  `json:"-" yaml:"-" gorm:"autoCreateTime"`
 	Updated       int64  `json:"-" yaml:"-" gorm:"autoUpdateTime"`
 	Domain        string `json:"-" yaml:"domain,omitempty"`
-	TokenSecret   string `json:"-" yaml:"tokenSecret,omitempty"`
+	JWTSecret     string `json:"-" yaml:"jwtSecret,omitempty"`
 	DisableSignup bool   `json:"disableSignup" yaml:"disableSignup,omitempty"`
+}
+
+type Token struct {
+	ID      string `gorm:"primaryKey"`
+	Created int64  `json:"created" gorm:"autoCreateTime"`
+	Updated int64  `json:"updated" gorm:"autoUpdateTime"`
+	Expires int64  `json:"expires"`
+	Secret  []byte `json:"-" gorm:"autoCreateTime"`
+
+	UserID string
+	User   User `json:"-"`
 }
 
 var (
@@ -75,43 +89,50 @@ var (
 
 var DefaultRoles = []Role{
 	{
-		Name:           "view",
+		Name:           "readonly",
 		Description:    "Read most resources",
 		KubernetesRole: "view",
 	},
 	{
-		Name:           "edit",
+		Name:           "editor",
 		Description:    "Read & write most resources",
 		KubernetesRole: "edit",
 	},
 	{
-		Name:           "admin",
-		Description:    "Read & write all resources",
+		Name:           "superadmin",
+		Description:    "Full access to all resources",
 		KubernetesRole: "admin",
 	},
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 	if u.ID == "" {
-		u.ID = generate.RandString(14)
+		u.ID = generate.RandString(12)
 	}
+
 	return
 }
 
+// TODO (jmorganca): use foreign constraints instead?
 func (u *User) BeforeDelete(tx *gorm.DB) error {
-	return tx.Model(u).Association("Providers").Clear()
+	err := tx.Model(u).Association("Providers").Clear()
+	if err != nil {
+		return err
+	}
+
+	return tx.Where(&Token{UserID: u.ID}).Delete(&Token{}).Error
 }
 
 func (p *Permission) BeforeCreate(tx *gorm.DB) (err error) {
 	if p.ID == "" {
-		p.ID = generate.RandString(14)
+		p.ID = generate.RandString(12)
 	}
 	return
 }
 
 func (p *Provider) BeforeCreate(tx *gorm.DB) (err error) {
 	if p.ID == "" {
-		p.ID = generate.RandString(14)
+		p.ID = generate.RandString(12)
 	}
 	return
 }
@@ -132,8 +153,7 @@ func (p *Provider) BeforeDelete(tx *gorm.DB) error {
 // CreateUser will create a user and associate them with the provider
 // If the user already exists, they will not be created, instead an association
 // will be added instead
-func (p *Provider) CreateUser(db *gorm.DB, email string, password string) error {
-	var user User
+func (p *Provider) CreateUser(db *gorm.DB, user *User, email string, password string) error {
 	var hashedPassword []byte
 	var err error
 
@@ -179,7 +199,7 @@ func (p *Provider) DeleteUser(db *gorm.DB, u *User) error {
 	}
 
 	if db.Model(&user).Association("Providers").Count() == 0 {
-		if err := db.Delete(&user).Error; err != nil {
+		if err := db.Select("Tokens").Delete(&user).Error; err != nil {
 			return err
 		}
 	}
@@ -187,11 +207,24 @@ func (p *Provider) DeleteUser(db *gorm.DB, u *User) error {
 	return nil
 }
 
-func (p *Provider) SyncUsers(db *gorm.DB, emails []string) error {
+func (p *Provider) SyncUsers(db *gorm.DB) error {
+	var emails []string
+	var err error
+
+	switch p.Kind {
+	case "okta":
+		emails, err = okta.Emails(p.Domain, p.ClientID, p.ApiToken)
+		if err != nil {
+			return err
+		}
+	case "infra":
+		return nil
+	}
+
 	return db.Transaction(func(tx *gorm.DB) error {
 		// Create users in provider
 		for _, email := range emails {
-			if err := p.CreateUser(tx, email, ""); err != nil {
+			if err := p.CreateUser(tx, &User{}, email, ""); err != nil {
 				return err
 			}
 		}
@@ -212,23 +245,62 @@ func (p *Provider) SyncUsers(db *gorm.DB, emails []string) error {
 
 func (r *Role) BeforeCreate(tx *gorm.DB) (err error) {
 	if r.ID == "" {
-		r.ID = generate.RandString(14)
+		r.ID = generate.RandString(12)
 	}
 	return
 }
 
 func (s *Settings) BeforeCreate(tx *gorm.DB) (err error) {
 	if s.ID == "" {
-		s.ID = generate.RandString(14)
+		s.ID = generate.RandString(12)
 	}
 	return
 }
 
 func (s *Settings) BeforeSave(tx *gorm.DB) error {
-	if s.TokenSecret == "" {
-		s.TokenSecret = generate.RandString(32)
+	if s.JWTSecret == "" {
+		s.JWTSecret = generate.RandString(32)
 	}
 	return nil
+}
+
+func (t *Token) BeforeCreate(tx *gorm.DB) (err error) {
+	if t.ID == "" {
+		t.ID = generate.RandString(12)
+	}
+
+	// TODO (jmorganca): 24 hours may be too long or too short for some teams
+	// this should be customizable in settings or limited by the provider
+	if t.Expires == 0 {
+		t.Expires = time.Now().Add(time.Hour * 24).Unix()
+	}
+	return
+}
+
+func (t *Token) CheckSecret(secret string) (err error) {
+	h := sha256.New()
+	h.Write([]byte(secret))
+	if !bytes.Equal(t.Secret, h.Sum(nil)) {
+		return errors.New("could not verify token secret")
+	}
+
+	return nil
+}
+
+func NewToken(db *gorm.DB, userID string, token *Token) (secret string, err error) {
+	secret = generate.RandString(24)
+
+	h := sha256.New()
+	h.Write([]byte(secret))
+	token.UserID = userID
+	token.Secret = h.Sum(nil)
+
+	err = db.Create(token).Error
+	if err != nil {
+		return "", err
+	}
+
+	return
 }
 
 type Config struct {
@@ -359,6 +431,7 @@ func NewDB(dbpath string) (*gorm.DB, error) {
 	db.AutoMigrate(&Permission{})
 	db.AutoMigrate(&Role{})
 	db.AutoMigrate(&Settings{})
+	db.AutoMigrate(&Token{})
 
 	// Add default roles
 	for _, p := range DefaultRoles {
