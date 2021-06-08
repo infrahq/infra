@@ -705,8 +705,6 @@ func newPermissionsDeleteCmd() *cobra.Command {
 				values.Add("role", role)
 				query := values.Encode()
 
-				fmt.Println(query)
-
 				res, err := httpClient.Get(serverUrl.String() + "/v1/permissions?" + query)
 				if err != nil {
 					return err
