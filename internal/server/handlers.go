@@ -547,6 +547,10 @@ func (h *Handlers) CreatePermission(c *gin.Context) {
 		return
 	}
 
+	if err := h.kubernetes.UpdatePermissions(); err != nil {
+		fmt.Println("could not update kubernetes permissions: ", err)
+	}
+
 	c.JSON(http.StatusCreated, permission)
 }
 
@@ -564,6 +568,10 @@ func (h *Handlers) DeletePermission(c *gin.Context) {
 	err := h.db.Where("id = ?", params.ID).Delete(&Permission{}).Error
 	if err != nil {
 		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
+	}
+
+	if err := h.kubernetes.UpdatePermissions(); err != nil {
+		fmt.Println("could not update kubernetes permissions: ", err)
 	}
 
 	c.JSON(http.StatusOK, DeleteResponse{true})
