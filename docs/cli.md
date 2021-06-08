@@ -2,16 +2,54 @@
 
 ## Commands
 
+* [infra login](#infra-login)
+* [infra logout](#infra-logout)
 * [infra users create](#infra-users-create)
 * [infra users list](#infra-users-list)
 * [infra users delete](#infra-users-delete)
+* [infra permissions create](#infra-permissions-create)
+* [infra permissions list](#infra-permissions-list)
+* [infra permissions delete](#infra-permissions-delete)
 * [infra providers list](#infra-providers-list)
 * [infra providers create](#infra-providers-create)
 * [infra providers delete](#infra-providers-delete)
-* [infra login](#infra-login)
-* [infra logout](#infra-logout)
 * [infra server](#infra-server)
 
+
+## `infra login`
+
+Log in to Infra server
+
+```
+infra login HOST [flags]
+```
+
+### Examples
+
+```
+$ infra login infra.example.com
+```
+
+### Options
+
+```
+  -h, --help       help for login
+  -i, --insecure   skip TLS verification
+```
+
+## `infra logout`
+
+Log out of Infra server
+
+```
+infra logout [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for logout
+```
 
 ## `infra users create`
 
@@ -77,6 +115,86 @@ $ infra users delete user@example.com
 
 ```
   -h, --help   help for delete
+```
+
+### Options inherited from parent commands
+
+```
+  -i, --insecure   skip TLS verification
+```
+
+## `infra permissions create`
+
+grant a permission
+
+```
+infra permissions create [flags]
+```
+
+### Examples
+
+```
+$ infra permissions create --user admin@example.com --role admin
+```
+
+### Options
+
+```
+  -h, --help          help for create
+  -r, --role string   Role name or id
+  -u, --user string   User email or id
+```
+
+### Options inherited from parent commands
+
+```
+  -i, --insecure   skip TLS verification
+```
+
+## `infra permissions list`
+
+List users
+
+```
+infra permissions list [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for list
+```
+
+### Options inherited from parent commands
+
+```
+  -i, --insecure   skip TLS verification
+```
+
+## `infra permissions delete`
+
+Revoke a permission
+
+```
+infra permissions delete [ID] [flags]
+```
+
+### Examples
+
+```
+# Delete via user & role
+$ infra permissions delete --user bob@example.com --role edit
+
+# Delete via permission id
+$ infra permissions delete D1smOVORBvsO
+```
+
+### Options
+
+```
+  -h, --help          help for delete
+  -r, --role string   Role name or id
+  -u, --user string   User email or id
 ```
 
 ### Options inherited from parent commands
@@ -163,41 +281,6 @@ $ infra providers delete n7bha2pxjpa01a
 
 ```
   -i, --insecure   skip TLS verification
-```
-
-## `infra login`
-
-Log in to Infra server
-
-```
-infra login HOST [flags]
-```
-
-### Examples
-
-```
-$ infra login infra.example.com
-```
-
-### Options
-
-```
-  -h, --help       help for login
-  -i, --insecure   skip TLS verification
-```
-
-## `infra logout`
-
-Log out of Infra server
-
-```
-infra logout [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for logout
 ```
 
 ## `infra server`
