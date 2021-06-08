@@ -474,6 +474,101 @@ func (h *Handlers) DeleteProvider(c *gin.Context) {
 	c.JSON(http.StatusOK, DeleteResponse{true})
 }
 
+func (h *Handlers) ListPermissions(c *gin.Context) {
+	type binds struct {
+		User string `form:"user"`
+		Role string `form:"role"`
+	}
+
+	var params binds
+	if err := c.BindQuery(&params); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
+		return
+	}
+
+	var permissions []Permission
+	q := h.db.Debug()
+
+	q = q.Joins("Role")
+	if params.Role != "" {
+		q = q.Where("Role.id = ? OR Role.name = ?", params.Role, params.Role)
+	}
+
+	q = q.Joins("User")
+	if params.User != "" {
+		q = q.Where("User.id = ? OR User.email = ?", params.User, params.User)
+	}
+
+	err := q.Find(&permissions).Error
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{"could not list permissions"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": permissions})
+}
+
+func (h *Handlers) CreatePermission(c *gin.Context) {
+	type binds struct {
+		User string `form:"user" binding:"required"`
+		Role string `form:"role" binding:"required"`
+	}
+
+	var params binds
+	if err := c.Bind(&params); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
+		return
+	}
+
+	var permission Permission
+	err := h.db.Transaction(func(tx *gorm.DB) error {
+		var user User
+		if err := tx.First(&user, "id = ? OR email = ?", params.User, params.User).Error; err != nil {
+			return err
+		}
+
+		var role Role
+		if err := tx.First(&role, "id = ? OR name = ?", params.Role, params.Role).Error; err != nil {
+			return err
+		}
+
+		result := tx.FirstOrCreate(&permission, &Permission{UserEmail: user.Email, RoleName: role.Name})
+		if result.Error != nil {
+			return result.Error
+		}
+
+		if result.RowsAffected == 0 {
+			return errors.New("permission already exists")
+		}
+
+		return nil
+	})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, permission)
+}
+
+func (h *Handlers) DeletePermission(c *gin.Context) {
+	type binds struct {
+		ID string `uri:"id" binding:"required"`
+	}
+
+	var params binds
+	if err := c.BindUri(&params); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
+		return
+	}
+
+	err := h.db.Where("id = ?", params.ID).Delete(&Permission{}).Error
+	if err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
+	}
+
+	c.JSON(http.StatusOK, DeleteResponse{true})
+}
+
 func (h *Handlers) CreateCreds(c *gin.Context) {
 	intf, exists := c.Get("user")
 	if !exists {
@@ -712,6 +807,10 @@ func (h *Handlers) addRoutes(router *gin.Engine) error {
 	router.GET("/v1/providers", h.ListProviders)
 	router.POST("/v1/providers", h.TokenMiddleware(), h.RoleMiddleware("admin"), h.CreateProvider)
 	router.DELETE("/v1/providers/:id", h.TokenMiddleware(), h.RoleMiddleware("admin"), h.DeleteProvider)
+
+	router.GET("/v1/permissions", h.TokenMiddleware(), h.ListPermissions)
+	router.POST("/v1/permissions", h.TokenMiddleware(), h.RoleMiddleware("edit", "admin"), h.CreatePermission)
+	router.DELETE("/v1/permissions/:id", h.TokenMiddleware(), h.RoleMiddleware("edit", "admin"), h.DeletePermission)
 
 	router.POST("/v1/creds", h.TokenMiddleware(), h.CreateCreds)
 

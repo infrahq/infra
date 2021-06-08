@@ -574,13 +574,6 @@ var usersListCmd = &cobra.Command{
 
 		rows := [][]string{}
 		for _, user := range response.Data {
-			roles := ""
-			for i, p := range user.Permissions {
-				if i > 0 {
-					roles += ","
-				}
-				roles += p.Role.Name
-			}
 			providers := ""
 			for i, p := range user.Providers {
 				if i > 0 {
@@ -588,10 +581,230 @@ var usersListCmd = &cobra.Command{
 				}
 				providers += p.Kind
 			}
-			rows = append(rows, []string{user.ID, user.Email, providers, units.HumanDuration(time.Now().UTC().Sub(time.Unix(user.Created, 0))) + " ago", roles})
+			rows = append(rows, []string{user.ID, user.Email, providers, units.HumanDuration(time.Now().UTC().Sub(time.Unix(user.Created, 0))) + " ago"})
 		}
 
-		printTable([]string{"USER ID", "EMAIL", "PROVIDERS", "CREATED", "ROLES"}, rows)
+		printTable([]string{"USER ID", "EMAIL", "PROVIDERS", "CREATED"}, rows)
+
+		return nil
+	},
+}
+
+var permissionsCmd = &cobra.Command{
+	Use:     "permissions",
+	Aliases: []string{"permission", "perms"},
+	Short:   "Manage permissions",
+}
+
+func newPermissionsCreateCmd() *cobra.Command {
+	var user, role string
+
+	cmd := &cobra.Command{
+		Use:     "create",
+		Short:   "grant a permission",
+		Example: "$ infra permissions create --user admin@example.com --role admin",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			config, err := readConfig()
+			if err != nil {
+				return err
+			}
+
+			if user == "" {
+				cmd.Usage()
+				return errors.New("missing user flag")
+			}
+
+			if role == "" {
+				cmd.Usage()
+				return errors.New("missing role flag")
+			}
+
+			insecure, _ := cmd.Flags().GetBool("insecure")
+			httpClient, err := client(config.Host, config.Token, insecure)
+			if err != nil {
+				return err
+			}
+
+			serverUrl, err := serverUrl(config.Host)
+			if err != nil {
+				return err
+			}
+
+			form := url.Values{}
+			form.Add("user", user)
+			form.Add("role", role)
+
+			res, err := httpClient.PostForm(serverUrl.String()+"/v1/permissions", form)
+			if err != nil {
+				return err
+			}
+
+			var permission server.Permission
+			err = checkAndDecode(res, &permission)
+			if err != nil {
+				return err
+			}
+
+			fmt.Println(permission.ID)
+
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVarP(&user, "user", "u", "", "User email or id")
+	cmd.Flags().StringVarP(&role, "role", "r", "", "Role name or id")
+
+	return cmd
+}
+
+func newPermissionsDeleteCmd() *cobra.Command {
+	var user, role string
+
+	cmd := &cobra.Command{
+		Use:     "delete [ID]",
+		Aliases: []string{"rm"},
+		Short:   "Revoke a permission",
+		Args:    cobra.MaximumNArgs(1),
+		Example: heredoc.Doc(`
+				# Delete via user & role
+				$ infra permissions delete --user bob@example.com --role edit
+
+				# Delete via permission id
+				$ infra permissions delete D1smOVORBvsO`),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			config, err := readConfig()
+			if err != nil {
+				return err
+			}
+
+			insecure, _ := cmd.Flags().GetBool("insecure")
+			httpClient, err := client(config.Host, config.Token, insecure)
+			if err != nil {
+				return err
+			}
+
+			serverUrl, err := serverUrl(config.Host)
+			if err != nil {
+				return err
+			}
+
+			var id string
+			if len(args) > 0 {
+				id = args[0]
+			}
+
+			if id == "" && (user == "" || role == "") {
+				cmd.Usage()
+				return errors.New("no id specified. Specify id argument or --user with --role")
+			}
+
+			// Fetch id via filters
+			if id == "" {
+				values := url.Values{}
+				values.Add("user", user)
+				values.Add("role", role)
+				query := values.Encode()
+
+				fmt.Println(query)
+
+				res, err := httpClient.Get(serverUrl.String() + "/v1/permissions?" + query)
+				if err != nil {
+					return err
+				}
+
+				var response struct {
+					Data []server.Permission `json:"data"`
+				}
+				err = checkAndDecode(res, &response)
+				if err != nil {
+					return err
+				}
+
+				if len(response.Data) == 0 {
+					return errors.New("no permissions with user and role")
+				}
+
+				id = response.Data[0].ID
+			}
+
+			req, err := http.NewRequest(http.MethodDelete, serverUrl.String()+"/v1/permissions/"+id, nil)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			res, err := httpClient.Do(req)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer res.Body.Close()
+
+			var response server.DeleteResponse
+			err = checkAndDecode(res, &response)
+			if err != nil {
+				return err
+			}
+
+			fmt.Println(id)
+
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVarP(&user, "user", "u", "", "User email or id")
+	cmd.Flags().StringVarP(&role, "role", "r", "", "Role name or id")
+
+	return cmd
+}
+
+var permissionsListCmd = &cobra.Command{
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List users",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		config, err := readConfig()
+		if err != nil {
+			return err
+		}
+
+		insecure, _ := cmd.Flags().GetBool("insecure")
+		httpClient, err := client(config.Host, config.Token, insecure)
+		if err != nil {
+			return err
+		}
+
+		serverUrl, err := serverUrl(config.Host)
+		if err != nil {
+			return err
+		}
+
+		res, err := httpClient.Get(serverUrl.String() + "/v1/permissions")
+		if err != nil {
+			return err
+		}
+
+		var response struct {
+			Data []server.Permission `json:"data"`
+		}
+		err = checkAndDecode(res, &response)
+		if err != nil {
+			return err
+		}
+
+		m := make(map[string][]string)
+
+		for _, r := range response.Data {
+			m[r.User.Email] = append(m[r.User.Email], r.Role.Name)
+		}
+
+		rows := [][]string{}
+		for user, roles := range m {
+			sort.Slice(roles, func(i, j int) bool {
+				return roles[i] < roles[j]
+			})
+			rows = append(rows, []string{user, strings.Join(roles, ",")})
+		}
+
+		printTable([]string{"USER", "ROLES"}, rows)
 
 		return nil
 	},
@@ -944,22 +1157,27 @@ var credsCmd = &cobra.Command{
 func NewRootCmd() (*cobra.Command, error) {
 	cobra.EnableCommandSorting = false
 
+	rootCmd.AddCommand(loginCmd)
+	loginCmd.PersistentFlags().BoolP("insecure", "i", false, "skip TLS verification")
+	rootCmd.AddCommand(logoutCmd)
+
 	usersCmd.AddCommand(usersCreateCmd)
 	usersCmd.AddCommand(usersListCmd)
 	usersCmd.AddCommand(usersDeleteCmd)
 	usersCmd.PersistentFlags().BoolP("insecure", "i", false, "skip TLS verification")
-
 	rootCmd.AddCommand(usersCmd)
+
+	permissionsCmd.AddCommand(newPermissionsCreateCmd())
+	permissionsCmd.AddCommand(permissionsListCmd)
+	permissionsCmd.AddCommand(newPermissionsDeleteCmd())
+	permissionsCmd.PersistentFlags().BoolP("insecure", "i", false, "skip TLS verification")
+	rootCmd.AddCommand(permissionsCmd)
 
 	providersCmd.AddCommand(providersListCmd)
 	providersCmd.AddCommand(newprovidersCreateCmd())
 	providersCmd.AddCommand(providersDeleteCmd)
 	providersCmd.PersistentFlags().BoolP("insecure", "i", false, "skip TLS verification")
 	rootCmd.AddCommand(providersCmd)
-
-	rootCmd.AddCommand(loginCmd)
-	loginCmd.PersistentFlags().BoolP("insecure", "i", false, "skip TLS verification")
-	rootCmd.AddCommand(logoutCmd)
 
 	rootCmd.AddCommand(credsCmd)
 	credsCmd.PersistentFlags().BoolP("insecure", "i", false, "skip TLS verification")
