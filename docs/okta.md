@@ -77,15 +77,15 @@ metadata:
 data:
   infra.yaml: |
     providers:
-      okta:
+      - kind: okta
         domain: example.okta.com                              # REPLACE ME: Your Okta domain
         client-id: 0oapn0qwiQPiMIyR35d6                       # REPLACE ME: Your Client ID
         client-secret: /var/run/infra/secrets/okta-client-secret
         api-token: /var/run/infra/secrets/okta-api-token
 
-    permissions:
+    grants:
       - user: michael@example.com                            # REPLACE ME
-        permission: admin                                    # REPLACE ME
+        role: admin                                    # REPLACE ME
 EOF
 ```
 

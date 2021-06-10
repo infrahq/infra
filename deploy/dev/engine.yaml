@@ -1,0 +1,132 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: infra
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: infra-engine
+  namespace: infra
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: infra-engine-service
+  namespace: infra
+rules:
+  - apiGroups: [""]
+    resources: ["services/proxy"]
+    verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: infra-engine-service
+  namespace: infra
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: system:anonymous
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: infra-engine-service
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: infra-engine
+rules:
+  - apiGroups: [""]
+    resources:
+      - users
+      - groups
+    verbs:
+      - impersonate
+  - apiGroups: [""]
+    resources:
+      - pods
+    verbs:
+      - list
+  - apiGroups: [""]
+    resources:
+      - pods/exec
+    verbs:
+      - create
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - roles
+      - rolebindings
+      - clusterroles
+      - clusterrolebindings
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+      - bind
+      - escalate
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: infra-engine
+subjects:
+- kind: ServiceAccount
+  name: infra-engine
+  namespace: infra
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: infra-engine
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: infra-engine
+  namespace: infra
+  labels:
+    app: infra-engine
+spec:
+  type: ClusterIP
+  selector:
+    app: infra-engine
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: infra-engine
+  namespace: infra
+spec:
+  selector:
+    matchLabels:
+      app: infra-engine
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: infra-engine
+    spec:
+      automountServiceAccountToken: true
+      serviceAccountName: infra-engine
+      containers:
+        - name: engine
+          image: infrahq/infra:dev
+          imagePullPolicy: Never
+          args: ["engine", "--server", "infra-internal", "--name", "desktop"]
+          ports:
+            - containerPort: 80
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 80
+            periodSeconds: 3

@@ -39,9 +39,11 @@ release:
 	gh release upload $(tag) build/* --clobber -R $(repo)
 
 dev/docker:
+	kubectl config use-context docker-desktop
 	docker build . -t infrahq/infra:dev
-	kubectl apply -f ./deploy/dev.yaml
+	kubectl apply -f ./deploy/dev
 	kubectl rollout restart -n infra deployment/infra
+	kubectl rollout restart -n infra deployment/infra-engine
 
 release/docker:
 	docker buildx build --push --platform linux/amd64,linux/arm64 . -t infrahq/infra

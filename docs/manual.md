@@ -13,9 +13,9 @@ metadata:
   namespace: infra
 data:
   infra.yaml: |
-    permissions:
+    grants:
       - user: admin@example.com
-        permission: admin
+        role: admin
 EOF
 ```
 
@@ -39,7 +39,7 @@ $ infra login infra.example.com
 ✔ Kubeconfig updated
 ```
 
-That's it. You now have cluster access as `admin@example.com` with with `admin` permissions.
+That's it. You now have cluster access as `admin@example.com` with with `admin` role.
 
 ```
 $ kubectl get pods -A

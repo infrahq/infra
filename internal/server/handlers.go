@@ -1,14 +1,9 @@
 package server
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"net/http/httputil"
-	"net/url"
 	"strings"
 	"time"
 
@@ -22,8 +17,7 @@ import (
 )
 
 type Handlers struct {
-	db         *gorm.DB
-	kubernetes *Kubernetes
+	db *gorm.DB
 }
 
 type DeleteResponse struct {
@@ -160,18 +154,16 @@ func (h *Handlers) RoleMiddleware(roles ...string) gin.HandlerFunc {
 			return
 		}
 
-		fmt.Println(user)
-
-		var permissions []Permission
-		err := h.db.Where("user_email = ?", user.Email).Find(&permissions).Error
+		var grants []Grant
+		err := h.db.Where("user_email = ?", user.Email).Find(&grants).Error
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "error"})
 			return
 		}
 
-		for _, p := range permissions {
+		for _, g := range grants {
 			for _, allowed := range roles {
-				if p.RoleName == allowed {
+				if g.RoleName == allowed {
 					c.Next()
 					return
 				}
@@ -217,42 +209,24 @@ func (h *Handlers) createJWT(email string) (string, time.Time, error) {
 	return raw, expiry, nil
 }
 
-func (h *Handlers) ProxyHandler() (handler gin.HandlerFunc, err error) {
-	remote, err := url.Parse(h.kubernetes.Config.Host)
-	if err != nil {
-		return
-	}
-
-	ca, err := ioutil.ReadFile(h.kubernetes.Config.TLSClientConfig.CAFile)
-	if err != nil {
-		return
-	}
-
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(ca)
-	proxy := httputil.NewSingleHostReverseProxy(remote)
-	proxy.Transport = &http.Transport{
-		TLSClientConfig: &tls.Config{
-			RootCAs: caCertPool,
-		},
-	}
-
-	return func(c *gin.Context) {
-		email := c.GetString("email")
-		c.Request.Header.Del("Authorization")
-		c.Request.Header.Set("Impersonate-User", email)
-		c.Request.Header.Add("Authorization", "Bearer "+string(h.kubernetes.Config.BearerToken))
-		http.StripPrefix("/v1/proxy", proxy).ServeHTTP(c.Writer, c.Request)
-	}, err
-}
-
 func (h *Handlers) Healthz(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+func (h *Handlers) ListResources(c *gin.Context) {
+	var resources []Resource
+	err := h.db.Not("name = ?", "infra").Find(&resources).Error
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{"could not list resources"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": resources})
+}
+
 func (h *Handlers) ListUsers(c *gin.Context) {
 	var users []User
-	err := h.db.Preload("Permissions.Role").Preload("Providers").Find(&users).Error
+	err := h.db.Preload("Grants.Role").Preload("Grants.Resource").Preload("Providers").Find(&users).Error
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{"could not list users"})
 		return
@@ -284,7 +258,7 @@ func (h *Handlers) CreateUser(c *gin.Context) {
 			return errors.New("user with this email already exists")
 		}
 
-		err := infraProvider.CreateUser(tx, &user, form.Email, form.Password)
+		err := infraProvider.CreateUser(tx, &user, form.Email, form.Password, "infra.member")
 		if err != nil {
 			return err
 		}
@@ -295,10 +269,6 @@ func (h *Handlers) CreateUser(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
 		return
-	}
-
-	if err := h.kubernetes.UpdatePermissions(); err != nil {
-		fmt.Println("could not update kubernetes permissions: ", err)
 	}
 
 	c.JSON(http.StatusCreated, user)
@@ -355,16 +325,12 @@ func (h *Handlers) DeleteUser(c *gin.Context) {
 		return
 	}
 
-	if err := h.kubernetes.UpdatePermissions(); err != nil {
-		fmt.Println("could not update kubernetes permissions: ", err)
-	}
-
 	c.JSON(http.StatusOK, DeleteResponse{true})
 }
 
 func (h *Handlers) ListProviders(c *gin.Context) {
 	var providers []Provider
-	if err := h.db.Preload("Users").Find(&providers).Error; err != nil {
+	if err := h.db.Find(&providers).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{err.Error()})
 		return
 	}
@@ -474,10 +440,11 @@ func (h *Handlers) DeleteProvider(c *gin.Context) {
 	c.JSON(http.StatusOK, DeleteResponse{true})
 }
 
-func (h *Handlers) ListPermissions(c *gin.Context) {
+func (h *Handlers) ListGrants(c *gin.Context) {
 	type binds struct {
-		User string `form:"user"`
-		Role string `form:"role"`
+		Resource string `form:"resource"`
+		User     string `form:"user"`
+		Role     string `form:"role"`
 	}
 
 	var params binds
@@ -486,7 +453,7 @@ func (h *Handlers) ListPermissions(c *gin.Context) {
 		return
 	}
 
-	var permissions []Permission
+	var grants []Grant
 	q := h.db.Debug()
 
 	q = q.Joins("Role")
@@ -499,18 +466,24 @@ func (h *Handlers) ListPermissions(c *gin.Context) {
 		q = q.Where("User.id = ? OR User.email = ?", params.User, params.User)
 	}
 
-	err := q.Find(&permissions).Error
+	q = q.Joins("Resource")
+	if params.Resource != "" {
+		q = q.Where("Resource.id = ? OR Resource.name = ?", params.Resource, params.Resource)
+	}
+
+	err := q.Find(&grants).Error
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{"could not list permissions"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{"could not list grants"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": permissions})
+	c.JSON(http.StatusOK, gin.H{"data": grants})
 }
 
-func (h *Handlers) CreatePermission(c *gin.Context) {
+func (h *Handlers) CreateGrant(c *gin.Context) {
 	type binds struct {
-		User string `form:"user" binding:"required"`
-		Role string `form:"role" binding:"required"`
+		User     string `form:"user" binding:"email,required"`
+		Resource string `form:"resource" binding:"required"`
+		Role     string `form:"role"`
 	}
 
 	var params binds
@@ -519,25 +492,35 @@ func (h *Handlers) CreatePermission(c *gin.Context) {
 		return
 	}
 
-	var permission Permission
+	var grant Grant
 	err := h.db.Transaction(func(tx *gorm.DB) error {
 		var user User
-		if err := tx.First(&user, "id = ? OR email = ?", params.User, params.User).Error; err != nil {
+		if err := tx.First(&user, "email = ?", params.User).Error; err != nil {
 			return err
 		}
 
-		var role Role
-		if err := tx.First(&role, "id = ? OR name = ?", params.Role, params.Role).Error; err != nil {
+		var resource Resource
+		if err := tx.First(&resource, "name = ?", params.Resource).Error; err != nil {
 			return err
 		}
 
-		result := tx.FirstOrCreate(&permission, &Permission{UserEmail: user.Email, RoleName: role.Name})
+		grant := &Grant{
+			UserEmail:    user.Email,
+			ResourceName: resource.Name,
+		}
+
+		// TODO (jmorganca): match roles to resources properly (i.e. cannot add kubernetes roles to infra resource)
+		if params.Role != "" {
+			grant.RoleName = params.Role
+		}
+
+		result := tx.FirstOrCreate(grant, grant)
 		if result.Error != nil {
 			return result.Error
 		}
 
 		if result.RowsAffected == 0 {
-			return errors.New("permission already exists")
+			return errors.New("grant already exists")
 		}
 
 		return nil
@@ -547,14 +530,10 @@ func (h *Handlers) CreatePermission(c *gin.Context) {
 		return
 	}
 
-	if err := h.kubernetes.UpdatePermissions(); err != nil {
-		fmt.Println("could not update kubernetes permissions: ", err)
-	}
-
-	c.JSON(http.StatusCreated, permission)
+	c.JSON(http.StatusCreated, grant)
 }
 
-func (h *Handlers) DeletePermission(c *gin.Context) {
+func (h *Handlers) DeleteGrant(c *gin.Context) {
 	type binds struct {
 		ID string `uri:"id" binding:"required"`
 	}
@@ -565,13 +544,9 @@ func (h *Handlers) DeletePermission(c *gin.Context) {
 		return
 	}
 
-	err := h.db.Where("id = ?", params.ID).Delete(&Permission{}).Error
+	err := h.db.Where("id = ?", params.ID).Delete(&Grant{}).Error
 	if err != nil {
 		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
-	}
-
-	if err := h.kubernetes.UpdatePermissions(); err != nil {
-		fmt.Println("could not update kubernetes permissions: ", err)
 	}
 
 	c.JSON(http.StatusOK, DeleteResponse{true})
@@ -777,12 +752,8 @@ func (h *Handlers) Signup(c *gin.Context) {
 			return err
 		}
 
-		if err := provider.CreateUser(tx, &user, form.Email, form.Password); err != nil {
-			return err
-		}
+		return provider.CreateUser(tx, &user, form.Email, form.Password, "infra.owner")
 
-		permission := Permission{UserEmail: form.Email, RoleName: DefaultRoleAdmin}
-		return tx.Create(&permission).Error
 	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{err.Error()})
@@ -796,47 +767,82 @@ func (h *Handlers) Signup(c *gin.Context) {
 		return
 	}
 
-	if err := h.kubernetes.UpdatePermissions(); err != nil {
-		fmt.Println("could not update kubernetes permissions: ", err)
-	}
-
 	c.SetSameSite(http.SameSiteStrictMode)
 	c.SetCookie("token", newToken.ID+secret, 10800, "/", c.Request.Host, false, true)
 	c.Status(http.StatusCreated)
 }
 
+func (h *Handlers) Config(c *gin.Context) {
+	// TODO (jmorganca): authorize + filter based on join token
+	var grants []Grant
+	err := h.db.Preload("User").Preload("Role").Not("resource_name = ?", "infra").Find(&grants).Error
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": grants})
+}
+
+func (h *Handlers) Register(c *gin.Context) {
+	type binds struct {
+		CA       string `form:"ca" binding:"required"`
+		Endpoint string `form:"endpoint" binding:"required"`
+		Name     string `form:"name" binding:"required"`
+	}
+
+	var form binds
+	if err := c.Bind(&form); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
+		return
+	}
+
+	var resource Resource
+	err := h.db.Transaction(func(tx *gorm.DB) error {
+		err := tx.Where(&Resource{Name: form.Name}).FirstOrCreate(&resource).Error
+		if err != nil {
+			return err
+		}
+
+		resource.KubernetesCA = form.CA
+		resource.KubernetesEndpoint = form.Endpoint
+
+		return tx.Save(&resource).Error
+	})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
 func (h *Handlers) addRoutes(router *gin.Engine) error {
 	router.GET("/v1/healthz", h.Healthz)
 
-	router.GET("/v1/users", h.TokenMiddleware(), h.ListUsers)
-	router.POST("/v1/users", h.TokenMiddleware(), h.RoleMiddleware("edit", "admin"), h.CreateUser)
-	router.DELETE("/v1/users/:id", h.TokenMiddleware(), h.RoleMiddleware("edit", "admin"), h.DeleteUser)
+	router.GET("/v1/resources", h.TokenMiddleware(), h.RoleMiddleware("infra.member", "infra.owner"), h.ListResources)
+
+	router.GET("/v1/users", h.TokenMiddleware(), h.RoleMiddleware("infra.member", "infra.owner"), h.ListUsers)
+	router.POST("/v1/users", h.TokenMiddleware(), h.RoleMiddleware("infra.owner"), h.CreateUser)
+	router.DELETE("/v1/users/:id", h.TokenMiddleware(), h.RoleMiddleware("infra.owner"), h.DeleteUser)
 
 	router.GET("/v1/providers", h.ListProviders)
-	router.POST("/v1/providers", h.TokenMiddleware(), h.RoleMiddleware("admin"), h.CreateProvider)
-	router.DELETE("/v1/providers/:id", h.TokenMiddleware(), h.RoleMiddleware("admin"), h.DeleteProvider)
+	router.POST("/v1/providers", h.TokenMiddleware(), h.RoleMiddleware("infra.owner"), h.CreateProvider)
+	router.DELETE("/v1/providers/:id", h.TokenMiddleware(), h.RoleMiddleware("infra.owner"), h.DeleteProvider)
 
-	router.GET("/v1/permissions", h.TokenMiddleware(), h.ListPermissions)
-	router.POST("/v1/permissions", h.TokenMiddleware(), h.RoleMiddleware("edit", "admin"), h.CreatePermission)
-	router.DELETE("/v1/permissions/:id", h.TokenMiddleware(), h.RoleMiddleware("edit", "admin"), h.DeletePermission)
+	router.GET("/v1/grants", h.TokenMiddleware(), h.RoleMiddleware("infra.member", "infra.owner"), h.ListGrants)
+	router.POST("/v1/grants", h.TokenMiddleware(), h.RoleMiddleware("infra.owner"), h.CreateGrant)
+	router.DELETE("/v1/grants/:id", h.TokenMiddleware(), h.RoleMiddleware("infra.owner"), h.DeleteGrant)
 
-	router.POST("/v1/creds", h.TokenMiddleware(), h.CreateCreds)
+	router.POST("/v1/creds", h.TokenMiddleware(), h.RoleMiddleware("infra.member", "infra.owner"), h.CreateCreds)
 
 	router.POST("/v1/login", h.Login)
 	router.POST("/v1/logout", h.TokenMiddleware(), h.Logout)
 	router.POST("/v1/signup", h.Signup)
 
-	if h.kubernetes != nil && h.kubernetes.Config != nil {
-		proxyHandler, err := h.ProxyHandler()
-		if err != nil {
-			return err
-		}
-		router.GET("/v1/proxy/*all", h.JWTMiddleware(), proxyHandler)
-		router.POST("/v1/proxy/*all", h.JWTMiddleware(), proxyHandler)
-		router.PUT("/v1/proxy/*all", h.JWTMiddleware(), proxyHandler)
-		router.PATCH("/v1/proxy/*all", h.JWTMiddleware(), proxyHandler)
-		router.DELETE("/v1/proxy/*all", h.JWTMiddleware(), proxyHandler)
-	}
+	// TODO (jmorganca): add engine token middleware
+	router.GET("/v1/config", h.Config)
+	router.POST("/v1/register", h.Register)
 
 	return nil
 }

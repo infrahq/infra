@@ -10,12 +10,15 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/mail"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -24,6 +27,8 @@ import (
 	"github.com/cli/browser"
 	"github.com/docker/go-units"
 	"github.com/goware/urlx"
+	"github.com/infrahq/infra/internal/certs"
+	"github.com/infrahq/infra/internal/engine"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server"
 	"github.com/mitchellh/go-homedir"
@@ -37,8 +42,9 @@ import (
 )
 
 type Config struct {
-	Host  string `json:"host"`
-	Token string `json:"token"`
+	Host     string `json:"host"`
+	Token    string `json:"token"`
+	Insecure bool   `json:"insecure"`
 }
 
 func readConfig() (config *Config, err error) {
@@ -102,10 +108,14 @@ func removeConfig() error {
 
 func printTable(header []string, data [][]string) {
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader(header)
+
+	if len(header) > 0 {
+		table.SetHeader(header)
+		table.SetAutoFormatHeaders(true)
+		table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
+	}
+
 	table.SetAutoWrapText(false)
-	table.SetAutoFormatHeaders(true)
-	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
 	table.SetAlignment(tablewriter.ALIGN_LEFT)
 	table.SetCenterSeparator("")
 	table.SetColumnSeparator("")
@@ -216,9 +226,41 @@ func client(host string, token string, insecure bool) (client *http.Client, err 
 	}, nil
 }
 
+func fetchResources() ([]server.Resource, error) {
+	config, err := readConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	httpClient, err := client(config.Host, config.Token, config.Insecure)
+	if err != nil {
+		return nil, err
+	}
+
+	serverUrl, err := serverUrl(config.Host)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := httpClient.Get(serverUrl.String() + "/v1/resources")
+	if err != nil {
+		return nil, err
+	}
+
+	var response struct {
+		Data []server.Resource `json:"data"`
+	}
+	err = checkAndDecode(res, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response.Data, nil
+}
+
 var rootCmd = &cobra.Command{
 	Use:   "infra",
-	Short: "Infra – identity & access management for infrastructure",
+	Short: "Infrastructure Identity & Access Management (IAM)",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		cmd.SilenceUsage = true
 	},
@@ -370,12 +412,35 @@ var loginCmd = &cobra.Command{
 
 		fmt.Println(blue("✓") + " Logged in...")
 
+		// TODO (jmorganca): support multiple infra hosts, keyed by domain
 		config := &Config{
-			Host:  host,
-			Token: loginResponse.Token,
+			Host:     host,
+			Token:    loginResponse.Token,
+			Insecure: insecure,
 		}
 
 		err = writeConfig(config)
+		if err != nil {
+			return err
+		}
+
+		resources, err := fetchResources()
+		if err != nil {
+			return err
+		}
+
+		home, err := homedir.Dir()
+		if err != nil {
+			return err
+		}
+
+		resourcesJSON, err := json.Marshal(resources)
+		if err != nil {
+			return err
+		}
+
+		// Write destinatinons to json file
+		err = os.WriteFile(filepath.Join(home, ".infra", "resources"), resourcesJSON, 0644)
 		if err != nil {
 			return err
 		}
@@ -388,51 +453,307 @@ var loginCmd = &cobra.Command{
 			return err
 		}
 
-		hostname := serverUrl.Hostname()
-
-		kubeConfig.Clusters[hostname] = &clientcmdapi.Cluster{
-			Server: serverUrl.String() + "/v1/proxy",
-		}
-
-		if insecure {
-			kubeConfig.Clusters[hostname].InsecureSkipTLSVerify = true
-		}
-
-		executable, err := os.Executable()
+		// Generate client certs
+		home, err = homedir.Dir()
 		if err != nil {
 			return err
 		}
 
-		execArgs := []string{"creds"}
-		if insecure {
-			execArgs = append(execArgs, "--insecure")
+		if err = os.MkdirAll(filepath.Join(home, ".infra", "client"), os.ModePerm); err != nil {
+			return err
 		}
 
-		kubeConfig.AuthInfos[hostname] = &clientcmdapi.AuthInfo{
-			Exec: &clientcmdapi.ExecConfig{
-				Command:    executable,
-				Args:       execArgs,
-				APIVersion: "client.authentication.k8s.io/v1alpha1",
-			},
+		certBytes, keyBytes, err := certs.GenerateSelfSignedCert([]string{"localhost", "localhost:32710"})
+		if err != nil {
+			return err
 		}
-		kubeConfig.Contexts[hostname] = &clientcmdapi.Context{
-			Cluster:  hostname,
-			AuthInfo: hostname,
+
+		if err = ioutil.WriteFile(filepath.Join(home, ".infra", "client", "cert.pem"), certBytes, 0644); err != nil {
+			return err
 		}
-		kubeConfig.CurrentContext = hostname
+
+		if err = ioutil.WriteFile(filepath.Join(home, ".infra", "client", "key.pem"), keyBytes, 0644); err != nil {
+			return err
+		}
+
+		// Kill client
+		contents, err := ioutil.ReadFile(filepath.Join(home, ".infra", "client", "pid"))
+		if err != nil && !os.IsNotExist(err) {
+			return err
+		}
+
+		var pid int
+		if !os.IsNotExist(err) {
+			pid, err = strconv.Atoi(string(contents))
+			if err != nil {
+				return err
+			}
+
+			process, _ := os.FindProcess(int(pid))
+			process.Kill()
+		}
+
+		os.Remove(filepath.Join(home, ".infra", "client", "pid"))
+
+		for _, d := range resources {
+			kubeConfig.Clusters[d.Name] = &clientcmdapi.Cluster{
+				Server:               "https://localhost:32710/client/" + d.Name,
+				CertificateAuthority: filepath.Join(home, ".infra", "client", "cert.pem"),
+			}
+
+			executable, err := os.Executable()
+			if err != nil {
+				return err
+			}
+
+			kubeConfig.AuthInfos[d.Name] = &clientcmdapi.AuthInfo{
+				Exec: &clientcmdapi.ExecConfig{
+					Command:    executable,
+					Args:       []string{"creds"},
+					APIVersion: "client.authentication.k8s.io/v1alpha1",
+				},
+			}
+			kubeConfig.Contexts[d.Name] = &clientcmdapi.Context{
+				Cluster:  d.Name,
+				AuthInfo: d.Name,
+			}
+			kubeConfig.CurrentContext = d.Name
+		}
 
 		if err = clientcmd.WriteToFile(kubeConfig, clientcmd.RecommendedHomeFile); err != nil {
 			return err
 		}
 
-		home, err := homedir.Dir()
+		fmt.Println(blue("✓") + " Kubeconfig updated")
+
+		return nil
+	},
+}
+
+var listCmd = &cobra.Command{
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List resources",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		resources, err := fetchResources()
 		if err != nil {
 			return err
 		}
 
-		os.Remove(filepath.Join(home, ".infra", "cache", "kubectl-token"))
+		sort.Slice(resources, func(i, j int) bool {
+			return resources[i].Created > resources[j].Created
+		})
 
-		fmt.Println(blue("✓") + " Kubeconfig updated")
+		kubeConfig, _ := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), nil).RawConfig()
+		rows := [][]string{}
+		for _, dest := range resources {
+			star := ""
+			if dest.Name == kubeConfig.CurrentContext {
+				star = "*"
+			}
+			rows = append(rows, []string{dest.Name + star, dest.KubernetesEndpoint})
+		}
+
+		printTable([]string{"NAME", "ENDPOINT"}, rows)
+		fmt.Println()
+		fmt.Println("To connect, run \"kubectl config use-context <name>\"")
+		fmt.Println()
+
+		return nil
+	},
+}
+
+func newGrantCmd() *cobra.Command {
+	var role string
+
+	cmd := &cobra.Command{
+		Use:     "grant USER RESOURCE",
+		Short:   "Grant access to a resource",
+		Example: "$ infra grant user@example.com production --role kubernetes.editor",
+		Args:    cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			config, err := readConfig()
+			if err != nil {
+				return err
+			}
+
+			httpClient, err := client(config.Host, config.Token, config.Insecure)
+			if err != nil {
+				return err
+			}
+
+			serverUrl, err := serverUrl(config.Host)
+			if err != nil {
+				return err
+			}
+
+			form := url.Values{}
+			form.Add("user", args[0])
+			form.Add("resource", args[1])
+
+			if role != "" {
+				form.Add("role", role)
+			}
+
+			res, err := httpClient.PostForm(serverUrl.String()+"/v1/grants", form)
+			if err != nil {
+				return err
+			}
+
+			var grant server.Grant
+			err = checkAndDecode(res, &grant)
+			if err != nil {
+				return err
+			}
+
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVarP(&role, "role", "r", "", "role")
+
+	return cmd
+}
+
+func newRevokeCmd() *cobra.Command {
+	var role string
+
+	cmd := &cobra.Command{
+		Use:   "revoke USER RESOURCE",
+		Short: "Revoke access to a resource",
+		Example: heredoc.Doc(`
+			$ infra revoke user@example.com production
+			$ infra revoke user@example.com production --role kubernetes.editor`),
+		Args: cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			config, err := readConfig()
+			if err != nil {
+				return err
+			}
+
+			httpClient, err := client(config.Host, config.Token, config.Insecure)
+			if err != nil {
+				return err
+			}
+
+			serverUrl, err := serverUrl(config.Host)
+			if err != nil {
+				return err
+			}
+
+			params := url.Values{}
+			params.Add("user", args[0])
+			params.Add("resource", args[1])
+
+			if role != "" {
+				params.Add("role", role)
+			}
+
+			res, err := httpClient.Get(serverUrl.String() + "/v1/grants?" + params.Encode())
+			if err != nil {
+				return err
+			}
+
+			var response struct {
+				Data []server.Grant `json:"data"`
+			}
+			err = checkAndDecode(res, &response)
+			if err != nil {
+				return err
+			}
+
+			for _, g := range response.Data {
+				req, err := http.NewRequest(http.MethodDelete, serverUrl.String()+"/v1/grants/"+g.ID, nil)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				res, err := httpClient.Do(req)
+				if err != nil {
+					log.Fatal(err)
+				}
+				defer res.Body.Close()
+
+				var response server.DeleteResponse
+				err = checkAndDecode(res, &response)
+				if err != nil {
+					return err
+				}
+			}
+
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVarP(&role, "role", "r", "", "role")
+
+	return cmd
+}
+
+var inspectCmd = &cobra.Command{
+	Use:   "inspect CLUSTER|USER",
+	Short: "Inspect access for a resource or user",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		config, err := readConfig()
+		if err != nil {
+			return err
+		}
+
+		httpClient, err := client(config.Host, config.Token, config.Insecure)
+		if err != nil {
+			return err
+		}
+
+		serverUrl, err := serverUrl(config.Host)
+		if err != nil {
+			return err
+		}
+
+		// TODO (jmorganca): actually check server side when we have
+		// groups or non-email users
+		_, err = mail.ParseAddress(args[0])
+		isUser := err == nil
+
+		params := url.Values{}
+
+		if isUser {
+			params.Add("user", args[0])
+		} else {
+			params.Add("resource", args[0])
+		}
+
+		res, err := httpClient.Get(serverUrl.String() + "/v1/grants?" + params.Encode())
+		if err != nil {
+			return err
+		}
+
+		var response struct {
+			Data []server.Grant `json:"data"`
+		}
+		err = checkAndDecode(res, &response)
+		if err != nil {
+			return err
+		}
+
+		sort.Slice(response.Data, func(i, j int) bool {
+			return response.Data[i].Created > response.Data[j].Created
+		})
+
+		rows := [][]string{}
+		for _, grant := range response.Data {
+			if isUser {
+				rows = append(rows, []string{grant.Resource.Name, grant.Role.Name})
+			} else {
+				rows = append(rows, []string{grant.User.Email, grant.Role.Name})
+			}
+		}
+
+		if isUser {
+			printTable([]string{"RESOURCE", "ROLE"}, rows)
+		} else {
+			printTable([]string{"USER", "ROLE"}, rows)
+		}
 
 		return nil
 	},
@@ -455,8 +776,7 @@ var usersCreateCmd = &cobra.Command{
 			return err
 		}
 
-		insecure, _ := cmd.Flags().GetBool("insecure")
-		httpClient, err := client(config.Host, config.Token, insecure)
+		httpClient, err := client(config.Host, config.Token, config.Insecure)
 		if err != nil {
 			return err
 		}
@@ -501,8 +821,7 @@ var usersDeleteCmd = &cobra.Command{
 			return err
 		}
 
-		insecure, _ := cmd.Flags().GetBool("insecure")
-		httpClient, err := client(config.Host, config.Token, insecure)
+		httpClient, err := client(config.Host, config.Token, config.Insecure)
 		if err != nil {
 			return err
 		}
@@ -544,8 +863,7 @@ var usersListCmd = &cobra.Command{
 			return err
 		}
 
-		insecure, _ := cmd.Flags().GetBool("insecure")
-		httpClient, err := client(config.Host, config.Token, insecure)
+		httpClient, err := client(config.Host, config.Token, config.Insecure)
 		if err != nil {
 			return err
 		}
@@ -581,228 +899,18 @@ var usersListCmd = &cobra.Command{
 				}
 				providers += p.Kind
 			}
-			rows = append(rows, []string{user.ID, user.Email, providers, units.HumanDuration(time.Now().UTC().Sub(time.Unix(user.Created, 0))) + " ago"})
-		}
 
-		printTable([]string{"USER ID", "EMAIL", "PROVIDERS", "CREATED"}, rows)
-
-		return nil
-	},
-}
-
-var permissionsCmd = &cobra.Command{
-	Use:     "permissions",
-	Aliases: []string{"permission", "perms"},
-	Short:   "Manage permissions",
-}
-
-func newPermissionsCreateCmd() *cobra.Command {
-	var user, role string
-
-	cmd := &cobra.Command{
-		Use:     "create",
-		Short:   "grant a permission",
-		Example: "$ infra permissions create --user admin@example.com --role admin",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			config, err := readConfig()
-			if err != nil {
-				return err
-			}
-
-			if user == "" {
-				cmd.Usage()
-				return errors.New("missing user flag")
-			}
-
-			if role == "" {
-				cmd.Usage()
-				return errors.New("missing role flag")
-			}
-
-			insecure, _ := cmd.Flags().GetBool("insecure")
-			httpClient, err := client(config.Host, config.Token, insecure)
-			if err != nil {
-				return err
-			}
-
-			serverUrl, err := serverUrl(config.Host)
-			if err != nil {
-				return err
-			}
-
-			form := url.Values{}
-			form.Add("user", user)
-			form.Add("role", role)
-
-			res, err := httpClient.PostForm(serverUrl.String()+"/v1/permissions", form)
-			if err != nil {
-				return err
-			}
-
-			var permission server.Permission
-			err = checkAndDecode(res, &permission)
-			if err != nil {
-				return err
-			}
-
-			fmt.Println(permission.ID)
-
-			return nil
-		},
-	}
-
-	cmd.Flags().StringVarP(&user, "user", "u", "", "User email or id")
-	cmd.Flags().StringVarP(&role, "role", "r", "", "Role name or id")
-
-	return cmd
-}
-
-func newPermissionsDeleteCmd() *cobra.Command {
-	var user, role string
-
-	cmd := &cobra.Command{
-		Use:     "delete [ID]",
-		Aliases: []string{"rm"},
-		Short:   "Revoke a permission",
-		Args:    cobra.MaximumNArgs(1),
-		Example: heredoc.Doc(`
-				# Delete via user & role
-				$ infra permissions delete --user bob@example.com --role edit
-
-				# Delete via permission id
-				$ infra permissions delete D1smOVORBvsO`),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			config, err := readConfig()
-			if err != nil {
-				return err
-			}
-
-			insecure, _ := cmd.Flags().GetBool("insecure")
-			httpClient, err := client(config.Host, config.Token, insecure)
-			if err != nil {
-				return err
-			}
-
-			serverUrl, err := serverUrl(config.Host)
-			if err != nil {
-				return err
-			}
-
-			var id string
-			if len(args) > 0 {
-				id = args[0]
-			}
-
-			if id == "" && (user == "" || role == "") {
-				cmd.Usage()
-				return errors.New("no id specified. Specify id argument or --user with --role")
-			}
-
-			// Fetch id via filters
-			if id == "" {
-				values := url.Values{}
-				values.Add("user", user)
-				values.Add("role", role)
-				query := values.Encode()
-
-				res, err := httpClient.Get(serverUrl.String() + "/v1/permissions?" + query)
-				if err != nil {
-					return err
+			infraGrant := ""
+			for _, g := range user.Grants {
+				if g.Resource.Name == "infra" {
+					infraGrant = g.Role.Name
 				}
-
-				var response struct {
-					Data []server.Permission `json:"data"`
-				}
-				err = checkAndDecode(res, &response)
-				if err != nil {
-					return err
-				}
-
-				if len(response.Data) == 0 {
-					return errors.New("no permissions with user and role")
-				}
-
-				id = response.Data[0].ID
 			}
 
-			req, err := http.NewRequest(http.MethodDelete, serverUrl.String()+"/v1/permissions/"+id, nil)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			res, err := httpClient.Do(req)
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer res.Body.Close()
-
-			var response server.DeleteResponse
-			err = checkAndDecode(res, &response)
-			if err != nil {
-				return err
-			}
-
-			fmt.Println(id)
-
-			return nil
-		},
-	}
-
-	cmd.Flags().StringVarP(&user, "user", "u", "", "User email or id")
-	cmd.Flags().StringVarP(&role, "role", "r", "", "Role name or id")
-
-	return cmd
-}
-
-var permissionsListCmd = &cobra.Command{
-	Use:     "list",
-	Aliases: []string{"ls"},
-	Short:   "List users",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		config, err := readConfig()
-		if err != nil {
-			return err
+			rows = append(rows, []string{user.Email, providers, units.HumanDuration(time.Now().UTC().Sub(time.Unix(user.Created, 0))) + " ago", infraGrant})
 		}
 
-		insecure, _ := cmd.Flags().GetBool("insecure")
-		httpClient, err := client(config.Host, config.Token, insecure)
-		if err != nil {
-			return err
-		}
-
-		serverUrl, err := serverUrl(config.Host)
-		if err != nil {
-			return err
-		}
-
-		res, err := httpClient.Get(serverUrl.String() + "/v1/permissions")
-		if err != nil {
-			return err
-		}
-
-		var response struct {
-			Data []server.Permission `json:"data"`
-		}
-		err = checkAndDecode(res, &response)
-		if err != nil {
-			return err
-		}
-
-		m := make(map[string][]string)
-
-		for _, r := range response.Data {
-			m[r.User.Email] = append(m[r.User.Email], r.Role.Name)
-		}
-
-		rows := [][]string{}
-		for user, roles := range m {
-			sort.Slice(roles, func(i, j int) bool {
-				return roles[i] < roles[j]
-			})
-			rows = append(rows, []string{user, strings.Join(roles, ",")})
-		}
-
-		printTable([]string{"USER", "ROLES"}, rows)
+		printTable([]string{"EMAIL", "PROVIDERS", "CREATED", "ROLE"}, rows)
 
 		return nil
 	},
@@ -824,8 +932,7 @@ var providersListCmd = &cobra.Command{
 			return err
 		}
 
-		insecure, _ := cmd.Flags().GetBool("insecure")
-		httpClient, err := client(config.Host, config.Token, insecure)
+		httpClient, err := client(config.Host, config.Token, config.Insecure)
 		if err != nil {
 			return err
 		}
@@ -859,10 +966,10 @@ var providersListCmd = &cobra.Command{
 			case "infra":
 				info = "Built-in provider"
 			}
-			rows = append(rows, []string{provider.ID, provider.Kind, strconv.Itoa(len(provider.Users)), units.HumanDuration(time.Now().UTC().Sub(time.Unix(provider.Created, 0))) + " ago", info})
+			rows = append(rows, []string{provider.ID, provider.Kind, units.HumanDuration(time.Now().UTC().Sub(time.Unix(provider.Created, 0))) + " ago", info})
 		}
 
-		printTable([]string{"PROVIDER ID", "KIND", "USERS", "CREATED", "DESCRIPTION"}, rows)
+		printTable([]string{"PROVIDER ID", "KIND", "CREATED", "DESCRIPTION"}, rows)
 
 		return nil
 	},
@@ -1049,46 +1156,38 @@ func newServerCmd() (*cobra.Command, error) {
 	return serverCmd, nil
 }
 
+func newEngineCmd() *cobra.Command {
+	var options engine.Options
+
+	cmd := &cobra.Command{
+		Use:   "engine",
+		Short: "Start Infra engine",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return engine.Run(options)
+		},
+	}
+
+	cmd.Flags().StringVarP(&options.Server, "server", "s", "", "server config file")
+	cmd.Flags().StringVarP(&options.Name, "name", "n", "", "cluster name")
+	cmd.MarkFlagRequired("server")
+	cmd.MarkFlagRequired("name")
+
+	return cmd
+}
+
 var credsCmd = &cobra.Command{
 	Use:    "creds",
 	Short:  "Generate credentials",
 	Hidden: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// First try to read cached token
+		// TODO (jmorganca): First try to read cached token
 		// TODO (jmorganca): this will need to change to multiple files with multiple cluster support
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			return err
-		}
-
-		contents, err := ioutil.ReadFile(filepath.Join(homeDir, ".infra", "cache", "kubectl-token"))
-		if err != nil && !os.IsNotExist(err) {
-			return err
-		}
-
-		if len(contents) > 0 {
-			var cached clientauthenticationv1alpha1.ExecCredential
-			err := json.Unmarshal(contents, &cached)
-			if err == nil {
-				if time.Now().Before(cached.Status.ExpirationTimestamp.Time) {
-					fmt.Println(string(contents))
-					return nil
-				} else {
-					err = os.Remove(filepath.Join(homeDir, ".infra", "cache", "kubectl-token"))
-					if err != nil {
-						return err
-					}
-				}
-			}
-		}
-
 		config, err := readConfig()
 		if err != nil {
 			return err
 		}
 
-		insecure, _ := cmd.Flags().GetBool("insecure")
-		httpClient, err := client(config.Host, config.Token, insecure)
+		httpClient, err := client(config.Host, config.Token, config.Insecure)
 		if err != nil {
 			return err
 		}
@@ -1138,12 +1237,60 @@ var credsCmd = &cobra.Command{
 			return err
 		}
 
-		if err = os.MkdirAll(filepath.Join(homeDir, ".infra", "cache"), os.ModePerm); err != nil {
+		home, err := os.UserHomeDir()
+		if err != nil {
 			return err
 		}
 
-		if err = ioutil.WriteFile(filepath.Join(homeDir, ".infra", "cache", "kubectl-token"), []byte(bts), 0644); err != nil {
+		if err = os.MkdirAll(filepath.Join(home, ".infra", "cache"), os.ModePerm); err != nil {
 			return err
+		}
+
+		if err = ioutil.WriteFile(filepath.Join(home, ".infra", "cache", "kubectl-token"), []byte(bts), 0644); err != nil {
+			return err
+		}
+
+		contents, err := ioutil.ReadFile(filepath.Join(home, ".infra", "client", "pid"))
+		if err != nil && !os.IsNotExist(err) {
+			return err
+		}
+
+		var pid int
+		// see if proxy process is already running
+		if !os.IsNotExist(err) {
+			pid, err = strconv.Atoi(string(contents))
+			if err != nil {
+				return err
+			}
+
+			// verify process is still running
+			process, err := os.FindProcess(int(pid))
+			if process == nil || err != nil {
+				pid = 0
+			}
+
+			err = process.Signal(syscall.Signal(0))
+			if err != nil {
+				pid = 0
+			}
+		}
+
+		if pid == 0 {
+			os.Remove(filepath.Join(home, ".infra", "client", "pid"))
+
+			cmd := exec.Command(os.Args[0], "client")
+			err = cmd.Start()
+			if err != nil {
+				return err
+			}
+
+			for {
+				if _, err := os.Stat(filepath.Join(home, ".infra", "client", "pid")); os.IsNotExist(err) {
+					time.Sleep(25 * time.Millisecond)
+				} else {
+					break
+				}
+			}
 		}
 
 		fmt.Println(string(bts))
@@ -1152,40 +1299,48 @@ var credsCmd = &cobra.Command{
 	},
 }
 
+var clientCmd = &cobra.Command{
+	Use:    "client",
+	Short:  "Run local client to relay requests",
+	Hidden: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		fmt.Println("Starting client")
+		return RunLocalClient()
+	},
+}
+
 func NewRootCmd() (*cobra.Command, error) {
 	cobra.EnableCommandSorting = false
+
+	rootCmd.AddCommand(listCmd)
+	rootCmd.AddCommand(newGrantCmd())
+	rootCmd.AddCommand(newRevokeCmd())
+	rootCmd.AddCommand(inspectCmd)
+
+	usersCmd.AddCommand(usersCreateCmd)
+	usersCmd.AddCommand(usersListCmd)
+	usersCmd.AddCommand(usersDeleteCmd)
+	rootCmd.AddCommand(usersCmd)
+
+	providersCmd.AddCommand(providersListCmd)
+	providersCmd.AddCommand(newprovidersCreateCmd())
+	providersCmd.AddCommand(providersDeleteCmd)
+	rootCmd.AddCommand(providersCmd)
 
 	rootCmd.AddCommand(loginCmd)
 	loginCmd.PersistentFlags().BoolP("insecure", "i", false, "skip TLS verification")
 	rootCmd.AddCommand(logoutCmd)
 
-	usersCmd.AddCommand(usersCreateCmd)
-	usersCmd.AddCommand(usersListCmd)
-	usersCmd.AddCommand(usersDeleteCmd)
-	usersCmd.PersistentFlags().BoolP("insecure", "i", false, "skip TLS verification")
-	rootCmd.AddCommand(usersCmd)
-
-	permissionsCmd.AddCommand(newPermissionsCreateCmd())
-	permissionsCmd.AddCommand(permissionsListCmd)
-	permissionsCmd.AddCommand(newPermissionsDeleteCmd())
-	permissionsCmd.PersistentFlags().BoolP("insecure", "i", false, "skip TLS verification")
-	rootCmd.AddCommand(permissionsCmd)
-
-	providersCmd.AddCommand(providersListCmd)
-	providersCmd.AddCommand(newprovidersCreateCmd())
-	providersCmd.AddCommand(providersDeleteCmd)
-	providersCmd.PersistentFlags().BoolP("insecure", "i", false, "skip TLS verification")
-	rootCmd.AddCommand(providersCmd)
-
-	rootCmd.AddCommand(credsCmd)
-	credsCmd.PersistentFlags().BoolP("insecure", "i", false, "skip TLS verification")
-
 	serverCmd, err := newServerCmd()
 	if err != nil {
 		return nil, err
 	}
-
 	rootCmd.AddCommand(serverCmd)
+	rootCmd.AddCommand(newEngineCmd())
+
+	// Hidden commands
+	rootCmd.AddCommand(credsCmd)
+	rootCmd.AddCommand(clientCmd)
 
 	return rootCmd, nil
 }
