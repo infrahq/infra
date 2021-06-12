@@ -13,10 +13,13 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/infrahq/infra/internal/server"
 )
+
+var ClientTimeoutDuration = 5 * time.Minute
 
 func RunLocalClient() error {
 	router := gin.New()
@@ -26,6 +29,12 @@ func RunLocalClient() error {
 	if err != nil {
 		return err
 	}
+
+	timer := time.NewTimer(ClientTimeoutDuration)
+	go func() {
+		<-timer.C
+		os.Exit(0)
+	}()
 
 	proxyHandler := func(c *gin.Context) {
 		type binds struct {
@@ -72,6 +81,8 @@ func RunLocalClient() error {
 				RootCAs: caCertPool,
 			},
 		}
+
+		timer.Reset(ClientTimeoutDuration)
 
 		c.Request.Header.Add("X-Infra-Authorization", c.Request.Header.Get("Authorization"))
 		c.Request.Header.Del("Authorization")
