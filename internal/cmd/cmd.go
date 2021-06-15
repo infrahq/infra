@@ -376,100 +376,6 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-var signupCmd = &cobra.Command{
-	Use:     "signup HOST",
-	Short:   "Create the admin user for a new Infra Server",
-	Args:    cobra.ExactArgs(1),
-	Example: "$ infra signup infra.example.com",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		serverUrl, err := serverUrlFromString(args[0])
-		if err != nil {
-			return err
-		}
-
-		host := serverUrl.String()
-		skipTlsVerify, err := cmd.PersistentFlags().GetBool("skip-tls-verify")
-		if err != nil {
-			return err
-		}
-
-		httpClient, err := client(host, "", skipTlsVerify)
-		if err != nil {
-			return err
-		}
-
-		email := ""
-		emailPrompt := &survey.Input{
-			Message: "Email",
-		}
-		err = survey.AskOne(emailPrompt, &email, survey.WithShowCursor(true), survey.WithValidator(survey.Required), survey.WithIcons(func(icons *survey.IconSet) {
-			icons.Question.Text = blue("?")
-		}))
-		if err == terminal.InterruptErr {
-			return nil
-		}
-
-		password := ""
-		passwordPrompt := &survey.Password{
-			Message: "Password",
-		}
-		err = survey.AskOne(passwordPrompt, &password, survey.WithShowCursor(true), survey.WithValidator(survey.Required), survey.WithIcons(func(icons *survey.IconSet) {
-			icons.Question.Text = blue("?")
-		}))
-		if err == terminal.InterruptErr {
-			return nil
-		}
-
-		form := url.Values{}
-		form.Add("email", email)
-		form.Add("password", password)
-
-		fmt.Println(blue("✓") + " Creating admin account...")
-
-		req, err := http.NewRequest("POST", host+"/v1/signup", strings.NewReader(form.Encode()))
-		if err != nil {
-			return err
-		}
-
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-		res, err := httpClient.Do(req)
-		if err != nil {
-			return err
-		}
-
-		var response struct {
-			Token string `json:"token"`
-		}
-		err = checkAndDecode(res, &response)
-		if err != nil {
-			return err
-		}
-
-		fmt.Println(blue("✓") + " Admin account created...")
-
-		config := &Config{
-			Host:          host,
-			Token:         response.Token,
-			SkipTLSVerify: skipTlsVerify,
-		}
-
-		err = writeConfig(config)
-		if err != nil {
-			return err
-		}
-
-		err = updateKubeconfig()
-		if err != nil {
-			return err
-		}
-
-		fmt.Println(blue("✓") + " Kubeconfig updated")
-
-		return nil
-	},
-}
-
 var loginCmd = &cobra.Command{
 	Use:     "login HOST",
 	Short:   "Log in to Infra server",
@@ -739,7 +645,7 @@ var loginCmd = &cobra.Command{
 var listCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
-	Short:   "List resources",
+	Short:   "List clusters",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		resources, err := fetchResources()
 		if err != nil {
@@ -838,7 +744,7 @@ func newGrantCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "grant USER RESOURCE",
-		Short:   "Grant access to a resource",
+		Short:   "Grant access to a user",
 		Example: "$ infra grant user@example.com production --role kubernetes.editor",
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -890,7 +796,7 @@ func newRevokeCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "revoke USER RESOURCE",
-		Short: "Revoke access to a resource",
+		Short: "Revoke access from a user",
 		Example: heredoc.Doc(`
 			$ infra revoke user@example.com production
 			$ infra revoke user@example.com production --role kubernetes.editor`),
@@ -1443,7 +1349,7 @@ func newEngineCmd() *cobra.Command {
 		},
 	}
 
-	cmd.PersistentFlags().BoolVarP(&options.SkipTLSVerify, "skip-tls-verify", "k", len(os.Getenv("INFRA_SKIP_TLS_VERIFY")) > 0, "skip TLS verification")
+	cmd.PersistentFlags().BoolVarP(&options.SkipTLSVerify, "skip-tls-verify", "k", len(os.Getenv("INFRA_ENGINE_SKIP_TLS_VERIFY")) > 0, "skip TLS verification")
 	cmd.Flags().StringVarP(&options.Server, "server", "s", os.Getenv("INFRA_ENGINE_SERVER"), "server hostname")
 	cmd.Flags().StringVarP(&options.Name, "name", "n", os.Getenv("INFRA_ENGINE_NAME"), "cluster name")
 	cmd.Flags().StringVar(&options.APIKey, "api-key", os.Getenv("INFRA_ENGINE_API_KEY"), "api key")
@@ -1604,11 +1510,8 @@ func NewRootCmd() (*cobra.Command, error) {
 	providersCmd.AddCommand(providersDeleteCmd)
 	rootCmd.AddCommand(providersCmd)
 
-	rootCmd.AddCommand(signupCmd)
-	signupCmd.PersistentFlags().BoolP("insecure", "i", false, "skip TLS verification")
-
 	rootCmd.AddCommand(loginCmd)
-	loginCmd.PersistentFlags().BoolP("insecure", "i", false, "skip TLS verification")
+	loginCmd.PersistentFlags().BoolP("skip-tls-verify", "k", false, "skip TLS verification")
 	rootCmd.AddCommand(logoutCmd)
 
 	serverCmd, err := newServerCmd()

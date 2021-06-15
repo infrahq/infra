@@ -35,7 +35,7 @@ kubectl get svc --namespace infra
 
 ```bash
 kubectl -n infra exec deploy/infra -- infra users create admin@example.com passw0rd
-kubectl -n infra exec deploy/infra -- infra grant admin@infrahq.com infra --role infra.owner
+kubectl -n infra exec deploy/infra -- infra grant admin@example.com infra --role infra.owner
 ```
 
 ### Install Infra CLI
@@ -47,7 +47,7 @@ curl -L "https://github.com/infrahq/infra/releases/latest/download/infra-$(uname
 ### Log in
 
 ```
-infra login <EXTERNAL IP>
+infra login -k <EXTERNAL IP>
 ```
 
 ### List users
@@ -71,7 +71,7 @@ infra list
 ### Grant yourself access
 
 ```
-infra grant <your email> my-first-cluster
+infra grant admin@example.com my-first-cluster
 ```
 
 ### Connect to the cluster

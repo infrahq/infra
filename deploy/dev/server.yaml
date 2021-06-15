@@ -66,7 +66,7 @@ spec:
         - name: server
           image: infrahq/infra:dev
           imagePullPolicy: Never
-          args: ["server", "-c", "/var/run/infra/config/infra.yaml", "--db", "/var/run/infra/data/infra.db", "--tls-cache", "/var/run/infra/data/cache", "--ui"]
+          args: ["server", "-c", "/var/run/infra/config/infra.yaml", "--db", "/var/run/infra/data/infra.db", "--tls-cache", "/var/run/infra/data/cache"]
           ports:
             - containerPort: 443
           volumeMounts:

@@ -184,7 +184,6 @@ func (g *Grant) BeforeCreate(tx *gorm.DB) (err error) {
 	}
 
 	if g.RoleName == "" {
-		// TODO (jmorganca): this only works while we have kubernetes as the only non-infra resource
 		var role string
 		for _, r := range Roles {
 			if r.Default {
