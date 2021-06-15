@@ -33,7 +33,7 @@ kubectl get svc --namespace infra
 
 ### Create admin user
 
-```bash
+```
 kubectl -n infra exec deploy/infra -- infra users create admin@example.com passw0rd
 kubectl -n infra exec deploy/infra -- infra grant admin@example.com infra --role infra.owner
 ```
@@ -59,7 +59,7 @@ infra users ls
 ### Connect a Kubernetes cluster
 
 ```
-infra add my-first-cluster
+infra add example-cluster
 ```
 
 ### Verify cluster is connected
@@ -71,14 +71,14 @@ infra list
 ### Grant yourself access
 
 ```
-infra grant admin@example.com my-first-cluster
+infra grant admin@example.com example-cluster
 ```
 
 ### Connect to the cluster
 
 ```bash
 # Switch to cluster
-kubectl config use-context my-first-cluster
+kubectl config use-context example-cluster
 
 # List pods
 kubectl get pods -A
