@@ -3,9 +3,9 @@
 </p>
 
 ## Introduction
-Infra is identity and access management for Kubernetes. Instead of creating separate credentials and writing scripts to map permissions to Kubernetes, developers & IT teams can integrate existing identity providers (Okta, Google accounts, GitHub auth, Azure active directory) to securely provide developers with access to Kubernetes.
+Infra is **identity and access management** for Kubernetes. Give any user fine-grained access to Kubernetes clusters via their existing identities in Okta, Google Accounts, Azure Active Directory and more.
 
-### Features
+**Features**:
 * One-command access: `infra login`
 * Fine-grained permissions
 * Onboard & offboard users via Okta (Azure AD, Google, GitHub coming soon)
@@ -13,114 +13,87 @@ Infra is identity and access management for Kubernetes. Instead of creating sepa
 * CLI & REST API
 * Configure via `infra.yaml`
 
-## Architecture
-
 <p align="center">
   <img width="838" src="./docs/images/arch.svg" />
 </p>
 
-## Install
+## Quickstart
 
-### Install on Kubernetes
-
-Install via `kubectl`:
+### Deploy Infra
 
 ```
-kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/master/deploy/kubernetes.yaml
+kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/main/deploy/server.yaml
 ```
 
-Infra exposes a `LoadBalancer` service by default:
+Infra exposes a `LoadBalancer` service by default. Find the **External IP** of the load balancer:
 
 ```
 kubectl get svc --namespace infra
 ```
 
-In this case, Infra is exposed on IP `31.58.101.169`
+### Create admin user
 
+```bash
+kubectl -n infra exec deploy/infra -- infra users create admin@example.com passw0rd
+kubectl -n infra exec deploy/infra -- infra grant admin@infrahq.com infra --role infra.owner
 ```
-$ kubectl get svc --namespace infra
-NAME      TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)        AGE
-infra     LoadBalancer   10.12.11.116   31.58.101.169   80:32326/TCP   1m
-```
-
-Optionally, map a domain to the exposed endpoint (e.g. `infra.example.com` to `31.58.101.169`)
 
 ### Install Infra CLI
 
-On **macOS**:
-
 ```
-curl -L "https://github.com/infrahq/infra/releases/latest/download/infra-darwin-$(uname -m)" -o /usr/local/bin/infra && chmod +x /usr/local/bin/infra
+curl -L "https://github.com/infrahq/infra/releases/latest/download/infra-$(uname -s)-$(uname -m)" -o /usr/local/bin/infra && chmod +x /usr/local/bin/infra
 ```
 
-On **Linux**:
+### Log in
 
 ```
-curl -L "https://github.com/infrahq/infra/releases/latest/download/infra-linux-$(uname -m)" -o /usr/local/bin/infra && chmod +x /usr/local/bin/infra
+infra login <EXTERNAL IP>
 ```
 
-On **Windows**:
+### List users
 
 ```
-curl.exe -L "https://github.com/infrahq/infra/releases/download/latest/infra-windows-amd64.exe" -o infra.exe
+infra users ls
 ```
 
-## Adding Users
-* [Okta](./docs/okta.md)
-* [Manually manage users](./docs/manual.md)
+### Connect a Kubernetes cluster
+
+```
+infra add my-first-cluster
+```
+
+### Verify cluster is connected
+
+```
+infra list
+```
+
+### Grant yourself access
+
+```
+infra grant <your email> my-first-cluster
+```
+
+### Connect to the cluster
+
+```bash
+# Switch to cluster
+kubectl config use-context my-first-cluster
+
+# List pods
+kubectl get pods -A
+```
+
+You're now connected to this new cluster via Infra.
 
 ## Documentation
-* [Configuration Reference](./docs/configuration.md)
+* [Add a custom domain](./docs/domain.md)
+* [Manage Users](./docs/users.md)
+* [Grant & revoke access via roles](./docs/access.md)
+* [Connect Okta](./docs/okta.md)
 * [CLI Reference](./docs/cli.md)
-
-## Develop
-
-Install tools:
-
-```
-brew install nodejs
-brew install go
-go get -u github.com/kevinburke/go-bindata/...
-```
-
-Clone the project:
-
-```bash
-git clone https://github.com/infrahq/infra
-cd infra
-```
-
-Run locally:
-
-```bash
-go run .
-```
-
-## Generate docs
-
-```
-go run ./internal/docgen
-```
-
-## Test
-
-Run tests:
-
-```bash
-go test ./...
-```
-
-## Release
-
-Setup
-
-* [GitHub CLI](https://github.com/cli/cli)
-* [gon](https://github.com/mitchellh/gon) for signing MacOS binaries: `go get https://github.com/mitchellh/gon`
-
-```
-make release         # Build, sign and upload binaries
-make release/docker  # Build and push Docker images
-```
+* [Configuration Reference](./docs/configuration.md)
+* [Contributing](./docs/contributing.md)
 
 ## Security
 We take security very seriously. If you have found a security vulnerability please disclose it privately to us by email via [security@infrahq.com](mailto:security@infrahq.com)

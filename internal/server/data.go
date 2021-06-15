@@ -2,7 +2,11 @@ package server
 
 import (
 	"bytes"
+	"crypto"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
+	"encoding/base64"
 	"errors"
 	"log"
 	"os"
@@ -13,6 +17,7 @@ import (
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/okta"
 	"golang.org/x/crypto/bcrypt"
+	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/yaml.v2"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -76,9 +81,10 @@ type Settings struct {
 	ID            string `gorm:"primaryKey"`
 	Created       int64  `json:"-" yaml:"-" gorm:"autoCreateTime"`
 	Updated       int64  `json:"-" yaml:"-" gorm:"autoUpdateTime"`
-	Domain        string `json:"-" yaml:"domain,omitempty"`
-	JWTSecret     string `json:"-" yaml:"jwtSecret,omitempty"`
 	DisableSignup bool   `json:"disableSignup" yaml:"disableSignup,omitempty"`
+	PrivateJWK    []byte
+	PublicJWK     []byte
+	AddToken      string
 }
 
 type Token struct {
@@ -90,6 +96,13 @@ type Token struct {
 
 	UserID string
 	User   User `json:"-"`
+}
+
+type APIKey struct {
+	ID      string `gorm:"primaryKey"`
+	Created int64  `json:"created" gorm:"autoCreateTime"`
+	Updated int64  `json:"updated" gorm:"autoUpdateTime"`
+	Key     string `json:"key"`
 }
 
 var (
@@ -325,8 +338,33 @@ func (s *Settings) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 func (s *Settings) BeforeSave(tx *gorm.DB) error {
-	if s.JWTSecret == "" {
-		s.JWTSecret = generate.RandString(32)
+	if len(s.PublicJWK) == 0 || len(s.PrivateJWK) == 0 {
+		key, err := rsa.GenerateKey(rand.Reader, 2048)
+		if err != nil {
+			return err
+		}
+
+		priv := jose.JSONWebKey{Key: key, KeyID: "", Algorithm: string(jose.RS256), Use: "sig"}
+		thumb, err := priv.Thumbprint(crypto.SHA256)
+		if err != nil {
+			return err
+		}
+		kid := base64.URLEncoding.EncodeToString(thumb)
+		priv.KeyID = kid
+		pub := jose.JSONWebKey{Key: &key.PublicKey, KeyID: kid, Algorithm: string(jose.RS256), Use: "sig"}
+
+		privJS, err := priv.MarshalJSON()
+		if err != nil {
+			return err
+		}
+
+		pubJS, err := pub.MarshalJSON()
+		if err != nil {
+			return err
+		}
+
+		s.PrivateJWK = privJS
+		s.PublicJWK = pubJS
 	}
 	return nil
 }
@@ -367,6 +405,17 @@ func NewToken(db *gorm.DB, userID string, token *Token) (secret string, err erro
 		return "", err
 	}
 
+	return
+}
+
+func (a *APIKey) BeforeCreate(tx *gorm.DB) (err error) {
+	if a.ID == "" {
+		a.ID = generate.RandString(12)
+	}
+
+	if a.Key == "" {
+		a.Key = generate.RandString(24)
+	}
 	return
 }
 
@@ -500,6 +549,7 @@ func NewDB(dbpath string) (*gorm.DB, error) {
 	db.AutoMigrate(&Role{})
 	db.AutoMigrate(&Settings{})
 	db.AutoMigrate(&Token{})
+	db.AutoMigrate(&APIKey{})
 
 	// Add default roles
 	for _, p := range Roles {
@@ -525,6 +575,12 @@ func NewDB(dbpath string) (*gorm.DB, error) {
 
 	// Add default settings
 	err = db.FirstOrCreate(&Settings{}, &Settings{}).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Add default api key
+	err = db.FirstOrCreate(&APIKey{}, &APIKey{}).Error
 	if err != nil {
 		return nil, err
 	}

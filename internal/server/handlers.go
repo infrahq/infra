@@ -28,68 +28,6 @@ type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
-func (h *Handlers) JWTMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		if c.GetBool("skipauth") {
-			c.Next()
-			return
-		}
-
-		// Check bearer header
-		authorization := c.Request.Header.Get("Authorization")
-		raw := strings.Replace(authorization, "Bearer ", "", -1)
-
-		// Check cookie
-		if raw == "" {
-			raw, _ = c.Cookie("token")
-		}
-
-		if raw == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-			return
-		}
-
-		tok, err := jwt.ParseSigned(raw)
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-			return
-		}
-
-		cl := jwt.Claims{}
-		out := make(map[string]interface{})
-
-		var settings Settings
-		err = h.db.First(&settings).Error
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-			return
-		}
-
-		if err := tok.Claims([]byte(settings.JWTSecret), &cl, &out); err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-			return
-		}
-
-		err = cl.Validate(jwt.Expected{
-			Issuer: "infra",
-			Time:   time.Now(),
-		})
-		switch {
-		case errors.Is(err, jwt.ErrExpired):
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "expired"})
-			return
-		case err != nil:
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-			return
-		}
-
-		email := out["email"].(string)
-
-		c.Set("email", email)
-		c.Next()
-	}
-}
-
 func (h *Handlers) TokenMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.GetBool("skipauth") {
@@ -100,11 +38,6 @@ func (h *Handlers) TokenMiddleware() gin.HandlerFunc {
 		// Check bearer header
 		authorization := c.Request.Header.Get("Authorization")
 		raw := strings.Replace(authorization, "Bearer ", "", -1)
-
-		// Check cookie
-		if raw == "" {
-			raw, _ = c.Cookie("token")
-		}
 
 		if raw == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
@@ -174,6 +107,37 @@ func (h *Handlers) RoleMiddleware(roles ...string) gin.HandlerFunc {
 	}
 }
 
+func (h *Handlers) APIKeyMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.GetBool("skipauth") {
+			c.Next()
+			return
+		}
+
+		// Check bearer header
+		authorization := c.Request.Header.Get("Authorization")
+		raw := strings.Replace(authorization, "Bearer ", "", -1)
+
+		if raw == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+
+		if len(raw) != 24 {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+
+		var apiKey APIKey
+		if err := h.db.First(&apiKey, "key = ?", raw).Error; err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+
+		c.Next()
+	}
+}
+
 func (h *Handlers) createJWT(email string) (string, time.Time, error) {
 	var settings Settings
 	err := h.db.First(&settings).Error
@@ -181,7 +145,13 @@ func (h *Handlers) createJWT(email string) (string, time.Time, error) {
 		return "", time.Time{}, err
 	}
 
-	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.HS256, Key: []byte(settings.JWTSecret)}, (&jose.SignerOptions{}).WithType("JWT"))
+	var key jose.JSONWebKey
+	err = key.UnmarshalJSON(settings.PrivateJWK)
+	if err != nil {
+		return "", time.Time{}, err
+	}
+
+	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: key}, (&jose.SignerOptions{}).WithType("JWT"))
 	if err != nil {
 		return "", time.Time{}, err
 	}
@@ -211,6 +181,30 @@ func (h *Handlers) createJWT(email string) (string, time.Time, error) {
 
 func (h *Handlers) Healthz(c *gin.Context) {
 	c.Status(http.StatusOK)
+}
+
+func (h *Handlers) WellKnownJWKs(c *gin.Context) {
+	var settings Settings
+	err := h.db.First(&settings).Error
+	if err != nil {
+		fmt.Println(err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "could not retrieve JWKs"})
+		return
+	}
+
+	var pubKey jose.JSONWebKey
+	err = pubKey.UnmarshalJSON(settings.PublicJWK)
+	if err != nil {
+		fmt.Println(err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "could not retrieve JWKs"})
+		return
+	}
+
+	c.JSON(http.StatusOK, struct {
+		Keys []jose.JSONWebKey `json:"keys"`
+	}{
+		[]jose.JSONWebKey{pubKey},
+	})
 }
 
 func (h *Handlers) ListResources(c *gin.Context) {
@@ -574,6 +568,17 @@ func (h *Handlers) CreateCreds(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"token": token, "expirationTimestamp": expiry.Format(time.RFC3339)})
 }
 
+func (h *Handlers) ListAPIKeys(c *gin.Context) {
+	var apiKeys []APIKey
+	err := h.db.Find(&apiKeys).Error
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{"could not list api keys"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": apiKeys})
+}
+
 func (h *Handlers) Login(c *gin.Context) {
 	type Params struct {
 		// Via Okta
@@ -679,8 +684,6 @@ func (h *Handlers) Login(c *gin.Context) {
 		return
 	}
 
-	c.SetSameSite(http.SameSiteStrictMode)
-	c.SetCookie("token", newToken.ID+secret, 10800, "/", c.Request.Host, false, true)
 	c.JSON(http.StatusOK, gin.H{"token": newToken.ID + secret})
 }
 
@@ -713,63 +716,6 @@ func (h *Handlers) Logout(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
-}
-
-func (h *Handlers) Signup(c *gin.Context) {
-	type binds struct {
-		Email    string `form:"email" binding:"email,required"`
-		Password string `form:"password" binding:"required"`
-	}
-
-	var form binds
-	if err := c.Bind(&form); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
-		return
-	}
-
-	var settings Settings
-	if err := h.db.First(&settings).Error; err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "could not create admin user"})
-		return
-	}
-
-	if settings.DisableSignup {
-		c.JSON(http.StatusBadRequest, ErrorResponse{"admin signup disabled"})
-		return
-	}
-
-	var user User
-	err := h.db.Transaction(func(tx *gorm.DB) error {
-		var exists User
-		count := tx.First(&exists).RowsAffected
-		if count > 0 {
-			return errors.New("users already exist and admin must be the first user")
-		}
-
-		var provider Provider
-		provider.Kind = DefaultInfraProviderKind
-		if err := tx.Where(&provider).First(&provider).Error; err != nil {
-			return err
-		}
-
-		return provider.CreateUser(tx, &user, form.Email, form.Password, "infra.owner")
-
-	})
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{err.Error()})
-		return
-	}
-
-	var newToken Token
-	secret, err := NewToken(h.db, user.ID, &newToken)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{"could not create token"})
-		return
-	}
-
-	c.SetSameSite(http.SameSiteStrictMode)
-	c.SetCookie("token", newToken.ID+secret, 10800, "/", c.Request.Host, false, true)
-	c.Status(http.StatusCreated)
 }
 
 func (h *Handlers) Config(c *gin.Context) {
@@ -818,31 +764,26 @@ func (h *Handlers) Register(c *gin.Context) {
 }
 
 func (h *Handlers) addRoutes(router *gin.Engine) error {
-	router.GET("/v1/healthz", h.Healthz)
+	router.GET("/healthz", h.Healthz)
+	router.GET("/.well-known/jwks.json", h.WellKnownJWKs)
 
 	router.GET("/v1/resources", h.TokenMiddleware(), h.RoleMiddleware("infra.member", "infra.owner"), h.ListResources)
-
 	router.GET("/v1/users", h.TokenMiddleware(), h.RoleMiddleware("infra.member", "infra.owner"), h.ListUsers)
 	router.POST("/v1/users", h.TokenMiddleware(), h.RoleMiddleware("infra.owner"), h.CreateUser)
 	router.DELETE("/v1/users/:id", h.TokenMiddleware(), h.RoleMiddleware("infra.owner"), h.DeleteUser)
-
 	router.GET("/v1/providers", h.ListProviders)
 	router.POST("/v1/providers", h.TokenMiddleware(), h.RoleMiddleware("infra.owner"), h.CreateProvider)
 	router.DELETE("/v1/providers/:id", h.TokenMiddleware(), h.RoleMiddleware("infra.owner"), h.DeleteProvider)
-
 	router.GET("/v1/grants", h.TokenMiddleware(), h.RoleMiddleware("infra.member", "infra.owner"), h.ListGrants)
 	router.POST("/v1/grants", h.TokenMiddleware(), h.RoleMiddleware("infra.owner"), h.CreateGrant)
 	router.DELETE("/v1/grants/:id", h.TokenMiddleware(), h.RoleMiddleware("infra.owner"), h.DeleteGrant)
-
 	router.POST("/v1/creds", h.TokenMiddleware(), h.RoleMiddleware("infra.member", "infra.owner"), h.CreateCreds)
-
+	router.GET("/v1/apikeys", h.TokenMiddleware(), h.RoleMiddleware("infra.owner"), h.ListAPIKeys)
 	router.POST("/v1/login", h.Login)
 	router.POST("/v1/logout", h.TokenMiddleware(), h.Logout)
-	router.POST("/v1/signup", h.Signup)
 
-	// TODO (jmorganca): add engine token middleware
-	router.GET("/v1/config", h.Config)
-	router.POST("/v1/register", h.Register)
+	router.GET("/v1/config", h.APIKeyMiddleware(), h.Config)
+	router.POST("/v1/register", h.APIKeyMiddleware(), h.Register)
 
 	return nil
 }

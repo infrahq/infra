@@ -125,6 +125,31 @@ spec:
           args: ["engine", "--server", "infra-internal", "--name", "desktop"]
           ports:
             - containerPort: 80
+          env:
+            - name: INFRA_ENGINE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  optional: true
+                  name: infra-engine
+                  key: api-key
+            - name: INFRA_ENGINE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  optional: true
+                  name: infra-engine
+                  key: name
+            - name: INFRA_ENGINE_SERVER
+              valueFrom:
+                configMapKeyRef:
+                  optional: true
+                  name: infra-engine
+                  key: server
+            - name: INFRA_ENGINE_SKIP_TLS_VERIFY
+              valueFrom:
+                configMapKeyRef:
+                  optional: true
+                  name: infra-engine
+                  key: skip-tls-verify
           livenessProbe:
             httpGet:
               path: /healthz

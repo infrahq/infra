@@ -54,11 +54,13 @@ providers:
 ```yaml
 grants:
   - user: admin@infrahq.com
-    role: admin
+    role: infra.owner
   - user: jeff@infrahq.com
     role: edit
   - user: michael@infrahq.com
     role: view
+  - user: michael@infrahq.com
+    role: infra.owner
 ```
 
 ### `user`

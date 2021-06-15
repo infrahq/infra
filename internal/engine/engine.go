@@ -15,12 +15,14 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/goware/urlx"
 	"github.com/infrahq/infra/internal/server"
 	"github.com/infrahq/infra/internal/timer"
 	"github.com/jessevdk/go-flags"
+	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
 	"gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
@@ -35,8 +37,10 @@ import (
 )
 
 type Options struct {
-	Server string
-	Name   string
+	Server        string
+	Name          string
+	SkipTLSVerify bool
+	APIKey        string
 }
 
 type RoleBinding struct {
@@ -120,50 +124,107 @@ func (k *Kubernetes) UpdatePermissions(rbs []RoleBinding) error {
 	return nil
 }
 
-func JWTMiddleware(c *gin.Context) {
-	// Check bearer header
-	authorization := c.Request.Header.Get("X-Infra-Authorization")
-	raw := strings.Replace(authorization, "Bearer ", "", -1)
-	if raw == "" {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+type jwkCache struct {
+	mu          sync.Mutex
+	key         jose.JSONWebKey
+	lastChecked time.Time
+}
+
+var jwkCacheRefresh = 5 * time.Minute
+
+var cache jwkCache
+
+func (j *jwkCache) Get(client *http.Client, url string) (key jose.JSONWebKey, err error) {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+
+	if j.lastChecked != (time.Time{}) && time.Now().Before(j.lastChecked.Add(jwkCacheRefresh)) {
+		key = j.key
 		return
 	}
 
-	tok, err := jwt.ParseSigned(raw)
+	res, err := client.Get(url)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
 
-	out := make(map[string]interface{})
+	data, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return
+	}
 
-	// TODO (jmorganca): verify against infra server jwks
-	// cl := jwt.Claims{}
+	var response struct {
+		Keys []jose.JSONWebKey `json:"keys"`
+	}
+	err = json.Unmarshal(data, &response)
+	if err != nil {
+		return
+	}
 
-	// if err := tok.Claims([]byte(settings.JWTSecret), &cl, &out); err != nil {
-	// 	c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-	// 	return
-	// }
+	if len(response.Keys) < 1 {
+		err = errors.New("no jwks provided by server")
+		return
+	}
 
-	// err = cl.Validate(jwt.Expected{
-	// 	Issuer: "infra",
-	// 	Time:   time.Now(),
-	// })
-	// switch {
-	// case errors.Is(err, jwt.ErrExpired):
-	// 	c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "expired"})
-	// 	return
-	// case err != nil:
-	// 	c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-	// 	return
-	// }
+	j.key = response.Keys[0]
+	j.lastChecked = time.Now()
 
-	tok.UnsafeClaimsWithoutVerification(&out)
+	return j.key, nil
+}
 
-	email := out["email"].(string)
+func JWTMiddleware(client *http.Client, base string) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		// Check bearer header
+		authorization := c.Request.Header.Get("X-Infra-Authorization")
+		raw := strings.Replace(authorization, "Bearer ", "", -1)
+		if raw == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
 
-	c.Set("email", email)
-	c.Next()
+		tok, err := jwt.ParseSigned(raw)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+
+		// Get JWKs from server
+		// TODO (jmorganca): cache me for an 5m-1hr
+		key, err := cache.Get(client, base+"/.well-known/jwks.json")
+		if err != nil {
+			fmt.Println(err)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+
+		out := make(map[string]interface{})
+		cl := jwt.Claims{}
+		if err := tok.Claims(key, &cl, &out); err != nil {
+			fmt.Println("could not verify token", err)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+
+		err = cl.Validate(jwt.Expected{
+			Issuer: "infra",
+			Time:   time.Now(),
+		})
+		switch {
+		case errors.Is(err, jwt.ErrExpired):
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "expired"})
+			return
+		case err != nil:
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+
+		tok.UnsafeClaimsWithoutVerification(&out)
+
+		email := out["email"].(string)
+
+		c.Set("email", email)
+		c.Next()
+	}
 }
 
 func (k *Kubernetes) ProxyHandler() (handler gin.HandlerFunc, err error) {
@@ -195,8 +256,8 @@ func (k *Kubernetes) ProxyHandler() (handler gin.HandlerFunc, err error) {
 	}, err
 }
 
-func fetchConfig(base string) ([]server.Grant, error) {
-	res, err := http.Get(base + "/v1/config")
+func fetchConfig(client *http.Client, base string) ([]server.Grant, error) {
+	res, err := client.Get(base + "/v1/config")
 	if err != nil {
 		return nil, err
 	}
@@ -330,8 +391,6 @@ func (k *Kubernetes) Endpoint() (string, error) {
 		return "", err
 	}
 
-	fmt.Println(opts)
-
 	switch {
 	case opts.Master != "":
 		endpoint = opts.Master
@@ -385,16 +444,35 @@ func (k *Kubernetes) Endpoint() (string, error) {
 		endpoint = strings.Replace(endpoint, ".internal.k8s.ondigitalocean.com", ".k8s.ondigitalocean.com", -1)
 	}
 
-	fmt.Println(endpoint)
-
 	// TODO (jmorganca): minikube
 
 	// Could not get endpoint - must be passed via flag
 	return endpoint, nil
 }
 
+type BearerTransport struct {
+	Token     string
+	Transport http.RoundTripper
+}
+
+func (b *BearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if b.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+b.Token)
+	}
+	return b.Transport.RoundTrip(req)
+}
+
 func Run(options Options) error {
-	// Load configuration from file
+	client := &http.Client{
+		Transport: &BearerTransport{
+			Token: options.APIKey,
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: options.SkipTLSVerify,
+				},
+			},
+		},
+	}
 
 	kubernetes, err := NewKubernetes()
 	if err != nil {
@@ -405,6 +483,8 @@ func Run(options Options) error {
 	if err != nil {
 		return err
 	}
+
+	uri.Scheme = "https"
 
 	timer := timer.Timer{}
 	timer.Start(5, func() {
@@ -428,15 +508,11 @@ func Run(options Options) error {
 		form.Add("endpoint", endpoint)
 		form.Add("name", options.Name)
 
-		fmt.Println("sending info", form)
-
-		res, err := http.PostForm(uri.String()+"/v1/register", form)
+		res, err := client.PostForm(uri.String()+"/v1/register", form)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-
-		fmt.Println("received ", res.StatusCode)
 
 		if res.StatusCode != http.StatusOK {
 			fmt.Println("failed to register, code: ", res.StatusCode)
@@ -444,14 +520,13 @@ func Run(options Options) error {
 		}
 
 		// Fetch latest grants from server
-		grants, err := fetchConfig(uri.String())
+		grants, err := fetchConfig(client, uri.String())
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 
 		var rbs []RoleBinding
-		fmt.Println(grants)
 		for _, p := range grants {
 			rbs = append(rbs, RoleBinding{User: p.User.Email, Role: p.Role.KubernetesRole})
 		}
@@ -464,6 +539,7 @@ func Run(options Options) error {
 	})
 	defer timer.Stop()
 
+	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
 	router.Use(gin.Logger())
 
@@ -475,11 +551,11 @@ func Run(options Options) error {
 	router.GET("/healthz", func(c *gin.Context) {
 		c.Status(http.StatusOK)
 	})
-	router.GET("/proxy/*all", JWTMiddleware, proxyHandler)
-	router.POST("/proxy/*all", JWTMiddleware, proxyHandler)
-	router.PUT("/proxy/*all", JWTMiddleware, proxyHandler)
-	router.PATCH("/proxy/*all", JWTMiddleware, proxyHandler)
-	router.DELETE("/proxy/*all", JWTMiddleware, proxyHandler)
+	router.GET("/proxy/*all", JWTMiddleware(client, uri.String()), proxyHandler)
+	router.POST("/proxy/*all", JWTMiddleware(client, uri.String()), proxyHandler)
+	router.PUT("/proxy/*all", JWTMiddleware(client, uri.String()), proxyHandler)
+	router.PATCH("/proxy/*all", JWTMiddleware(client, uri.String()), proxyHandler)
+	router.DELETE("/proxy/*all", JWTMiddleware(client, uri.String()), proxyHandler)
 
 	fmt.Println("serving on port 80")
 	return router.Run(":80")

@@ -42,9 +42,9 @@ import (
 )
 
 type Config struct {
-	Host     string `json:"host"`
-	Token    string `json:"token"`
-	Insecure bool   `json:"insecure"`
+	Host          string `json:"host"`
+	Token         string `json:"token"`
+	SkipTLSVerify bool   `json:"skip-tls-verify"`
 }
 
 func readConfig() (config *Config, err error) {
@@ -196,7 +196,7 @@ func serverUrlFromString(host string) (*url.URL, error) {
 	return u, nil
 }
 
-func client(host string, token string, insecure bool) (client *http.Client, err error) {
+func client(host string, token string, skipTlsVerify bool) (client *http.Client, err error) {
 	if host == "" {
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
@@ -205,7 +205,7 @@ func client(host string, token string, insecure bool) (client *http.Client, err 
 		return unixClient(filepath.Join(homeDir, ".infra", "infra.sock")), nil
 	}
 
-	if insecure {
+	if skipTlsVerify {
 		return &http.Client{
 			Transport: &TokenTransport{
 				Token: token,
@@ -232,7 +232,7 @@ func fetchResources() ([]server.Resource, error) {
 		return nil, err
 	}
 
-	httpClient, err := client(config.Host, config.Token, config.Insecure)
+	httpClient, err := client(config.Host, config.Token, config.SkipTLSVerify)
 	if err != nil {
 		return nil, err
 	}
@@ -258,11 +258,215 @@ func fetchResources() ([]server.Resource, error) {
 	return response.Data, nil
 }
 
+func updateKubeconfig() error {
+	resources, err := fetchResources()
+	if err != nil {
+		return err
+	}
+
+	home, err := homedir.Dir()
+	if err != nil {
+		return err
+	}
+
+	resourcesJSON, err := json.Marshal(resources)
+	if err != nil {
+		return err
+	}
+
+	// Write destinatinons to json file
+	err = os.WriteFile(filepath.Join(home, ".infra", "resources"), resourcesJSON, 0644)
+	if err != nil {
+		return err
+	}
+
+	// TODO (jmorganca): remove non-existent clusters
+	if len(resources) == 0 {
+		return nil
+	}
+
+	// Load default config and merge new config in
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	defaultConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
+	kubeConfig, err := defaultConfig.RawConfig()
+	if err != nil {
+		return err
+	}
+
+	// Generate client certs
+	home, err = homedir.Dir()
+	if err != nil {
+		return err
+	}
+
+	if err = os.MkdirAll(filepath.Join(home, ".infra", "client"), os.ModePerm); err != nil {
+		return err
+	}
+
+	if _, err := os.Stat(filepath.Join(home, ".infra", "client", "cert.pem")); os.IsNotExist(err) {
+		certBytes, keyBytes, err := certs.GenerateSelfSignedCert([]string{"localhost", "localhost:32710"})
+		if err != nil {
+			return err
+		}
+
+		if err = ioutil.WriteFile(filepath.Join(home, ".infra", "client", "cert.pem"), certBytes, 0644); err != nil {
+			return err
+		}
+
+		if err = ioutil.WriteFile(filepath.Join(home, ".infra", "client", "key.pem"), keyBytes, 0644); err != nil {
+			return err
+		}
+
+		// Kill client
+		contents, err := ioutil.ReadFile(filepath.Join(home, ".infra", "client", "pid"))
+		if err != nil && !os.IsNotExist(err) {
+			return err
+		}
+
+		var pid int
+		if !os.IsNotExist(err) {
+			pid, err = strconv.Atoi(string(contents))
+			if err != nil {
+				return err
+			}
+
+			process, _ := os.FindProcess(int(pid))
+			process.Kill()
+		}
+
+		os.Remove(filepath.Join(home, ".infra", "client", "pid"))
+	}
+
+	for _, d := range resources {
+		kubeConfig.Clusters[d.Name] = &clientcmdapi.Cluster{
+			Server:               "https://localhost:32710/client/" + d.Name,
+			CertificateAuthority: filepath.Join(home, ".infra", "client", "cert.pem"),
+		}
+
+		executable, err := os.Executable()
+		if err != nil {
+			return err
+		}
+
+		kubeConfig.AuthInfos[d.Name] = &clientcmdapi.AuthInfo{
+			Exec: &clientcmdapi.ExecConfig{
+				Command:    executable,
+				Args:       []string{"creds"},
+				APIVersion: "client.authentication.k8s.io/v1alpha1",
+			},
+		}
+		kubeConfig.Contexts[d.Name] = &clientcmdapi.Context{
+			Cluster:  d.Name,
+			AuthInfo: d.Name,
+		}
+	}
+
+	if err = clientcmd.WriteToFile(kubeConfig, clientcmd.RecommendedHomeFile); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 var rootCmd = &cobra.Command{
 	Use:   "infra",
 	Short: "Infrastructure Identity & Access Management (IAM)",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		cmd.SilenceUsage = true
+	},
+}
+
+var signupCmd = &cobra.Command{
+	Use:     "signup HOST",
+	Short:   "Create the admin user for a new Infra Server",
+	Args:    cobra.ExactArgs(1),
+	Example: "$ infra signup infra.example.com",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		serverUrl, err := serverUrlFromString(args[0])
+		if err != nil {
+			return err
+		}
+
+		host := serverUrl.String()
+		skipTlsVerify, err := cmd.PersistentFlags().GetBool("skip-tls-verify")
+		if err != nil {
+			return err
+		}
+
+		httpClient, err := client(host, "", skipTlsVerify)
+		if err != nil {
+			return err
+		}
+
+		email := ""
+		emailPrompt := &survey.Input{
+			Message: "Email",
+		}
+		err = survey.AskOne(emailPrompt, &email, survey.WithShowCursor(true), survey.WithValidator(survey.Required), survey.WithIcons(func(icons *survey.IconSet) {
+			icons.Question.Text = blue("?")
+		}))
+		if err == terminal.InterruptErr {
+			return nil
+		}
+
+		password := ""
+		passwordPrompt := &survey.Password{
+			Message: "Password",
+		}
+		err = survey.AskOne(passwordPrompt, &password, survey.WithShowCursor(true), survey.WithValidator(survey.Required), survey.WithIcons(func(icons *survey.IconSet) {
+			icons.Question.Text = blue("?")
+		}))
+		if err == terminal.InterruptErr {
+			return nil
+		}
+
+		form := url.Values{}
+		form.Add("email", email)
+		form.Add("password", password)
+
+		fmt.Println(blue("✓") + " Creating admin account...")
+
+		req, err := http.NewRequest("POST", host+"/v1/signup", strings.NewReader(form.Encode()))
+		if err != nil {
+			return err
+		}
+
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+		res, err := httpClient.Do(req)
+		if err != nil {
+			return err
+		}
+
+		var response struct {
+			Token string `json:"token"`
+		}
+		err = checkAndDecode(res, &response)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println(blue("✓") + " Admin account created...")
+
+		config := &Config{
+			Host:          host,
+			Token:         response.Token,
+			SkipTLSVerify: skipTlsVerify,
+		}
+
+		err = writeConfig(config)
+		if err != nil {
+			return err
+		}
+
+		err = updateKubeconfig()
+		if err != nil {
+			return err
+		}
+
+		fmt.Println(blue("✓") + " Kubeconfig updated")
+
+		return nil
 	},
 }
 
@@ -278,18 +482,21 @@ var loginCmd = &cobra.Command{
 		}
 
 		host := serverUrl.String()
-		insecure, err := cmd.PersistentFlags().GetBool("insecure")
+		skipTlsVerify, err := cmd.PersistentFlags().GetBool("skip-tls-verify")
 		if err != nil {
 			return err
 		}
 
-		httpClient, err := client(host, "", insecure)
+		httpClient, err := client(host, "", skipTlsVerify)
 		if err != nil {
 			return err
 		}
 
 		res, err := httpClient.Get(host + "/v1/providers")
 		if err != nil {
+			if strings.Contains(err.Error(), "x509: certificate signed by unknown authority") {
+				return errors.New(err.Error() + "\n" + "Use \"infra login " + host + " -k or --skip-tls-verify\" to bypass CA verification for all future requests")
+			}
 			return err
 		}
 
@@ -412,11 +619,10 @@ var loginCmd = &cobra.Command{
 
 		fmt.Println(blue("✓") + " Logged in...")
 
-		// TODO (jmorganca): support multiple infra hosts, keyed by domain
 		config := &Config{
-			Host:     host,
-			Token:    loginResponse.Token,
-			Insecure: insecure,
+			Host:          host,
+			Token:         loginResponse.Token,
+			SkipTLSVerify: skipTlsVerify,
 		}
 
 		err = writeConfig(config)
@@ -545,6 +751,7 @@ var listCmd = &cobra.Command{
 		})
 
 		kubeConfig, _ := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), nil).RawConfig()
+
 		rows := [][]string{}
 		for _, dest := range resources {
 			star := ""
@@ -559,8 +766,71 @@ var listCmd = &cobra.Command{
 		fmt.Println("To connect, run \"kubectl config use-context <name>\"")
 		fmt.Println()
 
+		err = updateKubeconfig()
+		if err != nil {
+			return err
+		}
+
 		return nil
 	},
+}
+
+func newAddCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "add NAME",
+		Short: "Add cluster",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			// Create kubectl command
+			config, err := readConfig()
+			if err != nil {
+				return err
+			}
+
+			httpClient, err := client(config.Host, config.Token, config.SkipTLSVerify)
+			if err != nil {
+				return err
+			}
+
+			serverUrl, err := serverUrl(config.Host)
+			if err != nil {
+				return err
+			}
+
+			res, err := httpClient.Get(serverUrl.String() + "/v1/apikeys")
+			if err != nil {
+				return err
+			}
+
+			var response struct {
+				Data []server.APIKey `json:"data"`
+			}
+			err = checkAndDecode(res, &response)
+			if err != nil {
+				return err
+			}
+
+			if len(response.Data) == 0 {
+				return errors.New("no valid api keys")
+			}
+
+			fmt.Println()
+			fmt.Println("To connect your cluster via kubectl, run:")
+			fmt.Println()
+			fmt.Println("kubectl create namespace infra")
+			fmt.Print("kubectl create configmap infra-engine --from-literal='name=" + args[0] + "' --from-literal='server=" + config.Host + "'")
+			if config.SkipTLSVerify {
+				fmt.Print(" --from-literal='skip-tls-verify=1'")
+			}
+			fmt.Println(" --namespace=infra")
+			fmt.Println("kubectl create secret generic infra-engine --from-literal='api-key=" + response.Data[0].Key + "' --namespace=infra")
+			fmt.Println("kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/main/deploy/engine.yaml")
+
+			return nil
+		},
+	}
+
+	return cmd
 }
 
 func newGrantCmd() *cobra.Command {
@@ -577,7 +847,7 @@ func newGrantCmd() *cobra.Command {
 				return err
 			}
 
-			httpClient, err := client(config.Host, config.Token, config.Insecure)
+			httpClient, err := client(config.Host, config.Token, config.SkipTLSVerify)
 			if err != nil {
 				return err
 			}
@@ -631,7 +901,7 @@ func newRevokeCmd() *cobra.Command {
 				return err
 			}
 
-			httpClient, err := client(config.Host, config.Token, config.Insecure)
+			httpClient, err := client(config.Host, config.Token, config.SkipTLSVerify)
 			if err != nil {
 				return err
 			}
@@ -700,7 +970,7 @@ var inspectCmd = &cobra.Command{
 			return err
 		}
 
-		httpClient, err := client(config.Host, config.Token, config.Insecure)
+		httpClient, err := client(config.Host, config.Token, config.SkipTLSVerify)
 		if err != nil {
 			return err
 		}
@@ -776,7 +1046,7 @@ var usersCreateCmd = &cobra.Command{
 			return err
 		}
 
-		httpClient, err := client(config.Host, config.Token, config.Insecure)
+		httpClient, err := client(config.Host, config.Token, config.SkipTLSVerify)
 		if err != nil {
 			return err
 		}
@@ -821,7 +1091,7 @@ var usersDeleteCmd = &cobra.Command{
 			return err
 		}
 
-		httpClient, err := client(config.Host, config.Token, config.Insecure)
+		httpClient, err := client(config.Host, config.Token, config.SkipTLSVerify)
 		if err != nil {
 			return err
 		}
@@ -863,7 +1133,7 @@ var usersListCmd = &cobra.Command{
 			return err
 		}
 
-		httpClient, err := client(config.Host, config.Token, config.Insecure)
+		httpClient, err := client(config.Host, config.Token, config.SkipTLSVerify)
 		if err != nil {
 			return err
 		}
@@ -932,7 +1202,7 @@ var providersListCmd = &cobra.Command{
 			return err
 		}
 
-		httpClient, err := client(config.Host, config.Token, config.Insecure)
+		httpClient, err := client(config.Host, config.Token, config.SkipTLSVerify)
 		if err != nil {
 			return err
 		}
@@ -995,8 +1265,7 @@ func newprovidersCreateCmd() *cobra.Command {
 				return err
 			}
 
-			insecure, _ := cmd.Flags().GetBool("insecure")
-			httpClient, err := client(config.Host, config.Token, insecure)
+			httpClient, err := client(config.Host, config.Token, config.SkipTLSVerify)
 			if err != nil {
 				return err
 			}
@@ -1047,8 +1316,7 @@ var logoutCmd = &cobra.Command{
 			return err
 		}
 
-		insecure, _ := cmd.Flags().GetBool("insecure")
-		httpClient, err := client(config.Host, config.Token, insecure)
+		httpClient, err := client(config.Host, config.Token, config.SkipTLSVerify)
 		if err != nil {
 			return err
 		}
@@ -1096,8 +1364,7 @@ var providersDeleteCmd = &cobra.Command{
 			return err
 		}
 
-		insecure, _ := cmd.Flags().GetBool("insecure")
-		httpClient, err := client(config.Host, config.Token, insecure)
+		httpClient, err := client(config.Host, config.Token, config.SkipTLSVerify)
 		if err != nil {
 			return err
 		}
@@ -1163,14 +1430,23 @@ func newEngineCmd() *cobra.Command {
 		Use:   "engine",
 		Short: "Start Infra engine",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if options.Server == "" {
+				return errors.New("server not specified (--server or INFRA_ENGINE_SERVER)")
+			}
+			if options.Name == "" {
+				return errors.New("name not specified (--name or INFRA_ENGINE_NAME)")
+			}
+			if options.APIKey == "" {
+				return errors.New("api-key not specified (--api-key or INFRA_ENGINE_API_KEY)")
+			}
 			return engine.Run(options)
 		},
 	}
 
-	cmd.Flags().StringVarP(&options.Server, "server", "s", "", "server config file")
-	cmd.Flags().StringVarP(&options.Name, "name", "n", "", "cluster name")
-	cmd.MarkFlagRequired("server")
-	cmd.MarkFlagRequired("name")
+	cmd.PersistentFlags().BoolVarP(&options.SkipTLSVerify, "skip-tls-verify", "k", len(os.Getenv("INFRA_SKIP_TLS_VERIFY")) > 0, "skip TLS verification")
+	cmd.Flags().StringVarP(&options.Server, "server", "s", os.Getenv("INFRA_ENGINE_SERVER"), "server hostname")
+	cmd.Flags().StringVarP(&options.Name, "name", "n", os.Getenv("INFRA_ENGINE_NAME"), "cluster name")
+	cmd.Flags().StringVar(&options.APIKey, "api-key", os.Getenv("INFRA_ENGINE_API_KEY"), "api key")
 
 	return cmd
 }
@@ -1187,7 +1463,7 @@ var credsCmd = &cobra.Command{
 			return err
 		}
 
-		httpClient, err := client(config.Host, config.Token, config.Insecure)
+		httpClient, err := client(config.Host, config.Token, config.SkipTLSVerify)
 		if err != nil {
 			return err
 		}
@@ -1313,6 +1589,7 @@ func NewRootCmd() (*cobra.Command, error) {
 	cobra.EnableCommandSorting = false
 
 	rootCmd.AddCommand(listCmd)
+	rootCmd.AddCommand(newAddCmd())
 	rootCmd.AddCommand(newGrantCmd())
 	rootCmd.AddCommand(newRevokeCmd())
 	rootCmd.AddCommand(inspectCmd)
@@ -1326,6 +1603,9 @@ func NewRootCmd() (*cobra.Command, error) {
 	providersCmd.AddCommand(newprovidersCreateCmd())
 	providersCmd.AddCommand(providersDeleteCmd)
 	rootCmd.AddCommand(providersCmd)
+
+	rootCmd.AddCommand(signupCmd)
+	signupCmd.PersistentFlags().BoolP("insecure", "i", false, "skip TLS verification")
 
 	rootCmd.AddCommand(loginCmd)
 	loginCmd.PersistentFlags().BoolP("insecure", "i", false, "skip TLS verification")
