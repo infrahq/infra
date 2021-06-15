@@ -219,8 +219,24 @@ func (h *Handlers) ListResources(c *gin.Context) {
 }
 
 func (h *Handlers) ListUsers(c *gin.Context) {
+	type binds struct {
+		Email string `form:"email"`
+	}
+
+	var params binds
+	if err := c.BindQuery(&params); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
+		return
+	}
+
 	var users []User
-	err := h.db.Preload("Grants.Role").Preload("Grants.Resource").Preload("Providers").Find(&users).Error
+	q := h.db.Preload("Grants.Role").Preload("Grants.Resource").Preload("Providers")
+
+	if params.Email != "" {
+		q = q.Where("email = ?", params.Email)
+	}
+
+	err := q.Find(&users).Error
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{"could not list users"})
 		return

@@ -986,7 +986,7 @@ var usersCreateCmd = &cobra.Command{
 }
 
 var usersDeleteCmd = &cobra.Command{
-	Use:   "delete ID",
+	Use:   "delete USER",
 	Short: "delete a user",
 	Args:  cobra.ExactArgs(1),
 	Example: heredoc.Doc(`
@@ -1007,22 +1007,40 @@ var usersDeleteCmd = &cobra.Command{
 			return err
 		}
 
-		user := args[0]
-		req, err := http.NewRequest(http.MethodDelete, serverUrl.String()+"/v1/users/"+user, nil)
-		if err != nil {
-			log.Fatal(err)
-		}
+		params := url.Values{}
+		params.Set("email", args[0])
 
-		res, err := httpClient.Do(req)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer res.Body.Close()
-
-		var response server.DeleteResponse
-		err = checkAndDecode(res, &response)
+		res, err := httpClient.Get(serverUrl.String() + "/v1/users?" + params.Encode())
 		if err != nil {
 			return err
+		}
+
+		var listResponse struct {
+			Data []server.User `json:"data"`
+		}
+		err = checkAndDecode(res, &listResponse)
+		if err != nil {
+			return err
+		}
+
+		for _, u := range listResponse.Data {
+			req, err := http.NewRequest(http.MethodDelete, serverUrl.String()+"/v1/users/"+u.ID, nil)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			res, err := httpClient.Do(req)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			var response server.DeleteResponse
+			err = checkAndDecode(res, &response)
+			if err != nil {
+				return err
+			}
+
+			res.Body.Close()
 		}
 
 		return nil
