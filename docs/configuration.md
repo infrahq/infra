@@ -7,6 +7,7 @@
   * [`grants`](#grants)
     * [`user`](#user)
     * [`resource`](#resource)
+    * [`role`](#role)
 
 ## Example
 
@@ -54,18 +55,23 @@ providers:
 ```yaml
 grants:
   - user: admin@infrahq.com
-    role: infra.owner
+    resource: production
+    role: kubernetes.admin
   - user: jeff@infrahq.com
-    role: edit
+    resource: production
+    role: kubernetes.readonly
   - user: michael@infrahq.com
-    role: view
-  - user: michael@infrahq.com
-    role: infra.owner
+    resource: production
+    role: kubernetes.editor
 ```
 
 ### `user`
 
 `user` is a user's email
+
+### `resource`
+
+`resource` is a target resource to grant access to, e.g. the kubernetes cluster name
 
 ### `role`
 
