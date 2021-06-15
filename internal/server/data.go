@@ -11,7 +11,6 @@ import (
 	"log"
 	"os"
 	"path"
-	"strings"
 	"time"
 
 	"github.com/infrahq/infra/internal/generate"
@@ -116,7 +115,7 @@ var (
 // TODO (jmorganca): encode actual rbac rules here
 var Roles = []Role{
 	{
-		Name:           "kubernetes.readonly",
+		Name:           "kubernetes.viewer",
 		Description:    "Read most resources",
 		KubernetesRole: "view",
 		Default:        true,
@@ -183,22 +182,14 @@ func (g *Grant) BeforeCreate(tx *gorm.DB) (err error) {
 		g.ID = generate.RandString(12)
 	}
 
+	// Choose a default role if not specified
 	if g.RoleName == "" {
-		var role string
-		for _, r := range Roles {
-			if r.Default {
-				if g.ResourceName == "infra" {
-					if strings.HasPrefix(r.Name, "infra.") {
-						role = r.Name
-						break
-					}
-				} else {
-					role = r.Name
-				}
-			}
+		if g.ResourceName == "infra" {
+			g.RoleName = "infra.member"
+			return
 		}
 
-		g.RoleName = role
+		g.RoleName = "kubernetes.viewer"
 	}
 
 	return
