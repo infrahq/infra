@@ -280,61 +280,12 @@ func updateKubeconfig() error {
 		return err
 	}
 
-	// TODO (jmorganca): remove non-existent clusters
-	if len(resources) == 0 {
-		return nil
-	}
-
 	// Load default config and merge new config in
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 	defaultConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
 	kubeConfig, err := defaultConfig.RawConfig()
 	if err != nil {
 		return err
-	}
-
-	// Generate client certs
-	home, err = homedir.Dir()
-	if err != nil {
-		return err
-	}
-
-	if err = os.MkdirAll(filepath.Join(home, ".infra", "client"), os.ModePerm); err != nil {
-		return err
-	}
-
-	if _, err := os.Stat(filepath.Join(home, ".infra", "client", "cert.pem")); os.IsNotExist(err) {
-		certBytes, keyBytes, err := certs.GenerateSelfSignedCert([]string{"localhost", "localhost:32710"})
-		if err != nil {
-			return err
-		}
-
-		if err = ioutil.WriteFile(filepath.Join(home, ".infra", "client", "cert.pem"), certBytes, 0644); err != nil {
-			return err
-		}
-
-		if err = ioutil.WriteFile(filepath.Join(home, ".infra", "client", "key.pem"), keyBytes, 0644); err != nil {
-			return err
-		}
-
-		// Kill client
-		contents, err := ioutil.ReadFile(filepath.Join(home, ".infra", "client", "pid"))
-		if err != nil && !os.IsNotExist(err) {
-			return err
-		}
-
-		var pid int
-		if !os.IsNotExist(err) {
-			pid, err = strconv.Atoi(string(contents))
-			if err != nil {
-				return err
-			}
-
-			process, _ := os.FindProcess(int(pid))
-			process.Kill()
-		}
-
-		os.Remove(filepath.Join(home, ".infra", "client", "pid"))
 	}
 
 	for _, d := range resources {
@@ -358,6 +309,25 @@ func updateKubeconfig() error {
 		kubeConfig.Contexts[d.Name] = &clientcmdapi.Context{
 			Cluster:  d.Name,
 			AuthInfo: d.Name,
+		}
+	}
+
+	for name, c := range kubeConfig.Clusters {
+		if !strings.HasPrefix(c.Server, "https://localhost:32710/client/") {
+			continue
+		}
+
+		var exists bool
+		for _, r := range resources {
+			if name == r.Name {
+				exists = true
+			}
+		}
+
+		if !exists {
+			delete(kubeConfig.Clusters, name)
+			delete(kubeConfig.Contexts, name)
+			delete(kubeConfig.AuthInfos, name)
 		}
 	}
 
@@ -536,37 +506,8 @@ var loginCmd = &cobra.Command{
 			return err
 		}
 
-		resources, err := fetchResources()
-		if err != nil {
-			return err
-		}
-
-		home, err := homedir.Dir()
-		if err != nil {
-			return err
-		}
-
-		resourcesJSON, err := json.Marshal(resources)
-		if err != nil {
-			return err
-		}
-
-		// Write destinatinons to json file
-		err = os.WriteFile(filepath.Join(home, ".infra", "resources"), resourcesJSON, 0644)
-		if err != nil {
-			return err
-		}
-
-		// Load default config and merge new config in
-		loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-		defaultConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
-		kubeConfig, err := defaultConfig.RawConfig()
-		if err != nil {
-			return err
-		}
-
 		// Generate client certs
-		home, err = homedir.Dir()
+		home, err := homedir.Dir()
 		if err != nil {
 			return err
 		}
@@ -575,64 +516,42 @@ var loginCmd = &cobra.Command{
 			return err
 		}
 
-		certBytes, keyBytes, err := certs.GenerateSelfSignedCert([]string{"localhost", "localhost:32710"})
+		if _, err := os.Stat(filepath.Join(home, ".infra", "client", "cert.pem")); os.IsNotExist(err) {
+			certBytes, keyBytes, err := certs.GenerateSelfSignedCert([]string{"localhost", "localhost:32710"})
+			if err != nil {
+				return err
+			}
+
+			if err = ioutil.WriteFile(filepath.Join(home, ".infra", "client", "cert.pem"), certBytes, 0644); err != nil {
+				return err
+			}
+
+			if err = ioutil.WriteFile(filepath.Join(home, ".infra", "client", "key.pem"), keyBytes, 0644); err != nil {
+				return err
+			}
+
+			// Kill client
+			contents, err := ioutil.ReadFile(filepath.Join(home, ".infra", "client", "pid"))
+			if err != nil && !os.IsNotExist(err) {
+				return err
+			}
+
+			var pid int
+			if !os.IsNotExist(err) {
+				pid, err = strconv.Atoi(string(contents))
+				if err != nil {
+					return err
+				}
+
+				process, _ := os.FindProcess(int(pid))
+				process.Kill()
+			}
+
+			os.Remove(filepath.Join(home, ".infra", "client", "pid"))
+		}
+
+		err = updateKubeconfig()
 		if err != nil {
-			return err
-		}
-
-		if err = ioutil.WriteFile(filepath.Join(home, ".infra", "client", "cert.pem"), certBytes, 0644); err != nil {
-			return err
-		}
-
-		if err = ioutil.WriteFile(filepath.Join(home, ".infra", "client", "key.pem"), keyBytes, 0644); err != nil {
-			return err
-		}
-
-		// Kill client
-		contents, err := ioutil.ReadFile(filepath.Join(home, ".infra", "client", "pid"))
-		if err != nil && !os.IsNotExist(err) {
-			return err
-		}
-
-		var pid int
-		if !os.IsNotExist(err) {
-			pid, err = strconv.Atoi(string(contents))
-			if err != nil {
-				return err
-			}
-
-			process, _ := os.FindProcess(int(pid))
-			process.Kill()
-		}
-
-		os.Remove(filepath.Join(home, ".infra", "client", "pid"))
-
-		for _, d := range resources {
-			kubeConfig.Clusters[d.Name] = &clientcmdapi.Cluster{
-				Server:               "https://localhost:32710/client/" + d.Name,
-				CertificateAuthority: filepath.Join(home, ".infra", "client", "cert.pem"),
-			}
-
-			executable, err := os.Executable()
-			if err != nil {
-				return err
-			}
-
-			kubeConfig.AuthInfos[d.Name] = &clientcmdapi.AuthInfo{
-				Exec: &clientcmdapi.ExecConfig{
-					Command:    executable,
-					Args:       []string{"creds"},
-					APIVersion: "client.authentication.k8s.io/v1alpha1",
-				},
-			}
-			kubeConfig.Contexts[d.Name] = &clientcmdapi.Context{
-				Cluster:  d.Name,
-				AuthInfo: d.Name,
-			}
-			kubeConfig.CurrentContext = d.Name
-		}
-
-		if err = clientcmd.WriteToFile(kubeConfig, clientcmd.RecommendedHomeFile); err != nil {
 			return err
 		}
 
@@ -868,7 +787,7 @@ func newRevokeCmd() *cobra.Command {
 
 var inspectCmd = &cobra.Command{
 	Use:   "inspect CLUSTER|USER",
-	Short: "Inspect access for a resource or user",
+	Short: "Inspect access",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		config, err := readConfig()
@@ -1231,46 +1150,81 @@ func newprovidersCreateCmd() *cobra.Command {
 	return cmd
 }
 
+func logout() error {
+	config, err := readConfig()
+	if err != nil {
+		return err
+	}
+
+	httpClient, err := client(config.Host, config.Token, config.SkipTLSVerify)
+	if err != nil {
+		return err
+	}
+
+	serverUrl, err := serverUrl(config.Host)
+	if err != nil {
+		return err
+	}
+
+	if config.Token == "" {
+		return nil
+	}
+
+	_, err = httpClient.Post(serverUrl.String()+"/v1/logout", "application/x-www-form-urlencoded", nil)
+	if err != nil {
+		return err
+	}
+
+	err = removeConfig()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 var logoutCmd = &cobra.Command{
 	Use:   "logout",
 	Short: "Log out of Infra server",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		config, err := readConfig()
+		err := logout()
 		if err != nil {
 			return err
 		}
 
-		httpClient, err := client(config.Host, config.Token, config.SkipTLSVerify)
+		// Load default config and merge new config in
+		loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+		defaultConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
+		kubeConfig, err := defaultConfig.RawConfig()
 		if err != nil {
 			return err
 		}
 
-		serverUrl, err := serverUrl(config.Host)
-		if err != nil {
+		for name, c := range kubeConfig.Clusters {
+			if strings.HasPrefix(c.Server, "https://localhost:32710/client/") {
+				delete(kubeConfig.Clusters, name)
+				delete(kubeConfig.Contexts, name)
+				delete(kubeConfig.AuthInfos, name)
+			}
+		}
+
+		if len(kubeConfig.Contexts) == 0 {
+			os.Remove(clientcmd.RecommendedHomeFile)
+		} else {
+			_, ok := kubeConfig.Contexts[kubeConfig.CurrentContext]
+			if !ok {
+				var firstName string
+				for name := range kubeConfig.Contexts {
+					firstName = name
+					break
+				}
+				kubeConfig.CurrentContext = firstName
+			}
+		}
+
+		if err = clientcmd.WriteToFile(kubeConfig, clientcmd.RecommendedHomeFile); err != nil {
 			return err
 		}
-
-		if config.Token == "" {
-			return nil
-		}
-
-		_, err = httpClient.Post(serverUrl.String()+"/v1/logout", "application/x-www-form-urlencoded", nil)
-		if err != nil {
-			return err
-		}
-
-		err = removeConfig()
-		if err != nil {
-			return err
-		}
-
-		home, err := homedir.Dir()
-		if err != nil {
-			return err
-		}
-
-		os.Remove(filepath.Join(home, ".infra", "cache", "kubectl-token"))
-
 		return nil
 	},
 }
@@ -1443,10 +1397,6 @@ var credsCmd = &cobra.Command{
 		}
 
 		if err = os.MkdirAll(filepath.Join(home, ".infra", "cache"), os.ModePerm); err != nil {
-			return err
-		}
-
-		if err = ioutil.WriteFile(filepath.Join(home, ".infra", "cache", "kubectl-token"), []byte(bts), 0644); err != nil {
 			return err
 		}
 
