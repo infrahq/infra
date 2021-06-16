@@ -47,7 +47,7 @@ curl -L "https://github.com/infrahq/infra/releases/latest/download/infra-$(uname
 ### Log in
 
 ```
-infra login -k <EXTERNAL-IP>
+infra login -k -u admin@example.com -p passw0rd <EXTERNAL-IP>
 ```
 
 ### List users
