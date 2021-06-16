@@ -4,6 +4,7 @@
 package server
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -17,6 +18,8 @@ import (
 	"github.com/NYTimes/gziphandler"
 	assetfs "github.com/elazarl/go-bindata-assetfs"
 	"github.com/gin-gonic/gin"
+	"github.com/infrahq/infra/internal/certs"
+	timer "github.com/infrahq/infra/internal/timer"
 	"golang.org/x/crypto/acme/autocert"
 )
 
@@ -26,6 +29,40 @@ type Options struct {
 	TLSCache   string
 	UI         bool
 	UIProxy    bool
+}
+
+func getSelfSignedOrLetsEncryptCert(certManager *autocert.Manager) func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+	selfSignCache := make(map[string]*tls.Certificate)
+
+	return func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+		cert, err := certManager.GetCertificate(hello)
+		if err == nil {
+			return cert, nil
+		}
+
+		name := hello.ServerName
+		if name == "" {
+			name = hello.Conn.LocalAddr().String()
+		}
+
+		cert, ok := selfSignCache[name]
+		if !ok {
+			certBytes, keyBytes, err := certs.GenerateSelfSignedCert([]string{name})
+			if err != nil {
+				return nil, err
+			}
+
+			keypair, err := tls.X509KeyPair(certBytes, keyBytes)
+			if err != nil {
+				return nil, err
+			}
+
+			selfSignCache[name] = &keypair
+			return &keypair, nil
+		}
+
+		return cert, nil
+	}
 }
 
 func Run(options Options) error {
@@ -48,16 +85,8 @@ func Run(options Options) error {
 	// Import config file
 	ImportConfig(db, contents)
 
-	// Create a new Kubernetes instance
-	kubernetes, err := NewKubernetes(db)
-	if err != nil {
-		fmt.Println("warning: could not connect to Kubernetes API", err)
-	}
-
-	go kubernetes.UpdatePermissions()
-
-	sync := Sync{}
-	sync.Start(func() {
+	timer := timer.Timer{}
+	timer.Start(10, func() {
 		var providers []Provider
 
 		if err := db.Find(&providers).Error; err != nil {
@@ -67,11 +96,9 @@ func Run(options Options) error {
 		for _, p := range providers {
 			err = p.SyncUsers(db)
 		}
-
-		kubernetes.UpdatePermissions()
 	})
 
-	defer sync.Stop()
+	defer timer.Stop()
 
 	gin.SetMode(gin.ReleaseMode)
 
@@ -82,8 +109,7 @@ func Run(options Options) error {
 	})
 
 	handlers := &Handlers{
-		db:         db,
-		kubernetes: kubernetes,
+		db: db,
 	}
 
 	if err = handlers.addRoutes(unixRouter); err != nil {

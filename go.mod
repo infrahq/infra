@@ -16,6 +16,7 @@ require (
 	github.com/googleapis/gnostic v0.5.5 // indirect
 	github.com/goware/urlx v0.3.1
 	github.com/imdario/mergo v0.3.12 // indirect
+	github.com/jessevdk/go-flags v1.5.0
 	github.com/json-iterator/go v1.1.11 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/mattn/go-runewidth v0.0.12 // indirect
@@ -37,9 +38,9 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/sqlite v1.1.4
 	gorm.io/gorm v1.21.10
-	k8s.io/api v0.21.0
-	k8s.io/apimachinery v0.21.0
-	k8s.io/client-go v0.21.0
+	k8s.io/api v0.21.1
+	k8s.io/apimachinery v0.21.1
+	k8s.io/client-go v0.21.1
 	k8s.io/utils v0.0.0-20210305010621-2afb4311ab10 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.1.1 // indirect
 )

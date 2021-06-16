@@ -55,47 +55,27 @@ Then, create a API token for this read-only user:
 
 4. Note this token for the next step.
 
-### Configure Infra Engine
-
-Add secrets from the previous step:
+### Configure Infra
 
 ```
-$ kubectl -n infra create secret generic infra \
-    --from-literal="okta-client-secret=In6P_qEoEVugEgk_7Z-Vkl6CysG1QapBBCzS5O7m" \
-    --from-literal="okta-api-token=00nQtyRYAXOaA03xRJ5Ok2o6Tg8f19ku9DD3ySS8U9"
+infra providers create okta \
+    --api-token 00_aj082hjd018j2dalskdnvbpp7bqf4bsadkfjbsdufh \
+    --domain example.okta.com \
+    --client-id 0oapn0qwiQPiMIyR35d6 \
+    --client-secret vU-bIjeFyMB7j_jd178HahIsd1oaIaspnuU
 ```
 
-Then update Infra Engine's configuration:
-
-```yaml
-$ cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: infra
-  namespace: infra
-data:
-  infra.yaml: |
-    providers:
-      okta:
-        domain: example.okta.com                              # REPLACE ME: Your Okta domain
-        client-id: 0oapn0qwiQPiMIyR35d6                       # REPLACE ME: Your Client ID
-        client-secret: /var/run/infra/secrets/okta-client-secret
-        api-token: /var/run/infra/secrets/okta-api-token
-
-    permissions:
-      - user: michael@example.com                            # REPLACE ME
-        permission: admin                                    # REPLACE ME
-EOF
-```
-
-Finally, rollout a new version of Infra to reflect the new configuration:
+### List Okta users
 
 ```
-$ kubectl rollout restart -n infra statefulset/infra
+$ infra users ls
+EMAIL              	  PROVIDERS	  CREATED               ROLE
+jeff@example.com  	  okta    	  About a minute ago    infra.owner
+michael@example.com*	okta    	  About a minute ago	  infra.member
+elon@example.com   	  okta    	  About a minute ago	  infra.member
+tom@example.com    	  okta    	  About a minute ago	  infra.member
+mark@example.com   	  okta    	  About a minute ago    infra.member
 ```
-
-## Usage
 
 ### Log in with Okta
 
@@ -106,16 +86,4 @@ $ infra login infra.example.com
 ✔ Logging in with Okta... success
 ✔ Logged in...
 ✔ Kubeconfig updated
-```
-
-### List Okta users
-
-```
-$ infra users ls
-EMAIL              	  PROVIDER	PERMISSION	CREATED            
-jeff@example.com  	  okta    	view      	About a minute ago	
-michael@example.com*	okta    	admin      	About a minute ago	
-elon@example.com   	  okta    	view      	About a minute ago	
-tom@example.com    	  okta    	view      	About a minute ago	
-mark@example.com   	  okta    	view      	About a minute ago
 ```

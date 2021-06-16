@@ -2,7 +2,11 @@ package server
 
 import (
 	"bytes"
+	"crypto"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
+	"encoding/base64"
 	"errors"
 	"log"
 	"os"
@@ -12,30 +16,55 @@ import (
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/okta"
 	"golang.org/x/crypto/bcrypt"
+	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/yaml.v2"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
-type User struct {
-	ID          string       `gorm:"primaryKey"`
-	Created     int64        `json:"created" gorm:"autoCreateTime"`
-	Updated     int64        `json:"updated" gorm:"autoUpdateTime"`
-	Email       string       `json:"email" gorm:"unique"`
-	Password    []byte       `json:"-"`
-	Providers   []Provider   `json:"providers,omitempty" gorm:"many2many:users_providers"`
-	Permissions []Permission `json:"permissions,omitempty" gorm:"foreignKey:UserEmail;references:Email"`
+var initialConfig Config
+
+type Resource struct {
+	ID                 string `gorm:"primaryKey"`
+	Created            int64  `json:"created" gorm:"autoCreateTime"`
+	Updated            int64  `json:"updated" gorm:"autoUpdateTime"`
+	Kind               string `json:"kind"`
+	Name               string `json:"name"`
+	KubernetesCA       string `json:"kubernetesCA"`
+	KubernetesEndpoint string `json:"kubernetesEndpoint"`
 }
 
-type Permission struct {
-	ID        string `gorm:"primaryKey"`
-	Created   int64  `json:"created" yaml:"-" gorm:"autoCreateTime"`
-	Updated   int64  `json:"updated" yaml:"-" gorm:"autoUpdateTime"`
-	UserEmail string `json:"-" yaml:"user"`
-	User      User   `json:"user,omitempty" yaml:"-" gorm:"foreignKey:UserEmail;references:Email"`
-	RoleName  string `json:"-" yaml:"role"`
-	Role      Role   `json:"role,omitempty" yaml:"-" gorm:"foreignKey:RoleName;references:Name"`
+type Grant struct {
+	ID           string   `gorm:"primaryKey"`
+	Created      int64    `json:"created" yaml:"-" gorm:"autoCreateTime"`
+	Updated      int64    `json:"updated" yaml:"-" gorm:"autoUpdateTime"`
+	UserEmail    string   `json:"-" yaml:"user"`
+	User         User     `json:"user,omitempty" yaml:"-" gorm:"foreignKey:UserEmail;references:Email"`
+	RoleName     string   `json:"-" yaml:"role"`
+	Role         Role     `json:"role,omitempty" yaml:"-" gorm:"foreignKey:RoleName;references:Name"`
+	ResourceName string   `json:"-" yaml:"resource"`
+	Resource     Resource `json:"resource,omitempty" yaml:"-" gorm:"foreignKey:ResourceName;references:Name"`
+}
+
+type Role struct {
+	ID             string `gorm:"primaryKey"`
+	Created        int64  `json:"created" yaml:"-" gorm:"autoCreateTime"`
+	Updated        int64  `json:"updated" yaml:"-" gorm:"autoUpdateTime"`
+	Name           string `json:"name" yaml:"name" gorm:"unique"`
+	Description    string `json:"description" yaml:"description"`
+	Default        bool   `json:"default"`
+	KubernetesRole string `json:"kubernetesRole" yaml:"kubernetesRole"`
+}
+
+type User struct {
+	ID        string     `gorm:"primaryKey"`
+	Created   int64      `json:"created" gorm:"autoCreateTime"`
+	Updated   int64      `json:"updated" gorm:"autoUpdateTime"`
+	Email     string     `json:"email" gorm:"unique"`
+	Password  []byte     `json:"-"`
+	Providers []Provider `json:"providers,omitempty" gorm:"many2many:users_providers"`
+	Grants    []Grant    `json:"grants,omitempty" gorm:"foreignKey:UserEmail;references:Email"`
 }
 
 type Provider struct {
@@ -47,25 +76,17 @@ type Provider struct {
 	ClientID     string `json:"clientID" yaml:"clientID,omitempty"`
 	ClientSecret string `json:"-" yaml:"clientSecret,omitempty"`
 	ApiToken     string `json:"-" yaml:"apiToken,omitempty"`
-	Users        []User `json:"users,omitempty" yaml:"-" gorm:"many2many:users_providers"`
-}
-
-type Role struct {
-	ID             string `gorm:"primaryKey"`
-	Created        int64  `json:"created" yaml:"-" gorm:"autoCreateTime"`
-	Updated        int64  `json:"updated" yaml:"-" gorm:"autoUpdateTime"`
-	Name           string `json:"name" yaml:"name" gorm:"unique"`
-	Description    string `json:"description" yaml:"description"`
-	KubernetesRole string `json:"kubernetesRole" yaml:"kubernetesRole"`
+	Users        []User `json:"-" yaml:"-" gorm:"many2many:users_providers"`
 }
 
 type Settings struct {
 	ID            string `gorm:"primaryKey"`
 	Created       int64  `json:"-" yaml:"-" gorm:"autoCreateTime"`
 	Updated       int64  `json:"-" yaml:"-" gorm:"autoUpdateTime"`
-	Domain        string `json:"-" yaml:"domain,omitempty"`
-	JWTSecret     string `json:"-" yaml:"jwtSecret,omitempty"`
 	DisableSignup bool   `json:"disableSignup" yaml:"disableSignup,omitempty"`
+	PrivateJWK    []byte
+	PublicJWK     []byte
+	AddToken      string
 }
 
 type Token struct {
@@ -79,6 +100,13 @@ type Token struct {
 	User   User `json:"-"`
 }
 
+type APIKey struct {
+	ID      string `gorm:"primaryKey"`
+	Created int64  `json:"created" gorm:"autoCreateTime"`
+	Updated int64  `json:"updated" gorm:"autoUpdateTime"`
+	Key     string `json:"key"`
+}
+
 var (
 	DefaultRoleView  = "view"
 	DefaultRoleEdit  = "edit"
@@ -87,22 +115,54 @@ var (
 	DefaultInfraProviderKind = "infra"
 )
 
-var DefaultRoles = []Role{
+// TODO (jmorganca): encode actual rbac rules here
+var Roles = []Role{
 	{
-		Name:           "readonly",
+		Name:           "kubernetes.viewer",
 		Description:    "Read most resources",
 		KubernetesRole: "view",
+		Default:        true,
 	},
 	{
-		Name:           "editor",
+		Name:           "kubernetes.editor",
 		Description:    "Read & write most resources",
 		KubernetesRole: "edit",
 	},
 	{
-		Name:           "superadmin",
+		Name:           "kubernetes.admin",
 		Description:    "Full access to all resources",
-		KubernetesRole: "admin",
+		KubernetesRole: "cluster-admin",
 	},
+	{
+		Name:        "infra.member",
+		Description: "Read-only access to Infra server. Ability to log in and connect resources Infra.",
+		Default:     true,
+	},
+	{
+		Name:        "infra.owner",
+		Description: "Take any action in Infra",
+	},
+}
+
+func (r *Resource) BeforeCreate(tx *gorm.DB) (err error) {
+	if r.ID == "" {
+		r.ID = generate.RandString(12)
+	}
+
+	return
+}
+
+func (u *Resource) AfterCreate(tx *gorm.DB) (err error) {
+	_, err = ApplyGrants(tx, initialConfig.Grants)
+	return
+}
+
+func (r *Resource) BeforeDelete(tx *gorm.DB) (err error) {
+	if r.ID == "" {
+		r.ID = generate.RandString(12)
+	}
+
+	return tx.Where(&Grant{ResourceName: r.Name}).Delete(&Grant{}).Error
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
@@ -110,23 +170,58 @@ func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 		u.ID = generate.RandString(12)
 	}
 
+	// Add default member grant
+	// TODO (merge me with larger default grant logic for POST /v1/grants handler)
+	count := tx.Model(u).Where("role_name LIKE ?", "infra.%").Association("Grants").Count()
+	if count == 0 {
+		tx.Create(&Grant{
+			UserEmail:    u.Email,
+			RoleName:     "infra.member",
+			ResourceName: "infra",
+		})
+	}
+
+	return
+}
+
+func (u *User) AfterCreate(tx *gorm.DB) (err error) {
+	_, err = ApplyGrants(tx, initialConfig.Grants)
 	return
 }
 
 // TODO (jmorganca): use foreign constraints instead?
 func (u *User) BeforeDelete(tx *gorm.DB) error {
+	// Delete from provider
 	err := tx.Model(u).Association("Providers").Clear()
 	if err != nil {
 		return err
 	}
 
-	return tx.Where(&Token{UserID: u.ID}).Delete(&Token{}).Error
+	// Delete user tokens
+	err = tx.Where(&Token{UserID: u.ID}).Delete(&Token{}).Error
+	if err != nil {
+		return err
+	}
+
+	// Delete grants
+	return tx.Where(&Grant{UserEmail: u.Email}).Delete(&Grant{}).Error
 }
 
-func (p *Permission) BeforeCreate(tx *gorm.DB) (err error) {
-	if p.ID == "" {
-		p.ID = generate.RandString(12)
+func (g *Grant) BeforeCreate(tx *gorm.DB) (err error) {
+	if g.ID == "" {
+		g.ID = generate.RandString(12)
 	}
+
+	// Choose a default role if not specified
+	if g.RoleName == "" {
+		if g.ResourceName == "infra" {
+			g.RoleName = "infra.member"
+			return
+		}
+
+		g.RoleName = "kubernetes.viewer"
+	}
+
 	return
 }
 
@@ -153,11 +248,16 @@ func (p *Provider) BeforeDelete(tx *gorm.DB) error {
 // CreateUser will create a user and associate them with the provider
 // If the user already exists, they will not be created, instead an association
 // will be added instead
-func (p *Provider) CreateUser(db *gorm.DB, user *User, email string, password string) error {
+func (p *Provider) CreateUser(db *gorm.DB, user *User, email string, password string, role string) error {
 	var hashedPassword []byte
 	var err error
 
 	return db.Transaction(func(tx *gorm.DB) error {
+		grant := Grant{UserEmail: email, RoleName: role, ResourceName: "infra"}
+		if err := tx.Create(&grant).Error; err != nil {
+			return err
+		}
+
 		if err := tx.FirstOrCreate(&user, &User{Email: email}).Error; err != nil {
 			return err
 		}
@@ -224,7 +324,7 @@ func (p *Provider) SyncUsers(db *gorm.DB) error {
 	return db.Transaction(func(tx *gorm.DB) error {
 		// Create users in provider
 		for _, email := range emails {
-			if err := p.CreateUser(tx, &User{}, email, ""); err != nil {
+			if err := p.CreateUser(tx, &User{}, email, "", "infra.member"); err != nil {
 				return err
 			}
 		}
@@ -258,8 +358,33 @@ func (s *Settings) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 func (s *Settings) BeforeSave(tx *gorm.DB) error {
-	if s.JWTSecret == "" {
-		s.JWTSecret = generate.RandString(32)
+	if len(s.PublicJWK) == 0 || len(s.PrivateJWK) == 0 {
+		key, err := rsa.GenerateKey(rand.Reader, 2048)
+		if err != nil {
+			return err
+		}
+
+		priv := jose.JSONWebKey{Key: key, KeyID: "", Algorithm: string(jose.RS256), Use: "sig"}
+		thumb, err := priv.Thumbprint(crypto.SHA256)
+		if err != nil {
+			return err
+		}
+		kid := base64.URLEncoding.EncodeToString(thumb)
+		priv.KeyID = kid
+		pub := jose.JSONWebKey{Key: &key.PublicKey, KeyID: kid, Algorithm: string(jose.RS256), Use: "sig"}
+
+		privJS, err := priv.MarshalJSON()
+		if err != nil {
+			return err
+		}
+
+		pubJS, err := pub.MarshalJSON()
+		if err != nil {
+			return err
+		}
+
+		s.PrivateJWK = privJS
+		s.PublicJWK = pubJS
 	}
 	return nil
 }
@@ -303,9 +428,20 @@ func NewToken(db *gorm.DB, userID string, token *Token) (secret string, err erro
 	return
 }
 
+func (a *APIKey) BeforeCreate(tx *gorm.DB) (err error) {
+	if a.ID == "" {
+		a.ID = generate.RandString(12)
+	}
+
+	if a.Key == "" {
+		a.Key = generate.RandString(24)
+	}
+	return
+}
+
 type Config struct {
-	Providers   []Provider   `yaml:"providers"`
-	Permissions []Permission `yaml:"permissions"`
+	Providers []Provider `yaml:"providers"`
+	Grants    []Grant    `yaml:"grants"`
 }
 
 func ImportProviders(db *gorm.DB, providers []Provider) error {
@@ -332,19 +468,28 @@ func ImportProviders(db *gorm.DB, providers []Provider) error {
 	return nil
 }
 
-func ImportPermissions(db *gorm.DB, permissions []Permission) error {
-	// Create permissions that don't exist
-	var idsToKeep []string
-	for _, p := range permissions {
-		err := db.FirstOrCreate(&p, &p).Error
+func ApplyGrants(db *gorm.DB, grants []Grant) ([]string, error) {
+	var ids []string
+	for _, g := range grants {
+		err := db.FirstOrCreate(&g, &g).Error
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		idsToKeep = append(idsToKeep, p.ID)
+		ids = append(ids, g.ID)
 	}
 
-	return db.Not(idsToKeep).Delete(Permission{}).Error
+	return ids, nil
+}
+
+func ImportGrants(db *gorm.DB, grants []Grant) error {
+	// Create grants that don't exist
+	idsToKeep, err := ApplyGrants(db, grants)
+	if err != nil {
+		return err
+	}
+
+	return db.Not(idsToKeep).Delete(Grant{}).Error
 }
 
 func ImportConfig(db *gorm.DB, bs []byte) error {
@@ -353,6 +498,8 @@ func ImportConfig(db *gorm.DB, bs []byte) error {
 	if err != nil {
 		return err
 	}
+
+	initialConfig = config
 
 	var raw map[string]interface{}
 	err = yaml.Unmarshal(bs, &raw)
@@ -367,8 +514,8 @@ func ImportConfig(db *gorm.DB, bs []byte) error {
 			}
 		}
 
-		if _, ok := raw["permissions"]; ok {
-			if err = ImportPermissions(tx, config.Permissions); err != nil {
+		if _, ok := raw["grants"]; ok {
+			if err = ImportGrants(tx, config.Grants); err != nil {
 				return err
 			}
 		}
@@ -386,7 +533,7 @@ func ExportConfig(db *gorm.DB) ([]byte, error) {
 			return err
 		}
 
-		err = db.Find(&config.Permissions).Error
+		err = db.Find(&config.Grants).Error
 		if err != nil {
 			return err
 		}
@@ -426,15 +573,17 @@ func NewDB(dbpath string) (*gorm.DB, error) {
 		return nil, err
 	}
 
+	db.AutoMigrate(&Resource{})
 	db.AutoMigrate(&User{})
 	db.AutoMigrate(&Provider{})
-	db.AutoMigrate(&Permission{})
+	db.AutoMigrate(&Grant{})
 	db.AutoMigrate(&Role{})
 	db.AutoMigrate(&Settings{})
 	db.AutoMigrate(&Token{})
+	db.AutoMigrate(&APIKey{})
 
 	// Add default roles
-	for _, p := range DefaultRoles {
+	for _, p := range Roles {
 		err := db.Where(&Role{Name: p.Name}).First(&p).Error
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
@@ -449,8 +598,20 @@ func NewDB(dbpath string) (*gorm.DB, error) {
 		return nil, err
 	}
 
+	// Add default resource (infra)
+	err = db.FirstOrCreate(&Resource{}, &Resource{Name: "infra"}).Error
+	if err != nil {
+		return nil, err
+	}
+
 	// Add default settings
 	err = db.FirstOrCreate(&Settings{}, &Settings{}).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Add default api key
+	err = db.FirstOrCreate(&APIKey{}, &APIKey{}).Error
 	if err != nil {
 		return nil, err
 	}

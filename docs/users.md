@@ -1,0 +1,21 @@
+# Add & remove users
+
+Infra acts as it's own identity provider, allowing you to manually add & remove users without an existing identity provider such as Okta.
+
+## Addding a user
+
+```
+infra users create <email> <password>
+```
+
+## Removing a user
+
+```
+infra users delete <email>
+```
+
+## Listing users
+
+```
+infra users ls
+```
