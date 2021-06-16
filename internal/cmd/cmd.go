@@ -677,7 +677,7 @@ func newAddCmd() *cobra.Command {
 			}
 			fmt.Println(" --namespace=infra")
 			fmt.Println("kubectl create secret generic infra-engine --from-literal='api-key=" + response.Data[0].Key + "' --namespace=infra")
-			fmt.Println("kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/main/deploy/engine.yaml")
+			fmt.Println("kubectl apply -f https://raw.githubusercontent.com/infrahq/early-access/main/deploy/engine.yaml")
 
 			return nil
 		},
