@@ -1,6 +1,6 @@
 # Add & remove users
 
-Infra acts as it's own identity provider, allowing you to manually add & remove users without an existing identity provider such as Okta.
+Infra acts as it's own identity source, allowing you to manually add & remove users without an existing identity source such as Okta.
 
 ## Addding a user
 

@@ -19,23 +19,16 @@ Infra is **identity and access management** for Kubernetes. Provide any user fin
 
 ## Quickstart
 
-### Deploy Infra
+### Install Infra Registry
 
 ```
-kubectl apply -f https://raw.githubusercontent.com/infrahq/early-access/main/deploy/server.yaml
+kubectl apply -f https://raw.githubusercontent.com/infrahq/early-access/main/deploy/registry.yaml
 ```
 
 Infra exposes a `LoadBalancer` service by default. Find the **External IP** of the load balancer:
 
 ```
 kubectl get svc --namespace infra
-```
-
-### Create admin user
-
-```
-kubectl -n infra exec deploy/infra -- infra users create admin@example.com passw0rd
-kubectl -n infra exec deploy/infra -- infra grant admin@example.com infra --role infra.owner
 ```
 
 ### Install Infra CLI
@@ -47,50 +40,24 @@ curl -L "https://github.com/infrahq/early-access/releases/latest/download/infra-
 ### Log in
 
 ```
-infra login -k -u admin@example.com -p passw0rd <EXTERNAL-IP>
-```
-
-### List users
-
-```
-infra users ls
+infra login <EXTERNAL-IP>
 ```
 
 ### Connect a Kubernetes cluster
 
 ```
-infra add example-cluster
-```
+$ infra connect kubernetes --name cluster_name 
 
-### Verify cluster is connected
+To add a Kubernetes cluster to Infra, run the following command 
 
-```
-infra list
-```
-
-### Grant yourself access
+helm install infrahq/infra --set infra.apiKey=120d8j102d8j102d8j1028d --set infra.server=<Pre-filled> --set infra.name="my-first-cluster" 
 
 ```
-infra grant admin@example.com example-cluster
-```
-
-### Connect to the cluster
-
-```bash
-# Switch to cluster
-kubectl config use-context example-cluster
-
-# List pods
-kubectl get pods -A
-```
-
-You're now connected to this new cluster via Infra.
 
 ## Documentation
-* [Add a custom domain](./docs/domain.md)
-* [Manage Users](./docs/users.md)
-* [Grant & revoke access via roles](./docs/access.md)
 * [Connect Okta](./docs/okta.md)
+* [Add users manually](./docs/users.md)
+* [Add a custom domain](./docs/domain.md)
 * [CLI Reference](./docs/cli.md)
 * [Configuration Reference](./docs/configuration.md)
 * [Contributing](./docs/contributing.md)

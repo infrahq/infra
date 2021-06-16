@@ -19,7 +19,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/goware/urlx"
-	"github.com/infrahq/infra/internal/server"
+	"github.com/infrahq/infra/internal/registry"
 	"github.com/infrahq/infra/internal/timer"
 	"github.com/jessevdk/go-flags"
 	"gopkg.in/square/go-jose.v2"
@@ -37,7 +37,7 @@ import (
 )
 
 type Options struct {
-	Server        string
+	Registry      string
 	Name          string
 	SkipTLSVerify bool
 	APIKey        string
@@ -145,9 +145,6 @@ func (k *Kubernetes) UpdatePermissions(rbs []RoleBinding) error {
 		}
 	}
 
-	fmt.Println("todelete")
-	fmt.Println(toDelete)
-
 	for _, td := range toDelete {
 		err := clientset.RbacV1().ClusterRoleBindings().Delete(context.TODO(), td.Name, metav1.DeleteOptions{})
 		if err != nil {
@@ -196,7 +193,7 @@ func (j *jwkCache) Get(client *http.Client, url string) (key jose.JSONWebKey, er
 	}
 
 	if len(response.Keys) < 1 {
-		err = errors.New("no jwks provided by server")
+		err = errors.New("no jwks provided by registry")
 		return
 	}
 
@@ -288,7 +285,7 @@ func (k *Kubernetes) ProxyHandler() (handler gin.HandlerFunc, err error) {
 	}, err
 }
 
-func fetchConfig(client *http.Client, base string, name string) ([]server.Grant, error) {
+func fetchConfig(client *http.Client, base string, name string) ([]registry.Permission, error) {
 	params := url.Values{}
 	params.Add("name", name)
 
@@ -304,7 +301,7 @@ func fetchConfig(client *http.Client, base string, name string) ([]server.Grant,
 
 	fmt.Println(string(data))
 
-	er := &server.ErrorResponse{}
+	er := &registry.ErrorResponse{}
 	err = json.Unmarshal(data, &er)
 	if err != nil {
 		return nil, err
@@ -318,7 +315,7 @@ func fetchConfig(client *http.Client, base string, name string) ([]server.Grant,
 		return nil, errors.New("received error status code: " + http.StatusText(res.StatusCode))
 	}
 
-	var response struct{ Data []server.Grant }
+	var response struct{ Data []registry.Permission }
 	err = json.Unmarshal(data, &response)
 	if err != nil {
 		return nil, err
@@ -516,7 +513,7 @@ func Run(options Options) error {
 		return err
 	}
 
-	uri, err := urlx.Parse(options.Server)
+	uri, err := urlx.Parse(options.Registry)
 	if err != nil {
 		return err
 	}
@@ -555,16 +552,20 @@ func Run(options Options) error {
 			return
 		}
 
-		// Fetch latest grants from server
-		grants, err := fetchConfig(client, uri.String(), options.Name)
+		// Fetch latest permissions from server
+		permissions, err := fetchConfig(client, uri.String(), options.Name)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 
 		var rbs []RoleBinding
-		for _, p := range grants {
-			rbs = append(rbs, RoleBinding{User: p.User.Email, Role: p.Role.KubernetesRole})
+		for _, p := range permissions {
+			role := "view"
+			if p.Role != "" {
+				role = p.Role
+			}
+			rbs = append(rbs, RoleBinding{User: p.User.Email, Role: role})
 		}
 
 		err = kubernetes.UpdatePermissions(rbs)

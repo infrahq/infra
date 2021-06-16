@@ -38,7 +38,7 @@
 ### Add Okta information to Infra registry
 
 ```
-infra providers create okta \
+infra sources create okta \
     --api-token 00_aj082hjd018j2dalskdnvbpp7bqf4bsadkfjbsdufh \
     --domain example.okta.com \
     --client-id 0oapn0qwiQPiMIyR35d6 \
@@ -49,19 +49,20 @@ infra providers create okta \
 
 ```
 $ infra users ls
-EMAIL              	  PROVIDERS	  CREATED               ROLE
-jeff@example.com  	  okta    	  About a minute ago   infra.owner
-michael@example.com*	  okta    	  About a minute ago	  infra.member
-elon@example.com   	  okta    	  About a minute ago	  infra.member
-tom@example.com    	  okta    	  About a minute ago	  infra.member
-mark@example.com   	  okta    	  About a minute ago   infra.member
+EMAIL              	  SOURCES	  CREATED               ADMIN
+jeff@example.com  	  okta    	  About a minute ago
+michael@example.com*  okta    	  About a minute ago
+elon@example.com   	  okta    	  About a minute ago
+tom@example.com    	  okta    	  About a minute ago
+mark@example.com   	  okta    	  About a minute ago
+admin@example.com     infra       5 minutes ago         x
 ```
 
 ### Log in with Okta
 
 ```
 $ infra login <INFRA_REGISTRY_EXTERNAL_IP>
-? Choose a login provider  [Use arrows to move, type to filter]
+? Choose a login method  [Use arrows to move, type to filter]
 > Okta [example.okta.com]
 ✔ Logging in with Okta... success
 ✔ Logged in...

@@ -138,12 +138,12 @@ spec:
                   optional: true
                   name: infra-engine
                   key: name
-            - name: INFRA_ENGINE_SERVER
+            - name: INFRA_ENGINE_REGISTRY
               valueFrom:
                 configMapKeyRef:
                   optional: true
                   name: infra-engine
-                  key: server
+                  key: registry
             - name: INFRA_ENGINE_SKIP_TLS_VERIFY
               valueFrom:
                 configMapKeyRef:

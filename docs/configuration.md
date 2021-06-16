@@ -3,18 +3,18 @@
 * [Example](#example)
 * [ConfigMap Usage](#configmap-usage)
 * [Reference](#reference)
-  * [`providers`](#providers)
+  * [`sources`](#sources)
     * [`okta`](#okta)
-  * [`grants`](#grants)
+  * [`permissions`](#permissions)
     * [`user`](#user)
-    * [`resource`](#resource)
+    * [`destination`](#destination)
     * [`role`](#role)
 
 ## Overview
 
 For teams who require configuration to be stored in version control, Infra can be managed via a configuration file, `infra.yaml`.
 
-**Important:** when configuring keys such as `providers` or `grants` via `infra.yaml`, any manual edits to this data will be overwritten when Infra Server restarts.
+**Important:** when configuring keys such as `sources` or `permissions` via `infra.yaml`, any manual edits to this data will be overwritten when Infra Server restarts.
 
 ## Kubernetes ConfigMap Example
 
@@ -29,23 +29,20 @@ metadata:
   namespace: infra
 data:
   infra.yaml: |
-    providers:
+    sources:
       - kind: okta
         domain: example.okta.com
-        client-id: 0oapn0qwiQPiMIyR35d6
-        client-secret: jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2
-        api-token: 001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd
+        clientId: 0oapn0qwiQPiMIyR35d6
+        clientSecret: jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2
+        apiToken: 001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd
 
-    grants:
+    permissions:
       - user: admin@example.com
-        resource: production
-        role: kubernetes.admin
+        destination: production
+        role: admin
       - user: michael@example.com
-        resource: production
-        role: kubernetes.viewer
-      - user: admin@example.com
-        resource: infra
-        role: infra.owner
+        destination: production
+        role: view
 EOF
 ```
 
@@ -58,24 +55,23 @@ kubectl rollout restart -n infra deployment/infra
 ## Full Example
 
 ```yaml
-providers:
-  - kind: infra
+sources:
   - kind: okta
     domain: acme.okta.com
     client-id: 0oapn0qwiQPiMIyR35d6
     client-secret: jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2
     api-token: 001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd
 
-grants:
+permissions:
   - user: admin@example.com
-    resource: production
+    destination: production
     role: kubernetes.admin
 ```
 
 
 ## Reference
 
-### `providers`
+### `sources`
 
 #### `okta`
 
@@ -87,7 +83,7 @@ grants:
 Example:
 
 ```yaml
-providers:
+sources:
   - kind: okta
     domain: acme.okta.com
     client-id: 0oapn0qwiQPiMIyR35d6
@@ -95,20 +91,20 @@ providers:
     api-token: 001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd
 ```
 
-### `grants`
+### `permissions`
 
 ### Example
 
 ```yaml
-grants:
+permissions:
   - user: admin@infrahq.com
-    resource: production
+    destination: production
     role: kubernetes.admin
   - user: jeff@infrahq.com
-    resource: production
+    destination: production
     role: kubernetes.viewer
   - user: michael@infrahq.com
-    resource: production
+    destination: production
     role: kubernetes.editor
 ```
 
@@ -116,13 +112,13 @@ grants:
 
 `user` is a user's email
 
-### `resource`
+### `destination`
 
-`resource` is a target resource to grant access to, e.g. the kubernetes cluster name
+`destination` is a target destination to grant access to, e.g. the kubernetes cluster name
 
 ### `role`
 
-`role` defines a permission level, giving users access to specific resources and tasks they need
+`role` defines a permission level, giving users access to specific resources they need
 
 | Role                    | Description                        |
 | :--------               | :------------------------------    |
