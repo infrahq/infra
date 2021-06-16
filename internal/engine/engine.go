@@ -90,6 +90,9 @@ func (k *Kubernetes) UpdatePermissions(rbs []RoleBinding) error {
 		crbs = append(crbs, &rbacv1.ClusterRoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "infra-" + role,
+				Labels: map[string]string{
+					"app.kubernetes.io/managed-by": "infra",
+				},
 			},
 			Subjects: subjs,
 			RoleRef: rbacv1.RoleRef{
@@ -107,6 +110,12 @@ func (k *Kubernetes) UpdatePermissions(rbs []RoleBinding) error {
 		return err
 	}
 
+	existingCrbs, err := clientset.RbacV1().ClusterRoleBindings().List(context.TODO(), metav1.ListOptions{LabelSelector: "app.kubernetes.io/managed-by=infra"})
+	if err != nil {
+		return err
+	}
+
+	// Create or update CRBs for users
 	for _, crb := range crbs {
 		_, err = clientset.RbacV1().ClusterRoleBindings().Update(context.TODO(), crb, metav1.UpdateOptions{})
 		if err != nil {
@@ -118,6 +127,31 @@ func (k *Kubernetes) UpdatePermissions(rbs []RoleBinding) error {
 			} else {
 				return err
 			}
+		}
+	}
+
+	// Delete any CRBs managed by infra that aren't in the config
+	var toDelete []rbacv1.ClusterRoleBinding
+	for _, e := range existingCrbs.Items {
+		var found bool
+		for _, crb := range crbs {
+			if crb.Name == e.Name {
+				found = true
+			}
+		}
+
+		if !found {
+			toDelete = append(toDelete, e)
+		}
+	}
+
+	fmt.Println("todelete")
+	fmt.Println(toDelete)
+
+	for _, td := range toDelete {
+		err := clientset.RbacV1().ClusterRoleBindings().Delete(context.TODO(), td.Name, metav1.DeleteOptions{})
+		if err != nil {
+			return err
 		}
 	}
 
@@ -188,8 +222,6 @@ func JWTMiddleware(client *http.Client, base string) func(c *gin.Context) {
 			return
 		}
 
-		// Get JWKs from server
-		// TODO (jmorganca): cache me for an 5m-1hr
 		key, err := cache.Get(client, base+"/.well-known/jwks.json")
 		if err != nil {
 			fmt.Println(err)
@@ -256,8 +288,11 @@ func (k *Kubernetes) ProxyHandler() (handler gin.HandlerFunc, err error) {
 	}, err
 }
 
-func fetchConfig(client *http.Client, base string) ([]server.Grant, error) {
-	res, err := client.Get(base + "/v1/config")
+func fetchConfig(client *http.Client, base string, name string) ([]server.Grant, error) {
+	params := url.Values{}
+	params.Add("name", name)
+
+	res, err := client.Get(base + "/v1/config?" + params.Encode())
 	if err != nil {
 		return nil, err
 	}
@@ -266,6 +301,8 @@ func fetchConfig(client *http.Client, base string) ([]server.Grant, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Println(string(data))
 
 	er := &server.ErrorResponse{}
 	err = json.Unmarshal(data, &er)
@@ -496,7 +533,6 @@ func Run(options Options) error {
 			return
 		}
 
-		// TODO (jmorganca): do this less often since it required a pod exec?
 		endpoint, err := kubernetes.Endpoint()
 		if err != nil {
 			fmt.Println(err)
@@ -520,7 +556,7 @@ func Run(options Options) error {
 		}
 
 		// Fetch latest grants from server
-		grants, err := fetchConfig(client, uri.String())
+		grants, err := fetchConfig(client, uri.String(), options.Name)
 		if err != nil {
 			fmt.Println(err)
 			return

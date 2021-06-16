@@ -120,7 +120,8 @@ spec:
       serviceAccountName: infra-engine
       containers:
         - name: engine
-          image: infrahq/infra:0.0.3
+          image: infrahq/infra:dev
+          imagePullPolicy: Always
           args: ["engine"]
           ports:
             - containerPort: 80

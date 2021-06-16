@@ -3,7 +3,7 @@
 </p>
 
 ## Introduction
-Infra is **identity and access management** for Kubernetes. Give any user fine-grained access to Kubernetes clusters via their existing identities in Okta, Google Accounts, Azure Active Directory and more.
+Infra is **identity and access management** for Kubernetes. Provide any user fine-grained access to Kubernetes clusters via existing identity providers such as Okta, Google Accounts, Azure Active Directory and more.
 
 **Features**:
 * One-command access: `infra login`
@@ -47,7 +47,7 @@ curl -L "https://github.com/infrahq/infra/releases/latest/download/infra-$(uname
 ### Log in
 
 ```
-infra login -k <EXTERNAL IP>
+infra login -k <EXTERNAL-IP>
 ```
 
 ### List users

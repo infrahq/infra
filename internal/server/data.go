@@ -23,6 +23,8 @@ import (
 	"gorm.io/gorm/logger"
 )
 
+var initialConfig Config
+
 type Resource struct {
 	ID                 string `gorm:"primaryKey"`
 	Created            int64  `json:"created" gorm:"autoCreateTime"`
@@ -74,6 +76,7 @@ type Provider struct {
 	ClientID     string `json:"clientID" yaml:"clientID,omitempty"`
 	ClientSecret string `json:"-" yaml:"clientSecret,omitempty"`
 	ApiToken     string `json:"-" yaml:"apiToken,omitempty"`
+	Users        []User `json:"-" yaml:"-" gorm:"many2many:users_providers"`
 }
 
 type Settings struct {
@@ -149,12 +152,26 @@ func (r *Resource) BeforeCreate(tx *gorm.DB) (err error) {
 	return
 }
 
+func (u *Resource) AfterCreate(tx *gorm.DB) (err error) {
+	_, err = ApplyGrants(tx, initialConfig.Grants)
+	return
+}
+
+func (r *Resource) BeforeDelete(tx *gorm.DB) (err error) {
+	if r.ID == "" {
+		r.ID = generate.RandString(12)
+	}
+
+	return tx.Where(&Grant{ResourceName: r.Name}).Delete(&Grant{}).Error
+}
+
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 	if u.ID == "" {
 		u.ID = generate.RandString(12)
 	}
 
 	// Add default member grant
+	// TODO (merge me with larger default grant logic for POST /v1/grants handler)
 	count := tx.Model(u).Where("role_name LIKE ?", "infra.%").Association("Grants").Count()
 	if count == 0 {
 		tx.Create(&Grant{
@@ -167,14 +184,27 @@ func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 	return
 }
 
+func (u *User) AfterCreate(tx *gorm.DB) (err error) {
+	_, err = ApplyGrants(tx, initialConfig.Grants)
+	return
+}
+
 // TODO (jmorganca): use foreign constraints instead?
 func (u *User) BeforeDelete(tx *gorm.DB) error {
+	// Delete from provider
 	err := tx.Model(u).Association("Providers").Clear()
 	if err != nil {
 		return err
 	}
 
-	return tx.Where(&Token{UserID: u.ID}).Delete(&Token{}).Error
+	// Delete user tokens
+	err = tx.Where(&Token{UserID: u.ID}).Delete(&Token{}).Error
+	if err != nil {
+		return err
+	}
+
+	// Delete grants
+	return tx.Where(&Grant{UserEmail: u.Email}).Delete(&Grant{}).Error
 }
 
 func (g *Grant) BeforeCreate(tx *gorm.DB) (err error) {
@@ -438,16 +468,25 @@ func ImportProviders(db *gorm.DB, providers []Provider) error {
 	return nil
 }
 
-func ImportGrants(db *gorm.DB, grants []Grant) error {
-	// Create grants that don't exist
-	var idsToKeep []string
+func ApplyGrants(db *gorm.DB, grants []Grant) ([]string, error) {
+	var ids []string
 	for _, g := range grants {
 		err := db.FirstOrCreate(&g, &g).Error
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		idsToKeep = append(idsToKeep, g.ID)
+		ids = append(ids, g.ID)
+	}
+
+	return ids, nil
+}
+
+func ImportGrants(db *gorm.DB, grants []Grant) error {
+	// Create grants that don't exist
+	idsToKeep, err := ApplyGrants(db, grants)
+	if err != nil {
+		return err
 	}
 
 	return db.Not(idsToKeep).Delete(Grant{}).Error
@@ -459,6 +498,8 @@ func ImportConfig(db *gorm.DB, bs []byte) error {
 	if err != nil {
 		return err
 	}
+
+	initialConfig = config
 
 	var raw map[string]interface{}
 	err = yaml.Unmarshal(bs, &raw)

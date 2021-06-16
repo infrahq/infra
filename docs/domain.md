@@ -12,7 +12,9 @@ In this case, Infra is exposed on IP `31.58.101.169`
 
 ## Add DNS records
 
-Add the following DNS records to set up automatic LetsEncrypt certificates for your Infra Server:
+Add the following DNS records to set up automatic LetsEncrypt certificates for your Infra Server.
+
+(Note: replace `infra.example.com` with your domain of choice)
 
 | TYPE         | DOMAIN                           | VALUE                              | Required                      |
 | :--------    | :------------------------------  | :--------------------------------- | :---------------              |

@@ -464,9 +464,7 @@ func (h *Handlers) ListGrants(c *gin.Context) {
 	}
 
 	var grants []Grant
-	q := h.db.Debug()
-
-	q = q.Joins("Role")
+	q := h.db.Joins("Role")
 	if params.Role != "" {
 		q = q.Where("Role.id = ? OR Role.name = ?", params.Role, params.Role)
 	}
@@ -519,18 +517,22 @@ func (h *Handlers) CreateGrant(c *gin.Context) {
 			ResourceName: resource.Name,
 		}
 
-		// TODO (jmorganca): match roles to resources properly (i.e. cannot add kubernetes roles to infra resource)
-		if params.Role != "" {
-			grant.RoleName = params.Role
-		}
-
 		result := tx.FirstOrCreate(grant, grant)
 		if result.Error != nil {
 			return result.Error
 		}
 
-		if result.RowsAffected == 0 {
+		if grant.RoleName == params.Role {
 			return errors.New("grant already exists")
+		}
+
+		// TODO (jmorganca): match roles to resources properly (i.e. cannot add kubernetes roles to infra resource)
+		if params.Role != "" {
+			grant.RoleName = params.Role
+			err := tx.Save(&grant).Error
+			if err != nil {
+				return err
+			}
 		}
 
 		return nil
@@ -735,11 +737,21 @@ func (h *Handlers) Logout(c *gin.Context) {
 }
 
 func (h *Handlers) Config(c *gin.Context) {
-	// TODO (jmorganca): authorize + filter based on join token
+	type binds struct {
+		Name string `form:"name"`
+	}
+
+	var params binds
+	if err := c.BindQuery(&params); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
+		return
+	}
+
 	var grants []Grant
-	err := h.db.Preload("User").Preload("Role").Not("resource_name = ?", "infra").Find(&grants).Error
+	err := h.db.Preload("User").Preload("Role").Where("resource_name = ?", params.Name).Find(&grants).Error
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		fmt.Println(err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "could not fetch config"})
 		return
 	}
 
