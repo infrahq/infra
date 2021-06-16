@@ -22,7 +22,7 @@ Infra is **identity and access management** for Kubernetes. Provide any user fin
 ### Deploy Infra
 
 ```
-kubectl apply -f https://raw.githubusercontent.com/infrahq/infra/main/deploy/server.yaml
+kubectl apply -f https://raw.githubusercontent.com/infrahq/early-access/main/deploy/server.yaml
 ```
 
 Infra exposes a `LoadBalancer` service by default. Find the **External IP** of the load balancer:
@@ -41,7 +41,7 @@ kubectl -n infra exec deploy/infra -- infra grant admin@example.com infra --role
 ### Install Infra CLI
 
 ```
-curl -L "https://github.com/infrahq/infra/releases/latest/download/infra-$(uname -s)-$(uname -m)" -o /usr/local/bin/infra && chmod +x /usr/local/bin/infra
+curl -L "https://github.com/infrahq/early-access/releases/latest/download/infra-$(uname -s)-$(uname -m)" -o /usr/local/bin/infra && chmod +x /usr/local/bin/infra
 ```
 
 ### Log in
