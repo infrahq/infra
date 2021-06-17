@@ -5,17 +5,17 @@ Infra acts as it's own identity source, allowing you to manually add & remove us
 ## Addding a user
 
 ```
-infra users create <email> <password>
+infra user create <email> <password>
 ```
 
 ## Removing a user
 
 ```
-infra users delete <email>
+infra user delete <email>
 ```
 
 ## Listing users
 
 ```
-infra users ls
+infra user list
 ```
