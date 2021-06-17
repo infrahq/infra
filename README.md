@@ -19,23 +19,16 @@ Infra is **identity and access management** for Kubernetes. Provide any user fin
 
 ## Quickstart
 
-### Deploy Infra
+### Install Infra Registry
 
 ```
-kubectl apply -f https://raw.githubusercontent.com/infrahq/early-access/main/deploy/server.yaml
+kubectl apply -f https://raw.githubusercontent.com/infrahq/early-access/main/deploy/registry.yaml
 ```
 
 Infra exposes a `LoadBalancer` service by default. Find the **External IP** of the load balancer:
 
 ```
 kubectl get svc --namespace infra
-```
-
-### Create admin user
-
-```
-kubectl -n infra exec deploy/infra -- infra users create admin@example.com passw0rd
-kubectl -n infra exec deploy/infra -- infra grant admin@example.com infra --role infra.owner
 ```
 
 ### Install Infra CLI
@@ -47,50 +40,76 @@ curl -L "https://github.com/infrahq/early-access/releases/latest/download/infra-
 ### Log in
 
 ```
-infra login -k -u admin@example.com -p passw0rd <EXTERNAL-IP>
-```
-
-### List users
-
-```
-infra users ls
+infra login <EXTERNAL-IP>
 ```
 
 ### Connect a Kubernetes cluster
 
-```
-infra add example-cluster
-```
-
-### Verify cluster is connected
+First, retrieve your default Infra Registry API Key
 
 ```
-infra list
+infra apikey list
 ```
 
-### Grant yourself access
-
-```
-infra grant admin@example.com example-cluster
-```
-
-### Connect to the cluster
+Then, install Infra Engine:
 
 ```bash
-# Switch to cluster
-kubectl config use-context example-cluster
+kubectl create namespace infra
 
-# List pods
-kubectl get pods -A
+kubectl create configmap infra-engine -n infra --from-literal="name=<CLUSTER NAME>" --from-literal="registry=<EXTERNAL IP>"
+
+kubectl create secret generic infra-engine -n infra --from-literal="api-key=<API KEY>"
+
+kubectl apply -f https://raw.githubusercontent.com/infrahq/early-access/main/deploy/engine.yaml
 ```
 
-You're now connected to this new cluster via Infra.
+Verify the cluster has been connected:
+
+```
+infra destination list
+```
+
+To switch to this cluster, run
+
+```
+kubectl config use-context <CLUSTER NAME>
+```
+
+### Add users
+
+* [Connect Okta](./docs/okta.md)
+* [Add users manually](./docs/users.md)
+
+### Map Permissions
+
+To automatically assign permissions to specific users, create a config map containing the `infra.yaml` [configuration file](./docs/configuration.md).
+
+```bash
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: infra
+  namespace: infra
+data:
+  infra.yaml: |
+    permissions:
+      - user: michael@example.com
+        destination: <CLUSTER NAME>
+        role: edit
+EOF
+```
+
+Then, restart Infra registry to apply the change:
+
+```
+kubectl rollout restart -n infra deployment/infra
+```
 
 ## Documentation
-* [Add a custom domain](./docs/domain.md)
-* [Manage Users](./docs/users.md)
-* [Grant & revoke access via roles](./docs/access.md)
 * [Connect Okta](./docs/okta.md)
+* [Add users manually](./docs/users.md)
+* [Add a custom domain](./docs/domain.md)
 * [CLI Reference](./docs/cli.md)
 * [Configuration Reference](./docs/configuration.md)
 * [Contributing](./docs/contributing.md)

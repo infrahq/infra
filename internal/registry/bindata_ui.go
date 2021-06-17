@@ -25,7 +25,7 @@
 // ../ui/out/settings.html (5.832kB)
 // ../ui/out/users.html (6.978kB)
 
-package server
+package registry
 
 import (
 	"crypto/sha256"
@@ -647,38 +647,38 @@ var _bintree = &bintree{nil, map[string]*bintree{
 	"_next": {nil, map[string]*bintree{
 		"static": {nil, map[string]*bintree{
 			"chunks": {nil, map[string]*bintree{
-				"591-6b2081ba169b2318d69a.js": {_nextStaticChunks5916b2081ba169b2318d69aJs, map[string]*bintree{}},
-				"758-0559c58cee5c426b5a3f.js": {_nextStaticChunks7580559c58cee5c426b5a3fJs, map[string]*bintree{}},
+				"591-6b2081ba169b2318d69a.js":       {_nextStaticChunks5916b2081ba169b2318d69aJs, map[string]*bintree{}},
+				"758-0559c58cee5c426b5a3f.js":       {_nextStaticChunks7580559c58cee5c426b5a3fJs, map[string]*bintree{}},
 				"framework-64eb7138163e04c228e4.js": {_nextStaticChunksFramework64eb7138163e04c228e4Js, map[string]*bintree{}},
-				"main-71948af4b0f09c0fc30e.js": {_nextStaticChunksMain71948af4b0f09c0fc30eJs, map[string]*bintree{}},
+				"main-71948af4b0f09c0fc30e.js":      {_nextStaticChunksMain71948af4b0f09c0fc30eJs, map[string]*bintree{}},
 				"pages": {nil, map[string]*bintree{
-					"_app-6088075e8f49dca9cf23.js": {_nextStaticChunksPages_app6088075e8f49dca9cf23Js, map[string]*bintree{}},
-					"_error-b30902e13465df7c5366.js": {_nextStaticChunksPages_errorB30902e13465df7c5366Js, map[string]*bintree{}},
-					"index-af3ba962733f44b093dd.js": {_nextStaticChunksPagesIndexAf3ba962733f44b093ddJs, map[string]*bintree{}},
-					"login-6848f7b17553e78e714a.js": {_nextStaticChunksPagesLogin6848f7b17553e78e714aJs, map[string]*bintree{}},
+					"_app-6088075e8f49dca9cf23.js":        {_nextStaticChunksPages_app6088075e8f49dca9cf23Js, map[string]*bintree{}},
+					"_error-b30902e13465df7c5366.js":      {_nextStaticChunksPages_errorB30902e13465df7c5366Js, map[string]*bintree{}},
+					"index-af3ba962733f44b093dd.js":       {_nextStaticChunksPagesIndexAf3ba962733f44b093ddJs, map[string]*bintree{}},
+					"login-6848f7b17553e78e714a.js":       {_nextStaticChunksPagesLogin6848f7b17553e78e714aJs, map[string]*bintree{}},
 					"permissions-690b7252dc6267f8fc47.js": {_nextStaticChunksPagesPermissions690b7252dc6267f8fc47Js, map[string]*bintree{}},
-					"settings-391480b6edc576df65d4.js": {_nextStaticChunksPagesSettings391480b6edc576df65d4Js, map[string]*bintree{}},
-					"users-d4169f6a5e12834b45bd.js": {_nextStaticChunksPagesUsersD4169f6a5e12834b45bdJs, map[string]*bintree{}},
+					"settings-391480b6edc576df65d4.js":    {_nextStaticChunksPagesSettings391480b6edc576df65d4Js, map[string]*bintree{}},
+					"users-d4169f6a5e12834b45bd.js":       {_nextStaticChunksPagesUsersD4169f6a5e12834b45bdJs, map[string]*bintree{}},
 				}},
 				"polyfills-eef578260fd80f8fff94.js": {_nextStaticChunksPolyfillsEef578260fd80f8fff94Js, map[string]*bintree{}},
-				"webpack-af8d060cb140570bcfb2.js": {_nextStaticChunksWebpackAf8d060cb140570bcfb2Js, map[string]*bintree{}},
+				"webpack-af8d060cb140570bcfb2.js":   {_nextStaticChunksWebpackAf8d060cb140570bcfb2Js, map[string]*bintree{}},
 			}},
 			"css": {nil, map[string]*bintree{
 				"201988d2b77b4b43a3e9.css": {_nextStaticCss201988d2b77b4b43a3e9Css, map[string]*bintree{}},
 			}},
 			"qagd5U_V25BhUDAijkaHd": {nil, map[string]*bintree{
 				"_buildManifest.js": {_nextStaticQagd5u_v25bhudaijkahd_buildmanifestJs, map[string]*bintree{}},
-				"_ssgManifest.js": {_nextStaticQagd5u_v25bhudaijkahd_ssgmanifestJs, map[string]*bintree{}},
+				"_ssgManifest.js":   {_nextStaticQagd5u_v25bhudaijkahd_ssgmanifestJs, map[string]*bintree{}},
 			}},
 		}},
 	}},
-	"favicon.ico": {faviconIco, map[string]*bintree{}},
-	"index.html": {indexHtml, map[string]*bintree{}},
-	"login.html": {loginHtml, map[string]*bintree{}},
-	"logo.svg": {logoSvg, map[string]*bintree{}},
+	"favicon.ico":      {faviconIco, map[string]*bintree{}},
+	"index.html":       {indexHtml, map[string]*bintree{}},
+	"login.html":       {loginHtml, map[string]*bintree{}},
+	"logo.svg":         {logoSvg, map[string]*bintree{}},
 	"permissions.html": {permissionsHtml, map[string]*bintree{}},
-	"settings.html": {settingsHtml, map[string]*bintree{}},
-	"users.html": {usersHtml, map[string]*bintree{}},
+	"settings.html":    {settingsHtml, map[string]*bintree{}},
+	"users.html":       {usersHtml, map[string]*bintree{}},
 }}
 
 // RestoreAsset restores an asset under the given directory.

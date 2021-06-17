@@ -1,7 +1,7 @@
 //go:generate npm run export --silent --prefix ../ui
-//go:generate go-bindata -pkg server -nocompress -o ./bindata_ui.go -prefix "../ui/out/" ../ui/out/...
+//go:generate go-bindata -pkg registry -nocompress -o ./bindata_ui.go -prefix "../ui/out/" ../ui/out/...
 
-package server
+package registry
 
 import (
 	"crypto/tls"
@@ -87,13 +87,13 @@ func Run(options Options) error {
 
 	timer := timer.Timer{}
 	timer.Start(10, func() {
-		var providers []Provider
+		var sources []Source
 
-		if err := db.Find(&providers).Error; err != nil {
+		if err := db.Find(&sources).Error; err != nil {
 			fmt.Println(err)
 		}
 
-		for _, p := range providers {
+		for _, p := range sources {
 			err = p.SyncUsers(db)
 		}
 	})

@@ -16,7 +16,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/infrahq/infra/internal/server"
+
+	"github.com/infrahq/infra/internal/registry"
 )
 
 var ClientTimeoutDuration = 5 * time.Minute
@@ -47,34 +48,34 @@ func RunLocalClient() error {
 			return
 		}
 
-		contents, err := ioutil.ReadFile(filepath.Join(homeDir, ".infra", "resources"))
+		contents, err := ioutil.ReadFile(filepath.Join(homeDir, ".infra", "destinations"))
 		if err != nil {
 			log.Println(err)
 			return
 		}
 
-		var resources []server.Resource
-		err = json.Unmarshal(contents, &resources)
+		var destinations []registry.Destination
+		err = json.Unmarshal(contents, &destinations)
 		if err != nil {
 			log.Println(err)
 			return
 		}
 
-		var resource server.Resource
-		for _, d := range resources {
+		var destination registry.Destination
+		for _, d := range destinations {
 			if d.Name == params.Name {
-				resource = d
+				destination = d
 			}
 		}
 
-		remote, err := url.Parse(resource.KubernetesEndpoint + "/api/v1/namespaces/infra/services/http:infra-engine:80/proxy/proxy")
+		remote, err := url.Parse(destination.KubernetesEndpoint + "/api/v1/namespaces/infra/services/http:infra-engine:80/proxy/proxy")
 		if err != nil {
 			log.Println(err)
 			return
 		}
 
 		caCertPool := x509.NewCertPool()
-		caCertPool.AppendCertsFromPEM([]byte(resource.KubernetesCA))
+		caCertPool.AppendCertsFromPEM([]byte(destination.KubernetesCA))
 		proxy := httputil.NewSingleHostReverseProxy(remote)
 		proxy.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{

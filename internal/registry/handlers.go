@@ -1,4 +1,4 @@
-package server
+package registry
 
 import (
 	"errors"
@@ -68,7 +68,7 @@ func (h *Handlers) TokenMiddleware() gin.HandlerFunc {
 	}
 }
 
-func (h *Handlers) RoleMiddleware(roles ...string) gin.HandlerFunc {
+func (h *Handlers) AdminMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.GetBool("skipauth") {
 			c.Next()
@@ -87,23 +87,12 @@ func (h *Handlers) RoleMiddleware(roles ...string) gin.HandlerFunc {
 			return
 		}
 
-		var grants []Grant
-		err := h.db.Where("user_email = ?", user.Email).Find(&grants).Error
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "error"})
+		if !user.Admin {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 			return
 		}
 
-		for _, g := range grants {
-			for _, allowed := range roles {
-				if g.RoleName == allowed {
-					c.Next()
-					return
-				}
-			}
-		}
-
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.Next()
 	}
 }
 
@@ -134,6 +123,52 @@ func (h *Handlers) APIKeyMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		c.Next()
+	}
+}
+
+func (h *Handlers) ApiKeyOrTokenMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.GetBool("skipauth") {
+			c.Next()
+			return
+		}
+
+		// Check bearer header
+		authorization := c.Request.Header.Get("Authorization")
+		raw := strings.Replace(authorization, "Bearer ", "", -1)
+
+		if raw == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+
+		var apiKey APIKey
+		if len(raw) == 24 && h.db.First(&apiKey, "key = ?", raw).Debug().Error == nil {
+			c.Next()
+			return
+		}
+
+		if len(raw) != 36 {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+
+		id := raw[0:12]
+		secret := raw[12:36]
+
+		var token Token
+		if err := h.db.Preload("User").First(&token, "id = ?", id).Error; err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+
+		if err := token.CheckSecret(secret); err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+
+		c.Set("user", token.User)
 		c.Next()
 	}
 }
@@ -207,15 +242,57 @@ func (h *Handlers) WellKnownJWKs(c *gin.Context) {
 	})
 }
 
-func (h *Handlers) ListResources(c *gin.Context) {
-	var resources []Resource
-	err := h.db.Not("name = ?", "infra").Find(&resources).Error
+func (h *Handlers) ListDestinations(c *gin.Context) {
+	var destinations []Destination
+	err := h.db.Find(&destinations).Error
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{"could not list resources"})
+		fmt.Println(err)
+		c.JSON(http.StatusInternalServerError, ErrorResponse{"could not list destinations"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": resources})
+	c.JSON(http.StatusOK, gin.H{"data": destinations})
+}
+
+func (h *Handlers) CreateDestination(c *gin.Context) {
+	type binds struct {
+		CA       string `form:"ca" binding:"required"`
+		Endpoint string `form:"endpoint" binding:"required"`
+		Name     string `form:"name" binding:"required"`
+	}
+
+	var form binds
+	if err := c.Bind(&form); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
+		return
+	}
+
+	var destination Destination
+	var created bool
+	err := h.db.Transaction(func(tx *gorm.DB) error {
+		result := tx.Where(&Destination{Name: form.Name}).FirstOrCreate(&destination)
+		if result.Error != nil {
+			return result.Error
+		}
+
+		created = result.RowsAffected > 0
+
+		destination.KubernetesCA = form.CA
+		destination.KubernetesEndpoint = form.Endpoint
+
+		return tx.Save(&destination).Error
+	})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
+		return
+	}
+
+	// TODO (jmorganca): should we instead return an error if the destination already exists?
+	if created {
+		c.Status(http.StatusCreated)
+	} else {
+		c.Status(http.StatusOK)
+	}
 }
 
 func (h *Handlers) ListUsers(c *gin.Context) {
@@ -230,7 +307,7 @@ func (h *Handlers) ListUsers(c *gin.Context) {
 	}
 
 	var users []User
-	q := h.db.Preload("Grants.Role").Preload("Grants.Resource").Preload("Providers")
+	q := h.db.Preload("Permissions").Preload("Sources")
 
 	if params.Email != "" {
 		q = q.Where("email = ?", params.Email)
@@ -259,16 +336,16 @@ func (h *Handlers) CreateUser(c *gin.Context) {
 
 	var user User
 	err := h.db.Transaction(func(tx *gorm.DB) error {
-		var infraProvider Provider
-		if err := tx.Where(&Provider{Kind: DefaultInfraProviderKind}).First(&infraProvider).Error; err != nil {
+		var infraSource Source
+		if err := tx.Where(&Source{Kind: DefaultInfraSourceKind}).First(&infraSource).Error; err != nil {
 			return err
 		}
 
-		if tx.Model(&infraProvider).Where(&User{Email: form.Email}).Association("Users").Count() > 0 {
+		if tx.Model(&infraSource).Where(&User{Email: form.Email}).Association("Users").Count() > 0 {
 			return errors.New("user with this email already exists")
 		}
 
-		err := infraProvider.CreateUser(tx, &user, form.Email, form.Password, "infra.member")
+		err := infraSource.CreateUser(tx, &user, form.Email, form.Password)
 		if err != nil {
 			return err
 		}
@@ -314,16 +391,26 @@ func (h *Handlers) DeleteUser(c *gin.Context) {
 			return err
 		}
 
-		if tx.Model(&user).Where(&Provider{Kind: DefaultInfraProviderKind}).Association("Providers").Count() == 0 {
-			return errors.New("user managed by identity provider")
+		if tx.Model(&user).Where(&Source{Kind: DefaultInfraSourceKind}).Association("Sources").Count() == 0 {
+			return errors.New("user managed by external identity source")
 		}
 
-		var infraProvider Provider
-		if err := tx.Where(&Provider{Kind: DefaultInfraProviderKind}).First(&infraProvider).Error; err != nil {
+		var count int64
+		err = tx.Where(&User{Admin: true}).Find(&[]User{}).Count(&count).Error
+		if err != nil {
 			return err
 		}
 
-		err = infraProvider.DeleteUser(tx, &user)
+		if user.Admin && count == 1 {
+			return errors.New("cannot delete last admin user")
+		}
+
+		var infraSource Source
+		if err := tx.Where(&Source{Kind: DefaultInfraSourceKind}).First(&infraSource).Error; err != nil {
+			return err
+		}
+
+		err = infraSource.DeleteUser(tx, &user)
 		if err != nil {
 			return err
 		}
@@ -338,19 +425,32 @@ func (h *Handlers) DeleteUser(c *gin.Context) {
 	c.JSON(http.StatusOK, DeleteResponse{true})
 }
 
-func (h *Handlers) ListProviders(c *gin.Context) {
-	var providers []Provider
-	if err := h.db.Find(&providers).Error; err != nil {
+func (h *Handlers) ListSources(c *gin.Context) {
+	var sources []Source
+	err := h.db.Transaction(func(tx *gorm.DB) error {
+		var count int64
+		err := tx.Where(&User{Admin: true}).Find(&[]User{}).Count(&count).Error
+		if err != nil {
+			return err
+		}
+
+		if count == 0 {
+			return errors.New("no admin user")
+		}
+
+		return tx.Find(&sources).Error
+	})
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": providers})
+	c.JSON(http.StatusOK, gin.H{"data": sources})
 }
 
-func (h *Handlers) CreateProvider(c *gin.Context) {
+func (h *Handlers) CreateSource(c *gin.Context) {
 	type binds struct {
-		Kind string `form:"kind" binding:"required"`
+		Kind string `form:"kind" binding:"required,oneof=okta"`
 	}
 
 	var params binds
@@ -359,23 +459,10 @@ func (h *Handlers) CreateProvider(c *gin.Context) {
 		return
 	}
 
-	var provider Provider
+	var source Source
 
 	err := h.db.Transaction(func(tx *gorm.DB) error {
 		switch params.Kind {
-		case "infra":
-			count := tx.Where(&Provider{Kind: "infra"}).First(&Provider{}).RowsAffected
-			if count > 0 {
-				return errors.New("can only have one infra provider")
-			}
-
-			provider.Kind = "infra"
-
-			err := tx.Where(&provider).FirstOrCreate(&provider).Error
-			if err != nil {
-				return err
-			}
-
 		case "okta":
 			type oktaBinds struct {
 				ApiToken     string `form:"apiToken" binding:"required"`
@@ -389,18 +476,18 @@ func (h *Handlers) CreateProvider(c *gin.Context) {
 				return err
 			}
 
-			count := tx.Where(&Provider{Kind: "okta", Domain: oktaParams.Domain}).First(&Provider{}).RowsAffected
+			count := tx.Where(&Source{Kind: "okta", Domain: oktaParams.Domain}).First(&Source{}).RowsAffected
 			if count > 0 {
-				return errors.New("okta provider with this domain already exists")
+				return errors.New("okta source with this domain already exists")
 			}
 
-			provider.Kind = "okta"
-			provider.ApiToken = oktaParams.ApiToken
-			provider.Domain = oktaParams.Domain
-			provider.ClientID = oktaParams.ClientID
-			provider.ClientSecret = oktaParams.ClientSecret
+			source.Kind = "okta"
+			source.ApiToken = oktaParams.ApiToken
+			source.Domain = oktaParams.Domain
+			source.ClientID = oktaParams.ClientID
+			source.ClientSecret = oktaParams.ClientSecret
 
-			result := tx.Where(&Provider{Kind: "okta", Domain: oktaParams.Domain}).Create(&provider)
+			result := tx.Where(&Source{Kind: "okta", Domain: oktaParams.Domain}).Create(&source)
 			if result.Error != nil {
 				return result.Error
 			}
@@ -412,12 +499,12 @@ func (h *Handlers) CreateProvider(c *gin.Context) {
 		return
 	}
 
-	provider.SyncUsers(h.db)
+	source.SyncUsers(h.db)
 
-	c.JSON(http.StatusCreated, provider)
+	c.JSON(http.StatusCreated, source)
 }
 
-func (h *Handlers) DeleteProvider(c *gin.Context) {
+func (h *Handlers) DeleteSource(c *gin.Context) {
 	type binds struct {
 		ID string `uri:"id" binding:"required"`
 	}
@@ -429,18 +516,17 @@ func (h *Handlers) DeleteProvider(c *gin.Context) {
 	}
 
 	err := h.db.Transaction(func(tx *gorm.DB) error {
-		// Dont allow deleting the infra provider
-		var provider Provider
-		count := tx.First(&provider, "ID = ?", params.ID).RowsAffected
+		var source Source
+		count := tx.First(&source, "ID = ?", params.ID).RowsAffected
 		if count == 0 {
-			return errors.New("no such provider")
+			return errors.New("no such source")
 		}
 
-		if provider.Kind == "infra" {
-			return errors.New("cannot delete infra provider")
+		if source.Kind == DefaultInfraSourceKind {
+			return errors.New("cannot delete infra source")
 		}
 
-		return tx.Delete(&provider).Error
+		return tx.Delete(&source).Error
 	})
 	if err != nil {
 		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
@@ -450,11 +536,10 @@ func (h *Handlers) DeleteProvider(c *gin.Context) {
 	c.JSON(http.StatusOK, DeleteResponse{true})
 }
 
-func (h *Handlers) ListGrants(c *gin.Context) {
+func (h *Handlers) ListPermissions(c *gin.Context) {
 	type binds struct {
-		Resource string `form:"resource"`
-		User     string `form:"user"`
-		Role     string `form:"role"`
+		Destination string `form:"destination"`
+		User        string `form:"user"`
 	}
 
 	var params binds
@@ -463,105 +548,23 @@ func (h *Handlers) ListGrants(c *gin.Context) {
 		return
 	}
 
-	var grants []Grant
-	q := h.db.Joins("Role")
-	if params.Role != "" {
-		q = q.Where("Role.id = ? OR Role.name = ?", params.Role, params.Role)
-	}
-
-	q = q.Joins("User")
+	var permissions []Permission
+	q := h.db.Joins("User")
 	if params.User != "" {
 		q = q.Where("User.id = ? OR User.email = ?", params.User, params.User)
 	}
 
-	q = q.Joins("Resource")
-	if params.Resource != "" {
-		q = q.Where("Resource.id = ? OR Resource.name = ?", params.Resource, params.Resource)
+	q = q.Joins("Destination")
+	if params.Destination != "" {
+		q = q.Where("Destination.id = ? OR Destination.name = ?", params.Destination, params.Destination)
 	}
 
-	err := q.Find(&grants).Error
+	err := q.Find(&permissions).Error
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{"could not list grants"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{"could not list permissions"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": grants})
-}
-
-func (h *Handlers) CreateGrant(c *gin.Context) {
-	type binds struct {
-		User     string `form:"user" binding:"email,required"`
-		Resource string `form:"resource" binding:"required"`
-		Role     string `form:"role"`
-	}
-
-	var params binds
-	if err := c.Bind(&params); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
-		return
-	}
-
-	var grant Grant
-	err := h.db.Transaction(func(tx *gorm.DB) error {
-		var user User
-		if err := tx.First(&user, "email = ?", params.User).Error; err != nil {
-			return err
-		}
-
-		var resource Resource
-		if err := tx.First(&resource, "name = ?", params.Resource).Error; err != nil {
-			return err
-		}
-
-		grant := &Grant{
-			UserEmail:    user.Email,
-			ResourceName: resource.Name,
-		}
-
-		result := tx.FirstOrCreate(grant, grant)
-		if result.Error != nil {
-			return result.Error
-		}
-
-		if grant.RoleName == params.Role {
-			return errors.New("grant already exists")
-		}
-
-		// TODO (jmorganca): match roles to resources properly (i.e. cannot add kubernetes roles to infra resource)
-		if params.Role != "" {
-			grant.RoleName = params.Role
-			err := tx.Save(&grant).Error
-			if err != nil {
-				return err
-			}
-		}
-
-		return nil
-	})
-	if err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, grant)
-}
-
-func (h *Handlers) DeleteGrant(c *gin.Context) {
-	type binds struct {
-		ID string `uri:"id" binding:"required"`
-	}
-
-	var params binds
-	if err := c.BindUri(&params); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
-		return
-	}
-
-	err := h.db.Where("id = ?", params.ID).Delete(&Grant{}).Error
-	if err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
-	}
-
-	c.JSON(http.StatusOK, DeleteResponse{true})
+	c.JSON(http.StatusOK, gin.H{"data": permissions})
 }
 
 func (h *Handlers) CreateCreds(c *gin.Context) {
@@ -640,17 +643,17 @@ func (h *Handlers) Login(c *gin.Context) {
 			return
 		}
 	case params.OktaCode != "":
-		var provider Provider
-		if err := h.db.Where(&Provider{Kind: "okta", Domain: params.OktaDomain}).First(&provider).Error; err != nil {
-			c.JSON(http.StatusBadRequest, ErrorResponse{"no provider with okta domain"})
+		var source Source
+		if err := h.db.Where(&Source{Kind: "okta", Domain: params.OktaDomain}).First(&source).Error; err != nil {
+			c.JSON(http.StatusBadRequest, ErrorResponse{"no source with okta domain"})
 			return
 		}
 
 		email, err := okta.EmailFromCode(
 			params.OktaCode,
-			provider.Domain,
-			provider.ClientID,
-			provider.ClientSecret,
+			source.Domain,
+			source.ClientID,
+			source.ClientSecret,
 		)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, ErrorResponse{"invalid code"})
@@ -736,82 +739,81 @@ func (h *Handlers) Logout(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (h *Handlers) Config(c *gin.Context) {
-	type binds struct {
-		Name string `form:"name"`
+func (h *Handlers) Signup(c *gin.Context) {
+	type Params struct {
+		Email    string `form:"email" validate:"required,email"`
+		Password string `form:"password" validate:"required,email"`
 	}
 
-	var params binds
-	if err := c.BindQuery(&params); err != nil {
+	var params Params
+	if err := c.ShouldBind(&params); err != nil {
 		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
-		return
-	}
-
-	var grants []Grant
-	err := h.db.Preload("User").Preload("Role").Where("resource_name = ?", params.Name).Find(&grants).Error
-	if err != nil {
 		fmt.Println(err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "could not fetch config"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": grants})
-}
-
-func (h *Handlers) Register(c *gin.Context) {
-	type binds struct {
-		CA       string `form:"ca" binding:"required"`
-		Endpoint string `form:"endpoint" binding:"required"`
-		Name     string `form:"name" binding:"required"`
-	}
-
-	var form binds
-	if err := c.Bind(&form); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
-		return
-	}
-
-	var resource Resource
+	var token Token
+	var secret string
 	err := h.db.Transaction(func(tx *gorm.DB) error {
-		err := tx.Where(&Resource{Name: form.Name}).FirstOrCreate(&resource).Error
+		var count int64
+		err := tx.Where(&User{Admin: true}).Find(&[]User{}).Count(&count).Error
 		if err != nil {
 			return err
 		}
 
-		resource.KubernetesCA = form.CA
-		resource.KubernetesEndpoint = form.Endpoint
+		if count > 0 {
+			return errors.New("admin user already exists")
+		}
 
-		return tx.Save(&resource).Error
+		var infraSource Source
+		if err := tx.Where(&Source{Kind: DefaultInfraSourceKind}).First(&infraSource).Error; err != nil {
+			return err
+		}
+
+		var user User
+		if err := infraSource.CreateUser(tx, &user, params.Email, params.Password); err != nil {
+			return err
+		}
+
+		user.Admin = true
+
+		if err := tx.Save(&user).Error; err != nil {
+			return err
+		}
+
+		secret, err = NewToken(tx, user.ID, &token)
+		if err != nil {
+			return err
+		}
+
+		return nil
 	})
 	if err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{err.Error()})
 		return
 	}
 
-	c.Status(http.StatusOK)
+	c.JSON(http.StatusOK, gin.H{"token": token.ID + secret})
 }
 
 func (h *Handlers) addRoutes(router *gin.Engine) error {
 	router.GET("/healthz", h.Healthz)
 	router.GET("/.well-known/jwks.json", h.WellKnownJWKs)
 
-	router.GET("/v1/resources", h.TokenMiddleware(), h.RoleMiddleware("infra.member", "infra.owner"), h.ListResources)
-	router.GET("/v1/users", h.TokenMiddleware(), h.RoleMiddleware("infra.member", "infra.owner"), h.ListUsers)
-	router.POST("/v1/users", h.TokenMiddleware(), h.RoleMiddleware("infra.owner"), h.CreateUser)
-	router.DELETE("/v1/users/:id", h.TokenMiddleware(), h.RoleMiddleware("infra.owner"), h.DeleteUser)
-	router.GET("/v1/providers", h.ListProviders)
-	router.POST("/v1/providers", h.TokenMiddleware(), h.RoleMiddleware("infra.owner"), h.CreateProvider)
-	router.DELETE("/v1/providers/:id", h.TokenMiddleware(), h.RoleMiddleware("infra.owner"), h.DeleteProvider)
-	router.GET("/v1/grants", h.TokenMiddleware(), h.RoleMiddleware("infra.member", "infra.owner"), h.ListGrants)
-	router.POST("/v1/grants", h.TokenMiddleware(), h.RoleMiddleware("infra.owner"), h.CreateGrant)
-	router.DELETE("/v1/grants/:id", h.TokenMiddleware(), h.RoleMiddleware("infra.owner"), h.DeleteGrant)
-	router.POST("/v1/creds", h.TokenMiddleware(), h.RoleMiddleware("infra.member", "infra.owner"), h.CreateCreds)
-	router.GET("/v1/apikeys", h.TokenMiddleware(), h.RoleMiddleware("infra.owner"), h.ListAPIKeys)
+	router.GET("/v1/users", h.TokenMiddleware(), h.ListUsers)
+	router.POST("/v1/users", h.TokenMiddleware(), h.AdminMiddleware(), h.CreateUser)
+	router.DELETE("/v1/users/:id", h.TokenMiddleware(), h.AdminMiddleware(), h.DeleteUser)
+	router.GET("/v1/destinations", h.TokenMiddleware(), h.ListDestinations)
+	router.POST("/v1/destinations", h.APIKeyMiddleware(), h.CreateDestination)
+	router.GET("/v1/sources", h.ListSources)
+	router.POST("/v1/sources", h.TokenMiddleware(), h.AdminMiddleware(), h.CreateSource)
+	router.DELETE("/v1/sources/:id", h.TokenMiddleware(), h.AdminMiddleware(), h.DeleteSource)
+	router.GET("/v1/permissions", h.ApiKeyOrTokenMiddleware(), h.ListPermissions)
+	router.POST("/v1/creds", h.TokenMiddleware(), h.CreateCreds)
+	router.GET("/v1/apikeys", h.TokenMiddleware(), h.AdminMiddleware(), h.ListAPIKeys)
 	router.POST("/v1/login", h.Login)
 	router.POST("/v1/logout", h.TokenMiddleware(), h.Logout)
-
-	router.GET("/v1/config", h.APIKeyMiddleware(), h.Config)
-	router.POST("/v1/register", h.APIKeyMiddleware(), h.Register)
+	router.POST("/v1/signup", h.Signup)
 
 	return nil
 }

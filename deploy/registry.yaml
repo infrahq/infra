@@ -63,10 +63,9 @@ spec:
     spec:
       automountServiceAccountToken: true
       containers:
-        - name: server
+        - name: registry
           image: infrahq/infra:dev
-          imagePullPolicy: Never
-          args: ["server", "-c", "/var/run/infra/config/infra.yaml", "--db", "/var/run/infra/data/infra.db", "--tls-cache", "/var/run/infra/data/cache"]
+          args: ["registry", "-c", "/var/run/infra/config/infra.yaml", "--db", "/var/run/infra/data/infra.db", "--tls-cache", "/var/run/infra/data/cache"]
           ports:
             - containerPort: 443
           volumeMounts:

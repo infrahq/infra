@@ -2,106 +2,67 @@
 
 ## Commands
 
-* [infra list](#infra-list)
-* [infra grant](#infra-grant)
-* [infra revoke](#infra-revoke)
-* [infra inspect](#infra-inspect)
-* [infra users create](#infra-users-create)
-* [infra users list](#infra-users-list)
-* [infra users delete](#infra-users-delete)
-* [infra providers list](#infra-providers-list)
-* [infra providers create](#infra-providers-create)
-* [infra providers delete](#infra-providers-delete)
-* [infra signup](#infra-signup)
 * [infra login](#infra-login)
 * [infra logout](#infra-logout)
-* [infra server](#infra-server)
+* [infra user create](#infra-user-create)
+* [infra user list](#infra-user-list)
+* [infra user delete](#infra-user-delete)
+* [infra destination list](#infra-destination-list)
+* [infra source list](#infra-source-list)
+* [infra source create](#infra-source-create)
+* [infra source delete](#infra-source-delete)
+* [infra apikey list](#infra-apikey-list)
+* [infra registry](#infra-registry)
 * [infra engine](#infra-engine)
 
 
-## `infra list`
+## `infra login`
 
-List clusters
-
-```
-infra list [flags]
-```
-
-### Options
+Log in to an Infra Registry
 
 ```
-  -h, --help   help for list
-```
-
-## `infra grant`
-
-Grant access to a resource
-
-```
-infra grant USER RESOURCE [flags]
+infra login REGISTRY [flags]
 ```
 
 ### Examples
 
 ```
-$ infra grant user@example.com production --role kubernetes.editor
+$ infra login infra.example.com
 ```
 
 ### Options
 
 ```
-  -h, --help          help for grant
-  -r, --role string   role
+  -h, --help              help for login
+  -k, --skip-tls-verify   skip TLS verification
 ```
 
-## `infra revoke`
+## `infra logout`
 
-Revoke access to a resource
-
-```
-infra revoke USER RESOURCE [flags]
-```
-
-### Examples
+Log out of an Infra Registry
 
 ```
-$ infra revoke user@example.com production
-$ infra revoke user@example.com production --role kubernetes.editor
+infra logout [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help          help for revoke
-  -r, --role string   role
+  -h, --help   help for logout
 ```
 
-## `infra inspect`
-
-Inspect access for a resource or user
-
-```
-infra inspect CLUSTER|USER [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for inspect
-```
-
-## `infra users create`
+## `infra user create`
 
 create a user
 
 ```
-infra users create EMAIL PASSWORD [flags]
+infra user create EMAIL PASSWORD [flags]
 ```
 
 ### Examples
 
 ```
-$ infra users create admin@example.com p4assw0rd
+$ infra user create admin@example.com password
 ```
 
 ### Options
@@ -110,12 +71,12 @@ $ infra users create admin@example.com p4assw0rd
   -h, --help   help for create
 ```
 
-## `infra users list`
+## `infra user list`
 
 List users
 
 ```
-infra users list [flags]
+infra user list [flags]
 ```
 
 ### Options
@@ -124,18 +85,18 @@ infra users list [flags]
   -h, --help   help for list
 ```
 
-## `infra users delete`
+## `infra user delete`
 
 delete a user
 
 ```
-infra users delete ID [flags]
+infra user delete USER [flags]
 ```
 
 ### Examples
 
 ```
-$ infra users delete user@example.com
+$ infra user delete user@example.com
 ```
 
 ### Options
@@ -144,12 +105,12 @@ $ infra users delete user@example.com
   -h, --help   help for delete
 ```
 
-## `infra providers list`
+## `infra destination list`
 
-List providers
+List destinations
 
 ```
-infra providers list [flags]
+infra destination list [flags]
 ```
 
 ### Options
@@ -158,18 +119,32 @@ infra providers list [flags]
   -h, --help   help for list
 ```
 
-## `infra providers create`
+## `infra source list`
 
-Create a provider connection
+List sources
 
 ```
-infra providers create KIND [flags]
+infra source list [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for list
+```
+
+## `infra source create`
+
+Connect an identity source
+
+```
+infra source create KIND [flags]
 ```
 
 ### Examples
 
 ```
-$ infra providers create okta \
+$ infra source create okta \
 	--domain example.okta.com \
 	--apiToken 001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd \
 	--clientID 0oapn0qwiQPiMIyR35d6 \
@@ -182,22 +157,22 @@ $ infra providers create okta \
       --api-token string       Api Token
       --client-id string       Client ID for single sign on
       --client-secret string   Client Secret for single sign on
-      --domain string          Identity provider domain (e.g. example.okta.com)
+      --domain string          Domain (e.g. example.okta.com)
   -h, --help                   help for create
 ```
 
-## `infra providers delete`
+## `infra source delete`
 
-Delete a provider connection
+Delete an identity source
 
 ```
-infra providers delete ID [flags]
+infra source delete ID [flags]
 ```
 
 ### Examples
 
 ```
-$ infra providers delete n7bha2pxjpa01a
+$ infra source delete n7bha2pxjpa01a
 ```
 
 ### Options
@@ -206,76 +181,34 @@ $ infra providers delete n7bha2pxjpa01a
   -h, --help   help for delete
 ```
 
-## `infra signup`
+## `infra apikey list`
 
-Create the admin user for a new Infra Server
-
-```
-infra signup HOST [flags]
-```
-
-### Examples
+List API Keys
 
 ```
-$ infra signup infra.example.com
+infra apikey list [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help       help for signup
-  -i, --insecure   skip TLS verification
+  -h, --help   help for list
 ```
 
-## `infra login`
+## `infra registry`
 
-Log in to Infra server
-
-```
-infra login HOST [flags]
-```
-
-### Examples
+Start Infra Registry
 
 ```
-$ infra login infra.example.com
+infra registry [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help       help for login
-  -i, --insecure   skip TLS verification
-```
-
-## `infra logout`
-
-Log out of Infra server
-
-```
-infra logout [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for logout
-```
-
-## `infra server`
-
-Start Infra server
-
-```
-infra server [flags]
-```
-
-### Options
-
-```
-  -c, --config string      server config file
+  -c, --config string      config file
       --db string          path to database file (default "/Users/jmorgan/.infra/infra.db")
-  -h, --help               help for server
+  -h, --help               help for registry
       --tls-cache string   path to directory to cache tls self-signed and Let's Encrypt certificates (default "/Users/jmorgan/.infra/cache")
       --ui                 enable experimental UI
       --ui-proxy           proxy ui requests to localhost:3000
@@ -283,7 +216,7 @@ infra server [flags]
 
 ## `infra engine`
 
-Start Infra engine
+Start Infra Engine
 
 ```
 infra engine [flags]
@@ -292,10 +225,10 @@ infra engine [flags]
 ### Options
 
 ```
-      --api-key string   api key
-  -h, --help             help for engine
-  -i, --insecure         skip TLS verification
-  -n, --name string      cluster name
-  -s, --server string    server hostname
+      --api-key string    api key
+  -h, --help              help for engine
+  -n, --name string       cluster name
+  -r, --registry string   registry hostname
+  -k, --skip-tls-verify   skip TLS verification (default true)
 ```
 
