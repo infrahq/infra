@@ -38,7 +38,7 @@
 ### Add Okta information to Infra registry
 
 ```
-infra sources create okta \
+infra source create okta \
     --api-token 00_aj082hjd018j2dalskdnvbpp7bqf4bsadkfjbsdufh \
     --domain example.okta.com \
     --client-id 0oapn0qwiQPiMIyR35d6 \
