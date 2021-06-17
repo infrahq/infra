@@ -604,13 +604,6 @@ func newLoginCmd() *cobra.Command {
 
 			fmt.Println(blue("✓") + " Logged in")
 
-			// Print extra instructions if the user just set up as admin
-			if sourcesErr != nil && sourcesErr.Error() == "no admin user" {
-				fmt.Println()
-				fmt.Println(blue("Add your first cluster: ") + "infra destination join-command --name first-cluster")
-				fmt.Println()
-			}
-
 			// Generate client certs
 			home, err := homedir.Dir()
 			if err != nil {
@@ -1146,8 +1139,6 @@ var sourceDeleteCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Println(id)
-
 		return nil
 	},
 }
@@ -1196,7 +1187,7 @@ var apikeyListCmd = &cobra.Command{
 			rows = append(rows, []string{apikey.Name, apikey.Key})
 		}
 
-		printTable([]string{"NAME", "API KEY"}, rows)
+		printTable([]string{"NAME", "APIKEY"}, rows)
 
 		return nil
 	},
