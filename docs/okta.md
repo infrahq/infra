@@ -48,7 +48,7 @@ infra source create okta \
 ### List Okta users
 
 ```
-$ infra users ls
+$ infra user ls
 EMAIL              	  SOURCES	  CREATED               ADMIN
 jeff@example.com  	  okta    	  About a minute ago
 michael@example.com*  okta    	  About a minute ago
