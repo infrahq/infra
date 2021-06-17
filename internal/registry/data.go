@@ -68,6 +68,7 @@ type Permission struct {
 	DestinationName string      `json:"-" yaml:"destination"`
 	Destination     Destination `json:"destination,omitempty" yaml:"-" gorm:"foreignKey:DestinationName;references:Name"`
 	Role            string      `json:"role" yaml:"role"`
+	FromConfig      bool        `json:"-" yaml:"-"`
 }
 
 type Settings struct {
@@ -459,7 +460,10 @@ func ApplyPermissions(db *gorm.DB, permissions []Permission) ([]string, error) {
 			continue
 		}
 
-		err = db.FirstOrCreate(&p, &p).Error
+		permission := p
+		p.FromConfig = true
+
+		err = db.FirstOrCreate(&permission, &permission).Error
 		if err != nil {
 			return nil, err
 		}
@@ -476,7 +480,7 @@ func ImportPermissions(db *gorm.DB, permissions []Permission) error {
 		return err
 	}
 
-	return db.Not(idsToKeep).Delete(Permission{}).Error
+	return db.Not(idsToKeep).Not(&Permission{FromConfig: false}).Delete(Permission{}).Error
 }
 
 func ImportConfig(db *gorm.DB, bs []byte) error {
