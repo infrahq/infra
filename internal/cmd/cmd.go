@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -257,26 +258,26 @@ func fetchDestinations() ([]registry.Destination, error) {
 	return response.Data, nil
 }
 
-func updateKubeconfig() error {
+func updateKubeconfig() (bool, error) {
 	destinations, err := fetchDestinations()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	home, err := homedir.Dir()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	destinationsJSON, err := json.Marshal(destinations)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// Write destinatinons to json file
 	err = os.WriteFile(filepath.Join(home, ".infra", "destinations"), destinationsJSON, 0644)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// Load default config and merge new config in
@@ -284,7 +285,7 @@ func updateKubeconfig() error {
 	defaultConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
 	kubeConfig, err := defaultConfig.RawConfig()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	for _, d := range destinations {
@@ -295,7 +296,7 @@ func updateKubeconfig() error {
 
 		executable, err := os.Executable()
 		if err != nil {
-			return err
+			return false, err
 		}
 
 		kubeConfig.AuthInfos[d.Name] = &clientcmdapi.AuthInfo{
@@ -331,10 +332,10 @@ func updateKubeconfig() error {
 	}
 
 	if err = clientcmd.WriteToFile(kubeConfig, clientcmd.RecommendedHomeFile); err != nil {
-		return err
+		return false, err
 	}
 
-	return nil
+	return len(destinations) > 0, nil
 }
 
 var rootCmd = &cobra.Command{
@@ -347,7 +348,7 @@ var rootCmd = &cobra.Command{
 
 func newLoginCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "login HOST",
+		Use:     "login REGISTRY",
 		Short:   "Log in to an Infra Registry",
 		Args:    cobra.ExactArgs(1),
 		Example: "$ infra login infra.example.com",
@@ -358,93 +359,84 @@ func newLoginCmd() *cobra.Command {
 			}
 
 			host := registryUrl.String()
-			skipTlsVerify, err := cmd.PersistentFlags().GetBool("skip-tls-verify")
 			if err != nil {
 				return err
 			}
 
-			httpClient, err := client(host, "", skipTlsVerify)
+			insecureClient := &http.Client{
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+				},
+			}
+
+			res, err := insecureClient.Get(host + "/v1/sources")
 			if err != nil {
 				return err
 			}
 
-			res, err := httpClient.Get(host + "/v1/sources")
+			// Verify certificates manually in case
+			opts := x509.VerifyOptions{
+				DNSName:       res.TLS.ServerName,
+				Intermediates: x509.NewCertPool(),
+			}
+			for _, cert := range res.TLS.PeerCertificates[1:] {
+				opts.Intermediates.AddCert(cert)
+			}
+
+			var skipTLSVerify bool
+
+			_, err = res.TLS.PeerCertificates[0].Verify(opts)
 			if err != nil {
-				if strings.Contains(err.Error(), "x509: certificate signed by unknown authority") {
-					return errors.New(err.Error() + "\n" + "Use \"infra login " + host + " -k or --skip-tls-verify\" to bypass CA verification for all future requests")
+				if _, ok := err.(x509.UnknownAuthorityError); !ok {
+					return err
 				}
-				return err
+
+				proceed := false
+				fmt.Println()
+				fmt.Print("Could not verify certificate for host ")
+				fmt.Print(termenv.String(args[0]).Bold())
+				fmt.Println()
+				prompt := &survey.Confirm{
+					Message: "Are you sure you want to continue (yes/no)?",
+				}
+
+				p := termenv.ColorProfile()
+
+				err := survey.AskOne(prompt, &proceed, survey.WithIcons(func(icons *survey.IconSet) {
+					icons.Question.Text = termenv.String("?").Bold().Foreground(p.Color("#0155F9")).String()
+				}))
+				if err != nil {
+					fmt.Println(err.Error())
+					return err
+				}
+
+				if !proceed {
+					return nil
+				}
+
+				skipTLSVerify = true
 			}
 
 			var response struct{ Data []registry.Source }
-			if err = checkAndDecode(res, &response); err != nil {
+			sourcesErr := checkAndDecode(res, &response)
+
+			// TODO (jmorganca): make this check more reliable - i.e. a fixed error message
+			// or an alternative api endpoint to check if infra is "locked"
+			if sourcesErr != nil && sourcesErr.Error() != "no admin user" {
 				return err
 			}
 
-			sort.Slice(response.Data, func(i, j int) bool {
-				return response.Data[i].Created > response.Data[j].Created
-			})
-
-			options := []string{}
-			for _, p := range response.Data {
-				if p.Kind == "okta" {
-					options = append(options, fmt.Sprintf("Okta [%s]", p.Domain))
-				} else if p.Kind == "infra" {
-					options = append(options, "Username & password")
-				} else {
-					options = append(options, p.Kind)
-				}
+			httpClient, err := client(host, "", skipTLSVerify)
+			if err != nil {
+				return err
 			}
 
-			var option int
-			if len(options) > 1 {
-				prompt := &survey.Select{
-					Message: "Choose a login method:",
-					Options: options,
-				}
-				err = survey.AskOne(prompt, &option, survey.WithIcons(func(icons *survey.IconSet) {
-					icons.Question.Text = blue("?")
-				}))
-				if err == terminal.InterruptErr {
-					return nil
-				}
-			}
+			var loginOrSignupRes *http.Response
 
-			form := url.Values{}
-
-			switch {
-			// Okta
-			case response.Data[option].Kind == "okta":
-				// Start OIDC flow
-				// Get auth code from Okta
-				// Send auth code to Infra to log in as a user
-				state := generate.RandString(12)
-				authorizeUrl := "https://" + response.Data[option].Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + response.Data[option].ClientID + "&response_type=code&scope=openid+email&nonce=" + generate.RandString(10) + "&state=" + state
-
-				fmt.Println(blue("✓") + " Logging in with Okta...")
-				ls, err := newLocalServer()
-				if err != nil {
-					return err
-				}
-
-				err = browser.OpenURL(authorizeUrl)
-				if err != nil {
-					return err
-				}
-
-				code, recvstate, err := ls.wait()
-				if err != nil {
-					return err
-				}
-
-				if state != recvstate {
-					return errors.New("received state is not the same as sent state")
-				}
-
-				form.Add("okta-domain", response.Data[option].Domain)
-				form.Add("okta-code", code)
-
-			case response.Data[option].Kind == "infra":
+			// Log in or prompt admin signup if no admins exist
+			if sourcesErr != nil && sourcesErr.Error() == "no admin user" {
+				fmt.Println()
+				fmt.Println(blue("Welcome to Infra. Get started by creating your admin user:"))
 				email := ""
 				emailPrompt := &survey.Input{
 					Message: "Email",
@@ -467,43 +459,156 @@ func newLoginCmd() *cobra.Command {
 					return nil
 				}
 
+				form := url.Values{}
 				form.Add("email", email)
 				form.Add("password", password)
 
-				fmt.Println(blue("✓") + " Logging in with username & password...")
+				req, err := http.NewRequest("POST", host+"/v1/signup", strings.NewReader(form.Encode()))
+				if err != nil {
+					return err
+				}
+
+				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+				fmt.Println(blue("✓") + " Creating admin user...")
+				loginOrSignupRes, err = httpClient.Do(req)
+				if err != nil {
+					return err
+				}
+			} else {
+				sort.Slice(response.Data, func(i, j int) bool {
+					return response.Data[i].Created > response.Data[j].Created
+				})
+
+				options := []string{}
+				for _, p := range response.Data {
+					if p.Kind == "okta" {
+						options = append(options, fmt.Sprintf("Okta [%s]", p.Domain))
+					} else if p.Kind == "infra" {
+						options = append(options, "Username & password")
+					} else {
+						options = append(options, p.Kind)
+					}
+				}
+
+				var option int
+				if len(options) > 1 {
+					prompt := &survey.Select{
+						Message: "Choose a login method:",
+						Options: options,
+					}
+					err = survey.AskOne(prompt, &option, survey.WithIcons(func(icons *survey.IconSet) {
+						icons.Question.Text = blue("?")
+					}))
+					if err == terminal.InterruptErr {
+						return nil
+					}
+				}
+
+				form := url.Values{}
+
+				switch {
+				// Okta
+				case response.Data[option].Kind == "okta":
+					// Start OIDC flow
+					// Get auth code from Okta
+					// Send auth code to Infra to log in as a user
+					state := generate.RandString(12)
+					authorizeUrl := "https://" + response.Data[option].Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + response.Data[option].ClientID + "&response_type=code&scope=openid+email&nonce=" + generate.RandString(10) + "&state=" + state
+
+					fmt.Println(blue("✓") + " Logging in with Okta...")
+					ls, err := newLocalServer()
+					if err != nil {
+						return err
+					}
+
+					err = browser.OpenURL(authorizeUrl)
+					if err != nil {
+						return err
+					}
+
+					code, recvstate, err := ls.wait()
+					if err != nil {
+						return err
+					}
+
+					if state != recvstate {
+						return errors.New("received state is not the same as sent state")
+					}
+
+					form.Add("okta-domain", response.Data[option].Domain)
+					form.Add("okta-code", code)
+
+				case response.Data[option].Kind == "infra":
+					email := ""
+					emailPrompt := &survey.Input{
+						Message: "Email",
+					}
+					err = survey.AskOne(emailPrompt, &email, survey.WithShowCursor(true), survey.WithValidator(survey.Required), survey.WithIcons(func(icons *survey.IconSet) {
+						icons.Question.Text = blue("?")
+					}))
+					if err == terminal.InterruptErr {
+						return nil
+					}
+
+					password := ""
+					passwordPrompt := &survey.Password{
+						Message: "Password",
+					}
+					err = survey.AskOne(passwordPrompt, &password, survey.WithShowCursor(true), survey.WithValidator(survey.Required), survey.WithIcons(func(icons *survey.IconSet) {
+						icons.Question.Text = blue("?")
+					}))
+					if err == terminal.InterruptErr {
+						return nil
+					}
+
+					form.Add("email", email)
+					form.Add("password", password)
+
+					fmt.Println(blue("✓") + " Logging in with username & password...")
+				}
+
+				req, err := http.NewRequest("POST", host+"/v1/login", strings.NewReader(form.Encode()))
+				if err != nil {
+					return err
+				}
+
+				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+				loginOrSignupRes, err = httpClient.Do(req)
+				if err != nil {
+					return err
+				}
 			}
 
-			req, err := http.NewRequest("POST", host+"/v1/login", strings.NewReader(form.Encode()))
-			if err != nil {
-				return err
-			}
-
-			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-			res, err = httpClient.Do(req)
-			if err != nil {
-				return err
-			}
-
-			var loginResponse struct {
+			var loginOrSignupResponse struct {
 				Token string `json:"token"`
 			}
-			err = checkAndDecode(res, &loginResponse)
+			err = checkAndDecode(loginOrSignupRes, &loginOrSignupResponse)
 			if err != nil {
 				return err
 			}
 
-			fmt.Println(blue("✓") + " Logged in...")
+			logout()
 
 			config := &Config{
 				Host:          host,
-				Token:         loginResponse.Token,
-				SkipTLSVerify: skipTlsVerify,
+				Token:         loginOrSignupResponse.Token,
+				SkipTLSVerify: true,
 			}
 
 			err = writeConfig(config)
 			if err != nil {
 				return err
+			}
+
+			fmt.Println(blue("✓") + " Logged in")
+
+			// Print extra instructions if the user just set up as admin
+			if sourcesErr != nil && sourcesErr.Error() == "no admin user" {
+				fmt.Println()
+				fmt.Println(blue("Add your first cluster: ") + "infra destination join-command --name first-cluster")
+				fmt.Println()
 			}
 
 			// Generate client certs
@@ -550,12 +655,14 @@ func newLoginCmd() *cobra.Command {
 				os.Remove(filepath.Join(home, ".infra", "client", "pid"))
 			}
 
-			err = updateKubeconfig()
+			updated, err := updateKubeconfig()
 			if err != nil {
 				return err
 			}
 
-			fmt.Println(blue("✓") + " Kubeconfig updated")
+			if updated {
+				fmt.Println(blue("✓") + " Kubeconfig updated")
+			}
 
 			return nil
 		},
@@ -595,6 +702,31 @@ func logout() error {
 	if err != nil {
 		return err
 	}
+
+	// Kill client
+	home, err := homedir.Dir()
+	if err != nil {
+		return err
+	}
+
+	contents, err := ioutil.ReadFile(filepath.Join(home, ".infra", "client", "pid"))
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	var pid int
+	if !os.IsNotExist(err) {
+		pid, err = strconv.Atoi(string(contents))
+		if err != nil {
+			return err
+		}
+
+		process, _ := os.FindProcess(int(pid))
+		process.Kill()
+	}
+
+	os.Remove(filepath.Join(home, ".infra", "client", "pid"))
+	os.Remove(filepath.Join(home, ".infra", "destinations"))
 
 	return nil
 }
@@ -647,13 +779,12 @@ var logoutCmd = &cobra.Command{
 
 var destinationCmd = &cobra.Command{
 	Use:   "destination",
-	Short: "Manage destinations",
+	Short: "Manage infrastructure destinations",
 }
 
 var destinationListCmd = &cobra.Command{
-	Use:     "list",
-	Aliases: []string{"ls"},
-	Short:   "List clusters",
+	Use:   "list",
+	Short: "List destinations",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		destinations, err := fetchDestinations()
 		if err != nil {
@@ -680,71 +811,13 @@ var destinationListCmd = &cobra.Command{
 		fmt.Println("To connect, run \"kubectl config use-context <name>\"")
 		fmt.Println()
 
-		err = updateKubeconfig()
+		_, err = updateKubeconfig()
 		if err != nil {
 			return err
 		}
 
 		return nil
 	},
-}
-
-func newDestinationCreateCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "create NAME",
-		Short: "Connect a destination",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			// Create kubectl command
-			config, err := readConfig()
-			if err != nil {
-				return err
-			}
-
-			httpClient, err := client(config.Host, config.Token, config.SkipTLSVerify)
-			if err != nil {
-				return err
-			}
-
-			registryUrl, err := registryUrl(config.Host)
-			if err != nil {
-				return err
-			}
-
-			res, err := httpClient.Get(registryUrl.String() + "/v1/apikeys")
-			if err != nil {
-				return err
-			}
-
-			var response struct {
-				Data []registry.APIKey `json:"data"`
-			}
-			err = checkAndDecode(res, &response)
-			if err != nil {
-				return err
-			}
-
-			if len(response.Data) == 0 {
-				return errors.New("no valid api keys")
-			}
-
-			fmt.Println()
-			fmt.Println("To connect your cluster via kubectl, run:")
-			fmt.Println()
-			fmt.Println("kubectl create namespace infra")
-			fmt.Print("kubectl create configmap infra-engine --from-literal='name=" + args[0] + "' --from-literal='registry=" + config.Host + "'")
-			if config.SkipTLSVerify {
-				fmt.Print(" --from-literal='skip-tls-verify=1'")
-			}
-			fmt.Println(" --namespace=infra")
-			fmt.Println("kubectl create secret generic infra-engine --from-literal='api-key=" + response.Data[0].Key + "' --namespace=infra")
-			fmt.Println("kubectl apply -f https://raw.githubusercontent.com/infrahq/early-access/main/deploy/engine.yaml")
-
-			return nil
-		},
-	}
-
-	return cmd
 }
 
 var userCmd = &cobra.Command{
@@ -857,9 +930,8 @@ var userDeleteCmd = &cobra.Command{
 }
 
 var userListCmd = &cobra.Command{
-	Use:     "list",
-	Aliases: []string{"ls"},
-	Short:   "List users",
+	Use:   "list",
+	Short: "List users",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		config, err := readConfig()
 		if err != nil {
@@ -897,10 +969,6 @@ var userListCmd = &cobra.Command{
 		for _, user := range response.Data {
 			sources := ""
 			for i, s := range user.Sources {
-				if s.Kind == "infra" {
-					continue
-				}
-
 				if i > 0 {
 					sources += ","
 				}
@@ -915,7 +983,7 @@ var userListCmd = &cobra.Command{
 			rows = append(rows, []string{user.Email, sources, units.HumanDuration(time.Now().UTC().Sub(time.Unix(user.Created, 0))) + " ago", admin})
 		}
 
-		printTable([]string{"EMAIL", "SOURCES", "CREATED", "ADMIN"}, rows)
+		printTable([]string{"EMAIL", "SOURCE", "CREATED", "ADMIN"}, rows)
 
 		return nil
 	},
@@ -1084,6 +1152,56 @@ var sourceDeleteCmd = &cobra.Command{
 	},
 }
 
+var apikeyCmd = &cobra.Command{
+	Use:   "apikey",
+	Short: "Manage API Keys",
+}
+
+var apikeyListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List API Keys",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		config, err := readConfig()
+		if err != nil {
+			return err
+		}
+
+		httpClient, err := client(config.Host, config.Token, config.SkipTLSVerify)
+		if err != nil {
+			return err
+		}
+
+		registryUrl, err := registryUrl(config.Host)
+		if err != nil {
+			return err
+		}
+
+		res, err := httpClient.Get(registryUrl.String() + "/v1/apikeys")
+		if err != nil {
+			return err
+		}
+
+		var response struct{ Data []registry.APIKey }
+		err = checkAndDecode(res, &response)
+		if err != nil {
+			return err
+		}
+
+		sort.Slice(response.Data, func(i, j int) bool {
+			return response.Data[i].Created > response.Data[j].Created
+		})
+
+		rows := [][]string{}
+		for _, apikey := range response.Data {
+			rows = append(rows, []string{apikey.Name, apikey.Key})
+		}
+
+		printTable([]string{"NAME", "API KEY"}, rows)
+
+		return nil
+	},
+}
+
 func newRegistryCmd() (*cobra.Command, error) {
 	var options registry.Options
 
@@ -1129,7 +1247,11 @@ func newEngineCmd() *cobra.Command {
 		},
 	}
 
-	cmd.PersistentFlags().BoolVarP(&options.SkipTLSVerify, "skip-tls-verify", "k", len(os.Getenv("INFRA_ENGINE_SKIP_TLS_VERIFY")) > 0, "skip TLS verification")
+	skipTLSVerify := true
+	// TODO (jmorganca): warn users instead of skipping TLS verification
+	// OR find a way to include the server certificate in the api key
+	// skipTLSVerify := len(os.Getenv("INFRA_ENGINE_SKIP_TLS_VERIFY")) > 0
+	cmd.PersistentFlags().BoolVarP(&options.SkipTLSVerify, "skip-tls-verify", "k", skipTLSVerify, "skip TLS verification")
 	cmd.Flags().StringVarP(&options.Registry, "registry", "r", os.Getenv("INFRA_ENGINE_REGISTRY"), "registry hostname")
 	cmd.Flags().StringVarP(&options.Name, "name", "n", os.Getenv("INFRA_ENGINE_NAME"), "cluster name")
 	cmd.Flags().StringVar(&options.APIKey, "api-key", os.Getenv("INFRA_ENGINE_API_KEY"), "api key")
@@ -1278,14 +1400,16 @@ func NewRootCmd() (*cobra.Command, error) {
 	userCmd.AddCommand(userDeleteCmd)
 	rootCmd.AddCommand(userCmd)
 
+	destinationCmd.AddCommand(destinationListCmd)
+	rootCmd.AddCommand(destinationCmd)
+
 	sourceCmd.AddCommand(sourceListCmd)
 	sourceCmd.AddCommand(newSourceCreateCmd())
 	sourceCmd.AddCommand(sourceDeleteCmd)
 	rootCmd.AddCommand(sourceCmd)
 
-	destinationCmd.AddCommand(destinationListCmd)
-	destinationCmd.AddCommand(newDestinationCreateCmd())
-	rootCmd.AddCommand(destinationCmd)
+	apikeyCmd.AddCommand(apikeyListCmd)
+	rootCmd.AddCommand(apikeyCmd)
 
 	registryCmd, err := newRegistryCmd()
 	if err != nil {

@@ -289,7 +289,7 @@ func fetchConfig(client *http.Client, base string, name string) ([]registry.Perm
 	params := url.Values{}
 	params.Add("name", name)
 
-	res, err := client.Get(base + "/v1/config?" + params.Encode())
+	res, err := client.Get(base + "/v1/permissions?" + params.Encode())
 	if err != nil {
 		return nil, err
 	}
@@ -541,14 +541,9 @@ func Run(options Options) error {
 		form.Add("endpoint", endpoint)
 		form.Add("name", options.Name)
 
-		res, err := client.PostForm(uri.String()+"/v1/register", form)
+		_, err = client.PostForm(uri.String()+"/v1/destinations", form)
 		if err != nil {
 			fmt.Println(err)
-			return
-		}
-
-		if res.StatusCode != http.StatusOK {
-			fmt.Println("failed to register, code: ", res.StatusCode)
 			return
 		}
 
@@ -561,11 +556,7 @@ func Run(options Options) error {
 
 		var rbs []RoleBinding
 		for _, p := range permissions {
-			role := "view"
-			if p.Role != "" {
-				role = p.Role
-			}
-			rbs = append(rbs, RoleBinding{User: p.User.Email, Role: role})
+			rbs = append(rbs, RoleBinding{User: p.User.Email, Role: p.Role})
 		}
 
 		err = kubernetes.UpdatePermissions(rbs)

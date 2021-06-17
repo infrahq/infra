@@ -127,6 +127,52 @@ func (h *Handlers) APIKeyMiddleware() gin.HandlerFunc {
 	}
 }
 
+func (h *Handlers) ApiKeyOrTokenMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.GetBool("skipauth") {
+			c.Next()
+			return
+		}
+
+		// Check bearer header
+		authorization := c.Request.Header.Get("Authorization")
+		raw := strings.Replace(authorization, "Bearer ", "", -1)
+
+		if raw == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+
+		var apiKey APIKey
+		if len(raw) == 24 && h.db.First(&apiKey, "key = ?", raw).Debug().Error == nil {
+			c.Next()
+			return
+		}
+
+		if len(raw) != 36 {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+
+		id := raw[0:12]
+		secret := raw[12:36]
+
+		var token Token
+		if err := h.db.Preload("User").First(&token, "id = ?", id).Error; err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+
+		if err := token.CheckSecret(secret); err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+
+		c.Set("user", token.User)
+		c.Next()
+	}
+}
+
 func (h *Handlers) createJWT(email string) (string, time.Time, error) {
 	var settings Settings
 	err := h.db.First(&settings).Error
@@ -206,6 +252,47 @@ func (h *Handlers) ListDestinations(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": destinations})
+}
+
+func (h *Handlers) CreateDestination(c *gin.Context) {
+	type binds struct {
+		CA       string `form:"ca" binding:"required"`
+		Endpoint string `form:"endpoint" binding:"required"`
+		Name     string `form:"name" binding:"required"`
+	}
+
+	var form binds
+	if err := c.Bind(&form); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
+		return
+	}
+
+	var destination Destination
+	var created bool
+	err := h.db.Transaction(func(tx *gorm.DB) error {
+		result := tx.Where(&Destination{Name: form.Name}).FirstOrCreate(&destination)
+		if result.Error != nil {
+			return result.Error
+		}
+
+		created = result.RowsAffected > 0
+
+		destination.KubernetesCA = form.CA
+		destination.KubernetesEndpoint = form.Endpoint
+
+		return tx.Save(&destination).Error
+	})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
+		return
+	}
+
+	// TODO (jmorganca): should we instead return an error if the destination already exists?
+	if created {
+		c.Status(http.StatusCreated)
+	} else {
+		c.Status(http.StatusOK)
+	}
 }
 
 func (h *Handlers) ListUsers(c *gin.Context) {
@@ -308,6 +395,16 @@ func (h *Handlers) DeleteUser(c *gin.Context) {
 			return errors.New("user managed by external identity source")
 		}
 
+		var count int64
+		err = tx.Where(&User{Admin: true}).Find(&[]User{}).Count(&count).Error
+		if err != nil {
+			return err
+		}
+
+		if user.Admin && count == 1 {
+			return errors.New("cannot delete last admin user")
+		}
+
 		var infraSource Source
 		if err := tx.Where(&Source{Kind: DefaultInfraSourceKind}).First(&infraSource).Error; err != nil {
 			return err
@@ -330,7 +427,20 @@ func (h *Handlers) DeleteUser(c *gin.Context) {
 
 func (h *Handlers) ListSources(c *gin.Context) {
 	var sources []Source
-	if err := h.db.Find(&sources).Error; err != nil {
+	err := h.db.Transaction(func(tx *gorm.DB) error {
+		var count int64
+		err := tx.Where(&User{Admin: true}).Find(&[]User{}).Count(&count).Error
+		if err != nil {
+			return err
+		}
+
+		if count == 0 {
+			return errors.New("no admin user")
+		}
+
+		return tx.Find(&sources).Error
+	})
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{err.Error()})
 		return
 	}
@@ -629,59 +739,61 @@ func (h *Handlers) Logout(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (h *Handlers) Config(c *gin.Context) {
-	type binds struct {
-		Name string `form:"name"`
+func (h *Handlers) Signup(c *gin.Context) {
+	type Params struct {
+		Email    string `form:"email" validate:"required,email"`
+		Password string `form:"password" validate:"required,email"`
 	}
 
-	var params binds
-	if err := c.BindQuery(&params); err != nil {
+	var params Params
+	if err := c.ShouldBind(&params); err != nil {
 		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
-		return
-	}
-
-	var permissions []Permission
-	err := h.db.Preload("User").Preload("Role").Where("destination_name = ?", params.Name).Find(&permissions).Error
-	if err != nil {
 		fmt.Println(err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "could not fetch config"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": permissions})
-}
-
-func (h *Handlers) Register(c *gin.Context) {
-	type binds struct {
-		CA       string `form:"ca" binding:"required"`
-		Endpoint string `form:"endpoint" binding:"required"`
-		Name     string `form:"name" binding:"required"`
-	}
-
-	var form binds
-	if err := c.Bind(&form); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
-		return
-	}
-
-	var destination Destination
+	var token Token
+	var secret string
 	err := h.db.Transaction(func(tx *gorm.DB) error {
-		err := tx.Where(&Destination{Name: form.Name}).FirstOrCreate(&destination).Error
+		var count int64
+		err := tx.Where(&User{Admin: true}).Find(&[]User{}).Count(&count).Error
 		if err != nil {
 			return err
 		}
 
-		destination.KubernetesCA = form.CA
-		destination.KubernetesEndpoint = form.Endpoint
+		if count > 0 {
+			return errors.New("admin user already exists")
+		}
 
-		return tx.Save(&destination).Error
+		var infraSource Source
+		if err := tx.Where(&Source{Kind: DefaultInfraSourceKind}).First(&infraSource).Error; err != nil {
+			return err
+		}
+
+		var user User
+		if err := infraSource.CreateUser(tx, &user, params.Email, params.Password); err != nil {
+			return err
+		}
+
+		user.Admin = true
+
+		if err := tx.Save(&user).Error; err != nil {
+			return err
+		}
+
+		secret, err = NewToken(tx, user.ID, &token)
+		if err != nil {
+			return err
+		}
+
+		return nil
 	})
 	if err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{err.Error()})
 		return
 	}
 
-	c.Status(http.StatusOK)
+	c.JSON(http.StatusOK, gin.H{"token": token.ID + secret})
 }
 
 func (h *Handlers) addRoutes(router *gin.Engine) error {
@@ -692,17 +804,16 @@ func (h *Handlers) addRoutes(router *gin.Engine) error {
 	router.POST("/v1/users", h.TokenMiddleware(), h.AdminMiddleware(), h.CreateUser)
 	router.DELETE("/v1/users/:id", h.TokenMiddleware(), h.AdminMiddleware(), h.DeleteUser)
 	router.GET("/v1/destinations", h.TokenMiddleware(), h.ListDestinations)
+	router.POST("/v1/destinations", h.APIKeyMiddleware(), h.CreateDestination)
 	router.GET("/v1/sources", h.ListSources)
 	router.POST("/v1/sources", h.TokenMiddleware(), h.AdminMiddleware(), h.CreateSource)
 	router.DELETE("/v1/sources/:id", h.TokenMiddleware(), h.AdminMiddleware(), h.DeleteSource)
-	router.GET("/v1/permissions", h.TokenMiddleware(), h.ListPermissions)
+	router.GET("/v1/permissions", h.ApiKeyOrTokenMiddleware(), h.ListPermissions)
 	router.POST("/v1/creds", h.TokenMiddleware(), h.CreateCreds)
 	router.GET("/v1/apikeys", h.TokenMiddleware(), h.AdminMiddleware(), h.ListAPIKeys)
 	router.POST("/v1/login", h.Login)
 	router.POST("/v1/logout", h.TokenMiddleware(), h.Logout)
-
-	router.GET("/v1/config", h.APIKeyMiddleware(), h.Config)
-	router.POST("/v1/register", h.APIKeyMiddleware(), h.Register)
+	router.POST("/v1/signup", h.Signup)
 
 	return nil
 }

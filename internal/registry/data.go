@@ -94,6 +94,7 @@ type APIKey struct {
 	ID      string `gorm:"primaryKey"`
 	Created int64  `json:"created" gorm:"autoCreateTime"`
 	Updated int64  `json:"updated" gorm:"autoUpdateTime"`
+	Name    string `json:"name" gorm:"unique"`
 	Key     string `json:"key"`
 }
 
@@ -130,12 +131,66 @@ func (u *User) BeforeDelete(tx *gorm.DB) error {
 
 func (u *User) AfterCreate(tx *gorm.DB) (err error) {
 	_, err = ApplyPermissions(tx, initialConfig.Permissions)
+	if err != nil {
+		return err
+	}
+
+	// if user is admin, provision admin permission
+	var destinations []Destination
+	err = tx.Find(&destinations).Error
+	if err != nil {
+		return err
+	}
+
+	role := "view"
+	if u.Admin {
+		role = "cluster-admin"
+	}
+
+	for _, d := range destinations {
+		var permission Permission
+		err := tx.FirstOrCreate(&permission, &Permission{UserEmail: u.Email, DestinationName: d.Name, Role: role}).Error
+		if err != nil {
+			return err
+		}
+	}
+
 	return
 }
 
 func (r *Destination) BeforeCreate(tx *gorm.DB) (err error) {
 	if r.ID == "" {
 		r.ID = generate.RandString(12)
+	}
+
+	return
+}
+
+func (d *Destination) AfterCreate(tx *gorm.DB) (err error) {
+	// Apply default permissions from config
+	_, err = ApplyPermissions(tx, initialConfig.Permissions)
+	if err != nil {
+		return err
+	}
+
+	// if user is admin, provision admin permission
+	var users []User
+	err = tx.Find(&users).Error
+	if err != nil {
+		return err
+	}
+
+	for _, u := range users {
+		role := "view"
+		if u.Admin {
+			role = "cluster-admin"
+		}
+
+		var permission Permission
+		err := tx.FirstOrCreate(&permission, &Permission{UserEmail: u.Email, DestinationName: d.Name, Role: role}).Error
+		if err != nil {
+			return err
+		}
 	}
 
 	return
@@ -392,7 +447,19 @@ func ImportSources(db *gorm.DB, sources []Source) error {
 func ApplyPermissions(db *gorm.DB, permissions []Permission) ([]string, error) {
 	var ids []string
 	for _, p := range permissions {
-		err := db.FirstOrCreate(&p, &p).Error
+		var user User
+		err := db.Where(&User{Email: p.UserEmail}).First(&user).Error
+		if err != nil {
+			continue
+		}
+
+		var destination Destination
+		err = db.Where(&Destination{Name: p.DestinationName}).First(&destination).Error
+		if err != nil {
+			continue
+		}
+
+		err = db.FirstOrCreate(&p, &p).Error
 		if err != nil {
 			return nil, err
 		}
@@ -418,6 +485,8 @@ func ImportConfig(db *gorm.DB, bs []byte) error {
 	if err != nil {
 		return err
 	}
+
+	initialConfig = config
 
 	var raw map[string]interface{}
 	err = yaml.Unmarshal(bs, &raw)
@@ -513,7 +582,7 @@ func NewDB(dbpath string) (*gorm.DB, error) {
 	}
 
 	// Add default api key
-	err = db.FirstOrCreate(&APIKey{}, &APIKey{}).Error
+	err = db.FirstOrCreate(&APIKey{}, &APIKey{Name: "default"}).Error
 	if err != nil {
 		return nil, err
 	}

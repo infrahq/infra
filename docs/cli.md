@@ -7,21 +7,21 @@
 * [infra user create](#infra-user-create)
 * [infra user list](#infra-user-list)
 * [infra user delete](#infra-user-delete)
+* [infra destination list](#infra-destination-list)
 * [infra source list](#infra-source-list)
 * [infra source create](#infra-source-create)
 * [infra source delete](#infra-source-delete)
-* [infra destination list](#infra-destination-list)
-* [infra destination create](#infra-destination-create)
-* [infra server](#infra-server)
+* [infra apikey list](#infra-apikey-list)
+* [infra registry](#infra-registry)
 * [infra engine](#infra-engine)
 
 
 ## `infra login`
 
-Log in to Infra server
+Log in to an Infra Registry
 
 ```
-infra login HOST [flags]
+infra login REGISTRY [flags]
 ```
 
 ### Examples
@@ -39,7 +39,7 @@ $ infra login infra.example.com
 
 ## `infra logout`
 
-Log out of Infra server
+Log out of an Infra Registry
 
 ```
 infra logout [flags]
@@ -105,6 +105,20 @@ $ infra user delete user@example.com
   -h, --help   help for delete
 ```
 
+## `infra destination list`
+
+List destinations
+
+```
+infra destination list [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for list
+```
+
 ## `infra source list`
 
 List sources
@@ -167,12 +181,12 @@ $ infra source delete n7bha2pxjpa01a
   -h, --help   help for delete
 ```
 
-## `infra destination list`
+## `infra apikey list`
 
-List clusters
+List API Keys
 
 ```
-infra destination list [flags]
+infra apikey list [flags]
 ```
 
 ### Options
@@ -181,34 +195,20 @@ infra destination list [flags]
   -h, --help   help for list
 ```
 
-## `infra destination create`
+## `infra registry`
 
-Connect a destination
-
-```
-infra destination create NAME [flags]
-```
-
-### Options
+Start Infra Registry
 
 ```
-  -h, --help   help for create
-```
-
-## `infra server`
-
-Start Infra server
-
-```
-infra server [flags]
+infra registry [flags]
 ```
 
 ### Options
 
 ```
-  -c, --config string      server config file
+  -c, --config string      config file
       --db string          path to database file (default "/Users/jmorgan/.infra/infra.db")
-  -h, --help               help for server
+  -h, --help               help for registry
       --tls-cache string   path to directory to cache tls self-signed and Let's Encrypt certificates (default "/Users/jmorgan/.infra/cache")
       --ui                 enable experimental UI
       --ui-proxy           proxy ui requests to localhost:3000
@@ -216,7 +216,7 @@ infra server [flags]
 
 ## `infra engine`
 
-Start Infra engine
+Start Infra Engine
 
 ```
 infra engine [flags]
@@ -229,6 +229,6 @@ infra engine [flags]
   -h, --help              help for engine
   -n, --name string       cluster name
   -r, --registry string   registry hostname
-  -k, --skip-tls-verify   skip TLS verification
+  -k, --skip-tls-verify   skip TLS verification (default true)
 ```
 
