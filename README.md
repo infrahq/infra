@@ -46,12 +46,48 @@ infra login <EXTERNAL-IP>
 ### Connect a Kubernetes cluster
 
 ```
-$ infra connect kubernetes --name cluster_name 
+$ infra destinations join-command --name cluster-name 
 
-To add a Kubernetes cluster to Infra, run the following command 
+To connect a Kubernetes destination via kubectl, run:
 
-helm install infrahq/infra --set infra.apiKey=120d8j102d8j102d8j1028d --set infra.server=<Pre-filled> --set infra.name="my-first-cluster" 
+kubectl create namespace infra
+kubectl create configmap infra-engine --from-literal='name=first-cluster' --from-literal='registry=https://35.182.98.183' --from-literal='skip-tls-verify=1' --namespace=infra
+kubectl create secret generic infra-engine --from-literal='api-key=I7yAe82nKwGWbH3L5MDXXSNU' --namespace=infra
+kubectl apply -f https://raw.githubusercontent.com/infrahq/early-access/main/deploy/engine.yaml
+```
 
+### Add users
+
+* [Connect Okta](./docs/okta.md)
+* [Add users manually](./docs/users.md)
+
+### Map Permissions
+
+To automatically assign permissions to specific users, create a config map containing the `infra.yaml` [configuration file](./docs/configuration.md).
+
+```bash
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: infra
+  namespace: infra
+data:
+  infra.yaml: |
+    permissions:
+      - user: admin@example.com
+        destination: production
+        role: admin
+      - user: michael@example.com
+        destination: production
+        role: view
+EOF
+```
+
+Then, restart Infra registry to apply the change:
+
+```
+kubectl rollout restart -n infra deployment/infras
 ```
 
 ## Documentation
