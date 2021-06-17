@@ -22,7 +22,7 @@ Infra is **identity and access management** for Kubernetes. Provide any user fin
 ### Install Infra Registry
 
 ```
-kubectl apply -f https://raw.githubusercontent.com/infrahq/early-access/main/deploy/registry.yaml
+kubectl apply -f https://raw.githubusercontent.com/infrahq/release/main/deploy/registry.yaml
 ```
 
 Infra exposes a `LoadBalancer` service by default. Find the **External IP** of the load balancer:
@@ -34,7 +34,7 @@ kubectl get svc --namespace infra
 ### Install Infra CLI
 
 ```
-curl -L "https://github.com/infrahq/early-access/releases/latest/download/infra-$(uname -s)-$(uname -m)" -o /usr/local/bin/infra && chmod +x /usr/local/bin/infra
+curl -L "https://github.com/infrahq/release/releases/latest/download/infra-$(uname -s)-$(uname -m)" -o /usr/local/bin/infra && chmod +x /usr/local/bin/infra
 ```
 
 ### Log in
@@ -60,7 +60,7 @@ kubectl create configmap infra-engine -n infra --from-literal="name=<CLUSTER NAM
 
 kubectl create secret generic infra-engine -n infra --from-literal="api-key=<API KEY>"
 
-kubectl apply -f https://raw.githubusercontent.com/infrahq/early-access/main/deploy/engine.yaml
+kubectl apply -f https://raw.githubusercontent.com/infrahq/release/main/deploy/engine.yaml
 ```
 
 Verify the cluster has been connected:
