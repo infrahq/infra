@@ -45,15 +45,34 @@ infra login <EXTERNAL-IP>
 
 ### Connect a Kubernetes cluster
 
+First, retrieve your default Infra Registry API Key
+
 ```
-$ infra destinations join-command --name cluster-name 
+infra apikey list
+```
 
-To connect a Kubernetes destination via kubectl, run:
+Then, install Infra Engine:
 
+```bash
 kubectl create namespace infra
-kubectl create configmap infra-engine --from-literal='name=first-cluster' --from-literal='registry=https://35.182.98.183' --from-literal='skip-tls-verify=1' --namespace=infra
-kubectl create secret generic infra-engine --from-literal='api-key=I7yAe82nKwGWbH3L5MDXXSNU' --namespace=infra
+
+kubectl create configmap infra-engine -n infra --from-literal="name=<CLUSTER NAME>" --from-literal="registry=<EXTERNAL IP>"
+
+kubectl create secret generic infra-engine -n infra --from-literal="api-key=<API KEY>"
+
 kubectl apply -f https://raw.githubusercontent.com/infrahq/early-access/main/deploy/engine.yaml
+```
+
+Verify the cluster has been connected:
+
+```
+infra destination list
+```
+
+To switch to this cluster, run
+
+```
+kubectl config use-context <CLUSTER NAME>
 ```
 
 ### Add users
@@ -75,19 +94,16 @@ metadata:
 data:
   infra.yaml: |
     permissions:
-      - user: admin@example.com
-        destination: production
-        role: admin
       - user: michael@example.com
-        destination: production
-        role: view
+        destination: <CLUSTER NAME>
+        role: edit
 EOF
 ```
 
 Then, restart Infra registry to apply the change:
 
 ```
-kubectl rollout restart -n infra deployment/infras
+kubectl rollout restart -n infra deployment/infra
 ```
 
 ## Documentation
