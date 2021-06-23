@@ -1,11 +1,11 @@
 package registry
 
 import (
-	"bytes"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/base64"
 	"errors"
 	"log"
@@ -382,7 +382,7 @@ func (t *Token) BeforeCreate(tx *gorm.DB) (err error) {
 func (t *Token) CheckSecret(secret string) (err error) {
 	h := sha256.New()
 	h.Write([]byte(secret))
-	if !bytes.Equal(t.Secret, h.Sum(nil)) {
+	if subtle.ConstantTimeCompare(t.Secret, h.Sum(nil)) != 1 {
 		return errors.New("could not verify token secret")
 	}
 
