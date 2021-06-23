@@ -1212,8 +1212,6 @@ func newRegistryCmd() (*cobra.Command, error) {
 	cmd.Flags().StringVarP(&options.ConfigPath, "config", "c", "", "config file")
 	cmd.Flags().StringVar(&options.DBPath, "db", filepath.Join(home, ".infra", "infra.db"), "path to database file")
 	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(home, ".infra", "cache"), "path to directory to cache tls self-signed and Let's Encrypt certificates")
-	cmd.Flags().BoolVar(&options.UI, "ui", false, "enable experimental UI")
-	cmd.Flags().BoolVar(&options.UIProxy, "ui-proxy", false, "proxy ui requests to localhost:3000")
 
 	return cmd, nil
 }

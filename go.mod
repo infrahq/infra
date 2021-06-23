@@ -5,10 +5,8 @@ go 1.14
 require (
 	github.com/AlecAivazis/survey/v2 v2.2.12
 	github.com/MakeNowJust/heredoc/v2 v2.0.1
-	github.com/NYTimes/gziphandler v0.0.0-20170623195520-56545f4a5d46
 	github.com/cli/browser v1.1.0
 	github.com/docker/go-units v0.4.0
-	github.com/elazarl/go-bindata-assetfs v1.0.1
 	github.com/gin-gonic/gin v1.7.1
 	github.com/go-playground/assert/v2 v2.0.1
 	github.com/go-playground/validator/v10 v10.6.0 // indirect
