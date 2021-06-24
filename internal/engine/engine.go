@@ -299,8 +299,6 @@ func fetchConfig(client *http.Client, base string, name string) ([]registry.Perm
 		return nil, err
 	}
 
-	fmt.Println(string(data))
-
 	er := &registry.ErrorResponse{}
 	err = json.Unmarshal(data, &er)
 	if err != nil {
