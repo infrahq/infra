@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
@@ -13,9 +14,8 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
-
-	"github.com/gin-gonic/gin"
 
 	"github.com/infrahq/infra/internal/registry"
 )
@@ -23,9 +23,6 @@ import (
 var ClientTimeoutDuration = 5 * time.Minute
 
 func RunLocalClient() error {
-	router := gin.New()
-	router.Use(gin.Logger())
-
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return err
@@ -37,35 +34,40 @@ func RunLocalClient() error {
 		os.Exit(0)
 	}()
 
-	proxyHandler := func(c *gin.Context) {
-		type binds struct {
-			Name string `uri:"name" binding:"required"`
-		}
-
-		var params binds
-		if err := c.BindUri(&params); err != nil {
-			log.Println(err)
+	proxyHandler := func(w http.ResponseWriter, r *http.Request) {
+		components := strings.Split(r.URL.Path, "/")
+		if len(components) < 3 {
+			http.Error(w, "path not found", http.StatusNotFound)
 			return
 		}
 
+		name := components[2]
+
 		contents, err := ioutil.ReadFile(filepath.Join(homeDir, ".infra", "destinations"))
 		if err != nil {
-			log.Println(err)
+			fmt.Println(err)
 			return
 		}
 
 		var destinations []registry.Destination
 		err = json.Unmarshal(contents, &destinations)
 		if err != nil {
-			log.Println(err)
+			http.Error(w, "could not read destinations from ~/.infra/destinations", http.StatusInternalServerError)
+			fmt.Println(err)
 			return
 		}
 
 		var destination registry.Destination
 		for _, d := range destinations {
-			if d.Name == params.Name {
+			if d.Name == name {
 				destination = d
 			}
+		}
+
+		if destination == (registry.Destination{}) {
+			http.Error(w, "path not found", http.StatusNotFound)
+			fmt.Println(err)
+			return
 		}
 
 		remote, err := url.Parse(destination.KubernetesEndpoint + "/api/v1/namespaces/infra/services/http:infra-engine:80/proxy/proxy")
@@ -85,17 +87,14 @@ func RunLocalClient() error {
 
 		timer.Reset(ClientTimeoutDuration)
 
-		c.Request.Header.Add("X-Infra-Authorization", c.Request.Header.Get("Authorization"))
-		c.Request.Header.Del("Authorization")
+		r.Header.Add("X-Infra-Authorization", r.Header.Get("Authorization"))
+		r.Header.Del("Authorization")
 
-		http.StripPrefix("/client/"+params.Name, proxy).ServeHTTP(c.Writer, c.Request)
+		http.StripPrefix("/client/"+name, proxy).ServeHTTP(w, r)
 	}
 
-	router.GET("/client/:name/*all", proxyHandler)
-	router.POST("/client/:name/*all", proxyHandler)
-	router.PUT("/client/:name/*all", proxyHandler)
-	router.PATCH("/client/:name/*all", proxyHandler)
-	router.DELETE("/client/:name/*all", proxyHandler)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/client/", proxyHandler)
 
 	certBytes, err := ioutil.ReadFile(filepath.Join(homeDir, ".infra", "client", "cert.pem"))
 	if err != nil {
@@ -117,7 +116,7 @@ func RunLocalClient() error {
 	tlsServer := &http.Server{
 		Addr:      "127.0.0.1:32710",
 		TLSConfig: tlsConfig,
-		Handler:   router,
+		Handler:   mux,
 	}
 
 	l, err := net.Listen("tcp", "127.0.0.1:32710")

@@ -12,6 +12,7 @@ require (
 	github.com/go-playground/validator/v10 v10.6.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/googleapis/gnostic v0.5.5 // indirect
+	github.com/gorilla/handlers v1.5.1
 	github.com/goware/urlx v0.3.1
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/jessevdk/go-flags v1.5.0
