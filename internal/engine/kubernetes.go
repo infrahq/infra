@@ -169,7 +169,6 @@ func (k *Kubernetes) ExecCat(pod string, namespace string, file string) (string,
 
 // Endpoint gets the cluster endpoint from within the pod
 func (k *Kubernetes) Endpoint() (string, error) {
-	// TODO (jmorganca): find and delete empty rolebindings
 	// Create empty crbs for roles with no users
 	clientset, err := kubernetes.NewForConfig(k.config)
 	if err != nil {
