@@ -210,8 +210,6 @@ infra registry [flags]
       --db string          path to database file (default "/Users/jmorgan/.infra/infra.db")
   -h, --help               help for registry
       --tls-cache string   path to directory to cache tls self-signed and Let's Encrypt certificates (default "/Users/jmorgan/.infra/cache")
-      --ui                 enable experimental UI
-      --ui-proxy           proxy ui requests to localhost:3000
 ```
 
 ## `infra engine`
