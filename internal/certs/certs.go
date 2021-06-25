@@ -2,8 +2,6 @@ package certs
 
 import (
 	"bytes"
-	"crypto/ecdsa"
-	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -13,19 +11,6 @@ import (
 	"net"
 	"time"
 )
-
-func publicKey(priv interface{}) interface{} {
-	switch k := priv.(type) {
-	case *rsa.PrivateKey:
-		return &k.PublicKey
-	case *ecdsa.PrivateKey:
-		return &k.PublicKey
-	case ed25519.PrivateKey:
-		return k.Public().(ed25519.PublicKey)
-	default:
-		return nil
-	}
-}
 
 func GenerateSelfSignedCert(hosts []string) ([]byte, []byte, error) {
 	priv, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -68,7 +53,7 @@ func GenerateSelfSignedCert(hosts []string) ([]byte, []byte, error) {
 	template.IsCA = true
 	template.KeyUsage |= x509.KeyUsageCertSign
 
-	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, publicKey(priv), priv)
+	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, priv.PublicKey, priv)
 	if err != nil {
 		return nil, nil, err
 	}
