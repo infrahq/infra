@@ -11,10 +11,12 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/gorilla/handlers"
 	"github.com/goware/urlx"
 	"github.com/infrahq/infra/internal/registry"
 	"github.com/infrahq/infra/internal/timer"
@@ -318,5 +320,5 @@ func Run(options Options) error {
 	mux.Handle("/proxy/", jwtMiddleware(cache.getjwk, ph))
 
 	fmt.Println("serving on port 80")
-	return http.ListenAndServe(":80", mux)
+	return http.ListenAndServe(":80", handlers.LoggingHandler(os.Stdout, mux))
 }
