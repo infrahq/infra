@@ -1,61 +1,50 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "registry.fullname" . }}
-  labels:
-    {{- include "registry.labels" . | nindent 4 }}
+  name: infra
+  namespace: infra
 spec:
-  {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
-  {{- end }}
   selector:
     matchLabels:
-      {{- include "registry.selectorLabels" . | nindent 6 }}
+      app: infra
+  replicas: 1
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
-      annotations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       labels:
-        {{- include "registry.selectorLabels" . | nindent 8 }}
+        app: infra
     spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      serviceAccountName: {{ include "registry.serviceAccountName" . }}
-      securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      automountServiceAccountToken: true
       containers:
-        - name: {{ .Chart.Name }}
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+        - name: registry
+          image: infrahq/infra:{{ .Chart.AppVersion }}
+          args: ["registry", "-c", "/var/run/infra/config/infra.yaml", "--db", "/var/run/infra/data/infra.db", "--tls-cache", "/var/run/infra/data/cache"]
           ports:
-            - name: http
-              containerPort: 80
-              protocol: TCP
+            - containerPort: 443
+          volumeMounts:
+            - name: data
+              mountPath: /var/run/infra/data
+            - name: config
+              mountPath: /var/run/infra/config
           livenessProbe:
             httpGet:
-              path: /
-              port: http
-          readinessProbe:
-            httpGet:
-              path: /
-              port: http
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
-      {{- with .Values.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.affinity }}
+              path: /healthz
+              port: 80
+            periodSeconds: 3
       affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - infra
+            topologyKey: kubernetes.io/hostname
+      volumes:
+        - name: config
+          configMap:
+            name: infra
+            optional: true
+        - name: data
+          persistentVolumeClaim:
+            claimName: infra
