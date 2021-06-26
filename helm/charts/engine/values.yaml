@@ -1,4 +1,6 @@
-storage: 1Gi
+name: ""
+registry: ""
+apiKey: ""
 
 image:
   repository: infrahq/infra

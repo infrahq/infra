@@ -38,13 +38,19 @@ release:
 	-gh release create $(tag) --title $(tag) -n "" -R $(repo)
 	gh release upload $(tag) build/* --clobber -R $(repo)
 
-dev/docker:
-	kubectl config use-context docker-desktop
-	docker build . -t infrahq/infra:dev
-	kubectl apply -f ./deploy/dev
-	kubectl rollout restart -n infra deployment/infra
-	kubectl rollout restart -n infra deployment/infra-engine
-
 release/docker:
 	docker buildx build --push --platform linux/amd64,linux/arm64 . -t infrahq/infra
 	docker buildx build --push --platform linux/amd64,linux/arm64 . -t infrahq/infra:$(tag:v%=%)
+
+dev:
+	kubectl config use-context docker-desktop
+	docker build . -t infrahq/infra:dev
+	helm upgrade --namespace infra --create-namespace --install infra ./helm/charts/registry --set image.pullPolicy=Never --set image.tag=dev
+	kubectl rollout status -n infra deployment/infra
+	kubectl wait -n infra --for=condition=available deployment/infra
+	helm upgrade --namespace infra --create-namespace --install infra-engine ./helm/charts/engine --set image.pullPolicy=Never --set image.tag=dev --set apiKey=$$(kubectl exec -it -n infra deployment/infra -- infra apikey list | sed -n '2 p' | awk '{print $$2}') --set registry=infra --set name=default ;
+	kubectl rollout restart -n infra deployment/infra-engine
+
+make dev/clean:
+	@helm uninstall --namespace infra infra || true
+	@helm uninstall --namespace infra infra-engine || true

@@ -1,0 +1,6 @@
+To access this cluster via Infra:
+
+infra login $REGISTRY
+
+infra destination list
+

@@ -1,7 +1,10 @@
-Welcome to Infra. It may take a few minutes for your load balanacer to expose an IP address.
+Welcome to Infra
 
-To get started, run:
+Infra exposes load balanacer. This may take a few minutes. To check if it's ready, run:
 
-export SERVICE_IP=$(kubectl get svc --namespace infra infra --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
-infra login $SERVICE_IP
+    kubectl get -n {{ .Release.Namespace }} svc  infra
 
+Once ready, connect to infra via the exposed IP address or hostname:
+    
+    export SERVICE_IP=$(kubectl get svc -n {{ .Release.Namespace }} infra --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+    infra login $SERVICE_IP

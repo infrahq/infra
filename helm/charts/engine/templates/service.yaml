@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: infra-engine
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: infra-engine
+spec:
+  type: ClusterIP
+  selector:
+    app: infra-engine
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
