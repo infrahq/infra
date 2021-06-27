@@ -23,7 +23,7 @@ Infra is **identity and access management** for Kubernetes. Provide any user fin
 
 ```
 helm repo add infrahq https://helm.infrahq.com
-helm install infrahq/registry
+helm install infra infrahq/registry
 ```
 
 ### Install Infra CLI
@@ -49,7 +49,7 @@ infra apikey list
 Then, install Infra Engine on the cluster:
 
 ```bash
-helm install infrahq/engine --set registry=<EXTERNAL-IP> --set apiKey=<API KEY> --set name=<CLUSTER NAME>
+helm install infra-engine infrahq/engine --set registry=<EXTERNAL-IP> --set apiKey=<API KEY> --set name=<CLUSTER NAME>
 ```
 
 Verify the cluster has been connected:
