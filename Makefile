@@ -56,5 +56,5 @@ dev:
 	kubectl rollout restart -n infra deployment/infra-engine
 
 make dev/clean:
-	@helm uninstall --namespace infra infra || true
-	@helm uninstall --namespace infra infra-engine || true
+	helm uninstall --namespace infra infra || true
+	helm uninstall --namespace infra infra-engine || true
