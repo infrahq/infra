@@ -53,7 +53,7 @@ func GenerateSelfSignedCert(hosts []string) ([]byte, []byte, error) {
 	template.IsCA = true
 	template.KeyUsage |= x509.KeyUsageCertSign
 
-	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, priv.PublicKey, priv)
+	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &priv.PublicKey, priv)
 	if err != nil {
 		return nil, nil, err
 	}
