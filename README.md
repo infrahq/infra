@@ -19,7 +19,7 @@ Infra is **identity and access management** for Kubernetes. Provide any user fin
 
 ## Quickstart
 
-### Install
+### Install Infra Registry
 
 ```
 helm repo add infrahq https://helm.infrahq.com
