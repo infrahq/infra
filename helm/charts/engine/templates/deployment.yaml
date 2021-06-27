@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: infra-engine
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: infra-engine
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: infra-engine
+    spec:
+      automountServiceAccountToken: true
+      serviceAccountName: infra-engine
+      containers:
+        - name: engine
+          image: infrahq/infra:{{ .Values.image.tag | default .Chart.AppVersion }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["engine"]
+          ports:
+            - containerPort: 80
+          env:
+            - name: INFRA_ENGINE_NAME
+              value: {{ required "Value name is required" .Values.name | quote }}
+            - name: INFRA_ENGINE_REGISTRY
+              value: {{ required "Value registry is required" .Values.registry | quote }}
+            - name: INFRA_ENGINE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: infra-engine
+                  key: api-key
+                  optional: true
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 80
+            periodSeconds: 3

@@ -19,16 +19,11 @@ Infra is **identity and access management** for Kubernetes. Provide any user fin
 
 ## Quickstart
 
-### Install Infra Registry
+### Install
 
 ```
-kubectl apply -f https://raw.githubusercontent.com/infrahq/release/main/deploy/registry.yaml
-```
-
-Infra exposes a `LoadBalancer` service by default. Find the **External IP** of the load balancer:
-
-```
-kubectl get svc --namespace infra
+helm repo add infrahq https://helm.infrahq.com
+helm install infrahq/registry
 ```
 
 ### Install Infra CLI
@@ -45,22 +40,16 @@ infra login <EXTERNAL-IP>
 
 ### Connect a Kubernetes cluster
 
-First, retrieve your default Infra Registry API Key
+First, retrieve your default API Key
 
 ```
 infra apikey list
 ```
 
-Then, install Infra Engine:
+Then, install Infra Engine on the cluster:
 
 ```bash
-kubectl create namespace infra
-
-kubectl create configmap infra-engine -n infra --from-literal="name=<CLUSTER NAME>" --from-literal="registry=<EXTERNAL IP>"
-
-kubectl create secret generic infra-engine -n infra --from-literal="api-key=<API KEY>"
-
-kubectl apply -f https://raw.githubusercontent.com/infrahq/release/main/deploy/engine.yaml
+helm install infrahq/engine --set registry=<INFRA IP> --set apiKey=<API KEY> --set name=<CLUSTER NAME>
 ```
 
 Verify the cluster has been connected:
@@ -100,7 +89,7 @@ data:
 EOF
 ```
 
-Then, restart Infra registry to apply the change:
+Then, restart Infra to apply the change:
 
 ```
 kubectl rollout restart -n infra deployment/infra

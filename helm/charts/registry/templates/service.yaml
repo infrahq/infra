@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: infra
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: infra
+spec:
+  type: LoadBalancer
+  selector:
+    app: infra
+  ports:
+    - name: https
+      port: 443
+      targetPort: 443

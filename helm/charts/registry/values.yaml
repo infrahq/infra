@@ -1,0 +1,6 @@
+storage: 1Gi
+
+image:
+  repository: infrahq/infra
+  tag: ""
+  pullPolicy: IfNotPresent

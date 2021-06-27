@@ -1229,7 +1229,7 @@ func newEngineCmd() *cobra.Command {
 			if options.Name == "" {
 				return errors.New("name not specified (--name or INFRA_ENGINE_NAME)")
 			}
-			if options.APIKey == "" {
+			if options.Registry != "infra" && options.APIKey == "" {
 				return errors.New("api-key not specified (--api-key or INFRA_ENGINE_API_KEY)")
 			}
 			return engine.Run(options)

@@ -1,0 +1,8 @@
+name: ""
+registry: ""
+apiKey: ""
+
+image:
+  repository: infrahq/infra
+  tag: ""
+  pullPolicy: IfNotPresent
