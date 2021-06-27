@@ -2,11 +2,10 @@
 
 ## Setup
 
-Install tools:
+Install Go:
 
 ```
 brew install go
-go get -u github.com/kevinburke/go-bindata/...
 ```
 
 Clone the project:
@@ -25,7 +24,7 @@ go run .
 ## Generate docs
 
 ```
-go run ./internal/docgen
+make docs
 ```
 
 ## Test
@@ -33,7 +32,7 @@ go run ./internal/docgen
 Run tests:
 
 ```
-go test ./...
+make test
 ```
 
 ## Release
@@ -41,9 +40,8 @@ go test ./...
 ```bash
 # Install tools
 brew install gh
-go get https://github.com/mitchellh/gon
 
-# Build sign and upload binaries
+# Build, sign and upload binaries
 make release
 
 # Build and push Docker images
