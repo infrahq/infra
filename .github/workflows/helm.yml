@@ -1,0 +1,16 @@
+on: [push]
+name: helm
+jobs:
+  helm:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: azure/setup-helm@v1
+    - run: |
+        helm package -d helm helm/charts/*
+        helm repo index helm
+    - uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+      with:
+        service_account_email: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_EMAIL }}
+        service_account_key: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
+    - run: gsutil -h "Cache-Control:public, no-cache" cp helm/* gs://helm.infrahq.com
