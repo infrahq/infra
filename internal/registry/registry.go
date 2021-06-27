@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/gin-gonic/gin"
-	"github.com/infrahq/infra/internal/certs"
+	"github.com/infrahq/infra/internal/generate"
 	timer "github.com/infrahq/infra/internal/timer"
 	"golang.org/x/crypto/acme/autocert"
 )
@@ -37,7 +37,7 @@ func getSelfSignedOrLetsEncryptCert(certManager *autocert.Manager) func(hello *t
 
 		cert, ok := selfSignCache[name]
 		if !ok {
-			certBytes, keyBytes, err := certs.GenerateSelfSignedCert([]string{name})
+			certBytes, keyBytes, err := generate.SelfSignedCert([]string{name})
 			if err != nil {
 				return nil, err
 			}

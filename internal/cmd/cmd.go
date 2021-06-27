@@ -27,7 +27,6 @@ import (
 	"github.com/cli/browser"
 	"github.com/docker/go-units"
 	"github.com/goware/urlx"
-	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/engine"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/registry"
@@ -615,7 +614,7 @@ func newLoginCmd() *cobra.Command {
 			}
 
 			if _, err := os.Stat(filepath.Join(home, ".infra", "client", "cert.pem")); os.IsNotExist(err) {
-				certBytes, keyBytes, err := certs.GenerateSelfSignedCert([]string{"localhost", "localhost:32710"})
+				certBytes, keyBytes, err := generate.SelfSignedCert([]string{"localhost", "localhost:32710"})
 				if err != nil {
 					return err
 				}
