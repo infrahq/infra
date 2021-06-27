@@ -9,7 +9,7 @@ jobs:
     - run: |
         helm package -d helm helm/charts/*
         helm repo index helm
-    - uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+    - uses: google-github-actions/setup-gcloud@master
       with:
         service_account_email: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_EMAIL }}
         service_account_key: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
