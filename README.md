@@ -49,7 +49,7 @@ infra apikey list
 Then, install Infra Engine on the cluster:
 
 ```bash
-helm install infrahq/engine --set registry=<INFRA IP> --set apiKey=<API KEY> --set name=<CLUSTER NAME>
+helm install infrahq/engine --set registry=<EXTERNAL-IP> --set apiKey=<API KEY> --set name=<CLUSTER NAME>
 ```
 
 Verify the cluster has been connected:
