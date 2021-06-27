@@ -33,7 +33,7 @@ func GenerateSelfSignedCert(hosts []string) ([]byte, []byte, error) {
 	template := x509.Certificate{
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
-			Organization: []string{"Infra Client"},
+			Organization: []string{"Infra"},
 		},
 		NotBefore:             notBefore,
 		NotAfter:              notAfter,
