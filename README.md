@@ -23,7 +23,7 @@ Infra is **identity and access management** for Kubernetes. Provide any user fin
 
 ```
 helm repo add infrahq https://helm.infrahq.com
-helm install infra infrahq/registry
+helm install infra infrahq/registry --create-namespace --namespace infra
 ```
 
 Infra exposes an **external ip** via a load balanacer. To list services and check which IP is exposed, run:
@@ -55,8 +55,10 @@ infra apikey list
 Then, install Infra Engine on the cluster:
 
 ```bash
-helm install infra-engine infrahq/engine --set registry=<EXTERNAL-IP> --set apiKey=<API KEY> --set name=<CLUSTER NAME>
+helm install infra-engine infrahq/engine --namespace infra --set registry=<EXTERNAL-IP> --set apiKey=<API KEY> --set name=<CLUSTER NAME>
 ```
+
+| Note: if using Docker Desktop or Minikube, use `--set registry=infra`.
 
 Verify the cluster has been connected:
 
