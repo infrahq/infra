@@ -58,7 +58,7 @@ Then, install Infra Engine on the cluster:
 helm install infra-engine infrahq/engine --namespace infra --set registry=<EXTERNAL-IP> --set apiKey=<API KEY> --set name=<CLUSTER NAME>
 ```
 
-| Note: if using Docker Desktop or Minikube, use `--set registry=infra`.
+> Note: if using Docker Desktop or Minikube, use `--set registry=infra`.
 
 Verify the cluster has been connected:
 
