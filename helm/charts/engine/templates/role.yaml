@@ -6,5 +6,5 @@ metadata:
 rules:
   - apiGroups: [""]
     resources: ["services/proxy"]
-    resourceNames: ["infra-engine"]
+    resourceNames: ["http:infra-engine:80"]
     verbs: ["*"]
