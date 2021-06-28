@@ -39,7 +39,7 @@ data:
     permissions:
       - user: admin@example.com
         destination: production
-        role: admin
+        role: cluster-admin
       - user: michael@example.com
         destination: production
         role: view
@@ -65,7 +65,7 @@ sources:
 permissions:
   - user: admin@example.com
     destination: production
-    role: kubernetes.admin
+    role: cluster-admin
 ```
 
 
@@ -99,13 +99,13 @@ sources:
 permissions:
   - user: admin@infrahq.com
     destination: production
-    role: kubernetes.admin
+    role: cluster-admin
   - user: jeff@infrahq.com
     destination: production
-    role: kubernetes.viewer
+    role: view
   - user: michael@infrahq.com
     destination: production
-    role: kubernetes.editor
+    role: edit
 ```
 
 ### `user`
@@ -118,10 +118,5 @@ permissions:
 
 ### `role`
 
-`role` defines a permission level, giving users access to specific resources they need
+`role` is a kubernetes cluster role
 
-| Role                    | Description                        |
-| :--------               | :------------------------------    |
-| kubernetes.viewer       | Read-only for most resources       |
-| kubernetes.editor       | Read & write most resources        |
-| kubernetes.admin        | Read & write any resource          |
