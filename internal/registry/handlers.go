@@ -263,6 +263,7 @@ func (h *Handlers) CreateDestination(c *gin.Context) {
 
 	var form binds
 	if err := c.Bind(&form); err != nil {
+		fmt.Println(err)
 		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
 		return
 	}
@@ -283,6 +284,7 @@ func (h *Handlers) CreateDestination(c *gin.Context) {
 		return tx.Save(&destination).Error
 	})
 	if err != nil {
+		fmt.Println(err)
 		c.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
 		return
 	}
