@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"strings"
 	"sync"
 
+	"github.com/google/shlex"
 	"github.com/jessevdk/go-flags"
 	"gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
@@ -212,6 +214,15 @@ func (k *Kubernetes) Endpoint() (string, error) {
 		}
 	}
 
+	var args []string
+	for _, c := range command {
+		split, err := shlex.Split(c)
+		if err != nil {
+			continue
+		}
+		args = append(args, split...)
+	}
+
 	var opts struct {
 		Master     string `long:"master"`
 		Config     string `long:"config"`
@@ -219,10 +230,12 @@ func (k *Kubernetes) Endpoint() (string, error) {
 	}
 
 	p := flags.NewParser(&opts, flags.IgnoreUnknown)
-	_, err = p.ParseArgs(command[1:])
+	_, err = p.ParseArgs(args)
 	if err != nil {
 		return "", err
 	}
+
+	fmt.Println("Read kube-proxy opts: ", opts)
 
 	switch {
 	case opts.Master != "":
@@ -266,6 +279,8 @@ func (k *Kubernetes) Endpoint() (string, error) {
 		}
 
 		endpoint = rc.Host
+	default:
+		fmt.Println("Warning, could not find parse kube-proxy opts, args: ", args)
 	}
 
 	// Rewrite docker desktop
