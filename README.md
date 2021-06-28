@@ -29,7 +29,7 @@ helm install infra infrahq/registry --create-namespace --namespace infra
 Infra exposes an **external ip** via a load balanacer. To list services and check which IP is exposed, run:
 
 ```
-kubectl get svc -A
+kubectl get -n infra svc infra
 ```
 
 ### Install Infra CLI
