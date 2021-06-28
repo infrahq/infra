@@ -1,5 +1,5 @@
 tag := $(shell git describe --tags)
-repo := infrahq/early-access
+repo := infrahq/release
 
 generate:
 	go generate ./...
