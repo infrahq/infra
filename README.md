@@ -72,40 +72,12 @@ To switch to this cluster, run
 kubectl config use-context <CLUSTER NAME>
 ```
 
-### Add users
+### Adding users
 
 * [Connect Okta](./docs/okta.md)
 * [Add users manually](./docs/users.md)
-
-### Map Permissions
-
-To automatically assign permissions to specific users, create a config map containing the `infra.yaml` [configuration file](./docs/configuration.md).
-
-```bash
-cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: infra
-  namespace: infra
-data:
-  infra.yaml: |
-    permissions:
-      - user: michael@example.com
-        destination: <CLUSTER NAME>
-        role: edit
-EOF
-```
-
-Then, restart Infra to apply the change:
-
-```
-kubectl rollout restart -n infra deployment/infra
-```
 
 ## Documentation
-* [Connect Okta](./docs/okta.md)
-* [Add users manually](./docs/users.md)
 * [Add a custom domain](./docs/domain.md)
 * [CLI Reference](./docs/cli.md)
 * [Configuration Reference](./docs/configuration.md)
