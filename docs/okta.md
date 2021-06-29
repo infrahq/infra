@@ -51,11 +51,11 @@ infra source create okta \
 $ infra user list
 EMAIL              	  SOURCES	  CREATED               ADMIN
 jeff@example.com  	  okta    	  About a minute ago
-michael@example.com*  okta    	  About a minute ago
+michael@example.com*   okta    	  About a minute ago
 elon@example.com   	  okta    	  About a minute ago
 tom@example.com    	  okta    	  About a minute ago
 mark@example.com   	  okta    	  About a minute ago
-admin@example.com     infra       5 minutes ago         x
+admin@example.com      infra       5 minutes ago          x
 ```
 
 ### Log in with Okta
