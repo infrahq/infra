@@ -19,11 +19,11 @@ Infra is **identity and access management** for Kubernetes. Provide any user fin
 
 ## Quickstart
 
-### Install Infra Registry
+### Install Infra
 
 ```
 helm repo add infrahq https://helm.infrahq.com
-helm install infra infrahq/registry --create-namespace --namespace infra
+helm install infra infrahq/infra --create-namespace --namespace infra
 ```
 
 Infra exposes an **external ip** via a load balanacer. To list services and check which IP is exposed, run:
@@ -44,42 +44,14 @@ curl -L "https://github.com/infrahq/release/releases/latest/download/infra-$(una
 infra login <EXTERNAL-IP>
 ```
 
-### Connect a Kubernetes cluster
-
-First, retrieve your default API Key
-
-```
-infra apikey list
-```
-
-Then, install Infra Engine on the cluster:
-
-```bash
-helm install infra-engine infrahq/engine --namespace infra --set registry=<EXTERNAL-IP> --set apiKey=<API KEY> --set name=<CLUSTER NAME>
-```
-
-> Note: if using Docker Desktop or Minikube, use `--set registry=infra`.
-
-Verify the cluster has been connected:
-
-```
-infra destination list
-```
-
-To switch to this cluster, run
-
-```
-kubectl config use-context <CLUSTER NAME>
-```
-
 Great! You're now **logged in to the cluster via Infra**.
 
 ### Adding users
-
 * [Connect Okta](./docs/okta.md)
 * [Add users manually](./docs/users.md)
 
 ## Documentation
+* [Connect another cluster](./docs/connect.md)
 * [Add a custom domain](./docs/domain.md)
 * [CLI Reference](./docs/cli.md)
 * [Configuration Reference](./docs/configuration.md)

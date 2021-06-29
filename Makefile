@@ -11,6 +11,11 @@ tools:
 test:
 	go test ./...
 
+.PHONY: helm
+helm:
+	helm package -d ./helm helm/charts/infra helm/charts/infra/charts/engine
+	helm repo index ./helm
+
 .PHONY: docs
 docs:
 	go run ./internal/docgen
@@ -18,6 +23,14 @@ docs:
 clean:
 	rm -rf build release
 	docker rm temp
+
+proto:
+	@protoc \
+		--proto_path=./internal/v1 \
+		--validate_out="lang=go:./internal/v1" --validate_opt paths=source_relative \
+		--go_out ./internal/v1 --go_opt paths=source_relative \
+		--go-grpc_out ./internal/v1 --go-grpc_opt paths=source_relative \
+		./internal/v1/*.proto
 
 .PHONY: build
 build:
@@ -49,10 +62,8 @@ release/docker:
 dev:
 	kubectl config use-context docker-desktop
 	docker build . -t infrahq/infra:dev
-	helm upgrade --namespace infra --create-namespace --install infra ./helm/charts/registry --set image.pullPolicy=Never --set image.tag=dev
-	kubectl rollout status -n infra deployment/infra
-	kubectl wait -n infra --for=condition=available deployment/infra
-	helm upgrade --namespace infra --create-namespace --install infra-engine ./helm/charts/engine --set image.pullPolicy=Never --set image.tag=dev --set apiKey=$$(kubectl exec -it -n infra deployment/infra -- infra apikey list | sed -n '2 p' | awk '{print $$2}') --set registry=infra --set name=default ;
+	helm upgrade --namespace infra --create-namespace --install infra ./helm/charts/infra --set image.pullPolicy=Never --set image.tag=dev  --set engine.image.tag=dev --set engine.image.pullPolicy=Never
+	kubectl rollout restart -n infra deployment/infra
 	kubectl rollout restart -n infra deployment/infra-engine
 
 make dev/clean:

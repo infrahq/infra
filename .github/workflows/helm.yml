@@ -2,6 +2,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "v*"
 name: helm
 jobs:
   helm:
@@ -10,8 +12,7 @@ jobs:
     - uses: actions/checkout@v2
     - uses: azure/setup-helm@v1
     - run: |
-        helm package -d helm helm/charts/*
-        helm repo index helm
+        make helm
     - uses: google-github-actions/setup-gcloud@master
       with:
         service_account_email: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_EMAIL }}

@@ -1,6 +1,0 @@
-apiVersion: v2
-name: engine
-description: Infra Engine
-type: application
-version: 0.0.5
-appVersion: "0.0.5"

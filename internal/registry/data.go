@@ -17,126 +17,128 @@ import (
 	"github.com/infrahq/infra/internal/okta"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/square/go-jose.v2"
-	"gopkg.in/yaml.v2"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
-var initialConfig Config
+var (
+	ID_LEN = 12
+)
 
 type User struct {
-	ID       string `gorm:"primaryKey"`
-	Created  int64  `json:"created" gorm:"autoCreateTime"`
-	Updated  int64  `json:"updated" gorm:"autoUpdateTime"`
-	Email    string `json:"email" gorm:"unique"`
-	Password []byte `json:"-"`
-	Admin    bool   `json:"admin"`
+	Id       string `gorm:"primaryKey"`
+	Created  int64  `gorm:"autoCreateTime"`
+	Updated  int64  `gorm:"autoUpdateTime"`
+	Email    string `gorm:"unique"`
+	Password []byte
+	Admin    bool
 
-	Sources     []Source     `json:"sources,omitempty" gorm:"many2many:users_sources"`
-	Permissions []Permission `json:"permissions,omitempty" gorm:"foreignKey:UserEmail;references:Email"`
-}
-
-type Source struct {
-	ID           string `gorm:"primaryKey"`
-	Created      int64  `json:"created" yaml:"-" gorm:"autoCreateTime"`
-	Updated      int64  `json:"updated" yaml:"-" gorm:"autoUpdateTime"`
-	Kind         string `json:"kind" yaml:"kind"`
-	Domain       string `json:"domain" yaml:"domain,omitempty" gorm:"unique"`
-	ClientID     string `json:"clientID" yaml:"clientID,omitempty"`
-	ClientSecret string `json:"-" yaml:"clientSecret,omitempty"`
-	ApiToken     string `json:"-" yaml:"apiToken,omitempty"`
-	Users        []User `json:"-" yaml:"-" gorm:"many2many:users_sources"`
-}
-
-type Destination struct {
-	ID                 string `gorm:"primaryKey"`
-	Created            int64  `json:"created" gorm:"autoCreateTime"`
-	Updated            int64  `json:"updated" gorm:"autoUpdateTime"`
-	Kind               string `json:"kind"`
-	Name               string `json:"name"`
-	KubernetesCA       string `json:"kubernetesCA"`
-	KubernetesEndpoint string `json:"kubernetesEndpoint"`
-}
-
-type Permission struct {
-	ID              string      `gorm:"primaryKey"`
-	Created         int64       `json:"created" yaml:"-" gorm:"autoCreateTime"`
-	Updated         int64       `json:"updated" yaml:"-" gorm:"autoUpdateTime"`
-	UserEmail       string      `json:"-" yaml:"user"`
-	User            User        `json:"user,omitempty" yaml:"-" gorm:"foreignKey:UserEmail;references:Email"`
-	DestinationName string      `json:"-" yaml:"destination"`
-	Destination     Destination `json:"destination,omitempty" yaml:"-" gorm:"foreignKey:DestinationName;references:Name"`
-	Role            string      `json:"role" yaml:"role"`
-	FromConfig      bool        `json:"-" yaml:"-"`
-}
-
-type Settings struct {
-	ID            string `gorm:"primaryKey"`
-	Created       int64  `json:"-" yaml:"-" gorm:"autoCreateTime"`
-	Updated       int64  `json:"-" yaml:"-" gorm:"autoUpdateTime"`
-	DisableSignup bool   `json:"disableSignup" yaml:"disableSignup,omitempty"`
-	PrivateJWK    []byte
-	PublicJWK     []byte
-}
-
-type Token struct {
-	ID      string `gorm:"primaryKey"`
-	Created int64  `json:"created" gorm:"autoCreateTime"`
-	Updated int64  `json:"updated" gorm:"autoUpdateTime"`
-	Expires int64  `json:"expires"`
-	Secret  []byte `json:"-" gorm:"autoCreateTime"`
-
-	UserID string
-	User   User `json:"-"`
-}
-
-type APIKey struct {
-	ID      string `gorm:"primaryKey"`
-	Created int64  `json:"created" gorm:"autoCreateTime"`
-	Updated int64  `json:"updated" gorm:"autoUpdateTime"`
-	Name    string `json:"name" gorm:"unique"`
-	Key     string `json:"key"`
+	Sources     []Source     `gorm:"many2many:users_sources"`
+	Permissions []Permission `gorm:"foreignKey:UserId;references:Id"`
 }
 
 var (
-	DefaultRoleView  = "view"
-	DefaultRoleEdit  = "edit"
-	DefaultRoleAdmin = "admin"
-
-	DefaultInfraSourceKind = "infra"
+	SOURCE_TYPE_INFRA = "infra"
+	SOURCE_TYPE_OKTA  = "okta"
 )
 
+type Source struct {
+	Id      string `gorm:"primaryKey"`
+	Created int64  `gorm:"autoCreateTime"`
+	Updated int64  `gorm:"autoUpdateTime"`
+	Type    string `yaml:"type"`
+
+	OktaDomain       string `gorm:"unique"`
+	OktaClientId     string
+	OktaClientSecret string
+	OktaApiToken     string
+
+	Users []User `gorm:"many2many:users_sources"`
+
+	FromConfig bool
+}
+
+var (
+	DESTINATION_TYPE_KUBERNERNETES = "kubernetes"
+)
+
+type Destination struct {
+	Id      string `gorm:"primaryKey"`
+	Created int64  `gorm:"autoCreateTime"`
+	Updated int64  `gorm:"autoUpdateTime"`
+	Name    string `gorm:"unique"`
+	Type    string
+
+	KubernetesCa        string
+	KubernetesEndpoint  string
+	KubernetesNamespace string
+}
+
+type Permission struct {
+	Id            string `gorm:"primaryKey"`
+	Created       int64  `gorm:"autoCreateTime"`
+	Updated       int64  `gorm:"autoUpdateTime"`
+	Role          string
+	UserId        string
+	DestinationId string
+	User          User        `gorm:"foreignKey:UserId;references:Id"`
+	Destination   Destination `gorm:"foreignKey:DestinationId;references:Id"`
+
+	FromConfig  bool
+	FromDefault bool
+}
+
+type Settings struct {
+	Id         string `gorm:"primaryKey"`
+	Created    int64  `gorm:"autoCreateTime"`
+	Updated    int64  `gorm:"autoUpdateTime"`
+	PrivateJWK []byte
+	PublicJWK  []byte
+}
+
+var (
+	TOKEN_SECRET_LEN = 24
+	TOKEN_LEN        = ID_LEN + TOKEN_SECRET_LEN
+)
+
+type Token struct {
+	Id      string `gorm:"primaryKey"`
+	Created int64  `gorm:"autoCreateTime"`
+	Updated int64  `gorm:"autoUpdateTime"`
+	Expires int64
+	Secret  []byte
+
+	UserId string
+	User   User `gorm:"foreignKey:UserId;references:Id;"`
+}
+
+var (
+	API_KEY_LEN = 24
+)
+
+type ApiKey struct {
+	Id      string `gorm:"primaryKey"`
+	Created int64  `gorm:"autoCreateTime"`
+	Updated int64  `gorm:"autoUpdateTime"`
+	Name    string `gorm:"unique"`
+	Key     string
+}
+
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
-	if u.ID == "" {
-		u.ID = generate.RandString(12)
+	if u.Id == "" {
+		u.Id = generate.RandString(ID_LEN)
 	}
 
 	return
 }
 
-// TODO (jmorganca): use foreign constraints instead?
-func (u *User) BeforeDelete(tx *gorm.DB) error {
-	err := tx.Model(u).Association("Sources").Clear()
-	if err != nil {
-		return err
-	}
-
-	err = tx.Where(&Token{UserID: u.ID}).Delete(&Token{}).Error
-	if err != nil {
-		return err
-	}
-
-	return tx.Where(&Permission{UserEmail: u.Email}).Delete(&Permission{}).Error
+func (u *User) AfterCreate(tx *gorm.DB) error {
+	_, err := ApplyPermissions(tx, initialConfig.Permissions)
+	return err
 }
 
-func (u *User) AfterCreate(tx *gorm.DB) (err error) {
-	_, err = ApplyPermissions(tx, initialConfig.Permissions)
-	if err != nil {
-		return err
-	}
-
-	// if user is admin, provision admin permission
+func (u *User) AfterSave(tx *gorm.DB) (err error) {
 	var destinations []Destination
 	err = tx.Find(&destinations).Error
 	if err != nil {
@@ -150,7 +152,14 @@ func (u *User) AfterCreate(tx *gorm.DB) (err error) {
 
 	for _, d := range destinations {
 		var permission Permission
-		err := tx.FirstOrCreate(&permission, &Permission{UserEmail: u.Email, DestinationName: d.Name, Role: role}).Error
+		err := tx.FirstOrCreate(&permission, &Permission{UserId: u.Id, DestinationId: d.Id, FromDefault: true}).Error
+		if err != nil {
+			return err
+		}
+
+		permission.Role = role
+
+		err = tx.Save(&permission).Error
 		if err != nil {
 			return err
 		}
@@ -159,22 +168,33 @@ func (u *User) AfterCreate(tx *gorm.DB) (err error) {
 	return
 }
 
+// TODO (jmorganca): use foreign constraints instead?
+func (u *User) BeforeDelete(tx *gorm.DB) error {
+	err := tx.Model(u).Association("Sources").Clear()
+	if err != nil {
+		return err
+	}
+	err = tx.Where(&Token{UserId: u.Id}).Delete(&Token{}).Error
+	if err != nil {
+		return err
+	}
+	return tx.Where(&Permission{UserId: u.Id}).Delete(&Permission{}).Error
+}
+
 func (r *Destination) BeforeCreate(tx *gorm.DB) (err error) {
-	if r.ID == "" {
-		r.ID = generate.RandString(12)
+	if r.Id == "" {
+		r.Id = generate.RandString(ID_LEN)
 	}
 
 	return
 }
 
-func (d *Destination) AfterCreate(tx *gorm.DB) (err error) {
-	// Apply default permissions from config
-	_, err = ApplyPermissions(tx, initialConfig.Permissions)
-	if err != nil {
-		return err
-	}
+func (d *Destination) AfterCreate(tx *gorm.DB) error {
+	_, err := ApplyPermissions(tx, initialConfig.Permissions)
+	return err
+}
 
-	// if user is admin, provision admin permission
+func (d *Destination) AfterSave(tx *gorm.DB) (err error) {
 	var users []User
 	err = tx.Find(&users).Error
 	if err != nil {
@@ -188,7 +208,7 @@ func (d *Destination) AfterCreate(tx *gorm.DB) (err error) {
 		}
 
 		var permission Permission
-		err := tx.FirstOrCreate(&permission, &Permission{UserEmail: u.Email, DestinationName: d.Name, Role: role}).Error
+		err := tx.FirstOrCreate(&permission, &Permission{UserId: u.Id, DestinationId: d.Id, Role: role, FromDefault: true}).Error
 		if err != nil {
 			return err
 		}
@@ -197,25 +217,22 @@ func (d *Destination) AfterCreate(tx *gorm.DB) (err error) {
 	return
 }
 
+// TODO (jmorganca): use foreign constraints instead?
 func (d *Destination) BeforeDelete(tx *gorm.DB) (err error) {
-	if d.ID == "" {
-		d.ID = generate.RandString(12)
-	}
-
-	return tx.Where(&Permission{DestinationName: d.Name}).Delete(&Permission{}).Error
+	return tx.Where(&Permission{DestinationId: d.Id}).Delete(&Permission{}).Error
 }
 
 func (g *Permission) BeforeCreate(tx *gorm.DB) (err error) {
-	if g.ID == "" {
-		g.ID = generate.RandString(12)
+	if g.Id == "" {
+		g.Id = generate.RandString(ID_LEN)
 	}
 
 	return
 }
 
 func (s *Source) BeforeCreate(tx *gorm.DB) (err error) {
-	if s.ID == "" {
-		s.ID = generate.RandString(12)
+	if s.Id == "" {
+		s.Id = generate.RandString(ID_LEN)
 	}
 	return
 }
@@ -236,12 +253,12 @@ func (s *Source) BeforeDelete(tx *gorm.DB) error {
 // CreateUser will create a user and associate them with the source
 // If the user already exists, they will not be created, instead an association
 // will be added instead
-func (s *Source) CreateUser(db *gorm.DB, user *User, email string, password string) error {
+func (s *Source) CreateUser(db *gorm.DB, user *User, email string, password string, admin bool) error {
 	var hashedPassword []byte
 	var err error
 
 	return db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.FirstOrCreate(&user, &User{Email: email}).Error; err != nil {
+		if err := tx.Where(&User{Email: email}).Attrs(User{Admin: admin}).FirstOrCreate(&user).Error; err != nil {
 			return err
 		}
 
@@ -258,8 +275,8 @@ func (s *Source) CreateUser(db *gorm.DB, user *User, email string, password stri
 			}
 		}
 
-		if tx.Model(&user).Where(&Source{ID: s.ID}).Association("Sources").Count() == 0 {
-			tx.Model(&user).Where(&Source{ID: s.ID}).Association("Sources").Append(s)
+		if tx.Model(&user).Where(&Source{Id: s.Id}).Association("Sources").Count() == 0 {
+			tx.Model(&user).Where(&Source{Id: s.Id}).Association("Sources").Append(s)
 		}
 
 		return nil
@@ -294,20 +311,20 @@ func (s *Source) SyncUsers(db *gorm.DB) error {
 	var emails []string
 	var err error
 
-	switch s.Kind {
+	switch s.Type {
 	case "okta":
-		emails, err = okta.Emails(s.Domain, s.ClientID, s.ApiToken)
+		emails, err = okta.Emails(s.OktaDomain, s.OktaClientId, s.OktaApiToken)
 		if err != nil {
 			return err
 		}
-	case "infra":
+	default:
 		return nil
 	}
 
 	return db.Transaction(func(tx *gorm.DB) error {
 		// Create users in source
 		for _, email := range emails {
-			if err := s.CreateUser(tx, &User{}, email, ""); err != nil {
+			if err := s.CreateUser(tx, &User{}, email, "", false); err != nil {
 				return err
 			}
 		}
@@ -327,8 +344,8 @@ func (s *Source) SyncUsers(db *gorm.DB) error {
 }
 
 func (s *Settings) BeforeCreate(tx *gorm.DB) (err error) {
-	if s.ID == "" {
-		s.ID = generate.RandString(12)
+	if s.Id == "" {
+		s.Id = generate.RandString(ID_LEN)
 	}
 	return
 }
@@ -366,8 +383,8 @@ func (s *Settings) BeforeSave(tx *gorm.DB) error {
 }
 
 func (t *Token) BeforeCreate(tx *gorm.DB) (err error) {
-	if t.ID == "" {
-		t.ID = generate.RandString(12)
+	if t.Id == "" {
+		t.Id = generate.RandString(ID_LEN)
 	}
 
 	// TODO (jmorganca): 24 hours may be too long or too short for some teams
@@ -389,12 +406,12 @@ func (t *Token) CheckSecret(secret string) (err error) {
 	return nil
 }
 
-func NewToken(db *gorm.DB, userID string, token *Token) (secret string, err error) {
-	secret = generate.RandString(24)
+func NewToken(db *gorm.DB, userId string, token *Token) (secret string, err error) {
+	secret = generate.RandString(TOKEN_SECRET_LEN)
 
 	h := sha256.New()
 	h.Write([]byte(secret))
-	token.UserID = userID
+	token.UserId = userId
 	token.Secret = h.Sum(nil)
 
 	err = db.Create(token).Error
@@ -405,142 +422,15 @@ func NewToken(db *gorm.DB, userID string, token *Token) (secret string, err erro
 	return
 }
 
-func (a *APIKey) BeforeCreate(tx *gorm.DB) (err error) {
-	if a.ID == "" {
-		a.ID = generate.RandString(12)
+func (a *ApiKey) BeforeCreate(tx *gorm.DB) (err error) {
+	if a.Id == "" {
+		a.Id = generate.RandString(ID_LEN)
 	}
 
 	if a.Key == "" {
-		a.Key = generate.RandString(24)
+		a.Key = generate.RandString(API_KEY_LEN)
 	}
 	return
-}
-
-type Config struct {
-	Sources     []Source     `yaml:"sources"`
-	Permissions []Permission `yaml:"permissions"`
-}
-
-func ImportSources(db *gorm.DB, sources []Source) error {
-	var idsToKeep []string
-	for _, s := range sources {
-		err := db.FirstOrCreate(&s, &Source{Kind: s.Kind, Domain: s.Domain}).Error
-		if err != nil {
-			return err
-		}
-
-		idsToKeep = append(idsToKeep, s.ID)
-	}
-
-	var toDelete []Source
-	if err := db.Not(idsToKeep).Not(&Source{Kind: DefaultInfraSourceKind}).Find(&toDelete).Error; err != nil {
-		return err
-	}
-
-	for _, td := range toDelete {
-		if err := db.Delete(&td).Error; err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func ApplyPermissions(db *gorm.DB, permissions []Permission) ([]string, error) {
-	var ids []string
-	for _, p := range permissions {
-		var user User
-		err := db.Where(&User{Email: p.UserEmail}).First(&user).Error
-		if err != nil {
-			continue
-		}
-
-		var destination Destination
-		err = db.Where(&Destination{Name: p.DestinationName}).First(&destination).Error
-		if err != nil {
-			continue
-		}
-
-		permission := p
-		p.FromConfig = true
-
-		err = db.FirstOrCreate(&permission, &permission).Error
-		if err != nil {
-			return nil, err
-		}
-
-		ids = append(ids, p.ID)
-	}
-
-	return ids, nil
-}
-
-func ImportPermissions(db *gorm.DB, permissions []Permission) error {
-	idsToKeep, err := ApplyPermissions(db, permissions)
-	if err != nil {
-		return err
-	}
-
-	return db.Not(idsToKeep).Not(&Permission{FromConfig: false}).Delete(Permission{}).Error
-}
-
-func ImportConfig(db *gorm.DB, bs []byte) error {
-	var config Config
-	err := yaml.Unmarshal(bs, &config)
-	if err != nil {
-		return err
-	}
-
-	initialConfig = config
-
-	var raw map[string]interface{}
-	err = yaml.Unmarshal(bs, &raw)
-	if err != nil {
-		return err
-	}
-
-	return db.Transaction(func(tx *gorm.DB) error {
-		if _, ok := raw["sources"]; ok {
-			if err = ImportSources(tx, config.Sources); err != nil {
-				return err
-			}
-		}
-
-		if _, ok := raw["permissions"]; ok {
-			if err = ImportPermissions(tx, config.Permissions); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-}
-
-// GetConfig serializes a config from the database
-func ExportConfig(db *gorm.DB) ([]byte, error) {
-	var config Config
-
-	err := db.Transaction(func(tx *gorm.DB) error {
-		err := db.Find(&config.Sources).Error
-		if err != nil {
-			return err
-		}
-
-		err = db.Find(&config.Permissions).Error
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	bs, err := yaml.Marshal(config)
-	if err != nil {
-		return nil, err
-	}
-
-	return bs, nil
 }
 
 func NewDB(dbpath string) (*gorm.DB, error) {
@@ -570,23 +460,16 @@ func NewDB(dbpath string) (*gorm.DB, error) {
 	db.AutoMigrate(&Permission{})
 	db.AutoMigrate(&Settings{})
 	db.AutoMigrate(&Token{})
-	db.AutoMigrate(&APIKey{})
+	db.AutoMigrate(&ApiKey{})
 
 	// Add default source
-	infraSource := Source{Kind: DefaultInfraSourceKind}
-	err = db.FirstOrCreate(&infraSource, Source{Kind: DefaultInfraSourceKind}).Error
+	err = db.FirstOrCreate(&Source{}, &Source{Type: SOURCE_TYPE_INFRA}).Error
 	if err != nil {
 		return nil, err
 	}
 
 	// Add default settings
-	err = db.FirstOrCreate(&Settings{}, &Settings{}).Error
-	if err != nil {
-		return nil, err
-	}
-
-	// Add default api key
-	err = db.FirstOrCreate(&APIKey{}, &APIKey{Name: "default"}).Error
+	err = db.FirstOrCreate(&Settings{}).Error
 	if err != nil {
 		return nil, err
 	}
