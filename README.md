@@ -72,6 +72,8 @@ To switch to this cluster, run
 kubectl config use-context <CLUSTER NAME>
 ```
 
+Great! You're now **logged in to the cluster via Infra**.
+
 ### Adding users
 
 * [Connect Okta](./docs/okta.md)
