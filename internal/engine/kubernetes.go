@@ -74,7 +74,6 @@ func (k *Kubernetes) UpdatePermissions(rbs []RoleBinding) error {
 		})
 	}
 
-	// TODO (jmorganca): find and delete empty rolebindings
 	// Create empty crbs for roles with no users
 	clientset, err := kubernetes.NewForConfig(k.config)
 	if err != nil {
@@ -234,8 +233,6 @@ func (k *Kubernetes) Endpoint() (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	fmt.Println("Read kube-proxy opts: ", opts)
 
 	switch {
 	case opts.Master != "":

@@ -12,3 +12,4 @@ Dockerfile
 build
 internal/ui
 .test
+.vscode

@@ -18,8 +18,11 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/goware/urlx"
-	"github.com/infrahq/infra/internal/registry"
 	"github.com/infrahq/infra/internal/timer"
+	v1 "github.com/infrahq/infra/internal/v1"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	grpcMetadata "google.golang.org/grpc/metadata"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
 )
@@ -48,6 +51,12 @@ type jwkCache struct {
 
 	client  *http.Client
 	baseURL string
+}
+
+func withClientAuthUnaryInterceptor(token string) grpc.DialOption {
+	return grpc.WithUnaryInterceptor(func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+		return invoker(grpcMetadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer "+token), method, req, reply, cc, opts...)
+	})
 }
 
 func (j *jwkCache) getjwk() (*jose.JSONWebKey, error) {
@@ -173,43 +182,6 @@ func proxyHandler(ca []byte, bearerToken string, remote *url.URL) (http.HandlerF
 	}, nil
 }
 
-func fetchPermissions(client *http.Client, base string, name string) ([]registry.Permission, error) {
-	params := url.Values{}
-	params.Add("name", name)
-
-	res, err := client.Get(base + "/v1/permissions?" + params.Encode())
-	if err != nil {
-		return nil, err
-	}
-
-	data, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	er := &registry.ErrorResponse{}
-	err = json.Unmarshal(data, &er)
-	if err != nil {
-		return nil, err
-	}
-
-	if er.Error != "" {
-		return nil, errors.New(er.Error)
-	}
-
-	if res.StatusCode >= http.StatusBadRequest {
-		return nil, errors.New("received error status code: " + http.StatusText(res.StatusCode))
-	}
-
-	var response struct{ Data []registry.Permission }
-	err = json.Unmarshal(data, &response)
-	if err != nil {
-		return nil, err
-	}
-
-	return response.Data, nil
-}
-
 type BearerTransport struct {
 	Token     string
 	Transport http.RoundTripper
@@ -223,16 +195,24 @@ func (b *BearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func Run(options Options) error {
-	client := &http.Client{
-		Transport: &BearerTransport{
-			Token: options.APIKey,
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: options.SkipTLSVerify,
-				},
-			},
-		},
+	u, err := urlx.Parse(options.Registry)
+	if err != nil {
+		return err
 	}
+
+	registry := u.Host
+	if u.Port() == "" {
+		registry += ":443"
+	}
+
+	creds := credentials.NewTLS(&tls.Config{InsecureSkipVerify: options.SkipTLSVerify})
+	conn, err := grpc.Dial(registry, grpc.WithTransportCredentials(creds), withClientAuthUnaryInterceptor(options.APIKey))
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	client := v1.NewV1Client(conn)
 
 	kubernetes, err := NewKubernetes()
 	if err != nil {
@@ -265,21 +245,28 @@ func Run(options Options) error {
 		form.Add("endpoint", endpoint)
 		form.Add("name", options.Name)
 
-		_, err = client.PostForm(uri.String()+"/v1/destinations", form)
+		res, err := client.CreateDestination(context.Background(), &v1.CreateDestinationRequest{
+			Name: options.Name,
+			Type: v1.DestinationType_KUBERNETES,
+			Kubernetes: &v1.CreateDestinationRequest_Kubernetes{
+				Ca:       string(ca),
+				Endpoint: endpoint,
+			},
+		})
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 
-		// Fetch latest permissions from server
-		permissions, err := fetchPermissions(client, uri.String(), options.Name)
+		permissionsRes, err := client.ListPermissions(context.Background(), &v1.ListPermissionsRequest{
+			DestinationId: res.Id,
+		})
 		if err != nil {
 			fmt.Println(err)
-			return
 		}
 
 		var rbs []RoleBinding
-		for _, p := range permissions {
+		for _, p := range permissionsRes.Permissions {
 			rbs = append(rbs, RoleBinding{User: p.User.Email, Role: p.Role})
 		}
 
@@ -312,9 +299,20 @@ func Run(options Options) error {
 		return err
 	}
 
+	u.Scheme = "https"
+
 	cache := jwkCache{
-		client:  client,
-		baseURL: uri.String(),
+		client: &http.Client{
+			Transport: &BearerTransport{
+				Token: options.APIKey,
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{
+						InsecureSkipVerify: options.SkipTLSVerify,
+					},
+				},
+			},
+		},
+		baseURL: u.String(),
 	}
 
 	mux.Handle("/proxy/", jwtMiddleware(cache.getjwk, ph))

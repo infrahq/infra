@@ -1,0 +1,195 @@
+syntax = "proto3";
+
+package v1;
+
+option go_package = "github.com/infrahq/infra/internal/v1";
+
+import "validate/validate.proto";
+import "google/protobuf/empty.proto";
+
+service V1 {
+    rpc ListUsers(ListUsersRequest) returns (ListUsersResponse) {}
+    rpc CreateUser(CreateUserRequest) returns (User) {}
+    rpc DeleteUser(DeleteUserRequest) returns (google.protobuf.Empty) {}
+    rpc ListDestinations(google.protobuf.Empty) returns (ListDestinationsResponse) {}
+    rpc CreateDestination(CreateDestinationRequest) returns (Destination) {}
+    rpc ListSources(google.protobuf.Empty) returns (ListSourcesResponse) {}
+    rpc CreateSource(CreateSourceRequest) returns (Source) {}
+    rpc DeleteSource(DeleteSourceRequest) returns (google.protobuf.Empty) {}
+    rpc ListPermissions(ListPermissionsRequest) returns (ListPermissionsResponse) {}
+    rpc CreateCred(google.protobuf.Empty) returns (CreateCredResponse) {}
+    rpc ListApiKeys(google.protobuf.Empty) returns (ListApiKeyResponse) {}
+    rpc Login(LoginRequest) returns (LoginResponse) {}
+    rpc Logout(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+    rpc Signup(SignupRequest) returns (LoginResponse) {}
+    rpc Status(google.protobuf.Empty) returns (StatusResponse) {}
+}
+
+enum SourceType {
+    INFRA = 0;
+    OKTA = 1;
+}
+
+enum DestinationType {
+    KUBERNETES = 0;
+}
+
+message User {
+    string id = 1;
+    int64 created = 2;
+    int64 updated = 3;
+    string email = 10;
+    bool admin = 20;
+}
+
+message ListUsersRequest {
+    string email = 1 [(validate.rules).string = {ignore_empty: true, email: true}];
+}
+
+message ListUsersResponse {
+    repeated User users = 1;
+}
+
+message CreateUserRequest {
+    string email = 1 [(validate.rules).string.email = true];
+    string password = 2 [(validate.rules).string.min_len = 4];
+}
+
+message DeleteUserRequest {
+    string id = 1 [(validate.rules).string.min_len = 1];
+}
+
+message Source {
+    string id = 1;
+    int64 created = 2;
+    int64 updated = 3;
+
+    SourceType type = 40;
+
+    message Okta {
+        string domain = 1;
+        string client_id = 2;
+    }
+    Okta okta = 50;
+}
+
+message ListSourcesResponse {
+    repeated Source sources = 1;
+}
+
+message CreateSourceRequest {
+    SourceType type = 10;
+
+    message Okta {
+        string domain = 1 [(validate.rules).string.min_len = 1];
+        string client_id = 2 [(validate.rules).string.min_len = 1];
+        string client_secret = 3 [(validate.rules).string.min_len = 1];
+        string api_token = 4 [(validate.rules).string.min_len = 1];
+    }
+    Okta okta = 20;
+}
+
+message DeleteSourceRequest {
+    string id = 1 [(validate.rules).string.min_len = 1];
+}
+
+message Destination {
+    string id = 1;
+    int64 created = 2;
+    int64 updated = 3;
+    string name = 4;
+    
+    DestinationType type = 50;
+
+    message Kubernetes {
+        string ca = 1;
+        string endpoint = 2;
+    }
+
+    Kubernetes kubernetes = 60;
+}
+
+message ListDestinationsResponse {
+    repeated Destination destinations = 1;
+}
+
+message CreateDestinationRequest {
+    string name = 1 [(validate.rules).string.min_len = 1];
+
+    DestinationType type = 20;
+
+    message Kubernetes {
+        string ca = 1 [(validate.rules).string.min_len = 1];
+        string endpoint = 2 [(validate.rules).string.min_len = 1];
+    }
+    Kubernetes kubernetes = 30;
+}
+
+message Permission {
+    string id = 1;
+    int64 created = 2;
+    int64 updated = 3;
+
+    User user = 40;
+
+    Destination destination = 50;
+
+    string role = 60;
+}
+
+message ListPermissionsRequest {
+    string destination_id = 10;
+}
+
+message ListPermissionsResponse {
+    repeated Permission permissions = 1;
+}
+
+message CreateCredResponse {
+    string token = 10;
+    int64 expires = 20;
+}
+
+message ApiKey {
+    string id = 1;
+    int64 created = 2;
+    int64 updated = 3;
+
+    string name = 40;
+
+    string key = 50;
+}
+
+message ListApiKeyResponse {
+    repeated ApiKey api_keys = 1;
+}
+
+message LoginRequest {
+    SourceType type = 10;
+
+    message Infra {
+        string email = 1 [(validate.rules).string.email = true];
+        string password = 2 [(validate.rules).string.min_len = 1];
+    }
+
+    Infra infra = 20;
+
+    message Okta {
+        string domain = 1 [(validate.rules).string.min_len = 1];
+        string code = 2 [(validate.rules).string.min_len = 1];
+    }
+    Okta okta = 30;
+}
+
+message LoginResponse {
+    string token = 1;
+}
+
+message SignupRequest {
+    string email = 1 [(validate.rules).string.email = true];
+    string password = 2 [(validate.rules).string.min_len = 1];
+}
+
+message StatusResponse {
+    bool admin = 1;
+}

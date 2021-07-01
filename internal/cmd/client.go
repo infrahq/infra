@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/infrahq/infra/internal/registry"
+	v1 "github.com/infrahq/infra/internal/v1"
 )
 
 var ClientTimeoutDuration = 5 * time.Minute
@@ -49,7 +49,7 @@ func RunLocalClient() error {
 			return
 		}
 
-		var destinations []registry.Destination
+		var destinations []v1.Destination
 		err = json.Unmarshal(contents, &destinations)
 		if err != nil {
 			http.Error(w, "could not read destinations from ~/.infra/destinations", http.StatusInternalServerError)
@@ -57,27 +57,27 @@ func RunLocalClient() error {
 			return
 		}
 
-		var destination registry.Destination
-		for _, d := range destinations {
-			if d.Name == name {
-				destination = d
+		var destination *v1.Destination
+		for i := range destinations {
+			if destinations[i].Name == name {
+				destination = &destinations[i]
 			}
 		}
 
-		if destination == (registry.Destination{}) {
-			http.Error(w, "path not found", http.StatusNotFound)
-			fmt.Println(err)
-			return
+		var endpoint, ca string
+		if kube := destination.GetKubernetes(); kube != nil {
+			endpoint = kube.Endpoint
+			ca = kube.Ca
 		}
 
-		remote, err := url.Parse(destination.KubernetesEndpoint + "/api/v1/namespaces/infra/services/http:infra-engine:80/proxy/proxy")
+		remote, err := url.Parse(endpoint + "/api/v1/namespaces/infra/services/http:infra-engine:80/proxy/proxy")
 		if err != nil {
 			log.Println(err)
 			return
 		}
 
 		caCertPool := x509.NewCertPool()
-		caCertPool.AppendCertsFromPEM([]byte(destination.KubernetesCA))
+		caCertPool.AppendCertsFromPEM([]byte(ca))
 		proxy := httputil.NewSingleHostReverseProxy(remote)
 		proxy.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{

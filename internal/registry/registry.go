@@ -2,23 +2,31 @@ package registry
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
-	"path/filepath"
+	"strings"
 
-	"github.com/gin-gonic/gin"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
 	"github.com/infrahq/infra/internal/generate"
 	timer "github.com/infrahq/infra/internal/timer"
+	v1 "github.com/infrahq/infra/internal/v1"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/acme/autocert"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 type Options struct {
-	DBPath     string
-	ConfigPath string
-	TLSCache   string
+	DBPath        string
+	TLSCache      string
+	DefaultApiKey string
+	ConfigPath    string
 }
 
 func getSelfSignedOrLetsEncryptCert(certManager *autocert.Manager) func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
@@ -55,10 +63,24 @@ func getSelfSignedOrLetsEncryptCert(certManager *autocert.Manager) func(hello *t
 	}
 }
 
+func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Handler {
+	return h2c.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.ProtoMajor == 2 && strings.Contains(r.Header.Get("Content-Type"), "application/grpc") {
+			grpcServer.ServeHTTP(w, r)
+		} else {
+			otherHandler.ServeHTTP(w, r)
+		}
+	}), &http2.Server{})
+}
+
 func Run(options Options) error {
+	db, err := NewDB(options.DBPath)
+	if err != nil {
+		return err
+	}
+
 	// Load configuration from file
 	var contents []byte
-	var err error
 	if options.ConfigPath != "" {
 		contents, err = ioutil.ReadFile(options.ConfigPath)
 		if err != nil {
@@ -66,14 +88,28 @@ func Run(options Options) error {
 		}
 	}
 
-	// Initialize database
-	db, err := NewDB(options.DBPath)
+	err = ImportConfig(db, contents)
 	if err != nil {
 		return err
 	}
 
-	// Import config file
-	ImportConfig(db, contents)
+	var apiKey ApiKey
+	err = db.FirstOrCreate(&apiKey, &ApiKey{Name: "default"}).Error
+	if err != nil {
+		return err
+	}
+
+	if options.DefaultApiKey != "" {
+		if len(options.DefaultApiKey) != API_KEY_LEN {
+			return errors.New("invalid initial api key length")
+
+		}
+		apiKey.Key = options.DefaultApiKey
+		err := db.Save(&apiKey).Error
+		if err != nil {
+			return err
+		}
+	}
 
 	timer := timer.Timer{}
 	timer.Start(10, func() {
@@ -90,46 +126,6 @@ func Run(options Options) error {
 
 	defer timer.Stop()
 
-	gin.SetMode(gin.ReleaseMode)
-
-	unixRouter := gin.New()
-	unixRouter.Use(gin.Logger())
-	unixRouter.Use(func(c *gin.Context) {
-		c.Set("skipauth", true)
-	})
-
-	handlers := &Handlers{
-		db: db,
-	}
-
-	if err = handlers.addRoutes(unixRouter); err != nil {
-		return err
-	}
-
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	if err = os.MkdirAll(filepath.Join(homeDir, ".infra"), os.ModePerm); err != nil {
-		return err
-	}
-
-	os.Remove(filepath.Join(homeDir, ".infra", "infra.sock"))
-	go func() {
-		if err := unixRouter.RunUnix(filepath.Join(homeDir, ".infra", "infra.sock")); err != nil {
-			log.Fatal(err)
-		}
-	}()
-
-	router := gin.New()
-	router.Use(gin.Logger())
-	if err = handlers.addRoutes(router); err != nil {
-		return err
-	}
-
-	go router.Run(":80")
-
 	if err := os.MkdirAll(options.TLSCache, os.ModePerm); err != nil {
 		return err
 	}
@@ -142,10 +138,28 @@ func Run(options Options) error {
 	tlsConfig := manager.TLSConfig()
 	tlsConfig.GetCertificate = getSelfSignedOrLetsEncryptCert(manager)
 
+	httpHandlers := &Http{
+		db: db,
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/healthz", httpHandlers.Healthz)
+	mux.HandleFunc("/.well-known/jwks.json", httpHandlers.WellKnownJWKs)
+
+	server := &V1Server{db: db}
+
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
+			grpc_logrus.UnaryServerInterceptor(logrus.NewEntry(logrus.StandardLogger())),
+			server.authInterceptor,
+		)),
+	)
+	v1.RegisterV1Server(grpcServer, server)
+	reflection.Register(grpcServer)
 	tlsServer := &http.Server{
 		Addr:      ":443",
 		TLSConfig: tlsConfig,
-		Handler:   router,
+		Handler:   grpcHandlerFunc(grpcServer, mux),
 	}
 
 	return tlsServer.ListenAndServeTLS("", "")
