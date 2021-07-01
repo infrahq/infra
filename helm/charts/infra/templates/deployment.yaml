@@ -23,8 +23,8 @@ spec:
             - name: INFRA_REGISTRY_DEFAULT_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: infra
-                  key: default-api-key
+                  name: infra-engine
+                  key: api-key
                   optional: true
           ports:
             - containerPort: 443
