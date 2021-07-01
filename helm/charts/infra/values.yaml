@@ -1,0 +1,12 @@
+storage: 1Gi
+defaultApiKey: ""
+
+image:
+  repository: infrahq/infra
+  tag: ""
+  pullPolicy: IfNotPresent
+
+# subchart
+engine:
+  name: default
+  registry: "infra"

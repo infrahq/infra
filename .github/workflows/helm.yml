@@ -2,8 +2,6 @@ on:
   push:
     branches:
       - main
-    tags:
-      - "v*"
 name: helm
 jobs:
   helm:
