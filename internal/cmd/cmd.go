@@ -963,7 +963,7 @@ func newEngineCmd() *cobra.Command {
 	}
 
 	skipTLSVerify := true
-	// TODO (jmorganca): warn users instead of skipping TLS verification
+	// TODO (https://github.com/infrahq/infra/issues/58): warn users instead of skipping TLS verification
 	// OR find a way to include the server certificate in the api key
 	// skipTLSVerify := len(os.Getenv("INFRA_ENGINE_SKIP_TLS_VERIFY")) > 0
 	cmd.PersistentFlags().BoolVarP(&options.SkipTLSVerify, "skip-tls-verify", "k", skipTLSVerify, "skip TLS verification")
@@ -979,9 +979,7 @@ var credsCmd = &cobra.Command{
 	Short:  "Generate credentials",
 	Hidden: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// TODO (jmorganca): First try to read cached token
-		// TODO (jmorganca): currently we share the same creds for different clusters, eventually we'll
-		// need to generate cluster-specific credentials
+		// TODO (https://github.com/infrahq/infra/issues/59): First try to read cached token
 		client, err := clientFromConfig()
 		if err != nil {
 			return err
