@@ -8,14 +8,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type DeleteResponse struct {
-	Deleted bool `json:"deleted"`
-}
-
-type ErrorResponse struct {
-	Error string `json:"error"`
-}
-
 type Http struct {
 	db *gorm.DB
 }
