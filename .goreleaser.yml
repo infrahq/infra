@@ -1,0 +1,61 @@
+env:
+  # Disable CGO for now. This means binaries won't be able to run
+  # "infra registry" until we enable CGO at a later time.
+  # TODO (https://github.com/infrahq/infra/issues/65)
+  - CGO_ENABLED=0
+  - GO111MODULE=on
+project_name: infra
+builds:
+  - id: infra
+    binary: infra
+    main: ./main.go
+    goos:
+      - darwin
+      - windows
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+archives:
+  - format: zip
+    replacements:
+      amd64: x86_64
+    files:
+      - none*
+changelog:
+  skip: true
+checksum:
+  name_template: "{{ .ProjectName }}-checksums.txt"
+snapshot:
+  name_template: "{{ .Tag }}-next"
+blobs:
+  - provider: s3
+    region: us-east-2
+    bucket: releases.infrahq.com
+    ids:
+      - default
+brews:
+  - tap:
+      owner: infrahq
+      name: homebrew-tap
+    commit_author:
+      name: infra-ci
+      email: contact@infrahq.com
+    homepage: https://infrahq.com
+    description: Infra
+    url_template: "https://releases.infrahq.com/infra/{{ .Tag }}/{{ .ArtifactName }}"
+    install: |
+      bin.install "infra"
+scoop:
+  bucket:
+    owner: infrahq
+    name: scoop
+  commit_author:
+    name: infra-ci
+    email: contact@infrahq.com
+  homepage: https://infrahq.com
+  description: Infra
+  url_template: "https://releases.infrahq.com/infra/{{ .Tag }}/{{ .ArtifactName }}"

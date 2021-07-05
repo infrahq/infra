@@ -34,8 +34,17 @@ kubectl get svc infra
 
 ### Install Infra CLI
 
+**macOS & Linux**
+
 ```
-curl -L "https://github.com/infrahq/release/releases/latest/download/infra-$(uname -s)-$(uname -m)" -o /usr/local/bin/infra && chmod +x /usr/local/bin/infra
+brew install infrahq/tap/infra
+```
+
+**Windows**
+
+```
+scoop bucket add infrahq https://github.com/infrahq/scoop.git
+scoop install infra
 ```
 
 ### Log in
@@ -44,7 +53,7 @@ curl -L "https://github.com/infrahq/release/releases/latest/download/infra-$(una
 infra login <EXTERNAL-IP>
 ```
 
-Great! You're now **logged in to the cluster via Infra**.
+Great! You're now **logged in to the cluster via Infra**. 
 
 ### Adding users
 * [Connect Okta](./docs/okta.md)
