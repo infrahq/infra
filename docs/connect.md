@@ -9,7 +9,7 @@ infra apikey list
 Then, install Infra Engine on the cluster:
 
 ```bash
-helm install infra-engine infrahq/engine --namespace infra --set registry=<REGISTRY HOST> --set apiKey=<API KEY> --set name=<CLUSTER NAME>
+helm install infra-engine infrahq/engine --set registry=<REGISTRY HOST> --set apiKey=<API KEY> --set name=<CLUSTER NAME>
 ```
 
 > Note: if using Docker Desktop or Minikube, use `--set registry=infra`.

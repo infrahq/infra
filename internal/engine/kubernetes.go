@@ -24,6 +24,11 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 )
 
+const (
+	NamespaceFilePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+	CaFilePath        = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+)
+
 type Kubernetes struct {
 	mu     sync.Mutex
 	config *rest.Config
@@ -125,8 +130,16 @@ func (k *Kubernetes) UpdatePermissions(rbs []RoleBinding) error {
 	return nil
 }
 
+func (k *Kubernetes) Namespace() (string, error) {
+	contents, err := ioutil.ReadFile(NamespaceFilePath)
+	if err != nil {
+		return "", err
+	}
+	return string(contents), nil
+}
+
 func (k *Kubernetes) CA() ([]byte, error) {
-	contents, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
+	contents, err := ioutil.ReadFile(CaFilePath)
 	if err != nil {
 		return nil, err
 	}

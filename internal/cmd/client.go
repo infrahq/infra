@@ -64,13 +64,21 @@ func RunLocalClient() error {
 			}
 		}
 
+		if destination == nil {
+			fmt.Println("could not load destination information for destination " + name)
+			return
+		}
+
 		var endpoint, ca string
+		namespace := "default"
+
 		if kube := destination.GetKubernetes(); kube != nil {
 			endpoint = kube.Endpoint
 			ca = kube.Ca
+			namespace = kube.Namespace
 		}
 
-		remote, err := url.Parse(endpoint + "/api/v1/namespaces/infra/services/http:infra-engine:80/proxy/proxy")
+		remote, err := url.Parse(endpoint + "/api/v1/namespaces/" + namespace + "/services/http:infra-engine:80/proxy/proxy")
 		if err != nil {
 			log.Println(err)
 			return
