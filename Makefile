@@ -62,7 +62,7 @@ release/docker:
 dev:
 	kubectl config use-context docker-desktop
 	docker build . -t infrahq/infra:dev
-	helm upgrade --namespace infra --create-namespace --install infra ./helm/charts/infra --set image.pullPolicy=Never --set image.tag=dev  --set engine.image.tag=dev --set engine.image.pullPolicy=Never
+	helm upgrade --install infra ./helm/charts/infra --set image.pullPolicy=Never --set image.tag=dev  --set engine.image.tag=dev --set engine.image.pullPolicy=Never
 	kubectl rollout restart -n infra deployment/infra
 	kubectl rollout restart -n infra deployment/infra-engine
 
