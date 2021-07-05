@@ -1,0 +1,32 @@
+env:
+  - GO111MODULE=on
+project_name: stripe
+builds:
+  - id: infra-darwin
+    binary: infra
+    env:
+      - CGO_ENABLED=1
+    main: ./main.go
+    goos:
+      - darwin
+    goarch:
+      - amd64
+  - id: infra-darwin-arm
+    ldflags:
+      - -s -w -X github.com/stripe/stripe-cli/pkg/version.Version={{.Version}}
+    binary: stripe
+    main: ./main.go
+    goos:
+      - darwin
+    goarch:
+      - arm64
+archives:
+  - replacements:
+      darwin: mac-os
+      amd64: x86_64
+    files:
+      - none*
+checksum:
+  name_template: "{{ .ProjectName }}-mac-checksums.txt"
+snapshot:
+  name_template: "{{ .Tag }}-next"
