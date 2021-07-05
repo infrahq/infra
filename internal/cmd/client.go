@@ -64,6 +64,11 @@ func RunLocalClient() error {
 			}
 		}
 
+		if destination == nil {
+			fmt.Println("could not load destination information for destination " + name)
+			return
+		}
+
 		var endpoint, ca string
 		namespace := "default"
 
