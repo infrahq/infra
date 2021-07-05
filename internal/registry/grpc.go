@@ -394,8 +394,9 @@ func dbToProtoDestination(in *Destination) *v1.Destination {
 	case DESTINATION_TYPE_KUBERNERNETES:
 		out.Type = v1.DestinationType_KUBERNETES
 		out.Kubernetes = &v1.Destination_Kubernetes{
-			Ca:       in.KubernetesCa,
-			Endpoint: in.KubernetesEndpoint,
+			Ca:        in.KubernetesCa,
+			Endpoint:  in.KubernetesEndpoint,
+			Namespace: in.KubernetesNamespace,
 		}
 	}
 	return out
@@ -438,6 +439,7 @@ func (v *V1Server) CreateDestination(ctx context.Context, in *v1.CreateDestinati
 			model.Type = DESTINATION_TYPE_KUBERNERNETES
 			model.KubernetesCa = in.Kubernetes.Ca
 			model.KubernetesEndpoint = in.Kubernetes.Endpoint
+			model.KubernetesNamespace = in.Kubernetes.Namespace
 		}
 
 		return tx.Save(&model).Error

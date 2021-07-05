@@ -240,17 +240,19 @@ func Run(options Options) error {
 			return
 		}
 
-		form := url.Values{}
-		form.Add("ca", string(ca))
-		form.Add("endpoint", endpoint)
-		form.Add("name", options.Name)
+		namespace, err := kubernetes.Namespace()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
 
 		res, err := client.CreateDestination(context.Background(), &v1.CreateDestinationRequest{
 			Name: options.Name,
 			Type: v1.DestinationType_KUBERNETES,
 			Kubernetes: &v1.CreateDestinationRequest_Kubernetes{
-				Ca:       string(ca),
-				Endpoint: endpoint,
+				Ca:        string(ca),
+				Endpoint:  endpoint,
+				Namespace: namespace,
 			},
 		})
 		if err != nil {

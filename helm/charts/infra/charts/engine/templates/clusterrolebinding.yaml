@@ -5,7 +5,7 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: infra-engine
-  namespace: infra
+  namespace: {{ .Release.Namespace }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole

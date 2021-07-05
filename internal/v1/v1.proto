@@ -104,6 +104,7 @@ message Destination {
     message Kubernetes {
         string ca = 1;
         string endpoint = 2;
+        string namespace = 3;
     }
 
     Kubernetes kubernetes = 60;
@@ -121,6 +122,7 @@ message CreateDestinationRequest {
     message Kubernetes {
         string ca = 1 [(validate.rules).string.min_len = 1];
         string endpoint = 2 [(validate.rules).string.min_len = 1];
+        string namespace = 3 [(validate.rules).string.min_len = 1];
     }
     Kubernetes kubernetes = 30;
 }
