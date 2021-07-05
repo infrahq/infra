@@ -25,8 +25,8 @@ import (
 )
 
 const (
-	NamespaceFileLocation = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
-	CaFileLocation        = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+	NamespaceFilePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+	CaFilePath        = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
 )
 
 type Kubernetes struct {
@@ -131,7 +131,7 @@ func (k *Kubernetes) UpdatePermissions(rbs []RoleBinding) error {
 }
 
 func (k *Kubernetes) Namespace() (string, error) {
-	contents, err := ioutil.ReadFile(NamespaceFileLocation)
+	contents, err := ioutil.ReadFile(NamespaceFilePath)
 	if err != nil {
 		return "", err
 	}
@@ -139,7 +139,7 @@ func (k *Kubernetes) Namespace() (string, error) {
 }
 
 func (k *Kubernetes) CA() ([]byte, error) {
-	contents, err := ioutil.ReadFile(CaFileLocation)
+	contents, err := ioutil.ReadFile(CaFilePath)
 	if err != nil {
 		return nil, err
 	}
