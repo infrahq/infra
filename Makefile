@@ -68,4 +68,3 @@ dev:
 
 make dev/clean:
 	helm uninstall infra || true
-	helm uninstall infra-engine || true

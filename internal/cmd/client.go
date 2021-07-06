@@ -18,15 +18,30 @@ import (
 	"time"
 
 	v1 "github.com/infrahq/infra/internal/v1"
+	"github.com/natefinch/lumberjack"
 )
 
-var ClientTimeoutDuration = 5 * time.Minute
+const (
+	INFRA_HIDDEN_DIR = ".infra"
+	CLIENT_DIR       = "client"
+)
+
+var (
+	ClientTimeoutDuration = 5 * time.Minute
+	errorLogger           log.Logger // writes errors from the proxy handler to a file
+)
 
 func RunLocalClient() error {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return err
 	}
+	errorLogger.SetOutput(&lumberjack.Logger{
+		Filename:   filepath.Join(homeDir, INFRA_HIDDEN_DIR, CLIENT_DIR, "proxy_error.log"),
+		MaxSize:    1, // megabyte
+		MaxBackups: 1,
+	})
+	errorLogger.SetPrefix(time.Now().Format("2006-01-02 15:04:05 "))
 
 	timer := time.NewTimer(ClientTimeoutDuration)
 	go func() {
@@ -43,7 +58,7 @@ func RunLocalClient() error {
 
 		name := components[2]
 
-		contents, err := ioutil.ReadFile(filepath.Join(homeDir, ".infra", "destinations"))
+		contents, err := ioutil.ReadFile(filepath.Join(homeDir, INFRA_HIDDEN_DIR, "destinations"))
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -80,7 +95,7 @@ func RunLocalClient() error {
 
 		remote, err := url.Parse(endpoint + "/api/v1/namespaces/" + namespace + "/services/http:infra-engine:80/proxy/proxy")
 		if err != nil {
-			log.Println(err)
+			errorLogger.Println(err)
 			return
 		}
 
@@ -104,12 +119,12 @@ func RunLocalClient() error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/client/", proxyHandler)
 
-	certBytes, err := ioutil.ReadFile(filepath.Join(homeDir, ".infra", "client", "cert.pem"))
+	certBytes, err := ioutil.ReadFile(filepath.Join(homeDir, INFRA_HIDDEN_DIR, CLIENT_DIR, "cert.pem"))
 	if err != nil {
 		return err
 	}
 
-	keyBytes, err := ioutil.ReadFile(filepath.Join(homeDir, ".infra", "client", "key.pem"))
+	keyBytes, err := ioutil.ReadFile(filepath.Join(homeDir, INFRA_HIDDEN_DIR, CLIENT_DIR, "key.pem"))
 	if err != nil {
 		return err
 	}
@@ -132,7 +147,7 @@ func RunLocalClient() error {
 		return err
 	}
 
-	if err = ioutil.WriteFile(filepath.Join(homeDir, ".infra", "client", "pid"), []byte(strconv.Itoa(os.Getpid())), 0644); err != nil {
+	if err = ioutil.WriteFile(filepath.Join(homeDir, INFRA_HIDDEN_DIR, CLIENT_DIR, "pid"), []byte(strconv.Itoa(os.Getpid())), 0644); err != nil {
 		return err
 	}
 
