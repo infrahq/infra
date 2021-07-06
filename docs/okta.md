@@ -18,22 +18,24 @@
 
 ### Create an Okta App 
 
-1. Log into Okta as an Administrator
-2. Under the left menu click **Applications > Applications**. Click **Create App Integration** then select **OIDC – OpenID Connect** and **Web Application**, then click **Next**.
+1. Log in to the Okta administrative dashboard.
+2. Under the left menu click **Applications > Applications**. Click **Create App Integration** then select **OIDC – OpenID Connect** and **Web Application**, and click **Next**.
 
-![image](https://user-images.githubusercontent.com/3325447/119013012-90ac2100-b964-11eb-9266-b5f3ab3b7392.png)
+![okta_applications](https://user-images.githubusercontent.com/5853428/124651126-67c9e780-de4f-11eb-98bd-def34bea95fd.png)
+![okta_create_new_app](https://user-images.githubusercontent.com/5853428/124651919-60efa480-de50-11eb-9cb8-226f1c225191.png)
 
 3. For **App integration name** write **Infra**. For **Sign-in redirect URIs** write `http://localhost:8301`. Click **Save**.
 
-![image](https://user-images.githubusercontent.com/3325447/122437369-a57dd380-cf67-11eb-871b-3f1d2482c6c2.png)
+![okta_new_web_app_integration](https://user-images.githubusercontent.com/5853428/124652225-b88e1000-de50-11eb-8da3-36af6ba28bd8.png)
 
 4. On the **General** tab, **note** the **Client ID** and **Client Secret** for the next step.
 
-![image](https://user-images.githubusercontent.com/3325447/122437934-2dfc7400-cf68-11eb-805f-745d0677bb89.png)
+![okta_client_credentials](https://user-images.githubusercontent.com/5853428/124652384-f12de980-de50-11eb-86bb-67f0c0b16d2f.png)
 
-5. Navigate to **Security > API**, then click the **Tokens** tab. Create a new Token by clicking **Create Token**. Name it **Infra**
+5. Navigate to **Security > API**, then click the **Tokens** tab. Create a new Token by clicking **Create Token**. Name it **infra**.
 
-![image](https://user-images.githubusercontent.com/3325447/119014216-bc7bd680-b965-11eb-81db-24f53354291c.png)
+![okta_create_token](https://user-images.githubusercontent.com/5853428/124652451-0276f600-de51-11eb-9d22-92262de76371.png)
+![okta_api_token](https://user-images.githubusercontent.com/5853428/124652864-787b5d00-de51-11eb-81d8-e503babfdbca.png)
 
 ### Add Okta information to Infra registry
 
