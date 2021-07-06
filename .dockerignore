@@ -13,3 +13,4 @@ build
 internal/ui
 .test
 .vscode
+dist
