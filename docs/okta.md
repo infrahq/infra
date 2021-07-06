@@ -28,7 +28,7 @@
 
 ![okta_new_web_app_integration](https://user-images.githubusercontent.com/5853428/124652225-b88e1000-de50-11eb-8da3-36af6ba28bd8.png)
 
-4. On the **General** tab, **note** the **Client ID** and **Client Secret** for the next step.
+4. On the **General** tab, **note** the **Client ID** and **Client Secret** for the next step. Note the **Okta domain** for adding your Okta information to Infra registry later.
 
 ![okta_client_credentials](https://user-images.githubusercontent.com/5853428/124652384-f12de980-de50-11eb-86bb-67f0c0b16d2f.png)
 
