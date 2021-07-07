@@ -45,7 +45,31 @@ Run tests:
 make test
 ```
 
-## Release
+## Releasing a new version of Infra
+
+### 1. Bump Helm versions
+
+First, bump both the chart and app versions in `helm`:
+
+* https://github.com/infrahq/infra/blob/main/helm/charts/infra/Chart.yaml
+* https://github.com/infrahq/infra/blob/main/helm/charts/infra/charts/engine/Chart.yaml
+
+Then, commit these changes and push them to `main` (or create a PR).
+
+### 2. Create and push a tag
+
+```
+git tag v0.0.7
+git push --tags
+```
+
+A new version of Infra will be prepared and released via GitHub actions.
+
+### 3. Verify release
+
+Verify the [release job](https://github.com/infrahq/infra/actions/workflows/release.yml) succeeded.
+
+## Manual release
 
 ```bash
 # Build and publish binaries
