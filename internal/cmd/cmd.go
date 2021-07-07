@@ -468,8 +468,6 @@ var loginCmd = &cobra.Command{
 			}
 		}
 
-		logout()
-
 		config := &Config{
 			Host:          args[0],
 			Token:         loginRes.Token,
@@ -540,63 +538,54 @@ var loginCmd = &cobra.Command{
 	},
 }
 
-func logout() error {
-	config, err := readConfig()
-	if err != nil {
-		return err
-	}
-
-	if config.Token == "" {
-		return nil
-	}
-
-	client, err := client(config.Host, config.Token, config.SkipTLSVerify)
-	if err != nil {
-		return err
-	}
-
-	client.Logout(context.Background(), &emptypb.Empty{})
-
-	err = removeConfig()
-	if err != nil {
-		return err
-	}
-
-	home, err := homedir.Dir()
-	if err != nil {
-		return err
-	}
-
-	contents, err := ioutil.ReadFile(filepath.Join(home, ".infra", "client", "pid"))
-	if err != nil && !os.IsNotExist(err) {
-		return err
-	}
-
-	var pid int
-	if !os.IsNotExist(err) {
-		pid, err = strconv.Atoi(string(contents))
-		if err != nil {
-			return err
-		}
-
-		process, _ := os.FindProcess(int(pid))
-		process.Kill()
-	}
-
-	os.Remove(filepath.Join(home, ".infra", "client", "pid"))
-	os.Remove(filepath.Join(home, ".infra", "destinations"))
-
-	return nil
-}
-
 var logoutCmd = &cobra.Command{
 	Use:   "logout",
 	Short: "Log out of an Infra Registry",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		err := logout()
+		config, err := readConfig()
 		if err != nil {
 			return err
 		}
+
+		if config.Token == "" {
+			return nil
+		}
+
+		client, err := client(config.Host, config.Token, config.SkipTLSVerify)
+		if err != nil {
+			return err
+		}
+
+		client.Logout(context.Background(), &emptypb.Empty{})
+
+		err = removeConfig()
+		if err != nil {
+			return err
+		}
+
+		home, err := homedir.Dir()
+		if err != nil {
+			return err
+		}
+
+		contents, err := ioutil.ReadFile(filepath.Join(home, ".infra", "client", "pid"))
+		if err != nil && !os.IsNotExist(err) {
+			return err
+		}
+
+		var pid int
+		if !os.IsNotExist(err) {
+			pid, err = strconv.Atoi(string(contents))
+			if err != nil {
+				return err
+			}
+
+			process, _ := os.FindProcess(int(pid))
+			process.Kill()
+		}
+
+		os.Remove(filepath.Join(home, ".infra", "client", "pid"))
+		os.Remove(filepath.Join(home, ".infra", "destinations"))
 
 		// Load default config and merge new config in
 		loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
