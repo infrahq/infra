@@ -1,0 +1,232 @@
+<!--
+    This page is rendered in the user's browser after SSO completes successfully.
+    The server that returns this page shuts down after returning this response,
+    so all resources that would typically be externally hosted (images, style, etc.) must be embeded in the page.
+    The page was generated using Next.js export and modified.
+-->
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <meta charSet="utf-8" />
+    <title>Infra Login Success</title>
+    <!-- base64 encoding of the 32x32 website favicon -->
+    <link rel="icon" type="image/png" sizes="32x32"
+        href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAANPSURBVHgBzVe9ThtBEJ6zsWI4S6RMoIASaEKqBIkoSZNQJkXiEhqgpQkFKRKkQIsjTB0SkFCqRPEDRMADAOYBME9gu0ByhO3LfmfGGe/tnpfggpFWd7c7NzP7zc/ueORIdxVdXtZeESWeqs9JomAU01fLFSKvpJ7H6rmfSqV+VhS5yPW6MaTT6dG+vuRSEDRnhUIX0duNRnO1VquVYrlsC60d//mgXpfoZpRLpe6s2hAxGoBdJ5Peb/U6Sr2hUqMRPDehkdAnfD812WPloHBDkK0vdCDgsnPlGZqefkKDg4Phd7VapdPTIp2fn5MDWZEIfe77/WdqBKYxM/MiODjYD2x0cnISLCzMB7b/xTiDrogBamHD9lM+v9mhrFwuK4XHoUF4l7SzsxNMTIx1M2KDdOhtzBDIBIVAQueZmnrUwVcqlYKhoXuxRkCn2P3Atolpbe1TW+jy8rv2/PDwfWXIy3DI3WazbwKVbSF/Pp+PNSCT8XPS9xEGCGaCIaxYdweoUPjVNgRowD3Z7NtubiiHseD76Tkz9N/acLJyvMs4kP7HmoPvteHPWeFnKDmyeedQKneHmGDDdN8jM+ING/hCmczAUTSoHrd3xgJZCRsERDDYXWwwkGM5/A+C14LCEdKv7BtyHgSh+B4fHzMahHX4HN+Li/ORgGU50nA9DlCKr3HCtSohqFqthNVwb+97+Nzd3aWtrXy4trLynkZGRujw8JDW19dixZEJGtOO/6XXZgR2hhi8yAAQ/O8SiEYXSIUMJ55MHIQSYuaDS/hfTt+4VDQGoYx6uRM+C6CAI1vWBY4HLmCSLyYIzWkoIWbYATFHdqFQEOkWhZ3nYjKglYa2QqTDLiGGUFkLpLEMu3SPHQVViK5KcdlmBEMsU840TLAj9eLioH0sZzL9ORuTjGxZ6dgdXKrdYRfwuxzHcfFgg10aZRsdx3E3FPR4MEU7I4MyziXaNqDLVOFir2QYuHTohwtnBe4G3WEPR8eV7NqXUp1QclGKi8WiC3vkUhrpC1pX574f1NtreaicqP764uLyWE7evsYEBEbVTj30PPpMNyTIgCxbj+jUnCaTiY+qG54ld6p4XuJrvd7I/XdzqpNoz5+pzwf29ryp2vO0c3v+F9Oh3Uga6zDvAAAAAElFTkSuQmCC" />
+    <!-- base64 encoding of the 16x16 website favicon -->
+    <link rel="icon" type="image/png" sizes="16x16"
+        href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAHZSURBVHgBfVO7TgJREJ2VoOBSWPoosFNMfHRqp43S6R9oo5baiKWaaC3G1WhnoYWdRmPsVApiBwsfwMIXQEKxSuA6Z+CSy8Y4yWXuzM6ceXCuRQGJxSJLRKF1pVprbI63vVaef/LNZuvY933PjLf0ZYil0fg+5Ose/S/pcHjguMrSBWgn/3wQqVkDkKanZ6hYLFAn1qybD4f7lzUI2Xb0jI/CmZqaVJnMp4J4nifadV3x65jOOZPkSCQybiYjyXEcNTY2Ijb06emJ4mJqcXG+BwT7smx78JZb3wDY9fUNVSoVenl5ptfXNxmjXC7TwUGKarWqfIPdHcTqO+etD+aANjo6LO3qLlKpfakCratvb2/JeEYXJdJGIjEpALhDAIjEZHJVRgBoIjEh2hylC6A7gHbdvFTe2dkSEL1Yx7kILlIAStrQQaigq8OGHyDaZwDkrFgsmlaKdrGUeDwuy7u6uqRCwZWl4a/OZr/EB4F9f3+n13gr1DVbSiZXum2jOo72BdsHBTr8j6bND1gauKDbhg4SCTlBKr8zH+aCxAcX/qCyy1ReApVDMPmF+bZtPyjVjLK5YIbyp95Ui875MW32PCZTMFco1HfE11mjI49Z90TUfKzX/Q8z/hetY2djuQg8mwAAAABJRU5ErkJggg==" />
+    <!-- pruned style exported from Next.js -->
+    <style>
+        html {
+            -moz-tab-size: 4;
+            -o-tab-size: 4;
+            tab-size: 4;
+            line-height: 1.15;
+            -webkit-text-size-adjust: 100%
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji
+        }
+
+        blockquote,
+        dd,
+        dl,
+        figure,
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6,
+        hr,
+        p,
+        pre {
+            margin: 0
+        }
+
+        html {
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+            line-height: 1.5
+        }
+
+        body {
+            font-family: inherit;
+            line-height: inherit
+        }
+
+        *,
+        :after,
+        :before {
+            box-sizing: border-box;
+            border: 0 solid #e5e7eb
+        }
+
+        img {
+            border-style: solid
+        }
+
+        input::-moz-placeholder,
+        textarea::-moz-placeholder {
+            opacity: 1;
+            color: #9ca3af
+        }
+
+        input:-ms-input-placeholder,
+        textarea:-ms-input-placeholder {
+            opacity: 1;
+            color: #9ca3af
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            opacity: 1;
+            color: #9ca3af
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            font-size: inherit;
+            font-weight: inherit
+        }
+
+        audio,
+        canvas,
+        embed,
+        iframe,
+        img,
+        object,
+        svg,
+        video {
+            display: block;
+            vertical-align: middle
+        }
+
+        img,
+        video {
+            max-width: 100%;
+            height: auto
+        }
+
+        .flex {
+            display: flex
+        }
+
+        .flex-col {
+            flex-direction: column
+        }
+
+        .items-center {
+            align-items: center
+        }
+
+        .justify-center {
+            justify-content: center
+        }
+
+        .flex-none {
+            flex: none
+        }
+
+        .font-medium {
+            font-weight: 500
+        }
+
+        .h-full {
+            height: 100%
+        }
+
+        .mt-6 {
+            margin-top: 1.5rem
+        }
+
+        * {
+            --tw-shadow: 0 0 transparent;
+            --tw-ring-inset: var(--tw-empty,
+                    /*!*/
+                    /*!*/
+                );
+            --tw-ring-offset-width: 0px;
+            --tw-ring-offset-color: #fff;
+            --tw-ring-color: rgba(59, 130, 246, 0.5);
+            --tw-ring-offset-shadow: 0 0 transparent;
+            --tw-ring-shadow: 0 0 transparent
+        }
+
+        .text-white-400 {
+            --tw-text-opacity: 1;
+            color: rgba(229, 231, 235, var(--tw-text-opacity))
+        }
+
+        .select-none {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none
+        }
+
+        .w-full {
+            width: 100%
+        }
+
+        #__next,
+        body,
+        html {
+            padding: 0;
+            margin: 0;
+            font-family: -apple-system, sans-serif;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #2a2c2d, #151718)
+        }
+    </style>
+</head>
+
+<body>
+    <!-- hidden svg declaration for future re-use if needed -->
+    <!-- logo.svg -->
+    <svg style="display: none" version="2.0">
+        <defs>
+            <symbol id="logo-svg" viewBox="0 0 475 148" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                    d="M200.6 23.8C200.6 30.7 194.9 36.4 188 36.4C181.1 36.4 175.4 30.7 175.4 23.8C175.4 17.1 181.1 11.4 188 11.4C194.9 11.3 200.6 17 200.6 23.8ZM198.4 46.1V117.8H177.8V46.1H198.4Z"
+                    fill="white" />
+                <path
+                    d="M282.4 77.2V117.8H261.8V80.7C261.8 70.8 256.4 65.1 247.9 65.1C242.2 65.1 236.5 68.3 233.6 73.3V117.9H213V46.1H233.6V54.6C237.5 48.5 245.1 44.6994 253.2 44.6994C271.3 44.6 282.4 57.1 282.4 77.2Z"
+                    fill="white" />
+                <path
+                    d="M321.8 46.1H339.5V65.7H321.8V117.8H301.2V65.7H287.9V46.1H301.2V40.8C301.2 22.2 313 11.6 329.8 11.6C333.6 11.6 337.7 12.5 340.3 13.8L339.3 31.9C337.8 31.5 334.9 30.9 332.9 30.9C326.9 30.9 321.8 35.3 321.8 41.9V46.1Z"
+                    fill="white" />
+                <path
+                    d="M396.7 46L395.5 65.3C392.7 64.3 389.2 63.7 386.3 63.7C381.6 63.7 374.2 67.5 370.7 74.5V117.9H350.1V46.1H370.7V54.6C374.2 48.5 381.9 44.7 387.9 44.7C391.6 44.6 394.5 45.1 396.7 46Z"
+                    fill="white" />
+                <path
+                    d="M473.6 46.1V117.8H453V109.3C449.5 115.1 440.9 119.2 431.8 119.2C413.1 119.2 398.3 102.5 398.3 81.8C398.3 61.1 413.1 44.6 431.8 44.6C440.7 44.6 449.5 48.7 453 54.5V46H473.6V46.1ZM453 90.8V73.3C449.9 68 443.5 64.1 436.3 64.1C426.2 64.1 418.5 71.7 418.5 81.9C418.5 92.1 426.2 99.7 436.3 99.7C443.5 99.7 449.9 95.9 453 90.8Z"
+                    fill="white" />
+                <path
+                    d="M74.3 0C33.5 0 0.5 33 0.5 73.8C0.5 114.6 33.5 147.6 74.3 147.6C115.1 147.6 148.1 114.6 148.1 73.8C148.1 33.1 115.1 0 74.3 0ZM54.2 114.6C46.1 102.1 42.8 98.5 39 92.9C20.3 65.5 38.7 43.4 48.5 36.7C63 26.9 89.1 24.5 104.2 46C105.8 48.2 104.9 51.7 102.7 53.2C100.4 54.7 96.8 54.9 95 52.2C87.3 40.9 68.7 36.6 55.4 45.6C42.1 54.6 37.5 71.9 47.7 85.9C56.6 98 59.9 103.1 63.6 108.7C67.9 115.2 59 121.3 54.2 114.6ZM82.3 117.3C81.1 118 77.1 119.7 74.5 115.3C71.8 110.9 72.1 111.3 69.7 107.3C67.3 103.3 70.5 100.3 71.7 99.6C72.8 98.9 76.7 97 79.4 101.5C79.4 101.5 81.7 105.3 84.2 109.5C86.8 113.6 83.6 116.6 82.3 117.3ZM91 108.7C84.2 97.1 80.1 89.3 67.3 72.9C63.2 67.6 71.9 60.8 76.5 66.6C85.7 78.3 96.1 94.7 100.3 102.4C104.3 109.9 94.6 114.9 91 108.7ZM104.1 97C100.1 90.2 87.6 68.5 78.8 60.3C71.2 53.2 56.9 62.8 60.5 72.7C61.7 75.8 66.6 82.2 69.7 86.4C74.6 93 64.9 98.4 60.4 92.7C56 87.1 54.8 85 51.4 79.4C48.5 74.6 46.2 59.5 58.4 51.2C70.6 42.9 83.8 48.1 88.3 53.7C92.9 59.3 106.2 77.4 113.5 91.1C117.1 97.3 107.9 103.5 104.1 97ZM118.3 75.6C117.1 76.4 113.3 78.3 110.4 74C107.5 69.7 107.8 70.2 105.2 66.3C102.6 62.4 105.6 59.3 106.8 58.5C107.9 57.8 111.6 55.6 114.6 60C114.6 60 117.1 63.7 119.8 67.7C122.5 71.7 119.5 74.8 118.3 75.6Z"
+                    fill="white" />
+            </symbol>
+        </defs>
+        <use href="#logo-svg" />
+    </svg>
+
+    <div id="__next">
+        <main class="w-full h-full flex flex-col items-center justify-center select-none">
+            <svg class="flex-none" width="158" height="49">
+                <use href="#logo-svg" />
+            </svg>
+            <p class="text-white-400 mt-6 font-medium">You've successfully logged in to Infra.</p>
+            <p class="text-white-400 font-medium">You may now close this window.</p>
+        </main>
+    </div>
+</body>
+
+</html>

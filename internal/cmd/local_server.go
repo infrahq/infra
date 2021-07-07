@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"context"
+	"embed"
 	"fmt"
+	"html/template"
 	"net/http"
 )
 
@@ -17,6 +19,9 @@ type LocalServer struct {
 	srv        *http.Server
 }
 
+//go:embed pages
+var pages embed.FS
+
 func newLocalServer() (*LocalServer, error) {
 	ls := &LocalServer{ResultChan: make(chan CodeResponse, 1), srv: &http.Server{Addr: "127.0.0.1:8301"}}
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -25,7 +30,13 @@ func newLocalServer() (*LocalServer, error) {
 			Code:  params.Get("code"),
 			State: params.Get("state"),
 		}
-		fmt.Fprintf(w, "You may now close this window.")
+		t, err := template.ParseFS(pages, "pages/success.html")
+		if err != nil {
+			// the template is static so it should be able to be parsed, but this fallback ensures something is returned
+			fmt.Fprintf(w, "You may now close this window.")
+			return
+		}
+		t.Execute(w, nil)
 	})
 
 	go func() {
