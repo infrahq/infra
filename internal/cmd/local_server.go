@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"net/http"
 )
 
@@ -25,7 +26,13 @@ func newLocalServer() (*LocalServer, error) {
 			Code:  params.Get("code"),
 			State: params.Get("state"),
 		}
-		fmt.Fprintf(w, "You may now close this window.")
+		t, err := template.ParseFiles("./internal/cmd/pages/success.html")
+		if err != nil {
+			// the template is static so it should be able to be parsed, but this fallback ensures something is returned
+			fmt.Fprintf(w, "You may now close this window.")
+			return
+		}
+		t.Execute(w, nil)
 	})
 
 	go func() {

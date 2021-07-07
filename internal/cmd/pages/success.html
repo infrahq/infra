@@ -1,0 +1,232 @@
+<!--
+    This page is rendered in the user's browser after SSO completes successfully.
+    The server that returns this page shuts down after returning this response,
+    so all resources that would typically be externally hosted (images, style, etc.) must be embeded in the page.
+    The page was generated using Next.js export and modified.
+-->
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <meta charSet="utf-8" />
+    <title>Infra Log In Success</title>
+    <!-- base64 encoding of the 32x32 website favicon -->
+    <link rel="icon" type="image/png" sizes="32x32"
+        href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAMYSURBVHgBvVftedowED7hDOBOUHcC6AApMEHaCUImaDYITFA6QekEzQYYOkDIBHEnqPsfo558tnQnyx/koX2fByzLZ+nVfVvBOdjqBEbwERRMQcMEr0n1JMffAe+f4QiPMFfp0CXVIKmtnkEEDziawTBk+FvBB7XpE+wnsNcL/P8Gr0MGBcxRI1mbwBX0gVTNkePcdzihyumkNSaopRuQWkpwbosa/IQkDqHl+zVAdv+BkjmeZtVrX5JfovytIE2aOJxP4LXY6vvKb+JqJmgOFXhxUr6oUMXXatWyeIynXKDMuLzX8AtNkja0Q2ttLQmFMtdq3k1gr18AqvAq4J1gbDaOYI2jWwjDnPJOECFNfLH3pAX7fORtvrCbE3K2kHGop47NAWqn2+GmNeZqXZ68xlVpFggTkItv8GVHgFSZeOQ2qP6veE3FKgpPbHJHjSM4U2qMEnOYBgGjXh5CRbkw4ad+EJvrMsm8wd8dTNU9XueluXhYRix3GJVzLZhs2iBg4tghEyGj0eH45lO1BB/GV4x9ndkSoYUT7Jj0rEkgEid8tmNapH6Wi82N1vgmhoRJUm51e9Iyqtx43CSghX2zFmI7trlxuJeG053KKMkt4RoF8CSUNAlI5MFZBb8ZMWOyOr5v7DyZ4n1pjpCpPPTXgnbErU8od2QwACP4F/B9478SqBMW+cayT5wTiOEySKB2MtM5DSbAQkNAX4xYDwHZSPAoiBmZPxBC27xE3E2Ap8oTGysvQ7pNk+B81KqxOCTvCByxjFIWS73OZcyIHQYQmwwgZuddHqDYXQCHn4Zlw9FPzDQqbpzY7oOZrDsMI1G7HxmxBGRp5gTeMmIpkwnKtxOg5mRm7wtW03mRIZPlFbHYM0GwAHGNdWnAb04ytthnRsxVv8irfryhkc2fJdBeC0zlU6UGMnH6ZtuWsrEjIOs/OfkITNXM+WG62/KdXlfdLtmfmtInRmBTdkX0jMpzDa/5bEN3NTTtFgepOKnucqGZSCSybOgH6nnFqGBj04xyv+CJiRO7OEyF2+vmd54xz05vqu+KwfgLBb8mi2Vc6RwAAAAASUVORK5CYII=" />
+    <!-- base64 encoding of the 16x16 website favicon -->
+    <link rel="icon" type="image/png" sizes="16x16"
+        href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABEAAAARCAYAAAA7bUf6AAAACXBIWXMAAAWJAAAFiQFtaJ36AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAGRSURBVHgBrVTdWcJAENwLvBsrMFagFKCQCqQDoAKwAqEDrMCUgBUkagGGCkgJ8VnDOrvZhJ9EeHG+b4+7vbu52ckdjo4Rs09dmhLTAKOB5phS6iC+aUGhy463uAbJO8e6mSnDbGLZwAgzKugRRCs6iZgHGs18gAM2CEZ/2K5EFDC9Ut8tdfzBTxjfoudj1Zp+SPI5yvrUXEHXUJTLUq8+XeRuKTfCFxDMlYSxgeFRh2KdK2iiJB7NqvM9ayt5KxCM8TvGxgVUXSN66oP4IhtDl0BZin7/kMTRDdrE5A1Vdt/NQThEWVPkl2qyRw+6fovyylL3SA5xgUi1xyBkk33nQvgS7q3zT5G0Q3zr0qhtqirHP0viqU+zv0kYpjF9NWYdXSHycwd1tS2oZ5IDKm/rs80HamIJ8SqrCZ35ViuR9yBR1bylyAglElsrd2ZdK2RTWCvZQT5vBMIUnzcywpVdRh/9xHJviHRX9T7K00t0aKOE925ihCOUfVld9aYnFapnLn8HUkaBWysoX3TURvBv+AVry5TGediVHQAAAABJRU5ErkJggg==" />
+    <!-- pruned style exported from Next.js -->
+    <style>
+        html {
+            -moz-tab-size: 4;
+            -o-tab-size: 4;
+            tab-size: 4;
+            line-height: 1.15;
+            -webkit-text-size-adjust: 100%
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji
+        }
+
+        blockquote,
+        dd,
+        dl,
+        figure,
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6,
+        hr,
+        p,
+        pre {
+            margin: 0
+        }
+
+        html {
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+            line-height: 1.5
+        }
+
+        body {
+            font-family: inherit;
+            line-height: inherit
+        }
+
+        *,
+        :after,
+        :before {
+            box-sizing: border-box;
+            border: 0 solid #e5e7eb
+        }
+
+        img {
+            border-style: solid
+        }
+
+        input::-moz-placeholder,
+        textarea::-moz-placeholder {
+            opacity: 1;
+            color: #9ca3af
+        }
+
+        input:-ms-input-placeholder,
+        textarea:-ms-input-placeholder {
+            opacity: 1;
+            color: #9ca3af
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            opacity: 1;
+            color: #9ca3af
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            font-size: inherit;
+            font-weight: inherit
+        }
+
+        audio,
+        canvas,
+        embed,
+        iframe,
+        img,
+        object,
+        svg,
+        video {
+            display: block;
+            vertical-align: middle
+        }
+
+        img,
+        video {
+            max-width: 100%;
+            height: auto
+        }
+
+        .flex {
+            display: flex
+        }
+
+        .flex-col {
+            flex-direction: column
+        }
+
+        .items-center {
+            align-items: center
+        }
+
+        .justify-center {
+            justify-content: center
+        }
+
+        .flex-none {
+            flex: none
+        }
+
+        .font-medium {
+            font-weight: 500
+        }
+
+        .h-full {
+            height: 100%
+        }
+
+        .mt-6 {
+            margin-top: 1.5rem
+        }
+
+        * {
+            --tw-shadow: 0 0 transparent;
+            --tw-ring-inset: var(--tw-empty,
+                    /*!*/
+                    /*!*/
+                );
+            --tw-ring-offset-width: 0px;
+            --tw-ring-offset-color: #fff;
+            --tw-ring-color: rgba(59, 130, 246, 0.5);
+            --tw-ring-offset-shadow: 0 0 transparent;
+            --tw-ring-shadow: 0 0 transparent
+        }
+
+        .text-white-400 {
+            --tw-text-opacity: 1;
+            color: rgba(229, 231, 235, var(--tw-text-opacity))
+        }
+
+        .select-none {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none
+        }
+
+        .w-full {
+            width: 100%
+        }
+
+        #__next,
+        body,
+        html {
+            padding: 0;
+            margin: 0;
+            font-family: -apple-system, saans-serif;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #2a2c2d, #151718)
+        }
+    </style>
+</head>
+
+<body>
+    <!-- hidden svg declaration for future re-use if needed -->
+    <!-- logo.svg -->
+    <svg style="display: none" version="2.0">
+        <defs>
+            <symbol id="logo-svg" viewBox="0 0 138 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                    d="M43.7105 25.3597C44.5905 25.3597 45.139 24.8054 45.139 23.8984V8.24053C45.139 7.33356 44.5905 6.7793 43.7105 6.7793C42.8176 6.7793 42.2819 7.33356 42.2819 8.24053V23.8984C42.2819 24.8054 42.8176 25.3597 43.7105 25.3597Z"
+                    fill="white" />
+                <path
+                    d="M56.4524 25.3597C57.3198 25.3597 57.8427 24.818 57.8427 23.9236V11.7677H57.9575L67.0261 24.4905C67.498 25.1455 67.8679 25.3597 68.5694 25.3597C69.526 25.3597 70.0745 24.818 70.0745 23.8984V8.21534C70.0745 7.32096 69.5515 6.7793 68.6842 6.7793C67.8297 6.7793 67.294 7.32096 67.294 8.21534V20.3839H67.1919L58.1361 7.66108C57.6641 7.00604 57.2687 6.7793 56.5927 6.7793C55.6489 6.7793 55.0622 7.37135 55.0622 8.30352V23.9236C55.0622 24.818 55.5851 25.3597 56.4524 25.3597Z"
+                    fill="white" />
+                <path
+                    d="M81.439 25.3597C82.319 25.3597 82.8675 24.8054 82.8675 23.8984V17.5496H89.6913C90.4566 17.5496 90.9795 17.0835 90.9795 16.3529C90.9795 15.6349 90.4566 15.1688 89.6913 15.1688H82.8675V9.42464H90.3673C91.1581 9.42464 91.7065 8.94596 91.7065 8.20274C91.7065 7.45953 91.1708 6.98085 90.3673 6.98085H81.439C80.5461 6.98085 80.0104 7.53511 80.0104 8.44208V23.8984C80.0104 24.8054 80.5461 25.3597 81.439 25.3597Z"
+                    fill="white" />
+                <path
+                    d="M101.949 25.3975C102.816 25.3975 103.377 24.8432 103.377 23.9362V18.1669H107.369L110.826 24.4149C111.247 25.1581 111.591 25.3975 112.254 25.3975C113.083 25.3975 113.708 24.8432 113.708 24.1C113.708 23.7851 113.632 23.5205 113.402 23.13L110.29 17.7008C112.497 16.9324 113.798 14.9673 113.798 12.5361C113.798 9.14751 111.438 6.98085 107.65 6.98085H101.949C101.056 6.98085 100.52 7.53511 100.52 8.44208V23.9362C100.52 24.8432 101.068 25.3975 101.949 25.3975ZM103.377 15.8868V9.34906H107.306C109.512 9.34906 110.851 10.5836 110.851 12.6116C110.851 14.6901 109.589 15.8868 107.382 15.8868H103.377Z"
+                    fill="white" />
+                <path
+                    d="M123.568 25.3597C124.308 25.3597 124.729 25.007 124.996 24.1882L126.387 20.2831H133.427L134.83 24.2008C135.085 25.007 135.506 25.3597 136.272 25.3597C137.101 25.3597 137.7 24.818 137.7 24.0748C137.7 23.8355 137.649 23.5961 137.522 23.2434L131.909 8.24053C131.527 7.23278 130.915 6.7793 129.92 6.7793C128.912 6.7793 128.287 7.24538 127.917 8.25313L122.318 23.2434C122.19 23.5835 122.139 23.8607 122.139 24.0748C122.139 24.8432 122.713 25.3597 123.568 25.3597ZM127.114 17.9779L129.856 10.0041H129.932L132.7 17.9779H127.114Z"
+                    fill="white" />
+                <path
+                    d="M21.15 16.722C22.0271 16.722 22.7382 17.4351 22.7382 18.3146V19.1109C22.7382 23.5223 21.6836 27.7825 19.6968 31.6062C19.4984 31.9742 19.0383 32.1086 18.674 31.9049L17.94 31.4945C17.1788 31.069 16.911 30.1072 17.284 29.3174C18.6737 26.3748 19.4522 23.1626 19.5507 19.8371L19.5618 19.1109V18.3146C19.5618 17.4351 20.2728 16.722 21.15 16.722ZM13.209 14.3332C13.209 13.4536 13.9201 12.7406 14.7972 12.7406C15.6743 12.7406 16.3854 13.4536 16.3854 14.3332V19.1109L16.3775 19.7145C16.2574 24.0745 14.761 28.2838 12.1036 31.7368C11.9017 31.991 11.5316 32.0309 11.2804 31.8255L10.5001 31.1874C9.82393 30.6345 9.73045 29.6397 10.2196 28.9153C12.0565 26.1948 13.0954 22.999 13.1995 19.6938L13.209 19.1109V14.3332ZM14.7972 6.37031C16.9033 6.37031 18.9231 7.20925 20.4123 8.70258C21.524 9.81738 22.2721 11.2287 22.5799 12.7511C22.7542 13.6132 22.0271 14.3332 21.15 14.3332C20.2728 14.3332 19.5865 13.601 19.2995 12.7699C19.0658 12.093 18.681 11.4709 18.1663 10.9548C17.2727 10.0588 16.0609 9.55546 14.7972 9.55546C13.5336 9.55546 12.3217 10.0588 11.4282 10.9548C10.5346 11.8508 10.0326 13.066 10.0326 14.3332V19.1109C10.0326 22.6703 8.73033 26.029 6.42587 28.6297C6.24083 28.831 5.92719 28.8412 5.72955 28.6523L4.93057 27.8888C4.30063 27.2867 4.28812 26.2918 4.79401 25.5818C6.03709 23.8371 6.75644 21.7583 6.84674 19.5935L6.85627 19.1109V14.3332C6.85627 12.2213 7.6929 10.1959 9.18212 8.70258C10.6713 7.20925 12.6911 6.37031 14.7972 6.37031ZM14.7972 1.571e-05C18.5881 1.571e-05 22.2238 1.51011 24.9044 4.1981C27.585 6.88609 29.191 10.5318 29.191 14.3332V19.1109C29.191 21.8151 28.7701 24.4779 28.1428 27.0578C28.0213 27.53 27.5382 27.8114 27.0691 27.6831L26.3791 27.4946C25.5384 27.2648 25.047 26.3958 25.2315 25.5418C25.6216 23.7367 25.8462 21.8896 25.9018 20.0155L25.9145 19.1109V14.3332C25.9145 12.2642 25.3404 10.2361 24.2563 8.4757C23.1722 6.71534 21.6209 5.29223 19.7761 4.36564C17.9313 3.43905 15.8658 3.04553 13.8107 3.22913C12.2141 3.37176 10.6727 3.85834 9.28958 4.64933C8.60359 5.04164 7.72515 4.9894 7.16694 4.42925L7.12925 4.39143C6.46064 3.72051 6.51907 2.60847 7.32499 2.11193C9.56259 0.733311 12.148 -0.00392425 14.7972 1.571e-05ZM2.60976 6.84008C3.10477 6.03196 4.21364 5.97347 4.88265 6.64385L4.91901 6.68029C5.47829 7.24072 5.52971 8.12288 5.13749 8.81129C4.24717 10.3739 3.74579 12.1369 3.68624 13.9494L3.67989 14.3332L3.68624 17.5183C3.68624 19.302 3.70001 20.9943 2.90909 22.5455C2.77329 22.7986 2.02308 22.9223 1.77415 22.7797L0.831622 22.2399C0.0794547 21.8092 -0.1646 20.8506 0.108076 20.0262C0.324732 19.3711 0.455844 18.686 0.495574 17.9834L0.509868 17.5183V14.3332C0.502171 11.6769 1.2354 9.08378 2.60976 6.84008Z"
+                    fill="#00C2FF" />
+            </symbol>
+        </defs>
+        <use href="#logo-svg" />
+    </svg>
+
+    <div id="__next">
+        <main class="w-full h-full flex flex-col items-center justify-center select-none">
+            <svg class="flex-none" width="138" height="32">
+                <use href="#logo-svg" />
+            </svg>
+            <p class="text-white-400 mt-6 font-medium">You've successfully logged in to Infra.</p>
+            <p class="text-white-400 font-medium">You may now close this window.</p>
+        </main>
+    </div>
+</body>
+
+</html>
