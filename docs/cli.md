@@ -33,8 +33,7 @@ $ infra login infra.example.com
 ### Options
 
 ```
-  -h, --help              help for login
-  -k, --skip-tls-verify   skip TLS verification
+  -h, --help   help for login
 ```
 
 ## `infra logout`

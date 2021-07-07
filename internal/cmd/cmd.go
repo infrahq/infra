@@ -273,66 +273,164 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-func newLoginCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:     "login REGISTRY",
-		Short:   "Log in to an Infra Registry",
-		Args:    cobra.ExactArgs(1),
-		Example: "$ infra login infra.example.com",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			client, err := client(args[0], "", false)
+var loginCmd = &cobra.Command{
+	Use:     "login REGISTRY",
+	Short:   "Log in to an Infra Registry",
+	Args:    cobra.ExactArgs(1),
+	Example: "$ infra login infra.example.com",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		client, err := client(args[0], "", false)
+		if err != nil {
+			return err
+		}
+
+		statusRes, err := client.Status(context.Background(), &emptypb.Empty{})
+		var skipTLSVerify bool
+		if err != nil {
+			if !strings.HasSuffix(err.Error(), "\"transport: authentication handshake failed: x509: certificate signed by unknown authority\"") {
+				return err
+			}
+
+			proceed := false
+			fmt.Println()
+			fmt.Print("Could not verify certificate for host ")
+			fmt.Print(termenv.String(args[0]).Bold())
+			fmt.Println()
+			prompt := &survey.Confirm{
+				Message: "Are you sure you want to continue (yes/no)?",
+			}
+
+			p := termenv.ColorProfile()
+
+			err := survey.AskOne(prompt, &proceed, survey.WithIcons(func(icons *survey.IconSet) {
+				icons.Question.Text = termenv.String("?").Bold().Foreground(p.Color("#0155F9")).String()
+			}))
+			if err != nil {
+				fmt.Println(err.Error())
+				return err
+			}
+
+			if !proceed {
+				return nil
+			}
+
+			skipTLSVerify = true
+			creds := credentials.NewTLS(&tls.Config{InsecureSkipVerify: true})
+			conn, err := grpc.Dial("localhost:443", grpc.WithTransportCredentials(creds))
+			if err != nil {
+				return err
+			}
+			defer conn.Close()
+			client = v1.NewV1Client(conn)
+			statusRes, err = client.Status(context.Background(), &emptypb.Empty{})
+			if err != nil {
+				return err
+			}
+		}
+
+		var loginRes *v1.LoginResponse
+		if !statusRes.Admin {
+			fmt.Println()
+			fmt.Println(blue("Welcome to Infra. Get started by creating your admin user:"))
+			email := ""
+			emailPrompt := &survey.Input{
+				Message: "Email",
+			}
+			err = survey.AskOne(emailPrompt, &email, survey.WithShowCursor(true), survey.WithValidator(survey.Required), survey.WithIcons(func(icons *survey.IconSet) {
+				icons.Question.Text = blue("?")
+			}))
+			if err == terminal.InterruptErr {
+				return nil
+			}
+
+			password := ""
+			passwordPrompt := &survey.Password{
+				Message: "Password",
+			}
+			err = survey.AskOne(passwordPrompt, &password, survey.WithShowCursor(true), survey.WithValidator(survey.Required), survey.WithIcons(func(icons *survey.IconSet) {
+				icons.Question.Text = blue("?")
+			}))
+			if err == terminal.InterruptErr {
+				return nil
+			}
+
+			fmt.Println(blue("✓") + " Creating admin user...")
+			loginRes, err = client.Signup(context.Background(), &v1.SignupRequest{Email: email, Password: password})
+			if err != nil {
+				return err
+			}
+		} else {
+			sourcesRes, err := client.ListSources(context.Background(), &emptypb.Empty{})
 			if err != nil {
 				return err
 			}
 
-			statusRes, err := client.Status(context.Background(), &emptypb.Empty{})
-			var skipTLSVerify bool
-			if err != nil {
-				if !strings.HasSuffix(err.Error(), "\"transport: authentication handshake failed: x509: certificate signed by unknown authority\"") {
-					return err
-				}
+			sort.Slice(sourcesRes.Sources, func(i, j int) bool {
+				return sourcesRes.Sources[i].Created > sourcesRes.Sources[j].Created
+			})
 
-				proceed := false
-				fmt.Println()
-				fmt.Print("Could not verify certificate for host ")
-				fmt.Print(termenv.String(args[0]).Bold())
-				fmt.Println()
-				prompt := &survey.Confirm{
-					Message: "Are you sure you want to continue (yes/no)?",
-				}
-
-				p := termenv.ColorProfile()
-
-				err := survey.AskOne(prompt, &proceed, survey.WithIcons(func(icons *survey.IconSet) {
-					icons.Question.Text = termenv.String("?").Bold().Foreground(p.Color("#0155F9")).String()
-				}))
-				if err != nil {
-					fmt.Println(err.Error())
-					return err
-				}
-
-				if !proceed {
-					return nil
-				}
-
-				skipTLSVerify = true
-				creds := credentials.NewTLS(&tls.Config{InsecureSkipVerify: true})
-				conn, err := grpc.Dial("localhost:443", grpc.WithTransportCredentials(creds))
-				if err != nil {
-					return err
-				}
-				defer conn.Close()
-				client = v1.NewV1Client(conn)
-				statusRes, err = client.Status(context.Background(), &emptypb.Empty{})
-				if err != nil {
-					return err
+			options := []string{}
+			for _, srs := range sourcesRes.Sources {
+				switch srs.Type {
+				case v1.SourceType_OKTA:
+					options = append(options, fmt.Sprintf("Okta [%s]", srs.Okta.Domain))
+				case v1.SourceType_INFRA:
+					options = append(options, "Username & password")
 				}
 			}
 
-			var loginRes *v1.LoginResponse
-			if !statusRes.Admin {
-				fmt.Println()
-				fmt.Println(blue("Welcome to Infra. Get started by creating your admin user:"))
+			var option int
+			if len(options) > 1 {
+				prompt := &survey.Select{
+					Message: "Choose a login method:",
+					Options: options,
+				}
+				err = survey.AskOne(prompt, &option, survey.WithIcons(func(icons *survey.IconSet) {
+					icons.Question.Text = blue("?")
+				}))
+				if err == terminal.InterruptErr {
+					return nil
+				}
+			}
+
+			source := sourcesRes.Sources[option]
+			var loginReq v1.LoginRequest
+
+			switch source.Type {
+			case v1.SourceType_OKTA:
+				// Start OIDC flow
+				// Get auth code from Okta
+				// Send auth code to Infra to log in as a user
+				state := generate.RandString(12)
+				authorizeUrl := "https://" + source.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + source.Okta.ClientId + "&response_type=code&scope=openid+email&nonce=" + generate.RandString(10) + "&state=" + state
+
+				fmt.Println(blue("✓") + " Logging in with Okta...")
+				ls, err := newLocalServer()
+				if err != nil {
+					return err
+				}
+
+				err = browser.OpenURL(authorizeUrl)
+				if err != nil {
+					return err
+				}
+
+				code, recvstate, err := ls.wait()
+				if err != nil {
+					return err
+				}
+
+				if state != recvstate {
+					return errors.New("received state is not the same as sent state")
+				}
+
+				loginReq.Type = v1.SourceType_OKTA
+				loginReq.Okta = &v1.LoginRequest_Okta{
+					Domain: source.Okta.Domain,
+					Code:   code,
+				}
+
+			case v1.SourceType_INFRA:
 				email := ""
 				emailPrompt := &survey.Input{
 					Message: "Email",
@@ -355,195 +453,91 @@ func newLoginCmd() *cobra.Command {
 					return nil
 				}
 
-				fmt.Println(blue("✓") + " Creating admin user...")
-				loginRes, err = client.Signup(context.Background(), &v1.SignupRequest{Email: email, Password: password})
-				if err != nil {
-					return err
-				}
-			} else {
-				sourcesRes, err := client.ListSources(context.Background(), &emptypb.Empty{})
-				if err != nil {
-					return err
-				}
+				fmt.Println(blue("✓") + " Logging in with username & password...")
 
-				sort.Slice(sourcesRes.Sources, func(i, j int) bool {
-					return sourcesRes.Sources[i].Created > sourcesRes.Sources[j].Created
-				})
-
-				options := []string{}
-				for _, srs := range sourcesRes.Sources {
-					switch srs.Type {
-					case v1.SourceType_OKTA:
-						options = append(options, fmt.Sprintf("Okta [%s]", srs.Okta.Domain))
-					case v1.SourceType_INFRA:
-						options = append(options, "Username & password")
-					}
-				}
-
-				var option int
-				if len(options) > 1 {
-					prompt := &survey.Select{
-						Message: "Choose a login method:",
-						Options: options,
-					}
-					err = survey.AskOne(prompt, &option, survey.WithIcons(func(icons *survey.IconSet) {
-						icons.Question.Text = blue("?")
-					}))
-					if err == terminal.InterruptErr {
-						return nil
-					}
-				}
-
-				source := sourcesRes.Sources[option]
-				var loginReq v1.LoginRequest
-
-				switch source.Type {
-				case v1.SourceType_OKTA:
-					// Start OIDC flow
-					// Get auth code from Okta
-					// Send auth code to Infra to log in as a user
-					state := generate.RandString(12)
-					authorizeUrl := "https://" + source.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + source.Okta.ClientId + "&response_type=code&scope=openid+email&nonce=" + generate.RandString(10) + "&state=" + state
-
-					fmt.Println(blue("✓") + " Logging in with Okta...")
-					ls, err := newLocalServer()
-					if err != nil {
-						return err
-					}
-
-					err = browser.OpenURL(authorizeUrl)
-					if err != nil {
-						return err
-					}
-
-					code, recvstate, err := ls.wait()
-					if err != nil {
-						return err
-					}
-
-					if state != recvstate {
-						return errors.New("received state is not the same as sent state")
-					}
-
-					loginReq.Type = v1.SourceType_OKTA
-					loginReq.Okta = &v1.LoginRequest_Okta{
-						Domain: source.Okta.Domain,
-						Code:   code,
-					}
-
-				case v1.SourceType_INFRA:
-					email := ""
-					emailPrompt := &survey.Input{
-						Message: "Email",
-					}
-					err = survey.AskOne(emailPrompt, &email, survey.WithShowCursor(true), survey.WithValidator(survey.Required), survey.WithIcons(func(icons *survey.IconSet) {
-						icons.Question.Text = blue("?")
-					}))
-					if err == terminal.InterruptErr {
-						return nil
-					}
-
-					password := ""
-					passwordPrompt := &survey.Password{
-						Message: "Password",
-					}
-					err = survey.AskOne(passwordPrompt, &password, survey.WithShowCursor(true), survey.WithValidator(survey.Required), survey.WithIcons(func(icons *survey.IconSet) {
-						icons.Question.Text = blue("?")
-					}))
-					if err == terminal.InterruptErr {
-						return nil
-					}
-
-					fmt.Println(blue("✓") + " Logging in with username & password...")
-
-					loginReq.Type = v1.SourceType_INFRA
-					loginReq.Infra = &v1.LoginRequest_Infra{
-						Email:    email,
-						Password: password,
-					}
-				}
-
-				loginRes, err = client.Login(context.Background(), &loginReq)
-				if err != nil {
-					return err
+				loginReq.Type = v1.SourceType_INFRA
+				loginReq.Infra = &v1.LoginRequest_Infra{
+					Email:    email,
+					Password: password,
 				}
 			}
 
-			logout()
-
-			config := &Config{
-				Host:          args[0],
-				Token:         loginRes.Token,
-				SkipTLSVerify: skipTLSVerify,
+			loginRes, err = client.Login(context.Background(), &loginReq)
+			if err != nil {
+				return err
 			}
+		}
 
-			err = writeConfig(config)
+		logout()
+
+		config := &Config{
+			Host:          args[0],
+			Token:         loginRes.Token,
+			SkipTLSVerify: skipTLSVerify,
+		}
+
+		err = writeConfig(config)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println(blue("✓") + " Logged in")
+
+		// Generate client certs
+		home, err := homedir.Dir()
+		if err != nil {
+			return err
+		}
+
+		if err = os.MkdirAll(filepath.Join(home, ".infra", "client"), os.ModePerm); err != nil {
+			return err
+		}
+
+		if _, err := os.Stat(filepath.Join(home, ".infra", "client", "cert.pem")); os.IsNotExist(err) {
+			certBytes, keyBytes, err := generate.SelfSignedCert([]string{"localhost", "localhost:32710"})
 			if err != nil {
 				return err
 			}
 
-			fmt.Println(blue("✓") + " Logged in")
-
-			// Generate client certs
-			home, err := homedir.Dir()
-			if err != nil {
+			if err = ioutil.WriteFile(filepath.Join(home, ".infra", "client", "cert.pem"), certBytes, 0644); err != nil {
 				return err
 			}
 
-			if err = os.MkdirAll(filepath.Join(home, ".infra", "client"), os.ModePerm); err != nil {
+			if err = ioutil.WriteFile(filepath.Join(home, ".infra", "client", "key.pem"), keyBytes, 0644); err != nil {
 				return err
 			}
 
-			if _, err := os.Stat(filepath.Join(home, ".infra", "client", "cert.pem")); os.IsNotExist(err) {
-				certBytes, keyBytes, err := generate.SelfSignedCert([]string{"localhost", "localhost:32710"})
+			// Kill client
+			contents, err := ioutil.ReadFile(filepath.Join(home, ".infra", "client", "pid"))
+			if err != nil && !os.IsNotExist(err) {
+				return err
+			}
+
+			var pid int
+			if !os.IsNotExist(err) {
+				pid, err = strconv.Atoi(string(contents))
 				if err != nil {
 					return err
 				}
 
-				if err = ioutil.WriteFile(filepath.Join(home, ".infra", "client", "cert.pem"), certBytes, 0644); err != nil {
-					return err
-				}
-
-				if err = ioutil.WriteFile(filepath.Join(home, ".infra", "client", "key.pem"), keyBytes, 0644); err != nil {
-					return err
-				}
-
-				// Kill client
-				contents, err := ioutil.ReadFile(filepath.Join(home, ".infra", "client", "pid"))
-				if err != nil && !os.IsNotExist(err) {
-					return err
-				}
-
-				var pid int
-				if !os.IsNotExist(err) {
-					pid, err = strconv.Atoi(string(contents))
-					if err != nil {
-						return err
-					}
-
-					process, _ := os.FindProcess(int(pid))
-					process.Kill()
-				}
-
-				os.Remove(filepath.Join(home, ".infra", "client", "pid"))
+				process, _ := os.FindProcess(int(pid))
+				process.Kill()
 			}
 
-			updated, err := updateKubeconfig()
-			if err != nil {
-				return err
-			}
+			os.Remove(filepath.Join(home, ".infra", "client", "pid"))
+		}
 
-			if updated {
-				fmt.Println(blue("✓") + " Kubeconfig updated")
-			}
+		updated, err := updateKubeconfig()
+		if err != nil {
+			return err
+		}
 
-			return nil
-		},
-	}
+		if updated {
+			fmt.Println(blue("✓") + " Kubeconfig updated")
+		}
 
-	cmd.PersistentFlags().BoolP("skip-tls-verify", "k", false, "skip TLS verification")
-
-	return cmd
+		return nil
+	},
 }
 
 func logout() error {
@@ -1080,7 +1074,7 @@ var clientCmd = &cobra.Command{
 func NewRootCmd() (*cobra.Command, error) {
 	cobra.EnableCommandSorting = false
 
-	rootCmd.AddCommand(newLoginCmd())
+	rootCmd.AddCommand(loginCmd)
 	rootCmd.AddCommand(logoutCmd)
 
 	userCmd.AddCommand(userCreateCmd)
