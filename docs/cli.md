@@ -33,8 +33,7 @@ $ infra login infra.example.com
 ### Options
 
 ```
-  -h, --help              help for login
-  -k, --skip-tls-verify   skip TLS verification
+  -h, --help   help for login
 ```
 
 ## `infra logout`
@@ -146,9 +145,9 @@ infra source create KIND [flags]
 ```
 $ infra source create okta \
 	--domain example.okta.com \
-	--apiToken 001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd \
-	--clientID 0oapn0qwiQPiMIyR35d6 \
-	--clientSecret jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2
+	--api-token 001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd \
+	--client-id 0oapn0qwiQPiMIyR35d6 \
+	--client-secret jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2
 ```
 
 ### Options
@@ -206,10 +205,11 @@ infra registry [flags]
 ### Options
 
 ```
-  -c, --config string      config file
-      --db string          path to database file (default "/Users/jmorgan/.infra/infra.db")
-  -h, --help               help for registry
-      --tls-cache string   path to directory to cache tls self-signed and Let's Encrypt certificates (default "/Users/jmorgan/.infra/cache")
+  -c, --config string           config file
+      --db string               path to database file (default "/Users/jmorgan/.infra/infra.db")
+  -h, --help                    help for registry
+      --initial-apikey string   initial api key for adding destinations
+      --tls-cache string        path to directory to cache tls self-signed and Let's Encrypt certificates (default "/Users/jmorgan/.infra/cache")
 ```
 
 ## `infra engine`
