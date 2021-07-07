@@ -468,8 +468,6 @@ var loginCmd = &cobra.Command{
 			}
 		}
 
-		logout()
-
 		config := &Config{
 			Host:          args[0],
 			Token:         loginRes.Token,

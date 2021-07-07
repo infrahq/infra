@@ -43,7 +43,7 @@ dev:
 	kubectl rollout restart deployment/infra-engine
 
 dev/clean:
-	helm uninstall --namespace infra infra || true
+	helm uninstall --namespace default infra || true
 
 release:
 	goreleaser release -f .goreleaser.yml --rm-dist
