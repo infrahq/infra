@@ -54,7 +54,7 @@ First, bump both the chart and app versions in `helm`:
 * https://github.com/infrahq/infra/blob/main/helm/charts/infra/Chart.yaml
 * https://github.com/infrahq/infra/blob/main/helm/charts/infra/charts/engine/Chart.yaml
 
-Then, create commit these changes and push them to `main` (or create a PR).
+Then, commit these changes and push them to `main` (or create a PR).
 
 ### 2. Create and push a tag
 
