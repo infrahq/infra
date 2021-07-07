@@ -1,11 +1,9 @@
 name: release
 
 on:
-  push:
-    tags:
-      - "v*"
-    branches-ignore:
-      - "!main"
+  release:
+    types:
+      - created
 
 jobs:
   release-binaries:
