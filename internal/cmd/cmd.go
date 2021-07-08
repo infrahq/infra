@@ -137,7 +137,7 @@ func withClientAuthUnaryInterceptor(token string) grpc.DialOption {
 	})
 }
 
-func client(host string, token string, skipTlsVerify bool) (v1.V1Client, error) {
+func NewClient(host string, token string, skipTlsVerify bool) (v1.V1Client, error) {
 	var normalizedHost string
 	if host == "" {
 		normalizedHost = "localhost:443"
@@ -168,7 +168,7 @@ func clientFromConfig() (v1.V1Client, error) {
 		return nil, err
 	}
 
-	return client(config.Host, config.Token, config.SkipTLSVerify)
+	return NewClient(config.Host, config.Token, config.SkipTLSVerify)
 }
 
 func fetchDestinations() ([]*v1.Destination, error) {
@@ -279,7 +279,7 @@ var loginCmd = &cobra.Command{
 	Args:    cobra.ExactArgs(1),
 	Example: "$ infra login infra.example.com",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := client(args[0], "", false)
+		client, err := NewClient(args[0], "", false)
 		if err != nil {
 			return err
 		}
@@ -315,13 +315,10 @@ var loginCmd = &cobra.Command{
 			}
 
 			skipTLSVerify = true
-			creds := credentials.NewTLS(&tls.Config{InsecureSkipVerify: true})
-			conn, err := grpc.Dial("localhost:443", grpc.WithTransportCredentials(creds))
+			client, err = NewClient(args[0], "", true)
 			if err != nil {
 				return err
 			}
-			defer conn.Close()
-			client = v1.NewV1Client(conn)
 			statusRes, err = client.Status(context.Background(), &emptypb.Empty{})
 			if err != nil {
 				return err
@@ -551,7 +548,7 @@ var logoutCmd = &cobra.Command{
 			return nil
 		}
 
-		client, err := client(config.Host, config.Token, config.SkipTLSVerify)
+		client, err := NewClient(config.Host, config.Token, config.SkipTLSVerify)
 		if err != nil {
 			return err
 		}
