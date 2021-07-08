@@ -8,6 +8,12 @@ import (
 	"gopkg.in/square/go-jose.v2/jwt"
 )
 
+// ValidateOktaConnection requests the client from Okta to check for errors on the response
+func ValidateOktaConnection(domain string, clientID string, apiToken string) error {
+	_, _, err := okta.NewClient(context.TODO(), okta.WithOrgUrl("https://"+domain), okta.WithRequestTimeout(30), okta.WithRateLimitMaxRetries(3), okta.WithToken(apiToken))
+	return err
+}
+
 func Emails(domain string, clientID string, apiToken string) ([]string, error) {
 	ctx, client, err := okta.NewClient(context.TODO(), okta.WithOrgUrl("https://"+domain), okta.WithRequestTimeout(30), okta.WithRateLimitMaxRetries(3), okta.WithToken(apiToken))
 	if err != nil {
