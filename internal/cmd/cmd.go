@@ -258,7 +258,7 @@ func updateKubeconfig() (bool, error) {
 		}
 	}
 
-	if err = clientcmd.WriteToFile(kubeConfig, clientcmd.RecommendedHomeFile); err != nil {
+	if err = clientcmd.WriteToFile(kubeConfig, defaultConfig.ConfigAccess().GetDefaultFilename()); err != nil {
 		return false, err
 	}
 
@@ -601,7 +601,7 @@ var logoutCmd = &cobra.Command{
 		}
 
 		if len(kubeConfig.Contexts) == 0 {
-			os.Remove(clientcmd.RecommendedHomeFile)
+			os.Remove(defaultConfig.ConfigAccess().GetDefaultFilename())
 		} else {
 			_, ok := kubeConfig.Contexts[kubeConfig.CurrentContext]
 			if !ok {
@@ -614,7 +614,7 @@ var logoutCmd = &cobra.Command{
 			}
 		}
 
-		if err = clientcmd.WriteToFile(kubeConfig, clientcmd.RecommendedHomeFile); err != nil {
+		if err = clientcmd.WriteToFile(kubeConfig, defaultConfig.ConfigAccess().GetDefaultFilename()); err != nil {
 			return err
 		}
 		return nil
