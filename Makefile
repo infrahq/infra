@@ -40,7 +40,7 @@ build:
 
 dev:
 	kubectl config use-context docker-desktop
-	docker build . -t infrahq/infra:dev
+	docker build --build-arg BUILDVERSION=$(tag) . -t infrahq/infra:dev
 	helm upgrade --install infra ./helm/charts/infra --set image.pullPolicy=Never --set image.tag=dev  --set engine.image.tag=dev --set engine.image.pullPolicy=Never
 	kubectl rollout restart deployment/infra
 	kubectl rollout restart deployment/infra-engine
