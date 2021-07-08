@@ -7,7 +7,7 @@
     * [Create an Okta App](#create-an-okta-app)
     * [Add Okta information to Infra registry](#add-okta-information-to-infra-registry)
 * [Usage](#usage)
-    * [Log in with Okta](#log-in-with-okta)
+    * [Login with Okta](#log-in-with-okta)
     * [List Okta users](#list-okta-users)
 
 ## Prerequisites
@@ -18,7 +18,7 @@
 
 ### Create an Okta App 
 
-1. Log in to the Okta administrative dashboard.
+1. Login to the Okta administrative dashboard.
 2. Under the left menu click **Applications > Applications**. Click **Create App Integration** then select **OIDC – OpenID Connect** and **Web Application**, and click **Next**.
 
 ![okta_applications](https://user-images.githubusercontent.com/5853428/124651126-67c9e780-de4f-11eb-98bd-def34bea95fd.png)
@@ -60,7 +60,7 @@ mark@example.com   	  okta    	  About a minute ago
 admin@example.com     infra       5 minutes ago         x
 ```
 
-### Log in with Okta
+### Login with Okta
 
 ```
 $ infra login <INFRA_REGISTRY_EXTERNAL_IP>

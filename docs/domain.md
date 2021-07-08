@@ -23,7 +23,7 @@ Add the following DNS records to set up automatic LetsEncrypt certificates for y
 
 Note that some Load Balancers (e.g. on AWS) will require using a **CNAME** record instead.
 
-## Log in via the new domain
+## Login via the new domain
 
 ```
 infra login infra.example.com

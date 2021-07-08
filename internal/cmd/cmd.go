@@ -275,7 +275,7 @@ var rootCmd = &cobra.Command{
 
 var loginCmd = &cobra.Command{
 	Use:     "login REGISTRY",
-	Short:   "Log in to an Infra Registry",
+	Short:   "Login to an Infra Registry",
 	Args:    cobra.ExactArgs(1),
 	Example: "$ infra login infra.example.com",
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -397,7 +397,7 @@ var loginCmd = &cobra.Command{
 			case v1.SourceType_OKTA:
 				// Start OIDC flow
 				// Get auth code from Okta
-				// Send auth code to Infra to log in as a user
+				// Send auth code to Infra to login as a user
 				state := generate.RandString(12)
 				authorizeUrl := "https://" + source.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + source.Okta.ClientId + "&response_type=code&scope=openid+email&nonce=" + generate.RandString(10) + "&state=" + state
 
@@ -537,7 +537,7 @@ var loginCmd = &cobra.Command{
 
 var logoutCmd = &cobra.Command{
 	Use:   "logout",
-	Short: "Log out of an Infra Registry",
+	Short: "Logout of an Infra Registry",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		config, err := readConfig()
 		if err != nil {
@@ -838,8 +838,8 @@ func newSourceCreateCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&apiToken, "api-token", "", "Api Token")
 	cmd.Flags().StringVar(&domain, "domain", "", "Domain (e.g. example.okta.com)")
-	cmd.Flags().StringVar(&clientID, "client-id", "", "Client ID for single sign on")
-	cmd.Flags().StringVar(&clientSecret, "client-secret", "", "Client Secret for single sign on")
+	cmd.Flags().StringVar(&clientID, "client-id", "", "Client ID for single sign-on")
+	cmd.Flags().StringVar(&clientSecret, "client-secret", "", "Client Secret for single sign-on")
 
 	return cmd
 }

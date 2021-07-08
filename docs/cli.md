@@ -18,7 +18,7 @@
 
 ## `infra login`
 
-Log in to an Infra Registry
+Login to an Infra Registry
 
 ```
 infra login REGISTRY [flags]
@@ -38,7 +38,7 @@ $ infra login infra.example.com
 
 ## `infra logout`
 
-Log out of an Infra Registry
+Logout of an Infra Registry
 
 ```
 infra logout [flags]
@@ -154,8 +154,8 @@ $ infra source create okta \
 
 ```
       --api-token string       Api Token
-      --client-id string       Client ID for single sign on
-      --client-secret string   Client Secret for single sign on
+      --client-id string       Client ID for single sign-on
+      --client-secret string   Client Secret for single sign-on
       --domain string          Domain (e.g. example.okta.com)
   -h, --help                   help for create
 ```
@@ -206,10 +206,10 @@ infra registry [flags]
 
 ```
   -c, --config string           config file
-      --db string               path to database file (default "/Users/jmorgan/.infra/infra.db")
+      --db string               path to database file (default "$HOME/.infra/infra.db")
   -h, --help                    help for registry
       --initial-apikey string   initial api key for adding destinations
-      --tls-cache string        path to directory to cache tls self-signed and Let's Encrypt certificates (default "/Users/jmorgan/.infra/cache")
+      --tls-cache string        path to directory to cache tls self-signed and Let's Encrypt certificates (default "$HOME/.infra/cache")
 ```
 
 ## `infra engine`
