@@ -3,10 +3,12 @@ package cmd
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -273,60 +275,78 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+func promptShouldSkipTLSVerify(host string) (skipTlsVerify bool, proceed bool, err error) {
+	httpClient := &http.Client{}
+	httpClient.Transport = &http.Transport{
+		TLSClientConfig: &tls.Config{},
+	}
+	url, err := urlx.Parse(host)
+	if err != nil {
+		return false, false, err
+	}
+	url.Scheme = "https"
+	urlString := url.String()
+
+	_, err = httpClient.Get(urlString)
+	if err != nil {
+		if !errors.As(err, &x509.UnknownAuthorityError{}) && !errors.As(err, &x509.HostnameError{}) {
+			return false, false, err
+		}
+
+		proceed := false
+		fmt.Println()
+		fmt.Print("Could not verify certificate for host ")
+		fmt.Print(termenv.String(host).Bold())
+		fmt.Println()
+		prompt := &survey.Confirm{
+			Message: "Are you sure you want to continue?",
+		}
+
+		err := survey.AskOne(prompt, &proceed, survey.WithIcons(func(icons *survey.IconSet) {
+			icons.Question.Text = blue("?")
+		}))
+		if err != nil {
+			fmt.Println(err.Error())
+			return false, false, err
+		}
+
+		if !proceed {
+			return false, false, nil
+		}
+
+		return true, true, nil
+	}
+
+	return false, true, nil
+}
+
 var loginCmd = &cobra.Command{
 	Use:     "login REGISTRY",
 	Short:   "Login to an Infra Registry",
 	Args:    cobra.ExactArgs(1),
 	Example: "$ infra login infra.example.com",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := NewClient(args[0], "", false)
+		skipTLSVerify, proceed, err := promptShouldSkipTLSVerify(args[0])
 		if err != nil {
 			return err
 		}
 
-		statusRes, err := client.Status(context.Background(), &emptypb.Empty{})
-		var skipTLSVerify bool
+		if !proceed {
+			return nil
+		}
+
+		client, err := NewClient(args[0], "", skipTLSVerify)
 		if err != nil {
-			if !strings.HasSuffix(err.Error(), "\"transport: authentication handshake failed: x509: certificate signed by unknown authority\"") {
-				return err
-			}
+			return err
+		}
 
-			proceed := false
-			fmt.Println()
-			fmt.Print("Could not verify certificate for host ")
-			fmt.Print(termenv.String(args[0]).Bold())
-			fmt.Println()
-			prompt := &survey.Confirm{
-				Message: "Are you sure you want to continue (yes/no)?",
-			}
-
-			p := termenv.ColorProfile()
-
-			err := survey.AskOne(prompt, &proceed, survey.WithIcons(func(icons *survey.IconSet) {
-				icons.Question.Text = termenv.String("?").Bold().Foreground(p.Color("#0155F9")).String()
-			}))
-			if err != nil {
-				fmt.Println(err.Error())
-				return err
-			}
-
-			if !proceed {
-				return nil
-			}
-
-			skipTLSVerify = true
-			client, err = NewClient(args[0], "", true)
-			if err != nil {
-				return err
-			}
-			statusRes, err = client.Status(context.Background(), &emptypb.Empty{})
-			if err != nil {
-				return err
-			}
+		res, err := client.Status(context.Background(), &emptypb.Empty{})
+		if err != nil {
+			return err
 		}
 
 		var loginRes *v1.LoginResponse
-		if !statusRes.Admin {
+		if !res.Admin {
 			fmt.Println()
 			fmt.Println(blue("Welcome to Infra. Get started by creating your admin user:"))
 			email := ""
