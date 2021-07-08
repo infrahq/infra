@@ -47,13 +47,13 @@ scoop bucket add infrahq https://github.com/infrahq/scoop.git
 scoop install infra
 ```
 
-### Log in
+### Login
 
 ```
 infra login <EXTERNAL-IP>
 ```
 
-Great! You're now **logged in to the cluster via Infra**. 
+Great! You're now **logged into the cluster via Infra**. 
 
 ### Adding users
 * [Connect Okta](./docs/okta.md)

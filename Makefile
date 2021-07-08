@@ -19,6 +19,9 @@ helm:
 .PHONY: docs
 docs:
 	go run ./internal/docgen
+	# Remove the $$HOME of the local system from the docs
+	# This probably only works on MacOS
+	grep -ilr $$HOME docs/* | xargs -I@ sed -i '' 's:'"$$HOME"':$$HOME:g' @
 
 clean:
 	rm -rf dist
