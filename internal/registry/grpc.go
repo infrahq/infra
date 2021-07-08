@@ -336,6 +336,9 @@ func (v *V1Server) CreateSource(ctx context.Context, in *v1.CreateSourceRequest)
 		if err := in.Okta.Validate(); err != nil {
 			return nil, err
 		}
+		if err := okta.ValidateOktaConnection(in.Okta.Domain, in.Okta.ClientId, in.Okta.ApiToken); err != nil {
+			return nil, err
+		}
 
 		source.Type = "okta"
 		source.OktaApiToken = in.Okta.ApiToken

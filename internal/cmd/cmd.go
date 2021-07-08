@@ -848,6 +848,7 @@ func newSourceCreateCmd() *cobra.Command {
 					},
 				})
 				if err != nil {
+					fmt.Println(blue("✕") + " Source creation aborted")
 					return err
 				}
 			}
