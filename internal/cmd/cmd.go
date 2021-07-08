@@ -32,7 +32,6 @@ import (
 	"github.com/muesli/termenv"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
-	"golang.org/x/net/http2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	grpcMetadata "google.golang.org/grpc/metadata"
@@ -278,7 +277,7 @@ var rootCmd = &cobra.Command{
 
 func promptShouldSkipTLSVerify(host string) (skipTlsVerify bool, proceed bool, err error) {
 	httpClient := &http.Client{}
-	httpClient.Transport = &http2.Transport{
+	httpClient.Transport = &http.Transport{
 		TLSClientConfig: &tls.Config{},
 	}
 	url, err := urlx.Parse(host)
@@ -287,9 +286,6 @@ func promptShouldSkipTLSVerify(host string) (skipTlsVerify bool, proceed bool, e
 	}
 	url.Scheme = "https"
 	urlString := url.String()
-	if url.Port() == "" {
-		urlString += ":443"
-	}
 
 	_, err = httpClient.Get(urlString)
 	if err != nil {
@@ -303,13 +299,11 @@ func promptShouldSkipTLSVerify(host string) (skipTlsVerify bool, proceed bool, e
 		fmt.Print(termenv.String(host).Bold())
 		fmt.Println()
 		prompt := &survey.Confirm{
-			Message: "Are you sure you want to continue (yes/no)?",
+			Message: "Are you sure you want to continue?",
 		}
 
-		p := termenv.ColorProfile()
-
 		err := survey.AskOne(prompt, &proceed, survey.WithIcons(func(icons *survey.IconSet) {
-			icons.Question.Text = termenv.String("?").Bold().Foreground(p.Color("#0155F9")).String()
+			icons.Question.Text = blue("?")
 		}))
 		if err != nil {
 			fmt.Println(err.Error())
