@@ -1,4 +1,4 @@
-tag := $(shell git describe --tags --abbrev=0)
+tag := $(shell git describe --tags)
 repo := infrahq/infra
 
 generate:
@@ -40,7 +40,7 @@ build:
 
 dev:
 	kubectl config use-context docker-desktop
-	docker build --build-arg BUILDVERSION=$(tag) . -t infrahq/infra:dev
+	docker build . -t infrahq/infra:dev
 	helm upgrade --install infra ./helm/charts/infra --set image.pullPolicy=Never --set image.tag=dev  --set engine.image.tag=dev --set engine.image.pullPolicy=Never
 	kubectl rollout restart deployment/infra
 	kubectl rollout restart deployment/infra-engine
@@ -52,7 +52,7 @@ release:
 	goreleaser release -f .goreleaser.yml --rm-dist
 
 release/docker:
-	docker buildx build --push --platform linux/amd64,linux/arm64 --build-arg BUILDVERSION=$(tag) . -t infrahq/infra:$(tag:v%=%) -t infrahq/infra
+	docker buildx build --push --platform linux/amd64,linux/arm64 --build-arg BUILDVERSION=$(tag:v%=%) . -t infrahq/infra:$(tag:v%=%) -t infrahq/infra
 
 release/helm:
 	make helm
