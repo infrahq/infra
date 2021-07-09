@@ -981,7 +981,21 @@ var versionCmd = &cobra.Command{
 	Short:   "Display the Infra build version",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		fmt.Println()
-		fmt.Print(version.Version)
+		fmt.Println("Client: ", version.GetFormattedVersion())
+
+		client, err := clientFromConfig()
+		if err != nil {
+			return err
+		}
+
+		// Note that we use the client to get this version, but it is in fact the server version
+		res, err := client.Version(context.Background(), &emptypb.Empty{})
+		if err != nil {
+			fmt.Println(blue("✕") + " Could not retrieve server version")
+			return err
+		}
+
+		fmt.Println("Server: ", res.Version)
 		fmt.Println()
 
 		return nil

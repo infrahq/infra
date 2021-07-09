@@ -10,6 +10,7 @@ import (
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/okta"
 	v1 "github.com/infrahq/infra/internal/v1"
+	"github.com/infrahq/infra/internal/version"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -645,4 +646,8 @@ func (v *V1Server) Status(ctx context.Context, in *emptypb.Empty) (*v1.StatusRes
 	}
 
 	return &v1.StatusResponse{Admin: count > 0}, nil
+}
+
+func (v *V1Server) Version(ctx context.Context, in *emptypb.Empty) (*v1.VersionResponse, error) {
+	return &v1.VersionResponse{Version: version.GetFormattedVersion()}, nil
 }

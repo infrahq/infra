@@ -34,6 +34,7 @@ type V1Client interface {
 	Logout(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Signup(ctx context.Context, in *SignupRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 	Status(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*StatusResponse, error)
+	Version(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*VersionResponse, error)
 }
 
 type v1Client struct {
@@ -179,6 +180,15 @@ func (c *v1Client) Status(ctx context.Context, in *emptypb.Empty, opts ...grpc.C
 	return out, nil
 }
 
+func (c *v1Client) Version(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*VersionResponse, error) {
+	out := new(VersionResponse)
+	err := c.cc.Invoke(ctx, "/v1.V1/Version", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // V1Server is the server API for V1 service.
 // All implementations must embed UnimplementedV1Server
 // for forward compatibility
@@ -198,6 +208,7 @@ type V1Server interface {
 	Logout(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
 	Signup(context.Context, *SignupRequest) (*LoginResponse, error)
 	Status(context.Context, *emptypb.Empty) (*StatusResponse, error)
+	Version(context.Context, *emptypb.Empty) (*VersionResponse, error)
 	mustEmbedUnimplementedV1Server()
 }
 
@@ -249,6 +260,9 @@ func (UnimplementedV1Server) Signup(context.Context, *SignupRequest) (*LoginResp
 }
 func (UnimplementedV1Server) Status(context.Context, *emptypb.Empty) (*StatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Status not implemented")
+}
+func (UnimplementedV1Server) Version(context.Context, *emptypb.Empty) (*VersionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Version not implemented")
 }
 func (UnimplementedV1Server) mustEmbedUnimplementedV1Server() {}
 
@@ -533,6 +547,24 @@ func _V1_Status_Handler(srv interface{}, ctx context.Context, dec func(interface
 	return interceptor(ctx, in, info, handler)
 }
 
+func _V1_Version_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(V1Server).Version(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/v1.V1/Version",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(V1Server).Version(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // V1_ServiceDesc is the grpc.ServiceDesc for V1 service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -599,6 +631,10 @@ var V1_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Status",
 			Handler:    _V1_Status_Handler,
+		},
+		{
+			MethodName: "Version",
+			Handler:    _V1_Version_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

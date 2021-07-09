@@ -1,4 +1,4 @@
-tag := $(shell git describe --tags)
+tag := $(shell git describe --tags --abbrev=0)
 repo := infrahq/infra
 
 generate:
@@ -52,7 +52,7 @@ release:
 	goreleaser release -f .goreleaser.yml --rm-dist
 
 release/docker:
-	docker buildx build --push --platform linux/amd64,linux/arm64 . -t infrahq/infra:$(tag:v%=%) -t infrahq/infra
+	docker buildx build --push --platform linux/amd64,linux/arm64 --build-arg BUILDVERSION=$(tag) . -t infrahq/infra:$(tag:v%=%) -t infrahq/infra
 
 release/helm:
 	make helm
