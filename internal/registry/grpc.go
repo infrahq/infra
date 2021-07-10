@@ -649,5 +649,5 @@ func (v *V1Server) Status(ctx context.Context, in *emptypb.Empty) (*v1.StatusRes
 }
 
 func (v *V1Server) Version(ctx context.Context, in *emptypb.Empty) (*v1.VersionResponse, error) {
-	return &v1.VersionResponse{Version: version.GetFormattedVersion()}, nil
+	return &v1.VersionResponse{Version: version.Version}, nil
 }

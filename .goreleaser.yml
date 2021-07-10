@@ -8,7 +8,7 @@ project_name: infra
 builds:
   - id: infra
     ldflags:
-      - -s -w -X github.com/infrahq/infra/internal/version.Version={{ .Tag }}
+      - -s -w -X github.com/infrahq/infra/internal/version.Version={{ .Version }}
     binary: infra
     main: ./main.go
     goos:
