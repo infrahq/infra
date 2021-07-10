@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"text/tabwriter"
 	"time"
 
 	survey "github.com/AlecAivazis/survey/v2"
@@ -980,8 +981,9 @@ var versionCmd = &cobra.Command{
 	Aliases: []string{"v"},
 	Short:   "Display the Infra build version",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println()
-		fmt.Println("Client: ", version.GetFormattedVersion())
+		w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, "Client:\t", version.Version)
 
 		client, err := clientFromConfig()
 		if err != nil {
@@ -991,12 +993,14 @@ var versionCmd = &cobra.Command{
 		// Note that we use the client to get this version, but it is in fact the server version
 		res, err := client.Version(context.Background(), &emptypb.Empty{})
 		if err != nil {
-			fmt.Println(blue("✕") + " Could not retrieve server version")
+			fmt.Fprintln(w, blue("✕")+" Could not retrieve registry version")
+			w.Flush()
 			return err
 		}
 
-		fmt.Println("Server: ", res.Version)
-		fmt.Println()
+		fmt.Fprintln(w, "Registry:\t", res.Version)
+		fmt.Fprintln(w)
+		w.Flush()
 
 		return nil
 	},

@@ -38,7 +38,6 @@ var tokenAuthMethods = map[string]bool{
 	"/v1.V1/CreateCred":       true,
 	"/v1.V1/ListApiKeys":      true,
 	"/v1.V1/Logout":           true,
-	"/v1.V1/Version":          true,
 }
 
 var tokenAuthAdminOnly = map[string]bool{
