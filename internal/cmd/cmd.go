@@ -198,6 +198,10 @@ func updateKubeconfig() (bool, error) {
 		return false, err
 	}
 
+	if destinations == nil {
+		destinations = make([]*v1.Destination, 0)
+	}
+
 	destinationsJSON, err := json.Marshal(destinations)
 	if err != nil {
 		return false, err

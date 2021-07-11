@@ -246,6 +246,12 @@ func Run(options Options) error {
 			return
 		}
 
+		saToken, err := kubernetes.SaToken()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
 		res, err := client.CreateDestination(context.Background(), &v1.CreateDestinationRequest{
 			Name: options.Name,
 			Type: v1.DestinationType_KUBERNETES,
@@ -253,6 +259,7 @@ func Run(options Options) error {
 				Ca:        string(ca),
 				Endpoint:  endpoint,
 				Namespace: namespace,
+				SaToken:   saToken,
 			},
 		})
 		if err != nil {

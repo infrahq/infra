@@ -2091,6 +2091,8 @@ func (m *Destination_Kubernetes) Validate() error {
 
 	// no validation rules for Namespace
 
+	// no validation rules for SaToken
+
 	return nil
 }
 
@@ -2175,6 +2177,13 @@ func (m *CreateDestinationRequest_Kubernetes) Validate() error {
 	if utf8.RuneCountInString(m.GetNamespace()) < 1 {
 		return CreateDestinationRequest_KubernetesValidationError{
 			field:  "Namespace",
+			reason: "value length must be at least 1 runes",
+		}
+	}
+
+	if utf8.RuneCountInString(m.GetSaToken()) < 1 {
+		return CreateDestinationRequest_KubernetesValidationError{
+			field:  "SaToken",
 			reason: "value length must be at least 1 runes",
 		}
 	}
