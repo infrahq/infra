@@ -47,10 +47,16 @@ scoop bucket add infrahq https://github.com/infrahq/scoop.git
 scoop install infra
 ```
 
-### Login
+### Login to Infra
 
 ```
 infra login <EXTERNAL-IP>
+```
+
+### Switch Kubernetes context
+
+```
+kubectl config use-context default
 ```
 
 Great! You're now **logged into the cluster via Infra**. 
