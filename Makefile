@@ -1,5 +1,4 @@
 tag := $(shell git describe --tags)
-repo := infrahq/infra
 
 generate:
 	go generate ./...
@@ -13,7 +12,7 @@ test:
 
 .PHONY: helm
 helm:
-	helm package -d ./helm helm/charts/infra helm/charts/infra/charts/engine
+	helm package --version $(tag:v%=%) --app-version $(tag:v%=%) -d ./helm helm/charts/infra helm/charts/infra/charts/engine
 	helm repo index ./helm
 
 .PHONY: docs
