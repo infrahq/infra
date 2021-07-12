@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"text/tabwriter"
 	"time"
 
 	survey "github.com/AlecAivazis/survey/v2"
@@ -28,6 +29,7 @@ import (
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/registry"
 	v1 "github.com/infrahq/infra/internal/v1"
+	"github.com/infrahq/infra/internal/version"
 	"github.com/mitchellh/go-homedir"
 	"github.com/muesli/termenv"
 	"github.com/olekukonko/tablewriter"
@@ -975,6 +977,36 @@ func newEngineCmd() *cobra.Command {
 	return cmd
 }
 
+var versionCmd = &cobra.Command{
+	Use:     "version",
+	Aliases: []string{"v"},
+	Short:   "Display the Infra build version",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, "Client:\t", version.Version)
+
+		client, err := clientFromConfig()
+		if err != nil {
+			return err
+		}
+
+		// Note that we use the client to get this version, but it is in fact the server version
+		res, err := client.Version(context.Background(), &emptypb.Empty{})
+		if err != nil {
+			fmt.Fprintln(w, blue("✕")+" Could not retrieve registry version")
+			w.Flush()
+			return err
+		}
+
+		fmt.Fprintln(w, "Registry:\t", res.Version)
+		fmt.Fprintln(w)
+		w.Flush()
+
+		return nil
+	},
+}
+
 var credsCmd = &cobra.Command{
 	Use:    "creds",
 	Short:  "Generate credentials",
@@ -1106,6 +1138,8 @@ func NewRootCmd() (*cobra.Command, error) {
 	}
 	rootCmd.AddCommand(registryCmd)
 	rootCmd.AddCommand(newEngineCmd())
+
+	rootCmd.AddCommand(versionCmd)
 
 	// Hidden commands
 	rootCmd.AddCommand(credsCmd)

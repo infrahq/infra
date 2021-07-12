@@ -52,7 +52,7 @@ release:
 	goreleaser release -f .goreleaser.yml --rm-dist
 
 release/docker:
-	docker buildx build --push --platform linux/amd64,linux/arm64 . -t infrahq/infra:$(tag:v%=%) -t infrahq/infra
+	docker buildx build --push --platform linux/amd64,linux/arm64 --build-arg BUILDVERSION=$(tag:v%=%) . -t infrahq/infra:$(tag:v%=%) -t infrahq/infra
 
 release/helm:
 	make helm

@@ -23,6 +23,7 @@ service V1 {
     rpc Logout(google.protobuf.Empty) returns (google.protobuf.Empty) {}
     rpc Signup(SignupRequest) returns (LoginResponse) {}
     rpc Status(google.protobuf.Empty) returns (StatusResponse) {}
+    rpc Version(google.protobuf.Empty) returns (VersionResponse) {}
 }
 
 enum SourceType {
@@ -194,4 +195,8 @@ message SignupRequest {
 
 message StatusResponse {
     bool admin = 1;
+}
+
+message VersionResponse {
+    string version = 1;
 }

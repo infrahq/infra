@@ -4,9 +4,10 @@ RUN apt-get update && \
     ln -s /usr/bin/aarch64-linux-gnu-gcc /usr/bin/arm64-linux-gnu-gcc  && \
     ln -s /usr/bin/x86_64-linux-gnu-gcc /usr/bin/amd64-linux-gnu-gcc
 ARG TARGETARCH
+ARG BUILDVERSION=development
 WORKDIR /go/src/github.com/infrahq/infra
 COPY . .
-RUN CGO_ENABLED=1 GOOS=linux GOARCH=$TARGETARCH CC=$TARGETARCH-linux-gnu-gcc go build -ldflags '-linkmode external -w -extldflags "-static"' .
+RUN CGO_ENABLED=1 GOOS=linux GOARCH=$TARGETARCH CC=$TARGETARCH-linux-gnu-gcc go build -ldflags '-s -w -X github.com/infrahq/infra/internal/version.Version='"$BUILDVERSION"' -linkmode external -w -extldflags "-static"' .
 
 FROM alpine
 COPY --from=builder /go/src/github.com/infrahq/infra/infra /bin/infra
