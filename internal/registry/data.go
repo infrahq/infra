@@ -73,6 +73,7 @@ type Destination struct {
 	KubernetesCa        string
 	KubernetesEndpoint  string
 	KubernetesNamespace string
+	KubernetesSaToken   string
 }
 
 type Permission struct {

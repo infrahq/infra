@@ -27,6 +27,7 @@ import (
 const (
 	NamespaceFilePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
 	CaFilePath        = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+	SaFilePath        = "/var/run/secrets/infra-engine-anonymous/token"
 )
 
 type Kubernetes struct {
@@ -144,6 +145,14 @@ func (k *Kubernetes) CA() ([]byte, error) {
 		return nil, err
 	}
 	return contents, nil
+}
+
+func (k *Kubernetes) SaToken() (string, error) {
+	contents, err := ioutil.ReadFile(SaFilePath)
+	if err != nil {
+		return "", err
+	}
+	return string(contents), nil
 }
 
 func (k *Kubernetes) ExecCat(pod string, namespace string, file string) (string, error) {
@@ -283,12 +292,22 @@ func (k *Kubernetes) Endpoint() (string, error) {
 			return "", err
 		}
 
-		rc, err := cfg.ClientConfig()
+		rc, err := cfg.RawConfig()
 		if err != nil {
 			return "", err
 		}
 
-		endpoint = rc.Host
+		context, ok := rc.Contexts[rc.CurrentContext]
+		if !ok {
+			return "", errors.New("could not read kubeconfig context")
+		}
+
+		cluster, ok := rc.Clusters[context.Cluster]
+		if !ok {
+			return "", errors.New("could not read kubeconfig cluster")
+		}
+
+		endpoint = cluster.Server
 	default:
 		fmt.Println("Warning, could not find parse kube-proxy opts, args: ", args)
 	}

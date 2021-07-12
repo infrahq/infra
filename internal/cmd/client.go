@@ -84,13 +84,14 @@ func RunLocalClient() error {
 			return
 		}
 
-		var endpoint, ca string
+		var endpoint, ca, saToken string
 		namespace := "default"
 
 		if kube := destination.GetKubernetes(); kube != nil {
 			endpoint = kube.Endpoint
 			ca = kube.Ca
 			namespace = kube.Namespace
+			saToken = kube.SaToken
 		}
 
 		remote, err := url.Parse(endpoint + "/api/v1/namespaces/" + namespace + "/services/http:infra-engine:80/proxy/proxy")
@@ -111,7 +112,7 @@ func RunLocalClient() error {
 		timer.Reset(ClientTimeoutDuration)
 
 		r.Header.Add("X-Infra-Authorization", r.Header.Get("Authorization"))
-		r.Header.Del("Authorization")
+		r.Header.Set("Authorization", "Bearer "+saToken)
 
 		http.StripPrefix("/client/"+name, proxy).ServeHTTP(w, r)
 	}

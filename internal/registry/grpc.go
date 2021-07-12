@@ -401,6 +401,7 @@ func dbToProtoDestination(in *Destination) *v1.Destination {
 			Ca:        in.KubernetesCa,
 			Endpoint:  in.KubernetesEndpoint,
 			Namespace: in.KubernetesNamespace,
+			SaToken:   in.KubernetesSaToken,
 		}
 	}
 	return out
@@ -444,6 +445,7 @@ func (v *V1Server) CreateDestination(ctx context.Context, in *v1.CreateDestinati
 			model.KubernetesCa = in.Kubernetes.Ca
 			model.KubernetesEndpoint = in.Kubernetes.Endpoint
 			model.KubernetesNamespace = in.Kubernetes.Namespace
+			model.KubernetesSaToken = in.Kubernetes.SaToken
 		}
 
 		return tx.Save(&model).Error

@@ -4,9 +4,9 @@ metadata:
   name: infra-engine-service
   namespace: {{ .Release.Namespace }}
 subjects:
-- apiGroup: rbac.authorization.k8s.io
-  kind: User
-  name: system:anonymous
+- kind: ServiceAccount
+  name: infra-engine-anonymous
+  namespace: {{ .Release.Namespace }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
