@@ -30,7 +30,7 @@
 
 4. On the **General** tab, **note** the **Client ID** and **Client Secret** for the next step. Note the **Okta domain** for adding your Okta information to Infra registry later.
 
-![okta_client_credentials](https://user-images.githubusercontent.com/5853428/124652384-f12de980-de50-11eb-86bb-67f0c0b16d2f.png)
+![okta_application](https://user-images.githubusercontent.com/5853428/125355241-a3febb80-e319-11eb-8fc6-84df2509f621.png)
 
 5. Navigate to **Security > API**, then click the **Tokens** tab. Create a new Token by clicking **Create Token**. Name it **infra**.
 
