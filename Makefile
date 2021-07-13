@@ -12,8 +12,12 @@ test:
 
 .PHONY: helm
 helm:
-	helm package --version $(tag:v%=%) --app-version $(tag:v%=%) -d ./helm helm/charts/infra helm/charts/infra/charts/engine
+	sed -i.bak 's/0.0.0-development/$(tag:v%=%)/g' helm/charts/infra/Chart.yaml
+	sed -i.bak 's/0.0.0-development/$(tag:v%=%)/g' helm/charts/infra/charts/engine/Chart.yaml
+	helm package -d ./helm helm/charts/infra helm/charts/infra/charts/engine
 	helm repo index ./helm
+	mv helm/charts/infra/Chart.yaml.bak helm/charts/infra/Chart.yaml
+	mv helm/charts/infra/charts/engine/Chart.yaml.bak helm/charts/infra/charts/engine/Chart.yaml
 
 .PHONY: docs
 docs:
