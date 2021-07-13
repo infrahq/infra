@@ -7,7 +7,7 @@ require (
 	github.com/MakeNowJust/heredoc/v2 v2.0.1
 	github.com/cli/browser v1.1.0
 	github.com/docker/go-units v0.4.0
-	github.com/envoyproxy/protoc-gen-validate v0.6.1
+	github.com/envoyproxy/protoc-gen-validate v0.6.2-0.20210710165204-c2b08efda458
 	github.com/go-playground/assert/v2 v2.0.1
 	github.com/golang/protobuf v1.5.2
 	github.com/google/go-cmp v0.5.6 // indirect
@@ -25,7 +25,6 @@ require (
 	github.com/json-iterator/go v1.1.11 // indirect
 	github.com/kamilsk/retry/v4 v4.0.0 // indirect
 	github.com/kevinburke/go-bindata v3.22.0+incompatible
-	github.com/lyft/protoc-gen-star v0.5.1 // indirect
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-isatty v0.0.13 // indirect
 	github.com/mattn/go-runewidth v0.0.12 // indirect
