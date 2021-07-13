@@ -4,3 +4,4 @@ infra.db
 release
 .env
 .test
+.vscode

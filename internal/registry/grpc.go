@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/okta"
 	v1 "github.com/infrahq/infra/internal/v1"
@@ -68,12 +69,14 @@ func (v *V1Server) authInterceptor(ctx context.Context, req interface{}, info *g
 
 	authorization, ok := md["authorization"]
 	if !ok || len(authorization) == 0 {
+		grpc_zap.Extract(ctx).Debug("No authorization specified in auth interceptor")
 		return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
 	}
 
 	raw := strings.Replace(authorization[0], "Bearer ", "", -1)
 
 	if raw == "" {
+		grpc_zap.Extract(ctx).Debug("No bearer token recieved")
 		return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
 	}
 
@@ -90,20 +93,24 @@ func (v *V1Server) authInterceptor(ctx context.Context, req interface{}, info *g
 
 		var token Token
 		if err := v.db.First(&token, &Token{Id: id}).Error; err != nil {
+			grpc_zap.Extract(ctx).Debug("Invalid token presented to the auth interceptor")
 			return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
 		}
 
 		if err := token.CheckSecret(secret); err != nil {
+			grpc_zap.Extract(ctx).Debug("Invalid secret on token presented to the auth interceptor")
 			return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
 		}
 
 		if tokenAuthAdminOnly[info.FullMethod] {
 			var user User
 			if err := v.db.First(&user, &User{Id: token.UserId}).Error; err != nil {
+				grpc_zap.Extract(ctx).Debug("Could not find user")
 				return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
 			}
 
 			if !user.Admin {
+				grpc_zap.Extract(ctx).Debug("Unauthorized user attempted to authenticate without admin privilege")
 				return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
 			}
 		}
@@ -116,11 +123,13 @@ func (v *V1Server) authInterceptor(ctx context.Context, req interface{}, info *g
 
 		var apiKey ApiKey
 		if v.db.First(&apiKey, &ApiKey{Key: raw}).Error != nil {
+			grpc_zap.Extract(ctx).Debug("Invalid API key token presented")
 			return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
 		}
 
 		return handler(ctx, req)
 	default:
+		grpc_zap.Extract(ctx).Debug("Unknown token type presented")
 		return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
 	}
 }
@@ -570,10 +579,12 @@ func (v *V1Server) Login(ctx context.Context, in *v1.LoginRequest) (*v1.LoginRes
 		}
 
 		if err := v.db.Where("email = ?", in.Infra.Email).First(&user).Error; err != nil {
+			grpc_zap.Extract(ctx).Debug("User failed to login with unknown email")
 			return nil, errors.New("unauthorized")
 		}
 
 		if err := bcrypt.CompareHashAndPassword(user.Password, []byte(in.Infra.Password)); err != nil {
+			grpc_zap.Extract(ctx).Debug("User failed to login with invalid password")
 			return nil, errors.New("unauthorized")
 		}
 	default:
@@ -591,6 +602,7 @@ func (v *V1Server) Login(ctx context.Context, in *v1.LoginRequest) (*v1.LoginRes
 func (v *V1Server) Logout(ctx context.Context, in *emptypb.Empty) (*emptypb.Empty, error) {
 	userId, ok := ctx.Value(UserIdContextKey{}).(string)
 	if !ok {
+		grpc_zap.Extract(ctx).Debug("Could not logout user, user ID not found")
 		return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
 	}
 
@@ -612,6 +624,7 @@ func (v *V1Server) Signup(ctx context.Context, in *v1.SignupRequest) (*v1.LoginR
 		var count int64
 		err := tx.Where(&User{Admin: true}).Find(&[]User{}).Count(&count).Error
 		if err != nil {
+			grpc_zap.Extract(ctx).Debug("Could not lookup admin users in the database")
 			return status.Errorf(codes.Unauthenticated, "unauthorized")
 		}
 
