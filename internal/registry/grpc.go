@@ -177,7 +177,7 @@ func dbToProtoUser(in *User) *v1.User {
 }
 
 func (v *V1Server) ListUsers(ctx context.Context, in *v1.ListUsersRequest) (*v1.ListUsersResponse, error) {
-	if err := in.Validate(); err != nil {
+	if err := in.ValidateAll(); err != nil {
 		return nil, err
 	}
 
@@ -202,7 +202,7 @@ func (v *V1Server) ListUsers(ctx context.Context, in *v1.ListUsersRequest) (*v1.
 }
 
 func (v *V1Server) CreateUser(ctx context.Context, in *v1.CreateUserRequest) (*v1.User, error) {
-	if err := in.Validate(); err != nil {
+	if err := in.ValidateAll(); err != nil {
 		return nil, err
 	}
 
@@ -232,7 +232,7 @@ func (v *V1Server) CreateUser(ctx context.Context, in *v1.CreateUserRequest) (*v
 }
 
 func (v *V1Server) DeleteUser(ctx context.Context, in *v1.DeleteUserRequest) (*empty.Empty, error) {
-	if err := in.Validate(); err != nil {
+	if err := in.ValidateAll(); err != nil {
 		return nil, err
 	}
 
@@ -327,14 +327,14 @@ func (v *V1Server) ListSources(context.Context, *emptypb.Empty) (*v1.ListSources
 }
 
 func (v *V1Server) CreateSource(ctx context.Context, in *v1.CreateSourceRequest) (*v1.Source, error) {
-	if err := in.Validate(); err != nil {
+	if err := in.ValidateAll(); err != nil {
 		return nil, err
 	}
 
 	var source Source
 	switch in.Type {
 	case *v1.SourceType_OKTA.Enum():
-		if err := in.Okta.Validate(); err != nil {
+		if err := in.Okta.ValidateAll(); err != nil {
 			return nil, err
 		}
 		if err := okta.ValidateOktaConnection(in.Okta.Domain, in.Okta.ClientId, in.Okta.ApiToken); err != nil {
@@ -362,7 +362,7 @@ func (v *V1Server) CreateSource(ctx context.Context, in *v1.CreateSourceRequest)
 }
 
 func (v *V1Server) DeleteSource(ctx context.Context, in *v1.DeleteSourceRequest) (*emptypb.Empty, error) {
-	if err := in.Validate(); err != nil {
+	if err := in.ValidateAll(); err != nil {
 		return nil, err
 	}
 
@@ -423,7 +423,7 @@ func (v *V1Server) ListDestinations(ctx context.Context, _ *emptypb.Empty) (*v1.
 }
 
 func (v *V1Server) CreateDestination(ctx context.Context, in *v1.CreateDestinationRequest) (*v1.Destination, error) {
-	if err := in.Validate(); err != nil {
+	if err := in.ValidateAll(); err != nil {
 		return nil, err
 	}
 
@@ -438,7 +438,7 @@ func (v *V1Server) CreateDestination(ctx context.Context, in *v1.CreateDestinati
 
 		switch in.Type {
 		case v1.DestinationType_KUBERNETES:
-			if err := in.Kubernetes.Validate(); err != nil {
+			if err := in.Kubernetes.ValidateAll(); err != nil {
 				return err
 			}
 			model.Type = DESTINATION_TYPE_KUBERNERNETES
@@ -469,7 +469,7 @@ func dbToProtoPermission(in *Permission) *v1.Permission {
 }
 
 func (v *V1Server) ListPermissions(ctx context.Context, in *v1.ListPermissionsRequest) (*v1.ListPermissionsResponse, error) {
-	if err := in.Validate(); err != nil {
+	if err := in.ValidateAll(); err != nil {
 		return nil, err
 	}
 
@@ -532,7 +532,7 @@ func (v *V1Server) ListApiKeys(ctx context.Context, in *emptypb.Empty) (*v1.List
 }
 
 func (v *V1Server) Login(ctx context.Context, in *v1.LoginRequest) (*v1.LoginResponse, error) {
-	if err := in.Validate(); err != nil {
+	if err := in.ValidateAll(); err != nil {
 		return nil, err
 	}
 
@@ -541,7 +541,7 @@ func (v *V1Server) Login(ctx context.Context, in *v1.LoginRequest) (*v1.LoginRes
 
 	switch in.Type {
 	case v1.SourceType_OKTA:
-		if err := in.Okta.Validate(); err != nil {
+		if err := in.Okta.ValidateAll(); err != nil {
 			return nil, err
 		}
 
@@ -565,7 +565,7 @@ func (v *V1Server) Login(ctx context.Context, in *v1.LoginRequest) (*v1.LoginRes
 			return nil, errors.New("user does not exist")
 		}
 	case v1.SourceType_INFRA:
-		if err := in.Infra.Validate(); err != nil {
+		if err := in.Infra.ValidateAll(); err != nil {
 			return nil, err
 		}
 
@@ -602,7 +602,7 @@ func (v *V1Server) Logout(ctx context.Context, in *emptypb.Empty) (*emptypb.Empt
 }
 
 func (v *V1Server) Signup(ctx context.Context, in *v1.SignupRequest) (*v1.LoginResponse, error) {
-	if err := in.Validate(); err != nil {
+	if err := in.ValidateAll(); err != nil {
 		return nil, err
 	}
 
