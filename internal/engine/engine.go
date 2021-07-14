@@ -18,6 +18,7 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/goware/urlx"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/timer"
 	v1 "github.com/infrahq/infra/internal/v1"
 	"google.golang.org/grpc"
@@ -106,18 +107,21 @@ func jwtMiddleware(getjwk GetJWKFunc, next http.HandlerFunc) http.Handler {
 		authorization := r.Header.Get("X-Infra-Authorization")
 		raw := strings.Replace(authorization, "Bearer ", "", -1)
 		if raw == "" {
+			logging.L.Debug("No bearer token found")
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
 
 		tok, err := jwt.ParseSigned(raw)
 		if err != nil {
+			logging.L.Debug("Invalid jwt signature")
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
 
 		key, err := getjwk()
 		if err != nil {
+			logging.L.Debug("Could not get jwk")
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -125,6 +129,7 @@ func jwtMiddleware(getjwk GetJWKFunc, next http.HandlerFunc) http.Handler {
 		out := make(map[string]interface{})
 		cl := jwt.Claims{}
 		if err := tok.Claims(key, &cl, &out); err != nil {
+			logging.L.Debug("Invalid token claims")
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -138,12 +143,14 @@ func jwtMiddleware(getjwk GetJWKFunc, next http.HandlerFunc) http.Handler {
 			http.Error(w, "expired", http.StatusUnauthorized)
 			return
 		case err != nil:
+			logging.L.Debug("Invalid JWT")
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
 
 		email, ok := out["email"].(string)
 		if !ok {
+			logging.L.Debug("Email not found in claims")
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -170,6 +177,7 @@ func proxyHandler(ca []byte, bearerToken string, remote *url.URL) (http.HandlerF
 	return func(w http.ResponseWriter, r *http.Request) {
 		email, ok := r.Context().Value(HttpContextKeyEmail{}).(string)
 		if !ok {
+			logging.L.Debug("Proxy handler unable to retrieve email from context")
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}

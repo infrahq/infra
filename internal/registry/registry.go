@@ -10,11 +10,11 @@ import (
 	"strings"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
+	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/internal/logging"
 	timer "github.com/infrahq/infra/internal/timer"
 	v1 "github.com/infrahq/infra/internal/v1"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -148,9 +148,15 @@ func Run(options Options) error {
 
 	server := &V1Server{db: db}
 
+	zapLogger, err := logging.Build()
+	defer zapLogger.Sync() // flushes buffer, if any
+	if err != nil {
+		return err
+	}
+
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
-			grpc_logrus.UnaryServerInterceptor(logrus.NewEntry(logrus.StandardLogger())),
+			grpc_zap.UnaryServerInterceptor(zapLogger),
 			server.authInterceptor,
 		)),
 	)
