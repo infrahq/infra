@@ -1,25 +1,43 @@
+//go:generate npm run export --silent --prefix ../ui
+//go:generate go-bindata -pkg registry -nocompress -o ./bindata_ui.go -prefix "../ui/out/" ../ui/out/...
+
 package registry
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/http/httputil"
 	"os"
+	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/NYTimes/gziphandler"
+	assetfs "github.com/elazarl/go-bindata-assetfs"
+	"github.com/goware/urlx"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
 	timer "github.com/infrahq/infra/internal/timer"
 	v1 "github.com/infrahq/infra/internal/v1"
 	"golang.org/x/crypto/acme/autocert"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/emptypb"
+)
+
+var (
+	CookieTokenName = "token"
+	CookieLoginName = "login"
 )
 
 type Options struct {
@@ -27,6 +45,92 @@ type Options struct {
 	TLSCache      string
 	DefaultApiKey string
 	ConfigPath    string
+	UI            bool
+	UIProxy       string
+}
+
+func combinedHandlerFunc(grpcServer *grpc.Server, httpHandler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.ProtoMajor == 2 && strings.Contains(r.Header.Get("Content-Type"), "application/grpc") {
+			grpcServer.ServeHTTP(w, r)
+		} else {
+			httpHandler.ServeHTTP(w, r)
+		}
+	})
+}
+
+func authMetadata(ctx context.Context, req *http.Request) metadata.MD {
+	authorization := req.Header.Get("authorization")
+	if authorization != "" {
+		return nil
+	}
+
+	cookie, err := req.Cookie(CookieTokenName)
+	if err != nil {
+		return nil
+	}
+
+	return metadata.Pairs("authorization", "Bearer "+cookie.Value)
+}
+
+func setAuthCookie(w http.ResponseWriter, token string) {
+	expires := time.Now().Add(SessionDuration)
+	http.SetCookie(w, &http.Cookie{
+		Name:     CookieTokenName,
+		Value:    token,
+		Expires:  expires,
+		HttpOnly: true,
+		Path:     "/",
+		SameSite: http.SameSiteStrictMode,
+		Secure:   true,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:    CookieLoginName,
+		Value:   "1",
+		Expires: expires,
+		Path:    "/",
+		Secure:  true,
+	})
+}
+
+func deleteAuthCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     CookieTokenName,
+		Value:    "",
+		Expires:  time.Unix(0, 0),
+		HttpOnly: true,
+		Path:     "/",
+		SameSite: http.SameSiteStrictMode,
+		Secure:   true,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:    CookieLoginName,
+		Value:   "",
+		Expires: time.Unix(0, 0),
+		Path:    "/",
+		Secure:  true,
+	})
+}
+
+func authFilter(ctx context.Context, w http.ResponseWriter, resp proto.Message) error {
+	md, ok := runtime.ServerMetadataFromContext(ctx)
+	if !ok {
+		return errors.New("failed to extract metadata from context")
+	}
+
+	tokens := md.HeaderMD.Get("gateway-set-auth-token")
+	if len(tokens) > 0 {
+		setAuthCookie(w, tokens[0])
+		return nil
+	}
+
+	delTokens := md.HeaderMD.Get("gateway-delete-auth-token")
+	if len(delTokens) > 0 {
+		deleteAuthCookie(w)
+		return nil
+	}
+
+	return nil
 }
 
 func getSelfSignedOrLetsEncryptCert(certManager *autocert.Manager) func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
@@ -61,16 +165,6 @@ func getSelfSignedOrLetsEncryptCert(certManager *autocert.Manager) func(hello *t
 
 		return cert, nil
 	}
-}
-
-func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Handler {
-	return h2c.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.ProtoMajor == 2 && strings.Contains(r.Header.Get("Content-Type"), "application/grpc") {
-			grpcServer.ServeHTTP(w, r)
-		} else {
-			otherHandler.ServeHTTP(w, r)
-		}
-	}), &http2.Server{})
 }
 
 func Run(options Options) error {
@@ -140,14 +234,6 @@ func Run(options Options) error {
 	tlsConfig := manager.TLSConfig()
 	tlsConfig.GetCertificate = getSelfSignedOrLetsEncryptCert(manager)
 
-	httpHandlers := &Http{
-		db: db,
-	}
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/healthz", httpHandlers.Healthz)
-	mux.HandleFunc("/.well-known/jwks.json", httpHandlers.WellKnownJWKs)
-
 	server := &V1Server{
 		db:   db,
 		okta: okta,
@@ -167,9 +253,87 @@ func Run(options Options) error {
 	)
 	v1.RegisterV1Server(grpcServer, server)
 	reflection.Register(grpcServer)
+
+	httpHandlers := &Http{
+		db: db,
+	}
+
+	gwmux := runtime.NewServeMux(runtime.WithMetadata(authMetadata), runtime.WithForwardResponseOption(authFilter))
+	creds := credentials.NewTLS(&tls.Config{InsecureSkipVerify: true})
+	err = v1.RegisterV1HandlerFromEndpoint(context.Background(), gwmux, "localhost:443", []grpc.DialOption{grpc.WithTransportCredentials(creds)})
+	if err != nil {
+		return err
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/healthz", httpHandlers.Healthz)
+	mux.HandleFunc("/.well-known/jwks.json", httpHandlers.WellKnownJWKs)
+	mux.Handle("/v1/", gwmux)
+
+	loginRedirectMiddleware := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ext := filepath.Ext(r.URL.Path)
+			if ext != "" && ext != ".html" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			token, err := r.Cookie(CookieTokenName)
+			if err != nil && !errors.Is(err, http.ErrNoCookie) {
+				fmt.Println(err)
+				return
+			}
+
+			if errors.Is(err, http.ErrNoCookie) {
+				res, err := server.Status(context.Background(), &emptypb.Empty{})
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+
+				if !res.Admin && !strings.HasPrefix(r.URL.Path, "/signup") {
+					http.Redirect(w, r, "/signup", http.StatusTemporaryRedirect)
+					return
+				} else if res.Admin && !strings.HasPrefix(r.URL.Path, "/login") {
+					http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+					return
+				}
+			} else if strings.HasPrefix(r.URL.Path, "/login") || strings.HasPrefix(r.URL.Path, "/signup") {
+				keys, ok := r.URL.Query()["next"]
+				if !ok || len(keys[0]) < 1 {
+					http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+					return
+				} else {
+					http.Redirect(w, r, keys[0], http.StatusTemporaryRedirect)
+					return
+				}
+			}
+
+			if token != nil {
+				_, err = ValidateAndGetToken(db, token.Value)
+				if err != nil {
+					deleteAuthCookie(w)
+					http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+				}
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+
+	if options.UIProxy != "" {
+		remote, err := urlx.Parse(options.UIProxy)
+		if err != nil {
+			return err
+		}
+		mux.Handle("/", loginRedirectMiddleware(httputil.NewSingleHostReverseProxy(remote)))
+	} else if options.UI {
+		mux.Handle("/", loginRedirectMiddleware(gziphandler.GzipHandler(http.FileServer(&StaticFileSystem{base: &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo}}))))
+	}
+
 	httpServer := http.Server{
 		Addr:    ":80",
-		Handler: grpcHandlerFunc(grpcServer, mux),
+		Handler: combinedHandlerFunc(grpcServer, mux),
 	}
 
 	go func() {
@@ -182,7 +346,7 @@ func Run(options Options) error {
 	tlsServer := &http.Server{
 		Addr:      ":443",
 		TLSConfig: tlsConfig,
-		Handler:   grpcHandlerFunc(grpcServer, mux),
+		Handler:   combinedHandlerFunc(grpcServer, mux),
 	}
 
 	return tlsServer.ListenAndServeTLS("", "")

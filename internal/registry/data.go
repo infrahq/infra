@@ -26,6 +26,10 @@ var (
 	ID_LEN = 12
 )
 
+var (
+	SessionDuration = time.Hour * 24
+)
+
 type User struct {
 	Id       string `gorm:"primaryKey"`
 	Created  int64  `gorm:"autoCreateTime"`
@@ -398,7 +402,7 @@ func (t *Token) BeforeCreate(tx *gorm.DB) (err error) {
 	// this should be customizable in settings or limited by the source's
 	// policy (e.g. Okta is often 1-3 hours)
 	if t.Expires == 0 {
-		t.Expires = time.Now().Add(time.Hour * 24).Unix()
+		t.Expires = time.Now().Add(SessionDuration).Unix()
 	}
 	return
 }
@@ -427,6 +431,26 @@ func NewToken(db *gorm.DB, userId string, token *Token) (secret string, err erro
 	}
 
 	return
+}
+
+func ValidateAndGetToken(db *gorm.DB, in string) (*Token, error) {
+	if len(in) != TOKEN_LEN {
+		return nil, errors.New("invalid token length")
+	}
+
+	id := in[0:ID_LEN]
+	secret := in[ID_LEN:TOKEN_LEN]
+
+	var token Token
+	if err := db.First(&token, &Token{Id: id}).Error; err != nil {
+		return nil, errors.New("could not retrieve token – it may not exist")
+	}
+
+	if err := token.CheckSecret(secret); err != nil {
+		return nil, errors.New("invalid token secret")
+	}
+
+	return &token, nil
 }
 
 func (a *ApiKey) BeforeCreate(tx *gorm.DB) (err error) {

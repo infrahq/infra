@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package grpc.gateway.protoc_gen_grpc_gateway_ts.options;
+
+option go_package = "github.com/grpc-ecosystem/protoc-gen-grpc-gateway-ts/options";
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.FileOptions {
+	  optional string ts_package = 50000;
+}
