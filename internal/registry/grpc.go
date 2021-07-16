@@ -28,6 +28,13 @@ type V1Server struct {
 	db *gorm.DB
 }
 
+var publicMethods = map[string]bool{
+	"/v1.V1/Status":      true,
+	"/v1.V1/ListSources": true,
+	"/v1.V1/Login":       true,
+	"/v1.V1/Signup":      true,
+}
+
 var tokenAuthMethods = map[string]bool{
 	"/v1.V1/ListUsers":        true,
 	"/v1.V1/CreateUser":       true,
@@ -41,10 +48,9 @@ var tokenAuthMethods = map[string]bool{
 	"/v1.V1/Logout":           true,
 }
 
-var tokenAuthAdminOnly = map[string]bool{
+var tokenAuthAdminMethods = map[string]bool{
 	"/v1.V1/CreateUser":   true,
 	"/v1.V1/DeleteUser":   true,
-	"/v1.V1/ListSources":  true,
 	"/v1.V1/CreateSource": true,
 	"/v1.V1/DeleteSource": true,
 	"/v1.V1/ListApiKeys":  true,
@@ -57,80 +63,82 @@ var apiKeyAuthMethods = map[string]bool{
 
 type UserIdContextKey struct{}
 
-func (v *V1Server) authInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	if !tokenAuthMethods[info.FullMethod] && !apiKeyAuthMethods[info.FullMethod] {
-		return handler(ctx, req)
-	}
+func authInterceptor(db *gorm.DB) grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+		if publicMethods[info.FullMethod] {
+			return handler(ctx, req)
+		}
 
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return nil, status.Errorf(codes.InvalidArgument, "failed to retrieve metadata")
-	}
-
-	authorization, ok := md["authorization"]
-	if !ok || len(authorization) == 0 {
-		grpc_zap.Extract(ctx).Debug("No authorization specified in auth interceptor")
-		return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
-	}
-
-	raw := strings.Replace(authorization[0], "Bearer ", "", -1)
-
-	if raw == "" {
-		grpc_zap.Extract(ctx).Debug("No bearer token recieved")
-		return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
-	}
-
-	// TODO (jmorganca): use a token prefix or separate routes instead
-	// of using the length to determine the token kind
-	switch len(raw) {
-	case TOKEN_LEN:
-		if !tokenAuthMethods[info.FullMethod] {
+		md, ok := metadata.FromIncomingContext(ctx)
+		if !ok {
 			return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
 		}
 
-		id := raw[0:ID_LEN]
-		secret := raw[ID_LEN:TOKEN_LEN]
-
-		var token Token
-		if err := v.db.First(&token, &Token{Id: id}).Error; err != nil {
-			grpc_zap.Extract(ctx).Debug("Invalid token presented to the auth interceptor")
+		authorization, ok := md["authorization"]
+		if !ok || len(authorization) == 0 {
+			grpc_zap.Extract(ctx).Debug("No authorization specified in auth interceptor")
 			return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
 		}
 
-		if err := token.CheckSecret(secret); err != nil {
-			grpc_zap.Extract(ctx).Debug("Invalid secret on token presented to the auth interceptor")
+		raw := strings.Replace(authorization[0], "Bearer ", "", -1)
+
+		if raw == "" {
+			grpc_zap.Extract(ctx).Debug("No bearer token recieved")
 			return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
 		}
 
-		if tokenAuthAdminOnly[info.FullMethod] {
-			var user User
-			if err := v.db.First(&user, &User{Id: token.UserId}).Error; err != nil {
-				grpc_zap.Extract(ctx).Debug("Could not find user")
+		// TODO (https://github.com/infrahq/infra/issues/60): use a token prefix or separate routes instead
+		// of using the length to determine the token kind
+		switch len(raw) {
+		case TOKEN_LEN:
+			if !tokenAuthMethods[info.FullMethod] {
 				return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
 			}
 
-			if !user.Admin {
-				grpc_zap.Extract(ctx).Debug("Unauthorized user attempted to authenticate without admin privilege")
+			id := raw[0:ID_LEN]
+			secret := raw[ID_LEN:TOKEN_LEN]
+
+			var token Token
+			if err := db.First(&token, &Token{Id: id}).Error; err != nil {
+				grpc_zap.Extract(ctx).Debug("Invalid token presented to the auth interceptor")
 				return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
 			}
-		}
 
-		return handler(context.WithValue(ctx, UserIdContextKey{}, token.UserId), req)
-	case API_KEY_LEN:
-		if !apiKeyAuthMethods[info.FullMethod] {
+			if err := token.CheckSecret(secret); err != nil {
+				grpc_zap.Extract(ctx).Debug("Invalid secret on token presented to the auth interceptor")
+				return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
+			}
+
+			if tokenAuthAdminMethods[info.FullMethod] {
+				var user User
+				if err := db.First(&user, &User{Id: token.UserId}).Error; err != nil {
+					grpc_zap.Extract(ctx).Debug("Could not find user")
+					return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
+				}
+
+				if !user.Admin {
+					grpc_zap.Extract(ctx).Debug("Unauthorized user attempted to authenticate without admin privilege")
+					return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
+				}
+			}
+
+			return handler(context.WithValue(ctx, UserIdContextKey{}, token.UserId), req)
+		case API_KEY_LEN:
+			if !apiKeyAuthMethods[info.FullMethod] {
+				return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
+			}
+
+			var apiKey ApiKey
+			if db.First(&apiKey, &ApiKey{Key: raw}).Error != nil {
+				grpc_zap.Extract(ctx).Debug("Invalid API key token presented")
+				return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
+			}
+
+			return handler(ctx, req)
+		default:
+			grpc_zap.Extract(ctx).Debug("Unknown token type presented")
 			return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
 		}
-
-		var apiKey ApiKey
-		if v.db.First(&apiKey, &ApiKey{Key: raw}).Error != nil {
-			grpc_zap.Extract(ctx).Debug("Invalid API key token presented")
-			return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
-		}
-
-		return handler(ctx, req)
-	default:
-		grpc_zap.Extract(ctx).Debug("Unknown token type presented")
-		return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
 	}
 }
 

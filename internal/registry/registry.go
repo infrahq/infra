@@ -157,7 +157,7 @@ func Run(options Options) error {
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
 			grpc_zap.UnaryServerInterceptor(zapLogger),
-			server.authInterceptor,
+			authInterceptor(db),
 		)),
 	)
 	v1.RegisterV1Server(grpcServer, server)

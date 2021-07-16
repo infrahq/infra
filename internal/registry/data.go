@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/infrahq/infra/internal/generate"
@@ -435,8 +436,10 @@ func (a *ApiKey) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 func NewDB(dbpath string) (*gorm.DB, error) {
-	if err := os.MkdirAll(path.Dir(dbpath), os.ModePerm); err != nil {
-		return nil, err
+	if !strings.HasPrefix(dbpath, "file::memory") {
+		if err := os.MkdirAll(path.Dir(dbpath), os.ModePerm); err != nil {
+			return nil, err
+		}
 	}
 
 	db, err := gorm.Open(sqlite.Open(dbpath), &gorm.Config{
