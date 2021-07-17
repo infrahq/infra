@@ -1,5 +1,0 @@
-{
-  "protoc": {
-    "options": ["--proto_path=internal/v1"]
-  },
-}
