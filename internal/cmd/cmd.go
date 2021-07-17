@@ -36,6 +36,7 @@ import (
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/grpclog"
 	grpcMetadata "google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/emptypb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -141,14 +142,14 @@ func withClientAuthUnaryInterceptor(token string) grpc.DialOption {
 	})
 }
 
-func NewClient(host string, token string, skipTlsVerify bool) (v1.V1Client, error) {
+func NewClient(host string, token string, skipTlsVerify bool) (v1.V1Client, context.CancelFunc, error) {
 	if host == "" {
-		return nil, errors.New("host must not be empty")
+		return nil, nil, errors.New("host must not be empty")
 	}
 
 	u, err := urlx.Parse(host)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	normalizedHost := u.Host
@@ -156,6 +157,7 @@ func NewClient(host string, token string, skipTlsVerify bool) (v1.V1Client, erro
 		normalizedHost += ":443"
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
 	creds := credentials.NewTLS(&tls.Config{InsecureSkipVerify: skipTlsVerify})
 	dialOptions := []grpc.DialOption{grpc.WithTransportCredentials(creds)}
 	if token != "" {
@@ -163,41 +165,29 @@ func NewClient(host string, token string, skipTlsVerify bool) (v1.V1Client, erro
 	}
 	conn, err := grpc.Dial(normalizedHost, dialOptions...)
 	if err != nil {
-		return nil, err
+		return nil, cancel, err
 	}
 
-	return v1.NewV1Client(conn), nil
+	go func() {
+		<-ctx.Done()
+		if cerr := conn.Close(); cerr != nil {
+			grpclog.Infof("Failed to close conn to %s: %v", host, cerr)
+		}
+	}()
+
+	return v1.NewV1Client(conn), cancel, nil
 }
 
-func clientFromConfig() (v1.V1Client, error) {
+func clientFromConfig() (v1.V1Client, context.CancelFunc, error) {
 	config, err := readConfig()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	return NewClient(config.Host, config.Token, config.SkipTLSVerify)
 }
 
-func fetchDestinations() ([]*v1.Destination, error) {
-	client, err := clientFromConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := client.ListDestinations(context.Background(), &emptypb.Empty{})
-	if err != nil {
-		return nil, err
-	}
-
-	return res.Destinations, nil
-}
-
-func updateKubeconfig() (bool, error) {
-	destinations, err := fetchDestinations()
-	if err != nil {
-		return false, err
-	}
-
+func updateKubeconfig(destinations []*v1.Destination) (bool, error) {
 	home, err := homedir.Dir()
 	if err != nil {
 		return false, err
@@ -344,10 +334,11 @@ var loginCmd = &cobra.Command{
 			return nil
 		}
 
-		client, err := NewClient(args[0], "", skipTLSVerify)
+		client, close, err := NewClient(args[0], "", skipTLSVerify)
 		if err != nil {
 			return err
 		}
+		defer close()
 
 		res, err := client.Status(context.Background(), &emptypb.Empty{})
 		if err != nil {
@@ -551,7 +542,18 @@ var loginCmd = &cobra.Command{
 			os.Remove(filepath.Join(home, ".infra", "client", "pid"))
 		}
 
-		updated, err := updateKubeconfig()
+		loggedInClient, close, err := NewClient(args[0], loginRes.Token, skipTLSVerify)
+		if err != nil {
+			return err
+		}
+		defer close()
+
+		destRes, err := loggedInClient.ListDestinations(context.Background(), &emptypb.Empty{})
+		if err != nil {
+			return err
+		}
+
+		updated, err := updateKubeconfig(destRes.Destinations)
 		if err != nil {
 			return err
 		}
@@ -577,10 +579,11 @@ var logoutCmd = &cobra.Command{
 			return nil
 		}
 
-		client, err := NewClient(config.Host, config.Token, config.SkipTLSVerify)
+		client, close, err := NewClient(config.Host, config.Token, config.SkipTLSVerify)
 		if err != nil {
 			return err
 		}
+		defer close()
 
 		client.Logout(context.Background(), &emptypb.Empty{})
 
@@ -659,19 +662,25 @@ var destinationListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List destinations",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		destinations, err := fetchDestinations()
+		client, close, err := clientFromConfig()
+		if err != nil {
+			return err
+		}
+		defer close()
+
+		res, err := client.ListDestinations(context.Background(), &emptypb.Empty{})
 		if err != nil {
 			return err
 		}
 
-		sort.Slice(destinations, func(i, j int) bool {
-			return destinations[i].Created > destinations[j].Created
+		sort.Slice(res.Destinations, func(i, j int) bool {
+			return res.Destinations[i].Created > res.Destinations[j].Created
 		})
 
 		kubeConfig, _ := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), nil).RawConfig()
 
 		rows := [][]string{}
-		for _, dest := range destinations {
+		for _, dest := range res.Destinations {
 			switch dest.Type {
 			case v1.DestinationType_KUBERNETES:
 				star := ""
@@ -687,7 +696,7 @@ var destinationListCmd = &cobra.Command{
 		fmt.Println("To connect, run \"kubectl config use-context <name>\"")
 		fmt.Println()
 
-		_, err = updateKubeconfig()
+		_, err = updateKubeconfig(res.Destinations)
 		if err != nil {
 			return err
 		}
@@ -707,10 +716,11 @@ var userCreateCmd = &cobra.Command{
 	Args:    cobra.ExactArgs(2),
 	Example: "$ infra user create admin@example.com password",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := clientFromConfig()
+		client, close, err := clientFromConfig()
 		if err != nil {
 			return err
 		}
+		defer close()
 
 		_, err = client.CreateUser(context.Background(), &v1.CreateUserRequest{
 			Email:    args[0],
@@ -728,10 +738,11 @@ var userDeleteCmd = &cobra.Command{
 	Example: heredoc.Doc(`
 			$ infra user delete user@example.com`),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := clientFromConfig()
+		client, close, err := clientFromConfig()
 		if err != nil {
 			return err
 		}
+		defer close()
 
 		res, err := client.ListUsers(context.Background(), &v1.ListUsersRequest{Email: args[0]})
 		if err != nil {
@@ -753,12 +764,15 @@ var userListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List users",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := clientFromConfig()
+		client, close, err := clientFromConfig()
 		if err != nil {
 			return err
 		}
+		defer close()
 
-		res, err := client.ListUsers(context.TODO(), &v1.ListUsersRequest{})
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		res, err := client.ListUsers(ctx, &v1.ListUsersRequest{})
 		if err != nil {
 			return err
 		}
@@ -792,10 +806,11 @@ var sourceListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List sources",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := clientFromConfig()
+		client, close, err := clientFromConfig()
 		if err != nil {
 			return err
 		}
+		defer close()
 
 		res, err := client.ListSources(context.Background(), &emptypb.Empty{})
 		if err != nil {
@@ -840,10 +855,11 @@ func newSourceCreateCmd() *cobra.Command {
 				--client-id 0oapn0qwiQPiMIyR35d6 \
 				--client-secret jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2`),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			client, err := clientFromConfig()
+			client, close, err := clientFromConfig()
 			if err != nil {
 				return err
 			}
+			defer close()
 
 			switch args[0] {
 			case "okta":
@@ -882,10 +898,12 @@ var sourceDeleteCmd = &cobra.Command{
 	Example: heredoc.Doc(`
 			$ infra source delete n7bha2pxjpa01a`),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := clientFromConfig()
+		client, close, err := clientFromConfig()
 		if err != nil {
 			return err
 		}
+		defer close()
+
 		_, err = client.DeleteSource(context.Background(), &v1.DeleteSourceRequest{
 			Id: args[0],
 		})
@@ -903,10 +921,11 @@ var apikeyListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List API Keys",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := clientFromConfig()
+		client, close, err := clientFromConfig()
 		if err != nil {
 			return err
 		}
+		defer close()
 
 		res, err := client.ListApiKeys(context.Background(), &emptypb.Empty{})
 		if err != nil {
@@ -993,10 +1012,11 @@ var versionCmd = &cobra.Command{
 		fmt.Fprintln(w)
 		fmt.Fprintln(w, "Client:\t", version.Version)
 
-		client, err := clientFromConfig()
+		client, close, err := clientFromConfig()
 		if err != nil {
 			return err
 		}
+		defer close()
 
 		// Note that we use the client to get this version, but it is in fact the server version
 		res, err := client.Version(context.Background(), &emptypb.Empty{})
@@ -1020,10 +1040,11 @@ var credsCmd = &cobra.Command{
 	Hidden: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// TODO (https://github.com/infrahq/infra/issues/59): First try to read cached token
-		client, err := clientFromConfig()
+		client, close, err := clientFromConfig()
 		if err != nil {
 			return err
 		}
+		defer close()
 
 		res, err := client.CreateCred(context.Background(), &emptypb.Empty{})
 		if err != nil {
