@@ -111,6 +111,8 @@ func Run(options Options) error {
 		}
 	}
 
+	okta := NewOkta()
+
 	timer := timer.Timer{}
 	timer.Start(10, func() {
 		var sources []Source
@@ -120,7 +122,7 @@ func Run(options Options) error {
 		}
 
 		for _, p := range sources {
-			err = p.SyncUsers(db)
+			err = p.SyncUsers(db, okta)
 		}
 	})
 
@@ -146,7 +148,10 @@ func Run(options Options) error {
 	mux.HandleFunc("/healthz", httpHandlers.Healthz)
 	mux.HandleFunc("/.well-known/jwks.json", httpHandlers.WellKnownJWKs)
 
-	server := &V1Server{db: db}
+	server := &V1Server{
+		db:   db,
+		okta: okta,
+	}
 
 	zapLogger, err := logging.Build()
 	defer zapLogger.Sync() // flushes buffer, if any

@@ -1,4 +1,4 @@
-package okta
+package registry
 
 import (
 	"context"
@@ -8,13 +8,25 @@ import (
 	"gopkg.in/square/go-jose.v2/jwt"
 )
 
+type Okta interface {
+	ValidateOktaConnection(domain string, clientID string, apiToken string) error
+	Emails(domain string, clientID string, apiToken string) ([]string, error)
+	EmailFromCode(code string, domain string, clientID string, clientSecret string) (string, error)
+}
+
+type oktaImplementation struct{}
+
+func NewOkta() Okta {
+	return &oktaImplementation{}
+}
+
 // ValidateOktaConnection requests the client from Okta to check for errors on the response
-func ValidateOktaConnection(domain string, clientID string, apiToken string) error {
+func (o *oktaImplementation) ValidateOktaConnection(domain string, clientID string, apiToken string) error {
 	_, _, err := okta.NewClient(context.TODO(), okta.WithOrgUrl("https://"+domain), okta.WithRequestTimeout(30), okta.WithRateLimitMaxRetries(3), okta.WithToken(apiToken))
 	return err
 }
 
-func Emails(domain string, clientID string, apiToken string) ([]string, error) {
+func (o *oktaImplementation) Emails(domain string, clientID string, apiToken string) ([]string, error) {
 	ctx, client, err := okta.NewClient(context.TODO(), okta.WithOrgUrl("https://"+domain), okta.WithRequestTimeout(30), okta.WithRateLimitMaxRetries(3), okta.WithToken(apiToken))
 	if err != nil {
 		return nil, err
@@ -45,7 +57,7 @@ func Emails(domain string, clientID string, apiToken string) ([]string, error) {
 	return emails, nil
 }
 
-func EmailFromCode(code string, domain string, clientID string, clientSecret string) (string, error) {
+func (o *oktaImplementation) EmailFromCode(code string, domain string, clientID string, clientSecret string) (string, error) {
 	ctx := context.Background()
 	conf := &oauth2.Config{
 		ClientID:     clientID,

@@ -82,7 +82,7 @@ message CreateSourceRequest {
     SourceType type = 10;
 
     message Okta {
-        string domain = 1 [(validate.rules).string.min_len = 1];
+        string domain = 1 [(validate.rules).string.hostname = true];
         string client_id = 2 [(validate.rules).string.min_len = 1];
         string client_secret = 3 [(validate.rules).string.min_len = 1];
         string api_token = 4 [(validate.rules).string.min_len = 1];
@@ -180,7 +180,7 @@ message LoginRequest {
     Infra infra = 20;
 
     message Okta {
-        string domain = 1 [(validate.rules).string.min_len = 1];
+        string domain = 1 [(validate.rules).string.hostname = true];
         string code = 2 [(validate.rules).string.min_len = 1];
     }
     Okta okta = 30;

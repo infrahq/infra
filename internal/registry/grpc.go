@@ -9,7 +9,6 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	"github.com/infrahq/infra/internal/generate"
-	"github.com/infrahq/infra/internal/okta"
 	v1 "github.com/infrahq/infra/internal/v1"
 	"github.com/infrahq/infra/internal/version"
 	"golang.org/x/crypto/bcrypt"
@@ -25,7 +24,8 @@ import (
 
 type V1Server struct {
 	v1.UnimplementedV1Server
-	db *gorm.DB
+	db   *gorm.DB
+	okta Okta
 }
 
 var publicMethods = map[string]bool{
@@ -354,7 +354,7 @@ func (v *V1Server) CreateSource(ctx context.Context, in *v1.CreateSourceRequest)
 		if err := in.Okta.ValidateAll(); err != nil {
 			return nil, err
 		}
-		if err := okta.ValidateOktaConnection(in.Okta.Domain, in.Okta.ClientId, in.Okta.ApiToken); err != nil {
+		if err := v.okta.ValidateOktaConnection(in.Okta.Domain, in.Okta.ClientId, in.Okta.ApiToken); err != nil {
 			return nil, err
 		}
 
@@ -371,7 +371,7 @@ func (v *V1Server) CreateSource(ctx context.Context, in *v1.CreateSourceRequest)
 		return nil, errors.New("invalid source type")
 	}
 
-	if err := source.SyncUsers(v.db); err != nil {
+	if err := source.SyncUsers(v.db, v.okta); err != nil {
 		return nil, err
 	}
 
@@ -550,7 +550,7 @@ func (v *V1Server) ListApiKeys(ctx context.Context, in *emptypb.Empty) (*v1.List
 
 func (v *V1Server) Login(ctx context.Context, in *v1.LoginRequest) (*v1.LoginResponse, error) {
 	if err := in.ValidateAll(); err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.InvalidArgument, err.Error())
 	}
 
 	var user User
@@ -558,50 +558,50 @@ func (v *V1Server) Login(ctx context.Context, in *v1.LoginRequest) (*v1.LoginRes
 
 	switch in.Type {
 	case v1.SourceType_OKTA:
-		if err := in.Okta.ValidateAll(); err != nil {
-			return nil, err
+		if in.Okta == nil {
+			return nil, status.Errorf(codes.InvalidArgument, "missing okta login information")
 		}
 
 		var source Source
 		if err := v.db.Where(&Source{Type: SOURCE_TYPE_OKTA, OktaDomain: in.Okta.Domain}).First(&source).Error; err != nil {
-			return nil, errors.New("no okta source with this domain")
+			return nil, status.Errorf(codes.Unauthenticated, "invalid okta login information")
 		}
 
-		email, err := okta.EmailFromCode(
+		email, err := v.okta.EmailFromCode(
 			in.Okta.Code,
 			source.OktaDomain,
 			source.OktaClientId,
 			source.OktaClientSecret,
 		)
 		if err != nil {
-			return nil, errors.New("invalid code")
+			return nil, status.Errorf(codes.Unauthenticated, "invalid okta login information")
 		}
 
 		err = v.db.Where("email = ?", email).First(&user).Error
 		if err != nil {
-			return nil, errors.New("user does not exist")
+			return nil, status.Errorf(codes.Unauthenticated, "invalid okta login information")
 		}
 	case v1.SourceType_INFRA:
-		if err := in.Infra.ValidateAll(); err != nil {
-			return nil, err
+		if in.Infra == nil {
+			return nil, status.Errorf(codes.InvalidArgument, "missing login information")
 		}
 
 		if err := v.db.Where("email = ?", in.Infra.Email).First(&user).Error; err != nil {
 			grpc_zap.Extract(ctx).Debug("User failed to login with unknown email")
-			return nil, errors.New("unauthorized")
+			return nil, status.Errorf(codes.Unauthenticated, "invalid login information")
 		}
 
 		if err := bcrypt.CompareHashAndPassword(user.Password, []byte(in.Infra.Password)); err != nil {
 			grpc_zap.Extract(ctx).Debug("User failed to login with invalid password")
-			return nil, errors.New("unauthorized")
+			return nil, status.Errorf(codes.Unauthenticated, "invalid login information")
 		}
 	default:
-		return nil, errors.New("invalid login method")
+		return nil, status.Errorf(codes.Unauthenticated, "invalid login type")
 	}
 
 	secret, err := NewToken(v.db, user.Id, &token)
 	if err != nil {
-		return nil, errors.New("could not create token")
+		return nil, status.Errorf(codes.Internal, "could not create token")
 	}
 
 	return &v1.LoginResponse{Token: token.Id + secret}, nil
@@ -637,7 +637,7 @@ func (v *V1Server) Signup(ctx context.Context, in *v1.SignupRequest) (*v1.LoginR
 		}
 
 		if count > 0 {
-			return status.Errorf(codes.Unauthenticated, "admin user already exists")
+			return status.Errorf(codes.InvalidArgument, "admin user already exists")
 		}
 
 		var infraSource Source

@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/infrahq/infra/internal/generate"
-	"github.com/infrahq/infra/internal/okta"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/square/go-jose.v2"
 	"gorm.io/driver/sqlite"
@@ -309,7 +308,7 @@ func (s *Source) DeleteUser(db *gorm.DB, u *User) error {
 	return nil
 }
 
-func (s *Source) SyncUsers(db *gorm.DB) error {
+func (s *Source) SyncUsers(db *gorm.DB, okta Okta) error {
 	var emails []string
 	var err error
 
