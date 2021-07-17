@@ -60,7 +60,7 @@ func readConfig() (config *Config, err error) {
 
 	contents, err := ioutil.ReadFile(filepath.Join(homeDir, ".infra", "config"))
 	if os.IsNotExist(err) {
-		return config, nil
+		return nil, errors.New("could not read local credentials. Are you logged in? To login, use \"infra login\"")
 	}
 
 	if err != nil {
@@ -142,23 +142,26 @@ func withClientAuthUnaryInterceptor(token string) grpc.DialOption {
 }
 
 func NewClient(host string, token string, skipTlsVerify bool) (v1.V1Client, error) {
-	var normalizedHost string
 	if host == "" {
-		normalizedHost = "localhost:443"
-	} else {
-		u, err := urlx.Parse(host)
-		if err != nil {
-			return nil, err
-		}
+		return nil, errors.New("host must not be empty")
+	}
 
-		normalizedHost = u.Host
-		if u.Port() == "" {
-			normalizedHost += ":443"
-		}
+	u, err := urlx.Parse(host)
+	if err != nil {
+		return nil, err
+	}
+
+	normalizedHost := u.Host
+	if u.Port() == "" {
+		normalizedHost += ":443"
 	}
 
 	creds := credentials.NewTLS(&tls.Config{InsecureSkipVerify: skipTlsVerify})
-	conn, err := grpc.Dial(normalizedHost, grpc.WithTransportCredentials(creds), withClientAuthUnaryInterceptor(token))
+	dialOptions := []grpc.DialOption{grpc.WithTransportCredentials(creds)}
+	if token != "" {
+		dialOptions = append(dialOptions, withClientAuthUnaryInterceptor(token))
+	}
+	conn, err := grpc.Dial(normalizedHost, dialOptions...)
 	if err != nil {
 		return nil, err
 	}
