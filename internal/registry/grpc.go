@@ -351,9 +351,6 @@ func (v *V1Server) CreateSource(ctx context.Context, in *v1.CreateSourceRequest)
 	var source Source
 	switch in.Type {
 	case *v1.SourceType_OKTA.Enum():
-		if err := in.Okta.ValidateAll(); err != nil {
-			return nil, err
-		}
 		if err := v.okta.ValidateOktaConnection(in.Okta.Domain, in.Okta.ClientId, in.Okta.ApiToken); err != nil {
 			return nil, err
 		}
@@ -455,9 +452,6 @@ func (v *V1Server) CreateDestination(ctx context.Context, in *v1.CreateDestinati
 
 		switch in.Type {
 		case v1.DestinationType_KUBERNETES:
-			if err := in.Kubernetes.ValidateAll(); err != nil {
-				return err
-			}
 			model.Type = DESTINATION_TYPE_KUBERNERNETES
 			model.KubernetesCa = in.Kubernetes.Ca
 			model.KubernetesEndpoint = in.Kubernetes.Endpoint
@@ -564,6 +558,7 @@ func (v *V1Server) Login(ctx context.Context, in *v1.LoginRequest) (*v1.LoginRes
 
 		var source Source
 		if err := v.db.Where(&Source{Type: SOURCE_TYPE_OKTA, OktaDomain: in.Okta.Domain}).First(&source).Error; err != nil {
+			grpc_zap.Extract(ctx).Debug("Could not retrieve okta source from db: " + err.Error())
 			return nil, status.Errorf(codes.Unauthenticated, "invalid okta login information")
 		}
 
@@ -574,11 +569,13 @@ func (v *V1Server) Login(ctx context.Context, in *v1.LoginRequest) (*v1.LoginRes
 			source.OktaClientSecret,
 		)
 		if err != nil {
+			grpc_zap.Extract(ctx).Debug("Could not extract email from okta info: " + err.Error())
 			return nil, status.Errorf(codes.Unauthenticated, "invalid okta login information")
 		}
 
 		err = v.db.Where("email = ?", email).First(&user).Error
 		if err != nil {
+			grpc_zap.Extract(ctx).Debug("Could not get user from db: " + err.Error())
 			return nil, status.Errorf(codes.Unauthenticated, "invalid okta login information")
 		}
 	case v1.SourceType_INFRA:
