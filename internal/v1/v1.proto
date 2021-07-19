@@ -14,8 +14,17 @@ service V1 {
             get: "/v1/users"
         };
     }
-    rpc CreateUser(CreateUserRequest) returns (User) {}
-    rpc DeleteUser(DeleteUserRequest) returns (google.protobuf.Empty) {}
+    rpc CreateUser(CreateUserRequest) returns (User) {
+        option (google.api.http) = {
+            post: "/v1/users"
+            body: "*"
+        };
+    }
+    rpc DeleteUser(DeleteUserRequest) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/v1/users/{id}"
+        };
+    }
     rpc ListDestinations(google.protobuf.Empty) returns (ListDestinationsResponse) {}
     rpc CreateDestination(CreateDestinationRequest) returns (Destination) {}
     rpc ListSources(google.protobuf.Empty) returns (ListSourcesResponse) {}

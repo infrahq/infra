@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -278,6 +279,11 @@ func Run(options Options) error {
 				return
 			}
 
+			if strings.HasPrefix(r.URL.Path, "/_next") {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			token, err := r.Cookie(CookieTokenName)
 			if err != nil && !errors.Is(err, http.ErrNoCookie) {
 				fmt.Println(err)
@@ -295,7 +301,23 @@ func Run(options Options) error {
 					http.Redirect(w, r, "/signup", http.StatusTemporaryRedirect)
 					return
 				} else if res.Admin && !strings.HasPrefix(r.URL.Path, "/login") {
-					http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+					params := url.Values{}
+					path := "/login"
+
+					next := ""
+					if r.URL.Path != "/" {
+						next += r.URL.Path
+					}
+					if r.URL.RawQuery != "" {
+						next += "?" + r.URL.RawQuery
+					}
+
+					if next != "" {
+						params.Add("next", next)
+						path = "/login?" + params.Encode()
+					}
+
+					http.Redirect(w, r, path, http.StatusTemporaryRedirect)
 					return
 				}
 			} else if strings.HasPrefix(r.URL.Path, "/login") || strings.HasPrefix(r.URL.Path, "/signup") {

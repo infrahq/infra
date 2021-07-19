@@ -13,8 +13,8 @@ class CustomDocument extends Document {
                     <link rel="icon" type="image/png" href="/favicon.png" />
                 </Head>
                 <body className='antialiased'>
-                <Main />
-                <NextScript />
+                    <Main />
+                    <NextScript />
                 </body>
             </Html>
         )

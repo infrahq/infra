@@ -195,10 +195,10 @@ export class V1 {
     return fm.fetchReq<ListUsersRequest, ListUsersResponse>(`/v1/users?${fm.renderURLSearchParams(req, [])}`, {...initReq, method: "GET"})
   }
   static CreateUser(req: CreateUserRequest, initReq?: fm.InitReq): Promise<User> {
-    return fm.fetchReq<CreateUserRequest, User>(`/v1.V1/CreateUser`, {...initReq, method: "POST", body: JSON.stringify(req)})
+    return fm.fetchReq<CreateUserRequest, User>(`/v1/users`, {...initReq, method: "POST", body: JSON.stringify(req)})
   }
   static DeleteUser(req: DeleteUserRequest, initReq?: fm.InitReq): Promise<GoogleProtobufEmpty.Empty> {
-    return fm.fetchReq<DeleteUserRequest, GoogleProtobufEmpty.Empty>(`/v1.V1/DeleteUser`, {...initReq, method: "POST", body: JSON.stringify(req)})
+    return fm.fetchReq<DeleteUserRequest, GoogleProtobufEmpty.Empty>(`/v1/users/${req["id"]}`, {...initReq, method: "DELETE"})
   }
   static ListDestinations(req: GoogleProtobufEmpty.Empty, initReq?: fm.InitReq): Promise<ListDestinationsResponse> {
     return fm.fetchReq<GoogleProtobufEmpty.Empty, ListDestinationsResponse>(`/v1.V1/ListDestinations`, {...initReq, method: "POST", body: JSON.stringify(req)})
