@@ -14,6 +14,7 @@
 * [infra apikey list](#infra-apikey-list)
 * [infra registry](#infra-registry)
 * [infra engine](#infra-engine)
+* [infra version](#infra-version)
 
 
 ## `infra login`
@@ -228,5 +229,19 @@ infra engine [flags]
   -n, --name string       cluster name
   -r, --registry string   registry hostname
   -k, --skip-tls-verify   skip TLS verification (default true)
+```
+
+## `infra version`
+
+Display the Infra build version
+
+```
+infra version [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for version
 ```
 
