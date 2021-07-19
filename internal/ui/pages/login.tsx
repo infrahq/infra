@@ -7,18 +7,27 @@ export default function Login () {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
+  let nextParam = router.query.next ? router.query.next : "/"
+  let next = "/"
+
+  if (typeof nextParam === "string") {
+    next = nextParam
+  } else if (nextParam.length > 0) {
+    next = nextParam[0]
+  }
+
   const handleSubmit = useCallback(async e => {
     e.preventDefault()
     try {
       await V1.Login({ infra: { email, password } })
-      router.replace("/")
+      router.replace(next)
     } catch (e) {
       console.error(e)
     }
   }, [email, password, router])
 
   useEffect(() => {
-    router.prefetch('/')
+    router.prefetch(next)
   }, [])
 
   return (
