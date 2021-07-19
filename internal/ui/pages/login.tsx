@@ -1,11 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
+import { useCookies } from 'react-cookie'
 import { V1 } from '../gen/v1.pb'
 
 export default function Login () {
 	const router = useRouter()
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
+	const [cookies] = useCookies(['login'])
+
+    if (process.browser && cookies.login) {
+        router.replace("/")
+        return <></>
+    }
 
 	let nextParam = router.query.next ? router.query.next : "/"
 	let next = "/"
@@ -55,7 +62,7 @@ export default function Login () {
 								autoFocus
 								autoComplete="email"
 								required
-								className="appearance-none block w-full px-3 py-2.5 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+								className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 								value={email}
 								onChange={e => setEmail(e.target.value)}
 							/>
@@ -72,7 +79,7 @@ export default function Login () {
 								type="password"
 								autoComplete="current-password"
 								required
-								className="appearance-none block w-full px-3 py-2.5 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+								className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 								value={password}
 								onChange={e => setPassword(e.target.value)}
 							/>

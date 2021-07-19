@@ -1,6 +1,6 @@
 import { Fragment } from 'react'
 import { Menu, Popover, Transition } from '@headlessui/react'
-import { BellIcon, MenuIcon, XIcon } from '@heroicons/react/outline'
+import { MenuIcon, XIcon } from '@heroicons/react/outline'
 import { CogIcon, ViewGridIcon, UsersIcon } from '@heroicons/react/solid'
 import classnames from 'classnames'
 import Link from 'next/link'
