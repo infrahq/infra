@@ -167,6 +167,15 @@ func Run(options Options) error {
 	)
 	v1.RegisterV1Server(grpcServer, server)
 	reflection.Register(grpcServer)
+	httpServer := http.Server{
+		Addr:    ":80",
+		Handler: grpcHandlerFunc(grpcServer, mux),
+	}
+
+	go func() {
+		httpServer.ListenAndServe()
+	}()
+
 	tlsServer := &http.Server{
 		Addr:      ":443",
 		TLSConfig: tlsConfig,
