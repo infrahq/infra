@@ -173,7 +173,10 @@ func Run(options Options) error {
 	}
 
 	go func() {
-		httpServer.ListenAndServe()
+		err := httpServer.ListenAndServe()
+		if err != nil {
+			zapLogger.Error(err.Error())
+		}
 	}()
 
 	tlsServer := &http.Server{
