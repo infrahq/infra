@@ -6,6 +6,31 @@ image:
   tag: ""
   pullPolicy: IfNotPresent
 
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 80
+  portName: plaintext
+  tlsPort: 443
+  tlsTargetPort: 443
+  tlsPortName: tls
+  annotations: {}
+  labels: {}
+
+ingress:
+  enabled: false
+  className: ""
+  hosts: []
+  tls: []
+  https:
+    servicePort: 80
+    annotations: {}
+    labels: {}
+  grpc:
+    servicePort: 80
+    annotations: {}
+    labels: {}
+
 # subchart
 engine:
   name: default

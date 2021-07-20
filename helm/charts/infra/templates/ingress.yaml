@@ -1,0 +1,42 @@
+{{- if .Values.ingress.enabled -}}
+{{- $servicePort := .Values.ingress.https.servicePort -}}
+apiVersion: {{ include "infra.ingress.apiVersion" . }}
+kind: Ingress
+metadata:
+{{- if .Values.ingress.https.annotations }}
+  annotations:
+  {{- range $k, $v := .Values.ingress.https.annotations }}
+    {{ $k }}: {{ tpl (toYaml $v) $ }}
+  {{- end }}
+{{- end }}
+  name: infra-http
+  labels:
+    {{- if .Values.ingress.https.labels }}
+    {{- toYaml .Values.ingress.https.labels | indent 4 }}
+    {{- end }}
+spec:
+  rules:
+    {{- range $host := .Values.ingress.hosts }}
+    - host: {{ $host }}
+      http:
+        paths:
+          - path: /
+            {{- if eq (include "infra.ingress.apiVersion" $) "networking.k8s.io/v1" }}
+            pathType: Prefix
+            {{- end }}
+            backend:
+              {{- if eq (include "infra.ingress.apiVersion" $) "networking.k8s.io/v1" }}
+              service:
+                name: infra
+                port:
+                  number: {{ $servicePort }}
+              {{- else }}
+              serviceName: infra
+              servicePort: {{ $servicePort }}
+              {{- end }}
+    {{- end -}}
+  {{- if .Values.ingress.tls }}
+  tls:
+{{ tpl (toYaml .Values.ingress.tls) $ | indent 4 }}
+  {{- end -}}
+{{- end -}}
