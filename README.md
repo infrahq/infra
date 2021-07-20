@@ -68,6 +68,7 @@ Great! You're now **logged into the cluster via Infra**.
 * Add a [custom domain](./docs/domain.md) to infra login for quick access 
 
 ## Documentation
+* [Helm Chart](./docs/helm.md)
 * [CLI Reference](./docs/cli.md)
 * [Configuration Reference](./docs/configuration.md)
 * [Contributing](./docs/contributing.md)
