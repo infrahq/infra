@@ -20,6 +20,8 @@ helm install infra infrahq/infra
 ### Internal Load Balancer
 
 ```
+# example values.yaml
+
 service:
   annotations:
     # Google GKE
@@ -37,6 +39,8 @@ service:
 ### Ambassador (Service Annotations)
 
 ```
+# example values.yaml
+
 service:
   type: ClusterIP
   annotations:
@@ -63,6 +67,8 @@ service:
 ### AWS Application Load Balancer Controller (ALB)
 
 ```
+# example values.yaml
+
 service:
   type: ClusterIP
 
@@ -91,6 +97,8 @@ ingress:
 ### `ingress-nginx`
 
 ```
+# example values.yaml
+
 service:
   type: ClusterIP
 
@@ -121,7 +129,6 @@ ingress:
 | `image.repository`                        | Image repository                              | `infrahq/infra`                                         |
 | `image.tag`                               | Image tag                                     | Most recent version of Infra                            | 
 | `image.pullPolicy`                        | Image Pull Policy                             | `IfNotPresent`                                          |
-| `service.enabled`                         | Enable service                                | `true`                                                  |
 | `service.type`                            | Service type                                  | `LoadBalancer`                                          |
 | `service.port`                            | Port to expose the plaintext service on       | `80`                                                    |
 | `service.targetPort`                      | Target plaintext container port               | `80`                                                    |
