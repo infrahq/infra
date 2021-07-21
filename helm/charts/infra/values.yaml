@@ -31,7 +31,10 @@ ingress:
     annotations: {}
     labels: {}
 
-# subchart
 engine:
   name: default
   registry: "infra"
+  image:
+    repository: infrahq/infra
+    tag: ""
+    pullPolicy: IfNotPresent
