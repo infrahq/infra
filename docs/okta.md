@@ -54,10 +54,10 @@ $ infra user list
 EMAIL                 CREATED               ADMIN
 jeff@example.com.     About a minute ago
 michael@example.com*  About a minute ago
-elon@example.com   	 About a minute ago
-tom@example.com    	 About a minute ago
-mark@example.com   	 About a minute ago
-admin@example.com     5 minutes ago         x
+elon@example.com.     About a minute ago
+tom@example.com       About a minute ago
+mark@example.com      About a minute ago
+admin@example.com.    5 minutes ago         x
 ```
 
 ### Login with Okta
