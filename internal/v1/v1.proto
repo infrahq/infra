@@ -25,14 +25,49 @@ service V1 {
             delete: "/v1/users/{id}"
         };
     }
-    rpc ListDestinations(google.protobuf.Empty) returns (ListDestinationsResponse) {}
-    rpc CreateDestination(CreateDestinationRequest) returns (Destination) {}
-    rpc ListSources(google.protobuf.Empty) returns (ListSourcesResponse) {}
-    rpc CreateSource(CreateSourceRequest) returns (Source) {}
-    rpc DeleteSource(DeleteSourceRequest) returns (google.protobuf.Empty) {}
-    rpc ListRoles(ListRolesRequest) returns (ListRolesResponse) {}
-    rpc CreateCred(google.protobuf.Empty) returns (CreateCredResponse) {}
-    rpc ListApiKeys(google.protobuf.Empty) returns (ListApiKeyResponse) {}
+    rpc ListDestinations(google.protobuf.Empty) returns (ListDestinationsResponse) {
+        option (google.api.http) = {
+            get: "/v1/destinations"
+        };
+    }
+    rpc CreateDestination(CreateDestinationRequest) returns (Destination) {
+        option (google.api.http) = {
+            post: "/v1/destinations"
+            body: "*"
+        };
+    }
+    rpc ListSources(google.protobuf.Empty) returns (ListSourcesResponse) {
+        option (google.api.http) = {
+            get: "/v1/sources"
+        };
+    }
+    rpc CreateSource(CreateSourceRequest) returns (Source) {
+        option (google.api.http) = {
+            post: "/v1/sources"
+            body: "*"
+        };
+    }
+    rpc DeleteSource(DeleteSourceRequest) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/v1/sources/{id}"
+        };
+    }
+    rpc ListRoles(ListRolesRequest) returns (ListRolesResponse) {
+        option (google.api.http) = {
+            get: "/v1/roles"
+        };
+    }
+    rpc CreateCred(google.protobuf.Empty) returns (CreateCredResponse) {
+        option (google.api.http) = {
+            post: "/v1/creds"
+            body: "*"
+        };
+    }
+    rpc ListApiKeys(google.protobuf.Empty) returns (ListApiKeyResponse) {
+        option (google.api.http) = {
+            get: "/v1/apikeys"
+        };
+    }
     rpc Login(LoginRequest) returns (LoginResponse) {
         option (google.api.http) = {
             post: "/v1/login"
@@ -56,7 +91,11 @@ service V1 {
             get: "/v1/status"
         };
     }
-    rpc Version(google.protobuf.Empty) returns (VersionResponse) {}
+    rpc Version(google.protobuf.Empty) returns (VersionResponse) {
+        option (google.api.http) = {
+            get: "/v1/version"
+        };
+    }
 }
 
 enum SourceType {

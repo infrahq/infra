@@ -6,6 +6,8 @@ image:
   tag: ""
   pullPolicy: IfNotPresent
 
+ui: true
+
 service:
   type: LoadBalancer
   port: 80

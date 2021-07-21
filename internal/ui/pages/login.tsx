@@ -1,6 +1,8 @@
+import Head from 'next/head'
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { useCookies } from 'react-cookie'
+
 import { V1 } from '../gen/v1.pb'
 
 export default function Login () {
@@ -8,11 +10,6 @@ export default function Login () {
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
 	const [cookies] = useCookies(['login'])
-
-    if (process.browser && cookies.login) {
-        router.replace("/")
-        return <></>
-    }
 
 	let nextParam = router.query.next ? router.query.next : "/"
 	let next = "/"
@@ -37,19 +34,27 @@ export default function Login () {
 		router.prefetch(next)
 	}, [])
 
+	if (process.browser && cookies.login) {
+        router.replace("/")
+        return <></>
+    }
+
 	return (
-		<div className="min-h-screen flex flex-col justify-center py-12 pb-48 sm:px-6 lg:px-8">
-			<div className="sm:mx-auto sm:w-full sm:max-w-md">
+		<div className="min-h-screen flex flex-col justify-center py-8 pb-48 sm:px-6 lg:px-8">
+			<Head>
+				<title>Login – Infra</title>
+				<meta property="og:title" content="Login - Infra" key="title" />
+			</Head>
+			<div className="sm:mx-auto sm:w-full select-none">
 				<img
-					className="mx-auto h-7 w-auto text-blue-500 fill-current"
-					src="/combo.svg"
+					className="mx-auto text-blue-500 fill-current w-10 h-10"
+					src="/icon.svg"
 					alt="Infra"
 				/>
 			</div>
-			<div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-				<div className="bg-white pb-12 pt-10 px-4 sm:border sm:border-gray-200 sm:rounded-xl sm:px-10">
-				<h2 className="mb-6 font-bold text-xl">Sign in to your account</h2>
-				<form onSubmit={handleSubmit} className="space-y-6" action="#" method="POST">
+			<div className="sm:mx-auto sm:w-full sm:max-w-sm bg-white pb-12 pt-10 px-4">
+				<h2 className="text-center mb-6 font-medium tracking-tight text-xl">Sign in to your account</h2>
+				<form onSubmit={handleSubmit} className="space-y-5" action="#" method="POST">
 					<div>
 						<label htmlFor="email" className="block text-sm font-medium text-gray-700">
 							Email
@@ -62,7 +67,7 @@ export default function Login () {
 								autoFocus
 								autoComplete="email"
 								required
-								className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								className="appearance-none block w-full px-3 py-2 border text-sm border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
 								value={email}
 								onChange={e => setEmail(e.target.value)}
 							/>
@@ -79,7 +84,7 @@ export default function Login () {
 								type="password"
 								autoComplete="current-password"
 								required
-								className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								className="appearance-none block w-full px-3 py-2 text-sm border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
 								value={password}
 								onChange={e => setPassword(e.target.value)}
 							/>
@@ -88,13 +93,12 @@ export default function Login () {
 					<div>
 						<button
 							type="submit"
-							className="w-full flex justify-center mt-8 py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+							className="w-full flex justify-center mt-8 py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
 						>
 							Sign in
 						</button>
 					</div>
 				</form>
-				</div>
 			</div>
 		</div>
 	)

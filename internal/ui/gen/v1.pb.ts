@@ -201,28 +201,28 @@ export class V1 {
     return fm.fetchReq<DeleteUserRequest, GoogleProtobufEmpty.Empty>(`/v1/users/${req["id"]}`, {...initReq, method: "DELETE"})
   }
   static ListDestinations(req: GoogleProtobufEmpty.Empty, initReq?: fm.InitReq): Promise<ListDestinationsResponse> {
-    return fm.fetchReq<GoogleProtobufEmpty.Empty, ListDestinationsResponse>(`/v1.V1/ListDestinations`, {...initReq, method: "POST", body: JSON.stringify(req)})
+    return fm.fetchReq<GoogleProtobufEmpty.Empty, ListDestinationsResponse>(`/v1/destinations?${fm.renderURLSearchParams(req, [])}`, {...initReq, method: "GET"})
   }
   static CreateDestination(req: CreateDestinationRequest, initReq?: fm.InitReq): Promise<Destination> {
-    return fm.fetchReq<CreateDestinationRequest, Destination>(`/v1.V1/CreateDestination`, {...initReq, method: "POST", body: JSON.stringify(req)})
+    return fm.fetchReq<CreateDestinationRequest, Destination>(`/v1/destinations`, {...initReq, method: "POST", body: JSON.stringify(req)})
   }
   static ListSources(req: GoogleProtobufEmpty.Empty, initReq?: fm.InitReq): Promise<ListSourcesResponse> {
-    return fm.fetchReq<GoogleProtobufEmpty.Empty, ListSourcesResponse>(`/v1.V1/ListSources`, {...initReq, method: "POST", body: JSON.stringify(req)})
+    return fm.fetchReq<GoogleProtobufEmpty.Empty, ListSourcesResponse>(`/v1/sources?${fm.renderURLSearchParams(req, [])}`, {...initReq, method: "GET"})
   }
   static CreateSource(req: CreateSourceRequest, initReq?: fm.InitReq): Promise<Source> {
-    return fm.fetchReq<CreateSourceRequest, Source>(`/v1.V1/CreateSource`, {...initReq, method: "POST", body: JSON.stringify(req)})
+    return fm.fetchReq<CreateSourceRequest, Source>(`/v1/sources`, {...initReq, method: "POST", body: JSON.stringify(req)})
   }
   static DeleteSource(req: DeleteSourceRequest, initReq?: fm.InitReq): Promise<GoogleProtobufEmpty.Empty> {
-    return fm.fetchReq<DeleteSourceRequest, GoogleProtobufEmpty.Empty>(`/v1.V1/DeleteSource`, {...initReq, method: "POST", body: JSON.stringify(req)})
+    return fm.fetchReq<DeleteSourceRequest, GoogleProtobufEmpty.Empty>(`/v1/sources/${req["id"]}`, {...initReq, method: "DELETE"})
   }
   static ListRoles(req: ListRolesRequest, initReq?: fm.InitReq): Promise<ListRolesResponse> {
-    return fm.fetchReq<ListRolesRequest, ListRolesResponse>(`/v1.V1/ListRoles`, {...initReq, method: "POST", body: JSON.stringify(req)})
+    return fm.fetchReq<ListRolesRequest, ListRolesResponse>(`/v1/roles?${fm.renderURLSearchParams(req, [])}`, {...initReq, method: "GET"})
   }
   static CreateCred(req: GoogleProtobufEmpty.Empty, initReq?: fm.InitReq): Promise<CreateCredResponse> {
-    return fm.fetchReq<GoogleProtobufEmpty.Empty, CreateCredResponse>(`/v1.V1/CreateCred`, {...initReq, method: "POST", body: JSON.stringify(req)})
+    return fm.fetchReq<GoogleProtobufEmpty.Empty, CreateCredResponse>(`/v1/creds`, {...initReq, method: "POST", body: JSON.stringify(req)})
   }
   static ListApiKeys(req: GoogleProtobufEmpty.Empty, initReq?: fm.InitReq): Promise<ListApiKeyResponse> {
-    return fm.fetchReq<GoogleProtobufEmpty.Empty, ListApiKeyResponse>(`/v1.V1/ListApiKeys`, {...initReq, method: "POST", body: JSON.stringify(req)})
+    return fm.fetchReq<GoogleProtobufEmpty.Empty, ListApiKeyResponse>(`/v1/apikeys?${fm.renderURLSearchParams(req, [])}`, {...initReq, method: "GET"})
   }
   static Login(req: LoginRequest, initReq?: fm.InitReq): Promise<LoginResponse> {
     return fm.fetchReq<LoginRequest, LoginResponse>(`/v1/login`, {...initReq, method: "POST", body: JSON.stringify(req)})
@@ -237,6 +237,6 @@ export class V1 {
     return fm.fetchReq<GoogleProtobufEmpty.Empty, StatusResponse>(`/v1/status?${fm.renderURLSearchParams(req, [])}`, {...initReq, method: "GET"})
   }
   static Version(req: GoogleProtobufEmpty.Empty, initReq?: fm.InitReq): Promise<VersionResponse> {
-    return fm.fetchReq<GoogleProtobufEmpty.Empty, VersionResponse>(`/v1.V1/Version`, {...initReq, method: "POST", body: JSON.stringify(req)})
+    return fm.fetchReq<GoogleProtobufEmpty.Empty, VersionResponse>(`/v1/version?${fm.renderURLSearchParams(req, [])}`, {...initReq, method: "GET"})
   }
 }
