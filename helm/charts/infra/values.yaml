@@ -32,7 +32,6 @@ ingress:
     labels: {}
 
 engine:
-  name: default
   registry: "infra"
   image:
     repository: infrahq/infra

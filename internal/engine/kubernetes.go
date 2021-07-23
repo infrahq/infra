@@ -3,13 +3,19 @@ package engine
 import (
 	"bytes"
 	"context"
+	"crypto/sha1"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"strings"
 	"sync"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/google/shlex"
 	"github.com/jessevdk/go-flags"
 	"gopkg.in/yaml.v2"
@@ -129,6 +135,164 @@ func (k *Kubernetes) UpdatePermissions(rbs []RoleBinding) error {
 	}
 
 	return nil
+}
+
+// Originally from https://github.com/DataDog/datadog-agent
+// Apache 2.0 license
+func eksClusterName() (string, error) {
+	res, err := http.Get("http://169.254.169.254/latest/dynamic/instance-identity/document")
+	if err != nil {
+		return "", err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return "", errors.New("received non-OK code from metadata service")
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return "", err
+	}
+
+	var identity struct {
+		Region     string
+		InstanceID string
+	}
+
+	err = json.Unmarshal(body, &identity)
+	if err != nil {
+		return "", err
+	}
+
+	awsSess, err := session.NewSession(&aws.Config{
+		Region: aws.String(identity.Region),
+	})
+	if err != nil {
+		return "", err
+	}
+
+	connection := ec2.New(awsSess)
+	ec2Tags, err := connection.DescribeTagsWithContext(context.Background(),
+		&ec2.DescribeTagsInput{
+			Filters: []*ec2.Filter{{
+				Name: aws.String("resource-id"),
+				Values: []*string{
+					aws.String(identity.InstanceID),
+				},
+			}},
+		},
+	)
+
+	if err != nil {
+		return "", err
+	}
+
+	tags := []string{}
+	for _, tag := range ec2Tags.Tags {
+		tags = append(tags, fmt.Sprintf("%s:%s", *tag.Key, *tag.Value))
+	}
+
+	var clusterName string
+	for _, tag := range tags {
+		if strings.HasPrefix(tag, "kubernetes.io/cluster/") { // tag key format: kubernetes.io/cluster/clustername"
+			key := strings.Split(tag, ":")[0]
+			clusterName = strings.Split(key, "/")[2] // rely on ec2 tag format to extract clustername
+			break
+		}
+	}
+
+	if clusterName == "" {
+		return "", errors.New("unable to parse cluster name from EC2 tags")
+	}
+
+	return clusterName, nil
+}
+
+// Originally from https://github.com/DataDog/datadog-agent
+// Apache 2.0 license
+func gkeClusterName() (string, error) {
+	req, err := http.NewRequest("GET", "http://169.254.169.254/computeMetadata/v1/instance/attributes/cluster-name", nil)
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Add("Metadata-Flavor", "Google")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return "", errors.New("received non-OK code from metadata service")
+	}
+
+	name, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return string(name), nil
+}
+
+// Originally from https://github.com/DataDog/datadog-agent
+// Apache 2.0 license
+func aksClusterName() (string, error) {
+	req, err := http.NewRequest("GET", "http://169.254.169.254/metadata/instance/compute/resourceGroupName?api-version=2017-08-01&format=text", nil)
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Add("Metadata", "true")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return "", errors.New("received non-OK code from metadata service")
+	}
+
+	all, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return "", fmt.Errorf("error while reading response from azure metadata endpoint: %s", err)
+	}
+
+	splitAll := strings.Split(string(all), "_")
+	if len(splitAll) < 4 || strings.ToLower(splitAll[0]) != "mc" {
+		return "", fmt.Errorf("cannot parse the clustername from resource group name: %s", all)
+	}
+
+	return splitAll[len(splitAll)-2], nil
+}
+
+func (k *Kubernetes) Name() (string, error) {
+	name, err := eksClusterName()
+	if err == nil {
+		return name, nil
+	}
+
+	name, err = gkeClusterName()
+	if err == nil {
+		return name, nil
+	}
+
+	name, err = aksClusterName()
+	if err == nil {
+		return name, nil
+	}
+
+	ca, err := k.CA()
+	if err != nil {
+		return "", err
+	}
+
+	h := sha1.New()
+	h.Write(ca)
+	hash := h.Sum(nil)
+
+	return "cluster-" + string(hash[:8]), nil
 }
 
 func (k *Kubernetes) Namespace() (string, error) {

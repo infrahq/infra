@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/AlecAivazis/survey/v2 v2.2.13
 	github.com/MakeNowJust/heredoc/v2 v2.0.1
+	github.com/aws/aws-sdk-go v1.38.35
 	github.com/cli/browser v1.1.0
 	github.com/docker/go-units v0.4.0
 	github.com/envoyproxy/protoc-gen-validate v0.6.2-0.20210710165204-c2b08efda458

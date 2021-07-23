@@ -254,6 +254,17 @@ func Run(options Options) error {
 			return
 		}
 
+		var name string
+		if options.Name == "" {
+			name, err = kubernetes.Name()
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+		} else {
+			name = options.Name
+		}
+
 		saToken, err := kubernetes.SaToken()
 		if err != nil {
 			fmt.Println(err)
@@ -261,7 +272,7 @@ func Run(options Options) error {
 		}
 
 		res, err := client.CreateDestination(context.Background(), &v1.CreateDestinationRequest{
-			Name: options.Name,
+			Name: name,
 			Type: v1.DestinationType_KUBERNETES,
 			Kubernetes: &v1.CreateDestinationRequest_Kubernetes{
 				Ca:        string(ca),
