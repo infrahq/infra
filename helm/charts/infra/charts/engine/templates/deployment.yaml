@@ -23,8 +23,10 @@ spec:
           ports:
             - containerPort: 80
           env:
+            {{- if .Values.name }}
             - name: INFRA_ENGINE_NAME
-              value: {{ required "Value name is required" .Values.name | quote }}
+              value: {{ .Values.name | quote }}
+            {{- end }}
             - name: INFRA_ENGINE_REGISTRY
               value: {{ required "Value registry is required" .Values.registry | quote }}
             - name: INFRA_ENGINE_API_KEY
