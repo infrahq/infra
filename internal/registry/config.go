@@ -3,6 +3,7 @@ package registry
 import (
 	"errors"
 
+	"github.com/infrahq/infra/internal/logging"
 	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
 )
@@ -15,15 +16,25 @@ type ConfigSource struct {
 	OktaApiToken     string `yaml:"oktaApiToken"`
 }
 
-type ConfigPermission struct {
-	Role            string `yaml:"role"`
-	UserEmail       string `yaml:"user"`
-	DestinationName string `yaml:"destination"`
+type ConfigRoleKubernetes struct {
+	Kind     string   `yaml:"kind"`
+	Clusters []string `yaml:"clusters"`
+}
+
+type ConfigUserMapping struct {
+	Roles map[string]ConfigRoleKubernetes
+	// TODO (brucemacd): Add groups here
 }
 
 type Config struct {
-	Sources     []ConfigSource     `yaml:"sources"`
-	Permissions []ConfigPermission `yaml:"permissions"`
+	Sources []ConfigSource               `yaml:"sources"`
+	Users   map[string]ConfigUserMapping `yaml:"users"`
+}
+
+func NewConfig() Config {
+	var config Config
+	config.Users = make(map[string]ConfigUserMapping)
+	return config
 }
 
 var initialConfig Config
@@ -60,47 +71,56 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 	return nil
 }
 
-func ApplyPermissions(db *gorm.DB, permissions []ConfigPermission) ([]string, error) {
+func ApplyUserMapping(db *gorm.DB, users map[string]ConfigUserMapping) ([]string, error) {
 	var ids []string
-	for _, p := range permissions {
+	for email, userMapping := range users {
 		var user User
-		err := db.Where(&User{Email: p.UserEmail}).First(&user).Error
+		err := db.Where(&User{Email: email}).First(&user).Error
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
+				// skip this user, if they're created these permissions will be added later
 				continue
 			}
 			return nil, err
 		}
 
-		var destination Destination
-		err = db.Where(&Destination{Name: p.DestinationName}).First(&destination).Error
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				continue
+		for roleName, role := range userMapping.Roles {
+			switch role.Kind {
+			case PERMISSION_KIND_ROLE:
+				// TODO (brucemacd): Handle config imports of role permissions when we support RoleBindings
+				logging.L.Info("Skipping permission " + roleName + ", Role permissions are not supported yet")
+			case PERMISSION_KIND_CLUSTER_ROLE:
+				for _, dest := range role.Clusters {
+					var destination Destination
+					err := db.Where(&Destination{Name: dest}).First(&destination).Error
+					if err != nil {
+						if errors.Is(err, gorm.ErrRecordNotFound) {
+							// when a destination is added then the config import will be retried
+							continue
+						}
+						return nil, err
+					}
+
+					var permission Permission
+					err = db.FirstOrCreate(&permission, &Permission{Role: roleName, Kind: role.Kind, UserId: user.Id, DestinationId: destination.Id, FromConfig: true}).Error
+					if err != nil {
+						return nil, err
+					}
+
+					ids = append(ids, permission.Id)
+				}
+			default:
+				logging.L.Info("Unrecognized permission kind " + role.Kind + " in infra.yaml, permission skipped.")
 			}
-			return nil, err
 		}
 
-		var permission Permission
-		err = db.FirstOrCreate(&permission, &Permission{UserId: user.Id, DestinationId: destination.Id, Role: p.Role, FromDefault: false}).Error
-		if err != nil {
-			return nil, err
-		}
-
-		permission.FromConfig = true
-
-		err = db.Save(&permission).Error
-		if err != nil {
-			return nil, err
-		}
-
-		ids = append(ids, permission.Id)
+		// TODO: add user to groups here
 	}
 	return ids, nil
 }
 
-func ImportPermissions(db *gorm.DB, permissions []ConfigPermission) error {
-	idsToKeep, err := ApplyPermissions(db, permissions)
+func ImportUserMappings(db *gorm.DB, users map[string]ConfigUserMapping) error {
+	idsToKeep, err := ApplyUserMapping(db, users)
 	if err != nil {
 		return err
 	}
@@ -108,7 +128,7 @@ func ImportPermissions(db *gorm.DB, permissions []ConfigPermission) error {
 }
 
 func ImportConfig(db *gorm.DB, bs []byte) error {
-	var config Config
+	config := NewConfig()
 	err := yaml.Unmarshal(bs, &config)
 	if err != nil {
 		return err
@@ -120,7 +140,7 @@ func ImportConfig(db *gorm.DB, bs []byte) error {
 		if err = ImportSources(tx, config.Sources); err != nil {
 			return err
 		}
-		if err = ImportPermissions(tx, config.Permissions); err != nil {
+		if err = ImportUserMappings(tx, config.Users); err != nil {
 			return err
 		}
 		return nil

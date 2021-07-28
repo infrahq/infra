@@ -469,7 +469,7 @@ func (v *V1Server) CreateDestination(ctx context.Context, in *v1.CreateDestinati
 }
 
 func dbToProtoPermission(in *Permission) *v1.Permission {
-	return &v1.Permission{
+	permission := v1.Permission{
 		Id:          in.Id,
 		Created:     in.Created,
 		Updated:     in.Updated,
@@ -477,6 +477,13 @@ func dbToProtoPermission(in *Permission) *v1.Permission {
 		User:        dbToProtoUser(&in.User),
 		Destination: dbToProtoDestination(&in.Destination),
 	}
+	switch in.Kind {
+	case PERMISSION_KIND_ROLE:
+		permission.Kind = v1.KubernetesRoleType_ROLE
+	case PERMISSION_KIND_CLUSTER_ROLE:
+		permission.Kind = v1.KubernetesRoleType_CLUSTER_ROLE
+	}
+	return &permission
 }
 
 func (v *V1Server) ListPermissions(ctx context.Context, in *v1.ListPermissionsRequest) (*v1.ListPermissionsResponse, error) {

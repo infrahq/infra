@@ -35,6 +35,11 @@ enum DestinationType {
     KUBERNETES = 0;
 }
 
+enum KubernetesRoleType {
+    ROLE = 0;
+    CLUSTER_ROLE = 1;
+}
+
 message User {
     string id = 1;
     int64 created = 2;
@@ -140,6 +145,8 @@ message Permission {
     Destination destination = 50;
 
     string role = 60;
+    
+    KubernetesRoleType kind = 70;
 }
 
 message ListPermissionsRequest {
