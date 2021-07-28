@@ -18,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/google/shlex"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/jessevdk/go-flags"
 	"gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
@@ -284,7 +285,7 @@ func (k *Kubernetes) Name() (string, error) {
 		return name, nil
 	}
 
-	fmt.Println("could not fetch cluster name, resorting to hashed cluster CA")
+	logging.L.Debug("could not fetch cluster name, resorting to hashed cluster CA")
 
 	ca, err := k.CA()
 	if err != nil {
