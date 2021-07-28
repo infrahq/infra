@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha1"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -283,6 +284,8 @@ func (k *Kubernetes) Name() (string, error) {
 		return name, nil
 	}
 
+	fmt.Println("could not fetch cluster name, resorting to hashed cluster CA")
+
 	ca, err := k.CA()
 	if err != nil {
 		return "", err
@@ -292,7 +295,7 @@ func (k *Kubernetes) Name() (string, error) {
 	h.Write(ca)
 	hash := h.Sum(nil)
 
-	return "cluster-" + string(hash[:8]), nil
+	return "cluster-" + hex.EncodeToString(hash)[:8], nil
 }
 
 func (k *Kubernetes) Namespace() (string, error) {
