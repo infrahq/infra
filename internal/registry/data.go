@@ -8,6 +8,7 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"path"
@@ -81,6 +82,7 @@ type Permission struct {
 	Created       int64  `gorm:"autoCreateTime"`
 	Updated       int64  `gorm:"autoUpdateTime"`
 	Role          string
+	Kind          string
 	UserId        string
 	DestinationId string
 	User          User        `gorm:"foreignKey:UserId;references:Id"`
@@ -89,6 +91,11 @@ type Permission struct {
 	FromConfig  bool
 	FromDefault bool
 }
+
+var (
+	PERMISSION_KIND_ROLE         = "role"
+	PERMISSION_KIND_CLUSTER_ROLE = "cluster-role"
+)
 
 type Settings struct {
 	Id         string `gorm:"primaryKey"`
@@ -135,7 +142,8 @@ func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 func (u *User) AfterCreate(tx *gorm.DB) error {
-	_, err := ApplyPermissions(tx, initialConfig.Permissions)
+	fmt.Println(initialConfig.Users)
+	_, err := ApplyUserMapping(tx, initialConfig.Users)
 	return err
 }
 
@@ -191,7 +199,7 @@ func (r *Destination) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 func (d *Destination) AfterCreate(tx *gorm.DB) error {
-	_, err := ApplyPermissions(tx, initialConfig.Permissions)
+	_, err := ApplyUserMapping(tx, initialConfig.Users)
 	return err
 }
 

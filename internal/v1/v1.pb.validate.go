@@ -1742,6 +1742,8 @@ func (m *Permission) validate(all bool) error {
 
 	// no validation rules for Role
 
+	// no validation rules for Kind
+
 	if len(errors) > 0 {
 		return PermissionMultiError(errors)
 	}
@@ -3160,10 +3162,11 @@ func (m *CreateSourceRequest_Okta) validate(all bool) error {
 
 	var errors []error
 
-	if utf8.RuneCountInString(m.GetDomain()) < 1 {
-		err := CreateSourceRequest_OktaValidationError{
+	if err := m._validateHostname(m.GetDomain()); err != nil {
+		err = CreateSourceRequest_OktaValidationError{
 			field:  "Domain",
-			reason: "value length must be at least 1 runes",
+			reason: "value must be a valid hostname",
+			cause:  err,
 		}
 		if !all {
 			return err
@@ -3207,6 +3210,36 @@ func (m *CreateSourceRequest_Okta) validate(all bool) error {
 	if len(errors) > 0 {
 		return CreateSourceRequest_OktaMultiError(errors)
 	}
+	return nil
+}
+
+func (m *CreateSourceRequest_Okta) _validateHostname(host string) error {
+	s := strings.ToLower(strings.TrimSuffix(host, "."))
+
+	if len(host) > 253 {
+		return errors.New("hostname cannot exceed 253 characters")
+	}
+
+	for _, part := range strings.Split(s, ".") {
+		if l := len(part); l == 0 || l > 63 {
+			return errors.New("hostname part must be non-empty and cannot exceed 63 characters")
+		}
+
+		if part[0] == '-' {
+			return errors.New("hostname parts cannot begin with hyphens")
+		}
+
+		if part[len(part)-1] == '-' {
+			return errors.New("hostname parts cannot end with hyphens")
+		}
+
+		for _, r := range part {
+			if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '-' {
+				return fmt.Errorf("hostname parts can only contain alphanumeric characters or hyphens, got %q", string(r))
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -3736,10 +3769,11 @@ func (m *LoginRequest_Okta) validate(all bool) error {
 
 	var errors []error
 
-	if utf8.RuneCountInString(m.GetDomain()) < 1 {
-		err := LoginRequest_OktaValidationError{
+	if err := m._validateHostname(m.GetDomain()); err != nil {
+		err = LoginRequest_OktaValidationError{
 			field:  "Domain",
-			reason: "value length must be at least 1 runes",
+			reason: "value must be a valid hostname",
+			cause:  err,
 		}
 		if !all {
 			return err
@@ -3761,6 +3795,36 @@ func (m *LoginRequest_Okta) validate(all bool) error {
 	if len(errors) > 0 {
 		return LoginRequest_OktaMultiError(errors)
 	}
+	return nil
+}
+
+func (m *LoginRequest_Okta) _validateHostname(host string) error {
+	s := strings.ToLower(strings.TrimSuffix(host, "."))
+
+	if len(host) > 253 {
+		return errors.New("hostname cannot exceed 253 characters")
+	}
+
+	for _, part := range strings.Split(s, ".") {
+		if l := len(part); l == 0 || l > 63 {
+			return errors.New("hostname part must be non-empty and cannot exceed 63 characters")
+		}
+
+		if part[0] == '-' {
+			return errors.New("hostname parts cannot begin with hyphens")
+		}
+
+		if part[len(part)-1] == '-' {
+			return errors.New("hostname parts cannot end with hyphens")
+		}
+
+		for _, r := range part {
+			if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '-' {
+				return fmt.Errorf("hostname parts can only contain alphanumeric characters or hyphens, got %q", string(r))
+			}
+		}
+	}
+
 	return nil
 }
 
