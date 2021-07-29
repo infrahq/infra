@@ -8,6 +8,7 @@ export default function Signup () {
 	const router = useRouter()
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
+	const [error, setError] = useState('')
 	const [cookies] = useCookies(['login'])
 
 	const handleSubmit = useCallback(async e => {
@@ -39,48 +40,47 @@ export default function Signup () {
 				/>
 			</div>
 			<div className="sm:mx-auto sm:w-full sm:max-w-sm bg-white pb-12 pt-10 px-4">
-				<h2 className="text-center mb-3 font-medium tracking-tight text-xl">Welcome to Infra</h2>
+				<h2 className="text-center mb-2 font-medium tracking-tight text-xl">Welcome to Infra</h2>
 				<h3 className="text-center text-sm text-gray-500">Get started by creating your admin account</h3>
-				<form onSubmit={handleSubmit} className="space-y-5 my-10" action="#" method="POST">
-					<div>
+				<form onSubmit={handleSubmit} className="my-10" action="#" method="POST">
+					<div className="my-2.5">
 						<label htmlFor="email" className="block text-sm font-medium text-gray-700">
 							Email
 						</label>
-						<div className="mt-1">
-							<input
-								id="email"
-								name="email"
-								type="email"
-								autoFocus
-								autoComplete="email"
-								required
-								className="appearance-none block w-full px-3 py-2 border text-sm border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
-								value={email}
-								onChange={e => setEmail(e.target.value)}
-							/>
-						</div>
+						<input
+							id="email"
+							name="email"
+							type="email"
+							autoFocus
+							autoComplete="email"
+							required
+							className={`appearance-none block w-full mt-1 px-3 py-2 border text-sm border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm ${error ? 'border-red-400 text-red-700 placeholder-red-400 focus:ring-red-500 focus:border-red-500' : ''}`}
+							value={email}
+							onChange={e => setEmail(e.target.value)}
+						/>
 					</div>
-					<div>
+					<div className="my-2.5">
 						<label htmlFor="password" className="block text-sm font-medium text-gray-700">
 							Password
 						</label>
-						<div className="mt-1">
-							<input
-								id="password"
-								name="password"
-								type="password"
-								autoComplete="current-password"
-								required
-								className="appearance-none block w-full px-3 py-2 text-sm border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
-								value={password}
-								onChange={e => setPassword(e.target.value)}
-							/>
-						</div>
+						<input
+							id="password"
+							name="password"
+							type="password"
+							autoComplete="current-password"
+							required
+							className={`appearance-none block w-full mt-1 px-3 py-2 border text-sm border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm ${error ? 'border-red-400 text-red-700 placeholder-red-400 focus:ring-red-500 focus:border-red-500' : ''}`}
+							value={password}
+							onChange={e => setPassword(e.target.value)}
+						/>
 					</div>
+					<p className="text-sm text-red-600 mb-3">
+						{error || <br/>}
+					</p>
 					<div>
 						<button
 							type="submit"
-							className="w-full flex justify-center mt-8 py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+							className="w-full flex justify-center mt-2 py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
 						>
 							Create your account
 						</button>
