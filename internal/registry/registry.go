@@ -284,13 +284,22 @@ func Run(options Options) error {
 				return
 			}
 
-			token, err := r.Cookie(CookieTokenName)
+			login, loginCookieErr := r.Cookie(CookieLoginName)
 			if err != nil && !errors.Is(err, http.ErrNoCookie) {
 				fmt.Println(err)
 				return
 			}
 
-			if errors.Is(err, http.ErrNoCookie) {
+			token, tokenCookieErr := r.Cookie(CookieTokenName)
+			if err != nil && !errors.Is(err, http.ErrNoCookie) {
+				fmt.Println(err)
+				return
+			}
+
+			// If the login or token cookie are missing, then redirect to /login or /signup based on the current status
+			if errors.Is(loginCookieErr, http.ErrNoCookie) || errors.Is(tokenCookieErr, http.ErrNoCookie) {
+				deleteAuthCookie(w)
+
 				res, err := server.Status(context.Background(), &emptypb.Empty{})
 				if err != nil {
 					fmt.Println(err)
@@ -320,22 +329,30 @@ func Run(options Options) error {
 					http.Redirect(w, r, path, http.StatusTemporaryRedirect)
 					return
 				}
-			} else if strings.HasPrefix(r.URL.Path, "/login") || strings.HasPrefix(r.URL.Path, "/signup") {
-				keys, ok := r.URL.Query()["next"]
-				if !ok || len(keys[0]) < 1 {
-					http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-					return
-				} else {
-					http.Redirect(w, r, keys[0], http.StatusTemporaryRedirect)
-					return
-				}
 			}
 
-			if token != nil {
+			// If the cookies exist, then validate their values and redirect to / or follow any ?next= query parameter
+			if token != nil && login != nil {
 				_, err = ValidateAndGetToken(db, token.Value)
 				if err != nil {
 					deleteAuthCookie(w)
 					http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+				}
+
+				if login.Value != "1" {
+					deleteAuthCookie(w)
+					http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+				}
+
+				if strings.HasPrefix(r.URL.Path, "/login") || strings.HasPrefix(r.URL.Path, "/signup") {
+					keys, ok := r.URL.Query()["next"]
+					if !ok || len(keys[0]) < 1 {
+						http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+						return
+					} else {
+						http.Redirect(w, r, keys[0], http.StatusTemporaryRedirect)
+						return
+					}
 				}
 			}
 
@@ -368,7 +385,7 @@ func Run(options Options) error {
 	tlsServer := &http.Server{
 		Addr:      ":443",
 		TLSConfig: tlsConfig,
-		Handler:   combinedHandlerFunc(grpcServer, mux),
+		Handler:   combinedHandlerFunc(grpcServer, ZapLoggerMiddleware(zapLogger, mux)),
 	}
 
 	return tlsServer.ListenAndServeTLS("", "")

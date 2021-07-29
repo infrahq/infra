@@ -4,6 +4,7 @@ import { Fragment } from 'react'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import { Popover, Transition } from '@headlessui/react'
 import { useQuery } from 'react-query'
+import { useRouter } from 'next/router'
 
 import { V1, Destination } from '../gen/v1.pb'
 import Layout from '../layouts/Dashboard'
@@ -35,6 +36,8 @@ function Table ({ destinations }: { destinations: Destination[] | undefined }) {
 }
 
 export default function Index () {
+	const router = useRouter()
+
 	const { isLoading, data: destinations } = useQuery(
 		'destinations',
 		() => V1.ListDestinations({}).then(res => res.destinations),

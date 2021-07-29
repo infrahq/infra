@@ -8,7 +8,7 @@ export default function Signup () {
 	const router = useRouter()
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
-	const [error, setError] = useState('')
+	const [error] = useState('')
 	const [cookies] = useCookies(['login'])
 
 	const handleSubmit = useCallback(async e => {

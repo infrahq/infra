@@ -11,6 +11,7 @@ require (
 	github.com/docker/go-units v0.4.0
 	github.com/elazarl/go-bindata-assetfs v1.0.1
 	github.com/envoyproxy/protoc-gen-validate v0.6.2-0.20210710165204-c2b08efda458
+	github.com/go-chi/chi v1.5.4
 	github.com/go-playground/assert/v2 v2.0.1
 	github.com/golang/protobuf v1.5.2
 	github.com/google/gofuzz v1.2.0 // indirect

@@ -9,8 +9,6 @@ export default function Settings () {
 		'version',
 		() => V1.Version({}).then(res => res.version)
 	)
-
-	console.log(version)
 	
 	return (
 		<Layout>
