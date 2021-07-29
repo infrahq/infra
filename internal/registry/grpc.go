@@ -33,6 +33,7 @@ var publicMethods = map[string]bool{
 	"/v1.V1/ListSources": true,
 	"/v1.V1/Login":       true,
 	"/v1.V1/Signup":      true,
+	"/v1.V1/Version":     true,
 }
 
 var tokenAuthMethods = map[string]bool{
