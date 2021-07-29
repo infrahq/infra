@@ -286,7 +286,7 @@ func Run(options Options) error {
 			return
 		}
 
-		permissionsRes, err := client.ListPermissions(context.Background(), &v1.ListPermissionsRequest{
+		rolesRes, err := client.ListRoles(context.Background(), &v1.ListRolesRequest{
 			DestinationId: res.Id,
 		})
 		if err != nil {
@@ -294,11 +294,11 @@ func Run(options Options) error {
 		}
 
 		var rbs []RoleBinding
-		for _, p := range permissionsRes.Permissions {
-			rbs = append(rbs, RoleBinding{User: p.User.Email, Role: p.Role})
+		for _, r := range rolesRes.Roles {
+			rbs = append(rbs, RoleBinding{User: r.User.Email, Role: r.Role})
 		}
 
-		err = kubernetes.UpdatePermissions(rbs)
+		err = kubernetes.UpdateRoles(rbs)
 		if err != nil {
 			fmt.Println(err)
 			return

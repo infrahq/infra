@@ -65,7 +65,7 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 		}
 	}
 
-	if err := db.Where(&Permission{FromConfig: false}).Not(idsToKeep).Not(&Source{Type: SOURCE_TYPE_INFRA}).Delete(&Source{}).Error; err != nil {
+	if err := db.Where(&Role{FromConfig: false}).Not(idsToKeep).Not(&Source{Type: SOURCE_TYPE_INFRA}).Delete(&Source{}).Error; err != nil {
 		return err
 	}
 	return nil
@@ -78,7 +78,8 @@ func ApplyUserMapping(db *gorm.DB, users map[string]ConfigUserMapping) ([]string
 		err := db.Where(&User{Email: email}).First(&user).Error
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				// skip this user, if they're created these permissions will be added later
+				// skip this user, if they're created these roles will be added later
+				logging.L.Debug("skipping user in config import that has not yet been provisioned")
 				continue
 			}
 			return nil, err
@@ -86,31 +87,32 @@ func ApplyUserMapping(db *gorm.DB, users map[string]ConfigUserMapping) ([]string
 
 		for roleName, role := range userMapping.Roles {
 			switch role.Kind {
-			case PERMISSION_KIND_ROLE:
-				// TODO (brucemacd): Handle config imports of role permissions when we support RoleBindings
-				logging.L.Info("Skipping permission " + roleName + ", Role permissions are not supported yet")
-			case PERMISSION_KIND_CLUSTER_ROLE:
+			case ROLE_KIND_K8S_ROLE:
+				// TODO (brucemacd): Handle config imports of roles when we support RoleBindings
+				logging.L.Info("Skipping role: " + roleName + ", RoleBindings are not supported yet")
+			case ROLE_KIND_K8S_CLUSTER_ROLE:
 				for _, dest := range role.Clusters {
 					var destination Destination
 					err := db.Where(&Destination{Name: dest}).First(&destination).Error
 					if err != nil {
 						if errors.Is(err, gorm.ErrRecordNotFound) {
-							// when a destination is added then the config import will be retried
+							// when a destination is added then the config import will be retried, skip for now
+							logging.L.Debug("skipping destination in config import that has not yet been discovered")
 							continue
 						}
 						return nil, err
 					}
 
-					var permission Permission
-					err = db.FirstOrCreate(&permission, &Permission{Role: roleName, Kind: role.Kind, UserId: user.Id, DestinationId: destination.Id, FromConfig: true}).Error
+					var role Role
+					err = db.FirstOrCreate(&role, &Role{Role: roleName, Kind: role.Kind, UserId: user.Id, DestinationId: destination.Id, FromConfig: true}).Error
 					if err != nil {
 						return nil, err
 					}
 
-					ids = append(ids, permission.Id)
+					ids = append(ids, role.Id)
 				}
 			default:
-				logging.L.Info("Unrecognized permission kind " + role.Kind + " in infra.yaml, permission skipped.")
+				logging.L.Info("Unrecognized role kind: " + role.Kind + " in infra.yaml, role skipped.")
 			}
 		}
 
@@ -124,7 +126,7 @@ func ImportUserMappings(db *gorm.DB, users map[string]ConfigUserMapping) error {
 	if err != nil {
 		return err
 	}
-	return db.Where(&Permission{FromConfig: true}).Not(idsToKeep).Delete(Permission{}).Error
+	return db.Where(&Role{FromConfig: true}).Not(idsToKeep).Delete(Role{}).Error
 }
 
 func ImportConfig(db *gorm.DB, bs []byte) error {

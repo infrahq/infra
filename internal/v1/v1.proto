@@ -16,7 +16,7 @@ service V1 {
     rpc ListSources(google.protobuf.Empty) returns (ListSourcesResponse) {}
     rpc CreateSource(CreateSourceRequest) returns (Source) {}
     rpc DeleteSource(DeleteSourceRequest) returns (google.protobuf.Empty) {}
-    rpc ListPermissions(ListPermissionsRequest) returns (ListPermissionsResponse) {}
+    rpc ListRoles(ListRolesRequest) returns (ListRolesResponse) {}
     rpc CreateCred(google.protobuf.Empty) returns (CreateCredResponse) {}
     rpc ListApiKeys(google.protobuf.Empty) returns (ListApiKeyResponse) {}
     rpc Login(LoginRequest) returns (LoginResponse) {}
@@ -135,7 +135,7 @@ message CreateDestinationRequest {
     Kubernetes kubernetes = 30;
 }
 
-message Permission {
+message Role {
     string id = 1;
     int64 created = 2;
     int64 updated = 3;
@@ -149,12 +149,12 @@ message Permission {
     KubernetesRoleType kind = 70;
 }
 
-message ListPermissionsRequest {
+message ListRolesRequest {
     string destination_id = 10;
 }
 
-message ListPermissionsResponse {
-    repeated Permission permissions = 1;
+message ListRolesResponse {
+    repeated Role roles = 1;
 }
 
 message CreateCredResponse {

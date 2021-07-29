@@ -43,7 +43,7 @@ var tokenAuthMethods = map[string]bool{
 	"/v1.V1/ListDestinations": true,
 	"/v1.V1/CreateSource":     true,
 	"/v1.V1/DeleteSource":     true,
-	"/v1.V1/ListPermissions":  true,
+	"/v1.V1/ListRoles":        true,
 	"/v1.V1/CreateCred":       true,
 	"/v1.V1/ListApiKeys":      true,
 	"/v1.V1/Logout":           true,
@@ -59,7 +59,7 @@ var tokenAuthAdminMethods = map[string]bool{
 
 var apiKeyAuthMethods = map[string]bool{
 	"/v1.V1/CreateDestination": true,
-	"/v1.V1/ListPermissions":   true,
+	"/v1.V1/ListRoles":         true,
 }
 
 type UserIdContextKey struct{}
@@ -469,8 +469,8 @@ func (v *V1Server) CreateDestination(ctx context.Context, in *v1.CreateDestinati
 	return dbToProtoDestination(&model), nil
 }
 
-func dbToProtoPermission(in *Permission) *v1.Permission {
-	permission := v1.Permission{
+func dbToProtoRole(in *Role) *v1.Role {
+	role := v1.Role{
 		Id:          in.Id,
 		Created:     in.Created,
 		Updated:     in.Updated,
@@ -479,28 +479,28 @@ func dbToProtoPermission(in *Permission) *v1.Permission {
 		Destination: dbToProtoDestination(&in.Destination),
 	}
 	switch in.Kind {
-	case PERMISSION_KIND_ROLE:
-		permission.Kind = v1.KubernetesRoleType_ROLE
-	case PERMISSION_KIND_CLUSTER_ROLE:
-		permission.Kind = v1.KubernetesRoleType_CLUSTER_ROLE
+	case ROLE_KIND_K8S_ROLE:
+		role.Kind = v1.KubernetesRoleType_ROLE
+	case ROLE_KIND_K8S_CLUSTER_ROLE:
+		role.Kind = v1.KubernetesRoleType_CLUSTER_ROLE
 	}
-	return &permission
+	return &role
 }
 
-func (v *V1Server) ListPermissions(ctx context.Context, in *v1.ListPermissionsRequest) (*v1.ListPermissionsResponse, error) {
+func (v *V1Server) ListRoles(ctx context.Context, in *v1.ListRolesRequest) (*v1.ListRolesResponse, error) {
 	if err := in.ValidateAll(); err != nil {
 		return nil, err
 	}
 
-	var permissions []Permission
-	err := v.db.Preload("User").Preload("Destination").Find(&permissions).Error
+	var roles []Role
+	err := v.db.Preload("User").Preload("Destination").Find(&roles).Error
 	if err != nil {
 		return nil, err
 	}
 
-	res := &v1.ListPermissionsResponse{}
-	for _, p := range permissions {
-		res.Permissions = append(res.Permissions, dbToProtoPermission(&p))
+	res := &v1.ListRolesResponse{}
+	for _, r := range roles {
+		res.Roles = append(res.Roles, dbToProtoRole(&r))
 	}
 
 	return res, nil

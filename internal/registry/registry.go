@@ -121,8 +121,8 @@ func Run(options Options) error {
 			fmt.Println(err)
 		}
 
-		for _, p := range sources {
-			err = p.SyncUsers(db, okta)
+		for _, s := range sources {
+			err = s.SyncUsers(db, okta)
 		}
 	})
 

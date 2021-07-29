@@ -5,7 +5,7 @@
 * [Reference](#reference)
   * [`sources`](#sources)
     * [`okta`](#okta)
-  * [`permissions`](#permissions)
+  * [`roles`](#roles)
     * [`user`](#user)
     * [`destination`](#destination)
     * [`role`](#role)
@@ -29,18 +29,24 @@ data:
   infra.yaml: |
     sources:
       - type: okta
-        domain: example.okta.com
-        clientId: 0oapn0qwiQPiMIyR35d6
-        clientSecret: jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2
-        apiToken: 001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd
-
-    permissions:
-      - user: admin@example.com
-        destination: production
-        role: cluster-admin
-      - user: michael@example.com
-        destination: staging
-        role: edit
+        oktaDomain: acme.okta.com
+        oktaClientId: 0oapn0qwiQPiMIyR35d6
+        oktaClientSecret: jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2
+        oktaApiToken: 001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd
+    users:
+      admin@example.com:
+        roles:
+          admin:
+            kind: cluster-role
+            clusters:
+              - cluster-AAA
+              - cluster-BBB
+      bob@example.com:
+        roles:
+          writer:
+            kind: cluster-role
+            clusters:
+              - cluster-AAA
 EOF
 ```
 
@@ -60,10 +66,20 @@ sources:
     clientSecret: jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2
     apiToken: 001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd
 
-permissions:
-  - user: admin@example.com
-    destination: production
-    role: cluster-admin
+users:
+  admin@example.com:
+    roles:
+      admin:
+        kind: cluster-role
+        clusters:
+          - cluster-AAA
+          - cluster-BBB
+  bob@example.com:
+    roles:
+      writer:
+        kind: cluster-role
+        clusters:
+          - cluster-AAA
 ```
 
 ## Reference
@@ -77,7 +93,7 @@ permissions:
 * `client-secret`: Client Secret for the Okta application
 * `api-token`: Okta API Token
 
-### `permissions`
+### `roles`
 
 ### `user`
 
