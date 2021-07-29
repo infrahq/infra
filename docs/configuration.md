@@ -67,16 +67,16 @@ sources:
     apiToken: 001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd
 
 users:
-  admin@example.com:
+  - name: admin@example.com
     roles:
-      admin:
+      - name: admin
         kind: cluster-role
         clusters:
           - cluster-AAA
           - cluster-BBB
-  bob@example.com:
+  - name: developer@example.com
     roles:
-      writer:
+      - name: writer
         kind: cluster-role
         clusters:
           - cluster-AAA

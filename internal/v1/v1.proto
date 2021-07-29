@@ -144,7 +144,7 @@ message Role {
 
     Destination destination = 50;
 
-    string role = 60;
+    string name = 60;
     
     KubernetesRoleType kind = 70;
 }

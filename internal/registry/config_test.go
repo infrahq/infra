@@ -27,7 +27,7 @@ func TestImportRolesForExistingUsersAndDestinations(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	config := NewConfig()
+	var config Config
 	err = yaml.Unmarshal(confFile, &config)
 	if err != nil {
 		t.Fatal(err)
@@ -78,7 +78,7 @@ func TestImportRolesForUnknownUsers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	config := NewConfig()
+	var config Config
 	err = yaml.Unmarshal(confFile, &config)
 	if err != nil {
 		t.Fatal(err)
@@ -116,7 +116,7 @@ func TestImportRolesForUnknownDestinations(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	config := NewConfig()
+	var config Config
 	err = yaml.Unmarshal(confFile, &config)
 	if err != nil {
 		t.Fatal(err)
@@ -140,7 +140,7 @@ func TestImportRolesForUnknownDestinations(t *testing.T) {
 
 func containsUserRoleForDestination(roles []Role, userId string, destinationId string, roleName string) bool {
 	for _, role := range roles {
-		if role.UserId == userId && role.DestinationId == destinationId && role.Role == roleName {
+		if role.UserId == userId && role.DestinationId == destinationId && role.Name == roleName {
 			return true
 		}
 	}

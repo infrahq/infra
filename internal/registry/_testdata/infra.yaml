@@ -5,20 +5,20 @@ sources:
     oktaClientSecret: jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2
     oktaApiToken: 001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd
 users:
-  admin@example.com:
+  - name: admin@example.com
     roles:
-      admin:
+      - name: admin
         kind: cluster-role
         clusters:
           - cluster-AAA
           - cluster-BBB
-  user@example.com:
+  - name: user@example.com
     roles:
-      writer:
+      - name: writer
         kind: cluster-role
         clusters:
           - cluster-AAA
-      reader:
+      - name: reader
         kind: cluster-role
         clusters:
           - cluster-BBB

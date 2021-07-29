@@ -80,7 +80,7 @@ type Role struct {
 	Id            string `gorm:"primaryKey"`
 	Created       int64  `gorm:"autoCreateTime"`
 	Updated       int64  `gorm:"autoUpdateTime"`
-	Role          string
+	Name          string
 	Kind          string
 	UserId        string
 	DestinationId string
@@ -164,7 +164,7 @@ func (u *User) AfterSave(tx *gorm.DB) (err error) {
 			return err
 		}
 
-		role.Role = givenRole
+		role.Name = givenRole
 
 		err = tx.Save(&role).Error
 		if err != nil {
@@ -215,7 +215,7 @@ func (d *Destination) AfterSave(tx *gorm.DB) (err error) {
 		}
 
 		var role Role
-		err := tx.FirstOrCreate(&role, &Role{UserId: u.Id, DestinationId: d.Id, Role: givenRole, FromDefault: true}).Error
+		err := tx.FirstOrCreate(&role, &Role{UserId: u.Id, DestinationId: d.Id, Name: givenRole, FromDefault: true}).Error
 		if err != nil {
 			return err
 		}

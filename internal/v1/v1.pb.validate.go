@@ -1739,7 +1739,7 @@ func (m *Role) validate(all bool) error {
 		}
 	}
 
-	// no validation rules for Role
+	// no validation rules for Name
 
 	// no validation rules for Kind
 
