@@ -27,7 +27,7 @@ type V1Client interface {
 	ListSources(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ListSourcesResponse, error)
 	CreateSource(ctx context.Context, in *CreateSourceRequest, opts ...grpc.CallOption) (*Source, error)
 	DeleteSource(ctx context.Context, in *DeleteSourceRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	ListPermissions(ctx context.Context, in *ListPermissionsRequest, opts ...grpc.CallOption) (*ListPermissionsResponse, error)
+	ListRoles(ctx context.Context, in *ListRolesRequest, opts ...grpc.CallOption) (*ListRolesResponse, error)
 	CreateCred(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*CreateCredResponse, error)
 	ListApiKeys(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ListApiKeyResponse, error)
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
@@ -117,9 +117,9 @@ func (c *v1Client) DeleteSource(ctx context.Context, in *DeleteSourceRequest, op
 	return out, nil
 }
 
-func (c *v1Client) ListPermissions(ctx context.Context, in *ListPermissionsRequest, opts ...grpc.CallOption) (*ListPermissionsResponse, error) {
-	out := new(ListPermissionsResponse)
-	err := c.cc.Invoke(ctx, "/v1.V1/ListPermissions", in, out, opts...)
+func (c *v1Client) ListRoles(ctx context.Context, in *ListRolesRequest, opts ...grpc.CallOption) (*ListRolesResponse, error) {
+	out := new(ListRolesResponse)
+	err := c.cc.Invoke(ctx, "/v1.V1/ListRoles", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +201,7 @@ type V1Server interface {
 	ListSources(context.Context, *emptypb.Empty) (*ListSourcesResponse, error)
 	CreateSource(context.Context, *CreateSourceRequest) (*Source, error)
 	DeleteSource(context.Context, *DeleteSourceRequest) (*emptypb.Empty, error)
-	ListPermissions(context.Context, *ListPermissionsRequest) (*ListPermissionsResponse, error)
+	ListRoles(context.Context, *ListRolesRequest) (*ListRolesResponse, error)
 	CreateCred(context.Context, *emptypb.Empty) (*CreateCredResponse, error)
 	ListApiKeys(context.Context, *emptypb.Empty) (*ListApiKeyResponse, error)
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
@@ -240,8 +240,8 @@ func (UnimplementedV1Server) CreateSource(context.Context, *CreateSourceRequest)
 func (UnimplementedV1Server) DeleteSource(context.Context, *DeleteSourceRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteSource not implemented")
 }
-func (UnimplementedV1Server) ListPermissions(context.Context, *ListPermissionsRequest) (*ListPermissionsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListPermissions not implemented")
+func (UnimplementedV1Server) ListRoles(context.Context, *ListRolesRequest) (*ListRolesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListRoles not implemented")
 }
 func (UnimplementedV1Server) CreateCred(context.Context, *emptypb.Empty) (*CreateCredResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateCred not implemented")
@@ -421,20 +421,20 @@ func _V1_DeleteSource_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
-func _V1_ListPermissions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListPermissionsRequest)
+func _V1_ListRoles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListRolesRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(V1Server).ListPermissions(ctx, in)
+		return srv.(V1Server).ListRoles(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/v1.V1/ListPermissions",
+		FullMethod: "/v1.V1/ListRoles",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(V1Server).ListPermissions(ctx, req.(*ListPermissionsRequest))
+		return srv.(V1Server).ListRoles(ctx, req.(*ListRolesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -605,8 +605,8 @@ var V1_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _V1_DeleteSource_Handler,
 		},
 		{
-			MethodName: "ListPermissions",
-			Handler:    _V1_ListPermissions_Handler,
+			MethodName: "ListRoles",
+			Handler:    _V1_ListRoles_Handler,
 		},
 		{
 			MethodName: "CreateCred",

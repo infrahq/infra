@@ -251,7 +251,7 @@ func TestAuthInterceptorAdminPass(t *testing.T) {
 
 func TestAuthInterceptorInvalidApiKey(t *testing.T) {
 	unaryInfo := &grpc.UnaryServerInfo{
-		FullMethod: "/v1.V1/ListPermissions",
+		FullMethod: "/v1.V1/ListRoles",
 	}
 	unaryHandler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return nil, nil
@@ -270,7 +270,7 @@ func TestAuthInterceptorInvalidApiKey(t *testing.T) {
 
 func TestAuthInterceptorValidApiKey(t *testing.T) {
 	unaryInfo := &grpc.UnaryServerInfo{
-		FullMethod: "/v1.V1/ListPermissions",
+		FullMethod: "/v1.V1/ListRoles",
 	}
 	unaryHandler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return nil, nil

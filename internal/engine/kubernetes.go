@@ -56,7 +56,7 @@ func NewKubernetes() (*Kubernetes, error) {
 	return k, err
 }
 
-func (k *Kubernetes) UpdatePermissions(rbs []RoleBinding) error {
+func (k *Kubernetes) UpdateRoles(rbs []RoleBinding) error {
 	k.mu.Lock()
 	defer k.mu.Unlock()
 

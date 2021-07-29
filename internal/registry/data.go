@@ -35,8 +35,8 @@ type User struct {
 	Password []byte
 	Admin    bool
 
-	Sources     []Source     `gorm:"many2many:users_sources"`
-	Permissions []Permission `gorm:"foreignKey:UserId;references:Id"`
+	Sources []Source `gorm:"many2many:users_sources"`
+	Roles   []Role   `gorm:"foreignKey:UserId;references:Id"`
 }
 
 var (
@@ -77,7 +77,7 @@ type Destination struct {
 	KubernetesSaToken   string
 }
 
-type Permission struct {
+type Role struct {
 	Id            string `gorm:"primaryKey"`
 	Created       int64  `gorm:"autoCreateTime"`
 	Updated       int64  `gorm:"autoUpdateTime"`
@@ -93,8 +93,8 @@ type Permission struct {
 }
 
 var (
-	PERMISSION_KIND_ROLE         = "role"
-	PERMISSION_KIND_CLUSTER_ROLE = "cluster-role"
+	ROLE_KIND_K8S_ROLE         = "role"
+	ROLE_KIND_K8S_CLUSTER_ROLE = "cluster-role"
 )
 
 type Settings struct {
@@ -154,21 +154,21 @@ func (u *User) AfterSave(tx *gorm.DB) (err error) {
 		return err
 	}
 
-	role := "view"
+	givenRole := "view"
 	if u.Admin {
-		role = "cluster-admin"
+		givenRole = "cluster-admin"
 	}
 
 	for _, d := range destinations {
-		var permission Permission
-		err := tx.FirstOrCreate(&permission, &Permission{UserId: u.Id, DestinationId: d.Id, FromDefault: true}).Error
+		var role Role
+		err := tx.FirstOrCreate(&role, &Role{UserId: u.Id, DestinationId: d.Id, FromDefault: true}).Error
 		if err != nil {
 			return err
 		}
 
-		permission.Role = role
+		role.Role = givenRole
 
-		err = tx.Save(&permission).Error
+		err = tx.Save(&role).Error
 		if err != nil {
 			return err
 		}
@@ -187,7 +187,7 @@ func (u *User) BeforeDelete(tx *gorm.DB) error {
 	if err != nil {
 		return err
 	}
-	return tx.Where(&Permission{UserId: u.Id}).Delete(&Permission{}).Error
+	return tx.Where(&Role{UserId: u.Id}).Delete(&Role{}).Error
 }
 
 func (r *Destination) BeforeCreate(tx *gorm.DB) (err error) {
@@ -211,13 +211,13 @@ func (d *Destination) AfterSave(tx *gorm.DB) (err error) {
 	}
 
 	for _, u := range users {
-		role := "view"
+		givenRole := "view"
 		if u.Admin {
-			role = "cluster-admin"
+			givenRole = "cluster-admin"
 		}
 
-		var permission Permission
-		err := tx.FirstOrCreate(&permission, &Permission{UserId: u.Id, DestinationId: d.Id, Role: role, FromDefault: true}).Error
+		var role Role
+		err := tx.FirstOrCreate(&role, &Role{UserId: u.Id, DestinationId: d.Id, Role: givenRole, FromDefault: true}).Error
 		if err != nil {
 			return err
 		}
@@ -228,12 +228,12 @@ func (d *Destination) AfterSave(tx *gorm.DB) (err error) {
 
 // TODO (jmorganca): use foreign constraints instead?
 func (d *Destination) BeforeDelete(tx *gorm.DB) (err error) {
-	return tx.Where(&Permission{DestinationId: d.Id}).Delete(&Permission{}).Error
+	return tx.Where(&Role{DestinationId: d.Id}).Delete(&Role{}).Error
 }
 
-func (g *Permission) BeforeCreate(tx *gorm.DB) (err error) {
-	if g.Id == "" {
-		g.Id = generate.RandString(ID_LEN)
+func (r *Role) BeforeCreate(tx *gorm.DB) (err error) {
+	if r.Id == "" {
+		r.Id = generate.RandString(ID_LEN)
 	}
 
 	return
@@ -468,7 +468,7 @@ func NewDB(dbpath string) (*gorm.DB, error) {
 	db.AutoMigrate(&User{})
 	db.AutoMigrate(&Source{})
 	db.AutoMigrate(&Destination{})
-	db.AutoMigrate(&Permission{})
+	db.AutoMigrate(&Role{})
 	db.AutoMigrate(&Settings{})
 	db.AutoMigrate(&Token{})
 	db.AutoMigrate(&ApiKey{})

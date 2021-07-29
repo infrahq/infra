@@ -12,7 +12,7 @@ users:
         clusters:
           - cluster-AAA
           - cluster-BBB
-  bob@example.com:
+  user@example.com:
     roles:
       writer:
         kind: cluster-role
