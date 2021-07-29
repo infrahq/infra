@@ -473,7 +473,7 @@ func dbToProtoRole(in *Role) *v1.Role {
 		Id:          in.Id,
 		Created:     in.Created,
 		Updated:     in.Updated,
-		Role:        in.Role,
+		Name:        in.Name,
 		User:        dbToProtoUser(&in.User),
 		Destination: dbToProtoDestination(&in.Destination),
 	}

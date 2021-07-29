@@ -295,7 +295,7 @@ func Run(options Options) error {
 
 		var rbs []RoleBinding
 		for _, r := range rolesRes.Roles {
-			rbs = append(rbs, RoleBinding{User: r.User.Email, Role: r.Role})
+			rbs = append(rbs, RoleBinding{User: r.User.Email, Role: r.Name})
 		}
 
 		err = kubernetes.UpdateRoles(rbs)
