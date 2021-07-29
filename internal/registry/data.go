@@ -8,7 +8,6 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"log"
 	"os"
 	"path"
@@ -142,7 +141,6 @@ func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 func (u *User) AfterCreate(tx *gorm.DB) error {
-	fmt.Println(initialConfig.Users)
 	_, err := ApplyUserMapping(tx, initialConfig.Users)
 	return err
 }
