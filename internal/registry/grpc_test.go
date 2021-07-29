@@ -9,11 +9,13 @@ import (
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/registry/mocks"
 	v1 "github.com/infrahq/infra/internal/v1"
+	"github.com/infrahq/infra/internal/version"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"gorm.io/gorm"
 )
 
@@ -595,4 +597,38 @@ func TestSignupWithExistingAdmin(t *testing.T) {
 	res, err := server.Signup(context.Background(), req)
 	assert.Equal(t, status.Code(err), codes.InvalidArgument)
 	assert.Equal(t, res, nil)
+}
+
+func TestVersion(t *testing.T) {
+	db, err := NewDB("file::memory:")
+	if err != nil {
+		t.Error(err)
+	}
+
+	server := &V1Server{db: db}
+
+	res, err := server.Version(context.Background(), &emptypb.Empty{})
+	assert.Equal(t, status.Code(err), codes.OK)
+	assert.Equal(t, res.Version, version.Version)
+}
+
+func TestVersionPublicAuth(t *testing.T) {
+	db, err := NewDB("file::memory:")
+	if err != nil {
+		t.Error(err)
+	}
+
+	server := &V1Server{db: db}
+
+	unaryInfo := &grpc.UnaryServerInfo{
+		FullMethod: "/v1.V1/Version",
+	}
+
+	unaryHandler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return server.Version(ctx, req.(*emptypb.Empty))
+	}
+
+	res, err := authInterceptor(db)(context.Background(), &emptypb.Empty{}, unaryInfo, unaryHandler)
+	assert.Equal(t, status.Code(err), codes.OK)
+	assert.Equal(t, res.(*v1.VersionResponse).Version, version.Version)
 }
