@@ -1,0 +1,21 @@
+*************************************************
+
+                Welcome to Infra
+
+{{- if (or (eq .Values.service.type "LoadBalancer") (empty .Values.service.type)) }}
+
+To access the dashboard, run:
+
+1. kubectl get svc -n {{ .Release.Namespace }} -w infra -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}"
+2. Visit the output URL in your browser
+
+Note: it may take a few minutes for your external load balancer to provision.
+
+{{- else if eq .Values.service.type "ClusterIP" }}
+To access infra, run:
+
+1. kubectl port-forward -n {{ .Release.Namespace }} infra 8000:80
+2. Visit http://localhost:8000 in your browser
+
+{{- end }}
+*************************************************
