@@ -111,11 +111,13 @@ func (h *Http) loginRedirectMiddleware(next http.Handler) http.Handler {
 			if err != nil {
 				deleteAuthCookie(w)
 				http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+				return
 			}
 
 			if login.Value != "1" {
 				deleteAuthCookie(w)
 				http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+				return
 			}
 
 			if strings.HasPrefix(r.URL.Path, "/login") || strings.HasPrefix(r.URL.Path, "/signup") {

@@ -111,14 +111,12 @@ func deleteAuthCookie(w http.ResponseWriter) {
 		HttpOnly: true,
 		Path:     "/",
 		SameSite: http.SameSiteStrictMode,
-		Secure:   true,
 	})
 	http.SetCookie(w, &http.Cookie{
 		Name:    CookieLoginName,
 		Value:   "",
 		Expires: time.Unix(0, 0),
 		Path:    "/",
-		Secure:  true,
 	})
 }
 
