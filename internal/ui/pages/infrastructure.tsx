@@ -7,7 +7,7 @@ import { useQuery } from 'react-query'
 import { useRouter } from 'next/router'
 
 import { V1, Destination } from '../gen/v1.pb'
-import Layout from '../layouts/Dashboard'
+import Dashboard from '../layouts/Dashboard'
 
 dayjs.extend(relativeTime)
 
@@ -56,7 +56,7 @@ export default function Index () {
   )
 
   return (
-    <Layout>
+    <Dashboard>
       <Head>
         <title>Infrastructure – Infra</title>
         <meta property="og:title" content="Infrastructure - Infra" key="title" />
@@ -117,6 +117,6 @@ export default function Index () {
           <Table destinations={destinations} />
         )}
       </div>
-    </Layout>
+    </Dashboard>
   )
 }

@@ -2,7 +2,7 @@ import Head from 'next/head'
 import { useQuery } from 'react-query'
 
 import { V1 } from '../gen/v1.pb'
-import Layout from '../layouts/Dashboard'
+import Dashboard from '../layouts/Dashboard'
 
 export default function Settings () {
   const { data: version } = useQuery(
@@ -11,7 +11,7 @@ export default function Settings () {
   )
   
   return (
-    <Layout>
+    <Dashboard>
       <Head>
         <title>Settings – Infra</title>
         <meta property="og:title" content="Infrastructure - Infra" key="title" />
@@ -27,6 +27,6 @@ export default function Settings () {
           </div>
         </div>
       </div>
-    </Layout>
+    </Dashboard>
   )
 }
