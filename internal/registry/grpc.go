@@ -99,6 +99,7 @@ func authInterceptor(db *gorm.DB) grpc.UnaryServerInterceptor {
 			token, err := ValidateAndGetToken(db, raw)
 			if err != nil {
 				grpc_zap.Extract(ctx).Debug("Could not validate token: " + err.Error())
+				return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
 			}
 
 			if tokenAuthAdminMethods[info.FullMethod] {
