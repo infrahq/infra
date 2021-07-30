@@ -1,5 +1,5 @@
-//go:generate npm run export --silent --prefix ../ui
-//go:generate go-bindata -pkg registry -nocompress -o ./bindata_ui.go -prefix "../ui/out/" ../ui/out/...
+//go:generate npm run export --silent --prefix ./ui
+//go:generate go-bindata -pkg registry -nocompress -o ./bindata_ui.go -prefix "./ui/out/" ./ui/out/...
 
 package registry
 

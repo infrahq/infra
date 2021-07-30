@@ -37,7 +37,7 @@ Developing the UI requires two tabs:
 
 ```
 # In first terminal window, run next.js dev server
-cd internal/ui
+cd internal/registry/ui
 npm install
 npm run dev
 
