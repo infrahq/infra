@@ -37,7 +37,6 @@ type Options struct {
 	TLSCache      string
 	DefaultApiKey string
 	ConfigPath    string
-	UI            bool
 	UIProxy       string
 }
 
@@ -259,7 +258,7 @@ func Run(options Options) error {
 			return err
 		}
 		mux.Handle("/", httpHandlers.loginRedirectMiddleware(httputil.NewSingleHostReverseProxy(remote)))
-	} else if options.UI {
+	} else {
 		mux.Handle("/", httpHandlers.loginRedirectMiddleware(gziphandler.GzipHandler(http.FileServer(&StaticFileSystem{base: &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo}}))))
 	}
 
