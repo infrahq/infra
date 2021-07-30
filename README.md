@@ -46,13 +46,19 @@ scoop install infra
 infra login <EXTERNAL-IP>
 ```
 
-### Switch Kubernetes context
+### List clusters
 
 ```
-kubectl config use-context default
+infra list
 ```
 
-Great! You're now **logged into the cluster via Infra**. 
+### Switch to a Kubernetes context
+
+```
+kubectl config use-context <name>
+```
+
+Great! You've **logged into your cluster via Infra**. 
 
 ### Next steps 
 * Add users to Infra 
