@@ -18,8 +18,6 @@ Infra is **identity and access management** for Kubernetes. Provide any user fin
 
 ## Quickstart
 
-### Install Infra
-
 ```
 helm repo add infrahq https://helm.infrahq.com
 helm install infra infrahq/infra
@@ -61,14 +59,14 @@ kubectl config use-context <name>
 Great! You've **logged into your cluster via Infra**. 
 
 ### Next steps 
+* [Configure Infra](./docs/configuration.md)
 * [Add users via Okta integration](./docs/okta.md)
 * [Connect a Kubernetes cluster](./docs/connect.md)
-* Add a [custom domain](./docs/domain.md) to infra login for quick access 
+* [Add a custom domain](./docs/domain.md)
 
 ## Documentation
-* [Helm Chart](./docs/helm.md)
+* [Helm Chart Reference](./docs/helm.md)
 * [CLI Reference](./docs/cli.md)
-* [Configuration Reference](./docs/configuration.md)
 * [Contributing](./docs/contributing.md)
 
 ## Security

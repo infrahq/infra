@@ -1,5 +1,6 @@
 storage: 1Gi
 defaultApiKey: ""
+config: ""
 
 image:
   repository: infrahq/infra
@@ -30,10 +31,3 @@ ingress:
     servicePort: 80
     annotations: {}
     labels: {}
-
-engine:
-  registry: "infra"
-  image:
-    repository: infrahq/infra
-    tag: ""
-    pullPolicy: IfNotPresent

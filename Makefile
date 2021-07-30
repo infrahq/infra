@@ -12,12 +12,8 @@ test:
 
 .PHONY: helm
 helm:
-	sed -i.bak 's/0.0.0-development/$(tag:v%=%)/g' helm/charts/infra/Chart.yaml
-	sed -i.bak 's/0.0.0-development/$(tag:v%=%)/g' helm/charts/infra/charts/engine/Chart.yaml
-	helm package -d ./helm helm/charts/infra helm/charts/infra/charts/engine
+	helm package -d ./helm helm/charts/infra helm/charts/engine --version $(tag) --app-version $(tag)
 	helm repo index ./helm
-	mv helm/charts/infra/Chart.yaml.bak helm/charts/infra/Chart.yaml
-	mv helm/charts/infra/charts/engine/Chart.yaml.bak helm/charts/infra/charts/engine/Chart.yaml
 
 .PHONY: docs
 docs:
@@ -46,7 +42,8 @@ build:
 dev:
 	kubectl config use-context docker-desktop
 	docker build . -t infrahq/infra:0.0.0-development
-	helm upgrade --install infra ./helm/charts/infra --set image.pullPolicy=Never --set image.tag=0.0.0-development  --set engine.image.tag=0.0.0-development --set engine.image.pullPolicy=Never
+	helm upgrade --install infra ./helm/charts/infra --set image.pullPolicy=Never --set image.tag=0.0.0-development
+	helm upgrade --install infra-engine ./helm/charts/engine --set image.pullPolicy=Never --set image.tag=0.0.0-development --set registry=infra --set apiKey=$(kubectl get secrets/infra --template={{.data.defaultApiKey}} | base64 -D)
 	kubectl rollout restart deployment/infra
 	kubectl rollout restart deployment/infra-engine
 

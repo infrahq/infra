@@ -53,7 +53,7 @@ sources:
 Then apply this config change:
 
 ```
-helm upgrade infra --set config=./infra.yaml --recreate-pods
+helm upgrade infra --set-file config=./infra.yaml --recreate-pods
 ```
 
 ### List users

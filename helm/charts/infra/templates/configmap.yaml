@@ -1,0 +1,10 @@
+{{- if .Values.config }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: infra
+  namespace: {{ .Release.Namespace }}
+data:
+  infra.yaml:
+    {{ toYaml .Values.config | indent 4 }}
+{{- end }}

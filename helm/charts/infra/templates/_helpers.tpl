@@ -15,3 +15,12 @@ Return the appropriate apiVersion for ingress
 {{- print "networking.k8s.io/v1" -}}
 {{- end -}}
 {{- end -}}
+
+{{- define "infra.defaultApiKey" -}}
+{{- $secret := (lookup "v1" "Secret" .Release.Namespace "infra" ) -}}
+  {{- if $secret -}}
+    {{-  index $secret "data" "api-key" | b64dec -}}
+  {{- else -}}
+    {{- (randAlphaNum 24) -}}
+  {{- end -}}
+{{- end -}}

@@ -1,59 +1,37 @@
-# Configuration Reference
+# Configuring Infra
 
 * [Example](#example)
 * [ConfigMap Usage](#configmap-usage)
 * [Reference](#reference)
   * [`sources`](#sources)
     * [`okta`](#okta)
-  * [`roles`](#roles)
-    * [`user`](#user)
-    * [`destination`](#destination)
-    * [`role`](#role)
+  * [`users`](#users)
+    * [`name`](#user)
+    * [`roles`](#roles)
 
 ## Overview
 
 For teams who require configuration to be stored in version control, Infra can be managed via a configuration file, `infra.yaml`.
 
-## Kubernetes ConfigMap Example
+## Create a configuration file
 
-To specify via Kubernetes, create a ConfigMap as show below:
-
-```bash
-cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: infra
-  namespace: infra
-data:
-  infra.yaml: |
-    sources:
-      - type: okta
-        oktaDomain: acme.okta.com
-        oktaClientId: 0oapn0qwiQPiMIyR35d6
-        oktaClientSecret: jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2
-        oktaApiToken: 001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd
-    users:
-      admin@example.com:
-        roles:
-          admin:
-            kind: cluster-role
-            clusters:
-              - cluster-AAA
-              - cluster-BBB
-      bob@example.com:
-        roles:
-          writer:
-            kind: cluster-role
-            clusters:
-              - cluster-AAA
-EOF
-```
-
-Then, restart Infra server to apply the change:
+First, create a config file `infra.yaml`:
 
 ```
-kubectl rollout restart -n infra deployment/infra
+users:
+  - name: admin@example.com
+    roles:
+      - name: admin
+        kind: cluster-role
+        clusters:
+          - cluster-AAA
+          - cluster-BBB
+```
+
+Then, apply it to the Infra registry:
+
+```
+helm upgrade infra --set-file config=./infra.yaml --recreate-pods
 ```
 
 ## Full Example
@@ -82,28 +60,19 @@ users:
           - cluster-AAA
 ```
 
-## Reference
+## Configuration Reference
 
 ### `sources`
 
-#### `okta`
+A list of sources to sync and authenticate users from
 
-* `domain`: Okta domain
-* `client-id`: Client ID for the Okta application
-* `client-secret`: Client Secret for the Okta application
-* `api-token`: Okta API Token
+### `users`
 
-### `roles`
+#### `name`
 
-### `user`
+`name` is a user's email or username
 
-`user` is a user's email
+#### `roles`
 
-### `destination`
-
-`destination` is a target destination to grant access to, e.g. the kubernetes cluster name
-
-### `role`
-
-`role` is a kubernetes cluster role
+`roles` is a list of role mappings to Kubernetes roles
 
