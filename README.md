@@ -41,7 +41,7 @@ scoop install infra
 ### Login to Infra
 
 ```
-infra login <EXTERNAL-IP>
+infra login <Infra Registry Hostname>
 ```
 
 ### List clusters
