@@ -8,7 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func ZapLoggerMiddleware(logger *zap.Logger, next http.Handler) http.HandlerFunc {
+func ZapLoggerHttpMiddleware(logger *zap.Logger, next http.Handler) http.HandlerFunc {
 	if logger == nil {
 		return next.ServeHTTP
 	}

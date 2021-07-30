@@ -7,13 +7,10 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
-	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -33,12 +30,6 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/emptypb"
-)
-
-var (
-	CookieTokenName = "token"
-	CookieLoginName = "login"
 )
 
 type Options struct {
@@ -74,6 +65,27 @@ func authMetadata(ctx context.Context, req *http.Request) metadata.MD {
 	return metadata.Pairs("authorization", "Bearer "+cookie.Value)
 }
 
+func authFilter(ctx context.Context, w http.ResponseWriter, resp proto.Message) error {
+	md, ok := runtime.ServerMetadataFromContext(ctx)
+	if !ok {
+		return errors.New("failed to extract metadata from context")
+	}
+
+	tokens := md.HeaderMD.Get("gateway-set-auth-token")
+	if len(tokens) > 0 {
+		setAuthCookie(w, tokens[0])
+		return nil
+	}
+
+	delTokens := md.HeaderMD.Get("gateway-delete-auth-token")
+	if len(delTokens) > 0 {
+		deleteAuthCookie(w)
+		return nil
+	}
+
+	return nil
+}
+
 func setAuthCookie(w http.ResponseWriter, token string) {
 	expires := time.Now().Add(SessionDuration)
 	http.SetCookie(w, &http.Cookie{
@@ -83,14 +95,12 @@ func setAuthCookie(w http.ResponseWriter, token string) {
 		HttpOnly: true,
 		Path:     "/",
 		SameSite: http.SameSiteStrictMode,
-		Secure:   true,
 	})
 	http.SetCookie(w, &http.Cookie{
 		Name:    CookieLoginName,
 		Value:   "1",
 		Expires: expires,
 		Path:    "/",
-		Secure:  true,
 	})
 }
 
@@ -111,27 +121,6 @@ func deleteAuthCookie(w http.ResponseWriter) {
 		Path:    "/",
 		Secure:  true,
 	})
-}
-
-func authFilter(ctx context.Context, w http.ResponseWriter, resp proto.Message) error {
-	md, ok := runtime.ServerMetadataFromContext(ctx)
-	if !ok {
-		return errors.New("failed to extract metadata from context")
-	}
-
-	tokens := md.HeaderMD.Get("gateway-set-auth-token")
-	if len(tokens) > 0 {
-		setAuthCookie(w, tokens[0])
-		return nil
-	}
-
-	delTokens := md.HeaderMD.Get("gateway-delete-auth-token")
-	if len(delTokens) > 0 {
-		deleteAuthCookie(w)
-		return nil
-	}
-
-	return nil
 }
 
 func getSelfSignedOrLetsEncryptCert(certManager *autocert.Manager) func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
@@ -174,12 +163,18 @@ func Run(options Options) error {
 		return err
 	}
 
+	zapLogger, err := logging.Build()
+	defer zapLogger.Sync() // flushes buffer, if any
+	if err != nil {
+		return err
+	}
+
 	// Load configuration from file
 	var contents []byte
 	if options.ConfigPath != "" {
 		contents, err = ioutil.ReadFile(options.ConfigPath)
 		if err != nil {
-			fmt.Println("Could not open config file path: ", options.ConfigPath)
+			zapLogger.Error(err.Error())
 		}
 	}
 
@@ -213,7 +208,7 @@ func Run(options Options) error {
 		var sources []Source
 
 		if err := db.Find(&sources).Error; err != nil {
-			fmt.Println(err)
+			zapLogger.Error(err.Error())
 		}
 
 		for _, s := range sources {
@@ -227,23 +222,9 @@ func Run(options Options) error {
 		return err
 	}
 
-	manager := &autocert.Manager{
-		Prompt: autocert.AcceptTOS,
-		Cache:  autocert.DirCache(options.TLSCache),
-	}
-
-	tlsConfig := manager.TLSConfig()
-	tlsConfig.GetCertificate = getSelfSignedOrLetsEncryptCert(manager)
-
 	server := &V1Server{
 		db:   db,
 		okta: okta,
-	}
-
-	zapLogger, err := logging.Build()
-	defer zapLogger.Sync() // flushes buffer, if any
-	if err != nil {
-		return err
 	}
 
 	grpcServer := grpc.NewServer(
@@ -255,10 +236,6 @@ func Run(options Options) error {
 	v1.RegisterV1Server(grpcServer, server)
 	reflection.Register(grpcServer)
 
-	httpHandlers := &Http{
-		db: db,
-	}
-
 	gwmux := runtime.NewServeMux(runtime.WithMetadata(authMetadata), runtime.WithForwardResponseOption(authFilter))
 	creds := credentials.NewTLS(&tls.Config{InsecureSkipVerify: true})
 	err = v1.RegisterV1HandlerFromEndpoint(context.Background(), gwmux, "localhost:443", []grpc.DialOption{grpc.WithTransportCredentials(creds)})
@@ -266,126 +243,50 @@ func Run(options Options) error {
 		return err
 	}
 
+	httpHandlers := &Http{
+		db:     db,
+		logger: zapLogger,
+	}
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", httpHandlers.Healthz)
 	mux.HandleFunc("/.well-known/jwks.json", httpHandlers.WellKnownJWKs)
 	mux.Handle("/v1/", gwmux)
-
-	loginRedirectMiddleware := func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ext := filepath.Ext(r.URL.Path)
-			if ext != "" && ext != ".html" {
-				next.ServeHTTP(w, r)
-				return
-			}
-
-			if strings.HasPrefix(r.URL.Path, "/_next") {
-				next.ServeHTTP(w, r)
-				return
-			}
-
-			login, loginCookieErr := r.Cookie(CookieLoginName)
-			if err != nil && !errors.Is(err, http.ErrNoCookie) {
-				fmt.Println(err)
-				return
-			}
-
-			token, tokenCookieErr := r.Cookie(CookieTokenName)
-			if err != nil && !errors.Is(err, http.ErrNoCookie) {
-				fmt.Println(err)
-				return
-			}
-
-			// If the login or token cookie are missing, then redirect to /login or /signup based on the current status
-			if errors.Is(loginCookieErr, http.ErrNoCookie) || errors.Is(tokenCookieErr, http.ErrNoCookie) {
-				deleteAuthCookie(w)
-
-				res, err := server.Status(context.Background(), &emptypb.Empty{})
-				if err != nil {
-					fmt.Println(err)
-					return
-				}
-
-				if !res.Admin && !strings.HasPrefix(r.URL.Path, "/signup") {
-					http.Redirect(w, r, "/signup", http.StatusTemporaryRedirect)
-					return
-				} else if res.Admin && !strings.HasPrefix(r.URL.Path, "/login") {
-					params := url.Values{}
-					path := "/login"
-
-					next := ""
-					if r.URL.Path != "/" {
-						next += r.URL.Path
-					}
-					if r.URL.RawQuery != "" {
-						next += "?" + r.URL.RawQuery
-					}
-
-					if next != "" {
-						params.Add("next", next)
-						path = "/login?" + params.Encode()
-					}
-
-					http.Redirect(w, r, path, http.StatusTemporaryRedirect)
-					return
-				}
-			}
-
-			// If the cookies exist, then validate their values and redirect to / or follow any ?next= query parameter
-			if token != nil && login != nil {
-				_, err = ValidateAndGetToken(db, token.Value)
-				if err != nil {
-					deleteAuthCookie(w)
-					http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
-				}
-
-				if login.Value != "1" {
-					deleteAuthCookie(w)
-					http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
-				}
-
-				if strings.HasPrefix(r.URL.Path, "/login") || strings.HasPrefix(r.URL.Path, "/signup") {
-					keys, ok := r.URL.Query()["next"]
-					if !ok || len(keys[0]) < 1 {
-						http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-						return
-					} else {
-						http.Redirect(w, r, keys[0], http.StatusTemporaryRedirect)
-						return
-					}
-				}
-			}
-
-			next.ServeHTTP(w, r)
-		})
-	}
 
 	if options.UIProxy != "" {
 		remote, err := urlx.Parse(options.UIProxy)
 		if err != nil {
 			return err
 		}
-		mux.Handle("/", loginRedirectMiddleware(httputil.NewSingleHostReverseProxy(remote)))
+		mux.Handle("/", httpHandlers.loginRedirectMiddleware(httputil.NewSingleHostReverseProxy(remote)))
 	} else if options.UI {
-		mux.Handle("/", loginRedirectMiddleware(gziphandler.GzipHandler(http.FileServer(&StaticFileSystem{base: &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo}}))))
+		mux.Handle("/", httpHandlers.loginRedirectMiddleware(gziphandler.GzipHandler(http.FileServer(&StaticFileSystem{base: &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo}}))))
 	}
 
-	httpServer := http.Server{
+	plaintextServer := http.Server{
 		Addr:    ":80",
-		Handler: combinedHandlerFunc(grpcServer, mux),
+		Handler: combinedHandlerFunc(grpcServer, ZapLoggerHttpMiddleware(zapLogger, mux)),
 	}
 
 	go func() {
-		err := httpServer.ListenAndServe()
+		err := plaintextServer.ListenAndServe()
 		if err != nil {
 			zapLogger.Error(err.Error())
 		}
 	}()
 
+	manager := &autocert.Manager{
+		Prompt: autocert.AcceptTOS,
+		Cache:  autocert.DirCache(options.TLSCache),
+	}
+
+	tlsConfig := manager.TLSConfig()
+	tlsConfig.GetCertificate = getSelfSignedOrLetsEncryptCert(manager)
+
 	tlsServer := &http.Server{
 		Addr:      ":443",
 		TLSConfig: tlsConfig,
-		Handler:   combinedHandlerFunc(grpcServer, ZapLoggerMiddleware(zapLogger, mux)),
+		Handler:   combinedHandlerFunc(grpcServer, ZapLoggerHttpMiddleware(zapLogger, mux)),
 	}
 
 	return tlsServer.ListenAndServeTLS("", "")
