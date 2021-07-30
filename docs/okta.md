@@ -47,7 +47,7 @@ infra source create okta \
     --client-secret vU-bIjeFyMB7j_jd178HahIsd1oaIaspnuU
 ```
 
-### List Okta users
+### List users
 
 ```
 $ infra user list

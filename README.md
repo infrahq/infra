@@ -61,11 +61,8 @@ kubectl config use-context <name>
 Great! You've **logged into your cluster via Infra**. 
 
 ### Next steps 
-* Add users to Infra 
-  * [Add users via Okta integration](./docs/okta.md)
-  * [Add users manually](./docs/users.md)
-* Connect another Kubernetes cluster 
-  * [Connect another cluster](./docs/connect.md)
+* [Add users via Okta integration](./docs/okta.md)
+* [Connect a Kubernetes cluster](./docs/connect.md)
 * Add a [custom domain](./docs/domain.md) to infra login for quick access 
 
 ## Documentation
