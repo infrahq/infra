@@ -84,13 +84,14 @@ export default function Index () {
                 >
                   <Popover.Panel
                     static
-                    className="absolute z-10 right-0 transform mt-2 w-screen max-w-md"
+                    className="absolute z-10 right-0 transform mt-2"
                   >
                     <div className="rounded-xl shadow-2xl bg-gray-900 overflow-hidden">
                       <div className="bg-gray-800 uppercase text-gray-400 font-bold px-6 select-none py-4 text-xs tracking-wider">
                         Add Kubernetes Cluster
                       </div>
                       <div className="flex-1 relative gap-6 px-6 py-5 font-mono text-sm text-white leading-6 overflow-x-scroll whitespace-nowrap">
+                        helm repo add infrahq https://helm.infrahq.com<br />
                         helm install infra-engine infrahq/engine \<br />
                           &nbsp;&nbsp;--set registry={process.browser && window.location.host} \<br />
                           &nbsp;&nbsp;--set apiKey={apiKey?.key}
