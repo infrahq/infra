@@ -7,5 +7,5 @@ option go_package = "github.com/grpc-ecosystem/protoc-gen-grpc-gateway-ts/option
 import "google/protobuf/descriptor.proto";
 
 extend google.protobuf.FileOptions {
-	  optional string ts_package = 50000;
+	optional string ts_package = 50000;
 }
