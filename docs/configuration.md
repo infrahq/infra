@@ -5,9 +5,9 @@
 * [Reference](#reference)
   * [`sources`](#sources)
     * [`okta`](#okta)
-  * [`users`](#roles)
+  * [`users`](#users)
     * [`name`](#user)
-    * [`roles`](#role)
+    * [`roles`](#roles)
 
 ## Overview
 
