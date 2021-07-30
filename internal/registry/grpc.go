@@ -12,7 +12,6 @@ import (
 	v1 "github.com/infrahq/infra/internal/v1"
 	"github.com/infrahq/infra/internal/version"
 	"golang.org/x/crypto/bcrypt"
-	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -213,16 +212,7 @@ func (v *V1Server) ListUsers(ctx context.Context, in *v1.ListUsersRequest) (*v1.
 
 func (v *V1Server) CreateUser(ctx context.Context, in *v1.CreateUserRequest) (*v1.User, error) {
 	if err := in.ValidateAll(); err != nil {
-		errs := err.(v1.CreateUserRequestMultiError)
-		st := status.New(codes.InvalidArgument, "invalid")
-		for _, e := range errs {
-			e := e.(v1.CreateUserRequestValidationError)
-			st, _ = st.WithDetails(&errdetails.BadRequest_FieldViolation{
-				Field:       e.Field(),
-				Description: e.Reason(),
-			})
-		}
-		return nil, st.Err()
+		return nil, err
 	}
 
 	var user User
