@@ -1,0 +1,20 @@
+sources:
+  - type: okta
+    oktaDomain: acme.okta.com
+    oktaClientId: 0oapn0qwiQPiMIyR35d6
+    oktaClientSecret: jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2
+    oktaApiToken: 001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd
+users:
+  admin@example.com:
+    roles:
+      admin:
+        kind: cluster-role
+        clusters:
+          - cluster-AAA
+          - cluster-BBB
+  bob@example.com:
+    roles:
+      writer:
+        kind: cluster-role
+        clusters:
+          - cluster-AAA

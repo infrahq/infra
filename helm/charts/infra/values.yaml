@@ -1,5 +1,6 @@
 storage: 1Gi
 defaultApiKey: ""
+config: ""
 
 image:
   repository: infrahq/infra
