@@ -20,7 +20,7 @@ export default function Layout ({ children }: { children: JSX.Element[] | JSX.El
   // log users out
   const { error } = useQuery(
     'status',
-    () => V1.Status({}),
+    () => V1.ListUsers({}),
     {
       refetchInterval: 5000,
     }
