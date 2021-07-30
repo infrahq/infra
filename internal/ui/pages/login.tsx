@@ -37,9 +37,9 @@ export default function Login () {
   }, [])
 
   if (process.browser && cookies.login) {
-        router.replace("/")
-        return <></>
-    }
+    router.replace("/")
+    return <></>
+  }
 
   return (
     <div className="min-h-screen flex flex-col justify-center py-8 pb-48 sm:px-6 lg:px-8">

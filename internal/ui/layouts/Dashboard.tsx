@@ -48,7 +48,7 @@ export default function Layout ({ children }: { children: JSX.Element[] | JSX.El
     },
   ]
 
-    return (
+  return (
     <div className="h-screen bg-gray-50 overflow-hidden flex">
       {/* Mobile sidebar */}
       <Transition.Root show={sidebarOpen} as={Fragment}>
@@ -191,7 +191,6 @@ export default function Layout ({ children }: { children: JSX.Element[] | JSX.El
               {({ open }) => (
                 <>
                   <div className="flex items-center">
-                    <a href="https://github.com/infrahq/infra#install-infra-cli" target="_blank"><span className="hidden md:flex items-center text-gray-500 hover:text-gray-700 text-sm font-medium mr-4"><DownloadIcon className="w-4 h-4 mr-1 stroke-current" />Download CLI</span></a>
                     <Menu.Button className="max-w-xs flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600">
                       <span className="sr-only">Open user menu</span>
                       <span className="inline-block h-8 w-8 rounded-full overflow-hidden bg-gray-100 md:bg-gray-200 md:border">
@@ -247,5 +246,5 @@ export default function Layout ({ children }: { children: JSX.Element[] | JSX.El
         </main>
       </div>
     </div>
-    )
+  )
 }

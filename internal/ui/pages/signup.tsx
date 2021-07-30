@@ -67,7 +67,6 @@ export default function Signup () {
               id="password"
               name="password"
               type="password"
-              autoComplete="current-password"
               required
               className={`appearance-none block w-full mt-1 px-3 py-2 border text-sm border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm ${error ? 'border-red-400 text-red-700 placeholder-red-400 focus:ring-red-500 focus:border-red-500' : ''}`}
               value={password}
