@@ -31,7 +31,7 @@ users:
 Then, apply it to the Infra registry:
 
 ```
-helm upgrade infra --set config=./infra.yaml --recreate-pods
+helm upgrade infra --set-file config=./infra.yaml --recreate-pods
 ```
 
 ## Full Example
