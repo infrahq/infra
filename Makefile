@@ -12,7 +12,7 @@ test:
 
 .PHONY: helm
 helm:
-	helm package -d ./helm helm/charts/infra helm/charts/engine --version $(tag) --app-version $(tag)
+	helm package -d ./helm helm/charts/infra helm/charts/engine --version $(tag:v%=%) --app-version $(tag:v%=%)
 	helm repo index ./helm
 
 .PHONY: docs
