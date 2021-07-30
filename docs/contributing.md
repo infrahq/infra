@@ -31,6 +31,26 @@ Run a full setup (Infra Registry + Infra Engine):
 make dev
 ```
 
+## Working on the UI
+
+Developing the UI requires two tabs:
+
+```
+# In first terminal window, run next.js dev server
+cd internal/registry/ui
+npm install
+npm run dev
+
+# In second terminal window, run Go server
+go run . registry --ui-proxy=http://localhost:3000
+```
+
+To build a static version of the ui that can be imported into the Go server:
+
+```
+make generate
+```
+
 ## Generate docs
 
 ```

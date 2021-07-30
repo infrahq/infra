@@ -96,17 +96,9 @@ func authInterceptor(db *gorm.DB) grpc.UnaryServerInterceptor {
 				return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
 			}
 
-			id := raw[0:ID_LEN]
-			secret := raw[ID_LEN:TOKEN_LEN]
-
-			var token Token
-			if err := db.First(&token, &Token{Id: id}).Error; err != nil {
-				grpc_zap.Extract(ctx).Debug("Invalid token presented to the auth interceptor")
-				return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
-			}
-
-			if err := token.CheckSecret(secret); err != nil {
-				grpc_zap.Extract(ctx).Debug("Invalid secret on token presented to the auth interceptor")
+			token, err := ValidateAndGetToken(db, raw)
+			if err != nil {
+				grpc_zap.Extract(ctx).Debug("Could not validate token: " + err.Error())
 				return nil, status.Errorf(codes.Unauthenticated, "unauthorized")
 			}
 
@@ -609,6 +601,8 @@ func (v *V1Server) Login(ctx context.Context, in *v1.LoginRequest) (*v1.LoginRes
 		return nil, status.Errorf(codes.Internal, "could not create token")
 	}
 
+	grpc.SendHeader(ctx, metadata.Pairs("gateway-set-auth-token", token.Id+secret))
+
 	return &v1.LoginResponse{Token: token.Id + secret}, nil
 }
 
@@ -622,6 +616,8 @@ func (v *V1Server) Logout(ctx context.Context, in *emptypb.Empty) (*emptypb.Empt
 	if err := v.db.Where(&Token{UserId: userId}).Delete(&Token{}).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, err.Error())
 	}
+
+	grpc.SendHeader(ctx, metadata.Pairs("gateway-delete-auth-token", "1"))
 
 	return &emptypb.Empty{}, nil
 }
@@ -665,6 +661,8 @@ func (v *V1Server) Signup(ctx context.Context, in *v1.SignupRequest) (*v1.LoginR
 	if err != nil {
 		return nil, err
 	}
+
+	grpc.SendHeader(ctx, metadata.Pairs("gateway-set-auth-token", token.Id+secret))
 
 	return &v1.LoginResponse{Token: token.Id + secret}, nil
 }

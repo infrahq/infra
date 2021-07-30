@@ -25,12 +25,6 @@ helm repo add infrahq https://helm.infrahq.com
 helm install infra infrahq/infra
 ```
 
-Infra exposes an **external IP** address via a load balanacer. To list services and check which IP address is exposed, run:
-
-```
-kubectl get svc infra
-```
-
 ### Install Infra CLI
 
 **macOS & Linux**

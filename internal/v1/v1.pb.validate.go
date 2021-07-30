@@ -3035,6 +3035,241 @@ var _ interface {
 	ErrorName() string
 } = VersionResponseValidationError{}
 
+// Validate checks the field values on Error with the rules defined in the
+// proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *Error) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on Error with the rules defined in the
+// proto definition for this message. If any rules are violated, the result is
+// a list of violation errors wrapped in ErrorMultiError, or nil if none found.
+func (m *Error) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *Error) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Message
+
+	for idx, item := range m.GetDetails() {
+		_, _ = idx, item
+
+		if all {
+			switch v := interface{}(item).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, ErrorValidationError{
+						field:  fmt.Sprintf("Details[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, ErrorValidationError{
+						field:  fmt.Sprintf("Details[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ErrorValidationError{
+					field:  fmt.Sprintf("Details[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	if len(errors) > 0 {
+		return ErrorMultiError(errors)
+	}
+	return nil
+}
+
+// ErrorMultiError is an error wrapping multiple validation errors returned by
+// Error.ValidateAll() if the designated constraints aren't met.
+type ErrorMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ErrorMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ErrorMultiError) AllErrors() []error { return m }
+
+// ErrorValidationError is the validation error returned by Error.Validate if
+// the designated constraints aren't met.
+type ErrorValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ErrorValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ErrorValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ErrorValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ErrorValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ErrorValidationError) ErrorName() string { return "ErrorValidationError" }
+
+// Error satisfies the builtin error interface
+func (e ErrorValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sError.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ErrorValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ErrorValidationError{}
+
+// Validate checks the field values on ErrorDetails with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *ErrorDetails) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ErrorDetails with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in ErrorDetailsMultiError, or
+// nil if none found.
+func (m *ErrorDetails) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ErrorDetails) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Name
+
+	// no validation rules for Description
+
+	if len(errors) > 0 {
+		return ErrorDetailsMultiError(errors)
+	}
+	return nil
+}
+
+// ErrorDetailsMultiError is an error wrapping multiple validation errors
+// returned by ErrorDetails.ValidateAll() if the designated constraints aren't met.
+type ErrorDetailsMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ErrorDetailsMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ErrorDetailsMultiError) AllErrors() []error { return m }
+
+// ErrorDetailsValidationError is the validation error returned by
+// ErrorDetails.Validate if the designated constraints aren't met.
+type ErrorDetailsValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ErrorDetailsValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ErrorDetailsValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ErrorDetailsValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ErrorDetailsValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ErrorDetailsValidationError) ErrorName() string { return "ErrorDetailsValidationError" }
+
+// Error satisfies the builtin error interface
+func (e ErrorDetailsValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sErrorDetails.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ErrorDetailsValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ErrorDetailsValidationError{}
+
 // Validate checks the field values on Source_Okta with the rules defined in
 // the proto definition for this message. If any rules are violated, the first
 // error encountered is returned, or nil if there are no violations.
