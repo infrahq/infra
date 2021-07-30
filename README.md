@@ -7,6 +7,7 @@ Infra is **identity and access management** for Kubernetes. Provide any user fin
 
 **Features**:
 * One-command access: `infra login`
+* No more out of sync Kubeconfig files
 * Fine-grained role assignment
 * Onboard & offboard users via Okta (Azure AD, Google, GitHub coming soon)
 * Audit logs for who did what, when (coming soon)
