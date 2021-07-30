@@ -653,14 +653,10 @@ var logoutCmd = &cobra.Command{
 	},
 }
 
-var destinationCmd = &cobra.Command{
-	Use:   "destination",
-	Short: "Manage infrastructure destinations",
-}
-
-var destinationListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List destinations",
+var listCmd = &cobra.Command{
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List clusters",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, close, err := clientFromConfig()
 		if err != nil {
@@ -760,8 +756,8 @@ var userDeleteCmd = &cobra.Command{
 	},
 }
 
-var userListCmd = &cobra.Command{
-	Use:   "list",
+var usersCmd = &cobra.Command{
+	Use:   "users",
 	Short: "List users",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, close, err := clientFromConfig()
@@ -792,156 +788,6 @@ var userListCmd = &cobra.Command{
 		}
 
 		printTable([]string{"EMAIL", "CREATED", "ADMIN"}, rows)
-
-		return nil
-	},
-}
-
-var sourceCmd = &cobra.Command{
-	Use:   "source",
-	Short: "Manage identity sources",
-}
-
-var sourceListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List sources",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		client, close, err := clientFromConfig()
-		if err != nil {
-			return err
-		}
-		defer close()
-
-		res, err := client.ListSources(context.Background(), &emptypb.Empty{})
-		if err != nil {
-			return err
-		}
-
-		sort.Slice(res.Sources, func(i, j int) bool {
-			return res.Sources[i].Created > res.Sources[j].Created
-		})
-
-		rows := [][]string{}
-		for _, source := range res.Sources {
-			info := ""
-			typeString := ""
-			switch source.Type {
-			case v1.SourceType_OKTA:
-				info = source.Okta.Domain
-				typeString = "okta"
-			case v1.SourceType_INFRA:
-				info = "Built-in source"
-			}
-			rows = append(rows, []string{source.Id, typeString, units.HumanDuration(time.Now().UTC().Sub(time.Unix(source.Created, 0))) + " ago", info})
-		}
-
-		printTable([]string{"SOURCE ID", "KIND", "CREATED", "DESCRIPTION"}, rows)
-
-		return nil
-	},
-}
-
-func newSourceCreateCmd() *cobra.Command {
-	var apiToken, domain, clientID, clientSecret string
-
-	cmd := &cobra.Command{
-		Use:   "create KIND",
-		Short: "Connect an identity source",
-		Args:  cobra.ExactArgs(1),
-		Example: heredoc.Doc(`
-			$ infra source create okta \
-				--domain example.okta.com \
-				--api-token 001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd \
-				--client-id 0oapn0qwiQPiMIyR35d6 \
-				--client-secret jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2`),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			client, close, err := clientFromConfig()
-			if err != nil {
-				return err
-			}
-			defer close()
-
-			switch args[0] {
-			case "okta":
-				_, err := client.CreateSource(context.Background(), &v1.CreateSourceRequest{
-					Type: v1.SourceType_OKTA,
-					Okta: &v1.CreateSourceRequest_Okta{
-						Domain:       domain,
-						ApiToken:     apiToken,
-						ClientId:     clientID,
-						ClientSecret: clientSecret,
-					},
-				})
-				if err != nil {
-					fmt.Println(blue("✕") + " Source creation aborted")
-					return err
-				}
-			}
-
-			return nil
-		},
-	}
-
-	cmd.Flags().StringVar(&apiToken, "api-token", "", "Api Token")
-	cmd.Flags().StringVar(&domain, "domain", "", "Domain (e.g. example.okta.com)")
-	cmd.Flags().StringVar(&clientID, "client-id", "", "Client ID for single sign-on")
-	cmd.Flags().StringVar(&clientSecret, "client-secret", "", "Client Secret for single sign-on")
-
-	return cmd
-}
-
-var sourceDeleteCmd = &cobra.Command{
-	Use:     "delete ID",
-	Aliases: []string{"rm"},
-	Short:   "Delete an identity source",
-	Args:    cobra.ExactArgs(1),
-	Example: heredoc.Doc(`
-			$ infra source delete n7bha2pxjpa01a`),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		client, close, err := clientFromConfig()
-		if err != nil {
-			return err
-		}
-		defer close()
-
-		_, err = client.DeleteSource(context.Background(), &v1.DeleteSourceRequest{
-			Id: args[0],
-		})
-
-		return err
-	},
-}
-
-var apikeyCmd = &cobra.Command{
-	Use:   "apikey",
-	Short: "Manage API Keys",
-}
-
-var apikeyListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List API Keys",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		client, close, err := clientFromConfig()
-		if err != nil {
-			return err
-		}
-		defer close()
-
-		res, err := client.ListApiKeys(context.Background(), &emptypb.Empty{})
-		if err != nil {
-			return err
-		}
-
-		sort.Slice(res.ApiKeys, func(i, j int) bool {
-			return res.ApiKeys[i].Created > res.ApiKeys[j].Created
-		})
-
-		rows := [][]string{}
-		for _, apikey := range res.ApiKeys {
-			rows = append(rows, []string{apikey.Name, apikey.Key})
-		}
-
-		printTable([]string{"NAME", "APIKEY"}, rows)
 
 		return nil
 	},
@@ -1139,24 +985,10 @@ var clientCmd = &cobra.Command{
 func NewRootCmd() (*cobra.Command, error) {
 	cobra.EnableCommandSorting = false
 
+	rootCmd.AddCommand(listCmd)
+	rootCmd.AddCommand(usersCmd)
 	rootCmd.AddCommand(loginCmd)
 	rootCmd.AddCommand(logoutCmd)
-
-	userCmd.AddCommand(userCreateCmd)
-	userCmd.AddCommand(userListCmd)
-	userCmd.AddCommand(userDeleteCmd)
-	rootCmd.AddCommand(userCmd)
-
-	destinationCmd.AddCommand(destinationListCmd)
-	rootCmd.AddCommand(destinationCmd)
-
-	sourceCmd.AddCommand(sourceListCmd)
-	sourceCmd.AddCommand(newSourceCreateCmd())
-	sourceCmd.AddCommand(sourceDeleteCmd)
-	rootCmd.AddCommand(sourceCmd)
-
-	apikeyCmd.AddCommand(apikeyListCmd)
-	rootCmd.AddCommand(apikeyCmd)
 
 	registryCmd, err := newRegistryCmd()
 	if err != nil {

@@ -39,18 +39,27 @@
 
 ### Add Okta information to Infra registry
 
-```
-infra source create okta \
-    --api-token 00_aj082hjd018j2dalskdnvbpp7bqf4bsadkfjbsdufh \
-    --domain example.okta.com \
-    --client-id 0oapn0qwiQPiMIyR35d6 \
-    --client-secret vU-bIjeFyMB7j_jd178HahIsd1oaIaspnuU
+Edit your [Infra configuration](./configuration.md) (e.g. `infra.yaml`) to include an Okta source:
+
+```yaml
+sources:
+  - kind: okta
+    domain: acme.okta.com
+    clientId: 0oapn0qwiQPiMIyR35d6
+    clientSecret: jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2
+    apiToken: 001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd
 ```
 
-### List Okta users
+Then apply this config change:
 
 ```
-$ infra user list
+helm upgrade infra --set config=./infra.yaml --recreate-pods
+```
+
+### List users
+
+```
+$ infra users
 EMAIL                 CREATED               ADMIN
 jeff@example.com      About a minute ago
 michael@example.com   About a minute ago
