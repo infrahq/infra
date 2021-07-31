@@ -19,7 +19,7 @@ Return the appropriate apiVersion for ingress
 {{- define "infra.defaultApiKey" -}}
 {{- $secret := (lookup "v1" "Secret" .Release.Namespace "infra" ) -}}
   {{- if $secret -}}
-    {{-  index $secret "data" "api-key" | b64dec -}}
+    {{-  index $secret "data" "defaultApiKey" | b64dec -}}
   {{- else -}}
     {{- (randAlphaNum 24) -}}
   {{- end -}}
