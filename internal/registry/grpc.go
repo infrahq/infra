@@ -467,7 +467,6 @@ func dbToProtoRole(in *Role) *v1.Role {
 		Created:     in.Created,
 		Updated:     in.Updated,
 		Name:        in.Name,
-		User:        dbToProtoUser(&in.User),
 		Destination: dbToProtoDestination(&in.Destination),
 	}
 	switch in.Kind {
@@ -476,6 +475,11 @@ func dbToProtoRole(in *Role) *v1.Role {
 	case ROLE_KIND_K8S_CLUSTER_ROLE:
 		role.Kind = v1.KubernetesRoleType_CLUSTER_ROLE
 	}
+	var users []*v1.User
+	for _, u := range in.Users {
+		users = append(users, dbToProtoUser(&u))
+	}
+	role.Users = users
 	return &role
 }
 
@@ -485,13 +489,18 @@ func (v *V1Server) ListRoles(ctx context.Context, in *v1.ListRolesRequest) (*v1.
 	}
 
 	var roles []Role
-	err := v.db.Preload("User").Preload("Destination").Find(&roles).Error
+	err := v.db.Find(&roles).Error
 	if err != nil {
 		return nil, err
 	}
 
 	res := &v1.ListRolesResponse{}
 	for _, r := range roles {
+		// need to manually assosiate the users for each role
+		var users []User
+		v.db.Model(&r).Association("Users").Find(&users)
+		r.Users = users
+
 		res.Roles = append(res.Roles, dbToProtoRole(&r))
 	}
 
@@ -575,7 +584,7 @@ func (v *V1Server) Login(ctx context.Context, in *v1.LoginRequest) (*v1.LoginRes
 
 		err = v.db.Where("email = ?", email).First(&user).Error
 		if err != nil {
-			grpc_zap.Extract(ctx).Debug("Could not get user from db: " + err.Error())
+			grpc_zap.Extract(ctx).Debug("Could not get user from database: " + err.Error())
 			return nil, status.Errorf(codes.Unauthenticated, "invalid okta login information")
 		}
 	case v1.SourceType_INFRA:

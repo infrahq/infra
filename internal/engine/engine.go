@@ -36,8 +36,8 @@ type Options struct {
 }
 
 type RoleBinding struct {
-	User string
-	Role string
+	Role  string
+	Users []string
 }
 
 type RegistrationInfo struct {
@@ -293,9 +293,14 @@ func Run(options Options) error {
 			fmt.Println(err)
 		}
 
+		// convert the response into an easy to use role-user form
 		var rbs []RoleBinding
 		for _, r := range rolesRes.Roles {
-			rbs = append(rbs, RoleBinding{User: r.User.Email, Role: r.Name})
+			var users []string
+			for _, u := range r.Users {
+				users = append(users, u.Email)
+			}
+			rbs = append(rbs, RoleBinding{Role: r.Name, Users: users})
 		}
 
 		err = kubernetes.UpdateRoles(rbs)

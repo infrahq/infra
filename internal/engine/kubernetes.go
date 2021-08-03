@@ -60,14 +60,16 @@ func (k *Kubernetes) UpdateRoles(rbs []RoleBinding) error {
 	k.mu.Lock()
 	defer k.mu.Unlock()
 
+	// there may be duplicates of roles between their config creation and default creation, combine them now
 	subjects := make(map[string][]rbacv1.Subject)
-
 	for _, rb := range rbs {
-		subjects[rb.Role] = append(subjects[rb.Role], rbacv1.Subject{
-			APIGroup: "rbac.authorization.k8s.io",
-			Kind:     "User",
-			Name:     rb.User,
-		})
+		for _, u := range rb.Users {
+			subjects[rb.Role] = append(subjects[rb.Role], rbacv1.Subject{
+				APIGroup: "rbac.authorization.k8s.io",
+				Kind:     "User",
+				Name:     u,
+			})
+		}
 	}
 
 	crbs := []*rbacv1.ClusterRoleBinding{}

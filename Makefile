@@ -49,6 +49,7 @@ dev:
 
 dev/clean:
 	helm uninstall --namespace default infra || true
+	helm uninstall --namespace default infra-engine || true
 
 release:
 	goreleaser release -f .goreleaser.yml --rm-dist

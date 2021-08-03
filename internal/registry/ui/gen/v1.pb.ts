@@ -116,7 +116,7 @@ export type Role = {
   id?: string
   created?: string
   updated?: string
-  user?: User
+  users?: User[]
   destination?: Destination
   name?: string
   kind?: KubernetesRoleType

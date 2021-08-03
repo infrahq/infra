@@ -1,146 +1,108 @@
 package registry
 
 import (
+	"fmt"
 	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/yaml.v2"
+	"gorm.io/gorm"
 )
 
-func TestImportCurrentValidConfig(t *testing.T) {
-	conf, err := ioutil.ReadFile("_testdata/infra.yaml")
-	if err != nil {
-		t.Fatal(err)
-	}
+var db *gorm.DB
+var adminUser = User{Email: "admin@example.com"}
+var standardUser = User{Email: "user@example.com"}
+var clusterA = &Destination{Name: "cluster-AAA"}
+var clusterB = &Destination{Name: "cluster-BBB"}
 
-	db, err := NewDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	assert.NoError(t, ImportConfig(db, conf))
-}
-
-func TestImportRolesForExistingUsersAndDestinations(t *testing.T) {
+func setup() error {
 	confFile, err := ioutil.ReadFile("_testdata/infra.yaml")
 	if err != nil {
-		t.Fatal(err)
+		return err
 	}
-	var config Config
-	err = yaml.Unmarshal(confFile, &config)
+	db, err = NewDB("file::memory:")
 	if err != nil {
-		t.Fatal(err)
+		return err
 	}
 
-	db, err := NewDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Create the users and destinations that exist in the sample infra.yaml
-	adminUser := User{Email: "admin@example.com"}
 	err = db.Create(&adminUser).Error
 	if err != nil {
-		t.Fatal(err)
+		return err
 	}
-	standardUser := User{Email: "user@example.com"}
 	err = db.Create(&standardUser).Error
 	if err != nil {
-		t.Fatal(err)
+		return err
 	}
-	clusterA := &Destination{Name: "cluster-AAA"}
 	err = db.Create(&clusterA).Error
 	if err != nil {
-		t.Fatal(err)
+		return err
 	}
-	clusterB := &Destination{Name: "cluster-BBB"}
 	err = db.Create(&clusterB).Error
 	if err != nil {
-		t.Fatal(err)
+		return err
 	}
 
-	ImportUserMappings(db, config.Users)
-
-	var roles []Role
-	err = db.Preload("User").Preload("Destination").Find(&roles).Error
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.True(t, containsUserRoleForDestination(roles, adminUser.Id, clusterA.Id, "admin"), "admin@example.com should have the admin role in cluster-AAA")
-	assert.True(t, containsUserRoleForDestination(roles, adminUser.Id, clusterB.Id, "admin"), "admin@example.com should have the admin role in cluster-BBB")
-	assert.True(t, containsUserRoleForDestination(roles, standardUser.Id, clusterA.Id, "writer"), "user@example.com should have the writer role in cluster-AAA")
-	assert.True(t, containsUserRoleForDestination(roles, standardUser.Id, clusterB.Id, "reader"), "user@example.com should have the reader role in cluster-BBB")
+	ImportConfig(db, confFile)
+	return nil
 }
 
-func TestImportRolesForUnknownUsers(t *testing.T) {
+func TestMain(m *testing.M) {
+	err := setup()
+	if err != nil {
+		fmt.Println("Could not initialize test data")
+		os.Exit(1)
+	}
+	code := m.Run()
+	os.Exit(code)
+}
+
+func TestImportCurrentValidConfig(t *testing.T) {
 	confFile, err := ioutil.ReadFile("_testdata/infra.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}
-	var config Config
-	err = yaml.Unmarshal(confFile, &config)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	db, err := NewDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	adminUser := User{Email: "admin@example.com"}
-	err = db.Create(&adminUser).Error
-	if err != nil {
-		t.Fatal(err)
-	}
-	standardUser := User{Email: "user@example.com"}
-	err = db.Create(&standardUser).Error
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// users exist, but there are no destinations
-
-	ImportUserMappings(db, config.Users)
-	var roles []Role
-	err = db.Preload("User").Preload("Destination").Find(&roles).Error
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.Empty(t, roles, "roles mappings were created when no destinations exist")
+	assert.NoError(t, ImportConfig(db, confFile))
 }
 
-func TestImportRolesForUnknownDestinations(t *testing.T) {
-	confFile, err := ioutil.ReadFile("_testdata/infra.yaml")
-	if err != nil {
-		t.Fatal(err)
-	}
-	var config Config
-	err = yaml.Unmarshal(confFile, &config)
-	if err != nil {
-		t.Fatal(err)
-	}
+func TestRolesForExistingUsersAndDestinationsAreCreated(t *testing.T) {
+	assert.True(t, containsUserRoleForDestination(db, adminUser, clusterA.Id, "admin"), "admin@example.com should have the admin role in cluster-AAA")
+	assert.True(t, containsUserRoleForDestination(db, adminUser, clusterB.Id, "admin"), "admin@example.com should have the admin role in cluster-BBB")
+	assert.True(t, containsUserRoleForDestination(db, standardUser, clusterA.Id, "writer"), "user@example.com should have the writer role in cluster-AAA")
+	assert.True(t, containsUserRoleForDestination(db, standardUser, clusterB.Id, "reader"), "user@example.com should have the reader role in cluster-BBB")
 
-	db, err := NewDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// no users created in this database
-
-	ImportUserMappings(db, config.Users)
-	var roles []Role
-	err = db.Preload("User").Preload("Destination").Find(&roles).Error
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.Empty(t, roles, "roles mappings were created when no users exist")
+	unkownUser := User{Id: "0", Email: "unknown@example.com"}
+	assert.False(t, containsUserRoleForDestination(db, unkownUser, clusterA.Id, "writer"), "unknown user should not have roles assigned")
 }
 
-func containsUserRoleForDestination(roles []Role, userId string, destinationId string, roleName string) bool {
+func TestUsersForExistingUsersAndDestinationsAreCreated(t *testing.T) {
+	assert.True(t, containsUserRoleForDestination(db, adminUser, clusterA.Id, "admin"), "admin@example.com should have the admin role in cluster-AAA")
+	assert.True(t, containsUserRoleForDestination(db, adminUser, clusterB.Id, "admin"), "admin@example.com should have the admin role in cluster-BBB")
+	assert.True(t, containsUserRoleForDestination(db, standardUser, clusterA.Id, "writer"), "user@example.com should have the writer role in cluster-AAA")
+	assert.True(t, containsUserRoleForDestination(db, standardUser, clusterB.Id, "reader"), "user@example.com should have the reader role in cluster-BBB")
+}
+
+func TestImportRolesForUnknownDestinationsAreIgnored(t *testing.T) {
+	var roles []Role
+	err := db.Find(&roles).Error
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	for _, role := range roles {
-		if role.UserId == userId && role.DestinationId == destinationId && role.Name == roleName {
+		var dest Destination
+		err := db.Where(&Destination{Id: role.DestinationId}).First(&dest).Error
+		if err != nil {
+			t.Errorf("Created role for destination which does not exist: " + role.DestinationId)
+		}
+	}
+}
+
+func containsUserRoleForDestination(db *gorm.DB, user User, destinationId string, roleName string) bool {
+	var roles []Role
+	db.Model(&user).Association("Roles").Find(&roles)
+	for _, role := range roles {
+		if role.DestinationId == destinationId && role.Name == roleName {
 			return true
 		}
 	}

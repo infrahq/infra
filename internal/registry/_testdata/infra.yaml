@@ -22,3 +22,10 @@ users:
         kind: cluster-role
         clusters:
           - cluster-BBB
+          - cluster-UNKNOWN
+  - name: unknown@example.com
+    roles:
+      - name: writer
+        kind: cluster-role
+        clusters:
+          - cluster-AAA

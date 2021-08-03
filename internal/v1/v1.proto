@@ -212,7 +212,7 @@ message Role {
     int64 created = 2;
     int64 updated = 3;
 
-    User user = 40;
+    repeated User users = 40;
 
     Destination destination = 50;
 
