@@ -27,12 +27,12 @@ type ConfigUserMapping struct {
 	Roles []ConfigRoleKubernetes
 	// TODO (brucemacd): Add groups here
 }
-
 type Config struct {
 	Sources []ConfigSource      `yaml:"sources"`
 	Users   []ConfigUserMapping `yaml:"users"`
 }
 
+// this config is loaded at start-up and re-applied when the registry state changes (ex: a user is added)
 var initialConfig Config
 
 func ImportSources(db *gorm.DB, sources []ConfigSource) error {
@@ -60,7 +60,6 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 			idsToKeep = append(idsToKeep, source.Id)
 		}
 	}
-
 	if err := db.Where(&Role{FromConfig: false}).Not(idsToKeep).Not(&Source{Type: SOURCE_TYPE_INFRA}).Delete(&Source{}).Error; err != nil {
 		return err
 	}
@@ -69,6 +68,7 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 
 func ApplyUserMapping(db *gorm.DB, users []ConfigUserMapping) ([]string, error) {
 	var ids []string
+
 	for _, u := range users {
 		var user User
 		err := db.Where(&User{Email: u.Name}).First(&user).Error
@@ -80,7 +80,6 @@ func ApplyUserMapping(db *gorm.DB, users []ConfigUserMapping) ([]string, error) 
 			}
 			return nil, err
 		}
-
 		for _, r := range u.Roles {
 			switch r.Kind {
 			case ROLE_KIND_K8S_ROLE:
@@ -98,13 +97,17 @@ func ApplyUserMapping(db *gorm.DB, users []ConfigUserMapping) ([]string, error) 
 						}
 						return nil, err
 					}
-
 					var role Role
-					err = db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, UserId: user.Id, DestinationId: destination.Id, FromConfig: true}).Error
-					if err != nil {
+					if err = db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, DestinationId: destination.Id, FromConfig: true}).Error; err != nil {
 						return nil, err
 					}
-
+					// if this role is not yet associated with this user, add that association now
+					// important: do not create the association on the user, that runs an upsert that creates a deadlock because User.AfterCreate() calls this function
+					if db.Model(&user).Where(&Role{Id: role.Id}).Association("Roles").Count() == 0 {
+						if err = db.Model(&user).Where(&Role{Id: role.Id}).Association("Roles").Append(&role); err != nil {
+							return nil, err
+						}
+					}
 					ids = append(ids, role.Id)
 				}
 			default:

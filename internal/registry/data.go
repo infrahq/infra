@@ -39,7 +39,7 @@ type User struct {
 	Admin    bool
 
 	Sources []Source `gorm:"many2many:users_sources"`
-	Roles   []Role   `gorm:"foreignKey:UserId;references:Id"`
+	Roles   []Role   `gorm:"many2many:users_roles"`
 }
 
 var (
@@ -86,10 +86,9 @@ type Role struct {
 	Updated       int64  `gorm:"autoUpdateTime"`
 	Name          string
 	Kind          string
-	UserId        string
 	DestinationId string
-	User          User        `gorm:"foreignKey:UserId;references:Id"`
 	Destination   Destination `gorm:"foreignKey:DestinationId;references:Id"`
+	Users         []User      `gorm:"many2many:users_roles"`
 
 	FromConfig  bool
 	FromDefault bool
@@ -161,18 +160,16 @@ func (u *User) AfterSave(tx *gorm.DB) (err error) {
 		givenRole = "cluster-admin"
 	}
 
+	// grant default roles
 	for _, d := range destinations {
 		var role Role
-		err := tx.FirstOrCreate(&role, &Role{UserId: u.Id, DestinationId: d.Id, FromDefault: true}).Error
-		if err != nil {
+		if err = tx.FirstOrCreate(&role, &Role{Name: givenRole, Kind: "cluster-role", DestinationId: d.Id, FromDefault: true}).Error; err != nil {
 			return err
 		}
-
-		role.Name = givenRole
-
-		err = tx.Save(&role).Error
-		if err != nil {
-			return err
+		if tx.Model(&u).Where(&Role{Id: role.Id}).Association("Roles").Count() == 0 {
+			if err = tx.Model(&u).Where(&Role{Id: role.Id}).Association("Roles").Append(&role); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -189,7 +186,7 @@ func (u *User) BeforeDelete(tx *gorm.DB) error {
 	if err != nil {
 		return err
 	}
-	return tx.Where(&Role{UserId: u.Id}).Delete(&Role{}).Error
+	return tx.Model(u).Association("Roles").Clear()
 }
 
 func (r *Destination) BeforeCreate(tx *gorm.DB) (err error) {
@@ -219,9 +216,13 @@ func (d *Destination) AfterSave(tx *gorm.DB) (err error) {
 		}
 
 		var role Role
-		err := tx.FirstOrCreate(&role, &Role{UserId: u.Id, DestinationId: d.Id, Name: givenRole, FromDefault: true}).Error
-		if err != nil {
+		if err = tx.FirstOrCreate(&role, &Role{Name: givenRole, Kind: "cluster-role", DestinationId: d.Id, FromDefault: true}).Error; err != nil {
 			return err
+		}
+		if tx.Model(&u).Where(&Role{Id: role.Id}).Association("Roles").Count() == 0 {
+			if err = tx.Model(&u).Where(&Role{Id: role.Id}).Association("Roles").Append(&role); err != nil {
+				return err
+			}
 		}
 	}
 
