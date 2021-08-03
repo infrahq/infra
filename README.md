@@ -23,51 +23,18 @@ helm repo add infrahq https://helm.infrahq.com
 helm install infra infrahq/infra
 ```
 
-### Install Infra CLI
-
-**macOS & Linux**
-
-```
-brew install infrahq/tap/infra
-```
-
-**Windows**
-
-```
-scoop bucket add infrahq https://github.com/infrahq/scoop.git
-scoop install infra
-```
-
-### Login to Infra
-
-```
-infra login <Infra Registry Hostname>
-```
-
-### List clusters
-
-```
-infra list
-```
-
-### Switch to a Kubernetes context
-
-```
-kubectl config use-context <name>
-```
-
-Great! You've **logged into your cluster via Infra**. 
-
 ### Next steps 
-* [Configure Infra](./docs/configuration.md)
-* [Add users via Okta integration](./docs/okta.md)
 * [Connect a Kubernetes cluster](./docs/connect.md)
+* [Configure roles](./docs/permissions.md)
+* [Access clusters via the CLI](./docs/access.md)
+* [Add users via Okta integration](./docs/okta.md)
 * [Add a custom domain](./docs/domain.md)
 
 ## Documentation
 * [Helm Chart Reference](./docs/helm.md)
 * [CLI Reference](./docs/cli.md)
 * [Contributing](./docs/contributing.md)
+* [Configuration reference](./docs/configuration.md)
 
 ## Security
 We take security very seriously. If you have found a security vulnerability please disclose it privately to us by email via [security@infrahq.com](mailto:security@infrahq.com)

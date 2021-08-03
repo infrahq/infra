@@ -68,6 +68,8 @@ A list of sources to sync and authenticate users from
 
 ### `users`
 
+A list of users for which to specify roles.
+
 #### `name`
 
 `name` is a user's email or username
@@ -75,4 +77,3 @@ A list of sources to sync and authenticate users from
 #### `roles`
 
 `roles` is a list of role mappings to Kubernetes roles
-
