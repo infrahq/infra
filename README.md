@@ -26,7 +26,7 @@ helm install infra infrahq/infra
 ### Next steps 
 * [Connect a Kubernetes cluster](./docs/connect.md)
 * [Configure roles](./docs/permissions.md)
-* [Access clusters via the CLI](./docs/access.md)
+* [Access clusters via Infra CLI](./docs/access.md)
 * [Add users via Okta integration](./docs/okta.md)
 * [Add a custom domain](./docs/domain.md)
 
