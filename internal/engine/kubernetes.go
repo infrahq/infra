@@ -141,7 +141,7 @@ func (k *Kubernetes) UpdateRoles(rbs []RoleBinding) error {
 
 // Originally from https://github.com/DataDog/datadog-agent
 // Apache 2.0 license
-func eksClusterName() (string, error) {
+func (k *Kubernetes) eksClusterName() (string, error) {
 	res, err := http.Get("http://169.254.169.254/latest/dynamic/instance-identity/document")
 	if err != nil {
 		return "", err
@@ -212,7 +212,7 @@ func eksClusterName() (string, error) {
 
 // Originally from https://github.com/DataDog/datadog-agent
 // Apache 2.0 license
-func gkeClusterName() (string, error) {
+func (k *Kubernetes) gkeClusterName() (string, error) {
 	req, err := http.NewRequest("GET", "http://169.254.169.254/computeMetadata/v1/instance/attributes/cluster-name", nil)
 	if err != nil {
 		return "", err
@@ -239,7 +239,7 @@ func gkeClusterName() (string, error) {
 
 // Originally from https://github.com/DataDog/datadog-agent
 // Apache 2.0 license
-func aksClusterName() (string, error) {
+func (k *Kubernetes) aksClusterName() (string, error) {
 	req, err := http.NewRequest("GET", "http://169.254.169.254/metadata/instance/compute/resourceGroupName?api-version=2017-08-01&format=text", nil)
 	if err != nil {
 		return "", err
@@ -269,18 +269,67 @@ func aksClusterName() (string, error) {
 	return splitAll[len(splitAll)-2], nil
 }
 
+func (k *Kubernetes) kopsClusterName() (string, error) {
+	// Create empty crbs for roles with no users
+	clientset, err := kubernetes.NewForConfig(k.config)
+	if err != nil {
+		return "", err
+	}
+
+	pods, err := clientset.CoreV1().Pods("kube-system").List(context.TODO(), metav1.ListOptions{
+		LabelSelector: "k8s-app=kube-controller-manager",
+	})
+	if err != nil {
+		return "", err
+	}
+
+	if len(pods.Items) == 0 {
+		return "", errors.New("no kube-controller-manager pods to inspect")
+	}
+
+	pod := pods.Items[0]
+
+	specContainers := pod.Spec.Containers
+
+	if len(specContainers) == 0 {
+		return "", errors.New("no containers in kube-controller-manager podspec")
+	}
+
+	container := specContainers[0]
+
+	var opts struct {
+		ClusterName string `long:"cluster-name"`
+	}
+	p := flags.NewParser(&opts, flags.IgnoreUnknown)
+	_, err = p.ParseArgs(container.Args)
+	if err != nil {
+		return "", err
+	}
+
+	if len(opts.ClusterName) == 0 {
+		return "", errors.New("empty cluster-name argument in kube-controller-manager pod spec")
+	}
+
+	return opts.ClusterName, nil
+}
+
 func (k *Kubernetes) Name() (string, error) {
-	name, err := eksClusterName()
+	name, err := k.eksClusterName()
 	if err == nil {
 		return name, nil
 	}
 
-	name, err = gkeClusterName()
+	name, err = k.gkeClusterName()
 	if err == nil {
 		return name, nil
 	}
 
-	name, err = aksClusterName()
+	name, err = k.aksClusterName()
+	if err == nil {
+		return name, nil
+	}
+
+	name, err = k.kopsClusterName()
 	if err == nil {
 		return name, nil
 	}
@@ -358,8 +407,7 @@ func (k *Kubernetes) ExecCat(pod string, namespace string, file string) (string,
 	return buf.String(), nil
 }
 
-// Endpoint gets the cluster endpoint from within the pod
-func (k *Kubernetes) Endpoint() (string, error) {
+func (k *Kubernetes) endpointFromKubeProxy() (string, error) {
 	// Create empty crbs for roles with no users
 	clientset, err := kubernetes.NewForConfig(k.config)
 	if err != nil {
@@ -491,7 +539,49 @@ func (k *Kubernetes) Endpoint() (string, error) {
 	}
 
 	// TODO (jmorganca): minikube
-
-	// Could not get endpoint - must be passed via flag
 	return endpoint, nil
+}
+
+func (k *Kubernetes) endpointFromApiServer() (string, error) {
+	// Create empty crbs for roles with no users
+	clientset, err := kubernetes.NewForConfig(k.config)
+	if err != nil {
+		return "", err
+	}
+
+	pods, err := clientset.CoreV1().Pods("kube-system").List(context.TODO(), metav1.ListOptions{
+		LabelSelector: "k8s-app=kube-apiserver",
+	})
+	if err != nil {
+		return "", err
+	}
+
+	if len(pods.Items) == 0 {
+		return "", errors.New("no kube-apiserver pods to inspect")
+	}
+
+	pod := pods.Items[0]
+
+	endpoint := pod.Annotations["dns.alpha.kubernetes.io/external"]
+
+	if endpoint == "" {
+		return "", errors.New("dns.alpha.kubernetes.io/external not present on kube-apiserver")
+	}
+
+	return endpoint, nil
+}
+
+// Endpoint gets the cluster endpoint from within the pod
+func (k *Kubernetes) Endpoint() (string, error) {
+	endpoint, err := k.endpointFromApiServer()
+	if err == nil {
+		return endpoint, nil
+	}
+
+	endpoint, err = k.endpointFromKubeProxy()
+	if err == nil {
+		return endpoint, nil
+	}
+
+	return "", errors.New("could not automatically detect cluster endpoint")
 }

@@ -31,6 +31,7 @@ import (
 type Options struct {
 	Registry      string
 	Name          string
+	Endpoint      string
 	SkipTLSVerify bool
 	APIKey        string
 }
@@ -242,10 +243,13 @@ func Run(options Options) error {
 			return
 		}
 
-		endpoint, err := kubernetes.Endpoint()
-		if err != nil {
-			fmt.Println(err)
-			return
+		endpoint := options.Endpoint
+		if endpoint == "" {
+			endpoint, err = kubernetes.Endpoint()
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
 		}
 
 		namespace, err := kubernetes.Namespace()
@@ -254,15 +258,13 @@ func Run(options Options) error {
 			return
 		}
 
-		var name string
-		if options.Name == "" {
+		name := options.Name
+		if name == "" {
 			name, err = kubernetes.Name()
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
-		} else {
-			name = options.Name
 		}
 
 		saToken, err := kubernetes.SaToken()
