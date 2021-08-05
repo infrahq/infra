@@ -40,6 +40,7 @@ type User struct {
 
 	Sources []Source `gorm:"many2many:users_sources"`
 	Roles   []Role   `gorm:"many2many:users_roles"`
+	Groups  []Group  `gorm:"many2many:groups_users"`
 }
 
 var (
@@ -58,9 +59,21 @@ type Source struct {
 	OktaClientSecret string
 	OktaApiToken     string
 
-	Users []User `gorm:"many2many:users_sources"`
+	Users  []User  `gorm:"many2many:users_sources"`
+	Groups []Group `gorm:"many2many:groups_sources"`
 
 	FromConfig bool
+}
+
+type Group struct {
+	Id      string `gorm:"primaryKey"`
+	Created int64  `gorm:"autoCreateTime"`
+	Updated int64  `gorm:"autoUpdateTime"`
+	Name    string
+
+	Sources []Source `gorm:"many2many:groups_sources"`
+	Roles   []Role   `gorm:"many2many:groups_roles"`
+	Users   []User   `gorm:"many2many:groups_users"`
 }
 
 var (
@@ -88,6 +101,7 @@ type Role struct {
 	Kind          string
 	DestinationId string
 	Destination   Destination `gorm:"foreignKey:DestinationId;references:Id"`
+	Groups        []Group     `gorm:"many2many:groups_roles"`
 	Users         []User      `gorm:"many2many:users_roles"`
 
 	FromConfig  bool
@@ -237,6 +251,14 @@ func (d *Destination) BeforeDelete(tx *gorm.DB) (err error) {
 func (r *Role) BeforeCreate(tx *gorm.DB) (err error) {
 	if r.Id == "" {
 		r.Id = generate.RandString(ID_LEN)
+	}
+
+	return
+}
+
+func (g *Group) BeforeCreate(tx *gorm.DB) (err error) {
+	if g.Id == "" {
+		g.Id = generate.RandString(ID_LEN)
 	}
 
 	return
