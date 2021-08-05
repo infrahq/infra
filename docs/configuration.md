@@ -38,7 +38,7 @@ helm upgrade infra infrahq/infra --set-file config=./infra.yaml --recreate-pods
 
 ```yaml
 sources:
-  - kind: okta
+  - type: okta
     oktaDomain: acme.okta.com
     oktaClientId: 0oapn0qwiQPiMIyR35d6
     oktaClientSecret: jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2
