@@ -264,7 +264,6 @@ func (k *Kubernetes) aksClusterName() (string, error) {
 }
 
 func (k *Kubernetes) kopsClusterName() (string, error) {
-	// Create empty crbs for roles with no users
 	clientset, err := kubernetes.NewForConfig(k.config)
 	if err != nil {
 		return "", err
@@ -377,6 +376,10 @@ var EndpointExcludeList = map[string]bool{
 	"docker-for-desktop":                   true,
 }
 
+var EndpointIncludeList = map[string]bool{
+	"kubernetes.docker.internal": true,
+}
+
 func (k *Kubernetes) Endpoint() (string, error) {
 	conf := &tls.Config{
 		InsecureSkipVerify: true,
@@ -401,13 +404,23 @@ func (k *Kubernetes) Endpoint() (string, error) {
 
 	var filteredDNSNames []string
 	for _, n := range dnsNames {
-		// Filter out known
+		// Filter out reserved kubernetes domain names
 		if EndpointExcludeList[n] {
 			continue
 		}
 
+		// If it's a known valid domain name, return it directly
+		if EndpointIncludeList[n] {
+			return n, nil
+		}
+
 		// Filter out private IP addresses
 		if ipv4.IsPrivate(n) {
+			continue
+		}
+
+		// Filter out hostnames that aren't IP addresses or domain names
+		if !strings.Contains(n, ".") {
 			continue
 		}
 
@@ -416,6 +429,7 @@ func (k *Kubernetes) Endpoint() (string, error) {
 			continue
 		}
 
+		// Filter out .local domains
 		if strings.HasSuffix(n, ".local") {
 			continue
 		}
