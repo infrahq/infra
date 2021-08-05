@@ -10,13 +10,13 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/goware/urlx"
 	v1 "github.com/infrahq/infra/internal/v1"
 	"github.com/natefinch/lumberjack"
 )
@@ -94,11 +94,13 @@ func RunLocalClient() error {
 			saToken = kube.SaToken
 		}
 
-		remote, err := url.Parse(endpoint + "/api/v1/namespaces/" + namespace + "/services/http:infra-engine:80/proxy/proxy")
+		remote, err := urlx.Parse(endpoint + "/api/v1/namespaces/" + namespace + "/services/http:infra-engine:80/proxy/proxy")
 		if err != nil {
 			errorLogger.Println(err)
 			return
 		}
+
+		remote.Scheme = "https"
 
 		caCertPool := x509.NewCertPool()
 		caCertPool.AppendCertsFromPEM([]byte(ca))

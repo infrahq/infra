@@ -35,6 +35,7 @@ require (
 	github.com/okta/okta-sdk-golang/v2 v2.3.0
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/rivo/uniseg v0.2.0 // indirect
+	github.com/signalsciences/ipv4 v1.4.0 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/afero v1.6.0
 	github.com/spf13/cobra v1.2.1

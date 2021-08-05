@@ -27,6 +27,10 @@ spec:
             - name: INFRA_ENGINE_NAME
               value: {{ .Values.name | quote }}
             {{- end }}
+            {{- if .Values.endpoint }}
+            - name: INFRA_ENGINE_ENDPOINT
+              value: {{ .Values.endpoint | quote }}
+            {{- end }}
             - name: INFRA_ENGINE_REGISTRY
               value: {{ required "Value registry is required" .Values.registry | quote }}
             - name: INFRA_ENGINE_API_KEY
