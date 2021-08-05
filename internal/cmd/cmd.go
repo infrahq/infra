@@ -21,7 +21,6 @@ import (
 
 	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/AlecAivazis/survey/v2/terminal"
-	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/cli/browser"
 	"github.com/docker/go-units"
 	"github.com/goware/urlx"
@@ -701,61 +700,6 @@ var listCmd = &cobra.Command{
 		_, err = updateKubeconfig(res.Destinations)
 		if err != nil {
 			return err
-		}
-
-		return nil
-	},
-}
-
-var userCmd = &cobra.Command{
-	Use:   "user",
-	Short: "Manage users",
-}
-
-var userCreateCmd = &cobra.Command{
-	Use:     "create EMAIL PASSWORD",
-	Short:   "create a user",
-	Args:    cobra.ExactArgs(2),
-	Example: "$ infra user create admin@example.com password",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		client, close, err := clientFromConfig()
-		if err != nil {
-			return err
-		}
-		defer close()
-
-		_, err = client.CreateUser(context.Background(), &v1.CreateUserRequest{
-			Email:    args[0],
-			Password: args[1],
-		})
-
-		return err
-	},
-}
-
-var userDeleteCmd = &cobra.Command{
-	Use:   "delete USER",
-	Short: "delete a user",
-	Args:  cobra.ExactArgs(1),
-	Example: heredoc.Doc(`
-			$ infra user delete user@example.com`),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		client, close, err := clientFromConfig()
-		if err != nil {
-			return err
-		}
-		defer close()
-
-		res, err := client.ListUsers(context.Background(), &v1.ListUsersRequest{Email: args[0]})
-		if err != nil {
-			return err
-		}
-
-		for _, u := range res.Users {
-			_, err := client.DeleteUser(context.Background(), &v1.DeleteUserRequest{Id: u.Id})
-			if err != nil {
-				return err
-			}
 		}
 
 		return nil
