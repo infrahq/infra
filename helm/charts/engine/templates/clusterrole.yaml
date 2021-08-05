@@ -14,11 +14,6 @@ rules:
       - pods
     verbs:
       - list
-  - apiGroups: [""]
-    resources:
-      - pods/exec
-    verbs:
-      - create
   - apiGroups:
       - rbac.authorization.k8s.io
     resources:

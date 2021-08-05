@@ -1,14 +1,13 @@
 package engine
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha1"
+	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -17,19 +16,14 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/google/shlex"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/jessevdk/go-flags"
-	"gopkg.in/yaml.v2"
-	v1 "k8s.io/api/core/v1"
+	ipv4 "github.com/signalsciences/ipv4"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
 	rest "k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/tools/remotecommand"
 )
 
 const (
@@ -288,7 +282,6 @@ func (k *Kubernetes) kopsClusterName() (string, error) {
 	}
 
 	pod := pods.Items[0]
-
 	specContainers := pod.Spec.Containers
 
 	if len(specContainers) == 0 {
@@ -372,216 +365,61 @@ func (k *Kubernetes) SaToken() (string, error) {
 	return string(contents), nil
 }
 
-func (k *Kubernetes) ExecCat(pod string, namespace string, file string) (string, error) {
-	clientset, err := kubernetes.NewForConfig(k.config)
-	if err != nil {
-		return "", err
-	}
-
-	cmd := []string{
-		"/bin/cat",
-		file,
-	}
-	req := clientset.CoreV1().RESTClient().Post().Resource("pods").Name(pod).Namespace(namespace).SubResource("exec")
-	req.VersionedParams(
-		&v1.PodExecOptions{
-			Command: cmd,
-			Stdout:  true,
-		},
-		scheme.ParameterCodec,
-	)
-
-	exec, err := remotecommand.NewSPDYExecutor(k.config, "POST", req.URL())
-	if err != nil {
-		return "", err
-	}
-
-	var buf bytes.Buffer
-	err = exec.Stream(remotecommand.StreamOptions{
-		Stdout: io.Writer(&buf),
-	})
-	if err != nil {
-		return "", err
-	}
-
-	return buf.String(), nil
+var EndpointExcludeList = map[string]bool{
+	"127.0.0.1":                            true,
+	"0.0.0.0":                              true,
+	"localhost":                            true,
+	"kubernetes.default.svc.cluster.local": true,
+	"kubernetes.default.svc.cluster":       true,
+	"kubernetes.default.svc":               true,
+	"kubernetes.default":                   true,
+	"kubernetes":                           true,
+	"docker-for-desktop":                   true,
 }
 
-func (k *Kubernetes) endpointFromKubeProxy() (string, error) {
-	// Create empty crbs for roles with no users
-	clientset, err := kubernetes.NewForConfig(k.config)
+func (k *Kubernetes) Endpoint() (string, error) {
+	conf := &tls.Config{
+		InsecureSkipVerify: true,
+	}
+
+	conn, err := tls.Dial("tcp", "kubernetes.default.svc:443", conf)
 	if err != nil {
 		return "", err
 	}
+	defer conn.Close()
+	certs := conn.ConnectionState().PeerCertificates
 
-	var endpoint string
-
-	// Get the full command line for kube-proxy pods
-	// if --master is specified, use that
-	// if --kubeconfig is specified, exec + cat to read that
-	// if --config is specified, exec + cat the file the kubeconfig location, and read the kubeconfig
-
-	pods1, err := clientset.CoreV1().Pods("kube-system").List(context.TODO(), metav1.ListOptions{
-		LabelSelector: "k8s-app=kube-proxy",
-	})
-	if err != nil {
-		return "", err
+	// Determine the cluster endpoint by inspecting the cluster's
+	// certificate SAN values
+	var dnsNames []string
+	for _, cert := range certs {
+		dnsNames = append(dnsNames, cert.DNSNames...)
+		fmt.Printf("Issuer Name: %s\n", cert.DNSNames)
 	}
 
-	pods2, err := clientset.CoreV1().Pods("kube-system").List(context.TODO(), metav1.ListOptions{
-		LabelSelector: "component=kube-proxy",
-	})
-	if err != nil {
-		return "", err
-	}
-
-	pods := append(pods1.Items, pods2.Items...)
-
-	if len(pods) == 0 {
-		return "", errors.New("no kube-proxy pods to inspect")
-	}
-
-	pod := pods[0]
-
-	var command []string
-	for _, c := range pod.Spec.Containers {
-		if c.Name == "kube-proxy" {
-			command = c.Command
-			break
-		}
-	}
-
-	var args []string
-	for _, c := range command {
-		split, err := shlex.Split(c)
-		if err != nil {
+	var filteredDNSNames []string
+	for _, n := range dnsNames {
+		// Filter out known
+		if EndpointExcludeList[n] {
 			continue
 		}
-		args = append(args, split...)
-	}
 
-	var opts struct {
-		Master     string `long:"master"`
-		Config     string `long:"config"`
-		Kubeconfig string `long:"kubeconfig"`
-	}
-
-	p := flags.NewParser(&opts, flags.IgnoreUnknown)
-	_, err = p.ParseArgs(args)
-	if err != nil {
-		return "", err
-	}
-
-	switch {
-	case opts.Master != "":
-		endpoint = opts.Master
-	case opts.Config != "":
-		contents, err := k.ExecCat(pod.Name, "kube-system", opts.Config)
-		if err != nil {
-			return "", err
-		}
-		var raw map[string]interface{}
-		err = yaml.Unmarshal([]byte(contents), &raw)
-		if err != nil {
-			return "", err
+		// Filter out private IP addresses
+		if ipv4.IsPrivate(n) {
+			continue
 		}
 
-		clientConnection, ok := raw["clientConnection"].(map[interface{}]interface{})
-		if !ok {
-			return "", errors.New("invalid kube-proxy config format")
-		}
-		kubeconfig, ok := clientConnection["kubeconfig"].(string)
-		if !ok {
-			return "", errors.New("invalid kube-proxy config format")
+		// Filter out internal dns names
+		if strings.Contains(n, ".internal") {
+			continue
 		}
 
-		opts.Kubeconfig = kubeconfig
-		fallthrough
-	case opts.Kubeconfig != "":
-		contents, err := k.ExecCat(pod.Name, "kube-system", opts.Kubeconfig)
-		if err != nil {
-			return "", err
-		}
-
-		cfg, err := clientcmd.NewClientConfigFromBytes([]byte(contents))
-		if err != nil {
-			return "", err
-		}
-
-		rc, err := cfg.RawConfig()
-		if err != nil {
-			return "", err
-		}
-
-		context, ok := rc.Contexts[rc.CurrentContext]
-		if !ok {
-			return "", errors.New("could not read kubeconfig context")
-		}
-
-		cluster, ok := rc.Clusters[context.Cluster]
-		if !ok {
-			return "", errors.New("could not read kubeconfig cluster")
-		}
-
-		endpoint = cluster.Server
-	default:
-		fmt.Println("Warning, could not find parse kube-proxy opts, args: ", args)
+		filteredDNSNames = append(filteredDNSNames, n)
 	}
 
-	// Rewrite docker desktop
-	if endpoint == "https://vm.docker.internal:6443" {
-		endpoint = "https://kubernetes.docker.internal:6443"
+	if len(filteredDNSNames) == 0 {
+		return "", errors.New("could not determine cluster endpoint")
 	}
 
-	// Rewrite digital ocean
-	if strings.HasSuffix(endpoint, ".internal.k8s.ondigitalocean.com") {
-		endpoint = strings.Replace(endpoint, ".internal.k8s.ondigitalocean.com", ".k8s.ondigitalocean.com", -1)
-	}
-
-	// TODO (jmorganca): minikube
-	return endpoint, nil
-}
-
-func (k *Kubernetes) endpointFromApiServer() (string, error) {
-	// Create empty crbs for roles with no users
-	clientset, err := kubernetes.NewForConfig(k.config)
-	if err != nil {
-		return "", err
-	}
-
-	pods, err := clientset.CoreV1().Pods("kube-system").List(context.TODO(), metav1.ListOptions{
-		LabelSelector: "k8s-app=kube-apiserver",
-	})
-	if err != nil {
-		return "", err
-	}
-
-	if len(pods.Items) == 0 {
-		return "", errors.New("no kube-apiserver pods to inspect")
-	}
-
-	pod := pods.Items[0]
-
-	endpoint := pod.Annotations["dns.alpha.kubernetes.io/external"]
-
-	if endpoint == "" {
-		return "", errors.New("dns.alpha.kubernetes.io/external not present on kube-apiserver")
-	}
-
-	return endpoint, nil
-}
-
-// Endpoint gets the cluster endpoint from within the pod
-func (k *Kubernetes) Endpoint() (string, error) {
-	endpoint, err := k.endpointFromApiServer()
-	if err == nil {
-		return endpoint, nil
-	}
-
-	endpoint, err = k.endpointFromKubeProxy()
-	if err == nil {
-		return endpoint, nil
-	}
-
-	return "", errors.New("could not automatically detect cluster endpoint")
+	return filteredDNSNames[0], nil
 }
