@@ -51,6 +51,12 @@ type Config struct {
 	SkipTLSVerify bool   `json:"skip-tls-verify"`
 }
 
+type ErrUnauthenticated struct{}
+
+func (e *ErrUnauthenticated) Error() string {
+	return "could not read local credentials. Are you logged in? To login, use \"infra login\""
+}
+
 func readConfig() (config *Config, err error) {
 	config = &Config{}
 
@@ -61,7 +67,7 @@ func readConfig() (config *Config, err error) {
 
 	contents, err := ioutil.ReadFile(filepath.Join(homeDir, ".infra", "config"))
 	if os.IsNotExist(err) {
-		return nil, errors.New("could not read local credentials. Are you logged in? To login, use \"infra login\"")
+		return nil, &ErrUnauthenticated{}
 	}
 
 	if err != nil {
@@ -854,12 +860,19 @@ var versionCmd = &cobra.Command{
 	Short:   "Display the Infra build version",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
+		defer w.Flush()
 		fmt.Fprintln(w)
 		fmt.Fprintln(w, "Client:\t", version.Version)
 
 		client, close, err := clientFromConfig()
 		if err != nil {
-			return err
+			switch err.(type) {
+			case *ErrUnauthenticated:
+				fmt.Fprintln(w, "Registry:\t", "not connected")
+				return nil
+			default:
+				return err
+			}
 		}
 		defer close()
 
@@ -867,13 +880,11 @@ var versionCmd = &cobra.Command{
 		res, err := client.Version(context.Background(), &emptypb.Empty{})
 		if err != nil {
 			fmt.Fprintln(w, blue("✕")+" Could not retrieve registry version")
-			w.Flush()
 			return err
 		}
 
 		fmt.Fprintln(w, "Registry:\t", res.Version)
 		fmt.Fprintln(w)
-		w.Flush()
 
 		return nil
 	},
