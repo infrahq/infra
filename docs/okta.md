@@ -48,6 +48,21 @@ sources:
     oktaClientId: 0oapn0qwiQPiMIyR35d6
     oktaClientSecret: jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2
     oktaApiToken: 001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd
+
+users:
+  - name: admin@example.com
+    roles:
+      - name: admin
+        kind: cluster-role
+        clusters:
+          - cluster-AAA
+          - cluster-BBB
+  - name: developer@example.com
+    roles:
+      - name: writer
+        kind: cluster-role
+        clusters:
+          - cluster-AAA
 ```
 
 Then apply this config change:
