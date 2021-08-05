@@ -394,7 +394,9 @@ func (k *Kubernetes) Endpoint() (string, error) {
 	var dnsNames []string
 	for _, cert := range certs {
 		dnsNames = append(dnsNames, cert.DNSNames...)
-		fmt.Printf("Issuer Name: %s\n", cert.DNSNames)
+		for _, ip := range cert.IPAddresses {
+			dnsNames = append(dnsNames, ip.String())
+		}
 	}
 
 	var filteredDNSNames []string
