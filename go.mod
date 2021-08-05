@@ -7,7 +7,6 @@ require (
 	github.com/MakeNowJust/heredoc/v2 v2.0.1
 	github.com/NYTimes/gziphandler v0.0.0-20170623195520-56545f4a5d46
 	github.com/aws/aws-sdk-go v1.38.35
-	github.com/campoy/unique v0.0.0-20180121183637-88950e537e7e // indirect
 	github.com/cli/browser v1.1.0
 	github.com/docker/go-units v0.4.0
 	github.com/elazarl/go-bindata-assetfs v1.0.1
@@ -16,7 +15,6 @@ require (
 	github.com/go-playground/assert/v2 v2.0.1
 	github.com/golang/protobuf v1.5.2
 	github.com/google/gofuzz v1.2.0 // indirect
-	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/googleapis/gnostic v0.5.5 // indirect
 	github.com/goreleaser/goreleaser v0.174.1
 	github.com/gorilla/handlers v1.5.1
@@ -35,7 +33,7 @@ require (
 	github.com/okta/okta-sdk-golang/v2 v2.3.0
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/rivo/uniseg v0.2.0 // indirect
-	github.com/signalsciences/ipv4 v1.4.0 // indirect
+	github.com/signalsciences/ipv4 v1.4.0
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/afero v1.6.0
 	github.com/spf13/cobra v1.2.1
