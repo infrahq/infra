@@ -3,13 +3,15 @@ package registry
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"testing"
 
-	"github.com/go-playground/assert/v2"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/registry/mocks"
 	v1 "github.com/infrahq/infra/internal/v1"
 	"github.com/infrahq/infra/internal/version"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -596,7 +598,7 @@ func TestSignupWithExistingAdmin(t *testing.T) {
 
 	res, err := server.Signup(context.Background(), req)
 	assert.Equal(t, status.Code(err), codes.InvalidArgument)
-	assert.Equal(t, res, nil)
+	assert.Nil(t, res)
 }
 
 func TestVersion(t *testing.T) {
@@ -631,4 +633,96 @@ func TestVersionPublicAuth(t *testing.T) {
 	res, err := authInterceptor(db)(context.Background(), &emptypb.Empty{}, unaryInfo, unaryHandler)
 	assert.Equal(t, status.Code(err), codes.OK)
 	assert.Equal(t, res.(*v1.VersionResponse).Version, version.Version)
+}
+
+func TestListRolesForClusterReturnsRolesFromConfig(t *testing.T) {
+	// this in memory DB is setup in the config test
+	server := &V1Server{db: db}
+
+	req := &v1.ListRolesRequest{
+		DestinationId: clusterA.Id,
+	}
+
+	res, err := server.ListRoles(context.Background(), req)
+
+	assert.Equal(t, status.Code(err), codes.OK)
+
+	returnedUserRoles := make(map[string][]*v1.User)
+	for _, r := range res.Roles {
+		returnedUserRoles[r.Name] = r.Users
+	}
+
+	for k, vs := range returnedUserRoles {
+		fmt.Println(k + ": ")
+		fmt.Println(vs)
+		fmt.Println()
+	}
+
+	// check default roles granted on user create
+	assert.Equal(t, 3, len(returnedUserRoles["view"]))
+	assert.True(t, containsUser(returnedUserRoles["view"], iosDevUser.Email))
+	assert.True(t, containsUser(returnedUserRoles["view"], standardUser.Email))
+	assert.True(t, containsUser(returnedUserRoles["view"], adminUser.Email))
+
+	// roles from groups
+	assert.Equal(t, 2, len(returnedUserRoles["writer"]))
+	assert.True(t, containsUser(returnedUserRoles["writer"], iosDevUser.Email))
+	assert.True(t, containsUser(returnedUserRoles["writer"], standardUser.Email))
+
+	// roles from direct user assignment
+	assert.Equal(t, 1, len(returnedUserRoles["admin"]))
+	assert.True(t, containsUser(returnedUserRoles["admin"], adminUser.Email))
+	assert.Equal(t, 1, len(returnedUserRoles["reader"]))
+	assert.True(t, containsUser(returnedUserRoles["reader"], standardUser.Email))
+}
+
+func TestListRolesOnlyFindsForSpecificCluster(t *testing.T) {
+	// this in memory DB is setup in the config test
+	server := &V1Server{db: db}
+
+	req := &v1.ListRolesRequest{
+		DestinationId: clusterA.Id,
+	}
+
+	res, err := server.ListRoles(context.Background(), req)
+
+	assert.Equal(t, status.Code(err), codes.OK)
+
+	unexpectedClusterIds := make(map[string]bool)
+	for _, r := range res.Roles {
+		if r.Destination.Id != clusterA.Id {
+			unexpectedClusterIds[r.Destination.Id] = true
+		}
+	}
+	if len(unexpectedClusterIds) != 0 {
+		var unexpectedClusters []string
+		for id := range unexpectedClusterIds {
+			unexpectedClusters = append(unexpectedClusters, id)
+		}
+		t.Errorf("ListRoles response should only contain roles for the specified cluster ID. Only expected " + clusterA.Id + " but found " + strings.Join(unexpectedClusters, ", "))
+	}
+}
+
+func TestListRolesForUnknownCluster(t *testing.T) {
+	// this in memory DB is setup in the config test
+	server := &V1Server{db: db}
+
+	req := &v1.ListRolesRequest{
+		DestinationId: "Unknown-Cluster-ID",
+	}
+
+	res, err := server.ListRoles(context.Background(), req)
+
+	assert.Equal(t, status.Code(err), codes.OK)
+
+	assert.Equal(t, 0, len(res.Roles))
+}
+
+func containsUser(users []*v1.User, email string) bool {
+	for _, u := range users {
+		if u.Email == email {
+			return true
+		}
+	}
+	return false
 }

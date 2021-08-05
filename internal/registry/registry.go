@@ -188,7 +188,7 @@ func Run(options Options) error {
 
 	if options.DefaultApiKey != "" {
 		if len(options.DefaultApiKey) != API_KEY_LEN {
-			return errors.New("invalid initial api key length")
+			return errors.New("invalid initial api key length, the key must be 24 characters")
 
 		}
 		apiKey.Key = options.DefaultApiKey

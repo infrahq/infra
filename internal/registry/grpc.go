@@ -489,16 +489,35 @@ func (v *V1Server) ListRoles(ctx context.Context, in *v1.ListRolesRequest) (*v1.
 	}
 
 	var roles []Role
-	err := v.db.Find(&roles).Error
+	err := v.db.Preload("Destination").Preload("Groups").Preload("Users").Find(&roles, &Role{DestinationId: in.DestinationId}).Error
 	if err != nil {
 		return nil, err
 	}
 
+	// build the response which unifies the relation of group and directly related users to the role
 	res := &v1.ListRolesResponse{}
 	for _, r := range roles {
-		// need to manually assosiate the users for each role
+		// avoid duplicate users being added to the response by mapping based on user ID
+		rUsers := make(map[string]User)
+		for _, rUser := range r.Users {
+			rUsers[rUser.Id] = rUser
+		}
+		// add any group users associated with the role now
+		for _, g := range r.Groups {
+			var gUsers []User
+			err := v.db.Model(&g).Association("Users").Find(&gUsers)
+			if err != nil {
+				return nil, err
+			}
+			for _, gUser := range gUsers {
+				rUsers[gUser.Id] = gUser
+			}
+		}
+		// set the role users to the unified role/group users
 		var users []User
-		v.db.Model(&r).Association("Users").Find(&users)
+		for _, u := range rUsers {
+			users = append(users, u)
+		}
 		r.Users = users
 
 		res.Roles = append(res.Roles, dbToProtoRole(&r))
