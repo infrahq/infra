@@ -416,6 +416,10 @@ func (k *Kubernetes) Endpoint() (string, error) {
 			continue
 		}
 
+		if strings.HasSuffix(n, ".local") {
+			continue
+		}
+
 		filteredDNSNames = append(filteredDNSNames, n)
 	}
 
