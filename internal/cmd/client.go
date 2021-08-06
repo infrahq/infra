@@ -113,6 +113,10 @@ func RunLocalClient() error {
 
 		timer.Reset(ClientTimeoutDuration)
 
+		if r.Header.Get("Upgrade") != "" {
+			r.Header.Add("X-Infra-Query", r.URL.RawQuery)
+		}
+
 		r.Header.Add("X-Infra-Authorization", r.Header.Get("Authorization"))
 		r.Header.Set("Authorization", "Bearer "+saToken)
 
