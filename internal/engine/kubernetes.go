@@ -135,9 +135,7 @@ func (k *Kubernetes) UpdateRoles(rbs []RoleBinding) error {
 	return nil
 }
 
-// Originally from https://github.com/DataDog/datadog-agent
-// Apache 2.0 license
-func (k *Kubernetes) eksClusterName() (string, error) {
+func (k *Kubernetes) ec2ClusterName() (string, error) {
 	res, err := http.Get("http://169.254.169.254/latest/dynamic/instance-identity/document")
 	if err != nil {
 		return "", err
@@ -170,23 +168,27 @@ func (k *Kubernetes) eksClusterName() (string, error) {
 	}
 
 	connection := ec2.New(awsSess)
-	ec2Tags, err := connection.DescribeTagsWithContext(context.Background(),
-		&ec2.DescribeTagsInput{
-			Filters: []*ec2.Filter{{
-				Name: aws.String("resource-id"),
-				Values: []*string{
-					aws.String(identity.InstanceID),
-				},
-			}},
-		},
-	)
-
+	name := "instance-id"
+	value := identity.InstanceID
+	describeInstancesOutput, err := connection.DescribeInstances(&ec2.DescribeInstancesInput{Filters: []*ec2.Filter{{Name: &name, Values: []*string{&value}}}})
 	if err != nil {
 		return "", err
 	}
 
+	reservations := describeInstancesOutput.Reservations
+	if len(reservations) == 0 {
+		return "", errors.New("could not fetch ec2 instance reservations")
+	}
+
+	ec2Instances := reservations[0].Instances
+	if len(ec2Instances) == 0 {
+		return "", errors.New("could not fetch ec2 instances")
+	}
+
+	instance := ec2Instances[0]
+
 	tags := []string{}
-	for _, tag := range ec2Tags.Tags {
+	for _, tag := range instance.Tags {
 		tags = append(tags, fmt.Sprintf("%s:%s", *tag.Key, *tag.Value))
 	}
 
@@ -206,8 +208,6 @@ func (k *Kubernetes) eksClusterName() (string, error) {
 	return clusterName, nil
 }
 
-// Originally from https://github.com/DataDog/datadog-agent
-// Apache 2.0 license
 func (k *Kubernetes) gkeClusterName() (string, error) {
 	req, err := http.NewRequest("GET", "http://169.254.169.254/computeMetadata/v1/instance/attributes/cluster-name", nil)
 	if err != nil {
@@ -233,8 +233,6 @@ func (k *Kubernetes) gkeClusterName() (string, error) {
 	return string(name), nil
 }
 
-// Originally from https://github.com/DataDog/datadog-agent
-// Apache 2.0 license
 func (k *Kubernetes) aksClusterName() (string, error) {
 	req, err := http.NewRequest("GET", "http://169.254.169.254/metadata/instance/compute/resourceGroupName?api-version=2017-08-01&format=text", nil)
 	if err != nil {
@@ -265,7 +263,7 @@ func (k *Kubernetes) aksClusterName() (string, error) {
 	return splitAll[len(splitAll)-2], nil
 }
 
-func (k *Kubernetes) kopsClusterName() (string, error) {
+func (k *Kubernetes) kubeControllerManagerClusterName() (string, error) {
 	clientset, err := kubernetes.NewForConfig(k.config)
 	if err != nil {
 		return "", err
@@ -300,7 +298,7 @@ func (k *Kubernetes) kopsClusterName() (string, error) {
 		return "", err
 	}
 
-	if len(opts.ClusterName) == 0 {
+	if opts.ClusterName == "" {
 		return "", errors.New("empty cluster-name argument in kube-controller-manager pod spec")
 	}
 
@@ -308,25 +306,33 @@ func (k *Kubernetes) kopsClusterName() (string, error) {
 }
 
 func (k *Kubernetes) Name() (string, error) {
-	name, err := k.eksClusterName()
+	name, err := k.ec2ClusterName()
 	if err == nil {
 		return name, nil
 	}
+
+	logging.L.Debug("could not fetch ec2 cluster name: " + err.Error())
 
 	name, err = k.gkeClusterName()
 	if err == nil {
 		return name, nil
 	}
 
+	logging.L.Debug("could not fetch gke cluster name: " + err.Error())
+
 	name, err = k.aksClusterName()
 	if err == nil {
 		return name, nil
 	}
 
-	name, err = k.kopsClusterName()
+	logging.L.Debug("could not fetch aks cluster name: " + err.Error())
+
+	name, err = k.kubeControllerManagerClusterName()
 	if err == nil {
 		return name, nil
 	}
+
+	logging.L.Debug("could not fetch kube-controller-manager cluster name: " + err.Error())
 
 	logging.L.Debug("could not fetch cluster name, resorting to hashed cluster CA")
 
