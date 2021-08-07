@@ -15,7 +15,7 @@ helm repo update
 helm install infra infrahq/infra
 ```
 
-## Advanced Load Balanacer Configuration
+## Advanced Load Balancer Configuration
 
 ### Internal Load Balancer
 
