@@ -3,7 +3,6 @@ package registry
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -650,12 +649,6 @@ func TestListRolesForClusterReturnsRolesFromConfig(t *testing.T) {
 	returnedUserRoles := make(map[string][]*v1.User)
 	for _, r := range res.Roles {
 		returnedUserRoles[r.Name] = r.Users
-	}
-
-	for k, vs := range returnedUserRoles {
-		fmt.Println(k + ": ")
-		fmt.Println(vs)
-		fmt.Println()
 	}
 
 	// check default roles granted on user create
