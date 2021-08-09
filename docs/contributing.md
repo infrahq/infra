@@ -67,16 +67,7 @@ make test
 
 ## Releasing a new version of Infra
 
-### 1. Bump Helm versions
-
-First, bump both the chart and app versions in `helm`:
-
-* https://github.com/infrahq/infra/blob/main/helm/charts/infra/Chart.yaml
-* https://github.com/infrahq/infra/blob/main/helm/charts/infra/charts/engine/Chart.yaml
-
-Then, commit these changes and push them to the `main` branch (or create a PR).
-
-### 2. Create a release on GitHub, marked as pre-release
+### 1. Create a release on GitHub, marked as pre-release
 
 1. Head over to https://github.com/infrahq/infra/releases and click **Draft a new Release**
 2. Fill out the form with the new version as the tag and release name as shown below:
@@ -87,11 +78,11 @@ Then, commit these changes and push them to the `main` branch (or create a PR).
 
 A new version of Infra will be prepared and released via GitHub actions.
 
-### 3. Verify release
+### 2. Verify release
 
 Verify the [release job](https://github.com/infrahq/infra/actions/workflows/release.yml) succeeded.
 
-### 4. Mark as released
+### 3. Mark as released
 
 1. Navigate back to https://github.com/infrahq/infra/releases and click on your release.
 2. Uncheck **This is a pre-release**

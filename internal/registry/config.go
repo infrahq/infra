@@ -139,14 +139,14 @@ func ApplyUserMapping(db *gorm.DB, users []ConfigUserMapping) ([]string, error) 
 
 	for _, u := range users {
 		var user User
-		err := db.Where(&User{Email: u.Name}).First(&user).Error
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
+		usrReadErr := db.Where(&User{Email: u.Name}).First(&user).Error
+		if usrReadErr != nil {
+			if errors.Is(usrReadErr, gorm.ErrRecordNotFound) {
 				// skip this user, if they're created these roles will be added later
 				logging.L.Debug("skipping user in config import that has not yet been provisioned")
 				continue
 			}
-			return nil, err
+			return nil, usrReadErr
 		}
 
 		// add the user to groups
@@ -155,14 +155,14 @@ func ApplyUserMapping(db *gorm.DB, users []ConfigUserMapping) ([]string, error) 
 			var group Group
 			grpReadErr := db.Where(&Group{Name: gName}).First(&group).Error
 			if grpReadErr != nil {
-				if errors.Is(err, gorm.ErrRecordNotFound) {
+				if errors.Is(grpReadErr, gorm.ErrRecordNotFound) {
 					logging.L.Debug("skipping unknown group \"" + gName + "\" on user")
 					continue
 				}
 				return nil, grpReadErr
 			}
 			if db.Model(&user).Where(&Group{Id: group.Id}).Association("Groups").Count() == 0 {
-				if err = db.Model(&user).Where(&Group{Id: group.Id}).Association("Groups").Append(&group); err != nil {
+				if err := db.Model(&user).Where(&Group{Id: group.Id}).Association("Groups").Append(&group); err != nil {
 					return nil, err
 				}
 			}
@@ -194,7 +194,7 @@ func ImportMappings(db *gorm.DB, groups []ConfigGroupMapping, users []ConfigUser
 		return err
 	}
 	// clean up existing groups which have been removed from the config
-	err = db.Where("1 = 1").Not(grpIdsToKeep).Delete(Group{}).Error
+	err = db.Not(grpIdsToKeep).Delete(Group{}).Error
 	if err != nil {
 		return err
 	}

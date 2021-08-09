@@ -60,7 +60,7 @@ func setup() error {
 func TestMain(m *testing.M) {
 	err := setup()
 	if err != nil {
-		fmt.Println("Could not initialize test data")
+		fmt.Println("Could not initialize test data: ", err)
 		os.Exit(1)
 	}
 	code := m.Run()
