@@ -311,8 +311,8 @@ func dbToProtoSource(in *Source) *v1.Source {
 	case SOURCE_TYPE_OKTA:
 		out.Type = v1.SourceType_OKTA
 		out.Okta = &v1.Source_Okta{
-			Domain:   in.OktaDomain,
-			ClientId: in.OktaClientId,
+			Domain:   in.Domain,
+			ClientId: in.ClientId,
 		}
 	}
 
@@ -349,10 +349,10 @@ func (v *V1Server) CreateSource(ctx context.Context, in *v1.CreateSourceRequest)
 		}
 
 		source.Type = "okta"
-		source.OktaApiToken = in.Okta.ApiToken
-		source.OktaDomain = in.Okta.Domain
-		source.OktaClientId = in.Okta.ClientId
-		source.OktaClientSecret = in.Okta.ClientSecret
+		source.ApiToken = in.Okta.ApiToken
+		source.Domain = in.Okta.Domain
+		source.ClientId = in.Okta.ClientId
+		source.ClientSecret = in.Okta.ClientSecret
 
 		if err := v.db.Create(&source).Error; err != nil {
 			return nil, err
@@ -585,16 +585,16 @@ func (v *V1Server) Login(ctx context.Context, in *v1.LoginRequest) (*v1.LoginRes
 		}
 
 		var source Source
-		if err := v.db.Where(&Source{Type: SOURCE_TYPE_OKTA, OktaDomain: in.Okta.Domain}).First(&source).Error; err != nil {
+		if err := v.db.Where(&Source{Type: SOURCE_TYPE_OKTA, Domain: in.Okta.Domain}).First(&source).Error; err != nil {
 			grpc_zap.Extract(ctx).Debug("Could not retrieve okta source from db: " + err.Error())
 			return nil, status.Errorf(codes.Unauthenticated, "invalid okta login information")
 		}
 
 		email, err := v.okta.EmailFromCode(
 			in.Okta.Code,
-			source.OktaDomain,
-			source.OktaClientId,
-			source.OktaClientSecret,
+			source.Domain,
+			source.ClientId,
+			source.ClientSecret,
 		)
 		if err != nil {
 			grpc_zap.Extract(ctx).Debug("Could not extract email from okta info: " + err.Error())
