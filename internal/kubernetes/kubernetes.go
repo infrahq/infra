@@ -1,4 +1,4 @@
-package engine
+package kubernetes
 
 import (
 	"context"
@@ -32,9 +32,15 @@ const (
 	SaFilePath        = "/var/run/secrets/infra-engine-anonymous/token"
 )
 
+type RoleBinding struct {
+	Role  string
+	Users []string
+}
+
 type Kubernetes struct {
-	mu     sync.Mutex
-	config *rest.Config
+	mu           sync.Mutex
+	Config       *rest.Config
+	SecretReader SecretReader
 }
 
 func NewKubernetes() (*Kubernetes, error) {
@@ -45,7 +51,13 @@ func NewKubernetes() (*Kubernetes, error) {
 		return k, err
 	}
 
-	k.config = config
+	k.Config = config
+
+	namespace, err := k.Namespace()
+	if err != nil {
+		return k, err
+	}
+	k.SecretReader = NewSecretReader(namespace)
 
 	return k, err
 }
@@ -85,7 +97,7 @@ func (k *Kubernetes) UpdateRoles(rbs []RoleBinding) error {
 	}
 
 	// Create empty crbs for roles with no users
-	clientset, err := kubernetes.NewForConfig(k.config)
+	clientset, err := kubernetes.NewForConfig(k.Config)
 	if err != nil {
 		return err
 	}
@@ -264,7 +276,7 @@ func (k *Kubernetes) aksClusterName() (string, error) {
 }
 
 func (k *Kubernetes) kubeControllerManagerClusterName() (string, error) {
-	clientset, err := kubernetes.NewForConfig(k.config)
+	clientset, err := kubernetes.NewForConfig(k.Config)
 	if err != nil {
 		return "", err
 	}
@@ -454,7 +466,7 @@ func (k *Kubernetes) Endpoint() (string, error) {
 	// Find the port the remote kubernetes API server is running on
 	// by inspecting kubernetes.default.svc service and finding
 	// the target port it forwards traffic to
-	clientset, err := kubernetes.NewForConfig(k.config)
+	clientset, err := kubernetes.NewForConfig(k.Config)
 	if err != nil {
 		return "", err
 	}
@@ -476,4 +488,13 @@ func (k *Kubernetes) Endpoint() (string, error) {
 	}
 
 	return selectedName, nil
+}
+
+// GetSecret returns a K8s secret object with the specified name from the current namespace if it exists
+func (k *Kubernetes) GetSecret(secret string) (string, error) {
+	clientset, err := kubernetes.NewForConfig(k.Config)
+	if err != nil {
+		return "", err
+	}
+	return k.SecretReader.Get(secret, clientset)
 }

@@ -55,6 +55,7 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 			}
 
 			source.ClientId = s.ClientId
+			// API token and client secret will be validated to exist when they are used
 			source.ClientSecret = s.ClientSecret
 			source.ApiToken = s.ApiToken
 			source.FromConfig = true
@@ -194,9 +195,21 @@ func ImportMappings(db *gorm.DB, groups []ConfigGroupMapping, users []ConfigUser
 		return err
 	}
 	// clean up existing groups which have been removed from the config
-	err = db.Not(grpIdsToKeep).Delete(Group{}).Error
-	if err != nil {
-		return err
+	if len(grpIdsToKeep) > 0 {
+		err = db.Not(grpIdsToKeep).Delete(Group{}).Error
+		if err != nil {
+			return err
+		}
+	} else {
+		var groups []Group
+		db.Find(&groups)
+		if len(groups) > 0 {
+			err = db.Delete(groups).Error
+			if err != nil {
+				return err
+			}
+		}
+		logging.L.Info("no valid groups found in configuration, continuing...")
 	}
 
 	usrRoleIdsToKeep, err := ApplyUserMapping(db, users)

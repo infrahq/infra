@@ -21,6 +21,7 @@ import (
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
 	timer "github.com/infrahq/infra/internal/timer"
 	v1 "github.com/infrahq/infra/internal/v1"
@@ -198,6 +199,11 @@ func Run(options Options) error {
 		}
 	}
 
+	k8s, err := kubernetes.NewKubernetes()
+	if err != nil {
+		return err
+	}
+
 	okta := NewOkta()
 
 	timer := timer.Timer{}
@@ -209,7 +215,10 @@ func Run(options Options) error {
 		}
 
 		for _, s := range sources {
-			err = s.SyncUsers(db, okta)
+			err = s.SyncUsers(db, k8s, okta)
+			if err != nil {
+				zapLogger.Error(err.Error())
+			}
 		}
 	})
 
@@ -222,6 +231,7 @@ func Run(options Options) error {
 	server := &V1Server{
 		db:   db,
 		okta: okta,
+		k8s:  k8s,
 	}
 
 	grpcServer := grpc.NewServer(
