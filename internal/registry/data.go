@@ -54,10 +54,10 @@ type Source struct {
 	Updated int64  `gorm:"autoUpdateTime"`
 	Type    string `yaml:"type"`
 
-	OktaDomain       string `gorm:"unique"`
-	OktaClientId     string
-	OktaClientSecret string
-	OktaApiToken     string
+	Domain       string `gorm:"unique"`
+	ClientId     string
+	ClientSecret string
+	ApiToken     string
 
 	Users  []User  `gorm:"many2many:users_sources"`
 	Groups []Group `gorm:"many2many:groups_sources"`
@@ -347,7 +347,7 @@ func (s *Source) SyncUsers(db *gorm.DB, okta Okta) error {
 
 	switch s.Type {
 	case "okta":
-		emails, err = okta.Emails(s.OktaDomain, s.OktaClientId, s.OktaApiToken)
+		emails, err = okta.Emails(s.Domain, s.ClientId, s.ApiToken)
 		if err != nil {
 			return err
 		}

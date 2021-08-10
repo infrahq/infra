@@ -9,11 +9,11 @@ import (
 )
 
 type ConfigSource struct {
-	Type             string `yaml:"type"`
-	OktaDomain       string `yaml:"oktaDomain"`
-	OktaClientId     string `yaml:"oktaClientId"`
-	OktaClientSecret string `yaml:"oktaClientSecret"`
-	OktaApiToken     string `yaml:"oktaApiToken"`
+	Type         string `yaml:"type"`
+	Domain       string `yaml:"domain"`
+	ClientId     string `yaml:"clientId"`
+	ClientSecret string `yaml:"clientSecret"`
+	ApiToken     string `yaml:"apiToken"`
 }
 
 type ConfigRoleKubernetes struct {
@@ -49,14 +49,14 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 		switch s.Type {
 		case SOURCE_TYPE_OKTA:
 			var source Source
-			err := db.FirstOrCreate(&source, &Source{Type: s.Type, OktaDomain: s.OktaDomain}).Error
+			err := db.FirstOrCreate(&source, &Source{Type: s.Type, Domain: s.Domain}).Error
 			if err != nil {
 				return err
 			}
 
-			source.OktaClientId = s.OktaClientId
-			source.OktaClientSecret = s.OktaClientSecret
-			source.OktaApiToken = s.OktaApiToken
+			source.ClientId = s.ClientId
+			source.ClientSecret = s.ClientSecret
+			source.ApiToken = s.ApiToken
 			source.FromConfig = true
 
 			err = db.Save(&source).Error

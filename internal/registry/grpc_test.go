@@ -520,10 +520,10 @@ func TestLoginMethodOkta(t *testing.T) {
 
 	var source Source
 	source.Type = "okta"
-	source.OktaApiToken = "test-api-token"
-	source.OktaDomain = "test.okta.com"
-	source.OktaClientId = "test-client-id"
-	source.OktaClientSecret = "test-client-secret"
+	source.ApiToken = "test-api-token"
+	source.Domain = "test.okta.com"
+	source.ClientId = "test-client-id"
+	source.ClientSecret = "test-client-secret"
 	if err := db.Create(&source).Error; err != nil {
 		t.Fatal(err)
 	}
