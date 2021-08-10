@@ -9,6 +9,7 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/internal/kubernetes"
 	v1 "github.com/infrahq/infra/internal/v1"
 	"github.com/infrahq/infra/internal/version"
 	"golang.org/x/crypto/bcrypt"
@@ -26,6 +27,7 @@ type V1Server struct {
 	v1.UnimplementedV1Server
 	db   *gorm.DB
 	okta Okta
+	k8s  *kubernetes.Kubernetes
 }
 
 var publicMethods = map[string]bool{
@@ -344,7 +346,13 @@ func (v *V1Server) CreateSource(ctx context.Context, in *v1.CreateSourceRequest)
 	var source Source
 	switch in.Type {
 	case *v1.SourceType_OKTA.Enum():
-		if err := v.okta.ValidateOktaConnection(in.Okta.Domain, in.Okta.ClientId, in.Okta.ApiToken); err != nil {
+		// need to retrieve this API key now to test the okta connection, but the secret value not actually stored
+		apiTokenSecret, err := v.k8s.GetSecret(in.Okta.ApiToken)
+		if err != nil {
+			grpc_zap.Extract(ctx).Debug("Could not retrieve okta api token secret from kubernetes: " + err.Error())
+			return nil, err
+		}
+		if err := v.okta.ValidateOktaConnection(in.Okta.Domain, in.Okta.ClientId, apiTokenSecret); err != nil {
 			return nil, err
 		}
 
@@ -361,7 +369,7 @@ func (v *V1Server) CreateSource(ctx context.Context, in *v1.CreateSourceRequest)
 		return nil, errors.New("invalid source type")
 	}
 
-	if err := source.SyncUsers(v.db, v.okta); err != nil {
+	if err := source.SyncUsers(v.db, v.k8s, v.okta); err != nil {
 		return nil, err
 	}
 
@@ -590,11 +598,17 @@ func (v *V1Server) Login(ctx context.Context, in *v1.LoginRequest) (*v1.LoginRes
 			return nil, status.Errorf(codes.Unauthenticated, "invalid okta login information")
 		}
 
+		clientSecret, err := v.k8s.GetSecret(source.ClientSecret)
+		if err != nil {
+			grpc_zap.Extract(ctx).Error("Could not retrieve okta client secret from kubernetes: " + err.Error())
+			return nil, err
+		}
+
 		email, err := v.okta.EmailFromCode(
 			in.Okta.Code,
 			source.Domain,
 			source.ClientId,
-			source.ClientSecret,
+			clientSecret,
 		)
 		if err != nil {
 			grpc_zap.Extract(ctx).Debug("Could not extract email from okta info: " + err.Error())

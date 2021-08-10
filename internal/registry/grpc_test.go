@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/registry/mocks"
 	v1 "github.com/infrahq/infra/internal/v1"
 	"github.com/infrahq/infra/internal/version"
@@ -18,7 +19,18 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"gorm.io/gorm"
+	kubernetesClient "k8s.io/client-go/kubernetes"
+	rest "k8s.io/client-go/rest"
 )
+
+type mockSecretReader struct{}
+
+func NewMockSecretReader() kubernetes.SecretReader {
+	return &mockSecretReader{}
+}
+func (msr *mockSecretReader) Get(secretName string, client *kubernetesClient.Clientset) (string, error) {
+	return "foo", nil
+}
 
 func TestAuthInterceptorPublic(t *testing.T) {
 	unaryInfo := &grpc.UnaryServerInfo{
@@ -520,10 +532,10 @@ func TestLoginMethodOkta(t *testing.T) {
 
 	var source Source
 	source.Type = "okta"
-	source.ApiToken = "test-api-token"
+	source.ApiToken = "test-api-token/apiToken"
 	source.Domain = "test.okta.com"
 	source.ClientId = "test-client-id"
-	source.ClientSecret = "test-client-secret"
+	source.ClientSecret = "test-client-secret/clientSecret"
 	if err := db.Create(&source).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -537,7 +549,13 @@ func TestLoginMethodOkta(t *testing.T) {
 	testOkta := new(mocks.Okta)
 	testOkta.On("EmailFromCode", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("test@test.com", nil)
 
-	server := &V1Server{db: db, okta: testOkta}
+	testSecretReader := NewMockSecretReader()
+	testConfig := &rest.Config{
+		Host: "https://localhost",
+	}
+	testK8s := &kubernetes.Kubernetes{Config: testConfig, SecretReader: testSecretReader}
+
+	server := &V1Server{db: db, okta: testOkta, k8s: testK8s}
 
 	req := &v1.LoginRequest{
 		Type: v1.SourceType_OKTA,

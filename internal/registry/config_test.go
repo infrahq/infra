@@ -12,7 +12,7 @@ import (
 
 var db *gorm.DB
 
-var fakeOktaSource = Source{Type: "okta", Domain: "test.example.com"}
+var fakeOktaSource = Source{Type: "okta", Domain: "test.example.com", ClientSecret: "okta-secrets/client-secret", ApiToken: "okta-secrets/api-token"}
 var adminUser = User{Email: "admin@example.com"}
 var standardUser = User{Email: "user@example.com"}
 var iosDevUser = User{Email: "woz@example.com"}

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/internal/kubernetes"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/square/go-jose.v2"
 	"gorm.io/driver/sqlite"
@@ -341,13 +342,17 @@ func (s *Source) DeleteUser(db *gorm.DB, u *User) error {
 	return nil
 }
 
-func (s *Source) SyncUsers(db *gorm.DB, okta Okta) error {
+func (s *Source) SyncUsers(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) error {
 	var emails []string
-	var err error
 
 	switch s.Type {
 	case "okta":
-		emails, err = okta.Emails(s.Domain, s.ClientId, s.ApiToken)
+		apiToken, err := k8s.GetSecret(s.ApiToken)
+		if err != nil {
+			return err
+		}
+
+		emails, err = okta.Emails(s.Domain, s.ClientId, apiToken)
 		if err != nil {
 			return err
 		}

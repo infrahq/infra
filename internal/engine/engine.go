@@ -18,6 +18,7 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/goware/urlx"
+	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/timer"
 	v1 "github.com/infrahq/infra/internal/v1"
@@ -34,11 +35,6 @@ type Options struct {
 	Endpoint       string
 	ForceTLSVerify bool
 	APIKey         string
-}
-
-type RoleBinding struct {
-	Role  string
-	Users []string
 }
 
 type RegistrationInfo struct {
@@ -255,14 +251,14 @@ func Run(options Options) error {
 
 	client := v1.NewV1Client(conn)
 
-	kubernetes, err := NewKubernetes()
+	k8s, err := kubernetes.NewKubernetes()
 	if err != nil {
 		return err
 	}
 
 	timer := timer.Timer{}
 	timer.Start(5, func() {
-		ca, err := kubernetes.CA()
+		ca, err := k8s.CA()
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -270,14 +266,14 @@ func Run(options Options) error {
 
 		endpoint := options.Endpoint
 		if endpoint == "" {
-			endpoint, err = kubernetes.Endpoint()
+			endpoint, err = k8s.Endpoint()
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
 		}
 
-		namespace, err := kubernetes.Namespace()
+		namespace, err := k8s.Namespace()
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -285,14 +281,14 @@ func Run(options Options) error {
 
 		name := options.Name
 		if name == "" {
-			name, err = kubernetes.Name()
+			name, err = k8s.Name()
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
 		}
 
-		saToken, err := kubernetes.SaToken()
+		saToken, err := k8s.SaToken()
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -321,16 +317,16 @@ func Run(options Options) error {
 		}
 
 		// convert the response into an easy to use role-user form
-		var rbs []RoleBinding
+		var rbs []kubernetes.RoleBinding
 		for _, r := range rolesRes.Roles {
 			var users []string
 			for _, u := range r.Users {
 				users = append(users, u.Email)
 			}
-			rbs = append(rbs, RoleBinding{Role: r.Name, Users: users})
+			rbs = append(rbs, kubernetes.RoleBinding{Role: r.Name, Users: users})
 		}
 
-		err = kubernetes.UpdateRoles(rbs)
+		err = k8s.UpdateRoles(rbs)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -344,17 +340,17 @@ func Run(options Options) error {
 		w.Write([]byte("OK"))
 	})
 
-	remote, err := url.Parse(kubernetes.config.Host)
+	remote, err := url.Parse(k8s.Config.Host)
 	if err != nil {
 		return err
 	}
 
-	ca, err := ioutil.ReadFile(kubernetes.config.TLSClientConfig.CAFile)
+	ca, err := ioutil.ReadFile(k8s.Config.TLSClientConfig.CAFile)
 	if err != nil {
 		return err
 	}
 
-	ph, err := proxyHandler(ca, kubernetes.config.BearerToken, remote)
+	ph, err := proxyHandler(ca, k8s.Config.BearerToken, remote)
 	if err != nil {
 		return err
 	}
