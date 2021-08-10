@@ -29,11 +29,11 @@ import (
 )
 
 type Options struct {
-	Registry      string
-	Name          string
-	Endpoint      string
-	SkipTLSVerify bool
-	APIKey        string
+	Registry       string
+	Name           string
+	Endpoint       string
+	ForceTLSVerify bool
+	APIKey         string
 }
 
 type RoleBinding struct {
@@ -220,7 +220,32 @@ func Run(options Options) error {
 		registry += ":443"
 	}
 
-	creds := credentials.NewTLS(&tls.Config{InsecureSkipVerify: options.SkipTLSVerify})
+	tlsConfig := &tls.Config{}
+	if !options.ForceTLSVerify {
+		// TODO (https://github.com/infrahq/infra/issues/174)
+		// Find a way to re-use the built-in TLS verification code vs
+		// this custom code based on the official go TLS example code
+		// which states this is approximately the same.
+		tlsConfig.InsecureSkipVerify = true
+		tlsConfig.VerifyConnection = func(cs tls.ConnectionState) error {
+			opts := x509.VerifyOptions{
+				DNSName:       cs.ServerName,
+				Intermediates: x509.NewCertPool(),
+			}
+			for _, cert := range cs.PeerCertificates[1:] {
+				opts.Intermediates.AddCert(cert)
+			}
+			_, err := cs.PeerCertificates[0].Verify(opts)
+
+			if err != nil {
+				fmt.Println("Warning: could not verify registry TLS certificates: " + err.Error())
+			}
+
+			return nil
+		}
+	}
+
+	creds := credentials.NewTLS(tlsConfig)
 	conn, err := grpc.Dial(registry, grpc.WithTransportCredentials(creds), withClientAuthUnaryInterceptor(options.APIKey))
 	if err != nil {
 		return err
@@ -347,9 +372,7 @@ func Run(options Options) error {
 			Transport: &BearerTransport{
 				Token: options.APIKey,
 				Transport: &http.Transport{
-					TLSClientConfig: &tls.Config{
-						InsecureSkipVerify: options.SkipTLSVerify,
-					},
+					TLSClientConfig: tlsConfig,
 				},
 			},
 		},
