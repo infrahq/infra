@@ -12,10 +12,6 @@ Infra is **identity and access management** for Kubernetes. Provide any user fin
 * Onboard & offboard users via Okta (Azure AD, Google, GitHub coming soon)
 * Audit logs for who did what, when (coming soon)
 
-<p align="center">
-  <img width="838" src="./docs/images/arch.svg" />
-</p>
-
 ## Quickstart
 
 1. Create `infra.yaml` 
