@@ -31,14 +31,23 @@ sources:
 # Map groups or individual users pulled from identity providers
 # Roles refer to available roles or cluster-roles currently 
 # configured in the cluster. Custom roles are supported. 
-
-users:
-  - name: developer@example.com
+groups:
+  - name: developers
+    sources:
+      - okta
     roles:
       - name: writer
         kind: cluster-role
         clusters:
           - cluster-1
+users:
+  - name: person@example.com
+    roles:
+      - name: admin
+        kind: cluster-role
+        clusters:
+          - cluster-1
+          - cluster-2
 ```
 Please follow [Okta configuration guide](./docs/okta.md) to obtain your Okta API token. 
 
