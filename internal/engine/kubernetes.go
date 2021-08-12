@@ -372,7 +372,7 @@ func (k *Kubernetes) SaToken() (string, error) {
 	return string(contents), nil
 }
 
-var EndpointExcludeList = map[string]bool{
+var EndpointExclude = map[string]bool{
 	"127.0.0.1":                            true,
 	"0.0.0.0":                              true,
 	"localhost":                            true,
@@ -384,8 +384,12 @@ var EndpointExcludeList = map[string]bool{
 	"docker-for-desktop":                   true,
 }
 
-var EndpointIncludeList = map[string]bool{
+var EndpointInclude = map[string]bool{
 	"kubernetes.docker.internal": true,
+}
+
+var EndpointRewrites = map[string]string{
+	"kubernetes.docker.internal": "kubernetes.docker.internal:6443",
 }
 
 func (k *Kubernetes) Endpoint() (string, error) {
@@ -413,12 +417,12 @@ func (k *Kubernetes) Endpoint() (string, error) {
 	var filteredDNSNames []string
 	for _, n := range dnsNames {
 		// Filter out reserved kubernetes domain names
-		if EndpointExcludeList[n] {
+		if EndpointExclude[n] {
 			continue
 		}
 
 		// If it's a known valid domain name, return it directly
-		if EndpointIncludeList[n] {
+		if EndpointInclude[n] {
 			return n, nil
 		}
 
@@ -449,5 +453,11 @@ func (k *Kubernetes) Endpoint() (string, error) {
 		return "", errors.New("could not determine cluster endpoint")
 	}
 
-	return filteredDNSNames[0], nil
+	selectedName := filteredDNSNames[0]
+
+	if EndpointRewrites[selectedName] != "" {
+		selectedName = EndpointRewrites[selectedName]
+	}
+
+	return selectedName, nil
 }
