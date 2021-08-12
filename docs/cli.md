@@ -89,6 +89,7 @@ infra registry [flags]
   -h, --help                    help for registry
       --initial-apikey string   initial api key for adding destinations
       --tls-cache string        path to directory to cache tls self-signed and Let's Encrypt certificates (default "$HOME/.infra/cache")
+      --ui-proxy string         proxy ui requests to this host
 ```
 
 ## `infra engine`
@@ -102,11 +103,12 @@ infra engine [flags]
 ### Options
 
 ```
-      --api-key string    api key
-  -h, --help              help for engine
-  -n, --name string       cluster name
-  -r, --registry string   registry hostname
-  -k, --skip-tls-verify   skip TLS verification (default true)
+      --api-key string     api key
+  -e, --endpoint string    cluster endpoint
+      --force-tls-verify   force TLS verification
+  -h, --help               help for engine
+  -n, --name string        cluster name
+  -r, --registry string    registry hostname
 ```
 
 ## `infra version`
