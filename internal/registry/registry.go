@@ -26,6 +26,8 @@ import (
 	timer "github.com/infrahq/infra/internal/timer"
 	v1 "github.com/infrahq/infra/internal/v1"
 	"golang.org/x/crypto/acme/autocert"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
@@ -41,13 +43,13 @@ type Options struct {
 	UIProxy       string
 }
 
-func combinedHandlerFunc(grpcServer *grpc.Server, httpHandler http.Handler) http.Handler {
+func mixedHandlerFunc(grpcServer *grpc.Server, httpHandler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.ProtoMajor == 2 && strings.Contains(r.Header.Get("Content-Type"), "application/grpc") {
 			grpcServer.ServeHTTP(w, r)
-		} else {
-			httpHandler.ServeHTTP(w, r)
+			return
 		}
+		httpHandler.ServeHTTP(w, r)
 	})
 }
 
@@ -270,9 +272,10 @@ func Run(options Options) error {
 		mux.Handle("/", httpHandlers.loginRedirectMiddleware(gziphandler.GzipHandler(http.FileServer(&StaticFileSystem{base: &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo}}))))
 	}
 
+	mixedHandler := mixedHandlerFunc(grpcServer, ZapLoggerHttpMiddleware(zapLogger, mux))
 	plaintextServer := http.Server{
 		Addr:    ":80",
-		Handler: combinedHandlerFunc(grpcServer, ZapLoggerHttpMiddleware(zapLogger, mux)),
+		Handler: h2c.NewHandler(mixedHandler, &http2.Server{}),
 	}
 
 	go func() {
@@ -293,7 +296,7 @@ func Run(options Options) error {
 	tlsServer := &http.Server{
 		Addr:      ":443",
 		TLSConfig: tlsConfig,
-		Handler:   combinedHandlerFunc(grpcServer, ZapLoggerHttpMiddleware(zapLogger, mux)),
+		Handler:   h2c.NewHandler(mixedHandler, &http2.Server{}),
 	}
 
 	return tlsServer.ListenAndServeTLS("", "")

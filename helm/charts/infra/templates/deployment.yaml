@@ -27,6 +27,7 @@ spec:
                   key: defaultApiKey
                   optional: true
           ports:
+            - containerPort: 80
             - containerPort: 443
           volumeMounts:
             - name: data
