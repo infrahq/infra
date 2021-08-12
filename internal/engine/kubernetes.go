@@ -269,18 +269,28 @@ func (k *Kubernetes) kubeControllerManagerClusterName() (string, error) {
 		return "", err
 	}
 
-	pods, err := clientset.CoreV1().Pods("kube-system").List(context.TODO(), metav1.ListOptions{
+	k8sAppPods, err := clientset.CoreV1().Pods("kube-system").List(context.TODO(), metav1.ListOptions{
 		LabelSelector: "k8s-app=kube-controller-manager",
 	})
 	if err != nil {
 		return "", err
 	}
 
-	if len(pods.Items) == 0 {
+	componentPods, err := clientset.CoreV1().Pods("kube-system").List(context.TODO(), metav1.ListOptions{
+		LabelSelector: "component=kube-controller-manager",
+	})
+	if err != nil {
+		return "", err
+	}
+
+	pods := append(k8sAppPods.Items, componentPods.Items...)
+
+	if len(pods) == 0 {
 		return "", errors.New("no kube-controller-manager pods to inspect")
 	}
 
-	pod := pods.Items[0]
+	pod := pods[0]
+
 	specContainers := pod.Spec.Containers
 
 	if len(specContainers) == 0 {
@@ -372,7 +382,7 @@ func (k *Kubernetes) SaToken() (string, error) {
 	return string(contents), nil
 }
 
-var EndpointExcludeList = map[string]bool{
+var EndpointExclude = map[string]bool{
 	"127.0.0.1":                            true,
 	"0.0.0.0":                              true,
 	"localhost":                            true,
@@ -381,11 +391,6 @@ var EndpointExcludeList = map[string]bool{
 	"kubernetes.default.svc":               true,
 	"kubernetes.default":                   true,
 	"kubernetes":                           true,
-	"docker-for-desktop":                   true,
-}
-
-var EndpointIncludeList = map[string]bool{
-	"kubernetes.docker.internal": true,
 }
 
 func (k *Kubernetes) Endpoint() (string, error) {
@@ -413,13 +418,8 @@ func (k *Kubernetes) Endpoint() (string, error) {
 	var filteredDNSNames []string
 	for _, n := range dnsNames {
 		// Filter out reserved kubernetes domain names
-		if EndpointExcludeList[n] {
+		if EndpointExclude[n] {
 			continue
-		}
-
-		// If it's a known valid domain name, return it directly
-		if EndpointIncludeList[n] {
-			return n, nil
 		}
 
 		// Filter out private IP addresses
@@ -449,5 +449,31 @@ func (k *Kubernetes) Endpoint() (string, error) {
 		return "", errors.New("could not determine cluster endpoint")
 	}
 
-	return filteredDNSNames[0], nil
+	selectedName := filteredDNSNames[0]
+
+	// Find the port the remote kubernetes API server is running on
+	// by inspecting kubernetes.default.svc service and finding
+	// the target port it forwards traffic to
+	clientset, err := kubernetes.NewForConfig(k.config)
+	if err != nil {
+		return "", err
+	}
+
+	kubernetesService, err := clientset.CoreV1().Services("default").Get(context.TODO(), "kubernetes", metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+
+	var port string
+	for _, p := range kubernetesService.Spec.Ports {
+		if p.Name == "https" {
+			port = p.TargetPort.String()
+		}
+	}
+
+	if port != "" {
+		selectedName += ":" + port
+	}
+
+	return selectedName, nil
 }
