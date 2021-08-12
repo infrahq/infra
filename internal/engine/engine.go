@@ -215,9 +215,10 @@ func Run(options Options) error {
 		return err
 	}
 
-	registry := u.Host
+	u.Scheme = "https"
+
 	if u.Port() == "" {
-		registry += ":443"
+		u.Host += ":443"
 	}
 
 	tlsConfig := &tls.Config{}
@@ -246,7 +247,7 @@ func Run(options Options) error {
 	}
 
 	creds := credentials.NewTLS(tlsConfig)
-	conn, err := grpc.Dial(registry, grpc.WithTransportCredentials(creds), withClientAuthUnaryInterceptor(options.APIKey))
+	conn, err := grpc.Dial(u.Host, grpc.WithTransportCredentials(creds), withClientAuthUnaryInterceptor(options.APIKey))
 	if err != nil {
 		return err
 	}
@@ -258,13 +259,6 @@ func Run(options Options) error {
 	if err != nil {
 		return err
 	}
-
-	uri, err := urlx.Parse(options.Registry)
-	if err != nil {
-		return err
-	}
-
-	uri.Scheme = "https"
 
 	timer := timer.Timer{}
 	timer.Start(5, func() {
@@ -364,8 +358,6 @@ func Run(options Options) error {
 	if err != nil {
 		return err
 	}
-
-	u.Scheme = "https"
 
 	cache := jwkCache{
 		client: &http.Client{

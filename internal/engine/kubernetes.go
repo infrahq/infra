@@ -269,18 +269,28 @@ func (k *Kubernetes) kubeControllerManagerClusterName() (string, error) {
 		return "", err
 	}
 
-	pods, err := clientset.CoreV1().Pods("kube-system").List(context.TODO(), metav1.ListOptions{
+	pods1, err := clientset.CoreV1().Pods("kube-system").List(context.TODO(), metav1.ListOptions{
 		LabelSelector: "k8s-app=kube-controller-manager",
 	})
 	if err != nil {
 		return "", err
 	}
 
-	if len(pods.Items) == 0 {
+	pods2, err := clientset.CoreV1().Pods("kube-system").List(context.TODO(), metav1.ListOptions{
+		LabelSelector: "component=kube-controller-manager",
+	})
+	if err != nil {
+		return "", err
+	}
+
+	pods := append(pods1.Items, pods2.Items...)
+
+	if len(pods) == 0 {
 		return "", errors.New("no kube-controller-manager pods to inspect")
 	}
 
-	pod := pods.Items[0]
+	pod := pods[0]
+
 	specContainers := pod.Spec.Containers
 
 	if len(specContainers) == 0 {
@@ -381,15 +391,6 @@ var EndpointExclude = map[string]bool{
 	"kubernetes.default.svc":               true,
 	"kubernetes.default":                   true,
 	"kubernetes":                           true,
-	"docker-for-desktop":                   true,
-}
-
-var EndpointInclude = map[string]bool{
-	"kubernetes.docker.internal": true,
-}
-
-var EndpointRewrites = map[string]string{
-	"kubernetes.docker.internal": "kubernetes.docker.internal:6443",
 }
 
 func (k *Kubernetes) Endpoint() (string, error) {
@@ -421,11 +422,6 @@ func (k *Kubernetes) Endpoint() (string, error) {
 			continue
 		}
 
-		// If it's a known valid domain name, return it directly
-		if EndpointInclude[n] {
-			return n, nil
-		}
-
 		// Filter out private IP addresses
 		if ipv4.IsPrivate(n) {
 			continue
@@ -455,8 +451,28 @@ func (k *Kubernetes) Endpoint() (string, error) {
 
 	selectedName := filteredDNSNames[0]
 
-	if EndpointRewrites[selectedName] != "" {
-		selectedName = EndpointRewrites[selectedName]
+	// Find the port the remote kubernetes API server is running on
+	// by inspecting kubernetes.default.svc service and finding
+	// the target port it forwards traffic to
+	clientset, err := kubernetes.NewForConfig(k.config)
+	if err != nil {
+		return "", err
+	}
+
+	kubernetesService, err := clientset.CoreV1().Services("default").Get(context.TODO(), "kubernetes", metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+
+	var port string
+	for _, p := range kubernetesService.Spec.Ports {
+		if p.Name == "https" {
+			port = p.TargetPort.String()
+		}
+	}
+
+	if port != "" {
+		selectedName += ":" + port
 	}
 
 	return selectedName, nil
