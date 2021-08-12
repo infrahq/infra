@@ -15,7 +15,7 @@
     "classnames": "^2.3.1",
     "dayjs": "^1.10.6",
     "google-protobuf": "^3.17.3",
-    "next": "11.0.1",
+    "next": "11.1.0",
     "react": "17.0.2",
     "react-cookie": "^4.0.3",
     "react-dom": "17.0.2",
