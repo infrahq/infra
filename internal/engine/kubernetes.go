@@ -269,21 +269,21 @@ func (k *Kubernetes) kubeControllerManagerClusterName() (string, error) {
 		return "", err
 	}
 
-	pods1, err := clientset.CoreV1().Pods("kube-system").List(context.TODO(), metav1.ListOptions{
+	k8sAppPods, err := clientset.CoreV1().Pods("kube-system").List(context.TODO(), metav1.ListOptions{
 		LabelSelector: "k8s-app=kube-controller-manager",
 	})
 	if err != nil {
 		return "", err
 	}
 
-	pods2, err := clientset.CoreV1().Pods("kube-system").List(context.TODO(), metav1.ListOptions{
+	componentPods, err := clientset.CoreV1().Pods("kube-system").List(context.TODO(), metav1.ListOptions{
 		LabelSelector: "component=kube-controller-manager",
 	})
 	if err != nil {
 		return "", err
 	}
 
-	pods := append(pods1.Items, pods2.Items...)
+	pods := append(k8sAppPods.Items, componentPods.Items...)
 
 	if len(pods) == 0 {
 		return "", errors.New("no kube-controller-manager pods to inspect")
