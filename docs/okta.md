@@ -49,7 +49,7 @@ sources:
 ![okta_api_token](https://user-images.githubusercontent.com/5853428/124652864-787b5d00-de51-11eb-81d8-e503babfdbca.png)
 
 ### Add Okta secrets to the Infra registry deployment
-The Okta client secret and API token are sensitive information which cannot be stored in the Infra configuration file. In order for Infra to access these secret values they must be stored in Kubernetes Secret objects.
+The Okta client secret and API token are sensitive information which cannot be stored in the Infra configuration file. In order for Infra to access these secret values they must be stored in Kubernetes Secret objects **in the same namespace that the Infra registry is deployed in**.
 
 Create [Kubernetes Secret objects](https://kubernetes.io/docs/tasks/configmap-secret/) to store the Okta client secret and API token (noted in steps 4 and 5 of `Create an Okta App` respectively). You can name these Secrets as you desire, these names will be specified in the Infra configuration.
 
