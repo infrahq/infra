@@ -54,11 +54,12 @@ The Okta client secret and API token are sensitive information which cannot be s
 Create [Kubernetes Secret objects](https://kubernetes.io/docs/tasks/configmap-secret/) to store the Okta client secret and API token (noted in steps 4 and 5 of `Create an Okta App` respectively). You can name these Secrets as you desire, these names will be specified in the Infra configuration.
 
 #### Example Secret Creation
-Store the Okta client secret and API token on the same Kubernetes Secret object.
+Store the Okta client secret and API token on the same Kubernetes Secret object in the namespace that Infra registry is running in.
 ```
-kubectl create secret generic infra-okta /
---from-literal=clientSecret=jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2 /
---from-literal=apiToken=001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd /
+kubectl create secret generic infra-okta \
+--namespace=infrahq \
+--from-literal=clientSecret=jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2 \
+--from-literal=apiToken=001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd
 ```
 
 ### Add Okta information to Infra registry

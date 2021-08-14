@@ -52,7 +52,7 @@ Please follow [Okta configuration guide](./docs/okta.md) to obtain your Okta API
 ```
 helm repo add infrahq https://helm.infrahq.com
 
-helm install infra infrahq/infra --set-file config=./infra.yaml 
+helm install infra infrahq/infra --namespace infrahq --set-file config=./infra.yaml 
 ```
 
 3. Connect Kubernetes Cluster(s)

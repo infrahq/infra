@@ -43,7 +43,7 @@ dev:
 	kubectl config use-context docker-desktop
 	docker build . -t infrahq/infra:0.0.0-development
 	helm upgrade --install infra ./helm/charts/infra --set image.pullPolicy=Never --set image.tag=0.0.0-development
-	helm upgrade --install infra-engine ./helm/charts/engine --set image.pullPolicy=Never --set image.tag=0.0.0-development --set registry=infra --set apiKey=$(kubectl get secrets/infra --template={{.data.defaultApiKey}} | base64 -D)
+	helm upgrade --install infra-engine ./helm/charts/engine --set image.pullPolicy=Never --set image.tag=0.0.0-development --set endpoint=kubernetes.docker.internal:6443 --set name=docker-desktop-infra --set registry=infra --set apiKey=$(kubectl get secrets/infra --template={{.data.defaultApiKey}} | base64 -D)
 	kubectl rollout restart deployment/infra
 	kubectl rollout restart deployment/infra-engine
 
