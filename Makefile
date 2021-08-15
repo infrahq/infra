@@ -12,7 +12,7 @@ test:
 
 .PHONY: helm
 helm:
-	helm package -d ./helm helm/charts/infra helm/charts/engine --version $(tag:v%=%) --app-version $(tag:v%=%)
+	helm package -d ./helm helm/charts/registry helm/charts/engine --version $(tag:v%=%) --app-version $(tag:v%=%)
 	helm repo index ./helm
 
 .PHONY: docs
@@ -42,13 +42,14 @@ build:
 dev:
 	kubectl config use-context docker-desktop
 	docker build . -t infrahq/infra:0.0.0-development
-	helm upgrade --install infra ./helm/charts/infra --set image.pullPolicy=Never --set image.tag=0.0.0-development
-	helm upgrade --install infra-engine ./helm/charts/engine --set image.pullPolicy=Never --set image.tag=0.0.0-development --set registry=infra --set apiKey=$(kubectl get secrets/infra --template={{.data.defaultApiKey}} | base64 -D)
-	kubectl rollout restart deployment/infra
+	helm upgrade --install infra-registry ./helm/charts/registry --set image.pullPolicy=Never --set image.tag=0.0.0-development
+	kubectl wait --for=condition=available --timeout=600s deployment/infra-registry
+	helm upgrade --install infra-engine ./helm/charts/engine --set image.pullPolicy=Never --set image.tag=0.0.0-development --set name=dd --set endpoint=kubernetes.docker.internal:6443 --set registry=infra-registry --set apiKey=$$(kubectl get secrets/infra-registry --template={{.data.defaultApiKey}} | base64 -D)
+	kubectl rollout restart deployment/infra-registry
 	kubectl rollout restart deployment/infra-engine
 
 dev/clean:
-	helm uninstall --namespace default infra || true
+	helm uninstall --namespace default infra-registry || true
 	helm uninstall --namespace default infra-engine || true
 
 release:
