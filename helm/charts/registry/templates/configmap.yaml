@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: infra
+  name: infra-registry
   namespace: {{ .Release.Namespace }}
 data:
   infra.yaml:

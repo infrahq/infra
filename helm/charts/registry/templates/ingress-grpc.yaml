@@ -9,7 +9,7 @@ metadata:
     {{ $k }}: {{ tpl (toYaml $v) $ }}
   {{- end }}
 {{- end }}
-  name: infra-grpc
+  name: infra-registry-grpc
   labels:
     {{- if .Values.ingress.grpc.labels }}
     {{- toYaml .Values.ingress.grpc.labels | indent 4 }}
@@ -27,11 +27,11 @@ spec:
             backend:
               {{- if eq (include "infra.ingress.apiVersion" $) "networking.k8s.io/v1" }}
               service:
-                name: infra
+                name: infra-registry
                 port:
                   number: {{ $servicePort }}
               {{- else }}
-              serviceName: infra
+              serviceName: infra-registry
               servicePort: {{ $servicePort }}
               {{- end }}
           - path: /grpc.reflection.v1alpha.ServerReflection
@@ -41,11 +41,11 @@ spec:
             backend:
               {{- if eq (include "infra.ingress.apiVersion" $) "networking.k8s.io/v1" }}
               service:
-                name: infra
+                name: infra-registry
                 port:
                   number: {{ $servicePort }}
               {{- else }}
-              serviceName: infra
+              serviceName: infra-registry
               servicePort: {{ $servicePort }}
               {{- end }}
     {{- end -}}

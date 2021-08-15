@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: infra
+  name: infra-registry
   namespace: {{ .Release.Namespace }}
 spec:
   selector:
     matchLabels:
-      app: infra
+      app: infra-registry
   replicas: 1
   template:
     metadata:
       labels:
-        app: infra
+        app: infra-registry
     spec:
       automountServiceAccountToken: true
       containers:
@@ -23,7 +23,7 @@ spec:
             - name: INFRA_REGISTRY_DEFAULT_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: infra
+                  name: infra-registry
                   key: defaultApiKey
                   optional: true
           ports:
@@ -48,13 +48,13 @@ spec:
               - key: app
                 operator: In
                 values:
-                - infra
+                - infra-registry
             topologyKey: kubernetes.io/hostname
       volumes:
         - name: config
           configMap:
-            name: infra
+            name: infra-registry
             optional: true
         - name: data
           persistentVolumeClaim:
-            claimName: infra
+            claimName: infra-registry

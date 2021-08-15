@@ -9,10 +9,10 @@ helm repo add infrahq https://helm.infrahq.com
 helm repo update
 ```
 
-## Install the Chart
+## Install the Infra Registry
 
 ```
-helm install infra infrahq/infra
+helm install infra-registry infrahq/registry
 ```
 
 ## Advanced Load Balancer Configuration
@@ -50,7 +50,7 @@ service:
       kind: Mapping
       name: infra-grpc-mapping
       namespace: {{ .Release.Namespace }}
-      host: example.infrahq.com:443             # edit me
+      host: infrahq.example.com:443             # edit me
       prefix: /
       grpc: True
       service: infra:80
@@ -59,7 +59,7 @@ service:
       kind: Mapping
       name: infra-https-mapping
       namespace: {{ .Release.Namespace }}
-      host: example.infrahq.com                 # edit me
+      host: infrahq.example.com                 # edit me
       prefix: /
       service: http://infra
 ```
@@ -126,7 +126,7 @@ ingress:
 
 | Parameter                                 | Description                                   | Default                                                 |
 |-------------------------------------------|-----------------------------------------------|---------------------------------------------------------|
-| `image.repository`                        | Image repository                              | `infrahq/infra`                                         |
+| `image.repository`                        | Image repository                              | `infrahq/registry`                                      |
 | `image.tag`                               | Image tag                                     | Most recent version of Infra                            | 
 | `image.pullPolicy`                        | Image Pull Policy                             | `IfNotPresent`                                          |
 | `service.type`                            | Service type                                  | `LoadBalancer`                                          |
