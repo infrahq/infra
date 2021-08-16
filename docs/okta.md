@@ -6,8 +6,8 @@ sources:
   - type: okta
     domain: acme.okta.com
     clientId: 0oapn0qwiQPiMIyR35d6
-    clientSecret: infrahq/oktaClientSecret
-    apiToken: infrahq/oktaAPIToken
+    clientSecret: infra-registry-okta/clientSecret
+    apiToken: infra-registry-okta/apiToken
 ```
 
 ## Contents
@@ -56,10 +56,10 @@ Create [Kubernetes Secret objects](https://kubernetes.io/docs/tasks/configmap-se
 #### Example Secret Creation
 Store the Okta client secret and API token on the same Kubernetes Secret object in the namespace that Infra registry is running in.
 ```
-kubectl create secret generic infrahq \
+kubectl create secret generic infra-registry-okta \
 --namespace=infrahq \
---from-literal=oktaClientSecret=jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2 \
---from-literal=oktaAPIToken=001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd
+--from-literal=clientSecret=jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2 \
+--from-literal=apiToken=001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd
 ```
 
 ### Add Okta information to Infra registry
@@ -71,8 +71,8 @@ sources:
   - type: okta
     domain: acme.okta.com
     clientId: 0oapn0qwiQPiMIyR35d6
-    clientSecret: infrahq/oktaClientSecret # <kubernetes secret object name>/<key of the secret>
-    apiToken: infrahq/oktaAPIToken
+    clientSecret: infra-registry-okta/clientSecret # <kubernetes secret object name>/<key of the secret>
+    apiToken: infra-registry-okta/apiToken
 
 users:
   - name: admin@example.com

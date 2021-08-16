@@ -14,6 +14,7 @@ spec:
         app: infra-registry
     spec:
       automountServiceAccountToken: true
+      serviceAccountName: infra-registry
       containers:
         - name: registry
           image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}

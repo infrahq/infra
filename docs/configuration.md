@@ -41,8 +41,8 @@ sources:
   - type: okta
     domain: acme.okta.com
     clientId: 0oapn0qwiQPiMIyR35d6
-    clientSecret: infrahq/oktaClientSecret
-    apiToken: infrahq/oktaClientSecret
+    clientSecret: infra-registry-okta/clientSecret
+    apiToken: infra-registry-okta/apiToken
 
 users:
   - name: admin@example.com

@@ -21,8 +21,8 @@ sources:
   - type: okta
     domain: acme.okta.com
     clientId: 0oapn0qwiQPiMIyR35d6
-    clientSecret: infra-okta/clientSecret 
-    apiToken: infra-okta/apiToken
+    clientSecret: infra-registry-okta/clientSecret
+    apiToken: infra-registry-okta/apiToken
 
 # Map groups or individual users pulled from identity providers
 # Roles refer to available roles or cluster-roles currently 
@@ -54,7 +54,6 @@ helm repo add infrahq https://helm.infrahq.com
 
 helm install infra-registry infrahq/registry --namespace infrahq --create-namespace --set-file config=./infra.yaml 
 ```
-**Note:** You should not deploy the Infra registry in your cluster's default namespace. Deploying it in its own namespace allows you to securely grant secret access.
 
 3. Connect Kubernetes Cluster(s)
 
