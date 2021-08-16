@@ -41,8 +41,8 @@ sources:
   - type: okta
     domain: acme.okta.com
     clientId: 0oapn0qwiQPiMIyR35d6
-    clientSecret: jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2
-    apiToken: 001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd
+    clientSecret: infra-registry-okta/clientSecret
+    apiToken: infra-registry-okta/apiToken
 
 users:
   - name: admin@example.com
