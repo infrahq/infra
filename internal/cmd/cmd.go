@@ -192,67 +192,78 @@ func clientFromConfig() (v1.V1Client, context.CancelFunc, error) {
 	return NewClient(config.Host, config.Token, config.SkipTLSVerify)
 }
 
-func updateKubeconfig(destinations []*v1.Destination) (bool, error) {
+func clientConfig() clientcmd.ClientConfig {
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	loadingRules.WarnIfAllMissing = false
+	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
+}
+
+func updateKubeconfig(destinations []*v1.Destination) error {
 	home, err := homedir.Dir()
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	if destinations == nil {
 		destinations = make([]*v1.Destination, 0)
 	}
 
-	destinationsJSON, err := json.Marshal(destinations)
-	if err != nil {
-		return false, err
+	if len(destinations) > 0 {
+		destinationsJSON, err := json.Marshal(destinations)
+		if err != nil {
+			return err
+		}
+
+		// Write destinations to a known json file location for `infra client` to read
+		err = os.WriteFile(filepath.Join(home, ".infra", "destinations"), destinationsJSON, 0644)
+		if err != nil {
+			return err
+		}
 	}
 
-	// Write destinatinons to json file
-	err = os.WriteFile(filepath.Join(home, ".infra", "destinations"), destinationsJSON, 0644)
-	if err != nil {
-		return false, err
-	}
-
-	// Load default config and merge new config in
-	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-	defaultConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
+	defaultConfig := clientConfig()
 	kubeConfig, err := defaultConfig.RawConfig()
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	for _, d := range destinations {
-		kubeConfig.Clusters[d.Name] = &clientcmdapi.Cluster{
+		contextName := "infra:" + d.Name
+
+		kubeConfig.Clusters[contextName] = &clientcmdapi.Cluster{
 			Server:               "https://localhost:32710/client/" + d.Name,
 			CertificateAuthority: filepath.Join(home, ".infra", "client", "cert.pem"),
 		}
 
 		executable, err := os.Executable()
 		if err != nil {
-			return false, err
+			return err
 		}
 
-		kubeConfig.AuthInfos[d.Name] = &clientcmdapi.AuthInfo{
+		kubeConfig.AuthInfos[contextName] = &clientcmdapi.AuthInfo{
 			Exec: &clientcmdapi.ExecConfig{
 				Command:    executable,
 				Args:       []string{"creds"},
 				APIVersion: "client.authentication.k8s.io/v1alpha1",
 			},
 		}
-		kubeConfig.Contexts[d.Name] = &clientcmdapi.Context{
-			Cluster:  d.Name,
-			AuthInfo: d.Name,
+
+		kubeConfig.Contexts[contextName] = &clientcmdapi.Context{
+			Cluster:  contextName,
+			AuthInfo: contextName,
 		}
 	}
 
-	for name, c := range kubeConfig.Clusters {
-		if !strings.HasPrefix(c.Server, "https://localhost:32710/client/") {
+	for name := range kubeConfig.Contexts {
+		if !strings.HasPrefix(name, "infra:") {
 			continue
 		}
 
+		destinationName := strings.ReplaceAll(name, "infra:", "")
+
 		var exists bool
 		for _, d := range destinations {
-			if name == d.Name {
+			if destinationName == d.Name {
 				exists = true
 			}
 		}
@@ -264,11 +275,53 @@ func updateKubeconfig(destinations []*v1.Destination) (bool, error) {
 		}
 	}
 
-	if err = clientcmd.WriteToFile(kubeConfig, defaultConfig.ConfigAccess().GetDefaultFilename()); err != nil {
-		return false, err
+	if len(destinations) == 0 {
+		_, ok := kubeConfig.Contexts[kubeConfig.CurrentContext]
+		if !ok {
+			kubeConfig.CurrentContext = ""
+			for name := range kubeConfig.Contexts {
+				kubeConfig.CurrentContext = name
+				break
+			}
+		}
 	}
 
-	return len(destinations) > 0, nil
+	if err = clientcmd.WriteToFile(kubeConfig, defaultConfig.ConfigAccess().GetDefaultFilename()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func switchToFirstInfraContext() (string, error) {
+	defaultConfig := clientConfig()
+	kubeConfig, err := defaultConfig.RawConfig()
+	if err != nil {
+		return "", err
+	}
+
+	resultContext := ""
+
+	if kubeConfig.Contexts[kubeConfig.CurrentContext] != nil && strings.HasPrefix(kubeConfig.CurrentContext, "infra:") {
+		// if the current context is an infra-controlled context, stay there
+		resultContext = kubeConfig.CurrentContext
+	} else {
+		for c := range kubeConfig.Contexts {
+			if strings.HasPrefix(c, "infra:") {
+				resultContext = c
+				break
+			}
+		}
+	}
+
+	if resultContext != "" {
+		kubeConfig.CurrentContext = resultContext
+		if err = clientcmd.WriteToFile(kubeConfig, defaultConfig.ConfigAccess().GetDefaultFilename()); err != nil {
+			return "", err
+		}
+	}
+
+	return resultContext, nil
 }
 
 var rootCmd = &cobra.Command{
@@ -558,13 +611,21 @@ var loginCmd = &cobra.Command{
 			return err
 		}
 
-		updated, err := updateKubeconfig(destRes.Destinations)
+		err = updateKubeconfig(destRes.Destinations)
 		if err != nil {
 			return err
 		}
 
-		if updated {
-			fmt.Println(blue("✓") + " Kubeconfig updated")
+		kubeConfigPath := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{}).ConfigAccess().GetDefaultFilename()
+		fmt.Println(blue("✓") + " Kubeconfig updated: " + termenv.String(strings.ReplaceAll(kubeConfigPath, home, "~")).Bold().String())
+
+		context, err := switchToFirstInfraContext()
+		if err != nil {
+			return err
+		}
+
+		if context != "" {
+			fmt.Println(blue("✓") + " Kubernetes current context is now " + termenv.String(context).Bold().String())
 		}
 
 		return nil
@@ -621,40 +682,7 @@ var logoutCmd = &cobra.Command{
 		os.Remove(filepath.Join(home, ".infra", "client", "pid"))
 		os.Remove(filepath.Join(home, ".infra", "destinations"))
 
-		// Load default config and merge new config in
-		loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-		defaultConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
-		kubeConfig, err := defaultConfig.RawConfig()
-		if err != nil {
-			return err
-		}
-
-		for name, c := range kubeConfig.Clusters {
-			if strings.HasPrefix(c.Server, "https://localhost:32710/client/") {
-				delete(kubeConfig.Clusters, name)
-				delete(kubeConfig.Contexts, name)
-				delete(kubeConfig.AuthInfos, name)
-			}
-		}
-
-		if len(kubeConfig.Contexts) == 0 {
-			os.Remove(defaultConfig.ConfigAccess().GetDefaultFilename())
-		} else {
-			_, ok := kubeConfig.Contexts[kubeConfig.CurrentContext]
-			if !ok {
-				var firstName string
-				for name := range kubeConfig.Contexts {
-					firstName = name
-					break
-				}
-				kubeConfig.CurrentContext = firstName
-			}
-		}
-
-		if err = clientcmd.WriteToFile(kubeConfig, defaultConfig.ConfigAccess().GetDefaultFilename()); err != nil {
-			return err
-		}
-		return nil
+		return updateKubeconfig([]*v1.Destination{})
 	},
 }
 
@@ -688,7 +716,7 @@ var listCmd = &cobra.Command{
 				if dest.Name == kubeConfig.CurrentContext {
 					star = "*"
 				}
-				rows = append(rows, []string{dest.Name + star, dest.Kubernetes.Endpoint})
+				rows = append(rows, []string{"infra:" + dest.Name + star, dest.Kubernetes.Endpoint})
 			}
 		}
 
@@ -697,7 +725,7 @@ var listCmd = &cobra.Command{
 		fmt.Println("To connect, run \"kubectl config use-context <name>\"")
 		fmt.Println()
 
-		_, err = updateKubeconfig(res.Destinations)
+		err = updateKubeconfig(res.Destinations)
 		if err != nil {
 			return err
 		}
