@@ -54,6 +54,7 @@ helm repo add infrahq https://helm.infrahq.com
 
 helm install infra-registry infrahq/registry --namespace infrahq --create-namespace --set-file config=./infra.yaml 
 ```
+**Note:** You should not deploy the Infra registry in your cluster's default namespace. Deploying it in its own namespace allows you to securely grant secret access.
 
 3. Connect Kubernetes Cluster(s)
 
