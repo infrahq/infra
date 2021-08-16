@@ -601,7 +601,7 @@ func (v *V1Server) Login(ctx context.Context, in *v1.LoginRequest) (*v1.LoginRes
 		clientSecret, err := v.k8s.GetSecret(source.ClientSecret)
 		if err != nil {
 			grpc_zap.Extract(ctx).Error("Could not retrieve okta client secret from kubernetes: " + err.Error())
-			return nil, err
+			return nil, status.Errorf(codes.Unauthenticated, "invalid okta login information")
 		}
 
 		email, err := v.okta.EmailFromCode(

@@ -8,6 +8,7 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"path"
@@ -340,6 +341,22 @@ func (s *Source) DeleteUser(db *gorm.DB, u *User) error {
 	}
 
 	return nil
+}
+
+// Validate checks that an Okta source is valid
+func (s *Source) Validate(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) error {
+	// TODO (brucemacd): expand this validation to be broad when we add more sources
+	apiToken, err := k8s.GetSecret(s.ApiToken)
+	if err != nil {
+		// this logs the expected secret object location, not the actual secret
+		return fmt.Errorf("could not retrieve okta API token from kubernetes secret %v: %v", s.ApiToken, err)
+	}
+
+	if _, err := k8s.GetSecret(s.ClientSecret); err != nil {
+		return fmt.Errorf("could not retrieve okta client secret from kubernetes secret %v: %v", s.ClientSecret, err)
+	}
+
+	return okta.ValidateOktaConnection(s.Domain, s.ClientId, apiToken)
 }
 
 func (s *Source) SyncUsers(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) error {

@@ -16,11 +16,11 @@ func TestInvalidSecretFormats(t *testing.T) {
 
 	_, err := testK8s.GetSecret("invalid-secret-format")
 	assert.NotNil(t, err)
-	assert.Equal(t, "invalid Kubernetes secret path seperated, expected exactly 2 parts but was 1", err.Error())
+	assert.Equal(t, "invalid Kubernetes secret path specified, expected exactly 2 parts but was 1", err.Error())
 
 	_, err = testK8s.GetSecret("")
 	assert.NotNil(t, err)
-	assert.Equal(t, "invalid Kubernetes secret path seperated, expected exactly 2 parts but was 1", err.Error())
+	assert.Equal(t, "invalid Kubernetes secret path specified, expected exactly 2 parts but was 1", err.Error())
 
 	_, err = testK8s.GetSecret("/")
 	assert.NotNil(t, err)
@@ -28,5 +28,5 @@ func TestInvalidSecretFormats(t *testing.T) {
 
 	_, err = testK8s.GetSecret("invalid/number/path")
 	assert.NotNil(t, err)
-	assert.Equal(t, "invalid Kubernetes secret path seperated, expected exactly 2 parts but was 3", err.Error())
+	assert.Equal(t, "invalid Kubernetes secret path specified, expected exactly 2 parts but was 3", err.Error())
 }
