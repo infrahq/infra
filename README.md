@@ -52,7 +52,7 @@ Please follow [Okta configuration guide](./docs/okta.md) to obtain your Okta API
 ```
 helm repo add infrahq https://helm.infrahq.com
 
-helm install infra-registry infrahq/registry --set-file config=./infra.yaml 
+helm install infra-registry infrahq/registry --namespace infrahq --create-namespace --set-file config=./infra.yaml 
 ```
 
 3. Connect Kubernetes Cluster(s)
@@ -60,7 +60,7 @@ helm install infra-registry infrahq/registry --set-file config=./infra.yaml
 In a web browser visit the Infra Registry dashboard. The URL may be found using: 
 
 ```
-kubectl get svc -n default -w infra -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']
+kubectl get svc -n default -w infra -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}"
 ```
 ![Login](https://user-images.githubusercontent.com/251292/128047128-7bb0da64-4111-4116-b39b-03ca70687ad2.png)
 
