@@ -51,7 +51,6 @@ Please follow [Okta configuration guide](./docs/okta.md) to obtain your Okta API
 
 ```
 helm repo add infrahq https://helm.infrahq.com
-
 helm repo update
 
 helm install infra-registry infrahq/registry --namespace infrahq --create-namespace --set-file config=./infra.yaml 
