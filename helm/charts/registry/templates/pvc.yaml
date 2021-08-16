@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: infra
+  name: infra-registry
   namespace: {{ .Release.Namespace }}
 spec:
   accessModes:

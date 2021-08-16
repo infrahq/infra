@@ -47,17 +47,17 @@ users:
 ```
 Please follow [Okta configuration guide](./docs/okta.md) to obtain your Okta API token. 
 
-2. Install Infra registry with configuration
+2. Install Infra Registry with configuration
 
 ```
 helm repo add infrahq https://helm.infrahq.com
 
-helm install infra infrahq/infra --set-file config=./infra.yaml 
+helm install infra-registry infrahq/registry --set-file config=./infra.yaml 
 ```
 
 3. Connect Kubernetes Cluster(s)
 
-In a web browser visit Infra registry dashboard. The URL may be found using: 
+In a web browser visit the Infra Registry dashboard. The URL may be found using: 
 
 ```
 kubectl get svc -n default -w infra -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']
