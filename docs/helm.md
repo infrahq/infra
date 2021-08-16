@@ -12,7 +12,7 @@ helm repo update
 ## Install the Infra Registry
 
 ```
-helm install infra-registry infrahq/registry
+helm install infra-registry infrahq/registry --namespace infrahq --create-namespace
 ```
 
 ## Advanced Load Balancer Configuration

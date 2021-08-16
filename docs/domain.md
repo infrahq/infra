@@ -3,9 +3,9 @@
 ## Find your Infra Server endpoint
 
 ```
-$ kubectl get svc --namespace infra
-NAME      TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)        AGE
-infra     LoadBalancer   10.12.11.116   31.58.101.169   80:32326/TCP   1m
+$ kubectl get svc --namespace infrahq
+NAME               TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)        AGE
+infra-regsitry     LoadBalancer   10.12.11.116   31.58.101.169   80:32326/TCP   1m
 ```
 
 In this case, Infra is exposed on IP `31.58.101.169`

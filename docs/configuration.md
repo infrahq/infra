@@ -28,10 +28,10 @@ users:
           - cluster-BBB
 ```
 
-Then, apply it to the Infra registry:
+Then, apply it to the Infra Registry:
 
 ```
-helm upgrade infra infrahq/infra --set-file config=./infra.yaml --recreate-pods
+helm upgrade infra-registry infrahq/registry --set-file config=./infra.yaml
 ```
 
 ## Full Example
