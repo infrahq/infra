@@ -93,7 +93,7 @@ users:
 Then apply this config change:
 
 ```
-helm upgrade infra infrahq/registry --set-file config=./infra.yaml --recreate-pods
+helm upgrade infra-registry infrahq/registry --set-file config=./infra.yaml --recreate-pods
 ```
 
 ### List users
