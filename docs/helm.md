@@ -53,7 +53,7 @@ service:
       host: infrahq.example.com:443             # edit me
       prefix: /
       grpc: True
-      service: infra:80
+      service: infra-registry:80
       ---
       apiVersion: getambassador.io/v2
       kind: Mapping
@@ -61,7 +61,7 @@ service:
       namespace: {{ .Release.Namespace }}
       host: infrahq.example.com                 # edit me
       prefix: /
-      service: http://infra
+      service: http://infra-registry
 ```
 
 ### AWS Application Load Balancer Controller (ALB)
@@ -83,7 +83,7 @@ ingress:
       alb.ingress.kubernetes.io/actions.ssl-redirect: '{"Type": "redirect", "RedirectConfig": { "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}'
       alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
       alb.ingress.kubernetes.io/target-type: ip
-      alb.ingress.kubernetes.io/group.name: infra               # (optional: edit me to use an existing shared load balanacer)
+      alb.ingress.kubernetes.io/group.name: infra-registry      # (optional: edit me to use an existing shared load balanacer)
   grpc:
     annotations:
       kubernetes.io/ingress.class: alb
@@ -91,7 +91,7 @@ ingress:
       alb.ingress.kubernetes.io/backend-protocol-version: GRPC
       alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
       alb.ingress.kubernetes.io/target-type: ip
-      alb.ingress.kubernetes.io/group.name: infra               # (optional: edit me to use an existing shared load balanacer)
+      alb.ingress.kubernetes.io/group.name: infra-registry      # (optional: edit me to use an existing shared load balanacer)
 ```
 
 ### `ingress-nginx`
