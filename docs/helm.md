@@ -78,7 +78,7 @@ ingress:
   https:
     annotations:
       kubernetes.io/ingress.class: alb
-      alb.ingress.kubernetes.io/scheme: internet-facing         # use "internal" for non-internet facing
+      alb.ingress.kubernetes.io/scheme: internet-facing         # (optional: use "internal" for non-internet facing)
       alb.ingress.kubernetes.io/backend-protocol: HTTP
       alb.ingress.kubernetes.io/actions.ssl-redirect: '{"Type": "redirect", "RedirectConfig": { "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}'
       alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
@@ -87,7 +87,7 @@ ingress:
   grpc:
     annotations:
       kubernetes.io/ingress.class: alb
-      alb.ingress.kubernetes.io/scheme: internet-facing         # use "internal" for non-internet facing
+      alb.ingress.kubernetes.io/scheme: internet-facing         # (optional: use "internal" for non-internet facing)
       alb.ingress.kubernetes.io/backend-protocol-version: GRPC
       alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
       alb.ingress.kubernetes.io/target-type: ip
