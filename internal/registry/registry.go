@@ -169,6 +169,11 @@ func Run(options Options) error {
 		return err
 	}
 
+	k8s, err := kubernetes.NewKubernetes()
+	if err != nil {
+		return err
+	}
+
 	// Load configuration from file
 	var contents []byte
 	if options.ConfigPath != "" {
@@ -182,6 +187,38 @@ func Run(options Options) error {
 	if err != nil {
 		return err
 	}
+
+	// validate any existing or imported sources
+	okta := NewOkta()
+	var sources []Source
+	if err := db.Find(&sources).Error; err != nil {
+		zapLogger.Error(err.Error())
+	}
+
+	for _, s := range sources {
+		err = s.Validate(db, k8s, okta)
+		if err != nil {
+			zapLogger.Error(err.Error())
+		}
+	}
+
+	// schedule the user sync job
+	timer := timer.Timer{}
+	timer.Start(10, func() {
+		var sources []Source
+
+		if err := db.Find(&sources).Error; err != nil {
+			zapLogger.Error(err.Error())
+		}
+
+		for _, s := range sources {
+			err = s.SyncUsers(db, k8s, okta)
+			if err != nil {
+				zapLogger.Error(err.Error())
+			}
+		}
+	})
+	defer timer.Stop()
 
 	var apiKey ApiKey
 	err = db.FirstOrCreate(&apiKey, &ApiKey{Name: "default"}).Error
@@ -200,31 +237,6 @@ func Run(options Options) error {
 			return err
 		}
 	}
-
-	k8s, err := kubernetes.NewKubernetes()
-	if err != nil {
-		return err
-	}
-
-	okta := NewOkta()
-
-	timer := timer.Timer{}
-	timer.Start(10, func() {
-		var sources []Source
-
-		if err := db.Find(&sources).Error; err != nil {
-			zapLogger.Error(err.Error())
-		}
-
-		for _, s := range sources {
-			err = s.SyncUsers(db, k8s, okta)
-			if err != nil {
-				zapLogger.Error(err.Error())
-			}
-		}
-	})
-
-	defer timer.Stop()
 
 	if err := os.MkdirAll(options.TLSCache, os.ModePerm); err != nil {
 		return err

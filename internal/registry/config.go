@@ -48,13 +48,20 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 	for _, s := range sources {
 		switch s.Type {
 		case SOURCE_TYPE_OKTA:
+			// check if we are about to override an existing source
+			var existing Source
+			db.First(&existing, &Source{Type: SOURCE_TYPE_OKTA})
+			if existing.Id != "" {
+				logging.L.Warn("overriding existing okta source settings, only one okta source is supported")
+			}
 			var source Source
-			err := db.FirstOrCreate(&source, &Source{Type: s.Type, Domain: s.Domain}).Error
+			err := db.FirstOrCreate(&source, &Source{Type: s.Type}).Error
 			if err != nil {
 				return err
 			}
 
 			source.ClientId = s.ClientId
+			source.Domain = s.Domain
 			// API token and client secret will be validated to exist when they are used
 			source.ClientSecret = s.ClientSecret
 			source.ApiToken = s.ApiToken
@@ -66,8 +73,15 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 			}
 
 			idsToKeep = append(idsToKeep, source.Id)
+		default:
+			logging.L.Error("skipping invalid source type in configuration: " + s.Type)
 		}
 	}
+
+	if len(idsToKeep) == 0 {
+		logging.L.Info("no valid sources found in configuration, ensure the required fields are specified correctly")
+	}
+
 	if err := db.Where(&Role{FromConfig: false}).Not(idsToKeep).Not(&Source{Type: SOURCE_TYPE_INFRA}).Delete(&Source{}).Error; err != nil {
 		return err
 	}
@@ -95,7 +109,7 @@ func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (groupIds []st
 		}
 
 		if len(sources) == 0 {
-			logging.L.Debug("no valid sources found, skipping group: " + g.Name)
+			logging.L.Info("no valid sources found, skipping group: " + g.Name)
 			continue
 		}
 
@@ -132,6 +146,7 @@ func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (groupIds []st
 		}
 		groupIds = append(groupIds, group.Id)
 	}
+
 	return
 }
 
@@ -209,7 +224,8 @@ func ImportMappings(db *gorm.DB, groups []ConfigGroupMapping, users []ConfigUser
 				return err
 			}
 		}
-		logging.L.Info("no valid groups found in configuration, continuing...")
+		// it is perfectly valid to have a config with no groups, but the user may still want to know this
+		logging.L.Debug("no valid groups found in configuration")
 	}
 
 	usrRoleIdsToKeep, err := ApplyUserMapping(db, users)
@@ -250,6 +266,10 @@ func ImportConfig(db *gorm.DB, bs []byte) error {
 func importRoles(db *gorm.DB, roles []ConfigRoleKubernetes) ([]Role, error) {
 	var rolesImported []Role
 	for _, r := range roles {
+		if r.Name == "" {
+			logging.L.Error("invalid role found in configuration, name is a required field")
+			continue
+		}
 		switch r.Kind {
 		case ROLE_KIND_K8S_ROLE:
 			// TODO (brucemacd): Handle config imports of roles when we support RoleBindings
@@ -272,8 +292,10 @@ func importRoles(db *gorm.DB, roles []ConfigRoleKubernetes) ([]Role, error) {
 				}
 				rolesImported = append(rolesImported, role)
 			}
+		case "":
+			logging.L.Error("invalid role in configuration skipped, role kind is a required field")
 		default:
-			logging.L.Info("Unrecognized role kind: " + r.Kind + " in infra.yaml, role skipped.")
+			logging.L.Error("unrecognized role kind: " + r.Kind + " in configuration, role skipped")
 		}
 	}
 	return rolesImported, nil

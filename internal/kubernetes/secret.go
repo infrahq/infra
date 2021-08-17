@@ -26,7 +26,7 @@ func NewSecretReader(namespace string) SecretReader {
 func (ksr *KubeSecretReader) Get(secretName string, client *kubernetes.Clientset) (string, error) {
 	secretParts := strings.Split(secretName, "/")
 	if len(secretParts) != 2 {
-		return "", errors.New("invalid Kubernetes secret path seperated, expected exactly 2 parts but was " + fmt.Sprint(len(secretParts)))
+		return "", errors.New("invalid Kubernetes secret path specified, expected exactly 2 parts but was " + fmt.Sprint(len(secretParts)))
 	}
 	objName := secretParts[0]
 	key := secretParts[1]

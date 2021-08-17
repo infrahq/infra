@@ -12,6 +12,7 @@ import (
 
 var db *gorm.DB
 
+var overriddenOktaSource = Source{Type: "okta", Domain: "overwrite.example.com", ClientSecret: "okta-secrets/client-secret", ApiToken: "okta-secrets/api-token"}
 var fakeOktaSource = Source{Type: "okta", Domain: "test.example.com", ClientSecret: "okta-secrets/client-secret", ApiToken: "okta-secrets/api-token"}
 var adminUser = User{Email: "admin@example.com"}
 var standardUser = User{Email: "user@example.com"}
@@ -171,6 +172,16 @@ func TestImportRolesForUnknownDestinationsAreIgnored(t *testing.T) {
 			t.Errorf("Created role for destination which does not exist: " + role.DestinationId)
 		}
 	}
+}
+
+func TestExistingSourceIsOverridden(t *testing.T) {
+	// this source comes second in the config so it will override the one before it
+	var importedOkta Source
+	err := db.Where(&Source{Type: SOURCE_TYPE_OKTA}).First(&importedOkta).Error
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, fakeOktaSource.Domain, importedOkta.Domain)
 }
 
 func containsUserRoleForDestination(db *gorm.DB, user User, destinationId string, roleName string) (bool, error) {
