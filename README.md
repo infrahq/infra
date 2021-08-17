@@ -24,18 +24,10 @@ sources:
     clientSecret: infra-registry-okta/clientSecret
     apiToken: infra-registry-okta/apiToken
 
-# Map groups or individual users pulled from identity providers
+# Map groups (coming soon) or individual users pulled from identity providers
 # Roles refer to available roles or cluster-roles currently 
 # configured in the cluster. Custom roles are supported. 
-groups:
-  - name: developers
-    sources:
-      - okta
-    roles:
-      - name: writer
-        kind: cluster-role
-        clusters:
-          - cluster-1
+
 users:
   - name: person@example.com
     roles:
