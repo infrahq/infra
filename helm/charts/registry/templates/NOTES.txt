@@ -14,7 +14,7 @@ Note: it may take a few minutes for your external load balancer to provision.
 {{- else if eq .Values.service.type "ClusterIP" }}
 To access the infra registry, run:
 
-1. kubectl port-forward -n {{ .Release.Namespace }} infra 8000:80
+1. kubectl port-forward -n {{ .Release.Namespace }} svc/infra-registry 8000:80
 2. Visit http://localhost:8000 in your browser
 
 {{- end }}
