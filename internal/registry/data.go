@@ -17,6 +17,7 @@ import (
 
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/kubernetes"
+	"github.com/infrahq/infra/internal/logging"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/square/go-jose.v2"
 	"gorm.io/driver/sqlite"
@@ -56,7 +57,7 @@ type Source struct {
 	Updated int64  `gorm:"autoUpdateTime"`
 	Type    string `yaml:"type"`
 
-	Domain       string `gorm:"unique"`
+	Domain       string
 	ClientId     string
 	ClientSecret string
 	ApiToken     string
@@ -345,18 +346,23 @@ func (s *Source) DeleteUser(db *gorm.DB, u *User) error {
 
 // Validate checks that an Okta source is valid
 func (s *Source) Validate(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) error {
-	// TODO (brucemacd): expand this validation to be broad when we add more sources
-	apiToken, err := k8s.GetSecret(s.ApiToken)
-	if err != nil {
-		// this logs the expected secret object location, not the actual secret
-		return fmt.Errorf("could not retrieve okta API token from kubernetes secret %v: %v", s.ApiToken, err)
-	}
+	switch s.Type {
+	case "okta":
+		// TODO (brucemacd): expand this validation to be broad when we add more sources
+		apiToken, err := k8s.GetSecret(s.ApiToken)
+		if err != nil {
+			// this logs the expected secret object location, not the actual secret
+			return fmt.Errorf("could not retrieve okta API token from kubernetes secret %v: %v", s.ApiToken, err)
+		}
 
-	if _, err := k8s.GetSecret(s.ClientSecret); err != nil {
-		return fmt.Errorf("could not retrieve okta client secret from kubernetes secret %v: %v", s.ClientSecret, err)
-	}
+		if _, err := k8s.GetSecret(s.ClientSecret); err != nil {
+			return fmt.Errorf("could not retrieve okta client secret from kubernetes secret %v: %v", s.ClientSecret, err)
+		}
 
-	return okta.ValidateOktaConnection(s.Domain, s.ClientId, apiToken)
+		return okta.ValidateOktaConnection(s.Domain, s.ClientId, apiToken)
+	default:
+		return nil
+	}
 }
 
 func (s *Source) SyncUsers(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) error {
@@ -395,6 +401,58 @@ func (s *Source) SyncUsers(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) e
 			s.DeleteUser(tx, &td)
 		}
 
+		return nil
+	})
+}
+
+func (s *Source) SyncGroups(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) error {
+	var groups map[string][]string
+
+	switch s.Type {
+	case "okta":
+		apiToken, err := k8s.GetSecret(s.ApiToken)
+		if err != nil {
+			return err
+		}
+
+		// find the group names associated with this source
+		if len(s.Groups) == 0 {
+			logging.L.Debug("skipped syncing groups for source with no group mappings: " + s.Type)
+			return nil
+		}
+		var grpNames []string
+		for _, g := range s.Groups {
+			grpNames = append(grpNames, g.Name)
+		}
+
+		groups, err = okta.Groups(s.Domain, s.ClientId, apiToken, grpNames)
+		if err != nil {
+			return err
+		}
+	default:
+		return nil
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		for groupName, emails := range groups {
+			var group Group
+			err := db.Where(&Group{Name: groupName}).First(&group).Error
+			if err != nil {
+				return err
+			}
+			var users []User
+			err = db.Where("email IN ?", emails).Find(&users).Error
+			if err != nil {
+				return err
+			}
+			for _, u := range users {
+				if db.Model(&u).Where(&Group{Id: group.Id}).Association("Groups").Count() == 0 {
+					if err := db.Model(&u).Where(&Group{Id: group.Id}).Association("Groups").Append(&group); err != nil {
+						return err
+					}
+				}
+			}
+		}
 		return nil
 	})
 }

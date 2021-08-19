@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
@@ -235,7 +234,7 @@ func Run(options Options) error {
 			_, err := cs.PeerCertificates[0].Verify(opts)
 
 			if err != nil {
-				fmt.Println("Warning: could not verify registry TLS certificates: " + err.Error())
+				logging.L.Warn("could not verify registry TLS certificates: " + err.Error())
 			}
 
 			return nil
@@ -260,7 +259,7 @@ func Run(options Options) error {
 	timer.Start(5, func() {
 		ca, err := k8s.CA()
 		if err != nil {
-			fmt.Println(err)
+			logging.L.Error(err.Error())
 			return
 		}
 
@@ -268,14 +267,14 @@ func Run(options Options) error {
 		if endpoint == "" {
 			endpoint, err = k8s.Endpoint()
 			if err != nil {
-				fmt.Println(err)
+				logging.L.Error(err.Error())
 				return
 			}
 		}
 
 		namespace, err := k8s.Namespace()
 		if err != nil {
-			fmt.Println(err)
+			logging.L.Error(err.Error())
 			return
 		}
 
@@ -283,14 +282,14 @@ func Run(options Options) error {
 		if name == "" {
 			name, err = k8s.Name()
 			if err != nil {
-				fmt.Println(err)
+				logging.L.Error(err.Error())
 				return
 			}
 		}
 
 		saToken, err := k8s.SaToken()
 		if err != nil {
-			fmt.Println(err)
+			logging.L.Error(err.Error())
 			return
 		}
 
@@ -305,7 +304,7 @@ func Run(options Options) error {
 			},
 		})
 		if err != nil {
-			fmt.Println(err)
+			logging.L.Error(err.Error())
 			return
 		}
 
@@ -313,7 +312,7 @@ func Run(options Options) error {
 			DestinationId: res.Id,
 		})
 		if err != nil {
-			fmt.Println(err)
+			logging.L.Error(err.Error())
 		}
 
 		// convert the response into an easy to use role-user form
@@ -328,7 +327,7 @@ func Run(options Options) error {
 
 		err = k8s.UpdateRoles(rbs)
 		if err != nil {
-			fmt.Println(err)
+			logging.L.Error(err.Error())
 			return
 		}
 	})
@@ -369,6 +368,6 @@ func Run(options Options) error {
 
 	mux.Handle("/proxy/", jwtMiddleware(cache.getjwk, ph))
 
-	fmt.Println("serving on port 80")
+	logging.L.Info("serving on port 80")
 	return http.ListenAndServe(":80", handlers.LoggingHandler(os.Stdout, mux))
 }

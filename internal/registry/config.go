@@ -48,6 +48,10 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 	for _, s := range sources {
 		switch s.Type {
 		case SOURCE_TYPE_OKTA:
+			// check the domain is specified
+			if s.Domain == "" {
+				logging.L.Info("domain not set on source \"" + s.Type + "\", import skipped")
+			}
 			// check if we are about to override an existing source
 			var existing Source
 			db.First(&existing, &Source{Type: SOURCE_TYPE_OKTA})
@@ -108,6 +112,7 @@ func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (groupIds []st
 			sources = append(sources, source)
 		}
 
+		// TODO: remove this requirement
 		if len(sources) == 0 {
 			logging.L.Info("no valid sources found, skipping group: " + g.Name)
 			continue

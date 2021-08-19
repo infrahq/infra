@@ -373,6 +373,8 @@ func (v *V1Server) CreateSource(ctx context.Context, in *v1.CreateSourceRequest)
 		return nil, err
 	}
 
+	// TODO: sync groups here
+
 	return dbToProtoSource(&source), nil
 }
 
