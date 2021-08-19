@@ -5,10 +5,10 @@ If you have found a security vulnerability please disclose it privately to us by
 
 ## General Security
 ### HTTPS
-By default the Infra registry and Infra engine communicate via encrypted HTTPS connections with validated certificates. Failure to validate a certificate will by default result in a connection being aborted.
+By default the Infra registry and Infra engine communicate via encrypted HTTPS connections with validated certificates. In most cases failure to validate a certificate will by default result in a connection being aborted. The exception to this is that by default if certificates cannot be verified for Infra engine to registry communication an error will be logged and connection continues, this allows for easy setup. This engine/registry validation behavior can be changed to enforce certificate validation using the `--force-tls-verify` flag.
 
 ### Authentication
-When users login to Infra as a valid user they are issued a session token with a 24 character secret that is randomly generated. The SHA256 hash of this token is stored server-side for token validation when it is presented. This session token is stored in the Infra CLI.
+When users login to Infra as a valid user they are issued a session token with a 24 character secret that is randomly generated. The SHA256 hash of this token is stored server-side for token validation when it is presented. This session token is stored locally under `~/.infra`.
 
 When a user connects to a cluster after logging in their request is proxied to the Infra registry which issues them a new JWT signed with an RS256 signature. This JWT is presented to the engine and if it is valid the user is granted access if they have a valid role at the destination.
 
