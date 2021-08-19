@@ -45,7 +45,8 @@ Please follow [Okta configuration guide](./docs/okta.md) to obtain your Okta API
 helm repo add infrahq https://helm.infrahq.com
 helm repo update
 
-helm install infra-registry infrahq/registry --namespace infrahq --create-namespace --set-file config=./infra.yaml 
+# if you have not yet created the namespace for the deployment add a --create-namespace flag to this command
+helm install infra-registry infrahq/registry --namespace infrahq --set-file config=./infra.yaml 
 ```
 
 3. Connect Kubernetes Cluster(s)
