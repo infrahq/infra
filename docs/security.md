@@ -18,7 +18,7 @@ When deploying in your production cluster ensure the Infra Registry is deployed 
 ## Sensitive Information
 
 ### Infra Registry API token
-In order for an engine to establish a connection with Infra registry it must present an API token. This token is stored in a Kubernetes secret and is never persisted in Infra's storage. It may be changed at any time and applied by restarting the registry. 
+In order for an engine to establish a connection with Infra registry it must present an API token. It may be changed at any time and applied by restarting the registry. 
 
 ### Okta secrets
 Infra uses an Okta application client secret and API token in order to allow users to authenticate via an OpenID Connect (OIDC) authorization code flow. These secrets are stored using Kubernetes secrets. Their respective secret object names are specified in the configuration file and the actual secret is never persisted in Infra's storage. 
