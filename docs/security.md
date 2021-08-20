@@ -12,8 +12,8 @@ When users login to Infra as a valid user they are issued a session token with a
 
 When a user connects to a cluster after logging in their request is proxied to the Infra registry which issues them a new JWT signed with an RS256 signature. This JWT is presented to the engine and if it is valid the user is granted access if they have a valid role at the destination.
 
-## Deploying in Production
-When deploying in your production cluster ensure the Infra Registry is deployed in its own namespace. Deploying the registry in its own namespace allows you to securely manage which resources the deployment has access to.
+## Deployment
+When deploying Infra, ensure the Infra Registry is deployed in its own namespace. Deploying the registry in its own namespace allows you to securely manage which resources the deployment has access to.
 
 ## Sensitive Information
 
