@@ -15,15 +15,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/deepmap/oapi-codegen/pkg/securityprovider"
 	"github.com/gorilla/handlers"
 	"github.com/goware/urlx"
+	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/timer"
-	v1 "github.com/infrahq/infra/internal/v1"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	grpcMetadata "google.golang.org/grpc/metadata"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
 )
@@ -48,12 +46,6 @@ type jwkCache struct {
 
 	client  *http.Client
 	baseURL string
-}
-
-func withClientAuthUnaryInterceptor(token string) grpc.DialOption {
-	return grpc.WithUnaryInterceptor(func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-		return invoker(grpcMetadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer "+token), method, req, reply, cc, opts...)
-	})
 }
 
 func (j *jwkCache) getjwk() (*jose.JSONWebKey, error) {
@@ -212,10 +204,6 @@ func Run(options Options) error {
 
 	u.Scheme = "https"
 
-	if u.Port() == "" {
-		u.Host += ":443"
-	}
-
 	tlsConfig := &tls.Config{}
 	if !options.ForceTLSVerify {
 		// TODO (https://github.com/infrahq/infra/issues/174)
@@ -241,14 +229,15 @@ func Run(options Options) error {
 		}
 	}
 
-	creds := credentials.NewTLS(tlsConfig)
-	conn, err := grpc.Dial(u.Host, grpc.WithTransportCredentials(creds), withClientAuthUnaryInterceptor(options.APIKey))
+	bearerTokenProvider, err := securityprovider.NewSecurityProviderBearerToken(options.APIKey)
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
 
-	client := v1.NewV1Client(conn)
+	client, err := api.NewClientWithResponses(u.String(), api.WithRequestEditorFn(bearerTokenProvider.Intercept))
+	if err != nil {
+		return err
+	}
 
 	k8s, err := kubernetes.NewKubernetes()
 	if err != nil {
@@ -293,10 +282,9 @@ func Run(options Options) error {
 			return
 		}
 
-		res, err := client.CreateDestination(context.Background(), &v1.CreateDestinationRequest{
+		destination, err := client.CreateDestinationWithResponse(context.Background(), api.CreateDestinationJSONRequestBody{
 			Name: name,
-			Type: v1.DestinationType_KUBERNETES,
-			Kubernetes: &v1.CreateDestinationRequest_Kubernetes{
+			Kubernetes: api.DestinationKubernetes{
 				Ca:        string(ca),
 				Endpoint:  endpoint,
 				Namespace: namespace,
@@ -308,16 +296,14 @@ func Run(options Options) error {
 			return
 		}
 
-		rolesRes, err := client.ListRoles(context.Background(), &v1.ListRolesRequest{
-			DestinationId: res.Id,
-		})
+		roles, err := client.ListDestinationRolesWithResponse(context.Background(), destination.JSON200.Id)
 		if err != nil {
 			logging.L.Error(err.Error())
 		}
 
 		// convert the response into an easy to use role-user form
 		var rbs []kubernetes.RoleBinding
-		for _, r := range rolesRes.Roles {
+		for _, r := range *roles.JSON200 {
 			var users []string
 			for _, u := range r.Users {
 				users = append(users, u.Email)

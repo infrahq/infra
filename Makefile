@@ -25,15 +25,8 @@ docs:
 clean:
 	rm -rf dist
 
-proto:
-	@protoc \
-		--proto_path=./internal/v1 \
-		--validate_out="lang=go:./internal/v1" --validate_opt paths=source_relative \
-		--go_out ./internal/v1 --go_opt paths=source_relative \
-		--go-grpc_out ./internal/v1 --go-grpc_opt paths=source_relative \
-		--grpc-gateway_out ./internal/v1 --grpc-gateway_opt logtostderr=true --grpc-gateway_opt paths=source_relative --grpc-gateway_opt generate_unbound_methods=true \
-		--grpc-gateway-ts_out=./internal/registry/ui/gen \
-		./internal/v1/*.proto
+openapi:
+	@oapi-codegen -package api -generate types,client,chi-server,spec ./api/openapi.yaml > ./internal/api/api.gen.go
 
 .PHONY: build
 build:

@@ -1,0 +1,467 @@
+openapi: 3.1.0
+info:
+  version: 0.1.0
+  title: Infra API
+  description: Infra REST API
+  contact:
+    name: Infra Technologies, Inc.
+    email: contact@infrahq.com
+    url: https://infrahq.com
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    User:
+      type: object
+      required:
+        - id
+        - email
+        - created
+        - updated
+        - admin
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        created:
+          type: integer
+          format: int64
+        updated:
+          type: integer
+          format: int64
+        admin:
+          type: boolean
+    Group:
+      type: object
+      required:
+        - id
+        - name
+        - created
+        - updated
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        created:
+          type: integer
+          format: int64
+        updated:
+          type: integer
+          format: int64
+    Source:
+      type: object
+      required:
+        - id
+        - created
+        - updated
+      properties:
+        id:
+          type: string
+        created:
+          type: integer
+          format: int64
+        updated:
+          type: integer
+          format: int64
+        okta:
+          $ref: '#/components/schemas/SourceOkta'
+    SourceOkta:
+      type: object
+      required:
+        - domain
+        - clientId
+      properties:
+        domain:
+          type: string
+        clientId:
+          type: string
+    Destination:
+      type: object
+      required:
+        - id
+        - name
+        - created
+        - updated
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        created:
+          type: integer
+          format: int64
+        updated:
+          type: integer
+          format: int64
+        kubernetes:
+          $ref: '#/components/schemas/DestinationKubernetes'
+    DestinationKubernetes:
+      type: object
+      required:
+        - ca
+        - endpoint
+        - namespace
+        - saToken
+      properties:
+        ca:
+          type: string
+        endpoint:
+          type: string
+        namespace:
+          type: string
+        saToken:
+          type: string
+    Role:
+      type: object
+      required:
+        - id
+        - name
+        - created
+        - updated
+        - users
+        - destination
+        - kind
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        created:
+          type: integer
+          format: int64
+        updated:
+          type: integer
+          format: int64
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        destination:
+          $ref: '#/components/schemas/Destination'
+        kind:
+          type: string
+          enum:
+            - role
+            - cluster-role
+    Cred:
+      type: object
+      required:
+        - token
+        - expires
+      properties:
+        token:
+          type: string
+        expires:
+          type: integer
+          format: int64
+    LoginRequestInfra:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          x-oapi-codegen-extra-tags:
+            validate: "required,email"
+        password:
+          type: string
+          x-oapi-codegen-extra-tags:
+            validate: "required"
+    LoginRequestOkta:
+      type: object
+      required:
+        - domain
+        - code
+      properties:
+        domain:
+          type: string
+          x-oapi-codegen-extra-tags:
+            validate: "required"
+        code:
+          type: string
+          x-oapi-codegen-extra-tags:
+            validate: "required"
+    AuthResponse:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+paths:
+  /users:
+    get:
+      operationId: listUsers
+      responses:
+        '200':
+          description: users response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /groups:
+    get:
+      operationId: listGroups
+      responses:
+        '200':
+          description: groups response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Group'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /sources:
+    get:
+      operationId: listSources
+      responses:
+        '200':
+          description: sources response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Source'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /destinations:
+    get:
+      operationId: listDestinations
+      responses:
+        '200':
+          description: destinations response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Destination'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      operationId: createDestination
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - kubernetes
+              properties:
+                name:
+                  type: string
+                kubernetes:
+                  $ref: '#/components/schemas/DestinationKubernetes'
+      responses:
+        '200':
+          description: create destination response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Destination'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /destinations/{destinationId}/roles:
+    get:
+      operationId: listDestinationRoles
+      parameters:
+        - in: path
+          name: destinationId
+          schema:
+            type: string
+          required: true
+          description: ID of the destination for which to list roles
+      responses:
+        '200':
+          description: roles response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Role'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /creds:
+    post:
+      operationId: createCred
+      responses:
+        '200':
+          description: create cred response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cred'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /login:
+    post:
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                infra:
+                  $ref: '#/components/schemas/LoginRequestInfra'
+                okta:
+                  $ref: '#/components/schemas/LoginRequestOkta'
+      responses:
+        '200':
+          description: login response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /logout:
+    post:
+      operationId: logout
+      responses:
+        '200':
+          description: logout response
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /signup:
+    post:
+      operationId: signup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  x-oapi-codegen-extra-tags:
+                    validate: "required,email"
+                password:
+                  type: string
+                  x-oapi-codegen-extra-tags:
+                    validate: "required"
+      responses:
+        '200':
+          description: signup response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /version:
+    get:
+      operationId: version
+      responses:
+        '200':
+          description: version response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - version
+                properties:
+                  version:
+                    type: string
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /status:
+    get:
+      operationId: status
+      responses:
+        '200':
+          description: status response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - admin
+                properties:
+                  admin:
+                    type: boolean
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

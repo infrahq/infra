@@ -27,7 +27,3 @@ ingress:
     servicePort: 80
     annotations: {}
     labels: {}
-  grpc:
-    servicePort: 80
-    annotations: {}
-    labels: {}

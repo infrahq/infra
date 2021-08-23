@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/goware/urlx"
-	v1 "github.com/infrahq/infra/internal/v1"
+	"github.com/infrahq/infra/internal/api"
 	"github.com/natefinch/lumberjack"
 )
 
@@ -66,7 +66,7 @@ func RunLocalClient() error {
 			return
 		}
 
-		var destinations []v1.Destination
+		var destinations []api.Destination
 		err = json.Unmarshal(contents, &destinations)
 		if err != nil {
 			http.Error(w, "could not read destinations from ~/.infra/destinations", http.StatusInternalServerError)
@@ -75,7 +75,7 @@ func RunLocalClient() error {
 			return
 		}
 
-		var destination *v1.Destination
+		var destination *api.Destination
 		for i := range destinations {
 			if destinations[i].Name == name {
 				destination = &destinations[i]
@@ -92,7 +92,7 @@ func RunLocalClient() error {
 		var endpoint, ca, saToken string
 		namespace := "default"
 
-		if kube := destination.GetKubernetes(); kube != nil {
+		if kube := destination.Kubernetes; kube != nil {
 			endpoint = kube.Endpoint
 			ca = kube.Ca
 			namespace = kube.Namespace
