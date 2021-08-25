@@ -1,15 +1,25 @@
-openapi: 3.1.0
+openapi: 3.0.0
 info:
   version: 0.1.0
   title: Infra API
   description: Infra REST API
-  contact:
-    name: Infra Technologies, Inc.
-    email: contact@infrahq.com
-    url: https://infrahq.com
-  license:
-    name: Apache 2.0
-    url: https://www.apache.org/licenses/LICENSE-2.0.html
+tags:
+  - description: Manage infrastructure destinations
+    name: destinations
+  - description: Create credentials to access a destination
+    name: creds
+  - description: Manage roles
+    name: roles
+  - description: Manage users
+    name: users
+  - description: Manage groups
+    name: groups
+  - description: Manage identitiy sources
+    name: sources
+  - description: Login, logout and sign up
+    name: auth
+  - description: Information & diagnostics
+    name: info
 components:
   securitySchemes:
     bearerAuth:
@@ -102,6 +112,16 @@ components:
           format: int64
         kubernetes:
           $ref: '#/components/schemas/DestinationKubernetes'
+    DestinationCreateRequest:
+      type: object
+      required:
+        - name
+        - kubernetes
+      properties:
+        name:
+          type: string
+        kubernetes:
+          $ref: '#/components/schemas/DestinationKubernetes'
     DestinationKubernetes:
       type: object
       required:
@@ -161,6 +181,13 @@ components:
         expires:
           type: integer
           format: int64
+    LoginRequest:
+      type: object
+      properties:
+        infra:
+          $ref: '#/components/schemas/LoginRequestInfra'
+        okta:
+          $ref: '#/components/schemas/LoginRequestOkta'
     LoginRequestInfra:
       type: object
       required:
@@ -169,12 +196,8 @@ components:
       properties:
         email:
           type: string
-          x-oapi-codegen-extra-tags:
-            validate: "required,email"
         password:
           type: string
-          x-oapi-codegen-extra-tags:
-            validate: "required"
     LoginRequestOkta:
       type: object
       required:
@@ -183,12 +206,18 @@ components:
       properties:
         domain:
           type: string
-          x-oapi-codegen-extra-tags:
-            validate: "required"
         code:
           type: string
-          x-oapi-codegen-extra-tags:
-            validate: "required"
+    SignupRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+        password:
+          type: string
     AuthResponse:
       type: object
       required:
@@ -208,62 +237,13 @@ components:
         message:
           type: string
 paths:
-  /users:
-    get:
-      operationId: listUsers
-      responses:
-        '200':
-          description: users response
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/User'
-        default:
-          description: unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  /groups:
-    get:
-      operationId: listGroups
-      responses:
-        '200':
-          description: groups response
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Group'
-        default:
-          description: unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  /sources:
-    get:
-      operationId: listSources
-      responses:
-        '200':
-          description: sources response
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Source'
-        default:
-          description: unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
   /destinations:
     get:
+      tags:
+        - destinations
+      security:
+        - bearerAuth: []
+      summary: List destinations
       operationId: listDestinations
       responses:
         '200':
@@ -281,21 +261,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
     post:
+      tags:
+        - destinations
+      security:
+        - bearerAuth: []
+      summary: Register a destination
       operationId: createDestination
+      x-codegen-request-body-name: body
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - name
-                - kubernetes
-              properties:
-                name:
-                  type: string
-                kubernetes:
-                  $ref: '#/components/schemas/DestinationKubernetes'
+              $ref: '#/components/schemas/DestinationCreateRequest'
       responses:
         '200':
           description: create destination response
@@ -309,11 +287,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /destinations/{destinationId}/roles:
+  /creds:
+    post:
+      tags:
+        - creds
+      security:
+        - bearerAuth: []
+      summary: Create credentials to access a destination
+      operationId: createCred
+      responses:
+        '200':
+          description: create cred response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cred'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /roles:
     get:
-      operationId: listDestinationRoles
+      tags:
+        - roles
+      summary: List roles
+      security:
+        - bearerAuth: []
+      operationId: listRoles
       parameters:
-        - in: path
+        - in: query
           name: destinationId
           schema:
             type: string
@@ -334,16 +338,67 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /creds:
-    post:
-      operationId: createCred
+  /users:
+    get:
+      summary: List users
+      tags:
+        - users
+      security:
+        - bearerAuth: []
+      operationId: listUsers
       responses:
         '200':
-          description: create cred response
+          description: users response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Cred'
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /groups:
+    get:
+      summary: List groups
+      tags:
+        - groups
+      security:
+        - bearerAuth: []
+      operationId: listGroups
+      responses:
+        '200':
+          description: groups response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Group'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /sources:
+    get:
+      summary: List sources
+      tags:
+        - sources
+      operationId: listSources
+      responses:
+        '200':
+          description: sources response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Source'
         default:
           description: unexpected error
           content:
@@ -352,18 +407,17 @@ paths:
                 $ref: '#/components/schemas/Error'
   /login:
     post:
+      summary: Log in to Infra and get an API token for a user
+      tags:
+        - auth
       operationId: login
+      x-codegen-request-body-name: body
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                infra:
-                  $ref: '#/components/schemas/LoginRequestInfra'
-                okta:
-                  $ref: '#/components/schemas/LoginRequestOkta'
+              $ref: '#/components/schemas/LoginRequest'
       responses:
         '200':
           description: login response
@@ -379,6 +433,11 @@ paths:
                 $ref: '#/components/schemas/Error'
   /logout:
     post:
+      summary: Log out of Infra
+      tags:
+        - auth
+      security:
+        - bearerAuth: []
       operationId: logout
       responses:
         '200':
@@ -391,25 +450,17 @@ paths:
                 $ref: '#/components/schemas/Error'
   /signup:
     post:
+      summary: Sign up Infra's admin user and get an API token for a user
+      tags:
+        - auth
       operationId: signup
+      x-codegen-request-body-name: body
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - email
-                - password
-              properties:
-                email:
-                  type: string
-                  x-oapi-codegen-extra-tags:
-                    validate: "required,email"
-                password:
-                  type: string
-                  x-oapi-codegen-extra-tags:
-                    validate: "required"
+              $ref: '#/components/schemas/SignupRequest'
       responses:
         '200':
           description: signup response
@@ -425,6 +476,9 @@ paths:
                 $ref: '#/components/schemas/Error'
   /version:
     get:
+      summary: Get version information
+      tags:
+        - info
       operationId: version
       responses:
         '200':
@@ -446,6 +500,9 @@ paths:
                 $ref: '#/components/schemas/Error'
   /status:
     get:
+      summary: Get signup status information
+      tags:
+        - info
       operationId: status
       responses:
         '200':

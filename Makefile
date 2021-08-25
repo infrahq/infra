@@ -26,7 +26,10 @@ clean:
 	rm -rf dist
 
 openapi:
-	@oapi-codegen -package api -generate types,client,chi-server,spec ./api/openapi.yaml > ./internal/api/api.gen.go
+	@GO_POST_PROCESS_FILE="gofmt -s -w" openapi-generator generate -i ./api/openapi.yaml -g go-server -o ./internal/registry/api --additional-properties packageName=api,sourceFolder=. --enable-post-process-file > /dev/null
+	@rm -rf ./internal/registry/api/api ./internal/registry/api/.openapi-generator
+	@GO_POST_PROCESS_FILE="gofmt -s -w" openapi-generator generate -i ./api/openapi.yaml -g go -o ./api/client --additional-properties packageName=client,isGoSubmodule=true --enable-post-process-file > /dev/null
+	@rm -rf ./api/client/api ./api/client/.openapi-generator
 
 .PHONY: build
 build:

@@ -1,0 +1,9 @@
+api/**
+docs/**
+.gitignore
+.travis.yml
+.openapi-generator/**
+README.md
+main.go
+Dockerfile
+go.mod

@@ -4,6 +4,7 @@
 
 * Install [Go](https://golang.org/doc/install) or via `brew install go`
 * Install [Docker Desktop](https://www.docker.com/products/docker-desktop) or if on Linux, [Docker Engine](https://docs.docker.com/engine/install/).
+* Install [`openapi-generator`](https://openapi-generator.tech/docs/installation/) via `brew install openapi-generator`
 
 Clone the project:
 

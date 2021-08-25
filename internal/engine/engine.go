@@ -15,10 +15,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/deepmap/oapi-codegen/pkg/securityprovider"
 	"github.com/gorilla/handlers"
 	"github.com/goware/urlx"
-	"github.com/infrahq/infra/internal/api"
+	api "github.com/infrahq/infra/api/client"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/timer"
@@ -197,13 +196,6 @@ func (b *BearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func Run(options Options) error {
-	u, err := urlx.Parse(options.Registry)
-	if err != nil {
-		return err
-	}
-
-	u.Scheme = "https"
-
 	tlsConfig := &tls.Config{}
 	if !options.ForceTLSVerify {
 		// TODO (https://github.com/infrahq/infra/issues/174)
@@ -229,15 +221,16 @@ func Run(options Options) error {
 		}
 	}
 
-	bearerTokenProvider, err := securityprovider.NewSecurityProviderBearerToken(options.APIKey)
-	if err != nil {
-		return err
+	ctx := context.WithValue(context.Background(), api.ContextServerVariables, map[string]string{"basePath": "v1"})
+	ctx = context.WithValue(ctx, api.ContextAccessToken, "token")
+	config := api.NewConfiguration()
+	config.Host = options.Registry
+	config.Scheme = "https"
+	config.HTTPClient.Transport = &http.Transport{
+		TLSClientConfig: tlsConfig,
 	}
 
-	client, err := api.NewClientWithResponses(u.String(), api.WithRequestEditorFn(bearerTokenProvider.Intercept))
-	if err != nil {
-		return err
-	}
+	client := api.NewAPIClient(config)
 
 	k8s, err := kubernetes.NewKubernetes()
 	if err != nil {
@@ -282,7 +275,7 @@ func Run(options Options) error {
 			return
 		}
 
-		destination, err := client.CreateDestinationWithResponse(context.Background(), api.CreateDestinationJSONRequestBody{
+		destination, _, err := client.DestinationsApi.CreateDestination(ctx).Body(api.DestinationCreateRequest{
 			Name: name,
 			Kubernetes: api.DestinationKubernetes{
 				Ca:        string(ca),
@@ -290,20 +283,20 @@ func Run(options Options) error {
 				Namespace: namespace,
 				SaToken:   saToken,
 			},
-		})
+		}).Execute()
 		if err != nil {
 			logging.L.Error(err.Error())
 			return
 		}
 
-		roles, err := client.ListDestinationRolesWithResponse(context.Background(), destination.JSON200.Id)
+		roles, _, err := client.RolesApi.ListRoles(ctx).DestinationId(destination.Id).Execute()
 		if err != nil {
 			logging.L.Error(err.Error())
 		}
 
 		// convert the response into an easy to use role-user form
 		var rbs []kubernetes.RoleBinding
-		for _, r := range *roles.JSON200 {
+		for _, r := range roles {
 			var users []string
 			for _, u := range r.Users {
 				users = append(users, u.Email)
@@ -339,6 +332,12 @@ func Run(options Options) error {
 	if err != nil {
 		return err
 	}
+
+	u, err := urlx.Parse(options.Registry)
+	if err != nil {
+		return err
+	}
+	u.Scheme = "https"
 
 	cache := jwkCache{
 		client: &http.Client{

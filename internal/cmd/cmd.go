@@ -22,10 +22,9 @@ import (
 	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/cli/browser"
-	"github.com/deepmap/oapi-codegen/pkg/securityprovider"
 	"github.com/docker/go-units"
 	"github.com/goware/urlx"
-	"github.com/infrahq/infra/internal/api"
+	api "github.com/infrahq/infra/api/client"
 	"github.com/infrahq/infra/internal/engine"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
@@ -140,48 +139,48 @@ func blue(s string) string {
 	return termenv.String(s).Bold().Foreground(termenv.ColorProfile().Color("#0057FF")).String()
 }
 
-func NewClient(host string, token string, skipTlsVerify bool) (*api.ClientWithResponses, error) {
+func NewApiContext(token string) context.Context {
+	ctx := context.WithValue(context.Background(), api.ContextServerVariables, map[string]string{"basePath": "v1"})
+	ctx = context.WithValue(ctx, api.ContextAccessToken, token)
+	return ctx
+}
+
+func NewApiClient(host string, skipTlsVerify bool) (*api.APIClient, error) {
 	if host == "" {
 		return nil, errors.New("host must not be empty")
 	}
 
-	u, err := urlx.Parse(host)
-	if err != nil {
-		return nil, err
-	}
-
-	u.Scheme = "https"
-
-	bearerTokenProvider, err := securityprovider.NewSecurityProviderBearerToken(token)
-	if err != nil {
-		return nil, err
-	}
-
-	client, err := api.NewClient(u.String()+"/v1", api.WithRequestEditorFn(bearerTokenProvider.Intercept))
-	if err != nil {
-		return nil, err
-	}
+	config := api.NewConfiguration()
+	config.Host = host
+	config.Scheme = "https"
 
 	if skipTlsVerify {
-		client.Client = &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true,
-				},
+		config.HTTPClient.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
 			},
 		}
 	}
 
-	return &api.ClientWithResponses{ClientInterface: client}, nil
+	return api.NewAPIClient(config), nil
 }
 
-func clientFromConfig() (*api.ClientWithResponses, error) {
+func apiContextFromConfig() (context.Context, error) {
 	config, err := readConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	return NewClient(config.Host, config.Token, config.SkipTLSVerify)
+	return NewApiContext(config.Token), nil
+}
+
+func apiClientFromConfig() (*api.APIClient, error) {
+	config, err := readConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	return NewApiClient(config.Host, config.SkipTLSVerify)
 }
 
 func clientConfig() clientcmd.ClientConfig {
@@ -380,18 +379,19 @@ var loginCmd = &cobra.Command{
 			return nil
 		}
 
-		client, err := NewClient(args[0], "", skipTLSVerify)
+		client, err := NewApiClient(args[0], skipTLSVerify)
 		if err != nil {
 			return err
 		}
 
-		res, err := client.StatusWithResponse(context.Background())
+		res, _, err := client.InfoApi.Status(context.Background()).Execute()
 		if err != nil {
 			return err
 		}
 
-		var authRes *api.AuthResponse
-		if !res.JSON200.Admin {
+		var authRes api.AuthResponse
+
+		if !res.Admin {
 			fmt.Println()
 			fmt.Println(blue("Welcome to Infra. Get started by creating your admin user:"))
 			email := ""
@@ -417,19 +417,16 @@ var loginCmd = &cobra.Command{
 			}
 
 			fmt.Println(blue("✓") + " Creating admin user...")
-			res, err := client.SignupWithResponse(context.Background(), api.SignupJSONRequestBody{Email: email, Password: password})
+			authRes, _, err = client.AuthApi.Signup(context.Background()).Body(*&api.SignupRequest{Email: email, Password: password}).Execute()
 			if err != nil {
 				return err
 			}
-
-			authRes = res.JSON200
 		} else {
-			sourcesRes, err := client.ListSourcesWithResponse(context.Background())
+			sources, _, err := client.SourcesApi.ListSources(context.Background()).Execute()
 			if err != nil {
 				return err
 			}
 
-			sources := *sourcesRes.JSON200
 			sort.Slice(sources, func(i, j int) bool {
 				return sources[i].Created > sources[j].Created
 			})
@@ -459,7 +456,7 @@ var loginCmd = &cobra.Command{
 			}
 
 			source := sources[option]
-			var loginReq api.LoginJSONRequestBody
+			var loginReq api.LoginRequest
 
 			switch {
 			case source.Okta != nil:
@@ -524,12 +521,10 @@ var loginCmd = &cobra.Command{
 				}
 			}
 
-			loginRes, err := client.LoginWithResponse(context.Background(), loginReq)
+			authRes, _, err = client.AuthApi.Login(context.Background()).Body(loginReq).Execute()
 			if err != nil {
 				return err
 			}
-
-			authRes = loginRes.JSON200
 		}
 
 		config := &Config{
@@ -589,17 +584,16 @@ var loginCmd = &cobra.Command{
 			os.Remove(filepath.Join(home, ".infra", "client", "pid"))
 		}
 
-		loggedInClient, err := NewClient(args[0], authRes.Token, skipTLSVerify)
+		client, err = NewApiClient(args[0], skipTLSVerify)
 		if err != nil {
 			return err
 		}
+		ctx := NewApiContext(authRes.Token)
 
-		destRes, err := loggedInClient.ListDestinationsWithResponse(context.Background())
+		destinations, _, err := client.DestinationsApi.ListDestinations(ctx).Execute()
 		if err != nil {
 			return err
 		}
-
-		destinations := *destRes.JSON200
 
 		err = updateKubeconfig(destinations)
 		if err != nil {
@@ -637,12 +631,15 @@ var logoutCmd = &cobra.Command{
 			return nil
 		}
 
-		client, err := NewClient(config.Host, config.Token, config.SkipTLSVerify)
+		client, err := NewApiClient(config.Host, config.SkipTLSVerify)
 		if err != nil {
 			return err
 		}
 
-		client.Logout(context.Background())
+		_, err = client.AuthApi.Logout(NewApiContext(config.Token)).Execute()
+		if err != nil {
+			fmt.Print(err)
+		}
 
 		err = removeConfig()
 		if err != nil {
@@ -682,17 +679,20 @@ var listCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "List clusters",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := clientFromConfig()
+		client, err := apiClientFromConfig()
 		if err != nil {
 			return err
 		}
 
-		res, err := client.ListDestinationsWithResponse(context.Background())
+		ctx, err := apiContextFromConfig()
 		if err != nil {
 			return err
 		}
 
-		destinations := *res.JSON200
+		destinations, _, err := client.DestinationsApi.ListDestinations(ctx).Execute()
+		if err != nil {
+			return err
+		}
 
 		sort.Slice(destinations, func(i, j int) bool {
 			return destinations[i].Created > destinations[j].Created
@@ -730,17 +730,20 @@ var usersCmd = &cobra.Command{
 	Use:   "users",
 	Short: "List users",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := clientFromConfig()
+		client, err := apiClientFromConfig()
 		if err != nil {
 			return err
 		}
 
-		res, err := client.ListUsersWithResponse(context.Background())
+		ctx, err := apiContextFromConfig()
 		if err != nil {
 			return err
 		}
 
-		users := *res.JSON200
+		users, _, err := client.UsersApi.ListUsers(ctx).Execute()
+		if err != nil {
+			return err
+		}
 
 		sort.Slice(users, func(i, j int) bool {
 			return users[i].Created > users[j].Created
@@ -833,14 +836,14 @@ var versionCmd = &cobra.Command{
 		fmt.Fprintln(w)
 		fmt.Fprintln(w, "Client:\t", version.Version)
 
-		client, err := clientFromConfig()
+		client, err := apiClientFromConfig()
 		if err != nil {
 			fmt.Fprintln(w, blue("✕")+" Could not retrieve client version")
 			return err
 		}
 
 		// Note that we use the client to get this version, but it is in fact the server version
-		res, err := client.VersionWithResponse(context.Background())
+		res, _, err := client.InfoApi.Version(context.Background()).Execute()
 		if err != nil {
 			status, ok := status.FromError(err)
 			if !ok {
@@ -855,7 +858,7 @@ var versionCmd = &cobra.Command{
 			}
 		}
 
-		fmt.Fprintln(w, "Registry:\t", res.JSON200.Version)
+		fmt.Fprintln(w, "Registry:\t", res.Version)
 		fmt.Fprintln(w)
 
 		return nil
@@ -867,17 +870,20 @@ var credsCmd = &cobra.Command{
 	Short:  "Generate credentials",
 	Hidden: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := clientFromConfig()
+		client, err := apiClientFromConfig()
 		if err != nil {
 			return err
 		}
 
-		res, err := client.CreateCredWithResponse(context.Background())
+		ctx, err := apiContextFromConfig()
 		if err != nil {
 			return err
 		}
 
-		cred := *res.JSON200
+		cred, _, err := client.CredsApi.CreateCred(ctx).Execute()
+		if err != nil {
+			return err
+		}
 
 		execCredential := &clientauthenticationv1alpha1.ExecCredential{
 			TypeMeta: metav1.TypeMeta{

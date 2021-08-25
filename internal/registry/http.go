@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -11,9 +12,11 @@ import (
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-playground/validator/v10"
-	"github.com/infrahq/infra/internal/api"
+	"github.com/gorilla/mux"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/kubernetes"
+	"github.com/infrahq/infra/internal/logging"
+	api "github.com/infrahq/infra/internal/registry/api"
 	"github.com/infrahq/infra/internal/version"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
@@ -31,34 +34,37 @@ var (
 
 var validate *validator.Validate = validator.New()
 
-type ApiServer struct {
-	api.ServerInterface
-	okta   Okta
-	db     *gorm.DB
-	logger *zap.Logger
-	k8s    *kubernetes.Kubernetes
+type ApiRouter struct {
+	okta Okta
+	db   *gorm.DB
+	k8s  *kubernetes.Kubernetes
 }
 
-func sendApiError(w http.ResponseWriter, code int, message string) {
-	err := api.Error{
-		Code:    int32(code),
-		Message: message,
+func NewApiRouter(okta Okta, db *gorm.DB, logger *zap.Logger, k8s *kubernetes.Kubernetes) *mux.Router {
+	router := ApiRouter{
+		okta: okta,
+		db:   db,
+		k8s:  k8s,
 	}
-	w.WriteHeader(code)
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(err)
+
+	return api.NewRouter(
+		api.NewAuthApiController(router),
+		api.NewCredsApiController(router),
+		api.NewDestinationsApiController(router),
+		api.NewGroupsApiController(router),
+		api.NewInfoApiController(router),
+		api.NewRolesApiController(router),
+		api.NewSourcesApiController(router),
+		api.NewUsersApiController(router),
+	)
 }
 
-func ZapLoggerHttpMiddleware(logger *zap.Logger, next http.Handler) http.HandlerFunc {
-	if logger == nil {
-		return next.ServeHTTP
-	}
-
+func ZapLoggerHttpMiddleware(next http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 		t1 := time.Now()
 		next.ServeHTTP(ww, r)
-		logger.Info("finished http method call",
+		logging.L.Info("finished http method call",
 			zap.String("method", r.Method),
 			zap.String("path", r.URL.Path),
 			zap.Int("status", ww.Status()),
@@ -68,7 +74,7 @@ func ZapLoggerHttpMiddleware(logger *zap.Logger, next http.Handler) http.Handler
 	}
 }
 
-func (as *ApiServer) loginRedirectMiddleware(next http.Handler) http.Handler {
+func (ar *ApiRouter) loginRedirectMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ext := filepath.Ext(r.URL.Path)
 		if ext != "" && ext != ".html" {
@@ -83,13 +89,13 @@ func (as *ApiServer) loginRedirectMiddleware(next http.Handler) http.Handler {
 
 		token, tokenCookieErr := r.Cookie(CookieTokenName)
 		if tokenCookieErr != nil && !errors.Is(tokenCookieErr, http.ErrNoCookie) {
-			as.logger.Error(tokenCookieErr.Error())
+			logging.L.Error(tokenCookieErr.Error())
 			return
 		}
 
 		login, loginCookieErr := r.Cookie(CookieLoginName)
 		if loginCookieErr != nil && !errors.Is(loginCookieErr, http.ErrNoCookie) {
-			as.logger.Error(loginCookieErr.Error())
+			logging.L.Error(loginCookieErr.Error())
 			return
 		}
 
@@ -97,7 +103,7 @@ func (as *ApiServer) loginRedirectMiddleware(next http.Handler) http.Handler {
 		if errors.Is(loginCookieErr, http.ErrNoCookie) || errors.Is(tokenCookieErr, http.ErrNoCookie) {
 			deleteAuthCookie(w)
 
-			adminExists := as.db.Where(&User{Admin: true}).Find(&[]User{}).RowsAffected > 0
+			adminExists := ar.db.Where(&User{Admin: true}).Find(&[]User{}).RowsAffected > 0
 			if !adminExists && !strings.HasPrefix(r.URL.Path, "/signup") {
 				http.Redirect(w, r, "/signup", http.StatusTemporaryRedirect)
 				return
@@ -125,7 +131,7 @@ func (as *ApiServer) loginRedirectMiddleware(next http.Handler) http.Handler {
 
 		// If the cookies exist, then validate their values and redirect to / or follow any ?next= query parameter
 		if token != nil && login != nil {
-			_, err := ValidateAndGetToken(as.db, token.Value)
+			_, err := ValidateAndGetToken(ar.db, token.Value)
 			if err != nil {
 				deleteAuthCookie(w)
 				http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
@@ -154,9 +160,9 @@ func (as *ApiServer) loginRedirectMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func (as *ApiServer) createJWT(email string) (string, time.Time, error) {
+func (ar *ApiRouter) createJWT(email string) (string, time.Time, error) {
 	var settings Settings
-	err := as.db.First(&settings).Error
+	err := ar.db.First(&settings).Error
 	if err != nil {
 		return "", time.Time{}, err
 	}
@@ -194,13 +200,13 @@ func (as *ApiServer) createJWT(email string) (string, time.Time, error) {
 	return raw, expiry, nil
 }
 
-func (as *ApiServer) Healthz(w http.ResponseWriter, r *http.Request) {
+func (ar *ApiRouter) Healthz(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (as *ApiServer) WellKnownJWKs(w http.ResponseWriter, r *http.Request) {
+func (ar *ApiRouter) WellKnownJWKs(w http.ResponseWriter, r *http.Request) {
 	var settings Settings
-	err := as.db.First(&settings).Error
+	err := ar.db.First(&settings).Error
 	if err != nil {
 		http.Error(w, "could not get JWKs", http.StatusInternalServerError)
 		return
@@ -222,22 +228,22 @@ func (as *ApiServer) WellKnownJWKs(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (as *ApiServer) ListUsers(w http.ResponseWriter, r *http.Request) {
-	user, err := as.VerifyToken(r)
+func (ar *ApiRouter) ListUsers(context.Context) (api.ImplResponse, error) {
+	user, err := ar.VerifyToken(r)
 	if err != nil {
-		sendApiError(w, http.StatusUnauthorized, "unauthorized")
-		as.logger.Debug(err.Error())
+		logging.L.Debug(err.Error())
+		return api.Response(http.StatusNotImplemented, nil), errors.New("unauthorized")
 		return
 	}
 
 	if !user.Admin {
 		sendApiError(w, http.StatusUnauthorized, "unauthorized")
-		as.logger.Debug("user is not an admin")
+		logging.L.Debug("user is not an admin")
 		return
 	}
 
 	var users []User
-	err = as.db.Find(&users).Error
+	err = ar.db.Find(&users).Error
 	if err != nil {
 		sendApiError(w, 502, err.Error())
 		return
@@ -670,7 +676,7 @@ func dbToApiUser(u *User) api.User {
 	}
 }
 
-func (as *ApiServer) VerifyToken(r *http.Request) (user *User, err error) {
+func (ar *ApiRouter) VerifyToken(r *http.Request) (user *User, err error) {
 	authorization := r.Header.Get("Authorization")
 	raw := strings.Replace(authorization, "Bearer ", "", -1)
 
@@ -682,7 +688,7 @@ func (as *ApiServer) VerifyToken(r *http.Request) (user *User, err error) {
 		return nil, errors.New("invalid token length")
 	}
 
-	token, err := ValidateAndGetToken(as.db, raw)
+	token, err := ValidateAndGetToken(ar.db, raw)
 	if err != nil {
 		return nil, errors.New("Could not validate token: " + err.Error())
 	}
@@ -690,7 +696,7 @@ func (as *ApiServer) VerifyToken(r *http.Request) (user *User, err error) {
 	return &token.User, nil
 }
 
-func (as *ApiServer) VerifyApiKey(r *http.Request) error {
+func (ar *ApiRouter) VerifyApiKey(r *http.Request) error {
 	authorization := r.Header.Get("Authorization")
 	raw := strings.Replace(authorization, "Bearer ", "", -1)
 
@@ -703,7 +709,7 @@ func (as *ApiServer) VerifyApiKey(r *http.Request) error {
 	}
 
 	var apiKey ApiKey
-	if as.db.First(&apiKey, &ApiKey{Key: raw}).Error != nil {
+	if ar.db.First(&apiKey, &ApiKey{Key: raw}).Error != nil {
 		return errors.New("could not find api key")
 	}
 

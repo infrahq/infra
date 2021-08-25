@@ -16,7 +16,6 @@ import (
 	"github.com/NYTimes/gziphandler"
 	assetfs "github.com/elazarl/go-bindata-assetfs"
 	"github.com/goware/urlx"
-	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
@@ -180,26 +179,21 @@ func Run(options Options) error {
 		return err
 	}
 
-	server := &ApiServer{
-		db:     db,
-		okta:   okta,
-		k8s:    k8s,
-		logger: zapLogger,
-	}
+	router := NewApiRouter(okta, db, zapLogger, k8s)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/healthz", server.Healthz)
-	mux.HandleFunc("/.well-known/jwks.json", server.WellKnownJWKs)
-	mux.Handle("/v1/", api.HandlerWithBaseURL(server, "/v1"))
+	mux.HandleFunc("/healthz", router.Healthz)
+	mux.HandleFunc("/.well-known/jwks.json", router.WellKnownJWKs)
+	mux.Handle("/v1/", api.HandlerWithBaseURL(router, "/v1"))
 
 	if options.UIProxy != "" {
 		remote, err := urlx.Parse(options.UIProxy)
 		if err != nil {
 			return err
 		}
-		mux.Handle("/", server.loginRedirectMiddleware(httputil.NewSingleHostReverseProxy(remote)))
+		mux.Handle("/", router.loginRedirectMiddleware(httputil.NewSingleHostReverseProxy(remote)))
 	} else {
-		mux.Handle("/", server.loginRedirectMiddleware(gziphandler.GzipHandler(http.FileServer(&StaticFileSystem{base: &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo}}))))
+		mux.Handle("/", router.loginRedirectMiddleware(gziphandler.GzipHandler(http.FileServer(&StaticFileSystem{base: &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo}}))))
 	}
 
 	plaintextServer := http.Server{
