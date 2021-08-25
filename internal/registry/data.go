@@ -62,21 +62,21 @@ type Source struct {
 	ClientSecret string
 	ApiToken     string
 
-	Users  []User  `gorm:"many2many:users_sources"`
-	Groups []Group `gorm:"many2many:groups_sources"`
+	Users []User `gorm:"many2many:users_sources"`
 
 	FromConfig bool
 }
 
 type Group struct {
-	Id      string `gorm:"primaryKey"`
-	Created int64  `gorm:"autoCreateTime"`
-	Updated int64  `gorm:"autoUpdateTime"`
-	Name    string
+	Id       string `gorm:"primaryKey"`
+	Created  int64  `gorm:"autoCreateTime"`
+	Updated  int64  `gorm:"autoUpdateTime"`
+	Name     string
+	SourceId string
+	Source   Source `gorm:"foreignKey:SourceId;references:Id"`
 
-	Sources []Source `gorm:"many2many:groups_sources"`
-	Roles   []Role   `gorm:"many2many:groups_roles"`
-	Users   []User   `gorm:"many2many:groups_users"`
+	Roles []Role `gorm:"many2many:groups_roles"`
+	Users []User `gorm:"many2many:groups_users"`
 }
 
 var (
@@ -348,7 +348,6 @@ func (s *Source) DeleteUser(db *gorm.DB, u *User) error {
 func (s *Source) Validate(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) error {
 	switch s.Type {
 	case "okta":
-		// TODO (brucemacd): expand this validation to be broad when we add more sources
 		apiToken, err := k8s.GetSecret(s.ApiToken)
 		if err != nil {
 			// this logs the expected secret object location, not the actual secret
@@ -406,7 +405,7 @@ func (s *Source) SyncUsers(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) e
 }
 
 func (s *Source) SyncGroups(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) error {
-	var groups map[string][]string
+	var groupEmails map[string][]string
 
 	switch s.Type {
 	case "okta":
@@ -416,16 +415,20 @@ func (s *Source) SyncGroups(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) 
 		}
 
 		// find the group names associated with this source
-		if len(s.Groups) == 0 {
+		var groups []Group
+		if err := db.Where(&Group{SourceId: s.Id}).Find(&groups).Error; err != nil {
+			return err
+		}
+		if len(groups) == 0 {
 			logging.L.Debug("skipped syncing groups for source with no group mappings: " + s.Type)
 			return nil
 		}
 		var grpNames []string
-		for _, g := range s.Groups {
+		for _, g := range groups {
 			grpNames = append(grpNames, g.Name)
 		}
 
-		groups, err = okta.Groups(s.Domain, s.ClientId, apiToken, grpNames)
+		groupEmails, err = okta.Groups(s.Domain, s.ClientId, apiToken, grpNames)
 		if err != nil {
 			return err
 		}
@@ -434,24 +437,37 @@ func (s *Source) SyncGroups(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) 
 	}
 
 	return db.Transaction(func(tx *gorm.DB) error {
-		for groupName, emails := range groups {
+		var idsToKeep []string
+		for groupName, emails := range groupEmails {
 			var group Group
-			err := db.Where(&Group{Name: groupName}).First(&group).Error
-			if err != nil {
-				return err
+			grpErr := tx.Where(&Group{Name: groupName, SourceId: s.Id}).First(&group).Error
+			if grpErr != nil {
+				if errors.Is(grpErr, gorm.ErrRecordNotFound) {
+					// this means the group is assigned to the okta app, but is not in the config
+					logging.L.Debug("skipping okta group not found in config: " + groupName)
+					continue
+				}
+				return grpErr
 			}
 			var users []User
-			err = db.Where("email IN ?", emails).Find(&users).Error
+			err := tx.Where("email IN ?", emails).Find(&users).Error
 			if err != nil {
 				return err
 			}
-			for _, u := range users {
-				if db.Model(&u).Where(&Group{Id: group.Id}).Association("Groups").Count() == 0 {
-					if err := db.Model(&u).Where(&Group{Id: group.Id}).Association("Groups").Append(&group); err != nil {
-						return err
-					}
-				}
+			err = tx.Model(&group).Association("Users").Replace(users)
+			if err != nil {
+				return err
 			}
+			idsToKeep = append(idsToKeep, group.Id)
+		}
+		// these groups no longer exist in the source so remove their users, but leave the entity in case they are re-created
+		var removedGroups []Group
+		err := tx.Where(&Group{SourceId: s.Id}).Not(idsToKeep).Find(&removedGroups).Error
+		if err != nil {
+			return err
+		}
+		for _, removed := range removedGroups {
+			tx.Model(&removed).Association("Users").Clear()
 		}
 		return nil
 	})

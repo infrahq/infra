@@ -31,7 +31,7 @@ spec:
                   optional: true
             - name: INFRA_LOG_LEVEL
               value: info
-            - name: INFRA_SOURCE_SYNC_INTERVAL_SECONDS
+            - name: INFRA_SYNC_INTERVAL_SECONDS
               value: "30"
           ports:
             - containerPort: 80

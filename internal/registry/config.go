@@ -23,9 +23,9 @@ type ConfigRoleKubernetes struct {
 }
 
 type ConfigGroupMapping struct {
-	Name    string                 `yaml:"name"`
-	Sources []string               `yaml:"sources"`
-	Roles   []ConfigRoleKubernetes `yaml:"roles"`
+	Name   string                 `yaml:"name"`
+	Source string                 `yaml:"source"`
+	Roles  []ConfigRoleKubernetes `yaml:"roles"`
 }
 
 type ConfigUserMapping struct {
@@ -92,46 +92,20 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 	return nil
 }
 
-func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (groupIds []string, roleIds []string, err error) {
-	for _, g := range groups {
-		// get the sources from the datastore that this group specifies
-		var sources []Source
-		for _, src := range g.Sources {
-			var source Source
-			// Assumes that only one type of each source can exist
-			srcReadErr := db.Where(&Source{Type: src}).First(&source).Error
-			if srcReadErr != nil {
-				if errors.Is(srcReadErr, gorm.ErrRecordNotFound) {
-					// skip this source, it will need to be added in the config and re-applied
-					logging.L.Debug("skipping source in config that does not exist: " + src)
-					continue
-				}
-				err = srcReadErr
-				return
+func ApplyGroupMappings(db *gorm.DB, configGroups []ConfigGroupMapping) (groupIds []string, roleIds []string, err error) {
+	for _, g := range configGroups {
+		// get the source from the datastore that this group specifies
+		var source Source
+		// Assumes that only one type of each source can exist
+		srcReadErr := db.Where(&Source{Type: g.Source}).First(&source).Error
+		if srcReadErr != nil {
+			if errors.Is(srcReadErr, gorm.ErrRecordNotFound) {
+				// skip this source, it will need to be added in the config and re-applied
+				logging.L.Debug("skipping group with source in config that does not exist: " + g.Source)
+				continue
 			}
-			sources = append(sources, source)
-		}
-
-		// TODO: remove this requirement
-		if len(sources) == 0 {
-			logging.L.Info("no valid sources found, skipping group: " + g.Name)
-			continue
-		}
-
-		var group Group
-		// Group names must be unique for mapping purposes
-		err = db.FirstOrCreate(&group, &Group{Name: g.Name}).Error
-		if err != nil {
+			err = srcReadErr
 			return
-		}
-
-		// add the identity provider associations to the group
-		for _, source := range sources {
-			if db.Model(&source).Where(&Group{Id: group.Id}).Association("Groups").Count() == 0 {
-				if err = db.Model(&source).Where(&Group{Id: group.Id}).Association("Groups").Append(&group); err != nil {
-					return
-				}
-			}
 		}
 
 		// import the roles on this group from the datastore
@@ -140,10 +114,18 @@ func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (groupIds []st
 		if err != nil {
 			return
 		}
+
+		var group Group
+		// Group names must be unique for mapping purposes
+		err = db.FirstOrCreate(&group, &Group{Name: g.Name, SourceId: source.Id}).Error
+		if err != nil {
+			return
+		}
+
 		// add the new group associations to the roles
 		for _, role := range roles {
-			if db.Model(&role).Where(&Group{Id: group.Id}).Association("Groups").Count() == 0 {
-				if err = db.Model(&role).Where(&Group{Id: group.Id}).Association("Groups").Append(&group); err != nil {
+			if db.Model(&group).Where(&Role{Id: role.Id}).Association("Roles").Count() == 0 {
+				if err = db.Model(&group).Where(&Role{Id: role.Id}).Association("Roles").Append(&role); err != nil {
 					return
 				}
 			}
@@ -151,7 +133,6 @@ func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (groupIds []st
 		}
 		groupIds = append(groupIds, group.Id)
 	}
-
 	return
 }
 
@@ -170,7 +151,7 @@ func ApplyUserMapping(db *gorm.DB, users []ConfigUserMapping) ([]string, error) 
 			return nil, usrReadErr
 		}
 
-		// add the user to groups
+		// add the user to groups, these declarations can be overriden by external group syncing
 		for _, gName := range u.Groups {
 			// Assumes that only one group can exist with a given name, regardless of sources
 			var group Group
@@ -222,7 +203,9 @@ func ImportMappings(db *gorm.DB, groups []ConfigGroupMapping, users []ConfigUser
 		}
 	} else {
 		var groups []Group
-		db.Find(&groups)
+		if err := db.Find(&groups).Error; err != nil {
+			return err
+		}
 		if len(groups) > 0 {
 			err = db.Delete(groups).Error
 			if err != nil {

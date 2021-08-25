@@ -43,7 +43,7 @@ type Options struct {
 	DefaultApiKey string
 	ConfigPath    string
 	UIProxy       string
-	SyncInterval  string
+	SyncInterval  int
 }
 
 func mixedHandlerFunc(grpcServer *grpc.Server, httpHandler http.Handler) http.Handler {
@@ -216,22 +216,25 @@ func Run(options Options) error {
 
 	// schedule the user and group sync jobs
 	interval := 30
-	if options.SyncInterval != "" {
-		interval, err = strconv.Atoi(options.SyncInterval)
+	if options.SyncInterval > 0 {
+		interval = options.SyncInterval
 		if err != nil {
 			zapLogger.Error("invalid sync interval option specified: " + err.Error())
 		}
 	} else {
-		interval, err = strconv.Atoi(os.Getenv("INFRA_SOURCE_SYNC_INTERVAL_SECONDS"))
-		if err != nil {
-			zapLogger.Error("invalid INFRA_SOURCE_SYNC_INTERVAL_SECONDS env: " + err.Error())
+		envSync := os.Getenv("INFRA_SYNC_INTERVAL_SECONDS")
+		if envSync != "" {
+			interval, err = strconv.Atoi(envSync)
+			if err != nil {
+				zapLogger.Error("invalid INFRA_SYNC_INTERVAL_SECONDS env: " + err.Error())
+			}
 		}
 	}
 	timer := timer.Timer{}
-	// be careful with this sync job, there are Okta rate limits these requests
+	// be careful with this sync job, there are Okta rate limits on these requests
 	timer.Start(interval, func() {
 		var sources []Source
-		if err := db.Preload("Groups").Find(&sources).Error; err != nil {
+		if err := db.Find(&sources).Error; err != nil {
 			zapLogger.Error(err.Error())
 		}
 
@@ -240,11 +243,10 @@ func Run(options Options) error {
 			if err != nil {
 				zapLogger.Error(err.Error())
 			}
-			// TODO (brucemacd)
-			// err = s.SyncGroups(db, k8s, okta)
-			// if err != nil {
-			// 	zapLogger.Error(err.Error())
-			// }
+			err = s.SyncGroups(db, k8s, okta)
+			if err != nil {
+				zapLogger.Error(err.Error())
+			}
 		}
 	})
 	defer timer.Stop()

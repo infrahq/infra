@@ -26,6 +26,7 @@ import (
 	"github.com/goware/urlx"
 	"github.com/infrahq/infra/internal/engine"
 	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry"
 	v1 "github.com/infrahq/infra/internal/v1"
 	"github.com/infrahq/infra/internal/version"
@@ -796,7 +797,16 @@ func newRegistryCmd() (*cobra.Command, error) {
 	cmd.Flags().StringVar(&options.DBPath, "db", filepath.Join(home, ".infra", "infra.db"), "path to database file")
 	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(home, ".infra", "cache"), "path to directory to cache tls self-signed and Let's Encrypt certificates")
 	cmd.Flags().StringVar(&options.UIProxy, "ui-proxy", "", "proxy ui requests to this host")
-	cmd.Flags().StringVar(&options.SyncInterval, "source-sync-interval", os.Getenv("INFRA_SOURCE_SYNC_INTERVAL_SECONDS"), "the interval (in seconds) at which Infra will poll sources for users and groups")
+
+	defaultSync := 30
+	osSync := os.Getenv("INFRA_SYNC_INTERVAL_SECONDS")
+	if osSync != "" {
+		defaultSync, err = strconv.Atoi(osSync)
+		if err != nil {
+			logging.L.Error("could not convert INFRA_SYNC_INTERVAL_SECONDS to an integer: " + err.Error())
+		}
+	}
+	cmd.Flags().IntVar(&options.SyncInterval, "sync-interval", defaultSync, "the interval (in seconds) at which Infra will poll sources for users and groups")
 
 	return cmd, nil
 }

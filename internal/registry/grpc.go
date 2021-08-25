@@ -373,7 +373,9 @@ func (v *V1Server) CreateSource(ctx context.Context, in *v1.CreateSourceRequest)
 		return nil, err
 	}
 
-	// TODO: sync groups here
+	if err := source.SyncGroups(v.db, v.k8s, v.okta); err != nil {
+		return nil, err
+	}
 
 	return dbToProtoSource(&source), nil
 }
@@ -493,6 +495,7 @@ func dbToProtoRole(in *Role) *v1.Role {
 	return &role
 }
 
+// ListRoles returns all the roles for a destination with a list of all the users directly associated with those roles either directly or through a group
 func (v *V1Server) ListRoles(ctx context.Context, in *v1.ListRolesRequest) (*v1.ListRolesResponse, error) {
 	if err := in.ValidateAll(); err != nil {
 		return nil, err
@@ -507,12 +510,13 @@ func (v *V1Server) ListRoles(ctx context.Context, in *v1.ListRolesRequest) (*v1.
 	// build the response which unifies the relation of group and directly related users to the role
 	res := &v1.ListRolesResponse{}
 	for _, r := range roles {
-		// avoid duplicate users being added to the response by mapping based on user ID
+		// avoid duplicate users being added to the role by mapping based on user ID
 		rUsers := make(map[string]User)
+		// add the users directly associated with the role
 		for _, rUser := range r.Users {
 			rUsers[rUser.Id] = rUser
 		}
-		// add any group users associated with the role now
+		// iterate the groups, add their users to the roles associated with that group
 		for _, g := range r.Groups {
 			var gUsers []User
 			err := v.db.Model(&g).Association("Users").Find(&gUsers)

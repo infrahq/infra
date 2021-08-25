@@ -12,29 +12,40 @@ sources:
 
 groups:
   - name: ios-developers
-    sources:
-      - okta
+    source: infra
     roles:
       - name: writer
         kind: cluster-role
         clusters:
           - cluster-AAA
   - name: mac-admins
-    sources:
-      - okta
+    source: infra
     roles:
       - name: writer
         kind: cluster-role
         clusters:
           - cluster-BBB
   - name: adversaries
-    sources:
-      - outside
+    source: outside
     roles:
       - name: cluster-admin
         kind: cluster-role
         clusters:
           - cluster-AAA
+  - name: heroes
+    source: okta
+    roles:
+      - name: writer
+        kind: cluster-role
+        clusters:
+          - cluster-CCC
+  - name: villains
+    source: okta
+    roles:
+      - name: writer
+        kind: cluster-role
+        clusters:
+          - cluster-CCC
 
 users:
   - name: woz@example.com

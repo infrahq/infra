@@ -9,8 +9,7 @@ First, create or edit an existing a config file `infra.yaml`:
 ```
 groups:
   - name: developers          # group name in an external identity provider
-    sources:                  # the identity providers this group applies to
-      - okta
+    source: okta              # the identity provider this group applies to
     roles:
       - name: writer          # Kubernetes cluster-role name
         kind: cluster-role

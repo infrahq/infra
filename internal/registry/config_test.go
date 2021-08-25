@@ -19,6 +19,7 @@ var standardUser = User{Email: "user@example.com"}
 var iosDevUser = User{Email: "woz@example.com"}
 var clusterA = Destination{Name: "cluster-AAA"}
 var clusterB = Destination{Name: "cluster-BBB"}
+var clusterC = Destination{Name: "cluster-CCC"}
 
 func setup() error {
 	confFile, err := ioutil.ReadFile("_testdata/infra.yaml")
@@ -54,6 +55,10 @@ func setup() error {
 	if err != nil {
 		return err
 	}
+	err = db.Create(&clusterC).Error
+	if err != nil {
+		return err
+	}
 
 	return ImportConfig(db, confFile)
 }
@@ -78,45 +83,29 @@ func TestImportCurrentValidConfig(t *testing.T) {
 
 func TestGroupsForExistingSourcesAreCreated(t *testing.T) {
 	var groups []Group
-	db.Find(&groups)
-	assert.Equal(t, 2, len(groups), "Only two groups should be created from the test config, the other group has an invalid source")
-	group1 := groups[0]
-	group2 := groups[1]
+	db.Preload("Roles").Find(&groups)
+	assert.Equal(t, 4, len(groups), "Exactly four groups should be created from the test config, the other group has an invalid source")
 
-	var sources []Source
-	db.Model(&group1).Association("Sources").Find(&sources)
-	assert.Equal(t, 1, len(sources), "Groups in the test config should only have the source \"okta\"")
-	db.Model(&group2).Association("Sources").Find(&sources)
-	assert.Equal(t, 1, len(sources), "Groups in the test config should only have the source \"okta\"")
-
-	var roles1 []Role
-	db.Model(&group1).Association("Roles").Find(&roles1)
-	assert.Equal(t, 1, len(roles1), "The groups in the test config should have only one role")
-	var roles2 []Role
-	db.Model(&group2).Association("Roles").Find(&roles2)
-	assert.Equal(t, 1, len(roles2), "The groups in the test config should have only one role")
-
-	var destinationRoles = map[string]string{
-		clusterA.Id: "writer",
-		clusterB.Id: "writer",
+	groupNames := make(map[string]Group)
+	for _, g := range groups {
+		groupNames[g.Name] = g
 	}
-	var roles []Role
-	roles = append(roles, roles1...)
-	roles = append(roles, roles2...)
-	// check all of our expected roles exist
-	for _, role := range roles {
-		if destinationRoles[role.DestinationId] == "" {
-			t.Error("Unexpected role loaded from test config", role)
-		}
-		delete(destinationRoles, role.DestinationId)
-	}
-	assert.Empty(t, destinationRoles, "Not all roles expected to be loaded from test config were seen")
+	assert.NotNil(t, groupNames["ios-developers"])
+	assert.NotNil(t, groupNames["mac-admins"])
+	assert.NotNil(t, groupNames["heroes"])
+	assert.NotNil(t, groupNames["villains"])
+
+	assert.Len(t, groupNames["ios-developers"].Roles, 1)
+	assert.Equal(t, groupNames["ios-developers"].Roles[0].DestinationId, clusterA.Id)
+
+	assert.Len(t, groupNames["mac-admins"].Roles, 1)
+	assert.Contains(t, groupNames["mac-admins"].Roles[0].DestinationId, clusterB.Id)
 }
 
 func TestGroupsForUnknownSourcesAreNotCreated(t *testing.T) {
 	var groups []Group
 	db.Find(&groups)
-	assert.Equal(t, 2, len(groups), "Only two groups should be created from the test config, the other group has an invalid source")
+	assert.Equal(t, 4, len(groups), "Exactly four groups should be created from the test config, the other group has an invalid source")
 	group1 := groups[0]
 	group2 := groups[1]
 

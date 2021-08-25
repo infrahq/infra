@@ -51,7 +51,6 @@ dev:
 dev/clean:
 	helm uninstall --namespace infrahq infra-registry || true
 	helm uninstall --namespace infrahq infra-engine || true
-	kubectl delete namespace infrahq
 
 release:
 	goreleaser release -f .goreleaser.yml --rm-dist

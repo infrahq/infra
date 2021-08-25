@@ -60,13 +60,27 @@ func (o *oktaImplementation) Emails(domain string, clientID string, apiToken str
 }
 
 // Groups retrieves groups that exist in Okta for the configured InfraHQ group-role mappings and returns a map of group names to user lists
-func (o *oktaImplementation) Groups(domain string, clientID string, apiToken string, groupNames []string) (map[string][]string, error) {
+func (o *oktaImplementation) Groups(domain string, clientID string, apiToken string, sourceGroups []string) (map[string][]string, error) {
 	ctx, client, err := okta.NewClient(context.TODO(), okta.WithOrgUrl("https://"+domain), okta.WithRequestTimeout(30), okta.WithRateLimitMaxRetries(3), okta.WithToken(apiToken))
 	if err != nil {
 		return nil, err
 	}
 
-	// we have an API token, so we can list all Okta groups and save the admin the step of linking them to the InfraHQ application
+	// this returns a list of group IDs assigned to our client, we next need to find which names these IDs correspond to
+	oktaApplicationGroups, resp, err := client.Application.ListApplicationGroupAssignments(ctx, clientID, nil)
+	if err != nil {
+		return nil, err
+	}
+	for resp.HasNextPage() {
+		var nextAppGroupSet []*okta.ApplicationGroupAssignment
+		resp, err = resp.Next(ctx, &nextAppGroupSet)
+		if err != nil {
+			return nil, err
+		}
+		oktaApplicationGroups = append(oktaApplicationGroups, nextAppGroupSet...)
+	}
+
+	// we have an API token, so we can list all Okta groups to avoid needing to query for each ID to get the name for that group
 	oktaGroups, resp, err := client.Group.ListGroups(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -80,18 +94,26 @@ func (o *oktaImplementation) Groups(domain string, clientID string, apiToken str
 		oktaGroups = append(oktaGroups, nextGroupSet...)
 	}
 
-	// get the IDs for groups so we can look up the users for the ones we care about
-	grpIDs := make(map[string]string)
+	// get the ID to group name mapping for looking up groups from the assigned application groups
+	grpNames := make(map[string]string)
 	for _, oktaGroup := range oktaGroups {
-		grpIDs[oktaGroup.Profile.Name] = oktaGroup.Id
+		grpNames[oktaGroup.Id] = oktaGroup.Profile.Name
 	}
 
-	// for each group in the infra config, find the users it has in Okta
+	// to find the group name (which is what config specifies) for each group ID assigned to the application in Okta
+	appGroups := make(map[string]string)
+	for _, appGroup := range oktaApplicationGroups {
+		groupName := grpNames[appGroup.Id]
+		appGroups[groupName] = appGroup.Id
+	}
+
+	// for each group in the infra config that is assigned to the application, find the users it has in Okta
 	grpUsers := make(map[string][]string)
-	for _, g := range groupNames {
-		id := grpIDs[g]
+	for _, name := range sourceGroups {
+		// get the ID for the group so we can look up the users for the ones we care about
+		id := appGroups[name]
 		if id == "" {
-			grpc_zap.Extract(ctx).Debug("ignoring group that does not exist in okta: " + g)
+			grpc_zap.Extract(ctx).Debug("ignoring group that does not exist in okta: " + name)
 			continue
 		}
 
@@ -116,7 +138,7 @@ func (o *oktaImplementation) Groups(domain string, clientID string, apiToken str
 				emails = append(emails, email)
 			}
 		}
-		grpUsers[g] = emails
+		grpUsers[name] = emails
 	}
 	return grpUsers, nil
 }
