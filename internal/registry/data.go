@@ -56,7 +56,7 @@ type Source struct {
 	Updated int64  `gorm:"autoUpdateTime"`
 	Type    string `yaml:"type"`
 
-	Domain       string `gorm:"unique"`
+	Domain       string
 	ClientId     string
 	ClientSecret string
 	ApiToken     string
