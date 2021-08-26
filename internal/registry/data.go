@@ -289,17 +289,21 @@ func (s *Source) BeforeDelete(tx *gorm.DB) error {
 // CreateUser will create a user and associate them with the source
 // If the user already exists, they will not be created, instead an association
 // will be added instead
-func (s *Source) CreateUser(db *gorm.DB, user *User, email string, password string, admin bool) error {
-	var hashedPassword []byte
-	var err error
-
+func (s *Source) CreateUser(db *gorm.DB, user *User, email string, password string, makeAdmin bool) error {
 	return db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where(&User{Email: email}).Attrs(User{Admin: admin}).FirstOrCreate(&user).Error; err != nil {
+		if err := tx.Where(&User{Email: email}).FirstOrCreate(&user).Error; err != nil {
 			return err
 		}
 
+		if makeAdmin {
+			user.Admin = true
+			if err := tx.Save(&user).Error; err != nil {
+				return err
+			}
+		}
+
 		if password != "" {
-			hashedPassword, err = bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+			hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 			if err != nil {
 				return errors.New("could not create user")
 			}
