@@ -685,17 +685,20 @@ func (v *V1Server) Signup(ctx context.Context, in *v1.SignupRequest) (*v1.LoginR
 
 		var infraSource Source
 		if err := tx.Where(&Source{Type: SOURCE_TYPE_INFRA}).First(&infraSource).Error; err != nil {
-			return status.Errorf(codes.Internal, err.Error())
+			grpc_zap.Extract(ctx).Debug(err.Error())
+			return status.Errorf(codes.Internal, "could not create user")
 		}
 
 		var user User
 		if err := infraSource.CreateUser(tx, &user, in.Email, in.Password, true); err != nil {
-			return status.Errorf(codes.Internal, err.Error())
+			grpc_zap.Extract(ctx).Debug(err.Error())
+			return status.Errorf(codes.Internal, "could not create user")
 		}
 
 		secret, err = NewToken(tx, user.Id, &token)
 		if err != nil {
-			return status.Errorf(codes.Internal, err.Error())
+			grpc_zap.Extract(ctx).Debug(err.Error())
+			return status.Errorf(codes.Internal, "could not create token for admin user")
 		}
 
 		return nil
