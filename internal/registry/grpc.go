@@ -690,7 +690,7 @@ func (v *V1Server) Signup(ctx context.Context, in *v1.SignupRequest) (*v1.LoginR
 		}
 
 		if count > 0 {
-			return status.Errorf(codes.InvalidArgument, "admin user already exists")
+			return status.Errorf(codes.InvalidArgument, "user with email already exists")
 		}
 
 		var infraSource Source
