@@ -25,6 +25,7 @@ export default function Login () {
     e.preventDefault()
     try {
       await V1.Login({ infra: { email, password } })
+      setError('')
       router.replace(next)
     } catch (e) {
       setError(e.message)

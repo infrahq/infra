@@ -8,15 +8,17 @@ export default function Signup () {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error] = useState('')
+  const [error, setError] = useState('')
   const [cookies] = useCookies(['login'])
 
   const handleSubmit = useCallback(async e => {
     e.preventDefault()
     try {
       await V1.Signup({ email, password })
+      setError('')
       router.replace("/")
     } catch (e) {
+      setError(e)
       console.error(e)
     }
   }, [email, password])
