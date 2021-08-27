@@ -7,10 +7,12 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"io/fs"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -41,6 +43,7 @@ type Options struct {
 	DefaultApiKey string
 	ConfigPath    string
 	UIProxy       string
+	SyncInterval  int
 }
 
 func mixedHandlerFunc(grpcServer *grpc.Server, httpHandler http.Handler) http.Handler {
@@ -179,13 +182,22 @@ func Run(options Options) error {
 	if options.ConfigPath != "" {
 		contents, err = ioutil.ReadFile(options.ConfigPath)
 		if err != nil {
-			zapLogger.Error(err.Error())
+			switch err.(type) {
+			case *fs.PathError:
+				zapLogger.Warn("no config file found at " + options.ConfigPath)
+			default:
+				zapLogger.Error(err.Error())
+			}
 		}
 	}
 
-	err = ImportConfig(db, contents)
-	if err != nil {
-		return err
+	if len(contents) > 0 {
+		err = ImportConfig(db, contents)
+		if err != nil {
+			return err
+		}
+	} else {
+		zapLogger.Warn("skipped importing empty config")
 	}
 
 	// validate any existing or imported sources
@@ -202,17 +214,36 @@ func Run(options Options) error {
 		}
 	}
 
-	// schedule the user sync job
+	// schedule the user and group sync jobs
+	interval := 30
+	if options.SyncInterval > 0 {
+		interval = options.SyncInterval
+		if err != nil {
+			zapLogger.Error("invalid sync interval option specified: " + err.Error())
+		}
+	} else {
+		envSync := os.Getenv("INFRA_SYNC_INTERVAL_SECONDS")
+		if envSync != "" {
+			interval, err = strconv.Atoi(envSync)
+			if err != nil {
+				zapLogger.Error("invalid INFRA_SYNC_INTERVAL_SECONDS env: " + err.Error())
+			}
+		}
+	}
 	timer := timer.Timer{}
-	timer.Start(10, func() {
+	// be careful with this sync job, there are Okta rate limits on these requests
+	timer.Start(interval, func() {
 		var sources []Source
-
 		if err := db.Find(&sources).Error; err != nil {
 			zapLogger.Error(err.Error())
 		}
 
 		for _, s := range sources {
 			err = s.SyncUsers(db, k8s, okta)
+			if err != nil {
+				zapLogger.Error(err.Error())
+			}
+			err = s.SyncGroups(db, k8s, okta)
 			if err != nil {
 				zapLogger.Error(err.Error())
 			}

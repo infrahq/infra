@@ -26,6 +26,7 @@ import (
 	"github.com/goware/urlx"
 	"github.com/infrahq/infra/internal/engine"
 	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry"
 	v1 "github.com/infrahq/infra/internal/v1"
 	"github.com/infrahq/infra/internal/version"
@@ -34,9 +35,11 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
 	grpcMetadata "google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientauthenticationv1alpha1 "k8s.io/client-go/pkg/apis/clientauthentication/v1alpha1"
@@ -795,6 +798,16 @@ func newRegistryCmd() (*cobra.Command, error) {
 	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(home, ".infra", "cache"), "path to directory to cache tls self-signed and Let's Encrypt certificates")
 	cmd.Flags().StringVar(&options.UIProxy, "ui-proxy", "", "proxy ui requests to this host")
 
+	defaultSync := 30
+	osSync := os.Getenv("INFRA_SYNC_INTERVAL_SECONDS")
+	if osSync != "" {
+		defaultSync, err = strconv.Atoi(osSync)
+		if err != nil {
+			logging.L.Error("could not convert INFRA_SYNC_INTERVAL_SECONDS to an integer: " + err.Error())
+		}
+	}
+	cmd.Flags().IntVar(&options.SyncInterval, "sync-interval", defaultSync, "the interval (in seconds) at which Infra will poll sources for users and groups")
+
 	return cmd, nil
 }
 
@@ -836,21 +849,25 @@ var versionCmd = &cobra.Command{
 
 		client, close, err := clientFromConfig()
 		if err != nil {
-			switch err.(type) {
-			case *ErrUnauthenticated:
-				fmt.Fprintln(w, "Registry:\t", "not connected")
-				return nil
-			default:
-				return err
-			}
+			fmt.Fprintln(w, blue("✕")+" Could not retrieve client version")
+			return err
 		}
 		defer close()
 
 		// Note that we use the client to get this version, but it is in fact the server version
 		res, err := client.Version(context.Background(), &emptypb.Empty{})
 		if err != nil {
-			fmt.Fprintln(w, blue("✕")+" Could not retrieve registry version")
-			return err
+			status, ok := status.FromError(err)
+			if !ok {
+				return err
+			}
+			switch status.Code() {
+			case codes.Unavailable:
+				fmt.Fprintln(w, "Registry:\t", "not connected")
+				return nil
+			default:
+				return err
+			}
 		}
 
 		fmt.Fprintln(w, "Registry:\t", res.Version)

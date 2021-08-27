@@ -42,15 +42,16 @@ build:
 dev:
 	kubectl config use-context docker-desktop
 	docker build . -t infrahq/infra:0.0.0-development
-	helm upgrade --install infra-registry ./helm/charts/registry --set image.pullPolicy=Never --set image.tag=0.0.0-development
-	kubectl wait --for=condition=available --timeout=600s deployment/infra-registry
-	helm upgrade --install infra-engine ./helm/charts/engine --set image.pullPolicy=Never --set image.tag=0.0.0-development --set name=dd --set endpoint=kubernetes.docker.internal:6443 --set registry=infra-registry --set apiKey=$$(kubectl get secrets/infra-registry --template={{.data.defaultApiKey}} | base64 -D)
-	kubectl rollout restart deployment/infra-registry
-	kubectl rollout restart deployment/infra-engine
+	helm upgrade --install infra-registry ./helm/charts/registry --namespace infrahq --create-namespace --set image.pullPolicy=Never --set image.tag=0.0.0-development
+	kubectl wait --for=condition=available --timeout=600s deployment/infra-registry --namespace infrahq
+	helm upgrade --install infra-engine ./helm/charts/engine --namespace infrahq --set image.pullPolicy=Never --set image.tag=0.0.0-development --set name=dd --set endpoint=kubernetes.docker.internal:6443 --set registry=infra-registry --set apiKey=$$(kubectl get secrets/infra-registry --template={{.data.defaultApiKey}} --namespace infrahq | base64 -D)
+	kubectl rollout restart deployment/infra-registry --namespace infrahq
+	kubectl rollout restart deployment/infra-engine --namespace infrahq
 
 dev/clean:
-	helm uninstall --namespace default infra-registry || true
-	helm uninstall --namespace default infra-engine || true
+	kubectl config use-context docker-desktop
+	helm uninstall --namespace infrahq infra-registry || true
+	helm uninstall --namespace infrahq infra-engine || true
 
 release:
 	goreleaser release -f .goreleaser.yml --rm-dist

@@ -29,6 +29,10 @@ spec:
                   name: infra-registry
                   key: defaultApiKey
                   optional: true
+            - name: INFRA_LOG_LEVEL
+              value: info
+            - name: INFRA_SYNC_INTERVAL_SECONDS
+              value: "30"
           ports:
             - containerPort: 80
             - containerPort: 443

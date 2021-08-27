@@ -17,6 +17,7 @@ import (
 
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/kubernetes"
+	"github.com/infrahq/infra/internal/logging"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/square/go-jose.v2"
 	"gorm.io/driver/sqlite"
@@ -61,21 +62,21 @@ type Source struct {
 	ClientSecret string
 	ApiToken     string
 
-	Users  []User  `gorm:"many2many:users_sources"`
-	Groups []Group `gorm:"many2many:groups_sources"`
+	Users []User `gorm:"many2many:users_sources"`
 
 	FromConfig bool
 }
 
 type Group struct {
-	Id      string `gorm:"primaryKey"`
-	Created int64  `gorm:"autoCreateTime"`
-	Updated int64  `gorm:"autoUpdateTime"`
-	Name    string
+	Id       string `gorm:"primaryKey"`
+	Created  int64  `gorm:"autoCreateTime"`
+	Updated  int64  `gorm:"autoUpdateTime"`
+	Name     string
+	SourceId string
+	Source   Source `gorm:"foreignKey:SourceId;references:Id"`
 
-	Sources []Source `gorm:"many2many:groups_sources"`
-	Roles   []Role   `gorm:"many2many:groups_roles"`
-	Users   []User   `gorm:"many2many:groups_users"`
+	Roles []Role `gorm:"many2many:groups_roles"`
+	Users []User `gorm:"many2many:groups_users"`
 }
 
 var (
@@ -349,18 +350,22 @@ func (s *Source) DeleteUser(db *gorm.DB, u *User) error {
 
 // Validate checks that an Okta source is valid
 func (s *Source) Validate(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) error {
-	// TODO (brucemacd): expand this validation to be broad when we add more sources
-	apiToken, err := k8s.GetSecret(s.ApiToken)
-	if err != nil {
-		// this logs the expected secret object location, not the actual secret
-		return fmt.Errorf("could not retrieve okta API token from kubernetes secret %v: %v", s.ApiToken, err)
-	}
+	switch s.Type {
+	case "okta":
+		apiToken, err := k8s.GetSecret(s.ApiToken)
+		if err != nil {
+			// this logs the expected secret object location, not the actual secret
+			return fmt.Errorf("could not retrieve okta API token from kubernetes secret %v: %v", s.ApiToken, err)
+		}
 
-	if _, err := k8s.GetSecret(s.ClientSecret); err != nil {
-		return fmt.Errorf("could not retrieve okta client secret from kubernetes secret %v: %v", s.ClientSecret, err)
-	}
+		if _, err := k8s.GetSecret(s.ClientSecret); err != nil {
+			return fmt.Errorf("could not retrieve okta client secret from kubernetes secret %v: %v", s.ClientSecret, err)
+		}
 
-	return okta.ValidateOktaConnection(s.Domain, s.ClientId, apiToken)
+		return okta.ValidateOktaConnection(s.Domain, s.ClientId, apiToken)
+	default:
+		return nil
+	}
 }
 
 func (s *Source) SyncUsers(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) error {
@@ -399,6 +404,75 @@ func (s *Source) SyncUsers(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) e
 			s.DeleteUser(tx, &td)
 		}
 
+		return nil
+	})
+}
+
+func (s *Source) SyncGroups(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) error {
+	var groupEmails map[string][]string
+
+	switch s.Type {
+	case "okta":
+		apiToken, err := k8s.GetSecret(s.ApiToken)
+		if err != nil {
+			return err
+		}
+
+		// find the group names associated with this source
+		var groups []Group
+		if err := db.Where(&Group{SourceId: s.Id}).Find(&groups).Error; err != nil {
+			return err
+		}
+		if len(groups) == 0 {
+			logging.L.Debug("skipped syncing groups for source with no group mappings: " + s.Type)
+			return nil
+		}
+		var grpNames []string
+		for _, g := range groups {
+			grpNames = append(grpNames, g.Name)
+		}
+
+		groupEmails, err = okta.Groups(s.Domain, s.ClientId, apiToken, grpNames)
+		if err != nil {
+			return err
+		}
+	default:
+		return nil
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		var idsToKeep []string
+		for groupName, emails := range groupEmails {
+			var group Group
+			grpErr := tx.Where(&Group{Name: groupName, SourceId: s.Id}).First(&group).Error
+			if grpErr != nil {
+				if errors.Is(grpErr, gorm.ErrRecordNotFound) {
+					// this means the group is assigned to the okta app, but is not in the config
+					logging.L.Debug("skipping okta group not found in config: " + groupName)
+					continue
+				}
+				return grpErr
+			}
+			var users []User
+			err := tx.Where("email IN ?", emails).Find(&users).Error
+			if err != nil {
+				return err
+			}
+			err = tx.Model(&group).Association("Users").Replace(users)
+			if err != nil {
+				return err
+			}
+			idsToKeep = append(idsToKeep, group.Id)
+		}
+		// these groups no longer exist in the source so remove their users, but leave the entity in case they are re-created
+		var removedGroups []Group
+		err := tx.Where(&Group{SourceId: s.Id}).Not(idsToKeep).Find(&removedGroups).Error
+		if err != nil {
+			return err
+		}
+		for _, removed := range removedGroups {
+			tx.Model(&removed).Association("Users").Clear()
+		}
 		return nil
 	})
 }
