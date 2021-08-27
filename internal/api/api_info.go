@@ -31,7 +31,7 @@ type ApiStatusRequest struct {
 	ApiService *InfoApiService
 }
 
-func (r ApiStatusRequest) Execute() (InlineResponse2001, *_nethttp.Response, error) {
+func (r ApiStatusRequest) Execute() (StatusResponse, *_nethttp.Response, error) {
 	return r.ApiService.StatusExecute(r)
 }
 
@@ -49,15 +49,15 @@ func (a *InfoApiService) Status(ctx _context.Context) ApiStatusRequest {
 }
 
 // Execute executes the request
-//  @return InlineResponse2001
-func (a *InfoApiService) StatusExecute(r ApiStatusRequest) (InlineResponse2001, *_nethttp.Response, error) {
+//  @return StatusResponse
+func (a *InfoApiService) StatusExecute(r ApiStatusRequest) (StatusResponse, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodGet
 		localVarPostBody     interface{}
 		localVarFormFileName string
 		localVarFileName     string
 		localVarFileBytes    []byte
-		localVarReturnValue  InlineResponse2001
+		localVarReturnValue  StatusResponse
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "InfoApiService.Status")
@@ -137,7 +137,7 @@ type ApiVersionRequest struct {
 	ApiService *InfoApiService
 }
 
-func (r ApiVersionRequest) Execute() (InlineResponse200, *_nethttp.Response, error) {
+func (r ApiVersionRequest) Execute() (VersionResponse, *_nethttp.Response, error) {
 	return r.ApiService.VersionExecute(r)
 }
 
@@ -155,15 +155,15 @@ func (a *InfoApiService) Version(ctx _context.Context) ApiVersionRequest {
 }
 
 // Execute executes the request
-//  @return InlineResponse200
-func (a *InfoApiService) VersionExecute(r ApiVersionRequest) (InlineResponse200, *_nethttp.Response, error) {
+//  @return VersionResponse
+func (a *InfoApiService) VersionExecute(r ApiVersionRequest) (VersionResponse, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodGet
 		localVarPostBody     interface{}
 		localVarFormFileName string
 		localVarFileName     string
 		localVarFileBytes    []byte
-		localVarReturnValue  InlineResponse200
+		localVarReturnValue  VersionResponse
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "InfoApiService.Version")

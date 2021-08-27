@@ -14,31 +14,31 @@ import (
 	"encoding/json"
 )
 
-// InlineResponse2001 struct for InlineResponse2001
-type InlineResponse2001 struct {
+// StatusResponse struct for StatusResponse
+type StatusResponse struct {
 	Admin bool `json:"admin"`
 }
 
-// NewInlineResponse2001 instantiates a new InlineResponse2001 object
+// NewStatusResponse instantiates a new StatusResponse object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewInlineResponse2001(admin bool) *InlineResponse2001 {
-	this := InlineResponse2001{}
+func NewStatusResponse(admin bool) *StatusResponse {
+	this := StatusResponse{}
 	this.Admin = admin
 	return &this
 }
 
-// NewInlineResponse2001WithDefaults instantiates a new InlineResponse2001 object
+// NewStatusResponseWithDefaults instantiates a new StatusResponse object
 // This constructor will only assign default values to properties that have it defined,
 // but it doesn't guarantee that properties required by API are set
-func NewInlineResponse2001WithDefaults() *InlineResponse2001 {
-	this := InlineResponse2001{}
+func NewStatusResponseWithDefaults() *StatusResponse {
+	this := StatusResponse{}
 	return &this
 }
 
 // GetAdmin returns the Admin field value
-func (o *InlineResponse2001) GetAdmin() bool {
+func (o *StatusResponse) GetAdmin() bool {
 	if o == nil {
 		var ret bool
 		return ret
@@ -49,7 +49,7 @@ func (o *InlineResponse2001) GetAdmin() bool {
 
 // GetAdminOk returns a tuple with the Admin field value
 // and a boolean to check if the value has been set.
-func (o *InlineResponse2001) GetAdminOk() (*bool, bool) {
+func (o *StatusResponse) GetAdminOk() (*bool, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -57,11 +57,11 @@ func (o *InlineResponse2001) GetAdminOk() (*bool, bool) {
 }
 
 // SetAdmin sets field value
-func (o *InlineResponse2001) SetAdmin(v bool) {
+func (o *StatusResponse) SetAdmin(v bool) {
 	o.Admin = v
 }
 
-func (o InlineResponse2001) MarshalJSON() ([]byte, error) {
+func (o StatusResponse) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
 		toSerialize["admin"] = o.Admin
@@ -69,38 +69,38 @@ func (o InlineResponse2001) MarshalJSON() ([]byte, error) {
 	return json.Marshal(toSerialize)
 }
 
-type NullableInlineResponse2001 struct {
-	value *InlineResponse2001
+type NullableStatusResponse struct {
+	value *StatusResponse
 	isSet bool
 }
 
-func (v NullableInlineResponse2001) Get() *InlineResponse2001 {
+func (v NullableStatusResponse) Get() *StatusResponse {
 	return v.value
 }
 
-func (v *NullableInlineResponse2001) Set(val *InlineResponse2001) {
+func (v *NullableStatusResponse) Set(val *StatusResponse) {
 	v.value = val
 	v.isSet = true
 }
 
-func (v NullableInlineResponse2001) IsSet() bool {
+func (v NullableStatusResponse) IsSet() bool {
 	return v.isSet
 }
 
-func (v *NullableInlineResponse2001) Unset() {
+func (v *NullableStatusResponse) Unset() {
 	v.value = nil
 	v.isSet = false
 }
 
-func NewNullableInlineResponse2001(val *InlineResponse2001) *NullableInlineResponse2001 {
-	return &NullableInlineResponse2001{value: val, isSet: true}
+func NewNullableStatusResponse(val *StatusResponse) *NullableStatusResponse {
+	return &NullableStatusResponse{value: val, isSet: true}
 }
 
-func (v NullableInlineResponse2001) MarshalJSON() ([]byte, error) {
+func (v NullableStatusResponse) MarshalJSON() ([]byte, error) {
 	return json.Marshal(v.value)
 }
 
-func (v *NullableInlineResponse2001) UnmarshalJSON(src []byte) error {
+func (v *NullableStatusResponse) UnmarshalJSON(src []byte) error {
 	v.isSet = true
 	return json.Unmarshal(src, &v.value)
 }

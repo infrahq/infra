@@ -26,10 +26,8 @@ clean:
 	rm -rf dist
 
 openapi:
-	@GO_POST_PROCESS_FILE="gofmt -s -w" openapi-generator generate -i ./api/openapi.yaml -g go-server -o ./internal/registry/api --additional-properties packageName=api,sourceFolder=. --enable-post-process-file > /dev/null
-	@rm -rf ./internal/registry/api/api ./internal/registry/api/.openapi-generator
-	@GO_POST_PROCESS_FILE="gofmt -s -w" openapi-generator generate -i ./api/openapi.yaml -g go -o ./api/client --additional-properties packageName=client,isGoSubmodule=true --enable-post-process-file > /dev/null
-	@rm -rf ./api/client/api ./api/client/.openapi-generator
+	@GO_POST_PROCESS_FILE="gofmt -s -w" openapi-generator generate -i ./openapi.yaml -g go -o ./internal/api --additional-properties packageName=client,isGoSubmodule=true --enable-post-process-file > /dev/null
+	@rm -rf ./internal/api/api ./internal/api/.openapi-generator
 
 .PHONY: build
 build:

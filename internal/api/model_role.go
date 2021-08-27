@@ -22,14 +22,14 @@ type Role struct {
 	Updated     int64       `json:"updated"`
 	Users       []User      `json:"users"`
 	Destination Destination `json:"destination"`
-	Kind        string      `json:"kind"`
+	Kind        RoleKind    `json:"kind"`
 }
 
 // NewRole instantiates a new Role object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewRole(id string, name string, created int64, updated int64, users []User, destination Destination, kind string) *Role {
+func NewRole(id string, name string, created int64, updated int64, users []User, destination Destination, kind RoleKind) *Role {
 	this := Role{}
 	this.Id = id
 	this.Name = name
@@ -194,9 +194,9 @@ func (o *Role) SetDestination(v Destination) {
 }
 
 // GetKind returns the Kind field value
-func (o *Role) GetKind() string {
+func (o *Role) GetKind() RoleKind {
 	if o == nil {
-		var ret string
+		var ret RoleKind
 		return ret
 	}
 
@@ -205,7 +205,7 @@ func (o *Role) GetKind() string {
 
 // GetKindOk returns a tuple with the Kind field value
 // and a boolean to check if the value has been set.
-func (o *Role) GetKindOk() (*string, bool) {
+func (o *Role) GetKindOk() (*RoleKind, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -213,7 +213,7 @@ func (o *Role) GetKindOk() (*string, bool) {
 }
 
 // SetKind sets field value
-func (o *Role) SetKind(v string) {
+func (o *Role) SetKind(v RoleKind) {
 	o.Kind = v
 }
 

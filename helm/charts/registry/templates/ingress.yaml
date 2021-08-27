@@ -1,18 +1,18 @@
 {{- if .Values.ingress.enabled -}}
-{{- $servicePort := .Values.ingress.https.servicePort -}}
+{{- $servicePort := .Values.ingress.servicePort -}}
 apiVersion: {{ include "infra.ingress.apiVersion" . }}
 kind: Ingress
 metadata:
-{{- if .Values.ingress.https.annotations }}
+{{- if .Values.ingress.annotations }}
   annotations:
-  {{- range $k, $v := .Values.ingress.https.annotations }}
+  {{- range $k, $v := .Values.ingress.annotations }}
     {{ $k }}: {{ tpl (toYaml $v) $ }}
   {{- end }}
 {{- end }}
   name: infra-registry-http
   labels:
-    {{- if .Values.ingress.https.labels }}
-    {{- toYaml .Values.ingress.https.labels | indent 4 }}
+    {{- if .Values.ingress.labels }}
+    {{- toYaml .Values.ingress.labels | indent 4 }}
     {{- end }}
 spec:
   rules:

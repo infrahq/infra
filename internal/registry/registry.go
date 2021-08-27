@@ -179,26 +179,25 @@ func Run(options Options) error {
 		return err
 	}
 
-	router := NewApiRouter(okta, db, zapLogger, k8s)
-
+	h := Http{db: db}
 	mux := http.NewServeMux()
-	mux.HandleFunc("/healthz", router.Healthz)
-	mux.HandleFunc("/.well-known/jwks.json", router.WellKnownJWKs)
-	mux.Handle("/v1/", api.HandlerWithBaseURL(router, "/v1"))
+	mux.HandleFunc("/healthz", Healthz)
+	mux.HandleFunc("/.well-known/jwks.json", h.WellKnownJWKs)
+	mux.Handle("/v1/", NewApiMux(db))
 
 	if options.UIProxy != "" {
 		remote, err := urlx.Parse(options.UIProxy)
 		if err != nil {
 			return err
 		}
-		mux.Handle("/", router.loginRedirectMiddleware(httputil.NewSingleHostReverseProxy(remote)))
+		mux.Handle("/", h.loginRedirectMiddleware(httputil.NewSingleHostReverseProxy(remote)))
 	} else {
-		mux.Handle("/", router.loginRedirectMiddleware(gziphandler.GzipHandler(http.FileServer(&StaticFileSystem{base: &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo}}))))
+		mux.Handle("/", h.loginRedirectMiddleware(gziphandler.GzipHandler(http.FileServer(&StaticFileSystem{base: &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo}}))))
 	}
 
 	plaintextServer := http.Server{
 		Addr:    ":80",
-		Handler: ZapLoggerHttpMiddleware(zapLogger, mux),
+		Handler: ZapLoggerHttpMiddleware(mux),
 	}
 
 	go func() {
@@ -219,7 +218,7 @@ func Run(options Options) error {
 	tlsServer := &http.Server{
 		Addr:      ":443",
 		TLSConfig: tlsConfig,
-		Handler:   ZapLoggerHttpMiddleware(zapLogger, mux),
+		Handler:   ZapLoggerHttpMiddleware(mux),
 	}
 
 	return tlsServer.ListenAndServeTLS("", "")

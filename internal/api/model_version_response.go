@@ -14,31 +14,31 @@ import (
 	"encoding/json"
 )
 
-// InlineResponse200 struct for InlineResponse200
-type InlineResponse200 struct {
+// VersionResponse struct for VersionResponse
+type VersionResponse struct {
 	Version string `json:"version"`
 }
 
-// NewInlineResponse200 instantiates a new InlineResponse200 object
+// NewVersionResponse instantiates a new VersionResponse object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewInlineResponse200(version string) *InlineResponse200 {
-	this := InlineResponse200{}
+func NewVersionResponse(version string) *VersionResponse {
+	this := VersionResponse{}
 	this.Version = version
 	return &this
 }
 
-// NewInlineResponse200WithDefaults instantiates a new InlineResponse200 object
+// NewVersionResponseWithDefaults instantiates a new VersionResponse object
 // This constructor will only assign default values to properties that have it defined,
 // but it doesn't guarantee that properties required by API are set
-func NewInlineResponse200WithDefaults() *InlineResponse200 {
-	this := InlineResponse200{}
+func NewVersionResponseWithDefaults() *VersionResponse {
+	this := VersionResponse{}
 	return &this
 }
 
 // GetVersion returns the Version field value
-func (o *InlineResponse200) GetVersion() string {
+func (o *VersionResponse) GetVersion() string {
 	if o == nil {
 		var ret string
 		return ret
@@ -49,7 +49,7 @@ func (o *InlineResponse200) GetVersion() string {
 
 // GetVersionOk returns a tuple with the Version field value
 // and a boolean to check if the value has been set.
-func (o *InlineResponse200) GetVersionOk() (*string, bool) {
+func (o *VersionResponse) GetVersionOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -57,11 +57,11 @@ func (o *InlineResponse200) GetVersionOk() (*string, bool) {
 }
 
 // SetVersion sets field value
-func (o *InlineResponse200) SetVersion(v string) {
+func (o *VersionResponse) SetVersion(v string) {
 	o.Version = v
 }
 
-func (o InlineResponse200) MarshalJSON() ([]byte, error) {
+func (o VersionResponse) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
 		toSerialize["version"] = o.Version
@@ -69,38 +69,38 @@ func (o InlineResponse200) MarshalJSON() ([]byte, error) {
 	return json.Marshal(toSerialize)
 }
 
-type NullableInlineResponse200 struct {
-	value *InlineResponse200
+type NullableVersionResponse struct {
+	value *VersionResponse
 	isSet bool
 }
 
-func (v NullableInlineResponse200) Get() *InlineResponse200 {
+func (v NullableVersionResponse) Get() *VersionResponse {
 	return v.value
 }
 
-func (v *NullableInlineResponse200) Set(val *InlineResponse200) {
+func (v *NullableVersionResponse) Set(val *VersionResponse) {
 	v.value = val
 	v.isSet = true
 }
 
-func (v NullableInlineResponse200) IsSet() bool {
+func (v NullableVersionResponse) IsSet() bool {
 	return v.isSet
 }
 
-func (v *NullableInlineResponse200) Unset() {
+func (v *NullableVersionResponse) Unset() {
 	v.value = nil
 	v.isSet = false
 }
 
-func NewNullableInlineResponse200(val *InlineResponse200) *NullableInlineResponse200 {
-	return &NullableInlineResponse200{value: val, isSet: true}
+func NewNullableVersionResponse(val *VersionResponse) *NullableVersionResponse {
+	return &NullableVersionResponse{value: val, isSet: true}
 }
 
-func (v NullableInlineResponse200) MarshalJSON() ([]byte, error) {
+func (v NullableVersionResponse) MarshalJSON() ([]byte, error) {
 	return json.Marshal(v.value)
 }
 
-func (v *NullableInlineResponse200) UnmarshalJSON(src []byte) error {
+func (v *NullableVersionResponse) UnmarshalJSON(src []byte) error {
 	v.isSet = true
 	return json.Unmarshal(src, &v.value)
 }

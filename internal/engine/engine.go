@@ -17,7 +17,7 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/goware/urlx"
-	api "github.com/infrahq/infra/api/client"
+	api "github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/timer"
@@ -277,7 +277,7 @@ func Run(options Options) error {
 
 		destination, _, err := client.DestinationsApi.CreateDestination(ctx).Body(api.DestinationCreateRequest{
 			Name: name,
-			Kubernetes: api.DestinationKubernetes{
+			Kubernetes: &api.DestinationKubernetes{
 				Ca:        string(ca),
 				Endpoint:  endpoint,
 				Namespace: namespace,

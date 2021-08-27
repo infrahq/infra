@@ -45,16 +45,6 @@ service:
   type: ClusterIP
   annotations:
     getambassador.io/config: |-
-      ---
-      apiVersion: getambassador.io/v2
-      kind: Mapping
-      name: infra-grpc-mapping
-      namespace: {{ .Release.Namespace }}
-      host: infrahq.example.com:443             # edit me
-      prefix: /
-      grpc: True
-      service: infra-registry:80
-      ---
       apiVersion: getambassador.io/v2
       kind: Mapping
       name: infra-https-mapping
@@ -75,23 +65,14 @@ service:
 ingress:
   enabled: true
   hosts: ["infra.example.com"]  # edit me
-  https:
-    annotations:
-      kubernetes.io/ingress.class: alb
-      alb.ingress.kubernetes.io/scheme: internet-facing         # (optional: use "internal" for non-internet facing)
-      alb.ingress.kubernetes.io/backend-protocol: HTTP
-      alb.ingress.kubernetes.io/actions.ssl-redirect: '{"Type": "redirect", "RedirectConfig": { "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}'
-      alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
-      alb.ingress.kubernetes.io/target-type: ip
-      alb.ingress.kubernetes.io/group.name: infra-registry      # (optional: edit me to use an existing shared load balanacer)
-  grpc:
-    annotations:
-      kubernetes.io/ingress.class: alb
-      alb.ingress.kubernetes.io/scheme: internet-facing         # (optional: use "internal" for non-internet facing)
-      alb.ingress.kubernetes.io/backend-protocol-version: GRPC
-      alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
-      alb.ingress.kubernetes.io/target-type: ip
-      alb.ingress.kubernetes.io/group.name: infra-registry      # (optional: edit me to use an existing shared load balanacer)
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing         # (optional: use "internal" for non-internet facing)
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/actions.ssl-redirect: '{"Type": "redirect", "RedirectConfig": { "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}'
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/group.name: infra-registry      # (optional: edit me to use an existing shared load balanacer)
 ```
 
 ### `ingress-nginx`
@@ -105,20 +86,12 @@ service:
 ingress:
   enabled: true
   hosts: ["infra.example.com"]  # edit me
-  https:
-    servicePort: 80
+  servicePort: 80
     annotations:
       kubernetes.io/ingress.class: "nginx"
       nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
       nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
       nginx.ingress.kubernetes.io/proxy-http-version: "1.0"
-      cert-manager.io/issuer: "letsencrypt-prod"
-  grpc:
-    servicePort: 443
-    annotations:
-      kubernetes.io/ingress.class: "nginx"
-      ingress.kubernetes.io/ssl-redirect: "true"
-      nginx.ingress.kubernetes.io/backend-protocol: "GRPCS"
       cert-manager.io/issuer: "letsencrypt-prod"
 ```
 
@@ -147,9 +120,6 @@ ingress:
 | `ingress.enabled`                         | Enable ingress                                | `false`                                                 |
 | `ingress.host`                            | Ingress host                                  | `""`                                                    |
 | `ingress.tls`                             | Ingress tls configuration                     | `[]`                                                    |
-| `ingress.https.servicePort`               | Target http service port backend              | `80`                                                    |
-| `ingress.https.annotations`               | Ingress annotations (https)                   | `{}`                                                    |
-| `ingress.https.labels`                    | Ingress labels (https)                        | `{}`                                                    |
-| `ingress.grpc.servicePort`                | Target grpc service port backend              | `80`                                                    |
-| `ingress.grpc.annotations`                | Ingress annotations (grpc)                    | `{}`                                                    |
-| `ingress.grpc.labels`                     | Ingress labels (grpc)                         | `{}`                                                    |
+| `ingress.servicePort`               | Target http service port backend              | `80`                                                    |
+| `ingress.annotations`               | Ingress annotations (https)                   | `{}`                                                    |
+| `ingress.labels`                    | Ingress labels (https)                        | `{}`                                                    |

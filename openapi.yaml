@@ -4,22 +4,22 @@ info:
   title: Infra API
   description: Infra REST API
 tags:
-  - description: Manage infrastructure destinations
-    name: destinations
-  - description: Create credentials to access a destination
-    name: creds
-  - description: Manage roles
-    name: roles
-  - description: Manage users
-    name: users
-  - description: Manage groups
-    name: groups
-  - description: Manage identitiy sources
-    name: sources
-  - description: Login, logout and sign up
-    name: auth
-  - description: Information & diagnostics
-    name: info
+  - name: destinations
+    description: Manage infrastructure destinations
+  - name: creds
+    description: Create credentials to access a destination
+  - name: roles
+    description: Manage roles
+  - name: users
+    description: Manage users
+  - name: groups
+    description: Manage groups
+  - name: sources
+    description: Manage identitiy sources
+  - name: auth
+    description: Login, logout and sign up
+  - name: info
+    description: Information & diagnostics
 components:
   securitySchemes:
     bearerAuth:
@@ -29,7 +29,7 @@ components:
     User:
       type: object
       required:
-        - id
+        - id  
         - email
         - created
         - updated
@@ -116,7 +116,6 @@ components:
       type: object
       required:
         - name
-        - kubernetes
       properties:
         name:
           type: string
@@ -166,10 +165,12 @@ components:
         destination:
           $ref: '#/components/schemas/Destination'
         kind:
-          type: string
-          enum:
-            - role
-            - cluster-role
+          $ref: "#/components/schemas/RoleKind"
+    RoleKind:
+      type: string
+      enum:
+        - role
+        - cluster-role
     Cred:
       type: object
       required:
@@ -225,6 +226,20 @@ components:
       properties:
         token:
           type: string
+    VersionResponse:
+      type: object
+      required:
+        - version
+      properties:
+        version:
+          type: string
+    StatusResponse:
+      type: object
+      required:
+        - admin
+      properties:
+        admin:
+          type: boolean
     Error:
       type: object
       required:
@@ -486,12 +501,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - version
-                properties:
-                  version:
-                    type: string
+                $ref: '#/components/schemas/VersionResponse'
         default:
           description: unexpected error
           content:
@@ -510,12 +520,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - admin
-                properties:
-                  admin:
-                    type: boolean
+                $ref: '#/components/schemas/StatusResponse'
         default:
           description: unexpected error
           content:

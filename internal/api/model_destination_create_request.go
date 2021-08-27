@@ -16,18 +16,17 @@ import (
 
 // DestinationCreateRequest struct for DestinationCreateRequest
 type DestinationCreateRequest struct {
-	Name       string                `json:"name"`
-	Kubernetes DestinationKubernetes `json:"kubernetes"`
+	Name       string                 `json:"name"`
+	Kubernetes *DestinationKubernetes `json:"kubernetes,omitempty"`
 }
 
 // NewDestinationCreateRequest instantiates a new DestinationCreateRequest object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewDestinationCreateRequest(name string, kubernetes DestinationKubernetes) *DestinationCreateRequest {
+func NewDestinationCreateRequest(name string) *DestinationCreateRequest {
 	this := DestinationCreateRequest{}
 	this.Name = name
-	this.Kubernetes = kubernetes
 	return &this
 }
 
@@ -63,28 +62,36 @@ func (o *DestinationCreateRequest) SetName(v string) {
 	o.Name = v
 }
 
-// GetKubernetes returns the Kubernetes field value
+// GetKubernetes returns the Kubernetes field value if set, zero value otherwise.
 func (o *DestinationCreateRequest) GetKubernetes() DestinationKubernetes {
-	if o == nil {
+	if o == nil || o.Kubernetes == nil {
 		var ret DestinationKubernetes
 		return ret
 	}
-
-	return o.Kubernetes
+	return *o.Kubernetes
 }
 
-// GetKubernetesOk returns a tuple with the Kubernetes field value
+// GetKubernetesOk returns a tuple with the Kubernetes field value if set, nil otherwise
 // and a boolean to check if the value has been set.
 func (o *DestinationCreateRequest) GetKubernetesOk() (*DestinationKubernetes, bool) {
-	if o == nil {
+	if o == nil || o.Kubernetes == nil {
 		return nil, false
 	}
-	return &o.Kubernetes, true
+	return o.Kubernetes, true
 }
 
-// SetKubernetes sets field value
+// HasKubernetes returns a boolean if a field has been set.
+func (o *DestinationCreateRequest) HasKubernetes() bool {
+	if o != nil && o.Kubernetes != nil {
+		return true
+	}
+
+	return false
+}
+
+// SetKubernetes gets a reference to the given DestinationKubernetes and assigns it to the Kubernetes field.
 func (o *DestinationCreateRequest) SetKubernetes(v DestinationKubernetes) {
-	o.Kubernetes = v
+	o.Kubernetes = &v
 }
 
 func (o DestinationCreateRequest) MarshalJSON() ([]byte, error) {
@@ -92,7 +99,7 @@ func (o DestinationCreateRequest) MarshalJSON() ([]byte, error) {
 	if true {
 		toSerialize["name"] = o.Name
 	}
-	if true {
+	if o.Kubernetes != nil {
 		toSerialize["kubernetes"] = o.Kubernetes
 	}
 	return json.Marshal(toSerialize)

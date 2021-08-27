@@ -24,7 +24,7 @@ import (
 	"github.com/cli/browser"
 	"github.com/docker/go-units"
 	"github.com/goware/urlx"
-	api "github.com/infrahq/infra/api/client"
+	api "github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/engine"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
@@ -140,24 +140,28 @@ func blue(s string) string {
 }
 
 func NewApiContext(token string) context.Context {
-	ctx := context.WithValue(context.Background(), api.ContextServerVariables, map[string]string{"basePath": "v1"})
-	ctx = context.WithValue(ctx, api.ContextAccessToken, token)
-	return ctx
+	return context.WithValue(context.Background(), api.ContextAccessToken, token)
 }
 
 func NewApiClient(host string, skipTlsVerify bool) (*api.APIClient, error) {
-	if host == "" {
-		return nil, errors.New("host must not be empty")
+	u, err := urlx.Parse(host)
+	if err != nil {
+		return nil, err
 	}
 
+	u.Path = "/v1"
+
 	config := api.NewConfiguration()
-	config.Host = host
-	config.Scheme = "https"
+	config.Servers = api.ServerConfigurations{
+		api.ServerConfiguration{URL: u.String()},
+	}
 
 	if skipTlsVerify {
-		config.HTTPClient.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
+		config.HTTPClient = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: true,
+				},
 			},
 		}
 	}
@@ -417,7 +421,7 @@ var loginCmd = &cobra.Command{
 			}
 
 			fmt.Println(blue("✓") + " Creating admin user...")
-			authRes, _, err = client.AuthApi.Signup(context.Background()).Body(*&api.SignupRequest{Email: email, Password: password}).Execute()
+			authRes, _, err = client.AuthApi.Signup(context.Background()).Body(api.SignupRequest{Email: email, Password: password}).Execute()
 			if err != nil {
 				return err
 			}
@@ -590,7 +594,10 @@ var loginCmd = &cobra.Command{
 		}
 		ctx := NewApiContext(authRes.Token)
 
-		destinations, _, err := client.DestinationsApi.ListDestinations(ctx).Execute()
+		fmt.Println(ctx)
+
+		destinations, resp, err := client.DestinationsApi.ListDestinations(ctx).Execute()
+		fmt.Println(err, resp)
 		if err != nil {
 			return err
 		}
