@@ -53,6 +53,7 @@ func RunLocalClient() error {
 		components := strings.Split(r.URL.Path, "/")
 		if len(components) < 3 {
 			http.Error(w, "path not found", http.StatusNotFound)
+			errorLogger.Println("invalid proxy URL path specified: " + r.URL.Path)
 			return
 		}
 
@@ -61,6 +62,7 @@ func RunLocalClient() error {
 		contents, err := ioutil.ReadFile(filepath.Join(homeDir, INFRA_HIDDEN_DIR, "destinations"))
 		if err != nil {
 			fmt.Println(err)
+			errorLogger.Println(err)
 			return
 		}
 
@@ -69,6 +71,7 @@ func RunLocalClient() error {
 		if err != nil {
 			http.Error(w, "could not read destinations from ~/.infra/destinations", http.StatusInternalServerError)
 			fmt.Println(err)
+			errorLogger.Println(err)
 			return
 		}
 
@@ -80,7 +83,9 @@ func RunLocalClient() error {
 		}
 
 		if destination == nil {
-			fmt.Println("could not load destination information for destination " + name)
+			errMsg := "could not load destination information for destination " + name
+			fmt.Println(errMsg)
+			errorLogger.Println(err)
 			return
 		}
 
@@ -128,16 +133,19 @@ func RunLocalClient() error {
 
 	certBytes, err := ioutil.ReadFile(filepath.Join(homeDir, INFRA_HIDDEN_DIR, CLIENT_DIR, "cert.pem"))
 	if err != nil {
+		errorLogger.Println(err)
 		return err
 	}
 
 	keyBytes, err := ioutil.ReadFile(filepath.Join(homeDir, INFRA_HIDDEN_DIR, CLIENT_DIR, "key.pem"))
 	if err != nil {
+		errorLogger.Println(err)
 		return err
 	}
 
 	keypair, err := tls.X509KeyPair(certBytes, keyBytes)
 	if err != nil {
+		errorLogger.Println(err)
 		return err
 	}
 
@@ -151,10 +159,12 @@ func RunLocalClient() error {
 
 	l, err := net.Listen("tcp", "127.0.0.1:32710")
 	if err != nil {
+		errorLogger.Println(err)
 		return err
 	}
 
 	if err = ioutil.WriteFile(filepath.Join(homeDir, INFRA_HIDDEN_DIR, CLIENT_DIR, "pid"), []byte(strconv.Itoa(os.Getpid())), 0644); err != nil {
+		errorLogger.Println(err)
 		return err
 	}
 
