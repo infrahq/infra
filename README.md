@@ -24,9 +24,18 @@ sources:
     clientSecret: infra-registry-okta/clientSecret
     apiToken: infra-registry-okta/apiToken
 
-# Map groups (coming soon) or individual users pulled from identity providers
+# Map groups or individual users pulled from identity providers
 # Roles refer to available roles or cluster-roles currently 
 # configured in the cluster. Custom roles are supported. 
+
+groups:
+  - name: developers
+    source: okta
+    roles:
+      - name: view
+        kind: cluster-role
+        clusters:
+          - cluster-1
 
 users:
   - name: person@example.com
@@ -45,8 +54,7 @@ Please follow [Okta configuration guide](./docs/okta.md) to obtain your Okta API
 helm repo add infrahq https://helm.infrahq.com
 helm repo update
 
-# if you have not yet created the namespace for the deployment add a --create-namespace flag to this command
-helm install infra-registry infrahq/registry --namespace infrahq --set-file config=./infra.yaml 
+helm install infra-registry infrahq/registry --namespace infrahq --create-namespace --set-file config=./infra.yaml 
 ```
 
 3. Connect Kubernetes Cluster(s)
