@@ -3,7 +3,7 @@ package registry
 import (
 	"context"
 
-	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/okta/okta-sdk-golang/v2/okta"
 	"golang.org/x/oauth2"
 	"gopkg.in/square/go-jose.v2/jwt"
@@ -113,7 +113,7 @@ func (o *oktaImplementation) Groups(domain string, clientID string, apiToken str
 		// get the ID for the group so we can look up the users for the ones we care about
 		id := appGroups[name]
 		if id == "" {
-			grpc_zap.Extract(ctx).Debug("ignoring group that does not exist in okta: " + name)
+			logging.L.Debug("ignoring group that does not exist in okta: " + name)
 			continue
 		}
 

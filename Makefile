@@ -49,6 +49,7 @@ dev:
 	kubectl rollout restart deployment/infra-engine --namespace infrahq
 
 dev/clean:
+	kubectl config use-context docker-desktop
 	helm uninstall --namespace infrahq infra-registry || true
 	helm uninstall --namespace infrahq infra-engine || true
 
