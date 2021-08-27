@@ -1,0 +1,154 @@
+<!--
+    This page is rendered in the user's browser if SSO fails for some reason.
+    The server that returns this page shuts down after returning this response,
+    so all resources that would typically be externally hosted (images, style, etc.) must be embeded in the page.
+    The page was generated using Next.js export and modified.
+-->
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <meta charSet="utf-8" />
+    <title>Infra Login Error</title>
+    <!-- base64 encoding of the 32x32 website favicon -->
+    <link rel="icon" type="image/png" sizes="32x32"
+        href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAANPSURBVHgBzVe9ThtBEJ6zsWI4S6RMoIASaEKqBIkoSZNQJkXiEhqgpQkFKRKkQIsjTB0SkFCqRPEDRMADAOYBME9gu0ByhO3LfmfGGe/tnpfggpFWd7c7NzP7zc/ueORIdxVdXtZeESWeqs9JomAU01fLFSKvpJ7H6rmfSqV+VhS5yPW6MaTT6dG+vuRSEDRnhUIX0duNRnO1VquVYrlsC60d//mgXpfoZpRLpe6s2hAxGoBdJ5Peb/U6Sr2hUqMRPDehkdAnfD812WPloHBDkK0vdCDgsnPlGZqefkKDg4Phd7VapdPTIp2fn5MDWZEIfe77/WdqBKYxM/MiODjYD2x0cnISLCzMB7b/xTiDrogBamHD9lM+v9mhrFwuK4XHoUF4l7SzsxNMTIx1M2KDdOhtzBDIBIVAQueZmnrUwVcqlYKhoXuxRkCn2P3Atolpbe1TW+jy8rv2/PDwfWXIy3DI3WazbwKVbSF/Pp+PNSCT8XPS9xEGCGaCIaxYdweoUPjVNgRowD3Z7NtubiiHseD76Tkz9N/acLJyvMs4kP7HmoPvteHPWeFnKDmyeedQKneHmGDDdN8jM+ING/hCmczAUTSoHrd3xgJZCRsERDDYXWwwkGM5/A+C14LCEdKv7BtyHgSh+B4fHzMahHX4HN+Li/ORgGU50nA9DlCKr3HCtSohqFqthNVwb+97+Nzd3aWtrXy4trLynkZGRujw8JDW19dixZEJGtOO/6XXZgR2hhi8yAAQ/O8SiEYXSIUMJ55MHIQSYuaDS/hfTt+4VDQGoYx6uRM+C6CAI1vWBY4HLmCSLyYIzWkoIWbYATFHdqFQEOkWhZ3nYjKglYa2QqTDLiGGUFkLpLEMu3SPHQVViK5KcdlmBEMsU840TLAj9eLioH0sZzL9ORuTjGxZ6dgdXKrdYRfwuxzHcfFgg10aZRsdx3E3FPR4MEU7I4MyziXaNqDLVOFir2QYuHTohwtnBe4G3WEPR8eV7NqXUp1QclGKi8WiC3vkUhrpC1pX574f1NtreaicqP764uLyWE7evsYEBEbVTj30PPpMNyTIgCxbj+jUnCaTiY+qG54ld6p4XuJrvd7I/XdzqpNoz5+pzwf29ryp2vO0c3v+F9Oh3Uga6zDvAAAAAElFTkSuQmCC" />
+    <!-- base64 encoding of the 16x16 website favicon -->
+    <link rel="icon" type="image/png" sizes="16x16"
+        href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAHZSURBVHgBfVO7TgJREJ2VoOBSWPoosFNMfHRqp43S6R9oo5baiKWaaC3G1WhnoYWdRmPsVApiBwsfwMIXQEKxSuA6Z+CSy8Y4yWXuzM6ceXCuRQGJxSJLRKF1pVprbI63vVaef/LNZuvY933PjLf0ZYil0fg+5Ose/S/pcHjguMrSBWgn/3wQqVkDkKanZ6hYLFAn1qybD4f7lzUI2Xb0jI/CmZqaVJnMp4J4nifadV3x65jOOZPkSCQybiYjyXEcNTY2Ijb06emJ4mJqcXG+BwT7smx78JZb3wDY9fUNVSoVenl5ptfXNxmjXC7TwUGKarWqfIPdHcTqO+etD+aANjo6LO3qLlKpfakCratvb2/JeEYXJdJGIjEpALhDAIjEZHJVRgBoIjEh2hylC6A7gHbdvFTe2dkSEL1Yx7kILlIAStrQQaigq8OGHyDaZwDkrFgsmlaKdrGUeDwuy7u6uqRCwZWl4a/OZr/EB4F9f3+n13gr1DVbSiZXum2jOo72BdsHBTr8j6bND1gauKDbhg4SCTlBKr8zH+aCxAcX/qCyy1ReApVDMPmF+bZtPyjVjLK5YIbyp95Ui875MW32PCZTMFco1HfE11mjI49Z90TUfKzX/Q8z/hetY2djuQg8mwAAAABJRU5ErkJggg==" />
+    <!-- pruned style exported from Next.js -->
+    <style>
+        html {
+            -moz-tab-size: 4;
+            -o-tab-size: 4;
+            tab-size: 4;
+            line-height: 1.15;
+            -webkit-text-size-adjust: 100%
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji
+        }
+
+        blockquote,
+        dd,
+        dl,
+        figure,
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6,
+        hr,
+        p,
+        pre {
+            margin: 0
+        }
+
+        html {
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+            line-height: 1.5
+        }
+
+        body {
+            font-family: inherit;
+            line-height: inherit
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            font-size: inherit;
+            font-weight: inherit
+        }
+
+        .flex {
+            display: flex
+        }
+
+        .flex-col {
+            flex-direction: column
+        }
+
+        .items-center {
+            align-items: center
+        }
+
+        .justify-center {
+            justify-content: center
+        }
+
+        .flex-none {
+            flex: none
+        }
+
+        .font-medium {
+            font-weight: 500
+        }
+
+        .h-full {
+            height: 100%
+        }
+
+        .mt-6 {
+            margin-top: 1.5rem
+        }
+
+        * {
+            --tw-shadow: 0 0 transparent;
+            --tw-ring-inset: var(--tw-empty,
+                    /*!*/
+                    /*!*/
+                );
+            --tw-ring-offset-width: 0px;
+            --tw-ring-offset-color: #fff;
+            --tw-ring-color: rgba(59, 130, 246, 0.5);
+            --tw-ring-offset-shadow: 0 0 transparent;
+            --tw-ring-shadow: 0 0 transparent
+        }
+
+        .text-white-400 {
+            --tw-text-opacity: 1;
+            color: rgba(229, 231, 235, var(--tw-text-opacity))
+        }
+
+        .select-none {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none
+        }
+
+        .w-full {
+            width: 100%
+        }
+
+        #__next,
+        body,
+        html {
+            padding: 0;
+            margin: 0;
+            font-family: -apple-system, sans-serif;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #2a2c2d, #151718)
+        }
+    </style>
+</head>
+
+<body>
+    <div id="__next">
+        <main class="w-full h-full flex flex-col items-center justify-center select-none">
+            <p class="text-white-400 mt-6 font-medium">{{.error}}</p>
+            <p class="text-white-400 font-medium">{{.error_description}}</p>
+        </main>
+    </div>
+</body>
+
+</html>

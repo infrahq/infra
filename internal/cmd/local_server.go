@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strings"
 )
 
 type CodeResponse struct {
@@ -30,13 +31,22 @@ func newLocalServer() (*LocalServer, error) {
 			Code:  params.Get("code"),
 			State: params.Get("state"),
 		}
-		t, err := template.ParseFS(pages, "pages/success.html")
+
+		templateFile := "pages/success.html"
+		templateVals := make(map[string]string)
+		if params.Get("error") != "" {
+			templateFile = "pages/error.html"
+			templateVals["error"] = formatURLMsg(params.Get("error"), "Error")
+			templateVals["error_description"] = formatURLMsg(params.Get("error_description"), "Please contact your administrator for assistance.")
+		}
+
+		t, err := template.ParseFS(pages, templateFile)
 		if err != nil {
-			// the template is static so it should be able to be parsed, but this fallback ensures something is returned
-			fmt.Fprintf(w, "You may now close this window.")
+			// these templates are static so they should be able to be parsed, but this fallback ensures something is returned
+			fmt.Fprintf(w, "Something went wrong, please contact your administrator for assistance.")
 			return
 		}
-		t.Execute(w, nil)
+		t.Execute(w, templateVals)
 	})
 
 	go func() {
@@ -52,4 +62,14 @@ func (l *LocalServer) wait() (string, string, error) {
 	result := <-l.ResultChan
 	l.srv.Shutdown(context.Background())
 	return result.Code, result.State, result.Error
+}
+
+// formatURLMsg takes a message from a URL and converts it into an easily readable form
+func formatURLMsg(msg string, fallback string) string {
+	if msg == "" {
+		return fallback
+	}
+	formatted := strings.ReplaceAll(msg, "_", " ")
+	formatted = strings.Title(strings.ToLower(formatted))
+	return formatted
 }
