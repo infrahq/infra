@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/go-playground/assert/v2"
-	"go.uber.org/zap"
 )
 
 func TestLoginRedirectMiddlewarePassthrough(t *testing.T) {
@@ -22,8 +21,7 @@ func TestLoginRedirectMiddlewarePassthrough(t *testing.T) {
 	}
 
 	httpHandlers := &Http{
-		db:     db,
-		logger: zap.L(),
+		db: db,
 	}
 
 	r := httptest.NewRequest("GET", "http://test.com/favicon.ico", nil)
@@ -43,8 +41,7 @@ func TestLoginRedirectMiddlewareNext(t *testing.T) {
 	}
 
 	httpHandlers := &Http{
-		db:     db,
-		logger: zap.L(),
+		db: db,
 	}
 
 	r := httptest.NewRequest("GET", "http://test.com/_next/file", nil)
@@ -64,8 +61,7 @@ func TestLoginRedirectNoAdminRedirectsToSignup(t *testing.T) {
 	}
 
 	httpHandlers := &Http{
-		db:     db,
-		logger: zap.L(),
+		db: db,
 	}
 
 	r := httptest.NewRequest("GET", "http://test.com/dashboard", nil)
@@ -91,8 +87,7 @@ func TestLoginRedirectWithAdminRedirectsToLogin(t *testing.T) {
 	}
 
 	httpHandlers := &Http{
-		db:     db,
-		logger: zap.L(),
+		db: db,
 	}
 
 	r := httptest.NewRequest("GET", "http://test.com/", nil)
@@ -118,8 +113,7 @@ func TestLoginRedirectSetsNextParameter(t *testing.T) {
 	}
 
 	httpHandlers := &Http{
-		db:     db,
-		logger: zap.L(),
+		db: db,
 	}
 
 	r := httptest.NewRequest("GET", "http://test.com/dashboard?param=1", nil)
@@ -140,8 +134,7 @@ func TestLoginRedirectNoRedirectIfLoggedIn(t *testing.T) {
 	}
 
 	httpHandlers := &Http{
-		db:     db,
-		logger: zap.L(),
+		db: db,
 	}
 
 	id, secret, err := addUser(db, "test@test.com", "passw0rd", true)
@@ -183,8 +176,7 @@ func TestLoginRedirectIfLoginCookieUnset(t *testing.T) {
 	}
 
 	httpHandlers := &Http{
-		db:     db,
-		logger: zap.L(),
+		db: db,
 	}
 
 	id, secret, err := addUser(db, "test@test.com", "passw0rd", true)
@@ -226,8 +218,7 @@ func TestLoginRedirectFromLoginIfAlreadyLoggedIn(t *testing.T) {
 	}
 
 	httpHandlers := &Http{
-		db:     db,
-		logger: zap.L(),
+		db: db,
 	}
 
 	id, secret, err := addUser(db, "test@test.com", "passw0rd", true)

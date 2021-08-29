@@ -74,10 +74,11 @@ ctx = context.WithValue(context.Background(), sw.ContextOperationServerVariables
 
 ## Documentation for API Endpoints
 
-All URIs are relative to *http://localhost*
+All URIs are relative to *http://localhost/v1*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
+*ApikeysApi* | [**ListApikeys**](docs/ApikeysApi.md#listapikeys) | **Get** /apikeys | Get Engine API Keys
 *AuthApi* | [**Login**](docs/AuthApi.md#login) | **Post** /login | Log in to Infra and get an API token for a user
 *AuthApi* | [**Logout**](docs/AuthApi.md#logout) | **Post** /logout | Log out of Infra
 *AuthApi* | [**Signup**](docs/AuthApi.md#signup) | **Post** /signup | Sign up Infra&#39;s admin user and get an API token for a user
@@ -94,6 +95,7 @@ Class | Method | HTTP request | Description
 
 ## Documentation For Models
 
+ - [Apikey](docs/Apikey.md)
  - [AuthResponse](docs/AuthResponse.md)
  - [Cred](docs/Cred.md)
  - [Destination](docs/Destination.md)

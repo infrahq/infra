@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { useCookies } from 'react-cookie'
 
-import { V1 } from '../gen/v1.pb'
+import { AuthApi } from '../api'
 
 export default function Login () {
   const router = useRouter()
@@ -24,7 +24,7 @@ export default function Login () {
   const handleSubmit = useCallback(async e => {
     e.preventDefault()
     try {
-      await V1.Login({ infra: { email, password } })
+      await new AuthApi().login({ body: { infra: { email, password } } })
       setError('')
       router.replace(next)
     } catch (e) {

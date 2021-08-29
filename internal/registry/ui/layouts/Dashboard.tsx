@@ -5,32 +5,33 @@ import classnames from 'classnames'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useCookies } from 'react-cookie'
-import { useQuery } from 'react-query'
+import useSWR from 'swr'
 
 import { useRedirectToLoginOnUnauthorized } from '../util/redirect'
-import { V1 } from '../gen/v1.pb'
+
+import { UsersApi, AuthApi } from '../api'
 
 export default function Layout ({ children }: { children: JSX.Element[] | JSX.Element }): JSX.Element {
-    const [cookies] = useCookies(['login'])
-    const [sidebarOpen, setSidebarOpen] = useState(false)
-    const router = useRouter()
+  const [cookies] = useCookies(['login'])
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const router = useRouter()
 
   // Note: we don't use this information yet (we should use an alternative method that fetches user email, etc)
   // but it's used to verify auth whenever the window is opened or brought to the foreground to automatically
   // log users out
-  const { error } = useQuery(
-    'status',
-    () => V1.ListUsers({}),
-    {
-      refetchInterval: 5000,
-    }
+  const { error } = useSWR(
+    'users',
+    () => new UsersApi().listUsers()
   )
+
+  console.log(error)
+
   useRedirectToLoginOnUnauthorized(error)
 
-    if (process.browser && !cookies.login) {
-        router.replace("/login")
-        return <></>
-    }
+  if (process.browser && !cookies.login) {
+      router.replace("/login")
+      return <></>
+  }
 
   const navigation = [
     { name: 'Infrastructure', href: '/infrastructure', icon: ViewGridIcon },
@@ -42,7 +43,7 @@ export default function Layout ({ children }: { children: JSX.Element[] | JSX.El
       name: 'Logout',
       href: "#",
       onClick: async () => {
-        await V1.Logout({})
+        new AuthApi().logout()
         router.replace("/login")
       }
     },

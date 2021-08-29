@@ -149,8 +149,6 @@ func NewApiClient(host string, skipTlsVerify bool) (*api.APIClient, error) {
 		return nil, err
 	}
 
-	u.Path = "/v1"
-
 	config := api.NewConfiguration()
 	config.Servers = api.ServerConfigurations{
 		api.ServerConfiguration{URL: u.String()},

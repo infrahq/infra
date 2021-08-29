@@ -16,53 +16,60 @@ import { exists, mapValues } from '../runtime';
 /**
  * 
  * @export
- * @interface Group
+ * @interface Apikey
  */
-export interface Group {
+export interface Apikey {
     /**
      * 
      * @type {string}
-     * @memberof Group
+     * @memberof Apikey
      */
     id: string;
     /**
      * 
-     * @type {string}
-     * @memberof Group
-     */
-    name: string;
-    /**
-     * 
      * @type {number}
-     * @memberof Group
+     * @memberof Apikey
      */
     created: number;
     /**
      * 
      * @type {number}
-     * @memberof Group
+     * @memberof Apikey
      */
     updated: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof Apikey
+     */
+    name: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Apikey
+     */
+    key: string;
 }
 
-export function GroupFromJSON(json: any): Group {
-    return GroupFromJSONTyped(json, false);
+export function ApikeyFromJSON(json: any): Apikey {
+    return ApikeyFromJSONTyped(json, false);
 }
 
-export function GroupFromJSONTyped(json: any, ignoreDiscriminator: boolean): Group {
+export function ApikeyFromJSONTyped(json: any, ignoreDiscriminator: boolean): Apikey {
     if ((json === undefined) || (json === null)) {
         return json;
     }
     return {
         
         'id': json['id'],
-        'name': json['name'],
         'created': json['created'],
         'updated': json['updated'],
+        'name': json['name'],
+        'key': json['key'],
     };
 }
 
-export function GroupToJSON(value?: Group | null): any {
+export function ApikeyToJSON(value?: Apikey | null): any {
     if (value === undefined) {
         return undefined;
     }
@@ -72,9 +79,10 @@ export function GroupToJSON(value?: Group | null): any {
     return {
         
         'id': value.id,
-        'name': value.name,
         'created': value.created,
         'updated': value.updated,
+        'name': value.name,
+        'key': value.key,
     };
 }
 

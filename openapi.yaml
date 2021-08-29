@@ -1,4 +1,6 @@
 openapi: 3.0.0
+servers:
+  - url: /v1
 info:
   version: 0.1.0
   title: Infra API
@@ -20,6 +22,8 @@ tags:
     description: Login, logout and sign up
   - name: info
     description: Information & diagnostics
+  - name: apikeys
+    description: Engine API Keys
 components:
   securitySchemes:
     bearerAuth:
@@ -232,6 +236,27 @@ components:
         - version
       properties:
         version:
+          type: string
+    Apikey:
+      type: object
+      required:
+        - id
+        - created
+        - updated
+        - name
+        - key
+      properties:
+        id:
+          type: string
+        created:
+          type: integer
+          format: int64
+        updated:
+          type: integer
+          format: int64
+        name:
+          type: string
+        key:
           type: string
     StatusResponse:
       type: object
@@ -521,6 +546,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/StatusResponse'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /apikeys:
+    get:
+      summary: Get Engine API Keys
+      tags:
+        - apikeys
+      operationId: listApikeys
+      responses:
+        '200':
+          description: apikeys response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Apikey'
         default:
           description: unexpected error
           content:

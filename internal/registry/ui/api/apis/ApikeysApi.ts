@@ -15,39 +15,39 @@
 
 import * as runtime from '../runtime';
 import {
-    Source,
-    SourceFromJSON,
-    SourceToJSON,
+    Apikey,
+    ApikeyFromJSON,
+    ApikeyToJSON,
 } from '../models';
 
 /**
  * 
  */
-export class SourcesApi extends runtime.BaseAPI {
+export class ApikeysApi extends runtime.BaseAPI {
 
     /**
-     * List sources
+     * Get Engine API Keys
      */
-    async listSourcesRaw(initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<Source>>> {
+    async listApikeysRaw(initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<Apikey>>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
 
         const response = await this.request({
-            path: `/sources`,
+            path: `/apikeys`,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(SourceFromJSON));
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(ApikeyFromJSON));
     }
 
     /**
-     * List sources
+     * Get Engine API Keys
      */
-    async listSources(initOverrides?: RequestInit): Promise<Array<Source>> {
-        const response = await this.listSourcesRaw(initOverrides);
+    async listApikeys(initOverrides?: RequestInit): Promise<Array<Apikey>> {
+        const response = await this.listApikeysRaw(initOverrides);
         return await response.value();
     }
 

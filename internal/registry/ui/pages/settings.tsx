@@ -1,15 +1,16 @@
 import Head from 'next/head'
-import { useQuery } from 'react-query'
+import { useSWR } from 'swr'
 
-import { V1 } from '../gen/v1.pb'
+import { InfoApi } from '../api'
+
 import Dashboard from '../layouts/Dashboard'
 
 export default function Settings () {
-  const { data: version } = useQuery(
+  const { data: version } = useSWR(
     'version',
-    () => V1.Version({}).then(res => res.version)
+    () => new InfoApi().version()
   )
-  
+
   return (
     <Dashboard>
       <Head>

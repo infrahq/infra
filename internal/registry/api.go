@@ -43,6 +43,7 @@ func NewApiMux(db *gorm.DB) *mux.Router {
 	v1.Handle("/destinations", a.bearerAuthMiddleware(http.HandlerFunc(a.CreateDestination))).Methods("POST")
 	v1.Handle("/creds", a.bearerAuthMiddleware(http.HandlerFunc(a.CreateCred))).Methods("POST")
 	v1.Handle("/roles", a.bearerAuthMiddleware(http.HandlerFunc(a.ListRoles))).Methods("GET")
+	v1.Handle("/apikeys", a.bearerAuthMiddleware(http.HandlerFunc(a.ListApiKeys))).Methods("GET")
 	v1.Handle("/login", http.HandlerFunc(a.Login)).Methods("POST")
 	v1.Handle("/logout", a.bearerAuthMiddleware(http.HandlerFunc(a.Logout))).Methods("POST")
 	v1.Handle("/signup", http.HandlerFunc(a.Signup)).Methods("POST")
@@ -70,9 +71,15 @@ func (a *Api) bearerAuthMiddleware(next http.Handler) http.Handler {
 		raw := strings.Replace(authorization, "Bearer ", "", -1)
 
 		if raw == "" {
-			logging.L.Debug("no bearer auth provided")
-			sendApiError(w, http.StatusUnauthorized, "unauthorized")
-			return
+			// Backfall to checking cookies if the bearer header is not provided
+			cookie, err := r.Cookie(CookieTokenName)
+			if err != nil {
+				logging.L.Debug("no bearer auth provided")
+				sendApiError(w, http.StatusUnauthorized, "unauthorized")
+				return
+			}
+
+			raw = cookie.Value
 		}
 
 		switch len(raw) {
@@ -290,6 +297,23 @@ func (a *Api) ListRoles(w http.ResponseWriter, r *http.Request) {
 		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not list roles")
 		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(results)
+}
+
+func (a *Api) ListApiKeys(w http.ResponseWriter, r *http.Request) {
+	var apikeys []ApiKey
+	if err := a.db.Find(&apikeys).Error; err != nil {
+		logging.L.Error(err.Error())
+		sendApiError(w, http.StatusInternalServerError, "could not list apikeys")
+		return
+	}
+
+	results := make([]api.ApiKey, 0)
+	for _, a := range apikeys {
+		results = append(results, dbToApiApiKey(&a))
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -612,5 +636,15 @@ func dbToApiGroup(g *Group) api.Group {
 		Created: g.Created,
 		Updated: g.Updated,
 		Name:    g.Name,
+	}
+}
+
+func dbToApiApiKey(a *ApiKey) api.ApiKey {
+	return api.ApiKey{
+		Id:      a.Id,
+		Created: a.Created,
+		Updated: a.Updated,
+		Name:    a.Name,
+		Key:     a.Key,
 	}
 }

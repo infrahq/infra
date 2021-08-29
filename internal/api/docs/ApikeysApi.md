@@ -1,18 +1,18 @@
-# \UsersApi
+# \ApikeysApi
 
 All URIs are relative to *http://localhost/v1*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**ListUsers**](UsersApi.md#ListUsers) | **Get** /users | List users
+[**ListApikeys**](ApikeysApi.md#ListApikeys) | **Get** /apikeys | Get Engine API Keys
 
 
 
-## ListUsers
+## ListApikeys
 
-> []User ListUsers(ctx).Execute()
+> []Apikey ListApikeys(ctx).Execute()
 
-List users
+Get Engine API Keys
 
 ### Example
 
@@ -30,13 +30,13 @@ func main() {
 
     configuration := openapiclient.NewConfiguration()
     api_client := openapiclient.NewAPIClient(configuration)
-    resp, r, err := api_client.UsersApi.ListUsers(context.Background()).Execute()
+    resp, r, err := api_client.ApikeysApi.ListApikeys(context.Background()).Execute()
     if err != nil {
-        fmt.Fprintf(os.Stderr, "Error when calling `UsersApi.ListUsers``: %v\n", err)
+        fmt.Fprintf(os.Stderr, "Error when calling `ApikeysApi.ListApikeys``: %v\n", err)
         fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
     }
-    // response from `ListUsers`: []User
-    fmt.Fprintf(os.Stdout, "Response from `UsersApi.ListUsers`: %v\n", resp)
+    // response from `ListApikeys`: []Apikey
+    fmt.Fprintf(os.Stdout, "Response from `ApikeysApi.ListApikeys`: %v\n", resp)
 }
 ```
 
@@ -46,16 +46,16 @@ This endpoint does not need any parameter.
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiListUsersRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiListApikeysRequest struct via the builder pattern
 
 
 ### Return type
 
-[**[]User**](User.md)
+[**[]Apikey**](Apikey.md)
 
 ### Authorization
 
-[bearerAuth](../README.md#bearerAuth)
+No authorization required
 
 ### HTTP request headers
 
