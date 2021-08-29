@@ -29,6 +29,7 @@ openapi:
 	@GO_POST_PROCESS_FILE="gofmt -s -w" openapi-generator generate -i ./openapi.yaml -g go -o ./internal/api --additional-properties packageName=client,isGoSubmodule=true --enable-post-process-file > /dev/null
 	@rm -rf ./internal/api/api ./internal/api/.openapi-generator
 	@openapi-generator generate -i ./openapi.yaml -g typescript-fetch -o ./internal/registry/ui/api --additional-properties packageName=client,isGoSubmodule=true --enable-post-process-file > /dev/null
+	@rm -rf ./internal/registry/ui/api/.openapi-generator
 
 .PHONY: build
 build:
