@@ -39,6 +39,7 @@ require (
 	golang.org/x/net v0.0.0-20210525063256-abc453219eb5 // indirect
 	golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914
 	google.golang.org/genproto v0.0.0-20210630183607-d20f26d13c79 // indirect
+	google.golang.org/grpc v1.38.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1
 	gopkg.in/yaml.v2 v2.4.0
