@@ -24,8 +24,6 @@ export default function Layout ({ children }: { children: JSX.Element[] | JSX.El
     () => new UsersApi().listUsers()
   )
 
-  console.log(error)
-
   useRedirectToLoginOnUnauthorized(error)
 
   if (process.browser && !cookies.login) {
