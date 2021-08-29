@@ -8,4 +8,4 @@ Dockerfile
 go.mod
 go.sum
 git_push.sh
-# docs/**
+docs/**
