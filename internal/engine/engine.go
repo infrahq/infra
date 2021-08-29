@@ -226,8 +226,10 @@ func Run(options Options) error {
 	config := api.NewConfiguration()
 	config.Host = options.Registry
 	config.Scheme = "https"
-	config.HTTPClient.Transport = &http.Transport{
-		TLSClientConfig: tlsConfig,
+	config.HTTPClient = &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: tlsConfig,
+		},
 	}
 
 	client := api.NewAPIClient(config)

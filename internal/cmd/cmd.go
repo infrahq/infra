@@ -150,10 +150,8 @@ func NewApiClient(host string, skipTlsVerify bool) (*api.APIClient, error) {
 	}
 
 	config := api.NewConfiguration()
-	config.Servers = api.ServerConfigurations{
-		api.ServerConfiguration{URL: u.String()},
-	}
-
+	config.Host = u.Host
+	config.Scheme = "https"
 	if skipTlsVerify {
 		config.HTTPClient = &http.Client{
 			Transport: &http.Transport{
@@ -592,10 +590,7 @@ var loginCmd = &cobra.Command{
 		}
 		ctx := NewApiContext(authRes.Token)
 
-		fmt.Println(ctx)
-
-		destinations, resp, err := client.DestinationsApi.ListDestinations(ctx).Execute()
-		fmt.Println(err, resp)
+		destinations, _, err := client.DestinationsApi.ListDestinations(ctx).Execute()
 		if err != nil {
 			return err
 		}

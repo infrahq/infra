@@ -80,7 +80,7 @@ func Run(options Options) error {
 
 	k8s, err := kubernetes.NewKubernetes()
 	if err != nil {
-		// return err
+		return err
 	}
 
 	// Load configuration from file
@@ -113,12 +113,12 @@ func Run(options Options) error {
 		zapLogger.Error(err.Error())
 	}
 
-	// for _, s := range sources {
-	// 	err = s.Validate(db, k8s, okta)
-	// 	if err != nil {
-	// 		zapLogger.Error(err.Error())
-	// 	}
-	// }
+	for _, s := range sources {
+		err = s.Validate(db, k8s, okta)
+		if err != nil {
+			zapLogger.Error(err.Error())
+		}
+	}
 
 	// schedule the user and group sync jobs
 	interval := 30
