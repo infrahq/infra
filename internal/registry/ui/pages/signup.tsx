@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { useCookies } from 'react-cookie'
 
-import { AuthApi } from '../api'
+import { AuthApi, Configuration } from '../api'
 
 export default function Signup () {
   const router = useRouter()
@@ -15,7 +15,7 @@ export default function Signup () {
   const handleSubmit = useCallback(async e => {
     e.preventDefault()
     try {
-      new AuthApi().signup({ body: { email, password } });
+      new AuthApi(new Configuration({ basePath: "/v1" })).signup({ body: { email, password } });
       router.replace("/")
     } catch (e) {
       setError(e)

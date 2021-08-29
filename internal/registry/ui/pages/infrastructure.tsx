@@ -5,7 +5,7 @@ import relativeTime from 'dayjs/plugin/relativeTime'
 import { Popover, Transition } from '@headlessui/react'
 import useSWR from 'swr'
 
-import { DestinationsApi, Destination, ApikeysApi } from '../api'
+import { DestinationsApi, Destination, ApikeysApi, Configuration } from '../api'
 import Dashboard from '../layouts/Dashboard'
 
 dayjs.extend(relativeTime)
@@ -37,7 +37,7 @@ function Table ({ destinations }: { destinations: Destination[] | undefined }) {
 export default function Index () {
   const { isValidating, data: destinations } = useSWR(
     'destinations',
-    () => new DestinationsApi().listDestinations(),
+    () => new DestinationsApi(new Configuration({ basePath: "/v1" })).listDestinations(),
     {
       refreshInterval: 5000,
     }
@@ -45,7 +45,7 @@ export default function Index () {
 
    const { data: apiKey } = useSWR(
     'apiKeys',
-    () => new ApikeysApi().listApikeys().then(apikeys => apikeys[0] || null)
+    () => new ApikeysApi(new Configuration({ basePath: "/v1" })).listApikeys().then(apikeys => apikeys[0] || null)
   )
 
   return (

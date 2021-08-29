@@ -9,7 +9,7 @@ import useSWR from 'swr'
 
 import { useRedirectToLoginOnUnauthorized } from '../util/redirect'
 
-import { UsersApi, AuthApi } from '../api'
+import { UsersApi, AuthApi, Configuration } from '../api'
 
 export default function Layout ({ children }: { children: JSX.Element[] | JSX.Element }): JSX.Element {
   const [cookies] = useCookies(['login'])
@@ -21,7 +21,7 @@ export default function Layout ({ children }: { children: JSX.Element[] | JSX.El
   // log users out
   const { error } = useSWR(
     'users',
-    () => new UsersApi().listUsers()
+    () => new UsersApi(new Configuration({ basePath: "/v1" })).listUsers()
   )
 
   useRedirectToLoginOnUnauthorized(error)
@@ -41,7 +41,7 @@ export default function Layout ({ children }: { children: JSX.Element[] | JSX.El
       name: 'Logout',
       href: "#",
       onClick: async () => {
-        new AuthApi().logout()
+        new AuthApi(new Configuration({ basePath: "/v1" })).logout()
         router.replace("/login")
       }
     },
