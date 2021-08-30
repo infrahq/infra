@@ -222,7 +222,7 @@ func Run(options Options) error {
 	}
 
 	ctx := context.WithValue(context.Background(), api.ContextServerVariables, map[string]string{"basePath": "v1"})
-	ctx = context.WithValue(ctx, api.ContextAccessToken, "token")
+	ctx = context.WithValue(ctx, api.ContextAccessToken, options.APIKey)
 	config := api.NewConfiguration()
 	config.Host = options.Registry
 	config.Scheme = "https"
