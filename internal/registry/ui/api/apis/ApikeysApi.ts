@@ -15,9 +15,9 @@
 
 import * as runtime from '../runtime';
 import {
-    Apikey,
-    ApikeyFromJSON,
-    ApikeyToJSON,
+    ApiKey,
+    ApiKeyFromJSON,
+    ApiKeyToJSON,
 } from '../models';
 
 /**
@@ -28,11 +28,19 @@ export class ApikeysApi extends runtime.BaseAPI {
     /**
      * Get Engine API Keys
      */
-    async listApikeysRaw(initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<Apikey>>> {
+    async listApiKeysRaw(initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<ApiKey>>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
         const response = await this.request({
             path: `/apikeys`,
             method: 'GET',
@@ -40,14 +48,14 @@ export class ApikeysApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(ApikeyFromJSON));
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(ApiKeyFromJSON));
     }
 
     /**
      * Get Engine API Keys
      */
-    async listApikeys(initOverrides?: RequestInit): Promise<Array<Apikey>> {
-        const response = await this.listApikeysRaw(initOverrides);
+    async listApiKeys(initOverrides?: RequestInit): Promise<Array<ApiKey>> {
+        const response = await this.listApiKeysRaw(initOverrides);
         return await response.value();
     }
 

@@ -7,18 +7,8 @@ import (
 	"github.com/infrahq/infra/internal/registry/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	kubernetesClient "k8s.io/client-go/kubernetes"
 	rest "k8s.io/client-go/rest"
 )
-
-type mockSecretReader struct{}
-
-func NewMockSecretReader() kubernetes.SecretReader {
-	return &mockSecretReader{}
-}
-func (msr *mockSecretReader) Get(secretName string, client *kubernetesClient.Clientset) (string, error) {
-	return "foo", nil
-}
 
 func TestSyncGroupsClearsOnlySource(t *testing.T) {
 	// mocks no groups being present at the source

@@ -16,46 +16,46 @@ import { exists, mapValues } from '../runtime';
 /**
  * 
  * @export
- * @interface Apikey
+ * @interface ApiKey
  */
-export interface Apikey {
+export interface ApiKey {
     /**
      * 
      * @type {string}
-     * @memberof Apikey
+     * @memberof ApiKey
      */
     id: string;
     /**
      * 
      * @type {number}
-     * @memberof Apikey
+     * @memberof ApiKey
      */
     created: number;
     /**
      * 
      * @type {number}
-     * @memberof Apikey
+     * @memberof ApiKey
      */
     updated: number;
     /**
      * 
      * @type {string}
-     * @memberof Apikey
+     * @memberof ApiKey
      */
     name: string;
     /**
      * 
      * @type {string}
-     * @memberof Apikey
+     * @memberof ApiKey
      */
     key: string;
 }
 
-export function ApikeyFromJSON(json: any): Apikey {
-    return ApikeyFromJSONTyped(json, false);
+export function ApiKeyFromJSON(json: any): ApiKey {
+    return ApiKeyFromJSONTyped(json, false);
 }
 
-export function ApikeyFromJSONTyped(json: any, ignoreDiscriminator: boolean): Apikey {
+export function ApiKeyFromJSONTyped(json: any, ignoreDiscriminator: boolean): ApiKey {
     if ((json === undefined) || (json === null)) {
         return json;
     }
@@ -69,7 +69,7 @@ export function ApikeyFromJSONTyped(json: any, ignoreDiscriminator: boolean): Ap
     };
 }
 
-export function ApikeyToJSON(value?: Apikey | null): any {
+export function ApiKeyToJSON(value?: ApiKey | null): any {
     if (value === undefined) {
         return undefined;
     }

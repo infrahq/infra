@@ -45,7 +45,7 @@ export default function Index () {
 
    const { data: apiKey } = useSWR(
     'apiKeys',
-    () => new ApikeysApi(new Configuration({ basePath: "/v1" })).listApikeys().then(apikeys => apikeys[0] || null)
+    () => new ApikeysApi(new Configuration({ basePath: "/v1" })).listApiKeys().then(apikeys => apikeys[0] || null)
   )
 
   return (

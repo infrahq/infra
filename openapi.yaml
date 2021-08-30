@@ -201,8 +201,10 @@ components:
       properties:
         email:
           type: string
+          x-go-custom-tag: validate:"required,email"
         password:
           type: string
+          x-go-custom-tag: validate:"required"
     LoginRequestOkta:
       type: object
       required:
@@ -211,8 +213,10 @@ components:
       properties:
         domain:
           type: string
+          x-go-custom-tag: validate:"required"
         code:
           type: string
+          x-go-custom-tag: validate:"required"
     SignupRequest:
       type: object
       required:
@@ -244,7 +248,7 @@ components:
       properties:
         admin:
           type: boolean
-    Apikey:
+    ApiKey:
       type: object
       required:
         - id
@@ -559,7 +563,7 @@ paths:
         - apikeys
       security:
         - bearerAuth: []
-      operationId: listApikeys
+      operationId: listApiKeys
       responses:
         '200':
           description: apikeys response
@@ -568,7 +572,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Apikey'
+                  $ref: '#/components/schemas/ApiKey'
         default:
           description: unexpected error
           content:

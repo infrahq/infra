@@ -10,7 +10,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
-	api "github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
@@ -74,7 +74,7 @@ func (a *Api) bearerAuthMiddleware(next http.Handler) http.Handler {
 			// Backfall to checking cookies if the bearer header is not provided
 			cookie, err := r.Cookie(CookieTokenName)
 			if err != nil {
-				logging.L.Debug("no bearer auth provided")
+				logging.L.Debug("could not read token from cookie")
 				sendApiError(w, http.StatusUnauthorized, "unauthorized")
 				return
 			}
@@ -249,7 +249,7 @@ func (a *Api) CreateDestination(w http.ResponseWriter, r *http.Request) {
 
 // TODO: scope role access to a specific engine's api key
 func (a *Api) ListRoles(w http.ResponseWriter, r *http.Request) {
-	destinationId := r.URL.Query().Get("code")
+	destinationId := r.URL.Query().Get("destinationId")
 
 	var roles []Role
 	err := a.db.Preload("Destination").Preload("Groups").Preload("Users").Find(&roles, &Role{DestinationId: destinationId}).Error
@@ -455,12 +455,13 @@ func (a *Api) Login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	default:
-		sendApiError(w, http.StatusUnauthorized, "invalid login information provided")
+		sendApiError(w, http.StatusBadRequest, "invalid login information provided")
 		return
 	}
 
 	secret, err := NewToken(a.db, user.Id, &token)
 	if err != nil {
+		logging.L.Debug(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not create token")
 		return
 	}
@@ -558,7 +559,7 @@ func (a *Api) Signup(w http.ResponseWriter, r *http.Request) {
 
 func (a *Api) Version(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(api.VersionResponse{Version: version.Version})
+	json.NewEncoder(w).Encode(api.Version{Version: version.Version})
 }
 
 func (a *Api) Status(w http.ResponseWriter, r *http.Request) {
@@ -570,7 +571,7 @@ func (a *Api) Status(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(api.StatusResponse{Admin: count > 0})
+	json.NewEncoder(w).Encode(api.Status{Admin: count > 0})
 }
 
 func dbToApiSource(s *Source) api.Source {
