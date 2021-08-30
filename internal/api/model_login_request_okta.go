@@ -16,8 +16,8 @@ import (
 
 // LoginRequestOkta struct for LoginRequestOkta
 type LoginRequestOkta struct {
-	Domain string `json:"domain"`
-	Code   string `json:"code"`
+	Domain string `json:"domain" validate:"required"`
+	Code   string `json:"code" validate:"required"`
 }
 
 // NewLoginRequestOkta instantiates a new LoginRequestOkta object

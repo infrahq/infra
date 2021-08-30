@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-export * from './Apikey';
+export * from './ApiKey';
 export * from './AuthResponse';
 export * from './Cred';
 export * from './Destination';

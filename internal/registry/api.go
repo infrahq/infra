@@ -211,13 +211,12 @@ func (a *Api) ListDestinations(w http.ResponseWriter, r *http.Request) {
 
 func (a *Api) CreateDestination(w http.ResponseWriter, r *http.Request) {
 	var body api.DestinationCreateRequest
-	if err := validate.Struct(body); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		sendApiError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		logging.L.Debug(err.Error())
+	if err := validate.Struct(body); err != nil {
 		sendApiError(w, http.StatusBadRequest, err.Error())
 		return
 	}

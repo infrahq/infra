@@ -135,12 +135,16 @@ components:
       properties:
         ca:
           type: string
+          x-go-custom-tag: validate:"required"
         endpoint:
           type: string
+          x-go-custom-tag: validate:"required"
         namespace:
           type: string
+          x-go-custom-tag: validate:"required"
         saToken:
           type: string
+          x-go-custom-tag: validate:"required"
     Cred:
       type: object
       required:
@@ -225,8 +229,10 @@ components:
       properties:
         email:
           type: string
+          x-go-custom-tag: validate:"email,required"
         password:
           type: string
+          x-go-custom-tag: validate:"required"
     AuthResponse:
       type: object
       required:

@@ -16,10 +16,10 @@ import (
 
 // DestinationKubernetes struct for DestinationKubernetes
 type DestinationKubernetes struct {
-	Ca        string `json:"ca"`
-	Endpoint  string `json:"endpoint"`
-	Namespace string `json:"namespace"`
-	SaToken   string `json:"saToken"`
+	Ca        string `json:"ca" validate:"required"`
+	Endpoint  string `json:"endpoint" validate:"required"`
+	Namespace string `json:"namespace" validate:"required"`
+	SaToken   string `json:"saToken" validate:"required"`
 }
 
 // NewDestinationKubernetes instantiates a new DestinationKubernetes object
