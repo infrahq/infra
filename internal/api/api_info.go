@@ -31,7 +31,7 @@ type ApiStatusRequest struct {
 	ApiService *InfoApiService
 }
 
-func (r ApiStatusRequest) Execute() (StatusResponse, *_nethttp.Response, error) {
+func (r ApiStatusRequest) Execute() (Status, *_nethttp.Response, error) {
 	return r.ApiService.StatusExecute(r)
 }
 
@@ -49,15 +49,15 @@ func (a *InfoApiService) Status(ctx _context.Context) ApiStatusRequest {
 }
 
 // Execute executes the request
-//  @return StatusResponse
-func (a *InfoApiService) StatusExecute(r ApiStatusRequest) (StatusResponse, *_nethttp.Response, error) {
+//  @return Status
+func (a *InfoApiService) StatusExecute(r ApiStatusRequest) (Status, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodGet
 		localVarPostBody     interface{}
 		localVarFormFileName string
 		localVarFileName     string
 		localVarFileBytes    []byte
-		localVarReturnValue  StatusResponse
+		localVarReturnValue  Status
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "InfoApiService.Status")
@@ -137,7 +137,7 @@ type ApiVersionRequest struct {
 	ApiService *InfoApiService
 }
 
-func (r ApiVersionRequest) Execute() (VersionResponse, *_nethttp.Response, error) {
+func (r ApiVersionRequest) Execute() (Version, *_nethttp.Response, error) {
 	return r.ApiService.VersionExecute(r)
 }
 
@@ -155,15 +155,15 @@ func (a *InfoApiService) Version(ctx _context.Context) ApiVersionRequest {
 }
 
 // Execute executes the request
-//  @return VersionResponse
-func (a *InfoApiService) VersionExecute(r ApiVersionRequest) (VersionResponse, *_nethttp.Response, error) {
+//  @return Version
+func (a *InfoApiService) VersionExecute(r ApiVersionRequest) (Version, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodGet
 		localVarPostBody     interface{}
 		localVarFormFileName string
 		localVarFileName     string
 		localVarFileBytes    []byte
-		localVarReturnValue  VersionResponse
+		localVarReturnValue  Version
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "InfoApiService.Version")

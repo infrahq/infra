@@ -304,6 +304,19 @@ func (a *Api) ListRoles(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Api) ListApiKeys(w http.ResponseWriter, r *http.Request) {
+	token, err := extractToken(r.Context())
+	if err != nil {
+		logging.L.Debug(err.Error())
+		sendApiError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	if !token.User.Admin {
+		logging.L.Debug("user is not an admin")
+		sendApiError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
 	var apikeys []ApiKey
 	if err := a.db.Find(&apikeys).Error; err != nil {
 		logging.L.Error(err.Error())

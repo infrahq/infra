@@ -16,6 +16,6 @@ export * from './RoleKind';
 export * from './SignupRequest';
 export * from './Source';
 export * from './SourceOkta';
-export * from './StatusResponse';
+export * from './Status';
 export * from './User';
-export * from './VersionResponse';
+export * from './Version';

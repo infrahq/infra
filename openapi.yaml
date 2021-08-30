@@ -6,18 +6,18 @@ info:
   title: Infra API
   description: Infra REST API
 tags:
+  - name: users
+    description: Manage users
+  - name: groups
+    description: Manage groups
+  - name: sources
+    description: Manage identity sources
   - name: destinations
     description: Manage infrastructure destinations
   - name: creds
     description: Create credentials to access a destination
   - name: roles
     description: Manage roles
-  - name: users
-    description: Manage users
-  - name: groups
-    description: Manage groups
-  - name: sources
-    description: Manage identitiy sources
   - name: auth
     description: Login, logout and sign up
   - name: info
@@ -141,6 +141,24 @@ components:
           type: string
         saToken:
           type: string
+    Cred:
+      type: object
+      required:
+        - token
+        - expires
+      properties:
+        token:
+          type: string
+        expires:
+          type: integer
+          format: int64
+    LoginRequest:
+      type: object
+      properties:
+        infra:
+          $ref: '#/components/schemas/LoginRequestInfra'
+        okta:
+          $ref: '#/components/schemas/LoginRequestOkta'
     Role:
       type: object
       required:
@@ -175,24 +193,6 @@ components:
       enum:
         - role
         - cluster-role
-    Cred:
-      type: object
-      required:
-        - token
-        - expires
-      properties:
-        token:
-          type: string
-        expires:
-          type: integer
-          format: int64
-    LoginRequest:
-      type: object
-      properties:
-        infra:
-          $ref: '#/components/schemas/LoginRequestInfra'
-        okta:
-          $ref: '#/components/schemas/LoginRequestOkta'
     LoginRequestInfra:
       type: object
       required:
@@ -230,13 +230,20 @@ components:
       properties:
         token:
           type: string
-    VersionResponse:
+    Version:
       type: object
       required:
         - version
       properties:
         version:
           type: string
+    Status:
+      type: object
+      required:
+        - admin
+      properties:
+        admin:
+          type: boolean
     Apikey:
       type: object
       required:
@@ -258,13 +265,6 @@ components:
           type: string
         key:
           type: string
-    StatusResponse:
-      type: object
-      required:
-        - admin
-      properties:
-        admin:
-          type: boolean
     Error:
       type: object
       required:
@@ -277,6 +277,73 @@ components:
         message:
           type: string
 paths:
+  /users:
+    get:
+      summary: List users
+      tags:
+        - users
+      security:
+        - bearerAuth: []
+      operationId: listUsers
+      responses:
+        '200':
+          description: users response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /groups:
+    get:
+      summary: List groups
+      tags:
+        - groups
+      security:
+        - bearerAuth: []
+      operationId: listGroups
+      responses:
+        '200':
+          description: groups response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Group'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /sources:
+    get:
+      summary: List sources
+      tags:
+        - sources
+      operationId: listSources
+      responses:
+        '200':
+          description: sources response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Source'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /destinations:
     get:
       tags:
@@ -378,73 +445,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /users:
-    get:
-      summary: List users
-      tags:
-        - users
-      security:
-        - bearerAuth: []
-      operationId: listUsers
-      responses:
-        '200':
-          description: users response
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/User'
-        default:
-          description: unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  /groups:
-    get:
-      summary: List groups
-      tags:
-        - groups
-      security:
-        - bearerAuth: []
-      operationId: listGroups
-      responses:
-        '200':
-          description: groups response
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Group'
-        default:
-          description: unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  /sources:
-    get:
-      summary: List sources
-      tags:
-        - sources
-      operationId: listSources
-      responses:
-        '200':
-          description: sources response
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Source'
-        default:
-          description: unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
   /login:
     post:
       summary: Log in to Infra and get an API token for a user
@@ -526,7 +526,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/VersionResponse'
+                $ref: '#/components/schemas/Version'
         default:
           description: unexpected error
           content:
@@ -545,7 +545,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StatusResponse'
+                $ref: '#/components/schemas/Status'
         default:
           description: unexpected error
           content:

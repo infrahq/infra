@@ -15,12 +15,12 @@
 
 import * as runtime from '../runtime';
 import {
-    StatusResponse,
-    StatusResponseFromJSON,
-    StatusResponseToJSON,
-    VersionResponse,
-    VersionResponseFromJSON,
-    VersionResponseToJSON,
+    Status,
+    StatusFromJSON,
+    StatusToJSON,
+    Version,
+    VersionFromJSON,
+    VersionToJSON,
 } from '../models';
 
 /**
@@ -31,7 +31,7 @@ export class InfoApi extends runtime.BaseAPI {
     /**
      * Get signup status information
      */
-    async statusRaw(initOverrides?: RequestInit): Promise<runtime.ApiResponse<StatusResponse>> {
+    async statusRaw(initOverrides?: RequestInit): Promise<runtime.ApiResponse<Status>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -43,13 +43,13 @@ export class InfoApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => StatusResponseFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => StatusFromJSON(jsonValue));
     }
 
     /**
      * Get signup status information
      */
-    async status(initOverrides?: RequestInit): Promise<StatusResponse> {
+    async status(initOverrides?: RequestInit): Promise<Status> {
         const response = await this.statusRaw(initOverrides);
         return await response.value();
     }
@@ -57,7 +57,7 @@ export class InfoApi extends runtime.BaseAPI {
     /**
      * Get version information
      */
-    async versionRaw(initOverrides?: RequestInit): Promise<runtime.ApiResponse<VersionResponse>> {
+    async versionRaw(initOverrides?: RequestInit): Promise<runtime.ApiResponse<Version>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -69,13 +69,13 @@ export class InfoApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => VersionResponseFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => VersionFromJSON(jsonValue));
     }
 
     /**
      * Get version information
      */
-    async version(initOverrides?: RequestInit): Promise<VersionResponse> {
+    async version(initOverrides?: RequestInit): Promise<Version> {
         const response = await this.versionRaw(initOverrides);
         return await response.value();
     }
