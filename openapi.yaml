@@ -417,9 +417,9 @@ paths:
                 $ref: '#/components/schemas/Error'
   /roles:
     get:
+      summary: List roles
       tags:
         - roles
-      summary: List roles
       security:
         - bearerAuth: []
       operationId: listRoles
@@ -557,6 +557,8 @@ paths:
       summary: Get Engine API Keys
       tags:
         - apikeys
+      security:
+        - bearerAuth: []
       operationId: listApikeys
       responses:
         '200':
