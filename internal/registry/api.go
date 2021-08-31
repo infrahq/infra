@@ -59,8 +59,8 @@ func sendApiError(w http.ResponseWriter, code int, message string) {
 		Code:    int32(code),
 		Message: message,
 	}
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	json.NewEncoder(w).Encode(err)
 }
 
@@ -230,8 +230,8 @@ func (a *Api) CreateDestination(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(dbToApiDestination(&destination))
 	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(dbToApiDestination(&destination))
 }
 
 func (a *Api) ListRoles(w http.ResponseWriter, r *http.Request) {
