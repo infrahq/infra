@@ -8,7 +8,6 @@ import { useCookies } from 'react-cookie'
 import useSWR from 'swr'
 
 import { useRedirectToLoginOnUnauthorized } from '../util/redirect'
-
 import { UsersApi, AuthApi, Configuration } from '../api'
 
 export default function Layout ({ children }: { children: JSX.Element[] | JSX.Element }): JSX.Element {
@@ -21,14 +20,14 @@ export default function Layout ({ children }: { children: JSX.Element[] | JSX.El
   // log users out
   const { error } = useSWR(
     'users',
-    () => new UsersApi(new Configuration({ basePath: "/v1" })).listUsers()
+    () => new UsersApi(new Configuration({ basePath: '/v1' })).listUsers()
   )
 
   useRedirectToLoginOnUnauthorized(error)
 
   if (process.browser && !cookies.login) {
-      router.replace("/login")
-      return <></>
+    router.replace('/login')
+    return <></>
   }
 
   const navigation = [
@@ -41,8 +40,8 @@ export default function Layout ({ children }: { children: JSX.Element[] | JSX.El
       name: 'Logout',
       href: "#",
       onClick: async () => {
-        new AuthApi(new Configuration({ basePath: "/v1" })).logout()
-        router.replace("/login")
+        new AuthApi(new Configuration({ basePath: '/v1' })).logout()
+        router.replace('/login')
       }
     },
   ]

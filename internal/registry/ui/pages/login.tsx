@@ -12,10 +12,10 @@ export default function Login () {
   const [cookies] = useCookies(['login'])
   const [error, setError] = useState('')
 
-  let nextParam = router.query.next ? router.query.next : "/"
-  let next = "/"
+  let nextParam = router.query.next ? router.query.next : '/'
+  let next = '/'
 
-  if (typeof nextParam === "string") {
+  if (typeof nextParam === 'string') {
     next = nextParam
   } else if (nextParam.length > 0) {
     next = nextParam[0]
@@ -24,11 +24,12 @@ export default function Login () {
   const handleSubmit = useCallback(async e => {
     e.preventDefault()
     try {
-      await new AuthApi(new Configuration({ basePath: "/v1" })).login({ body: { infra: { email, password } } })
+      await new AuthApi(new Configuration({ basePath: '/v1' })).login({ body: { infra: { email, password } } })
       setError('')
       router.replace(next)
     } catch (e) {
-      setError(e.message)
+      const err = await e.json()
+      setError(err.message)
       return false
     }
   }, [email, password, router])
@@ -38,7 +39,7 @@ export default function Login () {
   }, [])
 
   if (process.browser && cookies.login) {
-    router.replace("/")
+    router.replace('/')
     return <></>
   }
 
