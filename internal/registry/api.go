@@ -139,13 +139,6 @@ func (a *Api) ListUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Api) ListGroups(w http.ResponseWriter, r *http.Request) {
-	_, err := extractToken(r.Context())
-	if err != nil {
-		logging.L.Debug(err.Error())
-		sendApiError(w, http.StatusUnauthorized, "unauthorized")
-		return
-	}
-
 	var groups []Group
 	if err := a.db.Find(&groups).Error; err != nil {
 		logging.L.Error(err.Error())
@@ -569,7 +562,9 @@ func (a *Api) Status(w http.ResponseWriter, r *http.Request) {
 
 func dbToApiSource(s *Source) api.Source {
 	res := api.Source{
-		Id: s.Id,
+		Id:      s.Id,
+		Created: s.Created,
+		Updated: s.Updated,
 	}
 
 	switch s.Type {
