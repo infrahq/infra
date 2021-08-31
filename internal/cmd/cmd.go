@@ -24,7 +24,7 @@ import (
 	"github.com/cli/browser"
 	"github.com/docker/go-units"
 	"github.com/goware/urlx"
-	api "github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/engine"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
@@ -34,8 +34,6 @@ import (
 	"github.com/muesli/termenv"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientauthenticationv1alpha1 "k8s.io/client-go/pkg/apis/clientauthentication/v1alpha1"
 	"k8s.io/client-go/tools/clientcmd"
@@ -384,14 +382,14 @@ var loginCmd = &cobra.Command{
 			return err
 		}
 
-		res, _, err := client.InfoApi.Status(context.Background()).Execute()
+		status, _, err := client.InfoApi.Status(context.Background()).Execute()
 		if err != nil {
 			return err
 		}
 
 		var authRes api.AuthResponse
 
-		if !res.Admin {
+		if !status.Admin {
 			fmt.Println()
 			fmt.Println(blue("Welcome to Infra. Get started by creating your admin user:"))
 			email := ""
@@ -845,17 +843,8 @@ var versionCmd = &cobra.Command{
 		// Note that we use the client to get this version, but it is in fact the server version
 		res, _, err := client.InfoApi.Version(context.Background()).Execute()
 		if err != nil {
-			status, ok := status.FromError(err)
-			if !ok {
-				return err
-			}
-			switch status.Code() {
-			case codes.Unavailable:
-				fmt.Fprintln(w, "Registry:\t", "not connected")
-				return nil
-			default:
-				return err
-			}
+			fmt.Fprintln(w, "Registry:\t", "not connected")
+			return err
 		}
 
 		fmt.Fprintln(w, "Registry:\t", res.Version)

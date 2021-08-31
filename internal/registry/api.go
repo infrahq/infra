@@ -120,13 +120,6 @@ func extractToken(context context.Context) (*Token, error) {
 }
 
 func (a *Api) ListUsers(w http.ResponseWriter, r *http.Request) {
-	_, err := extractToken(r.Context())
-	if err != nil {
-		logging.L.Debug(err.Error())
-		sendApiError(w, http.StatusUnauthorized, "unauthorized")
-		return
-	}
-
 	var users []User
 	if err := a.db.Find(&users).Error; err != nil {
 		logging.L.Error(err.Error())
@@ -246,7 +239,6 @@ func (a *Api) CreateDestination(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-// TODO: scope role access to a specific engine's api key
 func (a *Api) ListRoles(w http.ResponseWriter, r *http.Request) {
 	destinationId := r.URL.Query().Get("destinationId")
 

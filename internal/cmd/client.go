@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/goware/urlx"
-	api "github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/internal/api"
 	"github.com/natefinch/lumberjack"
 )
 

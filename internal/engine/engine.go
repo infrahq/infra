@@ -17,7 +17,7 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/goware/urlx"
-	api "github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/timer"
