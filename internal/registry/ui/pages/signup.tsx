@@ -15,7 +15,7 @@ export default function Signup () {
   const handleSubmit = useCallback(async e => {
     e.preventDefault()
     try {
-      new AuthApi(new Configuration({ basePath: '/v1' })).signup({ body: { email, password } });
+      await new AuthApi(new Configuration({ basePath: '/v1' })).signup({ body: { email, password } });
       router.replace('/')
     } catch (e) {
       const err = await e.json()

@@ -457,11 +457,7 @@ func (a *Api) Login(w http.ResponseWriter, r *http.Request) {
 	setAuthCookie(w, tokenString)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(struct {
-		Token string `json:"token"`
-	}{
-		Token: tokenString,
-	})
+	json.NewEncoder(w).Encode(api.AuthResponse{Token: tokenString})
 }
 
 func (a *Api) Logout(w http.ResponseWriter, r *http.Request) {
@@ -536,11 +532,8 @@ func (a *Api) Signup(w http.ResponseWriter, r *http.Request) {
 	setAuthCookie(w, tokenString)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(struct {
-		Token string `json:"token"`
-	}{
-		Token: tokenString,
-	})
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(api.AuthResponse{Token: tokenString})
 }
 
 func (a *Api) Version(w http.ResponseWriter, r *http.Request) {
