@@ -58,6 +58,7 @@ components:
         - name
         - created
         - updated
+        - source
       properties:
         id:
           type: string
@@ -69,6 +70,8 @@ components:
         updated:
           type: integer
           format: int64
+        source:
+          type: string
     Source:
       type: object
       required:

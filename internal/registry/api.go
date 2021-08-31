@@ -140,9 +140,9 @@ func (a *Api) ListUsers(w http.ResponseWriter, r *http.Request) {
 
 func (a *Api) ListGroups(w http.ResponseWriter, r *http.Request) {
 	var groups []Group
-	if err := a.db.Find(&groups).Error; err != nil {
+	if err := a.db.Preload("Source").Find(&groups).Error; err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not list users")
+		sendApiError(w, http.StatusInternalServerError, "could not list groups")
 		return
 	}
 
@@ -624,6 +624,7 @@ func dbToApiGroup(g *Group) api.Group {
 		Created: g.Created,
 		Updated: g.Updated,
 		Name:    g.Name,
+		Source:  g.Source.Type,
 	}
 }
 
