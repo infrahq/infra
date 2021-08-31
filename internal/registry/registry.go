@@ -183,7 +183,7 @@ func Run(options Options) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", Healthz)
 	mux.HandleFunc("/.well-known/jwks.json", h.WellKnownJWKs)
-	mux.Handle("/v1/", NewApiMux(db))
+	mux.Handle("/v1/", NewApiMux(db, k8s, okta))
 
 	if options.UIProxy != "" {
 		remote, err := urlx.Parse(options.UIProxy)

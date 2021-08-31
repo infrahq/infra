@@ -29,9 +29,11 @@ type Api struct {
 
 var validate *validator.Validate = validator.New()
 
-func NewApiMux(db *gorm.DB) *mux.Router {
+func NewApiMux(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) *mux.Router {
 	a := Api{
-		db: db,
+		db:   db,
+		k8s:  k8s,
+		okta: okta,
 	}
 
 	r := mux.NewRouter()
