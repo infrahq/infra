@@ -13,7 +13,7 @@ require (
 	github.com/go-playground/validator/v10 v10.9.0
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/googleapis/gnostic v0.5.5 // indirect
-	github.com/goreleaser/goreleaser v0.176.0
+	github.com/goreleaser/goreleaser v0.174.1
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
 	github.com/goware/urlx v0.3.1
