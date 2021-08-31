@@ -3,7 +3,7 @@ package generate
 import (
 	"testing"
 
-	"github.com/go-playground/assert/v2"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRandStringNegativeLen(t *testing.T) {
