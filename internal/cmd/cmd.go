@@ -791,12 +791,7 @@ var groupsCmd = &cobra.Command{
 			rows = append(rows, []string{g.Name, units.HumanDuration(time.Now().UTC().Sub(time.Unix(g.Created, 0))) + " ago", g.Source})
 		}
 
-		if len(rows) > 0 {
-			printTable([]string{"NAME", "CREATED", "SOURCE"}, rows)
-		} else {
-			fmt.Println("No groups in current configuration")
-		}
-
+		printTable([]string{"NAME", "CREATED", "SOURCE"}, rows)
 		return nil
 	},
 }
