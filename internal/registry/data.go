@@ -565,7 +565,7 @@ func ValidateAndGetToken(db *gorm.DB, in string) (*Token, error) {
 	secret := in[ID_LEN:TOKEN_LEN]
 
 	var token Token
-	if err := db.First(&token, &Token{Id: id}).Error; err != nil {
+	if err := db.Preload("User").First(&token, &Token{Id: id}).Error; err != nil {
 		return nil, errors.New("could not retrieve token – it may not exist")
 	}
 

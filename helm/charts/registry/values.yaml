@@ -23,11 +23,6 @@ ingress:
   className: ""
   hosts: []
   tls: []
-  https:
-    servicePort: 80
-    annotations: {}
-    labels: {}
-  grpc:
-    servicePort: 80
-    annotations: {}
-    labels: {}
+  servicePort: 80
+  annotations: {}
+  labels: {}

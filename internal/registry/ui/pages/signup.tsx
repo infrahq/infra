@@ -2,7 +2,8 @@ import { useCallback, useState } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { useCookies } from 'react-cookie'
-import { V1 } from '../gen/v1.pb'
+
+import { AuthApi, Configuration } from '../api'
 
 export default function Signup () {
   const router = useRouter()
@@ -14,19 +15,19 @@ export default function Signup () {
   const handleSubmit = useCallback(async e => {
     e.preventDefault()
     try {
-      await V1.Signup({ email, password })
-      setError('')
-      router.replace("/")
+      await new AuthApi(new Configuration({ basePath: '/v1' })).signup({ body: { email, password } });
+      router.replace('/')
     } catch (e) {
-      setError(e)
+      const err = await e.json()
+      setError(err.message)
       console.error(e)
     }
   }, [email, password])
 
   if (process.browser && cookies.login) {
-        router.replace("/")
-        return <></>
-    }
+    router.replace('/')
+    return <></>
+  }
 
   return (
     <div className="min-h-screen flex flex-col justify-center py-8 pb-48 sm:px-6 lg:px-8">

@@ -24,23 +24,16 @@ import (
 	"github.com/cli/browser"
 	"github.com/docker/go-units"
 	"github.com/goware/urlx"
+	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/engine"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry"
-	v1 "github.com/infrahq/infra/internal/v1"
 	"github.com/infrahq/infra/internal/version"
 	"github.com/mitchellh/go-homedir"
 	"github.com/muesli/termenv"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/grpclog"
-	grpcMetadata "google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/emptypb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientauthenticationv1alpha1 "k8s.io/client-go/pkg/apis/clientauthentication/v1alpha1"
 	"k8s.io/client-go/tools/clientcmd"
@@ -144,55 +137,48 @@ func blue(s string) string {
 	return termenv.String(s).Bold().Foreground(termenv.ColorProfile().Color("#0057FF")).String()
 }
 
-func withClientAuthUnaryInterceptor(token string) grpc.DialOption {
-	return grpc.WithUnaryInterceptor(func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-		return invoker(grpcMetadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer "+token), method, req, reply, cc, opts...)
-	})
+func NewApiContext(token string) context.Context {
+	return context.WithValue(context.Background(), api.ContextAccessToken, token)
 }
 
-func NewClient(host string, token string, skipTlsVerify bool) (v1.V1Client, context.CancelFunc, error) {
-	if host == "" {
-		return nil, nil, errors.New("host must not be empty")
-	}
-
+func NewApiClient(host string, skipTlsVerify bool) (*api.APIClient, error) {
 	u, err := urlx.Parse(host)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	normalizedHost := u.Host
-	if u.Port() == "" {
-		normalizedHost += ":443"
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	creds := credentials.NewTLS(&tls.Config{InsecureSkipVerify: skipTlsVerify})
-	dialOptions := []grpc.DialOption{grpc.WithTransportCredentials(creds)}
-	if token != "" {
-		dialOptions = append(dialOptions, withClientAuthUnaryInterceptor(token))
-	}
-	conn, err := grpc.Dial(normalizedHost, dialOptions...)
-	if err != nil {
-		return nil, cancel, err
-	}
-
-	go func() {
-		<-ctx.Done()
-		if cerr := conn.Close(); cerr != nil {
-			grpclog.Infof("Failed to close conn to %s: %v", host, cerr)
+	config := api.NewConfiguration()
+	config.Host = u.Host
+	config.Scheme = "https"
+	if skipTlsVerify {
+		config.HTTPClient = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: true,
+				},
+			},
 		}
-	}()
+	}
 
-	return v1.NewV1Client(conn), cancel, nil
+	return api.NewAPIClient(config), nil
 }
 
-func clientFromConfig() (v1.V1Client, context.CancelFunc, error) {
+func apiContextFromConfig() (context.Context, error) {
 	config, err := readConfig()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return NewClient(config.Host, config.Token, config.SkipTLSVerify)
+	return NewApiContext(config.Token), nil
+}
+
+func apiClientFromConfig() (*api.APIClient, error) {
+	config, err := readConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	return NewApiClient(config.Host, config.SkipTLSVerify)
 }
 
 func clientConfig() clientcmd.ClientConfig {
@@ -201,14 +187,10 @@ func clientConfig() clientcmd.ClientConfig {
 	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
 }
 
-func updateKubeconfig(destinations []*v1.Destination) error {
+func updateKubeconfig(destinations []api.Destination) error {
 	home, err := homedir.Dir()
 	if err != nil {
 		return err
-	}
-
-	if destinations == nil {
-		destinations = make([]*v1.Destination, 0)
 	}
 
 	if len(destinations) > 0 {
@@ -395,19 +377,19 @@ var loginCmd = &cobra.Command{
 			return nil
 		}
 
-		client, close, err := NewClient(args[0], "", skipTLSVerify)
-		if err != nil {
-			return err
-		}
-		defer close()
-
-		res, err := client.Status(context.Background(), &emptypb.Empty{})
+		client, err := NewApiClient(args[0], skipTLSVerify)
 		if err != nil {
 			return err
 		}
 
-		var loginRes *v1.LoginResponse
-		if !res.Admin {
+		status, _, err := client.InfoApi.Status(context.Background()).Execute()
+		if err != nil {
+			return err
+		}
+
+		var authRes api.AuthResponse
+
+		if !status.Admin {
 			fmt.Println()
 			fmt.Println(blue("Welcome to Infra. Get started by creating your admin user:"))
 			email := ""
@@ -433,26 +415,26 @@ var loginCmd = &cobra.Command{
 			}
 
 			fmt.Println(blue("✓") + " Creating admin user...")
-			loginRes, err = client.Signup(context.Background(), &v1.SignupRequest{Email: email, Password: password})
+			authRes, _, err = client.AuthApi.Signup(context.Background()).Body(api.SignupRequest{Email: email, Password: password}).Execute()
 			if err != nil {
 				return err
 			}
 		} else {
-			sourcesRes, err := client.ListSources(context.Background(), &emptypb.Empty{})
+			sources, _, err := client.SourcesApi.ListSources(context.Background()).Execute()
 			if err != nil {
 				return err
 			}
 
-			sort.Slice(sourcesRes.Sources, func(i, j int) bool {
-				return sourcesRes.Sources[i].Created > sourcesRes.Sources[j].Created
+			sort.Slice(sources, func(i, j int) bool {
+				return sources[i].Created > sources[j].Created
 			})
 
 			options := []string{}
-			for _, srs := range sourcesRes.Sources {
-				switch srs.Type {
-				case v1.SourceType_OKTA:
-					options = append(options, fmt.Sprintf("Okta [%s]", srs.Okta.Domain))
-				case v1.SourceType_INFRA:
+			for _, s := range sources {
+				switch {
+				case s.Okta != nil:
+					options = append(options, fmt.Sprintf("Okta [%s]", s.Okta.Domain))
+				default:
 					options = append(options, "Username & password")
 				}
 			}
@@ -471,11 +453,11 @@ var loginCmd = &cobra.Command{
 				}
 			}
 
-			source := sourcesRes.Sources[option]
-			var loginReq v1.LoginRequest
+			source := sources[option]
+			var loginReq api.LoginRequest
 
-			switch source.Type {
-			case v1.SourceType_OKTA:
+			switch {
+			case source.Okta != nil:
 				// Start OIDC flow
 				// Get auth code from Okta
 				// Send auth code to Infra to login as a user
@@ -502,13 +484,11 @@ var loginCmd = &cobra.Command{
 					return errors.New("received state is not the same as sent state")
 				}
 
-				loginReq.Type = v1.SourceType_OKTA
-				loginReq.Okta = &v1.LoginRequest_Okta{
+				loginReq.Okta = &api.LoginRequestOkta{
 					Domain: source.Okta.Domain,
 					Code:   code,
 				}
-
-			case v1.SourceType_INFRA:
+			default:
 				email := ""
 				emailPrompt := &survey.Input{
 					Message: "Email",
@@ -533,14 +513,13 @@ var loginCmd = &cobra.Command{
 
 				fmt.Println(blue("✓") + " Logging in with username & password...")
 
-				loginReq.Type = v1.SourceType_INFRA
-				loginReq.Infra = &v1.LoginRequest_Infra{
+				loginReq.Infra = &api.LoginRequestInfra{
 					Email:    email,
 					Password: password,
 				}
 			}
 
-			loginRes, err = client.Login(context.Background(), &loginReq)
+			authRes, _, err = client.AuthApi.Login(context.Background()).Body(loginReq).Execute()
 			if err != nil {
 				return err
 			}
@@ -548,7 +527,7 @@ var loginCmd = &cobra.Command{
 
 		config := &Config{
 			Host:          args[0],
-			Token:         loginRes.Token,
+			Token:         authRes.Token,
 			SkipTLSVerify: skipTLSVerify,
 		}
 
@@ -603,23 +582,23 @@ var loginCmd = &cobra.Command{
 			os.Remove(filepath.Join(home, ".infra", "client", "pid"))
 		}
 
-		loggedInClient, close, err := NewClient(args[0], loginRes.Token, skipTLSVerify)
+		client, err = NewApiClient(args[0], skipTLSVerify)
 		if err != nil {
 			return err
 		}
-		defer close()
+		ctx := NewApiContext(authRes.Token)
 
-		destRes, err := loggedInClient.ListDestinations(context.Background(), &emptypb.Empty{})
-		if err != nil {
-			return err
-		}
-
-		err = updateKubeconfig(destRes.Destinations)
+		destinations, _, err := client.DestinationsApi.ListDestinations(ctx).Execute()
 		if err != nil {
 			return err
 		}
 
-		if len(destRes.Destinations) > 0 {
+		err = updateKubeconfig(destinations)
+		if err != nil {
+			return err
+		}
+
+		if len(destinations) > 0 {
 			kubeConfigPath := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{}).ConfigAccess().GetDefaultFilename()
 			fmt.Println(blue("✓") + " Kubeconfig updated: " + termenv.String(strings.ReplaceAll(kubeConfigPath, home, "~")).Bold().String())
 		}
@@ -650,13 +629,15 @@ var logoutCmd = &cobra.Command{
 			return nil
 		}
 
-		client, close, err := NewClient(config.Host, config.Token, config.SkipTLSVerify)
+		client, err := NewApiClient(config.Host, config.SkipTLSVerify)
 		if err != nil {
 			return err
 		}
-		defer close()
 
-		client.Logout(context.Background(), &emptypb.Empty{})
+		_, err = client.AuthApi.Logout(NewApiContext(config.Token)).Execute()
+		if err != nil {
+			fmt.Print(err)
+		}
 
 		err = removeConfig()
 		if err != nil {
@@ -687,7 +668,7 @@ var logoutCmd = &cobra.Command{
 		os.Remove(filepath.Join(home, ".infra", "client", "pid"))
 		os.Remove(filepath.Join(home, ".infra", "destinations"))
 
-		return updateKubeconfig([]*v1.Destination{})
+		return updateKubeconfig([]api.Destination{})
 	},
 }
 
@@ -696,32 +677,36 @@ var listCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "List clusters",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, close, err := clientFromConfig()
-		if err != nil {
-			return err
-		}
-		defer close()
-
-		res, err := client.ListDestinations(context.Background(), &emptypb.Empty{})
+		client, err := apiClientFromConfig()
 		if err != nil {
 			return err
 		}
 
-		sort.Slice(res.Destinations, func(i, j int) bool {
-			return res.Destinations[i].Created > res.Destinations[j].Created
+		ctx, err := apiContextFromConfig()
+		if err != nil {
+			return err
+		}
+
+		destinations, _, err := client.DestinationsApi.ListDestinations(ctx).Execute()
+		if err != nil {
+			return err
+		}
+
+		sort.Slice(destinations, func(i, j int) bool {
+			return destinations[i].Created > destinations[j].Created
 		})
 
 		kubeConfig, _ := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), nil).RawConfig()
 
 		rows := [][]string{}
-		for _, dest := range res.Destinations {
-			switch dest.Type {
-			case v1.DestinationType_KUBERNETES:
+		for _, d := range destinations {
+			switch {
+			case d.Kubernetes != nil:
 				star := ""
-				if dest.Name == kubeConfig.CurrentContext {
+				if d.Name == kubeConfig.CurrentContext {
 					star = "*"
 				}
-				rows = append(rows, []string{"infra:" + dest.Name + star, dest.Kubernetes.Endpoint})
+				rows = append(rows, []string{"infra:" + d.Name + star, d.Kubernetes.Endpoint})
 			}
 		}
 
@@ -730,7 +715,7 @@ var listCmd = &cobra.Command{
 		fmt.Println("To connect, run \"kubectl config use-context <name>\"")
 		fmt.Println()
 
-		err = updateKubeconfig(res.Destinations)
+		err = updateKubeconfig(destinations)
 		if err != nil {
 			return err
 		}
@@ -743,31 +728,33 @@ var usersCmd = &cobra.Command{
 	Use:   "users",
 	Short: "List users",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, close, err := clientFromConfig()
-		if err != nil {
-			return err
-		}
-		defer close()
-
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-		res, err := client.ListUsers(ctx, &v1.ListUsersRequest{})
+		client, err := apiClientFromConfig()
 		if err != nil {
 			return err
 		}
 
-		sort.Slice(res.Users, func(i, j int) bool {
-			return res.Users[i].Created > res.Users[j].Created
+		ctx, err := apiContextFromConfig()
+		if err != nil {
+			return err
+		}
+
+		users, _, err := client.UsersApi.ListUsers(ctx).Execute()
+		if err != nil {
+			return err
+		}
+
+		sort.Slice(users, func(i, j int) bool {
+			return users[i].Created > users[j].Created
 		})
 
 		rows := [][]string{}
-		for _, user := range res.Users {
+		for _, u := range users {
 			admin := ""
-			if user.Admin {
+			if u.Admin {
 				admin = "x"
 			}
 
-			rows = append(rows, []string{user.Email, units.HumanDuration(time.Now().UTC().Sub(time.Unix(user.Created, 0))) + " ago", admin})
+			rows = append(rows, []string{u.Email, units.HumanDuration(time.Now().UTC().Sub(time.Unix(u.Created, 0))) + " ago", admin})
 		}
 
 		printTable([]string{"EMAIL", "CREATED", "ADMIN"}, rows)
@@ -847,27 +834,17 @@ var versionCmd = &cobra.Command{
 		fmt.Fprintln(w)
 		fmt.Fprintln(w, "Client:\t", version.Version)
 
-		client, close, err := clientFromConfig()
+		client, err := apiClientFromConfig()
 		if err != nil {
 			fmt.Fprintln(w, blue("✕")+" Could not retrieve client version")
 			return err
 		}
-		defer close()
 
 		// Note that we use the client to get this version, but it is in fact the server version
-		res, err := client.Version(context.Background(), &emptypb.Empty{})
+		res, _, err := client.InfoApi.Version(context.Background()).Execute()
 		if err != nil {
-			status, ok := status.FromError(err)
-			if !ok {
-				return err
-			}
-			switch status.Code() {
-			case codes.Unavailable:
-				fmt.Fprintln(w, "Registry:\t", "not connected")
-				return nil
-			default:
-				return err
-			}
+			fmt.Fprintln(w, "Registry:\t", "not connected")
+			return err
 		}
 
 		fmt.Fprintln(w, "Registry:\t", res.Version)
@@ -882,19 +859,20 @@ var credsCmd = &cobra.Command{
 	Short:  "Generate credentials",
 	Hidden: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// TODO (https://github.com/infrahq/infra/issues/59): First try to read cached token
-		client, close, err := clientFromConfig()
-		if err != nil {
-			return err
-		}
-		defer close()
-
-		res, err := client.CreateCred(context.Background(), &emptypb.Empty{})
+		client, err := apiClientFromConfig()
 		if err != nil {
 			return err
 		}
 
-		expiry := time.Unix(res.Expires, 0)
+		ctx, err := apiContextFromConfig()
+		if err != nil {
+			return err
+		}
+
+		cred, _, err := client.CredsApi.CreateCred(ctx).Execute()
+		if err != nil {
+			return err
+		}
 
 		execCredential := &clientauthenticationv1alpha1.ExecCredential{
 			TypeMeta: metav1.TypeMeta{
@@ -903,8 +881,8 @@ var credsCmd = &cobra.Command{
 			},
 			Spec: clientauthenticationv1alpha1.ExecCredentialSpec{},
 			Status: &clientauthenticationv1alpha1.ExecCredentialStatus{
-				Token:               res.Token,
-				ExpirationTimestamp: &metav1.Time{Time: expiry},
+				Token:               cred.Token,
+				ExpirationTimestamp: &metav1.Time{Time: time.Unix(cred.Expires, 0)},
 			},
 		}
 

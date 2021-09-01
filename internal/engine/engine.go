@@ -17,13 +17,10 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/goware/urlx"
+	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/timer"
-	v1 "github.com/infrahq/infra/internal/v1"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	grpcMetadata "google.golang.org/grpc/metadata"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
 )
@@ -48,12 +45,6 @@ type jwkCache struct {
 
 	client  *http.Client
 	baseURL string
-}
-
-func withClientAuthUnaryInterceptor(token string) grpc.DialOption {
-	return grpc.WithUnaryInterceptor(func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-		return invoker(grpcMetadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer "+token), method, req, reply, cc, opts...)
-	})
 }
 
 func (j *jwkCache) getjwk() (*jose.JSONWebKey, error) {
@@ -205,17 +196,6 @@ func (b *BearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func Run(options Options) error {
-	u, err := urlx.Parse(options.Registry)
-	if err != nil {
-		return err
-	}
-
-	u.Scheme = "https"
-
-	if u.Port() == "" {
-		u.Host += ":443"
-	}
-
 	tlsConfig := &tls.Config{}
 	if !options.ForceTLSVerify {
 		// TODO (https://github.com/infrahq/infra/issues/174)
@@ -241,14 +221,24 @@ func Run(options Options) error {
 		}
 	}
 
-	creds := credentials.NewTLS(tlsConfig)
-	conn, err := grpc.Dial(u.Host, grpc.WithTransportCredentials(creds), withClientAuthUnaryInterceptor(options.APIKey))
+	u, err := urlx.Parse(options.Registry)
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	u.Scheme = "https"
 
-	client := v1.NewV1Client(conn)
+	ctx := context.WithValue(context.Background(), api.ContextServerVariables, map[string]string{"basePath": "v1"})
+	ctx = context.WithValue(ctx, api.ContextAccessToken, options.APIKey)
+	config := api.NewConfiguration()
+	config.Host = u.Host
+	config.Scheme = "https"
+	config.HTTPClient = &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: tlsConfig,
+		},
+	}
+
+	client := api.NewAPIClient(config)
 
 	k8s, err := kubernetes.NewKubernetes()
 	if err != nil {
@@ -293,31 +283,28 @@ func Run(options Options) error {
 			return
 		}
 
-		res, err := client.CreateDestination(context.Background(), &v1.CreateDestinationRequest{
+		destination, _, err := client.DestinationsApi.CreateDestination(ctx).Body(api.DestinationCreateRequest{
 			Name: name,
-			Type: v1.DestinationType_KUBERNETES,
-			Kubernetes: &v1.CreateDestinationRequest_Kubernetes{
+			Kubernetes: &api.DestinationKubernetes{
 				Ca:        string(ca),
 				Endpoint:  endpoint,
 				Namespace: namespace,
 				SaToken:   saToken,
 			},
-		})
+		}).Execute()
 		if err != nil {
 			logging.L.Error(err.Error())
 			return
 		}
 
-		rolesRes, err := client.ListRoles(context.Background(), &v1.ListRolesRequest{
-			DestinationId: res.Id,
-		})
+		roles, _, err := client.RolesApi.ListRoles(ctx).DestinationId(destination.Id).Execute()
 		if err != nil {
 			logging.L.Error(err.Error())
 		}
 
 		// convert the response into an easy to use role-user form
 		var rbs []kubernetes.RoleBinding
-		for _, r := range rolesRes.Roles {
+		for _, r := range roles {
 			var users []string
 			for _, u := range r.Users {
 				users = append(users, u.Email)
@@ -339,7 +326,7 @@ func Run(options Options) error {
 		w.Write([]byte("OK"))
 	})
 
-	remote, err := url.Parse(k8s.Config.Host)
+	remote, err := urlx.Parse(k8s.Config.Host)
 	if err != nil {
 		return err
 	}

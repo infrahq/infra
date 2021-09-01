@@ -4,7 +4,7 @@ export default function Index () {
   const router = useRouter()
 
   if (process.browser) {
-    router.replace("/infrastructure")
+    router.replace('/infrastructure')
   }
 
   return <></>

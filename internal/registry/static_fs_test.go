@@ -3,8 +3,8 @@ package registry
 import (
 	"testing"
 
-	"github.com/go-playground/assert/v2"
 	"github.com/spf13/afero"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestStaticFileSystemOpensFile(t *testing.T) {

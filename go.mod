@@ -9,18 +9,14 @@ require (
 	github.com/cli/browser v1.1.0
 	github.com/docker/go-units v0.4.0
 	github.com/elazarl/go-bindata-assetfs v1.0.1
-	github.com/envoyproxy/protoc-gen-validate v0.6.2-0.20210710165204-c2b08efda458
 	github.com/go-chi/chi v1.5.4
-	github.com/go-playground/assert/v2 v2.0.1
-	github.com/golang/protobuf v1.5.2
+	github.com/go-playground/validator/v10 v10.9.0
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/googleapis/gnostic v0.5.5 // indirect
 	github.com/goreleaser/goreleaser v0.174.1
 	github.com/gorilla/handlers v1.5.1
+	github.com/gorilla/mux v1.8.0
 	github.com/goware/urlx v0.3.1
-	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.5.0
-	github.com/grpc-ecosystem/protoc-gen-grpc-gateway-ts v1.1.1
 	github.com/hashicorp/go-hclog v0.9.3-0.20191025211905-234833755cb2 // indirect
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/kevinburke/go-bindata v3.22.0+incompatible
@@ -38,14 +34,10 @@ require (
 	github.com/spf13/cobra v1.2.1
 	github.com/stretchr/testify v1.7.0
 	go.uber.org/zap v1.18.1
-	golang.org/x/crypto v0.0.0-20210506145944-38f3c27a63bf
-	golang.org/x/net v0.0.0-20210525063256-abc453219eb5
+	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
+	golang.org/x/net v0.0.0-20210525063256-abc453219eb5 // indirect
 	golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914
-	golang.org/x/sys v0.0.0-20210616094352-59db8d763f22 // indirect
-	google.golang.org/genproto v0.0.0-20210630183607-d20f26d13c79
-	google.golang.org/grpc v1.38.0
-	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0
-	google.golang.org/protobuf v1.27.1
+	google.golang.org/genproto v0.0.0-20210630183607-d20f26d13c79 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1
 	gopkg.in/yaml.v2 v2.4.0

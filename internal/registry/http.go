@@ -7,7 +7,10 @@ import (
 	"net/url"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/go-chi/chi/middleware"
+	"github.com/infrahq/infra/internal/logging"
 	"go.uber.org/zap"
 	"gopkg.in/square/go-jose.v2"
 	"gorm.io/gorm"
@@ -18,36 +21,58 @@ var (
 	CookieLoginName = "login"
 )
 
-type Http struct {
-	db     *gorm.DB
-	logger *zap.Logger
-}
-
-func (h *Http) Healthz(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-}
-
-func (h *Http) WellKnownJWKs(w http.ResponseWriter, r *http.Request) {
-	var settings Settings
-	err := h.db.First(&settings).Error
-	if err != nil {
-		http.Error(w, "could not get JWKs", http.StatusInternalServerError)
-		return
-	}
-
-	var pubKey jose.JSONWebKey
-	err = pubKey.UnmarshalJSON(settings.PublicJWK)
-	if err != nil {
-		http.Error(w, "could not get JWKs", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(struct {
-		Keys []jose.JSONWebKey `json:"keys"`
-	}{
-		[]jose.JSONWebKey{pubKey},
+func setAuthCookie(w http.ResponseWriter, token string) {
+	expires := time.Now().Add(SessionDuration)
+	http.SetCookie(w, &http.Cookie{
+		Name:     CookieTokenName,
+		Value:    token,
+		Expires:  expires,
+		HttpOnly: true,
+		Path:     "/",
+		SameSite: http.SameSiteStrictMode,
 	})
+	http.SetCookie(w, &http.Cookie{
+		Name:    CookieLoginName,
+		Value:   "1",
+		Expires: expires,
+		Path:    "/",
+	})
+}
+
+func deleteAuthCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     CookieTokenName,
+		Value:    "",
+		Expires:  time.Unix(0, 0),
+		HttpOnly: true,
+		Path:     "/",
+		SameSite: http.SameSiteStrictMode,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:    CookieLoginName,
+		Value:   "",
+		Expires: time.Unix(0, 0),
+		Path:    "/",
+	})
+}
+
+func ZapLoggerHttpMiddleware(next http.Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
+		t1 := time.Now()
+		next.ServeHTTP(ww, r)
+		logging.L.Info("finished http method call",
+			zap.String("method", r.Method),
+			zap.String("path", r.URL.Path),
+			zap.Int("status", ww.Status()),
+			zap.String("proto", r.Proto),
+			zap.Duration("time_ms", time.Since(t1)),
+		)
+	}
+}
+
+type Http struct {
+	db *gorm.DB
 }
 
 func (h *Http) loginRedirectMiddleware(next http.Handler) http.Handler {
@@ -65,13 +90,13 @@ func (h *Http) loginRedirectMiddleware(next http.Handler) http.Handler {
 
 		token, tokenCookieErr := r.Cookie(CookieTokenName)
 		if tokenCookieErr != nil && !errors.Is(tokenCookieErr, http.ErrNoCookie) {
-			h.logger.Error(tokenCookieErr.Error())
+			logging.L.Error(tokenCookieErr.Error())
 			return
 		}
 
 		login, loginCookieErr := r.Cookie(CookieLoginName)
 		if loginCookieErr != nil && !errors.Is(loginCookieErr, http.ErrNoCookie) {
-			h.logger.Error(loginCookieErr.Error())
+			logging.L.Error(loginCookieErr.Error())
 			return
 		}
 
@@ -133,5 +158,33 @@ func (h *Http) loginRedirectMiddleware(next http.Handler) http.Handler {
 		}
 
 		next.ServeHTTP(w, r)
+	})
+}
+
+func Healthz(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *Http) WellKnownJWKs(w http.ResponseWriter, r *http.Request) {
+	var settings Settings
+	err := h.db.First(&settings).Error
+	if err != nil {
+		http.Error(w, "could not get JWKs", http.StatusInternalServerError)
+		return
+	}
+
+	var pubKey jose.JSONWebKey
+	err = pubKey.UnmarshalJSON(settings.PublicJWK)
+	if err != nil {
+		http.Error(w, "could not get JWKs", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(struct {
+		Keys []jose.JSONWebKey `json:"keys"`
+	}{
+		[]jose.JSONWebKey{pubKey},
 	})
 }
