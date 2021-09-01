@@ -221,10 +221,16 @@ func Run(options Options) error {
 		}
 	}
 
+	u, err := urlx.Parse(options.Registry)
+	if err != nil {
+		return err
+	}
+	u.Scheme = "https"
+
 	ctx := context.WithValue(context.Background(), api.ContextServerVariables, map[string]string{"basePath": "v1"})
 	ctx = context.WithValue(ctx, api.ContextAccessToken, options.APIKey)
 	config := api.NewConfiguration()
-	config.Host = options.Registry
+	config.Host = u.Host
 	config.Scheme = "https"
 	config.HTTPClient = &http.Client{
 		Transport: &http.Transport{
@@ -320,7 +326,7 @@ func Run(options Options) error {
 		w.Write([]byte("OK"))
 	})
 
-	remote, err := url.Parse(k8s.Config.Host)
+	remote, err := urlx.Parse(k8s.Config.Host)
 	if err != nil {
 		return err
 	}
@@ -334,12 +340,6 @@ func Run(options Options) error {
 	if err != nil {
 		return err
 	}
-
-	u, err := urlx.Parse(options.Registry)
-	if err != nil {
-		return err
-	}
-	u.Scheme = "https"
 
 	cache := jwkCache{
 		client: &http.Client{

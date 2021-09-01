@@ -73,7 +73,7 @@ func (a *Api) bearerAuthMiddleware(next http.Handler) http.Handler {
 		raw := strings.Replace(authorization, "Bearer ", "", -1)
 
 		if raw == "" {
-			// Backfall to checking cookies if the bearer header is not provided
+			// Fall back to checking cookies if the bearer header is not provided
 			cookie, err := r.Cookie(CookieTokenName)
 			if err != nil {
 				logging.L.Debug("could not read token from cookie")
@@ -174,13 +174,6 @@ func (a *Api) ListSources(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Api) ListDestinations(w http.ResponseWriter, r *http.Request) {
-	_, err := extractToken(r.Context())
-	if err != nil {
-		logging.L.Debug(err.Error())
-		sendApiError(w, http.StatusUnauthorized, "unauthorized")
-		return
-	}
-
 	var destinations []Destination
 	if err := a.db.Find(&destinations).Error; err != nil {
 		logging.L.Error(err.Error())
