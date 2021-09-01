@@ -35,7 +35,7 @@ function Table ({ destinations }: { destinations: Destination[] | undefined }) {
 }
 
 export default function Index () {
-  const { isValidating, data: destinations } = useSWR(
+  const { data: destinations } = useSWR(
     'destinations',
     () => new DestinationsApi(new Configuration({ basePath: '/v1' })).listDestinations(),
     {
@@ -96,7 +96,7 @@ export default function Index () {
             )}
           </Popover>
         </div>
-        {isValidating ? (
+        {!destinations ? (
           <div className="flex-1 flex justify-center items-center py-8 text-gray-600 stroke-current">
             <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="animate-spin w-6 h-6">
               <path d="M33 17C33 8.16344 25.8366 1 17 1C8.16344 1 1 8.16344 1 17C1 25.8366 8.16344 33 17 33" strokeWidth="2"/>
