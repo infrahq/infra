@@ -215,6 +215,9 @@ func (r *Destination) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 func (d *Destination) AfterCreate(tx *gorm.DB) error {
+	if _, _, err := ApplyGroupMappings(tx, initialConfig.Groups); err != nil {
+		return err
+	}
 	_, err := ApplyUserMapping(tx, initialConfig.Users)
 	return err
 }
