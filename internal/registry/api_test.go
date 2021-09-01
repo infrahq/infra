@@ -554,7 +554,7 @@ func TestSignup(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPost, "/v1/signup", bytes.NewReader(bts))
 	w := httptest.NewRecorder()
 	http.HandlerFunc(a.Signup).ServeHTTP(w, r)
-	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, http.StatusCreated, w.Code)
 
 	var user User
 	err = db.First(&user).Error
