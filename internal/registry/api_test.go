@@ -708,6 +708,32 @@ func TestListRolesForUnknownCluster(t *testing.T) {
 	assert.Equal(t, 0, len(roles))
 }
 
+func TestListGroups(t *testing.T) {
+	a := &Api{db: db}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/groups", nil)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.ListGroups).ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var groups []api.Group
+	if err := json.NewDecoder(w.Body).Decode(&groups); err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, 4, len(groups))
+
+	groupSources := make(map[string]string)
+	for _, g := range groups {
+		groupSources[g.Name] = g.Source
+	}
+	assert.Equal(t, "infra", groupSources["ios-developers"])
+	assert.Equal(t, "infra", groupSources["mac-admins"])
+	assert.Equal(t, "okta", groupSources["heroes"])
+	assert.Equal(t, "okta", groupSources["villains"])
+}
+
 func containsUser(users []api.User, email string) bool {
 	for _, u := range users {
 		if u.Email == email {

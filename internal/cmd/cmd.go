@@ -763,6 +763,39 @@ var usersCmd = &cobra.Command{
 	},
 }
 
+var groupsCmd = &cobra.Command{
+	Use:   "groups",
+	Short: "List groups",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		client, err := apiClientFromConfig()
+		if err != nil {
+			return err
+		}
+
+		ctx, err := apiContextFromConfig()
+		if err != nil {
+			return err
+		}
+
+		groups, _, err := client.GroupsApi.ListGroups(ctx).Execute()
+		if err != nil {
+			return err
+		}
+
+		sort.Slice(groups, func(i, j int) bool {
+			return groups[i].Created > groups[j].Created
+		})
+
+		rows := [][]string{}
+		for _, g := range groups {
+			rows = append(rows, []string{g.Name, units.HumanDuration(time.Now().UTC().Sub(time.Unix(g.Created, 0))) + " ago", g.Source})
+		}
+
+		printTable([]string{"NAME", "CREATED", "SOURCE"}, rows)
+		return nil
+	},
+}
+
 func newRegistryCmd() (*cobra.Command, error) {
 	var options registry.Options
 
@@ -964,6 +997,7 @@ func NewRootCmd() (*cobra.Command, error) {
 
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(usersCmd)
+	rootCmd.AddCommand(groupsCmd)
 	rootCmd.AddCommand(loginCmd)
 	rootCmd.AddCommand(logoutCmd)
 

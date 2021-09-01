@@ -43,6 +43,12 @@ export interface Group {
      * @memberof Group
      */
     updated: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof Group
+     */
+    source: string;
 }
 
 export function GroupFromJSON(json: any): Group {
@@ -59,6 +65,7 @@ export function GroupFromJSONTyped(json: any, ignoreDiscriminator: boolean): Gro
         'name': json['name'],
         'created': json['created'],
         'updated': json['updated'],
+        'source': json['source'],
     };
 }
 
@@ -75,6 +82,7 @@ export function GroupToJSON(value?: Group | null): any {
         'name': value.name,
         'created': value.created,
         'updated': value.updated,
+        'source': value.source,
     };
 }
 
