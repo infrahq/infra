@@ -16,10 +16,15 @@ type ConfigSource struct {
 	ApiToken     string `yaml:"apiToken"`
 }
 
+type ConfigCluster struct {
+	Name       string   `yaml:"name"`
+	Namespaces []string `yaml:"namespaces"` // optional in the case of a cluster-role
+}
+
 type ConfigRoleKubernetes struct {
-	Name     string   `yaml:"name"`
-	Kind     string   `yaml:"kind"`
-	Clusters []string `yaml:"clusters"`
+	Name     string          `yaml:"name"`
+	Kind     string          `yaml:"kind"`
+	Clusters []ConfigCluster `yaml:"clusters"`
 }
 
 type ConfigGroupMapping struct {
@@ -258,32 +263,45 @@ func importRoles(db *gorm.DB, roles []ConfigRoleKubernetes) ([]Role, error) {
 			logging.L.Error("invalid role found in configuration, name is a required field")
 			continue
 		}
-		switch r.Kind {
-		case ROLE_KIND_K8S_ROLE:
-			// TODO (brucemacd): Handle config imports of roles when we support RoleBindings
-			logging.L.Info("Skipping role: " + r.Name + ", RoleBindings are not supported yet")
-		case ROLE_KIND_K8S_CLUSTER_ROLE:
-			for _, cName := range r.Clusters {
-				var destination Destination
-				err := db.Where(&Destination{Name: cName}).First(&destination).Error
-				if err != nil {
-					if errors.Is(err, gorm.ErrRecordNotFound) {
-						// when a destination is added then the config import will be retried, skip for now
-						logging.L.Debug("skipping destination in config import that has not yet been discovered")
-						continue
-					}
-					return nil, err
+		if r.Kind == "" {
+			logging.L.Error("invalid role found in configuration, kind is a required field")
+			continue
+		}
+		if r.Kind != ROLE_KIND_K8S_CLUSTER_ROLE && r.Kind != ROLE_KIND_K8S_ROLE {
+			logging.L.Error("only 'role' and 'cluster-role' are valid role kinds, found: " + r.Kind)
+			continue
+		}
+		for _, cluster := range r.Clusters {
+			if r.Kind == ROLE_KIND_K8S_ROLE && len(cluster.Namespaces) == 0 {
+				logging.L.Error(r.Name + " requires at least one namespace to be specified for the cluster " + cluster.Name)
+				continue
+			}
+			var destination Destination
+			err := db.Where(&Destination{Name: cluster.Name}).First(&destination).Error
+			if err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					// when a destination is added then the config import will be retried, skip for now
+					logging.L.Debug("skipping destination in config import that has not yet been discovered")
+					continue
 				}
+				return nil, err
+			}
+			if len(cluster.Namespaces) > 0 {
+				for _, namespace := range cluster.Namespaces {
+					var role Role
+					if err = db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, Namespace: namespace, DestinationId: destination.Id, FromConfig: true}).Error; err != nil {
+						return nil, err
+					}
+					rolesImported = append(rolesImported, role)
+				}
+			} else {
 				var role Role
 				if err = db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, DestinationId: destination.Id, FromConfig: true}).Error; err != nil {
 					return nil, err
 				}
 				rolesImported = append(rolesImported, role)
 			}
-		case "":
-			logging.L.Error("invalid role in configuration skipped, role kind is a required field")
-		default:
-			logging.L.Error("unrecognized role kind: " + r.Kind + " in configuration, role skipped")
+
 		}
 	}
 	return rolesImported, nil

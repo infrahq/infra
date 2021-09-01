@@ -301,18 +301,7 @@ func Run(options Options) error {
 		if err != nil {
 			logging.L.Error(err.Error())
 		}
-
-		// convert the response into an easy to use role-user form
-		var rbs []kubernetes.RoleBinding
-		for _, r := range roles {
-			var users []string
-			for _, u := range r.Users {
-				users = append(users, u.Email)
-			}
-			rbs = append(rbs, kubernetes.RoleBinding{Role: r.Name, Users: users})
-		}
-
-		err = k8s.UpdateRoles(rbs)
+		err = k8s.UpdateRoles(roles)
 		if err != nil {
 			logging.L.Error(err.Error())
 			return

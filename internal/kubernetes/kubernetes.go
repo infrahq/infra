@@ -16,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/jessevdk/go-flags"
 	ipv4 "github.com/signalsciences/ipv4"
@@ -62,18 +63,18 @@ func NewKubernetes() (*Kubernetes, error) {
 	return k, err
 }
 
-func (k *Kubernetes) UpdateRoles(rbs []RoleBinding) error {
+func (k *Kubernetes) UpdateRoles(roles []api.Role) error {
 	k.mu.Lock()
 	defer k.mu.Unlock()
 
-	// there may be duplicates of roles between their config creation and default creation, combine them now
+	// group together all users with the same role/namespace permissions
 	subjects := make(map[string][]rbacv1.Subject)
-	for _, rb := range rbs {
-		for _, u := range rb.Users {
-			subjects[rb.Role] = append(subjects[rb.Role], rbacv1.Subject{
+	for _, r := range roles {
+		for _, u := range r.Users {
+			subjects[r.Name] = append(subjects[r.Name], rbacv1.Subject{
 				APIGroup: "rbac.authorization.k8s.io",
 				Kind:     "User",
-				Name:     u,
+				Name:     u.Email,
 			})
 		}
 	}

@@ -102,6 +102,7 @@ type Role struct {
 	Updated       int64  `gorm:"autoUpdateTime"`
 	Name          string
 	Kind          string
+	Namespace     string
 	DestinationId string
 	Destination   Destination `gorm:"foreignKey:DestinationId;references:Id"`
 	Groups        []Group     `gorm:"many2many:groups_roles"`
