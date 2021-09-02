@@ -301,7 +301,7 @@ func Run(options Options) error {
 		if err != nil {
 			logging.L.Error(err.Error())
 		}
-		err = k8s.UpdateRoles(roles)
+		err = k8s.UpdateRoleBindings(roles)
 		if err != nil {
 			logging.L.Error(err.Error())
 			return
