@@ -238,7 +238,7 @@ func (k *Kubernetes) updateClusterRoleBindings(subjects map[string][]rbacv1.Subj
 }
 
 // UpdateRoles converts API roles to role-bindings in the current cluster
-func (k *Kubernetes) UpdateRoleBindings(roles []api.Role) error {
+func (k *Kubernetes) UpdateRoles(roles []api.Role) error {
 	k.mu.Lock()
 	defer k.mu.Unlock()
 
