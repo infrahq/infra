@@ -21,6 +21,11 @@ rules:
       - kubernetes
     verbs:
       - get
+  - apiGroups: [""]
+    resources:
+      - namespaces
+    verbs:
+      - list
   - apiGroups:
       - rbac.authorization.k8s.io
     resources:
