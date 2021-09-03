@@ -77,29 +77,22 @@ func NewKubernetes() (*Kubernetes, error) {
 	return k, err
 }
 
-// updateRoleBindings generates RoleBindings for ClusterRoles within a specific namespace
+// updateRoleBindings generates RoleBindings for Roles and ClusterRoles within a specific namespace
 func (k *Kubernetes) updateRoleBindings(subjects map[namespaceRole][]rbacv1.Subject) error {
 	clientset, err := kubernetes.NewForConfig(k.Config)
 	if err != nil {
 		return err
 	}
 
-	// keep the local config clean, use the local cluster roles to check if a binding is actually valid
-	localNamespaces, err := clientset.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+	// store which roles currently exist locally
+	validNamespaceRole := make(map[namespaceRole]bool)
+	// passing an empty string to roles for the namespace returns all roles
+	roles, err := clientset.RbacV1().Roles("").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
-	// iterate through the local namespaces and store which roles exist within them
-	validNamespaceRole := make(map[namespaceRole]bool)
-	for _, namespace := range localNamespaces.Items {
-		crs, err := clientset.RbacV1().Roles(namespace.Name).List(context.TODO(), metav1.ListOptions{})
-		if err != nil {
-			return err
-		}
-		for _, cr := range crs.Items {
-			// store that this particular namespace-role combo exists
-			validNamespaceRole[namespaceRole{namespace: namespace.Name, role: cr.Name, kind: string(api.ROLE)}] = true
-		}
+	for _, r := range roles.Items {
+		validNamespaceRole[namespaceRole{namespace: r.Namespace, role: r.Name, kind: string(api.ROLE)}] = true
 	}
 	// store which cluster-roles currently exist locally
 	validClusterRole := make(map[string]bool)
@@ -150,7 +143,6 @@ func (k *Kubernetes) updateRoleBindings(subjects map[namespaceRole][]rbacv1.Subj
 		})
 	}
 
-	// passing an empty string to rolebindings for the namespace returns all rolebindings
 	existingInfraRbs, err := clientset.RbacV1().RoleBindings("").List(context.TODO(), metav1.ListOptions{LabelSelector: "app.kubernetes.io/managed-by=infra"})
 	if err != nil {
 		return err
@@ -236,9 +228,13 @@ func (k *Kubernetes) updateClusterRoleBindings(subjects map[string][]rbacv1.Subj
 		}
 	}
 
-	existingCrbs, err := clientset.RbacV1().ClusterRoleBindings().List(context.TODO(), metav1.ListOptions{LabelSelector: "app.kubernetes.io/managed-by=infra"})
+	existingInfraCrbs, err := clientset.RbacV1().ClusterRoleBindings().List(context.TODO(), metav1.ListOptions{LabelSelector: "app.kubernetes.io/managed-by=infra"})
 	if err != nil {
 		return err
+	}
+	toDelete := make(map[string]bool)
+	for _, existingCrb := range existingInfraCrbs.Items {
+		toDelete[existingCrb.Name] = true
 	}
 
 	// Create or update CRBs for users
@@ -254,25 +250,11 @@ func (k *Kubernetes) updateClusterRoleBindings(subjects map[string][]rbacv1.Subj
 				return err
 			}
 		}
+		delete(toDelete, crb.Name)
 	}
 
-	// Delete any CRBs managed by infra that aren't in the config
-	var toDelete []rbacv1.ClusterRoleBinding
-	for _, e := range existingCrbs.Items {
-		var found bool
-		for _, crb := range crbs {
-			if crb.Name == e.Name {
-				found = true
-			}
-		}
-
-		if !found {
-			toDelete = append(toDelete, e)
-		}
-	}
-
-	for _, td := range toDelete {
-		err := clientset.RbacV1().ClusterRoleBindings().Delete(context.TODO(), td.Name, metav1.DeleteOptions{})
+	for name := range toDelete {
+		err := clientset.RbacV1().ClusterRoleBindings().Delete(context.TODO(), name, metav1.DeleteOptions{})
 		if err != nil {
 			return err
 		}
