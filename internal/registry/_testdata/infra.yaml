@@ -18,6 +18,19 @@ groups:
         kind: cluster-role
         clusters:
           - name: cluster-AAA
+      - name: audit
+        kind: cluster-role
+        clusters:
+          - name: cluster-CCC
+            namespaces: 
+              - infrahq
+              - development
+      - name: pod-create
+        kind: role
+        clusters:
+          - name: cluster-CCC
+            namespaces: 
+              - infrahq
   - name: mac-admins
     source: infra
     roles:
@@ -59,6 +72,19 @@ users:
         clusters:
           - name: cluster-AAA
           - name: cluster-BBB
+      - name: audit
+        kind: cluster-role
+        clusters:
+          - name: cluster-CCC
+            namespaces: 
+              - infrahq
+              - development
+      - name: pod-create
+        kind: role
+        clusters:
+          - name: cluster-CCC
+            namespaces: 
+              - infrahq
   - name: user@example.com
     groups:
       - ios-developers

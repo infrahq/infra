@@ -141,8 +141,6 @@ func ApplyGroupMappings(db *gorm.DB, configGroups []ConfigGroupMapping) (groupId
 }
 
 func ApplyUserMapping(db *gorm.DB, users []ConfigUserMapping) error {
-	var ids []string
-
 	for _, u := range users {
 		var user User
 		usrReadErr := db.Where(&User{Email: u.Name}).First(&user).Error
@@ -187,7 +185,6 @@ func ApplyUserMapping(db *gorm.DB, users []ConfigUserMapping) error {
 					return err
 				}
 			}
-			ids = append(ids, role.Id)
 		}
 	}
 	return nil
