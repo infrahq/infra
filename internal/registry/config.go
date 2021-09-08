@@ -97,7 +97,7 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 	return nil
 }
 
-func ApplyGroupMappings(db *gorm.DB, configGroups []ConfigGroupMapping) (groupIds []string, roleIds []string, err error) {
+func ApplyGroupMappings(db *gorm.DB, configGroups []ConfigGroupMapping) (groupIds []string, err error) {
 	for _, g := range configGroups {
 		// get the source from the datastore that this group specifies
 		var source Source
@@ -134,14 +134,13 @@ func ApplyGroupMappings(db *gorm.DB, configGroups []ConfigGroupMapping) (groupId
 					return
 				}
 			}
-			roleIds = append(roleIds, role.Id)
 		}
 		groupIds = append(groupIds, group.Id)
 	}
 	return
 }
 
-func ApplyUserMapping(db *gorm.DB, users []ConfigUserMapping) ([]string, error) {
+func ApplyUserMapping(db *gorm.DB, users []ConfigUserMapping) error {
 	var ids []string
 
 	for _, u := range users {
@@ -153,7 +152,7 @@ func ApplyUserMapping(db *gorm.DB, users []ConfigUserMapping) ([]string, error) 
 				logging.L.Debug("skipping user in config import that has not yet been provisioned")
 				continue
 			}
-			return nil, usrReadErr
+			return usrReadErr
 		}
 
 		// add the user to groups, these declarations can be overriden by external group syncing
@@ -166,11 +165,11 @@ func ApplyUserMapping(db *gorm.DB, users []ConfigUserMapping) ([]string, error) 
 					logging.L.Debug("skipping unknown group \"" + gName + "\" on user")
 					continue
 				}
-				return nil, grpReadErr
+				return grpReadErr
 			}
 			if db.Model(&user).Where(&Group{Id: group.Id}).Association("Groups").Count() == 0 {
 				if err := db.Model(&user).Where(&Group{Id: group.Id}).Association("Groups").Append(&group); err != nil {
-					return nil, err
+					return err
 				}
 			}
 		}
@@ -178,25 +177,29 @@ func ApplyUserMapping(db *gorm.DB, users []ConfigUserMapping) ([]string, error) 
 		// add roles to user
 		roles, err := importRoles(db, u.Roles)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		// for all roles attached to this user update their user associations now that we have made sure they exist
 		// important: do not create the association on the user, that runs an upsert that creates a concurrent write because User.AfterCreate() calls this function
 		for _, role := range roles {
 			if db.Model(&user).Where(&Role{Id: role.Id}).Association("Roles").Count() == 0 {
 				if err = db.Model(&user).Where(&Role{Id: role.Id}).Association("Roles").Append(&role); err != nil {
-					return nil, err
+					return err
 				}
 			}
 			ids = append(ids, role.Id)
 		}
 	}
-	return ids, nil
+	return nil
 }
 
 // ImportMappings imports the group and user role mappings and removes previously created roles if they no longer exist
 func ImportMappings(db *gorm.DB, groups []ConfigGroupMapping, users []ConfigUserMapping) error {
-	grpIdsToKeep, grpRoleIdsToKeep, err := ApplyGroupMappings(db, groups)
+	if err := db.Where(&Role{FromConfig: true}).Delete(Role{}).Error; err != nil {
+		return err
+	}
+
+	grpIdsToKeep, err := ApplyGroupMappings(db, groups)
 	if err != nil {
 		return err
 	}
@@ -221,16 +224,7 @@ func ImportMappings(db *gorm.DB, groups []ConfigGroupMapping, users []ConfigUser
 		logging.L.Debug("no valid groups found in configuration")
 	}
 
-	usrRoleIdsToKeep, err := ApplyUserMapping(db, users)
-	if err != nil {
-		return err
-	}
-
-	// clean up existing roles which have been removed from the config
-	var roleIdsToKeep []string
-	roleIdsToKeep = append(roleIdsToKeep, grpRoleIdsToKeep...)
-	roleIdsToKeep = append(roleIdsToKeep, usrRoleIdsToKeep...)
-	return db.Where(&Role{FromConfig: true}).Not(roleIdsToKeep).Delete(Role{}).Error
+	return ApplyUserMapping(db, users)
 }
 
 // ImportConfig tries to import all valid fields in a config file
