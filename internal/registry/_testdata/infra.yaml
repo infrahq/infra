@@ -17,35 +17,48 @@ groups:
       - name: writer
         kind: cluster-role
         clusters:
-          - cluster-AAA
+          - name: cluster-AAA
+      - name: audit
+        kind: cluster-role
+        clusters:
+          - name: cluster-CCC
+            namespaces: 
+              - infrahq
+              - development
+      - name: pod-create
+        kind: role
+        clusters:
+          - name: cluster-CCC
+            namespaces: 
+              - infrahq
   - name: mac-admins
     source: infra
     roles:
       - name: writer
         kind: cluster-role
         clusters:
-          - cluster-BBB
+          - name: cluster-BBB
   - name: adversaries
     source: outside
     roles:
       - name: cluster-admin
         kind: cluster-role
         clusters:
-          - cluster-AAA
+          - name: cluster-AAA
   - name: heroes
     source: okta
     roles:
       - name: writer
         kind: cluster-role
         clusters:
-          - cluster-CCC
+          - name: cluster-CCC
   - name: villains
     source: okta
     roles:
       - name: writer
         kind: cluster-role
         clusters:
-          - cluster-CCC
+          - name: cluster-CCC
 
 users:
   - name: woz@example.com
@@ -57,8 +70,21 @@ users:
       - name: admin
         kind: cluster-role
         clusters:
-          - cluster-AAA
-          - cluster-BBB
+          - name: cluster-AAA
+          - name: cluster-BBB
+      - name: audit
+        kind: cluster-role
+        clusters:
+          - name: cluster-CCC
+            namespaces: 
+              - infrahq
+              - development
+      - name: pod-create
+        kind: role
+        clusters:
+          - name: cluster-CCC
+            namespaces: 
+              - infrahq
   - name: user@example.com
     groups:
       - ios-developers
@@ -66,8 +92,8 @@ users:
       - name: reader
         kind: cluster-role
         clusters:
-          - cluster-AAA
-          - cluster-UNKNOWN
+          - name: cluster-AAA
+          - name: cluster-UNKNOWN
   - name: unknown@example.com
     groups:
       - adversaries
@@ -75,4 +101,4 @@ users:
       - name: writer
         kind: cluster-role
         clusters:
-          - cluster-AAA
+          - name: cluster-AAA

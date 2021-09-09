@@ -591,6 +591,7 @@ func dbToApiRole(r *Role) api.Role {
 		Created:     r.Created,
 		Updated:     r.Updated,
 		Name:        r.Name,
+		Namespace:   r.Namespace,
 		Destination: dbToApiDestination(&r.Destination),
 	}
 

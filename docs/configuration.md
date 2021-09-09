@@ -24,8 +24,8 @@ users:
       - name: admin
         kind: cluster-role
         clusters:
-          - cluster-AAA
-          - cluster-BBB
+          - name: cluster-AAA
+          - name: cluster-BBB
 ```
 
 Then, apply it to the Infra Registry:

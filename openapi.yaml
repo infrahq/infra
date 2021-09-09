@@ -173,9 +173,10 @@ components:
         - name
         - created
         - updated
+        - kind
+        - namespace 
         - users
         - destination
-        - kind
       properties:
         id:
           type: string
@@ -187,14 +188,17 @@ components:
         updated:
           type: integer
           format: int64
+        kind:
+          $ref: "#/components/schemas/RoleKind"
+        namespace:
+          type: string
+          enum: [role, cluster-role]
         users:
           type: array
           items:
             $ref: '#/components/schemas/User'
         destination:
           $ref: '#/components/schemas/Destination'
-        kind:
-          $ref: "#/components/schemas/RoleKind"
     RoleKind:
       type: string
       enum:

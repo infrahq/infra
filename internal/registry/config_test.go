@@ -95,8 +95,11 @@ func TestGroupsForExistingSourcesAreCreated(t *testing.T) {
 	assert.NotNil(t, groupNames["heroes"])
 	assert.NotNil(t, groupNames["villains"])
 
-	assert.Len(t, groupNames["ios-developers"].Roles, 1)
-	assert.Equal(t, groupNames["ios-developers"].Roles[0].DestinationId, clusterA.Id)
+	iosDevRoleDests := make(map[string]bool)
+	for _, iosGroupRole := range groupNames["ios-developers"].Roles {
+		iosDevRoleDests[iosGroupRole.DestinationId] = true
+	}
+	assert.True(t, iosDevRoleDests[clusterA.Id])
 
 	assert.Len(t, groupNames["mac-admins"].Roles, 1)
 	assert.Contains(t, groupNames["mac-admins"].Roles[0].DestinationId, clusterB.Id)
@@ -201,4 +204,108 @@ func containsUserRoleForDestination(db *gorm.DB, user User, destinationId string
 		}
 	}
 	return false, nil
+}
+
+func TestClusterRolesAreAppliedToGroup(t *testing.T) {
+	var group Group
+	err := db.Preload("Roles").Where(&Group{Name: "ios-developers"}).First(&group).Error
+	if err != nil {
+		t.Errorf("Could not find ios-developers group")
+	}
+
+	roles := make(map[string]bool)
+	for _, role := range group.Roles {
+		roles[role.Name] = true
+	}
+	assert.True(t, roles["writer"])
+}
+
+func TestRolesAreAppliedToGroup(t *testing.T) {
+	var group Group
+	err := db.Preload("Roles").Where(&Group{Name: "ios-developers"}).First(&group).Error
+	if err != nil {
+		t.Errorf("Could not find ios-developers group")
+	}
+
+	roles := make(map[string]bool)
+	for _, role := range group.Roles {
+		roles[role.Name] = true
+	}
+	assert.True(t, roles["pod-create"])
+}
+
+func TestGroupClusterRolesAreAppliedWithNamespaces(t *testing.T) {
+	var group Group
+	err := db.Preload("Roles").Where(&Group{Name: "ios-developers"}).First(&group).Error
+	if err != nil {
+		t.Errorf("Could not find ios-developers group")
+	}
+
+	foundAuditInfraHQ := false
+	for _, role := range group.Roles {
+		if role.Name == "audit" && role.Namespace == "infrahq" {
+			foundAuditInfraHQ = true
+		}
+	}
+	assert.True(t, foundAuditInfraHQ)
+
+	foundAuditDevelopment := false
+	for _, role := range group.Roles {
+		if role.Name == "audit" && role.Namespace == "development" {
+			foundAuditDevelopment = true
+		}
+	}
+	assert.True(t, foundAuditDevelopment)
+}
+
+func TestClusterRolesAreAppliedToUser(t *testing.T) {
+	var user User
+	err := db.Preload("Roles").Where(&User{Email: "admin@example.com"}).First(&user).Error
+	if err != nil {
+		t.Errorf("Could not find ios-developers group")
+	}
+
+	roles := make(map[string]bool)
+	for _, role := range user.Roles {
+		roles[role.Name] = true
+	}
+	assert.True(t, roles["admin"])
+}
+
+func TestRolesAreAppliedToUser(t *testing.T) {
+	var user User
+	err := db.Preload("Roles").Where(&User{Email: "admin@example.com"}).First(&user).Error
+	if err != nil {
+		t.Errorf("Could not find ios-developers group")
+	}
+
+	roles := make(map[string]bool)
+	for _, role := range user.Roles {
+		roles[role.Name] = true
+	}
+	assert.True(t, roles["pod-create"])
+}
+
+func TestClusterRolesAreAppliedWithNamespacesToUsers(t *testing.T) {
+	var user User
+	err := db.Preload("Roles").Where(&User{Email: "admin@example.com"}).First(&user).Error
+	if err != nil {
+		t.Errorf("Could not find ios-developers group")
+	}
+
+	foundAuditInfraHQ := false
+	for _, role := range user.Roles {
+		if role.Name == "audit" && role.Namespace == "infrahq" {
+			foundAuditInfraHQ = true
+		}
+	}
+	assert.True(t, foundAuditInfraHQ)
+
+	foundAuditDevelopment := false
+	for _, role := range user.Roles {
+		if role.Name == "audit" && role.Namespace == "development" {
+			foundAuditDevelopment = true
+		}
+	}
+	assert.True(t, foundAuditDevelopment)
 }

@@ -35,7 +35,7 @@ groups:
       - name: view
         kind: cluster-role
         clusters:
-          - cluster-1
+          - name: cluster-1
 
 users:
   - name: person@example.com
@@ -43,8 +43,8 @@ users:
       - name: admin
         kind: cluster-role
         clusters:
-          - cluster-1
-          - cluster-2
+          - name: cluster-1
+          - name: cluster-2
 ```
 Please follow [Okta configuration guide](./docs/okta.md) to obtain your Okta API token. 
 

@@ -102,6 +102,7 @@ type Role struct {
 	Updated       int64  `gorm:"autoUpdateTime"`
 	Name          string
 	Kind          string
+	Namespace     string
 	DestinationId string
 	Destination   Destination `gorm:"foreignKey:DestinationId;references:Id"`
 	Groups        []Group     `gorm:"many2many:groups_roles"`
@@ -161,8 +162,7 @@ func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 func (u *User) AfterCreate(tx *gorm.DB) error {
-	_, err := ApplyUserMapping(tx, initialConfig.Users)
-	return err
+	return ApplyUserMapping(tx, initialConfig.Users)
 }
 
 func (u *User) AfterSave(tx *gorm.DB) (err error) {
@@ -215,11 +215,10 @@ func (r *Destination) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 func (d *Destination) AfterCreate(tx *gorm.DB) error {
-	if _, _, err := ApplyGroupMappings(tx, initialConfig.Groups); err != nil {
+	if _, err := ApplyGroupMappings(tx, initialConfig.Groups); err != nil {
 		return err
 	}
-	_, err := ApplyUserMapping(tx, initialConfig.Users)
-	return err
+	return ApplyUserMapping(tx, initialConfig.Users)
 }
 
 func (d *Destination) AfterSave(tx *gorm.DB) (err error) {

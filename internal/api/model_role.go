@@ -20,24 +20,26 @@ type Role struct {
 	Name        string      `json:"name"`
 	Created     int64       `json:"created"`
 	Updated     int64       `json:"updated"`
+	Kind        RoleKind    `json:"kind"`
+	Namespace   string      `json:"namespace"`
 	Users       []User      `json:"users"`
 	Destination Destination `json:"destination"`
-	Kind        RoleKind    `json:"kind"`
 }
 
 // NewRole instantiates a new Role object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewRole(id string, name string, created int64, updated int64, users []User, destination Destination, kind RoleKind) *Role {
+func NewRole(id string, name string, created int64, updated int64, kind RoleKind, namespace string, users []User, destination Destination) *Role {
 	this := Role{}
 	this.Id = id
 	this.Name = name
 	this.Created = created
 	this.Updated = updated
+	this.Kind = kind
+	this.Namespace = namespace
 	this.Users = users
 	this.Destination = destination
-	this.Kind = kind
 	return &this
 }
 
@@ -145,6 +147,54 @@ func (o *Role) SetUpdated(v int64) {
 	o.Updated = v
 }
 
+// GetKind returns the Kind field value
+func (o *Role) GetKind() RoleKind {
+	if o == nil {
+		var ret RoleKind
+		return ret
+	}
+
+	return o.Kind
+}
+
+// GetKindOk returns a tuple with the Kind field value
+// and a boolean to check if the value has been set.
+func (o *Role) GetKindOk() (*RoleKind, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Kind, true
+}
+
+// SetKind sets field value
+func (o *Role) SetKind(v RoleKind) {
+	o.Kind = v
+}
+
+// GetNamespace returns the Namespace field value
+func (o *Role) GetNamespace() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.Namespace
+}
+
+// GetNamespaceOk returns a tuple with the Namespace field value
+// and a boolean to check if the value has been set.
+func (o *Role) GetNamespaceOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Namespace, true
+}
+
+// SetNamespace sets field value
+func (o *Role) SetNamespace(v string) {
+	o.Namespace = v
+}
+
 // GetUsers returns the Users field value
 func (o *Role) GetUsers() []User {
 	if o == nil {
@@ -193,30 +243,6 @@ func (o *Role) SetDestination(v Destination) {
 	o.Destination = v
 }
 
-// GetKind returns the Kind field value
-func (o *Role) GetKind() RoleKind {
-	if o == nil {
-		var ret RoleKind
-		return ret
-	}
-
-	return o.Kind
-}
-
-// GetKindOk returns a tuple with the Kind field value
-// and a boolean to check if the value has been set.
-func (o *Role) GetKindOk() (*RoleKind, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.Kind, true
-}
-
-// SetKind sets field value
-func (o *Role) SetKind(v RoleKind) {
-	o.Kind = v
-}
-
 func (o Role) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
@@ -232,13 +258,16 @@ func (o Role) MarshalJSON() ([]byte, error) {
 		toSerialize["updated"] = o.Updated
 	}
 	if true {
+		toSerialize["kind"] = o.Kind
+	}
+	if true {
+		toSerialize["namespace"] = o.Namespace
+	}
+	if true {
 		toSerialize["users"] = o.Users
 	}
 	if true {
 		toSerialize["destination"] = o.Destination
-	}
-	if true {
-		toSerialize["kind"] = o.Kind
 	}
 	return json.Marshal(toSerialize)
 }

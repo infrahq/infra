@@ -60,6 +60,18 @@ export interface Role {
     updated: number;
     /**
      * 
+     * @type {RoleKind}
+     * @memberof Role
+     */
+    kind: RoleKind;
+    /**
+     * 
+     * @type {string}
+     * @memberof Role
+     */
+    namespace: RoleNamespaceEnum;
+    /**
+     * 
      * @type {Array<User>}
      * @memberof Role
      */
@@ -70,12 +82,15 @@ export interface Role {
      * @memberof Role
      */
     destination: Destination;
-    /**
-     * 
-     * @type {RoleKind}
-     * @memberof Role
-     */
-    kind: RoleKind;
+}
+
+/**
+* @export
+* @enum {string}
+*/
+export enum RoleNamespaceEnum {
+    Role = 'role',
+    ClusterRole = 'cluster-role'
 }
 
 export function RoleFromJSON(json: any): Role {
@@ -92,9 +107,10 @@ export function RoleFromJSONTyped(json: any, ignoreDiscriminator: boolean): Role
         'name': json['name'],
         'created': json['created'],
         'updated': json['updated'],
+        'kind': RoleKindFromJSON(json['kind']),
+        'namespace': json['namespace'],
         'users': ((json['users'] as Array<any>).map(UserFromJSON)),
         'destination': DestinationFromJSON(json['destination']),
-        'kind': RoleKindFromJSON(json['kind']),
     };
 }
 
@@ -111,9 +127,10 @@ export function RoleToJSON(value?: Role | null): any {
         'name': value.name,
         'created': value.created,
         'updated': value.updated,
+        'kind': RoleKindToJSON(value.kind),
+        'namespace': value.namespace,
         'users': ((value.users as Array<any>).map(UserToJSON)),
         'destination': DestinationToJSON(value.destination),
-        'kind': RoleKindToJSON(value.kind),
     };
 }
 
