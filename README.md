@@ -36,7 +36,7 @@ helm install infra-engine infrahq/engine --set registry=$INFRA_REGISTRY --set ap
 
 * [See the Okta configuration guide](./docs/okta.md)
 
-### Log in via Okta
+### Login via Okta
 
 First, install the Infra CLI:
 
@@ -53,7 +53,7 @@ scoop bucket add infrahq https://github.com/infrahq/scoop.git
 scoop install infra
 ```
 
-Next, log in:
+Next, login:
 
 ```
 infra login <your infra registry endpoint>
