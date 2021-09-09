@@ -35,8 +35,6 @@ func TestSyncGroupsClearsOnlySource(t *testing.T) {
 			t.Fatal(err)
 		}
 		switch src.Type {
-		case SOURCE_TYPE_INFRA:
-			assert.Greater(t, len(group.Users), 0)
 		case SOURCE_TYPE_OKTA:
 			// these groups are part of the okta source and should be cleared
 			assert.Len(t, group.Users, 0)

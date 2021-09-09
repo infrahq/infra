@@ -15,7 +15,6 @@ import (
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/version"
-	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
 	"gorm.io/gorm"
@@ -45,12 +44,9 @@ func NewApiMux(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) *mux.Router {
 	v1.Handle("/destinations", a.bearerAuthMiddleware(http.HandlerFunc(a.CreateDestination))).Methods("POST")
 	v1.Handle("/creds", a.bearerAuthMiddleware(http.HandlerFunc(a.CreateCred))).Methods("POST")
 	v1.Handle("/roles", a.bearerAuthMiddleware(http.HandlerFunc(a.ListRoles))).Methods("GET")
-	v1.Handle("/apikeys", a.bearerAuthMiddleware(http.HandlerFunc(a.ListApiKeys))).Methods("GET")
 	v1.Handle("/login", http.HandlerFunc(a.Login)).Methods("POST")
 	v1.Handle("/logout", a.bearerAuthMiddleware(http.HandlerFunc(a.Logout))).Methods("POST")
-	v1.Handle("/signup", http.HandlerFunc(a.Signup)).Methods("POST")
 	v1.Handle("/version", http.HandlerFunc(a.Version)).Methods("GET")
-	v1.Handle("/status", http.HandlerFunc(a.Status)).Methods("GET")
 	return r
 }
 
@@ -282,36 +278,6 @@ func (a *Api) ListRoles(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(results)
 }
 
-func (a *Api) ListApiKeys(w http.ResponseWriter, r *http.Request) {
-	token, err := extractToken(r.Context())
-	if err != nil {
-		logging.L.Debug(err.Error())
-		sendApiError(w, http.StatusUnauthorized, "unauthorized")
-		return
-	}
-
-	if !token.User.Admin {
-		logging.L.Debug("user is not an admin")
-		sendApiError(w, http.StatusUnauthorized, "unauthorized")
-		return
-	}
-
-	var apikeys []ApiKey
-	if err := a.db.Find(&apikeys).Error; err != nil {
-		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not list apikeys")
-		return
-	}
-
-	results := make([]api.ApiKey, 0)
-	for _, a := range apikeys {
-		results = append(results, dbToApiApiKey(&a))
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(results)
-}
-
 func (a *Api) createJWT(email string) (string, time.Time, error) {
 	var settings Settings
 	err := a.db.First(&settings).Error
@@ -420,19 +386,6 @@ func (a *Api) Login(w http.ResponseWriter, r *http.Request) {
 			sendApiError(w, http.StatusUnauthorized, "invalid okta login information")
 			return
 		}
-
-	case body.Infra != nil:
-		if err := a.db.Where("email = ?", body.Infra.Email).First(&user).Error; err != nil {
-			logging.L.Debug("User failed to login with unknown email")
-			sendApiError(w, http.StatusUnauthorized, "invalid login information")
-			return
-		}
-
-		if err := bcrypt.CompareHashAndPassword(user.Password, []byte(body.Infra.Password)); err != nil {
-			logging.L.Debug("User failed to login due to invalid password")
-			sendApiError(w, http.StatusUnauthorized, "invalid login information")
-			return
-		}
 	default:
 		sendApiError(w, http.StatusBadRequest, "invalid login information provided")
 		return
@@ -472,78 +425,9 @@ func (a *Api) Logout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (a *Api) Signup(w http.ResponseWriter, r *http.Request) {
-	var body api.SignupRequest
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sendApiError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	if err := validate.Struct(body); err != nil {
-		sendApiError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	var token Token
-	var secret string
-	err := a.db.Transaction(func(tx *gorm.DB) error {
-		var count int64
-		err := tx.Where(&User{Admin: true}).Find(&[]User{}).Count(&count).Error
-		if err != nil {
-			logging.L.Debug("Could not lookup admin users in the database")
-			return err
-		}
-
-		if count > 0 {
-			return errors.New("admin already exists")
-		}
-
-		var infraSource Source
-		if err := tx.Where(&Source{Type: SOURCE_TYPE_INFRA}).First(&infraSource).Error; err != nil {
-			return err
-		}
-
-		var user User
-		if err := infraSource.CreateUser(tx, &user, body.Email, body.Password, true); err != nil {
-			return err
-		}
-
-		secret, err = NewToken(tx, user.Id, &token)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-	if err != nil {
-		logging.L.Debug(err.Error())
-		sendApiError(w, http.StatusBadRequest, "could not create user")
-		return
-	}
-
-	tokenString := token.Id + secret
-	setAuthCookie(w, tokenString)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(api.AuthResponse{Token: tokenString})
-}
-
 func (a *Api) Version(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(api.Version{Version: version.Version})
-}
-
-func (a *Api) Status(w http.ResponseWriter, r *http.Request) {
-	var count int64
-	err := a.db.Where(&User{Admin: true}).Find(&[]User{}).Count(&count).Error
-	if err != nil {
-		sendApiError(w, http.StatusInternalServerError, "could not retrieve status")
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(api.Status{Admin: count > 0})
 }
 
 func dbToApiSource(s *Source) api.Source {
@@ -615,7 +499,6 @@ func dbToApiUser(u *User) api.User {
 		Email:   u.Email,
 		Created: u.Created,
 		Updated: u.Updated,
-		Admin:   u.Admin,
 	}
 }
 
@@ -626,15 +509,5 @@ func dbToApiGroup(g *Group) api.Group {
 		Updated: g.Updated,
 		Name:    g.Name,
 		Source:  g.Source.Type,
-	}
-}
-
-func dbToApiApiKey(a *ApiKey) api.ApiKey {
-	return api.ApiKey{
-		Id:      a.Id,
-		Created: a.Created,
-		Updated: a.Updated,
-		Name:    a.Name,
-		Key:     a.Key,
 	}
 }

@@ -36,12 +36,12 @@ func addUser(db *gorm.DB, email string, password string, admin bool) (tokenId st
 	var secret string
 	err = db.Transaction(func(tx *gorm.DB) error {
 		var infraSource Source
-		if err := tx.Where(&Source{Type: SOURCE_TYPE_INFRA}).First(&infraSource).Error; err != nil {
+		if err := tx.Where(&Source{Type: SOURCE_TYPE_OKTA}).First(&infraSource).Error; err != nil {
 			return err
 		}
 		var user User
 
-		err := infraSource.CreateUser(tx, &user, email, password, admin)
+		err := infraSource.CreateUser(tx, &user, email)
 		if err != nil {
 			return err
 		}
@@ -261,132 +261,6 @@ func TestLoginHandlerEmptyRequest(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
-func TestLoginNilInfraRequest(t *testing.T) {
-	db, err := NewDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	a := &Api{db: db}
-
-	loginRequest := api.LoginRequest{
-		Infra: nil,
-	}
-
-	bts, err := loginRequest.MarshalJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := httptest.NewRequest(http.MethodPost, "/v1/login", bytes.NewReader(bts))
-	w := httptest.NewRecorder()
-	http.HandlerFunc(a.Login).ServeHTTP(w, r)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-}
-
-func TestLoginEmptyInfraRequest(t *testing.T) {
-	db, err := NewDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	a := &Api{db: db}
-
-	loginRequest := api.LoginRequest{
-		Infra: &api.LoginRequestInfra{},
-	}
-
-	bts, err := loginRequest.MarshalJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := httptest.NewRequest(http.MethodPost, "/v1/login", bytes.NewReader(bts))
-	w := httptest.NewRecorder()
-	http.HandlerFunc(a.Login).ServeHTTP(w, r)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-}
-
-func TestLoginInfraEmptyPassword(t *testing.T) {
-	db, err := NewDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	a := &Api{db: db}
-
-	loginRequest := api.LoginRequest{
-		Infra: &api.LoginRequestInfra{
-			Email: "test@test.com",
-		},
-	}
-
-	bts, err := loginRequest.MarshalJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := httptest.NewRequest(http.MethodPost, "/v1/login", bytes.NewReader(bts))
-	w := httptest.NewRecorder()
-	http.HandlerFunc(a.Login).ServeHTTP(w, r)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-}
-func TestLoginInfraEmptyEmail(t *testing.T) {
-	db, err := NewDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	a := &Api{db: db}
-
-	loginRequest := api.LoginRequest{
-		Infra: &api.LoginRequestInfra{
-			Password: "passw0rd",
-		},
-	}
-
-	bts, err := loginRequest.MarshalJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := httptest.NewRequest(http.MethodPost, "/v1/login", bytes.NewReader(bts))
-	w := httptest.NewRecorder()
-	http.HandlerFunc(a.Login).ServeHTTP(w, r)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-}
-
-func TestLoginInfraSuccess(t *testing.T) {
-	db, err := NewDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	a := &Api{db: db}
-
-	_, _, err = addUser(db, "test@test.com", "passw0rd", false)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	loginRequest := api.LoginRequest{
-		Infra: &api.LoginRequestInfra{
-			Email:    "test@test.com",
-			Password: "passw0rd",
-		},
-	}
-
-	bts, err := loginRequest.MarshalJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := httptest.NewRequest(http.MethodPost, "/v1/login", bytes.NewReader(bts))
-	w := httptest.NewRecorder()
-	http.HandlerFunc(a.Login).ServeHTTP(w, r)
-	assert.Equal(t, http.StatusOK, w.Code)
-}
-
 func TestLoginNilOktaRequest(t *testing.T) {
 	db, err := NewDB("file::memory:")
 	if err != nil {
@@ -500,7 +374,7 @@ func TestLoginMethodOkta(t *testing.T) {
 	}
 
 	var user User
-	source.CreateUser(db, &user, "test@test.com", "", false)
+	source.CreateUser(db, &user, "test@test.com")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -533,64 +407,6 @@ func TestLoginMethodOkta(t *testing.T) {
 	http.HandlerFunc(a.Login).ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 }
-func TestSignup(t *testing.T) {
-	db, err := NewDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	a := &Api{db: db}
-
-	signupRequest := api.SignupRequest{
-		Email:    "test@test.com",
-		Password: "passw0rd",
-	}
-
-	bts, err := signupRequest.MarshalJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := httptest.NewRequest(http.MethodPost, "/v1/signup", bytes.NewReader(bts))
-	w := httptest.NewRecorder()
-	http.HandlerFunc(a.Signup).ServeHTTP(w, r)
-	assert.Equal(t, http.StatusCreated, w.Code)
-
-	var user User
-	err = db.First(&user).Error
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	assert.Equal(t, user.Admin, true)
-	assert.Equal(t, user.Email, "test@test.com")
-}
-
-func TestSignupWithExistingAdmin(t *testing.T) {
-	db, err := NewDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	addUser(db, "existing@user.com", "passw0rd", true)
-
-	a := &Api{db: db}
-
-	signupRequest := api.SignupRequest{
-		Email:    "admin@test.com",
-		Password: "adminpassw0rd",
-	}
-
-	bts, err := signupRequest.MarshalJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := httptest.NewRequest(http.MethodPost, "/v1/signup", bytes.NewReader(bts))
-	w := httptest.NewRecorder()
-	http.HandlerFunc(a.Signup).ServeHTTP(w, r)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-}
 
 func TestVersion(t *testing.T) {
 	db, err := NewDB("file::memory:")
@@ -600,7 +416,7 @@ func TestVersion(t *testing.T) {
 
 	a := &Api{db: db}
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/signup", nil)
+	r := httptest.NewRequest(http.MethodGet, "/v1/version", nil)
 	w := httptest.NewRecorder()
 	http.HandlerFunc(a.Version).ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)

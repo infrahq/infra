@@ -50,64 +50,12 @@ func TestLoginRedirectMiddlewareNext(t *testing.T) {
 	assert.Equal(t, w.Code, http.StatusOK)
 }
 
-func TestLoginRedirectNoAdminRedirectsToSignup(t *testing.T) {
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "hello world")
-	}
-
-	db, err := NewDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	httpHandlers := &Http{
-		db: db,
-	}
-
-	r := httptest.NewRequest("GET", "http://test.com/dashboard", nil)
-	w := httptest.NewRecorder()
-	httpHandlers.loginRedirectMiddleware(http.HandlerFunc(handler)).ServeHTTP(w, r)
-	assert.Equal(t, w.Code, http.StatusTemporaryRedirect)
-	assert.Equal(t, w.Header().Get("Location"), "/signup")
-}
-
-func TestLoginRedirectWithAdminRedirectsToLogin(t *testing.T) {
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "hello world")
-	}
-
-	db, err := NewDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = db.Create(&User{Admin: true}).Error
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	httpHandlers := &Http{
-		db: db,
-	}
-
-	r := httptest.NewRequest("GET", "http://test.com/", nil)
-	w := httptest.NewRecorder()
-	httpHandlers.loginRedirectMiddleware(http.HandlerFunc(handler)).ServeHTTP(w, r)
-	assert.Equal(t, w.Code, http.StatusTemporaryRedirect)
-	assert.Equal(t, w.Header().Get("Location"), "/login")
-}
-
 func TestLoginRedirectSetsNextParameter(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, "hello world")
 	}
 
 	db, err := NewDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = db.Create(&User{Admin: true}).Error
 	if err != nil {
 		t.Fatal(err)
 	}

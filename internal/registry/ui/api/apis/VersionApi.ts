@@ -15,9 +15,6 @@
 
 import * as runtime from '../runtime';
 import {
-    Status,
-    StatusFromJSON,
-    StatusToJSON,
     Version,
     VersionFromJSON,
     VersionToJSON,
@@ -26,33 +23,7 @@ import {
 /**
  * 
  */
-export class InfoApi extends runtime.BaseAPI {
-
-    /**
-     * Get signup status information
-     */
-    async statusRaw(initOverrides?: RequestInit): Promise<runtime.ApiResponse<Status>> {
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        const response = await this.request({
-            path: `/status`,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => StatusFromJSON(jsonValue));
-    }
-
-    /**
-     * Get signup status information
-     */
-    async status(initOverrides?: RequestInit): Promise<Status> {
-        const response = await this.statusRaw(initOverrides);
-        return await response.value();
-    }
+export class VersionApi extends runtime.BaseAPI {
 
     /**
      * Get version information

@@ -26,8 +26,10 @@ clean:
 	rm -rf dist
 
 openapi:
+	@rm -rf ./internal/api/*.go
 	@GO_POST_PROCESS_FILE="gofmt -s -w" openapi-generator generate -i ./openapi.yaml -g go -o ./internal/api --additional-properties packageName=api,isGoSubmodule=true --enable-post-process-file > /dev/null
 	@rm -rf ./internal/api/api ./internal/api/.openapi-generator
+	@rm -rf ./internal/registry/ui/api/apis/* ./internal/registry/ui/api/models/*
 	@openapi-generator generate -i ./openapi.yaml -g typescript-fetch -o ./internal/registry/ui/api --additional-properties typescriptThreePlus=true > /dev/null
 	@rm -rf ./internal/registry/ui/api/.openapi-generator
 

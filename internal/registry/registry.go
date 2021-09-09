@@ -28,6 +28,7 @@ type Options struct {
 	TLSCache      string
 	DefaultApiKey string
 	ConfigPath    string
+	UI            bool
 	UIProxy       string
 	SyncInterval  int
 }
@@ -191,7 +192,7 @@ func Run(options Options) error {
 			return err
 		}
 		mux.Handle("/", h.loginRedirectMiddleware(httputil.NewSingleHostReverseProxy(remote)))
-	} else {
+	} else if options.UI {
 		mux.Handle("/", h.loginRedirectMiddleware(gziphandler.GzipHandler(http.FileServer(&StaticFileSystem{base: &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo}}))))
 	}
 

@@ -16,8 +16,7 @@ import (
 
 // LoginRequest struct for LoginRequest
 type LoginRequest struct {
-	Infra *LoginRequestInfra `json:"infra,omitempty"`
-	Okta  *LoginRequestOkta  `json:"okta,omitempty"`
+	Okta *LoginRequestOkta `json:"okta,omitempty"`
 }
 
 // NewLoginRequest instantiates a new LoginRequest object
@@ -35,38 +34,6 @@ func NewLoginRequest() *LoginRequest {
 func NewLoginRequestWithDefaults() *LoginRequest {
 	this := LoginRequest{}
 	return &this
-}
-
-// GetInfra returns the Infra field value if set, zero value otherwise.
-func (o *LoginRequest) GetInfra() LoginRequestInfra {
-	if o == nil || o.Infra == nil {
-		var ret LoginRequestInfra
-		return ret
-	}
-	return *o.Infra
-}
-
-// GetInfraOk returns a tuple with the Infra field value if set, nil otherwise
-// and a boolean to check if the value has been set.
-func (o *LoginRequest) GetInfraOk() (*LoginRequestInfra, bool) {
-	if o == nil || o.Infra == nil {
-		return nil, false
-	}
-	return o.Infra, true
-}
-
-// HasInfra returns a boolean if a field has been set.
-func (o *LoginRequest) HasInfra() bool {
-	if o != nil && o.Infra != nil {
-		return true
-	}
-
-	return false
-}
-
-// SetInfra gets a reference to the given LoginRequestInfra and assigns it to the Infra field.
-func (o *LoginRequest) SetInfra(v LoginRequestInfra) {
-	o.Infra = &v
 }
 
 // GetOkta returns the Okta field value if set, zero value otherwise.
@@ -103,9 +70,6 @@ func (o *LoginRequest) SetOkta(v LoginRequestOkta) {
 
 func (o LoginRequest) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
-	if o.Infra != nil {
-		toSerialize["infra"] = o.Infra
-	}
 	if o.Okta != nil {
 		toSerialize["okta"] = o.Okta
 	}

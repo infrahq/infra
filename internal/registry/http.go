@@ -100,15 +100,11 @@ func (h *Http) loginRedirectMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		// If the login or token cookie are missing, then redirect to /login or /signup based on the current status
+		// If the login or token cookie are missing, then redirect to /login based on the current status
 		if errors.Is(loginCookieErr, http.ErrNoCookie) || errors.Is(tokenCookieErr, http.ErrNoCookie) {
 			deleteAuthCookie(w)
 
-			adminExists := h.db.Where(&User{Admin: true}).Find(&[]User{}).RowsAffected > 0
-			if !adminExists && !strings.HasPrefix(r.URL.Path, "/signup") {
-				http.Redirect(w, r, "/signup", http.StatusTemporaryRedirect)
-				return
-			} else if adminExists && !strings.HasPrefix(r.URL.Path, "/login") {
+			if !strings.HasPrefix(r.URL.Path, "/login") {
 				params := url.Values{}
 				path := "/login"
 
@@ -145,7 +141,7 @@ func (h *Http) loginRedirectMiddleware(next http.Handler) http.Handler {
 				return
 			}
 
-			if strings.HasPrefix(r.URL.Path, "/login") || strings.HasPrefix(r.URL.Path, "/signup") {
+			if strings.HasPrefix(r.URL.Path, "/login") {
 				keys, ok := r.URL.Query()["next"]
 				if !ok || len(keys[0]) < 1 {
 					http.Redirect(w, r, "/", http.StatusTemporaryRedirect)

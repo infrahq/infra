@@ -2,20 +2,15 @@
 
                 Welcome to Infra
 
-{{- if (or (eq .Values.service.type "LoadBalancer") (empty .Values.service.type)) }}
+    To continue, run:
+    
+        export INFRA_REGISTRY=$(kubectl get svc -n {{ .Release.Namespace }} infra-registry -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}")
+        export INFRA_API_KEY={{ include "infra.defaultApiKey" . }}
 
-To access the dashboard, run:
+    Note: it may take a few minutes for your external load balancer to provision.
 
-1. kubectl get svc -n {{ .Release.Namespace }} -w infra-registry -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}"
-2. Visit the output URL in your browser
+    To connect your first cluster, run:
+        
+        helm install infra-engine infrahq/engine -n infrahq --set registry=$INFRA_REGISTRY --set apiKey=$INFRA_API_KEY
 
-Note: it may take a few minutes for your external load balancer to provision.
-
-{{- else if eq .Values.service.type "ClusterIP" }}
-To access the infra registry, run:
-
-1. kubectl port-forward -n {{ .Release.Namespace }} svc/infra-registry 8000:80
-2. Visit http://localhost:8000 in your browser
-
-{{- end }}
 *************************************************

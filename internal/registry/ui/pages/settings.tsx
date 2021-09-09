@@ -1,13 +1,13 @@
 import Head from 'next/head'
 import useSWR from 'swr'
 
-import { InfoApi, Configuration } from '../api'
+import { VersionApi, Configuration } from '../api'
 import Dashboard from '../layouts/Dashboard'
 
 export default function Settings () {
   const { data: version } = useSWR(
     'version',
-    () => new InfoApi(new Configuration({ basePath: '/v1' })).version()
+    () => new VersionApi(new Configuration({ basePath: '/v1' })).version()
   )
 
   return (

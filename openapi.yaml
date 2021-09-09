@@ -19,11 +19,9 @@ tags:
   - name: roles
     description: Manage roles
   - name: auth
-    description: Login, logout and sign up
-  - name: info
-    description: Information & diagnostics
-  - name: apikeys
-    description: Engine API Keys
+    description: Authentication
+  - name: version
+    description: Version
 components:
   securitySchemes:
     bearerAuth:
@@ -162,8 +160,6 @@ components:
     LoginRequest:
       type: object
       properties:
-        infra:
-          $ref: '#/components/schemas/LoginRequestInfra'
         okta:
           $ref: '#/components/schemas/LoginRequestOkta'
     Role:
@@ -204,18 +200,6 @@ components:
       enum:
         - role
         - cluster-role
-    LoginRequestInfra:
-      type: object
-      required:
-        - email
-        - password
-      properties:
-        email:
-          type: string
-          x-go-custom-tag: validate:"required,email"
-        password:
-          type: string
-          x-go-custom-tag: validate:"required"
     LoginRequestOkta:
       type: object
       required:
@@ -226,18 +210,6 @@ components:
           type: string
           x-go-custom-tag: validate:"required"
         code:
-          type: string
-          x-go-custom-tag: validate:"required"
-    SignupRequest:
-      type: object
-      required:
-        - email
-        - password
-      properties:
-        email:
-          type: string
-          x-go-custom-tag: validate:"email,required"
-        password:
           type: string
           x-go-custom-tag: validate:"required"
     AuthResponse:
@@ -253,34 +225,6 @@ components:
         - version
       properties:
         version:
-          type: string
-    Status:
-      type: object
-      required:
-        - admin
-      properties:
-        admin:
-          type: boolean
-    ApiKey:
-      type: object
-      required:
-        - id
-        - created
-        - updated
-        - name
-        - key
-      properties:
-        id:
-          type: string
-        created:
-          type: integer
-          format: int64
-        updated:
-          type: integer
-          format: int64
-        name:
-          type: string
-        key:
           type: string
     Error:
       type: object
@@ -505,37 +449,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /signup:
-    post:
-      summary: Sign up Infra's admin user and get an API token for a user
-      tags:
-        - auth
-      operationId: signup
-      x-codegen-request-body-name: body
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SignupRequest'
-      responses:
-        '200':
-          description: signup response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResponse'
-        default:
-          description: unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
   /version:
     get:
       summary: Get version information
       tags:
-        - info
+        - version
       operationId: version
       responses:
         '200':
@@ -544,48 +462,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Version'
-        default:
-          description: unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  /status:
-    get:
-      summary: Get signup status information
-      tags:
-        - info
-      operationId: status
-      responses:
-        '200':
-          description: status response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Status'
-        default:
-          description: unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  /apikeys:
-    get:
-      summary: Get Engine API Keys
-      tags:
-        - apikeys
-      security:
-        - bearerAuth: []
-      operationId: listApiKeys
-      responses:
-        '200':
-          description: apikeys response
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ApiKey'
         default:
           description: unexpected error
           content:
