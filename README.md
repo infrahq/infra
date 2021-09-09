@@ -3,7 +3,7 @@
 </p>
 
 ## Introduction
-Infra is secure Kubernetes access for your team.
+Infra is **identity and access management** for Kubernetes. Provide any user fine-grained access to Kubernetes clusters via existing identity providers such as Okta, Google Accounts, Azure Active Directory and more.
 
 **Features**:
 * One-command access: `infra login`
@@ -59,7 +59,10 @@ After login, Infra will automatically synchronize all the Kubernetes clusters co
 
 ### Scoping permissions
 
-To scope permissions access
+To scope permissions access, edit your `infra.yaml` file:
+
+```
+
 
 ### Accessing clusters 
 
