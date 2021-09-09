@@ -43,12 +43,6 @@ export interface User {
      * @memberof User
      */
     updated: number;
-    /**
-     * 
-     * @type {boolean}
-     * @memberof User
-     */
-    admin: boolean;
 }
 
 export function UserFromJSON(json: any): User {
@@ -65,7 +59,6 @@ export function UserFromJSONTyped(json: any, ignoreDiscriminator: boolean): User
         'email': json['email'],
         'created': json['created'],
         'updated': json['updated'],
-        'admin': json['admin'],
     };
 }
 
@@ -82,7 +75,6 @@ export function UserToJSON(value?: User | null): any {
         'email': value.email,
         'created': value.created,
         'updated': value.updated,
-        'admin': value.admin,
     };
 }
 

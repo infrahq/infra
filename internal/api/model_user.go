@@ -20,20 +20,18 @@ type User struct {
 	Email   string `json:"email"`
 	Created int64  `json:"created"`
 	Updated int64  `json:"updated"`
-	Admin   bool   `json:"admin"`
 }
 
 // NewUser instantiates a new User object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewUser(id string, email string, created int64, updated int64, admin bool) *User {
+func NewUser(id string, email string, created int64, updated int64) *User {
 	this := User{}
 	this.Id = id
 	this.Email = email
 	this.Created = created
 	this.Updated = updated
-	this.Admin = admin
 	return &this
 }
 
@@ -141,30 +139,6 @@ func (o *User) SetUpdated(v int64) {
 	o.Updated = v
 }
 
-// GetAdmin returns the Admin field value
-func (o *User) GetAdmin() bool {
-	if o == nil {
-		var ret bool
-		return ret
-	}
-
-	return o.Admin
-}
-
-// GetAdminOk returns a tuple with the Admin field value
-// and a boolean to check if the value has been set.
-func (o *User) GetAdminOk() (*bool, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.Admin, true
-}
-
-// SetAdmin sets field value
-func (o *User) SetAdmin(v bool) {
-	o.Admin = v
-}
-
 func (o User) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
@@ -178,9 +152,6 @@ func (o User) MarshalJSON() ([]byte, error) {
 	}
 	if true {
 		toSerialize["updated"] = o.Updated
-	}
-	if true {
-		toSerialize["admin"] = o.Admin
 	}
 	return json.Marshal(toSerialize)
 }

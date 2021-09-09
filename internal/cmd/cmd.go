@@ -683,15 +683,10 @@ var usersCmd = &cobra.Command{
 
 		rows := [][]string{}
 		for _, u := range users {
-			admin := ""
-			if u.Admin {
-				admin = "x"
-			}
-
-			rows = append(rows, []string{u.Email, units.HumanDuration(time.Now().UTC().Sub(time.Unix(u.Created, 0))) + " ago", admin})
+			rows = append(rows, []string{u.Email, units.HumanDuration(time.Now().UTC().Sub(time.Unix(u.Created, 0))) + " ago"})
 		}
 
-		printTable([]string{"EMAIL", "CREATED", "ADMIN"}, rows)
+		printTable([]string{"EMAIL", "CREATED"}, rows)
 
 		return nil
 	},
