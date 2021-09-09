@@ -14,7 +14,10 @@ groups:
       - name: writer          # Kubernetes cluster-role name
         kind: cluster-role
         clusters:             # clusters for which to apply
-          - cluster-AAA
+          - name: cluster-AAA
+            namespaces:       # optional namespaces
+              - default
+              - web
 
 users:
   - name: admin@example.com   # user email
@@ -24,8 +27,8 @@ users:
       - name: admin           # Kubernetes cluster-role name
         kind: cluster-role
         clusters:             # clusters for which to apply
-          - cluster-AAA
-          - cluster-BBB
+          - name: cluster-AAA
+          - name: cluster-BBB
 ```
 
 Then, apply it to the Infra registry:
