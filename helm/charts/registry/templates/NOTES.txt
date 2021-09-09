@@ -4,7 +4,6 @@
 
     To continue, run:
 
-
 {{- if .Values.ingress.enabled }}
 {{- range $host := .Values.ingress.hosts }}
   export INFRA_REGISTRY=http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}
@@ -29,7 +28,6 @@
         export INFRA_API_KEY={{ include "infra.defaultApiKey" . }}
 
     To connect your first cluster, run:
-
 
         helm install infra-engine infrahq/engine -n infrahq --set registry=$INFRA_REGISTRY --set apiKey=$INFRA_API_KEY
 
