@@ -408,7 +408,7 @@ paths:
                 $ref: '#/components/schemas/Error'
   /login:
     post:
-      summary: Log in to Infra and get an API token for a user
+      summary: Login to Infra and get an API token for a user
       tags:
         - auth
       operationId: login

@@ -4,6 +4,7 @@
 
 * [infra list](#infra-list)
 * [infra users](#infra-users)
+* [infra groups](#infra-groups)
 * [infra login](#infra-login)
 * [infra logout](#infra-logout)
 * [infra registry](#infra-registry)
@@ -37,6 +38,20 @@ infra users [flags]
 
 ```
   -h, --help   help for users
+```
+
+## `infra groups`
+
+List groups
+
+```
+infra groups [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for groups
 ```
 
 ## `infra login`
@@ -88,7 +103,9 @@ infra registry [flags]
       --db string               path to database file (default "$HOME/.infra/infra.db")
   -h, --help                    help for registry
       --initial-apikey string   initial api key for adding destinations
+      --sync-interval int       the interval (in seconds) at which Infra will poll sources for users and groups (default 30)
       --tls-cache string        path to directory to cache tls self-signed and Let's Encrypt certificates (default "$HOME/.infra/cache")
+      --ui                      enable ui
       --ui-proxy string         proxy ui requests to this host
 ```
 
