@@ -38,6 +38,8 @@ helm install infra-engine infrahq/engine --set registry=$INFRA_REGISTRY --set ap
 
 ### Log in via Okta
 
+First, install the Infra CLI:
+
 **macOS & Linux**
 
 ```
@@ -51,29 +53,21 @@ scoop bucket add infrahq https://github.com/infrahq/scoop.git
 scoop install infra
 ```
 
+Next, log in:
+
 ```
 infra login <your infra registry endpoint>
 ```
 
 After login, Infra will automatically synchronize all the Kubernetes clusters configured for the user into their default kubeconfig file. 
 
-### Scoping permissions
-
-To scope permissions access, edit your `infra.yaml` file:
-
-```
-
-
-### Accessing clusters 
-
-To list all the clusters, please run `infra list`. 
-
-Users can then switch Kubernetes context via `kubectl config use-context <name>` or via any Kubernetes tools. 
+That's it! You now have access to your cluster via Okta. To list all the clusters, run `infra list`.
 
 ## Next Steps 
+* [Update roles](./docs/permissions.md) 
 * [Add a custom domain](./docs/domain.md) to make it easy for sharing with your team 
 * [Connect more Kubernetes clusters](./docs/connect.md)
-* [Update roles](./docs/permissions.md) 
+
 
 ## Documentation
 * [Okta Reference](./docs/okta.md)
