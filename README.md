@@ -14,7 +14,7 @@ Infra is **identity and access management** for Kubernetes. Provide any user fin
 
 ## Quickstart
 
-### Install Infra
+### Install Infra registry
 
 **Prerequisites:**
 * [Helm](https://helm.sh/)
@@ -26,34 +26,44 @@ helm repo update
 helm install infra-registry infrahq/registry --namespace infrahq --create-namespace
 ```
 
-### Connect Kubernetes
+### Connect Kubernetes cluster to Infra registry
 
+Run the following commands to retrive Infra Registry information and its API Key
+```
+export INFRA_REGISTRY=$(kubectl get svc -n infrahq infra-registry -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}")
+
+export INFRA_API_KEY=$(kubectl get secrets/infra-registry --template={{.data.defaultApiKey}} --namespace infrahq | base64 -D)
+```
+
+Install Infra Engine 
 ```
 helm install infra-engine infrahq/engine --set registry=$INFRA_REGISTRY --set apiKey=$INFRA_API_KEY
 ```
 
-### Connect Okta
+### Connect an identity provider
 
-* [See the Okta configuration guide](./docs/okta.md)
+* [Okta configuration guide](./docs/okta.md)
 
-### Log in via Okta
+### Install Infra CLI 
+<details>
+  <summary><strong>macOS & Linux</strong></summary>
 
-First, install the Infra CLI:
+  ```
+  brew install infrahq/tap/infra
+  ```
+</details>
 
-**macOS & Linux**
+<details>
+  <summary><strong>Windows</strong></summary>
 
-```
-brew install infrahq/tap/infra
-```
+  ```
+  scoop bucket add infrahq https://github.com/infrahq/scoop.git
+  scoop install infra
+  ```
+</details>
+<br />
 
-**Windows**
-
-```
-scoop bucket add infrahq https://github.com/infrahq/scoop.git
-scoop install infra
-```
-
-Next, log in:
+### Accessing infrastructure 
 
 ```
 infra login <your infra registry endpoint>
