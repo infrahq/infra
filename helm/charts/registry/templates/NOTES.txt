@@ -25,7 +25,7 @@
         echo "Visit http://127.0.0.1:8080 to use your application"
         kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:$CONTAINER_PORT
 {{- end }}
-        export INFRA_API_KEY={{ include "infra.defaultApiKey" . }}
+        export INFRA_API_KEY=$(kubectl get secrets/infra-registry --template={{ "{{" }}.data.defaultApiKey{{ "}}" }} --namespace infrahq | base64 -D)
 
     To connect your first cluster, run:
 

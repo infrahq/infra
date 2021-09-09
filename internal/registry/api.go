@@ -160,7 +160,7 @@ func (a *Api) ListSources(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var results []api.Source
+	results := make([]api.Source, 0)
 	for _, s := range sources {
 		results = append(results, dbToApiSource(&s))
 	}
