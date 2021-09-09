@@ -59,15 +59,13 @@ Create [Kubernetes Secret objects](https://kubernetes.io/docs/tasks/configmap-se
 #### Example Secret Creation
 Store the Okta client secret and API token on the same Kubernetes Secret object in the namespace that Infra registry is running in.
 ```
-kubectl create namespace infrahq
-
 kubectl create secret generic infra-registry-okta \
 --namespace=infrahq \
 --from-literal=clientSecret=jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2 \
 --from-literal=apiToken=001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd
 ```
 
-### Add Okta information to Infra registry
+### Add Okta information to Infra registry config
 
 Edit your [Infra configuration](./configuration.md) (e.g. `infra.yaml`) to include an Okta source:
 
