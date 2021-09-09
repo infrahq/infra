@@ -74,7 +74,6 @@ That's it! You now have access to your cluster via Okta. To list all the cluster
 * [Helm Chart Reference](./docs/helm.md)
 * [CLI Reference](./docs/cli.md)
 * [Contributing](./docs/contributing.md)
-* [Configuration reference](./docs/configuration.md)
 
 ## Security
 We take security very seriously. If you have found a security vulnerability please disclose it privately to us by email via [security@infrahq.com](mailto:security@infrahq.com)
