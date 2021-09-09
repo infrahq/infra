@@ -5,7 +5,7 @@ import relativeTime from 'dayjs/plugin/relativeTime'
 import { Popover, Transition } from '@headlessui/react'
 import useSWR from 'swr'
 
-import { DestinationsApi, Destination, ApikeysApi, Configuration } from '../api'
+import { DestinationsApi, Destination, Configuration } from '../api'
 import Dashboard from '../layouts/Dashboard'
 
 dayjs.extend(relativeTime)
@@ -42,11 +42,6 @@ export default function Index () {
       refreshInterval: 5000,
     }
    )
-
-   const { data: apiKey } = useSWR(
-    'apiKeys',
-    () => new ApikeysApi(new Configuration({ basePath: '/v1' })).listApiKeys().then(apikeys => apikeys[0] || null)
-  )
 
   return (
     <Dashboard>
@@ -87,7 +82,7 @@ export default function Index () {
                         helm repo add infrahq https://helm.infrahq.com<br />
                         helm install infra-engine infrahq/engine \<br />
                           &nbsp;&nbsp;--set registry={process.browser && window.location.host} \<br />
-                          &nbsp;&nbsp;--set apiKey={apiKey?.key}
+                          &nbsp;&nbsp;--set apiKey=&lt;your api key&gt;
                       </div>
                     </div>
                   </Popover.Panel>

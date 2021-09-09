@@ -18,7 +18,6 @@ import (
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
-	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/square/go-jose.v2"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -34,12 +33,10 @@ var (
 )
 
 type User struct {
-	Id       string `gorm:"primaryKey"`
-	Created  int64  `gorm:"autoCreateTime"`
-	Updated  int64  `gorm:"autoUpdateTime"`
-	Email    string `gorm:"unique"`
-	Password []byte
-	Admin    bool
+	Id      string `gorm:"primaryKey"`
+	Created int64  `gorm:"autoCreateTime"`
+	Updated int64  `gorm:"autoUpdateTime"`
+	Email   string `gorm:"unique"`
 
 	Sources []Source `gorm:"many2many:users_sources"`
 	Roles   []Role   `gorm:"many2many:users_roles"`
@@ -47,8 +44,7 @@ type User struct {
 }
 
 var (
-	SOURCE_TYPE_INFRA = "infra"
-	SOURCE_TYPE_OKTA  = "okta"
+	SOURCE_TYPE_OKTA = "okta"
 )
 
 type Source struct {
@@ -173,9 +169,6 @@ func (u *User) AfterSave(tx *gorm.DB) (err error) {
 	}
 
 	givenRole := "view"
-	if u.Admin {
-		givenRole = "cluster-admin"
-	}
 
 	// grant default roles
 	for _, d := range destinations {
@@ -230,9 +223,6 @@ func (d *Destination) AfterSave(tx *gorm.DB) (err error) {
 
 	for _, u := range users {
 		givenRole := "view"
-		if u.Admin {
-			givenRole = "cluster-admin"
-		}
 
 		var role Role
 		if err = tx.FirstOrCreate(&role, &Role{Name: givenRole, Kind: "cluster-role", DestinationId: d.Id, FromDefault: true}).Error; err != nil {
@@ -292,30 +282,10 @@ func (s *Source) BeforeDelete(tx *gorm.DB) error {
 // CreateUser will create a user and associate them with the source
 // If the user already exists, they will not be created, instead an association
 // will be added instead
-func (s *Source) CreateUser(db *gorm.DB, user *User, email string, password string, makeAdmin bool) error {
+func (s *Source) CreateUser(db *gorm.DB, user *User, email string) error {
 	return db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where(&User{Email: email}).FirstOrCreate(&user).Error; err != nil {
 			return err
-		}
-
-		if makeAdmin {
-			user.Admin = true
-			if err := tx.Save(&user).Error; err != nil {
-				return err
-			}
-		}
-
-		if password != "" {
-			hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-			if err != nil {
-				return errors.New("could not create user")
-			}
-
-			user.Password = hashedPassword
-
-			if err := tx.Save(&user).Error; err != nil {
-				return err
-			}
 		}
 
 		if tx.Model(&user).Where(&Source{Id: s.Id}).Association("Sources").Count() == 0 {
@@ -391,7 +361,7 @@ func (s *Source) SyncUsers(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) e
 	return db.Transaction(func(tx *gorm.DB) error {
 		// Create users in source
 		for _, email := range emails {
-			if err := s.CreateUser(tx, &User{}, email, "", false); err != nil {
+			if err := s.CreateUser(tx, &User{}, email); err != nil {
 				return err
 			}
 		}
@@ -619,12 +589,6 @@ func NewDB(dbpath string) (*gorm.DB, error) {
 	db.AutoMigrate(&Settings{})
 	db.AutoMigrate(&Token{})
 	db.AutoMigrate(&ApiKey{})
-
-	// Add default source
-	err = db.FirstOrCreate(&Source{}, &Source{Type: SOURCE_TYPE_INFRA}).Error
-	if err != nil {
-		return nil, err
-	}
 
 	// Add default settings
 	err = db.FirstOrCreate(&Settings{}).Error

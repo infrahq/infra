@@ -91,7 +91,7 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 		logging.L.Info("no valid sources found in configuration, ensure the required fields are specified correctly")
 	}
 
-	if err := db.Where(&Role{FromConfig: false}).Not(idsToKeep).Not(&Source{Type: SOURCE_TYPE_INFRA}).Delete(&Source{}).Error; err != nil {
+	if err := db.Where(&Role{FromConfig: false}).Not(idsToKeep).Delete(&Source{}).Error; err != nil {
 		return err
 	}
 	return nil

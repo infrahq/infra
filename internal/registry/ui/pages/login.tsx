@@ -3,8 +3,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { useCookies } from 'react-cookie'
 
-import { AuthApi, Configuration } from '../api'
-
 export default function Login () {
   const router = useRouter()
   const [email, setEmail] = useState('')
@@ -20,23 +18,6 @@ export default function Login () {
   } else if (nextParam.length > 0) {
     next = nextParam[0]
   }
-
-  const handleSubmit = useCallback(async e => {
-    e.preventDefault()
-    try {
-      await new AuthApi(new Configuration({ basePath: '/v1' })).login({ body: { infra: { email, password } } })
-      setError('')
-      router.replace(next)
-    } catch (e) {
-      const err = await e.json()
-      setError(err.message)
-      return false
-    }
-  }, [email, password, router])
-
-  useEffect(() => {
-    router.prefetch(next)
-  }, [])
 
   if (process.browser && cookies.login) {
     router.replace('/')
@@ -58,7 +39,7 @@ export default function Login () {
       </div>
       <div className="sm:mx-auto sm:w-full sm:max-w-sm bg-white pb-12 pt-10 px-4">
         <h2 className="text-center mb-6 font-medium tracking-tight text-xl">Sign in to your account</h2>
-        <form onSubmit={handleSubmit} action="#" method="POST">
+        <form onSubmit={() => {}} action="#" method="POST">
           <div className="my-2.5">
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
               Email

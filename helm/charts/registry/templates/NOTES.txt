@@ -2,20 +2,34 @@
 
                 Welcome to Infra
 
-{{- if (or (eq .Values.service.type "LoadBalancer") (empty .Values.service.type)) }}
+    To continue, run:
 
-To access the dashboard, run:
-
-1. kubectl get svc -n {{ .Release.Namespace }} -w infra-registry -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}"
-2. Visit the output URL in your browser
-
-Note: it may take a few minutes for your external load balancer to provision.
-
-{{- else if eq .Values.service.type "ClusterIP" }}
-To access the infra registry, run:
-
-1. kubectl port-forward -n {{ .Release.Namespace }} svc/infra-registry 8000:80
-2. Visit http://localhost:8000 in your browser
-
+{{- if .Values.ingress.enabled }}
+{{- range $host := .Values.ingress.hosts }}
+        export INFRA_REGISTRY=http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}
 {{- end }}
+{{- else if contains "NodePort" .Values.service.type }}
+        export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services infra-registry
+        export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+        export INFRA_REGISTRY=https://$NODE_IP:$NODE_PORT
+{{- else if contains "LoadBalancer" .Values.service.type }}
+
+            NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+            You can watch the status of by running 'kubectl get --namespace {{ .Release.Namespace }} svc -w infra-registry'
+
+        export INFRA_REGISTRY=$(kubectl get svc -n {{ .Release.Namespace }} infra-registry -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}")
+
+{{- else if contains "ClusterIP" .Values.service.type }}
+        export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "infra.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+        export CONTAINER_PORT=$(kubectl get pod --namespace {{ .Release.Namespace }} $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
+        echo "Visit http://127.0.0.1:8080 to use your application"
+        kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:$CONTAINER_PORT
+{{- end }}
+        export INFRA_API_KEY=$(kubectl get secrets/infra-registry --template={{ "{{" }}.data.defaultApiKey{{ "}}" }} --namespace infrahq | base64 -D)
+
+    To connect your first cluster, run:
+
+        helm install infra-engine infrahq/engine -n infrahq --set registry=$INFRA_REGISTRY --set apiKey=$INFRA_API_KEY
+
+
 *************************************************

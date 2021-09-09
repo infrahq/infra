@@ -21,17 +21,10 @@ import {
     LoginRequest,
     LoginRequestFromJSON,
     LoginRequestToJSON,
-    SignupRequest,
-    SignupRequestFromJSON,
-    SignupRequestToJSON,
 } from '../models';
 
 export interface LoginOperationRequest {
     body: LoginRequest;
-}
-
-export interface SignupOperationRequest {
-    body: SignupRequest;
 }
 
 /**
@@ -40,7 +33,7 @@ export interface SignupOperationRequest {
 export class AuthApi extends runtime.BaseAPI {
 
     /**
-     * Log in to Infra and get an API token for a user
+     * Login to Infra and get an API token for a user
      */
     async loginRaw(requestParameters: LoginOperationRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<AuthResponse>> {
         if (requestParameters.body === null || requestParameters.body === undefined) {
@@ -65,7 +58,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Log in to Infra and get an API token for a user
+     * Login to Infra and get an API token for a user
      */
     async login(requestParameters: LoginOperationRequest, initOverrides?: RequestInit): Promise<AuthResponse> {
         const response = await this.loginRaw(requestParameters, initOverrides);
@@ -103,39 +96,6 @@ export class AuthApi extends runtime.BaseAPI {
      */
     async logout(initOverrides?: RequestInit): Promise<void> {
         await this.logoutRaw(initOverrides);
-    }
-
-    /**
-     * Sign up Infra\'s admin user and get an API token for a user
-     */
-    async signupRaw(requestParameters: SignupOperationRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<AuthResponse>> {
-        if (requestParameters.body === null || requestParameters.body === undefined) {
-            throw new runtime.RequiredError('body','Required parameter requestParameters.body was null or undefined when calling signup.');
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        headerParameters['Content-Type'] = 'application/json';
-
-        const response = await this.request({
-            path: `/signup`,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-            body: SignupRequestToJSON(requestParameters.body),
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => AuthResponseFromJSON(jsonValue));
-    }
-
-    /**
-     * Sign up Infra\'s admin user and get an API token for a user
-     */
-    async signup(requestParameters: SignupOperationRequest, initOverrides?: RequestInit): Promise<AuthResponse> {
-        const response = await this.signupRaw(requestParameters, initOverrides);
-        return await response.value();
     }
 
 }

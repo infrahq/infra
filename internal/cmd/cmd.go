@@ -382,147 +382,81 @@ var loginCmd = &cobra.Command{
 			return err
 		}
 
-		status, _, err := client.InfoApi.Status(context.Background()).Execute()
+		sources, _, err := client.SourcesApi.ListSources(context.Background()).Execute()
 		if err != nil {
 			return err
 		}
 
-		var authRes api.AuthResponse
+		if len(sources) == 0 {
+			return errors.New("no sources configured")
+		}
 
-		if !status.Admin {
-			fmt.Println()
-			fmt.Println(blue("Welcome to Infra. Get started by creating your admin user:"))
-			email := ""
-			emailPrompt := &survey.Input{
-				Message: "Email",
-			}
-			err = survey.AskOne(emailPrompt, &email, survey.WithShowCursor(true), survey.WithValidator(survey.Required), survey.WithIcons(func(icons *survey.IconSet) {
-				icons.Question.Text = blue("?")
-			}))
-			if err == terminal.InterruptErr {
-				return nil
-			}
+		sort.Slice(sources, func(i, j int) bool {
+			return sources[i].Created > sources[j].Created
+		})
 
-			password := ""
-			passwordPrompt := &survey.Password{
-				Message: "Password",
-			}
-			err = survey.AskOne(passwordPrompt, &password, survey.WithShowCursor(true), survey.WithValidator(survey.Required), survey.WithIcons(func(icons *survey.IconSet) {
-				icons.Question.Text = blue("?")
-			}))
-			if err == terminal.InterruptErr {
-				return nil
-			}
-
-			fmt.Println(blue("✓") + " Creating admin user...")
-			authRes, _, err = client.AuthApi.Signup(context.Background()).Body(api.SignupRequest{Email: email, Password: password}).Execute()
-			if err != nil {
-				return err
-			}
-		} else {
-			sources, _, err := client.SourcesApi.ListSources(context.Background()).Execute()
-			if err != nil {
-				return err
-			}
-
-			sort.Slice(sources, func(i, j int) bool {
-				return sources[i].Created > sources[j].Created
-			})
-
-			options := []string{}
-			for _, s := range sources {
-				switch {
-				case s.Okta != nil:
-					options = append(options, fmt.Sprintf("Okta [%s]", s.Okta.Domain))
-				default:
-					options = append(options, "Username & password")
-				}
-			}
-
-			var option int
-			if len(options) > 1 {
-				prompt := &survey.Select{
-					Message: "Choose a login method:",
-					Options: options,
-				}
-				err = survey.AskOne(prompt, &option, survey.WithIcons(func(icons *survey.IconSet) {
-					icons.Question.Text = blue("?")
-				}))
-				if err == terminal.InterruptErr {
-					return nil
-				}
-			}
-
-			source := sources[option]
-			var loginReq api.LoginRequest
-
+		options := []string{}
+		for _, s := range sources {
 			switch {
-			case source.Okta != nil:
-				// Start OIDC flow
-				// Get auth code from Okta
-				// Send auth code to Infra to login as a user
-				state := generate.RandString(12)
-				authorizeUrl := "https://" + source.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + source.Okta.ClientId + "&response_type=code&scope=openid+email&nonce=" + generate.RandString(10) + "&state=" + state
-
-				fmt.Println(blue("✓") + " Logging in with Okta...")
-				ls, err := newLocalServer()
-				if err != nil {
-					return err
-				}
-
-				err = browser.OpenURL(authorizeUrl)
-				if err != nil {
-					return err
-				}
-
-				code, recvstate, err := ls.wait()
-				if err != nil {
-					return err
-				}
-
-				if state != recvstate {
-					return errors.New("received state is not the same as sent state")
-				}
-
-				loginReq.Okta = &api.LoginRequestOkta{
-					Domain: source.Okta.Domain,
-					Code:   code,
-				}
-			default:
-				email := ""
-				emailPrompt := &survey.Input{
-					Message: "Email",
-				}
-				err = survey.AskOne(emailPrompt, &email, survey.WithShowCursor(true), survey.WithValidator(survey.Required), survey.WithIcons(func(icons *survey.IconSet) {
-					icons.Question.Text = blue("?")
-				}))
-				if err == terminal.InterruptErr {
-					return nil
-				}
-
-				password := ""
-				passwordPrompt := &survey.Password{
-					Message: "Password",
-				}
-				err = survey.AskOne(passwordPrompt, &password, survey.WithShowCursor(true), survey.WithValidator(survey.Required), survey.WithIcons(func(icons *survey.IconSet) {
-					icons.Question.Text = blue("?")
-				}))
-				if err == terminal.InterruptErr {
-					return nil
-				}
-
-				fmt.Println(blue("✓") + " Logging in with username & password...")
-
-				loginReq.Infra = &api.LoginRequestInfra{
-					Email:    email,
-					Password: password,
-				}
+			case s.Okta != nil:
+				options = append(options, fmt.Sprintf("Okta [%s]", s.Okta.Domain))
 			}
+		}
 
-			authRes, _, err = client.AuthApi.Login(context.Background()).Body(loginReq).Execute()
+		var option int
+		prompt := &survey.Select{
+			Message: "Choose a login method:",
+			Options: options,
+		}
+		err = survey.AskOne(prompt, &option, survey.WithIcons(func(icons *survey.IconSet) {
+			icons.Question.Text = blue("?")
+		}))
+		if err == terminal.InterruptErr {
+			return nil
+		}
+
+		source := sources[option]
+		var loginReq api.LoginRequest
+
+		switch {
+		case source.Okta != nil:
+			// Start OIDC flow
+			// Get auth code from Okta
+			// Send auth code to Infra to login as a user
+			state := generate.RandString(12)
+			authorizeUrl := "https://" + source.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + source.Okta.ClientId + "&response_type=code&scope=openid+email&nonce=" + generate.RandString(10) + "&state=" + state
+
+			fmt.Println(blue("✓") + " Logging in with Okta...")
+			ls, err := newLocalServer()
 			if err != nil {
 				return err
 			}
+
+			err = browser.OpenURL(authorizeUrl)
+			if err != nil {
+				return err
+			}
+
+			code, recvstate, err := ls.wait()
+			if err != nil {
+				return err
+			}
+
+			if state != recvstate {
+				return errors.New("received state is not the same as sent state")
+			}
+
+			loginReq.Okta = &api.LoginRequestOkta{
+				Domain: source.Okta.Domain,
+				Code:   code,
+			}
+		default:
+			return errors.New("invalid source selected")
+		}
+
+		authRes, _, err := client.AuthApi.Login(context.Background()).Body(loginReq).Execute()
+		if err != nil {
+			return err
 		}
 
 		config := &Config{
@@ -816,6 +750,7 @@ func newRegistryCmd() (*cobra.Command, error) {
 	cmd.Flags().StringVar(&options.DefaultApiKey, "initial-apikey", os.Getenv("INFRA_REGISTRY_DEFAULT_API_KEY"), "initial api key for adding destinations")
 	cmd.Flags().StringVar(&options.DBPath, "db", filepath.Join(home, ".infra", "infra.db"), "path to database file")
 	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(home, ".infra", "cache"), "path to directory to cache tls self-signed and Let's Encrypt certificates")
+	cmd.Flags().BoolVar(&options.UI, "ui", false, "enable ui")
 	cmd.Flags().StringVar(&options.UIProxy, "ui-proxy", "", "proxy ui requests to this host")
 
 	defaultSync := 30
@@ -874,7 +809,7 @@ var versionCmd = &cobra.Command{
 		}
 
 		// Note that we use the client to get this version, but it is in fact the server version
-		res, _, err := client.InfoApi.Version(context.Background()).Execute()
+		res, _, err := client.VersionApi.Version(context.Background()).Execute()
 		if err != nil {
 			fmt.Fprintln(w, "Registry:\t", "not connected")
 			return err

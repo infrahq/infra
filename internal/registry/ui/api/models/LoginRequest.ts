@@ -14,10 +14,6 @@
 
 import { exists, mapValues } from '../runtime';
 import {
-    LoginRequestInfra,
-    LoginRequestInfraFromJSON,
-    LoginRequestInfraFromJSONTyped,
-    LoginRequestInfraToJSON,
     LoginRequestOkta,
     LoginRequestOktaFromJSON,
     LoginRequestOktaFromJSONTyped,
@@ -30,12 +26,6 @@ import {
  * @interface LoginRequest
  */
 export interface LoginRequest {
-    /**
-     * 
-     * @type {LoginRequestInfra}
-     * @memberof LoginRequest
-     */
-    infra?: LoginRequestInfra;
     /**
      * 
      * @type {LoginRequestOkta}
@@ -54,7 +44,6 @@ export function LoginRequestFromJSONTyped(json: any, ignoreDiscriminator: boolea
     }
     return {
         
-        'infra': !exists(json, 'infra') ? undefined : LoginRequestInfraFromJSON(json['infra']),
         'okta': !exists(json, 'okta') ? undefined : LoginRequestOktaFromJSON(json['okta']),
     };
 }
@@ -68,7 +57,6 @@ export function LoginRequestToJSON(value?: LoginRequest | null): any {
     }
     return {
         
-        'infra': LoginRequestInfraToJSON(value.infra),
         'okta': LoginRequestOktaToJSON(value.okta),
     };
 }

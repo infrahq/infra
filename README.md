@@ -14,82 +14,56 @@ Infra is **identity and access management** for Kubernetes. Provide any user fin
 
 ## Quickstart
 
-1. Create `infra.yaml` 
-```yaml
-# Configure external identity providers
-sources:
-  - type: okta
-    domain: acme.okta.com
-    clientId: 0oapn0qwiQPiMIyR35d6
-    clientSecret: infra-registry-okta/clientSecret
-    apiToken: infra-registry-okta/apiToken
+### Install Infra registry
 
-# Map groups or individual users pulled from identity providers
-# Roles refer to available roles or cluster-roles currently 
-# configured in the cluster. Custom roles are supported. 
-
-groups:
-  - name: developers
-    source: okta
-    roles:
-      - name: view
-        kind: cluster-role
-        clusters:
-          - name: cluster-1
-
-users:
-  - name: person@example.com
-    roles:
-      - name: admin
-        kind: cluster-role
-        clusters:
-          - name: cluster-1
-          - name: cluster-2
-```
-Please follow [Okta configuration guide](./docs/okta.md) to obtain your Okta API token. 
-
-2. Install Infra Registry with configuration
+**Prerequisites:**
+* [Helm](https://helm.sh/)
 
 ```
 helm repo add infrahq https://helm.infrahq.com
 helm repo update
 
-helm install infra-registry infrahq/registry --namespace infrahq --create-namespace --set-file config=./infra.yaml 
+helm install infra-registry infrahq/registry --namespace infrahq --create-namespace
 ```
 
-3. Connect Kubernetes Cluster(s)
+### Connect Kubernetes cluster to Infra registry
 
-In a web browser visit the Infra Registry dashboard. The URL may be found using: 
-
+Run the following commands to retrive Infra Registry information and its API Key
 ```
-kubectl get svc -n infrahq -w infra-registry -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}"
-```
-![Login](https://user-images.githubusercontent.com/251292/128047128-7bb0da64-4111-4116-b39b-03ca70687ad2.png)
+export INFRA_REGISTRY=$(kubectl get svc -n infrahq infra-registry -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}")
 
-Once in the dashboard, navigate to **Infrastructure** and click **Add Cluster**
-
-![Add cluster](https://user-images.githubusercontent.com/251292/128047513-77500f36-b8a7-4b51-afff-f75f63c7fb7d.png)
-
-Run this command to connect an existing Kubernetes cluster. Note, this command can be re-used for multiple clusters or scripted via Infrastructure As Code (IAC).
-
-## Usage Guide 
-
-### Install Infra CLI
-
-**macOS & Linux**
-
-```
-brew install infrahq/tap/infra
+export INFRA_API_KEY=$(kubectl get secrets/infra-registry --template={{.data.defaultApiKey}} --namespace infrahq | base64 -D)
 ```
 
-**Windows**
-
+Install Infra Engine 
 ```
-scoop bucket add infrahq https://github.com/infrahq/scoop.git
-scoop install infra
+helm install infra-engine infrahq/engine --set registry=$INFRA_REGISTRY --set apiKey=$INFRA_API_KEY
 ```
 
-### Login to your Infra Registry
+### Connect an identity provider
+
+* [Okta configuration guide](./docs/okta.md)
+
+### Install Infra CLI 
+<details>
+  <summary><strong>macOS & Linux</strong></summary>
+
+  ```
+  brew install infrahq/tap/infra
+  ```
+</details>
+
+<details>
+  <summary><strong>Windows</strong></summary>
+
+  ```
+  scoop bucket add infrahq https://github.com/infrahq/scoop.git
+  scoop install infra
+  ```
+</details>
+<br />
+
+### Accessing infrastructure 
 
 ```
 infra login <your infra registry endpoint>
@@ -97,24 +71,19 @@ infra login <your infra registry endpoint>
 
 After login, Infra will automatically synchronize all the Kubernetes clusters configured for the user into their default kubeconfig file. 
 
-
-### Accessing clusters 
-
-To list all the clusters, please run `infra list`. 
-
-Users can then switch Kubernetes context via `kubectl config use-context <name>` or via any Kubernetes tools. 
+That's it! You now have access to your cluster via Okta. To list all the clusters, run `infra list`.
 
 ## Next Steps 
+* [Update roles](./docs/permissions.md) 
 * [Add a custom domain](./docs/domain.md) to make it easy for sharing with your team 
 * [Connect more Kubernetes clusters](./docs/connect.md)
-* [Update roles](./docs/permissions.md) 
+
 
 ## Documentation
 * [Okta Reference](./docs/okta.md)
 * [Helm Chart Reference](./docs/helm.md)
 * [CLI Reference](./docs/cli.md)
 * [Contributing](./docs/contributing.md)
-* [Configuration reference](./docs/configuration.md)
 
 ## Security
 We take security very seriously. If you have found a security vulnerability please disclose it privately to us by email via [security@infrahq.com](mailto:security@infrahq.com)

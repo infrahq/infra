@@ -23,49 +23,49 @@ var (
 	_ _context.Context
 )
 
-// ApikeysApiService ApikeysApi service
-type ApikeysApiService service
+// VersionApiService VersionApi service
+type VersionApiService service
 
-type ApiListApiKeysRequest struct {
+type ApiVersionRequest struct {
 	ctx        _context.Context
-	ApiService *ApikeysApiService
+	ApiService *VersionApiService
 }
 
-func (r ApiListApiKeysRequest) Execute() ([]ApiKey, *_nethttp.Response, error) {
-	return r.ApiService.ListApiKeysExecute(r)
+func (r ApiVersionRequest) Execute() (Version, *_nethttp.Response, error) {
+	return r.ApiService.VersionExecute(r)
 }
 
 /*
-ListApiKeys Get Engine API Keys
+Version Get version information
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiListApiKeysRequest
+ @return ApiVersionRequest
 */
-func (a *ApikeysApiService) ListApiKeys(ctx _context.Context) ApiListApiKeysRequest {
-	return ApiListApiKeysRequest{
+func (a *VersionApiService) Version(ctx _context.Context) ApiVersionRequest {
+	return ApiVersionRequest{
 		ApiService: a,
 		ctx:        ctx,
 	}
 }
 
 // Execute executes the request
-//  @return []ApiKey
-func (a *ApikeysApiService) ListApiKeysExecute(r ApiListApiKeysRequest) ([]ApiKey, *_nethttp.Response, error) {
+//  @return Version
+func (a *VersionApiService) VersionExecute(r ApiVersionRequest) (Version, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodGet
 		localVarPostBody     interface{}
 		localVarFormFileName string
 		localVarFileName     string
 		localVarFileBytes    []byte
-		localVarReturnValue  []ApiKey
+		localVarReturnValue  Version
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ApikeysApiService.ListApiKeys")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "VersionApiService.Version")
 	if err != nil {
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/apikeys"
+	localVarPath := localBasePath + "/version"
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := _neturl.Values{}
