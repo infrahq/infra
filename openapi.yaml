@@ -35,7 +35,6 @@ components:
         - email
         - created
         - updated
-        - admin
       properties:
         id:
           type: string
@@ -47,8 +46,6 @@ components:
         updated:
           type: integer
           format: int64
-        admin:
-          type: boolean
     Group:
       type: object
       required:
