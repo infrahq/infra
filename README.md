@@ -37,7 +37,7 @@ export INFRA_API_KEY=$(kubectl get secrets/infra-registry --template={{.data.def
 
 Install Infra Engine 
 ```
-helm install infra-engine infrahq/engine --set registry=$INFRA_REGISTRY --set apiKey=$INFRA_API_KEY
+helm install infra-engine infrahq/engine --namespace infrahq --set registry=$INFRA_REGISTRY --set apiKey=$INFRA_API_KEY
 ```
 
 ### Connect an identity provider
