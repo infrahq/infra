@@ -78,21 +78,6 @@ sources:
     clientId: 0oapn0qwiQPiMIyR35d6
     clientSecret: infra-registry-okta/clientSecret # <kubernetes secret object name>/<key of the secret>
     apiToken: infra-registry-okta/apiToken
-
-users:
-  - name: admin@example.com
-    roles:
-      - name: admin
-        kind: cluster-role
-        clusters:
-          - cluster-AAA
-          - cluster-BBB
-  - name: developer@example.com
-    roles:
-      - name: writer
-        kind: cluster-role
-        clusters:
-          - cluster-AAA
 ```
 
 Then apply this config change:

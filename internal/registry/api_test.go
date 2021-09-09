@@ -3,7 +3,6 @@ package registry
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -31,24 +30,19 @@ func (msr *mockSecretReader) Get(secretName string, client *kubernetesClient.Cli
 	return "foo", nil
 }
 
-func addUser(db *gorm.DB, email string, password string, admin bool) (tokenId string, tokenSecret string, err error) {
+func addUser(db *gorm.DB) (tokenId string, tokenSecret string, err error) {
 	var token Token
 	var secret string
 	err = db.Transaction(func(tx *gorm.DB) error {
-		var infraSource Source
-		if err := tx.Where(&Source{Type: SOURCE_TYPE_OKTA}).First(&infraSource).Error; err != nil {
-			return err
-		}
-		var user User
-
-		err := infraSource.CreateUser(tx, &user, email)
+		user := &User{Email: "test@test.com"}
+		err := tx.Create(user).Error
 		if err != nil {
 			return err
 		}
 
 		secret, err = NewToken(tx, user.Id, &token)
 		if err != nil {
-			return errors.New("could not create token")
+			return err
 		}
 
 		return nil
@@ -182,7 +176,7 @@ func TestBearerTokenMiddlewareValidToken(t *testing.T) {
 		db: db,
 	}
 
-	id, secret, err := addUser(db, "test@test.com", "passw0rd", false)
+	id, secret, err := addUser(db)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -544,8 +538,6 @@ func TestListGroups(t *testing.T) {
 	for _, g := range groups {
 		groupSources[g.Name] = g.Source
 	}
-	assert.Equal(t, "infra", groupSources["ios-developers"])
-	assert.Equal(t, "infra", groupSources["mac-admins"])
 	assert.Equal(t, "okta", groupSources["heroes"])
 	assert.Equal(t, "okta", groupSources["villains"])
 }

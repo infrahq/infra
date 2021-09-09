@@ -85,7 +85,7 @@ func TestLoginRedirectNoRedirectIfLoggedIn(t *testing.T) {
 		db: db,
 	}
 
-	id, secret, err := addUser(db, "test@test.com", "passw0rd", true)
+	id, secret, err := addUser(db)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +127,7 @@ func TestLoginRedirectIfLoginCookieUnset(t *testing.T) {
 		db: db,
 	}
 
-	id, secret, err := addUser(db, "test@test.com", "passw0rd", true)
+	id, secret, err := addUser(db)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -169,7 +169,7 @@ func TestLoginRedirectFromLoginIfAlreadyLoggedIn(t *testing.T) {
 		db: db,
 	}
 
-	id, secret, err := addUser(db, "test@test.com", "passw0rd", true)
+	id, secret, err := addUser(db)
 	if err != nil {
 		t.Fatal(err)
 	}

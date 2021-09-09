@@ -12,7 +12,7 @@ sources:
 
 groups:
   - name: ios-developers
-    source: infra
+    source: okta
     roles:
       - name: writer
         kind: cluster-role
@@ -32,7 +32,7 @@ groups:
             namespaces: 
               - infrahq
   - name: mac-admins
-    source: infra
+    source: okta
     roles:
       - name: writer
         kind: cluster-role

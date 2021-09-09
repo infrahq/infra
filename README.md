@@ -3,7 +3,7 @@
 </p>
 
 ## Introduction
-Infra is **identity and access management** for Kubernetes. Provide any user fine-grained access to Kubernetes clusters via existing identity providers such as Okta, Google Accounts, Azure Active Directory and more.
+Infra is secure Kubernetes access for your team.
 
 **Features**:
 * One-command access: `infra login`
@@ -29,7 +29,7 @@ helm install infra-registry infrahq/registry --namespace infrahq --create-namesp
 ### Connect Kubernetes
 
 ```
-helm install infra-engine infrahq/engine --set registry=<registry> --set apiKey
+helm install infra-engine infrahq/engine --set registry=$INFRA_REGISTRY --set apiKey=$INFRA_API_KEY
 ```
 
 ### Connect Okta
@@ -56,6 +56,10 @@ infra login <your infra registry endpoint>
 ```
 
 After login, Infra will automatically synchronize all the Kubernetes clusters configured for the user into their default kubeconfig file. 
+
+### Scoping permissions
+
+To scope permissions access
 
 ### Accessing clusters 
 

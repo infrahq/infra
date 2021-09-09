@@ -35,18 +35,37 @@ func setup() error {
 	if err != nil {
 		return err
 	}
+
 	err = db.Create(&adminUser).Error
 	if err != nil {
 		return err
 	}
+
+	err = db.Model(&fakeOktaSource).Association("Users").Append(&adminUser)
+	if err != nil {
+		return err
+	}
+
 	err = db.Create(&standardUser).Error
 	if err != nil {
 		return err
 	}
+
+	err = db.Model(&fakeOktaSource).Association("Users").Append(&standardUser)
+	if err != nil {
+		return err
+	}
+
 	err = db.Create(&iosDevUser).Error
 	if err != nil {
 		return err
 	}
+
+	err = db.Model(&fakeOktaSource).Association("Users").Append(&iosDevUser)
+	if err != nil {
+		return err
+	}
+
 	err = db.Create(&clusterA).Error
 	if err != nil {
 		return err
