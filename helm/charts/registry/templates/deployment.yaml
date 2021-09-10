@@ -17,6 +17,7 @@ spec:
     spec:
       automountServiceAccountToken: true
       serviceAccountName: infra-registry
+      dnsPolicy: Default
       containers:
         - name: registry
           image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}

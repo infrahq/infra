@@ -17,6 +17,7 @@ spec:
     spec:
       automountServiceAccountToken: true
       serviceAccountName: infra-engine
+      dnsPolicy: Default
       containers:
         - name: engine
           image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}

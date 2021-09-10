@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 
@@ -591,7 +592,12 @@ func (k *Kubernetes) Endpoint() (string, error) {
 		InsecureSkipVerify: true,
 	}
 
-	conn, err := tls.Dial("tcp", "kubernetes.default.svc:443", conf)
+	host, port := os.Getenv("KUBERNETES_SERVICE_HOST"), os.Getenv("KUBERNETES_SERVICE_PORT")
+	if len(host) == 0 || len(port) == 0 {
+		return "", errors.New("not in cluster")
+	}
+
+	conn, err := tls.Dial("tcp", host+":"+port, conf)
 	if err != nil {
 		return "", err
 	}
@@ -657,7 +663,6 @@ func (k *Kubernetes) Endpoint() (string, error) {
 		return "", err
 	}
 
-	var port string
 	for _, p := range kubernetesService.Spec.Ports {
 		if p.Name == "https" {
 			port = p.TargetPort.String()
