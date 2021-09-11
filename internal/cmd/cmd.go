@@ -41,6 +41,7 @@ import (
 )
 
 type Config struct {
+	Name          string `json:"name"`
 	Host          string `json:"host"`
 	Token         string `json:"token"`
 	SkipTLSVerify bool   `json:"skip-tls-verify"`
@@ -454,14 +455,15 @@ var loginCmd = &cobra.Command{
 			return errors.New("invalid source selected")
 		}
 
-		authRes, _, err := client.AuthApi.Login(context.Background()).Body(loginReq).Execute()
+		loginRes, _, err := client.AuthApi.Login(context.Background()).Body(loginReq).Execute()
 		if err != nil {
 			return err
 		}
 
 		config := &Config{
+			Name:          loginRes.Name,
+			Token:         loginRes.Token,
 			Host:          args[0],
-			Token:         authRes.Token,
 			SkipTLSVerify: skipTLSVerify,
 		}
 
@@ -470,7 +472,7 @@ var loginCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Println(blue("✓") + " Logged in")
+		fmt.Println(blue("✓") + " Logged in as " + termenv.String(loginRes.Name).Bold().String())
 
 		// Generate client certs
 		home, err := homedir.Dir()
@@ -520,7 +522,7 @@ var loginCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		ctx := NewApiContext(authRes.Token)
+		ctx := NewApiContext(loginRes.Token)
 
 		destinations, _, err := client.DestinationsApi.ListDestinations(ctx).Execute()
 		if err != nil {
@@ -662,6 +664,11 @@ var usersCmd = &cobra.Command{
 	Use:   "users",
 	Short: "List users",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		config, err := readConfig()
+		if err != nil {
+			return err
+		}
+
 		client, err := apiClientFromConfig()
 		if err != nil {
 			return err
@@ -683,7 +690,11 @@ var usersCmd = &cobra.Command{
 
 		rows := [][]string{}
 		for _, u := range users {
-			rows = append(rows, []string{u.Email, units.HumanDuration(time.Now().UTC().Sub(time.Unix(u.Created, 0))) + " ago"})
+			email := u.Email
+			if email == config.Name {
+				email += "*"
+			}
+			rows = append(rows, []string{email, units.HumanDuration(time.Now().UTC().Sub(time.Unix(u.Created, 0))) + " ago"})
 		}
 
 		printTable([]string{"EMAIL", "CREATED"}, rows)

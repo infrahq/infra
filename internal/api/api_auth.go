@@ -37,7 +37,7 @@ func (r ApiLoginRequest) Body(body LoginRequest) ApiLoginRequest {
 	return r
 }
 
-func (r ApiLoginRequest) Execute() (AuthResponse, *_nethttp.Response, error) {
+func (r ApiLoginRequest) Execute() (LoginResponse, *_nethttp.Response, error) {
 	return r.ApiService.LoginExecute(r)
 }
 
@@ -55,15 +55,15 @@ func (a *AuthApiService) Login(ctx _context.Context) ApiLoginRequest {
 }
 
 // Execute executes the request
-//  @return AuthResponse
-func (a *AuthApiService) LoginExecute(r ApiLoginRequest) (AuthResponse, *_nethttp.Response, error) {
+//  @return LoginResponse
+func (a *AuthApiService) LoginExecute(r ApiLoginRequest) (LoginResponse, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodPost
 		localVarPostBody     interface{}
 		localVarFormFileName string
 		localVarFileName     string
 		localVarFileBytes    []byte
-		localVarReturnValue  AuthResponse
+		localVarReturnValue  LoginResponse
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthApiService.Login")

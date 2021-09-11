@@ -16,32 +16,39 @@ import { exists, mapValues } from '../runtime';
 /**
  * 
  * @export
- * @interface AuthResponse
+ * @interface LoginResponse
  */
-export interface AuthResponse {
+export interface LoginResponse {
     /**
      * 
      * @type {string}
-     * @memberof AuthResponse
+     * @memberof LoginResponse
      */
     token: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof LoginResponse
+     */
+    name: string;
 }
 
-export function AuthResponseFromJSON(json: any): AuthResponse {
-    return AuthResponseFromJSONTyped(json, false);
+export function LoginResponseFromJSON(json: any): LoginResponse {
+    return LoginResponseFromJSONTyped(json, false);
 }
 
-export function AuthResponseFromJSONTyped(json: any, ignoreDiscriminator: boolean): AuthResponse {
+export function LoginResponseFromJSONTyped(json: any, ignoreDiscriminator: boolean): LoginResponse {
     if ((json === undefined) || (json === null)) {
         return json;
     }
     return {
         
         'token': json['token'],
+        'name': json['name'],
     };
 }
 
-export function AuthResponseToJSON(value?: AuthResponse | null): any {
+export function LoginResponseToJSON(value?: LoginResponse | null): any {
     if (value === undefined) {
         return undefined;
     }
@@ -51,6 +58,7 @@ export function AuthResponseToJSON(value?: AuthResponse | null): any {
     return {
         
         'token': value.token,
+        'name': value.name,
     };
 }
 
