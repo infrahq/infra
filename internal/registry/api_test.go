@@ -446,12 +446,6 @@ func TestListRolesForClusterReturnsRolesFromConfig(t *testing.T) {
 		returnedUserRoles[r.Name] = r.Users
 	}
 
-	// check default roles granted on user create
-	assert.Equal(t, 3, len(returnedUserRoles["view"]))
-	assert.True(t, containsUser(returnedUserRoles["view"], iosDevUser.Email))
-	assert.True(t, containsUser(returnedUserRoles["view"], standardUser.Email))
-	assert.True(t, containsUser(returnedUserRoles["view"], adminUser.Email))
-
 	// roles from groups
 	assert.Equal(t, 2, len(returnedUserRoles["writer"]))
 	assert.True(t, containsUser(returnedUserRoles["writer"], iosDevUser.Email))
