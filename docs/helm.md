@@ -123,3 +123,25 @@ ingress:
 | `ingress.servicePort`               | Target http service port backend              | `80`                                                    |
 | `ingress.annotations`               | Ingress annotations (https)                   | `{}`                                                    |
 | `ingress.labels`                    | Ingress labels (https)                        | `{}`                                                    |
+
+## Uninstalling
+
+Uninstall the Infra Registry
+
+```
+# Remove infra registry
+helm uninstall infra-registry -n infrahq
+
+# Remove potential secrets created for infra registry
+kubectl delete -n infrahq secret/infra-registry-okta
+```
+
+Uninstall the Infra Engine
+
+```
+# Remove infra engine
+helm uninstall infra-engine
+
+# Remove rolebindings & clusterrolebindings created by infra engine
+kubectl delete clusterrolebindings,rolebindings -l app.kubernetes.io/managed-by=infra --all-namespaces
+```
