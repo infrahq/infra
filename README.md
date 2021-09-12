@@ -37,7 +37,11 @@ export INFRA_API_KEY=$(kubectl get secrets/infra-registry --template={{.data.def
 
 Install Infra Engine 
 ```
-helm install infra-engine infrahq/engine --namespace infrahq --set registry=$INFRA_REGISTRY --set apiKey=$INFRA_API_KEY --set name=my-first-cluster
+helm install infra-engine infrahq/engine \
+    --namespace infrahq \
+    --set registry=$INFRA_REGISTRY \
+    --set apiKey=$INFRA_API_KEY \
+    --set name=my-first-cluster
 ```
 
 ### Connect an identity provider
@@ -57,6 +61,12 @@ groups:
         kind: cluster-role
         clusters:
           - name: my-first-cluster
+```
+
+Then update your Infra Registry with this new config:
+
+```
+helm upgrade infra-registry infrahq/registry --set-file config=./infra.yaml -n infrahq
 ```
 
 ### Install Infra CLI 
