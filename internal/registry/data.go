@@ -59,8 +59,6 @@ type Source struct {
 	ApiToken     string
 
 	Users []User `gorm:"many2many:users_sources"`
-
-	FromConfig bool
 }
 
 type Group struct {
@@ -104,7 +102,6 @@ type Role struct {
 	Groups        []Group     `gorm:"many2many:groups_roles"`
 	Users         []User      `gorm:"many2many:users_roles"`
 
-	FromConfig  bool
 	FromDefault bool
 }
 

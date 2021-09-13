@@ -74,7 +74,6 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 			// API token and client secret will be validated to exist when they are used
 			source.ClientSecret = s.ClientSecret
 			source.ApiToken = s.ApiToken
-			source.FromConfig = true
 
 			err = db.Save(&source).Error
 			if err != nil {
@@ -91,7 +90,7 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 		logging.L.Info("no valid sources found in configuration, ensure the required fields are specified correctly")
 	}
 
-	if err := db.Where(&Role{FromConfig: false}).Not(idsToKeep).Delete(&Source{}).Error; err != nil {
+	if err := db.Not(idsToKeep).Delete(&Source{}).Error; err != nil {
 		return err
 	}
 	return nil
@@ -192,7 +191,8 @@ func ApplyUserMapping(db *gorm.DB, users []ConfigUserMapping) error {
 
 // ImportMappings imports the group and user role mappings and removes previously created roles if they no longer exist
 func ImportMappings(db *gorm.DB, groups []ConfigGroupMapping, users []ConfigUserMapping) error {
-	if err := db.Where(&Role{FromConfig: true}).Delete(Role{}).Error; err != nil {
+	// gorm blocks global delete by default: https://gorm.io/docs/delete.html#Block-Global-Delete
+	if err := db.Where("1 = 1").Delete(&Role{}).Error; err != nil {
 		return err
 	}
 
@@ -280,14 +280,14 @@ func importRoles(db *gorm.DB, roles []ConfigRoleKubernetes) ([]Role, error) {
 			if len(cluster.Namespaces) > 0 {
 				for _, namespace := range cluster.Namespaces {
 					var role Role
-					if err = db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, Namespace: namespace, DestinationId: destination.Id, FromConfig: true}).Error; err != nil {
+					if err = db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, Namespace: namespace, DestinationId: destination.Id}).Error; err != nil {
 						return nil, err
 					}
 					rolesImported = append(rolesImported, role)
 				}
 			} else {
 				var role Role
-				if err = db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, DestinationId: destination.Id, FromConfig: true}).Error; err != nil {
+				if err = db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, DestinationId: destination.Id}).Error; err != nil {
 					return nil, err
 				}
 				rolesImported = append(rolesImported, role)
