@@ -238,7 +238,7 @@ func ImportConfig(db *gorm.DB, bs []byte) error {
 		if err = ImportSources(tx, config.Sources); err != nil {
 			return err
 		}
-		// Need to import of group/user mappings together becuase they both rely on roles
+		// Need to import of group/user mappings together because they both rely on roles
 		if err = ImportMappings(tx, config.Groups, config.Users); err != nil {
 			return err
 		}
