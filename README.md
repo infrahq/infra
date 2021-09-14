@@ -71,7 +71,35 @@ helm upgrade infra-registry infrahq/registry --set-file config=./infra.yaml -n i
 
 ### Install Infra CLI 
 <details>
-  <summary><strong>macOS & Linux</strong></summary>
+  <summary><strong>Debian-based Distributions (Debian, Ubuntu)</strong></summary>
+
+  ```
+  case $(uname -m) in x86_64) ARCH=amd64 ;; aarch64) ARCH=arm64 ;; esac
+  wget https://releases.infrahq.com/infra/v0.2.2/infra_v0.2.2_$ARCH.deb
+  dpkg -i infra_v0.2.2_$ARCH.deb
+  ```
+</details>
+
+<details>
+  <summary><strong>Red Hat-based Distributions (Fedora, RHEL)</strong></summary>
+
+  ```
+  wget https://releases.infrahq.com/infra/v0.2.2/infra-v0.2.2-$(uname -m).rpm
+  yum install infra-v0.2.2-$(uname -m).rpm
+  ```
+</details>
+
+<details>
+  <summary><strong>Alpine Linux</strong></summary>
+
+  ```
+  wget https://releases.infrahq.com/infra/v0.2.2/infra-v0.2.2=$(uname -m).apk
+  apk add --allow-untrusted infra-v0.2.2-$(uname -m).apk
+  ```
+</details>
+
+<details>
+  <summary><strong>macOS</strong></summary>
 
   ```
   brew install infrahq/tap/infra
