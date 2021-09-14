@@ -16,18 +16,18 @@ groups:
     roles:
       - name: writer
         kind: cluster-role
-        clusters:
+        destinations:
           - name: cluster-AAA
       - name: audit
         kind: cluster-role
-        clusters:
+        destinations:
           - name: cluster-CCC
             namespaces: 
               - infrahq
               - development
       - name: pod-create
         kind: role
-        clusters:
+        destinations:
           - name: cluster-CCC
             namespaces: 
               - infrahq
@@ -36,28 +36,28 @@ groups:
     roles:
       - name: writer
         kind: cluster-role
-        clusters:
+        destinations:
           - name: cluster-BBB
   - name: adversaries
     source: outside
     roles:
       - name: cluster-admin
         kind: cluster-role
-        clusters:
+        destinations:
           - name: cluster-AAA
   - name: heroes
     source: okta
     roles:
       - name: writer
         kind: cluster-role
-        clusters:
+        destinations:
           - name: cluster-CCC
   - name: villains
     source: okta
     roles:
       - name: writer
         kind: cluster-role
-        clusters:
+        destinations:
           - name: cluster-CCC
 
 users:
@@ -69,19 +69,19 @@ users:
     roles:
       - name: admin
         kind: cluster-role
-        clusters:
+        destinations:
           - name: cluster-AAA
           - name: cluster-BBB
       - name: audit
         kind: cluster-role
-        clusters:
+        destinations:
           - name: cluster-CCC
             namespaces: 
               - infrahq
               - development
       - name: pod-create
         kind: role
-        clusters:
+        destinations:
           - name: cluster-CCC
             namespaces: 
               - infrahq
@@ -91,7 +91,7 @@ users:
     roles:
       - name: reader
         kind: cluster-role
-        clusters:
+        destinations:
           - name: cluster-AAA
           - name: cluster-UNKNOWN
   - name: unknown@example.com
@@ -100,5 +100,5 @@ users:
     roles:
       - name: writer
         kind: cluster-role
-        clusters:
+        destinations:
           - name: cluster-AAA

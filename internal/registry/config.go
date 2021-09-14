@@ -25,15 +25,15 @@ func (s *ConfigSource) cleanupDomain() {
 	s.Domain = dashAdminRemover.ReplaceAllString(s.Domain, "$1$2")
 }
 
-type ConfigCluster struct {
+type ConfigDestination struct {
 	Name       string   `yaml:"name"`
 	Namespaces []string `yaml:"namespaces"` // optional in the case of a cluster-role
 }
 
 type ConfigRoleKubernetes struct {
-	Name     string          `yaml:"name"`
-	Kind     string          `yaml:"kind"`
-	Clusters []ConfigCluster `yaml:"clusters"`
+	Name         string              `yaml:"name"`
+	Kind         string              `yaml:"kind"`
+	Destinations []ConfigDestination `yaml:"destinations"`
 }
 
 type ConfigGroupMapping struct {
@@ -273,13 +273,13 @@ func importRoles(db *gorm.DB, roles []ConfigRoleKubernetes) ([]Role, error) {
 			logging.L.Error("only 'role' and 'cluster-role' are valid role kinds, found: " + r.Kind)
 			continue
 		}
-		for _, cluster := range r.Clusters {
-			if r.Kind == ROLE_KIND_K8S_ROLE && len(cluster.Namespaces) == 0 {
-				logging.L.Error(r.Name + " requires at least one namespace to be specified for the cluster " + cluster.Name)
+		for _, destination := range r.Destinations {
+			if r.Kind == ROLE_KIND_K8S_ROLE && len(destination.Namespaces) == 0 {
+				logging.L.Error(r.Name + " requires at least one namespace to be specified for the cluster " + destination.Name)
 				continue
 			}
-			var destination Destination
-			err := db.Where(&Destination{Name: cluster.Name}).First(&destination).Error
+			var dest Destination
+			err := db.Where(&Destination{Name: destination.Name}).First(&dest).Error
 			if err != nil {
 				if errors.Is(err, gorm.ErrRecordNotFound) {
 					// when a destination is added then the config import will be retried, skip for now
@@ -288,17 +288,17 @@ func importRoles(db *gorm.DB, roles []ConfigRoleKubernetes) ([]Role, error) {
 				}
 				return nil, err
 			}
-			if len(cluster.Namespaces) > 0 {
-				for _, namespace := range cluster.Namespaces {
+			if len(destination.Namespaces) > 0 {
+				for _, namespace := range destination.Namespaces {
 					var role Role
-					if err = db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, Namespace: namespace, DestinationId: destination.Id}).Error; err != nil {
+					if err = db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, Namespace: namespace, DestinationId: dest.Id}).Error; err != nil {
 						return nil, err
 					}
 					rolesImported = append(rolesImported, role)
 				}
 			} else {
 				var role Role
-				if err = db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, DestinationId: destination.Id}).Error; err != nil {
+				if err = db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, DestinationId: dest.Id}).Error; err != nil {
 					return nil, err
 				}
 				rolesImported = append(rolesImported, role)

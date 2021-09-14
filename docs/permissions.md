@@ -13,8 +13,8 @@ groups:
     roles:
       - name: writer          # Kubernetes cluster-role name
         kind: cluster-role
-        clusters:             # clusters for which to apply
-          - name: cluster-AAA
+        destinations:
+          - name: cluster-AAA # clusters for which to apply
             namespaces:       # optional namespaces
               - default
               - web
@@ -26,8 +26,8 @@ users:
     roles:
       - name: admin           # Kubernetes cluster-role name
         kind: cluster-role
-        clusters:             # clusters for which to apply
-          - name: cluster-AAA
+        destinations:
+          - name: cluster-AAA # clusters for which to apply
           - name: cluster-BBB
 ```
 
