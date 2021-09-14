@@ -69,7 +69,7 @@ Then update your Infra Registry with this new config:
 helm upgrade infra-registry infrahq/registry --set-file config=./infra.yaml -n infrahq
 ```
 
-### Install Infra CLI 
+### Install Infra CLI
 <details>
   <summary><strong>Debian-based Distributions (Debian, Ubuntu)</strong></summary>
 
@@ -116,19 +116,19 @@ helm upgrade infra-registry infrahq/registry --set-file config=./infra.yaml -n i
 </details>
 <br />
 
-### Accessing infrastructure 
+### Accessing infrastructure
 
 ```
 infra login <your infra registry endpoint>
 ```
 
-After login, Infra will automatically synchronize all the Kubernetes clusters configured for the user into their default kubeconfig file. 
+After login, Infra will automatically synchronize all the Kubernetes clusters configured for the user into their default kubeconfig file.
 
 That's it! You now have access to your cluster via Okta. To list all the clusters, run `infra list`.
 
-## Next Steps 
-* [Update roles](./docs/permissions.md) 
-* [Add a custom domain](./docs/domain.md) to make it easy for sharing with your team 
+## Next Steps
+* [Update roles](./docs/permissions.md)
+* [Add a custom domain](./docs/domain.md) to make it easy for sharing with your team
 * [Connect more Kubernetes clusters](./docs/connect.md)
 
 
