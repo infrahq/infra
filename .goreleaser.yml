@@ -21,8 +21,24 @@ builds:
     ignore:
       - goos: windows
         goarch: arm64
+nfpms:
+  - id: packages
+    package_name: infra
+    file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Arch }}"
+    builds:
+      - infra
+    vendor: Infra Technologies, Inc.
+    homepage: https://infrahq.com
+    maintainer: Infra Technologies, Inc. <contact@infrahq.com>
+    license: Apache 2.0
+    formats:
+      - apk
+      - deb
+      - rpm
+    bindir: /usr/bin
 archives:
-  - format: zip
+  - id: zip
+    format: zip
     replacements:
       amd64: x86_64
     files:
@@ -36,7 +52,8 @@ blobs:
     region: us-east-2
     bucket: releases.infrahq.com
     ids:
-      - default
+      - zip
+      - packages
 brews:
   - tap:
       owner: infrahq
