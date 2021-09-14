@@ -20,7 +20,7 @@ groups:
               - web
 
 users:
-  - name: admin@example.com   # user email
+  - email: admin@example.com   # user email
     groups:                   # manually assign groups this user belongs to
       - developers
     roles:
