@@ -2,6 +2,8 @@ package registry
 
 import (
 	"errors"
+	"regexp"
+	"strings"
 
 	"github.com/infrahq/infra/internal/logging"
 	"gopkg.in/yaml.v2"
@@ -14,6 +16,13 @@ type ConfigSource struct {
 	ClientId     string `yaml:"clientId"`
 	ClientSecret string `yaml:"clientSecret"`
 	ApiToken     string `yaml:"apiToken"`
+}
+
+var dashAdminRemover = regexp.MustCompile(`(.*)\-admin(\.okta\.com)`)
+
+func (s *ConfigSource) cleanupDomain() {
+	s.Domain = strings.TrimSpace(s.Domain)
+	s.Domain = dashAdminRemover.ReplaceAllString(s.Domain, "$1$2")
 }
 
 type ConfigCluster struct {
@@ -38,6 +47,7 @@ type ConfigUserMapping struct {
 	Roles  []ConfigRoleKubernetes `yaml:"roles"`
 	Groups []string               `yaml:"groups"`
 }
+
 type Config struct {
 	Sources []ConfigSource       `yaml:"sources"`
 	Groups  []ConfigGroupMapping `yaml:"groups"`
@@ -54,6 +64,7 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 		switch s.Type {
 		case SOURCE_TYPE_OKTA:
 			// check the domain is specified
+			s.cleanupDomain()
 			if s.Domain == "" {
 				logging.L.Info("domain not set on source \"" + s.Type + "\", import skipped")
 			}
