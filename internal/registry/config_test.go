@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 )
 
@@ -327,4 +328,11 @@ func TestClusterRolesAreAppliedWithNamespacesToUsers(t *testing.T) {
 		}
 	}
 	assert.True(t, foundAuditDevelopment)
+}
+
+func TestCleanupDomain(t *testing.T) {
+	s := ConfigSource{Domain: "dev123123-admin.okta.com "}
+	s.cleanupDomain()
+	expected := "dev123123.okta.com"
+	require.Equal(t, expected, s.Domain)
 }
