@@ -34,7 +34,7 @@ type ConfigGroupMapping struct {
 }
 
 type ConfigUserMapping struct {
-	Name   string                 `yaml:"name"`
+	Email  string                 `yaml:"email"`
 	Roles  []ConfigRoleKubernetes `yaml:"roles"`
 	Groups []string               `yaml:"groups"`
 }
@@ -143,7 +143,7 @@ func ApplyGroupMappings(db *gorm.DB, configGroups []ConfigGroupMapping) (groupId
 func ApplyUserMapping(db *gorm.DB, users []ConfigUserMapping) error {
 	for _, u := range users {
 		var user User
-		usrReadErr := db.Where(&User{Email: u.Name}).First(&user).Error
+		usrReadErr := db.Where(&User{Email: u.Email}).First(&user).Error
 		if usrReadErr != nil {
 			if errors.Is(usrReadErr, gorm.ErrRecordNotFound) {
 				// skip this user, if they're created these roles will be added later
