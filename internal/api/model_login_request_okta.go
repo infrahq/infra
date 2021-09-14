@@ -12,6 +12,8 @@ package api
 
 import (
 	"encoding/json"
+	"regexp"
+	"strings"
 )
 
 // LoginRequestOkta struct for LoginRequestOkta
@@ -26,7 +28,7 @@ type LoginRequestOkta struct {
 // will change when the set of required properties is changed
 func NewLoginRequestOkta(domain string, code string) *LoginRequestOkta {
 	this := LoginRequestOkta{}
-	this.Domain = domain
+	this.Domain = cleanupDomain(domain)
 	this.Code = code
 	return &this
 }
@@ -60,7 +62,7 @@ func (o *LoginRequestOkta) GetDomainOk() (*string, bool) {
 
 // SetDomain sets field value
 func (o *LoginRequestOkta) SetDomain(v string) {
-	o.Domain = v
+	o.Domain = cleanupDomain(v)
 }
 
 // GetCode returns the Code field value
@@ -96,6 +98,13 @@ func (o LoginRequestOkta) MarshalJSON() ([]byte, error) {
 		toSerialize["code"] = o.Code
 	}
 	return json.Marshal(toSerialize)
+}
+
+var dashAdminRemover = regexp.MustCompile(`(.*)\-admin(\.okta\.com)`)
+
+func cleanupDomain(domain string) string {
+	domain = strings.TrimSpace(domain)
+	return dashAdminRemover.ReplaceAllString(domain, "$1$2")
 }
 
 type NullableLoginRequestOkta struct {
