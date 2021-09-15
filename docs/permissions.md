@@ -11,7 +11,7 @@ groups:
   - name: developers          # group name in an external identity provider
     source: okta              # the identity provider this group applies to
     roles:
-      - name: writer          # Kubernetes cluster-role name
+      - name: edit            # Kubernetes cluster-role name
         kind: cluster-role
         destinations:         # destinations for which this group-role mapping applies
           - name: cluster-AAA
