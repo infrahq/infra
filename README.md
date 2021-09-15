@@ -110,7 +110,7 @@ That's it! You now have access to your cluster via Okta. To list all the cluster
 * [CLI Reference](./docs/cli.md)
 * [Contributing](./docs/contributing.md)
 
-## Upgrading Infra
+## Upgrading
 
 First, update the helm repo:
 
