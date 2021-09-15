@@ -108,7 +108,7 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 	return nil
 }
 
-func ApplyGroupMappings(db *gorm.DB, configGroups []ConfigGroupMapping) (groupIds []string, err error) {
+func ApplyGroupMappings(db *gorm.DB, configGroups []ConfigGroupMapping) (err error) {
 	for _, g := range configGroups {
 		// get the source from the datastore that this group specifies
 		var source Source
@@ -146,7 +146,6 @@ func ApplyGroupMappings(db *gorm.DB, configGroups []ConfigGroupMapping) (groupId
 				}
 			}
 		}
-		groupIds = append(groupIds, group.Id)
 	}
 	return
 }
@@ -208,17 +207,8 @@ func ImportMappings(db *gorm.DB, groups []ConfigGroupMapping, users []ConfigUser
 		return err
 	}
 
-	grpIdsToKeep, err := ApplyGroupMappings(db, groups)
+	err := ApplyGroupMappings(db, groups)
 	if err != nil {
-		return err
-	}
-
-	if len(grpIdsToKeep) == 0 {
-		logging.L.Debug("no valid groups found in configuration")
-	}
-
-	// clean up existing groups which have been removed from the config
-	if err := db.Where("1 = 1").Not(grpIdsToKeep).Delete(&Group{}).Error; err != nil {
 		return err
 	}
 
@@ -247,7 +237,7 @@ func ImportConfig(db *gorm.DB, bs []byte) error {
 	})
 }
 
-// import roles creates roles specified in the config, or updates their assosiations
+// import roles creates roles specified in the config, or updates their associations
 func importRoles(db *gorm.DB, roles []ConfigRoleKubernetes) ([]Role, error) {
 	var rolesImported []Role
 	for _, r := range roles {
