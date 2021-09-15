@@ -108,7 +108,7 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 	return nil
 }
 
-func ApplyGroupMappings(db *gorm.DB, configGroups []ConfigGroupMapping) (err error) {
+func ApplyGroupMappings(db *gorm.DB, configGroups []ConfigGroupMapping) (groupIds []string, err error) {
 	for _, g := range configGroups {
 		// get the source from the datastore that this group specifies
 		var source Source
@@ -146,6 +146,7 @@ func ApplyGroupMappings(db *gorm.DB, configGroups []ConfigGroupMapping) (err err
 				}
 			}
 		}
+		groupIds = append(groupIds, group.Id)
 	}
 	return
 }
@@ -207,8 +208,16 @@ func ImportMappings(db *gorm.DB, groups []ConfigGroupMapping, users []ConfigUser
 		return err
 	}
 
-	err := ApplyGroupMappings(db, groups)
+	grpIdsToKeep, err := ApplyGroupMappings(db, groups)
 	if err != nil {
+		return err
+	}
+
+	if len(grpIdsToKeep) == 0 {
+		logging.L.Debug("no valid groups found in configuration")
+	}
+
+	if err := db.Where("1 = 1").Not(grpIdsToKeep).Delete(&Group{}).Error; err != nil {
 		return err
 	}
 
