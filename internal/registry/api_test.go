@@ -399,7 +399,15 @@ func TestLoginMethodOkta(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPost, "/v1/login", bytes.NewReader(bts))
 	w := httptest.NewRecorder()
 	http.HandlerFunc(a.Login).ServeHTTP(w, r)
+
+	var body api.LoginResponse
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+
 	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "test@test.com", body.Name)
+	assert.NotEmpty(t, body.Token)
 }
 
 func TestVersion(t *testing.T) {

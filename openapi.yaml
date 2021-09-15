@@ -209,12 +209,15 @@ components:
         code:
           type: string
           x-go-custom-tag: validate:"required"
-    AuthResponse:
+    LoginResponse:
       type: object
       required:
         - token
+        - name
       properties:
         token:
+          type: string
+        name:
           type: string
     Version:
       type: object
@@ -422,7 +425,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthResponse'
+                $ref: '#/components/schemas/LoginResponse'
         default:
           description: unexpected error
           content:

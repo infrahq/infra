@@ -15,12 +15,12 @@
 
 import * as runtime from '../runtime';
 import {
-    AuthResponse,
-    AuthResponseFromJSON,
-    AuthResponseToJSON,
     LoginRequest,
     LoginRequestFromJSON,
     LoginRequestToJSON,
+    LoginResponse,
+    LoginResponseFromJSON,
+    LoginResponseToJSON,
 } from '../models';
 
 export interface LoginOperationRequest {
@@ -35,7 +35,7 @@ export class AuthApi extends runtime.BaseAPI {
     /**
      * Login to Infra and get an API token for a user
      */
-    async loginRaw(requestParameters: LoginOperationRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<AuthResponse>> {
+    async loginRaw(requestParameters: LoginOperationRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<LoginResponse>> {
         if (requestParameters.body === null || requestParameters.body === undefined) {
             throw new runtime.RequiredError('body','Required parameter requestParameters.body was null or undefined when calling login.');
         }
@@ -54,13 +54,13 @@ export class AuthApi extends runtime.BaseAPI {
             body: LoginRequestToJSON(requestParameters.body),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => AuthResponseFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => LoginResponseFromJSON(jsonValue));
     }
 
     /**
      * Login to Infra and get an API token for a user
      */
-    async login(requestParameters: LoginOperationRequest, initOverrides?: RequestInit): Promise<AuthResponse> {
+    async login(requestParameters: LoginOperationRequest, initOverrides?: RequestInit): Promise<LoginResponse> {
         const response = await this.loginRaw(requestParameters, initOverrides);
         return await response.value();
     }

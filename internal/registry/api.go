@@ -403,7 +403,7 @@ func (a *Api) Login(w http.ResponseWriter, r *http.Request) {
 	setAuthCookie(w, tokenString)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(api.AuthResponse{Token: tokenString})
+	json.NewEncoder(w).Encode(api.LoginResponse{Name: user.Email, Token: tokenString})
 }
 
 func (a *Api) Logout(w http.ResponseWriter, r *http.Request) {
