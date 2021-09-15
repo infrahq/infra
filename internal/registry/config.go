@@ -98,12 +98,13 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 	}
 
 	if len(idsToKeep) == 0 {
-		logging.L.Info("no valid sources found in configuration, ensure the required fields are specified correctly")
+		logging.L.Debug("no valid sources found in configuration, ensure the required fields are specified correctly")
 	}
 
-	if err := db.Not(idsToKeep).Delete(&Source{}).Error; err != nil {
+	if err := db.Where("1 = 1").Not(idsToKeep).Delete(&Source{}).Error; err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -211,25 +212,13 @@ func ImportMappings(db *gorm.DB, groups []ConfigGroupMapping, users []ConfigUser
 	if err != nil {
 		return err
 	}
-	// clean up existing groups which have been removed from the config
-	if len(grpIdsToKeep) > 0 {
-		err = db.Not(grpIdsToKeep).Delete(Group{}).Error
-		if err != nil {
-			return err
-		}
-	} else {
-		var groups []Group
-		if err := db.Find(&groups).Error; err != nil {
-			return err
-		}
-		if len(groups) > 0 {
-			err = db.Delete(groups).Error
-			if err != nil {
-				return err
-			}
-		}
-		// it is perfectly valid to have a config with no groups, but the user may still want to know this
+
+	if len(grpIdsToKeep) == 0 {
 		logging.L.Debug("no valid groups found in configuration")
+	}
+
+	if err := db.Where("1 = 1").Not(grpIdsToKeep).Delete(&Group{}).Error; err != nil {
+		return err
 	}
 
 	return ApplyUserMapping(db, users)
@@ -257,7 +246,7 @@ func ImportConfig(db *gorm.DB, bs []byte) error {
 	})
 }
 
-// import roles creates roles specified in the config, or updates their assosiations
+// import roles creates roles specified in the config, or updates their associations
 func importRoles(db *gorm.DB, roles []ConfigRoleKubernetes) ([]Role, error) {
 	var rolesImported []Role
 	for _, r := range roles {
