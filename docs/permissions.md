@@ -13,8 +13,8 @@ groups:
     roles:
       - name: writer          # Kubernetes cluster-role name
         kind: cluster-role
-        destinations:
-          - name: cluster-AAA # clusters for which to apply
+        destinations:         # destinations for which this group-role mapping applies
+          - name: cluster-AAA
             namespaces:       # optional namespaces
               - default
               - web
@@ -26,8 +26,8 @@ users:
     roles:
       - name: admin           # Kubernetes cluster-role name
         kind: cluster-role
-        destinations:
-          - name: cluster-AAA # clusters for which to apply
+        destinations:         # destinations for which this group-role mapping applies
+          - name: cluster-AAA
           - name: cluster-BBB
 ```
 
