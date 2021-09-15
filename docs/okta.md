@@ -89,7 +89,7 @@ helm upgrade infra-registry infrahq/registry --set-file config=./infra.yaml -n i
 ```
 $ infra users
 EMAIL                 CREATED           
-jeff@example.com      About a minute ago
+jeff@example.com*     About a minute ago
 michael@example.com   About a minute ago
 elon@example.com.     About a minute ago
 tom@example.com       About a minute ago
