@@ -110,5 +110,26 @@ That's it! You now have access to your cluster via Okta. To list all the cluster
 * [CLI Reference](./docs/cli.md)
 * [Contributing](./docs/contributing.md)
 
+## Upgrading Infra
+
+First, update the helm repo:
+
+```
+helm repo update
+```
+
+Then, update the Infra Registry
+
+```
+helm upgrade infra-registry infrahq/registry --namespace infrahq
+```
+
+Lastly, update any Infra Engines:
+
+```
+helm upgrade infra-engine infrahq/engine --namespace infrahq
+```
+
+
 ## Security
 We take security very seriously. If you have found a security vulnerability please disclose it privately to us by email via [security@infrahq.com](mailto:security@infrahq.com)
