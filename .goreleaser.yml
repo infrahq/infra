@@ -24,7 +24,7 @@ builds:
 nfpms:
   - id: packages
     package_name: infra
-    file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Arch }}"
+    file_name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Arch }}"
     builds:
       - infra
     vendor: Infra Technologies, Inc.
@@ -36,6 +36,17 @@ nfpms:
       - deb
       - rpm
     bindir: /usr/bin
+    overrides:
+      deb:
+        file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Arch }}"
+      apk:
+        replacements:
+          amd64: x86_64
+          arm64: aarch64
+      rpm:
+        replacements:
+          amd64: x86_64
+          arm64: aarch64
 archives:
   - id: zip
     format: zip
