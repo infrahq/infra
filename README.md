@@ -26,7 +26,7 @@ helm repo update
 helm install infra-registry infrahq/registry --namespace infrahq --create-namespace
 ```
 
-### Connect Kubernetes cluster to Infra registry
+### Connect Kubernetes cluster to Infra Registry
 
 Run the following commands to retrive Infra Registry information and its API Key:
 
@@ -35,7 +35,7 @@ export INFRA_REGISTRY=$(kubectl get svc -n infrahq infra-registry -o jsonpath="{
 export INFRA_API_KEY=$(kubectl get secrets/infra-registry --template={{.data.defaultApiKey}} --namespace infrahq | base64 -d)
 ```
 
-Install Infra Engine 
+Then, install Infra Engine in the Kubernetes context of the cluster you want to connect to Infra Registry
 ```
 helm install infra-engine infrahq/engine \
     --namespace infrahq \
