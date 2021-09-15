@@ -59,7 +59,7 @@ groups:
     roles:
       - name: view
         kind: cluster-role
-        clusters:
+        destinations:
           - name: my-first-cluster
 ```
 
