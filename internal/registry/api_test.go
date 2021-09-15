@@ -423,7 +423,7 @@ func TestVersion(t *testing.T) {
 	assert.Equal(t, version.Version, body.Version)
 }
 
-func TestListRolesForClusterReturnsRolesFromConfig(t *testing.T) {
+func TestListRolesForDestinationReturnsRolesFromConfig(t *testing.T) {
 	// this in memory DB is setup in the config_test.go
 	a := &Api{db: db}
 
@@ -464,7 +464,7 @@ func TestListRolesForClusterReturnsRolesFromConfig(t *testing.T) {
 	assert.True(t, containsUser(returnedUserRoles["reader"], standardUser.Email))
 }
 
-func TestListRolesOnlyFindsForSpecificCluster(t *testing.T) {
+func TestListRolesOnlyFindsForSpecificDestination(t *testing.T) {
 	// this in memory DB is setup in the config_test.go
 	a := &Api{db: db}
 
@@ -482,22 +482,22 @@ func TestListRolesOnlyFindsForSpecificCluster(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	unexpectedClusterIds := make(map[string]bool)
+	unexpectedDestinationIds := make(map[string]bool)
 	for _, r := range roles {
 		if r.Destination.Id != clusterA.Id {
-			unexpectedClusterIds[r.Destination.Id] = true
+			unexpectedDestinationIds[r.Destination.Id] = true
 		}
 	}
-	if len(unexpectedClusterIds) != 0 {
-		var unexpectedClusters []string
-		for id := range unexpectedClusterIds {
-			unexpectedClusters = append(unexpectedClusters, id)
+	if len(unexpectedDestinationIds) != 0 {
+		var unexpectedDestinations []string
+		for id := range unexpectedDestinationIds {
+			unexpectedDestinations = append(unexpectedDestinations, id)
 		}
-		t.Errorf("ListRoles response should only contain roles for the specified cluster ID. Only expected " + clusterA.Id + " but found " + strings.Join(unexpectedClusters, ", "))
+		t.Errorf("ListRoles response should only contain roles for the specified Destination ID. Only expected " + clusterA.Id + " but found " + strings.Join(unexpectedDestinations, ", "))
 	}
 }
 
-func TestListRolesForUnknownCluster(t *testing.T) {
+func TestListRolesForUnknownDestination(t *testing.T) {
 	// this in memory DB is setup in config_test.go
 	a := &Api{db: db}
 
