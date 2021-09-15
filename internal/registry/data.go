@@ -101,8 +101,6 @@ type Role struct {
 	Destination   Destination `gorm:"foreignKey:DestinationId;references:Id"`
 	Groups        []Group     `gorm:"many2many:groups_roles"`
 	Users         []User      `gorm:"many2many:users_roles"`
-
-	FromDefault bool
 }
 
 var (
@@ -158,31 +156,6 @@ func (u *User) AfterCreate(tx *gorm.DB) error {
 	return ApplyUserMapping(tx, initialConfig.Users)
 }
 
-func (u *User) AfterSave(tx *gorm.DB) (err error) {
-	var destinations []Destination
-	err = tx.Find(&destinations).Error
-	if err != nil {
-		return err
-	}
-
-	givenRole := "view"
-
-	// grant default roles
-	for _, d := range destinations {
-		var role Role
-		if err = tx.FirstOrCreate(&role, &Role{Name: givenRole, Kind: "cluster-role", DestinationId: d.Id, FromDefault: true}).Error; err != nil {
-			return err
-		}
-		if tx.Model(&u).Where(&Role{Id: role.Id}).Association("Roles").Count() == 0 {
-			if err = tx.Model(&u).Where(&Role{Id: role.Id}).Association("Roles").Append(&role); err != nil {
-				return err
-			}
-		}
-	}
-
-	return
-}
-
 // TODO (jmorganca): use foreign constraints instead?
 func (u *User) BeforeDelete(tx *gorm.DB) error {
 	err := tx.Model(u).Association("Sources").Clear()
@@ -209,30 +182,6 @@ func (d *Destination) AfterCreate(tx *gorm.DB) error {
 		return err
 	}
 	return ApplyUserMapping(tx, initialConfig.Users)
-}
-
-func (d *Destination) AfterSave(tx *gorm.DB) (err error) {
-	var users []User
-	err = tx.Find(&users).Error
-	if err != nil {
-		return err
-	}
-
-	for _, u := range users {
-		givenRole := "view"
-
-		var role Role
-		if err = tx.FirstOrCreate(&role, &Role{Name: givenRole, Kind: "cluster-role", DestinationId: d.Id, FromDefault: true}).Error; err != nil {
-			return err
-		}
-		if tx.Model(&u).Where(&Role{Id: role.Id}).Association("Roles").Count() == 0 {
-			if err = tx.Model(&u).Where(&Role{Id: role.Id}).Association("Roles").Append(&role); err != nil {
-				return err
-			}
-		}
-	}
-
-	return
 }
 
 // TODO (jmorganca): use foreign constraints instead?

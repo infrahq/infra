@@ -37,12 +37,37 @@ export INFRA_API_KEY=$(kubectl get secrets/infra-registry --template={{.data.def
 
 Install Infra Engine 
 ```
-helm install infra-engine infrahq/engine --namespace infrahq --set registry=$INFRA_REGISTRY --set apiKey=$INFRA_API_KEY
+helm install infra-engine infrahq/engine \
+    --namespace infrahq \
+    --set registry=$INFRA_REGISTRY \
+    --set apiKey=$INFRA_API_KEY \
+    --set name=my-first-cluster
 ```
 
 ### Connect an identity provider
 
+First, add Okta via an `infra.yaml` configuration file:
+
 * [Okta configuration guide](./docs/okta.md)
+
+Next, add the following to your `infra.yaml` configuration file to grant everyone view access to the cluster.
+
+```
+groups:
+  - name: Everyone    # example group
+    source: okta
+    roles:
+      - name: view
+        kind: cluster-role
+        clusters:
+          - name: my-first-cluster
+```
+
+Then update your Infra Registry with this new config:
+
+```
+helm upgrade infra-registry infrahq/registry --set-file config=./infra.yaml -n infrahq
+```
 
 ### Install Infra CLI 
 <details>
