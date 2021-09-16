@@ -28,10 +28,6 @@ var (
 	ID_LEN = 12
 )
 
-var (
-	SessionDuration = time.Hour * 24
-)
-
 type User struct {
 	Id      string `gorm:"primaryKey"`
 	Created int64  `gorm:"autoCreateTime"`
@@ -448,6 +444,14 @@ func (t *Token) BeforeCreate(tx *gorm.DB) (err error) {
 	return
 }
 
+func (t *Token) CheckExpired() (err error) {
+	if time.Now().After(time.Unix(t.Expires, 0)) {
+		return errors.New("could not verify expired token")
+	}
+
+	return nil
+}
+
 func (t *Token) CheckSecret(secret string) (err error) {
 	h := sha256.New()
 	h.Write([]byte(secret))
@@ -458,13 +462,14 @@ func (t *Token) CheckSecret(secret string) (err error) {
 	return nil
 }
 
-func NewToken(db *gorm.DB, userId string, token *Token) (secret string, err error) {
+func NewToken(db *gorm.DB, userId string, sessionDuration time.Duration, token *Token) (secret string, err error) {
 	secret = generate.RandString(TOKEN_SECRET_LEN)
 
 	h := sha256.New()
 	h.Write([]byte(secret))
 	token.UserId = userId
 	token.Secret = h.Sum(nil)
+	token.Expires = time.Now().Add(sessionDuration).Unix()
 
 	err = db.Create(token).Error
 	if err != nil {
@@ -485,6 +490,10 @@ func ValidateAndGetToken(db *gorm.DB, in string) (*Token, error) {
 	var token Token
 	if err := db.Preload("User").First(&token, &Token{Id: id}).Error; err != nil {
 		return nil, errors.New("could not retrieve token – it may not exist")
+	}
+
+	if err := token.CheckExpired(); err != nil {
+		return nil, errors.New("token expired")
 	}
 
 	if err := token.CheckSecret(secret); err != nil {

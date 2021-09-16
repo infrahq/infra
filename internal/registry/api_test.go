@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/generate"
@@ -30,7 +31,7 @@ func (msr *mockSecretReader) Get(secretName string, client *kubernetesClient.Cli
 	return "foo", nil
 }
 
-func addUser(db *gorm.DB) (tokenId string, tokenSecret string, err error) {
+func addUser(db *gorm.DB, sessionDuration time.Duration) (tokenId string, tokenSecret string, err error) {
 	var token Token
 	var secret string
 	err = db.Transaction(func(tx *gorm.DB) error {
@@ -40,7 +41,7 @@ func addUser(db *gorm.DB) (tokenId string, tokenSecret string, err error) {
 			return err
 		}
 
-		secret, err = NewToken(tx, user.Id, &token)
+		secret, err = NewToken(tx, user.Id, sessionDuration, &token)
 		if err != nil {
 			return err
 		}
@@ -162,6 +163,33 @@ func TestBearerTokenMiddlewareInvalidToken(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
+func TestBearerTokenMiddlewareExpiredToken(t *testing.T) {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, "hello world")
+	}
+
+	db, err := NewDB("file::memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	a := &Api{
+		db: db,
+	}
+
+	id, secret, err := addUser(db, time.Millisecond * 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	r.Header.Add("Authorization", "Bearer "+id+secret)
+
+	w := httptest.NewRecorder()
+	a.bearerAuthMiddleware(http.HandlerFunc(handler)).ServeHTTP(w, r)
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
 func TestBearerTokenMiddlewareValidToken(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, "hello world")
@@ -176,7 +204,7 @@ func TestBearerTokenMiddlewareValidToken(t *testing.T) {
 		db: db,
 	}
 
-	id, secret, err := addUser(db)
+	id, secret, err := addUser(db, time.Hour * 24)
 	if err != nil {
 		t.Fatal(err)
 	}
