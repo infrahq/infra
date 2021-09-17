@@ -342,10 +342,10 @@ func promptShouldSkipTLSVerify(host string, skipTLSVerify bool) (shouldSkipTLSVe
 		}
 
 		proceed := false
-		fmt.Println()
-		fmt.Print("Could not verify certificate for host ")
-		fmt.Print(termenv.String(host).Bold())
-		fmt.Println()
+		fmt.Fprintln(os.Stderr)
+		fmt.Fprint(os.Stderr, "Could not verify certificate for host ")
+		fmt.Fprint(os.Stderr, termenv.String(host).Bold())
+		fmt.Fprintln(os.Stderr)
 		prompt := &survey.Confirm{
 			Message: "Are you sure you want to continue?",
 		}
@@ -354,7 +354,7 @@ func promptShouldSkipTLSVerify(host string, skipTLSVerify bool) (shouldSkipTLSVe
 			icons.Question.Text = blue("?")
 		}))
 		if err != nil {
-			fmt.Println(err.Error())
+			fmt.Fprintln(os.Stderr, err.Error())
 			return false, false, err
 		}
 
@@ -448,7 +448,7 @@ func login(config *Config) error {
 		state := generate.RandString(12)
 		authorizeUrl := "https://" + source.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + source.Okta.ClientId + "&response_type=code&scope=openid+email&nonce=" + generate.RandString(10) + "&state=" + state
 
-		fmt.Println(blue("✓") + " Logging in with Okta...")
+		fmt.Fprintln(os.Stderr, blue("✓") + " Logging in with Okta...")
 		ls, err := newLocalServer()
 		if err != nil {
 			return err
@@ -492,7 +492,7 @@ func login(config *Config) error {
 		return err
 	}
 
-	fmt.Println(blue("✓") + " Logged in as " + termenv.String(loginRes.Name).Bold().String())
+	fmt.Fprintln(os.Stderr, blue("✓") + " Logged in as " + termenv.String(loginRes.Name).Bold().String())
 
 	// Generate client certs
 	home, err := homedir.Dir()
@@ -556,7 +556,7 @@ func login(config *Config) error {
 
 	if len(destinations) > 0 {
 		kubeConfigPath := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{}).ConfigAccess().GetDefaultFilename()
-		fmt.Println(blue("✓") + " Kubeconfig updated: " + termenv.String(strings.ReplaceAll(kubeConfigPath, home, "~")).Bold().String())
+		fmt.Fprintln(os.Stderr, blue("✓") + " Kubeconfig updated: " + termenv.String(strings.ReplaceAll(kubeConfigPath, home, "~")).Bold().String())
 	}
 
 	context, err := switchToFirstInfraContext()
@@ -565,7 +565,7 @@ func login(config *Config) error {
 	}
 
 	if context != "" {
-		fmt.Println(blue("✓") + " Kubernetes current context is now " + termenv.String(context).Bold().String())
+		fmt.Fprintln(os.Stderr, blue("✓") + " Kubernetes current context is now " + termenv.String(context).Bold().String())
 	}
 
 	return nil
@@ -601,7 +601,7 @@ var logoutCmd = &cobra.Command{
 
 		_, err = client.AuthApi.Logout(NewApiContext(config.Token)).Execute()
 		if err != nil {
-			fmt.Print(err)
+			fmt.Fprintln(os.Stderr, err)
 		}
 
 		err = removeConfig()
@@ -676,9 +676,9 @@ var listCmd = &cobra.Command{
 		}
 
 		printTable([]string{"NAME", "ENDPOINT"}, rows)
-		fmt.Println()
-		fmt.Println("To connect, run \"kubectl config use-context <name>\"")
-		fmt.Println()
+		fmt.Fprintln(os.Stderr)
+		fmt.Fprintln(os.Stderr, "To connect, run \"kubectl config use-context <name>\"")
+		fmt.Fprintln(os.Stderr)
 
 		err = updateKubeconfig(destinations)
 		if err != nil {
@@ -970,7 +970,7 @@ var clientCmd = &cobra.Command{
 	Short:  "Run local client to relay requests",
 	Hidden: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println("Starting client")
+		fmt.Fprintln(os.Stderr, "Starting client")
 		return RunLocalClient()
 	},
 }
