@@ -71,7 +71,26 @@ helm upgrade infra-registry infrahq/registry --set-file config=./infra.yaml -n i
 
 ### Install Infra CLI 
 <details>
-  <summary><strong>macOS & Linux</strong></summary>
+  <summary><strong>apt (Debian, Ubuntu)</strong></summary>
+
+  ```
+  sudo echo 'deb [trusted=yes] https://apt.fury.io/infrahq/ /' >/etc/apt/sources.list.d/infrahq.list
+  sudo apt update
+  sudo apt install infra
+  ```
+</details>
+
+<details>
+  <summary><strong>dnf (Fedora, Red Hat Enterprise Linux)</strong></summary>
+
+  ```
+  sudo dnf config-manager --add-repo https://yum.fury.io/infrahq/
+  sudo dnf install infra
+  ```
+</details>
+
+<details>
+  <summary><strong>macOS</strong></summary>
 
   ```
   brew install infrahq/tap/infra
@@ -86,7 +105,6 @@ helm upgrade infra-registry infrahq/registry --set-file config=./infra.yaml -n i
   scoop install infra
   ```
 </details>
-<br />
 
 ### Accessing infrastructure 
 
