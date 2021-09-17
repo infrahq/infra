@@ -872,10 +872,10 @@ var credsCmd = &cobra.Command{
 			return err
 		}
 
-		cred, _, err := client.CredsApi.CreateCred(ctx).Execute()
+		cred, res, err := client.CredsApi.CreateCred(ctx).Execute()
 		if err != nil {
-			switch err.Error() {
-			case "403 Forbidden":
+			switch res.StatusCode {
+			case http.StatusForbidden:
 				config, err := readConfig()
 				if err != nil {
 					return err
@@ -885,6 +885,17 @@ var credsCmd = &cobra.Command{
 				if err != nil {
 					return err
 				}
+
+				ctx, err := apiContextFromConfig()
+				if err != nil {
+					return err
+				}
+
+				cred, _, err = client.CredsApi.CreateCred(ctx).Execute()
+				if err != nil {
+					return err
+				}
+
 			default:
 				return err
 			}
