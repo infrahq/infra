@@ -71,7 +71,7 @@ helm upgrade infra-registry infrahq/registry --set-file config=./infra.yaml -n i
 
 ### Install Infra CLI 
 <details>
-  <summary><strong>apt (Debian, Ubuntu)</strong></summary>
+  <summary><strong>Debian, Ubuntu</strong></summary>
 
   ```
   sudo echo 'deb [trusted=yes] https://apt.fury.io/infrahq/ /' >/etc/apt/sources.list.d/infrahq.list
@@ -81,7 +81,7 @@ helm upgrade infra-registry infrahq/registry --set-file config=./infra.yaml -n i
 </details>
 
 <details>
-  <summary><strong>dnf (Fedora, Red Hat Enterprise Linux)</strong></summary>
+  <summary><strong>Fedora, Red Hat Enterprise Linux</strong></summary>
 
   ```
   sudo dnf config-manager --add-repo https://yum.fury.io/infrahq/
