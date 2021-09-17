@@ -363,192 +363,196 @@ func promptShouldSkipTLSVerify(host string) (skipTlsVerify bool, proceed bool, e
 	return false, true, nil
 }
 
+func login(host string) error {
+	skipTLSVerify, proceed, err := promptShouldSkipTLSVerify(host)
+	if err != nil {
+		return err
+	}
+
+	if !proceed {
+		return nil
+	}
+
+	client, err := NewApiClient(host, skipTLSVerify)
+	if err != nil {
+		return err
+	}
+
+	sources, _, err := client.SourcesApi.ListSources(context.Background()).Execute()
+	if err != nil {
+		return err
+	}
+
+	if len(sources) == 0 {
+		return errors.New("no sources configured")
+	}
+
+	sort.Slice(sources, func(i, j int) bool {
+		return sources[i].Created > sources[j].Created
+	})
+
+	options := []string{}
+	for _, s := range sources {
+		switch {
+		case s.Okta != nil:
+			options = append(options, fmt.Sprintf("Okta [%s]", s.Okta.Domain))
+		}
+	}
+
+	var option int
+	prompt := &survey.Select{
+		Message: "Choose a login method:",
+		Options: options,
+	}
+	err = survey.AskOne(prompt, &option, survey.WithIcons(func(icons *survey.IconSet) {
+		icons.Question.Text = blue("?")
+	}))
+	if err == terminal.InterruptErr {
+		return nil
+	}
+
+	source := sources[option]
+	var loginReq api.LoginRequest
+
+	switch {
+	case source.Okta != nil:
+		// Start OIDC flow
+		// Get auth code from Okta
+		// Send auth code to Infra to login as a user
+		state := generate.RandString(12)
+		authorizeUrl := "https://" + source.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + source.Okta.ClientId + "&response_type=code&scope=openid+email&nonce=" + generate.RandString(10) + "&state=" + state
+
+		fmt.Println(blue("✓") + " Logging in with Okta...")
+		ls, err := newLocalServer()
+		if err != nil {
+			return err
+		}
+
+		err = browser.OpenURL(authorizeUrl)
+		if err != nil {
+			return err
+		}
+
+		code, recvstate, err := ls.wait()
+		if err != nil {
+			return err
+		}
+
+		if state != recvstate {
+			return errors.New("received state is not the same as sent state")
+		}
+
+		loginReq.Okta = &api.LoginRequestOkta{
+			Domain: source.Okta.Domain,
+			Code:   code,
+		}
+	default:
+		return errors.New("invalid source selected")
+	}
+
+	loginRes, _, err := client.AuthApi.Login(context.Background()).Body(loginReq).Execute()
+	if err != nil {
+		return err
+	}
+
+	config := &Config{
+		Name:          loginRes.Name,
+		Token:         loginRes.Token,
+		Host:          host,
+		SkipTLSVerify: skipTLSVerify,
+	}
+
+	err = writeConfig(config)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(blue("✓") + " Logged in as " + termenv.String(loginRes.Name).Bold().String())
+
+	// Generate client certs
+	home, err := homedir.Dir()
+	if err != nil {
+		return err
+	}
+
+	if err = os.MkdirAll(filepath.Join(home, ".infra", "client"), os.ModePerm); err != nil {
+		return err
+	}
+
+	if _, err := os.Stat(filepath.Join(home, ".infra", "client", "cert.pem")); os.IsNotExist(err) {
+		certBytes, keyBytes, err := generate.SelfSignedCert([]string{"localhost", "localhost:32710"})
+		if err != nil {
+			return err
+		}
+
+		if err = ioutil.WriteFile(filepath.Join(home, ".infra", "client", "cert.pem"), certBytes, 0644); err != nil {
+			return err
+		}
+
+		if err = ioutil.WriteFile(filepath.Join(home, ".infra", "client", "key.pem"), keyBytes, 0644); err != nil {
+			return err
+		}
+
+		// Kill client
+		contents, err := ioutil.ReadFile(filepath.Join(home, ".infra", "client", "pid"))
+		if err != nil && !os.IsNotExist(err) {
+			return err
+		}
+
+		var pid int
+		if !os.IsNotExist(err) {
+			pid, err = strconv.Atoi(string(contents))
+			if err != nil {
+				return err
+			}
+
+			process, _ := os.FindProcess(int(pid))
+			process.Kill()
+		}
+
+		os.Remove(filepath.Join(home, ".infra", "client", "pid"))
+	}
+
+	client, err = NewApiClient(host, skipTLSVerify)
+	if err != nil {
+		return err
+	}
+	ctx := NewApiContext(loginRes.Token)
+
+	destinations, _, err := client.DestinationsApi.ListDestinations(ctx).Execute()
+	if err != nil {
+		return err
+	}
+
+	err = updateKubeconfig(destinations)
+	if err != nil {
+		return err
+	}
+
+	if len(destinations) > 0 {
+		kubeConfigPath := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{}).ConfigAccess().GetDefaultFilename()
+		fmt.Println(blue("✓") + " Kubeconfig updated: " + termenv.String(strings.ReplaceAll(kubeConfigPath, home, "~")).Bold().String())
+	}
+
+	context, err := switchToFirstInfraContext()
+	if err != nil {
+		return err
+	}
+
+	if context != "" {
+		fmt.Println(blue("✓") + " Kubernetes current context is now " + termenv.String(context).Bold().String())
+	}
+
+	return nil
+}
+
 var loginCmd = &cobra.Command{
 	Use:     "login REGISTRY",
 	Short:   "Login to an Infra Registry",
 	Args:    cobra.ExactArgs(1),
 	Example: "$ infra login infra.example.com",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		skipTLSVerify, proceed, err := promptShouldSkipTLSVerify(args[0])
-		if err != nil {
-			return err
-		}
-
-		if !proceed {
-			return nil
-		}
-
-		client, err := NewApiClient(args[0], skipTLSVerify)
-		if err != nil {
-			return err
-		}
-
-		sources, _, err := client.SourcesApi.ListSources(context.Background()).Execute()
-		if err != nil {
-			return err
-		}
-
-		if len(sources) == 0 {
-			return errors.New("no sources configured")
-		}
-
-		sort.Slice(sources, func(i, j int) bool {
-			return sources[i].Created > sources[j].Created
-		})
-
-		options := []string{}
-		for _, s := range sources {
-			switch {
-			case s.Okta != nil:
-				options = append(options, fmt.Sprintf("Okta [%s]", s.Okta.Domain))
-			}
-		}
-
-		var option int
-		prompt := &survey.Select{
-			Message: "Choose a login method:",
-			Options: options,
-		}
-		err = survey.AskOne(prompt, &option, survey.WithIcons(func(icons *survey.IconSet) {
-			icons.Question.Text = blue("?")
-		}))
-		if err == terminal.InterruptErr {
-			return nil
-		}
-
-		source := sources[option]
-		var loginReq api.LoginRequest
-
-		switch {
-		case source.Okta != nil:
-			// Start OIDC flow
-			// Get auth code from Okta
-			// Send auth code to Infra to login as a user
-			state := generate.RandString(12)
-			authorizeUrl := "https://" + source.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + source.Okta.ClientId + "&response_type=code&scope=openid+email&nonce=" + generate.RandString(10) + "&state=" + state
-
-			fmt.Println(blue("✓") + " Logging in with Okta...")
-			ls, err := newLocalServer()
-			if err != nil {
-				return err
-			}
-
-			err = browser.OpenURL(authorizeUrl)
-			if err != nil {
-				return err
-			}
-
-			code, recvstate, err := ls.wait()
-			if err != nil {
-				return err
-			}
-
-			if state != recvstate {
-				return errors.New("received state is not the same as sent state")
-			}
-
-			loginReq.Okta = &api.LoginRequestOkta{
-				Domain: source.Okta.Domain,
-				Code:   code,
-			}
-		default:
-			return errors.New("invalid source selected")
-		}
-
-		loginRes, _, err := client.AuthApi.Login(context.Background()).Body(loginReq).Execute()
-		if err != nil {
-			return err
-		}
-
-		config := &Config{
-			Name:          loginRes.Name,
-			Token:         loginRes.Token,
-			Host:          args[0],
-			SkipTLSVerify: skipTLSVerify,
-		}
-
-		err = writeConfig(config)
-		if err != nil {
-			return err
-		}
-
-		fmt.Println(blue("✓") + " Logged in as " + termenv.String(loginRes.Name).Bold().String())
-
-		// Generate client certs
-		home, err := homedir.Dir()
-		if err != nil {
-			return err
-		}
-
-		if err = os.MkdirAll(filepath.Join(home, ".infra", "client"), os.ModePerm); err != nil {
-			return err
-		}
-
-		if _, err := os.Stat(filepath.Join(home, ".infra", "client", "cert.pem")); os.IsNotExist(err) {
-			certBytes, keyBytes, err := generate.SelfSignedCert([]string{"localhost", "localhost:32710"})
-			if err != nil {
-				return err
-			}
-
-			if err = ioutil.WriteFile(filepath.Join(home, ".infra", "client", "cert.pem"), certBytes, 0644); err != nil {
-				return err
-			}
-
-			if err = ioutil.WriteFile(filepath.Join(home, ".infra", "client", "key.pem"), keyBytes, 0644); err != nil {
-				return err
-			}
-
-			// Kill client
-			contents, err := ioutil.ReadFile(filepath.Join(home, ".infra", "client", "pid"))
-			if err != nil && !os.IsNotExist(err) {
-				return err
-			}
-
-			var pid int
-			if !os.IsNotExist(err) {
-				pid, err = strconv.Atoi(string(contents))
-				if err != nil {
-					return err
-				}
-
-				process, _ := os.FindProcess(int(pid))
-				process.Kill()
-			}
-
-			os.Remove(filepath.Join(home, ".infra", "client", "pid"))
-		}
-
-		client, err = NewApiClient(args[0], skipTLSVerify)
-		if err != nil {
-			return err
-		}
-		ctx := NewApiContext(loginRes.Token)
-
-		destinations, _, err := client.DestinationsApi.ListDestinations(ctx).Execute()
-		if err != nil {
-			return err
-		}
-
-		err = updateKubeconfig(destinations)
-		if err != nil {
-			return err
-		}
-
-		if len(destinations) > 0 {
-			kubeConfigPath := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{}).ConfigAccess().GetDefaultFilename()
-			fmt.Println(blue("✓") + " Kubeconfig updated: " + termenv.String(strings.ReplaceAll(kubeConfigPath, home, "~")).Bold().String())
-		}
-
-		context, err := switchToFirstInfraContext()
-		if err != nil {
-			return err
-		}
-
-		if context != "" {
-			fmt.Println(blue("✓") + " Kubernetes current context is now " + termenv.String(context).Bold().String())
-		}
-
-		return nil
+		return login(args[0])
 	},
 }
 
@@ -845,6 +849,15 @@ var credsCmd = &cobra.Command{
 
 		cred, _, err := client.CredsApi.CreateCred(ctx).Execute()
 		if err != nil {
+			switch err.Error() {
+			case "403 Forbidden":
+				config, err := readConfig()
+				if err != nil {
+					return err
+				}
+
+				return login(config.Host)
+			}
 			return err
 		}
 
