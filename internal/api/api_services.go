@@ -143,23 +143,23 @@ func (a *ServicesApiService) CreateApiServiceExecute(r ApiCreateApiServiceReques
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiListApiServicesRequest struct {
+type ApiListServicesRequest struct {
 	ctx        _context.Context
 	ApiService *ServicesApiService
 }
 
-func (r ApiListApiServicesRequest) Execute() ([]Service, *_nethttp.Response, error) {
-	return r.ApiService.ListApiServicesExecute(r)
+func (r ApiListServicesRequest) Execute() ([]Service, *_nethttp.Response, error) {
+	return r.ApiService.ListServicesExecute(r)
 }
 
 /*
-ListApiServices List API services
+ListServices List services
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiListApiServicesRequest
+ @return ApiListServicesRequest
 */
-func (a *ServicesApiService) ListApiServices(ctx _context.Context) ApiListApiServicesRequest {
-	return ApiListApiServicesRequest{
+func (a *ServicesApiService) ListServices(ctx _context.Context) ApiListServicesRequest {
+	return ApiListServicesRequest{
 		ApiService: a,
 		ctx:        ctx,
 	}
@@ -167,7 +167,7 @@ func (a *ServicesApiService) ListApiServices(ctx _context.Context) ApiListApiSer
 
 // Execute executes the request
 //  @return []Service
-func (a *ServicesApiService) ListApiServicesExecute(r ApiListApiServicesRequest) ([]Service, *_nethttp.Response, error) {
+func (a *ServicesApiService) ListServicesExecute(r ApiListServicesRequest) ([]Service, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodGet
 		localVarPostBody     interface{}
@@ -177,12 +177,12 @@ func (a *ServicesApiService) ListApiServicesExecute(r ApiListApiServicesRequest)
 		localVarReturnValue  []Service
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ServicesApiService.ListApiServices")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ServicesApiService.ListServices")
 	if err != nil {
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/services/apis"
+	localVarPath := localBasePath + "/services"
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := _neturl.Values{}

@@ -400,17 +400,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /services/apis:
+  /services:
     get:
       tags:
         - services
       security:
         - bearerAuth: []
-      summary: List API services
-      operationId: listApiServices
+      summary: List services
+      operationId: listServices
       responses:
         '200':
-          description: api services response
+          description: services response
           content:
             application/json:
               schema:
@@ -423,6 +423,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /services/apis:
     post:
       tags:
         - services

@@ -135,6 +135,10 @@ func blue(s string) string {
 	return termenv.String(s).Bold().Foreground(termenv.ColorProfile().Color("#0057FF")).String()
 }
 
+func red(s string) string {
+	return termenv.String(s).Bold().Foreground(termenv.ColorProfile().Color("#FA5F55")).String()
+}
+
 func NewApiContext(token string) context.Context {
 	return context.WithValue(context.Background(), api.ContextAccessToken, token)
 }
@@ -866,7 +870,7 @@ var servicesCmd = &cobra.Command{
 			return err
 		}
 
-		services, _, err := client.ServicesApi.ListApiServices(ctx).Execute()
+		services, _, err := client.ServicesApi.ListServices(ctx).Execute()
 		if err != nil {
 			fmt.Println("err getting services")
 			return err
@@ -878,10 +882,10 @@ var servicesCmd = &cobra.Command{
 
 		rows := [][]string{}
 		for _, s := range services {
-			rows = append(rows, []string{s.Name, units.HumanDuration(time.Now().UTC().Sub(time.Unix(s.Created, 0))) + " ago"})
+			rows = append(rows, []string{s.Name, units.HumanDuration(time.Now().UTC().Sub(time.Unix(s.Created, 0))) + " ago", string(*s.Kind)})
 		}
 
-		printTable([]string{"NAME", "CREATED"}, rows)
+		printTable([]string{"NAME", "CREATED", "KIND"}, rows)
 		return nil
 	},
 }
@@ -983,29 +987,47 @@ var versionCmd = &cobra.Command{
 	},
 }
 
-// var createServiceCmd = &cobra.Command{
-// 	Use:   "create service",
-// 	Short: "Create a new service that relys on Infra",
-// 	RunE: func(cmd *cobra.Command, args []string) error {
-// client, err := apiClientFromConfig()
-// if err != nil {
-// 	return err
-// }
+var serviceCmd = &cobra.Command{
+	Use:   "service",
+	Short: "Manage Infra services",
+}
 
-// ctx, err := apiContextFromConfig()
-// if err != nil {
-// 	return err
-// }
+func newServiceCreateCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "create KIND NAME",
+		Short:   "Create a new service that relies on Infra",
+		Args:    cobra.ExactArgs(2),
+		Example: "$ infra service create api automation-token",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client, err := apiClientFromConfig()
+			if err != nil {
+				return err
+			}
 
-// TODO: take --kind flag here
-// cred, _, err := client.CredsApi.CreateCred(ctx).Execute()
-// if err != nil {
-// 	return err
-// }
+			ctx, err := apiContextFromConfig()
+			if err != nil {
+				return err
+			}
 
-// 		return nil
-// 	},
-// }
+			switch strings.ToLower(args[0]) {
+			case string(api.API):
+				svcReq := api.ApiServiceCreateRequest{
+					Name: args[1],
+				}
+				svc, _, err := client.ServicesApi.CreateApiService(ctx).Body(svcReq).Execute()
+				if err != nil {
+					return err
+				}
+				fmt.Fprintln(os.Stderr, red("service ")+svc.Name+" created")
+				fmt.Fprintln(os.Stderr, "api key: "+svc.ApiKey)
+			default:
+				fmt.Fprintln(os.Stderr, args[0]+" is not a valid service kind, valid service kinds are [api]")
+			}
+			return nil
+		},
+	}
+	return cmd
+}
 
 var credsCmd = &cobra.Command{
 	Use:   "creds",
@@ -1110,6 +1132,9 @@ func NewRootCmd() (*cobra.Command, error) {
 		return nil, err
 	}
 	rootCmd.AddCommand(engineCmd)
+
+	serviceCmd.AddCommand(newServiceCreateCmd())
+	rootCmd.AddCommand(serviceCmd)
 
 	rootCmd.AddCommand(versionCmd)
 

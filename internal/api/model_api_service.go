@@ -16,18 +16,18 @@ import (
 
 // ApiService struct for ApiService
 type ApiService struct {
-	ApiToken string       `json:"apiToken"`
-	Id       string       `json:"id"`
-	Created  int64        `json:"created"`
-	Name     string       `json:"name"`
-	Kind     *ServiceKind `json:"kind,omitempty"`
+	ApiKey  string       `json:"apiKey"`
+	Id      string       `json:"id"`
+	Created int64        `json:"created"`
+	Name    string       `json:"name"`
+	Kind    *ServiceKind `json:"kind,omitempty"`
 }
 
 // NewApiService instantiates a new ApiService object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewApiService(apiToken string, id string, created int64, name string) *ApiService {
+func NewApiService(apiKey string, id string, created int64, name string) *ApiService {
 	this := ApiService{}
 	this.Id = id
 	this.Created = created
@@ -43,28 +43,28 @@ func NewApiServiceWithDefaults() *ApiService {
 	return &this
 }
 
-// GetApiToken returns the ApiToken field value
-func (o *ApiService) GetApiToken() string {
+// GetApiKey returns the ApiKey field value
+func (o *ApiService) GetApiKey() string {
 	if o == nil {
 		var ret string
 		return ret
 	}
 
-	return o.ApiToken
+	return o.ApiKey
 }
 
-// GetApiTokenOk returns a tuple with the ApiToken field value
+// GetApiKeyOk returns a tuple with the ApiKey field value
 // and a boolean to check if the value has been set.
-func (o *ApiService) GetApiTokenOk() (*string, bool) {
+func (o *ApiService) GetApiKeyOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.ApiToken, true
+	return &o.ApiKey, true
 }
 
-// SetApiToken sets field value
-func (o *ApiService) SetApiToken(v string) {
-	o.ApiToken = v
+// SetApiKey sets field value
+func (o *ApiService) SetApiKey(v string) {
+	o.ApiKey = v
 }
 
 // GetId returns the Id field value
@@ -174,7 +174,7 @@ func (o *ApiService) SetKind(v ServiceKind) {
 func (o ApiService) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
-		toSerialize["apiToken"] = o.ApiToken
+		toSerialize["apiKey"] = o.ApiKey
 	}
 	if true {
 		toSerialize["id"] = o.Id

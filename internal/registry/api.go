@@ -52,9 +52,8 @@ func NewApiMux(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) *mux.Router {
 	v1.Handle("/sources", http.HandlerFunc(a.ListSources)).Methods("GET")
 	v1.Handle("/destinations", a.bearerAuthMiddleware(http.HandlerFunc(a.ListDestinations))).Methods("GET")
 	v1.Handle("/destinations", a.bearerAuthMiddleware(http.HandlerFunc(a.CreateDestination))).Methods("POST")
-	// TODO: add bearer auth middleware
-	v1.Handle("/services/apis", http.HandlerFunc(a.ListApiServices)).Methods("GET")
-	v1.Handle("/services/apis", http.HandlerFunc(a.CreateApiService)).Methods("POST")
+	v1.Handle("/services", a.bearerAuthMiddleware(http.HandlerFunc(a.ListServices))).Methods("GET")
+	v1.Handle("/services/apis", a.bearerAuthMiddleware(http.HandlerFunc(a.CreateApiService))).Methods("POST")
 	v1.Handle("/creds", a.bearerAuthMiddleware(http.HandlerFunc(a.CreateCred))).Methods("POST")
 	v1.Handle("/roles", a.bearerAuthMiddleware(http.HandlerFunc(a.ListRoles))).Methods("GET")
 	v1.Handle("/login", http.HandlerFunc(a.Login)).Methods("POST")
@@ -257,16 +256,16 @@ func (a *Api) CreateDestination(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(dbToApiDestination(&destination))
 }
 
-func (a *Api) ListApiServices(w http.ResponseWriter, r *http.Request) {
-	var apiServices []Service
-	if err := a.db.Where(&Service{Kind: SERVICE_KIND_API}).Find(&apiServices).Error; err != nil {
+func (a *Api) ListServices(w http.ResponseWriter, r *http.Request) {
+	var services []Service
+	if err := a.db.Find(&services).Error; err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not list api services")
+		sendApiError(w, http.StatusInternalServerError, "could not list services")
 		return
 	}
 
 	results := make([]api.Service, 0)
-	for _, s := range apiServices {
+	for _, s := range services {
 		results = append(results, dbToApiService(&s))
 	}
 
@@ -613,10 +612,10 @@ func dbToApiService(s *Service) api.Service {
 // This function returns the secret key, it should only be used after the inital key creation
 func dbToApiServiceWithKey(s *Service, a *ApiKey) api.ApiService {
 	res := api.ApiService{
-		Name:     s.Name,
-		Id:       s.Id,
-		Created:  s.Created,
-		ApiToken: a.Key,
+		Name:    s.Name,
+		Id:      s.Id,
+		Created: s.Created,
+		ApiKey:  a.Key,
 	}
 
 	switch s.Kind {

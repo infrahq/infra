@@ -77,9 +77,9 @@ export class ServicesApi extends runtime.BaseAPI {
     }
 
     /**
-     * List API services
+     * List services
      */
-    async listApiServicesRaw(initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<Service>>> {
+    async listServicesRaw(initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<Service>>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -93,7 +93,7 @@ export class ServicesApi extends runtime.BaseAPI {
             }
         }
         const response = await this.request({
-            path: `/services/apis`,
+            path: `/services`,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
@@ -103,10 +103,10 @@ export class ServicesApi extends runtime.BaseAPI {
     }
 
     /**
-     * List API services
+     * List services
      */
-    async listApiServices(initOverrides?: RequestInit): Promise<Array<Service>> {
-        const response = await this.listApiServicesRaw(initOverrides);
+    async listServices(initOverrides?: RequestInit): Promise<Array<Service>> {
+        const response = await this.listServicesRaw(initOverrides);
         return await response.value();
     }
 

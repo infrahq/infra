@@ -35,7 +35,7 @@ export interface ApiService {
      * @type {string}
      * @memberof ApiService
      */
-    apiToken: string;
+    apiKey: string;
     /**
      * 
      * @type {string}
@@ -72,7 +72,7 @@ export function ApiServiceFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     }
     return {
         
-        'apiToken': json['apiToken'],
+        'apiKey': json['apiKey'],
         'id': json['id'],
         'created': json['created'],
         'name': json['name'],
@@ -89,7 +89,7 @@ export function ApiServiceToJSON(value?: ApiService | null): any {
     }
     return {
         
-        'apiToken': value.apiToken,
+        'apiKey': value.apiKey,
         'id': value.id,
         'created': value.created,
         'name': value.name,
