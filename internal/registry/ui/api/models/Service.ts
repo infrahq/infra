@@ -49,7 +49,7 @@ export interface Service {
      * @type {ServiceKind}
      * @memberof Service
      */
-    kind?: ServiceKind;
+    kind: ServiceKind;
 }
 
 export function ServiceFromJSON(json: any): Service {
@@ -65,7 +65,7 @@ export function ServiceFromJSONTyped(json: any, ignoreDiscriminator: boolean): S
         'id': json['id'],
         'created': json['created'],
         'name': json['name'],
-        'kind': !exists(json, 'kind') ? undefined : ServiceKindFromJSON(json['kind']),
+        'kind': ServiceKindFromJSON(json['kind']),
     };
 }
 

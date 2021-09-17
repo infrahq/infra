@@ -882,7 +882,7 @@ var servicesCmd = &cobra.Command{
 
 		rows := [][]string{}
 		for _, s := range services {
-			rows = append(rows, []string{s.Name, units.HumanDuration(time.Now().UTC().Sub(time.Unix(s.Created, 0))) + " ago", string(*s.Kind)})
+			rows = append(rows, []string{s.Name, units.HumanDuration(time.Now().UTC().Sub(time.Unix(s.Created, 0))) + " ago", string(s.Kind)})
 		}
 
 		printTable([]string{"NAME", "CREATED", "KIND"}, rows)

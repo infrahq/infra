@@ -603,7 +603,13 @@ func dbToApiService(s *Service) api.Service {
 		Id:      s.Id,
 		Name:    s.Name,
 		Created: s.Created,
-		Kind:    (*api.ServiceKind)(&s.Kind),
+	}
+
+	switch s.Kind {
+	case SERVICE_KIND_API:
+		res.Kind = api.API
+	default:
+		logging.L.Error("unknown service kind loaded from database: " + s.Kind)
 	}
 
 	return res
@@ -620,7 +626,9 @@ func dbToApiServiceWithKey(s *Service, a *ApiKey) api.ApiService {
 
 	switch s.Kind {
 	case SERVICE_KIND_API:
-		res.Kind = api.API.Ptr()
+		res.Kind = api.API
+	default:
+		logging.L.Error("unknown service kind loaded from database: " + s.Kind)
 	}
 
 	return res

@@ -151,7 +151,7 @@ components:
         - id
         - created
         - name
-        - type
+        - kind
       properties:
         id:
           type: string

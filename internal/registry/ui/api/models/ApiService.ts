@@ -59,7 +59,7 @@ export interface ApiService {
      * @type {ServiceKind}
      * @memberof ApiService
      */
-    kind?: ServiceKind;
+    kind: ServiceKind;
 }
 
 export function ApiServiceFromJSON(json: any): ApiService {
@@ -76,7 +76,7 @@ export function ApiServiceFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'id': json['id'],
         'created': json['created'],
         'name': json['name'],
-        'kind': !exists(json, 'kind') ? undefined : ServiceKindFromJSON(json['kind']),
+        'kind': ServiceKindFromJSON(json['kind']),
     };
 }
 

@@ -16,21 +16,22 @@ import (
 
 // Service struct for Service
 type Service struct {
-	Id      string       `json:"id"`
-	Created int64        `json:"created"`
-	Name    string       `json:"name"`
-	Kind    *ServiceKind `json:"kind,omitempty"`
+	Id      string      `json:"id"`
+	Created int64       `json:"created"`
+	Name    string      `json:"name"`
+	Kind    ServiceKind `json:"kind"`
 }
 
 // NewService instantiates a new Service object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewService(id string, created int64, name string) *Service {
+func NewService(id string, created int64, name string, kind ServiceKind) *Service {
 	this := Service{}
 	this.Id = id
 	this.Created = created
 	this.Name = name
+	this.Kind = kind
 	return &this
 }
 
@@ -114,36 +115,28 @@ func (o *Service) SetName(v string) {
 	o.Name = v
 }
 
-// GetKind returns the Kind field value if set, zero value otherwise.
+// GetKind returns the Kind field value
 func (o *Service) GetKind() ServiceKind {
-	if o == nil || o.Kind == nil {
+	if o == nil {
 		var ret ServiceKind
 		return ret
 	}
-	return *o.Kind
+
+	return o.Kind
 }
 
-// GetKindOk returns a tuple with the Kind field value if set, nil otherwise
+// GetKindOk returns a tuple with the Kind field value
 // and a boolean to check if the value has been set.
 func (o *Service) GetKindOk() (*ServiceKind, bool) {
-	if o == nil || o.Kind == nil {
+	if o == nil {
 		return nil, false
 	}
-	return o.Kind, true
+	return &o.Kind, true
 }
 
-// HasKind returns a boolean if a field has been set.
-func (o *Service) HasKind() bool {
-	if o != nil && o.Kind != nil {
-		return true
-	}
-
-	return false
-}
-
-// SetKind gets a reference to the given ServiceKind and assigns it to the Kind field.
+// SetKind sets field value
 func (o *Service) SetKind(v ServiceKind) {
-	o.Kind = &v
+	o.Kind = v
 }
 
 func (o Service) MarshalJSON() ([]byte, error) {
@@ -157,7 +150,7 @@ func (o Service) MarshalJSON() ([]byte, error) {
 	if true {
 		toSerialize["name"] = o.Name
 	}
-	if o.Kind != nil {
+	if true {
 		toSerialize["kind"] = o.Kind
 	}
 	return json.Marshal(toSerialize)
