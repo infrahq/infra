@@ -32,7 +32,6 @@ nfpms:
     maintainer: Infra Technologies, Inc. <contact@infrahq.com>
     license: Apache 2.0
     formats:
-      - apk
       - deb
       - rpm
     bindir: /usr/bin
