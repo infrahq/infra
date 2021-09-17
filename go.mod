@@ -41,8 +41,8 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1
 	gopkg.in/yaml.v2 v2.4.0
-	gorm.io/driver/sqlite v1.1.4
-	gorm.io/gorm v1.21.10
+	gorm.io/driver/sqlite v1.1.5
+	gorm.io/gorm v1.21.15
 	k8s.io/api v0.21.1
 	k8s.io/apimachinery v0.21.1
 	k8s.io/client-go v0.21.1
