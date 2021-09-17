@@ -26,7 +26,11 @@ type Api struct {
 	okta Okta
 }
 
-var validate *validator.Validate = validator.New()
+var (
+	validate        *validator.Validate = validator.New()
+	SessionDuration time.Duration       = time.Hour * 24
+)
+
 
 func NewApiMux(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) *mux.Router {
 	a := Api{
@@ -85,7 +89,12 @@ func (a *Api) bearerAuthMiddleware(next http.Handler) http.Handler {
 			token, err := ValidateAndGetToken(a.db, raw)
 			if err != nil {
 				logging.L.Debug(err.Error())
-				sendApiError(w, http.StatusUnauthorized, "unauthorized")
+				switch err.Error() {
+				case "token expired":
+					sendApiError(w, http.StatusForbidden, "forbidden")
+				default:
+					sendApiError(w, http.StatusUnauthorized, "unauthorized")
+				}
 				return
 			}
 
@@ -391,7 +400,7 @@ func (a *Api) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	secret, err := NewToken(a.db, user.Id, &token)
+	secret, err := NewToken(a.db, user.Id, SessionDuration, &token)
 	if err != nil {
 		logging.L.Debug(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not create token")
