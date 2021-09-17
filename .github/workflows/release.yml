@@ -29,6 +29,7 @@ jobs:
       - run: make release
         env: 
           GITHUB_TOKEN: ${{ secrets.GORELEASER_GITHUB_TOKEN }}
+          GEMFURY_TOKEN: ${{ secrets.GORELEASER_GEMFURY_TOKEN }}
 
   release-docker:
     runs-on: ubuntu-latest
