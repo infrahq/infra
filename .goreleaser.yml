@@ -32,7 +32,6 @@ nfpms:
     maintainer: Infra Technologies, Inc. <contact@infrahq.com>
     license: Apache 2.0
     formats:
-      - apk
       - deb
       - rpm
     bindir: /usr/bin
@@ -87,3 +86,9 @@ scoop:
   homepage: https://infrahq.com
   description: Infra
   url_template: "https://releases.infrahq.com/infra/{{ .Tag }}/{{ .ArtifactName }}"
+publishers:
+  - name: gemfury
+    ids:
+      - packages
+    dir: "{{ dir .ArtifactPath }}"
+    cmd: curl -F package=@{{ .ArtifactName }} https://{{ .Env.GEMFURY_TOKEN }}@push.fury.io/infrahq/
