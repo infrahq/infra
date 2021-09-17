@@ -52,6 +52,9 @@ func NewApiMux(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) *mux.Router {
 	v1.Handle("/sources", http.HandlerFunc(a.ListSources)).Methods("GET")
 	v1.Handle("/destinations", a.bearerAuthMiddleware(http.HandlerFunc(a.ListDestinations))).Methods("GET")
 	v1.Handle("/destinations", a.bearerAuthMiddleware(http.HandlerFunc(a.CreateDestination))).Methods("POST")
+	// TODO: add bearer auth middleware
+	v1.Handle("/services/apis", http.HandlerFunc(a.ListApiServices)).Methods("GET")
+	v1.Handle("/services/apis", http.HandlerFunc(a.CreateApiService)).Methods("POST")
 	v1.Handle("/creds", a.bearerAuthMiddleware(http.HandlerFunc(a.CreateCred))).Methods("POST")
 	v1.Handle("/roles", a.bearerAuthMiddleware(http.HandlerFunc(a.ListRoles))).Methods("GET")
 	v1.Handle("/login", http.HandlerFunc(a.Login)).Methods("POST")
@@ -252,6 +255,88 @@ func (a *Api) CreateDestination(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(dbToApiDestination(&destination))
+}
+
+func (a *Api) ListApiServices(w http.ResponseWriter, r *http.Request) {
+	var apiServices []Service
+	if err := a.db.Where(&Service{Kind: SERVICE_KIND_API}).Find(&apiServices).Error; err != nil {
+		logging.L.Error(err.Error())
+		sendApiError(w, http.StatusInternalServerError, "could not list api services")
+		return
+	}
+
+	results := make([]api.Service, 0)
+	for _, s := range apiServices {
+		results = append(results, dbToApiService(&s))
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(results)
+}
+
+func (a *Api) CreateApiService(w http.ResponseWriter, r *http.Request) {
+	var body api.ApiServiceCreateRequest
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sendApiError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := validate.Struct(body); err != nil {
+		sendApiError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if strings.ToLower(body.Name) == "default" {
+		// this name is used for the default API key that engines use to connect to the registry
+		sendApiError(w, http.StatusBadRequest, "cannot create API service with the name \"default\", this name is reserved")
+		return
+	}
+
+	var apiService Service
+	var apiKey ApiKey
+	var errExistingKey = errors.New("could not create API service, a key is already associated with this name")
+	var errExistingService = errors.New("could not create service, a service with this name already exists")
+
+	err := a.db.Transaction(func(tx *gorm.DB) error {
+		var existingKey ApiKey
+		tx.First(&existingKey, &ApiKey{Name: body.Name})
+		if existingKey.Id != "" {
+			return errExistingKey
+		}
+		var existingService Service
+		tx.First(&existingService, &Service{Name: body.Name})
+		if existingService.Id != "" {
+			return errExistingService
+		}
+
+		apiKey.Name = body.Name
+		err := tx.Create(&apiKey).Error
+		if err != nil {
+			return err
+		}
+
+		apiService.Name = body.Name
+		apiService.Kind = SERVICE_KIND_API
+		apiService.ApiKeyId = apiKey.Id
+		err = tx.Create(&apiService).Error
+		if err != nil {
+			return err
+		}
+
+		return tx.Save(&apiService).Error
+	})
+	if err != nil {
+		logging.L.Error(err.Error())
+		if errors.Is(err, errExistingKey) || errors.Is(err, errExistingService) {
+			sendApiError(w, http.StatusConflict, err.Error())
+		}
+		sendApiError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(dbToApiServiceWithKey(&apiService, &apiKey))
 }
 
 func (a *Api) ListRoles(w http.ResponseWriter, r *http.Request) {
@@ -509,6 +594,34 @@ func dbToApiDestination(d *Destination) api.Destination {
 			Namespace: d.KubernetesNamespace,
 			SaToken:   d.KubernetesSaToken,
 		}
+	}
+
+	return res
+}
+
+func dbToApiService(s *Service) api.Service {
+	res := api.Service{
+		Id:      s.Id,
+		Name:    s.Name,
+		Created: s.Created,
+		Kind:    (*api.ServiceKind)(&s.Kind),
+	}
+
+	return res
+}
+
+// This function returns the secret key, it should only be used after the inital key creation
+func dbToApiServiceWithKey(s *Service, a *ApiKey) api.ApiService {
+	res := api.ApiService{
+		Name:     s.Name,
+		Id:       s.Id,
+		Created:  s.Created,
+		ApiToken: a.Key,
+	}
+
+	switch s.Kind {
+	case SERVICE_KIND_API:
+		res.Kind = api.API.Ptr()
 	}
 
 	return res

@@ -86,6 +86,18 @@ type Destination struct {
 	KubernetesSaToken   string
 }
 
+var (
+	SERVICE_KIND_API = "api"
+)
+
+type Service struct {
+	Id       string `gorm:"primaryKey"`
+	Created  int64  `gorm:"autoCreateTime"`
+	Name     string `gorm:"unique"`
+	Kind     string
+	ApiKeyId string
+}
+
 type Role struct {
 	Id            string `gorm:"primaryKey"`
 	Created       int64  `gorm:"autoCreateTime"`
@@ -199,6 +211,14 @@ func (g *Group) BeforeCreate(tx *gorm.DB) (err error) {
 	}
 
 	return nil
+}
+
+func (s *Service) BeforeCreate(tx *gorm.DB) (err error) {
+	if s.Id == "" {
+		s.Id = generate.RandString(ID_LEN)
+	}
+
+	return
 }
 
 func (s *Source) BeforeCreate(tx *gorm.DB) (err error) {
@@ -546,6 +566,7 @@ func NewDB(dbpath string) (*gorm.DB, error) {
 	db.AutoMigrate(&User{})
 	db.AutoMigrate(&Source{})
 	db.AutoMigrate(&Destination{})
+	db.AutoMigrate(&Service{})
 	db.AutoMigrate(&Role{})
 	db.AutoMigrate(&Settings{})
 	db.AutoMigrate(&Token{})

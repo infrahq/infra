@@ -69,7 +69,7 @@ export interface Role {
      * @type {string}
      * @memberof Role
      */
-    namespace: RoleNamespaceEnum;
+    namespace: string;
     /**
      * 
      * @type {Array<User>}
@@ -82,15 +82,6 @@ export interface Role {
      * @memberof Role
      */
     destination: Destination;
-}
-
-/**
-* @export
-* @enum {string}
-*/
-export enum RoleNamespaceEnum {
-    Role = 'role',
-    ClusterRole = 'cluster-role'
 }
 
 export function RoleFromJSON(json: any): Role {

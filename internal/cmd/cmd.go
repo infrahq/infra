@@ -852,6 +852,40 @@ var groupsCmd = &cobra.Command{
 	},
 }
 
+var servicesCmd = &cobra.Command{
+	Use:   "services",
+	Short: "List services",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		client, err := apiClientFromConfig()
+		if err != nil {
+			return err
+		}
+
+		ctx, err := apiContextFromConfig()
+		if err != nil {
+			return err
+		}
+
+		services, _, err := client.ServicesApi.ListApiServices(ctx).Execute()
+		if err != nil {
+			fmt.Println("err getting services")
+			return err
+		}
+
+		sort.Slice(services, func(i, j int) bool {
+			return services[i].Created > services[j].Created
+		})
+
+		rows := [][]string{}
+		for _, s := range services {
+			rows = append(rows, []string{s.Name, units.HumanDuration(time.Now().UTC().Sub(time.Unix(s.Created, 0))) + " ago"})
+		}
+
+		printTable([]string{"NAME", "CREATED"}, rows)
+		return nil
+	},
+}
+
 func newRegistryCmd() (*cobra.Command, error) {
 	var options registry.Options
 
@@ -949,6 +983,30 @@ var versionCmd = &cobra.Command{
 	},
 }
 
+// var createServiceCmd = &cobra.Command{
+// 	Use:   "create service",
+// 	Short: "Create a new service that relys on Infra",
+// 	RunE: func(cmd *cobra.Command, args []string) error {
+// client, err := apiClientFromConfig()
+// if err != nil {
+// 	return err
+// }
+
+// ctx, err := apiContextFromConfig()
+// if err != nil {
+// 	return err
+// }
+
+// TODO: take --kind flag here
+// cred, _, err := client.CredsApi.CreateCred(ctx).Execute()
+// if err != nil {
+// 	return err
+// }
+
+// 		return nil
+// 	},
+// }
+
 var credsCmd = &cobra.Command{
 	Use:   "creds",
 	Short: "Generate a JWT token for connecting to a destination, eg k8s",
@@ -1037,6 +1095,7 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(usersCmd)
 	rootCmd.AddCommand(groupsCmd)
+	rootCmd.AddCommand(servicesCmd)
 	rootCmd.AddCommand(loginCmd)
 	rootCmd.AddCommand(logoutCmd)
 

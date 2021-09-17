@@ -14,6 +14,8 @@ tags:
     description: Manage identity sources
   - name: destinations
     description: Manage infrastructure destinations
+  - name: services
+    description: Manage services that rely on Infra
   - name: creds
     description: Create credentials to access a destination
   - name: roles
@@ -143,6 +145,44 @@ components:
         saToken:
           type: string
           x-go-custom-tag: validate:"required"
+    Service:
+      type: object
+      required:
+        - id
+        - created
+        - name
+        - type
+      properties:
+        id:
+          type: string
+        created:
+          type: integer
+          format: int64
+        name:
+          type: string
+        kind:
+          $ref: "#/components/schemas/ServiceKind"
+    ServiceKind:
+      type: string
+      enum:
+        - api
+        - client
+    ApiService:
+        allOf:
+        - $ref: '#/components/schemas/Service'
+        type: object
+        required:
+          - apiKey
+        properties:
+          apiKey:
+            type: string
+    ApiServiceCreateRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
     Cred:
       type: object
       required:
@@ -191,7 +231,6 @@ components:
           $ref: "#/components/schemas/RoleKind"
         namespace:
           type: string
-          enum: [role, cluster-role]
         users:
           type: array
           items:
@@ -355,6 +394,56 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Destination'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /services/apis:
+    get:
+      tags:
+        - services
+      security:
+        - bearerAuth: []
+      summary: List API services
+      operationId: listApiServices
+      responses:
+        '200':
+          description: api services response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Service'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+        - services
+      security:
+        - bearerAuth: []
+      summary: Register an API service
+      operationId: createApiService
+      x-codegen-request-body-name: body
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApiServiceCreateRequest'
+      responses:
+        '200':
+          description: create destination response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiService'
         default:
           description: unexpected error
           content:
