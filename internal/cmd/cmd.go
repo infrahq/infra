@@ -45,6 +45,7 @@ type Config struct {
 	Host          string `json:"host"`
 	Token         string `json:"token"`
 	SkipTLSVerify bool   `json:"skip-tls-verify"`
+	SourceID      string `json:"source-id"`
 }
 
 type ErrUnauthenticated struct{}
@@ -142,7 +143,7 @@ func NewApiContext(token string) context.Context {
 	return context.WithValue(context.Background(), api.ContextAccessToken, token)
 }
 
-func NewApiClient(host string, skipTlsVerify bool) (*api.APIClient, error) {
+func NewApiClient(host string, skipTLSVerify bool) (*api.APIClient, error) {
 	u, err := urlx.Parse(host)
 	if err != nil {
 		return nil, err
@@ -151,7 +152,7 @@ func NewApiClient(host string, skipTlsVerify bool) (*api.APIClient, error) {
 	config := api.NewConfiguration()
 	config.Host = u.Host
 	config.Scheme = "https"
-	if skipTlsVerify {
+	if skipTLSVerify {
 		config.HTTPClient = &http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
@@ -318,7 +319,11 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-func promptShouldSkipTLSVerify(host string) (skipTlsVerify bool, proceed bool, err error) {
+func promptShouldSkipTLSVerify(host string, skipTLSVerify bool) (shouldSkipTLSVerify bool, proceed bool, err error) {
+	if skipTLSVerify {
+		return true, true, nil
+	}
+
 	httpClient := &http.Client{}
 	httpClient.Transport = &http.Transport{
 		TLSClientConfig: &tls.Config{},
@@ -363,28 +368,14 @@ func promptShouldSkipTLSVerify(host string) (skipTlsVerify bool, proceed bool, e
 	return false, true, nil
 }
 
-func login(host string) error {
-	skipTLSVerify, proceed, err := promptShouldSkipTLSVerify(host)
-	if err != nil {
-		return err
-	}
-
-	if !proceed {
-		return nil
-	}
-
-	client, err := NewApiClient(host, skipTLSVerify)
-	if err != nil {
-		return err
-	}
-
-	sources, _, err := client.SourcesApi.ListSources(context.Background()).Execute()
-	if err != nil {
-		return err
-	}
-
-	if len(sources) == 0 {
-		return errors.New("no sources configured")
+func promptSelectSource(sources []api.Source, sourceID string) (*api.Source, error) {
+	if len(sourceID) > 0 {
+		for _, source := range sources {
+			if source.Id == sourceID {
+				return &source, nil
+			}
+		}
+		return nil, errors.New("source not found")
 	}
 
 	sort.Slice(sources, func(i, j int) bool {
@@ -404,14 +395,49 @@ func login(host string) error {
 		Message: "Choose a login method:",
 		Options: options,
 	}
-	err = survey.AskOne(prompt, &option, survey.WithIcons(func(icons *survey.IconSet) {
+	err := survey.AskOne(prompt, &option, survey.WithIcons(func(icons *survey.IconSet) {
 		icons.Question.Text = blue("?")
 	}))
 	if err == terminal.InterruptErr {
+		return nil, err
+	}
+
+	return &sources[option], nil
+}
+
+func login(config *Config) error {
+	skipTLSVerify, proceed, err := promptShouldSkipTLSVerify(config.Host, config.SkipTLSVerify)
+	if err != nil {
+		return err
+	}
+
+	if !proceed {
 		return nil
 	}
 
-	source := sources[option]
+	client, err := NewApiClient(config.Host, skipTLSVerify)
+	if err != nil {
+		return err
+	}
+
+	sources, _, err := client.SourcesApi.ListSources(context.Background()).Execute()
+	if err != nil {
+		return err
+	}
+
+	if len(sources) == 0 {
+		return errors.New("no sources configured")
+	}
+
+	source, err := promptSelectSource(sources, config.SourceID)
+	switch err {
+	case nil:
+	case terminal.InterruptErr:
+		return nil
+	default:
+		return err
+	}
+
 	var loginReq api.LoginRequest
 
 	switch {
@@ -455,14 +481,13 @@ func login(host string) error {
 		return err
 	}
 
-	config := &Config{
+	err = writeConfig(&Config{
 		Name:          loginRes.Name,
 		Token:         loginRes.Token,
-		Host:          host,
+		Host:          config.Host,
 		SkipTLSVerify: skipTLSVerify,
-	}
-
-	err = writeConfig(config)
+		SourceID:      source.Id,
+	})
 	if err != nil {
 		return err
 	}
@@ -513,7 +538,7 @@ func login(host string) error {
 		os.Remove(filepath.Join(home, ".infra", "client", "pid"))
 	}
 
-	client, err = NewApiClient(host, skipTLSVerify)
+	client, err = NewApiClient(config.Host, skipTLSVerify)
 	if err != nil {
 		return err
 	}
@@ -552,7 +577,7 @@ var loginCmd = &cobra.Command{
 	Args:    cobra.ExactArgs(1),
 	Example: "$ infra login infra.example.com",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return login(args[0])
+		return login(&Config{Host: args[0]})
 	},
 }
 
@@ -856,9 +881,13 @@ var credsCmd = &cobra.Command{
 					return err
 				}
 
-				return login(config.Host)
+				err = login(config)
+				if err != nil {
+					return err
+				}
+			default:
+				return err
 			}
-			return err
 		}
 
 		execCredential := &clientauthenticationv1alpha1.ExecCredential{
