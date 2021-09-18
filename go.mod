@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/AlecAivazis/survey/v2 v2.2.13
 	github.com/NYTimes/gziphandler v0.0.0-20170623195520-56545f4a5d46
-	github.com/aws/aws-sdk-go v1.38.35
+	github.com/aws/aws-sdk-go v1.40.45
 	github.com/cli/browser v1.1.0
 	github.com/docker/go-units v0.4.0
 	github.com/elazarl/go-bindata-assetfs v1.0.1
@@ -35,7 +35,6 @@ require (
 	github.com/stretchr/testify v1.7.0
 	go.uber.org/zap v1.18.1
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
-	golang.org/x/net v0.0.0-20210525063256-abc453219eb5 // indirect
 	golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914
 	google.golang.org/genproto v0.0.0-20210630183607-d20f26d13c79 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
