@@ -18,9 +18,11 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/goware/urlx"
 	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/timer"
+	"golang.org/x/crypto/acme/autocert"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
 )
@@ -31,6 +33,7 @@ type Options struct {
 	Endpoint       string
 	ForceTLSVerify bool
 	APIKey         string
+	TLSCache       string
 }
 
 type RegistrationInfo struct {
@@ -196,14 +199,14 @@ func (b *BearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func Run(options Options) error {
-	tlsConfig := &tls.Config{}
+	registryTLSConfig := &tls.Config{}
 	if !options.ForceTLSVerify {
 		// TODO (https://github.com/infrahq/infra/issues/174)
 		// Find a way to re-use the built-in TLS verification code vs
 		// this custom code based on the official go TLS example code
 		// which states this is approximately the same.
-		tlsConfig.InsecureSkipVerify = true
-		tlsConfig.VerifyConnection = func(cs tls.ConnectionState) error {
+		registryTLSConfig.InsecureSkipVerify = true
+		registryTLSConfig.VerifyConnection = func(cs tls.ConnectionState) error {
 			opts := x509.VerifyOptions{
 				DNSName:       cs.ServerName,
 				Intermediates: x509.NewCertPool(),
@@ -234,7 +237,7 @@ func Run(options Options) error {
 	config.Scheme = "https"
 	config.HTTPClient = &http.Client{
 		Transport: &http.Transport{
-			TLSClientConfig: tlsConfig,
+			TLSClientConfig: registryTLSConfig,
 		},
 	}
 
@@ -335,7 +338,7 @@ func Run(options Options) error {
 			Transport: &BearerTransport{
 				Token: options.APIKey,
 				Transport: &http.Transport{
-					TLSClientConfig: tlsConfig,
+					TLSClientConfig: registryTLSConfig,
 				},
 			},
 		},
@@ -344,6 +347,20 @@ func Run(options Options) error {
 
 	mux.Handle("/proxy/", jwtMiddleware(cache.getjwk, ph))
 
-	logging.L.Info("serving on port 80")
-	return http.ListenAndServe(":80", handlers.LoggingHandler(os.Stdout, mux))
+	manager := &autocert.Manager{
+		Prompt: autocert.AcceptTOS,
+		Cache:  autocert.DirCache(options.TLSCache),
+	}
+
+	tlsConfig := manager.TLSConfig()
+	tlsConfig.GetCertificate = certs.SelfSignedOrLetsEncryptCert(manager)
+
+	tlsServer := &http.Server{
+		Addr:      ":443",
+		TLSConfig: tlsConfig,
+		Handler:   handlers.LoggingHandler(os.Stdout, mux),
+	}
+
+	logging.L.Info("serving on port 443")
+	return tlsServer.ListenAndServeTLS("", "")
 }

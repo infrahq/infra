@@ -99,7 +99,7 @@ func RunLocalClient() error {
 			saToken = kube.SaToken
 		}
 
-		remote, err := urlx.Parse(endpoint + "/api/v1/namespaces/" + namespace + "/services/http:infra-engine:80/proxy/proxy")
+		remote, err := urlx.Parse(endpoint + "/api/v1/namespaces/" + namespace + "/services/https:infra-engine:https/proxy/proxy")
 		if err != nil {
 			errorLogger.Println(err)
 			return

@@ -25,6 +25,7 @@ import (
 	"github.com/docker/go-units"
 	"github.com/goware/urlx"
 	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/engine"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
@@ -448,7 +449,7 @@ func login(config *Config) error {
 		state := generate.RandString(12)
 		authorizeUrl := "https://" + source.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + source.Okta.ClientId + "&response_type=code&scope=openid+email&nonce=" + generate.RandString(10) + "&state=" + state
 
-		fmt.Fprintln(os.Stderr, blue("✓") + " Logging in with Okta...")
+		fmt.Fprintln(os.Stderr, blue("✓")+" Logging in with Okta...")
 		ls, err := newLocalServer()
 		if err != nil {
 			return err
@@ -492,7 +493,7 @@ func login(config *Config) error {
 		return err
 	}
 
-	fmt.Fprintln(os.Stderr, blue("✓") + " Logged in as " + termenv.String(loginRes.Name).Bold().String())
+	fmt.Fprintln(os.Stderr, blue("✓")+" Logged in as "+termenv.String(loginRes.Name).Bold().String())
 
 	// Generate client certs
 	home, err := homedir.Dir()
@@ -505,7 +506,7 @@ func login(config *Config) error {
 	}
 
 	if _, err := os.Stat(filepath.Join(home, ".infra", "client", "cert.pem")); os.IsNotExist(err) {
-		certBytes, keyBytes, err := generate.SelfSignedCert([]string{"localhost", "localhost:32710"})
+		certBytes, keyBytes, err := certs.SelfSignedCert([]string{"localhost", "localhost:32710"})
 		if err != nil {
 			return err
 		}
@@ -556,7 +557,7 @@ func login(config *Config) error {
 
 	if len(destinations) > 0 {
 		kubeConfigPath := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{}).ConfigAccess().GetDefaultFilename()
-		fmt.Fprintln(os.Stderr, blue("✓") + " Kubeconfig updated: " + termenv.String(strings.ReplaceAll(kubeConfigPath, home, "~")).Bold().String())
+		fmt.Fprintln(os.Stderr, blue("✓")+" Kubeconfig updated: "+termenv.String(strings.ReplaceAll(kubeConfigPath, home, "~")).Bold().String())
 	}
 
 	context, err := switchToFirstInfraContext()
@@ -565,7 +566,7 @@ func login(config *Config) error {
 	}
 
 	if context != "" {
-		fmt.Fprintln(os.Stderr, blue("✓") + " Kubernetes current context is now " + termenv.String(context).Bold().String())
+		fmt.Fprintln(os.Stderr, blue("✓")+" Kubernetes current context is now "+termenv.String(context).Bold().String())
 	}
 
 	return nil
@@ -801,7 +802,7 @@ func newRegistryCmd() (*cobra.Command, error) {
 	return cmd, nil
 }
 
-func newEngineCmd() *cobra.Command {
+func newEngineCmd() (*cobra.Command, error) {
 	var options engine.Options
 
 	cmd := &cobra.Command{
@@ -818,13 +819,19 @@ func newEngineCmd() *cobra.Command {
 		},
 	}
 
+	home, err := homedir.Dir()
+	if err != nil {
+		return nil, err
+	}
+
 	cmd.PersistentFlags().BoolVar(&options.ForceTLSVerify, "force-tls-verify", false, "force TLS verification")
 	cmd.Flags().StringVarP(&options.Registry, "registry", "r", os.Getenv("INFRA_ENGINE_REGISTRY"), "registry hostname")
 	cmd.Flags().StringVarP(&options.Name, "name", "n", os.Getenv("INFRA_ENGINE_NAME"), "cluster name")
+	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(home, ".infra", "cache"), "path to directory to cache tls self-signed and Let's Encrypt certificates")
 	cmd.Flags().StringVarP(&options.Endpoint, "endpoint", "e", os.Getenv("INFRA_ENGINE_ENDPOINT"), "cluster endpoint")
 	cmd.Flags().StringVar(&options.APIKey, "api-key", os.Getenv("INFRA_ENGINE_API_KEY"), "api key")
 
-	return cmd
+	return cmd, nil
 }
 
 var versionCmd = &cobra.Command{
@@ -1000,7 +1007,12 @@ func NewRootCmd() (*cobra.Command, error) {
 		return nil, err
 	}
 	rootCmd.AddCommand(registryCmd)
-	rootCmd.AddCommand(newEngineCmd())
+
+	engineCmd, err := newEngineCmd()
+	if err != nil {
+		return nil, err
+	}
+	rootCmd.AddCommand(engineCmd)
 
 	rootCmd.AddCommand(versionCmd)
 
