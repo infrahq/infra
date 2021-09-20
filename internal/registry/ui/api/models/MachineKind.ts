@@ -17,20 +17,20 @@
  * @export
  * @enum {string}
  */
-export enum ServiceKind {
+export enum MachineKind {
     Api = 'api',
     Client = 'client'
 }
 
-export function ServiceKindFromJSON(json: any): ServiceKind {
-    return ServiceKindFromJSONTyped(json, false);
+export function MachineKindFromJSON(json: any): MachineKind {
+    return MachineKindFromJSONTyped(json, false);
 }
 
-export function ServiceKindFromJSONTyped(json: any, ignoreDiscriminator: boolean): ServiceKind {
-    return json as ServiceKind;
+export function MachineKindFromJSONTyped(json: any, ignoreDiscriminator: boolean): MachineKind {
+    return json as MachineKind;
 }
 
-export function ServiceKindToJSON(value?: ServiceKind | null): any {
+export function MachineKindToJSON(value?: MachineKind | null): any {
     return value as any;
 }
 

@@ -57,9 +57,9 @@ type APIClient struct {
 
 	GroupsApi *GroupsApiService
 
-	RolesApi *RolesApiService
+	MachinesApi *MachinesApiService
 
-	ServicesApi *ServicesApiService
+	RolesApi *RolesApiService
 
 	SourcesApi *SourcesApiService
 
@@ -88,8 +88,8 @@ func NewAPIClient(cfg *Configuration) *APIClient {
 	c.CredsApi = (*CredsApiService)(&c.common)
 	c.DestinationsApi = (*DestinationsApiService)(&c.common)
 	c.GroupsApi = (*GroupsApiService)(&c.common)
+	c.MachinesApi = (*MachinesApiService)(&c.common)
 	c.RolesApi = (*RolesApiService)(&c.common)
-	c.ServicesApi = (*ServicesApiService)(&c.common)
 	c.SourcesApi = (*SourcesApiService)(&c.common)
 	c.UsersApi = (*UsersApiService)(&c.common)
 	c.VersionApi = (*VersionApiService)(&c.common)

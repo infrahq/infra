@@ -16,22 +16,22 @@ import { exists, mapValues } from '../runtime';
 /**
  * 
  * @export
- * @interface ApiServiceCreateRequest
+ * @interface MachineAPIKeyCreateRequest
  */
-export interface ApiServiceCreateRequest {
+export interface MachineAPIKeyCreateRequest {
     /**
      * 
      * @type {string}
-     * @memberof ApiServiceCreateRequest
+     * @memberof MachineAPIKeyCreateRequest
      */
     name: string;
 }
 
-export function ApiServiceCreateRequestFromJSON(json: any): ApiServiceCreateRequest {
-    return ApiServiceCreateRequestFromJSONTyped(json, false);
+export function MachineAPIKeyCreateRequestFromJSON(json: any): MachineAPIKeyCreateRequest {
+    return MachineAPIKeyCreateRequestFromJSONTyped(json, false);
 }
 
-export function ApiServiceCreateRequestFromJSONTyped(json: any, ignoreDiscriminator: boolean): ApiServiceCreateRequest {
+export function MachineAPIKeyCreateRequestFromJSONTyped(json: any, ignoreDiscriminator: boolean): MachineAPIKeyCreateRequest {
     if ((json === undefined) || (json === null)) {
         return json;
     }
@@ -41,7 +41,7 @@ export function ApiServiceCreateRequestFromJSONTyped(json: any, ignoreDiscrimina
     };
 }
 
-export function ApiServiceCreateRequestToJSON(value?: ApiServiceCreateRequest | null): any {
+export function MachineAPIKeyCreateRequestToJSON(value?: MachineAPIKeyCreateRequest | null): any {
     if (value === undefined) {
         return undefined;
     }

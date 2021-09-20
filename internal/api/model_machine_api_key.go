@@ -14,20 +14,21 @@ import (
 	"encoding/json"
 )
 
-// Service struct for Service
-type Service struct {
+// MachineAPIKey struct for MachineAPIKey
+type MachineAPIKey struct {
+	ApiKey  string      `json:"apiKey"`
 	Id      string      `json:"id"`
 	Created int64       `json:"created"`
 	Name    string      `json:"name"`
-	Kind    ServiceKind `json:"kind"`
+	Kind    MachineKind `json:"kind"`
 }
 
-// NewService instantiates a new Service object
+// NewMachineAPIKey instantiates a new MachineAPIKey object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewService(id string, created int64, name string, kind ServiceKind) *Service {
-	this := Service{}
+func NewMachineAPIKey(apiKey string, id string, created int64, name string, kind MachineKind) *MachineAPIKey {
+	this := MachineAPIKey{}
 	this.Id = id
 	this.Created = created
 	this.Name = name
@@ -35,16 +36,40 @@ func NewService(id string, created int64, name string, kind ServiceKind) *Servic
 	return &this
 }
 
-// NewServiceWithDefaults instantiates a new Service object
+// NewMachineAPIKeyWithDefaults instantiates a new MachineAPIKey object
 // This constructor will only assign default values to properties that have it defined,
 // but it doesn't guarantee that properties required by API are set
-func NewServiceWithDefaults() *Service {
-	this := Service{}
+func NewMachineAPIKeyWithDefaults() *MachineAPIKey {
+	this := MachineAPIKey{}
 	return &this
 }
 
+// GetApiKey returns the ApiKey field value
+func (o *MachineAPIKey) GetApiKey() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.ApiKey
+}
+
+// GetApiKeyOk returns a tuple with the ApiKey field value
+// and a boolean to check if the value has been set.
+func (o *MachineAPIKey) GetApiKeyOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.ApiKey, true
+}
+
+// SetApiKey sets field value
+func (o *MachineAPIKey) SetApiKey(v string) {
+	o.ApiKey = v
+}
+
 // GetId returns the Id field value
-func (o *Service) GetId() string {
+func (o *MachineAPIKey) GetId() string {
 	if o == nil {
 		var ret string
 		return ret
@@ -55,7 +80,7 @@ func (o *Service) GetId() string {
 
 // GetIdOk returns a tuple with the Id field value
 // and a boolean to check if the value has been set.
-func (o *Service) GetIdOk() (*string, bool) {
+func (o *MachineAPIKey) GetIdOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -63,12 +88,12 @@ func (o *Service) GetIdOk() (*string, bool) {
 }
 
 // SetId sets field value
-func (o *Service) SetId(v string) {
+func (o *MachineAPIKey) SetId(v string) {
 	o.Id = v
 }
 
 // GetCreated returns the Created field value
-func (o *Service) GetCreated() int64 {
+func (o *MachineAPIKey) GetCreated() int64 {
 	if o == nil {
 		var ret int64
 		return ret
@@ -79,7 +104,7 @@ func (o *Service) GetCreated() int64 {
 
 // GetCreatedOk returns a tuple with the Created field value
 // and a boolean to check if the value has been set.
-func (o *Service) GetCreatedOk() (*int64, bool) {
+func (o *MachineAPIKey) GetCreatedOk() (*int64, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -87,12 +112,12 @@ func (o *Service) GetCreatedOk() (*int64, bool) {
 }
 
 // SetCreated sets field value
-func (o *Service) SetCreated(v int64) {
+func (o *MachineAPIKey) SetCreated(v int64) {
 	o.Created = v
 }
 
 // GetName returns the Name field value
-func (o *Service) GetName() string {
+func (o *MachineAPIKey) GetName() string {
 	if o == nil {
 		var ret string
 		return ret
@@ -103,7 +128,7 @@ func (o *Service) GetName() string {
 
 // GetNameOk returns a tuple with the Name field value
 // and a boolean to check if the value has been set.
-func (o *Service) GetNameOk() (*string, bool) {
+func (o *MachineAPIKey) GetNameOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -111,14 +136,14 @@ func (o *Service) GetNameOk() (*string, bool) {
 }
 
 // SetName sets field value
-func (o *Service) SetName(v string) {
+func (o *MachineAPIKey) SetName(v string) {
 	o.Name = v
 }
 
 // GetKind returns the Kind field value
-func (o *Service) GetKind() ServiceKind {
+func (o *MachineAPIKey) GetKind() MachineKind {
 	if o == nil {
-		var ret ServiceKind
+		var ret MachineKind
 		return ret
 	}
 
@@ -127,7 +152,7 @@ func (o *Service) GetKind() ServiceKind {
 
 // GetKindOk returns a tuple with the Kind field value
 // and a boolean to check if the value has been set.
-func (o *Service) GetKindOk() (*ServiceKind, bool) {
+func (o *MachineAPIKey) GetKindOk() (*MachineKind, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -135,12 +160,15 @@ func (o *Service) GetKindOk() (*ServiceKind, bool) {
 }
 
 // SetKind sets field value
-func (o *Service) SetKind(v ServiceKind) {
+func (o *MachineAPIKey) SetKind(v MachineKind) {
 	o.Kind = v
 }
 
-func (o Service) MarshalJSON() ([]byte, error) {
+func (o MachineAPIKey) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
+	if true {
+		toSerialize["apiKey"] = o.ApiKey
+	}
 	if true {
 		toSerialize["id"] = o.Id
 	}
@@ -156,38 +184,38 @@ func (o Service) MarshalJSON() ([]byte, error) {
 	return json.Marshal(toSerialize)
 }
 
-type NullableService struct {
-	value *Service
+type NullableMachineAPIKey struct {
+	value *MachineAPIKey
 	isSet bool
 }
 
-func (v NullableService) Get() *Service {
+func (v NullableMachineAPIKey) Get() *MachineAPIKey {
 	return v.value
 }
 
-func (v *NullableService) Set(val *Service) {
+func (v *NullableMachineAPIKey) Set(val *MachineAPIKey) {
 	v.value = val
 	v.isSet = true
 }
 
-func (v NullableService) IsSet() bool {
+func (v NullableMachineAPIKey) IsSet() bool {
 	return v.isSet
 }
 
-func (v *NullableService) Unset() {
+func (v *NullableMachineAPIKey) Unset() {
 	v.value = nil
 	v.isSet = false
 }
 
-func NewNullableService(val *Service) *NullableService {
-	return &NullableService{value: val, isSet: true}
+func NewNullableMachineAPIKey(val *MachineAPIKey) *NullableMachineAPIKey {
+	return &NullableMachineAPIKey{value: val, isSet: true}
 }
 
-func (v NullableService) MarshalJSON() ([]byte, error) {
+func (v NullableMachineAPIKey) MarshalJSON() ([]byte, error) {
 	return json.Marshal(v.value)
 }
 
-func (v *NullableService) UnmarshalJSON(src []byte) error {
+func (v *NullableMachineAPIKey) UnmarshalJSON(src []byte) error {
 	v.isSet = true
 	return json.Unmarshal(src, &v.value)
 }

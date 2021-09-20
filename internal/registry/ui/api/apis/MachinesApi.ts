@@ -15,40 +15,40 @@
 
 import * as runtime from '../runtime';
 import {
-    ApiService,
-    ApiServiceFromJSON,
-    ApiServiceToJSON,
-    ApiServiceCreateRequest,
-    ApiServiceCreateRequestFromJSON,
-    ApiServiceCreateRequestToJSON,
-    Service,
-    ServiceFromJSON,
-    ServiceToJSON,
+    Machine,
+    MachineFromJSON,
+    MachineToJSON,
+    MachineAPIKey,
+    MachineAPIKeyFromJSON,
+    MachineAPIKeyToJSON,
+    MachineAPIKeyCreateRequest,
+    MachineAPIKeyCreateRequestFromJSON,
+    MachineAPIKeyCreateRequestToJSON,
 } from '../models';
 
-export interface CreateApiServiceRequest {
-    body: ApiServiceCreateRequest;
+export interface CreateMachineAPIKeyRequest {
+    body: MachineAPIKeyCreateRequest;
 }
 
-export interface DeleteServiceRequest {
+export interface DeleteMachineRequest {
     id: string;
 }
 
-export interface ListServicesRequest {
+export interface ListMachinesRequest {
     name?: string;
 }
 
 /**
  * 
  */
-export class ServicesApi extends runtime.BaseAPI {
+export class MachinesApi extends runtime.BaseAPI {
 
     /**
-     * Register an API service
+     * Register a machine API key
      */
-    async createApiServiceRaw(requestParameters: CreateApiServiceRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<ApiService>> {
+    async createMachineAPIKeyRaw(requestParameters: CreateMachineAPIKeyRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<MachineAPIKey>> {
         if (requestParameters.body === null || requestParameters.body === undefined) {
-            throw new runtime.RequiredError('body','Required parameter requestParameters.body was null or undefined when calling createApiService.');
+            throw new runtime.RequiredError('body','Required parameter requestParameters.body was null or undefined when calling createMachineAPIKey.');
         }
 
         const queryParameters: any = {};
@@ -66,30 +66,30 @@ export class ServicesApi extends runtime.BaseAPI {
             }
         }
         const response = await this.request({
-            path: `/services/apis`,
+            path: `/machines/apiKeys`,
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: ApiServiceCreateRequestToJSON(requestParameters.body),
+            body: MachineAPIKeyCreateRequestToJSON(requestParameters.body),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => ApiServiceFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => MachineAPIKeyFromJSON(jsonValue));
     }
 
     /**
-     * Register an API service
+     * Register a machine API key
      */
-    async createApiService(requestParameters: CreateApiServiceRequest, initOverrides?: RequestInit): Promise<ApiService> {
-        const response = await this.createApiServiceRaw(requestParameters, initOverrides);
+    async createMachineAPIKey(requestParameters: CreateMachineAPIKeyRequest, initOverrides?: RequestInit): Promise<MachineAPIKey> {
+        const response = await this.createMachineAPIKeyRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
-     * delete a service
+     * delete a machine
      */
-    async deleteServiceRaw(requestParameters: DeleteServiceRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<void>> {
+    async deleteMachineRaw(requestParameters: DeleteMachineRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<void>> {
         if (requestParameters.id === null || requestParameters.id === undefined) {
-            throw new runtime.RequiredError('id','Required parameter requestParameters.id was null or undefined when calling deleteService.');
+            throw new runtime.RequiredError('id','Required parameter requestParameters.id was null or undefined when calling deleteMachine.');
         }
 
         const queryParameters: any = {};
@@ -105,7 +105,7 @@ export class ServicesApi extends runtime.BaseAPI {
             }
         }
         const response = await this.request({
-            path: `/services/{id}`.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters.id))),
+            path: `/machines/{id}`.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters.id))),
             method: 'DELETE',
             headers: headerParameters,
             query: queryParameters,
@@ -115,16 +115,16 @@ export class ServicesApi extends runtime.BaseAPI {
     }
 
     /**
-     * delete a service
+     * delete a machine
      */
-    async deleteService(requestParameters: DeleteServiceRequest, initOverrides?: RequestInit): Promise<void> {
-        await this.deleteServiceRaw(requestParameters, initOverrides);
+    async deleteMachine(requestParameters: DeleteMachineRequest, initOverrides?: RequestInit): Promise<void> {
+        await this.deleteMachineRaw(requestParameters, initOverrides);
     }
 
     /**
-     * List services
+     * List machines
      */
-    async listServicesRaw(requestParameters: ListServicesRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<Service>>> {
+    async listMachinesRaw(requestParameters: ListMachinesRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<Machine>>> {
         const queryParameters: any = {};
 
         if (requestParameters.name !== undefined) {
@@ -142,20 +142,20 @@ export class ServicesApi extends runtime.BaseAPI {
             }
         }
         const response = await this.request({
-            path: `/services`,
+            path: `/machines`,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(ServiceFromJSON));
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(MachineFromJSON));
     }
 
     /**
-     * List services
+     * List machines
      */
-    async listServices(requestParameters: ListServicesRequest, initOverrides?: RequestInit): Promise<Array<Service>> {
-        const response = await this.listServicesRaw(requestParameters, initOverrides);
+    async listMachines(requestParameters: ListMachinesRequest, initOverrides?: RequestInit): Promise<Array<Machine>> {
+        const response = await this.listMachinesRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

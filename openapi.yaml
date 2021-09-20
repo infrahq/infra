@@ -458,7 +458,6 @@ paths:
     post:
       tags:
         - machines
-        - api keys
       security:
         - bearerAuth: []
       summary: Register a machine API key
@@ -472,7 +471,7 @@ paths:
               $ref: '#/components/schemas/MachineAPIKeyCreateRequest'
       responses:
         '200':
-          description: create destination response
+          description: create machine API key response
           content:
             application/json:
               schema:

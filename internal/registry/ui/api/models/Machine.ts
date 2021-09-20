@@ -14,73 +14,62 @@
 
 import { exists, mapValues } from '../runtime';
 import {
-    Service,
-    ServiceFromJSON,
-    ServiceFromJSONTyped,
-    ServiceToJSON,
-    ServiceKind,
-    ServiceKindFromJSON,
-    ServiceKindFromJSONTyped,
-    ServiceKindToJSON,
+    MachineKind,
+    MachineKindFromJSON,
+    MachineKindFromJSONTyped,
+    MachineKindToJSON,
 } from './';
 
 /**
  * 
  * @export
- * @interface ApiService
+ * @interface Machine
  */
-export interface ApiService {
+export interface Machine {
     /**
      * 
      * @type {string}
-     * @memberof ApiService
-     */
-    apiKey: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof ApiService
+     * @memberof Machine
      */
     id: string;
     /**
      * 
      * @type {number}
-     * @memberof ApiService
+     * @memberof Machine
      */
     created: number;
     /**
      * 
      * @type {string}
-     * @memberof ApiService
+     * @memberof Machine
      */
     name: string;
     /**
      * 
-     * @type {ServiceKind}
-     * @memberof ApiService
+     * @type {MachineKind}
+     * @memberof Machine
      */
-    kind: ServiceKind;
+    kind: MachineKind;
 }
 
-export function ApiServiceFromJSON(json: any): ApiService {
-    return ApiServiceFromJSONTyped(json, false);
+export function MachineFromJSON(json: any): Machine {
+    return MachineFromJSONTyped(json, false);
 }
 
-export function ApiServiceFromJSONTyped(json: any, ignoreDiscriminator: boolean): ApiService {
+export function MachineFromJSONTyped(json: any, ignoreDiscriminator: boolean): Machine {
     if ((json === undefined) || (json === null)) {
         return json;
     }
     return {
         
-        'apiKey': json['apiKey'],
         'id': json['id'],
         'created': json['created'],
         'name': json['name'],
-        'kind': ServiceKindFromJSON(json['kind']),
+        'kind': MachineKindFromJSON(json['kind']),
     };
 }
 
-export function ApiServiceToJSON(value?: ApiService | null): any {
+export function MachineToJSON(value?: Machine | null): any {
     if (value === undefined) {
         return undefined;
     }
@@ -89,11 +78,10 @@ export function ApiServiceToJSON(value?: ApiService | null): any {
     }
     return {
         
-        'apiKey': value.apiKey,
         'id': value.id,
         'created': value.created,
         'name': value.name,
-        'kind': ServiceKindToJSON(value.kind),
+        'kind': MachineKindToJSON(value.kind),
     };
 }
 
