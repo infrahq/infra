@@ -16,7 +16,7 @@
     "dayjs": "^1.10.7",
     "next": "^11.1.1",
     "react": "17.0.2",
-    "react-cookie": "^4.0.3",
+    "react-cookie": "^4.1.1",
     "react-dom": "17.0.2",
     "swr": "^1.0.0"
   },
