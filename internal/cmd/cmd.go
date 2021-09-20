@@ -856,9 +856,9 @@ var groupsCmd = &cobra.Command{
 	},
 }
 
-var servicesCmd = &cobra.Command{
-	Use:   "services",
-	Short: "List services",
+var machinesCmd = &cobra.Command{
+	Use:   "machines",
+	Short: "List machines",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := apiClientFromConfig()
 		if err != nil {
@@ -870,19 +870,19 @@ var servicesCmd = &cobra.Command{
 			return err
 		}
 
-		services, _, err := client.ServicesApi.ListServices(ctx).Execute()
+		machines, _, err := client.MachinesApi.ListMachines(ctx).Execute()
 		if err != nil {
-			fmt.Println("err getting services")
+			fmt.Println("err getting machines")
 			return err
 		}
 
-		sort.Slice(services, func(i, j int) bool {
-			return services[i].Created > services[j].Created
+		sort.Slice(machines, func(i, j int) bool {
+			return machines[i].Created > machines[j].Created
 		})
 
 		rows := [][]string{}
-		for _, s := range services {
-			rows = append(rows, []string{s.Name, units.HumanDuration(time.Now().UTC().Sub(time.Unix(s.Created, 0))) + " ago", string(s.Kind)})
+		for _, m := range machines {
+			rows = append(rows, []string{m.Name, units.HumanDuration(time.Now().UTC().Sub(time.Unix(m.Created, 0))) + " ago", string(m.Kind)})
 		}
 
 		printTable([]string{"NAME", "CREATED", "KIND"}, rows)
@@ -987,17 +987,17 @@ var versionCmd = &cobra.Command{
 	},
 }
 
-var serviceCmd = &cobra.Command{
-	Use:   "service",
-	Short: "Manage Infra services",
+var machineCmd = &cobra.Command{
+	Use:   "machine",
+	Short: "Manage Infra machines",
 }
 
-func newServiceCreateCmd() *cobra.Command {
+func newMachineCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "create KIND NAME",
-		Short:   "Create a new service that relies on Infra",
+		Short:   "Create a new machine that relies on Infra",
 		Args:    cobra.ExactArgs(2),
-		Example: "$ infra service create api automation-token",
+		Example: "$ infra machine create api automation-token",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := apiClientFromConfig()
 			if err != nil {
@@ -1011,17 +1011,17 @@ func newServiceCreateCmd() *cobra.Command {
 
 			switch strings.ToLower(args[0]) {
 			case string(api.API):
-				svcReq := api.ApiServiceCreateRequest{
+				machineReq := api.MachineAPIKeyCreateRequest{
 					Name: args[1],
 				}
-				svc, _, err := client.ServicesApi.CreateApiService(ctx).Body(svcReq).Execute()
+				machine, _, err := client.MachinesApi.CreateMachineAPIKey(ctx).Body(machineReq).Execute()
 				if err != nil {
 					return err
 				}
-				fmt.Fprintln(os.Stderr, red("service ")+svc.Name+" created")
-				fmt.Fprintln(os.Stderr, "api key: "+svc.ApiKey)
+				fmt.Fprintln(os.Stderr, red("machine ")+machine.Name+" created")
+				fmt.Fprintln(os.Stderr, "api key: "+machine.ApiKey)
 			default:
-				fmt.Fprintln(os.Stderr, args[0]+" is not a valid service kind, valid service kinds are [api]")
+				fmt.Fprintln(os.Stderr, args[0]+" is not a valid machine kind, valid machine kinds are [api]")
 			}
 			return nil
 		},
@@ -1029,12 +1029,12 @@ func newServiceCreateCmd() *cobra.Command {
 	return cmd
 }
 
-func newServiceDeleteCmd() *cobra.Command {
+func newMachineDeleteCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "delete NAME",
-		Short:   "Delete a service by name",
+		Short:   "Delete a machine by name",
 		Args:    cobra.ExactArgs(1),
-		Example: "$ infra service delete automation-token",
+		Example: "$ infra machine delete automation-token",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := apiClientFromConfig()
 			if err != nil {
@@ -1046,21 +1046,21 @@ func newServiceDeleteCmd() *cobra.Command {
 				return err
 			}
 
-			svc, _, err := client.ServicesApi.ListServices(ctx).Name(args[0]).Execute()
+			svc, _, err := client.MachinesApi.ListMachines(ctx).Name(args[0]).Execute()
 			if err != nil {
 				return err
 			}
 
 			if len(svc) == 0 {
-				return errors.New("could not find a service with the name " + args[0])
+				return errors.New("could not find a machine with the name " + args[0])
 			}
 			if len(svc) > 1 {
-				// this should not happen, the service name should be unique accross all kinds
-				return errors.New("a unique service could not be identified with the name " + args[0])
+				// this should not happen, the machine name should be unique accross all kinds
+				return errors.New("a unique machine could not be identified with the name " + args[0])
 			}
 
 			fmt.Println(svc)
-			_, err = client.ServicesApi.DeleteService(ctx, svc[0].Id).Execute()
+			_, err = client.MachinesApi.DeleteMachine(ctx, svc[0].Id).Execute()
 			if err != nil {
 				return err
 			}
@@ -1159,7 +1159,7 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(usersCmd)
 	rootCmd.AddCommand(groupsCmd)
-	rootCmd.AddCommand(servicesCmd)
+	rootCmd.AddCommand(machinesCmd)
 	rootCmd.AddCommand(loginCmd)
 	rootCmd.AddCommand(logoutCmd)
 
@@ -1175,9 +1175,9 @@ func NewRootCmd() (*cobra.Command, error) {
 	}
 	rootCmd.AddCommand(engineCmd)
 
-	serviceCmd.AddCommand(newServiceCreateCmd())
-	serviceCmd.AddCommand(newServiceDeleteCmd())
-	rootCmd.AddCommand(serviceCmd)
+	machineCmd.AddCommand(newMachineCreateCmd())
+	machineCmd.AddCommand(newMachineDeleteCmd())
+	rootCmd.AddCommand(machineCmd)
 
 	rootCmd.AddCommand(versionCmd)
 

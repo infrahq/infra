@@ -87,10 +87,10 @@ type Destination struct {
 }
 
 var (
-	SERVICE_KIND_API = "api"
+	MACHINE_KIND_API_KEY = "api"
 )
 
-type Service struct {
+type Machine struct {
 	Id       string `gorm:"primaryKey"`
 	Created  int64  `gorm:"autoCreateTime"`
 	Name     string `gorm:"unique"`
@@ -213,17 +213,17 @@ func (g *Group) BeforeCreate(tx *gorm.DB) (err error) {
 	return nil
 }
 
-func (s *Service) BeforeCreate(tx *gorm.DB) (err error) {
-	if s.Id == "" {
-		s.Id = generate.RandString(ID_LEN)
+func (m *Machine) BeforeCreate(tx *gorm.DB) (err error) {
+	if m.Id == "" {
+		m.Id = generate.RandString(ID_LEN)
 	}
 
 	return
 }
 
-func (s *Service) BeforeDelete(tx *gorm.DB) error {
-	if s.ApiKeyId != "" {
-		tx.Where(&ApiKey{Id: s.ApiKeyId}).Delete(&ApiKey{})
+func (m *Machine) BeforeDelete(tx *gorm.DB) error {
+	if m.ApiKeyId != "" {
+		tx.Where(&ApiKey{Id: m.ApiKeyId}).Delete(&ApiKey{})
 	}
 	return nil
 }
@@ -573,7 +573,7 @@ func NewDB(dbpath string) (*gorm.DB, error) {
 	db.AutoMigrate(&User{})
 	db.AutoMigrate(&Source{})
 	db.AutoMigrate(&Destination{})
-	db.AutoMigrate(&Service{})
+	db.AutoMigrate(&Machine{})
 	db.AutoMigrate(&Role{})
 	db.AutoMigrate(&Settings{})
 	db.AutoMigrate(&Token{})

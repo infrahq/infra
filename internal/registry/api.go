@@ -52,9 +52,9 @@ func NewApiMux(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) *mux.Router {
 	v1.Handle("/sources", http.HandlerFunc(a.ListSources)).Methods("GET")
 	v1.Handle("/destinations", a.bearerAuthMiddleware(http.HandlerFunc(a.ListDestinations))).Methods("GET")
 	v1.Handle("/destinations", a.bearerAuthMiddleware(http.HandlerFunc(a.CreateDestination))).Methods("POST")
-	v1.Handle("/services", a.bearerAuthMiddleware(http.HandlerFunc(a.ListServices))).Methods("GET")
-	v1.Handle("/services/{id}", a.bearerAuthMiddleware(http.HandlerFunc(a.DeleteService))).Methods("DELETE")
-	v1.Handle("/services/apis", a.bearerAuthMiddleware(http.HandlerFunc(a.CreateApiService))).Methods("POST")
+	v1.Handle("/machines", a.bearerAuthMiddleware(http.HandlerFunc(a.ListMachines))).Methods("GET")
+	v1.Handle("/machines/{id}", a.bearerAuthMiddleware(http.HandlerFunc(a.DeleteMachine))).Methods("DELETE")
+	v1.Handle("/machines/apiKeys", a.bearerAuthMiddleware(http.HandlerFunc(a.CreateMachineAPIKey))).Methods("POST")
 	v1.Handle("/creds", a.bearerAuthMiddleware(http.HandlerFunc(a.CreateCred))).Methods("POST")
 	v1.Handle("/roles", a.bearerAuthMiddleware(http.HandlerFunc(a.ListRoles))).Methods("GET")
 	v1.Handle("/login", http.HandlerFunc(a.Login)).Methods("POST")
@@ -257,49 +257,49 @@ func (a *Api) CreateDestination(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(dbToApiDestination(&destination))
 }
 
-func (a *Api) ListServices(w http.ResponseWriter, r *http.Request) {
-	svcName := r.URL.Query().Get("name")
+func (a *Api) ListMachines(w http.ResponseWriter, r *http.Request) {
+	machineName := r.URL.Query().Get("name")
 
-	var services []Service
+	var machines []Machine
 	var err error
-	if svcName != "" {
-		err = a.db.Where(&Service{Name: svcName}).Find(&services).Error
+	if machineName != "" {
+		err = a.db.Where(&Machine{Name: machineName}).Find(&machines).Error
 	} else {
-		err = a.db.Find(&services).Error
+		err = a.db.Find(&machines).Error
 	}
 	if err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not list services")
+		sendApiError(w, http.StatusInternalServerError, "could not list machines")
 		return
 	}
 
-	results := make([]api.Service, 0)
-	for _, s := range services {
-		results = append(results, dbToApiService(&s))
+	results := make([]api.Machine, 0)
+	for _, m := range machines {
+		results = append(results, dbToApiMachine(&m))
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(results)
 }
 
-func (a *Api) DeleteService(w http.ResponseWriter, r *http.Request) {
+func (a *Api) DeleteMachine(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 
-	var errUnknownService = errors.New("a service with this ID does not exist")
+	var errUnknownMachine = errors.New("a machine with this ID does not exist")
 	err := a.db.Transaction(func(tx *gorm.DB) error {
-		var existingService Service
-		tx.First(&existingService, &Service{Id: id})
-		if existingService.Id == "" {
-			return errUnknownService
+		var existingMachine Machine
+		tx.First(&existingMachine, &Machine{Id: id})
+		if existingMachine.Id == "" {
+			return errUnknownMachine
 		}
 
-		tx.Delete(&existingService)
+		tx.Delete(&existingMachine)
 		return nil
 	})
 	if err != nil {
 		logging.L.Error(err.Error())
-		if errors.Is(err, errUnknownService) {
+		if errors.Is(err, errUnknownMachine) {
 			sendApiError(w, http.StatusNotFound, err.Error())
 			return
 		}
@@ -310,8 +310,8 @@ func (a *Api) DeleteService(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (a *Api) CreateApiService(w http.ResponseWriter, r *http.Request) {
-	var body api.ApiServiceCreateRequest
+func (a *Api) CreateMachineAPIKey(w http.ResponseWriter, r *http.Request) {
+	var body api.MachineAPIKeyCreateRequest
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		sendApiError(w, http.StatusBadRequest, err.Error())
 		return
@@ -324,14 +324,14 @@ func (a *Api) CreateApiService(w http.ResponseWriter, r *http.Request) {
 
 	if strings.ToLower(body.Name) == "default" {
 		// this name is used for the default API key that engines use to connect to the registry
-		sendApiError(w, http.StatusBadRequest, "cannot create API service with the name \"default\", this name is reserved")
+		sendApiError(w, http.StatusBadRequest, "cannot create machine API key with the name \"default\", this name is reserved")
 		return
 	}
 
-	var apiService Service
+	var apiMachine Machine
 	var apiKey ApiKey
-	var errExistingKey = errors.New("could not create API service, a key is already associated with this name")
-	var errExistingService = errors.New("could not create service, a service with this name already exists")
+	var errExistingKey = errors.New("could not create machine API key, a key is already associated with this name")
+	var errExistingMachine = errors.New("could not create machine API key, a machine with this name already exists")
 
 	err := a.db.Transaction(func(tx *gorm.DB) error {
 		var existingKey ApiKey
@@ -339,10 +339,10 @@ func (a *Api) CreateApiService(w http.ResponseWriter, r *http.Request) {
 		if existingKey.Id != "" {
 			return errExistingKey
 		}
-		var existingService Service
-		tx.First(&existingService, &Service{Name: body.Name})
-		if existingService.Id != "" {
-			return errExistingService
+		var existingMachine Machine
+		tx.First(&existingMachine, &Machine{Name: body.Name})
+		if existingMachine.Id != "" {
+			return errExistingMachine
 		}
 
 		apiKey.Name = body.Name
@@ -351,19 +351,19 @@ func (a *Api) CreateApiService(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 
-		apiService.Name = body.Name
-		apiService.Kind = SERVICE_KIND_API
-		apiService.ApiKeyId = apiKey.Id
-		err = tx.Create(&apiService).Error
+		apiMachine.Name = body.Name
+		apiMachine.Kind = MACHINE_KIND_API_KEY
+		apiMachine.ApiKeyId = apiKey.Id
+		err = tx.Create(&apiMachine).Error
 		if err != nil {
 			return err
 		}
 
-		return tx.Save(&apiService).Error
+		return tx.Save(&apiMachine).Error
 	})
 	if err != nil {
 		logging.L.Error(err.Error())
-		if errors.Is(err, errExistingKey) || errors.Is(err, errExistingService) {
+		if errors.Is(err, errExistingKey) || errors.Is(err, errExistingMachine) {
 			sendApiError(w, http.StatusConflict, err.Error())
 			return
 		}
@@ -373,7 +373,7 @@ func (a *Api) CreateApiService(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(dbToApiServiceWithKey(&apiService, &apiKey))
+	json.NewEncoder(w).Encode(dbToApiMachineWithKey(&apiMachine, &apiKey))
 }
 
 func (a *Api) ListRoles(w http.ResponseWriter, r *http.Request) {
@@ -636,26 +636,26 @@ func dbToApiDestination(d *Destination) api.Destination {
 	return res
 }
 
-func dbToApiService(s *Service) api.Service {
-	res := api.Service{
+func dbToApiMachine(s *Machine) api.Machine {
+	res := api.Machine{
 		Id:      s.Id,
 		Name:    s.Name,
 		Created: s.Created,
 	}
 
 	switch s.Kind {
-	case SERVICE_KIND_API:
+	case MACHINE_KIND_API_KEY:
 		res.Kind = api.API
 	default:
-		logging.L.Error("unknown service kind loaded from database: " + s.Kind)
+		logging.L.Error("unknown machine kind loaded from database: " + s.Kind)
 	}
 
 	return res
 }
 
 // This function returns the secret key, it should only be used after the inital key creation
-func dbToApiServiceWithKey(s *Service, a *ApiKey) api.ApiService {
-	res := api.ApiService{
+func dbToApiMachineWithKey(s *Machine, a *ApiKey) api.MachineAPIKey {
+	res := api.MachineAPIKey{
 		Name:    s.Name,
 		Id:      s.Id,
 		Created: s.Created,
@@ -663,10 +663,10 @@ func dbToApiServiceWithKey(s *Service, a *ApiKey) api.ApiService {
 	}
 
 	switch s.Kind {
-	case SERVICE_KIND_API:
+	case MACHINE_KIND_API_KEY:
 		res.Kind = api.API
 	default:
-		logging.L.Error("unknown service kind loaded from database: " + s.Kind)
+		logging.L.Error("unknown machine kind loaded from database: " + s.Kind)
 	}
 
 	return res

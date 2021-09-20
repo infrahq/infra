@@ -641,62 +641,62 @@ func TestListGroups(t *testing.T) {
 	assert.Equal(t, "okta", groupSources["villains"])
 }
 
-func TestCreateServiceAPI(t *testing.T) {
+func TestCreateMachineAPIKey(t *testing.T) {
 	a := &Api{db: db}
 
-	createApiServiceRequest := api.ApiServiceCreateRequest{
-		Name: "test-api-svc",
+	createMachineAPIKeyRequest := api.MachineAPIKeyCreateRequest{
+		Name: "test-api-machine",
 	}
 
-	csr, err := createApiServiceRequest.MarshalJSON()
+	csr, err := createMachineAPIKeyRequest.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	r := httptest.NewRequest(http.MethodPost, "/v1/services/apis", bytes.NewReader(csr))
+	r := httptest.NewRequest(http.MethodPost, "/v1/machines/apis", bytes.NewReader(csr))
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.CreateApiService).ServeHTTP(w, r)
+	http.HandlerFunc(a.CreateMachineAPIKey).ServeHTTP(w, r)
 
-	var body api.ApiService
+	var body api.MachineAPIKey
 	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
 		t.Fatal(err)
 	}
 
 	assert.Equal(t, http.StatusCreated, w.Code)
-	assert.Equal(t, "test-api-svc", body.Name)
+	assert.Equal(t, "test-api-machine", body.Name)
 	assert.NotEmpty(t, body.ApiKey)
 }
 
-func TestDeleteServiceAPI(t *testing.T) {
+func TestDeleteMachineAPIKey(t *testing.T) {
 	a := &Api{db: db}
 
-	createApiServiceRequest := api.ApiServiceCreateRequest{
-		Name: "test-api-svc",
+	createMachineAPIKeyRequest := api.MachineAPIKeyCreateRequest{
+		Name: "test-api-machine",
 	}
 
-	csr, err := createApiServiceRequest.MarshalJSON()
+	csr, err := createMachineAPIKeyRequest.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	r := httptest.NewRequest(http.MethodPost, "/v1/services/apis", bytes.NewReader(csr))
+	r := httptest.NewRequest(http.MethodPost, "/v1/machines/apis", bytes.NewReader(csr))
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.CreateApiService).ServeHTTP(w, r)
+	http.HandlerFunc(a.CreateMachineAPIKey).ServeHTTP(w, r)
 
-	var body api.ApiService
+	var body api.MachineAPIKey
 	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
 		t.Fatal(err)
 	}
 
-	delR := httptest.NewRequest(http.MethodDelete, "/v1/services/"+body.Id, nil)
+	delR := httptest.NewRequest(http.MethodDelete, "/v1/machines/"+body.Id, nil)
 	delW := httptest.NewRecorder()
-	http.HandlerFunc(a.DeleteService).ServeHTTP(delW, delR)
+	http.HandlerFunc(a.DeleteMachine).ServeHTTP(delW, delR)
 
 	assert.Equal(t, http.StatusNoContent, delW.Code)
 
-	var svcApiKey ApiKey
-	db.First(&svcApiKey, &ApiKey{Name: "test-api-svc"})
-	assert.Empty(t, svcApiKey.Id, "API key associated with service not deleted")
+	var machineApiKey ApiKey
+	db.First(&machineApiKey, &ApiKey{Name: "test-api-machine"})
+	assert.Empty(t, machineApiKey.Id, "API key associated with machine not deleted")
 }
 
 func containsUser(users []api.User, email string) bool {

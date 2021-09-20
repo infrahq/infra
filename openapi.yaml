@@ -14,8 +14,8 @@ tags:
     description: Manage identity sources
   - name: destinations
     description: Manage infrastructure destinations
-  - name: services
-    description: Manage services that rely on Infra
+  - name: machines
+    description: Manage machines that rely on Infra
   - name: creds
     description: Create credentials to access a destination
   - name: roles
@@ -145,7 +145,7 @@ components:
         saToken:
           type: string
           x-go-custom-tag: validate:"required"
-    Service:
+    Machine:
       type: object
       required:
         - id
@@ -161,22 +161,22 @@ components:
         name:
           type: string
         kind:
-          $ref: "#/components/schemas/ServiceKind"
-    ServiceKind:
+          $ref: "#/components/schemas/MachineKind"
+    MachineKind:
       type: string
       enum:
         - api
         - client
-    ApiService:
+    MachineAPIKey:
         allOf:
-        - $ref: '#/components/schemas/Service'
+        - $ref: '#/components/schemas/Machine'
         type: object
         required:
           - apiKey
         properties:
           apiKey:
             type: string
-    ApiServiceCreateRequest:
+    MachineAPIKeyCreateRequest:
       type: object
       required:
         - name
@@ -400,43 +400,43 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /services:
+  /machines:
     get:
       tags:
-        - services
+        - machines
       security:
         - bearerAuth: []
-      summary: List services
-      operationId: listServices
+      summary: List machines
+      operationId: listMachines
       parameters:
         - in: query
           name: name
           schema:
             type: string
-          description: Filter results by the service name
+          description: Filter results by the machine name
       responses:
         '200':
-          description: services response
+          description: machines response
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Service'
+                  $ref: '#/components/schemas/Machine'
         default:
           description: unexpected error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /services/{id}:
+  /machines/{id}:
     delete:
       tags:
-        - services
+        - machines
       security:
         - bearerAuth: []
-      summary: delete a service
-      operationId: deleteService
+      summary: delete a machine
+      operationId: deleteMachine
       parameters:
         - in: path
           name: id
@@ -444,7 +444,7 @@ paths:
           schema:
             type: string
             minimum: 1
-          description: The service ID
+          description: The machine ID
       responses:
         '204':
           description: empty response
@@ -454,28 +454,29 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /services/apis:
+  /machines/apiKeys:
     post:
       tags:
-        - services
+        - machines
+        - api keys
       security:
         - bearerAuth: []
-      summary: Register an API service
-      operationId: createApiService
+      summary: Register a machine API key
+      operationId: createMachineAPIKey
       x-codegen-request-body-name: body
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ApiServiceCreateRequest'
+              $ref: '#/components/schemas/MachineAPIKeyCreateRequest'
       responses:
         '200':
           description: create destination response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiService'
+                $ref: '#/components/schemas/MachineAPIKey'
         default:
           description: unexpected error
           content:
