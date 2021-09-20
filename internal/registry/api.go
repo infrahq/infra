@@ -26,11 +26,16 @@ type Api struct {
 	okta Okta
 }
 
+type CustomJWTClaims struct {
+	Email       string `json:"email" validate:"required"`
+	Destination string `json:"dest" validate:"required"`
+	Nonce       string `json:"nonce" validate:"required"`
+}
+
 var (
 	validate        *validator.Validate = validator.New()
 	SessionDuration time.Duration       = time.Hour * 24
 )
-
 
 func NewApiMux(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) *mux.Router {
 	a := Api{
@@ -312,11 +317,7 @@ func (a *Api) createJWT(destination, email string) (string, time.Time, error) {
 		Expiry:    jwt.NewNumericDate(expiry),
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
 	}
-	custom := struct {
-		Email       string `json:"email"`
-		Destination string `json:"dest"`
-		Nonce       string `json:"nonce"`
-	}{
+	custom := CustomJWTClaims{
 		Email:       email,
 		Destination: destination,
 		Nonce:       generate.RandString(10),

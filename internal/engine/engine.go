@@ -15,11 +15,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/handlers"
 	"github.com/goware/urlx"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/registry"
 	"github.com/infrahq/infra/internal/timer"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
@@ -89,7 +91,7 @@ type GetJWKFunc func() (*jose.JSONWebKey, error)
 
 type HttpContextKeyEmail struct{}
 
-func jwtMiddleware(getjwk GetJWKFunc, next http.HandlerFunc) http.Handler {
+func jwtMiddleware(destination string, getjwk GetJWKFunc, next http.HandlerFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authorization := r.Header.Get("X-Infra-Authorization")
 		raw := strings.Replace(authorization, "Bearer ", "", -1)
@@ -114,14 +116,17 @@ func jwtMiddleware(getjwk GetJWKFunc, next http.HandlerFunc) http.Handler {
 		}
 
 		out := make(map[string]interface{})
-		cl := jwt.Claims{}
-		if err := tok.Claims(key, &cl, &out); err != nil {
+		claims := struct {
+			jwt.Claims
+			registry.CustomJWTClaims
+		}{}
+		if err := tok.Claims(key, &claims, &out); err != nil {
 			logging.L.Debug("Invalid token claims")
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		err = cl.Validate(jwt.Expected{
+		err = claims.Claims.Validate(jwt.Expected{
 			Issuer: "infra",
 			Time:   time.Now(),
 		})
@@ -135,15 +140,19 @@ func jwtMiddleware(getjwk GetJWKFunc, next http.HandlerFunc) http.Handler {
 			return
 		}
 
-		email, ok := out["email"].(string)
-		if !ok {
-			logging.L.Debug("Email not found in claims")
+		if err := validator.New().Struct(claims.CustomJWTClaims); err != nil {
+			logging.L.Debug("JWT custom claims not valid")
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
 
+		if claims.Destination != destination {
+			logging.L.Sugar().Debugf("JWT custom claims destination %q does not match expected destination %q", claims.Destination, destination)
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+		}
+
 		ctx := r.Context()
-		ctx = context.WithValue(ctx, HttpContextKeyEmail{}, email)
+		ctx = context.WithValue(ctx, HttpContextKeyEmail{}, claims.Email)
 		next(w, r.WithContext(ctx))
 	})
 }
@@ -245,6 +254,15 @@ func Run(options Options) error {
 		return err
 	}
 
+	name := options.Name
+	if name == "" {
+		name, err = k8s.Name()
+		if err != nil {
+			logging.L.Error(err.Error())
+			return err
+		}
+	}
+
 	timer := timer.Timer{}
 	timer.Start(5, func() {
 		ca, err := k8s.CA()
@@ -266,15 +284,6 @@ func Run(options Options) error {
 		if err != nil {
 			logging.L.Error(err.Error())
 			return
-		}
-
-		name := options.Name
-		if name == "" {
-			name, err = k8s.Name()
-			if err != nil {
-				logging.L.Error(err.Error())
-				return
-			}
 		}
 
 		saToken, err := k8s.SaToken()
@@ -342,7 +351,7 @@ func Run(options Options) error {
 		baseURL: u.String(),
 	}
 
-	mux.Handle("/proxy/", jwtMiddleware(cache.getjwk, ph))
+	mux.Handle("/proxy/", jwtMiddleware(name, cache.getjwk, ph))
 
 	logging.L.Info("serving on port 80")
 	return http.ListenAndServe(":80", handlers.LoggingHandler(os.Stdout, mux))
