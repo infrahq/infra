@@ -287,7 +287,7 @@ func (a *Api) ListRoles(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(results)
 }
 
-func (a *Api) createJWT(email string) (string, time.Time, error) {
+func (a *Api) createJWT(destination, email string) (string, time.Time, error) {
 	var settings Settings
 	err := a.db.First(&settings).Error
 	if err != nil {
@@ -307,16 +307,19 @@ func (a *Api) createJWT(email string) (string, time.Time, error) {
 
 	expiry := time.Now().Add(time.Minute * 5)
 	cl := jwt.Claims{
-		Issuer:   "infra",
-		Expiry:   jwt.NewNumericDate(expiry),
-		IssuedAt: jwt.NewNumericDate(time.Now()),
+		Issuer:    "infra",
+		NotBefore: jwt.NewNumericDate(time.Now().Add(-5 * time.Minute)), // allow for clock drift
+		Expiry:    jwt.NewNumericDate(expiry),
+		IssuedAt:  jwt.NewNumericDate(time.Now()),
 	}
 	custom := struct {
-		Email string `json:"email"`
-		Nonce string `json:"nonce"`
+		Email       string `json:"email"`
+		Destination string `json:"dest"`
+		Nonce       string `json:"nonce"`
 	}{
-		email,
-		generate.RandString(10),
+		Email:       email,
+		Destination: destination,
+		Nonce:       generate.RandString(10),
 	}
 
 	raw, err := jwt.Signed(signer).Claims(cl).Claims(custom).CompactSerialize()
@@ -334,7 +337,18 @@ func (a *Api) CreateCred(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jwt, expiry, err := a.createJWT(token.User.Email)
+	var body api.CredRequest
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sendApiError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := validate.Struct(body); err != nil {
+		sendApiError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	jwt, expiry, err := a.createJWT(*body.Destination, token.User.Email)
 	if err != nil {
 		sendApiError(w, http.StatusInternalServerError, "could not generate cred")
 		return

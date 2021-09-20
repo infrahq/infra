@@ -18,7 +18,14 @@ import {
     Cred,
     CredFromJSON,
     CredToJSON,
+    CredRequest,
+    CredRequestFromJSON,
+    CredRequestToJSON,
 } from '../models';
+
+export interface CreateCredRequest {
+    body: CredRequest;
+}
 
 /**
  * 
@@ -28,10 +35,16 @@ export class CredsApi extends runtime.BaseAPI {
     /**
      * Create credentials to access a destination
      */
-    async createCredRaw(initOverrides?: RequestInit): Promise<runtime.ApiResponse<Cred>> {
+    async createCredRaw(requestParameters: CreateCredRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Cred>> {
+        if (requestParameters.body === null || requestParameters.body === undefined) {
+            throw new runtime.RequiredError('body','Required parameter requestParameters.body was null or undefined when calling createCred.');
+        }
+
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
 
         if (this.configuration && this.configuration.accessToken) {
             const token = this.configuration.accessToken;
@@ -46,6 +59,7 @@ export class CredsApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
+            body: CredRequestToJSON(requestParameters.body),
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => CredFromJSON(jsonValue));
@@ -54,8 +68,8 @@ export class CredsApi extends runtime.BaseAPI {
     /**
      * Create credentials to access a destination
      */
-    async createCred(initOverrides?: RequestInit): Promise<Cred> {
-        const response = await this.createCredRaw(initOverrides);
+    async createCred(requestParameters: CreateCredRequest, initOverrides?: RequestInit): Promise<Cred> {
+        const response = await this.createCredRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
