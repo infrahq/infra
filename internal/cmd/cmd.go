@@ -448,7 +448,7 @@ func login(config *Config) error {
 		state := generate.RandString(12)
 		authorizeUrl := "https://" + source.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + source.Okta.ClientId + "&response_type=code&scope=openid+email&nonce=" + generate.RandString(10) + "&state=" + state
 
-		fmt.Fprintln(os.Stderr, blue("✓") + " Logging in with Okta...")
+		fmt.Fprintln(os.Stderr, blue("✓")+" Logging in with Okta...")
 		ls, err := newLocalServer()
 		if err != nil {
 			return err
@@ -492,7 +492,7 @@ func login(config *Config) error {
 		return err
 	}
 
-	fmt.Fprintln(os.Stderr, blue("✓") + " Logged in as " + termenv.String(loginRes.Name).Bold().String())
+	fmt.Fprintln(os.Stderr, blue("✓")+" Logged in as "+termenv.String(loginRes.Name).Bold().String())
 
 	// Generate client certs
 	home, err := homedir.Dir()
@@ -556,7 +556,7 @@ func login(config *Config) error {
 
 	if len(destinations) > 0 {
 		kubeConfigPath := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{}).ConfigAccess().GetDefaultFilename()
-		fmt.Fprintln(os.Stderr, blue("✓") + " Kubeconfig updated: " + termenv.String(strings.ReplaceAll(kubeConfigPath, home, "~")).Bold().String())
+		fmt.Fprintln(os.Stderr, blue("✓")+" Kubeconfig updated: "+termenv.String(strings.ReplaceAll(kubeConfigPath, home, "~")).Bold().String())
 	}
 
 	context, err := switchToFirstInfraContext()
@@ -565,7 +565,7 @@ func login(config *Config) error {
 	}
 
 	if context != "" {
-		fmt.Fprintln(os.Stderr, blue("✓") + " Kubernetes current context is now " + termenv.String(context).Bold().String())
+		fmt.Fprintln(os.Stderr, blue("✓")+" Kubernetes current context is now "+termenv.String(context).Bold().String())
 	}
 
 	return nil
@@ -860,7 +860,6 @@ var versionCmd = &cobra.Command{
 var credsCmd = &cobra.Command{
 	Use:   "creds",
 	Short: "Generate a JWT token for connecting to a destination, eg k8s",
-	// args should be a single destination you want credentials for
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := apiClientFromConfig()
 		if err != nil {
@@ -886,7 +885,7 @@ var credsCmd = &cobra.Command{
 
 		if isExpired(execCredential) {
 			credReq := client.CredsApi.CreateCred(ctx).Body(api.CredRequest{Destination: &destination})
-			cred, _, err := credReq.Execute()
+			cred, res, err := credReq.Execute()
 			if err != nil {
 				switch res.StatusCode {
 				case http.StatusForbidden:
@@ -894,26 +893,27 @@ var credsCmd = &cobra.Command{
 					if err != nil {
 						return err
 					}
-	
+
 					err = login(config)
 					if err != nil {
 						return err
 					}
-	
+
 					ctx, err := apiContextFromConfig()
 					if err != nil {
 						return err
 					}
-	
+
 					cred, _, err = client.CredsApi.CreateCred(ctx).Execute()
 					if err != nil {
 						return err
 					}
-	
+
 				default:
 					return err
 				}
-	
+			}
+
 			execCredential = &clientauthenticationv1alpha1.ExecCredential{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "ExecCredential",
