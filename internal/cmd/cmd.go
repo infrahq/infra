@@ -1046,21 +1046,20 @@ func newMachineDeleteCmd() *cobra.Command {
 				return err
 			}
 
-			svc, _, err := client.MachinesApi.ListMachines(ctx).Name(args[0]).Execute()
+			machine, _, err := client.MachinesApi.ListMachines(ctx).Name(args[0]).Execute()
 			if err != nil {
 				return err
 			}
 
-			if len(svc) == 0 {
+			if len(machine) == 0 {
 				return errors.New("could not find a machine with the name " + args[0])
 			}
-			if len(svc) > 1 {
+			if len(machine) > 1 {
 				// this should not happen, the machine name should be unique accross all kinds
 				return errors.New("a unique machine could not be identified with the name " + args[0])
 			}
 
-			fmt.Println(svc)
-			_, err = client.MachinesApi.DeleteMachine(ctx, svc[0].Id).Execute()
+			_, err = client.MachinesApi.DeleteMachine(ctx, machine[0].Id).Execute()
 			if err != nil {
 				return err
 			}
