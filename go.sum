@@ -593,8 +593,8 @@ github.com/natefinch/lumberjack v2.0.0+incompatible/go.mod h1:Wi9p2TTF5DG5oU+6Yf
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/nxadm/tail v1.4.4/go.mod h1:kenIhsEOeOJmVchQTgglprH7qJGnHDVpk1VPCcaMI8A=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
-github.com/okta/okta-sdk-golang/v2 v2.3.0 h1:+IGDlvIKD0iotCuhlcrJsTOdz6ZI+WTelqipaUhJibg=
-github.com/okta/okta-sdk-golang/v2 v2.3.0/go.mod h1:G4GCqqnZJCt91zMqYhDMLhg2INVbjiiFKkQ2mnia1J0=
+github.com/okta/okta-sdk-golang/v2 v2.6.2 h1:JcMjG0264ockA2RIrMA4L0fbnZAH+9qo2T/QuFApkj8=
+github.com/okta/okta-sdk-golang/v2 v2.6.2/go.mod h1:0y8stgdplWMjaEbMr4mVtw0R+BdktpGZRw2sWKZWsMs=
 github.com/olekukonko/tablewriter v0.0.5 h1:P2Ga83D34wi1o9J6Wh1mRuqd4mF/x/lgBS7N7AbDhec=
 github.com/olekukonko/tablewriter v0.0.5/go.mod h1:hPp6KlRPjbx+hW8ykQs1w3UBbZlj6HuIJcUGPhkA7kY=
 github.com/onsi/ginkgo v0.0.0-20170829012221-11459a886d9c/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
