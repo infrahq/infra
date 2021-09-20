@@ -20,14 +20,11 @@ require (
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/kevinburke/go-bindata v3.22.0+incompatible
 	github.com/kr/pty v1.1.5 // indirect
-	github.com/mattn/go-isatty v0.0.13 // indirect
-	github.com/mattn/go-runewidth v0.0.12 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/muesli/termenv v0.8.1
+	github.com/muesli/termenv v0.9.0
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/okta/okta-sdk-golang/v2 v2.3.0
 	github.com/olekukonko/tablewriter v0.0.5
-	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/signalsciences/ipv4 v1.4.0
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/afero v1.6.0
