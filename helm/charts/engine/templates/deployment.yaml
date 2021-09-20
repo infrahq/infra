@@ -22,9 +22,9 @@ spec:
         - name: engine
           image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args: ["engine"]
+          args: ["engine", "--tls-cache", "/var/run/infra/data/cache"]
           ports:
-            - containerPort: 80
+            - containerPort: 443
           env:
             {{- if .Values.name }}
             - name: INFRA_ENGINE_NAME
@@ -50,8 +50,9 @@ spec:
               readOnly: true
           livenessProbe:
             httpGet:
+              scheme: HTTPS
               path: /healthz
-              port: 80
+              port: 443
             periodSeconds: 3
       volumes:
         - name: infra-engine-anonymous

@@ -16,7 +16,7 @@ import (
 	"github.com/NYTimes/gziphandler"
 	assetfs "github.com/elazarl/go-bindata-assetfs"
 	"github.com/goware/urlx"
-	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
 	timer "github.com/infrahq/infra/internal/timer"
@@ -49,7 +49,7 @@ func getSelfSignedOrLetsEncryptCert(certManager *autocert.Manager) func(hello *t
 
 		cert, ok := selfSignCache[name]
 		if !ok {
-			certBytes, keyBytes, err := generate.SelfSignedCert([]string{name})
+			certBytes, keyBytes, err := certs.SelfSignedCert([]string{name})
 			if err != nil {
 				return nil, err
 			}

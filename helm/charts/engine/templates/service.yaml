@@ -10,6 +10,6 @@ spec:
   selector:
     app: infra-engine
   ports:
-    - name: http
-      port: 80
-      targetPort: 80
+    - name: https
+      port: 443
+      targetPort: 443

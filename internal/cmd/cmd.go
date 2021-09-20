@@ -25,6 +25,7 @@ import (
 	"github.com/docker/go-units"
 	"github.com/goware/urlx"
 	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/engine"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
@@ -505,7 +506,7 @@ func login(config *Config) error {
 	}
 
 	if _, err := os.Stat(filepath.Join(home, ".infra", "client", "cert.pem")); os.IsNotExist(err) {
-		certBytes, keyBytes, err := generate.SelfSignedCert([]string{"localhost", "localhost:32710"})
+		certBytes, keyBytes, err := certs.SelfSignedCert([]string{"localhost", "localhost:32710"})
 		if err != nil {
 			return err
 		}
@@ -801,7 +802,7 @@ func newRegistryCmd() (*cobra.Command, error) {
 	return cmd, nil
 }
 
-func newEngineCmd() *cobra.Command {
+func newEngineCmd() (*cobra.Command, error) {
 	var options engine.Options
 
 	cmd := &cobra.Command{
@@ -818,13 +819,19 @@ func newEngineCmd() *cobra.Command {
 		},
 	}
 
+	home, err := homedir.Dir()
+	if err != nil {
+		return nil, err
+	}
+
 	cmd.PersistentFlags().BoolVar(&options.ForceTLSVerify, "force-tls-verify", false, "force TLS verification")
 	cmd.Flags().StringVarP(&options.Registry, "registry", "r", os.Getenv("INFRA_ENGINE_REGISTRY"), "registry hostname")
 	cmd.Flags().StringVarP(&options.Name, "name", "n", os.Getenv("INFRA_ENGINE_NAME"), "cluster name")
+	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(home, ".infra", "cache"), "path to directory to cache tls self-signed and Let's Encrypt certificates")
 	cmd.Flags().StringVarP(&options.Endpoint, "endpoint", "e", os.Getenv("INFRA_ENGINE_ENDPOINT"), "cluster endpoint")
 	cmd.Flags().StringVar(&options.APIKey, "api-key", os.Getenv("INFRA_ENGINE_API_KEY"), "api key")
 
-	return cmd
+	return cmd, nil
 }
 
 var versionCmd = &cobra.Command{
@@ -965,7 +972,12 @@ func NewRootCmd() (*cobra.Command, error) {
 		return nil, err
 	}
 	rootCmd.AddCommand(registryCmd)
-	rootCmd.AddCommand(newEngineCmd())
+
+	engineCmd, err := newEngineCmd()
+	if err != nil {
+		return nil, err
+	}
+	rootCmd.AddCommand(engineCmd)
 
 	rootCmd.AddCommand(versionCmd)
 
