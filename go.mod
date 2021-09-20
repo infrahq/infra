@@ -25,7 +25,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/muesli/termenv v0.8.1
 	github.com/natefinch/lumberjack v2.0.0+incompatible
-	github.com/okta/okta-sdk-golang/v2 v2.3.0
+	github.com/okta/okta-sdk-golang/v2 v2.6.2
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/signalsciences/ipv4 v1.4.0
