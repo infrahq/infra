@@ -1029,6 +1029,48 @@ func newServiceCreateCmd() *cobra.Command {
 	return cmd
 }
 
+func newServiceDeleteCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "delete NAME",
+		Short:   "Delete a service by name",
+		Args:    cobra.ExactArgs(1),
+		Example: "$ infra service delete automation-token",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client, err := apiClientFromConfig()
+			if err != nil {
+				return err
+			}
+
+			ctx, err := apiContextFromConfig()
+			if err != nil {
+				return err
+			}
+
+			svc, _, err := client.ServicesApi.ListServices(ctx).Name(args[0]).Execute()
+			if err != nil {
+				return err
+			}
+
+			if len(svc) == 0 {
+				return errors.New("could not find a service with the name " + args[0])
+			}
+			if len(svc) > 1 {
+				// this should not happen, the service name should be unique accross all kinds
+				return errors.New("a unique service could not be identified with the name " + args[0])
+			}
+
+			fmt.Println(svc)
+			_, err = client.ServicesApi.DeleteService(ctx, svc[0].Id).Execute()
+			if err != nil {
+				return err
+			}
+			fmt.Fprintln(os.Stderr, "deleted: "+args[0])
+			return nil
+		},
+	}
+	return cmd
+}
+
 var credsCmd = &cobra.Command{
 	Use:   "creds",
 	Short: "Generate a JWT token for connecting to a destination, eg k8s",
@@ -1134,6 +1176,7 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.AddCommand(engineCmd)
 
 	serviceCmd.AddCommand(newServiceCreateCmd())
+	serviceCmd.AddCommand(newServiceDeleteCmd())
 	rootCmd.AddCommand(serviceCmd)
 
 	rootCmd.AddCommand(versionCmd)

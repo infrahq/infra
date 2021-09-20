@@ -53,6 +53,7 @@ func NewApiMux(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) *mux.Router {
 	v1.Handle("/destinations", a.bearerAuthMiddleware(http.HandlerFunc(a.ListDestinations))).Methods("GET")
 	v1.Handle("/destinations", a.bearerAuthMiddleware(http.HandlerFunc(a.CreateDestination))).Methods("POST")
 	v1.Handle("/services", a.bearerAuthMiddleware(http.HandlerFunc(a.ListServices))).Methods("GET")
+	v1.Handle("/services/{id}", a.bearerAuthMiddleware(http.HandlerFunc(a.DeleteService))).Methods("DELETE")
 	v1.Handle("/services/apis", a.bearerAuthMiddleware(http.HandlerFunc(a.CreateApiService))).Methods("POST")
 	v1.Handle("/creds", a.bearerAuthMiddleware(http.HandlerFunc(a.CreateCred))).Methods("POST")
 	v1.Handle("/roles", a.bearerAuthMiddleware(http.HandlerFunc(a.ListRoles))).Methods("GET")
@@ -257,8 +258,16 @@ func (a *Api) CreateDestination(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Api) ListServices(w http.ResponseWriter, r *http.Request) {
+	svcName := r.URL.Query().Get("name")
+
 	var services []Service
-	if err := a.db.Find(&services).Error; err != nil {
+	var err error
+	if svcName != "" {
+		err = a.db.Where(&Service{Name: svcName}).Find(&services).Error
+	} else {
+		err = a.db.Find(&services).Error
+	}
+	if err != nil {
 		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not list services")
 		return
@@ -271,6 +280,34 @@ func (a *Api) ListServices(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(results)
+}
+
+func (a *Api) DeleteService(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	var errUnknownService = errors.New("a service with this ID does not exist")
+	err := a.db.Transaction(func(tx *gorm.DB) error {
+		var existingService Service
+		tx.First(&existingService, &Service{Id: id})
+		if existingService.Id == "" {
+			return errUnknownService
+		}
+
+		tx.Delete(&existingService)
+		return nil
+	})
+	if err != nil {
+		logging.L.Error(err.Error())
+		if errors.Is(err, errUnknownService) {
+			sendApiError(w, http.StatusNotFound, err.Error())
+			return
+		}
+		sendApiError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (a *Api) CreateApiService(w http.ResponseWriter, r *http.Request) {
@@ -328,6 +365,7 @@ func (a *Api) CreateApiService(w http.ResponseWriter, r *http.Request) {
 		logging.L.Error(err.Error())
 		if errors.Is(err, errExistingKey) || errors.Is(err, errExistingService) {
 			sendApiError(w, http.StatusConflict, err.Error())
+			return
 		}
 		sendApiError(w, http.StatusInternalServerError, err.Error())
 		return

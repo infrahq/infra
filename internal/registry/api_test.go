@@ -641,6 +641,64 @@ func TestListGroups(t *testing.T) {
 	assert.Equal(t, "okta", groupSources["villains"])
 }
 
+func TestCreateServiceAPI(t *testing.T) {
+	a := &Api{db: db}
+
+	createApiServiceRequest := api.ApiServiceCreateRequest{
+		Name: "test-api-svc",
+	}
+
+	csr, err := createApiServiceRequest.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r := httptest.NewRequest(http.MethodPost, "/v1/services/apis", bytes.NewReader(csr))
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.CreateApiService).ServeHTTP(w, r)
+
+	var body api.ApiService
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+	assert.Equal(t, "test-api-svc", body.Name)
+	assert.NotEmpty(t, body.ApiKey)
+}
+
+func TestDeleteServiceAPI(t *testing.T) {
+	a := &Api{db: db}
+
+	createApiServiceRequest := api.ApiServiceCreateRequest{
+		Name: "test-api-svc",
+	}
+
+	csr, err := createApiServiceRequest.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r := httptest.NewRequest(http.MethodPost, "/v1/services/apis", bytes.NewReader(csr))
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.CreateApiService).ServeHTTP(w, r)
+
+	var body api.ApiService
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+
+	delR := httptest.NewRequest(http.MethodDelete, "/v1/services/"+body.Id, nil)
+	delW := httptest.NewRecorder()
+	http.HandlerFunc(a.DeleteService).ServeHTTP(delW, delR)
+
+	assert.Equal(t, http.StatusNoContent, delW.Code)
+
+	var svcApiKey ApiKey
+	db.First(&svcApiKey, &ApiKey{Name: "test-api-svc"})
+	assert.Empty(t, svcApiKey.Id, "API key associated with service not deleted")
+}
+
 func containsUser(users []api.User, email string) bool {
 	for _, u := range users {
 		if u.Email == email {

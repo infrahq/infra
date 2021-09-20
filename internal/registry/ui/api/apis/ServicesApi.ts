@@ -30,6 +30,14 @@ export interface CreateApiServiceRequest {
     body: ApiServiceCreateRequest;
 }
 
+export interface DeleteServiceRequest {
+    id: string;
+}
+
+export interface ListServicesRequest {
+    name?: string;
+}
+
 /**
  * 
  */
@@ -77,10 +85,51 @@ export class ServicesApi extends runtime.BaseAPI {
     }
 
     /**
+     * delete a service
+     */
+    async deleteServiceRaw(requestParameters: DeleteServiceRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<void>> {
+        if (requestParameters.id === null || requestParameters.id === undefined) {
+            throw new runtime.RequiredError('id','Required parameter requestParameters.id was null or undefined when calling deleteService.');
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+        const response = await this.request({
+            path: `/services/{id}`.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters.id))),
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * delete a service
+     */
+    async deleteService(requestParameters: DeleteServiceRequest, initOverrides?: RequestInit): Promise<void> {
+        await this.deleteServiceRaw(requestParameters, initOverrides);
+    }
+
+    /**
      * List services
      */
-    async listServicesRaw(initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<Service>>> {
+    async listServicesRaw(requestParameters: ListServicesRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<Service>>> {
         const queryParameters: any = {};
+
+        if (requestParameters.name !== undefined) {
+            queryParameters['name'] = requestParameters.name;
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
@@ -105,8 +154,8 @@ export class ServicesApi extends runtime.BaseAPI {
     /**
      * List services
      */
-    async listServices(initOverrides?: RequestInit): Promise<Array<Service>> {
-        const response = await this.listServicesRaw(initOverrides);
+    async listServices(requestParameters: ListServicesRequest, initOverrides?: RequestInit): Promise<Array<Service>> {
+        const response = await this.listServicesRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

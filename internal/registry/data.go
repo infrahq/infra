@@ -221,6 +221,13 @@ func (s *Service) BeforeCreate(tx *gorm.DB) (err error) {
 	return
 }
 
+func (s *Service) BeforeDelete(tx *gorm.DB) error {
+	if s.ApiKeyId != "" {
+		tx.Where(&ApiKey{Id: s.ApiKeyId}).Delete(&ApiKey{})
+	}
+	return nil
+}
+
 func (s *Source) BeforeCreate(tx *gorm.DB) (err error) {
 	if s.Id == "" {
 		s.Id = generate.MathRandString(ID_LEN)

@@ -408,6 +408,12 @@ paths:
         - bearerAuth: []
       summary: List services
       operationId: listServices
+      parameters:
+        - in: query
+          name: name
+          schema:
+            type: string
+          description: Filter results by the service name
       responses:
         '200':
           description: services response
@@ -417,6 +423,31 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Service'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /services/{id}:
+    delete:
+      tags:
+        - services
+      security:
+        - bearerAuth: []
+      summary: delete a service
+      operationId: deleteService
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: The service ID
+      responses:
+        '204':
+          description: empty response
         default:
           description: unexpected error
           content:
