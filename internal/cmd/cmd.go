@@ -1004,6 +1004,7 @@ func getCache(path, name string, obj interface{}) error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 
 	d := json.NewDecoder(f)
 	if err := d.Decode(obj); err != nil {
@@ -1030,6 +1031,7 @@ func setCache(path, name string, obj interface{}) error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 
 	e := json.NewEncoder(f)
 	if err := e.Encode(obj); err != nil {
