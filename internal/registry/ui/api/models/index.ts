@@ -1,6 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export * from './Cred';
+export * from './CredRequest';
 export * from './Destination';
 export * from './DestinationCreateRequest';
 export * from './DestinationKubernetes';

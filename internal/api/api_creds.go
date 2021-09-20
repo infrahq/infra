@@ -29,6 +29,12 @@ type CredsApiService service
 type ApiCreateCredRequest struct {
 	ctx        _context.Context
 	ApiService *CredsApiService
+	body       *CredRequest
+}
+
+func (r ApiCreateCredRequest) Body(body CredRequest) ApiCreateCredRequest {
+	r.body = &body
+	return r
 }
 
 func (r ApiCreateCredRequest) Execute() (Cred, *_nethttp.Response, error) {
@@ -70,9 +76,12 @@ func (a *CredsApiService) CreateCredExecute(r ApiCreateCredRequest) (Cred, *_net
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := _neturl.Values{}
 	localVarFormParams := _neturl.Values{}
+	if r.body == nil {
+		return localVarReturnValue, nil, reportError("body is required and must be specified")
+	}
 
 	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{}
+	localVarHTTPContentTypes := []string{"application/json"}
 
 	// set Content-Type header
 	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
@@ -88,6 +97,8 @@ func (a *CredsApiService) CreateCredExecute(r ApiCreateCredRequest) (Cred, *_net
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	// body params
+	localVarPostBody = r.body
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, localVarFormFileName, localVarFileName, localVarFileBytes)
 	if err != nil {
 		return localVarReturnValue, nil, err

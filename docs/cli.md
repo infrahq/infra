@@ -88,6 +88,20 @@ infra logout [flags]
   -h, --help   help for logout
 ```
 
+## `infra creds`
+
+Get a token for a specific destination. Typically only used internally.
+
+```
+infra creds DESTINATION
+```
+
+### Examples
+
+```
+$ infra creds kubernetes
+```
+
 ## `infra registry`
 
 Start Infra Registry

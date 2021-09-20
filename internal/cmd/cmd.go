@@ -230,7 +230,7 @@ func updateKubeconfig(destinations []api.Destination) error {
 		kubeConfig.AuthInfos[contextName] = &clientcmdapi.AuthInfo{
 			Exec: &clientcmdapi.ExecConfig{
 				Command:    executable,
-				Args:       []string{"creds"},
+				Args:       []string{"creds", d.Name},
 				APIVersion: "client.authentication.k8s.io/v1alpha1",
 			},
 		}
@@ -448,7 +448,7 @@ func login(config *Config) error {
 		state := generate.RandString(12)
 		authorizeUrl := "https://" + source.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + source.Okta.ClientId + "&response_type=code&scope=openid+email&nonce=" + generate.RandString(10) + "&state=" + state
 
-		fmt.Fprintln(os.Stderr, blue("✓") + " Logging in with Okta...")
+		fmt.Fprintln(os.Stderr, blue("✓")+" Logging in with Okta...")
 		ls, err := newLocalServer()
 		if err != nil {
 			return err
@@ -492,7 +492,7 @@ func login(config *Config) error {
 		return err
 	}
 
-	fmt.Fprintln(os.Stderr, blue("✓") + " Logged in as " + termenv.String(loginRes.Name).Bold().String())
+	fmt.Fprintln(os.Stderr, blue("✓")+" Logged in as "+termenv.String(loginRes.Name).Bold().String())
 
 	// Generate client certs
 	home, err := homedir.Dir()
@@ -556,7 +556,7 @@ func login(config *Config) error {
 
 	if len(destinations) > 0 {
 		kubeConfigPath := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{}).ConfigAccess().GetDefaultFilename()
-		fmt.Fprintln(os.Stderr, blue("✓") + " Kubeconfig updated: " + termenv.String(strings.ReplaceAll(kubeConfigPath, home, "~")).Bold().String())
+		fmt.Fprintln(os.Stderr, blue("✓")+" Kubeconfig updated: "+termenv.String(strings.ReplaceAll(kubeConfigPath, home, "~")).Bold().String())
 	}
 
 	context, err := switchToFirstInfraContext()
@@ -565,7 +565,7 @@ func login(config *Config) error {
 	}
 
 	if context != "" {
-		fmt.Fprintln(os.Stderr, blue("✓") + " Kubernetes current context is now " + termenv.String(context).Bold().String())
+		fmt.Fprintln(os.Stderr, blue("✓")+" Kubernetes current context is now "+termenv.String(context).Bold().String())
 	}
 
 	return nil
@@ -858,9 +858,8 @@ var versionCmd = &cobra.Command{
 }
 
 var credsCmd = &cobra.Command{
-	Use:    "creds",
-	Short:  "Generate credentials",
-	Hidden: true,
+	Use:   "creds",
+	Short: "Generate a JWT token for connecting to a destination, eg k8s",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := apiClientFromConfig()
 		if err != nil {
@@ -872,45 +871,61 @@ var credsCmd = &cobra.Command{
 			return err
 		}
 
-		cred, res, err := client.CredsApi.CreateCred(ctx).Execute()
-		if err != nil {
-			switch res.StatusCode {
-			case http.StatusForbidden:
-				config, err := readConfig()
-				if err != nil {
-					return err
-				}
-
-				err = login(config)
-				if err != nil {
-					return err
-				}
-
-				ctx, err := apiContextFromConfig()
-				if err != nil {
-					return err
-				}
-
-				cred, _, err = client.CredsApi.CreateCred(ctx).Execute()
-				if err != nil {
-					return err
-				}
-
-			default:
-				return err
-			}
+		if len(args) != 1 {
+			return errors.New("expecting destination as argument")
 		}
 
-		execCredential := &clientauthenticationv1alpha1.ExecCredential{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "ExecCredential",
-				APIVersion: clientauthenticationv1alpha1.SchemeGroupVersion.String(),
-			},
-			Spec: clientauthenticationv1alpha1.ExecCredentialSpec{},
-			Status: &clientauthenticationv1alpha1.ExecCredentialStatus{
-				Token:               cred.Token,
-				ExpirationTimestamp: &metav1.Time{Time: time.Unix(cred.Expires, 0)},
-			},
+		destination := args[0]
+		execCredential := &clientauthenticationv1alpha1.ExecCredential{}
+
+		err = getCache("dest_tokens", destination, execCredential)
+		if err != nil {
+			return err
+		}
+
+		if isExpired(execCredential) {
+			credReq := client.CredsApi.CreateCred(ctx).Body(api.CredRequest{Destination: &destination})
+			cred, res, err := credReq.Execute()
+			if err != nil {
+				switch res.StatusCode {
+				case http.StatusForbidden:
+					config, err := readConfig()
+					if err != nil {
+						return err
+					}
+
+					err = login(config)
+					if err != nil {
+						return err
+					}
+
+					ctx, err := apiContextFromConfig()
+					if err != nil {
+						return err
+					}
+
+					cred, _, err = client.CredsApi.CreateCred(ctx).Execute()
+					if err != nil {
+						return err
+					}
+
+				default:
+					return err
+				}
+			}
+
+			execCredential = &clientauthenticationv1alpha1.ExecCredential{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "ExecCredential",
+					APIVersion: clientauthenticationv1alpha1.SchemeGroupVersion.String(),
+				},
+				Spec: clientauthenticationv1alpha1.ExecCredentialSpec{},
+				Status: &clientauthenticationv1alpha1.ExecCredentialStatus{
+					Token:               cred.Token,
+					ExpirationTimestamp: &metav1.Time{Time: time.Unix(cred.Expires, 0)},
+				},
+			}
+			setCache("dest_tokens", destination, execCredential)
 		}
 
 		bts, err := json.Marshal(execCredential)
@@ -918,57 +933,7 @@ var credsCmd = &cobra.Command{
 			return err
 		}
 
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return err
-		}
-
-		if err = os.MkdirAll(filepath.Join(home, ".infra", "cache"), os.ModePerm); err != nil {
-			return err
-		}
-
-		contents, err := ioutil.ReadFile(filepath.Join(home, ".infra", "client", "pid"))
-		if err != nil && !os.IsNotExist(err) {
-			return err
-		}
-
-		var pid int
-		// see if proxy process is already running
-		if !os.IsNotExist(err) {
-			pid, err = strconv.Atoi(string(contents))
-			if err != nil {
-				return err
-			}
-
-			// verify process is still running
-			process, err := os.FindProcess(int(pid))
-			if process == nil || err != nil {
-				pid = 0
-			}
-
-			err = process.Signal(syscall.Signal(0))
-			if err != nil {
-				pid = 0
-			}
-		}
-
-		if pid == 0 {
-			os.Remove(filepath.Join(home, ".infra", "client", "pid"))
-
-			cmd := exec.Command(os.Args[0], "client")
-			err = cmd.Start()
-			if err != nil {
-				return err
-			}
-
-			for {
-				if _, err := os.Stat(filepath.Join(home, ".infra", "client", "pid")); os.IsNotExist(err) {
-					time.Sleep(25 * time.Millisecond)
-				} else {
-					break
-				}
-			}
-		}
+		startProxy()
 
 		fmt.Println(string(bts))
 
@@ -1018,4 +983,137 @@ func Run() error {
 	}
 
 	return cmd.Execute()
+}
+
+// getCache populates obj with whatever is in the cache
+func getCache(path, name string, obj interface{}) error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+	path = filepath.Join(home, ".infra", "cache", path)
+	fullPath := filepath.Join(path, name)
+	if err = os.MkdirAll(path, os.ModePerm); err != nil {
+		return err
+	}
+
+	f, err := os.Open(fullPath)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	d := json.NewDecoder(f)
+	if err := d.Decode(obj); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func setCache(path, name string, obj interface{}) error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	path = filepath.Join(home, ".infra", "cache", path)
+	fullPath := filepath.Join(path, name)
+
+	if err = os.MkdirAll(path, os.ModePerm); err != nil {
+		return err
+	}
+
+	f, err := os.Create(fullPath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	e := json.NewEncoder(f)
+	if err := e.Encode(obj); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// isExpired returns true if the credential is expired or incomplete.
+// it only returns false if the credential is good to use.
+func isExpired(cred *clientauthenticationv1alpha1.ExecCredential) bool {
+	if cred == nil {
+		return true
+	}
+	if cred.Status == nil {
+		return true
+	}
+	if cred.Status.ExpirationTimestamp == nil {
+		return true
+	}
+	// make sure it expires in more than 1 second from now.
+	now := time.Now().Add(1 * time.Second)
+	// only valid if it hasn't expired yet
+	return cred.Status.ExpirationTimestamp.Time.Before(now)
+}
+
+func startProxy() error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	contents, err := ioutil.ReadFile(filepath.Join(home, ".infra", "client", "pid"))
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	var pid int
+	// see if proxy process is already running
+	if !os.IsNotExist(err) {
+		pid, err = strconv.Atoi(string(contents))
+		if err != nil {
+			return err
+		}
+
+		// verify process is still running
+		process, err := os.FindProcess(int(pid))
+		if process == nil || err != nil {
+			pid = 0
+		}
+
+		err = process.Signal(syscall.Signal(0))
+		if err != nil {
+			pid = 0
+		}
+	}
+
+	if pid == 0 {
+		os.Remove(filepath.Join(home, ".infra", "client", "pid"))
+
+		cmd := exec.Command(os.Args[0], "client")
+		err = cmd.Start()
+		if err != nil {
+			return err
+		}
+
+		tick := time.NewTicker(25 * time.Millisecond)
+		timeout := time.NewTimer(10 * time.Second)
+	Loop:
+		for {
+			select {
+			case <-tick.C:
+				_, err = os.Stat(filepath.Join(home, ".infra", "client", "pid"))
+				if err == nil {
+					break Loop
+				}
+			case <-timeout.C:
+				return errors.New("timeout waiting for local client to start")
+			}
+		}
+	}
+
+	return nil
 }

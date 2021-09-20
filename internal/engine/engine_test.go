@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/infrahq/infra/internal/registry"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
@@ -28,7 +29,7 @@ func TestJWTMiddlewareNoAuthHeader(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	handler := jwtMiddleware(getJwkFunc, emptyHandler)
+	handler := jwtMiddleware("k8s", getJwkFunc, emptyHandler)
 
 	req, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
@@ -51,7 +52,7 @@ func TestJWTMiddlewareNoToken(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	handler := jwtMiddleware(getJwkFunc, emptyHandler)
+	handler := jwtMiddleware("k8s", getJwkFunc, emptyHandler)
 
 	req, err := http.NewRequest("GET", "/", nil)
 	req.Header.Set("X-Infra-Authorization", "username:password")
@@ -75,7 +76,7 @@ func TestJWTMiddlewareInvalidJWKs(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	handler := jwtMiddleware(getJwkFunc, emptyHandler)
+	handler := jwtMiddleware("k8s", getJwkFunc, emptyHandler)
 
 	req, err := http.NewRequest("GET", "/", nil)
 	req.Header.Set("X-Infra-Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZW1haWwiOiJ0ZXN0QHRlc3QuY29tIiwiaWF0IjoxNTE2MjM5MDIyfQ.j7o5o8GBkybaYXdFJIi8O6mPF50E-gJWZ3reLfMQD68")
@@ -117,12 +118,10 @@ func generateJWT(priv *jose.JSONWebKey, expiry time.Time) (string, error) {
 		Expiry:   jwt.NewNumericDate(expiry),
 		IssuedAt: jwt.NewNumericDate(time.Now()),
 	}
-	custom := struct {
-		Email string `json:"email"`
-		Nonce string `json:"nonce"`
-	}{
-		"test@test.com",
-		"randomstring",
+	custom := registry.CustomJWTClaims{
+		Email:       "test@test.com",
+		Nonce:       "randomstring",
+		Destination: "k8s",
 	}
 
 	raw, err := jwt.Signed(signer).Claims(cl).Claims(custom).CompactSerialize()
@@ -151,7 +150,7 @@ func TestJWTMiddlewareInvalidJWT(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	handler := jwtMiddleware(getJwkFunc, emptyHandler)
+	handler := jwtMiddleware("k8s", getJwkFunc, emptyHandler)
 
 	req, err := http.NewRequest("GET", "/", nil)
 	req.Header.Set("X-Infra-Authorization", "Bearer "+invalidjwt)
@@ -185,7 +184,7 @@ func TestJWTMiddlewareExpiredJWT(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	handler := jwtMiddleware(getJwkFunc, emptyHandler)
+	handler := jwtMiddleware("k8s", getJwkFunc, emptyHandler)
 
 	req, err := http.NewRequest("GET", "/", nil)
 	req.Header.Set("X-Infra-Authorization", "Bearer "+expiredJWT)
@@ -226,7 +225,7 @@ func TestJWTMiddlewareWrongHeader(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	handler := jwtMiddleware(getJwkFunc, emptyHandler)
+	handler := jwtMiddleware("k8s", getJwkFunc, emptyHandler)
 
 	req, err := http.NewRequest("GET", "/", nil)
 	req.Header.Set("Authorization", "Bearer "+expiredJWT)
@@ -239,6 +238,39 @@ func TestJWTMiddlewareWrongHeader(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, rr.Result().StatusCode)
 }
 
+func TestJWTMiddlewareWrongDestination(t *testing.T) {
+	pub, priv, err := generateJWK()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	validJWT, err := generateJWT(priv, time.Now().Add(3*time.Hour))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	getJwkFunc := func() (*jose.JSONWebKey, error) {
+		return pub, nil
+	}
+
+	emptyHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	rr := httptest.NewRecorder()
+
+	handler := jwtMiddleware("anotherDestination", getJwkFunc, emptyHandler)
+
+	req, err := http.NewRequest("GET", "/", nil)
+	req.Header.Set("X-Infra-Authorization", "Bearer "+validJWT)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusUnauthorized, rr.Result().StatusCode)
+}
 func TestJWTMiddlewareValidJWTSetsEmail(t *testing.T) {
 	pub, priv, err := generateJWK()
 	if err != nil {
@@ -266,7 +298,7 @@ func TestJWTMiddlewareValidJWTSetsEmail(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	handler := jwtMiddleware(getJwkFunc, emptyHandler)
+	handler := jwtMiddleware("k8s", getJwkFunc, emptyHandler)
 
 	req, err := http.NewRequest("GET", "/", nil)
 	req.Header.Set("X-Infra-Authorization", "Bearer "+validJWT)
@@ -306,7 +338,7 @@ func TestProxyHandler(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	handler := jwtMiddleware(getJwkFunc, emptyHandler)
+	handler := jwtMiddleware("k8s", getJwkFunc, emptyHandler)
 
 	req, err := http.NewRequest("GET", "/", nil)
 	req.Header.Set("X-Infra-Authorization", "Bearer "+validJWT)

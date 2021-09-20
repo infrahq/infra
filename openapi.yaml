@@ -154,6 +154,12 @@ components:
         expires:
           type: integer
           format: int64
+    CredRequest:
+      type: object
+      properties:
+        destination:
+          type: string
+          x-go-custom-tag: validate:"required"
     LoginRequest:
       type: object
       properties:
@@ -363,6 +369,13 @@ paths:
         - bearerAuth: []
       summary: Create credentials to access a destination
       operationId: createCred
+      x-codegen-request-body-name: body
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CredRequest'
       responses:
         '200':
           description: create cred response
