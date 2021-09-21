@@ -2,9 +2,11 @@ package registry
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 
+	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
 	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
@@ -23,6 +25,12 @@ var dashAdminRemover = regexp.MustCompile(`(.*)\-admin(\.okta\.com)`)
 func (s *ConfigSource) cleanupDomain() {
 	s.Domain = strings.TrimSpace(s.Domain)
 	s.Domain = dashAdminRemover.ReplaceAllString(s.Domain, "$1$2")
+}
+
+type ConfigMachine struct {
+	Name   string `yaml:"name"`
+	Kind   string `yaml:"kind"`
+	APIKey string `yaml:"key"`
 }
 
 type ConfigDestination struct {
@@ -49,9 +57,10 @@ type ConfigUserMapping struct {
 }
 
 type Config struct {
-	Sources []ConfigSource       `yaml:"sources"`
-	Groups  []ConfigGroupMapping `yaml:"groups"`
-	Users   []ConfigUserMapping  `yaml:"users"`
+	Sources  []ConfigSource       `yaml:"sources"`
+	Machines []ConfigMachine      `yaml:"machines"`
+	Groups   []ConfigGroupMapping `yaml:"groups"`
+	Users    []ConfigUserMapping  `yaml:"users"`
 }
 
 // this config is loaded at start-up and re-applied when the registry state changes (ex: a user is added)
@@ -105,6 +114,69 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 		return err
 	}
 
+	return nil
+}
+
+func ImportMachines(db *gorm.DB, k8s *kubernetes.Kubernetes, machines []ConfigMachine) error {
+	// clear any existing machines, need to do this iteratively so that the information for clearing associated API keys is populated
+	var toDelete []Machine
+	if err := db.Find(&toDelete).Error; err != nil {
+		return err
+	}
+	for _, m := range toDelete {
+		if err := db.Where("1=1").Delete(&m).Error; err != nil {
+			return err
+		}
+	}
+
+	for _, m := range machines {
+		switch strings.ToLower(m.Kind) {
+		case MACHINE_KIND_API_KEY:
+			if strings.ToLower(m.Name) == "default" {
+				// this name is used for the default API key that engines use to connect to the registry
+				logging.L.Warn("cannot import machine API key with the name \"default\", this name is reserved, continuing...")
+				continue
+			}
+			// get the secret API key value from kubernetes
+			apiKey, err := k8s.GetSecret(m.APIKey)
+			if err != nil {
+				return err
+			}
+			if len(apiKey) != API_KEY_LEN {
+				logging.L.Info("secret stored at " + m.APIKey + " does not have a valid key length, it must be exactly " + fmt.Sprint(API_KEY_LEN) + " characters")
+				logging.L.Info("skipped importing machine: " + m.Name)
+				continue
+			}
+
+			err = db.Transaction(func(tx *gorm.DB) error {
+				apiKey := &ApiKey{Name: m.Name}
+				tx.First(&apiKey)
+				if apiKey.Id != "" {
+					fmt.Println(apiKey)
+					return &ErrExistingKey{}
+				}
+				err := tx.Create(&apiKey).Error
+				if err != nil {
+					return err
+				}
+
+				apiMachine := Machine{Name: m.Name, Kind: MACHINE_KIND_API_KEY, ApiKeyId: apiKey.Id}
+				err = tx.Create(&apiMachine).Error
+
+				return err
+			})
+			if err != nil {
+				switch err.(type) {
+				case *ErrExistingKey:
+					logging.L.Warn(err.Error())
+					logging.L.Warn("skipped importing " + m.Name + " due to existing API key with the same name")
+					continue
+				default:
+					return err
+				}
+			}
+		}
+	}
 	return nil
 }
 
@@ -225,7 +297,7 @@ func ImportMappings(db *gorm.DB, groups []ConfigGroupMapping, users []ConfigUser
 }
 
 // ImportConfig tries to import all valid fields in a config file
-func ImportConfig(db *gorm.DB, bs []byte) error {
+func ImportConfig(db *gorm.DB, k8s *kubernetes.Kubernetes, bs []byte) error {
 	var config Config
 	err := yaml.Unmarshal(bs, &config)
 	if err != nil {
@@ -236,6 +308,9 @@ func ImportConfig(db *gorm.DB, bs []byte) error {
 
 	return db.Transaction(func(tx *gorm.DB) error {
 		if err = ImportSources(tx, config.Sources); err != nil {
+			return err
+		}
+		if err = ImportMachines(tx, k8s, config.Machines); err != nil {
 			return err
 		}
 		// Need to import of group/user mappings together because they both rely on roles

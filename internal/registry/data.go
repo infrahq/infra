@@ -24,9 +24,9 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-var (
-	ID_LEN = 12
-)
+var ID_LEN = 12
+
+var SessionDuration = time.Hour * 24
 
 type User struct {
 	Id      string `gorm:"primaryKey"`
@@ -39,9 +39,7 @@ type User struct {
 	Groups  []Group  `gorm:"many2many:groups_users"`
 }
 
-var (
-	SOURCE_TYPE_OKTA = "okta"
-)
+var SOURCE_TYPE_OKTA = "okta"
 
 type Source struct {
 	Id      string `gorm:"primaryKey"`
@@ -69,9 +67,7 @@ type Group struct {
 	Users []User `gorm:"many2many:groups_users"`
 }
 
-var (
-	DESTINATION_TYPE_KUBERNERNETES = "kubernetes"
-)
+var DESTINATION_TYPE_KUBERNERNETES = "kubernetes"
 
 type Destination struct {
 	Id      string `gorm:"primaryKey"`
@@ -86,9 +82,7 @@ type Destination struct {
 	KubernetesSaToken   string
 }
 
-var (
-	MACHINE_KIND_API_KEY = "api"
-)
+var MACHINE_KIND_API_KEY = "api"
 
 type Machine struct {
 	Id       string `gorm:"primaryKey"`
@@ -140,9 +134,7 @@ type Token struct {
 	User   User `gorm:"foreignKey:UserId;references:Id;"`
 }
 
-var (
-	API_KEY_LEN = 24
-)
+var API_KEY_LEN = 24
 
 type ApiKey struct {
 	Id      string `gorm:"primaryKey"`
@@ -150,6 +142,18 @@ type ApiKey struct {
 	Updated int64  `gorm:"autoUpdateTime"`
 	Name    string `gorm:"unique"`
 	Key     string
+}
+
+type ErrExistingKey struct{}
+
+func (e *ErrExistingKey) Error() string {
+	return "a key with this name already exists"
+}
+
+type ErrExistingMachine struct{}
+
+func (e *ErrExistingMachine) Error() string {
+	return "a machine with this name already exists"
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
@@ -565,7 +569,6 @@ func NewDB(dbpath string) (*gorm.DB, error) {
 			},
 		),
 	})
-
 	if err != nil {
 		return nil, err
 	}

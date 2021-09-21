@@ -73,8 +73,10 @@ func sendApiError(w http.ResponseWriter, code int, message string) {
 	json.NewEncoder(w).Encode(err)
 }
 
-type tokenContextKey struct{}
-type apiKeyContextKey struct{}
+type (
+	tokenContextKey  struct{}
+	apiKeyContextKey struct{}
+)
 
 func (a *Api) bearerAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -286,7 +288,7 @@ func (a *Api) DeleteMachine(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 
-	var errUnknownMachine = errors.New("a machine with this ID does not exist")
+	errUnknownMachine := errors.New("a machine with this ID does not exist")
 	err := a.db.Transaction(func(tx *gorm.DB) error {
 		var existingMachine Machine
 		tx.First(&existingMachine, &Machine{Id: id})
@@ -330,19 +332,17 @@ func (a *Api) CreateMachineAPIKey(w http.ResponseWriter, r *http.Request) {
 
 	var apiMachine Machine
 	var apiKey ApiKey
-	var errExistingKey = errors.New("could not create machine API key, a key is already associated with this name")
-	var errExistingMachine = errors.New("could not create machine API key, a machine with this name already exists")
 
 	err := a.db.Transaction(func(tx *gorm.DB) error {
 		var existingKey ApiKey
 		tx.First(&existingKey, &ApiKey{Name: body.Name})
 		if existingKey.Id != "" {
-			return errExistingKey
+			return &ErrExistingKey{}
 		}
 		var existingMachine Machine
 		tx.First(&existingMachine, &Machine{Name: body.Name})
 		if existingMachine.Id != "" {
-			return errExistingMachine
+			return &ErrExistingMachine{}
 		}
 
 		apiKey.Name = body.Name
@@ -363,12 +363,14 @@ func (a *Api) CreateMachineAPIKey(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		logging.L.Error(err.Error())
-		if errors.Is(err, errExistingKey) || errors.Is(err, errExistingMachine) {
+		switch err.(type) {
+		case *ErrExistingKey, *ErrExistingMachine:
 			sendApiError(w, http.StatusConflict, err.Error())
 			return
+		default:
+			sendApiError(w, http.StatusInternalServerError, err.Error())
+			return
 		}
-		sendApiError(w, http.StatusInternalServerError, err.Error())
-		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")

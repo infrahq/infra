@@ -64,7 +64,7 @@ func Run(options Options) error {
 	}
 
 	if len(contents) > 0 {
-		err = ImportConfig(db, contents)
+		err = ImportConfig(db, k8s, contents)
 		if err != nil {
 			return err
 		}
@@ -132,7 +132,6 @@ func Run(options Options) error {
 	if options.DefaultApiKey != "" {
 		if len(options.DefaultApiKey) != API_KEY_LEN {
 			return errors.New("invalid initial api key length, the key must be 24 characters")
-
 		}
 		apiKey.Key = options.DefaultApiKey
 		err := db.Save(&apiKey).Error

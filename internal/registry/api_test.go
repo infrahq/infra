@@ -3,6 +3,7 @@ package registry
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -28,8 +29,10 @@ type mockSecretReader struct{}
 func NewMockSecretReader() kubernetes.SecretReader {
 	return &mockSecretReader{}
 }
+
 func (msr *mockSecretReader) Get(secretName string, client *kubernetesClient.Clientset) (string, error) {
-	return "foo", nil
+	// returns a 24 character secret to match the expected API key length
+	return "abcdefghijklmnopqrstuvwx", nil
 }
 
 func addUser(db *gorm.DB, sessionDuration time.Duration) (tokenId string, tokenSecret string, err error) {
@@ -697,6 +700,33 @@ func TestDeleteMachineAPIKey(t *testing.T) {
 	var machineApiKey ApiKey
 	db.First(&machineApiKey, &ApiKey{Name: "test-api-machine"})
 	assert.Empty(t, machineApiKey.Id, "API key associated with machine not deleted")
+}
+
+func TestListMachines(t *testing.T) {
+	a := &Api{db: db}
+
+	m := &Machine{Name: "test-machine", Kind: MACHINE_KIND_API_KEY}
+	if err := a.db.Create(m).Error; err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/machines", nil)
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.ListMachines).ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var machines []api.Machine
+	if err := json.NewDecoder(w.Body).Decode(&machines); err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, 2, len(machines)) // the machine we just created and one loaded from config
+	machineIDs := make(map[string]string)
+	for _, m := range machines {
+		fmt.Println(m)
+		machineIDs[m.Name] = m.Id
+	}
+	assert.NotEmpty(t, machineIDs["test-machine"])
 }
 
 func containsUser(users []api.User, email string) bool {
