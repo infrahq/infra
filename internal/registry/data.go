@@ -462,14 +462,14 @@ func (t *Token) CheckSecret(secret string) (err error) {
 	return nil
 }
 
-func NewToken(db *gorm.DB, userId string, sessionDuration time.Duration, token *Token) (secret string, err error) {
+func NewToken(db *gorm.DB, userId string, token *Token) (secret string, err error) {
 	secret = generate.RandString(TOKEN_SECRET_LEN)
 
 	h := sha256.New()
 	h.Write([]byte(secret))
 	token.UserId = userId
 	token.Secret = h.Sum(nil)
-	token.Expires = time.Now().Add(sessionDuration).Unix()
+	token.Expires = time.Now().Add(SessionDuration).Unix()
 
 	err = db.Create(token).Error
 	if err != nil {

@@ -41,7 +41,7 @@ func addUser(db *gorm.DB, sessionDuration time.Duration) (tokenId string, tokenS
 			return err
 		}
 
-		secret, err = NewToken(tx, user.Id, sessionDuration, &token)
+		secret, err = NewToken(tx, user.Id, &token)
 		if err != nil {
 			return err
 		}
@@ -177,7 +177,7 @@ func TestBearerTokenMiddlewareExpiredToken(t *testing.T) {
 		db: db,
 	}
 
-	id, secret, err := addUser(db, time.Millisecond * 1)
+	id, secret, err := addUser(db, time.Millisecond*1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -204,7 +204,7 @@ func TestBearerTokenMiddlewareValidToken(t *testing.T) {
 		db: db,
 	}
 
-	id, secret, err := addUser(db, time.Hour * 24)
+	id, secret, err := addUser(db, time.Hour*24)
 	if err != nil {
 		t.Fatal(err)
 	}
