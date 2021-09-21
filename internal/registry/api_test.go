@@ -272,7 +272,7 @@ func TestBearerTokenMiddlewareValidApiKey(t *testing.T) {
 func TestCreateDestinationNoApiKey(t *testing.T) {
 	db, err := NewDB("file::memory:")
 	if err != nil {
-		t.Fatal(err)
+		require.NoError(t, err)
 	}
 
 	a := &Api{db: db}
