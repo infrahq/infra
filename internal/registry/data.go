@@ -26,8 +26,6 @@ import (
 
 var ID_LEN = 12
 
-var SessionDuration = time.Hour * 24
-
 type User struct {
 	Id      string `gorm:"primaryKey"`
 	Created int64  `gorm:"autoCreateTime"`
