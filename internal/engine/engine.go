@@ -38,11 +38,6 @@ type Options struct {
 	TLSCache       string
 }
 
-type RegistrationInfo struct {
-	CA              string
-	ClusterEndpoint string
-}
-
 type jwkCache struct {
 	mu          sync.Mutex
 	key         *jose.JSONWebKey
