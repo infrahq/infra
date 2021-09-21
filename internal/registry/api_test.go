@@ -177,7 +177,7 @@ func TestBearerTokenMiddlewareExpiredToken(t *testing.T) {
 		db: db,
 	}
 
-	id, secret, err := addUser(db, time.Millisecond * 1)
+	id, secret, err := addUser(db, time.Millisecond*1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -204,7 +204,7 @@ func TestBearerTokenMiddlewareValidToken(t *testing.T) {
 		db: db,
 	}
 
-	id, secret, err := addUser(db, time.Hour * 24)
+	id, secret, err := addUser(db, time.Hour*24)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -267,6 +267,72 @@ func TestBearerTokenMiddlewareValidApiKey(t *testing.T) {
 	a.bearerAuthMiddleware(http.HandlerFunc(handler)).ServeHTTP(w, r)
 	assert.Equal(t, w.Code, http.StatusOK)
 	assert.Equal(t, "hello world", w.Body.String())
+}
+
+func TestCreateDestinationNoApiKey(t *testing.T) {
+	db, err := NewDB("file::memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	a := &Api{db: db}
+
+	req := api.DestinationCreateRequest{
+		Kubernetes: &api.DestinationKubernetes{
+			Ca:        "CA",
+			Endpoint:  "endpoint.net",
+			Namespace: "default",
+			SaToken:   "token",
+		},
+	}
+
+	bts, err := req.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r := httptest.NewRequest(http.MethodPost, "/v1/destinations", bytes.NewReader(bts))
+	w := httptest.NewRecorder()
+	a.bearerAuthMiddleware(http.HandlerFunc(a.Login)).ServeHTTP(w, r)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestCreateDestination(t *testing.T) {
+	db, err := NewDB("file::memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	a := &Api{
+		db: db,
+	}
+
+	var apiKey ApiKey
+	err = db.FirstOrCreate(&apiKey, &ApiKey{Name: "default"}).Error
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := api.DestinationCreateRequest{
+		Kubernetes: &api.DestinationKubernetes{
+			Ca:        "CA",
+			Endpoint:  "endpoint.net",
+			Namespace: "default",
+			SaToken:   "token",
+		},
+	}
+
+	bts, err := req.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r := httptest.NewRequest(http.MethodPost, "/v1/destinations", bytes.NewReader(bts))
+	r.Header.Add("Authorization", "Bearer "+apiKey.Key)
+
+	w := httptest.NewRecorder()
+	a.bearerAuthMiddleware(http.HandlerFunc(a.CreateDestination)).ServeHTTP(w, r)
+	assert.Equal(t, http.StatusCreated, w.Code)
 }
 
 func TestLoginHandlerEmptyRequest(t *testing.T) {
