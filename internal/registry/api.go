@@ -131,6 +131,15 @@ func extractToken(context context.Context) (*Token, error) {
 	return token, nil
 }
 
+func extractAPIKey(context context.Context) (*ApiKey, error) {
+	apiKey, ok := context.Value(apiKeyContextKey{}).(*ApiKey)
+	if !ok {
+		return nil, errors.New("apikey not found in context")
+	}
+
+	return apiKey, nil
+}
+
 func (a *Api) ListUsers(w http.ResponseWriter, r *http.Request) {
 	var users []User
 	if err := a.db.Find(&users).Error; err != nil {
@@ -201,6 +210,13 @@ func (a *Api) ListDestinations(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Api) CreateDestination(w http.ResponseWriter, r *http.Request) {
+	_, err := extractAPIKey(r.Context())
+	if err != nil {
+		logging.L.Debug(err.Error())
+		sendApiError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
 	var body api.DestinationCreateRequest
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		sendApiError(w, http.StatusBadRequest, err.Error())
@@ -213,7 +229,7 @@ func (a *Api) CreateDestination(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var destination Destination
-	err := a.db.Transaction(func(tx *gorm.DB) error {
+	err = a.db.Transaction(func(tx *gorm.DB) error {
 		result := tx.Where(&Destination{Name: body.Name}).FirstOrCreate(&destination)
 		if result.Error != nil {
 			return result.Error
