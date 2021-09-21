@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -309,6 +310,10 @@ func (a *Api) createJWT(destination, email string) (string, time.Time, error) {
 	if err != nil {
 		return "", time.Time{}, err
 	}
+	nonce, err := generate.RandString(10)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("generating nonce: %w", err)
+	}
 
 	expiry := time.Now().Add(time.Minute * 5)
 	cl := jwt.Claims{
@@ -320,7 +325,7 @@ func (a *Api) createJWT(destination, email string) (string, time.Time, error) {
 	custom := CustomJWTClaims{
 		Email:       email,
 		Destination: destination,
-		Nonce:       generate.RandString(10),
+		Nonce:       nonce,
 	}
 
 	raw, err := jwt.Signed(signer).Claims(cl).Claims(custom).CompactSerialize()

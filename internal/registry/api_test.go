@@ -17,6 +17,7 @@ import (
 	"github.com/infrahq/infra/internal/version"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 	kubernetesClient "k8s.io/client-go/kubernetes"
 	rest "k8s.io/client-go/rest"
@@ -147,16 +148,16 @@ func TestBearerTokenMiddlewareInvalidToken(t *testing.T) {
 	}
 
 	db, err := NewDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	a := &Api{
 		db: db,
 	}
 
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
-	r.Header.Add("Authorization", "Bearer "+generate.RandString(TOKEN_LEN))
+	bearerToken, err := generate.RandString(TOKEN_LEN)
+	require.NoError(t, err)
+	r.Header.Add("Authorization", "Bearer "+bearerToken)
 
 	w := httptest.NewRecorder()
 	a.bearerAuthMiddleware(http.HandlerFunc(handler)).ServeHTTP(w, r)
@@ -177,7 +178,7 @@ func TestBearerTokenMiddlewareExpiredToken(t *testing.T) {
 		db: db,
 	}
 
-	id, secret, err := addUser(db, time.Millisecond * 1)
+	id, secret, err := addUser(db, time.Millisecond*1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -204,7 +205,7 @@ func TestBearerTokenMiddlewareValidToken(t *testing.T) {
 		db: db,
 	}
 
-	id, secret, err := addUser(db, time.Hour * 24)
+	id, secret, err := addUser(db, time.Hour*24)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -233,7 +234,9 @@ func TestBearerTokenMiddlewareInvalidApiKey(t *testing.T) {
 	}
 
 	r := httptest.NewRequest("GET", "/", nil)
-	r.Header.Add("Authorization", "Bearer "+generate.RandString(API_KEY_LEN))
+	bearerToken, err := generate.RandString(TOKEN_LEN)
+	require.NoError(t, err)
+	r.Header.Add("Authorization", "Bearer "+bearerToken)
 
 	w := httptest.NewRecorder()
 	a.bearerAuthMiddleware(http.HandlerFunc(handler)).ServeHTTP(w, r)
