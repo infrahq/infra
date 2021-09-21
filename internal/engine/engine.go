@@ -91,7 +91,7 @@ type HttpContextKeyEmail struct{}
 
 func jwtMiddleware(destination string, getjwk GetJWKFunc, next http.HandlerFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authorization := r.Header.Get("X-Infra-Authorization")
+		authorization := r.Header.Get("Authorization")
 		raw := strings.Replace(authorization, "Bearer ", "", -1)
 		if raw == "" {
 			logging.L.Debug("No bearer token found")
@@ -183,10 +183,8 @@ func proxyHandler(ca []byte, bearerToken string, remote *url.URL) (http.HandlerF
 			return
 		}
 
-		r.Header.Del("X-Infra-Authorization")
 		r.Header.Set("Impersonate-User", email)
-		r.Header.Add("Authorization", "Bearer "+bearerToken)
-
+		r.Header.Set("Authorization", "Bearer "+bearerToken)
 		http.StripPrefix("/proxy", proxy).ServeHTTP(w, r)
 	}, nil
 }
