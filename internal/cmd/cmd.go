@@ -446,8 +446,15 @@ func login(config *Config) error {
 		// Start OIDC flow
 		// Get auth code from Okta
 		// Send auth code to Infra to login as a user
-		state := generate.RandString(12)
-		authorizeUrl := "https://" + source.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + source.Okta.ClientId + "&response_type=code&scope=openid+email&nonce=" + generate.RandString(10) + "&state=" + state
+		state, err := generate.RandString(12)
+		if err != nil {
+			return err
+		}
+		nonce, err := generate.RandString(10)
+		if err != nil {
+			return err
+		}
+		authorizeUrl := "https://" + source.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + source.Okta.ClientId + "&response_type=code&scope=openid+email&nonce=" + nonce + "&state=" + state
 
 		fmt.Fprintln(os.Stderr, blue("✓")+" Logging in with Okta...")
 		ls, err := newLocalServer()

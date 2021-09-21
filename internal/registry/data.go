@@ -142,10 +142,10 @@ type ApiKey struct {
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 	if u.Id == "" {
-		u.Id = generate.RandString(ID_LEN)
+		u.Id = generate.MathRandString(ID_LEN)
 	}
 
-	return
+	return nil
 }
 
 func (u *User) AfterCreate(tx *gorm.DB) error {
@@ -167,10 +167,10 @@ func (u *User) BeforeDelete(tx *gorm.DB) error {
 
 func (r *Destination) BeforeCreate(tx *gorm.DB) (err error) {
 	if r.Id == "" {
-		r.Id = generate.RandString(ID_LEN)
+		r.Id = generate.MathRandString(ID_LEN)
 	}
 
-	return
+	return nil
 }
 
 func (d *Destination) AfterCreate(tx *gorm.DB) error {
@@ -187,25 +187,25 @@ func (d *Destination) BeforeDelete(tx *gorm.DB) (err error) {
 
 func (r *Role) BeforeCreate(tx *gorm.DB) (err error) {
 	if r.Id == "" {
-		r.Id = generate.RandString(ID_LEN)
+		r.Id = generate.MathRandString(ID_LEN)
 	}
 
-	return
+	return nil
 }
 
 func (g *Group) BeforeCreate(tx *gorm.DB) (err error) {
 	if g.Id == "" {
-		g.Id = generate.RandString(ID_LEN)
+		g.Id = generate.MathRandString(ID_LEN)
 	}
 
-	return
+	return nil
 }
 
 func (s *Source) BeforeCreate(tx *gorm.DB) (err error) {
 	if s.Id == "" {
-		s.Id = generate.RandString(ID_LEN)
+		s.Id = generate.MathRandString(ID_LEN)
 	}
-	return
+	return nil
 }
 
 func (s *Source) BeforeDelete(tx *gorm.DB) error {
@@ -393,9 +393,9 @@ func (s *Source) SyncGroups(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) 
 
 func (s *Settings) BeforeCreate(tx *gorm.DB) (err error) {
 	if s.Id == "" {
-		s.Id = generate.RandString(ID_LEN)
+		s.Id = generate.MathRandString(ID_LEN)
 	}
-	return
+	return nil
 }
 
 func (s *Settings) BeforeSave(tx *gorm.DB) error {
@@ -432,7 +432,7 @@ func (s *Settings) BeforeSave(tx *gorm.DB) error {
 
 func (t *Token) BeforeCreate(tx *gorm.DB) (err error) {
 	if t.Id == "" {
-		t.Id = generate.RandString(ID_LEN)
+		t.Id = generate.MathRandString(ID_LEN)
 	}
 
 	// TODO (jmorganca): 24 hours may be too long or too short for some teams
@@ -441,7 +441,7 @@ func (t *Token) BeforeCreate(tx *gorm.DB) (err error) {
 	if t.Expires == 0 {
 		t.Expires = time.Now().Add(SessionDuration).Unix()
 	}
-	return
+	return nil
 }
 
 func (t *Token) CheckExpired() (err error) {
@@ -463,7 +463,10 @@ func (t *Token) CheckSecret(secret string) (err error) {
 }
 
 func NewToken(db *gorm.DB, userId string, sessionDuration time.Duration, token *Token) (secret string, err error) {
-	secret = generate.RandString(TOKEN_SECRET_LEN)
+	secret, err = generate.RandString(TOKEN_SECRET_LEN)
+	if err != nil {
+		return "", err
+	}
 
 	h := sha256.New()
 	h.Write([]byte(secret))
@@ -476,7 +479,7 @@ func NewToken(db *gorm.DB, userId string, sessionDuration time.Duration, token *
 		return "", err
 	}
 
-	return
+	return secret, nil
 }
 
 func ValidateAndGetToken(db *gorm.DB, in string) (*Token, error) {
@@ -505,13 +508,16 @@ func ValidateAndGetToken(db *gorm.DB, in string) (*Token, error) {
 
 func (a *ApiKey) BeforeCreate(tx *gorm.DB) (err error) {
 	if a.Id == "" {
-		a.Id = generate.RandString(ID_LEN)
+		a.Id = generate.MathRandString(ID_LEN)
 	}
 
 	if a.Key == "" {
-		a.Key = generate.RandString(API_KEY_LEN)
+		a.Key, err = generate.RandString(API_KEY_LEN)
+		if err != nil {
+			return err
+		}
 	}
-	return
+	return nil
 }
 
 func NewDB(dbpath string) (*gorm.DB, error) {
