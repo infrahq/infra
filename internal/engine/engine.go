@@ -152,6 +152,7 @@ func jwtMiddleware(destination string, getjwk GetJWKFunc, next http.HandlerFunc)
 		if claims.Destination != destination {
 			logging.L.Sugar().Debugf("JWT custom claims destination %q does not match expected destination %q", claims.Destination, destination)
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
 		}
 
 		ctx := r.Context()
