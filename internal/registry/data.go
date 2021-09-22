@@ -215,12 +215,12 @@ func (g *Group) BeforeCreate(tx *gorm.DB) (err error) {
 	return nil
 }
 
-func (m *Machine) BeforeCreate(tx *gorm.DB) (err error) {
+func (m *Machine) BeforeCreate(tx *gorm.DB) error {
 	if m.Id == "" {
 		m.Id = generate.MathRandString(ID_LEN)
 	}
 
-	return
+	return nil
 }
 
 func (m *Machine) BeforeDelete(tx *gorm.DB) error {

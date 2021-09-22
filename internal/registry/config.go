@@ -132,9 +132,9 @@ func ImportMachines(db *gorm.DB, k8s *kubernetes.Kubernetes, machines []ConfigMa
 	for _, m := range machines {
 		switch strings.ToLower(m.Kind) {
 		case MACHINE_KIND_API_KEY:
-			if strings.ToLower(m.Name) == "default" {
+			if strings.ToLower(m.Name) == defaultApiKeyName {
 				// this name is used for the default API key that engines use to connect to the registry
-				logging.L.Info("cannot import machine API key with the name \"default\", this name is reserved, continuing...")
+				logging.L.Info("cannot create machine API key with the name " + defaultApiKeyName + ", this name is reserved")
 				continue
 			}
 			// get the secret API key value from kubernetes

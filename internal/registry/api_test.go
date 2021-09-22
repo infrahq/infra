@@ -260,7 +260,7 @@ func TestBearerTokenMiddlewareValidApiKey(t *testing.T) {
 	}
 
 	var apiKey ApiKey
-	err = db.FirstOrCreate(&apiKey, &ApiKey{Name: "default"}).Error
+	err = db.FirstOrCreate(&apiKey, &ApiKey{Name: defaultApiKeyName}).Error
 	if err != nil {
 		t.Fatal(err)
 	}

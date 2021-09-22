@@ -1056,10 +1056,12 @@ func newMachineDeleteCmd() *cobra.Command {
 				return err
 			}
 
-			if len(machine) == 0 {
+			switch len(machine) {
+			case 1:
+				// success case
+			case 0:
 				return errors.New("could not find a machine with the name " + args[0])
-			}
-			if len(machine) > 1 {
+			default:
 				// this should not happen, the machine name should be unique accross all kinds
 				return errors.New("a unique machine could not be identified with the name " + args[0])
 			}

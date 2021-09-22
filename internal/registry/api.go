@@ -324,9 +324,9 @@ func (a *Api) CreateMachineAPIKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if strings.ToLower(body.Name) == "default" {
+	if strings.ToLower(body.Name) == defaultApiKeyName {
 		// this name is used for the default API key that engines use to connect to the registry
-		sendApiError(w, http.StatusBadRequest, "cannot create machine API key with the name \"default\", this name is reserved")
+		sendApiError(w, http.StatusBadRequest, "cannot create machine API key with the name "+defaultApiKeyName+", this name is reserved")
 		return
 	}
 
