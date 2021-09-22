@@ -35,5 +35,5 @@ users:
 Then, apply it to the Infra registry:
 
 ```
-helm upgrade infra-registry infrahq/registry --set-file config=./infra.yaml
+helm upgrade infra-registry infrahq/registry --namespace infrahq --set-file config=./infra.yaml
 ```
