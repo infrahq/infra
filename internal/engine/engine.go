@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"fmt"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/handlers"
@@ -260,14 +261,13 @@ func Run(options Options) error {
 		}
 	}
 
+	manager := &autocert.Manager{
+		Prompt: autocert.AcceptTOS,
+		Cache:  autocert.DirCache(options.TLSCache),
+	}
+
 	timer := timer.Timer{}
 	timer.Start(5, func() {
-		ca, err := k8s.CA()
-		if err != nil {
-			logging.L.Error(err.Error())
-			return
-		}
-
 		endpoint := options.Endpoint
 		if endpoint == "" {
 			endpoint, err = k8s.Endpoint()
@@ -275,6 +275,12 @@ func Run(options Options) error {
 				logging.L.Error(err.Error())
 				return
 			}
+		}
+
+		caBytes, err := manager.Cache.Get(context.TODO(), fmt.Sprintf("%s.crt", endpoint))
+		if err != nil {
+			logging.L.Error(err.Error())
+			return
 		}
 
 		namespace, err := k8s.Namespace()
@@ -292,7 +298,7 @@ func Run(options Options) error {
 		destination, _, err := client.DestinationsApi.CreateDestination(ctx).Body(api.DestinationCreateRequest{
 			Name: name,
 			Kubernetes: &api.DestinationKubernetes{
-				Ca:        string(ca),
+				Ca:        string(caBytes),
 				Endpoint:  endpoint,
 				Namespace: namespace,
 				SaToken:   saToken,
@@ -349,11 +355,6 @@ func Run(options Options) error {
 	}
 
 	mux.Handle("/proxy/", jwtMiddleware(name, cache.getjwk, ph))
-
-	manager := &autocert.Manager{
-		Prompt: autocert.AcceptTOS,
-		Cache:  autocert.DirCache(options.TLSCache),
-	}
 
 	tlsConfig := manager.TLSConfig()
 	tlsConfig.GetCertificate = certs.SelfSignedOrLetsEncryptCert(manager)

@@ -217,8 +217,8 @@ func updateKubeconfig(destinations []api.Destination) error {
 		contextName := "infra:" + d.Name
 
 		kubeConfig.Clusters[contextName] = &clientcmdapi.Cluster{
-			Server:               "https://localhost:32710/client/" + d.Name,
-			CertificateAuthority: filepath.Join(home, ".infra", "client", "cert.pem"),
+			Server:                   fmt.Sprintf("https://%s/proxy", d.Kubernetes.Endpoint),
+			CertificateAuthorityData: []byte(d.Kubernetes.Ca),
 		}
 
 		executable, err := os.Executable()
