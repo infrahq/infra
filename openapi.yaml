@@ -443,7 +443,6 @@ paths:
           required: true
           schema:
             type: string
-            minimum: 1
           description: The machine ID
       responses:
         '204':

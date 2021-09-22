@@ -3,7 +3,6 @@ package registry
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -723,7 +722,6 @@ func TestListMachines(t *testing.T) {
 	assert.Equal(t, 2, len(machines)) // the machine we just created and one loaded from config
 	machineIDs := make(map[string]string)
 	for _, m := range machines {
-		fmt.Println(m)
 		machineIDs[m.Name] = m.Id
 	}
 	assert.NotEmpty(t, machineIDs["test-machine"])

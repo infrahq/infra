@@ -332,7 +332,6 @@ func (a *Api) CreateMachineAPIKey(w http.ResponseWriter, r *http.Request) {
 
 	var apiMachine Machine
 	var apiKey ApiKey
-
 	err := a.db.Transaction(func(tx *gorm.DB) error {
 		var existingKey ApiKey
 		tx.First(&existingKey, &ApiKey{Name: body.Name})

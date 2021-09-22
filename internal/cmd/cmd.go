@@ -1014,8 +1014,13 @@ func newMachineCreateCmd() *cobra.Command {
 				machineReq := api.MachineAPIKeyCreateRequest{
 					Name: args[1],
 				}
-				machine, _, err := client.MachinesApi.CreateMachineAPIKey(ctx).Body(machineReq).Execute()
+				machine, resp, err := client.MachinesApi.CreateMachineAPIKey(ctx).Body(machineReq).Execute()
 				if err != nil {
+					var errResp api.Error
+					if decodeErr := json.NewDecoder(resp.Body).Decode(&errResp); decodeErr != nil {
+						fmt.Fprintln(os.Stderr, "could not decode error response, "+decodeErr.Error())
+					}
+					fmt.Fprintln(os.Stderr, red(errResp.Message))
 					return err
 				}
 				fmt.Fprintln(os.Stderr, red("machine ")+machine.Name+" created")

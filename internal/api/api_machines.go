@@ -190,10 +190,6 @@ func (a *MachinesApiService) DeleteMachineExecute(r ApiDeleteMachineRequest) (*_
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := _neturl.Values{}
 	localVarFormParams := _neturl.Values{}
-	idTxt, err := atoi(r.id)
-	if idTxt < 1 {
-		return nil, reportError("id must be greater than 1")
-	}
 
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}

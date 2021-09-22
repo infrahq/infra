@@ -90,9 +90,6 @@ func Run(options Options) error {
 	interval := 30
 	if options.SyncInterval > 0 {
 		interval = options.SyncInterval
-		if err != nil {
-			zapLogger.Error("invalid sync interval option specified: " + err.Error())
-		}
 	} else {
 		envSync := os.Getenv("INFRA_SYNC_INTERVAL_SECONDS")
 		if envSync != "" {

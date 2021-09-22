@@ -134,27 +134,31 @@ func ImportMachines(db *gorm.DB, k8s *kubernetes.Kubernetes, machines []ConfigMa
 		case MACHINE_KIND_API_KEY:
 			if strings.ToLower(m.Name) == "default" {
 				// this name is used for the default API key that engines use to connect to the registry
-				logging.L.Warn("cannot import machine API key with the name \"default\", this name is reserved, continuing...")
+				logging.L.Info("cannot import machine API key with the name \"default\", this name is reserved, continuing...")
 				continue
 			}
 			// get the secret API key value from kubernetes
-			apiKey, err := k8s.GetSecret(m.APIKey)
+			secretKey, err := k8s.GetSecret(m.APIKey)
 			if err != nil {
-				return err
+				logging.L.Error(err.Error())
+				logging.L.Info("could not retrieve secret for " + m.APIKey + ", continuing...")
+				continue
 			}
-			if len(apiKey) != API_KEY_LEN {
+			if len(secretKey) != API_KEY_LEN {
 				logging.L.Info("secret stored at " + m.APIKey + " does not have a valid key length, it must be exactly " + fmt.Sprint(API_KEY_LEN) + " characters")
 				logging.L.Info("skipped importing machine: " + m.Name)
 				continue
 			}
 
 			err = db.Transaction(func(tx *gorm.DB) error {
-				apiKey := &ApiKey{Name: m.Name}
-				tx.First(&apiKey)
+				var apiKey ApiKey
+				tx.First(&apiKey, &ApiKey{Name: m.Name})
 				if apiKey.Id != "" {
-					fmt.Println(apiKey)
 					return &ErrExistingKey{}
 				}
+
+				apiKey.Name = m.Name
+				apiKey.Key = secretKey
 				err := tx.Create(&apiKey).Error
 				if err != nil {
 					return err
@@ -168,8 +172,8 @@ func ImportMachines(db *gorm.DB, k8s *kubernetes.Kubernetes, machines []ConfigMa
 			if err != nil {
 				switch err.(type) {
 				case *ErrExistingKey:
-					logging.L.Warn(err.Error())
-					logging.L.Warn("skipped importing " + m.Name + " due to existing API key with the same name")
+					logging.L.Error(err.Error())
+					logging.L.Info("skipped importing " + m.Name + " due to existing API key with the same name")
 					continue
 				default:
 					return err
