@@ -217,7 +217,7 @@ func (g *Group) BeforeCreate(tx *gorm.DB) (err error) {
 
 func (m *Machine) BeforeCreate(tx *gorm.DB) (err error) {
 	if m.Id == "" {
-		m.Id = generate.RandString(ID_LEN)
+		m.Id = generate.MathRandString(ID_LEN)
 	}
 
 	return
