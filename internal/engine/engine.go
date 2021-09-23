@@ -266,17 +266,16 @@ func Run(options Options) error {
 		Cache:  autocert.DirCache(options.TLSCache),
 	}
 
+	endpoint, err := k8s.Endpoint()
+	if err != nil {
+		return err
+	}
+
+	tlsConfig := manager.TLSConfig()
+	tlsConfig.GetCertificate = certs.SelfSignedOrLetsEncryptCert(manager, endpoint)
+
 	timer := timer.Timer{}
 	timer.Start(5, func() {
-		endpoint := options.Endpoint
-		if endpoint == "" {
-			endpoint, err = k8s.Endpoint()
-			if err != nil {
-				logging.L.Error(err.Error())
-				return
-			}
-		}
-
 		caBytes, err := manager.Cache.Get(context.TODO(), fmt.Sprintf("%s.crt", endpoint))
 		if err != nil {
 			logging.L.Error(err.Error())
@@ -355,9 +354,6 @@ func Run(options Options) error {
 	}
 
 	mux.Handle("/proxy/", jwtMiddleware(name, cache.getjwk, ph))
-
-	tlsConfig := manager.TLSConfig()
-	tlsConfig.GetCertificate = certs.SelfSignedOrLetsEncryptCert(manager)
 
 	tlsServer := &http.Server{
 		Addr:      ":443",

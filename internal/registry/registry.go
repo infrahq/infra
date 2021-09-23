@@ -179,7 +179,7 @@ func Run(options Options) error {
 	}
 
 	tlsConfig := manager.TLSConfig()
-	tlsConfig.GetCertificate = certs.SelfSignedOrLetsEncryptCert(manager)
+	tlsConfig.GetCertificate = certs.SelfSignedOrLetsEncryptCert(manager, "")
 
 	tlsServer := &http.Server{
 		Addr:      ":443",

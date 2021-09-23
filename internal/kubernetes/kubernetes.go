@@ -600,24 +600,26 @@ func (k *Kubernetes) getLoadBalancerIngress(lbs *[]corev1.LoadBalancerIngress) (
 		LabelSelector: "app=infra-engine",
 	})
 	if err != nil {
-		return err
-	}
-	ingressItems := ingresses.Items
-	switch len(ingressItems) {
-	case 1:
-		*lbs = append(*lbs, ingressItems[0].Status.LoadBalancer.Ingress...)
+		logging.L.Sugar().Infof("%s", err)
+	} else {
+		ingressItems := ingresses.Items
+		switch len(ingressItems) {
+		case 1:
+			*lbs = append(*lbs, ingressItems[0].Status.LoadBalancer.Ingress...)
+		}
 	}
 
 	services, err := clientset.CoreV1().Services(namespace).List(context.TODO(), metav1.ListOptions{
 		LabelSelector: "app=infra-engine",
 	})
 	if err != nil {
-		return err
-	}
-	serviceItems := services.Items
-	switch len(serviceItems) {
-	case 1:
-		*lbs = append(*lbs, serviceItems[0].Status.LoadBalancer.Ingress...)
+		logging.L.Sugar().Infof("%s", err)
+	} else {
+		serviceItems := services.Items
+		switch len(serviceItems) {
+		case 1:
+			*lbs = append(*lbs, services.Items[0].Status.LoadBalancer.Ingress...)
+		}
 	}
 
 	return nil

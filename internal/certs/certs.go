@@ -69,14 +69,18 @@ func SelfSignedCert(hosts []string) ([]byte, []byte, error) {
 	return certPEM.Bytes(), keyPEM.Bytes(), nil
 }
 
-func SelfSignedOrLetsEncryptCert(manager *autocert.Manager) func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+func SelfSignedOrLetsEncryptCert(manager *autocert.Manager, serverName string) func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 	return func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 		cert, err := manager.GetCertificate(hello)
 		if err == nil {
 			return cert, nil
 		}
 
-		name := hello.ServerName
+		if serverName == "" {
+			serverName = hello.ServerName
+		}
+
+		name := serverName
 		if name == "" {
 			name = hello.Conn.LocalAddr().String()
 		}
