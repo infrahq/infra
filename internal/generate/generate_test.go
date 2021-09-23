@@ -33,3 +33,9 @@ func TestRandStringCanGenerateEdgeCharacters(t *testing.T) {
 		}
 	}
 }
+
+func TestSeedHasBeenInitialized(t *testing.T) {
+	s := MathRandString(10)
+	// the default seed of 1 will always generate RFbD56TI2s.
+	require.NotEqual(t, "RFbD56TI2s", s)
+}

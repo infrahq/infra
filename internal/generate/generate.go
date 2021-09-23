@@ -5,9 +5,14 @@ import (
 	"fmt"
 	"math/big"
 	mathrand "math/rand"
+	"time"
 )
 
 const alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+
+func init() {
+	mathrand.Seed(time.Now().UnixNano())
+}
 
 // RandString generates a cryptographically-safe random number
 func RandString(n int) (string, error) {
