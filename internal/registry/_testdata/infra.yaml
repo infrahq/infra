@@ -10,9 +10,8 @@ sources:
     clientSecret: okta-secrets/clientSecret
     apiToken: okta-secrets/apiToken
 
-machines:
+api:
   - name: test-config-api-client
-    kind: api
     key: infra-api/client-api-key
 
 groups:

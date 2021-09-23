@@ -399,7 +399,7 @@ paths:
       security:
         - bearerAuth: []
       summary: List API keys
-      operationId: listInfraAPIKeys
+      operationId: listAPIKeys
       parameters:
         - in: query
           name: name
@@ -427,7 +427,7 @@ paths:
       security:
         - bearerAuth: []
       summary: Register an API key
-      operationId: createInfraAPIKey
+      operationId: createAPIKey
       x-codegen-request-body-name: body
       requestBody:
         required: true
@@ -455,7 +455,7 @@ paths:
       security:
         - bearerAuth: []
       summary: delete an API key
-      operationId: deleteInfraApiKey
+      operationId: deleteApiKey
       parameters:
         - in: path
           name: id

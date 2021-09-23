@@ -856,9 +856,9 @@ var groupsCmd = &cobra.Command{
 	},
 }
 
-var machinesCmd = &cobra.Command{
-	Use:   "machines",
-	Short: "List machines",
+var apiKeysCmd = &cobra.Command{
+	Use:   "api-keys",
+	Short: "List API keys",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := apiClientFromConfig()
 		if err != nil {
@@ -870,22 +870,21 @@ var machinesCmd = &cobra.Command{
 			return err
 		}
 
-		machines, _, err := client.MachinesApi.ListMachines(ctx).Execute()
+		apiKeys, _, err := client.ApiKeysApi.ListAPIKeys(ctx).Execute()
 		if err != nil {
-			fmt.Println("err getting machines")
 			return err
 		}
 
-		sort.Slice(machines, func(i, j int) bool {
-			return machines[i].Created > machines[j].Created
+		sort.Slice(apiKeys, func(i, j int) bool {
+			return apiKeys[i].Created > apiKeys[j].Created
 		})
 
 		rows := [][]string{}
-		for _, m := range machines {
-			rows = append(rows, []string{m.Name, units.HumanDuration(time.Now().UTC().Sub(time.Unix(m.Created, 0))) + " ago", string(m.Kind)})
+		for _, k := range apiKeys {
+			rows = append(rows, []string{k.Name, units.HumanDuration(time.Now().UTC().Sub(time.Unix(k.Created, 0))) + " ago"})
 		}
 
-		printTable([]string{"NAME", "CREATED", "KIND"}, rows)
+		printTable([]string{"NAME", "CREATED"}, rows)
 		return nil
 	},
 }
@@ -987,17 +986,17 @@ var versionCmd = &cobra.Command{
 	},
 }
 
-var machineCmd = &cobra.Command{
-	Use:   "machine",
-	Short: "Manage Infra machines",
+var apiKeyCmd = &cobra.Command{
+	Use:   "api-key",
+	Short: "Manage Infra API keys",
 }
 
-func newMachineCreateCmd() *cobra.Command {
+func newApiKeyCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "create KIND NAME",
-		Short:   "Create a new machine that relies on Infra",
-		Args:    cobra.ExactArgs(2),
-		Example: "$ infra machine create api automation-token",
+		Use:     "create NAME",
+		Short:   "Create a new API key that can be used to access the Infra API",
+		Args:    cobra.ExactArgs(1),
+		Example: "$ infra api-key create automation-token",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := apiClientFromConfig()
 			if err != nil {
@@ -1009,37 +1008,32 @@ func newMachineCreateCmd() *cobra.Command {
 				return err
 			}
 
-			switch strings.ToLower(args[0]) {
-			case string(api.API):
-				machineReq := api.MachineAPIKeyCreateRequest{
-					Name: args[1],
-				}
-				machine, resp, err := client.MachinesApi.CreateMachineAPIKey(ctx).Body(machineReq).Execute()
-				if err != nil {
-					var errResp api.Error
-					if decodeErr := json.NewDecoder(resp.Body).Decode(&errResp); decodeErr != nil {
-						fmt.Fprintln(os.Stderr, "could not decode error response, "+decodeErr.Error())
-					}
-					fmt.Fprintln(os.Stderr, red(errResp.Message))
-					return err
-				}
-				fmt.Fprintln(os.Stderr, red("machine ")+machine.Name+" created")
-				fmt.Fprintln(os.Stderr, "api key: "+machine.ApiKey)
-			default:
-				fmt.Fprintln(os.Stderr, args[0]+" is not a valid machine kind, valid machine kinds are [api]")
+			apiKeyReq := api.InfraAPIKeyCreateRequest{
+				Name: args[0],
 			}
+			apiKey, resp, err := client.ApiKeysApi.CreateAPIKey(ctx).Body(apiKeyReq).Execute()
+			if err != nil {
+				var errResp api.Error
+				if decodeErr := json.NewDecoder(resp.Body).Decode(&errResp); decodeErr != nil {
+					fmt.Fprintln(os.Stderr, "could not decode error response, "+decodeErr.Error())
+				}
+				fmt.Fprintln(os.Stderr, red(errResp.Message))
+				return err
+			}
+			fmt.Fprintln(os.Stderr, red("API Key ")+apiKey.Name+" created")
+			fmt.Fprintln(os.Stderr, "api key: "+apiKey.Key)
 			return nil
 		},
 	}
 	return cmd
 }
 
-func newMachineDeleteCmd() *cobra.Command {
+func newApiKeyDeleteCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "delete NAME",
-		Short:   "Delete a machine by name",
+		Short:   "Delete an API key by name",
 		Args:    cobra.ExactArgs(1),
-		Example: "$ infra machine delete automation-token",
+		Example: "$ infra api-key delete automation-token",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := apiClientFromConfig()
 			if err != nil {
@@ -1051,22 +1045,22 @@ func newMachineDeleteCmd() *cobra.Command {
 				return err
 			}
 
-			machine, _, err := client.MachinesApi.ListMachines(ctx).Name(args[0]).Execute()
+			apiKey, _, err := client.ApiKeysApi.ListAPIKeys(ctx).Name(args[0]).Execute()
 			if err != nil {
 				return err
 			}
 
-			switch len(machine) {
+			switch len(apiKey) {
 			case 1:
 				// success case
 			case 0:
-				return errors.New("could not find a machine with the name " + args[0])
+				return errors.New("could not find an API key with the name " + args[0])
 			default:
-				// this should not happen, the machine name should be unique accross all kinds
-				return errors.New("a unique machine could not be identified with the name " + args[0])
+				// this should not happen, the API key name should be unique
+				return errors.New("a unique API key could not be identified with the name " + args[0])
 			}
 
-			_, err = client.MachinesApi.DeleteMachine(ctx, machine[0].Id).Execute()
+			_, err = client.ApiKeysApi.DeleteApiKey(ctx, apiKey[0].Id).Execute()
 			if err != nil {
 				return err
 			}
@@ -1165,7 +1159,7 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(usersCmd)
 	rootCmd.AddCommand(groupsCmd)
-	rootCmd.AddCommand(machinesCmd)
+	rootCmd.AddCommand(apiKeysCmd)
 	rootCmd.AddCommand(loginCmd)
 	rootCmd.AddCommand(logoutCmd)
 
@@ -1181,9 +1175,9 @@ func NewRootCmd() (*cobra.Command, error) {
 	}
 	rootCmd.AddCommand(engineCmd)
 
-	machineCmd.AddCommand(newMachineCreateCmd())
-	machineCmd.AddCommand(newMachineDeleteCmd())
-	rootCmd.AddCommand(machineCmd)
+	apiKeyCmd.AddCommand(newApiKeyCreateCmd())
+	apiKeyCmd.AddCommand(newApiKeyDeleteCmd())
+	rootCmd.AddCommand(apiKeyCmd)
 
 	rootCmd.AddCommand(versionCmd)
 

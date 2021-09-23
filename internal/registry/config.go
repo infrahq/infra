@@ -27,10 +27,9 @@ func (s *ConfigSource) cleanupDomain() {
 	s.Domain = dashAdminRemover.ReplaceAllString(s.Domain, "$1$2")
 }
 
-type ConfigMachine struct {
-	Name   string `yaml:"name"`
-	Kind   string `yaml:"kind"`
-	APIKey string `yaml:"key"`
+type ConfigAPI struct {
+	Name string `yaml:"name"`
+	Key  string `yaml:"key"`
 }
 
 type ConfigDestination struct {
@@ -57,10 +56,10 @@ type ConfigUserMapping struct {
 }
 
 type Config struct {
-	Sources  []ConfigSource       `yaml:"sources"`
-	Machines []ConfigMachine      `yaml:"machines"`
-	Groups   []ConfigGroupMapping `yaml:"groups"`
-	Users    []ConfigUserMapping  `yaml:"users"`
+	Sources []ConfigSource       `yaml:"sources"`
+	API     []ConfigAPI          `yaml:"api"`
+	Groups  []ConfigGroupMapping `yaml:"groups"`
+	Users   []ConfigUserMapping  `yaml:"users"`
 }
 
 // this config is loaded at start-up and re-applied when the registry state changes (ex: a user is added)
@@ -117,67 +116,49 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 	return nil
 }
 
-func ImportMachines(db *gorm.DB, k8s *kubernetes.Kubernetes, machines []ConfigMachine) error {
-	// clear any existing machines, need to do this iteratively so that the information for clearing associated API keys is populated
-	var toDelete []Machine
-	if err := db.Find(&toDelete).Error; err != nil {
+func ImportAPI(db *gorm.DB, k8s *kubernetes.Kubernetes, api []ConfigAPI) error {
+	if err := db.Where("1 = 1").Not(&ApiKey{Name: defaultApiKeyName}).Delete(&ApiKey{}).Error; err != nil {
 		return err
 	}
-	for _, m := range toDelete {
-		if err := db.Where("1=1").Delete(&m).Error; err != nil {
-			return err
+
+	for _, k := range api {
+		if strings.ToLower(k.Name) == defaultApiKeyName {
+			// this name is used for the default API key that engines use to connect to the registry
+			logging.L.Info("cannot create API key with the name " + defaultApiKeyName + ", this name is reserved")
+			continue
 		}
-	}
+		// get the secret API key value from kubernetes
+		secretKey, err := k8s.GetSecret(k.Key)
+		if err != nil {
+			logging.L.Error(err.Error())
+			logging.L.Info("could not retrieve secret for " + k.Key + ", continuing...")
+			continue
+		}
+		if len(secretKey) != API_KEY_LEN {
+			logging.L.Info("secret stored at " + k.Key + " does not have a valid key length, it must be exactly " + fmt.Sprint(API_KEY_LEN) + " characters")
+			logging.L.Info("skipped importing API key: " + k.Name)
+			continue
+		}
 
-	for _, m := range machines {
-		switch strings.ToLower(m.Kind) {
-		case MACHINE_KIND_API_KEY:
-			if strings.ToLower(m.Name) == defaultApiKeyName {
-				// this name is used for the default API key that engines use to connect to the registry
-				logging.L.Info("cannot create machine API key with the name " + defaultApiKeyName + ", this name is reserved")
-				continue
+		err = db.Transaction(func(tx *gorm.DB) error {
+			var apiKey ApiKey
+			tx.First(&apiKey, &ApiKey{Name: k.Name})
+			if apiKey.Id != "" {
+				return &ErrExistingKey{}
 			}
-			// get the secret API key value from kubernetes
-			secretKey, err := k8s.GetSecret(m.APIKey)
-			if err != nil {
+
+			apiKey.Name = k.Name
+			apiKey.Key = secretKey
+			return tx.Create(&apiKey).Error
+		})
+		if err != nil {
+			switch err.(type) {
+			case *ErrExistingKey:
 				logging.L.Error(err.Error())
-				logging.L.Info("could not retrieve secret for " + m.APIKey + ", continuing...")
+				logging.L.Info("skipped importing " + k.Name + " due to existing API key with the same name")
 				continue
-			}
-			if len(secretKey) != API_KEY_LEN {
-				logging.L.Info("secret stored at " + m.APIKey + " does not have a valid key length, it must be exactly " + fmt.Sprint(API_KEY_LEN) + " characters")
-				logging.L.Info("skipped importing machine: " + m.Name)
-				continue
-			}
-
-			err = db.Transaction(func(tx *gorm.DB) error {
-				var apiKey ApiKey
-				tx.First(&apiKey, &ApiKey{Name: m.Name})
-				if apiKey.Id != "" {
-					return &ErrExistingKey{}
-				}
-
-				apiKey.Name = m.Name
-				apiKey.Key = secretKey
-				err := tx.Create(&apiKey).Error
-				if err != nil {
-					return err
-				}
-
-				apiMachine := Machine{Name: m.Name, Kind: MACHINE_KIND_API_KEY, ApiKeyId: apiKey.Id}
-				err = tx.Create(&apiMachine).Error
-
+			default:
 				return err
-			})
-			if err != nil {
-				switch err.(type) {
-				case *ErrExistingKey:
-					logging.L.Error(err.Error())
-					logging.L.Info("skipped importing " + m.Name + " due to existing API key with the same name")
-					continue
-				default:
-					return err
-				}
 			}
 		}
 	}
@@ -314,7 +295,7 @@ func ImportConfig(db *gorm.DB, k8s *kubernetes.Kubernetes, bs []byte) error {
 		if err = ImportSources(tx, config.Sources); err != nil {
 			return err
 		}
-		if err = ImportMachines(tx, k8s, config.Machines); err != nil {
+		if err = ImportAPI(tx, k8s, config.API); err != nil {
 			return err
 		}
 		// Need to import of group/user mappings together because they both rely on roles

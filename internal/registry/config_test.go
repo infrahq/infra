@@ -202,16 +202,15 @@ func TestExistingSourceIsOverridden(t *testing.T) {
 	assert.Equal(t, fakeOktaSource.Domain, importedOkta.Domain)
 }
 
-func TestValidMachineAPIKeyIsImported(t *testing.T) {
-	var importedAPIClient Machine
-	err := db.Where(&Machine{Name: "test-config-api-client"}).First(&importedAPIClient).Error
+func TestValidAPIKeyIsImported(t *testing.T) {
+	var importedAPIClient ApiKey
+	err := db.Where(&ApiKey{Name: "test-config-api-client"}).First(&importedAPIClient).Error
 	if err != nil {
 		t.Fatal(err)
 	}
 	assert.NotEmpty(t, importedAPIClient.Id)
-	assert.NotEmpty(t, importedAPIClient.ApiKeyId)
+	assert.NotEmpty(t, importedAPIClient.Key)
 	assert.Equal(t, "test-config-api-client", importedAPIClient.Name)
-	assert.Equal(t, MACHINE_KIND_API_KEY, importedAPIClient.Kind)
 }
 
 func containsUserRoleForDestination(db *gorm.DB, user User, destinationId string, roleName string) (bool, error) {

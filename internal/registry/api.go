@@ -52,9 +52,9 @@ func NewApiMux(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) *mux.Router {
 	v1.Handle("/sources", http.HandlerFunc(a.ListSources)).Methods("GET")
 	v1.Handle("/destinations", a.bearerAuthMiddleware(http.HandlerFunc(a.ListDestinations))).Methods("GET")
 	v1.Handle("/destinations", a.bearerAuthMiddleware(http.HandlerFunc(a.CreateDestination))).Methods("POST")
-	v1.Handle("/machines", a.bearerAuthMiddleware(http.HandlerFunc(a.ListMachines))).Methods("GET")
-	v1.Handle("/machines/{id}", a.bearerAuthMiddleware(http.HandlerFunc(a.DeleteMachine))).Methods("DELETE")
-	v1.Handle("/machines/apiKeys", a.bearerAuthMiddleware(http.HandlerFunc(a.CreateMachineAPIKey))).Methods("POST")
+	v1.Handle("/api-keys", a.bearerAuthMiddleware(http.HandlerFunc(a.ListApiKeys))).Methods("GET")
+	v1.Handle("/api-keys", a.bearerAuthMiddleware(http.HandlerFunc(a.CreateAPIKey))).Methods("POST")
+	v1.Handle("/api-keys/{id}", a.bearerAuthMiddleware(http.HandlerFunc(a.DeleteApiKey))).Methods("DELETE")
 	v1.Handle("/creds", a.bearerAuthMiddleware(http.HandlerFunc(a.CreateCred))).Methods("POST")
 	v1.Handle("/roles", a.bearerAuthMiddleware(http.HandlerFunc(a.ListRoles))).Methods("GET")
 	v1.Handle("/login", http.HandlerFunc(a.Login)).Methods("POST")
@@ -259,49 +259,53 @@ func (a *Api) CreateDestination(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(dbToApiDestination(&destination))
 }
 
-func (a *Api) ListMachines(w http.ResponseWriter, r *http.Request) {
-	machineName := r.URL.Query().Get("name")
+func (a *Api) ListApiKeys(w http.ResponseWriter, r *http.Request) {
+	keyName := r.URL.Query().Get("name")
 
-	var machines []Machine
+	var keys []ApiKey
 	var err error
-	if machineName != "" {
-		err = a.db.Where(&Machine{Name: machineName}).Find(&machines).Error
+	if keyName != "" {
+		err = a.db.Where(&ApiKey{Name: keyName}).Find(&keys).Error
 	} else {
-		err = a.db.Find(&machines).Error
+		err = a.db.Find(&keys).Error
 	}
 	if err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not list machines")
+		sendApiError(w, http.StatusInternalServerError, "could not list keys")
 		return
 	}
 
-	results := make([]api.Machine, 0)
-	for _, m := range machines {
-		results = append(results, dbToApiMachine(&m))
+	results := make([]api.InfraAPIKey, 0)
+	for _, k := range keys {
+		results = append(results, dbToApiKey(&k))
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(results)
 }
 
-func (a *Api) DeleteMachine(w http.ResponseWriter, r *http.Request) {
+func (a *Api) DeleteApiKey(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
+	fmt.Println(r)
+	fmt.Println(vars)
 
-	errUnknownMachine := errors.New("a machine with this ID does not exist")
+	fmt.Println("ID: " + id)
+	errUnknownKey := errors.New("a API key with this ID does not exist")
 	err := a.db.Transaction(func(tx *gorm.DB) error {
-		var existingMachine Machine
-		tx.First(&existingMachine, &Machine{Id: id})
-		if existingMachine.Id == "" {
-			return errUnknownMachine
+		var existingKey ApiKey
+		tx.First(&existingKey, &ApiKey{Id: id})
+		if existingKey.Id == "" {
+			return errUnknownKey
 		}
 
-		tx.Delete(&existingMachine)
+		fmt.Println("deleting " + existingKey.Name)
+		tx.Delete(&existingKey)
 		return nil
 	})
 	if err != nil {
 		logging.L.Error(err.Error())
-		if errors.Is(err, errUnknownMachine) {
+		if errors.Is(err, errUnknownKey) {
 			sendApiError(w, http.StatusNotFound, err.Error())
 			return
 		}
@@ -312,8 +316,8 @@ func (a *Api) DeleteMachine(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (a *Api) CreateMachineAPIKey(w http.ResponseWriter, r *http.Request) {
-	var body api.MachineAPIKeyCreateRequest
+func (a *Api) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
+	var body api.InfraAPIKeyCreateRequest
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		sendApiError(w, http.StatusBadRequest, err.Error())
 		return
@@ -326,44 +330,24 @@ func (a *Api) CreateMachineAPIKey(w http.ResponseWriter, r *http.Request) {
 
 	if strings.ToLower(body.Name) == defaultApiKeyName {
 		// this name is used for the default API key that engines use to connect to the registry
-		sendApiError(w, http.StatusBadRequest, "cannot create machine API key with the name "+defaultApiKeyName+", this name is reserved")
+		sendApiError(w, http.StatusBadRequest, "cannot create an API key with the name "+defaultApiKeyName+", this name is reserved")
 		return
 	}
 
-	var apiMachine Machine
 	var apiKey ApiKey
 	err := a.db.Transaction(func(tx *gorm.DB) error {
-		var existingKey ApiKey
-		tx.First(&existingKey, &ApiKey{Name: body.Name})
-		if existingKey.Id != "" {
+		tx.First(&apiKey, &ApiKey{Name: body.Name})
+		if apiKey.Id != "" {
 			return &ErrExistingKey{}
-		}
-		var existingMachine Machine
-		tx.First(&existingMachine, &Machine{Name: body.Name})
-		if existingMachine.Id != "" {
-			return &ErrExistingMachine{}
 		}
 
 		apiKey.Name = body.Name
-		err := tx.Create(&apiKey).Error
-		if err != nil {
-			return err
-		}
-
-		apiMachine.Name = body.Name
-		apiMachine.Kind = MACHINE_KIND_API_KEY
-		apiMachine.ApiKeyId = apiKey.Id
-		err = tx.Create(&apiMachine).Error
-		if err != nil {
-			return err
-		}
-
-		return tx.Save(&apiMachine).Error
+		return tx.Create(&apiKey).Error
 	})
 	if err != nil {
 		logging.L.Error(err.Error())
 		switch err.(type) {
-		case *ErrExistingKey, *ErrExistingMachine:
+		case *ErrExistingKey:
 			sendApiError(w, http.StatusConflict, err.Error())
 			return
 		default:
@@ -374,7 +358,7 @@ func (a *Api) CreateMachineAPIKey(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(dbToApiMachineWithKey(&apiMachine, &apiKey))
+	json.NewEncoder(w).Encode(dbToApiKeyWithSecret(&apiKey))
 }
 
 func (a *Api) ListRoles(w http.ResponseWriter, r *http.Request) {
@@ -637,37 +621,23 @@ func dbToApiDestination(d *Destination) api.Destination {
 	return res
 }
 
-func dbToApiMachine(s *Machine) api.Machine {
-	res := api.Machine{
-		Id:      s.Id,
-		Name:    s.Name,
-		Created: s.Created,
-	}
-
-	switch s.Kind {
-	case MACHINE_KIND_API_KEY:
-		res.Kind = api.API
-	default:
-		logging.L.Error("unknown machine kind loaded from database: " + s.Kind)
+func dbToApiKey(k *ApiKey) api.InfraAPIKey {
+	res := api.InfraAPIKey{
+		Name:    k.Name,
+		Id:      k.Id,
+		Created: k.Created,
 	}
 
 	return res
 }
 
 // This function returns the secret key, it should only be used after the inital key creation
-func dbToApiMachineWithKey(s *Machine, a *ApiKey) api.MachineAPIKey {
-	res := api.MachineAPIKey{
-		Name:    s.Name,
-		Id:      s.Id,
-		Created: s.Created,
-		ApiKey:  a.Key,
-	}
-
-	switch s.Kind {
-	case MACHINE_KIND_API_KEY:
-		res.Kind = api.API
-	default:
-		logging.L.Error("unknown machine kind loaded from database: " + s.Kind)
+func dbToApiKeyWithSecret(a *ApiKey) api.InfraAPIKeyCreateResponse {
+	res := api.InfraAPIKeyCreateResponse{
+		Name:    a.Name,
+		Id:      a.Id,
+		Created: a.Created,
+		Key:     a.Key,
 	}
 
 	return res

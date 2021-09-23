@@ -26,15 +26,15 @@ import {
     InfraAPIKeyCreateResponseToJSON,
 } from '../models';
 
-export interface CreateInfraAPIKeyRequest {
+export interface CreateAPIKeyRequest {
     body: InfraAPIKeyCreateRequest;
 }
 
-export interface DeleteInfraApiKeyRequest {
+export interface DeleteApiKeyRequest {
     id: string;
 }
 
-export interface ListInfraAPIKeysRequest {
+export interface ListAPIKeysRequest {
     name?: string;
 }
 
@@ -46,9 +46,9 @@ export class ApiKeysApi extends runtime.BaseAPI {
     /**
      * Register an API key
      */
-    async createInfraAPIKeyRaw(requestParameters: CreateInfraAPIKeyRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<InfraAPIKeyCreateResponse>> {
+    async createAPIKeyRaw(requestParameters: CreateAPIKeyRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<InfraAPIKeyCreateResponse>> {
         if (requestParameters.body === null || requestParameters.body === undefined) {
-            throw new runtime.RequiredError('body','Required parameter requestParameters.body was null or undefined when calling createInfraAPIKey.');
+            throw new runtime.RequiredError('body','Required parameter requestParameters.body was null or undefined when calling createAPIKey.');
         }
 
         const queryParameters: any = {};
@@ -79,17 +79,17 @@ export class ApiKeysApi extends runtime.BaseAPI {
     /**
      * Register an API key
      */
-    async createInfraAPIKey(requestParameters: CreateInfraAPIKeyRequest, initOverrides?: RequestInit): Promise<InfraAPIKeyCreateResponse> {
-        const response = await this.createInfraAPIKeyRaw(requestParameters, initOverrides);
+    async createAPIKey(requestParameters: CreateAPIKeyRequest, initOverrides?: RequestInit): Promise<InfraAPIKeyCreateResponse> {
+        const response = await this.createAPIKeyRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
      * delete an API key
      */
-    async deleteInfraApiKeyRaw(requestParameters: DeleteInfraApiKeyRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<void>> {
+    async deleteApiKeyRaw(requestParameters: DeleteApiKeyRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<void>> {
         if (requestParameters.id === null || requestParameters.id === undefined) {
-            throw new runtime.RequiredError('id','Required parameter requestParameters.id was null or undefined when calling deleteInfraApiKey.');
+            throw new runtime.RequiredError('id','Required parameter requestParameters.id was null or undefined when calling deleteApiKey.');
         }
 
         const queryParameters: any = {};
@@ -117,14 +117,14 @@ export class ApiKeysApi extends runtime.BaseAPI {
     /**
      * delete an API key
      */
-    async deleteInfraApiKey(requestParameters: DeleteInfraApiKeyRequest, initOverrides?: RequestInit): Promise<void> {
-        await this.deleteInfraApiKeyRaw(requestParameters, initOverrides);
+    async deleteApiKey(requestParameters: DeleteApiKeyRequest, initOverrides?: RequestInit): Promise<void> {
+        await this.deleteApiKeyRaw(requestParameters, initOverrides);
     }
 
     /**
      * List API keys
      */
-    async listInfraAPIKeysRaw(requestParameters: ListInfraAPIKeysRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<InfraAPIKey>>> {
+    async listAPIKeysRaw(requestParameters: ListAPIKeysRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<InfraAPIKey>>> {
         const queryParameters: any = {};
 
         if (requestParameters.name !== undefined) {
@@ -154,8 +154,8 @@ export class ApiKeysApi extends runtime.BaseAPI {
     /**
      * List API keys
      */
-    async listInfraAPIKeys(requestParameters: ListInfraAPIKeysRequest, initOverrides?: RequestInit): Promise<Array<InfraAPIKey>> {
-        const response = await this.listInfraAPIKeysRaw(requestParameters, initOverrides);
+    async listAPIKeys(requestParameters: ListAPIKeysRequest, initOverrides?: RequestInit): Promise<Array<InfraAPIKey>> {
+        const response = await this.listAPIKeysRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

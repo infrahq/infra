@@ -27,29 +27,29 @@ var (
 // ApiKeysApiService ApiKeysApi service
 type ApiKeysApiService service
 
-type ApiCreateInfraAPIKeyRequest struct {
+type ApiCreateAPIKeyRequest struct {
 	ctx        _context.Context
 	ApiService *ApiKeysApiService
 	body       *InfraAPIKeyCreateRequest
 }
 
-func (r ApiCreateInfraAPIKeyRequest) Body(body InfraAPIKeyCreateRequest) ApiCreateInfraAPIKeyRequest {
+func (r ApiCreateAPIKeyRequest) Body(body InfraAPIKeyCreateRequest) ApiCreateAPIKeyRequest {
 	r.body = &body
 	return r
 }
 
-func (r ApiCreateInfraAPIKeyRequest) Execute() (InfraAPIKeyCreateResponse, *_nethttp.Response, error) {
-	return r.ApiService.CreateInfraAPIKeyExecute(r)
+func (r ApiCreateAPIKeyRequest) Execute() (InfraAPIKeyCreateResponse, *_nethttp.Response, error) {
+	return r.ApiService.CreateAPIKeyExecute(r)
 }
 
 /*
-CreateInfraAPIKey Register an API key
+CreateAPIKey Register an API key
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiCreateInfraAPIKeyRequest
+ @return ApiCreateAPIKeyRequest
 */
-func (a *ApiKeysApiService) CreateInfraAPIKey(ctx _context.Context) ApiCreateInfraAPIKeyRequest {
-	return ApiCreateInfraAPIKeyRequest{
+func (a *ApiKeysApiService) CreateAPIKey(ctx _context.Context) ApiCreateAPIKeyRequest {
+	return ApiCreateAPIKeyRequest{
 		ApiService: a,
 		ctx:        ctx,
 	}
@@ -57,7 +57,7 @@ func (a *ApiKeysApiService) CreateInfraAPIKey(ctx _context.Context) ApiCreateInf
 
 // Execute executes the request
 //  @return InfraAPIKeyCreateResponse
-func (a *ApiKeysApiService) CreateInfraAPIKeyExecute(r ApiCreateInfraAPIKeyRequest) (InfraAPIKeyCreateResponse, *_nethttp.Response, error) {
+func (a *ApiKeysApiService) CreateAPIKeyExecute(r ApiCreateAPIKeyRequest) (InfraAPIKeyCreateResponse, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodPost
 		localVarPostBody     interface{}
@@ -67,7 +67,7 @@ func (a *ApiKeysApiService) CreateInfraAPIKeyExecute(r ApiCreateInfraAPIKeyReque
 		localVarReturnValue  InfraAPIKeyCreateResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ApiKeysApiService.CreateInfraAPIKey")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ApiKeysApiService.CreateAPIKey")
 	if err != nil {
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
@@ -144,25 +144,25 @@ func (a *ApiKeysApiService) CreateInfraAPIKeyExecute(r ApiCreateInfraAPIKeyReque
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiDeleteInfraApiKeyRequest struct {
+type ApiDeleteApiKeyRequest struct {
 	ctx        _context.Context
 	ApiService *ApiKeysApiService
 	id         string
 }
 
-func (r ApiDeleteInfraApiKeyRequest) Execute() (*_nethttp.Response, error) {
-	return r.ApiService.DeleteInfraApiKeyExecute(r)
+func (r ApiDeleteApiKeyRequest) Execute() (*_nethttp.Response, error) {
+	return r.ApiService.DeleteApiKeyExecute(r)
 }
 
 /*
-DeleteInfraApiKey delete an API key
+DeleteApiKey delete an API key
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id The API Key ID
- @return ApiDeleteInfraApiKeyRequest
+ @return ApiDeleteApiKeyRequest
 */
-func (a *ApiKeysApiService) DeleteInfraApiKey(ctx _context.Context, id string) ApiDeleteInfraApiKeyRequest {
-	return ApiDeleteInfraApiKeyRequest{
+func (a *ApiKeysApiService) DeleteApiKey(ctx _context.Context, id string) ApiDeleteApiKeyRequest {
+	return ApiDeleteApiKeyRequest{
 		ApiService: a,
 		ctx:        ctx,
 		id:         id,
@@ -170,7 +170,7 @@ func (a *ApiKeysApiService) DeleteInfraApiKey(ctx _context.Context, id string) A
 }
 
 // Execute executes the request
-func (a *ApiKeysApiService) DeleteInfraApiKeyExecute(r ApiDeleteInfraApiKeyRequest) (*_nethttp.Response, error) {
+func (a *ApiKeysApiService) DeleteApiKeyExecute(r ApiDeleteApiKeyRequest) (*_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodDelete
 		localVarPostBody     interface{}
@@ -179,7 +179,7 @@ func (a *ApiKeysApiService) DeleteInfraApiKeyExecute(r ApiDeleteInfraApiKeyReque
 		localVarFileBytes    []byte
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ApiKeysApiService.DeleteInfraApiKey")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ApiKeysApiService.DeleteApiKey")
 	if err != nil {
 		return nil, GenericOpenAPIError{error: err.Error()}
 	}
@@ -243,30 +243,30 @@ func (a *ApiKeysApiService) DeleteInfraApiKeyExecute(r ApiDeleteInfraApiKeyReque
 	return localVarHTTPResponse, nil
 }
 
-type ApiListInfraAPIKeysRequest struct {
+type ApiListAPIKeysRequest struct {
 	ctx        _context.Context
 	ApiService *ApiKeysApiService
 	name       *string
 }
 
 // Filter results by the API key name
-func (r ApiListInfraAPIKeysRequest) Name(name string) ApiListInfraAPIKeysRequest {
+func (r ApiListAPIKeysRequest) Name(name string) ApiListAPIKeysRequest {
 	r.name = &name
 	return r
 }
 
-func (r ApiListInfraAPIKeysRequest) Execute() ([]InfraAPIKey, *_nethttp.Response, error) {
-	return r.ApiService.ListInfraAPIKeysExecute(r)
+func (r ApiListAPIKeysRequest) Execute() ([]InfraAPIKey, *_nethttp.Response, error) {
+	return r.ApiService.ListAPIKeysExecute(r)
 }
 
 /*
-ListInfraAPIKeys List API keys
+ListAPIKeys List API keys
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiListInfraAPIKeysRequest
+ @return ApiListAPIKeysRequest
 */
-func (a *ApiKeysApiService) ListInfraAPIKeys(ctx _context.Context) ApiListInfraAPIKeysRequest {
-	return ApiListInfraAPIKeysRequest{
+func (a *ApiKeysApiService) ListAPIKeys(ctx _context.Context) ApiListAPIKeysRequest {
+	return ApiListAPIKeysRequest{
 		ApiService: a,
 		ctx:        ctx,
 	}
@@ -274,7 +274,7 @@ func (a *ApiKeysApiService) ListInfraAPIKeys(ctx _context.Context) ApiListInfraA
 
 // Execute executes the request
 //  @return []InfraAPIKey
-func (a *ApiKeysApiService) ListInfraAPIKeysExecute(r ApiListInfraAPIKeysRequest) ([]InfraAPIKey, *_nethttp.Response, error) {
+func (a *ApiKeysApiService) ListAPIKeysExecute(r ApiListAPIKeysRequest) ([]InfraAPIKey, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodGet
 		localVarPostBody     interface{}
@@ -284,7 +284,7 @@ func (a *ApiKeysApiService) ListInfraAPIKeysExecute(r ApiListInfraAPIKeysRequest
 		localVarReturnValue  []InfraAPIKey
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ApiKeysApiService.ListInfraAPIKeys")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ApiKeysApiService.ListAPIKeys")
 	if err != nil {
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}

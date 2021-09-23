@@ -80,16 +80,6 @@ type Destination struct {
 	KubernetesSaToken   string
 }
 
-var MACHINE_KIND_API_KEY = "api"
-
-type Machine struct {
-	Id       string `gorm:"primaryKey"`
-	Created  int64  `gorm:"autoCreateTime"`
-	Name     string `gorm:"unique"`
-	Kind     string
-	ApiKeyId string
-}
-
 type Role struct {
 	Id            string `gorm:"primaryKey"`
 	Created       int64  `gorm:"autoCreateTime"`
@@ -146,12 +136,6 @@ type ErrExistingKey struct{}
 
 func (e *ErrExistingKey) Error() string {
 	return "a key with this name already exists"
-}
-
-type ErrExistingMachine struct{}
-
-func (e *ErrExistingMachine) Error() string {
-	return "a machine with this name already exists"
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
@@ -212,21 +196,6 @@ func (g *Group) BeforeCreate(tx *gorm.DB) (err error) {
 		g.Id = generate.MathRandString(ID_LEN)
 	}
 
-	return nil
-}
-
-func (m *Machine) BeforeCreate(tx *gorm.DB) error {
-	if m.Id == "" {
-		m.Id = generate.MathRandString(ID_LEN)
-	}
-
-	return nil
-}
-
-func (m *Machine) BeforeDelete(tx *gorm.DB) error {
-	if m.ApiKeyId != "" {
-		tx.Where(&ApiKey{Id: m.ApiKeyId}).Delete(&ApiKey{})
-	}
 	return nil
 }
 
@@ -574,7 +543,6 @@ func NewDB(dbpath string) (*gorm.DB, error) {
 	db.AutoMigrate(&User{})
 	db.AutoMigrate(&Source{})
 	db.AutoMigrate(&Destination{})
-	db.AutoMigrate(&Machine{})
 	db.AutoMigrate(&Role{})
 	db.AutoMigrate(&Settings{})
 	db.AutoMigrate(&Token{})
