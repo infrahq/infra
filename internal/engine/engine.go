@@ -33,7 +33,6 @@ import (
 type Options struct {
 	Registry       string
 	Name           string
-	Endpoint       string
 	ForceTLSVerify bool
 	APIKey         string
 	TLSCache       string

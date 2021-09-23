@@ -39,10 +39,6 @@ spec:
             - name: INFRA_ENGINE_NAME
               value: {{ . | quote }}
 {{- end }}
-{{- with .Values.endpoint }}
-            - name: INFRA_ENGINE_ENDPOINT
-              value: {{ . | quote }}
-{{- end }}
             - name: INFRA_ENGINE_REGISTRY
               value: {{ required "Value registry is required" .Values.registry | quote }}
             - name: INFRA_LOG_LEVEL
