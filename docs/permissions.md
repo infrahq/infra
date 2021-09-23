@@ -21,6 +21,7 @@ groups:
 
 users:
   - email: admin@example.com   # user email
+    source: okta
     groups:                   # manually assign groups this user belongs to
       - developers
     roles:
