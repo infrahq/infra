@@ -17,27 +17,36 @@ spec:
     spec:
       automountServiceAccountToken: true
       serviceAccountName: infra-engine
-      dnsPolicy: Default
+      dnsPolicy: ClusterFirst
+{{- with .Values.image.pullSecrets }}
+      imagePullSecrets:
+{{- range . }}
+        - name: {{ . }}
+{{- end }}
+{{- end }}
       containers:
         - name: engine
           image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args: ["engine", "--tls-cache", "/var/run/infra/data/cache"]
           ports:
-            - containerPort: 443
+{{- range .Values.service.ports }}
+            - name: {{ .name }}
+              containerPort: {{ .targetPort }}
+{{- end }}
           env:
-            {{- if .Values.name }}
+{{- with .Values.name }}
             - name: INFRA_ENGINE_NAME
-              value: {{ .Values.name | quote }}
-            {{- end }}
-            {{- if .Values.endpoint }}
+              value: {{ . | quote }}
+{{- end }}
+{{- with .Values.endpoint }}
             - name: INFRA_ENGINE_ENDPOINT
-              value: {{ .Values.endpoint | quote }}
-            {{- end }}
+              value: {{ . | quote }}
+{{- end }}
             - name: INFRA_ENGINE_REGISTRY
               value: {{ required "Value registry is required" .Values.registry | quote }}
             - name: INFRA_LOG_LEVEL
-              value: info
+              value: {{ .Values.logLevel | default "info" }}
             - name: INFRA_ENGINE_API_KEY
               valueFrom:
                 secretKeyRef:
@@ -54,7 +63,9 @@ spec:
             httpGet:
               scheme: HTTPS
               path: /healthz
-              port: 443
+              {{- with first .Values.service.ports }}
+              port: {{ .targetPort }}
+              {{- end }}
             periodSeconds: 3
       volumes:
         - name: infra-engine-anonymous
