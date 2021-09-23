@@ -61,3 +61,6 @@ release/helm:
 	make helm
 	aws s3 --region us-east-2 sync helm s3://helm.infrahq.com --exclude "*" --include "index.yaml" --include "*.tgz"
 
+lint:
+	@golangci-lint --version || echo "install golangci-lint @ https://golangci-lint.run/usage/install/\#local-installation"
+	golangci-lint run ./... -E asciicheck,bodyclose,durationcheck,errorlint,exhaustive,exportloopref,gosec,makezero,nilerr,noctx,rowserrcheck,sqlclosecheck,gofmt,gofumpt,gci,revive,gocritic,forcetypeassert,misspell,nakedret,wastedassign,wsl -D scopelint
