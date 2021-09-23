@@ -3,7 +3,6 @@ package registry
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -732,10 +731,9 @@ func TestListAPIKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, 2, len(keys)) // the machine we just created and one loaded from config
+	assert.Equal(t, 2, len(keys)) // the key we just created and one loaded from config
 	keyIDs := make(map[string]string)
 	for _, k := range keys {
-		fmt.Println(k)
 		keyIDs[k.Name] = k.Id
 	}
 	assert.NotEmpty(t, keyIDs["test-key"])
