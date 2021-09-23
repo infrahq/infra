@@ -15,40 +15,40 @@
 
 import * as runtime from '../runtime';
 import {
-    Machine,
-    MachineFromJSON,
-    MachineToJSON,
-    MachineAPIKey,
-    MachineAPIKeyFromJSON,
-    MachineAPIKeyToJSON,
-    MachineAPIKeyCreateRequest,
-    MachineAPIKeyCreateRequestFromJSON,
-    MachineAPIKeyCreateRequestToJSON,
+    InfraAPIKey,
+    InfraAPIKeyFromJSON,
+    InfraAPIKeyToJSON,
+    InfraAPIKeyCreateRequest,
+    InfraAPIKeyCreateRequestFromJSON,
+    InfraAPIKeyCreateRequestToJSON,
+    InfraAPIKeyCreateResponse,
+    InfraAPIKeyCreateResponseFromJSON,
+    InfraAPIKeyCreateResponseToJSON,
 } from '../models';
 
-export interface CreateMachineAPIKeyRequest {
-    body: MachineAPIKeyCreateRequest;
+export interface CreateInfraAPIKeyRequest {
+    body: InfraAPIKeyCreateRequest;
 }
 
-export interface DeleteMachineRequest {
+export interface DeleteInfraApiKeyRequest {
     id: string;
 }
 
-export interface ListMachinesRequest {
+export interface ListInfraAPIKeysRequest {
     name?: string;
 }
 
 /**
  * 
  */
-export class MachinesApi extends runtime.BaseAPI {
+export class ApiKeysApi extends runtime.BaseAPI {
 
     /**
-     * Register a machine API key
+     * Register an API key
      */
-    async createMachineAPIKeyRaw(requestParameters: CreateMachineAPIKeyRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<MachineAPIKey>> {
+    async createInfraAPIKeyRaw(requestParameters: CreateInfraAPIKeyRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<InfraAPIKeyCreateResponse>> {
         if (requestParameters.body === null || requestParameters.body === undefined) {
-            throw new runtime.RequiredError('body','Required parameter requestParameters.body was null or undefined when calling createMachineAPIKey.');
+            throw new runtime.RequiredError('body','Required parameter requestParameters.body was null or undefined when calling createInfraAPIKey.');
         }
 
         const queryParameters: any = {};
@@ -66,30 +66,30 @@ export class MachinesApi extends runtime.BaseAPI {
             }
         }
         const response = await this.request({
-            path: `/machines/apiKeys`,
+            path: `/api-keys`,
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: MachineAPIKeyCreateRequestToJSON(requestParameters.body),
+            body: InfraAPIKeyCreateRequestToJSON(requestParameters.body),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => MachineAPIKeyFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => InfraAPIKeyCreateResponseFromJSON(jsonValue));
     }
 
     /**
-     * Register a machine API key
+     * Register an API key
      */
-    async createMachineAPIKey(requestParameters: CreateMachineAPIKeyRequest, initOverrides?: RequestInit): Promise<MachineAPIKey> {
-        const response = await this.createMachineAPIKeyRaw(requestParameters, initOverrides);
+    async createInfraAPIKey(requestParameters: CreateInfraAPIKeyRequest, initOverrides?: RequestInit): Promise<InfraAPIKeyCreateResponse> {
+        const response = await this.createInfraAPIKeyRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
-     * delete a machine
+     * delete an API key
      */
-    async deleteMachineRaw(requestParameters: DeleteMachineRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<void>> {
+    async deleteInfraApiKeyRaw(requestParameters: DeleteInfraApiKeyRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<void>> {
         if (requestParameters.id === null || requestParameters.id === undefined) {
-            throw new runtime.RequiredError('id','Required parameter requestParameters.id was null or undefined when calling deleteMachine.');
+            throw new runtime.RequiredError('id','Required parameter requestParameters.id was null or undefined when calling deleteInfraApiKey.');
         }
 
         const queryParameters: any = {};
@@ -105,7 +105,7 @@ export class MachinesApi extends runtime.BaseAPI {
             }
         }
         const response = await this.request({
-            path: `/machines/{id}`.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters.id))),
+            path: `/api-keys/{id}`.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters.id))),
             method: 'DELETE',
             headers: headerParameters,
             query: queryParameters,
@@ -115,16 +115,16 @@ export class MachinesApi extends runtime.BaseAPI {
     }
 
     /**
-     * delete a machine
+     * delete an API key
      */
-    async deleteMachine(requestParameters: DeleteMachineRequest, initOverrides?: RequestInit): Promise<void> {
-        await this.deleteMachineRaw(requestParameters, initOverrides);
+    async deleteInfraApiKey(requestParameters: DeleteInfraApiKeyRequest, initOverrides?: RequestInit): Promise<void> {
+        await this.deleteInfraApiKeyRaw(requestParameters, initOverrides);
     }
 
     /**
-     * List machines
+     * List API keys
      */
-    async listMachinesRaw(requestParameters: ListMachinesRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<Machine>>> {
+    async listInfraAPIKeysRaw(requestParameters: ListInfraAPIKeysRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<InfraAPIKey>>> {
         const queryParameters: any = {};
 
         if (requestParameters.name !== undefined) {
@@ -142,20 +142,20 @@ export class MachinesApi extends runtime.BaseAPI {
             }
         }
         const response = await this.request({
-            path: `/machines`,
+            path: `/api-keys`,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(MachineFromJSON));
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(InfraAPIKeyFromJSON));
     }
 
     /**
-     * List machines
+     * List API keys
      */
-    async listMachines(requestParameters: ListMachinesRequest, initOverrides?: RequestInit): Promise<Array<Machine>> {
-        const response = await this.listMachinesRaw(requestParameters, initOverrides);
+    async listInfraAPIKeys(requestParameters: ListInfraAPIKeysRequest, initOverrides?: RequestInit): Promise<Array<InfraAPIKey>> {
+        const response = await this.listInfraAPIKeysRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

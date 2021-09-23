@@ -16,22 +16,22 @@ import { exists, mapValues } from '../runtime';
 /**
  * 
  * @export
- * @interface MachineAPIKeyCreateRequest
+ * @interface InfraAPIKeyCreateRequest
  */
-export interface MachineAPIKeyCreateRequest {
+export interface InfraAPIKeyCreateRequest {
     /**
      * 
      * @type {string}
-     * @memberof MachineAPIKeyCreateRequest
+     * @memberof InfraAPIKeyCreateRequest
      */
     name: string;
 }
 
-export function MachineAPIKeyCreateRequestFromJSON(json: any): MachineAPIKeyCreateRequest {
-    return MachineAPIKeyCreateRequestFromJSONTyped(json, false);
+export function InfraAPIKeyCreateRequestFromJSON(json: any): InfraAPIKeyCreateRequest {
+    return InfraAPIKeyCreateRequestFromJSONTyped(json, false);
 }
 
-export function MachineAPIKeyCreateRequestFromJSONTyped(json: any, ignoreDiscriminator: boolean): MachineAPIKeyCreateRequest {
+export function InfraAPIKeyCreateRequestFromJSONTyped(json: any, ignoreDiscriminator: boolean): InfraAPIKeyCreateRequest {
     if ((json === undefined) || (json === null)) {
         return json;
     }
@@ -41,7 +41,7 @@ export function MachineAPIKeyCreateRequestFromJSONTyped(json: any, ignoreDiscrim
     };
 }
 
-export function MachineAPIKeyCreateRequestToJSON(value?: MachineAPIKeyCreateRequest | null): any {
+export function InfraAPIKeyCreateRequestToJSON(value?: InfraAPIKeyCreateRequest | null): any {
     if (value === undefined) {
         return undefined;
     }

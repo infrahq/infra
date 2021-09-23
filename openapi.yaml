@@ -14,8 +14,8 @@ tags:
     description: Manage identity sources
   - name: destinations
     description: Manage infrastructure destinations
-  - name: machines
-    description: Manage machines that rely on Infra
+  - name: api-keys
+    description: Manage API keys used to access Infra admin endpoints
   - name: creds
     description: Create credentials to access a destination
   - name: roles
@@ -145,13 +145,12 @@ components:
         saToken:
           type: string
           x-go-custom-tag: validate:"required"
-    Machine:
+    InfraAPIKey:
       type: object
       required:
         - id
         - created
         - name
-        - kind
       properties:
         id:
           type: string
@@ -160,28 +159,21 @@ components:
           format: int64
         name:
           type: string
-        kind:
-          $ref: "#/components/schemas/MachineKind"
-    MachineKind:
-      type: string
-      enum:
-        - api
-        - client
-    MachineAPIKey:
-        allOf:
-        - $ref: '#/components/schemas/Machine'
-        type: object
-        required:
-          - apiKey
-        properties:
-          apiKey:
-            type: string
-    MachineAPIKeyCreateRequest:
+    InfraAPIKeyCreateRequest:
       type: object
       required:
         - name
       properties:
         name:
+          type: string
+    InfraAPIKeyCreateResponse:
+      allOf:
+        - $ref: '#/components/schemas/InfraAPIKey'
+      type: object
+      required:
+        - key
+      properties:
+        key:
           type: string
     Cred:
       type: object
@@ -400,81 +392,80 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /machines:
+  /api-keys:
     get:
       tags:
-        - machines
+        - api-keys
       security:
         - bearerAuth: []
-      summary: List machines
-      operationId: listMachines
+      summary: List API keys
+      operationId: listInfraAPIKeys
       parameters:
         - in: query
           name: name
           schema:
             type: string
-          description: Filter results by the machine name
+          description: Filter results by the API key name
       responses:
         '200':
-          description: machines response
+          description: API keys response
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Machine'
+                  $ref: '#/components/schemas/InfraAPIKey'
         default:
           description: unexpected error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /machines/{id}:
-    delete:
-      tags:
-        - machines
-      security:
-        - bearerAuth: []
-      summary: delete a machine
-      operationId: deleteMachine
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-          description: The machine ID
-      responses:
-        '204':
-          description: empty response
-        default:
-          description: unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  /machines/apiKeys:
     post:
       tags:
-        - machines
+        - api-keys
       security:
         - bearerAuth: []
-      summary: Register a machine API key
-      operationId: createMachineAPIKey
+      summary: Register an API key
+      operationId: createInfraAPIKey
       x-codegen-request-body-name: body
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/MachineAPIKeyCreateRequest'
+              $ref: '#/components/schemas/InfraAPIKeyCreateRequest'
       responses:
         '200':
-          description: create machine API key response
+          description: create API key response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MachineAPIKey'
+                $ref: '#/components/schemas/InfraAPIKeyCreateResponse'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api-keys/{id}:
+    delete:
+      tags:
+        - api-keys
+      security:
+        - bearerAuth: []
+      summary: delete an API key
+      operationId: deleteInfraApiKey
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: The API Key ID
+      responses:
+        '204':
+          description: empty response
         default:
           description: unexpected error
           content:

@@ -14,73 +14,62 @@
 
 import { exists, mapValues } from '../runtime';
 import {
-    Machine,
-    MachineFromJSON,
-    MachineFromJSONTyped,
-    MachineToJSON,
-    MachineKind,
-    MachineKindFromJSON,
-    MachineKindFromJSONTyped,
-    MachineKindToJSON,
+    InfraAPIKey,
+    InfraAPIKeyFromJSON,
+    InfraAPIKeyFromJSONTyped,
+    InfraAPIKeyToJSON,
 } from './';
 
 /**
  * 
  * @export
- * @interface MachineAPIKey
+ * @interface InfraAPIKeyCreateResponse
  */
-export interface MachineAPIKey {
+export interface InfraAPIKeyCreateResponse {
     /**
      * 
      * @type {string}
-     * @memberof MachineAPIKey
+     * @memberof InfraAPIKeyCreateResponse
      */
-    apiKey: string;
+    key: string;
     /**
      * 
      * @type {string}
-     * @memberof MachineAPIKey
+     * @memberof InfraAPIKeyCreateResponse
      */
     id: string;
     /**
      * 
      * @type {number}
-     * @memberof MachineAPIKey
+     * @memberof InfraAPIKeyCreateResponse
      */
     created: number;
     /**
      * 
      * @type {string}
-     * @memberof MachineAPIKey
+     * @memberof InfraAPIKeyCreateResponse
      */
     name: string;
-    /**
-     * 
-     * @type {MachineKind}
-     * @memberof MachineAPIKey
-     */
-    kind: MachineKind;
 }
 
-export function MachineAPIKeyFromJSON(json: any): MachineAPIKey {
-    return MachineAPIKeyFromJSONTyped(json, false);
+export function InfraAPIKeyCreateResponseFromJSON(json: any): InfraAPIKeyCreateResponse {
+    return InfraAPIKeyCreateResponseFromJSONTyped(json, false);
 }
 
-export function MachineAPIKeyFromJSONTyped(json: any, ignoreDiscriminator: boolean): MachineAPIKey {
+export function InfraAPIKeyCreateResponseFromJSONTyped(json: any, ignoreDiscriminator: boolean): InfraAPIKeyCreateResponse {
     if ((json === undefined) || (json === null)) {
         return json;
     }
     return {
         
-        'apiKey': json['apiKey'],
+        'key': json['key'],
         'id': json['id'],
         'created': json['created'],
         'name': json['name'],
-        'kind': MachineKindFromJSON(json['kind']),
     };
 }
 
-export function MachineAPIKeyToJSON(value?: MachineAPIKey | null): any {
+export function InfraAPIKeyCreateResponseToJSON(value?: InfraAPIKeyCreateResponse | null): any {
     if (value === undefined) {
         return undefined;
     }
@@ -89,11 +78,10 @@ export function MachineAPIKeyToJSON(value?: MachineAPIKey | null): any {
     }
     return {
         
-        'apiKey': value.apiKey,
+        'key': value.key,
         'id': value.id,
         'created': value.created,
         'name': value.name,
-        'kind': MachineKindToJSON(value.kind),
     };
 }
 

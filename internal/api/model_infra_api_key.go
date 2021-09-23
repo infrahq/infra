@@ -14,37 +14,35 @@ import (
 	"encoding/json"
 )
 
-// Machine struct for Machine
-type Machine struct {
-	Id      string      `json:"id"`
-	Created int64       `json:"created"`
-	Name    string      `json:"name"`
-	Kind    MachineKind `json:"kind"`
+// InfraAPIKey struct for InfraAPIKey
+type InfraAPIKey struct {
+	Id      string `json:"id"`
+	Created int64  `json:"created"`
+	Name    string `json:"name"`
 }
 
-// NewMachine instantiates a new Machine object
+// NewInfraAPIKey instantiates a new InfraAPIKey object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewMachine(id string, created int64, name string, kind MachineKind) *Machine {
-	this := Machine{}
+func NewInfraAPIKey(id string, created int64, name string) *InfraAPIKey {
+	this := InfraAPIKey{}
 	this.Id = id
 	this.Created = created
 	this.Name = name
-	this.Kind = kind
 	return &this
 }
 
-// NewMachineWithDefaults instantiates a new Machine object
+// NewInfraAPIKeyWithDefaults instantiates a new InfraAPIKey object
 // This constructor will only assign default values to properties that have it defined,
 // but it doesn't guarantee that properties required by API are set
-func NewMachineWithDefaults() *Machine {
-	this := Machine{}
+func NewInfraAPIKeyWithDefaults() *InfraAPIKey {
+	this := InfraAPIKey{}
 	return &this
 }
 
 // GetId returns the Id field value
-func (o *Machine) GetId() string {
+func (o *InfraAPIKey) GetId() string {
 	if o == nil {
 		var ret string
 		return ret
@@ -55,7 +53,7 @@ func (o *Machine) GetId() string {
 
 // GetIdOk returns a tuple with the Id field value
 // and a boolean to check if the value has been set.
-func (o *Machine) GetIdOk() (*string, bool) {
+func (o *InfraAPIKey) GetIdOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -63,12 +61,12 @@ func (o *Machine) GetIdOk() (*string, bool) {
 }
 
 // SetId sets field value
-func (o *Machine) SetId(v string) {
+func (o *InfraAPIKey) SetId(v string) {
 	o.Id = v
 }
 
 // GetCreated returns the Created field value
-func (o *Machine) GetCreated() int64 {
+func (o *InfraAPIKey) GetCreated() int64 {
 	if o == nil {
 		var ret int64
 		return ret
@@ -79,7 +77,7 @@ func (o *Machine) GetCreated() int64 {
 
 // GetCreatedOk returns a tuple with the Created field value
 // and a boolean to check if the value has been set.
-func (o *Machine) GetCreatedOk() (*int64, bool) {
+func (o *InfraAPIKey) GetCreatedOk() (*int64, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -87,12 +85,12 @@ func (o *Machine) GetCreatedOk() (*int64, bool) {
 }
 
 // SetCreated sets field value
-func (o *Machine) SetCreated(v int64) {
+func (o *InfraAPIKey) SetCreated(v int64) {
 	o.Created = v
 }
 
 // GetName returns the Name field value
-func (o *Machine) GetName() string {
+func (o *InfraAPIKey) GetName() string {
 	if o == nil {
 		var ret string
 		return ret
@@ -103,7 +101,7 @@ func (o *Machine) GetName() string {
 
 // GetNameOk returns a tuple with the Name field value
 // and a boolean to check if the value has been set.
-func (o *Machine) GetNameOk() (*string, bool) {
+func (o *InfraAPIKey) GetNameOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -111,35 +109,11 @@ func (o *Machine) GetNameOk() (*string, bool) {
 }
 
 // SetName sets field value
-func (o *Machine) SetName(v string) {
+func (o *InfraAPIKey) SetName(v string) {
 	o.Name = v
 }
 
-// GetKind returns the Kind field value
-func (o *Machine) GetKind() MachineKind {
-	if o == nil {
-		var ret MachineKind
-		return ret
-	}
-
-	return o.Kind
-}
-
-// GetKindOk returns a tuple with the Kind field value
-// and a boolean to check if the value has been set.
-func (o *Machine) GetKindOk() (*MachineKind, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.Kind, true
-}
-
-// SetKind sets field value
-func (o *Machine) SetKind(v MachineKind) {
-	o.Kind = v
-}
-
-func (o Machine) MarshalJSON() ([]byte, error) {
+func (o InfraAPIKey) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
 		toSerialize["id"] = o.Id
@@ -150,44 +124,41 @@ func (o Machine) MarshalJSON() ([]byte, error) {
 	if true {
 		toSerialize["name"] = o.Name
 	}
-	if true {
-		toSerialize["kind"] = o.Kind
-	}
 	return json.Marshal(toSerialize)
 }
 
-type NullableMachine struct {
-	value *Machine
+type NullableInfraAPIKey struct {
+	value *InfraAPIKey
 	isSet bool
 }
 
-func (v NullableMachine) Get() *Machine {
+func (v NullableInfraAPIKey) Get() *InfraAPIKey {
 	return v.value
 }
 
-func (v *NullableMachine) Set(val *Machine) {
+func (v *NullableInfraAPIKey) Set(val *InfraAPIKey) {
 	v.value = val
 	v.isSet = true
 }
 
-func (v NullableMachine) IsSet() bool {
+func (v NullableInfraAPIKey) IsSet() bool {
 	return v.isSet
 }
 
-func (v *NullableMachine) Unset() {
+func (v *NullableInfraAPIKey) Unset() {
 	v.value = nil
 	v.isSet = false
 }
 
-func NewNullableMachine(val *Machine) *NullableMachine {
-	return &NullableMachine{value: val, isSet: true}
+func NewNullableInfraAPIKey(val *InfraAPIKey) *NullableInfraAPIKey {
+	return &NullableInfraAPIKey{value: val, isSet: true}
 }
 
-func (v NullableMachine) MarshalJSON() ([]byte, error) {
+func (v NullableInfraAPIKey) MarshalJSON() ([]byte, error) {
 	return json.Marshal(v.value)
 }
 
-func (v *NullableMachine) UnmarshalJSON(src []byte) error {
+func (v *NullableInfraAPIKey) UnmarshalJSON(src []byte) error {
 	v.isSet = true
 	return json.Unmarshal(src, &v.value)
 }

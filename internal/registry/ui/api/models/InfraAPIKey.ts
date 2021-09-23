@@ -13,50 +13,37 @@
  */
 
 import { exists, mapValues } from '../runtime';
-import {
-    MachineKind,
-    MachineKindFromJSON,
-    MachineKindFromJSONTyped,
-    MachineKindToJSON,
-} from './';
-
 /**
  * 
  * @export
- * @interface Machine
+ * @interface InfraAPIKey
  */
-export interface Machine {
+export interface InfraAPIKey {
     /**
      * 
      * @type {string}
-     * @memberof Machine
+     * @memberof InfraAPIKey
      */
     id: string;
     /**
      * 
      * @type {number}
-     * @memberof Machine
+     * @memberof InfraAPIKey
      */
     created: number;
     /**
      * 
      * @type {string}
-     * @memberof Machine
+     * @memberof InfraAPIKey
      */
     name: string;
-    /**
-     * 
-     * @type {MachineKind}
-     * @memberof Machine
-     */
-    kind: MachineKind;
 }
 
-export function MachineFromJSON(json: any): Machine {
-    return MachineFromJSONTyped(json, false);
+export function InfraAPIKeyFromJSON(json: any): InfraAPIKey {
+    return InfraAPIKeyFromJSONTyped(json, false);
 }
 
-export function MachineFromJSONTyped(json: any, ignoreDiscriminator: boolean): Machine {
+export function InfraAPIKeyFromJSONTyped(json: any, ignoreDiscriminator: boolean): InfraAPIKey {
     if ((json === undefined) || (json === null)) {
         return json;
     }
@@ -65,11 +52,10 @@ export function MachineFromJSONTyped(json: any, ignoreDiscriminator: boolean): M
         'id': json['id'],
         'created': json['created'],
         'name': json['name'],
-        'kind': MachineKindFromJSON(json['kind']),
     };
 }
 
-export function MachineToJSON(value?: Machine | null): any {
+export function InfraAPIKeyToJSON(value?: InfraAPIKey | null): any {
     if (value === undefined) {
         return undefined;
     }
@@ -81,7 +67,6 @@ export function MachineToJSON(value?: Machine | null): any {
         'id': value.id,
         'created': value.created,
         'name': value.name,
-        'kind': MachineKindToJSON(value.kind),
     };
 }
 

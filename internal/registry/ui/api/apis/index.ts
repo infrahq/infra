@@ -1,10 +1,10 @@
 /* tslint:disable */
 /* eslint-disable */
+export * from './ApiKeysApi';
 export * from './AuthApi';
 export * from './CredsApi';
 export * from './DestinationsApi';
 export * from './GroupsApi';
-export * from './MachinesApi';
 export * from './RolesApi';
 export * from './SourcesApi';
 export * from './UsersApi';

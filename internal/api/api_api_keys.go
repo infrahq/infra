@@ -24,55 +24,55 @@ var (
 	_ _context.Context
 )
 
-// MachinesApiService MachinesApi service
-type MachinesApiService service
+// ApiKeysApiService ApiKeysApi service
+type ApiKeysApiService service
 
-type ApiCreateMachineAPIKeyRequest struct {
+type ApiCreateInfraAPIKeyRequest struct {
 	ctx        _context.Context
-	ApiService *MachinesApiService
-	body       *MachineAPIKeyCreateRequest
+	ApiService *ApiKeysApiService
+	body       *InfraAPIKeyCreateRequest
 }
 
-func (r ApiCreateMachineAPIKeyRequest) Body(body MachineAPIKeyCreateRequest) ApiCreateMachineAPIKeyRequest {
+func (r ApiCreateInfraAPIKeyRequest) Body(body InfraAPIKeyCreateRequest) ApiCreateInfraAPIKeyRequest {
 	r.body = &body
 	return r
 }
 
-func (r ApiCreateMachineAPIKeyRequest) Execute() (MachineAPIKey, *_nethttp.Response, error) {
-	return r.ApiService.CreateMachineAPIKeyExecute(r)
+func (r ApiCreateInfraAPIKeyRequest) Execute() (InfraAPIKeyCreateResponse, *_nethttp.Response, error) {
+	return r.ApiService.CreateInfraAPIKeyExecute(r)
 }
 
 /*
-CreateMachineAPIKey Register a machine API key
+CreateInfraAPIKey Register an API key
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiCreateMachineAPIKeyRequest
+ @return ApiCreateInfraAPIKeyRequest
 */
-func (a *MachinesApiService) CreateMachineAPIKey(ctx _context.Context) ApiCreateMachineAPIKeyRequest {
-	return ApiCreateMachineAPIKeyRequest{
+func (a *ApiKeysApiService) CreateInfraAPIKey(ctx _context.Context) ApiCreateInfraAPIKeyRequest {
+	return ApiCreateInfraAPIKeyRequest{
 		ApiService: a,
 		ctx:        ctx,
 	}
 }
 
 // Execute executes the request
-//  @return MachineAPIKey
-func (a *MachinesApiService) CreateMachineAPIKeyExecute(r ApiCreateMachineAPIKeyRequest) (MachineAPIKey, *_nethttp.Response, error) {
+//  @return InfraAPIKeyCreateResponse
+func (a *ApiKeysApiService) CreateInfraAPIKeyExecute(r ApiCreateInfraAPIKeyRequest) (InfraAPIKeyCreateResponse, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodPost
 		localVarPostBody     interface{}
 		localVarFormFileName string
 		localVarFileName     string
 		localVarFileBytes    []byte
-		localVarReturnValue  MachineAPIKey
+		localVarReturnValue  InfraAPIKeyCreateResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MachinesApiService.CreateMachineAPIKey")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ApiKeysApiService.CreateInfraAPIKey")
 	if err != nil {
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/machines/apiKeys"
+	localVarPath := localBasePath + "/api-keys"
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := _neturl.Values{}
@@ -144,25 +144,25 @@ func (a *MachinesApiService) CreateMachineAPIKeyExecute(r ApiCreateMachineAPIKey
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiDeleteMachineRequest struct {
+type ApiDeleteInfraApiKeyRequest struct {
 	ctx        _context.Context
-	ApiService *MachinesApiService
+	ApiService *ApiKeysApiService
 	id         string
 }
 
-func (r ApiDeleteMachineRequest) Execute() (*_nethttp.Response, error) {
-	return r.ApiService.DeleteMachineExecute(r)
+func (r ApiDeleteInfraApiKeyRequest) Execute() (*_nethttp.Response, error) {
+	return r.ApiService.DeleteInfraApiKeyExecute(r)
 }
 
 /*
-DeleteMachine delete a machine
+DeleteInfraApiKey delete an API key
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param id The machine ID
- @return ApiDeleteMachineRequest
+ @param id The API Key ID
+ @return ApiDeleteInfraApiKeyRequest
 */
-func (a *MachinesApiService) DeleteMachine(ctx _context.Context, id string) ApiDeleteMachineRequest {
-	return ApiDeleteMachineRequest{
+func (a *ApiKeysApiService) DeleteInfraApiKey(ctx _context.Context, id string) ApiDeleteInfraApiKeyRequest {
+	return ApiDeleteInfraApiKeyRequest{
 		ApiService: a,
 		ctx:        ctx,
 		id:         id,
@@ -170,7 +170,7 @@ func (a *MachinesApiService) DeleteMachine(ctx _context.Context, id string) ApiD
 }
 
 // Execute executes the request
-func (a *MachinesApiService) DeleteMachineExecute(r ApiDeleteMachineRequest) (*_nethttp.Response, error) {
+func (a *ApiKeysApiService) DeleteInfraApiKeyExecute(r ApiDeleteInfraApiKeyRequest) (*_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodDelete
 		localVarPostBody     interface{}
@@ -179,12 +179,12 @@ func (a *MachinesApiService) DeleteMachineExecute(r ApiDeleteMachineRequest) (*_
 		localVarFileBytes    []byte
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MachinesApiService.DeleteMachine")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ApiKeysApiService.DeleteInfraApiKey")
 	if err != nil {
 		return nil, GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/machines/{id}"
+	localVarPath := localBasePath + "/api-keys/{id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"id"+"}", _neturl.PathEscape(parameterToString(r.id, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
@@ -243,53 +243,53 @@ func (a *MachinesApiService) DeleteMachineExecute(r ApiDeleteMachineRequest) (*_
 	return localVarHTTPResponse, nil
 }
 
-type ApiListMachinesRequest struct {
+type ApiListInfraAPIKeysRequest struct {
 	ctx        _context.Context
-	ApiService *MachinesApiService
+	ApiService *ApiKeysApiService
 	name       *string
 }
 
-// Filter results by the machine name
-func (r ApiListMachinesRequest) Name(name string) ApiListMachinesRequest {
+// Filter results by the API key name
+func (r ApiListInfraAPIKeysRequest) Name(name string) ApiListInfraAPIKeysRequest {
 	r.name = &name
 	return r
 }
 
-func (r ApiListMachinesRequest) Execute() ([]Machine, *_nethttp.Response, error) {
-	return r.ApiService.ListMachinesExecute(r)
+func (r ApiListInfraAPIKeysRequest) Execute() ([]InfraAPIKey, *_nethttp.Response, error) {
+	return r.ApiService.ListInfraAPIKeysExecute(r)
 }
 
 /*
-ListMachines List machines
+ListInfraAPIKeys List API keys
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiListMachinesRequest
+ @return ApiListInfraAPIKeysRequest
 */
-func (a *MachinesApiService) ListMachines(ctx _context.Context) ApiListMachinesRequest {
-	return ApiListMachinesRequest{
+func (a *ApiKeysApiService) ListInfraAPIKeys(ctx _context.Context) ApiListInfraAPIKeysRequest {
+	return ApiListInfraAPIKeysRequest{
 		ApiService: a,
 		ctx:        ctx,
 	}
 }
 
 // Execute executes the request
-//  @return []Machine
-func (a *MachinesApiService) ListMachinesExecute(r ApiListMachinesRequest) ([]Machine, *_nethttp.Response, error) {
+//  @return []InfraAPIKey
+func (a *ApiKeysApiService) ListInfraAPIKeysExecute(r ApiListInfraAPIKeysRequest) ([]InfraAPIKey, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodGet
 		localVarPostBody     interface{}
 		localVarFormFileName string
 		localVarFileName     string
 		localVarFileBytes    []byte
-		localVarReturnValue  []Machine
+		localVarReturnValue  []InfraAPIKey
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MachinesApiService.ListMachines")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ApiKeysApiService.ListInfraAPIKeys")
 	if err != nil {
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/machines"
+	localVarPath := localBasePath + "/api-keys"
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := _neturl.Values{}
