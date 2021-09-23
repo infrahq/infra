@@ -138,6 +138,12 @@ func (e *ErrExistingKey) Error() string {
 	return "a key with this name already exists"
 }
 
+type ErrUnknownKey struct{}
+
+func (e *ErrUnknownKey) Error() string {
+	return "an API key with this ID does not exist"
+}
+
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 	if u.Id == "" {
 		u.Id = generate.MathRandString(ID_LEN)

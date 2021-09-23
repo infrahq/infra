@@ -1020,8 +1020,8 @@ func newApiKeyCreateCmd() *cobra.Command {
 				fmt.Fprintln(os.Stderr, red(errResp.Message))
 				return err
 			}
-			fmt.Fprintln(os.Stderr, red("API Key ")+apiKey.Name+" created")
-			fmt.Fprintln(os.Stderr, "api key: "+apiKey.Key)
+			fmt.Fprintln(os.Stdout, red("API Key ")+apiKey.Name+" created")
+			fmt.Fprintln(os.Stdout, "key: "+apiKey.Key)
 			return nil
 		},
 	}
@@ -1064,7 +1064,7 @@ func newApiKeyDeleteCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Fprintln(os.Stderr, "deleted: "+args[0])
+			fmt.Fprintln(os.Stdout, "deleted: "+args[0])
 			return nil
 		},
 	}

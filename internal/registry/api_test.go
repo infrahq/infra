@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/kubernetes"
@@ -668,6 +669,11 @@ func TestCreateAPIKey(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, w.Code)
 	assert.Equal(t, "test-api-client", body.Name)
 	assert.NotEmpty(t, body.Key)
+
+	// clean up
+	var apiKey ApiKey
+	db.First(&apiKey, &ApiKey{Name: "test-api-client"})
+	db.Delete(&apiKey)
 }
 
 func TestDeleteAPIKey(t *testing.T) {
@@ -693,8 +699,11 @@ func TestDeleteAPIKey(t *testing.T) {
 
 	assert.NotEmpty(t, body.Id)
 
-	fmt.Println("/v1/api-keys/" + body.Id)
 	delR := httptest.NewRequest(http.MethodDelete, "/v1/api-keys/"+body.Id, nil)
+	vars := map[string]string{
+		"id": body.Id,
+	}
+	delR = mux.SetURLVars(delR, vars)
 	delW := httptest.NewRecorder()
 	http.HandlerFunc(a.DeleteApiKey).ServeHTTP(delW, delR)
 
@@ -702,7 +711,7 @@ func TestDeleteAPIKey(t *testing.T) {
 
 	var apiKey ApiKey
 	db.First(&apiKey, &ApiKey{Name: "test-api-delete-key"})
-	// assert.Empty(t, apiKey.Id, "API key not deleted from database")
+	assert.Empty(t, apiKey.Id, "API key not deleted from database")
 }
 
 func TestListAPIKeys(t *testing.T) {
@@ -726,6 +735,7 @@ func TestListAPIKeys(t *testing.T) {
 	assert.Equal(t, 2, len(keys)) // the machine we just created and one loaded from config
 	keyIDs := make(map[string]string)
 	for _, k := range keys {
+		fmt.Println(k)
 		keyIDs[k.Name] = k.Id
 	}
 	assert.NotEmpty(t, keyIDs["test-key"])

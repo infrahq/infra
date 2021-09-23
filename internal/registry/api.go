@@ -73,11 +73,6 @@ func sendApiError(w http.ResponseWriter, code int, message string) {
 	json.NewEncoder(w).Encode(err)
 }
 
-type (
-	tokenContextKey  struct{}
-	apiKeyContextKey struct{}
-)
-
 func (a *Api) bearerAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authorization := r.Header.Get("Authorization")
@@ -128,6 +123,8 @@ func (a *Api) bearerAuthMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+type tokenContextKey struct{}
+
 func extractToken(context context.Context) (*Token, error) {
 	token, ok := context.Value(tokenContextKey{}).(*Token)
 	if !ok {
@@ -136,6 +133,8 @@ func extractToken(context context.Context) (*Token, error) {
 
 	return token, nil
 }
+
+type apiKeyContextKey struct{}
 
 func extractAPIKey(context context.Context) (*ApiKey, error) {
 	apiKey, ok := context.Value(apiKeyContextKey{}).(*ApiKey)
@@ -287,30 +286,30 @@ func (a *Api) ListApiKeys(w http.ResponseWriter, r *http.Request) {
 func (a *Api) DeleteApiKey(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
-	fmt.Println(r)
-	fmt.Println(vars)
+	if id == "" {
+		sendApiError(w, http.StatusBadRequest, "API key ID must be specified")
+	}
 
-	fmt.Println("ID: " + id)
-	errUnknownKey := errors.New("a API key with this ID does not exist")
 	err := a.db.Transaction(func(tx *gorm.DB) error {
 		var existingKey ApiKey
 		tx.First(&existingKey, &ApiKey{Id: id})
 		if existingKey.Id == "" {
-			return errUnknownKey
+			return &ErrExistingKey{}
 		}
 
-		fmt.Println("deleting " + existingKey.Name)
 		tx.Delete(&existingKey)
 		return nil
 	})
 	if err != nil {
 		logging.L.Error(err.Error())
-		if errors.Is(err, errUnknownKey) {
+		switch err.(type) {
+		case *ErrExistingKey:
 			sendApiError(w, http.StatusNotFound, err.Error())
 			return
+		default:
+			sendApiError(w, http.StatusInternalServerError, err.Error())
+			return
 		}
-		sendApiError(w, http.StatusInternalServerError, err.Error())
-		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)

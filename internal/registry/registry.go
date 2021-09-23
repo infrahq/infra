@@ -34,40 +34,6 @@ type Options struct {
 
 const defaultApiKeyName = "default"
 
-func getSelfSignedOrLetsEncryptCert(certManager *autocert.Manager) func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-	selfSignCache := make(map[string]*tls.Certificate)
-
-	return func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-		cert, err := certManager.GetCertificate(hello)
-		if err == nil {
-			return cert, nil
-		}
-
-		name := hello.ServerName
-		if name == "" {
-			name = hello.Conn.LocalAddr().String()
-		}
-
-		cert, ok := selfSignCache[name]
-		if !ok {
-			certBytes, keyBytes, err := certs.SelfSignedCert([]string{name})
-			if err != nil {
-				return nil, err
-			}
-
-			keypair, err := tls.X509KeyPair(certBytes, keyBytes)
-			if err != nil {
-				return nil, err
-			}
-
-			selfSignCache[name] = &keypair
-			return &keypair, nil
-		}
-
-		return cert, nil
-	}
-}
-
 func Run(options Options) error {
 	db, err := NewDB(options.DBPath)
 	if err != nil {
