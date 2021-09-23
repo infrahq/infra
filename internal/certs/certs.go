@@ -11,6 +11,7 @@ import (
 	"math/big"
 	"net"
 	"time"
+	"context"
 
 	"golang.org/x/crypto/acme/autocert"
 )
@@ -77,11 +78,9 @@ func SelfSignedCert(hosts []string) ([]byte, []byte, error) {
 	return certPEM.Bytes(), keyPEM.Bytes(), nil
 }
 
-func SelfSignedOrLetsEncryptCert(certManager *autocert.Manager) func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-	selfSignCache := make(map[string]*tls.Certificate)
-
+func SelfSignedOrLetsEncryptCert(manager *autocert.Manager) func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 	return func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-		cert, err := certManager.GetCertificate(hello)
+		cert, err := manager.GetCertificate(hello)
 		if err == nil {
 			return cert, nil
 		}
@@ -91,22 +90,35 @@ func SelfSignedOrLetsEncryptCert(certManager *autocert.Manager) func(hello *tls.
 			name = hello.Conn.LocalAddr().String()
 		}
 
-		cert, ok := selfSignCache[name]
-		if !ok {
-			certBytes, keyBytes, err := SelfSignedCert([]string{name})
+		certBytes, keyBytes, err := func() ([]byte, []byte, error) {
+			certBytes, err := manager.Cache.Get(context.TODO(), name+".crt")
+			if err != nil {
+				return nil, nil, err
+			}
+
+			keyBytes, err := manager.Cache.Get(context.TODO(), name+".key")
+			if err != nil {
+				return nil, nil, err
+			}
+
+			return certBytes, keyBytes, nil
+		}()
+
+		if err != nil {
+			certBytes, keyBytes, err = SelfSignedCert([]string{name})
 			if err != nil {
 				return nil, err
 			}
 
-			keypair, err := tls.X509KeyPair(certBytes, keyBytes)
-			if err != nil {
-				return nil, err
-			}
-
-			selfSignCache[name] = &keypair
-			return &keypair, nil
+			manager.Cache.Put(context.TODO(), name+".crt", certBytes)
+			manager.Cache.Put(context.TODO(), name+".key", keyBytes)
 		}
 
-		return cert, nil
+		keypair, err := tls.X509KeyPair(certBytes, keyBytes)
+		if err != nil {
+			return nil, err
+		}
+
+		return &keypair, nil
 	}
 }

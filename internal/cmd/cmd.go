@@ -36,7 +36,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clientauthenticationv1alpha1 "k8s.io/client-go/pkg/apis/clientauthentication/v1alpha1"
+	clientauthenticationv1beta1 "k8s.io/client-go/pkg/apis/clientauthentication/v1beta1"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
@@ -232,7 +232,7 @@ func updateKubeconfig(destinations []api.Destination) error {
 			Exec: &clientcmdapi.ExecConfig{
 				Command:    executable,
 				Args:       []string{"creds", d.Name},
-				APIVersion: "client.authentication.k8s.io/v1alpha1",
+				APIVersion: "client.authentication.k8s.io/v1beta1",
 			},
 		}
 
@@ -890,7 +890,7 @@ var credsCmd = &cobra.Command{
 		}
 
 		destination := args[0]
-		execCredential := &clientauthenticationv1alpha1.ExecCredential{}
+		execCredential := &clientauthenticationv1beta1.ExecCredential{}
 
 		err = getCache("dest_tokens", destination, execCredential)
 		if err != nil {
@@ -928,13 +928,13 @@ var credsCmd = &cobra.Command{
 				}
 			}
 
-			execCredential = &clientauthenticationv1alpha1.ExecCredential{
+			execCredential = &clientauthenticationv1beta1.ExecCredential{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "ExecCredential",
-					APIVersion: clientauthenticationv1alpha1.SchemeGroupVersion.String(),
+					APIVersion: clientauthenticationv1beta1.SchemeGroupVersion.String(),
 				},
-				Spec: clientauthenticationv1alpha1.ExecCredentialSpec{},
-				Status: &clientauthenticationv1alpha1.ExecCredentialStatus{
+				Spec: clientauthenticationv1beta1.ExecCredentialSpec{},
+				Status: &clientauthenticationv1beta1.ExecCredentialStatus{
 					Token:               cred.Token,
 					ExpirationTimestamp: &metav1.Time{Time: time.Unix(cred.Expires, 0)},
 				},
@@ -1062,7 +1062,7 @@ func setCache(path, name string, obj interface{}) error {
 
 // isExpired returns true if the credential is expired or incomplete.
 // it only returns false if the credential is good to use.
-func isExpired(cred *clientauthenticationv1alpha1.ExecCredential) bool {
+func isExpired(cred *clientauthenticationv1beta1.ExecCredential) bool {
 	if cred == nil {
 		return true
 	}
