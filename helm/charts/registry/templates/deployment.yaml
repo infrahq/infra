@@ -17,7 +17,13 @@ spec:
     spec:
       automountServiceAccountToken: true
       serviceAccountName: infra-registry
-      dnsPolicy: Default
+      dnsPolicy: ClusterFirst
+{{- with .Values.image.pullSecrets }}
+      imagePullSecrets:
+{{- range . }}
+        - name: {{ . }}
+{{- end }}
+{{- end }}
       containers:
         - name: registry
           image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
@@ -31,7 +37,7 @@ spec:
                   key: defaultApiKey
                   optional: true
             - name: INFRA_LOG_LEVEL
-              value: info
+              value: {{ .Values.logLevel | default "info" }}
             - name: INFRA_SYNC_INTERVAL_SECONDS
               value: "30"
           ports:

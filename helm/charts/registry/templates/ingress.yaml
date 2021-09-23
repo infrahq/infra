@@ -1,42 +1,50 @@
+{{- define "ingress.apiVersion" }}
+{{- $kubeVersion := default .Capabilities.KubeVersion.Version .Values.kubeVersionOverride }}
+{{- if semverCompare "<1.19-0" $kubeVersion }}
+{{- print "networking.k8s.io/v1beta1" }}
+{{- else }}
+{{- print "networking.k8s.io/v1" }}
+{{- end }}
+{{- end }}
 {{- if .Values.ingress.enabled -}}
-{{- $servicePort := .Values.ingress.servicePort -}}
-apiVersion: {{ include "infra.ingress.apiVersion" . }}
+{{- $apiVersion := include "ingress.apiVersion" $ }}
+apiVersion: {{ $apiVersion }}
 kind: Ingress
 metadata:
-{{- if .Values.ingress.annotations }}
-  annotations:
-  {{- range $k, $v := .Values.ingress.annotations }}
-    {{ $k }}: {{ tpl (toYaml $v) $ }}
-  {{- end }}
-{{- end }}
-  name: infra-registry-http
+  name: infra-registry
+  namespace: {{ .Release.Namespace }}
   labels:
-    {{- if .Values.ingress.labels }}
-    {{- toYaml .Values.ingress.labels | indent 4 }}
-    {{- end }}
+    app: infra-registry
+{{- with .Values.ingress.labels }}
+  {{- toYaml . | nindent 4 }}
+{{- end }}
+{{- with .Values.ingress.annotations }}
+  annotations:
+  {{- toYaml . | nindent 4 }}
+{{- end }}
 spec:
   rules:
-    {{- range $host := .Values.ingress.hosts }}
-    - host: {{ $host }}
+{{- range .Values.ingress.hosts }}
+    - host: {{ . }}
       http:
         paths:
           - path: /
-            {{- if eq (include "infra.ingress.apiVersion" $) "networking.k8s.io/v1" }}
+  {{- if eq $apiVersion "networking.k8s.io/v1" }}
             pathType: Prefix
-            {{- end }}
+  {{- end }}
             backend:
-              {{- if eq (include "infra.ingress.apiVersion" $) "networking.k8s.io/v1" }}
+  {{- if eq $apiVersion "networking.k8s.io/v1" }}
               service:
                 name: infra-registry
                 port:
-                  number: {{ $servicePort }}
-              {{- else }}
+                  number: {{ $.Values.ingress.servicePort }}
+  {{- else }}
               serviceName: infra-registry
-              servicePort: {{ $servicePort }}
-              {{- end }}
-    {{- end -}}
-  {{- if .Values.ingress.tls }}
+              servicePort: {{ $.Values.ingress.servicePort }}
+  {{- end }}
+{{- end -}}
+{{- with .Values.ingress.tls }}
   tls:
-{{ tpl (toYaml .Values.ingress.tls) $ | indent 4 }}
-  {{- end -}}
+  {{- tpl . $ | toYaml | indent 4 }}
+{{- end -}}
 {{- end -}}
