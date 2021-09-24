@@ -730,7 +730,7 @@ func TestListAPIKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, 2, len(keys)) // the key we just created and one loaded from config
+	assert.Equal(t, 1, len(keys))
 	keyIDs := make(map[string]string)
 	for _, k := range keys {
 		keyIDs[k.Name] = k.Id
