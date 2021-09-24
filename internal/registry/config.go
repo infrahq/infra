@@ -144,7 +144,7 @@ func ImportAPI(db *gorm.DB, k8s *kubernetes.Kubernetes, api []ConfigAPI) error {
 			var apiKey ApiKey
 			tx.First(&apiKey, &ApiKey{Name: k.Name})
 			if apiKey.Id != "" {
-				return &ErrExistingKey{}
+				return ErrExistingKey
 			}
 
 			apiKey.Name = k.Name
@@ -152,14 +152,13 @@ func ImportAPI(db *gorm.DB, k8s *kubernetes.Kubernetes, api []ConfigAPI) error {
 			return tx.Create(&apiKey).Error
 		})
 		if err != nil {
-			switch err.(type) {
-			case *ErrExistingKey:
+			logging.L.Error(err.Error())
+			if errors.Is(err, ErrExistingKey) {
 				logging.L.Error(err.Error())
 				logging.L.Info("skipped importing " + k.Name + " due to existing API key with the same name")
 				continue
-			default:
-				return err
 			}
+			return err
 		}
 	}
 	return nil

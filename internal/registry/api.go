@@ -294,7 +294,7 @@ func (a *Api) DeleteApiKey(w http.ResponseWriter, r *http.Request) {
 		var existingKey ApiKey
 		tx.First(&existingKey, &ApiKey{Id: id})
 		if existingKey.Id == "" {
-			return &ErrExistingKey{}
+			return ErrExistingKey
 		}
 
 		tx.Delete(&existingKey)
@@ -302,14 +302,12 @@ func (a *Api) DeleteApiKey(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		logging.L.Error(err.Error())
-		switch err.(type) {
-		case *ErrExistingKey:
+		if errors.Is(err, ErrExistingKey) {
 			sendApiError(w, http.StatusNotFound, err.Error())
 			return
-		default:
-			sendApiError(w, http.StatusInternalServerError, err.Error())
-			return
 		}
+		sendApiError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
@@ -337,7 +335,7 @@ func (a *Api) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	err := a.db.Transaction(func(tx *gorm.DB) error {
 		tx.First(&apiKey, &ApiKey{Name: body.Name})
 		if apiKey.Id != "" {
-			return &ErrExistingKey{}
+			return ErrExistingKey
 		}
 
 		apiKey.Name = body.Name
@@ -345,14 +343,12 @@ func (a *Api) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		logging.L.Error(err.Error())
-		switch err.(type) {
-		case *ErrExistingKey:
-			sendApiError(w, http.StatusConflict, err.Error())
-			return
-		default:
-			sendApiError(w, http.StatusInternalServerError, err.Error())
+		if errors.Is(err, ErrExistingKey) {
+			sendApiError(w, http.StatusNotFound, err.Error())
 			return
 		}
+		sendApiError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
