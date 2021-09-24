@@ -3,50 +3,48 @@ kind: Service
 metadata:
   name: infra-registry
   namespace: {{ .Release.Namespace }}
-{{- if .Values.service.labels -}}
   labels:
-{{ toYaml .Values.service.labels | indent 4 }}
+    app: infra-registry
+{{- with .Values.service.labels }}
+  {{- toYaml . | nindent 4 }}
 {{- end }}
-{{- if .Values.service.annotations }}
-{{ $ctx := . }}
   annotations:
-  {{- range $k, $v := .Values.service.annotations }}
-    {{ $k | quote }}: {{ tpl $v $ctx | quote }}
-  {{- end }}
+{{- if .Values.service.internalLoadBalancer }}
+    networking.gke.io/load-balancer-type: "Internal"
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internal"
+{{- end }}
+{{- with .Values.service.annotations }}
+  {{- toYaml . | nindent 4 }}
 {{- end }}
 spec:
   type: {{ .Values.service.type }}
-{{- if (or (eq .Values.service.type "LoadBalancer") (empty .Values.service.type)) }}
-  {{- if .Values.service.loadBalancerIP }}
-  loadBalancerIP: {{ .Values.service.loadBalancerIP }}
+{{- if eq .Values.service.type "LoadBalancer" }}
+  {{- with .Values.service.loadBalancerIP }}
+  loadBalancerIP: {{ . }}
   {{- end }}
-  {{- if .Values.service.loadBalancerSourceRanges }}
+  {{- with .Values.service.loadBalancerSourceRanges }}
   loadBalancerSourceRanges:
-{{ toYaml .Values.service.loadBalancerSourceRanges | indent 4 }}
+    {{- toYaml . | nindent 4 }}
   {{- end -}}
 {{- else if eq .Values.service.type "ClusterIP" }}
-  {{- if .Values.service.clusterIP }}
-  clusterIP: {{ .Values.service.clusterIP }}
+  {{- with .Values.service.clusterIP }}
+  clusterIP: {{ . }}
   {{- end }}
 {{- end }}
-{{- if .Values.service.externalIPs }}
+{{- with .Values.service.externalIPs }}
   externalIPs:
-{{ toYaml .Values.service.externalIPs | indent 4 }}
+  {{ toYaml . | indent 4 }}
 {{- end }}
   ports:
-    - name: {{ .Values.service.portName }}
-      port: {{ .Values.service.port }}
-      protocol: TCP
-      targetPort: {{ .Values.service.targetPort }}
-      {{ if (and (eq .Values.service.type "NodePort") (not (empty .Values.service.plaintextNodePort))) }}
-      nodePort: {{.Values.service.plaintextNodePort}}
-      {{ end }}
-    - name: {{ .Values.service.tlsPortName }}
-      port: {{ .Values.service.tlsPort }}
-      protocol: TCP
-      targetPort: {{ .Values.service.targetTlsPort }}
-      {{ if (and (eq .Values.service.type "NodePort") (not (empty .Values.service.tlsNodePort))) }}
-      nodePort: {{.Values.service.tlsNodePort}}
-      {{ end }}
+{{- range .Values.service.ports }}
+    - name: {{ .name }}
+      port: {{ .port }}
+      targetPort: {{ .targetPort }}
+      protocol: {{ .protocol | default "TCP" }}
+  {{- with .nodePort }}
+      nodePort: {{ . }}
+  {{- end }}
+{{- end }}
   selector:
     app: infra-registry

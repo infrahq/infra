@@ -5,11 +5,46 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     app: infra-engine
+{{- with .Values.service.labels }}
+  {{- toYaml . | nindent 4 }}
+{{- end }}
+  annotations:
+{{- if .Values.service.internalLoadBalancer }}
+    networking.gke.io/load-balancer-type: "Internal"
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internal"
+{{- end }}
+{{- with .Values.service.annotations }}
+  {{- toYaml . | nindent 4 }}
+{{- end }}
 spec:
-  type: ClusterIP
+  type: {{ .Values.service.type }}
+{{- if eq .Values.service.type "LoadBalancer" }}
+  {{- with .Values.service.LoadBalancerIP }}
+  loadBalancerIP: {{ . }}
+  {{- end }}
+  {{- with .Values.service.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- else if eq .Values.service.type "ClusterIP" }}
+  {{- with .Values.service.clusterIP }}
+  clusterIP: {{ . }}
+  {{- end }}
+{{- end }}
+{{- with .Values.service.externalIPs }}
+  externalIPs:
+  {{- toYaml . | nindent 4 }}
+{{- end }}
+  ports:
+{{- range .Values.service.ports }}
+    - name: {{ .name }}
+      port: {{ .port }}
+      targetPort: {{ .targetPort }}
+      protocol: {{ .protocol | default "TCP" }}
+  {{- with .nodePort }}
+      nodePort: {{ . }}
+  {{- end }}
+{{- end }}
   selector:
     app: infra-engine
-  ports:
-    - name: https
-      port: 443
-      targetPort: 443

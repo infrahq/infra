@@ -5,6 +5,11 @@ metadata:
   name: infra-registry
   namespace: {{ .Release.Namespace }}
 data:
+{{- if kindIs "map" .Values.config }}
+  infra.yaml: |
+  {{- toYaml .Values.config | nindent 4 }}
+{{- else if kindIs "string" .Values.config }}
   infra.yaml:
-    {{ toYaml .Values.config | indent 4 }}
+  {{- toYaml .Values.config | nindent 4 }}
+{{- end }}
 {{- end }}

@@ -135,7 +135,6 @@ infra engine [flags]
 
 ```
       --api-key string     api key
-  -e, --endpoint string    cluster endpoint
       --force-tls-verify   force TLS verification
   -h, --help               help for engine
   -n, --name string        cluster name

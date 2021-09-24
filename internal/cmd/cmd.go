@@ -10,12 +10,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
-	"syscall"
 	"text/tabwriter"
 	"time"
 
@@ -219,8 +217,8 @@ func updateKubeconfig(destinations []api.Destination) error {
 		contextName := "infra:" + d.Name
 
 		kubeConfig.Clusters[contextName] = &clientcmdapi.Cluster{
-			Server:               "https://localhost:32710/client/" + d.Name,
-			CertificateAuthority: filepath.Join(home, ".infra", "client", "cert.pem"),
+			Server:                   fmt.Sprintf("https://%s/proxy", d.Kubernetes.Endpoint),
+			CertificateAuthorityData: []byte(d.Kubernetes.Ca),
 		}
 
 		executable, err := os.Executable()
@@ -835,7 +833,6 @@ func newEngineCmd() (*cobra.Command, error) {
 	cmd.Flags().StringVarP(&options.Registry, "registry", "r", os.Getenv("INFRA_ENGINE_REGISTRY"), "registry hostname")
 	cmd.Flags().StringVarP(&options.Name, "name", "n", os.Getenv("INFRA_ENGINE_NAME"), "cluster name")
 	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(home, ".infra", "cache"), "path to directory to cache tls self-signed and Let's Encrypt certificates")
-	cmd.Flags().StringVarP(&options.Endpoint, "endpoint", "e", os.Getenv("INFRA_ENGINE_ENDPOINT"), "cluster endpoint")
 	cmd.Flags().StringVar(&options.APIKey, "api-key", os.Getenv("INFRA_ENGINE_API_KEY"), "api key")
 
 	return cmd, nil
@@ -947,21 +944,9 @@ var credsCmd = &cobra.Command{
 			return err
 		}
 
-		startProxy()
-
 		fmt.Println(string(bts))
 
 		return nil
-	},
-}
-
-var clientCmd = &cobra.Command{
-	Use:    "client",
-	Short:  "Run local client to relay requests",
-	Hidden: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Fprintln(os.Stderr, "Starting client")
-		return RunLocalClient()
 	},
 }
 
@@ -990,7 +975,6 @@ func NewRootCmd() (*cobra.Command, error) {
 
 	// Hidden commands
 	rootCmd.AddCommand(credsCmd)
-	rootCmd.AddCommand(clientCmd)
 
 	return rootCmd, nil
 }
@@ -1076,63 +1060,4 @@ func isExpired(cred *clientauthenticationv1beta1.ExecCredential) bool {
 	now := time.Now().Add(1 * time.Second)
 	// only valid if it hasn't expired yet
 	return cred.Status.ExpirationTimestamp.Time.Before(now)
-}
-
-func startProxy() error {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	contents, err := ioutil.ReadFile(filepath.Join(home, ".infra", "client", "pid"))
-	if err != nil && !os.IsNotExist(err) {
-		return err
-	}
-
-	var pid int
-	// see if proxy process is already running
-	if !os.IsNotExist(err) {
-		pid, err = strconv.Atoi(string(contents))
-		if err != nil {
-			return err
-		}
-
-		// verify process is still running
-		process, err := os.FindProcess(int(pid))
-		if process == nil || err != nil {
-			pid = 0
-		}
-
-		err = process.Signal(syscall.Signal(0))
-		if err != nil {
-			pid = 0
-		}
-	}
-
-	if pid == 0 {
-		os.Remove(filepath.Join(home, ".infra", "client", "pid"))
-
-		cmd := exec.Command(os.Args[0], "client")
-		err = cmd.Start()
-		if err != nil {
-			return err
-		}
-
-		tick := time.NewTicker(25 * time.Millisecond)
-		timeout := time.NewTimer(10 * time.Second)
-	Loop:
-		for {
-			select {
-			case <-tick.C:
-				_, err = os.Stat(filepath.Join(home, ".infra", "client", "pid"))
-				if err == nil {
-					break Loop
-				}
-			case <-timeout.C:
-				return errors.New("timeout waiting for local client to start")
-			}
-		}
-	}
-
-	return nil
 }

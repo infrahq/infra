@@ -3,14 +3,12 @@ package kubernetes
 import (
 	"context"
 	"crypto/sha1"
-	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"strings"
 	"sync"
 
@@ -20,9 +18,9 @@ import (
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/jessevdk/go-flags"
-	ipv4 "github.com/signalsciences/ipv4"
 	"go.uber.org/zap"
 	rbacv1 "k8s.io/api/rbac/v1"
+	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -587,93 +585,65 @@ var EndpointExclude = map[string]bool{
 	"kubernetes":                           true,
 }
 
-func (k *Kubernetes) Endpoint() (string, error) {
-	conf := &tls.Config{
-		InsecureSkipVerify: true,
-	}
-
-	host, port := os.Getenv("KUBERNETES_SERVICE_HOST"), os.Getenv("KUBERNETES_SERVICE_PORT")
-	if len(host) == 0 || len(port) == 0 {
-		return "", errors.New("not in cluster")
-	}
-
-	conn, err := tls.Dial("tcp", host+":"+port, conf)
-	if err != nil {
-		return "", err
-	}
-	defer conn.Close()
-	certs := conn.ConnectionState().PeerCertificates
-
-	// Determine the cluster endpoint by inspecting the cluster's
-	// certificate SAN values
-	var dnsNames []string
-	for _, cert := range certs {
-		dnsNames = append(dnsNames, cert.DNSNames...)
-		for _, ip := range cert.IPAddresses {
-			dnsNames = append(dnsNames, ip.String())
-		}
-	}
-
-	var filteredDNSNames []string
-	for _, n := range dnsNames {
-		// Filter out reserved kubernetes domain names
-		if EndpointExclude[n] {
-			continue
-		}
-
-		// Filter out private IP addresses
-		if ipv4.IsPrivate(n) {
-			continue
-		}
-
-		// Filter out hostnames that aren't IP addresses or domain names
-		if !strings.Contains(n, ".") {
-			continue
-		}
-
-		// Filter out internal dns names
-		if strings.Contains(n, ".internal") {
-			continue
-		}
-
-		// Filter out .local domains
-		if strings.HasSuffix(n, ".local") {
-			continue
-		}
-
-		filteredDNSNames = append(filteredDNSNames, n)
-	}
-
-	if len(filteredDNSNames) == 0 {
-		return "", errors.New("could not determine cluster endpoint")
-	}
-
-	selectedName := filteredDNSNames[0]
-
-	// Find the port the remote kubernetes API server is running on
-	// by inspecting kubernetes.default.svc service and finding
-	// the target port it forwards traffic to
+func (k *Kubernetes) getLoadBalancerIngress(lbs *[]corev1.LoadBalancerIngress) (error) {
 	clientset, err := kubernetes.NewForConfig(k.Config)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	kubernetesService, err := clientset.CoreV1().Services("default").Get(context.TODO(), "kubernetes", metav1.GetOptions{})
+	namespace, err := k.Namespace()
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	for _, p := range kubernetesService.Spec.Ports {
-		if p.Name == "https" {
-			port = p.TargetPort.String()
+	ingresses, err := clientset.NetworkingV1().Ingresses(namespace).List(context.TODO(), metav1.ListOptions{
+		LabelSelector: "app=infra-engine",
+	})
+	if err != nil {
+		logging.L.Sugar().Infof("%s", err)
+	} else {
+		ingressItems := ingresses.Items
+		switch len(ingressItems) {
+		case 1:
+			*lbs = append(*lbs, ingressItems[0].Status.LoadBalancer.Ingress...)
 		}
 	}
 
-	if port != "" {
-		selectedName += ":" + port
+	services, err := clientset.CoreV1().Services(namespace).List(context.TODO(), metav1.ListOptions{
+		LabelSelector: "app=infra-engine",
+	})
+	if err != nil {
+		logging.L.Sugar().Infof("%s", err)
+	} else {
+		serviceItems := services.Items
+		switch len(serviceItems) {
+		case 1:
+			*lbs = append(*lbs, services.Items[0].Status.LoadBalancer.Ingress...)
+		}
 	}
 
-	return selectedName, nil
+	return nil
+}
+
+// Find a suitable Endpoint to use by inspecting the engine's Ingress and Service manifests
+func (k *Kubernetes) Endpoint() (string, error) {
+	ingresses := make([]corev1.LoadBalancerIngress, 0)
+	err := k.getLoadBalancerIngress(&ingresses)
+	if err != nil {
+		return "(pending)", nil
+	}
+
+	for _, i := range ingresses {
+		// TODO: handle cases where ingress does not use standard ports
+		switch {
+		case i.Hostname != "":
+			return i.Hostname, nil
+		case i.IP != "":
+			return i.IP, nil
+		}
+	}
+
+	return "(pending)", nil
 }
 
 // GetSecret returns a K8s secret object with the specified name from the current namespace if it exists

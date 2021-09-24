@@ -6,15 +6,16 @@
 {{- print "networking.k8s.io/v1" }}
 {{- end }}
 {{- end }}
-{{- if .Values.ingress.enabled -}}
+{{- if .Values.ingress.enabled }}
 {{- $apiVersion := include "ingress.apiVersion" $ }}
+---
 apiVersion: {{ $apiVersion }}
 kind: Ingress
 metadata:
-  name: infra-registry
+  name: infra-engine
   namespace: {{ .Release.Namespace }}
   labels:
-    app: infra-registry
+    app: infra-engine
 {{- with .Values.ingress.labels }}
   {{- toYaml . | nindent 4 }}
 {{- end }}
@@ -35,16 +36,16 @@ spec:
             backend:
   {{- if eq $apiVersion "networking.k8s.io/v1" }}
               service:
-                name: infra-registry
+                name: infra-engine
                 port:
                   number: {{ $.Values.ingress.servicePort }}
   {{- else }}
-              serviceName: infra-registry
+              serviceName: infra-engine
               servicePort: {{ $.Values.ingress.servicePort }}
   {{- end }}
-{{- end -}}
+{{- end }}
 {{- with .Values.ingress.tls }}
   tls:
-  {{- tpl . $ | toYaml | indent 4 }}
-{{- end -}}
-{{- end -}}
+  {{- tpl . $ | toYaml | nindent 4 }}
+{{- end }}
+{{- end }}
