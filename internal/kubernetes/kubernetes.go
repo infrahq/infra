@@ -630,7 +630,7 @@ func (k *Kubernetes) Endpoint() (string, error) {
 	ingresses := make([]corev1.LoadBalancerIngress, 0)
 	err := k.getLoadBalancerIngress(&ingresses)
 	if err != nil {
-		return "localhost", nil
+		return "(pending)", nil
 	}
 
 	for _, i := range ingresses {
@@ -643,7 +643,7 @@ func (k *Kubernetes) Endpoint() (string, error) {
 		}
 	}
 
-	return "localhost", nil
+	return "(pending)", nil
 }
 
 // GetSecret returns a K8s secret object with the specified name from the current namespace if it exists

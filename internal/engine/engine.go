@@ -265,16 +265,22 @@ func Run(options Options) error {
 		Cache:  autocert.DirCache(options.TLSCache),
 	}
 
-	endpoint, err := k8s.Endpoint()
-	if err != nil {
-		return err
-	}
-
 	tlsConfig := manager.TLSConfig()
-	tlsConfig.GetCertificate = certs.SelfSignedOrLetsEncryptCert(manager, endpoint)
+	tlsConfig.GetCertificate = certs.SelfSignedOrLetsEncryptCert(manager, func() string {
+		endpoint, err := k8s.Endpoint()
+		if err != nil {
+			return ""
+		}
+		return endpoint
+	})
 
 	timer := timer.Timer{}
 	timer.Start(5, func() {
+		endpoint, err := k8s.Endpoint()
+		if err != nil {
+			return
+		}
+
 		caBytes, err := manager.Cache.Get(context.TODO(), fmt.Sprintf("%s.crt", endpoint))
 		if err != nil {
 			logging.L.Error(err.Error())
