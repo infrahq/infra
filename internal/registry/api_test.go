@@ -31,7 +31,6 @@ func NewMockSecretReader() kubernetes.SecretReader {
 }
 
 func (msr *mockSecretReader) Get(secretName string, client *kubernetesClient.Clientset) (string, error) {
-	// returns a 24 character secret to match the expected API key length
 	return "abcdefghijklmnopqrstuvwx", nil
 }
 

@@ -6,27 +6,22 @@ import (
 	"os"
 	"testing"
 
-	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
-	rest "k8s.io/client-go/rest"
 )
 
 var db *gorm.DB
 
 var (
-	overriddenOktaSource   = Source{Type: "okta", Domain: "overwrite.example.com", ClientSecret: "okta-secrets/client-secret", ApiToken: "okta-secrets/api-token"}
-	fakeOktaSource         = Source{Type: "okta", Domain: "test.example.com", ClientSecret: "okta-secrets/client-secret", ApiToken: "okta-secrets/api-token"}
-	adminUser              = User{Email: "admin@example.com"}
-	standardUser           = User{Email: "user@example.com"}
-	iosDevUser             = User{Email: "woz@example.com"}
-	clusterA               = Destination{Name: "cluster-AAA"}
-	clusterB               = Destination{Name: "cluster-BBB"}
-	clusterC               = Destination{Name: "cluster-CCC"}
-	mockConfigSecretReader = NewMockSecretReader()
-	mockRestConfig         = &rest.Config{Host: "https://localhost"}
-	mockConfigK8s          = &kubernetes.Kubernetes{Config: mockRestConfig, SecretReader: mockConfigSecretReader}
+	overriddenOktaSource = Source{Type: "okta", Domain: "overwrite.example.com", ClientSecret: "okta-secrets/client-secret", ApiToken: "okta-secrets/api-token"}
+	fakeOktaSource       = Source{Type: "okta", Domain: "test.example.com", ClientSecret: "okta-secrets/client-secret", ApiToken: "okta-secrets/api-token"}
+	adminUser            = User{Email: "admin@example.com"}
+	standardUser         = User{Email: "user@example.com"}
+	iosDevUser           = User{Email: "woz@example.com"}
+	clusterA             = Destination{Name: "cluster-AAA"}
+	clusterB             = Destination{Name: "cluster-BBB"}
+	clusterC             = Destination{Name: "cluster-CCC"}
 )
 
 func setup() error {
@@ -87,7 +82,12 @@ func setup() error {
 		return err
 	}
 
-	return ImportConfig(db, mockConfigK8s, confFile)
+	err = db.Create(&ApiKey{Name: "test-config-api-client", Key: "sUpErSeCrEt"}).Error
+	if err != nil {
+		return err
+	}
+
+	return ImportConfig(db, confFile)
 }
 
 func TestMain(m *testing.M) {
@@ -105,7 +105,7 @@ func TestImportCurrentValidConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.NoError(t, ImportConfig(db, mockConfigK8s, confFile))
+	assert.NoError(t, ImportConfig(db, confFile))
 }
 
 func TestGroupsForExistingSourcesAreCreated(t *testing.T) {
@@ -202,7 +202,7 @@ func TestExistingSourceIsOverridden(t *testing.T) {
 	assert.Equal(t, fakeOktaSource.Domain, importedOkta.Domain)
 }
 
-func TestValidAPIKeyIsImported(t *testing.T) {
+func TestSpecifiedAPIKeyIsPreserved(t *testing.T) {
 	var importedAPIClient ApiKey
 	err := db.Where(&ApiKey{Name: "test-config-api-client"}).First(&importedAPIClient).Error
 	if err != nil {
@@ -211,6 +211,12 @@ func TestValidAPIKeyIsImported(t *testing.T) {
 	assert.NotEmpty(t, importedAPIClient.Id)
 	assert.NotEmpty(t, importedAPIClient.Key)
 	assert.Equal(t, "test-config-api-client", importedAPIClient.Name)
+}
+
+func TestInvalidAPIKeyIsImported(t *testing.T) {
+	var importedAPIClient ApiKey
+	err := db.Where(&ApiKey{Name: "test-not-exist"}).First(&importedAPIClient).Error
+	assert.ErrorIs(t, gorm.ErrRecordNotFound, err)
 }
 
 func containsUserRoleForDestination(db *gorm.DB, user User, destinationId string, roleName string) (bool, error) {

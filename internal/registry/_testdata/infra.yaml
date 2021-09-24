@@ -10,9 +10,9 @@ sources:
     clientSecret: okta-secrets/clientSecret
     apiToken: okta-secrets/apiToken
 
-api:
+api-keys:
   - name: test-config-api-client
-    key: infra-api/client-api-key
+  - name: test-not-exist
 
 groups:
   - name: ios-developers

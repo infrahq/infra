@@ -66,7 +66,7 @@ func Run(options Options) error {
 	}
 
 	if len(contents) > 0 {
-		err = ImportConfig(db, k8s, contents)
+		err = ImportConfig(db, contents)
 		if err != nil {
 			return err
 		}

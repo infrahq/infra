@@ -2,11 +2,9 @@ package registry
 
 import (
 	"errors"
-	"fmt"
 	"regexp"
 	"strings"
 
-	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
 	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
@@ -27,9 +25,8 @@ func (s *ConfigSource) cleanupDomain() {
 	s.Domain = dashAdminRemover.ReplaceAllString(s.Domain, "$1$2")
 }
 
-type ConfigAPI struct {
+type ConfigAPIKey struct {
 	Name string `yaml:"name"`
-	Key  string `yaml:"key"`
 }
 
 type ConfigDestination struct {
@@ -57,7 +54,7 @@ type ConfigUserMapping struct {
 
 type Config struct {
 	Sources []ConfigSource       `yaml:"sources"`
-	API     []ConfigAPI          `yaml:"api"`
+	APIKeys []ConfigAPIKey       `yaml:"api-keys"`
 	Groups  []ConfigGroupMapping `yaml:"groups"`
 	Users   []ConfigUserMapping  `yaml:"users"`
 }
@@ -116,52 +113,16 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 	return nil
 }
 
-func ImportAPI(db *gorm.DB, k8s *kubernetes.Kubernetes, api []ConfigAPI) error {
-	if err := db.Where("1 = 1").Not(&ApiKey{Name: defaultApiKeyName}).Delete(&ApiKey{}).Error; err != nil {
-		return err
+// ImportAPIKeys removes existing keys that are not preserved in the current config
+func ImportAPIKeys(db *gorm.DB, apiKeys []ConfigAPIKey) error {
+	var keyNamesToKeep []string
+
+	keyNamesToKeep = append(keyNamesToKeep, defaultApiKeyName)
+	for _, k := range apiKeys {
+		keyNamesToKeep = append(keyNamesToKeep, k.Name)
 	}
 
-	for _, k := range api {
-		if strings.ToLower(k.Name) == defaultApiKeyName {
-			// this name is used for the default API key that engines use to connect to the registry
-			logging.L.Info("cannot create API key with the name " + defaultApiKeyName + ", this name is reserved")
-			continue
-		}
-		// get the secret API key value from kubernetes
-		secretKey, err := k8s.GetSecret(k.Key)
-		if err != nil {
-			logging.L.Error(err.Error())
-			logging.L.Info("could not retrieve secret for " + k.Key + ", continuing...")
-			continue
-		}
-		if len(secretKey) != API_KEY_LEN {
-			logging.L.Info("secret stored at " + k.Key + " does not have a valid key length, it must be exactly " + fmt.Sprint(API_KEY_LEN) + " characters")
-			logging.L.Info("skipped importing API key: " + k.Name)
-			continue
-		}
-
-		err = db.Transaction(func(tx *gorm.DB) error {
-			var apiKey ApiKey
-			tx.First(&apiKey, &ApiKey{Name: k.Name})
-			if apiKey.Id != "" {
-				return ErrExistingKey
-			}
-
-			apiKey.Name = k.Name
-			apiKey.Key = secretKey
-			return tx.Create(&apiKey).Error
-		})
-		if err != nil {
-			logging.L.Error(err.Error())
-			if errors.Is(err, ErrExistingKey) {
-				logging.L.Error(err.Error())
-				logging.L.Info("skipped importing " + k.Name + " due to existing API key with the same name")
-				continue
-			}
-			return err
-		}
-	}
-	return nil
+	return db.Not("name IN ?", keyNamesToKeep).Delete(&ApiKey{}).Error
 }
 
 func ApplyGroupMappings(db *gorm.DB, configGroups []ConfigGroupMapping) (groupIds []string, err error) {
@@ -281,7 +242,7 @@ func ImportMappings(db *gorm.DB, groups []ConfigGroupMapping, users []ConfigUser
 }
 
 // ImportConfig tries to import all valid fields in a config file
-func ImportConfig(db *gorm.DB, k8s *kubernetes.Kubernetes, bs []byte) error {
+func ImportConfig(db *gorm.DB, bs []byte) error {
 	var config Config
 	err := yaml.Unmarshal(bs, &config)
 	if err != nil {
@@ -294,7 +255,7 @@ func ImportConfig(db *gorm.DB, k8s *kubernetes.Kubernetes, bs []byte) error {
 		if err = ImportSources(tx, config.Sources); err != nil {
 			return err
 		}
-		if err = ImportAPI(tx, k8s, config.API); err != nil {
+		if err = ImportAPIKeys(tx, config.APIKeys); err != nil {
 			return err
 		}
 		// Need to import of group/user mappings together because they both rely on roles
