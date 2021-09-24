@@ -856,39 +856,6 @@ var groupsCmd = &cobra.Command{
 	},
 }
 
-var apiKeysCmd = &cobra.Command{
-	Use:   "api-keys",
-	Short: "List API keys",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := apiClientFromConfig()
-		if err != nil {
-			return err
-		}
-
-		ctx, err := apiContextFromConfig()
-		if err != nil {
-			return err
-		}
-
-		apiKeys, _, err := client.ApiKeysApi.ListAPIKeys(ctx).Execute()
-		if err != nil {
-			return err
-		}
-
-		sort.Slice(apiKeys, func(i, j int) bool {
-			return apiKeys[i].Created > apiKeys[j].Created
-		})
-
-		rows := [][]string{}
-		for _, k := range apiKeys {
-			rows = append(rows, []string{k.Name, units.HumanDuration(time.Now().UTC().Sub(time.Unix(k.Created, 0))) + " ago"})
-		}
-
-		printTable([]string{"NAME", "CREATED"}, rows)
-		return nil
-	},
-}
-
 func newRegistryCmd() (*cobra.Command, error) {
 	var options registry.Options
 
@@ -986,9 +953,37 @@ var versionCmd = &cobra.Command{
 	},
 }
 
-var apiKeyCmd = &cobra.Command{
-	Use:   "api-key",
-	Short: "Manage Infra API keys",
+var apiKeysCmd = &cobra.Command{
+	Use:   "api-keys",
+	Short: "List API keys",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		client, err := apiClientFromConfig()
+		if err != nil {
+			return err
+		}
+
+		ctx, err := apiContextFromConfig()
+		if err != nil {
+			return err
+		}
+
+		apiKeys, _, err := client.ApiKeysApi.ListAPIKeys(ctx).Execute()
+		if err != nil {
+			return err
+		}
+
+		sort.Slice(apiKeys, func(i, j int) bool {
+			return apiKeys[i].Created > apiKeys[j].Created
+		})
+
+		rows := [][]string{}
+		for _, k := range apiKeys {
+			rows = append(rows, []string{k.Name, units.HumanDuration(time.Now().UTC().Sub(time.Unix(k.Created, 0))) + " ago"})
+		}
+
+		printTable([]string{"NAME", "CREATED"}, rows)
+		return nil
+	},
 }
 
 func newApiKeyCreateCmd() *cobra.Command {
@@ -1159,7 +1154,6 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(usersCmd)
 	rootCmd.AddCommand(groupsCmd)
-	rootCmd.AddCommand(apiKeysCmd)
 	rootCmd.AddCommand(loginCmd)
 	rootCmd.AddCommand(logoutCmd)
 
@@ -1175,9 +1169,9 @@ func NewRootCmd() (*cobra.Command, error) {
 	}
 	rootCmd.AddCommand(engineCmd)
 
-	apiKeyCmd.AddCommand(newApiKeyCreateCmd())
-	apiKeyCmd.AddCommand(newApiKeyDeleteCmd())
-	rootCmd.AddCommand(apiKeyCmd)
+	apiKeysCmd.AddCommand(newApiKeyCreateCmd())
+	apiKeysCmd.AddCommand(newApiKeyDeleteCmd())
+	rootCmd.AddCommand(apiKeysCmd)
 
 	rootCmd.AddCommand(versionCmd)
 

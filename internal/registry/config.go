@@ -25,10 +25,6 @@ func (s *ConfigSource) cleanupDomain() {
 	s.Domain = dashAdminRemover.ReplaceAllString(s.Domain, "$1$2")
 }
 
-type ConfigAPIKey struct {
-	Name string `yaml:"name"`
-}
-
 type ConfigDestination struct {
 	Name       string   `yaml:"name"`
 	Namespaces []string `yaml:"namespaces"` // optional in the case of a cluster-role
@@ -54,7 +50,6 @@ type ConfigUserMapping struct {
 
 type Config struct {
 	Sources []ConfigSource       `yaml:"sources"`
-	APIKeys []ConfigAPIKey       `yaml:"api-keys"`
 	Groups  []ConfigGroupMapping `yaml:"groups"`
 	Users   []ConfigUserMapping  `yaml:"users"`
 }
@@ -111,18 +106,6 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 	}
 
 	return nil
-}
-
-// ImportAPIKeys removes existing keys that are not preserved in the current config
-func ImportAPIKeys(db *gorm.DB, apiKeys []ConfigAPIKey) error {
-	var keyNamesToKeep []string
-
-	keyNamesToKeep = append(keyNamesToKeep, defaultApiKeyName)
-	for _, k := range apiKeys {
-		keyNamesToKeep = append(keyNamesToKeep, k.Name)
-	}
-
-	return db.Not("name IN ?", keyNamesToKeep).Delete(&ApiKey{}).Error
 }
 
 func ApplyGroupMappings(db *gorm.DB, configGroups []ConfigGroupMapping) (groupIds []string, err error) {
@@ -253,9 +236,6 @@ func ImportConfig(db *gorm.DB, bs []byte) error {
 
 	return db.Transaction(func(tx *gorm.DB) error {
 		if err = ImportSources(tx, config.Sources); err != nil {
-			return err
-		}
-		if err = ImportAPIKeys(tx, config.APIKeys); err != nil {
 			return err
 		}
 		// Need to import of group/user mappings together because they both rely on roles

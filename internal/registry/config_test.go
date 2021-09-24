@@ -82,11 +82,6 @@ func setup() error {
 		return err
 	}
 
-	err = db.Create(&ApiKey{Name: "test-config-api-client", Key: "sUpErSeCrEt"}).Error
-	if err != nil {
-		return err
-	}
-
 	return ImportConfig(db, confFile)
 }
 
@@ -200,23 +195,6 @@ func TestExistingSourceIsOverridden(t *testing.T) {
 		t.Fatal(err)
 	}
 	assert.Equal(t, fakeOktaSource.Domain, importedOkta.Domain)
-}
-
-func TestSpecifiedAPIKeyIsPreserved(t *testing.T) {
-	var importedAPIClient ApiKey
-	err := db.Where(&ApiKey{Name: "test-config-api-client"}).First(&importedAPIClient).Error
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.NotEmpty(t, importedAPIClient.Id)
-	assert.NotEmpty(t, importedAPIClient.Key)
-	assert.Equal(t, "test-config-api-client", importedAPIClient.Name)
-}
-
-func TestInvalidAPIKeyIsImported(t *testing.T) {
-	var importedAPIClient ApiKey
-	err := db.Where(&ApiKey{Name: "test-not-exist"}).First(&importedAPIClient).Error
-	assert.ErrorIs(t, gorm.ErrRecordNotFound, err)
 }
 
 func containsUserRoleForDestination(db *gorm.DB, user User, destinationId string, roleName string) (bool, error) {
