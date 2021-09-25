@@ -30,7 +30,9 @@ func SelfSignedCert(hosts []string) ([]byte, []byte, error) {
 	}
 
 	cert := x509.Certificate{
-		SerialNumber: serialNumber,
+		PublicKeyAlgorithm: x509.Ed25519,
+		SignatureAlgorithm: x509.ECDSAWithSHA512,
+		SerialNumber:       serialNumber,
 		Subject: pkix.Name{
 			Organization: []string{"Infra"},
 		},
