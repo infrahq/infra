@@ -33,8 +33,11 @@ openapi:
 	@openapi-generator generate -i ./openapi.yaml -g typescript-fetch -o ./internal/registry/ui/api --additional-properties typescriptThreePlus=true > /dev/null
 	@rm -rf ./internal/registry/ui/api/.openapi-generator
 
+goreleaser:
+	@command -v goreleaser >/dev/null || { echo "install goreleaser @ https://goreleaser.com/install/#install-the-pre-compiled-binary" && exit 1; }
+
 .PHONY: build
-build:
+build: goreleaser
 	goreleaser build --snapshot --rm-dist
 
 dev:
@@ -51,7 +54,7 @@ dev/clean:
 	helm uninstall --namespace infrahq infra-registry || true
 	helm uninstall --namespace infrahq infra-engine || true
 
-release:
+release: goreleaser
 	goreleaser release -f .goreleaser.yml --rm-dist
 
 release/docker:
@@ -61,6 +64,8 @@ release/helm:
 	make helm
 	aws s3 --region us-east-2 sync helm s3://helm.infrahq.com --exclude "*" --include "index.yaml" --include "*.tgz"
 
-lint:
-	@golangci-lint --version || echo "install golangci-lint @ https://golangci-lint.run/usage/install/\#local-installation"
+golangci-lint:
+	@command -v golangci-lint >/dev/null || { echo "install golangci-lint @ https://golangci-lint.run/usage/install/#local-installation" && exit 1; }
+
+lint: golangci-lint
 	golangci-lint run ./... -E asciicheck,bodyclose,durationcheck,errorlint,exhaustive,exportloopref,gosec,makezero,nilerr,noctx,rowserrcheck,sqlclosecheck,gofmt,gofumpt,gci,revive,gocritic,forcetypeassert,misspell,nakedret,wastedassign,wsl -D scopelint
