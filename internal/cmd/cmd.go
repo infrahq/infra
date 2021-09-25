@@ -704,17 +704,7 @@ var statusCmd = &cobra.Command{
 			for i, row := range rows {
 				if name == row.Name {
 					// make sure we grab the CA info if it's not already set (eg local clusters)
-					if len(row.CertificateAuthorityData) == 0 && len(cluster.CertificateAuthority) > 0 {
-						if b, err := ioutil.ReadFile(cluster.CertificateAuthority); err == nil {
-							rows[i].CertificateAuthorityData = b
-						} else if err != nil {
-							fmt.Println("🐞🪲🐛 err", err)
-						}
-					}
-
-					if len(row.CertificateAuthorityData) == 0 {
-						rows[i].CertificateAuthorityData = cluster.CertificateAuthorityData
-					}
+					setRowCertFromCluster(&rows[i], cluster)
 					continue outerLoop
 				}
 			}
@@ -724,17 +714,7 @@ var statusCmd = &cobra.Command{
 				Type:     "local k8s",
 				Endpoint: cluster.Server,
 			}
-			if len(row.CertificateAuthorityData) == 0 && len(cluster.CertificateAuthority) > 0 {
-				if b, err := ioutil.ReadFile(cluster.CertificateAuthority); err == nil {
-					row.CertificateAuthorityData = b
-				} else if err != nil {
-					fmt.Println("🐞🪲🐛 err", err)
-				}
-			}
-
-			if len(row.CertificateAuthorityData) == 0 {
-				row.CertificateAuthorityData = cluster.CertificateAuthorityData
-			}
+			setRowCertFromCluster(&row, cluster)
 
 			if kubeConfig.CurrentContext == name {
 				row.CurrentlySelected = "*"
@@ -786,7 +766,20 @@ var statusCmd = &cobra.Command{
 	},
 }
 
-type commandFunc func(cmd *cobra.Command, args []string) error
+func setRowCertFromCluster(row *statusRow, cluster *clientcmdapi.Cluster) {
+	if len(row.CertificateAuthorityData) == 0 && len(cluster.CertificateAuthority) > 0 {
+		if b, err := ioutil.ReadFile(cluster.CertificateAuthority); err == nil {
+			row.CertificateAuthorityData = b
+		} else if err != nil {
+			fmt.Println("🐞🪲🐛 err", err)
+		}
+	}
+
+	if len(row.CertificateAuthorityData) == 0 {
+		row.CertificateAuthorityData = cluster.CertificateAuthorityData
+	}
+
+}
 
 var listCmd = &cobra.Command{
 	Use:     "list",
