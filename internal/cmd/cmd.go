@@ -782,17 +782,26 @@ func newRegistryCmd() (*cobra.Command, error) {
 		},
 	}
 
+	defaultInfraHome := filepath.Join("~", ".infra")
+	cmd.Flags().StringVarP(&options.ConfigPath, "config", "c", "", "config file")
+	cmd.Flags().StringVar(&options.DefaultApiKey, "initial-apikey", os.Getenv("INFRA_REGISTRY_DEFAULT_API_KEY"), "initial api key for adding destinations")
+	cmd.Flags().StringVar(&options.DBPath, "db", filepath.Join(defaultInfraHome, "infra.db"), "path to database file")
+	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(defaultInfraHome, "cache"), "path to directory to cache tls self-signed and Let's Encrypt certificates")
+	cmd.Flags().BoolVar(&options.UI, "ui", false, "enable ui")
+	cmd.Flags().StringVar(&options.UIProxy, "ui-proxy", "", "proxy ui requests to this host")
+
 	home, err := homedir.Dir()
 	if err != nil {
 		return nil, err
 	}
 
-	cmd.Flags().StringVarP(&options.ConfigPath, "config", "c", "", "config file")
-	cmd.Flags().StringVar(&options.DefaultApiKey, "initial-apikey", os.Getenv("INFRA_REGISTRY_DEFAULT_API_KEY"), "initial api key for adding destinations")
-	cmd.Flags().StringVar(&options.DBPath, "db", filepath.Join(home, ".infra", "infra.db"), "path to database file")
-	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(home, ".infra", "cache"), "path to directory to cache tls self-signed and Let's Encrypt certificates")
-	cmd.Flags().BoolVar(&options.UI, "ui", false, "enable ui")
-	cmd.Flags().StringVar(&options.UIProxy, "ui-proxy", "", "proxy ui requests to this host")
+	if filepath.Dir(options.DBPath) == defaultInfraHome {
+		options.DBPath = filepath.Join(home, ".infra", "infra.db")
+	}
+
+	if filepath.Dir(options.TLSCache) == defaultInfraHome {
+		options.TLSCache = filepath.Join(home, ".infra", "cache")
+	}
 
 	defaultSync := 30
 	osSync := os.Getenv("INFRA_SYNC_INTERVAL_SECONDS")
@@ -824,16 +833,21 @@ func newEngineCmd() (*cobra.Command, error) {
 		},
 	}
 
-	home, err := homedir.Dir()
-	if err != nil {
-		return nil, err
-	}
-
+	defaultInfraHome := filepath.Join("~", ".infra")
 	cmd.PersistentFlags().BoolVar(&options.ForceTLSVerify, "force-tls-verify", false, "force TLS verification")
 	cmd.Flags().StringVarP(&options.Registry, "registry", "r", os.Getenv("INFRA_ENGINE_REGISTRY"), "registry hostname")
 	cmd.Flags().StringVarP(&options.Name, "name", "n", os.Getenv("INFRA_ENGINE_NAME"), "cluster name")
-	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(home, ".infra", "cache"), "path to directory to cache tls self-signed and Let's Encrypt certificates")
+	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(defaultInfraHome, "cache"), "path to directory to cache tls self-signed and Let's Encrypt certificates")
 	cmd.Flags().StringVar(&options.APIKey, "api-key", os.Getenv("INFRA_ENGINE_API_KEY"), "api key")
+
+	if filepath.Dir(options.TLSCache) == defaultInfraHome {
+		home, err := homedir.Dir()
+		if err != nil {
+			return nil, err
+		}
+
+		options.TLSCache = filepath.Join(home, ".infra", "cache")
+	}
 
 	return cmd, nil
 }

@@ -18,20 +18,17 @@ helm:
 .PHONY: docs
 docs:
 	go run ./internal/docgen
-	# Remove the $$HOME of the local system from the docs
-	# This probably only works on MacOS
-	grep -ilr $$HOME docs/* | xargs -I@ sed -i '' 's:'"$$HOME"':$$HOME:g' @
 
 clean:
-	rm -rf dist
+	$(RM) -r dist
 
 openapi:
-	@rm -rf ./internal/api/*.go
+	@$(RM) -r ./internal/api/*.go
 	@GO_POST_PROCESS_FILE="gofmt -s -w" openapi-generator generate -i ./openapi.yaml -g go -o ./internal/api --additional-properties packageName=api,isGoSubmodule=true --enable-post-process-file > /dev/null
-	@rm -rf ./internal/api/api ./internal/api/.openapi-generator
-	@rm -rf ./internal/registry/ui/api/apis/* ./internal/registry/ui/api/models/*
+	@$(RM) -r ./internal/api/api ./internal/api/.openapi-generator
+	@$(RM) -r ./internal/registry/ui/api/apis/* ./internal/registry/ui/api/models/*
 	@openapi-generator generate -i ./openapi.yaml -g typescript-fetch -o ./internal/registry/ui/api --additional-properties typescriptThreePlus=true > /dev/null
-	@rm -rf ./internal/registry/ui/api/.openapi-generator
+	@$(RM) -r ./internal/registry/ui/api/.openapi-generator
 
 goreleaser:
 	@command -v goreleaser >/dev/null || { echo "install goreleaser @ https://goreleaser.com/install/#install-the-pre-compiled-binary" && exit 1; }
