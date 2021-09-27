@@ -644,126 +644,9 @@ type statusRow struct {
 	CurrentlySelected        string `header:" "` // * if selected
 	Name                     string `header:"NAME"`
 	Type                     string `header:"TYPE"`
-	Endpoint                 string //`header:"ENDPOINT"`
 	Status                   string `header:"STATUS"`
-	CertificateAuthorityData []byte
-}
-
-var statusCmd = &cobra.Command{
-	Use:       "status [DESTINATION]",
-	Short:     "Get connection status one or all destinations",
-	Args:      cobra.MaximumNArgs(1),
-	ValidArgs: []string{"destination"},
-	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := apiClientFromConfig()
-		if err != nil {
-			return err
-		}
-
-		ctx, err := apiContextFromConfig()
-		if err != nil {
-			return err
-		}
-
-		destinations, _, err := client.DestinationsApi.ListDestinations(ctx).Execute()
-		if err != nil {
-			return err
-		}
-
-		sort.Slice(destinations, func(i, j int) bool {
-			return destinations[i].Created > destinations[j].Created
-		})
-
-		kubeConfig, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), nil).RawConfig()
-		if err != nil {
-			println(err.Error())
-		}
-
-		rows := []statusRow{}
-		for _, d := range destinations {
-			row := statusRow{
-				Name:   d.Name,
-				Status: "💻 → ❌ Can't reach internet",
-			}
-			if kube, ok := d.GetKubernetesOk(); ok {
-				row.Endpoint = kube.Endpoint
-				row.CertificateAuthorityData = []byte(kube.Ca)
-				row.Type = "k8s"
-				row.Name = "infra:" + row.Name
-				if kubeConfig.CurrentContext == row.Name {
-					row.CurrentlySelected = "*"
-				}
-			}
-			// other dest types?
-			rows = append(rows, row)
-		}
-
-		// check through the clusters in the kube config and find any that weren't already destinations
-	outerLoop:
-		for name, cluster := range kubeConfig.Clusters {
-			for i, row := range rows {
-				if name == row.Name {
-					// make sure we grab the CA info if it's not already set (eg local clusters)
-					setRowCertFromCluster(&rows[i], cluster)
-					continue outerLoop
-				}
-			}
-
-			row := statusRow{
-				Name:     name,
-				Type:     "local k8s",
-				Endpoint: cluster.Server,
-			}
-			setRowCertFromCluster(&row, cluster)
-
-			if kubeConfig.CurrentContext == name {
-				row.CurrentlySelected = "*"
-			}
-			rows = append(rows, row)
-		}
-
-		ok, err := canReachInternet()
-		if !ok {
-			for i := range rows {
-				rows[i].Status = fmt.Sprintf("💻 → %s → ❌ Can't reach internet: (%s)", globe(), err)
-			}
-		}
-		if ok {
-			for i, row := range rows {
-				fmt.Printf("checking connection to %s... ", row.Name)
-
-				// check success case first for speed.
-				ok, lastErr := canGetEngineStatus(row)
-				if ok {
-					rows[i].Status = "💻 → " + globe() + " → 🌥  → 🔒 → ✅ Ok 👍"
-					fmt.Println("👍")
-					continue
-				}
-				// if we had a problem, check all the stops in order to figure out where it's getting stuck
-				fmt.Println("❌")
-				if ok, err := canConnectToEndpoint(row.Endpoint); !ok {
-					rows[i].Status = fmt.Sprintf("💻 → %s → ❌ Can't reach endpoint (%s)", globe(), err)
-					continue
-				}
-				if ok, err := canConnectToTLSEndpoint(row); !ok {
-					rows[i].Status = fmt.Sprintf("💻 → %s → 🌥  → ❌ Can't negotiate TLS (%s)", globe(), err)
-					continue
-				}
-				// if we made it here, we must be talking to something that isn't the engine.
-				rows[i].Status = fmt.Sprintf("💻 → %s → 🌥  → 🔒 → ❌ Can't talk to infra engine (%s)", globe(), lastErr)
-			}
-		}
-		fmt.Println()
-
-		printTable(rows)
-
-		err = updateKubeconfig(destinations)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	},
+	Endpoint                 string // don't display in table
+	CertificateAuthorityData []byte // don't display in table
 }
 
 func setRowCertFromCluster(row *statusRow, cluster *clientcmdapi.Cluster) {
@@ -796,8 +679,11 @@ var listCmd = &cobra.Command{
 			return err
 		}
 
-		destinations, _, err := client.DestinationsApi.ListDestinations(ctx).Execute()
+		destinations, resp, err := client.DestinationsApi.ListDestinations(ctx).Execute()
 		if err != nil {
+			if resp != nil && resp.StatusCode == 403 {
+				fmt.Println("403 Forbidden: try `infra login` and then repeat this command")
+			}
 			return err
 		}
 
@@ -810,30 +696,57 @@ var listCmd = &cobra.Command{
 			println(err.Error())
 		}
 
-		type destRow struct {
-			CurrentlySelected string `header:" "`
-			Name              string `header:"NAME"`
-			Endpoint          string `header:"ENDPOINT"`
-		}
-		rows := []destRow{}
+		rows := []statusRow{}
 		for _, d := range destinations {
-			row := destRow{
-				Name:     d.Name,
-				Endpoint: d.Kubernetes.Endpoint,
+			row := statusRow{
+				Name:   d.Name,
+				Status: "💻 → ❌ Can't reach internet",
 			}
-			if d.Kubernetes != nil {
+			if kube, ok := d.GetKubernetesOk(); ok {
+				row.Endpoint = kube.Endpoint
+				row.CertificateAuthorityData = []byte(kube.Ca)
+				row.Type = "k8s"
 				row.Name = "infra:" + row.Name
 				if kubeConfig.CurrentContext == row.Name {
 					row.CurrentlySelected = "*"
 				}
 			}
+			// other dest types?
 			rows = append(rows, row)
 		}
 
+		ok, err := canReachInternet()
+		if !ok {
+			for i := range rows {
+				rows[i].Status = fmt.Sprintf("💻 → %s → ❌ Can't reach network: (%s)", globe(), err)
+			}
+		}
+		if ok {
+			for i, row := range rows {
+				// check success case first for speed.
+				ok, lastErr := canGetEngineStatus(row)
+				if ok {
+					rows[i].Status = "✅ OK"
+					fmt.Println("👍")
+					continue
+				}
+				// if we had a problem, check all the stops in order to figure out where it's getting stuck
+				fmt.Println("❌")
+				if ok, err := canConnectToEndpoint(row.Endpoint); !ok {
+					rows[i].Status = fmt.Sprintf("💻 → %s → ❌ Can't reach endpoint %q (%s)", globe(), row.Endpoint, err)
+					continue
+				}
+				if ok, err := canConnectToTLSEndpoint(row); !ok {
+					rows[i].Status = fmt.Sprintf("💻 → %s → 🌥  → ❌ Can't negotiate TLS (%s)", globe(), err)
+					continue
+				}
+				// if we made it here, we must be talking to something that isn't the engine.
+				rows[i].Status = fmt.Sprintf("💻 → %s → 🌥  → 🔒 → ❌ Can't talk to infra engine (%s)", globe(), lastErr)
+			}
+		}
+		fmt.Println()
+
 		printTable(rows)
-		fmt.Fprintln(os.Stderr)
-		fmt.Fprintln(os.Stderr, "To connect, run \"kubectl config use-context <name>\"")
-		fmt.Fprintln(os.Stderr)
 
 		err = updateKubeconfig(destinations)
 		if err != nil {
@@ -1083,7 +996,7 @@ var credsCmd = &cobra.Command{
 						return err
 					}
 
-					cred, _, err = client.CredsApi.CreateCred(ctx).Execute()
+					cred, _, err = client.CredsApi.CreateCred(ctx).Body(api.CredRequest{Destination: &destination}).Execute()
 					if err != nil {
 						return err
 					}
@@ -1125,7 +1038,6 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.AddCommand(usersCmd)
 	rootCmd.AddCommand(groupsCmd)
 	rootCmd.AddCommand(loginCmd)
-	rootCmd.AddCommand(statusCmd)
 	rootCmd.AddCommand(logoutCmd)
 
 	registryCmd, err := newRegistryCmd()
