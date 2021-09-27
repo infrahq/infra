@@ -130,19 +130,11 @@ components:
       required:
         - ca
         - endpoint
-        - namespace
-        - saToken
       properties:
         ca:
           type: string
           x-go-custom-tag: validate:"required"
         endpoint:
-          type: string
-          x-go-custom-tag: validate:"required"
-        namespace:
-          type: string
-          x-go-custom-tag: validate:"required"
-        saToken:
           type: string
           x-go-custom-tag: validate:"required"
     InfraAPIKey:
