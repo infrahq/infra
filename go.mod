@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.2
 	github.com/NYTimes/gziphandler v0.0.0-20170623195520-56545f4a5d46
-	github.com/aws/aws-sdk-go v1.40.49
+	github.com/aws/aws-sdk-go v1.40.50
 	github.com/cli/browser v1.1.0
 	github.com/docker/go-units v0.4.0
 	github.com/dustin/go-humanize v1.0.0 // indirect
@@ -22,7 +22,7 @@ require (
 	github.com/kataras/tablewriter v0.0.0-20180708051242-e063d29b7c23 // indirect
 	github.com/kevinburke/go-bindata v3.22.0+incompatible
 	github.com/kr/pty v1.1.5 // indirect
-	github.com/lensesio/tableprinter v0.0.0-20201125135848-89e81fc956e7 // indirect
+	github.com/lensesio/tableprinter v0.0.0-20201125135848-89e81fc956e7
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/muesli/termenv v0.9.0
 	github.com/natefinch/lumberjack v2.0.0+incompatible
