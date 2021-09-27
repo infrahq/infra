@@ -678,5 +678,6 @@ func dbToApiGroup(g *Group) api.Group {
 		Updated: g.Updated,
 		Name:    g.Name,
 		Source:  g.Source.Type,
+		Active:  g.Active,
 	}
 }

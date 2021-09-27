@@ -56,6 +56,7 @@ components:
         - created
         - updated
         - source
+        - active
       properties:
         id:
           type: string
@@ -69,6 +70,8 @@ components:
           format: int64
         source:
           type: string
+        active:
+          type: boolean
     Source:
       type: object
       required:

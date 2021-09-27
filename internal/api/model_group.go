@@ -21,19 +21,21 @@ type Group struct {
 	Created int64  `json:"created"`
 	Updated int64  `json:"updated"`
 	Source  string `json:"source"`
+	Active  bool   `json:"active"`
 }
 
 // NewGroup instantiates a new Group object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewGroup(id string, name string, created int64, updated int64, source string) *Group {
+func NewGroup(id string, name string, created int64, updated int64, source string, active bool) *Group {
 	this := Group{}
 	this.Id = id
 	this.Name = name
 	this.Created = created
 	this.Updated = updated
 	this.Source = source
+	this.Active = active
 	return &this
 }
 
@@ -165,6 +167,30 @@ func (o *Group) SetSource(v string) {
 	o.Source = v
 }
 
+// GetActive returns the Active field value
+func (o *Group) GetActive() bool {
+	if o == nil {
+		var ret bool
+		return ret
+	}
+
+	return o.Active
+}
+
+// GetActiveOk returns a tuple with the Active field value
+// and a boolean to check if the value has been set.
+func (o *Group) GetActiveOk() (*bool, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Active, true
+}
+
+// SetActive sets field value
+func (o *Group) SetActive(v bool) {
+	o.Active = v
+}
+
 func (o Group) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
@@ -181,6 +207,9 @@ func (o Group) MarshalJSON() ([]byte, error) {
 	}
 	if true {
 		toSerialize["source"] = o.Source
+	}
+	if true {
+		toSerialize["active"] = o.Active
 	}
 	return json.Marshal(toSerialize)
 }

@@ -60,6 +60,7 @@ type Group struct {
 	Name     string
 	SourceId string
 	Source   Source `gorm:"foreignKey:SourceId;references:Id"`
+	Active   bool   // used to determine which groups actually exist at the source
 
 	Roles []Role `gorm:"many2many:groups_roles"`
 	Users []User `gorm:"many2many:groups_users"`
@@ -347,7 +348,7 @@ func (s *Source) SyncGroups(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) 
 	}
 
 	return db.Transaction(func(tx *gorm.DB) error {
-		var idsToKeep []string
+		var activeIDs []string
 		for groupName, emails := range groupEmails {
 			var group Group
 			grpErr := tx.Where(&Group{Name: groupName, SourceId: s.Id}).First(&group).Error
@@ -368,16 +369,19 @@ func (s *Source) SyncGroups(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) 
 			if err != nil {
 				return err
 			}
-			idsToKeep = append(idsToKeep, group.Id)
+			activeIDs = append(activeIDs, group.Id)
 		}
+
 		// these groups no longer exist in the source so remove their users, but leave the entity in case they are re-created
-		var removedGroups []Group
-		err := tx.Where(&Group{SourceId: s.Id}).Not(idsToKeep).Find(&removedGroups).Error
+		var inactiveGroups []Group
+		err := tx.Where(&Group{SourceId: s.Id}).Not(activeIDs).Find(&inactiveGroups).Error
 		if err != nil {
 			return err
 		}
-		for _, removed := range removedGroups {
-			tx.Model(&removed).Association("Users").Clear()
+		tx.Model(&inactiveGroups).Association("Users").Clear()
+		tx.Model(&inactiveGroups).Update("active", false)
+		if len(activeIDs) > 0 {
+			tx.Model(&Group{}).Where(activeIDs).Update("active", true)
 		}
 		return nil
 	})
