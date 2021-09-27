@@ -60,8 +60,7 @@ release: goreleaser
 release/docker:
 	docker buildx build --push --platform linux/amd64,linux/arm64 --build-arg BUILDVERSION=$(tag:v%=%) . -t infrahq/infra:$(tag:v%=%) -t infrahq/infra
 
-release/helm:
-	make helm
+release/helm: helm
 	aws s3 --region us-east-2 sync helm s3://helm.infrahq.com --exclude "*" --include "index.yaml" --include "*.tgz"
 
 golangci-lint:
