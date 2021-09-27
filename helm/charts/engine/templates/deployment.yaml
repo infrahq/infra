@@ -50,9 +50,6 @@ spec:
                   key: api-key
                   optional: true
           volumeMounts:
-            - name: infra-engine-anonymous
-              mountPath: /var/run/secrets/infra-engine-anonymous
-              readOnly: true
             - name: data
               mountPath: /var/run/infra/data
           readinessProbe:
@@ -71,8 +68,5 @@ spec:
               {{- end }}
             periodSeconds: 3
       volumes:
-        - name: infra-engine-anonymous
-          secret:
-            secretName: infra-engine-anonymous-secret
         - name: data
           emptyDir: {}
