@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -29,9 +30,9 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry"
 	"github.com/infrahq/infra/internal/version"
+	"github.com/lensesio/tableprinter"
 	"github.com/mitchellh/go-homedir"
 	"github.com/muesli/termenv"
-	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientauthenticationv1beta1 "k8s.io/client-go/pkg/apis/clientauthentication/v1beta1"
@@ -112,26 +113,22 @@ func removeConfig() error {
 	return nil
 }
 
-func printTable(header []string, data [][]string) {
-	table := tablewriter.NewWriter(os.Stdout)
+func printTable(data interface{}) {
+	table := tableprinter.New(os.Stdout)
 
-	if len(header) > 0 {
-		table.SetHeader(header)
-		table.SetAutoFormatHeaders(true)
-		table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-	}
-
-	table.SetAutoWrapText(false)
-	table.SetAlignment(tablewriter.ALIGN_LEFT)
-	table.SetCenterSeparator("")
-	table.SetColumnSeparator("")
-	table.SetRowSeparator("")
-	table.SetHeaderLine(false)
-	table.SetBorder(false)
-	table.SetTablePadding("\t")
-	table.SetNoWhiteSpace(true)
-	table.AppendBulk(data)
-	table.Render()
+	table.AutoFormatHeaders = true
+	table.HeaderAlignment = tableprinter.AlignLeft
+	table.AutoWrapText = false
+	table.DefaultAlignment = tableprinter.AlignLeft
+	table.CenterSeparator = ""
+	table.ColumnSeparator = ""
+	table.RowSeparator = ""
+	table.HeaderLine = false
+	table.BorderBottom = false
+	table.BorderLeft = false
+	table.BorderRight = false
+	table.BorderTop = false
+	table.Print(data)
 }
 
 func blue(s string) string {
@@ -643,10 +640,34 @@ var logoutCmd = &cobra.Command{
 	},
 }
 
+type statusRow struct {
+	CurrentlySelected        string `header:" "` // * if selected
+	Name                     string `header:"NAME"`
+	Type                     string `header:"TYPE"`
+	Status                   string `header:"STATUS"`
+	Endpoint                 string // don't display in table
+	CertificateAuthorityData []byte // don't display in table
+}
+
+func setRowCertFromCluster(row *statusRow, cluster *clientcmdapi.Cluster) {
+	if len(row.CertificateAuthorityData) == 0 && len(cluster.CertificateAuthority) > 0 {
+		if b, err := ioutil.ReadFile(cluster.CertificateAuthority); err == nil {
+			row.CertificateAuthorityData = b
+		} else if err != nil {
+			fmt.Println("🐞🪲🐛 err", err)
+		}
+	}
+
+	if len(row.CertificateAuthorityData) == 0 {
+		row.CertificateAuthorityData = cluster.CertificateAuthorityData
+	}
+
+}
+
 var listCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
-	Short:   "List clusters",
+	Short:   "List destinations",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := apiClientFromConfig()
 		if err != nil {
@@ -658,8 +679,11 @@ var listCmd = &cobra.Command{
 			return err
 		}
 
-		destinations, _, err := client.DestinationsApi.ListDestinations(ctx).Execute()
+		destinations, resp, err := client.DestinationsApi.ListDestinations(ctx).Execute()
 		if err != nil {
+			if resp != nil && resp.StatusCode == 403 {
+				fmt.Println("403 Forbidden: try `infra login` and then repeat this command")
+			}
 			return err
 		}
 
@@ -667,24 +691,62 @@ var listCmd = &cobra.Command{
 			return destinations[i].Created > destinations[j].Created
 		})
 
-		kubeConfig, _ := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), nil).RawConfig()
-
-		rows := [][]string{}
-		for _, d := range destinations {
-			switch {
-			case d.Kubernetes != nil:
-				star := ""
-				if d.Name == kubeConfig.CurrentContext {
-					star = "*"
-				}
-				rows = append(rows, []string{"infra:" + d.Name + star, d.Kubernetes.Endpoint})
-			}
+		kubeConfig, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), nil).RawConfig()
+		if err != nil {
+			println(err.Error())
 		}
 
-		printTable([]string{"NAME", "ENDPOINT"}, rows)
-		fmt.Fprintln(os.Stderr)
-		fmt.Fprintln(os.Stderr, "To connect, run \"kubectl config use-context <name>\"")
-		fmt.Fprintln(os.Stderr)
+		rows := []statusRow{}
+		for _, d := range destinations {
+			row := statusRow{
+				Name:   d.Name,
+				Status: "💻 → ❌ Can't reach internet",
+			}
+			if kube, ok := d.GetKubernetesOk(); ok {
+				row.Endpoint = kube.Endpoint
+				row.CertificateAuthorityData = []byte(kube.Ca)
+				row.Type = "k8s"
+				row.Name = "infra:" + row.Name
+				if kubeConfig.CurrentContext == row.Name {
+					row.CurrentlySelected = "*"
+				}
+			}
+			// other dest types?
+			rows = append(rows, row)
+		}
+
+		ok, err := canReachInternet()
+		if !ok {
+			for i := range rows {
+				rows[i].Status = fmt.Sprintf("💻 → %s → ❌ Can't reach network: (%s)", globe(), err)
+			}
+		}
+		if ok {
+			for i, row := range rows {
+				// check success case first for speed.
+				ok, lastErr := canGetEngineStatus(row)
+				if ok {
+					rows[i].Status = "✅ OK"
+					fmt.Println("👍")
+					continue
+				}
+				// if we had a problem, check all the stops in order to figure out where it's getting stuck
+				fmt.Println("❌")
+				if ok, err := canConnectToEndpoint(row.Endpoint); !ok {
+					rows[i].Status = fmt.Sprintf("💻 → %s → ❌ Can't reach endpoint %q (%s)", globe(), row.Endpoint, err)
+					continue
+				}
+				if ok, err := canConnectToTLSEndpoint(row); !ok {
+					rows[i].Status = fmt.Sprintf("💻 → %s → 🌥  → ❌ Can't negotiate TLS (%s)", globe(), err)
+					continue
+				}
+				// if we made it here, we must be talking to something that isn't the engine.
+				rows[i].Status = fmt.Sprintf("💻 → %s → 🌥  → 🔒 → ❌ Can't talk to infra engine (%s)", globe(), lastErr)
+			}
+		}
+		fmt.Println()
+
+		printTable(rows)
 
 		err = updateKubeconfig(destinations)
 		if err != nil {
@@ -723,16 +785,25 @@ var usersCmd = &cobra.Command{
 			return users[i].Created > users[j].Created
 		})
 
-		rows := [][]string{}
+		type userRec struct {
+			CurrentlySelected string `header:""`
+			Email             string `header:"EMAIL"`
+			Created           string `header:"CREATED"`
+		}
+		rows := []userRec{}
 		for _, u := range users {
-			email := u.Email
-			if email == config.Name {
-				email += "*"
+			row := userRec{
+				Email:   u.Email,
+				Created: units.HumanDuration(time.Now().UTC().Sub(time.Unix(u.Created, 0))) + " ago",
 			}
-			rows = append(rows, []string{email, units.HumanDuration(time.Now().UTC().Sub(time.Unix(u.Created, 0))) + " ago"})
+
+			if u.Email == config.Name {
+				row.CurrentlySelected = "*"
+			}
+			rows = append(rows, row)
 		}
 
-		printTable([]string{"EMAIL", "CREATED"}, rows)
+		printTable(rows)
 
 		return nil
 	},
@@ -761,12 +832,22 @@ var groupsCmd = &cobra.Command{
 			return groups[i].Created > groups[j].Created
 		})
 
-		rows := [][]string{}
+		type groupRec struct {
+			Name    string `header:"NAME"`
+			Created string `header:"CREATED"`
+			Source  string `header:"SOURCE"`
+		}
+		rows := []groupRec{}
 		for _, g := range groups {
-			rows = append(rows, []string{g.Name, units.HumanDuration(time.Now().UTC().Sub(time.Unix(g.Created, 0))) + " ago", g.Source})
+			row := groupRec{
+				Name:    g.Name,
+				Created: units.HumanDuration(time.Now().UTC().Sub(time.Unix(g.Created, 0))) + " ago",
+				Source:  g.Source,
+			}
+			rows = append(rows, row)
 		}
 
-		printTable([]string{"NAME", "CREATED", "SOURCE"}, rows)
+		printTable(rows)
 		return nil
 	},
 }
@@ -915,7 +996,7 @@ var credsCmd = &cobra.Command{
 						return err
 					}
 
-					cred, _, err = client.CredsApi.CreateCred(ctx).Execute()
+					cred, _, err = client.CredsApi.CreateCred(ctx).Body(api.CredRequest{Destination: &destination}).Execute()
 					if err != nil {
 						return err
 					}
@@ -1060,4 +1141,15 @@ func isExpired(cred *clientauthenticationv1beta1.ExecCredential) bool {
 	now := time.Now().Add(1 * time.Second)
 	// only valid if it hasn't expired yet
 	return cred.Status.ExpirationTimestamp.Time.Before(now)
+}
+
+func globe() string {
+	switch rand.Intn(3) {
+	case 1:
+		return "🌍"
+	case 2:
+		return "🌏"
+	default:
+		return "🌎"
+	}
 }

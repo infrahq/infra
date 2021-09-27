@@ -8,6 +8,7 @@ require (
 	github.com/aws/aws-sdk-go v1.40.49
 	github.com/cli/browser v1.1.0
 	github.com/docker/go-units v0.4.0
+	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/elazarl/go-bindata-assetfs v1.0.1
 	github.com/go-chi/chi v1.5.4
 	github.com/go-playground/validator/v10 v10.9.0
@@ -18,8 +19,10 @@ require (
 	github.com/goware/urlx v0.3.1
 	github.com/hashicorp/go-hclog v0.9.3-0.20191025211905-234833755cb2 // indirect
 	github.com/jessevdk/go-flags v1.5.0
+	github.com/kataras/tablewriter v0.0.0-20180708051242-e063d29b7c23 // indirect
 	github.com/kevinburke/go-bindata v3.22.0+incompatible
 	github.com/kr/pty v1.1.5 // indirect
+	github.com/lensesio/tableprinter v0.0.0-20201125135848-89e81fc956e7 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/muesli/termenv v0.9.0
 	github.com/natefinch/lumberjack v2.0.0+incompatible

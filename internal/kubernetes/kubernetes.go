@@ -19,8 +19,8 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/jessevdk/go-flags"
 	"go.uber.org/zap"
-	rbacv1 "k8s.io/api/rbac/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -585,7 +585,7 @@ var EndpointExclude = map[string]bool{
 	"kubernetes":                           true,
 }
 
-func (k *Kubernetes) getLoadBalancerIngress(lbs *[]corev1.LoadBalancerIngress) (error) {
+func (k *Kubernetes) getLoadBalancerIngress(lbs *[]corev1.LoadBalancerIngress) error {
 	clientset, err := kubernetes.NewForConfig(k.Config)
 	if err != nil {
 		return err

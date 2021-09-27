@@ -3,10 +3,12 @@
 ## Commands
 
 * [infra list](#infra-list)
+* [infra status](#infra-status)
 * [infra users](#infra-users)
 * [infra groups](#infra-groups)
 * [infra login](#infra-login)
 * [infra logout](#infra-logout)
+* [infra creds](#infra-creds)
 * [infra registry](#infra-registry)
 * [infra engine](#infra-engine)
 * [infra version](#infra-version)
@@ -14,7 +16,7 @@
 
 ## `infra list`
 
-List clusters
+List destinations
 
 ```
 infra list [flags]
@@ -23,7 +25,21 @@ infra list [flags]
 ### Options
 
 ```
-  -h, --help   help for list
+  -h, --help    help for list
+```
+
+## `infra status`
+
+Show the status of all connected destinations
+
+```
+infra status [flags]
+```
+
+### Options
+
+```
+  -h, --help    help for status
 ```
 
 ## `infra users`
