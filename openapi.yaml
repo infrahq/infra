@@ -33,7 +33,7 @@ components:
     User:
       type: object
       required:
-        - id  
+        - id
         - email
         - created
         - updated
@@ -197,7 +197,7 @@ components:
         - created
         - updated
         - kind
-        - namespace 
+        - namespace
         - users
         - destination
       properties:
