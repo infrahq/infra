@@ -46,6 +46,12 @@ spec:
 {{- end }}
 {{- with .Values.ingress.tls }}
   tls:
-  {{- tpl . $ | toYaml | nindent 4 }}
+  {{- range . }}
+    - hosts:
+    {{- range .hosts }}
+      - {{ . }}
+    {{- end }}
+      secretName: {{ .secretName }}
+  {{- end }}
 {{- end }}
 {{- end }}
