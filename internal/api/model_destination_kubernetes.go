@@ -16,22 +16,18 @@ import (
 
 // DestinationKubernetes struct for DestinationKubernetes
 type DestinationKubernetes struct {
-	Ca        string `json:"ca" validate:"required"`
-	Endpoint  string `json:"endpoint" validate:"required"`
-	Namespace string `json:"namespace" validate:"required"`
-	SaToken   string `json:"saToken" validate:"required"`
+	Ca       string `json:"ca" validate:"required"`
+	Endpoint string `json:"endpoint" validate:"required"`
 }
 
 // NewDestinationKubernetes instantiates a new DestinationKubernetes object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewDestinationKubernetes(ca string, endpoint string, namespace string, saToken string) *DestinationKubernetes {
+func NewDestinationKubernetes(ca string, endpoint string) *DestinationKubernetes {
 	this := DestinationKubernetes{}
 	this.Ca = ca
 	this.Endpoint = endpoint
-	this.Namespace = namespace
-	this.SaToken = saToken
 	return &this
 }
 
@@ -91,54 +87,6 @@ func (o *DestinationKubernetes) SetEndpoint(v string) {
 	o.Endpoint = v
 }
 
-// GetNamespace returns the Namespace field value
-func (o *DestinationKubernetes) GetNamespace() string {
-	if o == nil {
-		var ret string
-		return ret
-	}
-
-	return o.Namespace
-}
-
-// GetNamespaceOk returns a tuple with the Namespace field value
-// and a boolean to check if the value has been set.
-func (o *DestinationKubernetes) GetNamespaceOk() (*string, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.Namespace, true
-}
-
-// SetNamespace sets field value
-func (o *DestinationKubernetes) SetNamespace(v string) {
-	o.Namespace = v
-}
-
-// GetSaToken returns the SaToken field value
-func (o *DestinationKubernetes) GetSaToken() string {
-	if o == nil {
-		var ret string
-		return ret
-	}
-
-	return o.SaToken
-}
-
-// GetSaTokenOk returns a tuple with the SaToken field value
-// and a boolean to check if the value has been set.
-func (o *DestinationKubernetes) GetSaTokenOk() (*string, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.SaToken, true
-}
-
-// SetSaToken sets field value
-func (o *DestinationKubernetes) SetSaToken(v string) {
-	o.SaToken = v
-}
-
 func (o DestinationKubernetes) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
@@ -146,12 +94,6 @@ func (o DestinationKubernetes) MarshalJSON() ([]byte, error) {
 	}
 	if true {
 		toSerialize["endpoint"] = o.Endpoint
-	}
-	if true {
-		toSerialize["namespace"] = o.Namespace
-	}
-	if true {
-		toSerialize["saToken"] = o.SaToken
 	}
 	return json.Marshal(toSerialize)
 }
