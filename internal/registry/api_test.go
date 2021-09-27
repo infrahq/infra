@@ -286,8 +286,6 @@ func TestCreateDestinationNoApiKey(t *testing.T) {
 		Kubernetes: &api.DestinationKubernetes{
 			Ca:        "CA",
 			Endpoint:  "endpoint.net",
-			Namespace: "default",
-			SaToken:   "token",
 		},
 	}
 
@@ -322,8 +320,6 @@ func TestCreateDestination(t *testing.T) {
 		Kubernetes: &api.DestinationKubernetes{
 			Ca:        "CA",
 			Endpoint:  "endpoint.net",
-			Namespace: "default",
-			SaToken:   "token",
 		},
 	}
 

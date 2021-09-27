@@ -243,8 +243,6 @@ func (a *Api) CreateDestination(w http.ResponseWriter, r *http.Request) {
 		destination.Type = DESTINATION_TYPE_KUBERNERNETES
 		destination.KubernetesCa = body.Kubernetes.Ca
 		destination.KubernetesEndpoint = body.Kubernetes.Endpoint
-		destination.KubernetesNamespace = body.Kubernetes.Namespace
-		destination.KubernetesSaToken = body.Kubernetes.SaToken
 		return tx.Save(&destination).Error
 	})
 	if err != nil {
@@ -608,8 +606,6 @@ func dbToApiDestination(d *Destination) api.Destination {
 		res.Kubernetes = &api.DestinationKubernetes{
 			Ca:        d.KubernetesCa,
 			Endpoint:  d.KubernetesEndpoint,
-			Namespace: d.KubernetesNamespace,
-			SaToken:   d.KubernetesSaToken,
 		}
 	}
 

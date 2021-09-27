@@ -287,25 +287,11 @@ func Run(options Options) error {
 			return
 		}
 
-		namespace, err := k8s.Namespace()
-		if err != nil {
-			logging.L.Error(err.Error())
-			return
-		}
-
-		saToken, err := k8s.SaToken()
-		if err != nil {
-			logging.L.Error(err.Error())
-			return
-		}
-
 		destination, _, err := client.DestinationsApi.CreateDestination(ctx).Body(api.DestinationCreateRequest{
 			Name: name,
 			Kubernetes: &api.DestinationKubernetes{
 				Ca:        string(caBytes),
 				Endpoint:  endpoint,
-				Namespace: namespace,
-				SaToken:   saToken,
 			},
 		}).Execute()
 		if err != nil {
