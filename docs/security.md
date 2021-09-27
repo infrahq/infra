@@ -10,7 +10,7 @@ By default the Infra registry and Infra engine communicate via encrypted HTTPS c
 ### Authentication
 When users login to Infra as a valid user they are issued a session token with a 24 character secret that is randomly generated. The SHA256 hash of this token is stored server-side for token validation when it is presented. This session token is stored locally under `~/.infra`.
 
-When a user connects to a cluster after logging in their request is proxied to the Infra registry which issues them a new JWT signed with an RS256 signature. This JWT is presented to the engine and if it is valid the user is granted access if they have a valid role at the destination.
+When a user connects to a cluster after logging in their request is proxied to the Infra registry which issues them a new JWT signed with an ECDSA signature using P-521 and SHA-512. This JWT is presented to the engine and if it is valid the user is granted access if they have a valid role at the destination.
 
 ## Deployment
 When deploying Infra, ensure the Infra Registry is deployed in its own namespace. Deploying the registry in its own namespace allows you to securely manage which resources the deployment has access to.

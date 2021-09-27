@@ -521,7 +521,7 @@ func (a *Api) createJWT(destination, email string) (string, time.Time, error) {
 		return "", time.Time{}, err
 	}
 
-	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: key}, (&jose.SignerOptions{}).WithType("JWT"))
+	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.ES512, Key: key}, (&jose.SignerOptions{}).WithType("JWT"))
 	if err != nil {
 		return "", time.Time{}, err
 	}
