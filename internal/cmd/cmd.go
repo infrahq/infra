@@ -980,7 +980,6 @@ var apiKeysCmd = &cobra.Command{
 			return apiKeys[i].Created > apiKeys[j].Created
 		})
 
-		// rows := [][]string{}
 		rows := []apiKeyRow{}
 		for _, k := range apiKeys {
 			rows = append(rows, apiKeyRow{k.Name, units.HumanDuration(time.Now().UTC().Sub(time.Unix(k.Created, 0))) + " ago"})
