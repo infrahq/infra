@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/kubernetes"
@@ -28,8 +29,9 @@ type mockSecretReader struct{}
 func NewMockSecretReader() kubernetes.SecretReader {
 	return &mockSecretReader{}
 }
+
 func (msr *mockSecretReader) Get(secretName string, client *kubernetesClient.Clientset) (string, error) {
-	return "foo", nil
+	return "abcdefghijklmnopqrstuvwx", nil
 }
 
 func addUser(db *gorm.DB, sessionDuration time.Duration) (tokenId string, tokenSecret string, err error) {
@@ -258,7 +260,7 @@ func TestBearerTokenMiddlewareValidApiKey(t *testing.T) {
 	}
 
 	var apiKey ApiKey
-	err = db.FirstOrCreate(&apiKey, &ApiKey{Name: "default"}).Error
+	err = db.FirstOrCreate(&apiKey, &ApiKey{Name: defaultApiKeyName}).Error
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -639,6 +641,101 @@ func TestListGroups(t *testing.T) {
 	}
 	assert.Equal(t, "okta", groupSources["heroes"])
 	assert.Equal(t, "okta", groupSources["villains"])
+}
+
+func TestCreateAPIKey(t *testing.T) {
+	a := &Api{db: db}
+
+	createAPIKeyRequest := api.InfraAPIKeyCreateRequest{
+		Name: "test-api-client",
+	}
+
+	csr, err := createAPIKeyRequest.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r := httptest.NewRequest(http.MethodPost, "/v1/api-keys", bytes.NewReader(csr))
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.CreateAPIKey).ServeHTTP(w, r)
+
+	var body api.InfraAPIKeyCreateResponse
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+	assert.Equal(t, "test-api-client", body.Name)
+	assert.NotEmpty(t, body.Key)
+
+	// clean up
+	var apiKey ApiKey
+	db.First(&apiKey, &ApiKey{Name: "test-api-client"})
+	db.Delete(&apiKey)
+}
+
+func TestDeleteAPIKey(t *testing.T) {
+	a := &Api{db: db}
+
+	createAPIKeyRequest := api.InfraAPIKeyCreateRequest{
+		Name: "test-api-delete-key",
+	}
+
+	csr, err := createAPIKeyRequest.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r := httptest.NewRequest(http.MethodPost, "/v1/api-keys", bytes.NewReader(csr))
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.CreateAPIKey).ServeHTTP(w, r)
+
+	var body api.InfraAPIKeyCreateResponse
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+
+	assert.NotEmpty(t, body.Id)
+
+	delR := httptest.NewRequest(http.MethodDelete, "/v1/api-keys/"+body.Id, nil)
+	vars := map[string]string{
+		"id": body.Id,
+	}
+	delR = mux.SetURLVars(delR, vars)
+	delW := httptest.NewRecorder()
+	http.HandlerFunc(a.DeleteApiKey).ServeHTTP(delW, delR)
+
+	assert.Equal(t, http.StatusNoContent, delW.Code)
+
+	var apiKey ApiKey
+	db.First(&apiKey, &ApiKey{Name: "test-api-delete-key"})
+	assert.Empty(t, apiKey.Id, "API key not deleted from database")
+}
+
+func TestListAPIKeys(t *testing.T) {
+	a := &Api{db: db}
+
+	k := &ApiKey{Name: "test-key"}
+	if err := a.db.Create(k).Error; err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/api-keys", nil)
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.ListApiKeys).ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var keys []api.InfraAPIKey
+	if err := json.NewDecoder(w.Body).Decode(&keys); err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, 1, len(keys))
+	keyIDs := make(map[string]string)
+	for _, k := range keys {
+		keyIDs[k.Name] = k.Id
+	}
+	assert.NotEmpty(t, keyIDs["test-key"])
 }
 
 func containsUser(users []api.User, email string) bool {

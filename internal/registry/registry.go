@@ -32,6 +32,8 @@ type Options struct {
 	SyncInterval  int
 }
 
+const defaultApiKeyName = "default"
+
 func Run(options Options) error {
 	db, err := NewDB(options.DBPath)
 	if err != nil {
@@ -90,9 +92,6 @@ func Run(options Options) error {
 	interval := 30
 	if options.SyncInterval > 0 {
 		interval = options.SyncInterval
-		if err != nil {
-			zapLogger.Error("invalid sync interval option specified: " + err.Error())
-		}
 	} else {
 		envSync := os.Getenv("INFRA_SYNC_INTERVAL_SECONDS")
 		if envSync != "" {
@@ -124,7 +123,7 @@ func Run(options Options) error {
 	defer timer.Stop()
 
 	var apiKey ApiKey
-	err = db.FirstOrCreate(&apiKey, &ApiKey{Name: "default"}).Error
+	err = db.FirstOrCreate(&apiKey, &ApiKey{Name: defaultApiKeyName}).Error
 	if err != nil {
 		return err
 	}
@@ -132,7 +131,6 @@ func Run(options Options) error {
 	if options.DefaultApiKey != "" {
 		if len(options.DefaultApiKey) != API_KEY_LEN {
 			return errors.New("invalid initial api key length, the key must be 24 characters")
-
 		}
 		apiKey.Key = options.DefaultApiKey
 		err := db.Save(&apiKey).Error

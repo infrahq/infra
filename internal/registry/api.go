@@ -52,6 +52,9 @@ func NewApiMux(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) *mux.Router {
 	v1.Handle("/sources", http.HandlerFunc(a.ListSources)).Methods("GET")
 	v1.Handle("/destinations", a.bearerAuthMiddleware(http.HandlerFunc(a.ListDestinations))).Methods("GET")
 	v1.Handle("/destinations", a.bearerAuthMiddleware(http.HandlerFunc(a.CreateDestination))).Methods("POST")
+	v1.Handle("/api-keys", a.bearerAuthMiddleware(http.HandlerFunc(a.ListApiKeys))).Methods("GET")
+	v1.Handle("/api-keys", a.bearerAuthMiddleware(http.HandlerFunc(a.CreateAPIKey))).Methods("POST")
+	v1.Handle("/api-keys/{id}", a.bearerAuthMiddleware(http.HandlerFunc(a.DeleteApiKey))).Methods("DELETE")
 	v1.Handle("/creds", a.bearerAuthMiddleware(http.HandlerFunc(a.CreateCred))).Methods("POST")
 	v1.Handle("/roles", a.bearerAuthMiddleware(http.HandlerFunc(a.ListRoles))).Methods("GET")
 	v1.Handle("/login", http.HandlerFunc(a.Login)).Methods("POST")
@@ -69,9 +72,6 @@ func sendApiError(w http.ResponseWriter, code int, message string) {
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(err)
 }
-
-type tokenContextKey struct{}
-type apiKeyContextKey struct{}
 
 func (a *Api) bearerAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -123,6 +123,8 @@ func (a *Api) bearerAuthMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+type tokenContextKey struct{}
+
 func extractToken(context context.Context) (*Token, error) {
 	token, ok := context.Value(tokenContextKey{}).(*Token)
 	if !ok {
@@ -131,6 +133,8 @@ func extractToken(context context.Context) (*Token, error) {
 
 	return token, nil
 }
+
+type apiKeyContextKey struct{}
 
 func extractAPIKey(context context.Context) (*ApiKey, error) {
 	apiKey, ok := context.Value(apiKeyContextKey{}).(*ApiKey)
@@ -252,6 +256,104 @@ func (a *Api) CreateDestination(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(dbToApiDestination(&destination))
+}
+
+func (a *Api) ListApiKeys(w http.ResponseWriter, r *http.Request) {
+	keyName := r.URL.Query().Get("name")
+
+	var keys []ApiKey
+	var err error
+	if keyName != "" {
+		err = a.db.Where(&ApiKey{Name: keyName}).Find(&keys).Error
+	} else {
+		err = a.db.Find(&keys).Error
+	}
+	if err != nil {
+		logging.L.Error(err.Error())
+		sendApiError(w, http.StatusInternalServerError, "could not list keys")
+		return
+	}
+
+	results := make([]api.InfraAPIKey, 0)
+	for _, k := range keys {
+		results = append(results, dbToApiKey(&k))
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(results)
+}
+
+func (a *Api) DeleteApiKey(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+	if id == "" {
+		sendApiError(w, http.StatusBadRequest, "API key ID must be specified")
+	}
+
+	err := a.db.Transaction(func(tx *gorm.DB) error {
+		var existingKey ApiKey
+		tx.First(&existingKey, &ApiKey{Id: id})
+		if existingKey.Id == "" {
+			return ErrExistingKey
+		}
+
+		tx.Delete(&existingKey)
+		return nil
+	})
+	if err != nil {
+		logging.L.Error(err.Error())
+		if errors.Is(err, ErrExistingKey) {
+			sendApiError(w, http.StatusNotFound, err.Error())
+			return
+		}
+		sendApiError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *Api) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
+	var body api.InfraAPIKeyCreateRequest
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sendApiError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := validate.Struct(body); err != nil {
+		sendApiError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if strings.ToLower(body.Name) == defaultApiKeyName {
+		// this name is used for the default API key that engines use to connect to the registry
+		sendApiError(w, http.StatusBadRequest, "cannot create an API key with the name "+defaultApiKeyName+", this name is reserved")
+		return
+	}
+
+	var apiKey ApiKey
+	err := a.db.Transaction(func(tx *gorm.DB) error {
+		tx.First(&apiKey, &ApiKey{Name: body.Name})
+		if apiKey.Id != "" {
+			return ErrExistingKey
+		}
+
+		apiKey.Name = body.Name
+		return tx.Create(&apiKey).Error
+	})
+	if err != nil {
+		logging.L.Error(err.Error())
+		if errors.Is(err, ErrExistingKey) {
+			sendApiError(w, http.StatusNotFound, err.Error())
+			return
+		}
+		sendApiError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(dbToApiKeyWithSecret(&apiKey))
 }
 
 func (a *Api) ListRoles(w http.ResponseWriter, r *http.Request) {
@@ -509,6 +611,28 @@ func dbToApiDestination(d *Destination) api.Destination {
 			Namespace: d.KubernetesNamespace,
 			SaToken:   d.KubernetesSaToken,
 		}
+	}
+
+	return res
+}
+
+func dbToApiKey(k *ApiKey) api.InfraAPIKey {
+	res := api.InfraAPIKey{
+		Name:    k.Name,
+		Id:      k.Id,
+		Created: k.Created,
+	}
+
+	return res
+}
+
+// This function returns the secret key, it should only be used after the inital key creation
+func dbToApiKeyWithSecret(a *ApiKey) api.InfraAPIKeyCreateResponse {
+	res := api.InfraAPIKeyCreateResponse{
+		Name:    a.Name,
+		Id:      a.Id,
+		Created: a.Created,
+		Key:     a.Key,
 	}
 
 	return res

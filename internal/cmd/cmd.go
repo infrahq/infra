@@ -135,6 +135,10 @@ func blue(s string) string {
 	return termenv.String(s).Bold().Foreground(termenv.ColorProfile().Color("#0057FF")).String()
 }
 
+func red(s string) string {
+	return termenv.String(s).Bold().Foreground(termenv.ColorProfile().Color("#FA5F55")).String()
+}
+
 func NewApiContext(token string) context.Context {
 	return context.WithValue(context.Background(), api.ContextAccessToken, token)
 }
@@ -661,7 +665,6 @@ func setRowCertFromCluster(row *statusRow, cluster *clientcmdapi.Cluster) {
 	if len(row.CertificateAuthorityData) == 0 {
 		row.CertificateAuthorityData = cluster.CertificateAuthorityData
 	}
-
 }
 
 var listCmd = &cobra.Command{
@@ -949,6 +952,124 @@ var versionCmd = &cobra.Command{
 	},
 }
 
+type apiKeyRow struct {
+	Name    string `header:"NAME"`
+	Created string `header:"CREATED"`
+}
+
+var apiKeysCmd = &cobra.Command{
+	Use:   "api-keys",
+	Short: "List API keys",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		client, err := apiClientFromConfig()
+		if err != nil {
+			return err
+		}
+
+		ctx, err := apiContextFromConfig()
+		if err != nil {
+			return err
+		}
+
+		apiKeys, _, err := client.ApiKeysApi.ListAPIKeys(ctx).Execute()
+		if err != nil {
+			return err
+		}
+
+		sort.Slice(apiKeys, func(i, j int) bool {
+			return apiKeys[i].Created > apiKeys[j].Created
+		})
+
+		rows := []apiKeyRow{}
+		for _, k := range apiKeys {
+			rows = append(rows, apiKeyRow{k.Name, units.HumanDuration(time.Now().UTC().Sub(time.Unix(k.Created, 0))) + " ago"})
+		}
+
+		printTable(rows)
+		return nil
+	},
+}
+
+func newApiKeyCreateCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "create NAME",
+		Short:   "Create a new API key that can be used to access the Infra API",
+		Args:    cobra.ExactArgs(1),
+		Example: "$ infra api-key create automation-token",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client, err := apiClientFromConfig()
+			if err != nil {
+				return err
+			}
+
+			ctx, err := apiContextFromConfig()
+			if err != nil {
+				return err
+			}
+
+			apiKeyReq := api.InfraAPIKeyCreateRequest{
+				Name: args[0],
+			}
+			apiKey, resp, err := client.ApiKeysApi.CreateAPIKey(ctx).Body(apiKeyReq).Execute()
+			if err != nil {
+				var errResp api.Error
+				if decodeErr := json.NewDecoder(resp.Body).Decode(&errResp); decodeErr != nil {
+					fmt.Fprintln(os.Stderr, "could not decode error response, "+decodeErr.Error())
+				}
+				fmt.Fprintln(os.Stderr, red(errResp.Message))
+				return err
+			}
+			fmt.Fprintln(os.Stdout, red("API Key ")+apiKey.Name+" created")
+			fmt.Fprintln(os.Stdout, "key: "+apiKey.Key)
+			return nil
+		},
+	}
+	return cmd
+}
+
+func newApiKeyDeleteCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "delete NAME",
+		Short:   "Delete an API key by name",
+		Args:    cobra.ExactArgs(1),
+		Example: "$ infra api-key delete automation-token",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client, err := apiClientFromConfig()
+			if err != nil {
+				return err
+			}
+
+			ctx, err := apiContextFromConfig()
+			if err != nil {
+				return err
+			}
+
+			apiKey, _, err := client.ApiKeysApi.ListAPIKeys(ctx).Name(args[0]).Execute()
+			if err != nil {
+				return err
+			}
+
+			switch len(apiKey) {
+			case 1:
+				// success case
+			case 0:
+				return errors.New("could not find an API key with the name " + args[0])
+			default:
+				// this should not happen, the API key name should be unique
+				return errors.New("a unique API key could not be identified with the name " + args[0])
+			}
+
+			_, err = client.ApiKeysApi.DeleteApiKey(ctx, apiKey[0].Id).Execute()
+			if err != nil {
+				return err
+			}
+			fmt.Fprintln(os.Stdout, "deleted: "+args[0])
+			return nil
+		},
+	}
+	return cmd
+}
+
 var credsCmd = &cobra.Command{
 	Use:   "creds",
 	Short: "Generate a JWT token for connecting to a destination, eg k8s",
@@ -1051,6 +1172,10 @@ func NewRootCmd() (*cobra.Command, error) {
 		return nil, err
 	}
 	rootCmd.AddCommand(engineCmd)
+
+	apiKeysCmd.AddCommand(newApiKeyCreateCmd())
+	apiKeysCmd.AddCommand(newApiKeyDeleteCmd())
+	rootCmd.AddCommand(apiKeysCmd)
 
 	rootCmd.AddCommand(versionCmd)
 

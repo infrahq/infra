@@ -13,14 +13,16 @@ import (
 
 var db *gorm.DB
 
-var overriddenOktaSource = Source{Type: "okta", Domain: "overwrite.example.com", ClientSecret: "okta-secrets/client-secret", ApiToken: "okta-secrets/api-token"}
-var fakeOktaSource = Source{Type: "okta", Domain: "test.example.com", ClientSecret: "okta-secrets/client-secret", ApiToken: "okta-secrets/api-token"}
-var adminUser = User{Email: "admin@example.com"}
-var standardUser = User{Email: "user@example.com"}
-var iosDevUser = User{Email: "woz@example.com"}
-var clusterA = Destination{Name: "cluster-AAA"}
-var clusterB = Destination{Name: "cluster-BBB"}
-var clusterC = Destination{Name: "cluster-CCC"}
+var (
+	overriddenOktaSource = Source{Type: "okta", Domain: "overwrite.example.com", ClientSecret: "okta-secrets/client-secret", ApiToken: "okta-secrets/api-token"}
+	fakeOktaSource       = Source{Type: "okta", Domain: "test.example.com", ClientSecret: "okta-secrets/client-secret", ApiToken: "okta-secrets/api-token"}
+	adminUser            = User{Email: "admin@example.com"}
+	standardUser         = User{Email: "user@example.com"}
+	iosDevUser           = User{Email: "woz@example.com"}
+	clusterA             = Destination{Name: "cluster-AAA"}
+	clusterB             = Destination{Name: "cluster-BBB"}
+	clusterC             = Destination{Name: "cluster-CCC"}
+)
 
 func setup() error {
 	confFile, err := ioutil.ReadFile("_testdata/infra.yaml")
@@ -167,7 +169,6 @@ func TestUsersForExistingUsersAndDestinationsAreCreated(t *testing.T) {
 		t.Error(err)
 	}
 	assert.False(t, isUnknownUserGrantedRole, "unknown user should not have roles assigned")
-
 }
 
 func TestImportRolesForUnknownDestinationsAreIgnored(t *testing.T) {

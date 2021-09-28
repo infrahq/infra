@@ -24,9 +24,7 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-var (
-	ID_LEN = 12
-)
+var ID_LEN = 12
 
 type User struct {
 	Id      string `gorm:"primaryKey"`
@@ -39,9 +37,7 @@ type User struct {
 	Groups  []Group  `gorm:"many2many:groups_users"`
 }
 
-var (
-	SOURCE_TYPE_OKTA = "okta"
-)
+var SOURCE_TYPE_OKTA = "okta"
 
 type Source struct {
 	Id      string `gorm:"primaryKey"`
@@ -69,9 +65,7 @@ type Group struct {
 	Users []User `gorm:"many2many:groups_users"`
 }
 
-var (
-	DESTINATION_TYPE_KUBERNERNETES = "kubernetes"
-)
+var DESTINATION_TYPE_KUBERNERNETES = "kubernetes"
 
 type Destination struct {
 	Id      string `gorm:"primaryKey"`
@@ -128,9 +122,7 @@ type Token struct {
 	User   User `gorm:"foreignKey:UserId;references:Id;"`
 }
 
-var (
-	API_KEY_LEN = 24
-)
+var API_KEY_LEN = 24
 
 type ApiKey struct {
 	Id      string `gorm:"primaryKey"`
@@ -538,7 +530,6 @@ func NewDB(dbpath string) (*gorm.DB, error) {
 			},
 		),
 	})
-
 	if err != nil {
 		return nil, err
 	}

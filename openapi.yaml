@@ -14,6 +14,8 @@ tags:
     description: Manage identity sources
   - name: destinations
     description: Manage infrastructure destinations
+  - name: api-keys
+    description: Manage API keys used to access Infra admin endpoints
   - name: creds
     description: Create credentials to access a destination
   - name: roles
@@ -143,6 +145,36 @@ components:
         saToken:
           type: string
           x-go-custom-tag: validate:"required"
+    InfraAPIKey:
+      type: object
+      required:
+        - id
+        - created
+        - name
+      properties:
+        id:
+          type: string
+        created:
+          type: integer
+          format: int64
+        name:
+          type: string
+    InfraAPIKeyCreateRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+    InfraAPIKeyCreateResponse:
+      allOf:
+        - $ref: '#/components/schemas/InfraAPIKey'
+      type: object
+      required:
+        - key
+      properties:
+        key:
+          type: string
     Cred:
       type: object
       required:
@@ -191,7 +223,6 @@ components:
           $ref: "#/components/schemas/RoleKind"
         namespace:
           type: string
-          enum: [role, cluster-role]
         users:
           type: array
           items:
@@ -355,6 +386,86 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Destination'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api-keys:
+    get:
+      tags:
+        - api-keys
+      security:
+        - bearerAuth: []
+      summary: List API keys
+      operationId: listAPIKeys
+      parameters:
+        - in: query
+          name: name
+          schema:
+            type: string
+          description: Filter results by the API key name
+      responses:
+        '200':
+          description: API keys response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InfraAPIKey'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+        - api-keys
+      security:
+        - bearerAuth: []
+      summary: Register an API key
+      operationId: createAPIKey
+      x-codegen-request-body-name: body
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InfraAPIKeyCreateRequest'
+      responses:
+        '200':
+          description: create API key response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InfraAPIKeyCreateResponse'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api-keys/{id}:
+    delete:
+      tags:
+        - api-keys
+      security:
+        - bearerAuth: []
+      summary: delete an API key
+      operationId: deleteApiKey
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: The API Key ID
+      responses:
+        '204':
+          description: empty response
         default:
           description: unexpected error
           content:
