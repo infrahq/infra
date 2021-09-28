@@ -665,7 +665,6 @@ func setRowCertFromCluster(row *statusRow, cluster *clientcmdapi.Cluster) {
 	if len(row.CertificateAuthorityData) == 0 {
 		row.CertificateAuthorityData = cluster.CertificateAuthorityData
 	}
-
 }
 
 var listCmd = &cobra.Command{
@@ -953,6 +952,11 @@ var versionCmd = &cobra.Command{
 	},
 }
 
+type apiKeyRow struct {
+	Name    string `header:"NAME"`
+	Created string `header:"CREATED"`
+}
+
 var apiKeysCmd = &cobra.Command{
 	Use:   "api-keys",
 	Short: "List API keys",
@@ -976,12 +980,13 @@ var apiKeysCmd = &cobra.Command{
 			return apiKeys[i].Created > apiKeys[j].Created
 		})
 
-		rows := [][]string{}
+		// rows := [][]string{}
+		rows := []apiKeyRow{}
 		for _, k := range apiKeys {
-			rows = append(rows, []string{k.Name, units.HumanDuration(time.Now().UTC().Sub(time.Unix(k.Created, 0))) + " ago"})
+			rows = append(rows, apiKeyRow{k.Name, units.HumanDuration(time.Now().UTC().Sub(time.Unix(k.Created, 0))) + " ago"})
 		}
 
-		printTable([]string{"NAME", "CREATED"}, rows)
+		printTable(rows)
 		return nil
 	},
 }
