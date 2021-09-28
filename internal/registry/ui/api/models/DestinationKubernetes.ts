@@ -31,18 +31,6 @@ export interface DestinationKubernetes {
      * @memberof DestinationKubernetes
      */
     endpoint: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof DestinationKubernetes
-     */
-    namespace: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof DestinationKubernetes
-     */
-    saToken: string;
 }
 
 export function DestinationKubernetesFromJSON(json: any): DestinationKubernetes {
@@ -57,8 +45,6 @@ export function DestinationKubernetesFromJSONTyped(json: any, ignoreDiscriminato
         
         'ca': json['ca'],
         'endpoint': json['endpoint'],
-        'namespace': json['namespace'],
-        'saToken': json['saToken'],
     };
 }
 
@@ -73,8 +59,6 @@ export function DestinationKubernetesToJSON(value?: DestinationKubernetes | null
         
         'ca': value.ca,
         'endpoint': value.endpoint,
-        'namespace': value.namespace,
-        'saToken': value.saToken,
     };
 }
 
