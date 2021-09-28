@@ -622,6 +622,13 @@ func TestListRolesForUnknownDestination(t *testing.T) {
 func TestListGroups(t *testing.T) {
 	a := &Api{db: db}
 
+	if err := db.Model(Group{}).Where(&Group{Name: "heroes"}).Update("active", true).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Model(Group{}).Where(&Group{Name: "villains"}).Update("active", true).Error; err != nil {
+		t.Fatal(err)
+	}
+
 	r := httptest.NewRequest(http.MethodGet, "/v1/groups", nil)
 
 	w := httptest.NewRecorder()
@@ -633,7 +640,7 @@ func TestListGroups(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, 4, len(groups))
+	assert.Equal(t, 2, len(groups))
 
 	groupSources := make(map[string]string)
 	for _, g := range groups {

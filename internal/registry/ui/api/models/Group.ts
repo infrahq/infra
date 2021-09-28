@@ -49,12 +49,6 @@ export interface Group {
      * @memberof Group
      */
     source: string;
-    /**
-     * 
-     * @type {boolean}
-     * @memberof Group
-     */
-    active: boolean;
 }
 
 export function GroupFromJSON(json: any): Group {
@@ -72,7 +66,6 @@ export function GroupFromJSONTyped(json: any, ignoreDiscriminator: boolean): Gro
         'created': json['created'],
         'updated': json['updated'],
         'source': json['source'],
-        'active': json['active'],
     };
 }
 
@@ -90,7 +83,6 @@ export function GroupToJSON(value?: Group | null): any {
         'created': value.created,
         'updated': value.updated,
         'source': value.source,
-        'active': value.active,
     };
 }
 
