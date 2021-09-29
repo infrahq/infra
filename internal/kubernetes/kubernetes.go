@@ -30,7 +30,6 @@ import (
 const (
 	NamespaceFilePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
 	CaFilePath        = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
-	SaFilePath        = "/var/run/secrets/infra-engine-anonymous/token"
 )
 
 type RoleBinding struct {
@@ -564,14 +563,6 @@ func (k *Kubernetes) CA() ([]byte, error) {
 		return nil, err
 	}
 	return contents, nil
-}
-
-func (k *Kubernetes) SaToken() (string, error) {
-	contents, err := ioutil.ReadFile(SaFilePath)
-	if err != nil {
-		return "", err
-	}
-	return string(contents), nil
 }
 
 var EndpointExclude = map[string]bool{
