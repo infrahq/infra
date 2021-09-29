@@ -270,17 +270,30 @@ func Run(options Options) error {
 		if err != nil {
 			return ""
 		}
-		return endpoint
+
+		url, err := urlx.Parse(endpoint)
+		if err != nil {
+			return ""
+		}
+
+		return url.Hostname()
 	})
 
 	timer := timer.Timer{}
 	timer.Start(5, func() {
 		endpoint, err := k8s.Endpoint()
 		if err != nil {
+			logging.L.Error(err.Error())
 			return
 		}
 
-		caBytes, err := manager.Cache.Get(context.TODO(), fmt.Sprintf("%s.crt", endpoint))
+		url, err := urlx.Parse(endpoint)
+		if err != nil {
+			logging.L.Error(err.Error())
+			return
+		}
+
+		caBytes, err := manager.Cache.Get(context.TODO(), fmt.Sprintf("%s.crt", url.Hostname()))
 		if err != nil {
 			logging.L.Error(err.Error())
 			return
