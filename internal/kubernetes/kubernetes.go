@@ -606,6 +606,10 @@ func (k *Kubernetes) Endpoint() (string, error) {
 
 	port := service.Spec.Ports[0]
 
+	if port.Port == 443 {
+		return host, nil
+	}
+
 	return fmt.Sprintf("%s:%d", host, port.Port), nil
 }
 
