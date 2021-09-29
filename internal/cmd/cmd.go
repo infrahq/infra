@@ -37,6 +37,7 @@ import (
 	clientauthenticationv1beta1 "k8s.io/client-go/pkg/apis/clientauthentication/v1beta1"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"github.com/gofrs/flock"
 )
 
 type Config struct {
@@ -419,44 +420,31 @@ func promptSelectSource(sources []api.Source, sourceID string) (*api.Source, err
 	return &sources[option], nil
 }
 
-func lockLogin() error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	loginPid := filepath.Join(homeDir, ".infra", "login.pid")
-	if _, err := os.Stat(loginPid); err == nil {
-		return errors.New("login already in progress")
-	}
-
-	err = ioutil.WriteFile(loginPid, []byte(strconv.Itoa(os.Getpid())), 0o644)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func unlockLogin() error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	if err = os.Remove(filepath.Join(homeDir, ".infra", "login.pid")); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func login(config *Config) error {
-	err := lockLogin()
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return err
 	}
-	defer unlockLogin()
+
+	lock := flock.New(filepath.Join(homeDir, ".infra", "login.lock"))
+	acquired, err := lock.TryLock()
+	if err != nil {
+		return err
+	}
+	defer lock.Unlock()
+
+	if !acquired {
+		fmt.Fprintln(os.Stderr, "another instance is trying to login")
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute * 5)
+		defer cancel()
+
+		_, err = lock.TryLockContext(ctx, time.Second * 1)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
 
 	skipTLSVerify, proceed, err := promptShouldSkipTLSVerify(config.Host, config.SkipTLSVerify)
 	if err != nil {
@@ -568,11 +556,6 @@ func login(config *Config) error {
 	}
 
 	err = updateKubeconfig(destinations)
-	if err != nil {
-		return err
-	}
-
-	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return err
 	}
