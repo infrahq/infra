@@ -14,14 +14,13 @@ import (
 var db *gorm.DB
 
 var (
-	overriddenOktaSource = Source{Type: "okta", Domain: "overwrite.example.com", ClientSecret: "okta-secrets/client-secret", ApiToken: "okta-secrets/api-token"}
-	fakeOktaSource       = Source{Type: "okta", Domain: "test.example.com", ClientSecret: "okta-secrets/client-secret", ApiToken: "okta-secrets/api-token"}
-	adminUser            = User{Email: "admin@example.com"}
-	standardUser         = User{Email: "user@example.com"}
-	iosDevUser           = User{Email: "woz@example.com"}
-	clusterA             = Destination{Name: "cluster-AAA"}
-	clusterB             = Destination{Name: "cluster-BBB"}
-	clusterC             = Destination{Name: "cluster-CCC"}
+	fakeOktaSource = Source{Type: "okta", Domain: "test.example.com", ClientSecret: "okta-secrets/client-secret", ApiToken: "okta-secrets/api-token"}
+	adminUser      = User{Email: "admin@example.com"}
+	standardUser   = User{Email: "user@example.com"}
+	iosDevUser     = User{Email: "woz@example.com"}
+	clusterA       = Destination{Name: "cluster-AAA"}
+	clusterB       = Destination{Name: "cluster-BBB"}
+	clusterC       = Destination{Name: "cluster-CCC"}
 )
 
 func setup() error {

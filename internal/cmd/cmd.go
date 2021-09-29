@@ -653,20 +653,6 @@ type statusRow struct {
 	CertificateAuthorityData []byte // don't display in table
 }
 
-func setRowCertFromCluster(row *statusRow, cluster *clientcmdapi.Cluster) {
-	if len(row.CertificateAuthorityData) == 0 && len(cluster.CertificateAuthority) > 0 {
-		if b, err := ioutil.ReadFile(cluster.CertificateAuthority); err == nil {
-			row.CertificateAuthorityData = b
-		} else if err != nil {
-			fmt.Println("🐞🪲🐛 err", err)
-		}
-	}
-
-	if len(row.CertificateAuthorityData) == 0 {
-		row.CertificateAuthorityData = cluster.CertificateAuthorityData
-	}
-}
-
 var listCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
