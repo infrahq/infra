@@ -29,7 +29,6 @@ func config(lvl string) zap.Config {
 	err := atomicLvl.UnmarshalText([]byte(lvl))
 	if err != nil {
 		fmt.Printf("Using default log level. %v\n", err)
-		err = nil // we can proceed normally with the default log level
 	} else {
 		conf.Level = atomicLvl
 	}
