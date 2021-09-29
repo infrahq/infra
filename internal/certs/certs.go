@@ -99,7 +99,6 @@ func SelfSignedOrLetsEncryptCert(manager *autocert.Manager, serverNameFunc func(
 
 			return certBytes, keyBytes, nil
 		}()
-
 		if err != nil {
 			certBytes, keyBytes, err = SelfSignedCert([]string{name})
 			if err != nil {

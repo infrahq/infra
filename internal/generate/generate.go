@@ -20,7 +20,7 @@ func RandString(n int) (string, error) {
 		return "", nil
 	}
 
-	var bytes = make([]byte, n)
+	bytes := make([]byte, n)
 	for i := range bytes {
 		bigint, err := rand.Int(rand.Reader, big.NewInt(int64(len(alphanum))))
 		if err != nil {
@@ -40,7 +40,7 @@ func MathRandString(n int) string {
 		return ""
 	}
 
-	var bytes = make([]byte, n)
+	bytes := make([]byte, n)
 	for i := range bytes {
 		j := mathrand.Int31n(int32(len(alphanum)))
 		bytes[i] = alphanum[j]

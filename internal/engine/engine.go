@@ -218,7 +218,6 @@ func Run(options Options) error {
 				opts.Intermediates.AddCert(cert)
 			}
 			_, err := cs.PeerCertificates[0].Verify(opts)
-
 			if err != nil {
 				logging.L.Warn("could not verify registry TLS certificates: " + err.Error())
 			}

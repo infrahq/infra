@@ -93,7 +93,7 @@ func writeConfig(config *Config) error {
 		return err
 	}
 
-	if err = ioutil.WriteFile(filepath.Join(homeDir, ".infra", "config"), []byte(contents), 0644); err != nil {
+	if err = ioutil.WriteFile(filepath.Join(homeDir, ".infra", "config"), []byte(contents), 0o644); err != nil {
 		return err
 	}
 
@@ -202,7 +202,7 @@ func updateKubeconfig(destinations []api.Destination) error {
 		}
 
 		// Write destinations to a known json file location for `infra client` to read
-		err = os.WriteFile(filepath.Join(home, ".infra", "destinations"), destinationsJSON, 0644)
+		err = os.WriteFile(filepath.Join(home, ".infra", "destinations"), destinationsJSON, 0o644)
 		if err != nil {
 			return err
 		}
@@ -517,11 +517,11 @@ func login(config *Config) error {
 			return err
 		}
 
-		if err = ioutil.WriteFile(filepath.Join(home, ".infra", "client", "cert.pem"), certBytes, 0644); err != nil {
+		if err = ioutil.WriteFile(filepath.Join(home, ".infra", "client", "cert.pem"), certBytes, 0o644); err != nil {
 			return err
 		}
 
-		if err = ioutil.WriteFile(filepath.Join(home, ".infra", "client", "key.pem"), keyBytes, 0644); err != nil {
+		if err = ioutil.WriteFile(filepath.Join(home, ".infra", "client", "key.pem"), keyBytes, 0o644); err != nil {
 			return err
 		}
 

@@ -8,9 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var (
-	L *zap.Logger // L is the default zap logger initialized at start-up
-)
+var L *zap.Logger // L is the default zap logger initialized at start-up
 
 func init() {
 	var err error
