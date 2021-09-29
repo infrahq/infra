@@ -604,8 +604,8 @@ func dbToApiDestination(d *Destination) api.Destination {
 	switch d.Type {
 	case DESTINATION_TYPE_KUBERNERNETES:
 		res.Kubernetes = &api.DestinationKubernetes{
-			Ca:        d.KubernetesCa,
-			Endpoint:  d.KubernetesEndpoint,
+			Ca:       d.KubernetesCa,
+			Endpoint: d.KubernetesEndpoint,
 		}
 	}
 
@@ -622,7 +622,7 @@ func dbToApiKey(k *ApiKey) api.InfraAPIKey {
 	return res
 }
 
-// This function returns the secret key, it should only be used after the inital key creation
+// This function returns the secret key, it should only be used after the initial key creation
 func dbToApiKeyWithSecret(a *ApiKey) api.InfraAPIKeyCreateResponse {
 	res := api.InfraAPIKeyCreateResponse{
 		Name:    a.Name,

@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
@@ -14,7 +15,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"fmt"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/handlers"
@@ -218,7 +218,6 @@ func Run(options Options) error {
 				opts.Intermediates.AddCert(cert)
 			}
 			_, err := cs.PeerCertificates[0].Verify(opts)
-
 			if err != nil {
 				logging.L.Warn("could not verify registry TLS certificates: " + err.Error())
 			}
@@ -290,8 +289,8 @@ func Run(options Options) error {
 		destination, _, err := client.DestinationsApi.CreateDestination(ctx).Body(api.DestinationCreateRequest{
 			Name: name,
 			Kubernetes: &api.DestinationKubernetes{
-				Ca:        string(caBytes),
-				Endpoint:  endpoint,
+				Ca:       string(caBytes),
+				Endpoint: endpoint,
 			},
 		}).Execute()
 		if err != nil {

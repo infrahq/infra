@@ -8,9 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var (
-	L *zap.Logger // L is the default zap logger initialized at start-up
-)
+var L *zap.Logger // L is the default zap logger initialized at start-up
 
 func init() {
 	var err error
@@ -31,7 +29,6 @@ func config(lvl string) zap.Config {
 	err := atomicLvl.UnmarshalText([]byte(lvl))
 	if err != nil {
 		fmt.Printf("Using default log level. %v\n", err)
-		err = nil // we can proceed normally with the default log level
 	} else {
 		conf.Level = atomicLvl
 	}

@@ -13,3 +13,24 @@ jobs:
       with:
         go-version: '1.16'
     - run: make test
+  helm-lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: Azure/setup-helm@v1
+    - run: |
+        helm lint helm/charts/engine/
+        helm lint helm/charts/registry/
+  go-lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: golangci/golangci-lint-action@v2
+      with:
+        # TODO: add more linters
+        # args: -E asciicheck,bodyclose,durationcheck,errorlint,exhaustive,exportloopref,gosec,makezero,nilerr,noctx,rowserrcheck,sqlclosecheck,gofmt,gofumpt,gci,revive,gocritic,forcetypeassert,misspell,nakedret,wastedassign,wsl -D scopelint
+        args: >
+          --timeout 5m0s
+          --enable asciicheck,durationcheck,exhaustive,exportloopref,makezero,rowserrcheck,sqlclosecheck,gofmt,gofumpt,gci,misspell,wastedassign
+          --disable errcheck
+          --skip-files internal/registry/bindata_ui.go

@@ -271,6 +271,7 @@ func TestJWTMiddlewareWrongDestination(t *testing.T) {
 
 	assert.Equal(t, http.StatusUnauthorized, rr.Result().StatusCode)
 }
+
 func TestJWTMiddlewareValidJWTSetsEmail(t *testing.T) {
 	pub, priv, err := generateJWK()
 	if err != nil {

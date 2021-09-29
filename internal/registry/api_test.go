@@ -284,8 +284,8 @@ func TestCreateDestinationNoApiKey(t *testing.T) {
 
 	req := api.DestinationCreateRequest{
 		Kubernetes: &api.DestinationKubernetes{
-			Ca:        "CA",
-			Endpoint:  "endpoint.net",
+			Ca:       "CA",
+			Endpoint: "endpoint.net",
 		},
 	}
 
@@ -318,8 +318,8 @@ func TestCreateDestination(t *testing.T) {
 
 	req := api.DestinationCreateRequest{
 		Kubernetes: &api.DestinationKubernetes{
-			Ca:        "CA",
-			Endpoint:  "endpoint.net",
+			Ca:       "CA",
+			Endpoint: "endpoint.net",
 		},
 	}
 
