@@ -325,21 +325,7 @@ func (s *Source) SyncGroups(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) 
 			return err
 		}
 
-		// find the group names associated with this source
-		var groups []Group
-		if err := db.Where(&Group{SourceId: s.Id}).Find(&groups).Error; err != nil {
-			return err
-		}
-		if len(groups) == 0 {
-			logging.L.Debug("skipped syncing groups for source with no group mappings: " + s.Type)
-			return nil
-		}
-		var grpNames []string
-		for _, g := range groups {
-			grpNames = append(grpNames, g.Name)
-		}
-
-		groupEmails, err = okta.Groups(s.Domain, s.ClientId, apiToken, grpNames)
+		groupEmails, err = okta.Groups(s.Domain, s.ClientId, apiToken)
 		if err != nil {
 			return err
 		}
@@ -351,14 +337,9 @@ func (s *Source) SyncGroups(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) 
 		var activeIDs []string
 		for groupName, emails := range groupEmails {
 			var group Group
-			grpErr := tx.Where(&Group{Name: groupName, SourceId: s.Id}).First(&group).Error
-			if grpErr != nil {
-				if errors.Is(grpErr, gorm.ErrRecordNotFound) {
-					// this means the group is assigned to the okta app, but is not in the config
-					logging.L.Debug("skipping okta group not found in config: " + groupName)
-					continue
-				}
-				return grpErr
+			if err := tx.FirstOrCreate(&group, Group{Name: groupName, SourceId: s.Id}).Error; err != nil {
+				logging.L.Sugar().Debug("could not find or create okta group: " + groupName)
+				return err
 			}
 			var users []User
 			err := tx.Where("email IN ?", emails).Find(&users).Error
