@@ -604,8 +604,8 @@ func dbToApiDestination(d *Destination) api.Destination {
 	switch d.Type {
 	case DESTINATION_TYPE_KUBERNERNETES:
 		res.Kubernetes = &api.DestinationKubernetes{
-			Ca:        d.KubernetesCa,
-			Endpoint:  d.KubernetesEndpoint,
+			Ca:       d.KubernetesCa,
+			Endpoint: d.KubernetesEndpoint,
 		}
 	}
 

@@ -492,28 +492,28 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		"static": {nil, map[string]*bintree{
 			"chunks": {nil, map[string]*bintree{
 				"framework-9e6ae5c73d4e43bf334d.js": {_nextStaticChunksFramework9e6ae5c73d4e43bf334dJs, map[string]*bintree{}},
-				"main-d1e3ce7bd5cd46c1581b.js": {_nextStaticChunksMainD1e3ce7bd5cd46c1581bJs, map[string]*bintree{}},
+				"main-d1e3ce7bd5cd46c1581b.js":      {_nextStaticChunksMainD1e3ce7bd5cd46c1581bJs, map[string]*bintree{}},
 				"pages": {nil, map[string]*bintree{
-					"_app-d4f4e00554d73e2aae95.js": {_nextStaticChunksPages_appD4f4e00554d73e2aae95Js, map[string]*bintree{}},
+					"_app-d4f4e00554d73e2aae95.js":   {_nextStaticChunksPages_appD4f4e00554d73e2aae95Js, map[string]*bintree{}},
 					"_error-737a04e9a0da63c9d162.js": {_nextStaticChunksPages_error737a04e9a0da63c9d162Js, map[string]*bintree{}},
-					"index-df24ec0f52a0b03819c0.js": {_nextStaticChunksPagesIndexDf24ec0f52a0b03819c0Js, map[string]*bintree{}},
+					"index-df24ec0f52a0b03819c0.js":  {_nextStaticChunksPagesIndexDf24ec0f52a0b03819c0Js, map[string]*bintree{}},
 				}},
 				"polyfills-a40ef1678bae11e696dba45124eadd70.js": {_nextStaticChunksPolyfillsA40ef1678bae11e696dba45124eadd70Js, map[string]*bintree{}},
-				"webpack-1a8a258926ecde76681b.js": {_nextStaticChunksWebpack1a8a258926ecde76681bJs, map[string]*bintree{}},
+				"webpack-1a8a258926ecde76681b.js":               {_nextStaticChunksWebpack1a8a258926ecde76681bJs, map[string]*bintree{}},
 			}},
 			"css": {nil, map[string]*bintree{
 				"89e49cc918ff05c3d5e2.css": {_nextStaticCss89e49cc918ff05c3d5e2Css, map[string]*bintree{}},
 			}},
 			"vBca2wLMmSUK9cbon7VJ-": {nil, map[string]*bintree{
 				"_buildManifest.js": {_nextStaticVbca2wlmmsuk9cbon7vj_buildmanifestJs, map[string]*bintree{}},
-				"_ssgManifest.js": {_nextStaticVbca2wlmmsuk9cbon7vj_ssgmanifestJs, map[string]*bintree{}},
+				"_ssgManifest.js":   {_nextStaticVbca2wlmmsuk9cbon7vj_ssgmanifestJs, map[string]*bintree{}},
 			}},
 		}},
 	}},
-	"combo.svg": {comboSvg, map[string]*bintree{}},
+	"combo.svg":   {comboSvg, map[string]*bintree{}},
 	"favicon.png": {faviconPng, map[string]*bintree{}},
-	"icon.svg": {iconSvg, map[string]*bintree{}},
-	"index.html": {indexHtml, map[string]*bintree{}},
+	"icon.svg":    {iconSvg, map[string]*bintree{}},
+	"index.html":  {indexHtml, map[string]*bintree{}},
 }}
 
 // RestoreAsset restores an asset under the given directory.
