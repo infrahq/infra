@@ -419,7 +419,45 @@ func promptSelectSource(sources []api.Source, sourceID string) (*api.Source, err
 	return &sources[option], nil
 }
 
+func lockLogin() error {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	loginPid := filepath.Join(homeDir, ".infra", "login.pid")
+	if _, err := os.Stat(loginPid); err == nil {
+		return errors.New("login already in progress")
+	}
+
+	err = ioutil.WriteFile(loginPid, []byte(strconv.Itoa(os.Getpid())), 0o644)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func unlockLogin() error {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	if err = os.Remove(filepath.Join(homeDir, ".infra", "login.pid")); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func login(config *Config) error {
+	err := lockLogin()
+	if err != nil {
+		return err
+	}
+	defer unlockLogin()
+
 	skipTLSVerify, proceed, err := promptShouldSkipTLSVerify(config.Host, config.SkipTLSVerify)
 	if err != nil {
 		return err
