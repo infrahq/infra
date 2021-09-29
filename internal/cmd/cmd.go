@@ -22,6 +22,7 @@ import (
 	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/cli/browser"
 	"github.com/docker/go-units"
+	"github.com/gofrs/flock"
 	"github.com/goware/urlx"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/engine"
@@ -37,7 +38,6 @@ import (
 	clientauthenticationv1beta1 "k8s.io/client-go/pkg/apis/clientauthentication/v1beta1"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	"github.com/gofrs/flock"
 )
 
 type Config struct {
@@ -435,10 +435,10 @@ func login(config *Config) error {
 
 	if !acquired {
 		fmt.Fprintln(os.Stderr, "another instance is trying to login")
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute * 5)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
 		defer cancel()
 
-		_, err = lock.TryLockContext(ctx, time.Second * 1)
+		_, err = lock.TryLockContext(ctx, time.Second*1)
 		if err != nil {
 			return err
 		}
