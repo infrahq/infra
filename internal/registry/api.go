@@ -622,7 +622,7 @@ func dbToApiKey(k *ApiKey) api.InfraAPIKey {
 	return res
 }
 
-// This function returns the secret key, it should only be used after the inital key creation
+// This function returns the secret key, it should only be used after the initial key creation
 func dbToApiKeyWithSecret(a *ApiKey) api.InfraAPIKeyCreateResponse {
 	res := api.InfraAPIKeyCreateResponse{
 		Name:    a.Name,

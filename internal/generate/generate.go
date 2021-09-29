@@ -33,7 +33,7 @@ func RandString(n int) (string, error) {
 }
 
 // MathRandString generates a random string that does not need to be cryptographically secure
-// This is prefered to RandString when you don't need the cryptographic security as it is
+// This is preferred to RandString when you don't need the cryptographic security as it is
 // not a drain on the entropy pool.
 func MathRandString(n int) string {
 	if n <= 0 {

@@ -164,7 +164,7 @@ func ApplyUserMapping(db *gorm.DB, users []ConfigUserMapping) error {
 			return usrReadErr
 		}
 
-		// add the user to groups, these declarations can be overriden by external group syncing
+		// add the user to groups, these declarations can be overridden by external group syncing
 		for _, gName := range u.Groups {
 			// Assumes that only one group can exist with a given name, regardless of sources
 			var group Group
