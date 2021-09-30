@@ -7,25 +7,34 @@ linters-settings:
 linters:
   enable:
     - asciicheck
-    - bodyclose
+    - deadcode
     - durationcheck
+    - errcheck
     - errorlint
     - exhaustive
     - exportloopref
-    - gosec
-    - makezero
-    - nilerr
-    - noctx
-    - rowserrcheck
-    - sqlclosecheck
+    - forcetypeassert
+    - gci
+    - gocritic
     - gofmt
     - gofumpt
-    - gci
-    - revive
-    - gocritic
-    - forcetypeassert
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - makezero
     - misspell
     - nakedret
+    - nilerr
+    - noctx
+    - revive
+    - rowserrcheck
+    - sqlclosecheck
+    - staticcheck
+    - structcheck
+    - typecheck
+    - unused
+    - varcheck
     - wastedassign
     - wsl
   disable:

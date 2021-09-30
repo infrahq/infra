@@ -109,6 +109,7 @@ func removeConfig() error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -151,6 +152,7 @@ func NewAPIClient(host string, skipTLSVerify bool) (*api.APIClient, error) {
 	config := api.NewConfiguration()
 	config.Host = u.Host
 	config.Scheme = "https"
+
 	if skipTLSVerify {
 		config.HTTPClient = &http.Client{
 			Transport: &http.Transport{
@@ -186,6 +188,7 @@ func apiClientFromConfig() (*api.APIClient, error) {
 func clientConfig() clientcmd.ClientConfig {
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 	loadingRules.WarnIfAllMissing = false
+
 	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
 }
 
@@ -209,6 +212,7 @@ func updateKubeconfig(destinations []api.Destination) error {
 	}
 
 	defaultConfig := clientConfig()
+
 	kubeConfig, err := defaultConfig.RawConfig()
 	if err != nil {
 		return err
@@ -249,6 +253,7 @@ func updateKubeconfig(destinations []api.Destination) error {
 		destinationName := strings.ReplaceAll(name, "infra:", "")
 
 		var exists bool
+
 		for _, d := range destinations {
 			if destinationName == d.Name {
 				exists = true
@@ -282,6 +287,7 @@ func updateKubeconfig(destinations []api.Destination) error {
 
 func switchToFirstInfraContext() (string, error) {
 	defaultConfig := clientConfig()
+
 	kubeConfig, err := defaultConfig.RawConfig()
 	if err != nil {
 		return "", err
@@ -337,18 +343,19 @@ func promptShouldSkipTLSVerify(host string, skipTLSVerify bool) (shouldSkipTLSVe
 		return false, false, err
 	}
 
-	httpClient := &http.Client{}
-	res, err := httpClient.Do(req)
+	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		if !errors.As(err, &x509.UnknownAuthorityError{}) && !errors.As(err, &x509.HostnameError{}) {
 			return false, false, err
 		}
 
 		proceed := false
+
 		fmt.Fprintln(os.Stderr)
 		fmt.Fprint(os.Stderr, "Could not verify certificate for host ")
 		fmt.Fprint(os.Stderr, termenv.String(host).Bold())
 		fmt.Fprintln(os.Stderr)
+
 		prompt := &survey.Confirm{
 			Message: "Are you sure you want to continue?",
 		}
@@ -379,6 +386,7 @@ func promptSelectSource(sources []api.Source, sourceID string) (*api.Source, err
 				return &source, nil
 			}
 		}
+
 		return nil, errors.New("source not found")
 	}
 
@@ -387,6 +395,7 @@ func promptSelectSource(sources []api.Source, sourceID string) (*api.Source, err
 	})
 
 	options := []string{}
+
 	for _, s := range sources {
 		if s.Okta != nil {
 			options = append(options, fmt.Sprintf("Okta [%s]", s.Okta.Domain))
@@ -394,14 +403,16 @@ func promptSelectSource(sources []api.Source, sourceID string) (*api.Source, err
 	}
 
 	var option int
+
 	prompt := &survey.Select{
 		Message: "Choose a login method:",
 		Options: options,
 	}
+
 	err := survey.AskOne(prompt, &option, survey.WithIcons(func(icons *survey.IconSet) {
 		icons.Question.Text = blue("?")
 	}))
-	if err == terminal.InterruptErr {
+	if errors.Is(err, terminal.InterruptErr) {
 		return nil, err
 	}
 
@@ -453,13 +464,16 @@ func login(config *Config) error {
 		if err != nil {
 			return err
 		}
+
 		nonce, err := generate.RandString(10)
 		if err != nil {
 			return err
 		}
+
 		authorizeURL := "https://" + source.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + source.Okta.ClientId + "&response_type=code&scope=openid+email&nonce=" + nonce + "&state=" + state
 
 		fmt.Fprintln(os.Stderr, blue("✓")+" Logging in with Okta...")
+
 		ls, err := newLocalServer()
 		if err != nil {
 			return err
@@ -509,9 +523,8 @@ func login(config *Config) error {
 	if err != nil {
 		return err
 	}
-	ctx := NewAPIContext(loginRes.Token)
 
-	destinations, _, err := client.DestinationsApi.ListDestinations(ctx).Execute()
+	destinations, _, err := client.DestinationsApi.ListDestinations(NewAPIContext(loginRes.Token)).Execute()
 	if err != nil {
 		return err
 	}
@@ -801,6 +814,7 @@ func newRegistryCmd() (*cobra.Command, error) {
 	}
 
 	defaultInfraHome := filepath.Join("~", ".infra")
+
 	cmd.Flags().StringVarP(&options.ConfigPath, "config", "c", "", "config file")
 	cmd.Flags().StringVar(&options.DefaultApiKey, "initial-apikey", os.Getenv("INFRA_REGISTRY_DEFAULT_API_KEY"), "initial api key for adding destinations")
 	cmd.Flags().StringVar(&options.DBPath, "db", filepath.Join(defaultInfraHome, "infra.db"), "path to database file")
@@ -822,6 +836,7 @@ func newRegistryCmd() (*cobra.Command, error) {
 	}
 
 	defaultSync := 30
+
 	osSync := os.Getenv("INFRA_SYNC_INTERVAL_SECONDS")
 	if osSync != "" {
 		defaultSync, err = strconv.Atoi(osSync)
@@ -829,6 +844,7 @@ func newRegistryCmd() (*cobra.Command, error) {
 			logging.L.Error("could not convert INFRA_SYNC_INTERVAL_SECONDS to an integer: " + err.Error())
 		}
 	}
+
 	cmd.Flags().IntVar(&options.SyncInterval, "sync-interval", defaultSync, "the interval (in seconds) at which Infra will poll sources for users and groups")
 
 	return cmd, nil
@@ -852,6 +868,7 @@ func newEngineCmd() (*cobra.Command, error) {
 	}
 
 	defaultInfraHome := filepath.Join("~", ".infra")
+
 	cmd.PersistentFlags().BoolVar(&options.ForceTLSVerify, "force-tls-verify", false, "force TLS verification")
 	cmd.Flags().StringVarP(&options.Registry, "registry", "r", os.Getenv("INFRA_ENGINE_REGISTRY"), "registry hostname")
 	cmd.Flags().StringVarP(&options.Name, "name", "n", os.Getenv("INFRA_ENGINE_NAME"), "cluster name")
@@ -972,6 +989,7 @@ func newAPIKeyCreateCmd() *cobra.Command {
 			return nil
 		},
 	}
+
 	return cmd
 }
 
@@ -1015,6 +1033,7 @@ func newAPIKeyDeleteCmd() *cobra.Command {
 			return nil
 		},
 	}
+
 	return cmd
 }
 
@@ -1115,12 +1134,14 @@ func NewRootCmd() (*cobra.Command, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	rootCmd.AddCommand(registryCmd)
 
 	engineCmd, err := newEngineCmd()
 	if err != nil {
 		return nil, err
 	}
+
 	rootCmd.AddCommand(engineCmd)
 
 	apiKeysCmd.AddCommand(newAPIKeyCreateCmd())
@@ -1150,19 +1171,23 @@ func getCache(path, name string, obj interface{}) error {
 	if err != nil {
 		return err
 	}
+
 	path = filepath.Join(home, ".infra", "cache", path)
-	fullPath := filepath.Join(path, name)
 	if err = os.MkdirAll(path, os.ModePerm); err != nil {
 		return err
 	}
+
+	fullPath := filepath.Join(path, name)
 
 	f, err := os.Open(fullPath)
 	if os.IsNotExist(err) {
 		return nil
 	}
+
 	if err != nil {
 		return err
 	}
+
 	defer f.Close()
 
 	d := json.NewDecoder(f)
@@ -1206,12 +1231,15 @@ func isExpired(cred *clientauthenticationv1beta1.ExecCredential) bool {
 	if cred == nil {
 		return true
 	}
+
 	if cred.Status == nil {
 		return true
 	}
+
 	if cred.Status.ExpirationTimestamp == nil {
 		return true
 	}
+
 	// make sure it expires in more than 1 second from now.
 	now := time.Now().Add(1 * time.Second)
 	// only valid if it hasn't expired yet

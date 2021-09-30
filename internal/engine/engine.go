@@ -166,6 +166,7 @@ func jwtMiddleware(destination string, getjwk GetJWKFunc, next http.HandlerFunc)
 func proxyHandler(ca []byte, bearerToken string, remote *url.URL) (http.HandlerFunc, error) {
 	caCertPool := x509.NewCertPool()
 	ok := caCertPool.AppendCertsFromPEM(ca)
+
 	if !ok {
 		return nil, errors.New("could not append ca to client cert bundle")
 	}
@@ -183,6 +184,7 @@ func proxyHandler(ca []byte, bearerToken string, remote *url.URL) (http.HandlerF
 		if !ok {
 			logging.L.Debug("Proxy handler unable to retrieve email from context")
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
+
 			return
 		}
 
@@ -201,6 +203,7 @@ func (b *BearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if b.Token != "" {
 		req.Header.Set("Authorization", "Bearer "+b.Token)
 	}
+
 	return b.Transport.RoundTrip(req)
 }
 
@@ -220,9 +223,11 @@ func Run(options Options) error {
 				DNSName:       cs.ServerName,
 				Intermediates: x509.NewCertPool(),
 			}
+
 			for _, cert := range cs.PeerCertificates[1:] {
 				opts.Intermediates.AddCert(cert)
 			}
+
 			_, err := cs.PeerCertificates[0].Verify(opts)
 			if err != nil {
 				logging.L.Warn("could not verify registry TLS certificates: " + err.Error())
@@ -236,6 +241,7 @@ func Run(options Options) error {
 	if err != nil {
 		return err
 	}
+
 	u.Scheme = "https"
 
 	ctx := context.WithValue(context.Background(), api.ContextServerVariables, map[string]string{"basePath": "v1"})
@@ -374,5 +380,6 @@ func Run(options Options) error {
 	}
 
 	logging.L.Info("serving on port 443")
+
 	return tlsServer.ListenAndServeTLS("", "")
 }

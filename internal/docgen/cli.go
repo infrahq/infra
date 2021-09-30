@@ -75,6 +75,7 @@ func GenMarkdown(cmd *cobra.Command, w io.Writer) error {
 	}
 
 	_, err := buf.WriteTo(w)
+
 	return err
 }
 
@@ -89,6 +90,7 @@ func GenMarkdownToc(cmd *cobra.Command, f io.Writer) error {
 		if !c.IsAvailableCommand() || c.IsAdditionalHelpTopicCommand() {
 			continue
 		}
+
 		if err := GenMarkdownToc(c, f); err != nil {
 			return err
 		}

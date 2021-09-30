@@ -25,6 +25,7 @@ var pages embed.FS
 
 func newLocalServer() (*LocalServer, error) {
 	ls := &LocalServer{ResultChan: make(chan CodeResponse, 1), srv: &http.Server{Addr: "127.0.0.1:8301"}}
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		params := r.URL.Query()
 		ls.ResultChan <- CodeResponse{
@@ -77,7 +78,9 @@ func formatURLMsg(msg string, fallback string) string {
 	if msg == "" {
 		return fallback
 	}
+
 	formatted := strings.ReplaceAll(msg, "_", " ")
 	formatted = strings.Title(strings.ToLower(formatted))
+
 	return formatted
 }

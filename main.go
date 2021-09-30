@@ -1,13 +1,13 @@
 package main
 
 import (
-	"log"
+	"os"
 
 	"github.com/infrahq/infra/internal/cmd"
 )
 
 func main() {
 	if err := cmd.Run(); err != nil {
-		log.Fatal(err)
+		os.Exit(1)
 	}
 }
