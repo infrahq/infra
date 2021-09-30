@@ -170,12 +170,6 @@ func proxyHandler(ca []byte, bearerToken string, remote *url.URL) (http.HandlerF
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Sometimes the kubernetes proxy strips query string for Upgrade requests
-		// so we need to put that in the request body
-		if r.Header.Get("X-Infra-Query") != "" {
-			r.URL.RawQuery = r.Header.Get("X-Infra-Query")
-		}
-
 		email, ok := r.Context().Value(HttpContextKeyEmail{}).(string)
 		if !ok {
 			logging.L.Debug("Proxy handler unable to retrieve email from context")
