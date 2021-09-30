@@ -1,3 +1,9 @@
+run:
+  skip-files:
+    - internal/registry/bindata_ui.go
+
+  timeout: 5m
+
 linters-settings:
   revive:
     rules:
