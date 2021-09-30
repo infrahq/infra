@@ -139,11 +139,11 @@ func red(s string) string {
 	return termenv.String(s).Bold().Foreground(termenv.ColorProfile().Color("#FA5F55")).String()
 }
 
-func NewAPIContext(token string) context.Context {
+func NewApiContext(token string) context.Context {
 	return context.WithValue(context.Background(), api.ContextAccessToken, token)
 }
 
-func NewAPIClient(host string, skipTLSVerify bool) (*api.APIClient, error) {
+func NewApiClient(host string, skipTLSVerify bool) (*api.APIClient, error) {
 	u, err := urlx.Parse(host)
 	if err != nil {
 		return nil, err
@@ -173,7 +173,7 @@ func apiContextFromConfig() (context.Context, error) {
 		return nil, err
 	}
 
-	return NewAPIContext(config.Token), nil
+	return NewApiContext(config.Token), nil
 }
 
 func apiClientFromConfig() (*api.APIClient, error) {
@@ -182,7 +182,7 @@ func apiClientFromConfig() (*api.APIClient, error) {
 		return nil, err
 	}
 
-	return NewAPIClient(config.Host, config.SkipTLSVerify)
+	return NewApiClient(config.Host, config.SkipTLSVerify)
 }
 
 func clientConfig() clientcmd.ClientConfig {
@@ -429,7 +429,7 @@ func login(config *Config) error {
 		return nil
 	}
 
-	client, err := NewAPIClient(config.Host, skipTLSVerify)
+	client, err := NewApiClient(config.Host, skipTLSVerify)
 	if err != nil {
 		return err
 	}
@@ -579,12 +579,12 @@ var logoutCmd = &cobra.Command{
 			return nil
 		}
 
-		client, err := NewAPIClient(config.Host, config.SkipTLSVerify)
+		client, err := NewApiClient(config.Host, config.SkipTLSVerify)
 		if err != nil {
 			return err
 		}
 
-		_, err = client.AuthApi.Logout(NewAPIContext(config.Token)).Execute()
+		_, err = client.AuthApi.Logout(NewApiContext(config.Token)).Execute()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 		}
