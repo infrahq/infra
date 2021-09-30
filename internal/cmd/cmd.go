@@ -24,7 +24,6 @@ import (
 	"github.com/docker/go-units"
 	"github.com/goware/urlx"
 	"github.com/infrahq/infra/internal/api"
-	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/engine"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
@@ -501,50 +500,6 @@ func login(config *Config) error {
 
 	fmt.Fprintln(os.Stderr, blue("✓")+" Logged in as "+termenv.String(loginRes.Name).Bold().String())
 
-	// Generate client certs
-	home, err := homedir.Dir()
-	if err != nil {
-		return err
-	}
-
-	if err = os.MkdirAll(filepath.Join(home, ".infra", "client"), os.ModePerm); err != nil {
-		return err
-	}
-
-	if _, err := os.Stat(filepath.Join(home, ".infra", "client", "cert.pem")); os.IsNotExist(err) {
-		certBytes, keyBytes, err := certs.SelfSignedCert([]string{"localhost", "localhost:32710"})
-		if err != nil {
-			return err
-		}
-
-		if err = ioutil.WriteFile(filepath.Join(home, ".infra", "client", "cert.pem"), certBytes, 0o644); err != nil {
-			return err
-		}
-
-		if err = ioutil.WriteFile(filepath.Join(home, ".infra", "client", "key.pem"), keyBytes, 0o644); err != nil {
-			return err
-		}
-
-		// Kill client
-		contents, err := ioutil.ReadFile(filepath.Join(home, ".infra", "client", "pid"))
-		if err != nil && !os.IsNotExist(err) {
-			return err
-		}
-
-		var pid int
-		if !os.IsNotExist(err) {
-			pid, err = strconv.Atoi(string(contents))
-			if err != nil {
-				return err
-			}
-
-			process, _ := os.FindProcess(int(pid))
-			process.Kill()
-		}
-
-		os.Remove(filepath.Join(home, ".infra", "client", "pid"))
-	}
-
 	client, err = NewApiClient(config.Host, skipTLSVerify)
 	if err != nil {
 		return err
@@ -561,9 +516,14 @@ func login(config *Config) error {
 		return err
 	}
 
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
 	if len(destinations) > 0 {
 		kubeConfigPath := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{}).ConfigAccess().GetDefaultFilename()
-		fmt.Fprintln(os.Stderr, blue("✓")+" Kubeconfig updated: "+termenv.String(strings.ReplaceAll(kubeConfigPath, home, "~")).Bold().String())
+		fmt.Fprintln(os.Stderr, blue("✓")+" Kubeconfig updated: "+termenv.String(strings.ReplaceAll(kubeConfigPath, homeDir, "~")).Bold().String())
 	}
 
 	context, err := switchToFirstInfraContext()
@@ -621,23 +581,6 @@ var logoutCmd = &cobra.Command{
 			return err
 		}
 
-		contents, err := ioutil.ReadFile(filepath.Join(home, ".infra", "client", "pid"))
-		if err != nil && !os.IsNotExist(err) {
-			return err
-		}
-
-		var pid int
-		if !os.IsNotExist(err) {
-			pid, err = strconv.Atoi(string(contents))
-			if err != nil {
-				return err
-			}
-
-			process, _ := os.FindProcess(int(pid))
-			process.Kill()
-		}
-
-		os.Remove(filepath.Join(home, ".infra", "client", "pid"))
 		os.Remove(filepath.Join(home, ".infra", "destinations"))
 
 		return updateKubeconfig([]api.Destination{})

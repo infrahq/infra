@@ -74,8 +74,8 @@ type Destination struct {
 	Name    string `gorm:"unique"`
 	Type    string
 
-	KubernetesCa        string
-	KubernetesEndpoint  string
+	KubernetesCa       string
+	KubernetesEndpoint string
 }
 
 type Role struct {
