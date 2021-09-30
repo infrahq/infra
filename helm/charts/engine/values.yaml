@@ -15,11 +15,3 @@ service:
     - name: https
       port: 443
       targetPort: 443
-
-ingress:
-  enabled: false
-  labels: {}
-  annotations: {}
-  servicePort: 443
-  hosts: []
-  tls: []

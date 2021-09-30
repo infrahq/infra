@@ -42,7 +42,7 @@ dev:
 	docker build . -t infrahq/infra:0.0.0-development
 	helm upgrade --install infra-registry ./helm/charts/registry --namespace infrahq --create-namespace --set image.pullPolicy=Never --set image.tag=0.0.0-development
 	kubectl wait --for=condition=available --timeout=600s deployment/infra-registry --namespace infrahq
-	helm upgrade --install infra-engine ./helm/charts/engine --namespace infrahq --set image.pullPolicy=Never --set image.tag=0.0.0-development --set name=dd --set endpoint=kubernetes.docker.internal:6443 --set registry=infra-registry --set apiKey=$$(kubectl get secrets/infra-registry --template={{.data.defaultApiKey}} --namespace infrahq | base64 -D)
+	helm upgrade --install infra-engine ./helm/charts/engine --namespace infrahq --set image.pullPolicy=Never --set image.tag=0.0.0-development --set name=dd --set registry=infra-registry --set apiKey=$$(kubectl get secrets/infra-registry --template={{.data.defaultApiKey}} --namespace infrahq | base64 -D) --set service.ports[0].port=8443 --set service.ports[0].name=https --set service.ports[0].targetPort=443
 	kubectl rollout restart deployment/infra-registry --namespace infrahq
 	kubectl rollout restart deployment/infra-engine --namespace infrahq
 

@@ -19,7 +19,6 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/jessevdk/go-flags"
 	"go.uber.org/zap"
-	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -565,76 +564,53 @@ func (k *Kubernetes) CA() ([]byte, error) {
 	return contents, nil
 }
 
-var EndpointExclude = map[string]bool{
-	"127.0.0.1":                            true,
-	"0.0.0.0":                              true,
-	"localhost":                            true,
-	"kubernetes.default.svc.cluster.local": true,
-	"kubernetes.default.svc.cluster":       true,
-	"kubernetes.default.svc":               true,
-	"kubernetes.default":                   true,
-	"kubernetes":                           true,
-}
-
-func (k *Kubernetes) getLoadBalancerIngress(lbs *[]corev1.LoadBalancerIngress) error {
+// Find a suitable Endpoint to use by inspecting the engine's Service objects
+func (k *Kubernetes) Endpoint() (string, error) {
 	clientset, err := kubernetes.NewForConfig(k.Config)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	namespace, err := k.Namespace()
 	if err != nil {
-		return err
-	}
-
-	ingresses, err := clientset.NetworkingV1().Ingresses(namespace).List(context.TODO(), metav1.ListOptions{
-		LabelSelector: "app=infra-engine",
-	})
-	if err != nil {
-		logging.L.Sugar().Infof("%s", err)
-	} else {
-		ingressItems := ingresses.Items
-		switch len(ingressItems) {
-		case 1:
-			*lbs = append(*lbs, ingressItems[0].Status.LoadBalancer.Ingress...)
-		}
+		return "", err
 	}
 
 	services, err := clientset.CoreV1().Services(namespace).List(context.TODO(), metav1.ListOptions{
 		LabelSelector: "app=infra-engine",
 	})
 	if err != nil {
-		logging.L.Sugar().Infof("%s", err)
-	} else {
-		serviceItems := services.Items
-		switch len(serviceItems) {
-		case 1:
-			*lbs = append(*lbs, services.Items[0].Status.LoadBalancer.Ingress...)
-		}
+		return "", err
 	}
 
-	return nil
-}
-
-// Find a suitable Endpoint to use by inspecting the engine's Ingress and Service manifests
-func (k *Kubernetes) Endpoint() (string, error) {
-	ingresses := make([]corev1.LoadBalancerIngress, 0)
-	err := k.getLoadBalancerIngress(&ingresses)
-	if err != nil {
-		return "(pending)", nil
+	if len(services.Items) == 0 {
+		return "", errors.New("no services found")
 	}
 
-	for _, i := range ingresses {
-		// TODO: handle cases where ingress does not use standard ports
-		switch {
-		case i.Hostname != "":
-			return i.Hostname, nil
-		case i.IP != "":
-			return i.IP, nil
-		}
+	service := services.Items[0]
+
+	if len(service.Status.LoadBalancer.Ingress) == 0 {
+		return "", errors.New("load balancer has no ingress objects")
 	}
 
-	return "(pending)", nil
+	ingress := service.Status.LoadBalancer.Ingress[0]
+
+	host := ingress.Hostname
+	if host == "" {
+		host = ingress.IP
+	}
+
+	if len(service.Spec.Ports) == 0 {
+		return "", errors.New("service has no ports")
+	}
+
+	port := service.Spec.Ports[0]
+
+	if port.Port == 443 {
+		return host, nil
+	}
+
+	return fmt.Sprintf("%s:%d", host, port.Port), nil
 }
 
 // GetSecret returns a K8s secret object with the specified name from the current namespace if it exists
