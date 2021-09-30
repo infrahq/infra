@@ -34,6 +34,7 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientauthenticationv1beta1 "k8s.io/client-go/pkg/apis/clientauthentication/v1beta1"
 	"k8s.io/client-go/tools/clientcmd"
@@ -1090,6 +1091,10 @@ var credsCmd = &cobra.Command{
 			if err != nil {
 				switch res.StatusCode {
 				case http.StatusForbidden:
+					if !term.IsTerminal(int(os.Stdin.Fd())) {
+						return err
+					}
+
 					config, err := readConfig()
 					if err != nil {
 						return err
