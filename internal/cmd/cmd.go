@@ -31,7 +31,6 @@ import (
 	"github.com/infrahq/infra/internal/registry"
 	"github.com/infrahq/infra/internal/version"
 	"github.com/lensesio/tableprinter"
-	"github.com/mitchellh/go-homedir"
 	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
@@ -195,7 +194,7 @@ func clientConfig() clientcmd.ClientConfig {
 }
 
 func updateKubeconfig(destinations []api.Destination) error {
-	home, err := homedir.Dir()
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return err
 	}
@@ -207,7 +206,7 @@ func updateKubeconfig(destinations []api.Destination) error {
 		}
 
 		// Write destinations to a known json file location for `infra client` to read
-		err = os.WriteFile(filepath.Join(home, ".infra", "destinations"), destinationsJSON, 0o600)
+		err = os.WriteFile(filepath.Join(homeDir, ".infra", "destinations"), destinationsJSON, 0o600)
 		if err != nil {
 			return err
 		}
@@ -616,12 +615,12 @@ var logoutCmd = &cobra.Command{
 			return err
 		}
 
-		home, err := homedir.Dir()
+		homeDir, err := os.UserHomeDir()
 		if err != nil {
 			return err
 		}
 
-		os.Remove(filepath.Join(home, ".infra", "destinations"))
+		os.Remove(filepath.Join(homeDir, ".infra", "destinations"))
 
 		return updateKubeconfig([]api.Destination{})
 	},
@@ -844,17 +843,17 @@ func newRegistryCmd() (*cobra.Command, error) {
 	cmd.Flags().BoolVar(&options.UI, "ui", false, "enable ui")
 	cmd.Flags().StringVar(&options.UIProxy, "ui-proxy", "", "proxy ui requests to this host")
 
-	home, err := homedir.Dir()
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return nil, err
 	}
 
 	if filepath.Dir(options.DBPath) == defaultInfraHome {
-		options.DBPath = filepath.Join(home, ".infra", "infra.db")
+		options.DBPath = filepath.Join(homeDir, ".infra", "infra.db")
 	}
 
 	if filepath.Dir(options.TLSCache) == defaultInfraHome {
-		options.TLSCache = filepath.Join(home, ".infra", "cache")
+		options.TLSCache = filepath.Join(homeDir, ".infra", "cache")
 	}
 
 	defaultSync := 30
@@ -898,12 +897,12 @@ func newEngineCmd() (*cobra.Command, error) {
 	cmd.Flags().StringVar(&options.APIKey, "api-key", os.Getenv("INFRA_ENGINE_API_KEY"), "api key")
 
 	if filepath.Dir(options.TLSCache) == defaultInfraHome {
-		home, err := homedir.Dir()
+		homeDir, err := os.UserHomeDir()
 		if err != nil {
 			return nil, err
 		}
 
-		options.TLSCache = filepath.Join(home, ".infra", "cache")
+		options.TLSCache = filepath.Join(homeDir, ".infra", "cache")
 	}
 
 	return cmd, nil
@@ -1193,12 +1192,12 @@ func Run() error {
 
 // getCache populates obj with whatever is in the cache
 func getCache(path, name string, obj interface{}) error {
-	home, err := os.UserHomeDir()
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return err
 	}
 
-	path = filepath.Join(home, ".infra", "cache", path)
+	path = filepath.Join(homeDir, ".infra", "cache", path)
 	if err = os.MkdirAll(path, os.ModePerm); err != nil {
 		return err
 	}
@@ -1225,12 +1224,12 @@ func getCache(path, name string, obj interface{}) error {
 }
 
 func setCache(path, name string, obj interface{}) error {
-	home, err := os.UserHomeDir()
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return err
 	}
 
-	path = filepath.Join(home, ".infra", "cache", path)
+	path = filepath.Join(homeDir, ".infra", "cache", path)
 	fullPath := filepath.Join(path, name)
 
 	if err = os.MkdirAll(path, os.ModePerm); err != nil {
