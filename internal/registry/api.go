@@ -74,7 +74,7 @@ func sendApiError(w http.ResponseWriter, code int, message string) {
 	w.WriteHeader(code)
 
 	if err := json.NewEncoder(w).Encode(err); err != nil {
-		logging.L.Error("could not send API error :" + err.Error())
+		logging.L.Error("could not send API error: " + err.Error())
 	}
 }
 
@@ -327,7 +327,7 @@ func (a *Api) DeleteApiKey(w http.ResponseWriter, r *http.Request) {
 
 	id := vars["id"]
 	if id == "" {
-		sendApiError(w, http.StatusBadRequest, "API key Id must be specified")
+		sendApiError(w, http.StatusBadRequest, "ApiKey id must be specified")
 	}
 
 	err := a.db.Transaction(func(tx *gorm.DB) error {
@@ -424,7 +424,7 @@ func (a *Api) ListRoles(w http.ResponseWriter, r *http.Request) {
 
 	err := a.db.Transaction(func(tx *gorm.DB) error {
 		for _, r := range roles {
-			// avoid duplicate users being added to the response by mapping based on user Id
+			// avoid duplicate users being added to the response by mapping based on user id
 			rUsers := make(map[string]User)
 			for _, rUser := range r.Users {
 				rUsers[rUser.Id] = rUser

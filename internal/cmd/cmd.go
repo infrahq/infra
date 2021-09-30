@@ -519,12 +519,12 @@ func login(config *Config) error {
 
 	fmt.Fprintln(os.Stderr, blue("✓")+" Logged in as "+termenv.String(loginRes.Name).Bold().String())
 
-	client, err = NewAPIClient(config.Host, skipTLSVerify)
+	client, err = NewApiClient(config.Host, skipTLSVerify)
 	if err != nil {
 		return err
 	}
 
-	destinations, _, err := client.DestinationsApi.ListDestinations(NewAPIContext(loginRes.Token)).Execute()
+	destinations, _, err := client.DestinationsApi.ListDestinations(NewApiContext(loginRes.Token)).Execute()
 	if err != nil {
 		return err
 	}

@@ -188,6 +188,6 @@ func (h *Http) WellKnownJWKs(w http.ResponseWriter, r *http.Request) {
 		[]jose.JSONWebKey{pubKey},
 	})
 	if err != nil {
-		logging.L.Error("could not send API error :" + err.Error())
+		logging.L.Error("could not send API error: " + err.Error())
 	}
 }
