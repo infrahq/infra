@@ -347,7 +347,7 @@ func (k *Kubernetes) UpdateRoles(roles []api.Role) error {
 }
 
 func (k *Kubernetes) ec2ClusterName() (string, error) {
-	req, err := http.NewRequestWithContext(context.Background(), "GET", "http://169.254.169.254/latest/dynamic/instance-identity/document", nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://169.254.169.254/latest/dynamic/instance-identity/document", nil)
 	if err != nil {
 		return "", err
 	}
@@ -427,7 +427,7 @@ func (k *Kubernetes) ec2ClusterName() (string, error) {
 }
 
 func (k *Kubernetes) gkeClusterName() (string, error) {
-	req, err := http.NewRequestWithContext(context.Background(), "GET", "http://169.254.169.254/computeMetadata/v1/instance/attributes/cluster-name", nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://169.254.169.254/computeMetadata/v1/instance/attributes/cluster-name", nil)
 	if err != nil {
 		return "", err
 	}
@@ -453,7 +453,7 @@ func (k *Kubernetes) gkeClusterName() (string, error) {
 }
 
 func (k *Kubernetes) aksClusterName() (string, error) {
-	req, err := http.NewRequestWithContext(context.Background(), "GET", "http://169.254.169.254/metadata/instance/compute/resourceGroupName?api-version=2017-08-01&format=text", nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://169.254.169.254/metadata/instance/compute/resourceGroupName?api-version=2017-08-01&format=text", nil)
 	if err != nil {
 		return "", err
 	}

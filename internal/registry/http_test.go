@@ -26,7 +26,7 @@ func TestLoginRedirectMiddlewarePassthrough(t *testing.T) {
 		db: db,
 	}
 
-	r := httptest.NewRequest("GET", "http://test.com/favicon.ico", nil)
+	r := httptest.NewRequest(http.MethodGet, "http://test.com/favicon.ico", nil)
 	w := httptest.NewRecorder()
 	httpHandlers.loginRedirectMiddleware(http.HandlerFunc(handler)).ServeHTTP(w, r)
 	assert.Equal(t, w.Code, http.StatusOK)
@@ -48,7 +48,7 @@ func TestLoginRedirectMiddlewareNext(t *testing.T) {
 		db: db,
 	}
 
-	r := httptest.NewRequest("GET", "http://test.com/_next/file", nil)
+	r := httptest.NewRequest(http.MethodGet, "http://test.com/_next/file", nil)
 	w := httptest.NewRecorder()
 	httpHandlers.loginRedirectMiddleware(http.HandlerFunc(handler)).ServeHTTP(w, r)
 	assert.Equal(t, w.Code, http.StatusOK)
@@ -70,7 +70,7 @@ func TestLoginRedirectSetsNextParameter(t *testing.T) {
 		db: db,
 	}
 
-	r := httptest.NewRequest("GET", "http://test.com/dashboard?param=1", nil)
+	r := httptest.NewRequest(http.MethodGet, "http://test.com/dashboard?param=1", nil)
 	w := httptest.NewRecorder()
 	httpHandlers.loginRedirectMiddleware(http.HandlerFunc(handler)).ServeHTTP(w, r)
 	assert.Equal(t, w.Code, http.StatusTemporaryRedirect)
@@ -98,7 +98,7 @@ func TestLoginRedirectNoRedirectIfLoggedIn(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r := httptest.NewRequest("GET", "http://test.com/dashboard", nil)
+	r := httptest.NewRequest(http.MethodGet, "http://test.com/dashboard", nil)
 	expires := time.Now().Add(SessionDuration)
 
 	r.AddCookie(&http.Cookie{
@@ -143,7 +143,7 @@ func TestLoginRedirectIfLoginCookieUnset(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r := httptest.NewRequest("GET", "http://test.com/dashboard", nil)
+	r := httptest.NewRequest(http.MethodGet, "http://test.com/dashboard", nil)
 	expires := time.Now().Add(SessionDuration)
 
 	r.AddCookie(&http.Cookie{
@@ -191,7 +191,7 @@ func TestLoginRedirectFromLoginIfAlreadyLoggedIn(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r := httptest.NewRequest("GET", "http://test.com/login?next=/dashboard", nil)
+	r := httptest.NewRequest(http.MethodGet, "http://test.com/login?next=/dashboard", nil)
 	expires := time.Now().Add(SessionDuration)
 
 	r.AddCookie(&http.Cookie{

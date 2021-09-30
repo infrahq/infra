@@ -254,7 +254,7 @@ func TestBearerTokenMiddlewareInvalidApiKey(t *testing.T) {
 		db: db,
 	}
 
-	r := httptest.NewRequest("GET", "/", nil)
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
 	bearerToken, err := generate.RandString(TokenLen)
 	require.NoError(t, err)
 	r.Header.Add("Authorization", "Bearer "+bearerToken)

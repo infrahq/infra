@@ -12,7 +12,7 @@ import (
 )
 
 func canReachInternet() (bool, error) {
-	req, err := http.NewRequestWithContext(context.Background(), "GET", "https://google.com", nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://google.com", nil)
 	if err != nil {
 		return false, err
 	}
@@ -31,7 +31,7 @@ func canConnectToEndpoint(endpoint string) (bool, error) {
 		endpoint = "https://" + endpoint
 	}
 
-	req, err := http.NewRequestWithContext(context.Background(), "GET", endpoint, nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, endpoint, nil)
 	if err != nil {
 		return false, err
 	}
@@ -61,7 +61,7 @@ func canConnectToTLSEndpoint(row statusRow) (bool, error) {
 		endpoint = "https://" + endpoint
 	}
 
-	req, err := http.NewRequestWithContext(context.Background(), "GET", endpoint, nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, endpoint, nil)
 	if err != nil {
 		return false, err
 	}
@@ -100,7 +100,7 @@ func canGetEngineStatus(row statusRow) (bool, error) {
 		endpoint = "https://" + endpoint
 	}
 
-	req, err := http.NewRequestWithContext(context.Background(), "GET", endpoint+"/healthz", nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, endpoint+"/healthz", nil)
 	if err != nil {
 		return false, err
 	}
