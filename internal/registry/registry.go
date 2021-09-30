@@ -41,7 +41,6 @@ func Run(options Options) error {
 	}
 
 	zapLogger, err := logging.Build()
-	defer zapLogger.Sync() // flushes buffer, if any
 	if err != nil {
 		return err
 	}
@@ -56,8 +55,10 @@ func Run(options Options) error {
 	if options.ConfigPath != "" {
 		contents, err = ioutil.ReadFile(options.ConfigPath)
 		if err != nil {
-			switch err.(type) {
-			case *fs.PathError:
+			var perr *fs.PathError
+
+			switch {
+			case errors.As(err, &perr):
 				zapLogger.Warn("no config file found at " + options.ConfigPath)
 			default:
 				zapLogger.Error(err.Error())
@@ -76,6 +77,7 @@ func Run(options Options) error {
 
 	// validate any existing or imported sources
 	okta := NewOkta()
+
 	var sources []Source
 	if err := db.Find(&sources).Error; err != nil {
 		zapLogger.Error(err.Error())
@@ -101,8 +103,10 @@ func Run(options Options) error {
 			}
 		}
 	}
-	timer := timer.Timer{}
+
 	// be careful with this sync job, there are Okta rate limits on these requests
+	timer := timer.Timer{}
+	defer timer.Stop()
 	timer.Start(interval, func() {
 		var sources []Source
 		if err := db.Find(&sources).Error; err != nil {
@@ -120,19 +124,21 @@ func Run(options Options) error {
 			}
 		}
 	})
-	defer timer.Stop()
 
 	var apiKey ApiKey
+
 	err = db.FirstOrCreate(&apiKey, &ApiKey{Name: defaultApiKeyName}).Error
 	if err != nil {
 		return err
 	}
 
 	if options.DefaultApiKey != "" {
-		if len(options.DefaultApiKey) != API_KEY_LEN {
+		if len(options.DefaultApiKey) != ApiKeyLen {
 			return errors.New("invalid initial api key length, the key must be 24 characters")
 		}
+
 		apiKey.Key = options.DefaultApiKey
+
 		err := db.Save(&apiKey).Error
 		if err != nil {
 			return err
@@ -154,6 +160,7 @@ func Run(options Options) error {
 		if err != nil {
 			return err
 		}
+
 		mux.Handle("/", h.loginRedirectMiddleware(httputil.NewSingleHostReverseProxy(remote)))
 	} else if options.UI {
 		mux.Handle("/", h.loginRedirectMiddleware(gziphandler.GzipHandler(http.FileServer(&StaticFileSystem{base: &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo}}))))
@@ -187,5 +194,10 @@ func Run(options Options) error {
 		Handler:   ZapLoggerHttpMiddleware(mux),
 	}
 
-	return tlsServer.ListenAndServeTLS("", "")
+	err = tlsServer.ListenAndServeTLS("", "")
+	if err != nil {
+		return err
+	}
+
+	return zapLogger.Sync()
 }

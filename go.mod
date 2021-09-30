@@ -25,10 +25,7 @@ require (
 	github.com/lensesio/tableprinter v0.0.0-20201125135848-89e81fc956e7
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/muesli/termenv v0.9.0
-	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/okta/okta-sdk-golang/v2 v2.6.2
-	github.com/olekukonko/tablewriter v0.0.5
-	github.com/signalsciences/ipv4 v1.4.0
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/afero v1.6.0
 	github.com/spf13/cobra v1.2.1
@@ -36,7 +33,6 @@ require (
 	go.uber.org/zap v1.19.1
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
 	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f
-	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/sqlite v1.1.5

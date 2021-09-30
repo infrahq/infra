@@ -28,6 +28,7 @@ func (ksr *KubeSecretReader) Get(secretName string, client *kubernetes.Clientset
 	if len(secretParts) != 2 {
 		return "", errors.New("invalid Kubernetes secret path specified, expected exactly 2 parts but was " + fmt.Sprint(len(secretParts)))
 	}
+
 	objName := secretParts[0]
 	key := secretParts[1]
 
@@ -35,9 +36,11 @@ func (ksr *KubeSecretReader) Get(secretName string, client *kubernetes.Clientset
 	if err != nil {
 		return "", err
 	}
+
 	secretVal := retrieved.Data[key]
 	if string(secretVal) == "" {
 		return "", errors.New("secret could not be found in kubernetes: " + secretName)
 	}
+
 	return string(secretVal), nil
 }

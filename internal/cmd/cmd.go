@@ -92,7 +92,7 @@ func writeConfig(config *Config) error {
 		return err
 	}
 
-	if err = ioutil.WriteFile(filepath.Join(homeDir, ".infra", "config"), []byte(contents), 0o644); err != nil {
+	if err = ioutil.WriteFile(filepath.Join(homeDir, ".infra", "config"), []byte(contents), 0o600); err != nil {
 		return err
 	}
 
@@ -138,11 +138,11 @@ func red(s string) string {
 	return termenv.String(s).Bold().Foreground(termenv.ColorProfile().Color("#FA5F55")).String()
 }
 
-func NewApiContext(token string) context.Context {
+func NewAPIContext(token string) context.Context {
 	return context.WithValue(context.Background(), api.ContextAccessToken, token)
 }
 
-func NewApiClient(host string, skipTLSVerify bool) (*api.APIClient, error) {
+func NewAPIClient(host string, skipTLSVerify bool) (*api.APIClient, error) {
 	u, err := urlx.Parse(host)
 	if err != nil {
 		return nil, err
@@ -155,6 +155,7 @@ func NewApiClient(host string, skipTLSVerify bool) (*api.APIClient, error) {
 		config.HTTPClient = &http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
+					//nolint:gosec // We may purposely set insecureskipverify via a flag
 					InsecureSkipVerify: true,
 				},
 			},
@@ -170,7 +171,7 @@ func apiContextFromConfig() (context.Context, error) {
 		return nil, err
 	}
 
-	return NewApiContext(config.Token), nil
+	return NewAPIContext(config.Token), nil
 }
 
 func apiClientFromConfig() (*api.APIClient, error) {
@@ -179,7 +180,7 @@ func apiClientFromConfig() (*api.APIClient, error) {
 		return nil, err
 	}
 
-	return NewApiClient(config.Host, config.SkipTLSVerify)
+	return NewAPIClient(config.Host, config.SkipTLSVerify)
 }
 
 func clientConfig() clientcmd.ClientConfig {
@@ -201,7 +202,7 @@ func updateKubeconfig(destinations []api.Destination) error {
 		}
 
 		// Write destinations to a known json file location for `infra client` to read
-		err = os.WriteFile(filepath.Join(home, ".infra", "destinations"), destinationsJSON, 0o644)
+		err = os.WriteFile(filepath.Join(home, ".infra", "destinations"), destinationsJSON, 0o600)
 		if err != nil {
 			return err
 		}
@@ -323,18 +324,21 @@ func promptShouldSkipTLSVerify(host string, skipTLSVerify bool) (shouldSkipTLSVe
 		return true, true, nil
 	}
 
-	httpClient := &http.Client{}
-	httpClient.Transport = &http.Transport{
-		TLSClientConfig: &tls.Config{},
-	}
 	url, err := urlx.Parse(host)
 	if err != nil {
 		return false, false, err
 	}
+
 	url.Scheme = "https"
 	urlString := url.String()
 
-	_, err = httpClient.Get(urlString)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, urlString, nil)
+	if err != nil {
+		return false, false, err
+	}
+
+	httpClient := &http.Client{}
+	res, err := httpClient.Do(req)
 	if err != nil {
 		if !errors.As(err, &x509.UnknownAuthorityError{}) && !errors.As(err, &x509.HostnameError{}) {
 			return false, false, err
@@ -363,6 +367,7 @@ func promptShouldSkipTLSVerify(host string, skipTLSVerify bool) (shouldSkipTLSVe
 
 		return true, true, nil
 	}
+	defer res.Body.Close()
 
 	return false, true, nil
 }
@@ -383,8 +388,7 @@ func promptSelectSource(sources []api.Source, sourceID string) (*api.Source, err
 
 	options := []string{}
 	for _, s := range sources {
-		switch {
-		case s.Okta != nil:
+		if s.Okta != nil {
 			options = append(options, fmt.Sprintf("Okta [%s]", s.Okta.Domain))
 		}
 	}
@@ -414,7 +418,7 @@ func login(config *Config) error {
 		return nil
 	}
 
-	client, err := NewApiClient(config.Host, skipTLSVerify)
+	client, err := NewAPIClient(config.Host, skipTLSVerify)
 	if err != nil {
 		return err
 	}
@@ -429,9 +433,10 @@ func login(config *Config) error {
 	}
 
 	source, err := promptSelectSource(sources, config.SourceID)
-	switch err {
-	case nil:
-	case terminal.InterruptErr:
+
+	switch {
+	case err == nil:
+	case errors.Is(err, terminal.InterruptErr):
 		return nil
 	default:
 		return err
@@ -452,7 +457,7 @@ func login(config *Config) error {
 		if err != nil {
 			return err
 		}
-		authorizeUrl := "https://" + source.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + source.Okta.ClientId + "&response_type=code&scope=openid+email&nonce=" + nonce + "&state=" + state
+		authorizeURL := "https://" + source.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + source.Okta.ClientId + "&response_type=code&scope=openid+email&nonce=" + nonce + "&state=" + state
 
 		fmt.Fprintln(os.Stderr, blue("✓")+" Logging in with Okta...")
 		ls, err := newLocalServer()
@@ -460,7 +465,7 @@ func login(config *Config) error {
 			return err
 		}
 
-		err = browser.OpenURL(authorizeUrl)
+		err = browser.OpenURL(authorizeURL)
 		if err != nil {
 			return err
 		}
@@ -500,11 +505,11 @@ func login(config *Config) error {
 
 	fmt.Fprintln(os.Stderr, blue("✓")+" Logged in as "+termenv.String(loginRes.Name).Bold().String())
 
-	client, err = NewApiClient(config.Host, skipTLSVerify)
+	client, err = NewAPIClient(config.Host, skipTLSVerify)
 	if err != nil {
 		return err
 	}
-	ctx := NewApiContext(loginRes.Token)
+	ctx := NewAPIContext(loginRes.Token)
 
 	destinations, _, err := client.DestinationsApi.ListDestinations(ctx).Execute()
 	if err != nil {
@@ -561,12 +566,12 @@ var logoutCmd = &cobra.Command{
 			return nil
 		}
 
-		client, err := NewApiClient(config.Host, config.SkipTLSVerify)
+		client, err := NewAPIClient(config.Host, config.SkipTLSVerify)
 		if err != nil {
 			return err
 		}
 
-		_, err = client.AuthApi.Logout(NewApiContext(config.Token)).Execute()
+		_, err = client.AuthApi.Logout(NewAPIContext(config.Token)).Execute()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 		}
@@ -933,7 +938,7 @@ var apiKeysCmd = &cobra.Command{
 	},
 }
 
-func newApiKeyCreateCmd() *cobra.Command {
+func newAPIKeyCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "create NAME",
 		Short:   "Create a new API key that can be used to access the Infra API",
@@ -970,7 +975,7 @@ func newApiKeyCreateCmd() *cobra.Command {
 	return cmd
 }
 
-func newApiKeyDeleteCmd() *cobra.Command {
+func newAPIKeyDeleteCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "delete NAME",
 		Short:   "Delete an API key by name",
@@ -1081,7 +1086,9 @@ var credsCmd = &cobra.Command{
 					ExpirationTimestamp: &metav1.Time{Time: time.Unix(cred.Expires, 0)},
 				},
 			}
-			setCache("dest_tokens", destination, execCredential)
+			if err := setCache("dest_tokens", destination, execCredential); err != nil {
+				return err
+			}
 		}
 
 		bts, err := json.Marshal(execCredential)
@@ -1116,8 +1123,8 @@ func NewRootCmd() (*cobra.Command, error) {
 	}
 	rootCmd.AddCommand(engineCmd)
 
-	apiKeysCmd.AddCommand(newApiKeyCreateCmd())
-	apiKeysCmd.AddCommand(newApiKeyDeleteCmd())
+	apiKeysCmd.AddCommand(newAPIKeyCreateCmd())
+	apiKeysCmd.AddCommand(newAPIKeyDeleteCmd())
 	rootCmd.AddCommand(apiKeysCmd)
 
 	rootCmd.AddCommand(versionCmd)
@@ -1212,6 +1219,7 @@ func isExpired(cred *clientauthenticationv1beta1.ExecCredential) bool {
 }
 
 func globe() string {
+	//nolint:gosec // No need for crypto random
 	switch rand.Intn(3) {
 	case 1:
 		return "🌍"

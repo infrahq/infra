@@ -10,14 +10,20 @@ import (
 func main() {
 	f, err := os.Create("./docs/cli.md")
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Println(err.Error())
+		return
 	}
 	defer f.Close()
 
 	rootCmd, err := cmd.NewRootCmd()
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Println(err.Error())
+		return
 	}
 
-	GenMarkdownFile(rootCmd, f)
+	err = GenMarkdownFile(rootCmd, f)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
 }

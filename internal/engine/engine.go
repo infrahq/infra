@@ -55,10 +55,16 @@ func (j *jwkCache) getjwk() (*jose.JSONWebKey, error) {
 		return j.key, nil
 	}
 
-	res, err := j.client.Get(j.baseURL + "/.well-known/jwks.json")
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, j.baseURL+"/.well-known/jwks.json", nil)
 	if err != nil {
 		return nil, err
 	}
+
+	res, err := j.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
 
 	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
@@ -68,6 +74,7 @@ func (j *jwkCache) getjwk() (*jose.JSONWebKey, error) {
 	var response struct {
 		Keys []jose.JSONWebKey `json:"keys"`
 	}
+
 	err = json.Unmarshal(data, &response)
 	if err != nil {
 		return nil, err
@@ -92,7 +99,7 @@ type HttpContextKeyEmail struct{}
 func jwtMiddleware(destination string, getjwk GetJWKFunc, next http.HandlerFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authorization := r.Header.Get("Authorization")
-		raw := strings.Replace(authorization, "Bearer ", "", -1)
+		raw := strings.ReplaceAll(authorization, "Bearer ", "")
 		if raw == "" {
 			logging.L.Debug("No bearer token found")
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -162,10 +169,12 @@ func proxyHandler(ca []byte, bearerToken string, remote *url.URL) (http.HandlerF
 	if !ok {
 		return nil, errors.New("could not append ca to client cert bundle")
 	}
+
 	proxy := httputil.NewSingleHostReverseProxy(remote)
 	proxy.Transport = &http.Transport{
 		TLSClientConfig: &tls.Config{
-			RootCAs: caCertPool,
+			RootCAs:    caCertPool,
+			MinVersion: tls.VersionTLS12,
 		},
 	}
 
@@ -196,7 +205,10 @@ func (b *BearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func Run(options Options) error {
-	registryTLSConfig := &tls.Config{}
+	registryTLSConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+
 	if !options.ForceTLSVerify {
 		// TODO (https://github.com/infrahq/infra/issues/174)
 		// Find a way to re-use the built-in TLS verification code vs
@@ -315,12 +327,15 @@ func Run(options Options) error {
 			return
 		}
 	})
+
 	defer timer.Stop()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		if _, err := w.Write([]byte("OK")); err != nil {
+			logging.L.Error(err.Error())
+		}
 	})
 
 	remote, err := urlx.Parse(k8s.Config.Host)

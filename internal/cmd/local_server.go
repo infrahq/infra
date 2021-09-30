@@ -46,7 +46,11 @@ func newLocalServer() (*LocalServer, error) {
 			fmt.Fprintf(w, "Something went wrong, please contact your administrator for assistance.")
 			return
 		}
-		t.Execute(w, templateVals)
+
+		if err := t.Execute(w, templateVals); err != nil {
+			fmt.Fprintf(w, "Something went wrong, please contact your administrator for assistance.")
+			return
+		}
 	})
 
 	go func() {
@@ -60,7 +64,11 @@ func newLocalServer() (*LocalServer, error) {
 
 func (l *LocalServer) wait() (string, string, error) {
 	result := <-l.ResultChan
-	l.srv.Shutdown(context.Background())
+
+	if err := l.srv.Shutdown(context.Background()); err != nil {
+		return "", "", err
+	}
+
 	return result.Code, result.State, result.Error
 }
 

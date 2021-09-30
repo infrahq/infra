@@ -1,0 +1,32 @@
+linters-settings:
+  revive:
+    rules:
+      - name: var-naming
+        arguments: [[ ID, API, HTTP ], []]
+
+linters:
+  enable:
+    - asciicheck
+    - bodyclose
+    - durationcheck
+    - errorlint
+    - exhaustive
+    - exportloopref
+    - gosec
+    - makezero
+    - nilerr
+    - noctx
+    - rowserrcheck
+    - sqlclosecheck
+    - gofmt
+    - gofumpt
+    - gci
+    - revive
+    - gocritic
+    - forcetypeassert
+    - misspell
+    - nakedret
+    - wastedassign
+    - wsl
+  disable:
+    - scopelint

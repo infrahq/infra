@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
@@ -11,7 +12,7 @@ import (
 )
 
 func canReachInternet() (bool, error) {
-	req, err := http.NewRequest("GET", "https://google.com", nil)
+	req, err := http.NewRequestWithContext(context.Background(), "GET", "https://google.com", nil)
 	if err != nil {
 		return false, err
 	}
@@ -31,15 +32,18 @@ func canConnectToEndpoint(endpoint string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
 	client := http.Client{
 		Timeout: 5 * time.Second,
 		Transport: &http.Transport{
 			TLSHandshakeTimeout: 5 * time.Second,
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true, // ok for testing connections
+				//nolint:gosec // ok for testing connections
+				InsecureSkipVerify: true,
 			},
 		},
 	}
+
 	_, err = client.Do(req)
 	if err != nil {
 		return false, err

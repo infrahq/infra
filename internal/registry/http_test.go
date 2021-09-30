@@ -12,7 +12,9 @@ import (
 
 func TestLoginRedirectMiddlewarePassthrough(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "favicon")
+		if _, err := io.WriteString(w, "favicon"); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	db, err := NewDB("file::memory:")
@@ -32,7 +34,9 @@ func TestLoginRedirectMiddlewarePassthrough(t *testing.T) {
 
 func TestLoginRedirectMiddlewareNext(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "hello world")
+		if _, err := io.WriteString(w, "hello world"); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	db, err := NewDB("file::memory:")
@@ -52,7 +56,9 @@ func TestLoginRedirectMiddlewareNext(t *testing.T) {
 
 func TestLoginRedirectSetsNextParameter(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "hello world")
+		if _, err := io.WriteString(w, "hello world"); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	db, err := NewDB("file::memory:")
@@ -73,7 +79,9 @@ func TestLoginRedirectSetsNextParameter(t *testing.T) {
 
 func TestLoginRedirectNoRedirectIfLoggedIn(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "hello world")
+		if _, err := io.WriteString(w, "hello world"); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	db, err := NewDB("file::memory:")
@@ -92,6 +100,7 @@ func TestLoginRedirectNoRedirectIfLoggedIn(t *testing.T) {
 
 	r := httptest.NewRequest("GET", "http://test.com/dashboard", nil)
 	expires := time.Now().Add(SessionDuration)
+
 	r.AddCookie(&http.Cookie{
 		Name:     CookieTokenName,
 		Value:    id + secret,
@@ -115,7 +124,9 @@ func TestLoginRedirectNoRedirectIfLoggedIn(t *testing.T) {
 
 func TestLoginRedirectIfLoginCookieUnset(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "hello world")
+		if _, err := io.WriteString(w, "hello world"); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	db, err := NewDB("file::memory:")
@@ -134,6 +145,7 @@ func TestLoginRedirectIfLoginCookieUnset(t *testing.T) {
 
 	r := httptest.NewRequest("GET", "http://test.com/dashboard", nil)
 	expires := time.Now().Add(SessionDuration)
+
 	r.AddCookie(&http.Cookie{
 		Name:     CookieTokenName,
 		Value:    id + secret,
@@ -148,7 +160,10 @@ func TestLoginRedirectIfLoginCookieUnset(t *testing.T) {
 	assert.Equal(t, w.Code, http.StatusTemporaryRedirect)
 	assert.Equal(t, w.Header().Get("Location"), "/login?next=%2Fdashboard")
 
-	for _, cookie := range w.Result().Cookies() {
+	res := w.Result()
+	defer res.Body.Close()
+
+	for _, cookie := range res.Cookies() {
 		if cookie.Name == CookieTokenName {
 			assert.Equal(t, cookie.Value, "")
 		}
@@ -157,7 +172,9 @@ func TestLoginRedirectIfLoginCookieUnset(t *testing.T) {
 
 func TestLoginRedirectFromLoginIfAlreadyLoggedIn(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "hello world")
+		if _, err := io.WriteString(w, "hello world"); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	db, err := NewDB("file::memory:")
@@ -176,6 +193,7 @@ func TestLoginRedirectFromLoginIfAlreadyLoggedIn(t *testing.T) {
 
 	r := httptest.NewRequest("GET", "http://test.com/login?next=/dashboard", nil)
 	expires := time.Now().Add(SessionDuration)
+
 	r.AddCookie(&http.Cookie{
 		Name:     CookieTokenName,
 		Value:    id + secret,

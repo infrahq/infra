@@ -26,6 +26,7 @@ func RandString(n int) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("couldn't generate random string of len %d: %w", n, err)
 		}
+
 		bytes[i] = alphanum[bigint.Int64()]
 	}
 
@@ -42,6 +43,7 @@ func MathRandString(n int) string {
 
 	bytes := make([]byte, n)
 	for i := range bytes {
+		//nolint:gosec // We purposely use mathrand to avoid draining the entropy pool
 		j := mathrand.Int31n(int32(len(alphanum)))
 		bytes[i] = alphanum[j]
 	}

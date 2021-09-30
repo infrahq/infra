@@ -60,6 +60,7 @@ func NewApiMux(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) *mux.Router {
 	v1.Handle("/login", http.HandlerFunc(a.Login)).Methods("POST")
 	v1.Handle("/logout", a.bearerAuthMiddleware(http.HandlerFunc(a.Logout))).Methods("POST")
 	v1.Handle("/version", http.HandlerFunc(a.Version)).Methods("GET")
+
 	return r
 }
 
@@ -68,15 +69,19 @@ func sendApiError(w http.ResponseWriter, code int, message string) {
 		Code:    int32(code),
 		Message: message,
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	json.NewEncoder(w).Encode(err)
+
+	if err := json.NewEncoder(w).Encode(err); err != nil {
+		logging.L.Error("could not send API error :" + err.Error())
+	}
 }
 
 func (a *Api) bearerAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authorization := r.Header.Get("Authorization")
-		raw := strings.Replace(authorization, "Bearer ", "", -1)
+		raw := strings.ReplaceAll(authorization, "Bearer ", "")
 
 		if raw == "" {
 			// Fall back to checking cookies if the bearer header is not provided
@@ -91,7 +96,7 @@ func (a *Api) bearerAuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		switch len(raw) {
-		case TOKEN_LEN:
+		case TokenLen:
 			token, err := ValidateAndGetToken(a.db, raw)
 			if err != nil {
 				logging.L.Debug(err.Error())
@@ -106,7 +111,7 @@ func (a *Api) bearerAuthMiddleware(next http.Handler) http.Handler {
 
 			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), tokenContextKey{}, token)))
 			return
-		case API_KEY_LEN:
+		case ApiKeyLen:
 			var apiKey ApiKey
 			if err := a.db.First(&apiKey, &ApiKey{Key: raw}).Error; err != nil {
 				logging.L.Debug(err.Error())
@@ -150,16 +155,21 @@ func (a *Api) ListUsers(w http.ResponseWriter, r *http.Request) {
 	if err := a.db.Find(&users).Error; err != nil {
 		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not list users")
+
 		return
 	}
 
 	results := make([]api.User, 0)
 	for _, u := range users {
-		results = append(results, dbToApiUser(&u))
+		results = append(results, dbToAPIUser(u))
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(results)
+
+	if err := json.NewEncoder(w).Encode(results); err != nil {
+		logging.L.Error(err.Error())
+		sendApiError(w, http.StatusInternalServerError, "could not list users")
+	}
 }
 
 func (a *Api) ListGroups(w http.ResponseWriter, r *http.Request) {
@@ -167,34 +177,45 @@ func (a *Api) ListGroups(w http.ResponseWriter, r *http.Request) {
 	if err := a.db.Preload("Source").Find(&groups).Error; err != nil {
 		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not list groups")
+
 		return
 	}
 
 	results := make([]api.Group, 0)
 	for _, g := range groups {
-		results = append(results, dbToApiGroup(&g))
+		results = append(results, dbToAPIGroup(g))
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(results)
+
+	if err := json.NewEncoder(w).Encode(results); err != nil {
+		logging.L.Error(err.Error())
+		sendApiError(w, http.StatusInternalServerError, "could not list groups")
+	}
 }
 
 func (a *Api) ListSources(w http.ResponseWriter, r *http.Request) {
 	var sources []Source
+
 	err := a.db.Find(&sources).Error
 	if err != nil {
 		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not list sources")
+
 		return
 	}
 
 	results := make([]api.Source, 0)
 	for _, s := range sources {
-		results = append(results, dbToApiSource(&s))
+		results = append(results, dbToAPISource(s))
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(results)
+
+	if err := json.NewEncoder(w).Encode(results); err != nil {
+		logging.L.Error(err.Error())
+		sendApiError(w, http.StatusInternalServerError, "could not list sources")
+	}
 }
 
 func (a *Api) ListDestinations(w http.ResponseWriter, r *http.Request) {
@@ -202,16 +223,21 @@ func (a *Api) ListDestinations(w http.ResponseWriter, r *http.Request) {
 	if err := a.db.Find(&destinations).Error; err != nil {
 		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not list destinations")
+
 		return
 	}
 
 	results := make([]api.Destination, 0)
 	for _, d := range destinations {
-		results = append(results, dbToApiDestination(&d))
+		results = append(results, dbToAPIdestination(d))
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(results)
+
+	if err := json.NewEncoder(w).Encode(results); err != nil {
+		logging.L.Error(err.Error())
+		sendApiError(w, http.StatusInternalServerError, "could not list destinations")
+	}
 }
 
 func (a *Api) CreateDestination(w http.ResponseWriter, r *http.Request) {
@@ -219,6 +245,7 @@ func (a *Api) CreateDestination(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logging.L.Debug(err.Error())
 		sendApiError(w, http.StatusUnauthorized, "unauthorized")
+
 		return
 	}
 
@@ -234,13 +261,14 @@ func (a *Api) CreateDestination(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var destination Destination
+
 	err = a.db.Transaction(func(tx *gorm.DB) error {
 		result := tx.Where(&Destination{Name: body.Name}).FirstOrCreate(&destination)
 		if result.Error != nil {
 			return result.Error
 		}
 		destination.Name = body.Name
-		destination.Type = DESTINATION_TYPE_KUBERNERNETES
+		destination.Type = DestinationTypeKubernetes
 		destination.KubernetesCa = body.Kubernetes.Ca
 		destination.KubernetesEndpoint = body.Kubernetes.Endpoint
 		return tx.Save(&destination).Error
@@ -248,44 +276,58 @@ func (a *Api) CreateDestination(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, err.Error())
+
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(dbToApiDestination(&destination))
+
+	if err := json.NewEncoder(w).Encode(dbToAPIdestination(destination)); err != nil {
+		logging.L.Error(err.Error())
+		sendApiError(w, http.StatusInternalServerError, "could not create destination")
+	}
 }
 
 func (a *Api) ListApiKeys(w http.ResponseWriter, r *http.Request) {
 	keyName := r.URL.Query().Get("name")
 
 	var keys []ApiKey
+
 	var err error
+
 	if keyName != "" {
 		err = a.db.Where(&ApiKey{Name: keyName}).Find(&keys).Error
 	} else {
 		err = a.db.Find(&keys).Error
 	}
+
 	if err != nil {
 		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not list keys")
+
 		return
 	}
 
 	results := make([]api.InfraAPIKey, 0)
 	for _, k := range keys {
-		results = append(results, dbToApiKey(&k))
+		results = append(results, dbToAPIKey(k))
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(results)
+
+	if err := json.NewEncoder(w).Encode(results); err != nil {
+		logging.L.Error(err.Error())
+		sendApiError(w, http.StatusInternalServerError, "could not list api-keys")
+	}
 }
 
 func (a *Api) DeleteApiKey(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
+
 	id := vars["id"]
 	if id == "" {
-		sendApiError(w, http.StatusBadRequest, "API key ID must be specified")
+		sendApiError(w, http.StatusBadRequest, "API key Id must be specified")
 	}
 
 	err := a.db.Transaction(func(tx *gorm.DB) error {
@@ -296,15 +338,19 @@ func (a *Api) DeleteApiKey(w http.ResponseWriter, r *http.Request) {
 		}
 
 		tx.Delete(&existingKey)
+
 		return nil
 	})
 	if err != nil {
 		logging.L.Error(err.Error())
+
 		if errors.Is(err, ErrExistingKey) {
 			sendApiError(w, http.StatusNotFound, err.Error())
 			return
 		}
+
 		sendApiError(w, http.StatusInternalServerError, err.Error())
+
 		return
 	}
 
@@ -330,6 +376,7 @@ func (a *Api) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var apiKey ApiKey
+
 	err := a.db.Transaction(func(tx *gorm.DB) error {
 		tx.First(&apiKey, &ApiKey{Name: body.Name})
 		if apiKey.Id != "" {
@@ -341,35 +388,43 @@ func (a *Api) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		logging.L.Error(err.Error())
+
 		if errors.Is(err, ErrExistingKey) {
 			sendApiError(w, http.StatusNotFound, err.Error())
 			return
 		}
+
 		sendApiError(w, http.StatusInternalServerError, err.Error())
+
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(dbToApiKeyWithSecret(&apiKey))
+
+	if err := json.NewEncoder(w).Encode(dbToAPIKeyWithSecret(apiKey)); err != nil {
+		logging.L.Error(err.Error())
+		sendApiError(w, http.StatusInternalServerError, "could not create api-key")
+	}
 }
 
 func (a *Api) ListRoles(w http.ResponseWriter, r *http.Request) {
 	destinationId := r.URL.Query().Get("destinationId")
 
 	var roles []Role
-	err := a.db.Preload("Destination").Preload("Groups").Preload("Users").Find(&roles, &Role{DestinationId: destinationId}).Error
-	if err != nil {
+	if err := a.db.Preload("Destination").Preload("Groups").Preload("Users").Find(&roles, &Role{DestinationId: destinationId}).Error; err != nil {
 		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not list roles")
+
 		return
 	}
 
 	// build the response which unifies the relation of group and directly related users to the role
 	results := make([]api.Role, 0)
-	err = a.db.Transaction(func(tx *gorm.DB) error {
+
+	err := a.db.Transaction(func(tx *gorm.DB) error {
 		for _, r := range roles {
-			// avoid duplicate users being added to the response by mapping based on user ID
+			// avoid duplicate users being added to the response by mapping based on user Id
 			rUsers := make(map[string]User)
 			for _, rUser := range r.Users {
 				rUsers[rUser.Id] = rUser
@@ -378,7 +433,7 @@ func (a *Api) ListRoles(w http.ResponseWriter, r *http.Request) {
 			// add any group users associated with the role now
 			for _, g := range r.Groups {
 				var gUsers []User
-				err := tx.Model(&g).Association("Users").Find(&gUsers)
+				err := tx.Model(g).Association("Users").Find(&gUsers)
 				if err != nil {
 					return err
 				}
@@ -394,7 +449,7 @@ func (a *Api) ListRoles(w http.ResponseWriter, r *http.Request) {
 				users = append(users, u)
 			}
 			r.Users = users
-			results = append(results, dbToApiRole(&r))
+			results = append(results, dbToAPIRole(r))
 		}
 
 		return nil
@@ -402,21 +457,28 @@ func (a *Api) ListRoles(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not list roles")
+
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(results)
+
+	if err := json.NewEncoder(w).Encode(results); err != nil {
+		logging.L.Error(err.Error())
+		sendApiError(w, http.StatusInternalServerError, "could not list roles")
+	}
 }
 
 func (a *Api) createJWT(destination, email string) (string, time.Time, error) {
 	var settings Settings
+
 	err := a.db.First(&settings).Error
 	if err != nil {
 		return "", time.Time{}, err
 	}
 
 	var key jose.JSONWebKey
+
 	err = key.UnmarshalJSON(settings.PrivateJWK)
 	if err != nil {
 		return "", time.Time{}, err
@@ -426,6 +488,7 @@ func (a *Api) createJWT(destination, email string) (string, time.Time, error) {
 	if err != nil {
 		return "", time.Time{}, err
 	}
+
 	nonce, err := generate.RandString(10)
 	if err != nil {
 		return "", time.Time{}, fmt.Errorf("generating nonce: %w", err)
@@ -448,6 +511,7 @@ func (a *Api) createJWT(destination, email string) (string, time.Time, error) {
 	if err != nil {
 		return "", time.Time{}, err
 	}
+
 	return raw, expiry, nil
 }
 
@@ -456,6 +520,7 @@ func (a *Api) CreateCred(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logging.L.Debug(err.Error())
 		sendApiError(w, http.StatusUnauthorized, "unauthorized")
+
 		return
 	}
 
@@ -477,10 +542,11 @@ func (a *Api) CreateCred(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(api.Cred{
-		Token:   jwt,
-		Expires: expiry.Unix(),
-	})
+
+	if err := json.NewEncoder(w).Encode(api.Cred{Token: jwt, Expires: expiry.Unix()}); err != nil {
+		logging.L.Error(err.Error())
+		sendApiError(w, http.StatusInternalServerError, "could not create cred")
+	}
 }
 
 func (a *Api) Login(w http.ResponseWriter, r *http.Request) {
@@ -496,13 +562,16 @@ func (a *Api) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var user User
+
 	var token Token
+
 	switch {
 	case body.Okta != nil:
 		var source Source
-		if err := a.db.Where(&Source{Type: SOURCE_TYPE_OKTA, Domain: body.Okta.Domain}).First(&source).Error; err != nil {
+		if err := a.db.Where(&Source{Type: SourceTypeOkta, Domain: body.Okta.Domain}).First(&source).Error; err != nil {
 			logging.L.Debug("Could not retrieve okta source from db: " + err.Error())
 			sendApiError(w, http.StatusBadRequest, "invalid okta login information")
+
 			return
 		}
 
@@ -510,6 +579,7 @@ func (a *Api) Login(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			logging.L.Error("Could not retrieve okta client secret from kubernetes: " + err.Error())
 			sendApiError(w, http.StatusInternalServerError, "invalid okta login information")
+
 			return
 		}
 
@@ -522,6 +592,7 @@ func (a *Api) Login(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			logging.L.Debug("Could not extract email from okta info: " + err.Error())
 			sendApiError(w, http.StatusUnauthorized, "invalid okta login information")
+
 			return
 		}
 
@@ -529,6 +600,7 @@ func (a *Api) Login(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			logging.L.Debug("Could not get user from database: " + err.Error())
 			sendApiError(w, http.StatusUnauthorized, "invalid okta login information")
+
 			return
 		}
 	default:
@@ -540,6 +612,7 @@ func (a *Api) Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logging.L.Debug(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not create token")
+
 		return
 	}
 
@@ -548,7 +621,11 @@ func (a *Api) Login(w http.ResponseWriter, r *http.Request) {
 	setAuthCookie(w, tokenString)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(api.LoginResponse{Name: user.Email, Token: tokenString})
+
+	if err := json.NewEncoder(w).Encode(api.LoginResponse{Name: user.Email, Token: tokenString}); err != nil {
+		logging.L.Error(err.Error())
+		sendApiError(w, http.StatusInternalServerError, "could not login")
+	}
 }
 
 func (a *Api) Logout(w http.ResponseWriter, r *http.Request) {
@@ -556,12 +633,14 @@ func (a *Api) Logout(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logging.L.Debug(err.Error())
 		sendApiError(w, http.StatusBadRequest, "invalid token")
+
 		return
 	}
 
 	if err := a.db.Where(&Token{UserId: token.UserId}).Delete(&Token{}).Error; err != nil {
 		sendApiError(w, http.StatusInternalServerError, "could not log out user")
 		logging.L.Debug(err.Error())
+
 		return
 	}
 
@@ -572,18 +651,21 @@ func (a *Api) Logout(w http.ResponseWriter, r *http.Request) {
 
 func (a *Api) Version(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(api.Version{Version: version.Version})
+
+	if err := json.NewEncoder(w).Encode(api.Version{Version: version.Version}); err != nil {
+		logging.L.Error(err.Error())
+		sendApiError(w, http.StatusInternalServerError, "could not get version")
+	}
 }
 
-func dbToApiSource(s *Source) api.Source {
+func dbToAPISource(s Source) api.Source {
 	res := api.Source{
 		Id:      s.Id,
 		Created: s.Created,
 		Updated: s.Updated,
 	}
 
-	switch s.Type {
-	case SOURCE_TYPE_OKTA:
+	if s.Type == SourceTypeOkta {
 		res.Okta = &api.SourceOkta{
 			ClientId: s.ClientId,
 			Domain:   s.Domain,
@@ -593,7 +675,7 @@ func dbToApiSource(s *Source) api.Source {
 	return res
 }
 
-func dbToApiDestination(d *Destination) api.Destination {
+func dbToAPIdestination(d Destination) api.Destination {
 	res := api.Destination{
 		Name:    d.Name,
 		Id:      d.Id,
@@ -601,8 +683,7 @@ func dbToApiDestination(d *Destination) api.Destination {
 		Updated: d.Updated,
 	}
 
-	switch d.Type {
-	case DESTINATION_TYPE_KUBERNERNETES:
+	if d.Type == DestinationTypeKubernetes {
 		res.Kubernetes = &api.DestinationKubernetes{
 			Ca:       d.KubernetesCa,
 			Endpoint: d.KubernetesEndpoint,
@@ -612,7 +693,7 @@ func dbToApiDestination(d *Destination) api.Destination {
 	return res
 }
 
-func dbToApiKey(k *ApiKey) api.InfraAPIKey {
+func dbToAPIKey(k ApiKey) api.InfraAPIKey {
 	res := api.InfraAPIKey{
 		Name:    k.Name,
 		Id:      k.Id,
@@ -623,7 +704,7 @@ func dbToApiKey(k *ApiKey) api.InfraAPIKey {
 }
 
 // This function returns the secret key, it should only be used after the initial key creation
-func dbToApiKeyWithSecret(a *ApiKey) api.InfraAPIKeyCreateResponse {
+func dbToAPIKeyWithSecret(a ApiKey) api.InfraAPIKeyCreateResponse {
 	res := api.InfraAPIKeyCreateResponse{
 		Name:    a.Name,
 		Id:      a.Id,
@@ -634,31 +715,31 @@ func dbToApiKeyWithSecret(a *ApiKey) api.InfraAPIKeyCreateResponse {
 	return res
 }
 
-func dbToApiRole(r *Role) api.Role {
+func dbToAPIRole(r Role) api.Role {
 	res := api.Role{
 		Id:          r.Id,
 		Created:     r.Created,
 		Updated:     r.Updated,
 		Name:        r.Name,
 		Namespace:   r.Namespace,
-		Destination: dbToApiDestination(&r.Destination),
+		Destination: dbToAPIdestination(r.Destination),
 	}
 
 	switch r.Kind {
-	case ROLE_KIND_K8S_ROLE:
+	case RoleKindKubernetesRole:
 		res.Kind = api.ROLE
-	case ROLE_KIND_K8S_CLUSTER_ROLE:
+	case RoleKindKubernetesClusterRole:
 		res.Kind = api.CLUSTER_ROLE
 	}
 
 	for _, u := range r.Users {
-		res.Users = append(res.Users, dbToApiUser(&u))
+		res.Users = append(res.Users, dbToAPIUser(u))
 	}
 
 	return res
 }
 
-func dbToApiUser(u *User) api.User {
+func dbToAPIUser(u User) api.User {
 	return api.User{
 		Id:      u.Id,
 		Email:   u.Email,
@@ -667,7 +748,7 @@ func dbToApiUser(u *User) api.User {
 	}
 }
 
-func dbToApiGroup(g *Group) api.Group {
+func dbToAPIGroup(g Group) api.Group {
 	return api.Group{
 		Id:      g.Id,
 		Created: g.Created,

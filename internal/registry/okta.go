@@ -2,6 +2,7 @@ package registry
 
 import (
 	"context"
+	"errors"
 
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/okta/okta-sdk-golang/v2/okta"
@@ -41,18 +42,28 @@ func (o *oktaImplementation) Emails(domain string, clientID string, apiToken str
 
 	for resp.HasNextPage() {
 		var nextUserSet []*okta.AppUser
+
 		resp, err = resp.Next(ctx, &nextUserSet)
 		if err != nil {
 			return nil, err
 		}
+
 		oktaUsers = append(oktaUsers, nextUserSet...)
 	}
 
 	emails := []string{}
 
 	for _, oktaUser := range oktaUsers {
-		profile := oktaUser.Profile.(map[string]interface{})
-		email := profile["email"].(string)
+		profile, ok := oktaUser.Profile.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		email, ok := profile["email"].(string)
+		if !ok {
+			continue
+		}
+
 		emails = append(emails, email)
 	}
 
@@ -71,12 +82,15 @@ func (o *oktaImplementation) Groups(domain string, clientID string, apiToken str
 	if err != nil {
 		return nil, err
 	}
+
 	for resp.HasNextPage() {
 		var nextAppGroupSet []*okta.ApplicationGroupAssignment
+
 		resp, err = resp.Next(ctx, &nextAppGroupSet)
 		if err != nil {
 			return nil, err
 		}
+
 		oktaApplicationGroups = append(oktaApplicationGroups, nextAppGroupSet...)
 	}
 
@@ -85,12 +99,15 @@ func (o *oktaImplementation) Groups(domain string, clientID string, apiToken str
 	if err != nil {
 		return nil, err
 	}
+
 	for resp.HasNextPage() {
 		var nextGroupSet []*okta.Group
+
 		resp, err = resp.Next(ctx, &nextGroupSet)
 		if err != nil {
 			return nil, err
 		}
+
 		oktaGroups = append(oktaGroups, nextGroupSet...)
 	}
 
@@ -102,6 +119,7 @@ func (o *oktaImplementation) Groups(domain string, clientID string, apiToken str
 
 	// to find the group name (which is what config specifies) for each group ID assigned to the application in Okta
 	appGroups := make(map[string]string)
+
 	for _, appGroup := range oktaApplicationGroups {
 		groupName := grpNames[appGroup.Id]
 		appGroups[groupName] = appGroup.Id
@@ -109,6 +127,7 @@ func (o *oktaImplementation) Groups(domain string, clientID string, apiToken str
 
 	// for each group in the infra config that is assigned to the application, find the users it has in Okta
 	grpUsers := make(map[string][]string)
+
 	for _, name := range sourceGroups {
 		// get the ID for the group so we can look up the users for the ones we care about
 		id := appGroups[name]
@@ -121,25 +140,36 @@ func (o *oktaImplementation) Groups(domain string, clientID string, apiToken str
 		if err != nil {
 			return nil, err
 		}
+
 		for resp.HasNextPage() {
 			var nextUserSet []*okta.User
+
 			resp, err = resp.Next(ctx, &nextUserSet)
 			if err != nil {
 				return nil, err
 			}
+
 			gUsers = append(gUsers, nextUserSet...)
 		}
 
 		var emails []string
+
 		for _, gUser := range gUsers {
 			profile := *gUser.Profile
-			email := profile["email"].(string)
+
+			email, ok := profile["email"].(string)
+			if !ok {
+				continue
+			}
+
 			if email != "" {
 				emails = append(emails, email)
 			}
 		}
+
 		grpUsers[name] = emails
 	}
+
 	return grpUsers, nil
 }
 
@@ -161,15 +191,25 @@ func (o *oktaImplementation) EmailFromCode(code string, domain string, clientID 
 		return "", err
 	}
 
-	raw := exchanged.Extra("id_token").(string)
+	raw, ok := exchanged.Extra("id_token").(string)
+	if !ok {
+		return "", errors.New("could not extract id_token from oauth2 token")
+	}
+
 	tok, err := jwt.ParseSigned(raw)
 	if err != nil {
 		return "", err
 	}
 
 	out := make(map[string]interface{})
-	tok.UnsafeClaimsWithoutVerification(&out)
-	email := out["email"].(string)
+	if err := tok.UnsafeClaimsWithoutVerification(&out); err != nil {
+		return "", err
+	}
+
+	email, ok := out["email"].(string)
+	if !ok {
+		return "", errors.New("could not extract email from identity provider token")
+	}
 
 	return email, nil
 }

@@ -62,21 +62,25 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 
 	for _, s := range sources {
 		switch s.Type {
-		case SOURCE_TYPE_OKTA:
+		case SourceTypeOkta:
 			// check the domain is specified
 			s.cleanupDomain()
+
 			if s.Domain == "" {
 				logging.L.Info("domain not set on source \"" + s.Type + "\", import skipped")
 			}
+
 			// check if we are about to override an existing source
 			var existing Source
-			db.First(&existing, &Source{Type: SOURCE_TYPE_OKTA})
+
+			db.First(&existing, &Source{Type: SourceTypeOkta})
+
 			if existing.Id != "" {
 				logging.L.Warn("overriding existing okta source settings, only one okta source is supported")
 			}
+
 			var source Source
-			err := db.FirstOrCreate(&source, &Source{Type: s.Type}).Error
-			if err != nil {
+			if err := db.FirstOrCreate(&source, &Source{Type: s.Type}).Error; err != nil {
 				return err
 			}
 
@@ -86,8 +90,7 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 			source.ClientSecret = s.ClientSecret
 			source.ApiToken = s.ApiToken
 
-			err = db.Save(&source).Error
-			if err != nil {
+			if err := db.Save(&source).Error; err != nil {
 				return err
 			}
 
@@ -120,12 +123,15 @@ func ApplyGroupMappings(db *gorm.DB, configGroups []ConfigGroupMapping) (groupId
 				logging.L.Debug("skipping group with source in config that does not exist: " + g.Source)
 				continue
 			}
+
 			err = srcReadErr
+
 			return
 		}
 
 		// import the roles on this group from the datastore
 		var roles []Role
+
 		roles, err = importRoles(db, g.Roles)
 		if err != nil {
 			return
@@ -139,21 +145,24 @@ func ApplyGroupMappings(db *gorm.DB, configGroups []ConfigGroupMapping) (groupId
 		}
 
 		// add the new group associations to the roles
-		for _, role := range roles {
+		for i, role := range roles {
 			if db.Model(&group).Where(&Role{Id: role.Id}).Association("Roles").Count() == 0 {
-				if err = db.Model(&group).Where(&Role{Id: role.Id}).Association("Roles").Append(&role); err != nil {
+				if err = db.Model(&group).Where(&Role{Id: role.Id}).Association("Roles").Append(&roles[i]); err != nil {
 					return
 				}
 			}
 		}
+
 		groupIds = append(groupIds, group.Id)
 	}
-	return
+
+	return groupIds, err
 }
 
 func ApplyUserMapping(db *gorm.DB, users []ConfigUserMapping) error {
 	for _, u := range users {
 		var user User
+
 		usrReadErr := db.Where(&User{Email: u.Email}).First(&user).Error
 		if usrReadErr != nil {
 			if errors.Is(usrReadErr, gorm.ErrRecordNotFound) {
@@ -161,6 +170,7 @@ func ApplyUserMapping(db *gorm.DB, users []ConfigUserMapping) error {
 				logging.L.Debug("skipping user in config import that has not yet been provisioned")
 				continue
 			}
+
 			return usrReadErr
 		}
 
@@ -168,14 +178,17 @@ func ApplyUserMapping(db *gorm.DB, users []ConfigUserMapping) error {
 		for _, gName := range u.Groups {
 			// Assumes that only one group can exist with a given name, regardless of sources
 			var group Group
+
 			grpReadErr := db.Where(&Group{Name: gName}).First(&group).Error
 			if grpReadErr != nil {
 				if errors.Is(grpReadErr, gorm.ErrRecordNotFound) {
 					logging.L.Debug("skipping unknown group \"" + gName + "\" on user")
 					continue
 				}
+
 				return grpReadErr
 			}
+
 			if db.Model(&user).Where(&Group{Id: group.Id}).Association("Groups").Count() == 0 {
 				if err := db.Model(&user).Where(&Group{Id: group.Id}).Association("Groups").Append(&group); err != nil {
 					return err
@@ -190,14 +203,15 @@ func ApplyUserMapping(db *gorm.DB, users []ConfigUserMapping) error {
 		}
 		// for all roles attached to this user update their user associations now that we have made sure they exist
 		// important: do not create the association on the user, that runs an upsert that creates a concurrent write because User.AfterCreate() calls this function
-		for _, role := range roles {
+		for i, role := range roles {
 			if db.Model(&user).Where(&Role{Id: role.Id}).Association("Roles").Count() == 0 {
-				if err = db.Model(&user).Where(&Role{Id: role.Id}).Association("Roles").Append(&role); err != nil {
+				if err = db.Model(&user).Where(&Role{Id: role.Id}).Association("Roles").Append(&roles[i]); err != nil {
 					return err
 				}
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -227,19 +241,18 @@ func ImportMappings(db *gorm.DB, groups []ConfigGroupMapping, users []ConfigUser
 // ImportConfig tries to import all valid fields in a config file
 func ImportConfig(db *gorm.DB, bs []byte) error {
 	var config Config
-	err := yaml.Unmarshal(bs, &config)
-	if err != nil {
+	if err := yaml.Unmarshal(bs, &config); err != nil {
 		return err
 	}
 
 	initialConfig = config
 
 	return db.Transaction(func(tx *gorm.DB) error {
-		if err = ImportSources(tx, config.Sources); err != nil {
+		if err := ImportSources(tx, config.Sources); err != nil {
 			return err
 		}
 		// Need to import of group/user mappings together because they both rely on roles
-		if err = ImportMappings(tx, config.Groups, config.Users); err != nil {
+		if err := ImportMappings(tx, config.Groups, config.Users); err != nil {
 			return err
 		}
 		return nil
@@ -249,25 +262,31 @@ func ImportConfig(db *gorm.DB, bs []byte) error {
 // import roles creates roles specified in the config, or updates their associations
 func importRoles(db *gorm.DB, roles []ConfigRoleKubernetes) ([]Role, error) {
 	var rolesImported []Role
+
 	for _, r := range roles {
 		if r.Name == "" {
 			logging.L.Error("invalid role found in configuration, name is a required field")
 			continue
 		}
+
 		if r.Kind == "" {
 			logging.L.Error("invalid role found in configuration, kind is a required field")
 			continue
 		}
-		if r.Kind != ROLE_KIND_K8S_CLUSTER_ROLE && r.Kind != ROLE_KIND_K8S_ROLE {
+
+		if r.Kind != RoleKindKubernetesClusterRole && r.Kind != RoleKindKubernetesRole {
 			logging.L.Error("only 'role' and 'cluster-role' are valid role kinds, found: " + r.Kind)
 			continue
 		}
+
 		for _, destination := range r.Destinations {
-			if r.Kind == ROLE_KIND_K8S_ROLE && len(destination.Namespaces) == 0 {
+			if r.Kind == RoleKindKubernetesRole && len(destination.Namespaces) == 0 {
 				logging.L.Error(r.Name + " requires at least one namespace to be specified for the cluster " + destination.Name)
 				continue
 			}
+
 			var dest Destination
+
 			err := db.Where(&Destination{Name: destination.Name}).First(&dest).Error
 			if err != nil {
 				if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -275,14 +294,17 @@ func importRoles(db *gorm.DB, roles []ConfigRoleKubernetes) ([]Role, error) {
 					logging.L.Debug("skipping destination in config import that has not yet been discovered")
 					continue
 				}
+
 				return nil, err
 			}
+
 			if len(destination.Namespaces) > 0 {
 				for _, namespace := range destination.Namespaces {
 					var role Role
 					if err = db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, Namespace: namespace, DestinationId: dest.Id}).Error; err != nil {
 						return nil, err
 					}
+
 					rolesImported = append(rolesImported, role)
 				}
 			} else {
@@ -290,10 +312,11 @@ func importRoles(db *gorm.DB, roles []ConfigRoleKubernetes) ([]Role, error) {
 				if err = db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, DestinationId: dest.Id}).Error; err != nil {
 					return nil, err
 				}
+
 				rolesImported = append(rolesImported, role)
 			}
-
 		}
 	}
+
 	return rolesImported, nil
 }
