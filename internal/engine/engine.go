@@ -290,10 +290,17 @@ func Run(options Options) error {
 
 		caBytes, err := manager.Cache.Get(context.TODO(), fmt.Sprintf("%s.crt", url.Hostname()))
 		if err != nil {
-			certCacheMiss++
-			if certCacheMiss > 1 {
-				logging.L.Error(err.Error())
+			if err == autocert.ErrCacheMiss {
+				// first attempt to get the certificate on new service start will
+				// likely fail so a single cache miss is expected
+				certCacheMiss++
+				if certCacheMiss > 1 {
+					logging.L.Error(err.Error())
+					return
+				}
 			}
+
+			logging.L.Error(err.Error())
 			return
 		}
 
