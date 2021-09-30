@@ -64,4 +64,4 @@ golangci-lint:
 	@command -v golangci-lint >/dev/null || { echo "install golangci-lint @ https://golangci-lint.run/usage/install/#local-installation" && exit 1; }
 
 lint: golangci-lint
-	golangci-lint run ./... -E asciicheck,bodyclose,durationcheck,errorlint,exhaustive,exportloopref,gosec,makezero,nilerr,noctx,rowserrcheck,sqlclosecheck,gofmt,gofumpt,gci,revive,gocritic,forcetypeassert,misspell,nakedret,wastedassign,wsl -D scopelint
+	golangci-lint run ./...

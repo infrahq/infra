@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
@@ -11,14 +12,16 @@ import (
 )
 
 func canReachInternet() (bool, error) {
-	req, err := http.NewRequest("GET", "https://google.com", nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://google.com", nil)
 	if err != nil {
 		return false, err
 	}
-	_, err = http.DefaultClient.Do(req)
+
+	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return false, err
 	}
+	defer res.Body.Close()
 
 	return true, nil
 }
@@ -27,19 +30,23 @@ func canConnectToEndpoint(endpoint string) (bool, error) {
 	if !strings.HasPrefix(endpoint, "https://") {
 		endpoint = "https://" + endpoint
 	}
-	req, err := http.NewRequest("GET", endpoint, nil)
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, endpoint, nil)
 	if err != nil {
 		return false, err
 	}
+
 	client := http.Client{
 		Timeout: 5 * time.Second,
 		Transport: &http.Transport{
 			TLSHandshakeTimeout: 5 * time.Second,
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true, // ok for testing connections
+				//nolint:gosec // ok for testing connections
+				InsecureSkipVerify: true,
 			},
 		},
 	}
+
 	_, err = client.Do(req)
 	if err != nil {
 		return false, err
@@ -53,11 +60,14 @@ func canConnectToTLSEndpoint(row statusRow) (bool, error) {
 	if !strings.HasPrefix(endpoint, "https://") {
 		endpoint = "https://" + endpoint
 	}
-	req, err := http.NewRequest("GET", endpoint, nil)
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, endpoint, nil)
 	if err != nil {
 		return false, err
 	}
+
 	caCertPool := x509.NewCertPool()
+
 	if len(row.CertificateAuthorityData) > 0 {
 		fmt.Println("🐞🪲🐛 adding CA")
 		caCertPool.AppendCertsFromPEM([]byte(row.CertificateAuthorityData))
@@ -74,10 +84,12 @@ func canConnectToTLSEndpoint(row statusRow) (bool, error) {
 			},
 		},
 	}
-	_, err = client.Do(req)
+
+	res, err := client.Do(req)
 	if err != nil {
 		return false, err
 	}
+	defer res.Body.Close()
 
 	return true, nil
 }
@@ -87,14 +99,17 @@ func canGetEngineStatus(row statusRow) (bool, error) {
 	if !strings.HasPrefix(endpoint, "https://") {
 		endpoint = "https://" + endpoint
 	}
-	req, err := http.NewRequest("GET", endpoint+"/healthz", nil)
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, endpoint+"/healthz", nil)
 	if err != nil {
 		return false, err
 	}
+
 	caCertPool := x509.NewCertPool()
 	if len(row.CertificateAuthorityData) > 0 {
 		caCertPool.AppendCertsFromPEM(row.CertificateAuthorityData)
 	}
+
 	// this should use the same TLS configuration as the rest of the app
 	client := http.Client{
 		Timeout: 5 * time.Second,
@@ -106,13 +121,15 @@ func canGetEngineStatus(row statusRow) (bool, error) {
 			},
 		},
 	}
-	resp, err := client.Do(req)
+
+	res, err := client.Do(req)
 	if err != nil {
 		return false, err
 	}
+	defer res.Body.Close()
 
-	if resp.StatusCode != 200 {
-		return false, errors.New("unexpected response code " + resp.Status)
+	if res.StatusCode != 200 {
+		return false, errors.New("unexpected response code " + res.Status)
 	}
 
 	return true, nil

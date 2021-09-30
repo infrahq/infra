@@ -28,6 +28,7 @@ func TestRandStringCanGenerateEdgeCharacters(t *testing.T) {
 	for _, char := range testForCharacters {
 		s, err := RandString(50)
 		require.NoError(t, err)
+
 		if strings.Contains(s, string(char)) {
 			continue // found it we're good.
 		}

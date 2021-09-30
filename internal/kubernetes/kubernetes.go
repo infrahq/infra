@@ -2,7 +2,7 @@ package kubernetes
 
 import (
 	"context"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -69,6 +69,7 @@ func NewKubernetes() (*Kubernetes, error) {
 	if err != nil {
 		return k, err
 	}
+
 	k.SecretReader = NewSecretReader(namespace)
 
 	return k, err
@@ -88,21 +89,26 @@ func (k *Kubernetes) updateRoleBindings(subjects map[namespaceRole][]rbacv1.Subj
 	if err != nil {
 		return err
 	}
+
 	for _, r := range roles.Items {
 		validNamespaceRole[namespaceRole{namespace: r.Namespace, role: r.Name, kind: string(api.ROLE)}] = true
 	}
+
 	// store which cluster-roles currently exist locally
 	validClusterRole := make(map[string]bool)
+
 	crs, err := clientset.RbacV1().ClusterRoles().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
+
 	for _, cr := range crs.Items {
 		validClusterRole[cr.Name] = true
 	}
 
 	// create the namespaced role bindings for all the users of each of the role assignments
 	rbs := []*rbacv1.RoleBinding{}
+
 	for nsr, subjs := range subjects {
 		var kind string
 		switch nsr.kind {
@@ -111,12 +117,14 @@ func (k *Kubernetes) updateRoleBindings(subjects map[namespaceRole][]rbacv1.Subj
 				logging.L.Warn("role binding skipped, role does not exist with name " + nsr.role + " in namespace " + nsr.namespace)
 				continue
 			}
+
 			kind = "Role"
 		case string(api.CLUSTER_ROLE):
 			if !validClusterRole[nsr.role] {
 				logging.L.Warn("role binding skipped, cluster-role does not exist with name " + nsr.role)
 				continue
 			}
+
 			kind = "ClusterRole"
 		default:
 			logging.L.Warn("rolebinding skipped, invalid kind: " + nsr.kind)
@@ -144,7 +152,9 @@ func (k *Kubernetes) updateRoleBindings(subjects map[namespaceRole][]rbacv1.Subj
 	if err != nil {
 		return err
 	}
+
 	toDelete := make(map[rbIdentifier]rbacv1.RoleBinding)
+
 	for _, existingRb := range existingInfraRbs.Items {
 		rbID := rbIdentifier{
 			namespace: existingRb.Namespace,
@@ -166,6 +176,7 @@ func (k *Kubernetes) updateRoleBindings(subjects map[namespaceRole][]rbacv1.Subj
 						logging.L.Warn("skipping unapplicable namespace for this cluster: "+rb.Namespace, zap.Error(err))
 						continue
 					}
+
 					return err
 				}
 			} else {
@@ -197,15 +208,18 @@ func (k *Kubernetes) updateClusterRoleBindings(subjects map[string][]rbacv1.Subj
 
 	// store which cluster-roles currently exist locally
 	validClusterRole := make(map[string]bool)
+
 	crs, err := clientset.RbacV1().ClusterRoles().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
+
 	for _, cr := range crs.Items {
 		validClusterRole[cr.Name] = true
 	}
 
 	crbs := []*rbacv1.ClusterRoleBinding{}
+
 	for role, subjs := range subjects {
 		if validClusterRole[role] {
 			crbs = append(crbs, &rbacv1.ClusterRoleBinding{
@@ -229,6 +243,7 @@ func (k *Kubernetes) updateClusterRoleBindings(subjects map[string][]rbacv1.Subj
 	if err != nil {
 		return err
 	}
+
 	toDelete := make(map[string]bool)
 	for _, existingCrb := range existingInfraCrbs.Items {
 		toDelete[existingCrb.Name] = true
@@ -247,6 +262,7 @@ func (k *Kubernetes) updateClusterRoleBindings(subjects map[string][]rbacv1.Subj
 				return err
 			}
 		}
+
 		delete(toDelete, crb.Name)
 	}
 
@@ -269,6 +285,7 @@ func (k *Kubernetes) UpdateRoles(roles []api.Role) error {
 	// group together all users with the same role/namespace permissions
 	rbSubjects := make(map[namespaceRole][]rbacv1.Subject) // role bindings
 	crbSubjects := make(map[string][]rbacv1.Subject)       // cluster-role bindings
+
 	for _, r := range roles {
 		switch r.Kind {
 		case api.ROLE:
@@ -276,11 +293,13 @@ func (k *Kubernetes) UpdateRoles(roles []api.Role) error {
 				logging.L.Error("skipping role binding with no namespace: " + r.Name)
 				continue
 			}
+
 			nspaceRole := namespaceRole{
 				namespace: r.Namespace,
 				role:      r.Name,
 				kind:      string(r.Kind),
 			}
+
 			for _, u := range r.Users {
 				rbSubjects[nspaceRole] = append(rbSubjects[nspaceRole], rbacv1.Subject{
 					APIGroup: "rbac.authorization.k8s.io",
@@ -321,15 +340,23 @@ func (k *Kubernetes) UpdateRoles(roles []api.Role) error {
 	if err != nil {
 		return err
 	}
+
 	err = k.updateClusterRoleBindings(crbSubjects)
+
 	return err
 }
 
 func (k *Kubernetes) ec2ClusterName() (string, error) {
-	res, err := http.Get("http://169.254.169.254/latest/dynamic/instance-identity/document")
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://169.254.169.254/latest/dynamic/instance-identity/document", nil)
 	if err != nil {
 		return "", err
 	}
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
 		return "", errors.New("received non-OK code from metadata service")
@@ -350,9 +377,7 @@ func (k *Kubernetes) ec2ClusterName() (string, error) {
 		return "", err
 	}
 
-	awsSess, err := session.NewSession(&aws.Config{
-		Region: aws.String(identity.Region),
-	})
+	awsSess, err := session.NewSession(&aws.Config{Region: aws.String(identity.Region)})
 	if err != nil {
 		return "", err
 	}
@@ -360,6 +385,7 @@ func (k *Kubernetes) ec2ClusterName() (string, error) {
 	connection := ec2.New(awsSess)
 	name := "instance-id"
 	value := identity.InstanceID
+
 	describeInstancesOutput, err := connection.DescribeInstances(&ec2.DescribeInstancesInput{Filters: []*ec2.Filter{{Name: &name, Values: []*string{&value}}}})
 	if err != nil {
 		return "", err
@@ -383,10 +409,12 @@ func (k *Kubernetes) ec2ClusterName() (string, error) {
 	}
 
 	var clusterName string
+
 	for _, tag := range tags {
 		if strings.HasPrefix(tag, "kubernetes.io/cluster/") { // tag key format: kubernetes.io/cluster/clustername"
 			key := strings.Split(tag, ":")[0]
 			clusterName = strings.Split(key, "/")[2] // rely on ec2 tag format to extract clustername
+
 			break
 		}
 	}
@@ -399,12 +427,13 @@ func (k *Kubernetes) ec2ClusterName() (string, error) {
 }
 
 func (k *Kubernetes) gkeClusterName() (string, error) {
-	req, err := http.NewRequest("GET", "http://169.254.169.254/computeMetadata/v1/instance/attributes/cluster-name", nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://169.254.169.254/computeMetadata/v1/instance/attributes/cluster-name", nil)
 	if err != nil {
 		return "", err
 	}
 
 	req.Header.Add("Metadata-Flavor", "Google")
+
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", err
@@ -424,12 +453,13 @@ func (k *Kubernetes) gkeClusterName() (string, error) {
 }
 
 func (k *Kubernetes) aksClusterName() (string, error) {
-	req, err := http.NewRequest("GET", "http://169.254.169.254/metadata/instance/compute/resourceGroupName?api-version=2017-08-01&format=text", nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://169.254.169.254/metadata/instance/compute/resourceGroupName?api-version=2017-08-01&format=text", nil)
 	if err != nil {
 		return "", err
 	}
 
 	req.Header.Add("Metadata", "true")
+
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", err
@@ -442,7 +472,7 @@ func (k *Kubernetes) aksClusterName() (string, error) {
 
 	all, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return "", fmt.Errorf("error while reading response from azure metadata endpoint: %s", err)
+		return "", fmt.Errorf("error while reading response from azure metadata endpoint: %w", err)
 	}
 
 	splitAll := strings.Split(string(all), "_")
@@ -473,7 +503,8 @@ func (k *Kubernetes) kubeControllerManagerClusterName() (string, error) {
 		return "", err
 	}
 
-	pods := append(k8sAppPods.Items, componentPods.Items...)
+	pods := k8sAppPods.Items
+	pods = append(pods, componentPods.Items...)
 
 	if len(pods) == 0 {
 		return "", errors.New("no kube-controller-manager pods to inspect")
@@ -492,7 +523,9 @@ func (k *Kubernetes) kubeControllerManagerClusterName() (string, error) {
 	var opts struct {
 		ClusterName string `long:"cluster-name"`
 	}
+
 	p := flags.NewParser(&opts, flags.IgnoreUnknown)
+
 	_, err = p.ParseArgs(container.Args)
 	if err != nil {
 		return "", err
@@ -541,7 +574,7 @@ func (k *Kubernetes) Name() (string, error) {
 		return "", err
 	}
 
-	h := sha1.New()
+	h := sha256.New()
 	h.Write(ca)
 	hash := h.Sum(nil)
 
@@ -553,6 +586,7 @@ func (k *Kubernetes) Namespace() (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return string(contents), nil
 }
 
@@ -561,6 +595,7 @@ func (k *Kubernetes) CA() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return contents, nil
 }
 
@@ -619,5 +654,6 @@ func (k *Kubernetes) GetSecret(secret string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return k.SecretReader.Get(secret, clientset)
 }

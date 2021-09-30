@@ -1,5 +1,5 @@
-//Based on https://github.com/spf13/cobra/blob/master/doc/md_docs.go
-//Copyright 2015 Red Hat Inc. All rights reserved.
+// Based on https://github.com/spf13/cobra/blob/master/doc/md_docs.go
+// Copyright 2015 Red Hat Inc. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import (
 func printOptions(buf *bytes.Buffer, cmd *cobra.Command, name string) error {
 	flags := cmd.NonInheritedFlags()
 	flags.SetOutput(buf)
+
 	if flags.HasAvailableFlags() {
 		buf.WriteString("### Options\n\n```\n")
 		flags.PrintDefaults()
@@ -34,11 +35,13 @@ func printOptions(buf *bytes.Buffer, cmd *cobra.Command, name string) error {
 
 	parentFlags := cmd.InheritedFlags()
 	parentFlags.SetOutput(buf)
+
 	if parentFlags.HasAvailableFlags() {
 		buf.WriteString("### Options inherited from parent commands\n\n```\n")
 		parentFlags.PrintDefaults()
 		buf.WriteString("```\n\n")
 	}
+
 	return nil
 }
 
@@ -52,6 +55,7 @@ func GenMarkdown(cmd *cobra.Command, w io.Writer) error {
 
 	buf.WriteString("## `" + name + "`\n\n")
 	buf.WriteString(cmd.Short + "\n\n")
+
 	if len(cmd.Long) > 0 {
 		buf.WriteString("### Synopsis\n\n")
 		buf.WriteString(cmd.Long + "\n\n")
@@ -71,21 +75,27 @@ func GenMarkdown(cmd *cobra.Command, w io.Writer) error {
 	}
 
 	_, err := buf.WriteTo(w)
+
 	return err
 }
 
 func GenMarkdownToc(cmd *cobra.Command, f io.Writer) error {
 	if len(cmd.Commands()) == 0 {
-		io.WriteString(f, "* ["+cmd.CommandPath()+"](#"+strings.ToLower(strings.ReplaceAll(cmd.CommandPath(), " ", "-"))+")\n")
+		if _, err := io.WriteString(f, "* ["+cmd.CommandPath()+"](#"+strings.ToLower(strings.ReplaceAll(cmd.CommandPath(), " ", "-"))+")\n"); err != nil {
+			return err
+		}
 	}
+
 	for _, c := range cmd.Commands() {
 		if !c.IsAvailableCommand() || c.IsAdditionalHelpTopicCommand() {
 			continue
 		}
+
 		if err := GenMarkdownToc(c, f); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -98,6 +108,7 @@ func GenMarkdownTree(cmd *cobra.Command, f io.Writer) error {
 		if !c.IsAvailableCommand() || c.IsAdditionalHelpTopicCommand() {
 			continue
 		}
+
 		if err := GenMarkdownTree(c, f); err != nil {
 			return err
 		}
@@ -107,23 +118,24 @@ func GenMarkdownTree(cmd *cobra.Command, f io.Writer) error {
 }
 
 func GenMarkdownFile(cmd *cobra.Command, f io.Writer) error {
-	io.WriteString(f, "# CLI Reference\n")
-	io.WriteString(f, "\n")
-	io.WriteString(f, "## Commands\n")
-	io.WriteString(f, "\n")
+	if _, err := io.WriteString(f, "# CLI Reference\n\n## Commands\n\n"); err != nil {
+		return err
+	}
 
 	err := GenMarkdownToc(cmd, f)
 	if err != nil {
 		return err
 	}
 
-	io.WriteString(f, "\n")
-	io.WriteString(f, "\n")
+	if _, err := io.WriteString(f, "\n\n"); err != nil {
+		return err
+	}
 
 	for _, c := range cmd.Commands() {
 		if !c.IsAvailableCommand() || c.IsAdditionalHelpTopicCommand() {
 			continue
 		}
+
 		if err := GenMarkdownTree(c, f); err != nil {
 			return err
 		}

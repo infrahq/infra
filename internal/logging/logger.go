@@ -12,6 +12,7 @@ var L *zap.Logger // L is the default zap logger initialized at start-up
 
 func init() {
 	var err error
+
 	L, err = Build()
 	if err != nil {
 		panic(err)
@@ -26,6 +27,7 @@ func Build() (*zap.Logger, error) {
 func config(lvl string) zap.Config {
 	conf := zap.NewProductionConfig()
 	atomicLvl := zap.NewAtomicLevel()
+
 	err := atomicLvl.UnmarshalText([]byte(lvl))
 	if err != nil {
 		fmt.Printf("Using default log level. %v\n", err)

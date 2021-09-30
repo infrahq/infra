@@ -23,6 +23,7 @@ var (
 
 func setAuthCookie(w http.ResponseWriter, token string) {
 	expires := time.Now().Add(SessionDuration)
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     CookieTokenName,
 		Value:    token,
@@ -31,6 +32,7 @@ func setAuthCookie(w http.ResponseWriter, token string) {
 		Path:     "/",
 		SameSite: http.SameSiteStrictMode,
 	})
+
 	http.SetCookie(w, &http.Cookie{
 		Name:    CookieLoginName,
 		Value:   "1",
@@ -48,6 +50,7 @@ func deleteAuthCookie(w http.ResponseWriter) {
 		Path:     "/",
 		SameSite: http.SameSiteStrictMode,
 	})
+
 	http.SetCookie(w, &http.Cookie{
 		Name:    CookieLoginName,
 		Value:   "",
@@ -60,7 +63,9 @@ func ZapLoggerHttpMiddleware(next http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 		t1 := time.Now()
+
 		next.ServeHTTP(ww, r)
+
 		logging.L.Info("finished http method call",
 			zap.String("method", r.Method),
 			zap.String("path", r.URL.Path),
@@ -163,24 +168,26 @@ func Healthz(w http.ResponseWriter, r *http.Request) {
 
 func (h *Http) WellKnownJWKs(w http.ResponseWriter, r *http.Request) {
 	var settings Settings
-	err := h.db.First(&settings).Error
-	if err != nil {
+	if err := h.db.First(&settings).Error; err != nil {
 		http.Error(w, "could not get JWKs", http.StatusInternalServerError)
 		return
 	}
 
 	var pubKey jose.JSONWebKey
-	err = pubKey.UnmarshalJSON(settings.PublicJWK)
-	if err != nil {
+	if err := pubKey.UnmarshalJSON(settings.PublicJWK); err != nil {
 		http.Error(w, "could not get JWKs", http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(struct {
+
+	err := json.NewEncoder(w).Encode(struct {
 		Keys []jose.JSONWebKey `json:"keys"`
 	}{
 		[]jose.JSONWebKey{pubKey},
 	})
+	if err != nil {
+		logging.L.Error("could not send API error: " + err.Error())
+	}
 }

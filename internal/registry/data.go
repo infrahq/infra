@@ -24,7 +24,7 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-var ID_LEN = 12
+var IdLen = 12
 
 type User struct {
 	Id      string `gorm:"primaryKey"`
@@ -37,7 +37,7 @@ type User struct {
 	Groups  []Group  `gorm:"many2many:groups_users"`
 }
 
-var SOURCE_TYPE_OKTA = "okta"
+var SourceTypeOkta = "okta"
 
 type Source struct {
 	Id      string `gorm:"primaryKey"`
@@ -65,7 +65,7 @@ type Group struct {
 	Users []User `gorm:"many2many:groups_users"`
 }
 
-var DESTINATION_TYPE_KUBERNERNETES = "kubernetes"
+var DestinationTypeKubernetes = "kubernetes"
 
 type Destination struct {
 	Id      string `gorm:"primaryKey"`
@@ -92,8 +92,8 @@ type Role struct {
 }
 
 var (
-	ROLE_KIND_K8S_ROLE         = "role"
-	ROLE_KIND_K8S_CLUSTER_ROLE = "cluster-role"
+	RoleKindKubernetesRole        = "role"
+	RoleKindKubernetesClusterRole = "cluster-role"
 )
 
 type Settings struct {
@@ -105,8 +105,8 @@ type Settings struct {
 }
 
 var (
-	TOKEN_SECRET_LEN = 24
-	TOKEN_LEN        = ID_LEN + TOKEN_SECRET_LEN
+	TokenSecretLen = 24
+	TokenLen       = IdLen + TokenSecretLen
 )
 
 type Token struct {
@@ -120,7 +120,7 @@ type Token struct {
 	User   User `gorm:"foreignKey:UserId;references:Id;"`
 }
 
-var API_KEY_LEN = 24
+var ApiKeyLen = 24
 
 type ApiKey struct {
 	Id      string `gorm:"primaryKey"`
@@ -132,7 +132,7 @@ type ApiKey struct {
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 	if u.Id == "" {
-		u.Id = generate.MathRandString(ID_LEN)
+		u.Id = generate.MathRandString(IdLen)
 	}
 
 	return nil
@@ -144,20 +144,20 @@ func (u *User) AfterCreate(tx *gorm.DB) error {
 
 // TODO (jmorganca): use foreign constraints instead?
 func (u *User) BeforeDelete(tx *gorm.DB) error {
-	err := tx.Model(u).Association("Sources").Clear()
-	if err != nil {
+	if err := tx.Model(u).Association("Sources").Clear(); err != nil {
 		return err
 	}
-	err = tx.Where(&Token{UserId: u.Id}).Delete(&Token{}).Error
-	if err != nil {
+
+	if err := tx.Where(&Token{UserId: u.Id}).Delete(&Token{}).Error; err != nil {
 		return err
 	}
+
 	return tx.Model(u).Association("Roles").Clear()
 }
 
-func (r *Destination) BeforeCreate(tx *gorm.DB) (err error) {
-	if r.Id == "" {
-		r.Id = generate.MathRandString(ID_LEN)
+func (d *Destination) BeforeCreate(tx *gorm.DB) (err error) {
+	if d.Id == "" {
+		d.Id = generate.MathRandString(IdLen)
 	}
 
 	return nil
@@ -167,6 +167,7 @@ func (d *Destination) AfterCreate(tx *gorm.DB) error {
 	if _, err := ApplyGroupMappings(tx, initialConfig.Groups); err != nil {
 		return err
 	}
+
 	return ApplyUserMapping(tx, initialConfig.Users)
 }
 
@@ -177,7 +178,7 @@ func (d *Destination) BeforeDelete(tx *gorm.DB) (err error) {
 
 func (r *Role) BeforeCreate(tx *gorm.DB) (err error) {
 	if r.Id == "" {
-		r.Id = generate.MathRandString(ID_LEN)
+		r.Id = generate.MathRandString(IdLen)
 	}
 
 	return nil
@@ -185,7 +186,7 @@ func (r *Role) BeforeCreate(tx *gorm.DB) (err error) {
 
 func (g *Group) BeforeCreate(tx *gorm.DB) (err error) {
 	if g.Id == "" {
-		g.Id = generate.MathRandString(ID_LEN)
+		g.Id = generate.MathRandString(IdLen)
 	}
 
 	return nil
@@ -193,8 +194,9 @@ func (g *Group) BeforeCreate(tx *gorm.DB) (err error) {
 
 func (s *Source) BeforeCreate(tx *gorm.DB) (err error) {
 	if s.Id == "" {
-		s.Id = generate.MathRandString(ID_LEN)
+		s.Id = generate.MathRandString(IdLen)
 	}
+
 	return nil
 }
 
@@ -205,7 +207,9 @@ func (s *Source) BeforeDelete(tx *gorm.DB) error {
 	}
 
 	for _, u := range users {
-		s.DeleteUser(tx, &u)
+		if err := s.DeleteUser(tx, u); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -221,7 +225,9 @@ func (s *Source) CreateUser(db *gorm.DB, user *User, email string) error {
 		}
 
 		if tx.Model(&user).Where(&Source{Id: s.Id}).Association("Sources").Count() == 0 {
-			tx.Model(&user).Where(&Source{Id: s.Id}).Association("Sources").Append(s)
+			if err := tx.Model(&user).Where(&Source{Id: s.Id}).Association("Sources").Append(s); err != nil {
+				return err
+			}
 		}
 
 		return nil
@@ -232,19 +238,13 @@ func (s *Source) CreateUser(db *gorm.DB, user *User, email string) error {
 // If this is their only source, then the user will be deleted entirely
 // TODO (jmorganca): wrap this in a transaction or at least find out why
 // there seems to cause a bug when used in a nested transaction
-func (s *Source) DeleteUser(db *gorm.DB, u *User) error {
-	var user User
-
-	if err := db.Where(&User{Email: u.Email}).First(&user).Error; err != nil {
+func (s *Source) DeleteUser(db *gorm.DB, u User) error {
+	if err := db.Model(&u).Association("Sources").Delete(s); err != nil {
 		return err
 	}
 
-	if err := db.Model(&user).Association("Sources").Delete(s); err != nil {
-		return err
-	}
-
-	if db.Model(&user).Association("Sources").Count() == 0 {
-		if err := db.Delete(&user).Error; err != nil {
+	if db.Model(&u).Association("Sources").Count() == 0 {
+		if err := db.Delete(&u).Error; err != nil {
 			return err
 		}
 	}
@@ -259,11 +259,11 @@ func (s *Source) Validate(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) er
 		apiToken, err := k8s.GetSecret(s.ApiToken)
 		if err != nil {
 			// this logs the expected secret object location, not the actual secret
-			return fmt.Errorf("could not retrieve okta API token from kubernetes secret %v: %v", s.ApiToken, err)
+			return fmt.Errorf("could not retrieve okta API token from kubernetes secret %v: %w", s.ApiToken, err)
 		}
 
 		if _, err := k8s.GetSecret(s.ClientSecret); err != nil {
-			return fmt.Errorf("could not retrieve okta client secret from kubernetes secret %v: %v", s.ClientSecret, err)
+			return fmt.Errorf("could not retrieve okta client secret from kubernetes secret %v: %w", s.ClientSecret, err)
 		}
 
 		return okta.ValidateOktaConnection(s.Domain, s.ClientId, apiToken)
@@ -305,7 +305,9 @@ func (s *Source) SyncUsers(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) e
 		}
 
 		for _, td := range toDelete {
-			s.DeleteUser(tx, &td)
+			if err := s.DeleteUser(tx, td); err != nil {
+				return err
+			}
 		}
 
 		return nil
@@ -327,10 +329,12 @@ func (s *Source) SyncGroups(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) 
 		if err := db.Where(&Group{SourceId: s.Id}).Find(&groups).Error; err != nil {
 			return err
 		}
+
 		if len(groups) == 0 {
 			logging.L.Debug("skipped syncing groups for source with no group mappings: " + s.Type)
 			return nil
 		}
+
 		var grpNames []string
 		for _, g := range groups {
 			grpNames = append(grpNames, g.Name)
@@ -374,17 +378,22 @@ func (s *Source) SyncGroups(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) 
 		if err != nil {
 			return err
 		}
-		for _, removed := range removedGroups {
-			tx.Model(&removed).Association("Users").Clear()
+
+		for i := range removedGroups {
+			if err := tx.Model(&removedGroups[i]).Association("Users").Clear(); err != nil {
+				return err
+			}
 		}
+
 		return nil
 	})
 }
 
 func (s *Settings) BeforeCreate(tx *gorm.DB) (err error) {
 	if s.Id == "" {
-		s.Id = generate.MathRandString(ID_LEN)
+		s.Id = generate.MathRandString(IdLen)
 	}
+
 	return nil
 }
 
@@ -396,10 +405,12 @@ func (s *Settings) BeforeSave(tx *gorm.DB) error {
 		}
 
 		priv := jose.JSONWebKey{Key: key, KeyID: "", Algorithm: string(jose.RS256), Use: "sig"}
+
 		thumb, err := priv.Thumbprint(crypto.SHA256)
 		if err != nil {
 			return err
 		}
+
 		kid := base64.URLEncoding.EncodeToString(thumb)
 		priv.KeyID = kid
 		pub := jose.JSONWebKey{Key: &key.PublicKey, KeyID: kid, Algorithm: string(jose.RS256), Use: "sig"}
@@ -417,12 +428,13 @@ func (s *Settings) BeforeSave(tx *gorm.DB) error {
 		s.PrivateJWK = privJS
 		s.PublicJWK = pubJS
 	}
+
 	return nil
 }
 
 func (t *Token) BeforeCreate(tx *gorm.DB) (err error) {
 	if t.Id == "" {
-		t.Id = generate.MathRandString(ID_LEN)
+		t.Id = generate.MathRandString(IdLen)
 	}
 
 	// TODO (jmorganca): 24 hours may be too long or too short for some teams
@@ -431,6 +443,7 @@ func (t *Token) BeforeCreate(tx *gorm.DB) (err error) {
 	if t.Expires == 0 {
 		t.Expires = time.Now().Add(SessionDuration).Unix()
 	}
+
 	return nil
 }
 
@@ -445,6 +458,7 @@ func (t *Token) CheckExpired() (err error) {
 func (t *Token) CheckSecret(secret string) (err error) {
 	h := sha256.New()
 	h.Write([]byte(secret))
+
 	if subtle.ConstantTimeCompare(t.Secret, h.Sum(nil)) != 1 {
 		return errors.New("could not verify token secret")
 	}
@@ -453,13 +467,14 @@ func (t *Token) CheckSecret(secret string) (err error) {
 }
 
 func NewToken(db *gorm.DB, userId string, sessionDuration time.Duration, token *Token) (secret string, err error) {
-	secret, err = generate.RandString(TOKEN_SECRET_LEN)
+	secret, err = generate.RandString(TokenSecretLen)
 	if err != nil {
 		return "", err
 	}
 
 	h := sha256.New()
 	h.Write([]byte(secret))
+
 	token.UserId = userId
 	token.Secret = h.Sum(nil)
 	token.Expires = time.Now().Add(sessionDuration).Unix()
@@ -473,12 +488,12 @@ func NewToken(db *gorm.DB, userId string, sessionDuration time.Duration, token *
 }
 
 func ValidateAndGetToken(db *gorm.DB, in string) (*Token, error) {
-	if len(in) != TOKEN_LEN {
+	if len(in) != TokenLen {
 		return nil, errors.New("invalid token length")
 	}
 
-	id := in[0:ID_LEN]
-	secret := in[ID_LEN:TOKEN_LEN]
+	id := in[0:IdLen]
+	secret := in[IdLen:TokenLen]
 
 	var token Token
 	if err := db.Preload("User").First(&token, &Token{Id: id}).Error; err != nil {
@@ -498,15 +513,16 @@ func ValidateAndGetToken(db *gorm.DB, in string) (*Token, error) {
 
 func (a *ApiKey) BeforeCreate(tx *gorm.DB) (err error) {
 	if a.Id == "" {
-		a.Id = generate.MathRandString(ID_LEN)
+		a.Id = generate.MathRandString(IdLen)
 	}
 
 	if a.Key == "" {
-		a.Key, err = generate.RandString(API_KEY_LEN)
+		a.Key, err = generate.RandString(ApiKeyLen)
 		if err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -532,13 +548,33 @@ func NewDB(dbpath string) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	db.AutoMigrate(&User{})
-	db.AutoMigrate(&Source{})
-	db.AutoMigrate(&Destination{})
-	db.AutoMigrate(&Role{})
-	db.AutoMigrate(&Settings{})
-	db.AutoMigrate(&Token{})
-	db.AutoMigrate(&ApiKey{})
+	if err := db.AutoMigrate(&User{}); err != nil {
+		return nil, err
+	}
+
+	if err := db.AutoMigrate(&Source{}); err != nil {
+		return nil, err
+	}
+
+	if err := db.AutoMigrate(&Destination{}); err != nil {
+		return nil, err
+	}
+
+	if err := db.AutoMigrate(&Role{}); err != nil {
+		return nil, err
+	}
+
+	if err := db.AutoMigrate(&Settings{}); err != nil {
+		return nil, err
+	}
+
+	if err := db.AutoMigrate(&Token{}); err != nil {
+		return nil, err
+	}
+
+	if err := db.AutoMigrate(&ApiKey{}); err != nil {
+		return nil, err
+	}
 
 	// Add default settings
 	err = db.FirstOrCreate(&Settings{}).Error
