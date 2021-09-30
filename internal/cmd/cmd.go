@@ -52,7 +52,7 @@ type Config struct {
 type ErrUnauthenticated struct{}
 
 func (e *ErrUnauthenticated) Error() string {
-	return "could not read local credentials. Are you logged in? To login, use \"infra login\""
+	return "Could not read local credentials. Are you logged in? Use \"infra login\" to login."
 }
 
 func readConfig() (config *Config, err error) {
@@ -1097,22 +1097,22 @@ var credsCmd = &cobra.Command{
 
 					config, err := readConfig()
 					if err != nil {
-						return err
+						return &ErrUnauthenticated{}
 					}
 
 					err = login(config)
 					if err != nil {
-						return err
+						return &ErrUnauthenticated{}
 					}
 
 					ctx, err := apiContextFromConfig()
 					if err != nil {
-						return err
+						return &ErrUnauthenticated{}
 					}
 
 					cred, _, err = client.CredsApi.CreateCred(ctx).Body(api.CredRequest{Destination: &destination}).Execute()
 					if err != nil {
-						return err
+						return &ErrUnauthenticated{}
 					}
 
 				default:
