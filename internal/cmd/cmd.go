@@ -427,14 +427,21 @@ func login(config *Config) error {
 	}
 
 	lock := flock.New(filepath.Join(homeDir, ".infra", "login.lock"))
+
 	acquired, err := lock.TryLock()
 	if err != nil {
 		return err
 	}
-	defer lock.Unlock()
+
+	defer func() {
+		if err := lock.Unlock(); err != nil {
+			fmt.Fprintln(os.Stderr, "failed to unlock login.lock")
+		}
+	}()
 
 	if !acquired {
 		fmt.Fprintln(os.Stderr, "another instance is trying to login")
+
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
 		defer cancel()
 
