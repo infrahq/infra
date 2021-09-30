@@ -292,6 +292,7 @@ func Run(options Options) error {
 	})
 
 	timer := timer.Timer{}
+	certCacheMiss := 0
 	timer.Start(5, func() {
 		endpoint, err := k8s.Endpoint()
 		if err != nil {
@@ -307,6 +308,16 @@ func Run(options Options) error {
 
 		caBytes, err := manager.Cache.Get(context.TODO(), fmt.Sprintf("%s.crt", url.Hostname()))
 		if err != nil {
+			if err == autocert.ErrCacheMiss {
+				// first attempt to get the certificate on new service start will
+				// likely fail so a single cache miss is expected
+				certCacheMiss++
+				if certCacheMiss > 1 {
+					logging.L.Error(err.Error())
+					return
+				}
+			}
+
 			logging.L.Error(err.Error())
 			return
 		}
