@@ -291,10 +291,10 @@ func Run(options Options) error {
 		return url.Hostname()
 	})
 
-	timer := timer.Timer{}
 	certCacheMiss := 0
 
-	timer.Start(5, func() {
+	timer := timer.NewTimer()
+	timer.Start(5*time.Second, func() {
 		endpoint, err := k8s.Endpoint()
 		if err != nil {
 			logging.L.Error(err.Error())
@@ -358,17 +358,17 @@ func Run(options Options) error {
 
 	remote, err := urlx.Parse(k8s.Config.Host)
 	if err != nil {
-		return err
+		return fmt.Errorf("parsing host config: %w", err)
 	}
 
 	ca, err := ioutil.ReadFile(k8s.Config.TLSClientConfig.CAFile)
 	if err != nil {
-		return err
+		return fmt.Errorf("reading CA file: %w", err)
 	}
 
 	ph, err := proxyHandler(ca, k8s.Config.BearerToken, remote)
 	if err != nil {
-		return err
+		return fmt.Errorf("setting proxy handler: %w", err)
 	}
 
 	cache := jwkCache{

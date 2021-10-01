@@ -11,6 +11,7 @@ import (
 	"net/http/httputil"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/NYTimes/gziphandler"
 	assetfs "github.com/elazarl/go-bindata-assetfs"
@@ -91,21 +92,23 @@ func Run(options Options) error {
 	}
 
 	// schedule the user and group sync jobs
-	interval := 30
+	interval := 30 * time.Second
 	if options.SyncInterval > 0 {
-		interval = options.SyncInterval
+		interval = time.Duration(options.SyncInterval) * time.Second
 	} else {
 		envSync := os.Getenv("INFRA_SYNC_INTERVAL_SECONDS")
 		if envSync != "" {
-			interval, err = strconv.Atoi(envSync)
+			envInterval, err := strconv.Atoi(envSync)
 			if err != nil {
 				zapLogger.Error("invalid INFRA_SYNC_INTERVAL_SECONDS env: " + err.Error())
+			} else {
+				interval = time.Duration(envInterval) * time.Second
 			}
 		}
 	}
 
 	// be careful with this sync job, there are Okta rate limits on these requests
-	timer := timer.Timer{}
+	timer := timer.NewTimer()
 	defer timer.Stop()
 	timer.Start(interval, func() {
 		var sources []Source
