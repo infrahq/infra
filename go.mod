@@ -12,6 +12,7 @@ require (
 	github.com/elazarl/go-bindata-assetfs v1.0.1
 	github.com/go-chi/chi v1.5.4
 	github.com/go-playground/validator/v10 v10.9.0
+	github.com/gofrs/flock v0.8.1
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/goreleaser/goreleaser v0.179.0
 	github.com/gorilla/handlers v1.5.1
@@ -23,7 +24,6 @@ require (
 	github.com/kevinburke/go-bindata v3.22.0+incompatible
 	github.com/kr/pty v1.1.5 // indirect
 	github.com/lensesio/tableprinter v0.0.0-20201125135848-89e81fc956e7
-	github.com/mitchellh/go-homedir v1.1.0
 	github.com/muesli/termenv v0.9.0
 	github.com/okta/okta-sdk-golang/v2 v2.6.2
 	github.com/sirupsen/logrus v1.8.1 // indirect
@@ -33,6 +33,7 @@ require (
 	go.uber.org/zap v1.19.1
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
 	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f
+	golang.org/x/term v0.0.0-20210503060354-a79de5458b56
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/sqlite v1.1.5

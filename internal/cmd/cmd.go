@@ -22,6 +22,7 @@ import (
 	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/cli/browser"
 	"github.com/docker/go-units"
+	"github.com/gofrs/flock"
 	"github.com/goware/urlx"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/engine"
@@ -30,9 +31,9 @@ import (
 	"github.com/infrahq/infra/internal/registry"
 	"github.com/infrahq/infra/internal/version"
 	"github.com/lensesio/tableprinter"
-	"github.com/mitchellh/go-homedir"
 	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientauthenticationv1beta1 "k8s.io/client-go/pkg/apis/clientauthentication/v1beta1"
 	"k8s.io/client-go/tools/clientcmd"
@@ -50,7 +51,7 @@ type Config struct {
 type ErrUnauthenticated struct{}
 
 func (e *ErrUnauthenticated) Error() string {
-	return "could not read local credentials. Are you logged in? To login, use \"infra login\""
+	return "Could not read local credentials. Are you logged in? Use \"infra login\" to login."
 }
 
 func readConfig() (config *Config, err error) {
@@ -193,7 +194,7 @@ func clientConfig() clientcmd.ClientConfig {
 }
 
 func updateKubeconfig(destinations []api.Destination) error {
-	home, err := homedir.Dir()
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return err
 	}
@@ -205,7 +206,7 @@ func updateKubeconfig(destinations []api.Destination) error {
 		}
 
 		// Write destinations to a known json file location for `infra client` to read
-		err = os.WriteFile(filepath.Join(home, ".infra", "destinations"), destinationsJSON, 0o600)
+		err = os.WriteFile(filepath.Join(homeDir, ".infra", "destinations"), destinationsJSON, 0o600)
 		if err != nil {
 			return err
 		}
@@ -420,6 +421,38 @@ func promptSelectSource(sources []api.Source, sourceID string) (*api.Source, err
 }
 
 func login(config *Config) error {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	lock := flock.New(filepath.Join(homeDir, ".infra", "login.lock"))
+
+	acquired, err := lock.TryLock()
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if err := lock.Unlock(); err != nil {
+			fmt.Fprintln(os.Stderr, "failed to unlock login.lock")
+		}
+	}()
+
+	if !acquired {
+		fmt.Fprintln(os.Stderr, "another instance is trying to login")
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
+		defer cancel()
+
+		_, err = lock.TryLockContext(ctx, time.Second*1)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
 	skipTLSVerify, proceed, err := promptShouldSkipTLSVerify(config.Host, config.SkipTLSVerify)
 	if err != nil {
 		return err
@@ -534,11 +567,6 @@ func login(config *Config) error {
 		return err
 	}
 
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
 	if len(destinations) > 0 {
 		kubeConfigPath := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{}).ConfigAccess().GetDefaultFilename()
 		fmt.Fprintln(os.Stderr, blue("✓")+" Kubeconfig updated: "+termenv.String(strings.ReplaceAll(kubeConfigPath, homeDir, "~")).Bold().String())
@@ -594,12 +622,12 @@ var logoutCmd = &cobra.Command{
 			return err
 		}
 
-		home, err := homedir.Dir()
+		homeDir, err := os.UserHomeDir()
 		if err != nil {
 			return err
 		}
 
-		os.Remove(filepath.Join(home, ".infra", "destinations"))
+		os.Remove(filepath.Join(homeDir, ".infra", "destinations"))
 
 		return updateKubeconfig([]api.Destination{})
 	},
@@ -822,17 +850,17 @@ func newRegistryCmd() (*cobra.Command, error) {
 	cmd.Flags().BoolVar(&options.UI, "ui", false, "enable ui")
 	cmd.Flags().StringVar(&options.UIProxy, "ui-proxy", "", "proxy ui requests to this host")
 
-	home, err := homedir.Dir()
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return nil, err
 	}
 
 	if filepath.Dir(options.DBPath) == defaultInfraHome {
-		options.DBPath = filepath.Join(home, ".infra", "infra.db")
+		options.DBPath = filepath.Join(homeDir, ".infra", "infra.db")
 	}
 
 	if filepath.Dir(options.TLSCache) == defaultInfraHome {
-		options.TLSCache = filepath.Join(home, ".infra", "cache")
+		options.TLSCache = filepath.Join(homeDir, ".infra", "cache")
 	}
 
 	defaultSync := 30
@@ -876,12 +904,12 @@ func newEngineCmd() (*cobra.Command, error) {
 	cmd.Flags().StringVar(&options.APIKey, "api-key", os.Getenv("INFRA_ENGINE_API_KEY"), "api key")
 
 	if filepath.Dir(options.TLSCache) == defaultInfraHome {
-		home, err := homedir.Dir()
+		homeDir, err := os.UserHomeDir()
 		if err != nil {
 			return nil, err
 		}
 
-		options.TLSCache = filepath.Join(home, ".infra", "cache")
+		options.TLSCache = filepath.Join(homeDir, ".infra", "cache")
 	}
 
 	return cmd, nil
@@ -1069,24 +1097,28 @@ var credsCmd = &cobra.Command{
 			if err != nil {
 				switch res.StatusCode {
 				case http.StatusForbidden:
+					if !term.IsTerminal(int(os.Stdin.Fd())) {
+						return err
+					}
+
 					config, err := readConfig()
 					if err != nil {
-						return err
+						return &ErrUnauthenticated{}
 					}
 
 					err = login(config)
 					if err != nil {
-						return err
+						return &ErrUnauthenticated{}
 					}
 
 					ctx, err := apiContextFromConfig()
 					if err != nil {
-						return err
+						return &ErrUnauthenticated{}
 					}
 
 					cred, _, err = client.CredsApi.CreateCred(ctx).Body(api.CredRequest{Destination: &destination}).Execute()
 					if err != nil {
-						return err
+						return &ErrUnauthenticated{}
 					}
 
 				default:
@@ -1167,12 +1199,12 @@ func Run() error {
 
 // getCache populates obj with whatever is in the cache
 func getCache(path, name string, obj interface{}) error {
-	home, err := os.UserHomeDir()
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return err
 	}
 
-	path = filepath.Join(home, ".infra", "cache", path)
+	path = filepath.Join(homeDir, ".infra", "cache", path)
 	if err = os.MkdirAll(path, os.ModePerm); err != nil {
 		return err
 	}
@@ -1199,12 +1231,12 @@ func getCache(path, name string, obj interface{}) error {
 }
 
 func setCache(path, name string, obj interface{}) error {
-	home, err := os.UserHomeDir()
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return err
 	}
 
-	path = filepath.Join(home, ".infra", "cache", path)
+	path = filepath.Join(homeDir, ".infra", "cache", path)
 	fullPath := filepath.Join(path, name)
 
 	if err = os.MkdirAll(path, os.ModePerm); err != nil {
