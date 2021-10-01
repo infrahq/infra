@@ -28,7 +28,7 @@ helm install infra-registry infrahq/registry --namespace infrahq --create-namesp
 
 ### Connect Kubernetes cluster to Infra Registry
 
-Run the following commands to retrieve Infra Registry information and its API key:
+Once the load balancer for the Infra Registry is available, run the following commands to retrieve Infra Registry information and its API key:
 
 ```bash
 INFRA_REGISTRY=$(kubectl --namespace infrahq get services infra-registry -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}")
