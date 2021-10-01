@@ -99,7 +99,7 @@ func (a *Api) bearerAuthMiddleware(required api.InfraAPIPermission, next http.Ha
 		case TokenLen:
 			token, err := ValidateAndGetToken(a.db, raw)
 			if err != nil {
-				logging.L.Error(err.Error())
+				logging.L.Debug(err.Error())
 				switch err.Error() {
 				case "token expired":
 					sendApiError(w, http.StatusForbidden, "forbidden")
@@ -508,6 +508,10 @@ func (a *Api) ListRoles(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+var signatureAlgFromKeyAlgorithm = map[string]string{
+	"ED25519": "EdDSA", // elliptic curve 25519
+}
+
 func (a *Api) createJWT(destination, email string) (rawJWT string, expiry time.Time, err error) {
 	var settings Settings
 
@@ -523,9 +527,14 @@ func (a *Api) createJWT(destination, email string) (rawJWT string, expiry time.T
 		return "", time.Time{}, fmt.Errorf("unmarshal privateJWK: %w", err)
 	}
 
-	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.SignatureAlgorithm(key.Algorithm), Key: key}, (&jose.SignerOptions{}).WithType("JWT"))
+	sigAlg, ok := signatureAlgFromKeyAlgorithm[key.Algorithm]
+	if !ok {
+		return "", time.Time{}, fmt.Errorf("unexpected key algorithm %q needs matching signature algorithm", key.Algorithm)
+	}
+
+	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.SignatureAlgorithm(sigAlg), Key: key}, (&jose.SignerOptions{}).WithType("JWT"))
 	if err != nil {
-		return "", time.Time{}, fmt.Errorf("creating signer: %w", err)
+		return "", time.Time{}, fmt.Errorf("creating signer for signature algorithm %q: %w", key.Algorithm, err)
 	}
 
 	nonce, err := generate.RandString(10)
