@@ -16,21 +16,23 @@ import (
 
 // InfraAPIKeyCreateResponse struct for InfraAPIKeyCreateResponse
 type InfraAPIKeyCreateResponse struct {
-	Key     string `json:"key"`
-	Id      string `json:"id"`
-	Created int64  `json:"created"`
-	Name    string `json:"name"`
+	Key         string       `json:"key"`
+	Id          string       `json:"id"`
+	Created     int64        `json:"created"`
+	Name        string       `json:"name"`
+	Permissions []Permission `json:"permissions"`
 }
 
 // NewInfraAPIKeyCreateResponse instantiates a new InfraAPIKeyCreateResponse object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewInfraAPIKeyCreateResponse(key string, id string, created int64, name string) *InfraAPIKeyCreateResponse {
+func NewInfraAPIKeyCreateResponse(key string, id string, created int64, name string, permissions []Permission) *InfraAPIKeyCreateResponse {
 	this := InfraAPIKeyCreateResponse{}
 	this.Id = id
 	this.Created = created
 	this.Name = name
+	this.Permissions = permissions
 	return &this
 }
 
@@ -138,6 +140,30 @@ func (o *InfraAPIKeyCreateResponse) SetName(v string) {
 	o.Name = v
 }
 
+// GetPermissions returns the Permissions field value
+func (o *InfraAPIKeyCreateResponse) GetPermissions() []Permission {
+	if o == nil {
+		var ret []Permission
+		return ret
+	}
+
+	return o.Permissions
+}
+
+// GetPermissionsOk returns a tuple with the Permissions field value
+// and a boolean to check if the value has been set.
+func (o *InfraAPIKeyCreateResponse) GetPermissionsOk() (*[]Permission, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Permissions, true
+}
+
+// SetPermissions sets field value
+func (o *InfraAPIKeyCreateResponse) SetPermissions(v []Permission) {
+	o.Permissions = v
+}
+
 func (o InfraAPIKeyCreateResponse) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
@@ -151,6 +177,9 @@ func (o InfraAPIKeyCreateResponse) MarshalJSON() ([]byte, error) {
 	}
 	if true {
 		toSerialize["name"] = o.Name
+	}
+	if true {
+		toSerialize["permissions"] = o.Permissions
 	}
 	return json.Marshal(toSerialize)
 }

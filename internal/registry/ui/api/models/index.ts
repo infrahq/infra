@@ -13,6 +13,7 @@ export * from './LoginRequest';
 export * from './LoginRequestOkta';
 export * from './LoginResponse';
 export * from './ModelError';
+export * from './Permission';
 export * from './Role';
 export * from './RoleKind';
 export * from './Source';

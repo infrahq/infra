@@ -16,16 +16,18 @@ import (
 
 // InfraAPIKeyCreateRequest struct for InfraAPIKeyCreateRequest
 type InfraAPIKeyCreateRequest struct {
-	Name string `json:"name"`
+	Name        string       `json:"name"`
+	Permissions []Permission `json:"permissions"`
 }
 
 // NewInfraAPIKeyCreateRequest instantiates a new InfraAPIKeyCreateRequest object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewInfraAPIKeyCreateRequest(name string) *InfraAPIKeyCreateRequest {
+func NewInfraAPIKeyCreateRequest(name string, permissions []Permission) *InfraAPIKeyCreateRequest {
 	this := InfraAPIKeyCreateRequest{}
 	this.Name = name
+	this.Permissions = permissions
 	return &this
 }
 
@@ -61,10 +63,37 @@ func (o *InfraAPIKeyCreateRequest) SetName(v string) {
 	o.Name = v
 }
 
+// GetPermissions returns the Permissions field value
+func (o *InfraAPIKeyCreateRequest) GetPermissions() []Permission {
+	if o == nil {
+		var ret []Permission
+		return ret
+	}
+
+	return o.Permissions
+}
+
+// GetPermissionsOk returns a tuple with the Permissions field value
+// and a boolean to check if the value has been set.
+func (o *InfraAPIKeyCreateRequest) GetPermissionsOk() (*[]Permission, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Permissions, true
+}
+
+// SetPermissions sets field value
+func (o *InfraAPIKeyCreateRequest) SetPermissions(v []Permission) {
+	o.Permissions = v
+}
+
 func (o InfraAPIKeyCreateRequest) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
 		toSerialize["name"] = o.Name
+	}
+	if true {
+		toSerialize["permissions"] = o.Permissions
 	}
 	return json.Marshal(toSerialize)
 }

@@ -79,7 +79,7 @@ func TestBearerTokenMiddlewareDefault(t *testing.T) {
 
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 	w := httptest.NewRecorder()
-	a.bearerAuthMiddleware(http.HandlerFunc(handler)).ServeHTTP(w, r)
+	a.bearerAuthMiddleware(api.USERS_READ, http.HandlerFunc(handler)).ServeHTTP(w, r)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
@@ -103,7 +103,7 @@ func TestBearerTokenMiddlewareEmptyHeader(t *testing.T) {
 	r.Header.Add("Authorization", "")
 
 	w := httptest.NewRecorder()
-	a.bearerAuthMiddleware(http.HandlerFunc(handler)).ServeHTTP(w, r)
+	a.bearerAuthMiddleware(api.USERS_READ, http.HandlerFunc(handler)).ServeHTTP(w, r)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
@@ -127,7 +127,7 @@ func TestBearerTokenMiddlewareEmptyHeaderBearer(t *testing.T) {
 	r.Header.Add("Authorization", "Bearer")
 
 	w := httptest.NewRecorder()
-	a.bearerAuthMiddleware(http.HandlerFunc(handler)).ServeHTTP(w, r)
+	a.bearerAuthMiddleware(api.USERS_READ, http.HandlerFunc(handler)).ServeHTTP(w, r)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
@@ -151,7 +151,7 @@ func TestBearerTokenMiddlewareInvalidLength(t *testing.T) {
 	r.Header.Add("Authorization", "Bearer hello")
 
 	w := httptest.NewRecorder()
-	a.bearerAuthMiddleware(http.HandlerFunc(handler)).ServeHTTP(w, r)
+	a.bearerAuthMiddleware(api.USERS_READ, http.HandlerFunc(handler)).ServeHTTP(w, r)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
@@ -175,7 +175,7 @@ func TestBearerTokenMiddlewareInvalidToken(t *testing.T) {
 	r.Header.Add("Authorization", "Bearer "+bearerToken)
 
 	w := httptest.NewRecorder()
-	a.bearerAuthMiddleware(http.HandlerFunc(handler)).ServeHTTP(w, r)
+	a.bearerAuthMiddleware(api.USERS_READ, http.HandlerFunc(handler)).ServeHTTP(w, r)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
@@ -204,7 +204,7 @@ func TestBearerTokenMiddlewareExpiredToken(t *testing.T) {
 	r.Header.Add("Authorization", "Bearer "+id+secret)
 
 	w := httptest.NewRecorder()
-	a.bearerAuthMiddleware(http.HandlerFunc(handler)).ServeHTTP(w, r)
+	a.bearerAuthMiddleware(api.USERS_READ, http.HandlerFunc(handler)).ServeHTTP(w, r)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 }
 
@@ -233,7 +233,7 @@ func TestBearerTokenMiddlewareValidToken(t *testing.T) {
 	r.Header.Add("Authorization", "Bearer "+id+secret)
 
 	w := httptest.NewRecorder()
-	a.bearerAuthMiddleware(http.HandlerFunc(handler)).ServeHTTP(w, r)
+	a.bearerAuthMiddleware(api.USERS_READ, http.HandlerFunc(handler)).ServeHTTP(w, r)
 	assert.Equal(t, w.Code, http.StatusOK)
 	assert.Equal(t, "hello world", w.Body.String())
 }
@@ -260,7 +260,7 @@ func TestBearerTokenMiddlewareInvalidApiKey(t *testing.T) {
 	r.Header.Add("Authorization", "Bearer "+bearerToken)
 
 	w := httptest.NewRecorder()
-	a.bearerAuthMiddleware(http.HandlerFunc(handler)).ServeHTTP(w, r)
+	a.bearerAuthMiddleware(api.USERS_READ, http.HandlerFunc(handler)).ServeHTTP(w, r)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
@@ -281,7 +281,9 @@ func TestBearerTokenMiddlewareValidApiKey(t *testing.T) {
 	}
 
 	var apiKey ApiKey
-	if err := db.FirstOrCreate(&apiKey, &ApiKey{Name: defaultApiKeyName}).Error; err != nil {
+
+	err = db.FirstOrCreate(&apiKey, &ApiKey{Name: engineApiKeyName, Permissions: string(api.USERS_READ)}).Error
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -289,9 +291,79 @@ func TestBearerTokenMiddlewareValidApiKey(t *testing.T) {
 	r.Header.Add("Authorization", "Bearer "+apiKey.Key)
 
 	w := httptest.NewRecorder()
-	a.bearerAuthMiddleware(http.HandlerFunc(handler)).ServeHTTP(w, r)
+	a.bearerAuthMiddleware(api.USERS_READ, http.HandlerFunc(handler)).ServeHTTP(w, r)
 	assert.Equal(t, w.Code, http.StatusOK)
 	assert.Equal(t, "hello world", w.Body.String())
+}
+
+func TestBearerTokenMiddlewareValidApiKeyRootPermissions(t *testing.T) {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		if _, err := io.WriteString(w, "hello world"); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	db, err := NewDB("file::memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	a := &Api{
+		db: db,
+	}
+
+	var apiKey ApiKey
+
+	err = db.FirstOrCreate(&apiKey, &ApiKey{Name: engineApiKeyName, Permissions: string(api.STAR)}).Error
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	r.Header.Add("Authorization", "Bearer "+apiKey.Key)
+
+	w := httptest.NewRecorder()
+	a.bearerAuthMiddleware(api.USERS_READ, http.HandlerFunc(handler)).ServeHTTP(w, r)
+	assert.Equal(t, w.Code, http.StatusOK)
+	assert.Equal(t, "hello world", w.Body.String())
+}
+
+func TestBearerTokenMiddlewareValidApiKeyWrongPermission(t *testing.T) {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		if _, err := io.WriteString(w, "hello world"); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	db, err := NewDB("file::memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	a := &Api{
+		db: db,
+	}
+
+	var apiKey ApiKey
+
+	err = db.FirstOrCreate(&apiKey, &ApiKey{Name: engineApiKeyName, Permissions: string(api.DESTINATIONS_READ)}).Error
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	r.Header.Add("Authorization", "Bearer "+apiKey.Key)
+
+	w := httptest.NewRecorder()
+	a.bearerAuthMiddleware(api.DESTINATIONS_CREATE, http.HandlerFunc(handler)).ServeHTTP(w, r)
+
+	var body api.Error
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, w.Code, http.StatusForbidden)
+	assert.Equal(t, string(api.DESTINATIONS_CREATE)+" permission is required", body.Message)
 }
 
 func TestCreateDestinationNoApiKey(t *testing.T) {
@@ -316,7 +388,7 @@ func TestCreateDestinationNoApiKey(t *testing.T) {
 
 	r := httptest.NewRequest(http.MethodPost, "/v1/destinations", bytes.NewReader(bts))
 	w := httptest.NewRecorder()
-	a.bearerAuthMiddleware(http.HandlerFunc(a.Login)).ServeHTTP(w, r)
+	a.bearerAuthMiddleware(api.USERS_READ, http.HandlerFunc(a.Login)).ServeHTTP(w, r)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
@@ -331,7 +403,9 @@ func TestCreateDestination(t *testing.T) {
 	}
 
 	var apiKey ApiKey
-	if err := db.FirstOrCreate(&apiKey, &ApiKey{Name: "default"}).Error; err != nil {
+
+	err = db.FirstOrCreate(&apiKey, &ApiKey{Name: "default", Permissions: string(api.DESTINATIONS_CREATE)}).Error
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -351,7 +425,7 @@ func TestCreateDestination(t *testing.T) {
 	r.Header.Add("Authorization", "Bearer "+apiKey.Key)
 
 	w := httptest.NewRecorder()
-	a.bearerAuthMiddleware(http.HandlerFunc(a.CreateDestination)).ServeHTTP(w, r)
+	a.bearerAuthMiddleware(api.DESTINATIONS_CREATE, http.HandlerFunc(a.CreateDestination)).ServeHTTP(w, r)
 	assert.Equal(t, http.StatusCreated, w.Code)
 }
 
@@ -674,7 +748,8 @@ func TestCreateAPIKey(t *testing.T) {
 	a := &Api{db: db}
 
 	createAPIKeyRequest := api.InfraAPIKeyCreateRequest{
-		Name: "test-api-client",
+		Name:        "test-api-client",
+		Permissions: []api.Permission{api.USERS_READ},
 	}
 
 	csr, err := createAPIKeyRequest.MarshalJSON()
@@ -705,29 +780,14 @@ func TestCreateAPIKey(t *testing.T) {
 func TestDeleteAPIKey(t *testing.T) {
 	a := &Api{db: db}
 
-	createAPIKeyRequest := api.InfraAPIKeyCreateRequest{
-		Name: "test-api-delete-key",
+	k := &ApiKey{Name: "test-delete-key", Permissions: string(api.API_KEYS_DELETE)}
+	if err := a.db.Create(k).Error; err != nil {
+		t.Fatalf(err.Error())
 	}
 
-	csr, err := createAPIKeyRequest.MarshalJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := httptest.NewRequest(http.MethodPost, "/v1/api-keys", bytes.NewReader(csr))
-	w := httptest.NewRecorder()
-	http.HandlerFunc(a.CreateAPIKey).ServeHTTP(w, r)
-
-	var body api.InfraAPIKeyCreateResponse
-	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
-		t.Fatal(err)
-	}
-
-	assert.NotEmpty(t, body.Id)
-
-	delR := httptest.NewRequest(http.MethodDelete, "/v1/api-keys/"+body.Id, nil)
+	delR := httptest.NewRequest(http.MethodDelete, "/v1/api-keys/"+k.Id, nil)
 	vars := map[string]string{
-		"id": body.Id,
+		"id": k.Id,
 	}
 	delR = mux.SetURLVars(delR, vars)
 	delW := httptest.NewRecorder()
@@ -744,7 +804,7 @@ func TestDeleteAPIKey(t *testing.T) {
 func TestListAPIKeys(t *testing.T) {
 	a := &Api{db: db}
 
-	k := &ApiKey{Name: "test-key"}
+	k := &ApiKey{Name: "test-key", Permissions: string(api.API_KEYS_READ)}
 	if err := a.db.Create(k).Error; err != nil {
 		t.Fatalf(err.Error())
 	}

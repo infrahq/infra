@@ -43,7 +43,7 @@ spec:
               value: {{ required "Value registry is required" .Values.registry | quote }}
             - name: INFRA_LOG_LEVEL
               value: {{ .Values.logLevel | default "info" }}
-            - name: INFRA_ENGINE_API_KEY
+            - name: ENGINE_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: infra-engine

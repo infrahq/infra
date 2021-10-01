@@ -16,6 +16,7 @@ import (
 	"github.com/NYTimes/gziphandler"
 	assetfs "github.com/elazarl/go-bindata-assetfs"
 	"github.com/goware/urlx"
+	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
@@ -24,16 +25,20 @@ import (
 )
 
 type Options struct {
-	DBPath        string
-	TLSCache      string
-	DefaultApiKey string
-	ConfigPath    string
-	UI            bool
-	UIProxy       string
-	SyncInterval  int
+	DBPath       string
+	TLSCache     string
+	RootAPIKey   string
+	EngineApiKey string
+	ConfigPath   string
+	UI           bool
+	UIProxy      string
+	SyncInterval int
 }
 
-const defaultApiKeyName = "default"
+const (
+	rootAPIKeyName   = "root"
+	engineApiKeyName = "engine"
+)
 
 func Run(options Options) error {
 	db, err := NewDB(options.DBPath)
@@ -149,21 +154,43 @@ func Run(options Options) error {
 		}
 	})
 
-	var apiKey ApiKey
-
-	err = db.FirstOrCreate(&apiKey, &ApiKey{Name: defaultApiKeyName}).Error
-	if err != nil {
-		return err
-	}
-
-	if options.DefaultApiKey != "" {
-		if len(options.DefaultApiKey) != ApiKeyLen {
-			return errors.New("invalid initial api key length, the key must be 24 characters")
+	if options.RootAPIKey != "" {
+		if len(options.RootAPIKey) != ApiKeyLen {
+			return errors.New("invalid root api key length, the key must be 24 characters")
 		}
 
-		apiKey.Key = options.DefaultApiKey
+		var rootAPIKey ApiKey
 
-		err := db.Save(&apiKey).Error
+		err = db.FirstOrCreate(&rootAPIKey, &ApiKey{Name: rootAPIKeyName}).Error
+		if err != nil {
+			return err
+		}
+
+		rootAPIKey.Permissions = string(api.STAR)
+		rootAPIKey.Key = options.RootAPIKey
+
+		err := db.Save(&rootAPIKey).Error
+		if err != nil {
+			return err
+		}
+	}
+
+	if options.EngineApiKey != "" {
+		if len(options.EngineApiKey) != ApiKeyLen {
+			return errors.New("invalid engine api key length, the key must be 24 characters")
+		}
+
+		var engineApiKey ApiKey
+
+		err = db.FirstOrCreate(&engineApiKey, &ApiKey{Name: engineApiKeyName}).Error
+		if err != nil {
+			return err
+		}
+
+		engineApiKey.Permissions = string(api.DESTINATIONS_CREATE) + " " + string(api.ROLES_READ)
+		engineApiKey.Key = options.EngineApiKey
+
+		err := db.Save(&engineApiKey).Error
 		if err != nil {
 			return err
 		}

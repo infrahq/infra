@@ -116,6 +116,7 @@ type Token struct {
 	Updated int64  `gorm:"autoUpdateTime"`
 	Expires int64
 	Secret  []byte
+	// TODO (brucemacd): add user permissions to session tokens
 
 	UserId string
 	User   User `gorm:"foreignKey:UserId;references:Id;"`
@@ -124,11 +125,12 @@ type Token struct {
 var ApiKeyLen = 24
 
 type ApiKey struct {
-	Id      string `gorm:"primaryKey"`
-	Created int64  `gorm:"autoCreateTime"`
-	Updated int64  `gorm:"autoUpdateTime"`
-	Name    string `gorm:"unique"`
-	Key     string
+	Id          string `gorm:"primaryKey"`
+	Created     int64  `gorm:"autoCreateTime"`
+	Updated     int64  `gorm:"autoUpdateTime"`
+	Name        string `gorm:"unique"`
+	Key         string
+	Permissions string // space separated list of permissions/scopes that a token can perform
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {

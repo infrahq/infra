@@ -1,5 +1,5 @@
 storage: 1Gi
-defaultApiKey: ""
+engineApiKey: ""
 config: null
 
 image:

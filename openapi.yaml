@@ -30,6 +30,21 @@ components:
       type: http
       scheme: bearer
   schemas:
+    Permission:
+      description: permissions of the form "infra.resource.action"
+      type: string
+      enum:
+        - infra.users.read
+        - infra.groups.read
+        - infra.destinations.create
+        - infra.destinations.read
+        - infra.api-keys.create
+        - infra.api-keys.read
+        - infra.api-keys.delete
+        - infra.creds.create
+        - infra.roles.read
+        - infra.auth.delete
+        - infra.*
     User:
       type: object
       required:
@@ -143,6 +158,7 @@ components:
         - id
         - created
         - name
+        - permissions
       properties:
         id:
           type: string
@@ -151,13 +167,22 @@ components:
           format: int64
         name:
           type: string
+        permissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Permission'
     InfraAPIKeyCreateRequest:
       type: object
       required:
         - name
+        - permissions
       properties:
         name:
           type: string
+        permissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Permission'
     InfraAPIKeyCreateResponse:
       allOf:
         - $ref: '#/components/schemas/InfraAPIKey'

@@ -623,7 +623,8 @@ func newRegistryCmd() (*cobra.Command, error) {
 	defaultInfraHome := filepath.Join("~", ".infra")
 
 	cmd.Flags().StringVarP(&options.ConfigPath, "config", "c", "", "config file")
-	cmd.Flags().StringVar(&options.DefaultApiKey, "initial-apikey", os.Getenv("INFRA_REGISTRY_DEFAULT_API_KEY"), "initial api key for adding destinations")
+	cmd.Flags().StringVar(&options.RootAPIKey, "root-api-key", os.Getenv("INFRA_REGISTRY_ROOT_API_KEY"), "the root api key for privileged actions")
+	cmd.Flags().StringVar(&options.EngineApiKey, "initial-engine-api-key", os.Getenv("ENGINE_API_KEY"), "initial api key for adding destinations")
 	cmd.Flags().StringVar(&options.DBPath, "db", filepath.Join(defaultInfraHome, "infra.db"), "path to database file")
 	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(defaultInfraHome, "cache"), "path to directory to cache tls self-signed and Let's Encrypt certificates")
 	cmd.Flags().BoolVar(&options.UI, "ui", false, "enable ui")
