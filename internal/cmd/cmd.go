@@ -34,12 +34,49 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
-type Config struct {
+type ConfigV0dot1 struct {
+	Version       string `json:"version"` // always blank
 	Name          string `json:"name"`
 	Host          string `json:"host"`
 	Token         string `json:"token"`
 	SkipTLSVerify bool   `json:"skip-tls-verify"`
 	SourceID      string `json:"source-id"`
+}
+
+func (c ConfigV0dot1) ToV1dot0() *ConfigV1dot0 {
+	return &ConfigV1dot0{
+		Version: "1.0",
+		Registries: []RegistryConfig{
+			{
+				Name:          c.Name,
+				Host:          c.Host,
+				Token:         c.Token,
+				SkipTLSVerify: c.SkipTLSVerify,
+				SourceID:      c.SourceID,
+				Current:       true,
+			},
+		},
+	}
+}
+
+type ConfigV1dot0 struct {
+	Version    string           `json:"version"` // 1.0
+	Registries []RegistryConfig `json:"registries"`
+}
+
+func NewConfig() *ConfigV1dot0 {
+	return &ConfigV1dot0{
+		Version: "1.0",
+	}
+}
+
+type RegistryConfig struct {
+	Name          string `json:"name"`
+	Host          string `json:"host"`
+	Token         string `json:"token"`
+	SkipTLSVerify bool   `json:"skip-tls-verify"` // where is the other cert info stored?
+	SourceID      string `json:"source-id"`
+	Current       bool   `json:"current"`
 }
 
 type ErrUnauthenticated struct{}
@@ -48,12 +85,25 @@ func (e *ErrUnauthenticated) Error() string {
 	return "Could not read local credentials. Are you logged in? Use \"infra login\" to login."
 }
 
-func readConfig() (config *Config, err error) {
-	config = &Config{}
+func readCurrentConfig() (*RegistryConfig, error) {
+	cfg, err := readConfig()
+	if err != nil {
+		return nil, err
+	}
+	for i := range cfg.Registries {
+		if cfg.Registries[i].Current {
+			return &cfg.Registries[i], nil
+		}
+	}
+	return nil, nil
+}
+
+func readConfig() (*ConfigV1dot0, error) {
+	config := &ConfigV1dot0{}
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	contents, err := ioutil.ReadFile(filepath.Join(homeDir, ".infra", "config"))
@@ -62,17 +112,26 @@ func readConfig() (config *Config, err error) {
 	}
 
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	if err = json.Unmarshal(contents, &config); err != nil {
-		return
+		return nil, err
 	}
 
-	return
+	if config.Version == "" {
+		// if version is missing, it needs to be updated to the latest
+		configv0dot1 := ConfigV0dot1{}
+		if err = json.Unmarshal(contents, &configv0dot1); err != nil {
+			return nil, err
+		}
+		return configv0dot1.ToV1dot0(), nil
+	}
+
+	return config, nil
 }
 
-func writeConfig(config *Config) error {
+func writeConfig(config *ConfigV1dot0) error {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return err
@@ -159,20 +218,25 @@ func NewApiClient(host string, skipTLSVerify bool) (*api.APIClient, error) {
 }
 
 func apiContextFromConfig() (context.Context, error) {
-	config, err := readConfig()
+	config, err := readCurrentConfig()
 	if err != nil {
 		return nil, err
 	}
-
+	if config == nil {
+		return nil, errors.New("No current registry context; try `infra login [registry]`")
+	}
 	return NewApiContext(config.Token), nil
 }
 
 func apiClientFromConfig() (*api.APIClient, error) {
-	config, err := readConfig()
+	config, err := readCurrentConfig()
 	if err != nil {
 		return nil, err
 	}
 
+	if config == nil {
+		return nil, errors.New("No current registry context; try `infra login [registry]`")
+	}
 	return NewApiClient(config.Host, config.SkipTLSVerify)
 }
 
@@ -323,7 +387,7 @@ func promptShouldSkipTLSVerify(host string, skipTLSVerify bool) (shouldSkipTLSVe
 
 	url, err := urlx.Parse(host)
 	if err != nil {
-		return false, false, err
+		return false, false, fmt.Errorf("parsing host: %w", err)
 	}
 
 	url.Scheme = "https"
@@ -348,7 +412,7 @@ func promptShouldSkipTLSVerify(host string, skipTLSVerify bool) (shouldSkipTLSVe
 		fmt.Fprintln(os.Stderr)
 
 		prompt := &survey.Confirm{
-			Message: "Are you sure you want to continue?",
+			Message: "The connection to this server will not be secure. Are you sure you want to continue?",
 		}
 
 		err := survey.AskOne(prompt, &proceed, survey.WithIcons(func(icons *survey.IconSet) {
@@ -381,6 +445,10 @@ func promptSelectSource(sources []api.Source, sourceID string) (*api.Source, err
 		return nil, errors.New("source not found")
 	}
 
+	if len(sources) == 1 {
+		return &sources[0], nil
+	}
+
 	sort.Slice(sources, func(i, j int) bool {
 		return sources[i].Created > sources[j].Created
 	})
@@ -410,7 +478,27 @@ func promptSelectSource(sources []api.Source, sourceID string) (*api.Source, err
 	return &sources[option], nil
 }
 
-func login(config *Config) error {
+func selectARegistry(registries []RegistryConfig) *RegistryConfig {
+	options := []string{}
+	for _, reg := range registries {
+		options = append(options, reg.Host)
+	}
+
+	var option int
+	prompt := &survey.Select{
+		Message: "Choose a registry:",
+		Options: options,
+	}
+	err := survey.AskOne(prompt, &option, survey.WithIcons(func(icons *survey.IconSet) {
+		icons.Question.Text = blue("?")
+	}))
+	if err != nil {
+		return nil
+	}
+	return &registries[option]
+}
+
+func login(host string) error {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return err
@@ -443,7 +531,51 @@ func login(config *Config) error {
 		return nil
 	}
 
-	skipTLSVerify, proceed, err := promptShouldSkipTLSVerify(config.Host, config.SkipTLSVerify)
+	loadedCfg, err := readConfig()
+	if err != nil && !errors.Is(err, &ErrUnauthenticated{}) {
+		return err
+	}
+
+	var selectedRegistry *RegistryConfig
+	if loadedCfg != nil {
+		if len(host) == 0 && len(loadedCfg.Registries) == 1 {
+			selectedRegistry = &loadedCfg.Registries[0]
+		}
+		if len(host) == 0 && len(loadedCfg.Registries) > 1 {
+			selectedRegistry = selectARegistry(loadedCfg.Registries)
+		}
+		if len(host) > 0 && len(loadedCfg.Registries) > 0 {
+			for i := range loadedCfg.Registries {
+				if loadedCfg.Registries[i].Host == host {
+					selectedRegistry = &loadedCfg.Registries[i]
+					break
+				}
+			}
+		}
+	}
+
+	if loadedCfg == nil {
+		loadedCfg = NewConfig()
+	}
+
+	if selectedRegistry == nil && len(host) > 0 {
+		// user is specifying a new registry
+		loadedCfg.Registries = append(loadedCfg.Registries, RegistryConfig{
+			Host:    host,
+			Current: true,
+		})
+		selectedRegistry = &loadedCfg.Registries[len(loadedCfg.Registries)-1]
+	}
+
+	if selectedRegistry == nil {
+		// at this point they have not specified a registry and have none to choose from.
+		fmt.Fprintln(os.Stderr, "You must supply the address to an Infra Registry to login")
+		return errors.New("no registry specified")
+	}
+
+	fmt.Fprintf(os.Stderr, "%s logging into %s\n", blue("✓"), selectedRegistry.Host)
+
+	skipTLSVerify, proceed, err := promptShouldSkipTLSVerify(selectedRegistry.Host, selectedRegistry.SkipTLSVerify)
 	if err != nil {
 		return err
 	}
@@ -452,7 +584,7 @@ func login(config *Config) error {
 		return nil
 	}
 
-	client, err := NewApiClient(config.Host, skipTLSVerify)
+	client, err := NewApiClient(selectedRegistry.Host, skipTLSVerify)
 	if err != nil {
 		return err
 	}
@@ -466,7 +598,7 @@ func login(config *Config) error {
 		return errors.New("no sources configured")
 	}
 
-	source, err := promptSelectSource(sources, config.SourceID)
+	source, err := promptSelectSource(sources, selectedRegistry.SourceID)
 
 	switch {
 	case err == nil:
@@ -529,20 +661,24 @@ func login(config *Config) error {
 		return err
 	}
 
-	err = writeConfig(&Config{
-		Name:          loginRes.Name,
-		Token:         loginRes.Token,
-		Host:          config.Host,
-		SkipTLSVerify: skipTLSVerify,
-		SourceID:      source.Id,
-	})
+	for i := range loadedCfg.Registries {
+		loadedCfg.Registries[i].Current = false
+	}
+
+	selectedRegistry.Name = loginRes.Name
+	selectedRegistry.Token = loginRes.Token
+	selectedRegistry.SkipTLSVerify = skipTLSVerify
+	selectedRegistry.SourceID = source.Id
+	selectedRegistry.Current = true
+
+	err = writeConfig(loadedCfg)
 	if err != nil {
 		return err
 	}
 
 	fmt.Fprintln(os.Stderr, blue("✓")+" Logged in as "+termenv.String(loginRes.Name).Bold().String())
 
-	client, err = NewApiClient(config.Host, skipTLSVerify)
+	client, err = NewApiClient(selectedRegistry.Host, skipTLSVerify)
 	if err != nil {
 		return err
 	}
@@ -577,11 +713,18 @@ func login(config *Config) error {
 var loginCmd = &cobra.Command{
 	Use:     "login REGISTRY",
 	Short:   "Login to an Infra Registry",
-	Args:    cobra.ExactArgs(1),
+	Args:    cobra.MaximumNArgs(1),
 	Example: "$ infra login infra.example.com",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return login(&Config{Host: args[0]})
+		return login(first(args))
 	},
+}
+
+func first(s []string) string {
+	if len(s) == 0 {
+		return ""
+	}
+	return s[0]
 }
 
 func newLogoutCmd() (*cobra.Command, error) {
@@ -712,7 +855,7 @@ func newTokenCmd() (*cobra.Command, error) {
 		Short: "Generate a JWT token for connecting to a destination, e.g. Kubernetes",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) != 1 {
-				return errors.New("Expecting destination as an argument")
+				return errors.New("expecting destination as an argument")
 			}
 
 			return token(args[0])

@@ -42,12 +42,12 @@ func token(destination string) error {
 					return err
 				}
 
-				config, err := readConfig()
+				config, err := readCurrentConfig()
 				if err != nil {
 					return &ErrUnauthenticated{}
 				}
 
-				err = login(config)
+				err = login(config.Host)
 				if err != nil {
 					return &ErrUnauthenticated{}
 				}
