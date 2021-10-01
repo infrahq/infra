@@ -395,7 +395,7 @@ func (s *Settings) BeforeSave(tx *gorm.DB) error {
 			return err
 		}
 
-		priv := jose.JSONWebKey{Key: key, KeyID: "", Algorithm: string(jose.ES512), Use: "sig"}
+		priv := jose.JSONWebKey{Key: key, KeyID: "", Algorithm: string(jose.ED25519), Use: "sig"}
 
 		thumb, err := priv.Thumbprint(crypto.SHA256)
 		if err != nil {
@@ -404,7 +404,7 @@ func (s *Settings) BeforeSave(tx *gorm.DB) error {
 
 		kid := base64.URLEncoding.EncodeToString(thumb)
 		priv.KeyID = kid
-		pub := jose.JSONWebKey{Key: pubkey, KeyID: kid, Algorithm: string(jose.ES512), Use: "sig"}
+		pub := jose.JSONWebKey{Key: pubkey, KeyID: kid, Algorithm: string(jose.ED25519), Use: "sig"}
 
 		privJS, err := priv.MarshalJSON()
 		if err != nil {

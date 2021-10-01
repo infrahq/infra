@@ -99,7 +99,7 @@ func (a *Api) bearerAuthMiddleware(required api.InfraAPIPermission, next http.Ha
 		case TokenLen:
 			token, err := ValidateAndGetToken(a.db, raw)
 			if err != nil {
-				logging.L.Debug(err.Error())
+				logging.L.Error(err.Error())
 				switch err.Error() {
 				case "token expired":
 					sendApiError(w, http.StatusForbidden, "forbidden")
@@ -114,7 +114,7 @@ func (a *Api) bearerAuthMiddleware(required api.InfraAPIPermission, next http.Ha
 		case ApiKeyLen:
 			var apiKey ApiKey
 			if err := a.db.First(&apiKey, &ApiKey{Key: raw}).Error; err != nil {
-				logging.L.Debug(err.Error())
+				logging.L.Error(err.Error())
 				sendApiError(w, http.StatusUnauthorized, "unauthorized")
 				return
 			}
@@ -159,6 +159,8 @@ func extractToken(context context.Context) (*Token, error) {
 	if !ok {
 		return nil, errors.New("token not found in context")
 	}
+
+	// todo: should validate token?
 
 	return token, nil
 }
@@ -267,7 +269,7 @@ func (a *Api) ListDestinations(w http.ResponseWriter, r *http.Request) {
 func (a *Api) CreateDestination(w http.ResponseWriter, r *http.Request) {
 	_, err := extractAPIKey(r.Context())
 	if err != nil {
-		logging.L.Debug(err.Error())
+		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusUnauthorized, "unauthorized")
 
 		return
@@ -506,24 +508,24 @@ func (a *Api) ListRoles(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *Api) createJWT(destination, email string) (string, time.Time, error) {
+func (a *Api) createJWT(destination, email string) (rawJWT string, expiry time.Time, err error) {
 	var settings Settings
 
-	err := a.db.First(&settings).Error
+	err = a.db.First(&settings).Error
 	if err != nil {
-		return "", time.Time{}, err
+		return "", time.Time{}, fmt.Errorf("can't find jwt settings: %w", err)
 	}
 
 	var key jose.JSONWebKey
 
 	err = key.UnmarshalJSON(settings.PrivateJWK)
 	if err != nil {
-		return "", time.Time{}, err
+		return "", time.Time{}, fmt.Errorf("unmarshal privateJWK: %w", err)
 	}
 
-	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.ES512, Key: key}, (&jose.SignerOptions{}).WithType("JWT"))
+	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.SignatureAlgorithm(key.Algorithm), Key: key}, (&jose.SignerOptions{}).WithType("JWT"))
 	if err != nil {
-		return "", time.Time{}, err
+		return "", time.Time{}, fmt.Errorf("creating signer: %w", err)
 	}
 
 	nonce, err := generate.RandString(10)
@@ -531,7 +533,7 @@ func (a *Api) createJWT(destination, email string) (string, time.Time, error) {
 		return "", time.Time{}, fmt.Errorf("generating nonce: %w", err)
 	}
 
-	expiry := time.Now().Add(time.Minute * 5)
+	expiry = time.Now().Add(time.Minute * 5)
 	cl := jwt.Claims{
 		Issuer:    "infra",
 		NotBefore: jwt.NewNumericDate(time.Now().Add(-5 * time.Minute)), // allow for clock drift
@@ -544,18 +546,18 @@ func (a *Api) createJWT(destination, email string) (string, time.Time, error) {
 		Nonce:       nonce,
 	}
 
-	raw, err := jwt.Signed(signer).Claims(cl).Claims(custom).CompactSerialize()
+	rawJWT, err = jwt.Signed(signer).Claims(cl).Claims(custom).CompactSerialize()
 	if err != nil {
-		return "", time.Time{}, err
+		return "", time.Time{}, fmt.Errorf("serializing jwt: %w", err)
 	}
 
-	return raw, expiry, nil
+	return rawJWT, expiry, nil
 }
 
 func (a *Api) CreateToken(w http.ResponseWriter, r *http.Request) {
 	token, err := extractToken(r.Context())
 	if err != nil {
-		logging.L.Debug(err.Error())
+		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusUnauthorized, "unauthorized")
 
 		return
@@ -574,6 +576,7 @@ func (a *Api) CreateToken(w http.ResponseWriter, r *http.Request) {
 
 	jwt, expiry, err := a.createJWT(*body.Destination, token.User.Email)
 	if err != nil {
+		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not generate cred")
 		return
 	}
@@ -647,7 +650,7 @@ func (a *Api) Login(w http.ResponseWriter, r *http.Request) {
 
 	secret, err := NewToken(a.db, user.Id, SessionDuration, &token)
 	if err != nil {
-		logging.L.Debug(err.Error())
+		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not create token")
 
 		return
@@ -668,7 +671,7 @@ func (a *Api) Login(w http.ResponseWriter, r *http.Request) {
 func (a *Api) Logout(w http.ResponseWriter, r *http.Request) {
 	token, err := extractToken(r.Context())
 	if err != nil {
-		logging.L.Debug(err.Error())
+		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusBadRequest, "invalid token")
 
 		return
@@ -676,7 +679,7 @@ func (a *Api) Logout(w http.ResponseWriter, r *http.Request) {
 
 	if err := a.db.Where(&Token{UserId: token.UserId}).Delete(&Token{}).Error; err != nil {
 		sendApiError(w, http.StatusInternalServerError, "could not log out user")
-		logging.L.Debug(err.Error())
+		logging.L.Error(err.Error())
 
 		return
 	}

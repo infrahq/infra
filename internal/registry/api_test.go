@@ -830,3 +830,15 @@ func containsUser(users []api.User, email string) bool {
 
 	return false
 }
+
+func TestCredentials(t *testing.T) {
+	a := &Api{db: db}
+
+	err := db.FirstOrCreate(&Settings{}).Error
+	require.NoError(t, err)
+
+	jwt, expiry, err := a.createJWT("dest", "steven@infrahq.com")
+	require.NoError(t, err)
+	require.Greater(t, len(jwt), 1)
+	require.Greater(t, expiry.Unix(), time.Now().Unix())
+}

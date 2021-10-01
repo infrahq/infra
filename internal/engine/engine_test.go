@@ -107,7 +107,7 @@ func generateJWK() (pub *jose.JSONWebKey, priv *jose.JSONWebKey, err error) {
 		return nil, nil, err
 	}
 
-	priv = &jose.JSONWebKey{Key: key, KeyID: "", Algorithm: string(jose.ES512), Use: "sig"}
+	priv = &jose.JSONWebKey{Key: key, KeyID: "", Algorithm: string(jose.ED25519), Use: "sig"}
 
 	thumb, err := priv.Thumbprint(crypto.SHA256)
 	if err != nil {
@@ -116,7 +116,7 @@ func generateJWK() (pub *jose.JSONWebKey, priv *jose.JSONWebKey, err error) {
 
 	kid := base64.URLEncoding.EncodeToString(thumb)
 	priv.KeyID = kid
-	pub = &jose.JSONWebKey{Key: pubkey, KeyID: kid, Algorithm: string(jose.ES512), Use: "sig"}
+	pub = &jose.JSONWebKey{Key: pubkey, KeyID: kid, Algorithm: string(jose.ED25519), Use: "sig"}
 
 	return pub, priv, err
 }
