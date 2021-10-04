@@ -708,7 +708,6 @@ var listCmd = &cobra.Command{
 					continue
 				}
 				// if we had a problem, check all the stops in order to figure out where it's getting stuck
-				fmt.Println("❌")
 				if ok, err := canConnectToEndpoint(row.Endpoint); !ok {
 					rows[i].Status = fmt.Sprintf("💻 → %s → ❌ Can't reach endpoint %q (%s)", globe(), row.Endpoint, err)
 					continue
