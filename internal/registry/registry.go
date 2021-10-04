@@ -11,6 +11,7 @@ import (
 	"net/http/httputil"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/NYTimes/gziphandler"
 	assetfs "github.com/elazarl/go-bindata-assetfs"
@@ -105,9 +106,9 @@ func Run(options Options) error {
 	}
 
 	// be careful with this sync job, there are Okta rate limits on these requests
-	timer := timer.Timer{}
-	defer timer.Stop()
-	timer.Start(interval, func() {
+	syncSourcesTimer := timer.Timer{}
+	defer syncSourcesTimer.Stop()
+	syncSourcesTimer.Start(interval, func() {
 		var sources []Source
 		if err := db.Find(&sources).Error; err != nil {
 			zapLogger.Error(err.Error())
@@ -121,6 +122,27 @@ func Run(options Options) error {
 			err = s.SyncGroups(db, k8s, okta)
 			if err != nil {
 				zapLogger.Error(err.Error())
+			}
+		}
+	})
+
+	// schedule destination sync job
+	syncDestinationsTimer := timer.Timer{}
+	defer syncDestinationsTimer.Stop()
+	syncDestinationsTimer.Start(5*60, func() {
+		now := time.Now()
+
+		var destinations []Destination
+		if err := db.Find(&destinations).Error; err != nil {
+			zapLogger.Error(err.Error())
+		}
+
+		for i, d := range destinations {
+			expiry := time.Unix(d.Updated, 0).Add(time.Hour * 1)
+			if expiry.Before(now) {
+				if err = db.Delete(&destinations[i]).Error; err != nil {
+					zapLogger.Error(err.Error())
+				}
 			}
 		}
 	})
