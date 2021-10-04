@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"os"
-	"fmt"
-	"text/tabwriter"
 	"context"
+	"fmt"
+	"os"
+	"text/tabwriter"
 
 	"github.com/infrahq/infra/internal"
 )

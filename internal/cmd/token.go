@@ -1,15 +1,15 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
-	"encoding/json"
 	"time"
 
 	"github.com/infrahq/infra/internal/api"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"golang.org/x/term"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientauthenticationv1beta1 "k8s.io/client-go/pkg/apis/clientauthentication/v1beta1"
 )
 
@@ -25,6 +25,7 @@ func token(destination string) error {
 	}
 
 	execCredential := &clientauthenticationv1beta1.ExecCredential{}
+
 	err = getCache("dest_tokens", destination, execCredential)
 	if err != nil {
 		return err
@@ -32,6 +33,7 @@ func token(destination string) error {
 
 	if isExpired(execCredential) {
 		credReq := client.CredsApi.CreateCred(ctx).Body(api.CredRequest{Destination: &destination})
+
 		cred, res, err := credReq.Execute()
 		if err != nil {
 			switch res.StatusCode {

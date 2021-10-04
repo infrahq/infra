@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"fmt"
-	"sort"
 	"math/rand"
+	"sort"
 
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -33,6 +33,7 @@ func list() error {
 		if resp != nil && resp.StatusCode == 403 {
 			fmt.Println("403 Forbidden: try `infra login` and then repeat this command")
 		}
+
 		return err
 	}
 
@@ -46,6 +47,7 @@ func list() error {
 	}
 
 	rows := []statusRow{}
+
 	for _, d := range destinations {
 		row := statusRow{
 			Name:   d.Name,
@@ -56,6 +58,7 @@ func list() error {
 			row.CertificateAuthorityData = []byte(kube.Ca)
 			row.Type = "k8s"
 			row.Name = "infra:" + row.Name
+
 			if kubeConfig.CurrentContext == row.Name {
 				row.CurrentlySelected = "*"
 			}
@@ -70,6 +73,7 @@ func list() error {
 			rows[i].Status = fmt.Sprintf("💻 → %s → ❌ Can't reach network: (%s)", globe(), err)
 		}
 	}
+
 	if ok {
 		for i, row := range rows {
 			// check success case first for speed.
@@ -83,6 +87,7 @@ func list() error {
 				rows[i].Status = fmt.Sprintf("💻 → %s → ❌ Can't reach endpoint %q (%s)", globe(), row.Endpoint, err)
 				continue
 			}
+
 			if ok, err := canConnectToTLSEndpoint(row); !ok {
 				rows[i].Status = fmt.Sprintf("💻 → %s → 🌥  → ❌ Can't negotiate TLS (%s)", globe(), err)
 				continue
@@ -91,6 +96,7 @@ func list() error {
 			rows[i].Status = fmt.Sprintf("💻 → %s → 🌥  → 🔒 → ❌ Can't talk to infra engine (%s)", globe(), lastErr)
 		}
 	}
+
 	fmt.Println()
 
 	printTable(rows)

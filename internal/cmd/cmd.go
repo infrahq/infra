@@ -19,7 +19,6 @@ import (
 	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/cli/browser"
-	"github.com/docker/go-units"
 	"github.com/gofrs/flock"
 	"github.com/goware/urlx"
 	"github.com/infrahq/infra/internal/api"
@@ -129,10 +128,6 @@ func printTable(data interface{}) {
 
 func blue(s string) string {
 	return termenv.String(s).Bold().Foreground(termenv.ColorProfile().Color("#0057FF")).String()
-}
-
-func red(s string) string {
-	return termenv.String(s).Bold().Foreground(termenv.ColorProfile().Color("#FA5F55")).String()
 }
 
 func NewApiContext(token string) context.Context {
@@ -597,11 +592,12 @@ func newLogoutCmd() (*cobra.Command, error) {
 			return logout()
 		},
 	}
+
 	return cmd, nil
 }
 
 func newListCmd() (*cobra.Command, error) {
-	cmd := &cobra.Command {
+	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List destinations",
@@ -700,8 +696,8 @@ func newEngineCmd() (*cobra.Command, error) {
 
 func newVersionCmd() (*cobra.Command, error) {
 	cmd := &cobra.Command{
-		Use:     "version",
-		Short:   "Display the Infra build version",
+		Use:   "version",
+		Short: "Display the Infra build version",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return version()
 		},
