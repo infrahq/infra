@@ -8,20 +8,17 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
-	"text/tabwriter"
 	"time"
 
 	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/cli/browser"
-	"github.com/docker/go-units"
 	"github.com/gofrs/flock"
 	"github.com/goware/urlx"
 	"github.com/infrahq/infra/internal/api"
@@ -29,12 +26,9 @@ import (
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry"
-	"github.com/infrahq/infra/internal/version"
 	"github.com/lensesio/tableprinter"
 	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
-	"golang.org/x/term"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientauthenticationv1beta1 "k8s.io/client-go/pkg/apis/clientauthentication/v1beta1"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -136,10 +130,6 @@ func blue(s string) string {
 	return termenv.String(s).Bold().Foreground(termenv.ColorProfile().Color("#0057FF")).String()
 }
 
-func red(s string) string {
-	return termenv.String(s).Bold().Foreground(termenv.ColorProfile().Color("#FA5F55")).String()
-}
-
 func NewApiContext(token string) context.Context {
 	return context.WithValue(context.Background(), api.ContextAccessToken, token)
 }
@@ -235,7 +225,7 @@ func updateKubeconfig(destinations []api.Destination) error {
 		kubeConfig.AuthInfos[contextName] = &clientcmdapi.AuthInfo{
 			Exec: &clientcmdapi.ExecConfig{
 				Command:    executable,
-				Args:       []string{"creds", d.Name},
+				Args:       []string{"token", d.Name},
 				APIVersion: "client.authentication.k8s.io/v1beta1",
 			},
 		}
@@ -594,238 +584,29 @@ var loginCmd = &cobra.Command{
 	},
 }
 
-var logoutCmd = &cobra.Command{
-	Use:   "logout",
-	Short: "Logout of an Infra Registry",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		config, err := readConfig()
-		if err != nil {
-			return err
-		}
+func newLogoutCmd() (*cobra.Command, error) {
+	cmd := &cobra.Command{
+		Use:   "logout",
+		Short: "Logout of an Infra Registry",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return logout()
+		},
+	}
 
-		if config.Token == "" {
-			return nil
-		}
-
-		client, err := NewApiClient(config.Host, config.SkipTLSVerify)
-		if err != nil {
-			return err
-		}
-
-		_, err = client.AuthApi.Logout(NewApiContext(config.Token)).Execute()
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-		}
-
-		err = removeConfig()
-		if err != nil {
-			return err
-		}
-
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			return err
-		}
-
-		os.Remove(filepath.Join(homeDir, ".infra", "destinations"))
-
-		return updateKubeconfig([]api.Destination{})
-	},
+	return cmd, nil
 }
 
-type statusRow struct {
-	CurrentlySelected        string `header:" "` // * if selected
-	Name                     string `header:"NAME"`
-	Type                     string `header:"TYPE"`
-	Status                   string `header:"STATUS"`
-	Endpoint                 string // don't display in table
-	CertificateAuthorityData []byte // don't display in table
-}
+func newListCmd() (*cobra.Command, error) {
+	cmd := &cobra.Command{
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List destinations",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return list()
+		},
+	}
 
-var listCmd = &cobra.Command{
-	Use:     "list",
-	Aliases: []string{"ls"},
-	Short:   "List destinations",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := apiClientFromConfig()
-		if err != nil {
-			return err
-		}
-
-		ctx, err := apiContextFromConfig()
-		if err != nil {
-			return err
-		}
-
-		destinations, resp, err := client.DestinationsApi.ListDestinations(ctx).Execute()
-		if err != nil {
-			if resp != nil && resp.StatusCode == 403 {
-				fmt.Println("403 Forbidden: try `infra login` and then repeat this command")
-			}
-			return err
-		}
-
-		sort.Slice(destinations, func(i, j int) bool {
-			return destinations[i].Created > destinations[j].Created
-		})
-
-		kubeConfig, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), nil).RawConfig()
-		if err != nil {
-			println(err.Error())
-		}
-
-		rows := []statusRow{}
-		for _, d := range destinations {
-			row := statusRow{
-				Name:   d.Name,
-				Status: "💻 → ❌ Can't reach internet",
-			}
-			if kube, ok := d.GetKubernetesOk(); ok {
-				row.Endpoint = kube.Endpoint
-				row.CertificateAuthorityData = []byte(kube.Ca)
-				row.Type = "k8s"
-				row.Name = "infra:" + row.Name
-				if kubeConfig.CurrentContext == row.Name {
-					row.CurrentlySelected = "*"
-				}
-			}
-			// other dest types?
-			rows = append(rows, row)
-		}
-
-		ok, err := canReachInternet()
-		if !ok {
-			for i := range rows {
-				rows[i].Status = fmt.Sprintf("💻 → %s → ❌ Can't reach network: (%s)", globe(), err)
-			}
-		}
-		if ok {
-			for i, row := range rows {
-				// check success case first for speed.
-				ok, lastErr := canGetEngineStatus(row)
-				if ok {
-					rows[i].Status = "✅ OK"
-					continue
-				}
-				// if we had a problem, check all the stops in order to figure out where it's getting stuck
-				if ok, err := canConnectToEndpoint(row.Endpoint); !ok {
-					rows[i].Status = fmt.Sprintf("💻 → %s → ❌ Can't reach endpoint %q (%s)", globe(), row.Endpoint, err)
-					continue
-				}
-				if ok, err := canConnectToTLSEndpoint(row); !ok {
-					rows[i].Status = fmt.Sprintf("💻 → %s → 🌥  → ❌ Can't negotiate TLS (%s)", globe(), err)
-					continue
-				}
-				// if we made it here, we must be talking to something that isn't the engine.
-				rows[i].Status = fmt.Sprintf("💻 → %s → 🌥  → 🔒 → ❌ Can't talk to infra engine (%s)", globe(), lastErr)
-			}
-		}
-		fmt.Println()
-
-		printTable(rows)
-
-		err = updateKubeconfig(destinations)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	},
-}
-
-var usersCmd = &cobra.Command{
-	Use:   "users",
-	Short: "List users",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		config, err := readConfig()
-		if err != nil {
-			return err
-		}
-
-		client, err := apiClientFromConfig()
-		if err != nil {
-			return err
-		}
-
-		ctx, err := apiContextFromConfig()
-		if err != nil {
-			return err
-		}
-
-		users, _, err := client.UsersApi.ListUsers(ctx).Execute()
-		if err != nil {
-			return err
-		}
-
-		sort.Slice(users, func(i, j int) bool {
-			return users[i].Created > users[j].Created
-		})
-
-		type userRec struct {
-			CurrentlySelected string `header:""`
-			Email             string `header:"EMAIL"`
-			Created           string `header:"CREATED"`
-		}
-		rows := []userRec{}
-		for _, u := range users {
-			row := userRec{
-				Email:   u.Email,
-				Created: units.HumanDuration(time.Now().UTC().Sub(time.Unix(u.Created, 0))) + " ago",
-			}
-
-			if u.Email == config.Name {
-				row.CurrentlySelected = "*"
-			}
-			rows = append(rows, row)
-		}
-
-		printTable(rows)
-
-		return nil
-	},
-}
-
-var groupsCmd = &cobra.Command{
-	Use:   "groups",
-	Short: "List groups",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := apiClientFromConfig()
-		if err != nil {
-			return err
-		}
-
-		ctx, err := apiContextFromConfig()
-		if err != nil {
-			return err
-		}
-
-		groups, _, err := client.GroupsApi.ListGroups(ctx).Execute()
-		if err != nil {
-			return err
-		}
-
-		sort.Slice(groups, func(i, j int) bool {
-			return groups[i].Created > groups[j].Created
-		})
-
-		type groupRec struct {
-			Name    string `header:"NAME"`
-			Created string `header:"CREATED"`
-			Source  string `header:"SOURCE"`
-		}
-		var rows []groupRec
-		for _, g := range groups {
-			row := groupRec{
-				Name:    g.Name,
-				Created: units.HumanDuration(time.Now().UTC().Sub(time.Unix(g.Created, 0))) + " ago",
-				Source:  g.Source,
-			}
-			rows = append(rows, row)
-		}
-
-		printTable(rows)
-		return nil
-	},
+	return cmd, nil
 }
 
 func newRegistryCmd() (*cobra.Command, error) {
@@ -913,275 +694,75 @@ func newEngineCmd() (*cobra.Command, error) {
 	return cmd, nil
 }
 
-var versionCmd = &cobra.Command{
-	Use:     "version",
-	Aliases: []string{"v"},
-	Short:   "Display the Infra build version",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
-		defer w.Flush()
-		fmt.Fprintln(w)
-		fmt.Fprintln(w, "Client:\t", version.Version)
-
-		client, err := apiClientFromConfig()
-		if err != nil {
-			fmt.Fprintln(w, blue("✕")+" Could not retrieve client version")
-			return err
-		}
-
-		// Note that we use the client to get this version, but it is in fact the server version
-		res, _, err := client.VersionApi.Version(context.Background()).Execute()
-		if err != nil {
-			fmt.Fprintln(w, "Registry:\t", "not connected")
-			return err
-		}
-
-		fmt.Fprintln(w, "Registry:\t", res.Version)
-		fmt.Fprintln(w)
-
-		return nil
-	},
-}
-
-type apiKeyRow struct {
-	Name    string `header:"NAME"`
-	Created string `header:"CREATED"`
-}
-
-var apiKeysCmd = &cobra.Command{
-	Use:   "api-keys",
-	Short: "List API keys",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := apiClientFromConfig()
-		if err != nil {
-			return err
-		}
-
-		ctx, err := apiContextFromConfig()
-		if err != nil {
-			return err
-		}
-
-		apiKeys, _, err := client.ApiKeysApi.ListAPIKeys(ctx).Execute()
-		if err != nil {
-			return err
-		}
-
-		sort.Slice(apiKeys, func(i, j int) bool {
-			return apiKeys[i].Created > apiKeys[j].Created
-		})
-
-		rows := []apiKeyRow{}
-		for _, k := range apiKeys {
-			rows = append(rows, apiKeyRow{k.Name, units.HumanDuration(time.Now().UTC().Sub(time.Unix(k.Created, 0))) + " ago"})
-		}
-
-		printTable(rows)
-		return nil
-	},
-}
-
-func newAPIKeyCreateCmd() *cobra.Command {
+func newVersionCmd() (*cobra.Command, error) {
 	cmd := &cobra.Command{
-		Use:     "create NAME",
-		Short:   "Create a new API key that can be used to access the Infra API",
-		Args:    cobra.ExactArgs(1),
-		Example: "$ infra api-key create automation-token",
+		Use:   "version",
+		Short: "Display the Infra build version",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			client, err := apiClientFromConfig()
-			if err != nil {
-				return err
-			}
-
-			ctx, err := apiContextFromConfig()
-			if err != nil {
-				return err
-			}
-
-			apiKeyReq := api.InfraAPIKeyCreateRequest{
-				Name: args[0],
-			}
-			apiKey, resp, err := client.ApiKeysApi.CreateAPIKey(ctx).Body(apiKeyReq).Execute()
-			if err != nil {
-				var errResp api.Error
-				if decodeErr := json.NewDecoder(resp.Body).Decode(&errResp); decodeErr != nil {
-					fmt.Fprintln(os.Stderr, "could not decode error response, "+decodeErr.Error())
-				}
-				fmt.Fprintln(os.Stderr, red(errResp.Message))
-				return err
-			}
-			fmt.Fprintln(os.Stdout, red("API Key ")+apiKey.Name+" created")
-			fmt.Fprintln(os.Stdout, "key: "+apiKey.Key)
-			return nil
+			return version()
 		},
 	}
 
-	return cmd
+	return cmd, nil
 }
 
-func newAPIKeyDeleteCmd() *cobra.Command {
+func newTokenCmd() (*cobra.Command, error) {
 	cmd := &cobra.Command{
-		Use:     "delete NAME",
-		Short:   "Delete an API key by name",
-		Args:    cobra.ExactArgs(1),
-		Example: "$ infra api-key delete automation-token",
+		Use:   "token DESTINATION",
+		Short: "Generate a JWT token for connecting to a destination, e.g. Kubernetes",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			client, err := apiClientFromConfig()
-			if err != nil {
-				return err
+			if len(args) != 1 {
+				return errors.New("Expecting destination as an argument")
 			}
 
-			ctx, err := apiContextFromConfig()
-			if err != nil {
-				return err
-			}
-
-			apiKey, _, err := client.ApiKeysApi.ListAPIKeys(ctx).Name(args[0]).Execute()
-			if err != nil {
-				return err
-			}
-
-			switch len(apiKey) {
-			case 1:
-				// success case
-			case 0:
-				return errors.New("could not find an API key with the name " + args[0])
-			default:
-				// this should not happen, the API key name should be unique
-				return errors.New("a unique API key could not be identified with the name " + args[0])
-			}
-
-			_, err = client.ApiKeysApi.DeleteApiKey(ctx, apiKey[0].Id).Execute()
-			if err != nil {
-				return err
-			}
-			fmt.Fprintln(os.Stdout, "deleted: "+args[0])
-			return nil
+			return token(args[0])
 		},
 	}
 
-	return cmd
-}
-
-var credsCmd = &cobra.Command{
-	Use:   "creds",
-	Short: "Generate a JWT token for connecting to a destination, eg k8s",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := apiClientFromConfig()
-		if err != nil {
-			return err
-		}
-
-		ctx, err := apiContextFromConfig()
-		if err != nil {
-			return err
-		}
-
-		if len(args) != 1 {
-			return errors.New("expecting destination as argument")
-		}
-
-		destination := args[0]
-		execCredential := &clientauthenticationv1beta1.ExecCredential{}
-
-		err = getCache("dest_tokens", destination, execCredential)
-		if err != nil {
-			return err
-		}
-
-		if isExpired(execCredential) {
-			credReq := client.CredsApi.CreateCred(ctx).Body(api.CredRequest{Destination: &destination})
-			cred, res, err := credReq.Execute()
-			if err != nil {
-				switch res.StatusCode {
-				case http.StatusForbidden:
-					if !term.IsTerminal(int(os.Stdin.Fd())) {
-						return err
-					}
-
-					config, err := readConfig()
-					if err != nil {
-						return &ErrUnauthenticated{}
-					}
-
-					err = login(config)
-					if err != nil {
-						return &ErrUnauthenticated{}
-					}
-
-					ctx, err := apiContextFromConfig()
-					if err != nil {
-						return &ErrUnauthenticated{}
-					}
-
-					cred, _, err = client.CredsApi.CreateCred(ctx).Body(api.CredRequest{Destination: &destination}).Execute()
-					if err != nil {
-						return &ErrUnauthenticated{}
-					}
-
-				default:
-					return err
-				}
-			}
-
-			execCredential = &clientauthenticationv1beta1.ExecCredential{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "ExecCredential",
-					APIVersion: clientauthenticationv1beta1.SchemeGroupVersion.String(),
-				},
-				Spec: clientauthenticationv1beta1.ExecCredentialSpec{},
-				Status: &clientauthenticationv1beta1.ExecCredentialStatus{
-					Token:               cred.Token,
-					ExpirationTimestamp: &metav1.Time{Time: time.Unix(cred.Expires, 0)},
-				},
-			}
-			if err := setCache("dest_tokens", destination, execCredential); err != nil {
-				return err
-			}
-		}
-
-		bts, err := json.Marshal(execCredential)
-		if err != nil {
-			return err
-		}
-
-		fmt.Println(string(bts))
-
-		return nil
-	},
+	return cmd, nil
 }
 
 func NewRootCmd() (*cobra.Command, error) {
 	cobra.EnableCommandSorting = false
 
-	rootCmd.AddCommand(listCmd)
-	rootCmd.AddCommand(usersCmd)
-	rootCmd.AddCommand(groupsCmd)
-	rootCmd.AddCommand(loginCmd)
-	rootCmd.AddCommand(logoutCmd)
+	logoutCmd, err := newLogoutCmd()
+	if err != nil {
+		return nil, err
+	}
+
+	listCmd, err := newListCmd()
+	if err != nil {
+		return nil, err
+	}
+
+	tokenCmd, err := newTokenCmd()
+	if err != nil {
+		return nil, err
+	}
+
+	versionCmd, err := newVersionCmd()
+	if err != nil {
+		return nil, err
+	}
 
 	registryCmd, err := newRegistryCmd()
 	if err != nil {
 		return nil, err
 	}
 
-	rootCmd.AddCommand(registryCmd)
-
 	engineCmd, err := newEngineCmd()
 	if err != nil {
 		return nil, err
 	}
 
-	rootCmd.AddCommand(engineCmd)
-
-	apiKeysCmd.AddCommand(newAPIKeyCreateCmd())
-	apiKeysCmd.AddCommand(newAPIKeyDeleteCmd())
-	rootCmd.AddCommand(apiKeysCmd)
-
+	rootCmd.AddCommand(loginCmd)
+	rootCmd.AddCommand(logoutCmd)
+	rootCmd.AddCommand(listCmd)
+	rootCmd.AddCommand(tokenCmd)
 	rootCmd.AddCommand(versionCmd)
 
-	// Hidden commands
-	rootCmd.AddCommand(credsCmd)
+	rootCmd.AddCommand(registryCmd)
+	rootCmd.AddCommand(engineCmd)
 
 	return rootCmd, nil
 }
@@ -1274,16 +855,4 @@ func isExpired(cred *clientauthenticationv1beta1.ExecCredential) bool {
 	now := time.Now().Add(1 * time.Second)
 	// only valid if it hasn't expired yet
 	return cred.Status.ExpirationTimestamp.Time.Before(now)
-}
-
-func globe() string {
-	//nolint:gosec // No need for crypto random
-	switch rand.Intn(3) {
-	case 1:
-		return "🌍"
-	case 2:
-		return "🌏"
-	default:
-		return "🌎"
-	}
 }

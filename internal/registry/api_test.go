@@ -11,11 +11,11 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/registry/mocks"
-	"github.com/infrahq/infra/internal/version"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -542,7 +542,7 @@ func TestVersion(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, version.Version, body.Version)
+	assert.Equal(t, internal.Version, body.Version)
 }
 
 func TestListRolesForDestinationReturnsRolesFromConfig(t *testing.T) {
