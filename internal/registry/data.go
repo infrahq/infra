@@ -359,7 +359,10 @@ func (s *Source) SyncGroups(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) 
 		if err != nil {
 			return err
 		}
-		tx.Model(&inactiveGroups).Association("Users").Clear()
+		err = tx.Model(&inactiveGroups).Association("Users").Clear()
+		if err != nil {
+			return err
+		}
 		err = tx.Model(&inactiveGroups).Update("active", false).Error
 		if err != nil {
 			return err

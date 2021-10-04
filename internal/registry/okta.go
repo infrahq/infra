@@ -118,6 +118,7 @@ func (o *oktaImplementation) Groups(domain string, clientID string, apiToken str
 
 	// for each group in the infra config that is assigned to the application, find the users it has in Okta
 	grpUsers := make(map[string][]string)
+
 	for _, g := range oktaApplicationGroups {
 		gUsers, resp, err := client.Group.ListGroupUsers(ctx, g.Id, nil)
 		if err != nil {
@@ -134,7 +135,8 @@ func (o *oktaImplementation) Groups(domain string, clientID string, apiToken str
 
 			gUsers = append(gUsers, nextUserSet...)
 		}
-		var emails []string
+
+		emails := []string{}
 
 		for _, gUser := range gUsers {
 			profile := *gUser.Profile
@@ -148,6 +150,7 @@ func (o *oktaImplementation) Groups(domain string, clientID string, apiToken str
 				emails = append(emails, email)
 			}
 		}
+
 		name := grpNames[g.Id]
 		grpUsers[name] = emails
 	}

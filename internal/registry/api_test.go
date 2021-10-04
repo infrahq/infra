@@ -643,6 +643,7 @@ func TestListGroups(t *testing.T) {
 	if err := db.Model(Group{}).Where(&Group{Name: "heroes"}).Update("active", true).Error; err != nil {
 		t.Fatal(err)
 	}
+
 	if err := db.Model(Group{}).Where(&Group{Name: "villains"}).Update("active", true).Error; err != nil {
 		t.Fatal(err)
 	}
