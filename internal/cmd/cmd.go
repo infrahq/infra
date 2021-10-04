@@ -30,8 +30,6 @@ import (
 	"github.com/lensesio/tableprinter"
 	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
-	"golang.org/x/term"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientauthenticationv1beta1 "k8s.io/client-go/pkg/apis/clientauthentication/v1beta1"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -232,7 +230,7 @@ func updateKubeconfig(destinations []api.Destination) error {
 		kubeConfig.AuthInfos[contextName] = &clientcmdapi.AuthInfo{
 			Exec: &clientcmdapi.ExecConfig{
 				Command:    executable,
-				Args:       []string{"creds", d.Name},
+				Args:       []string{"token", d.Name},
 				APIVersion: "client.authentication.k8s.io/v1beta1",
 			},
 		}
@@ -927,103 +925,36 @@ func newAPIKeyDeleteCmd() *cobra.Command {
 	return cmd
 }
 
-var credsCmd = &cobra.Command{
-	Use:   "creds",
-	Short: "Generate a JWT token for connecting to a destination, eg k8s",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := apiClientFromConfig()
-		if err != nil {
-			return err
-		}
-
-		ctx, err := apiContextFromConfig()
-		if err != nil {
-			return err
-		}
-
-		if len(args) != 1 {
-			return errors.New("expecting destination as argument")
-		}
-
-		destination := args[0]
-		execCredential := &clientauthenticationv1beta1.ExecCredential{}
-
-		err = getCache("dest_tokens", destination, execCredential)
-		if err != nil {
-			return err
-		}
-
-		if isExpired(execCredential) {
-			credReq := client.CredsApi.CreateCred(ctx).Body(api.CredRequest{Destination: &destination})
-			cred, res, err := credReq.Execute()
-			if err != nil {
-				switch res.StatusCode {
-				case http.StatusForbidden:
-					if !term.IsTerminal(int(os.Stdin.Fd())) {
-						return err
-					}
-
-					config, err := readConfig()
-					if err != nil {
-						return &ErrUnauthenticated{}
-					}
-
-					err = login(config)
-					if err != nil {
-						return &ErrUnauthenticated{}
-					}
-
-					ctx, err := apiContextFromConfig()
-					if err != nil {
-						return &ErrUnauthenticated{}
-					}
-
-					cred, _, err = client.CredsApi.CreateCred(ctx).Body(api.CredRequest{Destination: &destination}).Execute()
-					if err != nil {
-						return &ErrUnauthenticated{}
-					}
-
-				default:
-					return err
-				}
+func newTokenCmd() (*cobra.Command, error) {
+	cmd := &cobra.Command{
+		Use:   "token DESTINATION",
+		Short: "Generate a JWT token for connecting to a destination, e.g. Kubernetes",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) != 1 {
+				return errors.New("Expecting destination as an argument")
 			}
 
-			execCredential = &clientauthenticationv1beta1.ExecCredential{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "ExecCredential",
-					APIVersion: clientauthenticationv1beta1.SchemeGroupVersion.String(),
-				},
-				Spec: clientauthenticationv1beta1.ExecCredentialSpec{},
-				Status: &clientauthenticationv1beta1.ExecCredentialStatus{
-					Token:               cred.Token,
-					ExpirationTimestamp: &metav1.Time{Time: time.Unix(cred.Expires, 0)},
-				},
-			}
-			if err := setCache("dest_tokens", destination, execCredential); err != nil {
-				return err
-			}
-		}
+			return token(args[0])
+		},
+	}
 
-		bts, err := json.Marshal(execCredential)
-		if err != nil {
-			return err
-		}
-
-		fmt.Println(string(bts))
-
-		return nil
-	},
+	return cmd, nil
 }
 
 func NewRootCmd() (*cobra.Command, error) {
 	cobra.EnableCommandSorting = false
+
+	logoutCmd, err := newLogoutCmd()
+	if err != nil {
+		return nil, err
+	}
 
 	listCmd, err := newListCmd()
 	if err != nil {
 		return nil, err
 	}
 
-	logoutCmd, err := newLogoutCmd()
+	tokenCmd, err := newTokenCmd()
 	if err != nil {
 		return nil, err
 	}
@@ -1043,11 +974,11 @@ func NewRootCmd() (*cobra.Command, error) {
 		return nil, err
 	}
 
-	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(loginCmd)
 	rootCmd.AddCommand(logoutCmd)
+	rootCmd.AddCommand(listCmd)
+	rootCmd.AddCommand(tokenCmd)
 	rootCmd.AddCommand(versionCmd)
-	rootCmd.AddCommand(credsCmd)
 
 	rootCmd.AddCommand(registryCmd)
 	rootCmd.AddCommand(engineCmd)
