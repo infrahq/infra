@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -633,104 +632,17 @@ var logoutCmd = &cobra.Command{
 	},
 }
 
-type statusRow struct {
-	CurrentlySelected        string `header:" "` // * if selected
-	Name                     string `header:"NAME"`
-	Type                     string `header:"TYPE"`
-	Status                   string `header:"STATUS"`
-	Endpoint                 string // don't display in table
-	CertificateAuthorityData []byte // don't display in table
-}
+func newListCmd() (*cobra.Command, error) {
+	cmd := &cobra.Command {
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List destinations",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return list()
+		},
+	}
 
-var listCmd = &cobra.Command{
-	Use:     "list",
-	Aliases: []string{"ls"},
-	Short:   "List destinations",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := apiClientFromConfig()
-		if err != nil {
-			return err
-		}
-
-		ctx, err := apiContextFromConfig()
-		if err != nil {
-			return err
-		}
-
-		destinations, resp, err := client.DestinationsApi.ListDestinations(ctx).Execute()
-		if err != nil {
-			if resp != nil && resp.StatusCode == 403 {
-				fmt.Println("403 Forbidden: try `infra login` and then repeat this command")
-			}
-			return err
-		}
-
-		sort.Slice(destinations, func(i, j int) bool {
-			return destinations[i].Created > destinations[j].Created
-		})
-
-		kubeConfig, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), nil).RawConfig()
-		if err != nil {
-			println(err.Error())
-		}
-
-		rows := []statusRow{}
-		for _, d := range destinations {
-			row := statusRow{
-				Name:   d.Name,
-				Status: "💻 → ❌ Can't reach internet",
-			}
-			if kube, ok := d.GetKubernetesOk(); ok {
-				row.Endpoint = kube.Endpoint
-				row.CertificateAuthorityData = []byte(kube.Ca)
-				row.Type = "k8s"
-				row.Name = "infra:" + row.Name
-				if kubeConfig.CurrentContext == row.Name {
-					row.CurrentlySelected = "*"
-				}
-			}
-			// other dest types?
-			rows = append(rows, row)
-		}
-
-		ok, err := canReachInternet()
-		if !ok {
-			for i := range rows {
-				rows[i].Status = fmt.Sprintf("💻 → %s → ❌ Can't reach network: (%s)", globe(), err)
-			}
-		}
-		if ok {
-			for i, row := range rows {
-				// check success case first for speed.
-				ok, lastErr := canGetEngineStatus(row)
-				if ok {
-					rows[i].Status = "✅ OK"
-					continue
-				}
-				// if we had a problem, check all the stops in order to figure out where it's getting stuck
-				if ok, err := canConnectToEndpoint(row.Endpoint); !ok {
-					rows[i].Status = fmt.Sprintf("💻 → %s → ❌ Can't reach endpoint %q (%s)", globe(), row.Endpoint, err)
-					continue
-				}
-				if ok, err := canConnectToTLSEndpoint(row); !ok {
-					rows[i].Status = fmt.Sprintf("💻 → %s → 🌥  → ❌ Can't negotiate TLS (%s)", globe(), err)
-					continue
-				}
-				// if we made it here, we must be talking to something that isn't the engine.
-				rows[i].Status = fmt.Sprintf("💻 → %s → 🌥  → 🔒 → ❌ Can't talk to infra engine (%s)", globe(), lastErr)
-			}
-		}
-		fmt.Println()
-
-		printTable(rows)
-
-		err = updateKubeconfig(destinations)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	},
+	return cmd, nil
 }
 
 var usersCmd = &cobra.Command{
@@ -1154,34 +1066,29 @@ var credsCmd = &cobra.Command{
 func NewRootCmd() (*cobra.Command, error) {
 	cobra.EnableCommandSorting = false
 
-	rootCmd.AddCommand(listCmd)
-	rootCmd.AddCommand(usersCmd)
-	rootCmd.AddCommand(groupsCmd)
-	rootCmd.AddCommand(loginCmd)
-	rootCmd.AddCommand(logoutCmd)
+	listCmd, err := newListCmd()
+	if err != nil {
+		return nil, err
+	}
 
 	registryCmd, err := newRegistryCmd()
 	if err != nil {
 		return nil, err
 	}
 
-	rootCmd.AddCommand(registryCmd)
-
 	engineCmd, err := newEngineCmd()
 	if err != nil {
 		return nil, err
 	}
 
-	rootCmd.AddCommand(engineCmd)
-
-	apiKeysCmd.AddCommand(newAPIKeyCreateCmd())
-	apiKeysCmd.AddCommand(newAPIKeyDeleteCmd())
-	rootCmd.AddCommand(apiKeysCmd)
-
+	rootCmd.AddCommand(listCmd)
+	rootCmd.AddCommand(loginCmd)
+	rootCmd.AddCommand(logoutCmd)
 	rootCmd.AddCommand(versionCmd)
-
-	// Hidden commands
 	rootCmd.AddCommand(credsCmd)
+
+	rootCmd.AddCommand(registryCmd)
+	rootCmd.AddCommand(engineCmd)
 
 	return rootCmd, nil
 }
@@ -1274,16 +1181,4 @@ func isExpired(cred *clientauthenticationv1beta1.ExecCredential) bool {
 	now := time.Now().Add(1 * time.Second)
 	// only valid if it hasn't expired yet
 	return cred.Status.ExpirationTimestamp.Time.Before(now)
-}
-
-func globe() string {
-	//nolint:gosec // No need for crypto random
-	switch rand.Intn(3) {
-	case 1:
-		return "🌍"
-	case 2:
-		return "🌏"
-	default:
-		return "🌎"
-	}
 }
