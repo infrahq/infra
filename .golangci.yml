@@ -1,0 +1,47 @@
+run:
+  skip-files:
+    - internal/registry/bindata_ui.go
+
+  timeout: 5m
+
+linters-settings:
+  revive:
+    rules:
+      - name: var-naming
+        arguments: [[ ID, API, HTTP ], []]
+
+linters:
+  enable:
+    - asciicheck
+    - deadcode
+    - durationcheck
+    - errcheck
+    - errorlint
+    - exhaustive
+    - exportloopref
+    - forcetypeassert
+    - gci
+    - gocritic
+    - gofmt
+    - gofumpt
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - makezero
+    - misspell
+    - nakedret
+    - nilerr
+    - noctx
+    - revive
+    - rowserrcheck
+    - sqlclosecheck
+    - staticcheck
+    - structcheck
+    - typecheck
+    - unused
+    - varcheck
+    - wastedassign
+    - wsl
+  disable:
+    - scopelint

@@ -1,9 +1,13 @@
 package main
 
 import (
+	"os"
+
 	"github.com/infrahq/infra/internal/cmd"
 )
 
 func main() {
-	cmd.Run()
+	if err := cmd.Run(); err != nil {
+		os.Exit(1)
+	}
 }

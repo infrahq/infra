@@ -2,6 +2,7 @@ package certs
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
@@ -11,7 +12,6 @@ import (
 	"math/big"
 	"net"
 	"time"
-	"context"
 
 	"golang.org/x/crypto/acme/autocert"
 )
@@ -23,6 +23,7 @@ func SelfSignedCert(hosts []string) ([]byte, []byte, error) {
 	}
 
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
+
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
 		return nil, nil, err
@@ -53,14 +54,17 @@ func SelfSignedCert(hosts []string) ([]byte, []byte, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+
 	certPEM := new(bytes.Buffer)
 	if err := pem.Encode(certPEM, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes}); err != nil {
 		return nil, nil, err
 	}
+
 	keyBytes, err := x509.MarshalPKCS8PrivateKey(priv)
 	if err != nil {
 		return nil, nil, err
 	}
+
 	keyPEM := new(bytes.Buffer)
 	if err := pem.Encode(keyPEM, &pem.Block{Type: "PRIVATE KEY", Bytes: keyBytes}); err != nil {
 		return nil, nil, err
@@ -99,15 +103,19 @@ func SelfSignedOrLetsEncryptCert(manager *autocert.Manager, serverNameFunc func(
 
 			return certBytes, keyBytes, nil
 		}()
-
 		if err != nil {
 			certBytes, keyBytes, err = SelfSignedCert([]string{name})
 			if err != nil {
 				return nil, err
 			}
 
-			manager.Cache.Put(context.TODO(), name+".crt", certBytes)
-			manager.Cache.Put(context.TODO(), name+".key", keyBytes)
+			if err := manager.Cache.Put(context.TODO(), name+".crt", certBytes); err != nil {
+				return nil, err
+			}
+
+			if err := manager.Cache.Put(context.TODO(), name+".key", keyBytes); err != nil {
+				return nil, err
+			}
 		}
 
 		keypair, err := tls.X509KeyPair(certBytes, keyBytes)

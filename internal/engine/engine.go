@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
@@ -14,7 +15,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"fmt"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/handlers"
@@ -55,10 +55,16 @@ func (j *jwkCache) getjwk() (*jose.JSONWebKey, error) {
 		return j.key, nil
 	}
 
-	res, err := j.client.Get(j.baseURL + "/.well-known/jwks.json")
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, j.baseURL+"/.well-known/jwks.json", nil)
 	if err != nil {
 		return nil, err
 	}
+
+	res, err := j.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
 
 	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
@@ -68,6 +74,7 @@ func (j *jwkCache) getjwk() (*jose.JSONWebKey, error) {
 	var response struct {
 		Keys []jose.JSONWebKey `json:"keys"`
 	}
+
 	err = json.Unmarshal(data, &response)
 	if err != nil {
 		return nil, err
@@ -92,7 +99,7 @@ type HttpContextKeyEmail struct{}
 func jwtMiddleware(destination string, getjwk GetJWKFunc, next http.HandlerFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authorization := r.Header.Get("Authorization")
-		raw := strings.Replace(authorization, "Bearer ", "", -1)
+		raw := strings.ReplaceAll(authorization, "Bearer ", "")
 		if raw == "" {
 			logging.L.Debug("No bearer token found")
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -159,27 +166,25 @@ func jwtMiddleware(destination string, getjwk GetJWKFunc, next http.HandlerFunc)
 func proxyHandler(ca []byte, bearerToken string, remote *url.URL) (http.HandlerFunc, error) {
 	caCertPool := x509.NewCertPool()
 	ok := caCertPool.AppendCertsFromPEM(ca)
+
 	if !ok {
 		return nil, errors.New("could not append ca to client cert bundle")
 	}
+
 	proxy := httputil.NewSingleHostReverseProxy(remote)
 	proxy.Transport = &http.Transport{
 		TLSClientConfig: &tls.Config{
-			RootCAs: caCertPool,
+			RootCAs:    caCertPool,
+			MinVersion: tls.VersionTLS12,
 		},
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Sometimes the kubernetes proxy strips query string for Upgrade requests
-		// so we need to put that in the request body
-		if r.Header.Get("X-Infra-Query") != "" {
-			r.URL.RawQuery = r.Header.Get("X-Infra-Query")
-		}
-
 		email, ok := r.Context().Value(HttpContextKeyEmail{}).(string)
 		if !ok {
 			logging.L.Debug("Proxy handler unable to retrieve email from context")
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
+
 			return
 		}
 
@@ -198,11 +203,15 @@ func (b *BearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if b.Token != "" {
 		req.Header.Set("Authorization", "Bearer "+b.Token)
 	}
+
 	return b.Transport.RoundTrip(req)
 }
 
 func Run(options Options) error {
-	registryTLSConfig := &tls.Config{}
+	registryTLSConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+
 	if !options.ForceTLSVerify {
 		// TODO (https://github.com/infrahq/infra/issues/174)
 		// Find a way to re-use the built-in TLS verification code vs
@@ -214,11 +223,12 @@ func Run(options Options) error {
 				DNSName:       cs.ServerName,
 				Intermediates: x509.NewCertPool(),
 			}
+
 			for _, cert := range cs.PeerCertificates[1:] {
 				opts.Intermediates.AddCert(cert)
 			}
-			_, err := cs.PeerCertificates[0].Verify(opts)
 
+			_, err := cs.PeerCertificates[0].Verify(opts)
 			if err != nil {
 				logging.L.Warn("could not verify registry TLS certificates: " + err.Error())
 			}
@@ -231,6 +241,7 @@ func Run(options Options) error {
 	if err != nil {
 		return err
 	}
+
 	u.Scheme = "https"
 
 	ctx := context.WithValue(context.Background(), api.ContextServerVariables, map[string]string{"basePath": "v1"})
@@ -271,30 +282,43 @@ func Run(options Options) error {
 		if err != nil {
 			return ""
 		}
-		return endpoint
+
+		url, err := urlx.Parse(endpoint)
+		if err != nil {
+			return ""
+		}
+
+		return url.Hostname()
 	})
 
 	timer := timer.Timer{}
+	certCacheMiss := 0
+
 	timer.Start(5, func() {
 		endpoint, err := k8s.Endpoint()
 		if err != nil {
+			logging.L.Error(err.Error())
 			return
 		}
 
-		caBytes, err := manager.Cache.Get(context.TODO(), fmt.Sprintf("%s.crt", endpoint))
+		url, err := urlx.Parse(endpoint)
 		if err != nil {
 			logging.L.Error(err.Error())
 			return
 		}
 
-		namespace, err := k8s.Namespace()
+		caBytes, err := manager.Cache.Get(context.TODO(), fmt.Sprintf("%s.crt", url.Hostname()))
 		if err != nil {
-			logging.L.Error(err.Error())
-			return
-		}
+			if errors.Is(err, autocert.ErrCacheMiss) {
+				// first attempt to get the certificate on new service start will
+				// likely fail so a single cache miss is expected
+				certCacheMiss++
+				if certCacheMiss > 1 {
+					logging.L.Error(err.Error())
+					return
+				}
+			}
 
-		saToken, err := k8s.SaToken()
-		if err != nil {
 			logging.L.Error(err.Error())
 			return
 		}
@@ -302,10 +326,8 @@ func Run(options Options) error {
 		destination, _, err := client.DestinationsApi.CreateDestination(ctx).Body(api.DestinationCreateRequest{
 			Name: name,
 			Kubernetes: &api.DestinationKubernetes{
-				Ca:        string(caBytes),
-				Endpoint:  endpoint,
-				Namespace: namespace,
-				SaToken:   saToken,
+				Ca:       string(caBytes),
+				Endpoint: endpoint,
 			},
 		}).Execute()
 		if err != nil {
@@ -323,12 +345,15 @@ func Run(options Options) error {
 			return
 		}
 	})
+
 	defer timer.Stop()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		if _, err := w.Write([]byte("OK")); err != nil {
+			logging.L.Error(err.Error())
+		}
 	})
 
 	remote, err := urlx.Parse(k8s.Config.Host)
@@ -367,5 +392,6 @@ func Run(options Options) error {
 	}
 
 	logging.L.Info("serving on port 443")
+
 	return tlsServer.ListenAndServeTLS("", "")
 }

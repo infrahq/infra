@@ -18,20 +18,17 @@ helm:
 .PHONY: docs
 docs:
 	go run ./internal/docgen
-	# Remove the $$HOME of the local system from the docs
-	# This probably only works on MacOS
-	grep -ilr $$HOME docs/* | xargs -I@ sed -i '' 's:'"$$HOME"':$$HOME:g' @
 
 clean:
-	rm -rf dist
+	$(RM) -r dist
 
 openapi:
-	@rm -rf ./internal/api/*.go
+	@$(RM) -r ./internal/api/*.go
 	@GO_POST_PROCESS_FILE="gofmt -s -w" openapi-generator generate -i ./openapi.yaml -g go -o ./internal/api --additional-properties packageName=api,isGoSubmodule=true --enable-post-process-file > /dev/null
-	@rm -rf ./internal/api/api ./internal/api/.openapi-generator
-	@rm -rf ./internal/registry/ui/api/apis/* ./internal/registry/ui/api/models/*
+	@$(RM) -r ./internal/api/api ./internal/api/.openapi-generator
+	@$(RM) -r ./internal/registry/ui/api/apis/* ./internal/registry/ui/api/models/*
 	@openapi-generator generate -i ./openapi.yaml -g typescript-fetch -o ./internal/registry/ui/api --additional-properties typescriptThreePlus=true > /dev/null
-	@rm -rf ./internal/registry/ui/api/.openapi-generator
+	@$(RM) -r ./internal/registry/ui/api/.openapi-generator
 
 goreleaser:
 	@command -v goreleaser >/dev/null || { echo "install goreleaser @ https://goreleaser.com/install/#install-the-pre-compiled-binary" && exit 1; }
@@ -45,7 +42,7 @@ dev:
 	docker build . -t infrahq/infra:0.0.0-development
 	helm upgrade --install infra-registry ./helm/charts/registry --namespace infrahq --create-namespace --set image.pullPolicy=Never --set image.tag=0.0.0-development
 	kubectl wait --for=condition=available --timeout=600s deployment/infra-registry --namespace infrahq
-	helm upgrade --install infra-engine ./helm/charts/engine --namespace infrahq --set image.pullPolicy=Never --set image.tag=0.0.0-development --set name=dd --set endpoint=kubernetes.docker.internal:6443 --set registry=infra-registry --set apiKey=$$(kubectl get secrets/infra-registry --template={{.data.defaultApiKey}} --namespace infrahq | base64 -D)
+	helm upgrade --install infra-engine ./helm/charts/engine --namespace infrahq --set image.pullPolicy=Never --set image.tag=0.0.0-development --set name=dd --set registry=infra-registry --set apiKey=$$(kubectl get secrets/infra-registry --template={{.data.defaultApiKey}} --namespace infrahq | base64 -D) --set service.ports[0].port=8443 --set service.ports[0].name=https --set service.ports[0].targetPort=443
 	kubectl rollout restart deployment/infra-registry --namespace infrahq
 	kubectl rollout restart deployment/infra-engine --namespace infrahq
 
@@ -67,4 +64,4 @@ golangci-lint:
 	@command -v golangci-lint >/dev/null || { echo "install golangci-lint @ https://golangci-lint.run/usage/install/#local-installation" && exit 1; }
 
 lint: golangci-lint
-	golangci-lint run ./... -E asciicheck,bodyclose,durationcheck,errorlint,exhaustive,exportloopref,gosec,makezero,nilerr,noctx,rowserrcheck,sqlclosecheck,gofmt,gofumpt,gci,revive,gocritic,forcetypeassert,misspell,nakedret,wastedassign,wsl -D scopelint
+	golangci-lint run ./...

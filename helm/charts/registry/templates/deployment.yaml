@@ -48,11 +48,20 @@ spec:
               mountPath: /var/run/infra/data
             - name: config
               mountPath: /var/run/infra/config
+          readinessProbe:
+            httpGet:
+              {{- with first .Values.service.ports }}
+              scheme: {{ .name | upper }}
+              path: /healthz
+              port: {{ .targetPort }}
+              {{- end }}
           livenessProbe:
             httpGet:
+              {{- with first .Values.service.ports }}
+              scheme: {{ .name | upper }}
               path: /healthz
-              scheme: HTTPS
-              port: 443
+              port: {{ .targetPort }}
+              {{- end }}
             periodSeconds: 3
       affinity:
         podAffinity:

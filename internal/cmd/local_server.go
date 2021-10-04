@@ -25,6 +25,7 @@ var pages embed.FS
 
 func newLocalServer() (*LocalServer, error) {
 	ls := &LocalServer{ResultChan: make(chan CodeResponse, 1), srv: &http.Server{Addr: "127.0.0.1:8301"}}
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		params := r.URL.Query()
 		ls.ResultChan <- CodeResponse{
@@ -46,7 +47,11 @@ func newLocalServer() (*LocalServer, error) {
 			fmt.Fprintf(w, "Something went wrong, please contact your administrator for assistance.")
 			return
 		}
-		t.Execute(w, templateVals)
+
+		if err := t.Execute(w, templateVals); err != nil {
+			fmt.Fprintf(w, "Something went wrong, please contact your administrator for assistance.")
+			return
+		}
 	})
 
 	go func() {
@@ -60,7 +65,11 @@ func newLocalServer() (*LocalServer, error) {
 
 func (l *LocalServer) wait() (string, string, error) {
 	result := <-l.ResultChan
-	l.srv.Shutdown(context.Background())
+
+	if err := l.srv.Shutdown(context.Background()); err != nil {
+		return "", "", err
+	}
+
 	return result.Code, result.State, result.Error
 }
 
@@ -69,7 +78,9 @@ func formatURLMsg(msg string, fallback string) string {
 	if msg == "" {
 		return fallback
 	}
+
 	formatted := strings.ReplaceAll(msg, "_", " ")
 	formatted = strings.Title(strings.ToLower(formatted))
+
 	return formatted
 }

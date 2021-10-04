@@ -10,6 +10,7 @@ type Timer struct {
 
 func (t *Timer) Start(interval int, sync func()) {
 	ticker := time.NewTicker(time.Duration(interval) * time.Second)
+
 	go sync()
 
 	go func() {

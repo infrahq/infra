@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"context"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
@@ -31,14 +32,17 @@ func TestJWTMiddlewareNoAuthHeader(t *testing.T) {
 
 	handler := jwtMiddleware("k8s", getJwkFunc, emptyHandler)
 
-	req, err := http.NewRequest("GET", "/", nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	handler.ServeHTTP(rr, req)
 
-	assert.Equal(t, http.StatusUnauthorized, rr.Result().StatusCode)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 }
 
 func TestJWTMiddlewareNoToken(t *testing.T) {
@@ -54,15 +58,19 @@ func TestJWTMiddlewareNoToken(t *testing.T) {
 
 	handler := jwtMiddleware("k8s", getJwkFunc, emptyHandler)
 
-	req, err := http.NewRequest("GET", "/", nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "username:password")
+
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	handler.ServeHTTP(rr, req)
 
-	assert.Equal(t, http.StatusUnauthorized, rr.Result().StatusCode)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 }
 
 func TestJWTMiddlewareInvalidJWKs(t *testing.T) {
@@ -78,15 +86,19 @@ func TestJWTMiddlewareInvalidJWKs(t *testing.T) {
 
 	handler := jwtMiddleware("k8s", getJwkFunc, emptyHandler)
 
-	req, err := http.NewRequest("GET", "/", nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZW1haWwiOiJ0ZXN0QHRlc3QuY29tIiwiaWF0IjoxNTE2MjM5MDIyfQ.j7o5o8GBkybaYXdFJIi8O6mPF50E-gJWZ3reLfMQD68")
+
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	handler.ServeHTTP(rr, req)
 
-	assert.Equal(t, http.StatusUnauthorized, rr.Result().StatusCode)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 }
 
 func generateJWK() (pub *jose.JSONWebKey, priv *jose.JSONWebKey, err error) {
@@ -96,10 +108,12 @@ func generateJWK() (pub *jose.JSONWebKey, priv *jose.JSONWebKey, err error) {
 	}
 
 	priv = &jose.JSONWebKey{Key: key, KeyID: "", Algorithm: string(jose.RS256), Use: "sig"}
+
 	thumb, err := priv.Thumbprint(crypto.SHA256)
 	if err != nil {
 		return nil, nil, err
 	}
+
 	kid := base64.URLEncoding.EncodeToString(thumb)
 	priv.KeyID = kid
 	pub = &jose.JSONWebKey{Key: &key.PublicKey, KeyID: kid, Algorithm: string(jose.RS256), Use: "sig"}
@@ -152,15 +166,19 @@ func TestJWTMiddlewareInvalidJWT(t *testing.T) {
 
 	handler := jwtMiddleware("k8s", getJwkFunc, emptyHandler)
 
-	req, err := http.NewRequest("GET", "/", nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "Bearer "+invalidjwt)
+
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	handler.ServeHTTP(rr, req)
 
-	assert.Equal(t, http.StatusUnauthorized, rr.Result().StatusCode)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 }
 
 func TestJWTMiddlewareExpiredJWT(t *testing.T) {
@@ -186,17 +204,21 @@ func TestJWTMiddlewareExpiredJWT(t *testing.T) {
 
 	handler := jwtMiddleware("k8s", getJwkFunc, emptyHandler)
 
-	req, err := http.NewRequest("GET", "/", nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "Bearer "+expiredJWT)
+
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	handler.ServeHTTP(rr, req)
 
-	assert.Equal(t, http.StatusUnauthorized, rr.Result().StatusCode)
+	res := rr.Result()
+	defer res.Body.Close()
 
-	data, err := ioutil.ReadAll(rr.Result().Body)
+	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+
+	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -227,15 +249,19 @@ func TestJWTMiddlewareWrongHeader(t *testing.T) {
 
 	handler := jwtMiddleware("k8s", getJwkFunc, emptyHandler)
 
-	req, err := http.NewRequest("GET", "/", nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "Bearer "+expiredJWT)
+
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	handler.ServeHTTP(rr, req)
 
-	assert.Equal(t, http.StatusUnauthorized, rr.Result().StatusCode)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 }
 
 func TestJWTMiddlewareWrongDestination(t *testing.T) {
@@ -261,16 +287,21 @@ func TestJWTMiddlewareWrongDestination(t *testing.T) {
 
 	handler := jwtMiddleware("anotherDestination", getJwkFunc, emptyHandler)
 
-	req, err := http.NewRequest("GET", "/", nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "Bearer "+validJWT)
+
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	handler.ServeHTTP(rr, req)
 
-	assert.Equal(t, http.StatusUnauthorized, rr.Result().StatusCode)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 }
+
 func TestJWTMiddlewareValidJWTSetsEmail(t *testing.T) {
 	pub, priv, err := generateJWK()
 	if err != nil {
@@ -300,15 +331,19 @@ func TestJWTMiddlewareValidJWTSetsEmail(t *testing.T) {
 
 	handler := jwtMiddleware("k8s", getJwkFunc, emptyHandler)
 
-	req, err := http.NewRequest("GET", "/", nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "Bearer "+validJWT)
+
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	handler.ServeHTTP(rr, req)
 
-	assert.Equal(t, http.StatusOK, rr.Result().StatusCode)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusOK, res.StatusCode)
 }
 
 func TestProxyHandler(t *testing.T) {
@@ -340,13 +375,17 @@ func TestProxyHandler(t *testing.T) {
 
 	handler := jwtMiddleware("k8s", getJwkFunc, emptyHandler)
 
-	req, err := http.NewRequest("GET", "/", nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "Bearer "+validJWT)
+
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	handler.ServeHTTP(rr, req)
 
-	assert.Equal(t, http.StatusOK, rr.Result().StatusCode)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusOK, res.StatusCode)
 }

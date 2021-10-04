@@ -35,8 +35,11 @@ func (msr *mockSecretReader) Get(secretName string, client *kubernetesClient.Cli
 }
 
 func addUser(db *gorm.DB, sessionDuration time.Duration) (tokenId string, tokenSecret string, err error) {
-	var token Token
-	var secret string
+	var (
+		token  Token
+		secret string
+	)
+
 	err = db.Transaction(func(tx *gorm.DB) error {
 		user := &User{Email: "test@test.com"}
 		err := tx.Create(user).Error
@@ -60,7 +63,9 @@ func addUser(db *gorm.DB, sessionDuration time.Duration) (tokenId string, tokenS
 
 func TestBearerTokenMiddlewareDefault(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "hello world")
+		if _, err := io.WriteString(w, "hello world"); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	db, err := NewDB("file::memory:")
@@ -80,7 +85,9 @@ func TestBearerTokenMiddlewareDefault(t *testing.T) {
 
 func TestBearerTokenMiddlewareEmptyHeader(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "hello world")
+		if _, err := io.WriteString(w, "hello world"); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	db, err := NewDB("file::memory:")
@@ -102,7 +109,9 @@ func TestBearerTokenMiddlewareEmptyHeader(t *testing.T) {
 
 func TestBearerTokenMiddlewareEmptyHeaderBearer(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "hello world")
+		if _, err := io.WriteString(w, "hello world"); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	db, err := NewDB("file::memory:")
@@ -124,7 +133,9 @@ func TestBearerTokenMiddlewareEmptyHeaderBearer(t *testing.T) {
 
 func TestBearerTokenMiddlewareInvalidLength(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "hello world")
+		if _, err := io.WriteString(w, "hello world"); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	db, err := NewDB("file::memory:")
@@ -146,7 +157,9 @@ func TestBearerTokenMiddlewareInvalidLength(t *testing.T) {
 
 func TestBearerTokenMiddlewareInvalidToken(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "hello world")
+		if _, err := io.WriteString(w, "hello world"); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	db, err := NewDB("file::memory:")
@@ -157,7 +170,7 @@ func TestBearerTokenMiddlewareInvalidToken(t *testing.T) {
 	}
 
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
-	bearerToken, err := generate.RandString(TOKEN_LEN)
+	bearerToken, err := generate.RandString(TokenLen)
 	require.NoError(t, err)
 	r.Header.Add("Authorization", "Bearer "+bearerToken)
 
@@ -168,7 +181,9 @@ func TestBearerTokenMiddlewareInvalidToken(t *testing.T) {
 
 func TestBearerTokenMiddlewareExpiredToken(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "hello world")
+		if _, err := io.WriteString(w, "hello world"); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	db, err := NewDB("file::memory:")
@@ -195,7 +210,9 @@ func TestBearerTokenMiddlewareExpiredToken(t *testing.T) {
 
 func TestBearerTokenMiddlewareValidToken(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "hello world")
+		if _, err := io.WriteString(w, "hello world"); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	db, err := NewDB("file::memory:")
@@ -223,7 +240,9 @@ func TestBearerTokenMiddlewareValidToken(t *testing.T) {
 
 func TestBearerTokenMiddlewareInvalidApiKey(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "hello world")
+		if _, err := io.WriteString(w, "hello world"); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	db, err := NewDB("file::memory:")
@@ -235,8 +254,8 @@ func TestBearerTokenMiddlewareInvalidApiKey(t *testing.T) {
 		db: db,
 	}
 
-	r := httptest.NewRequest("GET", "/", nil)
-	bearerToken, err := generate.RandString(TOKEN_LEN)
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	bearerToken, err := generate.RandString(TokenLen)
 	require.NoError(t, err)
 	r.Header.Add("Authorization", "Bearer "+bearerToken)
 
@@ -247,7 +266,9 @@ func TestBearerTokenMiddlewareInvalidApiKey(t *testing.T) {
 
 func TestBearerTokenMiddlewareValidApiKey(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "hello world")
+		if _, err := io.WriteString(w, "hello world"); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	db, err := NewDB("file::memory:")
@@ -260,8 +281,7 @@ func TestBearerTokenMiddlewareValidApiKey(t *testing.T) {
 	}
 
 	var apiKey ApiKey
-	err = db.FirstOrCreate(&apiKey, &ApiKey{Name: defaultApiKeyName}).Error
-	if err != nil {
+	if err := db.FirstOrCreate(&apiKey, &ApiKey{Name: defaultApiKeyName}).Error; err != nil {
 		t.Fatal(err)
 	}
 
@@ -284,10 +304,8 @@ func TestCreateDestinationNoApiKey(t *testing.T) {
 
 	req := api.DestinationCreateRequest{
 		Kubernetes: &api.DestinationKubernetes{
-			Ca:        "CA",
-			Endpoint:  "endpoint.net",
-			Namespace: "default",
-			SaToken:   "token",
+			Ca:       "CA",
+			Endpoint: "endpoint.net",
 		},
 	}
 
@@ -313,17 +331,14 @@ func TestCreateDestination(t *testing.T) {
 	}
 
 	var apiKey ApiKey
-	err = db.FirstOrCreate(&apiKey, &ApiKey{Name: "default"}).Error
-	if err != nil {
+	if err := db.FirstOrCreate(&apiKey, &ApiKey{Name: "default"}).Error; err != nil {
 		t.Fatal(err)
 	}
 
 	req := api.DestinationCreateRequest{
 		Kubernetes: &api.DestinationKubernetes{
-			Ca:        "CA",
-			Endpoint:  "endpoint.net",
-			Namespace: "default",
-			SaToken:   "token",
+			Ca:       "CA",
+			Endpoint: "endpoint.net",
 		},
 	}
 
@@ -462,13 +477,13 @@ func TestLoginMethodOkta(t *testing.T) {
 	source.Domain = "test.okta.com"
 	source.ClientId = "test-client-id"
 	source.ClientSecret = "test-client-secret/clientSecret"
+
 	if err := db.Create(&source).Error; err != nil {
 		t.Fatal(err)
 	}
 
 	var user User
-	source.CreateUser(db, &user, "test@test.com")
-	if err != nil {
+	if err := source.CreateUser(db, &user, "test@test.com"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -584,16 +599,19 @@ func TestListRolesOnlyFindsForSpecificDestination(t *testing.T) {
 	}
 
 	unexpectedDestinationIds := make(map[string]bool)
+
 	for _, r := range roles {
 		if r.Destination.Id != clusterA.Id {
 			unexpectedDestinationIds[r.Destination.Id] = true
 		}
 	}
+
 	if len(unexpectedDestinationIds) != 0 {
 		var unexpectedDestinations []string
 		for id := range unexpectedDestinationIds {
 			unexpectedDestinations = append(unexpectedDestinations, id)
 		}
+
 		t.Errorf("ListRoles response should only contain roles for the specified Destination ID. Only expected " + clusterA.Id + " but found " + strings.Join(unexpectedDestinations, ", "))
 	}
 }
@@ -646,6 +664,7 @@ func TestListGroups(t *testing.T) {
 	for _, g := range groups {
 		groupSources[g.Name] = g.Source
 	}
+
 	assert.Equal(t, "okta", groupSources["heroes"])
 	assert.Equal(t, "okta", groupSources["villains"])
 }
@@ -677,6 +696,7 @@ func TestCreateAPIKey(t *testing.T) {
 
 	// clean up
 	var apiKey ApiKey
+
 	db.First(&apiKey, &ApiKey{Name: "test-api-client"})
 	db.Delete(&apiKey)
 }
@@ -715,6 +735,7 @@ func TestDeleteAPIKey(t *testing.T) {
 	assert.Equal(t, http.StatusNoContent, delW.Code)
 
 	var apiKey ApiKey
+
 	db.First(&apiKey, &ApiKey{Name: "test-api-delete-key"})
 	assert.Empty(t, apiKey.Id, "API key not deleted from database")
 }
@@ -738,10 +759,13 @@ func TestListAPIKeys(t *testing.T) {
 	}
 
 	assert.Equal(t, 1, len(keys))
+
 	keyIDs := make(map[string]string)
+
 	for _, k := range keys {
 		keyIDs[k.Name] = k.Id
 	}
+
 	assert.NotEmpty(t, keyIDs["test-key"])
 }
 
@@ -751,5 +775,6 @@ func containsUser(users []api.User, email string) bool {
 			return true
 		}
 	}
+
 	return false
 }

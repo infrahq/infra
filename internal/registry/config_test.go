@@ -14,14 +14,13 @@ import (
 var db *gorm.DB
 
 var (
-	overriddenOktaSource = Source{Type: "okta", Domain: "overwrite.example.com", ClientSecret: "okta-secrets/client-secret", ApiToken: "okta-secrets/api-token"}
-	fakeOktaSource       = Source{Type: "okta", Domain: "test.example.com", ClientSecret: "okta-secrets/client-secret", ApiToken: "okta-secrets/api-token"}
-	adminUser            = User{Email: "admin@example.com"}
-	standardUser         = User{Email: "user@example.com"}
-	iosDevUser           = User{Email: "woz@example.com"}
-	clusterA             = Destination{Name: "cluster-AAA"}
-	clusterB             = Destination{Name: "cluster-BBB"}
-	clusterC             = Destination{Name: "cluster-CCC"}
+	fakeOktaSource = Source{Type: "okta", Domain: "test.example.com", ClientSecret: "okta-secrets/client-secret", ApiToken: "okta-secrets/api-token"}
+	adminUser      = User{Email: "admin@example.com"}
+	standardUser   = User{Email: "user@example.com"}
+	iosDevUser     = User{Email: "woz@example.com"}
+	clusterA       = Destination{Name: "cluster-AAA"}
+	clusterB       = Destination{Name: "cluster-BBB"}
+	clusterC       = Destination{Name: "cluster-CCC"}
 )
 
 func setup() error {
@@ -29,6 +28,7 @@ func setup() error {
 	if err != nil {
 		return err
 	}
+
 	db, err = NewDB("file::memory:")
 	if err != nil {
 		return err
@@ -73,10 +73,12 @@ func setup() error {
 	if err != nil {
 		return err
 	}
+
 	err = db.Create(&clusterB).Error
 	if err != nil {
 		return err
 	}
+
 	err = db.Create(&clusterC).Error
 	if err != nil {
 		return err
@@ -91,6 +93,7 @@ func TestMain(m *testing.M) {
 		fmt.Println("Could not initialize test data: ", err)
 		os.Exit(1)
 	}
+
 	code := m.Run()
 	os.Exit(code)
 }
@@ -100,11 +103,13 @@ func TestImportCurrentValidConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	assert.NoError(t, ImportConfig(db, confFile))
 }
 
 func TestGroupsForExistingSourcesAreCreated(t *testing.T) {
 	var groups []Group
+
 	db.Preload("Roles").Find(&groups)
 	assert.Equal(t, 4, len(groups), "Exactly four groups should be created from the test config, the other group has an invalid source")
 
@@ -112,6 +117,7 @@ func TestGroupsForExistingSourcesAreCreated(t *testing.T) {
 	for _, g := range groups {
 		groupNames[g.Name] = g
 	}
+
 	assert.NotNil(t, groupNames["ios-developers"])
 	assert.NotNil(t, groupNames["mac-admins"])
 	assert.NotNil(t, groupNames["heroes"])
@@ -121,15 +127,17 @@ func TestGroupsForExistingSourcesAreCreated(t *testing.T) {
 	for _, iosGroupRole := range groupNames["ios-developers"].Roles {
 		iosDevRoleDests[iosGroupRole.DestinationId] = true
 	}
-	assert.True(t, iosDevRoleDests[clusterA.Id])
 
+	assert.True(t, iosDevRoleDests[clusterA.Id])
 	assert.Len(t, groupNames["mac-admins"].Roles, 1)
 	assert.Contains(t, groupNames["mac-admins"].Roles[0].DestinationId, clusterB.Id)
 }
 
 func TestGroupsForUnknownSourcesAreNotCreated(t *testing.T) {
 	var groups []Group
+
 	db.Find(&groups)
+
 	assert.Equal(t, 4, len(groups), "Exactly four groups should be created from the test config, the other group has an invalid source")
 	group1 := groups[0]
 	group2 := groups[1]
@@ -143,45 +151,49 @@ func TestUsersForExistingUsersAndDestinationsAreCreated(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+
 	assert.True(t, isAdminAdminA, "admin@example.com should have the admin role in cluster-AAA")
 
 	isAdminAdminB, err := containsUserRoleForDestination(db, adminUser, clusterB.Id, "admin")
 	if err != nil {
 		t.Error(err)
 	}
+
 	assert.True(t, isAdminAdminB, "admin@example.com should have the admin role in cluster-BBB")
 
 	isStandardWriterA, err := containsUserRoleForDestination(db, standardUser, clusterA.Id, "writer")
 	if err != nil {
 		t.Error(err)
 	}
+
 	assert.True(t, isStandardWriterA, "user@example.com should have the writer role in cluster-AAA")
 
 	isStandardReaderA, err := containsUserRoleForDestination(db, standardUser, clusterA.Id, "reader")
 	if err != nil {
 		t.Error(err)
 	}
+
 	assert.True(t, isStandardReaderA, "user@example.com should have the reader role in cluster-AAA")
 
 	unkownUser := User{Id: "0", Email: "unknown@example.com"}
+
 	isUnknownUserGrantedRole, err := containsUserRoleForDestination(db, unkownUser, clusterA.Id, "writer")
 	if err != nil {
 		t.Error(err)
 	}
+
 	assert.False(t, isUnknownUserGrantedRole, "unknown user should not have roles assigned")
 }
 
 func TestImportRolesForUnknownDestinationsAreIgnored(t *testing.T) {
 	var roles []Role
-	err := db.Find(&roles).Error
-	if err != nil {
+	if err := db.Find(&roles).Error; err != nil {
 		t.Fatal(err)
 	}
 
 	for _, role := range roles {
 		var dest Destination
-		err := db.Where(&Destination{Id: role.DestinationId}).First(&dest).Error
-		if err != nil {
+		if err := db.Where(&Destination{Id: role.DestinationId}).First(&dest).Error; err != nil {
 			t.Errorf("Created role for destination which does not exist: " + role.DestinationId)
 		}
 	}
@@ -190,19 +202,21 @@ func TestImportRolesForUnknownDestinationsAreIgnored(t *testing.T) {
 func TestExistingSourceIsOverridden(t *testing.T) {
 	// this source comes second in the config so it will override the one before it
 	var importedOkta Source
-	err := db.Where(&Source{Type: SOURCE_TYPE_OKTA}).First(&importedOkta).Error
-	if err != nil {
+	if err := db.Where(&Source{Type: SourceTypeOkta}).First(&importedOkta).Error; err != nil {
 		t.Fatal(err)
 	}
+
 	assert.Equal(t, fakeOktaSource.Domain, importedOkta.Domain)
 }
 
 func containsUserRoleForDestination(db *gorm.DB, user User, destinationId string, roleName string) (bool, error) {
 	var roles []Role
+
 	err := db.Preload("Destination").Preload("Groups").Preload("Users").Find(&roles, &Role{Name: roleName, DestinationId: destinationId}).Error
 	if err != nil {
 		return false, err
 	}
+
 	// check direct role-user relations
 	for _, role := range roles {
 		for _, roleU := range role.Users {
@@ -211,26 +225,30 @@ func containsUserRoleForDestination(db *gorm.DB, user User, destinationId string
 			}
 		}
 	}
+
 	// check user groups-roles
 	var groups []Group
-	db.Model(&user).Association("Groups").Find(&groups)
-	for _, g := range groups {
+	if err := db.Model(&user).Association("Groups").Find(&groups); err != nil {
+		return false, err
+	}
+
+	for i := range groups {
 		var groupRoles []Role
-		err := db.Model(&g).Association("Roles").Find(&groupRoles, &Role{Name: roleName, DestinationId: destinationId})
-		if err != nil {
+		if err := db.Model(&groups[i]).Association("Roles").Find(&groupRoles, &Role{Name: roleName, DestinationId: destinationId}); err != nil {
 			return false, err
 		}
+
 		if len(groupRoles) > 0 {
 			return true, nil
 		}
 	}
+
 	return false, nil
 }
 
 func TestClusterRolesAreAppliedToGroup(t *testing.T) {
 	var group Group
-	err := db.Preload("Roles").Where(&Group{Name: "ios-developers"}).First(&group).Error
-	if err != nil {
+	if err := db.Preload("Roles").Where(&Group{Name: "ios-developers"}).First(&group).Error; err != nil {
 		t.Errorf("Could not find ios-developers group")
 	}
 
@@ -238,13 +256,13 @@ func TestClusterRolesAreAppliedToGroup(t *testing.T) {
 	for _, role := range group.Roles {
 		roles[role.Name] = true
 	}
+
 	assert.True(t, roles["writer"])
 }
 
 func TestRolesAreAppliedToGroup(t *testing.T) {
 	var group Group
-	err := db.Preload("Roles").Where(&Group{Name: "ios-developers"}).First(&group).Error
-	if err != nil {
+	if err := db.Preload("Roles").Where(&Group{Name: "ios-developers"}).First(&group).Error; err != nil {
 		t.Errorf("Could not find ios-developers group")
 	}
 
@@ -252,37 +270,40 @@ func TestRolesAreAppliedToGroup(t *testing.T) {
 	for _, role := range group.Roles {
 		roles[role.Name] = true
 	}
+
 	assert.True(t, roles["pod-create"])
 }
 
 func TestGroupClusterRolesAreAppliedWithNamespaces(t *testing.T) {
 	var group Group
-	err := db.Preload("Roles").Where(&Group{Name: "ios-developers"}).First(&group).Error
-	if err != nil {
+	if err := db.Preload("Roles").Where(&Group{Name: "ios-developers"}).First(&group).Error; err != nil {
 		t.Errorf("Could not find ios-developers group")
 	}
 
 	foundAuditInfraHQ := false
+
 	for _, role := range group.Roles {
 		if role.Name == "audit" && role.Namespace == "infrahq" {
 			foundAuditInfraHQ = true
 		}
 	}
+
 	assert.True(t, foundAuditInfraHQ)
 
 	foundAuditDevelopment := false
+
 	for _, role := range group.Roles {
 		if role.Name == "audit" && role.Namespace == "development" {
 			foundAuditDevelopment = true
 		}
 	}
+
 	assert.True(t, foundAuditDevelopment)
 }
 
 func TestClusterRolesAreAppliedToUser(t *testing.T) {
 	var user User
-	err := db.Preload("Roles").Where(&User{Email: "admin@example.com"}).First(&user).Error
-	if err != nil {
+	if err := db.Preload("Roles").Where(&User{Email: "admin@example.com"}).First(&user).Error; err != nil {
 		t.Errorf("Could not find ios-developers group")
 	}
 
@@ -290,13 +311,13 @@ func TestClusterRolesAreAppliedToUser(t *testing.T) {
 	for _, role := range user.Roles {
 		roles[role.Name] = true
 	}
+
 	assert.True(t, roles["admin"])
 }
 
 func TestRolesAreAppliedToUser(t *testing.T) {
 	var user User
-	err := db.Preload("Roles").Where(&User{Email: "admin@example.com"}).First(&user).Error
-	if err != nil {
+	if err := db.Preload("Roles").Where(&User{Email: "admin@example.com"}).First(&user).Error; err != nil {
 		t.Errorf("Could not find ios-developers group")
 	}
 
@@ -304,36 +325,41 @@ func TestRolesAreAppliedToUser(t *testing.T) {
 	for _, role := range user.Roles {
 		roles[role.Name] = true
 	}
+
 	assert.True(t, roles["pod-create"])
 }
 
 func TestClusterRolesAreAppliedWithNamespacesToUsers(t *testing.T) {
 	var user User
-	err := db.Preload("Roles").Where(&User{Email: "admin@example.com"}).First(&user).Error
-	if err != nil {
+	if err := db.Preload("Roles").Where(&User{Email: "admin@example.com"}).First(&user).Error; err != nil {
 		t.Errorf("Could not find ios-developers group")
 	}
 
 	foundAuditInfraHQ := false
+
 	for _, role := range user.Roles {
 		if role.Name == "audit" && role.Namespace == "infrahq" {
 			foundAuditInfraHQ = true
 		}
 	}
+
 	assert.True(t, foundAuditInfraHQ)
 
 	foundAuditDevelopment := false
+
 	for _, role := range user.Roles {
 		if role.Name == "audit" && role.Namespace == "development" {
 			foundAuditDevelopment = true
 		}
 	}
+
 	assert.True(t, foundAuditDevelopment)
 }
 
 func TestCleanupDomain(t *testing.T) {
 	s := ConfigSource{Domain: "dev123123-admin.okta.com "}
 	s.cleanupDomain()
+
 	expected := "dev123123.okta.com"
 	require.Equal(t, expected, s.Domain)
 }

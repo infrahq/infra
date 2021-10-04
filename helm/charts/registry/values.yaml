@@ -12,6 +12,9 @@ service:
   labels: {}
   annotations: {}
   ports:
+    - name: http
+      port: 80
+      targetPort: 80
     - name: https
       port: 443
       targetPort: 443
@@ -20,6 +23,6 @@ ingress:
   enabled: false
   labels: {}
   annotations: {}
-  servicePort: 443
+  servicePort: 80
   hosts: []
   tls: []
