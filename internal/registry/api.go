@@ -11,11 +11,11 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/version"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
 	"gorm.io/gorm"
@@ -652,7 +652,7 @@ func (a *Api) Logout(w http.ResponseWriter, r *http.Request) {
 func (a *Api) Version(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	if err := json.NewEncoder(w).Encode(api.Version{Version: version.Version}); err != nil {
+	if err := json.NewEncoder(w).Encode(api.Version{Version: internal.Version}); err != nil {
 		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not get version")
 	}

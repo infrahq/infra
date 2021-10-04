@@ -14,7 +14,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"text/tabwriter"
 	"time"
 
 	survey "github.com/AlecAivazis/survey/v2"
@@ -28,7 +27,6 @@ import (
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry"
-	"github.com/infrahq/infra/internal/version"
 	"github.com/lensesio/tableprinter"
 	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
@@ -797,34 +795,16 @@ func newEngineCmd() (*cobra.Command, error) {
 	return cmd, nil
 }
 
-var versionCmd = &cobra.Command{
-	Use:     "version",
-	Aliases: []string{"v"},
-	Short:   "Display the Infra build version",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
-		defer w.Flush()
-		fmt.Fprintln(w)
-		fmt.Fprintln(w, "Client:\t", version.Version)
+func newVersionCmd() (*cobra.Command, error) {
+	cmd := &cobra.Command{
+		Use:     "version",
+		Short:   "Display the Infra build version",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return version()
+		},
+	}
 
-		client, err := apiClientFromConfig()
-		if err != nil {
-			fmt.Fprintln(w, blue("✕")+" Could not retrieve client version")
-			return err
-		}
-
-		// Note that we use the client to get this version, but it is in fact the server version
-		res, _, err := client.VersionApi.Version(context.Background()).Execute()
-		if err != nil {
-			fmt.Fprintln(w, "Registry:\t", "not connected")
-			return err
-		}
-
-		fmt.Fprintln(w, "Registry:\t", res.Version)
-		fmt.Fprintln(w)
-
-		return nil
-	},
+	return cmd, nil
 }
 
 type apiKeyRow struct {
@@ -1044,6 +1024,11 @@ func NewRootCmd() (*cobra.Command, error) {
 	}
 
 	logoutCmd, err := newLogoutCmd()
+	if err != nil {
+		return nil, err
+	}
+
+	versionCmd, err := newVersionCmd()
 	if err != nil {
 		return nil, err
 	}
