@@ -593,43 +593,15 @@ var loginCmd = &cobra.Command{
 	},
 }
 
-var logoutCmd = &cobra.Command{
-	Use:   "logout",
-	Short: "Logout of an Infra Registry",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		config, err := readConfig()
-		if err != nil {
-			return err
-		}
-
-		if config.Token == "" {
-			return nil
-		}
-
-		client, err := NewApiClient(config.Host, config.SkipTLSVerify)
-		if err != nil {
-			return err
-		}
-
-		_, err = client.AuthApi.Logout(NewApiContext(config.Token)).Execute()
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-		}
-
-		err = removeConfig()
-		if err != nil {
-			return err
-		}
-
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			return err
-		}
-
-		os.Remove(filepath.Join(homeDir, ".infra", "destinations"))
-
-		return updateKubeconfig([]api.Destination{})
-	},
+func newLogoutCmd() (*cobra.Command, error) {
+	cmd := &cobra.Command{
+		Use:   "logout",
+		Short: "Logout of an Infra Registry",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return logout()
+		},
+	}
+	return cmd, nil
 }
 
 func newListCmd() (*cobra.Command, error) {
@@ -1067,6 +1039,11 @@ func NewRootCmd() (*cobra.Command, error) {
 	cobra.EnableCommandSorting = false
 
 	listCmd, err := newListCmd()
+	if err != nil {
+		return nil, err
+	}
+
+	logoutCmd, err := newLogoutCmd()
 	if err != nil {
 		return nil, err
 	}
