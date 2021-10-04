@@ -815,7 +815,7 @@ var groupsCmd = &cobra.Command{
 			Created string `header:"CREATED"`
 			Source  string `header:"SOURCE"`
 		}
-		rows := []groupRec{}
+		var rows []groupRec
 		for _, g := range groups {
 			row := groupRec{
 				Name:    g.Name,

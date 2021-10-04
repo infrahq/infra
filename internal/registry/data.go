@@ -60,6 +60,7 @@ type Group struct {
 	Name     string
 	SourceId string
 	Source   Source `gorm:"foreignKey:SourceId;references:Id"`
+	Active   bool   // used to determine which groups actually exist at the source
 
 	Roles []Role `gorm:"many2many:groups_roles"`
 	Users []User `gorm:"many2many:groups_users"`
@@ -324,23 +325,7 @@ func (s *Source) SyncGroups(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) 
 			return err
 		}
 
-		// find the group names associated with this source
-		var groups []Group
-		if err := db.Where(&Group{SourceId: s.Id}).Find(&groups).Error; err != nil {
-			return err
-		}
-
-		if len(groups) == 0 {
-			logging.L.Debug("skipped syncing groups for source with no group mappings: " + s.Type)
-			return nil
-		}
-
-		var grpNames []string
-		for _, g := range groups {
-			grpNames = append(grpNames, g.Name)
-		}
-
-		groupEmails, err = okta.Groups(s.Domain, s.ClientId, apiToken, grpNames)
+		groupEmails, err = okta.Groups(s.Domain, s.ClientId, apiToken)
 		if err != nil {
 			return err
 		}
@@ -349,17 +334,12 @@ func (s *Source) SyncGroups(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) 
 	}
 
 	return db.Transaction(func(tx *gorm.DB) error {
-		var idsToKeep []string
+		var activeIDs []string
 		for groupName, emails := range groupEmails {
 			var group Group
-			grpErr := tx.Where(&Group{Name: groupName, SourceId: s.Id}).First(&group).Error
-			if grpErr != nil {
-				if errors.Is(grpErr, gorm.ErrRecordNotFound) {
-					// this means the group is assigned to the okta app, but is not in the config
-					logging.L.Debug("skipping okta group not found in config: " + groupName)
-					continue
-				}
-				return grpErr
+			if err := tx.FirstOrCreate(&group, Group{Name: groupName, SourceId: s.Id}).Error; err != nil {
+				logging.L.Sugar().Debug("could not find or create okta group: " + groupName)
+				return err
 			}
 			var users []User
 			err := tx.Where("email IN ?", emails).Find(&users).Error
@@ -370,19 +350,25 @@ func (s *Source) SyncGroups(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) 
 			if err != nil {
 				return err
 			}
-			idsToKeep = append(idsToKeep, group.Id)
+			activeIDs = append(activeIDs, group.Id)
 		}
+
 		// these groups no longer exist in the source so remove their users, but leave the entity in case they are re-created
-		var removedGroups []Group
-		err := tx.Where(&Group{SourceId: s.Id}).Not(idsToKeep).Find(&removedGroups).Error
+		var inactiveGroups []Group
+		err := tx.Where(&Group{SourceId: s.Id}).Not(activeIDs).Find(&inactiveGroups).Error
 		if err != nil {
 			return err
 		}
-
-		for i := range removedGroups {
-			if err := tx.Model(&removedGroups[i]).Association("Users").Clear(); err != nil {
-				return err
-			}
+		err = tx.Model(&inactiveGroups).Association("Users").Clear()
+		if err != nil {
+			return err
+		}
+		err = tx.Model(&inactiveGroups).Update("active", false).Error
+		if err != nil {
+			return err
+		}
+		if len(activeIDs) > 0 {
+			tx.Model(&Group{}).Where(activeIDs).Update("active", true)
 		}
 
 		return nil
