@@ -705,7 +705,6 @@ var listCmd = &cobra.Command{
 				ok, lastErr := canGetEngineStatus(row)
 				if ok {
 					rows[i].Status = "✅ OK"
-					fmt.Println("👍")
 					continue
 				}
 				// if we had a problem, check all the stops in order to figure out where it's getting stuck
