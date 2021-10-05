@@ -17,7 +17,7 @@ import (
 func token(destination string) error {
 	execCredential := &clientauthenticationv1beta1.ExecCredential{}
 
-	err := getCache("dest_tokens", destination, execCredential)
+	err := getCache("tokens", destination, execCredential)
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func token(destination string) error {
 				ExpirationTimestamp: &metav1.Time{Time: time.Unix(cred.Expires, 0)},
 			},
 		}
-		if err := setCache("dest_tokens", destination, execCredential); err != nil {
+		if err := setCache("tokens", destination, execCredential); err != nil {
 			return err
 		}
 	}
