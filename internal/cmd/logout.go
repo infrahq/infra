@@ -9,7 +9,7 @@ import (
 )
 
 func logout() error {
-	config, err := readConfig()
+	config, err := readCurrentConfig()
 	if err != nil {
 		return err
 	}
