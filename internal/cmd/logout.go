@@ -38,6 +38,7 @@ func logout() error {
 		return err
 	}
 
+	os.RemoveAll(filepath.Join(homeDir, ".infra", "cache"))
 	os.Remove(filepath.Join(homeDir, ".infra", "destinations"))
 
 	return updateKubeconfig([]api.Destination{})
