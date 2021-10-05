@@ -11,6 +11,7 @@ import (
 	"net/http/httputil"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/NYTimes/gziphandler"
 	assetfs "github.com/elazarl/go-bindata-assetfs"
@@ -91,23 +92,25 @@ func Run(options Options) error {
 	}
 
 	// schedule the user and group sync jobs
-	interval := 30
+	interval := 30 * time.Second
 	if options.SyncInterval > 0 {
-		interval = options.SyncInterval
+		interval = time.Duration(options.SyncInterval) * time.Second
 	} else {
 		envSync := os.Getenv("INFRA_SYNC_INTERVAL_SECONDS")
 		if envSync != "" {
-			interval, err = strconv.Atoi(envSync)
+			envInterval, err := strconv.Atoi(envSync)
 			if err != nil {
 				zapLogger.Error("invalid INFRA_SYNC_INTERVAL_SECONDS env: " + err.Error())
+			} else {
+				interval = time.Duration(envInterval) * time.Second
 			}
 		}
 	}
 
 	// be careful with this sync job, there are Okta rate limits on these requests
-	timer := timer.Timer{}
-	defer timer.Stop()
-	timer.Start(interval, func() {
+	syncSourcesTimer := timer.NewTimer()
+	defer syncSourcesTimer.Stop()
+	syncSourcesTimer.Start(interval, func() {
 		var sources []Source
 		if err := db.Find(&sources).Error; err != nil {
 			zapLogger.Error(err.Error())
@@ -121,6 +124,27 @@ func Run(options Options) error {
 			err = s.SyncGroups(db, k8s, okta)
 			if err != nil {
 				zapLogger.Error(err.Error())
+			}
+		}
+	})
+
+	// schedule destination sync job
+	syncDestinationsTimer := timer.NewTimer()
+	defer syncDestinationsTimer.Stop()
+	syncDestinationsTimer.Start(5*time.Minute, func() {
+		now := time.Now()
+
+		var destinations []Destination
+		if err := db.Find(&destinations).Error; err != nil {
+			zapLogger.Error(err.Error())
+		}
+
+		for i, d := range destinations {
+			expiry := time.Unix(d.Updated, 0).Add(time.Hour * 1)
+			if expiry.Before(now) {
+				if err = db.Delete(&destinations[i]).Error; err != nil {
+					zapLogger.Error(err.Error())
+				}
 			}
 		}
 	})

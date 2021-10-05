@@ -43,6 +43,7 @@ func TestSyncGroupsClearsOnlySource(t *testing.T) {
 		if src.Type == SourceTypeOkta {
 			// these groups are part of the okta source and should be cleared
 			assert.Len(t, group.Users, 0)
+			assert.False(t, group.Active)
 		}
 	}
 }
@@ -95,6 +96,7 @@ func TestSyncGroupsFromOktaRepopulatesEmptyGroups(t *testing.T) {
 
 	assert.Len(t, heroGroup.Users, 1)
 	assert.Equal(t, heroGroup.Users[0].Email, "woz@example.com")
+	assert.True(t, heroGroup.Active)
 
 	var villainGroup Group
 	if err := db.Preload("Users").Where(&Group{Name: "villains", SourceId: fakeOktaSource.Id}).First(&villainGroup).Error; err != nil {
@@ -102,6 +104,7 @@ func TestSyncGroupsFromOktaRepopulatesEmptyGroups(t *testing.T) {
 	}
 
 	assert.Len(t, villainGroup.Users, 0)
+	assert.False(t, villainGroup.Active)
 
 	mockGroups["villains"] = []string{"user@example.com"}
 
@@ -115,10 +118,12 @@ func TestSyncGroupsFromOktaRepopulatesEmptyGroups(t *testing.T) {
 
 	assert.Len(t, heroGroup.Users, 1)
 	assert.Equal(t, heroGroup.Users[0].Email, "woz@example.com")
+	assert.True(t, heroGroup.Active)
 
 	if err := db.Preload("Users").Where(&Group{Name: "villains", SourceId: fakeOktaSource.Id}).First(&villainGroup).Error; err != nil {
 		t.Fatal(err)
 	}
 
 	assert.Len(t, villainGroup.Users, 1)
+	assert.True(t, villainGroup.Active)
 }

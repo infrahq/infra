@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -69,7 +68,6 @@ func canConnectToTLSEndpoint(row statusRow) (bool, error) {
 	caCertPool := x509.NewCertPool()
 
 	if len(row.CertificateAuthorityData) > 0 {
-		fmt.Println("🐞🪲🐛 adding CA")
 		caCertPool.AppendCertsFromPEM([]byte(row.CertificateAuthorityData))
 	}
 

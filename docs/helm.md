@@ -97,32 +97,32 @@ ingress:
 
 ## Configuration Reference
 
-| Parameter                                 | Description                                   | Default                                                 |
-|-------------------------------------------|-----------------------------------------------|---------------------------------------------------------|
-| `image.repository`                        | Image repository                              | `infrahq/registry`                                      |
-| `image.tag`                               | Image tag                                     | Most recent version of Infra                            | 
-| `image.pullPolicy`                        | Image Pull Policy                             | `IfNotPresent`                                          |
-| `service.type`                            | Service type                                  | `LoadBalancer`                                          |
-| `service.port`                            | Port to expose the plaintext service on       | `80`                                                    |
-| `service.targetPort`                      | Target plaintext container port               | `80`                                                    |
-| `service.portName`                        | Name of the plaintext service port            | `plaintext`                                             |
-| `service.nodePort`                        | Service plaintext nodeport                    | `nil`                                                   |
-| `service.tlsPort`                         | Port to expose the TLS service on             | `443`                                                   |
-| `service.tlsTargetPort`                   | Target TLS container port                     | `443`                                                   |
-| `service.tlsPortName`                     | Name of the TLS service port                  | `tls`                                                   |
-| `service.tlsNodePort`                     | Service TLS nodeport                          | `nil`                                                   |
-| `service.annotations`                     | Service annotations                           | `{}`                                                    |
-| `service.labels`                          | Service labels                                | `{}`                                                    |
-| `service.loadBalancerIP`                  | IP address to assign to load balancer         | `nil`                                                   |
-| `service.loadBalancerSourceRanges`        | List of IP CIDRs allowed access               | `[]`                                                    |
-| `service.externalIPs`                     | Service external IP addresses                 | `[]`                                                    |
-| `service.clusterIP`                       | Internal cluster service IP                   | `nil`                                                   |
-| `ingress.enabled`                         | Enable ingress                                | `false`                                                 |
-| `ingress.host`                            | Ingress host                                  | `""`                                                    |
-| `ingress.tls`                             | Ingress tls configuration                     | `[]`                                                    |
-| `ingress.servicePort`               | Target http service port backend              | `80`                                                    |
-| `ingress.annotations`               | Ingress annotations (https)                   | `{}`                                                    |
-| `ingress.labels`                    | Ingress labels (https)                        | `{}`                                                    |
+| Parameter                          | Description                             | Default                      |
+|------------------------------------|-----------------------------------------|------------------------------|
+| `image.repository`                 | Image repository                        | `infrahq/registry`           |
+| `image.tag`                        | Image tag                               | Most recent version of Infra |
+| `image.pullPolicy`                 | Image Pull Policy                       | `IfNotPresent`               |
+| `service.type`                     | Service type                            | `LoadBalancer`               |
+| `service.port`                     | Port to expose the plaintext service on | `80`                         |
+| `service.targetPort`               | Target plaintext container port         | `80`                         |
+| `service.portName`                 | Name of the plaintext service port      | `plaintext`                  |
+| `service.nodePort`                 | Service plaintext nodeport              | `nil`                        |
+| `service.tlsPort`                  | Port to expose the TLS service on       | `443`                        |
+| `service.tlsTargetPort`            | Target TLS container port               | `443`                        |
+| `service.tlsPortName`              | Name of the TLS service port            | `tls`                        |
+| `service.tlsNodePort`              | Service TLS nodeport                    | `nil`                        |
+| `service.annotations`              | Service annotations                     | `{}`                         |
+| `service.labels`                   | Service labels                          | `{}`                         |
+| `service.loadBalancerIP`           | IP address to assign to load balancer   | `nil`                        |
+| `service.loadBalancerSourceRanges` | List of IP CIDRs allowed access         | `[]`                         |
+| `service.externalIPs`              | Service external IP addresses           | `[]`                         |
+| `service.clusterIP`                | Internal cluster service IP             | `nil`                        |
+| `ingress.enabled`                  | Enable ingress                          | `false`                      |
+| `ingress.host`                     | Ingress host                            | `""`                         |
+| `ingress.tls`                      | Ingress tls configuration               | `[]`                         |
+| `ingress.servicePort`              | Target http service port backend        | `80`                         |
+| `ingress.annotations`              | Ingress annotations (https)             | `{}`                         |
+| `ingress.labels`                   | Ingress labels (https)                  | `{}`                         |
 
 ## Uninstalling
 
@@ -140,7 +140,7 @@ Uninstall the Infra Engine
 
 ```
 # Remove infra engine
-helm uninstall infra-engine
+helm uninstall infra-engine -n infrahq
 
 # Remove rolebindings & clusterrolebindings created by infra engine
 kubectl delete clusterrolebindings,rolebindings -l app.kubernetes.io/managed-by=infra --all-namespaces
