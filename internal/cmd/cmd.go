@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/goware/urlx"
 	"github.com/infrahq/infra/internal/api"
@@ -20,7 +19,6 @@ import (
 	"github.com/infrahq/infra/internal/registry"
 	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
-	clientauthenticationv1beta1 "k8s.io/client-go/pkg/apis/clientauthentication/v1beta1"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
@@ -405,85 +403,4 @@ func Run() error {
 	}
 
 	return cmd.Execute()
-}
-
-// getCache populates obj with whatever is in the cache
-func getCache(path, name string, obj interface{}) error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	path = filepath.Join(homeDir, ".infra", "cache", path)
-	if err = os.MkdirAll(path, os.ModePerm); err != nil {
-		return err
-	}
-
-	fullPath := filepath.Join(path, name)
-
-	f, err := os.Open(fullPath)
-	if os.IsNotExist(err) {
-		return nil
-	}
-
-	if err != nil {
-		return err
-	}
-
-	defer f.Close()
-
-	d := json.NewDecoder(f)
-	if err := d.Decode(obj); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func setCache(path, name string, obj interface{}) error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	path = filepath.Join(homeDir, ".infra", "cache", path)
-	fullPath := filepath.Join(path, name)
-
-	if err = os.MkdirAll(path, os.ModePerm); err != nil {
-		return err
-	}
-
-	f, err := os.Create(fullPath)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	e := json.NewEncoder(f)
-	if err := e.Encode(obj); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// isExpired returns true if the credential is expired or incomplete.
-// it only returns false if the credential is good to use.
-func isExpired(cred *clientauthenticationv1beta1.ExecCredential) bool {
-	if cred == nil {
-		return true
-	}
-
-	if cred.Status == nil {
-		return true
-	}
-
-	if cred.Status.ExpirationTimestamp == nil {
-		return true
-	}
-
-	// make sure it expires in more than 1 second from now.
-	now := time.Now().Add(1 * time.Second)
-	// only valid if it hasn't expired yet
-	return cred.Status.ExpirationTimestamp.Time.Before(now)
 }
