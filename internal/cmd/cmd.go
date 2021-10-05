@@ -284,7 +284,7 @@ func promptShouldSkipTLSVerify(host string, skipTLSVerify bool) (shouldSkipTLSVe
 		fmt.Fprintln(os.Stderr)
 
 		prompt := &survey.Confirm{
-			Message: "The connection to this server will not be secure. Are you sure you want to continue?",
+			Message: "Are you sure you want to continue?",
 		}
 
 		err := survey.AskOne(prompt, &proceed, survey.WithIcons(func(icons *survey.IconSet) {
