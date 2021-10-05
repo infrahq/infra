@@ -9,7 +9,7 @@ import (
 )
 
 type statusRow struct {
-	CurrentlySelected        string `header:" "` // * if selected
+	CurrentlySelected        string `header:"CURRENT"` // * if selected
 	Name                     string `header:"NAME"`
 	Type                     string `header:"TYPE"`
 	Status                   string `header:"STATUS"`
@@ -96,8 +96,6 @@ func list() error {
 			rows[i].Status = fmt.Sprintf("💻 → %s → 🌥  → 🔒 → ❌ Can't talk to infra engine (%s)", globe(), lastErr)
 		}
 	}
-
-	fmt.Println()
 
 	printTable(rows)
 
