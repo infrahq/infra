@@ -54,6 +54,7 @@ func readConfig() (*ClientConfigV0dot2, error) {
 		if err = json.Unmarshal(contents, &configv0dot1); err != nil {
 			return nil, err
 		}
+
 		return configv0dot1.ToV0dot2(), nil
 	}
 
@@ -101,10 +102,12 @@ func readCurrentConfig() (*RegistryConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	for i := range cfg.Registries {
 		if cfg.Registries[i].Current {
 			return &cfg.Registries[i], nil
 		}
 	}
+
 	return nil, nil
 }

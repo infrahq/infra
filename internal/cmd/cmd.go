@@ -94,9 +94,11 @@ func apiContextFromConfig() (context.Context, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if config == nil {
-		return nil, errors.New("No current registry context; try `infra login [registry]`")
+		return nil, errors.New("no current registry context; try `infra login [registry]`")
 	}
+
 	return NewApiContext(config.Token), nil
 }
 
@@ -107,8 +109,9 @@ func apiClientFromConfig() (*api.APIClient, error) {
 	}
 
 	if config == nil {
-		return nil, errors.New("No current registry context; try `infra login [registry]`")
+		return nil, errors.New("no current registry context; try `infra login [registry]`")
 	}
+
 	return NewApiClient(config.Host, config.SkipTLSVerify)
 }
 
@@ -356,17 +359,19 @@ func selectARegistry(registries []RegistryConfig) *RegistryConfig {
 		options = append(options, reg.Host)
 	}
 
-	var option int
+	option := 0
 	prompt := &survey.Select{
 		Message: "Choose a registry:",
 		Options: options,
 	}
+
 	err := survey.AskOne(prompt, &option, survey.WithIcons(func(icons *survey.IconSet) {
 		icons.Question.Text = blue("?")
 	}))
 	if err != nil {
 		return nil
 	}
+
 	return &registries[option]
 }
 
@@ -409,13 +414,16 @@ func login(host string) error {
 	}
 
 	var selectedRegistry *RegistryConfig
+
 	if loadedCfg != nil {
 		if len(host) == 0 && len(loadedCfg.Registries) == 1 {
 			selectedRegistry = &loadedCfg.Registries[0]
 		}
+
 		if len(host) == 0 && len(loadedCfg.Registries) > 1 {
 			selectedRegistry = selectARegistry(loadedCfg.Registries)
 		}
+
 		if len(host) > 0 && len(loadedCfg.Registries) > 0 {
 			for i := range loadedCfg.Registries {
 				if loadedCfg.Registries[i].Host == host {
@@ -596,6 +604,7 @@ func first(s []string) string {
 	if len(s) == 0 {
 		return ""
 	}
+
 	return s[0]
 }
 

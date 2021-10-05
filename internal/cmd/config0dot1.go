@@ -9,7 +9,7 @@ type ClientConfigV0dot1 struct {
 	SourceID      string `json:"source-id"`
 }
 
-// ToV0dot2 upgrades the config to the 1.0 verison
+// ToV0dot2 upgrades the config to the 1.0 version
 func (c ClientConfigV0dot1) ToV0dot2() *ClientConfigV0dot2 {
 	return &ClientConfigV0dot2{
 		Version: "0.2",
