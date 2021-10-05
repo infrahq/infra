@@ -29,7 +29,7 @@ func (e *ErrUnauthenticated) Error() string {
 	return "Could not read local credentials. Are you logged in? Use \"infra login\" to login."
 }
 
-func login(registry string) error {
+func login(registry string, useCurrentConfig bool) error {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return err
@@ -44,12 +44,12 @@ func login(registry string) error {
 
 	defer func() {
 		if err := lock.Unlock(); err != nil {
-			fmt.Fprintln(os.Stderr, "failed to unlock login.lock")
+			fmt.Fprintln(os.Stderr, "Failed to unlock login.")
 		}
 	}()
 
 	if !acquired {
-		fmt.Fprintln(os.Stderr, "another instance is trying to login")
+		fmt.Fprintln(os.Stderr, "Another instance is already trying to login.")
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
 		defer cancel()
@@ -74,7 +74,16 @@ func login(registry string) error {
 			selectedRegistry = &loadedCfg.Registries[0]
 		}
 
-		if len(registry) == 0 && len(loadedCfg.Registries) > 1 {
+		if len(registry) == 0 && len(loadedCfg.Registries) > 1 && useCurrentConfig {
+			for i := range loadedCfg.Registries {
+				if loadedCfg.Registries[i].Current {
+					selectedRegistry = &loadedCfg.Registries[i]
+					break
+				}
+			}
+		}
+
+		if len(registry) == 0 && len(loadedCfg.Registries) > 1 && !useCurrentConfig {
 			selectedRegistry = promptSelectRegistry(loadedCfg.Registries)
 		}
 
@@ -92,7 +101,7 @@ func login(registry string) error {
 		loadedCfg = NewClientConfig()
 	}
 
-	if selectedRegistry == nil && len(registry) > 0 {
+	if len(registry) > 0 && selectedRegistry == nil {
 		// user is specifying a new registry
 		loadedCfg.Registries = append(loadedCfg.Registries, ClientRegistryConfig{
 			Host:    registry,
@@ -103,11 +112,10 @@ func login(registry string) error {
 
 	if selectedRegistry == nil {
 		// at this point they have not specified a registry and have none to choose from.
-		fmt.Fprintln(os.Stderr, "You must supply the address to an Infra Registry to login")
-		return errors.New("no registry specified")
+		return errors.New("A registry endpoint is required to continue with login.")
 	}
 
-	fmt.Fprintf(os.Stderr, "%s logging into %s\n", blue("✓"), selectedRegistry.Host)
+	fmt.Fprintf(os.Stderr, "%s Logging in to %s\n", blue("✓"), termenv.String(selectedRegistry.Host).Bold().String())
 
 	skipTLSVerify, proceed, err := promptShouldSkipTLSVerify(selectedRegistry.Host, selectedRegistry.SkipTLSVerify)
 	if err != nil {
@@ -115,7 +123,7 @@ func login(registry string) error {
 	}
 
 	if !proceed {
-		return nil
+		return fmt.Errorf("Could not continue with login.")
 	}
 
 	client, err := NewApiClient(selectedRegistry.Host, skipTLSVerify)
@@ -129,7 +137,7 @@ func login(registry string) error {
 	}
 
 	if len(sources) == 0 {
-		return errors.New("no sources configured")
+		return errors.New("Zero sources have been configured.")
 	}
 
 	source, err := promptSelectSource(sources, selectedRegistry.SourceID)
@@ -161,7 +169,7 @@ func login(registry string) error {
 
 		authorizeURL := "https://" + source.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + source.Okta.ClientId + "&response_type=code&scope=openid+email&nonce=" + nonce + "&state=" + state
 
-		fmt.Fprintln(os.Stderr, blue("✓")+" Logging in with Okta...")
+		fmt.Fprintf(os.Stderr, "%s Logging in with %s...\n", blue("✓"), termenv.String("Okta").Bold().String())
 
 		ls, err := newLocalServer()
 		if err != nil {
@@ -210,7 +218,7 @@ func login(registry string) error {
 		return err
 	}
 
-	fmt.Fprintln(os.Stderr, blue("✓")+" Logged in as "+termenv.String(loginRes.Name).Bold().String())
+	fmt.Fprintf(os.Stderr, "%s Logged in as %s\n", blue("✓"), termenv.String(loginRes.Name).Bold().String())
 
 	client, err = NewApiClient(selectedRegistry.Host, skipTLSVerify)
 	if err != nil {
@@ -229,7 +237,7 @@ func login(registry string) error {
 
 	if len(destinations) > 0 {
 		kubeConfigPath := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{}).ConfigAccess().GetDefaultFilename()
-		fmt.Fprintln(os.Stderr, blue("✓")+" Kubeconfig updated: "+termenv.String(strings.ReplaceAll(kubeConfigPath, homeDir, "~")).Bold().String())
+		fmt.Fprintf(os.Stderr, "%s Updated %s\n", blue("✓"), termenv.String(strings.ReplaceAll(kubeConfigPath, homeDir, "~")).Bold().String())
 	}
 
 	context, err := switchToFirstInfraContext()
@@ -238,7 +246,7 @@ func login(registry string) error {
 	}
 
 	if context != "" {
-		fmt.Fprintln(os.Stderr, blue("✓")+" Kubernetes current context is now "+termenv.String(context).Bold().String())
+		fmt.Fprintf(os.Stderr, "%s Current Kubernetes context is now %s\n", blue("✓"), termenv.String(context).Bold().String())
 	}
 
 	return nil
@@ -292,10 +300,7 @@ func promptShouldSkipTLSVerify(host string, skipTLSVerify bool) (shouldSkipTLSVe
 
 		proceed := false
 
-		fmt.Fprintln(os.Stderr)
-		fmt.Fprint(os.Stderr, "Could not verify certificate for host ")
-		fmt.Fprint(os.Stderr, termenv.String(host).Bold())
-		fmt.Fprintln(os.Stderr)
+		fmt.Fprintf(os.Stderr, "Could not verify certificate for host %s\n", termenv.String(host).Bold())
 
 		prompt := &survey.Confirm{
 			Message: "Are you sure you want to continue?",

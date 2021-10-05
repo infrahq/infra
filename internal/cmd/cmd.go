@@ -64,7 +64,7 @@ func apiContextFromConfig() (context.Context, error) {
 	}
 
 	if config == nil {
-		return nil, errors.New("no current registry context; try `infra login [registry]`")
+		return nil, &ErrUnauthenticated{}
 	}
 
 	return NewApiContext(config.Token), nil
@@ -77,7 +77,7 @@ func apiClientFromConfig() (*api.APIClient, error) {
 	}
 
 	if config == nil {
-		return nil, errors.New("no current registry context; try `infra login [registry]`")
+		return nil, &ErrUnauthenticated{}
 	}
 
 	return NewApiClient(config.Host, config.SkipTLSVerify)
@@ -203,7 +203,7 @@ func newLoginCmd() (*cobra.Command, error) {
 				registry = args[0]
 			}
 
-			return login(registry)
+			return login(registry, true)
 		},
 	}
 

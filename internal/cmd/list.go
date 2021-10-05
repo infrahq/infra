@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"math/rand"
+	"net/http"
 	"os"
 	"sort"
 
@@ -30,13 +31,21 @@ func list() error {
 		return err
 	}
 
-	destinations, resp, err := client.DestinationsApi.ListDestinations(ctx).Execute()
+	destinations, res, err := client.DestinationsApi.ListDestinations(ctx).Execute()
 	if err != nil {
-		if resp != nil && resp.StatusCode == 403 {
-			fmt.Println("403 Forbidden: try `infra login` and then repeat this command")
-		}
+		switch res.StatusCode {
+		case http.StatusForbidden:
+			fmt.Fprintln(os.Stderr, "Session has expired.")
 
-		return err
+			if err = login("", false); err != nil {
+				return err
+			}
+
+			return list()
+
+		default:
+			return err
+		}
 	}
 
 	sort.Slice(destinations, func(i, j int) bool {

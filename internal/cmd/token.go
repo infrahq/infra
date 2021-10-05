@@ -14,24 +14,24 @@ import (
 )
 
 func token(destination string) error {
-	client, err := apiClientFromConfig()
-	if err != nil {
-		return err
-	}
-
-	ctx, err := apiContextFromConfig()
-	if err != nil {
-		return err
-	}
-
 	execCredential := &clientauthenticationv1beta1.ExecCredential{}
 
-	err = getCache("dest_tokens", destination, execCredential)
+	err := getCache("dest_tokens", destination, execCredential)
 	if err != nil {
 		return err
 	}
 
 	if isExpired(execCredential) {
+		client, err := apiClientFromConfig()
+		if err != nil {
+			return err
+		}
+
+		ctx, err := apiContextFromConfig()
+		if err != nil {
+			return err
+		}
+
 		credReq := client.CredsApi.CreateCred(ctx).Body(api.CredRequest{Destination: &destination})
 
 		cred, res, err := credReq.Execute()
@@ -39,28 +39,16 @@ func token(destination string) error {
 			switch res.StatusCode {
 			case http.StatusForbidden:
 				if !term.IsTerminal(int(os.Stdin.Fd())) {
+					return &ErrUnauthenticated{}
+				}
+
+				fmt.Fprintln(os.Stderr, "Session has expired.")
+
+				if err = login("", false); err != nil {
 					return err
 				}
 
-				config, err := readCurrentConfig()
-				if err != nil {
-					return &ErrUnauthenticated{}
-				}
-
-				err = login(config.Host)
-				if err != nil {
-					return &ErrUnauthenticated{}
-				}
-
-				ctx, err := apiContextFromConfig()
-				if err != nil {
-					return &ErrUnauthenticated{}
-				}
-
-				cred, _, err = client.CredsApi.CreateCred(ctx).Body(api.CredRequest{Destination: &destination}).Execute()
-				if err != nil {
-					return &ErrUnauthenticated{}
-				}
+				return token(destination)
 
 			default:
 				return err
