@@ -92,21 +92,23 @@ func Run(options Options) error {
 	}
 
 	// schedule the user and group sync jobs
-	interval := 30
+	interval := 30 * time.Second
 	if options.SyncInterval > 0 {
-		interval = options.SyncInterval
+		interval = time.Duration(options.SyncInterval) * time.Second
 	} else {
 		envSync := os.Getenv("INFRA_SYNC_INTERVAL_SECONDS")
 		if envSync != "" {
-			interval, err = strconv.Atoi(envSync)
+			envInterval, err := strconv.Atoi(envSync)
 			if err != nil {
 				zapLogger.Error("invalid INFRA_SYNC_INTERVAL_SECONDS env: " + err.Error())
+			} else {
+				interval = time.Duration(envInterval) * time.Second
 			}
 		}
 	}
 
 	// be careful with this sync job, there are Okta rate limits on these requests
-	syncSourcesTimer := timer.Timer{}
+	syncSourcesTimer := timer.NewTimer()
 	defer syncSourcesTimer.Stop()
 	syncSourcesTimer.Start(interval, func() {
 		var sources []Source
@@ -127,9 +129,9 @@ func Run(options Options) error {
 	})
 
 	// schedule destination sync job
-	syncDestinationsTimer := timer.Timer{}
+	syncDestinationsTimer := timer.NewTimer()
 	defer syncDestinationsTimer.Stop()
-	syncDestinationsTimer.Start(5*60, func() {
+	syncDestinationsTimer.Start(5*time.Minute, func() {
 		now := time.Now()
 
 		var destinations []Destination
