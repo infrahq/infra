@@ -116,7 +116,6 @@ type Token struct {
 	Updated int64  `gorm:"autoUpdateTime"`
 	Expires int64
 	Secret  []byte
-	// TODO (brucemacd): add user permissions to session tokens
 
 	UserId string
 	User   User `gorm:"foreignKey:UserId;references:Id;"`
