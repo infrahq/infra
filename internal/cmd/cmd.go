@@ -353,7 +353,7 @@ func promptSelectSource(sources []api.Source, sourceID string) (*api.Source, err
 	return &sources[option], nil
 }
 
-func selectARegistry(registries []RegistryConfig) *RegistryConfig {
+func selectARegistry(registries []ClientRegistryConfig) *ClientRegistryConfig {
 	options := []string{}
 	for _, reg := range registries {
 		options = append(options, reg.Host)
@@ -413,7 +413,7 @@ func login(host string) error {
 		return err
 	}
 
-	var selectedRegistry *RegistryConfig
+	var selectedRegistry *ClientRegistryConfig
 
 	if loadedCfg != nil {
 		if len(host) == 0 && len(loadedCfg.Registries) == 1 {
@@ -440,7 +440,7 @@ func login(host string) error {
 
 	if selectedRegistry == nil && len(host) > 0 {
 		// user is specifying a new registry
-		loadedCfg.Registries = append(loadedCfg.Registries, RegistryConfig{
+		loadedCfg.Registries = append(loadedCfg.Registries, ClientRegistryConfig{
 			Host:    host,
 			Current: true,
 		})

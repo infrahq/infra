@@ -8,11 +8,11 @@ import (
 )
 
 type ClientConfigV0dot2 struct {
-	Version    string           `json:"version"` // always 0.2 in v0.2
-	Registries []RegistryConfig `json:"registries"`
+	Version    string                 `json:"version"` // always 0.2 in v0.2
+	Registries []ClientRegistryConfig `json:"registries"`
 }
 
-type RegistryConfig struct {
+type ClientRegistryConfig struct {
 	Name          string `json:"name"`
 	Host          string `json:"host"`
 	Token         string `json:"token"`
@@ -97,7 +97,7 @@ func removeConfig() error {
 	return nil
 }
 
-func readCurrentConfig() (*RegistryConfig, error) {
+func readCurrentConfig() (*ClientRegistryConfig, error) {
 	cfg, err := readConfig()
 	if err != nil {
 		return nil, err
