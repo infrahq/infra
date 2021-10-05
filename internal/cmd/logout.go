@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -10,36 +9,22 @@ import (
 
 func logout() error {
 	config, err := readCurrentConfig()
-	if err != nil {
-		return err
+	if err == nil {
+		client, err := NewApiClient(config.Host, config.SkipTLSVerify)
+		if err == nil {
+			_, _ = client.AuthApi.Logout(NewApiContext(config.Token)).Execute()
+		}
 	}
 
-	if config.Token == "" {
-		return nil
-	}
-
-	client, err := NewApiClient(config.Host, config.SkipTLSVerify)
-	if err != nil {
-		return err
-	}
-
-	_, err = client.AuthApi.Logout(NewApiContext(config.Token)).Execute()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-	}
-
-	err = removeConfig()
-	if err != nil {
-		return err
-	}
+	_ = updateKubeconfig([]api.Destination{})
 
 	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
+	if err == nil {
+		os.RemoveAll(filepath.Join(homeDir, ".infra", "cache"))
+		os.Remove(filepath.Join(homeDir, ".infra", "destinations"))
 	}
 
-	os.RemoveAll(filepath.Join(homeDir, ".infra", "cache"))
-	os.Remove(filepath.Join(homeDir, ".infra", "destinations"))
+	_ = removeConfig()
 
-	return updateKubeconfig([]api.Destination{})
+	return nil
 }
