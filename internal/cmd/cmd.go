@@ -319,13 +319,18 @@ func newEngineCmd() (*cobra.Command, error) {
 }
 
 func newVersionCmd() (*cobra.Command, error) {
+	var options VersionOptions
+
 	cmd := &cobra.Command{
 		Use:   "version",
 		Short: "Display the Infra build version",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return version()
+			return version(options)
 		},
 	}
+
+	cmd.Flags().BoolVarP(&options.Client, "client", "c", false, "Display client version only")
+	cmd.Flags().BoolVarP(&options.Registry, "registry", "r", false, "Display registry version only")
 
 	return cmd, nil
 }
