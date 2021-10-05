@@ -8,7 +8,7 @@ import (
 )
 
 type ClientConfigV0dot2 struct {
-	Version    string           `json:"version"` // 1.0
+	Version    string           `json:"version"` // always 0.2 in v0.2
 	Registries []RegistryConfig `json:"registries"`
 }
 

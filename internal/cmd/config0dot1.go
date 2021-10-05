@@ -1,7 +1,7 @@
 package cmd
 
 type ClientConfigV0dot1 struct {
-	Version       string `json:"version"` // always blank
+	Version       string `json:"version"` // always blank in v0.1
 	Name          string `json:"name"`
 	Host          string `json:"host"`
 	Token         string `json:"token"`
