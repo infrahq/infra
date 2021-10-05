@@ -3,8 +3,10 @@ package cmd
 import (
 	"fmt"
 	"math/rand"
+	"os"
 	"sort"
 
+	"github.com/lensesio/tableprinter"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -117,4 +119,22 @@ func globe() string {
 	default:
 		return "🌎"
 	}
+}
+
+func printTable(data interface{}) {
+	table := tableprinter.New(os.Stdout)
+
+	table.AutoFormatHeaders = true
+	table.HeaderAlignment = tableprinter.AlignLeft
+	table.AutoWrapText = false
+	table.DefaultAlignment = tableprinter.AlignLeft
+	table.CenterSeparator = ""
+	table.ColumnSeparator = ""
+	table.RowSeparator = ""
+	table.HeaderLine = false
+	table.BorderBottom = false
+	table.BorderLeft = false
+	table.BorderRight = false
+	table.BorderTop = false
+	table.Print(data)
 }

@@ -25,7 +25,6 @@ import (
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry"
-	"github.com/lensesio/tableprinter"
 	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
 	clientauthenticationv1beta1 "k8s.io/client-go/pkg/apis/clientauthentication/v1beta1"
@@ -37,24 +36,6 @@ type ErrUnauthenticated struct{}
 
 func (e *ErrUnauthenticated) Error() string {
 	return "Could not read local credentials. Are you logged in? Use \"infra login\" to login."
-}
-
-func printTable(data interface{}) {
-	table := tableprinter.New(os.Stdout)
-
-	table.AutoFormatHeaders = true
-	table.HeaderAlignment = tableprinter.AlignLeft
-	table.AutoWrapText = false
-	table.DefaultAlignment = tableprinter.AlignLeft
-	table.CenterSeparator = ""
-	table.ColumnSeparator = ""
-	table.RowSeparator = ""
-	table.HeaderLine = false
-	table.BorderBottom = false
-	table.BorderLeft = false
-	table.BorderRight = false
-	table.BorderTop = false
-	table.Print(data)
 }
 
 func blue(s string) string {
