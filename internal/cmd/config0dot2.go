@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 )
 
-type ClientConfigV1dot0 struct {
+type ClientConfigV0dot2 struct {
 	Version    string           `json:"version"` // 1.0
 	Registries []RegistryConfig `json:"registries"`
 }
@@ -21,14 +21,14 @@ type RegistryConfig struct {
 	Current       bool   `json:"current"`
 }
 
-func NewClientConfig() *ClientConfigV1dot0 {
-	return &ClientConfigV1dot0{
-		Version: "1.0",
+func NewClientConfig() *ClientConfigV0dot2 {
+	return &ClientConfigV0dot2{
+		Version: "0.2",
 	}
 }
 
-func readConfig() (*ClientConfigV1dot0, error) {
-	config := &ClientConfigV1dot0{}
+func readConfig() (*ClientConfigV0dot2, error) {
+	config := &ClientConfigV0dot2{}
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -54,13 +54,13 @@ func readConfig() (*ClientConfigV1dot0, error) {
 		if err = json.Unmarshal(contents, &configv0dot1); err != nil {
 			return nil, err
 		}
-		return configv0dot1.ToV1dot0(), nil
+		return configv0dot1.ToV0dot2(), nil
 	}
 
 	return config, nil
 }
 
-func writeConfig(config *ClientConfigV1dot0) error {
+func writeConfig(config *ClientConfigV0dot2) error {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return err

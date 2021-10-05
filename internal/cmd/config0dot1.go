@@ -9,10 +9,10 @@ type ClientConfigV0dot1 struct {
 	SourceID      string `json:"source-id"`
 }
 
-// ToV1dot0 upgrades the config to the 1.0 verison
-func (c ClientConfigV0dot1) ToV1dot0() *ClientConfigV1dot0 {
-	return &ClientConfigV1dot0{
-		Version: "1.0",
+// ToV0dot2 upgrades the config to the 1.0 verison
+func (c ClientConfigV0dot1) ToV0dot2() *ClientConfigV0dot2 {
+	return &ClientConfigV0dot2{
+		Version: "0.2",
 		Registries: []RegistryConfig{
 			{
 				Name:          c.Name,
