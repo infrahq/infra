@@ -181,14 +181,6 @@ func updateKubeconfig(destinations []api.Destination) error {
 	return nil
 }
 
-var rootCmd = &cobra.Command{
-	Use:   "infra",
-	Short: "Infrastructure Identity & Access Management (IAM)",
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		cmd.SilenceUsage = true
-	},
-}
-
 func newLoginCmd() (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:     "login REGISTRY",
@@ -382,6 +374,14 @@ func NewRootCmd() (*cobra.Command, error) {
 	engineCmd, err := newEngineCmd()
 	if err != nil {
 		return nil, err
+	}
+
+	rootCmd := &cobra.Command{
+		Use:   "infra",
+		Short: "Infrastructure Identity & Access Management (IAM)",
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			cmd.SilenceUsage = true
+		},
 	}
 
 	rootCmd.AddCommand(loginCmd)
