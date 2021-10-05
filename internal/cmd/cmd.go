@@ -3,26 +3,19 @@ package cmd
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
 
-	survey "github.com/AlecAivazis/survey/v2"
-	"github.com/AlecAivazis/survey/v2/terminal"
-	"github.com/cli/browser"
-	"github.com/gofrs/flock"
 	"github.com/goware/urlx"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/engine"
-	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry"
 	"github.com/muesli/termenv"
@@ -31,12 +24,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
-
-type ErrUnauthenticated struct{}
-
-func (e *ErrUnauthenticated) Error() string {
-	return "Could not read local credentials. Are you logged in? Use \"infra login\" to login."
-}
 
 func blue(s string) string {
 	return termenv.String(s).Bold().Foreground(termenv.ColorProfile().Color("#0057FF")).String()
@@ -196,38 +183,6 @@ func updateKubeconfig(destinations []api.Destination) error {
 	return nil
 }
 
-func switchToFirstInfraContext() (string, error) {
-	defaultConfig := clientConfig()
-
-	kubeConfig, err := defaultConfig.RawConfig()
-	if err != nil {
-		return "", err
-	}
-
-	resultContext := ""
-
-	if kubeConfig.Contexts[kubeConfig.CurrentContext] != nil && strings.HasPrefix(kubeConfig.CurrentContext, "infra:") {
-		// if the current context is an infra-controlled context, stay there
-		resultContext = kubeConfig.CurrentContext
-	} else {
-		for c := range kubeConfig.Contexts {
-			if strings.HasPrefix(c, "infra:") {
-				resultContext = c
-				break
-			}
-		}
-	}
-
-	if resultContext != "" {
-		kubeConfig.CurrentContext = resultContext
-		if err = clientcmd.WriteToFile(kubeConfig, defaultConfig.ConfigAccess().GetDefaultFilename()); err != nil {
-			return "", err
-		}
-	}
-
-	return resultContext, nil
-}
-
 var rootCmd = &cobra.Command{
 	Use:   "infra",
 	Short: "Infrastructure Identity & Access Management (IAM)",
@@ -236,357 +191,23 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-func promptShouldSkipTLSVerify(host string, skipTLSVerify bool) (shouldSkipTLSVerify bool, proceed bool, err error) {
-	if skipTLSVerify {
-		return true, true, nil
-	}
-
-	url, err := urlx.Parse(host)
-	if err != nil {
-		return false, false, fmt.Errorf("parsing host: %w", err)
-	}
-
-	url.Scheme = "https"
-	urlString := url.String()
-
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, urlString, nil)
-	if err != nil {
-		return false, false, err
-	}
-
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		if !errors.As(err, &x509.UnknownAuthorityError{}) && !errors.As(err, &x509.HostnameError{}) {
-			return false, false, err
-		}
-
-		proceed := false
-
-		fmt.Fprintln(os.Stderr)
-		fmt.Fprint(os.Stderr, "Could not verify certificate for host ")
-		fmt.Fprint(os.Stderr, termenv.String(host).Bold())
-		fmt.Fprintln(os.Stderr)
-
-		prompt := &survey.Confirm{
-			Message: "Are you sure you want to continue?",
-		}
-
-		err := survey.AskOne(prompt, &proceed, survey.WithIcons(func(icons *survey.IconSet) {
-			icons.Question.Text = blue("?")
-		}))
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err.Error())
-			return false, false, err
-		}
-
-		if !proceed {
-			return false, false, nil
-		}
-
-		return true, true, nil
-	}
-	defer res.Body.Close()
-
-	return false, true, nil
-}
-
-func promptSelectSource(sources []api.Source, sourceID string) (*api.Source, error) {
-	if len(sourceID) > 0 {
-		for _, source := range sources {
-			if source.Id == sourceID {
-				return &source, nil
+func newLoginCmd() (*cobra.Command, error) {
+	cmd := &cobra.Command{
+		Use:     "login REGISTRY",
+		Short:   "Login to an Infra Registry",
+		Args:    cobra.MaximumNArgs(1),
+		Example: "$ infra login infra.example.com",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			registry := ""
+			if len(args) == 1 {
+				registry = args[0]
 			}
-		}
 
-		return nil, errors.New("source not found")
+			return login(registry)
+		},
 	}
 
-	if len(sources) == 1 {
-		return &sources[0], nil
-	}
-
-	sort.Slice(sources, func(i, j int) bool {
-		return sources[i].Created > sources[j].Created
-	})
-
-	options := []string{}
-
-	for _, s := range sources {
-		if s.Okta != nil {
-			options = append(options, fmt.Sprintf("Okta [%s]", s.Okta.Domain))
-		}
-	}
-
-	var option int
-
-	prompt := &survey.Select{
-		Message: "Choose a login method:",
-		Options: options,
-	}
-
-	err := survey.AskOne(prompt, &option, survey.WithIcons(func(icons *survey.IconSet) {
-		icons.Question.Text = blue("?")
-	}))
-	if errors.Is(err, terminal.InterruptErr) {
-		return nil, err
-	}
-
-	return &sources[option], nil
-}
-
-func selectARegistry(registries []ClientRegistryConfig) *ClientRegistryConfig {
-	options := []string{}
-	for _, reg := range registries {
-		options = append(options, reg.Host)
-	}
-
-	option := 0
-	prompt := &survey.Select{
-		Message: "Choose a registry:",
-		Options: options,
-	}
-
-	err := survey.AskOne(prompt, &option, survey.WithIcons(func(icons *survey.IconSet) {
-		icons.Question.Text = blue("?")
-	}))
-	if err != nil {
-		return nil
-	}
-
-	return &registries[option]
-}
-
-func login(host string) error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	lock := flock.New(filepath.Join(homeDir, ".infra", "login.lock"))
-
-	acquired, err := lock.TryLock()
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		if err := lock.Unlock(); err != nil {
-			fmt.Fprintln(os.Stderr, "failed to unlock login.lock")
-		}
-	}()
-
-	if !acquired {
-		fmt.Fprintln(os.Stderr, "another instance is trying to login")
-
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
-		defer cancel()
-
-		_, err = lock.TryLockContext(ctx, time.Second*1)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	loadedCfg, err := readConfig()
-	if err != nil && !errors.Is(err, &ErrUnauthenticated{}) {
-		return err
-	}
-
-	var selectedRegistry *ClientRegistryConfig
-
-	if loadedCfg != nil {
-		if len(host) == 0 && len(loadedCfg.Registries) == 1 {
-			selectedRegistry = &loadedCfg.Registries[0]
-		}
-
-		if len(host) == 0 && len(loadedCfg.Registries) > 1 {
-			selectedRegistry = selectARegistry(loadedCfg.Registries)
-		}
-
-		if len(host) > 0 && len(loadedCfg.Registries) > 0 {
-			for i := range loadedCfg.Registries {
-				if loadedCfg.Registries[i].Host == host {
-					selectedRegistry = &loadedCfg.Registries[i]
-					break
-				}
-			}
-		}
-	}
-
-	if loadedCfg == nil {
-		loadedCfg = NewClientConfig()
-	}
-
-	if selectedRegistry == nil && len(host) > 0 {
-		// user is specifying a new registry
-		loadedCfg.Registries = append(loadedCfg.Registries, ClientRegistryConfig{
-			Host:    host,
-			Current: true,
-		})
-		selectedRegistry = &loadedCfg.Registries[len(loadedCfg.Registries)-1]
-	}
-
-	if selectedRegistry == nil {
-		// at this point they have not specified a registry and have none to choose from.
-		fmt.Fprintln(os.Stderr, "You must supply the address to an Infra Registry to login")
-		return errors.New("no registry specified")
-	}
-
-	fmt.Fprintf(os.Stderr, "%s logging into %s\n", blue("✓"), selectedRegistry.Host)
-
-	skipTLSVerify, proceed, err := promptShouldSkipTLSVerify(selectedRegistry.Host, selectedRegistry.SkipTLSVerify)
-	if err != nil {
-		return err
-	}
-
-	if !proceed {
-		return nil
-	}
-
-	client, err := NewApiClient(selectedRegistry.Host, skipTLSVerify)
-	if err != nil {
-		return err
-	}
-
-	sources, _, err := client.SourcesApi.ListSources(context.Background()).Execute()
-	if err != nil {
-		return err
-	}
-
-	if len(sources) == 0 {
-		return errors.New("no sources configured")
-	}
-
-	source, err := promptSelectSource(sources, selectedRegistry.SourceID)
-
-	switch {
-	case err == nil:
-	case errors.Is(err, terminal.InterruptErr):
-		return nil
-	default:
-		return err
-	}
-
-	var loginReq api.LoginRequest
-
-	switch {
-	case source.Okta != nil:
-		// Start OIDC flow
-		// Get auth code from Okta
-		// Send auth code to Infra to login as a user
-		state, err := generate.RandString(12)
-		if err != nil {
-			return err
-		}
-
-		nonce, err := generate.RandString(10)
-		if err != nil {
-			return err
-		}
-
-		authorizeURL := "https://" + source.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + source.Okta.ClientId + "&response_type=code&scope=openid+email&nonce=" + nonce + "&state=" + state
-
-		fmt.Fprintln(os.Stderr, blue("✓")+" Logging in with Okta...")
-
-		ls, err := newLocalServer()
-		if err != nil {
-			return err
-		}
-
-		err = browser.OpenURL(authorizeURL)
-		if err != nil {
-			return err
-		}
-
-		code, recvstate, err := ls.wait()
-		if err != nil {
-			return err
-		}
-
-		if state != recvstate {
-			return errors.New("received state is not the same as sent state")
-		}
-
-		loginReq.Okta = &api.LoginRequestOkta{
-			Domain: source.Okta.Domain,
-			Code:   code,
-		}
-	default:
-		return errors.New("invalid source selected")
-	}
-
-	loginRes, _, err := client.AuthApi.Login(context.Background()).Body(loginReq).Execute()
-	if err != nil {
-		return err
-	}
-
-	for i := range loadedCfg.Registries {
-		loadedCfg.Registries[i].Current = false
-	}
-
-	selectedRegistry.Name = loginRes.Name
-	selectedRegistry.Token = loginRes.Token
-	selectedRegistry.SkipTLSVerify = skipTLSVerify
-	selectedRegistry.SourceID = source.Id
-	selectedRegistry.Current = true
-
-	err = writeConfig(loadedCfg)
-	if err != nil {
-		return err
-	}
-
-	fmt.Fprintln(os.Stderr, blue("✓")+" Logged in as "+termenv.String(loginRes.Name).Bold().String())
-
-	client, err = NewApiClient(selectedRegistry.Host, skipTLSVerify)
-	if err != nil {
-		return err
-	}
-
-	destinations, _, err := client.DestinationsApi.ListDestinations(NewApiContext(loginRes.Token)).Execute()
-	if err != nil {
-		return err
-	}
-
-	err = updateKubeconfig(destinations)
-	if err != nil {
-		return err
-	}
-
-	if len(destinations) > 0 {
-		kubeConfigPath := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{}).ConfigAccess().GetDefaultFilename()
-		fmt.Fprintln(os.Stderr, blue("✓")+" Kubeconfig updated: "+termenv.String(strings.ReplaceAll(kubeConfigPath, homeDir, "~")).Bold().String())
-	}
-
-	context, err := switchToFirstInfraContext()
-	if err != nil {
-		return err
-	}
-
-	if context != "" {
-		fmt.Fprintln(os.Stderr, blue("✓")+" Kubernetes current context is now "+termenv.String(context).Bold().String())
-	}
-
-	return nil
-}
-
-var loginCmd = &cobra.Command{
-	Use:     "login REGISTRY",
-	Short:   "Login to an Infra Registry",
-	Args:    cobra.MaximumNArgs(1),
-	Example: "$ infra login infra.example.com",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return login(first(args))
-	},
-}
-
-func first(s []string) string {
-	if len(s) == 0 {
-		return ""
-	}
-
-	return s[0]
+	return cmd, nil
 }
 
 func newLogoutCmd() (*cobra.Command, error) {
@@ -729,6 +350,11 @@ func newTokenCmd() (*cobra.Command, error) {
 
 func NewRootCmd() (*cobra.Command, error) {
 	cobra.EnableCommandSorting = false
+
+	loginCmd, err := newLoginCmd()
+	if err != nil {
+		return nil, err
+	}
 
 	logoutCmd, err := newLogoutCmd()
 	if err != nil {
