@@ -2,73 +2,14 @@
 
 ## Commands
 
-* [infra list](#infra-list)
-* [infra status](#infra-status)
-* [infra users](#infra-users)
-* [infra groups](#infra-groups)
 * [infra login](#infra-login)
 * [infra logout](#infra-logout)
-* [infra creds](#infra-creds)
+* [infra list](#infra-list)
+* [infra token](#infra-token)
+* [infra version](#infra-version)
 * [infra registry](#infra-registry)
 * [infra engine](#infra-engine)
-* [infra version](#infra-version)
 
-
-## `infra list`
-
-List destinations
-
-```
-infra list [flags]
-```
-
-### Options
-
-```
-  -h, --help    help for list
-```
-
-## `infra status`
-
-Show the status of all connected destinations
-
-```
-infra status [flags]
-```
-
-### Options
-
-```
-  -h, --help    help for status
-```
-
-## `infra users`
-
-List users
-
-```
-infra users [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for users
-```
-
-## `infra groups`
-
-List groups
-
-```
-infra groups [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for groups
-```
 
 ## `infra login`
 
@@ -104,18 +45,46 @@ infra logout [flags]
   -h, --help   help for logout
 ```
 
-## `infra creds`
+## `infra list`
 
-Get a token for a specific destination. Typically only used internally.
-
-```
-infra creds DESTINATION
-```
-
-### Examples
+List destinations
 
 ```
-$ infra creds kubernetes
+infra list [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for list
+```
+
+## `infra token`
+
+Generate a JWT token for connecting to a destination, e.g. Kubernetes
+
+```
+infra token DESTINATION [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for token
+```
+
+## `infra version`
+
+Display the Infra build version
+
+```
+infra version [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for version
 ```
 
 ## `infra registry`
@@ -129,14 +98,15 @@ infra registry [flags]
 ### Options
 
 ```
-  -c, --config string           config file
-      --db string               path to database file (default "$HOME/.infra/infra.db")
-  -h, --help                    help for registry
-      --initial-apikey string   initial api key for adding destinations
-      --sync-interval int       the interval (in seconds) at which Infra will poll sources for users and groups (default 30)
-      --tls-cache string        path to directory to cache tls self-signed and Let's Encrypt certificates (default "$HOME/.infra/cache")
-      --ui                      enable ui
-      --ui-proxy string         proxy ui requests to this host
+  -c, --config string                   config file
+      --db string                       path to database file (default "~/.infra/infra.db")
+  -h, --help                            help for registry
+      --engine-api-key string   initial api key for adding destinations
+      --root-api-key string             the root api key for privileged actions
+      --sync-interval int               the interval (in seconds) at which Infra will poll sources for users and groups (default 30)
+      --tls-cache string                path to directory to cache tls self-signed and Let's Encrypt certificates (default "~/.infra/cache")
+      --ui                              enable ui
+      --ui-proxy string                 proxy ui requests to this host
 ```
 
 ## `infra engine`
@@ -155,19 +125,6 @@ infra engine [flags]
   -h, --help               help for engine
   -n, --name string        cluster name
   -r, --registry string    registry hostname
-```
-
-## `infra version`
-
-Display the Infra build version
-
-```
-infra version [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for version
+      --tls-cache string   path to directory to cache tls self-signed and Let's Encrypt certificates (default "~/.infra/cache")
 ```
 

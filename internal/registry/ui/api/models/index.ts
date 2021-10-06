@@ -1,5 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
+export * from './APIPermission';
 export * from './Cred';
 export * from './CredRequest';
 export * from './Destination';

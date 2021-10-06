@@ -47,18 +47,18 @@ func NewApiMux(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) *mux.Router {
 
 	r := mux.NewRouter()
 	v1 := r.PathPrefix("/v1").Subrouter()
-	v1.Handle("/users", a.bearerAuthMiddleware(http.HandlerFunc(a.ListUsers))).Methods(http.MethodGet)
-	v1.Handle("/groups", a.bearerAuthMiddleware(http.HandlerFunc(a.ListGroups))).Methods(http.MethodGet)
+	v1.Handle("/users", a.bearerAuthMiddleware(api.USERS_READ, http.HandlerFunc(a.ListUsers))).Methods(http.MethodGet)
+	v1.Handle("/groups", a.bearerAuthMiddleware(api.GROUPS_READ, http.HandlerFunc(a.ListGroups))).Methods(http.MethodGet)
 	v1.Handle("/sources", http.HandlerFunc(a.ListSources)).Methods(http.MethodGet)
-	v1.Handle("/destinations", a.bearerAuthMiddleware(http.HandlerFunc(a.ListDestinations))).Methods(http.MethodGet)
-	v1.Handle("/destinations", a.bearerAuthMiddleware(http.HandlerFunc(a.CreateDestination))).Methods(http.MethodPost)
-	v1.Handle("/api-keys", a.bearerAuthMiddleware(http.HandlerFunc(a.ListApiKeys))).Methods(http.MethodGet)
-	v1.Handle("/api-keys", a.bearerAuthMiddleware(http.HandlerFunc(a.CreateAPIKey))).Methods(http.MethodPost)
-	v1.Handle("/api-keys/{id}", a.bearerAuthMiddleware(http.HandlerFunc(a.DeleteApiKey))).Methods(http.MethodDelete)
-	v1.Handle("/creds", a.bearerAuthMiddleware(http.HandlerFunc(a.CreateCred))).Methods(http.MethodPost)
-	v1.Handle("/roles", a.bearerAuthMiddleware(http.HandlerFunc(a.ListRoles))).Methods(http.MethodGet)
+	v1.Handle("/destinations", a.bearerAuthMiddleware(api.DESTINATIONS_READ, http.HandlerFunc(a.ListDestinations))).Methods(http.MethodGet)
+	v1.Handle("/destinations", a.bearerAuthMiddleware(api.DESTINATIONS_CREATE, http.HandlerFunc(a.CreateDestination))).Methods(http.MethodPost)
+	v1.Handle("/api-keys", a.bearerAuthMiddleware(api.API_KEYS_READ, http.HandlerFunc(a.ListApiKeys))).Methods(http.MethodGet)
+	v1.Handle("/api-keys", a.bearerAuthMiddleware(api.API_KEYS_CREATE, http.HandlerFunc(a.CreateAPIKey))).Methods(http.MethodPost)
+	v1.Handle("/api-keys/{id}", a.bearerAuthMiddleware(api.API_KEYS_DELETE, http.HandlerFunc(a.DeleteApiKey))).Methods(http.MethodDelete)
+	v1.Handle("/creds", a.bearerAuthMiddleware(api.CREDS_CREATE, http.HandlerFunc(a.CreateCred))).Methods(http.MethodPost)
+	v1.Handle("/roles", a.bearerAuthMiddleware(api.ROLES_READ, http.HandlerFunc(a.ListRoles))).Methods(http.MethodGet)
 	v1.Handle("/login", http.HandlerFunc(a.Login)).Methods(http.MethodPost)
-	v1.Handle("/logout", a.bearerAuthMiddleware(http.HandlerFunc(a.Logout))).Methods(http.MethodPost)
+	v1.Handle("/logout", a.bearerAuthMiddleware(api.AUTH_DELETE, http.HandlerFunc(a.Logout))).Methods(http.MethodPost)
 	v1.Handle("/version", http.HandlerFunc(a.Version)).Methods(http.MethodGet)
 
 	return r
@@ -78,7 +78,7 @@ func sendApiError(w http.ResponseWriter, code int, message string) {
 	}
 }
 
-func (a *Api) bearerAuthMiddleware(next http.Handler) http.Handler {
+func (a *Api) bearerAuthMiddleware(required api.APIPermission, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authorization := r.Header.Get("Authorization")
 		raw := strings.ReplaceAll(authorization, "Bearer ", "")
@@ -119,6 +119,13 @@ func (a *Api) bearerAuthMiddleware(next http.Handler) http.Handler {
 				return
 			}
 
+			hasPermission := checkPermission(required, apiKey.Permissions)
+			if !hasPermission {
+				// at this point we know their key is valid, so we can present a more detailed error
+				sendApiError(w, http.StatusForbidden, string(required)+" permission is required")
+				return
+			}
+
 			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), apiKeyContextKey{}, &apiKey)))
 			return
 		}
@@ -126,6 +133,23 @@ func (a *Api) bearerAuthMiddleware(next http.Handler) http.Handler {
 		logging.L.Debug("invalid token length provided")
 		sendApiError(w, http.StatusUnauthorized, "unauthorized")
 	})
+}
+
+// checkPermission checks if a token that has already been validated has a specified permission
+func checkPermission(required api.APIPermission, tokenPermissions string) bool {
+	if tokenPermissions == string(api.STAR) {
+		// this is the root token
+		return true
+	}
+
+	permissions := strings.Split(tokenPermissions, " ")
+	for _, permission := range permissions {
+		if permission == string(required) {
+			return true
+		}
+	}
+
+	return false
 }
 
 type tokenContextKey struct{}
@@ -369,9 +393,9 @@ func (a *Api) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if strings.ToLower(body.Name) == defaultApiKeyName {
+	if strings.ToLower(body.Name) == engineApiKeyName || strings.ToLower(body.Name) == rootAPIKeyName {
 		// this name is used for the default API key that engines use to connect to the registry
-		sendApiError(w, http.StatusBadRequest, "cannot create an API key with the name "+defaultApiKeyName+", this name is reserved")
+		sendApiError(w, http.StatusBadRequest, fmt.Sprintf("cannot create an API key with the name %s, this name is reserved", body.Name))
 		return
 	}
 
@@ -384,6 +408,14 @@ func (a *Api) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 		}
 
 		apiKey.Name = body.Name
+		var permissions string
+		for _, p := range body.Permissions {
+			permissions += " " + string(p)
+		}
+		if len(strings.ReplaceAll(permissions, " ", "")) == 0 {
+			return ErrKeyPermissionsNotFound
+		}
+		apiKey.Permissions = permissions
 		return tx.Create(&apiKey).Error
 	})
 	if err != nil {
@@ -391,6 +423,11 @@ func (a *Api) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 
 		if errors.Is(err, ErrExistingKey) {
 			sendApiError(w, http.StatusNotFound, err.Error())
+			return
+		}
+
+		if errors.Is(err, ErrKeyPermissionsNotFound) {
+			sendApiError(w, http.StatusBadRequest, err.Error())
 			return
 		}
 
@@ -402,7 +439,7 @@ func (a *Api) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-	if err := json.NewEncoder(w).Encode(dbToAPIKeyWithSecret(apiKey)); err != nil {
+	if err := json.NewEncoder(w).Encode(dbToApiKeyWithSecret(&apiKey)); err != nil {
 		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not create api-key")
 	}
@@ -699,20 +736,39 @@ func dbToAPIKey(k ApiKey) api.InfraAPIKey {
 		Id:      k.Id,
 		Created: k.Created,
 	}
+	res.Permissions = dbToAPIPermissions(k.Permissions)
 
 	return res
 }
 
 // This function returns the secret key, it should only be used after the initial key creation
-func dbToAPIKeyWithSecret(a ApiKey) api.InfraAPIKeyCreateResponse {
+func dbToApiKeyWithSecret(k *ApiKey) api.InfraAPIKeyCreateResponse {
 	res := api.InfraAPIKeyCreateResponse{
-		Name:    a.Name,
-		Id:      a.Id,
-		Created: a.Created,
-		Key:     a.Key,
+		Name:    k.Name,
+		Id:      k.Id,
+		Created: k.Created,
+		Key:     k.Key,
 	}
+	res.Permissions = dbToAPIPermissions(k.Permissions)
 
 	return res
+}
+
+func dbToAPIPermissions(permissions string) []api.APIPermission {
+	var apiPermissions []api.APIPermission
+
+	storedPermissions := strings.Split(permissions, " ")
+	for _, p := range storedPermissions {
+		apiPermission, err := api.NewAPIPermissionFromValue(p)
+		if err != nil {
+			logging.L.Error("Error converting stored permission to API permission: " + p)
+			continue
+		}
+
+		apiPermissions = append(apiPermissions, *apiPermission)
+	}
+
+	return apiPermissions
 }
 
 func dbToAPIRole(r Role) api.Role {

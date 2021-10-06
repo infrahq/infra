@@ -30,11 +30,17 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args: ["registry", "-c", "/var/run/infra/config/infra.yaml", "--db", "/var/run/infra/data/infra.db", "--tls-cache", "/var/run/infra/data/cache"]
           env:
-            - name: INFRA_REGISTRY_DEFAULT_API_KEY
+            - name: INFRA_REGISTRY_ROOT_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: infra-registry
-                  key: defaultApiKey
+                  key: rootApiKey
+                  optional: true
+            - name: ENGINE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: infra-registry
+                  key: engineApiKey
                   optional: true
             - name: INFRA_LOG_LEVEL
               value: {{ .Values.logLevel | default "info" }}
