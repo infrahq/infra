@@ -64,6 +64,12 @@ blobs:
     ids:
       - zip
       - packages
+  - provider: s3
+    region: us-east-2
+    bucket: releases.infrahq.com
+    folder: "{{ .ProjectName }}"
+    extra_files:
+      - glob: latest
 brews:
   - tap:
       owner: infrahq
