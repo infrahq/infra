@@ -52,7 +52,7 @@ dev/clean:
 	helm uninstall --namespace infrahq infra-engine || true
 
 release: goreleaser
-	goreleaser release -f .goreleaser.yml --rm-dist
+	goreleaser release -f .goreleaser.yml --rm-dist --skip-validate
 
 release/docker:
 	docker buildx build --push --platform linux/amd64,linux/arm64 --build-arg BUILDVERSION=$(tag:v%=%) . -t infrahq/infra:$(tag:v%=%) -t infrahq/infra
