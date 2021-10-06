@@ -64,17 +64,17 @@ func list() error {
 			Name:   d.Name,
 			Status: "💻 → ❌ Can't reach internet",
 		}
+
 		if kube, ok := d.GetKubernetesOk(); ok {
 			row.Endpoint = kube.Endpoint
 			row.CertificateAuthorityData = []byte(kube.Ca)
-			row.Type = "k8s"
-			row.Name = "infra:" + row.Name
+			row.Type = "kubernetes"
 
 			if kubeConfig.CurrentContext == row.Name {
 				row.CurrentlySelected = "*"
 			}
 		}
-		// other dest types?
+
 		rows = append(rows, row)
 	}
 
