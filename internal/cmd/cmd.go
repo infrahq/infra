@@ -292,7 +292,7 @@ func newEngineCmd() (*cobra.Command, error) {
 				return errors.New("registry not specified (--registry or INFRA_ENGINE_REGISTRY)")
 			}
 			if options.Registry != "infra" && options.APIKey == "" {
-				return errors.New("api-key not specified (--api-key or INFRA_ENGINE_API_KEY)")
+				return errors.New("api-key not specified (--api-key or ENGINE_API_KEY)")
 			}
 			return engine.Run(options)
 		},
@@ -304,7 +304,7 @@ func newEngineCmd() (*cobra.Command, error) {
 	cmd.Flags().StringVarP(&options.Registry, "registry", "r", os.Getenv("INFRA_ENGINE_REGISTRY"), "registry hostname")
 	cmd.Flags().StringVarP(&options.Name, "name", "n", os.Getenv("INFRA_ENGINE_NAME"), "cluster name")
 	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(defaultInfraHome, "cache"), "path to directory to cache tls self-signed and Let's Encrypt certificates")
-	cmd.Flags().StringVar(&options.APIKey, "api-key", os.Getenv("INFRA_ENGINE_API_KEY"), "api key")
+	cmd.Flags().StringVar(&options.APIKey, "api-key", os.Getenv("ENGINE_API_KEY"), "api key")
 
 	if filepath.Dir(options.TLSCache) == defaultInfraHome {
 		homeDir, err := os.UserHomeDir()
