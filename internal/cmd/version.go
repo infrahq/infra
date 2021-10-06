@@ -80,12 +80,12 @@ func checkUpdate(clientSemVer, serverSemVer string) error {
 		latestSemVer = strings.TrimSpace(string(body))
 	}
 
-	if semver.Compare(latestSemVer, clientSemVer) > 0 {
+	if clientSemVer != "v0.0.0-development" && semver.Compare(latestSemVer, clientSemVer) > 0 {
 		fmt.Fprintf(os.Stderr, "Your client (%s) is out of date. Please update to %s.\n", clientSemVer, latestSemVer)
 	}
 
-	if semver.IsValid(serverSemVer) && semver.Compare(latestSemVer, serverSemVer) > 0 {
-		fmt.Fprintf(os.Stderr, "Your server (%s) is out of date. Please update to %s.\n", serverSemVer, latestSemVer)
+	if serverSemVer != "v0.0.0-development" && semver.IsValid(serverSemVer) && semver.Compare(latestSemVer, serverSemVer) > 0 {
+		fmt.Fprintf(os.Stderr, "Your registry (%s) is out of date. Please update to %s.\n", serverSemVer, latestSemVer)
 	}
 
 	return nil
