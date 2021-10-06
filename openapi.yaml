@@ -16,7 +16,7 @@ tags:
     description: Manage infrastructure destinations
   - name: api-keys
     description: Manage API keys used to access Infra admin endpoints
-  - name: creds
+  - name: tokens
     description: Create credentials to access a destination
   - name: roles
     description: Manage roles
@@ -41,7 +41,7 @@ components:
         - infra.api-keys.create
         - infra.api-keys.read
         - infra.api-keys.delete
-        - infra.creds.create
+        - infra.tokens.create
         - infra.roles.read
         - infra.auth.delete
         - infra.*
@@ -192,7 +192,7 @@ components:
       properties:
         key:
           type: string
-    Cred:
+    Token:
       type: object
       required:
         - token
@@ -203,7 +203,7 @@ components:
         expires:
           type: integer
           format: int64
-    CredRequest:
+    TokenRequest:
       type: object
       properties:
         destination:
@@ -489,28 +489,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /creds:
+  /tokens:
     post:
       tags:
-        - creds
+        - tokens
       security:
         - bearerAuth: []
       summary: Create credentials to access a destination
-      operationId: createCred
+      operationId: createToken
       x-codegen-request-body-name: body
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CredRequest'
+              $ref: '#/components/schemas/TokenRequest'
       responses:
         '200':
-          description: create cred response
+          description: create token response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Cred'
+                $ref: '#/components/schemas/Token'
         default:
           description: unexpected error
           content:

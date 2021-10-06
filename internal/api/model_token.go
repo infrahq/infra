@@ -14,33 +14,33 @@ import (
 	"encoding/json"
 )
 
-// Cred struct for Cred
-type Cred struct {
+// Token struct for Token
+type Token struct {
 	Token   string `json:"token"`
 	Expires int64  `json:"expires"`
 }
 
-// NewCred instantiates a new Cred object
+// NewToken instantiates a new Token object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewCred(token string, expires int64) *Cred {
-	this := Cred{}
+func NewToken(token string, expires int64) *Token {
+	this := Token{}
 	this.Token = token
 	this.Expires = expires
 	return &this
 }
 
-// NewCredWithDefaults instantiates a new Cred object
+// NewTokenWithDefaults instantiates a new Token object
 // This constructor will only assign default values to properties that have it defined,
 // but it doesn't guarantee that properties required by API are set
-func NewCredWithDefaults() *Cred {
-	this := Cred{}
+func NewTokenWithDefaults() *Token {
+	this := Token{}
 	return &this
 }
 
 // GetToken returns the Token field value
-func (o *Cred) GetToken() string {
+func (o *Token) GetToken() string {
 	if o == nil {
 		var ret string
 		return ret
@@ -51,7 +51,7 @@ func (o *Cred) GetToken() string {
 
 // GetTokenOk returns a tuple with the Token field value
 // and a boolean to check if the value has been set.
-func (o *Cred) GetTokenOk() (*string, bool) {
+func (o *Token) GetTokenOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -59,12 +59,12 @@ func (o *Cred) GetTokenOk() (*string, bool) {
 }
 
 // SetToken sets field value
-func (o *Cred) SetToken(v string) {
+func (o *Token) SetToken(v string) {
 	o.Token = v
 }
 
 // GetExpires returns the Expires field value
-func (o *Cred) GetExpires() int64 {
+func (o *Token) GetExpires() int64 {
 	if o == nil {
 		var ret int64
 		return ret
@@ -75,7 +75,7 @@ func (o *Cred) GetExpires() int64 {
 
 // GetExpiresOk returns a tuple with the Expires field value
 // and a boolean to check if the value has been set.
-func (o *Cred) GetExpiresOk() (*int64, bool) {
+func (o *Token) GetExpiresOk() (*int64, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -83,11 +83,11 @@ func (o *Cred) GetExpiresOk() (*int64, bool) {
 }
 
 // SetExpires sets field value
-func (o *Cred) SetExpires(v int64) {
+func (o *Token) SetExpires(v int64) {
 	o.Expires = v
 }
 
-func (o Cred) MarshalJSON() ([]byte, error) {
+func (o Token) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
 		toSerialize["token"] = o.Token
@@ -98,38 +98,38 @@ func (o Cred) MarshalJSON() ([]byte, error) {
 	return json.Marshal(toSerialize)
 }
 
-type NullableCred struct {
-	value *Cred
+type NullableToken struct {
+	value *Token
 	isSet bool
 }
 
-func (v NullableCred) Get() *Cred {
+func (v NullableToken) Get() *Token {
 	return v.value
 }
 
-func (v *NullableCred) Set(val *Cred) {
+func (v *NullableToken) Set(val *Token) {
 	v.value = val
 	v.isSet = true
 }
 
-func (v NullableCred) IsSet() bool {
+func (v NullableToken) IsSet() bool {
 	return v.isSet
 }
 
-func (v *NullableCred) Unset() {
+func (v *NullableToken) Unset() {
 	v.value = nil
 	v.isSet = false
 }
 
-func NewNullableCred(val *Cred) *NullableCred {
-	return &NullableCred{value: val, isSet: true}
+func NewNullableToken(val *Token) *NullableToken {
+	return &NullableToken{value: val, isSet: true}
 }
 
-func (v NullableCred) MarshalJSON() ([]byte, error) {
+func (v NullableToken) MarshalJSON() ([]byte, error) {
 	return json.Marshal(v.value)
 }
 
-func (v *NullableCred) UnmarshalJSON(src []byte) error {
+func (v *NullableToken) UnmarshalJSON(src []byte) error {
 	v.isSet = true
 	return json.Unmarshal(src, &v.value)
 }

@@ -14,30 +14,30 @@ import (
 	"encoding/json"
 )
 
-// CredRequest struct for CredRequest
-type CredRequest struct {
+// TokenRequest struct for TokenRequest
+type TokenRequest struct {
 	Destination *string `json:"destination,omitempty" validate:"required"`
 }
 
-// NewCredRequest instantiates a new CredRequest object
+// NewTokenRequest instantiates a new TokenRequest object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewCredRequest() *CredRequest {
-	this := CredRequest{}
+func NewTokenRequest() *TokenRequest {
+	this := TokenRequest{}
 	return &this
 }
 
-// NewCredRequestWithDefaults instantiates a new CredRequest object
+// NewTokenRequestWithDefaults instantiates a new TokenRequest object
 // This constructor will only assign default values to properties that have it defined,
 // but it doesn't guarantee that properties required by API are set
-func NewCredRequestWithDefaults() *CredRequest {
-	this := CredRequest{}
+func NewTokenRequestWithDefaults() *TokenRequest {
+	this := TokenRequest{}
 	return &this
 }
 
 // GetDestination returns the Destination field value if set, zero value otherwise.
-func (o *CredRequest) GetDestination() string {
+func (o *TokenRequest) GetDestination() string {
 	if o == nil || o.Destination == nil {
 		var ret string
 		return ret
@@ -47,7 +47,7 @@ func (o *CredRequest) GetDestination() string {
 
 // GetDestinationOk returns a tuple with the Destination field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *CredRequest) GetDestinationOk() (*string, bool) {
+func (o *TokenRequest) GetDestinationOk() (*string, bool) {
 	if o == nil || o.Destination == nil {
 		return nil, false
 	}
@@ -55,7 +55,7 @@ func (o *CredRequest) GetDestinationOk() (*string, bool) {
 }
 
 // HasDestination returns a boolean if a field has been set.
-func (o *CredRequest) HasDestination() bool {
+func (o *TokenRequest) HasDestination() bool {
 	if o != nil && o.Destination != nil {
 		return true
 	}
@@ -64,11 +64,11 @@ func (o *CredRequest) HasDestination() bool {
 }
 
 // SetDestination gets a reference to the given string and assigns it to the Destination field.
-func (o *CredRequest) SetDestination(v string) {
+func (o *TokenRequest) SetDestination(v string) {
 	o.Destination = &v
 }
 
-func (o CredRequest) MarshalJSON() ([]byte, error) {
+func (o TokenRequest) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if o.Destination != nil {
 		toSerialize["destination"] = o.Destination
@@ -76,38 +76,38 @@ func (o CredRequest) MarshalJSON() ([]byte, error) {
 	return json.Marshal(toSerialize)
 }
 
-type NullableCredRequest struct {
-	value *CredRequest
+type NullableTokenRequest struct {
+	value *TokenRequest
 	isSet bool
 }
 
-func (v NullableCredRequest) Get() *CredRequest {
+func (v NullableTokenRequest) Get() *TokenRequest {
 	return v.value
 }
 
-func (v *NullableCredRequest) Set(val *CredRequest) {
+func (v *NullableTokenRequest) Set(val *TokenRequest) {
 	v.value = val
 	v.isSet = true
 }
 
-func (v NullableCredRequest) IsSet() bool {
+func (v NullableTokenRequest) IsSet() bool {
 	return v.isSet
 }
 
-func (v *NullableCredRequest) Unset() {
+func (v *NullableTokenRequest) Unset() {
 	v.value = nil
 	v.isSet = false
 }
 
-func NewNullableCredRequest(val *CredRequest) *NullableCredRequest {
-	return &NullableCredRequest{value: val, isSet: true}
+func NewNullableTokenRequest(val *TokenRequest) *NullableTokenRequest {
+	return &NullableTokenRequest{value: val, isSet: true}
 }
 
-func (v NullableCredRequest) MarshalJSON() ([]byte, error) {
+func (v NullableTokenRequest) MarshalJSON() ([]byte, error) {
 	return json.Marshal(v.value)
 }
 
-func (v *NullableCredRequest) UnmarshalJSON(src []byte) error {
+func (v *NullableTokenRequest) UnmarshalJSON(src []byte) error {
 	v.isSet = true
 	return json.Unmarshal(src, &v.value)
 }
