@@ -59,7 +59,7 @@ func version(options VersionOptions) error {
 func checkUpdate(clientSemVer, serverSemVer string) error {
 	latestSemVer := "nonexistent"
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://releases.infrahq.com/infra/latest/version", nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://releases.infrahq.com/infra/latest", nil)
 	if err != nil {
 		return err
 	}

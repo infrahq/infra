@@ -27,7 +27,7 @@ jobs:
           go get
           make tools
       - run: |
-          echo $GITHUB_REF | cut -d/ -f3- | tee version
+          echo $GITHUB_REF | cut -d/ -f3- | tee latest
           make release
         env:
           GITHUB_TOKEN: ${{ secrets.GORELEASER_GITHUB_TOKEN }}
