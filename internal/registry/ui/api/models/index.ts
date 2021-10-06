@@ -1,5 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
+export * from './APIPermission';
 export * from './Cred';
 export * from './CredRequest';
 export * from './Destination';
@@ -13,7 +14,6 @@ export * from './LoginRequest';
 export * from './LoginRequestOkta';
 export * from './LoginResponse';
 export * from './ModelError';
-export * from './Permission';
 export * from './Role';
 export * from './RoleKind';
 export * from './Source';

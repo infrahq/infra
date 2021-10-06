@@ -749,7 +749,7 @@ func TestCreateAPIKey(t *testing.T) {
 
 	createAPIKeyRequest := api.InfraAPIKeyCreateRequest{
 		Name:        "test-api-client",
-		Permissions: []api.Permission{api.USERS_READ},
+		Permissions: []api.APIPermission{api.USERS_READ},
 	}
 
 	csr, err := createAPIKeyRequest.MarshalJSON()

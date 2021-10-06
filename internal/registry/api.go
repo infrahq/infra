@@ -78,7 +78,7 @@ func sendApiError(w http.ResponseWriter, code int, message string) {
 	}
 }
 
-func (a *Api) bearerAuthMiddleware(required api.Permission, next http.Handler) http.Handler {
+func (a *Api) bearerAuthMiddleware(required api.APIPermission, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authorization := r.Header.Get("Authorization")
 		raw := strings.ReplaceAll(authorization, "Bearer ", "")
@@ -136,7 +136,7 @@ func (a *Api) bearerAuthMiddleware(required api.Permission, next http.Handler) h
 }
 
 // checkPermission checks if a token that has already been validated has a specified permission
-func checkPermission(required api.Permission, tokenPermissions string) bool {
+func checkPermission(required api.APIPermission, tokenPermissions string) bool {
 	if tokenPermissions == string(api.STAR) {
 		// this is the root token
 		return true
@@ -395,7 +395,7 @@ func (a *Api) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 
 	if strings.ToLower(body.Name) == engineApiKeyName || strings.ToLower(body.Name) == rootAPIKeyName {
 		// this name is used for the default API key that engines use to connect to the registry
-		sendApiError(w, http.StatusBadRequest, "cannot create an API key with the name "+body.Name+", this name is reserved")
+		sendApiError(w, http.StatusBadRequest, fmt.Sprintf("cannot create an API key with the name %s, this name is reserved", body.Name))
 		return
 	}
 
@@ -736,7 +736,7 @@ func dbToAPIKey(k ApiKey) api.InfraAPIKey {
 		Id:      k.Id,
 		Created: k.Created,
 	}
-	res.Permissions = dbToApiPermissions(k.Permissions)
+	res.Permissions = dbToAPIPermissions(k.Permissions)
 
 	return res
 }
@@ -749,17 +749,17 @@ func dbToApiKeyWithSecret(k *ApiKey) api.InfraAPIKeyCreateResponse {
 		Created: k.Created,
 		Key:     k.Key,
 	}
-	res.Permissions = dbToApiPermissions(k.Permissions)
+	res.Permissions = dbToAPIPermissions(k.Permissions)
 
 	return res
 }
 
-func dbToApiPermissions(permissions string) []api.Permission {
-	var apiPermissions []api.Permission
+func dbToAPIPermissions(permissions string) []api.APIPermission {
+	var apiPermissions []api.APIPermission
 
 	storedPermissions := strings.Split(permissions, " ")
 	for _, p := range storedPermissions {
-		apiPermission, err := api.NewPermissionFromValue(p)
+		apiPermission, err := api.NewAPIPermissionFromValue(p)
 		if err != nil {
 			logging.L.Error("Error converting stored permission to API permission: " + p)
 			continue

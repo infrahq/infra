@@ -30,8 +30,8 @@ components:
       type: http
       scheme: bearer
   schemas:
-    Permission:
-      description: permissions of the form "infra.resource.action"
+    APIPermission:
+      description: API permissions of the form "infra.resource.action"
       type: string
       enum:
         - infra.users.read
@@ -170,7 +170,7 @@ components:
         permissions:
           type: array
           items:
-            $ref: '#/components/schemas/Permission'
+            $ref: '#/components/schemas/APIPermission'
     InfraAPIKeyCreateRequest:
       type: object
       required:
@@ -182,7 +182,7 @@ components:
         permissions:
           type: array
           items:
-            $ref: '#/components/schemas/Permission'
+            $ref: '#/components/schemas/APIPermission'
     InfraAPIKeyCreateResponse:
       allOf:
         - $ref: '#/components/schemas/InfraAPIKey'

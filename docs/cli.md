@@ -101,7 +101,7 @@ infra registry [flags]
   -c, --config string                   config file
       --db string                       path to database file (default "~/.infra/infra.db")
   -h, --help                            help for registry
-      --initial-engine-api-key string   initial api key for adding destinations
+      --engine-api-key string   initial api key for adding destinations
       --root-api-key string             the root api key for privileged actions
       --sync-interval int               the interval (in seconds) at which Infra will poll sources for users and groups (default 30)
       --tls-cache string                path to directory to cache tls self-signed and Let's Encrypt certificates (default "~/.infra/cache")

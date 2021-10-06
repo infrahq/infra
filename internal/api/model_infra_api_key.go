@@ -16,17 +16,17 @@ import (
 
 // InfraAPIKey struct for InfraAPIKey
 type InfraAPIKey struct {
-	Id          string       `json:"id"`
-	Created     int64        `json:"created"`
-	Name        string       `json:"name"`
-	Permissions []Permission `json:"permissions"`
+	Id          string          `json:"id"`
+	Created     int64           `json:"created"`
+	Name        string          `json:"name"`
+	Permissions []APIPermission `json:"permissions"`
 }
 
 // NewInfraAPIKey instantiates a new InfraAPIKey object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewInfraAPIKey(id string, created int64, name string, permissions []Permission) *InfraAPIKey {
+func NewInfraAPIKey(id string, created int64, name string, permissions []APIPermission) *InfraAPIKey {
 	this := InfraAPIKey{}
 	this.Id = id
 	this.Created = created
@@ -116,9 +116,9 @@ func (o *InfraAPIKey) SetName(v string) {
 }
 
 // GetPermissions returns the Permissions field value
-func (o *InfraAPIKey) GetPermissions() []Permission {
+func (o *InfraAPIKey) GetPermissions() []APIPermission {
 	if o == nil {
-		var ret []Permission
+		var ret []APIPermission
 		return ret
 	}
 
@@ -127,7 +127,7 @@ func (o *InfraAPIKey) GetPermissions() []Permission {
 
 // GetPermissionsOk returns a tuple with the Permissions field value
 // and a boolean to check if the value has been set.
-func (o *InfraAPIKey) GetPermissionsOk() (*[]Permission, bool) {
+func (o *InfraAPIKey) GetPermissionsOk() (*[]APIPermission, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -135,7 +135,7 @@ func (o *InfraAPIKey) GetPermissionsOk() (*[]Permission, bool) {
 }
 
 // SetPermissions sets field value
-func (o *InfraAPIKey) SetPermissions(v []Permission) {
+func (o *InfraAPIKey) SetPermissions(v []APIPermission) {
 	o.Permissions = v
 }
 
