@@ -9,12 +9,29 @@ import (
 	"time"
 
 	"github.com/infrahq/infra/internal/api"
+	"github.com/spf13/cobra"
 	"golang.org/x/term"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientauthenticationv1beta1 "k8s.io/client-go/pkg/apis/clientauthentication/v1beta1"
 )
 
-func token(destination string) error {
+func newTokenCreateCmd() (*cobra.Command, error) {
+	cmd := &cobra.Command{
+		Use:   "create DESTINATION",
+		Short: "Create a JWT token for connecting to a destination, e.g. Kubernetes",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) != 1 {
+				return cmd.Usage()
+			}
+
+			return tokenCreate(args[0])
+		},
+	}
+
+	return cmd, nil
+}
+
+func tokenCreate(destination string) error {
 	execCredential := &clientauthenticationv1beta1.ExecCredential{}
 
 	err := getCache("tokens", destination, execCredential)
@@ -49,7 +66,7 @@ func token(destination string) error {
 					return err
 				}
 
-				return token(destination)
+				return tokenCreate(destination)
 
 			default:
 				return err
