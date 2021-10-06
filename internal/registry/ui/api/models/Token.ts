@@ -16,32 +16,39 @@ import { exists, mapValues } from '../runtime';
 /**
  * 
  * @export
- * @interface CredRequest
+ * @interface Token
  */
-export interface CredRequest {
+export interface Token {
     /**
      * 
      * @type {string}
-     * @memberof CredRequest
+     * @memberof Token
      */
-    destination?: string;
+    token: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof Token
+     */
+    expires: number;
 }
 
-export function CredRequestFromJSON(json: any): CredRequest {
-    return CredRequestFromJSONTyped(json, false);
+export function TokenFromJSON(json: any): Token {
+    return TokenFromJSONTyped(json, false);
 }
 
-export function CredRequestFromJSONTyped(json: any, ignoreDiscriminator: boolean): CredRequest {
+export function TokenFromJSONTyped(json: any, ignoreDiscriminator: boolean): Token {
     if ((json === undefined) || (json === null)) {
         return json;
     }
     return {
         
-        'destination': !exists(json, 'destination') ? undefined : json['destination'],
+        'token': json['token'],
+        'expires': json['expires'],
     };
 }
 
-export function CredRequestToJSON(value?: CredRequest | null): any {
+export function TokenToJSON(value?: Token | null): any {
     if (value === undefined) {
         return undefined;
     }
@@ -50,7 +57,8 @@ export function CredRequestToJSON(value?: CredRequest | null): any {
     }
     return {
         
-        'destination': value.destination,
+        'token': value.token,
+        'expires': value.expires,
     };
 }
 

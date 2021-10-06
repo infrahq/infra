@@ -25,7 +25,7 @@ export enum APIPermission {
     ApiKeysCreate = 'infra.api-keys.create',
     ApiKeysRead = 'infra.api-keys.read',
     ApiKeysDelete = 'infra.api-keys.delete',
-    CredsCreate = 'infra.creds.create',
+    TokensCreate = 'infra.tokens.create',
     RolesRead = 'infra.roles.read',
     AuthDelete = 'infra.auth.delete',
     Star = 'infra.*'

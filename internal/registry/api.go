@@ -55,7 +55,7 @@ func NewApiMux(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) *mux.Router {
 	v1.Handle("/api-keys", a.bearerAuthMiddleware(api.API_KEYS_READ, http.HandlerFunc(a.ListApiKeys))).Methods(http.MethodGet)
 	v1.Handle("/api-keys", a.bearerAuthMiddleware(api.API_KEYS_CREATE, http.HandlerFunc(a.CreateAPIKey))).Methods(http.MethodPost)
 	v1.Handle("/api-keys/{id}", a.bearerAuthMiddleware(api.API_KEYS_DELETE, http.HandlerFunc(a.DeleteApiKey))).Methods(http.MethodDelete)
-	v1.Handle("/creds", a.bearerAuthMiddleware(api.CREDS_CREATE, http.HandlerFunc(a.CreateCred))).Methods(http.MethodPost)
+	v1.Handle("/tokens", a.bearerAuthMiddleware(api.TOKENS_CREATE, http.HandlerFunc(a.CreateToken))).Methods(http.MethodPost)
 	v1.Handle("/roles", a.bearerAuthMiddleware(api.ROLES_READ, http.HandlerFunc(a.ListRoles))).Methods(http.MethodGet)
 	v1.Handle("/login", http.HandlerFunc(a.Login)).Methods(http.MethodPost)
 	v1.Handle("/logout", a.bearerAuthMiddleware(api.AUTH_DELETE, http.HandlerFunc(a.Logout))).Methods(http.MethodPost)
@@ -552,7 +552,7 @@ func (a *Api) createJWT(destination, email string) (string, time.Time, error) {
 	return raw, expiry, nil
 }
 
-func (a *Api) CreateCred(w http.ResponseWriter, r *http.Request) {
+func (a *Api) CreateToken(w http.ResponseWriter, r *http.Request) {
 	token, err := extractToken(r.Context())
 	if err != nil {
 		logging.L.Debug(err.Error())
@@ -561,7 +561,7 @@ func (a *Api) CreateCred(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var body api.CredRequest
+	var body api.TokenRequest
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		sendApiError(w, http.StatusBadRequest, err.Error())
 		return
@@ -580,7 +580,7 @@ func (a *Api) CreateCred(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	if err := json.NewEncoder(w).Encode(api.Cred{Token: jwt, Expires: expiry.Unix()}); err != nil {
+	if err := json.NewEncoder(w).Encode(api.Token{Token: jwt, Expires: expiry.Unix()}); err != nil {
 		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not create cred")
 	}

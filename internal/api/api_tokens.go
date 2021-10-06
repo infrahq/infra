@@ -23,55 +23,55 @@ var (
 	_ _context.Context
 )
 
-// CredsApiService CredsApi service
-type CredsApiService service
+// TokensApiService TokensApi service
+type TokensApiService service
 
-type ApiCreateCredRequest struct {
+type ApiCreateTokenRequest struct {
 	ctx        _context.Context
-	ApiService *CredsApiService
-	body       *CredRequest
+	ApiService *TokensApiService
+	body       *TokenRequest
 }
 
-func (r ApiCreateCredRequest) Body(body CredRequest) ApiCreateCredRequest {
+func (r ApiCreateTokenRequest) Body(body TokenRequest) ApiCreateTokenRequest {
 	r.body = &body
 	return r
 }
 
-func (r ApiCreateCredRequest) Execute() (Cred, *_nethttp.Response, error) {
-	return r.ApiService.CreateCredExecute(r)
+func (r ApiCreateTokenRequest) Execute() (Token, *_nethttp.Response, error) {
+	return r.ApiService.CreateTokenExecute(r)
 }
 
 /*
-CreateCred Create credentials to access a destination
+CreateToken Create credentials to access a destination
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiCreateCredRequest
+ @return ApiCreateTokenRequest
 */
-func (a *CredsApiService) CreateCred(ctx _context.Context) ApiCreateCredRequest {
-	return ApiCreateCredRequest{
+func (a *TokensApiService) CreateToken(ctx _context.Context) ApiCreateTokenRequest {
+	return ApiCreateTokenRequest{
 		ApiService: a,
 		ctx:        ctx,
 	}
 }
 
 // Execute executes the request
-//  @return Cred
-func (a *CredsApiService) CreateCredExecute(r ApiCreateCredRequest) (Cred, *_nethttp.Response, error) {
+//  @return Token
+func (a *TokensApiService) CreateTokenExecute(r ApiCreateTokenRequest) (Token, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodPost
 		localVarPostBody     interface{}
 		localVarFormFileName string
 		localVarFileName     string
 		localVarFileBytes    []byte
-		localVarReturnValue  Cred
+		localVarReturnValue  Token
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "CredsApiService.CreateCred")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "TokensApiService.CreateToken")
 	if err != nil {
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/creds"
+	localVarPath := localBasePath + "/tokens"
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := _neturl.Values{}

@@ -27,7 +27,7 @@ const (
 	API_KEYS_CREATE     APIPermission = "infra.api-keys.create"
 	API_KEYS_READ       APIPermission = "infra.api-keys.read"
 	API_KEYS_DELETE     APIPermission = "infra.api-keys.delete"
-	CREDS_CREATE        APIPermission = "infra.creds.create"
+	TOKENS_CREATE       APIPermission = "infra.tokens.create"
 	ROLES_READ          APIPermission = "infra.roles.read"
 	AUTH_DELETE         APIPermission = "infra.auth.delete"
 	STAR                APIPermission = "infra.*"
@@ -41,7 +41,7 @@ var allowedAPIPermissionEnumValues = []APIPermission{
 	"infra.api-keys.create",
 	"infra.api-keys.read",
 	"infra.api-keys.delete",
-	"infra.creds.create",
+	"infra.tokens.create",
 	"infra.roles.read",
 	"infra.auth.delete",
 	"infra.*",

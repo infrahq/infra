@@ -1,8 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
 export * from './APIPermission';
-export * from './Cred';
-export * from './CredRequest';
 export * from './Destination';
 export * from './DestinationCreateRequest';
 export * from './DestinationKubernetes';
@@ -18,5 +16,7 @@ export * from './Role';
 export * from './RoleKind';
 export * from './Source';
 export * from './SourceOkta';
+export * from './Token';
+export * from './TokenRequest';
 export * from './User';
 export * from './Version';

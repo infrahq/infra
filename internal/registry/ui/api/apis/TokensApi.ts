@@ -15,29 +15,29 @@
 
 import * as runtime from '../runtime';
 import {
-    Cred,
-    CredFromJSON,
-    CredToJSON,
-    CredRequest,
-    CredRequestFromJSON,
-    CredRequestToJSON,
+    Token,
+    TokenFromJSON,
+    TokenToJSON,
+    TokenRequest,
+    TokenRequestFromJSON,
+    TokenRequestToJSON,
 } from '../models';
 
-export interface CreateCredRequest {
-    body: CredRequest;
+export interface CreateTokenRequest {
+    body: TokenRequest;
 }
 
 /**
  * 
  */
-export class CredsApi extends runtime.BaseAPI {
+export class TokensApi extends runtime.BaseAPI {
 
     /**
      * Create credentials to access a destination
      */
-    async createCredRaw(requestParameters: CreateCredRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Cred>> {
+    async createTokenRaw(requestParameters: CreateTokenRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Token>> {
         if (requestParameters.body === null || requestParameters.body === undefined) {
-            throw new runtime.RequiredError('body','Required parameter requestParameters.body was null or undefined when calling createCred.');
+            throw new runtime.RequiredError('body','Required parameter requestParameters.body was null or undefined when calling createToken.');
         }
 
         const queryParameters: any = {};
@@ -55,21 +55,21 @@ export class CredsApi extends runtime.BaseAPI {
             }
         }
         const response = await this.request({
-            path: `/creds`,
+            path: `/tokens`,
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: CredRequestToJSON(requestParameters.body),
+            body: TokenRequestToJSON(requestParameters.body),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => CredFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => TokenFromJSON(jsonValue));
     }
 
     /**
      * Create credentials to access a destination
      */
-    async createCred(requestParameters: CreateCredRequest, initOverrides?: RequestInit): Promise<Cred> {
-        const response = await this.createCredRaw(requestParameters, initOverrides);
+    async createToken(requestParameters: CreateTokenRequest, initOverrides?: RequestInit): Promise<Token> {
+        const response = await this.createTokenRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

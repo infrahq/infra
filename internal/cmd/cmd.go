@@ -130,7 +130,7 @@ func updateKubeconfig(destinations []api.Destination) error {
 		kubeConfig.AuthInfos[contextName] = &clientcmdapi.AuthInfo{
 			Exec: &clientcmdapi.ExecConfig{
 				Command:    executable,
-				Args:       []string{"token", d.Name},
+				Args:       []string{"tokens", "create", d.Name},
 				APIVersion: "client.authentication.k8s.io/v1beta1",
 			},
 		}
@@ -330,18 +330,18 @@ func newVersionCmd() (*cobra.Command, error) {
 	return cmd, nil
 }
 
-func newTokenCmd() (*cobra.Command, error) {
+func newTokensCmd() (*cobra.Command, error) {
 	cmd := &cobra.Command{
-		Use:   "token DESTINATION",
-		Short: "Generate a JWT token for connecting to a destination, e.g. Kubernetes",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) != 1 {
-				return errors.New("expecting destination as an argument")
-			}
-
-			return token(args[0])
-		},
+		Use:   "tokens",
+		Short: "Token subcommands",
 	}
+
+	tokenCreateCmd, err := newTokenCreateCmd()
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.AddCommand(tokenCreateCmd)
 
 	return cmd, nil
 }
@@ -364,7 +364,7 @@ func NewRootCmd() (*cobra.Command, error) {
 		return nil, err
 	}
 
-	tokenCmd, err := newTokenCmd()
+	tokensCmd, err := newTokensCmd()
 	if err != nil {
 		return nil, err
 	}
@@ -395,7 +395,7 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.AddCommand(loginCmd)
 	rootCmd.AddCommand(logoutCmd)
 	rootCmd.AddCommand(listCmd)
-	rootCmd.AddCommand(tokenCmd)
+	rootCmd.AddCommand(tokensCmd)
 	rootCmd.AddCommand(versionCmd)
 
 	rootCmd.AddCommand(registryCmd)
