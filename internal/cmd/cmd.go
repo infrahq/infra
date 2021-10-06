@@ -56,7 +56,7 @@ func NewApiClient(host string, skipTLSVerify bool) (*api.APIClient, error) {
 }
 
 func apiContextFromConfig() (context.Context, error) {
-	config, err := readCurrentConfig()
+	config, err := currentRegistryConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func apiContextFromConfig() (context.Context, error) {
 }
 
 func apiClientFromConfig() (*api.APIClient, error) {
-	config, err := readCurrentConfig()
+	config, err := currentRegistryConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -202,10 +202,17 @@ func newLoginCmd() (*cobra.Command, error) {
 
 func newLogoutCmd() (*cobra.Command, error) {
 	cmd := &cobra.Command{
-		Use:   "logout",
-		Short: "Logout of an Infra Registry",
+		Use:     "logout",
+		Short:   "Logout of an Infra Registry",
+		Args:    cobra.MaximumNArgs(1),
+		Example: "$ infra logout",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return logout()
+			registry := ""
+			if len(args) == 1 {
+				registry = args[0]
+			}
+
+			return logout(registry)
 		},
 	}
 

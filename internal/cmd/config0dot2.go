@@ -83,31 +83,46 @@ func writeConfig(config *ClientConfigV0dot2) error {
 	return nil
 }
 
-func removeConfig() error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	err = os.Remove(filepath.Join(homeDir, ".infra", "config"))
-	if err != nil {
-		return err
-	}
-
-	return nil
+func currentRegistryConfig() (*ClientRegistryConfig, error) {
+	return readRegistryConfig("")
 }
 
-func readCurrentConfig() (*ClientRegistryConfig, error) {
+func readRegistryConfig(registry string) (*ClientRegistryConfig, error) {
 	cfg, err := readConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	for i := range cfg.Registries {
-		if cfg.Registries[i].Current {
+	for i, c := range cfg.Registries {
+		if len(registry) == 0 && c.Current {
+			return &cfg.Registries[i], nil
+		}
+
+		if c.Host == registry {
 			return &cfg.Registries[i], nil
 		}
 	}
 
 	return nil, nil
+}
+
+func removeRegistryConfig(registry string) error {
+	cfg, err := readConfig()
+	if err != nil {
+		return err
+	}
+
+	for i, c := range cfg.Registries {
+		if c.Host == registry {
+			cfg.Registries = append(cfg.Registries[:i], cfg.Registries[i+1:]...)
+			break
+		}
+	}
+
+	err = writeConfig(cfg)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
