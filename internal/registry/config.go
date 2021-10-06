@@ -76,7 +76,7 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 			db.First(&existing, &Source{Type: SourceTypeOkta})
 
 			if existing.Id != "" {
-				logging.L.Warn("overriding existing okta source settings, only one okta source is supported")
+				logging.L.Warn("overriding existing okta source settings with configuration settings")
 			}
 
 			var source Source
@@ -111,8 +111,8 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 	return nil
 }
 
-func ApplyGroupMappings(db *gorm.DB, configGroups []ConfigGroupMapping) (groupIds []string, err error) {
-	for _, g := range configGroups {
+func ImportGroupMapping(db *gorm.DB, groups []ConfigGroupMapping) error {
+	for _, g := range groups {
 		// get the source from the datastore that this group specifies
 		var source Source
 		// Assumes that only one type of each source can exist
@@ -120,46 +120,48 @@ func ApplyGroupMappings(db *gorm.DB, configGroups []ConfigGroupMapping) (groupId
 		if srcReadErr != nil {
 			if errors.Is(srcReadErr, gorm.ErrRecordNotFound) {
 				// skip this source, it will need to be added in the config and re-applied
-				logging.L.Debug("skipping group with source in config that does not exist: " + g.Source)
+				logging.L.Sugar().Debugf("skipping group '%s' with source '%s' in config that does not exist", g.Name, g.Source)
 				continue
 			}
 
-			err = srcReadErr
+			return srcReadErr
+		}
 
-			return
+		var group Group
+
+		grpReadErr := db.Where(&Group{Name: g.Name, SourceId: source.Id}).First(&group).Error
+		if grpReadErr != nil {
+			if errors.Is(grpReadErr, gorm.ErrRecordNotFound) {
+				// skip this group, if they're created these roles will be added later
+				logging.L.Debug("skipping group in config import that has not yet been provisioned")
+				continue
+			}
+
+			return grpReadErr
 		}
 
 		// import the roles on this group from the datastore
 		var roles []Role
 
-		roles, err = importRoles(db, g.Roles)
+		roles, err := importRoles(db, g.Roles)
 		if err != nil {
-			return
-		}
-
-		var group Group
-		// Group names must be unique for mapping purposes
-		err = db.FirstOrCreate(&group, &Group{Name: g.Name, SourceId: source.Id}).Error
-		if err != nil {
-			return
+			return err
 		}
 
 		// add the new group associations to the roles
 		for i, role := range roles {
 			if db.Model(&group).Where(&Role{Id: role.Id}).Association("Roles").Count() == 0 {
 				if err = db.Model(&group).Where(&Role{Id: role.Id}).Association("Roles").Append(&roles[i]); err != nil {
-					return
+					return err
 				}
 			}
 		}
-
-		groupIds = append(groupIds, group.Id)
 	}
 
-	return groupIds, err
+	return nil
 }
 
-func ApplyUserMapping(db *gorm.DB, users []ConfigUserMapping) error {
+func ImportUserMapping(db *gorm.DB, users []ConfigUserMapping) error {
 	for _, u := range users {
 		var user User
 
@@ -174,29 +176,7 @@ func ApplyUserMapping(db *gorm.DB, users []ConfigUserMapping) error {
 			return usrReadErr
 		}
 
-		// add the user to groups, these declarations can be overridden by external group syncing
-		for _, gName := range u.Groups {
-			// Assumes that only one group can exist with a given name, regardless of sources
-			var group Group
-
-			grpReadErr := db.Where(&Group{Name: gName}).First(&group).Error
-			if grpReadErr != nil {
-				if errors.Is(grpReadErr, gorm.ErrRecordNotFound) {
-					logging.L.Debug("skipping unknown group \"" + gName + "\" on user")
-					continue
-				}
-
-				return grpReadErr
-			}
-
-			if db.Model(&user).Where(&Group{Id: group.Id}).Association("Groups").Count() == 0 {
-				if err := db.Model(&user).Where(&Group{Id: group.Id}).Association("Groups").Append(&group); err != nil {
-					return err
-				}
-			}
-		}
-
-		// add roles to user
+		// add direct user to role mappings
 		roles, err := importRoles(db, u.Roles)
 		if err != nil {
 			return err
@@ -215,29 +195,6 @@ func ApplyUserMapping(db *gorm.DB, users []ConfigUserMapping) error {
 	return nil
 }
 
-// ImportMappings imports the group and user role mappings and removes previously created roles if they no longer exist
-func ImportMappings(db *gorm.DB, groups []ConfigGroupMapping, users []ConfigUserMapping) error {
-	// gorm blocks global delete by default: https://gorm.io/docs/delete.html#Block-Global-Delete
-	if err := db.Where("1 = 1").Delete(&Role{}).Error; err != nil {
-		return err
-	}
-
-	grpIdsToKeep, err := ApplyGroupMappings(db, groups)
-	if err != nil {
-		return err
-	}
-
-	if len(grpIdsToKeep) == 0 {
-		logging.L.Debug("no valid groups found in configuration")
-	}
-
-	if err := db.Where("1 = 1").Not(grpIdsToKeep).Delete(&Group{}).Error; err != nil {
-		return err
-	}
-
-	return ApplyUserMapping(db, users)
-}
-
 // ImportConfig tries to import all valid fields in a config file
 func ImportConfig(db *gorm.DB, bs []byte) error {
 	var config Config
@@ -248,14 +205,36 @@ func ImportConfig(db *gorm.DB, bs []byte) error {
 	initialConfig = config
 
 	return db.Transaction(func(tx *gorm.DB) error {
+		// gorm blocks global delete by default: https://gorm.io/docs/delete.html#Block-Global-Delete
+		if err := tx.Where("1 = 1").Delete(&Role{}).Error; err != nil {
+			return err
+		}
+
+		var users []User
+		if err := tx.Find(&users).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("1 = 1").Delete(&users).Error; err != nil {
+			return err
+		}
+
+		var groups []Group
+		if err := tx.Find(&groups).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("1 = 1").Delete(&groups).Error; err != nil {
+			return err
+		}
+
 		if err := ImportSources(tx, config.Sources); err != nil {
 			return err
 		}
-		// Need to import of group/user mappings together because they both rely on roles
-		if err := ImportMappings(tx, config.Groups, config.Users); err != nil {
+
+		if err := ImportGroupMapping(tx, config.Groups); err != nil {
 			return err
 		}
-		return nil
+
+		return ImportUserMapping(tx, config.Users)
 	})
 }
 

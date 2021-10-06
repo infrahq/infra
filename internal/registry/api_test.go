@@ -650,8 +650,6 @@ func TestListRolesForDestinationReturnsRolesFromConfig(t *testing.T) {
 	// roles from direct user assignment
 	assert.Equal(t, 1, len(returnedUserRoles["admin"]))
 	assert.True(t, containsUser(returnedUserRoles["admin"], adminUser.Email))
-	assert.Equal(t, 1, len(returnedUserRoles["reader"]))
-	assert.True(t, containsUser(returnedUserRoles["reader"], standardUser.Email))
 }
 
 func TestListRolesOnlyFindsForSpecificDestination(t *testing.T) {
@@ -714,14 +712,6 @@ func TestListRolesForUnknownDestination(t *testing.T) {
 func TestListGroups(t *testing.T) {
 	a := &Api{db: db}
 
-	if err := db.Model(Group{}).Where(&Group{Name: "heroes"}).Update("active", true).Error; err != nil {
-		t.Fatal(err)
-	}
-
-	if err := db.Model(Group{}).Where(&Group{Name: "villains"}).Update("active", true).Error; err != nil {
-		t.Fatal(err)
-	}
-
 	r := httptest.NewRequest(http.MethodGet, "/v1/groups", nil)
 
 	w := httptest.NewRecorder()
@@ -740,8 +730,9 @@ func TestListGroups(t *testing.T) {
 		groupSources[g.Name] = g.Source
 	}
 
-	assert.Equal(t, "okta", groupSources["heroes"])
-	assert.Equal(t, "okta", groupSources["villains"])
+	// these groups were created specifically in the configuration test setup
+	assert.Equal(t, "okta", groupSources["ios-developers"])
+	assert.Equal(t, "okta", groupSources["mac-admins"])
 }
 
 func TestCreateAPIKey(t *testing.T) {

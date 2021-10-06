@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
 )
 
@@ -15,9 +16,9 @@ var db *gorm.DB
 
 var (
 	fakeOktaSource = Source{Type: "okta", Domain: "test.example.com", ClientSecret: "okta-secrets/client-secret", ApiToken: "okta-secrets/api-token"}
-	adminUser      = User{Email: "admin@example.com"}
-	standardUser   = User{Email: "user@example.com"}
-	iosDevUser     = User{Email: "woz@example.com"}
+	adminUser      = User{Id: "001", Email: "admin@example.com"}
+	standardUser   = User{Id: "002", Email: "user@example.com"}
+	iosDevUser     = User{Id: "003", Email: "woz@example.com"}
 	clusterA       = Destination{Name: "cluster-AAA"}
 	clusterB       = Destination{Name: "cluster-BBB"}
 	clusterC       = Destination{Name: "cluster-CCC"}
@@ -84,7 +85,44 @@ func setup() error {
 		return err
 	}
 
-	return ImportConfig(db, confFile)
+	iosDevGroup := &Group{Name: "ios-developers", SourceId: fakeOktaSource.Id}
+
+	err = db.Create(&iosDevGroup).Error
+	if err != nil {
+		return err
+	}
+
+	iosDevGroupUsers := []User{iosDevUser, standardUser}
+
+	err = db.Model(&iosDevGroup).Association("Users").Replace(iosDevGroupUsers)
+	if err != nil {
+		return err
+	}
+
+	err = db.Create(&Group{Name: "mac-admins", SourceId: fakeOktaSource.Id}).Error
+	if err != nil {
+		return err
+	}
+
+	// need to do the config import here so that the manual test modifications are not deleted
+	var config Config
+	if err := yaml.Unmarshal(confFile, &config); err != nil {
+		return err
+	}
+
+	initialConfig = config
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := ImportSources(tx, config.Sources); err != nil {
+			return err
+		}
+
+		if err := ImportGroupMapping(tx, config.Groups); err != nil {
+			return err
+		}
+
+		return ImportUserMapping(tx, config.Users)
+	})
 }
 
 func TestMain(m *testing.M) {
@@ -98,55 +136,7 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestImportCurrentValidConfig(t *testing.T) {
-	confFile, err := ioutil.ReadFile("_testdata/infra.yaml")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	assert.NoError(t, ImportConfig(db, confFile))
-}
-
-func TestGroupsForExistingSourcesAreCreated(t *testing.T) {
-	var groups []Group
-
-	db.Preload("Roles").Find(&groups)
-	assert.Equal(t, 4, len(groups), "Exactly four groups should be created from the test config, the other group has an invalid source")
-
-	groupNames := make(map[string]Group)
-	for _, g := range groups {
-		groupNames[g.Name] = g
-	}
-
-	assert.NotNil(t, groupNames["ios-developers"])
-	assert.NotNil(t, groupNames["mac-admins"])
-	assert.NotNil(t, groupNames["heroes"])
-	assert.NotNil(t, groupNames["villains"])
-
-	iosDevRoleDests := make(map[string]bool)
-	for _, iosGroupRole := range groupNames["ios-developers"].Roles {
-		iosDevRoleDests[iosGroupRole.DestinationId] = true
-	}
-
-	assert.True(t, iosDevRoleDests[clusterA.Id])
-	assert.Len(t, groupNames["mac-admins"].Roles, 1)
-	assert.Contains(t, groupNames["mac-admins"].Roles[0].DestinationId, clusterB.Id)
-}
-
-func TestGroupsForUnknownSourcesAreNotCreated(t *testing.T) {
-	var groups []Group
-
-	db.Find(&groups)
-
-	assert.Equal(t, 4, len(groups), "Exactly four groups should be created from the test config, the other group has an invalid source")
-	group1 := groups[0]
-	group2 := groups[1]
-
-	assert.NotEqual(t, "unknown", group1.Name, "A group was made for a source that does not exist")
-	assert.NotEqual(t, "unknown", group2.Name, "A group was made for a source that does not exist")
-}
-
-func TestUsersForExistingUsersAndDestinationsAreCreated(t *testing.T) {
+func TestRolesForExistingUsersAndDestinationsAreCreated(t *testing.T) {
 	isAdminAdminA, err := containsUserRoleForDestination(db, adminUser, clusterA.Id, "admin")
 	if err != nil {
 		t.Error(err)
@@ -160,20 +150,6 @@ func TestUsersForExistingUsersAndDestinationsAreCreated(t *testing.T) {
 	}
 
 	assert.True(t, isAdminAdminB, "admin@example.com should have the admin role in cluster-BBB")
-
-	isStandardWriterA, err := containsUserRoleForDestination(db, standardUser, clusterA.Id, "writer")
-	if err != nil {
-		t.Error(err)
-	}
-
-	assert.True(t, isStandardWriterA, "user@example.com should have the writer role in cluster-AAA")
-
-	isStandardReaderA, err := containsUserRoleForDestination(db, standardUser, clusterA.Id, "reader")
-	if err != nil {
-		t.Error(err)
-	}
-
-	assert.True(t, isStandardReaderA, "user@example.com should have the reader role in cluster-AAA")
 
 	unkownUser := User{Id: "0", Email: "unknown@example.com"}
 
@@ -207,43 +183,6 @@ func TestExistingSourceIsOverridden(t *testing.T) {
 	}
 
 	assert.Equal(t, fakeOktaSource.Domain, importedOkta.Domain)
-}
-
-func containsUserRoleForDestination(db *gorm.DB, user User, destinationId string, roleName string) (bool, error) {
-	var roles []Role
-
-	err := db.Preload("Destination").Preload("Groups").Preload("Users").Find(&roles, &Role{Name: roleName, DestinationId: destinationId}).Error
-	if err != nil {
-		return false, err
-	}
-
-	// check direct role-user relations
-	for _, role := range roles {
-		for _, roleU := range role.Users {
-			if roleU.Email == user.Email {
-				return true, nil
-			}
-		}
-	}
-
-	// check user groups-roles
-	var groups []Group
-	if err := db.Model(&user).Association("Groups").Find(&groups); err != nil {
-		return false, err
-	}
-
-	for i := range groups {
-		var groupRoles []Role
-		if err := db.Model(&groups[i]).Association("Roles").Find(&groupRoles, &Role{Name: roleName, DestinationId: destinationId}); err != nil {
-			return false, err
-		}
-
-		if len(groupRoles) > 0 {
-			return true, nil
-		}
-	}
-
-	return false, nil
 }
 
 func TestClusterRolesAreAppliedToGroup(t *testing.T) {
@@ -362,4 +301,41 @@ func TestCleanupDomain(t *testing.T) {
 
 	expected := "dev123123.okta.com"
 	require.Equal(t, expected, s.Domain)
+}
+
+func containsUserRoleForDestination(db *gorm.DB, user User, destinationId string, roleName string) (bool, error) {
+	var roles []Role
+
+	err := db.Preload("Destination").Preload("Groups").Preload("Users").Find(&roles, &Role{Name: roleName, DestinationId: destinationId}).Error
+	if err != nil {
+		return false, err
+	}
+
+	// check direct role-user relations
+	for _, role := range roles {
+		for _, roleU := range role.Users {
+			if roleU.Email == user.Email {
+				return true, nil
+			}
+		}
+	}
+
+	// check user groups-roles
+	var groups []Group
+	if err := db.Model(&user).Association("Groups").Find(&groups); err != nil {
+		return false, err
+	}
+
+	for i := range groups {
+		var groupRoles []Role
+		if err := db.Model(&groups[i]).Association("Roles").Find(&groupRoles, &Role{Name: roleName, DestinationId: destinationId}); err != nil {
+			return false, err
+		}
+
+		if len(groupRoles) > 0 {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }

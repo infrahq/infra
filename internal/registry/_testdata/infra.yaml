@@ -61,10 +61,6 @@ groups:
           - name: cluster-CCC
 
 users:
-  - email: woz@example.com
-    groups:
-      - ios-developers
-      - mac-admins
   - email: admin@example.com
     roles:
       - name: admin
@@ -85,18 +81,7 @@ users:
           - name: cluster-CCC
             namespaces: 
               - infrahq
-  - email: user@example.com
-    groups:
-      - ios-developers
-    roles:
-      - name: reader
-        kind: cluster-role
-        destinations:
-          - name: cluster-AAA
-          - name: cluster-UNKNOWN
   - email: unknown@example.com
-    groups:
-      - adversaries
     roles:
       - name: writer
         kind: cluster-role

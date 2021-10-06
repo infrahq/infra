@@ -26,26 +26,12 @@ func TestSyncGroupsClearsOnlySource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// the total amount of groups for all sources should not change, just the users on the groups
 	var groups []Group
 	if err := db.Preload("Users").Find(&groups).Error; err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Len(t, groups, 4)
-
-	for _, group := range groups {
-		var src Source
-		if err := db.Where(&Source{Id: group.SourceId}).First(&src).Error; err != nil {
-			t.Fatal(err)
-		}
-
-		if src.Type == SourceTypeOkta {
-			// these groups are part of the okta source and should be cleared
-			assert.Len(t, group.Users, 0)
-			assert.False(t, group.Active)
-		}
-	}
+	assert.Len(t, groups, 0)
 }
 
 func TestSyncGroupsFromOktaIgnoresUnknownUsers(t *testing.T) {
@@ -73,7 +59,7 @@ func TestSyncGroupsFromOktaIgnoresUnknownUsers(t *testing.T) {
 	assert.Equal(t, heroGroup.Users[0].Email, "woz@example.com")
 }
 
-func TestSyncGroupsFromOktaRepopulatesEmptyGroups(t *testing.T) {
+func TestSyncGroupsFromOktaRecreatesGroups(t *testing.T) {
 	mockGroups := make(map[string][]string)
 	mockGroups["heroes"] = []string{"woz@example.com"}
 	testOkta := new(mocks.Okta)
@@ -96,15 +82,6 @@ func TestSyncGroupsFromOktaRepopulatesEmptyGroups(t *testing.T) {
 
 	assert.Len(t, heroGroup.Users, 1)
 	assert.Equal(t, heroGroup.Users[0].Email, "woz@example.com")
-	assert.True(t, heroGroup.Active)
-
-	var villainGroup Group
-	if err := db.Preload("Users").Where(&Group{Name: "villains", SourceId: fakeOktaSource.Id}).First(&villainGroup).Error; err != nil {
-		t.Fatal(err)
-	}
-
-	assert.Len(t, villainGroup.Users, 0)
-	assert.False(t, villainGroup.Active)
 
 	mockGroups["villains"] = []string{"user@example.com"}
 
@@ -118,12 +95,11 @@ func TestSyncGroupsFromOktaRepopulatesEmptyGroups(t *testing.T) {
 
 	assert.Len(t, heroGroup.Users, 1)
 	assert.Equal(t, heroGroup.Users[0].Email, "woz@example.com")
-	assert.True(t, heroGroup.Active)
 
+	var villainGroup Group
 	if err := db.Preload("Users").Where(&Group{Name: "villains", SourceId: fakeOktaSource.Id}).First(&villainGroup).Error; err != nil {
 		t.Fatal(err)
 	}
 
 	assert.Len(t, villainGroup.Users, 1)
-	assert.True(t, villainGroup.Active)
 }
