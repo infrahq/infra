@@ -12,6 +12,7 @@ RUN CGO_ENABLED=1 GOOS=linux GOARCH=$TARGETARCH CC=$TARGETARCH-linux-gnu-gcc go 
 
 FROM alpine
 COPY --from=builder /go/src/github.com/infrahq/infra/infra /bin/infra
-EXPOSE 2378
+EXPOSE 80
+EXPOSE 443
 ENTRYPOINT ["/bin/infra"]
 CMD ["registry"]
