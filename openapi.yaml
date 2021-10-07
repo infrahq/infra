@@ -300,6 +300,12 @@ paths:
       security:
         - bearerAuth: []
       operationId: listUsers
+      parameters:
+        - in: query
+          name: email
+          schema:
+            type: string
+          description: Filter results by user email
       responses:
         '200':
           description: users response
@@ -315,6 +321,34 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /users/{id}:
+    get:
+      summary: Get user by ID
+      tags:
+        - users
+      security:
+        - bearerAuth: []
+      operationId: getUser
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: User ID
+      responses:
+        '200':
+          description: user response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /groups:
     get:
       summary: List groups
@@ -323,6 +357,17 @@ paths:
       security:
         - bearerAuth: []
       operationId: listGroups
+      parameters:
+        - in: query
+          name: name
+          schema:
+            type: string
+          description: Filter groups by name
+        - in: query
+          name: active
+          schema:
+            type: boolean
+          description: Filter groups by active state
       responses:
         '200':
           description: groups response
@@ -338,12 +383,46 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /groups/{id}:
+    get:
+      summary: Get group by ID
+      tags:
+        - groups
+      security:
+        - bearerAuth: []
+      operationId: getGroup
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Group ID
+      responses:
+        '200':
+          description: group response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /sources:
     get:
       summary: List sources
       tags:
         - sources
       operationId: listSources
+      parameters:
+        - in: query
+          name: type
+          schema:
+            type: string
+          description: Filter sources by type
       responses:
         '200':
           description: sources response
@@ -359,6 +438,32 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /sources/{id}:
+    get:
+      summary: Get source by ID
+      tags:
+        - sources
+      operationId: getSource
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Source ID
+      responses:
+        '200':
+          description: source response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Source'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /destinations:
     get:
       tags:
@@ -367,6 +472,17 @@ paths:
         - bearerAuth: []
       summary: List destinations
       operationId: listDestinations
+      parameters:
+        - in: query
+          name: name
+          schema:
+            type: string
+          description: Filter destinations by name
+        - in: query
+          name: type
+          schema:
+            type: string
+          description: Filter destinations by type
       responses:
         '200':
           description: destinations response
@@ -399,6 +515,34 @@ paths:
       responses:
         '200':
           description: create destination response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Destination'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /destinations/{id}:
+    get:
+      tags:
+        - destinations
+      security:
+        - bearerAuth: []
+      summary: Get Destination by ID
+      operationId: getDestination
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Destination ID
+      responses:
+        '200':
+          description: destinations response
           content:
             application/json:
               schema:
