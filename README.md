@@ -38,7 +38,7 @@ ENGINE_API_KEY=$(kubectl --namespace infrahq get secrets infra-registry -o jsonp
 Then, install Infra Engine in the Kubernetes context of the cluster you want to connect to Infra Registry:
 
 ```bash
-helm install infra-engine infrahq/engine --namespace infrahq --set name=my-first-cluster --set registry=$INFRA_REGISTRY --set apiKey=$ENGINE_API_KEY
+helm install infra-engine infrahq/engine --namespace infrahq --set registry=$INFRA_REGISTRY --set apiKey=$ENGINE_API_KEY
 ```
 
 ### Connect an identity provider
@@ -57,7 +57,7 @@ groups:
       - name: view
         kind: cluster-role
         destinations:
-          - name: my-first-cluster
+          - name: <cluster name>
 ```
 
 Then, update your Infra Registry with this new config:
