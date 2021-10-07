@@ -27,8 +27,9 @@ jobs:
           go get
           make tools
       - run: |
-          echo $GITHUB_REF | cut -d/ -f3- | tee latest
           make release
+          echo $GITHUB_REF | cut -d/ -f3- | tee latest
+          aws s3 cp latest s3://releases.infrahq.com/infra/latest
         env:
           GITHUB_TOKEN: ${{ secrets.GORELEASER_GITHUB_TOKEN }}
           GEMFURY_TOKEN: ${{ secrets.GORELEASER_GEMFURY_TOKEN }}
