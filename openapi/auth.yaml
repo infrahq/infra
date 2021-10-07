@@ -1,0 +1,27 @@
+LoginRequest:
+  type: object
+  properties:
+    okta:
+      $ref: 'auth.yaml#/LoginRequestOkta'
+LoginRequestOkta:
+  type: object
+  required:
+    - domain
+    - code
+  properties:
+    domain:
+      type: string
+      x-go-custom-tag: validate:"required"
+    code:
+      type: string
+      x-go-custom-tag: validate:"required"
+LoginResponse:
+  type: object
+  required:
+    - token
+    - name
+  properties:
+    token:
+      type: string
+    name:
+      type: string

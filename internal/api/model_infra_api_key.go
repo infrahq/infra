@@ -16,17 +16,17 @@ import (
 
 // InfraAPIKey struct for InfraAPIKey
 type InfraAPIKey struct {
-	Id          string          `json:"id"`
-	Created     int64           `json:"created"`
-	Name        string          `json:"name"`
-	Permissions []APIPermission `json:"permissions"`
+	Id          string               `json:"id"`
+	Created     int64                `json:"created"`
+	Name        string               `json:"name"`
+	Permissions []InfraAPIPermission `json:"permissions"`
 }
 
 // NewInfraAPIKey instantiates a new InfraAPIKey object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewInfraAPIKey(id string, created int64, name string, permissions []APIPermission) *InfraAPIKey {
+func NewInfraAPIKey(id string, created int64, name string, permissions []InfraAPIPermission) *InfraAPIKey {
 	this := InfraAPIKey{}
 	this.Id = id
 	this.Created = created
@@ -116,9 +116,9 @@ func (o *InfraAPIKey) SetName(v string) {
 }
 
 // GetPermissions returns the Permissions field value
-func (o *InfraAPIKey) GetPermissions() []APIPermission {
+func (o *InfraAPIKey) GetPermissions() []InfraAPIPermission {
 	if o == nil {
-		var ret []APIPermission
+		var ret []InfraAPIPermission
 		return ret
 	}
 
@@ -127,7 +127,7 @@ func (o *InfraAPIKey) GetPermissions() []APIPermission {
 
 // GetPermissionsOk returns a tuple with the Permissions field value
 // and a boolean to check if the value has been set.
-func (o *InfraAPIKey) GetPermissionsOk() (*[]APIPermission, bool) {
+func (o *InfraAPIKey) GetPermissionsOk() (*[]InfraAPIPermission, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -135,7 +135,7 @@ func (o *InfraAPIKey) GetPermissionsOk() (*[]APIPermission, bool) {
 }
 
 // SetPermissions sets field value
-func (o *InfraAPIKey) SetPermissions(v []APIPermission) {
+func (o *InfraAPIKey) SetPermissions(v []InfraAPIPermission) {
 	o.Permissions = v
 }
 

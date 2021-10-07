@@ -1,0 +1,41 @@
+Destination:
+  type: object
+  required:
+    - id
+    - name
+    - created
+    - updated
+  properties:
+    id:
+      type: string
+    name:
+      type: string
+    created:
+      type: integer
+      format: int64
+    updated:
+      type: integer
+      format: int64
+    kubernetes:
+      $ref: 'destination.yaml#/DestinationKubernetes'
+DestinationCreateRequest:
+  type: object
+  required:
+    - name
+  properties:
+    name:
+      type: string
+    kubernetes:
+      $ref: 'destination.yaml#/DestinationKubernetes'
+DestinationKubernetes:
+  type: object
+  required:
+    - ca
+    - endpoint
+  properties:
+    ca:
+      type: string
+      x-go-custom-tag: validate:"required"
+    endpoint:
+      type: string
+      x-go-custom-tag: validate:"required"

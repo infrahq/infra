@@ -1,0 +1,21 @@
+Group:
+  type: object
+  required:
+    - id
+    - name
+    - created
+    - updated
+    - source
+  properties:
+    id:
+      type: string
+    name:
+      type: string
+    created:
+      type: integer
+      format: int64
+    updated:
+      type: integer
+      format: int64
+    source:
+      type: string
