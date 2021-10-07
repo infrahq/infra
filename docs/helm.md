@@ -28,7 +28,7 @@ service:
     cloud.google.com/load-balancer-type: "Internal"
 
     # AWS EKS
-    service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internal"
 
     # Azure AKS
     service.beta.kubernetes.io/azure-load-balancer-internal: "true"
