@@ -5,6 +5,9 @@ info:
   version: 0.1.0
   title: Infra API
   description: Infra REST API
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
 tags:
   - name: users
     description: Manage users
@@ -17,7 +20,7 @@ tags:
   - name: destinations
     description: Manage infrastructure destinations
   - name: tokens
-    description: Manage infrastructure destintaion tokens
+    description: Manage infrastructure destination tokens
   - name: api-keys
     description: Manage administrator API keys
   - name: auth
@@ -241,7 +244,7 @@ paths:
         - destinations
       security:
         - bearerAuth: []
-      summary: Register a destination
+      summary: Create a destination
       operationId: createDestination
       x-codegen-request-body-name: body
       requestBody:
@@ -269,7 +272,7 @@ paths:
         - destinations
       security:
         - bearerAuth: []
-      summary: Get Destination by ID
+      summary: Get destination by ID
       operationId: getDestination
       parameters:
         - in: path
@@ -325,7 +328,7 @@ paths:
         - api-keys
       security:
         - bearerAuth: []
-      summary: Create API key
+      summary: Create an API key
       operationId: createAPIKey
       x-codegen-request-body-name: body
       requestBody:
@@ -353,7 +356,7 @@ paths:
         - api-keys
       security:
         - bearerAuth: []
-      summary: Delete API key
+      summary: Delete an API key
       operationId: deleteApiKey
       parameters:
         - in: path
@@ -377,7 +380,7 @@ paths:
         - tokens
       security:
         - bearerAuth: []
-      summary: Create infrastructure destination token
+      summary: Create an infrastructure destination token
       operationId: createToken
       x-codegen-request-body-name: body
       requestBody:
@@ -413,7 +416,7 @@ paths:
           schema:
             type: string
           required: true
-          description: ID of the destination for which to list roles
+          description: Filter results by destination ID
       responses:
         '200':
           description: List roles response
