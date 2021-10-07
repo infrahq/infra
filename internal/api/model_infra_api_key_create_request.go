@@ -16,15 +16,15 @@ import (
 
 // InfraAPIKeyCreateRequest struct for InfraAPIKeyCreateRequest
 type InfraAPIKeyCreateRequest struct {
-	Name        string          `json:"name"`
-	Permissions []APIPermission `json:"permissions"`
+	Name        string               `json:"name"`
+	Permissions []InfraAPIPermission `json:"permissions"`
 }
 
 // NewInfraAPIKeyCreateRequest instantiates a new InfraAPIKeyCreateRequest object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewInfraAPIKeyCreateRequest(name string, permissions []APIPermission) *InfraAPIKeyCreateRequest {
+func NewInfraAPIKeyCreateRequest(name string, permissions []InfraAPIPermission) *InfraAPIKeyCreateRequest {
 	this := InfraAPIKeyCreateRequest{}
 	this.Name = name
 	this.Permissions = permissions
@@ -64,9 +64,9 @@ func (o *InfraAPIKeyCreateRequest) SetName(v string) {
 }
 
 // GetPermissions returns the Permissions field value
-func (o *InfraAPIKeyCreateRequest) GetPermissions() []APIPermission {
+func (o *InfraAPIKeyCreateRequest) GetPermissions() []InfraAPIPermission {
 	if o == nil {
-		var ret []APIPermission
+		var ret []InfraAPIPermission
 		return ret
 	}
 
@@ -75,7 +75,7 @@ func (o *InfraAPIKeyCreateRequest) GetPermissions() []APIPermission {
 
 // GetPermissionsOk returns a tuple with the Permissions field value
 // and a boolean to check if the value has been set.
-func (o *InfraAPIKeyCreateRequest) GetPermissionsOk() (*[]APIPermission, bool) {
+func (o *InfraAPIKeyCreateRequest) GetPermissionsOk() (*[]InfraAPIPermission, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -83,7 +83,7 @@ func (o *InfraAPIKeyCreateRequest) GetPermissionsOk() (*[]APIPermission, bool) {
 }
 
 // SetPermissions sets field value
-func (o *InfraAPIKeyCreateRequest) SetPermissions(v []APIPermission) {
+func (o *InfraAPIKeyCreateRequest) SetPermissions(v []InfraAPIPermission) {
 	o.Permissions = v
 }
 

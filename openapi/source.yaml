@@ -1,0 +1,27 @@
+Source:
+  type: object
+  required:
+    - id
+    - created
+    - updated
+  properties:
+    id:
+      type: string
+    created:
+      type: integer
+      format: int64
+    updated:
+      type: integer
+      format: int64
+    okta:
+      $ref: 'source.yaml#/SourceOkta'
+SourceOkta:
+  type: object
+  required:
+    - domain
+    - clientId
+  properties:
+    domain:
+      type: string
+    clientId:
+      type: string

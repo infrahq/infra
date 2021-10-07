@@ -1,0 +1,55 @@
+InfraAPIPermission:
+  description: InfraAPI permissions of the form "infra.resource.action"
+  type: string
+  enum:
+    - infra.users.read
+    - infra.groups.read
+    - infra.destinations.create
+    - infra.destinations.read
+    - infra.api-keys.create
+    - infra.api-keys.read
+    - infra.api-keys.delete
+    - infra.tokens.create
+    - infra.roles.read
+    - infra.auth.delete
+    - infra.*
+InfraAPIKey:
+  type: object
+  required:
+    - id
+    - created
+    - name
+    - permissions
+  properties:
+    id:
+      type: string
+    created:
+      type: integer
+      format: int64
+    name:
+      type: string
+    permissions:
+      type: array
+      items:
+        $ref: 'api-key.yaml#/InfraAPIPermission'
+InfraAPIKeyCreateRequest:
+  type: object
+  required:
+    - name
+    - permissions
+  properties:
+    name:
+      type: string
+    permissions:
+      type: array
+      items:
+        $ref: 'api-key.yaml#/InfraAPIPermission'
+InfraAPIKeyCreateResponse:
+  allOf:
+    - $ref: 'api-key.yaml#/InfraAPIKey'
+  type: object
+  required:
+    - key
+  properties:
+    key:
+      type: string

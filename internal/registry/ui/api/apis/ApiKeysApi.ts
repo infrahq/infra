@@ -44,7 +44,7 @@ export interface ListAPIKeysRequest {
 export class ApiKeysApi extends runtime.BaseAPI {
 
     /**
-     * Register an API key
+     * Create API key
      */
     async createAPIKeyRaw(requestParameters: CreateAPIKeyRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<InfraAPIKeyCreateResponse>> {
         if (requestParameters.body === null || requestParameters.body === undefined) {
@@ -77,7 +77,7 @@ export class ApiKeysApi extends runtime.BaseAPI {
     }
 
     /**
-     * Register an API key
+     * Create API key
      */
     async createAPIKey(requestParameters: CreateAPIKeyRequest, initOverrides?: RequestInit): Promise<InfraAPIKeyCreateResponse> {
         const response = await this.createAPIKeyRaw(requestParameters, initOverrides);
@@ -85,7 +85,7 @@ export class ApiKeysApi extends runtime.BaseAPI {
     }
 
     /**
-     * delete an API key
+     * Delete API key
      */
     async deleteApiKeyRaw(requestParameters: DeleteApiKeyRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<void>> {
         if (requestParameters.id === null || requestParameters.id === undefined) {
@@ -115,7 +115,7 @@ export class ApiKeysApi extends runtime.BaseAPI {
     }
 
     /**
-     * delete an API key
+     * Delete API key
      */
     async deleteApiKey(requestParameters: DeleteApiKeyRequest, initOverrides?: RequestInit): Promise<void> {
         await this.deleteApiKeyRaw(requestParameters, initOverrides);

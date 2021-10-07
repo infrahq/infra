@@ -1,0 +1,37 @@
+Role:
+  type: object
+  required:
+    - id
+    - name
+    - created
+    - updated
+    - kind
+    - namespace
+    - users
+    - destination
+  properties:
+    id:
+      type: string
+    name:
+      type: string
+    created:
+      type: integer
+      format: int64
+    updated:
+      type: integer
+      format: int64
+    kind:
+      $ref: "role.yaml#/RoleKind"
+    namespace:
+      type: string
+    users:
+      type: array
+      items:
+        $ref: 'user.yaml#/User'
+    destination:
+      $ref: 'destination.yaml#/Destination'
+RoleKind:
+  type: string
+  enum:
+    - role
+    - cluster-role

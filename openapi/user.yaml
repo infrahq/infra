@@ -1,0 +1,18 @@
+User:
+  type: object
+  required:
+    - id
+    - email
+    - created
+    - updated
+  properties:
+    id:
+      type: string
+    email:
+      type: string
+    created:
+      type: integer
+      format: int64
+    updated:
+      type: integer
+      format: int64

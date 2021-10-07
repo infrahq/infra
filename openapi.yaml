@@ -5,23 +5,26 @@ info:
   version: 0.1.0
   title: Infra API
   description: Infra REST API
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
 tags:
   - name: users
     description: Manage users
   - name: groups
     description: Manage groups
+  - name: roles
+    description: Manage roles
   - name: sources
     description: Manage identity sources
   - name: destinations
     description: Manage infrastructure destinations
-  - name: api-keys
-    description: Manage API keys used to access Infra admin endpoints
   - name: tokens
-    description: Create credentials to access a destination
-  - name: roles
-    description: Manage roles
+    description: Manage infrastructure destination tokens
+  - name: api-keys
+    description: Manage administrator API keys
   - name: auth
-    description: Authentication
+    description: Manage user authentication
   - name: version
     description: Version
 components:
@@ -29,268 +32,6 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
-  schemas:
-    APIPermission:
-      description: API permissions of the form "infra.resource.action"
-      type: string
-      enum:
-        - infra.users.read
-        - infra.groups.read
-        - infra.destinations.create
-        - infra.destinations.read
-        - infra.api-keys.create
-        - infra.api-keys.read
-        - infra.api-keys.delete
-        - infra.tokens.create
-        - infra.roles.read
-        - infra.auth.delete
-        - infra.*
-    User:
-      type: object
-      required:
-        - id
-        - email
-        - created
-        - updated
-      properties:
-        id:
-          type: string
-        email:
-          type: string
-        created:
-          type: integer
-          format: int64
-        updated:
-          type: integer
-          format: int64
-    Group:
-      type: object
-      required:
-        - id
-        - name
-        - created
-        - updated
-        - source
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        created:
-          type: integer
-          format: int64
-        updated:
-          type: integer
-          format: int64
-        source:
-          type: string
-    Source:
-      type: object
-      required:
-        - id
-        - created
-        - updated
-      properties:
-        id:
-          type: string
-        created:
-          type: integer
-          format: int64
-        updated:
-          type: integer
-          format: int64
-        okta:
-          $ref: '#/components/schemas/SourceOkta'
-    SourceOkta:
-      type: object
-      required:
-        - domain
-        - clientId
-      properties:
-        domain:
-          type: string
-        clientId:
-          type: string
-    Destination:
-      type: object
-      required:
-        - id
-        - name
-        - created
-        - updated
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        created:
-          type: integer
-          format: int64
-        updated:
-          type: integer
-          format: int64
-        kubernetes:
-          $ref: '#/components/schemas/DestinationKubernetes'
-    DestinationCreateRequest:
-      type: object
-      required:
-        - name
-      properties:
-        name:
-          type: string
-        kubernetes:
-          $ref: '#/components/schemas/DestinationKubernetes'
-    DestinationKubernetes:
-      type: object
-      required:
-        - ca
-        - endpoint
-      properties:
-        ca:
-          type: string
-          x-go-custom-tag: validate:"required"
-        endpoint:
-          type: string
-          x-go-custom-tag: validate:"required"
-    InfraAPIKey:
-      type: object
-      required:
-        - id
-        - created
-        - name
-        - permissions
-      properties:
-        id:
-          type: string
-        created:
-          type: integer
-          format: int64
-        name:
-          type: string
-        permissions:
-          type: array
-          items:
-            $ref: '#/components/schemas/APIPermission'
-    InfraAPIKeyCreateRequest:
-      type: object
-      required:
-        - name
-        - permissions
-      properties:
-        name:
-          type: string
-        permissions:
-          type: array
-          items:
-            $ref: '#/components/schemas/APIPermission'
-    InfraAPIKeyCreateResponse:
-      allOf:
-        - $ref: '#/components/schemas/InfraAPIKey'
-      type: object
-      required:
-        - key
-      properties:
-        key:
-          type: string
-    Token:
-      type: object
-      required:
-        - token
-        - expires
-      properties:
-        token:
-          type: string
-        expires:
-          type: integer
-          format: int64
-    TokenRequest:
-      type: object
-      properties:
-        destination:
-          type: string
-          x-go-custom-tag: validate:"required"
-    LoginRequest:
-      type: object
-      properties:
-        okta:
-          $ref: '#/components/schemas/LoginRequestOkta'
-    Role:
-      type: object
-      required:
-        - id
-        - name
-        - created
-        - updated
-        - kind
-        - namespace
-        - users
-        - destination
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        created:
-          type: integer
-          format: int64
-        updated:
-          type: integer
-          format: int64
-        kind:
-          $ref: "#/components/schemas/RoleKind"
-        namespace:
-          type: string
-        users:
-          type: array
-          items:
-            $ref: '#/components/schemas/User'
-        destination:
-          $ref: '#/components/schemas/Destination'
-    RoleKind:
-      type: string
-      enum:
-        - role
-        - cluster-role
-    LoginRequestOkta:
-      type: object
-      required:
-        - domain
-        - code
-      properties:
-        domain:
-          type: string
-          x-go-custom-tag: validate:"required"
-        code:
-          type: string
-          x-go-custom-tag: validate:"required"
-    LoginResponse:
-      type: object
-      required:
-        - token
-        - name
-      properties:
-        token:
-          type: string
-        name:
-          type: string
-    Version:
-      type: object
-      required:
-        - version
-      properties:
-        version:
-          type: string
-    Error:
-      type: object
-      required:
-        - code
-        - message
-      properties:
-        code:
-          type: integer
-          format: int32
-        message:
-          type: string
 paths:
   /users:
     get:
@@ -300,21 +41,55 @@ paths:
       security:
         - bearerAuth: []
       operationId: listUsers
+      parameters:
+        - in: query
+          name: email
+          schema:
+            type: string
+          description: Filter results by user email
       responses:
         '200':
-          description: users response
+          description: List users response
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/User'
+                  $ref: 'openapi/user.yaml#/User'
         default:
-          description: unexpected error
+          description: Error response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: 'openapi/utils.yaml#/Error'
+  /users/{id}:
+    get:
+      summary: Get user by ID
+      tags:
+        - users
+      security:
+        - bearerAuth: []
+      operationId: getUser
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: User ID
+      responses:
+        '200':
+          description: Get user response
+          content:
+            application/json:
+              schema:
+                $ref: 'openapi/user.yaml#/User'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: 'openapi/utils.yaml#/Error'
   /groups:
     get:
       summary: List groups
@@ -323,42 +98,113 @@ paths:
       security:
         - bearerAuth: []
       operationId: listGroups
+      parameters:
+        - in: query
+          name: name
+          schema:
+            type: string
+          description: Filter groups by name
+        - in: query
+          name: active
+          schema:
+            type: boolean
+          description: Filter groups by active state
       responses:
         '200':
-          description: groups response
+          description: List groups response
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Group'
+                  $ref: 'openapi/group.yaml#/Group'
         default:
-          description: unexpected error
+          description: Error response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: 'openapi/utils.yaml#/Error'
+  /groups/{id}:
+    get:
+      summary: Get group by ID
+      tags:
+        - groups
+      security:
+        - bearerAuth: []
+      operationId: getGroup
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Group ID
+      responses:
+        '200':
+          description: Get group response
+          content:
+            application/json:
+              schema:
+                $ref: 'openapi/group.yaml#/Group'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: 'openapi/utils.yaml#/Error'
   /sources:
     get:
       summary: List sources
       tags:
         - sources
       operationId: listSources
+      parameters:
+        - in: query
+          name: type
+          schema:
+            type: string
+          description: Filter sources by type
       responses:
         '200':
-          description: sources response
+          description: List sources response
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Source'
+                  $ref: 'openapi/source.yaml#/Source'
         default:
-          description: unexpected error
+          description: Error response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: 'openapi/utils.yaml#/Error'
+  /sources/{id}:
+    get:
+      summary: Get source by ID
+      tags:
+        - sources
+      operationId: getSource
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Source ID
+      responses:
+        '200':
+          description: Get source response
+          content:
+            application/json:
+              schema:
+                $ref: 'openapi/source.yaml#/Source'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: 'openapi/utils.yaml#/Error'
   /destinations:
     get:
       tags:
@@ -367,27 +213,38 @@ paths:
         - bearerAuth: []
       summary: List destinations
       operationId: listDestinations
+      parameters:
+        - in: query
+          name: name
+          schema:
+            type: string
+          description: Filter destinations by name
+        - in: query
+          name: type
+          schema:
+            type: string
+          description: Filter destinations by type
       responses:
         '200':
-          description: destinations response
+          description: List destinations response
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Destination'
+                  $ref: 'openapi/destination.yaml#/Destination'
         default:
-          description: unexpected error
+          description: Error response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: 'openapi/utils.yaml#/Error'
     post:
       tags:
         - destinations
       security:
         - bearerAuth: []
-      summary: Register a destination
+      summary: Create a destination
       operationId: createDestination
       x-codegen-request-body-name: body
       requestBody:
@@ -395,20 +252,48 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DestinationCreateRequest'
+              $ref: 'openapi/destination.yaml#/DestinationCreateRequest'
       responses:
         '200':
-          description: create destination response
+          description: Create destination response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Destination'
+                $ref: 'openapi/destination.yaml#/Destination'
         default:
-          description: unexpected error
+          description: Error response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: 'openapi/utils.yaml#/Error'
+  /destinations/{id}:
+    get:
+      tags:
+        - destinations
+      security:
+        - bearerAuth: []
+      summary: Get destination by ID
+      operationId: getDestination
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Destination ID
+      responses:
+        '200':
+          description: Get destinations response
+          content:
+            application/json:
+              schema:
+                $ref: 'openapi/destination.yaml#/Destination'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: 'openapi/utils.yaml#/Error'
   /api-keys:
     get:
       tags:
@@ -425,25 +310,25 @@ paths:
           description: Filter results by the API key name
       responses:
         '200':
-          description: API keys response
+          description: List API keys response
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/InfraAPIKey'
+                  $ref: 'openapi/api-key.yaml#/InfraAPIKey'
         default:
-          description: unexpected error
+          description: Error response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: 'openapi/utils.yaml#/Error'
     post:
       tags:
         - api-keys
       security:
         - bearerAuth: []
-      summary: Register an API key
+      summary: Create an API key
       operationId: createAPIKey
       x-codegen-request-body-name: body
       requestBody:
@@ -451,27 +336,27 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/InfraAPIKeyCreateRequest'
+              $ref: 'openapi/api-key.yaml#/InfraAPIKeyCreateRequest'
       responses:
         '200':
-          description: create API key response
+          description: Create API key response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InfraAPIKeyCreateResponse'
+                $ref: 'openapi/api-key.yaml#/InfraAPIKeyCreateResponse'
         default:
-          description: unexpected error
+          description: Error response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: 'openapi/utils.yaml#/Error'
   /api-keys/{id}:
     delete:
       tags:
         - api-keys
       security:
         - bearerAuth: []
-      summary: delete an API key
+      summary: Delete an API key
       operationId: deleteApiKey
       parameters:
         - in: path
@@ -479,23 +364,23 @@ paths:
           required: true
           schema:
             type: string
-          description: The API Key ID
+          description: API key ID
       responses:
         '204':
-          description: empty response
+          description: Empty response
         default:
-          description: unexpected error
+          description: Error response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: 'openapi/utils.yaml#/Error'
   /tokens:
     post:
       tags:
         - tokens
       security:
         - bearerAuth: []
-      summary: Create credentials to access a destination
+      summary: Create an infrastructure destination token
       operationId: createToken
       x-codegen-request-body-name: body
       requestBody:
@@ -503,20 +388,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TokenRequest'
+              $ref: 'openapi/token.yaml#/TokenRequest'
       responses:
         '200':
-          description: create token response
+          description: Create token response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Token'
+                $ref: 'openapi/token.yaml#/Token'
         default:
-          description: unexpected error
+          description: Error response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: 'openapi/utils.yaml#/Error'
   /roles:
     get:
       summary: List roles
@@ -531,25 +416,25 @@ paths:
           schema:
             type: string
           required: true
-          description: ID of the destination for which to list roles
+          description: Filter results by destination ID
       responses:
         '200':
-          description: roles response
+          description: List roles response
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Role'
+                  $ref: 'openapi/role.yaml#/Role'
         default:
-          description: unexpected error
+          description: Error response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: 'openapi/utils.yaml#/Error'
   /login:
     post:
-      summary: Login to Infra and get an API token for a user
+      summary: Login to Infra
       tags:
         - auth
       operationId: login
@@ -559,23 +444,23 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LoginRequest'
+              $ref: 'openapi/auth.yaml#/LoginRequest'
       responses:
         '200':
-          description: login response
+          description: Login response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LoginResponse'
+                $ref: 'openapi/auth.yaml#/LoginResponse'
         default:
-          description: unexpected error
+          description: Error response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: 'openapi/utils.yaml#/Error'
   /logout:
     post:
-      summary: Log out of Infra
+      summary: Logout of Infra
       tags:
         - auth
       security:
@@ -583,13 +468,13 @@ paths:
       operationId: logout
       responses:
         '200':
-          description: logout response
+          description: Logout response
         default:
-          description: unexpected error
+          description: Error response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: 'openapi/utils.yaml#/Error'
   /version:
     get:
       summary: Get version information
@@ -598,14 +483,14 @@ paths:
       operationId: version
       responses:
         '200':
-          description: version response
+          description: Version response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Version'
+                $ref: 'openapi/utils.yaml#/Version'
         default:
-          description: unexpected error
+          description: Error response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: 'openapi/utils.yaml#/Error'

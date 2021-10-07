@@ -22,6 +22,7 @@ docs:
 clean:
 	$(RM) -r dist
 
+.PHONY: openapi
 openapi:
 	@$(RM) -r ./internal/api/*.go
 	@GO_POST_PROCESS_FILE="gofmt -s -w" openapi-generator generate -i ./openapi.yaml -g go -o ./internal/api --additional-properties packageName=api,isGoSubmodule=true --enable-post-process-file > /dev/null

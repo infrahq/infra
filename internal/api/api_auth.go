@@ -42,7 +42,7 @@ func (r ApiLoginRequest) Execute() (LoginResponse, *_nethttp.Response, error) {
 }
 
 /*
-Login Login to Infra and get an API token for a user
+Login Login to Infra
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiLoginRequest
@@ -153,7 +153,7 @@ func (r ApiLogoutRequest) Execute() (*_nethttp.Response, error) {
 }
 
 /*
-Logout Log out of Infra
+Logout Logout of Infra
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiLogoutRequest

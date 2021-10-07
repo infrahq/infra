@@ -20,16 +20,71 @@ import {
     GroupToJSON,
 } from '../models';
 
+export interface GetGroupRequest {
+    id: string;
+}
+
+export interface ListGroupsRequest {
+    name?: string;
+    active?: boolean;
+}
+
 /**
  * 
  */
 export class GroupsApi extends runtime.BaseAPI {
 
     /**
+     * Get group by ID
+     */
+    async getGroupRaw(requestParameters: GetGroupRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Group>> {
+        if (requestParameters.id === null || requestParameters.id === undefined) {
+            throw new runtime.RequiredError('id','Required parameter requestParameters.id was null or undefined when calling getGroup.');
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+        const response = await this.request({
+            path: `/groups/{id}`.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters.id))),
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GroupFromJSON(jsonValue));
+    }
+
+    /**
+     * Get group by ID
+     */
+    async getGroup(requestParameters: GetGroupRequest, initOverrides?: RequestInit): Promise<Group> {
+        const response = await this.getGroupRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * List groups
      */
-    async listGroupsRaw(initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<Group>>> {
+    async listGroupsRaw(requestParameters: ListGroupsRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<Group>>> {
         const queryParameters: any = {};
+
+        if (requestParameters.name !== undefined) {
+            queryParameters['name'] = requestParameters.name;
+        }
+
+        if (requestParameters.active !== undefined) {
+            queryParameters['active'] = requestParameters.active;
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
@@ -54,8 +109,8 @@ export class GroupsApi extends runtime.BaseAPI {
     /**
      * List groups
      */
-    async listGroups(initOverrides?: RequestInit): Promise<Array<Group>> {
-        const response = await this.listGroupsRaw(initOverrides);
+    async listGroups(requestParameters: ListGroupsRequest, initOverrides?: RequestInit): Promise<Array<Group>> {
+        const response = await this.listGroupsRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

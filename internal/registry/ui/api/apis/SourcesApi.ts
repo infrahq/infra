@@ -20,16 +20,58 @@ import {
     SourceToJSON,
 } from '../models';
 
+export interface GetSourceRequest {
+    id: string;
+}
+
+export interface ListSourcesRequest {
+    type?: string;
+}
+
 /**
  * 
  */
 export class SourcesApi extends runtime.BaseAPI {
 
     /**
+     * Get source by ID
+     */
+    async getSourceRaw(requestParameters: GetSourceRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Source>> {
+        if (requestParameters.id === null || requestParameters.id === undefined) {
+            throw new runtime.RequiredError('id','Required parameter requestParameters.id was null or undefined when calling getSource.');
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        const response = await this.request({
+            path: `/sources/{id}`.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters.id))),
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => SourceFromJSON(jsonValue));
+    }
+
+    /**
+     * Get source by ID
+     */
+    async getSource(requestParameters: GetSourceRequest, initOverrides?: RequestInit): Promise<Source> {
+        const response = await this.getSourceRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * List sources
      */
-    async listSourcesRaw(initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<Source>>> {
+    async listSourcesRaw(requestParameters: ListSourcesRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<Source>>> {
         const queryParameters: any = {};
+
+        if (requestParameters.type !== undefined) {
+            queryParameters['type'] = requestParameters.type;
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
@@ -46,8 +88,8 @@ export class SourcesApi extends runtime.BaseAPI {
     /**
      * List sources
      */
-    async listSources(initOverrides?: RequestInit): Promise<Array<Source>> {
-        const response = await this.listSourcesRaw(initOverrides);
+    async listSources(requestParameters: ListSourcesRequest, initOverrides?: RequestInit): Promise<Array<Source>> {
+        const response = await this.listSourcesRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

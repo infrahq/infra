@@ -13,11 +13,11 @@
  */
 
 /**
- * API permissions of the form "infra.resource.action"
+ * InfraAPI permissions of the form "infra.resource.action"
  * @export
  * @enum {string}
  */
-export enum APIPermission {
+export enum InfraAPIPermission {
     UsersRead = 'infra.users.read',
     GroupsRead = 'infra.groups.read',
     DestinationsCreate = 'infra.destinations.create',
@@ -31,15 +31,15 @@ export enum APIPermission {
     Star = 'infra.*'
 }
 
-export function APIPermissionFromJSON(json: any): APIPermission {
-    return APIPermissionFromJSONTyped(json, false);
+export function InfraAPIPermissionFromJSON(json: any): InfraAPIPermission {
+    return InfraAPIPermissionFromJSONTyped(json, false);
 }
 
-export function APIPermissionFromJSONTyped(json: any, ignoreDiscriminator: boolean): APIPermission {
-    return json as APIPermission;
+export function InfraAPIPermissionFromJSONTyped(json: any, ignoreDiscriminator: boolean): InfraAPIPermission {
+    return json as InfraAPIPermission;
 }
 
-export function APIPermissionToJSON(value?: APIPermission | null): any {
+export function InfraAPIPermissionToJSON(value?: InfraAPIPermission | null): any {
     return value as any;
 }
 

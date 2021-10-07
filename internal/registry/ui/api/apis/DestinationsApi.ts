@@ -27,6 +27,15 @@ export interface CreateDestinationRequest {
     body: DestinationCreateRequest;
 }
 
+export interface GetDestinationRequest {
+    id: string;
+}
+
+export interface ListDestinationsRequest {
+    name?: string;
+    type?: string;
+}
+
 /**
  * 
  */
@@ -74,10 +83,56 @@ export class DestinationsApi extends runtime.BaseAPI {
     }
 
     /**
+     * Get Destination by ID
+     */
+    async getDestinationRaw(requestParameters: GetDestinationRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Destination>> {
+        if (requestParameters.id === null || requestParameters.id === undefined) {
+            throw new runtime.RequiredError('id','Required parameter requestParameters.id was null or undefined when calling getDestination.');
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+        const response = await this.request({
+            path: `/destinations/{id}`.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters.id))),
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => DestinationFromJSON(jsonValue));
+    }
+
+    /**
+     * Get Destination by ID
+     */
+    async getDestination(requestParameters: GetDestinationRequest, initOverrides?: RequestInit): Promise<Destination> {
+        const response = await this.getDestinationRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * List destinations
      */
-    async listDestinationsRaw(initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<Destination>>> {
+    async listDestinationsRaw(requestParameters: ListDestinationsRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<Destination>>> {
         const queryParameters: any = {};
+
+        if (requestParameters.name !== undefined) {
+            queryParameters['name'] = requestParameters.name;
+        }
+
+        if (requestParameters.type !== undefined) {
+            queryParameters['type'] = requestParameters.type;
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
@@ -102,8 +157,8 @@ export class DestinationsApi extends runtime.BaseAPI {
     /**
      * List destinations
      */
-    async listDestinations(initOverrides?: RequestInit): Promise<Array<Destination>> {
-        const response = await this.listDestinationsRaw(initOverrides);
+    async listDestinations(requestParameters: ListDestinationsRequest, initOverrides?: RequestInit): Promise<Array<Destination>> {
+        const response = await this.listDestinationsRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

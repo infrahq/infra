@@ -33,7 +33,7 @@ export interface LoginOperationRequest {
 export class AuthApi extends runtime.BaseAPI {
 
     /**
-     * Login to Infra and get an API token for a user
+     * Login to Infra
      */
     async loginRaw(requestParameters: LoginOperationRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<LoginResponse>> {
         if (requestParameters.body === null || requestParameters.body === undefined) {
@@ -58,7 +58,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Login to Infra and get an API token for a user
+     * Login to Infra
      */
     async login(requestParameters: LoginOperationRequest, initOverrides?: RequestInit): Promise<LoginResponse> {
         const response = await this.loginRaw(requestParameters, initOverrides);
@@ -66,7 +66,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Log out of Infra
+     * Logout of Infra
      */
     async logoutRaw(initOverrides?: RequestInit): Promise<runtime.ApiResponse<void>> {
         const queryParameters: any = {};
@@ -92,7 +92,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Log out of Infra
+     * Logout of Infra
      */
     async logout(initOverrides?: RequestInit): Promise<void> {
         await this.logoutRaw(initOverrides);

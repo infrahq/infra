@@ -33,7 +33,7 @@ export interface CreateTokenRequest {
 export class TokensApi extends runtime.BaseAPI {
 
     /**
-     * Create credentials to access a destination
+     * Create infrastructure destination token
      */
     async createTokenRaw(requestParameters: CreateTokenRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Token>> {
         if (requestParameters.body === null || requestParameters.body === undefined) {
@@ -66,7 +66,7 @@ export class TokensApi extends runtime.BaseAPI {
     }
 
     /**
-     * Create credentials to access a destination
+     * Create infrastructure destination token
      */
     async createToken(requestParameters: CreateTokenRequest, initOverrides?: RequestInit): Promise<Token> {
         const response = await this.createTokenRaw(requestParameters, initOverrides);

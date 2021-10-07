@@ -78,7 +78,7 @@ func sendApiError(w http.ResponseWriter, code int, message string) {
 	}
 }
 
-func (a *Api) bearerAuthMiddleware(required api.APIPermission, next http.Handler) http.Handler {
+func (a *Api) bearerAuthMiddleware(required api.InfraAPIPermission, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authorization := r.Header.Get("Authorization")
 		raw := strings.ReplaceAll(authorization, "Bearer ", "")
@@ -136,7 +136,7 @@ func (a *Api) bearerAuthMiddleware(required api.APIPermission, next http.Handler
 }
 
 // checkPermission checks if a token that has already been validated has a specified permission
-func checkPermission(required api.APIPermission, tokenPermissions string) bool {
+func checkPermission(required api.InfraAPIPermission, tokenPermissions string) bool {
 	if tokenPermissions == string(api.STAR) {
 		// this is the root token
 		return true
@@ -736,7 +736,7 @@ func dbToAPIKey(k ApiKey) api.InfraAPIKey {
 		Id:      k.Id,
 		Created: k.Created,
 	}
-	res.Permissions = dbToAPIPermissions(k.Permissions)
+	res.Permissions = dbToInfraAPIPermissions(k.Permissions)
 
 	return res
 }
@@ -749,17 +749,17 @@ func dbToApiKeyWithSecret(k *ApiKey) api.InfraAPIKeyCreateResponse {
 		Created: k.Created,
 		Key:     k.Key,
 	}
-	res.Permissions = dbToAPIPermissions(k.Permissions)
+	res.Permissions = dbToInfraAPIPermissions(k.Permissions)
 
 	return res
 }
 
-func dbToAPIPermissions(permissions string) []api.APIPermission {
-	var apiPermissions []api.APIPermission
+func dbToInfraAPIPermissions(permissions string) []api.InfraAPIPermission {
+	var apiPermissions []api.InfraAPIPermission
 
 	storedPermissions := strings.Split(permissions, " ")
 	for _, p := range storedPermissions {
-		apiPermission, err := api.NewAPIPermissionFromValue(p)
+		apiPermission, err := api.NewInfraAPIPermissionFromValue(p)
 		if err != nil {
 			logging.L.Error("Error converting stored permission to API permission: " + p)
 			continue

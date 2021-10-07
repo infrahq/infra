@@ -42,7 +42,7 @@ func (r ApiCreateTokenRequest) Execute() (Token, *_nethttp.Response, error) {
 }
 
 /*
-CreateToken Create credentials to access a destination
+CreateToken Create infrastructure destination token
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiCreateTokenRequest

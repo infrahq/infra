@@ -20,16 +20,66 @@ import {
     UserToJSON,
 } from '../models';
 
+export interface GetUserRequest {
+    id: string;
+}
+
+export interface ListUsersRequest {
+    email?: string;
+}
+
 /**
  * 
  */
 export class UsersApi extends runtime.BaseAPI {
 
     /**
+     * Get user by ID
+     */
+    async getUserRaw(requestParameters: GetUserRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<User>> {
+        if (requestParameters.id === null || requestParameters.id === undefined) {
+            throw new runtime.RequiredError('id','Required parameter requestParameters.id was null or undefined when calling getUser.');
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+        const response = await this.request({
+            path: `/users/{id}`.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters.id))),
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => UserFromJSON(jsonValue));
+    }
+
+    /**
+     * Get user by ID
+     */
+    async getUser(requestParameters: GetUserRequest, initOverrides?: RequestInit): Promise<User> {
+        const response = await this.getUserRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * List users
      */
-    async listUsersRaw(initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<User>>> {
+    async listUsersRaw(requestParameters: ListUsersRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<User>>> {
         const queryParameters: any = {};
+
+        if (requestParameters.email !== undefined) {
+            queryParameters['email'] = requestParameters.email;
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
@@ -54,8 +104,8 @@ export class UsersApi extends runtime.BaseAPI {
     /**
      * List users
      */
-    async listUsers(initOverrides?: RequestInit): Promise<Array<User>> {
-        const response = await this.listUsersRaw(initOverrides);
+    async listUsers(requestParameters: ListUsersRequest, initOverrides?: RequestInit): Promise<Array<User>> {
+        const response = await this.listUsersRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

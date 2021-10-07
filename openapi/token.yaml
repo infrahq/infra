@@ -1,0 +1,17 @@
+Token:
+  type: object
+  required:
+    - token
+    - expires
+  properties:
+    token:
+      type: string
+    expires:
+      type: integer
+      format: int64
+TokenRequest:
+  type: object
+  properties:
+    destination:
+      type: string
+      x-go-custom-tag: validate:"required"
