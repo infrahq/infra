@@ -36,7 +36,7 @@ require (
 	golang.org/x/term v0.0.0-20210503060354-a79de5458b56
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
-	gorm.io/driver/sqlite v1.1.5
+	gorm.io/driver/sqlite v1.1.6
 	gorm.io/gorm v1.21.15
 	k8s.io/api v0.22.2
 	k8s.io/apimachinery v0.22.2
