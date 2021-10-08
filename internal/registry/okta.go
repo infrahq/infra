@@ -3,7 +3,9 @@ package registry
 import (
 	"context"
 	"errors"
+	"time"
 
+	timer "github.com/infrahq/infra/internal/timer"
 	"github.com/okta/okta-sdk-golang/v2/okta"
 	"golang.org/x/oauth2"
 	"gopkg.in/square/go-jose.v2/jwt"
@@ -29,6 +31,8 @@ func (o *oktaImplementation) ValidateOktaConnection(domain string, clientID stri
 }
 
 func (o *oktaImplementation) Emails(domain string, clientID string, apiToken string) ([]string, error) {
+	defer timer.LogTimeElapsed(time.Now(), "okta user sync")
+
 	ctx, client, err := okta.NewClient(context.TODO(), okta.WithOrgUrl("https://"+domain), okta.WithRequestTimeout(30), okta.WithRateLimitMaxRetries(3), okta.WithToken(apiToken))
 	if err != nil {
 		return nil, err
@@ -71,6 +75,8 @@ func (o *oktaImplementation) Emails(domain string, clientID string, apiToken str
 
 // Groups retrieves groups that exist in Okta for the configured InfraHQ group-role mappings and returns a map of group names to user lists
 func (o *oktaImplementation) Groups(domain string, clientID string, apiToken string) (map[string][]string, error) {
+	defer timer.LogTimeElapsed(time.Now(), "okta group sync")
+
 	ctx, client, err := okta.NewClient(context.TODO(), okta.WithOrgUrl("https://"+domain), okta.WithRequestTimeout(30), okta.WithRateLimitMaxRetries(3), okta.WithToken(apiToken))
 	if err != nil {
 		return nil, err

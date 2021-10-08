@@ -292,12 +292,12 @@ func (s *Source) SyncUsers(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) e
 	case "okta":
 		apiToken, err := k8s.GetSecret(s.ApiToken)
 		if err != nil {
-			return err
+			return fmt.Errorf("sync okta users api token: %w", err)
 		}
 
 		emails, err = okta.Emails(s.Domain, s.ClientId, apiToken)
 		if err != nil {
-			return err
+			return fmt.Errorf("sync okta users: %w", err)
 		}
 	default:
 		return nil
@@ -307,19 +307,19 @@ func (s *Source) SyncUsers(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) e
 		// Create users in source
 		for _, email := range emails {
 			if err := s.CreateUser(tx, &User{}, email); err != nil {
-				return err
+				return fmt.Errorf("create user from okta: %w", err)
 			}
 		}
 
 		// Remove users from source that no longer exist in the identity provider
 		var toDelete []User
 		if err := tx.Not("email IN ?", emails).Find(&toDelete).Error; err != nil {
-			return err
+			return fmt.Errorf("sync okta delete emails: %w", err)
 		}
 
 		for _, td := range toDelete {
 			if err := s.DeleteUser(tx, td); err != nil {
-				return err
+				return fmt.Errorf("sync okta delete users: %w", err)
 			}
 		}
 
@@ -334,12 +334,12 @@ func (s *Source) SyncGroups(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) 
 	case "okta":
 		apiToken, err := k8s.GetSecret(s.ApiToken)
 		if err != nil {
-			return err
+			return fmt.Errorf("sync okta groups api secret: %w", err)
 		}
 
 		groupEmails, err = okta.Groups(s.Domain, s.ClientId, apiToken)
 		if err != nil {
-			return err
+			return fmt.Errorf("sync okta groups: %w", err)
 		}
 	default:
 		return nil
@@ -351,31 +351,28 @@ func (s *Source) SyncGroups(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) 
 			var group Group
 			if err := tx.FirstOrCreate(&group, Group{Name: groupName, SourceId: s.Id}).Error; err != nil {
 				logging.L.Sugar().Debug("could not find or create okta group: " + groupName)
-				return err
+				return fmt.Errorf("sync create okta group: %w", err)
 			}
 			var users []User
-			err := tx.Where("email IN ?", emails).Find(&users).Error
-			if err != nil {
-				return err
+			if err := tx.Where("email IN ?", emails).Find(&users).Error; err != nil {
+				return fmt.Errorf("sync okta group emails: %w", err)
 			}
-			err = tx.Model(&group).Association("Users").Replace(users)
-			if err != nil {
-				return err
+
+			if err := tx.Model(&group).Association("Users").Replace(users); err != nil {
+				return fmt.Errorf("sync okta replace with %d group users: %w", len(users), err)
 			}
 			activeIDs = append(activeIDs, group.Id)
 		}
 
 		// Delete source groups not in response
 		var toDelete []Group
-
-		err := tx.Where(&Group{SourceId: s.Id}).Not(activeIDs).Find(&toDelete).Error
-		if err != nil {
-			return err
+		if err := tx.Where(&Group{SourceId: s.Id}).Not(activeIDs).Find(&toDelete).Error; err != nil {
+			return fmt.Errorf("sync okta find inactive not in %d active: %w", len(activeIDs), err)
 		}
 
 		for i := range toDelete {
 			if err := tx.Delete(&toDelete[i]).Error; err != nil {
-				return err
+				return fmt.Errorf("sync okta delete user: %w", err)
 			}
 		}
 

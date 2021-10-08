@@ -21,7 +21,9 @@ import (
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
 	timer "github.com/infrahq/infra/internal/timer"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/acme/autocert"
+	"gorm.io/gorm"
 )
 
 type Options struct {
@@ -39,6 +41,33 @@ const (
 	rootAPIKeyName   = "root"
 	engineApiKeyName = "engine"
 )
+
+// syncSources polls every known source for users and groups
+func syncSources(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta, logger *zap.Logger) {
+	var sources []Source
+	if err := db.Find(&sources).Error; err != nil {
+		logger.Sugar().Errorf("could not find sync sources: %w", err)
+	}
+
+	for _, s := range sources {
+		switch s.Type {
+		case "okta":
+			logger.Sugar().Debug("synchronizing okta source")
+
+			err := s.SyncUsers(db, k8s, okta)
+			if err != nil {
+				logger.Sugar().Errorf("sync okta users: %w", err)
+			}
+
+			err = s.SyncGroups(db, k8s, okta)
+			if err != nil {
+				logger.Sugar().Errorf("sync okta groups: %w", err)
+			}
+		default:
+			logger.Sugar().Errorf("skipped validating unknown source type %s", s.Type)
+		}
+	}
+}
 
 func Run(options Options) error {
 	db, err := NewDB(options.DBPath)
@@ -81,18 +110,22 @@ func Run(options Options) error {
 		zapLogger.Warn("skipped importing empty config")
 	}
 
-	// validate any existing or imported sources
 	okta := NewOkta()
 
+	// validate any existing or imported sources
 	var sources []Source
 	if err := db.Find(&sources).Error; err != nil {
-		zapLogger.Error(err.Error())
+		zapLogger.Sugar().Error("find sources to validate: %w", err)
 	}
 
 	for _, s := range sources {
-		err = s.Validate(db, k8s, okta)
-		if err != nil {
-			zapLogger.Error(err.Error())
+		switch s.Type {
+		case "okta":
+			if err := s.Validate(db, k8s, okta); err != nil {
+				zapLogger.Sugar().Errorf("could not validate okta: %w", err)
+			}
+		default:
+			zapLogger.Sugar().Errorf("skipped validating unknown source type %s", s.Type)
 		}
 	}
 
@@ -116,21 +149,7 @@ func Run(options Options) error {
 	syncSourcesTimer := timer.NewTimer()
 	defer syncSourcesTimer.Stop()
 	syncSourcesTimer.Start(interval, func() {
-		var sources []Source
-		if err := db.Find(&sources).Error; err != nil {
-			zapLogger.Error(err.Error())
-		}
-
-		for _, s := range sources {
-			err = s.SyncUsers(db, k8s, okta)
-			if err != nil {
-				zapLogger.Error(err.Error())
-			}
-			err = s.SyncGroups(db, k8s, okta)
-			if err != nil {
-				zapLogger.Error(err.Error())
-			}
-		}
+		syncSources(db, k8s, okta, zapLogger)
 	})
 
 	// schedule destination sync job
