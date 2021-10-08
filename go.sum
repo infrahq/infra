@@ -660,6 +660,8 @@ github.com/nxadm/tail v1.4.4/go.mod h1:kenIhsEOeOJmVchQTgglprH7qJGnHDVpk1VPCcaMI
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
 github.com/okta/okta-sdk-golang/v2 v2.6.2 h1:JcMjG0264ockA2RIrMA4L0fbnZAH+9qo2T/QuFApkj8=
 github.com/okta/okta-sdk-golang/v2 v2.6.2/go.mod h1:0y8stgdplWMjaEbMr4mVtw0R+BdktpGZRw2sWKZWsMs=
+github.com/okta/okta-sdk-golang/v2 v2.8.0 h1:EEiRYpkm026jKVHsII6hUrGcBRyH5l6NlIRCm8uDo2E=
+github.com/okta/okta-sdk-golang/v2 v2.8.0/go.mod h1:0y8stgdplWMjaEbMr4mVtw0R+BdktpGZRw2sWKZWsMs=
 github.com/onsi/ginkgo v0.0.0-20170829012221-11459a886d9c/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo v1.12.1/go.mod h1:zj2OWP4+oCPe1qIXoGWkgMRwljMUYCdkwsT2108oapk=

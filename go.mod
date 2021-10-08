@@ -24,7 +24,7 @@ require (
 	github.com/kr/pty v1.1.5 // indirect
 	github.com/lensesio/tableprinter v0.0.0-20201125135848-89e81fc956e7
 	github.com/muesli/termenv v0.9.0
-	github.com/okta/okta-sdk-golang/v2 v2.6.2
+	github.com/okta/okta-sdk-golang/v2 v2.8.0
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/afero v1.6.0
 	github.com/spf13/cobra v1.2.1
