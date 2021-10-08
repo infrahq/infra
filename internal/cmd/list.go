@@ -70,7 +70,7 @@ func list() error {
 			row.CertificateAuthorityData = []byte(kube.Ca)
 			row.Type = "kubernetes"
 
-			if kubeConfig.CurrentContext == row.Name {
+			if kubeConfig.CurrentContext == fmt.Sprintf("infra:%s", row.Name) {
 				row.CurrentlySelected = "*"
 			}
 		}
