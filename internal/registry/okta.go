@@ -26,14 +26,14 @@ func NewOkta() Okta {
 
 // ValidateOktaConnection requests the client from Okta to check for errors on the response
 func (o *oktaImplementation) ValidateOktaConnection(domain string, clientID string, apiToken string) error {
-	_, _, err := okta.NewClient(context.TODO(), okta.WithOrgUrl("https://"+domain), okta.WithRequestTimeout(30), okta.WithRateLimitMaxRetries(3), okta.WithToken(apiToken))
+	_, _, err := okta.NewClient(context.TODO(), okta.WithOrgUrl("https://"+domain), okta.WithRequestTimeout(30), okta.WithRateLimitMaxRetries(1), okta.WithToken(apiToken))
 	return err
 }
 
 func (o *oktaImplementation) Emails(domain string, clientID string, apiToken string) ([]string, error) {
 	defer timer.LogTimeElapsed(time.Now(), "okta user sync")
 
-	ctx, client, err := okta.NewClient(context.TODO(), okta.WithOrgUrl("https://"+domain), okta.WithRequestTimeout(30), okta.WithRateLimitMaxRetries(3), okta.WithToken(apiToken))
+	ctx, client, err := okta.NewClient(context.TODO(), okta.WithOrgUrl("https://"+domain), okta.WithToken(apiToken))
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func (o *oktaImplementation) Emails(domain string, clientID string, apiToken str
 func (o *oktaImplementation) Groups(domain string, clientID string, apiToken string) (map[string][]string, error) {
 	defer timer.LogTimeElapsed(time.Now(), "okta group sync")
 
-	ctx, client, err := okta.NewClient(context.TODO(), okta.WithOrgUrl("https://"+domain), okta.WithRequestTimeout(30), okta.WithRateLimitMaxRetries(3), okta.WithToken(apiToken))
+	ctx, client, err := okta.NewClient(context.TODO(), okta.WithOrgUrl("https://"+domain), okta.WithToken(apiToken))
 	if err != nil {
 		return nil, err
 	}

@@ -130,7 +130,7 @@ func Run(options Options) error {
 	}
 
 	// schedule the user and group sync jobs
-	interval := 30 * time.Second
+	interval := 60 * time.Second
 	if options.SyncInterval > 0 {
 		interval = time.Duration(options.SyncInterval) * time.Second
 	} else {
