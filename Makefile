@@ -39,9 +39,18 @@ build: goreleaser
 	goreleaser build --snapshot --rm-dist
 
 dev:
+	# docker desktop setup for the dev environment
+	# create a token and get the token secret from:
+	# https://dev-02708987-admin.okta.com/admin/access/api/tokens
+	# get client secret from:
+	# https://dev-02708987-admin.okta.com/admin/app/oidc_client/instance/0oapn0qwiQPiMIyR35d6/#tab-general
+	# create the required secret with:
+	# kubectl create secret generic infra-registry-okta -n infrahq --from-literal=clientSecret=$OKTA_CLIENT_SECRET --from-literal=apiToken=$OKTA_API_TOKEN
+
 	kubectl config use-context docker-desktop
 	docker build . -t infrahq/infra:0.0.0-development
-	helm upgrade --install infra-registry ./helm/charts/registry --namespace infrahq --create-namespace --set image.pullPolicy=Never --set image.tag=0.0.0-development
+	helm upgrade --install infra-registry ./helm/charts/registry --namespace infrahq --create-namespace --set image.pullPolicy=Never --set image.tag=0.0.0-development --set-file config=./infra.yaml
+	kubectl config set-context --current --namespace=infrahq
 	kubectl wait --for=condition=available --timeout=600s deployment/infra-registry --namespace infrahq
 	helm upgrade --install infra-engine ./helm/charts/engine --namespace infrahq --set image.pullPolicy=Never --set image.tag=0.0.0-development --set name=dd --set registry=infra-registry --set apiKey=$$(kubectl get secrets/infra-registry --template={{.data.engineApiKey}} --namespace infrahq | base64 -D) --set service.ports[0].port=8443 --set service.ports[0].name=https --set service.ports[0].targetPort=443
 	kubectl rollout restart deployment/infra-registry --namespace infrahq
