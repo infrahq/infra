@@ -37,7 +37,7 @@ require (
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/sqlite v1.1.6
-	gorm.io/gorm v1.21.15
+	gorm.io/gorm v1.21.16
 	k8s.io/api v0.22.2
 	k8s.io/apimachinery v0.22.2
 	k8s.io/client-go v0.22.2
