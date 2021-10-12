@@ -587,6 +587,7 @@ func (a *Api) CreateToken(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not generate cred")
+
 		return
 	}
 
