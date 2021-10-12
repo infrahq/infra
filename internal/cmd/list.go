@@ -7,6 +7,7 @@ import (
 	"os"
 	"sort"
 
+	"github.com/infrahq/infra/internal/api"
 	"github.com/lensesio/tableprinter"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -21,6 +22,11 @@ type statusRow struct {
 }
 
 func list() error {
+	config, err := currentRegistryConfig()
+	if err != nil {
+		return err
+	}
+
 	client, err := apiClientFromConfig()
 	if err != nil {
 		return err
@@ -31,7 +37,7 @@ func list() error {
 		return err
 	}
 
-	destinations, res, err := client.DestinationsApi.ListDestinations(ctx).Execute()
+	users, res, err := client.UsersApi.ListUsers(ctx).Email(config.Name).Execute()
 	if err != nil {
 		switch res.StatusCode {
 		case http.StatusForbidden:
@@ -48,8 +54,35 @@ func list() error {
 		}
 	}
 
-	sort.Slice(destinations, func(i, j int) bool {
-		return destinations[i].Created > destinations[j].Created
+	// This shouldn't be possible but check nonetheless
+	switch {
+	case len(users) < 1:
+		return fmt.Errorf("User \"%s\" not found", config.Name)
+	case len(users) > 1:
+		return fmt.Errorf("Found multiple users \"%s\"", config.Name)
+	}
+
+	user := users[0]
+
+	// deduplicate destinations from combination of user roles and group roles
+	destinations := make(map[string]api.Destination)
+	for _, r := range user.Roles {
+		destinations[r.Destination.Id] = r.Destination
+	}
+
+	for _, g := range user.Groups {
+		for _, r := range g.Roles {
+			destinations[r.Destination.Id] = r.Destination
+		}
+	}
+
+	destinationList := make([]api.Destination, 0)
+	for _, d := range destinations {
+		destinationList = append(destinationList, d)
+	}
+
+	sort.Slice(destinationList, func(i, j int) bool {
+		return destinationList[i].Name > destinationList[j].Name
 	})
 
 	kubeConfig, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), nil).RawConfig()
@@ -59,7 +92,7 @@ func list() error {
 
 	rows := []statusRow{}
 
-	for _, d := range destinations {
+	for _, d := range destinationList {
 		row := statusRow{
 			Name:   d.Name,
 			Status: "💻 → ❌ Can't reach internet",
@@ -110,7 +143,7 @@ func list() error {
 
 	printTable(rows)
 
-	err = updateKubeconfig(destinations)
+	err = updateKubeconfig(user)
 	if err != nil {
 		return err
 	}
