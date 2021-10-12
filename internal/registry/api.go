@@ -160,8 +160,6 @@ func extractToken(context context.Context) (*Token, error) {
 		return nil, errors.New("token not found in context")
 	}
 
-	// todo: should validate token?
-
 	return token, nil
 }
 
