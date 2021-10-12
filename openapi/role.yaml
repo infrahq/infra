@@ -8,6 +8,7 @@ Role:
     - kind
     - namespace
     - users
+    - groups
     - destination
   properties:
     id:
@@ -28,6 +29,10 @@ Role:
       type: array
       items:
         $ref: 'user.yaml#/User'
+    groups:
+      type: array
+      items:
+        $ref: 'group.yaml#/Group'
     destination:
       $ref: 'destination.yaml#/Destination'
 RoleKind:

@@ -5,6 +5,8 @@ User:
     - email
     - created
     - updated
+    - groups
+    - roles
   properties:
     id:
       type: string
@@ -16,3 +18,11 @@ User:
     updated:
       type: integer
       format: int64
+    groups:
+      type: array
+      items:
+        $ref: "group.yaml#/Group"
+    roles:
+      type: array
+      items:
+        $ref: "role.yaml#/Role"

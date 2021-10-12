@@ -5,7 +5,8 @@ Group:
     - name
     - created
     - updated
-    - source
+    - users
+    - roles
   properties:
     id:
       type: string
@@ -17,5 +18,11 @@ Group:
     updated:
       type: integer
       format: int64
-    source:
-      type: string
+    users:
+      type: array
+      items:
+        $ref: "user.yaml#/User"
+    roles:
+      type: array
+      items:
+        $ref: "role.yaml#/Role"
