@@ -297,7 +297,7 @@ func (s *Source) SyncUsers(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) e
 
 		emails, err = okta.Emails(s.Domain, s.ClientId, apiToken)
 		if err != nil {
-			return fmt.Errorf("sync okta users: %w", err)
+			return fmt.Errorf("sync okta emails: %w", err)
 		}
 	default:
 		return nil

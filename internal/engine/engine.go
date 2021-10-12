@@ -297,13 +297,13 @@ func Run(options Options) error {
 	timer.Start(5*time.Second, func() {
 		endpoint, err := k8s.Endpoint()
 		if err != nil {
-			logging.L.Error(err.Error())
+			logging.L.Error("endpoint: " + err.Error())
 			return
 		}
 
 		url, err := urlx.Parse(endpoint)
 		if err != nil {
-			logging.L.Error(err.Error())
+			logging.L.Error("url parse: " + err.Error())
 			return
 		}
 
@@ -319,7 +319,7 @@ func Run(options Options) error {
 				}
 			}
 
-			logging.L.Error(err.Error())
+			logging.L.Error("cache get: " + err.Error())
 			return
 		}
 
@@ -331,17 +331,17 @@ func Run(options Options) error {
 			},
 		}).Execute()
 		if err != nil {
-			logging.L.Error(err.Error())
+			logging.L.Error("Couldn't create destination: " + err.Error())
 			return
 		}
 
 		roles, _, err := client.RolesApi.ListRoles(ctx).DestinationId(destination.Id).Execute()
 		if err != nil {
-			logging.L.Error(err.Error())
+			logging.L.Error("couldn't list roles: " + err.Error())
 		}
 		err = k8s.UpdateRoles(roles)
 		if err != nil {
-			logging.L.Error(err.Error())
+			logging.L.Error("couldn't update roles: " + err.Error())
 			return
 		}
 	})

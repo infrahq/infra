@@ -338,12 +338,14 @@ func (k *Kubernetes) UpdateRoles(roles []api.Role) error {
 
 	err := k.updateRoleBindings(rbSubjects)
 	if err != nil {
-		return err
+		return fmt.Errorf("update role bindings: %w", err)
 	}
 
-	err = k.updateClusterRoleBindings(crbSubjects)
+	if err = k.updateClusterRoleBindings(crbSubjects); err != nil {
+		return fmt.Errorf("update cluster role bindings: %w", err)
+	}
 
-	return err
+	return nil
 }
 
 func (k *Kubernetes) ec2ClusterName() (string, error) {

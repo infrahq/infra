@@ -44,7 +44,7 @@ func login(registry string, useCurrentConfig bool) error {
 
 	defer func() {
 		if err := lock.Unlock(); err != nil {
-			fmt.Fprintln(os.Stderr, "Failed to unlock login.")
+			fmt.Fprintf(os.Stderr, "Failed to unlock login. (%s)\n", lock.Path())
 		}
 	}()
 
@@ -300,7 +300,7 @@ func promptShouldSkipTLSVerify(host string, skipTLSVerify bool) (shouldSkipTLSVe
 
 		proceed := false
 
-		fmt.Fprintf(os.Stderr, "Could not verify certificate for host %s\n", termenv.String(host).Bold())
+		fmt.Fprintf(os.Stderr, "Could not verify certificate for host %q: %s\n", host, err)
 
 		prompt := &survey.Confirm{
 			Message: "Are you sure you want to continue?",

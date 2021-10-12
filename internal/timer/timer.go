@@ -16,6 +16,10 @@ func NewTimer() *Timer {
 	}
 }
 
+// Start calls sync() every interval. if sync() runs long,
+// the next interval will not be started until it completes.
+// if intervals are missed they will be skipped, so sync() is
+// free to run as long as it needs to
 func (t *Timer) Start(interval time.Duration, sync func()) {
 	ticker := time.NewTicker(interval)
 
