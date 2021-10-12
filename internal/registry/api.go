@@ -463,7 +463,7 @@ func (a *Api) CreateDestination(w http.ResponseWriter, r *http.Request) {
 			return result.Error
 		}
 		destination.Name = body.Name
-		destination.Type = DestinationTypeKubernetes
+		destination.Kind = DestinationKindKubernetes
 		destination.KubernetesCa = body.Kubernetes.Ca
 		destination.KubernetesEndpoint = body.Kubernetes.Endpoint
 		return tx.Save(&destination).Error
@@ -787,7 +787,7 @@ func (a *Api) Login(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case body.Okta != nil:
 		var source Source
-		if err := a.db.Where(&Source{Type: SourceTypeOkta, Domain: body.Okta.Domain}).First(&source).Error; err != nil {
+		if err := a.db.Where(&Source{Kind: SourceKindOkta, Domain: body.Okta.Domain}).First(&source).Error; err != nil {
 			logging.L.Debug("Could not retrieve okta source from db: " + err.Error())
 			sendApiError(w, http.StatusBadRequest, "invalid okta login information")
 
@@ -884,7 +884,7 @@ func dbToAPISource(s Source) api.Source {
 		Updated: s.Updated,
 	}
 
-	if s.Type == SourceTypeOkta {
+	if s.Kind == SourceKindOkta {
 		res.Okta = &api.SourceOkta{
 			ClientId: s.ClientId,
 			Domain:   s.Domain,
@@ -902,7 +902,7 @@ func dbToAPIdestination(d Destination) api.Destination {
 		Updated: d.Updated,
 	}
 
-	if d.Type == DestinationTypeKubernetes {
+	if d.Kind == DestinationKindKubernetes {
 		res.Kubernetes = &api.DestinationKubernetes{
 			Ca:       d.KubernetesCa,
 			Endpoint: d.KubernetesEndpoint,

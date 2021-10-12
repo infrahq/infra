@@ -56,8 +56,8 @@ func syncSources(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta, logger *zap
 	}
 
 	for _, s := range sources {
-		switch s.Type {
-		case "okta":
+		switch s.Kind {
+		case SourceKindOkta:
 			logger.Sugar().Debug("synchronizing okta source")
 
 			err := s.SyncUsers(db, k8s, okta)
@@ -70,7 +70,7 @@ func syncSources(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta, logger *zap
 				logger.Sugar().Errorf("sync okta groups: %w", err)
 			}
 		default:
-			logger.Sugar().Errorf("skipped validating unknown source type %s", s.Type)
+			logger.Sugar().Errorf("skipped validating unknown source kind %s", s.Kind)
 		}
 	}
 }
@@ -161,13 +161,13 @@ func Run(options Options) error {
 	}
 
 	for _, s := range sources {
-		switch s.Type {
-		case "okta":
+		switch s.Kind {
+		case SourceKindOkta:
 			if err := s.Validate(db, k8s, okta); err != nil {
 				zapLogger.Sugar().Errorf("could not validate okta: %w", err)
 			}
 		default:
-			zapLogger.Sugar().Errorf("skipped validating unknown source type %s", s.Type)
+			zapLogger.Sugar().Errorf("skipped validating unknown source type %s", s.Kind)
 		}
 	}
 

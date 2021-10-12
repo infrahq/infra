@@ -15,7 +15,7 @@ import (
 var db *gorm.DB
 
 var (
-	fakeOktaSource = Source{Type: "okta", Domain: "test.example.com", ClientSecret: "okta-secrets/client-secret", ApiToken: "okta-secrets/api-token"}
+	fakeOktaSource = Source{Kind: SourceKindOkta, Domain: "test.example.com", ClientSecret: "okta-secrets/client-secret", ApiToken: "okta-secrets/api-token"}
 	adminUser      = User{Id: "001", Email: "admin@example.com"}
 	standardUser   = User{Id: "002", Email: "user@example.com"}
 	iosDevUser     = User{Id: "003", Email: "woz@example.com"}
@@ -180,7 +180,7 @@ func TestImportRolesForUnknownDestinationsAreIgnored(t *testing.T) {
 func TestExistingSourceIsOverridden(t *testing.T) {
 	// this source comes second in the config so it will override the one before it
 	var importedOkta Source
-	if err := db.Where(&Source{Type: SourceTypeOkta}).First(&importedOkta).Error; err != nil {
+	if err := db.Where(&Source{Kind: SourceKindOkta}).First(&importedOkta).Error; err != nil {
 		t.Fatal(err)
 	}
 

@@ -547,7 +547,7 @@ func TestLoginMethodOkta(t *testing.T) {
 	}
 
 	var source Source
-	source.Type = "okta"
+	source.Kind = "okta"
 	source.ApiToken = "test-api-token/apiToken"
 	source.Domain = "test.okta.com"
 	source.ClientId = "test-client-id"

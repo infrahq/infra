@@ -11,7 +11,7 @@ import (
 )
 
 type ConfigSource struct {
-	Type         string `yaml:"type"`
+	Kind         string `yaml:"kind"`
 	Domain       string `yaml:"domain"`
 	ClientId     string `yaml:"clientId"`
 	ClientSecret string `yaml:"clientSecret"`
@@ -61,26 +61,26 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 	var idsToKeep []string
 
 	for _, s := range sources {
-		switch s.Type {
-		case SourceTypeOkta:
+		switch s.Kind {
+		case SourceKindOkta:
 			// check the domain is specified
 			s.cleanupDomain()
 
 			if s.Domain == "" {
-				logging.L.Info("domain not set on source \"" + s.Type + "\", import skipped")
+				logging.L.Sugar().Infof("domain not set on source \"%s\", import skipped", s.Kind)
 			}
 
 			// check if we are about to override an existing source
 			var existing Source
 
-			db.First(&existing, &Source{Type: SourceTypeOkta})
+			db.First(&existing, &Source{Kind: SourceKindOkta})
 
 			if existing.Id != "" {
 				logging.L.Warn("overriding existing okta source settings with configuration settings")
 			}
 
 			var source Source
-			if err := db.FirstOrCreate(&source, &Source{Type: s.Type}).Error; err != nil {
+			if err := db.FirstOrCreate(&source, &Source{Kind: SourceKindOkta}).Error; err != nil {
 				return err
 			}
 
@@ -96,7 +96,7 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 
 			idsToKeep = append(idsToKeep, source.Id)
 		default:
-			logging.L.Error("skipping invalid source type in configuration: " + s.Type)
+			logging.L.Sugar().Errorf("skipping invalid source kind in configuration: %s" + s.Kind)
 		}
 	}
 
@@ -116,7 +116,7 @@ func ImportGroupMapping(db *gorm.DB, groups []ConfigGroupMapping) error {
 		// get the source from the datastore that this group specifies
 		var source Source
 		// Assumes that only one type of each source can exist
-		srcReadErr := db.Where(&Source{Type: g.Source}).First(&source).Error
+		srcReadErr := db.Where(&Source{Kind: g.Source}).First(&source).Error
 		if srcReadErr != nil {
 			if errors.Is(srcReadErr, gorm.ErrRecordNotFound) {
 				// skip this source, it will need to be added in the config and re-applied

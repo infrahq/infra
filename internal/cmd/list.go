@@ -16,7 +16,7 @@ import (
 type statusRow struct {
 	CurrentlySelected        string `header:"CURRENT"` // * if selected
 	Name                     string `header:"NAME"`
-	Type                     string `header:"TYPE"`
+	Kind                     string `header:"KIND"`
 	Status                   string `header:"STATUS"`
 	Endpoint                 string // don't display in table
 	CertificateAuthorityData []byte // don't display in table
@@ -143,7 +143,7 @@ func newRow(role api.Role, currentContext string) statusRow {
 	if k8s, ok := role.Destination.GetKubernetesOk(); ok {
 		row.Endpoint = k8s.Endpoint
 		row.CertificateAuthorityData = []byte(k8s.Ca)
-		row.Type = "Kubernetes"
+		row.Kind = "Kubernetes"
 	}
 
 	parts := strings.Split(currentContext, ":")
