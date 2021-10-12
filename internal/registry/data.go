@@ -60,7 +60,6 @@ type Group struct {
 	Name     string
 	SourceId string
 	Source   Source `gorm:"foreignKey:SourceId;references:Id"`
-	Active   bool   // used to determine which groups actually exist at the source
 
 	Roles []Role `gorm:"many2many:groups_roles"`
 	Users []User `gorm:"many2many:groups_users"`
@@ -141,7 +140,7 @@ func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 func (u *User) AfterCreate(tx *gorm.DB) error {
-	return ApplyUserMapping(tx, initialConfig.Users)
+	return ImportUserMapping(tx, initialConfig.Users)
 }
 
 // TODO (jmorganca): use foreign constraints instead?
@@ -166,11 +165,11 @@ func (d *Destination) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 func (d *Destination) AfterCreate(tx *gorm.DB) error {
-	if _, err := ApplyGroupMappings(tx, initialConfig.Groups); err != nil {
+	if err := ImportGroupMapping(tx, initialConfig.Groups); err != nil {
 		return err
 	}
 
-	return ApplyUserMapping(tx, initialConfig.Users)
+	return ImportUserMapping(tx, initialConfig.Users)
 }
 
 // TODO (jmorganca): use foreign constraints instead?
@@ -192,6 +191,18 @@ func (g *Group) BeforeCreate(tx *gorm.DB) (err error) {
 	}
 
 	return nil
+}
+
+func (g *Group) AfterCreate(tx *gorm.DB) error {
+	return ImportGroupMapping(tx, initialConfig.Groups)
+}
+
+func (g *Group) BeforeDelete(tx *gorm.DB) error {
+	if err := tx.Model(g).Association("Users").Clear(); err != nil {
+		return err
+	}
+
+	return tx.Model(g).Association("Roles").Clear()
 }
 
 func (s *Source) BeforeCreate(tx *gorm.DB) (err error) {
@@ -281,12 +292,12 @@ func (s *Source) SyncUsers(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) e
 	case "okta":
 		apiToken, err := k8s.GetSecret(s.ApiToken)
 		if err != nil {
-			return err
+			return fmt.Errorf("sync okta users api token: %w", err)
 		}
 
 		emails, err = okta.Emails(s.Domain, s.ClientId, apiToken)
 		if err != nil {
-			return err
+			return fmt.Errorf("sync okta users: %w", err)
 		}
 	default:
 		return nil
@@ -296,19 +307,19 @@ func (s *Source) SyncUsers(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) e
 		// Create users in source
 		for _, email := range emails {
 			if err := s.CreateUser(tx, &User{}, email); err != nil {
-				return err
+				return fmt.Errorf("create user from okta: %w", err)
 			}
 		}
 
-		// Delete users not in source
+		// Remove users from source that no longer exist in the identity provider
 		var toDelete []User
 		if err := tx.Not("email IN ?", emails).Find(&toDelete).Error; err != nil {
-			return err
+			return fmt.Errorf("sync okta delete emails: %w", err)
 		}
 
 		for _, td := range toDelete {
 			if err := s.DeleteUser(tx, td); err != nil {
-				return err
+				return fmt.Errorf("sync okta delete users: %w", err)
 			}
 		}
 
@@ -323,12 +334,12 @@ func (s *Source) SyncGroups(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) 
 	case "okta":
 		apiToken, err := k8s.GetSecret(s.ApiToken)
 		if err != nil {
-			return err
+			return fmt.Errorf("sync okta groups api secret: %w", err)
 		}
 
 		groupEmails, err = okta.Groups(s.Domain, s.ClientId, apiToken)
 		if err != nil {
-			return err
+			return fmt.Errorf("sync okta groups: %w", err)
 		}
 	default:
 		return nil
@@ -340,36 +351,29 @@ func (s *Source) SyncGroups(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) 
 			var group Group
 			if err := tx.FirstOrCreate(&group, Group{Name: groupName, SourceId: s.Id}).Error; err != nil {
 				logging.L.Sugar().Debug("could not find or create okta group: " + groupName)
-				return err
+				return fmt.Errorf("sync create okta group: %w", err)
 			}
 			var users []User
-			err := tx.Where("email IN ?", emails).Find(&users).Error
-			if err != nil {
-				return err
+			if err := tx.Where("email IN ?", emails).Find(&users).Error; err != nil {
+				return fmt.Errorf("sync okta group emails: %w", err)
 			}
-			err = tx.Model(&group).Association("Users").Replace(users)
-			if err != nil {
-				return err
+
+			if err := tx.Model(&group).Association("Users").Replace(users); err != nil {
+				return fmt.Errorf("sync okta replace with %d group users: %w", len(users), err)
 			}
 			activeIDs = append(activeIDs, group.Id)
 		}
 
-		// these groups no longer exist in the source so remove their users, but leave the entity in case they are re-created
-		var inactiveGroups []Group
-		err := tx.Where(&Group{SourceId: s.Id}).Not(activeIDs).Find(&inactiveGroups).Error
-		if err != nil {
-			return err
+		// Delete source groups not in response
+		var toDelete []Group
+		if err := tx.Where(&Group{SourceId: s.Id}).Not(activeIDs).Find(&toDelete).Error; err != nil {
+			return fmt.Errorf("sync okta find inactive not in %d active: %w", len(activeIDs), err)
 		}
-		err = tx.Model(&inactiveGroups).Association("Users").Clear()
-		if err != nil {
-			return err
-		}
-		err = tx.Model(&inactiveGroups).Update("active", false).Error
-		if err != nil {
-			return err
-		}
-		if len(activeIDs) > 0 {
-			tx.Model(&Group{}).Where(activeIDs).Update("active", true)
+
+		for i := range toDelete {
+			if err := tx.Delete(&toDelete[i]).Error; err != nil {
+				return fmt.Errorf("sync okta delete user: %w", err)
+			}
 		}
 
 		return nil
@@ -543,11 +547,15 @@ func NewDB(dbpath string) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	if err := db.AutoMigrate(&Destination{}); err != nil {
+	if err := db.AutoMigrate(&Role{}); err != nil {
 		return nil, err
 	}
 
-	if err := db.AutoMigrate(&Role{}); err != nil {
+	if err := db.AutoMigrate(&Group{}); err != nil {
+		return nil, err
+	}
+
+	if err := db.AutoMigrate(&Destination{}); err != nil {
 		return nil, err
 	}
 
