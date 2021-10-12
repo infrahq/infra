@@ -412,11 +412,20 @@ paths:
       operationId: listRoles
       parameters:
         - in: query
-          name: destinationId
+          name: name
           schema:
             type: string
-          required: true
-          description: Filter results by destination ID
+          description: Filter results by name
+        - in: query
+          name: kind
+          schema:
+            type: string
+          description: Filter results by kind
+        - in: query
+          name: destination
+          schema:
+            type: string
+          description: Filter results by destination
       responses:
         '200':
           description: List roles response
@@ -426,6 +435,34 @@ paths:
                 type: array
                 items:
                   $ref: 'openapi/role.yaml#/Role'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: 'openapi/utils.yaml#/Error'
+  /roles/{id}:
+    get:
+      summary: Get role
+      tags:
+        - roles
+      security:
+        - bearerAuth: []
+      operationId: getRole
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Role ID
+      responses:
+        '200':
+          description: Role response
+          content:
+            application/json:
+              schema:
+                $ref: 'openapi/role.yaml#/Role'
         default:
           description: Error response
           content:
