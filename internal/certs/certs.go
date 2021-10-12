@@ -3,8 +3,8 @@ package certs
 import (
 	"bytes"
 	"context"
-	"crypto/ed25519"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -17,7 +17,7 @@ import (
 )
 
 func SelfSignedCert(hosts []string) ([]byte, []byte, error) {
-	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -30,9 +30,7 @@ func SelfSignedCert(hosts []string) ([]byte, []byte, error) {
 	}
 
 	cert := x509.Certificate{
-		PublicKeyAlgorithm: x509.Ed25519,
-		SignatureAlgorithm: x509.PureEd25519,
-		SerialNumber:       serialNumber,
+		SerialNumber: serialNumber,
 		Subject: pkix.Name{
 			Organization: []string{"Infra"},
 		},
@@ -52,7 +50,7 @@ func SelfSignedCert(hosts []string) ([]byte, []byte, error) {
 		}
 	}
 
-	certBytes, err := x509.CreateCertificate(rand.Reader, &cert, &cert, pub, priv)
+	certBytes, err := x509.CreateCertificate(rand.Reader, &cert, &cert, &priv.PublicKey, priv)
 	if err != nil {
 		return nil, nil, err
 	}
