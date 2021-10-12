@@ -42,7 +42,7 @@ export interface ListDestinationsRequest {
 export class DestinationsApi extends runtime.BaseAPI {
 
     /**
-     * Register a destination
+     * Create a destination
      */
     async createDestinationRaw(requestParameters: CreateDestinationRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Destination>> {
         if (requestParameters.body === null || requestParameters.body === undefined) {
@@ -75,7 +75,7 @@ export class DestinationsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Register a destination
+     * Create a destination
      */
     async createDestination(requestParameters: CreateDestinationRequest, initOverrides?: RequestInit): Promise<Destination> {
         const response = await this.createDestinationRaw(requestParameters, initOverrides);
@@ -83,7 +83,7 @@ export class DestinationsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get Destination by ID
+     * Get destination by ID
      */
     async getDestinationRaw(requestParameters: GetDestinationRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Destination>> {
         if (requestParameters.id === null || requestParameters.id === undefined) {
@@ -113,7 +113,7 @@ export class DestinationsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get Destination by ID
+     * Get destination by ID
      */
     async getDestination(requestParameters: GetDestinationRequest, initOverrides?: RequestInit): Promise<Destination> {
         const response = await this.getDestinationRaw(requestParameters, initOverrides);

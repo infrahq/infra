@@ -18,6 +18,10 @@ import {
     DestinationFromJSON,
     DestinationFromJSONTyped,
     DestinationToJSON,
+    Group,
+    GroupFromJSON,
+    GroupFromJSONTyped,
+    GroupToJSON,
     RoleKind,
     RoleKindFromJSON,
     RoleKindFromJSONTyped,
@@ -78,6 +82,12 @@ export interface Role {
     users: Array<User>;
     /**
      * 
+     * @type {Array<Group>}
+     * @memberof Role
+     */
+    groups: Array<Group>;
+    /**
+     * 
      * @type {Destination}
      * @memberof Role
      */
@@ -101,6 +111,7 @@ export function RoleFromJSONTyped(json: any, ignoreDiscriminator: boolean): Role
         'kind': RoleKindFromJSON(json['kind']),
         'namespace': json['namespace'],
         'users': ((json['users'] as Array<any>).map(UserFromJSON)),
+        'groups': ((json['groups'] as Array<any>).map(GroupFromJSON)),
         'destination': DestinationFromJSON(json['destination']),
     };
 }
@@ -121,6 +132,7 @@ export function RoleToJSON(value?: Role | null): any {
         'kind': RoleKindToJSON(value.kind),
         'namespace': value.namespace,
         'users': ((value.users as Array<any>).map(UserToJSON)),
+        'groups': ((value.groups as Array<any>).map(GroupToJSON)),
         'destination': DestinationToJSON(value.destination),
     };
 }

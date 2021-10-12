@@ -16,22 +16,26 @@ import (
 
 // User struct for User
 type User struct {
-	Id      string `json:"id"`
-	Email   string `json:"email"`
-	Created int64  `json:"created"`
-	Updated int64  `json:"updated"`
+	Id      string  `json:"id"`
+	Email   string  `json:"email"`
+	Created int64   `json:"created"`
+	Updated int64   `json:"updated"`
+	Groups  []Group `json:"groups"`
+	Roles   []Role  `json:"roles"`
 }
 
 // NewUser instantiates a new User object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewUser(id string, email string, created int64, updated int64) *User {
+func NewUser(id string, email string, created int64, updated int64, groups []Group, roles []Role) *User {
 	this := User{}
 	this.Id = id
 	this.Email = email
 	this.Created = created
 	this.Updated = updated
+	this.Groups = groups
+	this.Roles = roles
 	return &this
 }
 
@@ -139,6 +143,54 @@ func (o *User) SetUpdated(v int64) {
 	o.Updated = v
 }
 
+// GetGroups returns the Groups field value
+func (o *User) GetGroups() []Group {
+	if o == nil {
+		var ret []Group
+		return ret
+	}
+
+	return o.Groups
+}
+
+// GetGroupsOk returns a tuple with the Groups field value
+// and a boolean to check if the value has been set.
+func (o *User) GetGroupsOk() (*[]Group, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Groups, true
+}
+
+// SetGroups sets field value
+func (o *User) SetGroups(v []Group) {
+	o.Groups = v
+}
+
+// GetRoles returns the Roles field value
+func (o *User) GetRoles() []Role {
+	if o == nil {
+		var ret []Role
+		return ret
+	}
+
+	return o.Roles
+}
+
+// GetRolesOk returns a tuple with the Roles field value
+// and a boolean to check if the value has been set.
+func (o *User) GetRolesOk() (*[]Role, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Roles, true
+}
+
+// SetRoles sets field value
+func (o *User) SetRoles(v []Role) {
+	o.Roles = v
+}
+
 func (o User) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
@@ -152,6 +204,12 @@ func (o User) MarshalJSON() ([]byte, error) {
 	}
 	if true {
 		toSerialize["updated"] = o.Updated
+	}
+	if true {
+		toSerialize["groups"] = o.Groups
+	}
+	if true {
+		toSerialize["roles"] = o.Roles
 	}
 	return json.Marshal(toSerialize)
 }

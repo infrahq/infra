@@ -23,6 +23,7 @@ type Role struct {
 	Kind        RoleKind    `json:"kind"`
 	Namespace   string      `json:"namespace"`
 	Users       []User      `json:"users"`
+	Groups      []Group     `json:"groups"`
 	Destination Destination `json:"destination"`
 }
 
@@ -30,7 +31,7 @@ type Role struct {
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewRole(id string, name string, created int64, updated int64, kind RoleKind, namespace string, users []User, destination Destination) *Role {
+func NewRole(id string, name string, created int64, updated int64, kind RoleKind, namespace string, users []User, groups []Group, destination Destination) *Role {
 	this := Role{}
 	this.Id = id
 	this.Name = name
@@ -39,6 +40,7 @@ func NewRole(id string, name string, created int64, updated int64, kind RoleKind
 	this.Kind = kind
 	this.Namespace = namespace
 	this.Users = users
+	this.Groups = groups
 	this.Destination = destination
 	return &this
 }
@@ -219,6 +221,30 @@ func (o *Role) SetUsers(v []User) {
 	o.Users = v
 }
 
+// GetGroups returns the Groups field value
+func (o *Role) GetGroups() []Group {
+	if o == nil {
+		var ret []Group
+		return ret
+	}
+
+	return o.Groups
+}
+
+// GetGroupsOk returns a tuple with the Groups field value
+// and a boolean to check if the value has been set.
+func (o *Role) GetGroupsOk() (*[]Group, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Groups, true
+}
+
+// SetGroups sets field value
+func (o *Role) SetGroups(v []Group) {
+	o.Groups = v
+}
+
 // GetDestination returns the Destination field value
 func (o *Role) GetDestination() Destination {
 	if o == nil {
@@ -265,6 +291,9 @@ func (o Role) MarshalJSON() ([]byte, error) {
 	}
 	if true {
 		toSerialize["users"] = o.Users
+	}
+	if true {
+		toSerialize["groups"] = o.Groups
 	}
 	if true {
 		toSerialize["destination"] = o.Destination
