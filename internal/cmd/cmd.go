@@ -34,7 +34,7 @@ func NewApiContext(token string) context.Context {
 func NewApiClient(host string, skipTLSVerify bool) (*api.APIClient, error) {
 	u, err := urlx.Parse(host)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parsing host: %w", err)
 	}
 
 	config := api.NewConfiguration()

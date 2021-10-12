@@ -13,6 +13,7 @@ package api
 import (
 	"bytes"
 	_context "context"
+	"fmt"
 	_ioutil "io/ioutil"
 	_nethttp "net/http"
 	_neturl "net/url"
@@ -124,7 +125,7 @@ func (a *AuthApiService) LoginExecute(r ApiLoginRequest) (LoginResponse, *_netht
 		var v Error
 		err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 		if err != nil {
-			newErr.error = err.Error()
+			newErr.error = fmt.Errorf("unexpected response from %q: %w", localVarPath, err).Error()
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		newErr.model = v
@@ -135,7 +136,7 @@ func (a *AuthApiService) LoginExecute(r ApiLoginRequest) (LoginResponse, *_netht
 	if err != nil {
 		newErr := GenericOpenAPIError{
 			body:  localVarBody,
-			error: err.Error(),
+			error: fmt.Errorf("unexpected response from %q: %w", localVarPath, err).Error(),
 		}
 		return localVarReturnValue, localVarHTTPResponse, newErr
 	}

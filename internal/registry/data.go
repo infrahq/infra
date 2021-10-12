@@ -2,8 +2,8 @@ package registry
 
 import (
 	"crypto"
+	"crypto/ed25519"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
@@ -390,12 +390,12 @@ func (s *Settings) BeforeCreate(tx *gorm.DB) (err error) {
 
 func (s *Settings) BeforeSave(tx *gorm.DB) error {
 	if len(s.PublicJWK) == 0 || len(s.PrivateJWK) == 0 {
-		key, err := rsa.GenerateKey(rand.Reader, 2048)
+		pubkey, key, err := ed25519.GenerateKey(rand.Reader)
 		if err != nil {
 			return err
 		}
 
-		priv := jose.JSONWebKey{Key: key, KeyID: "", Algorithm: string(jose.RS256), Use: "sig"}
+		priv := jose.JSONWebKey{Key: key, KeyID: "", Algorithm: string(jose.ED25519), Use: "sig"}
 
 		thumb, err := priv.Thumbprint(crypto.SHA256)
 		if err != nil {
@@ -404,7 +404,7 @@ func (s *Settings) BeforeSave(tx *gorm.DB) error {
 
 		kid := base64.URLEncoding.EncodeToString(thumb)
 		priv.KeyID = kid
-		pub := jose.JSONWebKey{Key: &key.PublicKey, KeyID: kid, Algorithm: string(jose.RS256), Use: "sig"}
+		pub := jose.JSONWebKey{Key: pubkey, KeyID: kid, Algorithm: string(jose.ED25519), Use: "sig"}
 
 		privJS, err := priv.MarshalJSON()
 		if err != nil {

@@ -3,8 +3,8 @@ package engine
 import (
 	"context"
 	"crypto"
+	"crypto/ed25519"
 	"crypto/rand"
-	"crypto/rsa"
 	"encoding/base64"
 	"errors"
 	"io/ioutil"
@@ -102,12 +102,12 @@ func TestJWTMiddlewareInvalidJWKs(t *testing.T) {
 }
 
 func generateJWK() (pub *jose.JSONWebKey, priv *jose.JSONWebKey, err error) {
-	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	pubkey, key, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	priv = &jose.JSONWebKey{Key: key, KeyID: "", Algorithm: string(jose.RS256), Use: "sig"}
+	priv = &jose.JSONWebKey{Key: key, KeyID: "", Algorithm: string(jose.ED25519), Use: "sig"}
 
 	thumb, err := priv.Thumbprint(crypto.SHA256)
 	if err != nil {
@@ -116,13 +116,13 @@ func generateJWK() (pub *jose.JSONWebKey, priv *jose.JSONWebKey, err error) {
 
 	kid := base64.URLEncoding.EncodeToString(thumb)
 	priv.KeyID = kid
-	pub = &jose.JSONWebKey{Key: &key.PublicKey, KeyID: kid, Algorithm: string(jose.RS256), Use: "sig"}
+	pub = &jose.JSONWebKey{Key: pubkey, KeyID: kid, Algorithm: string(jose.ED25519), Use: "sig"}
 
 	return pub, priv, err
 }
 
 func generateJWT(priv *jose.JSONWebKey, expiry time.Time) (string, error) {
-	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: priv}, (&jose.SignerOptions{}).WithType("JWT"))
+	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.EdDSA, Key: priv}, (&jose.SignerOptions{}).WithType("JWT"))
 	if err != nil {
 		return "", err
 	}
