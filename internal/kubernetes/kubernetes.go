@@ -281,6 +281,32 @@ func (k *Kubernetes) UpdateRoles(roles []api.Role) error {
 	k.mu.Lock()
 	defer k.mu.Unlock()
 
+	logging.L.Debug("deduplicating users")
+
+	// group users together regardless of user or group assignment
+	for i, r := range roles {
+		users := make(map[string]api.User)
+
+		for _, u := range r.Users {
+			users[u.Id] = u
+		}
+
+		for _, g := range r.Groups {
+			for _, u := range g.Users {
+				users[u.Id] = u
+			}
+		}
+
+		// zero out roles[].Users and roles[].Groups
+		roles[i].Users = []api.User{}
+		roles[i].Groups = []api.Group{}
+
+		// repopulate with deduplicated users
+		for _, u := range users {
+			roles[i].Users = append(roles[i].Users, u)
+		}
+	}
+
 	logging.L.Debug("syncing local roles from registry configuration")
 	// group together all users with the same role/namespace permissions
 	rbSubjects := make(map[namespaceRole][]rbacv1.Subject) // role bindings
@@ -307,6 +333,7 @@ func (k *Kubernetes) UpdateRoles(roles []api.Role) error {
 					Name:     u.Email,
 				})
 			}
+
 		case api.CLUSTER_ROLE:
 			if r.Namespace == "" {
 				for _, u := range r.Users {
@@ -323,6 +350,7 @@ func (k *Kubernetes) UpdateRoles(roles []api.Role) error {
 					role:      r.Name,
 					kind:      string(r.Kind),
 				}
+
 				for _, u := range r.Users {
 					rbSubjects[nspaceRole] = append(rbSubjects[nspaceRole], rbacv1.Subject{
 						APIGroup: "rbac.authorization.k8s.io",
@@ -336,12 +364,11 @@ func (k *Kubernetes) UpdateRoles(roles []api.Role) error {
 		}
 	}
 
-	err := k.updateRoleBindings(rbSubjects)
-	if err != nil {
+	if err := k.updateRoleBindings(rbSubjects); err != nil {
 		return fmt.Errorf("update role bindings: %w", err)
 	}
 
-	if err = k.updateClusterRoleBindings(crbSubjects); err != nil {
+	if err := k.updateClusterRoleBindings(crbSubjects); err != nil {
 		return fmt.Errorf("update cluster role bindings: %w", err)
 	}
 

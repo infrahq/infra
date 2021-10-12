@@ -335,10 +335,11 @@ func Run(options Options) error {
 			return
 		}
 
-		roles, _, err := client.RolesApi.ListRoles(ctx).DestinationId(destination.Id).Execute()
+		roles, _, err := client.RolesApi.ListRoles(ctx).Destination(destination.Id).Execute()
 		if err != nil {
 			logging.L.Error("couldn't list roles: " + err.Error())
 		}
+
 		err = k8s.UpdateRoles(roles)
 		if err != nil {
 			logging.L.Error("couldn't update roles: " + err.Error())

@@ -19,6 +19,7 @@ import (
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type Api struct {
@@ -55,8 +56,11 @@ func NewApiMux(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) *mux.Router {
 	v1.Handle("/api-keys", a.bearerAuthMiddleware(api.API_KEYS_READ, http.HandlerFunc(a.ListApiKeys))).Methods(http.MethodGet)
 	v1.Handle("/api-keys", a.bearerAuthMiddleware(api.API_KEYS_CREATE, http.HandlerFunc(a.CreateAPIKey))).Methods(http.MethodPost)
 	v1.Handle("/api-keys/{id}", a.bearerAuthMiddleware(api.API_KEYS_DELETE, http.HandlerFunc(a.DeleteApiKey))).Methods(http.MethodDelete)
+
 	v1.Handle("/tokens", a.bearerAuthMiddleware(api.TOKENS_CREATE, http.HandlerFunc(a.CreateToken))).Methods(http.MethodPost)
 	v1.Handle("/roles", a.bearerAuthMiddleware(api.ROLES_READ, http.HandlerFunc(a.ListRoles))).Methods(http.MethodGet)
+	v1.Handle("/roles/{id}", a.bearerAuthMiddleware(api.ROLES_READ, http.HandlerFunc(a.GetRole))).Methods(http.MethodGet)
+
 	v1.Handle("/login", http.HandlerFunc(a.Login)).Methods(http.MethodPost)
 	v1.Handle("/logout", a.bearerAuthMiddleware(api.AUTH_DELETE, http.HandlerFunc(a.Logout))).Methods(http.MethodPost)
 	v1.Handle("/version", http.HandlerFunc(a.Version)).Methods(http.MethodGet)
@@ -446,47 +450,16 @@ func (a *Api) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Api) ListRoles(w http.ResponseWriter, r *http.Request) {
-	destinationId := r.URL.Query().Get("destinationId")
+	roleName := r.URL.Query().Get("name")
+	roleKind := r.URL.Query().Get("kind")
+	destinationId := r.URL.Query().Get("destination")
 
 	var roles []Role
-	if err := a.db.Preload("Destination").Preload("Groups").Preload("Users").Find(&roles, &Role{DestinationId: destinationId}).Error; err != nil {
-		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not list roles")
-
-		return
-	}
-
-	// build the response which unifies the relation of group and directly related users to the role
-	results := make([]api.Role, 0)
 
 	err := a.db.Transaction(func(tx *gorm.DB) error {
-		for _, r := range roles {
-			// avoid duplicate users being added to the response by mapping based on user id
-			rUsers := make(map[string]User)
-			for _, rUser := range r.Users {
-				rUsers[rUser.Id] = rUser
-			}
-
-			// add any group users associated with the role now
-			for _, g := range r.Groups {
-				var gUsers []User
-				err := tx.Model(g).Association("Users").Find(&gUsers)
-				if err != nil {
-					return err
-				}
-
-				for _, gUser := range gUsers {
-					rUsers[gUser.Id] = gUser
-				}
-			}
-
-			// set the role users to the unified role/group users
-			var users []User
-			for _, u := range rUsers {
-				users = append(users, u)
-			}
-			r.Users = users
-			results = append(results, dbToAPIRole(r))
+		err := tx.Preload("Groups.Users").Preload(clause.Associations).Find(&roles, &Role{Name: roleName, Kind: roleKind, DestinationId: destinationId}).Error
+		if err != nil {
+			return err
 		}
 
 		return nil
@@ -498,9 +471,40 @@ func (a *Api) ListRoles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	results := make([]api.Role, 0)
+	for _, r := range roles {
+		results = append(results, dbToAPIRole(r))
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 
 	if err := json.NewEncoder(w).Encode(results); err != nil {
+		logging.L.Error(err.Error())
+		sendApiError(w, http.StatusInternalServerError, "could not list roles")
+	}
+}
+
+func (a *Api) GetRole(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	roleId := vars["id"]
+	if roleId == "" {
+		sendApiError(w, http.StatusBadRequest, "Path parameter \"id\" is required")
+	}
+
+	var role Role
+	if err := a.db.Preload("Groups.Users").Preload(clause.Associations).First(&role, &Role{Id: roleId}).Error; err != nil {
+		logging.L.Error(err.Error())
+		sendApiError(w, http.StatusInternalServerError, "could not list roles")
+
+		return
+	}
+
+	result := dbToAPIRole(role)
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if err := json.NewEncoder(w).Encode(result); err != nil {
 		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not list roles")
 	}
@@ -784,12 +788,11 @@ func dbToInfraAPIPermissions(permissions string) []api.InfraAPIPermission {
 
 func dbToAPIRole(r Role) api.Role {
 	res := api.Role{
-		Id:          r.Id,
-		Created:     r.Created,
-		Updated:     r.Updated,
-		Name:        r.Name,
-		Namespace:   r.Namespace,
-		Destination: dbToAPIdestination(r.Destination),
+		Id:        r.Id,
+		Created:   r.Created,
+		Updated:   r.Updated,
+		Name:      r.Name,
+		Namespace: r.Namespace,
 	}
 
 	switch r.Kind {

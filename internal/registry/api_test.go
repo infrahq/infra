@@ -625,7 +625,7 @@ func TestListRolesForDestinationReturnsRolesFromConfig(t *testing.T) {
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles", nil)
 	q := r.URL.Query()
-	q.Add("destinationId", clusterA.Id)
+	q.Add("destination", clusterA.Id)
 	r.URL.RawQuery = q.Encode()
 
 	w := httptest.NewRecorder()
@@ -642,14 +642,18 @@ func TestListRolesForDestinationReturnsRolesFromConfig(t *testing.T) {
 		returnedUserRoles[r.Name] = r.Users
 	}
 
-	// roles from groups
-	assert.Equal(t, 2, len(returnedUserRoles["writer"]))
-	assert.True(t, containsUser(returnedUserRoles["writer"], iosDevUser.Email))
-	assert.True(t, containsUser(returnedUserRoles["writer"], standardUser.Email))
-
 	// roles from direct user assignment
 	assert.Equal(t, 1, len(returnedUserRoles["admin"]))
 	assert.True(t, containsUser(returnedUserRoles["admin"], adminUser.Email))
+
+	returnedGroupRoles := make(map[string][]api.Group)
+	for _, r := range roles {
+		returnedGroupRoles[r.Name] = r.Groups
+	}
+
+	// roles from groups
+	assert.Equal(t, 1, len(returnedGroupRoles["writer"]))
+	assert.True(t, containsGroup(returnedGroupRoles["writer"], iosDevGroup.Name))
 }
 
 func TestListRolesOnlyFindsForSpecificDestination(t *testing.T) {
@@ -658,7 +662,7 @@ func TestListRolesOnlyFindsForSpecificDestination(t *testing.T) {
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles", nil)
 	q := r.URL.Query()
-	q.Add("destinationId", clusterA.Id)
+	q.Add("destination", clusterA.Id)
 	r.URL.RawQuery = q.Encode()
 
 	w := httptest.NewRecorder()
@@ -694,7 +698,7 @@ func TestListRolesForUnknownDestination(t *testing.T) {
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles", nil)
 	q := r.URL.Query()
-	q.Add("destinationId", "Unknown-Cluster-ID")
+	q.Add("destination", "Unknown-Cluster-ID")
 	r.URL.RawQuery = q.Encode()
 
 	w := httptest.NewRecorder()
@@ -725,14 +729,8 @@ func TestListGroups(t *testing.T) {
 
 	assert.Equal(t, 2, len(groups))
 
-	groupSources := make(map[string]string)
-	for _, g := range groups {
-		groupSources[g.Name] = g.Source
-	}
-
-	// these groups were created specifically in the configuration test setup
-	assert.Equal(t, "okta", groupSources["ios-developers"])
-	assert.Equal(t, "okta", groupSources["mac-admins"])
+	assert.True(t, containsGroup(groups, "ios-developers"))
+	assert.True(t, containsGroup(groups, "mac-admins"))
 }
 
 func TestCreateAPIKey(t *testing.T) {
@@ -824,6 +822,16 @@ func TestListAPIKeys(t *testing.T) {
 func containsUser(users []api.User, email string) bool {
 	for _, u := range users {
 		if u.Email == email {
+			return true
+		}
+	}
+
+	return false
+}
+
+func containsGroup(groups []api.Group, name string) bool {
+	for _, g := range groups {
+		if g.Name == name {
 			return true
 		}
 	}

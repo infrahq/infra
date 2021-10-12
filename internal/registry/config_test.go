@@ -19,6 +19,7 @@ var (
 	adminUser      = User{Id: "001", Email: "admin@example.com"}
 	standardUser   = User{Id: "002", Email: "user@example.com"}
 	iosDevUser     = User{Id: "003", Email: "woz@example.com"}
+	iosDevGroup    = Group{Name: "ios-developers"}
 	clusterA       = Destination{Name: "cluster-AAA"}
 	clusterB       = Destination{Name: "cluster-BBB"}
 	clusterC       = Destination{Name: "cluster-CCC"}
