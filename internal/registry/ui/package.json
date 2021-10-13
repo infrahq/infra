@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "autoprefixer": "^10.3.7",
-    "@types/react": "17.0.28",
+    "@types/react": "17.0.29",
     "eslint": "7.32.0",
     "eslint-config-next": "11.1.2",
     "tailwindcss": "^2.2.16",
