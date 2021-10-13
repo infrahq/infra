@@ -74,6 +74,7 @@ func newLocalServer() (*LocalServer, error) {
 
 func (l *LocalServer) wait(ms int) (string, string, error) {
 	var result CodeResponse
+
 	timedOut := false
 
 	if ms <= 0 {
