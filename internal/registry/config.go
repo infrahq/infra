@@ -115,7 +115,7 @@ func ImportGroupMapping(db *gorm.DB, groups []ConfigGroupMapping) error {
 	for _, g := range groups {
 		// get the source from the datastore that this group specifies
 		var source Source
-		// Assumes that only one type of each source can exist
+		// Assumes that only one kind of each source can exist
 		srcReadErr := db.Where(&Source{Kind: g.Source}).First(&source).Error
 		if srcReadErr != nil {
 			if errors.Is(srcReadErr, gorm.ErrRecordNotFound) {

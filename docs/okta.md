@@ -3,7 +3,7 @@
 This guide will walk you through the process of setting up Okta as an identity provider for Infra. At the end of this process you will have updated your Infra configuration with an Okta source that looks something like this:
 ```
 sources:
-  - type: okta
+  - kind: okta
     domain: acme.okta.com
     clientId: 0oapn0qwiQPiMIyR35d6
     clientSecret: infra-registry-okta/clientSecret
@@ -69,7 +69,7 @@ Edit your [Infra configuration](./configuration.md) (e.g. `infra.yaml`) to inclu
 
 ```yaml
 sources:
-  - type: okta
+  - kind: okta
     domain: acme.okta.com
     clientId: 0oapn0qwiQPiMIyR35d6
     clientSecret: infra-registry-okta/clientSecret # <kubernetes secret object name>/<key of the secret>

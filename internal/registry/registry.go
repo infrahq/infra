@@ -167,7 +167,7 @@ func Run(options Options) error {
 				zapLogger.Sugar().Errorf("could not validate okta: %w", err)
 			}
 		default:
-			zapLogger.Sugar().Errorf("skipped validating unknown source type %s", s.Kind)
+			zapLogger.Sugar().Errorf("skipped validating unknown source kind %s", s.Kind)
 		}
 	}
 
