@@ -8,8 +8,8 @@ require (
 	github.com/aws/aws-sdk-go v1.41.1
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/cli/browser v1.1.0
-	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/elazarl/go-bindata-assetfs v1.0.1
+	github.com/getsentry/sentry-go v0.11.0
 	github.com/go-chi/chi v1.5.4
 	github.com/go-playground/validator/v10 v10.9.0
 	github.com/gofrs/flock v0.8.1
