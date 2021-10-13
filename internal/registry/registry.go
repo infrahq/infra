@@ -16,6 +16,7 @@ import (
 	"github.com/NYTimes/gziphandler"
 	assetfs "github.com/elazarl/go-bindata-assetfs"
 	"github.com/goware/urlx"
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/kubernetes"
@@ -23,18 +24,20 @@ import (
 	timer "github.com/infrahq/infra/internal/timer"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/acme/autocert"
+	"gopkg.in/segmentio/analytics-go.v3"
 	"gorm.io/gorm"
 )
 
 type Options struct {
-	DBPath       string
-	TLSCache     string
-	RootAPIKey   string
-	EngineApiKey string
-	ConfigPath   string
-	UI           bool
-	UIProxy      string
-	SyncInterval int
+	DBPath          string
+	TLSCache        string
+	RootAPIKey      string
+	EngineApiKey    string
+	ConfigPath      string
+	UI              bool
+	UIProxy         string
+	SyncInterval    int
+	EnableTelemetry bool
 }
 
 const (
@@ -172,6 +175,71 @@ func Run(options Options) error {
 			}
 		}
 	})
+
+	if options.EnableTelemetry {
+		telemetryTimer := timer.NewTimer()
+		defer telemetryTimer.Stop()
+
+		client := analytics.New(internal.TelemetryWriteKey)
+		defer client.Close()
+
+		telemetryTimer.Start(60*time.Minute, func() {
+			var settings Settings
+			err := db.First(&settings).Error
+			if err != nil {
+				zapLogger.Error(err.Error())
+				return
+			}
+
+			var users, groups, sources, destinations, roles int64
+			err = db.Model(&User{}).Count(&users).Error
+			if err != nil {
+				zapLogger.Error(err.Error())
+				return
+			}
+
+			err = db.Model(&Group{}).Count(&groups).Error
+			if err != nil {
+				zapLogger.Error(err.Error())
+				return
+			}
+
+			err = db.Model(&Source{}).Count(&sources).Error
+			if err != nil {
+				zapLogger.Error(err.Error())
+				return
+			}
+
+			err = db.Model(&Destination{}).Count(&destinations).Error
+			if err != nil {
+				zapLogger.Error(err.Error())
+				return
+			}
+
+			err = db.Model(&Role{}).Count(&roles).Error
+			if err != nil {
+				zapLogger.Error(err.Error())
+				return
+			}
+
+			err = client.Enqueue(analytics.Track{
+				AnonymousId: "system",
+				Event:       "registry.heartbeat",
+				Properties: analytics.NewProperties().
+					Set("registryId", settings.Id).
+					Set("version", internal.Version).
+					Set("users", users).
+					Set("groups", groups).
+					Set("sources", sources).
+					Set("destinations", destinations).
+					Set("roles", roles),
+			})
+			if err != nil {
+				zapLogger.Error(err.Error())
+				return
+			}
+		})
+	}
 
 	if options.RootAPIKey != "" {
 		if len(options.RootAPIKey) != ApiKeyLen {

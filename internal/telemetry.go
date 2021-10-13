@@ -1,0 +1,3 @@
+package internal
+
+var TelemetryWriteKey = ""
