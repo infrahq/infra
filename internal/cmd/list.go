@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"strings"
 
 	"github.com/infrahq/infra/internal/api"
 	"github.com/lensesio/tableprinter"
@@ -16,7 +17,6 @@ type statusRow struct {
 	CurrentlySelected        string `header:"CURRENT"` // * if selected
 	Name                     string `header:"NAME"`
 	Type                     string `header:"TYPE"`
-	Namespace                string `header:"NAMESPACE"`
 	Status                   string `header:"STATUS"`
 	Endpoint                 string // don't display in table
 	CertificateAuthorityData []byte // don't display in table
@@ -74,12 +74,12 @@ func list() error {
 	rows := make(map[string]statusRow)
 
 	for _, r := range user.Roles {
-		rows[r.Id] = newRow(r, kubeConfig.CurrentContext)
+		rows[r.Destination.Id] = newRow(r, kubeConfig.CurrentContext)
 	}
 
 	for _, g := range user.Groups {
 		for _, r := range g.Roles {
-			rows[r.Id] = newRow(r, kubeConfig.CurrentContext)
+			rows[r.Destination.Id] = newRow(r, kubeConfig.CurrentContext)
 		}
 	}
 
@@ -91,7 +91,7 @@ func list() error {
 
 	sort.Slice(rowsList, func(i, j int) bool {
 		// Sort by combined name, descending
-		return rowsList[i].Name+rowsList[i].Namespace < rowsList[j].Name+rowsList[j].Namespace
+		return rowsList[i].Name < rowsList[j].Name
 	})
 
 	ok, err := canReachInternet()
@@ -136,9 +136,8 @@ func list() error {
 
 func newRow(role api.Role, currentContext string) statusRow {
 	row := statusRow{
-		Name:      role.Destination.Name,
-		Status:    "💻 → ❌ Can't reach internet",
-		Namespace: role.Namespace,
+		Name:   role.Destination.Name,
+		Status: "💻 → ❌ Can't reach internet",
 	}
 
 	if k8s, ok := role.Destination.GetKubernetesOk(); ok {
@@ -147,14 +146,8 @@ func newRow(role api.Role, currentContext string) statusRow {
 		row.Type = "Kubernetes"
 	}
 
-	var contextName string
-	if role.Namespace != "" {
-		contextName = fmt.Sprintf("infra:%s:%s", role.Destination.Name, role.Namespace)
-	} else {
-		contextName = fmt.Sprintf("infra:%s", role.Destination.Name)
-	}
-
-	if currentContext == contextName {
+	parts := strings.Split(currentContext, ":")
+	if len(parts) >= 2 && parts[0] == "infra" && parts[1] == role.Destination.Name {
 		row.CurrentlySelected = "*"
 	}
 
