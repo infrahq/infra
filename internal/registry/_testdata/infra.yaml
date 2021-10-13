@@ -22,14 +22,14 @@ groups:
         kind: cluster-role
         destinations:
           - name: cluster-CCC
-            namespaces: 
+            namespaces:
               - infrahq
               - development
       - name: pod-create
         kind: role
         destinations:
           - name: cluster-CCC
-            namespaces: 
+            namespaces:
               - infrahq
   - name: mac-admins
     source: okta
@@ -72,14 +72,14 @@ users:
         kind: cluster-role
         destinations:
           - name: cluster-CCC
-            namespaces: 
+            namespaces:
               - infrahq
               - development
       - name: pod-create
         kind: role
         destinations:
           - name: cluster-CCC
-            namespaces: 
+            namespaces:
               - infrahq
   - email: unknown@example.com
     roles:

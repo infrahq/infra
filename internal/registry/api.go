@@ -227,6 +227,8 @@ func (a *Api) GetUser(w http.ResponseWriter, r *http.Request) {
 	userId := vars["id"]
 	if userId == "" {
 		sendApiError(w, http.StatusBadRequest, "Path parameter \"id\" is required")
+
+		return
 	}
 
 	var user User
@@ -241,7 +243,12 @@ func (a *Api) GetUser(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusNotFound, fmt.Sprintf("Could not find user ID \"%s\"", userId))
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			sendApiError(w, http.StatusNotFound, fmt.Sprintf("Could not find user ID \"%s\"", userId))
+		} else {
+			sendApiError(w, http.StatusBadRequest, fmt.Sprintf("Could not find user ID \"%s\"", userId))
+		}
 
 		return
 	}
@@ -286,12 +293,19 @@ func (a *Api) GetGroup(w http.ResponseWriter, r *http.Request) {
 	groupId := vars["id"]
 	if groupId == "" {
 		sendApiError(w, http.StatusBadRequest, "Path parameter \"id\" is required")
+
+		return
 	}
 
 	var group Group
 	if err := a.db.Preload(clause.Associations).First(&group, &Group{Id: groupId}).Error; err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusNotFound, "could not list groups")
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			sendApiError(w, http.StatusNotFound, fmt.Sprintf("Could not find group ID \"%s\"", groupId))
+		} else {
+			sendApiError(w, http.StatusBadRequest, fmt.Sprintf("Could not find group ID \"%s\"", groupId))
+		}
 
 		return
 	}
@@ -336,12 +350,19 @@ func (a *Api) GetSource(w http.ResponseWriter, r *http.Request) {
 	sourceId := vars["id"]
 	if sourceId == "" {
 		sendApiError(w, http.StatusBadRequest, "Path parameter \"id\" is required")
+
+		return
 	}
 
 	var source Source
 	if err := a.db.First(&source, &Source{Id: sourceId}).Error; err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusNotFound, "could not list sources")
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			sendApiError(w, http.StatusNotFound, fmt.Sprintf("Could not find source ID \"%s\"", sourceId))
+		} else {
+			sendApiError(w, http.StatusBadRequest, fmt.Sprintf("Could not find source ID \"%s\"", sourceId))
+		}
 
 		return
 	}
@@ -387,12 +408,19 @@ func (a *Api) GetDestination(w http.ResponseWriter, r *http.Request) {
 	destinationId := vars["id"]
 	if destinationId == "" {
 		sendApiError(w, http.StatusBadRequest, "Path parameter \"id\" is required")
+
+		return
 	}
 
 	var destination Destination
 	if err := a.db.First(&destination, &Destination{Id: destinationId}).Error; err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusNotFound, "could not list destinations")
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			sendApiError(w, http.StatusNotFound, fmt.Sprintf("Could not find destination ID \"%s\"", destinationId))
+		} else {
+			sendApiError(w, http.StatusBadRequest, fmt.Sprintf("Could not find destination ID \"%s\"", destinationId))
+		}
 
 		return
 	}
@@ -622,12 +650,19 @@ func (a *Api) GetRole(w http.ResponseWriter, r *http.Request) {
 	roleId := vars["id"]
 	if roleId == "" {
 		sendApiError(w, http.StatusBadRequest, "Path parameter \"id\" is required")
+
+		return
 	}
 
 	var role Role
 	if err := a.db.Preload("Groups.Users").Preload(clause.Associations).First(&role, &Role{Id: roleId}).Error; err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not list roles")
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			sendApiError(w, http.StatusNotFound, fmt.Sprintf("Could not find role ID \"%s\"", roleId))
+		} else {
+			sendApiError(w, http.StatusBadRequest, fmt.Sprintf("Could not find role ID \"%s\"", roleId))
+		}
 
 		return
 	}
