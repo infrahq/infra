@@ -70,54 +70,61 @@ func list() error {
 		println(err.Error())
 	}
 
-	rows := []statusRow{}
+	// deduplicate rows
+	rows := make(map[string]statusRow)
 
 	for _, r := range user.Roles {
-		rows = append(rows, newRow(r, kubeConfig.CurrentContext))
+		rows[r.Id] = newRow(r, kubeConfig.CurrentContext)
 	}
 
 	for _, g := range user.Groups {
 		for _, r := range g.Roles {
-			rows = append(rows, newRow(r, kubeConfig.CurrentContext))
+			rows[r.Id] = newRow(r, kubeConfig.CurrentContext)
 		}
 	}
 
-	sort.Slice(rows, func(i, j int) bool {
+	rowsList := make([]statusRow, 0)
+
+	for _, r := range rows {
+		rowsList = append(rowsList, r)
+	}
+
+	sort.Slice(rowsList, func(i, j int) bool {
 		// Sort by combined name, descending
-		return rows[i].Name+rows[i].Namespace < rows[j].Name+rows[j].Namespace
+		return rowsList[i].Name+rowsList[i].Namespace < rowsList[j].Name+rowsList[j].Namespace
 	})
 
 	ok, err := canReachInternet()
 	if !ok {
-		for i := range rows {
-			rows[i].Status = fmt.Sprintf("💻 → %s → ❌ Can't reach network: (%s)", globe(), err)
+		for i := range rowsList {
+			rowsList[i].Status = fmt.Sprintf("💻 → %s → ❌ Can't reach network: (%s)", globe(), err)
 		}
 	}
 
 	if ok {
-		for i, row := range rows {
+		for i, row := range rowsList {
 			// check success case first for speed.
 			ok, lastErr := canGetEngineStatus(row)
 			if ok {
-				rows[i].Status = "✅ OK"
+				rowsList[i].Status = "✅ OK"
 				continue
 			}
 			// if we had a problem, check all the stops in order to figure out where it's getting stuck
 			if ok, err := canConnectToEndpoint(row.Endpoint); !ok {
-				rows[i].Status = fmt.Sprintf("💻 → %s → ❌ Can't reach endpoint %q (%s)", globe(), row.Endpoint, err)
+				rowsList[i].Status = fmt.Sprintf("💻 → %s → ❌ Can't reach endpoint %q (%s)", globe(), row.Endpoint, err)
 				continue
 			}
 
 			if ok, err := canConnectToTLSEndpoint(row); !ok {
-				rows[i].Status = fmt.Sprintf("💻 → %s → 🌥  → ❌ Can't negotiate TLS (%s)", globe(), err)
+				rowsList[i].Status = fmt.Sprintf("💻 → %s → 🌥  → ❌ Can't negotiate TLS (%s)", globe(), err)
 				continue
 			}
 			// if we made it here, we must be talking to something that isn't the engine.
-			rows[i].Status = fmt.Sprintf("💻 → %s → 🌥  → 🔒 → ❌ Can't talk to infra engine (%s)", globe(), lastErr)
+			rowsList[i].Status = fmt.Sprintf("💻 → %s → 🌥  → 🔒 → ❌ Can't talk to infra engine (%s)", globe(), lastErr)
 		}
 	}
 
-	printTable(rows)
+	printTable(rowsList)
 
 	err = updateKubeconfig(user)
 	if err != nil {
