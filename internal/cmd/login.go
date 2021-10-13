@@ -29,7 +29,11 @@ func (e *ErrUnauthenticated) Error() string {
 	return "Could not read local credentials. Are you logged in? Use \"infra login\" to login."
 }
 
-func login(registry string, useCurrentConfig bool) error {
+type LoginOptions struct {
+	Timeout int
+}
+
+func login(registry string, useCurrentConfig bool, options LoginOptions) error {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return err
@@ -181,7 +185,7 @@ func login(registry string, useCurrentConfig bool) error {
 			return err
 		}
 
-		code, recvstate, err := ls.wait()
+		code, recvstate, err := ls.wait(options.Timeout)
 		if err != nil {
 			return err
 		}

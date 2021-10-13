@@ -182,6 +182,8 @@ func updateKubeconfig(destinations []api.Destination) error {
 }
 
 func newLoginCmd() (*cobra.Command, error) {
+	var options LoginOptions
+
 	cmd := &cobra.Command{
 		Use:     "login REGISTRY",
 		Short:   "Login to an Infra Registry",
@@ -193,9 +195,11 @@ func newLoginCmd() (*cobra.Command, error) {
 				registry = args[0]
 			}
 
-			return login(registry, true)
+			return login(registry, true, options)
 		},
 	}
+
+	cmd.Flags().IntVarP(&options.Timeout, "timeout", "t", defaultTimeout, "Login timeout in milliseconds")
 
 	return cmd, nil
 }

@@ -62,7 +62,7 @@ func tokenCreate(destination string) error {
 
 				fmt.Fprintln(os.Stderr, "Session has expired.")
 
-				if err = login("", false); err != nil {
+				if err = login("", false, LoginOptions{}); err != nil {
 					return err
 				}
 
