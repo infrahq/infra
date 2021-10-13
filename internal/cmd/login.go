@@ -399,11 +399,18 @@ func switchToFirstInfraContext() (string, error) {
 		// if the current context is an infra-controlled context, stay there
 		resultContext = kubeConfig.CurrentContext
 	} else {
-		for c := range kubeConfig.Contexts {
-			if strings.HasPrefix(c, "infra:") {
-				resultContext = c
+		for _, c := range kubeConfig.Contexts {
+			if !strings.HasPrefix(c.Cluster, "infra:") {
+				continue
+			}
+
+			// prefer a context with "default" or no namespace
+			if c.Namespace == "" || c.Namespace == "default" {
+				resultContext = c.Cluster
 				break
 			}
+
+			resultContext = c.Cluster
 		}
 	}
 
