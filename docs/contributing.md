@@ -53,7 +53,8 @@ make test
 1. Head over to https://github.com/infrahq/infra/releases and click **Draft a new Release**
 2. Fill out the form with the new version as the tag and release name as shown below:
 
-![release_screenshot](https://user-images.githubusercontent.com/5853428/137006623-df5bb54b-a472-4b52-8e7e-5b0d7eb7426c.png)
+![release screenshot](https://user-images.githubusercontent.com/5853428/137145290-7edef0ce-658b-4b78-b76c-663490ce547a.png)
+
 
 3. Click **Publish Release**
 
