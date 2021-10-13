@@ -125,7 +125,12 @@ func updateKubeconfig(user api.User) error {
 	}
 
 	for _, r := range roles {
-		contextName := fmt.Sprintf("infra:%s", r.Destination.Name)
+		var contextName string
+		if r.Namespace != "" {
+			contextName = fmt.Sprintf("infra:%s:%s", r.Destination.Name, r.Namespace)
+		} else {
+			contextName = fmt.Sprintf("infra:%s", r.Destination.Name)
+		}
 
 		kubeConfig.Clusters[contextName] = &clientcmdapi.Cluster{
 			Server:                   fmt.Sprintf("https://%s/proxy", r.Destination.Kubernetes.Endpoint),
@@ -133,12 +138,9 @@ func updateKubeconfig(user api.User) error {
 		}
 
 		kubeConfig.Contexts[contextName] = &clientcmdapi.Context{
-			Cluster:  contextName,
-			AuthInfo: contextName,
-		}
-
-		if r.Namespace != "" {
-			kubeConfig.Contexts[contextName].Namespace = r.Namespace
+			Cluster:   contextName,
+			AuthInfo:  contextName,
+			Namespace: r.Namespace,
 		}
 
 		executable, err := os.Executable()
@@ -156,16 +158,23 @@ func updateKubeconfig(user api.User) error {
 	}
 
 	for contextName := range kubeConfig.Contexts {
-		if !strings.HasPrefix(contextName, "infra:") {
+		parts := strings.Split(contextName, ":")
+
+		// shouldn't be possible but we don't actually care
+		if len(parts) < 1 {
 			continue
 		}
 
-		destinationName := strings.ReplaceAll(contextName, "infra:", "")
+		if parts[0] != "infra" {
+			continue
+		}
+
+		destinationName := parts[1]
 
 		found := false
 
 		for _, r := range roles {
-			if r.Destination.Name == destinationName {
+			if destinationName == r.Destination.Name {
 				found = true
 			}
 		}
