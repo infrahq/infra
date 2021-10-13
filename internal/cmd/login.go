@@ -234,10 +234,11 @@ func login(registry string, useCurrentConfig bool, options LoginOptions) error {
 		return err
 	}
 
-	switch {
-	case len(users) < 1:
+	if len(users) < 1 {
 		return fmt.Errorf("User \"%s\" not found", loginRes.Name)
-	case len(users) > 1:
+	}
+
+	if len(users) > 1 {
 		return fmt.Errorf("Found multiple users \"%s\"", loginRes.Name)
 	}
 
