@@ -16,6 +16,7 @@ type statusRow struct {
 	CurrentlySelected        string `header:"CURRENT"` // * if selected
 	Name                     string `header:"NAME"`
 	Type                     string `header:"TYPE"`
+	Namespace                string `header:"NAMESPACE"`
 	Status                   string `header:"STATUS"`
 	Endpoint                 string // don't display in table
 	CertificateAuthorityData []byte // don't display in table
@@ -64,27 +65,6 @@ func list() error {
 
 	user := users[0]
 
-	// deduplicate destinations from combination of user roles and group roles
-	destinations := make(map[string]api.Destination)
-	for _, r := range user.Roles {
-		destinations[r.Destination.Id] = r.Destination
-	}
-
-	for _, g := range user.Groups {
-		for _, r := range g.Roles {
-			destinations[r.Destination.Id] = r.Destination
-		}
-	}
-
-	destinationList := make([]api.Destination, 0)
-	for _, d := range destinations {
-		destinationList = append(destinationList, d)
-	}
-
-	sort.Slice(destinationList, func(i, j int) bool {
-		return destinationList[i].Name > destinationList[j].Name
-	})
-
 	kubeConfig, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), nil).RawConfig()
 	if err != nil {
 		println(err.Error())
@@ -92,24 +72,20 @@ func list() error {
 
 	rows := []statusRow{}
 
-	for _, d := range destinationList {
-		row := statusRow{
-			Name:   d.Name,
-			Status: "💻 → ❌ Can't reach internet",
-		}
-
-		if kube, ok := d.GetKubernetesOk(); ok {
-			row.Endpoint = kube.Endpoint
-			row.CertificateAuthorityData = []byte(kube.Ca)
-			row.Type = "kubernetes"
-
-			if kubeConfig.CurrentContext == fmt.Sprintf("infra:%s", row.Name) {
-				row.CurrentlySelected = "*"
-			}
-		}
-
-		rows = append(rows, row)
+	for _, r := range user.Roles {
+		rows = append(rows, newRow(r, kubeConfig.CurrentContext))
 	}
+
+	for _, g := range user.Groups {
+		for _, r := range g.Roles {
+			rows = append(rows, newRow(r, kubeConfig.CurrentContext))
+		}
+	}
+
+	sort.Slice(rows, func(i, j int) bool {
+		// Sort by combined name, descending
+		return rows[i].Name+rows[i].Namespace < rows[j].Name+rows[j].Namespace
+	})
 
 	ok, err := canReachInternet()
 	if !ok {
@@ -149,6 +125,33 @@ func list() error {
 	}
 
 	return nil
+}
+
+func newRow(role api.Role, currentContext string) statusRow {
+	row := statusRow{
+		Name:      role.Destination.Name,
+		Status:    "💻 → ❌ Can't reach internet",
+		Namespace: role.Namespace,
+	}
+
+	if k8s, ok := role.Destination.GetKubernetesOk(); ok {
+		row.Endpoint = k8s.Endpoint
+		row.CertificateAuthorityData = []byte(k8s.Ca)
+		row.Type = "Kubernetes"
+	}
+
+	var contextName string
+	if role.Namespace != "" {
+		contextName = fmt.Sprintf("infra:%s:%s", role.Destination.Name, role.Namespace)
+	} else {
+		contextName = fmt.Sprintf("infra:%s", role.Destination.Name)
+	}
+
+	if currentContext == contextName {
+		row.CurrentlySelected = "*"
+	}
+
+	return row
 }
 
 func globe() string {
