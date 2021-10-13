@@ -201,7 +201,6 @@ func (a *Api) ListUsers(w http.ResponseWriter, r *http.Request) {
 
 		return nil
 	})
-
 	if err != nil {
 		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not list users")
