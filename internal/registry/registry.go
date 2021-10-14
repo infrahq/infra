@@ -84,6 +84,7 @@ func Run(options Options) error {
 			BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
 				event.ServerName = ""
 				event.Request = nil
+				hint.Request = nil
 				return event
 			},
 		})
