@@ -257,6 +257,7 @@ func newRegistryCmd() (*cobra.Command, error) {
 	cmd.Flags().BoolVar(&options.UI, "ui", false, "enable ui")
 	cmd.Flags().StringVar(&options.UIProxy, "ui-proxy", "", "proxy ui requests to this host")
 	cmd.Flags().BoolVar(&options.EnableTelemetry, "enable-telemetry", true, "enable telemetry")
+	cmd.Flags().BoolVar(&options.EnableCrashReporting, "enable-crash-reporting", true, "enable crash reporting")
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {

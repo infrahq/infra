@@ -15,6 +15,8 @@ import (
 
 	"github.com/NYTimes/gziphandler"
 	assetfs "github.com/elazarl/go-bindata-assetfs"
+	"github.com/getsentry/sentry-go"
+	sentryhttp "github.com/getsentry/sentry-go/http"
 	"github.com/goware/urlx"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
@@ -29,15 +31,16 @@ import (
 )
 
 type Options struct {
-	DBPath          string
-	TLSCache        string
-	RootAPIKey      string
-	EngineApiKey    string
-	ConfigPath      string
-	UI              bool
-	UIProxy         string
-	SyncInterval    int
-	EnableTelemetry bool
+	DBPath               string
+	TLSCache             string
+	RootAPIKey           string
+	EngineApiKey         string
+	ConfigPath           string
+	UI                   bool
+	UIProxy              string
+	SyncInterval         int
+	EnableTelemetry      bool
+	EnableCrashReporting bool
 }
 
 const (
@@ -73,10 +76,46 @@ func syncSources(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta, logger *zap
 }
 
 func Run(options Options) error {
+	if options.EnableCrashReporting {
+		err := sentry.Init(sentry.ClientOptions{
+			Dsn:              internal.CrashReportingDSN,
+			AttachStacktrace: true,
+			Release:          internal.Version,
+			BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
+				event.ServerName = ""
+				event.Request = nil
+				hint.Request = nil
+				return event
+			},
+		})
+		if err != nil {
+			return err
+		}
+
+		defer func() {
+			err := recover()
+			if err != nil {
+				sentry.CurrentHub().Recover(err)
+				sentry.Flush(time.Second * 5)
+			}
+		}()
+	}
+
 	db, err := NewDB(options.DBPath)
 	if err != nil {
 		return err
 	}
+
+	var settings Settings
+
+	err = db.First(&settings).Error
+	if err != nil {
+		return err
+	}
+
+	sentry.ConfigureScope(func(scope *sentry.Scope) {
+		scope.SetContext("registryId", settings.Id)
+	})
 
 	zapLogger, err := logging.Build()
 	if err != nil {
@@ -304,9 +343,11 @@ func Run(options Options) error {
 		mux.Handle("/", h.loginRedirectMiddleware(gziphandler.GzipHandler(http.FileServer(&StaticFileSystem{base: &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo}}))))
 	}
 
+	sentryHandler := sentryhttp.New(sentryhttp.Options{})
+
 	plaintextServer := http.Server{
 		Addr:    ":80",
-		Handler: ZapLoggerHttpMiddleware(mux),
+		Handler: ZapLoggerHttpMiddleware(sentryHandler.Handle(mux)),
 	}
 
 	go func() {
@@ -329,7 +370,7 @@ func Run(options Options) error {
 	tlsServer := &http.Server{
 		Addr:      ":443",
 		TLSConfig: tlsConfig,
-		Handler:   ZapLoggerHttpMiddleware(mux),
+		Handler:   ZapLoggerHttpMiddleware(sentryHandler.Handle(mux)),
 	}
 
 	err = tlsServer.ListenAndServeTLS("", "")
