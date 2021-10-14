@@ -55,6 +55,22 @@ func NewApiClient(host string, skipTLSVerify bool) (*api.APIClient, error) {
 	return api.NewAPIClient(config), nil
 }
 
+func infraHomeDir() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	infraDir := filepath.Join(homeDir, ".infra")
+
+	err = os.MkdirAll(infraDir, os.ModePerm)
+	if err != nil {
+		return "", err
+	}
+
+	return infraDir, nil
+}
+
 func apiContextFromConfig() (context.Context, error) {
 	config, err := currentRegistryConfig()
 	if err != nil {
@@ -259,17 +275,17 @@ func newRegistryCmd() (*cobra.Command, error) {
 	cmd.Flags().BoolVar(&options.EnableTelemetry, "enable-telemetry", true, "enable telemetry")
 	cmd.Flags().BoolVar(&options.EnableCrashReporting, "enable-crash-reporting", true, "enable crash reporting")
 
-	homeDir, err := os.UserHomeDir()
+	infraDir, err := infraHomeDir()
 	if err != nil {
 		return nil, err
 	}
 
 	if filepath.Dir(options.DBPath) == defaultInfraHome {
-		options.DBPath = filepath.Join(homeDir, ".infra", "infra.db")
+		options.DBPath = filepath.Join(infraDir, "infra.db")
 	}
 
 	if filepath.Dir(options.TLSCache) == defaultInfraHome {
-		options.TLSCache = filepath.Join(homeDir, ".infra", "cache")
+		options.TLSCache = filepath.Join(infraDir, "cache")
 	}
 
 	defaultSync := 30
@@ -313,12 +329,12 @@ func newEngineCmd() (*cobra.Command, error) {
 	cmd.Flags().StringVar(&options.APIKey, "api-key", os.Getenv("ENGINE_API_KEY"), "api key")
 
 	if filepath.Dir(options.TLSCache) == defaultInfraHome {
-		homeDir, err := os.UserHomeDir()
+		infraDir, err := infraHomeDir()
 		if err != nil {
 			return nil, err
 		}
 
-		options.TLSCache = filepath.Join(homeDir, ".infra", "cache")
+		options.TLSCache = filepath.Join(infraDir, "cache")
 	}
 
 	return cmd, nil

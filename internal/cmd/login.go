@@ -34,12 +34,12 @@ type LoginOptions struct {
 }
 
 func login(registry string, useCurrentConfig bool, options LoginOptions) error {
-	homeDir, err := os.UserHomeDir()
+	infraDir, err := infraHomeDir()
 	if err != nil {
 		return err
 	}
 
-	lock := flock.New(filepath.Join(homeDir, ".infra", "login.lock"))
+	lock := flock.New(filepath.Join(infraDir, "login.lock"))
 
 	acquired, err := lock.TryLock()
 	if err != nil {
@@ -235,6 +235,11 @@ func login(registry string, useCurrentConfig bool, options LoginOptions) error {
 	}
 
 	err = updateKubeconfig(destinations)
+	if err != nil {
+		return err
+	}
+
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return err
 	}

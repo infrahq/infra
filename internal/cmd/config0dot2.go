@@ -30,12 +30,12 @@ func NewClientConfig() *ClientConfigV0dot2 {
 func readConfig() (*ClientConfigV0dot2, error) {
 	config := &ClientConfigV0dot2{}
 
-	homeDir, err := os.UserHomeDir()
+	infraDir, err := infraHomeDir()
 	if err != nil {
 		return nil, err
 	}
 
-	contents, err := ioutil.ReadFile(filepath.Join(homeDir, ".infra", "config"))
+	contents, err := ioutil.ReadFile(filepath.Join(infraDir, "config"))
 	if os.IsNotExist(err) {
 		return nil, &ErrUnauthenticated{}
 	}
@@ -62,12 +62,8 @@ func readConfig() (*ClientConfigV0dot2, error) {
 }
 
 func writeConfig(config *ClientConfigV0dot2) error {
-	homeDir, err := os.UserHomeDir()
+	infraDir, err := infraHomeDir()
 	if err != nil {
-		return err
-	}
-
-	if err = os.MkdirAll(filepath.Join(homeDir, ".infra"), os.ModePerm); err != nil {
 		return err
 	}
 
@@ -76,7 +72,7 @@ func writeConfig(config *ClientConfigV0dot2) error {
 		return err
 	}
 
-	if err = ioutil.WriteFile(filepath.Join(homeDir, ".infra", "config"), []byte(contents), 0o600); err != nil {
+	if err = ioutil.WriteFile(filepath.Join(infraDir, "config"), []byte(contents), 0o600); err != nil {
 		return err
 	}
 

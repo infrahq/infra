@@ -26,10 +26,10 @@ func logout(registry string) error {
 	if config.Current {
 		_ = updateKubeconfig([]api.Destination{})
 
-		homeDir, err := os.UserHomeDir()
+		infraDir, err := infraHomeDir()
 		if err == nil {
-			os.RemoveAll(filepath.Join(homeDir, ".infra", "cache"))
-			os.Remove(filepath.Join(homeDir, ".infra", "destinations"))
+			os.RemoveAll(filepath.Join(infraDir, "cache"))
+			os.Remove(filepath.Join(infraDir, "destinations"))
 		}
 	}
 
