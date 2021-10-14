@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -104,25 +103,7 @@ func clientConfig() clientcmd.ClientConfig {
 	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
 }
 
-func updateKubeconfig(destinations []api.Destination) error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	if len(destinations) > 0 {
-		destinationsJSON, err := json.Marshal(destinations)
-		if err != nil {
-			return err
-		}
-
-		// Write destinations to a known json file location for `infra client` to read
-		err = os.WriteFile(filepath.Join(homeDir, ".infra", "destinations"), destinationsJSON, 0o600)
-		if err != nil {
-			return err
-		}
-	}
-
+func updateKubeconfig(user api.User) error {
 	defaultConfig := clientConfig()
 
 	kubeConfig, err := defaultConfig.RawConfig()
@@ -130,12 +111,36 @@ func updateKubeconfig(destinations []api.Destination) error {
 		return err
 	}
 
-	for _, d := range destinations {
-		contextName := "infra:" + d.Name
+	// deduplicate roles
+	roles := make(map[string]api.Role)
+
+	for _, r := range user.Roles {
+		roles[r.Id] = r
+	}
+
+	for _, g := range user.Groups {
+		for _, r := range g.Roles {
+			roles[r.Id] = r
+		}
+	}
+
+	for _, r := range roles {
+		var contextName string
+		if r.Namespace != "" {
+			contextName = fmt.Sprintf("infra:%s:%s", r.Destination.Name, r.Namespace)
+		} else {
+			contextName = fmt.Sprintf("infra:%s", r.Destination.Name)
+		}
 
 		kubeConfig.Clusters[contextName] = &clientcmdapi.Cluster{
-			Server:                   fmt.Sprintf("https://%s/proxy", d.Kubernetes.Endpoint),
-			CertificateAuthorityData: []byte(d.Kubernetes.Ca),
+			Server:                   fmt.Sprintf("https://%s/proxy", r.Destination.Kubernetes.Endpoint),
+			CertificateAuthorityData: []byte(r.Destination.Kubernetes.Ca),
+		}
+
+		kubeConfig.Contexts[contextName] = &clientcmdapi.Context{
+			Cluster:   contextName,
+			AuthInfo:  contextName,
+			Namespace: r.Namespace,
 		}
 
 		executable, err := os.Executable()
@@ -146,51 +151,44 @@ func updateKubeconfig(destinations []api.Destination) error {
 		kubeConfig.AuthInfos[contextName] = &clientcmdapi.AuthInfo{
 			Exec: &clientcmdapi.ExecConfig{
 				Command:    executable,
-				Args:       []string{"tokens", "create", d.Name},
+				Args:       []string{"tokens", "create", r.Destination.Name},
 				APIVersion: "client.authentication.k8s.io/v1beta1",
 			},
 		}
-
-		kubeConfig.Contexts[contextName] = &clientcmdapi.Context{
-			Cluster:  contextName,
-			AuthInfo: contextName,
-		}
 	}
 
-	for name := range kubeConfig.Contexts {
-		if !strings.HasPrefix(name, "infra:") {
+	for contextName := range kubeConfig.Contexts {
+		parts := strings.Split(contextName, ":")
+
+		// shouldn't be possible but we don't actually care
+		if len(parts) < 1 {
 			continue
 		}
 
-		destinationName := strings.ReplaceAll(name, "infra:", "")
+		if parts[0] != "infra" {
+			continue
+		}
 
-		var exists bool
+		destinationName := parts[1]
 
-		for _, d := range destinations {
-			if destinationName == d.Name {
-				exists = true
+		found := false
+
+		for _, r := range roles {
+			if destinationName == r.Destination.Name {
+				found = true
 			}
 		}
 
-		if !exists {
-			delete(kubeConfig.Clusters, name)
-			delete(kubeConfig.Contexts, name)
-			delete(kubeConfig.AuthInfos, name)
+		if !found {
+			delete(kubeConfig.Clusters, contextName)
+			delete(kubeConfig.Contexts, contextName)
+			delete(kubeConfig.AuthInfos, contextName)
 		}
 	}
 
-	if len(destinations) == 0 {
-		_, ok := kubeConfig.Contexts[kubeConfig.CurrentContext]
-		if !ok {
-			kubeConfig.CurrentContext = ""
-			for name := range kubeConfig.Contexts {
-				kubeConfig.CurrentContext = name
-				break
-			}
-		}
-	}
+	kubeConfigFilename := defaultConfig.ConfigAccess().GetDefaultFilename()
 
-	if err = clientcmd.WriteToFile(kubeConfig, defaultConfig.ConfigAccess().GetDefaultFilename()); err != nil {
+	if err := clientcmd.WriteToFile(kubeConfig, kubeConfigFilename); err != nil {
 		return err
 	}
 

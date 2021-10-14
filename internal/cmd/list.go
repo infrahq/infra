@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"strings"
 
+	"github.com/infrahq/infra/internal/api"
 	"github.com/lensesio/tableprinter"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -21,6 +23,11 @@ type statusRow struct {
 }
 
 func list() error {
+	config, err := currentRegistryConfig()
+	if err != nil {
+		return err
+	}
+
 	client, err := apiClientFromConfig()
 	if err != nil {
 		return err
@@ -31,7 +38,7 @@ func list() error {
 		return err
 	}
 
-	destinations, res, err := client.DestinationsApi.ListDestinations(ctx).Execute()
+	users, res, err := client.UsersApi.ListUsers(ctx).Email(config.Name).Execute()
 	if err != nil {
 		switch res.StatusCode {
 		case http.StatusForbidden:
@@ -48,74 +55,103 @@ func list() error {
 		}
 	}
 
-	sort.Slice(destinations, func(i, j int) bool {
-		return destinations[i].Created > destinations[j].Created
-	})
+	// This shouldn't be possible but check nonetheless
+	switch {
+	case len(users) < 1:
+		return fmt.Errorf("User \"%s\" not found", config.Name)
+	case len(users) > 1:
+		return fmt.Errorf("Found multiple users \"%s\"", config.Name)
+	}
+
+	user := users[0]
 
 	kubeConfig, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), nil).RawConfig()
 	if err != nil {
 		println(err.Error())
 	}
 
-	rows := []statusRow{}
+	// deduplicate rows
+	rows := make(map[string]statusRow)
 
-	for _, d := range destinations {
-		row := statusRow{
-			Name:   d.Name,
-			Status: "💻 → ❌ Can't reach internet",
-		}
-
-		if kube, ok := d.GetKubernetesOk(); ok {
-			row.Endpoint = kube.Endpoint
-			row.CertificateAuthorityData = []byte(kube.Ca)
-			row.Type = "kubernetes"
-
-			if kubeConfig.CurrentContext == fmt.Sprintf("infra:%s", row.Name) {
-				row.CurrentlySelected = "*"
-			}
-		}
-
-		rows = append(rows, row)
+	for _, r := range user.Roles {
+		rows[r.Destination.Id] = newRow(r, kubeConfig.CurrentContext)
 	}
+
+	for _, g := range user.Groups {
+		for _, r := range g.Roles {
+			rows[r.Destination.Id] = newRow(r, kubeConfig.CurrentContext)
+		}
+	}
+
+	rowsList := make([]statusRow, 0)
+
+	for _, r := range rows {
+		rowsList = append(rowsList, r)
+	}
+
+	sort.Slice(rowsList, func(i, j int) bool {
+		// Sort by combined name, descending
+		return rowsList[i].Name < rowsList[j].Name
+	})
 
 	ok, err := canReachInternet()
 	if !ok {
-		for i := range rows {
-			rows[i].Status = fmt.Sprintf("💻 → %s → ❌ Can't reach network: (%s)", globe(), err)
+		for i := range rowsList {
+			rowsList[i].Status = fmt.Sprintf("💻 → %s → ❌ Can't reach network: (%s)", globe(), err)
 		}
 	}
 
 	if ok {
-		for i, row := range rows {
+		for i, row := range rowsList {
 			// check success case first for speed.
 			ok, lastErr := canGetEngineStatus(row)
 			if ok {
-				rows[i].Status = "✅ OK"
+				rowsList[i].Status = "✅ OK"
 				continue
 			}
 			// if we had a problem, check all the stops in order to figure out where it's getting stuck
 			if ok, err := canConnectToEndpoint(row.Endpoint); !ok {
-				rows[i].Status = fmt.Sprintf("💻 → %s → ❌ Can't reach endpoint %q (%s)", globe(), row.Endpoint, err)
+				rowsList[i].Status = fmt.Sprintf("💻 → %s → ❌ Can't reach endpoint %q (%s)", globe(), row.Endpoint, err)
 				continue
 			}
 
 			if ok, err := canConnectToTLSEndpoint(row); !ok {
-				rows[i].Status = fmt.Sprintf("💻 → %s → 🌥  → ❌ Can't negotiate TLS (%s)", globe(), err)
+				rowsList[i].Status = fmt.Sprintf("💻 → %s → 🌥  → ❌ Can't negotiate TLS (%s)", globe(), err)
 				continue
 			}
 			// if we made it here, we must be talking to something that isn't the engine.
-			rows[i].Status = fmt.Sprintf("💻 → %s → 🌥  → 🔒 → ❌ Can't talk to infra engine (%s)", globe(), lastErr)
+			rowsList[i].Status = fmt.Sprintf("💻 → %s → 🌥  → 🔒 → ❌ Can't talk to infra engine (%s)", globe(), lastErr)
 		}
 	}
 
-	printTable(rows)
+	printTable(rowsList)
 
-	err = updateKubeconfig(destinations)
+	err = updateKubeconfig(user)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func newRow(role api.Role, currentContext string) statusRow {
+	row := statusRow{
+		Name:   role.Destination.Name,
+		Status: "💻 → ❌ Can't reach internet",
+	}
+
+	if k8s, ok := role.Destination.GetKubernetesOk(); ok {
+		row.Endpoint = k8s.Endpoint
+		row.CertificateAuthorityData = []byte(k8s.Ca)
+		row.Type = "Kubernetes"
+	}
+
+	parts := strings.Split(currentContext, ":")
+	if len(parts) >= 2 && parts[0] == "infra" && parts[1] == role.Destination.Name {
+		row.CurrentlySelected = "*"
+	}
+
+	return row
 }
 
 func globe() string {

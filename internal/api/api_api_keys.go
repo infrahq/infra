@@ -43,7 +43,7 @@ func (r ApiCreateAPIKeyRequest) Execute() (InfraAPIKeyCreateResponse, *_nethttp.
 }
 
 /*
-CreateAPIKey Create API key
+CreateAPIKey Create an API key
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiCreateAPIKeyRequest
@@ -155,7 +155,7 @@ func (r ApiDeleteApiKeyRequest) Execute() (*_nethttp.Response, error) {
 }
 
 /*
-DeleteApiKey Delete API key
+DeleteApiKey Delete an API key
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id API key ID

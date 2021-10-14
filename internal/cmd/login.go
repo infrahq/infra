@@ -229,12 +229,20 @@ func login(registry string, useCurrentConfig bool, options LoginOptions) error {
 		return err
 	}
 
-	destinations, _, err := client.DestinationsApi.ListDestinations(NewApiContext(loginRes.Token)).Execute()
+	users, _, err := client.UsersApi.ListUsers(NewApiContext(loginRes.Token)).Email(loginRes.Name).Execute()
 	if err != nil {
 		return err
 	}
 
-	err = updateKubeconfig(destinations)
+	if len(users) < 1 {
+		return fmt.Errorf("User \"%s\" not found", loginRes.Name)
+	}
+
+	if len(users) > 1 {
+		return fmt.Errorf("Found multiple users \"%s\"", loginRes.Name)
+	}
+
+	err = updateKubeconfig(users[0])
 	if err != nil {
 		return err
 	}
@@ -244,9 +252,9 @@ func login(registry string, useCurrentConfig bool, options LoginOptions) error {
 		return err
 	}
 
-	if len(destinations) > 0 {
-		kubeConfigPath := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{}).ConfigAccess().GetDefaultFilename()
-		fmt.Fprintf(os.Stderr, "%s Updated %s\n", blue("✓"), termenv.String(strings.ReplaceAll(kubeConfigPath, homeDir, "~")).Bold().String())
+	if len(users[0].Roles) > 0 {
+		kubeConfigFilename := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{}).ConfigAccess().GetDefaultFilename()
+		fmt.Fprintf(os.Stderr, "%s Updated %s\n", blue("✓"), termenv.String(strings.ReplaceAll(kubeConfigFilename, homeDir, "~")).Bold().String())
 	}
 
 	context, err := switchToFirstInfraContext()
@@ -392,11 +400,18 @@ func switchToFirstInfraContext() (string, error) {
 		// if the current context is an infra-controlled context, stay there
 		resultContext = kubeConfig.CurrentContext
 	} else {
-		for c := range kubeConfig.Contexts {
-			if strings.HasPrefix(c, "infra:") {
-				resultContext = c
+		for _, c := range kubeConfig.Contexts {
+			if !strings.HasPrefix(c.Cluster, "infra:") {
+				continue
+			}
+
+			// prefer a context with "default" or no namespace
+			if c.Namespace == "" || c.Namespace == "default" {
+				resultContext = c.Cluster
 				break
 			}
+
+			resultContext = c.Cluster
 		}
 	}
 

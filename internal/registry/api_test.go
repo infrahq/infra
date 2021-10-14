@@ -3,6 +3,7 @@ package registry
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -619,13 +620,141 @@ func TestVersion(t *testing.T) {
 	assert.Equal(t, internal.Version, body.Version)
 }
 
+func TestListRoles(t *testing.T) {
+	a := &Api{db: db}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/roles", nil)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.ListRoles).ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var roles []api.Role
+	if err := json.NewDecoder(w.Body).Decode(&roles); err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, 7, len(roles))
+
+	returnedUserRoles := make(map[string][]api.User)
+	for _, r := range roles {
+		returnedUserRoles[r.Name] = r.Users
+	}
+
+	// roles from direct user assignment
+	assert.Equal(t, 1, len(returnedUserRoles["admin"]))
+	assert.True(t, containsUser(returnedUserRoles["admin"], adminUser.Email))
+
+	assert.Equal(t, 1, len(returnedUserRoles["audit"]))
+	assert.True(t, containsUser(returnedUserRoles["audit"], adminUser.Email))
+
+	assert.Equal(t, 1, len(returnedUserRoles["pod-create"]))
+	assert.True(t, containsUser(returnedUserRoles["pod-create"], adminUser.Email))
+
+	assert.Equal(t, 0, len(returnedUserRoles["writer"]))
+
+	returnedGroupRoles := make(map[string][]api.Group)
+	for _, r := range roles {
+		returnedGroupRoles[r.Name] = r.Groups
+	}
+
+	// roles from groups
+	assert.Equal(t, 0, len(returnedGroupRoles["admin"]))
+
+	assert.Equal(t, 1, len(returnedGroupRoles["audit"]))
+	assert.True(t, containsGroup(returnedGroupRoles["audit"], iosDevGroup.Name))
+
+	assert.Equal(t, 1, len(returnedGroupRoles["pod-create"]))
+	assert.True(t, containsGroup(returnedGroupRoles["pod-create"], iosDevGroup.Name))
+
+	assert.Equal(t, 1, len(returnedGroupRoles["writer"]))
+	assert.True(t, containsGroup(returnedGroupRoles["writer"], macAdminGroup.Name))
+}
+
+func TestListRolesByName(t *testing.T) {
+	a := &Api{db: db}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/roles?name=admin", nil)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.ListRoles).ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var roles []api.Role
+	if err := json.NewDecoder(w.Body).Decode(&roles); err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, 2, len(roles))
+
+	returnedUserRoles := make(map[string][]api.User)
+	for _, r := range roles {
+		returnedUserRoles[r.Name] = r.Users
+	}
+
+	// roles from direct user assignment
+	assert.Equal(t, 1, len(returnedUserRoles["admin"]))
+	assert.True(t, containsUser(returnedUserRoles["admin"], adminUser.Email))
+
+	returnedGroupRoles := make(map[string][]api.Group)
+	for _, r := range roles {
+		returnedGroupRoles[r.Name] = r.Groups
+	}
+
+	// roles from groups
+	assert.Equal(t, 0, len(returnedGroupRoles["admin"]))
+}
+
+func TestListRolesByKind(t *testing.T) {
+	a := &Api{db: db}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/roles?kind=role", nil)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.ListRoles).ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var roles []api.Role
+	if err := json.NewDecoder(w.Body).Decode(&roles); err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, 1, len(roles))
+
+	returnedGroupRoles := make(map[string][]api.Group)
+	for _, r := range roles {
+		returnedGroupRoles[r.Name] = r.Groups
+	}
+
+	// roles from groups
+	assert.Equal(t, 1, len(returnedGroupRoles["pod-create"]))
+	assert.True(t, containsGroup(returnedGroupRoles["pod-create"], iosDevGroup.Name))
+}
+
+func TestListRolesByMultiple(t *testing.T) {
+	a := &Api{db: db}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/roles?name=admin&kind=role", nil)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.ListRoles).ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var roles []api.Role
+	if err := json.NewDecoder(w.Body).Decode(&roles); err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, 0, len(roles))
+}
+
 func TestListRolesForDestinationReturnsRolesFromConfig(t *testing.T) {
 	// this in memory DB is setup in the config_test.go
 	a := &Api{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles", nil)
 	q := r.URL.Query()
-	q.Add("destinationId", clusterA.Id)
+	q.Add("destination", clusterA.Id)
 	r.URL.RawQuery = q.Encode()
 
 	w := httptest.NewRecorder()
@@ -642,14 +771,18 @@ func TestListRolesForDestinationReturnsRolesFromConfig(t *testing.T) {
 		returnedUserRoles[r.Name] = r.Users
 	}
 
-	// roles from groups
-	assert.Equal(t, 2, len(returnedUserRoles["writer"]))
-	assert.True(t, containsUser(returnedUserRoles["writer"], iosDevUser.Email))
-	assert.True(t, containsUser(returnedUserRoles["writer"], standardUser.Email))
-
 	// roles from direct user assignment
 	assert.Equal(t, 1, len(returnedUserRoles["admin"]))
 	assert.True(t, containsUser(returnedUserRoles["admin"], adminUser.Email))
+
+	returnedGroupRoles := make(map[string][]api.Group)
+	for _, r := range roles {
+		returnedGroupRoles[r.Name] = r.Groups
+	}
+
+	// roles from groups
+	assert.Equal(t, 1, len(returnedGroupRoles["writer"]))
+	assert.True(t, containsGroup(returnedGroupRoles["writer"], iosDevGroup.Name))
 }
 
 func TestListRolesOnlyFindsForSpecificDestination(t *testing.T) {
@@ -658,7 +791,7 @@ func TestListRolesOnlyFindsForSpecificDestination(t *testing.T) {
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles", nil)
 	q := r.URL.Query()
-	q.Add("destinationId", clusterA.Id)
+	q.Add("destination", clusterA.Id)
 	r.URL.RawQuery = q.Encode()
 
 	w := httptest.NewRecorder()
@@ -694,7 +827,7 @@ func TestListRolesForUnknownDestination(t *testing.T) {
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles", nil)
 	q := r.URL.Query()
-	q.Add("destinationId", "Unknown-Cluster-ID")
+	q.Add("destination", "Unknown-Cluster-ID")
 	r.URL.RawQuery = q.Encode()
 
 	w := httptest.NewRecorder()
@@ -707,6 +840,58 @@ func TestListRolesForUnknownDestination(t *testing.T) {
 	}
 
 	assert.Equal(t, 0, len(roles))
+}
+
+func TestGetRole(t *testing.T) {
+	a := &Api{db: db}
+
+	role := &Role{Name: "mpt-role"}
+	if err := a.db.Create(role).Error; err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	defer a.db.Delete(role)
+
+	r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/roles/%s", role.Id), nil)
+	vars := map[string]string{
+		"id": role.Id,
+	}
+	r = mux.SetURLVars(r, vars)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.GetRole).ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestGetRoleEmptyID(t *testing.T) {
+	a := &Api{db: db}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/roles/", nil)
+	vars := map[string]string{
+		"id": "",
+	}
+	r = mux.SetURLVars(r, vars)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.GetRole).ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestGetRoleNotFound(t *testing.T) {
+	a := &Api{db: db}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/roles/nonexistent", nil)
+	vars := map[string]string{
+		"id": "nonexistent",
+	}
+	r = mux.SetURLVars(r, vars)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.GetRole).ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
 func TestListGroups(t *testing.T) {
@@ -725,14 +910,421 @@ func TestListGroups(t *testing.T) {
 
 	assert.Equal(t, 2, len(groups))
 
-	groupSources := make(map[string]string)
-	for _, g := range groups {
-		groupSources[g.Name] = g.Source
+	assert.True(t, containsGroup(groups, "ios-developers"))
+	assert.True(t, containsGroup(groups, "mac-admins"))
+}
+
+func TestListGroupsByName(t *testing.T) {
+	a := &Api{db: db}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/groups?name=ios-developers", nil)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.ListGroups).ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var groups []api.Group
+	if err := json.NewDecoder(w.Body).Decode(&groups); err != nil {
+		t.Fatal(err)
 	}
 
-	// these groups were created specifically in the configuration test setup
-	assert.Equal(t, "okta", groupSources["ios-developers"])
-	assert.Equal(t, "okta", groupSources["mac-admins"])
+	assert.Equal(t, 1, len(groups))
+
+	assert.True(t, containsGroup(groups, "ios-developers"))
+}
+
+func TestGetGroup(t *testing.T) {
+	a := &Api{db: db}
+
+	group := &Group{Name: "mpt-group"}
+	if err := a.db.Create(group).Error; err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	defer a.db.Delete(group)
+
+	r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/groups/%s", group.Id), nil)
+	vars := map[string]string{
+		"id": group.Id,
+	}
+	r = mux.SetURLVars(r, vars)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.GetGroup).ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestGetGroupEmptyID(t *testing.T) {
+	a := &Api{db: db}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/groups/", nil)
+	vars := map[string]string{
+		"id": "",
+	}
+	r = mux.SetURLVars(r, vars)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.GetGroup).ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestGetGroupNotFound(t *testing.T) {
+	a := &Api{db: db}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/groups/nonexistent", nil)
+	vars := map[string]string{
+		"id": "nonexistent",
+	}
+	r = mux.SetURLVars(r, vars)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.GetGroup).ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestListUsers(t *testing.T) {
+	a := &Api{db: db}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/users", nil)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.ListUsers).ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var users []api.User
+	if err := json.NewDecoder(w.Body).Decode(&users); err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, 3, len(users))
+
+	assert.True(t, containsUser(users, adminUser.Email))
+	assert.True(t, containsUser(users, standardUser.Email))
+	assert.True(t, containsUser(users, iosDevUser.Email))
+}
+
+func TestListUsersByEmail(t *testing.T) {
+	a := &Api{db: db}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/users?email=woz@example.com", nil)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.ListUsers).ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var users []api.User
+	if err := json.NewDecoder(w.Body).Decode(&users); err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, 1, len(users))
+
+	assert.True(t, containsUser(users, iosDevUser.Email))
+}
+
+func TestListUsersEmpty(t *testing.T) {
+	a := &Api{db: db}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/users?email=nonexistent@example.com", nil)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.ListUsers).ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var users []api.User
+	if err := json.NewDecoder(w.Body).Decode(&users); err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, 0, len(users))
+}
+
+func TestGetUser(t *testing.T) {
+	a := &Api{db: db}
+
+	user := &User{Email: "mpt-user@infrahq.com"}
+	if err := a.db.Create(user).Error; err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	defer a.db.Delete(user)
+
+	r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/users/%s", user.Id), nil)
+	vars := map[string]string{
+		"id": user.Id,
+	}
+	r = mux.SetURLVars(r, vars)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.GetUser).ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestGetUserEmptyID(t *testing.T) {
+	a := &Api{db: db}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/users/", nil)
+	vars := map[string]string{
+		"id": "",
+	}
+	r = mux.SetURLVars(r, vars)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.GetUser).ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestGetUserNotFound(t *testing.T) {
+	a := &Api{db: db}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/users/nonexistent", nil)
+	vars := map[string]string{
+		"id": "nonexistent",
+	}
+	r = mux.SetURLVars(r, vars)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.GetUser).ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestListSources(t *testing.T) {
+	a := &Api{db: db}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/sources", nil)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.ListSources).ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var sources []api.Source
+	if err := json.NewDecoder(w.Body).Decode(&sources); err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, 1, len(sources))
+}
+
+func TestListSourcesByType(t *testing.T) {
+	a := &Api{db: db}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/sources?type=okta", nil)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.ListSources).ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var sources []api.Source
+	if err := json.NewDecoder(w.Body).Decode(&sources); err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, 1, len(sources))
+}
+
+func TestListSourcesEmpty(t *testing.T) {
+	a := &Api{db: db}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/sources?type=nonexistent", nil)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.ListSources).ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var sources []api.Source
+	if err := json.NewDecoder(w.Body).Decode(&sources); err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, 0, len(sources))
+}
+
+func TestGetSource(t *testing.T) {
+	a := &Api{db: db}
+
+	source := &Source{Type: "okta"}
+	if err := a.db.Create(source).Error; err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	defer a.db.Delete(source)
+
+	r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/sources/%s", source.Id), nil)
+	vars := map[string]string{
+		"id": source.Id,
+	}
+	r = mux.SetURLVars(r, vars)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.GetSource).ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestGetSourceEmptyID(t *testing.T) {
+	a := &Api{db: db}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/sources/", nil)
+	vars := map[string]string{
+		"id": "",
+	}
+	r = mux.SetURLVars(r, vars)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.GetSource).ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestGetSourceNotFound(t *testing.T) {
+	a := &Api{db: db}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/sources/nonexistent", nil)
+	vars := map[string]string{
+		"id": "nonexistent",
+	}
+	r = mux.SetURLVars(r, vars)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.GetSource).ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestListDestinations(t *testing.T) {
+	a := &Api{db: db}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/destinations", nil)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.ListDestinations).ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var destinations []api.Destination
+	if err := json.NewDecoder(w.Body).Decode(&destinations); err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, 3, len(destinations))
+
+	assert.True(t, containsDestination(destinations, "cluster-AAA"))
+	assert.True(t, containsDestination(destinations, "cluster-BBB"))
+	assert.True(t, containsDestination(destinations, "cluster-CCC"))
+}
+
+func TestListDestinationsByName(t *testing.T) {
+	a := &Api{db: db}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/destinations?name=cluster-AAA", nil)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.ListDestinations).ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var destinations []api.Destination
+	if err := json.NewDecoder(w.Body).Decode(&destinations); err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, 1, len(destinations))
+
+	assert.True(t, containsDestination(destinations, "cluster-AAA"))
+}
+
+func TestListDestinationsByType(t *testing.T) {
+	a := &Api{db: db}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/destinations?type=", nil)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.ListDestinations).ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var destinations []api.Destination
+	if err := json.NewDecoder(w.Body).Decode(&destinations); err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, 3, len(destinations))
+
+	assert.True(t, containsDestination(destinations, "cluster-AAA"))
+	assert.True(t, containsDestination(destinations, "cluster-BBB"))
+	assert.True(t, containsDestination(destinations, "cluster-CCC"))
+}
+
+func TestListDestinationsEmpty(t *testing.T) {
+	a := &Api{db: db}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/destinations?name=nonexistent", nil)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.ListDestinations).ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var destinations []api.Destination
+	if err := json.NewDecoder(w.Body).Decode(&destinations); err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, 0, len(destinations))
+}
+
+func TestGetDestination(t *testing.T) {
+	a := &Api{db: db}
+
+	destination := &Destination{Name: "mpt-destination"}
+	if err := a.db.Create(destination).Error; err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	defer a.db.Delete(destination)
+
+	r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/destinations/%s", destination.Id), nil)
+	vars := map[string]string{
+		"id": destination.Id,
+	}
+	r = mux.SetURLVars(r, vars)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.GetDestination).ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestGetDestinationEmptyID(t *testing.T) {
+	a := &Api{db: db}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/destinations/", nil)
+	vars := map[string]string{
+		"id": "",
+	}
+	r = mux.SetURLVars(r, vars)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.GetDestination).ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestGetDestinationNotFound(t *testing.T) {
+	a := &Api{db: db}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/destinations/nonexistent", nil)
+	vars := map[string]string{
+		"id": "nonexistent",
+	}
+	r = mux.SetURLVars(r, vars)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.GetDestination).ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
 func TestCreateAPIKey(t *testing.T) {
@@ -824,6 +1416,26 @@ func TestListAPIKeys(t *testing.T) {
 func containsUser(users []api.User, email string) bool {
 	for _, u := range users {
 		if u.Email == email {
+			return true
+		}
+	}
+
+	return false
+}
+
+func containsGroup(groups []api.Group, name string) bool {
+	for _, g := range groups {
+		if g.Name == name {
+			return true
+		}
+	}
+
+	return false
+}
+
+func containsDestination(destinations []api.Destination, name string) bool {
+	for _, d := range destinations {
+		if d.Name == name {
 			return true
 		}
 	}

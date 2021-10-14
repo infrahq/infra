@@ -20,8 +20,14 @@ import {
     RoleToJSON,
 } from '../models';
 
+export interface GetRoleRequest {
+    id: string;
+}
+
 export interface ListRolesRequest {
-    destinationId: string;
+    name?: string;
+    kind?: string;
+    destination?: string;
 }
 
 /**
@@ -30,17 +36,59 @@ export interface ListRolesRequest {
 export class RolesApi extends runtime.BaseAPI {
 
     /**
-     * List roles
+     * Get role
      */
-    async listRolesRaw(requestParameters: ListRolesRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<Role>>> {
-        if (requestParameters.destinationId === null || requestParameters.destinationId === undefined) {
-            throw new runtime.RequiredError('destinationId','Required parameter requestParameters.destinationId was null or undefined when calling listRoles.');
+    async getRoleRaw(requestParameters: GetRoleRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Role>> {
+        if (requestParameters.id === null || requestParameters.id === undefined) {
+            throw new runtime.RequiredError('id','Required parameter requestParameters.id was null or undefined when calling getRole.');
         }
 
         const queryParameters: any = {};
 
-        if (requestParameters.destinationId !== undefined) {
-            queryParameters['destinationId'] = requestParameters.destinationId;
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+        const response = await this.request({
+            path: `/roles/{id}`.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters.id))),
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => RoleFromJSON(jsonValue));
+    }
+
+    /**
+     * Get role
+     */
+    async getRole(requestParameters: GetRoleRequest, initOverrides?: RequestInit): Promise<Role> {
+        const response = await this.getRoleRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * List roles
+     */
+    async listRolesRaw(requestParameters: ListRolesRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<Role>>> {
+        const queryParameters: any = {};
+
+        if (requestParameters.name !== undefined) {
+            queryParameters['name'] = requestParameters.name;
+        }
+
+        if (requestParameters.kind !== undefined) {
+            queryParameters['kind'] = requestParameters.kind;
+        }
+
+        if (requestParameters.destination !== undefined) {
+            queryParameters['destination'] = requestParameters.destination;
         }
 
         const headerParameters: runtime.HTTPHeaders = {};

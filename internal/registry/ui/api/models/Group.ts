@@ -13,6 +13,17 @@
  */
 
 import { exists, mapValues } from '../runtime';
+import {
+    Role,
+    RoleFromJSON,
+    RoleFromJSONTyped,
+    RoleToJSON,
+    User,
+    UserFromJSON,
+    UserFromJSONTyped,
+    UserToJSON,
+} from './';
+
 /**
  * 
  * @export
@@ -45,10 +56,16 @@ export interface Group {
     updated: number;
     /**
      * 
-     * @type {string}
+     * @type {Array<User>}
      * @memberof Group
      */
-    source: string;
+    users: Array<User>;
+    /**
+     * 
+     * @type {Array<Role>}
+     * @memberof Group
+     */
+    roles: Array<Role>;
 }
 
 export function GroupFromJSON(json: any): Group {
@@ -65,7 +82,8 @@ export function GroupFromJSONTyped(json: any, ignoreDiscriminator: boolean): Gro
         'name': json['name'],
         'created': json['created'],
         'updated': json['updated'],
-        'source': json['source'],
+        'users': ((json['users'] as Array<any>).map(UserFromJSON)),
+        'roles': ((json['roles'] as Array<any>).map(RoleFromJSON)),
     };
 }
 
@@ -82,7 +100,8 @@ export function GroupToJSON(value?: Group | null): any {
         'name': value.name,
         'created': value.created,
         'updated': value.updated,
-        'source': value.source,
+        'users': ((value.users as Array<any>).map(UserToJSON)),
+        'roles': ((value.roles as Array<any>).map(RoleToJSON)),
     };
 }
 

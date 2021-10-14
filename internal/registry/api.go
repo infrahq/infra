@@ -19,6 +19,7 @@ import (
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type Api struct {
@@ -48,17 +49,30 @@ func NewApiMux(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) *mux.Router {
 	r := mux.NewRouter()
 	v1 := r.PathPrefix("/v1").Subrouter()
 	v1.Handle("/users", a.bearerAuthMiddleware(api.USERS_READ, http.HandlerFunc(a.ListUsers))).Methods(http.MethodGet)
+	v1.Handle("/users/{id}", a.bearerAuthMiddleware(api.USERS_READ, http.HandlerFunc(a.GetUser))).Methods(http.MethodGet)
+
 	v1.Handle("/groups", a.bearerAuthMiddleware(api.GROUPS_READ, http.HandlerFunc(a.ListGroups))).Methods(http.MethodGet)
+	v1.Handle("/groups/{id}", a.bearerAuthMiddleware(api.GROUPS_READ, http.HandlerFunc(a.GetGroup))).Methods(http.MethodGet)
+
 	v1.Handle("/sources", http.HandlerFunc(a.ListSources)).Methods(http.MethodGet)
+	v1.Handle("/sources/{id}", http.HandlerFunc(a.GetSource)).Methods(http.MethodGet)
+
 	v1.Handle("/destinations", a.bearerAuthMiddleware(api.DESTINATIONS_READ, http.HandlerFunc(a.ListDestinations))).Methods(http.MethodGet)
 	v1.Handle("/destinations", a.bearerAuthMiddleware(api.DESTINATIONS_CREATE, http.HandlerFunc(a.CreateDestination))).Methods(http.MethodPost)
+	v1.Handle("/destinations/{id}", a.bearerAuthMiddleware(api.DESTINATIONS_READ, http.HandlerFunc(a.GetDestination))).Methods(http.MethodGet)
+
 	v1.Handle("/api-keys", a.bearerAuthMiddleware(api.API_KEYS_READ, http.HandlerFunc(a.ListApiKeys))).Methods(http.MethodGet)
 	v1.Handle("/api-keys", a.bearerAuthMiddleware(api.API_KEYS_CREATE, http.HandlerFunc(a.CreateAPIKey))).Methods(http.MethodPost)
 	v1.Handle("/api-keys/{id}", a.bearerAuthMiddleware(api.API_KEYS_DELETE, http.HandlerFunc(a.DeleteApiKey))).Methods(http.MethodDelete)
+
 	v1.Handle("/tokens", a.bearerAuthMiddleware(api.TOKENS_CREATE, http.HandlerFunc(a.CreateToken))).Methods(http.MethodPost)
+
 	v1.Handle("/roles", a.bearerAuthMiddleware(api.ROLES_READ, http.HandlerFunc(a.ListRoles))).Methods(http.MethodGet)
+	v1.Handle("/roles/{id}", a.bearerAuthMiddleware(api.ROLES_READ, http.HandlerFunc(a.GetRole))).Methods(http.MethodGet)
+
 	v1.Handle("/login", http.HandlerFunc(a.Login)).Methods(http.MethodPost)
 	v1.Handle("/logout", a.bearerAuthMiddleware(api.AUTH_DELETE, http.HandlerFunc(a.Logout))).Methods(http.MethodPost)
+
 	v1.Handle("/version", http.HandlerFunc(a.Version)).Methods(http.MethodGet)
 
 	return r
@@ -175,8 +189,19 @@ func extractAPIKey(context context.Context) (*ApiKey, error) {
 }
 
 func (a *Api) ListUsers(w http.ResponseWriter, r *http.Request) {
+	userEmail := r.URL.Query().Get("email")
+
 	var users []User
-	if err := a.db.Find(&users).Error; err != nil {
+
+	err := a.db.Transaction(func(tx *gorm.DB) error {
+		err := tx.Preload("Roles.Destination").Preload("Groups.Roles.Destination").Preload(clause.Associations).Find(&users, &User{Email: userEmail}).Error
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
 		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not list users")
 
@@ -196,9 +221,53 @@ func (a *Api) ListUsers(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (a *Api) GetUser(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	userId := vars["id"]
+	if userId == "" {
+		sendApiError(w, http.StatusBadRequest, "Path parameter \"id\" is required")
+
+		return
+	}
+
+	var user User
+
+	err := a.db.Transaction(func(tx *gorm.DB) error {
+		err := tx.Preload("Roles.Destination").Preload("Groups.Roles.Destination").Preload(clause.Associations).First(&user, &User{Id: userId}).Error
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		logging.L.Error(err.Error())
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			sendApiError(w, http.StatusNotFound, fmt.Sprintf("Could not find user ID \"%s\"", userId))
+		} else {
+			sendApiError(w, http.StatusBadRequest, fmt.Sprintf("Could not find user ID \"%s\"", userId))
+		}
+
+		return
+	}
+
+	result := dbToAPIUser(user)
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if err := json.NewEncoder(w).Encode(result); err != nil {
+		logging.L.Error(err.Error())
+		sendApiError(w, http.StatusInternalServerError, fmt.Sprintf("Could not get user \"%s\"", userId))
+	}
+}
+
 func (a *Api) ListGroups(w http.ResponseWriter, r *http.Request) {
+	groupName := r.URL.Query().Get("name")
+
 	var groups []Group
-	if err := a.db.Preload("Source").Find(&groups).Error; err != nil {
+	if err := a.db.Preload(clause.Associations).Find(&groups, &Group{Name: groupName}).Error; err != nil {
 		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not list groups")
 
@@ -218,11 +287,44 @@ func (a *Api) ListGroups(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *Api) ListSources(w http.ResponseWriter, r *http.Request) {
-	var sources []Source
+func (a *Api) GetGroup(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
 
-	err := a.db.Find(&sources).Error
-	if err != nil {
+	groupId := vars["id"]
+	if groupId == "" {
+		sendApiError(w, http.StatusBadRequest, "Path parameter \"id\" is required")
+
+		return
+	}
+
+	var group Group
+	if err := a.db.Preload(clause.Associations).First(&group, &Group{Id: groupId}).Error; err != nil {
+		logging.L.Error(err.Error())
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			sendApiError(w, http.StatusNotFound, fmt.Sprintf("Could not find group ID \"%s\"", groupId))
+		} else {
+			sendApiError(w, http.StatusBadRequest, fmt.Sprintf("Could not find group ID \"%s\"", groupId))
+		}
+
+		return
+	}
+
+	result := dbToAPIGroup(group)
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if err := json.NewEncoder(w).Encode(result); err != nil {
+		logging.L.Error(err.Error())
+		sendApiError(w, http.StatusInternalServerError, "could not list groups")
+	}
+}
+
+func (a *Api) ListSources(w http.ResponseWriter, r *http.Request) {
+	sourceType := r.URL.Query().Get("type")
+
+	var sources []Source
+	if err := a.db.Find(&sources, &Source{Type: sourceType}).Error; err != nil {
 		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not list sources")
 
@@ -242,9 +344,45 @@ func (a *Api) ListSources(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (a *Api) GetSource(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	sourceId := vars["id"]
+	if sourceId == "" {
+		sendApiError(w, http.StatusBadRequest, "Path parameter \"id\" is required")
+
+		return
+	}
+
+	var source Source
+	if err := a.db.First(&source, &Source{Id: sourceId}).Error; err != nil {
+		logging.L.Error(err.Error())
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			sendApiError(w, http.StatusNotFound, fmt.Sprintf("Could not find source ID \"%s\"", sourceId))
+		} else {
+			sendApiError(w, http.StatusBadRequest, fmt.Sprintf("Could not find source ID \"%s\"", sourceId))
+		}
+
+		return
+	}
+
+	result := dbToAPISource(source)
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if err := json.NewEncoder(w).Encode(result); err != nil {
+		logging.L.Error(err.Error())
+		sendApiError(w, http.StatusInternalServerError, "could not list sources")
+	}
+}
+
 func (a *Api) ListDestinations(w http.ResponseWriter, r *http.Request) {
+	destinationName := r.URL.Query().Get("name")
+	destinationType := r.URL.Query().Get("type")
+
 	var destinations []Destination
-	if err := a.db.Find(&destinations).Error; err != nil {
+	if err := a.db.Find(&destinations, &Destination{Name: destinationName, Type: destinationType}).Error; err != nil {
 		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not list destinations")
 
@@ -259,6 +397,39 @@ func (a *Api) ListDestinations(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if err := json.NewEncoder(w).Encode(results); err != nil {
+		logging.L.Error(err.Error())
+		sendApiError(w, http.StatusInternalServerError, "could not list destinations")
+	}
+}
+
+func (a *Api) GetDestination(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	destinationId := vars["id"]
+	if destinationId == "" {
+		sendApiError(w, http.StatusBadRequest, "Path parameter \"id\" is required")
+
+		return
+	}
+
+	var destination Destination
+	if err := a.db.First(&destination, &Destination{Id: destinationId}).Error; err != nil {
+		logging.L.Error(err.Error())
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			sendApiError(w, http.StatusNotFound, fmt.Sprintf("Could not find destination ID \"%s\"", destinationId))
+		} else {
+			sendApiError(w, http.StatusBadRequest, fmt.Sprintf("Could not find destination ID \"%s\"", destinationId))
+		}
+
+		return
+	}
+
+	result := dbToAPIdestination(destination)
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if err := json.NewEncoder(w).Encode(result); err != nil {
 		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not list destinations")
 	}
@@ -318,14 +489,7 @@ func (a *Api) ListApiKeys(w http.ResponseWriter, r *http.Request) {
 
 	var keys []ApiKey
 
-	var err error
-
-	if keyName != "" {
-		err = a.db.Where(&ApiKey{Name: keyName}).Find(&keys).Error
-	} else {
-		err = a.db.Find(&keys).Error
-	}
-
+	err := a.db.Find(&keys, &ApiKey{Name: keyName}).Error
 	if err != nil {
 		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not list keys")
@@ -446,47 +610,16 @@ func (a *Api) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Api) ListRoles(w http.ResponseWriter, r *http.Request) {
-	destinationId := r.URL.Query().Get("destinationId")
+	roleName := r.URL.Query().Get("name")
+	roleKind := r.URL.Query().Get("kind")
+	destinationId := r.URL.Query().Get("destination")
 
 	var roles []Role
-	if err := a.db.Preload("Destination").Preload("Groups").Preload("Users").Find(&roles, &Role{DestinationId: destinationId}).Error; err != nil {
-		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not list roles")
-
-		return
-	}
-
-	// build the response which unifies the relation of group and directly related users to the role
-	results := make([]api.Role, 0)
 
 	err := a.db.Transaction(func(tx *gorm.DB) error {
-		for _, r := range roles {
-			// avoid duplicate users being added to the response by mapping based on user id
-			rUsers := make(map[string]User)
-			for _, rUser := range r.Users {
-				rUsers[rUser.Id] = rUser
-			}
-
-			// add any group users associated with the role now
-			for _, g := range r.Groups {
-				var gUsers []User
-				err := tx.Model(g).Association("Users").Find(&gUsers)
-				if err != nil {
-					return err
-				}
-
-				for _, gUser := range gUsers {
-					rUsers[gUser.Id] = gUser
-				}
-			}
-
-			// set the role users to the unified role/group users
-			var users []User
-			for _, u := range rUsers {
-				users = append(users, u)
-			}
-			r.Users = users
-			results = append(results, dbToAPIRole(r))
+		err := tx.Preload("Groups.Users").Preload(clause.Associations).Find(&roles, &Role{Name: roleName, Kind: roleKind, DestinationId: destinationId}).Error
+		if err != nil {
+			return err
 		}
 
 		return nil
@@ -498,9 +631,47 @@ func (a *Api) ListRoles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	results := make([]api.Role, 0)
+	for _, r := range roles {
+		results = append(results, dbToAPIRole(r))
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 
 	if err := json.NewEncoder(w).Encode(results); err != nil {
+		logging.L.Error(err.Error())
+		sendApiError(w, http.StatusInternalServerError, "could not list roles")
+	}
+}
+
+func (a *Api) GetRole(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	roleId := vars["id"]
+	if roleId == "" {
+		sendApiError(w, http.StatusBadRequest, "Path parameter \"id\" is required")
+
+		return
+	}
+
+	var role Role
+	if err := a.db.Preload("Groups.Users").Preload(clause.Associations).First(&role, &Role{Id: roleId}).Error; err != nil {
+		logging.L.Error(err.Error())
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			sendApiError(w, http.StatusNotFound, fmt.Sprintf("Could not find role ID \"%s\"", roleId))
+		} else {
+			sendApiError(w, http.StatusBadRequest, fmt.Sprintf("Could not find role ID \"%s\"", roleId))
+		}
+
+		return
+	}
+
+	result := dbToAPIRole(role)
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if err := json.NewEncoder(w).Encode(result); err != nil {
 		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not list roles")
 	}
@@ -784,12 +955,11 @@ func dbToInfraAPIPermissions(permissions string) []api.InfraAPIPermission {
 
 func dbToAPIRole(r Role) api.Role {
 	res := api.Role{
-		Id:          r.Id,
-		Created:     r.Created,
-		Updated:     r.Updated,
-		Name:        r.Name,
-		Namespace:   r.Namespace,
-		Destination: dbToAPIdestination(r.Destination),
+		Id:        r.Id,
+		Created:   r.Created,
+		Updated:   r.Updated,
+		Name:      r.Name,
+		Namespace: r.Namespace,
 	}
 
 	switch r.Kind {
@@ -803,24 +973,49 @@ func dbToAPIRole(r Role) api.Role {
 		res.Users = append(res.Users, dbToAPIUser(u))
 	}
 
+	for _, g := range r.Groups {
+		res.Groups = append(res.Groups, dbToAPIGroup(g))
+	}
+
+	res.Destination = dbToAPIdestination(r.Destination)
+
 	return res
 }
 
 func dbToAPIUser(u User) api.User {
-	return api.User{
+	res := api.User{
 		Id:      u.Id,
 		Email:   u.Email,
 		Created: u.Created,
 		Updated: u.Updated,
 	}
+
+	for _, g := range u.Groups {
+		res.Groups = append(res.Groups, dbToAPIGroup(g))
+	}
+
+	for _, r := range u.Roles {
+		res.Roles = append(res.Roles, dbToAPIRole(r))
+	}
+
+	return res
 }
 
 func dbToAPIGroup(g Group) api.Group {
-	return api.Group{
+	res := api.Group{
 		Id:      g.Id,
 		Created: g.Created,
 		Updated: g.Updated,
 		Name:    g.Name,
-		Source:  g.Source.Type,
 	}
+
+	for _, u := range g.Users {
+		res.Users = append(res.Users, dbToAPIUser(u))
+	}
+
+	for _, r := range g.Roles {
+		res.Roles = append(res.Roles, dbToAPIRole(r))
+	}
+
+	return res
 }

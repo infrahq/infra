@@ -43,7 +43,7 @@ func (r ApiCreateDestinationRequest) Execute() (Destination, *_nethttp.Response,
 }
 
 /*
-CreateDestination Register a destination
+CreateDestination Create a destination
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @return ApiCreateDestinationRequest
@@ -155,7 +155,7 @@ func (r ApiGetDestinationRequest) Execute() (Destination, *_nethttp.Response, er
 }
 
 /*
-GetDestination Get Destination by ID
+GetDestination Get destination by ID
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id Destination ID

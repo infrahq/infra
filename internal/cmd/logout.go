@@ -24,7 +24,7 @@ func logout(registry string) error {
 
 	// only clean up cache and destinations if logging out of current registry
 	if config.Current {
-		_ = updateKubeconfig([]api.Destination{})
+		_ = updateKubeconfig(api.User{})
 
 		infraDir, err := infraHomeDir()
 		if err == nil {
