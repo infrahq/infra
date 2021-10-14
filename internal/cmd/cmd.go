@@ -199,7 +199,7 @@ func newLoginCmd() (*cobra.Command, error) {
 		},
 	}
 
-	cmd.Flags().IntVarP(&options.Timeout, "timeout", "t", defaultTimeout, "Login timeout in milliseconds")
+	cmd.Flags().DurationVarP(&options.Timeout, "timeout", "t", defaultTimeout, "Login timeout in milliseconds")
 
 	return cmd, nil
 }

@@ -30,7 +30,7 @@ func (e *ErrUnauthenticated) Error() string {
 }
 
 type LoginOptions struct {
-	Timeout int
+	Timeout time.Duration
 }
 
 func login(registry string, useCurrentConfig bool, options LoginOptions) error {
@@ -127,7 +127,7 @@ func login(registry string, useCurrentConfig bool, options LoginOptions) error {
 	}
 
 	if !proceed {
-		return fmt.Errorf("Could not continue with login.")
+		return fmt.Errorf("could not continue with login")
 	}
 
 	client, err := NewApiClient(selectedRegistry.Host, skipTLSVerify)
