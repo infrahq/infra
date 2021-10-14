@@ -20,7 +20,7 @@ type VersionOptions struct {
 
 func version(options VersionOptions) error {
 	clientVersion := internal.Version
-	serverVersion := "not connected"
+	serverVersion := "disconnected"
 
 	// Note that we use the client to get this version, but it is in fact the server version
 	client, err := apiClientFromConfig()
