@@ -44,6 +44,9 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - run: make release/docker
+        env:
+          TELEMETRY_WRITE_KEY: ${{ secrets.TELEMETRY_WRITE_KEY }}
+          CRASH_REPORTING_DSN: ${{ secrets.CRASH_REPORTING_DSN }}
 
   release-helm:
     needs: release-docker
