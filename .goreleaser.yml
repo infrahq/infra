@@ -8,7 +8,7 @@ project_name: infra
 builds:
   - id: infra
     ldflags:
-      - -s -w -X github.com/infrahq/infra/internal.Version={{ .Version }} -X github.com/infrahq/infra/internal.TelemetryWriteKey={{ .Env.INFRA_TELEMETRY_WRITE_KEY }}
+      - -s -w -X github.com/infrahq/infra/internal.Version={{ .Version }} -X github.com/infrahq/infra/internal.TelemetryWriteKey={{ .Env.INFRA_TELEMETRY_WRITE_KEY }} -X github.com/infrahq/infra/internal.CrashReportingDSN={{ .Env.INFRA_CRASH_REPORTING_DSN }}
     binary: infra
     main: ./main.go
     goos:
