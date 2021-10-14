@@ -93,7 +93,6 @@ func Run(options Options) error {
 
 		defer func() {
 			err := recover()
-
 			if err != nil {
 				sentry.CurrentHub().Recover(err)
 				sentry.Flush(time.Second * 5)
