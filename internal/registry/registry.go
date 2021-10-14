@@ -5,7 +5,6 @@ package registry
 
 import (
 	"errors"
-	"fmt"
 	"io/fs"
 	"io/ioutil"
 	"net/http"
@@ -93,7 +92,6 @@ func Run(options Options) error {
 
 		defer func() {
 			err := recover()
-			fmt.Println(err)
 
 			if err != nil {
 				sentry.CurrentHub().Recover(err)
