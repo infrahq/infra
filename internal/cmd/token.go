@@ -101,13 +101,13 @@ func tokenCreate(destination string) error {
 
 // getCache populates obj with whatever is in the cache
 func getCache(path, name string, obj interface{}) error {
-	homeDir, err := os.UserHomeDir()
+	infraDir, err := infraHomeDir()
 	if err != nil {
 		return err
 	}
 
-	path = filepath.Join(homeDir, ".infra", "cache", path)
-	if err = os.MkdirAll(path, os.ModePerm); err != nil {
+	path = filepath.Join(infraDir, "cache", path)
+	if err := os.MkdirAll(path, os.ModePerm); err != nil {
 		return err
 	}
 
@@ -133,17 +133,17 @@ func getCache(path, name string, obj interface{}) error {
 }
 
 func setCache(path, name string, obj interface{}) error {
-	homeDir, err := os.UserHomeDir()
+	infraDir, err := infraHomeDir()
 	if err != nil {
 		return err
 	}
 
-	path = filepath.Join(homeDir, ".infra", "cache", path)
-	fullPath := filepath.Join(path, name)
-
-	if err = os.MkdirAll(path, os.ModePerm); err != nil {
+	path = filepath.Join(infraDir, "cache", path)
+	if err := os.MkdirAll(path, os.ModePerm); err != nil {
 		return err
 	}
+
+	fullPath := filepath.Join(path, name)
 
 	f, err := os.Create(fullPath)
 	if err != nil {
