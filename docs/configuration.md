@@ -2,8 +2,8 @@
 # Configuring Infra
 
 * [Overview](#overview)
-* [Create a configuration file](#Create a configuration file)
-* [Full Example](#full example)
+* [Create a configuration file](#create-a-configuration-file)
+* [Full Example](#full-example)
 * [Reference](#reference)
   * [`sources`](#sources)
   * [`groups`](#groups)
@@ -83,7 +83,7 @@ users:
               - development
 ```
 
-## Configuration Reference
+## Reference
 
 ### `sources`
 
