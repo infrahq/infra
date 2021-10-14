@@ -84,7 +84,7 @@ func checkUpdate(clientVersion, serverVersion string) error {
 
 	_, err = fmt.Sscanf(latestSemVer, "v%s", &latestVersion)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
+		return err
 	}
 
 	if clientSemVer != "v0.0.0-development" && semver.Compare(latestSemVer, clientSemVer) > 0 {
