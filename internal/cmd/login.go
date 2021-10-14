@@ -29,7 +29,11 @@ func (e *ErrUnauthenticated) Error() string {
 	return "Could not read local credentials. Are you logged in? Use \"infra login\" to login."
 }
 
-func login(registry string, useCurrentConfig bool) error {
+type LoginOptions struct {
+	Timeout time.Duration
+}
+
+func login(registry string, useCurrentConfig bool, options LoginOptions) error {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return err
@@ -123,7 +127,7 @@ func login(registry string, useCurrentConfig bool) error {
 	}
 
 	if !proceed {
-		return fmt.Errorf("Could not continue with login.")
+		return fmt.Errorf("could not continue with login")
 	}
 
 	client, err := NewApiClient(selectedRegistry.Host, skipTLSVerify)
@@ -181,7 +185,7 @@ func login(registry string, useCurrentConfig bool) error {
 			return err
 		}
 
-		code, recvstate, err := ls.wait()
+		code, recvstate, err := ls.wait(options.Timeout)
 		if err != nil {
 			return err
 		}

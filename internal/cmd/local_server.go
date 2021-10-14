@@ -7,7 +7,14 @@ import (
 	"html/template"
 	"net/http"
 	"strings"
+	"time"
 )
+
+type ErrResultTimedOut struct{}
+
+func (e *ErrResultTimedOut) Error() string {
+	return "local server timed out waiting for result"
+}
 
 type CodeResponse struct {
 	Code  string
@@ -19,6 +26,8 @@ type LocalServer struct {
 	ResultChan chan CodeResponse
 	srv        *http.Server
 }
+
+const defaultTimeout = 300000 * time.Millisecond
 
 //go:embed pages
 var pages embed.FS
@@ -63,11 +72,28 @@ func newLocalServer() (*LocalServer, error) {
 	return ls, nil
 }
 
-func (l *LocalServer) wait() (string, string, error) {
-	result := <-l.ResultChan
+func (l *LocalServer) wait(timeout time.Duration) (string, string, error) {
+	var result CodeResponse
+
+	timedOut := false
+
+	if timeout <= 0 {
+		timeout = defaultTimeout
+	}
+
+	select {
+	case result = <-l.ResultChan:
+		// do nothing
+	case <-time.After(timeout):
+		timedOut = true
+	}
 
 	if err := l.srv.Shutdown(context.Background()); err != nil {
 		return "", "", err
+	}
+
+	if timedOut {
+		return "", "", &ErrResultTimedOut{}
 	}
 
 	return result.Code, result.State, result.Error
