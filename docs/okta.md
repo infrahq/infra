@@ -82,25 +82,10 @@ Then apply this config change:
 helm upgrade infra-registry infrahq/registry --set-file config=./infra.yaml -n infrahq
 ```
 
-### List users
-
-```
-$ infra users
-EMAIL                 CREATED           
-jeff@example.com*     About a minute ago
-michael@example.com   About a minute ago
-elon@example.com.     About a minute ago
-tom@example.com       About a minute ago
-mark@example.com      About a minute ago
-```
-
 ### Login with Okta
 
 ```
 $ infra login <INFRA_REGISTRY_EXTERNAL_IP>
 ? Choose a login method  [Use arrows to move, type to filter]
 > Okta [example.okta.com]
-✔ Logging in with Okta... success
-✔ Logged in...
-✔ Kubeconfig updated
 ```
