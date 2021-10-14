@@ -83,6 +83,7 @@ func Run(options Options) error {
 			Release:          internal.Version,
 			BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
 				event.ServerName = ""
+				event.Request = nil
 				return event
 			},
 		})
