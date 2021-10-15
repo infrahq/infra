@@ -8,6 +8,8 @@ require (
 	github.com/aws/aws-sdk-go v1.41.3
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/cli/browser v1.1.0
+	github.com/docker/docker v20.10.9+incompatible
+	github.com/docker/go-connections v0.4.0
 	github.com/elazarl/go-bindata-assetfs v1.0.1
 	github.com/getsentry/sentry-go v0.11.0
 	github.com/go-chi/chi v1.5.4
@@ -18,12 +20,13 @@ require (
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
 	github.com/goware/urlx v0.3.1
-	github.com/hashicorp/go-hclog v0.9.3-0.20191025211905-234833755cb2 // indirect
+	github.com/hashicorp/vault/api v1.1.1
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/kataras/tablewriter v0.0.0-20180708051242-e063d29b7c23 // indirect
 	github.com/kevinburke/go-bindata v3.22.0+incompatible
 	github.com/kr/pty v1.1.5 // indirect
 	github.com/lensesio/tableprinter v0.0.0-20201125135848-89e81fc956e7
+	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6 // indirect
 	github.com/muesli/termenv v0.9.0
 	github.com/okta/okta-sdk-golang/v2 v2.8.0
 	github.com/segmentio/backo-go v0.0.0-20200129164019-23eae7c10bd3 // indirect
