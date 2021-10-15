@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
 )
 
@@ -106,25 +105,7 @@ func setup() error {
 		return err
 	}
 
-	// need to do the config import here so that the manual test modifications are not deleted
-	var config Config
-	if err := yaml.Unmarshal(confFile, &config); err != nil {
-		return err
-	}
-
-	initialConfig = config
-
-	return db.Transaction(func(tx *gorm.DB) error {
-		if err := ImportSources(tx, config.Sources); err != nil {
-			return err
-		}
-
-		if err := ImportGroupMapping(tx, config.Groups); err != nil {
-			return err
-		}
-
-		return ImportUserMapping(tx, config.Users)
-	})
+	return ImportConfig(db, confFile)
 }
 
 func TestMain(m *testing.M) {

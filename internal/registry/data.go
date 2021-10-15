@@ -140,8 +140,13 @@ func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 func (u *User) AfterCreate(tx *gorm.DB) error {
-	return ImportUserMapping(tx, initialConfig.Users)
+	if _, _, err := ApplyUserMappings(tx, initialConfig.Users); err != nil {
+		return err
+	}
+	return nil
 }
+
+// TODO: func (u *User) AfterDelete(tx *gorm.DB) error {
 
 // TODO (jmorganca): use foreign constraints instead?
 func (u *User) BeforeDelete(tx *gorm.DB) error {
@@ -165,11 +170,14 @@ func (d *Destination) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 func (d *Destination) AfterCreate(tx *gorm.DB) error {
-	if err := ImportGroupMapping(tx, initialConfig.Groups); err != nil {
+	if _, _, _, err := ApplyGroupMappings(tx, initialConfig.Groups); err != nil {
 		return err
 	}
 
-	return ImportUserMapping(tx, initialConfig.Users)
+	if _, _, err := ApplyUserMappings(tx, initialConfig.Users); err != nil {
+		return err
+	}
+	return nil
 }
 
 // TODO (jmorganca): use foreign constraints instead?
@@ -194,7 +202,10 @@ func (g *Group) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 func (g *Group) AfterCreate(tx *gorm.DB) error {
-	return ImportGroupMapping(tx, initialConfig.Groups)
+	if _, _, _, err := ApplyGroupMappings(tx, initialConfig.Groups); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (g *Group) BeforeDelete(tx *gorm.DB) error {
@@ -204,6 +215,8 @@ func (g *Group) BeforeDelete(tx *gorm.DB) error {
 
 	return tx.Model(g).Association("Roles").Clear()
 }
+
+// TODO: func (g *Group) AfterDelete(tx *gorm.DB) error {
 
 func (s *Source) BeforeCreate(tx *gorm.DB) (err error) {
 	if s.Id == "" {
