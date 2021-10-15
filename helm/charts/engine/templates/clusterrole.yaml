@@ -7,6 +7,17 @@ metadata:
 rules:
   - apiGroups: [""]
     resources:
+      - users
+      - groups
+    verbs:
+      - impersonate
+  - apiGroups: [""]
+    resources:
+      - pods
+    verbs:
+      - list
+  - apiGroups: [""]
+    resources:
       - services
     verbs:
       - list
