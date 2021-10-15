@@ -7,7 +7,7 @@ Group:
     - updated
     - users
     - roles
-    - source
+    - sourceID
   properties:
     id:
       type: string
@@ -19,6 +19,8 @@ Group:
     updated:
       type: integer
       format: int64
+    sourceID:
+      type: string
     users:
       type: array
       items:
@@ -27,5 +29,3 @@ Group:
       type: array
       items:
         $ref: "role.yaml#/Role"
-    source:
-      type: string

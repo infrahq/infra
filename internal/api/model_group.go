@@ -16,28 +16,28 @@ import (
 
 // Group struct for Group
 type Group struct {
-	Id      string `json:"id"`
-	Name    string `json:"name"`
-	Created int64  `json:"created"`
-	Updated int64  `json:"updated"`
-	Users   []User `json:"users"`
-	Roles   []Role `json:"roles"`
-	Source  string `json:"source"`
+	Id       string `json:"id"`
+	Name     string `json:"name"`
+	Created  int64  `json:"created"`
+	Updated  int64  `json:"updated"`
+	SourceID string `json:"sourceID"`
+	Users    []User `json:"users"`
+	Roles    []Role `json:"roles"`
 }
 
 // NewGroup instantiates a new Group object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewGroup(id string, name string, created int64, updated int64, users []User, roles []Role, source string) *Group {
+func NewGroup(id string, name string, created int64, updated int64, sourceID string, users []User, roles []Role) *Group {
 	this := Group{}
 	this.Id = id
 	this.Name = name
 	this.Created = created
 	this.Updated = updated
+	this.SourceID = sourceID
 	this.Users = users
 	this.Roles = roles
-	this.Source = source
 	return &this
 }
 
@@ -145,6 +145,30 @@ func (o *Group) SetUpdated(v int64) {
 	o.Updated = v
 }
 
+// GetSourceID returns the SourceID field value
+func (o *Group) GetSourceID() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.SourceID
+}
+
+// GetSourceIDOk returns a tuple with the SourceID field value
+// and a boolean to check if the value has been set.
+func (o *Group) GetSourceIDOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.SourceID, true
+}
+
+// SetSourceID sets field value
+func (o *Group) SetSourceID(v string) {
+	o.SourceID = v
+}
+
 // GetUsers returns the Users field value
 func (o *Group) GetUsers() []User {
 	if o == nil {
@@ -193,30 +217,6 @@ func (o *Group) SetRoles(v []Role) {
 	o.Roles = v
 }
 
-// GetSource returns the Source field value
-func (o *Group) GetSource() string {
-	if o == nil {
-		var ret string
-		return ret
-	}
-
-	return o.Source
-}
-
-// GetSourceOk returns a tuple with the Source field value
-// and a boolean to check if the value has been set.
-func (o *Group) GetSourceOk() (*string, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.Source, true
-}
-
-// SetSource sets field value
-func (o *Group) SetSource(v string) {
-	o.Source = v
-}
-
 func (o Group) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
@@ -232,13 +232,13 @@ func (o Group) MarshalJSON() ([]byte, error) {
 		toSerialize["updated"] = o.Updated
 	}
 	if true {
+		toSerialize["sourceID"] = o.SourceID
+	}
+	if true {
 		toSerialize["users"] = o.Users
 	}
 	if true {
 		toSerialize["roles"] = o.Roles
-	}
-	if true {
-		toSerialize["source"] = o.Source
 	}
 	return json.Marshal(toSerialize)
 }

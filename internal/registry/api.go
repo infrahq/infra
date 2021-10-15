@@ -1003,11 +1003,11 @@ func dbToAPIUser(u User) api.User {
 
 func dbToAPIGroup(g Group) api.Group {
 	res := api.Group{
-		Id:      g.Id,
-		Created: g.Created,
-		Updated: g.Updated,
-		Name:    g.Name,
-		Source:  g.Source.Kind,
+		Id:       g.Id,
+		Created:  g.Created,
+		Updated:  g.Updated,
+		Name:     g.Name,
+		SourceID: g.SourceId,
 	}
 
 	for _, u := range g.Users {
