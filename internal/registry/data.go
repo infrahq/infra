@@ -37,13 +37,13 @@ type User struct {
 	Groups  []Group  `gorm:"many2many:groups_users"`
 }
 
-var SourceTypeOkta = "okta"
+var SourceKindOkta = "okta"
 
 type Source struct {
 	Id      string `gorm:"primaryKey"`
 	Created int64  `gorm:"autoCreateTime"`
 	Updated int64  `gorm:"autoUpdateTime"`
-	Type    string `yaml:"type"`
+	Kind    string `yaml:"kind"`
 
 	Domain       string
 	ClientId     string
@@ -65,14 +65,14 @@ type Group struct {
 	Users []User `gorm:"many2many:groups_users"`
 }
 
-var DestinationTypeKubernetes = "kubernetes"
+var DestinationKindKubernetes = "kubernetes"
 
 type Destination struct {
 	Id      string `gorm:"primaryKey"`
 	Created int64  `gorm:"autoCreateTime"`
 	Updated int64  `gorm:"autoUpdateTime"`
 	Name    string `gorm:"unique"`
-	Type    string
+	Kind    string
 
 	KubernetesCa       string
 	KubernetesEndpoint string
@@ -267,8 +267,8 @@ func (s *Source) DeleteUser(db *gorm.DB, u User) error {
 
 // Validate checks that an Okta source is valid
 func (s *Source) Validate(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) error {
-	switch s.Type {
-	case "okta":
+	switch s.Kind {
+	case SourceKindOkta:
 		apiToken, err := k8s.GetSecret(s.ApiToken)
 		if err != nil {
 			// this logs the expected secret object location, not the actual secret
@@ -288,8 +288,8 @@ func (s *Source) Validate(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) er
 func (s *Source) SyncUsers(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) error {
 	var emails []string
 
-	switch s.Type {
-	case "okta":
+	switch s.Kind {
+	case SourceKindOkta:
 		apiToken, err := k8s.GetSecret(s.ApiToken)
 		if err != nil {
 			return fmt.Errorf("sync okta users api token: %w", err)
@@ -330,8 +330,8 @@ func (s *Source) SyncUsers(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) e
 func (s *Source) SyncGroups(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) error {
 	var groupEmails map[string][]string
 
-	switch s.Type {
-	case "okta":
+	switch s.Kind {
+	case SourceKindOkta:
 		apiToken, err := k8s.GetSecret(s.ApiToken)
 		if err != nil {
 			return fmt.Errorf("sync okta groups api secret: %w", err)

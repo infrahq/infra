@@ -5,3 +5,6 @@ release
 .env
 .test
 .vscode
+
+# configuration file used during development
+infra.yaml

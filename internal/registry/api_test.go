@@ -547,7 +547,7 @@ func TestLoginMethodOkta(t *testing.T) {
 	}
 
 	var source Source
-	source.Type = "okta"
+	source.Kind = SourceKindOkta
 	source.ApiToken = "test-api-token/apiToken"
 	source.Domain = "test.okta.com"
 	source.ClientId = "test-client-id"
@@ -1114,7 +1114,7 @@ func TestListSources(t *testing.T) {
 func TestListSourcesByType(t *testing.T) {
 	a := &Api{db: db}
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/sources?type=okta", nil)
+	r := httptest.NewRequest(http.MethodGet, "/v1/sources?kind=okta", nil)
 
 	w := httptest.NewRecorder()
 	http.HandlerFunc(a.ListSources).ServeHTTP(w, r)
@@ -1131,7 +1131,7 @@ func TestListSourcesByType(t *testing.T) {
 func TestListSourcesEmpty(t *testing.T) {
 	a := &Api{db: db}
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/sources?type=nonexistent", nil)
+	r := httptest.NewRequest(http.MethodGet, "/v1/sources?kind=nonexistent", nil)
 
 	w := httptest.NewRecorder()
 	http.HandlerFunc(a.ListSources).ServeHTTP(w, r)
@@ -1148,7 +1148,7 @@ func TestListSourcesEmpty(t *testing.T) {
 func TestGetSource(t *testing.T) {
 	a := &Api{db: db}
 
-	source := &Source{Type: "okta"}
+	source := &Source{Kind: SourceKindOkta}
 	if err := a.db.Create(source).Error; err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -1240,7 +1240,7 @@ func TestListDestinationsByName(t *testing.T) {
 func TestListDestinationsByType(t *testing.T) {
 	a := &Api{db: db}
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/destinations?type=", nil)
+	r := httptest.NewRequest(http.MethodGet, "/v1/destinations?=kind", nil)
 
 	w := httptest.NewRecorder()
 	http.HandlerFunc(a.ListDestinations).ServeHTTP(w, r)

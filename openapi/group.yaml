@@ -7,6 +7,7 @@ Group:
     - updated
     - users
     - roles
+    - sourceID
   properties:
     id:
       type: string
@@ -18,6 +19,8 @@ Group:
     updated:
       type: integer
       format: int64
+    sourceID:
+      type: string
     users:
       type: array
       items:

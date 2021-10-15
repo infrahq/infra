@@ -160,10 +160,10 @@ paths:
       operationId: listSources
       parameters:
         - in: query
-          name: type
+          name: kind
           schema:
             type: string
-          description: Filter sources by type
+          description: Filter sources by kind
       responses:
         '200':
           description: List sources response
@@ -220,10 +220,10 @@ paths:
             type: string
           description: Filter destinations by name
         - in: query
-          name: type
+          name: kind
           schema:
             type: string
-          description: Filter destinations by type
+          description: Filter destinations by kind
       responses:
         '200':
           description: List destinations response

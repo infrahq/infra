@@ -258,7 +258,7 @@ type ApiListDestinationsRequest struct {
 	ctx        _context.Context
 	ApiService *DestinationsApiService
 	name       *string
-	type_      *string
+	kind       *string
 }
 
 // Filter destinations by name
@@ -267,9 +267,9 @@ func (r ApiListDestinationsRequest) Name(name string) ApiListDestinationsRequest
 	return r
 }
 
-// Filter destinations by type
-func (r ApiListDestinationsRequest) Type_(type_ string) ApiListDestinationsRequest {
-	r.type_ = &type_
+// Filter destinations by kind
+func (r ApiListDestinationsRequest) Kind(kind string) ApiListDestinationsRequest {
+	r.kind = &kind
 	return r
 }
 
@@ -316,8 +316,8 @@ func (a *DestinationsApiService) ListDestinationsExecute(r ApiListDestinationsRe
 	if r.name != nil {
 		localVarQueryParams.Add("name", parameterToString(*r.name, ""))
 	}
-	if r.type_ != nil {
-		localVarQueryParams.Add("type", parameterToString(*r.type_, ""))
+	if r.kind != nil {
+		localVarQueryParams.Add("kind", parameterToString(*r.kind, ""))
 	}
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}

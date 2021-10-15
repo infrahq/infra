@@ -45,7 +45,7 @@ dev:
 	# get client secret from:
 	# https://dev-02708987-admin.okta.com/admin/app/oidc_client/instance/0oapn0qwiQPiMIyR35d6/#tab-general
 	# create the required secret with:
-	# kubectl create secret generic infra-registry-okta -n infrahq --from-literal=clientSecret=$OKTA_CLIENT_SECRET --from-literal=apiToken=$OKTA_API_TOKEN
+	# kubectl create secret generic infra-registry-okta -n infrahq --from-literal=clientSecret=$$OKTA_CLIENT_SECRET --from-literal=apiToken=$$OKTA_API_TOKEN
 
 	kubectl config use-context docker-desktop
 	docker build . -t infrahq/infra:0.0.0-development
@@ -55,6 +55,8 @@ dev:
 	helm upgrade --install infra-engine ./helm/charts/engine --namespace infrahq --set image.pullPolicy=Never --set image.tag=0.0.0-development --set name=dd --set registry=infra-registry --set apiKey=$$(kubectl get secrets/infra-registry --template={{.data.engineApiKey}} --namespace infrahq | base64 -D) --set service.ports[0].port=8443 --set service.ports[0].name=https --set service.ports[0].targetPort=443
 	kubectl rollout restart deployment/infra-registry --namespace infrahq
 	kubectl rollout restart deployment/infra-engine --namespace infrahq
+	ROOT_TOKEN=$$(kubectl --namespace infrahq get secrets infra-registry -o jsonpath='{.data.rootApiKey}' | base64 -D); \
+    echo Root token is $$ROOT_TOKEN
 
 dev/clean:
 	kubectl config use-context docker-desktop

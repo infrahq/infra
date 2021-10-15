@@ -321,10 +321,10 @@ func (a *Api) GetGroup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Api) ListSources(w http.ResponseWriter, r *http.Request) {
-	sourceType := r.URL.Query().Get("type")
+	sourceKind := r.URL.Query().Get("kind")
 
 	var sources []Source
-	if err := a.db.Find(&sources, &Source{Type: sourceType}).Error; err != nil {
+	if err := a.db.Find(&sources, &Source{Kind: sourceKind}).Error; err != nil {
 		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not list sources")
 
@@ -379,10 +379,10 @@ func (a *Api) GetSource(w http.ResponseWriter, r *http.Request) {
 
 func (a *Api) ListDestinations(w http.ResponseWriter, r *http.Request) {
 	destinationName := r.URL.Query().Get("name")
-	destinationType := r.URL.Query().Get("type")
+	destinationKind := r.URL.Query().Get("kind")
 
 	var destinations []Destination
-	if err := a.db.Find(&destinations, &Destination{Name: destinationName, Type: destinationType}).Error; err != nil {
+	if err := a.db.Find(&destinations, &Destination{Name: destinationName, Kind: destinationKind}).Error; err != nil {
 		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not list destinations")
 
@@ -463,7 +463,7 @@ func (a *Api) CreateDestination(w http.ResponseWriter, r *http.Request) {
 			return result.Error
 		}
 		destination.Name = body.Name
-		destination.Type = DestinationTypeKubernetes
+		destination.Kind = DestinationKindKubernetes
 		destination.KubernetesCa = body.Kubernetes.Ca
 		destination.KubernetesEndpoint = body.Kubernetes.Endpoint
 		return tx.Save(&destination).Error
@@ -787,7 +787,7 @@ func (a *Api) Login(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case body.Okta != nil:
 		var source Source
-		if err := a.db.Where(&Source{Type: SourceTypeOkta, Domain: body.Okta.Domain}).First(&source).Error; err != nil {
+		if err := a.db.Where(&Source{Kind: SourceKindOkta, Domain: body.Okta.Domain}).First(&source).Error; err != nil {
 			logging.L.Debug("Could not retrieve okta source from db: " + err.Error())
 			sendApiError(w, http.StatusBadRequest, "invalid okta login information")
 
@@ -884,7 +884,7 @@ func dbToAPISource(s Source) api.Source {
 		Updated: s.Updated,
 	}
 
-	if s.Type == SourceTypeOkta {
+	if s.Kind == SourceKindOkta {
 		res.Okta = &api.SourceOkta{
 			ClientId: s.ClientId,
 			Domain:   s.Domain,
@@ -902,7 +902,7 @@ func dbToAPIdestination(d Destination) api.Destination {
 		Updated: d.Updated,
 	}
 
-	if d.Type == DestinationTypeKubernetes {
+	if d.Kind == DestinationKindKubernetes {
 		res.Kubernetes = &api.DestinationKubernetes{
 			Ca:       d.KubernetesCa,
 			Endpoint: d.KubernetesEndpoint,
@@ -1003,10 +1003,11 @@ func dbToAPIUser(u User) api.User {
 
 func dbToAPIGroup(g Group) api.Group {
 	res := api.Group{
-		Id:      g.Id,
-		Created: g.Created,
-		Updated: g.Updated,
-		Name:    g.Name,
+		Id:       g.Id,
+		Created:  g.Created,
+		Updated:  g.Updated,
+		Name:     g.Name,
+		SourceID: g.SourceId,
 	}
 
 	for _, u := range g.Users {
