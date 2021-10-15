@@ -25,7 +25,7 @@ export interface GetSourceRequest {
 }
 
 export interface ListSourcesRequest {
-    type?: string;
+    kind?: string;
 }
 
 /**
@@ -69,8 +69,8 @@ export class SourcesApi extends runtime.BaseAPI {
     async listSourcesRaw(requestParameters: ListSourcesRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<Source>>> {
         const queryParameters: any = {};
 
-        if (requestParameters.type !== undefined) {
-            queryParameters['type'] = requestParameters.type;
+        if (requestParameters.kind !== undefined) {
+            queryParameters['kind'] = requestParameters.kind;
         }
 
         const headerParameters: runtime.HTTPHeaders = {};

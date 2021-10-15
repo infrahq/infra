@@ -321,10 +321,10 @@ func (a *Api) GetGroup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Api) ListSources(w http.ResponseWriter, r *http.Request) {
-	sourceType := r.URL.Query().Get("type")
+	sourceKind := r.URL.Query().Get("kind")
 
 	var sources []Source
-	if err := a.db.Find(&sources, &Source{Type: sourceType}).Error; err != nil {
+	if err := a.db.Find(&sources, &Source{Kind: sourceKind}).Error; err != nil {
 		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not list sources")
 
@@ -379,10 +379,10 @@ func (a *Api) GetSource(w http.ResponseWriter, r *http.Request) {
 
 func (a *Api) ListDestinations(w http.ResponseWriter, r *http.Request) {
 	destinationName := r.URL.Query().Get("name")
-	destinationType := r.URL.Query().Get("type")
+	destinationKind := r.URL.Query().Get("kind")
 
 	var destinations []Destination
-	if err := a.db.Find(&destinations, &Destination{Name: destinationName, Type: destinationType}).Error; err != nil {
+	if err := a.db.Find(&destinations, &Destination{Name: destinationName, Kind: destinationKind}).Error; err != nil {
 		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not list destinations")
 
@@ -1007,6 +1007,7 @@ func dbToAPIGroup(g Group) api.Group {
 		Created: g.Created,
 		Updated: g.Updated,
 		Name:    g.Name,
+		Source:  g.Source.Kind,
 	}
 
 	for _, u := range g.Users {

@@ -22,13 +22,14 @@ type Group struct {
 	Updated int64  `json:"updated"`
 	Users   []User `json:"users"`
 	Roles   []Role `json:"roles"`
+	Source  string `json:"source"`
 }
 
 // NewGroup instantiates a new Group object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewGroup(id string, name string, created int64, updated int64, users []User, roles []Role) *Group {
+func NewGroup(id string, name string, created int64, updated int64, users []User, roles []Role, source string) *Group {
 	this := Group{}
 	this.Id = id
 	this.Name = name
@@ -36,6 +37,7 @@ func NewGroup(id string, name string, created int64, updated int64, users []User
 	this.Updated = updated
 	this.Users = users
 	this.Roles = roles
+	this.Source = source
 	return &this
 }
 
@@ -191,6 +193,30 @@ func (o *Group) SetRoles(v []Role) {
 	o.Roles = v
 }
 
+// GetSource returns the Source field value
+func (o *Group) GetSource() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.Source
+}
+
+// GetSourceOk returns a tuple with the Source field value
+// and a boolean to check if the value has been set.
+func (o *Group) GetSourceOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Source, true
+}
+
+// SetSource sets field value
+func (o *Group) SetSource(v string) {
+	o.Source = v
+}
+
 func (o Group) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
@@ -210,6 +236,9 @@ func (o Group) MarshalJSON() ([]byte, error) {
 	}
 	if true {
 		toSerialize["roles"] = o.Roles
+	}
+	if true {
+		toSerialize["source"] = o.Source
 	}
 	return json.Marshal(toSerialize)
 }

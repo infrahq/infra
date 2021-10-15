@@ -33,7 +33,7 @@ export interface GetDestinationRequest {
 
 export interface ListDestinationsRequest {
     name?: string;
-    type?: string;
+    kind?: string;
 }
 
 /**
@@ -130,8 +130,8 @@ export class DestinationsApi extends runtime.BaseAPI {
             queryParameters['name'] = requestParameters.name;
         }
 
-        if (requestParameters.type !== undefined) {
-            queryParameters['type'] = requestParameters.type;
+        if (requestParameters.kind !== undefined) {
+            queryParameters['kind'] = requestParameters.kind;
         }
 
         const headerParameters: runtime.HTTPHeaders = {};

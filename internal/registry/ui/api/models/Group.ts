@@ -66,6 +66,12 @@ export interface Group {
      * @memberof Group
      */
     roles: Array<Role>;
+    /**
+     * 
+     * @type {string}
+     * @memberof Group
+     */
+    source: string;
 }
 
 export function GroupFromJSON(json: any): Group {
@@ -84,6 +90,7 @@ export function GroupFromJSONTyped(json: any, ignoreDiscriminator: boolean): Gro
         'updated': json['updated'],
         'users': ((json['users'] as Array<any>).map(UserFromJSON)),
         'roles': ((json['roles'] as Array<any>).map(RoleFromJSON)),
+        'source': json['source'],
     };
 }
 
@@ -102,6 +109,7 @@ export function GroupToJSON(value?: Group | null): any {
         'updated': value.updated,
         'users': ((value.users as Array<any>).map(UserToJSON)),
         'roles': ((value.roles as Array<any>).map(RoleToJSON)),
+        'source': value.source,
     };
 }
 

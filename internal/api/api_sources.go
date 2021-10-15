@@ -140,12 +140,12 @@ func (a *SourcesApiService) GetSourceExecute(r ApiGetSourceRequest) (Source, *_n
 type ApiListSourcesRequest struct {
 	ctx        _context.Context
 	ApiService *SourcesApiService
-	type_      *string
+	kind       *string
 }
 
-// Filter sources by type
-func (r ApiListSourcesRequest) Type_(type_ string) ApiListSourcesRequest {
-	r.type_ = &type_
+// Filter sources by kind
+func (r ApiListSourcesRequest) Kind(kind string) ApiListSourcesRequest {
+	r.kind = &kind
 	return r
 }
 
@@ -189,8 +189,8 @@ func (a *SourcesApiService) ListSourcesExecute(r ApiListSourcesRequest) ([]Sourc
 	localVarQueryParams := _neturl.Values{}
 	localVarFormParams := _neturl.Values{}
 
-	if r.type_ != nil {
-		localVarQueryParams.Add("type", parameterToString(*r.type_, ""))
+	if r.kind != nil {
+		localVarQueryParams.Add("kind", parameterToString(*r.kind, ""))
 	}
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}

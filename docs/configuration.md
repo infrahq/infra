@@ -21,7 +21,7 @@ First, create a config file `infra.yaml`:
 
 ```
 sources:
-  - type: okta
+  - kind: okta
     domain: acme.okta.com
     clientId: 0oapn0qwiQPiMIyR35d6
     clientSecret: infra-registry-okta/clientSecret
@@ -47,7 +47,7 @@ helm upgrade infra-registry infrahq/registry -n infrahq --set-file config=./infr
 
 ```yaml
 sources:
-  - type: okta
+  - kind: okta
     domain: acme.okta.com
     clientId: 0oapn0qwiQPiMIyR35d6
     clientSecret: infra-registry-okta/clientSecret
