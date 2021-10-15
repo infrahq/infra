@@ -19,8 +19,8 @@ type VersionOptions struct {
 }
 
 func version(options VersionOptions) error {
-	clientSemVer := fmt.Sprintf("v%s", internal.Version)
-	serverVersion := "not connected"
+	clientVersion := internal.Version
+	serverVersion := "disconnected"
 
 	// Note that we use the client to get this version, but it is in fact the server version
 	client, err := apiClientFromConfig()
@@ -31,9 +31,7 @@ func version(options VersionOptions) error {
 		}
 	}
 
-	serverSemVer := fmt.Sprintf("v%s", serverVersion)
-
-	err = checkUpdate(clientSemVer, serverSemVer)
+	err = checkUpdate(clientVersion, serverVersion)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Failed checking for updates:", err.Error())
 	}
@@ -44,11 +42,11 @@ func version(options VersionOptions) error {
 	fmt.Fprintln(w)
 
 	if !options.Registry {
-		fmt.Fprintln(w, "Client:\t", clientSemVer)
+		fmt.Fprintln(w, "Client:\t", clientVersion)
 	}
 
 	if !options.Client {
-		fmt.Fprintln(w, "Registry:\t", serverSemVer)
+		fmt.Fprintln(w, "Registry:\t", serverVersion)
 	}
 
 	fmt.Fprintln(w)
@@ -56,8 +54,10 @@ func version(options VersionOptions) error {
 	return nil
 }
 
-func checkUpdate(clientSemVer, serverSemVer string) error {
+func checkUpdate(clientVersion, serverVersion string) error {
 	latestSemVer := "nonexistent"
+	clientSemVer := fmt.Sprintf("v%s", clientVersion)
+	serverSemVer := fmt.Sprintf("v%s", serverVersion)
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://releases.infrahq.com/infra/latest", nil)
 	if err != nil {
@@ -80,12 +80,19 @@ func checkUpdate(clientSemVer, serverSemVer string) error {
 		latestSemVer = strings.TrimSpace(string(body))
 	}
 
+	var latestVersion string
+
+	_, err = fmt.Sscanf(latestSemVer, "v%s", &latestVersion)
+	if err != nil {
+		return err
+	}
+
 	if clientSemVer != "v0.0.0-development" && semver.Compare(latestSemVer, clientSemVer) > 0 {
-		fmt.Fprintf(os.Stderr, "Your client (%s) is out of date. Please update to %s.\n", clientSemVer, latestSemVer)
+		fmt.Fprintf(os.Stderr, "Your client (%s) is out of date. Please update to %s.\n", clientVersion, latestVersion)
 	}
 
 	if serverSemVer != "v0.0.0-development" && semver.IsValid(serverSemVer) && semver.Compare(latestSemVer, serverSemVer) > 0 {
-		fmt.Fprintf(os.Stderr, "Your registry (%s) is out of date. Please update to %s.\n", serverSemVer, latestSemVer)
+		fmt.Fprintf(os.Stderr, "Your registry (%s) is out of date. Please update to %s.\n", serverVersion, latestVersion)
 	}
 
 	return nil
