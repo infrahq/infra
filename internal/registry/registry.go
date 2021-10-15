@@ -76,7 +76,7 @@ func syncSources(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta, logger *zap
 }
 
 func Run(options Options) error {
-	if options.EnableCrashReporting {
+	if options.EnableCrashReporting && internal.CrashReportingDSN != "" {
 		err := sentry.Init(sentry.ClientOptions{
 			Dsn:              internal.CrashReportingDSN,
 			AttachStacktrace: true,
@@ -215,7 +215,7 @@ func Run(options Options) error {
 		}
 	})
 
-	if options.EnableTelemetry {
+	if options.EnableTelemetry && internal.TelemetryWriteKey != "" {
 		telemetryTimer := timer.NewTimer()
 		defer telemetryTimer.Stop()
 
