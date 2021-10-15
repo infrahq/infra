@@ -143,6 +143,7 @@ func (u *User) AfterCreate(tx *gorm.DB) error {
 	if _, _, err := ApplyUserMappings(tx, initialConfig.Users); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -177,6 +178,7 @@ func (d *Destination) AfterCreate(tx *gorm.DB) error {
 	if _, _, err := ApplyUserMappings(tx, initialConfig.Users); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -205,6 +207,7 @@ func (g *Group) AfterCreate(tx *gorm.DB) error {
 	if _, _, _, err := ApplyGroupMappings(tx, initialConfig.Groups); err != nil {
 		return err
 	}
+
 	return nil
 }
 

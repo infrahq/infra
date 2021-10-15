@@ -2,7 +2,6 @@ package registry
 
 import (
 	"errors"
-	"fmt"
 	"regexp"
 	"strings"
 
@@ -105,13 +104,11 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 
 	if len(idsToKeep) == 0 {
 		logging.L.Debug("no valid sources found in configuration, ensure the required fields are specified correctly")
+		// clear the sources
+		return db.Where("1 = 1").Delete(&Source{}).Error
 	}
 
-	if err := db.Not(idsToKeep).Delete(&Source{}).Error; err != nil {
-		return err
-	}
-
-	return nil
+	return db.Not(idsToKeep).Delete(&Source{}).Error
 }
 
 func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (modifiedGroupIDs, existingGroupUserIDs, modifiedRoleIDs []string, err error) {
@@ -127,8 +124,7 @@ func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (modifiedGroup
 				continue
 			}
 
-			err = srcReadErr
-			return
+			return nil, nil, nil, srcReadErr
 		}
 
 		var group Group
@@ -141,8 +137,7 @@ func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (modifiedGroup
 				continue
 			}
 
-			err = grpReadErr
-			return
+			return nil, nil, nil, grpReadErr
 		}
 
 		modifiedGroupIDs = append(modifiedGroupIDs, group.Id)
@@ -154,22 +149,26 @@ func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (modifiedGroup
 		// import the roles on this group from the datastore
 		var roles []Role
 
-		roles, modifiedRoleIDs, err = importRoles(db, g.Roles)
+		var grpRoleIDs []string
+
+		roles, grpRoleIDs, err = importRoles(db, g.Roles)
 		if err != nil {
-			return
+			return nil, nil, nil, err
 		}
+
+		modifiedRoleIDs = append(modifiedRoleIDs, grpRoleIDs...)
 
 		// add the new group associations to the roles
 		for i, role := range roles {
 			if db.Model(&group).Where(&Role{Id: role.Id}).Association("Roles").Count() == 0 {
 				if err = db.Model(&group).Where(&Role{Id: role.Id}).Association("Roles").Append(&roles[i]); err != nil {
-					return
+					return nil, nil, nil, err
 				}
 			}
 		}
 	}
 
-	return
+	return modifiedGroupIDs, existingGroupUserIDs, modifiedRoleIDs, nil
 }
 
 func ApplyUserMappings(db *gorm.DB, users []ConfigUserMapping) (modifiedUserIDs, modifiedRoleIDs []string, err error) {
@@ -184,8 +183,7 @@ func ApplyUserMappings(db *gorm.DB, users []ConfigUserMapping) (modifiedUserIDs,
 				continue
 			}
 
-			err = usrReadErr
-			return
+			return nil, nil, usrReadErr
 		}
 
 		modifiedUserIDs = append(modifiedUserIDs, user.Id)
@@ -193,22 +191,27 @@ func ApplyUserMappings(db *gorm.DB, users []ConfigUserMapping) (modifiedUserIDs,
 		var roles []Role
 
 		// add direct user to role mappings
-		roles, modifiedRoleIDs, err = importRoles(db, u.Roles)
+		var usrRoleIDs []string
+
+		roles, usrRoleIDs, err = importRoles(db, u.Roles)
 		if err != nil {
-			return
+			return nil, nil, err
 		}
+
+		modifiedRoleIDs = append(modifiedRoleIDs, usrRoleIDs...)
+
 		// for all roles attached to this user update their user associations now that we have made sure they exist
 		// important: do not create the association on the user, that runs an upsert that creates a concurrent write because User.AfterCreate() calls this function
 		for i, role := range roles {
 			if db.Model(&user).Where(&Role{Id: role.Id}).Association("Roles").Count() == 0 {
 				if err = db.Model(&user).Where(&Role{Id: role.Id}).Association("Roles").Append(&roles[i]); err != nil {
-					return
+					return nil, nil, err
 				}
 			}
 		}
 	}
 
-	return
+	return modifiedUserIDs, modifiedRoleIDs, nil
 }
 
 // ImportRoleMappings iterates over user and group config and applies a role mapping to them
@@ -228,8 +231,8 @@ func ImportRoleMappings(db *gorm.DB, groups []ConfigGroupMapping, users []Config
 			return err
 		}
 	}
+
 	logging.L.Sugar().Debugf("importing configuration removed %d groups", len(groupsRemoved))
-	fmt.Printf("importing configuration removed %d groups\n", len(groupsRemoved))
 
 	userIDs, userRoleIDs, err := ApplyUserMappings(db, users)
 	if err != nil {
@@ -248,27 +251,26 @@ func ImportRoleMappings(db *gorm.DB, groups []ConfigGroupMapping, users []Config
 			return err
 		}
 	}
+
 	logging.L.Sugar().Debugf("importing configuration removed %d users", len(usersRemoved))
-	fmt.Printf("importing configuration removed %d users\n", len(usersRemoved))
 
 	var roleIDs []string
 	roleIDs = append(roleIDs, groupRoleIDs...)
 	roleIDs = append(roleIDs, userRoleIDs...)
 
-	fmt.Printf("roles to keep: %v\n", roleIDs)
 	var rolesRemoved []Role
 	if err := db.Preload("Destination").Not(roleIDs).Find(&rolesRemoved).Error; err != nil {
 		return err
 	}
-	fmt.Printf("roles removed: %v\n", rolesRemoved)
 
 	if len(rolesRemoved) > 0 {
 		if err := db.Delete(rolesRemoved).Error; err != nil {
 			return err
 		}
 	}
+
 	logging.L.Sugar().Debugf("importing configuration removed %d roles", len(rolesRemoved))
-	fmt.Printf("importing configuration removed %d roles\n", len(rolesRemoved))
+
 	return nil
 }
 
@@ -316,22 +318,22 @@ func importRoles(db *gorm.DB, roles []ConfigRoleKubernetes) (rolesImported []Rol
 
 			var dest Destination
 
-			err = db.Where(&Destination{Name: destination.Name}).First(&dest).Error
-			if err != nil {
+			destErr := db.Where(&Destination{Name: destination.Name}).First(&dest).Error
+			if destErr != nil {
 				if errors.Is(err, gorm.ErrRecordNotFound) {
 					// when a destination is added then the config import will be retried, skip for now
 					logging.L.Debug("skipping role binding for destination in config import that has not yet been discovered")
 					continue
 				}
 
-				return
+				return nil, nil, destErr
 			}
 
 			if len(destination.Namespaces) > 0 {
 				for _, namespace := range destination.Namespaces {
 					var role Role
 					if err = db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, Namespace: namespace, DestinationId: dest.Id}).Error; err != nil {
-						return
+						return nil, nil, err
 					}
 
 					rolesImported = append(rolesImported, role)
@@ -340,7 +342,7 @@ func importRoles(db *gorm.DB, roles []ConfigRoleKubernetes) (rolesImported []Rol
 			} else {
 				var role Role
 				if err = db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, DestinationId: dest.Id}).Error; err != nil {
-					return
+					return nil, nil, err
 				}
 
 				rolesImported = append(rolesImported, role)
@@ -349,5 +351,5 @@ func importRoles(db *gorm.DB, roles []ConfigRoleKubernetes) (rolesImported []Rol
 		}
 	}
 
-	return
+	return rolesImported, importedRoleIDs, nil
 }
