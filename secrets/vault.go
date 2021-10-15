@@ -7,9 +7,7 @@ import (
 	vault "github.com/hashicorp/vault/api"
 )
 
-var (
-	DefaultVaultAlgorithm = "aes256-gcm96"
-)
+var DefaultVaultAlgorithm = "aes256-gcm96"
 
 type VaultSecretProvider struct {
 	TransitMount string `yaml:"transit_mount"` // mounting point. defaults to /transit
@@ -29,6 +27,7 @@ func NewVaultSecretProvider(address, token, namespace string) (*VaultSecretProvi
 	}
 
 	c.SetToken(token)
+
 	if len(namespace) > 0 {
 		c.SetNamespace(namespace)
 	}
@@ -40,18 +39,22 @@ func NewVaultSecretProvider(address, token, namespace string) (*VaultSecretProvi
 		Namespace:    namespace,
 		client:       c,
 	}
+
 	return v, nil
 }
 
 func (v *VaultSecretProvider) GetSecret(name string) ([]byte, error) {
 	path := fmt.Sprintf("%s/data/%s", v.SecretMount, name)
+
 	sec, err := v.client.Logical().Read(path)
 	if err != nil {
 		return nil, err
 	}
+
 	if data, ok := sec.Data["data"].(map[string]interface{})["data"].(string); ok {
 		return []byte(data), nil
 	}
+
 	return nil, nil
 }
 
@@ -62,6 +65,7 @@ func (v *VaultSecretProvider) SetSecret(name string, secret []byte) error {
 			"data": string(secret),
 		},
 	})
+
 	return err
 }
 
@@ -94,6 +98,7 @@ func (v *VaultSecretProvider) GenerateDataKey(name, rootKeyID string) (*Symmetri
 
 func (v *VaultSecretProvider) generateRootKey(name string) error {
 	path := fmt.Sprintf("%s/keys/%s", v.TransitMount, name)
+
 	_, err := v.client.Logical().Write(path, map[string]interface{}{
 		"convergent_encryption":  false,
 		"derived":                false,
@@ -101,6 +106,7 @@ func (v *VaultSecretProvider) generateRootKey(name string) error {
 		"allow_plaintext_backup": false,
 		"type":                   DefaultVaultAlgorithm,
 	})
+
 	return err
 }
 
@@ -120,15 +126,18 @@ func (v *VaultSecretProvider) DecryptDataKey(rootKeyID string, keyData []byte) (
 
 func (v *VaultSecretProvider) RemoteEncrypt(keyID string, plain []byte) (encrypted []byte, err error) {
 	bPlain := base64.StdEncoding.EncodeToString(plain)
+
 	sec, err := v.client.Logical().Write("/transit/encrypt/"+keyID, map[string]interface{}{
 		"plaintext": bPlain,
 	})
 	if err != nil {
 		return nil, err
 	}
+
 	if data, ok := sec.Data["ciphertext"].(string); ok {
 		return []byte(data), nil
 	}
+
 	return nil, nil
 }
 
@@ -139,9 +148,11 @@ func (v *VaultSecretProvider) RemoteDecrypt(keyID string, encrypted []byte) (pla
 	if err != nil {
 		return nil, err
 	}
+
 	if data, ok := sec.Data["plaintext"].(string); ok {
 		d, err := base64.StdEncoding.DecodeString(data)
 		return d, err
 	}
+
 	return nil, nil
 }

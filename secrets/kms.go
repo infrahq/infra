@@ -25,6 +25,7 @@ func (k *AWSKMSSecretProvider) DecryptDataKey(rootKeyID string, keyData []byte) 
 	if err := req.Send(); err != nil {
 		return nil, err
 	}
+
 	return &SymmetricKey{
 		unencrypted: out.Plaintext,
 		Encrypted:   keyData,
@@ -49,8 +50,10 @@ func (k *AWSKMSSecretProvider) GenerateDataKey(name, rootKeyID string) (*Symmetr
 		if err != nil {
 			return nil, err
 		}
+
 		rootKeyID = *ko.KeyMetadata.KeyId
 	}
+
 	dko, err := k.kms.GenerateDataKey(&kms.GenerateDataKeyInput{
 		KeySpec: aws.String("AES_256"),
 		KeyId:   aws.String(rootKeyID),
@@ -58,6 +61,7 @@ func (k *AWSKMSSecretProvider) GenerateDataKey(name, rootKeyID string) (*Symmetr
 	if err != nil {
 		return nil, err
 	}
+
 	return &SymmetricKey{
 		unencrypted: dko.Plaintext,
 		Encrypted:   dko.CiphertextBlob,

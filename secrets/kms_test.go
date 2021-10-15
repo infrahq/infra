@@ -17,6 +17,7 @@ func TestKMSSealAndUnseal(t *testing.T) {
 		t.Skip("test skipped in short mode")
 		return
 	}
+
 	k, err := NewAWSKMSSecretProvider(awskms)
 	require.NoError(t, err)
 

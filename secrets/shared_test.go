@@ -15,7 +15,9 @@ import (
 func TestMain(m *testing.M) {
 	flag.Parse()
 	setup()
+
 	result := m.Run()
+
 	teardown()
 	os.Exit(result)
 }

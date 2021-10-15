@@ -52,13 +52,16 @@ type encryptedPayload struct {
 // cryptoRandRead is a safe read from crypto/rand, checking errors and number of bytes read, erroring if we don't get enough
 func cryptoRandRead(length int) ([]byte, error) {
 	b := make([]byte, length)
+
 	i, err := rand.Read(b)
 	if err != nil {
 		return nil, fmt.Errorf("crypto/rand read: %w", err)
 	}
+
 	if i != length {
 		return nil, fmt.Errorf("could not read %d random characters from crypto/rand, only got %d", length, i)
 	}
+
 	return b, nil
 }
 
@@ -67,13 +70,16 @@ func Seal(key *SymmetricKey, plain []byte) ([]byte, error) {
 	if len(key.unencrypted) == 0 {
 		return nil, errors.New("missing key")
 	}
+
 	if len(key.unencrypted) != 32 {
 		return nil, errors.New("expected 256 bit key size")
 	}
+
 	blk, err := aes.NewCipher(key.unencrypted)
 	if err != nil {
 		return nil, err
 	}
+
 	aesgcm, err := cipher.NewGCM(blk)
 	if err != nil {
 		return nil, err
@@ -112,21 +118,25 @@ func Unseal(key *SymmetricKey, encoded []byte) ([]byte, error) {
 	}
 
 	jsonPayload := make([]byte, base64.RawStdEncoding.DecodedLen(len(encoded)))
-	base64.RawStdEncoding.Decode(jsonPayload, encoded)
+
+	_, err := base64.RawStdEncoding.Decode(jsonPayload, encoded)
+	if err != nil {
+		return nil, fmt.Errorf("decoding payload: %w", err)
+	}
 
 	payload := &encryptedPayload{}
 	if err := json.Unmarshal(jsonPayload, payload); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshalling: %w", err)
 	}
 
 	blk, err := aes.NewCipher(key.unencrypted)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("creating cipher: %w", err)
 	}
 
 	aesgcm, err := cipher.NewGCM(blk)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("gcm: %w", err)
 	}
 
 	plaintext, err := aesgcm.Open(nil, payload.Nonce, payload.Ciphertext, nil)

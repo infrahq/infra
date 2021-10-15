@@ -23,6 +23,7 @@ type ExposedPort struct {
 
 func LaunchContainer(image string, exposePorts []ExposedPort, cmd, env []string) (containerID string) {
 	ctx := context.Background()
+
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		panic(err)
@@ -32,7 +33,8 @@ func LaunchContainer(image string, exposePorts []ExposedPort, cmd, env []string)
 	if err != nil {
 		panic(err)
 	}
-	io.Copy(os.Stdout, reader)
+
+	_, _ = io.Copy(os.Stdout, reader)
 
 	cfg := &container.Config{
 		Image:        image,
@@ -42,17 +44,21 @@ func LaunchContainer(image string, exposePorts []ExposedPort, cmd, env []string)
 	if cmd != nil {
 		cfg.Cmd = cmd
 	}
+
 	hostCfg := &container.HostConfig{
 		PortBindings: nat.PortMap{},
 	}
+
 	for _, port := range exposePorts {
 		p, _ := nat.NewPort("tcp", fmt.Sprintf("%d", port.ContainerPort))
 		cfg.ExposedPorts[p] = struct{}{}
+
 		hostCfg.PortBindings[p] = append(hostCfg.PortBindings[p], nat.PortBinding{
 			// HostIP: "127.0.0.1",
 			HostPort: fmt.Sprintf("%d", port.HostPort),
 		})
 	}
+
 	resp, err := cli.ContainerCreate(ctx, cfg, hostCfg, nil, nil, "")
 	if err != nil {
 		panic(err)
@@ -64,19 +70,24 @@ func LaunchContainer(image string, exposePorts []ExposedPort, cmd, env []string)
 
 	// make sure they're up
 	deadline := time.Now().Add(60 * time.Second)
+
 	for _, port := range exposePorts {
 	retry:
 		con, err := net.DialTCP("tcp", nil, &net.TCPAddr{
 			IP:   net.IPv4(127, 0, 0, 1),
 			Port: port.HostPort,
 		})
+
 		if err != nil {
 			if time.Now().After(deadline) {
 				panic("timed out waiting for container to start: " + err.Error())
 			}
+
 			time.Sleep(10 * time.Millisecond)
+
 			goto retry
 		}
+
 		con.Close()
 	}
 
@@ -85,18 +96,21 @@ func LaunchContainer(image string, exposePorts []ExposedPort, cmd, env []string)
 
 func KillContainer(containerID string) {
 	ctx := context.Background()
+
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		panic(err)
 	}
+
 	timeout := 10 * time.Second
-	cli.ContainerStop(ctx, containerID, &timeout)
+
+	err = cli.ContainerStop(ctx, containerID, &timeout)
 	if err != nil {
 		fmt.Println("error stopping container: " + err.Error())
 	}
+
 	err = cli.ContainerRemove(ctx, containerID, types.ContainerRemoveOptions{Force: true})
 	if err != nil {
 		fmt.Println("error removing container: " + err.Error())
 	}
-
 }
