@@ -11,10 +11,9 @@
 apiVersion: {{ $apiVersion }}
 kind: Ingress
 metadata:
-  name: infra-registry
-  namespace: {{ .Release.Namespace }}
+  name: {{ include "registry.fullname" . }}
   labels:
-    app: infra-registry
+{{- include "registry.labels" . | nindent 4 }}
 {{- with .Values.ingress.labels }}
   {{- toYaml . | nindent 4 }}
 {{- end }}

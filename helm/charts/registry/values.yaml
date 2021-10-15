@@ -2,6 +2,13 @@ storage: 1Gi
 engineApiKey: ""
 config: null
 
+pod:
+  annotations: {}
+
+serviceAccount:
+  create: true
+  annotations: {}
+
 image:
   repository: infrahq/infra
   tag: ""

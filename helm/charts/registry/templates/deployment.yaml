@@ -1,28 +1,32 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: infra-registry
-  namespace: {{ .Release.Namespace }}
+  name: {{ include "registry.fullname" . }}
+  labels:
+{{- include "registry.labels" . | nindent 4 }}
 spec:
   selector:
     matchLabels:
-      app: infra-registry
+{{- include "registry.selectorLabels" . | nindent 6 }}
   replicas: 1
   template:
     metadata:
       labels:
-        app: infra-registry
+{{- include "registry.selectorLabels" . | nindent 8 }}
+{{- with .Values.pod.annotations }}
       annotations:
         rollme: {{ randAlphaNum 5 | quote }}
+  {{- toYaml . | nindent 8 }}
+{{- end }}
     spec:
       automountServiceAccountToken: true
-      serviceAccountName: infra-registry
+      serviceAccountName: {{ include "registry.serviceAccountName" . }}
       dnsPolicy: ClusterFirst
 {{- with .Values.image.pullSecrets }}
       imagePullSecrets:
-{{- range . }}
+  {{- range . }}
         - name: {{ . }}
-{{- end }}
+  {{- end }}
 {{- end }}
       containers:
         - name: registry
