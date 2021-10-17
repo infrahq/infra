@@ -26,7 +26,6 @@ import (
 	timer "github.com/infrahq/infra/internal/timer"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/acme/autocert"
-	"gopkg.in/segmentio/analytics-go.v3"
 	"gorm.io/gorm"
 )
 
@@ -215,70 +214,21 @@ func Run(options Options) error {
 		}
 	})
 
-	if options.EnableTelemetry && internal.TelemetryWriteKey != "" {
-		telemetryTimer := timer.NewTimer()
-		defer telemetryTimer.Stop()
-
-		client := analytics.New(internal.TelemetryWriteKey)
-		defer client.Close()
-
-		telemetryTimer.Start(60*time.Minute, func() {
-			var settings Settings
-			err := db.First(&settings).Error
-			if err != nil {
-				zapLogger.Error(err.Error())
-				return
-			}
-
-			var users, groups, sources, destinations, roles int64
-			err = db.Model(&User{}).Count(&users).Error
-			if err != nil {
-				zapLogger.Error(err.Error())
-				return
-			}
-
-			err = db.Model(&Group{}).Count(&groups).Error
-			if err != nil {
-				zapLogger.Error(err.Error())
-				return
-			}
-
-			err = db.Model(&Source{}).Count(&sources).Error
-			if err != nil {
-				zapLogger.Error(err.Error())
-				return
-			}
-
-			err = db.Model(&Destination{}).Count(&destinations).Error
-			if err != nil {
-				zapLogger.Error(err.Error())
-				return
-			}
-
-			err = db.Model(&Role{}).Count(&roles).Error
-			if err != nil {
-				zapLogger.Error(err.Error())
-				return
-			}
-
-			err = client.Enqueue(analytics.Track{
-				AnonymousId: "system",
-				Event:       "registry.heartbeat",
-				Properties: analytics.NewProperties().
-					Set("registryId", settings.Id).
-					Set("version", internal.Version).
-					Set("users", users).
-					Set("groups", groups).
-					Set("sources", sources).
-					Set("destinations", destinations).
-					Set("roles", roles),
-			})
-			if err != nil {
-				zapLogger.Error(err.Error())
-				return
-			}
-		})
+	t, err := NewTelemetry(db)
+	if err != nil {
+		return err
 	}
+
+	t.SetEnabled(options.EnableTelemetry)
+
+	telemetryTimer := timer.NewTimer()
+	telemetryTimer.Start(60*time.Minute, func() {
+		if err := t.EnqueueHeartbeat(); err != nil {
+			logging.L.Sugar().Debug(err)
+		}
+	})
+
+	defer telemetryTimer.Stop()
 
 	if options.RootAPIKey != "" {
 		if len(options.RootAPIKey) != ApiKeyLen {
@@ -330,7 +280,7 @@ func Run(options Options) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", Healthz)
 	mux.HandleFunc("/.well-known/jwks.json", h.WellKnownJWKs)
-	mux.Handle("/v1/", NewApiMux(db, k8s, okta))
+	mux.Handle("/v1/", NewApiMux(db, k8s, okta, t))
 
 	if options.UIProxy != "" {
 		remote, err := urlx.Parse(options.UIProxy)
