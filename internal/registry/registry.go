@@ -92,13 +92,7 @@ func Run(options Options) error {
 			return err
 		}
 
-		defer func() {
-			err := recover()
-			if err != nil {
-				sentry.CurrentHub().Recover(err)
-				sentry.Flush(time.Second * 5)
-			}
-		}()
+		defer recoverWithSentryHub(sentry.CurrentHub())
 	}
 
 	db, err := NewDB(options.DBPath)
@@ -191,6 +185,9 @@ func Run(options Options) error {
 	syncSourcesTimer := timer.NewTimer()
 	defer syncSourcesTimer.Stop()
 	syncSourcesTimer.Start(interval, func() {
+		hub := newSentryHub("sync_sources_timer")
+		defer recoverWithSentryHub(hub)
+
 		syncSources(db, k8s, okta, zapLogger)
 	})
 
@@ -198,6 +195,9 @@ func Run(options Options) error {
 	syncDestinationsTimer := timer.NewTimer()
 	defer syncDestinationsTimer.Stop()
 	syncDestinationsTimer.Start(5*time.Minute, func() {
+		hub := newSentryHub("sync_destinations_timer")
+		defer recoverWithSentryHub(hub)
+
 		now := time.Now()
 
 		var destinations []Destination
