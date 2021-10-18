@@ -167,5 +167,6 @@ func nameEscape(name string) string {
 		"/", "_",
 		":", "_",
 	)
+
 	return rpl.Replace(name)
 }
