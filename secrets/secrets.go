@@ -25,7 +25,7 @@ type SecretStorage interface {
 // - the client shall store only the encrypted data key
 // - the client shall remove the plaintext data key from memory as soon as it is no longer needed
 // - the client will request the data key be decrypted by the provider if it is needed subsequently.
-// In this way the encryption-as-a-service provider scales to unlimited data sizes without needing to transfer the data to the remote service for encryption/decryption.
+// In this way the encryption-as-a-service provider scales to unlimited data sizes without needing to transfer the data to the remote service for symmetric encryption/decryption.
 // To rotate root keys, generate new ones periodically and reencrypt data you touch with the new root. This can either be done all at once or gradually over time. Old root keys are out of circulation when no data exists that points to them.
 type SecretProvider interface {
 	// GenerateDataKey makes a data key from a root key id: if "", a root key is created. It is okay to generate many data keys.

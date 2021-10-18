@@ -10,6 +10,9 @@ tools:
 test:
 	go test -short ./...
 
+test-all:
+	go test ./...
+
 .PHONY: helm
 helm:
 	helm package -d ./helm helm/charts/registry helm/charts/engine --version $(tag:v%=%) --app-version $(tag:v%=%)
