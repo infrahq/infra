@@ -16,6 +16,7 @@ import (
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
+	"gopkg.in/segmentio/analytics-go.v3"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
 	"gorm.io/gorm"
@@ -26,6 +27,7 @@ type Api struct {
 	db   *gorm.DB
 	k8s  *kubernetes.Kubernetes
 	okta Okta
+	t    *Telemetry
 }
 
 type CustomJWTClaims struct {
@@ -39,11 +41,12 @@ var (
 	SessionDuration time.Duration       = time.Hour * 24
 )
 
-func NewApiMux(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) *mux.Router {
+func NewApiMux(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta, t *Telemetry) *mux.Router {
 	a := Api{
 		db:   db,
 		k8s:  k8s,
 		okta: okta,
+		t:    t,
 	}
 
 	r := mux.NewRouter()
@@ -841,6 +844,10 @@ func (a *Api) Login(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
+	if err := a.t.Enqueue(analytics.Track{Event: "registry.login", UserId: user.Id}); err != nil {
+		logging.L.Sugar().Debug(err)
+	}
+
 	if err := json.NewEncoder(w).Encode(api.LoginResponse{Name: user.Email, Token: tokenString}); err != nil {
 		logging.L.Error(err.Error())
 		sendApiError(w, http.StatusInternalServerError, "could not login")
@@ -864,6 +871,10 @@ func (a *Api) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	deleteAuthCookie(w)
+
+	if err := a.t.Enqueue(analytics.Track{Event: "registry.logout", UserId: token.UserId}); err != nil {
+		logging.L.Sugar().Debug(err)
+	}
 
 	w.WriteHeader(http.StatusOK)
 }

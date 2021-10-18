@@ -571,7 +571,12 @@ func TestLoginMethodOkta(t *testing.T) {
 	}
 	testK8s := &kubernetes.Kubernetes{Config: testConfig, SecretReader: testSecretReader}
 
-	a := &Api{db: db, okta: testOkta, k8s: testK8s}
+	telemetry, err := NewTelemetry(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	a := &Api{db: db, okta: testOkta, k8s: testK8s, t: telemetry}
 
 	loginRequest := api.LoginRequest{
 		Okta: &api.LoginRequestOkta{
