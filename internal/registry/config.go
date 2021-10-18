@@ -2,6 +2,7 @@ package registry
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -81,7 +82,7 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 
 			var source Source
 			if err := db.FirstOrCreate(&source, &Source{Kind: SourceKindOkta}).Error; err != nil {
-				return err
+				return fmt.Errorf("create config source: %w", err)
 			}
 
 			source.ClientId = s.ClientId
@@ -91,7 +92,7 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 			source.ApiToken = s.ApiToken
 
 			if err := db.Save(&source).Error; err != nil {
-				return err
+				return fmt.Errorf("save source: %w", err)
 			}
 
 			idsToKeep = append(idsToKeep, source.Id)
@@ -124,7 +125,8 @@ func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (modifiedGroup
 				continue
 			}
 
-			return nil, nil, nil, srcReadErr
+			return nil, nil, nil, fmt.Errorf("group read source: %w", err)
+
 		}
 
 		var group Group
@@ -137,7 +139,7 @@ func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (modifiedGroup
 				continue
 			}
 
-			return nil, nil, nil, grpReadErr
+			return nil, nil, nil, fmt.Errorf("group read: %w", err)
 		}
 
 		modifiedGroupIDs = append(modifiedGroupIDs, group.Id)
@@ -153,7 +155,7 @@ func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (modifiedGroup
 
 		roles, grpRoleIDs, err = importRoles(db, g.Roles)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, fmt.Errorf("group import roles: %w", err)
 		}
 
 		modifiedRoleIDs = append(modifiedRoleIDs, grpRoleIDs...)
@@ -162,7 +164,7 @@ func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (modifiedGroup
 		for i, role := range roles {
 			if db.Model(&group).Where(&Role{Id: role.Id}).Association("Roles").Count() == 0 {
 				if err = db.Model(&group).Where(&Role{Id: role.Id}).Association("Roles").Append(&roles[i]); err != nil {
-					return nil, nil, nil, err
+					return nil, nil, nil, fmt.Errorf("group role assocations: %w", err)
 				}
 			}
 		}
@@ -183,7 +185,7 @@ func ApplyUserMappings(db *gorm.DB, users []ConfigUserMapping) (modifiedUserIDs,
 				continue
 			}
 
-			return nil, nil, usrReadErr
+			return nil, nil, fmt.Errorf("read user: %w", err)
 		}
 
 		modifiedUserIDs = append(modifiedUserIDs, user.Id)
@@ -195,7 +197,7 @@ func ApplyUserMappings(db *gorm.DB, users []ConfigUserMapping) (modifiedUserIDs,
 
 		roles, usrRoleIDs, err = importRoles(db, u.Roles)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("import user roles: %w", err)
 		}
 
 		modifiedRoleIDs = append(modifiedRoleIDs, usrRoleIDs...)
@@ -205,7 +207,7 @@ func ApplyUserMappings(db *gorm.DB, users []ConfigUserMapping) (modifiedUserIDs,
 		for i, role := range roles {
 			if db.Model(&user).Where(&Role{Id: role.Id}).Association("Roles").Count() == 0 {
 				if err = db.Model(&user).Where(&Role{Id: role.Id}).Association("Roles").Append(&roles[i]); err != nil {
-					return nil, nil, err
+					return nil, nil, fmt.Errorf("user role associations: %w", err)
 				}
 			}
 		}
@@ -218,17 +220,17 @@ func ApplyUserMappings(db *gorm.DB, users []ConfigUserMapping) (modifiedUserIDs,
 func ImportRoleMappings(db *gorm.DB, groups []ConfigGroupMapping, users []ConfigUserMapping) error {
 	groupIDs, groupUserIDs, groupRoleIDs, err := ApplyGroupMappings(db, groups)
 	if err != nil {
-		return err
+		return fmt.Errorf("apply group mappings: %w", err)
 	}
 
 	var groupsRemoved []Group
 	if err := db.Not(groupIDs).Find(&groupsRemoved).Error; err != nil {
-		return err
+		return fmt.Errorf("find removed config groups: %w", err)
 	}
 
 	if len(groupsRemoved) > 0 {
 		if err := db.Delete(groupsRemoved).Error; err != nil {
-			return err
+			return fmt.Errorf("delete removed config groups: %w", err)
 		}
 	}
 
@@ -236,19 +238,19 @@ func ImportRoleMappings(db *gorm.DB, groups []ConfigGroupMapping, users []Config
 
 	userIDs, userRoleIDs, err := ApplyUserMappings(db, users)
 	if err != nil {
-		return err
+		return fmt.Errorf("apply user mappings: %w", err)
 	}
 
 	userIDs = append(userIDs, groupUserIDs...)
 
 	var usersRemoved []User
 	if err := db.Not(userIDs).Find(&usersRemoved).Error; err != nil {
-		return err
+		return fmt.Errorf("find removed config users: %w", err)
 	}
 
 	if len(usersRemoved) > 0 {
 		if err := db.Delete(usersRemoved).Error; err != nil {
-			return err
+			return fmt.Errorf("delete removed config users: %w", err)
 		}
 	}
 
@@ -260,12 +262,12 @@ func ImportRoleMappings(db *gorm.DB, groups []ConfigGroupMapping, users []Config
 
 	var rolesRemoved []Role
 	if err := db.Preload("Destination").Not(roleIDs).Find(&rolesRemoved).Error; err != nil {
-		return err
+		return fmt.Errorf("find roles removed in config: %w", err)
 	}
 
 	if len(rolesRemoved) > 0 {
 		if err := db.Delete(rolesRemoved).Error; err != nil {
-			return err
+			return fmt.Errorf("delete config removed role: %w", err)
 		}
 	}
 
@@ -326,14 +328,14 @@ func importRoles(db *gorm.DB, roles []ConfigRoleKubernetes) (rolesImported []Rol
 					continue
 				}
 
-				return nil, nil, destErr
+				return nil, nil, fmt.Errorf("find role destination: %w", err)
 			}
 
 			if len(destination.Namespaces) > 0 {
 				for _, namespace := range destination.Namespaces {
 					var role Role
 					if err = db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, Namespace: namespace, DestinationId: dest.Id}).Error; err != nil {
-						return nil, nil, err
+						return nil, nil, fmt.Errorf("group read source: %w", err)
 					}
 
 					rolesImported = append(rolesImported, role)
@@ -342,7 +344,7 @@ func importRoles(db *gorm.DB, roles []ConfigRoleKubernetes) (rolesImported []Rol
 			} else {
 				var role Role
 				if err = db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, DestinationId: dest.Id}).Error; err != nil {
-					return nil, nil, err
+					return nil, nil, fmt.Errorf("role find create: %w", err)
 				}
 
 				rolesImported = append(rolesImported, role)
