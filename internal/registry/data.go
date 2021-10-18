@@ -141,7 +141,7 @@ func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 
 func (u *User) AfterCreate(tx *gorm.DB) error {
 	if _, _, err := ApplyUserMappings(tx, initialConfig.Users); err != nil {
-		return err
+		return fmt.Errorf("after create user mapping: %w", err)
 	}
 
 	return nil
@@ -150,7 +150,7 @@ func (u *User) AfterCreate(tx *gorm.DB) error {
 // TODO (jmorganca): use foreign constraints instead?
 func (u *User) BeforeDelete(tx *gorm.DB) error {
 	if err := tx.Model(u).Association("Sources").Clear(); err != nil {
-		return fmt.Errorf("user user associations before delete: %w", err)
+		return fmt.Errorf("user associations before delete: %w", err)
 	}
 
 	if err := tx.Where(&Token{UserId: u.Id}).Delete(&Token{}).Error; err != nil {
@@ -181,11 +181,11 @@ func (d *Destination) BeforeCreate(tx *gorm.DB) (err error) {
 
 func (d *Destination) AfterCreate(tx *gorm.DB) error {
 	if _, _, _, err := ApplyGroupMappings(tx, initialConfig.Groups); err != nil {
-		return err
+		return fmt.Errorf("group apply after destination create: %w", err)
 	}
 
 	if _, _, err := ApplyUserMappings(tx, initialConfig.Users); err != nil {
-		return err
+		return fmt.Errorf("user apply after destination create: %w", err)
 	}
 
 	return nil
@@ -214,7 +214,7 @@ func (g *Group) BeforeCreate(tx *gorm.DB) (err error) {
 
 func (g *Group) AfterCreate(tx *gorm.DB) error {
 	if _, _, _, err := ApplyGroupMappings(tx, initialConfig.Groups); err != nil {
-		return err
+		return fmt.Errorf("after create group mapping: %w", err)
 	}
 
 	return nil

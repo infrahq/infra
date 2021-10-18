@@ -261,7 +261,7 @@ func ImportRoleMappings(db *gorm.DB, groups []ConfigGroupMapping, users []Config
 	roleIDs = append(roleIDs, userRoleIDs...)
 
 	var rolesRemoved []Role
-	if err := db.Preload("Destination").Not(roleIDs).Find(&rolesRemoved).Error; err != nil {
+	if err := db.Not(roleIDs).Find(&rolesRemoved).Error; err != nil {
 		return fmt.Errorf("find roles removed in config: %w", err)
 	}
 
