@@ -147,8 +147,6 @@ func (u *User) AfterCreate(tx *gorm.DB) error {
 	return nil
 }
 
-// TODO: func (u *User) AfterDelete(tx *gorm.DB) error {
-
 // TODO (jmorganca): use foreign constraints instead?
 func (u *User) BeforeDelete(tx *gorm.DB) error {
 	if err := tx.Model(u).Association("Sources").Clear(); err != nil {
@@ -159,7 +157,16 @@ func (u *User) BeforeDelete(tx *gorm.DB) error {
 		return err
 	}
 
-	return tx.Model(u).Association("Roles").Clear()
+	logging.L.Sugar().Debugf("deleting user: %s" + u.Id)
+
+	var roles []Role
+	tx.Model(u).Association("Roles").Find(&roles)
+
+	if err := tx.Model(u).Association("Roles").Clear(); err != nil {
+		return err
+	}
+
+	return cleanUnassociatedRoles(tx, roles)
 }
 
 func (d *Destination) BeforeCreate(tx *gorm.DB) (err error) {
@@ -216,10 +223,32 @@ func (g *Group) BeforeDelete(tx *gorm.DB) error {
 		return err
 	}
 
-	return tx.Model(g).Association("Roles").Clear()
+	logging.L.Sugar().Debugf("deleting group: %s" + g.Id)
+
+	var roles []Role
+	tx.Model(g).Association("Roles").Find(&roles)
+
+	if err := tx.Model(g).Association("Roles").Clear(); err != nil {
+		return err
+	}
+
+	return cleanUnassociatedRoles(tx, roles)
 }
 
-// TODO: func (g *Group) AfterDelete(tx *gorm.DB) error {
+func cleanUnassociatedRoles(tx *gorm.DB, roles []Role) error {
+	// clean up roles with no users/groups
+	for _, r := range roles {
+		usrCount := tx.Model(r).Association("Users").Count()
+		grpCount := tx.Model(r).Association("Groups").Count()
+		if usrCount == 0 && grpCount == 0 {
+			logging.L.Sugar().Debugf("deleting role with no associations: %s at %s", r.Id, r.DestinationId)
+			if err := tx.Delete(r).Error; err != nil {
+				return fmt.Errorf("delete unassociated role: %v", err)
+			}
+		}
+	}
+	return nil
+}
 
 func (s *Source) BeforeCreate(tx *gorm.DB) (err error) {
 	if s.Id == "" {
