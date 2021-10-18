@@ -8,6 +8,9 @@ tools:
 	go generate -tags tools tools/tools.go
 
 test:
+	go test -short ./...
+
+test-all:
 	go test ./...
 
 .PHONY: helm
