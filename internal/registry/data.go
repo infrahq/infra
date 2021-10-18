@@ -157,7 +157,7 @@ func (u *User) BeforeDelete(tx *gorm.DB) error {
 		return fmt.Errorf("delete user tokens before user: %w", err)
 	}
 
-	logging.L.Sugar().Debugf("deleting user: %s" + u.Id)
+	logging.L.Sugar().Debugf("deleting user: %s", u.Id)
 
 	var roles []Role
 	if err := tx.Model(u).Association("Roles").Find(&roles); err != nil {
@@ -225,7 +225,7 @@ func (g *Group) BeforeDelete(tx *gorm.DB) error {
 		return fmt.Errorf("clear group users before delete: %w", err)
 	}
 
-	logging.L.Sugar().Debugf("deleting group: %s" + g.Id)
+	logging.L.Sugar().Debugf("deleting group: %s", g.Id)
 
 	var roles []Role
 	if err := tx.Model(g).Association("Roles").Find(&roles); err != nil {

@@ -99,7 +99,7 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 		case "":
 			logging.L.Sugar().Errorf("skipping a source with no kind set in configuration")
 		default:
-			logging.L.Sugar().Errorf("skipping invalid source kind in configuration: %s" + s.Kind)
+			logging.L.Sugar().Errorf("skipping invalid source kind in configuration: %s", s.Kind)
 		}
 	}
 
