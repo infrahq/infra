@@ -1,13 +1,14 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: infra-registry-secret-reader
-  namespace: {{ .Release.Namespace }}
+  name: {{ include "registry.fullname" . }}
+  labels:
+{{- include "registry.labels" . | nindent 4 }}
 subjects:
-- kind: ServiceAccount
-  name: infra-registry
-  namespace: {{ .Release.Namespace }}
+  - kind: ServiceAccount
+    name: {{ include "registry.fullname" . }}
+    namespace: {{ .Release.Namespace }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: infra-registry-secret-reader
+  name: {{ include "registry.fullname" . }}

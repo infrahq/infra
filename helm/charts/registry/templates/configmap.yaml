@@ -2,8 +2,9 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: infra-registry
-  namespace: {{ .Release.Namespace }}
+  name: {{ include "registry.fullname" . }}
+  labels:
+{{- include "registry.labels" . | nindent 4 }}
 data:
 {{- if kindIs "map" .Values.config }}
   infra.yaml: |

@@ -1,8 +1,9 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: infra-registry
-  namespace: {{ .Release.Namespace }}
+  name: {{ include "registry.fullname" . }}
+  labels:
+{{- include "registry.labels" . | nindent 4 }}
 spec:
   accessModes:
     - ReadWriteOnce

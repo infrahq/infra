@@ -1,10 +1,9 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: infra-registry
-  namespace: {{ .Release.Namespace }}
+  name: {{ include "registry.fullname" . }}
   labels:
-    app: infra-registry
+{{- include "registry.labels" . | nindent 4 }}
 {{- with .Values.service.labels }}
   {{- toYaml . | nindent 4 }}
 {{- end }}
@@ -34,7 +33,7 @@ spec:
 {{- end }}
 {{- with .Values.service.externalIPs }}
   externalIPs:
-  {{ toYaml . | indent 4 }}
+  {{- toYaml . | nindent 4 }}
 {{- end }}
   ports:
 {{- range .Values.service.ports }}
@@ -47,4 +46,4 @@ spec:
   {{- end }}
 {{- end }}
   selector:
-    app: infra-registry
+{{- include "registry.selectorLabels" . | nindent 6 }}

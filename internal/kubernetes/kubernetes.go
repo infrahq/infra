@@ -641,7 +641,7 @@ func (k *Kubernetes) Endpoint() (string, error) {
 	}
 
 	services, err := clientset.CoreV1().Services(namespace).List(context.TODO(), metav1.ListOptions{
-		LabelSelector: "app=infra-engine",
+		LabelSelector: "app.kubernetes.io/instance=infra-engine",
 	})
 	if err != nil {
 		return "", err

@@ -1,10 +1,9 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: infra-engine
-  namespace: {{ .Release.Namespace }}
+  name: {{ include "engine.fullname" . }}
   labels:
-    app: infra-engine
+{{- include "engine.labels" . | nindent 4 }}
 {{- with .Values.service.labels }}
   {{- toYaml . | nindent 4 }}
 {{- end }}
@@ -47,4 +46,4 @@ spec:
   {{- end }}
 {{- end }}
   selector:
-    app: infra-engine
+{{- include "engine.selectorLabels" . | nindent 6 }}
