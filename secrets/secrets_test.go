@@ -69,14 +69,14 @@ func teardown() {
 	}
 }
 
-func eachProvider(t *testing.T, eachFunc func(p SecretProvider)) {
-	providers := []SecretProvider{}
+func eachProvider(t *testing.T, eachFunc func(t *testing.T, p SecretProvider)) {
+	providers := map[string]SecretProvider{}
 
 	// add aws
 	k, err := NewAWSKMSSecretProvider(awskms)
 	require.NoError(t, err)
 
-	providers = append(providers, k)
+	providers["kms"] = k
 
 	// add vault
 	v, err := NewVaultSecretProvider("http://localhost:8200", "root", "")
@@ -87,10 +87,12 @@ func eachProvider(t *testing.T, eachFunc func(p SecretProvider)) {
 	// make sure vault transit is configured
 	_ = v.client.Sys().Mount("transit", &api.MountInput{Type: "transit"})
 
-	providers = append(providers, v)
+	providers["vault"] = v
 
-	for _, provider := range providers {
-		eachFunc(provider)
+	for name, provider := range providers {
+		t.Run(name, func(t *testing.T) {
+			eachFunc(t, provider)
+		})
 	}
 }
 
@@ -100,13 +102,13 @@ func TestSaveAndLoadSecret(t *testing.T) {
 		return
 	}
 
-	eachProvider(t, func(p SecretProvider) {
+	eachProvider(t, func(t *testing.T, p SecretProvider) {
 		// if provider implements secret storage...
 		if storage, ok := p.(SecretStorage); ok {
-			err := storage.SetSecret("foo", []byte("secret token"))
+			err := storage.SetSecret("foo/bar:secret", []byte("secret token"))
 			require.NoError(t, err)
 
-			r, err := storage.GetSecret("foo")
+			r, err := storage.GetSecret("foo/bar:secret")
 			require.NoError(t, err)
 
 			require.Equal(t, []byte("secret token"), r)
@@ -120,10 +122,10 @@ func TestSealAndUnseal(t *testing.T) {
 		return
 	}
 
-	eachProvider(t, func(p SecretProvider) {
+	eachProvider(t, func(t *testing.T, p SecretProvider) {
 		noRootKeyYet := ""
 
-		key, err := p.GenerateDataKey("random", noRootKeyYet)
+		key, err := p.GenerateDataKey("random/name:foo", noRootKeyYet)
 		require.NoError(t, err)
 		require.NotEmpty(t, key.RootKeyID)
 
@@ -132,13 +134,15 @@ func TestSealAndUnseal(t *testing.T) {
 
 		require.Equal(t, key, key2)
 
-		encrypted, err := Seal(key, []byte("Your scientists were so preoccupied with whether they could, they didn’t stop to think if they should"))
+		secretMessage := "Your scientists were so preoccupied with whether they could, they didn’t stop to think if they should"
+
+		encrypted, err := Seal(key, []byte(secretMessage))
 		require.NoError(t, err)
 
-		r, err := Unseal(key, encrypted)
+		unsealed, err := Unseal(key, encrypted)
 		require.NoError(t, err)
 
-		require.Equal(t, []byte("Your scientists were so preoccupied with whether they could, they didn’t stop to think if they should"), r)
+		require.Equal(t, []byte(secretMessage), unsealed)
 	})
 }
 
@@ -148,14 +152,14 @@ func TestGeneratingASecondKeyFromARootKey(t *testing.T) {
 		return
 	}
 
-	eachProvider(t, func(p SecretProvider) {
+	eachProvider(t, func(t *testing.T, p SecretProvider) {
 		noRootKeyYet := ""
 
-		key, err := p.GenerateDataKey("keytest", noRootKeyYet)
+		key, err := p.GenerateDataKey("key:test/foo", noRootKeyYet)
 		require.NoError(t, err)
 		require.NotEmpty(t, key.RootKeyID)
 
-		key2, err := p.GenerateDataKey("keytest", key.RootKeyID)
+		key2, err := p.GenerateDataKey("key:test/foo", key.RootKeyID)
 		require.NoError(t, err)
 		require.NotEmpty(t, key.RootKeyID)
 		require.Equal(t, key.RootKeyID, key2.RootKeyID)

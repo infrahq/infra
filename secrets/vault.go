@@ -3,6 +3,7 @@ package secrets
 import (
 	"encoding/base64"
 	"fmt"
+	"strings"
 
 	vault "github.com/hashicorp/vault/api"
 )
@@ -44,6 +45,7 @@ func NewVaultSecretProvider(address, token, namespace string) (*VaultSecretProvi
 }
 
 func (v *VaultSecretProvider) GetSecret(name string) ([]byte, error) {
+	name = nameEscape(name)
 	path := fmt.Sprintf("%s/data/%s", v.SecretMount, name)
 
 	sec, err := v.client.Logical().Read(path)
@@ -59,6 +61,7 @@ func (v *VaultSecretProvider) GetSecret(name string) ([]byte, error) {
 }
 
 func (v *VaultSecretProvider) SetSecret(name string, secret []byte) error {
+	name = nameEscape(name)
 	path := fmt.Sprintf("%s/data/%s", v.SecretMount, name)
 	_, err := v.client.Logical().Write(path, map[string]interface{}{
 		"data": map[string]interface{}{
@@ -70,6 +73,7 @@ func (v *VaultSecretProvider) SetSecret(name string, secret []byte) error {
 }
 
 func (v *VaultSecretProvider) GenerateDataKey(name, rootKeyID string) (*SymmetricKey, error) {
+	name = nameEscape(name)
 	if rootKeyID == "" {
 		rootKeyID = name + "_root"
 		if err := v.generateRootKey(rootKeyID); err != nil {
@@ -97,6 +101,7 @@ func (v *VaultSecretProvider) GenerateDataKey(name, rootKeyID string) (*Symmetri
 }
 
 func (v *VaultSecretProvider) generateRootKey(name string) error {
+	name = nameEscape(name)
 	path := fmt.Sprintf("%s/keys/%s", v.TransitMount, name)
 
 	_, err := v.client.Logical().Write(path, map[string]interface{}{
@@ -155,4 +160,12 @@ func (v *VaultSecretProvider) RemoteDecrypt(keyID string, encrypted []byte) (pla
 	}
 
 	return nil, nil
+}
+
+func nameEscape(name string) string {
+	rpl := strings.NewReplacer(
+		"/", "_",
+		":", "_",
+	)
+	return rpl.Replace(name)
 }
