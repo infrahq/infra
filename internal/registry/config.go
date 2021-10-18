@@ -321,7 +321,7 @@ func importRoles(db *gorm.DB, roles []ConfigRoleKubernetes) (rolesImported []Rol
 
 			destErr := db.Where(&Destination{Name: destination.Name}).First(&dest).Error
 			if destErr != nil {
-				if errors.Is(err, gorm.ErrRecordNotFound) {
+				if errors.Is(destErr, gorm.ErrRecordNotFound) {
 					// when a destination is added then the config import will be retried, skip for now
 					logging.L.Debug("skipping role binding for destination in config import that has not yet been discovered")
 					continue
