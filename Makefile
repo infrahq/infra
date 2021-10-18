@@ -1,4 +1,4 @@
-tag := $(shell git describe --tags)
+tag := $(patsubst v%,%,$(shell git describe --tags))
 
 generate:
 	go generate ./...
@@ -14,9 +14,19 @@ test-all:
 	go test ./...
 
 .PHONY: helm
-helm:
-	helm package -d ./helm helm/charts/registry helm/charts/engine --version $(tag:v%=%) --app-version $(tag:v%=%)
-	helm repo index ./helm
+helm: helm/registry.tgz helm/engine.tgz helm/infra.tgz
+	helm repo index helm
+
+helm/%.tgz: helm/charts/%
+	helm package -d helm $< --version $(tag) --app-version $(tag)
+
+helm/charts/infra/charts:
+	mkdir -p $@
+
+helm/charts/infra/charts/%.tgz: helm/%.tgz helm/charts/infra/charts/
+	ln -sf $(realpath $<) $(@D)
+
+helm/infra.tgz: helm/charts/infra/charts/registry-$(tag).tgz helm/charts/infra/charts/engine-$(tag).tgz
 
 .PHONY: docs
 docs:
@@ -24,6 +34,7 @@ docs:
 
 clean:
 	$(RM) -r dist
+	$(RM) -r helm/*.tgz helm/charts/infra/charts
 
 .PHONY: openapi
 openapi:
@@ -69,11 +80,14 @@ dev/clean:
 	helm uninstall --namespace infrahq infra-registry || true
 	helm uninstall --namespace infrahq infra-engine || true
 
+dev/helm: helm/charts/infra/charts
+	ln -sf $(realpath helm/charts/engine helm/charts/registry) $<
+
 release: goreleaser
 	goreleaser release -f .goreleaser.yml --rm-dist
 
 release/docker:
-	docker buildx build --push --platform linux/amd64,linux/arm64 --build-arg BUILDVERSION=$(tag:v%=%) --build-arg TELEMETRY_WRITE_KEY=${TELEMETRY_WRITE_KEY} --build-arg CRASH_REPORTING_DSN=${CRASH_REPORTING_DSN} . -t infrahq/infra:$(tag:v%=%) -t infrahq/infra
+	docker buildx build --push --platform linux/amd64,linux/arm64 --build-arg BUILDVERSION=$(tag) --build-arg TELEMETRY_WRITE_KEY=${TELEMETRY_WRITE_KEY} --build-arg CRASH_REPORTING_DSN=${CRASH_REPORTING_DSN} . -t infrahq/infra:$(tag) -t infrahq/infra
 
 release/helm: helm
 	aws s3 --region us-east-2 sync helm s3://helm.infrahq.com --exclude "*" --include "index.yaml" --include "*.tgz"
