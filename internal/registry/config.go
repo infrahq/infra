@@ -125,7 +125,7 @@ func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (modifiedGroup
 				continue
 			}
 
-			return nil, nil, nil, fmt.Errorf("group read source: %w", err)
+			return nil, nil, nil, fmt.Errorf("group read source: %w", srcReadErr)
 
 		}
 
@@ -139,7 +139,7 @@ func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (modifiedGroup
 				continue
 			}
 
-			return nil, nil, nil, fmt.Errorf("group read: %w", err)
+			return nil, nil, nil, fmt.Errorf("group read: %w", grpReadErr)
 		}
 
 		modifiedGroupIDs = append(modifiedGroupIDs, group.Id)
@@ -185,7 +185,7 @@ func ApplyUserMappings(db *gorm.DB, users []ConfigUserMapping) (modifiedUserIDs,
 				continue
 			}
 
-			return nil, nil, fmt.Errorf("read user: %w", err)
+			return nil, nil, fmt.Errorf("read user: %w", usrReadErr)
 		}
 
 		modifiedUserIDs = append(modifiedUserIDs, user.Id)
@@ -328,7 +328,7 @@ func importRoles(db *gorm.DB, roles []ConfigRoleKubernetes) (rolesImported []Rol
 					continue
 				}
 
-				return nil, nil, fmt.Errorf("find role destination: %w", err)
+				return nil, nil, fmt.Errorf("find role destination: %w", destErr)
 			}
 
 			if len(destination.Namespaces) > 0 {
