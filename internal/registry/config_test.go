@@ -14,15 +14,17 @@ import (
 var db *gorm.DB
 
 var (
-	fakeOktaSource = Source{Kind: SourceKindOkta, Domain: "test.example.com", ClientSecret: "okta-secrets/client-secret", ApiToken: "okta-secrets/api-token"}
-	adminUser      = User{Id: "001", Email: "admin@example.com"}
-	standardUser   = User{Id: "002", Email: "user@example.com"}
-	iosDevUser     = User{Id: "003", Email: "woz@example.com"}
-	iosDevGroup    = Group{Name: "ios-developers"}
-	macAdminGroup  = Group{Name: "mac-admins"}
-	clusterA       = Destination{Name: "cluster-AAA"}
-	clusterB       = Destination{Name: "cluster-BBB"}
-	clusterC       = Destination{Name: "cluster-CCC"}
+	fakeOktaSource   = Source{Id: "001", Kind: SourceKindOkta, Domain: "test.example.com", ClientSecret: "okta-secrets/client-secret", ApiToken: "okta-secrets/api-token"}
+	adminUser        = User{Id: "001", Email: "admin@example.com"}
+	standardUser     = User{Id: "002", Email: "user@example.com"}
+	iosDevUser       = User{Id: "003", Email: "woz@example.com"}
+	notInConfigUser  = User{Id: "004", Email: "does-not-exist@example.com"}
+	iosDevGroup      = Group{Name: "ios-developers", SourceId: fakeOktaSource.Id}
+	macAdminGroup    = Group{Name: "mac-admins", SourceId: fakeOktaSource.Id}
+	notInConfigGroup = Group{Name: "does-not-exist"}
+	clusterA         = Destination{Name: "cluster-AAA"}
+	clusterB         = Destination{Name: "cluster-BBB"}
+	clusterC         = Destination{Name: "cluster-CCC"}
 )
 
 func setup() error {
@@ -71,6 +73,17 @@ func setup() error {
 		return err
 	}
 
+	// this user will be deleted on config import
+	err = db.Create(&notInConfigUser).Error
+	if err != nil {
+		return err
+	}
+
+	err = db.Model(&fakeOktaSource).Association("Users").Append(&notInConfigUser)
+	if err != nil {
+		return err
+	}
+
 	err = db.Create(&clusterA).Error
 	if err != nil {
 		return err
@@ -86,8 +99,6 @@ func setup() error {
 		return err
 	}
 
-	iosDevGroup := &Group{Name: "ios-developers", SourceId: fakeOktaSource.Id}
-
 	err = db.Create(&iosDevGroup).Error
 	if err != nil {
 		return err
@@ -100,7 +111,13 @@ func setup() error {
 		return err
 	}
 
-	err = db.Create(&Group{Name: "mac-admins", SourceId: fakeOktaSource.Id}).Error
+	err = db.Create(&macAdminGroup).Error
+	if err != nil {
+		return err
+	}
+
+	// this group will be deleted on config import
+	err = db.Create(&notInConfigGroup).Error
 	if err != nil {
 		return err
 	}
