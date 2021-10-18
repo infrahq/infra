@@ -18,7 +18,7 @@ func newSentryHub(name string) *sentry.Hub {
 func recoverWithSentryHub(hub *sentry.Hub) {
 	err := recover()
 	if err != nil {
-		sentry.CurrentHub().Recover(err)
+		hub.Recover(err)
 		sentry.Flush(time.Second * 5)
 	}
 }
