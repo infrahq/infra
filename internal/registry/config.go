@@ -126,7 +126,6 @@ func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (modifiedGroup
 			}
 
 			return nil, nil, nil, fmt.Errorf("group read source: %w", srcReadErr)
-
 		}
 
 		var group Group
