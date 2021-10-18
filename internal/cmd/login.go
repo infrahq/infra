@@ -349,8 +349,6 @@ func promptSelectSource(sources []api.Source, sourceID string) (*api.Source, err
 				return &source, nil
 			}
 		}
-
-		return nil, errors.New("source not found")
 	}
 
 	if len(sources) == 1 {
