@@ -8,65 +8,78 @@ Infra is **identity and access management** for Kubernetes. Provide any user fin
 
 **Features**:
 * Single-command access: `infra login`
-* No more out-of-sync kubeconfig files
+* No more out-of-sync `kubeconfig` files
 * Fine-grained role assignment
 * Onboard and offboard users via Okta (Azure AD, Google, GitHub coming soon)
 * Audit logs for who did what, when (coming soon)
 
-## Quickstart
+## Contents
 
-### Install Infra Registry
+* [Introduction](#introduction)
+* [Contents](#contents)
+* [Quickstart](#quickstart)
+  * [Create your first Infra configuration](#create-your-first-infra-configuration)
+    * [Example](#example)
+  * [Install Infra](#install-infra)
+  * [Install Infra CLI](#install-infra-cli)
+  * [Access your infrastructure](#access-your-infrastructure)
+* [Next Steps](#next-steps)
+  * [Connect additional identity providers](#connect-additional-identity-providers)
+  * [Connect additional infrastructure](#connect-additional-infrastructure)
+  * [Updating Infra](#updating-infra)
+* [Contributing](#contributing)
+* [Security](#security)
+* [License](#license)
+* [Documentation](#documentation)
+  * [Identity Providers](#identity-providers)
+  * [Infrastructure](#infrastructure)
+
+## Quickstart
 
 **Prerequisites:**
 * [Helm](https://helm.sh/)
 
-```bash
-helm repo add infrahq https://helm.infrahq.com
-helm repo update
-helm install infra-registry infrahq/registry --namespace infrahq --create-namespace
-```
+### Create your first Infra configuration
 
-### Connect Kubernetes cluster to Infra Registry
+This example uses Okta and grants the "Everyone" group read-only access to the default namespace. See [Okta](./docs/sources/okta.md) for detailed Okta configuration steps.
 
-Once the load balancer for the Infra Registry is available, run the following commands to retrieve Infra Registry information and its engine API key:
-
-```bash
-INFRA_REGISTRY=$(kubectl --namespace infrahq get services infra-registry -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}")
-ENGINE_API_KEY=$(kubectl --namespace infrahq get secrets infra-registry -o jsonpath='{.data.engineApiKey}' | base64 -d)
-```
-
-Then, install Infra Engine in the Kubernetes context of the cluster you want to connect to Infra Registry:
-
-```bash
-helm install infra-engine infrahq/engine --namespace infrahq --set registry=$INFRA_REGISTRY --set apiKey=$ENGINE_API_KEY
-```
-
-### Connect an identity provider
-
-First, add Okta via an `infra.yaml` configuration file:
-
-* [Okta configuration guide](./docs/okta.md)
-
-Next, add the following to your `infra.yaml` configuration file to grant everyone view access to the cluster:
+#### Example
 
 ```yaml
-groups:
-  - name: Everyone    # example group
-    source: okta
-    roles:
-      - name: view
-        kind: cluster-role
-        destinations:
-          - name: <cluster name>
+# infra.yaml
+---
+registry:
+  config:
+    sources:
+      - kind: okta
+        domain: <Okta domain>
+        clientId: <Okta client ID>
+        clientSecret: <Okta client secret>
+        apiToken: <Okta API token>
+    groups:
+      - name: Everyone
+        roles:
+            - kind: role
+              name: viewer
+              destinations:
+                - name: my-first-cluster
+                  namespace: default
+
+engine:
+  name: my-first-cluster
+  
 ```
 
-Then, update your Infra Registry with this new config:
+### Install Infra
+
+[![helm](https://img.shields.io/badge/docs-helm-green?logo=bookstack&style=flat)](./docs/helm.md)
 
 ```bash
-helm upgrade infra-registry infrahq/registry --namespace infrahq --set-file config=./infra.yaml
+helm install --repo https://helm.infrahq.com/ --values infra.yaml infra infra
 ```
 
 ### Install Infra CLI
+
 <details>
   <summary><strong>Debian, Ubuntu</strong></summary>
 
@@ -103,46 +116,99 @@ helm upgrade infra-registry infrahq/registry --namespace infrahq --set-file conf
   ```
 </details>
 
-### Access infrastructure
+### Access your infrastructure
+
+[![cli](https://img.shields.io/badge/docs-cli-green?logo=bookstack&style=flat)](./docs/cli.md)
 
 ```bash
-infra login <your infra registry endpoint>
+infra login <registry endpoint>
 ```
 
-After login, Infra will automatically synchronize all the Kubernetes clusters configured for the user into their default kubeconfig file.
+Follow the instructions on screen to login.
 
-That's it! You now have access to your cluster via Okta. To list all the clusters, run `infra list`.
-
-## Upgrading Infra
-
-First, update the Helm repo:
-
-```bash
-helm repo update
-```
-
-Then, update the Infra Registry
-
-```bash
-helm upgrade infra-registry infrahq/registry --namespace infrahq
-```
-
-Lastly, update any Infra Engines:
-
-```bash
-helm upgrade infra-engine infrahq/engine --namespace infrahq
-```
+<!--
+TODO: add a login video
+-->
 
 ## Next Steps
-* [Update roles](./docs/permissions.md)
-* [Add a custom domain](./docs/domain.md) to make it easy for sharing with your team
-* [Connect more Kubernetes clusters](./docs/connect.md)
 
-## Documentation
-* [Okta Reference](./docs/okta.md)
-* [Helm Chart Reference](./docs/helm.md)
-* [CLI Reference](./docs/cli.md)
-* [Contributing](./docs/contributing.md)
+### Connect additional identity providers
+
+[![sources](https://img.shields.io/badge/docs-sources-green?logo=bookstack&style=flat)](./docs/sources)
+
+* [Connect Okta](./docs/sources/okta.md#connect)
+<!--
+* [Connect GitHub](./docs/sources/github.md#connect)
+* [Connect Google](./docs/sources/google.md#connect)
+* [Connect Azure AD](./docs/sources/azure-ad.md#connect)
+* [Connect GitLab](./docs/sources/gitlab.md#connect)
+-->
+
+### Connect additional infrastructure
+
+[![destinations](https://img.shields.io/badge/docs-destinations-green?logo=bookstack&style=flat)](./docs/destinations)
+
+* [Connect Kubernetes Cluster](./docs/destinations/kubernetes.md#connect)
+
+<!--
+**Databases**
+* [Connect PostgresQL](./docs/destinations/postgresql.md)
+-->
+
+<!--
+**SSH**
+* [Connect Secure Shell (SSH)](./docs/destinations/ssh.md)
+-->
+
+<!--
+Publi Cloud
+* [Connect Amazon Web Services (AWS)](./docs/destinations/aws.md)
+* [Connect Google Cloud Platform (GCP)](./docs/destinations/gcp.md)
+-->
+
+### Updating Infra
+
+```
+helm upgrade --namespace infrahq --create-namespace --repo https://helm.infrahq.com/ --values infra.yaml infra infra
+```
+
+## Contributing
+
+[![contributing](https://img.shields.io/badge/docs-contributing-green?style=flat)](./docs/contributing.md)
+[![issues](https://img.shields.io/github/issues/infrahq/infra?style=flat)](https://github.com/infrahq/infra/issues)
+[![pulls](https://img.shields.io/github/issues-pr/infrahq/infra?style=flat)](https://github.com/infrahq/infra/pulls)
 
 ## Security
-We take security very seriously. If you have found a security vulnerability please disclose it privately to us by email via [security@infrahq.com](mailto:security@infrahq.com)
+
+We take security very seriously. If you have found a security vulnerability please disclose it privately to us by email via [security@infrahq.com](mailto:security@infrahq.com).
+
+## License
+
+[![license](https://img.shields.io/badge/license-apache-blue?style=flat)](./LICENSE)
+
+## Documentation
+
+[![docs](https://img.shields.io/badge/docs-apache-green?style=flat)](./docs)
+
+* [API Reference](./docs/api.md)
+* [Infra CLI Reference](./docs/cli.md)
+* [Helm Chart Reference](./docs/helm.md)
+
+### Identity Providers
+
+* [Okta](./docs/sources/okta.md)
+<!--
+* [GitHub](./docs/sources/github.md)
+* [Google](./docs/sources/google.md)
+* [Azure AD](./docs/sources/azure-ad.md)
+-->
+
+### Infrastructure
+
+* [Kubernetes](./docs/destinations/kubernetes.md)
+<!--
+* [PostgresQL](./docs/destinations/postgresql.md)
+* [SSH](./docs/destinations/ssh.md)
+* [AWS](./docs/destinations/aws.md)
+* [GCP](./docs/destinations/gcp.md)
+-->

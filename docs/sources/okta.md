@@ -1,6 +1,7 @@
 # Okta
 
 This guide will walk you through the process of setting up Okta as an identity provider for Infra. At the end of this process you will have updated your Infra configuration with an Okta source that looks something like this:
+
 ```
 sources:
   - kind: okta
