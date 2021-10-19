@@ -73,16 +73,6 @@ spec:
               port: {{ .targetPort }}
               {{- end }}
             periodSeconds: 3
-      affinity:
-        podAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchExpressions:
-              - key: app
-                operator: In
-                values:
-                - infra-registry
-            topologyKey: kubernetes.io/hostname
       volumes:
         - name: config
           configMap:
