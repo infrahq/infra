@@ -234,7 +234,7 @@ func ImportRoleMappings(db *gorm.DB, groups []ConfigGroupMapping, users []Config
 		}
 	}
 
-	logging.L.Sugar().Debugf("importing configuration removed %d roles", len(rolesRemoved))
+	logging.L.Sugar().Debugf("importing configuration removed %d role(s)", len(rolesRemoved))
 
 	return nil
 }
