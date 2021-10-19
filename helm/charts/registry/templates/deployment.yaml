@@ -87,11 +87,11 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: infra-registry
+            name: {{ include "registry.fullname" . }}
             optional: true
         - name: data
           persistentVolumeClaim:
-            claimName: infra-registry
+            claimName: {{ include "registry.fullname" . }}
         - name: secret-registry
           secret:
             secretName: infra-registry
