@@ -140,7 +140,7 @@ func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 func (u *User) AfterCreate(tx *gorm.DB) error {
-	if _, _, err := ApplyUserMappings(tx, initialConfig.Users); err != nil {
+	if _, err := ApplyUserMappings(tx, initialConfig.Users); err != nil {
 		return fmt.Errorf("after create user mapping: %w", err)
 	}
 
@@ -180,11 +180,11 @@ func (d *Destination) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 func (d *Destination) AfterCreate(tx *gorm.DB) error {
-	if _, _, _, err := ApplyGroupMappings(tx, initialConfig.Groups); err != nil {
+	if _, err := ApplyGroupMappings(tx, initialConfig.Groups); err != nil {
 		return fmt.Errorf("group apply after destination create: %w", err)
 	}
 
-	if _, _, err := ApplyUserMappings(tx, initialConfig.Users); err != nil {
+	if _, err := ApplyUserMappings(tx, initialConfig.Users); err != nil {
 		return fmt.Errorf("user apply after destination create: %w", err)
 	}
 
@@ -213,7 +213,7 @@ func (g *Group) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 func (g *Group) AfterCreate(tx *gorm.DB) error {
-	if _, _, _, err := ApplyGroupMappings(tx, initialConfig.Groups); err != nil {
+	if _, err := ApplyGroupMappings(tx, initialConfig.Groups); err != nil {
 		return fmt.Errorf("after create group mapping: %w", err)
 	}
 

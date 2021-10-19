@@ -112,7 +112,7 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 	return db.Not(idsToKeep).Delete(&Source{}).Error
 }
 
-func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (modifiedGroupIDs, existingGroupUserIDs, modifiedRoleIDs []string, err error) {
+func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (modifiedRoleIDs []string, err error) {
 	for _, g := range groups {
 		// get the source from the datastore that this group specifies
 		var source Source
@@ -125,7 +125,7 @@ func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (modifiedGroup
 				continue
 			}
 
-			return nil, nil, nil, fmt.Errorf("group read source: %w", srcReadErr)
+			return nil, fmt.Errorf("group read source: %w", srcReadErr)
 		}
 
 		var group Group
@@ -138,13 +138,7 @@ func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (modifiedGroup
 				continue
 			}
 
-			return nil, nil, nil, fmt.Errorf("group read: %w", grpReadErr)
-		}
-
-		modifiedGroupIDs = append(modifiedGroupIDs, group.Id)
-
-		for _, u := range group.Users {
-			existingGroupUserIDs = append(existingGroupUserIDs, u.Id)
+			return nil, fmt.Errorf("group read: %w", grpReadErr)
 		}
 
 		// import the roles on this group from the datastore
@@ -154,7 +148,7 @@ func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (modifiedGroup
 
 		roles, grpRoleIDs, err = importRoles(db, g.Roles)
 		if err != nil {
-			return nil, nil, nil, fmt.Errorf("group import roles: %w", err)
+			return nil, fmt.Errorf("group import roles: %w", err)
 		}
 
 		modifiedRoleIDs = append(modifiedRoleIDs, grpRoleIDs...)
@@ -163,16 +157,16 @@ func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (modifiedGroup
 		for i, role := range roles {
 			if db.Model(&group).Where(&Role{Id: role.Id}).Association("Roles").Count() == 0 {
 				if err = db.Model(&group).Where(&Role{Id: role.Id}).Association("Roles").Append(&roles[i]); err != nil {
-					return nil, nil, nil, fmt.Errorf("group role assocations: %w", err)
+					return nil, fmt.Errorf("group role assocations: %w", err)
 				}
 			}
 		}
 	}
 
-	return modifiedGroupIDs, existingGroupUserIDs, modifiedRoleIDs, nil
+	return modifiedRoleIDs, nil
 }
 
-func ApplyUserMappings(db *gorm.DB, users []ConfigUserMapping) (modifiedUserIDs, modifiedRoleIDs []string, err error) {
+func ApplyUserMappings(db *gorm.DB, users []ConfigUserMapping) (modifiedRoleIDs []string, err error) {
 	for _, u := range users {
 		var user User
 
@@ -184,10 +178,8 @@ func ApplyUserMappings(db *gorm.DB, users []ConfigUserMapping) (modifiedUserIDs,
 				continue
 			}
 
-			return nil, nil, fmt.Errorf("read user: %w", usrReadErr)
+			return nil, fmt.Errorf("read user: %w", usrReadErr)
 		}
-
-		modifiedUserIDs = append(modifiedUserIDs, user.Id)
 
 		var roles []Role
 
@@ -196,7 +188,7 @@ func ApplyUserMappings(db *gorm.DB, users []ConfigUserMapping) (modifiedUserIDs,
 
 		roles, usrRoleIDs, err = importRoles(db, u.Roles)
 		if err != nil {
-			return nil, nil, fmt.Errorf("import user roles: %w", err)
+			return nil, fmt.Errorf("import user roles: %w", err)
 		}
 
 		modifiedRoleIDs = append(modifiedRoleIDs, usrRoleIDs...)
@@ -206,54 +198,26 @@ func ApplyUserMappings(db *gorm.DB, users []ConfigUserMapping) (modifiedUserIDs,
 		for i, role := range roles {
 			if db.Model(&user).Where(&Role{Id: role.Id}).Association("Roles").Count() == 0 {
 				if err = db.Model(&user).Where(&Role{Id: role.Id}).Association("Roles").Append(&roles[i]); err != nil {
-					return nil, nil, fmt.Errorf("user role associations: %w", err)
+					return nil, fmt.Errorf("user role associations: %w", err)
 				}
 			}
 		}
 	}
 
-	return modifiedUserIDs, modifiedRoleIDs, nil
+	return modifiedRoleIDs, nil
 }
 
 // ImportRoleMappings iterates over user and group config and applies a role mapping to them
 func ImportRoleMappings(db *gorm.DB, groups []ConfigGroupMapping, users []ConfigUserMapping) error {
-	groupIDs, groupUserIDs, groupRoleIDs, err := ApplyGroupMappings(db, groups)
+	groupRoleIDs, err := ApplyGroupMappings(db, groups)
 	if err != nil {
 		return fmt.Errorf("apply group mappings: %w", err)
 	}
 
-	var groupsRemoved []Group
-	if err := db.Not(groupIDs).Find(&groupsRemoved).Error; err != nil {
-		return fmt.Errorf("find removed config groups: %w", err)
-	}
-
-	if len(groupsRemoved) > 0 {
-		if err := db.Delete(groupsRemoved).Error; err != nil {
-			return fmt.Errorf("delete removed config groups: %w", err)
-		}
-	}
-
-	logging.L.Sugar().Debugf("importing configuration removed %d groups", len(groupsRemoved))
-
-	userIDs, userRoleIDs, err := ApplyUserMappings(db, users)
+	userRoleIDs, err := ApplyUserMappings(db, users)
 	if err != nil {
 		return fmt.Errorf("apply user mappings: %w", err)
 	}
-
-	userIDs = append(userIDs, groupUserIDs...)
-
-	var usersRemoved []User
-	if err := db.Not(userIDs).Find(&usersRemoved).Error; err != nil {
-		return fmt.Errorf("find removed config users: %w", err)
-	}
-
-	if len(usersRemoved) > 0 {
-		if err := db.Delete(usersRemoved).Error; err != nil {
-			return fmt.Errorf("delete removed config users: %w", err)
-		}
-	}
-
-	logging.L.Sugar().Debugf("importing configuration removed %d users", len(usersRemoved))
 
 	var roleIDs []string
 	roleIDs = append(roleIDs, groupRoleIDs...)
