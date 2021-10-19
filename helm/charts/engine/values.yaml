@@ -1,6 +1,7 @@
 name: ""
 registry: ""
 apiKey: ""
+validateBeforeRegister: true
 
 pod:
   annotations: {}
