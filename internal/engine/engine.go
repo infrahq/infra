@@ -237,6 +237,21 @@ func Run(options Options) error {
 		}
 	}
 
+	k8s, err := kubernetes.NewKubernetes()
+	if err != nil {
+		return err
+	}
+
+	if options.Registry == "" {
+		registry, err := k8s.Service("registry")
+		if err != nil {
+			return err
+		}
+
+		metadata := registry.ObjectMeta
+		options.Registry = fmt.Sprintf("%s.%s", metadata.Name, metadata.Namespace)
+	}
+
 	u, err := urlx.Parse(options.Registry)
 	if err != nil {
 		return err
@@ -256,11 +271,6 @@ func Run(options Options) error {
 	}
 
 	client := api.NewAPIClient(config)
-
-	k8s, err := kubernetes.NewKubernetes()
-	if err != nil {
-		return err
-	}
 
 	name := options.Name
 	if name == "" {

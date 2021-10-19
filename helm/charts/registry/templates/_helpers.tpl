@@ -34,6 +34,7 @@ Create chart name and version as used by the chart label.
 Common labels
 */}}
 {{- define "registry.labels" -}}
+infrahq.com/flavor: registry
 helm.sh/chart: {{ include "registry.chart" . }}
 {{ include "registry.selectorLabels" . }}
 {{- if .Chart.AppVersion }}

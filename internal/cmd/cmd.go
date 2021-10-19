@@ -309,7 +309,7 @@ func newEngineCmd() (*cobra.Command, error) {
 		Short: "Start Infra Engine",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if options.Registry == "" {
-				return errors.New("registry not specified (--registry or INFRA_ENGINE_REGISTRY)")
+				logging.L.Warn("registry not specified; will attempt to infer from services")
 			}
 			if options.Registry != "infra" && options.APIKey == "" {
 				return errors.New("api-key not specified (--api-key or ENGINE_API_KEY)")

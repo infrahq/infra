@@ -34,6 +34,7 @@ Create chart name and version as used by the chart label.
 Common labels
 */}}
 {{- define "engine.labels" -}}
+infrahq.com/flavor: engine
 helm.sh/chart: {{ include "engine.chart" . }}
 {{ include "engine.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
