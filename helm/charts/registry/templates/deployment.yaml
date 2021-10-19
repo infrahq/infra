@@ -45,30 +45,30 @@ spec:
             - "--enable-crash-reporting"
             - {{ .Values.crashReporting.enabled | quote }}
           env:
-            - name: INFRA_REGISTRY_ROOT_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: infra-registry
-                  key: rootApiKey
-                  optional: true
-            - name: ENGINE_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: infra-registry
-                  key: engineApiKey
-                  optional: true
             - name: INFRA_LOG_LEVEL
               value: {{ .Values.logLevel | default "info" }}
             - name: INFRA_SYNC_INTERVAL_SECONDS
               value: "30"
+            - name: INFRA_ROOT_SECRET
+              value: 'file:///var/run/secrets/infrahq.com/registry/root-key'
+            - name: INFRA_ENGINE_SECRET
+              value: 'file:///var/run/secrets/infrahq.com/engine/engine-key'
           ports:
-            - containerPort: 80
-            - containerPort: 443
+{{- range .Values.service.ports }}
+            - name: {{ .name }}
+              containerPort: {{ .targetPort }}
+{{- end }}
           volumeMounts:
-            - name: data
-              mountPath: /var/run/infra/data
             - name: config
               mountPath: /var/run/infra/config
+            - name: data
+              mountPath: /var/run/infra/data
+            - name: secret-registry
+              mountPath: /var/run/secrets/infrahq.com/registry
+              readOnly: true
+            - name: secret-engine
+              mountPath: /var/run/secrets/infrahq.com/engine
+              readOnly: true
           readinessProbe:
             httpGet:
               {{- with first .Values.service.ports }}
@@ -92,3 +92,9 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: infra-registry
+        - name: secret-registry
+          secret:
+            secretName: infra-registry
+        - name: secret-engine
+          secret:
+            secretName: infra-engine

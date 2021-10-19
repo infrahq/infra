@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -264,8 +263,8 @@ func newRegistryCmd() (*cobra.Command, error) {
 	defaultInfraHome := filepath.Join("~", ".infra")
 
 	cmd.Flags().StringVarP(&options.ConfigPath, "config", "c", "", "config file")
-	cmd.Flags().StringVar(&options.RootAPIKey, "root-api-key", os.Getenv("INFRA_REGISTRY_ROOT_API_KEY"), "the root api key for privileged actions")
-	cmd.Flags().StringVar(&options.EngineApiKey, "engine-api-key", os.Getenv("ENGINE_API_KEY"), "initial api key for adding destinations")
+	cmd.Flags().StringVar(&options.RootSecret, "root-secret", os.Getenv("INFRA_ROOT_SECRET"), "secret containing root key")
+	cmd.Flags().StringVar(&options.EngineSecret, "engine-secret", os.Getenv("INFRA_ENGINE_SECRET"), "secret containing registration key")
 	cmd.Flags().StringVar(&options.DBPath, "db", filepath.Join(defaultInfraHome, "infra.db"), "path to database file")
 	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(defaultInfraHome, "cache"), "path to directory to cache tls self-signed and Let's Encrypt certificates")
 	cmd.Flags().BoolVar(&options.UI, "ui", false, "enable ui")
@@ -309,11 +308,13 @@ func newEngineCmd() (*cobra.Command, error) {
 		Short: "Start Infra Engine",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if options.Registry == "" {
-				logging.L.Warn("registry not specified; will attempt to infer from services")
+				logging.L.Warn("registry not specified; will try to get from Kubernetes")
 			}
-			if options.Registry != "infra" && options.APIKey == "" {
-				return errors.New("api-key not specified (--api-key or ENGINE_API_KEY)")
+
+			if options.EngineSecret == "" {
+				return fmt.Errorf("'--engine-secret' not specified")
 			}
+
 			return engine.Run(options)
 		},
 	}
@@ -324,7 +325,7 @@ func newEngineCmd() (*cobra.Command, error) {
 	cmd.Flags().StringVarP(&options.Registry, "registry", "r", os.Getenv("INFRA_ENGINE_REGISTRY"), "registry hostname")
 	cmd.Flags().StringVarP(&options.Name, "name", "n", os.Getenv("INFRA_ENGINE_NAME"), "cluster name")
 	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(defaultInfraHome, "cache"), "path to directory to cache tls self-signed and Let's Encrypt certificates")
-	cmd.Flags().StringVar(&options.APIKey, "api-key", os.Getenv("ENGINE_API_KEY"), "api key")
+	cmd.Flags().StringVar(&options.EngineSecret, "engine-secret", os.Getenv("INFRA_ENGINE_SECRET"), "secret containing registration key")
 
 	if filepath.Dir(options.TLSCache) == defaultInfraHome {
 		infraDir, err := infraHomeDir()

@@ -1,6 +1,8 @@
 storage: 1Gi
-engineApiKey: ""
 config: null
+
+engine:
+  apiKey: ""
 
 pod:
   annotations: {}

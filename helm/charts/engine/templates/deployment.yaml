@@ -39,38 +39,38 @@ spec:
               containerPort: {{ .targetPort }}
 {{- end }}
           env:
-{{- with .Values.name }}
-            - name: INFRA_ENGINE_NAME
-              value: {{ . | quote }}
-{{- end }}
-            - name: INFRA_ENGINE_REGISTRY
-              value: {{ required "Value registry is required" .Values.registry | quote }}
             - name: INFRA_LOG_LEVEL
               value: {{ .Values.logLevel | default "info" }}
-            - name: ENGINE_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: infra-engine
-                  key: api-key
-                  optional: true
+            - name: INFRA_ENGINE_NAME
+              value: {{ .Values.name | quote }}
+            - name: INFRA_ENGINE_REGISTRY
+              value: {{ .Values.registry | quote }}
+            - name: INFRA_ENGINE_SECRET
+              value: 'file:///var/run/secrets/infrahq.com/engine/engine-key'
           volumeMounts:
             - name: data
               mountPath: /var/run/infra/data
+            - name: secret-engine
+              mountPath: /var/run/secrets/infrahq.com/engine
+              readOnly: true
           readinessProbe:
             httpGet:
-              scheme: HTTPS
-              path: /healthz
               {{- with first .Values.service.ports }}
+              scheme: {{ .name | upper }}
+              path: /healthz
               port: {{ .targetPort }}
               {{- end }}
           livenessProbe:
             httpGet:
-              scheme: HTTPS
-              path: /healthz
               {{- with first .Values.service.ports }}
+              scheme: {{ .name | upper }}
+              path: /healthz
               port: {{ .targetPort }}
               {{- end }}
             periodSeconds: 3
       volumes:
         - name: data
           emptyDir: {}
+        - name: secret-engine
+          secret:
+            secretName: infra-engine

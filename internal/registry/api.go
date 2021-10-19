@@ -560,7 +560,7 @@ func (a *Api) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if strings.ToLower(body.Name) == engineApiKeyName || strings.ToLower(body.Name) == rootAPIKeyName {
+	if strings.ToLower(body.Name) == engineApiKeyName || strings.ToLower(body.Name) == rootApiKeyName {
 		// this name is used for the default API key that engines use to connect to the registry
 		sendApiError(w, http.StatusBadRequest, fmt.Sprintf("cannot create an API key with the name %s, this name is reserved", body.Name))
 		return
