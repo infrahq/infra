@@ -13,9 +13,9 @@ spec:
     metadata:
       labels:
 {{- include "registry.selectorLabels" . | nindent 8 }}
-{{- with .Values.pod.annotations }}
       annotations:
         rollme: {{ randAlphaNum 5 | quote }}
+{{- with .Values.pod.annotations }}
   {{- toYaml . | nindent 8 }}
 {{- end }}
     spec:
