@@ -49,9 +49,9 @@ spec:
               value: {{ .Values.logLevel | default "info" }}
             - name: INFRA_SYNC_INTERVAL_SECONDS
               value: "30"
-            - name: INFRA_ROOT_SECRET
+            - name: INFRA_ROOT_API_KEY
               value: 'file:///var/run/secrets/infrahq.com/registry/root-key'
-            - name: INFRA_ENGINE_SECRET
+            - name: INFRA_ENGINE_API_KEY
               value: 'file:///var/run/secrets/infrahq.com/engine/engine-key'
           ports:
 {{- range .Values.service.ports }}

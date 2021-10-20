@@ -45,7 +45,7 @@ spec:
               value: {{ .Values.name | quote }}
             - name: INFRA_ENGINE_REGISTRY
               value: {{ .Values.registry | quote }}
-            - name: INFRA_ENGINE_SECRET
+            - name: INFRA_ENGINE_API_KEY
               value: 'file:///var/run/secrets/infrahq.com/engine/engine-key'
           volumeMounts:
             - name: data

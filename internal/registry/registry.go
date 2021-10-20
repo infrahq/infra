@@ -35,8 +35,8 @@ import (
 type Options struct {
 	DBPath               string
 	TLSCache             string
-	RootSecret           string
-	EngineSecret         string
+	RootApiKey           string
+	EngineApiKey         string
 	ConfigPath           string
 	UI                   bool
 	UIProxy              string
@@ -238,25 +238,32 @@ func Run(options Options) error {
 		return err
 	}
 
-	rootSecretURI, err := url.Parse(options.RootSecret)
+	rootApiKeyURI, err := url.Parse(options.RootApiKey)
 	if err != nil {
 		return err
 	}
 
-	var rootSecret []byte
-
-	switch rootSecretURI.Scheme {
+	switch rootApiKeyURI.Scheme {
+	case "":
+		// option does not have a scheme, assume it is plaintext
+		rootApiKey.Key = string(options.RootApiKey)
 	case "file":
-		rootSecret, err = ioutil.ReadFile(rootSecretURI.Path)
+		// option is a file path, read contents from the path
+		contents, err = ioutil.ReadFile(rootApiKeyURI.Path)
 		if err != nil {
 			return err
 		}
 
+		rootApiKey.Key = string(contents)
+
 	default:
-		return fmt.Errorf("unsupported secret format %s", rootSecretURI.Scheme)
+		return fmt.Errorf("unsupported secret format %s", rootApiKeyURI.Scheme)
 	}
 
-	rootApiKey.Key = string(rootSecret)
+	if len(contents) != ApiKeyLen {
+		return fmt.Errorf("invalid api key length, the key must be 24 characters")
+	}
+
 	rootApiKey.Permissions = string(api.STAR)
 
 	if err := db.Save(&rootApiKey).Error; err != nil {
@@ -268,24 +275,31 @@ func Run(options Options) error {
 		return err
 	}
 
-	engineSecretURI, err := url.Parse(options.EngineSecret)
+	engineApiKeyURI, err := url.Parse(options.EngineApiKey)
 	if err != nil {
 		return err
 	}
 
-	var engineSecret []byte
-
-	switch engineSecretURI.Scheme {
+	switch engineApiKeyURI.Scheme {
+	case "":
+		// option does not have a scheme, assume it is plaintext
+		engineApiKey.Key = string(options.EngineApiKey)
 	case "file":
-		engineSecret, err = ioutil.ReadFile(engineSecretURI.Path)
+		// option is a file path, read contents from the path
+		contents, err := ioutil.ReadFile(engineApiKeyURI.Path)
 		if err != nil {
 			return err
 		}
+
+		engineApiKey.Key = string(contents)
 	default:
-		return fmt.Errorf("unsupported secret format %s", engineSecretURI.Scheme)
+		return fmt.Errorf("unsupported secret format %s", engineApiKeyURI.Scheme)
 	}
 
-	engineApiKey.Key = string(engineSecret)
+	if len(contents) != ApiKeyLen {
+		return fmt.Errorf("invalid api key length, the key must be 24 characters")
+	}
+
 	engineApiKey.Permissions = strings.Join([]string{
 		string(api.ROLES_READ),
 		string(api.DESTINATIONS_CREATE),

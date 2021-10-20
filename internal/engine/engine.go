@@ -34,7 +34,7 @@ type Options struct {
 	Registry       string
 	Name           string
 	ForceTLSVerify bool
-	EngineSecret   string
+	EngineApiKey   string
 	TLSCache       string
 }
 
@@ -237,23 +237,28 @@ func Run(options Options) error {
 		}
 	}
 
-	// TODO: use SecretManager
-	engineSecretURI, err := url.Parse(options.EngineSecret)
+	engineApiKeyURI, err := url.Parse(options.EngineApiKey)
 	if err != nil {
 		return err
 	}
 
-	var engineSecret []byte
+	var engineApiKey string
 
-	switch engineSecretURI.Scheme {
+	switch engineApiKeyURI.Scheme {
+	case "":
+		// option does not have a scheme, assume it is plaintext
+		engineApiKey = string(options.EngineApiKey)
 	case "file":
-		engineSecret, err = ioutil.ReadFile(engineSecretURI.Path)
+		// option is a file path, read contents from the path
+		contents, err := ioutil.ReadFile(engineApiKeyURI.Path)
 		if err != nil {
 			return err
 		}
 
+		engineApiKey = string(contents)
+
 	default:
-		return fmt.Errorf("unsupported secret format %s", engineSecretURI.Scheme)
+		return fmt.Errorf("unsupported secret format %s", engineApiKeyURI.Scheme)
 	}
 
 	k8s, err := kubernetes.NewKubernetes()
@@ -279,7 +284,7 @@ func Run(options Options) error {
 	u.Scheme = "https"
 
 	ctx := context.WithValue(context.Background(), api.ContextServerVariables, map[string]string{"basePath": "v1"})
-	ctx = context.WithValue(ctx, api.ContextAccessToken, string(engineSecret))
+	ctx = context.WithValue(ctx, api.ContextAccessToken, engineApiKey)
 	config := api.NewConfiguration()
 	config.Host = u.Host
 	config.Scheme = "https"
@@ -404,7 +409,7 @@ func Run(options Options) error {
 	cache := jwkCache{
 		client: &http.Client{
 			Transport: &BearerTransport{
-				Token: string(engineSecret),
+				Token: engineApiKey,
 				Transport: &http.Transport{
 					TLSClientConfig: registryTLSConfig,
 				},
