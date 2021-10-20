@@ -8,34 +8,22 @@
 
 ## Connect
 
-[![helm](https://img.shields.io/badge/docs-helm-green?logo=bookstack&style=flat)](./docs/helm.md)
-
 Registry host and API key needs to be retrieved from the main cluster.
 
 In your main cluster context:
 
 ```
 REGISTRY_HOST=$(kubectl get service -l infrahq.com/component=registry -o jsonpath="{.items[].status.loadBalancer.ingress[]['ip', 'hostname']}")
-REGISTRY_TOKEN=$(kubectl get secret infra-engine -o jsonpath='{.data.engine-key}' | base64 --decode)
-```
-
-```yaml
-# values.yaml
----
-global:
-  registry:
-    enabled: false
-
-engine:
-  registry: $REGISTRY_HOST
-  apiKey: $REGISTRY_KEY
+REGISTRY_API_KEY=$(kubectl get secret infra-engine -o jsonpath='{.data.engine-key}' | base64 --decode)
 ```
 
 In your new cluster context:
 
 ```
-helm install --repo https://helm.infrahq.com/ --set global.registry.enabled=false infra infra
+helm install --set registry=$REGISTRY_HOST --set apiKey=REGISTRY_API_KEY infra-engine infrahq.com/engine
 ```
+
+[Helm Chart Reference](./helm.md)
 
 ## Configuring Roles
 

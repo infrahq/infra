@@ -31,8 +31,8 @@ Infra is **identity and access management** for Kubernetes. Provide any user fin
 * [Security](#security)
 * [License](#license)
 * [Documentation](#documentation)
-  * [Identity Providers](#identity-providers)
-  * [Infrastructure](#infrastructure)
+  * [Identity Sources](#identity-sources)
+  * [Infrastructure Destinations](#infrastructure-destinations)
 
 ## Quickstart
 
@@ -62,21 +62,19 @@ registry:
             - kind: role
               name: viewer
               destinations:
-                - name: my-first-cluster
+                - name: <cluster name>
                   namespace: default
-
-engine:
-  name: my-first-cluster
-  
 ```
 
 ### Install Infra
 
-[![helm](https://img.shields.io/badge/docs-helm-green?logo=bookstack&style=flat)](./docs/helm.md)
-
 ```bash
-helm install --repo https://helm.infrahq.com/ --values infra.yaml infra infra
+helm repo add infrahq https://helm.infrahq.com/
+helm repo update
+helm install -f infra.yaml infra infrahq/infra
 ```
+
+[Helm Chart Reference](./docs/helm.md)
 
 ### Install Infra CLI
 
@@ -118,8 +116,6 @@ helm install --repo https://helm.infrahq.com/ --values infra.yaml infra infra
 
 ### Access your infrastructure
 
-[![cli](https://img.shields.io/badge/docs-cli-green?logo=bookstack&style=flat)](./docs/cli.md)
-
 ```bash
 infra login <registry endpoint>
 ```
@@ -130,85 +126,35 @@ Follow the instructions on screen to login.
 TODO: add a login video
 -->
 
+[Infra CLI Reference](./docs/cli.md)
+
 ## Next Steps
-
-### Connect additional identity providers
-
-[![sources](https://img.shields.io/badge/docs-sources-green?logo=bookstack&style=flat)](./docs/sources)
-
-* [Connect Okta](./docs/sources/okta.md#connect)
-<!--
-* [Connect GitHub](./docs/sources/github.md#connect)
-* [Connect Google](./docs/sources/google.md#connect)
-* [Connect Azure AD](./docs/sources/azure-ad.md#connect)
-* [Connect GitLab](./docs/sources/gitlab.md#connect)
--->
-
-### Connect additional infrastructure
-
-[![destinations](https://img.shields.io/badge/docs-destinations-green?logo=bookstack&style=flat)](./docs/destinations)
-
-* [Connect Kubernetes Cluster](./docs/destinations/kubernetes.md#connect)
-
-<!--
-**Databases**
-* [Connect PostgresQL](./docs/destinations/postgresql.md)
--->
-
-<!--
-**SSH**
-* [Connect Secure Shell (SSH)](./docs/destinations/ssh.md)
--->
-
-<!--
-Publi Cloud
-* [Connect Amazon Web Services (AWS)](./docs/destinations/aws.md)
-* [Connect Google Cloud Platform (GCP)](./docs/destinations/gcp.md)
--->
 
 ### Updating Infra
 
 ```
-helm upgrade --namespace infrahq --create-namespace --repo https://helm.infrahq.com/ --values infra.yaml infra infra
+helm repo update
+helm upgrade -f infra.yaml infra infrahq.com/infra
 ```
 
-## Contributing
+## [Contributing](./docs/contributing.md)
 
-[![contributing](https://img.shields.io/badge/docs-contributing-green?style=flat)](./docs/contributing.md)
-[![issues](https://img.shields.io/github/issues/infrahq/infra?style=flat)](https://github.com/infrahq/infra/issues)
-[![pulls](https://img.shields.io/github/issues-pr/infrahq/infra?style=flat)](https://github.com/infrahq/infra/pulls)
-
-## Security
+## [Security](./docs/security.md)
 
 We take security very seriously. If you have found a security vulnerability please disclose it privately to us by email via [security@infrahq.com](mailto:security@infrahq.com).
 
-## License
+## [License](./LICENSE)
 
-[![license](https://img.shields.io/badge/license-apache-blue?style=flat)](./LICENSE)
-
-## Documentation
-
-[![docs](https://img.shields.io/badge/docs-apache-green?style=flat)](./docs)
+## [Documentation](./docs)
 
 * [API Reference](./docs/api.md)
 * [Infra CLI Reference](./docs/cli.md)
 * [Helm Chart Reference](./docs/helm.md)
 
-### Identity Providers
+### [Identity Sources](./docs/sources)
 
 * [Okta](./docs/sources/okta.md)
-<!--
-* [GitHub](./docs/sources/github.md)
-* [Google](./docs/sources/google.md)
-* [Azure AD](./docs/sources/azure-ad.md)
--->
 
-### Infrastructure
+### [Infrastructure Destinations](./docs/destinations)
 
 * [Kubernetes](./docs/destinations/kubernetes.md)
-<!--
-* [PostgresQL](./docs/destinations/postgresql.md)
-* [SSH](./docs/destinations/ssh.md)
-* [AWS](./docs/destinations/aws.md)
-* [GCP](./docs/destinations/gcp.md)
--->
