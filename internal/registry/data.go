@@ -140,20 +140,35 @@ func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 func (u *User) AfterCreate(tx *gorm.DB) error {
-	return ImportUserMapping(tx, initialConfig.Users)
+	if _, err := ApplyUserMappings(tx, initialConfig.Users); err != nil {
+		return fmt.Errorf("after create user mapping: %w", err)
+	}
+
+	return nil
 }
 
 // TODO (jmorganca): use foreign constraints instead?
 func (u *User) BeforeDelete(tx *gorm.DB) error {
 	if err := tx.Model(u).Association("Sources").Clear(); err != nil {
-		return err
+		return fmt.Errorf("user associations before delete: %w", err)
 	}
 
 	if err := tx.Where(&Token{UserId: u.Id}).Delete(&Token{}).Error; err != nil {
-		return err
+		return fmt.Errorf("delete user tokens before user: %w", err)
 	}
 
-	return tx.Model(u).Association("Roles").Clear()
+	logging.L.Sugar().Debugf("deleting user: %s", u.Id)
+
+	var roles []Role
+	if err := tx.Model(u).Association("Roles").Find(&roles); err != nil {
+		return fmt.Errorf("find user roles before delete: %w", err)
+	}
+
+	if err := tx.Model(u).Association("Roles").Clear(); err != nil {
+		return fmt.Errorf("clear user roles before delete: %w", err)
+	}
+
+	return cleanUnassociatedRoles(tx, roles)
 }
 
 func (d *Destination) BeforeCreate(tx *gorm.DB) (err error) {
@@ -165,11 +180,15 @@ func (d *Destination) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 func (d *Destination) AfterCreate(tx *gorm.DB) error {
-	if err := ImportGroupMapping(tx, initialConfig.Groups); err != nil {
-		return err
+	if _, err := ApplyGroupMappings(tx, initialConfig.Groups); err != nil {
+		return fmt.Errorf("group apply after destination create: %w", err)
 	}
 
-	return ImportUserMapping(tx, initialConfig.Users)
+	if _, err := ApplyUserMappings(tx, initialConfig.Users); err != nil {
+		return fmt.Errorf("user apply after destination create: %w", err)
+	}
+
+	return nil
 }
 
 // TODO (jmorganca): use foreign constraints instead?
@@ -194,15 +213,48 @@ func (g *Group) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 func (g *Group) AfterCreate(tx *gorm.DB) error {
-	return ImportGroupMapping(tx, initialConfig.Groups)
+	if _, err := ApplyGroupMappings(tx, initialConfig.Groups); err != nil {
+		return fmt.Errorf("after create group mapping: %w", err)
+	}
+
+	return nil
 }
 
 func (g *Group) BeforeDelete(tx *gorm.DB) error {
 	if err := tx.Model(g).Association("Users").Clear(); err != nil {
-		return err
+		return fmt.Errorf("clear group users before delete: %w", err)
 	}
 
-	return tx.Model(g).Association("Roles").Clear()
+	logging.L.Sugar().Debugf("deleting group: %s", g.Id)
+
+	var roles []Role
+	if err := tx.Model(g).Association("Roles").Find(&roles); err != nil {
+		return fmt.Errorf("find group roles before delete: %w", err)
+	}
+
+	if err := tx.Model(g).Association("Roles").Clear(); err != nil {
+		return fmt.Errorf("clear group roles before delete: %w", err)
+	}
+
+	return cleanUnassociatedRoles(tx, roles)
+}
+
+// cleanUnassociatedRoles deletes roles with no users/groups
+func cleanUnassociatedRoles(tx *gorm.DB, roles []Role) error {
+	for _, r := range roles {
+		usrCount := tx.Model(r).Association("Users").Count()
+		grpCount := tx.Model(r).Association("Groups").Count()
+
+		if usrCount == 0 && grpCount == 0 {
+			logging.L.Sugar().Debugf("deleting role with no associations: %s at %s", r.Id, r.DestinationId)
+
+			if err := tx.Delete(r).Error; err != nil {
+				return fmt.Errorf("delete unassociated role: %w", err)
+			}
+		}
+	}
+
+	return nil
 }
 
 func (s *Source) BeforeCreate(tx *gorm.DB) (err error) {

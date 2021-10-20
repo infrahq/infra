@@ -2,6 +2,7 @@ package registry
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -81,7 +82,7 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 
 			var source Source
 			if err := db.FirstOrCreate(&source, &Source{Kind: SourceKindOkta}).Error; err != nil {
-				return err
+				return fmt.Errorf("create config source: %w", err)
 			}
 
 			source.ClientId = s.ClientId
@@ -91,29 +92,27 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 			source.ApiToken = s.ApiToken
 
 			if err := db.Save(&source).Error; err != nil {
-				return err
+				return fmt.Errorf("save source: %w", err)
 			}
 
 			idsToKeep = append(idsToKeep, source.Id)
 		case "":
 			logging.L.Sugar().Errorf("skipping a source with no kind set in configuration")
 		default:
-			logging.L.Sugar().Errorf("skipping invalid source kind in configuration: %s" + s.Kind)
+			logging.L.Sugar().Errorf("skipping invalid source kind in configuration: %s", s.Kind)
 		}
 	}
 
 	if len(idsToKeep) == 0 {
 		logging.L.Debug("no valid sources found in configuration, ensure the required fields are specified correctly")
+		// clear the sources
+		return db.Where("1 = 1").Delete(&Source{}).Error
 	}
 
-	if err := db.Where("1 = 1").Not(idsToKeep).Delete(&Source{}).Error; err != nil {
-		return err
-	}
-
-	return nil
+	return db.Not(idsToKeep).Delete(&Source{}).Error
 }
 
-func ImportGroupMapping(db *gorm.DB, groups []ConfigGroupMapping) error {
+func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (modifiedRoleIDs []string, err error) {
 	for _, g := range groups {
 		// get the source from the datastore that this group specifies
 		var source Source
@@ -126,12 +125,12 @@ func ImportGroupMapping(db *gorm.DB, groups []ConfigGroupMapping) error {
 				continue
 			}
 
-			return srcReadErr
+			return nil, fmt.Errorf("group read source: %w", srcReadErr)
 		}
 
 		var group Group
 
-		grpReadErr := db.Where(&Group{Name: g.Name, SourceId: source.Id}).First(&group).Error
+		grpReadErr := db.Preload("Users").Where(&Group{Name: g.Name, SourceId: source.Id}).First(&group).Error
 		if grpReadErr != nil {
 			if errors.Is(grpReadErr, gorm.ErrRecordNotFound) {
 				// skip this group, if they're created these roles will be added later
@@ -139,31 +138,35 @@ func ImportGroupMapping(db *gorm.DB, groups []ConfigGroupMapping) error {
 				continue
 			}
 
-			return grpReadErr
+			return nil, fmt.Errorf("group read: %w", grpReadErr)
 		}
 
 		// import the roles on this group from the datastore
 		var roles []Role
 
-		roles, err := importRoles(db, g.Roles)
+		var grpRoleIDs []string
+
+		roles, grpRoleIDs, err = importRoles(db, g.Roles)
 		if err != nil {
-			return err
+			return nil, fmt.Errorf("group import roles: %w", err)
 		}
+
+		modifiedRoleIDs = append(modifiedRoleIDs, grpRoleIDs...)
 
 		// add the new group associations to the roles
 		for i, role := range roles {
 			if db.Model(&group).Where(&Role{Id: role.Id}).Association("Roles").Count() == 0 {
 				if err = db.Model(&group).Where(&Role{Id: role.Id}).Association("Roles").Append(&roles[i]); err != nil {
-					return err
+					return nil, fmt.Errorf("group role assocations: %w", err)
 				}
 			}
 		}
 	}
 
-	return nil
+	return modifiedRoleIDs, nil
 }
 
-func ImportUserMapping(db *gorm.DB, users []ConfigUserMapping) error {
+func ApplyUserMappings(db *gorm.DB, users []ConfigUserMapping) (modifiedRoleIDs []string, err error) {
 	for _, u := range users {
 		var user User
 
@@ -175,29 +178,68 @@ func ImportUserMapping(db *gorm.DB, users []ConfigUserMapping) error {
 				continue
 			}
 
-			return usrReadErr
+			return nil, fmt.Errorf("read user: %w", usrReadErr)
 		}
 
+		var roles []Role
+
 		// add direct user to role mappings
-		roles, err := importRoles(db, u.Roles)
+		var usrRoleIDs []string
+
+		roles, usrRoleIDs, err = importRoles(db, u.Roles)
 		if err != nil {
-			return err
+			return nil, fmt.Errorf("import user roles: %w", err)
 		}
+
+		modifiedRoleIDs = append(modifiedRoleIDs, usrRoleIDs...)
+
 		// for all roles attached to this user update their user associations now that we have made sure they exist
 		// important: do not create the association on the user, that runs an upsert that creates a concurrent write because User.AfterCreate() calls this function
 		for i, role := range roles {
 			if db.Model(&user).Where(&Role{Id: role.Id}).Association("Roles").Count() == 0 {
 				if err = db.Model(&user).Where(&Role{Id: role.Id}).Association("Roles").Append(&roles[i]); err != nil {
-					return err
+					return nil, fmt.Errorf("user role associations: %w", err)
 				}
 			}
 		}
 	}
 
+	return modifiedRoleIDs, nil
+}
+
+// ImportRoleMappings iterates over user and group config and applies a role mapping to them
+func ImportRoleMappings(db *gorm.DB, groups []ConfigGroupMapping, users []ConfigUserMapping) error {
+	groupRoleIDs, err := ApplyGroupMappings(db, groups)
+	if err != nil {
+		return fmt.Errorf("apply group mappings: %w", err)
+	}
+
+	userRoleIDs, err := ApplyUserMappings(db, users)
+	if err != nil {
+		return fmt.Errorf("apply user mappings: %w", err)
+	}
+
+	var roleIDs []string
+	roleIDs = append(roleIDs, groupRoleIDs...)
+	roleIDs = append(roleIDs, userRoleIDs...)
+
+	var rolesRemoved []Role
+	if err := db.Not(roleIDs).Find(&rolesRemoved).Error; err != nil {
+		return fmt.Errorf("find roles removed in config: %w", err)
+	}
+
+	if len(rolesRemoved) > 0 {
+		if err := db.Delete(rolesRemoved).Error; err != nil {
+			return fmt.Errorf("delete config removed role: %w", err)
+		}
+	}
+
+	logging.L.Sugar().Debugf("importing configuration removed %d role(s)", len(rolesRemoved))
+
 	return nil
 }
 
-// ImportConfig tries to import all valid fields in a config file
+// ImportConfig tries to import all valid fields in a config file and removes old config
 func ImportConfig(db *gorm.DB, bs []byte) error {
 	var config Config
 	if err := yaml.Unmarshal(bs, &config); err != nil {
@@ -207,43 +249,16 @@ func ImportConfig(db *gorm.DB, bs []byte) error {
 	initialConfig = config
 
 	return db.Transaction(func(tx *gorm.DB) error {
-		// gorm blocks global delete by default: https://gorm.io/docs/delete.html#Block-Global-Delete
-		if err := tx.Where("1 = 1").Delete(&Role{}).Error; err != nil {
-			return err
-		}
-
-		var users []User
-		if err := tx.Find(&users).Error; err != nil {
-			return err
-		}
-		if err := tx.Where("1 = 1").Delete(&users).Error; err != nil {
-			return err
-		}
-
-		var groups []Group
-		if err := tx.Find(&groups).Error; err != nil {
-			return err
-		}
-		if err := tx.Where("1 = 1").Delete(&groups).Error; err != nil {
-			return err
-		}
-
 		if err := ImportSources(tx, config.Sources); err != nil {
 			return err
 		}
 
-		if err := ImportGroupMapping(tx, config.Groups); err != nil {
-			return err
-		}
-
-		return ImportUserMapping(tx, config.Users)
+		return ImportRoleMappings(tx, config.Groups, config.Users)
 	})
 }
 
 // import roles creates roles specified in the config, or updates their associations
-func importRoles(db *gorm.DB, roles []ConfigRoleKubernetes) ([]Role, error) {
-	var rolesImported []Role
-
+func importRoles(db *gorm.DB, roles []ConfigRoleKubernetes) (rolesImported []Role, importedRoleIDs []string, err error) {
 	for _, r := range roles {
 		if r.Name == "" {
 			logging.L.Error("invalid role found in configuration, name is a required field")
@@ -268,36 +283,38 @@ func importRoles(db *gorm.DB, roles []ConfigRoleKubernetes) ([]Role, error) {
 
 			var dest Destination
 
-			err := db.Where(&Destination{Name: destination.Name}).First(&dest).Error
-			if err != nil {
-				if errors.Is(err, gorm.ErrRecordNotFound) {
+			destErr := db.Where(&Destination{Name: destination.Name}).First(&dest).Error
+			if destErr != nil {
+				if errors.Is(destErr, gorm.ErrRecordNotFound) {
 					// when a destination is added then the config import will be retried, skip for now
 					logging.L.Debug("skipping role binding for destination in config import that has not yet been discovered")
 					continue
 				}
 
-				return nil, err
+				return nil, nil, fmt.Errorf("find role destination: %w", destErr)
 			}
 
 			if len(destination.Namespaces) > 0 {
 				for _, namespace := range destination.Namespaces {
 					var role Role
 					if err = db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, Namespace: namespace, DestinationId: dest.Id}).Error; err != nil {
-						return nil, err
+						return nil, nil, fmt.Errorf("group read source: %w", err)
 					}
 
 					rolesImported = append(rolesImported, role)
+					importedRoleIDs = append(importedRoleIDs, role.Id)
 				}
 			} else {
 				var role Role
 				if err = db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, DestinationId: dest.Id}).Error; err != nil {
-					return nil, err
+					return nil, nil, fmt.Errorf("role find create: %w", err)
 				}
 
 				rolesImported = append(rolesImported, role)
+				importedRoleIDs = append(importedRoleIDs, role.Id)
 			}
 		}
 	}
 
-	return rolesImported, nil
+	return rolesImported, importedRoleIDs, nil
 }

@@ -8,22 +8,22 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
 )
 
 var db *gorm.DB
 
 var (
-	fakeOktaSource = Source{Kind: SourceKindOkta, Domain: "test.example.com", ClientSecret: "okta-secrets/client-secret", ApiToken: "okta-secrets/api-token"}
-	adminUser      = User{Id: "001", Email: "admin@example.com"}
-	standardUser   = User{Id: "002", Email: "user@example.com"}
-	iosDevUser     = User{Id: "003", Email: "woz@example.com"}
-	iosDevGroup    = Group{Name: "ios-developers"}
-	macAdminGroup  = Group{Name: "mac-admins"}
-	clusterA       = Destination{Name: "cluster-AAA"}
-	clusterB       = Destination{Name: "cluster-BBB"}
-	clusterC       = Destination{Name: "cluster-CCC"}
+	fakeOktaSource  = Source{Id: "001", Kind: SourceKindOkta, Domain: "test.example.com", ClientSecret: "okta-secrets/client-secret", ApiToken: "okta-secrets/api-token"}
+	adminUser       = User{Id: "001", Email: "admin@example.com"}
+	standardUser    = User{Id: "002", Email: "user@example.com"}
+	iosDevUser      = User{Id: "003", Email: "woz@example.com"}
+	iosDevGroup     = Group{Name: "ios-developers", SourceId: fakeOktaSource.Id}
+	macAdminGroup   = Group{Name: "mac-admins", SourceId: fakeOktaSource.Id}
+	notInConfigRole = Role{Name: "does-not-exist"}
+	clusterA        = Destination{Name: "cluster-AAA"}
+	clusterB        = Destination{Name: "cluster-BBB"}
+	clusterC        = Destination{Name: "cluster-CCC"}
 )
 
 func setup() error {
@@ -87,8 +87,6 @@ func setup() error {
 		return err
 	}
 
-	iosDevGroup := &Group{Name: "ios-developers", SourceId: fakeOktaSource.Id}
-
 	err = db.Create(&iosDevGroup).Error
 	if err != nil {
 		return err
@@ -101,30 +99,12 @@ func setup() error {
 		return err
 	}
 
-	err = db.Create(&Group{Name: "mac-admins", SourceId: fakeOktaSource.Id}).Error
+	err = db.Create(&macAdminGroup).Error
 	if err != nil {
 		return err
 	}
 
-	// need to do the config import here so that the manual test modifications are not deleted
-	var config Config
-	if err := yaml.Unmarshal(confFile, &config); err != nil {
-		return err
-	}
-
-	initialConfig = config
-
-	return db.Transaction(func(tx *gorm.DB) error {
-		if err := ImportSources(tx, config.Sources); err != nil {
-			return err
-		}
-
-		if err := ImportGroupMapping(tx, config.Groups); err != nil {
-			return err
-		}
-
-		return ImportUserMapping(tx, config.Users)
-	})
+	return ImportConfig(db, confFile)
 }
 
 func TestMain(m *testing.M) {
@@ -175,6 +155,12 @@ func TestImportRolesForUnknownDestinationsAreIgnored(t *testing.T) {
 			t.Errorf("Created role for destination which does not exist: " + role.DestinationId)
 		}
 	}
+}
+
+func TestImportRemovesUnusedRoles(t *testing.T) {
+	var unused Role
+	err := db.Where(&Role{Name: notInConfigRole.Name}).First(&unused).Error
+	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
 }
 
 func TestExistingSourceIsOverridden(t *testing.T) {
