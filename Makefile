@@ -14,7 +14,7 @@ test-all:
 	go test ./...
 
 .PHONY: helm
-helm: helm/registry.tgz helm/engine.tgz helm/infra.tgz
+helm: helm/engine.tgz helm/infra.tgz
 	helm repo index helm
 
 helm/%.tgz: helm/charts/%
@@ -26,7 +26,7 @@ helm/charts/infra/charts:
 helm/charts/infra/charts/%.tgz: helm/%.tgz helm/charts/infra/charts/
 	ln -sf $(realpath $<) $(@D)
 
-helm/infra.tgz: helm/charts/infra/charts/registry-$(tag).tgz helm/charts/infra/charts/engine-$(tag).tgz
+helm/infra.tgz: helm/charts/infra/charts/engine-$(tag).tgz
 
 .PHONY: docs
 docs:

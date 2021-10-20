@@ -1,10 +1,9 @@
 apiVersion: v2
 name: infra
-description: A Helm chart for Kubernetes
+description: Infra Registry
 type: application
 version: 0.0.0-development
-appVersion: infra-chart-tag
+appVersion: 0.0.0-development
 
 dependencies:
-  - name: registry
   - name: engine
