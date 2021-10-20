@@ -14,19 +14,22 @@ test-all:
 	go test ./...
 
 .PHONY: helm
-helm: helm/clean helm/engine.tgz helm/infra.tgz
+helm: helm/engine.tgz helm/infra.tgz
 	helm repo index helm
 
 helm/%.tgz: helm/charts/%
-	helm package -d helm $< --version $(tag) --app-version $(tag)
+	helm package -d $(@D) $< --version $(tag) --app-version $(tag)
 
-helm/charts/infra/charts:
+helm/charts/infra/charts/:
 	mkdir -p $@
 
 helm/charts/infra/charts/%.tgz: helm/%.tgz helm/charts/infra/charts/
 	ln -sf $(realpath $<) $(@D)
 
 helm/infra.tgz: helm/charts/infra/charts/engine-$(tag).tgz
+
+helm/lint: helm
+	helm lint helm/charts/*
 
 helm/clean:
 	$(RM) -r helm/*.tgz helm/charts/infra/charts
