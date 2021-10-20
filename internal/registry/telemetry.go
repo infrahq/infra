@@ -19,8 +19,10 @@ func NewTelemetry(db *gorm.DB) (*Telemetry, error) {
 		return nil, errors.New("db cannot be nil")
 	}
 
+	enabled := internal.TelemetryWriteKey != ""
+
 	return &Telemetry{
-		enabled: true,
+		enabled: enabled,
 		client:  analytics.New(internal.TelemetryWriteKey),
 		db:      db,
 	}, nil
