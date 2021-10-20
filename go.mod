@@ -14,7 +14,6 @@ require (
 	github.com/getsentry/sentry-go v0.11.0
 	github.com/go-chi/chi v1.5.4
 	github.com/go-playground/validator/v10 v10.9.0
-	github.com/gofrs/flock v0.8.1
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/goreleaser/goreleaser v0.179.0
 	github.com/gorilla/handlers v1.5.1

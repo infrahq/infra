@@ -10,7 +10,6 @@ import (
 
 	"github.com/infrahq/infra/internal/api"
 	"github.com/spf13/cobra"
-	"golang.org/x/term"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientauthenticationv1beta1 "k8s.io/client-go/pkg/apis/clientauthentication/v1beta1"
 )
@@ -35,11 +34,11 @@ func tokenCreate(destination string) error {
 	execCredential := &clientauthenticationv1beta1.ExecCredential{}
 
 	err := getCache("tokens", destination, execCredential)
-	if err != nil {
+	if !os.IsNotExist(err) && err != nil {
 		return err
 	}
 
-	if isExpired(execCredential) {
+	if os.IsNotExist(err) || isExpired(execCredential) {
 		client, err := apiClientFromConfig()
 		if err != nil {
 			return err
@@ -56,13 +55,9 @@ func tokenCreate(destination string) error {
 		if err != nil {
 			switch res.StatusCode {
 			case http.StatusForbidden:
-				if !term.IsTerminal(int(os.Stdin.Fd())) {
-					return &ErrUnauthenticated{}
-				}
-
 				fmt.Fprintln(os.Stderr, "Session has expired.")
 
-				if err = login("", false, LoginOptions{}); err != nil {
+				if err = login(LoginOptions{Current: true}); err != nil {
 					return err
 				}
 
@@ -113,11 +108,11 @@ func getCache(path, name string, obj interface{}) error {
 
 	fullPath := filepath.Join(path, name)
 
-	f, err := os.Open(fullPath)
-	if os.IsNotExist(err) {
-		return nil
+	if _, err := os.Stat(fullPath); err != nil {
+		return err
 	}
 
+	f, err := os.Open(fullPath)
 	if err != nil {
 		return err
 	}
