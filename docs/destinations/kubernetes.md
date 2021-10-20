@@ -16,7 +16,7 @@ In your main cluster context:
 
 ```
 REGISTRY_HOST=$(kubectl get service -l infrahq.com/flavor=registry -o jsonpath="{.items[].status.loadBalancer.ingress[]['ip', 'hostname']}")
-REGISTYR_TOKEN=$(kubectl get secret infra-engine -o jsonpath='{.data.engine-key}' | base64 --decode)
+REGISTRY_TOKEN=$(kubectl get secret infra-engine -o jsonpath='{.data.engine-key}' | base64 --decode)
 ```
 
 ```yaml
