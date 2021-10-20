@@ -20,13 +20,7 @@ REGISTRY_API_KEY=$(kubectl get secret infra-engine -o jsonpath='{.data.engine-ke
 In your new cluster context:
 
 ```
-helm install --set registry=$REGISTRY_HOST --set apiKey=REGISTRY_API_KEY infra-engine infrahq.com/engine
+helm install -n infrahq --create-namespace --set registry=$REGISTRY_HOST --set apiKey=REGISTRY_API_KEY infra-engine infrahq.com/engine
 ```
 
 [Helm Chart Reference](./helm.md)
-
-## Configuring Roles
-
-<!--
-TODO
--->

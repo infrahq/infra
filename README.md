@@ -71,7 +71,7 @@ registry:
 ```bash
 helm repo add infrahq https://helm.infrahq.com/
 helm repo update
-helm install -f infra.yaml infra infrahq/infra
+helm install -n infrahq --create-namespace -f infra.yaml infra infrahq/infra
 ```
 
 [Helm Chart Reference](./docs/helm.md)
@@ -115,6 +115,34 @@ helm install -f infra.yaml infra infrahq/infra
 </details>
 
 ### Access your infrastructure
+
+First you need to get your registry endpoint. This step may be different depending on your service type.
+
+#### Ingress
+
+```
+$ INFRA_REGISTRY=$(kubectl -n infrahq get ingress -l infrahq.com/component=registry -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
+```
+
+#### LoadBalancer
+
+Note: It may take a few minutes for the LoadBalancer endpoint to be assigned. You can watch the status of the service with:
+
+```
+$ kubectl -n infrahq get services -l infrahq.com/component=registry -w
+```
+
+```
+$ INFRA_REGISTRY=$(kubectl -n infrahq get services -l infrahq.com/component=registry -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
+```
+
+#### ClusterIP
+
+```
+$ CONTAINER_PORT=$(kubectl -n infrahq get services -l infrahq.com/component=registry -o jsonpath="{.items[].spec.ports[0].port}")
+$ kubectl -n infrahq port-forward service/infra-registry 8080:$CONTAINER_PORT &
+$ REGISTRY_ENDPOINT='localhost:8080'
+```
 
 ```bash
 infra login <registry endpoint>
