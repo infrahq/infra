@@ -7,5 +7,4 @@ appVersion: infra-chart-tag
 
 dependencies:
   - name: registry
-    condition: global.registry.enabled
   - name: engine
