@@ -629,8 +629,8 @@ func (k *Kubernetes) CA() ([]byte, error) {
 	return contents, nil
 }
 
-// Find the first suitable Service, filtering on infrahq.com/flavor
-func (k *Kubernetes) Service(flavor string) (*corev1.Service, error) {
+// Find the first suitable Service, filtering on infrahq.com/component
+func (k *Kubernetes) Service(component string) (*corev1.Service, error) {
 	clientset, err := kubernetes.NewForConfig(k.Config)
 	if err != nil {
 		return nil, err
@@ -642,14 +642,14 @@ func (k *Kubernetes) Service(flavor string) (*corev1.Service, error) {
 	}
 
 	services, err := clientset.CoreV1().Services(namespace).List(context.Background(), metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("infrahq.com/flavor=%s", flavor),
+		LabelSelector: fmt.Sprintf("infrahq.com/component=%s", component),
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	if len(services.Items) == 0 {
-		return nil, fmt.Errorf("no service found for flavor %s", flavor)
+		return nil, fmt.Errorf("no service found for component %s", component)
 	}
 
 	return &services.Items[0], nil
