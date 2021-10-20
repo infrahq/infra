@@ -4,11 +4,11 @@
 
 ## Introduction
 
-Infra is **identity and access management** for Kubernetes. Provide any user fine-grained access to Kubernetes clusters via existing identity providers such as Okta, Google Accounts, Azure Active Directory and more.
+Infra is **identity and access management** for your cloud infrastructure. It puts the power of fine-grained access to infrastructure like Kubernetes in your hands via existing identity providers such as Okta, Google Accounts, Azure Active Directory and more.
 
 **Features**:
 * Single-command access: `infra login`
-* No more out-of-sync `kubeconfig` files
+* No more out-of-sync user configurations
 * Fine-grained role assignment
 * Onboard and offboard users via Okta (Azure AD, Google, GitHub coming soon)
 * Audit logs for who did what, when (coming soon)
@@ -31,19 +31,35 @@ Infra is **identity and access management** for Kubernetes. Provide any user fin
 * [Security](#security)
 * [License](#license)
 * [Documentation](#documentation)
-  * [Identity Sources](#identity-sources)
-  * [Infrastructure Destinations](#infrastructure-destinations)
 
 ## Quickstart
 
 **Prerequisites:**
 * [Helm](https://helm.sh/)
 
-### Create your first Infra configuration
+### Install Infra
 
-This example uses Okta and grants the "Everyone" group read-only access to the default namespace. See [Okta](./docs/sources/okta.md) for detailed Okta configuration steps.
+```bash
+helm repo add infrahq https://helm.infrahq.com/
+helm repo update
+helm install -n infrahq --create-namespace infra infrahq/infra
+```
 
-#### Example
+[Helm Chart Reference](./docs/helm.md)
+
+### Configuring Infra
+
+This example confiruation uses Okta and grants the "Everyone" group read-only access to the default namespace. You will need:
+
+* Okta domain
+* Okta client ID
+* Okta client secret
+* Okta API token
+* Cluster name
+
+See [Okta](./docs/sources/okta.md) for detailed Okta configuration steps.
+
+Cluster name is auto-discovered or can be set statically in Helm with `engine.name`.
 
 ```yaml
 # infra.yaml
@@ -66,15 +82,12 @@ registry:
                   namespace: default
 ```
 
-### Install Infra
+### Update Infra
 
-```bash
-helm repo add infrahq https://helm.infrahq.com/
-helm repo update
-helm install -n infrahq --create-namespace -f infra.yaml infra infrahq/infra
 ```
-
-[Helm Chart Reference](./docs/helm.md)
+helm repo update
+helm upgrade -n infrahq -f infra.yaml infra infrahq/infra
+```
 
 ### Install Infra CLI
 
@@ -121,7 +134,7 @@ First you need to get your registry endpoint. This step may be different dependi
 #### Ingress
 
 ```
-$ INFRA_REGISTRY=$(kubectl -n infrahq get ingress -l infrahq.com/component=registry -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
+$ INFRA_HOST=$(kubectl -n infrahq get ingress -l infrahq.com/component=registry -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
 ```
 
 #### LoadBalancer
@@ -133,7 +146,7 @@ $ kubectl -n infrahq get services -l infrahq.com/component=registry -w
 ```
 
 ```
-$ INFRA_REGISTRY=$(kubectl -n infrahq get services -l infrahq.com/component=registry -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
+$ INFRA_HOST=$(kubectl -n infrahq get services -l infrahq.com/component=registry -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
 ```
 
 #### ClusterIP
@@ -141,11 +154,11 @@ $ INFRA_REGISTRY=$(kubectl -n infrahq get services -l infrahq.com/component=regi
 ```
 $ CONTAINER_PORT=$(kubectl -n infrahq get services -l infrahq.com/component=registry -o jsonpath="{.items[].spec.ports[0].port}")
 $ kubectl -n infrahq port-forward service/infra-registry 8080:$CONTAINER_PORT &
-$ REGISTRY_ENDPOINT='localhost:8080'
+$ INFRA_HOST='localhost:8080'
 ```
 
 ```bash
-infra login <registry endpoint>
+infra login $INFRA_HOST
 ```
 
 Follow the instructions on screen to login.
@@ -157,6 +170,16 @@ TODO: add a login video
 [Infra CLI Reference](./docs/cli.md)
 
 ## Next Steps
+
+### Connect additional identity sources
+
+* [Sources](./docs/sources)
+  * [Okta](./docs/sources/okta.md)
+
+### Connect additional infrastructure destinations
+
+* [Destinations](./docs/destinations)
+  * [Kubernetes](./docs/destinations/kubernetes.md)
 
 ### Updating Infra
 
@@ -178,11 +201,3 @@ We take security very seriously. If you have found a security vulnerability plea
 * [API Reference](./docs/api.md)
 * [Infra CLI Reference](./docs/cli.md)
 * [Helm Chart Reference](./docs/helm.md)
-
-### [Identity Sources](./docs/sources)
-
-* [Okta](./docs/sources/okta.md)
-
-### [Infrastructure Destinations](./docs/destinations)
-
-* [Kubernetes](./docs/destinations/kubernetes.md)
