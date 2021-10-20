@@ -270,8 +270,8 @@ func newRegistryCmd() (*cobra.Command, error) {
 	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(defaultInfraHome, "cache"), "path to directory to cache tls self-signed and Let's Encrypt certificates")
 	cmd.Flags().BoolVar(&options.UI, "ui", false, "enable ui")
 	cmd.Flags().StringVar(&options.UIProxy, "ui-proxy", "", "proxy ui requests to this host")
-	cmd.Flags().BoolVar(&options.EnableTelemetry, "enable-telemetry", true, "enable telemetry")
-	cmd.Flags().BoolVar(&options.EnableCrashReporting, "enable-crash-reporting", true, "enable crash reporting")
+	cmd.Flags().BoolVar(&options.EnableTelemetry, "enable-telemetry", false, "enable telemetry")
+	cmd.Flags().BoolVar(&options.EnableCrashReporting, "enable-crash-reporting", false, "enable crash reporting")
 
 	infraDir, err := infraHomeDir()
 	if err != nil {

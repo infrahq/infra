@@ -5,6 +5,12 @@ config: null
 pod:
   annotations: {}
 
+telemetry:
+  enabled: true
+
+crashReporting:
+  enabled: true
+
 serviceAccount:
   create: true
   annotations: {}
