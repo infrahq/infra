@@ -40,12 +40,10 @@ spec:
             - "/var/run/infra/data/infra.db"
             - "--tls-cache"
             - "/var/run/infra/data/cache"
-{{- if .Values.telemetry.enabled }}
             - "--enable-telemetry"
-{{ end }}
-{{- if .Values.crashReporting.enabled }}
+            - {{ .Values.telemetry.enabled | quote }}
             - "--enable-crash-reporting"
-{{ end }}
+            - {{ .Values.crashReporting.enabled | quote }}
           env:
             - name: INFRA_REGISTRY_ROOT_API_KEY
               valueFrom:
