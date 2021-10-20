@@ -2,36 +2,33 @@
 
                 Welcome to Infra
 
-{{- if .Values.ingress.enabled }}
-{{- with first .Values.ingress.hosts }}
+{{- if .Values.registry.ingress.enabled }}
+{{- with first .Values.registry.ingress.hosts }}
     $ INFRA_REGISTRY={{ . }}
 {{- end }}
-{{- else if eq .Values.service.type "NodePort" }}
+{{- else if eq .Values.registry.service.type "NodePort" }}
     $ NODE_HOST=$(kubectl get nodes -o jsonpath="{.items[].status.addresses[].address}")
     $ NODE_PORT=$(kubectl -n {{ .Release.Namespace }} get services -l infrahq.com/component=registry -o jsonpath="{.items[].spec.ports[0].nodePort}")
     $ INFRA_REGISTRY=$NODE_HOST:$NODE_PORT
-{{- else if eq .Values.service.type "LoadBalancer" }}
+{{- else if eq .Values.registry.service.type "LoadBalancer" }}
 
   NOTE: It may take a few minutes for the LoadBalancer address to be assigned.
   You can watch the status of by running 'kubectl -n {{ .Release.Namespace }} get services -l infrahq.com/component=registry -w'
 
     $ INFRA_REGISTRY=$(kubectl -n {{ .Release.Namespace }} get services -l infrahq.com/component=registry -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
-{{- else if contains .Values.service.type "ClusterIP" }}
+{{- else if contains .Values.registry.service.type "ClusterIP" }}
     $ CONTAINER_PORT=$(kubectl -n {{ .Release.Namespace }} get services -l infrahq.com/component=registry -o jsonpath="{.items[].spec.ports[0].port}")
     $ echo "Visit http://127.0.0.1:8080 to use your application"
     $ kubectl -n {{ .Release.Namespace }} port-forward service/infra-registry 8080:$CONTAINER_PORT
 {{- end }}
-    $ INFRA_ENGINE_API_KEY=$(kubectl --namespace {{ .Release.Namespace }} get secrets infra-registry --template={{ "{{" }}.data.engineApiKey{{ "}}" }} | base64 -D)
-
-  To connect your first cluster, run:
-
-    $ helm install -n {{ .Release.Namespace }} infra-engine infrahq/engine --set registry=$INFRA_REGISTRY --set apiKey=$INFRA_ENGINE_API_KEY
 
   To continue, install infra-cli: https://github.com/infrahq/infra#install-infra-cli
 
   Once installed, to login, run this follow the on-screen instructions:
 
     $ infra login $INFRA_REGISTRY
+
+  To connect additional clusters, follow the steps described here: https://github.com/infrahq/infra/blob/main/docs/destinations/kubernetes.md
 
 
 *************************************************
