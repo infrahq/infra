@@ -84,6 +84,7 @@ dev: $(VALUES) helm build/docker
 	kubectl config use-context docker-desktop
 	kubectl $(NS) get secrets $(INFRA_REGISTRY_OKTA) >/dev/null
 	helm $(NS) upgrade --install --create-namespace $(patsubst %,-f %,$(VALUES)) --wait infra helm/charts/infra
+	@[ -z "$(NS)" ] || kubectl config set-context --current --namespace=$(NAMESPACE)
 	@echo Root token is $$(kubectl $(NS) get secrets infra-registry -o jsonpath='{.data.root-key}' | base64 --decode)
 
 dev/clean:
