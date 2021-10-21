@@ -41,6 +41,7 @@ var kubernetesInvalidKeyCharacters = regexp.MustCompile(`[^-._a-zA-Z0-9/]`)
 // Use secrets when you don't want to store the underlying data, eg secret tokens
 func (k *KubernetesSecretProvider) SetSecret(name string, secret []byte) error {
 	name = kubernetesInvalidKeyCharacters.ReplaceAllLiteralString(name, "_")
+
 	secretParts := strings.Split(name, "/")
 	if len(secretParts) != 2 {
 		return errors.New("invalid Kubernetes secret path specified, expected exactly 2 parts but was " + fmt.Sprint(len(secretParts)))
@@ -77,9 +78,11 @@ func (k *KubernetesSecretProvider) SetSecret(name string, secret []byte) error {
 			},
 			Data: data,
 		}, metav1.CreateOptions{})
-	}
-	if err != nil {
-		return err
+		if err != nil {
+			return fmt.Errorf("creating secret: %w", err)
+		}
+	} else if err != nil {
+		return fmt.Errorf("patching secret: %w", err)
 	}
 
 	return nil
@@ -87,6 +90,7 @@ func (k *KubernetesSecretProvider) SetSecret(name string, secret []byte) error {
 
 func (k *KubernetesSecretProvider) GetSecret(name string) (secret []byte, err error) {
 	name = kubernetesInvalidKeyCharacters.ReplaceAllLiteralString(name, "_")
+
 	secretParts := strings.Split(name, "/")
 	if len(secretParts) != 2 {
 		return nil, errors.New("invalid Kubernetes secret path specified, expected exactly 2 parts but was " + fmt.Sprint(len(secretParts)))
@@ -100,6 +104,7 @@ func (k *KubernetesSecretProvider) GetSecret(name string) (secret []byte, err er
 		if strings.Contains(err.Error(), "not found") {
 			return nil, nil
 		}
+
 		return nil, err
 	}
 

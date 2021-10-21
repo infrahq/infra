@@ -56,6 +56,7 @@ func (v *VaultSecretProvider) GetSecret(name string) ([]byte, error) {
 	if sec == nil || sec.Data == nil {
 		return nil, nil
 	}
+
 	if _, ok := sec.Data["data"]; !ok {
 		return nil, nil
 	}

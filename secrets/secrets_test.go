@@ -35,6 +35,7 @@ func TestMain(m *testing.M) {
 	result := m.Run()
 
 	teardown()
+	// nolint
 	os.Exit(result)
 }
 
@@ -176,10 +177,12 @@ func kubeConfig(t *testing.T) *rest.Config {
 	require.NoError(t, err)
 
 	server := ""
+
 	for _, cluster := range config.Clusters {
 		if cluster.Name == config.CurrentContext {
 			c := cluster.Cluster
 			server = c.Server
+
 			if len(c.CertificateAuthorityData) > 0 {
 				ca, err := base64.StdEncoding.DecodeString(c.CertificateAuthorityData)
 				require.NoError(t, err)
@@ -187,6 +190,7 @@ func kubeConfig(t *testing.T) *rest.Config {
 				require.NoError(t, err)
 				keyData, err := base64.StdEncoding.DecodeString(config.Users[0].User.ClientKeyData)
 				require.NoError(t, err)
+
 				tlsClientConfig.CAData = ca
 				tlsClientConfig.CertData = certData
 				tlsClientConfig.KeyData = keyData

@@ -14,11 +14,13 @@ func TestInvalidSecretFormats(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
+
 	testConfig := &rest.Config{
 		Host: "https://localhost",
 	}
 	clientset, err := kubernetes.NewForConfig(testConfig)
 	require.NoError(t, err)
+
 	testK8s := secrets.NewKubernetesSecretProvider(clientset, "infrahq")
 
 	_, err = testK8s.GetSecret("invalid-secret-format")
