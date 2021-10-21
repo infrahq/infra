@@ -38,7 +38,7 @@ func list() error {
 		return err
 	}
 
-	users, res, err := client.UsersApi.ListUsers(ctx).Email(config.Name).Execute()
+	users, res, err := client.UsersAPI.ListUsers(ctx).Email(config.Name).Execute()
 	if err != nil {
 		switch res.StatusCode {
 		case http.StatusForbidden:

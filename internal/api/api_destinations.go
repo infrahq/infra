@@ -24,40 +24,40 @@ var (
 	_ _context.Context
 )
 
-// DestinationsApiService DestinationsApi service
-type DestinationsApiService service
+// DestinationsAPIService DestinationsAPI service
+type DestinationsAPIService service
 
-type ApiCreateDestinationRequest struct {
+type APICreateDestinationRequest struct {
 	ctx        _context.Context
-	ApiService *DestinationsApiService
+	APIService *DestinationsAPIService
 	body       *DestinationCreateRequest
 }
 
-func (r ApiCreateDestinationRequest) Body(body DestinationCreateRequest) ApiCreateDestinationRequest {
+func (r APICreateDestinationRequest) Body(body DestinationCreateRequest) APICreateDestinationRequest {
 	r.body = &body
 	return r
 }
 
-func (r ApiCreateDestinationRequest) Execute() (Destination, *_nethttp.Response, error) {
-	return r.ApiService.CreateDestinationExecute(r)
+func (r APICreateDestinationRequest) Execute() (Destination, *_nethttp.Response, error) {
+	return r.APIService.CreateDestinationExecute(r)
 }
 
 /*
 CreateDestination Create a destination
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiCreateDestinationRequest
+ @return APICreateDestinationRequest
 */
-func (a *DestinationsApiService) CreateDestination(ctx _context.Context) ApiCreateDestinationRequest {
-	return ApiCreateDestinationRequest{
-		ApiService: a,
+func (a *DestinationsAPIService) CreateDestination(ctx _context.Context) APICreateDestinationRequest {
+	return APICreateDestinationRequest{
+		APIService: a,
 		ctx:        ctx,
 	}
 }
 
 // Execute executes the request
 //  @return Destination
-func (a *DestinationsApiService) CreateDestinationExecute(r ApiCreateDestinationRequest) (Destination, *_nethttp.Response, error) {
+func (a *DestinationsAPIService) CreateDestinationExecute(r APICreateDestinationRequest) (Destination, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodPost
 		localVarPostBody     interface{}
@@ -67,7 +67,7 @@ func (a *DestinationsApiService) CreateDestinationExecute(r ApiCreateDestination
 		localVarReturnValue  Destination
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DestinationsApiService.CreateDestination")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DestinationsAPIService.CreateDestination")
 	if err != nil {
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
@@ -144,14 +144,14 @@ func (a *DestinationsApiService) CreateDestinationExecute(r ApiCreateDestination
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiGetDestinationRequest struct {
+type APIGetDestinationRequest struct {
 	ctx        _context.Context
-	ApiService *DestinationsApiService
+	APIService *DestinationsAPIService
 	id         string
 }
 
-func (r ApiGetDestinationRequest) Execute() (Destination, *_nethttp.Response, error) {
-	return r.ApiService.GetDestinationExecute(r)
+func (r APIGetDestinationRequest) Execute() (Destination, *_nethttp.Response, error) {
+	return r.APIService.GetDestinationExecute(r)
 }
 
 /*
@@ -159,11 +159,11 @@ GetDestination Get destination by ID
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id Destination ID
- @return ApiGetDestinationRequest
+ @return APIGetDestinationRequest
 */
-func (a *DestinationsApiService) GetDestination(ctx _context.Context, id string) ApiGetDestinationRequest {
-	return ApiGetDestinationRequest{
-		ApiService: a,
+func (a *DestinationsAPIService) GetDestination(ctx _context.Context, id string) APIGetDestinationRequest {
+	return APIGetDestinationRequest{
+		APIService: a,
 		ctx:        ctx,
 		id:         id,
 	}
@@ -171,7 +171,7 @@ func (a *DestinationsApiService) GetDestination(ctx _context.Context, id string)
 
 // Execute executes the request
 //  @return Destination
-func (a *DestinationsApiService) GetDestinationExecute(r ApiGetDestinationRequest) (Destination, *_nethttp.Response, error) {
+func (a *DestinationsAPIService) GetDestinationExecute(r APIGetDestinationRequest) (Destination, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodGet
 		localVarPostBody     interface{}
@@ -181,7 +181,7 @@ func (a *DestinationsApiService) GetDestinationExecute(r ApiGetDestinationReques
 		localVarReturnValue  Destination
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DestinationsApiService.GetDestination")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DestinationsAPIService.GetDestination")
 	if err != nil {
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
@@ -254,45 +254,45 @@ func (a *DestinationsApiService) GetDestinationExecute(r ApiGetDestinationReques
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiListDestinationsRequest struct {
+type APIListDestinationsRequest struct {
 	ctx        _context.Context
-	ApiService *DestinationsApiService
+	APIService *DestinationsAPIService
 	name       *string
 	kind       *string
 }
 
 // Filter destinations by name
-func (r ApiListDestinationsRequest) Name(name string) ApiListDestinationsRequest {
+func (r APIListDestinationsRequest) Name(name string) APIListDestinationsRequest {
 	r.name = &name
 	return r
 }
 
 // Filter destinations by kind
-func (r ApiListDestinationsRequest) Kind(kind string) ApiListDestinationsRequest {
+func (r APIListDestinationsRequest) Kind(kind string) APIListDestinationsRequest {
 	r.kind = &kind
 	return r
 }
 
-func (r ApiListDestinationsRequest) Execute() ([]Destination, *_nethttp.Response, error) {
-	return r.ApiService.ListDestinationsExecute(r)
+func (r APIListDestinationsRequest) Execute() ([]Destination, *_nethttp.Response, error) {
+	return r.APIService.ListDestinationsExecute(r)
 }
 
 /*
 ListDestinations List destinations
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiListDestinationsRequest
+ @return APIListDestinationsRequest
 */
-func (a *DestinationsApiService) ListDestinations(ctx _context.Context) ApiListDestinationsRequest {
-	return ApiListDestinationsRequest{
-		ApiService: a,
+func (a *DestinationsAPIService) ListDestinations(ctx _context.Context) APIListDestinationsRequest {
+	return APIListDestinationsRequest{
+		APIService: a,
 		ctx:        ctx,
 	}
 }
 
 // Execute executes the request
 //  @return []Destination
-func (a *DestinationsApiService) ListDestinationsExecute(r ApiListDestinationsRequest) ([]Destination, *_nethttp.Response, error) {
+func (a *DestinationsAPIService) ListDestinationsExecute(r APIListDestinationsRequest) ([]Destination, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodGet
 		localVarPostBody     interface{}
@@ -302,7 +302,7 @@ func (a *DestinationsApiService) ListDestinationsExecute(r ApiListDestinationsRe
 		localVarReturnValue  []Destination
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DestinationsApiService.ListDestinations")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DestinationsAPIService.ListDestinations")
 	if err != nil {
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}

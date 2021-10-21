@@ -1,6 +1,6 @@
 ### Connect a Kubernetes cluster
 
-First, switch to the cluster context where you installed the Infra Registry, then retrieve your Registry and Api Key:
+First, switch to the cluster context where you installed the Infra Registry, then retrieve your Registry and API Key:
 
 ```
 INFRA_REGISTRY=$(kubectl -n infrahq get services -l infrahq.com/component=registry -o jsonpath="{.items.status.loadBalancer.ingress[]['ip', 'hostname']}")

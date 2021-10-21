@@ -41,14 +41,18 @@ docs:
 clean: helm/clean
 	$(RM) -r dist
 
+export GO_POST_PROCESS_FILE=bash openapi/go-post-process.sh
+
 .PHONY: openapi
-openapi:
-	@$(RM) -r ./internal/api/*.go
-	@GO_POST_PROCESS_FILE="gofmt -s -w" openapi-generator generate -i ./openapi.yaml -g go -o ./internal/api --additional-properties packageName=api,isGoSubmodule=true --enable-post-process-file > /dev/null
-	@$(RM) -r ./internal/api/api ./internal/api/.openapi-generator
-	@$(RM) -r ./internal/registry/ui/api/apis/* ./internal/registry/ui/api/models/*
-	@openapi-generator generate -i ./openapi.yaml -g typescript-fetch -o ./internal/registry/ui/api --additional-properties typescriptThreePlus=true > /dev/null
-	@$(RM) -r ./internal/registry/ui/api/.openapi-generator
+openapi: openapi/clean
+	openapi-generator-cli generate --generator-key go-client
+	openapi-generator-cli generate --generator-key typescript-client
+
+openapi/clean:
+	$(RM) -r internal/api/*.go
+	$(RM) -r internal/api/api internal/api/.openapi-generator
+	$(RM) -r internal/registry/ui/api/apis internal/registry/ui/api/models
+	$(RM) -r internal/api/.openapi-generator
 
 goreleaser:
 	@command -v goreleaser >/dev/null || { echo "install goreleaser @ https://goreleaser.com/install/#install-the-pre-compiled-binary" && exit 1; }

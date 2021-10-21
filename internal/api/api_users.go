@@ -24,17 +24,17 @@ var (
 	_ _context.Context
 )
 
-// UsersApiService UsersApi service
-type UsersApiService service
+// UsersAPIService UsersAPI service
+type UsersAPIService service
 
-type ApiGetUserRequest struct {
+type APIGetUserRequest struct {
 	ctx        _context.Context
-	ApiService *UsersApiService
+	APIService *UsersAPIService
 	id         string
 }
 
-func (r ApiGetUserRequest) Execute() (User, *_nethttp.Response, error) {
-	return r.ApiService.GetUserExecute(r)
+func (r APIGetUserRequest) Execute() (User, *_nethttp.Response, error) {
+	return r.APIService.GetUserExecute(r)
 }
 
 /*
@@ -42,11 +42,11 @@ GetUser Get user by ID
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id User ID
- @return ApiGetUserRequest
+ @return APIGetUserRequest
 */
-func (a *UsersApiService) GetUser(ctx _context.Context, id string) ApiGetUserRequest {
-	return ApiGetUserRequest{
-		ApiService: a,
+func (a *UsersAPIService) GetUser(ctx _context.Context, id string) APIGetUserRequest {
+	return APIGetUserRequest{
+		APIService: a,
 		ctx:        ctx,
 		id:         id,
 	}
@@ -54,7 +54,7 @@ func (a *UsersApiService) GetUser(ctx _context.Context, id string) ApiGetUserReq
 
 // Execute executes the request
 //  @return User
-func (a *UsersApiService) GetUserExecute(r ApiGetUserRequest) (User, *_nethttp.Response, error) {
+func (a *UsersAPIService) GetUserExecute(r APIGetUserRequest) (User, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodGet
 		localVarPostBody     interface{}
@@ -64,7 +64,7 @@ func (a *UsersApiService) GetUserExecute(r ApiGetUserRequest) (User, *_nethttp.R
 		localVarReturnValue  User
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UsersApiService.GetUser")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UsersAPIService.GetUser")
 	if err != nil {
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
@@ -137,38 +137,38 @@ func (a *UsersApiService) GetUserExecute(r ApiGetUserRequest) (User, *_nethttp.R
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiListUsersRequest struct {
+type APIListUsersRequest struct {
 	ctx        _context.Context
-	ApiService *UsersApiService
+	APIService *UsersAPIService
 	email      *string
 }
 
 // Filter results by user email
-func (r ApiListUsersRequest) Email(email string) ApiListUsersRequest {
+func (r APIListUsersRequest) Email(email string) APIListUsersRequest {
 	r.email = &email
 	return r
 }
 
-func (r ApiListUsersRequest) Execute() ([]User, *_nethttp.Response, error) {
-	return r.ApiService.ListUsersExecute(r)
+func (r APIListUsersRequest) Execute() ([]User, *_nethttp.Response, error) {
+	return r.APIService.ListUsersExecute(r)
 }
 
 /*
 ListUsers List users
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiListUsersRequest
+ @return APIListUsersRequest
 */
-func (a *UsersApiService) ListUsers(ctx _context.Context) ApiListUsersRequest {
-	return ApiListUsersRequest{
-		ApiService: a,
+func (a *UsersAPIService) ListUsers(ctx _context.Context) APIListUsersRequest {
+	return APIListUsersRequest{
+		APIService: a,
 		ctx:        ctx,
 	}
 }
 
 // Execute executes the request
 //  @return []User
-func (a *UsersApiService) ListUsersExecute(r ApiListUsersRequest) ([]User, *_nethttp.Response, error) {
+func (a *UsersAPIService) ListUsersExecute(r APIListUsersRequest) ([]User, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodGet
 		localVarPostBody     interface{}
@@ -178,7 +178,7 @@ func (a *UsersApiService) ListUsersExecute(r ApiListUsersRequest) ([]User, *_net
 		localVarReturnValue  []User
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UsersApiService.ListUsers")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UsersAPIService.ListUsers")
 	if err != nil {
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}

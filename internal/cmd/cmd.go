@@ -37,11 +37,11 @@ func errWithResponseContext(err error, res *http.Response) error {
 	return fmt.Errorf("%w (Message: %s)", err, apiErr.Message)
 }
 
-func NewApiContext(token string) context.Context {
+func NewAPIContext(token string) context.Context {
 	return context.WithValue(context.Background(), api.ContextAccessToken, token)
 }
 
-func NewApiClient(host string, skipTLSVerify bool) (*api.APIClient, error) {
+func NewAPIClient(host string, skipTLSVerify bool) (*api.APIClient, error) {
 	u, err := urlx.Parse(host)
 	if err != nil {
 		return nil, fmt.Errorf("parsing host: %w", err)
@@ -91,7 +91,7 @@ func apiContextFromConfig() (context.Context, error) {
 		return nil, ErrConfigNotFound
 	}
 
-	return NewApiContext(config.Token), nil
+	return NewAPIContext(config.Token), nil
 }
 
 func apiClientFromConfig() (*api.APIClient, error) {
@@ -104,7 +104,7 @@ func apiClientFromConfig() (*api.APIClient, error) {
 		return nil, ErrConfigNotFound
 	}
 
-	return NewApiClient(config.Host, config.SkipTLSVerify)
+	return NewAPIClient(config.Host, config.SkipTLSVerify)
 }
 
 func clientConfig() clientcmd.ClientConfig {
@@ -278,8 +278,8 @@ func newRegistryCmd() (*cobra.Command, error) {
 	defaultInfraHome := filepath.Join("~", ".infra")
 
 	cmd.Flags().StringVarP(&options.ConfigPath, "config", "c", "", "config file")
-	cmd.Flags().StringVar(&options.RootApiKey, "root-api-key", os.Getenv("INFRA_ROOT_API_KEY"), "root API key")
-	cmd.Flags().StringVar(&options.EngineApiKey, "engine-api-key", os.Getenv("INFRA_ENGINE_API_KEY"), "engine registration API key")
+	cmd.Flags().StringVar(&options.RootAPIKey, "root-api-key", os.Getenv("INFRA_ROOT_API_KEY"), "root API key")
+	cmd.Flags().StringVar(&options.EngineAPIKey, "engine-api-key", os.Getenv("INFRA_ENGINE_API_KEY"), "engine registration API key")
 	cmd.Flags().StringVar(&options.DBPath, "db", filepath.Join(defaultInfraHome, "infra.db"), "path to database file")
 	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(defaultInfraHome, "cache"), "path to directory to cache tls self-signed and Let's Encrypt certificates")
 	cmd.Flags().BoolVar(&options.UI, "ui", false, "enable ui")
@@ -326,7 +326,7 @@ func newEngineCmd() (*cobra.Command, error) {
 				logging.L.Warn("registry not specified; will try to get from Kubernetes")
 			}
 
-			if options.EngineApiKey == "" {
+			if options.EngineAPIKey == "" {
 				return fmt.Errorf("'--engine-api-key' not specified")
 			}
 
@@ -340,7 +340,7 @@ func newEngineCmd() (*cobra.Command, error) {
 	cmd.Flags().StringVarP(&options.Registry, "registry", "r", os.Getenv("INFRA_ENGINE_REGISTRY"), "registry hostname")
 	cmd.Flags().StringVarP(&options.Name, "name", "n", os.Getenv("INFRA_ENGINE_NAME"), "cluster name")
 	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(defaultInfraHome, "cache"), "path to directory to cache tls self-signed and Let's Encrypt certificates")
-	cmd.Flags().StringVar(&options.EngineApiKey, "engine-api-key", os.Getenv("INFRA_ENGINE_API_KEY"), "engine registration API key")
+	cmd.Flags().StringVar(&options.EngineAPIKey, "engine-api-key", os.Getenv("INFRA_ENGINE_API_KEY"), "engine registration API key")
 
 	if filepath.Dir(options.TLSCache) == defaultInfraHome {
 		infraDir, err := infraHomeDir()

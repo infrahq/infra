@@ -23,34 +23,34 @@ var (
 	_ _context.Context
 )
 
-// VersionApiService VersionApi service
-type VersionApiService service
+// VersionAPIService VersionAPI service
+type VersionAPIService service
 
-type ApiVersionRequest struct {
+type APIVersionRequest struct {
 	ctx        _context.Context
-	ApiService *VersionApiService
+	APIService *VersionAPIService
 }
 
-func (r ApiVersionRequest) Execute() (Version, *_nethttp.Response, error) {
-	return r.ApiService.VersionExecute(r)
+func (r APIVersionRequest) Execute() (Version, *_nethttp.Response, error) {
+	return r.APIService.VersionExecute(r)
 }
 
 /*
 Version Get version information
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiVersionRequest
+ @return APIVersionRequest
 */
-func (a *VersionApiService) Version(ctx _context.Context) ApiVersionRequest {
-	return ApiVersionRequest{
-		ApiService: a,
+func (a *VersionAPIService) Version(ctx _context.Context) APIVersionRequest {
+	return APIVersionRequest{
+		APIService: a,
 		ctx:        ctx,
 	}
 }
 
 // Execute executes the request
 //  @return Version
-func (a *VersionApiService) VersionExecute(r ApiVersionRequest) (Version, *_nethttp.Response, error) {
+func (a *VersionAPIService) VersionExecute(r APIVersionRequest) (Version, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodGet
 		localVarPostBody     interface{}
@@ -60,7 +60,7 @@ func (a *VersionApiService) VersionExecute(r ApiVersionRequest) (Version, *_neth
 		localVarReturnValue  Version
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "VersionApiService.Version")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "VersionAPIService.Version")
 	if err != nil {
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}

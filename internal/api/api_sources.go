@@ -24,17 +24,17 @@ var (
 	_ _context.Context
 )
 
-// SourcesApiService SourcesApi service
-type SourcesApiService service
+// SourcesAPIService SourcesAPI service
+type SourcesAPIService service
 
-type ApiGetSourceRequest struct {
+type APIGetSourceRequest struct {
 	ctx        _context.Context
-	ApiService *SourcesApiService
+	APIService *SourcesAPIService
 	id         string
 }
 
-func (r ApiGetSourceRequest) Execute() (Source, *_nethttp.Response, error) {
-	return r.ApiService.GetSourceExecute(r)
+func (r APIGetSourceRequest) Execute() (Source, *_nethttp.Response, error) {
+	return r.APIService.GetSourceExecute(r)
 }
 
 /*
@@ -42,11 +42,11 @@ GetSource Get source by ID
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id Source ID
- @return ApiGetSourceRequest
+ @return APIGetSourceRequest
 */
-func (a *SourcesApiService) GetSource(ctx _context.Context, id string) ApiGetSourceRequest {
-	return ApiGetSourceRequest{
-		ApiService: a,
+func (a *SourcesAPIService) GetSource(ctx _context.Context, id string) APIGetSourceRequest {
+	return APIGetSourceRequest{
+		APIService: a,
 		ctx:        ctx,
 		id:         id,
 	}
@@ -54,7 +54,7 @@ func (a *SourcesApiService) GetSource(ctx _context.Context, id string) ApiGetSou
 
 // Execute executes the request
 //  @return Source
-func (a *SourcesApiService) GetSourceExecute(r ApiGetSourceRequest) (Source, *_nethttp.Response, error) {
+func (a *SourcesAPIService) GetSourceExecute(r APIGetSourceRequest) (Source, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodGet
 		localVarPostBody     interface{}
@@ -64,7 +64,7 @@ func (a *SourcesApiService) GetSourceExecute(r ApiGetSourceRequest) (Source, *_n
 		localVarReturnValue  Source
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SourcesApiService.GetSource")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SourcesAPIService.GetSource")
 	if err != nil {
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
@@ -137,38 +137,38 @@ func (a *SourcesApiService) GetSourceExecute(r ApiGetSourceRequest) (Source, *_n
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiListSourcesRequest struct {
+type APIListSourcesRequest struct {
 	ctx        _context.Context
-	ApiService *SourcesApiService
+	APIService *SourcesAPIService
 	kind       *string
 }
 
 // Filter sources by kind
-func (r ApiListSourcesRequest) Kind(kind string) ApiListSourcesRequest {
+func (r APIListSourcesRequest) Kind(kind string) APIListSourcesRequest {
 	r.kind = &kind
 	return r
 }
 
-func (r ApiListSourcesRequest) Execute() ([]Source, *_nethttp.Response, error) {
-	return r.ApiService.ListSourcesExecute(r)
+func (r APIListSourcesRequest) Execute() ([]Source, *_nethttp.Response, error) {
+	return r.APIService.ListSourcesExecute(r)
 }
 
 /*
 ListSources List sources
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiListSourcesRequest
+ @return APIListSourcesRequest
 */
-func (a *SourcesApiService) ListSources(ctx _context.Context) ApiListSourcesRequest {
-	return ApiListSourcesRequest{
-		ApiService: a,
+func (a *SourcesAPIService) ListSources(ctx _context.Context) APIListSourcesRequest {
+	return APIListSourcesRequest{
+		APIService: a,
 		ctx:        ctx,
 	}
 }
 
 // Execute executes the request
 //  @return []Source
-func (a *SourcesApiService) ListSourcesExecute(r ApiListSourcesRequest) ([]Source, *_nethttp.Response, error) {
+func (a *SourcesAPIService) ListSourcesExecute(r APIListSourcesRequest) ([]Source, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodGet
 		localVarPostBody     interface{}
@@ -178,7 +178,7 @@ func (a *SourcesApiService) ListSourcesExecute(r ApiListSourcesRequest) ([]Sourc
 		localVarReturnValue  []Source
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SourcesApiService.ListSources")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SourcesAPIService.ListSources")
 	if err != nil {
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}

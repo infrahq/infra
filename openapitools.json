@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/@openapitools/openapi-generator-cli/config.schema.json",
+  "spaces": 2,
+  "generator-cli": {
+    "version": "5.2.1",
+    "generators": {
+      "go-client": {
+        "generatorName": "go",
+        "output": "#{cwd}/internal/api",
+        "glob": "openapi.yaml",
+        "enablePostProcessFile": true,
+        "additionalProperties": {
+          "packageName": "api",
+          "isGoSubmodule": true
+        }
+      },
+      "typescript-client": {
+        "generatorName": "typescript-fetch",
+        "output": "#{cwd}/internal/registry/ui/api",
+        "glob": "openapi.yaml",
+        "additionalProperties": {
+          "typescriptThreePlus": true
+        }
+      }
+    }
+  }
+}
