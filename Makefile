@@ -82,32 +82,10 @@ dev: $(VALUES) helm build/docker
 	# kubectl $(NS) create secret generic $(OKTA_SECRET) --from-literal=clientSecret=$$OKTA_CLIENT_SECRET --from-literal=apiToken=$$OKTA_API_TOKEN
 
 	kubectl config use-context docker-desktop
-<<<<<<< HEAD
 	kubectl $(NS) get secrets $(INFRA_REGISTRY_OKTA) >/dev/null
 	helm $(NS) upgrade --install --create-namespace $(patsubst %,-f %,$(VALUES)) --wait infra helm/charts/infra
 	@[ -z "$(NS)" ] || kubectl config set-context --current --namespace=$(NAMESPACE)
 	@echo Root token is $$(kubectl $(NS) get secrets infra-registry -o jsonpath='{.data.root-key}' | base64 --decode)
-||||||| parent of 28ea700 (Check DNS resolution in engine before creating destination)
-	make build/docker
-	helm upgrade --install infra-registry ./helm/charts/registry --namespace infrahq --create-namespace --set image.pullPolicy=Never --set image.tag=0.0.0-development --set-file config=./infra.yaml --set logLevel=debug
-	kubectl config set-context --current --namespace=infrahq
-	kubectl wait --for=condition=available --timeout=600s deployment/infra-registry --namespace infrahq
-	helm upgrade --install infra-engine ./helm/charts/engine --namespace infrahq --set image.pullPolicy=Never --set image.tag=0.0.0-development --set name=dd --set registry=infra-registry --set apiKey=$$(kubectl get secrets/infra-registry --template={{.data.engineApiKey}} --namespace infrahq | base64 -D) --set service.ports[0].port=8443 --set service.ports[0].name=https --set service.ports[0].targetPort=443 --set logLevel=debug
-	kubectl rollout restart deployment/infra-registry --namespace infrahq
-	kubectl rollout restart deployment/infra-engine --namespace infrahq
-	ROOT_TOKEN=$$(kubectl --namespace infrahq get secrets infra-registry -o jsonpath='{.data.rootApiKey}' | base64 -D); \
-    echo Root token is $$ROOT_TOKEN
-=======
-	make build/docker
-	helm upgrade --install infra-registry ./helm/charts/registry --namespace infrahq --create-namespace --set image.pullPolicy=Never --set image.tag=0.0.0-development --set-file config=./infra.yaml --set logLevel=debug
-	kubectl config set-context --current --namespace=infrahq
-	kubectl wait --for=condition=available --timeout=600s deployment/infra-registry --namespace infrahq
-	helm upgrade --install infra-engine ./helm/charts/engine --namespace infrahq --set image.pullPolicy=Never --set image.tag=0.0.0-development --set name=dd --set registry=infra-registry --set apiKey=$$(kubectl get secrets/infra-registry --template={{.data.engineApiKey}} --namespace infrahq | base64 -D) --set service.ports[0].port=8443 --set service.ports[0].name=https --set service.ports[0].targetPort=443 --set logLevel=debug --set validateBeforeRegister=false
-	kubectl rollout restart deployment/infra-registry --namespace infrahq
-	kubectl rollout restart deployment/infra-engine --namespace infrahq
-	ROOT_TOKEN=$$(kubectl --namespace infrahq get secrets infra-registry -o jsonpath='{.data.rootApiKey}' | base64 -D); \
-    echo Root token is $$ROOT_TOKEN
->>>>>>> 28ea700 (Check DNS resolution in engine before creating destination)
 
 dev/clean:
 	kubectl config use-context docker-desktop
