@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -21,6 +22,8 @@ type ClientRegistryConfig struct {
 	Current       bool   `json:"current"`
 }
 
+var ErrConfigNotFound = errors.New("Could not read local credentials. Are you logged in? Use \"infra login\" to login.")
+
 func NewClientConfig() *ClientConfigV0dot2 {
 	return &ClientConfigV0dot2{
 		Version: "0.2",
@@ -37,7 +40,7 @@ func readConfig() (*ClientConfigV0dot2, error) {
 
 	contents, err := ioutil.ReadFile(filepath.Join(infraDir, "config"))
 	if os.IsNotExist(err) {
-		return nil, &ErrUnauthenticated{}
+		return nil, ErrConfigNotFound
 	}
 
 	if err != nil {

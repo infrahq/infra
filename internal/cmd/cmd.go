@@ -76,7 +76,7 @@ func apiContextFromConfig() (context.Context, error) {
 	}
 
 	if config == nil {
-		return nil, &ErrUnauthenticated{}
+		return nil, ErrConfigNotFound
 	}
 
 	return NewApiContext(config.Token), nil
@@ -89,7 +89,7 @@ func apiClientFromConfig() (*api.APIClient, error) {
 	}
 
 	if config == nil {
-		return nil, &ErrUnauthenticated{}
+		return nil, ErrConfigNotFound
 	}
 
 	return NewApiClient(config.Host, config.SkipTLSVerify)
@@ -149,9 +149,10 @@ func updateKubeconfig(user api.User) error {
 
 		kubeConfig.AuthInfos[contextName] = &clientcmdapi.AuthInfo{
 			Exec: &clientcmdapi.ExecConfig{
-				Command:    executable,
-				Args:       []string{"tokens", "create", r.Destination.Name},
-				APIVersion: "client.authentication.k8s.io/v1beta1",
+				Command:         executable,
+				Args:            []string{"tokens", "create", r.Destination.Name},
+				APIVersion:      "client.authentication.k8s.io/v1beta1",
+				InteractiveMode: clientcmdapi.IfAvailableExecInteractiveMode,
 			},
 		}
 	}
@@ -198,7 +199,7 @@ func newLoginCmd() (*cobra.Command, error) {
 	var options LoginOptions
 
 	cmd := &cobra.Command{
-		Use:     "login REGISTRY",
+		Use:     "login [REGISTRY]",
 		Short:   "Login to an Infra Registry",
 		Args:    cobra.MaximumNArgs(1),
 		Example: "$ infra login infra.example.com",
@@ -208,7 +209,9 @@ func newLoginCmd() (*cobra.Command, error) {
 				registry = args[0]
 			}
 
-			return login(registry, true, options)
+			return login(LoginOptions{
+				Host: registry,
+			})
 		},
 	}
 

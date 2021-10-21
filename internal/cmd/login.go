@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -15,119 +14,90 @@ import (
 	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/cli/browser"
-	"github.com/gofrs/flock"
 	"github.com/goware/urlx"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/muesli/termenv"
+	"golang.org/x/term"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-type ErrUnauthenticated struct{}
-
-func (e *ErrUnauthenticated) Error() string {
-	return "Could not read local credentials. Are you logged in? Use \"infra login\" to login."
-}
-
 type LoginOptions struct {
+	Host    string
+	Current bool
 	Timeout time.Duration
 }
 
-func login(registry string, useCurrentConfig bool, options LoginOptions) error {
-	infraDir, err := infraHomeDir()
-	if err != nil {
-		return err
-	}
-
-	lock := flock.New(filepath.Join(infraDir, "login.lock"))
-
-	acquired, err := lock.TryLock()
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		if err := lock.Unlock(); err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to unlock login. (%s)\n", lock.Path())
-		}
-	}()
-
-	if !acquired {
-		fmt.Fprintln(os.Stderr, "Another instance is already trying to login.")
-
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
-		defer cancel()
-
-		_, err = lock.TryLockContext(ctx, time.Second*1)
-		if err != nil {
-			return err
-		}
-
-		return nil
+func login(options LoginOptions) error {
+	// TODO (https://github.com/infrahq/infra/issues/488): support non-interactive login
+	if !term.IsTerminal(int(os.Stdin.Fd())) {
+		return ErrConfigNotFound
 	}
 
 	loadedCfg, err := readConfig()
-	if err != nil && !errors.Is(err, &ErrUnauthenticated{}) {
+	if err != nil && !errors.Is(err, ErrConfigNotFound) {
 		return err
-	}
-
-	var selectedRegistry *ClientRegistryConfig
-
-	if loadedCfg != nil {
-		if len(registry) == 0 && len(loadedCfg.Registries) == 1 {
-			selectedRegistry = &loadedCfg.Registries[0]
-		}
-
-		if len(registry) == 0 && len(loadedCfg.Registries) > 1 && useCurrentConfig {
-			for i := range loadedCfg.Registries {
-				if loadedCfg.Registries[i].Current {
-					selectedRegistry = &loadedCfg.Registries[i]
-					break
-				}
-			}
-		}
-
-		if len(registry) == 0 && len(loadedCfg.Registries) > 1 && !useCurrentConfig {
-			selectedRegistry = promptSelectRegistry(loadedCfg.Registries)
-		}
-
-		if len(registry) > 0 && len(loadedCfg.Registries) > 0 {
-			for i := range loadedCfg.Registries {
-				if loadedCfg.Registries[i].Host == registry {
-					selectedRegistry = &loadedCfg.Registries[i]
-					break
-				}
-			}
-		}
 	}
 
 	if loadedCfg == nil {
 		loadedCfg = NewClientConfig()
 	}
 
-	if len(registry) > 0 && selectedRegistry == nil {
-		// user is specifying a new registry
+	var selectedRegistry *ClientRegistryConfig
+
+registry:
+	switch {
+	case options.Host == "":
+		if options.Current {
+			for i := range loadedCfg.Registries {
+				if loadedCfg.Registries[i].Current {
+					selectedRegistry = &loadedCfg.Registries[i]
+					break registry
+				}
+			}
+		}
+
+		// TODO (https://github.com/infrahq/infra/issues/496): prompt user instead of assuming the first registry
+		// since they may not know where they are logging into
+		if len(loadedCfg.Registries) == 1 {
+			selectedRegistry = &loadedCfg.Registries[0]
+			break
+		}
+
+		selectedRegistry = promptSelectRegistry(loadedCfg.Registries)
+	default:
+		for i := range loadedCfg.Registries {
+			if loadedCfg.Registries[i].Host == options.Host {
+				selectedRegistry = &loadedCfg.Registries[i]
+				break registry
+			}
+		}
+
 		loadedCfg.Registries = append(loadedCfg.Registries, ClientRegistryConfig{
-			Host:    registry,
+			Host:    options.Host,
 			Current: true,
 		})
 		selectedRegistry = &loadedCfg.Registries[len(loadedCfg.Registries)-1]
 	}
 
 	if selectedRegistry == nil {
-		// at this point they have not specified a registry and have none to choose from.
 		return errors.New("A registry endpoint is required to continue with login.")
 	}
 
 	fmt.Fprintf(os.Stderr, "%s Logging in to %s\n", blue("✓"), termenv.String(selectedRegistry.Host).Bold().String())
 
-	skipTLSVerify, proceed, err := promptShouldSkipTLSVerify(selectedRegistry.Host, selectedRegistry.SkipTLSVerify)
-	if err != nil {
-		return err
-	}
+	skipTLSVerify := selectedRegistry.SkipTLSVerify
+	if !skipTLSVerify {
+		var proceed bool
 
-	if !proceed {
-		return fmt.Errorf("could not continue with login")
+		skipTLSVerify, proceed, err = promptShouldSkipTLSVerify(selectedRegistry.Host)
+		if err != nil {
+			return err
+		}
+
+		if !proceed {
+			return fmt.Errorf("could not continue with login")
+		}
 	}
 
 	client, err := NewApiClient(selectedRegistry.Host, skipTLSVerify)
@@ -144,20 +114,39 @@ func login(registry string, useCurrentConfig bool, options LoginOptions) error {
 		return errors.New("Zero sources have been configured.")
 	}
 
-	source, err := promptSelectSource(sources, selectedRegistry.SourceID)
+	var selectedSource *api.Source
 
+source:
 	switch {
-	case err == nil:
-	case errors.Is(err, terminal.InterruptErr):
-		return nil
+	case len(sources) == 0:
+		return errors.New("Zero sources have been configured.")
+	case len(sources) == 1:
+		selectedSource = &sources[0]
 	default:
-		return err
+		// Use the current source ID if it's valid to avoid prompting the user
+		if selectedRegistry.SourceID != "" && options.Current {
+			for i, source := range sources {
+				if source.Id == selectedRegistry.SourceID {
+					selectedSource = &sources[i]
+					break source
+				}
+			}
+		}
+
+		selectedSource, err = promptSelectSource(sources)
+		if errors.Is(err, terminal.InterruptErr) {
+			return nil
+		}
+
+		if err != nil {
+			return err
+		}
 	}
 
 	var loginReq api.LoginRequest
 
 	switch {
-	case source.Okta != nil:
+	case selectedSource.Okta != nil:
 		// Start OIDC flow
 		// Get auth code from Okta
 		// Send auth code to Infra to login as a user
@@ -171,7 +160,7 @@ func login(registry string, useCurrentConfig bool, options LoginOptions) error {
 			return err
 		}
 
-		authorizeURL := "https://" + source.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + source.Okta.ClientId + "&response_type=code&scope=openid+email&nonce=" + nonce + "&state=" + state
+		authorizeURL := "https://" + selectedSource.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + selectedSource.Okta.ClientId + "&response_type=code&scope=openid+email&nonce=" + nonce + "&state=" + state
 
 		fmt.Fprintf(os.Stderr, "%s Logging in with %s...\n", blue("✓"), termenv.String("Okta").Bold().String())
 
@@ -195,7 +184,7 @@ func login(registry string, useCurrentConfig bool, options LoginOptions) error {
 		}
 
 		loginReq.Okta = &api.LoginRequestOkta{
-			Domain: source.Okta.Domain,
+			Domain: selectedSource.Okta.Domain,
 			Code:   code,
 		}
 	default:
@@ -214,7 +203,7 @@ func login(registry string, useCurrentConfig bool, options LoginOptions) error {
 	selectedRegistry.Name = loginRes.Name
 	selectedRegistry.Token = loginRes.Token
 	selectedRegistry.SkipTLSVerify = skipTLSVerify
-	selectedRegistry.SourceID = source.Id
+	selectedRegistry.SourceID = selectedSource.Id
 	selectedRegistry.Current = true
 
 	err = writeConfig(loadedCfg)
@@ -281,7 +270,7 @@ func promptSelectRegistry(registries []ClientRegistryConfig) *ClientRegistryConf
 		Options: options,
 	}
 
-	err := survey.AskOne(prompt, &option, survey.WithIcons(func(icons *survey.IconSet) {
+	err := survey.AskOne(prompt, &option, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithIcons(func(icons *survey.IconSet) {
 		icons.Question.Text = blue("?")
 	}))
 	if err != nil {
@@ -291,11 +280,7 @@ func promptSelectRegistry(registries []ClientRegistryConfig) *ClientRegistryConf
 	return &registries[option]
 }
 
-func promptShouldSkipTLSVerify(host string, skipTLSVerify bool) (shouldSkipTLSVerify bool, proceed bool, err error) {
-	if skipTLSVerify {
-		return true, true, nil
-	}
-
+func promptShouldSkipTLSVerify(host string) (shouldSkipTLSVerify bool, proceed bool, err error) {
 	url, err := urlx.Parse(host)
 	if err != nil {
 		return false, false, fmt.Errorf("parsing host: %w", err)
@@ -323,7 +308,7 @@ func promptShouldSkipTLSVerify(host string, skipTLSVerify bool) (shouldSkipTLSVe
 			Message: "Are you sure you want to continue?",
 		}
 
-		err := survey.AskOne(prompt, &proceed, survey.WithIcons(func(icons *survey.IconSet) {
+		err := survey.AskOne(prompt, &proceed, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithIcons(func(icons *survey.IconSet) {
 			icons.Question.Text = blue("?")
 		}))
 		if err != nil {
@@ -342,19 +327,9 @@ func promptShouldSkipTLSVerify(host string, skipTLSVerify bool) (shouldSkipTLSVe
 	return false, true, nil
 }
 
-func promptSelectSource(sources []api.Source, sourceID string) (*api.Source, error) {
-	if len(sourceID) > 0 {
-		for _, source := range sources {
-			if source.Id == sourceID {
-				return &source, nil
-			}
-		}
-
-		return nil, errors.New("source not found")
-	}
-
-	if len(sources) == 1 {
-		return &sources[0], nil
+func promptSelectSource(sources []api.Source) (*api.Source, error) {
+	if sources == nil {
+		return nil, errors.New("sources cannot be nil")
 	}
 
 	sort.Slice(sources, func(i, j int) bool {
@@ -376,7 +351,7 @@ func promptSelectSource(sources []api.Source, sourceID string) (*api.Source, err
 		Options: options,
 	}
 
-	err := survey.AskOne(prompt, &option, survey.WithIcons(func(icons *survey.IconSet) {
+	err := survey.AskOne(prompt, &option, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithIcons(func(icons *survey.IconSet) {
 		icons.Question.Text = blue("?")
 	}))
 	if errors.Is(err, terminal.InterruptErr) {
