@@ -49,7 +49,7 @@ helm install -n infrahq --create-namespace infra infrahq/infra
 
 ### Configuring Infra
 
-This example confiruation uses Okta and grants the "Everyone" group read-only access to the default namespace. You will need:
+This example configuration uses Okta and grants the "Everyone" group read-only access to the default namespace. You will need:
 
 * Okta domain
 * Okta client ID
