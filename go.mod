@@ -25,7 +25,6 @@ require (
 	github.com/kevinburke/go-bindata v3.22.0+incompatible
 	github.com/kr/pty v1.1.5 // indirect
 	github.com/lensesio/tableprinter v0.0.0-20201125135848-89e81fc956e7
-	github.com/miekg/dns v1.1.43
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6 // indirect
 	github.com/muesli/termenv v0.9.0
 	github.com/okta/okta-sdk-golang/v2 v2.8.0

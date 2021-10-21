@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -25,7 +26,6 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry"
 	"github.com/infrahq/infra/internal/timer"
-	"github.com/miekg/dns"
 	"golang.org/x/crypto/acme/autocert"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
@@ -340,18 +340,9 @@ func Run(options Options) error {
 		logging.L.Sugar().Debugf("endpoint is: %s", endpoint)
 
 		if options.ValidateBeforeRegister {
-			// check that the DNS resolves at external hosts
-			c := dns.Client{}
-			m := dns.Msg{}
-			m.SetQuestion(endpoint+".", dns.TypeA)
-			r, rtt, err := c.Exchange(&m, "8.8.8.8:53") // 8.8.8.8 == Google DNS
+			_, err = net.LookupIP(endpoint)
 			if err != nil {
-				logging.L.Sugar().Errorf("exchange: %w", err)
-				return
-			}
-			logging.L.Sugar().Debugf("DNS lookup took %v", rtt)
-			if len(r.Answer) == 0 {
-				logging.L.Sugar().Errorf("endpoint DNS does not yet resolve externally, waiting to register")
+				logging.L.Sugar().Errorf("endpoint DNS does not yet resolve, waiting to register")
 				return
 			}
 		}
