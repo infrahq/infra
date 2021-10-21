@@ -31,11 +31,11 @@ type LoginOptions struct {
 func login(options LoginOptions) error {
 	// TODO (https://github.com/infrahq/infra/issues/488): support non-interactive login
 	if !term.IsTerminal(int(os.Stdin.Fd())) {
-		return &ErrConfigNotFound{}
+		return ErrConfigNotFound
 	}
 
 	loadedCfg, err := readConfig()
-	if err != nil && !errors.Is(err, &ErrConfigNotFound{}) {
+	if err != nil && !errors.Is(err, ErrConfigNotFound) {
 		return err
 	}
 

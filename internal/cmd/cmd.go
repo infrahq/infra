@@ -77,7 +77,7 @@ func apiContextFromConfig() (context.Context, error) {
 	}
 
 	if config == nil {
-		return nil, &ErrConfigNotFound{}
+		return nil, ErrConfigNotFound
 	}
 
 	return NewApiContext(config.Token), nil
@@ -90,7 +90,7 @@ func apiClientFromConfig() (*api.APIClient, error) {
 	}
 
 	if config == nil {
-		return nil, &ErrConfigNotFound{}
+		return nil, ErrConfigNotFound
 	}
 
 	return NewApiClient(config.Host, config.SkipTLSVerify)
