@@ -59,7 +59,7 @@ registry:
 
 		// TODO (https://github.com/infrahq/infra/issues/496): prompt user instead of assuming the first registry
 		// since they may not know where they are logging into
-		if len(loadedCfg.Registries) > 0 {
+		if len(loadedCfg.Registries) == 1 {
 			selectedRegistry = &loadedCfg.Registries[0]
 			break
 		}
