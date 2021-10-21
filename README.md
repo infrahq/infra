@@ -13,25 +13,6 @@ Infra is **identity and access management** for your cloud infrastructure. It pu
 * Onboard and offboard users via Okta (Azure AD, Google, GitHub coming soon)
 * Audit logs for who did what, when (coming soon)
 
-## Contents
-
-* [Introduction](#introduction)
-* [Contents](#contents)
-* [Quickstart](#quickstart)
-  * [Create your first Infra configuration](#create-your-first-infra-configuration)
-    * [Example](#example)
-  * [Install Infra](#install-infra)
-  * [Install Infra CLI](#install-infra-cli)
-  * [Access your infrastructure](#access-your-infrastructure)
-* [Next Steps](#next-steps)
-  * [Connect additional identity providers](#connect-additional-identity-providers)
-  * [Connect additional infrastructure](#connect-additional-infrastructure)
-  * [Updating Infra](#updating-infra)
-* [Contributing](#contributing)
-* [Security](#security)
-* [License](#license)
-* [Documentation](#documentation)
-
 ## Quickstart
 
 **Prerequisites:**
@@ -45,9 +26,9 @@ helm repo update
 helm install -n infrahq --create-namespace infra infrahq/infra
 ```
 
-[Helm Chart Reference](./docs/helm.md)
+To customize your install, see the [Helm Chart reference](./docs/helm.md).
 
-### Configuring Infra
+### Configure Infra
 
 This example configuration uses Okta and grants the "Everyone" group read-only access to the default namespace. You will need:
 
@@ -82,7 +63,7 @@ registry:
                   namespace: default
 ```
 
-### Update Infra
+### Update Infra with your configuration
 
 ```
 helm repo update
@@ -131,43 +112,45 @@ helm upgrade -n infrahq -f infra.yaml infra infrahq/infra
 
 First you need to get your registry endpoint. This step may be different depending on your service type.
 
-#### Ingress
+<details>
+  <summary><strong>Ingress</strong></summary>
 
-```
-$ INFRA_HOST=$(kubectl -n infrahq get ingress -l infrahq.com/component=registry -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
-```
+  ```
+  $ INFRA_HOST=$(kubectl -n infrahq get ingress -l infrahq.com/component=registry -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
+  ```
+</details>
 
-#### LoadBalancer
+<details>
+  <summary><strong>LoadBalancer</strong></summary>
 
-Note: It may take a few minutes for the LoadBalancer endpoint to be assigned. You can watch the status of the service with:
+  Note: It may take a few minutes for the LoadBalancer endpoint to be assigned. You can watch the status of the service with:
 
-```
-$ kubectl -n infrahq get services -l infrahq.com/component=registry -w
-```
+  ```
+  $ kubectl -n infrahq get services -l infrahq.com/component=registry -w
+  ```
 
-```
-$ INFRA_HOST=$(kubectl -n infrahq get services -l infrahq.com/component=registry -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
-```
+  ```
+  $ INFRA_HOST=$(kubectl -n infrahq get services -l infrahq.com/component=registry -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
+  ```
+</details>
 
-#### ClusterIP
+<details>
+  <summary><strong>ClusterIP</strong></summary>
 
-```
-$ CONTAINER_PORT=$(kubectl -n infrahq get services -l infrahq.com/component=registry -o jsonpath="{.items[].spec.ports[0].port}")
-$ kubectl -n infrahq port-forward service/infra-registry 8080:$CONTAINER_PORT &
-$ INFRA_HOST='localhost:8080'
-```
+  ```
+  $ CONTAINER_PORT=$(kubectl -n infrahq get services -l infrahq.com/component=registry -o jsonpath="{.items[].spec.ports[0].port}")
+  $ kubectl -n infrahq port-forward service/infra-registry 8080:$CONTAINER_PORT &
+  $ INFRA_HOST='localhost:8080'
+  ```
+</details>
+
+Once you have your infra host, it is time to login.
 
 ```bash
 infra login $INFRA_HOST
 ```
 
-Follow the instructions on screen to login.
-
-<!--
-TODO: add a login video
--->
-
-[Infra CLI Reference](./docs/cli.md)
+Follow the instructions on screen to complete the login process. See the [Infra CLI reference](./docs/cli.md) for more ways to use `infra`.
 
 ## Next Steps
 
@@ -188,16 +171,14 @@ helm repo update
 helm upgrade -f infra.yaml infra infrahq.com/infra
 ```
 
-## [Contributing](./docs/contributing.md)
-
 ## [Security](./docs/security.md)
 
 We take security very seriously. If you have found a security vulnerability please disclose it privately to us by email via [security@infrahq.com](mailto:security@infrahq.com).
-
-## [License](./LICENSE)
 
 ## [Documentation](./docs)
 
 * [API Reference](./docs/api.md)
 * [Infra CLI Reference](./docs/cli.md)
 * [Helm Chart Reference](./docs/helm.md)
+* [Contributing](./docs/contributing.md)
+* [License](./LICENSE)
