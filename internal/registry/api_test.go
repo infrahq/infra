@@ -17,22 +17,26 @@ import (
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/registry/mocks"
+	"github.com/infrahq/infra/secrets"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
-	kubernetesClient "k8s.io/client-go/kubernetes"
 	rest "k8s.io/client-go/rest"
 )
 
 type mockSecretReader struct{}
 
-func NewMockSecretReader() kubernetes.SecretReader {
+func NewMockSecretReader() secrets.SecretStorage {
 	return &mockSecretReader{}
 }
 
-func (msr *mockSecretReader) Get(secretName string, client *kubernetesClient.Clientset) (string, error) {
-	return "abcdefghijklmnopqrstuvwx", nil
+func (msr *mockSecretReader) GetSecret(secretName string) ([]byte, error) {
+	return []byte("abcdefghijklmnopqrstuvwx"), nil
+}
+
+func (msr *mockSecretReader) SetSecret(secretName string, secret []byte) error {
+	return nil
 }
 
 func addUser(db *gorm.DB, sessionDuration time.Duration) (tokenId string, tokenSecret string, err error) {

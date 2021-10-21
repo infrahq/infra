@@ -17,7 +17,7 @@ type SecretStorage interface {
 	GetSecret(name string) (secret []byte, err error)
 }
 
-// SecretProvider is implemented by a provider that provides encryption-as-a-service.
+// SecretSymmetricKeyProvider is implemented by a provider that provides encryption-as-a-service.
 // Its use is opinionated about the provider in the following ways:
 // - A root key will be created or referenced and never leaves the provider
 // - the root key will be used to encrypt a "data key"
@@ -27,7 +27,7 @@ type SecretStorage interface {
 // - the client will request the data key be decrypted by the provider if it is needed subsequently.
 // In this way the encryption-as-a-service provider scales to unlimited data sizes without needing to transfer the data to the remote service for symmetric encryption/decryption.
 // To rotate root keys, generate new ones periodically and reencrypt data you touch with the new root. This can either be done all at once or gradually over time. Old root keys are out of circulation when no data exists that points to them.
-type SecretProvider interface {
+type SecretSymmetricKeyProvider interface {
 	// GenerateDataKey makes a data key from a root key id: if "", a root key is created. It is okay to generate many data keys.
 	GenerateDataKey(name, rootKeyID string) (*SymmetricKey, error)
 	// DecryptDataKey decrypts the encrypted data key on the provider given a root key id

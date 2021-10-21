@@ -53,11 +53,24 @@ func (v *VaultSecretProvider) GetSecret(name string) ([]byte, error) {
 		return nil, err
 	}
 
-	if data, ok := sec.Data["data"].(map[string]interface{})["data"].(string); ok {
+	if sec == nil || sec.Data == nil {
+		return nil, nil
+	}
+
+	if _, ok := sec.Data["data"]; !ok {
+		return nil, nil
+	}
+
+	data, ok := sec.Data["data"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("secret data is unexpected not stored in a map")
+	}
+
+	if data, ok := data["data"].(string); ok {
 		return []byte(data), nil
 	}
 
-	return nil, nil
+	return nil, fmt.Errorf("secret data is not a string")
 }
 
 func (v *VaultSecretProvider) SetSecret(name string, secret []byte) error {

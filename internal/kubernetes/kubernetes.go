@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/secrets"
 	"github.com/jessevdk/go-flags"
 	"go.uber.org/zap"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -52,7 +53,7 @@ type rbIdentifier struct {
 type Kubernetes struct {
 	mu           sync.Mutex
 	Config       *rest.Config
-	SecretReader SecretReader
+	SecretReader secrets.SecretStorage
 }
 
 func NewKubernetes() (*Kubernetes, error) {
@@ -70,7 +71,12 @@ func NewKubernetes() (*Kubernetes, error) {
 		return k, err
 	}
 
-	k.SecretReader = NewSecretReader(namespace)
+	clientset, err := kubernetes.NewForConfig(k.Config)
+	if err != nil {
+		return nil, err
+	}
+
+	k.SecretReader = secrets.NewKubernetesSecretProvider(clientset, namespace)
 
 	return k, err
 }
@@ -679,10 +685,10 @@ func (k *Kubernetes) Endpoint() (string, error) {
 
 // GetSecret returns a K8s secret object with the specified name from the current namespace if it exists
 func (k *Kubernetes) GetSecret(secret string) (string, error) {
-	clientset, err := kubernetes.NewForConfig(k.Config)
-	if err != nil {
+	b, err := k.SecretReader.GetSecret(secret)
+	if b == nil {
 		return "", err
 	}
 
-	return k.SecretReader.Get(secret, clientset)
+	return string(b), err
 }
