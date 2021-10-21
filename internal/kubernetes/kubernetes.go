@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/secrets"
 	"github.com/jessevdk/go-flags"
 	"go.uber.org/zap"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -49,6 +50,10 @@ type rbIdentifier struct {
 	name      string
 }
 
+type SecretReader interface {
+	Get(secretName string, client *kubernetes.Clientset) (string, error)
+}
+
 type Kubernetes struct {
 	mu           sync.Mutex
 	Config       *rest.Config
@@ -70,7 +75,12 @@ func NewKubernetes() (*Kubernetes, error) {
 		return k, err
 	}
 
-	k.SecretReader = NewSecretReader(namespace)
+	clientset, err := kubernetes.NewForConfig(k.Config)
+	if err != nil {
+		return nil, err
+	}
+
+	k.SecretReader = secrets.NewKubernetesSecretProvider(clientset, namespace)
 
 	return k, err
 }

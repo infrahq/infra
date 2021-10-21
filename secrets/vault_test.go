@@ -10,8 +10,8 @@ import (
 
 // ensure these interfaces are implemented properly
 var (
-	_ SecretProvider = &VaultSecretProvider{}
-	_ SecretStorage  = &VaultSecretProvider{}
+	_ SecretSymmetricKeyProvider = &VaultSecretProvider{}
+	_ SecretStorage              = &VaultSecretProvider{}
 )
 
 func waitForVaultReady(t *testing.T, v *VaultSecretProvider) {
