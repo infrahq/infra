@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./docs/images/InfraGithub.svg" style="width: 100%;"/>
+  <img src="./docs/images/InfraGithub.png"/>
 </p>
 
 ## Introduction
