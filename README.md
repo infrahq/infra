@@ -16,7 +16,8 @@ Infra is **identity and access management** for your cloud infrastructure. It pu
 ## Quickstart
 
 **Prerequisites:**
-* [Helm](https://helm.sh/)
+* [Helm](https://helm.sh/) (v3+)
+* [Kubernetes](https://kubernetes.io/) (v1.14+)
 
 ### Install Infra
 
@@ -26,7 +27,7 @@ helm repo update
 helm install -n infrahq --create-namespace infra infrahq/infra
 ```
 
-To customize your install, see the [Helm Chart reference](./docs/helm.md).
+See [Helm Chart reference](./helm.md) for a complete list of options configurable through Helm.
 
 ### Configure Infra
 
@@ -61,6 +62,8 @@ config:
               - name: <cluster name>
                 namespace: default
 ```
+
+See the [Configuration reference](./docs/configuration.md) for a complete list of configurable options.
 
 ### Update Infra With Your Configuration
 
@@ -149,7 +152,9 @@ Once you have your infra host, it is time to login.
 infra login $INFRA_HOST
 ```
 
-Follow the instructions on screen to complete the login process. See the [Infra CLI reference](./docs/cli.md) for more ways to use `infra`.
+Follow the instructions on screen to complete the login process.
+
+See the [Infra CLI reference](./docs/cli.md) for more ways to use `infra`.
 
 ## Next Steps
 
@@ -163,7 +168,7 @@ Follow the instructions on screen to complete the login process. See the [Infra 
 * [Destinations](./docs/destinations)
   * [Kubernetes](./docs/destinations/kubernetes.md)
 
-### Updating Infra
+### Upgrade Infra
 
 ```
 helm repo update

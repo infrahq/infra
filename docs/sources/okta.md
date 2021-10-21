@@ -1,4 +1,15 @@
-# Okta
+# Sources / Okta
+
+## Configure Okta Source
+
+| Parameter      | Description                                  |
+|----------------|----------------------------------------------|
+| `domain`       | Okta domain                                  |
+| `clientId`     | Okta client ID                               |
+| `clientSecret` | Okta client secret                           |
+| `apiToken`     | Okta API token                               |
+
+## Connect an Okta Source
 
 This guide will walk you through the process of setting up Okta as an identity provider for Infra. At the end of this process you will have updated your Infra configuration with an Okta source that looks something like this:
 
@@ -11,24 +22,7 @@ sources:
     apiToken: infra-registry-okta/apiToken
 ```
 
-## Contents
-
-* [Prerequisites](#prerequisites)
-* [Setup](#setup)
-    * [Create an Okta App](#create-an-okta-app)
-    * [Add Okta secrets to the Infra registry deployment](#add-okta-secrets-to-the-infra-registry-deployment)
-    * [Add Okta information to Infra registry](#add-okta-information-to-infra-registry)
-* [Usage](#usage)
-    * [Login with Okta](#log-in-with-okta)
-    * [List Okta users](#list-okta-users)
-
-## Prerequisites
-
-* [Install Infra](../README.md#install)
-
-## Setup
-
-### Create an Okta App 
+## Create an Okta App
 
 1. Login to the Okta administrative dashboard.
 2. Under the left menu click **Applications > Applications**. Click **Create App Integration** then select **OIDC – OpenID Connect** and **Web Application**, and click **Next**.
@@ -58,29 +52,50 @@ Create [Kubernetes Secret objects](https://kubernetes.io/docs/tasks/configmap-se
 #### Example Secret Creation
 Store the Okta client secret and API token on the same Kubernetes Secret object in the namespace that Infra registry is running in.
 ```
-kubectl create secret generic infra-registry-okta \
---namespace=infrahq \
---from-literal=clientSecret=jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2 \
---from-literal=apiToken=001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd
+OKTA_CLIENT_SECRET=jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2
+OKTA_API_TOKEN=001XJv9xhv899sdfns938haos3h8oahsdaohd2o8hdao82hd
+kubectl -n infrahq create secret generic infra-registry-okta --from-literal=clientSecret=$OKTA_CLIENT_SECRET --from-literal=apiToken=$OKTA_API_TOKEN
 ```
 
-### Add Okta information to Infra registry config
+## Add Okta Information to Infra Configuration
 
 Edit your [Infra configuration](./configuration.md) (e.g. `infra.yaml`) to include an Okta source:
 
 ```yaml
+# infra.yaml
+---
 sources:
   - kind: okta
-    domain: acme.okta.com
+    domain: example.okta.com
     clientId: 0oapn0qwiQPiMIyR35d6
-    clientSecret: infra-registry-okta/clientSecret # <kubernetes secret object name>/<key of the secret>
+    clientSecret: infra-registry-okta/clientSecret  # <Kubernetes secret object>/<secret name>
     apiToken: infra-registry-okta/apiToken
 ```
 
 Then apply this config change:
 
 ```
-helm upgrade infra-registry infrahq/registry --set-file config=./infra.yaml -n infrahq
+helm -n infrahq upgrade --set-file config=infra.yaml infra infrahq/infra
+```
+
+Infra configuration can also be added to Helm values:
+
+```yaml
+# values.yaml
+---
+config:
+  sources:
+    - kind: okta
+      domain: example.okta.com
+      clientId: 0oapn0qwiQPiMIyR35d6
+      clientSecret: infra-registry-okta/clientSecret  # <Kubernetes secret object>/<secret name>
+      apiToken: infra-registry-okta/apiToken
+```
+
+Then apply this config change:
+
+```
+helm -n infrahq upgrade -f values.yaml infra infrahq/infra
 ```
 
 ### Login with Okta

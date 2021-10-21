@@ -1,6 +1,14 @@
 # Destination / Kubernetes
 
-## Connect Additional Clusters
+## Configure Kubernetes Destination
+
+### `destinations`
+
+| Parameter      | Description                                      | Default               |
+|----------------|--------------------------------------------------|-----------------------|
+| `namespaces`   | Limit access to only these Kubernetes namespaces | `[]` (all namespaces) |
+
+## Connect a Kubernetes Cluster
 
 Before installing Infra in additional clusters, you will first need to gather some information about your main Infra deployment.
 
@@ -52,4 +60,4 @@ INFRA_API_KEY=$(kubectl -n infrahq get secrets infra-registry -o jsonpath='{.dat
 helm install -n infrahq --create-namespace --set registry=$INFRA_HOST --set apiKey=$INFRA_API_KEY engine infrahq/engine
 ```
 
-To customize your install, see the [Helm Chart reference](./../helm.md).
+See [Helm Chart reference](./helm.md) for a complete list of options configurable through Helm.
