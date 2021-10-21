@@ -64,7 +64,7 @@ func tokenCreate(destination string) error {
 				return tokenCreate(destination)
 
 			default:
-				return err
+				return errWithResponseContext(err, res)
 			}
 		}
 
