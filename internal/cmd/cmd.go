@@ -33,6 +33,7 @@ func errWithResponseContext(err error, res *http.Response) error {
 		// ignore this decoding error and return the original error
 		return err
 	}
+
 	return fmt.Errorf("%w\nMessage: %s", err, apiErr.Message)
 }
 
