@@ -50,14 +50,10 @@ type rbIdentifier struct {
 	name      string
 }
 
-type SecretReader interface {
-	Get(secretName string, client *kubernetes.Clientset) (string, error)
-}
-
 type Kubernetes struct {
 	mu           sync.Mutex
 	Config       *rest.Config
-	SecretReader SecretReader
+	SecretReader secrets.SecretStorage
 }
 
 func NewKubernetes() (*Kubernetes, error) {
@@ -689,10 +685,10 @@ func (k *Kubernetes) Endpoint() (string, error) {
 
 // GetSecret returns a K8s secret object with the specified name from the current namespace if it exists
 func (k *Kubernetes) GetSecret(secret string) (string, error) {
-	clientset, err := kubernetes.NewForConfig(k.Config)
-	if err != nil {
+	b, err := k.SecretReader.GetSecret(secret)
+	if b == nil {
 		return "", err
 	}
 
-	return k.SecretReader.Get(secret, clientset)
+	return string(b), err
 }

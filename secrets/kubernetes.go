@@ -26,16 +26,6 @@ func NewKubernetesSecretProvider(client *kubernetes.Clientset, namespace string)
 	}
 }
 
-// Get implements the interface being looked for by our existing k8s secret reader
-func (k *KubernetesSecretProvider) Get(secretName string, client *kubernetes.Clientset) (string, error) {
-	b, err := NewKubernetesSecretProvider(client, k.Namespace).GetSecret(secretName)
-	if err != nil {
-		return "", err
-	}
-
-	return string(b), nil
-}
-
 var kubernetesInvalidKeyCharacters = regexp.MustCompile(`[^-._a-zA-Z0-9/]`)
 
 // Use secrets when you don't want to store the underlying data, eg secret tokens
@@ -53,9 +43,7 @@ func (k *KubernetesSecretProvider) SetSecret(name string, secret []byte) error {
 
 	data := map[string][]byte{}
 	data[key] = secret
-	patch := struct {
-		Data map[string][]byte `json:"data"`
-	}{
+	patch := v1.Secret{
 		Data: data,
 	}
 
