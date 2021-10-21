@@ -21,11 +21,7 @@ type ClientRegistryConfig struct {
 	Current       bool   `json:"current"`
 }
 
-type ErrConfigNotFound struct{}
-
-func (e *ErrConfigNotFound) Error() string {
-	return "Could not read local credentials. Are you logged in? Use \"infra login\" to login."
-}
+var ErrConfigNotFound = errors.New("Could not read local credentials. Are you logged in? Use \"infra login\" to login.")
 
 func NewClientConfig() *ClientConfigV0dot2 {
 	return &ClientConfigV0dot2{
