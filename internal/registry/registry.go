@@ -5,12 +5,15 @@ package registry
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/NYTimes/gziphandler"
@@ -32,7 +35,7 @@ import (
 type Options struct {
 	DBPath               string
 	TLSCache             string
-	RootAPIKey           string
+	RootApiKey           string
 	EngineApiKey         string
 	ConfigPath           string
 	UI                   bool
@@ -43,7 +46,7 @@ type Options struct {
 }
 
 const (
-	rootAPIKeyName   = "root"
+	rootApiKeyName   = "root"
 	engineApiKeyName = "engine"
 )
 
@@ -230,46 +233,80 @@ func Run(options Options) error {
 
 	defer telemetryTimer.Stop()
 
-	if options.RootAPIKey != "" {
-		if len(options.RootAPIKey) != ApiKeyLen {
-			return errors.New("invalid root api key length, the key must be 24 characters")
-		}
-
-		var rootAPIKey ApiKey
-
-		err = db.FirstOrCreate(&rootAPIKey, &ApiKey{Name: rootAPIKeyName}).Error
-		if err != nil {
-			return err
-		}
-
-		rootAPIKey.Permissions = string(api.STAR)
-		rootAPIKey.Key = options.RootAPIKey
-
-		err := db.Save(&rootAPIKey).Error
-		if err != nil {
-			return err
-		}
+	var rootApiKey ApiKey
+	if err := db.FirstOrCreate(&rootApiKey, &ApiKey{Name: rootApiKeyName}).Error; err != nil {
+		return err
 	}
 
-	if options.EngineApiKey != "" {
-		if len(options.EngineApiKey) != ApiKeyLen {
-			return errors.New("invalid engine api key length, the key must be 24 characters")
-		}
+	rootApiKeyURI, err := url.Parse(options.RootApiKey)
+	if err != nil {
+		return err
+	}
 
-		var engineApiKey ApiKey
-
-		err = db.FirstOrCreate(&engineApiKey, &ApiKey{Name: engineApiKeyName}).Error
+	switch rootApiKeyURI.Scheme {
+	case "":
+		// option does not have a scheme, assume it is plaintext
+		rootApiKey.Key = string(options.RootApiKey)
+	case "file":
+		// option is a file path, read contents from the path
+		contents, err = ioutil.ReadFile(rootApiKeyURI.Path)
 		if err != nil {
 			return err
 		}
 
-		engineApiKey.Permissions = string(api.DESTINATIONS_CREATE) + " " + string(api.ROLES_READ)
-		engineApiKey.Key = options.EngineApiKey
+		rootApiKey.Key = string(contents)
 
-		err := db.Save(&engineApiKey).Error
+	default:
+		return fmt.Errorf("unsupported secret format %s", rootApiKeyURI.Scheme)
+	}
+
+	if len(contents) != ApiKeyLen {
+		return fmt.Errorf("invalid api key length, the key must be 24 characters")
+	}
+
+	rootApiKey.Permissions = string(api.STAR)
+
+	if err := db.Save(&rootApiKey).Error; err != nil {
+		return err
+	}
+
+	var engineApiKey ApiKey
+	if err := db.FirstOrCreate(&engineApiKey, &ApiKey{Name: engineApiKeyName}).Error; err != nil {
+		return err
+	}
+
+	engineApiKeyURI, err := url.Parse(options.EngineApiKey)
+	if err != nil {
+		return err
+	}
+
+	switch engineApiKeyURI.Scheme {
+	case "":
+		// option does not have a scheme, assume it is plaintext
+		engineApiKey.Key = string(options.EngineApiKey)
+	case "file":
+		// option is a file path, read contents from the path
+		contents, err := ioutil.ReadFile(engineApiKeyURI.Path)
 		if err != nil {
 			return err
 		}
+
+		engineApiKey.Key = string(contents)
+	default:
+		return fmt.Errorf("unsupported secret format %s", engineApiKeyURI.Scheme)
+	}
+
+	if len(contents) != ApiKeyLen {
+		return fmt.Errorf("invalid api key length, the key must be 24 characters")
+	}
+
+	engineApiKey.Permissions = strings.Join([]string{
+		string(api.ROLES_READ),
+		string(api.DESTINATIONS_CREATE),
+	}, " ")
+
+	if err := db.Save(&engineApiKey).Error; err != nil {
+		return err
 	}
 
 	if err := os.MkdirAll(options.TLSCache, os.ModePerm); err != nil {

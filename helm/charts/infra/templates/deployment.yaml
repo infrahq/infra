@@ -1,18 +1,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "registry.fullname" . }}
+  name: {{ include "infra.fullname" . }}
   labels:
-{{- include "registry.labels" . | nindent 4 }}
+{{- include "infra.labels" . | nindent 4 }}
 spec:
   selector:
     matchLabels:
-{{- include "registry.selectorLabels" . | nindent 6 }}
+{{- include "infra.selectorLabels" . | nindent 6 }}
   replicas: 1
   template:
     metadata:
       labels:
-{{- include "registry.selectorLabels" . | nindent 8 }}
+{{- include "infra.selectorLabels" . | nindent 8 }}
       annotations:
         rollme: {{ randAlphaNum 5 | quote }}
 {{- with .Values.pod.annotations }}
@@ -20,7 +20,7 @@ spec:
 {{- end }}
     spec:
       automountServiceAccountToken: true
-      serviceAccountName: {{ include "registry.serviceAccountName" . }}
+      serviceAccountName: {{ include "infra.serviceAccountName" . }}
       dnsPolicy: ClusterFirst
 {{- with .Values.image.pullSecrets }}
       imagePullSecrets:
@@ -45,30 +45,30 @@ spec:
             - "--enable-crash-reporting"
             - {{ .Values.crashReporting.enabled | quote }}
           env:
-            - name: INFRA_REGISTRY_ROOT_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: infra-registry
-                  key: rootApiKey
-                  optional: true
-            - name: ENGINE_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: infra-registry
-                  key: engineApiKey
-                  optional: true
             - name: INFRA_LOG_LEVEL
               value: {{ .Values.logLevel | default "info" }}
             - name: INFRA_SYNC_INTERVAL_SECONDS
               value: "30"
+            - name: INFRA_ROOT_API_KEY
+              value: 'file:///var/run/secrets/infrahq.com/registry/root-key'
+            - name: INFRA_ENGINE_API_KEY
+              value: 'file:///var/run/secrets/infrahq.com/engine/engine-key'
           ports:
-            - containerPort: 80
-            - containerPort: 443
+{{- range .Values.service.ports }}
+            - name: {{ .name }}
+              containerPort: {{ .targetPort }}
+{{- end }}
           volumeMounts:
-            - name: data
-              mountPath: /var/run/infra/data
             - name: config
               mountPath: /var/run/infra/config
+            - name: data
+              mountPath: /var/run/infra/data
+            - name: secret-registry
+              mountPath: /var/run/secrets/infrahq.com/registry
+              readOnly: true
+            - name: secret-engine
+              mountPath: /var/run/secrets/infrahq.com/engine
+              readOnly: true
           readinessProbe:
             httpGet:
               {{- with first .Values.service.ports }}
@@ -87,8 +87,14 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: infra-registry
+            name: {{ include "infra.fullname" . }}
             optional: true
         - name: data
           persistentVolumeClaim:
-            claimName: infra-registry
+            claimName: {{ include "infra.fullname" . }}
+        - name: secret-registry
+          secret:
+            secretName: infra-registry
+        - name: secret-engine
+          secret:
+            secretName: infra-engine

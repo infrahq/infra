@@ -18,9 +18,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: Azure/setup-helm@v1
-    - run: |
-        helm lint helm/charts/engine/
-        helm lint helm/charts/registry/
+    - run: make helm/lint tag=0.0.0-development
   go-lint:
     runs-on: ubuntu-latest
     steps:

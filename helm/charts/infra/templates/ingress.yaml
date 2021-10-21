@@ -11,9 +11,9 @@
 apiVersion: {{ $apiVersion }}
 kind: Ingress
 metadata:
-  name: {{ include "registry.fullname" . }}
+  name: {{ include "infra.fullname" . }}
   labels:
-{{- include "registry.labels" . | nindent 4 }}
+{{- include "infra.labels" . | nindent 4 }}
 {{- with .Values.ingress.labels }}
   {{- toYaml . | nindent 4 }}
 {{- end }}

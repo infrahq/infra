@@ -20,6 +20,7 @@ import (
 	"github.com/infrahq/infra/secrets"
 	"github.com/jessevdk/go-flags"
 	"go.uber.org/zap"
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -634,30 +635,38 @@ func (k *Kubernetes) CA() ([]byte, error) {
 	return contents, nil
 }
 
-// Find a suitable Endpoint to use by inspecting the engine's Service objects
-func (k *Kubernetes) Endpoint() (string, error) {
+// Find the first suitable Service, filtering on infrahq.com/component
+func (k *Kubernetes) Service(component string) (*corev1.Service, error) {
 	clientset, err := kubernetes.NewForConfig(k.Config)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	namespace, err := k.Namespace()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	services, err := clientset.CoreV1().Services(namespace).List(context.TODO(), metav1.ListOptions{
-		LabelSelector: "app.kubernetes.io/instance=infra-engine",
+	services, err := clientset.CoreV1().Services(namespace).List(context.Background(), metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("infrahq.com/component=%s", component),
 	})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if len(services.Items) == 0 {
-		return "", errors.New("no services found")
+		return nil, fmt.Errorf("no service found for component %s", component)
 	}
 
-	service := services.Items[0]
+	return &services.Items[0], nil
+}
+
+// Find a suitable Endpoint to use by inspecting the engine's Service objects
+func (k *Kubernetes) Endpoint() (string, error) {
+	service, err := k.Service("engine")
+	if err != nil {
+		return "", err
+	}
 
 	if len(service.Status.LoadBalancer.Ingress) == 0 {
 		return "", errors.New("load balancer has no ingress objects")

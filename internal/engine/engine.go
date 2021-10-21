@@ -34,7 +34,7 @@ type Options struct {
 	Registry       string
 	Name           string
 	ForceTLSVerify bool
-	APIKey         string
+	EngineApiKey   string
 	TLSCache       string
 }
 
@@ -237,6 +237,45 @@ func Run(options Options) error {
 		}
 	}
 
+	engineApiKeyURI, err := url.Parse(options.EngineApiKey)
+	if err != nil {
+		return err
+	}
+
+	var engineApiKey string
+
+	switch engineApiKeyURI.Scheme {
+	case "":
+		// option does not have a scheme, assume it is plaintext
+		engineApiKey = string(options.EngineApiKey)
+	case "file":
+		// option is a file path, read contents from the path
+		contents, err := ioutil.ReadFile(engineApiKeyURI.Path)
+		if err != nil {
+			return err
+		}
+
+		engineApiKey = string(contents)
+
+	default:
+		return fmt.Errorf("unsupported secret format %s", engineApiKeyURI.Scheme)
+	}
+
+	k8s, err := kubernetes.NewKubernetes()
+	if err != nil {
+		return err
+	}
+
+	if options.Registry == "" {
+		registry, err := k8s.Service("registry")
+		if err != nil {
+			return err
+		}
+
+		metadata := registry.ObjectMeta
+		options.Registry = fmt.Sprintf("%s.%s", metadata.Name, metadata.Namespace)
+	}
+
 	u, err := urlx.Parse(options.Registry)
 	if err != nil {
 		return err
@@ -245,7 +284,7 @@ func Run(options Options) error {
 	u.Scheme = "https"
 
 	ctx := context.WithValue(context.Background(), api.ContextServerVariables, map[string]string{"basePath": "v1"})
-	ctx = context.WithValue(ctx, api.ContextAccessToken, options.APIKey)
+	ctx = context.WithValue(ctx, api.ContextAccessToken, engineApiKey)
 	config := api.NewConfiguration()
 	config.Host = u.Host
 	config.Scheme = "https"
@@ -256,11 +295,6 @@ func Run(options Options) error {
 	}
 
 	client := api.NewAPIClient(config)
-
-	k8s, err := kubernetes.NewKubernetes()
-	if err != nil {
-		return err
-	}
 
 	name := options.Name
 	if name == "" {
@@ -375,7 +409,7 @@ func Run(options Options) error {
 	cache := jwkCache{
 		client: &http.Client{
 			Transport: &BearerTransport{
-				Token: options.APIKey,
+				Token: engineApiKey,
 				Transport: &http.Transport{
 					TLSClientConfig: registryTLSConfig,
 				},

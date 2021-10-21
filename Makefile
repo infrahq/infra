@@ -1,4 +1,4 @@
-tag := $(shell git describe --tags)
+tag := $(patsubst v%,%,$(shell git describe --tags))
 
 generate:
 	go generate ./...
@@ -14,15 +14,31 @@ test-all:
 	go test ./...
 
 .PHONY: helm
-helm:
-	helm package -d ./helm helm/charts/registry helm/charts/engine --version $(tag:v%=%) --app-version $(tag:v%=%)
-	helm repo index ./helm
+helm: helm/engine.tgz helm/infra.tgz
+	helm repo index helm
+
+helm/%.tgz: helm/charts/%
+	helm package -d $(@D) $< --version $(tag) --app-version $(tag)
+
+helm/charts/infra/charts/:
+	mkdir -p $@
+
+helm/charts/infra/charts/%.tgz: helm/%.tgz helm/charts/infra/charts/
+	ln -sf $(realpath $<) $(@D)
+
+helm/infra.tgz: helm/charts/infra/charts/engine-$(tag).tgz
+
+helm/lint: helm
+	helm lint helm/charts/*
+
+helm/clean:
+	$(RM) -r helm/*.tgz helm/charts/infra/charts
 
 .PHONY: docs
 docs:
 	go run ./internal/docgen
 
-clean:
+clean: helm/clean
 	$(RM) -r dist
 
 .PHONY: openapi
@@ -41,39 +57,46 @@ goreleaser:
 build: goreleaser
 	goreleaser build --snapshot --rm-dist
 
-build/docker:
-	docker build --build-arg TELEMETRY_WRITE_KEY=${TELEMETRY_WRITE_KEY} --build-arg CRASH_REPORTING_DSN=${CRASH_REPORTING_DSN} . -t infrahq/infra:0.0.0-development
+export IMAGE_TAG=0.0.0-development
 
-dev:
+build/docker:
+	docker build --build-arg TELEMETRY_WRITE_KEY=${TELEMETRY_WRITE_KEY} --build-arg CRASH_REPORTING_DSN=${CRASH_REPORTING_DSN} . -t infrahq/infra:$(IMAGE_TAG)
+
+export OKTA_SECRET=infra-registry-okta
+
+%.yaml: %.yaml.in
+	envsubst <$< >$@
+
+docker-desktop.yaml: docker-desktop.yaml.in
+
+NS=$(patsubst %,-n %,$(NAMESPACE))
+VALUES=docker-desktop.yaml
+
+dev: $(VALUES) helm build/docker
 	# docker desktop setup for the dev environment
 	# create a token and get the token secret from:
 	# https://dev-02708987-admin.okta.com/admin/access/api/tokens
 	# get client secret from:
 	# https://dev-02708987-admin.okta.com/admin/app/oidc_client/instance/0oapn0qwiQPiMIyR35d6/#tab-general
 	# create the required secret with:
-	# kubectl create secret generic infra-registry-okta -n infrahq --from-literal=clientSecret=$$OKTA_CLIENT_SECRET --from-literal=apiToken=$$OKTA_API_TOKEN
+	# kubectl $(NS) create secret generic $(OKTA_SECRET) --from-literal=clientSecret=$$OKTA_CLIENT_SECRET --from-literal=apiToken=$$OKTA_API_TOKEN
 
 	kubectl config use-context docker-desktop
-	make build/docker
-	helm upgrade --install infra-registry ./helm/charts/registry --namespace infrahq --create-namespace --set image.pullPolicy=Never --set image.tag=0.0.0-development --set-file config=./infra.yaml --set logLevel=debug
-	kubectl config set-context --current --namespace=infrahq
-	kubectl wait --for=condition=available --timeout=600s deployment/infra-registry --namespace infrahq
-	helm upgrade --install infra-engine ./helm/charts/engine --namespace infrahq --set image.pullPolicy=Never --set image.tag=0.0.0-development --set name=dd --set registry=infra-registry --set apiKey=$$(kubectl get secrets/infra-registry --template={{.data.engineApiKey}} --namespace infrahq | base64 -D) --set service.ports[0].port=8443 --set service.ports[0].name=https --set service.ports[0].targetPort=443 --set logLevel=debug
-	kubectl rollout restart deployment/infra-registry --namespace infrahq
-	kubectl rollout restart deployment/infra-engine --namespace infrahq
-	ROOT_TOKEN=$$(kubectl --namespace infrahq get secrets infra-registry -o jsonpath='{.data.rootApiKey}' | base64 -D); \
-    echo Root token is $$ROOT_TOKEN
+	kubectl $(NS) get secrets $(INFRA_REGISTRY_OKTA) >/dev/null
+	helm $(NS) upgrade --install --create-namespace $(patsubst %,-f %,$(VALUES)) --wait infra helm/charts/infra
+	@[ -z "$(NS)" ] || kubectl config set-context --current --namespace=$(NAMESPACE)
+	@echo Root token is $$(kubectl $(NS) get secrets infra-registry -o jsonpath='{.data.root-key}' | base64 --decode)
 
 dev/clean:
 	kubectl config use-context docker-desktop
-	helm uninstall --namespace infrahq infra-registry || true
-	helm uninstall --namespace infrahq infra-engine || true
+	helm $(NS) uninstall infra || true
+	helm $(NS) uninstall infra-engine || true
 
 release: goreleaser
 	goreleaser release -f .goreleaser.yml --rm-dist
 
 release/docker:
-	docker buildx build --push --platform linux/amd64,linux/arm64 --build-arg BUILDVERSION=$(tag:v%=%) --build-arg TELEMETRY_WRITE_KEY=${TELEMETRY_WRITE_KEY} --build-arg CRASH_REPORTING_DSN=${CRASH_REPORTING_DSN} . -t infrahq/infra:$(tag:v%=%) -t infrahq/infra
+	docker buildx build --push --platform linux/amd64,linux/arm64 --build-arg BUILDVERSION=$(tag) --build-arg TELEMETRY_WRITE_KEY=${TELEMETRY_WRITE_KEY} --build-arg CRASH_REPORTING_DSN=${CRASH_REPORTING_DSN} . -t infrahq/infra:$(tag) -t infrahq/infra
 
 release/helm: helm
 	aws s3 --region us-east-2 sync helm s3://helm.infrahq.com --exclude "*" --include "index.yaml" --include "*.tgz"
