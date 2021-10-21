@@ -39,7 +39,7 @@ func readConfig() (*ClientConfigV0dot2, error) {
 
 	contents, err := ioutil.ReadFile(filepath.Join(infraDir, "config"))
 	if os.IsNotExist(err) {
-		return nil, &ErrConfigNotFound{}
+		return nil, ErrConfigNotFound
 	}
 
 	if err != nil {
