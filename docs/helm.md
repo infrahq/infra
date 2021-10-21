@@ -1,27 +1,27 @@
 # Infra Helm Chart
 
-The Infra helm chart is the recommended way of installing Infra on Kubernetes.
+The Infra Helm chart is the recommended way of installing Infra on Kubernetes.
 
-## Add Repo
+## Add Helm Repo
 
 ```
 helm repo add infrahq https://helm.infrahq.com
 helm repo update
 ```
 
-## Install the Infra Registry
+## Install Infra
 
 ```
-helm install infra-registry infrahq/registry --namespace infrahq --create-namespace
+helm install -n infrahq --create-namespace infra infrahq/infra
 ```
 
-## Advanced Load Balancer Configuration
+## Advanced Service Configuration
 
 ### Internal Load Balancer
 
 ```
 # example values.yaml
-
+---
 service:
   annotations:
     # Google GKE
@@ -40,7 +40,7 @@ service:
 
 ```
 # example values.yaml
-
+---
 service:
   type: ClusterIP
   annotations:
@@ -58,7 +58,7 @@ service:
 
 ```
 # example values.yaml
-
+---
 service:
   type: ClusterIP
 
@@ -75,11 +75,11 @@ ingress:
     alb.ingress.kubernetes.io/group.name: infra-registry      # (optional: edit me to use an existing shared load balanacer)
 ```
 
-### `ingress-nginx`
+### NGINX Ingress Controller
 
 ```
 # example values.yaml
-
+---
 service:
   type: ClusterIP
 
@@ -95,53 +95,85 @@ ingress:
       cert-manager.io/issuer: "letsencrypt-prod"
 ```
 
+## Uninstall Infra
+
+```
+# Remove Infra
+helm uninstall -n infrahq infra
+
+# Remove potential secrets created for Infra
+kubectl delete -n infrahq secret/infra-registry-okta
+```
+
+## Uninstall Infra Engine
+
+```
+# Remove Infra Engine
+helm uninstall -n infrahq infra-engine
+
+# Remove rolebindings & clusterrolebindings created by Infra Engine
+kubectl delete clusterrolebindings,rolebindings -l app.kubernetes.io/managed-by=infra --all-namespaces
+```
+
 ## Configuration Reference
+
+### Infra
 
 | Parameter                          | Description                             | Default                      |
 |------------------------------------|-----------------------------------------|------------------------------|
-| `image.repository`                 | Image repository                        | `infrahq/registry`           |
-| `image.tag`                        | Image tag                               | Most recent version of Infra |
-| `image.pullPolicy`                 | Image Pull Policy                       | `IfNotPresent`               |
-| `service.type`                     | Service type                            | `LoadBalancer`               |
-| `service.port`                     | Port to expose the plaintext service on | `80`                         |
-| `service.targetPort`               | Target plaintext container port         | `80`                         |
-| `service.portName`                 | Name of the plaintext service port      | `plaintext`                  |
-| `service.nodePort`                 | Service plaintext nodeport              | `nil`                        |
-| `service.tlsPort`                  | Port to expose the TLS service on       | `443`                        |
-| `service.tlsTargetPort`            | Target TLS container port               | `443`                        |
-| `service.tlsPortName`              | Name of the TLS service port            | `tls`                        |
-| `service.tlsNodePort`              | Service TLS nodeport                    | `nil`                        |
-| `service.annotations`              | Service annotations                     | `{}`                         |
-| `service.labels`                   | Service labels                          | `{}`                         |
-| `service.loadBalancerIP`           | IP address to assign to load balancer   | `nil`                        |
-| `service.loadBalancerSourceRanges` | List of IP CIDRs allowed access         | `[]`                         |
-| `service.externalIPs`              | Service external IP addresses           | `[]`                         |
-| `service.clusterIP`                | Internal cluster service IP             | `nil`                        |
+| `config`                           | Infra configuration file                | `nil`                        |
+| `crashReporting.enabled`           | Enable crash report                     | `true`                       |
+| `engine.*`                         | Engine chart values                     | (see below)                  |
+| `engine.apiKey`                    | Engine API key                          | `""` (generated)             |
+| `telemetry.enabled`                | Enable telemetry collection             | `true`                       |
+| `image.tag`                        | Image tag                               | `""` (latest release)        |
+| `image.repository`                 | Image repository                        | `infrahq/infra`              |
+| `image.pullPolicy`                 | Image pull policy                       | `IfNotPresent`               |
 | `ingress.enabled`                  | Enable ingress                          | `false`                      |
 | `ingress.host`                     | Ingress host                            | `""`                         |
 | `ingress.tls`                      | Ingress tls configuration               | `[]`                         |
 | `ingress.servicePort`              | Target http service port backend        | `80`                         |
 | `ingress.annotations`              | Ingress annotations (https)             | `{}`                         |
 | `ingress.labels`                   | Ingress labels (https)                  | `{}`                         |
+| `pod.annotations`                  | Pod annotations                         | `{}`                         |
+| `service.type`                     | Service type                            | `LoadBalancer`               |
+| `service.ports`                    | Service ports                           | `[{name:http, port:80 targetPort:80}, {name:https, port:443, targetPort:43}]` |
+| `service.ports[].port`             | Service port                            | `nil`                        |
+| `service.ports[].name`             | Service port name                       | `nil`                        |
+| `service.ports[].targetPort`       | Service port target                     | `nil`                        |
+| `service.ports[].protocol`         | Service port protocol                   | `TCP`                        |
+| `service.labels`                   | Service labels                          | `{}`                         |
+| `service.annotations`              | Service annotations                     | `{}`                         |
+| `service.loadBalancerIP`           | IP address to assign to load balancer   | `nil`                        |
+| `service.loadBalancerSourceRanges` | List of IP CIDRs allowed access         | `[]`                         |
+| `service.externalIPs`              | Service external IP addresses           | `[]`                         |
+| `service.clusterIP`                | Internal cluster service IP             | `nil`                        |
+| `serviceAccount.create`            | Enable service account creation         | `true`                       |
+| `serviceAccount.annotations`       | Service account annotations             | `{}`                         |
+| `storage`                          | Storage size                            | `1Gi`                        |
 
-## Uninstalling
+### Infra Engine
 
-Uninstall the Infra Registry
-
-```
-# Remove infra registry
-helm uninstall infra-registry -n infrahq
-
-# Remove potential secrets created for infra registry
-kubectl delete -n infrahq secret/infra-registry-okta
-```
-
-Uninstall the Infra Engine
-
-```
-# Remove infra engine
-helm uninstall infra-engine -n infrahq
-
-# Remove rolebindings & clusterrolebindings created by infra engine
-kubectl delete clusterrolebindings,rolebindings -l app.kubernetes.io/managed-by=infra --all-namespaces
-```
+| Parameter                          | Description                             | Default                      |
+|------------------------------------|-----------------------------------------|------------------------------|
+| `name`                             | Cluster name                            | `""` (auto-discovered)       |
+| `registry`                         | Infra Registry endpoint                 | `""` (required)              |
+| `apiKey`                           | Infra API key                           | `""` (required)              |
+| `image.tag`                        | Image tag                               | `""` (latest release)        |
+| `image.repository`                 | Image repository                        | `infrahq/infra`              |
+| `image.pullPolicy`                 | Image pull policy                       | `IfNotPresent`               |
+| `pod.annotations`                  | Pod annotations                         | `{}`                         |
+| `service.type`                     | Service type                            | `LoadBalancer`               |
+| `service.ports`                    | Service ports                           | `[{name:https, port:443, targetPort:43}]` |
+| `service.ports[].port`             | Service port                            | `nil`                        |
+| `service.ports[].name`             | Service port name                       | `nil`                        |
+| `service.ports[].targetPort`       | Service port target                     | `nil`                        |
+| `service.ports[].protocol`         | Service port protocol                   | `TCP`                        |
+| `service.labels`                   | Service labels                          | `{}`                         |
+| `service.annotations`              | Service annotations                     | `{}`                         |
+| `service.loadBalancerIP`           | IP address to assign to load balancer   | `nil`                        |
+| `service.loadBalancerSourceRanges` | List of IP CIDRs allowed access         | `[]`                         |
+| `service.externalIPs`              | Service external IP addresses           | `[]`                         |
+| `service.clusterIP`                | Internal cluster service IP             | `nil`                        |
+| `serviceAccount.create`            | Enable service account creation         | `true`                       |
+| `serviceAccount.annotations`       | Service account annotations             | `{}`                         |

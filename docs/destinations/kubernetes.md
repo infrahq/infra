@@ -1,26 +1,55 @@
-## Introduction
+# Destination / Kubernetes
 
-## Contents
+## Connect Additional Clusters
 
-* [Introduction](#introduction)
-* [Contents](#contents)
-* [Connect](#connect)
+Before installing Infra in additional clusters, you will first need to gather some information about your main Infra deployment.
 
-## Connect
+### Get Infra Endpoint
 
-Registry host and API key needs to be retrieved from the main cluster.
+Depending on your Infra Helm configurations, the steps will differ.
 
-In your main cluster context:
+<details>
+  <summary><strong>Ingress</strong></summary>
+
+  ```
+  INFRA_HOST=$(kubectl -n infrahq get ingress -l infrahq.com/component=registry -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
+  ```
+</details>
+
+<details>
+  <summary><strong>LoadBalancer</strong></summary>
+
+  Note: It may take a few minutes for the LoadBalancer endpoint to be assigned. You can watch the status of the service with:
+
+  ```
+  kubectl -n infrahq get services -l infrahq.com/component=registry -w
+  ```
+
+  ```
+  INFRA_HOST=$(kubectl -n infrahq get services -l infrahq.com/component=registry -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
+  ```
+</details>
+
+<details>
+  <summary><strong>ClusterIP</strong></summary>
+
+  ```
+  CONTAINER_PORT=$(kubectl -n infrahq get services -l infrahq.com/component=registry -o jsonpath="{.items[].spec.ports[0].port}")
+  kubectl -n infrahq port-forward service/infra-registry 8080:$CONTAINER_PORT &
+  INFRA_HOST='localhost:8080'
+  ```
+</details>
+
+### Get Infra API Key
 
 ```
-REGISTRY_HOST=$(kubectl -n infrahq get service -l infrahq.com/component=registry -o jsonpath="{.items[].status.loadBalancer.ingress[]['ip', 'hostname']}")
-REGISTRY_API_KEY=$(kubectl -n infrahq get secret infra-engine -o jsonpath='{.data.engine-key}' | base64 --decode)
+INFRA_API_KEY=$(kubectl -n infrahq get secrets infra-registry -o jsonpath='{.data.engine-api-key}' | base64 --decode)
 ```
 
-In your new cluster context:
+---
 
 ```
-helm install -n infrahq --create-namespace --set registry=$REGISTRY_HOST --set apiKey=REGISTRY_API_KEY infra-engine infrahq.com/engine
+helm install -n infrahq --create-namespace --set registry=$INFRA_HOST --set apiKey=$INFRA_API_KEY engine infrahq/engine
 ```
 
 To customize your install, see the [Helm Chart reference](./../helm.md).

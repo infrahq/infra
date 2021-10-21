@@ -43,31 +43,30 @@ See [Okta](./docs/sources/okta.md) for detailed Okta configuration steps.
 Cluster name is auto-discovered or can be set statically in Helm with `engine.name`.
 
 ```yaml
-# infra.yaml
+# example values.yaml
 ---
-registry:
-  config:
-    sources:
-      - kind: okta
-        domain: <Okta domain>
-        clientId: <Okta client ID>
-        clientSecret: <Okta client secret>
-        apiToken: <Okta API token>
-    groups:
-      - name: Everyone
-        roles:
-            - kind: role
-              name: viewer
-              destinations:
-                - name: <cluster name>
-                  namespace: default
+config:
+  sources:
+    - kind: okta
+      domain: <Okta domain>
+      clientId: <Okta client ID>
+      clientSecret: <Okta client secret>
+      apiToken: <Okta API token>
+  groups:
+    - name: Everyone
+      roles:
+          - kind: role
+            name: viewer
+            destinations:
+              - name: <cluster name>
+                namespace: default
 ```
 
-### Update Infra with your configuration
+### Update Infra With Your Configuration
 
 ```
 helm repo update
-helm upgrade -n infrahq -f infra.yaml infra infrahq/infra
+helm upgrade -n infrahq -f values.yaml infra infrahq/infra
 ```
 
 ### Install Infra CLI
@@ -108,15 +107,15 @@ helm upgrade -n infrahq -f infra.yaml infra infrahq/infra
   ```
 </details>
 
-### Access your infrastructure
+### Access Your Infrastructure
 
-First you need to get your registry endpoint. This step may be different depending on your service type.
+First you need to get your Infra endpoint. This step may be different depending on your service type.
 
 <details>
   <summary><strong>Ingress</strong></summary>
 
   ```
-  $ INFRA_HOST=$(kubectl -n infrahq get ingress -l infrahq.com/component=registry -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
+  INFRA_HOST=$(kubectl -n infrahq get ingress -l infrahq.com/component=registry -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
   ```
 </details>
 
@@ -126,11 +125,11 @@ First you need to get your registry endpoint. This step may be different dependi
   Note: It may take a few minutes for the LoadBalancer endpoint to be assigned. You can watch the status of the service with:
 
   ```
-  $ kubectl -n infrahq get services -l infrahq.com/component=registry -w
+  kubectl -n infrahq get services -l infrahq.com/component=registry -w
   ```
 
   ```
-  $ INFRA_HOST=$(kubectl -n infrahq get services -l infrahq.com/component=registry -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
+  INFRA_HOST=$(kubectl -n infrahq get services -l infrahq.com/component=registry -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
   ```
 </details>
 
@@ -138,9 +137,9 @@ First you need to get your registry endpoint. This step may be different dependi
   <summary><strong>ClusterIP</strong></summary>
 
   ```
-  $ CONTAINER_PORT=$(kubectl -n infrahq get services -l infrahq.com/component=registry -o jsonpath="{.items[].spec.ports[0].port}")
-  $ kubectl -n infrahq port-forward service/infra-registry 8080:$CONTAINER_PORT &
-  $ INFRA_HOST='localhost:8080'
+  CONTAINER_PORT=$(kubectl -n infrahq get services -l infrahq.com/component=registry -o jsonpath="{.items[].spec.ports[0].port}")
+  kubectl -n infrahq port-forward service/infra-registry 8080:$CONTAINER_PORT &
+  INFRA_HOST='localhost:8080'
   ```
 </details>
 
@@ -154,12 +153,12 @@ Follow the instructions on screen to complete the login process. See the [Infra 
 
 ## Next Steps
 
-### Connect additional identity sources
+### Connect Additional Identity Sources
 
 * [Sources](./docs/sources)
   * [Okta](./docs/sources/okta.md)
 
-### Connect additional infrastructure destinations
+### Connect Additional Infrastructure Destinations
 
 * [Destinations](./docs/destinations)
   * [Kubernetes](./docs/destinations/kubernetes.md)
@@ -168,7 +167,7 @@ Follow the instructions on screen to complete the login process. See the [Infra 
 
 ```
 helm repo update
-helm upgrade -f infra.yaml infra infrahq.com/infra
+helm upgrade -f values.yaml infra infrahq.com/infra
 ```
 
 ## [Security](./docs/security.md)
