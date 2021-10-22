@@ -1,10 +1,15 @@
 package secrets
 
 import (
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/kms/kmsiface"
 )
+
+// ensure this interface is implemented properly
+var _ SecretSymmetricKeyProvider = &AWSKMSSecretProvider{}
 
 type AWSKMSSecretProvider struct {
 	kms kmsiface.KMSAPI
@@ -23,7 +28,7 @@ func (k *AWSKMSSecretProvider) DecryptDataKey(rootKeyID string, keyData []byte) 
 		CiphertextBlob:      keyData,
 	})
 	if err := req.Send(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("kms: decrypt data key: %w", err)
 	}
 
 	return &SymmetricKey{
@@ -48,7 +53,7 @@ func (k *AWSKMSSecretProvider) GenerateDataKey(name, rootKeyID string) (*Symmetr
 	if rootKeyID == "" {
 		ko, err := k.generateRootKey(name + ":root")
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("kms: generate root key: %w", err)
 		}
 
 		rootKeyID = *ko.KeyMetadata.KeyId
@@ -59,7 +64,7 @@ func (k *AWSKMSSecretProvider) GenerateDataKey(name, rootKeyID string) (*Symmetr
 		KeyId:   aws.String(rootKeyID),
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("kms: generate data key: %w", err)
 	}
 
 	return &SymmetricKey{

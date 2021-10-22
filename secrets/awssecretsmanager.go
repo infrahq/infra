@@ -47,14 +47,14 @@ func (s *AWSSecretsManager) SetSecret(name string, secret []byte) error {
 					SecretId:     &name,
 				})
 				if err != nil {
-					return fmt.Errorf("update secret: %w", err)
+					return fmt.Errorf("aws sm: update secret: %w", err)
 				}
 
 				return nil
 			}
 		}
 
-		return fmt.Errorf("creating secret: %w", err)
+		return fmt.Errorf("aws sm: creating secret: %w", err)
 	}
 
 	return nil
@@ -77,7 +77,7 @@ func (s *AWSSecretsManager) GetSecret(name string) (secret []byte, err error) {
 			}
 		}
 
-		return nil, fmt.Errorf("get secret: %w", err)
+		return nil, fmt.Errorf("aws sm: get secret: %w", err)
 	}
 
 	return sec.SecretBinary, nil
