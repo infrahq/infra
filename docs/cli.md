@@ -111,9 +111,9 @@ infra registry [flags]
       --db string                path to database file (default "~/.infra/infra.db")
       --enable-crash-reporting   enable crash reporting (default true)
       --enable-telemetry         enable telemetry (default true)
-      --engine-api-key string    initial api key for adding destinations
+      --engine-api-key string    engine registration API key
   -h, --help                     help for registry
-      --root-api-key string      the root api key for privileged actions
+      --root-api-key string      root API key
       --sync-interval int        the interval (in seconds) at which Infra will poll sources for users and groups (default 30)
       --tls-cache string         path to directory to cache tls self-signed and Let's Encrypt certificates (default "~/.infra/cache")
       --ui                       enable ui
@@ -131,12 +131,11 @@ infra engine [flags]
 ### Options
 
 ```
-      --api-key string             api key
-      --force-tls-verify           force TLS verification
-  -h, --help                       help for engine
-  -n, --name string                cluster name
-  -r, --registry string            registry hostname
-      --tls-cache string           path to directory to cache tls self-signed and Let's Encrypt certificates (default "~/.infra/cache")
-      --validate-before-register   verify the engine is accessible before registering as a destination
+      --engine-api-key string   engine registration API key
+      --force-tls-verify        force TLS verification
+  -h, --help                    help for engine
+  -n, --name string             cluster name
+  -r, --registry string         registry hostname
+      --tls-cache string        path to directory to cache tls self-signed and Let's Encrypt certificates (default "~/.infra/cache")
 ```
 
