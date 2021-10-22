@@ -69,8 +69,8 @@ export OKTA_SECRET=infra-registry-okta
 
 docker-desktop.yaml: docker-desktop.yaml.in
 
-NS=$(patsubst %,-n %,$(NAMESPACE))
-VALUES=docker-desktop.yaml
+NS = $(patsubst %,-n %,$(NAMESPACE))
+VALUES ?= docker-desktop.yaml
 
 dev: $(VALUES) helm build/docker
 	# docker desktop setup for the dev environment
