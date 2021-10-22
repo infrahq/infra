@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/kms"
+	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/hashicorp/vault/api"
 	"github.com/infrahq/infra/testutil/docker"
 	"github.com/stretchr/testify/require"
@@ -41,6 +42,7 @@ func TestMain(m *testing.M) {
 
 var (
 	awskms       *kms.KMS
+	awsssm       *secretsmanager.SecretsManager
 	containerIDs []string
 )
 
@@ -49,8 +51,23 @@ func setup() {
 		return
 	}
 
+	var containerID string
+
+	// setup localstack
+	// eg docker run --rm -it -p 4566:4566 -p 4571:4571 localstack/localstack
+	containerID = docker.LaunchContainer("localstack/localstack",
+		[]docker.ExposedPort{
+			{HostPort: 4566, ContainerPort: 4566},
+		},
+		nil, // cmd
+		[]string{
+			"SERVICES=secretsmanager",
+		},
+	)
+	containerIDs = append(containerIDs, containerID)
+
 	// setup kms
-	containerID := docker.LaunchContainer("nsmithuk/local-kms", []docker.ExposedPort{
+	containerID = docker.LaunchContainer("nsmithuk/local-kms", []docker.ExposedPort{
 		{HostPort: 8380, ContainerPort: 8080},
 	}, nil, nil)
 	containerIDs = append(containerIDs, containerID)
@@ -70,11 +87,26 @@ func setup() {
 	containerIDs = append(containerIDs, containerID)
 
 	// configure aws client
-	cfg := aws.NewConfig()
-	cfg.Endpoint = aws.String("http://localhost:8380")
-	cfg.Credentials = credentials.AnonymousCredentials
-	cfg.Region = aws.String("us-west-2")
-	awskms = kms.New(session.Must(session.NewSession()), cfg)
+	sess := session.Must(session.NewSession())
+
+	// for kms service
+	cfg := aws.NewConfig().
+		WithEndpoint("http://localhost:8380").
+		WithCredentials(credentials.AnonymousCredentials).
+		WithRegion("us-west-2")
+	awskms = kms.New(sess, cfg)
+
+	// for localstack (secrets manager, etc)
+	cfg2 := aws.NewConfig().
+		WithCredentials(credentials.NewCredentials(&credentials.StaticProvider{
+			Value: credentials.Value{
+				AccessKeyID:     "test",
+				SecretAccessKey: "test",
+			},
+		})).
+		WithEndpoint("http://localhost:4566").
+		WithRegion("us-east-1")
+	awsssm = secretsmanager.New(sess, cfg2)
 }
 
 func teardown() {
@@ -106,11 +138,18 @@ func eachSecretSymmetricKeyProvider(t *testing.T, eachFunc func(t *testing.T, p 
 func eachProvider(t *testing.T, eachFunc func(t *testing.T, p interface{})) {
 	providers := map[string]interface{}{}
 
-	// add aws
+	// add AWS KMS
 	k, err := NewAWSKMSSecretProvider(awskms)
 	require.NoError(t, err)
 
-	providers["kms"] = k
+	providers["awskms"] = k
+
+	// add AWS Secrets Manager
+	ssm := NewAWSSecretsManager(awsssm)
+
+	waitForSecretsManagerReady(t, awsssm)
+
+	providers["awsssm"] = ssm
 
 	// add vault
 	v, err := NewVaultSecretProvider("http://localhost:8200", "root", "")
