@@ -20,7 +20,7 @@ Depending on your Infra Helm configurations, the steps will differ.
   <summary><strong>Ingress</strong></summary>
 
   ```
-  INFRA_HOST=$(kubectl -n infrahq get ingress -l infrahq.com/component=registry -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
+  INFRA_HOST=$(kubectl -n infrahq get ingress -l infrahq.com/component=infra -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
   ```
 </details>
 
@@ -30,11 +30,11 @@ Depending on your Infra Helm configurations, the steps will differ.
   Note: It may take a few minutes for the LoadBalancer endpoint to be assigned. You can watch the status of the service with:
 
   ```
-  kubectl -n infrahq get services -l infrahq.com/component=registry -w
+  kubectl -n infrahq get services -l infrahq.com/component=infra -w
   ```
 
   ```
-  INFRA_HOST=$(kubectl -n infrahq get services -l infrahq.com/component=registry -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
+  INFRA_HOST=$(kubectl -n infrahq get services -l infrahq.com/component=infra -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
   ```
 </details>
 
@@ -42,7 +42,7 @@ Depending on your Infra Helm configurations, the steps will differ.
   <summary><strong>ClusterIP</strong></summary>
 
   ```
-  CONTAINER_PORT=$(kubectl -n infrahq get services -l infrahq.com/component=registry -o jsonpath="{.items[].spec.ports[0].port}")
+  CONTAINER_PORT=$(kubectl -n infrahq get services -l infrahq.com/component=infra -o jsonpath="{.items[].spec.ports[0].port}")
   kubectl -n infrahq port-forward service infra 8080:$CONTAINER_PORT &
   INFRA_HOST='localhost:8080'
   ```
@@ -57,7 +57,7 @@ INFRA_API_KEY=$(kubectl -n infrahq get secrets infra-engine -o jsonpath='{.data.
 ---
 
 ```
-helm install -n infrahq --create-namespace --set registry=$INFRA_HOST --set apiKey=$INFRA_API_KEY engine infrahq/engine
+helm install -n infrahq --create-namespace --set host=$INFRA_HOST --set apiKey=$INFRA_API_KEY engine infrahq/engine
 ```
 
 See [Helm Chart reference](./helm.md) for a complete list of options configurable through Helm.

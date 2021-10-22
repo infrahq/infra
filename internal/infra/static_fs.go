@@ -1,4 +1,4 @@
-package registry
+package infra
 
 import (
 	"net/http"

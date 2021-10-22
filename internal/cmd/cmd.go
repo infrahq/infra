@@ -15,7 +15,6 @@ import (
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/engine"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/registry"
 	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/tools/clientcmd"
@@ -82,7 +81,7 @@ func infraHomeDir() (string, error) {
 }
 
 func apiContextFromConfig() (context.Context, error) {
-	config, err := currentRegistryConfig()
+	config, err := currentHostConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +94,7 @@ func apiContextFromConfig() (context.Context, error) {
 }
 
 func apiClientFromConfig() (*api.APIClient, error) {
-	config, err := currentRegistryConfig()
+	config, err := currentHostConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -211,18 +210,18 @@ func newLoginCmd() (*cobra.Command, error) {
 	var options LoginOptions
 
 	cmd := &cobra.Command{
-		Use:     "login [REGISTRY]",
-		Short:   "Login to an Infra Registry",
+		Use:     "login [HOST]",
+		Short:   "Login to Infra",
 		Args:    cobra.MaximumNArgs(1),
 		Example: "$ infra login infra.example.com",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			registry := ""
+			host := ""
 			if len(args) == 1 {
-				registry = args[0]
+				host = args[0]
 			}
 
 			return login(LoginOptions{
-				Host: registry,
+				Host: host,
 			})
 		},
 	}
@@ -235,16 +234,16 @@ func newLoginCmd() (*cobra.Command, error) {
 func newLogoutCmd() (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:     "logout",
-		Short:   "Logout of an Infra Registry",
+		Short:   "Logout Infra",
 		Args:    cobra.MaximumNArgs(1),
 		Example: "$ infra logout",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			registry := ""
+			host := ""
 			if len(args) == 1 {
-				registry = args[0]
+				host = args[0]
 			}
 
-			return logout(registry)
+			return logout(host)
 		},
 	}
 
@@ -264,12 +263,13 @@ func newListCmd() (*cobra.Command, error) {
 	return cmd, nil
 }
 
-func newRegistryCmd() (*cobra.Command, error) {
+func newStartCmd() (*cobra.Command, error) {
 	var options registry.Options
 
 	cmd := &cobra.Command{
-		Use:   "registry",
-		Short: "Start Infra Registry",
+		Use:    "start",
+		Short:  "Start Infra",
+		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return registry.Run(options)
 		},
@@ -319,11 +319,12 @@ func newEngineCmd() (*cobra.Command, error) {
 	var options engine.Options
 
 	cmd := &cobra.Command{
-		Use:   "engine",
-		Short: "Start Infra Engine",
+		Use:    "engine",
+		Short:  "Start Infra Engine",
+		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if options.Registry == "" {
-				logging.L.Warn("registry not specified; will try to get from Kubernetes")
+			if options.Host == "" {
+				logging.L.Warn("infra host not specified; will try to get from kubernetes")
 			}
 
 			if options.EngineAPIKey == "" {
@@ -337,7 +338,7 @@ func newEngineCmd() (*cobra.Command, error) {
 	defaultInfraHome := filepath.Join("~", ".infra")
 
 	cmd.PersistentFlags().BoolVar(&options.ForceTLSVerify, "force-tls-verify", false, "force TLS verification")
-	cmd.Flags().StringVarP(&options.Registry, "registry", "r", os.Getenv("INFRA_ENGINE_REGISTRY"), "registry hostname")
+	cmd.Flags().StringVarP(&options.Host, "host", "h", os.Getenv("INFRA_HOST"), "infra host")
 	cmd.Flags().StringVarP(&options.Name, "name", "n", os.Getenv("INFRA_ENGINE_NAME"), "cluster name")
 	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(defaultInfraHome, "cache"), "path to directory to cache tls self-signed and Let's Encrypt certificates")
 	cmd.Flags().StringVar(&options.EngineAPIKey, "engine-api-key", os.Getenv("INFRA_ENGINE_API_KEY"), "engine registration API key")
@@ -366,7 +367,7 @@ func newVersionCmd() (*cobra.Command, error) {
 	}
 
 	cmd.Flags().BoolVarP(&options.Client, "client", "c", false, "Display client version only")
-	cmd.Flags().BoolVarP(&options.Registry, "registry", "r", false, "Display registry version only")
+	cmd.Flags().BoolVarP(&options.Infra, "infra", "r", false, "Display infra version only")
 
 	return cmd, nil
 }
@@ -415,7 +416,7 @@ func NewRootCmd() (*cobra.Command, error) {
 		return nil, err
 	}
 
-	registryCmd, err := newRegistryCmd()
+	startCmd, err := newStartCmd()
 	if err != nil {
 		return nil, err
 	}
@@ -439,7 +440,7 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.AddCommand(tokensCmd)
 	rootCmd.AddCommand(versionCmd)
 
-	rootCmd.AddCommand(registryCmd)
+	rootCmd.AddCommand(startCmd)
 	rootCmd.AddCommand(engineCmd)
 
 	return rootCmd, nil

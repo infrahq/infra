@@ -16,7 +16,7 @@
 // ui/out/icon.svg (2.429kB)
 // ui/out/index.html (1.41kB)
 
-package registry
+package infra
 
 import (
 	"crypto/sha256"

@@ -1,4 +1,4 @@
-package registry
+package infra
 
 import (
 	"context"
@@ -561,7 +561,7 @@ func (a *API) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if strings.ToLower(body.Name) == engineAPIKeyName || strings.ToLower(body.Name) == rootAPIKeyName {
-		// this name is used for the default API key that engines use to connect to the registry
+		// this name is used for the default API key that engines use to connect to Infra
 		sendAPIError(w, http.StatusBadRequest, fmt.Sprintf("cannot create an API key with the name %s, this name is reserved", body.Name))
 		return
 	}
@@ -844,7 +844,7 @@ func (a *API) Login(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	if err := a.t.Enqueue(analytics.Track{Event: "registry.login", UserId: user.Id}); err != nil {
+	if err := a.t.Enqueue(analytics.Track{Event: "infra.login", UserId: user.Id}); err != nil {
 		logging.L.Sugar().Debug(err)
 	}
 
@@ -872,7 +872,7 @@ func (a *API) Logout(w http.ResponseWriter, r *http.Request) {
 
 	deleteAuthCookie(w)
 
-	if err := a.t.Enqueue(analytics.Track{Event: "registry.logout", UserId: token.UserId}); err != nil {
+	if err := a.t.Enqueue(analytics.Track{Event: "infra.logout", UserId: token.UserId}); err != nil {
 		logging.L.Sugar().Debug(err)
 	}
 

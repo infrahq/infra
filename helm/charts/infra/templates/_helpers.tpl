@@ -34,7 +34,7 @@ Create chart name and version as used by the chart label.
 Common labels
 */}}
 {{- define "infra.labels" -}}
-infrahq.com/component: registry
+infrahq.com/component: infra
 helm.sh/chart: {{ include "infra.chart" . }}
 {{ include "infra.selectorLabels" . }}
 {{- if .Chart.AppVersion }}

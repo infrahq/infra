@@ -14,8 +14,8 @@ import (
 )
 
 type VersionOptions struct {
-	Client   bool
-	Registry bool
+	Client bool
+	Infra  bool
 }
 
 func version(options VersionOptions) error {
@@ -41,12 +41,12 @@ func version(options VersionOptions) error {
 
 	fmt.Fprintln(w)
 
-	if !options.Registry {
+	if options.Client {
 		fmt.Fprintln(w, "Client:\t", clientVersion)
 	}
 
-	if !options.Client {
-		fmt.Fprintln(w, "Registry:\t", serverVersion)
+	if options.Infra {
+		fmt.Fprintln(w, "Infra:\t", serverVersion)
 	}
 
 	fmt.Fprintln(w)
@@ -88,11 +88,11 @@ func checkUpdate(clientVersion, serverVersion string) error {
 	}
 
 	if clientSemVer != "v0.0.0-development" && semver.Compare(latestSemVer, clientSemVer) > 0 {
-		fmt.Fprintf(os.Stderr, "Your client (%s) is out of date. Please update to %s.\n", clientVersion, latestVersion)
+		fmt.Fprintf(os.Stderr, "Infra CLI (%s) is out of date. Please update to %s.\n", clientVersion, latestVersion)
 	}
 
 	if serverSemVer != "v0.0.0-development" && semver.IsValid(serverSemVer) && semver.Compare(latestSemVer, serverSemVer) > 0 {
-		fmt.Fprintf(os.Stderr, "Your registry (%s) is out of date. Please update to %s.\n", serverVersion, latestVersion)
+		fmt.Fprintf(os.Stderr, "Infra (%s) is out of date. Please update to %s.\n", serverVersion, latestVersion)
 	}
 
 	return nil

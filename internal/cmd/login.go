@@ -43,64 +43,64 @@ func login(options LoginOptions) error {
 		loadedCfg = NewClientConfig()
 	}
 
-	var selectedRegistry *ClientRegistryConfig
+	var selectedHost *ClientHostConfig
 
-registry:
+host:
 	switch {
 	case options.Host == "":
 		if options.Current {
-			for i := range loadedCfg.Registries {
-				if loadedCfg.Registries[i].Current {
-					selectedRegistry = &loadedCfg.Registries[i]
-					break registry
+			for i := range loadedCfg.Hosts {
+				if loadedCfg.Hosts[i].Current {
+					selectedHost = &loadedCfg.Hosts[i]
+					break host
 				}
 			}
 		}
 
-		// TODO (https://github.com/infrahq/infra/issues/496): prompt user instead of assuming the first registry
+		// TODO (https://github.com/infrahq/infra/issues/496): prompt user instead of assuming the first hostname
 		// since they may not know where they are logging into
-		if len(loadedCfg.Registries) == 1 {
-			selectedRegistry = &loadedCfg.Registries[0]
+		if len(loadedCfg.Hosts) == 1 {
+			selectedHost = &loadedCfg.Hosts[0]
 			break
 		}
 
-		selectedRegistry = promptSelectRegistry(loadedCfg.Registries)
+		selectedHost = promptSelectHost(loadedCfg.Hosts)
 	default:
-		for i := range loadedCfg.Registries {
-			if loadedCfg.Registries[i].Host == options.Host {
-				selectedRegistry = &loadedCfg.Registries[i]
-				break registry
+		for i := range loadedCfg.Hosts {
+			if loadedCfg.Hosts[i].Host == options.Host {
+				selectedHost = &loadedCfg.Hosts[i]
+				break host
 			}
 		}
 
-		loadedCfg.Registries = append(loadedCfg.Registries, ClientRegistryConfig{
+		loadedCfg.Hosts = append(loadedCfg.Hosts, ClientHostConfig{
 			Host:    options.Host,
 			Current: true,
 		})
-		selectedRegistry = &loadedCfg.Registries[len(loadedCfg.Registries)-1]
+		selectedHost = &loadedCfg.Hosts[len(loadedCfg.Hosts)-1]
 	}
 
-	if selectedRegistry == nil {
-		return errors.New("A registry endpoint is required to continue with login.")
+	if selectedHost == nil {
+		return errors.New("host endpoint is required to login")
 	}
 
-	fmt.Fprintf(os.Stderr, "%s Logging in to %s\n", blue("✓"), termenv.String(selectedRegistry.Host).Bold().String())
+	fmt.Fprintf(os.Stderr, "%s Logging in to %s\n", blue("✓"), termenv.String(selectedHost.Host).Bold().String())
 
-	skipTLSVerify := selectedRegistry.SkipTLSVerify
+	skipTLSVerify := selectedHost.SkipTLSVerify
 	if !skipTLSVerify {
 		var proceed bool
 
-		skipTLSVerify, proceed, err = promptShouldSkipTLSVerify(selectedRegistry.Host)
+		skipTLSVerify, proceed, err = promptShouldSkipTLSVerify(selectedHost.Host)
 		if err != nil {
 			return err
 		}
 
 		if !proceed {
-			return fmt.Errorf("could not continue with login")
+			return fmt.Errorf("user declined login")
 		}
 	}
 
-	client, err := NewAPIClient(selectedRegistry.Host, skipTLSVerify)
+	client, err := NewAPIClient(selectedHost.Host, skipTLSVerify)
 	if err != nil {
 		return err
 	}
@@ -110,23 +110,19 @@ registry:
 		return errWithResponseContext(err, res)
 	}
 
-	if len(sources) == 0 {
-		return errors.New("zero sources have been configured")
-	}
-
 	var selectedSource *api.Source
 
 source:
 	switch {
 	case len(sources) == 0:
-		return errors.New("Zero sources have been configured.")
+		return errors.New("no identity providers have been configured")
 	case len(sources) == 1:
 		selectedSource = &sources[0]
 	default:
 		// Use the current source ID if it's valid to avoid prompting the user
-		if selectedRegistry.SourceID != "" && options.Current {
+		if selectedHost.SourceID != "" && options.Current {
 			for i, source := range sources {
-				if source.Id == selectedRegistry.SourceID {
+				if source.Id == selectedHost.SourceID {
 					selectedSource = &sources[i]
 					break source
 				}
@@ -196,15 +192,15 @@ source:
 		return errWithResponseContext(err, res)
 	}
 
-	for i := range loadedCfg.Registries {
-		loadedCfg.Registries[i].Current = false
+	for i := range loadedCfg.Hosts {
+		loadedCfg.Hosts[i].Current = false
 	}
 
-	selectedRegistry.Name = loginRes.Name
-	selectedRegistry.Token = loginRes.Token
-	selectedRegistry.SkipTLSVerify = skipTLSVerify
-	selectedRegistry.SourceID = selectedSource.Id
-	selectedRegistry.Current = true
+	selectedHost.Name = loginRes.Name
+	selectedHost.Token = loginRes.Token
+	selectedHost.SkipTLSVerify = skipTLSVerify
+	selectedHost.SourceID = selectedSource.Id
+	selectedHost.Current = true
 
 	err = writeConfig(loadedCfg)
 	if err != nil {
@@ -213,7 +209,7 @@ source:
 
 	fmt.Fprintf(os.Stderr, "%s Logged in as %s\n", blue("✓"), termenv.String(loginRes.Name).Bold().String())
 
-	client, err = NewAPIClient(selectedRegistry.Host, skipTLSVerify)
+	client, err = NewAPIClient(selectedHost.Host, skipTLSVerify)
 	if err != nil {
 		return err
 	}
@@ -258,15 +254,15 @@ source:
 	return nil
 }
 
-func promptSelectRegistry(registries []ClientRegistryConfig) *ClientRegistryConfig {
+func promptSelectHost(hosts []ClientHostConfig) *ClientHostConfig {
 	options := []string{}
-	for _, reg := range registries {
+	for _, reg := range hosts {
 		options = append(options, reg.Host)
 	}
 
 	option := 0
 	prompt := &survey.Select{
-		Message: "Choose a registry:",
+		Message: "Choose Infra account:",
 		Options: options,
 	}
 
@@ -277,7 +273,7 @@ func promptSelectRegistry(registries []ClientRegistryConfig) *ClientRegistryConf
 		return nil
 	}
 
-	return &registries[option]
+	return &hosts[option]
 }
 
 func promptShouldSkipTLSVerify(host string) (shouldSkipTLSVerify bool, proceed bool, err error) {

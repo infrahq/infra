@@ -1,5 +1,5 @@
 name: ""
-registry: ""
+host: ""
 apiKey: ""
 storage: 100Mi
 

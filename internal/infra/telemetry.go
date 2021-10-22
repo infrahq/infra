@@ -1,4 +1,4 @@
-package registry
+package infra
 
 import (
 	"errors"
@@ -46,7 +46,7 @@ func (t *Telemetry) Enqueue(track analytics.Track) error {
 		return err
 	}
 
-	track.Properties.Set("registryId", settings.Id)
+	track.Properties.Set("infraId", settings.Id)
 	track.Properties.Set("version", internal.Version)
 
 	return t.client.Enqueue(track)
@@ -82,7 +82,7 @@ func (t *Telemetry) EnqueueHeartbeat() error {
 
 	return t.Enqueue(analytics.Track{
 		AnonymousId: "system",
-		Event:       "registry.heartbeat",
+		Event:       "infra.heartbeat",
 		Properties: analytics.NewProperties().
 			Set("users", users).
 			Set("groups", groups).

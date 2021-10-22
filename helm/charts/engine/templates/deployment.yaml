@@ -43,8 +43,8 @@ spec:
               value: {{ .Values.logLevel | default "info" }}
             - name: INFRA_ENGINE_NAME
               value: {{ .Values.name | quote }}
-            - name: INFRA_ENGINE_REGISTRY
-              value: {{ .Values.registry | quote }}
+            - name: INFRA_HOST
+              value: {{ .Values.host | quote }}
             - name: INFRA_ENGINE_API_KEY
               value: 'file:///var/run/secrets/infrahq.com/engine/engine-key'
           volumeMounts:

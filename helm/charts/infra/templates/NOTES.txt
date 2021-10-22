@@ -10,16 +10,16 @@
 {{- end }}
 {{- else if eq .Values.service.type "NodePort" }}
     $ NODE_HOST=$(kubectl -n {{ .Release.Namespace }} get nodes -o jsonpath="{.items[].status.addresses[].address}")
-    $ NODE_PORT=$(kubectl -n {{ .Release.Namespace }} get services -l infrahq.com/component=registry -o jsonpath="{.items[].spec.ports[0].nodePort}")
+    $ NODE_PORT=$(kubectl -n {{ .Release.Namespace }} get services -l infrahq.com/component=infra -o jsonpath="{.items[].spec.ports[0].nodePort}")
     $ INFRA_HOST=$NODE_HOST:$NODE_PORT
 {{- else if eq .Values.service.type "LoadBalancer" }}
 
       NOTE: It may take a few minutes for the LoadBalancer address to be assigned.
-      You can watch the status of by running 'kubectl -n {{ .Release.Namespace }} get services -l infrahq.com/component=registry -w'
+      You can watch the status of by running 'kubectl -n {{ .Release.Namespace }} get services -l infrahq.com/component=infra -w'
 
-    $ INFRA_HOST=$(kubectl -n {{ .Release.Namespace }} get services -l infrahq.com/component=registry -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
+    $ INFRA_HOST=$(kubectl -n {{ .Release.Namespace }} get services -l infrahq.com/component=infra -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
 {{- else if contains .Values.service.type "ClusterIP" }}
-    $ CONTAINER_PORT=$(kubectl -n {{ .Release.Namespace }} get services -l infrahq.com/component=registry -o jsonpath="{.items[].spec.ports[0].port}")
+    $ CONTAINER_PORT=$(kubectl -n {{ .Release.Namespace }} get services -l infrahq.com/component=infra -o jsonpath="{.items[].spec.ports[0].port}")
     $ echo "Visit http://127.0.0.1:8080 to use your application"
     $ kubectl -n {{ .Release.Namespace }} port-forward services infra 8080:$CONTAINER_PORT
 {{- end }}

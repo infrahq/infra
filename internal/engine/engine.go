@@ -23,9 +23,9 @@ import (
 	"github.com/goware/urlx"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/certs"
+	"github.com/infrahq/infra/internal/infra"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/registry"
 	"github.com/infrahq/infra/internal/timer"
 	"golang.org/x/crypto/acme/autocert"
 	"gopkg.in/square/go-jose.v2"
@@ -33,7 +33,7 @@ import (
 )
 
 type Options struct {
-	Registry       string
+	Host           string
 	Name           string
 	ForceTLSVerify bool
 	EngineAPIKey   string
@@ -83,7 +83,7 @@ func (j *jwkCache) getjwk() (*jose.JSONWebKey, error) {
 	}
 
 	if len(response.Keys) < 1 {
-		return nil, errors.New("no jwks provided by registry")
+		return nil, errors.New("no jwks provided by infra")
 	}
 
 	j.lastChecked = time.Now()
@@ -125,7 +125,7 @@ func jwtMiddleware(destination string, getjwk GetJWKFunc, next http.HandlerFunc)
 		out := make(map[string]interface{})
 		claims := struct {
 			jwt.Claims
-			registry.CustomJWTClaims
+			infra.CustomJWTClaims
 		}{}
 		if err := tok.Claims(key, &claims, &out); err != nil {
 			logging.L.Debug("Invalid token claims")
@@ -210,7 +210,7 @@ func (b *BearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func Run(options Options) error {
-	registryTLSConfig := &tls.Config{
+	hostTLSConfig := &tls.Config{
 		MinVersion: tls.VersionTLS12,
 	}
 
@@ -219,8 +219,8 @@ func Run(options Options) error {
 		// Find a way to re-use the built-in TLS verification code vs
 		// this custom code based on the official go TLS example code
 		// which states this is approximately the same.
-		registryTLSConfig.InsecureSkipVerify = true
-		registryTLSConfig.VerifyConnection = func(cs tls.ConnectionState) error {
+		hostTLSConfig.InsecureSkipVerify = true
+		hostTLSConfig.VerifyConnection = func(cs tls.ConnectionState) error {
 			opts := x509.VerifyOptions{
 				DNSName:       cs.ServerName,
 				Intermediates: x509.NewCertPool(),
@@ -232,7 +232,7 @@ func Run(options Options) error {
 
 			_, err := cs.PeerCertificates[0].Verify(opts)
 			if err != nil {
-				logging.L.Warn("could not verify registry TLS certificates: " + err.Error())
+				logging.L.Warn("could not verify Infra TLS certificates: " + err.Error())
 			}
 
 			return nil
@@ -268,17 +268,17 @@ func Run(options Options) error {
 		return err
 	}
 
-	if options.Registry == "" {
-		registry, err := k8s.Service("registry")
+	if options.Host == "" {
+		infraService, err := k8s.Service("infra")
 		if err != nil {
 			return err
 		}
 
-		metadata := registry.ObjectMeta
-		options.Registry = fmt.Sprintf("%s.%s", metadata.Name, metadata.Namespace)
+		metadata := infraService.ObjectMeta
+		options.Host = fmt.Sprintf("%s.%s", metadata.Name, metadata.Namespace)
 	}
 
-	u, err := urlx.Parse(options.Registry)
+	u, err := urlx.Parse(options.Host)
 	if err != nil {
 		return err
 	}
@@ -292,7 +292,7 @@ func Run(options Options) error {
 	config.Scheme = "https"
 	config.HTTPClient = &http.Client{
 		Transport: &http.Transport{
-			TLSClientConfig: registryTLSConfig,
+			TLSClientConfig: hostTLSConfig,
 		},
 	}
 
@@ -432,7 +432,7 @@ func Run(options Options) error {
 			Transport: &BearerTransport{
 				Token: engineAPIKey,
 				Transport: &http.Transport{
-					TLSClientConfig: registryTLSConfig,
+					TLSClientConfig: hostTLSConfig,
 				},
 			},
 		},

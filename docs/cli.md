@@ -7,16 +7,14 @@
 * [infra list](#infra-list)
 * [infra tokens create](#infra-tokens-create)
 * [infra version](#infra-version)
-* [infra registry](#infra-registry)
-* [infra engine](#infra-engine)
 
 
 ## `infra login`
 
-Login to an Infra Registry
+Login to Infra
 
 ```
-infra login REGISTRY [flags]
+infra login [HOST] [flags]
 ```
 
 ### Examples
@@ -34,7 +32,7 @@ $ infra login infra.example.com
 
 ## `infra logout`
 
-Logout of an Infra Registry
+Logout Infra
 
 ```
 infra logout [flags]
@@ -91,51 +89,8 @@ infra version [flags]
 ### Options
 
 ```
-  -c, --client     Display client version only
-  -h, --help       help for version
-  -r, --registry   Display registry version only
-```
-
-## `infra registry`
-
-Start Infra Registry
-
-```
-infra registry [flags]
-```
-
-### Options
-
-```
-  -c, --config string            config file
-      --db string                path to database file (default "~/.infra/infra.db")
-      --enable-crash-reporting   enable crash reporting (default true)
-      --enable-telemetry         enable telemetry (default true)
-      --engine-api-key string    engine registration API key
-  -h, --help                     help for registry
-      --root-api-key string      root API key
-      --sync-interval int        the interval (in seconds) at which Infra will poll sources for users and groups (default 30)
-      --tls-cache string         path to directory to cache tls self-signed and Let's Encrypt certificates (default "~/.infra/cache")
-      --ui                       enable ui
-      --ui-proxy string          proxy ui requests to this host
-```
-
-## `infra engine`
-
-Start Infra Engine
-
-```
-infra engine [flags]
-```
-
-### Options
-
-```
-      --engine-api-key string   engine registration API key
-      --force-tls-verify        force TLS verification
-  -h, --help                    help for engine
-  -n, --name string             cluster name
-  -r, --registry string         registry hostname
-      --tls-cache string        path to directory to cache tls self-signed and Let's Encrypt certificates (default "~/.infra/cache")
+  -c, --client   Display client version only
+  -h, --help     help for version
+  -r, --infra    Display infra version only
 ```
 

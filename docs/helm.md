@@ -102,7 +102,7 @@ ingress:
 helm uninstall -n infrahq infra
 
 # Remove potential secrets created for Infra
-kubectl delete -n infrahq secret/infra-registry-okta
+kubectl delete -n infrahq secret/infra-okta
 ```
 
 ## Uninstall Infra Engine
@@ -157,7 +157,7 @@ kubectl delete clusterrolebindings,rolebindings -l app.kubernetes.io/managed-by=
 | Parameter                          | Description                             | Default                      |
 |------------------------------------|-----------------------------------------|------------------------------|
 | `name`                             | Cluster name                            | `""` (auto-discovered)       |
-| `registry`                         | Infra Registry endpoint                 | `""` (required)              |
+| `host`                             | Infra endpoint                          | `""` (required)              |
 | `apiKey`                           | Infra API key                           | `""` (required)              |
 | `image.tag`                        | Image tag                               | `""` (latest release)        |
 | `image.repository`                 | Image repository                        | `infrahq/infra`              |
