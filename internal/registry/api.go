@@ -883,7 +883,7 @@ func (a *Api) Version(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if err := json.NewEncoder(w).Encode(api.Version{Version: internal.Version}); err != nil {
-		logging.L.Error(err.Error())
+		logging.L.Sugar().Errorf("encode version: %w", err)
 		sendApiError(w, http.StatusInternalServerError, "could not get version")
 	}
 }

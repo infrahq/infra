@@ -25,9 +25,9 @@ func version(options VersionOptions) error {
 	// Note that we use the client to get this version, but it is in fact the server version
 	client, err := apiClientFromConfig()
 	if err == nil {
-		res, _, err := client.VersionApi.Version(context.Background()).Execute()
+		v, _, err := client.VersionApi.Version(context.Background()).Execute()
 		if err == nil {
-			serverVersion = res.Version
+			serverVersion = v.Version
 		}
 	}
 

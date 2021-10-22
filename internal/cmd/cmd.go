@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -23,6 +24,17 @@ import (
 
 func blue(s string) string {
 	return termenv.String(s).Bold().Foreground(termenv.ColorProfile().Color("#0057FF")).String()
+}
+
+// errWithResponseContext appends the response message to a returned error
+func errWithResponseContext(err error, res *http.Response) error {
+	var apiErr api.Error
+	if decodeErr := json.NewDecoder(res.Body).Decode(&apiErr); decodeErr != nil {
+		// ignore this decoding error and return the original error
+		return err
+	}
+
+	return fmt.Errorf("%w (Message: %s)", err, apiErr.Message)
 }
 
 func NewApiContext(token string) context.Context {

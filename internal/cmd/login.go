@@ -105,9 +105,9 @@ registry:
 		return err
 	}
 
-	sources, _, err := client.SourcesApi.ListSources(context.Background()).Execute()
+	sources, res, err := client.SourcesApi.ListSources(context.Background()).Execute()
 	if err != nil {
-		return err
+		return errWithResponseContext(err, res)
 	}
 
 	if len(sources) == 0 {
@@ -191,9 +191,9 @@ source:
 		return errors.New("invalid source selected")
 	}
 
-	loginRes, _, err := client.AuthApi.Login(context.Background()).Body(loginReq).Execute()
+	loginRes, res, err := client.AuthApi.Login(context.Background()).Body(loginReq).Execute()
 	if err != nil {
-		return err
+		return errWithResponseContext(err, res)
 	}
 
 	for i := range loadedCfg.Registries {
@@ -218,9 +218,9 @@ source:
 		return err
 	}
 
-	users, _, err := client.UsersApi.ListUsers(NewApiContext(loginRes.Token)).Email(loginRes.Name).Execute()
+	users, res, err := client.UsersApi.ListUsers(NewApiContext(loginRes.Token)).Email(loginRes.Name).Execute()
 	if err != nil {
-		return err
+		return errWithResponseContext(err, res)
 	}
 
 	if len(users) < 1 {

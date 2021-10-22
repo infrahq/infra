@@ -51,7 +51,7 @@ func list() error {
 			return list()
 
 		default:
-			return err
+			return errWithResponseContext(err, res)
 		}
 	}
 
