@@ -2,6 +2,7 @@ package secrets
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -31,14 +32,15 @@ func NewAWSSecretsManager(client *secretsmanager.SecretsManager) *AWSSecretsMana
 // - kms:Decrypt
 func (s *AWSSecretsManager) SetSecret(name string, secret []byte) error {
 	name = strings.ReplaceAll(name, ":", "_")
+
 	_, err := s.client.CreateSecretWithContext(context.TODO(), &secretsmanager.CreateSecretInput{
 		Name:         &name,
 		SecretBinary: secret,
 	})
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case secretsmanager.ErrCodeResourceExistsException:
+		var aerr awserr.Error
+		if errors.As(err, &aerr) {
+			if aerr.Code() == secretsmanager.ErrCodeResourceExistsException {
 				// try replacing instead
 				_, err = s.client.UpdateSecretWithContext(context.TODO(), &secretsmanager.UpdateSecretInput{
 					SecretBinary: secret,
@@ -47,12 +49,14 @@ func (s *AWSSecretsManager) SetSecret(name string, secret []byte) error {
 				if err != nil {
 					return fmt.Errorf("update secret: %w", err)
 				}
+
 				return nil
 			}
 		}
 
 		return fmt.Errorf("creating secret: %w", err)
 	}
+
 	return nil
 }
 
@@ -61,17 +65,20 @@ func (s *AWSSecretsManager) SetSecret(name string, secret []byte) error {
 // kms:Decrypt - required only if you use a customer-managed Amazon Web Services KMS key to encrypt the secret
 func (s *AWSSecretsManager) GetSecret(name string) (secret []byte, err error) {
 	name = strings.ReplaceAll(name, ":", "_")
+
 	sec, err := s.client.GetSecretValueWithContext(context.TODO(), &secretsmanager.GetSecretValueInput{
 		SecretId: &name,
 	})
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case secretsmanager.ErrCodeResourceNotFoundException:
+		var aerr awserr.Error
+		if errors.As(err, &aerr) {
+			if aerr.Code() == secretsmanager.ErrCodeResourceNotFoundException {
 				return nil, nil
 			}
 		}
+
 		return nil, fmt.Errorf("get secret: %w", err)
 	}
+
 	return sec.SecretBinary, nil
 }

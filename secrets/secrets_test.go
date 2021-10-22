@@ -50,6 +50,7 @@ func setup() {
 	if testing.Short() {
 		return
 	}
+
 	var containerID string
 
 	// setup localstack
