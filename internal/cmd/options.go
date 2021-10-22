@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -9,17 +10,19 @@ import (
 
 type GlobalOptions struct {
 	ConfigFile string
-	Host string
-	Verbose int
+	Host       string
+	Verbose    int
 }
 
 func ParseOptions(cmd *cobra.Command, options interface{}) error {
 	v := viper.New()
 
-	v.BindPFlags(cmd.Flags())
+	if err := v.BindPFlags(cmd.Flags()); err != nil {
+		return err
+	}
 
 	v.SetConfigName("config")
-	
+
 	v.AddConfigPath("/etc/infra")
 	v.AddConfigPath("$HOME/.infra")
 	v.AddConfigPath(".")
@@ -33,8 +36,9 @@ func ParseOptions(cmd *cobra.Command, options interface{}) error {
 	v.SetEnvPrefix("INFRA")
 	v.AutomaticEnv()
 
+	var errConfigFileNotFound *viper.ConfigFileNotFoundError
 	if err := v.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+		if errors.As(err, &errConfigFileNotFound) {
 			return err
 		}
 	}
