@@ -58,9 +58,9 @@ func list() error {
 	// This shouldn't be possible but check nonetheless
 	switch {
 	case len(users) < 1:
-		return fmt.Errorf("User \"%s\" not found", config.Name)
+		return fmt.Errorf("user \"%s\" not found", config.Name)
 	case len(users) > 1:
-		return fmt.Errorf("Found multiple users \"%s\"", config.Name)
+		return fmt.Errorf("found multiple users \"%s\"", config.Name)
 	}
 
 	user := users[0]

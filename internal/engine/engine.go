@@ -8,10 +8,12 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -333,6 +335,25 @@ func Run(options Options) error {
 		if err != nil {
 			logging.L.Error("endpoint: " + err.Error())
 			return
+		}
+
+		logging.L.Sugar().Debugf("endpoint is: %s", endpoint)
+
+		// check if the endpoint is localhost, if it is DNS lookup won't resolve
+		local, err := regexp.MatchString("(http://|https://)?localhost:?[0-9]{0,5}", endpoint)
+		if err != nil {
+			logging.L.Sugar().Errorf("endpoint match failed: %w", err)
+			// continue as a non-local endpoint
+		}
+
+		if local {
+			logging.L.Sugar().Debug("not testing DNS lookup for localhost")
+		} else {
+			_, err = net.LookupIP(endpoint)
+			if err != nil {
+				logging.L.Sugar().Errorf("endpoint DNS does not yet resolve, waiting to register")
+				return
+			}
 		}
 
 		url, err := urlx.Parse(endpoint)

@@ -111,7 +111,7 @@ registry:
 	}
 
 	if len(sources) == 0 {
-		return errors.New("Zero sources have been configured.")
+		return errors.New("zero sources have been configured")
 	}
 
 	var selectedSource *api.Source
@@ -224,11 +224,11 @@ source:
 	}
 
 	if len(users) < 1 {
-		return fmt.Errorf("User \"%s\" not found", loginRes.Name)
+		return fmt.Errorf("user \"%s\" not found", loginRes.Name)
 	}
 
 	if len(users) > 1 {
-		return fmt.Errorf("Found multiple users \"%s\"", loginRes.Name)
+		return fmt.Errorf("found multiple users \"%s\"", loginRes.Name)
 	}
 
 	err = updateKubeconfig(users[0])

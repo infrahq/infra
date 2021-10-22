@@ -5,7 +5,7 @@
 * [infra login](#infra-login)
 * [infra logout](#infra-logout)
 * [infra list](#infra-list)
-* [infra token](#infra-token)
+* [infra tokens create](#infra-tokens-create)
 * [infra version](#infra-version)
 * [infra registry](#infra-registry)
 * [infra engine](#infra-engine)
@@ -28,7 +28,8 @@ $ infra login infra.example.com
 ### Options
 
 ```
-  -h, --help   help for login
+  -h, --help               help for login
+  -t, --timeout duration   login timeout (default 5m0s)
 ```
 
 ## `infra logout`
@@ -37,6 +38,12 @@ Logout of an Infra Registry
 
 ```
 infra logout [flags]
+```
+
+### Examples
+
+```
+$ infra logout
 ```
 
 ### Options
@@ -59,18 +66,18 @@ infra list [flags]
   -h, --help   help for list
 ```
 
-## `infra token`
+## `infra tokens create`
 
-Generate a JWT token for connecting to a destination, e.g. Kubernetes
+Create a JWT token for connecting to a destination, e.g. Kubernetes
 
 ```
-infra token DESTINATION [flags]
+infra tokens create DESTINATION [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for token
+  -h, --help   help for create
 ```
 
 ## `infra version`
@@ -84,7 +91,9 @@ infra version [flags]
 ### Options
 
 ```
-  -h, --help   help for version
+  -c, --client     Display client version only
+  -h, --help       help for version
+  -r, --registry   Display registry version only
 ```
 
 ## `infra registry`
@@ -98,15 +107,17 @@ infra registry [flags]
 ### Options
 
 ```
-  -c, --config string                   config file
-      --db string                       path to database file (default "~/.infra/infra.db")
-  -h, --help                            help for registry
-      --engine-api-key string   initial api key for adding destinations
-      --root-api-key string             the root api key for privileged actions
-      --sync-interval int               the interval (in seconds) at which Infra will poll sources for users and groups (default 30)
-      --tls-cache string                path to directory to cache tls self-signed and Let's Encrypt certificates (default "~/.infra/cache")
-      --ui                              enable ui
-      --ui-proxy string                 proxy ui requests to this host
+  -c, --config string            config file
+      --db string                path to database file (default "~/.infra/infra.db")
+      --enable-crash-reporting   enable crash reporting (default true)
+      --enable-telemetry         enable telemetry (default true)
+      --engine-api-key string    engine registration API key
+  -h, --help                     help for registry
+      --root-api-key string      root API key
+      --sync-interval int        the interval (in seconds) at which Infra will poll sources for users and groups (default 30)
+      --tls-cache string         path to directory to cache tls self-signed and Let's Encrypt certificates (default "~/.infra/cache")
+      --ui                       enable ui
+      --ui-proxy string          proxy ui requests to this host
 ```
 
 ## `infra engine`
@@ -120,11 +131,11 @@ infra engine [flags]
 ### Options
 
 ```
-      --api-key string     api key
-      --force-tls-verify   force TLS verification
-  -h, --help               help for engine
-  -n, --name string        cluster name
-  -r, --registry string    registry hostname
-      --tls-cache string   path to directory to cache tls self-signed and Let's Encrypt certificates (default "~/.infra/cache")
+      --engine-api-key string   engine registration API key
+      --force-tls-verify        force TLS verification
+  -h, --help                    help for engine
+  -n, --name string             cluster name
+  -r, --registry string         registry hostname
+      --tls-cache string        path to directory to cache tls self-signed and Let's Encrypt certificates (default "~/.infra/cache")
 ```
 
