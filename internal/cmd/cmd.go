@@ -456,7 +456,7 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.AddCommand(startCmd)
 	rootCmd.AddCommand(engineCmd)
 
-	rootCmd.PersistentFlags().StringP("configfile", "c", "", "Infra configuration file path")
+	rootCmd.PersistentFlags().StringP("config-file", "f", "", "Infra configuration file path")
 	rootCmd.PersistentFlags().StringP("host", "H", "", "Infra host")
 	rootCmd.PersistentFlags().CountP("verbose", "v", "Log verbositry")
 

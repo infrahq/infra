@@ -27,7 +27,7 @@ func ParseOptions(cmd *cobra.Command, options interface{}) error {
 	v.AddConfigPath("$HOME/.infra")
 	v.AddConfigPath(".")
 
-	configfile := cmd.Flags().Lookup("configfile").Value.String()
+	configfile := cmd.Flags().Lookup("config-file").Value.String()
 	if configfile != "" {
 		v.SetConfigFile(configfile)
 	}
