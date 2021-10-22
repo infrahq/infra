@@ -14,7 +14,12 @@ import (
 	clientauthenticationv1beta1 "k8s.io/client-go/pkg/apis/clientauthentication/v1beta1"
 )
 
-func newTokenCreateCmd() (*cobra.Command, error) {
+type TokenOptions struct {
+	Destination string
+	*GlobalOptions
+}
+
+func newTokenCreateCmd(globalOptions *GlobalOptions) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:   "create DESTINATION",
 		Short: "Create a JWT token for connecting to a destination, e.g. Kubernetes",
@@ -23,33 +28,38 @@ func newTokenCreateCmd() (*cobra.Command, error) {
 				return cmd.Usage()
 			}
 
-			return tokenCreate(args[0])
+			options := TokenOptions{
+				Destination:   args[0],
+				GlobalOptions: globalOptions,
+			}
+
+			return tokenCreate(options)
 		},
 	}
 
 	return cmd, nil
 }
 
-func tokenCreate(destination string) error {
+func tokenCreate(options TokenOptions) error {
 	execCredential := &clientauthenticationv1beta1.ExecCredential{}
 
-	err := getCache("tokens", destination, execCredential)
+	err := getCache("tokens", options.Destination, execCredential)
 	if !os.IsNotExist(err) && err != nil {
 		return err
 	}
 
 	if os.IsNotExist(err) || isExpired(execCredential) {
-		client, err := apiClientFromConfig()
+		client, err := apiClientFromConfig(options.Host)
 		if err != nil {
 			return err
 		}
 
-		ctx, err := apiContextFromConfig()
+		ctx, err := apiContextFromConfig(options.Host)
 		if err != nil {
 			return err
 		}
 
-		credReq := client.TokensAPI.CreateToken(ctx).Body(api.TokenRequest{Destination: &destination})
+		credReq := client.TokensAPI.CreateToken(ctx).Body(api.TokenRequest{Destination: &options.Destination})
 
 		cred, res, err := credReq.Execute()
 		if err != nil {
@@ -61,7 +71,7 @@ func tokenCreate(destination string) error {
 					return err
 				}
 
-				return tokenCreate(destination)
+				return tokenCreate(options)
 
 			default:
 				return errWithResponseContext(err, res)
@@ -79,7 +89,7 @@ func tokenCreate(destination string) error {
 				ExpirationTimestamp: &metav1.Time{Time: time.Unix(cred.Expires, 0)},
 			},
 		}
-		if err := setCache("tokens", destination, execCredential); err != nil {
+		if err := setCache("tokens", options.Destination, execCredential); err != nil {
 			return err
 		}
 	}

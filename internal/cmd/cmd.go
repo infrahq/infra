@@ -81,8 +81,8 @@ func infraHomeDir() (string, error) {
 	return infraDir, nil
 }
 
-func apiContextFromConfig() (context.Context, error) {
-	config, err := currentHostConfig()
+func apiContextFromConfig(host string) (context.Context, error) {
+	config, err := readHostConfig(host)
 	if err != nil {
 		return nil, err
 	}
@@ -94,8 +94,8 @@ func apiContextFromConfig() (context.Context, error) {
 	return NewAPIContext(config.Token), nil
 }
 
-func apiClientFromConfig() (*api.APIClient, error) {
-	config, err := currentHostConfig()
+func apiClientFromConfig(host string) (*api.APIClient, error) {
+	config, err := readHostConfig(host)
 	if err != nil {
 		return nil, err
 	}
@@ -251,13 +251,14 @@ func newLogoutCmd() (*cobra.Command, error) {
 	return cmd, nil
 }
 
-func newListCmd() (*cobra.Command, error) {
+func newListCmd(globalOptions *GlobalOptions) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List destinations",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return list()
+			options := ListOptions{GlobalOptions: globalOptions}
+			return list(&options)
 		},
 	}
 
@@ -376,13 +377,13 @@ func newVersionCmd(globalOptions *GlobalOptions) (*cobra.Command, error) {
 	return cmd, nil
 }
 
-func newTokensCmd() (*cobra.Command, error) {
+func newTokensCmd(globalOptions *GlobalOptions) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:   "tokens",
 		Short: "Token subcommands",
 	}
 
-	tokenCreateCmd, err := newTokenCreateCmd()
+	tokenCreateCmd, err := newTokenCreateCmd(globalOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -407,12 +408,12 @@ func NewRootCmd() (*cobra.Command, error) {
 		return nil, err
 	}
 
-	listCmd, err := newListCmd()
+	listCmd, err := newListCmd(&globalOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	tokensCmd, err := newTokensCmd()
+	tokensCmd, err := newTokensCmd(&globalOptions)
 	if err != nil {
 		return nil, err
 	}

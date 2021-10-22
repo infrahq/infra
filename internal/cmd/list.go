@@ -13,6 +13,10 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+type ListOptions struct {
+	*GlobalOptions
+}
+
 type statusRow struct {
 	CurrentlySelected        string `header:"CURRENT"` // * if selected
 	Name                     string `header:"NAME"`
@@ -22,18 +26,18 @@ type statusRow struct {
 	CertificateAuthorityData []byte // don't display in table
 }
 
-func list() error {
+func list(options *ListOptions) error {
 	config, err := currentHostConfig()
 	if err != nil {
 		return err
 	}
 
-	client, err := apiClientFromConfig()
+	client, err := apiClientFromConfig(options.Host)
 	if err != nil {
 		return err
 	}
 
-	ctx, err := apiContextFromConfig()
+	ctx, err := apiContextFromConfig(options.Host)
 	if err != nil {
 		return err
 	}
@@ -48,7 +52,7 @@ func list() error {
 				return err
 			}
 
-			return list()
+			return list(options)
 
 		default:
 			return errWithResponseContext(err, res)
