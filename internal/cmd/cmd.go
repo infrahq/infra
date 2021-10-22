@@ -34,7 +34,7 @@ func errWithResponseContext(err error, res *http.Response) error {
 		return err
 	}
 
-	return fmt.Errorf("%s (Message: %s)", err, apiErr.Message)
+	return fmt.Errorf("%w (Message: %s)", err, apiErr.Message)
 }
 
 func NewApiContext(token string) context.Context {
