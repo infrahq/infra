@@ -141,7 +141,7 @@ First you need to get your Infra endpoint. This step may be different depending 
 
   ```
   CONTAINER_PORT=$(kubectl -n infrahq get services -l infrahq.com/component=registry -o jsonpath="{.items[].spec.ports[0].port}")
-  kubectl -n infrahq port-forward service/infra-registry 8080:$CONTAINER_PORT &
+  kubectl -n infrahq port-forward services infra 8080:$CONTAINER_PORT &
   INFRA_HOST='localhost:8080'
   ```
 </details>

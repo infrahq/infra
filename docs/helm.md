@@ -51,7 +51,7 @@ service:
       namespace: {{ .Release.Namespace }}
       host: infrahq.example.com                 # edit me
       prefix: /
-      service: http://infra-registry
+      service: http://infra
 ```
 
 ### AWS Application Load Balancer Controller (ALB)
@@ -72,7 +72,7 @@ ingress:
     alb.ingress.kubernetes.io/actions.ssl-redirect: '{"Type": "redirect", "RedirectConfig": { "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}'
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/group.name: infra-registry      # (optional: edit me to use an existing shared load balanacer)
+    alb.ingress.kubernetes.io/group.name: infra               # (optional: edit me to use an existing shared load balanacer)
 ```
 
 ### NGINX Ingress Controller
