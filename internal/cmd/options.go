@@ -11,7 +11,7 @@ import (
 type GlobalOptions struct {
 	ConfigFile string
 	Host       string
-	Verbose    int
+	Verbosity  int
 }
 
 func ParseOptions(cmd *cobra.Command, options interface{}) error {
