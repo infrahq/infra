@@ -43,7 +43,7 @@ Depending on your Infra Helm configurations, the steps will differ.
 
   ```
   CONTAINER_PORT=$(kubectl -n infrahq get services -l infrahq.com/component=registry -o jsonpath="{.items[].spec.ports[0].port}")
-  kubectl -n infrahq port-forward service/infra-registry 8080:$CONTAINER_PORT &
+  kubectl -n infrahq port-forward service infra 8080:$CONTAINER_PORT &
   INFRA_HOST='localhost:8080'
   ```
 </details>
@@ -51,7 +51,7 @@ Depending on your Infra Helm configurations, the steps will differ.
 ### Get Infra API Key
 
 ```
-INFRA_API_KEY=$(kubectl -n infrahq get secrets infra-registry -o jsonpath='{.data.engine-api-key}' | base64 --decode)
+INFRA_API_KEY=$(kubectl -n infrahq get secrets infra-engine -o jsonpath='{.data.engine-api-key}' | base64 --decode)
 ```
 
 ---
