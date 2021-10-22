@@ -13,7 +13,7 @@ import (
 type ErrResultTimedOut struct{}
 
 func (e *ErrResultTimedOut) Error() string {
-	return "local server timed out waiting for result"
+	return "timed out waiting for result"
 }
 
 type CodeResponse struct {
