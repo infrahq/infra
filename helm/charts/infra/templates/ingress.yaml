@@ -34,11 +34,11 @@ spec:
             backend:
   {{- if eq $apiVersion "networking.k8s.io/v1" }}
               service:
-                name: infra-registry
+                name: {{ include "infra.fullname" . }}
                 port:
                   number: {{ $.Values.ingress.servicePort }}
   {{- else }}
-              serviceName: infra-registry
+              serviceName: {{ include "infra.fullname" . }}
               servicePort: {{ $.Values.ingress.servicePort }}
   {{- end }}
 {{- end -}}
