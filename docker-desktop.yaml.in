@@ -12,7 +12,6 @@ image:
 
 engine:
   name: docker-desktop
-  validateBeforeRegister: false
   image:
     tag: $IMAGE_TAG
     pullPolicy: Never

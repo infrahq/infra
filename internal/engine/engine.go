@@ -32,12 +32,11 @@ import (
 )
 
 type Options struct {
-	Registry               string
-	Name                   string
-	ForceTLSVerify         bool
-	EngineApiKey           string
-	TLSCache               string
-	ValidateBeforeRegister bool
+	Registry       string
+	Name           string
+	ForceTLSVerify bool
+	EngineApiKey   string
+	TLSCache       string
 }
 
 type jwkCache struct {
@@ -339,12 +338,10 @@ func Run(options Options) error {
 
 		logging.L.Sugar().Debugf("endpoint is: %s", endpoint)
 
-		if options.ValidateBeforeRegister {
-			_, err = net.LookupIP(endpoint)
-			if err != nil {
-				logging.L.Sugar().Errorf("endpoint DNS does not yet resolve, waiting to register")
-				return
-			}
+		_, err = net.LookupIP(endpoint)
+		if err != nil {
+			logging.L.Sugar().Errorf("endpoint DNS does not yet resolve, waiting to register")
+			return
 		}
 
 		url, err := urlx.Parse(endpoint)

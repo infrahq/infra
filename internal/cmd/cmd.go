@@ -325,7 +325,6 @@ func newEngineCmd() (*cobra.Command, error) {
 	defaultInfraHome := filepath.Join("~", ".infra")
 
 	cmd.PersistentFlags().BoolVar(&options.ForceTLSVerify, "force-tls-verify", false, "force TLS verification")
-	cmd.PersistentFlags().BoolVar(&options.ValidateBeforeRegister, "validate-before-register", false, "verify the engine is accessible before registering as a destination")
 	cmd.Flags().StringVarP(&options.Registry, "registry", "r", os.Getenv("INFRA_ENGINE_REGISTRY"), "registry hostname")
 	cmd.Flags().StringVarP(&options.Name, "name", "n", os.Getenv("INFRA_ENGINE_NAME"), "cluster name")
 	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(defaultInfraHome, "cache"), "path to directory to cache tls self-signed and Let's Encrypt certificates")

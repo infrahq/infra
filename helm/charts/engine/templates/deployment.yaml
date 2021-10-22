@@ -32,11 +32,7 @@ spec:
         - name: engine
           image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-{{- if .Values.validateBeforeRegister }}
-          args: ["engine", "--tls-cache", "/var/run/infra/data/cache", "--validate-before-register"]
-{{- else }}
           args: ["engine", "--tls-cache", "/var/run/infra/data/cache"]
-{{- end }}
           ports:
 {{- range .Values.service.ports }}
             - name: {{ .name }}
