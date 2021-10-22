@@ -10,6 +10,12 @@ import (
 
 var DefaultVaultAlgorithm = "aes256-gcm96"
 
+// ensure these interfaces are implemented properly
+var (
+	_ SecretSymmetricKeyProvider = &VaultSecretProvider{}
+	_ SecretStorage              = &VaultSecretProvider{}
+)
+
 type VaultSecretProvider struct {
 	TransitMount string `yaml:"transit_mount"` // mounting point. defaults to /transit
 	SecretMount  string `yaml:"secret_mount"`  // mounting point. defaults to /secret
@@ -63,14 +69,14 @@ func (v *VaultSecretProvider) GetSecret(name string) ([]byte, error) {
 
 	data, ok := sec.Data["data"].(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("secret data is unexpected not stored in a map")
+		return nil, fmt.Errorf("vault: secret data is unexpected not stored in a map")
 	}
 
 	if data, ok := data["data"].(string); ok {
 		return []byte(data), nil
 	}
 
-	return nil, fmt.Errorf("secret data is not a string")
+	return nil, fmt.Errorf("vault: secret data is not a string")
 }
 
 func (v *VaultSecretProvider) SetSecret(name string, secret []byte) error {
@@ -96,13 +102,13 @@ func (v *VaultSecretProvider) GenerateDataKey(name, rootKeyID string) (*Symmetri
 	// generate a new data key
 	dataKey, err := cryptoRandRead(32) // 256 bit
 	if err != nil {
-		return nil, fmt.Errorf("generating data key: %w", err)
+		return nil, fmt.Errorf("vault: generating data key: %w", err)
 	}
 
 	// encrypt the data key
 	encrypted, err := v.RemoteEncrypt(rootKeyID, dataKey)
 	if err != nil {
-		return nil, fmt.Errorf("remote encrypt: %w", err)
+		return nil, fmt.Errorf("vault: remote encrypt: %w", err)
 	}
 
 	return &SymmetricKey{

@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/hashicorp/vault/api"
 	"github.com/infrahq/infra/testutil/docker"
 	"github.com/stretchr/testify/require"
@@ -41,9 +42,9 @@ func TestMain(m *testing.M) {
 }
 
 var (
-	awskms       *kms.KMS
-	awsssm       *secretsmanager.SecretsManager
-	containerIDs []string
+	localstackCfg *aws.Config
+	awskms        *kms.KMS
+	containerIDs  []string
 )
 
 func setup() {
@@ -61,7 +62,7 @@ func setup() {
 		},
 		nil, // cmd
 		[]string{
-			"SERVICES=secretsmanager",
+			"SERVICES=secretsmanager,ssm",
 		},
 	)
 	containerIDs = append(containerIDs, containerID)
@@ -97,7 +98,7 @@ func setup() {
 	awskms = kms.New(sess, cfg)
 
 	// for localstack (secrets manager, etc)
-	cfg2 := aws.NewConfig().
+	localstackCfg = aws.NewConfig().
 		WithCredentials(credentials.NewCredentials(&credentials.StaticProvider{
 			Value: credentials.Value{
 				AccessKeyID:     "test",
@@ -106,7 +107,6 @@ func setup() {
 		})).
 		WithEndpoint("http://localhost:4566").
 		WithRegion("us-east-1")
-	awsssm = secretsmanager.New(sess, cfg2)
 }
 
 func teardown() {
@@ -145,9 +145,17 @@ func eachProvider(t *testing.T, eachFunc func(t *testing.T, p interface{})) {
 	providers["awskms"] = k
 
 	// add AWS Secrets Manager
-	ssm := NewAWSSecretsManager(awsssm)
+	sess := session.Must(session.NewSession())
+	awssm := secretsmanager.New(sess, localstackCfg)
+	sm := NewAWSSecretsManager(awssm)
 
-	waitForSecretsManagerReady(t, awsssm)
+	waitForLocalstackReady(t, awssm)
+
+	providers["awssm"] = sm
+
+	// add AWS SSM (Systems Manager Parameter Store)
+	awsssm := ssm.New(sess, localstackCfg)
+	ssm := NewAWSSystemManagerParameterStore(awsssm)
 
 	providers["awsssm"] = ssm
 

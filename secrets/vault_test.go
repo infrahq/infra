@@ -8,12 +8,6 @@ import (
 // though not required, you can run a vault server locally for these tests:
 // 		vault server -dev -dev-root-token-id="root"
 
-// ensure these interfaces are implemented properly
-var (
-	_ SecretSymmetricKeyProvider = &VaultSecretProvider{}
-	_ SecretStorage              = &VaultSecretProvider{}
-)
-
 func waitForVaultReady(t *testing.T, v *VaultSecretProvider) {
 	deadline := time.Now().Add(10 * time.Second)
 

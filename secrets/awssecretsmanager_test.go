@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 )
 
-func waitForSecretsManagerReady(t *testing.T, ssm *secretsmanager.SecretsManager) {
+func waitForLocalstackReady(t *testing.T, ssm *secretsmanager.SecretsManager) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 

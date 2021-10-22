@@ -14,6 +14,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+var _ SecretStorage = &KubernetesSecretProvider{}
+
 type KubernetesSecretProvider struct {
 	Namespace string
 	client    *kubernetes.Clientset
@@ -67,10 +69,10 @@ func (k *KubernetesSecretProvider) SetSecret(name string, secret []byte) error {
 			Data: data,
 		}, metav1.CreateOptions{})
 		if err != nil {
-			return fmt.Errorf("creating secret: %w", err)
+			return fmt.Errorf("k8s: creating secret: %w", err)
 		}
 	} else if err != nil {
-		return fmt.Errorf("patching secret: %w", err)
+		return fmt.Errorf("k8s: patching secret: %w", err)
 	}
 
 	return nil
