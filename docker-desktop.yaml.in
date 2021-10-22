@@ -3,13 +3,13 @@ image:
   tag: $IMAGE_TAG
   pullPolicy: Never
 
-  config:
-    sources:
-      - kind: okta
-        domain: $OKTA_DOMAIN
-        clientId: $OKTA_CLIENT_ID
-        clientSecret: $OKTA_SECRET/clientSecret
-        apiToken: $OKTA_SECRET/apiToken
+config:
+  sources:
+    - kind: okta
+      domain: $OKTA_DOMAIN
+      clientId: $OKTA_CLIENT_ID
+      clientSecret: $OKTA_SECRET/clientSecret
+      apiToken: $OKTA_SECRET/apiToken
 
 engine:
   name: docker-desktop
