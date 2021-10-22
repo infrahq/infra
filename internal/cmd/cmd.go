@@ -356,19 +356,22 @@ func newEngineCmd() (*cobra.Command, error) {
 	return cmd, nil
 }
 
-func newVersionCmd() (*cobra.Command, error) {
-	var options VersionOptions
-
+func newVersionCmd(globalOptions *GlobalOptions) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:   "version",
 		Short: "Display the Infra build version",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			options := VersionOptions{GlobalOptions: globalOptions}
+			if err := ParseOptions(cmd, &options); err != nil {
+				return err
+			}
+
 			return version(options)
 		},
 	}
 
-	cmd.Flags().BoolVarP(&options.Client, "client", "c", false, "Display client version only")
-	cmd.Flags().BoolVarP(&options.Infra, "infra", "r", false, "Display infra version only")
+	cmd.Flags().Bool("client", false, "Display client version only")
+	cmd.Flags().Bool("server", false, "Display server version only")
 
 	return cmd, nil
 }
@@ -392,6 +395,8 @@ func newTokensCmd() (*cobra.Command, error) {
 func NewRootCmd() (*cobra.Command, error) {
 	cobra.EnableCommandSorting = false
 
+	var globalOptions GlobalOptions
+
 	loginCmd, err := newLoginCmd()
 	if err != nil {
 		return nil, err
@@ -412,7 +417,7 @@ func NewRootCmd() (*cobra.Command, error) {
 		return nil, err
 	}
 
-	versionCmd, err := newVersionCmd()
+	versionCmd, err := newVersionCmd(&globalOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -430,8 +435,14 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd := &cobra.Command{
 		Use:   "infra",
 		Short: "Infrastructure Identity & Access Management (IAM)",
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			cmd.SilenceUsage = true
+
+			if err := ParseOptions(cmd, &globalOptions); err != nil {
+				return err
+			}
+
+			return nil
 		},
 	}
 
@@ -443,6 +454,10 @@ func NewRootCmd() (*cobra.Command, error) {
 
 	rootCmd.AddCommand(startCmd)
 	rootCmd.AddCommand(engineCmd)
+
+	rootCmd.PersistentFlags().StringP("configfile", "c", "", "Infra configuration file path")
+	rootCmd.PersistentFlags().StringP("host", "H", "", "Infra host")
+	rootCmd.PersistentFlags().CountP("verbose", "v", "Log verbositry")
 
 	return rootCmd, nil
 }

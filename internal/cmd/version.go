@@ -15,7 +15,8 @@ import (
 
 type VersionOptions struct {
 	Client bool
-	Infra  bool
+	Server bool
+	*GlobalOptions
 }
 
 func version(options VersionOptions) error {
@@ -45,8 +46,8 @@ func version(options VersionOptions) error {
 		fmt.Fprintln(w, "Client:\t", clientVersion)
 	}
 
-	if options.Infra {
-		fmt.Fprintln(w, "Infra:\t", serverVersion)
+	if options.Server {
+		fmt.Fprintln(w, "Server:\t", serverVersion)
 	}
 
 	fmt.Fprintln(w)

@@ -54,6 +54,8 @@ require (
 	github.com/slack-go/slack v0.9.5 // indirect
 	github.com/spf13/afero v1.6.0
 	github.com/spf13/cobra v1.2.1
+	github.com/spf13/pflag v1.0.5
+	github.com/spf13/viper v1.8.1
 	github.com/stretchr/testify v1.7.0
 	github.com/vartanbeno/go-reddit/v2 v2.0.1 // indirect
 	github.com/xanzy/go-gitlab v0.51.1 // indirect
