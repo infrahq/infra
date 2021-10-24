@@ -6,6 +6,7 @@
 {{- print "networking.k8s.io/v1" }}
 {{- end }}
 {{- end }}
+{{- $fullname := include "infra.fullname" . }}
 {{- if .Values.ingress.enabled -}}
 {{- $apiVersion := include "ingress.apiVersion" $ }}
 apiVersion: {{ $apiVersion }}
@@ -34,11 +35,11 @@ spec:
             backend:
   {{- if eq $apiVersion "networking.k8s.io/v1" }}
               service:
-                name: {{ include "infra.fullname" . }}
+                name: {{ $fullname }}
                 port:
                   number: {{ $.Values.ingress.servicePort }}
   {{- else }}
-              serviceName: {{ include "infra.fullname" . }}
+              serviceName: {{ $fullname }}
               servicePort: {{ $.Values.ingress.servicePort }}
   {{- end }}
 {{- end -}}
