@@ -15,3 +15,4 @@ internal/registry/ui
 .vscode
 dist
 infra.yaml
+docker-desktop.yaml
