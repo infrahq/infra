@@ -19,7 +19,7 @@ type VersionOptions struct {
 	*internal.GlobalOptions
 }
 
-func version(options VersionOptions) error {
+func version(options *VersionOptions) error {
 	clientVersion := internal.Version
 	serverVersion := "disconnected"
 

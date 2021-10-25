@@ -208,44 +208,48 @@ func updateKubeconfig(user api.User) error {
 	return nil
 }
 
-func newLoginCmd() (*cobra.Command, error) {
-	var options LoginOptions
-
+func newLoginCmd(globalOptions *internal.GlobalOptions) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:     "login [HOST]",
 		Short:   "Login to Infra",
 		Args:    cobra.MaximumNArgs(1),
 		Example: "$ infra login infra.example.com",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			host := ""
-			if len(args) == 1 {
-				host = args[0]
+			options := LoginOptions{GlobalOptions: globalOptions}
+			if err := internal.ParseOptions(cmd, &options); err != nil {
+				return err
 			}
 
-			return login(LoginOptions{
-				Host: host,
-			})
+			if len(args) == 1 {
+				options.Host = args[0]
+			}
+
+			return login(&options)
 		},
 	}
 
-	cmd.Flags().DurationVarP(&options.Timeout, "timeout", "t", defaultTimeout, "login timeout")
+	cmd.Flags().DurationP("timeout", "t", defaultTimeout, "login timeout")
 
 	return cmd, nil
 }
 
-func newLogoutCmd() (*cobra.Command, error) {
+func newLogoutCmd(globalOptions *internal.GlobalOptions) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:     "logout",
 		Short:   "Logout Infra",
 		Args:    cobra.MaximumNArgs(1),
 		Example: "$ infra logout",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			host := ""
-			if len(args) == 1 {
-				host = args[0]
+			options := LogoutOptions{GlobalOptions: globalOptions}
+			if err := internal.ParseOptions(cmd, &options); err != nil {
+				return err
 			}
 
-			return logout(host)
+			if len(args) == 1 {
+				options.Host = args[0]
+			}
+
+			return logout(&options)
 		},
 	}
 
@@ -333,7 +337,7 @@ func newEngineCmd(globalOptions *internal.GlobalOptions) (*cobra.Command, error)
 				return err
 			}
 
-			return engine.Run(options)
+			return engine.Run(&options)
 		},
 	}
 
@@ -355,7 +359,7 @@ func newVersionCmd(globalOptions *internal.GlobalOptions) (*cobra.Command, error
 				return err
 			}
 
-			return version(options)
+			return version(&options)
 		},
 	}
 
@@ -386,12 +390,12 @@ func NewRootCmd() (*cobra.Command, error) {
 
 	var globalOptions internal.GlobalOptions
 
-	loginCmd, err := newLoginCmd()
+	loginCmd, err := newLoginCmd(&globalOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	logoutCmd, err := newLogoutCmd()
+	logoutCmd, err := newLogoutCmd(&globalOptions)
 	if err != nil {
 		return nil, err
 	}

@@ -49,7 +49,7 @@ func list(options *ListOptions) error {
 		case http.StatusForbidden:
 			fmt.Fprintln(os.Stderr, "Session has expired.")
 
-			if err = login(LoginOptions{Current: true}); err != nil {
+			if err = login(&LoginOptions{Current: true}); err != nil {
 				return err
 			}
 

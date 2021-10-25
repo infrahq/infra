@@ -210,7 +210,7 @@ func (b *BearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return b.Transport.RoundTrip(req)
 }
 
-func Run(options Options) error {
+func Run(options *Options) error {
 	hostTLSConfig := &tls.Config{
 		MinVersion: tls.VersionTLS12,
 	}

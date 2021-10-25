@@ -34,14 +34,14 @@ func newTokenCreateCmd(globalOptions *internal.GlobalOptions) (*cobra.Command, e
 				GlobalOptions: globalOptions,
 			}
 
-			return tokenCreate(options)
+			return tokenCreate(&options)
 		},
 	}
 
 	return cmd, nil
 }
 
-func tokenCreate(options TokenOptions) error {
+func tokenCreate(options *TokenOptions) error {
 	execCredential := &clientauthenticationv1beta1.ExecCredential{}
 
 	err := getCache("tokens", options.Destination, execCredential)
@@ -68,7 +68,7 @@ func tokenCreate(options TokenOptions) error {
 			case http.StatusForbidden:
 				fmt.Fprintln(os.Stderr, "Session has expired.")
 
-				if err = login(LoginOptions{Current: true}); err != nil {
+				if err = login(&LoginOptions{Current: true}); err != nil {
 					return err
 				}
 
