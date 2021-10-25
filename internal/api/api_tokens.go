@@ -23,40 +23,40 @@ var (
 	_ _context.Context
 )
 
-// TokensApiService TokensApi service
-type TokensApiService service
+// TokensAPIService TokensAPI service
+type TokensAPIService service
 
-type ApiCreateTokenRequest struct {
+type APICreateTokenRequest struct {
 	ctx        _context.Context
-	ApiService *TokensApiService
+	APIService *TokensAPIService
 	body       *TokenRequest
 }
 
-func (r ApiCreateTokenRequest) Body(body TokenRequest) ApiCreateTokenRequest {
+func (r APICreateTokenRequest) Body(body TokenRequest) APICreateTokenRequest {
 	r.body = &body
 	return r
 }
 
-func (r ApiCreateTokenRequest) Execute() (Token, *_nethttp.Response, error) {
-	return r.ApiService.CreateTokenExecute(r)
+func (r APICreateTokenRequest) Execute() (Token, *_nethttp.Response, error) {
+	return r.APIService.CreateTokenExecute(r)
 }
 
 /*
 CreateToken Create an infrastructure destination token
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiCreateTokenRequest
+ @return APICreateTokenRequest
 */
-func (a *TokensApiService) CreateToken(ctx _context.Context) ApiCreateTokenRequest {
-	return ApiCreateTokenRequest{
-		ApiService: a,
+func (a *TokensAPIService) CreateToken(ctx _context.Context) APICreateTokenRequest {
+	return APICreateTokenRequest{
+		APIService: a,
 		ctx:        ctx,
 	}
 }
 
 // Execute executes the request
 //  @return Token
-func (a *TokensApiService) CreateTokenExecute(r ApiCreateTokenRequest) (Token, *_nethttp.Response, error) {
+func (a *TokensAPIService) CreateTokenExecute(r APICreateTokenRequest) (Token, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodPost
 		localVarPostBody     interface{}
@@ -66,7 +66,7 @@ func (a *TokensApiService) CreateTokenExecute(r ApiCreateTokenRequest) (Token, *
 		localVarReturnValue  Token
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "TokensApiService.CreateToken")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "TokensAPIService.CreateToken")
 	if err != nil {
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}

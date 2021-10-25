@@ -23,7 +23,7 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-type Api struct {
+type API struct {
 	db   *gorm.DB
 	k8s  *kubernetes.Kubernetes
 	okta Okta
@@ -41,8 +41,8 @@ var (
 	SessionDuration time.Duration       = time.Hour * 24
 )
 
-func NewApiMux(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta, t *Telemetry) *mux.Router {
-	a := Api{
+func NewAPIMux(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta, t *Telemetry) *mux.Router {
+	a := API{
 		db:   db,
 		k8s:  k8s,
 		okta: okta,
@@ -64,9 +64,9 @@ func NewApiMux(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta, t *Telemetry)
 	v1.Handle("/destinations", a.bearerAuthMiddleware(api.DESTINATIONS_CREATE, http.HandlerFunc(a.CreateDestination))).Methods(http.MethodPost)
 	v1.Handle("/destinations/{id}", a.bearerAuthMiddleware(api.DESTINATIONS_READ, http.HandlerFunc(a.GetDestination))).Methods(http.MethodGet)
 
-	v1.Handle("/api-keys", a.bearerAuthMiddleware(api.API_KEYS_READ, http.HandlerFunc(a.ListApiKeys))).Methods(http.MethodGet)
+	v1.Handle("/api-keys", a.bearerAuthMiddleware(api.API_KEYS_READ, http.HandlerFunc(a.ListAPIKeys))).Methods(http.MethodGet)
 	v1.Handle("/api-keys", a.bearerAuthMiddleware(api.API_KEYS_CREATE, http.HandlerFunc(a.CreateAPIKey))).Methods(http.MethodPost)
-	v1.Handle("/api-keys/{id}", a.bearerAuthMiddleware(api.API_KEYS_DELETE, http.HandlerFunc(a.DeleteApiKey))).Methods(http.MethodDelete)
+	v1.Handle("/api-keys/{id}", a.bearerAuthMiddleware(api.API_KEYS_DELETE, http.HandlerFunc(a.DeleteAPIKey))).Methods(http.MethodDelete)
 
 	v1.Handle("/tokens", a.bearerAuthMiddleware(api.TOKENS_CREATE, http.HandlerFunc(a.CreateToken))).Methods(http.MethodPost)
 
@@ -81,7 +81,7 @@ func NewApiMux(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta, t *Telemetry)
 	return r
 }
 
-func sendApiError(w http.ResponseWriter, code int, message string) {
+func sendAPIError(w http.ResponseWriter, code int, message string) {
 	err := api.Error{
 		Code:    int32(code),
 		Message: message,
@@ -95,7 +95,7 @@ func sendApiError(w http.ResponseWriter, code int, message string) {
 	}
 }
 
-func (a *Api) bearerAuthMiddleware(required api.InfraAPIPermission, next http.Handler) http.Handler {
+func (a *API) bearerAuthMiddleware(required api.InfraAPIPermission, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authorization := r.Header.Get("Authorization")
 		raw := strings.ReplaceAll(authorization, "Bearer ", "")
@@ -105,7 +105,7 @@ func (a *Api) bearerAuthMiddleware(required api.InfraAPIPermission, next http.Ha
 			cookie, err := r.Cookie(CookieTokenName)
 			if err != nil {
 				logging.L.Debug("could not read token from cookie")
-				sendApiError(w, http.StatusUnauthorized, "unauthorized")
+				sendAPIError(w, http.StatusUnauthorized, "unauthorized")
 				return
 			}
 
@@ -119,27 +119,27 @@ func (a *Api) bearerAuthMiddleware(required api.InfraAPIPermission, next http.Ha
 				logging.L.Debug(err.Error())
 				switch err.Error() {
 				case "token expired":
-					sendApiError(w, http.StatusForbidden, "forbidden")
+					sendAPIError(w, http.StatusForbidden, "forbidden")
 				default:
-					sendApiError(w, http.StatusUnauthorized, "unauthorized")
+					sendAPIError(w, http.StatusUnauthorized, "unauthorized")
 				}
 				return
 			}
 
 			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), tokenContextKey{}, token)))
 			return
-		case ApiKeyLen:
-			var apiKey ApiKey
-			if err := a.db.First(&apiKey, &ApiKey{Key: raw}).Error; err != nil {
+		case APIKeyLen:
+			var apiKey APIKey
+			if err := a.db.First(&apiKey, &APIKey{Key: raw}).Error; err != nil {
 				logging.L.Error(err.Error())
-				sendApiError(w, http.StatusUnauthorized, "unauthorized")
+				sendAPIError(w, http.StatusUnauthorized, "unauthorized")
 				return
 			}
 
 			hasPermission := checkPermission(required, apiKey.Permissions)
 			if !hasPermission {
 				// at this point we know their key is valid, so we can present a more detailed error
-				sendApiError(w, http.StatusForbidden, string(required)+" permission is required")
+				sendAPIError(w, http.StatusForbidden, string(required)+" permission is required")
 				return
 			}
 
@@ -148,7 +148,7 @@ func (a *Api) bearerAuthMiddleware(required api.InfraAPIPermission, next http.Ha
 		}
 
 		logging.L.Debug("invalid token length provided")
-		sendApiError(w, http.StatusUnauthorized, "unauthorized")
+		sendAPIError(w, http.StatusUnauthorized, "unauthorized")
 	})
 }
 
@@ -182,8 +182,8 @@ func extractToken(context context.Context) (*Token, error) {
 
 type apiKeyContextKey struct{}
 
-func extractAPIKey(context context.Context) (*ApiKey, error) {
-	apiKey, ok := context.Value(apiKeyContextKey{}).(*ApiKey)
+func extractAPIKey(context context.Context) (*APIKey, error) {
+	apiKey, ok := context.Value(apiKeyContextKey{}).(*APIKey)
 	if !ok {
 		return nil, errors.New("apikey not found in context")
 	}
@@ -191,7 +191,7 @@ func extractAPIKey(context context.Context) (*ApiKey, error) {
 	return apiKey, nil
 }
 
-func (a *Api) ListUsers(w http.ResponseWriter, r *http.Request) {
+func (a *API) ListUsers(w http.ResponseWriter, r *http.Request) {
 	userEmail := r.URL.Query().Get("email")
 
 	var users []User
@@ -206,7 +206,7 @@ func (a *Api) ListUsers(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not list users")
+		sendAPIError(w, http.StatusInternalServerError, "could not list users")
 
 		return
 	}
@@ -220,16 +220,16 @@ func (a *Api) ListUsers(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewEncoder(w).Encode(results); err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not list users")
+		sendAPIError(w, http.StatusInternalServerError, "could not list users")
 	}
 }
 
-func (a *Api) GetUser(w http.ResponseWriter, r *http.Request) {
+func (a *API) GetUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	userId := vars["id"]
 	if userId == "" {
-		sendApiError(w, http.StatusBadRequest, "Path parameter \"id\" is required")
+		sendAPIError(w, http.StatusBadRequest, "Path parameter \"id\" is required")
 
 		return
 	}
@@ -248,9 +248,9 @@ func (a *Api) GetUser(w http.ResponseWriter, r *http.Request) {
 		logging.L.Error(err.Error())
 
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			sendApiError(w, http.StatusNotFound, fmt.Sprintf("Could not find user ID \"%s\"", userId))
+			sendAPIError(w, http.StatusNotFound, fmt.Sprintf("Could not find user ID \"%s\"", userId))
 		} else {
-			sendApiError(w, http.StatusBadRequest, fmt.Sprintf("Could not find user ID \"%s\"", userId))
+			sendAPIError(w, http.StatusBadRequest, fmt.Sprintf("Could not find user ID \"%s\"", userId))
 		}
 
 		return
@@ -262,17 +262,17 @@ func (a *Api) GetUser(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewEncoder(w).Encode(result); err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, fmt.Sprintf("Could not get user \"%s\"", userId))
+		sendAPIError(w, http.StatusInternalServerError, fmt.Sprintf("Could not get user \"%s\"", userId))
 	}
 }
 
-func (a *Api) ListGroups(w http.ResponseWriter, r *http.Request) {
+func (a *API) ListGroups(w http.ResponseWriter, r *http.Request) {
 	groupName := r.URL.Query().Get("name")
 
 	var groups []Group
 	if err := a.db.Preload(clause.Associations).Find(&groups, &Group{Name: groupName}).Error; err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not list groups")
+		sendAPIError(w, http.StatusInternalServerError, "could not list groups")
 
 		return
 	}
@@ -286,16 +286,16 @@ func (a *Api) ListGroups(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewEncoder(w).Encode(results); err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not list groups")
+		sendAPIError(w, http.StatusInternalServerError, "could not list groups")
 	}
 }
 
-func (a *Api) GetGroup(w http.ResponseWriter, r *http.Request) {
+func (a *API) GetGroup(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	groupId := vars["id"]
 	if groupId == "" {
-		sendApiError(w, http.StatusBadRequest, "Path parameter \"id\" is required")
+		sendAPIError(w, http.StatusBadRequest, "Path parameter \"id\" is required")
 
 		return
 	}
@@ -305,9 +305,9 @@ func (a *Api) GetGroup(w http.ResponseWriter, r *http.Request) {
 		logging.L.Error(err.Error())
 
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			sendApiError(w, http.StatusNotFound, fmt.Sprintf("Could not find group ID \"%s\"", groupId))
+			sendAPIError(w, http.StatusNotFound, fmt.Sprintf("Could not find group ID \"%s\"", groupId))
 		} else {
-			sendApiError(w, http.StatusBadRequest, fmt.Sprintf("Could not find group ID \"%s\"", groupId))
+			sendAPIError(w, http.StatusBadRequest, fmt.Sprintf("Could not find group ID \"%s\"", groupId))
 		}
 
 		return
@@ -319,17 +319,17 @@ func (a *Api) GetGroup(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewEncoder(w).Encode(result); err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not list groups")
+		sendAPIError(w, http.StatusInternalServerError, "could not list groups")
 	}
 }
 
-func (a *Api) ListSources(w http.ResponseWriter, r *http.Request) {
+func (a *API) ListSources(w http.ResponseWriter, r *http.Request) {
 	sourceKind := r.URL.Query().Get("kind")
 
 	var sources []Source
 	if err := a.db.Find(&sources, &Source{Kind: sourceKind}).Error; err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not list sources")
+		sendAPIError(w, http.StatusInternalServerError, "could not list sources")
 
 		return
 	}
@@ -343,16 +343,16 @@ func (a *Api) ListSources(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewEncoder(w).Encode(results); err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not list sources")
+		sendAPIError(w, http.StatusInternalServerError, "could not list sources")
 	}
 }
 
-func (a *Api) GetSource(w http.ResponseWriter, r *http.Request) {
+func (a *API) GetSource(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	sourceId := vars["id"]
 	if sourceId == "" {
-		sendApiError(w, http.StatusBadRequest, "Path parameter \"id\" is required")
+		sendAPIError(w, http.StatusBadRequest, "Path parameter \"id\" is required")
 
 		return
 	}
@@ -362,9 +362,9 @@ func (a *Api) GetSource(w http.ResponseWriter, r *http.Request) {
 		logging.L.Error(err.Error())
 
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			sendApiError(w, http.StatusNotFound, fmt.Sprintf("Could not find source ID \"%s\"", sourceId))
+			sendAPIError(w, http.StatusNotFound, fmt.Sprintf("Could not find source ID \"%s\"", sourceId))
 		} else {
-			sendApiError(w, http.StatusBadRequest, fmt.Sprintf("Could not find source ID \"%s\"", sourceId))
+			sendAPIError(w, http.StatusBadRequest, fmt.Sprintf("Could not find source ID \"%s\"", sourceId))
 		}
 
 		return
@@ -376,18 +376,18 @@ func (a *Api) GetSource(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewEncoder(w).Encode(result); err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not list sources")
+		sendAPIError(w, http.StatusInternalServerError, "could not list sources")
 	}
 }
 
-func (a *Api) ListDestinations(w http.ResponseWriter, r *http.Request) {
+func (a *API) ListDestinations(w http.ResponseWriter, r *http.Request) {
 	destinationName := r.URL.Query().Get("name")
 	destinationKind := r.URL.Query().Get("kind")
 
 	var destinations []Destination
 	if err := a.db.Find(&destinations, &Destination{Name: destinationName, Kind: destinationKind}).Error; err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not list destinations")
+		sendAPIError(w, http.StatusInternalServerError, "could not list destinations")
 
 		return
 	}
@@ -401,16 +401,16 @@ func (a *Api) ListDestinations(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewEncoder(w).Encode(results); err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not list destinations")
+		sendAPIError(w, http.StatusInternalServerError, "could not list destinations")
 	}
 }
 
-func (a *Api) GetDestination(w http.ResponseWriter, r *http.Request) {
+func (a *API) GetDestination(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	destinationId := vars["id"]
 	if destinationId == "" {
-		sendApiError(w, http.StatusBadRequest, "Path parameter \"id\" is required")
+		sendAPIError(w, http.StatusBadRequest, "Path parameter \"id\" is required")
 
 		return
 	}
@@ -420,9 +420,9 @@ func (a *Api) GetDestination(w http.ResponseWriter, r *http.Request) {
 		logging.L.Error(err.Error())
 
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			sendApiError(w, http.StatusNotFound, fmt.Sprintf("Could not find destination ID \"%s\"", destinationId))
+			sendAPIError(w, http.StatusNotFound, fmt.Sprintf("Could not find destination ID \"%s\"", destinationId))
 		} else {
-			sendApiError(w, http.StatusBadRequest, fmt.Sprintf("Could not find destination ID \"%s\"", destinationId))
+			sendAPIError(w, http.StatusBadRequest, fmt.Sprintf("Could not find destination ID \"%s\"", destinationId))
 		}
 
 		return
@@ -434,27 +434,27 @@ func (a *Api) GetDestination(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewEncoder(w).Encode(result); err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not list destinations")
+		sendAPIError(w, http.StatusInternalServerError, "could not list destinations")
 	}
 }
 
-func (a *Api) CreateDestination(w http.ResponseWriter, r *http.Request) {
+func (a *API) CreateDestination(w http.ResponseWriter, r *http.Request) {
 	_, err := extractAPIKey(r.Context())
 	if err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusUnauthorized, "unauthorized")
+		sendAPIError(w, http.StatusUnauthorized, "unauthorized")
 
 		return
 	}
 
 	var body api.DestinationCreateRequest
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sendApiError(w, http.StatusBadRequest, err.Error())
+		sendAPIError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if err := validate.Struct(body); err != nil {
-		sendApiError(w, http.StatusBadRequest, err.Error())
+		sendAPIError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -473,7 +473,7 @@ func (a *Api) CreateDestination(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, err.Error())
+		sendAPIError(w, http.StatusInternalServerError, err.Error())
 
 		return
 	}
@@ -483,19 +483,19 @@ func (a *Api) CreateDestination(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewEncoder(w).Encode(dbToAPIdestination(destination)); err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not create destination")
+		sendAPIError(w, http.StatusInternalServerError, "could not create destination")
 	}
 }
 
-func (a *Api) ListApiKeys(w http.ResponseWriter, r *http.Request) {
+func (a *API) ListAPIKeys(w http.ResponseWriter, r *http.Request) {
 	keyName := r.URL.Query().Get("name")
 
-	var keys []ApiKey
+	var keys []APIKey
 
-	err := a.db.Find(&keys, &ApiKey{Name: keyName}).Error
+	err := a.db.Find(&keys, &APIKey{Name: keyName}).Error
 	if err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not list keys")
+		sendAPIError(w, http.StatusInternalServerError, "could not list keys")
 
 		return
 	}
@@ -509,21 +509,21 @@ func (a *Api) ListApiKeys(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewEncoder(w).Encode(results); err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not list api-keys")
+		sendAPIError(w, http.StatusInternalServerError, "could not list api-keys")
 	}
 }
 
-func (a *Api) DeleteApiKey(w http.ResponseWriter, r *http.Request) {
+func (a *API) DeleteAPIKey(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	id := vars["id"]
 	if id == "" {
-		sendApiError(w, http.StatusBadRequest, "ApiKey id must be specified")
+		sendAPIError(w, http.StatusBadRequest, "APIKey id must be specified")
 	}
 
 	err := a.db.Transaction(func(tx *gorm.DB) error {
-		var existingKey ApiKey
-		tx.First(&existingKey, &ApiKey{Id: id})
+		var existingKey APIKey
+		tx.First(&existingKey, &APIKey{Id: id})
 		if existingKey.Id == "" {
 			return ErrExistingKey
 		}
@@ -536,11 +536,11 @@ func (a *Api) DeleteApiKey(w http.ResponseWriter, r *http.Request) {
 		logging.L.Error(err.Error())
 
 		if errors.Is(err, ErrExistingKey) {
-			sendApiError(w, http.StatusNotFound, err.Error())
+			sendAPIError(w, http.StatusNotFound, err.Error())
 			return
 		}
 
-		sendApiError(w, http.StatusInternalServerError, err.Error())
+		sendAPIError(w, http.StatusInternalServerError, err.Error())
 
 		return
 	}
@@ -548,28 +548,28 @@ func (a *Api) DeleteApiKey(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (a *Api) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
+func (a *API) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	var body api.InfraAPIKeyCreateRequest
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sendApiError(w, http.StatusBadRequest, err.Error())
+		sendAPIError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if err := validate.Struct(body); err != nil {
-		sendApiError(w, http.StatusBadRequest, err.Error())
+		sendAPIError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	if strings.ToLower(body.Name) == engineApiKeyName || strings.ToLower(body.Name) == rootApiKeyName {
+	if strings.ToLower(body.Name) == engineAPIKeyName || strings.ToLower(body.Name) == rootAPIKeyName {
 		// this name is used for the default API key that engines use to connect to the registry
-		sendApiError(w, http.StatusBadRequest, fmt.Sprintf("cannot create an API key with the name %s, this name is reserved", body.Name))
+		sendAPIError(w, http.StatusBadRequest, fmt.Sprintf("cannot create an API key with the name %s, this name is reserved", body.Name))
 		return
 	}
 
-	var apiKey ApiKey
+	var apiKey APIKey
 
 	err := a.db.Transaction(func(tx *gorm.DB) error {
-		tx.First(&apiKey, &ApiKey{Name: body.Name})
+		tx.First(&apiKey, &APIKey{Name: body.Name})
 		if apiKey.Id != "" {
 			return ErrExistingKey
 		}
@@ -589,16 +589,16 @@ func (a *Api) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 		logging.L.Error(err.Error())
 
 		if errors.Is(err, ErrExistingKey) {
-			sendApiError(w, http.StatusNotFound, err.Error())
+			sendAPIError(w, http.StatusNotFound, err.Error())
 			return
 		}
 
 		if errors.Is(err, ErrKeyPermissionsNotFound) {
-			sendApiError(w, http.StatusBadRequest, err.Error())
+			sendAPIError(w, http.StatusBadRequest, err.Error())
 			return
 		}
 
-		sendApiError(w, http.StatusInternalServerError, err.Error())
+		sendAPIError(w, http.StatusInternalServerError, err.Error())
 
 		return
 	}
@@ -606,13 +606,13 @@ func (a *Api) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-	if err := json.NewEncoder(w).Encode(dbToApiKeyWithSecret(&apiKey)); err != nil {
+	if err := json.NewEncoder(w).Encode(dbToAPIKeyWithSecret(&apiKey)); err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not create api-key")
+		sendAPIError(w, http.StatusInternalServerError, "could not create api-key")
 	}
 }
 
-func (a *Api) ListRoles(w http.ResponseWriter, r *http.Request) {
+func (a *API) ListRoles(w http.ResponseWriter, r *http.Request) {
 	roleName := r.URL.Query().Get("name")
 	roleKind := r.URL.Query().Get("kind")
 	destinationId := r.URL.Query().Get("destination")
@@ -629,7 +629,7 @@ func (a *Api) ListRoles(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not list roles")
+		sendAPIError(w, http.StatusInternalServerError, "could not list roles")
 
 		return
 	}
@@ -643,16 +643,16 @@ func (a *Api) ListRoles(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewEncoder(w).Encode(results); err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not list roles")
+		sendAPIError(w, http.StatusInternalServerError, "could not list roles")
 	}
 }
 
-func (a *Api) GetRole(w http.ResponseWriter, r *http.Request) {
+func (a *API) GetRole(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	roleId := vars["id"]
 	if roleId == "" {
-		sendApiError(w, http.StatusBadRequest, "Path parameter \"id\" is required")
+		sendAPIError(w, http.StatusBadRequest, "Path parameter \"id\" is required")
 
 		return
 	}
@@ -662,9 +662,9 @@ func (a *Api) GetRole(w http.ResponseWriter, r *http.Request) {
 		logging.L.Error(err.Error())
 
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			sendApiError(w, http.StatusNotFound, fmt.Sprintf("Could not find role ID \"%s\"", roleId))
+			sendAPIError(w, http.StatusNotFound, fmt.Sprintf("Could not find role ID \"%s\"", roleId))
 		} else {
-			sendApiError(w, http.StatusBadRequest, fmt.Sprintf("Could not find role ID \"%s\"", roleId))
+			sendAPIError(w, http.StatusBadRequest, fmt.Sprintf("Could not find role ID \"%s\"", roleId))
 		}
 
 		return
@@ -676,7 +676,7 @@ func (a *Api) GetRole(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewEncoder(w).Encode(result); err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not list roles")
+		sendAPIError(w, http.StatusInternalServerError, "could not list roles")
 	}
 }
 
@@ -684,7 +684,7 @@ var signatureAlgFromKeyAlgorithm = map[string]string{
 	"ED25519": "EdDSA", // elliptic curve 25519
 }
 
-func (a *Api) createJWT(destination, email string) (rawJWT string, expiry time.Time, err error) {
+func (a *API) createJWT(destination, email string) (rawJWT string, expiry time.Time, err error) {
 	var settings Settings
 
 	err = a.db.First(&settings).Error
@@ -735,30 +735,30 @@ func (a *Api) createJWT(destination, email string) (rawJWT string, expiry time.T
 	return rawJWT, expiry, nil
 }
 
-func (a *Api) CreateToken(w http.ResponseWriter, r *http.Request) {
+func (a *API) CreateToken(w http.ResponseWriter, r *http.Request) {
 	token, err := extractToken(r.Context())
 	if err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusUnauthorized, "unauthorized")
+		sendAPIError(w, http.StatusUnauthorized, "unauthorized")
 
 		return
 	}
 
 	var body api.TokenRequest
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sendApiError(w, http.StatusBadRequest, err.Error())
+		sendAPIError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if err := validate.Struct(body); err != nil {
-		sendApiError(w, http.StatusBadRequest, err.Error())
+		sendAPIError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	jwt, expiry, err := a.createJWT(*body.Destination, token.User.Email)
 	if err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not generate cred")
+		sendAPIError(w, http.StatusInternalServerError, "could not generate cred")
 
 		return
 	}
@@ -767,19 +767,19 @@ func (a *Api) CreateToken(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewEncoder(w).Encode(api.Token{Token: jwt, Expires: expiry.Unix()}); err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not create cred")
+		sendAPIError(w, http.StatusInternalServerError, "could not create cred")
 	}
 }
 
-func (a *Api) Login(w http.ResponseWriter, r *http.Request) {
+func (a *API) Login(w http.ResponseWriter, r *http.Request) {
 	var body api.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sendApiError(w, http.StatusBadRequest, err.Error())
+		sendAPIError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if err := validate.Struct(body); err != nil {
-		sendApiError(w, http.StatusBadRequest, err.Error())
+		sendAPIError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -792,7 +792,7 @@ func (a *Api) Login(w http.ResponseWriter, r *http.Request) {
 		var source Source
 		if err := a.db.Where(&Source{Kind: SourceKindOkta, Domain: body.Okta.Domain}).First(&source).Error; err != nil {
 			logging.L.Debug("Could not retrieve okta source from db: " + err.Error())
-			sendApiError(w, http.StatusBadRequest, "invalid okta login information")
+			sendAPIError(w, http.StatusBadRequest, "invalid okta login information")
 
 			return
 		}
@@ -800,7 +800,7 @@ func (a *Api) Login(w http.ResponseWriter, r *http.Request) {
 		clientSecret, err := a.k8s.GetSecret(source.ClientSecret)
 		if err != nil {
 			logging.L.Error("Could not retrieve okta client secret from kubernetes: " + err.Error())
-			sendApiError(w, http.StatusInternalServerError, "invalid okta login information")
+			sendAPIError(w, http.StatusInternalServerError, "invalid okta login information")
 
 			return
 		}
@@ -813,7 +813,7 @@ func (a *Api) Login(w http.ResponseWriter, r *http.Request) {
 		)
 		if err != nil {
 			logging.L.Debug("Could not extract email from okta info: " + err.Error())
-			sendApiError(w, http.StatusUnauthorized, "invalid okta login information")
+			sendAPIError(w, http.StatusUnauthorized, "invalid okta login information")
 
 			return
 		}
@@ -821,19 +821,19 @@ func (a *Api) Login(w http.ResponseWriter, r *http.Request) {
 		err = a.db.Where("email = ?", email).First(&user).Error
 		if err != nil {
 			logging.L.Debug("Could not get user from database: " + err.Error())
-			sendApiError(w, http.StatusUnauthorized, "invalid okta login information")
+			sendAPIError(w, http.StatusUnauthorized, "invalid okta login information")
 
 			return
 		}
 	default:
-		sendApiError(w, http.StatusBadRequest, "invalid login information provided")
+		sendAPIError(w, http.StatusBadRequest, "invalid login information provided")
 		return
 	}
 
 	secret, err := NewToken(a.db, user.Id, SessionDuration, &token)
 	if err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not create token")
+		sendAPIError(w, http.StatusInternalServerError, "could not create token")
 
 		return
 	}
@@ -850,21 +850,21 @@ func (a *Api) Login(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewEncoder(w).Encode(api.LoginResponse{Name: user.Email, Token: tokenString}); err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusInternalServerError, "could not login")
+		sendAPIError(w, http.StatusInternalServerError, "could not login")
 	}
 }
 
-func (a *Api) Logout(w http.ResponseWriter, r *http.Request) {
+func (a *API) Logout(w http.ResponseWriter, r *http.Request) {
 	token, err := extractToken(r.Context())
 	if err != nil {
 		logging.L.Error(err.Error())
-		sendApiError(w, http.StatusBadRequest, "invalid token")
+		sendAPIError(w, http.StatusBadRequest, "invalid token")
 
 		return
 	}
 
 	if err := a.db.Where(&Token{UserId: token.UserId}).Delete(&Token{}).Error; err != nil {
-		sendApiError(w, http.StatusInternalServerError, "could not log out user")
+		sendAPIError(w, http.StatusInternalServerError, "could not log out user")
 		logging.L.Error(err.Error())
 
 		return
@@ -879,12 +879,12 @@ func (a *Api) Logout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (a *Api) Version(w http.ResponseWriter, r *http.Request) {
+func (a *API) Version(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if err := json.NewEncoder(w).Encode(api.Version{Version: internal.Version}); err != nil {
 		logging.L.Sugar().Errorf("encode version: %w", err)
-		sendApiError(w, http.StatusInternalServerError, "could not get version")
+		sendAPIError(w, http.StatusInternalServerError, "could not get version")
 	}
 }
 
@@ -923,7 +923,7 @@ func dbToAPIdestination(d Destination) api.Destination {
 	return res
 }
 
-func dbToAPIKey(k ApiKey) api.InfraAPIKey {
+func dbToAPIKey(k APIKey) api.InfraAPIKey {
 	res := api.InfraAPIKey{
 		Name:    k.Name,
 		Id:      k.Id,
@@ -935,7 +935,7 @@ func dbToAPIKey(k ApiKey) api.InfraAPIKey {
 }
 
 // This function returns the secret key, it should only be used after the initial key creation
-func dbToApiKeyWithSecret(k *ApiKey) api.InfraAPIKeyCreateResponse {
+func dbToAPIKeyWithSecret(k *APIKey) api.InfraAPIKeyCreateResponse {
 	res := api.InfraAPIKeyCreateResponse{
 		Name:    k.Name,
 		Id:      k.Id,

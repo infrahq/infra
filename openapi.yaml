@@ -357,7 +357,7 @@ paths:
       security:
         - bearerAuth: []
       summary: Delete an API key
-      operationId: deleteApiKey
+      operationId: deleteAPIKey
       parameters:
         - in: path
           name: id

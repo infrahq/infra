@@ -16,7 +16,7 @@ type ConfigSource struct {
 	Domain       string `yaml:"domain"`
 	ClientId     string `yaml:"clientId"`
 	ClientSecret string `yaml:"clientSecret"`
-	ApiToken     string `yaml:"apiToken"`
+	APIToken     string `yaml:"apiToken"`
 }
 
 var dashAdminRemover = regexp.MustCompile(`(.*)\-admin(\.okta\.com)`)
@@ -89,7 +89,7 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 			source.Domain = s.Domain
 			// API token and client secret will be validated to exist when they are used
 			source.ClientSecret = s.ClientSecret
-			source.ApiToken = s.ApiToken
+			source.APIToken = s.APIToken
 
 			if err := db.Save(&source).Error; err != nil {
 				return fmt.Errorf("save source: %w", err)

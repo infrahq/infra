@@ -24,17 +24,17 @@ var (
 	_ _context.Context
 )
 
-// RolesApiService RolesApi service
-type RolesApiService service
+// RolesAPIService RolesAPI service
+type RolesAPIService service
 
-type ApiGetRoleRequest struct {
+type APIGetRoleRequest struct {
 	ctx        _context.Context
-	ApiService *RolesApiService
+	APIService *RolesAPIService
 	id         string
 }
 
-func (r ApiGetRoleRequest) Execute() (Role, *_nethttp.Response, error) {
-	return r.ApiService.GetRoleExecute(r)
+func (r APIGetRoleRequest) Execute() (Role, *_nethttp.Response, error) {
+	return r.APIService.GetRoleExecute(r)
 }
 
 /*
@@ -42,11 +42,11 @@ GetRole Get role
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id Role ID
- @return ApiGetRoleRequest
+ @return APIGetRoleRequest
 */
-func (a *RolesApiService) GetRole(ctx _context.Context, id string) ApiGetRoleRequest {
-	return ApiGetRoleRequest{
-		ApiService: a,
+func (a *RolesAPIService) GetRole(ctx _context.Context, id string) APIGetRoleRequest {
+	return APIGetRoleRequest{
+		APIService: a,
 		ctx:        ctx,
 		id:         id,
 	}
@@ -54,7 +54,7 @@ func (a *RolesApiService) GetRole(ctx _context.Context, id string) ApiGetRoleReq
 
 // Execute executes the request
 //  @return Role
-func (a *RolesApiService) GetRoleExecute(r ApiGetRoleRequest) (Role, *_nethttp.Response, error) {
+func (a *RolesAPIService) GetRoleExecute(r APIGetRoleRequest) (Role, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodGet
 		localVarPostBody     interface{}
@@ -64,7 +64,7 @@ func (a *RolesApiService) GetRoleExecute(r ApiGetRoleRequest) (Role, *_nethttp.R
 		localVarReturnValue  Role
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RolesApiService.GetRole")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RolesAPIService.GetRole")
 	if err != nil {
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
@@ -137,52 +137,52 @@ func (a *RolesApiService) GetRoleExecute(r ApiGetRoleRequest) (Role, *_nethttp.R
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiListRolesRequest struct {
+type APIListRolesRequest struct {
 	ctx         _context.Context
-	ApiService  *RolesApiService
+	APIService  *RolesAPIService
 	name        *string
 	kind        *string
 	destination *string
 }
 
 // Filter results by name
-func (r ApiListRolesRequest) Name(name string) ApiListRolesRequest {
+func (r APIListRolesRequest) Name(name string) APIListRolesRequest {
 	r.name = &name
 	return r
 }
 
 // Filter results by kind
-func (r ApiListRolesRequest) Kind(kind string) ApiListRolesRequest {
+func (r APIListRolesRequest) Kind(kind string) APIListRolesRequest {
 	r.kind = &kind
 	return r
 }
 
 // Filter results by destination
-func (r ApiListRolesRequest) Destination(destination string) ApiListRolesRequest {
+func (r APIListRolesRequest) Destination(destination string) APIListRolesRequest {
 	r.destination = &destination
 	return r
 }
 
-func (r ApiListRolesRequest) Execute() ([]Role, *_nethttp.Response, error) {
-	return r.ApiService.ListRolesExecute(r)
+func (r APIListRolesRequest) Execute() ([]Role, *_nethttp.Response, error) {
+	return r.APIService.ListRolesExecute(r)
 }
 
 /*
 ListRoles List roles
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiListRolesRequest
+ @return APIListRolesRequest
 */
-func (a *RolesApiService) ListRoles(ctx _context.Context) ApiListRolesRequest {
-	return ApiListRolesRequest{
-		ApiService: a,
+func (a *RolesAPIService) ListRoles(ctx _context.Context) APIListRolesRequest {
+	return APIListRolesRequest{
+		APIService: a,
 		ctx:        ctx,
 	}
 }
 
 // Execute executes the request
 //  @return []Role
-func (a *RolesApiService) ListRolesExecute(r ApiListRolesRequest) ([]Role, *_nethttp.Response, error) {
+func (a *RolesAPIService) ListRolesExecute(r APIListRolesRequest) ([]Role, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodGet
 		localVarPostBody     interface{}
@@ -192,7 +192,7 @@ func (a *RolesApiService) ListRolesExecute(r ApiListRolesRequest) ([]Role, *_net
 		localVarReturnValue  []Role
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RolesApiService.ListRoles")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RolesAPIService.ListRoles")
 	if err != nil {
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}

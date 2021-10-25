@@ -17,9 +17,9 @@ func logout(registry string) error {
 		return nil
 	}
 
-	client, err := NewApiClient(config.Host, config.SkipTLSVerify)
+	client, err := NewAPIClient(config.Host, config.SkipTLSVerify)
 	if err == nil {
-		_, _ = client.AuthApi.Logout(NewApiContext(config.Token)).Execute()
+		_, _ = client.AuthAPI.Logout(NewAPIContext(config.Token)).Execute()
 	}
 
 	// only clean up cache and destinations if logging out of current registry

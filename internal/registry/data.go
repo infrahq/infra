@@ -48,7 +48,7 @@ type Source struct {
 	Domain       string
 	ClientId     string
 	ClientSecret string
-	ApiToken     string
+	APIToken     string
 
 	Users []User `gorm:"many2many:users_sources"`
 }
@@ -120,9 +120,9 @@ type Token struct {
 	User   User `gorm:"foreignKey:UserId;references:Id;"`
 }
 
-var ApiKeyLen = 24
+var APIKeyLen = 24
 
-type ApiKey struct {
+type APIKey struct {
 	Id          string `gorm:"primaryKey"`
 	Created     int64  `gorm:"autoCreateTime"`
 	Updated     int64  `gorm:"autoUpdateTime"`
@@ -321,10 +321,10 @@ func (s *Source) DeleteUser(db *gorm.DB, u User) error {
 func (s *Source) Validate(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) error {
 	switch s.Kind {
 	case SourceKindOkta:
-		apiToken, err := k8s.GetSecret(s.ApiToken)
+		apiToken, err := k8s.GetSecret(s.APIToken)
 		if err != nil {
 			// this logs the expected secret object location, not the actual secret
-			return fmt.Errorf("could not retrieve okta API token from kubernetes secret %v: %w", s.ApiToken, err)
+			return fmt.Errorf("could not retrieve okta API token from kubernetes secret %v: %w", s.APIToken, err)
 		}
 
 		if _, err := k8s.GetSecret(s.ClientSecret); err != nil {
@@ -342,7 +342,7 @@ func (s *Source) SyncUsers(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) e
 
 	switch s.Kind {
 	case SourceKindOkta:
-		apiToken, err := k8s.GetSecret(s.ApiToken)
+		apiToken, err := k8s.GetSecret(s.APIToken)
 		if err != nil {
 			return fmt.Errorf("sync okta users api token: %w", err)
 		}
@@ -384,7 +384,7 @@ func (s *Source) SyncGroups(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) 
 
 	switch s.Kind {
 	case SourceKindOkta:
-		apiToken, err := k8s.GetSecret(s.ApiToken)
+		apiToken, err := k8s.GetSecret(s.APIToken)
 		if err != nil {
 			return fmt.Errorf("sync okta groups api secret: %w", err)
 		}
@@ -554,13 +554,13 @@ func ValidateAndGetToken(db *gorm.DB, in string) (*Token, error) {
 	return &token, nil
 }
 
-func (a *ApiKey) BeforeCreate(tx *gorm.DB) (err error) {
+func (a *APIKey) BeforeCreate(tx *gorm.DB) (err error) {
 	if a.Id == "" {
 		a.Id = generate.MathRandString(IdLen)
 	}
 
 	if a.Key == "" {
-		a.Key, err = generate.RandString(ApiKeyLen)
+		a.Key, err = generate.RandString(APIKeyLen)
 		if err != nil {
 			return err
 		}
@@ -619,7 +619,7 @@ func NewDB(dbpath string) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	if err := db.AutoMigrate(&ApiKey{}); err != nil {
+	if err := db.AutoMigrate(&APIKey{}); err != nil {
 		return nil, err
 	}
 

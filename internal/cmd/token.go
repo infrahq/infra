@@ -49,7 +49,7 @@ func tokenCreate(destination string) error {
 			return err
 		}
 
-		credReq := client.TokensApi.CreateToken(ctx).Body(api.TokenRequest{Destination: &destination})
+		credReq := client.TokensAPI.CreateToken(ctx).Body(api.TokenRequest{Destination: &destination})
 
 		cred, res, err := credReq.Execute()
 		if err != nil {

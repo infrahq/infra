@@ -78,7 +78,7 @@ func TestBearerTokenMiddlewareDefault(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	a := &Api{
+	a := &API{
 		db: db,
 	}
 
@@ -100,7 +100,7 @@ func TestBearerTokenMiddlewareEmptyHeader(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	a := &Api{
+	a := &API{
 		db: db,
 	}
 
@@ -124,7 +124,7 @@ func TestBearerTokenMiddlewareEmptyHeaderBearer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	a := &Api{
+	a := &API{
 		db: db,
 	}
 
@@ -148,7 +148,7 @@ func TestBearerTokenMiddlewareInvalidLength(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	a := &Api{
+	a := &API{
 		db: db,
 	}
 
@@ -170,7 +170,7 @@ func TestBearerTokenMiddlewareInvalidToken(t *testing.T) {
 	db, err := NewDB("file::memory:")
 	require.NoError(t, err)
 
-	a := &Api{
+	a := &API{
 		db: db,
 	}
 
@@ -196,7 +196,7 @@ func TestBearerTokenMiddlewareExpiredToken(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	a := &Api{
+	a := &API{
 		db: db,
 	}
 
@@ -225,7 +225,7 @@ func TestBearerTokenMiddlewareValidToken(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	a := &Api{
+	a := &API{
 		db: db,
 	}
 
@@ -243,7 +243,7 @@ func TestBearerTokenMiddlewareValidToken(t *testing.T) {
 	assert.Equal(t, "hello world", w.Body.String())
 }
 
-func TestBearerTokenMiddlewareInvalidApiKey(t *testing.T) {
+func TestBearerTokenMiddlewareInvalidAPIKey(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		if _, err := io.WriteString(w, "hello world"); err != nil {
 			t.Fatal(err)
@@ -255,7 +255,7 @@ func TestBearerTokenMiddlewareInvalidApiKey(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	a := &Api{
+	a := &API{
 		db: db,
 	}
 
@@ -269,7 +269,7 @@ func TestBearerTokenMiddlewareInvalidApiKey(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
-func TestBearerTokenMiddlewareValidApiKey(t *testing.T) {
+func TestBearerTokenMiddlewareValidAPIKey(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		if _, err := io.WriteString(w, "hello world"); err != nil {
 			t.Fatal(err)
@@ -281,13 +281,13 @@ func TestBearerTokenMiddlewareValidApiKey(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	a := &Api{
+	a := &API{
 		db: db,
 	}
 
-	var apiKey ApiKey
+	var apiKey APIKey
 
-	err = db.FirstOrCreate(&apiKey, &ApiKey{Name: engineApiKeyName, Permissions: string(api.USERS_READ)}).Error
+	err = db.FirstOrCreate(&apiKey, &APIKey{Name: engineAPIKeyName, Permissions: string(api.USERS_READ)}).Error
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -301,7 +301,7 @@ func TestBearerTokenMiddlewareValidApiKey(t *testing.T) {
 	assert.Equal(t, "hello world", w.Body.String())
 }
 
-func TestBearerTokenMiddlewareValidApiKeyRootPermissions(t *testing.T) {
+func TestBearerTokenMiddlewareValidAPIKeyRootPermissions(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		if _, err := io.WriteString(w, "hello world"); err != nil {
 			t.Fatal(err)
@@ -313,13 +313,13 @@ func TestBearerTokenMiddlewareValidApiKeyRootPermissions(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	a := &Api{
+	a := &API{
 		db: db,
 	}
 
-	var apiKey ApiKey
+	var apiKey APIKey
 
-	err = db.FirstOrCreate(&apiKey, &ApiKey{Name: engineApiKeyName, Permissions: string(api.STAR)}).Error
+	err = db.FirstOrCreate(&apiKey, &APIKey{Name: engineAPIKeyName, Permissions: string(api.STAR)}).Error
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -333,7 +333,7 @@ func TestBearerTokenMiddlewareValidApiKeyRootPermissions(t *testing.T) {
 	assert.Equal(t, "hello world", w.Body.String())
 }
 
-func TestBearerTokenMiddlewareValidApiKeyWrongPermission(t *testing.T) {
+func TestBearerTokenMiddlewareValidAPIKeyWrongPermission(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		if _, err := io.WriteString(w, "hello world"); err != nil {
 			t.Fatal(err)
@@ -345,13 +345,13 @@ func TestBearerTokenMiddlewareValidApiKeyWrongPermission(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	a := &Api{
+	a := &API{
 		db: db,
 	}
 
-	var apiKey ApiKey
+	var apiKey APIKey
 
-	err = db.FirstOrCreate(&apiKey, &ApiKey{Name: engineApiKeyName, Permissions: string(api.DESTINATIONS_READ)}).Error
+	err = db.FirstOrCreate(&apiKey, &APIKey{Name: engineAPIKeyName, Permissions: string(api.DESTINATIONS_READ)}).Error
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -371,13 +371,13 @@ func TestBearerTokenMiddlewareValidApiKeyWrongPermission(t *testing.T) {
 	assert.Equal(t, string(api.DESTINATIONS_CREATE)+" permission is required", body.Message)
 }
 
-func TestCreateDestinationNoApiKey(t *testing.T) {
+func TestCreateDestinationNoAPIKey(t *testing.T) {
 	db, err := NewDB("file::memory:")
 	if err != nil {
 		require.NoError(t, err)
 	}
 
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	req := api.DestinationCreateRequest{
 		Kubernetes: &api.DestinationKubernetes{
@@ -403,13 +403,13 @@ func TestCreateDestination(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	a := &Api{
+	a := &API{
 		db: db,
 	}
 
-	var apiKey ApiKey
+	var apiKey APIKey
 
-	err = db.FirstOrCreate(&apiKey, &ApiKey{Name: "default", Permissions: string(api.DESTINATIONS_CREATE)}).Error
+	err = db.FirstOrCreate(&apiKey, &APIKey{Name: "default", Permissions: string(api.DESTINATIONS_CREATE)}).Error
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -440,7 +440,7 @@ func TestLoginHandlerEmptyRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodPost, "http://test.com/v1/login", nil)
 	w := httptest.NewRecorder()
@@ -454,7 +454,7 @@ func TestLoginNilOktaRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	loginRequest := api.LoginRequest{
 		Okta: nil,
@@ -477,7 +477,7 @@ func TestLoginEmptyOktaRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	loginRequest := api.LoginRequest{
 		Okta: &api.LoginRequestOkta{},
@@ -500,7 +500,7 @@ func TestLoginOktaMissingDomainRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	loginRequest := api.LoginRequest{
 		Okta: &api.LoginRequestOkta{
@@ -525,7 +525,7 @@ func TestLoginMethodOktaMissingCodeRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	loginRequest := api.LoginRequest{
 		Okta: &api.LoginRequestOkta{
@@ -552,7 +552,7 @@ func TestLoginMethodOkta(t *testing.T) {
 
 	var source Source
 	source.Kind = SourceKindOkta
-	source.ApiToken = "test-api-token/apiToken"
+	source.APIToken = "test-api-token/apiToken"
 	source.Domain = "test.okta.com"
 	source.ClientId = "test-client-id"
 	source.ClientSecret = "test-client-secret/clientSecret"
@@ -580,7 +580,7 @@ func TestLoginMethodOkta(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	a := &Api{db: db, okta: testOkta, k8s: testK8s, t: telemetry}
+	a := &API{db: db, okta: testOkta, k8s: testK8s, t: telemetry}
 
 	loginRequest := api.LoginRequest{
 		Okta: &api.LoginRequestOkta{
@@ -614,7 +614,7 @@ func TestVersion(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/version", nil)
 	w := httptest.NewRecorder()
@@ -630,7 +630,7 @@ func TestVersion(t *testing.T) {
 }
 
 func TestListRoles(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles", nil)
 
@@ -681,7 +681,7 @@ func TestListRoles(t *testing.T) {
 }
 
 func TestListRolesByName(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles?name=admin", nil)
 
@@ -715,7 +715,7 @@ func TestListRolesByName(t *testing.T) {
 }
 
 func TestListRolesByKind(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles?kind=role", nil)
 
@@ -741,7 +741,7 @@ func TestListRolesByKind(t *testing.T) {
 }
 
 func TestListRolesByMultiple(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles?name=admin&kind=role", nil)
 
@@ -759,7 +759,7 @@ func TestListRolesByMultiple(t *testing.T) {
 
 func TestListRolesForDestinationReturnsRolesFromConfig(t *testing.T) {
 	// this in memory DB is setup in the config_test.go
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles", nil)
 	q := r.URL.Query()
@@ -796,7 +796,7 @@ func TestListRolesForDestinationReturnsRolesFromConfig(t *testing.T) {
 
 func TestListRolesOnlyFindsForSpecificDestination(t *testing.T) {
 	// this in memory DB is setup in the config_test.go
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles", nil)
 	q := r.URL.Query()
@@ -832,7 +832,7 @@ func TestListRolesOnlyFindsForSpecificDestination(t *testing.T) {
 
 func TestListRolesForUnknownDestination(t *testing.T) {
 	// this in memory DB is setup in config_test.go
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles", nil)
 	q := r.URL.Query()
@@ -852,7 +852,7 @@ func TestListRolesForUnknownDestination(t *testing.T) {
 }
 
 func TestGetRole(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	role := &Role{Name: "mpt-role"}
 	if err := a.db.Create(role).Error; err != nil {
@@ -874,7 +874,7 @@ func TestGetRole(t *testing.T) {
 }
 
 func TestGetRoleEmptyID(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles/", nil)
 	vars := map[string]string{
@@ -889,7 +889,7 @@ func TestGetRoleEmptyID(t *testing.T) {
 }
 
 func TestGetRoleNotFound(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles/nonexistent", nil)
 	vars := map[string]string{
@@ -904,7 +904,7 @@ func TestGetRoleNotFound(t *testing.T) {
 }
 
 func TestListGroups(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/groups", nil)
 
@@ -924,7 +924,7 @@ func TestListGroups(t *testing.T) {
 }
 
 func TestListGroupsByName(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/groups?name=ios-developers", nil)
 
@@ -943,7 +943,7 @@ func TestListGroupsByName(t *testing.T) {
 }
 
 func TestGetGroup(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	group := &Group{Name: "mpt-group"}
 	if err := a.db.Create(group).Error; err != nil {
@@ -965,7 +965,7 @@ func TestGetGroup(t *testing.T) {
 }
 
 func TestGetGroupEmptyID(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/groups/", nil)
 	vars := map[string]string{
@@ -980,7 +980,7 @@ func TestGetGroupEmptyID(t *testing.T) {
 }
 
 func TestGetGroupNotFound(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/groups/nonexistent", nil)
 	vars := map[string]string{
@@ -995,7 +995,7 @@ func TestGetGroupNotFound(t *testing.T) {
 }
 
 func TestListUsers(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/users", nil)
 
@@ -1016,7 +1016,7 @@ func TestListUsers(t *testing.T) {
 }
 
 func TestListUsersByEmail(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/users?email=woz@example.com", nil)
 
@@ -1035,7 +1035,7 @@ func TestListUsersByEmail(t *testing.T) {
 }
 
 func TestListUsersEmpty(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/users?email=nonexistent@example.com", nil)
 
@@ -1052,7 +1052,7 @@ func TestListUsersEmpty(t *testing.T) {
 }
 
 func TestGetUser(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	user := &User{Email: "mpt-user@infrahq.com"}
 	if err := a.db.Create(user).Error; err != nil {
@@ -1074,7 +1074,7 @@ func TestGetUser(t *testing.T) {
 }
 
 func TestGetUserEmptyID(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/users/", nil)
 	vars := map[string]string{
@@ -1089,7 +1089,7 @@ func TestGetUserEmptyID(t *testing.T) {
 }
 
 func TestGetUserNotFound(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/users/nonexistent", nil)
 	vars := map[string]string{
@@ -1104,7 +1104,7 @@ func TestGetUserNotFound(t *testing.T) {
 }
 
 func TestListSources(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/sources", nil)
 
@@ -1121,7 +1121,7 @@ func TestListSources(t *testing.T) {
 }
 
 func TestListSourcesByType(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/sources?kind=okta", nil)
 
@@ -1138,7 +1138,7 @@ func TestListSourcesByType(t *testing.T) {
 }
 
 func TestListSourcesEmpty(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/sources?kind=nonexistent", nil)
 
@@ -1155,7 +1155,7 @@ func TestListSourcesEmpty(t *testing.T) {
 }
 
 func TestGetSource(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	source := &Source{Kind: SourceKindOkta}
 	if err := a.db.Create(source).Error; err != nil {
@@ -1177,7 +1177,7 @@ func TestGetSource(t *testing.T) {
 }
 
 func TestGetSourceEmptyID(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/sources/", nil)
 	vars := map[string]string{
@@ -1192,7 +1192,7 @@ func TestGetSourceEmptyID(t *testing.T) {
 }
 
 func TestGetSourceNotFound(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/sources/nonexistent", nil)
 	vars := map[string]string{
@@ -1207,7 +1207,7 @@ func TestGetSourceNotFound(t *testing.T) {
 }
 
 func TestListDestinations(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/destinations", nil)
 
@@ -1228,7 +1228,7 @@ func TestListDestinations(t *testing.T) {
 }
 
 func TestListDestinationsByName(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/destinations?name=cluster-AAA", nil)
 
@@ -1247,7 +1247,7 @@ func TestListDestinationsByName(t *testing.T) {
 }
 
 func TestListDestinationsByType(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/destinations?=kind", nil)
 
@@ -1268,7 +1268,7 @@ func TestListDestinationsByType(t *testing.T) {
 }
 
 func TestListDestinationsEmpty(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/destinations?name=nonexistent", nil)
 
@@ -1285,7 +1285,7 @@ func TestListDestinationsEmpty(t *testing.T) {
 }
 
 func TestGetDestination(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	destination := &Destination{Name: "mpt-destination"}
 	if err := a.db.Create(destination).Error; err != nil {
@@ -1307,7 +1307,7 @@ func TestGetDestination(t *testing.T) {
 }
 
 func TestGetDestinationEmptyID(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/destinations/", nil)
 	vars := map[string]string{
@@ -1322,7 +1322,7 @@ func TestGetDestinationEmptyID(t *testing.T) {
 }
 
 func TestGetDestinationNotFound(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/destinations/nonexistent", nil)
 	vars := map[string]string{
@@ -1337,7 +1337,7 @@ func TestGetDestinationNotFound(t *testing.T) {
 }
 
 func TestCreateAPIKey(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	createAPIKeyRequest := api.InfraAPIKeyCreateRequest{
 		Name:        "test-api-client",
@@ -1363,16 +1363,16 @@ func TestCreateAPIKey(t *testing.T) {
 	assert.NotEmpty(t, body.Key)
 
 	// clean up
-	var apiKey ApiKey
+	var apiKey APIKey
 
-	db.First(&apiKey, &ApiKey{Name: "test-api-client"})
+	db.First(&apiKey, &APIKey{Name: "test-api-client"})
 	db.Delete(&apiKey)
 }
 
 func TestDeleteAPIKey(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
-	k := &ApiKey{Name: "test-delete-key", Permissions: string(api.API_KEYS_DELETE)}
+	k := &APIKey{Name: "test-delete-key", Permissions: string(api.API_KEYS_DELETE)}
 	if err := a.db.Create(k).Error; err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -1383,27 +1383,27 @@ func TestDeleteAPIKey(t *testing.T) {
 	}
 	delR = mux.SetURLVars(delR, vars)
 	delW := httptest.NewRecorder()
-	http.HandlerFunc(a.DeleteApiKey).ServeHTTP(delW, delR)
+	http.HandlerFunc(a.DeleteAPIKey).ServeHTTP(delW, delR)
 
 	assert.Equal(t, http.StatusNoContent, delW.Code)
 
-	var apiKey ApiKey
+	var apiKey APIKey
 
-	db.First(&apiKey, &ApiKey{Name: "test-api-delete-key"})
+	db.First(&apiKey, &APIKey{Name: "test-api-delete-key"})
 	assert.Empty(t, apiKey.Id, "API key not deleted from database")
 }
 
 func TestListAPIKeys(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
-	k := &ApiKey{Name: "test-key", Permissions: string(api.API_KEYS_READ)}
+	k := &APIKey{Name: "test-key", Permissions: string(api.API_KEYS_READ)}
 	if err := a.db.Create(k).Error; err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/api-keys", nil)
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.ListApiKeys).ServeHTTP(w, r)
+	http.HandlerFunc(a.ListAPIKeys).ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var keys []api.InfraAPIKey
@@ -1453,7 +1453,7 @@ func containsDestination(destinations []api.Destination, name string) bool {
 }
 
 func TestCredentials(t *testing.T) {
-	a := &Api{db: db}
+	a := &API{db: db}
 
 	err := db.FirstOrCreate(&Settings{}).Error
 	require.NoError(t, err)

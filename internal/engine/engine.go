@@ -36,7 +36,7 @@ type Options struct {
 	Registry       string
 	Name           string
 	ForceTLSVerify bool
-	EngineApiKey   string
+	EngineAPIKey   string
 	TLSCache       string
 }
 
@@ -239,28 +239,28 @@ func Run(options Options) error {
 		}
 	}
 
-	engineApiKeyURI, err := url.Parse(options.EngineApiKey)
+	engineAPIKeyURI, err := url.Parse(options.EngineAPIKey)
 	if err != nil {
 		return err
 	}
 
-	var engineApiKey string
+	var engineAPIKey string
 
-	switch engineApiKeyURI.Scheme {
+	switch engineAPIKeyURI.Scheme {
 	case "":
 		// option does not have a scheme, assume it is plaintext
-		engineApiKey = string(options.EngineApiKey)
+		engineAPIKey = string(options.EngineAPIKey)
 	case "file":
 		// option is a file path, read contents from the path
-		contents, err := ioutil.ReadFile(engineApiKeyURI.Path)
+		contents, err := ioutil.ReadFile(engineAPIKeyURI.Path)
 		if err != nil {
 			return err
 		}
 
-		engineApiKey = string(contents)
+		engineAPIKey = string(contents)
 
 	default:
-		return fmt.Errorf("unsupported secret format %s", engineApiKeyURI.Scheme)
+		return fmt.Errorf("unsupported secret format %s", engineAPIKeyURI.Scheme)
 	}
 
 	k8s, err := kubernetes.NewKubernetes()
@@ -286,7 +286,7 @@ func Run(options Options) error {
 	u.Scheme = "https"
 
 	ctx := context.WithValue(context.Background(), api.ContextServerVariables, map[string]string{"basePath": "v1"})
-	ctx = context.WithValue(ctx, api.ContextAccessToken, engineApiKey)
+	ctx = context.WithValue(ctx, api.ContextAccessToken, engineAPIKey)
 	config := api.NewConfiguration()
 	config.Host = u.Host
 	config.Scheme = "https"
@@ -378,7 +378,7 @@ func Run(options Options) error {
 			return
 		}
 
-		destination, _, err := client.DestinationsApi.CreateDestination(ctx).Body(api.DestinationCreateRequest{
+		destination, _, err := client.DestinationsAPI.CreateDestination(ctx).Body(api.DestinationCreateRequest{
 			Name: name,
 			Kubernetes: &api.DestinationKubernetes{
 				Ca:       string(caBytes),
@@ -390,7 +390,7 @@ func Run(options Options) error {
 			return
 		}
 
-		roles, _, err := client.RolesApi.ListRoles(ctx).Destination(destination.Id).Execute()
+		roles, _, err := client.RolesAPI.ListRoles(ctx).Destination(destination.Id).Execute()
 		if err != nil {
 			logging.L.Error("couldn't list roles: " + err.Error())
 		}
@@ -430,7 +430,7 @@ func Run(options Options) error {
 	cache := jwkCache{
 		client: &http.Client{
 			Transport: &BearerTransport{
-				Token: engineApiKey,
+				Token: engineAPIKey,
 				Transport: &http.Transport{
 					TLSClientConfig: registryTLSConfig,
 				},

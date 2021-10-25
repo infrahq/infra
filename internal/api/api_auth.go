@@ -23,40 +23,40 @@ var (
 	_ _context.Context
 )
 
-// AuthApiService AuthApi service
-type AuthApiService service
+// AuthAPIService AuthAPI service
+type AuthAPIService service
 
-type ApiLoginRequest struct {
+type APILoginRequest struct {
 	ctx        _context.Context
-	ApiService *AuthApiService
+	APIService *AuthAPIService
 	body       *LoginRequest
 }
 
-func (r ApiLoginRequest) Body(body LoginRequest) ApiLoginRequest {
+func (r APILoginRequest) Body(body LoginRequest) APILoginRequest {
 	r.body = &body
 	return r
 }
 
-func (r ApiLoginRequest) Execute() (LoginResponse, *_nethttp.Response, error) {
-	return r.ApiService.LoginExecute(r)
+func (r APILoginRequest) Execute() (LoginResponse, *_nethttp.Response, error) {
+	return r.APIService.LoginExecute(r)
 }
 
 /*
 Login Login to Infra
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiLoginRequest
+ @return APILoginRequest
 */
-func (a *AuthApiService) Login(ctx _context.Context) ApiLoginRequest {
-	return ApiLoginRequest{
-		ApiService: a,
+func (a *AuthAPIService) Login(ctx _context.Context) APILoginRequest {
+	return APILoginRequest{
+		APIService: a,
 		ctx:        ctx,
 	}
 }
 
 // Execute executes the request
 //  @return LoginResponse
-func (a *AuthApiService) LoginExecute(r ApiLoginRequest) (LoginResponse, *_nethttp.Response, error) {
+func (a *AuthAPIService) LoginExecute(r APILoginRequest) (LoginResponse, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodPost
 		localVarPostBody     interface{}
@@ -66,7 +66,7 @@ func (a *AuthApiService) LoginExecute(r ApiLoginRequest) (LoginResponse, *_netht
 		localVarReturnValue  LoginResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthApiService.Login")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthAPIService.Login")
 	if err != nil {
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
@@ -143,30 +143,30 @@ func (a *AuthApiService) LoginExecute(r ApiLoginRequest) (LoginResponse, *_netht
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiLogoutRequest struct {
+type APILogoutRequest struct {
 	ctx        _context.Context
-	ApiService *AuthApiService
+	APIService *AuthAPIService
 }
 
-func (r ApiLogoutRequest) Execute() (*_nethttp.Response, error) {
-	return r.ApiService.LogoutExecute(r)
+func (r APILogoutRequest) Execute() (*_nethttp.Response, error) {
+	return r.APIService.LogoutExecute(r)
 }
 
 /*
 Logout Logout of Infra
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiLogoutRequest
+ @return APILogoutRequest
 */
-func (a *AuthApiService) Logout(ctx _context.Context) ApiLogoutRequest {
-	return ApiLogoutRequest{
-		ApiService: a,
+func (a *AuthAPIService) Logout(ctx _context.Context) APILogoutRequest {
+	return APILogoutRequest{
+		APIService: a,
 		ctx:        ctx,
 	}
 }
 
 // Execute executes the request
-func (a *AuthApiService) LogoutExecute(r ApiLogoutRequest) (*_nethttp.Response, error) {
+func (a *AuthAPIService) LogoutExecute(r APILogoutRequest) (*_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodPost
 		localVarPostBody     interface{}
@@ -175,7 +175,7 @@ func (a *AuthApiService) LogoutExecute(r ApiLogoutRequest) (*_nethttp.Response, 
 		localVarFileBytes    []byte
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthApiService.Logout")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthAPIService.Logout")
 	if err != nil {
 		return nil, GenericOpenAPIError{error: err.Error()}
 	}

@@ -100,12 +100,12 @@ registry:
 		}
 	}
 
-	client, err := NewApiClient(selectedRegistry.Host, skipTLSVerify)
+	client, err := NewAPIClient(selectedRegistry.Host, skipTLSVerify)
 	if err != nil {
 		return err
 	}
 
-	sources, res, err := client.SourcesApi.ListSources(context.Background()).Execute()
+	sources, res, err := client.SourcesAPI.ListSources(context.Background()).Execute()
 	if err != nil {
 		return errWithResponseContext(err, res)
 	}
@@ -191,7 +191,7 @@ source:
 		return errors.New("invalid source selected")
 	}
 
-	loginRes, res, err := client.AuthApi.Login(context.Background()).Body(loginReq).Execute()
+	loginRes, res, err := client.AuthAPI.Login(context.Background()).Body(loginReq).Execute()
 	if err != nil {
 		return errWithResponseContext(err, res)
 	}
@@ -213,12 +213,12 @@ source:
 
 	fmt.Fprintf(os.Stderr, "%s Logged in as %s\n", blue("✓"), termenv.String(loginRes.Name).Bold().String())
 
-	client, err = NewApiClient(selectedRegistry.Host, skipTLSVerify)
+	client, err = NewAPIClient(selectedRegistry.Host, skipTLSVerify)
 	if err != nil {
 		return err
 	}
 
-	users, res, err := client.UsersApi.ListUsers(NewApiContext(loginRes.Token)).Email(loginRes.Name).Execute()
+	users, res, err := client.UsersAPI.ListUsers(NewAPIContext(loginRes.Token)).Email(loginRes.Name).Execute()
 	if err != nil {
 		return errWithResponseContext(err, res)
 	}

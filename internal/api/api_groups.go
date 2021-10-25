@@ -24,17 +24,17 @@ var (
 	_ _context.Context
 )
 
-// GroupsApiService GroupsApi service
-type GroupsApiService service
+// GroupsAPIService GroupsAPI service
+type GroupsAPIService service
 
-type ApiGetGroupRequest struct {
+type APIGetGroupRequest struct {
 	ctx        _context.Context
-	ApiService *GroupsApiService
+	APIService *GroupsAPIService
 	id         string
 }
 
-func (r ApiGetGroupRequest) Execute() (Group, *_nethttp.Response, error) {
-	return r.ApiService.GetGroupExecute(r)
+func (r APIGetGroupRequest) Execute() (Group, *_nethttp.Response, error) {
+	return r.APIService.GetGroupExecute(r)
 }
 
 /*
@@ -42,11 +42,11 @@ GetGroup Get group by ID
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param id Group ID
- @return ApiGetGroupRequest
+ @return APIGetGroupRequest
 */
-func (a *GroupsApiService) GetGroup(ctx _context.Context, id string) ApiGetGroupRequest {
-	return ApiGetGroupRequest{
-		ApiService: a,
+func (a *GroupsAPIService) GetGroup(ctx _context.Context, id string) APIGetGroupRequest {
+	return APIGetGroupRequest{
+		APIService: a,
 		ctx:        ctx,
 		id:         id,
 	}
@@ -54,7 +54,7 @@ func (a *GroupsApiService) GetGroup(ctx _context.Context, id string) ApiGetGroup
 
 // Execute executes the request
 //  @return Group
-func (a *GroupsApiService) GetGroupExecute(r ApiGetGroupRequest) (Group, *_nethttp.Response, error) {
+func (a *GroupsAPIService) GetGroupExecute(r APIGetGroupRequest) (Group, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodGet
 		localVarPostBody     interface{}
@@ -64,7 +64,7 @@ func (a *GroupsApiService) GetGroupExecute(r ApiGetGroupRequest) (Group, *_netht
 		localVarReturnValue  Group
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "GroupsApiService.GetGroup")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "GroupsAPIService.GetGroup")
 	if err != nil {
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
@@ -137,45 +137,45 @@ func (a *GroupsApiService) GetGroupExecute(r ApiGetGroupRequest) (Group, *_netht
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiListGroupsRequest struct {
+type APIListGroupsRequest struct {
 	ctx        _context.Context
-	ApiService *GroupsApiService
+	APIService *GroupsAPIService
 	name       *string
 	active     *bool
 }
 
 // Filter groups by name
-func (r ApiListGroupsRequest) Name(name string) ApiListGroupsRequest {
+func (r APIListGroupsRequest) Name(name string) APIListGroupsRequest {
 	r.name = &name
 	return r
 }
 
 // Filter groups by active state
-func (r ApiListGroupsRequest) Active(active bool) ApiListGroupsRequest {
+func (r APIListGroupsRequest) Active(active bool) APIListGroupsRequest {
 	r.active = &active
 	return r
 }
 
-func (r ApiListGroupsRequest) Execute() ([]Group, *_nethttp.Response, error) {
-	return r.ApiService.ListGroupsExecute(r)
+func (r APIListGroupsRequest) Execute() ([]Group, *_nethttp.Response, error) {
+	return r.APIService.ListGroupsExecute(r)
 }
 
 /*
 ListGroups List groups
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiListGroupsRequest
+ @return APIListGroupsRequest
 */
-func (a *GroupsApiService) ListGroups(ctx _context.Context) ApiListGroupsRequest {
-	return ApiListGroupsRequest{
-		ApiService: a,
+func (a *GroupsAPIService) ListGroups(ctx _context.Context) APIListGroupsRequest {
+	return APIListGroupsRequest{
+		APIService: a,
 		ctx:        ctx,
 	}
 }
 
 // Execute executes the request
 //  @return []Group
-func (a *GroupsApiService) ListGroupsExecute(r ApiListGroupsRequest) ([]Group, *_nethttp.Response, error) {
+func (a *GroupsAPIService) ListGroupsExecute(r APIListGroupsRequest) ([]Group, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodGet
 		localVarPostBody     interface{}
@@ -185,7 +185,7 @@ func (a *GroupsApiService) ListGroupsExecute(r ApiListGroupsRequest) ([]Group, *
 		localVarReturnValue  []Group
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "GroupsApiService.ListGroups")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "GroupsAPIService.ListGroups")
 	if err != nil {
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
