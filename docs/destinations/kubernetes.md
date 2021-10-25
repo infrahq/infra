@@ -51,7 +51,7 @@ Depending on your Infra Helm configurations, the steps will differ.
 ### Get Infra API Key
 
 ```
-INFRA_API_KEY=$(kubectl -n infrahq get secrets infra-engine -o jsonpath='{.data.engine-api-key}' | base64 --decode)
+INFRA_API_KEY=$(kubectl -n infrahq get secrets infra-engine -o jsonpath='{.data.engine-key}' | base64 --decode)
 ```
 
 ---
