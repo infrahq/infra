@@ -172,7 +172,7 @@ See the [Infra CLI reference](./docs/cli.md) for more ways to use `infra`.
 
 ```
 helm repo update
-helm upgrade -f values.yaml -n infrahq infra infrahq/infra
+helm upgrade -n infrahq -f values.yaml infra infrahq/infra
 ```
 
 ## [Security](./docs/security.md)
