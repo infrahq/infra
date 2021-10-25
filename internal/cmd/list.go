@@ -8,13 +8,14 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/lensesio/tableprinter"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
 type ListOptions struct {
-	*GlobalOptions
+	*internal.GlobalOptions
 }
 
 type statusRow struct {

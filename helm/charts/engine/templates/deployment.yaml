@@ -39,13 +39,11 @@ spec:
               containerPort: {{ .targetPort }}
 {{- end }}
           env:
-            - name: INFRA_LOG_LEVEL
-              value: {{ .Values.logLevel | default "info" }}
-            - name: INFRA_ENGINE_NAME
+            - name: INFRA_NAME
               value: {{ .Values.name | quote }}
             - name: INFRA_HOST
               value: {{ .Values.host | quote }}
-            - name: INFRA_ENGINE_API_KEY
+            - name: INFRA_API_KEY
               value: 'file:///var/run/secrets/infrahq.com/engine/engine-key'
           volumeMounts:
             - name: data
@@ -55,18 +53,18 @@ spec:
               readOnly: true
           readinessProbe:
             httpGet:
-              {{- with first .Values.service.ports }}
+{{- with first .Values.service.ports }}
               scheme: {{ .name | upper }}
               path: /healthz
               port: {{ .targetPort }}
-              {{- end }}
+{{- end }}
           livenessProbe:
             httpGet:
-              {{- with first .Values.service.ports }}
+{{- with first .Values.service.ports }}
               scheme: {{ .name | upper }}
               path: /healthz
               port: {{ .targetPort }}
-              {{- end }}
+{{- end }}
             periodSeconds: 3
       volumes:
         - name: data

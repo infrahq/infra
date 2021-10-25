@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,10 +17,10 @@ import (
 
 type TokenOptions struct {
 	Destination string
-	*GlobalOptions
+	*internal.GlobalOptions
 }
 
-func newTokenCreateCmd(globalOptions *GlobalOptions) (*cobra.Command, error) {
+func newTokenCreateCmd(globalOptions *internal.GlobalOptions) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:   "create DESTINATION",
 		Short: "Create a JWT token for connecting to a destination, e.g. Kubernetes",

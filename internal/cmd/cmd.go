@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/goware/urlx"
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/engine"
 	"github.com/infrahq/infra/internal/logging"
@@ -251,13 +252,17 @@ func newLogoutCmd() (*cobra.Command, error) {
 	return cmd, nil
 }
 
-func newListCmd(globalOptions *GlobalOptions) (*cobra.Command, error) {
+func newListCmd(globalOptions *internal.GlobalOptions) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List destinations",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options := ListOptions{GlobalOptions: globalOptions}
+			if err := internal.ParseOptions(cmd, &options); err != nil {
+				return err
+			}
+
 			return list(&options)
 		},
 	}
@@ -317,53 +322,36 @@ func newStartCmd() (*cobra.Command, error) {
 	return cmd, nil
 }
 
-func newEngineCmd() (*cobra.Command, error) {
-	var options engine.Options
-
+func newEngineCmd(globalOptions *internal.GlobalOptions) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:    "engine",
 		Short:  "Start Infra Engine",
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if options.Host == "" {
-				logging.L.Warn("infra host not specified; will try to get from kubernetes")
-			}
-
-			if options.EngineAPIKey == "" {
-				return fmt.Errorf("'--engine-api-key' not specified")
+			options := engine.Options{GlobalOptions: globalOptions}
+			if err := internal.ParseOptions(cmd, &options); err != nil {
+				return err
 			}
 
 			return engine.Run(options)
 		},
 	}
 
-	defaultInfraHome := filepath.Join("~", ".infra")
-
-	cmd.PersistentFlags().BoolVar(&options.ForceTLSVerify, "force-tls-verify", false, "force TLS verification")
-	cmd.Flags().StringVarP(&options.Host, "host", "h", os.Getenv("INFRA_HOST"), "infra host")
-	cmd.Flags().StringVarP(&options.Name, "name", "n", os.Getenv("INFRA_ENGINE_NAME"), "cluster name")
-	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(defaultInfraHome, "cache"), "path to directory to cache tls self-signed and Let's Encrypt certificates")
-	cmd.Flags().StringVar(&options.EngineAPIKey, "engine-api-key", os.Getenv("INFRA_ENGINE_API_KEY"), "engine registration API key")
-
-	if filepath.Dir(options.TLSCache) == defaultInfraHome {
-		infraDir, err := infraHomeDir()
-		if err != nil {
-			return nil, err
-		}
-
-		options.TLSCache = filepath.Join(infraDir, "cache")
-	}
+	cmd.Flags().StringP("name", "n", "", "cluster name")
+	cmd.Flags().String("api-key", "", "engine registry API key")
+	cmd.Flags().String("tls-cache", "", "path to directory to cache tls self-signed and Let's Encrypt certificates")
+	cmd.Flags().Bool("skip-tls-verify", true, "skip TLS verification")
 
 	return cmd, nil
 }
 
-func newVersionCmd(globalOptions *GlobalOptions) (*cobra.Command, error) {
+func newVersionCmd(globalOptions *internal.GlobalOptions) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:   "version",
 		Short: "Display the Infra build version",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options := VersionOptions{GlobalOptions: globalOptions}
-			if err := ParseOptions(cmd, &options); err != nil {
+			if err := internal.ParseOptions(cmd, &options); err != nil {
 				return err
 			}
 
@@ -377,7 +365,7 @@ func newVersionCmd(globalOptions *GlobalOptions) (*cobra.Command, error) {
 	return cmd, nil
 }
 
-func newTokensCmd(globalOptions *GlobalOptions) (*cobra.Command, error) {
+func newTokensCmd(globalOptions *internal.GlobalOptions) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:   "tokens",
 		Short: "Token subcommands",
@@ -396,7 +384,7 @@ func newTokensCmd(globalOptions *GlobalOptions) (*cobra.Command, error) {
 func NewRootCmd() (*cobra.Command, error) {
 	cobra.EnableCommandSorting = false
 
-	var globalOptions GlobalOptions
+	var globalOptions internal.GlobalOptions
 
 	loginCmd, err := newLoginCmd()
 	if err != nil {
@@ -428,7 +416,7 @@ func NewRootCmd() (*cobra.Command, error) {
 		return nil, err
 	}
 
-	engineCmd, err := newEngineCmd()
+	engineCmd, err := newEngineCmd(&globalOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -439,7 +427,7 @@ func NewRootCmd() (*cobra.Command, error) {
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			cmd.SilenceUsage = true
 
-			if err := ParseOptions(cmd, &globalOptions); err != nil {
+			if err := internal.ParseOptions(cmd, &globalOptions); err != nil {
 				return err
 			}
 
@@ -458,7 +446,7 @@ func NewRootCmd() (*cobra.Command, error) {
 
 	rootCmd.PersistentFlags().StringP("config-file", "f", "", "Infra configuration file path")
 	rootCmd.PersistentFlags().StringP("host", "H", "", "Infra host")
-	rootCmd.PersistentFlags().CountP("verbose", "v", "Log verbositry")
+	rootCmd.PersistentFlags().CountP("verbosity", "v", "Log verbositry")
 
 	return rootCmd, nil
 }

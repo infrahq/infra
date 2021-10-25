@@ -1,4 +1,4 @@
-package cmd
+package internal
 
 import (
 	"errors"
@@ -9,9 +9,9 @@ import (
 )
 
 type GlobalOptions struct {
-	ConfigFile string
-	Host       string
-	Verbosity  int
+	Host       string `mapstructure:"host"`
+	ConfigFile string `mapstructure:"config-file"`
+	Verbosity  int    `mapstructure:"verbosity"`
 }
 
 func ParseOptions(cmd *cobra.Command, options interface{}) error {
@@ -32,8 +32,8 @@ func ParseOptions(cmd *cobra.Command, options interface{}) error {
 		v.SetConfigFile(configfile)
 	}
 
-	v.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	v.SetEnvPrefix("INFRA")
+	v.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	v.AutomaticEnv()
 
 	var errConfigFileNotFound *viper.ConfigFileNotFoundError
