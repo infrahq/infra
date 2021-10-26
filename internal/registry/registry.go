@@ -26,7 +26,6 @@ import (
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
 	timer "github.com/infrahq/infra/internal/timer"
-	"go.uber.org/zap"
 	"golang.org/x/crypto/acme/autocert"
 	"gorm.io/gorm"
 )
@@ -47,7 +46,6 @@ type Options struct {
 type Registry struct {
 	options  Options
 	db       *gorm.DB
-	logger   *zap.Logger
 	settings Settings
 	k8s      *kubernetes.Kubernetes
 	okta     Okta
@@ -65,25 +63,25 @@ const (
 func (r *Registry) syncSources() {
 	var sources []Source
 	if err := r.db.Find(&sources).Error; err != nil {
-		r.logger.Sugar().Errorf("could not find sync sources: %w", err)
+		logging.S.Errorf("could not find sync sources: %w", err)
 	}
 
 	for _, s := range sources {
 		switch s.Kind {
 		case SourceKindOkta:
-			r.logger.Sugar().Debug("synchronizing okta source")
+			logging.L.Debug("synchronizing okta source")
 
 			err := s.SyncUsers(r)
 			if err != nil {
-				r.logger.Sugar().Errorf("sync okta users: %w", err)
+				logging.S.Errorf("sync okta users: %w", err)
 			}
 
 			err = s.SyncGroups(r)
 			if err != nil {
-				r.logger.Sugar().Errorf("sync okta groups: %w", err)
+				logging.S.Errorf("sync okta groups: %w", err)
 			}
 		default:
-			r.logger.Sugar().Errorf("skipped validating unknown source kind %s", s.Kind)
+			logging.S.Errorf("skipped validating unknown source kind %s", s.Kind)
 		}
 	}
 }
@@ -99,7 +97,7 @@ func Run(options Options) (err error) {
 		return fmt.Errorf("configure sentry: %w", err)
 	}
 
-	r.db, err := NewDB(options.DBFile)
+	r.db, err = NewDB(options.DBFile)
 	if err != nil {
 		return fmt.Errorf("db: %w", err)
 	}
@@ -112,11 +110,6 @@ func Run(options Options) (err error) {
 	sentry.ConfigureScope(func(scope *sentry.Scope) {
 		scope.SetContext("registryId", r.settings.Id)
 	})
-
-	r.logger, err = logging.Build()
-	if err != nil {
-		return fmt.Errorf("logger: %w", err)
-	}
 
 	r.k8s, err = kubernetes.NewKubernetes()
 	if err != nil {
@@ -148,7 +141,7 @@ func Run(options Options) (err error) {
 		return fmt.Errorf("running server: %w", err)
 	}
 
-	return r.logger.Sync()
+	return logging.L.Sync()
 }
 
 func (r *Registry) loadConfigFromFile() (err error) {
@@ -161,9 +154,9 @@ func (r *Registry) loadConfigFromFile() (err error) {
 
 			switch {
 			case errors.As(err, &perr):
-				r.logger.Warn("no config file found at " + r.options.ConfigPath)
+				logging.L.Warn("no config file found at " + r.options.ConfigPath)
 			default:
-				r.logger.Error(err.Error())
+				logging.L.Error(err.Error())
 			}
 		}
 	}
@@ -174,7 +167,7 @@ func (r *Registry) loadConfigFromFile() (err error) {
 			return err
 		}
 	} else {
-		r.logger.Warn("skipped importing empty config")
+		logging.L.Warn("skipped importing empty config")
 	}
 
 	return nil
@@ -184,17 +177,17 @@ func (r *Registry) loadConfigFromFile() (err error) {
 func (r *Registry) validateSources() {
 	var sources []Source
 	if err := r.db.Find(&sources).Error; err != nil {
-		r.logger.Sugar().Error("find sources to validate: %w", err)
+		logging.S.Error("find sources to validate: %w", err)
 	}
 
 	for _, s := range sources {
 		switch s.Kind {
 		case SourceKindOkta:
 			if err := s.Validate(r.db, r.k8s, r.okta); err != nil {
-				r.logger.Sugar().Errorf("could not validate okta: %w", err)
+				logging.S.Errorf("could not validate okta: %w", err)
 			}
 		default:
-			r.logger.Sugar().Errorf("skipped validating unknown source kind %s", s.Kind)
+			logging.S.Errorf("skipped validating unknown source kind %s", s.Kind)
 		}
 	}
 }
@@ -222,14 +215,14 @@ func (r *Registry) scheduleSyncJobs() {
 
 		var destinations []Destination
 		if err := r.db.Find(&destinations).Error; err != nil {
-			r.logger.Error(err.Error())
+			logging.L.Error(err.Error())
 		}
 
 		for i, d := range destinations {
 			expiry := time.Unix(d.Updated, 0).Add(time.Hour * 1)
 			if expiry.Before(now) {
 				if err := r.db.Delete(&destinations[i]).Error; err != nil {
-					r.logger.Error(err.Error())
+					logging.L.Error(err.Error())
 				}
 			}
 		}
@@ -249,7 +242,7 @@ func (r *Registry) configureTelemetry() error {
 	telemetryTimer := timer.NewTimer()
 	telemetryTimer.Start(60*time.Minute, func() {
 		if err := r.tel.EnqueueHeartbeat(); err != nil {
-			logging.L.Sugar().Debug(err)
+			logging.S.Debug(err)
 		}
 	})
 
@@ -364,7 +357,7 @@ func (r *Registry) runServer() error {
 	go func() {
 		err := plaintextServer.ListenAndServe()
 		if err != nil {
-			r.logger.Error(err.Error())
+			logging.L.Error(err.Error())
 		}
 	}()
 

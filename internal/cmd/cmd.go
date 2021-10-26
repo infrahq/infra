@@ -14,6 +14,7 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/engine"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry"
 	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
@@ -411,6 +412,14 @@ func NewRootCmd() (*cobra.Command, error) {
 				return err
 			}
 
+			logger, err := logging.Initialize(globalOptions.LogLevel)
+			if err != nil {
+				logging.L.Warn(err.Error())
+			} else {
+				logging.L = logger
+				logging.S = logger.Sugar()
+			}
+
 			return nil
 		},
 	}
@@ -426,7 +435,7 @@ func NewRootCmd() (*cobra.Command, error) {
 
 	rootCmd.PersistentFlags().StringP("config-file", "f", "", "Infra configuration file path")
 	rootCmd.PersistentFlags().StringP("host", "H", "", "Infra host")
-	rootCmd.PersistentFlags().CountP("verbosity", "v", "Log verbositry")
+	rootCmd.PersistentFlags().StringP("log-level", "l", "info", "log level")
 	rootCmd.PersistentFlags().Bool("enable-telemetry", true, "enable telemetry")
 	rootCmd.PersistentFlags().Bool("enable-crash-reporting", true, "enable crash reporting")
 

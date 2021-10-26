@@ -11,7 +11,7 @@ import (
 type GlobalOptions struct {
 	Host                 string `mapstructure:"host"`
 	ConfigFile           string `mapstructure:"config-file"`
-	Verbosity            int    `mapstructure:"verbosity"`
+	LogLevel             string `mapstructure:"log-level"`
 	EnableTelemetry      bool   `mapstructure:"enable-telemetry"`
 	EnableCrashReporting bool   `mapstructure:"enable-crash-reporting"`
 }
