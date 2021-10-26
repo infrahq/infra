@@ -5,7 +5,7 @@ updates:
     schedule:
       interval: daily
   - package-ecosystem: npm
-    directory: /internal/infra/ui
+    directory: /internal/registry/ui
     schedule:
       interval: daily
   - package-ecosystem: github-actions
