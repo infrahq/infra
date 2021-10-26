@@ -371,10 +371,10 @@ func Run(options *Options) error {
 					logging.L.Error(err.Error())
 					return
 				}
+			} else {
+				logging.L.Error("cache get: " + err.Error())
+				return
 			}
-
-			logging.L.Error("cache get: " + err.Error())
-			return
 		}
 
 		destination, _, err := client.DestinationsAPI.CreateDestination(ctx).Body(api.DestinationCreateRequest{
