@@ -43,7 +43,7 @@ require (
 	gopkg.in/segmentio/analytics-go.v3 v3.1.0
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
-	gorm.io/driver/sqlite v1.1.6
+	gorm.io/driver/sqlite v1.2.0
 	gorm.io/gorm v1.22.0
 	k8s.io/api v0.22.2
 	k8s.io/apimachinery v0.22.2
