@@ -8,3 +8,6 @@ release
 
 # configuration file used during development
 docker-desktop.yaml
+
+# dir created by some versions of openapi-generator
+.openapi-generator
