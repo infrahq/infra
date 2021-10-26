@@ -60,7 +60,8 @@ config:
             name: viewer
             destinations:
               - name: <cluster name>
-                namespace: default
+                namespaces:
+                  - default
 ```
 
 See the [Configuration reference](./docs/configuration.md) for a complete list of configurable options.
