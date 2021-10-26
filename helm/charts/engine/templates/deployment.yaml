@@ -44,7 +44,7 @@ spec:
             - name: INFRA_HOST
               value: {{ .Values.host | quote }}
             - name: INFRA_API_KEY
-              value: 'file:///var/run/secrets/infrahq.com/engine/engine-key'
+              value: 'file:///var/run/secrets/infrahq.com/engine/engine-api-key'
           volumeMounts:
             - name: data
               mountPath: /var/run/infra/data

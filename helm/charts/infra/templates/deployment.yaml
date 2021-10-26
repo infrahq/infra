@@ -48,9 +48,9 @@ spec:
             - name: INFRA_SYNC_INTERVAL_SECONDS
               value: "30s"
             - name: INFRA_ROOT_API_KEY
-              value: 'file:///var/run/secrets/infrahq.com/infra/root-key'
+              value: 'file:///var/run/secrets/infrahq.com/infra/root-api-key'
             - name: INFRA_ENGINE_API_KEY
-              value: 'file:///var/run/secrets/infrahq.com/engine/engine-key'
+              value: 'file:///var/run/secrets/infrahq.com/engine/engine-api-key'
           ports:
 {{- range .Values.service.ports }}
             - name: {{ .name }}
