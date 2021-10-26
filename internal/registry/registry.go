@@ -31,11 +31,11 @@ import (
 )
 
 type Options struct {
+	ConfigPath   string `mapstructure:"config-path"`
 	DBFile       string `mapstructure:"db-file"`
 	TLSCache     string `mapstructure:"tls-cache"`
 	RootAPIKey   string `mapstructure:"root-api-key"`
 	EngineAPIKey string `mapstructure:"engine-api-key"`
-	ConfigPath   string `mapstructure:"config-path"`
 
 	EnableUI bool   `mapstructure:"enable-ui"`
 	UIProxy  string `mapstructure:"ui-proxy"`
@@ -152,7 +152,6 @@ func Run(options Options) (err error) {
 
 func (r *Registry) loadConfigFromFile() (err error) {
 	var contents []byte
-
 	if r.options.ConfigPath != "" {
 		contents, err = ioutil.ReadFile(r.options.ConfigPath)
 		if err != nil {
@@ -160,7 +159,7 @@ func (r *Registry) loadConfigFromFile() (err error) {
 
 			switch {
 			case errors.As(err, &perr):
-				logging.L.Warn("no config file found at " + r.options.ConfigPath)
+				logging.S.Warnf("no config file found at %s", r.options.ConfigPath)
 			default:
 				logging.L.Error(err.Error())
 			}

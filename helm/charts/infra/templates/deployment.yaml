@@ -32,39 +32,25 @@ spec:
         - name: infra
           image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args:
-            - "start"
-            - "-c"
-            - "/var/run/infra/config/infra.yaml"
-            - "--db-file"
-            - "/var/run/infra/data/infra.db"
-            - "--tls-cache"
-            - "/var/run/infra/data/cache"
-            - "--enable-telemetry"
-            - {{ .Values.telemetry.enabled | quote }}
-            - "--enable-crash-reporting"
-            - {{ .Values.crashReporting.enabled | quote }}
-          env:
-            - name: INFRA_SYNC_INTERVAL_SECONDS
-              value: "30s"
-            - name: INFRA_ROOT_API_KEY
-              value: 'file:///var/run/secrets/infrahq.com/infra/root-api-key'
-            - name: INFRA_ENGINE_API_KEY
-              value: 'file:///var/run/secrets/infrahq.com/engine/engine-api-key'
+          args: [start, -f, /var/run/infra/config/config.yaml]
           ports:
 {{- range .Values.service.ports }}
             - name: {{ .name }}
               containerPort: {{ .targetPort }}
 {{- end }}
+          env:
+            - name: INFRA_LOG_LEVEL
+              value: {{ get .Values "log-level" | default "info" }}
           volumeMounts:
             - name: config
               mountPath: /var/run/infra/config
+              readOnly: true
             - name: data
               mountPath: /var/run/infra/data
-            - name: secret-infra
+            - name: infra-secret
               mountPath: /var/run/secrets/infrahq.com/infra
               readOnly: true
-            - name: secret-engine
+            - name: engine-secret
               mountPath: /var/run/secrets/infrahq.com/engine
               readOnly: true
           readinessProbe:
@@ -90,9 +76,9 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: {{ include "infra.fullname" . }}
-        - name: secret-infra
+        - name: infra-secret
           secret:
             secretName: infra
-        - name: secret-engine
+        - name: engine-secret
           secret:
             secretName: infra-engine
