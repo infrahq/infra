@@ -31,15 +31,21 @@ import (
 )
 
 type Options struct {
-	DBFile                   string        `mapstructure:"db-file"`
-	TLSCache                 string        `mapstructure:"tls-cache"`
-	RootAPIKey               string        `mapstructure:"root-api-key"`
-	EngineAPIKey             string        `mapstructure:"engine-api-key"`
-	ConfigPath               string        `mapstructure:"config-path"`
-	EnableUI                 bool          `mapstructure:"enable-ui"`
-	UIProxy                  string        `mapstructure:"ui-proxy"`
+	DBFile       string `mapstructure:"db-file"`
+	TLSCache     string `mapstructure:"tls-cache"`
+	RootAPIKey   string `mapstructure:"root-api-key"`
+	EngineAPIKey string `mapstructure:"engine-api-key"`
+	ConfigPath   string `mapstructure:"config-path"`
+
+	EnableUI bool   `mapstructure:"enable-ui"`
+	UIProxy  string `mapstructure:"ui-proxy"`
+
+	EnableTelemetry      bool `mapstructure:"enable-telemetry"`
+	EnableCrashReporting bool `mapstructure:"enable-crash-reporting"`
+
 	SourcesSyncInterval      time.Duration `mapstructure:"sources-sync-interval"`
 	DestinationsSyncInterval time.Duration `mapstructure:"destinations-sync-interval"`
+
 	*internal.GlobalOptions
 }
 

@@ -300,6 +300,9 @@ func newStartCmd(globalOptions *internal.GlobalOptions) (*cobra.Command, error) 
 	cmd.Flags().Duration("sources-sync-interval", registry.DefaultSourcesSyncInterval, "the interval at which Infra will poll sources for users and groups")
 	cmd.Flags().Duration("destinations-sync-interval", registry.DefaultDestinationsSyncInterval, "the interval at which Infra will poll destinations")
 
+	cmd.Flags().Bool("enable-telemetry", true, "enable telemetry")
+	cmd.Flags().Bool("enable-crash-reporting", true, "enable crash reporting")
+
 	return cmd, nil
 }
 
@@ -436,8 +439,6 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.PersistentFlags().StringP("config-file", "f", "", "Infra configuration file path")
 	rootCmd.PersistentFlags().StringP("host", "H", "", "Infra host")
 	rootCmd.PersistentFlags().StringP("log-level", "l", "info", "log level")
-	rootCmd.PersistentFlags().Bool("enable-telemetry", true, "enable telemetry")
-	rootCmd.PersistentFlags().Bool("enable-crash-reporting", true, "enable crash reporting")
 
 	return rootCmd, nil
 }
