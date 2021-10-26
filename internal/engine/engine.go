@@ -155,7 +155,7 @@ func jwtMiddleware(destination string, getjwk GetJWKFunc, next http.HandlerFunc)
 		}
 
 		if claims.Destination != destination {
-			logging.L.Sugar().Debugf("JWT custom claims destination %q does not match expected destination %q", claims.Destination, destination)
+			logging.S.Debugf("JWT custom claims destination %q does not match expected destination %q", claims.Destination, destination)
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -336,21 +336,21 @@ func Run(options *Options) error {
 			return
 		}
 
-		logging.L.Sugar().Debugf("endpoint is: %s", endpoint)
+		logging.S.Debugf("endpoint is: %s", endpoint)
 
 		// check if the endpoint is localhost, if it is DNS lookup won't resolve
 		local, err := regexp.MatchString("(http://|https://)?localhost:?[0-9]{0,5}", endpoint)
 		if err != nil {
-			logging.L.Sugar().Errorf("endpoint match failed: %w", err)
+			logging.S.Errorf("endpoint match failed: %w", err)
 			// continue as a non-local endpoint
 		}
 
 		if local {
-			logging.L.Sugar().Debug("not testing DNS lookup for localhost")
+			logging.S.Debug("not testing DNS lookup for localhost")
 		} else {
 			_, err = net.LookupIP(endpoint)
 			if err != nil {
-				logging.L.Sugar().Errorf("endpoint DNS does not yet resolve, waiting to register")
+				logging.S.Errorf("endpoint DNS does not yet resolve, waiting to register")
 				return
 			}
 		}

@@ -845,7 +845,7 @@ func (a *API) Login(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if err := a.t.Enqueue(analytics.Track{Event: "infra.login", UserId: user.Id}); err != nil {
-		logging.L.Sugar().Debug(err)
+		logging.S.Debug(err)
 	}
 
 	if err := json.NewEncoder(w).Encode(api.LoginResponse{Name: user.Email, Token: tokenString}); err != nil {
@@ -873,7 +873,7 @@ func (a *API) Logout(w http.ResponseWriter, r *http.Request) {
 	deleteAuthCookie(w)
 
 	if err := a.t.Enqueue(analytics.Track{Event: "infra.logout", UserId: token.UserId}); err != nil {
-		logging.L.Sugar().Debug(err)
+		logging.S.Debug(err)
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -883,7 +883,7 @@ func (a *API) Version(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if err := json.NewEncoder(w).Encode(api.Version{Version: internal.Version}); err != nil {
-		logging.L.Sugar().Errorf("encode version: %w", err)
+		logging.S.Errorf("encode version: %w", err)
 		sendAPIError(w, http.StatusInternalServerError, "could not get version")
 	}
 }
