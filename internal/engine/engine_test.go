@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/infrahq/infra/internal/infra"
+	"github.com/infrahq/infra/internal/registry"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
@@ -132,7 +132,7 @@ func generateJWT(priv *jose.JSONWebKey, expiry time.Time) (string, error) {
 		Expiry:   jwt.NewNumericDate(expiry),
 		IssuedAt: jwt.NewNumericDate(time.Now()),
 	}
-	custom := infra.CustomJWTClaims{
+	custom := registry.CustomJWTClaims{
 		Email:       "test@test.com",
 		Nonce:       "randomstring",
 		Destination: "k8s",

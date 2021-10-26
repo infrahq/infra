@@ -1,10 +1,10 @@
-package infra
+package registry
 
 import (
 	"testing"
 
-	"github.com/infrahq/infra/internal/infra/mocks"
 	"github.com/infrahq/infra/internal/kubernetes"
+	"github.com/infrahq/infra/internal/registry/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	rest "k8s.io/client-go/rest"

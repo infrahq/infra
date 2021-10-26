@@ -23,9 +23,9 @@ import (
 	"github.com/goware/urlx"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/certs"
-	"github.com/infrahq/infra/internal/infra"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/registry"
 	"github.com/infrahq/infra/internal/timer"
 	"golang.org/x/crypto/acme/autocert"
 	"gopkg.in/square/go-jose.v2"
@@ -125,7 +125,7 @@ func jwtMiddleware(destination string, getjwk GetJWKFunc, next http.HandlerFunc)
 		out := make(map[string]interface{})
 		claims := struct {
 			jwt.Claims
-			infra.CustomJWTClaims
+			registry.CustomJWTClaims
 		}{}
 		if err := tok.Claims(key, &claims, &out); err != nil {
 			logging.L.Debug("Invalid token claims")

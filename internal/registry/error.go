@@ -1,4 +1,4 @@
-package infra
+package registry
 
 type Error string
 
