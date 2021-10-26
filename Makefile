@@ -47,6 +47,8 @@ export GO_POST_PROCESS_FILE=bash openapi/go-post-process.sh
 openapi: openapi/clean
 	openapi-generator-cli generate --generator-key go-client
 	openapi-generator-cli generate --generator-key typescript-client
+	# manually post process some files since openapi-generator forgot
+	find internal/api -name '*.go' -exec $(GO_POST_PROCESS_FILE) {} \;
 
 openapi/clean:
 	$(RM) -r internal/api/*.go

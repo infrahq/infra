@@ -30,7 +30,7 @@ export interface CreateAPIKeyRequest {
     body: InfraAPIKeyCreateRequest;
 }
 
-export interface DeleteApiKeyRequest {
+export interface DeleteAPIKeyRequest {
     id: string;
 }
 
@@ -87,9 +87,9 @@ export class ApiKeysApi extends runtime.BaseAPI {
     /**
      * Delete an API key
      */
-    async deleteApiKeyRaw(requestParameters: DeleteApiKeyRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<void>> {
+    async deleteAPIKeyRaw(requestParameters: DeleteAPIKeyRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<void>> {
         if (requestParameters.id === null || requestParameters.id === undefined) {
-            throw new runtime.RequiredError('id','Required parameter requestParameters.id was null or undefined when calling deleteApiKey.');
+            throw new runtime.RequiredError('id','Required parameter requestParameters.id was null or undefined when calling deleteAPIKey.');
         }
 
         const queryParameters: any = {};
@@ -117,8 +117,8 @@ export class ApiKeysApi extends runtime.BaseAPI {
     /**
      * Delete an API key
      */
-    async deleteApiKey(requestParameters: DeleteApiKeyRequest, initOverrides?: RequestInit): Promise<void> {
-        await this.deleteApiKeyRaw(requestParameters, initOverrides);
+    async deleteAPIKey(requestParameters: DeleteAPIKeyRequest, initOverrides?: RequestInit): Promise<void> {
+        await this.deleteAPIKeyRaw(requestParameters, initOverrides);
     }
 
     /**
