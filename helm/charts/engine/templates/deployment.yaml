@@ -32,23 +32,22 @@ spec:
         - name: engine
           image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args: ["engine", "--tls-cache", "/var/run/infra/data/cache"]
+          args: ["engine", "-f", "/var/run/infra/config/config.yaml"]
           ports:
 {{- range .Values.service.ports }}
             - name: {{ .name }}
               containerPort: {{ .targetPort }}
 {{- end }}
           env:
-            - name: INFRA_NAME
-              value: {{ .Values.name | quote }}
-            - name: INFRA_HOST
-              value: {{ .Values.host | quote }}
-            - name: INFRA_API_KEY
-              value: 'file:///var/run/secrets/infrahq.com/engine/engine-api-key'
+            - name: INFRA_LOG_LEVEL
+              value: {{ get .Values "log-level" | default "info" }}
           volumeMounts:
+            - name: config
+              mountPath: /var/run/infra/config
+              readOnly: true
             - name: data
               mountPath: /var/run/infra/data
-            - name: secret-engine
+            - name: engine-secret
               mountPath: /var/run/secrets/infrahq.com/engine
               readOnly: true
           readinessProbe:
@@ -67,9 +66,12 @@ spec:
 {{- end }}
             periodSeconds: 3
       volumes:
+        - name: config
+          configMap:
+            name: {{ include "engine.fullname" . }}
         - name: data
           persistentVolumeClaim:
             claimName: {{ include "engine.fullname" . }}
-        - name: secret-engine
+        - name: engine-secret
           secret:
             secretName: infra-engine
