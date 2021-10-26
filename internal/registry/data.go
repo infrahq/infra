@@ -337,17 +337,17 @@ func (s *Source) Validate(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) er
 	}
 }
 
-func (s *Source) SyncUsers(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) error {
+func (s *Source) SyncUsers(r *Registry) error {
 	var emails []string
 
 	switch s.Kind {
 	case SourceKindOkta:
-		apiToken, err := k8s.GetSecret(s.APIToken)
+		apiToken, err := r.k8s.GetSecret(s.APIToken)
 		if err != nil {
 			return fmt.Errorf("sync okta users api token: %w", err)
 		}
 
-		emails, err = okta.Emails(s.Domain, s.ClientId, apiToken)
+		emails, err = r.okta.Emails(s.Domain, s.ClientId, apiToken)
 		if err != nil {
 			return fmt.Errorf("sync okta emails: %w", err)
 		}
@@ -355,7 +355,7 @@ func (s *Source) SyncUsers(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) e
 		return nil
 	}
 
-	return db.Transaction(func(tx *gorm.DB) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
 		// Create users in source
 		for _, email := range emails {
 			if err := s.CreateUser(tx, &User{}, email); err != nil {
@@ -379,17 +379,17 @@ func (s *Source) SyncUsers(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) e
 	})
 }
 
-func (s *Source) SyncGroups(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) error {
+func (s *Source) SyncGroups(r *Registry) error {
 	var groupEmails map[string][]string
 
 	switch s.Kind {
 	case SourceKindOkta:
-		apiToken, err := k8s.GetSecret(s.APIToken)
+		apiToken, err := r.k8s.GetSecret(s.APIToken)
 		if err != nil {
 			return fmt.Errorf("sync okta groups api secret: %w", err)
 		}
 
-		groupEmails, err = okta.Groups(s.Domain, s.ClientId, apiToken)
+		groupEmails, err = r.okta.Groups(s.Domain, s.ClientId, apiToken)
 		if err != nil {
 			return fmt.Errorf("sync okta groups: %w", err)
 		}
@@ -397,7 +397,7 @@ func (s *Source) SyncGroups(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) 
 		return nil
 	}
 
-	return db.Transaction(func(tx *gorm.DB) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
 		var activeIDs []string
 		for groupName, emails := range groupEmails {
 			var group Group

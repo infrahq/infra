@@ -45,39 +45,50 @@ type Options struct {
 	EnableCrashReporting bool
 }
 
+type Registry struct {
+	options  Options
+	db       *gorm.DB
+	logger   *zap.Logger
+	settings Settings
+	k8s      *kubernetes.Kubernetes
+	okta     Okta
+	tel      *Telemetry
+}
+
 const (
 	rootAPIKeyName   = "root"
 	engineAPIKeyName = "engine"
 )
 
 // syncSources polls every known source for users and groups
-func syncSources(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta, logger *zap.Logger) {
+func (r *Registry) syncSources() {
 	var sources []Source
-	if err := db.Find(&sources).Error; err != nil {
-		logger.Sugar().Errorf("could not find sync sources: %w", err)
+	if err := r.db.Find(&sources).Error; err != nil {
+		r.logger.Sugar().Errorf("could not find sync sources: %w", err)
 	}
 
 	for _, s := range sources {
 		switch s.Kind {
 		case SourceKindOkta:
-			logger.Sugar().Debug("synchronizing okta source")
+			r.logger.Sugar().Debug("synchronizing okta source")
 
-			err := s.SyncUsers(db, k8s, okta)
+			err := s.SyncUsers(r)
 			if err != nil {
-				logger.Sugar().Errorf("sync okta users: %w", err)
+				r.logger.Sugar().Errorf("sync okta users: %w", err)
 			}
 
-			err = s.SyncGroups(db, k8s, okta)
+			err = s.SyncGroups(r)
 			if err != nil {
-				logger.Sugar().Errorf("sync okta groups: %w", err)
+				r.logger.Sugar().Errorf("sync okta groups: %w", err)
 			}
 		default:
-			logger.Sugar().Errorf("skipped validating unknown source kind %s", s.Kind)
+			r.logger.Sugar().Errorf("skipped validating unknown source kind %s", s.Kind)
 		}
 	}
 }
 
 func Run(options Options) error {
+	var err error
 	if options.EnableCrashReporting && internal.CrashReportingDSN != "" {
 		err := sentry.Init(sentry.ClientOptions{
 			Dsn:              internal.CrashReportingDSN,
@@ -97,86 +108,119 @@ func Run(options Options) error {
 		defer recoverWithSentryHub(sentry.CurrentHub())
 	}
 
-	db, err := NewDB(options.DBPath)
+	r := &Registry{}
+
+	r.db, err = NewDB(options.DBPath)
 	if err != nil {
 		return err
 	}
 
-	var settings Settings
-
-	err = db.First(&settings).Error
+	err = r.db.First(&r.settings).Error
 	if err != nil {
 		return err
 	}
 
 	sentry.ConfigureScope(func(scope *sentry.Scope) {
-		scope.SetContext("registryId", settings.Id)
+		scope.SetContext("registryId", r.settings.Id)
 	})
 
-	zapLogger, err := logging.Build()
+	r.logger, err = logging.Build()
 	if err != nil {
 		return err
 	}
 
-	k8s, err := kubernetes.NewKubernetes()
+	r.k8s, err = kubernetes.NewKubernetes()
 	if err != nil {
 		return err
 	}
 
-	// Load configuration from file
+	if err = r.loadConfigFromFile(); err != nil {
+		return fmt.Errorf("loading config from file: %w", err)
+	}
+
+	r.okta = NewOkta()
+
+	r.validateSources()
+	r.scheduleSyncJobs()
+
+	if err := r.configureTelemetry(); err != nil {
+		return err
+	}
+
+	if err := r.saveAPIKeys(); err != nil {
+		return err
+	}
+
+	if err := os.MkdirAll(options.TLSCache, os.ModePerm); err != nil {
+		return err
+	}
+
+	if err := r.runServer(); err != nil {
+		return err
+	}
+
+	return r.logger.Sync()
+}
+
+func (r *Registry) loadConfigFromFile() error {
 	var contents []byte
-	if options.ConfigPath != "" {
-		contents, err = ioutil.ReadFile(options.ConfigPath)
+	var err error
+	if r.options.ConfigPath != "" {
+		contents, err = ioutil.ReadFile(r.options.ConfigPath)
 		if err != nil {
 			var perr *fs.PathError
 
 			switch {
 			case errors.As(err, &perr):
-				zapLogger.Warn("no config file found at " + options.ConfigPath)
+				r.logger.Warn("no config file found at " + r.options.ConfigPath)
 			default:
-				zapLogger.Error(err.Error())
+				r.logger.Error(err.Error())
 			}
 		}
 	}
 
 	if len(contents) > 0 {
-		err = ImportConfig(db, contents)
+		err = ImportConfig(r.db, contents)
 		if err != nil {
 			return err
 		}
 	} else {
-		zapLogger.Warn("skipped importing empty config")
+		r.logger.Warn("skipped importing empty config")
 	}
 
-	okta := NewOkta()
+	return nil
+}
 
-	// validate any existing or imported sources
+// validateSources validates any existing or imported sources
+func (r *Registry) validateSources() {
 	var sources []Source
-	if err := db.Find(&sources).Error; err != nil {
-		zapLogger.Sugar().Error("find sources to validate: %w", err)
+	if err := r.db.Find(&sources).Error; err != nil {
+		r.logger.Sugar().Error("find sources to validate: %w", err)
 	}
 
 	for _, s := range sources {
 		switch s.Kind {
 		case SourceKindOkta:
-			if err := s.Validate(db, k8s, okta); err != nil {
-				zapLogger.Sugar().Errorf("could not validate okta: %w", err)
+			if err := s.Validate(r.db, r.k8s, r.okta); err != nil {
+				r.logger.Sugar().Errorf("could not validate okta: %w", err)
 			}
 		default:
-			zapLogger.Sugar().Errorf("skipped validating unknown source kind %s", s.Kind)
+			r.logger.Sugar().Errorf("skipped validating unknown source kind %s", s.Kind)
 		}
 	}
+}
 
-	// schedule the user and group sync jobs
+// schedule the user and group sync jobs
+func (r *Registry) scheduleSyncJobs() {
 	interval := 60 * time.Second
-	if options.SyncInterval > 0 {
-		interval = time.Duration(options.SyncInterval) * time.Second
+	if r.options.SyncInterval > 0 {
+		interval = time.Duration(r.options.SyncInterval) * time.Second
 	} else {
 		envSync := os.Getenv("INFRA_SYNC_INTERVAL_SECONDS")
 		if envSync != "" {
 			envInterval, err := strconv.Atoi(envSync)
 			if err != nil {
-				zapLogger.Error("invalid INFRA_SYNC_INTERVAL_SECONDS env: " + err.Error())
+				r.logger.Error("invalid INFRA_SYNC_INTERVAL_SECONDS env: " + err.Error())
 			} else {
 				interval = time.Duration(envInterval) * time.Second
 			}
@@ -190,7 +234,7 @@ func Run(options Options) error {
 		hub := newSentryHub("sync_sources_timer")
 		defer recoverWithSentryHub(hub)
 
-		syncSources(db, k8s, okta, zapLogger)
+		r.syncSources()
 	})
 
 	// schedule destination sync job
@@ -203,42 +247,47 @@ func Run(options Options) error {
 		now := time.Now()
 
 		var destinations []Destination
-		if err := db.Find(&destinations).Error; err != nil {
-			zapLogger.Error(err.Error())
+		if err := r.db.Find(&destinations).Error; err != nil {
+			r.logger.Error(err.Error())
 		}
 
 		for i, d := range destinations {
 			expiry := time.Unix(d.Updated, 0).Add(time.Hour * 1)
 			if expiry.Before(now) {
-				if err = db.Delete(&destinations[i]).Error; err != nil {
-					zapLogger.Error(err.Error())
+				if err := r.db.Delete(&destinations[i]).Error; err != nil {
+					r.logger.Error(err.Error())
 				}
 			}
 		}
 	})
+}
 
-	t, err := NewTelemetry(db)
+func (r *Registry) configureTelemetry() error {
+	var err error
+	r.tel, err = NewTelemetry(r.db)
 	if err != nil {
 		return err
 	}
 
-	t.SetEnabled(options.EnableTelemetry)
+	r.tel.SetEnabled(r.options.EnableTelemetry)
 
 	telemetryTimer := timer.NewTimer()
 	telemetryTimer.Start(60*time.Minute, func() {
-		if err := t.EnqueueHeartbeat(); err != nil {
+		if err := r.tel.EnqueueHeartbeat(); err != nil {
 			logging.L.Sugar().Debug(err)
 		}
 	})
 
-	defer telemetryTimer.Stop()
+	return nil
+}
 
+func (r *Registry) saveAPIKeys() error {
 	var rootAPIKey APIKey
-	if err := db.FirstOrCreate(&rootAPIKey, &APIKey{Name: rootAPIKeyName}).Error; err != nil {
+	if err := r.db.FirstOrCreate(&rootAPIKey, &APIKey{Name: rootAPIKeyName}).Error; err != nil {
 		return err
 	}
 
-	rootAPIKeyURI, err := url.Parse(options.RootAPIKey)
+	rootAPIKeyURI, err := url.Parse(r.options.RootAPIKey)
 	if err != nil {
 		return err
 	}
@@ -246,12 +295,16 @@ func Run(options Options) error {
 	switch rootAPIKeyURI.Scheme {
 	case "":
 		// option does not have a scheme, assume it is plaintext
-		rootAPIKey.Key = string(options.RootAPIKey)
+		rootAPIKey.Key = string(r.options.RootAPIKey)
 	case "file":
 		// option is a file path, read contents from the path
-		contents, err = ioutil.ReadFile(rootAPIKeyURI.Path)
+		contents, err := ioutil.ReadFile(rootAPIKeyURI.Path)
 		if err != nil {
 			return err
+		}
+
+		if len(contents) != APIKeyLen {
+			return fmt.Errorf("invalid api key length, the key must be 24 characters")
 		}
 
 		rootAPIKey.Key = string(contents)
@@ -260,22 +313,18 @@ func Run(options Options) error {
 		return fmt.Errorf("unsupported secret format %s", rootAPIKeyURI.Scheme)
 	}
 
-	if len(contents) != APIKeyLen {
-		return fmt.Errorf("invalid api key length, the key must be 24 characters")
-	}
-
 	rootAPIKey.Permissions = string(api.STAR)
 
-	if err := db.Save(&rootAPIKey).Error; err != nil {
+	if err := r.db.Save(&rootAPIKey).Error; err != nil {
 		return err
 	}
 
 	var engineAPIKey APIKey
-	if err := db.FirstOrCreate(&engineAPIKey, &APIKey{Name: engineAPIKeyName}).Error; err != nil {
+	if err := r.db.FirstOrCreate(&engineAPIKey, &APIKey{Name: engineAPIKeyName}).Error; err != nil {
 		return err
 	}
 
-	engineAPIKeyURI, err := url.Parse(options.EngineAPIKey)
+	engineAPIKeyURI, err := url.Parse(r.options.EngineAPIKey)
 	if err != nil {
 		return err
 	}
@@ -283,7 +332,7 @@ func Run(options Options) error {
 	switch engineAPIKeyURI.Scheme {
 	case "":
 		// option does not have a scheme, assume it is plaintext
-		engineAPIKey.Key = string(options.EngineAPIKey)
+		engineAPIKey.Key = string(r.options.EngineAPIKey)
 	case "file":
 		// option is a file path, read contents from the path
 		contents, err := ioutil.ReadFile(engineAPIKeyURI.Path)
@@ -291,13 +340,13 @@ func Run(options Options) error {
 			return err
 		}
 
+		if len(contents) != APIKeyLen {
+			return fmt.Errorf("invalid api key length, the key must be 24 characters")
+		}
+
 		engineAPIKey.Key = string(contents)
 	default:
 		return fmt.Errorf("unsupported secret format %s", engineAPIKeyURI.Scheme)
-	}
-
-	if len(contents) != APIKeyLen {
-		return fmt.Errorf("invalid api key length, the key must be 24 characters")
 	}
 
 	engineAPIKey.Permissions = strings.Join([]string{
@@ -305,28 +354,28 @@ func Run(options Options) error {
 		string(api.DESTINATIONS_CREATE),
 	}, " ")
 
-	if err := db.Save(&engineAPIKey).Error; err != nil {
+	if err := r.db.Save(&engineAPIKey).Error; err != nil {
 		return err
 	}
 
-	if err := os.MkdirAll(options.TLSCache, os.ModePerm); err != nil {
-		return err
-	}
+	return nil
+}
 
-	h := Http{db: db}
+func (r *Registry) runServer() error {
+	h := Http{db: r.db}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", Healthz)
 	mux.HandleFunc("/.well-known/jwks.json", h.WellKnownJWKs)
-	mux.Handle("/v1/", NewAPIMux(db, k8s, okta, t))
+	mux.Handle("/v1/", NewAPIMux(r))
 
-	if options.UIProxy != "" {
-		remote, err := urlx.Parse(options.UIProxy)
+	if r.options.UIProxy != "" {
+		remote, err := urlx.Parse(r.options.UIProxy)
 		if err != nil {
 			return err
 		}
 
 		mux.Handle("/", h.loginRedirectMiddleware(httputil.NewSingleHostReverseProxy(remote)))
-	} else if options.UI {
+	} else if r.options.UI {
 		mux.Handle("/", h.loginRedirectMiddleware(gziphandler.GzipHandler(http.FileServer(&StaticFileSystem{base: &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo}}))))
 	}
 
@@ -340,13 +389,13 @@ func Run(options Options) error {
 	go func() {
 		err := plaintextServer.ListenAndServe()
 		if err != nil {
-			zapLogger.Error(err.Error())
+			r.logger.Error(err.Error())
 		}
 	}()
 
 	manager := &autocert.Manager{
 		Prompt: autocert.AcceptTOS,
-		Cache:  autocert.DirCache(options.TLSCache),
+		Cache:  autocert.DirCache(r.options.TLSCache),
 	}
 
 	tlsConfig := manager.TLSConfig()
@@ -360,10 +409,9 @@ func Run(options Options) error {
 		Handler:   ZapLoggerHttpMiddleware(sentryHandler.Handle(mux)),
 	}
 
-	err = tlsServer.ListenAndServeTLS("", "")
-	if err != nil {
+	if err := tlsServer.ListenAndServeTLS("", ""); err != nil {
 		return err
 	}
 
-	return zapLogger.Sync()
+	return nil
 }
