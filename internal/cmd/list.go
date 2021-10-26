@@ -15,7 +15,7 @@ import (
 )
 
 type ListOptions struct {
-	*internal.GlobalOptions
+	internal.GlobalOptions
 }
 
 type statusRow struct {

@@ -38,7 +38,7 @@ type Options struct {
 	APIKey        string `mapstructure:"api-key"`
 	TLSCache      string `mapstructure:"tls-cache"`
 	SkipTLSVerify bool   `mapstructure:"skip-tls-verify"`
-	*internal.GlobalOptions
+	internal.GlobalOptions
 }
 
 type jwkCache struct {

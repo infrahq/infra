@@ -207,7 +207,7 @@ func updateKubeconfig(user api.User) error {
 	return nil
 }
 
-func newLoginCmd(globalOptions *internal.GlobalOptions) (*cobra.Command, error) {
+func newLoginCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:     "login [HOST]",
 		Short:   "Login to Infra",
@@ -232,7 +232,7 @@ func newLoginCmd(globalOptions *internal.GlobalOptions) (*cobra.Command, error) 
 	return cmd, nil
 }
 
-func newLogoutCmd(globalOptions *internal.GlobalOptions) (*cobra.Command, error) {
+func newLogoutCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:     "logout",
 		Short:   "Logout Infra",
@@ -255,7 +255,7 @@ func newLogoutCmd(globalOptions *internal.GlobalOptions) (*cobra.Command, error)
 	return cmd, nil
 }
 
-func newListCmd(globalOptions *internal.GlobalOptions) (*cobra.Command, error) {
+func newListCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
@@ -273,7 +273,7 @@ func newListCmd(globalOptions *internal.GlobalOptions) (*cobra.Command, error) {
 	return cmd, nil
 }
 
-func newStartCmd(globalOptions *internal.GlobalOptions) (*cobra.Command, error) {
+func newStartCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:    "start",
 		Short:  "Start Infra",
@@ -306,7 +306,7 @@ func newStartCmd(globalOptions *internal.GlobalOptions) (*cobra.Command, error) 
 	return cmd, nil
 }
 
-func newEngineCmd(globalOptions *internal.GlobalOptions) (*cobra.Command, error) {
+func newEngineCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:    "engine",
 		Short:  "Start Infra Engine",
@@ -329,7 +329,7 @@ func newEngineCmd(globalOptions *internal.GlobalOptions) (*cobra.Command, error)
 	return cmd, nil
 }
 
-func newVersionCmd(globalOptions *internal.GlobalOptions) (*cobra.Command, error) {
+func newVersionCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:   "version",
 		Short: "Display the Infra build version",
@@ -349,7 +349,7 @@ func newVersionCmd(globalOptions *internal.GlobalOptions) (*cobra.Command, error
 	return cmd, nil
 }
 
-func newTokensCmd(globalOptions *internal.GlobalOptions) (*cobra.Command, error) {
+func newTokensCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:   "tokens",
 		Short: "Token subcommands",
@@ -370,37 +370,37 @@ func NewRootCmd() (*cobra.Command, error) {
 
 	var globalOptions internal.GlobalOptions
 
-	loginCmd, err := newLoginCmd(&globalOptions)
+	loginCmd, err := newLoginCmd(globalOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	logoutCmd, err := newLogoutCmd(&globalOptions)
+	logoutCmd, err := newLogoutCmd(globalOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	listCmd, err := newListCmd(&globalOptions)
+	listCmd, err := newListCmd(globalOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	tokensCmd, err := newTokensCmd(&globalOptions)
+	tokensCmd, err := newTokensCmd(globalOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	versionCmd, err := newVersionCmd(&globalOptions)
+	versionCmd, err := newVersionCmd(globalOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	startCmd, err := newRegistryCmd(&globalOptions)
+	startCmd, err := newStartCmd(globalOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	engineCmd, err := newEngineCmd(&globalOptions)
+	engineCmd, err := newEngineCmd(globalOptions)
 	if err != nil {
 		return nil, err
 	}

@@ -16,7 +16,7 @@ import (
 type VersionOptions struct {
 	Client bool
 	Server bool
-	*internal.GlobalOptions
+	internal.GlobalOptions
 }
 
 func version(options *VersionOptions) error {

@@ -9,7 +9,7 @@ import (
 )
 
 type LogoutOptions struct {
-	*internal.GlobalOptions
+	internal.GlobalOptions
 }
 
 func logout(options *LogoutOptions) error {

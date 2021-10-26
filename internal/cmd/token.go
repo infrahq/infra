@@ -17,10 +17,10 @@ import (
 
 type TokenOptions struct {
 	Destination string
-	*internal.GlobalOptions
+	internal.GlobalOptions
 }
 
-func newTokenCreateCmd(globalOptions *internal.GlobalOptions) (*cobra.Command, error) {
+func newTokenCreateCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:   "create DESTINATION",
 		Short: "Create a JWT token for connecting to a destination, e.g. Kubernetes",
