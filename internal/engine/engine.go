@@ -34,10 +34,10 @@ import (
 )
 
 type Options struct {
-	Name           string `mapstructure:"name"`
-	APIKey         string `mapstructure:"api-key"`
-	TLSCache       string `mapstructure:"tls-cache"`
-	SkipTLSVerify  bool   `mapstructure:"skip-tls-verify"`
+	Name          string `mapstructure:"name"`
+	APIKey        string `mapstructure:"api-key"`
+	TLSCache      string `mapstructure:"tls-cache"`
+	SkipTLSVerify bool   `mapstructure:"skip-tls-verify"`
 	*internal.GlobalOptions
 }
 
@@ -211,9 +211,7 @@ func (b *BearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func Run(options *Options) error {
-	hostTLSConfig := &tls.Config{
-		MinVersion: tls.VersionTLS12,
-	}
+	hostTLSConfig := &tls.Config{MinVersion: tls.VersionTLS12}
 
 	if options.SkipTLSVerify {
 		// TODO (https://github.com/infrahq/infra/issues/174)

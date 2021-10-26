@@ -12,7 +12,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -33,16 +32,16 @@ import (
 )
 
 type Options struct {
-	DBPath               string
-	TLSCache             string
-	RootAPIKey           string
-	EngineAPIKey         string
-	ConfigPath           string
-	UI                   bool
-	UIProxy              string
-	SyncInterval         int
-	EnableTelemetry      bool
-	EnableCrashReporting bool
+	DBFile                   string        `mapstructure:"db-file"`
+	TLSCache                 string        `mapstructure:"tls-cache"`
+	RootAPIKey               string        `mapstructure:"root-api-key"`
+	EngineAPIKey             string        `mapstructure:"engine-api-key"`
+	ConfigPath               string        `mapstructure:"config-path"`
+	EnableUI                 bool          `mapstructure:"enable-ui"`
+	UIProxy                  string        `mapstructure:"ui-proxy"`
+	SourcesSyncInterval      time.Duration `mapstructure:"sources-sync-interval"`
+	DestinationsSyncInterval time.Duration `mapstructure:"destinations-sync-interval"`
+	*internal.GlobalOptions
 }
 
 type Registry struct {
@@ -56,8 +55,10 @@ type Registry struct {
 }
 
 const (
-	rootAPIKeyName   = "root"
-	engineAPIKeyName = "engine"
+	rootAPIKeyName                  string        = "root"
+	engineAPIKeyName                string        = "engine"
+	DefaultSourcesSyncInterval      time.Duration = time.Second * 60
+	DefaultDestinationsSyncInterval time.Duration = time.Minute * 5
 )
 
 // syncSources polls every known source for users and groups
@@ -98,7 +99,7 @@ func Run(options Options) (err error) {
 		return fmt.Errorf("configure sentry: %w", err)
 	}
 
-	r.db, err = NewDB(options.DBPath)
+	r.db, err := NewDB(options.DBFile)
 	if err != nil {
 		return fmt.Errorf("db: %w", err)
 	}
@@ -200,25 +201,10 @@ func (r *Registry) validateSources() {
 
 // schedule the user and group sync jobs
 func (r *Registry) scheduleSyncJobs() {
-	interval := 60 * time.Second
-	if r.options.SyncInterval > 0 {
-		interval = time.Duration(r.options.SyncInterval) * time.Second
-	} else {
-		envSync := os.Getenv("INFRA_SYNC_INTERVAL_SECONDS")
-		if envSync != "" {
-			envInterval, err := strconv.Atoi(envSync)
-			if err != nil {
-				r.logger.Error("invalid INFRA_SYNC_INTERVAL_SECONDS env: " + err.Error())
-			} else {
-				interval = time.Duration(envInterval) * time.Second
-			}
-		}
-	}
-
 	// be careful with this sync job, there are Okta rate limits on these requests
 	syncSourcesTimer := timer.NewTimer()
 	defer syncSourcesTimer.Stop()
-	syncSourcesTimer.Start(interval, func() {
+	syncSourcesTimer.Start(r.options.SourcesSyncInterval, func() {
 		hub := newSentryHub("sync_sources_timer")
 		defer recoverWithSentryHub(hub)
 
@@ -228,7 +214,7 @@ func (r *Registry) scheduleSyncJobs() {
 	// schedule destination sync job
 	syncDestinationsTimer := timer.NewTimer()
 	defer syncDestinationsTimer.Stop()
-	syncDestinationsTimer.Start(5*time.Minute, func() {
+	syncDestinationsTimer.Start(r.options.DestinationsSyncInterval, func() {
 		hub := newSentryHub("sync_destinations_timer")
 		defer recoverWithSentryHub(hub)
 
@@ -364,7 +350,7 @@ func (r *Registry) runServer() error {
 		}
 
 		mux.Handle("/", h.loginRedirectMiddleware(httputil.NewSingleHostReverseProxy(remote)))
-	} else if r.options.UI {
+	} else if r.options.EnableUI {
 		mux.Handle("/", h.loginRedirectMiddleware(gziphandler.GzipHandler(http.FileServer(&StaticFileSystem{base: &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo}}))))
 	}
 

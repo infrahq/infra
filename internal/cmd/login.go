@@ -24,7 +24,7 @@ import (
 )
 
 type LoginOptions struct {
-	Current bool `mapstructure:"current"`
+	Current bool          `mapstructure:"current"`
 	Timeout time.Duration `mapstructure:"timeout"`
 	*internal.GlobalOptions
 }

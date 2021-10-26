@@ -9,9 +9,11 @@ import (
 )
 
 type GlobalOptions struct {
-	Host       string `mapstructure:"host"`
-	ConfigFile string `mapstructure:"config-file"`
-	Verbosity  int    `mapstructure:"verbosity"`
+	Host                 string `mapstructure:"host"`
+	ConfigFile           string `mapstructure:"config-file"`
+	Verbosity            int    `mapstructure:"verbosity"`
+	EnableTelemetry      bool   `mapstructure:"enable-telemetry"`
+	EnableCrashReporting bool   `mapstructure:"enable-crash-reporting"`
 }
 
 func ParseOptions(cmd *cobra.Command, options interface{}) error {

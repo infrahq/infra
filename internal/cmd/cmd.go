@@ -8,14 +8,12 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/goware/urlx"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/engine"
-	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry"
 	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
@@ -274,54 +272,32 @@ func newListCmd(globalOptions *internal.GlobalOptions) (*cobra.Command, error) {
 	return cmd, nil
 }
 
-func newStartCmd() (*cobra.Command, error) {
-	var options registry.Options
-
+func newStartCmd(globalOptions *internal.GlobalOptions) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:    "start",
 		Short:  "Start Infra",
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			options := registry.Options{GlobalOptions: globalOptions}
+			if err := internal.ParseOptions(cmd, &options); err != nil {
+				return err
+			}
+
 			return registry.Run(options)
 		},
 	}
 
-	defaultInfraHome := filepath.Join("~", ".infra")
+	cmd.Flags().StringP("config-path", "c", "", "Infra config file")
+	cmd.Flags().String("root-api-key", "", "root API key")
+	cmd.Flags().String("engine-api-key", "", "engine registration API key")
+	cmd.Flags().String("tls-cache", "", "path to cache self-signed and Let's Encrypt TLS certificates")
+	cmd.Flags().String("db-file", "", "path to database file")
 
-	cmd.Flags().StringVarP(&options.ConfigPath, "config", "c", "", "config file")
-	cmd.Flags().StringVar(&options.RootAPIKey, "root-api-key", os.Getenv("INFRA_ROOT_API_KEY"), "root API key")
-	cmd.Flags().StringVar(&options.EngineAPIKey, "engine-api-key", os.Getenv("INFRA_ENGINE_API_KEY"), "engine registration API key")
-	cmd.Flags().StringVar(&options.DBPath, "db", filepath.Join(defaultInfraHome, "infra.db"), "path to database file")
-	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(defaultInfraHome, "cache"), "path to directory to cache tls self-signed and Let's Encrypt certificates")
-	cmd.Flags().BoolVar(&options.UI, "ui", false, "enable ui")
-	cmd.Flags().StringVar(&options.UIProxy, "ui-proxy", "", "proxy ui requests to this host")
-	cmd.Flags().BoolVar(&options.EnableTelemetry, "enable-telemetry", true, "enable telemetry")
-	cmd.Flags().BoolVar(&options.EnableCrashReporting, "enable-crash-reporting", true, "enable crash reporting")
+	cmd.Flags().String("ui-proxy", "", "proxy UI requests to this host")
+	cmd.Flags().Bool("enable-ui", false, "enable UI")
 
-	infraDir, err := infraHomeDir()
-	if err != nil {
-		return nil, err
-	}
-
-	if filepath.Dir(options.DBPath) == defaultInfraHome {
-		options.DBPath = filepath.Join(infraDir, "infra.db")
-	}
-
-	if filepath.Dir(options.TLSCache) == defaultInfraHome {
-		options.TLSCache = filepath.Join(infraDir, "cache")
-	}
-
-	defaultSync := 30
-
-	osSync := os.Getenv("INFRA_SYNC_INTERVAL_SECONDS")
-	if osSync != "" {
-		defaultSync, err = strconv.Atoi(osSync)
-		if err != nil {
-			logging.L.Error("could not convert INFRA_SYNC_INTERVAL_SECONDS to an integer: " + err.Error())
-		}
-	}
-
-	cmd.Flags().IntVar(&options.SyncInterval, "sync-interval", defaultSync, "the interval (in seconds) at which Infra will poll sources for users and groups")
+	cmd.Flags().Duration("sources-sync-interval", registry.DefaultSourcesSyncInterval, "the interval at which Infra will poll sources for users and groups")
+	cmd.Flags().Duration("destinations-sync-interval", registry.DefaultDestinationsSyncInterval, "the interval at which Infra will poll destinations")
 
 	return cmd, nil
 }
@@ -343,7 +319,7 @@ func newEngineCmd(globalOptions *internal.GlobalOptions) (*cobra.Command, error)
 
 	cmd.Flags().StringP("name", "n", "", "cluster name")
 	cmd.Flags().String("api-key", "", "engine registry API key")
-	cmd.Flags().String("tls-cache", "", "path to directory to cache tls self-signed and Let's Encrypt certificates")
+	cmd.Flags().String("tls-cache", "", "path to cache self-signed and Let's Encrypt TLS certificates")
 	cmd.Flags().Bool("skip-tls-verify", true, "skip TLS verification")
 
 	return cmd, nil
@@ -415,7 +391,7 @@ func NewRootCmd() (*cobra.Command, error) {
 		return nil, err
 	}
 
-	startCmd, err := newStartCmd()
+	startCmd, err := newRegistryCmd(&globalOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -451,6 +427,8 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.PersistentFlags().StringP("config-file", "f", "", "Infra configuration file path")
 	rootCmd.PersistentFlags().StringP("host", "H", "", "Infra host")
 	rootCmd.PersistentFlags().CountP("verbosity", "v", "Log verbositry")
+	rootCmd.PersistentFlags().Bool("enable-telemetry", true, "enable telemetry")
+	rootCmd.PersistentFlags().Bool("enable-crash-reporting", true, "enable crash reporting")
 
 	return rootCmd, nil
 }

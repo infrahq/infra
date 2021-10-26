@@ -36,7 +36,7 @@ spec:
             - "start"
             - "-c"
             - "/var/run/infra/config/infra.yaml"
-            - "--db"
+            - "--db-file"
             - "/var/run/infra/data/infra.db"
             - "--tls-cache"
             - "/var/run/infra/data/cache"
@@ -45,10 +45,8 @@ spec:
             - "--enable-crash-reporting"
             - {{ .Values.crashReporting.enabled | quote }}
           env:
-            - name: INFRA_LOG_LEVEL
-              value: {{ .Values.logLevel | default "info" }}
             - name: INFRA_SYNC_INTERVAL_SECONDS
-              value: "30"
+              value: "30s"
             - name: INFRA_ROOT_API_KEY
               value: 'file:///var/run/secrets/infrahq.com/infra/root-key'
             - name: INFRA_ENGINE_API_KEY
