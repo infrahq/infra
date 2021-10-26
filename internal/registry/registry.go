@@ -162,9 +162,9 @@ func Run(options Options) error {
 	return r.logger.Sync()
 }
 
-func (r *Registry) loadConfigFromFile() error {
+func (r *Registry) loadConfigFromFile() (err error) {
 	var contents []byte
-	var err error
+
 	if r.options.ConfigPath != "" {
 		contents, err = ioutil.ReadFile(r.options.ConfigPath)
 		if err != nil {
@@ -264,6 +264,7 @@ func (r *Registry) scheduleSyncJobs() {
 
 func (r *Registry) configureTelemetry() error {
 	var err error
+
 	r.tel, err = NewTelemetry(r.db)
 	if err != nil {
 		return err
