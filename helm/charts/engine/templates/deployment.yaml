@@ -70,7 +70,8 @@ spec:
             periodSeconds: 3
       volumes:
         - name: data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: {{ include "engine.fullname" . }}
         - name: secret-engine
           secret:
             secretName: infra-engine
