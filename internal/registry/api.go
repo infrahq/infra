@@ -808,7 +808,7 @@ func (a *API) Login(w http.ResponseWriter, r *http.Request) {
 		email, err := a.okta.EmailFromCode(
 			body.Okta.Code,
 			source.Domain,
-			source.ClientId,
+			source.ClientID,
 			clientSecret,
 		)
 		if err != nil {
@@ -890,15 +890,18 @@ func (a *API) Version(w http.ResponseWriter, r *http.Request) {
 
 func dbToAPISource(s Source) api.Source {
 	res := api.Source{
-		Id:      s.Id,
-		Created: s.Created,
-		Updated: s.Updated,
+		Id:           s.Id,
+		Created:      s.Created,
+		Updated:      s.Updated,
+		ClientID:     s.ClientID,
+		Domain:       s.Domain,
+		ClientSecret: s.ClientSecret,
+		Kind:         s.Kind,
 	}
 
 	if s.Kind == SourceKindOkta {
 		res.Okta = &api.SourceOkta{
-			ClientId: s.ClientId,
-			Domain:   s.Domain,
+			APIToken: s.APIToken,
 		}
 	}
 

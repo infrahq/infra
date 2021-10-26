@@ -157,7 +157,7 @@ source:
 			return err
 		}
 
-		authorizeURL := "https://" + selectedSource.Okta.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + selectedSource.Okta.ClientId + "&response_type=code&scope=openid+email&nonce=" + nonce + "&state=" + state
+		authorizeURL := "https://" + selectedSource.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + selectedSource.ClientID + "&response_type=code&scope=openid+email&nonce=" + nonce + "&state=" + state
 
 		fmt.Fprintf(os.Stderr, "%s Logging in with %s...\n", blue("✓"), termenv.String("Okta").Bold().String())
 
@@ -181,7 +181,7 @@ source:
 		}
 
 		loginReq.Okta = &api.LoginRequestOkta{
-			Domain: selectedSource.Okta.Domain,
+			Domain: selectedSource.Domain,
 			Code:   code,
 		}
 	default:
@@ -337,7 +337,7 @@ func promptSelectSource(sources []api.Source) (*api.Source, error) {
 
 	for _, s := range sources {
 		if s.Okta != nil {
-			options = append(options, fmt.Sprintf("Okta [%s]", s.Okta.Domain))
+			options = append(options, fmt.Sprintf("Okta [%s]", s.Domain))
 		}
 	}
 

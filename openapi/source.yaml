@@ -4,6 +4,10 @@ Source:
     - id
     - created
     - updated
+    - domain
+    - clientID
+    - clientSecret
+    - kind
   properties:
     id:
       type: string
@@ -13,15 +17,24 @@ Source:
     updated:
       type: integer
       format: int64
+    domain:
+      type: string
+      x-go-custom-tag: validate:"required"
+    clientID:
+      type: string
+      x-go-custom-tag: validate:"required"
+    clientSecret:
+      type: string
+    kind:
+      type: string
+      x-go-custom-tag: validate:"required"
     okta:
       $ref: 'source.yaml#/SourceOkta'
+
 SourceOkta:
   type: object
   required:
-    - domain
-    - clientId
+    - apiToken
   properties:
-    domain:
-      type: string
-    clientId:
+    apiToken:
       type: string
