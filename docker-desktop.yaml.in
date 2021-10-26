@@ -7,7 +7,7 @@ config:
   sources:
     - kind: okta
       domain: $OKTA_DOMAIN
-      clientId: $OKTA_CLIENT_ID
+      clientID: $OKTA_CLIENT_ID
       clientSecret: $OKTA_SECRET/clientSecret
       okta:
         apiToken: $OKTA_SECRET/apiToken

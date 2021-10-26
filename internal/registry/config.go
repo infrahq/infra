@@ -93,6 +93,19 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 				return fmt.Errorf("create config source: %w", err)
 			}
 
+			if s.ClientID == "" {
+				logging.L.Warn("importing okta source with no client ID set")
+			}
+			if s.Domain == "" {
+				logging.L.Warn("importing okta source with no domain set")
+			}
+			if s.ClientSecret == "" {
+				logging.L.Warn("importing okta source with no client secret set")
+			}
+			if s.Okta.APIToken == "" {
+				logging.L.Warn("importing okta source with no API token set")
+			}
+
 			source.ClientID = s.ClientID
 			source.Domain = s.Domain
 			// API token and client secret will be validated to exist when they are used
