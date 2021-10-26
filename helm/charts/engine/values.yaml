@@ -1,6 +1,7 @@
 name: ""
 registry: ""
 apiKey: ""
+storage: 100Mi
 
 pod:
   annotations: {}
