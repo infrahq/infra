@@ -87,37 +87,25 @@ func (r *Registry) syncSources() {
 	}
 }
 
-func Run(options Options) error {
-	var err error
-	if options.EnableCrashReporting && internal.CrashReportingDSN != "" {
-		err := sentry.Init(sentry.ClientOptions{
-			Dsn:              internal.CrashReportingDSN,
-			AttachStacktrace: true,
-			Release:          internal.Version,
-			BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
-				event.ServerName = ""
-				event.Request = nil
-				hint.Request = nil
-				return event
-			},
-		})
-		if err != nil {
-			return err
-		}
-
-		defer recoverWithSentryHub(sentry.CurrentHub())
+func Run(options Options) (err error) {
+	r := &Registry{
+		options: options,
 	}
 
-	r := &Registry{}
+	if err, ok := r.configureSentry(); ok {
+		defer recoverWithSentryHub(sentry.CurrentHub())
+	} else if err != nil {
+		return fmt.Errorf("configure sentry: %w", err)
+	}
 
 	r.db, err = NewDB(options.DBPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("db: %w", err)
 	}
 
 	err = r.db.First(&r.settings).Error
 	if err != nil {
-		return err
+		return fmt.Errorf("checking db for settings: %w", err)
 	}
 
 	sentry.ConfigureScope(func(scope *sentry.Scope) {
@@ -126,12 +114,12 @@ func Run(options Options) error {
 
 	r.logger, err = logging.Build()
 	if err != nil {
-		return err
+		return fmt.Errorf("logger: %w", err)
 	}
 
 	r.k8s, err = kubernetes.NewKubernetes()
 	if err != nil {
-		return err
+		return fmt.Errorf("k8s: %w", err)
 	}
 
 	if err = r.loadConfigFromFile(); err != nil {
@@ -144,19 +132,19 @@ func Run(options Options) error {
 	r.scheduleSyncJobs()
 
 	if err := r.configureTelemetry(); err != nil {
-		return err
+		return fmt.Errorf("configuring telemetry: %w", err)
 	}
 
 	if err := r.saveAPIKeys(); err != nil {
-		return err
+		return fmt.Errorf("saving api keys: %w", err)
 	}
 
 	if err := os.MkdirAll(options.TLSCache, os.ModePerm); err != nil {
-		return err
+		return fmt.Errorf("mkdir: %w", err)
 	}
 
 	if err := r.runServer(); err != nil {
-		return err
+		return fmt.Errorf("running server: %w", err)
 	}
 
 	return r.logger.Sync()
@@ -415,4 +403,28 @@ func (r *Registry) runServer() error {
 	}
 
 	return nil
+}
+
+// configureSentry returns ok:true when sentry is configured and initialized, or false otherwise. It can be used to know if `defer recoverWithSentryHub(sentry.CurrentHub())` can be called
+func (r *Registry) configureSentry() (err error, ok bool) {
+	if r.options.EnableCrashReporting && internal.CrashReportingDSN != "" {
+		err := sentry.Init(sentry.ClientOptions{
+			Dsn:              internal.CrashReportingDSN,
+			AttachStacktrace: true,
+			Release:          internal.Version,
+			BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
+				event.ServerName = ""
+				event.Request = nil
+				hint.Request = nil
+				return event
+			},
+		})
+		if err != nil {
+			return err, false
+		}
+
+		return nil, true
+	}
+
+	return nil, false
 }
