@@ -35,4 +35,4 @@ COPY --from=builder /go/src/github.com/infrahq/infra/infra /bin/infra
 EXPOSE 80
 EXPOSE 443
 ENTRYPOINT ["/bin/infra"]
-CMD ["registry"]
+CMD ["start"]

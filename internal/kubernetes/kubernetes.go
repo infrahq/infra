@@ -314,7 +314,7 @@ func (k *Kubernetes) UpdateRoles(roles []api.Role) error {
 		}
 	}
 
-	logging.L.Debug("syncing local roles from registry configuration")
+	logging.L.Debug("syncing local roles from infra configuration")
 	// group together all users with the same role/namespace permissions
 	rbSubjects := make(map[namespaceRole][]rbacv1.Subject) // role bindings
 	crbSubjects := make(map[string][]rbacv1.Subject)       // cluster-role bindings

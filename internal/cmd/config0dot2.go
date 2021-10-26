@@ -9,11 +9,11 @@ import (
 )
 
 type ClientConfigV0dot2 struct {
-	Version    string                 `json:"version"` // always 0.2 in v0.2
-	Registries []ClientRegistryConfig `json:"registries"`
+	Version string             `json:"version"` // always 0.2 in v0.2
+	Hosts   []ClientHostConfig `json:"hosts"`
 }
 
-type ClientRegistryConfig struct {
+type ClientHostConfig struct {
 	Name          string `json:"name"`
 	Host          string `json:"host"`
 	Token         string `json:"token"`
@@ -22,7 +22,7 @@ type ClientRegistryConfig struct {
 	Current       bool   `json:"current"`
 }
 
-var ErrConfigNotFound = errors.New("Could not read local credentials. Are you logged in? Use \"infra login\" to login.")
+var ErrConfigNotFound = errors.New("could not read local credentials. Are you logged in? Use \"infra login\" to login")
 
 func NewClientConfig() *ClientConfigV0dot2 {
 	return &ClientConfigV0dot2{
@@ -82,38 +82,38 @@ func writeConfig(config *ClientConfigV0dot2) error {
 	return nil
 }
 
-func currentRegistryConfig() (*ClientRegistryConfig, error) {
-	return readRegistryConfig("")
+func currentHostConfig() (*ClientHostConfig, error) {
+	return readHostConfig("")
 }
 
-func readRegistryConfig(registry string) (*ClientRegistryConfig, error) {
+func readHostConfig(host string) (*ClientHostConfig, error) {
 	cfg, err := readConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	for i, c := range cfg.Registries {
-		if len(registry) == 0 && c.Current {
-			return &cfg.Registries[i], nil
+	for i, c := range cfg.Hosts {
+		if len(host) == 0 && c.Current {
+			return &cfg.Hosts[i], nil
 		}
 
-		if c.Host == registry {
-			return &cfg.Registries[i], nil
+		if c.Host == host {
+			return &cfg.Hosts[i], nil
 		}
 	}
 
 	return nil, nil
 }
 
-func removeRegistryConfig(registry string) error {
+func removeHostConfig(host string) error {
 	cfg, err := readConfig()
 	if err != nil {
 		return err
 	}
 
-	for i, c := range cfg.Registries {
-		if c.Host == registry {
-			cfg.Registries = append(cfg.Registries[:i], cfg.Registries[i+1:]...)
+	for i, c := range cfg.Hosts {
+		if c.Host == host {
+			cfg.Hosts = append(cfg.Hosts[:i], cfg.Hosts[i+1:]...)
 			break
 		}
 	}

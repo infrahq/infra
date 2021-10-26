@@ -15,10 +15,10 @@ scoop bucket add infrahq https://github.com/infrahq/scoop.git
 scoop install infra
 ```
 
-### Login to your Infra Registry
+### Login to your Infra
 
 ```
-infra login <your infra registry hostname>
+infra login <your infra hostname>
 ```
 
 ### List clusters

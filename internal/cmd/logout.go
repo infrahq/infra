@@ -7,8 +7,8 @@ import (
 	"github.com/infrahq/infra/internal/api"
 )
 
-func logout(registry string) error {
-	config, err := readRegistryConfig(registry)
+func logout(host string) error {
+	config, err := readHostConfig(host)
 	if err != nil {
 		return err
 	}
@@ -22,7 +22,7 @@ func logout(registry string) error {
 		_, _ = client.AuthAPI.Logout(NewAPIContext(config.Token)).Execute()
 	}
 
-	// only clean up cache and destinations if logging out of current registry
+	// only clean up cache and destinations if logging out of current host
 	if config.Current {
 		_ = updateKubeconfig(api.User{})
 
@@ -33,7 +33,7 @@ func logout(registry string) error {
 		}
 	}
 
-	_ = removeRegistryConfig(config.Host)
+	_ = removeHostConfig(config.Host)
 
 	return nil
 }

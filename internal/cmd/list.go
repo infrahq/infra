@@ -23,7 +23,7 @@ type statusRow struct {
 }
 
 func list() error {
-	config, err := currentRegistryConfig()
+	config, err := currentHostConfig()
 	if err != nil {
 		return err
 	}

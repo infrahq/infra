@@ -55,7 +55,7 @@ type Config struct {
 	Users   []ConfigUserMapping  `yaml:"users"`
 }
 
-// this config is loaded at start-up and re-applied when the registry state changes (ex: a user is added)
+// this config is loaded at start-up and re-applied when Infra's state changes (ie. a user is added)
 var initialConfig Config
 
 func ImportSources(db *gorm.DB, sources []ConfigSource) error {

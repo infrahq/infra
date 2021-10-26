@@ -1,6 +1,6 @@
 apiVersion: v2
 name: infra
-description: Infra Registry
+description: Infra
 type: application
 version: 0.0.0-development
 appVersion: 0.0.0-development

@@ -26,7 +26,7 @@ Run locally:
 go run .
 ```
 
-Run a full setup (Infra Registry + Infra Engine):
+Run a full setup (Infra + Infra Engine):
 
 ```
 make dev

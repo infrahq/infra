@@ -29,11 +29,11 @@ spec:
   {{- end }}
 {{- end }}
       containers:
-        - name: registry
+        - name: infra
           image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
-            - "registry"
+            - "start"
             - "-c"
             - "/var/run/infra/config/infra.yaml"
             - "--db"
@@ -50,7 +50,7 @@ spec:
             - name: INFRA_SYNC_INTERVAL_SECONDS
               value: "30"
             - name: INFRA_ROOT_API_KEY
-              value: 'file:///var/run/secrets/infrahq.com/registry/root-key'
+              value: 'file:///var/run/secrets/infrahq.com/infra/root-key'
             - name: INFRA_ENGINE_API_KEY
               value: 'file:///var/run/secrets/infrahq.com/engine/engine-key'
           ports:
@@ -63,8 +63,8 @@ spec:
               mountPath: /var/run/infra/config
             - name: data
               mountPath: /var/run/infra/data
-            - name: secret-registry
-              mountPath: /var/run/secrets/infrahq.com/registry
+            - name: secret-infra
+              mountPath: /var/run/secrets/infrahq.com/infra
               readOnly: true
             - name: secret-engine
               mountPath: /var/run/secrets/infrahq.com/engine
@@ -92,9 +92,9 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: {{ include "infra.fullname" . }}
-        - name: secret-registry
+        - name: secret-infra
           secret:
-            secretName: infra-registry
+            secretName: infra
         - name: secret-engine
           secret:
             secretName: infra-engine
