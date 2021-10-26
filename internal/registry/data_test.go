@@ -22,7 +22,13 @@ func TestSyncGroupsClearsOnlySource(t *testing.T) {
 	}
 	testK8s := &kubernetes.Kubernetes{Config: testConfig, SecretReader: testSecretReader}
 
-	if err := fakeOktaSource.SyncGroups(db, testK8s, testOkta); err != nil {
+	r := &Registry{
+		k8s:  testK8s,
+		db:   db,
+		okta: testOkta,
+	}
+
+	if err := fakeOktaSource.SyncGroups(r); err != nil {
 		t.Fatal(err)
 	}
 
@@ -46,7 +52,13 @@ func TestSyncGroupsFromOktaIgnoresUnknownUsers(t *testing.T) {
 	}
 	testK8s := &kubernetes.Kubernetes{Config: testConfig, SecretReader: testSecretReader}
 
-	if err := fakeOktaSource.SyncGroups(db, testK8s, testOkta); err != nil {
+	r := &Registry{
+		k8s:  testK8s,
+		db:   db,
+		okta: testOkta,
+	}
+
+	if err := fakeOktaSource.SyncGroups(r); err != nil {
 		t.Fatal(err)
 	}
 
@@ -71,7 +83,13 @@ func TestSyncGroupsFromOktaRecreatesGroups(t *testing.T) {
 	}
 	testK8s := &kubernetes.Kubernetes{Config: testConfig, SecretReader: testSecretReader}
 
-	if err := fakeOktaSource.SyncGroups(db, testK8s, testOkta); err != nil {
+	r := &Registry{
+		k8s:  testK8s,
+		db:   db,
+		okta: testOkta,
+	}
+
+	if err := fakeOktaSource.SyncGroups(r); err != nil {
 		t.Fatal(err)
 	}
 
@@ -85,7 +103,7 @@ func TestSyncGroupsFromOktaRecreatesGroups(t *testing.T) {
 
 	mockGroups["villains"] = []string{"user@example.com"}
 
-	if err := fakeOktaSource.SyncGroups(db, testK8s, testOkta); err != nil {
+	if err := fakeOktaSource.SyncGroups(r); err != nil {
 		t.Fatal(err)
 	}
 

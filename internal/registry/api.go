@@ -41,12 +41,12 @@ var (
 	SessionDuration time.Duration       = time.Hour * 24
 )
 
-func NewAPIMux(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta, t *Telemetry) *mux.Router {
+func NewAPIMux(reg *Registry) *mux.Router {
 	a := API{
-		db:   db,
-		k8s:  k8s,
-		okta: okta,
-		t:    t,
+		db:   reg.db,
+		k8s:  reg.k8s,
+		okta: reg.okta,
+		t:    reg.tel,
 	}
 
 	r := mux.NewRouter()
