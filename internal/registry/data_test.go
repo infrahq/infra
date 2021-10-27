@@ -3,11 +3,10 @@ package registry
 import (
 	"testing"
 
-	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/registry/mocks"
+	"github.com/infrahq/infra/secrets"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	rest "k8s.io/client-go/rest"
 )
 
 func TestSyncGroupsClearsOnlySource(t *testing.T) {
@@ -16,16 +15,12 @@ func TestSyncGroupsClearsOnlySource(t *testing.T) {
 	testOkta := new(mocks.Okta)
 	testOkta.On("Groups", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(mockGroups, nil)
 
-	testSecretReader := NewMockSecretReader()
-	testConfig := &rest.Config{
-		Host: "https://localhost",
-	}
-	testK8s := &kubernetes.Kubernetes{Config: testConfig, SecretReader: testSecretReader}
-
 	r := &Registry{
-		k8s:  testK8s,
 		db:   db,
 		okta: testOkta,
+		secrets: map[string]secrets.SecretStorage{
+			"kubernetes": NewMockSecretReader(),
+		},
 	}
 
 	if err := fakeOktaSource.SyncGroups(r); err != nil {
@@ -46,16 +41,12 @@ func TestSyncGroupsFromOktaIgnoresUnknownUsers(t *testing.T) {
 	testOkta := new(mocks.Okta)
 	testOkta.On("Groups", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(mockGroups, nil)
 
-	testSecretReader := NewMockSecretReader()
-	testConfig := &rest.Config{
-		Host: "https://localhost",
-	}
-	testK8s := &kubernetes.Kubernetes{Config: testConfig, SecretReader: testSecretReader}
-
 	r := &Registry{
-		k8s:  testK8s,
 		db:   db,
 		okta: testOkta,
+		secrets: map[string]secrets.SecretStorage{
+			"kubernetes": NewMockSecretReader(),
+		},
 	}
 
 	if err := fakeOktaSource.SyncGroups(r); err != nil {
@@ -77,16 +68,12 @@ func TestSyncGroupsFromOktaRecreatesGroups(t *testing.T) {
 	testOkta := new(mocks.Okta)
 	testOkta.On("Groups", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(mockGroups, nil)
 
-	testSecretReader := NewMockSecretReader()
-	testConfig := &rest.Config{
-		Host: "https://localhost",
-	}
-	testK8s := &kubernetes.Kubernetes{Config: testConfig, SecretReader: testSecretReader}
-
 	r := &Registry{
-		k8s:  testK8s,
 		db:   db,
 		okta: testOkta,
+		secrets: map[string]secrets.SecretStorage{
+			"kubernetes": NewMockSecretReader(),
+		},
 	}
 
 	if err := fakeOktaSource.SyncGroups(r); err != nil {

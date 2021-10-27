@@ -15,14 +15,12 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/generate"
-	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/registry/mocks"
 	"github.com/infrahq/infra/secrets"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
-	rest "k8s.io/client-go/rest"
 )
 
 type mockSecretReader struct{}
@@ -689,12 +687,6 @@ func TestLoginMethodOkta(t *testing.T) {
 	testOkta := new(mocks.Okta)
 	testOkta.On("EmailFromCode", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("test@test.com", nil)
 
-	testSecretReader := NewMockSecretReader()
-	testConfig := &rest.Config{
-		Host: "https://localhost",
-	}
-	testK8s := &kubernetes.Kubernetes{Config: testConfig, SecretReader: testSecretReader}
-
 	telemetry, err := NewTelemetry(db)
 	if err != nil {
 		t.Fatal(err)
@@ -709,7 +701,6 @@ func TestLoginMethodOkta(t *testing.T) {
 		},
 		db:   db,
 		okta: testOkta,
-		k8s:  testK8s,
 		t:    telemetry,
 	}
 

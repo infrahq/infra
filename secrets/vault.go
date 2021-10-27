@@ -22,9 +22,9 @@ type VaultSecretProvider struct {
 }
 
 type VaultConfig struct {
-	TransitMount string `yaml:"transit_mount"` // mounting point. defaults to /transit
-	SecretMount  string `yaml:"secret_mount"`  // mounting point. defaults to /secret
-	Token        string `yaml:"token"`         // vault token... should authenticate as machine to vault instead?
+	TransitMount string `yaml:"transitMount"` // mounting point. defaults to /transit
+	SecretMount  string `yaml:"secretMount"`  // mounting point. defaults to /secret
+	Token        string `yaml:"token"`        // vault token... should authenticate as machine to vault instead?
 	Namespace    string `yaml:"namespace"`
 	Address      string `yaml:"address"`
 }

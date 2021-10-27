@@ -23,7 +23,6 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/certs"
-	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
 	timer "github.com/infrahq/infra/internal/timer"
 	"github.com/infrahq/infra/secrets"
@@ -54,7 +53,6 @@ type Registry struct {
 	options  Options
 	db       *gorm.DB
 	settings Settings
-	k8s      *kubernetes.Kubernetes
 	okta     Okta
 	tel      *Telemetry
 	secrets  map[string]secrets.SecretStorage
@@ -118,11 +116,6 @@ func Run(options Options) (err error) {
 	sentry.ConfigureScope(func(scope *sentry.Scope) {
 		scope.SetContext("registryId", r.settings.Id)
 	})
-
-	r.k8s, err = kubernetes.NewKubernetes()
-	if err != nil {
-		return fmt.Errorf("k8s: %w", err)
-	}
 
 	if err = r.loadConfigFromFile(); err != nil {
 		return fmt.Errorf("loading config from file: %w", err)

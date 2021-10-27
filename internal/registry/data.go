@@ -343,7 +343,7 @@ func (s *Source) SyncUsers(r *Registry) error {
 
 	switch s.Kind {
 	case SourceKindOkta:
-		apiToken, err := r.k8s.GetSecret(s.APIToken)
+		apiToken, err := r.GetSecret(s.APIToken)
 		if err != nil {
 			return fmt.Errorf("sync okta users api token: %w", err)
 		}
@@ -385,7 +385,7 @@ func (s *Source) SyncGroups(r *Registry) error {
 
 	switch s.Kind {
 	case SourceKindOkta:
-		apiToken, err := r.k8s.GetSecret(s.APIToken)
+		apiToken, err := r.GetSecret(s.APIToken)
 		if err != nil {
 			return fmt.Errorf("sync okta groups api secret: %w", err)
 		}

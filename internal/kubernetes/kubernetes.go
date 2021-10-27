@@ -691,13 +691,3 @@ func (k *Kubernetes) Endpoint() (string, error) {
 
 	return fmt.Sprintf("%s:%d", host, port.Port), nil
 }
-
-// GetSecret returns a K8s secret object with the specified name from the current namespace if it exists
-func (k *Kubernetes) GetSecret(secret string) (string, error) {
-	b, err := k.SecretReader.GetSecret(secret)
-	if b == nil {
-		return "", err
-	}
-
-	return string(b), err
-}
