@@ -60,11 +60,11 @@ func NewVaultSecretProviderFromConfig(cfg VaultConfig) (*VaultSecretProvider, er
 }
 
 func NewVaultSecretProvider(address, token, namespace string) (*VaultSecretProvider, error) {
-	return NewVaultSecretProviderFromConfig(VaultConfig{
-		Address:   address,
-		Token:     token,
-		Namespace: namespace,
-	})
+	cfg := NewVaultConfig()
+	cfg.Address = address
+	cfg.Token = token
+	cfg.Namespace = namespace
+	return NewVaultSecretProviderFromConfig(cfg)
 }
 
 func (v *VaultSecretProvider) GetSecret(name string) ([]byte, error) {

@@ -50,7 +50,6 @@ func (fp *EnvSecretProvider) SetSecret(name string, secret []byte) error {
 var invalidNameChars = regexp.MustCompile(`[^\w\d-]`)
 
 func (fp *EnvSecretProvider) GetSecret(name string) (secret []byte, err error) {
-
 	var b []byte
 	if strings.Contains(name, "$") {
 		b = []byte(os.ExpandEnv(name))

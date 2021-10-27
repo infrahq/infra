@@ -99,42 +99,49 @@ func (sp *ConfigSecretProvider) UnmarshalYAML(unmarshal func(interface{}) error)
 		if err := unmarshal(&p); err != nil {
 			return fmt.Errorf("unmarshal yaml: %w", err)
 		}
+
 		sp.Config = p
 	case "awsssm":
 		p := secrets.AWSSSMConfig{}
 		if err := unmarshal(&p); err != nil {
 			return fmt.Errorf("unmarshal yaml: %w", err)
 		}
+
 		sp.Config = p
 	case "awssecretsmanager":
 		p := secrets.AWSSecretsManagerConfig{}
 		if err := unmarshal(&p); err != nil {
 			return fmt.Errorf("unmarshal yaml: %w", err)
 		}
+
 		sp.Config = p
 	case "kubernetes":
 		p := secrets.KubernetesConfig{}
 		if err := unmarshal(&p); err != nil {
 			return fmt.Errorf("unmarshal yaml: %w", err)
 		}
+
 		sp.Config = p
 	case "env":
 		p := secrets.GenericConfig{}
 		if err := unmarshal(&p); err != nil {
 			return fmt.Errorf("unmarshal yaml: %w", err)
 		}
+
 		sp.Config = p
 	case "file":
 		p := secrets.FileConfig{}
 		if err := unmarshal(&p); err != nil {
 			return fmt.Errorf("unmarshal yaml: %w", err)
 		}
+
 		sp.Config = p
 	case "plain", "":
 		p := secrets.GenericConfig{}
 		if err := unmarshal(&p); err != nil {
 			return fmt.Errorf("unmarshal yaml: %w", err)
 		}
+
 		sp.Config = p
 	default:
 		return fmt.Errorf("unknown secret provider type %q, expected one of %q", tmp.Type, validSecretProviderTypes)
@@ -444,13 +451,17 @@ func (r *Registry) configureSecrets(config Config) error {
 		if len(name) == 0 {
 			name = secret.Type
 		}
+
 		if _, found := r.secrets[name]; found {
 			return fmt.Errorf("duplicate secret configuration for %q, please provide a unique name for this secret configuration", name)
 		}
 
 		switch secret.Type {
 		case "vault":
-			cfg := secret.Config.(secrets.VaultConfig)
+			cfg, ok := secret.Config.(secrets.VaultConfig)
+			if !ok {
+				return fmt.Errorf("expected secret config to be VaultConfig, but was %t", secret.Config)
+			}
 
 			vault, err := secrets.NewVaultSecretProviderFromConfig(cfg)
 			if err != nil {
@@ -459,7 +470,10 @@ func (r *Registry) configureSecrets(config Config) error {
 
 			r.secrets[name] = vault
 		case "awsssm":
-			cfg := secret.Config.(secrets.AWSSSMConfig)
+			cfg, ok := secret.Config.(secrets.AWSSSMConfig)
+			if !ok {
+				return fmt.Errorf("expected secret config to be AWSSSMConfig, but was %t", secret.Config)
+			}
 
 			ssm, err := secrets.NewAWSSSMFromConfig(cfg)
 			if err != nil {
@@ -468,7 +482,10 @@ func (r *Registry) configureSecrets(config Config) error {
 
 			r.secrets[name] = ssm
 		case "awssecretsmanager":
-			cfg := secret.Config.(secrets.AWSSecretsManagerConfig)
+			cfg, ok := secret.Config.(secrets.AWSSecretsManagerConfig)
+			if !ok {
+				return fmt.Errorf("expected secret config to be AWSSecretsManagerConfig, but was %t", secret.Config)
+			}
 
 			sm, err := secrets.NewAWSSecretsManagerFromConfig(cfg)
 			if err != nil {
@@ -477,7 +494,10 @@ func (r *Registry) configureSecrets(config Config) error {
 
 			r.secrets[name] = sm
 		case "kubernetes":
-			cfg := secret.Config.(secrets.KubernetesConfig)
+			cfg, ok := secret.Config.(secrets.KubernetesConfig)
+			if !ok {
+				return fmt.Errorf("expected secret config to be KubernetesConfig, but was %t", secret.Config)
+			}
 
 			k8s, err := secrets.NewKubernetesSecretProviderFromConfig(cfg)
 			if err != nil {
@@ -486,16 +506,27 @@ func (r *Registry) configureSecrets(config Config) error {
 
 			r.secrets[name] = k8s
 		case "env":
-			cfg := secret.Config.(secrets.GenericConfig)
+			cfg, ok := secret.Config.(secrets.GenericConfig)
+			if !ok {
+				return fmt.Errorf("expected secret config to be GenericConfig, but was %t", secret.Config)
+			}
+
 			f := secrets.NewEnvSecretProviderFromConfig(cfg)
 			r.secrets[name] = f
 		case "file":
-			cfg := secret.Config.(secrets.FileConfig)
+			cfg, ok := secret.Config.(secrets.FileConfig)
+			if !ok {
+				return fmt.Errorf("expected secret config to be FileConfig, but was %t", secret.Config)
+			}
+
 			f := secrets.NewFileSecretProviderFromConfig(cfg)
 			r.secrets[name] = f
 		case "plain", "":
-			fmt.Println(secret.Config)
-			cfg := secret.Config.(secrets.GenericConfig)
+			cfg, ok := secret.Config.(secrets.GenericConfig)
+			if !ok {
+				return fmt.Errorf("expected secret config to be GenericConfig, but was %t", secret.Config)
+			}
+
 			f := secrets.NewPlainSecretProviderFromConfig(cfg)
 			r.secrets[name] = f
 		default:

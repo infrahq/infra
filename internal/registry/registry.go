@@ -420,6 +420,7 @@ func (r *Registry) configureSentry() (err error, ok bool) {
 // it's an abstraction around all secret providers
 func (r *Registry) GetSecret(name string) (string, error) {
 	var kind string
+
 	if !strings.Contains(name, ":") {
 		// we'll have to guess at what type of secret it is.
 		// our default guesses are kubernetes, or plain

@@ -450,7 +450,8 @@ func TestCreateDestinationNoAPIKey(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	req := api.DestinationCreateRequest{
 		Kubernetes: &api.DestinationKubernetes{
@@ -526,7 +527,8 @@ func TestLoginHandlerEmptyRequest(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodPost, "http://test.com/v1/login", nil)
 	w := httptest.NewRecorder()
@@ -547,7 +549,8 @@ func TestLoginNilOktaRequest(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	loginRequest := api.LoginRequest{
 		Okta: nil,
@@ -577,7 +580,8 @@ func TestLoginEmptyOktaRequest(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	loginRequest := api.LoginRequest{
 		Okta: &api.LoginRequestOkta{},
@@ -607,7 +611,8 @@ func TestLoginOktaMissingDomainRequest(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	loginRequest := api.LoginRequest{
 		Okta: &api.LoginRequestOkta{
@@ -639,7 +644,8 @@ func TestLoginMethodOktaMissingCodeRequest(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	loginRequest := api.LoginRequest{
 		Okta: &api.LoginRequestOkta{
@@ -704,7 +710,8 @@ func TestLoginMethodOkta(t *testing.T) {
 		db:   db,
 		okta: testOkta,
 		k8s:  testK8s,
-		t:    telemetry}
+		t:    telemetry,
+	}
 
 	loginRequest := api.LoginRequest{
 		Okta: &api.LoginRequestOkta{
@@ -745,7 +752,8 @@ func TestVersion(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/version", nil)
 	w := httptest.NewRecorder()
@@ -768,7 +776,8 @@ func TestListRoles(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles", nil)
 
@@ -826,7 +835,8 @@ func TestListRolesByName(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles?name=admin", nil)
 
@@ -867,7 +877,8 @@ func TestListRolesByKind(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles?kind=role", nil)
 
@@ -900,7 +911,8 @@ func TestListRolesByMultiple(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles?name=admin&kind=role", nil)
 
@@ -925,7 +937,8 @@ func TestListRolesForDestinationReturnsRolesFromConfig(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles", nil)
 	q := r.URL.Query()
@@ -969,7 +982,8 @@ func TestListRolesOnlyFindsForSpecificDestination(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles", nil)
 	q := r.URL.Query()
@@ -1012,7 +1026,8 @@ func TestListRolesForUnknownDestination(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles", nil)
 	q := r.URL.Query()
@@ -1039,7 +1054,8 @@ func TestGetRole(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	role := &Role{Name: "mpt-role"}
 	if err := a.db.Create(role).Error; err != nil {
@@ -1068,7 +1084,8 @@ func TestGetRoleEmptyID(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles/", nil)
 	vars := map[string]string{
@@ -1090,7 +1107,8 @@ func TestGetRoleNotFound(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles/nonexistent", nil)
 	vars := map[string]string{
@@ -1112,7 +1130,8 @@ func TestListGroups(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/groups", nil)
 
@@ -1139,7 +1158,8 @@ func TestListGroupsByName(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/groups?name=ios-developers", nil)
 
@@ -1165,7 +1185,8 @@ func TestGetGroup(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	group := &Group{Name: "mpt-group"}
 	if err := a.db.Create(group).Error; err != nil {
@@ -1194,7 +1215,8 @@ func TestGetGroupEmptyID(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/groups/", nil)
 	vars := map[string]string{
@@ -1216,7 +1238,8 @@ func TestGetGroupNotFound(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/groups/nonexistent", nil)
 	vars := map[string]string{
@@ -1238,7 +1261,8 @@ func TestListUsers(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/users", nil)
 
@@ -1266,7 +1290,8 @@ func TestListUsersByEmail(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/users?email=woz@example.com", nil)
 
@@ -1292,7 +1317,8 @@ func TestListUsersEmpty(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/users?email=nonexistent@example.com", nil)
 
@@ -1316,7 +1342,8 @@ func TestGetUser(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	user := &User{Email: "mpt-user@infrahq.com"}
 	if err := a.db.Create(user).Error; err != nil {
@@ -1345,7 +1372,8 @@ func TestGetUserEmptyID(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/users/", nil)
 	vars := map[string]string{
@@ -1367,7 +1395,8 @@ func TestGetUserNotFound(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/users/nonexistent", nil)
 	vars := map[string]string{
@@ -1389,7 +1418,8 @@ func TestListSources(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/sources", nil)
 
@@ -1413,7 +1443,8 @@ func TestListSourcesByType(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/sources?kind=okta", nil)
 
@@ -1437,7 +1468,8 @@ func TestListSourcesEmpty(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/sources?kind=nonexistent", nil)
 
@@ -1461,7 +1493,8 @@ func TestGetSource(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	source := &Source{Kind: SourceKindOkta}
 	if err := a.db.Create(source).Error; err != nil {
@@ -1490,7 +1523,8 @@ func TestGetSourceEmptyID(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/sources/", nil)
 	vars := map[string]string{
@@ -1512,7 +1546,8 @@ func TestGetSourceNotFound(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/sources/nonexistent", nil)
 	vars := map[string]string{
@@ -1534,7 +1569,8 @@ func TestListDestinations(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/destinations", nil)
 
@@ -1562,7 +1598,8 @@ func TestListDestinationsByName(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/destinations?name=cluster-AAA", nil)
 
@@ -1588,7 +1625,8 @@ func TestListDestinationsByType(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/destinations?=kind", nil)
 
@@ -1616,7 +1654,8 @@ func TestListDestinationsEmpty(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/destinations?name=nonexistent", nil)
 
@@ -1640,7 +1679,8 @@ func TestGetDestination(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	destination := &Destination{Name: "mpt-destination"}
 	if err := a.db.Create(destination).Error; err != nil {
@@ -1669,7 +1709,8 @@ func TestGetDestinationEmptyID(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/destinations/", nil)
 	vars := map[string]string{
@@ -1691,7 +1732,8 @@ func TestGetDestinationNotFound(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/destinations/nonexistent", nil)
 	vars := map[string]string{
@@ -1713,7 +1755,8 @@ func TestCreateAPIKey(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	createAPIKeyRequest := api.InfraAPIKeyCreateRequest{
 		Name:        "test-api-client",
@@ -1753,7 +1796,8 @@ func TestDeleteAPIKey(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	k := &APIKey{Name: "test-delete-key", Permissions: string(api.API_KEYS_DELETE)}
 	if err := a.db.Create(k).Error; err != nil {
@@ -1784,7 +1828,8 @@ func TestListAPIKeys(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	k := &APIKey{Name: "test-key", Permissions: string(api.API_KEYS_READ)}
 	if err := a.db.Create(k).Error; err != nil {
@@ -1850,7 +1895,8 @@ func TestCredentials(t *testing.T) {
 				"kubernetes": NewMockSecretReader(),
 			},
 		},
-		db: db}
+		db: db,
+	}
 
 	err := db.FirstOrCreate(&Settings{}).Error
 	require.NoError(t, err)

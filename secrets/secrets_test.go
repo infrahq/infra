@@ -62,7 +62,7 @@ func setup() {
 		},
 		nil, // cmd
 		[]string{
-			"SERVICES=secretsmanager,ssm",
+			"SERVICES=secretsmanager,ssm,events",
 		},
 	)
 	containerIDs = append(containerIDs, containerID)
