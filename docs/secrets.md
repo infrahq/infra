@@ -12,7 +12,7 @@ Infra supports many secret storage backends, including, but not limited to:
 
 ## Usage
 
-These can be referenced in the Infra config file using the scheme <secret-backend>:<secret-key>
+These can be referenced in the Infra config file using the scheme `<secret-backend>:<secret-key>`
 
 Examples follow.
 
