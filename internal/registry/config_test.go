@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -24,10 +25,12 @@ var (
 	clusterA        = Destination{Name: "cluster-AAA"}
 	clusterB        = Destination{Name: "cluster-BBB"}
 	clusterC        = Destination{Name: "cluster-CCC"}
+
+	registry *Registry
 )
 
 func setup() error {
-	confFile, err := ioutil.ReadFile("_testdata/infra.yaml")
+	confFileData, err := ioutil.ReadFile("_testdata/infra.yaml")
 	if err != nil {
 		return err
 	}
@@ -104,7 +107,11 @@ func setup() error {
 		return err
 	}
 
-	return ImportConfig(db, confFile)
+	registry = &Registry{
+		db: db,
+	}
+
+	return registry.importConfig(confFileData)
 }
 
 func TestMain(m *testing.M) {
@@ -326,4 +333,23 @@ func containsUserRoleForDestination(db *gorm.DB, user User, destinationId string
 	}
 
 	return false, nil
+}
+
+func TestSecretsLoadedOkay(t *testing.T) {
+	foo, err := registry.secrets["plain"].GetSecret("foo")
+	require.NoError(t, err)
+	require.Equal(t, "foo", string(foo))
+
+	var importedOkta Source
+	err = db.Where(&Source{Kind: SourceKindOkta}).First(&importedOkta).Error
+	require.NoError(t, err)
+
+	// simple manual secret reader
+	parts := strings.Split(importedOkta.ClientId, ":")
+	secretKind := parts[0]
+	t.Log(registry.secrets[secretKind])
+	secret, err := registry.secrets[secretKind].GetSecret(parts[1])
+	require.NoError(t, err)
+
+	require.Equal(t, "0oapn0qwiQPiMIyR35d6", string(secret))
 }

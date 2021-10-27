@@ -155,7 +155,7 @@ func eachProvider(t *testing.T, eachFunc func(t *testing.T, p interface{})) {
 
 	// add AWS SSM (Systems Manager Parameter Store)
 	awsssm := ssm.New(sess, localstackCfg)
-	ssm := NewAWSSystemManagerParameterStore(awsssm)
+	ssm := NewAWSSSM(awsssm)
 
 	providers["awsssm"] = ssm
 
@@ -177,6 +177,21 @@ func eachProvider(t *testing.T, eachFunc func(t *testing.T, p interface{})) {
 	k8s := NewKubernetesSecretProvider(clientset, "infrahq")
 
 	providers["kubernetes"] = k8s
+
+	// add "file"
+	providers["file"] = &FileSecretProvider{
+		FileConfig: FileConfig{
+			GenericConfig: GenericConfig{
+				Base64: true,
+				// Base64Raw: true,
+			},
+		},
+	}
+
+	// add "env"
+	providers["env"] = &EnvSecretProvider{
+		GenericConfig: GenericConfig{Base64: true},
+	}
 
 	for name, provider := range providers {
 		t.Run(name, func(t *testing.T) {

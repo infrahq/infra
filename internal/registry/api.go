@@ -24,10 +24,11 @@ import (
 )
 
 type API struct {
-	db   *gorm.DB
-	k8s  *kubernetes.Kubernetes
-	okta Okta
-	t    *Telemetry
+	db       *gorm.DB
+	k8s      *kubernetes.Kubernetes
+	okta     Okta
+	t        *Telemetry
+	registry *Registry
 }
 
 type CustomJWTClaims struct {
@@ -43,10 +44,11 @@ var (
 
 func NewAPIMux(reg *Registry) *mux.Router {
 	a := API{
-		db:   reg.db,
-		k8s:  reg.k8s,
-		okta: reg.okta,
-		t:    reg.tel,
+		db:       reg.db,
+		k8s:      reg.k8s,
+		okta:     reg.okta,
+		t:        reg.tel,
+		registry: reg,
 	}
 
 	r := mux.NewRouter()
@@ -797,7 +799,7 @@ func (a *API) Login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		clientSecret, err := a.k8s.GetSecret(source.ClientSecret)
+		clientSecret, err := a.registry.GetSecret(source.ClientSecret)
 		if err != nil {
 			logging.L.Error("Could not retrieve okta client secret from kubernetes: " + err.Error())
 			sendAPIError(w, http.StatusInternalServerError, "invalid okta login information")

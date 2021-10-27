@@ -3,10 +3,12 @@ package registry
 import (
 	"errors"
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/secrets"
 	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
 )
@@ -57,10 +59,95 @@ type ConfigUserMapping struct {
 	Groups []string               `yaml:"groups"`
 }
 
+type ConfigSecretProvider struct {
+	Type   string      `yaml:"type"`
+	Name   string      `yaml:"name"`
+	Config interface{} // contains secret-provider-specific config
+}
+
+type simpleConfigSecretProvider struct {
+	Type string `yaml:"type"`
+	Name string `yaml:"name"`
+}
+
+// ensure ConfigSecretProvider implements yaml.Unmarshaller for the custom config field support
+var _ yaml.Unmarshaler = &ConfigSecretProvider{}
+
+func (sp *ConfigSecretProvider) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	tmp := &simpleConfigSecretProvider{}
+
+	if err := unmarshal(&tmp); err != nil {
+		return fmt.Errorf("unmarshalling secret provider: %w", err)
+	}
+
+	validSecretProviderTypes := []string{
+		"vault",
+		"awsssm",
+		"awssecretsmanager",
+		"kubernetes",
+		"env",
+		"file",
+		"plain",
+	}
+
+	sp.Type = tmp.Type
+	sp.Name = tmp.Name
+
+	switch tmp.Type {
+	case "vault":
+		p := secrets.NewVaultConfig()
+		if err := unmarshal(&p); err != nil {
+			return fmt.Errorf("unmarshal yaml: %w", err)
+		}
+		sp.Config = p
+	case "awsssm":
+		p := secrets.AWSSSMConfig{}
+		if err := unmarshal(&p); err != nil {
+			return fmt.Errorf("unmarshal yaml: %w", err)
+		}
+		sp.Config = p
+	case "awssecretsmanager":
+		p := secrets.AWSSecretsManagerConfig{}
+		if err := unmarshal(&p); err != nil {
+			return fmt.Errorf("unmarshal yaml: %w", err)
+		}
+		sp.Config = p
+	case "kubernetes":
+		p := secrets.KubernetesConfig{}
+		if err := unmarshal(&p); err != nil {
+			return fmt.Errorf("unmarshal yaml: %w", err)
+		}
+		sp.Config = p
+	case "env":
+		p := secrets.GenericConfig{}
+		if err := unmarshal(&p); err != nil {
+			return fmt.Errorf("unmarshal yaml: %w", err)
+		}
+		sp.Config = p
+	case "file":
+		p := secrets.FileConfig{}
+		if err := unmarshal(&p); err != nil {
+			return fmt.Errorf("unmarshal yaml: %w", err)
+		}
+		sp.Config = p
+	case "plain", "":
+		p := secrets.GenericConfig{}
+		if err := unmarshal(&p); err != nil {
+			return fmt.Errorf("unmarshal yaml: %w", err)
+		}
+		sp.Config = p
+	default:
+		return fmt.Errorf("unknown secret provider type %q, expected one of %q", tmp.Type, validSecretProviderTypes)
+	}
+
+	return nil
+}
+
 type Config struct {
-	Sources []ConfigSource       `yaml:"sources"`
-	Groups  []ConfigGroupMapping `yaml:"groups"`
-	Users   []ConfigUserMapping  `yaml:"users"`
+	Secrets []ConfigSecretProvider `yaml:"secrets"`
+	Sources []ConfigSource         `yaml:"sources"`
+	Groups  []ConfigGroupMapping   `yaml:"groups"`
+	Users   []ConfigUserMapping    `yaml:"users"`
 }
 
 // this config is loaded at start-up and re-applied when Infra's state changes (ie. a user is added)
@@ -263,8 +350,8 @@ func ImportRoleMappings(db *gorm.DB, groups []ConfigGroupMapping, users []Config
 	return nil
 }
 
-// ImportConfig tries to import all valid fields in a config file and removes old config
-func ImportConfig(db *gorm.DB, bs []byte) error {
+// importConfig tries to import all valid fields in a config file and removes old config
+func (r *Registry) importConfig(bs []byte) error {
 	var config Config
 	if err := yaml.Unmarshal(bs, &config); err != nil {
 		return err
@@ -272,7 +359,11 @@ func ImportConfig(db *gorm.DB, bs []byte) error {
 
 	initialConfig = config
 
-	return db.Transaction(func(tx *gorm.DB) error {
+	if err := r.configureSecrets(config); err != nil {
+		return fmt.Errorf("secrets config: %w", err)
+	}
+
+	return r.db.Transaction(func(tx *gorm.DB) error {
 		if err := ImportSources(tx, config.Sources); err != nil {
 			return err
 		}
@@ -341,4 +432,104 @@ func importRoles(db *gorm.DB, roles []ConfigRoleKubernetes) (rolesImported []Rol
 	}
 
 	return rolesImported, importedRoleIDs, nil
+}
+
+func (r *Registry) configureSecrets(config Config) error {
+	if r.secrets == nil {
+		r.secrets = map[string]secrets.SecretStorage{}
+	}
+
+	for _, secret := range config.Secrets {
+		name := secret.Name
+		if len(name) == 0 {
+			name = secret.Type
+		}
+		if _, found := r.secrets[name]; found {
+			return fmt.Errorf("duplicate secret configuration for %q, please provide a unique name for this secret configuration", name)
+		}
+
+		switch secret.Type {
+		case "vault":
+			cfg := secret.Config.(secrets.VaultConfig)
+
+			vault, err := secrets.NewVaultSecretProviderFromConfig(cfg)
+			if err != nil {
+				return fmt.Errorf("creating vault provider: %w", err)
+			}
+
+			r.secrets[name] = vault
+		case "awsssm":
+			cfg := secret.Config.(secrets.AWSSSMConfig)
+
+			ssm, err := secrets.NewAWSSSMFromConfig(cfg)
+			if err != nil {
+				return fmt.Errorf("creating aws ssm: %w", err)
+			}
+
+			r.secrets[name] = ssm
+		case "awssecretsmanager":
+			cfg := secret.Config.(secrets.AWSSecretsManagerConfig)
+
+			sm, err := secrets.NewAWSSecretsManagerFromConfig(cfg)
+			if err != nil {
+				return fmt.Errorf("creating aws sm: %w", err)
+			}
+
+			r.secrets[name] = sm
+		case "kubernetes":
+			cfg := secret.Config.(secrets.KubernetesConfig)
+
+			k8s, err := secrets.NewKubernetesSecretProviderFromConfig(cfg)
+			if err != nil {
+				return fmt.Errorf("creating k8s secret provider: %w", err)
+			}
+
+			r.secrets[name] = k8s
+		case "env":
+			cfg := secret.Config.(secrets.GenericConfig)
+			f := secrets.NewEnvSecretProviderFromConfig(cfg)
+			r.secrets[name] = f
+		case "file":
+			cfg := secret.Config.(secrets.FileConfig)
+			f := secrets.NewFileSecretProviderFromConfig(cfg)
+			r.secrets[name] = f
+		case "plain", "":
+			fmt.Println(secret.Config)
+			cfg := secret.Config.(secrets.GenericConfig)
+			f := secrets.NewPlainSecretProviderFromConfig(cfg)
+			r.secrets[name] = f
+		default:
+			return fmt.Errorf("unknown secret provider type %q", secret.Type)
+		}
+	}
+
+	// set up the default supported types
+	if _, found := r.secrets["env"]; !found {
+		f := secrets.NewEnvSecretProviderFromConfig(secrets.GenericConfig{})
+		r.secrets["env"] = f
+	}
+
+	if _, found := r.secrets["file"]; !found {
+		f := secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{})
+		r.secrets["file"] = f
+	}
+
+	if _, found := r.secrets["plain"]; !found {
+		f := secrets.NewPlainSecretProviderFromConfig(secrets.GenericConfig{})
+		r.secrets["plain"] = f
+	}
+
+	if _, found := r.secrets["kubernetes"]; !found {
+		// only setup k8s automatically if KUBERNETES_SERVICE_HOST is defined; ie, we are in the cluster.
+		if _, ok := os.LookupEnv("KUBERNETES_SERVICE_HOST"); ok {
+			k8s, err := secrets.NewKubernetesSecretProviderFromConfig(secrets.KubernetesConfig{})
+			if err != nil {
+				return fmt.Errorf("creating k8s secret provider: %w", err)
+			}
+
+			r.secrets["kubernetes"] = k8s
+		}
+	}
+
+	return nil
 }

@@ -6,16 +6,51 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 )
 
 var _ SecretStorage = &AWSSecretsManager{}
 
 type AWSSecretsManager struct {
-	UseSecretMaps bool // TODO: support storing to json maps if this is enabled.
+	AWSSecretsManagerConfig
 
 	client *secretsmanager.SecretsManager
+}
+
+type AWSSecretsManagerConfig struct {
+	AWSConfig
+
+	UseSecretMaps bool `yaml:"useSecretMaps"` // TODO: support storing to json maps if this is enabled.
+}
+
+func NewAWSSecretsManagerFromConfig(cfg AWSSecretsManagerConfig) (*AWSSecretsManager, error) {
+	sess, err := session.NewSession()
+	if err != nil {
+		return nil, fmt.Errorf("creating aws session: %w", err)
+	}
+
+	awscfg := aws.NewConfig().
+		WithCredentials(credentials.NewCredentials(&credentials.StaticProvider{
+			Value: credentials.Value{
+				AccessKeyID:     cfg.AccessKeyID,
+				SecretAccessKey: cfg.SecretAccessKey,
+			},
+		})).
+		WithEndpoint(cfg.Endpoint).
+		WithRegion(cfg.Region)
+
+	awssm := secretsmanager.New(sess, awscfg)
+
+	sm := &AWSSecretsManager{
+		AWSSecretsManagerConfig: cfg,
+		client:                  awssm,
+	}
+
+	return sm, nil
 }
 
 func NewAWSSecretsManager(client *secretsmanager.SecretsManager) *AWSSecretsManager {

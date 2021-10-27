@@ -1,16 +1,21 @@
+secrets:
+  - name: base64
+    type: plain
+    base64: true
+
 sources:
   - kind: okta
     domain: overwrite.example.com
-    client-id: 0oapn0qwiQPiMIyR35d6
-    client-secret: okta-secrets/clientSecret
+    client-id: base64:MG9hcG4wcXdpUVBpTUl5UjM1ZDY=
+    client-secret: kubernetes:okta-secrets/clientSecret
     okta:
-      api-token: okta-secrets/apiToken
+      api-token: kubernetes:okta-secrets/apiToken
   - kind: okta
     domain: https://test.example.com
     client-id: 0oapn0qwiQPiMIyR35d6
-    client-secret: okta-secrets/clientSecret
+    client-secret: kubernetes:okta-secrets/clientSecret
     okta:
-      api-token: okta-secrets/apiToken
+      api-token: kubernetes:okta-secrets/apiToken
 
 groups:
   - name: ios-developers
