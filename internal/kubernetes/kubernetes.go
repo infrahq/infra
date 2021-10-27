@@ -337,7 +337,7 @@ func (k *Kubernetes) UpdateRoles(roles []api.Role) error {
 				rbSubjects[nspaceRole] = append(rbSubjects[nspaceRole], rbacv1.Subject{
 					APIGroup: "rbac.authorization.k8s.io",
 					Kind:     "User",
-					Name:     u.Email,
+					Name:     fmt.Sprintf("infra:%s", u.Email),
 				})
 			}
 
@@ -347,7 +347,7 @@ func (k *Kubernetes) UpdateRoles(roles []api.Role) error {
 					crbSubjects[r.Name] = append(crbSubjects[r.Name], rbacv1.Subject{
 						APIGroup: "rbac.authorization.k8s.io",
 						Kind:     "User",
-						Name:     u.Email,
+						Name:     fmt.Sprintf("infra:%s", u.Email),
 					})
 				}
 			} else {
@@ -362,7 +362,7 @@ func (k *Kubernetes) UpdateRoles(roles []api.Role) error {
 					rbSubjects[nspaceRole] = append(rbSubjects[nspaceRole], rbacv1.Subject{
 						APIGroup: "rbac.authorization.k8s.io",
 						Kind:     "User",
-						Name:     u.Email,
+						Name:     fmt.Sprintf("infra:%s", u.Email),
 					})
 				}
 			}

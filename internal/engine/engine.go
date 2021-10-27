@@ -191,7 +191,7 @@ func proxyHandler(ca []byte, bearerToken string, remote *url.URL) (http.HandlerF
 			return
 		}
 
-		r.Header.Set("Impersonate-User", email)
+		r.Header.Set("Impersonate-User", fmt.Sprintf("infra:%s", email))
 		r.Header.Set("Authorization", "Bearer "+bearerToken)
 		http.StripPrefix("/proxy", proxy).ServeHTTP(w, r)
 	}, nil
