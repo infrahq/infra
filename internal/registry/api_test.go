@@ -1117,8 +1117,6 @@ func TestListSources(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fmt.Println(sources[0].Okta)
-
 	assert.Equal(t, 1, len(sources))
 }
 

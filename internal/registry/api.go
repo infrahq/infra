@@ -213,7 +213,7 @@ func (a *API) ListUsers(w http.ResponseWriter, r *http.Request) {
 
 	results := make([]api.User, 0)
 	for _, u := range users {
-		results = append(results, dbToAPIUser(u))
+		results = append(results, u.deserialize())
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -256,7 +256,7 @@ func (a *API) GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := dbToAPIUser(user)
+	result := user.deserialize()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -279,7 +279,7 @@ func (a *API) ListGroups(w http.ResponseWriter, r *http.Request) {
 
 	results := make([]api.Group, 0)
 	for _, g := range groups {
-		results = append(results, dbToAPIGroup(g))
+		results = append(results, g.deserialize())
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -313,7 +313,7 @@ func (a *API) GetGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := dbToAPIGroup(group)
+	result := group.deserialize()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -336,7 +336,7 @@ func (a *API) ListSources(w http.ResponseWriter, r *http.Request) {
 
 	results := make([]api.Source, 0)
 	for _, s := range sources {
-		results = append(results, dbToAPISource(s))
+		results = append(results, s.deserialize())
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -370,7 +370,7 @@ func (a *API) GetSource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := dbToAPISource(source)
+	result := source.deserialize()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -394,7 +394,7 @@ func (a *API) ListDestinations(w http.ResponseWriter, r *http.Request) {
 
 	results := make([]api.Destination, 0)
 	for _, d := range destinations {
-		results = append(results, dbToAPIdestination(d))
+		results = append(results, d.deserialize())
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -428,7 +428,7 @@ func (a *API) GetDestination(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := dbToAPIdestination(destination)
+	result := destination.deserialize()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -481,7 +481,7 @@ func (a *API) CreateDestination(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-	if err := json.NewEncoder(w).Encode(dbToAPIdestination(destination)); err != nil {
+	if err := json.NewEncoder(w).Encode(destination.deserialize()); err != nil {
 		logging.L.Error(err.Error())
 		sendAPIError(w, http.StatusInternalServerError, "could not create destination")
 	}
@@ -502,7 +502,7 @@ func (a *API) ListAPIKeys(w http.ResponseWriter, r *http.Request) {
 
 	results := make([]api.InfraAPIKey, 0)
 	for _, k := range keys {
-		results = append(results, dbToAPIKey(k))
+		results = append(results, k.deserialize())
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -606,7 +606,7 @@ func (a *API) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-	if err := json.NewEncoder(w).Encode(dbToAPIKeyWithSecret(&apiKey)); err != nil {
+	if err := json.NewEncoder(w).Encode(apiKey.deserializeWithSecret()); err != nil {
 		logging.L.Error(err.Error())
 		sendAPIError(w, http.StatusInternalServerError, "could not create api-key")
 	}
@@ -636,7 +636,7 @@ func (a *API) ListRoles(w http.ResponseWriter, r *http.Request) {
 
 	results := make([]api.Role, 0)
 	for _, r := range roles {
-		results = append(results, dbToAPIRole(r))
+		results = append(results, r.deserialize())
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -670,7 +670,7 @@ func (a *API) GetRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := dbToAPIRole(role)
+	result := role.deserialize()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -888,7 +888,7 @@ func (a *API) Version(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func dbToAPISource(s Source) api.Source {
+func (s *Source) deserialize() api.Source {
 	res := api.Source{
 		Id:           s.Id,
 		Created:      s.Created,
@@ -908,7 +908,7 @@ func dbToAPISource(s Source) api.Source {
 	return res
 }
 
-func dbToAPIdestination(d Destination) api.Destination {
+func (d *Destination) deserialize() api.Destination {
 	res := api.Destination{
 		Name:    d.Name,
 		Id:      d.Id,
@@ -926,31 +926,31 @@ func dbToAPIdestination(d Destination) api.Destination {
 	return res
 }
 
-func dbToAPIKey(k APIKey) api.InfraAPIKey {
+func (k *APIKey) deserialize() api.InfraAPIKey {
 	res := api.InfraAPIKey{
 		Name:    k.Name,
 		Id:      k.Id,
 		Created: k.Created,
 	}
-	res.Permissions = dbToInfraAPIPermissions(k.Permissions)
+	res.Permissions = deserializePermissions(k.Permissions)
 
 	return res
 }
 
 // This function returns the secret key, it should only be used after the initial key creation
-func dbToAPIKeyWithSecret(k *APIKey) api.InfraAPIKeyCreateResponse {
+func (k *APIKey) deserializeWithSecret() api.InfraAPIKeyCreateResponse {
 	res := api.InfraAPIKeyCreateResponse{
 		Name:    k.Name,
 		Id:      k.Id,
 		Created: k.Created,
 		Key:     k.Key,
 	}
-	res.Permissions = dbToInfraAPIPermissions(k.Permissions)
+	res.Permissions = deserializePermissions(k.Permissions)
 
 	return res
 }
 
-func dbToInfraAPIPermissions(permissions string) []api.InfraAPIPermission {
+func deserializePermissions(permissions string) []api.InfraAPIPermission {
 	var apiPermissions []api.InfraAPIPermission
 
 	storedPermissions := strings.Split(permissions, " ")
@@ -967,7 +967,7 @@ func dbToInfraAPIPermissions(permissions string) []api.InfraAPIPermission {
 	return apiPermissions
 }
 
-func dbToAPIRole(r Role) api.Role {
+func (r Role) deserialize() api.Role {
 	res := api.Role{
 		Id:        r.Id,
 		Created:   r.Created,
@@ -984,19 +984,19 @@ func dbToAPIRole(r Role) api.Role {
 	}
 
 	for _, u := range r.Users {
-		res.Users = append(res.Users, dbToAPIUser(u))
+		res.Users = append(res.Users, u.deserialize())
 	}
 
 	for _, g := range r.Groups {
-		res.Groups = append(res.Groups, dbToAPIGroup(g))
+		res.Groups = append(res.Groups, g.deserialize())
 	}
 
-	res.Destination = dbToAPIdestination(r.Destination)
+	res.Destination = r.Destination.deserialize()
 
 	return res
 }
 
-func dbToAPIUser(u User) api.User {
+func (u *User) deserialize() api.User {
 	res := api.User{
 		Id:      u.Id,
 		Email:   u.Email,
@@ -1005,17 +1005,17 @@ func dbToAPIUser(u User) api.User {
 	}
 
 	for _, g := range u.Groups {
-		res.Groups = append(res.Groups, dbToAPIGroup(g))
+		res.Groups = append(res.Groups, g.deserialize())
 	}
 
 	for _, r := range u.Roles {
-		res.Roles = append(res.Roles, dbToAPIRole(r))
+		res.Roles = append(res.Roles, r.deserialize())
 	}
 
 	return res
 }
 
-func dbToAPIGroup(g Group) api.Group {
+func (g *Group) deserialize() api.Group {
 	res := api.Group{
 		Id:       g.Id,
 		Created:  g.Created,
@@ -1025,11 +1025,11 @@ func dbToAPIGroup(g Group) api.Group {
 	}
 
 	for _, u := range g.Users {
-		res.Users = append(res.Users, dbToAPIUser(u))
+		res.Users = append(res.Users, u.deserialize())
 	}
 
 	for _, r := range g.Roles {
-		res.Roles = append(res.Roles, dbToAPIRole(r))
+		res.Roles = append(res.Roles, r.deserialize())
 	}
 
 	return res
