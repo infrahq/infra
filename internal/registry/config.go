@@ -441,12 +441,29 @@ func importRoles(db *gorm.DB, roles []ConfigRoleKubernetes) (rolesImported []Rol
 	return rolesImported, importedRoleIDs, nil
 }
 
+var baseSecretStorageTypes = []string{
+	"env",
+	"file",
+	"plain",
+	"kubernetes",
+}
+
+func isABaseSecretStorageType(s string) bool {
+	for _, item := range baseSecretStorageTypes {
+		if item == s {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (r *Registry) configureSecrets(config Config) error {
 	if r.secrets == nil {
 		r.secrets = map[string]secrets.SecretStorage{}
 	}
 
-	for _, secret := range config.Secrets {
+	loadSecretConfig := func(secret ConfigSecretProvider) (err error) {
 		name := secret.Name
 		if len(name) == 0 {
 			name = secret.Type
@@ -463,6 +480,11 @@ func (r *Registry) configureSecrets(config Config) error {
 				return fmt.Errorf("expected secret config to be VaultConfig, but was %t", secret.Config)
 			}
 
+			cfg.Token, err = r.GetSecret(cfg.Token)
+			if err != nil {
+				return err
+			}
+
 			vault, err := secrets.NewVaultSecretProviderFromConfig(cfg)
 			if err != nil {
 				return fmt.Errorf("creating vault provider: %w", err)
@@ -475,6 +497,16 @@ func (r *Registry) configureSecrets(config Config) error {
 				return fmt.Errorf("expected secret config to be AWSSSMConfig, but was %t", secret.Config)
 			}
 
+			cfg.AccessKeyID, err = r.GetSecret(cfg.AccessKeyID)
+			if err != nil {
+				return err
+			}
+
+			cfg.SecretAccessKey, err = r.GetSecret(cfg.SecretAccessKey)
+			if err != nil {
+				return err
+			}
+
 			ssm, err := secrets.NewAWSSSMFromConfig(cfg)
 			if err != nil {
 				return fmt.Errorf("creating aws ssm: %w", err)
@@ -485,6 +517,16 @@ func (r *Registry) configureSecrets(config Config) error {
 			cfg, ok := secret.Config.(secrets.AWSSecretsManagerConfig)
 			if !ok {
 				return fmt.Errorf("expected secret config to be AWSSecretsManagerConfig, but was %t", secret.Config)
+			}
+
+			cfg.AccessKeyID, err = r.GetSecret(cfg.AccessKeyID)
+			if err != nil {
+				return err
+			}
+
+			cfg.SecretAccessKey, err = r.GetSecret(cfg.SecretAccessKey)
+			if err != nil {
+				return err
 			}
 
 			sm, err := secrets.NewAWSSecretsManagerFromConfig(cfg)
@@ -532,8 +574,40 @@ func (r *Registry) configureSecrets(config Config) error {
 		default:
 			return fmt.Errorf("unknown secret provider type %q", secret.Type)
 		}
+
+		return nil
 	}
 
+	// check all base types first
+	for _, secret := range config.Secrets {
+		if !isABaseSecretStorageType(secret.Type) {
+			continue
+		}
+
+		if err := loadSecretConfig(secret); err != nil {
+			return err
+		}
+	}
+
+	if err := r.loadDefaultSecretConfig(); err != nil {
+		return err
+	}
+
+	// now load non-base types which might depend on them.
+	for _, secret := range config.Secrets {
+		if isABaseSecretStorageType(secret.Type) {
+			continue
+		}
+
+		if err := loadSecretConfig(secret); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (r *Registry) loadDefaultSecretConfig() error {
 	// set up the default supported types
 	if _, found := r.secrets["env"]; !found {
 		f := secrets.NewEnvSecretProviderFromConfig(secrets.GenericConfig{})
