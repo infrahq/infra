@@ -46,5 +46,5 @@ func (t *Timer) Stop() {
 // LogTimeElapsed logs the amount of time since this function was defered at the debug level
 func LogTimeElapsed(start time.Time, task string) {
 	elapsed := time.Since(start)
-	logging.L.Sugar().Debugf("%s in %s", task, elapsed)
+	logging.S.Debugf("%s in %s", task, elapsed)
 }

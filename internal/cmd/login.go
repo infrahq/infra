@@ -15,6 +15,7 @@ import (
 	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/cli/browser"
 	"github.com/goware/urlx"
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/muesli/termenv"
@@ -23,12 +24,12 @@ import (
 )
 
 type LoginOptions struct {
-	Host    string
-	Current bool
-	Timeout time.Duration
+	Current bool          `mapstructure:"current"`
+	Timeout time.Duration `mapstructure:"timeout"`
+	internal.GlobalOptions
 }
 
-func login(options LoginOptions) error {
+func login(options *LoginOptions) error {
 	// TODO (https://github.com/infrahq/infra/issues/488): support non-interactive login
 	if !term.IsTerminal(int(os.Stdin.Fd())) {
 		return ErrConfigNotFound

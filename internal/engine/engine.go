@@ -21,6 +21,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/handlers"
 	"github.com/goware/urlx"
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/kubernetes"
@@ -33,11 +34,11 @@ import (
 )
 
 type Options struct {
-	Host           string
-	Name           string
-	ForceTLSVerify bool
-	EngineAPIKey   string
-	TLSCache       string
+	Name          string `mapstructure:"name"`
+	APIKey        string `mapstructure:"api-key"`
+	TLSCache      string `mapstructure:"tls-cache"`
+	SkipTLSVerify bool   `mapstructure:"skip-tls-verify"`
+	internal.GlobalOptions
 }
 
 type jwkCache struct {
@@ -154,7 +155,7 @@ func jwtMiddleware(destination string, getjwk GetJWKFunc, next http.HandlerFunc)
 		}
 
 		if claims.Destination != destination {
-			logging.L.Sugar().Debugf("JWT custom claims destination %q does not match expected destination %q", claims.Destination, destination)
+			logging.S.Debugf("JWT custom claims destination %q does not match expected destination %q", claims.Destination, destination)
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -209,12 +210,10 @@ func (b *BearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return b.Transport.RoundTrip(req)
 }
 
-func Run(options Options) error {
-	hostTLSConfig := &tls.Config{
-		MinVersion: tls.VersionTLS12,
-	}
+func Run(options *Options) error {
+	hostTLSConfig := &tls.Config{MinVersion: tls.VersionTLS12}
 
-	if !options.ForceTLSVerify {
+	if options.SkipTLSVerify {
 		// TODO (https://github.com/infrahq/infra/issues/174)
 		// Find a way to re-use the built-in TLS verification code vs
 		// this custom code based on the official go TLS example code
@@ -239,7 +238,7 @@ func Run(options Options) error {
 		}
 	}
 
-	engineAPIKeyURI, err := url.Parse(options.EngineAPIKey)
+	engineAPIKeyURI, err := url.Parse(options.APIKey)
 	if err != nil {
 		return err
 	}
@@ -249,7 +248,7 @@ func Run(options Options) error {
 	switch engineAPIKeyURI.Scheme {
 	case "":
 		// option does not have a scheme, assume it is plaintext
-		engineAPIKey = string(options.EngineAPIKey)
+		engineAPIKey = string(options.APIKey)
 	case "file":
 		// option is a file path, read contents from the path
 		contents, err := ioutil.ReadFile(engineAPIKeyURI.Path)
@@ -269,12 +268,12 @@ func Run(options Options) error {
 	}
 
 	if options.Host == "" {
-		infraService, err := k8s.Service("infra")
+		service, err := k8s.Service("infra")
 		if err != nil {
 			return err
 		}
 
-		metadata := infraService.ObjectMeta
+		metadata := service.ObjectMeta
 		options.Host = fmt.Sprintf("%s.%s", metadata.Name, metadata.Namespace)
 	}
 
@@ -337,21 +336,21 @@ func Run(options Options) error {
 			return
 		}
 
-		logging.L.Sugar().Debugf("endpoint is: %s", endpoint)
+		logging.S.Debugf("endpoint is: %s", endpoint)
 
 		// check if the endpoint is localhost, if it is DNS lookup won't resolve
 		local, err := regexp.MatchString("(http://|https://)?localhost:?[0-9]{0,5}", endpoint)
 		if err != nil {
-			logging.L.Sugar().Errorf("endpoint match failed: %w", err)
+			logging.S.Errorf("endpoint match failed: %w", err)
 			// continue as a non-local endpoint
 		}
 
 		if local {
-			logging.L.Sugar().Debug("not testing DNS lookup for localhost")
+			logging.S.Debug("not testing DNS lookup for localhost")
 		} else {
 			_, err = net.LookupIP(endpoint)
 			if err != nil {
-				logging.L.Sugar().Errorf("endpoint DNS does not yet resolve, waiting to register")
+				logging.S.Errorf("endpoint DNS does not yet resolve, waiting to register")
 				return
 			}
 		}
@@ -372,10 +371,10 @@ func Run(options Options) error {
 					logging.L.Error(err.Error())
 					return
 				}
+			} else {
+				logging.L.Error("cache get: " + err.Error())
+				return
 			}
-
-			logging.L.Error("cache get: " + err.Error())
-			return
 		}
 
 		destination, _, err := client.DestinationsAPI.CreateDestination(ctx).Body(api.DestinationCreateRequest{

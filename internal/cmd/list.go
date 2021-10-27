@@ -8,10 +8,15 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/lensesio/tableprinter"
 	"k8s.io/client-go/tools/clientcmd"
 )
+
+type ListOptions struct {
+	internal.GlobalOptions
+}
 
 type statusRow struct {
 	CurrentlySelected        string `header:"CURRENT"` // * if selected
@@ -22,18 +27,18 @@ type statusRow struct {
 	CertificateAuthorityData []byte // don't display in table
 }
 
-func list() error {
+func list(options *ListOptions) error {
 	config, err := currentHostConfig()
 	if err != nil {
 		return err
 	}
 
-	client, err := apiClientFromConfig()
+	client, err := apiClientFromConfig(options.Host)
 	if err != nil {
 		return err
 	}
 
-	ctx, err := apiContextFromConfig()
+	ctx, err := apiContextFromConfig(options.Host)
 	if err != nil {
 		return err
 	}
@@ -44,11 +49,11 @@ func list() error {
 		case http.StatusForbidden:
 			fmt.Fprintln(os.Stderr, "Session has expired.")
 
-			if err = login(LoginOptions{Current: true}); err != nil {
+			if err = login(&LoginOptions{Current: true}); err != nil {
 				return err
 			}
 
-			return list()
+			return list(options)
 
 		default:
 			return errWithResponseContext(err, res)

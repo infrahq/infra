@@ -4,11 +4,16 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 )
 
-func logout(host string) error {
-	config, err := readHostConfig(host)
+type LogoutOptions struct {
+	internal.GlobalOptions
+}
+
+func logout(options *LogoutOptions) error {
+	config, err := readHostConfig(options.Host)
 	if err != nil {
 		return err
 	}

@@ -4,7 +4,7 @@ First, switch to the cluster context where you installed Infra, then retrieve yo
 
 ```
 INFRA_HOST=$(kubectl -n infrahq get services -l infrahq.com/component=infra -o jsonpath="{.items.status.loadBalancer.ingress[]['ip', 'hostname']}")
-ENGINE_API_KEY=$(kubectl -n infrahq get secrets infra --template={{.data.engine-key}} | base64 -D)
+INFRA_ENGINE_API_KEY=$(kubectl -n infrahq get secrets infra-engine --template={{.data.engine-api-key}} | base64 -D)
 ```
 
 Next, switch to the cluster you want to add:

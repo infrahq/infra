@@ -157,7 +157,7 @@ func (u *User) BeforeDelete(tx *gorm.DB) error {
 		return fmt.Errorf("delete user tokens before user: %w", err)
 	}
 
-	logging.L.Sugar().Debugf("deleting user: %s", u.Id)
+	logging.S.Debugf("deleting user: %s", u.Id)
 
 	var roles []Role
 	if err := tx.Model(u).Association("Roles").Find(&roles); err != nil {
@@ -225,7 +225,7 @@ func (g *Group) BeforeDelete(tx *gorm.DB) error {
 		return fmt.Errorf("clear group users before delete: %w", err)
 	}
 
-	logging.L.Sugar().Debugf("deleting group: %s", g.Id)
+	logging.S.Debugf("deleting group: %s", g.Id)
 
 	var roles []Role
 	if err := tx.Model(g).Association("Roles").Find(&roles); err != nil {
@@ -246,7 +246,7 @@ func cleanUnassociatedRoles(tx *gorm.DB, roles []Role) error {
 		grpCount := tx.Model(r).Association("Groups").Count()
 
 		if usrCount == 0 && grpCount == 0 {
-			logging.L.Sugar().Debugf("deleting role with no associations: %s at %s", r.Id, r.DestinationId)
+			logging.S.Debugf("deleting role with no associations: %s at %s", r.Id, r.DestinationId)
 
 			if err := tx.Delete(r).Error; err != nil {
 				return fmt.Errorf("delete unassociated role: %w", err)
@@ -402,7 +402,7 @@ func (s *Source) SyncGroups(r *Registry) error {
 		for groupName, emails := range groupEmails {
 			var group Group
 			if err := tx.FirstOrCreate(&group, Group{Name: groupName, SourceId: s.Id}).Error; err != nil {
-				logging.L.Sugar().Debug("could not find or create okta group: " + groupName)
+				logging.S.Debug("could not find or create okta group: " + groupName)
 				return fmt.Errorf("sync create okta group: %w", err)
 			}
 			var users []User

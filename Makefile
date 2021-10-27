@@ -91,7 +91,7 @@ dev: $(VALUES) helm build/docker
 	kubectl $(NS) get secrets $(INFRA_OKTA) >/dev/null
 	helm $(NS) upgrade --install --create-namespace $(patsubst %,-f %,$(VALUES)) --wait infra helm/charts/infra
 	@[ -z "$(NS)" ] || kubectl config set-context --current --namespace=$(NAMESPACE)
-	@echo Root token is $$(kubectl $(NS) get secrets infra -o jsonpath='{.data.root-key}' | base64 --decode)
+	@echo Root token is $$(kubectl $(NS) get secrets infra -o jsonpath='{.data.root-api-key}' | base64 --decode)
 
 dev/clean:
 	kubectl config use-context docker-desktop

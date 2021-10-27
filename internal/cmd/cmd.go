@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/goware/urlx"
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/engine"
 	"github.com/infrahq/infra/internal/logging"
@@ -81,8 +81,8 @@ func infraHomeDir() (string, error) {
 	return infraDir, nil
 }
 
-func apiContextFromConfig() (context.Context, error) {
-	config, err := currentHostConfig()
+func apiContextFromConfig(host string) (context.Context, error) {
+	config, err := readHostConfig(host)
 	if err != nil {
 		return nil, err
 	}
@@ -94,8 +94,8 @@ func apiContextFromConfig() (context.Context, error) {
 	return NewAPIContext(config.Token), nil
 }
 
-func apiClientFromConfig() (*api.APIClient, error) {
-	config, err := currentHostConfig()
+func apiClientFromConfig(host string) (*api.APIClient, error) {
+	config, err := readHostConfig(host)
 	if err != nil {
 		return nil, err
 	}
@@ -207,179 +207,155 @@ func updateKubeconfig(user api.User) error {
 	return nil
 }
 
-func newLoginCmd() (*cobra.Command, error) {
-	var options LoginOptions
-
+func newLoginCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:     "login [HOST]",
 		Short:   "Login to Infra",
 		Args:    cobra.MaximumNArgs(1),
 		Example: "$ infra login infra.example.com",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			host := ""
-			if len(args) == 1 {
-				host = args[0]
+			options := LoginOptions{GlobalOptions: globalOptions}
+			if err := internal.ParseOptions(cmd, &options); err != nil {
+				return err
 			}
 
-			return login(LoginOptions{
-				Host: host,
-			})
+			if len(args) == 1 {
+				options.Host = args[0]
+			}
+
+			return login(&options)
 		},
 	}
 
-	cmd.Flags().DurationVarP(&options.Timeout, "timeout", "t", defaultTimeout, "login timeout")
+	cmd.Flags().DurationP("timeout", "t", defaultTimeout, "login timeout")
 
 	return cmd, nil
 }
 
-func newLogoutCmd() (*cobra.Command, error) {
+func newLogoutCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:     "logout",
 		Short:   "Logout Infra",
 		Args:    cobra.MaximumNArgs(1),
 		Example: "$ infra logout",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			host := ""
-			if len(args) == 1 {
-				host = args[0]
+			options := LogoutOptions{GlobalOptions: globalOptions}
+			if err := internal.ParseOptions(cmd, &options); err != nil {
+				return err
 			}
 
-			return logout(host)
+			if len(args) == 1 {
+				options.Host = args[0]
+			}
+
+			return logout(&options)
 		},
 	}
 
 	return cmd, nil
 }
 
-func newListCmd() (*cobra.Command, error) {
+func newListCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List destinations",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return list()
+			options := ListOptions{GlobalOptions: globalOptions}
+			if err := internal.ParseOptions(cmd, &options); err != nil {
+				return err
+			}
+
+			return list(&options)
 		},
 	}
 
 	return cmd, nil
 }
 
-func newStartCmd() (*cobra.Command, error) {
-	var options registry.Options
-
+func newStartCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:    "start",
 		Short:  "Start Infra",
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			options := registry.Options{GlobalOptions: globalOptions}
+			if err := internal.ParseOptions(cmd, &options); err != nil {
+				return err
+			}
+
 			return registry.Run(options)
 		},
 	}
 
-	defaultInfraHome := filepath.Join("~", ".infra")
+	cmd.Flags().StringP("config-path", "c", "", "Infra config file")
+	cmd.Flags().String("root-api-key", "", "root API key")
+	cmd.Flags().String("engine-api-key", "", "engine registration API key")
+	cmd.Flags().String("tls-cache", "", "path to cache self-signed and Let's Encrypt TLS certificates")
+	cmd.Flags().String("db-file", "", "path to database file")
 
-	cmd.Flags().StringVarP(&options.ConfigPath, "config", "c", "", "config file")
-	cmd.Flags().StringVar(&options.RootAPIKey, "root-api-key", os.Getenv("INFRA_ROOT_API_KEY"), "root API key")
-	cmd.Flags().StringVar(&options.EngineAPIKey, "engine-api-key", os.Getenv("INFRA_ENGINE_API_KEY"), "engine registration API key")
-	cmd.Flags().StringVar(&options.DBPath, "db", filepath.Join(defaultInfraHome, "infra.db"), "path to database file")
-	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(defaultInfraHome, "cache"), "path to directory to cache tls self-signed and Let's Encrypt certificates")
-	cmd.Flags().BoolVar(&options.UI, "ui", false, "enable ui")
-	cmd.Flags().StringVar(&options.UIProxy, "ui-proxy", "", "proxy ui requests to this host")
-	cmd.Flags().BoolVar(&options.EnableTelemetry, "enable-telemetry", true, "enable telemetry")
-	cmd.Flags().BoolVar(&options.EnableCrashReporting, "enable-crash-reporting", true, "enable crash reporting")
+	cmd.Flags().String("ui-proxy", "", "proxy UI requests to this host")
+	cmd.Flags().Bool("enable-ui", false, "enable UI")
 
-	infraDir, err := infraHomeDir()
-	if err != nil {
-		return nil, err
-	}
+	cmd.Flags().Duration("sources-sync-interval", registry.DefaultSourcesSyncInterval, "the interval at which Infra will poll sources for users and groups")
+	cmd.Flags().Duration("destinations-sync-interval", registry.DefaultDestinationsSyncInterval, "the interval at which Infra will poll destinations")
 
-	if filepath.Dir(options.DBPath) == defaultInfraHome {
-		options.DBPath = filepath.Join(infraDir, "infra.db")
-	}
-
-	if filepath.Dir(options.TLSCache) == defaultInfraHome {
-		options.TLSCache = filepath.Join(infraDir, "cache")
-	}
-
-	defaultSync := 30
-
-	osSync := os.Getenv("INFRA_SYNC_INTERVAL_SECONDS")
-	if osSync != "" {
-		defaultSync, err = strconv.Atoi(osSync)
-		if err != nil {
-			logging.L.Error("could not convert INFRA_SYNC_INTERVAL_SECONDS to an integer: " + err.Error())
-		}
-	}
-
-	cmd.Flags().IntVar(&options.SyncInterval, "sync-interval", defaultSync, "the interval (in seconds) at which Infra will poll sources for users and groups")
+	cmd.Flags().Bool("enable-telemetry", true, "enable telemetry")
+	cmd.Flags().Bool("enable-crash-reporting", true, "enable crash reporting")
 
 	return cmd, nil
 }
 
-func newEngineCmd() (*cobra.Command, error) {
-	var options engine.Options
-
+func newEngineCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:    "engine",
 		Short:  "Start Infra Engine",
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if options.Host == "" {
-				logging.L.Warn("infra host not specified; will try to get from kubernetes")
+			options := engine.Options{GlobalOptions: globalOptions}
+			if err := internal.ParseOptions(cmd, &options); err != nil {
+				return err
 			}
 
-			if options.EngineAPIKey == "" {
-				return fmt.Errorf("'--engine-api-key' not specified")
-			}
-
-			return engine.Run(options)
+			return engine.Run(&options)
 		},
 	}
 
-	defaultInfraHome := filepath.Join("~", ".infra")
-
-	cmd.PersistentFlags().BoolVar(&options.ForceTLSVerify, "force-tls-verify", false, "force TLS verification")
-	cmd.Flags().StringVarP(&options.Host, "host", "h", os.Getenv("INFRA_HOST"), "infra host")
-	cmd.Flags().StringVarP(&options.Name, "name", "n", os.Getenv("INFRA_ENGINE_NAME"), "cluster name")
-	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(defaultInfraHome, "cache"), "path to directory to cache tls self-signed and Let's Encrypt certificates")
-	cmd.Flags().StringVar(&options.EngineAPIKey, "engine-api-key", os.Getenv("INFRA_ENGINE_API_KEY"), "engine registration API key")
-
-	if filepath.Dir(options.TLSCache) == defaultInfraHome {
-		infraDir, err := infraHomeDir()
-		if err != nil {
-			return nil, err
-		}
-
-		options.TLSCache = filepath.Join(infraDir, "cache")
-	}
+	cmd.Flags().StringP("name", "n", "", "cluster name")
+	cmd.Flags().String("api-key", "", "engine registry API key")
+	cmd.Flags().String("tls-cache", "", "path to cache self-signed and Let's Encrypt TLS certificates")
+	cmd.Flags().Bool("skip-tls-verify", true, "skip TLS verification")
 
 	return cmd, nil
 }
 
-func newVersionCmd() (*cobra.Command, error) {
-	var options VersionOptions
-
+func newVersionCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:   "version",
 		Short: "Display the Infra build version",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return version(options)
+			options := VersionOptions{GlobalOptions: globalOptions}
+			if err := internal.ParseOptions(cmd, &options); err != nil {
+				return err
+			}
+
+			return version(&options)
 		},
 	}
 
-	cmd.Flags().BoolVarP(&options.Client, "client", "c", false, "Display client version only")
-	cmd.Flags().BoolVarP(&options.Infra, "infra", "r", false, "Display infra version only")
+	cmd.Flags().Bool("client", false, "Display client version only")
+	cmd.Flags().Bool("server", false, "Display server version only")
 
 	return cmd, nil
 }
 
-func newTokensCmd() (*cobra.Command, error) {
+func newTokensCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:   "tokens",
 		Short: "Token subcommands",
 	}
 
-	tokenCreateCmd, err := newTokenCreateCmd()
+	tokenCreateCmd, err := newTokenCreateCmd(globalOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -392,37 +368,39 @@ func newTokensCmd() (*cobra.Command, error) {
 func NewRootCmd() (*cobra.Command, error) {
 	cobra.EnableCommandSorting = false
 
-	loginCmd, err := newLoginCmd()
+	var globalOptions internal.GlobalOptions
+
+	loginCmd, err := newLoginCmd(globalOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	logoutCmd, err := newLogoutCmd()
+	logoutCmd, err := newLogoutCmd(globalOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	listCmd, err := newListCmd()
+	listCmd, err := newListCmd(globalOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	tokensCmd, err := newTokensCmd()
+	tokensCmd, err := newTokensCmd(globalOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	versionCmd, err := newVersionCmd()
+	versionCmd, err := newVersionCmd(globalOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	startCmd, err := newStartCmd()
+	startCmd, err := newStartCmd(globalOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	engineCmd, err := newEngineCmd()
+	engineCmd, err := newEngineCmd(globalOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -430,8 +408,22 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd := &cobra.Command{
 		Use:   "infra",
 		Short: "Infrastructure Identity & Access Management (IAM)",
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			cmd.SilenceUsage = true
+
+			if err := internal.ParseOptions(cmd, &globalOptions); err != nil {
+				return err
+			}
+
+			logger, err := logging.Initialize(globalOptions.LogLevel)
+			if err != nil {
+				logging.L.Warn(err.Error())
+			} else {
+				logging.L = logger
+				logging.S = logger.Sugar()
+			}
+
+			return nil
 		},
 	}
 
@@ -443,6 +435,10 @@ func NewRootCmd() (*cobra.Command, error) {
 
 	rootCmd.AddCommand(startCmd)
 	rootCmd.AddCommand(engineCmd)
+
+	rootCmd.PersistentFlags().StringP("config-file", "f", "", "Infra configuration file path")
+	rootCmd.PersistentFlags().StringP("host", "H", "", "Infra host")
+	rootCmd.PersistentFlags().StringP("log-level", "l", "info", "log level")
 
 	return rootCmd, nil
 }

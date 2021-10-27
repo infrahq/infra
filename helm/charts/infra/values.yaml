@@ -1,17 +1,21 @@
 config: null
 storage: 1Gi
 
+config-path: /var/run/infra/config/infra.yaml
+tls-cache: /var/run/infra/data/cache
+db-file: /var/run/infra/data/infra.db
+
+root-api-key: file:///var/run/secrets/infrahq.com/infra/root-api-key
+engine-api-key: file:///var/run/secrets/infrahq.com/engine/engine-api-key
+
+enable-telemetry: true
+enable-crash-reporting: true
+
 engine:
   apiKey: ""
 
 pod:
   annotations: {}
-
-telemetry:
-  enabled: true
-
-crashReporting:
-  enabled: true
 
 serviceAccount:
   create: true

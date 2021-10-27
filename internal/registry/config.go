@@ -68,7 +68,7 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 			s.cleanupDomain()
 
 			if s.Domain == "" {
-				logging.L.Sugar().Infof("domain not set on source \"%s\", import skipped", s.Kind)
+				logging.S.Infof("domain not set on source \"%s\", import skipped", s.Kind)
 			}
 
 			// check if we are about to override an existing source
@@ -97,9 +97,9 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 
 			idsToKeep = append(idsToKeep, source.Id)
 		case "":
-			logging.L.Sugar().Errorf("skipping a source with no kind set in configuration")
+			logging.S.Errorf("skipping a source with no kind set in configuration")
 		default:
-			logging.L.Sugar().Errorf("skipping invalid source kind in configuration: %s", s.Kind)
+			logging.S.Errorf("skipping invalid source kind in configuration: %s", s.Kind)
 		}
 	}
 
@@ -121,7 +121,7 @@ func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (modifiedRoleI
 		if srcReadErr != nil {
 			if errors.Is(srcReadErr, gorm.ErrRecordNotFound) {
 				// skip this source, it will need to be added in the config and re-applied
-				logging.L.Sugar().Debugf("skipping group '%s' with source '%s' in config that does not exist", g.Name, g.Source)
+				logging.S.Debugf("skipping group '%s' with source '%s' in config that does not exist", g.Name, g.Source)
 				continue
 			}
 
@@ -234,7 +234,7 @@ func ImportRoleMappings(db *gorm.DB, groups []ConfigGroupMapping, users []Config
 		}
 	}
 
-	logging.L.Sugar().Debugf("importing configuration removed %d role(s)", len(rolesRemoved))
+	logging.S.Debugf("importing configuration removed %d role(s)", len(rolesRemoved))
 
 	return nil
 }

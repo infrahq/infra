@@ -2,38 +2,29 @@
 package logging
 
 import (
-	"fmt"
-	"os"
-
 	"go.uber.org/zap"
 )
 
-var L *zap.Logger // L is the default zap logger initialized at start-up
+var (
+	L *zap.Logger        = zap.L()
+	S *zap.SugaredLogger = zap.S()
+)
 
-func init() {
-	var err error
+func Initialize(level string) (*zap.Logger, error) {
+	config := zap.NewProductionConfig()
+	atom := zap.NewAtomicLevel()
 
-	L, err = Build()
+	err := atom.UnmarshalText([]byte(level))
 	if err != nil {
-		panic(err)
-	}
-}
-
-// Build makes a new production Zap logger with the configured log level.
-func Build() (*zap.Logger, error) {
-	return config(os.Getenv("INFRA_LOG_LEVEL")).Build()
-}
-
-func config(lvl string) zap.Config {
-	conf := zap.NewProductionConfig()
-	atomicLvl := zap.NewAtomicLevel()
-
-	err := atomicLvl.UnmarshalText([]byte(lvl))
-	if err != nil {
-		fmt.Printf("Using default log level. %v\n", err)
-	} else {
-		conf.Level = atomicLvl
+		return nil, err
 	}
 
-	return conf
+	config.Level = atom
+
+	logger, err := config.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return logger, nil
 }

@@ -8,16 +8,32 @@ import (
 )
 
 func TestConfigDefault(t *testing.T) {
-	got := config("") // the empty string here models what Build() would pass into this function when there is no log level env var
-	assert.Equal(t, zap.NewProductionConfig().Level.String(), got.Level.String())
+	logger, _ := Initialize("")
+
+	assert.NotNil(t, logger)
+
+	if checked := logger.Check(zap.InfoLevel, "default"); checked == nil {
+		assert.Fail(t, "could not log info level messages")
+	}
+
+	if checked := logger.Check(zap.DebugLevel, "not default"); checked != nil {
+		assert.Fail(t, "should not log debug level messages")
+	}
 }
 
 func TestConfigValidLevel(t *testing.T) {
-	got := config("debug")
-	assert.Equal(t, "debug", got.Level.String())
+	logger, _ := Initialize("debug")
+
+	assert.NotNil(t, logger)
+
+	if checked := logger.Check(zap.DebugLevel, "not default"); checked == nil {
+		assert.Fail(t, "could not log debug level messages")
+	}
 }
 
 func TestConfigInvalidLevel(t *testing.T) {
-	got := config("invalid") // invalid is not a level declared in zap levels
-	assert.Equal(t, zap.NewProductionConfig().Level.String(), got.Level.String())
+	logger, err := Initialize("invalid")
+
+	assert.Nil(t, logger)
+	assert.NotNil(t, err)
 }
