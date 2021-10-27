@@ -7,10 +7,10 @@ config:
   sources:
     - kind: okta
       domain: $OKTA_DOMAIN
-      clientID: $OKTA_CLIENT_ID
-      clientSecret: $OKTA_SECRET/clientSecret
+      client-id: $OKTA_CLIENT_ID
+      client-secret: $OKTA_SECRET/clientSecret
       okta:
-        apiToken: $OKTA_SECRET/apiToken
+        api-token: $OKTA_SECRET/apiToken
 
 engine:
   name: docker-desktop

@@ -12,14 +12,14 @@ import (
 )
 
 type ConfigOkta struct {
-	APIToken string `yaml:"apiToken"`
+	APIToken string `yaml:"api-token"`
 }
 
 type ConfigSource struct {
 	Kind         string     `yaml:"kind"`
 	Domain       string     `yaml:"domain"`
-	ClientID     string     `yaml:"clientID"`
-	ClientSecret string     `yaml:"clientSecret"`
+	ClientID     string     `yaml:"client-id"`
+	ClientSecret string     `yaml:"client-secret"`
 	Okta         ConfigOkta `yaml:"okta"`
 }
 
