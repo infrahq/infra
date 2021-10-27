@@ -64,6 +64,7 @@ func NewVaultSecretProvider(address, token, namespace string) (*VaultSecretProvi
 	cfg.Address = address
 	cfg.Token = token
 	cfg.Namespace = namespace
+
 	return NewVaultSecretProviderFromConfig(cfg)
 }
 
