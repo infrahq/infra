@@ -58,7 +58,7 @@ func (j *jwkCache) getjwk() (*jose.JSONWebKey, error) {
 		return j.key, nil
 	}
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, j.baseURL+"/.well-known/jwks.json", nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, fmt.Sprintf("%s/.well-known/jwks.json", j.baseURL), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +204,7 @@ type BearerTransport struct {
 
 func (b *BearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if b.Token != "" {
-		req.Header.Set("Authorization", "Bearer "+b.Token)
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", b.Token))
 	}
 
 	return b.Transport.RoundTrip(req)
@@ -231,7 +231,7 @@ func Run(options *Options) error {
 
 			_, err := cs.PeerCertificates[0].Verify(opts)
 			if err != nil {
-				logging.L.Warn("could not verify Infra TLS certificates: " + err.Error())
+				logging.S.Warnf("could not verify Infra TLS certificates: %s", err.Error())
 			}
 
 			return nil
@@ -332,7 +332,7 @@ func Run(options *Options) error {
 	timer.Start(5*time.Second, func() {
 		endpoint, err := k8s.Endpoint()
 		if err != nil {
-			logging.L.Error("endpoint: " + err.Error())
+			logging.S.Errorf("endpoint: %s", err.Error())
 			return
 		}
 
@@ -357,7 +357,7 @@ func Run(options *Options) error {
 
 		url, err := urlx.Parse(endpoint)
 		if err != nil {
-			logging.L.Error("url parse: " + err.Error())
+			logging.S.Errorf("url parse: %s", err.Error())
 			return
 		}
 
@@ -372,7 +372,7 @@ func Run(options *Options) error {
 					return
 				}
 			} else {
-				logging.L.Error("cache get: " + err.Error())
+				logging.S.Errorf("cache get: %s", err.Error())
 				return
 			}
 		}
@@ -385,18 +385,18 @@ func Run(options *Options) error {
 			},
 		}).Execute()
 		if err != nil {
-			logging.L.Error("Couldn't create destination: " + err.Error())
+			logging.S.Errorf("Couldn't create destination: %s", err.Error())
 			return
 		}
 
 		roles, _, err := client.RolesAPI.ListRoles(ctx).Destination(destination.Id).Execute()
 		if err != nil {
-			logging.L.Error("couldn't list roles: " + err.Error())
+			logging.S.Errorf("couldn't list roles: %s", err.Error())
 		}
 
 		err = k8s.UpdateRoles(roles)
 		if err != nil {
-			logging.L.Error("couldn't update roles: " + err.Error())
+			logging.S.Errorf("couldn't update roles: %s", err.Error())
 			return
 		}
 	})
