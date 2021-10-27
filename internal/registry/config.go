@@ -60,13 +60,13 @@ type ConfigUserMapping struct {
 }
 
 type ConfigSecretProvider struct {
-	Type   string      `yaml:"type"`
-	Name   string      `yaml:"name"`
+	Kind   string      `yaml:"kind"`
+	Name   string      `yaml:"name"` // optional
 	Config interface{} // contains secret-provider-specific config
 }
 
 type simpleConfigSecretProvider struct {
-	Type string `yaml:"type"`
+	Kind string `yaml:"kind"`
 	Name string `yaml:"name"`
 }
 
@@ -80,7 +80,7 @@ func (sp *ConfigSecretProvider) UnmarshalYAML(unmarshal func(interface{}) error)
 		return fmt.Errorf("unmarshalling secret provider: %w", err)
 	}
 
-	validSecretProviderTypes := []string{
+	validSecretProviderKinds := []string{
 		"vault",
 		"awsssm",
 		"awssecretsmanager",
@@ -90,10 +90,10 @@ func (sp *ConfigSecretProvider) UnmarshalYAML(unmarshal func(interface{}) error)
 		"plain",
 	}
 
-	sp.Type = tmp.Type
+	sp.Kind = tmp.Kind
 	sp.Name = tmp.Name
 
-	switch tmp.Type {
+	switch tmp.Kind {
 	case "vault":
 		p := secrets.NewVaultConfig()
 		if err := unmarshal(&p); err != nil {
@@ -144,7 +144,7 @@ func (sp *ConfigSecretProvider) UnmarshalYAML(unmarshal func(interface{}) error)
 
 		sp.Config = p
 	default:
-		return fmt.Errorf("unknown secret provider type %q, expected one of %q", tmp.Type, validSecretProviderTypes)
+		return fmt.Errorf("unknown secret provider type %q, expected one of %q", tmp.Kind, validSecretProviderKinds)
 	}
 
 	return nil
@@ -441,15 +441,15 @@ func importRoles(db *gorm.DB, roles []ConfigRoleKubernetes) (rolesImported []Rol
 	return rolesImported, importedRoleIDs, nil
 }
 
-var baseSecretStorageTypes = []string{
+var baseSecretStorageKinds = []string{
 	"env",
 	"file",
 	"plain",
 	"kubernetes",
 }
 
-func isABaseSecretStorageType(s string) bool {
-	for _, item := range baseSecretStorageTypes {
+func isABaseSecretStorageKind(s string) bool {
+	for _, item := range baseSecretStorageKinds {
 		if item == s {
 			return true
 		}
@@ -466,14 +466,14 @@ func (r *Registry) configureSecrets(config Config) error {
 	loadSecretConfig := func(secret ConfigSecretProvider) (err error) {
 		name := secret.Name
 		if len(name) == 0 {
-			name = secret.Type
+			name = secret.Kind
 		}
 
 		if _, found := r.secrets[name]; found {
 			return fmt.Errorf("duplicate secret configuration for %q, please provide a unique name for this secret configuration", name)
 		}
 
-		switch secret.Type {
+		switch secret.Kind {
 		case "vault":
 			cfg, ok := secret.Config.(secrets.VaultConfig)
 			if !ok {
@@ -572,7 +572,7 @@ func (r *Registry) configureSecrets(config Config) error {
 			f := secrets.NewPlainSecretProviderFromConfig(cfg)
 			r.secrets[name] = f
 		default:
-			return fmt.Errorf("unknown secret provider type %q", secret.Type)
+			return fmt.Errorf("unknown secret provider type %q", secret.Kind)
 		}
 
 		return nil
@@ -580,7 +580,7 @@ func (r *Registry) configureSecrets(config Config) error {
 
 	// check all base types first
 	for _, secret := range config.Secrets {
-		if !isABaseSecretStorageType(secret.Type) {
+		if !isABaseSecretStorageKind(secret.Kind) {
 			continue
 		}
 
@@ -595,7 +595,7 @@ func (r *Registry) configureSecrets(config Config) error {
 
 	// now load non-base types which might depend on them.
 	for _, secret := range config.Secrets {
-		if isABaseSecretStorageType(secret.Type) {
+		if isABaseSecretStorageKind(secret.Kind) {
 			continue
 		}
 

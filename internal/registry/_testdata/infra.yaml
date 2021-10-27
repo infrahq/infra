@@ -1,6 +1,6 @@
 secrets:
   - name: base64
-    type: plain
+    kind: plain
     base64: true
 
 sources:

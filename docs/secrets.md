@@ -29,7 +29,7 @@ Kubernetes takes configuration, like so:
 ```yaml
 secrets:
   - name: kubernetes # can optionally provide a custom name
-    type: kubernetes
+    kind: kubernetes
     namespace: mynamespace
 ```
 
@@ -46,7 +46,7 @@ Vault takes configuration, like so:
 ```yaml
 secrets:
   - name: vault # can optionally provide a custom name
-    type: vault
+    kind: vault
     transitMount: /transit
     secretMount: /secret
     token: env:VAULT_TOKEN # secret config can even reference other built-in secret types, like env
@@ -65,7 +65,7 @@ Secrets Manager takes configuration, like so:
 ```yaml
 secrets:
   - name: awssm # can optionally provide a custom name
-    type: awssm
+    kind: awssm
     endpoint: https://kms.endpoint
     region: us-west-2
     accessKeyId: env:AWS_ACCESS_KEY_ID # secret config can even reference other built-in secret types, like env
@@ -83,7 +83,7 @@ SSM takes configuration, like so:
 ```yaml
 secrets:
   - name: awsssm # can optionally provide a custom name
-    type: awsssm
+    kind: awsssm
     keyId: 1234abcd-12ab-34cd-56ef-1234567890ab # optional, if set it's the KMS key that should be used for decryption
     endpoint: https://kms.endpoint
     region: us-west-2
@@ -102,7 +102,7 @@ env is built-in and does not need to be declared, but if you do want to declare 
 ```yaml
 secrets:
   - name: base64env
-    type: env
+    kind: env
     base64: true
     base64UrlEncoded: false
     base64Raw: false
@@ -131,7 +131,7 @@ file is built-in and does not need to be declared, but if you do want to declare
 ```yaml
 secrets:
   - name: base64file
-    type: file
+    kind: file
     base64: true
     base64UrlEncoded: false
     base64Raw: false
@@ -161,7 +161,7 @@ plain is built-in and does not need to be declared, but if you do want to declar
 ```yaml
 secrets:
   - name: base64text
-    type: plain
+    kind: plain
     base64: true
     base64UrlEncoded: false
     base64Raw: false
