@@ -1,4 +1,4 @@
-logLevel: debug
+log-level: debug
 image:
   tag: $IMAGE_TAG
   pullPolicy: Never
@@ -22,4 +22,4 @@ engine:
       - name: https
         port: 8443
         targetPort: 443
-  logLevel: debug
+  log-level: debug
