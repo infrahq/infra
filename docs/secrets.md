@@ -19,7 +19,7 @@ Examples follow.
 ### Kubernetes
 
 ```yaml
-    clientSecret: kubernetes:infra-registry-okta/clientSecret
+    clientSecret: kubernetes:infra-okta/clientSecret
 ```
 
 This would read the `infra-registry-okta/clientSecret` key from a Kubernetes secret.
