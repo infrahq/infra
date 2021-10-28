@@ -409,7 +409,7 @@ func (r *Registry) configureSentry() (err error, ok bool) {
 }
 
 // GetSecret implements the secret definition scheme for Infra.
-// eg plain:pass123, or kubernetes:infra-registry-okta/apiToken
+// eg plaintext:pass123, or kubernetes:infra-registry-okta/apiToken
 // it's an abstraction around all secret providers
 func (r *Registry) GetSecret(name string) (string, error) {
 	var kind string
@@ -425,7 +425,7 @@ func (r *Registry) GetSecret(name string) (string, error) {
 			kind = "plaintext"
 		}
 
-		r.logger.Sugar().Warnf("Secret kind was not specified, expecting secrets in the format <kind>:<secret name>. Assuming its kind is %q", kind)
+		logging.S.Warnf("Secret kind was not specified, expecting secrets in the format <kind>:<secret name>. Assuming its kind is %q", kind)
 	} else {
 		parts := strings.SplitN(name, ":", 2)
 		if len(parts) < 2 {

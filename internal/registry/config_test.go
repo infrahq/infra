@@ -345,10 +345,11 @@ func TestSecretsLoadedOkay(t *testing.T) {
 	require.NoError(t, err)
 
 	// simple manual secret reader
-	parts := strings.Split(importedOkta.ClientId, ":")
+	parts := strings.Split(importedOkta.ClientID, ":")
 	secretKind := parts[0]
-	t.Log(registry.secrets[secretKind])
-	secret, err := registry.secrets[secretKind].GetSecret(parts[1])
+	secretProvider, ok := registry.secrets[secretKind]
+	require.True(t, ok)
+	secret, err := secretProvider.GetSecret(parts[1])
 	require.NoError(t, err)
 
 	require.Equal(t, "0oapn0qwiQPiMIyR35d6", string(secret))

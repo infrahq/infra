@@ -153,7 +153,7 @@ $ echo "c3VwZXIgc2VjcmV0IQ==" > /var/secrets/okta-client-secret.txt
 Sometimes it can be handy to support plain text secrets right in the yaml config, especially when the yaml is being generated and the secrets are coming from elsewhere.
 
 ```yaml
-    clientSecret: plain:mySupErSecrEt
+    clientSecret: plaintext:mySupErSecrEt
 ```
 
 plain is built-in and does not need to be declared, but if you do want to declare the configuration for it, you could use this to create a custom handler, like so:

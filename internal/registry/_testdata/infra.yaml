@@ -1,6 +1,6 @@
 secrets:
   - name: base64
-    kind: plain
+    kind: plaintext
     base64: true
 
 sources:
@@ -12,7 +12,7 @@ sources:
       api-token: kubernetes:okta-secrets/apiToken
   - kind: okta
     domain: https://test.example.com
-    client-id: 0oapn0qwiQPiMIyR35d6
+    client-id: plaintext:0oapn0qwiQPiMIyR35d6
     client-secret: kubernetes:okta-secrets/clientSecret
     okta:
       api-token: kubernetes:okta-secrets/apiToken

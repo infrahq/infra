@@ -597,6 +597,8 @@ func (r *Registry) configureSecrets(config Config) error {
 	return nil
 }
 
+// loadDefaultSecretConfig loads configuration for types that should be available,
+// assuming the user didn't override the configuration for them.
 func (r *Registry) loadDefaultSecretConfig() error {
 	// set up the default supported types
 	if _, found := r.secrets["env"]; !found {
