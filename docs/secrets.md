@@ -22,7 +22,7 @@ Examples follow.
     clientSecret: kubernetes:infra-okta/clientSecret
 ```
 
-This would read the `infra-registry-okta/clientSecret` key from a Kubernetes secret.
+This would read the `infra-okta/clientSecret` key from a Kubernetes secret.
 
 Kubernetes takes configuration, like so:
 
@@ -36,10 +36,10 @@ secrets:
 ### Vault
 
 ```yaml
-    clientSecret: vault:infra-registry-okta-clientSecret
+    clientSecret: vault:infra-okta-clientSecret
 ```
 
-This would read the `infra-registry-okta-clientSecret` secret from Vault
+This would read the `infra-okta-clientSecret` secret from Vault
 
 Vault takes configuration, like so:
 
@@ -57,7 +57,7 @@ secrets:
 ### AWS Secrets Manager
 
 ```yaml
-    clientSecret: awssm:infra-registry-okta-clientSecret
+    clientSecret: awssm:infra-okta-clientSecret
 ```
 
 Secrets Manager takes configuration, like so:
@@ -75,7 +75,7 @@ secrets:
 ### AWS SSM (Systems Manager Parameter Store)
 
 ```yaml
-    clientSecret: awsssm:infra-registry-okta-clientSecret
+    clientSecret: awsssm:infra-okta-clientSecret
 ```
 
 SSM takes configuration, like so:
