@@ -11,3 +11,7 @@ docker-desktop.yaml
 
 # dir created by some versions of openapi-generator
 .openapi-generator
+secrets/foo/bar:secret
+secrets/foo2/bar
+secrets/foo2/bar2
+secrets/foo3/bar:secret

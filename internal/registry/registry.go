@@ -23,9 +23,9 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/certs"
-	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
 	timer "github.com/infrahq/infra/internal/timer"
+	"github.com/infrahq/infra/secrets"
 	"golang.org/x/crypto/acme/autocert"
 	"gorm.io/gorm"
 )
@@ -53,9 +53,9 @@ type Registry struct {
 	options  Options
 	db       *gorm.DB
 	settings Settings
-	k8s      *kubernetes.Kubernetes
 	okta     Okta
 	tel      *Telemetry
+	secrets  map[string]secrets.SecretStorage
 }
 
 const (
@@ -117,11 +117,6 @@ func Run(options Options) (err error) {
 		scope.SetContext("registryId", r.settings.Id)
 	})
 
-	r.k8s, err = kubernetes.NewKubernetes()
-	if err != nil {
-		return fmt.Errorf("k8s: %w", err)
-	}
-
 	if err = r.loadConfigFromFile(); err != nil {
 		return fmt.Errorf("loading config from file: %w", err)
 	}
@@ -167,7 +162,7 @@ func (r *Registry) loadConfigFromFile() (err error) {
 	}
 
 	if len(contents) > 0 {
-		err = ImportConfig(r.db, contents)
+		err = r.importConfig(contents)
 		if err != nil {
 			return err
 		}
@@ -188,7 +183,7 @@ func (r *Registry) validateSources() {
 	for _, s := range sources {
 		switch s.Kind {
 		case SourceKindOkta:
-			if err := s.Validate(r.db, r.k8s, r.okta); err != nil {
+			if err := s.Validate(r); err != nil {
 				logging.S.Errorf("could not validate okta: %w", err)
 			}
 		default:
@@ -411,4 +406,48 @@ func (r *Registry) configureSentry() (err error, ok bool) {
 	}
 
 	return nil, false
+}
+
+// GetSecret implements the secret definition scheme for Infra.
+// eg plaintext:pass123, or kubernetes:infra-okta/apiToken
+// it's an abstraction around all secret providers
+func (r *Registry) GetSecret(name string) (string, error) {
+	var kind string
+
+	if !strings.Contains(name, ":") {
+		// we'll have to guess at what type of secret it is.
+		// our default guesses are kubernetes, or plain
+		if strings.Count(name, "/") == 1 {
+			// guess kubernetes for historical reasons
+			kind = "kubernetes"
+		} else {
+			// guess plain because users sometimes mistake the field for plaintext
+			kind = "plaintext"
+		}
+
+		logging.S.Warnf("Secret kind was not specified, expecting secrets in the format <kind>:<secret name>. Assuming its kind is %q", kind)
+	} else {
+		parts := strings.SplitN(name, ":", 2)
+		if len(parts) < 2 {
+			return "", fmt.Errorf("unexpected secret provider format %q. Expecting <kind>:<secret name>, eg env:API_KEY", name)
+		}
+		kind = parts[0]
+		name = parts[1]
+	}
+
+	secretProvider, found := r.secrets[kind]
+	if !found {
+		return "", fmt.Errorf("secret provider %q not found in configuration for field %q", kind, name)
+	}
+
+	b, err := secretProvider.GetSecret(name)
+	if err != nil {
+		return "", fmt.Errorf("getting secret: %w", err)
+	}
+
+	if b == nil {
+		return "", nil
+	}
+
+	return string(b), nil
 }

@@ -14,7 +14,6 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/generate"
-	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
 	"gopkg.in/segmentio/analytics-go.v3"
 	"gopkg.in/square/go-jose.v2"
@@ -24,10 +23,10 @@ import (
 )
 
 type API struct {
-	db   *gorm.DB
-	k8s  *kubernetes.Kubernetes
-	okta Okta
-	t    *Telemetry
+	db       *gorm.DB
+	okta     Okta
+	t        *Telemetry
+	registry *Registry
 }
 
 type CustomJWTClaims struct {
@@ -43,10 +42,10 @@ var (
 
 func NewAPIMux(reg *Registry) *mux.Router {
 	a := API{
-		db:   reg.db,
-		k8s:  reg.k8s,
-		okta: reg.okta,
-		t:    reg.tel,
+		db:       reg.db,
+		okta:     reg.okta,
+		t:        reg.tel,
+		registry: reg,
 	}
 
 	r := mux.NewRouter()
@@ -417,11 +416,11 @@ func (a *API) GetDestination(w http.ResponseWriter, r *http.Request) {
 
 	var destination Destination
 	if err := a.db.First(&destination, &Destination{Id: destinationId}).Error; err != nil {
-		logging.L.Error(err.Error())
-
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			logging.L.Debug(err.Error())
 			sendAPIError(w, http.StatusNotFound, fmt.Sprintf("Could not find destination ID \"%s\"", destinationId))
 		} else {
+			logging.L.Error(err.Error())
 			sendAPIError(w, http.StatusBadRequest, fmt.Sprintf("Could not find destination ID \"%s\"", destinationId))
 		}
 
@@ -797,7 +796,7 @@ func (a *API) Login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		clientSecret, err := a.k8s.GetSecret(source.ClientSecret)
+		clientSecret, err := a.registry.GetSecret(source.ClientSecret)
 		if err != nil {
 			logging.L.Error("Could not retrieve okta client secret from kubernetes: " + err.Error())
 			sendAPIError(w, http.StatusInternalServerError, "invalid okta login information")

@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/infrahq/infra/internal/generate"
-	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
 	"gopkg.in/square/go-jose.v2"
 	"gorm.io/driver/sqlite"
@@ -320,20 +319,20 @@ func (s *Source) DeleteUser(db *gorm.DB, u User) error {
 }
 
 // Validate checks that an Okta source is valid
-func (s *Source) Validate(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) error {
+func (s *Source) Validate(r *Registry) error {
 	switch s.Kind {
 	case SourceKindOkta:
-		apiToken, err := k8s.GetSecret(s.APIToken)
+		apiToken, err := r.GetSecret(s.APIToken)
 		if err != nil {
 			// this logs the expected secret object location, not the actual secret
 			return fmt.Errorf("could not retrieve okta API token from kubernetes secret %v: %w", s.APIToken, err)
 		}
 
-		if _, err := k8s.GetSecret(s.ClientSecret); err != nil {
+		if _, err := r.GetSecret(s.ClientSecret); err != nil {
 			return fmt.Errorf("could not retrieve okta client secret from kubernetes secret %v: %w", s.ClientSecret, err)
 		}
 
-		return okta.ValidateOktaConnection(s.Domain, s.ClientID, apiToken)
+		return r.okta.ValidateOktaConnection(s.Domain, s.ClientID, apiToken)
 	default:
 		return nil
 	}
@@ -344,7 +343,7 @@ func (s *Source) SyncUsers(r *Registry) error {
 
 	switch s.Kind {
 	case SourceKindOkta:
-		apiToken, err := r.k8s.GetSecret(s.APIToken)
+		apiToken, err := r.GetSecret(s.APIToken)
 		if err != nil {
 			return fmt.Errorf("sync okta users api token: %w", err)
 		}
@@ -386,7 +385,7 @@ func (s *Source) SyncGroups(r *Registry) error {
 
 	switch s.Kind {
 	case SourceKindOkta:
-		apiToken, err := r.k8s.GetSecret(s.APIToken)
+		apiToken, err := r.GetSecret(s.APIToken)
 		if err != nil {
 			return fmt.Errorf("sync okta groups api secret: %w", err)
 		}

@@ -12,19 +12,43 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 var _ SecretStorage = &KubernetesSecretProvider{}
 
 type KubernetesSecretProvider struct {
-	Namespace string
-	client    *kubernetes.Clientset
+	KubernetesConfig
+	client *kubernetes.Clientset
+}
+
+type KubernetesConfig struct {
+	Namespace string `yaml:"namespace"`
+}
+
+func NewKubernetesSecretProviderFromConfig(cfg KubernetesConfig) (*KubernetesSecretProvider, error) {
+	k8sConfig, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, fmt.Errorf("getting in-cluster config: %w", err)
+	}
+
+	clientset, err := kubernetes.NewForConfig(k8sConfig)
+	if err != nil {
+		return nil, fmt.Errorf("creating k8s config: %w", err)
+	}
+
+	return &KubernetesSecretProvider{
+		KubernetesConfig: cfg,
+		client:           clientset,
+	}, nil
 }
 
 func NewKubernetesSecretProvider(client *kubernetes.Clientset, namespace string) *KubernetesSecretProvider {
 	return &KubernetesSecretProvider{
-		Namespace: namespace,
-		client:    client,
+		KubernetesConfig: KubernetesConfig{
+			Namespace: namespace,
+		},
+		client: client,
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,7 +15,7 @@ import (
 var db *gorm.DB
 
 var (
-	fakeOktaSource  = Source{Id: "001", Kind: SourceKindOkta, Domain: "test.example.com", ClientSecret: "okta-secrets/client-secret", APIToken: "okta-secrets/api-token"}
+	fakeOktaSource  = Source{Id: "001", Kind: SourceKindOkta, Domain: "test.example.com", ClientSecret: "kubernetes:okta-secrets/client-secret", APIToken: "kubernetes:okta-secrets/api-token"}
 	adminUser       = User{Id: "001", Email: "admin@example.com"}
 	standardUser    = User{Id: "002", Email: "user@example.com"}
 	iosDevUser      = User{Id: "003", Email: "woz@example.com"}
@@ -24,10 +25,12 @@ var (
 	clusterA        = Destination{Name: "cluster-AAA"}
 	clusterB        = Destination{Name: "cluster-BBB"}
 	clusterC        = Destination{Name: "cluster-CCC"}
+
+	registry *Registry
 )
 
 func setup() error {
-	confFile, err := ioutil.ReadFile("_testdata/infra.yaml")
+	confFileData, err := ioutil.ReadFile("_testdata/infra.yaml")
 	if err != nil {
 		return err
 	}
@@ -104,7 +107,11 @@ func setup() error {
 		return err
 	}
 
-	return ImportConfig(db, confFile)
+	registry = &Registry{
+		db: db,
+	}
+
+	return registry.importConfig(confFileData)
 }
 
 func TestMain(m *testing.M) {
@@ -326,4 +333,26 @@ func containsUserRoleForDestination(db *gorm.DB, user User, destinationId string
 	}
 
 	return false, nil
+}
+
+func TestSecretsLoadedOkay(t *testing.T) {
+	foo, err := registry.secrets["plaintext"].GetSecret("foo")
+	require.NoError(t, err)
+	require.Equal(t, "foo", string(foo))
+
+	var importedOkta Source
+	err = db.Where(&Source{Kind: SourceKindOkta}).First(&importedOkta).Error
+	require.NoError(t, err)
+
+	// simple manual secret reader
+	parts := strings.Split(importedOkta.ClientID, ":")
+	secretKind := parts[0]
+
+	secretProvider, ok := registry.secrets[secretKind]
+	require.True(t, ok)
+
+	secret, err := secretProvider.GetSecret(parts[1])
+	require.NoError(t, err)
+
+	require.Equal(t, "0oapn0qwiQPiMIyR35d6", string(secret))
 }

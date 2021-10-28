@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/kms/kmsiface"
 )
@@ -12,19 +14,57 @@ import (
 var _ SecretSymmetricKeyProvider = &AWSKMSSecretProvider{}
 
 type AWSKMSSecretProvider struct {
+	AWSKMSConfig
+
 	kms kmsiface.KMSAPI
+}
+
+type AWSKMSConfig struct {
+	AWSConfig
+
+	EncryptionAlgorithm string `yaml:"encryptionAlgorithm"`
+	// aws tags?
+}
+
+func NewAWSKMSConfig() AWSKMSConfig {
+	return AWSKMSConfig{
+		EncryptionAlgorithm: "AES_256",
+	}
+}
+
+func NewAWSKMSSecretProviderFromConfig(cfg AWSKMSConfig) (*AWSKMSSecretProvider, error) {
+	sess, err := session.NewSession()
+	if err != nil {
+		return nil, fmt.Errorf("creating aws session: %w", err)
+	}
+
+	// for kms service
+	awscfg := aws.NewConfig().
+		WithEndpoint(cfg.Endpoint).
+		WithCredentials(credentials.NewStaticCredentialsFromCreds(
+			credentials.Value{
+				AccessKeyID:     cfg.AccessKeyID,
+				SecretAccessKey: cfg.SecretAccessKey,
+			})).
+		WithRegion(cfg.Region)
+
+	return &AWSKMSSecretProvider{
+		AWSKMSConfig: cfg,
+		kms:          kms.New(sess, awscfg),
+	}, nil
 }
 
 func NewAWSKMSSecretProvider(kmssvc kmsiface.KMSAPI) (*AWSKMSSecretProvider, error) {
 	return &AWSKMSSecretProvider{
-		kms: kmssvc,
+		AWSKMSConfig: NewAWSKMSConfig(),
+		kms:          kmssvc,
 	}, nil
 }
 
 func (k *AWSKMSSecretProvider) DecryptDataKey(rootKeyID string, keyData []byte) (*SymmetricKey, error) {
 	req, out := k.kms.DecryptRequest(&kms.DecryptInput{
 		KeyId:               &rootKeyID,
-		EncryptionAlgorithm: aws.String("AES_256"),
+		EncryptionAlgorithm: &k.EncryptionAlgorithm,
 		CiphertextBlob:      keyData,
 	})
 	if err := req.Send(); err != nil {
@@ -60,7 +100,7 @@ func (k *AWSKMSSecretProvider) GenerateDataKey(name, rootKeyID string) (*Symmetr
 	}
 
 	dko, err := k.kms.GenerateDataKey(&kms.GenerateDataKeyInput{
-		KeySpec: aws.String("AES_256"),
+		KeySpec: &k.EncryptionAlgorithm,
 		KeyId:   aws.String(rootKeyID),
 	})
 	if err != nil {
@@ -71,6 +111,6 @@ func (k *AWSKMSSecretProvider) GenerateDataKey(name, rootKeyID string) (*Symmetr
 		unencrypted: dko.Plaintext,
 		Encrypted:   dko.CiphertextBlob,
 		RootKeyID:   rootKeyID,
-		Algorithm:   "AES_256",
+		Algorithm:   k.EncryptionAlgorithm,
 	}, nil
 }

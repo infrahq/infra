@@ -17,37 +17,55 @@ var (
 )
 
 type VaultSecretProvider struct {
-	TransitMount string `yaml:"transit_mount"` // mounting point. defaults to /transit
-	SecretMount  string `yaml:"secret_mount"`  // mounting point. defaults to /secret
-	Token        string `yaml:"token"`         // vault token... should authenticate as machine to vault instead?
-	Namespace    string `yaml:"namespace"`
-
+	VaultConfig
 	client *vault.Client
 }
 
-func NewVaultSecretProvider(address, token, namespace string) (*VaultSecretProvider, error) {
+type VaultConfig struct {
+	TransitMount string `yaml:"transitMount"` // mounting point. defaults to /transit
+	SecretMount  string `yaml:"secretMount"`  // mounting point. defaults to /secret
+	Token        string `yaml:"token"`        // vault token... should authenticate as machine to vault instead?
+	Namespace    string `yaml:"namespace"`
+	Address      string `yaml:"address"`
+}
+
+func NewVaultConfig() VaultConfig {
+	return VaultConfig{
+		TransitMount: "/transit",
+		SecretMount:  "/secret",
+		Address:      "https://vault",
+	}
+}
+
+func NewVaultSecretProviderFromConfig(cfg VaultConfig) (*VaultSecretProvider, error) {
 	c, err := vault.NewClient(&vault.Config{
-		Address: address,
+		Address: cfg.Address,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	c.SetToken(token)
+	c.SetToken(cfg.Token)
 
-	if len(namespace) > 0 {
-		c.SetNamespace(namespace)
+	if len(cfg.Namespace) > 0 {
+		c.SetNamespace(cfg.Namespace)
 	}
 
 	v := &VaultSecretProvider{
-		TransitMount: "/transit",
-		SecretMount:  "/secret",
-		Token:        token,
-		Namespace:    namespace,
-		client:       c,
+		VaultConfig: cfg,
+		client:      c,
 	}
 
 	return v, nil
+}
+
+func NewVaultSecretProvider(address, token, namespace string) (*VaultSecretProvider, error) {
+	cfg := NewVaultConfig()
+	cfg.Address = address
+	cfg.Token = token
+	cfg.Namespace = namespace
+
+	return NewVaultSecretProviderFromConfig(cfg)
 }
 
 func (v *VaultSecretProvider) GetSecret(name string) ([]byte, error) {

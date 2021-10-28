@@ -8,18 +8,48 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ssm"
 )
 
-var _ SecretStorage = &AWSSystemManagerParameterStore{}
+var _ SecretStorage = &AWSSSM{}
 
-type AWSSystemManagerParameterStore struct {
-	KeyID  string // KMS key to use for decryption
+// AWSSSM is the AWS System Manager Parameter Store (aka SSM PS)
+type AWSSSM struct {
+	AWSSSMConfig
 	client *ssm.SSM
 }
 
-func NewAWSSystemManagerParameterStore(client *ssm.SSM) *AWSSystemManagerParameterStore {
-	return &AWSSystemManagerParameterStore{
+type AWSSSMConfig struct {
+	AWSConfig
+	KeyID string `yaml:"keyId"` // KMS key to use for decryption
+}
+
+func NewAWSSSMSecretProviderFromConfig(cfg AWSSSMConfig) (*AWSSSM, error) {
+	sess, err := session.NewSession()
+	if err != nil {
+		return nil, fmt.Errorf("creating aws session: %w", err)
+	}
+
+	awscfg := aws.NewConfig().
+		WithCredentials(credentials.NewCredentials(&credentials.StaticProvider{
+			Value: credentials.Value{
+				AccessKeyID:     cfg.AccessKeyID,
+				SecretAccessKey: cfg.SecretAccessKey,
+			},
+		})).
+		WithEndpoint(cfg.Endpoint).
+		WithRegion(cfg.Region)
+
+	return &AWSSSM{
+		AWSSSMConfig: cfg,
+		client:       ssm.New(sess, awscfg),
+	}, nil
+}
+
+func NewAWSSSM(client *ssm.SSM) *AWSSSM {
+	return &AWSSSM{
 		client: client,
 	}
 }
@@ -32,7 +62,7 @@ var invalidSecretNameChars = regexp.MustCompile(`[^a-zA-Z0-9_.-/]`)
 // if using kms customer-managed keys, also need:
 // - kms:GenerateDataKey
 // - kms:Decrypt
-func (s *AWSSystemManagerParameterStore) SetSecret(name string, secret []byte) error {
+func (s *AWSSSM) SetSecret(name string, secret []byte) error {
 	name = invalidSecretNameChars.ReplaceAllString(name, "_")
 	secretStr := string(secret)
 
@@ -58,7 +88,7 @@ func (s *AWSSystemManagerParameterStore) SetSecret(name string, secret []byte) e
 // GetSecret
 // must have permission secretsmanager:GetSecretValue
 // kms:Decrypt - required only if you use a customer-managed Amazon Web Services KMS key to encrypt the secret
-func (s *AWSSystemManagerParameterStore) GetSecret(name string) (secret []byte, err error) {
+func (s *AWSSSM) GetSecret(name string) (secret []byte, err error) {
 	name = invalidSecretNameChars.ReplaceAllString(name, "_")
 
 	p, err := s.client.GetParameterWithContext(context.TODO(), &ssm.GetParameterInput{
