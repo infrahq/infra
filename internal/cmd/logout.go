@@ -15,10 +15,13 @@ type LogoutOptions struct {
 
 func cleanupKubeconfig(config *ClientHostConfig) error {
 	if config.Current {
+		logging.L.Debug("cleaning up kubeconfig")
+
 		_ = updateKubeconfig(api.User{})
 
 		infraDir, err := infraHomeDir()
 		if err == nil {
+			logging.L.Debug("cleaning up cache")
 			os.RemoveAll(filepath.Join(infraDir, "cache"))
 		}
 	}
@@ -27,6 +30,8 @@ func cleanupKubeconfig(config *ClientHostConfig) error {
 }
 
 func logoutOne(config *ClientHostConfig) error {
+	logging.S.Debugf("logging out %s", config.Host)
+
 	client, err := apiClientFromConfig(config.Host)
 	if err != nil {
 		logging.S.Warnf("%s", err.Error())
