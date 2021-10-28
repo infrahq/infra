@@ -42,11 +42,11 @@ func version(options *VersionOptions) error {
 
 	fmt.Fprintln(w)
 
-	if options.Client {
+	if !options.Server {
 		fmt.Fprintln(w, "Client:\t", clientVersion)
 	}
 
-	if options.Server {
+	if !options.Client {
 		fmt.Fprintln(w, "Server:\t", serverVersion)
 	}
 
