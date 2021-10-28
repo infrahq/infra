@@ -30,10 +30,10 @@ var (
 	protocolRemover  = regexp.MustCompile(`http[s]?://`)
 )
 
-func (s *ConfigProvider) cleanupDomain() {
-	s.Domain = strings.TrimSpace(s.Domain)
-	s.Domain = dashAdminRemover.ReplaceAllString(s.Domain, "$1$2")
-	s.Domain = protocolRemover.ReplaceAllString(s.Domain, "")
+func (p *ConfigProvider) cleanupDomain() {
+	p.Domain = strings.TrimSpace(p.Domain)
+	p.Domain = dashAdminRemover.ReplaceAllString(p.Domain, "$1$2")
+	p.Domain = protocolRemover.ReplaceAllString(p.Domain, "")
 }
 
 type ConfigDestination struct {
