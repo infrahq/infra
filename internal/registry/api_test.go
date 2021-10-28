@@ -20,6 +20,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"gorm.io/gorm"
 )
 
@@ -82,6 +84,7 @@ func TestBearerTokenMiddlewareDefault(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -110,6 +113,7 @@ func TestBearerTokenMiddlewareEmptyHeader(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -140,6 +144,7 @@ func TestBearerTokenMiddlewareEmptyHeaderBearer(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -170,6 +175,7 @@ func TestBearerTokenMiddlewareInvalidLength(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -198,6 +204,7 @@ func TestBearerTokenMiddlewareInvalidToken(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -230,6 +237,7 @@ func TestBearerTokenMiddlewareExpiredToken(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -265,6 +273,7 @@ func TestBearerTokenMiddlewareValidToken(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -301,6 +310,7 @@ func TestBearerTokenMiddlewareInvalidAPIKey(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -333,6 +343,7 @@ func TestBearerTokenMiddlewareValidAPIKey(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -371,6 +382,7 @@ func TestBearerTokenMiddlewareValidAPIKeyRootPermissions(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -409,6 +421,7 @@ func TestBearerTokenMiddlewareValidAPIKeyWrongPermission(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -447,6 +460,7 @@ func TestCreateDestinationNoAPIKey(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -481,6 +495,7 @@ func TestCreateDestination(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -524,6 +539,7 @@ func TestLoginHandlerEmptyRequest(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -546,6 +562,7 @@ func TestLoginNilOktaRequest(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -577,6 +594,7 @@ func TestLoginEmptyOktaRequest(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -608,6 +626,7 @@ func TestLoginOktaMissingDomainRequest(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -641,6 +660,7 @@ func TestLoginMethodOktaMissingCodeRequest(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -698,6 +718,7 @@ func TestLoginMethodOkta(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db:   db,
 		okta: testOkta,
@@ -742,6 +763,7 @@ func TestVersion(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -766,6 +788,7 @@ func TestListRoles(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -825,6 +848,7 @@ func TestListRolesByName(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -867,6 +891,7 @@ func TestListRolesByKind(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -901,6 +926,7 @@ func TestListRolesByMultiple(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -927,6 +953,7 @@ func TestListRolesForDestinationReturnsRolesFromConfig(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -972,6 +999,7 @@ func TestListRolesOnlyFindsForSpecificDestination(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1016,6 +1044,7 @@ func TestListRolesForUnknownDestination(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1044,6 +1073,7 @@ func TestGetRole(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1074,6 +1104,7 @@ func TestGetRoleEmptyID(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1097,6 +1128,7 @@ func TestGetRoleNotFound(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1120,6 +1152,7 @@ func TestListGroups(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1148,6 +1181,7 @@ func TestListGroupsByName(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1175,6 +1209,7 @@ func TestGetGroup(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1205,6 +1240,7 @@ func TestGetGroupEmptyID(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1228,6 +1264,7 @@ func TestGetGroupNotFound(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1251,6 +1288,7 @@ func TestListUsers(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1280,6 +1318,7 @@ func TestListUsersByEmail(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1307,6 +1346,7 @@ func TestListUsersEmpty(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1332,6 +1372,7 @@ func TestGetUser(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1362,6 +1403,7 @@ func TestGetUserEmptyID(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1385,6 +1427,7 @@ func TestGetUserNotFound(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1408,6 +1451,7 @@ func TestListSources(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1433,6 +1477,7 @@ func TestListSourcesByType(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1458,6 +1503,7 @@ func TestListSourcesEmpty(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1483,6 +1529,7 @@ func TestGetSource(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1513,6 +1560,7 @@ func TestGetSourceEmptyID(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1536,6 +1584,7 @@ func TestGetSourceNotFound(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1559,6 +1608,7 @@ func TestListDestinations(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1588,6 +1638,7 @@ func TestListDestinationsByName(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1615,6 +1666,7 @@ func TestListDestinationsByType(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1644,6 +1696,7 @@ func TestListDestinationsEmpty(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1669,6 +1722,7 @@ func TestGetDestination(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1699,6 +1753,7 @@ func TestGetDestinationEmptyID(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1722,6 +1777,7 @@ func TestGetDestinationNotFound(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1745,6 +1801,7 @@ func TestCreateAPIKey(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1786,6 +1843,7 @@ func TestDeleteAPIKey(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1818,6 +1876,7 @@ func TestListAPIKeys(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}
@@ -1885,6 +1944,7 @@ func TestCredentials(t *testing.T) {
 			secrets: map[string]secrets.SecretStorage{
 				"kubernetes": NewMockSecretReader(),
 			},
+			logger: zap.New(zapcore.NewNopCore()),
 		},
 		db: db,
 	}

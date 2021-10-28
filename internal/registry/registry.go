@@ -422,10 +422,14 @@ func (r *Registry) GetSecret(name string) (string, error) {
 			kind = "kubernetes"
 		} else {
 			// guess plain because users sometimes mistake the field for plaintext
-			kind = "plain"
+			kind = "plaintext"
 		}
+		r.logger.Sugar().Warnf("Secret kind was not specified, expecting secrets in the format <kind>:<secret name>. Assuming its kind is %q", kind)
 	} else {
-		parts := strings.SplitN(name, ":", 1)
+		parts := strings.SplitN(name, ":", 2)
+		if len(parts) < 2 {
+			return "", fmt.Errorf("unexpected secret provider format %q. Expecting <kind>:<secret name>, eg env:API_KEY", name)
+		}
 		kind = parts[0]
 		name = parts[1]
 	}

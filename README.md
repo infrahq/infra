@@ -43,6 +43,8 @@ See [Okta](./docs/sources/okta.md) for detailed Okta configuration steps.
 
 Cluster name is auto-discovered or can be set statically in Helm with `engine.name`.
 
+Also see [secrets.md](./docs/secrets.md) for details on how secrets work.
+
 ```yaml
 # example values.yaml
 ---
@@ -51,9 +53,9 @@ config:
     - kind: okta
       domain: <Okta domain>
       client-id: <Okta client ID>
-      client-secret: <Okta client secret>
+      client-secret: <secret kind>:<Okta client secret name>
       okta:
-        api-token: <Okta API token>
+        api-token: <secret kind>:<Okta API token name>
   groups:
     - name: Everyone
       roles:

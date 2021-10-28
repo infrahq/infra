@@ -103,9 +103,9 @@ sources:
   - kind: okta
     domain: acme.okta.com
     client-id: 0oapn0qwiQPiMIyR35d6
-    client-secret: infra-okta/clientSecret
+    client-secret: kubernetes:infra-okta/clientSecret
     okta:
-      api-token: infra-okta/apiToken
+      api-token: kubernetes:infra-okta/apiToken
 
 groups:
   - name: administrators

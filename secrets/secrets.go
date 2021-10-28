@@ -17,6 +17,16 @@ type SecretStorage interface {
 	GetSecret(name string) (secret []byte, err error)
 }
 
+var SecretStorageProviderKinds = []string{
+	"vault",
+	"awsssm",
+	"awssecretsmanager",
+	"kubernetes",
+	"env",
+	"file",
+	"plaintext",
+}
+
 // SecretSymmetricKeyProvider is implemented by a provider that provides encryption-as-a-service.
 // Its use is opinionated about the provider in the following ways:
 // - A root key will be created or referenced and never leaves the provider
@@ -32,6 +42,11 @@ type SecretSymmetricKeyProvider interface {
 	GenerateDataKey(name, rootKeyID string) (*SymmetricKey, error)
 	// DecryptDataKey decrypts the encrypted data key on the provider given a root key id
 	DecryptDataKey(rootKeyID string, keyData []byte) (*SymmetricKey, error)
+}
+
+var SecretSymmetricKeyProviderKinds = []string{
+	"vault",
+	"awskms",
 }
 
 type SymmetricKey struct {

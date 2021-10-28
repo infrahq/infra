@@ -80,16 +80,6 @@ func (sp *ConfigSecretProvider) UnmarshalYAML(unmarshal func(interface{}) error)
 		return fmt.Errorf("unmarshalling secret provider: %w", err)
 	}
 
-	validSecretProviderKinds := []string{
-		"vault",
-		"awsssm",
-		"awssecretsmanager",
-		"kubernetes",
-		"env",
-		"file",
-		"plain",
-	}
-
 	sp.Kind = tmp.Kind
 	sp.Name = tmp.Name
 
@@ -136,7 +126,7 @@ func (sp *ConfigSecretProvider) UnmarshalYAML(unmarshal func(interface{}) error)
 		}
 
 		sp.Config = p
-	case "plain", "":
+	case "plaintext", "":
 		p := secrets.GenericConfig{}
 		if err := unmarshal(&p); err != nil {
 			return fmt.Errorf("unmarshal yaml: %w", err)
@@ -144,7 +134,7 @@ func (sp *ConfigSecretProvider) UnmarshalYAML(unmarshal func(interface{}) error)
 
 		sp.Config = p
 	default:
-		return fmt.Errorf("unknown secret provider type %q, expected one of %q", tmp.Kind, validSecretProviderKinds)
+		return fmt.Errorf("unknown secret provider type %q, expected one of %q", tmp.Kind, secrets.SecretStorageProviderKinds)
 	}
 
 	return nil
@@ -444,7 +434,7 @@ func importRoles(db *gorm.DB, roles []ConfigRoleKubernetes) (rolesImported []Rol
 var baseSecretStorageKinds = []string{
 	"env",
 	"file",
-	"plain",
+	"plaintext",
 	"kubernetes",
 }
 
@@ -507,7 +497,7 @@ func (r *Registry) configureSecrets(config Config) error {
 				return err
 			}
 
-			ssm, err := secrets.NewAWSSSMFromConfig(cfg)
+			ssm, err := secrets.NewAWSSSMSecretProviderFromConfig(cfg)
 			if err != nil {
 				return fmt.Errorf("creating aws ssm: %w", err)
 			}
@@ -563,7 +553,7 @@ func (r *Registry) configureSecrets(config Config) error {
 
 			f := secrets.NewFileSecretProviderFromConfig(cfg)
 			r.secrets[name] = f
-		case "plain", "":
+		case "plaintext", "":
 			cfg, ok := secret.Config.(secrets.GenericConfig)
 			if !ok {
 				return fmt.Errorf("expected secret config to be GenericConfig, but was %t", secret.Config)
@@ -619,9 +609,9 @@ func (r *Registry) loadDefaultSecretConfig() error {
 		r.secrets["file"] = f
 	}
 
-	if _, found := r.secrets["plain"]; !found {
+	if _, found := r.secrets["plaintext"]; !found {
 		f := secrets.NewPlainSecretProviderFromConfig(secrets.GenericConfig{})
-		r.secrets["plain"] = f
+		r.secrets["plaintext"] = f
 	}
 
 	if _, found := r.secrets["kubernetes"]; !found {

@@ -26,7 +26,7 @@ type AWSSSMConfig struct {
 	KeyID string `yaml:"keyId"` // KMS key to use for decryption
 }
 
-func NewAWSSSMFromConfig(cfg AWSSSMConfig) (*AWSSSM, error) {
+func NewAWSSSMSecretProviderFromConfig(cfg AWSSSMConfig) (*AWSSSM, error) {
 	sess, err := session.NewSession()
 	if err != nil {
 		return nil, fmt.Errorf("creating aws session: %w", err)

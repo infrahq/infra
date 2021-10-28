@@ -15,7 +15,7 @@ import (
 var db *gorm.DB
 
 var (
-	fakeOktaSource  = Source{Id: "001", Kind: SourceKindOkta, Domain: "test.example.com", ClientSecret: "okta-secrets/client-secret", APIToken: "okta-secrets/api-token"}
+	fakeOktaSource  = Source{Id: "001", Kind: SourceKindOkta, Domain: "test.example.com", ClientSecret: "kubernetes:okta-secrets/client-secret", APIToken: "kubernetes:okta-secrets/api-token"}
 	adminUser       = User{Id: "001", Email: "admin@example.com"}
 	standardUser    = User{Id: "002", Email: "user@example.com"}
 	iosDevUser      = User{Id: "003", Email: "woz@example.com"}
@@ -336,7 +336,7 @@ func containsUserRoleForDestination(db *gorm.DB, user User, destinationId string
 }
 
 func TestSecretsLoadedOkay(t *testing.T) {
-	foo, err := registry.secrets["plain"].GetSecret("foo")
+	foo, err := registry.secrets["plaintext"].GetSecret("foo")
 	require.NoError(t, err)
 	require.Equal(t, "foo", string(foo))
 

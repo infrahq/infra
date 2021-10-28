@@ -110,7 +110,7 @@ secrets:
 
 which you would then use like:
 
-```sh
+```bash
 $ export OKTA_CLIENT_SECRET="c3VwZXIgc2VjcmV0IQ=="
 ```
 
@@ -140,7 +140,7 @@ secrets:
 
 which you would then use like:
 
-```sh
+```bash
 $ echo "c3VwZXIgc2VjcmV0IQ==" > /var/secrets/okta-client-secret.txt
 ```
 

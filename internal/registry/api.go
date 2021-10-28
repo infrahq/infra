@@ -416,11 +416,11 @@ func (a *API) GetDestination(w http.ResponseWriter, r *http.Request) {
 
 	var destination Destination
 	if err := a.db.First(&destination, &Destination{Id: destinationId}).Error; err != nil {
-		logging.L.Error(err.Error())
-
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			logging.L.Debug(err.Error())
 			sendAPIError(w, http.StatusNotFound, fmt.Sprintf("Could not find destination ID \"%s\"", destinationId))
 		} else {
+			logging.L.Error(err.Error())
 			sendAPIError(w, http.StatusBadRequest, fmt.Sprintf("Could not find destination ID \"%s\"", destinationId))
 		}
 
