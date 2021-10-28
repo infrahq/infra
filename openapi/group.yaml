@@ -7,7 +7,7 @@ Group:
     - updated
     - users
     - roles
-    - sourceID
+    - providerID
   properties:
     id:
       type: string
@@ -19,7 +19,7 @@ Group:
     updated:
       type: integer
       format: int64
-    sourceID:
+    providerID:
       type: string
     users:
       type: array

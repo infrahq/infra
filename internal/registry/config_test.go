@@ -15,16 +15,16 @@ import (
 var db *gorm.DB
 
 var (
-	fakeOktaSource  = Source{Id: "001", Kind: SourceKindOkta, Domain: "test.example.com", ClientSecret: "kubernetes:okta-secrets/client-secret", APIToken: "kubernetes:okta-secrets/api-token"}
-	adminUser       = User{Id: "001", Email: "admin@example.com"}
-	standardUser    = User{Id: "002", Email: "user@example.com"}
-	iosDevUser      = User{Id: "003", Email: "woz@example.com"}
-	iosDevGroup     = Group{Name: "ios-developers", SourceId: fakeOktaSource.Id}
-	macAdminGroup   = Group{Name: "mac-admins", SourceId: fakeOktaSource.Id}
-	notInConfigRole = Role{Name: "does-not-exist"}
-	clusterA        = Destination{Name: "cluster-AAA"}
-	clusterB        = Destination{Name: "cluster-BBB"}
-	clusterC        = Destination{Name: "cluster-CCC"}
+	fakeOktaProvider = Provider{Id: "001", Kind: ProviderKindOkta, Domain: "test.example.com", ClientSecret: "kubernetes:okta-secrets/client-secret", APIToken: "kubernetes:okta-secrets/api-token"}
+	adminUser        = User{Id: "001", Email: "admin@example.com"}
+	standardUser     = User{Id: "002", Email: "user@example.com"}
+	iosDevUser       = User{Id: "003", Email: "woz@example.com"}
+	iosDevGroup      = Group{Name: "ios-developers", ProviderId: fakeOktaProvider.Id}
+	macAdminGroup    = Group{Name: "mac-admins", ProviderId: fakeOktaProvider.Id}
+	notInConfigRole  = Role{Name: "does-not-exist"}
+	clusterA         = Destination{Name: "cluster-AAA"}
+	clusterB         = Destination{Name: "cluster-BBB"}
+	clusterC         = Destination{Name: "cluster-CCC"}
 
 	registry *Registry
 )
@@ -40,7 +40,7 @@ func setup() error {
 		return err
 	}
 
-	err = db.Create(&fakeOktaSource).Error
+	err = db.Create(&fakeOktaProvider).Error
 	if err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func setup() error {
 		return err
 	}
 
-	err = db.Model(&fakeOktaSource).Association("Users").Append(&adminUser)
+	err = db.Model(&fakeOktaProvider).Association("Users").Append(&adminUser)
 	if err != nil {
 		return err
 	}
@@ -60,7 +60,7 @@ func setup() error {
 		return err
 	}
 
-	err = db.Model(&fakeOktaSource).Association("Users").Append(&standardUser)
+	err = db.Model(&fakeOktaProvider).Association("Users").Append(&standardUser)
 	if err != nil {
 		return err
 	}
@@ -70,7 +70,7 @@ func setup() error {
 		return err
 	}
 
-	err = db.Model(&fakeOktaSource).Association("Users").Append(&iosDevUser)
+	err = db.Model(&fakeOktaProvider).Association("Users").Append(&iosDevUser)
 	if err != nil {
 		return err
 	}
@@ -170,14 +170,14 @@ func TestImportRemovesUnusedRoles(t *testing.T) {
 	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
 }
 
-func TestExistingSourceIsOverridden(t *testing.T) {
-	// this source comes second in the config so it will override the one before it
-	var importedOkta Source
-	if err := db.Where(&Source{Kind: SourceKindOkta}).First(&importedOkta).Error; err != nil {
+func TestExistingProviderIsOverridden(t *testing.T) {
+	// this provider comes second in the config so it will override the one before it
+	var importedOkta Provider
+	if err := db.Where(&Provider{Kind: ProviderKindOkta}).First(&importedOkta).Error; err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, fakeOktaSource.Domain, importedOkta.Domain)
+	assert.Equal(t, fakeOktaProvider.Domain, importedOkta.Domain)
 }
 
 func TestClusterRolesAreAppliedToGroup(t *testing.T) {
@@ -291,11 +291,11 @@ func TestClusterRolesAreAppliedWithNamespacesToUsers(t *testing.T) {
 }
 
 func TestCleanupDomain(t *testing.T) {
-	s := ConfigSource{Domain: "dev123123-admin.okta.com "}
-	s.cleanupDomain()
+	p := ConfigProvider{Domain: "dev123123-admin.okta.com "}
+	p.cleanupDomain()
 
 	expected := "dev123123.okta.com"
-	require.Equal(t, expected, s.Domain)
+	require.Equal(t, expected, p.Domain)
 }
 
 func containsUserRoleForDestination(db *gorm.DB, user User, destinationId string, roleName string) (bool, error) {
@@ -340,8 +340,8 @@ func TestSecretsLoadedOkay(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "foo", string(foo))
 
-	var importedOkta Source
-	err = db.Where(&Source{Kind: SourceKindOkta}).First(&importedOkta).Error
+	var importedOkta Provider
+	err = db.Where(&Provider{Kind: ProviderKindOkta}).First(&importedOkta).Error
 	require.NoError(t, err)
 
 	// simple manual secret reader

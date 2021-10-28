@@ -106,31 +106,31 @@ host:
 		return err
 	}
 
-	sources, res, err := client.SourcesAPI.ListSources(context.Background()).Execute()
+	providers, res, err := client.ProvidersAPI.ListProviders(context.Background()).Execute()
 	if err != nil {
 		return errWithResponseContext(err, res)
 	}
 
-	var selectedSource *api.Source
+	var selectedProvider *api.Provider
 
-source:
+provider:
 	switch {
-	case len(sources) == 0:
+	case len(providers) == 0:
 		return errors.New("no identity providers have been configured")
-	case len(sources) == 1:
-		selectedSource = &sources[0]
+	case len(providers) == 1:
+		selectedProvider = &providers[0]
 	default:
-		// Use the current source ID if it's valid to avoid prompting the user
-		if selectedHost.SourceID != "" && options.Current {
-			for i, source := range sources {
-				if source.Id == selectedHost.SourceID {
-					selectedSource = &sources[i]
-					break source
+		// Use the current provider ID if it's valid to avoid prompting the user
+		if selectedHost.ProviderID != "" && options.Current {
+			for i, provider := range providers {
+				if provider.Id == selectedHost.ProviderID {
+					selectedProvider = &providers[i]
+					break provider
 				}
 			}
 		}
 
-		selectedSource, err = promptSelectSource(sources)
+		selectedProvider, err = promptSelectProvider(providers)
 		if errors.Is(err, terminal.InterruptErr) {
 			return nil
 		}
@@ -143,7 +143,7 @@ source:
 	var loginReq api.LoginRequest
 
 	switch {
-	case selectedSource.Okta != nil:
+	case selectedProvider.Okta != nil:
 		// Start OIDC flow
 		// Get auth code from Okta
 		// Send auth code to Infra to login as a user
@@ -157,7 +157,7 @@ source:
 			return err
 		}
 
-		authorizeURL := "https://" + selectedSource.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + selectedSource.ClientID + "&response_type=code&scope=openid+email&nonce=" + nonce + "&state=" + state
+		authorizeURL := "https://" + selectedProvider.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + selectedProvider.ClientID + "&response_type=code&scope=openid+email&nonce=" + nonce + "&state=" + state
 
 		fmt.Fprintf(os.Stderr, "%s Logging in with %s...\n", blue("✓"), termenv.String("Okta").Bold().String())
 
@@ -181,11 +181,11 @@ source:
 		}
 
 		loginReq.Okta = &api.LoginRequestOkta{
-			Domain: selectedSource.Domain,
+			Domain: selectedProvider.Domain,
 			Code:   code,
 		}
 	default:
-		return errors.New("invalid source selected")
+		return errors.New("invalid provider selected")
 	}
 
 	loginRes, res, err := client.AuthAPI.Login(context.Background()).Body(loginReq).Execute()
@@ -200,7 +200,7 @@ source:
 	selectedHost.Name = loginRes.Name
 	selectedHost.Token = loginRes.Token
 	selectedHost.SkipTLSVerify = skipTLSVerify
-	selectedHost.SourceID = selectedSource.Id
+	selectedHost.ProviderID = selectedProvider.Id
 	selectedHost.Current = true
 
 	err = writeConfig(loadedCfg)
@@ -324,20 +324,20 @@ func promptShouldSkipTLSVerify(host string) (shouldSkipTLSVerify bool, proceed b
 	return false, true, nil
 }
 
-func promptSelectSource(sources []api.Source) (*api.Source, error) {
-	if sources == nil {
-		return nil, errors.New("sources cannot be nil")
+func promptSelectProvider(providers []api.Provider) (*api.Provider, error) {
+	if providers == nil {
+		return nil, errors.New("providers cannot be nil")
 	}
 
-	sort.Slice(sources, func(i, j int) bool {
-		return sources[i].Created > sources[j].Created
+	sort.Slice(providers, func(i, j int) bool {
+		return providers[i].Created > providers[j].Created
 	})
 
 	options := []string{}
 
-	for _, s := range sources {
-		if s.Okta != nil {
-			options = append(options, fmt.Sprintf("Okta [%s]", s.Domain))
+	for _, p := range providers {
+		if p.Okta != nil {
+			options = append(options, fmt.Sprintf("Okta [%s]", p.Domain))
 		}
 	}
 
@@ -355,7 +355,7 @@ func promptSelectSource(sources []api.Source) (*api.Source, error) {
 		return nil, err
 	}
 
-	return &sources[option], nil
+	return &providers[option], nil
 }
 
 func switchToFirstInfraContext() (string, error) {

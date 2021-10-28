@@ -14,24 +14,24 @@ import (
 	"encoding/json"
 )
 
-// Source struct for Source
-type Source struct {
-	Id           string      `json:"id"`
-	Created      int64       `json:"created"`
-	Updated      int64       `json:"updated"`
-	Domain       string      `json:"domain" validate:"required"`
-	ClientID     string      `json:"clientID" validate:"required"`
-	ClientSecret string      `json:"clientSecret"`
-	Kind         string      `json:"kind" validate:"required"`
-	Okta         *SourceOkta `json:"okta,omitempty"`
+// Provider struct for Provider
+type Provider struct {
+	Id           string        `json:"id"`
+	Created      int64         `json:"created"`
+	Updated      int64         `json:"updated"`
+	Domain       string        `json:"domain" validate:"required"`
+	ClientID     string        `json:"clientID" validate:"required"`
+	ClientSecret string        `json:"clientSecret"`
+	Kind         string        `json:"kind" validate:"required"`
+	Okta         *ProviderOkta `json:"okta,omitempty"`
 }
 
-// NewSource instantiates a new Source object
+// NewProvider instantiates a new Provider object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewSource(id string, created int64, updated int64, domain string, clientID string, clientSecret string, kind string) *Source {
-	this := Source{}
+func NewProvider(id string, created int64, updated int64, domain string, clientID string, clientSecret string, kind string) *Provider {
+	this := Provider{}
 	this.Id = id
 	this.Created = created
 	this.Updated = updated
@@ -42,16 +42,16 @@ func NewSource(id string, created int64, updated int64, domain string, clientID 
 	return &this
 }
 
-// NewSourceWithDefaults instantiates a new Source object
+// NewProviderWithDefaults instantiates a new Provider object
 // This constructor will only assign default values to properties that have it defined,
 // but it doesn't guarantee that properties required by API are set
-func NewSourceWithDefaults() *Source {
-	this := Source{}
+func NewProviderWithDefaults() *Provider {
+	this := Provider{}
 	return &this
 }
 
 // GetId returns the Id field value
-func (o *Source) GetId() string {
+func (o *Provider) GetId() string {
 	if o == nil {
 		var ret string
 		return ret
@@ -62,7 +62,7 @@ func (o *Source) GetId() string {
 
 // GetIdOk returns a tuple with the Id field value
 // and a boolean to check if the value has been set.
-func (o *Source) GetIdOk() (*string, bool) {
+func (o *Provider) GetIdOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -70,12 +70,12 @@ func (o *Source) GetIdOk() (*string, bool) {
 }
 
 // SetId sets field value
-func (o *Source) SetId(v string) {
+func (o *Provider) SetId(v string) {
 	o.Id = v
 }
 
 // GetCreated returns the Created field value
-func (o *Source) GetCreated() int64 {
+func (o *Provider) GetCreated() int64 {
 	if o == nil {
 		var ret int64
 		return ret
@@ -86,7 +86,7 @@ func (o *Source) GetCreated() int64 {
 
 // GetCreatedOk returns a tuple with the Created field value
 // and a boolean to check if the value has been set.
-func (o *Source) GetCreatedOk() (*int64, bool) {
+func (o *Provider) GetCreatedOk() (*int64, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -94,12 +94,12 @@ func (o *Source) GetCreatedOk() (*int64, bool) {
 }
 
 // SetCreated sets field value
-func (o *Source) SetCreated(v int64) {
+func (o *Provider) SetCreated(v int64) {
 	o.Created = v
 }
 
 // GetUpdated returns the Updated field value
-func (o *Source) GetUpdated() int64 {
+func (o *Provider) GetUpdated() int64 {
 	if o == nil {
 		var ret int64
 		return ret
@@ -110,7 +110,7 @@ func (o *Source) GetUpdated() int64 {
 
 // GetUpdatedOk returns a tuple with the Updated field value
 // and a boolean to check if the value has been set.
-func (o *Source) GetUpdatedOk() (*int64, bool) {
+func (o *Provider) GetUpdatedOk() (*int64, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -118,12 +118,12 @@ func (o *Source) GetUpdatedOk() (*int64, bool) {
 }
 
 // SetUpdated sets field value
-func (o *Source) SetUpdated(v int64) {
+func (o *Provider) SetUpdated(v int64) {
 	o.Updated = v
 }
 
 // GetDomain returns the Domain field value
-func (o *Source) GetDomain() string {
+func (o *Provider) GetDomain() string {
 	if o == nil {
 		var ret string
 		return ret
@@ -134,7 +134,7 @@ func (o *Source) GetDomain() string {
 
 // GetDomainOk returns a tuple with the Domain field value
 // and a boolean to check if the value has been set.
-func (o *Source) GetDomainOk() (*string, bool) {
+func (o *Provider) GetDomainOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -142,12 +142,12 @@ func (o *Source) GetDomainOk() (*string, bool) {
 }
 
 // SetDomain sets field value
-func (o *Source) SetDomain(v string) {
+func (o *Provider) SetDomain(v string) {
 	o.Domain = v
 }
 
 // GetClientID returns the ClientID field value
-func (o *Source) GetClientID() string {
+func (o *Provider) GetClientID() string {
 	if o == nil {
 		var ret string
 		return ret
@@ -158,7 +158,7 @@ func (o *Source) GetClientID() string {
 
 // GetClientIDOk returns a tuple with the ClientID field value
 // and a boolean to check if the value has been set.
-func (o *Source) GetClientIDOk() (*string, bool) {
+func (o *Provider) GetClientIDOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -166,12 +166,12 @@ func (o *Source) GetClientIDOk() (*string, bool) {
 }
 
 // SetClientID sets field value
-func (o *Source) SetClientID(v string) {
+func (o *Provider) SetClientID(v string) {
 	o.ClientID = v
 }
 
 // GetClientSecret returns the ClientSecret field value
-func (o *Source) GetClientSecret() string {
+func (o *Provider) GetClientSecret() string {
 	if o == nil {
 		var ret string
 		return ret
@@ -182,7 +182,7 @@ func (o *Source) GetClientSecret() string {
 
 // GetClientSecretOk returns a tuple with the ClientSecret field value
 // and a boolean to check if the value has been set.
-func (o *Source) GetClientSecretOk() (*string, bool) {
+func (o *Provider) GetClientSecretOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -190,12 +190,12 @@ func (o *Source) GetClientSecretOk() (*string, bool) {
 }
 
 // SetClientSecret sets field value
-func (o *Source) SetClientSecret(v string) {
+func (o *Provider) SetClientSecret(v string) {
 	o.ClientSecret = v
 }
 
 // GetKind returns the Kind field value
-func (o *Source) GetKind() string {
+func (o *Provider) GetKind() string {
 	if o == nil {
 		var ret string
 		return ret
@@ -206,7 +206,7 @@ func (o *Source) GetKind() string {
 
 // GetKindOk returns a tuple with the Kind field value
 // and a boolean to check if the value has been set.
-func (o *Source) GetKindOk() (*string, bool) {
+func (o *Provider) GetKindOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -214,14 +214,14 @@ func (o *Source) GetKindOk() (*string, bool) {
 }
 
 // SetKind sets field value
-func (o *Source) SetKind(v string) {
+func (o *Provider) SetKind(v string) {
 	o.Kind = v
 }
 
 // GetOkta returns the Okta field value if set, zero value otherwise.
-func (o *Source) GetOkta() SourceOkta {
+func (o *Provider) GetOkta() ProviderOkta {
 	if o == nil || o.Okta == nil {
-		var ret SourceOkta
+		var ret ProviderOkta
 		return ret
 	}
 	return *o.Okta
@@ -229,7 +229,7 @@ func (o *Source) GetOkta() SourceOkta {
 
 // GetOktaOk returns a tuple with the Okta field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *Source) GetOktaOk() (*SourceOkta, bool) {
+func (o *Provider) GetOktaOk() (*ProviderOkta, bool) {
 	if o == nil || o.Okta == nil {
 		return nil, false
 	}
@@ -237,7 +237,7 @@ func (o *Source) GetOktaOk() (*SourceOkta, bool) {
 }
 
 // HasOkta returns a boolean if a field has been set.
-func (o *Source) HasOkta() bool {
+func (o *Provider) HasOkta() bool {
 	if o != nil && o.Okta != nil {
 		return true
 	}
@@ -245,12 +245,12 @@ func (o *Source) HasOkta() bool {
 	return false
 }
 
-// SetOkta gets a reference to the given SourceOkta and assigns it to the Okta field.
-func (o *Source) SetOkta(v SourceOkta) {
+// SetOkta gets a reference to the given ProviderOkta and assigns it to the Okta field.
+func (o *Provider) SetOkta(v ProviderOkta) {
 	o.Okta = &v
 }
 
-func (o Source) MarshalJSON() ([]byte, error) {
+func (o Provider) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
 		toSerialize["id"] = o.Id
@@ -279,38 +279,38 @@ func (o Source) MarshalJSON() ([]byte, error) {
 	return json.Marshal(toSerialize)
 }
 
-type NullableSource struct {
-	value *Source
+type NullableProvider struct {
+	value *Provider
 	isSet bool
 }
 
-func (v NullableSource) Get() *Source {
+func (v NullableProvider) Get() *Provider {
 	return v.value
 }
 
-func (v *NullableSource) Set(val *Source) {
+func (v *NullableProvider) Set(val *Provider) {
 	v.value = val
 	v.isSet = true
 }
 
-func (v NullableSource) IsSet() bool {
+func (v NullableProvider) IsSet() bool {
 	return v.isSet
 }
 
-func (v *NullableSource) Unset() {
+func (v *NullableProvider) Unset() {
 	v.value = nil
 	v.isSet = false
 }
 
-func NewNullableSource(val *Source) *NullableSource {
-	return &NullableSource{value: val, isSet: true}
+func NewNullableProvider(val *Provider) *NullableProvider {
+	return &NullableProvider{value: val, isSet: true}
 }
 
-func (v NullableSource) MarshalJSON() ([]byte, error) {
+func (v NullableProvider) MarshalJSON() ([]byte, error) {
 	return json.Marshal(v.value)
 }
 
-func (v *NullableSource) UnmarshalJSON(src []byte) error {
+func (v *NullableProvider) UnmarshalJSON(src []byte) error {
 	v.isSet = true
 	return json.Unmarshal(src, &v.value)
 }

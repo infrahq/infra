@@ -59,7 +59,7 @@ func (t *Telemetry) Close() {
 }
 
 func (t *Telemetry) EnqueueHeartbeat() error {
-	var users, groups, sources, destinations, roles int64
+	var users, groups, providers, destinations, roles int64
 	if err := t.db.Model(&User{}).Count(&users).Error; err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func (t *Telemetry) EnqueueHeartbeat() error {
 		return err
 	}
 
-	if err := t.db.Model(&Source{}).Count(&sources).Error; err != nil {
+	if err := t.db.Model(&Provider{}).Count(&providers).Error; err != nil {
 		return err
 	}
 
@@ -86,7 +86,7 @@ func (t *Telemetry) EnqueueHeartbeat() error {
 		Properties: analytics.NewProperties().
 			Set("users", users).
 			Set("groups", groups).
-			Set("sources", sources).
+			Set("providers", providers).
 			Set("destinations", destinations).
 			Set("roles", roles),
 	})

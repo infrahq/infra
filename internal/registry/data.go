@@ -31,14 +31,14 @@ type User struct {
 	Updated int64  `gorm:"autoUpdateTime"`
 	Email   string `gorm:"unique"`
 
-	Sources []Source `gorm:"many2many:users_sources"`
-	Roles   []Role   `gorm:"many2many:users_roles"`
-	Groups  []Group  `gorm:"many2many:groups_users"`
+	Providers []Provider `gorm:"many2many:users_providers"`
+	Roles     []Role     `gorm:"many2many:users_roles"`
+	Groups    []Group    `gorm:"many2many:groups_users"`
 }
 
-var SourceKindOkta = "okta"
+var ProviderKindOkta = "okta"
 
-type Source struct {
+type Provider struct {
 	Id      string `gorm:"primaryKey"`
 	Created int64  `gorm:"autoCreateTime"`
 	Updated int64  `gorm:"autoUpdateTime"`
@@ -51,16 +51,16 @@ type Source struct {
 	// used for okta sync
 	APIToken string
 
-	Users []User `gorm:"many2many:users_sources"`
+	Users []User `gorm:"many2many:users_providers"`
 }
 
 type Group struct {
-	Id       string `gorm:"primaryKey"`
-	Created  int64  `gorm:"autoCreateTime"`
-	Updated  int64  `gorm:"autoUpdateTime"`
-	Name     string
-	SourceId string
-	Source   Source `gorm:"foreignKey:SourceId;references:Id"`
+	Id         string `gorm:"primaryKey"`
+	Created    int64  `gorm:"autoCreateTime"`
+	Updated    int64  `gorm:"autoUpdateTime"`
+	Name       string
+	ProviderId string
+	Provider   Provider `gorm:"foreignKey:ProviderId;references:Id"`
 
 	Roles []Role `gorm:"many2many:groups_roles"`
 	Users []User `gorm:"many2many:groups_users"`
@@ -150,7 +150,7 @@ func (u *User) AfterCreate(tx *gorm.DB) error {
 
 // TODO (jmorganca): use foreign constraints instead?
 func (u *User) BeforeDelete(tx *gorm.DB) error {
-	if err := tx.Model(u).Association("Sources").Clear(); err != nil {
+	if err := tx.Model(u).Association("Providers").Clear(); err != nil {
 		return fmt.Errorf("user associations before delete: %w", err)
 	}
 
@@ -258,22 +258,22 @@ func cleanUnassociatedRoles(tx *gorm.DB, roles []Role) error {
 	return nil
 }
 
-func (s *Source) BeforeCreate(tx *gorm.DB) (err error) {
-	if s.Id == "" {
-		s.Id = generate.MathRandString(IdLen)
+func (p *Provider) BeforeCreate(tx *gorm.DB) (err error) {
+	if p.Id == "" {
+		p.Id = generate.MathRandString(IdLen)
 	}
 
 	return nil
 }
 
-func (s *Source) BeforeDelete(tx *gorm.DB) error {
+func (p *Provider) BeforeDelete(tx *gorm.DB) error {
 	var users []User
-	if err := tx.Model(s).Association("Users").Find(&users); err != nil {
+	if err := tx.Model(p).Association("Users").Find(&users); err != nil {
 		return err
 	}
 
 	for _, u := range users {
-		if err := s.DeleteUser(tx, u); err != nil {
+		if err := p.DeleteUser(tx, u); err != nil {
 			return err
 		}
 	}
@@ -281,17 +281,17 @@ func (s *Source) BeforeDelete(tx *gorm.DB) error {
 	return nil
 }
 
-// CreateUser will create a user and associate them with the source
+// CreateUser will create a user and associate them with the provider
 // If the user already exists, they will not be created, instead an association
 // will be added instead
-func (s *Source) CreateUser(db *gorm.DB, user *User, email string) error {
+func (p *Provider) CreateUser(db *gorm.DB, user *User, email string) error {
 	return db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where(&User{Email: email}).FirstOrCreate(&user).Error; err != nil {
 			return err
 		}
 
-		if tx.Model(&user).Where(&Source{Id: s.Id}).Association("Sources").Count() == 0 {
-			if err := tx.Model(&user).Where(&Source{Id: s.Id}).Association("Sources").Append(s); err != nil {
+		if tx.Model(&user).Where(&Provider{Id: p.Id}).Association("Providers").Count() == 0 {
+			if err := tx.Model(&user).Where(&Provider{Id: p.Id}).Association("Providers").Append(p); err != nil {
 				return err
 			}
 		}
@@ -300,16 +300,16 @@ func (s *Source) CreateUser(db *gorm.DB, user *User, email string) error {
 	})
 }
 
-// Delete will delete a user's association with a source
-// If this is their only source, then the user will be deleted entirely
+// Delete will delete a user's association with a provider
+// If this is their only provider, then the user will be deleted entirely
 // TODO (jmorganca): wrap this in a transaction or at least find out why
 // there seems to cause a bug when used in a nested transaction
-func (s *Source) DeleteUser(db *gorm.DB, u User) error {
-	if err := db.Model(&u).Association("Sources").Delete(s); err != nil {
+func (p *Provider) DeleteUser(db *gorm.DB, u User) error {
+	if err := db.Model(&u).Association("Providers").Delete(p); err != nil {
 		return err
 	}
 
-	if db.Model(&u).Association("Sources").Count() == 0 {
+	if db.Model(&u).Association("Providers").Count() == 0 {
 		if err := db.Delete(&u).Error; err != nil {
 			return err
 		}
@@ -318,37 +318,37 @@ func (s *Source) DeleteUser(db *gorm.DB, u User) error {
 	return nil
 }
 
-// Validate checks that an Okta source is valid
-func (s *Source) Validate(r *Registry) error {
-	switch s.Kind {
-	case SourceKindOkta:
-		apiToken, err := r.GetSecret(s.APIToken)
+// Validate checks that an Okta provider is valid
+func (p *Provider) Validate(r *Registry) error {
+	switch p.Kind {
+	case ProviderKindOkta:
+		apiToken, err := r.GetSecret(p.APIToken)
 		if err != nil {
 			// this logs the expected secret object location, not the actual secret
-			return fmt.Errorf("could not retrieve okta API token from kubernetes secret %v: %w", s.APIToken, err)
+			return fmt.Errorf("could not retrieve okta API token from kubernetes secret %v: %w", p.APIToken, err)
 		}
 
-		if _, err := r.GetSecret(s.ClientSecret); err != nil {
-			return fmt.Errorf("could not retrieve okta client secret %v: %w", s.ClientSecret, err)
+		if _, err := r.GetSecret(p.ClientSecret); err != nil {
+			return fmt.Errorf("could not retrieve okta client secret %v: %w", p.ClientSecret, err)
 		}
 
-		return r.okta.ValidateOktaConnection(s.Domain, s.ClientID, apiToken)
+		return r.okta.ValidateOktaConnection(p.Domain, p.ClientID, apiToken)
 	default:
 		return nil
 	}
 }
 
-func (s *Source) SyncUsers(r *Registry) error {
+func (p *Provider) SyncUsers(r *Registry) error {
 	var emails []string
 
-	switch s.Kind {
-	case SourceKindOkta:
-		apiToken, err := r.GetSecret(s.APIToken)
+	switch p.Kind {
+	case ProviderKindOkta:
+		apiToken, err := r.GetSecret(p.APIToken)
 		if err != nil {
 			return fmt.Errorf("sync okta users api token: %w", err)
 		}
 
-		emails, err = r.okta.Emails(s.Domain, s.ClientID, apiToken)
+		emails, err = r.okta.Emails(p.Domain, p.ClientID, apiToken)
 		if err != nil {
 			return fmt.Errorf("sync okta emails: %w", err)
 		}
@@ -357,21 +357,21 @@ func (s *Source) SyncUsers(r *Registry) error {
 	}
 
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		// Create users in source
+		// Create users in provider
 		for _, email := range emails {
-			if err := s.CreateUser(tx, &User{}, email); err != nil {
+			if err := p.CreateUser(tx, &User{}, email); err != nil {
 				return fmt.Errorf("create user from okta: %w", err)
 			}
 		}
 
-		// Remove users from source that no longer exist in the identity provider
+		// Remove users from provider that no longer exist in the identity provider
 		var toDelete []User
 		if err := tx.Not("email IN ?", emails).Find(&toDelete).Error; err != nil {
 			return fmt.Errorf("sync okta delete emails: %w", err)
 		}
 
 		for _, td := range toDelete {
-			if err := s.DeleteUser(tx, td); err != nil {
+			if err := p.DeleteUser(tx, td); err != nil {
 				return fmt.Errorf("sync okta delete users: %w", err)
 			}
 		}
@@ -380,17 +380,17 @@ func (s *Source) SyncUsers(r *Registry) error {
 	})
 }
 
-func (s *Source) SyncGroups(r *Registry) error {
+func (p *Provider) SyncGroups(r *Registry) error {
 	var groupEmails map[string][]string
 
-	switch s.Kind {
-	case SourceKindOkta:
-		apiToken, err := r.GetSecret(s.APIToken)
+	switch p.Kind {
+	case ProviderKindOkta:
+		apiToken, err := r.GetSecret(p.APIToken)
 		if err != nil {
 			return fmt.Errorf("sync okta groups api secret: %w", err)
 		}
 
-		groupEmails, err = r.okta.Groups(s.Domain, s.ClientID, apiToken)
+		groupEmails, err = r.okta.Groups(p.Domain, p.ClientID, apiToken)
 		if err != nil {
 			return fmt.Errorf("sync okta groups: %w", err)
 		}
@@ -402,7 +402,7 @@ func (s *Source) SyncGroups(r *Registry) error {
 		var activeIDs []string
 		for groupName, emails := range groupEmails {
 			var group Group
-			if err := tx.FirstOrCreate(&group, Group{Name: groupName, SourceId: s.Id}).Error; err != nil {
+			if err := tx.FirstOrCreate(&group, Group{Name: groupName, ProviderId: p.Id}).Error; err != nil {
 				logging.S.Debug("could not find or create okta group: " + groupName)
 				return fmt.Errorf("sync create okta group: %w", err)
 			}
@@ -417,9 +417,9 @@ func (s *Source) SyncGroups(r *Registry) error {
 			activeIDs = append(activeIDs, group.Id)
 		}
 
-		// Delete source groups not in response
+		// Delete provider groups not in response
 		var toDelete []Group
-		if err := tx.Where(&Group{SourceId: s.Id}).Not(activeIDs).Find(&toDelete).Error; err != nil {
+		if err := tx.Where(&Group{ProviderId: p.Id}).Not(activeIDs).Find(&toDelete).Error; err != nil {
 			return fmt.Errorf("sync okta find inactive not in %d active: %w", len(activeIDs), err)
 		}
 
@@ -482,7 +482,7 @@ func (t *Token) BeforeCreate(tx *gorm.DB) (err error) {
 	}
 
 	// TODO (jmorganca): 24 hours may be too long or too short for some teams
-	// this should be customizable in settings or limited by the source's
+	// this should be customizable in settings or limited by the provider's
 	// policy (e.g. Okta is often 1-3 hours)
 	if t.Expires == 0 {
 		t.Expires = time.Now().Add(SessionDuration).Unix()
@@ -596,7 +596,7 @@ func NewDB(dbpath string) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	if err := db.AutoMigrate(&Source{}); err != nil {
+	if err := db.AutoMigrate(&Provider{}); err != nil {
 		return nil, err
 	}
 

@@ -4,7 +4,7 @@ image:
   pullPolicy: Never
 
 config:
-  sources:
+  providers:
     - kind: okta
       domain: $OKTA_DOMAIN
       client-id: $OKTA_CLIENT_ID

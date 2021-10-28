@@ -1,4 +1,4 @@
-Source:
+Provider:
   type: object
   required:
     - id
@@ -29,9 +29,9 @@ Source:
       type: string
       x-go-custom-tag: validate:"required"
     okta:
-      $ref: 'source.yaml#/SourceOkta'
+      $ref: 'provider.yaml#/ProviderOkta'
 
-SourceOkta:
+ProviderOkta:
   type: object
   required:
     - apiToken

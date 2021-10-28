@@ -3,7 +3,7 @@ secrets:
     kind: plaintext
     base64: true
 
-sources:
+providers:
   - kind: okta
     domain: overwrite.example.com
     client-id: base64:MG9hcG4wcXdpUVBpTUl5UjM1ZDY=
@@ -19,7 +19,7 @@ sources:
 
 groups:
   - name: ios-developers
-    source: okta
+    provider: okta
     roles:
       - name: writer
         kind: cluster-role
@@ -39,28 +39,28 @@ groups:
             namespaces:
               - infrahq
   - name: mac-admins
-    source: okta
+    provider: okta
     roles:
       - name: writer
         kind: cluster-role
         destinations:
           - name: cluster-BBB
   - name: adversaries
-    source: outside
+    provider: outside
     roles:
       - name: cluster-admin
         kind: cluster-role
         destinations:
           - name: cluster-AAA
   - name: heroes
-    source: okta
+    provider: okta
     roles:
       - name: writer
         kind: cluster-role
         destinations:
           - name: cluster-CCC
   - name: villains
-    source: okta
+    provider: okta
     roles:
       - name: writer
         kind: cluster-role

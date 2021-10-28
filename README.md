@@ -39,7 +39,7 @@ This example configuration uses Okta and grants the "Everyone" group read-only a
 * Okta API token
 * Cluster name
 
-See [Okta](./docs/sources/okta.md) for detailed Okta configuration steps.
+See [Okta](./docs/providers/okta.md) for detailed Okta configuration steps.
 
 Cluster name is auto-discovered or can be set statically in Helm with `engine.name`.
 
@@ -49,7 +49,7 @@ Also see [secrets.md](./docs/secrets.md) for details on how secrets work.
 # example values.yaml
 ---
 config:
-  sources:
+  providers:
     - kind: okta
       domain: <Okta domain>
       client-id: <Okta client ID>
@@ -162,10 +162,10 @@ See the [Infra CLI reference](./docs/cli.md) for more ways to use `infra`.
 
 ## Next Steps
 
-### Connect Additional Identity Sources
+### Connect Additional Identity Providers
 
-* [Sources](./docs/sources)
-  * [Okta](./docs/sources/okta.md)
+* [Providers](./docs/providers)
+  * [Okta](./docs/providers/okta.md)
 
 ### Connect Additional Infrastructure Destinations
 

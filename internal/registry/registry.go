@@ -45,7 +45,7 @@ type Options struct {
 	EnableTelemetry      bool `mapstructure:"enable-telemetry"`
 	EnableCrashReporting bool `mapstructure:"enable-crash-reporting"`
 
-	SourcesSyncInterval      time.Duration `mapstructure:"sources-sync-interval"`
+	ProvidersSyncInterval    time.Duration `mapstructure:"providers-sync-interval"`
 	DestinationsSyncInterval time.Duration `mapstructure:"destinations-sync-interval"`
 
 	internal.GlobalOptions
@@ -63,33 +63,33 @@ type Registry struct {
 const (
 	rootAPIKeyName                  string        = "root"
 	engineAPIKeyName                string        = "engine"
-	DefaultSourcesSyncInterval      time.Duration = time.Second * 60
+	DefaultProvidersSyncInterval    time.Duration = time.Second * 60
 	DefaultDestinationsSyncInterval time.Duration = time.Minute * 5
 )
 
-// syncSources polls every known source for users and groups
-func (r *Registry) syncSources() {
-	var sources []Source
-	if err := r.db.Find(&sources).Error; err != nil {
-		logging.S.Errorf("could not find sync sources: %w", err)
+// syncProviders polls every known provider for users and groups
+func (r *Registry) syncProviders() {
+	var providers []Provider
+	if err := r.db.Find(&providers).Error; err != nil {
+		logging.S.Errorf("could not find sync providers: %w", err)
 	}
 
-	for _, s := range sources {
-		switch s.Kind {
-		case SourceKindOkta:
-			logging.L.Debug("synchronizing okta source")
+	for _, p := range providers {
+		switch p.Kind {
+		case ProviderKindOkta:
+			logging.L.Debug("synchronizing okta provider")
 
-			err := s.SyncUsers(r)
+			err := p.SyncUsers(r)
 			if err != nil {
 				logging.S.Errorf("sync okta users: %w", err)
 			}
 
-			err = s.SyncGroups(r)
+			err = p.SyncGroups(r)
 			if err != nil {
 				logging.S.Errorf("sync okta groups: %w", err)
 			}
 		default:
-			logging.S.Errorf("skipped validating unknown source kind %s", s.Kind)
+			logging.S.Errorf("skipped validating unknown provider kind %s", p.Kind)
 		}
 	}
 }
@@ -125,7 +125,7 @@ func Run(options Options) (err error) {
 
 	r.okta = NewOkta()
 
-	r.validateSources()
+	r.validateProviders()
 	r.scheduleSyncJobs()
 
 	if err := r.configureTelemetry(); err != nil {
@@ -175,21 +175,21 @@ func (r *Registry) loadConfigFromFile() (err error) {
 	return nil
 }
 
-// validateSources validates any existing or imported sources
-func (r *Registry) validateSources() {
-	var sources []Source
-	if err := r.db.Find(&sources).Error; err != nil {
-		logging.S.Error("find sources to validate: %w", err)
+// validateProviders validates any existing or imported providers
+func (r *Registry) validateProviders() {
+	var providers []Provider
+	if err := r.db.Find(&providers).Error; err != nil {
+		logging.S.Error("find providers to validate: %w", err)
 	}
 
-	for _, s := range sources {
-		switch s.Kind {
-		case SourceKindOkta:
-			if err := s.Validate(r); err != nil {
+	for _, p := range providers {
+		switch p.Kind {
+		case ProviderKindOkta:
+			if err := p.Validate(r); err != nil {
 				logging.S.Errorf("could not validate okta: %w", err)
 			}
 		default:
-			logging.S.Errorf("skipped validating unknown source kind %s", s.Kind)
+			logging.S.Errorf("skipped validating unknown provider kind %s", p.Kind)
 		}
 	}
 }
@@ -197,13 +197,13 @@ func (r *Registry) validateSources() {
 // schedule the user and group sync jobs
 func (r *Registry) scheduleSyncJobs() {
 	// be careful with this sync job, there are Okta rate limits on these requests
-	syncSourcesTimer := timer.NewTimer()
-	defer syncSourcesTimer.Stop()
-	syncSourcesTimer.Start(r.options.SourcesSyncInterval, func() {
-		hub := newSentryHub("sync_sources_timer")
+	syncProvidersTimer := timer.NewTimer()
+	defer syncProvidersTimer.Stop()
+	syncProvidersTimer.Start(r.options.ProvidersSyncInterval, func() {
+		hub := newSentryHub("sync_providers_timer")
 		defer recoverWithSentryHub(hub)
 
-		r.syncSources()
+		r.syncProviders()
 	})
 
 	// schedule destination sync job

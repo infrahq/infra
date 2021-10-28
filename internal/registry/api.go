@@ -56,8 +56,8 @@ func NewAPIMux(reg *Registry) *mux.Router {
 	v1.Handle("/groups", a.bearerAuthMiddleware(api.GROUPS_READ, http.HandlerFunc(a.ListGroups))).Methods(http.MethodGet)
 	v1.Handle("/groups/{id}", a.bearerAuthMiddleware(api.GROUPS_READ, http.HandlerFunc(a.GetGroup))).Methods(http.MethodGet)
 
-	v1.Handle("/sources", http.HandlerFunc(a.ListSources)).Methods(http.MethodGet)
-	v1.Handle("/sources/{id}", http.HandlerFunc(a.GetSource)).Methods(http.MethodGet)
+	v1.Handle("/providers", http.HandlerFunc(a.ListProviders)).Methods(http.MethodGet)
+	v1.Handle("/providers/{id}", http.HandlerFunc(a.GetProvider)).Methods(http.MethodGet)
 
 	v1.Handle("/destinations", a.bearerAuthMiddleware(api.DESTINATIONS_READ, http.HandlerFunc(a.ListDestinations))).Methods(http.MethodGet)
 	v1.Handle("/destinations", a.bearerAuthMiddleware(api.DESTINATIONS_CREATE, http.HandlerFunc(a.CreateDestination))).Methods(http.MethodPost)
@@ -322,60 +322,60 @@ func (a *API) GetGroup(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *API) ListSources(w http.ResponseWriter, r *http.Request) {
-	sourceKind := r.URL.Query().Get("kind")
+func (a *API) ListProviders(w http.ResponseWriter, r *http.Request) {
+	providerKind := r.URL.Query().Get("kind")
 
-	var sources []Source
-	if err := a.db.Find(&sources, &Source{Kind: sourceKind}).Error; err != nil {
+	var providers []Provider
+	if err := a.db.Find(&providers, &Provider{Kind: providerKind}).Error; err != nil {
 		logging.L.Error(err.Error())
-		sendAPIError(w, http.StatusInternalServerError, "could not list sources")
+		sendAPIError(w, http.StatusInternalServerError, "could not list providers")
 
 		return
 	}
 
-	results := make([]api.Source, 0)
-	for _, s := range sources {
-		results = append(results, s.marshal())
+	results := make([]api.Provider, 0)
+	for _, p := range providers {
+		results = append(results, p.marshal())
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 
 	if err := json.NewEncoder(w).Encode(results); err != nil {
 		logging.L.Error(err.Error())
-		sendAPIError(w, http.StatusInternalServerError, "could not list sources")
+		sendAPIError(w, http.StatusInternalServerError, "could not list providers")
 	}
 }
 
-func (a *API) GetSource(w http.ResponseWriter, r *http.Request) {
+func (a *API) GetProvider(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	sourceId := vars["id"]
-	if sourceId == "" {
+	providerId := vars["id"]
+	if providerId == "" {
 		sendAPIError(w, http.StatusBadRequest, "Path parameter \"id\" is required")
 
 		return
 	}
 
-	var source Source
-	if err := a.db.First(&source, &Source{Id: sourceId}).Error; err != nil {
+	var provider Provider
+	if err := a.db.First(&provider, &Provider{Id: providerId}).Error; err != nil {
 		logging.L.Error(err.Error())
 
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			sendAPIError(w, http.StatusNotFound, fmt.Sprintf("Could not find source ID \"%s\"", sourceId))
+			sendAPIError(w, http.StatusNotFound, fmt.Sprintf("Could not find provider ID \"%s\"", providerId))
 		} else {
-			sendAPIError(w, http.StatusBadRequest, fmt.Sprintf("Could not find source ID \"%s\"", sourceId))
+			sendAPIError(w, http.StatusBadRequest, fmt.Sprintf("Could not find provider ID \"%s\"", providerId))
 		}
 
 		return
 	}
 
-	result := source.marshal()
+	result := provider.marshal()
 
 	w.Header().Set("Content-Type", "application/json")
 
 	if err := json.NewEncoder(w).Encode(result); err != nil {
 		logging.L.Error(err.Error())
-		sendAPIError(w, http.StatusInternalServerError, "could not list sources")
+		sendAPIError(w, http.StatusInternalServerError, "could not list providers")
 	}
 }
 
@@ -788,15 +788,15 @@ func (a *API) Login(w http.ResponseWriter, r *http.Request) {
 
 	switch {
 	case body.Okta != nil:
-		var source Source
-		if err := a.db.Where(&Source{Kind: SourceKindOkta, Domain: body.Okta.Domain}).First(&source).Error; err != nil {
-			logging.L.Debug("Could not retrieve okta source from db: " + err.Error())
+		var provider Provider
+		if err := a.db.Where(&Provider{Kind: ProviderKindOkta, Domain: body.Okta.Domain}).First(&provider).Error; err != nil {
+			logging.L.Debug("Could not retrieve okta provider from db: " + err.Error())
 			sendAPIError(w, http.StatusBadRequest, "invalid okta login information")
 
 			return
 		}
 
-		clientSecret, err := a.registry.GetSecret(source.ClientSecret)
+		clientSecret, err := a.registry.GetSecret(provider.ClientSecret)
 		if err != nil {
 			logging.L.Error("Could not retrieve okta client secret from provider: " + err.Error())
 			sendAPIError(w, http.StatusInternalServerError, "invalid okta login information")
@@ -806,8 +806,8 @@ func (a *API) Login(w http.ResponseWriter, r *http.Request) {
 
 		email, err := a.okta.EmailFromCode(
 			body.Okta.Code,
-			source.Domain,
-			source.ClientID,
+			provider.Domain,
+			provider.ClientID,
 			clientSecret,
 		)
 		if err != nil {
@@ -887,8 +887,8 @@ func (a *API) Version(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Source) marshal() api.Source {
-	res := api.Source{
+func (s *Provider) marshal() api.Provider {
+	res := api.Provider{
 		Id:           s.Id,
 		Created:      s.Created,
 		Updated:      s.Updated,
@@ -898,8 +898,8 @@ func (s *Source) marshal() api.Source {
 		Kind:         s.Kind,
 	}
 
-	if s.Kind == SourceKindOkta {
-		res.Okta = &api.SourceOkta{
+	if s.Kind == ProviderKindOkta {
+		res.Okta = &api.ProviderOkta{
 			APIToken: s.APIToken,
 		}
 	}
@@ -1016,11 +1016,11 @@ func (u *User) marshal() api.User {
 
 func (g *Group) marshal() api.Group {
 	res := api.Group{
-		Id:       g.Id,
-		Created:  g.Created,
-		Updated:  g.Updated,
-		Name:     g.Name,
-		SourceID: g.SourceId,
+		Id:         g.Id,
+		Created:    g.Created,
+		Updated:    g.Updated,
+		Name:       g.Name,
+		ProviderID: g.ProviderId,
 	}
 
 	for _, u := range g.Users {

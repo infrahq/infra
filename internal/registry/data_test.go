@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestSyncGroupsClearsOnlySource(t *testing.T) {
-	// mocks no groups being present at the source
+func TestSyncGroupsClearsOnlyProvider(t *testing.T) {
+	// mocks no groups being present at the provider
 	mockGroups := make(map[string][]string)
 	testOkta := new(mocks.Okta)
 	testOkta.On("Groups", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(mockGroups, nil)
@@ -23,7 +23,7 @@ func TestSyncGroupsClearsOnlySource(t *testing.T) {
 		},
 	}
 
-	if err := fakeOktaSource.SyncGroups(r); err != nil {
+	if err := fakeOktaProvider.SyncGroups(r); err != nil {
 		t.Fatal(err)
 	}
 
@@ -49,12 +49,12 @@ func TestSyncGroupsFromOktaIgnoresUnknownUsers(t *testing.T) {
 		},
 	}
 
-	if err := fakeOktaSource.SyncGroups(r); err != nil {
+	if err := fakeOktaProvider.SyncGroups(r); err != nil {
 		t.Fatal(err)
 	}
 
 	var heroGroup Group
-	if err := db.Preload("Users").Where(&Group{Name: "heroes", SourceId: fakeOktaSource.Id}).First(&heroGroup).Error; err != nil {
+	if err := db.Preload("Users").Where(&Group{Name: "heroes", ProviderId: fakeOktaProvider.Id}).First(&heroGroup).Error; err != nil {
 		t.Fatal(err)
 	}
 
@@ -76,12 +76,12 @@ func TestSyncGroupsFromOktaRecreatesGroups(t *testing.T) {
 		},
 	}
 
-	if err := fakeOktaSource.SyncGroups(r); err != nil {
+	if err := fakeOktaProvider.SyncGroups(r); err != nil {
 		t.Fatal(err)
 	}
 
 	var heroGroup Group
-	if err := db.Preload("Users").Where(&Group{Name: "heroes", SourceId: fakeOktaSource.Id}).First(&heroGroup).Error; err != nil {
+	if err := db.Preload("Users").Where(&Group{Name: "heroes", ProviderId: fakeOktaProvider.Id}).First(&heroGroup).Error; err != nil {
 		t.Fatal(err)
 	}
 
@@ -90,11 +90,11 @@ func TestSyncGroupsFromOktaRecreatesGroups(t *testing.T) {
 
 	mockGroups["villains"] = []string{"user@example.com"}
 
-	if err := fakeOktaSource.SyncGroups(r); err != nil {
+	if err := fakeOktaProvider.SyncGroups(r); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := db.Preload("Users").Where(&Group{Name: "heroes", SourceId: fakeOktaSource.Id}).First(&heroGroup).Error; err != nil {
+	if err := db.Preload("Users").Where(&Group{Name: "heroes", ProviderId: fakeOktaProvider.Id}).First(&heroGroup).Error; err != nil {
 		t.Fatal(err)
 	}
 
@@ -102,7 +102,7 @@ func TestSyncGroupsFromOktaRecreatesGroups(t *testing.T) {
 	assert.Equal(t, heroGroup.Users[0].Email, "woz@example.com")
 
 	var villainGroup Group
-	if err := db.Preload("Users").Where(&Group{Name: "villains", SourceId: fakeOktaSource.Id}).First(&villainGroup).Error; err != nil {
+	if err := db.Preload("Users").Where(&Group{Name: "villains", ProviderId: fakeOktaProvider.Id}).First(&villainGroup).Error; err != nil {
 		t.Fatal(err)
 	}
 

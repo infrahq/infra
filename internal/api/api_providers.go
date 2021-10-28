@@ -24,28 +24,28 @@ var (
 	_ _context.Context
 )
 
-// SourcesAPIService SourcesAPI service
-type SourcesAPIService service
+// ProvidersAPIService ProvidersAPI service
+type ProvidersAPIService service
 
-type APIGetSourceRequest struct {
+type APIGetProviderRequest struct {
 	ctx        _context.Context
-	APIService *SourcesAPIService
+	APIService *ProvidersAPIService
 	id         string
 }
 
-func (r APIGetSourceRequest) Execute() (Source, *_nethttp.Response, error) {
-	return r.APIService.GetSourceExecute(r)
+func (r APIGetProviderRequest) Execute() (Provider, *_nethttp.Response, error) {
+	return r.APIService.GetProviderExecute(r)
 }
 
 /*
-GetSource Get source by ID
+GetProvider Get provider by ID
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param id Source ID
- @return APIGetSourceRequest
+ @param id Provider ID
+ @return APIGetProviderRequest
 */
-func (a *SourcesAPIService) GetSource(ctx _context.Context, id string) APIGetSourceRequest {
-	return APIGetSourceRequest{
+func (a *ProvidersAPIService) GetProvider(ctx _context.Context, id string) APIGetProviderRequest {
+	return APIGetProviderRequest{
 		APIService: a,
 		ctx:        ctx,
 		id:         id,
@@ -53,23 +53,23 @@ func (a *SourcesAPIService) GetSource(ctx _context.Context, id string) APIGetSou
 }
 
 // Execute executes the request
-//  @return Source
-func (a *SourcesAPIService) GetSourceExecute(r APIGetSourceRequest) (Source, *_nethttp.Response, error) {
+//  @return Provider
+func (a *ProvidersAPIService) GetProviderExecute(r APIGetProviderRequest) (Provider, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodGet
 		localVarPostBody     interface{}
 		localVarFormFileName string
 		localVarFileName     string
 		localVarFileBytes    []byte
-		localVarReturnValue  Source
+		localVarReturnValue  Provider
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SourcesAPIService.GetSource")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ProvidersAPIService.GetProvider")
 	if err != nil {
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/sources/{id}"
+	localVarPath := localBasePath + "/providers/{id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"id"+"}", _neturl.PathEscape(parameterToString(r.id, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
@@ -137,53 +137,53 @@ func (a *SourcesAPIService) GetSourceExecute(r APIGetSourceRequest) (Source, *_n
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type APIListSourcesRequest struct {
+type APIListProvidersRequest struct {
 	ctx        _context.Context
-	APIService *SourcesAPIService
+	APIService *ProvidersAPIService
 	kind       *string
 }
 
-// Filter sources by kind
-func (r APIListSourcesRequest) Kind(kind string) APIListSourcesRequest {
+// Filter providers by kind
+func (r APIListProvidersRequest) Kind(kind string) APIListProvidersRequest {
 	r.kind = &kind
 	return r
 }
 
-func (r APIListSourcesRequest) Execute() ([]Source, *_nethttp.Response, error) {
-	return r.APIService.ListSourcesExecute(r)
+func (r APIListProvidersRequest) Execute() ([]Provider, *_nethttp.Response, error) {
+	return r.APIService.ListProvidersExecute(r)
 }
 
 /*
-ListSources List sources
+ListProviders List providers
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return APIListSourcesRequest
+ @return APIListProvidersRequest
 */
-func (a *SourcesAPIService) ListSources(ctx _context.Context) APIListSourcesRequest {
-	return APIListSourcesRequest{
+func (a *ProvidersAPIService) ListProviders(ctx _context.Context) APIListProvidersRequest {
+	return APIListProvidersRequest{
 		APIService: a,
 		ctx:        ctx,
 	}
 }
 
 // Execute executes the request
-//  @return []Source
-func (a *SourcesAPIService) ListSourcesExecute(r APIListSourcesRequest) ([]Source, *_nethttp.Response, error) {
+//  @return []Provider
+func (a *ProvidersAPIService) ListProvidersExecute(r APIListProvidersRequest) ([]Provider, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodGet
 		localVarPostBody     interface{}
 		localVarFormFileName string
 		localVarFileName     string
 		localVarFileBytes    []byte
-		localVarReturnValue  []Source
+		localVarReturnValue  []Provider
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "SourcesAPIService.ListSources")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ProvidersAPIService.ListProviders")
 	if err != nil {
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/sources"
+	localVarPath := localBasePath + "/providers"
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := _neturl.Values{}

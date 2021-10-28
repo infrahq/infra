@@ -1,6 +1,6 @@
-# Sources / Okta
+# Providers / Okta
 
-## Configure Okta Source
+## Configure Okta Provider
 
 | Parameter       | Field       | Description                  |
 |-----------------|-------------|-----------------------------|
@@ -10,12 +10,12 @@
 | `okta`          |             | Okta specific configuration |
 | `okta`          | `api-token` | Okta API token              |
 
-## Connect an Okta Source
+## Connect an Okta Provider
 
-This guide will walk you through the process of setting up Okta as an identity provider for Infra. At the end of this process you will have updated your Infra configuration with an Okta source that looks something like this:
+This guide will walk you through the process of setting up Okta as an identity provider for Infra. At the end of this process you will have updated your Infra configuration with an Okta provider that looks something like this:
 
 ```
-sources:
+providers:
   - kind: okta
     domain: acme.okta.com
     client-id: 0oapn0qwiQPiMIyR35d6
@@ -67,12 +67,12 @@ see [secrets.md](../secrets.md) for further details.
 
 ## Add Okta Information to Infra Configuration
 
-Edit your [Infra configuration](./configuration.md) (e.g. `infra.yaml`) to include an Okta source:
+Edit your [Infra configuration](./configuration.md) (e.g. `infra.yaml`) to include an Okta provider:
 
 ```yaml
 # infra.yaml
 ---
-sources:
+providers:
   - kind: okta
     domain: example.okta.com
     client-id: 0oapn0qwiQPiMIyR35d6
@@ -93,7 +93,7 @@ Infra configuration can also be added to Helm values:
 # values.yaml
 ---
 config:
-  sources:
+  providers:
     - kind: okta
       domain: example.okta.com
       client-id: 0oapn0qwiQPiMIyR35d6
