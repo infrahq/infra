@@ -4,13 +4,16 @@ image:
   pullPolicy: Never
 
 config:
+  secrets:
+    - kind: kubernetes
+      namespace: infrahq
   providers:
     - kind: okta
       domain: $OKTA_DOMAIN
       client-id: $OKTA_CLIENT_ID
-      client-secret: $OKTA_SECRET/clientSecret
+      client-secret: kubernetes:$OKTA_SECRET/clientSecret
       okta:
-        api-token: $OKTA_SECRET/apiToken
+        api-token: kubernetes:$OKTA_SECRET/apiToken
 
 engine:
   name: docker-desktop
