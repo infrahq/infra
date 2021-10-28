@@ -50,9 +50,10 @@ config:
   sources:
     - kind: okta
       domain: <Okta domain>
-      clientId: <Okta client ID>
-      clientSecret: <Okta client secret>
-      apiToken: <Okta API token>
+      client-id: <Okta client ID>
+      client-secret: <Okta client secret>
+      okta:
+        api-token: <Okta API token>
   groups:
     - name: Everyone
       roles:

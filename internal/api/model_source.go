@@ -16,21 +16,29 @@ import (
 
 // Source struct for Source
 type Source struct {
-	Id      string      `json:"id"`
-	Created int64       `json:"created"`
-	Updated int64       `json:"updated"`
-	Okta    *SourceOkta `json:"okta,omitempty"`
+	Id           string      `json:"id"`
+	Created      int64       `json:"created"`
+	Updated      int64       `json:"updated"`
+	Domain       string      `json:"domain" validate:"required"`
+	ClientID     string      `json:"clientID" validate:"required"`
+	ClientSecret string      `json:"clientSecret"`
+	Kind         string      `json:"kind" validate:"required"`
+	Okta         *SourceOkta `json:"okta,omitempty"`
 }
 
 // NewSource instantiates a new Source object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewSource(id string, created int64, updated int64) *Source {
+func NewSource(id string, created int64, updated int64, domain string, clientID string, clientSecret string, kind string) *Source {
 	this := Source{}
 	this.Id = id
 	this.Created = created
 	this.Updated = updated
+	this.Domain = domain
+	this.ClientID = clientID
+	this.ClientSecret = clientSecret
+	this.Kind = kind
 	return &this
 }
 
@@ -114,6 +122,102 @@ func (o *Source) SetUpdated(v int64) {
 	o.Updated = v
 }
 
+// GetDomain returns the Domain field value
+func (o *Source) GetDomain() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.Domain
+}
+
+// GetDomainOk returns a tuple with the Domain field value
+// and a boolean to check if the value has been set.
+func (o *Source) GetDomainOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Domain, true
+}
+
+// SetDomain sets field value
+func (o *Source) SetDomain(v string) {
+	o.Domain = v
+}
+
+// GetClientID returns the ClientID field value
+func (o *Source) GetClientID() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.ClientID
+}
+
+// GetClientIDOk returns a tuple with the ClientID field value
+// and a boolean to check if the value has been set.
+func (o *Source) GetClientIDOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.ClientID, true
+}
+
+// SetClientID sets field value
+func (o *Source) SetClientID(v string) {
+	o.ClientID = v
+}
+
+// GetClientSecret returns the ClientSecret field value
+func (o *Source) GetClientSecret() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.ClientSecret
+}
+
+// GetClientSecretOk returns a tuple with the ClientSecret field value
+// and a boolean to check if the value has been set.
+func (o *Source) GetClientSecretOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.ClientSecret, true
+}
+
+// SetClientSecret sets field value
+func (o *Source) SetClientSecret(v string) {
+	o.ClientSecret = v
+}
+
+// GetKind returns the Kind field value
+func (o *Source) GetKind() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.Kind
+}
+
+// GetKindOk returns a tuple with the Kind field value
+// and a boolean to check if the value has been set.
+func (o *Source) GetKindOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Kind, true
+}
+
+// SetKind sets field value
+func (o *Source) SetKind(v string) {
+	o.Kind = v
+}
+
 // GetOkta returns the Okta field value if set, zero value otherwise.
 func (o *Source) GetOkta() SourceOkta {
 	if o == nil || o.Okta == nil {
@@ -156,6 +260,18 @@ func (o Source) MarshalJSON() ([]byte, error) {
 	}
 	if true {
 		toSerialize["updated"] = o.Updated
+	}
+	if true {
+		toSerialize["domain"] = o.Domain
+	}
+	if true {
+		toSerialize["clientID"] = o.ClientID
+	}
+	if true {
+		toSerialize["clientSecret"] = o.ClientSecret
+	}
+	if true {
+		toSerialize["kind"] = o.Kind
 	}
 	if o.Okta != nil {
 		toSerialize["okta"] = o.Okta

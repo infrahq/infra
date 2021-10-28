@@ -554,7 +554,7 @@ func TestLoginMethodOkta(t *testing.T) {
 	source.Kind = SourceKindOkta
 	source.APIToken = "test-api-token/apiToken"
 	source.Domain = "test.okta.com"
-	source.ClientId = "test-client-id"
+	source.ClientID = "test-client-id"
 	source.ClientSecret = "test-client-secret/clientSecret"
 
 	if err := db.Create(&source).Error; err != nil {

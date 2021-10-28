@@ -11,19 +11,27 @@ import (
 	"gorm.io/gorm"
 )
 
-type ConfigSource struct {
-	Kind         string `yaml:"kind"`
-	Domain       string `yaml:"domain"`
-	ClientId     string `yaml:"clientId"`
-	ClientSecret string `yaml:"clientSecret"`
-	APIToken     string `yaml:"apiToken"`
+type ConfigOkta struct {
+	APIToken string `yaml:"api-token"`
 }
 
-var dashAdminRemover = regexp.MustCompile(`(.*)\-admin(\.okta\.com)`)
+type ConfigSource struct {
+	Kind         string     `yaml:"kind"`
+	Domain       string     `yaml:"domain"`
+	ClientID     string     `yaml:"client-id"`
+	ClientSecret string     `yaml:"client-secret"`
+	Okta         ConfigOkta `yaml:"okta"`
+}
+
+var (
+	dashAdminRemover = regexp.MustCompile(`(.*)\-admin(\.okta\.com)`)
+	protocolRemover  = regexp.MustCompile(`http[s]?://`)
+)
 
 func (s *ConfigSource) cleanupDomain() {
 	s.Domain = strings.TrimSpace(s.Domain)
 	s.Domain = dashAdminRemover.ReplaceAllString(s.Domain, "$1$2")
+	s.Domain = protocolRemover.ReplaceAllString(s.Domain, "")
 }
 
 type ConfigDestination struct {
@@ -85,11 +93,27 @@ func ImportSources(db *gorm.DB, sources []ConfigSource) error {
 				return fmt.Errorf("create config source: %w", err)
 			}
 
-			source.ClientId = s.ClientId
+			if s.ClientID == "" {
+				logging.L.Warn("importing okta source with no client ID set")
+			}
+
+			if s.Domain == "" {
+				logging.L.Warn("importing okta source with no domain set")
+			}
+
+			if s.ClientSecret == "" {
+				logging.L.Warn("importing okta source with no client secret set")
+			}
+
+			if s.Okta.APIToken == "" {
+				logging.L.Warn("importing okta source with no API token set")
+			}
+
+			source.ClientID = s.ClientID
 			source.Domain = s.Domain
 			// API token and client secret will be validated to exist when they are used
 			source.ClientSecret = s.ClientSecret
-			source.APIToken = s.APIToken
+			source.APIToken = s.Okta.APIToken
 
 			if err := db.Save(&source).Error; err != nil {
 				return fmt.Errorf("save source: %w", err)

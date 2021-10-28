@@ -24,13 +24,7 @@ export interface SourceOkta {
      * @type {string}
      * @memberof SourceOkta
      */
-    domain: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof SourceOkta
-     */
-    clientId: string;
+    apiToken: string;
 }
 
 export function SourceOktaFromJSON(json: any): SourceOkta {
@@ -43,8 +37,7 @@ export function SourceOktaFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     }
     return {
         
-        'domain': json['domain'],
-        'clientId': json['clientId'],
+        'apiToken': json['apiToken'],
     };
 }
 
@@ -57,8 +50,7 @@ export function SourceOktaToJSON(value?: SourceOkta | null): any {
     }
     return {
         
-        'domain': value.domain,
-        'clientId': value.clientId,
+        'apiToken': value.apiToken,
     };
 }
 

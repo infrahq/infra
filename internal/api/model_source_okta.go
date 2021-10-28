@@ -16,18 +16,16 @@ import (
 
 // SourceOkta struct for SourceOkta
 type SourceOkta struct {
-	Domain   string `json:"domain"`
-	ClientId string `json:"clientId"`
+	APIToken string `json:"apiToken"`
 }
 
 // NewSourceOkta instantiates a new SourceOkta object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewSourceOkta(domain string, clientId string) *SourceOkta {
+func NewSourceOkta(apiToken string) *SourceOkta {
 	this := SourceOkta{}
-	this.Domain = domain
-	this.ClientId = clientId
+	this.APIToken = apiToken
 	return &this
 }
 
@@ -39,61 +37,34 @@ func NewSourceOktaWithDefaults() *SourceOkta {
 	return &this
 }
 
-// GetDomain returns the Domain field value
-func (o *SourceOkta) GetDomain() string {
+// GetAPIToken returns the APIToken field value
+func (o *SourceOkta) GetAPIToken() string {
 	if o == nil {
 		var ret string
 		return ret
 	}
 
-	return o.Domain
+	return o.APIToken
 }
 
-// GetDomainOk returns a tuple with the Domain field value
+// GetAPITokenOk returns a tuple with the APIToken field value
 // and a boolean to check if the value has been set.
-func (o *SourceOkta) GetDomainOk() (*string, bool) {
+func (o *SourceOkta) GetAPITokenOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.Domain, true
+	return &o.APIToken, true
 }
 
-// SetDomain sets field value
-func (o *SourceOkta) SetDomain(v string) {
-	o.Domain = v
-}
-
-// GetClientId returns the ClientId field value
-func (o *SourceOkta) GetClientId() string {
-	if o == nil {
-		var ret string
-		return ret
-	}
-
-	return o.ClientId
-}
-
-// GetClientIdOk returns a tuple with the ClientId field value
-// and a boolean to check if the value has been set.
-func (o *SourceOkta) GetClientIdOk() (*string, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.ClientId, true
-}
-
-// SetClientId sets field value
-func (o *SourceOkta) SetClientId(v string) {
-	o.ClientId = v
+// SetAPIToken sets field value
+func (o *SourceOkta) SetAPIToken(v string) {
+	o.APIToken = v
 }
 
 func (o SourceOkta) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
-		toSerialize["domain"] = o.Domain
-	}
-	if true {
-		toSerialize["clientId"] = o.ClientId
+		toSerialize["apiToken"] = o.APIToken
 	}
 	return json.Marshal(toSerialize)
 }

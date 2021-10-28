@@ -46,6 +46,30 @@ export interface Source {
     updated: number;
     /**
      * 
+     * @type {string}
+     * @memberof Source
+     */
+    domain: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Source
+     */
+    clientID: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Source
+     */
+    clientSecret: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Source
+     */
+    kind: string;
+    /**
+     * 
      * @type {SourceOkta}
      * @memberof Source
      */
@@ -65,6 +89,10 @@ export function SourceFromJSONTyped(json: any, ignoreDiscriminator: boolean): So
         'id': json['id'],
         'created': json['created'],
         'updated': json['updated'],
+        'domain': json['domain'],
+        'clientID': json['clientID'],
+        'clientSecret': json['clientSecret'],
+        'kind': json['kind'],
         'okta': !exists(json, 'okta') ? undefined : SourceOktaFromJSON(json['okta']),
     };
 }
@@ -81,6 +109,10 @@ export function SourceToJSON(value?: Source | null): any {
         'id': value.id,
         'created': value.created,
         'updated': value.updated,
+        'domain': value.domain,
+        'clientID': value.clientID,
+        'clientSecret': value.clientSecret,
+        'kind': value.kind,
         'okta': SourceOktaToJSON(value.okta),
     };
 }

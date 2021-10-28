@@ -1,14 +1,16 @@
 sources:
   - kind: okta
     domain: overwrite.example.com
-    clientId: 0oapn0qwiQPiMIyR35d6
-    clientSecret: okta-secrets/clientSecret
-    apiToken: okta-secrets/apiToken
+    client-id: 0oapn0qwiQPiMIyR35d6
+    client-secret: okta-secrets/clientSecret
+    okta:
+      api-token: okta-secrets/apiToken
   - kind: okta
-    domain: test.example.com
-    clientId: 0oapn0qwiQPiMIyR35d6
-    clientSecret: okta-secrets/clientSecret
-    apiToken: okta-secrets/apiToken
+    domain: https://test.example.com
+    client-id: 0oapn0qwiQPiMIyR35d6
+    client-secret: okta-secrets/clientSecret
+    okta:
+      api-token: okta-secrets/apiToken
 
 groups:
   - name: ios-developers

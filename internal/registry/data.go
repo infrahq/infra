@@ -46,9 +46,11 @@ type Source struct {
 	Kind    string `yaml:"kind"`
 
 	Domain       string
-	ClientId     string
+	ClientID     string
 	ClientSecret string
-	APIToken     string
+
+	// used for okta sync
+	APIToken string
 
 	Users []User `gorm:"many2many:users_sources"`
 }
@@ -331,7 +333,7 @@ func (s *Source) Validate(db *gorm.DB, k8s *kubernetes.Kubernetes, okta Okta) er
 			return fmt.Errorf("could not retrieve okta client secret from kubernetes secret %v: %w", s.ClientSecret, err)
 		}
 
-		return okta.ValidateOktaConnection(s.Domain, s.ClientId, apiToken)
+		return okta.ValidateOktaConnection(s.Domain, s.ClientID, apiToken)
 	default:
 		return nil
 	}
@@ -347,7 +349,7 @@ func (s *Source) SyncUsers(r *Registry) error {
 			return fmt.Errorf("sync okta users api token: %w", err)
 		}
 
-		emails, err = r.okta.Emails(s.Domain, s.ClientId, apiToken)
+		emails, err = r.okta.Emails(s.Domain, s.ClientID, apiToken)
 		if err != nil {
 			return fmt.Errorf("sync okta emails: %w", err)
 		}
@@ -389,7 +391,7 @@ func (s *Source) SyncGroups(r *Registry) error {
 			return fmt.Errorf("sync okta groups api secret: %w", err)
 		}
 
-		groupEmails, err = r.okta.Groups(s.Domain, s.ClientId, apiToken)
+		groupEmails, err = r.okta.Groups(s.Domain, s.ClientID, apiToken)
 		if err != nil {
 			return fmt.Errorf("sync okta groups: %w", err)
 		}

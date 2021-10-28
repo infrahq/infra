@@ -2,12 +2,13 @@
 
 ## Configure Okta Source
 
-| Parameter      | Description                                  |
-|----------------|----------------------------------------------|
-| `domain`       | Okta domain                                  |
-| `clientId`     | Okta client ID                               |
-| `clientSecret` | Okta client secret                           |
-| `apiToken`     | Okta API token                               |
+| Parameter       | Field       | Description                  |
+|-----------------|-------------|-----------------------------|
+| `domain`        |             | Okta domain                 |
+| `client-id`     |             | Okta client ID              |
+| `client-secret` |             | Okta client secret          |
+| `okta`          |             | Okta specific configuration |
+| `okta`          | `api-token` | Okta API token              |
 
 ## Connect an Okta Source
 
@@ -17,9 +18,10 @@ This guide will walk you through the process of setting up Okta as an identity p
 sources:
   - kind: okta
     domain: acme.okta.com
-    clientId: 0oapn0qwiQPiMIyR35d6
-    clientSecret: infra-okta/clientSecret
-    apiToken: infra-okta/apiToken
+    client-id: 0oapn0qwiQPiMIyR35d6
+    client-secret: infra-okta/clientSecret
+    okta:
+      api-token: infra-okta/apiToken
 ```
 
 ## Create an Okta App
@@ -67,9 +69,10 @@ Edit your [Infra configuration](./configuration.md) (e.g. `infra.yaml`) to inclu
 sources:
   - kind: okta
     domain: example.okta.com
-    clientId: 0oapn0qwiQPiMIyR35d6
-    clientSecret: infra-okta/clientSecret  # <Kubernetes secret object>/<secret name>
-    apiToken: infra-okta/apiToken
+    client-id: 0oapn0qwiQPiMIyR35d6
+    client-secret: infra-okta/clientSecret  # <Kubernetes secret object>/<secret name>
+    okta:
+      api-token: infra-okta/apiToken
 ```
 
 Then apply this config change:
@@ -87,9 +90,10 @@ config:
   sources:
     - kind: okta
       domain: example.okta.com
-      clientId: 0oapn0qwiQPiMIyR35d6
-      clientSecret: infra-okta/clientSecret  # <Kubernetes secret object>/<secret name>
-      apiToken: infra-okta/apiToken
+      client-id: 0oapn0qwiQPiMIyR35d6
+      client-secret: infra-okta/clientSecret  # <Kubernetes secret object>/<secret name>
+      okta:
+        api-token: infra-okta/apiToken
 ```
 
 Then apply this config change:

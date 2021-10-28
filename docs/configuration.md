@@ -102,9 +102,10 @@ See [Infrastructure Destinations](./destinations/) for a full list of configurab
 sources:
   - kind: okta
     domain: acme.okta.com
-    clientId: 0oapn0qwiQPiMIyR35d6
-    clientSecret: infra-okta/clientSecret
-    apiToken: infra-okta/apiToken
+    client-id: 0oapn0qwiQPiMIyR35d6
+    client-secret: infra-okta/clientSecret
+    okta:
+      api-token: infra-okta/apiToken
 
 groups:
   - name: administrators
