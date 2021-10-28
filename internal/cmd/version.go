@@ -10,6 +10,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/logging"
 	"golang.org/x/mod/semver"
 )
 
@@ -89,11 +90,11 @@ func checkUpdate(clientVersion, serverVersion string) error {
 	}
 
 	if clientSemVer != "v0.0.0-development" && semver.Compare(latestSemVer, clientSemVer) > 0 {
-		fmt.Fprintf(os.Stderr, "Infra CLI (%s) is out of date. Please update to %s.\n", clientVersion, latestVersion)
+		logging.S.Warnf("Infra CLI (%s) is out of date. Please update to %s.", clientVersion, latestVersion)
 	}
 
 	if serverSemVer != "v0.0.0-development" && semver.IsValid(serverSemVer) && semver.Compare(latestSemVer, serverSemVer) > 0 {
-		fmt.Fprintf(os.Stderr, "Infra (%s) is out of date. Please update to %s.\n", serverVersion, latestVersion)
+		logging.S.Warnf("Infra (%s) is out of date. Please update to %s.", serverVersion, latestVersion)
 	}
 
 	return nil

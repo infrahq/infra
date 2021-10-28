@@ -9,9 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/middleware"
 	"github.com/infrahq/infra/internal/logging"
-	"go.uber.org/zap"
 	"gopkg.in/square/go-jose.v2"
 	"gorm.io/gorm"
 )
@@ -57,23 +55,6 @@ func deleteAuthCookie(w http.ResponseWriter) {
 		Expires: time.Unix(0, 0),
 		Path:    "/",
 	})
-}
-
-func ZapLoggerHttpMiddleware(next http.Handler) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
-		t1 := time.Now()
-
-		next.ServeHTTP(ww, r)
-
-		logging.L.Info("finished http method call",
-			zap.String("method", r.Method),
-			zap.String("path", r.URL.Path),
-			zap.Int("status", ww.Status()),
-			zap.String("proto", r.Proto),
-			zap.Duration("time_ms", time.Since(t1)),
-		)
-	}
 }
 
 type Http struct {

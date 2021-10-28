@@ -19,7 +19,6 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/secrets"
 	"github.com/jessevdk/go-flags"
-	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -180,7 +179,7 @@ func (k *Kubernetes) updateRoleBindings(subjects map[namespaceRole][]rbacv1.Subj
 					if k8sErrors.IsNotFound(err) {
 						// the namespace does not exist
 						// we can proceed in this case, the role mapping is just not applicable to this cluster
-						logging.L.Warn("skipping unapplicable namespace for this cluster: "+rb.Namespace, zap.Error(err))
+						logging.S.Warnf("skipping unapplicable namespace for this cluster: %s %s", rb.Namespace, err.Error())
 						continue
 					}
 

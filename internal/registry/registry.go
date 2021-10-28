@@ -6,6 +6,7 @@ package registry
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"io/ioutil"
 	"net/http"
@@ -19,6 +20,7 @@ import (
 	assetfs "github.com/elazarl/go-bindata-assetfs"
 	"github.com/getsentry/sentry-go"
 	sentryhttp "github.com/getsentry/sentry-go/http"
+	"github.com/gorilla/handlers"
 	"github.com/goware/urlx"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
@@ -351,7 +353,7 @@ func (r *Registry) runServer() error {
 
 	plaintextServer := http.Server{
 		Addr:    ":80",
-		Handler: ZapLoggerHttpMiddleware(sentryHandler.Handle(mux)),
+		Handler: handlers.CustomLoggingHandler(io.Discard, sentryHandler.Handle(mux), logging.ZapLogFormatter),
 	}
 
 	go func() {
@@ -374,7 +376,7 @@ func (r *Registry) runServer() error {
 	tlsServer := &http.Server{
 		Addr:      ":443",
 		TLSConfig: tlsConfig,
-		Handler:   ZapLoggerHttpMiddleware(sentryHandler.Handle(mux)),
+		Handler:   handlers.CustomLoggingHandler(io.Discard, sentryHandler.Handle(mux), logging.ZapLogFormatter),
 	}
 
 	if err := tlsServer.ListenAndServeTLS("", ""); err != nil {

@@ -7,12 +7,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"os"
 	"regexp"
 	"strings"
 	"sync"
@@ -443,7 +443,7 @@ func Run(options *Options) error {
 	tlsServer := &http.Server{
 		Addr:      ":443",
 		TLSConfig: tlsConfig,
-		Handler:   handlers.LoggingHandler(os.Stdout, mux),
+		Handler:   handlers.CustomLoggingHandler(io.Discard, mux, logging.ZapLogFormatter),
 	}
 
 	logging.L.Info("serving on port 443")
