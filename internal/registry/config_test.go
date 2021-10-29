@@ -291,7 +291,7 @@ func TestClusterRolesAreAppliedWithNamespacesToUsers(t *testing.T) {
 }
 
 func TestCleanupDomain(t *testing.T) {
-	p := ConfigProvider{Domain: "dev123123-admin.okta.com "}
+	p := ConfigIdentityProvider{Domain: "dev123123-admin.okta.com "}
 	p.cleanupDomain()
 
 	expected := "dev123123.okta.com"

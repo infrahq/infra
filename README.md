@@ -54,8 +54,7 @@ config:
       domain: <Okta domain>
       client-id: <Okta client ID>
       client-secret: <secret kind>:<Okta client secret name>
-      okta:
-        api-token: <secret kind>:<Okta API token name>
+      api-token: <secret kind>:<Okta API token name>
   groups:
     - name: Everyone
       roles:

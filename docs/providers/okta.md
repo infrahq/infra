@@ -2,13 +2,12 @@
 
 ## Configure Okta Provider
 
-| Parameter       | Field       | Description                  |
-|-----------------|-------------|-----------------------------|
-| `domain`        |             | Okta domain                 |
-| `client-id`     |             | Okta client ID              |
-| `client-secret` |             | Okta client secret          |
-| `okta`          |             | Okta specific configuration |
-| `okta`          | `api-token` | Okta API token              |
+| Parameter       | Description                 |
+|-----------------|-----------------------------|
+| `domain`        | Okta domain                 |
+| `client-id`     | Okta client ID              |
+| `client-secret` | Okta client secret          |
+| `api-token`     | Okta API token              |
 
 ## Connect an Okta Provider
 
@@ -20,8 +19,7 @@ providers:
     domain: acme.okta.com
     client-id: 0oapn0qwiQPiMIyR35d6
     client-secret: kubernetes:infra-okta/clientSecret
-    okta:
-      api-token: kubernetes:infra-okta/apiToken
+    api-token: kubernetes:infra-okta/apiToken
 ```
 
 ## Create an Okta App
@@ -77,8 +75,7 @@ providers:
     domain: example.okta.com
     client-id: 0oapn0qwiQPiMIyR35d6
     client-secret: kubernetes:infra-okta/clientSecret  # <secret kind>:<secret name>
-    okta:
-      api-token: kubernetes:infra-okta/apiToken
+    api-token: kubernetes:infra-okta/apiToken
 ```
 
 Then apply this config change:
@@ -98,8 +95,7 @@ config:
       domain: example.okta.com
       client-id: 0oapn0qwiQPiMIyR35d6
       client-secret: kubernetes:infra-okta/clientSecret  # <secret kind>:<secret name>
-      okta:
-        api-token: kubernetes:infra-okta/apiToken
+      api-token: kubernetes:infra-okta/apiToken
 ```
 
 Then apply this config change:

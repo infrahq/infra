@@ -17,12 +17,48 @@ type ConfigOkta struct {
 	APIToken string `yaml:"api-token"`
 }
 
-type ConfigProvider struct {
-	Kind         string     `yaml:"kind"`
-	Domain       string     `yaml:"domain"`
-	ClientID     string     `yaml:"client-id"`
-	ClientSecret string     `yaml:"client-secret"`
-	Okta         ConfigOkta `yaml:"okta"`
+type ConfigIdentityProvider struct {
+	Kind         string      `yaml:"kind"`
+	Domain       string      `yaml:"domain"`
+	ClientID     string      `yaml:"client-id"`
+	ClientSecret string      `yaml:"client-secret"`
+	Config       interface{} // contains identity-provider-specific config
+}
+
+type baseConfigIdentityProvider struct {
+	Kind         string `yaml:"kind"`
+	Domain       string `yaml:"domain"`
+	ClientID     string `yaml:"client-id"`
+	ClientSecret string `yaml:"client-secret"`
+}
+
+var _ yaml.Unmarshaler = &ConfigIdentityProvider{}
+
+func (idp *ConfigIdentityProvider) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	tmp := &baseConfigIdentityProvider{}
+
+	if err := unmarshal(&tmp); err != nil {
+		return fmt.Errorf("unmarshalling secret provider: %w", err)
+	}
+
+	idp.Kind = tmp.Kind
+	idp.Domain = tmp.Domain
+	idp.ClientID = tmp.ClientID
+	idp.ClientSecret = tmp.ClientSecret
+
+	switch tmp.Kind {
+	case ProviderKindOkta:
+		o := ConfigOkta{}
+		if err := unmarshal(&o); err != nil {
+			return fmt.Errorf("unmarshal yaml: %w", err)
+		}
+
+		idp.Config = o
+	default:
+		return fmt.Errorf("unknown identity provider type %q, expected %s", tmp.Kind, ProviderKindOkta)
+	}
+
+	return nil
 }
 
 var (
@@ -30,7 +66,7 @@ var (
 	protocolRemover  = regexp.MustCompile(`http[s]?://`)
 )
 
-func (p *ConfigProvider) cleanupDomain() {
+func (p *ConfigIdentityProvider) cleanupDomain() {
 	p.Domain = strings.TrimSpace(p.Domain)
 	p.Domain = dashAdminRemover.ReplaceAllString(p.Domain, "$1$2")
 	p.Domain = protocolRemover.ReplaceAllString(p.Domain, "")
@@ -153,63 +189,69 @@ func (sp *ConfigSecretProvider) UnmarshalYAML(unmarshal func(interface{}) error)
 }
 
 type Config struct {
-	Secrets   []ConfigSecretProvider `yaml:"secrets"`
-	Providers []ConfigProvider       `yaml:"providers"`
-	Groups    []ConfigGroupMapping   `yaml:"groups"`
-	Users     []ConfigUserMapping    `yaml:"users"`
+	Secrets   []ConfigSecretProvider   `yaml:"secrets"`
+	Providers []ConfigIdentityProvider `yaml:"providers"`
+	Groups    []ConfigGroupMapping     `yaml:"groups"`
+	Users     []ConfigUserMapping      `yaml:"users"`
 }
 
 // this config is loaded at start-up and re-applied when Infra's state changes (ie. a user is added)
 var initialConfig Config
 
-func ImportProviders(db *gorm.DB, providers []ConfigProvider) error {
+func ImportProviders(db *gorm.DB, providers []ConfigIdentityProvider) error {
 	var idsToKeep []string
 
 	for _, p := range providers {
+		// check if we are about to override an existing provider
+		var existing Provider
+		if err := db.First(&existing, &Provider{Kind: p.Kind}).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				// expected for new records
+			} else {
+				return fmt.Errorf("existing provider lookup: %w", err)
+			}
+		}
+
+		if existing.Id != "" {
+			logging.L.Warn("overriding existing okta provider settings with configuration settings")
+		}
+
+		p.cleanupDomain()
+
+		if p.Domain == "" {
+			return fmt.Errorf("no domain set on provider: %s", p.Kind)
+		}
+
+		if p.ClientID == "" {
+			return fmt.Errorf("no client-id set on provider: %s", p.Kind)
+		}
+
+		if p.ClientSecret == "" {
+			return fmt.Errorf("no client-secret set on provider: %s", p.Kind)
+		}
+
+		var provider Provider
+		if err := db.FirstOrCreate(&provider, &Provider{Kind: p.Kind}).Error; err != nil {
+			return fmt.Errorf("create config provider: %w", err)
+		}
+
+		provider.ClientID = p.ClientID
+		provider.Domain = p.Domain
+		provider.ClientSecret = p.ClientSecret
+
 		switch p.Kind {
 		case ProviderKindOkta:
-			// check the domain is specified
-			p.cleanupDomain()
-
-			if p.Domain == "" {
-				logging.S.Infof("domain not set on provider \"%s\", import skipped", p.Kind)
+			cfg, ok := p.Config.(ConfigOkta)
+			if !ok {
+				return fmt.Errorf("expected provider config to be Okta, but was %t", p.Config)
 			}
 
-			// check if we are about to override an existing provider
-			var existing Provider
-
-			db.First(&existing, &Provider{Kind: ProviderKindOkta})
-
-			if existing.Id != "" {
-				logging.L.Warn("overriding existing okta provider settings with configuration settings")
+			if cfg.APIToken == "" {
+				return fmt.Errorf("no api-token set on provider: %s", p.Kind)
 			}
 
-			var provider Provider
-			if err := db.FirstOrCreate(&provider, &Provider{Kind: ProviderKindOkta}).Error; err != nil {
-				return fmt.Errorf("create config provider: %w", err)
-			}
-
-			if p.ClientID == "" {
-				logging.L.Warn("importing okta provider with no client ID set")
-			}
-
-			if p.Domain == "" {
-				logging.L.Warn("importing okta provider with no domain set")
-			}
-
-			if p.ClientSecret == "" {
-				logging.L.Warn("importing okta provider with no client secret set")
-			}
-
-			if p.Okta.APIToken == "" {
-				logging.L.Warn("importing okta provider with no API token set")
-			}
-
-			provider.ClientID = p.ClientID
-			provider.Domain = p.Domain
 			// API token and client secret will be validated to exist when they are used
-			provider.ClientSecret = p.ClientSecret
-			provider.APIToken = p.Okta.APIToken
+			provider.APIToken = cfg.APIToken
 
 			if err := db.Save(&provider).Error; err != nil {
 				return fmt.Errorf("save provider: %w", err)
