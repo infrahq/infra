@@ -25,6 +25,7 @@ helm/charts/infra/charts/:
 	mkdir -p $@
 
 helm/charts/infra/charts/%.tgz: helm/%.tgz helm/charts/infra/charts/
+	$(RM) $(@D)/*.tgz
 	ln -sf $(realpath $<) $(@D)
 
 helm/infra.tgz: helm/charts/infra/charts/engine-$(tag).tgz
