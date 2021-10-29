@@ -154,7 +154,7 @@ func (sp *ConfigSecretProvider) UnmarshalYAML(unmarshal func(interface{}) error)
 
 type Config struct {
 	Secrets   []ConfigSecretProvider `yaml:"secrets"`
-	Providers []ConfigProvider       `yaml:"provider"`
+	Providers []ConfigProvider       `yaml:"providers"`
 	Groups    []ConfigGroupMapping   `yaml:"groups"`
 	Users     []ConfigUserMapping    `yaml:"users"`
 }
@@ -237,15 +237,15 @@ func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (modifiedRoleI
 		// get the provider from the datastore that this group specifies
 		var provider Provider
 		// Assumes that only one kind of each provider can exist
-		srcReadErr := db.Where(&Provider{Kind: g.Provider}).First(&provider).Error
-		if srcReadErr != nil {
-			if errors.Is(srcReadErr, gorm.ErrRecordNotFound) {
+		provReadErr := db.Where(&Provider{Kind: g.Provider}).First(&provider).Error
+		if provReadErr != nil {
+			if errors.Is(provReadErr, gorm.ErrRecordNotFound) {
 				// skip this provider, it will need to be added in the config and re-applied
 				logging.S.Debugf("skipping group '%s' with provider '%s' in config that does not exist", g.Name, g.Provider)
 				continue
 			}
 
-			return nil, fmt.Errorf("group read provider: %w", srcReadErr)
+			return nil, fmt.Errorf("group read provider: %w", provReadErr)
 		}
 
 		var group Group
