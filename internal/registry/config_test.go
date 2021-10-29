@@ -15,7 +15,7 @@ import (
 var db *gorm.DB
 
 var (
-	fakeOktaProvider = Provider{Id: "001", Kind: ProviderKindOkta, Domain: "test.example.com", ClientSecret: "kubernetes:okta-secrets/client-secret", APIToken: "kubernetes:okta-secrets/api-token"}
+	fakeOktaProvider = Provider{Id: "001", Kind: ProviderKindOkta, Domain: "test.example.com", ClientSecret: "kubernetes:okta-secrets/apiToken", APIToken: "kubernetes:okta-secrets/apiToken"}
 	adminUser        = User{Id: "001", Email: "admin@example.com"}
 	standardUser     = User{Id: "002", Email: "user@example.com"}
 	iosDevUser       = User{Id: "003", Email: "woz@example.com"}

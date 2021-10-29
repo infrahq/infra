@@ -5,9 +5,9 @@
 | Parameter       | Description                 |
 |-----------------|-----------------------------|
 | `domain`        | Okta domain                 |
-| `client-id`     | Okta client ID              |
-| `client-secret` | Okta client secret          |
-| `api-token`     | Okta API token              |
+| `clientID`      | Okta client ID              |
+| `clientSecret`  | Okta client secret          |
+| `apiToken`      | Okta API token              |
 
 ## Connect an Okta Provider
 
@@ -17,9 +17,9 @@ This guide will walk you through the process of setting up Okta as an identity p
 providers:
   - kind: okta
     domain: acme.okta.com
-    client-id: 0oapn0qwiQPiMIyR35d6
-    client-secret: kubernetes:infra-okta/clientSecret
-    api-token: kubernetes:infra-okta/apiToken
+    clientID: 0oapn0qwiQPiMIyR35d6
+    clientSecret: kubernetes:infra-okta/clientSecret
+    apiToken: kubernetes:infra-okta/apiToken
 ```
 
 ## Create an Okta App
@@ -73,9 +73,9 @@ Edit your [Infra configuration](./configuration.md) (e.g. `infra.yaml`) to inclu
 providers:
   - kind: okta
     domain: example.okta.com
-    client-id: 0oapn0qwiQPiMIyR35d6
-    client-secret: kubernetes:infra-okta/clientSecret  # <secret kind>:<secret name>
-    api-token: kubernetes:infra-okta/apiToken
+    clientID: 0oapn0qwiQPiMIyR35d6
+    clientSecret: kubernetes:infra-okta/clientSecret  # <secret kind>:<secret name>
+    apiToken: kubernetes:infra-okta/apiToken
 ```
 
 Then apply this config change:
@@ -93,9 +93,9 @@ config:
   providers:
     - kind: okta
       domain: example.okta.com
-      client-id: 0oapn0qwiQPiMIyR35d6
-      client-secret: kubernetes:infra-okta/clientSecret  # <secret kind>:<secret name>
-      api-token: kubernetes:infra-okta/apiToken
+      clientID: 0oapn0qwiQPiMIyR35d6
+      clientSecret: kubernetes:infra-okta/clientSecret  # <secret kind>:<secret name>
+      apiToken: kubernetes:infra-okta/apiToken
 ```
 
 Then apply this config change:

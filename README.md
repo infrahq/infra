@@ -52,9 +52,9 @@ config:
   providers:
     - kind: okta
       domain: <Okta domain>
-      client-id: <Okta client ID>
-      client-secret: <secret kind>:<Okta client secret name>
-      api-token: <secret kind>:<Okta API token name>
+      clientID: <Okta client ID>
+      clientSecret: <secret kind>:<Okta client secret name>
+      apiToken: <secret kind>:<Okta API token name>
   groups:
     - name: Everyone
       roles:

@@ -6,14 +6,14 @@ secrets:
 providers:
   - kind: okta
     domain: overwrite.example.com
-    client-id: base64:MG9hcG4wcXdpUVBpTUl5UjM1ZDY=
-    client-secret: kubernetes:okta-secrets/clientSecret
-    api-token: kubernetes:okta-secrets/apiToken
+    clientID: base64:MG9hcG4wcXdpUVBpTUl5UjM1ZDY=
+    clientSecret: kubernetes:okta-secrets/clientSecret
+    apiToken: kubernetes:okta-secrets/apiToken
   - kind: okta
     domain: https://test.example.com
-    client-id: plaintext:0oapn0qwiQPiMIyR35d6
-    client-secret: kubernetes:okta-secrets/clientSecret
-    api-token: kubernetes:okta-secrets/apiToken
+    clientID: plaintext:0oapn0qwiQPiMIyR35d6
+    clientSecret: kubernetes:okta-secrets/clientSecret
+    apiToken: kubernetes:okta-secrets/apiToken
 
 groups:
   - name: ios-developers

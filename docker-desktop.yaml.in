@@ -10,9 +10,9 @@ config:
   providers:
     - kind: okta
       domain: $OKTA_DOMAIN
-      client-id: $OKTA_CLIENT_ID
-      client-secret: kubernetes:$OKTA_SECRET/clientSecret
-      api-token: kubernetes:$OKTA_SECRET/apiToken
+      clientID: $OKTA_CLIENT_ID
+      clientSecret: kubernetes:$OKTA_SECRET/clientSecret
+      apiToken: kubernetes:$OKTA_SECRET/apiToken
 
 engine:
   name: docker-desktop

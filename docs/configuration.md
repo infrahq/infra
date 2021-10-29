@@ -108,9 +108,9 @@ See [Infrastructure Destinations](./destinations/) for a full list of configurab
 providers:
   - kind: okta
     domain: acme.okta.com
-    client-id: 0oapn0qwiQPiMIyR35d6
-    client-secret: kubernetes:infra-okta/clientSecret
-    api-token: kubernetes:infra-okta/apiToken
+    clientID: 0oapn0qwiQPiMIyR35d6
+    clientSecret: kubernetes:infra-okta/clientSecret
+    apiToken: kubernetes:infra-okta/apiToken
 
 groups:
   - name: administrators

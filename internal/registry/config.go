@@ -14,22 +14,22 @@ import (
 )
 
 type ConfigOkta struct {
-	APIToken string `yaml:"api-token"`
+	APIToken string `yaml:"apiToken"`
 }
 
 type ConfigIdentityProvider struct {
 	Kind         string      `yaml:"kind"`
 	Domain       string      `yaml:"domain"`
-	ClientID     string      `yaml:"client-id"`
-	ClientSecret string      `yaml:"client-secret"`
+	ClientID     string      `yaml:"clientID"`
+	ClientSecret string      `yaml:"clientSecret"`
 	Config       interface{} // contains identity-provider-specific config
 }
 
 type baseConfigIdentityProvider struct {
 	Kind         string `yaml:"kind"`
 	Domain       string `yaml:"domain"`
-	ClientID     string `yaml:"client-id"`
-	ClientSecret string `yaml:"client-secret"`
+	ClientID     string `yaml:"clientID"`
+	ClientSecret string `yaml:"clientSecret"`
 }
 
 var _ yaml.Unmarshaler = &ConfigIdentityProvider{}
@@ -223,11 +223,11 @@ func ImportProviders(db *gorm.DB, providers []ConfigIdentityProvider) error {
 		}
 
 		if p.ClientID == "" {
-			return fmt.Errorf("no client-id set on provider: %s", p.Kind)
+			return fmt.Errorf("no clientID set on provider: %s", p.Kind)
 		}
 
 		if p.ClientSecret == "" {
-			return fmt.Errorf("no client-secret set on provider: %s", p.Kind)
+			return fmt.Errorf("no clientSecret set on provider: %s", p.Kind)
 		}
 
 		var provider Provider
@@ -247,7 +247,7 @@ func ImportProviders(db *gorm.DB, providers []ConfigIdentityProvider) error {
 			}
 
 			if cfg.APIToken == "" {
-				return fmt.Errorf("no api-token set on provider: %s", p.Kind)
+				return fmt.Errorf("no apiToken set on provider: %s", p.Kind)
 			}
 
 			// API token and client secret will be validated to exist when they are used
