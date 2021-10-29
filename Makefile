@@ -18,6 +18,7 @@ helm: helm/engine.tgz helm/infra.tgz
 	helm repo index helm
 
 helm/%.tgz: helm/charts/%
+	$(RM) $(@D)/$*-*.tgz
 	helm package -d $(@D) $< --version $(tag) --app-version $(tag)
 
 helm/charts/infra/charts/:
