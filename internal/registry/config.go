@@ -9,6 +9,7 @@ import (
 
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/secrets"
+	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
 )
@@ -74,6 +75,7 @@ func (p *ConfigIdentityProvider) cleanupDomain() {
 
 type ConfigDestination struct {
 	Name       string   `yaml:"name"`
+	Labels     []string `yaml:"labels"`
 	Namespaces []string `yaml:"namespaces"` // optional in the case of a cluster-role
 }
 
@@ -437,47 +439,67 @@ func importRoles(db *gorm.DB, roles []ConfigRoleKubernetes) (rolesImported []Rol
 		}
 
 		if r.Kind != RoleKindKubernetesClusterRole && r.Kind != RoleKindKubernetesRole {
-			logging.L.Error("only 'role' and 'cluster-role' are valid role kinds, found: " + r.Kind)
+			logging.S.Errorf("only 'role' and 'cluster-role' are valid role kinds, found: %s", r.Kind)
 			continue
 		}
 
-		for _, destination := range r.Destinations {
-			if r.Kind == RoleKindKubernetesRole && len(destination.Namespaces) == 0 {
-				logging.L.Error(r.Name + " requires at least one namespace to be specified for the cluster " + destination.Name)
+		for _, want := range r.Destinations {
+			if r.Kind == RoleKindKubernetesRole && len(want.Namespaces) == 0 {
+				logging.S.Errorf("%s requires at least one namespace to be specified for the cluster %s", r.Name, want.Name)
 				continue
 			}
 
-			var dest Destination
+			logging.L.Debug("want role destination", zap.String("name", want.Name), zap.Strings("labels", want.Labels), zap.Strings("namespaces", want.Namespaces))
 
-			destErr := db.Where(&Destination{Name: destination.Name}).First(&dest).Error
-			if destErr != nil {
-				if errors.Is(destErr, gorm.ErrRecordNotFound) {
+			var destinations []Destination
+
+			// get destinations matching _any_ requested label
+			err := db.Preload("Labels", "value in ?", want.Labels).Find(&destinations, &Destination{Name: want.Name}).Error
+			if err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
 					// when a destination is added then the config import will be retried, skip for now
 					logging.L.Debug("skipping role binding for destination in config import that has not yet been discovered")
 					continue
 				}
 
-				return nil, nil, fmt.Errorf("find role destination: %w", destErr)
+				return nil, nil, fmt.Errorf("find role destination: %w", err)
 			}
 
-			if len(destination.Namespaces) > 0 {
-				for _, namespace := range destination.Namespaces {
+		DESTINATION:
+			for _, d := range destinations {
+				// discard destinations not matching _all_ requested labels
+				labels := make(map[string]bool)
+				for _, l := range d.Labels {
+					labels[l.Value] = true
+				}
+
+				for _, l := range want.Labels {
+					if _, ok := labels[l]; !ok {
+						continue DESTINATION
+					}
+				}
+
+				if len(want.Namespaces) > 0 {
+					for _, namespace := range want.Namespaces {
+						var role Role
+						if err = db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, Namespace: namespace, DestinationId: d.Id}).Error; err != nil {
+							return nil, nil, fmt.Errorf("role find create namespace: %w", err)
+						}
+
+						rolesImported = append(rolesImported, role)
+						importedRoleIDs = append(importedRoleIDs, role.Id)
+					}
+				} else {
 					var role Role
-					if err = db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, Namespace: namespace, DestinationId: dest.Id}).Error; err != nil {
-						return nil, nil, fmt.Errorf("group read provider: %w", err)
+					if err = db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, DestinationId: d.Id}).Error; err != nil {
+						return nil, nil, fmt.Errorf("role find create: %w", err)
 					}
 
 					rolesImported = append(rolesImported, role)
 					importedRoleIDs = append(importedRoleIDs, role.Id)
 				}
-			} else {
-				var role Role
-				if err = db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, DestinationId: dest.Id}).Error; err != nil {
-					return nil, nil, fmt.Errorf("role find create: %w", err)
-				}
 
-				rolesImported = append(rolesImported, role)
-				importedRoleIDs = append(importedRoleIDs, role.Id)
+				logging.L.Debug("found role destination", zap.String("id", d.Id), zap.String("name", d.Name))
 			}
 		}
 	}

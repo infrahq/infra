@@ -9,8 +9,16 @@ data:
   config.yaml: |
 {{- $options := list "name" "host" "api-key" }}
 {{- $options = list "tls-cache" "skip-tls-verify" | concat $options }}
+{{- $options = list "labels" | concat $options }}
 {{- range $options }}
   {{- if hasKey $.Values . }}
+    {{- if get $.Values . | kindIs "slice" }}
+    {{ . }}:
+    {{- range get $.Values . }}
+      - {{ . }}
+    {{- end }}
+    {{- else }}
     {{ . }}: {{ get $.Values . }}
+    {{- end }}
   {{- end }}
 {{- end }}

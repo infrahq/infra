@@ -34,10 +34,11 @@ import (
 )
 
 type Options struct {
-	Name             string `mapstructure:"name"`
-	APIKey           string `mapstructure:"api-key"`
-	TLSCache         string `mapstructure:"tls-cache"`
-	SkipTLSVerify    bool   `mapstructure:"skip-tls-verify"`
+	Name          string   `mapstructure:"name"`
+	APIKey        string   `mapstructure:"api-key"`
+	TLSCache      string   `mapstructure:"tls-cache"`
+	SkipTLSVerify bool     `mapstructure:"skip-tls-verify"`
+	Labels        []string `mapstructure:"labels"`
 	internal.Options `mapstructure:",squash"`
 }
 
@@ -378,7 +379,8 @@ func Run(options *Options) error {
 		}
 
 		destination, _, err := client.DestinationsAPI.CreateDestination(ctx).Body(api.DestinationCreateRequest{
-			Name: name,
+			Name:   name,
+			Labels: options.Labels,
 			Kubernetes: &api.DestinationKubernetes{
 				Ca:       string(caBytes),
 				Endpoint: endpoint,

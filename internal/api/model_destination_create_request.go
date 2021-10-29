@@ -17,6 +17,7 @@ import (
 // DestinationCreateRequest struct for DestinationCreateRequest
 type DestinationCreateRequest struct {
 	Name       string                 `json:"name"`
+	Labels     []string               `json:"labels"`
 	Kubernetes *DestinationKubernetes `json:"kubernetes,omitempty"`
 }
 
@@ -24,9 +25,10 @@ type DestinationCreateRequest struct {
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewDestinationCreateRequest(name string) *DestinationCreateRequest {
+func NewDestinationCreateRequest(name string, labels []string) *DestinationCreateRequest {
 	this := DestinationCreateRequest{}
 	this.Name = name
+	this.Labels = labels
 	return &this
 }
 
@@ -60,6 +62,30 @@ func (o *DestinationCreateRequest) GetNameOk() (*string, bool) {
 // SetName sets field value
 func (o *DestinationCreateRequest) SetName(v string) {
 	o.Name = v
+}
+
+// GetLabels returns the Labels field value
+func (o *DestinationCreateRequest) GetLabels() []string {
+	if o == nil {
+		var ret []string
+		return ret
+	}
+
+	return o.Labels
+}
+
+// GetLabelsOk returns a tuple with the Labels field value
+// and a boolean to check if the value has been set.
+func (o *DestinationCreateRequest) GetLabelsOk() (*[]string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Labels, true
+}
+
+// SetLabels sets field value
+func (o *DestinationCreateRequest) SetLabels(v []string) {
+	o.Labels = v
 }
 
 // GetKubernetes returns the Kubernetes field value if set, zero value otherwise.
@@ -98,6 +124,9 @@ func (o DestinationCreateRequest) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
 		toSerialize["name"] = o.Name
+	}
+	if true {
+		toSerialize["labels"] = o.Labels
 	}
 	if o.Kubernetes != nil {
 		toSerialize["kubernetes"] = o.Kubernetes

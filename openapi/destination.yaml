@@ -5,6 +5,7 @@ Destination:
     - name
     - created
     - updated
+    - labels
   properties:
     id:
       type: string
@@ -16,15 +17,24 @@ Destination:
     updated:
       type: integer
       format: int64
+    labels:
+      type: array
+      items:
+        type: string
     kubernetes:
       $ref: 'destination.yaml#/DestinationKubernetes'
 DestinationCreateRequest:
   type: object
   required:
     - name
+    - labels
   properties:
     name:
       type: string
+    labels:
+      type: array
+      items:
+        type: string
     kubernetes:
       $ref: 'destination.yaml#/DestinationKubernetes'
 DestinationKubernetes:
