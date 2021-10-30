@@ -96,6 +96,7 @@ func (sp *ConfigSecretProvider) UnmarshalYAML(unmarshal func(interface{}) error)
 		if err := unmarshal(&p); err != nil {
 			return fmt.Errorf("unmarshal yaml: %w", err)
 		}
+
 		if err := unmarshal(&p.AWSConfig); err != nil {
 			return fmt.Errorf("unmarshal yaml: %w", err)
 		}
@@ -106,6 +107,7 @@ func (sp *ConfigSecretProvider) UnmarshalYAML(unmarshal func(interface{}) error)
 		if err := unmarshal(&p); err != nil {
 			return fmt.Errorf("unmarshal yaml: %w", err)
 		}
+
 		if err := unmarshal(&p.AWSConfig); err != nil {
 			return fmt.Errorf("unmarshal yaml: %w", err)
 		}
@@ -130,6 +132,7 @@ func (sp *ConfigSecretProvider) UnmarshalYAML(unmarshal func(interface{}) error)
 		if err := unmarshal(&p); err != nil {
 			return fmt.Errorf("unmarshal yaml: %w", err)
 		}
+
 		if err := unmarshal(&p.GenericConfig); err != nil {
 			return fmt.Errorf("unmarshal yaml: %w", err)
 		}
