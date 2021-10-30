@@ -329,7 +329,7 @@ func (s *Source) Validate(r *Registry) error {
 		}
 
 		if _, err := r.GetSecret(s.ClientSecret); err != nil {
-			return fmt.Errorf("could not retrieve okta client secret from kubernetes secret %v: %w", s.ClientSecret, err)
+			return fmt.Errorf("could not retrieve okta client secret %v: %w", s.ClientSecret, err)
 		}
 
 		return r.okta.ValidateOktaConnection(s.Domain, s.ClientID, apiToken)
