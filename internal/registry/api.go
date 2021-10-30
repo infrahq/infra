@@ -798,7 +798,7 @@ func (a *API) Login(w http.ResponseWriter, r *http.Request) {
 
 		clientSecret, err := a.registry.GetSecret(source.ClientSecret)
 		if err != nil {
-			logging.L.Error("Could not retrieve okta client secret from kubernetes: " + err.Error())
+			logging.L.Error("Could not retrieve okta client secret from provider: " + err.Error())
 			sendAPIError(w, http.StatusInternalServerError, "invalid okta login information")
 
 			return
