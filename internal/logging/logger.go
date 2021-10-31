@@ -48,7 +48,7 @@ func Initialize(l string) (*zap.Logger, error) {
 
 	core := zapcore.NewCore(encoder, writer, atom)
 
-	return zap.New(core), nil
+	return zap.New(core, zap.AddCaller()), nil
 }
 
 func ZapLogFormatter(_ io.Writer, params handlers.LogFormatterParams) {
