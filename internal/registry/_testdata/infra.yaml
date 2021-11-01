@@ -71,8 +71,8 @@ users:
       - name: admin
         kind: cluster-role
         destinations:
-          - name: cluster-AAA
-          - name: cluster-BBB
+          - labels:
+              - kubernetes
       - name: audit
         kind: cluster-role
         destinations:
@@ -86,6 +86,12 @@ users:
           - name: cluster-CCC
             namespaces:
               - infrahq
+      - name: view
+        kind: role
+        destinations:
+          - labels:
+              - us-west-1
+              - us-east-1
   - email: unknown@example.com
     roles:
       - name: writer

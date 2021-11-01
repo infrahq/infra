@@ -25,6 +25,9 @@ var (
 	clusterA         = Destination{Name: "cluster-AAA"}
 	clusterB         = Destination{Name: "cluster-BBB"}
 	clusterC         = Destination{Name: "cluster-CCC"}
+	labelKubernetes  = Label{Value: "kubernetes"}
+	labelUSWest1     = Label{Value: "us-west-1"}
+	labelUSEast1     = Label{Value: "us-east-1"}
 
 	registry *Registry
 )
@@ -90,6 +93,31 @@ func setup() error {
 		return err
 	}
 
+	err = db.Create(&labelKubernetes).Error
+	if err != nil {
+		return err
+	}
+
+	err = db.Create(&labelUSWest1).Error
+	if err != nil {
+		return err
+	}
+
+	err = db.Model(&clusterA).Association("Labels").Replace([]Label{labelKubernetes})
+	if err != nil {
+		return err
+	}
+
+	err = db.Model(&clusterB).Association("Labels").Replace([]Label{labelKubernetes, labelUSWest1})
+	if err != nil {
+		return err
+	}
+
+	err = db.Model(&clusterC).Association("Labels").Replace([]Label{labelKubernetes, labelUSEast1})
+	if err != nil {
+		return err
+	}
+
 	err = db.Create(&iosDevGroup).Error
 	if err != nil {
 		return err
@@ -140,9 +168,30 @@ func TestRolesForExistingUsersAndDestinationsAreCreated(t *testing.T) {
 
 	assert.True(t, isAdminAdminB, "admin@example.com should have the admin role in cluster-BBB")
 
-	unkownUser := User{Id: "0", Email: "unknown@example.com"}
+	isAdminAdminC, err := containsUserRoleForDestination(db, adminUser, clusterC.Id, "admin")
+	if err != nil {
+		t.Error(err)
+	}
 
-	isUnknownUserGrantedRole, err := containsUserRoleForDestination(db, unkownUser, clusterA.Id, "writer")
+	assert.True(t, isAdminAdminC, "admin@example.com should have the admin role in cluster-CCC")
+
+	isViewAdminB, err := containsUserRoleForDestination(db, adminUser, clusterB.Id, "view")
+	if err != nil {
+		t.Error(err)
+	}
+
+	assert.False(t, isViewAdminB, "admin@example.com should not have the view role in cluster-BBB")
+
+	isViewAdminC, err := containsUserRoleForDestination(db, adminUser, clusterC.Id, "view")
+	if err != nil {
+		t.Error(err)
+	}
+
+	assert.False(t, isViewAdminC, "admin@example.com should not have the view role in cluster-CCC")
+
+	unknownUser := User{Id: "0", Email: "unknown@example.com"}
+
+	isUnknownUserGrantedRole, err := containsUserRoleForDestination(db, unknownUser, clusterA.Id, "writer")
 	if err != nil {
 		t.Error(err)
 	}
@@ -161,6 +210,13 @@ func TestImportRolesForUnknownDestinationsAreIgnored(t *testing.T) {
 		if err := db.Where(&Destination{Id: role.DestinationId}).First(&dest).Error; err != nil {
 			t.Errorf("Created role for destination which does not exist: " + role.DestinationId)
 		}
+	}
+}
+
+func TestImportRolesNoMatchingLabels(t *testing.T) {
+	var role Role
+	if err := db.First(&role, &Role{Name: "view"}).Error; err == nil {
+		t.Fatal("should not find role view")
 	}
 }
 
