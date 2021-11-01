@@ -373,14 +373,23 @@ func (a *API) CreateProvider(w http.ResponseWriter, r *http.Request) {
 		provider.Domain = body.Domain
 		provider.ClientSecret = body.ClientSecret
 
-		if body.Kind == ProviderKindOkta {
+		switch body.Kind {
+		case ProviderKindOkta:
 			provider.APIToken = body.Okta.APIToken
+		default:
+			return ErrInvalidKind
 		}
 
 		return tx.Save(&provider).Error
 	})
 	if err != nil {
 		logging.L.Error(err.Error())
+
+		if errors.Is(err, ErrInvalidKind) {
+			sendAPIError(w, http.StatusBadRequest, fmt.Sprintf("%s is not a valid provider kind", body.Kind))
+			return
+		}
+
 		sendAPIError(w, http.StatusInternalServerError, "could not persist provider")
 
 		return
@@ -447,28 +456,36 @@ func (a *API) UpdateProvider(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var p Provider
+	var provider Provider
 
 	err := a.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.First(&p, &Provider{Id: id}).Error; err != nil {
+		if err := tx.First(&provider, &Provider{Id: id}).Error; err != nil {
 			return err
 		}
 
-		p.ClientID = body.ClientID
-		p.Domain = body.Domain
-		p.ClientSecret = body.ClientSecret
+		provider.ClientID = body.ClientID
+		provider.Domain = body.Domain
+		provider.ClientSecret = body.ClientSecret
 
-		if body.Kind == ProviderKindOkta {
-			p.APIToken = body.Okta.APIToken
+		switch body.Kind {
+		case ProviderKindOkta:
+			provider.APIToken = body.Okta.APIToken
+		default:
+			return ErrInvalidKind
 		}
 
-		return tx.Save(&p).Error
+		return tx.Save(&provider).Error
 	})
 	if err != nil {
-		logging.L.Error(err.Error())
+		logging.S.Errorf("update provider: %w", err)
 
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			sendAPIError(w, http.StatusNotFound, "no provider found for the specified ID")
+			return
+		}
+
+		if errors.Is(err, ErrInvalidKind) {
+			sendAPIError(w, http.StatusBadRequest, fmt.Sprintf("%s is not a valid provider kind", body.Kind))
 			return
 		}
 

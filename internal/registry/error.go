@@ -8,4 +8,5 @@ const (
 	ErrExistingKey            = Error("a key with this name already exists")
 	ErrUnkownKey              = Error("an API key with this ID does not exist")
 	ErrKeyPermissionsNotFound = Error("api-key permissions are required")
+	ErrInvalidKind            = Error("invalid kind specified")
 )

@@ -1552,6 +1552,363 @@ func TestGetProviderNotFound(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
+func TestCreateProvider(t *testing.T) {
+	a := &API{
+		registry: &Registry{
+			db: db,
+			secrets: map[string]secrets.SecretStorage{
+				"kubernetes": NewMockSecretReader(),
+			},
+		},
+		db: db,
+	}
+
+	domain := "test.create.example.com"
+	clientID := "testClientID"
+	clientSecret := "testClientSecret"
+	apiToken := "apiToken"
+
+	provider := api.Provider{
+		Domain:       domain,
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		Kind:         ProviderKindOkta,
+		Okta:         &api.ProviderOkta{APIToken: apiToken},
+	}
+
+	cpr, err := provider.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r := httptest.NewRequest(http.MethodPost, "/v1/providers", bytes.NewReader(cpr))
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.CreateProvider).ServeHTTP(w, r)
+
+	var body api.Provider
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+	assert.Equal(t, domain, body.Domain)
+	assert.Equal(t, clientID, body.ClientID)
+	assert.Equal(t, clientSecret, body.ClientSecret)
+	assert.Equal(t, ProviderKindOkta, body.Kind)
+	assert.Equal(t, apiToken, body.Okta.APIToken)
+
+	// clean up
+	var created Provider
+
+	db.First(&created, &Provider{Domain: domain})
+	db.Delete(&created)
+}
+
+func TestCreateProviderInvalidKind(t *testing.T) {
+	a := &API{
+		registry: &Registry{
+			db: db,
+			secrets: map[string]secrets.SecretStorage{
+				"kubernetes": NewMockSecretReader(),
+			},
+		},
+		db: db,
+	}
+
+	domain := "test.create.example.com"
+	clientID := "testClientID"
+	clientSecret := "testClientSecret"
+	apiToken := "apiToken"
+	kind := "not-okta"
+
+	provider := api.Provider{
+		Domain:       domain,
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		Kind:         kind,
+		Okta:         &api.ProviderOkta{APIToken: apiToken},
+	}
+
+	cpr, err := provider.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r := httptest.NewRequest(http.MethodPost, "/v1/providers", bytes.NewReader(cpr))
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.CreateProvider).ServeHTTP(w, r)
+
+	var body api.Provider
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUpdateProvider(t *testing.T) {
+	a := &API{
+		registry: &Registry{
+			db: db,
+			secrets: map[string]secrets.SecretStorage{
+				"kubernetes": NewMockSecretReader(),
+			},
+		},
+		db: db,
+	}
+
+	existing := &Provider{Domain: "before.update.example.com", Kind: ProviderKindOkta}
+	if err := a.db.Create(existing).Error; err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	domain := "test.update.example.com"
+	clientID := "testUpdateClientID"
+	clientSecret := "testUpdateClientSecret"
+	apiToken := "apiTokenUpdate"
+
+	provider := api.Provider{
+		Domain:       domain,
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		Kind:         ProviderKindOkta,
+		Okta:         &api.ProviderOkta{APIToken: apiToken},
+	}
+
+	cpr, err := provider.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/v1/providers/%s", existing.Id), bytes.NewReader(cpr))
+	vars := map[string]string{
+		"id": existing.Id,
+	}
+	r = mux.SetURLVars(r, vars)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.UpdateProvider).ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var updated Provider
+	db.First(&updated, &Provider{Id: existing.Id})
+
+	assert.Equal(t, domain, updated.Domain)
+	assert.Equal(t, clientID, updated.ClientID)
+	assert.Equal(t, clientSecret, updated.ClientSecret)
+	assert.Equal(t, ProviderKindOkta, updated.Kind)
+	assert.Equal(t, apiToken, updated.APIToken)
+
+	// clean up
+	db.Delete(&updated)
+}
+
+func TestUpdateProviderNoID(t *testing.T) {
+	a := &API{
+		registry: &Registry{
+			db: db,
+			secrets: map[string]secrets.SecretStorage{
+				"kubernetes": NewMockSecretReader(),
+			},
+		},
+		db: db,
+	}
+
+	domain := "test.update.example.com"
+	clientID := "testUpdateClientID"
+	clientSecret := "testUpdateClientSecret"
+	apiToken := "apiTokenUpdate"
+
+	provider := api.Provider{
+		Domain:       domain,
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		Kind:         ProviderKindOkta,
+		Okta:         &api.ProviderOkta{APIToken: apiToken},
+	}
+
+	cpr, err := provider.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r := httptest.NewRequest(http.MethodPut, "/v1/providers/", bytes.NewReader(cpr))
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.UpdateProvider).ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUpdateProviderInvalidID(t *testing.T) {
+	a := &API{
+		registry: &Registry{
+			db: db,
+			secrets: map[string]secrets.SecretStorage{
+				"kubernetes": NewMockSecretReader(),
+			},
+		},
+		db: db,
+	}
+
+	nonexistantID := "invalid-ID"
+
+	domain := "test.update.example.com"
+	clientID := "testUpdateClientID"
+	clientSecret := "testUpdateClientSecret"
+	apiToken := "apiTokenUpdate"
+
+	provider := api.Provider{
+		Domain:       domain,
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		Kind:         ProviderKindOkta,
+		Okta:         &api.ProviderOkta{APIToken: apiToken},
+	}
+
+	cpr, err := provider.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/v1/providers/%s", nonexistantID), bytes.NewReader(cpr))
+	vars := map[string]string{
+		"id": nonexistantID,
+	}
+	r = mux.SetURLVars(r, vars)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.UpdateProvider).ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestUpdateProviderInvalidKind(t *testing.T) {
+	a := &API{
+		registry: &Registry{
+			db: db,
+			secrets: map[string]secrets.SecretStorage{
+				"kubernetes": NewMockSecretReader(),
+			},
+		},
+		db: db,
+	}
+
+	existing := &Provider{Domain: "before.update.example.com", Kind: ProviderKindOkta}
+	if err := a.db.Create(existing).Error; err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	domain := "test.update.example.com"
+	clientID := "testUpdateClientID"
+	clientSecret := "testUpdateClientSecret"
+	apiToken := "apiTokenUpdate"
+
+	provider := api.Provider{
+		Domain:       domain,
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		Kind:         "not-okta",
+		Okta:         &api.ProviderOkta{APIToken: apiToken},
+	}
+
+	cpr, err := provider.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/v1/providers/%s", existing.Id), bytes.NewReader(cpr))
+	vars := map[string]string{
+		"id": existing.Id,
+	}
+	r = mux.SetURLVars(r, vars)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.UpdateProvider).ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestDeleteProvider(t *testing.T) {
+	a := &API{
+		registry: &Registry{
+			db: db,
+			secrets: map[string]secrets.SecretStorage{
+				"kubernetes": NewMockSecretReader(),
+			},
+		},
+		db: db,
+	}
+
+	domain := "test-delete-provider-domain.example.com"
+	provider := &Provider{Domain: domain, Kind: ProviderKindOkta}
+	if err := a.db.Create(provider).Error; err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	r := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/providers/%s", provider.Id), nil)
+	vars := map[string]string{
+		"id": provider.Id,
+	}
+	r = mux.SetURLVars(r, vars)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.DeleteProvider).ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusNoContent, w.Code)
+
+	var deleteProvider Provider
+
+	db.First(&deleteProvider, &Provider{Id: provider.Id})
+	assert.Empty(t, deleteProvider.Id, "Provider not deleted from database")
+}
+
+func TestDeleteProviderDoesNotExist(t *testing.T) {
+	a := &API{
+		registry: &Registry{
+			db: db,
+			secrets: map[string]secrets.SecretStorage{
+				"kubernetes": NewMockSecretReader(),
+			},
+		},
+		db: db,
+	}
+
+	doesNotExistID := "does-not-exist"
+	r := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/providers/%s", doesNotExistID), nil)
+	vars := map[string]string{
+		"id": doesNotExistID,
+	}
+	r = mux.SetURLVars(r, vars)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.DeleteProvider).ServeHTTP(w, r)
+
+	// 204 is returned, this didn't exist but that is ok
+	assert.Equal(t, http.StatusNoContent, w.Code)
+}
+
+func TestDeleteProviderNoID(t *testing.T) {
+	a := &API{
+		registry: &Registry{
+			db: db,
+			secrets: map[string]secrets.SecretStorage{
+				"kubernetes": NewMockSecretReader(),
+			},
+		},
+		db: db,
+	}
+
+	r := httptest.NewRequest(http.MethodDelete, "/v1/providers/", nil)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.DeleteProvider).ServeHTTP(w, r)
+
+	// 204 is returned, this didn't exist but that is ok
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
 func TestListDestinations(t *testing.T) {
 	a := &API{
 		registry: &Registry{
