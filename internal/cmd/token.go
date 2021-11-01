@@ -16,11 +16,11 @@ import (
 )
 
 type TokenOptions struct {
-	Destination string
-	internal.GlobalOptions
+	Destination      string
+	internal.Options `mapstructure:",squash"`
 }
 
-func newTokenCreateCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) {
+func newTokenCreateCmd() (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:   "create DESTINATION",
 		Short: "Create a JWT token for connecting to a destination, e.g. Kubernetes",
@@ -30,8 +30,7 @@ func newTokenCreateCmd(globalOptions internal.GlobalOptions) (*cobra.Command, er
 			}
 
 			options := TokenOptions{
-				Destination:   args[0],
-				GlobalOptions: globalOptions,
+				Destination: args[0],
 			}
 
 			return tokenCreate(&options)

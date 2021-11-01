@@ -10,7 +10,7 @@ import (
 )
 
 type LogoutOptions struct {
-	internal.GlobalOptions
+	internal.Options `mapstructure:",squash"`
 }
 
 func cleanupKubeconfig(config *ClientHostConfig) error {
