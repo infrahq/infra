@@ -443,6 +443,7 @@ func (a *API) UpdateProvider(w http.ResponseWriter, r *http.Request) {
 	id := vars["id"]
 	if id == "" {
 		sendAPIError(w, http.StatusBadRequest, "Provider ID must be specified")
+		return
 	}
 
 	var body api.Provider
@@ -503,6 +504,7 @@ func (a *API) DeleteProvider(w http.ResponseWriter, r *http.Request) {
 	id := vars["id"]
 	if id == "" {
 		sendAPIError(w, http.StatusBadRequest, "Provider ID must be specified")
+		return
 	}
 
 	if err := a.db.Delete(&Provider{Id: id}).Error; err != nil {
