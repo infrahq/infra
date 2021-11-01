@@ -290,14 +290,6 @@ func TestClusterRolesAreAppliedWithNamespacesToUsers(t *testing.T) {
 	assert.True(t, foundAuditDevelopment)
 }
 
-func TestCleanupDomain(t *testing.T) {
-	p := ConfigIdentityProvider{Domain: "dev123123-admin.okta.com "}
-	p.cleanupDomain()
-
-	expected := "dev123123.okta.com"
-	require.Equal(t, expected, p.Domain)
-}
-
 func containsUserRoleForDestination(db *gorm.DB, user User, destinationId string, roleName string) (bool, error) {
 	var roles []Role
 

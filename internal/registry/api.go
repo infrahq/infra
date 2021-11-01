@@ -57,7 +57,10 @@ func NewAPIMux(reg *Registry) *mux.Router {
 	v1.Handle("/groups/{id}", a.bearerAuthMiddleware(api.GROUPS_READ, http.HandlerFunc(a.GetGroup))).Methods(http.MethodGet)
 
 	v1.Handle("/providers", http.HandlerFunc(a.ListProviders)).Methods(http.MethodGet)
+	v1.Handle("/providers", a.bearerAuthMiddleware(api.PROVIDERS_CREATE, http.HandlerFunc(a.CreateProvider))).Methods(http.MethodPost)
 	v1.Handle("/providers/{id}", http.HandlerFunc(a.GetProvider)).Methods(http.MethodGet)
+	v1.Handle("/providers/{id}", a.bearerAuthMiddleware(api.PROVIDERS_UPDATE, http.HandlerFunc(a.UpdateProvider))).Methods(http.MethodPut)
+	v1.Handle("/providers/{id}", a.bearerAuthMiddleware(api.PROVIDERS_DELETE, http.HandlerFunc(a.DeleteProvider))).Methods(http.MethodDelete)
 
 	v1.Handle("/destinations", a.bearerAuthMiddleware(api.DESTINATIONS_READ, http.HandlerFunc(a.ListDestinations))).Methods(http.MethodGet)
 	v1.Handle("/destinations", a.bearerAuthMiddleware(api.DESTINATIONS_CREATE, http.HandlerFunc(a.CreateDestination))).Methods(http.MethodPost)
@@ -346,6 +349,52 @@ func (a *API) ListProviders(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (a *API) CreateProvider(w http.ResponseWriter, r *http.Request) {
+	var body api.Provider
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sendAPIError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := validate.Struct(body); err != nil {
+		sendAPIError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	var provider Provider
+
+	err := a.db.Transaction(func(tx *gorm.DB) error {
+		result := tx.Where(&Destination{Kind: body.Kind}).FirstOrCreate(&provider)
+		if result.Error != nil {
+			return result.Error
+		}
+
+		provider.ClientID = body.ClientID
+		provider.Domain = body.Domain
+		provider.ClientSecret = body.ClientSecret
+
+		if body.Kind == ProviderKindOkta {
+			provider.APIToken = body.Okta.APIToken
+		}
+
+		return tx.Save(&provider).Error
+	})
+	if err != nil {
+		logging.L.Error(err.Error())
+		sendAPIError(w, http.StatusInternalServerError, "could not persist provider")
+
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	if err := json.NewEncoder(w).Encode(provider.marshal()); err != nil {
+		logging.L.Error(err.Error())
+		sendAPIError(w, http.StatusInternalServerError, "could not create provider")
+	}
+}
+
 func (a *API) GetProvider(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
@@ -377,6 +426,76 @@ func (a *API) GetProvider(w http.ResponseWriter, r *http.Request) {
 		logging.L.Error(err.Error())
 		sendAPIError(w, http.StatusInternalServerError, "could not list providers")
 	}
+}
+
+func (a *API) UpdateProvider(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	id := vars["id"]
+	if id == "" {
+		sendAPIError(w, http.StatusBadRequest, "Provider ID must be specified")
+	}
+
+	var body api.Provider
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sendAPIError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := validate.Struct(body); err != nil {
+		sendAPIError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	var p Provider
+
+	err := a.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.First(&p, &Provider{Id: id}).Error; err != nil {
+			return err
+		}
+
+		p.ClientID = body.ClientID
+		p.Domain = body.Domain
+		p.ClientSecret = body.ClientSecret
+
+		if body.Kind == ProviderKindOkta {
+			p.APIToken = body.Okta.APIToken
+		}
+
+		return tx.Save(&p).Error
+	})
+	if err != nil {
+		logging.L.Error(err.Error())
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			sendAPIError(w, http.StatusNotFound, "no provider found for the specified ID")
+			return
+		}
+
+		sendAPIError(w, http.StatusInternalServerError, "could not persist updated provider")
+
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (a *API) DeleteProvider(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	id := vars["id"]
+	if id == "" {
+		sendAPIError(w, http.StatusBadRequest, "Provider ID must be specified")
+	}
+
+	if err := a.db.Delete(&Provider{Id: id}).Error; err != nil {
+		logging.L.Error(err.Error())
+		sendAPIError(w, http.StatusInternalServerError, err.Error())
+
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (a *API) ListDestinations(w http.ResponseWriter, r *http.Request) {
@@ -517,28 +636,11 @@ func (a *API) DeleteAPIKey(w http.ResponseWriter, r *http.Request) {
 
 	id := vars["id"]
 	if id == "" {
-		sendAPIError(w, http.StatusBadRequest, "APIKey id must be specified")
+		sendAPIError(w, http.StatusBadRequest, "API key ID must be specified")
 	}
 
-	err := a.db.Transaction(func(tx *gorm.DB) error {
-		var existingKey APIKey
-		tx.First(&existingKey, &APIKey{Id: id})
-		if existingKey.Id == "" {
-			return ErrExistingKey
-		}
-
-		tx.Delete(&existingKey)
-
-		return nil
-	})
-	if err != nil {
+	if err := a.db.Delete(&APIKey{Id: id}).Error; err != nil {
 		logging.L.Error(err.Error())
-
-		if errors.Is(err, ErrExistingKey) {
-			sendAPIError(w, http.StatusNotFound, err.Error())
-			return
-		}
-
 		sendAPIError(w, http.StatusInternalServerError, err.Error())
 
 		return

@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"regexp"
-	"strings"
 
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/secrets"
@@ -59,17 +57,6 @@ func (idp *ConfigIdentityProvider) UnmarshalYAML(unmarshal func(interface{}) err
 	}
 
 	return nil
-}
-
-var (
-	dashAdminRemover = regexp.MustCompile(`(.*)\-admin(\.okta\.com)`)
-	protocolRemover  = regexp.MustCompile(`http[s]?://`)
-)
-
-func (p *ConfigIdentityProvider) cleanupDomain() {
-	p.Domain = strings.TrimSpace(p.Domain)
-	p.Domain = dashAdminRemover.ReplaceAllString(p.Domain, "$1$2")
-	p.Domain = protocolRemover.ReplaceAllString(p.Domain, "")
 }
 
 type ConfigDestination struct {
@@ -215,8 +202,6 @@ func ImportProviders(db *gorm.DB, providers []ConfigIdentityProvider) error {
 		if existing.Id != "" {
 			logging.L.Warn("overriding existing okta provider settings with configuration settings")
 		}
-
-		p.cleanupDomain()
 
 		if p.Domain == "" {
 			return fmt.Errorf("no domain set on provider: %s", p.Kind)

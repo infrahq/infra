@@ -12,6 +12,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 	"gopkg.in/square/go-jose.v2"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
 )
 
@@ -222,6 +224,7 @@ func (g *Group) AfterCreate(tx *gorm.DB) error {
 }
 
 func (g *Group) BeforeDelete(tx *gorm.DB) error {
+	// TODO: is this needed?
 	if err := tx.Model(g).Association("Users").Clear(); err != nil {
 		return fmt.Errorf("clear group users before delete: %w", err)
 	}
@@ -233,6 +236,7 @@ func (g *Group) BeforeDelete(tx *gorm.DB) error {
 		return fmt.Errorf("find group roles before delete: %w", err)
 	}
 
+	// TODO: is this needed?
 	if err := tx.Model(g).Association("Roles").Clear(); err != nil {
 		return fmt.Errorf("clear group roles before delete: %w", err)
 	}
@@ -258,10 +262,20 @@ func cleanUnassociatedRoles(tx *gorm.DB, roles []Role) error {
 	return nil
 }
 
+var (
+	dashAdminRemover = regexp.MustCompile(`(.*)\-admin(\.okta\.com)`)
+	protocolRemover  = regexp.MustCompile(`http[s]?://`)
+)
+
 func (p *Provider) BeforeCreate(tx *gorm.DB) (err error) {
 	if p.Id == "" {
 		p.Id = generate.MathRandString(IdLen)
 	}
+
+	// clean up the domain
+	p.Domain = strings.TrimSpace(p.Domain)
+	p.Domain = dashAdminRemover.ReplaceAllString(p.Domain, "$1$2")
+	p.Domain = protocolRemover.ReplaceAllString(p.Domain, "")
 
 	return nil
 }
@@ -275,6 +289,17 @@ func (p *Provider) BeforeDelete(tx *gorm.DB) error {
 	for _, u := range users {
 		if err := p.DeleteUser(tx, u); err != nil {
 			return err
+		}
+	}
+
+	var groups []Group
+	if err := tx.Where(&Group{ProviderId: p.Id}).Preload(clause.Associations).Find(&groups).Error; err != nil {
+		return err
+	}
+
+	for i := range groups {
+		if err := tx.Delete(&groups[i]).Error; err != nil {
+			return fmt.Errorf("delete provider groups: %w", err)
 		}
 	}
 
