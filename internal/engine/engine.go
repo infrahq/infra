@@ -387,18 +387,18 @@ func Run(options *Options) error {
 			},
 		}).Execute()
 		if err != nil {
-			logging.S.Errorf("Couldn't create destination: %s", err.Error())
+			logging.S.Errorf("could not create destination: %s", err.Error())
 			return
 		}
 
 		roles, _, err := client.RolesAPI.ListRoles(ctx).Destination(destination.Id).Execute()
 		if err != nil {
-			logging.S.Errorf("couldn't list roles: %s", err.Error())
+			logging.S.Errorf("could not list roles: %s", err.Error())
 		}
 
 		err = k8s.UpdateRoles(roles)
 		if err != nil {
-			logging.S.Errorf("couldn't update roles: %s", err.Error())
+			logging.S.Errorf("could not update roles: %s", err.Error())
 			return
 		}
 	})
