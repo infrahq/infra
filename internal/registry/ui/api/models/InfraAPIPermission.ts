@@ -13,7 +13,7 @@
  */
 
 /**
- * InfraAPI permissions of the form "infra.resource.action"
+ * Infra API permissions of the form "infra.resource.action"
  * @export
  * @enum {string}
  */
@@ -28,6 +28,9 @@ export enum InfraAPIPermission {
     TokensCreate = 'infra.tokens.create',
     RolesRead = 'infra.roles.read',
     AuthDelete = 'infra.auth.delete',
+    ProvidersCreate = 'infra.providers.create',
+    ProvidersUpdate = 'infra.providers.update',
+    ProvidersDelete = 'infra.providers.delete',
     Star = 'infra.*'
 }
 

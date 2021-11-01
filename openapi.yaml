@@ -179,6 +179,33 @@ paths:
             application/json:
               schema:
                 $ref: 'openapi/utils.yaml#/Error'
+    post:
+      summary: Create providers
+      tags:
+        - providers
+      security:
+        - bearerAuth: []
+      operationId: createProvider
+      x-codegen-request-body-name: body
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'openapi/provider.yaml#/Provider'
+      responses:
+        '200':
+          description: Create provider response
+          content:
+            application/json:
+              schema:
+                $ref: 'openapi/provider.yaml#/Provider'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: 'openapi/utils.yaml#/Error'
   /providers/{id}:
     get:
       summary: Get provider by ID
@@ -199,6 +226,54 @@ paths:
             application/json:
               schema:
                 $ref: 'openapi/provider.yaml#/Provider'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: 'openapi/utils.yaml#/Error'
+    put:
+      summary: Update provider by ID
+      tags:
+        - providers
+      operationId: updateProvider
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Provider ID
+      responses:
+        '200':
+          description: Update provider response
+          content:
+            application/json:
+              schema:
+                $ref: 'openapi/provider.yaml#/Provider'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: 'openapi/utils.yaml#/Error'
+    delete:
+      tags:
+        - providers
+      security:
+        - bearerAuth: []
+      summary: Delete a provider
+      operationId: deleteProvider
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Provider ID
+      responses:
+        '204':
+          description: Empty response
         default:
           description: Error response
           content:

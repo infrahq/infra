@@ -15,7 +15,7 @@ import (
 	"fmt"
 )
 
-// InfraAPIPermission InfraAPI permissions of the form \"infra.resource.action\"
+// InfraAPIPermission Infra API permissions of the form \"infra.resource.action\"
 type InfraAPIPermission string
 
 // List of InfraAPIPermission
@@ -30,6 +30,9 @@ const (
 	TOKENS_CREATE       InfraAPIPermission = "infra.tokens.create"
 	ROLES_READ          InfraAPIPermission = "infra.roles.read"
 	AUTH_DELETE         InfraAPIPermission = "infra.auth.delete"
+	PROVIDERS_CREATE    InfraAPIPermission = "infra.providers.create"
+	PROVIDERS_UPDATE    InfraAPIPermission = "infra.providers.update"
+	PROVIDERS_DELETE    InfraAPIPermission = "infra.providers.delete"
 	STAR                InfraAPIPermission = "infra.*"
 )
 
@@ -44,6 +47,9 @@ var allowedInfraAPIPermissionEnumValues = []InfraAPIPermission{
 	"infra.tokens.create",
 	"infra.roles.read",
 	"infra.auth.delete",
+	"infra.providers.create",
+	"infra.providers.update",
+	"infra.providers.delete",
 	"infra.*",
 }
 

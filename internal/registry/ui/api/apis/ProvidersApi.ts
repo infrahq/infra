@@ -20,6 +20,14 @@ import {
     ProviderToJSON,
 } from '../models';
 
+export interface CreateProviderRequest {
+    body: Provider;
+}
+
+export interface DeleteProviderRequest {
+    id: string;
+}
+
 export interface GetProviderRequest {
     id: string;
 }
@@ -28,10 +36,92 @@ export interface ListProvidersRequest {
     kind?: string;
 }
 
+export interface UpdateProviderRequest {
+    id: string;
+}
+
 /**
  * 
  */
 export class ProvidersApi extends runtime.BaseAPI {
+
+    /**
+     * Create providers
+     */
+    async createProviderRaw(requestParameters: CreateProviderRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Provider>> {
+        if (requestParameters.body === null || requestParameters.body === undefined) {
+            throw new runtime.RequiredError('body','Required parameter requestParameters.body was null or undefined when calling createProvider.');
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+        const response = await this.request({
+            path: `/providers`,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: ProviderToJSON(requestParameters.body),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ProviderFromJSON(jsonValue));
+    }
+
+    /**
+     * Create providers
+     */
+    async createProvider(requestParameters: CreateProviderRequest, initOverrides?: RequestInit): Promise<Provider> {
+        const response = await this.createProviderRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Delete a provider
+     */
+    async deleteProviderRaw(requestParameters: DeleteProviderRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<void>> {
+        if (requestParameters.id === null || requestParameters.id === undefined) {
+            throw new runtime.RequiredError('id','Required parameter requestParameters.id was null or undefined when calling deleteProvider.');
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+        const response = await this.request({
+            path: `/providers/{id}`.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters.id))),
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Delete a provider
+     */
+    async deleteProvider(requestParameters: DeleteProviderRequest, initOverrides?: RequestInit): Promise<void> {
+        await this.deleteProviderRaw(requestParameters, initOverrides);
+    }
 
     /**
      * Get provider by ID
@@ -90,6 +180,36 @@ export class ProvidersApi extends runtime.BaseAPI {
      */
     async listProviders(requestParameters: ListProvidersRequest, initOverrides?: RequestInit): Promise<Array<Provider>> {
         const response = await this.listProvidersRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Update provider by ID
+     */
+    async updateProviderRaw(requestParameters: UpdateProviderRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Provider>> {
+        if (requestParameters.id === null || requestParameters.id === undefined) {
+            throw new runtime.RequiredError('id','Required parameter requestParameters.id was null or undefined when calling updateProvider.');
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        const response = await this.request({
+            path: `/providers/{id}`.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters.id))),
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ProviderFromJSON(jsonValue));
+    }
+
+    /**
+     * Update provider by ID
+     */
+    async updateProvider(requestParameters: UpdateProviderRequest, initOverrides?: RequestInit): Promise<Provider> {
+        const response = await this.updateProviderRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
