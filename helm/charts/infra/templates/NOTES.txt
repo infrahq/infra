@@ -28,7 +28,7 @@
 
   Next steps:
 
-    * Connect additional identity sources: https://github.com/infrahq/infra/blob/main/docs/sources/
+    * Connect additional identity providers: https://github.com/infrahq/infra/blob/main/docs/providers/
     * Connect additional infrastructure destinations: https://github.com/infrahq/infra/blob/main/docs/destinations/
 
 *************************************************

@@ -14,73 +14,73 @@
 
 import { exists, mapValues } from '../runtime';
 import {
-    SourceOkta,
-    SourceOktaFromJSON,
-    SourceOktaFromJSONTyped,
-    SourceOktaToJSON,
+    ProviderOkta,
+    ProviderOktaFromJSON,
+    ProviderOktaFromJSONTyped,
+    ProviderOktaToJSON,
 } from './';
 
 /**
  * 
  * @export
- * @interface Source
+ * @interface Provider
  */
-export interface Source {
+export interface Provider {
     /**
      * 
      * @type {string}
-     * @memberof Source
+     * @memberof Provider
      */
     id: string;
     /**
      * 
      * @type {number}
-     * @memberof Source
+     * @memberof Provider
      */
     created: number;
     /**
      * 
      * @type {number}
-     * @memberof Source
+     * @memberof Provider
      */
     updated: number;
     /**
      * 
      * @type {string}
-     * @memberof Source
+     * @memberof Provider
      */
     domain: string;
     /**
      * 
      * @type {string}
-     * @memberof Source
+     * @memberof Provider
      */
     clientID: string;
     /**
      * 
      * @type {string}
-     * @memberof Source
+     * @memberof Provider
      */
     clientSecret: string;
     /**
      * 
      * @type {string}
-     * @memberof Source
+     * @memberof Provider
      */
     kind: string;
     /**
      * 
-     * @type {SourceOkta}
-     * @memberof Source
+     * @type {ProviderOkta}
+     * @memberof Provider
      */
-    okta?: SourceOkta;
+    okta?: ProviderOkta;
 }
 
-export function SourceFromJSON(json: any): Source {
-    return SourceFromJSONTyped(json, false);
+export function ProviderFromJSON(json: any): Provider {
+    return ProviderFromJSONTyped(json, false);
 }
 
-export function SourceFromJSONTyped(json: any, ignoreDiscriminator: boolean): Source {
+export function ProviderFromJSONTyped(json: any, ignoreDiscriminator: boolean): Provider {
     if ((json === undefined) || (json === null)) {
         return json;
     }
@@ -93,11 +93,11 @@ export function SourceFromJSONTyped(json: any, ignoreDiscriminator: boolean): So
         'clientID': json['clientID'],
         'clientSecret': json['clientSecret'],
         'kind': json['kind'],
-        'okta': !exists(json, 'okta') ? undefined : SourceOktaFromJSON(json['okta']),
+        'okta': !exists(json, 'okta') ? undefined : ProviderOktaFromJSON(json['okta']),
     };
 }
 
-export function SourceToJSON(value?: Source | null): any {
+export function ProviderToJSON(value?: Provider | null): any {
     if (value === undefined) {
         return undefined;
     }
@@ -113,7 +113,7 @@ export function SourceToJSON(value?: Source | null): any {
         'clientID': value.clientID,
         'clientSecret': value.clientSecret,
         'kind': value.kind,
-        'okta': SourceOktaToJSON(value.okta),
+        'okta': ProviderOktaToJSON(value.okta),
     };
 }
 

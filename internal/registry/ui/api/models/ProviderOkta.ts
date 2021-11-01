@@ -16,22 +16,22 @@ import { exists, mapValues } from '../runtime';
 /**
  * 
  * @export
- * @interface SourceOkta
+ * @interface ProviderOkta
  */
-export interface SourceOkta {
+export interface ProviderOkta {
     /**
      * 
      * @type {string}
-     * @memberof SourceOkta
+     * @memberof ProviderOkta
      */
     apiToken: string;
 }
 
-export function SourceOktaFromJSON(json: any): SourceOkta {
-    return SourceOktaFromJSONTyped(json, false);
+export function ProviderOktaFromJSON(json: any): ProviderOkta {
+    return ProviderOktaFromJSONTyped(json, false);
 }
 
-export function SourceOktaFromJSONTyped(json: any, ignoreDiscriminator: boolean): SourceOkta {
+export function ProviderOktaFromJSONTyped(json: any, ignoreDiscriminator: boolean): ProviderOkta {
     if ((json === undefined) || (json === null)) {
         return json;
     }
@@ -41,7 +41,7 @@ export function SourceOktaFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     };
 }
 
-export function SourceOktaToJSON(value?: SourceOkta | null): any {
+export function ProviderOktaToJSON(value?: ProviderOkta | null): any {
     if (value === undefined) {
         return undefined;
     }

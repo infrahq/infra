@@ -3,23 +3,21 @@ secrets:
     kind: plaintext
     base64: true
 
-sources:
+providers:
   - kind: okta
     domain: overwrite.example.com
-    client-id: base64:MG9hcG4wcXdpUVBpTUl5UjM1ZDY=
-    client-secret: kubernetes:okta-secrets/clientSecret
-    okta:
-      api-token: kubernetes:okta-secrets/apiToken
+    clientID: base64:MG9hcG4wcXdpUVBpTUl5UjM1ZDY=
+    clientSecret: kubernetes:okta-secrets/clientSecret
+    apiToken: kubernetes:okta-secrets/apiToken
   - kind: okta
     domain: https://test.example.com
-    client-id: plaintext:0oapn0qwiQPiMIyR35d6
-    client-secret: kubernetes:okta-secrets/clientSecret
-    okta:
-      api-token: kubernetes:okta-secrets/apiToken
+    clientID: plaintext:0oapn0qwiQPiMIyR35d6
+    clientSecret: kubernetes:okta-secrets/clientSecret
+    apiToken: kubernetes:okta-secrets/apiToken
 
 groups:
   - name: ios-developers
-    source: okta
+    provider: okta
     roles:
       - name: writer
         kind: cluster-role
@@ -39,28 +37,28 @@ groups:
             namespaces:
               - infrahq
   - name: mac-admins
-    source: okta
+    provider: okta
     roles:
       - name: writer
         kind: cluster-role
         destinations:
           - name: cluster-BBB
   - name: adversaries
-    source: outside
+    provider: outside
     roles:
       - name: cluster-admin
         kind: cluster-role
         destinations:
           - name: cluster-AAA
   - name: heroes
-    source: okta
+    provider: okta
     roles:
       - name: writer
         kind: cluster-role
         destinations:
           - name: cluster-CCC
   - name: villains
-    source: okta
+    provider: okta
     roles:
       - name: writer
         kind: cluster-role

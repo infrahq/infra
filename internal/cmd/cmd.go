@@ -297,7 +297,7 @@ func newStartCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) {
 	cmd.Flags().String("ui-proxy", "", "proxy UI requests to this host")
 	cmd.Flags().Bool("enable-ui", false, "enable UI")
 
-	cmd.Flags().Duration("sources-sync-interval", registry.DefaultSourcesSyncInterval, "the interval at which Infra will poll sources for users and groups")
+	cmd.Flags().Duration("providers-sync-interval", registry.DefaultProvidersSyncInterval, "the interval at which Infra will poll identity providers for users and groups")
 	cmd.Flags().Duration("destinations-sync-interval", registry.DefaultDestinationsSyncInterval, "the interval at which Infra will poll destinations")
 
 	cmd.Flags().Bool("enable-telemetry", true, "enable telemetry")

@@ -15,8 +15,8 @@ tags:
     description: Manage groups
   - name: roles
     description: Manage roles
-  - name: sources
-    description: Manage identity sources
+  - name: providers
+    description: Manage identity providers
   - name: destinations
     description: Manage infrastructure destinations
   - name: tokens
@@ -152,53 +152,53 @@ paths:
             application/json:
               schema:
                 $ref: 'openapi/utils.yaml#/Error'
-  /sources:
+  /providers:
     get:
-      summary: List sources
+      summary: List providers
       tags:
-        - sources
-      operationId: listSources
+        - providers
+      operationId: listProviders
       parameters:
         - in: query
           name: kind
           schema:
             type: string
-          description: Filter sources by kind
+          description: Filter providers by kind
       responses:
         '200':
-          description: List sources response
+          description: List providers response
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: 'openapi/source.yaml#/Source'
+                  $ref: 'openapi/provider.yaml#/Provider'
         default:
           description: Error response
           content:
             application/json:
               schema:
                 $ref: 'openapi/utils.yaml#/Error'
-  /sources/{id}:
+  /providers/{id}:
     get:
-      summary: Get source by ID
+      summary: Get provider by ID
       tags:
-        - sources
-      operationId: getSource
+        - providers
+      operationId: getProvider
       parameters:
         - in: path
           name: id
           required: true
           schema:
             type: string
-          description: Source ID
+          description: Provider ID
       responses:
         '200':
-          description: Get source response
+          description: Get provider response
           content:
             application/json:
               schema:
-                $ref: 'openapi/source.yaml#/Source'
+                $ref: 'openapi/provider.yaml#/Provider'
         default:
           description: Error response
           content:

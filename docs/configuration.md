@@ -15,9 +15,12 @@ First, create a `values.yaml`. If a `values.yaml` already exists, update it to i
 # values.yaml
 ---
 config:
-  sources: [...]
-  groups: [...]
-  users: [...]
+  providers:
+    [...]
+  groups:
+    [...]
+  users:
+    [...]
 ```
 
 See [Helm Chart reference](./helm.md) for a complete list of options configurable through Helm.
@@ -33,9 +36,12 @@ helm -n infrahq upgrade -f values.yaml infra infrahq/infra
 First, create a config file `infra.yaml`:
 
 ```
-sources: [...]
-groups: [...]
-users: [...]
+providers:
+  [...]
+groups:
+  [...]
+users:
+  [...]
 ```
 
 Then, apply it to Infra:
@@ -46,34 +52,34 @@ helm -n infrahq upgrade --set-file=config=infra.yaml infra infrahq/infra
 
 ## Reference
 
-### `sources`
+### `providers`
 
-List of identity sources used to synchronize users and groups.
+List of identity providers used to synchronize users and groups.
 
 | Parameter      | Description                                  |
 |----------------|----------------------------------------------|
-| `kind`         | Source type                                  |
-|                | Additional source-specific parameters        |
+| `kind`         | Provider type                                |
+|                | Additional provider-specific parameters      |
 
-See [Identity Sources](./sources/) for a full list of configurable values.
+See [Identity Providers](./providers/) for a full list of configurable values.
 
 ### `groups`
 
 List of groups to assign access.
 
-| Parameter      | Description                                  |
-|----------------|----------------------------------------------|
-| `name`         | Group name as stored in the identity source  |
-| `roles`        | Roles assigned to the user                   |
+| Parameter      | Description                                   |
+|----------------|-----------------------------------------------|
+| `name`         | Group name as stored in the identity provider |
+| `roles`        | Roles assigned to the user                    |
 
 ### `users`
 
 List of users to assign access.
 
-| Parameter      | Description                                  |
-|----------------|----------------------------------------------|
-| `email`        | User email as stored in the identity source  |
-| `roles`        | Roles assigned to the user                   |
+| Parameter      | Description                                   |
+|----------------|-----------------------------------------------|
+| `email`        | User email as stored in the identity provider |
+| `roles`        | Roles assigned to the user                    |
 
 ### `roles`
 
@@ -99,17 +105,16 @@ See [Infrastructure Destinations](./destinations/) for a full list of configurab
 ## Full Example
 
 ```yaml
-sources:
+providers:
   - kind: okta
     domain: acme.okta.com
-    client-id: 0oapn0qwiQPiMIyR35d6
-    client-secret: kubernetes:infra-okta/clientSecret
-    okta:
-      api-token: kubernetes:infra-okta/apiToken
+    clientID: 0oapn0qwiQPiMIyR35d6
+    clientSecret: kubernetes:infra-okta/clientSecret
+    apiToken: kubernetes:infra-okta/apiToken
 
 groups:
   - name: administrators
-    source: okta
+    provider: okta
     roles:
       - name: cluster-admin
         kind: cluster-role

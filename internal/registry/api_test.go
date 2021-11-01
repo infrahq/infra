@@ -668,19 +668,19 @@ func TestLoginMethodOkta(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var source Source
-	source.Kind = SourceKindOkta
-	source.APIToken = "test-api-token/apiToken"
-	source.Domain = "test.okta.com"
-	source.ClientID = "test-client-id"
-	source.ClientSecret = "test-client-secret/clientSecret"
+	var provider Provider
+	provider.Kind = ProviderKindOkta
+	provider.APIToken = "test-api-token/apiToken"
+	provider.Domain = "test.okta.com"
+	provider.ClientID = "test-client-id"
+	provider.ClientSecret = "test-client-secret/clientSecret"
 
-	if err := db.Create(&source).Error; err != nil {
+	if err := db.Create(&provider).Error; err != nil {
 		t.Fatal(err)
 	}
 
 	var user User
-	if err := source.CreateUser(db, &user, "test@test.com"); err != nil {
+	if err := provider.CreateUser(db, &user, "test@test.com"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1401,7 +1401,7 @@ func TestGetUserNotFound(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
-func TestListSources(t *testing.T) {
+func TestListProviders(t *testing.T) {
 	a := &API{
 		registry: &Registry{
 			db: db,
@@ -1412,21 +1412,21 @@ func TestListSources(t *testing.T) {
 		db: db,
 	}
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/sources", nil)
+	r := httptest.NewRequest(http.MethodGet, "/v1/providers", nil)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.ListSources).ServeHTTP(w, r)
+	http.HandlerFunc(a.ListProviders).ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	var sources []api.Source
-	if err := json.NewDecoder(w.Body).Decode(&sources); err != nil {
+	var providers []api.Provider
+	if err := json.NewDecoder(w.Body).Decode(&providers); err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, 1, len(sources))
+	assert.Equal(t, 1, len(providers))
 }
 
-func TestListSourcesByType(t *testing.T) {
+func TestListProvidersByType(t *testing.T) {
 	a := &API{
 		registry: &Registry{
 			db: db,
@@ -1437,21 +1437,21 @@ func TestListSourcesByType(t *testing.T) {
 		db: db,
 	}
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/sources?kind=okta", nil)
+	r := httptest.NewRequest(http.MethodGet, "/v1/providers?kind=okta", nil)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.ListSources).ServeHTTP(w, r)
+	http.HandlerFunc(a.ListProviders).ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	var sources []api.Source
-	if err := json.NewDecoder(w.Body).Decode(&sources); err != nil {
+	var providers []api.Provider
+	if err := json.NewDecoder(w.Body).Decode(&providers); err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, 1, len(sources))
+	assert.Equal(t, 1, len(providers))
 }
 
-func TestListSourcesEmpty(t *testing.T) {
+func TestListProvidersEmpty(t *testing.T) {
 	a := &API{
 		registry: &Registry{
 			db: db,
@@ -1462,21 +1462,21 @@ func TestListSourcesEmpty(t *testing.T) {
 		db: db,
 	}
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/sources?kind=nonexistent", nil)
+	r := httptest.NewRequest(http.MethodGet, "/v1/providers?kind=nonexistent", nil)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.ListSources).ServeHTTP(w, r)
+	http.HandlerFunc(a.ListProviders).ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	var sources []api.Source
-	if err := json.NewDecoder(w.Body).Decode(&sources); err != nil {
+	var providers []api.Provider
+	if err := json.NewDecoder(w.Body).Decode(&providers); err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, 0, len(sources))
+	assert.Equal(t, 0, len(providers))
 }
 
-func TestGetSource(t *testing.T) {
+func TestGetProvider(t *testing.T) {
 	a := &API{
 		registry: &Registry{
 			db: db,
@@ -1487,26 +1487,26 @@ func TestGetSource(t *testing.T) {
 		db: db,
 	}
 
-	source := &Source{Kind: SourceKindOkta}
-	if err := a.db.Create(source).Error; err != nil {
+	provider := &Provider{Kind: ProviderKindOkta}
+	if err := a.db.Create(provider).Error; err != nil {
 		t.Fatalf(err.Error())
 	}
 
-	defer a.db.Delete(source)
+	defer a.db.Delete(provider)
 
-	r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/sources/%s", source.Id), nil)
+	r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/providers/%s", provider.Id), nil)
 	vars := map[string]string{
-		"id": source.Id,
+		"id": provider.Id,
 	}
 	r = mux.SetURLVars(r, vars)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.GetSource).ServeHTTP(w, r)
+	http.HandlerFunc(a.GetProvider).ServeHTTP(w, r)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
-func TestGetSourceEmptyID(t *testing.T) {
+func TestGetProviderEmptyID(t *testing.T) {
 	a := &API{
 		registry: &Registry{
 			db: db,
@@ -1517,19 +1517,19 @@ func TestGetSourceEmptyID(t *testing.T) {
 		db: db,
 	}
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/sources/", nil)
+	r := httptest.NewRequest(http.MethodGet, "/v1/providers/", nil)
 	vars := map[string]string{
 		"id": "",
 	}
 	r = mux.SetURLVars(r, vars)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.GetSource).ServeHTTP(w, r)
+	http.HandlerFunc(a.GetProvider).ServeHTTP(w, r)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
-func TestGetSourceNotFound(t *testing.T) {
+func TestGetProviderNotFound(t *testing.T) {
 	a := &API{
 		registry: &Registry{
 			db: db,
@@ -1540,14 +1540,14 @@ func TestGetSourceNotFound(t *testing.T) {
 		db: db,
 	}
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/sources/nonexistent", nil)
+	r := httptest.NewRequest(http.MethodGet, "/v1/providers/nonexistent", nil)
 	vars := map[string]string{
 		"id": "nonexistent",
 	}
 	r = mux.SetURLVars(r, vars)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.GetSource).ServeHTTP(w, r)
+	http.HandlerFunc(a.GetProvider).ServeHTTP(w, r)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }

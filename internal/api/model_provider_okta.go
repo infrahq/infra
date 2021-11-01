@@ -14,31 +14,31 @@ import (
 	"encoding/json"
 )
 
-// SourceOkta struct for SourceOkta
-type SourceOkta struct {
+// ProviderOkta struct for ProviderOkta
+type ProviderOkta struct {
 	APIToken string `json:"apiToken"`
 }
 
-// NewSourceOkta instantiates a new SourceOkta object
+// NewProviderOkta instantiates a new ProviderOkta object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewSourceOkta(apiToken string) *SourceOkta {
-	this := SourceOkta{}
+func NewProviderOkta(apiToken string) *ProviderOkta {
+	this := ProviderOkta{}
 	this.APIToken = apiToken
 	return &this
 }
 
-// NewSourceOktaWithDefaults instantiates a new SourceOkta object
+// NewProviderOktaWithDefaults instantiates a new ProviderOkta object
 // This constructor will only assign default values to properties that have it defined,
 // but it doesn't guarantee that properties required by API are set
-func NewSourceOktaWithDefaults() *SourceOkta {
-	this := SourceOkta{}
+func NewProviderOktaWithDefaults() *ProviderOkta {
+	this := ProviderOkta{}
 	return &this
 }
 
 // GetAPIToken returns the APIToken field value
-func (o *SourceOkta) GetAPIToken() string {
+func (o *ProviderOkta) GetAPIToken() string {
 	if o == nil {
 		var ret string
 		return ret
@@ -49,7 +49,7 @@ func (o *SourceOkta) GetAPIToken() string {
 
 // GetAPITokenOk returns a tuple with the APIToken field value
 // and a boolean to check if the value has been set.
-func (o *SourceOkta) GetAPITokenOk() (*string, bool) {
+func (o *ProviderOkta) GetAPITokenOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -57,11 +57,11 @@ func (o *SourceOkta) GetAPITokenOk() (*string, bool) {
 }
 
 // SetAPIToken sets field value
-func (o *SourceOkta) SetAPIToken(v string) {
+func (o *ProviderOkta) SetAPIToken(v string) {
 	o.APIToken = v
 }
 
-func (o SourceOkta) MarshalJSON() ([]byte, error) {
+func (o ProviderOkta) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
 		toSerialize["apiToken"] = o.APIToken
@@ -69,38 +69,38 @@ func (o SourceOkta) MarshalJSON() ([]byte, error) {
 	return json.Marshal(toSerialize)
 }
 
-type NullableSourceOkta struct {
-	value *SourceOkta
+type NullableProviderOkta struct {
+	value *ProviderOkta
 	isSet bool
 }
 
-func (v NullableSourceOkta) Get() *SourceOkta {
+func (v NullableProviderOkta) Get() *ProviderOkta {
 	return v.value
 }
 
-func (v *NullableSourceOkta) Set(val *SourceOkta) {
+func (v *NullableProviderOkta) Set(val *ProviderOkta) {
 	v.value = val
 	v.isSet = true
 }
 
-func (v NullableSourceOkta) IsSet() bool {
+func (v NullableProviderOkta) IsSet() bool {
 	return v.isSet
 }
 
-func (v *NullableSourceOkta) Unset() {
+func (v *NullableProviderOkta) Unset() {
 	v.value = nil
 	v.isSet = false
 }
 
-func NewNullableSourceOkta(val *SourceOkta) *NullableSourceOkta {
-	return &NullableSourceOkta{value: val, isSet: true}
+func NewNullableProviderOkta(val *ProviderOkta) *NullableProviderOkta {
+	return &NullableProviderOkta{value: val, isSet: true}
 }
 
-func (v NullableSourceOkta) MarshalJSON() ([]byte, error) {
+func (v NullableProviderOkta) MarshalJSON() ([]byte, error) {
 	return json.Marshal(v.value)
 }
 
-func (v *NullableSourceOkta) UnmarshalJSON(src []byte) error {
+func (v *NullableProviderOkta) UnmarshalJSON(src []byte) error {
 	v.isSet = true
 	return json.Unmarshal(src, &v.value)
 }

@@ -14,15 +14,51 @@ import (
 )
 
 type ConfigOkta struct {
-	APIToken string `yaml:"api-token"`
+	APIToken string `yaml:"apiToken"`
 }
 
-type ConfigSource struct {
-	Kind         string     `yaml:"kind"`
-	Domain       string     `yaml:"domain"`
-	ClientID     string     `yaml:"client-id"`
-	ClientSecret string     `yaml:"client-secret"`
-	Okta         ConfigOkta `yaml:"okta"`
+type ConfigIdentityProvider struct {
+	Kind         string      `yaml:"kind"`
+	Domain       string      `yaml:"domain"`
+	ClientID     string      `yaml:"clientID"`
+	ClientSecret string      `yaml:"clientSecret"`
+	Config       interface{} // contains identity-provider-specific config
+}
+
+type baseConfigIdentityProvider struct {
+	Kind         string `yaml:"kind"`
+	Domain       string `yaml:"domain"`
+	ClientID     string `yaml:"clientID"`
+	ClientSecret string `yaml:"clientSecret"`
+}
+
+var _ yaml.Unmarshaler = &ConfigIdentityProvider{}
+
+func (idp *ConfigIdentityProvider) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	tmp := &baseConfigIdentityProvider{}
+
+	if err := unmarshal(&tmp); err != nil {
+		return fmt.Errorf("unmarshalling secret provider: %w", err)
+	}
+
+	idp.Kind = tmp.Kind
+	idp.Domain = tmp.Domain
+	idp.ClientID = tmp.ClientID
+	idp.ClientSecret = tmp.ClientSecret
+
+	switch tmp.Kind {
+	case ProviderKindOkta:
+		o := ConfigOkta{}
+		if err := unmarshal(&o); err != nil {
+			return fmt.Errorf("unmarshal yaml: %w", err)
+		}
+
+		idp.Config = o
+	default:
+		return fmt.Errorf("unknown identity provider type %q, expected %s", tmp.Kind, ProviderKindOkta)
+	}
+
+	return nil
 }
 
 var (
@@ -30,10 +66,10 @@ var (
 	protocolRemover  = regexp.MustCompile(`http[s]?://`)
 )
 
-func (s *ConfigSource) cleanupDomain() {
-	s.Domain = strings.TrimSpace(s.Domain)
-	s.Domain = dashAdminRemover.ReplaceAllString(s.Domain, "$1$2")
-	s.Domain = protocolRemover.ReplaceAllString(s.Domain, "")
+func (p *ConfigIdentityProvider) cleanupDomain() {
+	p.Domain = strings.TrimSpace(p.Domain)
+	p.Domain = dashAdminRemover.ReplaceAllString(p.Domain, "$1$2")
+	p.Domain = protocolRemover.ReplaceAllString(p.Domain, "")
 }
 
 type ConfigDestination struct {
@@ -48,9 +84,9 @@ type ConfigRoleKubernetes struct {
 }
 
 type ConfigGroupMapping struct {
-	Name   string                 `yaml:"name"`
-	Source string                 `yaml:"source"`
-	Roles  []ConfigRoleKubernetes `yaml:"roles"`
+	Name     string                 `yaml:"name"`
+	Provider string                 `yaml:"provider"`
+	Roles    []ConfigRoleKubernetes `yaml:"roles"`
 }
 
 type ConfigUserMapping struct {
@@ -153,104 +189,110 @@ func (sp *ConfigSecretProvider) UnmarshalYAML(unmarshal func(interface{}) error)
 }
 
 type Config struct {
-	Secrets []ConfigSecretProvider `yaml:"secrets"`
-	Sources []ConfigSource         `yaml:"sources"`
-	Groups  []ConfigGroupMapping   `yaml:"groups"`
-	Users   []ConfigUserMapping    `yaml:"users"`
+	Secrets   []ConfigSecretProvider   `yaml:"secrets"`
+	Providers []ConfigIdentityProvider `yaml:"providers"`
+	Groups    []ConfigGroupMapping     `yaml:"groups"`
+	Users     []ConfigUserMapping      `yaml:"users"`
 }
 
 // this config is loaded at start-up and re-applied when Infra's state changes (ie. a user is added)
 var initialConfig Config
 
-func ImportSources(db *gorm.DB, sources []ConfigSource) error {
+func ImportProviders(db *gorm.DB, providers []ConfigIdentityProvider) error {
 	var idsToKeep []string
 
-	for _, s := range sources {
-		switch s.Kind {
-		case SourceKindOkta:
-			// check the domain is specified
-			s.cleanupDomain()
+	for _, p := range providers {
+		// check if we are about to override an existing provider
+		var existing Provider
+		if err := db.First(&existing, &Provider{Kind: p.Kind}).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				// expected for new records
+			} else {
+				return fmt.Errorf("existing provider lookup: %w", err)
+			}
+		}
 
-			if s.Domain == "" {
-				logging.S.Infof("domain not set on source \"%s\", import skipped", s.Kind)
+		if existing.Id != "" {
+			logging.L.Warn("overriding existing okta provider settings with configuration settings")
+		}
+
+		p.cleanupDomain()
+
+		if p.Domain == "" {
+			return fmt.Errorf("no domain set on provider: %s", p.Kind)
+		}
+
+		if p.ClientID == "" {
+			return fmt.Errorf("no clientID set on provider: %s", p.Kind)
+		}
+
+		if p.ClientSecret == "" {
+			return fmt.Errorf("no clientSecret set on provider: %s", p.Kind)
+		}
+
+		var provider Provider
+		if err := db.FirstOrCreate(&provider, &Provider{Kind: p.Kind}).Error; err != nil {
+			return fmt.Errorf("create config provider: %w", err)
+		}
+
+		provider.ClientID = p.ClientID
+		provider.Domain = p.Domain
+		provider.ClientSecret = p.ClientSecret
+
+		switch p.Kind {
+		case ProviderKindOkta:
+			cfg, ok := p.Config.(ConfigOkta)
+			if !ok {
+				return fmt.Errorf("expected provider config to be Okta, but was %t", p.Config)
 			}
 
-			// check if we are about to override an existing source
-			var existing Source
-
-			db.First(&existing, &Source{Kind: SourceKindOkta})
-
-			if existing.Id != "" {
-				logging.L.Warn("overriding existing okta source settings with configuration settings")
+			if cfg.APIToken == "" {
+				return fmt.Errorf("no apiToken set on provider: %s", p.Kind)
 			}
 
-			var source Source
-			if err := db.FirstOrCreate(&source, &Source{Kind: SourceKindOkta}).Error; err != nil {
-				return fmt.Errorf("create config source: %w", err)
-			}
-
-			if s.ClientID == "" {
-				logging.L.Warn("importing okta source with no client ID set")
-			}
-
-			if s.Domain == "" {
-				logging.L.Warn("importing okta source with no domain set")
-			}
-
-			if s.ClientSecret == "" {
-				logging.L.Warn("importing okta source with no client secret set")
-			}
-
-			if s.Okta.APIToken == "" {
-				logging.L.Warn("importing okta source with no API token set")
-			}
-
-			source.ClientID = s.ClientID
-			source.Domain = s.Domain
 			// API token and client secret will be validated to exist when they are used
-			source.ClientSecret = s.ClientSecret
-			source.APIToken = s.Okta.APIToken
+			provider.APIToken = cfg.APIToken
 
-			if err := db.Save(&source).Error; err != nil {
-				return fmt.Errorf("save source: %w", err)
+			if err := db.Save(&provider).Error; err != nil {
+				return fmt.Errorf("save provider: %w", err)
 			}
 
-			idsToKeep = append(idsToKeep, source.Id)
+			idsToKeep = append(idsToKeep, provider.Id)
 		case "":
-			logging.S.Errorf("skipping a source with no kind set in configuration")
+			logging.S.Errorf("skipping a provider with no kind set in configuration")
 		default:
-			logging.S.Errorf("skipping invalid source kind in configuration: %s", s.Kind)
+			logging.S.Errorf("skipping invalid provider kind in configuration: %s", p.Kind)
 		}
 	}
 
 	if len(idsToKeep) == 0 {
-		logging.L.Debug("no valid sources found in configuration, ensure the required fields are specified correctly")
-		// clear the sources
-		return db.Where("1 = 1").Delete(&Source{}).Error
+		logging.L.Debug("no valid providers found in configuration, ensure the required fields are specified correctly")
+		// clear the providers
+		return db.Where("1 = 1").Delete(&Provider{}).Error
 	}
 
-	return db.Not(idsToKeep).Delete(&Source{}).Error
+	return db.Not(idsToKeep).Delete(&Provider{}).Error
 }
 
 func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (modifiedRoleIDs []string, err error) {
 	for _, g := range groups {
-		// get the source from the datastore that this group specifies
-		var source Source
-		// Assumes that only one kind of each source can exist
-		srcReadErr := db.Where(&Source{Kind: g.Source}).First(&source).Error
-		if srcReadErr != nil {
-			if errors.Is(srcReadErr, gorm.ErrRecordNotFound) {
-				// skip this source, it will need to be added in the config and re-applied
-				logging.S.Debugf("skipping group '%s' with source '%s' in config that does not exist", g.Name, g.Source)
+		// get the provider from the datastore that this group specifies
+		var provider Provider
+		// Assumes that only one kind of each provider can exist
+		provReadErr := db.Where(&Provider{Kind: g.Provider}).First(&provider).Error
+		if provReadErr != nil {
+			if errors.Is(provReadErr, gorm.ErrRecordNotFound) {
+				// skip this provider, it will need to be added in the config and re-applied
+				logging.S.Debugf("skipping group '%s' with provider '%s' in config that does not exist", g.Name, g.Provider)
 				continue
 			}
 
-			return nil, fmt.Errorf("group read source: %w", srcReadErr)
+			return nil, fmt.Errorf("group read provider: %w", provReadErr)
 		}
 
 		var group Group
 
-		grpReadErr := db.Preload("Users").Where(&Group{Name: g.Name, SourceId: source.Id}).First(&group).Error
+		grpReadErr := db.Preload("Users").Where(&Group{Name: g.Name, ProviderId: provider.Id}).First(&group).Error
 		if grpReadErr != nil {
 			if errors.Is(grpReadErr, gorm.ErrRecordNotFound) {
 				// skip this group, if they're created these roles will be added later
@@ -373,7 +415,7 @@ func (r *Registry) importConfig(bs []byte) error {
 	}
 
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		if err := ImportSources(tx, config.Sources); err != nil {
+		if err := ImportProviders(tx, config.Providers); err != nil {
 			return err
 		}
 
@@ -422,7 +464,7 @@ func importRoles(db *gorm.DB, roles []ConfigRoleKubernetes) (rolesImported []Rol
 				for _, namespace := range destination.Namespaces {
 					var role Role
 					if err = db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, Namespace: namespace, DestinationId: dest.Id}).Error; err != nil {
-						return nil, nil, fmt.Errorf("group read source: %w", err)
+						return nil, nil, fmt.Errorf("group read provider: %w", err)
 					}
 
 					rolesImported = append(rolesImported, role)

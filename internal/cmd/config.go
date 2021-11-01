@@ -8,30 +8,32 @@ import (
 	"path/filepath"
 )
 
-type ClientConfigV0dot2 struct {
-	Version string             `json:"version"` // always 0.2 in v0.2
+// current: v0.3
+type ClientConfig struct {
+	Version string             `json:"version"`
 	Hosts   []ClientHostConfig `json:"hosts"`
 }
 
+// current: v0.3
 type ClientHostConfig struct {
 	Name          string `json:"name"`
 	Host          string `json:"host"`
 	Token         string `json:"token"`
 	SkipTLSVerify bool   `json:"skip-tls-verify"` // where is the other cert info stored?
-	SourceID      string `json:"source-id"`
+	ProviderID    string `json:"provider-id"`
 	Current       bool   `json:"current"`
 }
 
 var ErrConfigNotFound = errors.New("could not read local credentials. Are you logged in? Use \"infra login\" to login")
 
-func NewClientConfig() *ClientConfigV0dot2 {
-	return &ClientConfigV0dot2{
-		Version: "0.2",
+func NewClientConfig() *ClientConfig {
+	return &ClientConfig{
+		Version: "0.3",
 	}
 }
 
-func readConfig() (*ClientConfigV0dot2, error) {
-	config := &ClientConfigV0dot2{}
+func readConfig() (*ClientConfig, error) {
+	config := &ClientConfig{}
 
 	infraDir, err := infraHomeDir()
 	if err != nil {
@@ -58,13 +60,20 @@ func readConfig() (*ClientConfigV0dot2, error) {
 			return nil, err
 		}
 
-		return configv0dot1.ToV0dot2(), nil
+		return configv0dot1.ToV0dot2().ToV0dot3(), nil
+	} else if config.Version == "0.2" {
+		configv0dot2 := ClientConfigV0dot2{}
+		if err = json.Unmarshal(contents, &configv0dot2); err != nil {
+			return nil, err
+		}
+
+		return configv0dot2.ToV0dot3(), nil
 	}
 
 	return config, nil
 }
 
-func writeConfig(config *ClientConfigV0dot2) error {
+func writeConfig(config *ClientConfig) error {
 	infraDir, err := infraHomeDir()
 	if err != nil {
 		return err

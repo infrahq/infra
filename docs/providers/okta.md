@@ -1,27 +1,25 @@
-# Sources / Okta
+# Providers / Okta
 
-## Configure Okta Source
+## Configure Okta Provider
 
-| Parameter       | Field       | Description                  |
-|-----------------|-------------|-----------------------------|
-| `domain`        |             | Okta domain                 |
-| `client-id`     |             | Okta client ID              |
-| `client-secret` |             | Okta client secret          |
-| `okta`          |             | Okta specific configuration |
-| `okta`          | `api-token` | Okta API token              |
+| Parameter       | Description                 |
+|-----------------|-----------------------------|
+| `domain`        | Okta domain                 |
+| `clientID`      | Okta client ID              |
+| `clientSecret`  | Okta client secret          |
+| `apiToken`      | Okta API token              |
 
-## Connect an Okta Source
+## Connect an Okta Provider
 
-This guide will walk you through the process of setting up Okta as an identity provider for Infra. At the end of this process you will have updated your Infra configuration with an Okta source that looks something like this:
+This guide will walk you through the process of setting up Okta as an identity provider for Infra. At the end of this process you will have updated your Infra configuration with an Okta provider that looks something like this:
 
 ```
-sources:
+providers:
   - kind: okta
     domain: acme.okta.com
-    client-id: 0oapn0qwiQPiMIyR35d6
-    client-secret: kubernetes:infra-okta/clientSecret
-    okta:
-      api-token: kubernetes:infra-okta/apiToken
+    clientID: 0oapn0qwiQPiMIyR35d6
+    clientSecret: kubernetes:infra-okta/clientSecret
+    apiToken: kubernetes:infra-okta/apiToken
 ```
 
 ## Create an Okta App
@@ -67,18 +65,17 @@ see [secrets.md](../secrets.md) for further details.
 
 ## Add Okta Information to Infra Configuration
 
-Edit your [Infra configuration](./configuration.md) (e.g. `infra.yaml`) to include an Okta source:
+Edit your [Infra configuration](./configuration.md) (e.g. `infra.yaml`) to include an Okta provider:
 
 ```yaml
 # infra.yaml
 ---
-sources:
+providers:
   - kind: okta
     domain: example.okta.com
-    client-id: 0oapn0qwiQPiMIyR35d6
-    client-secret: kubernetes:infra-okta/clientSecret  # <secret kind>:<secret name>
-    okta:
-      api-token: kubernetes:infra-okta/apiToken
+    clientID: 0oapn0qwiQPiMIyR35d6
+    clientSecret: kubernetes:infra-okta/clientSecret  # <secret kind>:<secret name>
+    apiToken: kubernetes:infra-okta/apiToken
 ```
 
 Then apply this config change:
@@ -93,13 +90,12 @@ Infra configuration can also be added to Helm values:
 # values.yaml
 ---
 config:
-  sources:
+  providers:
     - kind: okta
       domain: example.okta.com
-      client-id: 0oapn0qwiQPiMIyR35d6
-      client-secret: kubernetes:infra-okta/clientSecret  # <secret kind>:<secret name>
-      okta:
-        api-token: kubernetes:infra-okta/apiToken
+      clientID: 0oapn0qwiQPiMIyR35d6
+      clientSecret: kubernetes:infra-okta/clientSecret  # <secret kind>:<secret name>
+      apiToken: kubernetes:infra-okta/apiToken
 ```
 
 Then apply this config change:
