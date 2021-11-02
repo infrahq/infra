@@ -174,7 +174,7 @@ func eachProvider(t *testing.T, eachFunc func(t *testing.T, p interface{})) {
 	clientset, err := kubernetes.NewForConfig(kubeConfig(t))
 	require.NoError(t, err)
 
-	k8s := NewKubernetesSecretProvider(clientset, "infrahq")
+	k8s := NewKubernetesSecretProvider(clientset, "default")
 
 	providers["kubernetes"] = k8s
 
