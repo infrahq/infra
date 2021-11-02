@@ -673,7 +673,7 @@ func (r *Registry) loadDefaultSecretConfig() error {
 	if _, found := r.secrets["kubernetes"]; !found {
 		// only setup k8s automatically if KUBERNETES_SERVICE_HOST is defined; ie, we are in the cluster.
 		if _, ok := os.LookupEnv("KUBERNETES_SERVICE_HOST"); ok {
-			k8s, err := secrets.NewKubernetesSecretProviderFromConfig(secrets.KubernetesConfig{})
+			k8s, err := secrets.NewKubernetesSecretProviderFromConfig(secrets.NewKubernetesConfig())
 			if err != nil {
 				return fmt.Errorf("creating k8s secret provider: %w", err)
 			}
