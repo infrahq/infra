@@ -123,49 +123,61 @@ func updateKubeconfig(user api.User) error {
 	}
 
 	// deduplicate roles
-	roles := make(map[string]api.Role)
-
+	roles := make(map[string][]api.Role)
 	for _, r := range user.Roles {
-		roles[r.Id] = r
+		roles[r.Destination.Name] = append(roles[r.Destination.Name], r)
 	}
 
 	for _, g := range user.Groups {
 		for _, r := range g.Roles {
-			roles[r.Id] = r
+			roles[r.Destination.Name] = append(roles[r.Destination.Name], r)
 		}
 	}
 
 	for _, r := range roles {
-		var contextName string
-		if r.Namespace != "" {
-			contextName = fmt.Sprintf("infra:%s:%s", r.Destination.Name, r.Namespace)
-		} else {
-			contextName = fmt.Sprintf("infra:%s", r.Destination.Name)
-		}
+		for _, d := range r {
+			// TODO: allow user to specify prefix, default ""
+			// format: "infra:<NAME>"
+			contextName := fmt.Sprintf("infra:%s", d.Destination.Name)
 
-		kubeConfig.Clusters[contextName] = &clientcmdapi.Cluster{
-			Server:                   fmt.Sprintf("https://%s/proxy", r.Destination.Kubernetes.Endpoint),
-			CertificateAuthorityData: []byte(r.Destination.Kubernetes.Ca),
-		}
+			if len(r) > 1 {
+				// disambiguate destination by appending the ID
+				// format: "infra:<NAME>-<ID>"
+				contextName = fmt.Sprintf("%s-%s", contextName, d.Destination.Id)
+			}
 
-		kubeConfig.Contexts[contextName] = &clientcmdapi.Context{
-			Cluster:   contextName,
-			AuthInfo:  contextName,
-			Namespace: r.Namespace,
-		}
+			if d.Namespace != "" {
+				// destination is scoped to a namespace
+				// format: "infra:<NAME>[-<ID>]:<NAMESPACE]"
+				contextName = fmt.Sprintf("%s:%s", contextName, d.Namespace)
+			}
 
-		executable, err := os.Executable()
-		if err != nil {
-			return err
-		}
+			logging.S.Debugf("creating kubeconfig for %s", contextName)
 
-		kubeConfig.AuthInfos[contextName] = &clientcmdapi.AuthInfo{
-			Exec: &clientcmdapi.ExecConfig{
-				Command:         executable,
-				Args:            []string{"tokens", "create", r.Destination.Name},
-				APIVersion:      "client.authentication.k8s.io/v1beta1",
-				InteractiveMode: clientcmdapi.IfAvailableExecInteractiveMode,
-			},
+			kubeConfig.Clusters[contextName] = &clientcmdapi.Cluster{
+				Server:                   fmt.Sprintf("https://%s/proxy", d.Destination.Kubernetes.Endpoint),
+				CertificateAuthorityData: []byte(d.Destination.Kubernetes.Ca),
+			}
+
+			kubeConfig.Contexts[contextName] = &clientcmdapi.Context{
+				Cluster:   contextName,
+				AuthInfo:  contextName,
+				Namespace: d.Namespace,
+			}
+
+			executable, err := os.Executable()
+			if err != nil {
+				return err
+			}
+
+			kubeConfig.AuthInfos[contextName] = &clientcmdapi.AuthInfo{
+				Exec: &clientcmdapi.ExecConfig{
+					Command:         executable,
+					Args:            []string{"tokens", "create", d.Destination.Name},
+					APIVersion:      "client.authentication.k8s.io/v1beta1",
+					InteractiveMode: clientcmdapi.IfAvailableExecInteractiveMode,
+				},
+			}
 		}
 	}
 
@@ -186,8 +198,10 @@ func updateKubeconfig(user api.User) error {
 		found := false
 
 		for _, r := range roles {
-			if destinationName == r.Destination.Name {
-				found = true
+			for _, d := range r {
+				if destinationName == d.Destination.Name {
+					found = true
+				}
 			}
 		}
 
