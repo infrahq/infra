@@ -350,6 +350,14 @@ func (a *API) ListProviders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) CreateProvider(w http.ResponseWriter, r *http.Request) {
+	_, err := extractAPIKey(r.Context())
+	if err != nil {
+		logging.L.Error(err.Error())
+		sendAPIError(w, http.StatusUnauthorized, "unauthorized")
+
+		return
+	}
+
 	var body api.Provider
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		sendAPIError(w, http.StatusBadRequest, err.Error())
@@ -364,7 +372,7 @@ func (a *API) CreateProvider(w http.ResponseWriter, r *http.Request) {
 	// we only allow one provider of each kind, so key on this
 	provider := Provider{Kind: body.Kind}
 
-	err := a.db.Transaction(func(tx *gorm.DB) error {
+	err = a.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.FirstOrCreate(&provider).Error; err != nil {
 			return err
 		}
@@ -438,6 +446,14 @@ func (a *API) GetProvider(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) UpdateProvider(w http.ResponseWriter, r *http.Request) {
+	_, err := extractAPIKey(r.Context())
+	if err != nil {
+		logging.L.Error(err.Error())
+		sendAPIError(w, http.StatusUnauthorized, "unauthorized")
+
+		return
+	}
+
 	vars := mux.Vars(r)
 
 	id := vars["id"]
@@ -459,7 +475,7 @@ func (a *API) UpdateProvider(w http.ResponseWriter, r *http.Request) {
 
 	var provider Provider
 
-	err := a.db.Transaction(func(tx *gorm.DB) error {
+	err = a.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.First(&provider, &Provider{Id: id}).Error; err != nil {
 			return err
 		}
@@ -499,6 +515,14 @@ func (a *API) UpdateProvider(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) DeleteProvider(w http.ResponseWriter, r *http.Request) {
+	_, err := extractAPIKey(r.Context())
+	if err != nil {
+		logging.L.Error(err.Error())
+		sendAPIError(w, http.StatusUnauthorized, "unauthorized")
+
+		return
+	}
+
 	vars := mux.Vars(r)
 
 	id := vars["id"]
