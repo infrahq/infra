@@ -136,7 +136,7 @@ func updateKubeconfig(user api.User) error {
 
 	for _, r := range roles {
 		for _, d := range r {
-			// TODO: allow user to specify prefix, default ""
+			// TODO (#546): allow user to specify prefix, default ""
 			// format: "infra:<NAME>"
 			contextName := fmt.Sprintf("infra:%s", d.Destination.Name)
 

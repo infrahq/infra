@@ -154,7 +154,7 @@ func newRow(role api.Role, currentContext string) statusRow {
 	}
 
 	parts := strings.Split(currentContext, ":")
-	// TODO: check against user specified prefix
+	// TODO (#546): check against user specified prefix
 	// check "infra:<NAME>[-<ID>][:<NAMESPACE>]"
 	if len(parts) >= 2 && parts[0] == "infra" {
 		parts := strings.Split(parts[1], "-")
