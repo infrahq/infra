@@ -24,9 +24,9 @@ import (
 )
 
 type LoginOptions struct {
-	Current bool          `mapstructure:"current"`
-	Timeout time.Duration `mapstructure:"timeout"`
-	internal.GlobalOptions
+	Current          bool          `mapstructure:"current"`
+	Timeout          time.Duration `mapstructure:"timeout"`
+	internal.Options `mapstructure:",squash"`
 }
 
 func login(options *LoginOptions) error {

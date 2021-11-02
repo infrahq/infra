@@ -10,7 +10,7 @@ import (
 )
 
 type LogoutOptions struct {
-	internal.GlobalOptions
+	internal.Options `mapstructure:",squash"`
 }
 
 func cleanupKubeconfig(config *ClientHostConfig) error {
@@ -56,8 +56,10 @@ func logoutOne(config *ClientHostConfig) error {
 func logout(options *LogoutOptions) error {
 	if options.Host == "" {
 		configs, _ := readConfig()
-		for i := range configs.Hosts {
-			_ = logoutOne(&configs.Hosts[i])
+		if configs != nil {
+			for i := range configs.Hosts {
+				_ = logoutOne(&configs.Hosts[i])
+			}
 		}
 
 		return nil

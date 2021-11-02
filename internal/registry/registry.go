@@ -48,7 +48,7 @@ type Options struct {
 	ProvidersSyncInterval    time.Duration `mapstructure:"providers-sync-interval"`
 	DestinationsSyncInterval time.Duration `mapstructure:"destinations-sync-interval"`
 
-	internal.GlobalOptions
+	internal.Options `mapstructure:",squash"`
 }
 
 type Registry struct {

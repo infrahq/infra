@@ -15,7 +15,7 @@ import (
 )
 
 type ListOptions struct {
-	internal.GlobalOptions
+	internal.Options `mapstructure:",squash"`
 }
 
 type statusRow struct {

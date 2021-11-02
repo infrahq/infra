@@ -15,9 +15,9 @@ import (
 )
 
 type VersionOptions struct {
-	Client bool
-	Server bool
-	internal.GlobalOptions
+	Client           bool
+	Server           bool
+	internal.Options `mapstructure:",squash"`
 }
 
 func version(options *VersionOptions) error {

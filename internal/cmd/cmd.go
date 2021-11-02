@@ -207,14 +207,14 @@ func updateKubeconfig(user api.User) error {
 	return nil
 }
 
-func newLoginCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) {
+func newLoginCmd() (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:     "login [HOST]",
 		Short:   "Login to Infra",
 		Args:    cobra.MaximumNArgs(1),
 		Example: "$ infra login infra.example.com",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			options := LoginOptions{GlobalOptions: globalOptions}
+			var options LoginOptions
 			if err := internal.ParseOptions(cmd, &options); err != nil {
 				return err
 			}
@@ -232,14 +232,14 @@ func newLoginCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) {
 	return cmd, nil
 }
 
-func newLogoutCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) {
+func newLogoutCmd() (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:     "logout",
 		Short:   "Logout Infra",
 		Args:    cobra.MaximumNArgs(1),
 		Example: "$ infra logout",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			options := LogoutOptions{GlobalOptions: globalOptions}
+			var options LogoutOptions
 			if err := internal.ParseOptions(cmd, &options); err != nil {
 				return err
 			}
@@ -255,13 +255,13 @@ func newLogoutCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) 
 	return cmd, nil
 }
 
-func newListCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) {
+func newListCmd() (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List destinations",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			options := ListOptions{GlobalOptions: globalOptions}
+			var options ListOptions
 			if err := internal.ParseOptions(cmd, &options); err != nil {
 				return err
 			}
@@ -273,13 +273,13 @@ func newListCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) {
 	return cmd, nil
 }
 
-func newStartCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) {
+func newStartCmd() (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:    "start",
 		Short:  "Start Infra",
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			options := registry.Options{GlobalOptions: globalOptions}
+			var options registry.Options
 			if err := internal.ParseOptions(cmd, &options); err != nil {
 				return err
 			}
@@ -306,13 +306,13 @@ func newStartCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) {
 	return cmd, nil
 }
 
-func newEngineCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) {
+func newEngineCmd() (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:    "engine",
 		Short:  "Start Infra Engine",
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			options := engine.Options{GlobalOptions: globalOptions}
+			var options engine.Options
 			if err := internal.ParseOptions(cmd, &options); err != nil {
 				return err
 			}
@@ -329,12 +329,12 @@ func newEngineCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) 
 	return cmd, nil
 }
 
-func newVersionCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) {
+func newVersionCmd() (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:   "version",
 		Short: "Display the Infra build version",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			options := VersionOptions{GlobalOptions: globalOptions}
+			var options VersionOptions
 			if err := internal.ParseOptions(cmd, &options); err != nil {
 				return err
 			}
@@ -349,13 +349,13 @@ func newVersionCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error)
 	return cmd, nil
 }
 
-func newTokensCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) {
+func newTokensCmd() (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:   "tokens",
 		Short: "Token subcommands",
 	}
 
-	tokenCreateCmd, err := newTokenCreateCmd(globalOptions)
+	tokenCreateCmd, err := newTokenCreateCmd()
 	if err != nil {
 		return nil, err
 	}
@@ -368,39 +368,37 @@ func newTokensCmd(globalOptions internal.GlobalOptions) (*cobra.Command, error) 
 func NewRootCmd() (*cobra.Command, error) {
 	cobra.EnableCommandSorting = false
 
-	var globalOptions internal.GlobalOptions
-
-	loginCmd, err := newLoginCmd(globalOptions)
+	loginCmd, err := newLoginCmd()
 	if err != nil {
 		return nil, err
 	}
 
-	logoutCmd, err := newLogoutCmd(globalOptions)
+	logoutCmd, err := newLogoutCmd()
 	if err != nil {
 		return nil, err
 	}
 
-	listCmd, err := newListCmd(globalOptions)
+	listCmd, err := newListCmd()
 	if err != nil {
 		return nil, err
 	}
 
-	tokensCmd, err := newTokensCmd(globalOptions)
+	tokensCmd, err := newTokensCmd()
 	if err != nil {
 		return nil, err
 	}
 
-	versionCmd, err := newVersionCmd(globalOptions)
+	versionCmd, err := newVersionCmd()
 	if err != nil {
 		return nil, err
 	}
 
-	startCmd, err := newStartCmd(globalOptions)
+	startCmd, err := newStartCmd()
 	if err != nil {
 		return nil, err
 	}
 
-	engineCmd, err := newEngineCmd(globalOptions)
+	engineCmd, err := newEngineCmd()
 	if err != nil {
 		return nil, err
 	}
@@ -411,11 +409,12 @@ func NewRootCmd() (*cobra.Command, error) {
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			cmd.SilenceUsage = true
 
-			if err := internal.ParseOptions(cmd, &globalOptions); err != nil {
+			var options internal.Options
+			if err := internal.ParseOptions(cmd, &options); err != nil {
 				return err
 			}
 
-			logger, err := logging.Initialize(globalOptions.LogLevel)
+			logger, err := logging.Initialize(options.LogLevel)
 			if err != nil {
 				logging.L.Warn(err.Error())
 			} else {

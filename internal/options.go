@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-type GlobalOptions struct {
+type Options struct {
 	Host       string `mapstructure:"host"`
 	ConfigFile string `mapstructure:"config-file"`
 	LogLevel   string `mapstructure:"log-level"`
