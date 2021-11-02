@@ -1563,10 +1563,10 @@ func TestCreateProvider(t *testing.T) {
 		db: db,
 	}
 
-	domain := "test.create.example.com"
-	clientID := "testClientID"
-	clientSecret := "testClientSecret"
-	apiToken := "apiToken"
+	domain := "test.example.com"
+	clientID := "plaintext:0oapn0qwiQPiMIyR35d6"
+	clientSecret := "kubernetes:okta-secrets/clientSecret" //nolint
+	apiToken := "kubernetes:okta-secrets/apiToken"         //nolint
 
 	provider := api.Provider{
 		Domain:       domain,
@@ -1596,12 +1596,6 @@ func TestCreateProvider(t *testing.T) {
 	assert.Equal(t, clientSecret, body.ClientSecret)
 	assert.Equal(t, ProviderKindOkta, body.Kind)
 	assert.Equal(t, apiToken, body.Okta.APIToken)
-
-	// clean up
-	var created Provider
-
-	db.First(&created, &Provider{Domain: domain})
-	db.Delete(&created)
 }
 
 func TestCreateProviderInvalidKind(t *testing.T) {
@@ -1692,6 +1686,7 @@ func TestUpdateProvider(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var updated Provider
+
 	db.First(&updated, &Provider{Id: existing.Id})
 
 	assert.Equal(t, domain, updated.Domain)
@@ -1843,6 +1838,7 @@ func TestDeleteProvider(t *testing.T) {
 
 	domain := "test-delete-provider-domain.example.com"
 	provider := &Provider{Domain: domain, Kind: ProviderKindOkta}
+
 	if err := a.db.Create(provider).Error; err != nil {
 		t.Fatalf(err.Error())
 	}

@@ -361,10 +361,11 @@ func (a *API) CreateProvider(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var provider Provider
+	// we only allow one provider of each kind, so key on this
+	provider := Provider{Kind: body.Kind}
 
 	err := a.db.Transaction(func(tx *gorm.DB) error {
-		result := tx.Where(&Destination{Kind: body.Kind}).FirstOrCreate(&provider)
+		result := tx.FirstOrCreate(&provider)
 		if result.Error != nil {
 			return result.Error
 		}
@@ -383,7 +384,7 @@ func (a *API) CreateProvider(w http.ResponseWriter, r *http.Request) {
 		return tx.Save(&provider).Error
 	})
 	if err != nil {
-		logging.L.Error(err.Error())
+		logging.S.Errorf("api create provider: %w", err.Error())
 
 		if errors.Is(err, ErrInvalidKind) {
 			sendAPIError(w, http.StatusBadRequest, fmt.Sprintf("%s is not a valid provider kind", body.Kind))
@@ -399,7 +400,7 @@ func (a *API) CreateProvider(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 
 	if err := json.NewEncoder(w).Encode(provider.marshal()); err != nil {
-		logging.L.Error(err.Error())
+		logging.S.Errorf("encode create provider: %w", err.Error())
 		sendAPIError(w, http.StatusInternalServerError, "could not create provider")
 	}
 }
@@ -416,7 +417,7 @@ func (a *API) GetProvider(w http.ResponseWriter, r *http.Request) {
 
 	var provider Provider
 	if err := a.db.First(&provider, &Provider{Id: providerId}).Error; err != nil {
-		logging.L.Error(err.Error())
+		logging.S.Errorf("get provider: %w", err.Error())
 
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			sendAPIError(w, http.StatusNotFound, fmt.Sprintf("Could not find provider ID \"%s\"", providerId))
@@ -432,7 +433,7 @@ func (a *API) GetProvider(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if err := json.NewEncoder(w).Encode(result); err != nil {
-		logging.L.Error(err.Error())
+		logging.S.Errorf("encode get provider: %w", err.Error())
 		sendAPIError(w, http.StatusInternalServerError, "could not list providers")
 	}
 }
@@ -508,7 +509,8 @@ func (a *API) DeleteProvider(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := a.db.Delete(&Provider{Id: id}).Error; err != nil {
-		logging.L.Error(err.Error())
+		logging.S.Errorf("delete provider: %w", err.Error())
+
 		sendAPIError(w, http.StatusInternalServerError, err.Error())
 
 		return
@@ -706,7 +708,7 @@ func (a *API) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 		return tx.Create(&apiKey).Error
 	})
 	if err != nil {
-		logging.L.Error(err.Error())
+		logging.S.Errorf("create api key: %w", err.Error())
 
 		if errors.Is(err, ErrExistingKey) {
 			sendAPIError(w, http.StatusNotFound, err.Error())
@@ -727,7 +729,8 @@ func (a *API) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 
 	if err := json.NewEncoder(w).Encode(apiKey.marshalWithSecret()); err != nil {
-		logging.L.Error(err.Error())
+		logging.S.Errorf("encode created api key: %w", err.Error())
+
 		sendAPIError(w, http.StatusInternalServerError, "could not create api-key")
 	}
 }

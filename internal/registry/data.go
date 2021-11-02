@@ -267,15 +267,19 @@ var (
 	protocolRemover  = regexp.MustCompile(`http[s]?://`)
 )
 
-func (p *Provider) BeforeCreate(tx *gorm.DB) (err error) {
-	if p.Id == "" {
-		p.Id = generate.MathRandString(IdLen)
-	}
-
+func (p *Provider) BeforeSave(tx *gorm.DB) (err error) {
 	// clean up the domain
 	p.Domain = strings.TrimSpace(p.Domain)
 	p.Domain = dashAdminRemover.ReplaceAllString(p.Domain, "$1$2")
 	p.Domain = protocolRemover.ReplaceAllString(p.Domain, "")
+
+	return nil
+}
+
+func (p *Provider) BeforeCreate(tx *gorm.DB) (err error) {
+	if p.Id == "" {
+		p.Id = generate.MathRandString(IdLen)
+	}
 
 	return nil
 }
