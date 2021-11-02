@@ -49,12 +49,17 @@ Also see [secrets.md](./docs/secrets.md) for details on how secrets work.
 # example values.yaml
 ---
 config:
+  secrets:
+    - kind: kubernetes
+      namespace: infrahq
+
   providers:
     - kind: okta
       domain: <Okta domain>
       clientID: <Okta client ID>
-      clientSecret: <secret kind>:<Okta client secret name>
-      apiToken: <secret kind>:<Okta API token name>
+      clientSecret: <secret name>:<Okta client secret name>
+      apiToken: <secret name>:<Okta API token name>
+
   groups:
     - name: Everyone
       roles:
