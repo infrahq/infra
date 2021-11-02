@@ -57,8 +57,8 @@ config:
     - kind: okta
       domain: <Okta domain>
       clientID: <Okta client ID>
-      clientSecret: <secret name>:<Okta client secret name>
-      apiToken: <secret name>:<Okta API token name>
+      clientSecret: kubernetes:infra-okta/clientSecret
+      apiToken: kubernetes:infra-okta/apiToken
 
   groups:
     - name: Everyone
