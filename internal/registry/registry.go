@@ -196,7 +196,7 @@ func (r *Registry) validateProviders() {
 	}
 }
 
-// schedule the user and group sync jobs
+// schedule the user and group sync jobs, does not schedule when the jobs stop running
 func (r *Registry) scheduleSyncJobs() (syncProvidersTimer, syncDestinationsTimer *timer.Timer) {
 	// be careful with this sync job, there are Okta rate limits on these requests
 	syncProvidersTimer = timer.NewTimer()
