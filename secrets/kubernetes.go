@@ -27,8 +27,8 @@ type KubernetesConfig struct {
 	Namespace string `yaml:"namespace"`
 }
 
-func NewKubernetesConfig() *KubernetesConfig {
-	return &KubernetesConfig{
+func NewKubernetesConfig() KubernetesConfig {
+	return KubernetesConfig{
 		Namespace: getDefaultNamespace(),
 	}
 }
