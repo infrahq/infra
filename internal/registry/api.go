@@ -365,9 +365,8 @@ func (a *API) CreateProvider(w http.ResponseWriter, r *http.Request) {
 	provider := Provider{Kind: body.Kind}
 
 	err := a.db.Transaction(func(tx *gorm.DB) error {
-		result := tx.FirstOrCreate(&provider)
-		if result.Error != nil {
-			return result.Error
+		if err := tx.FirstOrCreate(&provider).Error; err != nil {
+			return err
 		}
 
 		provider.ClientID = body.ClientID
