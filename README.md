@@ -27,7 +27,7 @@ helm repo update
 helm install -n infrahq --create-namespace infra infrahq/infra
 ```
 
-See [Helm Chart reference](./helm.md) for a complete list of options configurable through Helm.
+See [Helm Chart reference](./docs/helm.md) for a complete list of options configurable through Helm.
 
 ### Configure Infra
 
