@@ -56,6 +56,18 @@ Most configuration values can be configured through command line paramters. Comm
 
 See [CLI Reference](./cli.md) for a complete list of support command line parameters.
 
+### Reference
+
+| Configuration | Subcommand | Description                 | Default | Environment Variable | Command Line Parameter |
+|---------------|------------|-----------------------------|---------|----------------------|------------------------|
+| `host`        |            | Infra host URL              | `""`    | `INFRA_HOST`         | `--host`, `-H`         |
+| `config-file` |            | Configuration file path     | `""`    | `INFRA_CONFIG_FILE`  | `--config-file`, `-f`  |
+| `log-level`   |            | Service log level           | `info`  | `INFRA_LOG_LEVEL`    | `--log-level`, `-l`    |
+| `timeout`     | `login`    | Login timeout               | `5m0s`  | `INFRA_TIMEOUT`      | `--timeout`, `-t`      |
+| `client`      | `version`  | Display client version only | `false` | `INFRA_CLIENT`       | `--client`             |
+| `server`      | `version`  | Display server version only | `false` | `INFRA_SERVER`       | `--server`             |
+
+
 ## Infra Configurations
 
 First, create a config file `infra.yaml`:
@@ -75,9 +87,9 @@ Then, apply it to Infra:
 helm -n infrahq upgrade --set-file=config=infra.yaml infra infrahq/infra
 ```
 
-## Reference
+### Reference
 
-### `providers`
+#### `providers`
 
 List of identity providers used to synchronize users and groups.
 
@@ -88,7 +100,7 @@ List of identity providers used to synchronize users and groups.
 
 See [Identity Providers](./providers/) for a full list of configurable values.
 
-### `groups`
+#### `groups`
 
 List of groups to assign access.
 
@@ -97,7 +109,7 @@ List of groups to assign access.
 | `name`         | Group name as stored in the identity provider |
 | `roles`        | Roles assigned to the user                    |
 
-### `users`
+#### `users`
 
 List of users to assign access.
 
@@ -106,7 +118,7 @@ List of users to assign access.
 | `email`        | User email as stored in the identity provider |
 | `roles`        | Roles assigned to the user                    |
 
-### `roles`
+#### `roles`
 
 List of roles to assign to an user or group.
 
@@ -116,7 +128,7 @@ List of roles to assign to an user or group.
 | `kind`         | Role type                                    |
 | `destinations` | Destinations where this role binding applies |
 
-### `destinations`
+#### `destinations`
 
 List of infrastructure destination to synchronize access permissions.
 
@@ -128,7 +140,7 @@ List of infrastructure destination to synchronize access permissions.
 
 See [Infrastructure Destinations](./destinations/) for a full list of configurable values.
 
-## Full Example
+### Full Example
 
 ```yaml
 providers:
