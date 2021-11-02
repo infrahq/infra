@@ -126,10 +126,7 @@ func Run(options Options) (err error) {
 	r.okta = NewOkta()
 
 	r.validateProviders()
-	syncProvidersTimer, syncDestinationsTimer := r.scheduleSyncJobs()
-
-	defer syncProvidersTimer.Stop()
-	defer syncDestinationsTimer.Stop()
+	r.scheduleSyncJobs()
 
 	if err := r.configureTelemetry(); err != nil {
 		return fmt.Errorf("configuring telemetry: %w", err)
@@ -198,9 +195,9 @@ func (r *Registry) validateProviders() {
 }
 
 // schedule the user and group sync jobs, does not schedule when the jobs stop running
-func (r *Registry) scheduleSyncJobs() (syncProvidersTimer, syncDestinationsTimer *timer.Timer) {
+func (r *Registry) scheduleSyncJobs() {
 	// be careful with this sync job, there are Okta rate limits on these requests
-	syncProvidersTimer = timer.NewTimer()
+	syncProvidersTimer := timer.NewTimer()
 	syncProvidersTimer.Start(r.options.ProvidersSyncInterval, func() {
 		hub := newSentryHub("sync_providers_timer")
 		defer recoverWithSentryHub(hub)
@@ -209,7 +206,7 @@ func (r *Registry) scheduleSyncJobs() (syncProvidersTimer, syncDestinationsTimer
 	})
 
 	// schedule destination sync job
-	syncDestinationsTimer = timer.NewTimer()
+	syncDestinationsTimer := timer.NewTimer()
 	syncDestinationsTimer.Start(r.options.DestinationsSyncInterval, func() {
 		hub := newSentryHub("sync_destinations_timer")
 		defer recoverWithSentryHub(hub)
@@ -230,8 +227,6 @@ func (r *Registry) scheduleSyncJobs() (syncProvidersTimer, syncDestinationsTimer
 			}
 		}
 	})
-
-	return syncProvidersTimer, syncDestinationsTimer
 }
 
 func (r *Registry) configureTelemetry() error {
