@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"regexp"
 	"strings"
 
@@ -28,7 +29,7 @@ type KubernetesConfig struct {
 
 func NewKubernetesConfig() *KubernetesConfig {
 	return &KubernetesConfig{
-		Namespace: "infrahq",
+		Namespace: getDefaultNamespace(),
 	}
 }
 
@@ -134,4 +135,19 @@ func (k *KubernetesSecretProvider) GetSecret(name string) (secret []byte, err er
 	}
 
 	return secretVal, nil
+}
+
+var defaultInstallNamespace = "infrahq"
+
+func getDefaultNamespace() string {
+	contents, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	if err != nil {
+		return defaultInstallNamespace
+	}
+
+	if len(contents) > 0 {
+		return string(contents)
+	}
+
+	return defaultInstallNamespace
 }
