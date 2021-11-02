@@ -1,6 +1,6 @@
-# Destination / Kubernetes
+# Kubernetes
 
-## Configure Kubernetes Destination
+## Configure Destination
 
 ### `destinations`
 
