@@ -63,12 +63,12 @@ config:
   groups:
     - name: Everyone
       roles:
-          - kind: role
-            name: viewer
-            destinations:
-              - name: <cluster name>
-                namespaces:
-                  - default
+        - kind: role
+          name: viewer
+          destinations:
+            - name: <cluster name>
+              namespaces:
+                - default
 ```
 
 See the [Configuration reference](./docs/configuration.md) for a complete list of configurable options.
