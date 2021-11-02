@@ -127,6 +127,7 @@ func Run(options Options) (err error) {
 
 	r.validateProviders()
 	syncProvidersTimer, syncDestinationsTimer := r.scheduleSyncJobs()
+
 	defer syncProvidersTimer.Stop()
 	defer syncDestinationsTimer.Stop()
 
