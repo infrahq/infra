@@ -27,11 +27,9 @@ require (
 	github.com/elazarl/go-bindata-assetfs v1.0.1
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/getsentry/sentry-go v0.11.0
-	github.com/go-chi/chi v1.5.4
 	github.com/go-playground/validator/v10 v10.9.0
 	github.com/golang-jwt/jwt/v4 v4.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
-	github.com/google/uuid v1.3.0
 	github.com/goreleaser/goreleaser v0.183.0
 	github.com/goreleaser/nfpm/v2 v2.7.1 // indirect
 	github.com/gorilla/handlers v1.5.1
@@ -55,7 +53,6 @@ require (
 	github.com/slack-go/slack v0.9.5 // indirect
 	github.com/spf13/afero v1.6.0
 	github.com/spf13/cobra v1.2.1
-	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.8.1
 	github.com/stretchr/testify v1.7.0
 	github.com/vartanbeno/go-reddit/v2 v2.0.1 // indirect

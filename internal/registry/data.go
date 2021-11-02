@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
 	"gopkg.in/square/go-jose.v2"
@@ -215,7 +214,8 @@ func (d *Destination) BeforeDelete(tx *gorm.DB) (err error) {
 
 func (l *Label) BeforeCreate(tx *gorm.DB) (err error) {
 	if l.ID == "" {
-		l.ID = uuid.New().String()
+		// TODO (#570): use some other form of randomly generated identifier as the ID
+		l.ID = generate.MathRandString(IdLen)
 	}
 
 	return nil
