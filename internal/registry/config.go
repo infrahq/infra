@@ -53,7 +53,6 @@ func (idp *ConfigIdentityProvider) UnmarshalYAML(unmarshal func(interface{}) err
 
 		idp.Config = o
 	default:
-		// TODO: test this
 		return fmt.Errorf("%w: %q, expected %s", ErrInvalidKind, tmp.Kind, ProviderKindOkta)
 	}
 
