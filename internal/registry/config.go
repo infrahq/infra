@@ -106,7 +106,7 @@ func (sp *ConfigSecretProvider) UnmarshalYAML(unmarshal func(interface{}) error)
 
 		sp.Config = p
 	case "kubernetes":
-		p := secrets.KubernetesConfig{}
+		p := secrets.NewKubernetesConfig()
 		if err := unmarshal(&p); err != nil {
 			return fmt.Errorf("unmarshal yaml: %w", err)
 		}

@@ -26,6 +26,12 @@ type KubernetesConfig struct {
 	Namespace string `yaml:"namespace"`
 }
 
+func NewKubernetesConfig() *KubernetesConfig {
+	return &KubernetesConfig{
+		Namespace: "infrahq",
+	}
+}
+
 func NewKubernetesSecretProviderFromConfig(cfg KubernetesConfig) (*KubernetesSecretProvider, error) {
 	k8sConfig, err := rest.InClusterConfig()
 	if err != nil {
