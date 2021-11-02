@@ -155,15 +155,15 @@ func newRow(role api.Role, currentContext string) statusRow {
 
 	parts := strings.Split(currentContext, ":")
 	// TODO (#546): check against user specified prefix
-	// check "infra:<NAME>[-<ID>][:<NAMESPACE>]"
 	if len(parts) >= 2 && parts[0] == "infra" {
+		// check "infra:<NAME>[-<ID>][:<NAMESPACE>]"
 		parts := strings.Split(parts[1], "-")
 		if parts[0] == role.Destination.Name {
-			// check "<NAME>-<ID>"
 			if len(parts) > 1 && parts[1] == role.Destination.Id {
+				// check "<NAME>-<ID>"
 				row.CurrentlySelected = "*"
-			// check "<NAME>"
 			} else if len(parts) == 1 {
+				// check "<NAME>"
 				row.CurrentlySelected = "*"
 			}
 		}

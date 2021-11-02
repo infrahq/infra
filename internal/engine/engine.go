@@ -34,11 +34,11 @@ import (
 )
 
 type Options struct {
-	Name          string   `mapstructure:"name"`
-	APIKey        string   `mapstructure:"api-key"`
-	TLSCache      string   `mapstructure:"tls-cache"`
-	SkipTLSVerify bool     `mapstructure:"skip-tls-verify"`
-	Labels        []string `mapstructure:"labels"`
+	Name             string   `mapstructure:"name"`
+	APIKey           string   `mapstructure:"api-key"`
+	TLSCache         string   `mapstructure:"tls-cache"`
+	SkipTLSVerify    bool     `mapstructure:"skip-tls-verify"`
+	Labels           []string `mapstructure:"labels"`
 	internal.Options `mapstructure:",squash"`
 }
 
