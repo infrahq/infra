@@ -224,7 +224,6 @@ func (g *Group) AfterCreate(tx *gorm.DB) error {
 }
 
 func (g *Group) BeforeDelete(tx *gorm.DB) error {
-	// TODO: is this needed?
 	if err := tx.Model(g).Association("Users").Clear(); err != nil {
 		return fmt.Errorf("clear group users before delete: %w", err)
 	}
@@ -236,7 +235,6 @@ func (g *Group) BeforeDelete(tx *gorm.DB) error {
 		return fmt.Errorf("find group roles before delete: %w", err)
 	}
 
-	// TODO: is this needed?
 	if err := tx.Model(g).Association("Roles").Clear(); err != nil {
 		return fmt.Errorf("clear group roles before delete: %w", err)
 	}
