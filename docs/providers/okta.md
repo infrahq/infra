@@ -1,6 +1,6 @@
-# Providers / Okta
+# Okta
 
-## Configure Okta Provider
+## Configure
 
 | Parameter       | Description                 |
 |-----------------|-----------------------------|
