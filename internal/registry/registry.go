@@ -194,11 +194,10 @@ func (r *Registry) validateProviders() {
 	}
 }
 
-// schedule the user and group sync jobs
+// schedule the user and group sync jobs, does not schedule when the jobs stop running
 func (r *Registry) scheduleSyncJobs() {
 	// be careful with this sync job, there are Okta rate limits on these requests
 	syncProvidersTimer := timer.NewTimer()
-	defer syncProvidersTimer.Stop()
 	syncProvidersTimer.Start(r.options.ProvidersSyncInterval, func() {
 		hub := newSentryHub("sync_providers_timer")
 		defer recoverWithSentryHub(hub)
@@ -208,7 +207,6 @@ func (r *Registry) scheduleSyncJobs() {
 
 	// schedule destination sync job
 	syncDestinationsTimer := timer.NewTimer()
-	defer syncDestinationsTimer.Stop()
 	syncDestinationsTimer.Start(r.options.DestinationsSyncInterval, func() {
 		hub := newSentryHub("sync_destinations_timer")
 		defer recoverWithSentryHub(hub)
