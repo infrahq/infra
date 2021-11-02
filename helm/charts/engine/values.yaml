@@ -4,7 +4,7 @@ api-key: file:///var/run/secrets/infrahq.com/engine/engine-api-key
 tls-cache: /var/run/infra/data/cache
 skip-tls-verify: true
 
-storage: 100Mi
+storage: 1Gi
 
 pod:
   annotations: {}
