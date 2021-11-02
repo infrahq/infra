@@ -137,7 +137,7 @@ func (k *KubernetesSecretProvider) GetSecret(name string) (secret []byte, err er
 	return secretVal, nil
 }
 
-var defaultInstallNamespace = "infrahq"
+var defaultInstallNamespace = "default"
 
 func getDefaultNamespace() string {
 	contents, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
