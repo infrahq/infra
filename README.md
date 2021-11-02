@@ -64,7 +64,7 @@ config:
     - name: Everyone
       roles:
         - kind: role
-          name: viewer
+          name: view
           destinations:
             - name: <cluster name>
               namespaces:
