@@ -457,7 +457,7 @@ func (a *API) CreateDestination(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: get Kind from request
+	// TODO (#571): get Kind from request
 	kind := DestinationKindKubernetes
 
 	destination := Destination{
