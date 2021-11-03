@@ -1,4 +1,4 @@
-# Destination
+# Destinations
 
 ## Supported Destinations
 
