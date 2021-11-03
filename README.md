@@ -19,7 +19,7 @@ Infra is **identity and access management** for your cloud infrastructure. It pu
 * [Helm](https://helm.sh/) (v3+)
 * [Kubernetes](https://kubernetes.io/) (v1.14+)
 
-### Install Infra
+### Install
 
 ```bash
 helm repo add infrahq https://helm.infrahq.com/
@@ -29,9 +29,11 @@ helm install -n infrahq --create-namespace infra infrahq/infra
 
 See [Helm Chart reference](./docs/helm.md) for a complete list of options configurable through Helm.
 
-### Configure Infra
+### Configure
 
-This example configuration uses Okta and grants the "Everyone" group read-only access to the default namespace. You will need:
+#### Configure Okta
+
+First, **follow the [Okta guide](./docs/providers/okta.md)** to configure Okta for Infra.
 
 * Okta domain
 * Okta client ID
@@ -39,11 +41,7 @@ This example configuration uses Okta and grants the "Everyone" group read-only a
 * Okta API token
 * Cluster name
 
-See [Okta](./docs/providers/okta.md) for detailed Okta configuration steps.
-
-Cluster name is auto-discovered or can be set statically in Helm with `engine.name`.
-
-Also see [secrets.md](./docs/secrets.md) for details on how secrets work.
+#### Configure Infra
 
 ```yaml
 # example values.yaml
@@ -56,22 +54,22 @@ config:
   providers:
     - kind: okta
       domain: <Okta domain>
-      clientID: <Okta client ID>
-      clientSecret: kubernetes:infra-okta/clientSecret
-      apiToken: kubernetes:infra-okta/apiToken
+      clientID: <Okta client id>
+      clientSecret: <Okta client secret>
+      apiToken: <Okta api token>
 
   groups:
-    - name: Everyone
+    - name: Everyone               # Grants the "Everyone" group read-only access to the default namespace
       roles:
         - kind: role
           name: view
           destinations:
-            - name: <cluster name>
+            - name: <cluster name> # Cluster name is auto-discovered or can be set statically in Helm with `--set engine.name`
               namespaces:
                 - default
 ```
 
-See the [Configuration reference](./docs/configuration.md) for a complete list of configurable options.
+> Note: Infra includes [Secret](./docs/secrets.md) support to securely load secrets. See the [Configuration reference](./docs/configuration.md) for a complete list of configurable options.
 
 ### Update Infra With Your Configuration
 
