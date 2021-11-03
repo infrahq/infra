@@ -62,7 +62,10 @@ config:
                 - default
 ```
 
-> Note: Infra includes [Secret](./docs/secrets.md) support to securely load secrets. See the [Configuration reference](./docs/configuration.md) for a complete list of configurable options.
+See the [Helm Chart reference](./docs/helm.md) for a complete list of options configurable through Helm.
+
+> Note: Infra uses [Secrets](./docs/secrets.md) to securely load secrets.
+> It is _not_ recommended to use plain text secrets. Considering using another supported secret type.
 
 ### Install Infra
 
@@ -71,8 +74,6 @@ helm repo add infrahq https://helm.infrahq.com/
 helm repo update
 helm install -n infrahq --create-namespace -f values.yaml infra infrahq/infra
 ```
-
-See [Helm Chart reference](./docs/helm.md) for a complete list of options configurable through Helm.
 
 ### Install Infra CLI
 
@@ -114,7 +115,7 @@ See [Helm Chart reference](./docs/helm.md) for a complete list of options config
 
 ### Access Your Infrastructure
 
-First you need to get your Infra endpoint. This step may be different depending on your service type.
+You will need to get your Infra endpoint. This step will be different depending on your Service type.
 
 <details>
   <summary><strong>Ingress</strong></summary>
