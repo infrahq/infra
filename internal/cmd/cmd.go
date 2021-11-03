@@ -335,7 +335,8 @@ func newEngineCmd() (*cobra.Command, error) {
 		},
 	}
 
-	cmd.Flags().StringP("name", "n", "", "cluster name")
+	cmd.Flags().StringP("name", "n", "", "destination name")
+	cmd.Flags().StringP("kind", "k", "", "destination kind")
 	cmd.Flags().String("api-key", "", "engine registry API key")
 	cmd.Flags().String("tls-cache", "", "path to cache self-signed and Let's Encrypt TLS certificates")
 	cmd.Flags().Bool("skip-tls-verify", true, "skip TLS verification")

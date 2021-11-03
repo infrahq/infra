@@ -35,6 +35,7 @@ import (
 
 type Options struct {
 	Name             string   `mapstructure:"name"`
+	Kind             string   `mapstructure:"kind"`
 	APIKey           string   `mapstructure:"api-key"`
 	TLSCache         string   `mapstructure:"tls-cache"`
 	SkipTLSVerify    bool     `mapstructure:"skip-tls-verify"`
@@ -378,8 +379,15 @@ func Run(options *Options) error {
 			}
 		}
 
+		kind := api.DestinationKind(options.Kind)
+		if !kind.IsValid() {
+			logging.S.Errorf("unknown destination kind %s", options.Kind)
+			return
+		}
+
 		destination, _, err := client.DestinationsAPI.CreateDestination(ctx).Body(api.DestinationCreateRequest{
 			Name:   name,
+			Kind:   kind,
 			Labels: options.Labels,
 			Kubernetes: &api.DestinationKubernetes{
 				Ca:       string(caBytes),

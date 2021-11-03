@@ -2,6 +2,7 @@
 /* eslint-disable */
 export * from './Destination';
 export * from './DestinationCreateRequest';
+export * from './DestinationKind';
 export * from './DestinationKubernetes';
 export * from './Group';
 export * from './InfraAPIKey';

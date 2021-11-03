@@ -14,6 +14,10 @@
 
 import { exists, mapValues } from '../runtime';
 import {
+    DestinationKind,
+    DestinationKindFromJSON,
+    DestinationKindFromJSONTyped,
+    DestinationKindToJSON,
     DestinationKubernetes,
     DestinationKubernetesFromJSON,
     DestinationKubernetesFromJSONTyped,
@@ -32,6 +36,12 @@ export interface DestinationCreateRequest {
      * @memberof DestinationCreateRequest
      */
     name: string;
+    /**
+     * 
+     * @type {DestinationKind}
+     * @memberof DestinationCreateRequest
+     */
+    kind: DestinationKind;
     /**
      * 
      * @type {Array<string>}
@@ -57,6 +67,7 @@ export function DestinationCreateRequestFromJSONTyped(json: any, ignoreDiscrimin
     return {
         
         'name': json['name'],
+        'kind': DestinationKindFromJSON(json['kind']),
         'labels': json['labels'],
         'kubernetes': !exists(json, 'kubernetes') ? undefined : DestinationKubernetesFromJSON(json['kubernetes']),
     };
@@ -72,6 +83,7 @@ export function DestinationCreateRequestToJSON(value?: DestinationCreateRequest 
     return {
         
         'name': value.name,
+        'kind': DestinationKindToJSON(value.kind),
         'labels': value.labels,
         'kubernetes': DestinationKubernetesToJSON(value.kubernetes),
     };
