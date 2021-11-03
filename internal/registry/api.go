@@ -1001,12 +1001,7 @@ func (r Role) marshal() api.Role {
 		Namespace: r.Namespace,
 	}
 
-	switch r.Kind {
-	case RoleKindKubernetesRole:
-		res.Kind = api.ROLE
-	case RoleKindKubernetesClusterRole:
-		res.Kind = api.CLUSTER_ROLE
-	}
+	res.Kind = api.RoleKind(r.Kind)
 
 	for _, u := range r.Users {
 		res.Users = append(res.Users, u.marshal())
