@@ -253,7 +253,7 @@ func (a *API) GetUser(w http.ResponseWriter, r *http.Request) {
 			sendAPIError(w, http.StatusNotFound, fmt.Sprintf("Could not find user ID \"%s\"", userId))
 		} else {
 			logging.S.Errorf("user ID lookup: %w", err)
-			sendAPIError(w, http.StatusBadRequest, fmt.Sprintf("Could not find user ID \"%s\"", userId))
+			sendAPIError(w, http.StatusInternalServerError, err.Error())
 		}
 
 		return
@@ -310,7 +310,7 @@ func (a *API) GetGroup(w http.ResponseWriter, r *http.Request) {
 			sendAPIError(w, http.StatusNotFound, fmt.Sprintf("Could not find group ID \"%s\"", groupId))
 		} else {
 			logging.S.Errorf("group ID lookup: %w", err)
-			sendAPIError(w, http.StatusBadRequest, fmt.Sprintf("Could not find group ID \"%s\"", groupId))
+			sendAPIError(w, http.StatusInternalServerError, err.Error())
 		}
 
 		return
@@ -367,7 +367,7 @@ func (a *API) GetProvider(w http.ResponseWriter, r *http.Request) {
 			sendAPIError(w, http.StatusNotFound, fmt.Sprintf("Could not find provider ID \"%s\"", providerId))
 		} else {
 			logging.S.Errorf("provider ID lookup: %w", err)
-			sendAPIError(w, http.StatusBadRequest, fmt.Sprintf("Could not find provider ID \"%s\"", providerId))
+			sendAPIError(w, http.StatusInternalServerError, err.Error())
 		}
 
 		return
@@ -425,7 +425,7 @@ func (a *API) GetDestination(w http.ResponseWriter, r *http.Request) {
 			sendAPIError(w, http.StatusNotFound, fmt.Sprintf("Could not find destination ID \"%s\"", destinationId))
 		} else {
 			logging.S.Errorf("destination ID lookup: %w", err)
-			sendAPIError(w, http.StatusBadRequest, fmt.Sprintf("Could not find destination ID \"%s\"", destinationId))
+			sendAPIError(w, http.StatusInternalServerError, err.Error())
 		}
 
 		return
@@ -650,7 +650,7 @@ func (a *API) GetRole(w http.ResponseWriter, r *http.Request) {
 			sendAPIError(w, http.StatusNotFound, fmt.Sprintf("Could not find role ID \"%s\"", roleId))
 		} else {
 			logging.S.Errorf("role ID lookup: %w", err)
-			sendAPIError(w, http.StatusBadRequest, fmt.Sprintf("Could not find role ID \"%s\"", roleId))
+			sendAPIError(w, http.StatusInternalServerError, err.Error())
 		}
 
 		return
@@ -943,7 +943,7 @@ func marshalPermissions(permissions string) []api.InfraAPIPermission {
 	for _, p := range storedPermissions {
 		apiPermission, err := api.NewInfraAPIPermissionFromValue(p)
 		if err != nil {
-			logging.S.Errorf("Error converting stored permission '%s' to API permission: %w", p, err)
+			logging.S.Errorf("Error converting stored permission %q to API permission: %w", p, err)
 			continue
 		}
 
