@@ -33,13 +33,12 @@ See [Helm Chart reference](./docs/helm.md) for a complete list of options config
 
 #### Configure Okta
 
-First, **follow the [Okta guide](./docs/providers/okta.md)** to configure Okta for Infra.
+First, **follow the [Okta guide](./docs/providers/okta.md)** to set up Okta for Infra. You'll need:
 
 * Okta domain
 * Okta client ID
 * Okta client secret
 * Okta API token
-* Cluster name
 
 #### Configure Infra
 
@@ -64,7 +63,7 @@ config:
         - kind: role
           name: view
           destinations:
-            - name: <cluster name> # Cluster name is auto-discovered or can be set statically in Helm with `--set engine.name`
+            - name: <cluster name> # Cluster name in your cloud provider, or set manually in Helm with `--set engine.name`
               namespaces:
                 - default
 ```
