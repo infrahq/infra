@@ -130,7 +130,11 @@ func (a *API) bearerAuthMiddleware(required api.InfraAPIPermission, next http.Ha
 		case APIKeyLen:
 			var apiKey APIKey
 			if err := a.db.First(&apiKey, &APIKey{Key: raw}).Error; err != nil {
-				logging.L.Error(err.Error())
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					logging.S.Debugf("invalid API key: %w", err)
+				} else {
+					logging.S.Errorf("api key lookup: %w", err)
+				}
 				sendAPIError(w, http.StatusUnauthorized, "unauthorized")
 				return
 			}
@@ -244,11 +248,11 @@ func (a *API) GetUser(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		logging.L.Error(err.Error())
-
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			logging.S.Debugf("invalid user ID: %w", err)
 			sendAPIError(w, http.StatusNotFound, fmt.Sprintf("Could not find user ID \"%s\"", userId))
 		} else {
+			logging.S.Errorf("user ID lookup: %w", err)
 			sendAPIError(w, http.StatusBadRequest, fmt.Sprintf("Could not find user ID \"%s\"", userId))
 		}
 
@@ -301,11 +305,11 @@ func (a *API) GetGroup(w http.ResponseWriter, r *http.Request) {
 
 	var group Group
 	if err := a.db.Preload(clause.Associations).First(&group, &Group{Id: groupId}).Error; err != nil {
-		logging.L.Error(err.Error())
-
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			logging.S.Debugf("invalid group ID: %w", err)
 			sendAPIError(w, http.StatusNotFound, fmt.Sprintf("Could not find group ID \"%s\"", groupId))
 		} else {
+			logging.S.Errorf("group ID lookup: %w", err)
 			sendAPIError(w, http.StatusBadRequest, fmt.Sprintf("Could not find group ID \"%s\"", groupId))
 		}
 
@@ -358,11 +362,11 @@ func (a *API) GetProvider(w http.ResponseWriter, r *http.Request) {
 
 	var provider Provider
 	if err := a.db.First(&provider, &Provider{Id: providerId}).Error; err != nil {
-		logging.L.Error(err.Error())
-
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			logging.S.Debugf("invalid provider ID: %w", err)
 			sendAPIError(w, http.StatusNotFound, fmt.Sprintf("Could not find provider ID \"%s\"", providerId))
 		} else {
+			logging.S.Errorf("provider ID lookup: %w", err)
 			sendAPIError(w, http.StatusBadRequest, fmt.Sprintf("Could not find provider ID \"%s\"", providerId))
 		}
 
@@ -417,10 +421,10 @@ func (a *API) GetDestination(w http.ResponseWriter, r *http.Request) {
 	var destination Destination
 	if err := a.db.First(&destination, &Destination{Id: destinationId}).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			logging.L.Debug(err.Error())
+			logging.S.Debugf("invalid destination ID: %w", err)
 			sendAPIError(w, http.StatusNotFound, fmt.Sprintf("Could not find destination ID \"%s\"", destinationId))
 		} else {
-			logging.L.Error(err.Error())
+			logging.S.Errorf("destination ID lookup: %w", err)
 			sendAPIError(w, http.StatusBadRequest, fmt.Sprintf("Could not find destination ID \"%s\"", destinationId))
 		}
 
@@ -517,28 +521,11 @@ func (a *API) DeleteAPIKey(w http.ResponseWriter, r *http.Request) {
 
 	id := vars["id"]
 	if id == "" {
-		sendAPIError(w, http.StatusBadRequest, "APIKey id must be specified")
+		sendAPIError(w, http.StatusBadRequest, "API key ID must be specified")
 	}
 
-	err := a.db.Transaction(func(tx *gorm.DB) error {
-		var existingKey APIKey
-		tx.First(&existingKey, &APIKey{Id: id})
-		if existingKey.Id == "" {
-			return ErrExistingKey
-		}
-
-		tx.Delete(&existingKey)
-
-		return nil
-	})
-	if err != nil {
-		logging.L.Error(err.Error())
-
-		if errors.Is(err, ErrExistingKey) {
-			sendAPIError(w, http.StatusNotFound, err.Error())
-			return
-		}
-
+	if err := a.db.Delete(&APIKey{Id: id}).Error; err != nil {
+		logging.S.Errorf("api key delete: %w", err)
 		sendAPIError(w, http.StatusInternalServerError, err.Error())
 
 		return
@@ -576,8 +563,10 @@ func (a *API) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 		apiKey.Name = body.Name
 		var permissions string
 		for _, p := range body.Permissions {
-			permissions += " " + string(p)
+			permissions += string(p) + " "
 		}
+		permissions = strings.TrimSpace(permissions)
+
 		if len(strings.ReplaceAll(permissions, " ", "")) == 0 {
 			return ErrKeyPermissionsNotFound
 		}
@@ -585,19 +574,17 @@ func (a *API) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 		return tx.Create(&apiKey).Error
 	})
 	if err != nil {
-		logging.L.Error(err.Error())
-
-		if errors.Is(err, ErrExistingKey) {
-			sendAPIError(w, http.StatusNotFound, err.Error())
-			return
+		switch {
+		case errors.Is(err, ErrExistingKey):
+			logging.S.Debugf("API key existing creation: %w", err)
+			sendAPIError(w, http.StatusConflict, "An API key with this name already exists")
+		case errors.Is(err, ErrKeyPermissionsNotFound):
+			logging.S.Debugf("API key permission creation: %w", err)
+			sendAPIError(w, http.StatusBadRequest, "API key could not be created, permissions are required")
+		default:
+			logging.S.Errorf("API key creation: %w", err)
+			sendAPIError(w, http.StatusInternalServerError, err.Error())
 		}
-
-		if errors.Is(err, ErrKeyPermissionsNotFound) {
-			sendAPIError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-
-		sendAPIError(w, http.StatusInternalServerError, err.Error())
 
 		return
 	}
@@ -658,11 +645,11 @@ func (a *API) GetRole(w http.ResponseWriter, r *http.Request) {
 
 	var role Role
 	if err := a.db.Preload("Groups.Users").Preload(clause.Associations).First(&role, &Role{Id: roleId}).Error; err != nil {
-		logging.L.Error(err.Error())
-
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			logging.S.Debugf("invalid role ID: %w", err)
 			sendAPIError(w, http.StatusNotFound, fmt.Sprintf("Could not find role ID \"%s\"", roleId))
 		} else {
+			logging.S.Errorf("role ID lookup: %w", err)
 			sendAPIError(w, http.StatusBadRequest, fmt.Sprintf("Could not find role ID \"%s\"", roleId))
 		}
 
@@ -956,7 +943,7 @@ func marshalPermissions(permissions string) []api.InfraAPIPermission {
 	for _, p := range storedPermissions {
 		apiPermission, err := api.NewInfraAPIPermissionFromValue(p)
 		if err != nil {
-			logging.L.Error("Error converting stored permission to API permission: " + p)
+			logging.S.Errorf("Error converting stored permission '%s' to API permission: %w", p, err)
 			continue
 		}
 
