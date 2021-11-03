@@ -30,6 +30,14 @@ $ infra login infra.example.com
   -t, --timeout duration   login timeout (default 5m0s)
 ```
 
+### Options inherited from parent commands
+
+```
+  -f, --config-file string   Infra configuration file path
+  -H, --host string          Infra host
+  -l, --log-level string     log level (default "info")
+```
+
 ## `infra logout`
 
 Logout Infra
@@ -50,6 +58,14 @@ $ infra logout
   -h, --help   help for logout
 ```
 
+### Options inherited from parent commands
+
+```
+  -f, --config-file string   Infra configuration file path
+  -H, --host string          Infra host
+  -l, --log-level string     log level (default "info")
+```
+
 ## `infra list`
 
 List destinations
@@ -62,6 +78,14 @@ infra list [flags]
 
 ```
   -h, --help   help for list
+```
+
+### Options inherited from parent commands
+
+```
+  -f, --config-file string   Infra configuration file path
+  -H, --host string          Infra host
+  -l, --log-level string     log level (default "info")
 ```
 
 ## `infra tokens create`
@@ -78,6 +102,14 @@ infra tokens create DESTINATION [flags]
   -h, --help   help for create
 ```
 
+### Options inherited from parent commands
+
+```
+  -f, --config-file string   Infra configuration file path
+  -H, --host string          Infra host
+  -l, --log-level string     log level (default "info")
+```
+
 ## `infra version`
 
 Display the Infra build version
@@ -89,8 +121,16 @@ infra version [flags]
 ### Options
 
 ```
-  -c, --client   Display client version only
+      --client   Display client version only
   -h, --help     help for version
-  -r, --infra    Display infra version only
+      --server   Display server version only
+```
+
+### Options inherited from parent commands
+
+```
+  -f, --config-file string   Infra configuration file path
+  -H, --host string          Infra host
+  -l, --log-level string     log level (default "info")
 ```
 

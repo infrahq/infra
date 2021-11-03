@@ -52,6 +52,12 @@ export interface Destination {
     updated: number;
     /**
      * 
+     * @type {Array<string>}
+     * @memberof Destination
+     */
+    labels: Array<string>;
+    /**
+     * 
      * @type {DestinationKubernetes}
      * @memberof Destination
      */
@@ -72,6 +78,7 @@ export function DestinationFromJSONTyped(json: any, ignoreDiscriminator: boolean
         'name': json['name'],
         'created': json['created'],
         'updated': json['updated'],
+        'labels': json['labels'],
         'kubernetes': !exists(json, 'kubernetes') ? undefined : DestinationKubernetesFromJSON(json['kubernetes']),
     };
 }
@@ -89,6 +96,7 @@ export function DestinationToJSON(value?: Destination | null): any {
         'name': value.name,
         'created': value.created,
         'updated': value.updated,
+        'labels': value.labels,
         'kubernetes': DestinationKubernetesToJSON(value.kubernetes),
     };
 }

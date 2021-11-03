@@ -159,6 +159,7 @@ kubectl delete clusterrolebindings,rolebindings -l app.kubernetes.io/managed-by=
 | `name`                             | Cluster name                            | `""` (auto-discovered)       |
 | `host`                             | Infra endpoint                          | `""` (required)              |
 | `apiKey`                           | Infra API key                           | `""` (required)              |
+| `labels`                           | Additional filter labels                | `[]`                         |
 | `image.tag`                        | Image tag                               | `""` (latest release)        |
 | `image.repository`                 | Image repository                        | `infrahq/infra`              |
 | `image.pullPolicy`                 | Image pull policy                       | `IfNotPresent`               |

@@ -19,21 +19,11 @@ Infra is **identity and access management** for your cloud infrastructure. It pu
 * [Helm](https://helm.sh/) (v3+)
 * [Kubernetes](https://kubernetes.io/) (v1.14+)
 
-### Install
-
-```bash
-helm repo add infrahq https://helm.infrahq.com/
-helm repo update
-helm install -n infrahq --create-namespace infra infrahq/infra
-```
-
-See [Helm Chart reference](./docs/helm.md) for a complete list of options configurable through Helm.
-
 ### Configure
 
 #### Configure Okta
 
-First, **follow the [Okta guide](./docs/providers/okta.md)** to set up Okta for Infra. You'll need:
+Follow the [Okta guide](./docs/providers/okta.md) to set up Okta for Infra. You'll need:
 
 * Okta domain
 * Okta client ID
@@ -52,29 +42,37 @@ config:
 
   providers:
     - kind: okta
-      domain: <Okta domain>                # Okta values from above
+      # Update with values from above
+      domain: <Okta domain>
       clientID: <Okta client id>
       clientSecret: <Okta client secret>
       apiToken: <Okta api token>
 
   groups:
-    - name: Everyone               # Grants the "Everyone" group read-only access to the default namespace
+    # Grants the "Everyone" Okta group read-only access
+    # to the default namespace of all Kubernetes clusters
+    - name: Everyone
       roles:
         - kind: role
           name: view
           destinations:
-            - name: <cluster name> # Cluster name in your cloud provider, or set manually in Helm with `--set engine.name`
+            - labels:
+                - kubernetes
               namespaces:
                 - default
 ```
 
-> Note: Infra includes [Secret](./docs/secrets.md) support to securely load secrets. See the [Configuration reference](./docs/configuration.md) for a complete list of configurable options.
+See the [Helm Chart reference](./docs/helm.md) for a complete list of options configurable through Helm.
 
-### Update Infra With Your Configuration
+> Note: Infra uses [Secrets](./docs/secrets.md) to securely load secrets.
+> It is _not_ recommended to use plain text secrets. Considering using another supported secret type.
 
-```
+### Install Infra
+
+```bash
+helm repo add infrahq https://helm.infrahq.com/
 helm repo update
-helm upgrade -n infrahq -f values.yaml infra infrahq/infra
+helm install -n infrahq --create-namespace -f values.yaml infra infrahq/infra
 ```
 
 ### Install Infra CLI
@@ -117,7 +115,7 @@ helm upgrade -n infrahq -f values.yaml infra infrahq/infra
 
 ### Access Your Infrastructure
 
-First you need to get your Infra endpoint. This step may be different depending on your service type.
+You will need to get your Infra endpoint. This step will be different depending on your Service type.
 
 <details>
   <summary><strong>Ingress</strong></summary>

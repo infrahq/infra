@@ -13,6 +13,13 @@ config:
       clientID: $OKTA_CLIENT_ID
       clientSecret: kubernetes:$OKTA_SECRET/clientSecret
       apiToken: kubernetes:$OKTA_SECRET/apiToken
+  groups:
+    - name: Everyone
+      roles:
+        - kind: cluster-role
+          name: cluster-admin
+          destinations:
+            - labels: [kubernetes]
 
 engine:
   name: docker-desktop

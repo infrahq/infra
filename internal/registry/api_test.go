@@ -781,7 +781,7 @@ func TestListRoles(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, 7, len(roles))
+	assert.Equal(t, 8, len(roles))
 
 	returnedUserRoles := make(map[string][]api.User)
 	for _, r := range roles {
@@ -799,6 +799,8 @@ func TestListRoles(t *testing.T) {
 	assert.True(t, containsUser(returnedUserRoles["pod-create"], adminUser.Email))
 
 	assert.Equal(t, 0, len(returnedUserRoles["writer"]))
+
+	assert.Equal(t, 0, len(returnedUserRoles["view"]))
 
 	returnedGroupRoles := make(map[string][]api.Group)
 	for _, r := range roles {
@@ -840,7 +842,7 @@ func TestListRolesByName(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, 2, len(roles))
+	assert.Equal(t, 3, len(roles))
 
 	returnedUserRoles := make(map[string][]api.User)
 	for _, r := range roles {

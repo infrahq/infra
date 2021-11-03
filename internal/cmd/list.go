@@ -20,9 +20,11 @@ type ListOptions struct {
 
 type statusRow struct {
 	CurrentlySelected        string `header:"CURRENT"` // * if selected
+	ID                       string `header:"ID"`
 	Name                     string `header:"NAME"`
 	Kind                     string `header:"KIND"`
 	Status                   string `header:"STATUS"`
+	Labels                   string `header:"LABELS"`
 	Endpoint                 string // don't display in table
 	CertificateAuthorityData []byte // don't display in table
 }
@@ -77,7 +79,6 @@ func list(options *ListOptions) error {
 
 	// deduplicate rows
 	rows := make(map[string]statusRow)
-
 	for _, r := range user.Roles {
 		rows[r.Destination.Id] = newRow(r, kubeConfig.CurrentContext)
 	}
@@ -89,7 +90,6 @@ func list(options *ListOptions) error {
 	}
 
 	rowsList := make([]statusRow, 0)
-
 	for _, r := range rows {
 		rowsList = append(rowsList, r)
 	}
@@ -141,8 +141,10 @@ func list(options *ListOptions) error {
 
 func newRow(role api.Role, currentContext string) statusRow {
 	row := statusRow{
+		ID:     role.Destination.Id,
 		Name:   role.Destination.Name,
 		Status: "💻 → ❌ Can't reach internet",
+		Labels: strings.Join(role.Destination.Labels, ", "),
 	}
 
 	if k8s, ok := role.Destination.GetKubernetesOk(); ok {
@@ -152,8 +154,19 @@ func newRow(role api.Role, currentContext string) statusRow {
 	}
 
 	parts := strings.Split(currentContext, ":")
-	if len(parts) >= 2 && parts[0] == "infra" && parts[1] == role.Destination.Name {
-		row.CurrentlySelected = "*"
+	// TODO (#546): check against user specified prefix
+	if len(parts) >= 2 && parts[0] == "infra" {
+		// check "infra:<NAME>[-<ID>][:<NAMESPACE>]"
+		parts := strings.Split(parts[1], "-")
+		if parts[0] == role.Destination.Name {
+			if len(parts) > 1 && parts[1] == role.Destination.Id {
+				// check "<NAME>-<ID>"
+				row.CurrentlySelected = "*"
+			} else if len(parts) == 1 {
+				// check "<NAME>"
+				row.CurrentlySelected = "*"
+			}
+		}
 	}
 
 	return row

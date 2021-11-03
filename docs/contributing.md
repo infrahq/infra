@@ -2,39 +2,97 @@
 
 ## Setup
 
-* Install [Go](https://golang.org/doc/install) or via `brew install go`
-* Install [Docker Desktop](https://www.docker.com/products/docker-desktop) or if on Linux, [Docker Engine](https://docs.docker.com/engine/install/).
-* Install [`openapi-generator`](https://openapi-generator.tech/docs/installation/) via `brew install openapi-generator`
+1. Install [Go](https://golang.org/doc/install)
+1. Clone the project
 
-Clone the project:
+    ```bash
+    git clone https://github.com/infrahq/infra
+    cd infra
+    ```
 
-```
-git clone https://github.com/infrahq/infra
-cd infra
-```
+1. Install tools
 
-Install tools:
+    ```bash
+    go get
+    make tools
+    ```
 
-```
-go get
-make tools
-```
+## Run locally
 
-Run locally:
-
-```
+```bash
 go run .
 ```
 
-Run a full setup (Infra + Infra Engine):
+## Run a full local setup
 
-```
+### Setup
+
+* Install [Docker](https://docker.com/)
+  * (macOS, Windows) [Docker Desktop](https://www.docker.com/products/docker-desktop)
+  * (Linux) [Docker Engine](https://docs.docker.com/engine/install)
+
+---
+
+The local setup can be customized with environment varibles. Some are required for a functional deployment.
+
+| Name             | Description                                                   | Default               |
+|------------------|---------------------------------------------------------------|-----------------------|
+| `OKTA_DOMAIN`    | Okta domain URL                                               | (required)            |
+| `OKTA_CLIENT_ID` | Okta client ID                                                | (required)            |
+| `OKTA_SECRET`    | Kubernetes secret containing Okta client secret and API token | (required)            |
+| `NAMESPACE`      | Kubernetes namespace to install `infra`                       | `""`                  |
+| `IMAGE_TAG`      | Docker tag                                                    | `0.0.0-development`   |
+| `VALUES`         | Values file to pass to Helm                                   | `docker-desktop.yaml` |
+
+```bash
 make dev
+```
+
+### Customizing local setup beyond the basics
+
+If further customization is required, additional values files can be supplied to the installation by modifying the `VALUES` environment variable. It is recommended to append to `VALUES` rather than fully overriding it.
+
+```yaml
+# example infra.yaml
+---
+enable-telemetry: false
+enable-crash-reporting: false
+```
+
+See [Helm Chart reference](./helm.md) for a complete list of options configurable through Helm.
+
+```bash
+export VALUES='infra.yaml docker-desktop.yaml'
+make dev
+```
+
+Or
+
+```bash
+VALUES='infra.yaml docker-desktop.yaml' make dev
+```
+
+Or
+
+```bash
+make dev VALUES='infra.yaml docker-desktop.yaml'
+```
+
+## Generate OpenAPI Clients
+
+### Setup
+
+* Install [OpenAPI Generator](https://openapi-generator.tech/docs/installation)
+
+---
+
+```bash
+make openapi
 ```
 
 ## Generate docs
 
-```
+```bash
 make docs
 ```
 
@@ -42,7 +100,7 @@ make docs
 
 Run tests:
 
-```
+```bash
 make test
 ```
 

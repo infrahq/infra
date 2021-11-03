@@ -34,10 +34,11 @@ import (
 )
 
 type Options struct {
-	Name             string `mapstructure:"name"`
-	APIKey           string `mapstructure:"api-key"`
-	TLSCache         string `mapstructure:"tls-cache"`
-	SkipTLSVerify    bool   `mapstructure:"skip-tls-verify"`
+	Name             string   `mapstructure:"name"`
+	APIKey           string   `mapstructure:"api-key"`
+	TLSCache         string   `mapstructure:"tls-cache"`
+	SkipTLSVerify    bool     `mapstructure:"skip-tls-verify"`
+	Labels           []string `mapstructure:"labels"`
 	internal.Options `mapstructure:",squash"`
 }
 
@@ -378,25 +379,26 @@ func Run(options *Options) error {
 		}
 
 		destination, _, err := client.DestinationsAPI.CreateDestination(ctx).Body(api.DestinationCreateRequest{
-			Name: name,
+			Name:   name,
+			Labels: options.Labels,
 			Kubernetes: &api.DestinationKubernetes{
 				Ca:       string(caBytes),
 				Endpoint: endpoint,
 			},
 		}).Execute()
 		if err != nil {
-			logging.S.Errorf("Couldn't create destination: %s", err.Error())
+			logging.S.Errorf("could not create destination: %s", err.Error())
 			return
 		}
 
 		roles, _, err := client.RolesAPI.ListRoles(ctx).Destination(destination.Id).Execute()
 		if err != nil {
-			logging.S.Errorf("couldn't list roles: %s", err.Error())
+			logging.S.Errorf("could not list roles: %s", err.Error())
 		}
 
 		err = k8s.UpdateRoles(roles)
 		if err != nil {
-			logging.S.Errorf("couldn't update roles: %s", err.Error())
+			logging.S.Errorf("could not update roles: %s", err.Error())
 			return
 		}
 	})

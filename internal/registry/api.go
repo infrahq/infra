@@ -384,7 +384,7 @@ func (a *API) ListDestinations(w http.ResponseWriter, r *http.Request) {
 	destinationKind := r.URL.Query().Get("kind")
 
 	var destinations []Destination
-	if err := a.db.Find(&destinations, &Destination{Name: destinationName, Kind: destinationKind}).Error; err != nil {
+	if err := a.db.Preload("Labels").Find(&destinations, &Destination{Name: destinationName, Kind: destinationKind}).Error; err != nil {
 		logging.L.Error(err.Error())
 		sendAPIError(w, http.StatusInternalServerError, "could not list destinations")
 
@@ -457,18 +457,38 @@ func (a *API) CreateDestination(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var destination Destination
+	// TODO (#571): get Kind from request
+	kind := DestinationKindKubernetes
+
+	destination := Destination{
+		Kind:               kind,
+		KubernetesCa:       body.Kubernetes.Ca,
+		KubernetesEndpoint: body.Kubernetes.Endpoint,
+	}
+
+	automaticLabels := []string{
+		kind,
+	}
 
 	err = a.db.Transaction(func(tx *gorm.DB) error {
-		result := tx.Where(&Destination{Name: body.Name}).FirstOrCreate(&destination)
-		if result.Error != nil {
-			return result.Error
+		for _, l := range append(body.Labels, automaticLabels...) {
+			var label Label
+			if err := tx.FirstOrCreate(&label, &Label{Value: l}).Error; err != nil {
+				return err
+			}
+
+			destination.Labels = append(destination.Labels, label)
 		}
-		destination.Name = body.Name
-		destination.Kind = DestinationKindKubernetes
-		destination.KubernetesCa = body.Kubernetes.Ca
-		destination.KubernetesEndpoint = body.Kubernetes.Endpoint
-		return tx.Save(&destination).Error
+
+		if err := tx.FirstOrCreate(&destination, &Destination{Name: body.Name}).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Save(&destination).Error; err != nil {
+			return err
+		}
+
+		return nil
 	})
 	if err != nil {
 		logging.L.Error(err.Error())
@@ -920,6 +940,10 @@ func (d *Destination) marshal() api.Destination {
 			Ca:       d.KubernetesCa,
 			Endpoint: d.KubernetesEndpoint,
 		}
+	}
+
+	for _, l := range d.Labels {
+		res.Labels = append(res.Labels, l.Value)
 	}
 
 	return res

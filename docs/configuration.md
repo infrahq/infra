@@ -1,4 +1,3 @@
-
 # Configuration
 
 ## Overview
@@ -31,7 +30,45 @@ Then, apply it to Infra:
 helm -n infrahq upgrade -f values.yaml infra infrahq/infra
 ```
 
-## Standalone Configuration
+## Configurations
+
+### Configuration File
+
+Configuration values can be configured through configuration files. Support formats include `json`, `yaml`, `toml`, and `ini`. The configuration file must be called `config`, e.g. `config.json`, `config.yaml`, `config.ini`, etc.
+
+Configuration files are searched in the following paths, in order:
+
+* `.` (current working directory)
+* `~/.infra` (user home directory)
+* `/etc/infra`
+
+Note: only the first configuration file found will be used.
+
+Configuration file can also be explicitly supplied through environment variable `INFRA_CONFIG_FILE` or command line parameter `--config-file` or `-f`.
+
+### Environment Variables
+
+Most configuration values can be configured through environment variables. Environment variables start with `INFRA`, e.g. `INFRA_CONFIG_FILE`. Environment variables have higher precendence than values found in configuration files.
+
+### Command Line Parameters
+
+Most configuration values can be configured through command line paramters. Command line parameters have higher precendence than environment variables or configuration files.
+
+See [CLI Reference](./cli.md) for a complete list of support command line parameters.
+
+### Reference
+
+| Configuration | Subcommand | Description                 | Default | Environment Variable | Command Line Parameter |
+|---------------|------------|-----------------------------|---------|----------------------|------------------------|
+| `host`        |            | Infra host URL              | `""`    | `INFRA_HOST`         | `--host`, `-H`         |
+| `config-file` |            | Configuration file path     | `""`    | `INFRA_CONFIG_FILE`  | `--config-file`, `-f`  |
+| `log-level`   |            | Service log level           | `info`  | `INFRA_LOG_LEVEL`    | `--log-level`, `-l`    |
+| `timeout`     | `login`    | Login timeout               | `5m0s`  | `INFRA_TIMEOUT`      | `--timeout`, `-t`      |
+| `client`      | `version`  | Display client version only | `false` | `INFRA_CLIENT`       | `--client`             |
+| `server`      | `version`  | Display server version only | `false` | `INFRA_SERVER`       | `--server`             |
+
+
+## Infra Configurations
 
 First, create a config file `infra.yaml`:
 
@@ -50,9 +87,9 @@ Then, apply it to Infra:
 helm -n infrahq upgrade --set-file=config=infra.yaml infra infrahq/infra
 ```
 
-## Reference
+### Reference
 
-### `providers`
+#### `providers`
 
 List of identity providers used to synchronize users and groups.
 
@@ -63,7 +100,7 @@ List of identity providers used to synchronize users and groups.
 
 See [Identity Providers](./providers/) for a full list of configurable values.
 
-### `groups`
+#### `groups`
 
 List of groups to assign access.
 
@@ -72,7 +109,7 @@ List of groups to assign access.
 | `name`         | Group name as stored in the identity provider |
 | `roles`        | Roles assigned to the user                    |
 
-### `users`
+#### `users`
 
 List of users to assign access.
 
@@ -81,7 +118,7 @@ List of users to assign access.
 | `email`        | User email as stored in the identity provider |
 | `roles`        | Roles assigned to the user                    |
 
-### `roles`
+#### `roles`
 
 List of roles to assign to an user or group.
 
@@ -91,18 +128,19 @@ List of roles to assign to an user or group.
 | `kind`         | Role type                                    |
 | `destinations` | Destinations where this role binding applies |
 
-### `destinations`
+#### `destinations`
 
 List of infrastructure destination to synchronize access permissions.
 
 | Parameter      | Description                                  |
 |----------------|----------------------------------------------|
 | `name`         | Destination name                             |
+| `labels`       | Additional filter labels                     |
 |                | Additional destination-specific parameters   |
 
 See [Infrastructure Destinations](./destinations/) for a full list of configurable values.
 
-## Full Example
+### Full Example
 
 ```yaml
 providers:
@@ -119,7 +157,7 @@ groups:
       - name: cluster-admin
         kind: cluster-role
         destinations:
-          - name: my-first-destination
+          - labels: [kubernetes]
 
 users:
   - email: manager@example.com
@@ -128,10 +166,11 @@ users:
         kind: cluster-role
         destinations:
           - name: my-first-destination
-            namespaces: 
+            namespaces:
               - infrahq
               - development
-          - name: cluster-BBB
+          - labels: [kubernetes]
+
   - email: developer@example.com
     roles:
       - name: writer

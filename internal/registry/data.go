@@ -77,6 +77,13 @@ type Destination struct {
 
 	KubernetesCa       string
 	KubernetesEndpoint string
+
+	Labels []Label `gorm:"many2many:destinations_labels"`
+}
+
+type Label struct {
+	ID    string `gorm:"primaryKey"`
+	Value string
 }
 
 type Role struct {
@@ -181,6 +188,10 @@ func (d *Destination) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 func (d *Destination) AfterCreate(tx *gorm.DB) error {
+	if err := tx.Model(&d).Association("Labels").Replace(d.Labels); err != nil {
+		return err
+	}
+
 	if _, err := ApplyGroupMappings(tx, initialConfig.Groups); err != nil {
 		return fmt.Errorf("group apply after destination create: %w", err)
 	}
@@ -194,7 +205,20 @@ func (d *Destination) AfterCreate(tx *gorm.DB) error {
 
 // TODO (jmorganca): use foreign constraints instead?
 func (d *Destination) BeforeDelete(tx *gorm.DB) (err error) {
+	if err := tx.Model(d).Association("Labels").Clear(); err != nil {
+		return fmt.Errorf("before delete destination mapping: %w", err)
+	}
+
 	return tx.Where(&Role{DestinationId: d.Id}).Delete(&Role{}).Error
+}
+
+func (l *Label) BeforeCreate(tx *gorm.DB) (err error) {
+	if l.ID == "" {
+		// TODO (#570): use some other form of randomly generated identifier as the ID
+		l.ID = generate.MathRandString(IdLen)
+	}
+
+	return nil
 }
 
 func (r *Role) BeforeCreate(tx *gorm.DB) (err error) {
@@ -609,6 +633,10 @@ func NewDB(dbpath string) (*gorm.DB, error) {
 	}
 
 	if err := db.AutoMigrate(&Destination{}); err != nil {
+		return nil, err
+	}
+
+	if err := db.AutoMigrate(&Label{}); err != nil {
 		return nil, err
 	}
 
