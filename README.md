@@ -52,7 +52,7 @@ config:
 
   providers:
     - kind: okta
-      domain: <Okta domain>
+      domain: <Okta domain>                # Okta values from above
       clientID: <Okta client id>
       clientSecret: <Okta client secret>
       apiToken: <Okta api token>
