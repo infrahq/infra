@@ -299,13 +299,14 @@ func Run(options *Options) error {
 
 	client := api.NewAPIClient(config)
 
-	name := options.Name
-	if name == "" {
-		name, err = k8s.Name()
-		if err != nil {
-			logging.L.Error(err.Error())
-			return err
-		}
+	name, err := k8s.Name()
+	if err != nil {
+		logging.S.Errorf("k8s error: %w", err)
+		return err
+	}
+
+	if options.Name == "" {
+		options.Name = name
 	}
 
 	manager := &autocert.Manager{
@@ -388,6 +389,7 @@ func Run(options *Options) error {
 		destination, _, err := client.DestinationsAPI.CreateDestination(ctx).Body(api.DestinationCreateRequest{
 			Name:   name,
 			Kind:   kind,
+			Alias:  options.Name,
 			Labels: options.Labels,
 			Kubernetes: &api.DestinationKubernetes{
 				Ca:       string(caBytes),

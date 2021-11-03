@@ -40,6 +40,12 @@ export interface Destination {
     name: string;
     /**
      * 
+     * @type {string}
+     * @memberof Destination
+     */
+    alias: string;
+    /**
+     * 
      * @type {number}
      * @memberof Destination
      */
@@ -76,6 +82,7 @@ export function DestinationFromJSONTyped(json: any, ignoreDiscriminator: boolean
         
         'id': json['id'],
         'name': json['name'],
+        'alias': json['alias'],
         'created': json['created'],
         'updated': json['updated'],
         'labels': json['labels'],
@@ -94,6 +101,7 @@ export function DestinationToJSON(value?: Destination | null): any {
         
         'id': value.id,
         'name': value.name,
+        'alias': value.alias,
         'created': value.created,
         'updated': value.updated,
         'labels': value.labels,

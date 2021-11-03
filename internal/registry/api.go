@@ -468,12 +468,14 @@ func (a *API) CreateDestination(w http.ResponseWriter, r *http.Request) {
 
 	destination := Destination{
 		Kind:               string(body.Kind),
+		Alias:              body.Alias,
 		KubernetesCa:       body.Kubernetes.Ca,
 		KubernetesEndpoint: body.Kubernetes.Endpoint,
 	}
 
 	automaticLabels := []string{
 		string(body.Kind),
+		body.Alias,
 	}
 
 	err = a.db.Transaction(func(tx *gorm.DB) error {
@@ -932,6 +934,7 @@ func (s *Provider) marshal() api.Provider {
 func (d *Destination) marshal() api.Destination {
 	res := api.Destination{
 		Name:    d.Name,
+		Alias:   d.Alias,
 		Id:      d.Id,
 		Created: d.Created,
 		Updated: d.Updated,

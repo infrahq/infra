@@ -37,4 +37,5 @@ In this example, destinations having either `us-west-1` or `us-east-1` labels wi
 
 ### Automatic Labels
 
+* Name
 * Kind, e.g. `kubernetes`

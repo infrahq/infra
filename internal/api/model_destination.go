@@ -18,6 +18,7 @@ import (
 type Destination struct {
 	Id         string                 `json:"id"`
 	Name       string                 `json:"name"`
+	Alias      string                 `json:"alias"`
 	Created    int64                  `json:"created"`
 	Updated    int64                  `json:"updated"`
 	Labels     []string               `json:"labels"`
@@ -28,10 +29,11 @@ type Destination struct {
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewDestination(id string, name string, created int64, updated int64, labels []string) *Destination {
+func NewDestination(id string, name string, alias string, created int64, updated int64, labels []string) *Destination {
 	this := Destination{}
 	this.Id = id
 	this.Name = name
+	this.Alias = alias
 	this.Created = created
 	this.Updated = updated
 	this.Labels = labels
@@ -92,6 +94,30 @@ func (o *Destination) GetNameOk() (*string, bool) {
 // SetName sets field value
 func (o *Destination) SetName(v string) {
 	o.Name = v
+}
+
+// GetAlias returns the Alias field value
+func (o *Destination) GetAlias() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.Alias
+}
+
+// GetAliasOk returns a tuple with the Alias field value
+// and a boolean to check if the value has been set.
+func (o *Destination) GetAliasOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Alias, true
+}
+
+// SetAlias sets field value
+func (o *Destination) SetAlias(v string) {
+	o.Alias = v
 }
 
 // GetCreated returns the Created field value
@@ -205,6 +231,9 @@ func (o Destination) MarshalJSON() ([]byte, error) {
 	}
 	if true {
 		toSerialize["name"] = o.Name
+	}
+	if true {
+		toSerialize["alias"] = o.Alias
 	}
 	if true {
 		toSerialize["created"] = o.Created
