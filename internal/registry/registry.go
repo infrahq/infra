@@ -350,8 +350,9 @@ func (r *Registry) runServer() error {
 	sentryHandler := sentryhttp.New(sentryhttp.Options{})
 
 	plaintextServer := http.Server{
-		Addr:    ":80",
-		Handler: handlers.CustomLoggingHandler(io.Discard, sentryHandler.Handle(mux), logging.ZapLogFormatter),
+		Addr:     ":80",
+		Handler:  handlers.CustomLoggingHandler(io.Discard, sentryHandler.Handle(mux), logging.ZapLogFormatter),
+		ErrorLog: logging.StandardErrorLog(),
 	}
 
 	go func() {
@@ -375,6 +376,7 @@ func (r *Registry) runServer() error {
 		Addr:      ":443",
 		TLSConfig: tlsConfig,
 		Handler:   handlers.CustomLoggingHandler(io.Discard, sentryHandler.Handle(mux), logging.ZapLogFormatter),
+		ErrorLog:  logging.StandardErrorLog(),
 	}
 
 	if err := tlsServer.ListenAndServeTLS("", ""); err != nil {

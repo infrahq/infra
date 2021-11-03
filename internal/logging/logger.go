@@ -3,6 +3,7 @@ package logging
 
 import (
 	"io"
+	"log"
 	"os"
 
 	"github.com/gorilla/handlers"
@@ -57,4 +58,13 @@ func ZapLogFormatter(_ io.Writer, params handlers.LogFormatterParams) {
 		zap.String("path", params.URL.Path),
 		zap.Int("status", params.StatusCode),
 		zap.Int("size", params.Size))
+}
+
+func StandardErrorLog() *log.Logger {
+	errorLog, err := zap.NewStdLogAt(L, zapcore.ErrorLevel)
+	if err != nil {
+		return nil
+	}
+
+	return errorLog
 }

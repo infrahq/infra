@@ -444,6 +444,7 @@ func Run(options *Options) error {
 		Addr:      ":443",
 		TLSConfig: tlsConfig,
 		Handler:   handlers.CustomLoggingHandler(io.Discard, mux, logging.ZapLogFormatter),
+		ErrorLog:  logging.StandardErrorLog(),
 	}
 
 	logging.L.Info("serving on port 443")
