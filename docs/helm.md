@@ -28,10 +28,10 @@ service:
     cloud.google.com/load-balancer-type: "Internal"
 
     # AWS EKS
-    service.beta.kubernetes.io/aws-load-balancer-scheme: "internal"
+    service.beta.kubernetes.io/aws-load-balancer-internal: true
 
     # Azure AKS
-    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+    service.beta.kubernetes.io/azure-load-balancer-internal: true
 ```
 
 ## Advanced Ingress Configuration
