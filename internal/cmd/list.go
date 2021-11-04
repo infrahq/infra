@@ -155,7 +155,7 @@ func newRow(role api.Role, currentContext string) statusRow {
 	}
 
 	row := statusRow{
-		ID:     role.Destination.Name,
+		ID:     role.Destination.Name[:12],
 		Name:   role.Destination.Alias,
 		Status: "💻 → ❌ Can't reach internet",
 		Labels: strings.Join(labels, ", "),
@@ -173,7 +173,7 @@ func newRow(role api.Role, currentContext string) statusRow {
 		// check "infra:<ALIAS>[@<NAME>][:<NAMESPACE>]"
 		parts := strings.Split(parts[1], "@")
 		if parts[0] == role.Destination.Alias {
-			if len(parts) > 1 && parts[1] == role.Destination.Name {
+			if len(parts) > 1 && parts[1] == role.Destination.Name[:12] {
 				// check "<ALIAS>@<NAME>"
 				row.CurrentlySelected = "*"
 			} else if len(parts) == 1 {

@@ -147,7 +147,7 @@ func updateKubeconfig(user api.User) error {
 	}
 
 	for _, role := range roles {
-		name := role.Destination.Name
+		name := role.Destination.Name[:12]
 		alias := role.Destination.Alias
 
 		// TODO (#546): allow user to specify prefix, default ""
@@ -187,7 +187,7 @@ func updateKubeconfig(user api.User) error {
 		kubeConfig.AuthInfos[contextName] = &clientcmdapi.AuthInfo{
 			Exec: &clientcmdapi.ExecConfig{
 				Command:         executable,
-				Args:            []string{"tokens", "create", name},
+				Args:            []string{"tokens", "create", role.Destination.Name},
 				APIVersion:      "client.authentication.k8s.io/v1beta1",
 				InteractiveMode: clientcmdapi.IfAvailableExecInteractiveMode,
 			},
@@ -215,7 +215,7 @@ func updateKubeconfig(user api.User) error {
 			case len(parts) == 1:
 				found = parts[0] == r.Destination.Alias
 			case len(parts) > 1:
-				found = parts[0] == r.Destination.Alias && parts[1] == r.Destination.Name
+				found = parts[0] == r.Destination.Alias && parts[1] == r.Destination.Name[:12]
 			}
 
 			if found {
