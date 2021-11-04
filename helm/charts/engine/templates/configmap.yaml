@@ -7,6 +7,7 @@ metadata:
 {{- include "engine.labels" . | nindent 4 }}
 data:
   config.yaml: |
+    kind: kubernetes
 {{- $options := list "name" "host" "api-key" }}
 {{- $options = list "tls-cache" "skip-tls-verify" | concat $options }}
 {{- $options = list "labels" | concat $options }}

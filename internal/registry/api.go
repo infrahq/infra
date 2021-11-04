@@ -461,17 +461,19 @@ func (a *API) CreateDestination(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO (#571): get Kind from request
-	kind := DestinationKindKubernetes
+	if !body.Kind.IsValid() {
+		sendAPIError(w, http.StatusBadRequest, fmt.Sprintf("unrecognized destination kind %s", string(body.Kind)))
+		return
+	}
 
 	destination := Destination{
-		Kind:               kind,
+		Kind:               string(body.Kind),
 		KubernetesCa:       body.Kubernetes.Ca,
 		KubernetesEndpoint: body.Kubernetes.Endpoint,
 	}
 
 	automaticLabels := []string{
-		kind,
+		string(body.Kind),
 	}
 
 	err = a.db.Transaction(func(tx *gorm.DB) error {
@@ -1011,12 +1013,7 @@ func (r Role) marshal() api.Role {
 		Namespace: r.Namespace,
 	}
 
-	switch r.Kind {
-	case RoleKindKubernetesRole:
-		res.Kind = api.ROLE
-	case RoleKindKubernetesClusterRole:
-		res.Kind = api.CLUSTER_ROLE
-	}
+	res.Kind = api.RoleKind(r.Kind)
 
 	for _, u := range r.Users {
 		res.Users = append(res.Users, u.marshal())

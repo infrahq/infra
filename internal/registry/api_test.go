@@ -435,6 +435,93 @@ func TestBearerTokenMiddlewareValidAPIKeyWrongPermission(t *testing.T) {
 	assert.Equal(t, string(api.DESTINATIONS_CREATE)+" permission is required", body.Message)
 }
 
+func TestCreateDestinationNoKind(t *testing.T) {
+	db, err := NewDB("file::memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	a := &API{
+		registry: &Registry{
+			db: db,
+			secrets: map[string]secrets.SecretStorage{
+				"kubernetes": NewMockSecretReader(),
+			},
+		},
+		db: db,
+	}
+
+	var apiKey APIKey
+
+	err = db.FirstOrCreate(&apiKey, &APIKey{Name: "default", Permissions: string(api.DESTINATIONS_CREATE)}).Error
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := api.DestinationCreateRequest{
+		Kubernetes: &api.DestinationKubernetes{
+			Ca:       "CA",
+			Endpoint: "endpoint.net",
+		},
+	}
+
+	bts, err := req.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r := httptest.NewRequest(http.MethodPost, "/v1/destinations", bytes.NewReader(bts))
+	r.Header.Add("Authorization", "Bearer "+apiKey.Key)
+
+	w := httptest.NewRecorder()
+	a.bearerAuthMiddleware(api.DESTINATIONS_CREATE, http.HandlerFunc(a.CreateDestination)).ServeHTTP(w, r)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestCreateDestinationBadKind(t *testing.T) {
+	db, err := NewDB("file::memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	a := &API{
+		registry: &Registry{
+			db: db,
+			secrets: map[string]secrets.SecretStorage{
+				"kubernetes": NewMockSecretReader(),
+			},
+		},
+		db: db,
+	}
+
+	var apiKey APIKey
+
+	err = db.FirstOrCreate(&apiKey, &APIKey{Name: "default", Permissions: string(api.DESTINATIONS_CREATE)}).Error
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := api.DestinationCreateRequest{
+		Kind: api.DestinationKind("nonexistent"),
+		Kubernetes: &api.DestinationKubernetes{
+			Ca:       "CA",
+			Endpoint: "endpoint.net",
+		},
+	}
+
+	bts, err := req.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r := httptest.NewRequest(http.MethodPost, "/v1/destinations", bytes.NewReader(bts))
+	r.Header.Add("Authorization", "Bearer "+apiKey.Key)
+
+	w := httptest.NewRecorder()
+	a.bearerAuthMiddleware(api.DESTINATIONS_CREATE, http.HandlerFunc(a.CreateDestination)).ServeHTTP(w, r)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
 func TestCreateDestinationNoAPIKey(t *testing.T) {
 	db, err := NewDB("file::memory:")
 	if err != nil {
@@ -452,6 +539,7 @@ func TestCreateDestinationNoAPIKey(t *testing.T) {
 	}
 
 	req := api.DestinationCreateRequest{
+		Kind: api.KUBERNETES,
 		Kubernetes: &api.DestinationKubernetes{
 			Ca:       "CA",
 			Endpoint: "endpoint.net",
@@ -493,6 +581,7 @@ func TestCreateDestination(t *testing.T) {
 	}
 
 	req := api.DestinationCreateRequest{
+		Kind: api.KUBERNETES,
 		Kubernetes: &api.DestinationKubernetes{
 			Ca:       "CA",
 			Endpoint: "endpoint.net",

@@ -27,10 +27,13 @@ DestinationCreateRequest:
   type: object
   required:
     - name
+    - kind
     - labels
   properties:
     name:
       type: string
+    kind:
+      $ref: 'destination.yaml#/DestinationKind'
     labels:
       type: array
       items:
@@ -49,3 +52,7 @@ DestinationKubernetes:
     endpoint:
       type: string
       x-go-custom-tag: validate:"required"
+DestinationKind:
+  type: string
+  enum:
+    - kubernetes
