@@ -505,11 +505,8 @@ func (t *Token) BeforeCreate(tx *gorm.DB) (err error) {
 		t.Id = generate.MathRandString(IdLen)
 	}
 
-	// TODO (jmorganca): 24 hours may be too long or too short for some teams
-	// this should be customizable in settings or limited by the provider's
-	// policy (e.g. Okta is often 1-3 hours)
 	if t.Expires == 0 {
-		t.Expires = time.Now().Add(SessionDuration).Unix()
+		return fmt.Errorf("token expiry not set")
 	}
 
 	return nil
