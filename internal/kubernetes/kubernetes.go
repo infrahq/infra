@@ -117,29 +117,29 @@ func (k *Kubernetes) updateRoleBindings(subjects map[namespaceRole][]rbacv1.Subj
 
 	for nsr, subjs := range subjects {
 		var kind string
-		switch nsr.kind {
-		case string(api.ROLE):
+		switch api.RoleKind(nsr.kind) {
+		case api.ROLE:
 			if !validNamespaceRole[nsr] {
-				logging.L.Warn("role binding skipped, role does not exist with name " + nsr.role + " in namespace " + nsr.namespace)
+				logging.S.Warnf("role binding skipped, role does not exist with name %s in namespace %s", nsr.role, nsr.namespace)
 				continue
 			}
 
 			kind = "Role"
-		case string(api.CLUSTER_ROLE):
+		case api.CLUSTER_ROLE:
 			if !validClusterRole[nsr.role] {
-				logging.L.Warn("role binding skipped, cluster-role does not exist with name " + nsr.role)
+				logging.S.Warnf("role binding skipped, cluster-role does not exist with name %s", nsr.role)
 				continue
 			}
 
 			kind = "ClusterRole"
 		default:
-			logging.L.Warn("rolebinding skipped, invalid kind: " + nsr.kind)
+			logging.S.Warnf("rolebinding skipped, invalid kind: %s", nsr.kind)
 			continue
 		}
 
 		rbs = append(rbs, &rbacv1.RoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "infra-" + nsr.role,
+				Name: fmt.Sprintf("infra:%s", nsr.role),
 				Labels: map[string]string{
 					"app.kubernetes.io/managed-by": "infra",
 				},
@@ -230,7 +230,7 @@ func (k *Kubernetes) updateClusterRoleBindings(subjects map[string][]rbacv1.Subj
 		if validClusterRole[role] {
 			crbs = append(crbs, &rbacv1.ClusterRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "infra-" + role,
+					Name: fmt.Sprintf("infra:%s", role),
 					Labels: map[string]string{
 						"app.kubernetes.io/managed-by": "infra",
 					},
