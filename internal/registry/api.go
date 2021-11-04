@@ -504,12 +504,14 @@ func (a *API) ListAPIKeys(w http.ResponseWriter, r *http.Request) {
 	}
 
 	results := make([]api.InfraAPIKey, 0)
+
 	for _, k := range keys {
 		resKey, err := k.marshal()
 		if err != nil {
 			sendAPIError(w, http.StatusInternalServerError, "unexpected value encountered while marshalling API key")
 			return
 		}
+
 		results = append(results, *resKey)
 	}
 
@@ -602,6 +604,7 @@ func (a *API) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 		sendAPIError(w, http.StatusInternalServerError, "unexpected value encountered while marshalling response")
 		return
 	}
+
 	if err := json.NewEncoder(w).Encode(*res); err != nil {
 		logging.L.Error(err.Error())
 		sendAPIError(w, http.StatusInternalServerError, "could not create api-key")
@@ -928,10 +931,12 @@ func (k *APIKey) marshal() (*api.InfraAPIKey, error) {
 		Id:      k.Id,
 		Created: k.Created,
 	}
+
 	permissions, err := marshalPermissions(k.Permissions)
 	if err != nil {
 		return nil, err
 	}
+
 	res.Permissions = permissions
 
 	return res, nil
@@ -945,10 +950,12 @@ func (k *APIKey) marshalWithSecret() (*api.InfraAPIKeyCreateResponse, error) {
 		Created: k.Created,
 		Key:     k.Key,
 	}
+
 	permissions, err := marshalPermissions(k.Permissions)
 	if err != nil {
 		return nil, err
 	}
+
 	res.Permissions = permissions
 
 	return res, nil
