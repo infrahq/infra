@@ -140,11 +140,25 @@ func list(options *ListOptions) error {
 }
 
 func newRow(role api.Role, currentContext string) statusRow {
+	var labels []string
+
+	// filter out automatic labels
+	for _, l := range role.Destination.Labels {
+		switch l {
+		case role.Destination.Alias:
+			continue
+		case role.Destination.Kind:
+			continue
+		default:
+			labels = append(labels, l)
+		}
+	}
+
 	row := statusRow{
 		ID:     role.Destination.Name,
 		Name:   role.Destination.Alias,
 		Status: "💻 → ❌ Can't reach internet",
-		Labels: strings.Join(role.Destination.Labels, ", "),
+		Labels: strings.Join(labels, ", "),
 	}
 
 	if k8s, ok := role.Destination.GetKubernetesOk(); ok {

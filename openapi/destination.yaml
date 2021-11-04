@@ -3,6 +3,7 @@ Destination:
   required:
     - id
     - name
+    - kind
     - alias
     - created
     - updated
@@ -11,6 +12,8 @@ Destination:
     id:
       type: string
     name:
+      type: string
+    kind:
       type: string
     alias:
       type: string
