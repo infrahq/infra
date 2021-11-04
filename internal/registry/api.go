@@ -505,7 +505,12 @@ func (a *API) ListAPIKeys(w http.ResponseWriter, r *http.Request) {
 
 	results := make([]api.InfraAPIKey, 0)
 	for _, k := range keys {
-		results = append(results, k.marshal())
+		resKey, err := k.marshal()
+		if err != nil {
+			sendAPIError(w, http.StatusInternalServerError, "unexpected value encountered while marshalling API key")
+			return
+		}
+		results = append(results, *resKey)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -592,7 +597,12 @@ func (a *API) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-	if err := json.NewEncoder(w).Encode(apiKey.marshalWithSecret()); err != nil {
+	res, err := apiKey.marshalWithSecret()
+	if err != nil {
+		sendAPIError(w, http.StatusInternalServerError, "unexpected value encountered while marshalling response")
+		return
+	}
+	if err := json.NewEncoder(w).Encode(*res); err != nil {
 		logging.L.Error(err.Error())
 		sendAPIError(w, http.StatusInternalServerError, "could not create api-key")
 	}
@@ -912,31 +922,39 @@ func (d *Destination) marshal() api.Destination {
 	return res
 }
 
-func (k *APIKey) marshal() api.InfraAPIKey {
-	res := api.InfraAPIKey{
+func (k *APIKey) marshal() (*api.InfraAPIKey, error) {
+	res := &api.InfraAPIKey{
 		Name:    k.Name,
 		Id:      k.Id,
 		Created: k.Created,
 	}
-	res.Permissions = marshalPermissions(k.Permissions)
+	permissions, err := marshalPermissions(k.Permissions)
+	if err != nil {
+		return nil, err
+	}
+	res.Permissions = permissions
 
-	return res
+	return res, nil
 }
 
 // This function returns the secret key, it should only be used after the initial key creation
-func (k *APIKey) marshalWithSecret() api.InfraAPIKeyCreateResponse {
-	res := api.InfraAPIKeyCreateResponse{
+func (k *APIKey) marshalWithSecret() (*api.InfraAPIKeyCreateResponse, error) {
+	res := &api.InfraAPIKeyCreateResponse{
 		Name:    k.Name,
 		Id:      k.Id,
 		Created: k.Created,
 		Key:     k.Key,
 	}
-	res.Permissions = marshalPermissions(k.Permissions)
+	permissions, err := marshalPermissions(k.Permissions)
+	if err != nil {
+		return nil, err
+	}
+	res.Permissions = permissions
 
-	return res
+	return res, nil
 }
 
-func marshalPermissions(permissions string) []api.InfraAPIPermission {
+func marshalPermissions(permissions string) ([]api.InfraAPIPermission, error) {
 	var apiPermissions []api.InfraAPIPermission
 
 	storedPermissions := strings.Split(permissions, " ")
@@ -944,13 +962,13 @@ func marshalPermissions(permissions string) []api.InfraAPIPermission {
 		apiPermission, err := api.NewInfraAPIPermissionFromValue(p)
 		if err != nil {
 			logging.S.Errorf("Error converting stored permission %q to API permission: %w", p, err)
-			continue
+			return nil, err
 		}
 
 		apiPermissions = append(apiPermissions, *apiPermission)
 	}
 
-	return apiPermissions
+	return apiPermissions, nil
 }
 
 func (r Role) marshal() api.Role {
