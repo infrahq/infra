@@ -23,7 +23,7 @@ type AWSSSM struct {
 
 type AWSSSMConfig struct {
 	AWSConfig
-	KeyID string `yaml:"keyId"` // KMS key to use for decryption
+	KeyID string `yaml:"keyID" validate:"required"` // KMS key to use for decryption
 }
 
 func NewAWSSSMSecretProviderFromConfig(cfg AWSSSMConfig) (*AWSSSM, error) {

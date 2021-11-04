@@ -15,28 +15,28 @@ import (
 )
 
 type ConfigOkta struct {
-	APIToken string `yaml:"apiToken"`
+	APIToken string `yaml:"apiToken" validate:"required"`
 }
 
-type ConfigIdentityProvider struct {
-	Kind         string      `yaml:"kind"`
-	Domain       string      `yaml:"domain"`
-	ClientID     string      `yaml:"clientID"`
-	ClientSecret string      `yaml:"clientSecret"`
+type ConfigProvider struct {
+	Kind         string      `yaml:"kind" validate:"required"`
+	Domain       string      `yaml:"domain" validate:"required"`
+	ClientID     string      `yaml:"clientID" validate:"required"`
+	ClientSecret string      `yaml:"clientSecret" validate:"required"`
 	Config       interface{} // contains identity-provider-specific config
 }
 
-type baseConfigIdentityProvider struct {
+type baseConfigProvider struct {
 	Kind         string `yaml:"kind"`
 	Domain       string `yaml:"domain"`
 	ClientID     string `yaml:"clientID"`
 	ClientSecret string `yaml:"clientSecret"`
 }
 
-var _ yaml.Unmarshaler = &ConfigIdentityProvider{}
+var _ yaml.Unmarshaler = &ConfigProvider{}
 
-func (idp *ConfigIdentityProvider) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	tmp := &baseConfigIdentityProvider{}
+func (idp *ConfigProvider) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	tmp := &baseConfigProvider{}
 
 	if err := unmarshal(&tmp); err != nil {
 		return fmt.Errorf("unmarshalling secret provider: %w", err)
@@ -67,7 +67,7 @@ var (
 	protocolRemover  = regexp.MustCompile(`http[s]?://`)
 )
 
-func (p *ConfigIdentityProvider) cleanupDomain() {
+func (p *ConfigProvider) cleanupDomain() {
 	p.Domain = strings.TrimSpace(p.Domain)
 	p.Domain = dashAdminRemover.ReplaceAllString(p.Domain, "$1$2")
 	p.Domain = protocolRemover.ReplaceAllString(p.Domain, "")
@@ -79,26 +79,25 @@ type ConfigDestination struct {
 	Namespaces []string `yaml:"namespaces"` // optional in the case of a cluster-role
 }
 
-type ConfigRoleKubernetes struct {
-	Name         string              `yaml:"name"`
-	Kind         string              `yaml:"kind"`
-	Destinations []ConfigDestination `yaml:"destinations"`
+type ConfigRole struct {
+	Name         string              `yaml:"name" validate:"required"`
+	Kind         string              `yaml:"kind" validate:"required,oneof=role cluster-role"`
+	Destinations []ConfigDestination `yaml:"destinations" validate:"required,dive"`
 }
 
 type ConfigGroupMapping struct {
-	Name     string                 `yaml:"name"`
-	Provider string                 `yaml:"provider"`
-	Roles    []ConfigRoleKubernetes `yaml:"roles"`
+	Name     string       `yaml:"name" validate:"required"`
+	Provider string       `yaml:"provider" validate:"required"`
+	Roles    []ConfigRole `yaml:"roles" validate:"required,dive"`
 }
 
 type ConfigUserMapping struct {
-	Email  string                 `yaml:"email"`
-	Roles  []ConfigRoleKubernetes `yaml:"roles"`
-	Groups []string               `yaml:"groups"`
+	Email string       `yaml:"email" validate:"required,email"`
+	Roles []ConfigRole `yaml:"roles" validate:"required,dive"`
 }
 
 type ConfigSecretProvider struct {
-	Kind   string      `yaml:"kind"`
+	Kind   string      `yaml:"kind" validate:"required"`
 	Name   string      `yaml:"name"` // optional
 	Config interface{} // contains secret-provider-specific config
 }
@@ -191,19 +190,26 @@ func (sp *ConfigSecretProvider) UnmarshalYAML(unmarshal func(interface{}) error)
 }
 
 type Config struct {
-	Secrets   []ConfigSecretProvider   `yaml:"secrets"`
-	Providers []ConfigIdentityProvider `yaml:"providers"`
-	Groups    []ConfigGroupMapping     `yaml:"groups"`
-	Users     []ConfigUserMapping      `yaml:"users"`
+	Secrets   []ConfigSecretProvider `yaml:"secrets" validate:"dive"`
+	Providers []ConfigProvider       `yaml:"providers" validate:"dive"`
+	Groups    []ConfigGroupMapping   `yaml:"groups" validate:"dive"`
+	Users     []ConfigUserMapping    `yaml:"users" validate:"dive"`
 }
 
 // this config is loaded at start-up and re-applied when Infra's state changes (ie. a user is added)
 var initialConfig Config
 
-func ImportProviders(db *gorm.DB, providers []ConfigIdentityProvider) error {
+func ImportProviders(db *gorm.DB, providers []ConfigProvider) error {
 	var idsToKeep []string
 
 	for _, p := range providers {
+		p.cleanupDomain()
+
+		// domain has been modified, so need to re-validate
+		if err := validate.Struct(p); err != nil {
+			return fmt.Errorf("invalid domain: %w", err)
+		}
+
 		// check if we are about to override an existing provider
 		var existing Provider
 		if err := db.First(&existing, &Provider{Kind: p.Kind}).Error; err != nil {
@@ -216,20 +222,6 @@ func ImportProviders(db *gorm.DB, providers []ConfigIdentityProvider) error {
 
 		if existing.Id != "" {
 			logging.L.Warn("overriding existing okta provider settings with configuration settings")
-		}
-
-		p.cleanupDomain()
-
-		if p.Domain == "" {
-			return fmt.Errorf("no domain set on provider: %s", p.Kind)
-		}
-
-		if p.ClientID == "" {
-			return fmt.Errorf("no clientID set on provider: %s", p.Kind)
-		}
-
-		if p.ClientSecret == "" {
-			return fmt.Errorf("no clientSecret set on provider: %s", p.Kind)
 		}
 
 		var provider Provider
@@ -248,10 +240,6 @@ func ImportProviders(db *gorm.DB, providers []ConfigIdentityProvider) error {
 				return fmt.Errorf("expected provider config to be Okta, but was %t", p.Config)
 			}
 
-			if cfg.APIToken == "" {
-				return fmt.Errorf("no apiToken set on provider: %s", p.Kind)
-			}
-
 			// API token and client secret will be validated to exist when they are used
 			provider.APIToken = cfg.APIToken
 
@@ -260,15 +248,14 @@ func ImportProviders(db *gorm.DB, providers []ConfigIdentityProvider) error {
 			}
 
 			idsToKeep = append(idsToKeep, provider.Id)
-		case "":
-			logging.S.Errorf("skipping a provider with no kind set in configuration")
 		default:
-			logging.S.Errorf("skipping invalid provider kind in configuration: %s", p.Kind)
+			// should not happen
+			return fmt.Errorf("invalid provider kind in configuration: %s", p.Kind)
 		}
 	}
 
 	if len(idsToKeep) == 0 {
-		logging.L.Debug("no valid providers found in configuration, ensure the required fields are specified correctly")
+		logging.L.Debug("no valid providers found in configuration")
 		// clear the providers
 		return db.Where("1 = 1").Delete(&Provider{}).Error
 	}
@@ -410,6 +397,10 @@ func (r *Registry) importConfig(bs []byte) error {
 		return err
 	}
 
+	if err := validate.Struct(config); err != nil {
+		return fmt.Errorf("invalid config: %w", err)
+	}
+
 	initialConfig = config
 
 	if err := r.configureSecrets(config); err != nil {
@@ -426,27 +417,11 @@ func (r *Registry) importConfig(bs []byte) error {
 }
 
 // import roles creates roles specified in the config, or updates their associations
-func importRoles(db *gorm.DB, roles []ConfigRoleKubernetes) (rolesImported []Role, importedRoleIDs []string, err error) {
+func importRoles(db *gorm.DB, roles []ConfigRole) (rolesImported []Role, importedRoleIDs []string, err error) {
 	for _, r := range roles {
-		if r.Name == "" {
-			logging.L.Error("invalid role found in configuration, name is a required field")
-			continue
-		}
-
-		if r.Kind == "" {
-			logging.L.Error("invalid role found in configuration, kind is a required field")
-			continue
-		}
-
-		if r.Kind != RoleKindKubernetesClusterRole && r.Kind != RoleKindKubernetesRole {
-			logging.S.Errorf("only 'role' and 'cluster-role' are valid role kinds, found: %s", r.Kind)
-			continue
-		}
-
 		for _, want := range r.Destinations {
 			if r.Kind == RoleKindKubernetesRole && len(want.Namespaces) == 0 {
-				logging.S.Errorf("%s requires at least one namespace to be specified for the cluster %s", r.Name, want.Name)
-				continue
+				return nil, nil, fmt.Errorf("%s role requires at least one namespace to be specified for the cluster %s", r.Name, want.Name)
 			}
 
 			logging.L.Debug("want role destination", zap.String("name", want.Name), zap.Strings("labels", want.Labels), zap.Strings("namespaces", want.Namespaces))
