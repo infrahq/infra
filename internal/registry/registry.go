@@ -48,6 +48,8 @@ type Options struct {
 	ProvidersSyncInterval    time.Duration `mapstructure:"providers-sync-interval"`
 	DestinationsSyncInterval time.Duration `mapstructure:"destinations-sync-interval"`
 
+	SessionDuration time.Duration `mapstructure:"session-duration"`
+
 	internal.Options `mapstructure:",squash"`
 }
 
@@ -65,6 +67,7 @@ const (
 	engineAPIKeyName                string        = "engine"
 	DefaultProvidersSyncInterval    time.Duration = time.Second * 60
 	DefaultDestinationsSyncInterval time.Duration = time.Minute * 5
+	DefaultSessionDuration          time.Duration = time.Hour * 12
 )
 
 // syncProviders polls every known provider for users and groups

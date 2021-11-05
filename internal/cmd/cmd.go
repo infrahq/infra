@@ -317,6 +317,8 @@ func newStartCmd() (*cobra.Command, error) {
 	cmd.Flags().Bool("enable-telemetry", true, "enable telemetry")
 	cmd.Flags().Bool("enable-crash-reporting", true, "enable crash reporting")
 
+	cmd.Flags().DurationP("session-duration", "d", registry.DefaultSessionDuration, "session duration")
+
 	return cmd, nil
 }
 

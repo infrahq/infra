@@ -35,10 +35,7 @@ type CustomJWTClaims struct {
 	Nonce       string `json:"nonce" validate:"required"`
 }
 
-var (
-	validate        *validator.Validate = validator.New()
-	SessionDuration time.Duration       = time.Hour * 24
-)
+var validate *validator.Validate = validator.New()
 
 func NewAPIMux(reg *Registry) *mux.Router {
 	a := API{
@@ -851,7 +848,7 @@ func (a *API) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	secret, err := NewToken(a.db, user.Id, SessionDuration, &token)
+	secret, err := NewToken(a.db, user.Id, a.registry.options.SessionDuration, &token)
 	if err != nil {
 		logging.L.Error(err.Error())
 		sendAPIError(w, http.StatusInternalServerError, "could not create token")
@@ -861,7 +858,7 @@ func (a *API) Login(w http.ResponseWriter, r *http.Request) {
 
 	tokenString := token.Id + secret
 
-	setAuthCookie(w, tokenString)
+	setAuthCookie(w, tokenString, a.registry.options.SessionDuration)
 
 	w.Header().Set("Content-Type", "application/json")
 

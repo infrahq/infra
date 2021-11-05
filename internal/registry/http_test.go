@@ -99,7 +99,7 @@ func TestLoginRedirectNoRedirectIfLoggedIn(t *testing.T) {
 	}
 
 	r := httptest.NewRequest(http.MethodGet, "http://test.com/dashboard", nil)
-	expires := time.Now().Add(SessionDuration)
+	expires := time.Now().Add(time.Minute * 5)
 
 	r.AddCookie(&http.Cookie{
 		Name:     CookieTokenName,
@@ -144,7 +144,7 @@ func TestLoginRedirectIfLoginCookieUnset(t *testing.T) {
 	}
 
 	r := httptest.NewRequest(http.MethodGet, "http://test.com/dashboard", nil)
-	expires := time.Now().Add(SessionDuration)
+	expires := time.Now().Add(time.Minute * 5)
 
 	r.AddCookie(&http.Cookie{
 		Name:     CookieTokenName,
@@ -192,7 +192,7 @@ func TestLoginRedirectFromLoginIfAlreadyLoggedIn(t *testing.T) {
 	}
 
 	r := httptest.NewRequest(http.MethodGet, "http://test.com/login?next=/dashboard", nil)
-	expires := time.Now().Add(SessionDuration)
+	expires := time.Now().Add(time.Minute * 5)
 
 	r.AddCookie(&http.Cookie{
 		Name:     CookieTokenName,

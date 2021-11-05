@@ -19,8 +19,8 @@ var (
 	CookieLoginName = "login"
 )
 
-func setAuthCookie(w http.ResponseWriter, token string) {
-	expires := time.Now().Add(SessionDuration)
+func setAuthCookie(w http.ResponseWriter, token string, sessionDuration time.Duration) {
+	expires := time.Now().Add(sessionDuration)
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     CookieTokenName,
