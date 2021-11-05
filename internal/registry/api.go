@@ -197,7 +197,7 @@ func (a *API) ListUsers(w http.ResponseWriter, r *http.Request) {
 	var users []User
 
 	err := a.db.Transaction(func(tx *gorm.DB) error {
-		err := tx.Preload("Roles.Destination").Preload("Groups.Roles.Destination").Preload(clause.Associations).Find(&users, &User{Email: userEmail}).Error
+		err := tx.Preload("Roles.Destination.Labels").Preload("Groups.Roles.Destination.Labels").Preload(clause.Associations).Find(&users, &User{Email: userEmail}).Error
 		if err != nil {
 			return err
 		}
@@ -465,12 +465,14 @@ func (a *API) CreateDestination(w http.ResponseWriter, r *http.Request) {
 
 	destination := Destination{
 		Kind:               string(body.Kind),
+		Alias:              body.Alias,
 		KubernetesCa:       body.Kubernetes.Ca,
 		KubernetesEndpoint: body.Kubernetes.Endpoint,
 	}
 
 	automaticLabels := []string{
 		string(body.Kind),
+		body.Alias,
 	}
 
 	err = a.db.Transaction(func(tx *gorm.DB) error {
@@ -929,6 +931,8 @@ func (s *Provider) marshal() api.Provider {
 func (d *Destination) marshal() api.Destination {
 	res := api.Destination{
 		Name:    d.Name,
+		Kind:    d.Kind,
+		Alias:   d.Alias,
 		Id:      d.Id,
 		Created: d.Created,
 		Updated: d.Updated,

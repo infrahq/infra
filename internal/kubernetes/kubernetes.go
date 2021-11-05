@@ -573,47 +573,48 @@ func (k *Kubernetes) kubeControllerManagerClusterName() (string, error) {
 	return opts.ClusterName, nil
 }
 
-func (k *Kubernetes) Name() (string, error) {
+func (k *Kubernetes) Name() (string, string, error) {
+	ca, err := k.CA()
+	if err != nil {
+		return "", "", err
+	}
+
+	h := sha256.New()
+	h.Write(ca)
+	hash := h.Sum(nil)
+	chksm := hex.EncodeToString(hash)
+
 	name, err := k.ec2ClusterName()
 	if err == nil {
-		return name, nil
+		return name, chksm, nil
 	}
 
 	logging.L.Debug("could not fetch ec2 cluster name: " + err.Error())
 
 	name, err = k.gkeClusterName()
 	if err == nil {
-		return name, nil
+		return name, chksm, nil
 	}
 
 	logging.L.Debug("could not fetch gke cluster name: " + err.Error())
 
 	name, err = k.aksClusterName()
 	if err == nil {
-		return name, nil
+		return name, chksm, nil
 	}
 
 	logging.L.Debug("could not fetch aks cluster name: " + err.Error())
 
 	name, err = k.kubeControllerManagerClusterName()
 	if err == nil {
-		return name, nil
+		return name, chksm, nil
 	}
 
 	logging.L.Debug("could not fetch kube-controller-manager cluster name: " + err.Error())
 
 	logging.L.Debug("could not fetch cluster name, resorting to hashed cluster CA")
 
-	ca, err := k.CA()
-	if err != nil {
-		return "", err
-	}
-
-	h := sha256.New()
-	h.Write(ca)
-	hash := h.Sum(nil)
-
-	return "cluster-" + hex.EncodeToString(hash)[:8], nil
+	return chksm, chksm, nil
 }
 
 func (k *Kubernetes) Namespace() (string, error) {

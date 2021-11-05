@@ -44,6 +44,12 @@ export interface DestinationCreateRequest {
     kind: DestinationKind;
     /**
      * 
+     * @type {string}
+     * @memberof DestinationCreateRequest
+     */
+    alias: string;
+    /**
+     * 
      * @type {Array<string>}
      * @memberof DestinationCreateRequest
      */
@@ -68,6 +74,7 @@ export function DestinationCreateRequestFromJSONTyped(json: any, ignoreDiscrimin
         
         'name': json['name'],
         'kind': DestinationKindFromJSON(json['kind']),
+        'alias': json['alias'],
         'labels': json['labels'],
         'kubernetes': !exists(json, 'kubernetes') ? undefined : DestinationKubernetesFromJSON(json['kubernetes']),
     };
@@ -84,6 +91,7 @@ export function DestinationCreateRequestToJSON(value?: DestinationCreateRequest 
         
         'name': value.name,
         'kind': DestinationKindToJSON(value.kind),
+        'alias': value.alias,
         'labels': value.labels,
         'kubernetes': DestinationKubernetesToJSON(value.kubernetes),
     };

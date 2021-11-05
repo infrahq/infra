@@ -123,61 +123,74 @@ func updateKubeconfig(user api.User) error {
 	}
 
 	// deduplicate roles
-	roles := make(map[string][]api.Role)
+	aliases := make(map[string]map[string]bool)
+	roles := make(map[string]api.Role)
+
 	for _, r := range user.Roles {
-		roles[r.Destination.Name] = append(roles[r.Destination.Name], r)
+		if _, ok := aliases[r.Destination.Alias]; !ok {
+			aliases[r.Destination.Alias] = make(map[string]bool)
+		}
+
+		aliases[r.Destination.Alias][r.Destination.Name] = true
+		roles[r.Id] = r
 	}
 
 	for _, g := range user.Groups {
 		for _, r := range g.Roles {
-			roles[r.Destination.Name] = append(roles[r.Destination.Name], r)
+			if _, ok := aliases[r.Destination.Alias]; !ok {
+				aliases[r.Destination.Alias] = make(map[string]bool)
+			}
+
+			aliases[r.Destination.Alias][r.Destination.Name] = true
+			roles[r.Id] = r
 		}
 	}
 
-	for _, r := range roles {
-		for _, d := range r {
-			// TODO (#546): allow user to specify prefix, default ""
-			// format: "infra:<NAME>"
-			contextName := fmt.Sprintf("infra:%s", d.Destination.Name)
+	for _, role := range roles {
+		name := role.Destination.Name[:12]
+		alias := role.Destination.Alias
 
-			if len(r) > 1 {
-				// disambiguate destination by appending the ID
-				// format: "infra:<NAME>-<ID>"
-				contextName = fmt.Sprintf("%s-%s", contextName, d.Destination.Id)
-			}
+		// TODO (#546): allow user to specify prefix, default ""
+		// format: "infra:<ALIAS>"
+		contextName := fmt.Sprintf("infra:%s", alias)
 
-			if d.Namespace != "" {
-				// destination is scoped to a namespace
-				// format: "infra:<NAME>[-<ID>]:<NAMESPACE]"
-				contextName = fmt.Sprintf("%s:%s", contextName, d.Namespace)
-			}
+		if len(aliases[alias]) > 1 {
+			// disambiguate destination by appending the ID
+			// format: "infra:<ALIAS>@<NAME>"
+			contextName = fmt.Sprintf("%s@%s", contextName, name)
+		}
 
-			logging.S.Debugf("creating kubeconfig for %s", contextName)
+		if role.Namespace != "" {
+			// destination is scoped to a namespace
+			// format: "infra:<ALIAS>[@<NAME>]:<NAMESPACE>"
+			contextName = fmt.Sprintf("%s:%s", contextName, role.Namespace)
+		}
 
-			kubeConfig.Clusters[contextName] = &clientcmdapi.Cluster{
-				Server:                   fmt.Sprintf("https://%s/proxy", d.Destination.Kubernetes.Endpoint),
-				CertificateAuthorityData: []byte(d.Destination.Kubernetes.Ca),
-			}
+		logging.S.Debugf("creating kubeconfig for %s", contextName)
 
-			kubeConfig.Contexts[contextName] = &clientcmdapi.Context{
-				Cluster:   contextName,
-				AuthInfo:  contextName,
-				Namespace: d.Namespace,
-			}
+		kubeConfig.Clusters[contextName] = &clientcmdapi.Cluster{
+			Server:                   fmt.Sprintf("https://%s/proxy", role.Destination.Kubernetes.Endpoint),
+			CertificateAuthorityData: []byte(role.Destination.Kubernetes.Ca),
+		}
 
-			executable, err := os.Executable()
-			if err != nil {
-				return err
-			}
+		kubeConfig.Contexts[contextName] = &clientcmdapi.Context{
+			Cluster:   contextName,
+			AuthInfo:  contextName,
+			Namespace: role.Namespace,
+		}
 
-			kubeConfig.AuthInfos[contextName] = &clientcmdapi.AuthInfo{
-				Exec: &clientcmdapi.ExecConfig{
-					Command:         executable,
-					Args:            []string{"tokens", "create", d.Destination.Name},
-					APIVersion:      "client.authentication.k8s.io/v1beta1",
-					InteractiveMode: clientcmdapi.IfAvailableExecInteractiveMode,
-				},
-			}
+		executable, err := os.Executable()
+		if err != nil {
+			return err
+		}
+
+		kubeConfig.AuthInfos[contextName] = &clientcmdapi.AuthInfo{
+			Exec: &clientcmdapi.ExecConfig{
+				Command:         executable,
+				Args:            []string{"tokens", "create", role.Destination.Name},
+				APIVersion:      "client.authentication.k8s.io/v1beta1",
+				InteractiveMode: clientcmdapi.IfAvailableExecInteractiveMode,
+			},
 		}
 	}
 
@@ -193,15 +206,20 @@ func updateKubeconfig(user api.User) error {
 			continue
 		}
 
-		destinationName := parts[1]
-
 		found := false
 
 		for _, r := range roles {
-			for _, d := range r {
-				if destinationName == d.Destination.Name {
-					found = true
-				}
+			parts := strings.Split(parts[1], "@")
+
+			switch {
+			case len(parts) == 1:
+				found = parts[0] == r.Destination.Alias
+			case len(parts) > 1:
+				found = parts[0] == r.Destination.Alias && parts[1] == r.Destination.Name[:12]
+			}
+
+			if found {
+				break
 			}
 		}
 

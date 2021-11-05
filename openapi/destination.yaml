@@ -3,6 +3,8 @@ Destination:
   required:
     - id
     - name
+    - kind
+    - alias
     - created
     - updated
     - labels
@@ -10,6 +12,10 @@ Destination:
     id:
       type: string
     name:
+      type: string
+    kind:
+      type: string
+    alias:
       type: string
     created:
       type: integer
@@ -28,12 +34,15 @@ DestinationCreateRequest:
   required:
     - name
     - kind
+    - alias
     - labels
   properties:
     name:
       type: string
     kind:
       $ref: 'destination.yaml#/DestinationKind'
+    alias:
+      type: string
     labels:
       type: array
       items:

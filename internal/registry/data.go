@@ -74,6 +74,7 @@ type Destination struct {
 	Updated int64  `gorm:"autoUpdateTime"`
 	Name    string `gorm:"unique"`
 	Kind    string
+	Alias   string
 
 	KubernetesCa       string
 	KubernetesEndpoint string
