@@ -48,11 +48,11 @@ Configuration file can also be explicitly supplied through environment variable 
 
 ### Environment Variables
 
-Most configuration values can be configured through environment variables. Environment variables start with `INFRA`, e.g. `INFRA_CONFIG_FILE`. Environment variables have higher precendence than values found in configuration files.
+Most configuration values can be configured through environment variables. Environment variables start with `INFRA`, e.g. `INFRA_CONFIG_FILE`. Environment variables have higher precedence than values found in configuration files.
 
 ### Command Line Parameters
 
-Most configuration values can be configured through command line paramters. Command line parameters have higher precendence than environment variables or configuration files.
+Most configuration values can be configured through command line parameters. Command line parameters have higher precedence than environment variables or configuration files.
 
 See [CLI Reference](./cli.md) for a complete list of support command line parameters.
 
