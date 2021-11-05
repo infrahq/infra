@@ -94,9 +94,9 @@ func list(options *ListOptions) error {
 		rowsList = append(rowsList, r)
 	}
 
-	sort.Slice(rowsList, func(i, j int) bool {
+	sort.SliceStable(rowsList, func(i, j int) bool {
 		// Sort by combined name, descending
-		return rowsList[i].Name < rowsList[j].Name
+		return rowsList[i].Name+rowsList[i].ID < rowsList[j].Name+rowsList[j].ID
 	})
 
 	ok, err := canReachInternet()
