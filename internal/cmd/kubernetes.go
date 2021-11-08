@@ -26,8 +26,9 @@ type KubernetesOptions struct {
 
 func newKubernetesUseCmd() (*cobra.Command, error) {
 	cmd := &cobra.Command{
-		Use:   "use [NAME]",
-		Short: "Set the Kubernetes current context",
+		Use:     "use-context [NAME]",
+		Short:   "Set the Kubernetes current context",
+		Aliases: []string{"use"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := ""
 			if len(args) > 0 {
