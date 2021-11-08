@@ -193,7 +193,7 @@ DESTINATIONS:
 		})
 
 		prompt := survey.Select{
-			Message: "Multiple candidates found:",
+			Message: "Select a cluster:",
 			Options: promptOptions,
 		}
 
@@ -247,7 +247,7 @@ DESTINATIONS:
 		})
 
 		prompt := survey.Select{
-			Message: "Multiple candidates found:",
+			Message: "Select a namespace:",
 			Options: promptOptions,
 		}
 
