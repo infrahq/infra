@@ -4,41 +4,77 @@ The Infra Helm chart is the recommended way of installing Infra on Kubernetes.
 
 ## Add Helm Repo
 
-```
+```bash
 helm repo add infrahq https://helm.infrahq.com
 helm repo update
 ```
 
 ## Install Infra
 
-```
+```bash
 helm install -n infrahq --create-namespace infra infrahq/infra
+```
+
+## Advanced Service Account Configuration
+
+```yaml
+# example values.yaml
+---
+serviceAccount:
+  annotations:
+    # Google Workload Identity
+    # https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity
+    iam.gke.io/gcp-service-account: <GSA_NAME>@<PROJECT_ID>.iam.gserviceaccount.com
+
+    # AWS Service Account Role
+    # https://docs.aws.amazon.com/eks/latest/userguide/specify-service-account-role.html
+    eks.amazonaws.com/role-arn: arn:aws:iam::<ACCOUNT_ID>:role/<IAM_ROLE_NAME>
 ```
 
 ## Advanced Service Configuration
 
 ### Internal Load Balancer
 
-```
+```yaml
 # example values.yaml
 ---
 service:
   annotations:
     # Google GKE
-    cloud.google.com/load-balancer-type: "Internal"
+    cloud.google.com/load-balancer-type: Internal
 
     # AWS EKS
-    service.beta.kubernetes.io/aws-load-balancer-internal: true
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internal
 
     # Azure AKS
     service.beta.kubernetes.io/azure-load-balancer-internal: true
+```
+
+### Health Check
+
+```yaml
+# example values.yaml
+---
+service:
+  annotations:
+    # AWS EKS
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: HTTPS
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: /healthz
+
+    # Azure AKS
+    service.beta.kubernetes.io/azure-load-balancer-health-probe-protocol: https        # Kubernetes 1.20+
+    service.beta.kubernetes.io/azure-load-balancer-health-probe-request-path: healthz  # Kubernetes 1.20+
+
+    # Digital Ocean
+    service.beta.kubernetes.io/do-loadbalancer-healthcheck-protocol: http
+    service.beta.kubernetes.io/do-loadbalancer-healthcheck-path: /healthz
 ```
 
 ## Advanced Ingress Configuration
 
 ### Ambassador (Service Annotations)
 
-```
+```yaml
 # example values.yaml
 ---
 service:
@@ -56,7 +92,7 @@ service:
 
 ### AWS Application Load Balancer Controller (ALB)
 
-```
+```yaml
 # example values.yaml
 ---
 service:
@@ -77,7 +113,7 @@ ingress:
 
 ### NGINX Ingress Controller
 
-```
+```yaml
 # example values.yaml
 ---
 service:
@@ -97,7 +133,7 @@ ingress:
 
 ## Uninstall Infra
 
-```
+```bash
 # Remove Infra
 helm uninstall -n infrahq infra
 
@@ -107,7 +143,7 @@ kubectl delete -n infrahq secret/infra-okta
 
 ## Uninstall Infra Engine
 
-```
+```bash
 # Remove Infra Engine
 helm uninstall -n infrahq infra-engine
 
