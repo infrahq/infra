@@ -65,10 +65,10 @@ Secrets Manager takes configuration, like so:
 ```yaml
 secrets:
   - name: awssm # can optionally provide a custom name
-    kind: awssm
+    kind: awssecretsmanager
     endpoint: https://kms.endpoint
     region: us-west-2
-    accessKeyId: env:AWS_ACCESS_KEY_ID # secret config can even reference other built-in secret types, like env
+    accessKeyID: env:AWS_ACCESS_KEY_ID # secret config can even reference other built-in secret types, like env
     secretAccessKey: env:AWS_SECRET_ACCESS_KEY
 ```
 
@@ -84,10 +84,10 @@ SSM takes configuration, like so:
 secrets:
   - name: awsssm # can optionally provide a custom name
     kind: awsssm
-    keyId: 1234abcd-12ab-34cd-56ef-1234567890ab # optional, if set it's the KMS key that should be used for decryption
+    keyID: 1234abcd-12ab-34cd-56ef-1234567890ab # optional, if set it's the KMS key that should be used for decryption
     endpoint: https://kms.endpoint
     region: us-west-2
-    accessKeyId: env:AWS_ACCESS_KEY_ID # secret config can even reference other built-in secret types, like env
+    accessKeyID: env:AWS_ACCESS_KEY_ID # secret config can even reference other built-in secret types, like env
     secretAccessKey: env:AWS_SECRET_ACCESS_KEY
 ```
 

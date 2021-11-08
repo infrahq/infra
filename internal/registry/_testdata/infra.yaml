@@ -92,6 +92,8 @@ users:
           - labels:
               - us-west-1
               - us-east-1
+            namespaces:
+              - infrahq
   - email: unknown@example.com
     roles:
       - name: writer

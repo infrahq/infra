@@ -15,6 +15,7 @@ config:
       apiToken: kubernetes:$OKTA_SECRET/apiToken
   groups:
     - name: Everyone
+      provider: okta
       roles:
         - kind: cluster-role
           name: cluster-admin

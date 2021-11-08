@@ -18,7 +18,7 @@ type GenericConfig struct {
 
 type FileConfig struct {
 	GenericConfig
-	Path string `yaml:"path"`
+	Path string `yaml:"path" validate:"required"`
 }
 
 type FileSecretProvider struct {

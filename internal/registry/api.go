@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
@@ -34,8 +33,6 @@ type CustomJWTClaims struct {
 	Destination string `json:"dest" validate:"required"`
 	Nonce       string `json:"nonce" validate:"required"`
 }
-
-var validate *validator.Validate = validator.New()
 
 func NewAPIMux(reg *Registry) *mux.Router {
 	a := API{
