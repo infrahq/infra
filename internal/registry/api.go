@@ -943,7 +943,12 @@ func (d *Destination) marshal() api.Destination {
 	}
 
 	for _, l := range d.Labels {
-		res.Labels = append(res.Labels, l.Value)
+		switch l.Value {
+		case d.Kind: // skip Kind
+		case d.Alias: // skip Alias
+		default:
+			res.Labels = append(res.Labels, l.Value)
+		}
 	}
 
 	return res
