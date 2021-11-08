@@ -17,11 +17,8 @@ var (
 	S *zap.SugaredLogger = zap.S()
 )
 
-func Initialize(l string) (*zap.Logger, error) {
-	atom := zap.NewAtomicLevel()
-	if err := atom.UnmarshalText([]byte(l)); err != nil {
-		return nil, err
-	}
+func Initialize(v int) (*zap.Logger, error) {
+	atom := zap.NewAtomicLevelAt(zapcore.Level(-v))
 
 	var (
 		encoder zapcore.Encoder

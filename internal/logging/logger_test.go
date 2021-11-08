@@ -8,7 +8,7 @@ import (
 )
 
 func TestConfigDefault(t *testing.T) {
-	logger, _ := Initialize("")
+	logger, _ := Initialize(0)
 
 	assert.NotNil(t, logger)
 
@@ -22,18 +22,11 @@ func TestConfigDefault(t *testing.T) {
 }
 
 func TestConfigValidLevel(t *testing.T) {
-	logger, _ := Initialize("debug")
+	logger, _ := Initialize(1)
 
 	assert.NotNil(t, logger)
 
 	if checked := logger.Check(zap.DebugLevel, "not default"); checked == nil {
 		assert.Fail(t, "could not log debug level messages")
 	}
-}
-
-func TestConfigInvalidLevel(t *testing.T) {
-	logger, err := Initialize("invalid")
-
-	assert.Nil(t, logger)
-	assert.NotNil(t, err)
 }

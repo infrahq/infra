@@ -39,8 +39,8 @@ spec:
               containerPort: {{ .targetPort }}
 {{- end }}
           env:
-            - name: INFRA_LOG_LEVEL
-              value: {{ get .Values "log-level" | default "info" }}
+            - name: INFRA_V
+              value: {{ .Values.v | quote }}
           volumeMounts:
             - name: config
               mountPath: /var/run/infra/config

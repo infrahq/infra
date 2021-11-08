@@ -62,7 +62,7 @@ See [CLI Reference](./cli.md) for a complete list of support command line parame
 |---------------|------------|-----------------------------|---------|----------------------|------------------------|
 | `host`        |            | Infra host URL              | `""`    | `INFRA_HOST`         | `--host`, `-H`         |
 | `config-file` |            | Configuration file path     | `""`    | `INFRA_CONFIG_FILE`  | `--config-file`, `-f`  |
-| `log-level`   |            | Service log level           | `info`  | `INFRA_LOG_LEVEL`    | `--log-level`, `-l`    |
+| `v`           |            | Log verbosity               | `0`     | `INFRA_V`            | `--v`, `-v`            |
 | `timeout`     | `login`    | Login timeout               | `5m0s`  | `INFRA_TIMEOUT`      | `--timeout`, `-t`      |
 | `client`      | `version`  | Display client version only | `false` | `INFRA_CLIENT`       | `--client`             |
 | `server`      | `version`  | Display server version only | `false` | `INFRA_SERVER`       | `--server`             |

@@ -35,7 +35,7 @@ $ infra login infra.example.com
 ```
   -f, --config-file string   Infra configuration file path
   -H, --host string          Infra host
-  -l, --log-level string     log level (default "info")
+  -v, --v count              Log verbosity
 ```
 
 ## `infra logout`
@@ -63,7 +63,7 @@ $ infra logout
 ```
   -f, --config-file string   Infra configuration file path
   -H, --host string          Infra host
-  -l, --log-level string     log level (default "info")
+  -v, --v count              Log verbosity
 ```
 
 ## `infra list`
@@ -85,7 +85,7 @@ infra list [flags]
 ```
   -f, --config-file string   Infra configuration file path
   -H, --host string          Infra host
-  -l, --log-level string     log level (default "info")
+  -v, --v count              Log verbosity
 ```
 
 ## `infra tokens create`
@@ -107,7 +107,7 @@ infra tokens create DESTINATION [flags]
 ```
   -f, --config-file string   Infra configuration file path
   -H, --host string          Infra host
-  -l, --log-level string     log level (default "info")
+  -v, --v count              Log verbosity
 ```
 
 ## `infra version`
@@ -131,6 +131,6 @@ infra version [flags]
 ```
   -f, --config-file string   Infra configuration file path
   -H, --host string          Infra host
-  -l, --log-level string     log level (default "info")
+  -v, --v count              Log verbosity
 ```
 
