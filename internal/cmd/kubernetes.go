@@ -1,10 +1,13 @@
 package cmd
 
 import (
-	"os"
 	"fmt"
+	"net/http"
+	"os"
+	"sort"
 	"strings"
 
+	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/logging"
@@ -15,9 +18,9 @@ import (
 
 type KubernetesOptions struct {
 	Name             string
+	Namespace        string
 	LabelSelector    []string `mapstructure:"labels"`
 	KindSelector     string   `mapstructure:"kind"`
-	IDSelector       string   `mapstructure:"id"`
 	internal.Options `mapstructure:",squash"`
 }
 
@@ -43,15 +46,231 @@ func newKubernetesUseCmd() (*cobra.Command, error) {
 		},
 	}
 
-	cmd.Flags().StringP("id", "i", "", "ID")
 	cmd.Flags().StringP("kind", "k", "", "kind")
+	cmd.Flags().StringP("namespace", "n", "", "namespace")
 	cmd.Flags().StringSliceP("labels", "L", []string{}, "labels")
 
 	return cmd, nil
 }
 
 func kubernetesUseContext(options *KubernetesOptions) error {
-	logging.S.Infof("%s", options)
+	config, err := currentHostConfig()
+	if err != nil {
+		return err
+	}
+
+	client, err := apiClientFromConfig(options.Host)
+	if err != nil {
+		return err
+	}
+
+	context, err := apiContextFromConfig(options.Host)
+	if err != nil {
+		return err
+	}
+
+	users, res, err := client.UsersAPI.ListUsers(context).Email(config.Name).Execute()
+	if err != nil {
+		switch res.StatusCode {
+		case http.StatusForbidden:
+			fmt.Fprintln(os.Stderr, "Session has expired.")
+
+			if err = login(&LoginOptions{Current: true}); err != nil {
+				return err
+			}
+
+			return kubernetesUseContext(options)
+
+		default:
+			return errWithResponseContext(err, res)
+		}
+	}
+
+	// This shouldn't be possible but check nonetheless
+	switch {
+	case len(users) < 1:
+		return fmt.Errorf("user %q not found", config.Name)
+	case len(users) > 1:
+		return fmt.Errorf("found multiple users %q", config.Name)
+	}
+
+	user := users[0]
+
+	// first make sure kubeconfig is up to date
+	if err := updateKubeconfig(user); err != nil {
+		return err
+	}
+
+	// deduplciate candidates
+	candidates := make(map[string][]api.Role)
+	for _, r := range user.Roles {
+		candidates[r.Destination.Name] = append(candidates[r.Destination.Name], r)
+	}
+
+	for _, g := range user.Groups {
+		for _, r := range g.Roles {
+			candidates[r.Destination.Name] = append(candidates[r.Destination.Name], r)
+		}
+	}
+
+	// find candidate destinations
+	destinations := make(map[string]map[string][]api.Role)
+
+DESTINATIONS:
+	for _, d := range candidates {
+		for _, r := range d {
+			logging.S.Debugf("considering %s %s@%s#%s", r.Id, r.Destination.Alias, r.Destination.Name[:12], r.Namespace)
+			switch options.Name {
+			case "":
+			case r.Destination.Alias:
+			case r.Destination.Name:
+			case r.Destination.Name[:12]:
+			default:
+				continue
+			}
+
+			switch options.KindSelector {
+			case "":
+			case r.Destination.Kind:
+			default:
+				continue
+			}
+
+			switch options.Namespace {
+			case "":
+			case r.Namespace:
+			default:
+				continue
+			}
+
+			labels := make(map[string]bool)
+			for _, l := range r.Destination.Labels {
+				labels[l] = true
+			}
+
+			for _, l := range options.LabelSelector {
+				if _, ok := labels[l]; !ok {
+					continue DESTINATIONS
+				}
+			}
+
+			if _, ok := destinations[r.Destination.Name[:12]]; !ok {
+				destinations[r.Destination.Name[:12]] = make(map[string][]api.Role)
+			}
+
+			destinations[r.Destination.Name[:12]][r.Namespace] = append(destinations[r.Destination.Name[:12]][r.Namespace], r)
+		}
+	}
+
+	logging.S.Debugf("found %d suitable destination(s)", len(destinations))
+
+	var namespaces map[string][]api.Role
+
+	switch len(destinations) {
+	case 0:
+		return fmt.Errorf("not found")
+	case 1:
+		for _, d := range destinations {
+			namespaces = d
+		}
+	default:
+		promptOptions := make([]string, 0)
+
+		for k, c := range destinations {
+			// sample one namespace for this destinations
+			var sample api.Role
+			for _, n := range c {
+				sample = n[0]
+				break
+			}
+
+			promptOptions = append(promptOptions, fmt.Sprintf("%s %s [%s]", k, sample.Destination.Alias, strings.Join(sample.Destination.Labels, ", ")))
+		}
+
+		sort.Slice(promptOptions, func(i, j int) bool {
+			return promptOptions[i] < promptOptions[j]
+		})
+
+		prompt := survey.Select{
+			Message: "Multiple candidates found:",
+			Options: promptOptions,
+		}
+
+		var selected string
+
+		err := survey.AskOne(&prompt, &selected, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithIcons(func(icons *survey.IconSet) {
+			icons.Question.Text = blue("?")
+		}))
+		if err != nil {
+			return err
+		}
+
+		parts := strings.Split(selected, " ")
+		namespaces = destinations[parts[0]]
+	}
+
+	logging.S.Debugf("found %d suitable namespace(s)", len(namespaces))
+
+	var namespace api.Role
+
+	switch len(namespaces) {
+	case 0:
+		// should be impossible
+		return fmt.Errorf("not found")
+	case 1:
+		for _, n := range namespaces {
+			namespace = n[0]
+		}
+	default:
+		promptOptions := make([]string, 0)
+
+		for _, n := range namespaces {
+			names := make([]string, 0)
+
+			var namespace string
+
+			for _, r := range n {
+				names = append(names, r.Name)
+				namespace = r.Namespace
+			}
+
+			if namespace == "" {
+				namespace = "*"
+			}
+
+			promptOptions = append(promptOptions, fmt.Sprintf("%s [%s]", namespace, strings.Join(names, ", ")))
+		}
+
+		sort.Slice(promptOptions, func(i, j int) bool {
+			return promptOptions[i] < promptOptions[j]
+		})
+
+		prompt := survey.Select{
+			Message: "Multiple candidates found:",
+			Options: promptOptions,
+		}
+
+		var selected string
+
+		err := survey.AskOne(&prompt, &selected, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithIcons(func(icons *survey.IconSet) {
+			icons.Question.Text = blue("?")
+		}))
+		if err != nil {
+			return err
+		}
+
+		parts := strings.Split(selected, " ")
+		if parts[0] == "*" {
+			parts[0] = ""
+		}
+
+		namespace = namespaces[parts[0]][0]
+	}
+
+	if err := kubernetesSetContext(namespace.Destination.Alias, namespace.Destination.Name[:12], namespace.Namespace); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -60,6 +279,39 @@ func clientConfig() clientcmd.ClientConfig {
 	loadingRules.WarnIfAllMissing = false
 
 	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
+}
+
+func kubernetesSetContext(alias string, shortname string, namespace string) error {
+	config := clientConfig()
+
+	kubeconfig, err := config.RawConfig()
+	if err != nil {
+		return err
+	}
+
+	if c, ok := kubeconfig.Contexts[fmt.Sprintf("infra:%s@%s:%s", alias, shortname, namespace)]; ok {
+		// try infra:<ALIAS>@<SHORTNAME>:<NAMESPACE>
+		kubeconfig.CurrentContext = c.Cluster
+	} else if c, ok := kubeconfig.Contexts[fmt.Sprintf("infra:%s:%s", alias, namespace)]; ok {
+		// try infra:<ALIAS>:<NAMESPACE>
+		kubeconfig.CurrentContext = c.Cluster
+	} else if c, ok := kubeconfig.Contexts[fmt.Sprintf("infra:%s@%s", alias, shortname)]; ok {
+		// try infra:<ALIAS>@<SHORTNAME>
+		kubeconfig.CurrentContext = c.Cluster
+	} else if c, ok := kubeconfig.Contexts[fmt.Sprintf("infra:%s", alias)]; ok {
+		// try infra:<ALIAS>
+		kubeconfig.CurrentContext = c.Cluster
+	} else {
+		return fmt.Errorf("context not found")
+	}
+
+	fmt.Fprintf(os.Stderr, "Switched to context %q.\n", kubeconfig.CurrentContext)
+
+	if err := clientcmd.WriteToFile(kubeconfig, config.ConfigAccess().GetDefaultFilename()); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func updateKubeconfig(user api.User) error {

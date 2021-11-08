@@ -10,6 +10,7 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/lensesio/tableprinter"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -74,7 +75,7 @@ func list(options *ListOptions) error {
 
 	kubeConfig, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), nil).RawConfig()
 	if err != nil {
-		println(err.Error())
+		logging.S.Errorf("k8s error: %w", err)
 	}
 
 	// deduplicate rows
@@ -131,8 +132,7 @@ func list(options *ListOptions) error {
 
 	printTable(rowsList)
 
-	err = updateKubeconfig(user)
-	if err != nil {
+	if err := updateKubeconfig(user); err != nil {
 		return err
 	}
 
