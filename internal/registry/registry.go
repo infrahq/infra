@@ -108,7 +108,7 @@ func Run(options Options) (err error) {
 		return fmt.Errorf("configure sentry: %w", err)
 	}
 
-	r.db, err = NewDB(options.DBFile)
+	r.db, err = NewSQLiteDB(options.DBFile)
 	if err != nil {
 		return fmt.Errorf("db: %w", err)
 	}

@@ -592,7 +592,7 @@ func (a *APIKey) BeforeCreate(tx *gorm.DB) (err error) {
 	return nil
 }
 
-func NewDB(dbpath string) (*gorm.DB, error) {
+func NewSQLiteDB(dbpath string) (*gorm.DB, error) {
 	if !strings.HasPrefix(dbpath, "file::memory") {
 		if err := os.MkdirAll(path.Dir(dbpath), os.ModePerm); err != nil {
 			return nil, err
@@ -611,50 +611,59 @@ func NewDB(dbpath string) (*gorm.DB, error) {
 		),
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("sqlite connection: %w", err)
 	}
 
-	if err := db.AutoMigrate(&User{}); err != nil {
-		return nil, err
-	}
-
-	if err := db.AutoMigrate(&Provider{}); err != nil {
-		return nil, err
-	}
-
-	if err := db.AutoMigrate(&Role{}); err != nil {
-		return nil, err
-	}
-
-	if err := db.AutoMigrate(&Group{}); err != nil {
-		return nil, err
-	}
-
-	if err := db.AutoMigrate(&Destination{}); err != nil {
-		return nil, err
-	}
-
-	if err := db.AutoMigrate(&Label{}); err != nil {
-		return nil, err
-	}
-
-	if err := db.AutoMigrate(&Settings{}); err != nil {
-		return nil, err
-	}
-
-	if err := db.AutoMigrate(&Token{}); err != nil {
-		return nil, err
-	}
-
-	if err := db.AutoMigrate(&APIKey{}); err != nil {
-		return nil, err
-	}
-
-	// Add default settings
-	err = db.FirstOrCreate(&Settings{}).Error
-	if err != nil {
+	if err := migrate(db); err != nil {
 		return nil, err
 	}
 
 	return db, nil
+}
+
+func migrate(db *gorm.DB) error {
+	if err := db.AutoMigrate(&User{}); err != nil {
+		return fmt.Errorf("user migration: %w", err)
+	}
+
+	if err := db.AutoMigrate(&Provider{}); err != nil {
+		return fmt.Errorf("provider migration: %w", err)
+	}
+
+	if err := db.AutoMigrate(&Role{}); err != nil {
+		return fmt.Errorf("role migration: %w", err)
+	}
+
+	if err := db.AutoMigrate(&Group{}); err != nil {
+		return fmt.Errorf("group migration: %w", err)
+	}
+
+	if err := db.AutoMigrate(&Destination{}); err != nil {
+		return fmt.Errorf("destination migration: %w", err)
+	}
+
+	if err := db.AutoMigrate(&Label{}); err != nil {
+		return fmt.Errorf("label migration: %w", err)
+	}
+
+	if err := db.AutoMigrate(&Settings{}); err != nil {
+		return fmt.Errorf("settings migration: %w", err)
+	}
+
+	if err := db.AutoMigrate(&Token{}); err != nil {
+		return fmt.Errorf("token migration: %w", err)
+	}
+
+	if err := db.AutoMigrate(&APIKey{}); err != nil {
+		return fmt.Errorf("API key migration: %w", err)
+	}
+
+	// Add default settings
+	if err := db.FirstOrCreate(&Settings{}).Error; err != nil {
+		return fmt.Errorf("default settings: %w", err)
+	}
+
+	logging.S.Debug("database migration successful")
+
+	return nil
 }
