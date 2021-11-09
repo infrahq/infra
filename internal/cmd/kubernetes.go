@@ -20,7 +20,6 @@ type KubernetesOptions struct {
 	Name             string
 	Namespace        string
 	LabelSelector    []string `mapstructure:"labels"`
-	KindSelector     string   `mapstructure:"kind"`
 	RoleSelector     string   `mapstructure:"role"`
 	internal.Options `mapstructure:",squash"`
 }
@@ -48,7 +47,6 @@ func newKubernetesUseCmd() (*cobra.Command, error) {
 		},
 	}
 
-	cmd.Flags().StringP("kind", "k", "", "kind")
 	cmd.Flags().StringP("role", "r", "", "role")
 	cmd.Flags().StringP("namespace", "n", "", "namespace")
 	cmd.Flags().StringSliceP("labels", "l", []string{}, "labels")
@@ -128,13 +126,6 @@ DESTINATIONS:
 			case r.Destination.Alias:
 			case r.Destination.Name:
 			case r.Destination.Name[:12]:
-			default:
-				continue
-			}
-
-			switch options.KindSelector {
-			case "":
-			case r.Destination.Kind:
 			default:
 				continue
 			}
