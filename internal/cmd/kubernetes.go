@@ -51,7 +51,7 @@ func newKubernetesUseCmd() (*cobra.Command, error) {
 	cmd.Flags().StringP("kind", "k", "", "kind")
 	cmd.Flags().StringP("role", "r", "", "role")
 	cmd.Flags().StringP("namespace", "n", "", "namespace")
-	cmd.Flags().StringSliceP("labels", "L", []string{}, "labels")
+	cmd.Flags().StringSliceP("labels", "l", []string{}, "labels")
 
 	return cmd, nil
 }
