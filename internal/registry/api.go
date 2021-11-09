@@ -461,15 +461,14 @@ func (a *API) CreateDestination(w http.ResponseWriter, r *http.Request) {
 	}
 
 	destination := Destination{
+		Name:               body.Name,
 		Kind:               string(body.Kind),
-		Alias:              body.Alias,
 		KubernetesCa:       body.Kubernetes.Ca,
 		KubernetesEndpoint: body.Kubernetes.Endpoint,
 	}
 
 	automaticLabels := []string{
 		string(body.Kind),
-		body.Alias,
 	}
 
 	err = a.db.Transaction(func(tx *gorm.DB) error {
@@ -482,7 +481,7 @@ func (a *API) CreateDestination(w http.ResponseWriter, r *http.Request) {
 			destination.Labels = append(destination.Labels, label)
 		}
 
-		if err := tx.FirstOrCreate(&destination, &Destination{Name: body.Name}).Error; err != nil {
+		if err := tx.FirstOrCreate(&destination, &Destination{NodeID: body.NodeID}).Error; err != nil {
 			return err
 		}
 
@@ -935,9 +934,9 @@ func (s *Provider) marshal() api.Provider {
 
 func (d *Destination) marshal() api.Destination {
 	res := api.Destination{
+		NodeID:  d.NodeID,
 		Name:    d.Name,
 		Kind:    d.Kind,
-		Alias:   d.Alias,
 		Id:      d.Id,
 		Created: d.Created,
 		Updated: d.Updated,
@@ -953,7 +952,6 @@ func (d *Destination) marshal() api.Destination {
 	for _, l := range d.Labels {
 		switch l.Value {
 		case d.Kind: // skip Kind
-		case d.Alias: // skip Alias
 		default:
 			res.Labels = append(res.Labels, l.Value)
 		}

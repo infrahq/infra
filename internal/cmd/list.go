@@ -141,8 +141,8 @@ func list(options *ListOptions) error {
 
 func newRow(role api.Role, currentContext string) statusRow {
 	row := statusRow{
-		ID:     role.Destination.Name[:12],
-		Name:   role.Destination.Alias,
+		ID:     role.Destination.NodeID[:12],
+		Name:   role.Destination.Name,
 		Status: "💻 → ❌ Can't reach internet",
 		Labels: strings.Join(role.Destination.Labels, ", "),
 	}
@@ -158,8 +158,8 @@ func newRow(role api.Role, currentContext string) statusRow {
 	if len(parts) >= 2 && parts[0] == "infra" {
 		// check "infra:<ALIAS>[@<NAME>][:<NAMESPACE>]"
 		parts := strings.Split(parts[1], "@")
-		if parts[0] == role.Destination.Alias {
-			if len(parts) > 1 && parts[1] == role.Destination.Name[:12] {
+		if parts[0] == role.Destination.Name {
+			if len(parts) > 1 && parts[1] == role.Destination.NodeID[:12] {
 				// check "<ALIAS>@<NAME>"
 				row.CurrentlySelected = "*"
 			} else if len(parts) == 1 {

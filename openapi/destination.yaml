@@ -2,20 +2,20 @@ Destination:
   type: object
   required:
     - id
+    - nodeID
     - name
     - kind
-    - alias
     - created
     - updated
     - labels
   properties:
     id:
       type: string
+    nodeID:
+      type: string
     name:
       type: string
     kind:
-      type: string
-    alias:
       type: string
     created:
       type: integer
@@ -32,17 +32,17 @@ Destination:
 DestinationCreateRequest:
   type: object
   required:
+    - nodeID
     - name
     - kind
-    - alias
     - labels
   properties:
+    nodeID:
+      type: string
     name:
       type: string
     kind:
       $ref: 'destination.yaml#/DestinationKind'
-    alias:
-      type: string
     labels:
       type: array
       items:
