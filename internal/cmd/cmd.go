@@ -449,7 +449,7 @@ func NewRootCmd() (*cobra.Command, error) {
 				return err
 			}
 
-			logger, err := logging.Initialize(options.LogLevel)
+			logger, err := logging.Initialize(options.V)
 			if err != nil {
 				logging.L.Warn(err.Error())
 			} else {
@@ -472,7 +472,7 @@ func NewRootCmd() (*cobra.Command, error) {
 
 	rootCmd.PersistentFlags().StringP("config-file", "f", "", "Infra configuration file path")
 	rootCmd.PersistentFlags().StringP("host", "H", "", "Infra host")
-	rootCmd.PersistentFlags().StringP("log-level", "l", "info", "log level")
+	rootCmd.PersistentFlags().CountP("v", "v", "Log verbosity")
 
 	return rootCmd, nil
 }

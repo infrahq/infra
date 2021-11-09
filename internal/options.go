@@ -11,7 +11,7 @@ import (
 type Options struct {
 	Host       string `mapstructure:"host"`
 	ConfigFile string `mapstructure:"config-file"`
-	LogLevel   string `mapstructure:"log-level"`
+	V          int    `mapstructure:"v"`
 }
 
 func ParseOptions(cmd *cobra.Command, options interface{}) error {
