@@ -18,6 +18,7 @@ import (
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
 	"gopkg.in/square/go-jose.v2"
+	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -590,6 +591,19 @@ func (a *APIKey) BeforeCreate(tx *gorm.DB) (err error) {
 	}
 
 	return nil
+}
+
+func NewPostgresDB(dsn string) (*gorm.DB, error) {
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		return nil, fmt.Errorf("postgres connection: %w", err)
+	}
+
+	if err := migrate(db); err != nil {
+		return nil, err
+	}
+
+	return db, nil
 }
 
 func NewSQLiteDB(dbpath string) (*gorm.DB, error) {

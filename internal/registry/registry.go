@@ -35,6 +35,7 @@ import (
 type Options struct {
 	ConfigPath   string `mapstructure:"config-path"`
 	DBFile       string `mapstructure:"db-file"`
+	PgDSN        string `mapstructure:"pgsql-dsn"`
 	TLSCache     string `mapstructure:"tls-cache"`
 	RootAPIKey   string `mapstructure:"root-api-key"`
 	EngineAPIKey string `mapstructure:"engine-api-key"`
@@ -108,9 +109,16 @@ func Run(options Options) (err error) {
 		return fmt.Errorf("configure sentry: %w", err)
 	}
 
-	r.db, err = NewSQLiteDB(options.DBFile)
-	if err != nil {
-		return fmt.Errorf("db: %w", err)
+	if options.PgDSN != "" {
+		r.db, err = NewPostgresDB(options.PgDSN)
+		if err != nil {
+			return fmt.Errorf("db: %w", err)
+		}
+	} else {
+		r.db, err = NewSQLiteDB(options.DBFile)
+		if err != nil {
+			return fmt.Errorf("db: %w", err)
+		}
 	}
 
 	err = r.db.First(&r.settings).Error
