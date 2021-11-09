@@ -52,6 +52,7 @@ config:
     # Grants the "Everyone" Okta group read-only access
     # to the default namespace of all Kubernetes clusters
     - name: Everyone
+      provider: okta
       roles:
         - kind: role
           name: view
