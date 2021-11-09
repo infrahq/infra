@@ -1840,6 +1840,13 @@ func TestCreateAPIKey(t *testing.T) {
 		db: db,
 	}
 
+	var apiKey APIKey
+
+	err := db.FirstOrCreate(&apiKey, &APIKey{Name: "create-api-key", Permissions: string(api.API_KEYS_CREATE)}).Error
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	createAPIKeyRequest := api.InfraAPIKeyCreateRequest{
 		Name:        "test-api-client",
 		Permissions: []api.InfraAPIPermission{api.USERS_READ},
@@ -1851,8 +1858,10 @@ func TestCreateAPIKey(t *testing.T) {
 	}
 
 	r := httptest.NewRequest(http.MethodPost, "/v1/api-keys", bytes.NewReader(csr))
+	r.Header.Add("Authorization", "Bearer "+apiKey.Key)
+
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.CreateAPIKey).ServeHTTP(w, r)
+	a.bearerAuthMiddleware(api.API_KEYS_CREATE, http.HandlerFunc(a.CreateAPIKey)).ServeHTTP(w, r)
 
 	var body api.InfraAPIKeyCreateResponse
 	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
@@ -1864,9 +1873,10 @@ func TestCreateAPIKey(t *testing.T) {
 	assert.NotEmpty(t, body.Key)
 
 	// clean up
-	var apiKey APIKey
+	var createdKey API
 
-	db.First(&apiKey, &APIKey{Name: "test-api-client"})
+	db.First(&createdKey, &APIKey{Name: "test-api-client"})
+	db.Delete(&createdKey)
 	db.Delete(&apiKey)
 }
 
@@ -1927,8 +1937,6 @@ func TestListAPIKeys(t *testing.T) {
 	if err := json.NewDecoder(w.Body).Decode(&keys); err != nil {
 		t.Fatal(err)
 	}
-
-	assert.Equal(t, 1, len(keys))
 
 	keyIDs := make(map[string]string)
 
