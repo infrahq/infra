@@ -25,6 +25,7 @@ import (
 	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/pro"
 	"github.com/infrahq/infra/internal/registry"
 	"github.com/infrahq/infra/internal/timer"
 	"golang.org/x/crypto/acme/autocert"
@@ -167,7 +168,7 @@ func jwtMiddleware(destination string, getjwk GetJWKFunc, next http.HandlerFunc)
 	})
 }
 
-func proxyHandler(ca []byte, bearerToken string, remote *url.URL) (http.HandlerFunc, error) {
+func proxyHandler(name string, ca []byte, bearerToken string, remote *url.URL) (http.HandlerFunc, error) {
 	caCertPool := x509.NewCertPool()
 	ok := caCertPool.AppendCertsFromPEM(ca)
 
@@ -190,6 +191,16 @@ func proxyHandler(ca []byte, bearerToken string, remote *url.URL) (http.HandlerF
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 
 			return
+		}
+
+		e := pro.Event{
+			User:        email,
+			Destination: name,
+		}
+
+		err := pro.Log(e)
+		if err != nil {
+			logging.S.Error(err)
 		}
 
 		r.Header.Set("Impersonate-User", fmt.Sprintf("infra:%s", email))
@@ -424,7 +435,7 @@ func Run(options *Options) error {
 		return fmt.Errorf("reading CA file: %w", err)
 	}
 
-	ph, err := proxyHandler(ca, k8s.Config.BearerToken, remote)
+	ph, err := proxyHandler(name, ca, k8s.Config.BearerToken, remote)
 	if err != nil {
 		return fmt.Errorf("setting proxy handler: %w", err)
 	}
