@@ -560,6 +560,14 @@ func (a *API) DeleteAPIKey(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
+	_, err := extractAPIKey(r.Context())
+	if err != nil {
+		logging.L.Error(err.Error())
+		sendAPIError(w, http.StatusUnauthorized, "unauthorized")
+
+		return
+	}
+
 	var body api.InfraAPIKeyCreateRequest
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		sendAPIError(w, http.StatusBadRequest, err.Error())
@@ -579,7 +587,7 @@ func (a *API) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 
 	var apiKey APIKey
 
-	err := a.db.Transaction(func(tx *gorm.DB) error {
+	err = a.db.Transaction(func(tx *gorm.DB) error {
 		tx.First(&apiKey, &APIKey{Name: body.Name})
 		if apiKey.Id != "" {
 			return ErrExistingKey
