@@ -8,11 +8,6 @@ metadata:
   {{- toYaml . | nindent 4 }}
 {{- end }}
   annotations:
-{{- if .Values.service.internalLoadBalancer }}
-    networking.gke.io/load-balancer-type: "Internal"
-    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
-    service.beta.kubernetes.io/aws-load-balancer-scheme: "internal"
-{{- end }}
 {{- with .Values.service.annotations }}
   {{- toYaml . | nindent 4 }}
 {{- end }}
