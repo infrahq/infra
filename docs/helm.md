@@ -173,7 +173,7 @@ kubectl delete clusterrolebindings,rolebindings -l app.kubernetes.io/managed-by=
 | `ingress.labels`                   | Ingress labels (https)                  | `{}`                         |
 | `pod.annotations`                  | Pod annotations                         | `{}`                         |
 | `service.type`                     | Service type                            | `LoadBalancer`               |
-| `service.ports`                    | Service ports                           | `[{name:http, port:80 targetPort:80}, {name:https, port:443, targetPort:43}]` |
+| `service.ports`                    | Service ports                           | `[{name:http, port:80 targetPort:80}, {name:https, port:443, targetPort:443}]` |
 | `service.ports[].port`             | Service port                            | `nil`                        |
 | `service.ports[].name`             | Service port name                       | `nil`                        |
 | `service.ports[].targetPort`       | Service port target                     | `nil`                        |
@@ -201,7 +201,7 @@ kubectl delete clusterrolebindings,rolebindings -l app.kubernetes.io/managed-by=
 | `image.pullPolicy`                 | Image pull policy                       | `IfNotPresent`               |
 | `pod.annotations`                  | Pod annotations                         | `{}`                         |
 | `service.type`                     | Service type                            | `LoadBalancer`               |
-| `service.ports`                    | Service ports                           | `[{name:https, port:443, targetPort:43}]` |
+| `service.ports`                    | Service ports                           | `[{name:https, port:443, targetPort:443}]` |
 | `service.ports[].port`             | Service port                            | `nil`                        |
 | `service.ports[].name`             | Service port name                       | `nil`                        |
 | `service.ports[].targetPort`       | Service port target                     | `nil`                        |
