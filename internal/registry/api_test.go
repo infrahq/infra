@@ -1874,6 +1874,7 @@ func TestCreateAPIKey(t *testing.T) {
 
 	// clean up
 	var createdKey API
+
 	db.First(&createdKey, &APIKey{Name: "test-api-client"})
 	db.Delete(&createdKey)
 	db.Delete(&apiKey)
