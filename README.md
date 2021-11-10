@@ -70,7 +70,7 @@ See the [Helm Chart reference](./docs/helm.md) for a complete list of options co
 ```bash
 helm repo add infrahq https://helm.infrahq.com/
 helm repo update
-helm install -n infrahq --create-namespace -f values.yaml infra infrahq/infra
+helm upgrade --install -n infrahq --create-namespace -f values.yaml infra infrahq/infra
 ```
 
 ### Install Infra CLI

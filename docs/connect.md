@@ -16,7 +16,7 @@ kubectl config use-context <your other context name>
 Finally, add the new cluster by installing the Infra Engine:
 
 ```
-helm -n infrahq install infra-engine infrahq/engine --set host=$INFRA_HOST --set apiKey=$ENGINE_API_KEY
+helm upgrade --install -n infrahq infra infrahq/engine --set host=$INFRA_HOST --set apiKey=$ENGINE_API_KEY
 ```
 
 Run this command to connect an existing Kubernetes cluster. Note, this command can be re-used for multiple clusters or scripted via Infrastructure As Code (IAC).

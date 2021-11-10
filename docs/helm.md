@@ -12,7 +12,7 @@ helm repo update
 ## Install Infra
 
 ```bash
-helm install -n infrahq --create-namespace infra infrahq/infra
+helm upgrade --install -n infrahq --create-namespace infra infrahq/infra
 ```
 
 ## Advanced Service Account Configuration

@@ -57,7 +57,7 @@ INFRA_API_KEY=$(kubectl -n infrahq get secrets infra-engine -o jsonpath='{.data.
 ---
 
 ```
-helm install -n infrahq --create-namespace --set host=$INFRA_HOST --set apiKey=$INFRA_API_KEY infra infrahq/engine
+helm upgrade --install -n infrahq --create-namespace --set host=$INFRA_HOST --set apiKey=$INFRA_API_KEY infra infrahq/engine
 ```
 
 See [Helm Chart reference](./helm.md) for a complete list of options configurable through Helm.
