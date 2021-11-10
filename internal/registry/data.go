@@ -211,7 +211,16 @@ func (d *Destination) BeforeDelete(tx *gorm.DB) (err error) {
 		return fmt.Errorf("before delete destination mapping: %w", err)
 	}
 
-	return tx.Where(&Role{DestinationId: d.Id}).Delete(&Role{}).Error
+	var roles []Role
+	if err := tx.Where(&Role{DestinationId: d.Id}).Find(&roles).Error; err != nil {
+		return fmt.Errorf("before delete destination roles: %w", err)
+	}
+
+	if len(roles) > 0 {
+		return tx.Delete(&roles).Error
+	}
+
+	return nil
 }
 
 func (l *Label) BeforeCreate(tx *gorm.DB) (err error) {
@@ -594,7 +603,17 @@ func (a *APIKey) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 func NewPostgresDB(dsn string) (*gorm.DB, error) {
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: logger.New(
+			log.New(os.Stdout, "\r\n", log.LstdFlags),
+			logger.Config{
+				SlowThreshold:             time.Second,
+				LogLevel:                  logger.Error,
+				IgnoreRecordNotFoundError: true,
+				Colorful:                  true,
+			},
+		),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("postgres connection: %w", err)
 	}

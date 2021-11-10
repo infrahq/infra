@@ -390,6 +390,24 @@ func ImportRoleMappings(db *gorm.DB, groups []ConfigGroupMapping, users []Config
 	return nil
 }
 
+// importSecretsConfig imports only the secret providers found in a config file
+func (r *Registry) importSecretsConfig(bs []byte) error {
+	var config Config
+	if err := yaml.Unmarshal(bs, &config); err != nil {
+		return err
+	}
+
+	if err := validate.Struct(config); err != nil {
+		return fmt.Errorf("invalid config: %w", err)
+	}
+
+	if err := r.configureSecrets(config); err != nil {
+		return fmt.Errorf("secrets config: %w", err)
+	}
+
+	return nil
+}
+
 // importConfig tries to import all valid fields in a config file and removes old config
 func (r *Registry) importConfig(bs []byte) error {
 	var config Config
@@ -402,10 +420,6 @@ func (r *Registry) importConfig(bs []byte) error {
 	}
 
 	initialConfig = config
-
-	if err := r.configureSecrets(config); err != nil {
-		return fmt.Errorf("secrets config: %w", err)
-	}
 
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		if err := ImportProviders(tx, config.Providers); err != nil {

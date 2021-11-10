@@ -139,6 +139,11 @@ func setup() error {
 		db: db,
 	}
 
+	err = registry.importSecretsConfig(confFileData)
+	if err != nil {
+		return err
+	}
+
 	return registry.importConfig(confFileData)
 }
 

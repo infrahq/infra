@@ -13,6 +13,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -71,6 +72,8 @@ const (
 	DefaultSessionDuration          time.Duration = time.Hour * 12
 )
 
+var templatePattern = regexp.MustCompile(`\{\{([\w\d:]+)\}\}`) // matches {{ * }}
+
 // syncProviders polls every known provider for users and groups
 func (r *Registry) syncProviders() {
 	var providers []Provider
@@ -110,7 +113,13 @@ func Run(options Options) (err error) {
 	}
 
 	if options.PgDSN != "" {
-		r.db, err = NewPostgresDB(options.PgDSN)
+		dsn, err := r.ReplaceSecretTemplates(options.PgDSN)
+		if err != nil {
+			return fmt.Errorf("dsn secrets: %w", err)
+		}
+
+		r.db, err = NewPostgresDB(dsn)
+
 		if err != nil {
 			return fmt.Errorf("db: %w", err)
 		}
@@ -419,6 +428,32 @@ func (r *Registry) configureSentry() (err error, ok bool) {
 	}
 
 	return nil, false
+}
+
+// ReplaceSecretTemplates finds and replaces template values in a string of the form {{secretProvider:key}}
+func (r *Registry) ReplaceSecretTemplates(dsn string) (string, error) {
+	templates := templatePattern.FindAllString(dsn, -1)
+
+	// we will remove templates from this copy of the dsn to return
+	processed := dsn
+
+	for _, t := range templates {
+		// remove template delimiters
+		secret := strings.ReplaceAll(t, "{", "")
+		secret = strings.ReplaceAll(secret, "}", "")
+
+		secret, err := r.GetSecret(secret)
+		if err != nil {
+			return "", fmt.Errorf("replace template secret: %w", err)
+		}
+
+		fmt.Println(secret)
+		processed = strings.ReplaceAll(processed, t, secret)
+	}
+
+	fmt.Println(processed)
+
+	return processed, nil
 }
 
 // GetSecret implements the secret definition scheme for Infra.
