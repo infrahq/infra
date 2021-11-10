@@ -16,9 +16,9 @@ import (
 
 // DestinationCreateRequest struct for DestinationCreateRequest
 type DestinationCreateRequest struct {
+	NodeID     string                 `json:"nodeID"`
 	Name       string                 `json:"name"`
 	Kind       DestinationKind        `json:"kind"`
-	Alias      string                 `json:"alias"`
 	Labels     []string               `json:"labels"`
 	Kubernetes *DestinationKubernetes `json:"kubernetes,omitempty"`
 }
@@ -27,11 +27,11 @@ type DestinationCreateRequest struct {
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewDestinationCreateRequest(name string, kind DestinationKind, alias string, labels []string) *DestinationCreateRequest {
+func NewDestinationCreateRequest(nodeID string, name string, kind DestinationKind, labels []string) *DestinationCreateRequest {
 	this := DestinationCreateRequest{}
+	this.NodeID = nodeID
 	this.Name = name
 	this.Kind = kind
-	this.Alias = alias
 	this.Labels = labels
 	return &this
 }
@@ -42,6 +42,30 @@ func NewDestinationCreateRequest(name string, kind DestinationKind, alias string
 func NewDestinationCreateRequestWithDefaults() *DestinationCreateRequest {
 	this := DestinationCreateRequest{}
 	return &this
+}
+
+// GetNodeID returns the NodeID field value
+func (o *DestinationCreateRequest) GetNodeID() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.NodeID
+}
+
+// GetNodeIDOk returns a tuple with the NodeID field value
+// and a boolean to check if the value has been set.
+func (o *DestinationCreateRequest) GetNodeIDOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.NodeID, true
+}
+
+// SetNodeID sets field value
+func (o *DestinationCreateRequest) SetNodeID(v string) {
+	o.NodeID = v
 }
 
 // GetName returns the Name field value
@@ -90,30 +114,6 @@ func (o *DestinationCreateRequest) GetKindOk() (*DestinationKind, bool) {
 // SetKind sets field value
 func (o *DestinationCreateRequest) SetKind(v DestinationKind) {
 	o.Kind = v
-}
-
-// GetAlias returns the Alias field value
-func (o *DestinationCreateRequest) GetAlias() string {
-	if o == nil {
-		var ret string
-		return ret
-	}
-
-	return o.Alias
-}
-
-// GetAliasOk returns a tuple with the Alias field value
-// and a boolean to check if the value has been set.
-func (o *DestinationCreateRequest) GetAliasOk() (*string, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.Alias, true
-}
-
-// SetAlias sets field value
-func (o *DestinationCreateRequest) SetAlias(v string) {
-	o.Alias = v
 }
 
 // GetLabels returns the Labels field value
@@ -175,13 +175,13 @@ func (o *DestinationCreateRequest) SetKubernetes(v DestinationKubernetes) {
 func (o DestinationCreateRequest) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
+		toSerialize["nodeID"] = o.NodeID
+	}
+	if true {
 		toSerialize["name"] = o.Name
 	}
 	if true {
 		toSerialize["kind"] = o.Kind
-	}
-	if true {
-		toSerialize["alias"] = o.Alias
 	}
 	if true {
 		toSerialize["labels"] = o.Labels

@@ -105,12 +105,12 @@ func kubernetesUseContext(options *KubernetesOptions) error {
 	// deduplciate candidates
 	candidates := make(map[string][]api.Role)
 	for _, r := range user.Roles {
-		candidates[r.Destination.Name] = append(candidates[r.Destination.Name], r)
+		candidates[r.Destination.NodeID] = append(candidates[r.Destination.NodeID], r)
 	}
 
 	for _, g := range user.Groups {
 		for _, r := range g.Roles {
-			candidates[r.Destination.Name] = append(candidates[r.Destination.Name], r)
+			candidates[r.Destination.NodeID] = append(candidates[r.Destination.NodeID], r)
 		}
 	}
 
@@ -120,12 +120,12 @@ func kubernetesUseContext(options *KubernetesOptions) error {
 DESTINATIONS:
 	for _, d := range candidates {
 		for _, r := range d {
-			logging.S.Debugf("considering %s %s@%s#%s", r.Id, r.Destination.Alias, r.Destination.Name[:12], r.Namespace)
+			logging.S.Debugf("considering %s %s@%s#%s", r.Id, r.Destination.Name, r.Destination.NodeID[:12], r.Namespace)
 			switch options.Name {
 			case "":
-			case r.Destination.Alias:
 			case r.Destination.Name:
-			case r.Destination.Name[:12]:
+			case r.Destination.NodeID:
+			case r.Destination.NodeID[:12]:
 			default:
 				continue
 			}
@@ -155,11 +155,11 @@ DESTINATIONS:
 				}
 			}
 
-			if _, ok := destinations[r.Destination.Name[:12]]; !ok {
-				destinations[r.Destination.Name[:12]] = make(map[string][]api.Role)
+			if _, ok := destinations[r.Destination.NodeID[:12]]; !ok {
+				destinations[r.Destination.NodeID[:12]] = make(map[string][]api.Role)
 			}
 
-			destinations[r.Destination.Name[:12]][r.Namespace] = append(destinations[r.Destination.Name[:12]][r.Namespace], r)
+			destinations[r.Destination.NodeID[:12]][r.Namespace] = append(destinations[r.Destination.NodeID[:12]][r.Namespace], r)
 		}
 	}
 
@@ -185,7 +185,7 @@ DESTINATIONS:
 				break
 			}
 
-			promptOptions = append(promptOptions, fmt.Sprintf("%s %s [%s]", k, sample.Destination.Alias, strings.Join(sample.Destination.Labels, ", ")))
+			promptOptions = append(promptOptions, fmt.Sprintf("%s %s [%s]", k, sample.Destination.Name, strings.Join(sample.Destination.Labels, ", ")))
 		}
 
 		sort.Slice(promptOptions, func(i, j int) bool {
@@ -268,7 +268,7 @@ DESTINATIONS:
 		namespace = namespaces[parts[0]][0]
 	}
 
-	if err := kubernetesSetContext(namespace.Destination.Alias, namespace.Destination.Name[:12], namespace.Namespace); err != nil {
+	if err := kubernetesSetContext(namespace.Destination.Name, namespace.Destination.NodeID[:12], namespace.Namespace); err != nil {
 		return err
 	}
 
@@ -328,28 +328,28 @@ func updateKubeconfig(user api.User) error {
 	roles := make(map[string]api.Role)
 
 	for _, r := range user.Roles {
-		if _, ok := aliases[r.Destination.Alias]; !ok {
-			aliases[r.Destination.Alias] = make(map[string]bool)
+		if _, ok := aliases[r.Destination.Name]; !ok {
+			aliases[r.Destination.Name] = make(map[string]bool)
 		}
 
-		aliases[r.Destination.Alias][r.Destination.Name] = true
+		aliases[r.Destination.Name][r.Destination.NodeID] = true
 		roles[r.Id] = r
 	}
 
 	for _, g := range user.Groups {
 		for _, r := range g.Roles {
-			if _, ok := aliases[r.Destination.Alias]; !ok {
-				aliases[r.Destination.Alias] = make(map[string]bool)
+			if _, ok := aliases[r.Destination.Name]; !ok {
+				aliases[r.Destination.Name] = make(map[string]bool)
 			}
 
-			aliases[r.Destination.Alias][r.Destination.Name] = true
+			aliases[r.Destination.Name][r.Destination.NodeID] = true
 			roles[r.Id] = r
 		}
 	}
 
 	for _, role := range roles {
-		name := role.Destination.Name[:12]
-		alias := role.Destination.Alias
+		name := role.Destination.NodeID[:12]
+		alias := role.Destination.Name
 
 		// TODO (#546): allow user to specify prefix, default ""
 		// format: "infra:<ALIAS>"
@@ -388,7 +388,7 @@ func updateKubeconfig(user api.User) error {
 		kubeConfig.AuthInfos[contextName] = &clientcmdapi.AuthInfo{
 			Exec: &clientcmdapi.ExecConfig{
 				Command:         executable,
-				Args:            []string{"tokens", "create", role.Destination.Name},
+				Args:            []string{"tokens", "create", role.Destination.NodeID},
 				APIVersion:      "client.authentication.k8s.io/v1beta1",
 				InteractiveMode: clientcmdapi.IfAvailableExecInteractiveMode,
 			},
@@ -414,9 +414,9 @@ func updateKubeconfig(user api.User) error {
 
 			switch {
 			case len(parts) == 1:
-				found = parts[0] == r.Destination.Alias
+				found = parts[0] == r.Destination.Name
 			case len(parts) > 1:
-				found = parts[0] == r.Destination.Alias && parts[1] == r.Destination.Name[:12]
+				found = parts[0] == r.Destination.Name && parts[1] == r.Destination.NodeID[:12]
 			}
 
 			if found {

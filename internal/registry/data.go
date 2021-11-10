@@ -72,9 +72,9 @@ type Destination struct {
 	Id      string `gorm:"primaryKey"`
 	Created int64  `gorm:"autoCreateTime"`
 	Updated int64  `gorm:"autoUpdateTime"`
-	Name    string `gorm:"unique"`
+	NodeID  string `gorm:"unique"`
+	Name    string
 	Kind    string
-	Alias   string
 
 	KubernetesCa       string
 	KubernetesEndpoint string

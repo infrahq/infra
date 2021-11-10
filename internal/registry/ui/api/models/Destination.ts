@@ -37,6 +37,12 @@ export interface Destination {
      * @type {string}
      * @memberof Destination
      */
+    nodeID: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Destination
+     */
     name: string;
     /**
      * 
@@ -44,12 +50,6 @@ export interface Destination {
      * @memberof Destination
      */
     kind: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof Destination
-     */
-    alias: string;
     /**
      * 
      * @type {number}
@@ -87,9 +87,9 @@ export function DestinationFromJSONTyped(json: any, ignoreDiscriminator: boolean
     return {
         
         'id': json['id'],
+        'nodeID': json['nodeID'],
         'name': json['name'],
         'kind': json['kind'],
-        'alias': json['alias'],
         'created': json['created'],
         'updated': json['updated'],
         'labels': json['labels'],
@@ -107,9 +107,9 @@ export function DestinationToJSON(value?: Destination | null): any {
     return {
         
         'id': value.id,
+        'nodeID': value.nodeID,
         'name': value.name,
         'kind': value.kind,
-        'alias': value.alias,
         'created': value.created,
         'updated': value.updated,
         'labels': value.labels,

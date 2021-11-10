@@ -22,9 +22,9 @@ var (
 	iosDevGroup      = Group{Name: "ios-developers", ProviderId: fakeOktaProvider.Id}
 	macAdminGroup    = Group{Name: "mac-admins", ProviderId: fakeOktaProvider.Id}
 	notInConfigRole  = Role{Name: "does-not-exist"}
-	clusterA         = Destination{Name: "cluster-AAA"}
-	clusterB         = Destination{Name: "cluster-BBB"}
-	clusterC         = Destination{Name: "cluster-CCC"}
+	clusterA         = Destination{NodeID: "cluster-AAA", Name: "cluster-AAA"}
+	clusterB         = Destination{NodeID: "cluster-BBB", Name: "cluster-BBB"}
+	clusterC         = Destination{NodeID: "cluster-CCC", Name: "cluster-CCC"}
 	labelKubernetes  = Label{Value: "kubernetes"}
 	labelUSWest1     = Label{Value: "us-west-1"}
 	labelUSEast1     = Label{Value: "us-east-1"}

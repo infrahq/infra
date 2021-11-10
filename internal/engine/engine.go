@@ -387,9 +387,9 @@ func Run(options *Options) error {
 		}
 
 		destination, _, err := client.DestinationsAPI.CreateDestination(ctx).Body(api.DestinationCreateRequest{
-			Name:   chksm,
+			NodeID: chksm,
+			Name:   options.Name,
 			Kind:   kind,
-			Alias:  options.Name,
 			Labels: options.Labels,
 			Kubernetes: &api.DestinationKubernetes{
 				Ca:       string(caBytes),
