@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"strings"
 
 	survey "github.com/AlecAivazis/survey/v2"
+	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/logging"
@@ -203,6 +205,10 @@ DESTINATIONS:
 			icons.Question.Text = blue("?")
 		}))
 		if err != nil {
+			if errors.Is(err, terminal.InterruptErr) {
+				return nil
+			}
+
 			return err
 		}
 
@@ -257,6 +263,10 @@ DESTINATIONS:
 			icons.Question.Text = blue("?")
 		}))
 		if err != nil {
+			if errors.Is(err, terminal.InterruptErr) {
+				return nil
+			}
+
 			return err
 		}
 
