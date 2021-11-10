@@ -72,7 +72,7 @@ const (
 	DefaultSessionDuration          time.Duration = time.Hour * 12
 )
 
-var templatePattern = regexp.MustCompile(`\{\{([\w\d:]+)\}\}`) // matches {{ * }}
+var templatePattern = regexp.MustCompile(`\{\{([\w\d\/:-]+)\}\}`) // matches {{ * }}
 
 // syncProviders polls every known provider for users and groups
 func (r *Registry) syncProviders() {
@@ -110,6 +110,10 @@ func Run(options Options) (err error) {
 		defer recoverWithSentryHub(sentry.CurrentHub())
 	} else if err != nil {
 		return fmt.Errorf("configure sentry: %w", err)
+	}
+
+	if err = r.loadSecretsConfigFromFile(); err != nil {
+		return fmt.Errorf("loading secrets config from file: %w", err)
 	}
 
 	if options.PgDSN != "" {
@@ -167,9 +171,12 @@ func Run(options Options) (err error) {
 	return logging.L.Sync()
 }
 
-func (r *Registry) loadConfigFromFile() (err error) {
+func (r *Registry) readConfig() []byte {
 	var contents []byte
+
 	if r.options.ConfigPath != "" {
+		var err error
+
 		contents, err = ioutil.ReadFile(r.options.ConfigPath)
 		if err != nil {
 			var perr *fs.PathError
@@ -183,6 +190,26 @@ func (r *Registry) loadConfigFromFile() (err error) {
 		}
 	}
 
+	return contents
+}
+
+// loadSecretsConfigFromFile only loads secret providers, this is needed before reading the whole config to connect to a database
+func (r *Registry) loadSecretsConfigFromFile() (err error) {
+	contents := r.readConfig()
+	if len(contents) > 0 {
+		err = r.importSecretsConfig(contents)
+		if err != nil {
+			return err
+		}
+	} else {
+		logging.L.Warn("skipped importing secret providers empty config")
+	}
+
+	return nil
+}
+
+func (r *Registry) loadConfigFromFile() (err error) {
+	contents := r.readConfig()
 	if len(contents) > 0 {
 		err = r.importConfig(contents)
 		if err != nil {
@@ -438,6 +465,8 @@ func (r *Registry) ReplaceSecretTemplates(dsn string) (string, error) {
 	processed := dsn
 
 	for _, t := range templates {
+		logging.S.Debugf("parsing %s in dsn", t)
+
 		// remove template delimiters
 		secret := strings.ReplaceAll(t, "{", "")
 		secret = strings.ReplaceAll(secret, "}", "")
@@ -447,11 +476,8 @@ func (r *Registry) ReplaceSecretTemplates(dsn string) (string, error) {
 			return "", fmt.Errorf("replace template secret: %w", err)
 		}
 
-		fmt.Println(secret)
 		processed = strings.ReplaceAll(processed, t, secret)
 	}
-
-	fmt.Println(processed)
 
 	return processed, nil
 }

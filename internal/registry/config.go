@@ -257,10 +257,32 @@ func ImportProviders(db *gorm.DB, providers []ConfigProvider) error {
 	if len(idsToKeep) == 0 {
 		logging.L.Debug("no valid providers found in configuration")
 		// clear the providers
-		return db.Where("1 = 1").Delete(&Provider{}).Error
+		var toDelete []Provider
+		if err := db.Where("1 = 1").Find(&toDelete).Error; err != nil {
+			return fmt.Errorf("find cleared providers: %w", err)
+		}
+
+		if len(toDelete) > 0 {
+			if err := db.Where("1 = 1").Delete(toDelete).Error; err != nil {
+				return fmt.Errorf("clear providers: %w", err)
+			}
+		}
+
+		return nil
 	}
 
-	return db.Not(idsToKeep).Delete(&Provider{}).Error
+	var toDelete []Provider
+	if err := db.Not(idsToKeep).Find(&toDelete).Error; err != nil {
+		return fmt.Errorf("find removed providers: %w", err)
+	}
+
+	if len(toDelete) > 0 {
+		if err := db.Where("1 = 1").Delete(toDelete).Error; err != nil {
+			return fmt.Errorf("delete removed providers: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (modifiedRoleIDs []string, err error) {

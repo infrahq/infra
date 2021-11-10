@@ -217,6 +217,14 @@ func (d *Destination) BeforeDelete(tx *gorm.DB) (err error) {
 	}
 
 	if len(roles) > 0 {
+		if err := tx.Model(&roles).Association("Groups").Clear(); err != nil {
+			return fmt.Errorf("clear role groups: %w", err)
+		}
+
+		if err := tx.Model(&roles).Association("Users").Clear(); err != nil {
+			return fmt.Errorf("clear role users: %w", err)
+		}
+
 		return tx.Delete(&roles).Error
 	}
 
@@ -313,6 +321,15 @@ func (p *Provider) BeforeDelete(tx *gorm.DB) error {
 		}
 	}
 
+	var toDelete []Group
+	if err := tx.Where(&Group{ProviderId: p.Id}).Find(&toDelete).Error; err != nil {
+		return fmt.Errorf("find deleted provider groups: %w", err)
+	}
+
+	if len(toDelete) > 0 {
+		return tx.Where("1 = 1").Delete(&toDelete).Error
+	}
+
 	return nil
 }
 
@@ -345,6 +362,10 @@ func (p *Provider) DeleteUser(db *gorm.DB, u User) error {
 	}
 
 	if db.Model(&u).Association("Providers").Count() == 0 {
+		if err := db.Model(&u).Association("Groups").Clear(); err != nil {
+			return err
+		}
+
 		if err := db.Delete(&u).Error; err != nil {
 			return err
 		}
