@@ -412,3 +412,62 @@ func TestSecretsLoadedOkay(t *testing.T) {
 
 	require.Equal(t, "0oapn0qwiQPiMIyR35d6", string(secret))
 }
+
+func TestFirstNamespaceThenNoNamespace(t *testing.T) {
+	config1 := `
+providers:
+  - kind: okta
+    domain: https://test.example.com
+    clientID: plaintext:0oapn0qwiQPiMIyR35d6
+    clientSecret: kubernetes:okta-secrets/clientSecret
+    apiToken: kubernetes:okta-secrets/apiToken
+groups:
+  - name: ios-developers
+    provider: okta
+    roles:
+      - name: cluster-admin
+        kind: cluster-role
+        destinations:
+          - name: cluster-AAA
+            namespaces:
+              - infrahq
+`
+	config2 := `
+providers:
+  - kind: okta
+    domain: https://test.example.com
+    clientID: plaintext:0oapn0qwiQPiMIyR35d6
+    clientSecret: kubernetes:okta-secrets/clientSecret
+    apiToken: kubernetes:okta-secrets/apiToken
+groups:
+  - name: ios-developers
+    provider: okta
+    roles:
+      - name: cluster-admin
+        kind: cluster-role
+        destinations:
+          - name: cluster-AAA
+`
+
+	if err := registry.importConfig([]byte(config1)); err != nil {
+		t.Fatal(err)
+	}
+
+	var role1 Role
+	if err := db.First(&role1, &Role{Name: "cluster-admin", DestinationId: clusterA.Id}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, "infrahq", role1.Namespace)
+
+	if err := registry.importConfig([]byte(config2)); err != nil {
+		t.Fatal(err)
+	}
+
+	var role2 Role
+	if err := db.First(&role2, &Role{Name: "cluster-admin", DestinationId: clusterA.Id}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, "", role2.Namespace)
+}

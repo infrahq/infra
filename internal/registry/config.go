@@ -442,12 +442,12 @@ func importRoles(db *gorm.DB, roles []ConfigRole) (rolesImported []Role, importe
 
 		DESTINATION:
 			for _, d := range destinations {
-				// discard destinations not matching _all_ requested labels
 				labels := make(map[string]bool)
 				for _, l := range d.Labels {
 					labels[l.Value] = true
 				}
 
+				// discard destinations not matching _all_ requested labels
 				for _, l := range want.Labels {
 					if _, ok := labels[l]; !ok {
 						continue DESTINATION
@@ -457,7 +457,7 @@ func importRoles(db *gorm.DB, roles []ConfigRole) (rolesImported []Role, importe
 				if len(want.Namespaces) > 0 {
 					for _, namespace := range want.Namespaces {
 						var role Role
-						if err = db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, Namespace: namespace, DestinationId: d.Id}).Error; err != nil {
+						if err := db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, Namespace: namespace, DestinationId: d.Id}).Error; err != nil {
 							return nil, nil, fmt.Errorf("role find create namespace: %w", err)
 						}
 
@@ -466,8 +466,14 @@ func importRoles(db *gorm.DB, roles []ConfigRole) (rolesImported []Role, importe
 					}
 				} else {
 					var role Role
-					if err = db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, DestinationId: d.Id}).Error; err != nil {
+					if err := db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, DestinationId: d.Id}).Error; err != nil {
 						return nil, nil, fmt.Errorf("role find create: %w", err)
+					}
+
+					if role.Namespace != "" {
+						// forcefully zero out namespace
+						role.Namespace = ""
+						db.Save(&role)
 					}
 
 					rolesImported = append(rolesImported, role)
