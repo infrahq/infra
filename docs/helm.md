@@ -128,7 +128,7 @@ ingress:
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
     nginx.ingress.kubernetes.io/proxy-http-version: "1.0"
-    cert-manager.io/issuer: "letsencrypt-prod"
+    cert-manager.io/issuer: "letsencrypt-prod" # edit me
   tls:
     - hosts:
         - infra.example.com          # edit me
