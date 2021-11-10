@@ -33,6 +33,10 @@ func newTokenCreateCmd() (*cobra.Command, error) {
 				Destination: args[0],
 			}
 
+			if err := internal.ParseOptions(cmd, &options); err != nil {
+				return err
+			}
+
 			return tokenCreate(&options)
 		},
 	}

@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/goware/urlx"
 	"github.com/infrahq/infra/internal"
@@ -18,8 +17,6 @@ import (
 	"github.com/infrahq/infra/internal/registry"
 	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
-	"k8s.io/client-go/tools/clientcmd"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
 func blue(s string) string {
@@ -105,138 +102,6 @@ func apiClientFromConfig(host string) (*api.APIClient, error) {
 	}
 
 	return NewAPIClient(config.Host, config.SkipTLSVerify)
-}
-
-func clientConfig() clientcmd.ClientConfig {
-	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-	loadingRules.WarnIfAllMissing = false
-
-	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
-}
-
-func updateKubeconfig(user api.User) error {
-	defaultConfig := clientConfig()
-
-	kubeConfig, err := defaultConfig.RawConfig()
-	if err != nil {
-		return err
-	}
-
-	// deduplicate roles
-	aliases := make(map[string]map[string]bool)
-	roles := make(map[string]api.Role)
-
-	for _, r := range user.Roles {
-		if _, ok := aliases[r.Destination.Alias]; !ok {
-			aliases[r.Destination.Alias] = make(map[string]bool)
-		}
-
-		aliases[r.Destination.Alias][r.Destination.Name] = true
-		roles[r.Id] = r
-	}
-
-	for _, g := range user.Groups {
-		for _, r := range g.Roles {
-			if _, ok := aliases[r.Destination.Alias]; !ok {
-				aliases[r.Destination.Alias] = make(map[string]bool)
-			}
-
-			aliases[r.Destination.Alias][r.Destination.Name] = true
-			roles[r.Id] = r
-		}
-	}
-
-	for _, role := range roles {
-		name := role.Destination.Name[:12]
-		alias := role.Destination.Alias
-
-		// TODO (#546): allow user to specify prefix, default ""
-		// format: "infra:<ALIAS>"
-		contextName := fmt.Sprintf("infra:%s", alias)
-
-		if len(aliases[alias]) > 1 {
-			// disambiguate destination by appending the ID
-			// format: "infra:<ALIAS>@<NAME>"
-			contextName = fmt.Sprintf("%s@%s", contextName, name)
-		}
-
-		if role.Namespace != "" {
-			// destination is scoped to a namespace
-			// format: "infra:<ALIAS>[@<NAME>]:<NAMESPACE>"
-			contextName = fmt.Sprintf("%s:%s", contextName, role.Namespace)
-		}
-
-		logging.S.Debugf("creating kubeconfig for %s", contextName)
-
-		kubeConfig.Clusters[contextName] = &clientcmdapi.Cluster{
-			Server:                   fmt.Sprintf("https://%s/proxy", role.Destination.Kubernetes.Endpoint),
-			CertificateAuthorityData: []byte(role.Destination.Kubernetes.Ca),
-		}
-
-		kubeConfig.Contexts[contextName] = &clientcmdapi.Context{
-			Cluster:   contextName,
-			AuthInfo:  contextName,
-			Namespace: role.Namespace,
-		}
-
-		executable, err := os.Executable()
-		if err != nil {
-			return err
-		}
-
-		kubeConfig.AuthInfos[contextName] = &clientcmdapi.AuthInfo{
-			Exec: &clientcmdapi.ExecConfig{
-				Command:         executable,
-				Args:            []string{"tokens", "create", role.Destination.Name},
-				APIVersion:      "client.authentication.k8s.io/v1beta1",
-				InteractiveMode: clientcmdapi.IfAvailableExecInteractiveMode,
-			},
-		}
-	}
-
-	for contextName := range kubeConfig.Contexts {
-		parts := strings.Split(contextName, ":")
-
-		// shouldn't be possible but we don't actually care
-		if len(parts) < 1 {
-			continue
-		}
-
-		if parts[0] != "infra" {
-			continue
-		}
-
-		found := false
-
-		for _, r := range roles {
-			parts := strings.Split(parts[1], "@")
-
-			switch {
-			case len(parts) == 1:
-				found = parts[0] == r.Destination.Alias
-			case len(parts) > 1:
-				found = parts[0] == r.Destination.Alias && parts[1] == r.Destination.Name[:12]
-			}
-
-			if found {
-				break
-			}
-		}
-
-		if !found {
-			delete(kubeConfig.Clusters, contextName)
-			delete(kubeConfig.Contexts, contextName)
-			delete(kubeConfig.AuthInfos, contextName)
-		}
-	}
-
-	kubeConfigFilename := defaultConfig.ConfigAccess().GetDefaultFilename()
-
-	if err := clientcmd.WriteToFile(kubeConfig, kubeConfigFilename); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func newLoginCmd() (*cobra.Command, error) {
@@ -400,6 +265,23 @@ func newTokensCmd() (*cobra.Command, error) {
 	return cmd, nil
 }
 
+func newKubernetesCmd() (*cobra.Command, error) {
+	cmd := &cobra.Command{
+		Use:     "kubernetes",
+		Short:   "Kubernetes subcommands",
+		Aliases: []string{"k", "k8s"},
+	}
+
+	kubernetesUseCmd, err := newKubernetesUseCmd()
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.AddCommand(kubernetesUseCmd)
+
+	return cmd, nil
+}
+
 func NewRootCmd() (*cobra.Command, error) {
 	cobra.EnableCommandSorting = false
 
@@ -419,6 +301,11 @@ func NewRootCmd() (*cobra.Command, error) {
 	}
 
 	tokensCmd, err := newTokensCmd()
+	if err != nil {
+		return nil, err
+	}
+
+	kubernetesCmd, err := newKubernetesCmd()
 	if err != nil {
 		return nil, err
 	}
@@ -465,6 +352,7 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.AddCommand(logoutCmd)
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(tokensCmd)
+	rootCmd.AddCommand(kubernetesCmd)
 	rootCmd.AddCommand(versionCmd)
 
 	rootCmd.AddCommand(startCmd)

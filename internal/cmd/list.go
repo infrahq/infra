@@ -10,6 +10,7 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/lensesio/tableprinter"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -74,7 +75,7 @@ func list(options *ListOptions) error {
 
 	kubeConfig, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), nil).RawConfig()
 	if err != nil {
-		println(err.Error())
+		logging.S.Errorf("k8s error: %w", err)
 	}
 
 	// deduplicate rows
@@ -131,8 +132,7 @@ func list(options *ListOptions) error {
 
 	printTable(rowsList)
 
-	err = updateKubeconfig(user)
-	if err != nil {
+	if err := updateKubeconfig(user); err != nil {
 		return err
 	}
 
@@ -140,25 +140,11 @@ func list(options *ListOptions) error {
 }
 
 func newRow(role api.Role, currentContext string) statusRow {
-	var labels []string
-
-	// filter out automatic labels
-	for _, l := range role.Destination.Labels {
-		switch l {
-		case role.Destination.Alias:
-			continue
-		case role.Destination.Kind:
-			continue
-		default:
-			labels = append(labels, l)
-		}
-	}
-
 	row := statusRow{
 		ID:     role.Destination.Name[:12],
 		Name:   role.Destination.Alias,
 		Status: "💻 → ❌ Can't reach internet",
-		Labels: strings.Join(labels, ", "),
+		Labels: strings.Join(role.Destination.Labels, ", "),
 	}
 
 	if k8s, ok := role.Destination.GetKubernetesOk(); ok {
