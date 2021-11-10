@@ -36,13 +36,11 @@ Follow the [Okta guide](./docs/providers/okta.md) to set up Okta for Infra. You'
 # example values.yaml
 ---
 config:
-  secrets:
-    - kind: kubernetes
-      namespace: infrahq
-
   providers:
     - kind: okta
       # Update with values from above
+      # Values can be securely loaded from different secret managers (e.g. Kubernetes secrets)
+      # or in plaintext (not recommended for production). See https://github.com/infrahq/infra/blob/main/docs/secrets.md
       domain: <Okta domain>
       clientID: <Okta client id>
       clientSecret: <Okta client secret>
@@ -50,22 +48,21 @@ config:
 
   groups:
     # Grants the "Everyone" Okta group read-only access
-    # to the default namespace of all Kubernetes clusters
+    # to the default namespace of your Kubernetes cluster
     - name: Everyone
       provider: okta
       roles:
-        - kind: role
+        - kind: cluster-role
           name: view
           destinations:
-            - labels:
-                - kubernetes
+            - name: <cluster name> # cluster name in your cloud provider
               namespaces:
                 - default
 ```
 
 See the [Helm Chart reference](./docs/helm.md) for a complete list of options configurable through Helm.
 
-> Note: Infra uses [Secrets](./docs/secrets.md) to securely load secrets.
+> Note: Infra uses [Secrets](https://github.com/infrahq/infra/blob/main/docs/secrets.md) to securely load secrets.
 > It is _not_ recommended to use plain text secrets. Considering using another supported secret type.
 
 ### Install Infra
