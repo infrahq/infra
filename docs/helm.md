@@ -129,6 +129,10 @@ ingress:
       nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
       nginx.ingress.kubernetes.io/proxy-http-version: "1.0"
       cert-manager.io/issuer: "letsencrypt-prod"
+  tls:
+    - hosts:
+        - infra.example.com          # edit me
+      secretName: com-example-infra  # edit me
 ```
 
 ## Uninstall Infra
