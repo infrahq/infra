@@ -123,12 +123,12 @@ ingress:
   enabled: true
   hosts: ["infra.example.com"]  # edit me
   servicePort: 80
-    annotations:
-      kubernetes.io/ingress.class: "nginx"
-      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-      nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
-      nginx.ingress.kubernetes.io/proxy-http-version: "1.0"
-      cert-manager.io/issuer: "letsencrypt-prod"
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.0"
+    cert-manager.io/issuer: "letsencrypt-prod"
   tls:
     - hosts:
         - infra.example.com          # edit me
