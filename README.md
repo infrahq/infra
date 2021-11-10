@@ -76,25 +76,6 @@ helm install -n infrahq --create-namespace -f values.yaml infra infrahq/infra
 ### Install Infra CLI
 
 <details>
-  <summary><strong>Debian, Ubuntu</strong></summary>
-
-  ```bash
-  sudo echo 'deb [trusted=yes] https://apt.fury.io/infrahq/ /' >/etc/apt/sources.list.d/infrahq.list
-  sudo apt update
-  sudo apt install infra
-  ```
-</details>
-
-<details>
-  <summary><strong>Fedora, Red Hat Enterprise Linux</strong></summary>
-
-  ```bash
-  sudo dnf config-manager --add-repo https://yum.fury.io/infrahq/
-  sudo dnf install infra
-  ```
-</details>
-
-<details>
   <summary><strong>macOS</strong></summary>
 
   ```bash
@@ -110,6 +91,24 @@ helm install -n infrahq --create-namespace -f values.yaml infra infrahq/infra
   scoop install infra
   ```
 </details>
+
+<details>
+  <summary><strong>Linux</strong></summary>
+  
+  ```bash
+  # Ubuntu & Debian
+  sudo echo 'deb [trusted=yes] https://apt.fury.io/infrahq/ /' >/etc/apt/sources.list.d/infrahq.list
+  sudo apt update
+  sudo apt install infra
+  ```
+  
+  ```bash
+  # Fedora & Red Hat Enterprise Linux
+  sudo dnf config-manager --add-repo https://yum.fury.io/infrahq/
+  sudo dnf install infra
+  ```
+</details>
+
 
 ### Access Your Infrastructure
 
