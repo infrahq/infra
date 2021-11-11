@@ -372,8 +372,3 @@ func TestGeneratingASecondKeyFromARootKey(t *testing.T) {
 		require.NotEqual(t, key.unencrypted, key2.unencrypted)
 	})
 }
-
-func TestBlank(t *testing.T) {
-	// need at least one non-short test to avoid some weird CI compile issue.
-	require.True(t, true)
-}

@@ -59,7 +59,9 @@ func teardown() {
 func eachProvider(t *testing.T, eachFunc func(t *testing.T, p CertificateProvider)) {
 	providers := map[string]CertificateProvider{}
 
-	tmpDir := os.TempDir()
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "certificates")
+	require.NoError(t, err)
+
 	defer os.RemoveAll(tmpDir)
 
 	p, err := NewNativeCertificateProvider(NativeCertificateProviderConfig{
