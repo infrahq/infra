@@ -623,8 +623,8 @@ func (a *APIKey) BeforeCreate(tx *gorm.DB) (err error) {
 	return nil
 }
 
-func NewPostgresDB(dsn string) (*gorm.DB, error) {
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+func NewPostgresDB(connection string) (*gorm.DB, error) {
+	db, err := gorm.Open(postgres.Open(connection), &gorm.Config{
 		Logger: logger.New(
 			log.New(os.Stdout, "\r\n", log.LstdFlags),
 			logger.Config{
@@ -642,6 +642,8 @@ func NewPostgresDB(dsn string) (*gorm.DB, error) {
 	if err := migrate(db); err != nil {
 		return nil, err
 	}
+
+	logging.S.Debug("connected to postgres")
 
 	return db, nil
 }

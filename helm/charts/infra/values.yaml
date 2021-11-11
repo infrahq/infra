@@ -4,7 +4,7 @@ storage: 1Gi
 config-path: /var/run/infra/config/infra.yaml
 tls-cache: /var/run/infra/data/cache
 db-file: /var/run/infra/data/infra.db
-pgsql-dsn: ""
+postgres: ""
 
 root-api-key: file:///var/run/secrets/infrahq.com/infra/root-api-key
 engine-api-key: file:///var/run/secrets/infrahq.com/engine/engine-api-key

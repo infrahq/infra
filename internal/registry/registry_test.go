@@ -13,10 +13,10 @@ func TestReplaceSecretTemplatesRemovesPlaintextTemplates(t *testing.T) {
 	f := secrets.NewPlainSecretProviderFromConfig(secrets.GenericConfig{})
 	r.secrets["plaintext"] = f
 
-	// in reality, the user doesn't need to be a secret, just testing multiple secrets in the DSN
-	dsnTemplates := "host=host.docker.internal user={{plaintext:postgres}} password={{plaintext:password}} dbname=postgres port=5432"
+	// in reality, the user doesn't need to be a secret, just testing multiple secrets in the postgres connection string
+	connectionTemplates := "host=host.docker.internal user={{plaintext:postgres}} password={{plaintext:password}} dbname=postgres port=5432"
 
-	processed, err := r.ReplaceSecretTemplates(dsnTemplates)
+	processed, err := r.ReplaceSecretTemplates(connectionTemplates)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}

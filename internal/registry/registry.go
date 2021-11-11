@@ -36,7 +36,7 @@ import (
 type Options struct {
 	ConfigPath   string `mapstructure:"config-path"`
 	DBFile       string `mapstructure:"db-file"`
-	PgDSN        string `mapstructure:"pgsql-dsn"`
+	Postgres     string `mapstructure:"postgres"`
 	TLSCache     string `mapstructure:"tls-cache"`
 	RootAPIKey   string `mapstructure:"root-api-key"`
 	EngineAPIKey string `mapstructure:"engine-api-key"`
@@ -116,13 +116,13 @@ func Run(options Options) (err error) {
 		return fmt.Errorf("loading secrets config from file: %w", err)
 	}
 
-	if options.PgDSN != "" {
-		dsn, err := r.ReplaceSecretTemplates(options.PgDSN)
+	if options.Postgres != "" {
+		connection, err := r.ReplaceSecretTemplates(options.Postgres)
 		if err != nil {
-			return fmt.Errorf("dsn secrets: %w", err)
+			return fmt.Errorf("postgres secrets: %w", err)
 		}
 
-		r.db, err = NewPostgresDB(dsn)
+		r.db, err = NewPostgresDB(connection)
 
 		if err != nil {
 			return fmt.Errorf("db: %w", err)
@@ -458,14 +458,14 @@ func (r *Registry) configureSentry() (err error, ok bool) {
 }
 
 // ReplaceSecretTemplates finds and replaces template values in a string of the form {{secretProvider:key}}
-func (r *Registry) ReplaceSecretTemplates(dsn string) (string, error) {
-	templates := templatePattern.FindAllString(dsn, -1)
+func (r *Registry) ReplaceSecretTemplates(connection string) (string, error) {
+	templates := templatePattern.FindAllString(connection, -1)
 
-	// we will remove templates from this copy of the dsn to return
-	processed := dsn
+	// we will remove templates from this copy of the connection string to return
+	processed := connection
 
 	for _, t := range templates {
-		logging.S.Debugf("parsing %s in dsn", t)
+		logging.S.Debugf("parsing %s in connection", t)
 
 		// remove template delimiters
 		secret := strings.ReplaceAll(t, "{", "")
