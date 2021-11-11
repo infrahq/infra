@@ -16,8 +16,6 @@ import (
 	"os"
 	"path"
 	"time"
-
-	"github.com/infrahq/infra/secrets"
 )
 
 const (
@@ -46,7 +44,7 @@ type NativeCertificateProvider struct {
 
 	// TODO: support arbitrary storage
 	// secretStorage     secrets.SecretStorage
-	secretKeyProvider secrets.SecretSymmetricKeyProvider
+	// secretKeyProvider secrets.SecretSymmetricKeyProvider
 }
 
 type NativeCertificateProviderConfig struct {
@@ -121,6 +119,7 @@ func certActive(cert *x509.Certificate) bool {
 	if cert.NotBefore.After(time.Now()) {
 		return false
 	}
+
 	if cert.NotAfter.Before(time.Now()) {
 		return false
 	}
@@ -208,6 +207,7 @@ func createCertSignedBy(signer, signee keyPair, lifetime time.Duration) (*x509.C
 	}
 
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
+
 	serial, err := rand.Int(randReader, serialNumberLimit)
 	if err != nil {
 		return nil, nil, fmt.Errorf("creating random serial: %w", err)
@@ -300,6 +300,8 @@ func writePEMToFile(file string, p *pem.Block) error {
 }
 
 func (n *NativeCertificateProvider) loadFromDisk() error {
+	var ok bool
+
 	err := os.MkdirAll(n.StoragePath, 0o600)
 	if err != nil && !os.IsExist(err) {
 		log.Printf("creating directory %q", n.StoragePath)
@@ -319,7 +321,17 @@ func (n *NativeCertificateProvider) loadFromDisk() error {
 
 	cert.IsCA = true
 	n.activeKeypair.Cert = cert
-	n.activeKeypair.PublicKey = cert.PublicKey.(ed25519.PublicKey)
+
+	// nolint:exhaustive
+	switch cert.PublicKeyAlgorithm {
+	case x509.Ed25519:
+		n.activeKeypair.PublicKey, ok = cert.PublicKey.(ed25519.PublicKey)
+		if !ok {
+			return fmt.Errorf("unexpected key type %t, expected ed25519", cert.PublicKey)
+		}
+	default:
+		panic("unexpected key algorithm " + cert.PublicKeyAlgorithm.String())
+	}
 
 	pems, err = readFromPEMFile(path.Join(n.StoragePath, "root.key"))
 	if err != nil {
@@ -347,7 +359,17 @@ func (n *NativeCertificateProvider) loadFromDisk() error {
 
 	cert.IsCA = true
 	n.previousKeypair.Cert = cert
-	n.previousKeypair.PublicKey = cert.PublicKey.(ed25519.PublicKey)
+
+	// nolint:exhaustive
+	switch cert.PublicKeyAlgorithm {
+	case x509.Ed25519:
+		n.previousKeypair.PublicKey, ok = cert.PublicKey.(ed25519.PublicKey)
+		if !ok {
+			return fmt.Errorf("unexpected key type %t, expected ed25519", cert.PublicKey)
+		}
+	default:
+		panic("unexpected key algorithm " + cert.PublicKeyAlgorithm.String())
+	}
 
 	pems, err = readFromPEMFile(path.Join(n.StoragePath, "root-previous.key"))
 	if err != nil {
@@ -405,6 +427,7 @@ func isAllowedSignatureAlgorithm(alg x509.SignatureAlgorithm) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -414,5 +437,6 @@ func isAllowedPublicKeyAlgorithm(alg x509.PublicKeyAlgorithm) bool {
 			return true
 		}
 	}
+
 	return false
 }

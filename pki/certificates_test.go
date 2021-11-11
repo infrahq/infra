@@ -133,7 +133,7 @@ func TestCertificatesImplementations(t *testing.T) {
 }
 
 func init() {
-	randReader = rand.New(rand.NewSource(0))
+	randReader = rand.New(rand.NewSource(0)) //nolint:gosec
 }
 
 func generateClientCertificate(subject string) (*x509.Certificate, error) {
@@ -166,7 +166,7 @@ func createClientCertSignedBy(signer, signee keyPair, subject string, lifetime t
 		SignatureAlgorithm: x509.PureEd25519,
 		PublicKeyAlgorithm: x509.Ed25519,
 		PublicKey:          signee.PublicKey,
-		SerialNumber:       big.NewInt(rand.Int63()),
+		SerialNumber:       big.NewInt(rand.Int63()), //nolint:gosec
 		Subject:            pkix.Name{CommonName: subject},
 		NotBefore:          time.Now(),
 		NotAfter:           time.Now().Add(lifetime),
