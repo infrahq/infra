@@ -1,5 +1,82 @@
 # Kubernetes
 
+## Switch Between Infra-Managed Kubernetes Clusters
+
+```bash
+$ infra k|k8s|kubernetes use|use-context [CLUSTER_NAME|CLUSTER_ID] [-l CLUSTER_LABEL[,CLUSTER_LABEL]...] [-n NAMESPACE] [-r ROLE]
+```
+
+### Examples
+
+If multiple Infra-managed Kubernetes contexts exist, `infra kubernetes use-context` will display a prompt allowing you to select the desired cluster interactively. In brackets are the labels associated with each context.
+
+```bash
+$ infra kubernetes use-context
+? Multiple candidates found:  [Use arrows to move, type to filter]
+> b99617096a1e docker-desktop [local]
+  825957601c8e infrahq-production [eks, us-east-1]
+```
+
+If multiple Infra-managed Kubernetes contexts exist with refined namespace access, `infra kubernetes use-context` will display a prompt allowing you to select the desired namespace once a cluster has been determined.
+
+```bash
+$ infra k use
+? Multiple candidates found: b99617096a1e docker-desktop []
+? Multiple candidates found:  [Use arrows to move, type to filter]
+> * [edit, admin]
+  kube-public [view]
+  kube-system [view]
+```
+
+You can select a cluster by name...
+
+```bash
+$ infra kubernetes use-context docker-desktop
+? Multiple candidates found:  [Use arrows to move, type to filter]
+> * [edit, admin]
+  kube-public [view]
+  kube-system [view]
+```
+
+Or by ID...
+
+```bash
+$ infra kubernetes use-context b99617096a1e
+? Multiple candidates found:  [Use arrows to move, type to filter]
+> * [edit, admin]
+  kube-public [view]
+  kube-system [view]
+```
+
+Or with one or more of its labels...
+
+```bash
+$ infra kubernetes use-context -l local
+? Multiple candidates found:  [Use arrows to move, type to filter]
+> * [edit, admin]
+  kube-public [view]
+  kube-system [view]
+```
+
+You can select a namespace by name...
+
+```bash
+$ infra kubernetes use-context -l local -n kube-system
+Switched to context "infra:docker-desktop:kube-system".
+```
+
+Or by role...
+
+```bash
+$ infra kubernetes use-context docker-desktop -r admin
+Switched to context "infra:docker-desktop".
+```
+
+Any of these options can be used in combination to refine your search for the corrent context.
+
+
+See the [Infra CLI reference](./docs/cli.md) for more.
+
 ## Configure Destination
 
 ### `destinations`

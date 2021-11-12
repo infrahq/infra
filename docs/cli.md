@@ -6,6 +6,7 @@
 * [infra logout](#infra-logout)
 * [infra list](#infra-list)
 * [infra tokens create](#infra-tokens-create)
+* [infra kubernetes use-context](#infra-kubernetes-use-context)
 * [infra version](#infra-version)
 
 
@@ -100,6 +101,31 @@ infra tokens create DESTINATION [flags]
 
 ```
   -h, --help   help for create
+```
+
+### Options inherited from parent commands
+
+```
+  -f, --config-file string   Infra configuration file path
+  -H, --host string          Infra host
+  -v, --v count              Log verbosity
+```
+
+## `infra kubernetes use-context`
+
+Set the Kubernetes current context
+
+```
+infra kubernetes use-context [NAME] [flags]
+```
+
+### Options
+
+```
+  -h, --help               help for use-context
+  -l, --labels strings     labels
+  -n, --namespace string   namespace
+  -r, --role string        role
 ```
 
 ### Options inherited from parent commands
