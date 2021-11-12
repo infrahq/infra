@@ -12,7 +12,7 @@ helm repo update
 ## Install Infra
 
 ```bash
-helm install -n infrahq --create-namespace infra infrahq/infra
+helm upgrade --install -n infrahq --create-namespace infra infrahq/infra
 ```
 
 ## Advanced Service Account Configuration
@@ -149,7 +149,7 @@ kubectl delete -n infrahq secret/infra-okta
 
 ```bash
 # Remove Infra Engine
-helm uninstall -n infrahq infra-engine
+helm uninstall -n infrahq infra
 
 # Remove rolebindings & clusterrolebindings created by Infra Engine
 kubectl delete clusterrolebindings,rolebindings -l app.kubernetes.io/managed-by=infra --all-namespaces
