@@ -1872,11 +1872,7 @@ func TestCreateAPIKey(t *testing.T) {
 	assert.Equal(t, "test-api-client", body.Name)
 	assert.NotEmpty(t, body.Key)
 
-	// clean up
-	var createdKey API
-
-	db.First(&createdKey, &APIKey{Name: "test-api-client"})
-	db.Delete(&createdKey)
+	db.Delete(&APIKey{}, &APIKey{Name: "test-api-client"})
 	db.Delete(&apiKey)
 }
 
