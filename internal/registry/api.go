@@ -508,11 +508,19 @@ func (a *API) CreateDestination(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) ListAPIKeys(w http.ResponseWriter, r *http.Request) {
+	_, err := extractAPIKey(r.Context())
+	if err != nil {
+		logging.L.Error(err.Error())
+		sendAPIError(w, http.StatusUnauthorized, "unauthorized")
+
+		return
+	}
+
 	keyName := r.URL.Query().Get("name")
 
 	var keys []APIKey
 
-	err := a.db.Find(&keys, &APIKey{Name: keyName}).Error
+	err = a.db.Find(&keys, &APIKey{Name: keyName}).Error
 	if err != nil {
 		logging.L.Error(err.Error())
 		sendAPIError(w, http.StatusInternalServerError, "could not list keys")
@@ -541,6 +549,14 @@ func (a *API) ListAPIKeys(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) DeleteAPIKey(w http.ResponseWriter, r *http.Request) {
+	_, err := extractAPIKey(r.Context())
+	if err != nil {
+		logging.L.Error(err.Error())
+		sendAPIError(w, http.StatusUnauthorized, "unauthorized")
+
+		return
+	}
+
 	vars := mux.Vars(r)
 
 	id := vars["id"]
@@ -914,19 +930,12 @@ func (a *API) Version(w http.ResponseWriter, r *http.Request) {
 
 func (s *Provider) marshal() api.Provider {
 	res := api.Provider{
-		Id:           s.Id,
-		Created:      s.Created,
-		Updated:      s.Updated,
-		ClientID:     s.ClientID,
-		Domain:       s.Domain,
-		ClientSecret: s.ClientSecret,
-		Kind:         s.Kind,
-	}
-
-	if s.Kind == ProviderKindOkta {
-		res.Okta = &api.ProviderOkta{
-			APIToken: s.APIToken,
-		}
+		Id:       s.Id,
+		Created:  s.Created,
+		Updated:  s.Updated,
+		ClientID: s.ClientID,
+		Domain:   s.Domain,
+		Kind:     s.Kind,
 	}
 
 	return res

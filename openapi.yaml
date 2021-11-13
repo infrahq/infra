@@ -194,7 +194,7 @@ paths:
           description: Provider ID
       responses:
         '200':
-          description: Get provider response
+          description: Get provider response 
           content:
             application/json:
               schema:

@@ -6,7 +6,6 @@ Provider:
     - updated
     - domain
     - clientID
-    - clientSecret
     - kind
   properties:
     id:
@@ -23,18 +22,6 @@ Provider:
     clientID:
       type: string
       x-go-custom-tag: validate:"required"
-    clientSecret:
-      type: string
     kind:
       type: string
       x-go-custom-tag: validate:"required"
-    okta:
-      $ref: 'provider.yaml#/ProviderOkta'
-
-ProviderOkta:
-  type: object
-  required:
-    - apiToken
-  properties:
-    apiToken:
-      type: string
