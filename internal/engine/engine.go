@@ -25,7 +25,7 @@ import (
 	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/pro"
+	"github.com/infrahq/infra/internal/pro/audit"
 	"github.com/infrahq/infra/internal/registry"
 	"github.com/infrahq/infra/internal/timer"
 	"golang.org/x/crypto/acme/autocert"
@@ -193,19 +193,14 @@ func proxyHandler(name string, ca []byte, bearerToken string, remote *url.URL) (
 			return
 		}
 
-		e := pro.Event{
-			User:        email,
-			Destination: name,
-		}
+		r.Header.Set("Impersonate-User", fmt.Sprintf("infra:%s", email))
+		r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", bearerToken))
+		proxy.ServeHTTP(w, r)
 
-		err := pro.Log(e)
+		err := audit.Log(r, email, name)
 		if err != nil {
 			logging.S.Error(err)
 		}
-
-		r.Header.Set("Impersonate-User", fmt.Sprintf("infra:%s", email))
-		r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", bearerToken))
-		http.StripPrefix("/proxy", proxy).ServeHTTP(w, r)
 	}, nil
 }
 
@@ -452,7 +447,7 @@ func Run(options *Options) error {
 		baseURL: u.String(),
 	}
 
-	mux.Handle("/proxy/", jwtMiddleware(chksm, cache.getjwk, ph))
+	mux.Handle("/proxy/", http.StripPrefix("/proxy", jwtMiddleware(chksm, cache.getjwk, ph)))
 
 	tlsServer := &http.Server{
 		Addr:      ":443",
