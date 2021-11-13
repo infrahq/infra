@@ -143,7 +143,7 @@ provider:
 	var loginReq api.LoginRequest
 
 	switch {
-	case selectedProvider.Okta != nil:
+	case selectedProvider.Kind == "okta":
 		// Start OIDC flow
 		// Get auth code from Okta
 		// Send auth code to Infra to login as a user
@@ -336,7 +336,7 @@ func promptSelectProvider(providers []api.Provider) (*api.Provider, error) {
 	options := []string{}
 
 	for _, p := range providers {
-		if p.Okta != nil {
+		if p.Kind == "okta" {
 			options = append(options, fmt.Sprintf("Okta [%s]", p.Domain))
 		}
 	}

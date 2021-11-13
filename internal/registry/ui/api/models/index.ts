@@ -14,7 +14,6 @@ export * from './LoginRequestOkta';
 export * from './LoginResponse';
 export * from './ModelError';
 export * from './Provider';
-export * from './ProviderOkta';
 export * from './Role';
 export * from './RoleKind';
 export * from './Token';

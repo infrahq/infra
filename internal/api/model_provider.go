@@ -16,28 +16,25 @@ import (
 
 // Provider struct for Provider
 type Provider struct {
-	Id           string        `json:"id"`
-	Created      int64         `json:"created"`
-	Updated      int64         `json:"updated"`
-	Domain       string        `json:"domain" validate:"required"`
-	ClientID     string        `json:"clientID" validate:"required"`
-	ClientSecret string        `json:"clientSecret"`
-	Kind         string        `json:"kind" validate:"required"`
-	Okta         *ProviderOkta `json:"okta,omitempty"`
+	Id       string `json:"id"`
+	Created  int64  `json:"created"`
+	Updated  int64  `json:"updated"`
+	Domain   string `json:"domain" validate:"required"`
+	ClientID string `json:"clientID" validate:"required"`
+	Kind     string `json:"kind" validate:"required"`
 }
 
 // NewProvider instantiates a new Provider object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewProvider(id string, created int64, updated int64, domain string, clientID string, clientSecret string, kind string) *Provider {
+func NewProvider(id string, created int64, updated int64, domain string, clientID string, kind string) *Provider {
 	this := Provider{}
 	this.Id = id
 	this.Created = created
 	this.Updated = updated
 	this.Domain = domain
 	this.ClientID = clientID
-	this.ClientSecret = clientSecret
 	this.Kind = kind
 	return &this
 }
@@ -170,30 +167,6 @@ func (o *Provider) SetClientID(v string) {
 	o.ClientID = v
 }
 
-// GetClientSecret returns the ClientSecret field value
-func (o *Provider) GetClientSecret() string {
-	if o == nil {
-		var ret string
-		return ret
-	}
-
-	return o.ClientSecret
-}
-
-// GetClientSecretOk returns a tuple with the ClientSecret field value
-// and a boolean to check if the value has been set.
-func (o *Provider) GetClientSecretOk() (*string, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.ClientSecret, true
-}
-
-// SetClientSecret sets field value
-func (o *Provider) SetClientSecret(v string) {
-	o.ClientSecret = v
-}
-
 // GetKind returns the Kind field value
 func (o *Provider) GetKind() string {
 	if o == nil {
@@ -218,38 +191,6 @@ func (o *Provider) SetKind(v string) {
 	o.Kind = v
 }
 
-// GetOkta returns the Okta field value if set, zero value otherwise.
-func (o *Provider) GetOkta() ProviderOkta {
-	if o == nil || o.Okta == nil {
-		var ret ProviderOkta
-		return ret
-	}
-	return *o.Okta
-}
-
-// GetOktaOk returns a tuple with the Okta field value if set, nil otherwise
-// and a boolean to check if the value has been set.
-func (o *Provider) GetOktaOk() (*ProviderOkta, bool) {
-	if o == nil || o.Okta == nil {
-		return nil, false
-	}
-	return o.Okta, true
-}
-
-// HasOkta returns a boolean if a field has been set.
-func (o *Provider) HasOkta() bool {
-	if o != nil && o.Okta != nil {
-		return true
-	}
-
-	return false
-}
-
-// SetOkta gets a reference to the given ProviderOkta and assigns it to the Okta field.
-func (o *Provider) SetOkta(v ProviderOkta) {
-	o.Okta = &v
-}
-
 func (o Provider) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
@@ -268,13 +209,7 @@ func (o Provider) MarshalJSON() ([]byte, error) {
 		toSerialize["clientID"] = o.ClientID
 	}
 	if true {
-		toSerialize["clientSecret"] = o.ClientSecret
-	}
-	if true {
 		toSerialize["kind"] = o.Kind
-	}
-	if o.Okta != nil {
-		toSerialize["okta"] = o.Okta
 	}
 	return json.Marshal(toSerialize)
 }

@@ -13,13 +13,6 @@
  */
 
 import { exists, mapValues } from '../runtime';
-import {
-    ProviderOkta,
-    ProviderOktaFromJSON,
-    ProviderOktaFromJSONTyped,
-    ProviderOktaToJSON,
-} from './';
-
 /**
  * 
  * @export
@@ -61,19 +54,7 @@ export interface Provider {
      * @type {string}
      * @memberof Provider
      */
-    clientSecret: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof Provider
-     */
     kind: string;
-    /**
-     * 
-     * @type {ProviderOkta}
-     * @memberof Provider
-     */
-    okta?: ProviderOkta;
 }
 
 export function ProviderFromJSON(json: any): Provider {
@@ -91,9 +72,7 @@ export function ProviderFromJSONTyped(json: any, ignoreDiscriminator: boolean): 
         'updated': json['updated'],
         'domain': json['domain'],
         'clientID': json['clientID'],
-        'clientSecret': json['clientSecret'],
         'kind': json['kind'],
-        'okta': !exists(json, 'okta') ? undefined : ProviderOktaFromJSON(json['okta']),
     };
 }
 
@@ -111,9 +90,7 @@ export function ProviderToJSON(value?: Provider | null): any {
         'updated': value.updated,
         'domain': value.domain,
         'clientID': value.clientID,
-        'clientSecret': value.clientSecret,
         'kind': value.kind,
-        'okta': ProviderOktaToJSON(value.okta),
     };
 }
 
