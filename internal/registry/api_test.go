@@ -1897,8 +1897,10 @@ func TestDeleteAPIKey(t *testing.T) {
 		"id": k.Id,
 	}
 	delR = mux.SetURLVars(delR, vars)
+	delR.Header.Add("Authorization", "Bearer "+k.Key)
+
 	delW := httptest.NewRecorder()
-	http.HandlerFunc(a.DeleteAPIKey).ServeHTTP(delW, delR)
+	a.bearerAuthMiddleware(api.API_KEYS_DELETE, http.HandlerFunc(a.DeleteAPIKey)).ServeHTTP(delW, delR)
 
 	assert.Equal(t, http.StatusNoContent, delW.Code)
 
@@ -1925,8 +1927,10 @@ func TestListAPIKeys(t *testing.T) {
 	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/api-keys", nil)
+	r.Header.Add("Authorization", "Bearer "+k.Key)
+
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.ListAPIKeys).ServeHTTP(w, r)
+	a.bearerAuthMiddleware(api.API_KEYS_READ, http.HandlerFunc(a.ListAPIKeys)).ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var keys []api.InfraAPIKey
