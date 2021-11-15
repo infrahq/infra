@@ -50,6 +50,7 @@ func NewAPIMux(reg *Registry) *mux.Router {
 	v1.Handle("/groups", a.bearerAuthMiddleware(api.GROUPS_READ, http.HandlerFunc(a.ListGroups))).Methods(http.MethodGet)
 	v1.Handle("/groups/{id}", a.bearerAuthMiddleware(api.GROUPS_READ, http.HandlerFunc(a.GetGroup))).Methods(http.MethodGet)
 
+	// these endpoints are left unauthenticated so that infra login can see what the providers are that are available
 	v1.Handle("/providers", http.HandlerFunc(a.ListProviders)).Methods(http.MethodGet)
 	v1.Handle("/providers/{id}", http.HandlerFunc(a.GetProvider)).Methods(http.MethodGet)
 
@@ -321,6 +322,7 @@ func (a *API) GetGroup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) ListProviders(w http.ResponseWriter, r *http.Request) {
+	// caution: this endpoint is unauthenticated, do not return sensitive info
 	providerKind := r.URL.Query().Get("kind")
 
 	var providers []Provider
@@ -345,6 +347,7 @@ func (a *API) ListProviders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) GetProvider(w http.ResponseWriter, r *http.Request) {
+	// caution: this endpoint is unauthenticated, do not return sensitive info
 	vars := mux.Vars(r)
 
 	providerId := vars["id"]
