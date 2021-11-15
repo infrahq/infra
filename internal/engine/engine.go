@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -316,12 +315,12 @@ func Run(options *Options) error {
 
 	tlsConfig := manager.TLSConfig()
 	tlsConfig.GetCertificate = certs.SelfSignedOrLetsEncryptCert(manager, func() string {
-		endpoint, err := k8s.Endpoint()
+		host, _, err := k8s.Endpoint()
 		if err != nil {
 			return ""
 		}
 
-		url, err := urlx.Parse(endpoint)
+		url, err := urlx.Parse(host)
 		if err != nil {
 			return ""
 		}
@@ -333,30 +332,22 @@ func Run(options *Options) error {
 
 	timer := timer.NewTimer()
 	timer.Start(5*time.Second, func() {
-		endpoint, err := k8s.Endpoint()
+		host, port, err := k8s.Endpoint()
 		if err != nil {
-			logging.S.Errorf("endpoint: %s", err.Error())
+			logging.S.Errorf("endpoint: %w", err)
 			return
 		}
 
-		logging.S.Debugf("endpoint is: %s", endpoint)
+		logging.S.Debugf("endpoint is: %s:%d", host, port)
 
-		// check if the endpoint is localhost, if it is DNS lookup won't resolve
-		local, err := regexp.MatchString("(http://|https://)?localhost:?[0-9]{0,5}", endpoint)
-		if err != nil {
-			logging.S.Errorf("endpoint match failed: %w", err)
-			// continue as a non-local endpoint
-		}
-
-		if local {
-			logging.S.Debug("not testing DNS lookup for localhost")
-		} else {
-			_, err = net.LookupIP(endpoint)
-			if err != nil {
-				logging.S.Errorf("endpoint DNS does not yet resolve, waiting to register")
-				return
+		if ipv4 := net.ParseIP(host); ipv4 == nil {
+			// wait for DNS resolution if endpoint is not an IPv4 address
+			if _, err := net.LookupIP(host); err != nil {
+				logging.L.Error("endpoint DNS could not be resolved, waiting to registry")
 			}
 		}
+
+		endpoint := fmt.Sprintf("%s:%d", host, port)
 
 		url, err := urlx.Parse(endpoint)
 		if err != nil {
