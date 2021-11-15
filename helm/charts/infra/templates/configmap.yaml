@@ -17,7 +17,7 @@ data:
 {{- end }}
 
   config.yaml: |
-{{- $options := list "config-path" "db-file" "postgres" "tls-cache" }}
+{{- $options := list "config-path" "db-file" "pg" "tls-cache" }}
 {{- $options = list "root-api-key" "engine-api-key" | concat $options }}
 {{- $options = list "enable-ui" "ui-proxy" | concat $options }}
 {{- $options = list "providers-sync-interval" "destinations-sync-interval" | concat $options }}

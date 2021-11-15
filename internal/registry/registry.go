@@ -33,13 +33,23 @@ import (
 	"gorm.io/gorm"
 )
 
+type PostgresOptions struct {
+	PostgresHost       string `mapstructure:"host"`
+	PostgresPort       int    `mapstructure:"port"`
+	PostgresDBName     string `mapstructure:"dbname"`
+	PostgresUser       string `mapstructure:"user"`
+	PostgresPassword   string `mapstructure:"password"`
+	PostgresParameters string `mapstructure:"parameters"`
+	PostgresURL        string `mapstructure:"url"`
+}
+
 type Options struct {
-	ConfigPath   string `mapstructure:"config-path"`
-	DBFile       string `mapstructure:"db-file"`
-	Postgres     string `mapstructure:"postgres"`
-	TLSCache     string `mapstructure:"tls-cache"`
-	RootAPIKey   string `mapstructure:"root-api-key"`
-	EngineAPIKey string `mapstructure:"engine-api-key"`
+	ConfigPath      string          `mapstructure:"config-path"`
+	DBFile          string          `mapstructure:"db-file"`
+	TLSCache        string          `mapstructure:"tls-cache"`
+	RootAPIKey      string          `mapstructure:"root-api-key"`
+	EngineAPIKey    string          `mapstructure:"engine-api-key"`
+	PostgresOptions PostgresOptions `mapstructure:"pg"`
 
 	EnableUI bool   `mapstructure:"enable-ui"`
 	UIProxy  string `mapstructure:"ui-proxy"`
@@ -116,13 +126,13 @@ func Run(options Options) (err error) {
 		return fmt.Errorf("loading secrets config from file: %w", err)
 	}
 
-	if options.Postgres != "" {
-		connection, err := r.ReplaceSecretTemplates(options.Postgres)
-		if err != nil {
-			return fmt.Errorf("postgres secrets: %w", err)
-		}
+	postgres, err := r.getPostgresConnectionString()
+	if err != nil {
+		return fmt.Errorf("postgres connection URL: %w", err)
+	}
 
-		r.db, err = NewPostgresDB(connection)
+	if postgres != "" {
+		r.db, err = NewPostgresDB(postgres)
 
 		if err != nil {
 			return fmt.Errorf("db: %w", err)
@@ -455,6 +465,50 @@ func (r *Registry) configureSentry() (err error, ok bool) {
 	}
 
 	return nil, false
+}
+
+// getPostgresConnectionString parses postgres configuration options and returns the connection string
+func (r *Registry) getPostgresConnectionString() (string, error) {
+	options := r.options.PostgresOptions
+
+	URL := options.PostgresURL
+
+	// if the URL is not specifically set, then parse the config options
+	if URL == "" && options.PostgresHost != "" {
+		// config has separate postgres parameters set, combine them into a connection DSN now
+		var pgConn strings.Builder
+
+		fmt.Fprintf(&pgConn, "host=%s ", options.PostgresHost)
+
+		if options.PostgresUser != "" {
+
+			fmt.Fprintf(&pgConn, "user=%s ", options.PostgresUser)
+
+			if options.PostgresPassword != "" {
+				pass, err := r.GetSecret(options.PostgresPassword)
+				if err != nil {
+					return "", fmt.Errorf("postgres secret: %w", err)
+				}
+				fmt.Fprintf(&pgConn, "password=%s ", pass)
+			}
+		}
+
+		if options.PostgresPort > 0 {
+			fmt.Fprintf(&pgConn, "port=%d ", options.PostgresPort)
+		}
+
+		if options.PostgresDBName != "" {
+			fmt.Fprintf(&pgConn, "dbname=%s ", options.PostgresDBName)
+		}
+
+		if options.PostgresParameters != "" {
+			fmt.Fprintf(&pgConn, "%s", options.PostgresParameters)
+		}
+
+		URL = strings.TrimSpace(pgConn.String())
+	}
+
+	return r.ReplaceSecretTemplates(URL)
 }
 
 // ReplaceSecretTemplates finds and replaces template values in a string of the form {{secretProvider:key}}
