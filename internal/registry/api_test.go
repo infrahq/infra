@@ -1780,12 +1780,12 @@ func TestListProvidersHasNoSensitiveValues(t *testing.T) {
 
 	var providerKeys map[string]interface{}
 
-	inDest, err := json.Marshal(providers[0])
+	inProv, err := json.Marshal(providers[0])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = json.Unmarshal(inDest, &providerKeys)
+	err = json.Unmarshal(inProv, &providerKeys)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1917,12 +1917,12 @@ func TestGetProviderHasNoSensitiveValues(t *testing.T) {
 
 	var providerKeys map[string]interface{}
 
-	inDest, err := json.Marshal(resp)
+	inProv, err := json.Marshal(resp)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = json.Unmarshal(inDest, &providerKeys)
+	err = json.Unmarshal(inProv, &providerKeys)
 	if err != nil {
 		t.Fatal(err)
 	}
