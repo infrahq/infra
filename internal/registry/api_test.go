@@ -1753,6 +1753,55 @@ func TestListDestinationsEmpty(t *testing.T) {
 	assert.Equal(t, 0, len(destinations))
 }
 
+// This is a preventative security auditing test that checks for keys with names that seem sensitive on this response
+func TestListDestinationsHasNoSensitiveValues(t *testing.T) {
+	a := &API{
+		registry: &Registry{
+			db: db,
+			secrets: map[string]secrets.SecretStorage{
+				"kubernetes": NewMockSecretReader(),
+			},
+		},
+		db: db,
+	}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/destinations", nil)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.ListDestinations).ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var destinations []api.Destination
+	if err := json.NewDecoder(w.Body).Decode(&destinations); err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Greater(t, len(destinations), 0, "no destinations returned, could not check sensitive values")
+
+	var destinationKeys map[string]interface{}
+
+	inDest, err := json.Marshal(destinations[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = json.Unmarshal(inDest, &destinationKeys)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// check for suspicious key names
+	for key := range destinationKeys {
+		if strings.Contains(strings.ToLower(key), "secret") {
+			t.Fatalf("%s in list destination response appears to be sensitive, it should not be returned", key)
+		}
+
+		if strings.Contains(strings.ToLower(key), "key") {
+			t.Fatalf("%s in list destination response appears to be sensitive, it should not be returned", key)
+		}
+	}
+}
+
 func TestGetDestination(t *testing.T) {
 	a := &API{
 		registry: &Registry{
@@ -1827,6 +1876,67 @@ func TestGetDestinationNotFound(t *testing.T) {
 	http.HandlerFunc(a.GetDestination).ServeHTTP(w, r)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+// This is a preventative security auditing test that checks for keys with names that seem sensitive on this response
+func TestGetDestinationHasNoSensitiveValues(t *testing.T) {
+	a := &API{
+		registry: &Registry{
+			db: db,
+			secrets: map[string]secrets.SecretStorage{
+				"kubernetes": NewMockSecretReader(),
+			},
+		},
+		db: db,
+	}
+
+	destination := &Destination{Name: "mpt-destination"}
+	if err := a.db.Create(destination).Error; err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	defer a.db.Delete(destination)
+
+	r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/destinations/%s", destination.Id), nil)
+	vars := map[string]string{
+		"id": destination.Id,
+	}
+	r = mux.SetURLVars(r, vars)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.GetDestination).ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp api.Destination
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatal(err)
+	}
+
+	assert.NotNil(t, resp, "no destination returned, could not check sensitive values")
+
+	var destinationKeys map[string]interface{}
+
+	inDest, err := json.Marshal(resp)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = json.Unmarshal(inDest, &destinationKeys)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// check for suspicious key names
+	for key := range destinationKeys {
+		if strings.Contains(strings.ToLower(key), "secret") {
+			t.Fatalf("%s in list destination response appears to be sensitive, it should not be returned", key)
+		}
+
+		if strings.Contains(strings.ToLower(key), "key") {
+			t.Fatalf("%s in list destination response appears to be sensitive, it should not be returned", key)
+		}
+	}
 }
 
 func TestCreateAPIKey(t *testing.T) {
