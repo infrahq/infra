@@ -1753,6 +1753,55 @@ func TestListDestinationsEmpty(t *testing.T) {
 	assert.Equal(t, 0, len(destinations))
 }
 
+// This is a preventative security auditing test that checks for keys with names that seem sensitive on this response
+func TestListProvidersHasNoSensitiveValues(t *testing.T) {
+	a := &API{
+		registry: &Registry{
+			db: db,
+			secrets: map[string]secrets.SecretStorage{
+				"kubernetes": NewMockSecretReader(),
+			},
+		},
+		db: db,
+	}
+
+	r := httptest.NewRequest(http.MethodGet, "/v1/providers", nil)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.ListProviders).ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var providers []api.Provider
+	if err := json.NewDecoder(w.Body).Decode(&providers); err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Greater(t, len(providers), 0, "no providers returned, could not check sensitive values")
+
+	var providerKeys map[string]interface{}
+
+	inProv, err := json.Marshal(providers[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = json.Unmarshal(inProv, &providerKeys)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// check for suspicious key names
+	for key := range providerKeys {
+		if strings.Contains(strings.ToLower(key), "secret") {
+			t.Fatalf("%s in list provider response appears to be sensitive, it should not be returned", key)
+		}
+
+		if strings.Contains(strings.ToLower(key), "key") {
+			t.Fatalf("%s in list provider response appears to be sensitive, it should not be returned", key)
+		}
+	}
+}
+
 func TestGetDestination(t *testing.T) {
 	a := &API{
 		registry: &Registry{
@@ -1827,6 +1876,67 @@ func TestGetDestinationNotFound(t *testing.T) {
 	http.HandlerFunc(a.GetDestination).ServeHTTP(w, r)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+// This is a preventative security auditing test that checks for keys with names that seem sensitive on this response
+func TestGetProviderHasNoSensitiveValues(t *testing.T) {
+	a := &API{
+		registry: &Registry{
+			db: db,
+			secrets: map[string]secrets.SecretStorage{
+				"kubernetes": NewMockSecretReader(),
+			},
+		},
+		db: db,
+	}
+
+	provider := &Provider{Kind: ProviderKindOkta}
+	if err := a.db.Create(provider).Error; err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	defer a.db.Delete(provider)
+
+	r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/providers/%s", provider.Id), nil)
+	vars := map[string]string{
+		"id": provider.Id,
+	}
+	r = mux.SetURLVars(r, vars)
+
+	w := httptest.NewRecorder()
+	http.HandlerFunc(a.GetProvider).ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp api.Provider
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatal(err)
+	}
+
+	assert.NotNil(t, resp, "no provider returned, could not check sensitive values")
+
+	var providerKeys map[string]interface{}
+
+	inProv, err := json.Marshal(resp)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = json.Unmarshal(inProv, &providerKeys)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// check for suspicious key names
+	for key := range providerKeys {
+		if strings.Contains(strings.ToLower(key), "secret") {
+			t.Fatalf("%s in list provider response appears to be sensitive, it should not be returned", key)
+		}
+
+		if strings.Contains(strings.ToLower(key), "key") {
+			t.Fatalf("%s in list provider response appears to be sensitive, it should not be returned", key)
+		}
+	}
 }
 
 func TestCreateAPIKey(t *testing.T) {
