@@ -196,7 +196,6 @@ func newStartCmd() (*cobra.Command, error) {
 	cmd.Flags().String("pg.user", "", "PostgreSQL user")
 	cmd.Flags().String("pg.password", "", "PostgreSQL password")
 	cmd.Flags().String("pg.parameters", "", "PostgreSQL connection parameters")
-	cmd.Flags().String("pg.url", "", "PostgreSQL connection URL, overrides other postgres inputs")
 
 	cmd.Flags().String("ui-proxy", "", "proxy UI requests to this host")
 	cmd.Flags().Bool("enable-ui", false, "enable UI")

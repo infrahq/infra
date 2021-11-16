@@ -13,7 +13,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 
@@ -40,7 +39,6 @@ type PostgresOptions struct {
 	PostgresUser       string `mapstructure:"user"`
 	PostgresPassword   string `mapstructure:"password"`
 	PostgresParameters string `mapstructure:"parameters"`
-	PostgresURL        string `mapstructure:"url"`
 }
 
 type Options struct {
@@ -81,8 +79,6 @@ const (
 	DefaultDestinationsSyncInterval time.Duration = time.Minute * 5
 	DefaultSessionDuration          time.Duration = time.Hour * 12
 )
-
-var templatePattern = regexp.MustCompile(`\{\{([\w\d\/:-]+)\}\}`) // matches {{ * }}
 
 // syncProviders polls every known provider for users and groups
 func (r *Registry) syncProviders() {
@@ -471,17 +467,14 @@ func (r *Registry) configureSentry() (err error, ok bool) {
 func (r *Registry) getPostgresConnectionString() (string, error) {
 	options := r.options.PostgresOptions
 
-	URL := options.PostgresURL
+	var pgConn strings.Builder
 
 	// if the URL is not specifically set, then parse the config options
-	if URL == "" && options.PostgresHost != "" {
+	if options.PostgresHost != "" {
 		// config has separate postgres parameters set, combine them into a connection DSN now
-		var pgConn strings.Builder
-
 		fmt.Fprintf(&pgConn, "host=%s ", options.PostgresHost)
 
 		if options.PostgresUser != "" {
-
 			fmt.Fprintf(&pgConn, "user=%s ", options.PostgresUser)
 
 			if options.PostgresPassword != "" {
@@ -489,6 +482,7 @@ func (r *Registry) getPostgresConnectionString() (string, error) {
 				if err != nil {
 					return "", fmt.Errorf("postgres secret: %w", err)
 				}
+
 				fmt.Fprintf(&pgConn, "password=%s ", pass)
 			}
 		}
@@ -504,36 +498,9 @@ func (r *Registry) getPostgresConnectionString() (string, error) {
 		if options.PostgresParameters != "" {
 			fmt.Fprintf(&pgConn, "%s", options.PostgresParameters)
 		}
-
-		URL = strings.TrimSpace(pgConn.String())
 	}
 
-	return r.ReplaceSecretTemplates(URL)
-}
-
-// ReplaceSecretTemplates finds and replaces template values in a string of the form {{secretProvider:key}}
-func (r *Registry) ReplaceSecretTemplates(connection string) (string, error) {
-	templates := templatePattern.FindAllString(connection, -1)
-
-	// we will remove templates from this copy of the connection string to return
-	processed := connection
-
-	for _, t := range templates {
-		logging.S.Debugf("parsing %s in connection", t)
-
-		// remove template delimiters
-		secret := strings.ReplaceAll(t, "{", "")
-		secret = strings.ReplaceAll(secret, "}", "")
-
-		secret, err := r.GetSecret(secret)
-		if err != nil {
-			return "", fmt.Errorf("replace template secret: %w", err)
-		}
-
-		processed = strings.ReplaceAll(processed, t, secret)
-	}
-
-	return processed, nil
+	return pgConn.String(), nil
 }
 
 // GetSecret implements the secret definition scheme for Infra.
