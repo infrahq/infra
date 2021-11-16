@@ -662,32 +662,38 @@ func (k *Kubernetes) Service(component string) (*corev1.Service, error) {
 }
 
 // Find a suitable Endpoint to use by inspecting the engine's Service objects
-func (k *Kubernetes) Endpoint() (string, error) {
+func (k *Kubernetes) Endpoint() (string, int, error) {
 	service, err := k.Service("engine")
 	if err != nil {
-		return "", err
+		return "", -1, err
 	}
 
-	if len(service.Status.LoadBalancer.Ingress) == 0 {
-		return "", errors.New("load balancer has no ingress objects")
-	}
+	var host string
 
-	ingress := service.Status.LoadBalancer.Ingress[0]
+	// nolint:exhaustive
+	switch service.Spec.Type {
+	case corev1.ServiceTypeClusterIP:
+		host = service.Spec.ClusterIP
+	case corev1.ServiceTypeNodePort:
+		fallthrough
+	case corev1.ServiceTypeLoadBalancer:
+		if len(service.Status.LoadBalancer.Ingress) == 0 {
+			return "", -1, fmt.Errorf("load balancer has no ingress objects")
+		}
 
-	host := ingress.Hostname
-	if host == "" {
-		host = ingress.IP
+		ingress := service.Status.LoadBalancer.Ingress[0]
+
+		host = ingress.Hostname
+		if host == "" {
+			host = ingress.IP
+		}
+	default:
+		return "", -1, fmt.Errorf("unsupported service type")
 	}
 
 	if len(service.Spec.Ports) == 0 {
-		return "", errors.New("service has no ports")
+		return "", -1, fmt.Errorf("service has no ports")
 	}
 
-	port := service.Spec.Ports[0]
-
-	if port.Port == 443 {
-		return host, nil
-	}
-
-	return fmt.Sprintf("%s:%d", host, port.Port), nil
+	return host, int(service.Spec.Ports[0].Port), nil
 }
