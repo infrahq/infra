@@ -7,7 +7,7 @@ db-file: /var/run/infra/data/infra.db
 pg:
   host: ""
   port: -1
-  dbname: ""
+  db-name: ""
   user: ""
   password: ""
   parameters: ""

@@ -192,7 +192,7 @@ func newStartCmd() (*cobra.Command, error) {
 	cmd.Flags().String("db-file", "", "path to database file")
 	cmd.Flags().String("pg.host", "", "PostgreSQL host")
 	cmd.Flags().Int("pg.port", -1, "PostgreSQL port")
-	cmd.Flags().String("pg.dbname", "", "PostgreSQL database name")
+	cmd.Flags().String("pg.db-name", "", "PostgreSQL database name")
 	cmd.Flags().String("pg.user", "", "PostgreSQL user")
 	cmd.Flags().String("pg.password", "", "PostgreSQL password")
 	cmd.Flags().String("pg.parameters", "", "PostgreSQL connection parameters")

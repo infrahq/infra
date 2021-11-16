@@ -36,7 +36,7 @@ import (
 type PostgresOptions struct {
 	PostgresHost       string `mapstructure:"host"`
 	PostgresPort       int    `mapstructure:"port"`
-	PostgresDBName     string `mapstructure:"dbname"`
+	PostgresDBName     string `mapstructure:"db-name"`
 	PostgresUser       string `mapstructure:"user"`
 	PostgresPassword   string `mapstructure:"password"`
 	PostgresParameters string `mapstructure:"parameters"`
