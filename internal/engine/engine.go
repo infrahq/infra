@@ -343,7 +343,7 @@ func Run(options *Options) error {
 		if ipv4 := net.ParseIP(host); ipv4 == nil {
 			// wait for DNS resolution if endpoint is not an IPv4 address
 			if _, err := net.LookupIP(host); err != nil {
-				logging.L.Error("endpoint DNS could not be resolved, waiting to registry")
+				logging.L.Error("endpoint DNS could not be resolved, waiting to register")
 			}
 		}
 
