@@ -24,6 +24,6 @@ data:
 {{- $options = list "enable-telemetry" "enable-crash-reporting" | concat $options }}
 {{- range $options }}
   {{- if hasKey $.Values . }}
-    {{ . }}: {{ get $.Values . | toYaml | nindent 6}}
+    {{ . }}: {{ get $.Values . | toJson }}
   {{- end }}
 {{- end }}

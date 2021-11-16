@@ -499,7 +499,7 @@ func (r *Registry) getPostgresConnectionString() (string, error) {
 		}
 	}
 
-	return pgConn.String(), nil
+	return strings.TrimSpace(pgConn.String()), nil
 }
 
 // GetSecret implements the secret definition scheme for Infra.
