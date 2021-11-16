@@ -614,7 +614,8 @@ func (k *Kubernetes) Name() (string, string, error) {
 
 	logging.L.Debug("could not fetch cluster name, resorting to hashed cluster CA")
 
-	return chksm, chksm, nil
+	// truncated checksum will be used as default name if one could not be found
+	return chksm[:12], chksm, nil
 }
 
 func (k *Kubernetes) Namespace() (string, error) {
