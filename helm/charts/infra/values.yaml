@@ -6,8 +6,8 @@ tls-cache: /var/run/infra/data/cache
 db-file: /var/run/infra/data/infra.db
 pg:
   host: ""
-  port: -1
-  db-name: ""
+  port: 5432
+  db-name: postgres
   user: ""
   password: ""
   parameters: ""

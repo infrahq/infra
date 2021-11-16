@@ -469,7 +469,6 @@ func (r *Registry) getPostgresConnectionString() (string, error) {
 
 	var pgConn strings.Builder
 
-	// if the URL is not specifically set, then parse the config options
 	if options.PostgresHost != "" {
 		// config has separate postgres parameters set, combine them into a connection DSN now
 		fmt.Fprintf(&pgConn, "host=%s ", options.PostgresHost)
