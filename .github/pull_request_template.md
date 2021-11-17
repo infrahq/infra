@@ -5,7 +5,7 @@ Add to the list if you think there's something we should consider before merging
 -->
 
 - [ ] Wrote appropriate unit tests
-- [ ] considered security implications of the change
+- [ ] Considered security implications of the change
 - [ ] Updated associated docs where necessary
 - [ ] Updated associated configuration where necessary
 - [ ] Change is backwards compatible if it needs to be (user can upgrade without manual steps?)
