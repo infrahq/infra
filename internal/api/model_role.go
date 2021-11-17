@@ -52,7 +52,7 @@ func NewRole(id string, name string, created int64, updated int64, kind RoleKind
 // but it doesn't guarantee that properties required by API are set
 func NewRoleWithDefaults() *Role {
 	this := Role{}
-	var kind RoleKind = ROLE
+	var kind RoleKind = ROLEKIND_ROLE
 	this.Kind = kind
 	return &this
 }

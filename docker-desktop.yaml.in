@@ -8,8 +8,8 @@ config:
     - kind: okta
       domain: $OKTA_DOMAIN
       clientID: $OKTA_CLIENT_ID
-      clientSecret: kubernetes:$OKTA_SECRET/clientSecret
-      apiToken: kubernetes:$OKTA_SECRET/apiToken
+      clientSecret: plaintext:$OKTA_SECRET
+      apiToken: plaintext:$OKTA_SECRET
   groups:
     - name: Everyone
       provider: okta
@@ -17,9 +17,10 @@ config:
         - kind: cluster-role
           name: cluster-admin
           destinations:
-            - labels: [kubernetes]
+            - kind: kubernetes
 
 engine:
+  v: 1
   name: docker-desktop
   image:
     tag: $IMAGE_TAG
@@ -29,4 +30,3 @@ engine:
       - name: https
         port: 8443
         targetPort: 443
-  v: 1

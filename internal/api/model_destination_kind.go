@@ -20,7 +20,7 @@ type DestinationKind string
 
 // List of DestinationKind
 const (
-	KUBERNETES DestinationKind = "kubernetes"
+	DESTINATIONKIND_KUBERNETES DestinationKind = "kubernetes"
 )
 
 var allowedDestinationKindEnumValues = []DestinationKind{

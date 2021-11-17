@@ -18,10 +18,6 @@ import {
     InfraAPIKeyFromJSON,
     InfraAPIKeyFromJSONTyped,
     InfraAPIKeyToJSON,
-    InfraAPIPermission,
-    InfraAPIPermissionFromJSON,
-    InfraAPIPermissionFromJSONTyped,
-    InfraAPIPermissionToJSON,
 } from './';
 
 /**
@@ -56,10 +52,10 @@ export interface InfraAPIKeyCreateResponse {
     name: string;
     /**
      * 
-     * @type {Array<InfraAPIPermission>}
+     * @type {Array<string>}
      * @memberof InfraAPIKeyCreateResponse
      */
-    permissions: Array<InfraAPIPermission>;
+    permissions: Array<string>;
 }
 
 export function InfraAPIKeyCreateResponseFromJSON(json: any): InfraAPIKeyCreateResponse {
@@ -76,7 +72,7 @@ export function InfraAPIKeyCreateResponseFromJSONTyped(json: any, ignoreDiscrimi
         'id': json['id'],
         'created': json['created'],
         'name': json['name'],
-        'permissions': ((json['permissions'] as Array<any>).map(InfraAPIPermissionFromJSON)),
+        'permissions': json['permissions'],
     };
 }
 
@@ -93,7 +89,7 @@ export function InfraAPIKeyCreateResponseToJSON(value?: InfraAPIKeyCreateRespons
         'id': value.id,
         'created': value.created,
         'name': value.name,
-        'permissions': ((value.permissions as Array<any>).map(InfraAPIPermissionToJSON)),
+        'permissions': value.permissions,
     };
 }
 

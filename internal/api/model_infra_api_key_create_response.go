@@ -16,18 +16,18 @@ import (
 
 // InfraAPIKeyCreateResponse struct for InfraAPIKeyCreateResponse
 type InfraAPIKeyCreateResponse struct {
-	Key         string               `json:"key"`
-	Id          string               `json:"id"`
-	Created     int64                `json:"created"`
-	Name        string               `json:"name"`
-	Permissions []InfraAPIPermission `json:"permissions"`
+	Key         string   `json:"key"`
+	Id          string   `json:"id"`
+	Created     int64    `json:"created"`
+	Name        string   `json:"name"`
+	Permissions []string `json:"permissions"`
 }
 
 // NewInfraAPIKeyCreateResponse instantiates a new InfraAPIKeyCreateResponse object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewInfraAPIKeyCreateResponse(key string, id string, created int64, name string, permissions []InfraAPIPermission) *InfraAPIKeyCreateResponse {
+func NewInfraAPIKeyCreateResponse(key string, id string, created int64, name string, permissions []string) *InfraAPIKeyCreateResponse {
 	this := InfraAPIKeyCreateResponse{}
 	this.Id = id
 	this.Created = created
@@ -141,9 +141,9 @@ func (o *InfraAPIKeyCreateResponse) SetName(v string) {
 }
 
 // GetPermissions returns the Permissions field value
-func (o *InfraAPIKeyCreateResponse) GetPermissions() []InfraAPIPermission {
+func (o *InfraAPIKeyCreateResponse) GetPermissions() []string {
 	if o == nil {
-		var ret []InfraAPIPermission
+		var ret []string
 		return ret
 	}
 
@@ -152,7 +152,7 @@ func (o *InfraAPIKeyCreateResponse) GetPermissions() []InfraAPIPermission {
 
 // GetPermissionsOk returns a tuple with the Permissions field value
 // and a boolean to check if the value has been set.
-func (o *InfraAPIKeyCreateResponse) GetPermissionsOk() (*[]InfraAPIPermission, bool) {
+func (o *InfraAPIKeyCreateResponse) GetPermissionsOk() (*[]string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -160,7 +160,7 @@ func (o *InfraAPIKeyCreateResponse) GetPermissionsOk() (*[]InfraAPIPermission, b
 }
 
 // SetPermissions sets field value
-func (o *InfraAPIKeyCreateResponse) SetPermissions(v []InfraAPIPermission) {
+func (o *InfraAPIKeyCreateResponse) SetPermissions(v []string) {
 	o.Permissions = v
 }
 

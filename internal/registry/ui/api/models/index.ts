@@ -8,7 +8,6 @@ export * from './Group';
 export * from './InfraAPIKey';
 export * from './InfraAPIKeyCreateRequest';
 export * from './InfraAPIKeyCreateResponse';
-export * from './InfraAPIPermission';
 export * from './LoginRequest';
 export * from './LoginRequestOkta';
 export * from './LoginResponse';

@@ -20,8 +20,8 @@ type RoleKind string
 
 // List of RoleKind
 const (
-	ROLE         RoleKind = "role"
-	CLUSTER_ROLE RoleKind = "cluster-role"
+	ROLEKIND_ROLE         RoleKind = "role"
+	ROLEKIND_CLUSTER_ROLE RoleKind = "cluster-role"
 )
 
 var allowedRoleKindEnumValues = []RoleKind{

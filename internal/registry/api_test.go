@@ -11,14 +11,18 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/api"
-	"github.com/infrahq/infra/internal/generate"
-	"github.com/infrahq/infra/internal/registry/mocks"
-	"github.com/infrahq/infra/secrets"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
+
+	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/access"
+	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/internal/data"
+	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/internal/registry/mocks"
+	"github.com/infrahq/infra/secrets"
 )
 
 func init() {
@@ -39,911 +43,362 @@ func (msr *mockSecretReader) SetSecret(secretName string, secret []byte) error {
 	return nil
 }
 
-func addUser(db *gorm.DB, sessionDuration time.Duration) (tokenId string, tokenSecret string, err error) {
-	var (
-		token  Token
-		secret string
-	)
-
-	err = db.Transaction(func(tx *gorm.DB) error {
-		user := &User{Email: "test@test.com"}
-		err := tx.Create(user).Error
-		if err != nil {
-			return err
-		}
-
-		secret, err = NewToken(tx, user.Id, standardUserPermissions, sessionDuration, &token)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-	if err != nil {
-		return "", "", err
-	}
-
-	return token.Id, secret, nil
-}
-
-func TestBearerTokenMiddlewareDefault(t *testing.T) {
-	db, err := NewSQLiteDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
-			},
-		},
-		db: db,
-	}
-
-	r := httptest.NewRequest(http.MethodGet, "/", nil)
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.bearerAuthMiddleware(api.USERS_READ)(c)
-	require.Equal(t, http.StatusUnauthorized, w.Code)
-}
-
-func TestBearerTokenMiddlewareEmptyHeader(t *testing.T) {
-	db, err := NewSQLiteDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
-			},
-		},
-		db: db,
-	}
-
-	r := httptest.NewRequest(http.MethodGet, "/", nil)
-	r.Header.Add("Authorization", "")
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.bearerAuthMiddleware(api.USERS_READ)(c)
-	require.Equal(t, http.StatusUnauthorized, w.Code)
-}
-
-func TestBearerTokenMiddlewareEmptyHeaderBearer(t *testing.T) {
-	db, err := NewSQLiteDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
-			},
-		},
-		db: db,
-	}
-
-	r := httptest.NewRequest(http.MethodGet, "/", nil)
-	r.Header.Add("Authorization", "Bearer")
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.bearerAuthMiddleware(api.USERS_READ)(c)
-	require.Equal(t, http.StatusUnauthorized, w.Code)
-}
-
-func TestBearerTokenMiddlewareInvalidLength(t *testing.T) {
-	db, err := NewSQLiteDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
-			},
-		},
-		db: db,
-	}
-
-	r := httptest.NewRequest(http.MethodGet, "/", nil)
-	r.Header.Add("Authorization", "Bearer hello")
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.bearerAuthMiddleware(api.USERS_READ)(c)
-	require.Equal(t, http.StatusUnauthorized, w.Code)
-}
-
-func TestBearerTokenMiddlewareInvalidToken(t *testing.T) {
-	db, err := NewSQLiteDB("file::memory:")
+func issueAPIKey(t *testing.T, db *gorm.DB, permissions string) *data.APIKey {
+	secret, err := generate.CryptoRandom(data.APIKeyLength)
 	require.NoError(t, err)
 
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
-			},
-		},
-		db: db,
+	apiKey := &data.APIKey{
+		Name:        "test",
+		Key:         secret,
+		Permissions: permissions,
 	}
 
-	r := httptest.NewRequest(http.MethodGet, "/", nil)
-	bearerToken, err := generate.CryptoRandom(TokenLen)
+	apiKey, err = data.CreateAPIKey(db, apiKey)
 	require.NoError(t, err)
-	r.Header.Add("Authorization", "Bearer "+bearerToken)
 
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.bearerAuthMiddleware(api.USERS_READ)(c)
-	require.Equal(t, http.StatusUnauthorized, w.Code)
-}
-
-func TestBearerTokenMiddlewareExpiredToken(t *testing.T) {
-	db, err := NewSQLiteDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
-			},
-		},
-		db: db,
-	}
-
-	id, secret, err := addUser(db, time.Millisecond*1)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := httptest.NewRequest(http.MethodGet, "/", nil)
-	r.Header.Add("Authorization", "Bearer "+id+secret)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.bearerAuthMiddleware(api.USERS_READ)(c)
-	require.Equal(t, http.StatusForbidden, w.Code)
-}
-
-func TestBearerTokenMiddlewareValidTokenWrongPermissions(t *testing.T) {
-	db, err := NewSQLiteDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
-			},
-		},
-		db: db,
-	}
-
-	id, secret, err := addUser(db, time.Hour*24)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := httptest.NewRequest(http.MethodGet, "/", nil)
-	r.Header.Add("Authorization", "Bearer "+id+secret)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.bearerAuthMiddleware(api.API_KEYS_CREATE)(c)
-	require.Equal(t, http.StatusForbidden, w.Code)
-}
-
-func TestBearerTokenMiddlewareValidToken(t *testing.T) {
-	db, err := NewSQLiteDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
-			},
-		},
-		db: db,
-	}
-
-	id, secret, err := addUser(db, time.Hour*24)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := httptest.NewRequest(http.MethodGet, "/", nil)
-	r.Header.Add("Authorization", "Bearer "+id+secret)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.bearerAuthMiddleware(api.USERS_READ)(c)
-	require.Equal(t, http.StatusOK, w.Code)
-}
-
-func TestBearerTokenMiddlewareInvalidAPIKey(t *testing.T) {
-	db, err := NewSQLiteDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
-			},
-		},
-		db: db,
-	}
-
-	r := httptest.NewRequest(http.MethodGet, "/", nil)
-	bearerToken, err := generate.CryptoRandom(TokenLen)
-	require.NoError(t, err)
-	r.Header.Add("Authorization", "Bearer "+bearerToken)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.bearerAuthMiddleware(api.USERS_READ)(c)
-	require.Equal(t, http.StatusUnauthorized, w.Code)
-}
-
-func TestBearerTokenMiddlewareValidAPIKey(t *testing.T) {
-	db, err := NewSQLiteDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
-			},
-		},
-		db: db,
-	}
-
-	var apiKey APIKey
-
-	err = db.FirstOrCreate(&apiKey, &APIKey{Name: engineAPIKeyName, Permissions: string(api.USERS_READ)}).Error
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := httptest.NewRequest(http.MethodGet, "/", nil)
-	r.Header.Add("Authorization", "Bearer "+apiKey.Key)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.bearerAuthMiddleware(api.USERS_READ)(c)
-	require.Equal(t, w.Code, http.StatusOK)
-}
-
-func TestBearerTokenMiddlewareValidAPIKeyRootPermissions(t *testing.T) {
-	db, err := NewSQLiteDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
-			},
-		},
-		db: db,
-	}
-
-	var apiKey APIKey
-
-	err = db.FirstOrCreate(&apiKey, &APIKey{Name: engineAPIKeyName, Permissions: string(api.STAR)}).Error
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := httptest.NewRequest(http.MethodGet, "/", nil)
-	r.Header.Add("Authorization", "Bearer "+apiKey.Key)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.bearerAuthMiddleware(api.USERS_READ)(c)
-	require.Equal(t, w.Code, http.StatusOK)
-}
-
-func TestBearerTokenMiddlewareValidAPIKeyWrongPermission(t *testing.T) {
-	db, err := NewSQLiteDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
-			},
-		},
-		db: db,
-	}
-
-	var apiKey APIKey
-
-	err = db.FirstOrCreate(&apiKey, &APIKey{Name: engineAPIKeyName, Permissions: string(api.DESTINATIONS_READ)}).Error
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := httptest.NewRequest(http.MethodGet, "/", nil)
-	r.Header.Add("Authorization", "Bearer "+apiKey.Key)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.bearerAuthMiddleware(api.DESTINATIONS_CREATE)(c)
-
-	var body api.Error
-	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
-		t.Fatal(err)
-	}
-
-	require.Equal(t, w.Code, http.StatusForbidden)
-	require.Equal(t, string(api.DESTINATIONS_CREATE)+" permission is required", body.Message)
-}
-
-func TestCreateDestinationNoKind(t *testing.T) {
-	db, err := NewSQLiteDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
-			},
-		},
-		db: db,
-	}
-
-	var apiKey APIKey
-
-	err = db.FirstOrCreate(&apiKey, &APIKey{Name: "default", Permissions: string(api.DESTINATIONS_CREATE)}).Error
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	req := api.DestinationCreateRequest{
-		Kubernetes: &api.DestinationKubernetes{
-			Ca:       "CA",
-			Endpoint: "endpoint.net",
-		},
-	}
-
-	bts, err := req.MarshalJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := httptest.NewRequest(http.MethodPost, "/v1/destinations", bytes.NewReader(bts))
-	r.Header.Add("Authorization", "Bearer "+apiKey.Key)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.bearerAuthMiddleware(api.DESTINATIONS_CREATE)(c)
-	a.CreateDestination(c)
-	require.Equal(t, http.StatusBadRequest, w.Code)
-}
-
-func TestCreateDestinationBadKind(t *testing.T) {
-	db, err := NewSQLiteDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
-			},
-		},
-		db: db,
-	}
-
-	var apiKey APIKey
-
-	err = db.FirstOrCreate(&apiKey, &APIKey{Name: "default", Permissions: string(api.DESTINATIONS_CREATE)}).Error
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	req := api.DestinationCreateRequest{
-		Kind: api.DestinationKind("nonexistent"),
-		Kubernetes: &api.DestinationKubernetes{
-			Ca:       "CA",
-			Endpoint: "endpoint.net",
-		},
-	}
-
-	bts, err := req.MarshalJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := httptest.NewRequest(http.MethodPost, "/v1/destinations", bytes.NewReader(bts))
-	r.Header.Add("Authorization", "Bearer "+apiKey.Key)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.bearerAuthMiddleware(api.DESTINATIONS_CREATE)(c)
-	a.CreateDestination(c)
-	require.Equal(t, http.StatusBadRequest, w.Code)
-}
-
-func TestCreateDestinationNoAPIKey(t *testing.T) {
-	db, err := NewSQLiteDB("file::memory:")
-	if err != nil {
-		require.NoError(t, err)
-	}
-
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
-			},
-		},
-		db: db,
-	}
-
-	req := api.DestinationCreateRequest{
-		Kind: api.KUBERNETES,
-		Kubernetes: &api.DestinationKubernetes{
-			Ca:       "CA",
-			Endpoint: "endpoint.net",
-		},
-	}
-
-	bts, err := req.MarshalJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := httptest.NewRequest(http.MethodPost, "/v1/destinations", bytes.NewReader(bts))
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.bearerAuthMiddleware(api.USERS_READ)(c)
-	a.Login(c)
-	require.Equal(t, http.StatusUnauthorized, w.Code)
+	return apiKey
 }
 
 func TestCreateDestination(t *testing.T) {
-	db, err := NewSQLiteDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+	cases := map[string]map[string]interface{}{
+		"OK": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionDestinationCreate))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T) *api.DestinationCreateRequest {
+				return &api.DestinationCreateRequest{
+					Kind:   api.DESTINATIONKIND_KUBERNETES,
+					NodeID: "test",
+					Name:   "test",
+					Kubernetes: &api.DestinationKubernetes{
+						Ca:       "CA",
+						Endpoint: "develop.infrahq.com",
+					},
+				}
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusCreated, w.Code)
 			},
 		},
-		db: db,
-	}
-
-	var apiKey APIKey
-
-	err = db.FirstOrCreate(&apiKey, &APIKey{Name: "default", Permissions: string(api.DESTINATIONS_CREATE)}).Error
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	req := api.DestinationCreateRequest{
-		Kind: api.KUBERNETES,
-		Kubernetes: &api.DestinationKubernetes{
-			Ca:       "CA",
-			Endpoint: "endpoint.net",
+		"NoKind": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionDestinationCreate))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T) *api.DestinationCreateRequest {
+				return &api.DestinationCreateRequest{
+					Kubernetes: &api.DestinationKubernetes{
+						Ca:       "CA",
+						Endpoint: "develop.infrahq.com",
+					},
+				}
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, w.Code)
+			},
+		},
+		"UnknownKind": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionDestinationCreate))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T) *api.DestinationCreateRequest {
+				return &api.DestinationCreateRequest{
+					Kind: api.DestinationKind("unknown"),
+					Kubernetes: &api.DestinationKubernetes{
+						Ca:       "CA",
+						Endpoint: "develop.infrahq.com",
+					},
+				}
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, w.Code)
+			},
+		},
+		"NoAuthorization": {
+			"requestFunc": func(t *testing.T) *api.DestinationCreateRequest {
+				return &api.DestinationCreateRequest{
+					Kind: api.DESTINATIONKIND_KUBERNETES,
+					Kubernetes: &api.DestinationKubernetes{
+						Ca:       "CA",
+						Endpoint: "develop.infrahq.com",
+					},
+				}
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, w.Code)
+			},
+		},
+		"BadPermissions": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, "infra.bad.permissions")
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T) *api.DestinationCreateRequest {
+				return &api.DestinationCreateRequest{
+					Kind: api.DESTINATIONKIND_KUBERNETES,
+					Kubernetes: &api.DestinationKubernetes{
+						Ca:       "CA",
+						Endpoint: "develop.infrahq.com",
+					},
+				}
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusForbidden, w.Code)
+			},
 		},
 	}
 
-	bts, err := req.MarshalJSON()
-	if err != nil {
-		t.Fatal(err)
+	for k, v := range cases {
+		t.Run(k, func(t *testing.T) {
+			db := configure(t, nil)
+
+			requestFunc, ok := v["requestFunc"].(func(*testing.T) *api.DestinationCreateRequest)
+			require.True(t, ok)
+
+			request := requestFunc(t)
+			bts, err := request.MarshalJSON()
+			require.NoError(t, err)
+
+			r := httptest.NewRequest(http.MethodPost, "/v1/destinations", bytes.NewReader(bts))
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Set("db", db)
+			c.Request = r
+
+			authFunc, ok := v["authFunc"].(func(*testing.T, *gorm.DB, *gin.Context))
+			if ok {
+				authFunc(t, db, c)
+			}
+
+			a := API{}
+
+			a.CreateDestination(c)
+
+			verifyFunc, ok := v["verifyFunc"].(func(*testing.T, *http.Request, *httptest.ResponseRecorder))
+			require.True(t, ok)
+
+			verifyFunc(t, r, w)
+		})
 	}
-
-	r := httptest.NewRequest(http.MethodPost, "/v1/destinations", bytes.NewReader(bts))
-	r.Header.Add("Authorization", "Bearer "+apiKey.Key)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.bearerAuthMiddleware(api.DESTINATIONS_CREATE)(c)
-	a.CreateDestination(c)
-	require.Equal(t, http.StatusCreated, w.Code)
 }
 
-func TestInsertDestinationUpdatesField(t *testing.T) {
-	db, err := NewSQLiteDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
+func TestCreateDestinationUpdatesField(t *testing.T) {
+	db := configure(t, nil)
 
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
-			},
+	destination, err := data.CreateDestination(db, &data.Destination{
+		Kind:     data.DestinationKindKubernetes,
+		NodeID:   "node-id",
+		Name:     "name",
+		Endpoint: "endpoint",
+		Kubernetes: data.DestinationKubernetes{
+			CA: "ca",
 		},
-		db: db,
+	})
+
+	require.NoError(t, err)
+	require.Equal(t, "node-id", destination.NodeID)
+	require.Equal(t, "name", destination.Name)
+	require.Equal(t, "endpoint", destination.Endpoint)
+	require.Equal(t, "ca", destination.Kubernetes.CA)
+
+	request := api.DestinationCreateRequest{
+		Kind:   api.DESTINATIONKIND_KUBERNETES,
+		NodeID: destination.NodeID,
+		Name:   "updated-name",
+		Kubernetes: &api.DestinationKubernetes{
+			Ca:       "updated-ca",
+			Endpoint: "updated-endpoint",
+		},
 	}
 
-	var apiKey APIKey
-
-	err = db.FirstOrCreate(&apiKey, &APIKey{Name: "default", Permissions: string(api.DESTINATIONS_CREATE)}).Error
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	nodeID := "node1"
-
-	existing := &Destination{
-		NodeID:             nodeID,
-		Name:               "test-destination",
-		Kind:               DestinationKindKubernetes,
-		KubernetesCa:       "--BEGIN CERTIFICATE--",
-		KubernetesEndpoint: "example.com",
-	}
-
-	err = db.FirstOrCreate(&existing).Error
+	bts, err := request.MarshalJSON()
 	require.NoError(t, err)
 
-	newName := "updated-test-destination"
-	newCA := "--BEGIN NEW CERTIFICATE--"
-	newEndpoint := "new.example.com"
-
-	req := api.DestinationCreateRequest{
-		NodeID: nodeID,
-		Name:   "updated-test-destination",
-		Kind:   api.KUBERNETES,
-		Kubernetes: &api.DestinationKubernetes{
-			Ca:       newCA,
-			Endpoint: newEndpoint,
-		},
-	}
-
-	bts, err := req.MarshalJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	r := httptest.NewRequest(http.MethodPost, "/v1/destinations", bytes.NewReader(bts))
-	r.Header.Add("Authorization", "Bearer "+apiKey.Key)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
+	c.Set("db", db)
 	c.Request = r
 
-	a.bearerAuthMiddleware(api.DESTINATIONS_CREATE)(c)
+	apiKey := issueAPIKey(t, db, string(access.PermissionDestinationCreate))
+	c.Set("authorization", apiKey.Key)
+
+	a := API{}
+
 	a.CreateDestination(c)
+
 	require.Equal(t, http.StatusCreated, w.Code)
 
 	var body api.Destination
-	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
-		t.Fatal(err)
-	}
+	err = json.NewDecoder(w.Body).Decode(&body)
+	require.NoError(t, err)
+	require.Equal(t, "node-id", body.NodeID)
+	require.Equal(t, "updated-name", body.Name)
+	require.Equal(t, "updated-ca", body.Kubernetes.Ca)
+	require.Equal(t, "updated-endpoint", body.Kubernetes.Endpoint)
 
-	require.Equal(t, nodeID, body.NodeID)
-	// check that the updated fields have changed
-	require.Equal(t, newName, body.Name)
-	require.Equal(t, newCA, body.Kubernetes.Ca)
-	require.Equal(t, newEndpoint, body.Kubernetes.Endpoint)
+	destinations, err := data.ListDestinations(db, &data.Destination{NodeID: "node-id"})
+	require.NoError(t, err)
+	require.Len(t, destinations, 1)
+	require.Equal(t, body.Id, destinations[0].ID.String())
+	require.Equal(t, body.NodeID, destinations[0].NodeID)
+	require.Equal(t, body.Name, destinations[0].Name)
+	require.Equal(t, body.Kubernetes.Endpoint, destinations[0].Endpoint)
+	require.Equal(t, body.Kubernetes.Ca, destinations[0].Kubernetes.CA)
 }
 
-func TestLoginHandlerEmptyRequest(t *testing.T) {
-	db, err := NewSQLiteDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+func TestLogin(t *testing.T) {
+	cases := map[string]map[string]interface{}{
+		"NilRequest": {
+			"requestFunc": func(t *testing.T) *http.Request {
+				return httptest.NewRequest(http.MethodPost, "/v1/login", nil)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, w.Code)
 			},
 		},
-		db: db,
-	}
+		"OktaNil": {
+			"requestFunc": func(t *testing.T) *http.Request {
+				r := &api.LoginRequest{
+					Okta: nil,
+				}
 
-	r := httptest.NewRequest(http.MethodPost, "http://test.com/v1/login", nil)
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
+				bts, err := r.MarshalJSON()
+				require.NoError(t, err)
 
-	a.Login(c)
-	require.Equal(t, http.StatusBadRequest, w.Code)
-}
-
-func TestLoginNilOktaRequest(t *testing.T) {
-	db, err := NewSQLiteDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				return httptest.NewRequest(http.MethodPost, "/v1/login", bytes.NewReader(bts))
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, w.Code)
 			},
 		},
-		db: db,
-	}
+		"OktaEmpty": {
+			"requestFunc": func(t *testing.T) *http.Request {
+				r := &api.LoginRequest{
+					Okta: &api.LoginRequestOkta{},
+				}
 
-	loginRequest := api.LoginRequest{
-		Okta: nil,
-	}
+				bts, err := r.MarshalJSON()
+				require.NoError(t, err)
 
-	bts, err := loginRequest.MarshalJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := httptest.NewRequest(http.MethodPost, "/v1/login", bytes.NewReader(bts))
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.Login(c)
-	require.Equal(t, http.StatusBadRequest, w.Code)
-}
-
-func TestLoginEmptyOktaRequest(t *testing.T) {
-	db, err := NewSQLiteDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				return httptest.NewRequest(http.MethodPost, "/v1/login", bytes.NewReader(bts))
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, w.Code)
 			},
 		},
-		db: db,
-	}
+		"OktaMissingDomain": {
+			"requestFunc": func(t *testing.T) *http.Request {
+				r := &api.LoginRequest{
+					Okta: &api.LoginRequestOkta{
+						Code: "code",
+					},
+				}
 
-	loginRequest := api.LoginRequest{
-		Okta: &api.LoginRequestOkta{},
-	}
+				bts, err := r.MarshalJSON()
+				require.NoError(t, err)
 
-	bts, err := loginRequest.MarshalJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := httptest.NewRequest(http.MethodPost, "/v1/login", bytes.NewReader(bts))
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.Login(c)
-	require.Equal(t, http.StatusBadRequest, w.Code)
-}
-
-func TestLoginOktaMissingDomainRequest(t *testing.T) {
-	db, err := NewSQLiteDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				return httptest.NewRequest(http.MethodPost, "/v1/login", bytes.NewReader(bts))
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, w.Code)
 			},
 		},
-		db: db,
-	}
+		"OktaMissingCodeRequest": {
+			"requestFunc": func(t *testing.T) *http.Request {
+				r := &api.LoginRequest{
+					Okta: &api.LoginRequestOkta{
+						Domain: "test.okta.com",
+					},
+				}
 
-	loginRequest := api.LoginRequest{
-		Okta: &api.LoginRequestOkta{
-			Code: "testcode",
-		},
-	}
+				bts, err := r.MarshalJSON()
+				require.NoError(t, err)
 
-	bts, err := loginRequest.MarshalJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := httptest.NewRequest(http.MethodPost, "/v1/login", bytes.NewReader(bts))
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.Login(c)
-	require.Equal(t, http.StatusBadRequest, w.Code)
-}
-
-func TestLoginMethodOktaMissingCodeRequest(t *testing.T) {
-	db, err := NewSQLiteDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				return httptest.NewRequest(http.MethodPost, "/v1/login", bytes.NewReader(bts))
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, w.Code)
 			},
 		},
-		db: db,
 	}
 
-	loginRequest := api.LoginRequest{
-		Okta: &api.LoginRequestOkta{
-			Domain: "test.okta.com",
-		},
+	for k, v := range cases {
+		t.Run(k, func(t *testing.T) {
+			db := configure(t, nil)
+
+			requestFunc, ok := v["requestFunc"].(func(*testing.T) *http.Request)
+			require.True(t, ok)
+
+			r := requestFunc(t)
+
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Set("db", db)
+			c.Request = r
+
+			a := &API{}
+
+			a.Login(c)
+
+			verifyFunc, ok := v["verifyFunc"].(func(*testing.T, *http.Request, *httptest.ResponseRecorder))
+			require.True(t, ok)
+
+			verifyFunc(t, r, w)
+		})
 	}
-
-	bts, err := loginRequest.MarshalJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := httptest.NewRequest(http.MethodPost, "/v1/login", bytes.NewReader(bts))
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.Login(c)
-	require.Equal(t, http.StatusBadRequest, w.Code)
 }
 
-func TestLoginMethodOkta(t *testing.T) {
-	db, err := NewSQLiteDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	var provider Provider
-	provider.Kind = ProviderKindOkta
-	provider.APIToken = "test-api-token/apiToken"
-	provider.Domain = "test.okta.com"
-	provider.ClientID = "test-client-id"
-	provider.ClientSecret = "test-client-secret/clientSecret"
-
-	if err := db.Create(&provider).Error; err != nil {
-		t.Fatal(err)
-	}
-
-	var user User
-	if err := provider.CreateUser(db, &user, "test@test.com"); err != nil {
-		t.Fatal(err)
-	}
+func TestLoginOkta(t *testing.T) {
+	db := configure(t, nil)
 
 	testOkta := new(mocks.Okta)
-	testOkta.On("EmailFromCode", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("test@test.com", nil)
+	testOkta.On("EmailFromCode", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("jbond@infrahq.com", nil)
 
-	telemetry, err := NewTelemetry(db)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
-			},
-		},
-		db:   db,
-		okta: testOkta,
-		t:    telemetry,
-	}
-
-	loginRequest := api.LoginRequest{
+	request := api.LoginRequest{
 		Okta: &api.LoginRequestOkta{
 			Domain: "test.okta.com",
-			Code:   "testcode",
+			Code:   "code",
 		},
 	}
 
-	bts, err := loginRequest.MarshalJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
+	bts, err := request.MarshalJSON()
+	require.NoError(t, err)
 
 	r := httptest.NewRequest(http.MethodPost, "/v1/login", bytes.NewReader(bts))
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
+	c.Set("okta", testOkta)
+	c.Set("db", db)
 	c.Request = r
+
+	a := API{
+		registry: &Registry{
+			secrets: map[string]secrets.SecretStorage{
+				"base64": NewMockSecretReader(),
+			},
+		},
+	}
 
 	a.Login(c)
 
-	var body api.LoginResponse
-	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
-		t.Fatal(err)
-	}
-
 	require.Equal(t, http.StatusOK, w.Code)
-	require.Equal(t, "test@test.com", body.Name)
+
+	var body api.LoginResponse
+	err = json.NewDecoder(w.Body).Decode(&body)
+	require.NoError(t, err)
+	require.Equal(t, "jbond@infrahq.com", body.Name)
 	require.NotEmpty(t, body.Token)
 }
 
-func TestVersion(t *testing.T) {
-	db, err := NewSQLiteDB("file::memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
+func TestLogout(t *testing.T) {
+}
 
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
-			},
-		},
-		db: db,
-	}
+func TestVersion(t *testing.T) {
+	a := API{}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/version", nil)
 	w := httptest.NewRecorder()
@@ -951,1374 +406,1017 @@ func TestVersion(t *testing.T) {
 	c.Request = r
 
 	a.Version(c)
+
 	require.Equal(t, http.StatusOK, w.Code)
 
 	var body api.Version
-	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
-		t.Fatal(err)
-	}
-
+	err := json.NewDecoder(w.Body).Decode(&body)
+	require.NoError(t, err)
 	require.Equal(t, internal.Version, body.Version)
 }
 
-func TestListRoles(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+func TestT(t *testing.T) {
+	cases := map[string]map[string]interface{}{
+		// /v1/users
+		"GetUser": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionUserRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				c.Params = append(c.Params, gin.Param{Key: "id", Value: userBond.ID.String()})
+				return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/users/%s", userBond.ID), nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.GetUser(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
+
+				var user api.User
+				err := json.NewDecoder(w.Body).Decode(&user)
+				require.NoError(t, err)
+				require.Equal(t, "jbond@infrahq.com", user.Email)
 			},
 		},
-		db: db,
-	}
-
-	r := httptest.NewRequest(http.MethodGet, "/v1/roles", nil)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.ListRoles(c)
-	require.Equal(t, http.StatusOK, w.Code)
-
-	var roles []api.Role
-	err := json.NewDecoder(w.Body).Decode(&roles)
-	require.NoError(t, err)
-
-	require.Equal(t, 8, len(roles))
-
-	returnedUserRoles := make(map[string][]api.User)
-	for _, r := range roles {
-		returnedUserRoles[r.Name] = r.Users
-	}
-
-	// roles from direct user assignment
-	require.Equal(t, 1, len(returnedUserRoles["admin"]))
-	require.True(t, containsUser(returnedUserRoles["admin"], adminUser.Email))
-
-	require.Equal(t, 1, len(returnedUserRoles["audit"]))
-	require.True(t, containsUser(returnedUserRoles["audit"], adminUser.Email))
-
-	require.Equal(t, 1, len(returnedUserRoles["pod-create"]))
-	require.True(t, containsUser(returnedUserRoles["pod-create"], adminUser.Email))
-
-	require.Equal(t, 0, len(returnedUserRoles["writer"]))
-
-	require.Equal(t, 0, len(returnedUserRoles["view"]))
-
-	returnedGroupRoles := make(map[string][]api.Group)
-	for _, r := range roles {
-		returnedGroupRoles[r.Name] = r.Groups
-	}
-
-	// roles from groups
-	require.Equal(t, 0, len(returnedGroupRoles["admin"]))
-
-	require.Equal(t, 1, len(returnedGroupRoles["audit"]))
-	require.True(t, containsGroup(returnedGroupRoles["audit"], iosDevGroup.Name))
-
-	require.Equal(t, 1, len(returnedGroupRoles["pod-create"]))
-	require.True(t, containsGroup(returnedGroupRoles["pod-create"], iosDevGroup.Name))
-
-	require.Equal(t, 1, len(returnedGroupRoles["writer"]))
-	require.True(t, containsGroup(returnedGroupRoles["writer"], macAdminGroup.Name))
-}
-
-func TestListRolesByName(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+		"GetUserEmptyID": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionUserRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/users/", nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.GetUser(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, w.Code)
 			},
 		},
-		db: db,
-	}
+		"GetUserUnknownUser": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionUserRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				id, err := uuid.NewUUID()
+				require.NoError(t, err)
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/roles?name=admin", nil)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.ListRoles(c)
-	require.Equal(t, http.StatusOK, w.Code)
-
-	var roles []api.Role
-	if err := json.NewDecoder(w.Body).Decode(&roles); err != nil {
-		t.Fatal(err)
-	}
-
-	require.Equal(t, 3, len(roles))
-
-	returnedUserRoles := make(map[string][]api.User)
-	for _, r := range roles {
-		returnedUserRoles[r.Name] = r.Users
-	}
-
-	// roles from direct user assignment
-	require.Equal(t, 1, len(returnedUserRoles["admin"]))
-	require.True(t, containsUser(returnedUserRoles["admin"], adminUser.Email))
-
-	returnedGroupRoles := make(map[string][]api.Group)
-	for _, r := range roles {
-		returnedGroupRoles[r.Name] = r.Groups
-	}
-
-	// roles from groups
-	require.Equal(t, 0, len(returnedGroupRoles["admin"]))
-}
-
-func TestListRolesByKind(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				c.Params = append(c.Params, gin.Param{Key: "id", Value: id.String()})
+				return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/users/%s", id), nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.GetUser(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, w.Code)
 			},
 		},
-		db: db,
-	}
+		"ListUsers": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionUserRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/users", nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.ListUsers(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/roles?kind=role", nil)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.ListRoles(c)
-	require.Equal(t, http.StatusOK, w.Code)
-
-	var roles []api.Role
-	if err := json.NewDecoder(w.Body).Decode(&roles); err != nil {
-		t.Fatal(err)
-	}
-
-	require.Equal(t, 1, len(roles))
-
-	returnedGroupRoles := make(map[string][]api.Group)
-	for _, r := range roles {
-		returnedGroupRoles[r.Name] = r.Groups
-	}
-
-	// roles from groups
-	require.Equal(t, 1, len(returnedGroupRoles["pod-create"]))
-	require.True(t, containsGroup(returnedGroupRoles["pod-create"], iosDevGroup.Name))
-}
-
-func TestListRolesByMultiple(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				var users []api.User
+				err := json.NewDecoder(w.Body).Decode(&users)
+				require.NoError(t, err)
+				require.Len(t, users, 2)
+				require.ElementsMatch(t, []string{"jbond@infrahq.com", "jbourne@infrahq.com"}, []string{users[0].Email, users[1].Email})
 			},
 		},
-		db: db,
-	}
+		"ListUsersByEmail": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionUserRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/users?email=jbond@infrahq.com", nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.ListUsers(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/roles?name=admin&kind=role", nil)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.ListRoles(c)
-	require.Equal(t, http.StatusOK, w.Code)
-
-	var roles []api.Role
-	if err := json.NewDecoder(w.Body).Decode(&roles); err != nil {
-		t.Fatal(err)
-	}
-
-	require.Equal(t, 0, len(roles))
-}
-
-func TestListRolesForDestinationReturnsRolesFromConfig(t *testing.T) {
-	// this in memory DB is setup in the config_test.go
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				var users []api.User
+				err := json.NewDecoder(w.Body).Decode(&users)
+				require.NoError(t, err)
+				require.Len(t, users, 1)
+				require.Equal(t, "jbond@infrahq.com", users[0].Email)
 			},
 		},
-		db: db,
-	}
+		"ListUsersUnknownEmail": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionUserRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/users?email=unknown@infrahq.com", nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.ListUsers(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/roles", nil)
-	q := r.URL.Query()
-	q.Add("destination", clusterA.Id)
-	r.URL.RawQuery = q.Encode()
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.ListRoles(c)
-	require.Equal(t, http.StatusOK, w.Code)
-
-	var roles []api.Role
-	if err := json.NewDecoder(w.Body).Decode(&roles); err != nil {
-		t.Fatal(err)
-	}
-
-	returnedUserRoles := make(map[string][]api.User)
-	for _, r := range roles {
-		returnedUserRoles[r.Name] = r.Users
-	}
-
-	// roles from direct user assignment
-	require.Equal(t, 1, len(returnedUserRoles["admin"]))
-	require.True(t, containsUser(returnedUserRoles["admin"], adminUser.Email))
-
-	returnedGroupRoles := make(map[string][]api.Group)
-	for _, r := range roles {
-		returnedGroupRoles[r.Name] = r.Groups
-	}
-
-	// roles from groups
-	require.Equal(t, 1, len(returnedGroupRoles["writer"]))
-	require.True(t, containsGroup(returnedGroupRoles["writer"], iosDevGroup.Name))
-}
-
-func TestListRolesOnlyFindsForSpecificDestination(t *testing.T) {
-	// this in memory DB is setup in the config_test.go
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				var users []api.User
+				err := json.NewDecoder(w.Body).Decode(&users)
+				require.NoError(t, err)
+				require.Len(t, users, 0)
 			},
 		},
-		db: db,
-	}
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/roles", nil)
-	q := r.URL.Query()
-	q.Add("destination", clusterA.Id)
-	r.URL.RawQuery = q.Encode()
+		// /v1/groups
+		"GetGroup": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionGroupRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				c.Params = append(c.Params, gin.Param{Key: "id", Value: groupEveryone.ID.String()})
+				return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/groups/%s", groupEveryone.ID), nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.GetGroup(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
 
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.ListRoles(c)
-	require.Equal(t, http.StatusOK, w.Code)
-
-	var roles []api.Role
-	if err := json.NewDecoder(w.Body).Decode(&roles); err != nil {
-		t.Fatal(err)
-	}
-
-	unexpectedDestinationIds := make(map[string]bool)
-
-	for _, r := range roles {
-		if r.Destination.Id != clusterA.Id {
-			unexpectedDestinationIds[r.Destination.Id] = true
-		}
-	}
-
-	if len(unexpectedDestinationIds) != 0 {
-		var unexpectedDestinations []string
-		for id := range unexpectedDestinationIds {
-			unexpectedDestinations = append(unexpectedDestinations, id)
-		}
-
-		t.Errorf("ListRoles response should only contain roles for the specified Destination ID. Only expected " + clusterA.Id + " but found " + strings.Join(unexpectedDestinations, ", "))
-	}
-}
-
-func TestListRolesForUnknownDestination(t *testing.T) {
-	// this in memory DB is setup in config_test.go
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				var group api.Group
+				err := json.NewDecoder(w.Body).Decode(&group)
+				require.NoError(t, err)
+				require.Equal(t, "Everyone", group.Name)
 			},
 		},
-		db: db,
-	}
-
-	r := httptest.NewRequest(http.MethodGet, "/v1/roles", nil)
-	q := r.URL.Query()
-	q.Add("destination", "Unknown-Cluster-ID")
-	r.URL.RawQuery = q.Encode()
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.ListRoles(c)
-	require.Equal(t, http.StatusOK, w.Code)
-
-	var roles []api.Role
-	if err := json.NewDecoder(w.Body).Decode(&roles); err != nil {
-		t.Fatal(err)
-	}
-
-	require.Equal(t, 0, len(roles))
-}
-
-func TestGetRole(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+		"GetGroupEmptyID": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionGroupRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/groups/", nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.GetGroup(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, w.Code)
 			},
 		},
-		db: db,
-	}
+		"GetGroupUnknownGroup": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionGroupRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				id, err := uuid.NewUUID()
+				require.NoError(t, err)
 
-	role := &Role{Name: "mpt-role"}
-	if err := a.db.Create(role).Error; err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	defer a.db.Delete(role)
-
-	r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/roles/%s", role.Id), nil)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-	c.Params = append(c.Params, gin.Param{Key: "id", Value: role.Id})
-
-	a.GetRole(c)
-
-	require.Equal(t, http.StatusOK, w.Code)
-}
-
-func TestGetRoleEmptyID(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				c.Params = append(c.Params, gin.Param{Key: "id", Value: id.String()})
+				return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/groups/%s", id), nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.GetGroup(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, w.Code)
 			},
 		},
-		db: db,
-	}
+		"ListGroups": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionGroupRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/groups", nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.ListGroups(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/roles/", nil)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.GetRole(c)
-
-	require.Equal(t, http.StatusBadRequest, w.Code)
-}
-
-func TestGetRoleNotFound(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				var groups []api.Group
+				err := json.NewDecoder(w.Body).Decode(&groups)
+				require.NoError(t, err)
+				require.Len(t, groups, 2)
+				require.ElementsMatch(t, []string{"Everyone", "Engineering"}, []string{groups[0].Name, groups[1].Name})
 			},
 		},
-		db: db,
-	}
+		"ListGroupsByName": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionGroupRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/groups?name=Everyone", nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.ListGroups(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
 
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Params = gin.Params{gin.Param{Key: "id", Value: "nonexistent"}}
-
-	a.GetRole(c)
-
-	require.Equal(t, http.StatusNotFound, w.Code)
-}
-
-func TestListGroups(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				var groups []api.Group
+				err := json.NewDecoder(w.Body).Decode(&groups)
+				require.NoError(t, err)
+				require.Len(t, groups, 1)
+				require.Equal(t, "Everyone", groups[0].Name)
 			},
 		},
-		db: db,
-	}
+		"ListGroupsUnknownName": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionGroupRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/groups?name=unknown", nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.ListGroups(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/groups", nil)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.ListGroups(c)
-	require.Equal(t, http.StatusOK, w.Code)
-
-	var groups []api.Group
-	err := json.NewDecoder(w.Body).Decode(&groups)
-	require.NoError(t, err)
-
-	require.Equal(t, 2, len(groups))
-
-	require.True(t, containsGroup(groups, "ios-developers"))
-	require.True(t, containsGroup(groups, "mac-admins"))
-}
-
-func TestListGroupsByName(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				var groups []api.Group
+				err := json.NewDecoder(w.Body).Decode(&groups)
+				require.NoError(t, err)
+				require.Len(t, groups, 0)
 			},
 		},
-		db: db,
-	}
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/groups?name=ios-developers", nil)
+		// /v1/roles
+		// "GetRole": map[string]interface{} {
+		// 	"authFunc": func (t *testing.T, db *gorm.DB, c *gin.Context) {
+		// 		apiKey := issueAPIKey(t, db, string(access.PermissionRoleRead))
+		// 		c.Set("authorization", apiKey.Key)
+		// 	},
+		// 	"requestFunc": func (t *testing.T, c *gin.Context) *http.Request {
+		// 		c.Params = append(c.Params, gin.Param{Key: "id", Value: roleEveryone.ID.String()})
+		// 		return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/roles/%s", roleEveryone.ID), nil)
+		// 	},
+		// 	"func": func (a *API, c *gin.Context) {
+		// 		a.GetRole(c)
+		// 	},
+		// 	"verifyFunc": func (t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+		// 		require.Equal(t, http.StatusOK, w.Code)
 
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.ListGroups(c)
-	require.Equal(t, http.StatusOK, w.Code)
-
-	var groups []api.Group
-	err := json.NewDecoder(w.Body).Decode(&groups)
-	require.NoError(t, err)
-
-	require.Equal(t, 1, len(groups))
-
-	require.True(t, containsGroup(groups, "ios-developers"))
-}
-
-func TestGetGroup(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+		// 		var role api.Role
+		// 		err := json.NewDecoder(w.Body).Decode(&role)
+		// 		require.NoError(t, err)
+		// 		require.Equal(t, "Everyone", role.Name)
+		// 	},
+		// },
+		"GetRoleEmptyID": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionRoleRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/roles/", nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.GetRole(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, w.Code)
 			},
 		},
-		db: db,
-	}
+		"GetRoleUnknownRole": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionRoleRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				id, err := uuid.NewUUID()
+				require.NoError(t, err)
 
-	group := &Group{Name: "mpt-group"}
-	if err := a.db.Create(group).Error; err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	defer a.db.Delete(group)
-
-	r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/groups/%s", group.Id), nil)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-	c.Params = append(c.Params, gin.Param{Key: "id", Value: group.Id})
-
-	a.GetGroup(c)
-
-	require.Equal(t, http.StatusOK, w.Code)
-}
-
-func TestGetGroupEmptyID(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				c.Params = append(c.Params, gin.Param{Key: "id", Value: id.String()})
+				return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/roles/%s", id), nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.GetRole(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, w.Code)
 			},
 		},
-		db: db,
-	}
+		"ListRoles": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionRoleRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/roles", nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.ListRoles(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/groups/", nil)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.GetGroup(c)
-
-	require.Equal(t, http.StatusBadRequest, w.Code)
-}
-
-func TestGetGroupNotFound(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				var roles []api.Role
+				err := json.NewDecoder(w.Body).Decode(&roles)
+				require.NoError(t, err)
+				require.Len(t, roles, 8)
 			},
 		},
-		db: db,
-	}
+		"ListRolesByDestinationID": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionRoleRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/roles?destination=%s", destinationAAA.ID), nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.ListRoles(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/groups/nonexistent", nil)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-	c.Params = append(c.Params, gin.Param{Key: "id", Value: "nonexistent"})
-
-	a.GetGroup(c)
-
-	require.Equal(t, http.StatusNotFound, w.Code)
-}
-
-func TestListUsers(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				var roles []api.Role
+				err := json.NewDecoder(w.Body).Decode(&roles)
+				require.NoError(t, err)
+				require.Len(t, roles, 2)
+				require.ElementsMatch(t, []string{"AAA", "AAA"}, []string{
+					roles[0].Destination.Name,
+					roles[1].Destination.Name,
+				})
+				require.ElementsMatch(t, []string{"writer", "admin"}, []string{roles[0].Name, roles[1].Name})
+				require.ElementsMatch(t, []api.RoleKind{api.ROLEKIND_CLUSTER_ROLE, api.ROLEKIND_CLUSTER_ROLE}, []api.RoleKind{roles[0].Kind, roles[1].Kind})
 			},
 		},
-		db: db,
-	}
+		"ListRolesByKind": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionRoleRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/roles?kind=role", nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.ListRoles(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/users", nil)
+				var roles []api.Role
+				err := json.NewDecoder(w.Body).Decode(&roles)
+				require.NoError(t, err)
+				require.Len(t, roles, 4)
 
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.ListUsers(c)
-	require.Equal(t, http.StatusOK, w.Code)
-
-	var users []api.User
-	if err := json.NewDecoder(w.Body).Decode(&users); err != nil {
-		t.Fatal(err)
-	}
-
-	require.Equal(t, 3, len(users))
-
-	require.True(t, containsUser(users, adminUser.Email))
-	require.True(t, containsUser(users, standardUser.Email))
-	require.True(t, containsUser(users, iosDevUser.Email))
-}
-
-func TestListUsersByEmail(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				for _, r := range roles {
+					require.Equal(t, api.ROLEKIND_ROLE, r.Kind)
+				}
 			},
 		},
-		db: db,
-	}
+		"ListRolesByName": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionRoleRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/roles?name=admin", nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.ListRoles(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/users?email=woz@example.com", nil)
+				var roles []api.Role
+				err := json.NewDecoder(w.Body).Decode(&roles)
+				require.NoError(t, err)
+				require.Len(t, roles, 3)
 
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.ListUsers(c)
-	require.Equal(t, http.StatusOK, w.Code)
-
-	var users []api.User
-	if err := json.NewDecoder(w.Body).Decode(&users); err != nil {
-		t.Fatal(err)
-	}
-
-	require.Equal(t, 1, len(users))
-
-	require.True(t, containsUser(users, iosDevUser.Email))
-}
-
-func TestListUsersEmpty(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				for _, r := range roles {
+					require.Equal(t, "admin", r.Name)
+				}
 			},
 		},
-		db: db,
-	}
+		"ListRolesCombo": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionRoleRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/roles?kind=cluster-role&name=admin", nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.ListRoles(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/users?email=nonexistent@example.com", nil)
+				var roles []api.Role
+				err := json.NewDecoder(w.Body).Decode(&roles)
+				require.NoError(t, err)
+				require.Len(t, roles, 3)
 
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.ListUsers(c)
-	require.Equal(t, http.StatusOK, w.Code)
-
-	var users []api.User
-	if err := json.NewDecoder(w.Body).Decode(&users); err != nil {
-		t.Fatal(err)
-	}
-
-	require.Equal(t, 0, len(users))
-}
-
-func TestGetUser(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				for _, r := range roles {
+					require.Equal(t, "admin", r.Name)
+					require.Equal(t, api.ROLEKIND_CLUSTER_ROLE, r.Kind)
+				}
 			},
 		},
-		db: db,
-	}
+		"ListRolesCombo3": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionRoleRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/roles?destination=%s&kind=role&name=audit", destinationCCC.ID), nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.ListRoles(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
 
-	user := &User{Email: "mpt-user@infrahq.com"}
-	if err := a.db.Create(user).Error; err != nil {
-		t.Fatalf(err.Error())
-	}
+				var roles []api.Role
+				err := json.NewDecoder(w.Body).Decode(&roles)
+				require.NoError(t, err)
+				require.Len(t, roles, 2)
+				require.ElementsMatch(t, []string{"infrahq", "development"}, []string{roles[0].Namespace, roles[1].Namespace})
 
-	defer a.db.Delete(user)
-
-	r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/users/%s", user.Id), nil)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-	c.Params = append(c.Params, gin.Param{Key: "id", Value: user.Id})
-
-	a.GetUser(c)
-
-	require.Equal(t, http.StatusOK, w.Code)
-}
-
-func TestGetUserEmptyID(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				for _, r := range roles {
+					require.Equal(t, destinationCCC.ID.String(), r.Destination.Id)
+					require.Equal(t, "CCC", r.Destination.Name)
+					require.Equal(t, "audit", r.Name)
+					require.Equal(t, api.ROLEKIND_ROLE, r.Kind)
+				}
 			},
 		},
-		db: db,
-	}
+		"ListRolesNotFound": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionRoleRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				id, err := uuid.NewUUID()
+				require.NoError(t, err)
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/users/", nil)
+				return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/roles?destination=%s&kind=role&name=audit", id), nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.ListRoles(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
 
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.GetUser(c)
-
-	require.Equal(t, http.StatusBadRequest, w.Code)
-}
-
-func TestGetUserNotFound(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				var roles []api.Role
+				err := json.NewDecoder(w.Body).Decode(&roles)
+				require.NoError(t, err)
+				require.Len(t, roles, 0)
 			},
 		},
-		db: db,
-	}
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/users/nonexistent", nil)
+		// /v1/providers
+		"GetProvider": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionProviderRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				c.Params = append(c.Params, gin.Param{Key: "id", Value: providerOkta.ID.String()})
+				return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/providers/%s", providerOkta.ID), nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.GetProvider(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
 
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-	c.Params = append(c.Params, gin.Param{Key: "id", Value: "nonexistent"})
-
-	a.GetUser(c)
-
-	require.Equal(t, http.StatusNotFound, w.Code)
-}
-
-func TestListProviders(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				var provider api.Provider
+				err := json.NewDecoder(w.Body).Decode(&provider)
+				require.NoError(t, err)
+				require.Equal(t, "test.okta.com", provider.Domain)
+				require.Equal(t, "plaintext:0oapn0qwiQPiMIyR35d6", provider.ClientID)
 			},
 		},
-		db: db,
-	}
-
-	r := httptest.NewRequest(http.MethodGet, "/v1/providers", nil)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.ListProviders(c)
-	require.Equal(t, http.StatusOK, w.Code)
-
-	var providers []api.Provider
-	if err := json.NewDecoder(w.Body).Decode(&providers); err != nil {
-		t.Fatal(err)
-	}
-
-	require.Equal(t, 1, len(providers))
-}
-
-func TestListProvidersByType(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+		"GetProviderEmptyID": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionProviderRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/providers/", nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.GetProvider(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, w.Code)
 			},
 		},
-		db: db,
-	}
+		"GetProviderUnknownProvider": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionProviderRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				id, err := uuid.NewUUID()
+				require.NoError(t, err)
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/providers?kind=okta", nil)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.ListProviders(c)
-	require.Equal(t, http.StatusOK, w.Code)
-
-	var providers []api.Provider
-	if err := json.NewDecoder(w.Body).Decode(&providers); err != nil {
-		t.Fatal(err)
-	}
-
-	require.Equal(t, 1, len(providers))
-}
-
-func TestListProvidersEmpty(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				c.Params = append(c.Params, gin.Param{Key: "id", Value: id.String()})
+				return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/providers/%s", id), nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.GetProvider(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, w.Code)
 			},
 		},
-		db: db,
-	}
+		"ListProviders": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionProviderRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/providers", nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.ListProviders(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/providers?kind=nonexistent", nil)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.ListProviders(c)
-	require.Equal(t, http.StatusOK, w.Code)
-
-	var providers []api.Provider
-	if err := json.NewDecoder(w.Body).Decode(&providers); err != nil {
-		t.Fatal(err)
-	}
-
-	require.Equal(t, 0, len(providers))
-}
-
-func TestGetProvider(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				var providers []api.Provider
+				err := json.NewDecoder(w.Body).Decode(&providers)
+				require.NoError(t, err)
+				require.Len(t, providers, 1)
+				require.Equal(t, "test.okta.com", providers[0].Domain)
 			},
 		},
-		db: db,
-	}
+		"ListProvidersByKind": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionProviderRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/providers?kind=okta", nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.ListProviders(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
 
-	provider := &Provider{Kind: ProviderKindOkta}
-	if err := a.db.Create(provider).Error; err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	defer a.db.Delete(provider)
-
-	r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/providers/%s", provider.Id), nil)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-	c.Params = append(c.Params, gin.Param{Key: "id", Value: provider.Id})
-
-	a.GetProvider(c)
-
-	require.Equal(t, http.StatusOK, w.Code)
-}
-
-func TestGetProviderEmptyID(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				var providers []api.Provider
+				err := json.NewDecoder(w.Body).Decode(&providers)
+				require.NoError(t, err)
+				require.Len(t, providers, 1)
+				require.Equal(t, "test.okta.com", providers[0].Domain)
 			},
 		},
-		db: db,
-	}
+		"ListProvidersByDomain": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionProviderRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/providers?domain=test.okta.com", nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.ListProviders(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/providers/", nil)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.GetProvider(c)
-
-	require.Equal(t, http.StatusBadRequest, w.Code)
-}
-
-func TestGetProviderNotFound(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				var providers []api.Provider
+				err := json.NewDecoder(w.Body).Decode(&providers)
+				require.NoError(t, err)
+				require.Len(t, providers, 1)
+				require.Equal(t, "test.okta.com", providers[0].Domain)
 			},
 		},
-		db: db,
-	}
+		"ListProvidersNotFound": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionProviderRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/providers?domain=nonexistent.okta.com", nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.ListProviders(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/providers/nonexistent", nil)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-	c.Params = append(c.Params, gin.Param{Key: "id", Value: "nonexistent"})
-
-	a.GetProvider(c)
-
-	require.Equal(t, http.StatusNotFound, w.Code)
-}
-
-func TestListDestinations(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				var providers []api.Provider
+				err := json.NewDecoder(w.Body).Decode(&providers)
+				require.NoError(t, err)
+				require.Len(t, providers, 0)
 			},
 		},
-		db: db,
-	}
+		"ListProvidersSensitiveInformation": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionProviderRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/providers?domain=test.okta.com", nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.ListProviders(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/destinations", nil)
+				var providers []api.Provider
+				err := json.NewDecoder(w.Body).Decode(&providers)
+				require.NoError(t, err)
+				require.Len(t, providers, 1)
 
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
+				raw, err := json.Marshal(providers[0])
+				require.NoError(t, err)
 
-	a.ListDestinations(c)
-	require.Equal(t, http.StatusOK, w.Code)
+				var provider map[string]interface{}
+				err = json.Unmarshal(raw, &provider)
+				require.NoError(t, err)
 
-	var destinations []api.Destination
-	if err := json.NewDecoder(w.Body).Decode(&destinations); err != nil {
-		t.Fatal(err)
-	}
+				for key := range provider {
+					leak := strings.Contains(strings.ToLower(key), "secret")
+					require.False(t, leak)
 
-	require.Equal(t, 3, len(destinations))
-
-	require.True(t, containsDestination(destinations, "cluster-AAA"))
-	require.True(t, containsDestination(destinations, "cluster-BBB"))
-	require.True(t, containsDestination(destinations, "cluster-CCC"))
-}
-
-func TestListDestinationsByName(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+					leak = strings.Contains(strings.ToLower(key), "key")
+					require.False(t, leak)
+				}
 			},
 		},
-		db: db,
-	}
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/destinations?name=cluster-AAA", nil)
+		// /v1/destinations
+		"GetDestination": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionDestinationRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				c.Params = append(c.Params, gin.Param{Key: "id", Value: destinationAAA.ID.String()})
+				return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/destinations/%s", destinationAAA.ID), nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.GetDestination(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
 
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.ListDestinations(c)
-	require.Equal(t, http.StatusOK, w.Code)
-
-	var destinations []api.Destination
-	if err := json.NewDecoder(w.Body).Decode(&destinations); err != nil {
-		t.Fatal(err)
-	}
-
-	require.Equal(t, 1, len(destinations))
-
-	require.True(t, containsDestination(destinations, "cluster-AAA"))
-}
-
-func TestListDestinationsByType(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				var destination api.Destination
+				err := json.NewDecoder(w.Body).Decode(&destination)
+				require.NoError(t, err)
+				require.Equal(t, "AAA", destination.Name)
+				require.Equal(t, "AAA", destination.NodeID)
+				require.Equal(t, "develop.infrahq.com", destination.Kubernetes.Endpoint)
 			},
 		},
-		db: db,
-	}
-
-	r := httptest.NewRequest(http.MethodGet, "/v1/destinations?=kind", nil)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.ListDestinations(c)
-	require.Equal(t, http.StatusOK, w.Code)
-
-	var destinations []api.Destination
-	if err := json.NewDecoder(w.Body).Decode(&destinations); err != nil {
-		t.Fatal(err)
-	}
-
-	require.Equal(t, 3, len(destinations))
-
-	require.True(t, containsDestination(destinations, "cluster-AAA"))
-	require.True(t, containsDestination(destinations, "cluster-BBB"))
-	require.True(t, containsDestination(destinations, "cluster-CCC"))
-}
-
-func TestListDestinationsEmpty(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+		"GetDestinationEmptyID": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionDestinationRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/destinations/", nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.GetDestination(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, w.Code)
 			},
 		},
-		db: db,
-	}
+		"GetDestinationUnknownDestination": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionDestinationRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				id, err := uuid.NewUUID()
+				require.NoError(t, err)
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/destinations?name=nonexistent", nil)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.ListDestinations(c)
-	require.Equal(t, http.StatusOK, w.Code)
-
-	var destinations []api.Destination
-	if err := json.NewDecoder(w.Body).Decode(&destinations); err != nil {
-		t.Fatal(err)
-	}
-
-	require.Equal(t, 0, len(destinations))
-}
-
-// This is a preventative security auditing test that checks for keys with names that seem sensitive on this response
-func TestListProvidersHasNoSensitiveValues(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				c.Params = append(c.Params, gin.Param{Key: "id", Value: id.String()})
+				return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/destinations/%s", id), nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.GetDestination(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, w.Code)
 			},
 		},
-		db: db,
-	}
+		"ListDestinations": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionDestinationRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/destinations", nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.ListDestinations(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/providers", nil)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.ListProviders(c)
-	require.Equal(t, http.StatusOK, w.Code)
-
-	var providers []api.Provider
-	if err := json.NewDecoder(w.Body).Decode(&providers); err != nil {
-		t.Fatal(err)
-	}
-
-	require.Greater(t, len(providers), 0, "no providers returned, could not check sensitive values")
-
-	var providerKeys map[string]interface{}
-
-	inProv, err := json.Marshal(providers[0])
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = json.Unmarshal(inProv, &providerKeys)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// check for suspicious key names
-	for key := range providerKeys {
-		if strings.Contains(strings.ToLower(key), "secret") {
-			t.Fatalf("%s in list provider response appears to be sensitive, it should not be returned", key)
-		}
-
-		if strings.Contains(strings.ToLower(key), "key") {
-			t.Fatalf("%s in list provider response appears to be sensitive, it should not be returned", key)
-		}
-	}
-}
-
-func TestGetDestination(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				var destinations []api.Destination
+				err := json.NewDecoder(w.Body).Decode(&destinations)
+				require.NoError(t, err)
+				require.Len(t, destinations, 3)
+				require.ElementsMatch(t, []string{"AAA", "BBB", "CCC"}, []string{
+					destinations[0].Name,
+					destinations[1].Name,
+					destinations[2].Name,
+				})
+				require.ElementsMatch(t, []string{"AAA", "BBB", "CCC"}, []string{
+					destinations[0].NodeID,
+					destinations[1].NodeID,
+					destinations[2].NodeID,
+				})
+				require.ElementsMatch(t, []string{"develop.infrahq.com", "stage.infrahq.com", "production.infrahq.com"}, []string{
+					destinations[0].Kubernetes.Endpoint,
+					destinations[1].Kubernetes.Endpoint,
+					destinations[2].Kubernetes.Endpoint,
+				})
 			},
 		},
-		db: db,
-	}
+		"ListDestinationsByKind": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionDestinationRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/destinations?kind=kubernetes", nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.ListDestinations(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
 
-	destination := &Destination{Name: "mpt-destination"}
-	if err := a.db.Create(destination).Error; err != nil {
-		t.Fatalf(err.Error())
-	}
+				var destinations []api.Destination
+				err := json.NewDecoder(w.Body).Decode(&destinations)
+				require.NoError(t, err)
+				require.Len(t, destinations, 3)
 
-	defer a.db.Delete(destination)
-
-	r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/destinations/%s", destination.Id), nil)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-	c.Params = append(c.Params, gin.Param{Key: "id", Value: destination.Id})
-
-	a.GetDestination(c)
-
-	require.Equal(t, http.StatusOK, w.Code)
-}
-
-func TestGetDestinationEmptyID(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				for _, d := range destinations {
+					require.Equal(t, api.DESTINATIONKIND_KUBERNETES, d.Kind)
+				}
 			},
 		},
-		db: db,
-	}
+		"ListDestinationsByName": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionDestinationRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/destinations?name=AAA", nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.ListDestinations(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/destinations/", nil)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	a.GetDestination(c)
-
-	require.Equal(t, http.StatusBadRequest, w.Code)
-}
-
-func TestGetDestinationNotFound(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				var destinations []api.Destination
+				err := json.NewDecoder(w.Body).Decode(&destinations)
+				require.NoError(t, err)
+				require.Len(t, destinations, 1)
+				require.Equal(t, "AAA", destinations[0].Name)
+				require.Equal(t, "AAA", destinations[0].NodeID)
+				require.Equal(t, "develop.infrahq.com", destinations[0].Kubernetes.Endpoint)
 			},
 		},
-		db: db,
-	}
+		"ListDestinationsCombo": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionDestinationRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/destinations?kind=kubernetes&name=AAA", nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.ListDestinations(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/destinations/nonexistent", nil)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-	c.Params = append(c.Params, gin.Param{Key: "id", Value: "nonexistent"})
-
-	a.GetDestination(c)
-
-	require.Equal(t, http.StatusNotFound, w.Code)
-}
-
-// This is a preventative security auditing test that checks for keys with names that seem sensitive on this response
-func TestGetProviderHasNoSensitiveValues(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
+				var destinations []api.Destination
+				err := json.NewDecoder(w.Body).Decode(&destinations)
+				require.NoError(t, err)
+				require.Len(t, destinations, 1)
+				require.Equal(t, "AAA", destinations[0].Name)
+				require.Equal(t, "AAA", destinations[0].NodeID)
+				require.Equal(t, "develop.infrahq.com", destinations[0].Kubernetes.Endpoint)
 			},
 		},
-		db: db,
+		"ListDestinationsNotFound": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionDestinationRead))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/destinations?name=nonexistent", nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.ListDestinations(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
+
+				var destinations []api.Destination
+				err := json.NewDecoder(w.Body).Decode(&destinations)
+				require.NoError(t, err)
+				require.Len(t, destinations, 0)
+			},
+		},
+
+		// /v1/api-keys
+		"ListAPIKeys": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiKey := issueAPIKey(t, db, string(access.PermissionTokenList))
+				c.Set("authorization", apiKey.Key)
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/api-keys", nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.ListAPIKeys(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
+
+				var apiKeys []api.InfraAPIKey
+				err := json.NewDecoder(w.Body).Decode(&apiKeys)
+				require.NoError(t, err)
+				require.Len(t, apiKeys, 1)
+			},
+		},
+
+		// /v1/tokens
+		"CreateToken": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				_, token, err := access.IssueToken(c, "jbond@infrahq.com", time.Hour*1)
+				require.NoError(t, err)
+
+				c.Set("authorization", token.SessionToken())
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				request := api.TokenRequest{
+					Destination: "AAA",
+				}
+
+				bts, err := request.MarshalJSON()
+				require.NoError(t, err)
+				return httptest.NewRequest(http.MethodPost, "/v1/token", bytes.NewReader(bts))
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.CreateToken(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
+
+				var token api.Token
+				err := json.NewDecoder(w.Body).Decode(&token)
+				require.NoError(t, err)
+				require.NotEmpty(t, token.Token)
+				require.WithinDuration(t, time.Unix(token.Expires, 0), time.Now(), time.Hour*1)
+			},
+		},
 	}
 
-	provider := &Provider{Kind: ProviderKindOkta}
-	if err := a.db.Create(provider).Error; err != nil {
-		t.Fatalf(err.Error())
-	}
+	for k, v := range cases {
+		t.Run(k, func(t *testing.T) {
+			db := configure(t, nil)
 
-	defer a.db.Delete(provider)
+			_, err := data.InitializeSettings(db)
+			require.NoError(t, err)
 
-	r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/providers/%s", provider.Id), nil)
+			requestFunc, ok := v["requestFunc"].(func(*testing.T, *gin.Context) *http.Request)
+			require.True(t, ok)
 
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-	c.Params = append(c.Params, gin.Param{Key: "id", Value: provider.Id})
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			r := requestFunc(t, c)
+			c.Set("db", db)
+			c.Request = r
 
-	a.GetProvider(c)
+			authFunc, ok := v["authFunc"].(func(*testing.T, *gorm.DB, *gin.Context))
+			if ok {
+				authFunc(t, db, c)
+			}
 
-	require.Equal(t, http.StatusOK, w.Code)
+			fn, ok := v["func"].(func(*API, *gin.Context))
+			require.True(t, ok)
 
-	var resp api.Provider
-	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
-		t.Fatal(err)
-	}
+			a := API{}
 
-	require.NotNil(t, resp, "no provider returned, could not check sensitive values")
+			fn(&a, c)
 
-	var providerKeys map[string]interface{}
+			verifyFunc, ok := v["verifyFunc"].(func(*testing.T, *http.Request, *httptest.ResponseRecorder))
+			require.True(t, ok)
 
-	inProv, err := json.Marshal(resp)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = json.Unmarshal(inProv, &providerKeys)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// check for suspicious key names
-	for key := range providerKeys {
-		if strings.Contains(strings.ToLower(key), "secret") {
-			t.Fatalf("%s in list provider response appears to be sensitive, it should not be returned", key)
-		}
-
-		if strings.Contains(strings.ToLower(key), "key") {
-			t.Fatalf("%s in list provider response appears to be sensitive, it should not be returned", key)
-		}
+			verifyFunc(t, r, w)
+		})
 	}
 }
 
 func TestCreateAPIKey(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
-			},
-		},
-		db: db,
+	db := configure(t, nil)
+
+	apiKey := issueAPIKey(t, db, strings.Join([]string{
+		string(access.PermissionTokenIssue),
+	}, " "))
+
+	request := api.InfraAPIKeyCreateRequest{
+		Name:        "tmp",
+		Permissions: []string{"infra.*"},
 	}
 
-	var apiKey APIKey
+	bts, err := request.MarshalJSON()
+	require.NoError(t, err)
 
-	err := db.FirstOrCreate(&apiKey, &APIKey{Name: "create-api-key", Permissions: string(api.API_KEYS_CREATE)}).Error
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	createAPIKeyRequest := api.InfraAPIKeyCreateRequest{
-		Name:        "test-api-client",
-		Permissions: []api.InfraAPIPermission{api.USERS_READ},
-	}
-
-	csr, err := createAPIKeyRequest.MarshalJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := httptest.NewRequest(http.MethodPost, "/v1/api-keys", bytes.NewReader(csr))
-	r.Header.Add("Authorization", "Bearer "+apiKey.Key)
-
+	r := httptest.NewRequest(http.MethodPost, "/v1/api-keys", bytes.NewReader(bts))
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
+	c.Set("db", db)
+	c.Set("authorization", apiKey.Key)
 	c.Request = r
 
-	a.bearerAuthMiddleware(api.API_KEYS_CREATE)(c)
+	a := API{}
+
 	a.CreateAPIKey(c)
 
-	var body api.InfraAPIKeyCreateResponse
-	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
-		t.Fatal(err)
-	}
-
 	require.Equal(t, http.StatusCreated, w.Code)
-	require.Equal(t, "test-api-client", body.Name)
-	require.NotEmpty(t, body.Key)
 
-	db.Delete(&APIKey{}, &APIKey{Name: "test-api-client"})
-	db.Delete(&apiKey)
+	var body api.InfraAPIKeyCreateResponse
+	err = json.NewDecoder(w.Body).Decode(&body)
+	require.NoError(t, err)
+
+	newr := httptest.NewRequest(http.MethodGet, "/v1/users", nil)
+	neww := httptest.NewRecorder()
+	newc, _ := gin.CreateTestContext(neww)
+	newc.Set("db", db)
+	newc.Set("authorization", body.Key)
+	newc.Request = newr
+
+	a.ListUsers(newc)
+
+	require.Equal(t, http.StatusOK, neww.Code)
 }
 
 func TestDeleteAPIKey(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
-			},
-		},
-		db: db,
-	}
+	db := configure(t, nil)
 
-	k := &APIKey{Name: "test-delete-key", Permissions: string(api.API_KEYS_DELETE)}
-	if err := a.db.Create(k).Error; err != nil {
-		t.Fatalf(err.Error())
-	}
+	apiKey := issueAPIKey(t, db, strings.Join([]string{
+		string(access.PermissionUserRead),
+		string(access.PermissionTokenRevoke),
+	}, " "))
 
-	delR := httptest.NewRequest(http.MethodDelete, "/v1/api-keys/"+k.Id, nil)
-	delR.Header.Add("Authorization", "Bearer "+k.Key)
+	oldr := httptest.NewRequest(http.MethodGet, "/v1/users", nil)
+	oldw := httptest.NewRecorder()
+	oldc, _ := gin.CreateTestContext(oldw)
+	oldc.Set("db", db)
+	oldc.Set("authorization", apiKey.Key)
+	oldc.Request = oldr
 
-	delW := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(delW)
-	c.Request = delR
-	c.Params = append(c.Params, gin.Param{Key: "id", Value: k.Id})
-	a.bearerAuthMiddleware(api.API_KEYS_DELETE)(c)
-	a.DeleteAPIKey(c)
+	a := API{}
 
-	require.Equal(t, http.StatusNoContent, c.Writer.Status())
+	a.ListUsers(oldc)
 
-	var apiKey APIKey
+	require.Equal(t, http.StatusOK, oldw.Code)
 
-	db.First(&apiKey, &APIKey{Name: "test-api-delete-key"})
-	require.Empty(t, apiKey.Id, "API key not deleted from database")
-}
-
-func TestListAPIKeys(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
-			},
-		},
-		db: db,
-	}
-
-	k := &APIKey{Name: "test-key", Permissions: string(api.API_KEYS_READ)}
-	if err := a.db.Create(k).Error; err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	r := httptest.NewRequest(http.MethodGet, "/v1/api-keys", nil)
-	r.Header.Add("Authorization", "Bearer "+k.Key)
-
+	r := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/api-keys/%s", apiKey.ID.String()), nil)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
+	c.Set("db", db)
+	c.Set("authorization", apiKey.Key)
 	c.Request = r
+	c.Params = append(c.Params, gin.Param{Key: "id", Value: apiKey.ID.String()})
 
-	a.bearerAuthMiddleware(api.API_KEYS_READ)(c)
-	a.ListAPIKeys(c)
-	require.Equal(t, http.StatusOK, w.Code)
+	a.DeleteAPIKey(c)
 
-	var keys []api.InfraAPIKey
-	if err := json.NewDecoder(w.Body).Decode(&keys); err != nil {
-		t.Fatal(err)
-	}
+	require.Equal(t, http.StatusNoContent, w.Code)
 
-	keyIDs := make(map[string]string)
+	newr := httptest.NewRequest(http.MethodGet, "/v1/users", nil)
+	neww := httptest.NewRecorder()
+	newc, _ := gin.CreateTestContext(neww)
+	newc.Set("db", db)
+	newc.Set("authorization", apiKey.Key)
+	newc.Request = newr
 
-	for _, k := range keys {
-		keyIDs[k.Name] = k.Id
-	}
+	a.ListUsers(newc)
 
-	require.NotEmpty(t, keyIDs["test-key"])
-}
-
-func containsUser(users []api.User, email string) bool {
-	for _, u := range users {
-		if u.Email == email {
-			return true
-		}
-	}
-
-	return false
-}
-
-func containsGroup(groups []api.Group, name string) bool {
-	for _, g := range groups {
-		if g.Name == name {
-			return true
-		}
-	}
-
-	return false
-}
-
-func containsDestination(destinations []api.Destination, name string) bool {
-	for _, d := range destinations {
-		if d.Name == name {
-			return true
-		}
-	}
-
-	return false
-}
-
-func TestCredentials(t *testing.T) {
-	a := &API{
-		registry: &Registry{
-			db: db,
-			secrets: map[string]secrets.SecretStorage{
-				"kubernetes": NewMockSecretReader(),
-			},
-		},
-		db: db,
-	}
-
-	err := db.FirstOrCreate(&Settings{}).Error
-	require.NoError(t, err)
-
-	jwt, expiry, err := a.createJWT("dest", "steven@infrahq.com")
-	require.NoError(t, err)
-	require.Greater(t, len(jwt), 1)
-	require.Greater(t, expiry.Unix(), time.Now().Unix())
-}
-
-func TestCheckPermissionForEmptyPermissions(t *testing.T) {
-	require.False(t, checkPermission(api.API_KEYS_CREATE, ""))
-	require.False(t, checkPermission(api.API_KEYS_CREATE, " "))
-}
-
-func TestCheckPermissionForWrongPermissions(t *testing.T) {
-	require.False(t, checkPermission(api.API_KEYS_CREATE, string(api.API_KEYS_DELETE)))
-
-	multiPermissions := strings.Join([]string{
-		string(api.USERS_READ),
-		string(api.AUTH_DELETE),
-		string(api.TOKENS_CREATE),
-	}, " ")
-	require.False(t, checkPermission(api.API_KEYS_CREATE, multiPermissions))
-}
-
-func TestCheckPermissionForCorrectPermissions(t *testing.T) {
-	require.True(t, checkPermission(api.API_KEYS_CREATE, string(api.API_KEYS_CREATE)))
-
-	multiPermissions := strings.Join([]string{
-		string(api.USERS_READ),
-		string(api.API_KEYS_CREATE),
-		string(api.TOKENS_CREATE),
-	}, " ")
-	require.True(t, checkPermission(api.API_KEYS_CREATE, multiPermissions))
-}
-
-func TestCheckPermissionForRootPermissionsIsValid(t *testing.T) {
-	require.True(t, checkPermission(api.API_KEYS_CREATE, string(api.STAR)))
-}
-
-func TestIssueSessionTokenCreatesTokenForSpecifiedUser(t *testing.T) {
-	userID := "some-user-id"
-
-	issued, err := issueSessionToken(db, userID, time.Minute)
-	require.NoError(t, err)
-
-	id := issued[0:IdLen]
-
-	var token Token
-	err = db.Where(&Token{Id: id}).Find(&token).Error
-	require.NoError(t, err)
-
-	require.Equal(t, userID, token.UserId)
+	require.Equal(t, http.StatusUnauthorized, neww.Code)
 }

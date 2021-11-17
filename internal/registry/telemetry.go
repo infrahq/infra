@@ -3,9 +3,11 @@ package registry
 import (
 	"errors"
 
-	"github.com/infrahq/infra/internal"
 	"gopkg.in/segmentio/analytics-go.v3"
 	"gorm.io/gorm"
+
+	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/data"
 )
 
 type Telemetry struct {
@@ -41,12 +43,12 @@ func (t *Telemetry) Enqueue(track analytics.Track) error {
 		track.Properties = analytics.NewProperties()
 	}
 
-	var settings Settings
-	if err := t.db.First(&settings).Error; err != nil {
+	settings, err := data.GetSettings(t.db)
+	if err != nil {
 		return err
 	}
 
-	track.Properties.Set("infraId", settings.Id)
+	track.Properties.Set("infraId", settings.ID)
 	track.Properties.Set("version", internal.Version)
 
 	return t.client.Enqueue(track)
@@ -59,24 +61,28 @@ func (t *Telemetry) Close() {
 }
 
 func (t *Telemetry) EnqueueHeartbeat() error {
-	var users, groups, providers, destinations, roles int64
-	if err := t.db.Model(&User{}).Count(&users).Error; err != nil {
+	users, err := data.Count(t.db, &data.User{}, &data.User{})
+	if err != nil {
 		return err
 	}
 
-	if err := t.db.Model(&Group{}).Count(&groups).Error; err != nil {
+	groups, err := data.Count(t.db, &data.Group{}, &data.Group{})
+	if err != nil {
 		return err
 	}
 
-	if err := t.db.Model(&Provider{}).Count(&providers).Error; err != nil {
+	roles, err := data.Count(t.db, &data.Role{}, &data.Role{})
+	if err != nil {
 		return err
 	}
 
-	if err := t.db.Model(&Destination{}).Count(&destinations).Error; err != nil {
+	providers, err := data.Count(t.db, &data.Provider{}, &data.Provider{})
+	if err != nil {
 		return err
 	}
 
-	if err := t.db.Model(&Role{}).Count(&roles).Error; err != nil {
+	destinations, err := data.Count(t.db, &data.Destination{}, &data.Destination{})
+	if err != nil {
 		return err
 	}
 

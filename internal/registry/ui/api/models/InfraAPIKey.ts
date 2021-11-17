@@ -13,13 +13,6 @@
  */
 
 import { exists, mapValues } from '../runtime';
-import {
-    InfraAPIPermission,
-    InfraAPIPermissionFromJSON,
-    InfraAPIPermissionFromJSONTyped,
-    InfraAPIPermissionToJSON,
-} from './';
-
 /**
  * 
  * @export
@@ -46,10 +39,10 @@ export interface InfraAPIKey {
     name: string;
     /**
      * 
-     * @type {Array<InfraAPIPermission>}
+     * @type {Array<string>}
      * @memberof InfraAPIKey
      */
-    permissions: Array<InfraAPIPermission>;
+    permissions: Array<string>;
 }
 
 export function InfraAPIKeyFromJSON(json: any): InfraAPIKey {
@@ -65,7 +58,7 @@ export function InfraAPIKeyFromJSONTyped(json: any, ignoreDiscriminator: boolean
         'id': json['id'],
         'created': json['created'],
         'name': json['name'],
-        'permissions': ((json['permissions'] as Array<any>).map(InfraAPIPermissionFromJSON)),
+        'permissions': json['permissions'],
     };
 }
 
@@ -81,7 +74,7 @@ export function InfraAPIKeyToJSON(value?: InfraAPIKey | null): any {
         'id': value.id,
         'created': value.created,
         'name': value.name,
-        'permissions': ((value.permissions as Array<any>).map(InfraAPIPermissionToJSON)),
+        'permissions': value.permissions,
     };
 }
 

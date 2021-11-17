@@ -13,7 +13,7 @@ func TestRequestTimeoutError(t *testing.T) {
 	requestTimeout = 100 * time.Millisecond
 
 	router := gin.New()
-	router.Use(RequestTimeoutMiddleware)
+	router.Use(RequestTimeoutMiddleware())
 	router.GET("/", func(c *gin.Context) {
 		time.Sleep(110 * time.Millisecond)
 
@@ -28,7 +28,7 @@ func TestRequestTimeoutSuccess(t *testing.T) {
 	requestTimeout = 60 * time.Second
 
 	router := gin.New()
-	router.Use(RequestTimeoutMiddleware)
+	router.Use(RequestTimeoutMiddleware())
 	router.GET("/", func(c *gin.Context) {
 		require.NoError(t, c.Request.Context().Err())
 

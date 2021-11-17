@@ -20,17 +20,18 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/handlers"
 	"github.com/goware/urlx"
+	"golang.org/x/crypto/acme/autocert"
+	"gopkg.in/square/go-jose.v2"
+	"gopkg.in/square/go-jose.v2/jwt"
+
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/pro/audit"
-	"github.com/infrahq/infra/internal/registry"
 	"github.com/infrahq/infra/internal/timer"
-	"golang.org/x/crypto/acme/autocert"
-	"gopkg.in/square/go-jose.v2"
-	"gopkg.in/square/go-jose.v2/jwt"
 )
 
 type Options struct {
@@ -52,7 +53,7 @@ type jwkCache struct {
 	baseURL string
 }
 
-func (j *jwkCache) getjwk() (*jose.JSONWebKey, error) {
+func (j *jwkCache) getJWK() (*jose.JSONWebKey, error) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
 
@@ -97,9 +98,9 @@ func (j *jwkCache) getjwk() (*jose.JSONWebKey, error) {
 
 var JWKCacheRefresh = 5 * time.Minute
 
-type GetJWKFunc func() (*jose.JSONWebKey, error)
+type getJWKFunc func() (*jose.JSONWebKey, error)
 
-func jwtMiddleware(next http.Handler, destination string, destinationName string, getjwk GetJWKFunc) http.Handler {
+func jwtMiddleware(next http.Handler, destination string, destinationName string, getJWK getJWKFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authorization := r.Header.Get("Authorization")
 		raw := strings.ReplaceAll(authorization, "Bearer ", "")
@@ -116,7 +117,7 @@ func jwtMiddleware(next http.Handler, destination string, destinationName string
 			return
 		}
 
-		key, err := getjwk()
+		key, err := getJWK()
 		if err != nil {
 			logging.L.Debug("Could not get jwk")
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -126,7 +127,7 @@ func jwtMiddleware(next http.Handler, destination string, destinationName string
 		out := make(map[string]interface{})
 		claims := struct {
 			jwt.Claims
-			registry.CustomJWTClaims
+			access.CustomJWTClaims
 		}{}
 		if err := tok.Claims(key, &claims, &out); err != nil {
 			logging.L.Debug("Invalid token claims")
@@ -135,7 +136,7 @@ func jwtMiddleware(next http.Handler, destination string, destinationName string
 		}
 
 		err = claims.Claims.Validate(jwt.Expected{
-			Issuer: "infra",
+			Issuer: "InfraHQ",
 			Time:   time.Now(),
 		})
 		switch {
@@ -444,7 +445,7 @@ func Run(options *Options) error {
 		baseURL: u.String(),
 	}
 
-	mux.Handle("/proxy/", http.StripPrefix("/proxy", jwtMiddleware(audit.AuditMiddleware(ph), chksm, options.Name, cache.getjwk)))
+	mux.Handle("/proxy/", http.StripPrefix("/proxy", jwtMiddleware(audit.AuditMiddleware(ph), chksm, options.Name, cache.getJWK)))
 
 	tlsServer := &http.Server{
 		Addr:      ":443",

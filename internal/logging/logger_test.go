@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
@@ -12,24 +11,24 @@ import (
 func TestConfigDefault(t *testing.T) {
 	logger, _ := Initialize(0)
 
-	assert.NotNil(t, logger)
+	require.NotNil(t, logger)
 
 	if checked := logger.Check(zap.InfoLevel, "default"); checked == nil {
-		assert.Fail(t, "could not log info level messages")
+		require.Fail(t, "could not log info level messages")
 	}
 
 	if checked := logger.Check(zap.DebugLevel, "not default"); checked != nil {
-		assert.Fail(t, "should not log debug level messages")
+		require.Fail(t, "should not log debug level messages")
 	}
 }
 
 func TestConfigValidLevel(t *testing.T) {
 	logger, _ := Initialize(1)
 
-	assert.NotNil(t, logger)
+	require.NotNil(t, logger)
 
 	if checked := logger.Check(zap.DebugLevel, "not default"); checked == nil {
-		assert.Fail(t, "could not log debug level messages")
+		require.Fail(t, "could not log debug level messages")
 	}
 }
 

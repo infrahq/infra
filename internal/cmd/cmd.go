@@ -11,13 +11,14 @@ import (
 	"strings"
 
 	"github.com/goware/urlx"
+	"github.com/muesli/termenv"
+	"github.com/spf13/cobra"
+
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/engine"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry"
-	"github.com/muesli/termenv"
-	"github.com/spf13/cobra"
 )
 
 func red(s string) string {

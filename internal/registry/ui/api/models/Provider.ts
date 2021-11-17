@@ -13,6 +13,13 @@
  */
 
 import { exists, mapValues } from '../runtime';
+import {
+    ProviderKind,
+    ProviderKindFromJSON,
+    ProviderKindFromJSONTyped,
+    ProviderKindToJSON,
+} from './';
+
 /**
  * 
  * @export
@@ -51,10 +58,10 @@ export interface Provider {
     clientID: string;
     /**
      * 
-     * @type {string}
+     * @type {ProviderKind}
      * @memberof Provider
      */
-    kind: string;
+    kind: ProviderKind;
 }
 
 export function ProviderFromJSON(json: any): Provider {
@@ -72,7 +79,7 @@ export function ProviderFromJSONTyped(json: any, ignoreDiscriminator: boolean): 
         'updated': json['updated'],
         'domain': json['domain'],
         'clientID': json['clientID'],
-        'kind': json['kind'],
+        'kind': ProviderKindFromJSON(json['kind']),
     };
 }
 
@@ -90,7 +97,7 @@ export function ProviderToJSON(value?: Provider | null): any {
         'updated': value.updated,
         'domain': value.domain,
         'clientID': value.clientID,
-        'kind': value.kind,
+        'kind': ProviderKindToJSON(value.kind),
     };
 }
 

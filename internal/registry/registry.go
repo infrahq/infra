@@ -10,7 +10,6 @@ import (
 	"io/fs"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -19,14 +18,15 @@ import (
 	sentryhttp "github.com/getsentry/sentry-go/http"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/handlers"
+	"golang.org/x/crypto/acme/autocert"
+	"gorm.io/gorm"
+
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/certs"
+	"github.com/infrahq/infra/internal/data"
 	"github.com/infrahq/infra/internal/logging"
 	timer "github.com/infrahq/infra/internal/timer"
 	"github.com/infrahq/infra/secrets"
-	"golang.org/x/crypto/acme/autocert"
-	"gorm.io/gorm"
 )
 
 type PostgresOptions struct {
@@ -58,48 +58,18 @@ type Options struct {
 }
 
 type Registry struct {
-	options  Options
-	db       *gorm.DB
-	settings Settings
-	okta     Okta
-	tel      *Telemetry
-	secrets  map[string]secrets.SecretStorage
+	options Options
+	config  Config
+	db      *gorm.DB
+	tel     *Telemetry
+	secrets map[string]secrets.SecretStorage
 }
 
 const (
-	rootAPIKeyName                  string        = "root"
-	engineAPIKeyName                string        = "engine"
 	DefaultProvidersSyncInterval    time.Duration = time.Second * 60
 	DefaultDestinationsSyncInterval time.Duration = time.Minute * 5
 	DefaultSessionDuration          time.Duration = time.Hour * 12
 )
-
-// syncProviders polls every known provider for users and groups
-func (r *Registry) syncProviders() {
-	var providers []Provider
-	if err := r.db.Find(&providers).Error; err != nil {
-		logging.S.Errorf("could not find sync providers: %w", err)
-	}
-
-	for _, p := range providers {
-		switch p.Kind {
-		case ProviderKindOkta:
-			logging.L.Debug("synchronizing okta provider")
-
-			err := p.SyncUsers(r)
-			if err != nil {
-				logging.S.Errorf("sync okta users: %w", err)
-			}
-
-			err = p.SyncGroups(r)
-			if err != nil {
-				logging.S.Errorf("sync okta groups: %w", err)
-			}
-		default:
-			logging.S.Errorf("skipped validating unknown provider kind %s", p.Kind)
-		}
-	}
-}
 
 func Run(options Options) (err error) {
 	r := &Registry{
@@ -116,52 +86,41 @@ func Run(options Options) (err error) {
 		return fmt.Errorf("loading secrets config from file: %w", err)
 	}
 
-	postgres, err := r.getPostgresConnectionString()
+	driver, err := r.getDatabaseDriver()
 	if err != nil {
-		return fmt.Errorf("postgres connection URL: %w", err)
+		return fmt.Errorf("driver: %w", err)
 	}
 
-	if postgres != "" {
-		r.db, err = NewPostgresDB(postgres)
-
-		if err != nil {
-			return fmt.Errorf("db: %w", err)
-		}
-	} else {
-		r.db, err = NewSQLiteDB(options.DBFile)
-		if err != nil {
-			return fmt.Errorf("db: %w", err)
-		}
+	r.db, err = data.NewDB(driver)
+	if err != nil {
+		return fmt.Errorf("db: %w", err)
 	}
 
-	err = r.db.First(&r.settings).Error
+	settings, err := data.InitializeSettings(r.db)
 	if err != nil {
-		return fmt.Errorf("checking db for settings: %w", err)
+		return fmt.Errorf("settings: %w", err)
 	}
 
 	sentry.ConfigureScope(func(scope *sentry.Scope) {
-		scope.SetContext("registryId", r.settings.Id)
+		scope.SetContext("registryId", settings.ID)
 	})
 
 	if err = r.loadConfigFromFile(); err != nil {
 		return fmt.Errorf("loading config from file: %w", err)
 	}
 
-	r.okta = NewOkta()
-
-	r.validateProviders()
 	r.scheduleSyncJobs()
 
 	if err := r.configureTelemetry(); err != nil {
 		return fmt.Errorf("configuring telemetry: %w", err)
 	}
 
-	if err := r.saveAPIKeys(); err != nil {
-		return fmt.Errorf("saving api keys: %w", err)
-	}
-
 	if err := os.MkdirAll(options.TLSCache, os.ModePerm); err != nil {
 		return fmt.Errorf("mkdir: %w", err)
+	}
+
+	if err := r.importAPIKeys(); err != nil {
+		return fmt.Errorf("importing api keys: %w", err)
 	}
 
 	if err := r.runServer(); err != nil {
@@ -222,57 +181,18 @@ func (r *Registry) loadConfigFromFile() (err error) {
 	return nil
 }
 
-// validateProviders validates any existing or imported providers
-func (r *Registry) validateProviders() {
-	var providers []Provider
-	if err := r.db.Find(&providers).Error; err != nil {
-		logging.S.Error("find providers to validate: %w", err)
-	}
-
-	for _, p := range providers {
-		switch p.Kind {
-		case ProviderKindOkta:
-			if err := p.Validate(r); err != nil {
-				logging.S.Errorf("could not validate okta: %w", err)
-			}
-		default:
-			logging.S.Errorf("skipped validating unknown provider kind %s", p.Kind)
-		}
-	}
-}
-
 // schedule the user and group sync jobs, does not schedule when the jobs stop running
 func (r *Registry) scheduleSyncJobs() {
 	// be careful with this sync job, there are Okta rate limits on these requests
 	syncProvidersTimer := timer.NewTimer()
 	syncProvidersTimer.Start(r.options.ProvidersSyncInterval, func() {
-		hub := newSentryHub("sync_providers_timer")
-		defer recoverWithSentryHub(hub)
-
-		r.syncProviders()
+		syncProviders(r)
 	})
 
-	// schedule destination sync job
+	// // schedule destination sync job
 	syncDestinationsTimer := timer.NewTimer()
 	syncDestinationsTimer.Start(r.options.DestinationsSyncInterval, func() {
-		hub := newSentryHub("sync_destinations_timer")
-		defer recoverWithSentryHub(hub)
-
-		now := time.Now()
-
-		var destinations []Destination
-		if err := r.db.Find(&destinations).Error; err != nil {
-			logging.L.Error(err.Error())
-		}
-
-		for i, d := range destinations {
-			expiry := time.Unix(d.Updated, 0).Add(time.Hour * 1)
-			if expiry.Before(now) {
-				if err := r.db.Delete(&destinations[i]).Error; err != nil {
-					logging.L.Error(err.Error())
-				}
-			}
-		}
+		syncDestinations(r.db, time.Hour*1)
 	})
 }
 
@@ -296,88 +216,8 @@ func (r *Registry) configureTelemetry() error {
 	return nil
 }
 
-func (r *Registry) saveAPIKeys() error {
-	var rootAPIKey APIKey
-	if err := r.db.FirstOrCreate(&rootAPIKey, &APIKey{Name: rootAPIKeyName}).Error; err != nil {
-		return err
-	}
-
-	rootAPIKeyURI, err := url.Parse(r.options.RootAPIKey)
-	if err != nil {
-		return err
-	}
-
-	switch rootAPIKeyURI.Scheme {
-	case "":
-		// option does not have a scheme, assume it is plaintext
-		rootAPIKey.Key = string(r.options.RootAPIKey)
-	case "file":
-		// option is a file path, read contents from the path
-		contents, err := ioutil.ReadFile(rootAPIKeyURI.Path)
-		if err != nil {
-			return err
-		}
-
-		if len(contents) != APIKeyLen {
-			return fmt.Errorf("invalid api key length, the key must be 24 characters")
-		}
-
-		rootAPIKey.Key = string(contents)
-
-	default:
-		return fmt.Errorf("unsupported secret format %s", rootAPIKeyURI.Scheme)
-	}
-
-	rootAPIKey.Permissions = string(api.STAR)
-
-	if err := r.db.Save(&rootAPIKey).Error; err != nil {
-		return err
-	}
-
-	var engineAPIKey APIKey
-	if err := r.db.FirstOrCreate(&engineAPIKey, &APIKey{Name: engineAPIKeyName}).Error; err != nil {
-		return err
-	}
-
-	engineAPIKeyURI, err := url.Parse(r.options.EngineAPIKey)
-	if err != nil {
-		return err
-	}
-
-	switch engineAPIKeyURI.Scheme {
-	case "":
-		// option does not have a scheme, assume it is plaintext
-		engineAPIKey.Key = string(r.options.EngineAPIKey)
-	case "file":
-		// option is a file path, read contents from the path
-		contents, err := ioutil.ReadFile(engineAPIKeyURI.Path)
-		if err != nil {
-			return err
-		}
-
-		if len(contents) != APIKeyLen {
-			return fmt.Errorf("invalid api key length, the key must be 24 characters")
-		}
-
-		engineAPIKey.Key = string(contents)
-	default:
-		return fmt.Errorf("unsupported secret format %s", engineAPIKeyURI.Scheme)
-	}
-
-	engineAPIKey.Permissions = strings.Join([]string{
-		string(api.ROLES_READ),
-		string(api.DESTINATIONS_CREATE),
-	}, " ")
-
-	if err := r.db.Save(&engineAPIKey).Error; err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (r *Registry) runServer() error {
-	h := Http{db: r.db}
+	h := HTTP{db: r.db}
 	router := gin.New()
 
 	router.Use(gin.Recovery())
@@ -446,6 +286,19 @@ func (r *Registry) configureSentry() (err error, ok bool) {
 	}
 
 	return nil, false
+}
+
+func (r *Registry) getDatabaseDriver() (gorm.Dialector, error) {
+	postgres, err := r.getPostgresConnectionString()
+	if err != nil {
+		return nil, fmt.Errorf("postgres: %w", err)
+	}
+
+	if postgres != "" {
+		return data.NewPostgresDriver(postgres)
+	}
+
+	return data.NewSQLiteDriver(r.options.DBFile)
 }
 
 // getPostgresConnectionString parses postgres configuration options and returns the connection string

@@ -5,29 +5,29 @@ secrets:
 
 providers:
   - kind: okta
-    domain: overwrite.example.com
+    domain: https://test.okta.com
     clientID: base64:MG9hcG4wcXdpUVBpTUl5UjM1ZDY=
-    clientSecret: kubernetes:okta-secrets/clientSecret
-    apiToken: kubernetes:okta-secrets/apiToken
+    clientSecret: base64:c3VwZXJzZWNyZXQ=
+    apiToken: base64:dGVyY2VzcmVwdXM=
   - kind: okta
-    domain: https://test.example.com
+    domain: https://test.okta.com
     clientID: plaintext:0oapn0qwiQPiMIyR35d6
-    clientSecret: kubernetes:okta-secrets/clientSecret
-    apiToken: kubernetes:okta-secrets/apiToken
+    clientSecret: base64:c3VwZXJzZWNyZXQ=
+    apiToken: base64:dGVyY2VzcmVwdXM=
 
 groups:
-  - name: ios-developers
+  - name: Everyone
     provider: okta
     roles:
       - name: writer
         kind: cluster-role
         destinations:
-          - name: cluster-AAA
+          - name: AAA
             kind: kubernetes
       - name: audit
-        kind: cluster-role
+        kind: role
         destinations:
-          - name: cluster-CCC
+          - name: CCC
             kind: kubernetes
             namespaces:
               - infrahq
@@ -35,45 +35,45 @@ groups:
       - name: pod-create
         kind: role
         destinations:
-          - name: cluster-CCC
+          - name: CCC
             kind: kubernetes
             namespaces:
               - infrahq
-  - name: mac-admins
+  - name: Engineering
     provider: okta
     roles:
       - name: writer
-        kind: cluster-role
+        kind: role
         destinations:
-          - name: cluster-BBB
+          - name: BBB
             kind: kubernetes
   - name: adversaries
     provider: outside
     roles:
-      - name: cluster-admin
-        kind: cluster-role
+      - name: admin
+        kind: role
         destinations:
-          - name: cluster-AAA
+          - name: AAA
             kind: kubernetes
   - name: heroes
     provider: okta
     roles:
       - name: writer
-        kind: cluster-role
+        kind: role
         destinations:
-          - name: cluster-CCC
+          - name: CCC
             kind: kubernetes
   - name: villains
     provider: okta
     roles:
       - name: writer
-        kind: cluster-role
+        kind: role
         destinations:
-          - name: cluster-CCC
+          - name: CCC
             kind: kubernetes
 
 users:
-  - email: admin@example.com
+  - email: jbond@infrahq.com
     roles:
       - name: admin
         kind: cluster-role
@@ -82,9 +82,9 @@ users:
               - kubernetes
             kind: kubernetes
       - name: audit
-        kind: cluster-role
+        kind: role
         destinations:
-          - name: cluster-CCC
+          - name: CCC
             namespaces:
               - infrahq
               - development
@@ -92,7 +92,7 @@ users:
       - name: pod-create
         kind: role
         destinations:
-          - name: cluster-CCC
+          - name: CCC
             namespaces:
               - infrahq
             kind: kubernetes
@@ -108,7 +108,7 @@ users:
   - email: unknown@example.com
     roles:
       - name: writer
-        kind: cluster-role
+        kind: role
         destinations:
-          - name: cluster-AAA
+          - name: AAA
             kind: kubernetes

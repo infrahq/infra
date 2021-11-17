@@ -13,8 +13,8 @@ pg:
   parameters: ""
 
 
-root-api-key: file:///var/run/secrets/infrahq.com/infra/root-api-key
-engine-api-key: file:///var/run/secrets/infrahq.com/engine/engine-api-key
+root-api-key: file:/var/run/secrets/infrahq.com/infra/root-api-key
+engine-api-key: file:/var/run/secrets/infrahq.com/engine/engine-api-key
 
 enable-telemetry: true
 enable-crash-reporting: true
