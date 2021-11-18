@@ -127,7 +127,7 @@ func certActive(cert *x509.Certificate) bool {
 	return true
 }
 
-func (n *NativeCertificateProvider) SignCert(csr x509.CertificateRequest) (pemBytes []byte, err error) {
+func (n *NativeCertificateProvider) SignCertificate(csr x509.CertificateRequest) (pemBytes []byte, err error) {
 	switch csr.Subject.CommonName {
 	case rootCAName:
 		return nil, fmt.Errorf("cannot sign cert pretending to be the root CA")
