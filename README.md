@@ -1,11 +1,8 @@
 <p align="center">
-  <img src="./docs/images/InfraGithub.png" width="806px" />
+  <img src="./docs/images/InfraGithub.png" />
 </p>
 
-**Security is our #1 priority.** Please notify our security team at security@infrahq.com if you notice any vulnerabilities with our product.
-
-* [Company Website](https://www.infrahq.com)
-* [LinkedIn](https://www.linkedin.com/company/infrahq)
+**We take security very seriously.** If you believe you have found a security issue please report it to our security team by contacting us at security@infrahq.com.
 
 ## Introduction
 
