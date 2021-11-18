@@ -71,7 +71,7 @@ func TestBearerTokenMiddlewareDefault(t *testing.T) {
 		}
 	}
 
-	db, err := NewDB("file::memory:")
+	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +99,7 @@ func TestBearerTokenMiddlewareEmptyHeader(t *testing.T) {
 		}
 	}
 
-	db, err := NewDB("file::memory:")
+	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,7 +129,7 @@ func TestBearerTokenMiddlewareEmptyHeaderBearer(t *testing.T) {
 		}
 	}
 
-	db, err := NewDB("file::memory:")
+	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +159,7 @@ func TestBearerTokenMiddlewareInvalidLength(t *testing.T) {
 		}
 	}
 
-	db, err := NewDB("file::memory:")
+	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -189,7 +189,7 @@ func TestBearerTokenMiddlewareInvalidToken(t *testing.T) {
 		}
 	}
 
-	db, err := NewDB("file::memory:")
+	db, err := NewSQLiteDB("file::memory:")
 	require.NoError(t, err)
 
 	a := &API{
@@ -219,7 +219,7 @@ func TestBearerTokenMiddlewareExpiredToken(t *testing.T) {
 		}
 	}
 
-	db, err := NewDB("file::memory:")
+	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -254,7 +254,7 @@ func TestBearerTokenMiddlewareValidToken(t *testing.T) {
 		}
 	}
 
-	db, err := NewDB("file::memory:")
+	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -290,7 +290,7 @@ func TestBearerTokenMiddlewareInvalidAPIKey(t *testing.T) {
 		}
 	}
 
-	db, err := NewDB("file::memory:")
+	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -322,7 +322,7 @@ func TestBearerTokenMiddlewareValidAPIKey(t *testing.T) {
 		}
 	}
 
-	db, err := NewDB("file::memory:")
+	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -360,7 +360,7 @@ func TestBearerTokenMiddlewareValidAPIKeyRootPermissions(t *testing.T) {
 		}
 	}
 
-	db, err := NewDB("file::memory:")
+	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -398,7 +398,7 @@ func TestBearerTokenMiddlewareValidAPIKeyWrongPermission(t *testing.T) {
 		}
 	}
 
-	db, err := NewDB("file::memory:")
+	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -436,7 +436,7 @@ func TestBearerTokenMiddlewareValidAPIKeyWrongPermission(t *testing.T) {
 }
 
 func TestCreateDestinationNoKind(t *testing.T) {
-	db, err := NewDB("file::memory:")
+	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -479,7 +479,7 @@ func TestCreateDestinationNoKind(t *testing.T) {
 }
 
 func TestCreateDestinationBadKind(t *testing.T) {
-	db, err := NewDB("file::memory:")
+	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -523,7 +523,7 @@ func TestCreateDestinationBadKind(t *testing.T) {
 }
 
 func TestCreateDestinationNoAPIKey(t *testing.T) {
-	db, err := NewDB("file::memory:")
+	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		require.NoError(t, err)
 	}
@@ -558,7 +558,7 @@ func TestCreateDestinationNoAPIKey(t *testing.T) {
 }
 
 func TestCreateDestination(t *testing.T) {
-	db, err := NewDB("file::memory:")
+	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -602,7 +602,7 @@ func TestCreateDestination(t *testing.T) {
 }
 
 func TestLoginHandlerEmptyRequest(t *testing.T) {
-	db, err := NewDB("file::memory:")
+	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -624,7 +624,7 @@ func TestLoginHandlerEmptyRequest(t *testing.T) {
 }
 
 func TestLoginNilOktaRequest(t *testing.T) {
-	db, err := NewDB("file::memory:")
+	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -655,7 +655,7 @@ func TestLoginNilOktaRequest(t *testing.T) {
 }
 
 func TestLoginEmptyOktaRequest(t *testing.T) {
-	db, err := NewDB("file::memory:")
+	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -686,7 +686,7 @@ func TestLoginEmptyOktaRequest(t *testing.T) {
 }
 
 func TestLoginOktaMissingDomainRequest(t *testing.T) {
-	db, err := NewDB("file::memory:")
+	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -719,7 +719,7 @@ func TestLoginOktaMissingDomainRequest(t *testing.T) {
 }
 
 func TestLoginMethodOktaMissingCodeRequest(t *testing.T) {
-	db, err := NewDB("file::memory:")
+	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -752,7 +752,7 @@ func TestLoginMethodOktaMissingCodeRequest(t *testing.T) {
 }
 
 func TestLoginMethodOkta(t *testing.T) {
-	db, err := NewDB("file::memory:")
+	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -820,7 +820,7 @@ func TestLoginMethodOkta(t *testing.T) {
 }
 
 func TestVersion(t *testing.T) {
-	db, err := NewDB("file::memory:")
+	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -38,7 +38,7 @@ func setup() error {
 		return err
 	}
 
-	db, err = NewDB("file::memory:")
+	db, err = NewSQLiteDB("file::memory:")
 	if err != nil {
 		return err
 	}
@@ -137,6 +137,11 @@ func setup() error {
 
 	registry = &Registry{
 		db: db,
+	}
+
+	err = registry.importSecretsConfig(confFileData)
+	if err != nil {
+		return err
 	}
 
 	return registry.importConfig(confFileData)

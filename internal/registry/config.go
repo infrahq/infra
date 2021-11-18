@@ -257,10 +257,32 @@ func ImportProviders(db *gorm.DB, providers []ConfigProvider) error {
 	if len(idsToKeep) == 0 {
 		logging.L.Debug("no valid providers found in configuration")
 		// clear the providers
-		return db.Where("1 = 1").Delete(&Provider{}).Error
+		var toDelete []Provider
+		if err := db.Where("1 = 1").Find(&toDelete).Error; err != nil {
+			return fmt.Errorf("find cleared providers: %w", err)
+		}
+
+		if len(toDelete) > 0 {
+			if err := db.Where("1 = 1").Delete(toDelete).Error; err != nil {
+				return fmt.Errorf("clear providers: %w", err)
+			}
+		}
+
+		return nil
 	}
 
-	return db.Not(idsToKeep).Delete(&Provider{}).Error
+	var toDelete []Provider
+	if err := db.Not(idsToKeep).Find(&toDelete).Error; err != nil {
+		return fmt.Errorf("find removed providers: %w", err)
+	}
+
+	if len(toDelete) > 0 {
+		if err := db.Where("1 = 1").Delete(toDelete).Error; err != nil {
+			return fmt.Errorf("delete removed providers: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (modifiedRoleIDs []string, err error) {
@@ -390,6 +412,24 @@ func ImportRoleMappings(db *gorm.DB, groups []ConfigGroupMapping, users []Config
 	return nil
 }
 
+// importSecretsConfig imports only the secret providers found in a config file
+func (r *Registry) importSecretsConfig(bs []byte) error {
+	var config Config
+	if err := yaml.Unmarshal(bs, &config); err != nil {
+		return err
+	}
+
+	if err := validate.Struct(config); err != nil {
+		return fmt.Errorf("invalid config: %w", err)
+	}
+
+	if err := r.configureSecrets(config); err != nil {
+		return fmt.Errorf("secrets config: %w", err)
+	}
+
+	return nil
+}
+
 // importConfig tries to import all valid fields in a config file and removes old config
 func (r *Registry) importConfig(bs []byte) error {
 	var config Config
@@ -402,10 +442,6 @@ func (r *Registry) importConfig(bs []byte) error {
 	}
 
 	initialConfig = config
-
-	if err := r.configureSecrets(config); err != nil {
-		return fmt.Errorf("secrets config: %w", err)
-	}
 
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		if err := ImportProviders(tx, config.Providers); err != nil {

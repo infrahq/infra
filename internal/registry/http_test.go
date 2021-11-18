@@ -17,7 +17,7 @@ func TestLoginRedirectMiddlewarePassthrough(t *testing.T) {
 		}
 	}
 
-	db, err := NewDB("file::memory:")
+	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +39,7 @@ func TestLoginRedirectMiddlewareNext(t *testing.T) {
 		}
 	}
 
-	db, err := NewDB("file::memory:")
+	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +61,7 @@ func TestLoginRedirectSetsNextParameter(t *testing.T) {
 		}
 	}
 
-	db, err := NewDB("file::memory:")
+	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestLoginRedirectNoRedirectIfLoggedIn(t *testing.T) {
 		}
 	}
 
-	db, err := NewDB("file::memory:")
+	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,7 +129,7 @@ func TestLoginRedirectIfLoginCookieUnset(t *testing.T) {
 		}
 	}
 
-	db, err := NewDB("file::memory:")
+	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -177,7 +177,7 @@ func TestLoginRedirectFromLoginIfAlreadyLoggedIn(t *testing.T) {
 		}
 	}
 
-	db, err := NewDB("file::memory:")
+	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
 	}

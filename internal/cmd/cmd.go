@@ -190,6 +190,12 @@ func newStartCmd() (*cobra.Command, error) {
 	cmd.Flags().String("engine-api-key", "", "engine registration API key")
 	cmd.Flags().String("tls-cache", "", "path to cache self-signed and Let's Encrypt TLS certificates")
 	cmd.Flags().String("db-file", "", "path to database file")
+	cmd.Flags().String("pg.host", "", "PostgreSQL host")
+	cmd.Flags().Int("pg.port", -1, "PostgreSQL port")
+	cmd.Flags().String("pg.db-name", "", "PostgreSQL database name")
+	cmd.Flags().String("pg.user", "", "PostgreSQL user")
+	cmd.Flags().String("pg.password", "", "PostgreSQL password")
+	cmd.Flags().String("pg.parameters", "", "additional PostgreSQL connection parameters")
 
 	cmd.Flags().String("ui-proxy", "", "proxy UI requests to this host")
 	cmd.Flags().Bool("enable-ui", false, "enable UI")

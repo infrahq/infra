@@ -18,6 +18,7 @@ import (
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
 	"gopkg.in/square/go-jose.v2"
+	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -210,7 +211,24 @@ func (d *Destination) BeforeDelete(tx *gorm.DB) (err error) {
 		return fmt.Errorf("before delete destination mapping: %w", err)
 	}
 
-	return tx.Where(&Role{DestinationId: d.Id}).Delete(&Role{}).Error
+	var roles []Role
+	if err := tx.Where(&Role{DestinationId: d.Id}).Find(&roles).Error; err != nil {
+		return fmt.Errorf("before delete destination roles: %w", err)
+	}
+
+	if len(roles) > 0 {
+		if err := tx.Model(&roles).Association("Groups").Clear(); err != nil {
+			return fmt.Errorf("clear role groups: %w", err)
+		}
+
+		if err := tx.Model(&roles).Association("Users").Clear(); err != nil {
+			return fmt.Errorf("clear role users: %w", err)
+		}
+
+		return tx.Delete(&roles).Error
+	}
+
+	return nil
 }
 
 func (l *Label) BeforeCreate(tx *gorm.DB) (err error) {
@@ -303,6 +321,15 @@ func (p *Provider) BeforeDelete(tx *gorm.DB) error {
 		}
 	}
 
+	var toDelete []Group
+	if err := tx.Where(&Group{ProviderId: p.Id}).Find(&toDelete).Error; err != nil {
+		return fmt.Errorf("find deleted provider groups: %w", err)
+	}
+
+	if len(toDelete) > 0 {
+		return tx.Where("1 = 1").Delete(&toDelete).Error
+	}
+
 	return nil
 }
 
@@ -335,6 +362,10 @@ func (p *Provider) DeleteUser(db *gorm.DB, u User) error {
 	}
 
 	if db.Model(&u).Association("Providers").Count() == 0 {
+		if err := db.Model(&u).Association("Groups").Clear(); err != nil {
+			return err
+		}
+
 		if err := db.Delete(&u).Error; err != nil {
 			return err
 		}
@@ -592,7 +623,32 @@ func (a *APIKey) BeforeCreate(tx *gorm.DB) (err error) {
 	return nil
 }
 
-func NewDB(dbpath string) (*gorm.DB, error) {
+func NewPostgresDB(connection string) (*gorm.DB, error) {
+	db, err := gorm.Open(postgres.Open(connection), &gorm.Config{
+		Logger: logger.New(
+			log.New(os.Stdout, "\r\n", log.LstdFlags),
+			logger.Config{
+				SlowThreshold:             time.Second,
+				LogLevel:                  logger.Error,
+				IgnoreRecordNotFoundError: true,
+				Colorful:                  true,
+			},
+		),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("postgres connection: %w", err)
+	}
+
+	if err := migrate(db); err != nil {
+		return nil, err
+	}
+
+	logging.S.Debug("connected to postgres")
+
+	return db, nil
+}
+
+func NewSQLiteDB(dbpath string) (*gorm.DB, error) {
 	if !strings.HasPrefix(dbpath, "file::memory") {
 		if err := os.MkdirAll(path.Dir(dbpath), os.ModePerm); err != nil {
 			return nil, err
@@ -611,50 +667,59 @@ func NewDB(dbpath string) (*gorm.DB, error) {
 		),
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("sqlite connection: %w", err)
 	}
 
-	if err := db.AutoMigrate(&User{}); err != nil {
-		return nil, err
-	}
-
-	if err := db.AutoMigrate(&Provider{}); err != nil {
-		return nil, err
-	}
-
-	if err := db.AutoMigrate(&Role{}); err != nil {
-		return nil, err
-	}
-
-	if err := db.AutoMigrate(&Group{}); err != nil {
-		return nil, err
-	}
-
-	if err := db.AutoMigrate(&Destination{}); err != nil {
-		return nil, err
-	}
-
-	if err := db.AutoMigrate(&Label{}); err != nil {
-		return nil, err
-	}
-
-	if err := db.AutoMigrate(&Settings{}); err != nil {
-		return nil, err
-	}
-
-	if err := db.AutoMigrate(&Token{}); err != nil {
-		return nil, err
-	}
-
-	if err := db.AutoMigrate(&APIKey{}); err != nil {
-		return nil, err
-	}
-
-	// Add default settings
-	err = db.FirstOrCreate(&Settings{}).Error
-	if err != nil {
+	if err := migrate(db); err != nil {
 		return nil, err
 	}
 
 	return db, nil
+}
+
+func migrate(db *gorm.DB) error {
+	if err := db.AutoMigrate(&User{}); err != nil {
+		return fmt.Errorf("user migration: %w", err)
+	}
+
+	if err := db.AutoMigrate(&Provider{}); err != nil {
+		return fmt.Errorf("provider migration: %w", err)
+	}
+
+	if err := db.AutoMigrate(&Role{}); err != nil {
+		return fmt.Errorf("role migration: %w", err)
+	}
+
+	if err := db.AutoMigrate(&Group{}); err != nil {
+		return fmt.Errorf("group migration: %w", err)
+	}
+
+	if err := db.AutoMigrate(&Destination{}); err != nil {
+		return fmt.Errorf("destination migration: %w", err)
+	}
+
+	if err := db.AutoMigrate(&Label{}); err != nil {
+		return fmt.Errorf("label migration: %w", err)
+	}
+
+	if err := db.AutoMigrate(&Settings{}); err != nil {
+		return fmt.Errorf("settings migration: %w", err)
+	}
+
+	if err := db.AutoMigrate(&Token{}); err != nil {
+		return fmt.Errorf("token migration: %w", err)
+	}
+
+	if err := db.AutoMigrate(&APIKey{}); err != nil {
+		return fmt.Errorf("API key migration: %w", err)
+	}
+
+	// Add default settings
+	if err := db.FirstOrCreate(&Settings{}).Error; err != nil {
+		return fmt.Errorf("default settings: %w", err)
+	}
+
+	logging.S.Debug("database migration successful")
+
+	return nil
 }

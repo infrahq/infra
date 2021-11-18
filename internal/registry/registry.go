@@ -32,12 +32,22 @@ import (
 	"gorm.io/gorm"
 )
 
+type PostgresOptions struct {
+	PostgresHost       string `mapstructure:"host"`
+	PostgresPort       int    `mapstructure:"port"`
+	PostgresDBName     string `mapstructure:"db-name"`
+	PostgresUser       string `mapstructure:"user"`
+	PostgresPassword   string `mapstructure:"password"`
+	PostgresParameters string `mapstructure:"parameters"`
+}
+
 type Options struct {
-	ConfigPath   string `mapstructure:"config-path"`
-	DBFile       string `mapstructure:"db-file"`
-	TLSCache     string `mapstructure:"tls-cache"`
-	RootAPIKey   string `mapstructure:"root-api-key"`
-	EngineAPIKey string `mapstructure:"engine-api-key"`
+	ConfigPath      string          `mapstructure:"config-path"`
+	DBFile          string          `mapstructure:"db-file"`
+	TLSCache        string          `mapstructure:"tls-cache"`
+	RootAPIKey      string          `mapstructure:"root-api-key"`
+	EngineAPIKey    string          `mapstructure:"engine-api-key"`
+	PostgresOptions PostgresOptions `mapstructure:"pg"`
 
 	EnableUI bool   `mapstructure:"enable-ui"`
 	UIProxy  string `mapstructure:"ui-proxy"`
@@ -108,9 +118,26 @@ func Run(options Options) (err error) {
 		return fmt.Errorf("configure sentry: %w", err)
 	}
 
-	r.db, err = NewDB(options.DBFile)
+	if err = r.loadSecretsConfigFromFile(); err != nil {
+		return fmt.Errorf("loading secrets config from file: %w", err)
+	}
+
+	postgres, err := r.getPostgresConnectionString()
 	if err != nil {
-		return fmt.Errorf("db: %w", err)
+		return fmt.Errorf("postgres connection URL: %w", err)
+	}
+
+	if postgres != "" {
+		r.db, err = NewPostgresDB(postgres)
+
+		if err != nil {
+			return fmt.Errorf("db: %w", err)
+		}
+	} else {
+		r.db, err = NewSQLiteDB(options.DBFile)
+		if err != nil {
+			return fmt.Errorf("db: %w", err)
+		}
 	}
 
 	err = r.db.First(&r.settings).Error
@@ -150,9 +177,12 @@ func Run(options Options) (err error) {
 	return logging.L.Sync()
 }
 
-func (r *Registry) loadConfigFromFile() (err error) {
+func (r *Registry) readConfig() []byte {
 	var contents []byte
+
 	if r.options.ConfigPath != "" {
+		var err error
+
 		contents, err = ioutil.ReadFile(r.options.ConfigPath)
 		if err != nil {
 			var perr *fs.PathError
@@ -166,6 +196,26 @@ func (r *Registry) loadConfigFromFile() (err error) {
 		}
 	}
 
+	return contents
+}
+
+// loadSecretsConfigFromFile only loads secret providers, this is needed before reading the whole config to connect to a database
+func (r *Registry) loadSecretsConfigFromFile() (err error) {
+	contents := r.readConfig()
+	if len(contents) > 0 {
+		err = r.importSecretsConfig(contents)
+		if err != nil {
+			return err
+		}
+	} else {
+		logging.L.Warn("skipped importing secret providers empty config")
+	}
+
+	return nil
+}
+
+func (r *Registry) loadConfigFromFile() (err error) {
+	contents := r.readConfig()
 	if len(contents) > 0 {
 		err = r.importConfig(contents)
 		if err != nil {
@@ -411,6 +461,45 @@ func (r *Registry) configureSentry() (err error, ok bool) {
 	}
 
 	return nil, false
+}
+
+// getPostgresConnectionString parses postgres configuration options and returns the connection string
+func (r *Registry) getPostgresConnectionString() (string, error) {
+	options := r.options.PostgresOptions
+
+	var pgConn strings.Builder
+
+	if options.PostgresHost != "" {
+		// config has separate postgres parameters set, combine them into a connection DSN now
+		fmt.Fprintf(&pgConn, "host=%s ", options.PostgresHost)
+
+		if options.PostgresUser != "" {
+			fmt.Fprintf(&pgConn, "user=%s ", options.PostgresUser)
+
+			if options.PostgresPassword != "" {
+				pass, err := r.GetSecret(options.PostgresPassword)
+				if err != nil {
+					return "", fmt.Errorf("postgres secret: %w", err)
+				}
+
+				fmt.Fprintf(&pgConn, "password=%s ", pass)
+			}
+		}
+
+		if options.PostgresPort > 0 {
+			fmt.Fprintf(&pgConn, "port=%d ", options.PostgresPort)
+		}
+
+		if options.PostgresDBName != "" {
+			fmt.Fprintf(&pgConn, "dbname=%s ", options.PostgresDBName)
+		}
+
+		if options.PostgresParameters != "" {
+			fmt.Fprintf(&pgConn, "%s", options.PostgresParameters)
+		}
+	}
+
+	return strings.TrimSpace(pgConn.String()), nil
 }
 
 // GetSecret implements the secret definition scheme for Infra.

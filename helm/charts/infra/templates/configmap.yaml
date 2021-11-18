@@ -17,13 +17,13 @@ data:
 {{- end }}
 
   config.yaml: |
-{{- $options := list "config-path" "db-file" "tls-cache" }}
+{{- $options := list "config-path" "db-file" "pg" "tls-cache" }}
 {{- $options = list "root-api-key" "engine-api-key" | concat $options }}
 {{- $options = list "enable-ui" "ui-proxy" | concat $options }}
 {{- $options = list "providers-sync-interval" "destinations-sync-interval" | concat $options }}
 {{- $options = list "enable-telemetry" "enable-crash-reporting" | concat $options }}
 {{- range $options }}
   {{- if hasKey $.Values . }}
-    {{ . }}: {{ get $.Values . }}
+    {{ . }}: {{ get $.Values . | toJson }}
   {{- end }}
 {{- end }}

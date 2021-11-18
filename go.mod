@@ -15,6 +15,7 @@ require (
 	github.com/Microsoft/go-winio v0.5.1 // indirect
 	github.com/NYTimes/gziphandler v0.0.0-20170623195520-56545f4a5d46
 	github.com/ProtonMail/go-crypto v0.0.0-20210920160938-87db9fbc61c7 // indirect
+	github.com/alexbrainman/sspi v0.0.0-20180613141037-e580b900e9f5 // indirect
 	github.com/aws/aws-sdk-go v1.41.10
 	github.com/aws/aws-sdk-go-v2/config v1.9.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/kms v1.8.0 // indirect
@@ -39,10 +40,10 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.0 // indirect
 	github.com/hashicorp/go-version v1.3.0 // indirect
 	github.com/hashicorp/vault/api v1.2.0
+	github.com/jcmturner/gokrb5/v8 v8.2.0 // indirect
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/kataras/tablewriter v0.0.0-20180708051242-e063d29b7c23 // indirect
 	github.com/kevinburke/go-bindata v3.22.0+incompatible
-	github.com/kr/pty v1.1.5 // indirect
 	github.com/lensesio/tableprinter v0.0.0-20201125135848-89e81fc956e7
 	github.com/mattn/go-colorable v0.1.11 // indirect
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6 // indirect
@@ -68,9 +69,15 @@ require (
 	google.golang.org/api v0.59.0 // indirect
 	google.golang.org/genproto v0.0.0-20211026145609-4688e4c4e024 // indirect
 	google.golang.org/grpc v1.41.0 // indirect
+	gopkg.in/jcmturner/aescts.v1 v1.0.1 // indirect
+	gopkg.in/jcmturner/dnsutils.v1 v1.0.1 // indirect
+	gopkg.in/jcmturner/goidentity.v3 v3.0.0 // indirect
+	gopkg.in/jcmturner/gokrb5.v7 v7.5.0 // indirect
+	gopkg.in/jcmturner/rpc.v1 v1.1.0 // indirect
 	gopkg.in/segmentio/analytics-go.v3 v3.1.0
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
+	gorm.io/driver/postgres v1.2.1 // indirect
 	gorm.io/driver/sqlite v1.2.0
 	gorm.io/gorm v1.22.0
 	k8s.io/api v0.22.2
