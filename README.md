@@ -2,6 +2,11 @@
   <img src="./docs/images/InfraGithub.png" width="806px" />
 </p>
 
+**Security is our #1 priority.** Please notify our security team at security@infrahq.com if you notice any vulnerabilities with our product.
+
+* [Company Website](https://www.infrahq.com)
+* [LinkedIn](https://www.linkedin.com/company/infrahq)
+
 ## Introduction
 
 Infra is **identity and access management** for your cloud infrastructure. It puts the power of fine-grained access to infrastructure like Kubernetes in your hands via existing identity providers such as Okta, Google Accounts, Azure Active Directory and more.
@@ -16,8 +21,8 @@ Infra is **identity and access management** for your cloud infrastructure. It pu
 ## Quickstart
 
 **Prerequisites:**
-* [Helm](https://helm.sh/) (v3+)
-* [Kubernetes](https://kubernetes.io/) (v1.14+)
+* Install [Helm](https://helm.sh/) (v3+)
+* Install [Kubernetes](https://kubernetes.io/) (v1.14+)
 
 ### Configure
 
