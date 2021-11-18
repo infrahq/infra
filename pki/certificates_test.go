@@ -117,7 +117,7 @@ func TestCertificatesImplementations(t *testing.T) {
 				Extensions:         cert.Extensions,
 			}
 
-			pemBytes, err := p.SignCert(csr)
+			pemBytes, err := p.SignCertificate(csr)
 			require.NoError(t, err)
 
 			block, rest := pem.Decode(pemBytes)
