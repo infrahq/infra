@@ -376,35 +376,13 @@ func (r *Registry) saveAPIKeys() error {
 	return nil
 }
 
-// ginHandler converts a classic http.HandlerFunc into a gin.HandlerFunc,
-// from func(ResponseWriter, *Request)
-// to func(*Context)
-// Eventually this should be removed after functions are upgraded to the gin handler
-// so that functions can access the gin context.
-func ginHandler(f http.HandlerFunc) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		f(c.Writer, c.Request)
-	}
-}
-
-// ginMiddleware converts a http handler middleware to a gin middleware
-func ginMiddleware(middleware func(next http.Handler) http.Handler) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		wrappedHandler := middleware(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-			c.Next()
-		}))
-
-		wrappedHandler.ServeHTTP(c.Writer, c.Request)
-	}
-}
-
 func (r *Registry) runServer() error {
 	h := Http{db: r.db}
 	router := gin.New()
 
 	router.Use(gin.Recovery())
-	router.GET("/healthz", ginHandler(Healthz))
-	router.GET("/.well-known/jwks.json", ginHandler(h.WellKnownJWKs))
+	router.GET("/healthz", Healthz)
+	router.GET("/.well-known/jwks.json", h.WellKnownJWKs)
 	NewAPIMux(r, router.Group("/v1"))
 
 	sentryHandler := sentryhttp.New(sentryhttp.Options{})

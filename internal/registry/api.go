@@ -88,6 +88,7 @@ func (a *API) bearerAuthMiddleware(required api.InfraAPIPermission) gin.HandlerF
 			if err != nil {
 				logging.L.Debug("could not read token from cookie")
 				sendAPIError(c, http.StatusUnauthorized, "unauthorized")
+
 				return
 			}
 
@@ -99,17 +100,20 @@ func (a *API) bearerAuthMiddleware(required api.InfraAPIPermission) gin.HandlerF
 			token, err := ValidateAndGetToken(a.db, raw)
 			if err != nil {
 				logging.L.Debug(err.Error())
+
 				switch err.Error() {
 				case "token expired":
 					sendAPIError(c, http.StatusForbidden, "forbidden")
 				default:
 					sendAPIError(c, http.StatusUnauthorized, "unauthorized")
 				}
+
 				return
 			}
 
 			c.Set(tokenContextKey, token)
 			c.Next()
+
 			return
 		case APIKeyLen:
 			var apiKey APIKey
@@ -119,7 +123,9 @@ func (a *API) bearerAuthMiddleware(required api.InfraAPIPermission) gin.HandlerF
 				} else {
 					logging.S.Errorf("api key lookup: %w", err)
 				}
+
 				sendAPIError(c, http.StatusUnauthorized, "unauthorized")
+
 				return
 			}
 
@@ -132,6 +138,7 @@ func (a *API) bearerAuthMiddleware(required api.InfraAPIPermission) gin.HandlerF
 
 			c.Set(apiKeyContextKey, &apiKey)
 			c.Next()
+
 			return
 		}
 
@@ -314,7 +321,6 @@ func (a *API) ListProviders(c *gin.Context) {
 
 func (a *API) GetProvider(c *gin.Context) {
 	// caution: this endpoint is unauthenticated, do not return sensitive info
-
 	providerId := c.Param("id")
 	if providerId == "" {
 		sendAPIError(c, http.StatusBadRequest, "Path parameter \"id\" is required")
@@ -494,6 +500,7 @@ func (a *API) DeleteAPIKey(c *gin.Context) {
 	if err != nil {
 		logging.L.Error(err.Error())
 		sendAPIError(c, http.StatusUnauthorized, "unauthorized")
+
 		return
 	}
 
@@ -506,6 +513,7 @@ func (a *API) DeleteAPIKey(c *gin.Context) {
 	if err := a.db.Delete(&APIKey{Id: id}).Error; err != nil {
 		logging.S.Errorf("api key delete: %w", err)
 		sendAPIError(c, http.StatusInternalServerError, err.Error())
+
 		return
 	}
 
