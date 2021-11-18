@@ -10,18 +10,15 @@ import (
 	"io/fs"
 	"io/ioutil"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/NYTimes/gziphandler"
-	assetfs "github.com/elazarl/go-bindata-assetfs"
 	"github.com/getsentry/sentry-go"
 	sentryhttp "github.com/getsentry/sentry-go/http"
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/handlers"
-	"github.com/goware/urlx"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/certs"
@@ -48,9 +45,6 @@ type Options struct {
 	RootAPIKey      string          `mapstructure:"root-api-key"`
 	EngineAPIKey    string          `mapstructure:"engine-api-key"`
 	PostgresOptions PostgresOptions `mapstructure:"pg"`
-
-	EnableUI bool   `mapstructure:"enable-ui"`
-	UIProxy  string `mapstructure:"ui-proxy"`
 
 	EnableTelemetry      bool `mapstructure:"enable-telemetry"`
 	EnableCrashReporting bool `mapstructure:"enable-crash-reporting"`
@@ -382,29 +376,42 @@ func (r *Registry) saveAPIKeys() error {
 	return nil
 }
 
+// ginHandler converts a classic http.HandlerFunc into a gin.HandlerFunc,
+// from func(ResponseWriter, *Request)
+// to func(*Context)
+// Eventually this should be removed after functions are upgraded to the gin handler
+// so that functions can access the gin context.
+func ginHandler(f http.HandlerFunc) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		f(c.Writer, c.Request)
+	}
+}
+
+// ginMiddleware converts a http handler middleware to a gin middleware
+func ginMiddleware(middleware func(next http.Handler) http.Handler) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		wrappedHandler := middleware(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+			c.Next()
+		}))
+
+		wrappedHandler.ServeHTTP(c.Writer, c.Request)
+	}
+}
+
 func (r *Registry) runServer() error {
 	h := Http{db: r.db}
-	mux := http.NewServeMux()
-	mux.HandleFunc("/healthz", Healthz)
-	mux.HandleFunc("/.well-known/jwks.json", h.WellKnownJWKs)
-	mux.Handle("/v1/", NewAPIMux(r))
+	router := gin.New()
 
-	if r.options.UIProxy != "" {
-		remote, err := urlx.Parse(r.options.UIProxy)
-		if err != nil {
-			return err
-		}
-
-		mux.Handle("/", h.loginRedirectMiddleware(httputil.NewSingleHostReverseProxy(remote)))
-	} else if r.options.EnableUI {
-		mux.Handle("/", h.loginRedirectMiddleware(gziphandler.GzipHandler(http.FileServer(&StaticFileSystem{base: &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo}}))))
-	}
+	router.Use(gin.Recovery())
+	router.GET("/healthz", ginHandler(Healthz))
+	router.GET("/.well-known/jwks.json", ginHandler(h.WellKnownJWKs))
+	NewAPIMux(r, router.Group("/v1"))
 
 	sentryHandler := sentryhttp.New(sentryhttp.Options{})
 
 	plaintextServer := http.Server{
 		Addr:     ":80",
-		Handler:  handlers.CustomLoggingHandler(io.Discard, sentryHandler.Handle(mux), logging.ZapLogFormatter),
+		Handler:  handlers.CustomLoggingHandler(io.Discard, sentryHandler.Handle(router), logging.ZapLogFormatter),
 		ErrorLog: logging.StandardErrorLog(),
 	}
 
@@ -428,7 +435,7 @@ func (r *Registry) runServer() error {
 	tlsServer := &http.Server{
 		Addr:      ":443",
 		TLSConfig: tlsConfig,
-		Handler:   handlers.CustomLoggingHandler(io.Discard, sentryHandler.Handle(mux), logging.ZapLogFormatter),
+		Handler:   handlers.CustomLoggingHandler(io.Discard, sentryHandler.Handle(router), logging.ZapLogFormatter),
 		ErrorLog:  logging.StandardErrorLog(),
 	}
 

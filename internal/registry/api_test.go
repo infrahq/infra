@@ -4,14 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/generate"
@@ -22,6 +21,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 )
+
+func init() {
+	gin.SetMode(gin.TestMode)
+}
 
 type mockSecretReader struct{}
 
@@ -65,12 +68,6 @@ func addUser(db *gorm.DB, sessionDuration time.Duration) (tokenId string, tokenS
 }
 
 func TestBearerTokenMiddlewareDefault(t *testing.T) {
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		if _, err := io.WriteString(w, "hello world"); err != nil {
-			t.Fatal(err)
-		}
-	}
-
 	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
@@ -88,17 +85,14 @@ func TestBearerTokenMiddlewareDefault(t *testing.T) {
 
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 	w := httptest.NewRecorder()
-	a.bearerAuthMiddleware(api.USERS_READ, http.HandlerFunc(handler)).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.bearerAuthMiddleware(api.USERS_READ)(c)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 func TestBearerTokenMiddlewareEmptyHeader(t *testing.T) {
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		if _, err := io.WriteString(w, "hello world"); err != nil {
-			t.Fatal(err)
-		}
-	}
-
 	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
@@ -118,17 +112,14 @@ func TestBearerTokenMiddlewareEmptyHeader(t *testing.T) {
 	r.Header.Add("Authorization", "")
 
 	w := httptest.NewRecorder()
-	a.bearerAuthMiddleware(api.USERS_READ, http.HandlerFunc(handler)).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.bearerAuthMiddleware(api.USERS_READ)(c)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 func TestBearerTokenMiddlewareEmptyHeaderBearer(t *testing.T) {
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		if _, err := io.WriteString(w, "hello world"); err != nil {
-			t.Fatal(err)
-		}
-	}
-
 	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
@@ -148,17 +139,14 @@ func TestBearerTokenMiddlewareEmptyHeaderBearer(t *testing.T) {
 	r.Header.Add("Authorization", "Bearer")
 
 	w := httptest.NewRecorder()
-	a.bearerAuthMiddleware(api.USERS_READ, http.HandlerFunc(handler)).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.bearerAuthMiddleware(api.USERS_READ)(c)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 func TestBearerTokenMiddlewareInvalidLength(t *testing.T) {
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		if _, err := io.WriteString(w, "hello world"); err != nil {
-			t.Fatal(err)
-		}
-	}
-
 	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
@@ -178,17 +166,14 @@ func TestBearerTokenMiddlewareInvalidLength(t *testing.T) {
 	r.Header.Add("Authorization", "Bearer hello")
 
 	w := httptest.NewRecorder()
-	a.bearerAuthMiddleware(api.USERS_READ, http.HandlerFunc(handler)).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.bearerAuthMiddleware(api.USERS_READ)(c)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 func TestBearerTokenMiddlewareInvalidToken(t *testing.T) {
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		if _, err := io.WriteString(w, "hello world"); err != nil {
-			t.Fatal(err)
-		}
-	}
-
 	db, err := NewSQLiteDB("file::memory:")
 	require.NoError(t, err)
 
@@ -208,17 +193,14 @@ func TestBearerTokenMiddlewareInvalidToken(t *testing.T) {
 	r.Header.Add("Authorization", "Bearer "+bearerToken)
 
 	w := httptest.NewRecorder()
-	a.bearerAuthMiddleware(api.USERS_READ, http.HandlerFunc(handler)).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.bearerAuthMiddleware(api.USERS_READ)(c)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 func TestBearerTokenMiddlewareExpiredToken(t *testing.T) {
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		if _, err := io.WriteString(w, "hello world"); err != nil {
-			t.Fatal(err)
-		}
-	}
-
 	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
@@ -243,17 +225,14 @@ func TestBearerTokenMiddlewareExpiredToken(t *testing.T) {
 	r.Header.Add("Authorization", "Bearer "+id+secret)
 
 	w := httptest.NewRecorder()
-	a.bearerAuthMiddleware(api.USERS_READ, http.HandlerFunc(handler)).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.bearerAuthMiddleware(api.USERS_READ)(c)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 }
 
 func TestBearerTokenMiddlewareValidToken(t *testing.T) {
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		if _, err := io.WriteString(w, "hello world"); err != nil {
-			t.Fatal(err)
-		}
-	}
-
 	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
@@ -278,18 +257,14 @@ func TestBearerTokenMiddlewareValidToken(t *testing.T) {
 	r.Header.Add("Authorization", "Bearer "+id+secret)
 
 	w := httptest.NewRecorder()
-	a.bearerAuthMiddleware(api.USERS_READ, http.HandlerFunc(handler)).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.bearerAuthMiddleware(api.USERS_READ)(c)
 	assert.Equal(t, w.Code, http.StatusOK)
-	assert.Equal(t, "hello world", w.Body.String())
 }
 
 func TestBearerTokenMiddlewareInvalidAPIKey(t *testing.T) {
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		if _, err := io.WriteString(w, "hello world"); err != nil {
-			t.Fatal(err)
-		}
-	}
-
 	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
@@ -311,17 +286,14 @@ func TestBearerTokenMiddlewareInvalidAPIKey(t *testing.T) {
 	r.Header.Add("Authorization", "Bearer "+bearerToken)
 
 	w := httptest.NewRecorder()
-	a.bearerAuthMiddleware(api.USERS_READ, http.HandlerFunc(handler)).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.bearerAuthMiddleware(api.USERS_READ)(c)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 func TestBearerTokenMiddlewareValidAPIKey(t *testing.T) {
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		if _, err := io.WriteString(w, "hello world"); err != nil {
-			t.Fatal(err)
-		}
-	}
-
 	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
@@ -348,18 +320,14 @@ func TestBearerTokenMiddlewareValidAPIKey(t *testing.T) {
 	r.Header.Add("Authorization", "Bearer "+apiKey.Key)
 
 	w := httptest.NewRecorder()
-	a.bearerAuthMiddleware(api.USERS_READ, http.HandlerFunc(handler)).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.bearerAuthMiddleware(api.USERS_READ)(c)
 	assert.Equal(t, w.Code, http.StatusOK)
-	assert.Equal(t, "hello world", w.Body.String())
 }
 
 func TestBearerTokenMiddlewareValidAPIKeyRootPermissions(t *testing.T) {
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		if _, err := io.WriteString(w, "hello world"); err != nil {
-			t.Fatal(err)
-		}
-	}
-
 	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
@@ -386,18 +354,14 @@ func TestBearerTokenMiddlewareValidAPIKeyRootPermissions(t *testing.T) {
 	r.Header.Add("Authorization", "Bearer "+apiKey.Key)
 
 	w := httptest.NewRecorder()
-	a.bearerAuthMiddleware(api.USERS_READ, http.HandlerFunc(handler)).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.bearerAuthMiddleware(api.USERS_READ)(c)
 	assert.Equal(t, w.Code, http.StatusOK)
-	assert.Equal(t, "hello world", w.Body.String())
 }
 
 func TestBearerTokenMiddlewareValidAPIKeyWrongPermission(t *testing.T) {
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		if _, err := io.WriteString(w, "hello world"); err != nil {
-			t.Fatal(err)
-		}
-	}
-
 	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
 		t.Fatal(err)
@@ -424,7 +388,10 @@ func TestBearerTokenMiddlewareValidAPIKeyWrongPermission(t *testing.T) {
 	r.Header.Add("Authorization", "Bearer "+apiKey.Key)
 
 	w := httptest.NewRecorder()
-	a.bearerAuthMiddleware(api.DESTINATIONS_CREATE, http.HandlerFunc(handler)).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.bearerAuthMiddleware(api.DESTINATIONS_CREATE)(c)
 
 	var body api.Error
 	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
@@ -474,7 +441,11 @@ func TestCreateDestinationNoKind(t *testing.T) {
 	r.Header.Add("Authorization", "Bearer "+apiKey.Key)
 
 	w := httptest.NewRecorder()
-	a.bearerAuthMiddleware(api.DESTINATIONS_CREATE, http.HandlerFunc(a.CreateDestination)).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.bearerAuthMiddleware(api.DESTINATIONS_CREATE)(c)
+	a.CreateDestination(c)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
@@ -518,7 +489,11 @@ func TestCreateDestinationBadKind(t *testing.T) {
 	r.Header.Add("Authorization", "Bearer "+apiKey.Key)
 
 	w := httptest.NewRecorder()
-	a.bearerAuthMiddleware(api.DESTINATIONS_CREATE, http.HandlerFunc(a.CreateDestination)).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.bearerAuthMiddleware(api.DESTINATIONS_CREATE)(c)
+	a.CreateDestination(c)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
@@ -553,7 +528,11 @@ func TestCreateDestinationNoAPIKey(t *testing.T) {
 
 	r := httptest.NewRequest(http.MethodPost, "/v1/destinations", bytes.NewReader(bts))
 	w := httptest.NewRecorder()
-	a.bearerAuthMiddleware(api.USERS_READ, http.HandlerFunc(a.Login)).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.bearerAuthMiddleware(api.USERS_READ)(c)
+	a.Login(c)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
@@ -597,7 +576,11 @@ func TestCreateDestination(t *testing.T) {
 	r.Header.Add("Authorization", "Bearer "+apiKey.Key)
 
 	w := httptest.NewRecorder()
-	a.bearerAuthMiddleware(api.DESTINATIONS_CREATE, http.HandlerFunc(a.CreateDestination)).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.bearerAuthMiddleware(api.DESTINATIONS_CREATE)(c)
+	a.CreateDestination(c)
 	assert.Equal(t, http.StatusCreated, w.Code)
 }
 
@@ -619,7 +602,10 @@ func TestLoginHandlerEmptyRequest(t *testing.T) {
 
 	r := httptest.NewRequest(http.MethodPost, "http://test.com/v1/login", nil)
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.Login).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.Login(c)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
@@ -650,7 +636,10 @@ func TestLoginNilOktaRequest(t *testing.T) {
 
 	r := httptest.NewRequest(http.MethodPost, "/v1/login", bytes.NewReader(bts))
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.Login).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.Login(c)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
@@ -681,7 +670,10 @@ func TestLoginEmptyOktaRequest(t *testing.T) {
 
 	r := httptest.NewRequest(http.MethodPost, "/v1/login", bytes.NewReader(bts))
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.Login).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.Login(c)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
@@ -714,7 +706,10 @@ func TestLoginOktaMissingDomainRequest(t *testing.T) {
 
 	r := httptest.NewRequest(http.MethodPost, "/v1/login", bytes.NewReader(bts))
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.Login).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.Login(c)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
@@ -747,7 +742,10 @@ func TestLoginMethodOktaMissingCodeRequest(t *testing.T) {
 
 	r := httptest.NewRequest(http.MethodPost, "/v1/login", bytes.NewReader(bts))
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.Login).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.Login(c)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
@@ -807,7 +805,10 @@ func TestLoginMethodOkta(t *testing.T) {
 
 	r := httptest.NewRequest(http.MethodPost, "/v1/login", bytes.NewReader(bts))
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.Login).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.Login(c)
 
 	var body api.LoginResponse
 	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
@@ -837,7 +838,10 @@ func TestVersion(t *testing.T) {
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/version", nil)
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.Version).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.Version(c)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var body api.Version
@@ -862,7 +866,10 @@ func TestListRoles(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles", nil)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.ListRoles).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.ListRoles(c)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var roles []api.Role
@@ -923,7 +930,10 @@ func TestListRolesByName(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles?name=admin", nil)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.ListRoles).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.ListRoles(c)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var roles []api.Role
@@ -965,7 +975,10 @@ func TestListRolesByKind(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles?kind=role", nil)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.ListRoles).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.ListRoles(c)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var roles []api.Role
@@ -999,7 +1012,10 @@ func TestListRolesByMultiple(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles?name=admin&kind=role", nil)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.ListRoles).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.ListRoles(c)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var roles []api.Role
@@ -1028,7 +1044,10 @@ func TestListRolesForDestinationReturnsRolesFromConfig(t *testing.T) {
 	r.URL.RawQuery = q.Encode()
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.ListRoles).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.ListRoles(c)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var roles []api.Role
@@ -1073,7 +1092,10 @@ func TestListRolesOnlyFindsForSpecificDestination(t *testing.T) {
 	r.URL.RawQuery = q.Encode()
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.ListRoles).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.ListRoles(c)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var roles []api.Role
@@ -1117,7 +1139,10 @@ func TestListRolesForUnknownDestination(t *testing.T) {
 	r.URL.RawQuery = q.Encode()
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.ListRoles).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.ListRoles(c)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var roles []api.Role
@@ -1147,13 +1172,13 @@ func TestGetRole(t *testing.T) {
 	defer a.db.Delete(role)
 
 	r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/roles/%s", role.Id), nil)
-	vars := map[string]string{
-		"id": role.Id,
-	}
-	r = mux.SetURLVars(r, vars)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.GetRole).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+	c.Params = append(c.Params, gin.Param{Key: "id", Value: role.Id})
+
+	a.GetRole(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 }
@@ -1170,13 +1195,12 @@ func TestGetRoleEmptyID(t *testing.T) {
 	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/roles/", nil)
-	vars := map[string]string{
-		"id": "",
-	}
-	r = mux.SetURLVars(r, vars)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.GetRole).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.GetRole(c)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
@@ -1192,14 +1216,11 @@ func TestGetRoleNotFound(t *testing.T) {
 		db: db,
 	}
 
-	r := httptest.NewRequest(http.MethodGet, "/v1/roles/nonexistent", nil)
-	vars := map[string]string{
-		"id": "nonexistent",
-	}
-	r = mux.SetURLVars(r, vars)
-
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.GetRole).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "nonexistent"}}
+
+	a.GetRole(c)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
@@ -1218,7 +1239,10 @@ func TestListGroups(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/v1/groups", nil)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.ListGroups).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.ListGroups(c)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var groups []api.Group
@@ -1246,7 +1270,10 @@ func TestListGroupsByName(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/v1/groups?name=ios-developers", nil)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.ListGroups).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.ListGroups(c)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var groups []api.Group
@@ -1278,13 +1305,13 @@ func TestGetGroup(t *testing.T) {
 	defer a.db.Delete(group)
 
 	r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/groups/%s", group.Id), nil)
-	vars := map[string]string{
-		"id": group.Id,
-	}
-	r = mux.SetURLVars(r, vars)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.GetGroup).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+	c.Params = append(c.Params, gin.Param{Key: "id", Value: group.Id})
+
+	a.GetGroup(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 }
@@ -1301,13 +1328,12 @@ func TestGetGroupEmptyID(t *testing.T) {
 	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/groups/", nil)
-	vars := map[string]string{
-		"id": "",
-	}
-	r = mux.SetURLVars(r, vars)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.GetGroup).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.GetGroup(c)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
@@ -1324,13 +1350,13 @@ func TestGetGroupNotFound(t *testing.T) {
 	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/groups/nonexistent", nil)
-	vars := map[string]string{
-		"id": "nonexistent",
-	}
-	r = mux.SetURLVars(r, vars)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.GetGroup).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+	c.Params = append(c.Params, gin.Param{Key: "id", Value: "nonexistent"})
+
+	a.GetGroup(c)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
@@ -1349,7 +1375,10 @@ func TestListUsers(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/v1/users", nil)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.ListUsers).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.ListUsers(c)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var users []api.User
@@ -1378,7 +1407,10 @@ func TestListUsersByEmail(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/v1/users?email=woz@example.com", nil)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.ListUsers).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.ListUsers(c)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var users []api.User
@@ -1405,7 +1437,10 @@ func TestListUsersEmpty(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/v1/users?email=nonexistent@example.com", nil)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.ListUsers).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.ListUsers(c)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var users []api.User
@@ -1435,13 +1470,13 @@ func TestGetUser(t *testing.T) {
 	defer a.db.Delete(user)
 
 	r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/users/%s", user.Id), nil)
-	vars := map[string]string{
-		"id": user.Id,
-	}
-	r = mux.SetURLVars(r, vars)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.GetUser).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+	c.Params = append(c.Params, gin.Param{Key: "id", Value: user.Id})
+
+	a.GetUser(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 }
@@ -1458,13 +1493,12 @@ func TestGetUserEmptyID(t *testing.T) {
 	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/users/", nil)
-	vars := map[string]string{
-		"id": "",
-	}
-	r = mux.SetURLVars(r, vars)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.GetUser).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.GetUser(c)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
@@ -1481,13 +1515,13 @@ func TestGetUserNotFound(t *testing.T) {
 	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/users/nonexistent", nil)
-	vars := map[string]string{
-		"id": "nonexistent",
-	}
-	r = mux.SetURLVars(r, vars)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.GetUser).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+	c.Params = append(c.Params, gin.Param{Key: "id", Value: "nonexistent"})
+
+	a.GetUser(c)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
@@ -1506,7 +1540,10 @@ func TestListProviders(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/v1/providers", nil)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.ListProviders).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.ListProviders(c)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var providers []api.Provider
@@ -1531,7 +1568,10 @@ func TestListProvidersByType(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/v1/providers?kind=okta", nil)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.ListProviders).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.ListProviders(c)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var providers []api.Provider
@@ -1556,7 +1596,10 @@ func TestListProvidersEmpty(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/v1/providers?kind=nonexistent", nil)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.ListProviders).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.ListProviders(c)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var providers []api.Provider
@@ -1586,13 +1629,13 @@ func TestGetProvider(t *testing.T) {
 	defer a.db.Delete(provider)
 
 	r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/providers/%s", provider.Id), nil)
-	vars := map[string]string{
-		"id": provider.Id,
-	}
-	r = mux.SetURLVars(r, vars)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.GetProvider).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+	c.Params = append(c.Params, gin.Param{Key: "id", Value: provider.Id})
+
+	a.GetProvider(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 }
@@ -1609,13 +1652,12 @@ func TestGetProviderEmptyID(t *testing.T) {
 	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/providers/", nil)
-	vars := map[string]string{
-		"id": "",
-	}
-	r = mux.SetURLVars(r, vars)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.GetProvider).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.GetProvider(c)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
@@ -1632,13 +1674,13 @@ func TestGetProviderNotFound(t *testing.T) {
 	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/providers/nonexistent", nil)
-	vars := map[string]string{
-		"id": "nonexistent",
-	}
-	r = mux.SetURLVars(r, vars)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.GetProvider).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+	c.Params = append(c.Params, gin.Param{Key: "id", Value: "nonexistent"})
+
+	a.GetProvider(c)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
@@ -1657,7 +1699,10 @@ func TestListDestinations(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/v1/destinations", nil)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.ListDestinations).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.ListDestinations(c)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var destinations []api.Destination
@@ -1686,7 +1731,10 @@ func TestListDestinationsByName(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/v1/destinations?name=cluster-AAA", nil)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.ListDestinations).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.ListDestinations(c)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var destinations []api.Destination
@@ -1713,7 +1761,10 @@ func TestListDestinationsByType(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/v1/destinations?=kind", nil)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.ListDestinations).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.ListDestinations(c)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var destinations []api.Destination
@@ -1742,7 +1793,10 @@ func TestListDestinationsEmpty(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/v1/destinations?name=nonexistent", nil)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.ListDestinations).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.ListDestinations(c)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var destinations []api.Destination
@@ -1768,7 +1822,10 @@ func TestListProvidersHasNoSensitiveValues(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/v1/providers", nil)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.ListProviders).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.ListProviders(c)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var providers []api.Provider
@@ -1821,13 +1878,13 @@ func TestGetDestination(t *testing.T) {
 	defer a.db.Delete(destination)
 
 	r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/destinations/%s", destination.Id), nil)
-	vars := map[string]string{
-		"id": destination.Id,
-	}
-	r = mux.SetURLVars(r, vars)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.GetDestination).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+	c.Params = append(c.Params, gin.Param{Key: "id", Value: destination.Id})
+
+	a.GetDestination(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 }
@@ -1844,13 +1901,12 @@ func TestGetDestinationEmptyID(t *testing.T) {
 	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/destinations/", nil)
-	vars := map[string]string{
-		"id": "",
-	}
-	r = mux.SetURLVars(r, vars)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.GetDestination).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.GetDestination(c)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
@@ -1867,13 +1923,13 @@ func TestGetDestinationNotFound(t *testing.T) {
 	}
 
 	r := httptest.NewRequest(http.MethodGet, "/v1/destinations/nonexistent", nil)
-	vars := map[string]string{
-		"id": "nonexistent",
-	}
-	r = mux.SetURLVars(r, vars)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.GetDestination).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+	c.Params = append(c.Params, gin.Param{Key: "id", Value: "nonexistent"})
+
+	a.GetDestination(c)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
@@ -1898,13 +1954,13 @@ func TestGetProviderHasNoSensitiveValues(t *testing.T) {
 	defer a.db.Delete(provider)
 
 	r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/providers/%s", provider.Id), nil)
-	vars := map[string]string{
-		"id": provider.Id,
-	}
-	r = mux.SetURLVars(r, vars)
 
 	w := httptest.NewRecorder()
-	http.HandlerFunc(a.GetProvider).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+	c.Params = append(c.Params, gin.Param{Key: "id", Value: provider.Id})
+
+	a.GetProvider(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
@@ -1971,7 +2027,11 @@ func TestCreateAPIKey(t *testing.T) {
 	r.Header.Add("Authorization", "Bearer "+apiKey.Key)
 
 	w := httptest.NewRecorder()
-	a.bearerAuthMiddleware(api.API_KEYS_CREATE, http.HandlerFunc(a.CreateAPIKey)).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.bearerAuthMiddleware(api.API_KEYS_CREATE)(c)
+	a.CreateAPIKey(c)
 
 	var body api.InfraAPIKeyCreateResponse
 	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
@@ -2003,14 +2063,14 @@ func TestDeleteAPIKey(t *testing.T) {
 	}
 
 	delR := httptest.NewRequest(http.MethodDelete, "/v1/api-keys/"+k.Id, nil)
-	vars := map[string]string{
-		"id": k.Id,
-	}
-	delR = mux.SetURLVars(delR, vars)
 	delR.Header.Add("Authorization", "Bearer "+k.Key)
 
 	delW := httptest.NewRecorder()
-	a.bearerAuthMiddleware(api.API_KEYS_DELETE, http.HandlerFunc(a.DeleteAPIKey)).ServeHTTP(delW, delR)
+	c, _ := gin.CreateTestContext(delW)
+	c.Request = delR
+	c.Params = append(c.Params, gin.Param{Key: "id", Value: k.Id})
+	a.bearerAuthMiddleware(api.API_KEYS_DELETE)(c)
+	a.DeleteAPIKey(c)
 
 	assert.Equal(t, http.StatusNoContent, delW.Code)
 
@@ -2040,7 +2100,11 @@ func TestListAPIKeys(t *testing.T) {
 	r.Header.Add("Authorization", "Bearer "+k.Key)
 
 	w := httptest.NewRecorder()
-	a.bearerAuthMiddleware(api.API_KEYS_READ, http.HandlerFunc(a.ListAPIKeys)).ServeHTTP(w, r)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.bearerAuthMiddleware(api.API_KEYS_READ)(c)
+	a.ListAPIKeys(c)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var keys []api.InfraAPIKey

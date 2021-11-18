@@ -28,6 +28,7 @@ require (
 	github.com/elazarl/go-bindata-assetfs v1.0.1
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/getsentry/sentry-go v0.11.0
+	github.com/gin-gonic/gin v1.7.4 // indirect
 	github.com/go-playground/validator/v10 v10.9.0
 	github.com/golang-jwt/jwt/v4 v4.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
