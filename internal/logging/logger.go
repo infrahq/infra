@@ -16,18 +16,22 @@ import (
 )
 
 var (
-	L, _                              = Initialize(int(zap.InfoLevel))
-	S             *zap.SugaredLogger  = L.Sugar()
-	defaultWriter zapcore.WriteSyncer = os.Stderr
+	L, _                                    = Initialize(int(zap.InfoLevel))
+	S                   *zap.SugaredLogger  = L.Sugar()
+	defaultStderrWriter zapcore.WriteSyncer = os.Stderr
+	defaultStdoutWriter zapcore.WriteSyncer = os.Stdout
 )
 
 func Initialize(v int) (*zap.Logger, error) {
 	atom := zap.NewAtomicLevelAt(zapcore.Level(-v))
-	writer := zapcore.Lock(filtered(defaultWriter))
 
-	var encoder zapcore.Encoder
+	var (
+		encoder zapcore.Encoder
+		writer  zapcore.WriteSyncer
+	)
 
 	if term.IsTerminal(int(os.Stdin.Fd())) {
+		writer = zapcore.Lock(filtered(defaultStderrWriter))
 		encoder = zapcore.NewConsoleEncoder(zapcore.EncoderConfig{
 			MessageKey: "message",
 
@@ -41,6 +45,7 @@ func Initialize(v int) (*zap.Logger, error) {
 			EncodeCaller: zapcore.ShortCallerEncoder,
 		})
 	} else {
+		writer = zapcore.Lock(filtered(defaultStdoutWriter))
 		encoder = zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig())
 	}
 
@@ -68,7 +73,7 @@ func StandardErrorLog() *log.Logger {
 
 // TODO: Remove the filtered writer after Go stops writing header
 // values to errors, as it's cpu expensive to search every log line.
-// https://groups.google.com/g/golang-codereviews/c/BOSa6DE8tnI
+// https://github.com/golang/go/pull/48979
 func filtered(logger zapcore.WriteSyncer) zapcore.WriteSyncer {
 	return &filteredWriterSyncer{
 		dest: logger,
@@ -79,9 +84,12 @@ type filteredWriterSyncer struct {
 	dest zapcore.WriteSyncer
 }
 
+var strInvalidHeaderFieldValue = []byte("invalid header field value")
+
 func (w *filteredWriterSyncer) Write(b []byte) (int, error) {
-	if idx := bytes.Index(b, []byte("invalid header field value")); idx >= 0 {
-		idx += 26 // len("invalid header field value")
+	if idx := bytes.Index(b, strInvalidHeaderFieldValue); idx >= 0 {
+		idx += len(strInvalidHeaderFieldValue)
+
 		forKeyIdx := bytes.Index(b, []byte("for key"))
 		if forKeyIdx > idx {
 			return w.dest.Write(append(b[:idx+1], b[forKeyIdx:]...))
@@ -95,13 +103,16 @@ func (w *filteredWriterSyncer) Write(b []byte) (int, error) {
 		// we can't see where the end is. parse the message so you can truncate it. :/
 		m := map[string]interface{}{}
 		if err := json.Unmarshal(b, &m); err != nil {
+			S.Error("Had some trouble parsing log line that needs to be filtered. Omitting log entry")
 			// on error write nothing, just to be safe.
-			return 0, nil
+			return 0, nil // nolint
 		}
+
 		if msg, ok := m["msg"]; ok {
 			if smsg, ok := msg.(string); ok {
-				if idx := strings.Index(smsg, "invalid header field value"); idx >= 0 {
-					m["msg"] = smsg[:idx+26] // len("invalid header field value")
+				if idx := strings.Index(smsg, string(strInvalidHeaderFieldValue)); idx >= 0 {
+					m["msg"] = smsg[:idx+len(strInvalidHeaderFieldValue)]
+
 					newBytes, err := json.Marshal(m)
 					if err == nil {
 						return w.dest.Write(newBytes)

@@ -34,7 +34,7 @@ func TestConfigValidLevel(t *testing.T) {
 }
 
 func TestFiltersOutBearerTokenValue(t *testing.T) {
-	// remove this test after Go patches https://groups.google.com/g/golang-codereviews/c/BOSa6DE8tnI
+	// remove this test after Go patches https://github.com/golang/go/pull/48979
 	tests := []struct {
 		Input    string
 		Expected string
@@ -54,7 +54,8 @@ func TestFiltersOutBearerTokenValue(t *testing.T) {
 	}
 	for _, testCase := range tests {
 		writeSyncer := &testWriterSyncer{}
-		defaultWriter = writeSyncer
+		defaultStdoutWriter = writeSyncer
+		defaultStderrWriter = writeSyncer
 
 		logger, err := Initialize(int(zap.InfoLevel))
 		require.NoError(t, err)
