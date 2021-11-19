@@ -163,12 +163,12 @@ provider:
 		// Start OIDC flow
 		// Get auth code from Okta
 		// Send auth code to Infra to login as a user
-		state, err := generate.RandString(12)
+		state, err := generate.CryptoRandom(12)
 		if err != nil {
 			return err
 		}
 
-		nonce, err := generate.RandString(10)
+		nonce, err := generate.CryptoRandom(10)
 		if err != nil {
 			return err
 		}

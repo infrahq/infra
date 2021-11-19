@@ -187,7 +187,7 @@ func TestBearerTokenMiddlewareInvalidToken(t *testing.T) {
 	}
 
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
-	bearerToken, err := generate.RandString(TokenLen)
+	bearerToken, err := generate.CryptoRandom(TokenLen)
 	require.NoError(t, err)
 	r.Header.Add("Authorization", "Bearer "+bearerToken)
 
@@ -312,7 +312,7 @@ func TestBearerTokenMiddlewareInvalidAPIKey(t *testing.T) {
 	}
 
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
-	bearerToken, err := generate.RandString(TokenLen)
+	bearerToken, err := generate.CryptoRandom(TokenLen)
 	require.NoError(t, err)
 	r.Header.Add("Authorization", "Bearer "+bearerToken)
 

@@ -647,7 +647,7 @@ func (a *API) createJWT(destination, email string) (rawJWT string, expiry time.T
 		return "", time.Time{}, fmt.Errorf("creating signer for signature algorithm %q: %w", key.Algorithm, err)
 	}
 
-	nonce, err := generate.RandString(10)
+	nonce, err := generate.CryptoRandom(10)
 	if err != nil {
 		return "", time.Time{}, fmt.Errorf("generating nonce: %w", err)
 	}

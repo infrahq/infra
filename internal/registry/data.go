@@ -155,7 +155,7 @@ type APIKey struct {
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 	if u.Id == "" {
-		u.Id = generate.MathRandString(IdLen)
+		u.Id = generate.MathRandom(IdLen)
 	}
 
 	return nil
@@ -195,7 +195,7 @@ func (u *User) BeforeDelete(tx *gorm.DB) error {
 
 func (d *Destination) BeforeCreate(tx *gorm.DB) (err error) {
 	if d.Id == "" {
-		d.Id = generate.MathRandString(IdLen)
+		d.Id = generate.MathRandom(IdLen)
 	}
 
 	return nil
@@ -242,7 +242,7 @@ func (d *Destination) BeforeDelete(tx *gorm.DB) (err error) {
 func (l *Label) BeforeCreate(tx *gorm.DB) (err error) {
 	if l.ID == "" {
 		// TODO (#570): use some other form of randomly generated identifier as the ID
-		l.ID = generate.MathRandString(IdLen)
+		l.ID = generate.MathRandom(IdLen)
 	}
 
 	return nil
@@ -250,7 +250,7 @@ func (l *Label) BeforeCreate(tx *gorm.DB) (err error) {
 
 func (r *Role) BeforeCreate(tx *gorm.DB) (err error) {
 	if r.Id == "" {
-		r.Id = generate.MathRandString(IdLen)
+		r.Id = generate.MathRandom(IdLen)
 	}
 
 	return nil
@@ -258,7 +258,7 @@ func (r *Role) BeforeCreate(tx *gorm.DB) (err error) {
 
 func (g *Group) BeforeCreate(tx *gorm.DB) (err error) {
 	if g.Id == "" {
-		g.Id = generate.MathRandString(IdLen)
+		g.Id = generate.MathRandom(IdLen)
 	}
 
 	return nil
@@ -311,7 +311,7 @@ func cleanUnassociatedRoles(tx *gorm.DB, roles []Role) error {
 
 func (p *Provider) BeforeCreate(tx *gorm.DB) (err error) {
 	if p.Id == "" {
-		p.Id = generate.MathRandString(IdLen)
+		p.Id = generate.MathRandom(IdLen)
 	}
 
 	return nil
@@ -499,7 +499,7 @@ func (p *Provider) SyncGroups(r *Registry) error {
 
 func (s *Settings) BeforeCreate(tx *gorm.DB) (err error) {
 	if s.Id == "" {
-		s.Id = generate.MathRandString(IdLen)
+		s.Id = generate.MathRandom(IdLen)
 	}
 
 	return nil
@@ -542,7 +542,7 @@ func (s *Settings) BeforeSave(tx *gorm.DB) error {
 
 func (t *Token) BeforeCreate(tx *gorm.DB) (err error) {
 	if t.Id == "" {
-		t.Id = generate.MathRandString(IdLen)
+		t.Id = generate.MathRandom(IdLen)
 	}
 
 	if t.Expires == 0 {
@@ -573,7 +573,7 @@ func (t *Token) CheckSecret(secret string) (err error) {
 
 // NewToken creates a token for a user and returns the secret value they present for authentication
 func NewToken(db *gorm.DB, userId string, permissions string, sessionDuration time.Duration, token *Token) (secret string, err error) {
-	secret, err = generate.RandString(TokenSecretLen)
+	secret, err = generate.CryptoRandom(TokenSecretLen)
 	if err != nil {
 		return "", err
 	}
@@ -620,11 +620,11 @@ func ValidateAndGetToken(db *gorm.DB, in string) (*Token, error) {
 
 func (a *APIKey) BeforeCreate(tx *gorm.DB) (err error) {
 	if a.Id == "" {
-		a.Id = generate.MathRandString(IdLen)
+		a.Id = generate.MathRandom(IdLen)
 	}
 
 	if a.Key == "" {
-		a.Key, err = generate.RandString(APIKeyLen)
+		a.Key, err = generate.CryptoRandom(APIKeyLen)
 		if err != nil {
 			return err
 		}
