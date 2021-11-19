@@ -13,9 +13,7 @@ require (
 	github.com/DisgoOrg/disgohook v1.4.4 // indirect
 	github.com/DisgoOrg/log v1.1.2 // indirect
 	github.com/Microsoft/go-winio v0.5.1 // indirect
-	github.com/NYTimes/gziphandler v0.0.0-20170623195520-56545f4a5d46
 	github.com/ProtonMail/go-crypto v0.0.0-20210920160938-87db9fbc61c7 // indirect
-	github.com/alexbrainman/sspi v0.0.0-20180613141037-e580b900e9f5 // indirect
 	github.com/aws/aws-sdk-go v1.41.10
 	github.com/aws/aws-sdk-go-v2/config v1.9.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/kms v1.8.0 // indirect
@@ -28,20 +26,19 @@ require (
 	github.com/elazarl/go-bindata-assetfs v1.0.1
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/getsentry/sentry-go v0.11.0
-	github.com/gin-gonic/gin v1.7.4 // indirect
+	github.com/gin-gonic/gin v1.7.4
 	github.com/go-playground/validator/v10 v10.9.0
 	github.com/golang-jwt/jwt/v4 v4.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/goreleaser/goreleaser v0.183.0
 	github.com/goreleaser/nfpm/v2 v2.7.1 // indirect
 	github.com/gorilla/handlers v1.5.1
-	github.com/gorilla/mux v1.8.0
+	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/goware/urlx v0.3.1
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.0 // indirect
 	github.com/hashicorp/go-version v1.3.0 // indirect
 	github.com/hashicorp/vault/api v1.2.0
-	github.com/jcmturner/gokrb5/v8 v8.2.0 // indirect
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/kataras/tablewriter v0.0.0-20180708051242-e063d29b7c23 // indirect
 	github.com/kevinburke/go-bindata v3.22.0+incompatible
@@ -70,15 +67,10 @@ require (
 	google.golang.org/api v0.59.0 // indirect
 	google.golang.org/genproto v0.0.0-20211026145609-4688e4c4e024 // indirect
 	google.golang.org/grpc v1.41.0 // indirect
-	gopkg.in/jcmturner/aescts.v1 v1.0.1 // indirect
-	gopkg.in/jcmturner/dnsutils.v1 v1.0.1 // indirect
-	gopkg.in/jcmturner/goidentity.v3 v3.0.0 // indirect
-	gopkg.in/jcmturner/gokrb5.v7 v7.5.0 // indirect
-	gopkg.in/jcmturner/rpc.v1 v1.1.0 // indirect
 	gopkg.in/segmentio/analytics-go.v3 v3.1.0
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
-	gorm.io/driver/postgres v1.2.1 // indirect
+	gorm.io/driver/postgres v1.2.1
 	gorm.io/driver/sqlite v1.2.0
 	gorm.io/gorm v1.22.0
 	k8s.io/api v0.22.2

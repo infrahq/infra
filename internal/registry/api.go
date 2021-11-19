@@ -75,6 +75,7 @@ func sendAPIError(c *gin.Context, code int, message string) {
 		Code:    int32(code),
 		Message: message,
 	})
+	c.Abort()
 }
 
 func (a *API) bearerAuthMiddleware(required api.InfraAPIPermission) gin.HandlerFunc {
@@ -174,7 +175,7 @@ func extractToken(context *gin.Context) (*Token, error) {
 
 	token, ok := val.(*Token)
 	if !ok {
-		return nil, errors.New("token not found in context")
+		return nil, errors.New("expected token not found in context")
 	}
 
 	return token, nil
@@ -517,7 +518,7 @@ func (a *API) DeleteAPIKey(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusNoContent, nil)
+	c.Status(http.StatusNoContent)
 }
 
 func (a *API) CreateAPIKey(c *gin.Context) {
@@ -834,7 +835,7 @@ func (a *API) Logout(c *gin.Context) {
 		logging.S.Debug(err)
 	}
 
-	c.JSON(http.StatusOK, nil)
+	c.Status(http.StatusOK)
 }
 
 func (a *API) Version(c *gin.Context) {

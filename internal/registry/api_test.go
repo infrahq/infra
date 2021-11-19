@@ -2072,7 +2072,7 @@ func TestDeleteAPIKey(t *testing.T) {
 	a.bearerAuthMiddleware(api.API_KEYS_DELETE)(c)
 	a.DeleteAPIKey(c)
 
-	assert.Equal(t, http.StatusNoContent, delW.Code)
+	assert.Equal(t, http.StatusNoContent, c.Writer.Status())
 
 	var apiKey APIKey
 
