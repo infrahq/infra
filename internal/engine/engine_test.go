@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/registry"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/square/go-jose.v2"
@@ -318,7 +319,7 @@ func TestJWTMiddlewareValidJWTSetsEmail(t *testing.T) {
 	}
 
 	emptyHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		email, ok := r.Context().Value(HttpContextKeyEmail{}).(string)
+		email, ok := r.Context().Value(internal.HttpContextKeyEmail{}).(string)
 		if !ok {
 			t.Fatal("could not parse email")
 		}
@@ -362,7 +363,7 @@ func TestProxyHandler(t *testing.T) {
 	}
 
 	emptyHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		email, ok := r.Context().Value(HttpContextKeyEmail{}).(string)
+		email, ok := r.Context().Value(internal.HttpContextKeyEmail{}).(string)
 		if !ok {
 			t.Fatal("could not parse email")
 		}

@@ -99,9 +99,7 @@ var JWKCacheRefresh = 5 * time.Minute
 
 type GetJWKFunc func() (*jose.JSONWebKey, error)
 
-type HttpContextKeyEmail struct{}
-
-func jwtMiddleware(destination string, getjwk GetJWKFunc, next http.HandlerFunc) http.Handler {
+func jwtMiddleware(destination string, getjwk GetJWKFunc, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authorization := r.Header.Get("Authorization")
 		raw := strings.ReplaceAll(authorization, "Bearer ", "")
@@ -163,8 +161,8 @@ func jwtMiddleware(destination string, getjwk GetJWKFunc, next http.HandlerFunc)
 		}
 
 		ctx := r.Context()
-		ctx = context.WithValue(ctx, HttpContextKeyEmail{}, claims.Email)
-		next(w, r.WithContext(ctx))
+		ctx = context.WithValue(ctx, internal.HttpContextKeyEmail{}, claims.Email)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
@@ -184,8 +182,10 @@ func proxyHandler(name string, ca []byte, bearerToken string, remote *url.URL) (
 		},
 	}
 
+	audit := audit.KubernetesAuditMiddleware(name, proxy)
+
 	return func(w http.ResponseWriter, r *http.Request) {
-		email, ok := r.Context().Value(HttpContextKeyEmail{}).(string)
+		email, ok := r.Context().Value(internal.HttpContextKeyEmail{}).(string)
 		if !ok {
 			logging.L.Debug("Proxy handler unable to retrieve email from context")
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -195,12 +195,7 @@ func proxyHandler(name string, ca []byte, bearerToken string, remote *url.URL) (
 
 		r.Header.Set("Impersonate-User", fmt.Sprintf("infra:%s", email))
 		r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", bearerToken))
-		proxy.ServeHTTP(w, r)
-
-		err := audit.Log(r, email, name)
-		if err != nil {
-			logging.S.Error(err)
-		}
+		audit.ServeHTTP(w, r)
 	}, nil
 }
 
