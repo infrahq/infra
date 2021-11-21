@@ -182,7 +182,7 @@ func proxyHandler(name string, ca []byte, bearerToken string, remote *url.URL) (
 		},
 	}
 
-	audit := audit.KubernetesAuditMiddleware(name, proxy)
+	audit := audit.KubernetesAuditMiddleware(proxy, name)
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		email, ok := r.Context().Value(internal.HttpContextKeyEmail{}).(string)

@@ -84,7 +84,7 @@ func KubernetesUserFromInfraUserMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func KubernetesAuditMiddleware(destination string, next http.Handler) http.Handler {
+func KubernetesAuditMiddleware(next http.Handler, destination string) http.Handler {
 	p := &audit.Policy{
 		Rules: []audit.PolicyRule{
 			{
