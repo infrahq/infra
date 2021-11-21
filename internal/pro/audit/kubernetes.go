@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
@@ -17,9 +18,10 @@ import (
 )
 
 type KubernetesAuditEvent struct {
-	Level       string `json:"level"`
-	User        string `json:"user"`
-	Destination string `json:"destination"`
+	Level       string  `json:"level"`
+	User        string  `json:"user"`
+	Destination string  `json:"destination"`
+	Timestamp   float64 `json:"ts"`
 
 	Action      string `json:"action"`
 	Kind        string `json:"kind"`
@@ -39,6 +41,9 @@ func (k *KubernetesAuditSink) ProcessEvents(events ...*audit.Event) bool {
 		event.Level = "audit"
 		event.Action = e.Verb
 		event.Kind = e.Kind
+
+		nanos := time.Now().UnixNano()
+		event.Timestamp = float64(nanos) / float64(time.Second)
 
 		if e.ObjectRef != nil {
 			event.Namespace = e.ObjectRef.Namespace
