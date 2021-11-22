@@ -43,14 +43,12 @@ func AuditPrintMiddleware(next http.Handler) http.Handler {
 		email, ok := r.Context().Value(internal.HttpContextKeyEmail{}).(string)
 		if !ok {
 			logging.L.Warn("audit middleware: unable to retrieve email from context")
-			next.ServeHTTP(w, r)
 			return
 		}
 
 		destination, ok := r.Context().Value(internal.HttpContextKeyDestinationName{}).(string)
 		if !ok {
 			logging.L.Warn("audit middleware: unable to retrieve destination from context")
-			next.ServeHTTP(w, r)
 			return
 		}
 
