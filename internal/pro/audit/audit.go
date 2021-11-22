@@ -11,13 +11,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/apis/audit"
 	"k8s.io/apiserver/pkg/audit/policy"
-	"k8s.io/apiserver/pkg/authentication/user"
 	genericapifilters "k8s.io/apiserver/pkg/endpoints/filters"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	genericfilters "k8s.io/apiserver/pkg/server/filters"
 )
 
-type KubernetesAuditEvent struct {
+type AuditEvent struct {
 	Level       string  `json:"level"`
 	User        string  `json:"user"`
 	Destination string  `json:"destination"`
@@ -33,11 +32,33 @@ type KubernetesAuditEvent struct {
 	Status int `json:"status"`
 }
 
-type KubernetesAuditSink struct{}
+type EmptyAuditSink struct{}
 
-func (k *KubernetesAuditSink) ProcessEvents(events ...*audit.Event) bool {
-	for _, e := range events {
-		event := KubernetesAuditEvent{}
+func (k *EmptyAuditSink) ProcessEvents(events ...*audit.Event) bool {
+	return true
+}
+
+func AuditPrintMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		email, ok := r.Context().Value(internal.HttpContextKeyEmail{}).(string)
+		if !ok {
+			logging.L.Warn("audit middleware: unable to retrieve email from context")
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		destination, ok := r.Context().Value(internal.HttpContextKeyDestinationName{}).(string)
+		if !ok {
+			logging.L.Warn("audit middleware: unable to retrieve destination from context")
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+
+		e := request.AuditEventFrom(r.Context())
+
+		event := AuditEvent{}
 		event.Level = "audit"
 		event.Action = e.Verb
 		event.Kind = e.Kind
@@ -56,35 +77,20 @@ func (k *KubernetesAuditSink) ProcessEvents(events ...*audit.Event) bool {
 			event.Status = int(e.ResponseStatus.Code)
 		}
 
-		event.User = e.User.Username
+		event.User = email
+		event.Destination = destination
 
 		bts, err := json.Marshal(&event)
 		if err != nil {
-			logging.S.Errorf("audit process event marshal: %w", err)
-			return false
-		}
-
-		fmt.Println(string(bts))
-	}
-
-	return true
-}
-
-func KubernetesUserFromInfraUserMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		email, ok := r.Context().Value(internal.HttpContextKeyEmail{}).(string)
-		if !ok {
-			logging.L.Debug("Audit middleware unable to retrieve email from context")
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
-
+			logging.S.Errorf("audit print event marshal: %w", err)
 			return
 		}
 
-		next.ServeHTTP(w, r.WithContext(request.WithUser(r.Context(), &user.DefaultInfo{Name: email})))
+		fmt.Println(string(bts))
 	})
 }
 
-func KubernetesAuditMiddleware(next http.Handler, destination string) http.Handler {
+func AuditMiddleware(next http.Handler) http.Handler {
 	p := &audit.Policy{
 		Rules: []audit.PolicyRule{
 			{
@@ -94,9 +100,9 @@ func KubernetesAuditMiddleware(next http.Handler, destination string) http.Handl
 		},
 	}
 
-	withAudit := genericapifilters.WithAudit(next, &KubernetesAuditSink{}, policy.NewChecker(p), genericfilters.BasicLongRunningRequestCheck(sets.NewString("watch"), sets.NewString()))
+	withAudit := genericapifilters.WithAudit(AuditPrintMiddleware(next), &EmptyAuditSink{}, policy.NewChecker(p), genericfilters.BasicLongRunningRequestCheck(sets.NewString("watch"), sets.NewString()))
 
-	return genericapifilters.WithRequestInfo(KubernetesUserFromInfraUserMiddleware(withAudit), &request.RequestInfoFactory{
+	return genericapifilters.WithRequestInfo(withAudit, &request.RequestInfoFactory{
 		APIPrefixes:          sets.NewString("api", "apis"),
 		GrouplessAPIPrefixes: sets.NewString("api"),
 	})

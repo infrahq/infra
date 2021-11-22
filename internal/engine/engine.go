@@ -99,7 +99,7 @@ var JWKCacheRefresh = 5 * time.Minute
 
 type GetJWKFunc func() (*jose.JSONWebKey, error)
 
-func jwtMiddleware(destination string, getjwk GetJWKFunc, next http.Handler) http.Handler {
+func jwtMiddleware(next http.Handler, destination string, destinationName string, getjwk GetJWKFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authorization := r.Header.Get("Authorization")
 		raw := strings.ReplaceAll(authorization, "Bearer ", "")
@@ -162,11 +162,13 @@ func jwtMiddleware(destination string, getjwk GetJWKFunc, next http.Handler) htt
 
 		ctx := r.Context()
 		ctx = context.WithValue(ctx, internal.HttpContextKeyEmail{}, claims.Email)
+		ctx = context.WithValue(ctx, internal.HttpContextKeyDestination{}, destination)
+		ctx = context.WithValue(ctx, internal.HttpContextKeyDestinationName{}, destinationName)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-func proxyHandler(name string, ca []byte, bearerToken string, remote *url.URL) (http.HandlerFunc, error) {
+func proxyHandler(ca []byte, bearerToken string, remote *url.URL) (http.HandlerFunc, error) {
 	caCertPool := x509.NewCertPool()
 	ok := caCertPool.AppendCertsFromPEM(ca)
 
@@ -182,8 +184,6 @@ func proxyHandler(name string, ca []byte, bearerToken string, remote *url.URL) (
 		},
 	}
 
-	audit := audit.KubernetesAuditMiddleware(proxy, name)
-
 	return func(w http.ResponseWriter, r *http.Request) {
 		email, ok := r.Context().Value(internal.HttpContextKeyEmail{}).(string)
 		if !ok {
@@ -195,7 +195,7 @@ func proxyHandler(name string, ca []byte, bearerToken string, remote *url.URL) (
 
 		r.Header.Set("Impersonate-User", fmt.Sprintf("infra:%s", email))
 		r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", bearerToken))
-		audit.ServeHTTP(w, r)
+		proxy.ServeHTTP(w, r)
 	}, nil
 }
 
@@ -425,7 +425,7 @@ func Run(options *Options) error {
 		return fmt.Errorf("reading CA file: %w", err)
 	}
 
-	ph, err := proxyHandler(name, ca, k8s.Config.BearerToken, remote)
+	ph, err := proxyHandler(ca, k8s.Config.BearerToken, remote)
 	if err != nil {
 		return fmt.Errorf("setting proxy handler: %w", err)
 	}
@@ -442,7 +442,7 @@ func Run(options *Options) error {
 		baseURL: u.String(),
 	}
 
-	mux.Handle("/proxy/", http.StripPrefix("/proxy", jwtMiddleware(chksm, cache.getjwk, ph)))
+	mux.Handle("/proxy/", http.StripPrefix("/proxy", jwtMiddleware(audit.AuditMiddleware(ph), chksm, options.Name, cache.getjwk)))
 
 	tlsServer := &http.Server{
 		Addr:      ":443",

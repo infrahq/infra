@@ -31,7 +31,7 @@ func TestJWTMiddlewareNoAuthHeader(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	handler := jwtMiddleware("k8s", getJwkFunc, emptyHandler)
+	handler := jwtMiddleware(emptyHandler, "k8s", "k8s", getJwkFunc)
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
 	if err != nil {
@@ -57,7 +57,7 @@ func TestJWTMiddlewareNoToken(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	handler := jwtMiddleware("k8s", getJwkFunc, emptyHandler)
+	handler := jwtMiddleware(emptyHandler, "k8s", "k8s", getJwkFunc)
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "username:password")
@@ -85,7 +85,7 @@ func TestJWTMiddlewareInvalidJWKs(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	handler := jwtMiddleware("k8s", getJwkFunc, emptyHandler)
+	handler := jwtMiddleware(emptyHandler, "k8s", "k8s", getJwkFunc)
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZW1haWwiOiJ0ZXN0QHRlc3QuY29tIiwiaWF0IjoxNTE2MjM5MDIyfQ.j7o5o8GBkybaYXdFJIi8O6mPF50E-gJWZ3reLfMQD68")
@@ -165,7 +165,7 @@ func TestJWTMiddlewareInvalidJWT(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	handler := jwtMiddleware("k8s", getJwkFunc, emptyHandler)
+	handler := jwtMiddleware(emptyHandler, "k8s", "k8s", getJwkFunc)
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "Bearer "+invalidjwt)
@@ -203,7 +203,7 @@ func TestJWTMiddlewareExpiredJWT(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	handler := jwtMiddleware("k8s", getJwkFunc, emptyHandler)
+	handler := jwtMiddleware(emptyHandler, "k8s", "k8s", getJwkFunc)
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "Bearer "+expiredJWT)
@@ -248,7 +248,7 @@ func TestJWTMiddlewareWrongHeader(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	handler := jwtMiddleware("k8s", getJwkFunc, emptyHandler)
+	handler := jwtMiddleware(emptyHandler, "k8s", "k8s", getJwkFunc)
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "Bearer "+expiredJWT)
@@ -286,7 +286,7 @@ func TestJWTMiddlewareWrongDestination(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	handler := jwtMiddleware("anotherDestination", getJwkFunc, emptyHandler)
+	handler := jwtMiddleware(emptyHandler, "anotherdestination", "anotherDestination", getJwkFunc)
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "Bearer "+validJWT)
@@ -330,7 +330,7 @@ func TestJWTMiddlewareValidJWTSetsEmail(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	handler := jwtMiddleware("k8s", getJwkFunc, emptyHandler)
+	handler := jwtMiddleware(emptyHandler, "k8s", "k8s", getJwkFunc)
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "Bearer "+validJWT)
@@ -374,7 +374,7 @@ func TestProxyHandler(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	handler := jwtMiddleware("k8s", getJwkFunc, emptyHandler)
+	handler := jwtMiddleware(emptyHandler, "k8s", "k8s", getJwkFunc)
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "Bearer "+validJWT)
