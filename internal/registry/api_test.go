@@ -616,6 +616,84 @@ func TestCreateDestination(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, w.Code)
 }
 
+func TestInsertDestinationUpdatesField(t *testing.T) {
+	db, err := NewSQLiteDB("file::memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	a := &API{
+		registry: &Registry{
+			db: db,
+			secrets: map[string]secrets.SecretStorage{
+				"kubernetes": NewMockSecretReader(),
+			},
+		},
+		db: db,
+	}
+
+	var apiKey APIKey
+
+	err = db.FirstOrCreate(&apiKey, &APIKey{Name: "default", Permissions: string(api.DESTINATIONS_CREATE)}).Error
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nodeID := "node1"
+
+	existing := &Destination{
+		NodeID:             nodeID,
+		Name:               "test-destination",
+		Kind:               DestinationKindKubernetes,
+		KubernetesCa:       "--BEGIN CERTIFICATE--",
+		KubernetesEndpoint: "example.com",
+	}
+
+	err = db.FirstOrCreate(&existing).Error
+	require.NoError(t, err)
+
+	newName := "updated-test-destination"
+	newCA := "--BEGIN NEW CERTIFICATE--"
+	newEndpoint := "new.example.com"
+
+	req := api.DestinationCreateRequest{
+		NodeID: nodeID,
+		Name:   "updated-test-destination",
+		Kind:   api.KUBERNETES,
+		Kubernetes: &api.DestinationKubernetes{
+			Ca:       newCA,
+			Endpoint: newEndpoint,
+		},
+	}
+
+	bts, err := req.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r := httptest.NewRequest(http.MethodPost, "/v1/destinations", bytes.NewReader(bts))
+	r.Header.Add("Authorization", "Bearer "+apiKey.Key)
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.bearerAuthMiddleware(api.DESTINATIONS_CREATE)(c)
+	a.CreateDestination(c)
+	assert.Equal(t, http.StatusCreated, w.Code)
+
+	var body api.Destination
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, nodeID, body.NodeID)
+	// check that the updated fields have changed
+	assert.Equal(t, newName, body.Name)
+	assert.Equal(t, newCA, body.Kubernetes.Ca)
+	assert.Equal(t, newEndpoint, body.Kubernetes.Endpoint)
+}
+
 func TestLoginHandlerEmptyRequest(t *testing.T) {
 	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {

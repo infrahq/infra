@@ -365,6 +365,8 @@ func Run(options *Options) error {
 					logging.L.Error(err.Error())
 					return
 				}
+
+				return
 			} else {
 				logging.S.Errorf("cache get: %s", err.Error())
 				return
