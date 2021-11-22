@@ -403,18 +403,22 @@ func (a *API) CreateDestination(c *gin.Context) {
 		return
 	}
 
-	destination := Destination{
-		Name:               body.Name,
-		Kind:               string(body.Kind),
-		KubernetesCa:       body.Kubernetes.Ca,
-		KubernetesEndpoint: body.Kubernetes.Endpoint,
-	}
-
 	automaticLabels := []string{
 		string(body.Kind),
 	}
 
+	var destination Destination
+
 	err := a.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.FirstOrCreate(&destination, &Destination{NodeID: body.NodeID}).Error; err != nil {
+			return err
+		}
+
+		destination.Name = body.Name
+		destination.Kind = string(body.Kind)
+		destination.KubernetesCa = body.Kubernetes.Ca
+		destination.KubernetesEndpoint = body.Kubernetes.Endpoint
+
 		for _, l := range append(body.Labels, automaticLabels...) {
 			var label Label
 			if err := tx.FirstOrCreate(&label, &Label{Value: l}).Error; err != nil {
@@ -422,10 +426,6 @@ func (a *API) CreateDestination(c *gin.Context) {
 			}
 
 			destination.Labels = append(destination.Labels, label)
-		}
-
-		if err := tx.FirstOrCreate(&destination, &Destination{NodeID: body.NodeID}).Error; err != nil {
-			return err
 		}
 
 		if err := tx.Save(&destination).Error; err != nil {
@@ -441,7 +441,7 @@ func (a *API) CreateDestination(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, destination)
+	c.JSON(http.StatusCreated, destination.marshal())
 }
 
 func (a *API) ListAPIKeys(c *gin.Context) {

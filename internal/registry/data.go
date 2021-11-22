@@ -191,11 +191,7 @@ func (d *Destination) BeforeCreate(tx *gorm.DB) (err error) {
 	return nil
 }
 
-func (d *Destination) AfterCreate(tx *gorm.DB) error {
-	if err := tx.Model(&d).Association("Labels").Replace(d.Labels); err != nil {
-		return err
-	}
-
+func (d *Destination) AfterSave(tx *gorm.DB) error {
 	if _, err := ApplyGroupMappings(tx, initialConfig.Groups); err != nil {
 		return fmt.Errorf("group apply after destination create: %w", err)
 	}
