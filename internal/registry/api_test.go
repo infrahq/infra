@@ -53,7 +53,7 @@ func addUser(db *gorm.DB, sessionDuration time.Duration) (tokenId string, tokenS
 			return err
 		}
 
-		secret, err = NewToken(tx, user.Id, sessionDuration, &token)
+		secret, err = NewToken(tx, user.Id, standardUserPermissions, sessionDuration, &token)
 		if err != nil {
 			return err
 		}
@@ -232,6 +232,38 @@ func TestBearerTokenMiddlewareExpiredToken(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, w.Code)
 }
 
+func TestBearerTokenMiddlewareValidTokenWrongPermissions(t *testing.T) {
+	db, err := NewSQLiteDB("file::memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	a := &API{
+		registry: &Registry{
+			db: db,
+			secrets: map[string]secrets.SecretStorage{
+				"kubernetes": NewMockSecretReader(),
+			},
+		},
+		db: db,
+	}
+
+	id, secret, err := addUser(db, time.Hour*24)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	r.Header.Add("Authorization", "Bearer "+id+secret)
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	a.bearerAuthMiddleware(api.API_KEYS_CREATE)(c)
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
 func TestBearerTokenMiddlewareValidToken(t *testing.T) {
 	db, err := NewSQLiteDB("file::memory:")
 	if err != nil {
@@ -261,7 +293,7 @@ func TestBearerTokenMiddlewareValidToken(t *testing.T) {
 	c.Request = r
 
 	a.bearerAuthMiddleware(api.USERS_READ)(c)
-	assert.Equal(t, w.Code, http.StatusOK)
+	assert.Equal(t, http.StatusOK, w.Code)
 }
 
 func TestBearerTokenMiddlewareInvalidAPIKey(t *testing.T) {
@@ -2169,4 +2201,50 @@ func TestCredentials(t *testing.T) {
 	require.NoError(t, err)
 	require.Greater(t, len(jwt), 1)
 	require.Greater(t, expiry.Unix(), time.Now().Unix())
+}
+
+func TestCheckPermissionForEmptyPermissions(t *testing.T) {
+	assert.False(t, checkPermission(api.API_KEYS_CREATE, ""))
+	assert.False(t, checkPermission(api.API_KEYS_CREATE, " "))
+}
+
+func TestCheckPermissionForWrongPermissions(t *testing.T) {
+	assert.False(t, checkPermission(api.API_KEYS_CREATE, string(api.API_KEYS_DELETE)))
+
+	multiPermissions := strings.Join([]string{
+		string(api.USERS_READ),
+		string(api.AUTH_DELETE),
+		string(api.TOKENS_CREATE),
+	}, " ")
+	assert.False(t, checkPermission(api.API_KEYS_CREATE, multiPermissions))
+}
+
+func TestCheckPermissionForCorrectPermissions(t *testing.T) {
+	assert.True(t, checkPermission(api.API_KEYS_CREATE, string(api.API_KEYS_CREATE)))
+
+	multiPermissions := strings.Join([]string{
+		string(api.USERS_READ),
+		string(api.API_KEYS_CREATE),
+		string(api.TOKENS_CREATE),
+	}, " ")
+	assert.True(t, checkPermission(api.API_KEYS_CREATE, multiPermissions))
+}
+
+func TestCheckPermissionForRootPermissionsIsValid(t *testing.T) {
+	assert.True(t, checkPermission(api.API_KEYS_CREATE, string(api.STAR)))
+}
+
+func TestIssueSessionTokenCreatesTokenForSpecifiedUser(t *testing.T) {
+	userID := "some-user-id"
+
+	issued, err := issueSessionToken(db, userID, time.Minute)
+	require.NoError(t, err)
+
+	id := issued[0:IdLen]
+
+	var token Token
+	err = db.Where(&Token{Id: id}).Find(&token).Error
+	require.NoError(t, err)
+
+	assert.Equal(t, userID, token.UserId)
 }

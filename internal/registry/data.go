@@ -120,11 +120,13 @@ var (
 )
 
 type Token struct {
-	Id      string `gorm:"primaryKey"`
-	Created int64  `gorm:"autoCreateTime"`
-	Updated int64  `gorm:"autoUpdateTime"`
-	Expires int64
-	Secret  []byte
+	Id         string `gorm:"primaryKey"`
+	Created    int64  `gorm:"autoCreateTime"`
+	Updated    int64  `gorm:"autoUpdateTime"`
+	Expires    int64
+	SecretHash []byte // if the hash of the presented token secret matches this value it is valid
+
+	Permissions string // space separated list of permissions/scopes that a token can perform
 
 	UserId string
 	User   User `gorm:"foreignKey:UserId;references:Id;"`
@@ -556,14 +558,15 @@ func (t *Token) CheckSecret(secret string) (err error) {
 	h := sha256.New()
 	h.Write([]byte(secret))
 
-	if subtle.ConstantTimeCompare(t.Secret, h.Sum(nil)) != 1 {
+	if subtle.ConstantTimeCompare(t.SecretHash, h.Sum(nil)) != 1 {
 		return errors.New("could not verify token secret")
 	}
 
 	return nil
 }
 
-func NewToken(db *gorm.DB, userId string, sessionDuration time.Duration, token *Token) (secret string, err error) {
+// NewToken creates a token for a user and returns the secret value they present for authentication
+func NewToken(db *gorm.DB, userId string, permissions string, sessionDuration time.Duration, token *Token) (secret string, err error) {
 	secret, err = generate.RandString(TokenSecretLen)
 	if err != nil {
 		return "", err
@@ -573,8 +576,9 @@ func NewToken(db *gorm.DB, userId string, sessionDuration time.Duration, token *
 	h.Write([]byte(secret))
 
 	token.UserId = userId
-	token.Secret = h.Sum(nil)
+	token.SecretHash = h.Sum(nil)
 	token.Expires = time.Now().Add(sessionDuration).Unix()
+	token.Permissions = permissions
 
 	err = db.Create(token).Error
 	if err != nil {
