@@ -1,7 +1,6 @@
 package registry
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -112,6 +111,13 @@ func (a *API) bearerAuthMiddleware(required api.InfraAPIPermission) gin.HandlerF
 				return
 			}
 
+			hasPermission := checkPermission(required, token.Permissions)
+			if !hasPermission {
+				// at this point we know their key is valid, so we can present a more detailed error
+				sendAPIError(c, http.StatusForbidden, string(required)+" permission is required")
+				return
+			}
+
 			c.Set(tokenContextKey, token)
 			c.Next()
 
@@ -136,9 +142,6 @@ func (a *API) bearerAuthMiddleware(required api.InfraAPIPermission) gin.HandlerF
 				sendAPIError(c, http.StatusForbidden, string(required)+" permission is required")
 				return
 			}
-
-			c.Set(apiKeyContextKey, &apiKey)
-			c.Next()
 
 			return
 		}
@@ -179,17 +182,6 @@ func extractToken(context *gin.Context) (*Token, error) {
 	}
 
 	return token, nil
-}
-
-var apiKeyContextKey string = "apiKeyContextKey"
-
-func extractAPIKey(context context.Context) (*APIKey, error) {
-	apiKey, ok := context.Value(apiKeyContextKey).(*APIKey)
-	if !ok {
-		return nil, errors.New("apikey not found in context")
-	}
-
-	return apiKey, nil
 }
 
 func (a *API) ListUsers(c *gin.Context) {
@@ -394,14 +386,6 @@ func (a *API) GetDestination(c *gin.Context) {
 }
 
 func (a *API) CreateDestination(c *gin.Context) {
-	_, err := extractAPIKey(c)
-	if err != nil {
-		logging.L.Error(err.Error())
-		sendAPIError(c, http.StatusUnauthorized, "unauthorized")
-
-		return
-	}
-
 	body := &api.DestinationCreateRequest{}
 
 	if err := c.BindJSON(body); err != nil {
@@ -430,7 +414,7 @@ func (a *API) CreateDestination(c *gin.Context) {
 		string(body.Kind),
 	}
 
-	err = a.db.Transaction(func(tx *gorm.DB) error {
+	err := a.db.Transaction(func(tx *gorm.DB) error {
 		for _, l := range append(body.Labels, automaticLabels...) {
 			var label Label
 			if err := tx.FirstOrCreate(&label, &Label{Value: l}).Error; err != nil {
@@ -461,19 +445,11 @@ func (a *API) CreateDestination(c *gin.Context) {
 }
 
 func (a *API) ListAPIKeys(c *gin.Context) {
-	_, err := extractAPIKey(c)
-	if err != nil {
-		logging.L.Error(err.Error())
-		sendAPIError(c, http.StatusUnauthorized, "unauthorized")
-
-		return
-	}
-
 	keyName := c.Request.URL.Query().Get("name")
 
 	var keys []APIKey
 
-	err = a.db.Find(&keys, &APIKey{Name: keyName}).Error
+	err := a.db.Find(&keys, &APIKey{Name: keyName}).Error
 	if err != nil {
 		logging.L.Error(err.Error())
 		sendAPIError(c, http.StatusInternalServerError, "could not list keys")
@@ -497,14 +473,6 @@ func (a *API) ListAPIKeys(c *gin.Context) {
 }
 
 func (a *API) DeleteAPIKey(c *gin.Context) {
-	_, err := extractAPIKey(c)
-	if err != nil {
-		logging.L.Error(err.Error())
-		sendAPIError(c, http.StatusUnauthorized, "unauthorized")
-
-		return
-	}
-
 	id := c.Param("id")
 	if id == "" {
 		sendAPIError(c, http.StatusBadRequest, "API key ID must be specified")
@@ -522,14 +490,6 @@ func (a *API) DeleteAPIKey(c *gin.Context) {
 }
 
 func (a *API) CreateAPIKey(c *gin.Context) {
-	_, err := extractAPIKey(c)
-	if err != nil {
-		logging.L.Error(err.Error())
-		sendAPIError(c, http.StatusUnauthorized, "unauthorized")
-
-		return
-	}
-
 	body := &api.InfraAPIKeyCreateRequest{}
 	if err := c.BindJSON(body); err != nil {
 		sendAPIError(c, http.StatusBadRequest, err.Error())
@@ -549,7 +509,7 @@ func (a *API) CreateAPIKey(c *gin.Context) {
 
 	var apiKey APIKey
 
-	err = a.db.Transaction(func(tx *gorm.DB) error {
+	err := a.db.Transaction(func(tx *gorm.DB) error {
 		tx.First(&apiKey, &APIKey{Name: body.Name})
 		if apiKey.Id != "" {
 			return ErrExistingKey
@@ -749,8 +709,6 @@ func (a *API) Login(c *gin.Context) {
 
 	var user User
 
-	var token Token
-
 	switch {
 	case body.Okta != nil:
 		var provider Provider
@@ -794,7 +752,7 @@ func (a *API) Login(c *gin.Context) {
 		return
 	}
 
-	secret, err := NewToken(a.db, user.Id, a.registry.options.SessionDuration, &token)
+	userToken, err := issueSessionToken(a.db, user.Id, a.registry.options.SessionDuration)
 	if err != nil {
 		logging.L.Error(err.Error())
 		sendAPIError(c, http.StatusInternalServerError, "could not create token")
@@ -802,15 +760,13 @@ func (a *API) Login(c *gin.Context) {
 		return
 	}
 
-	tokenString := token.Id + secret
-
-	setAuthCookie(c, tokenString, a.registry.options.SessionDuration)
+	setAuthCookie(c, userToken, a.registry.options.SessionDuration)
 
 	if err := a.t.Enqueue(analytics.Track{Event: "infra.login", UserId: user.Id}); err != nil {
 		logging.S.Debug(err)
 	}
 
-	c.JSON(http.StatusOK, api.LoginResponse{Name: user.Email, Token: tokenString})
+	c.JSON(http.StatusOK, api.LoginResponse{Name: user.Email, Token: userToken})
 }
 
 func (a *API) Logout(c *gin.Context) {
@@ -997,4 +953,25 @@ func (g *Group) marshal() api.Group {
 	}
 
 	return res
+}
+
+// standard user permissions that do not expose admin functions
+var standardUserPermissions = strings.Join([]string{
+	string(api.USERS_READ),    // to read their own user information
+	string(api.AUTH_DELETE),   // logout
+	string(api.TOKENS_CREATE), // used to access destinations
+}, " ")
+
+// issueSessionToken creates the token string that a user presents to infra for authentication
+func issueSessionToken(db *gorm.DB, userID string, sessionDuration time.Duration) (string, error) {
+	var token Token
+
+	secret, err := NewToken(db, userID, standardUserPermissions, sessionDuration, &token)
+	if err != nil {
+		return "", fmt.Errorf("issue user token: %w", err)
+	}
+
+	tokenString := token.Id + secret
+
+	return tokenString, nil
 }
