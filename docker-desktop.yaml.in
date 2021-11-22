@@ -4,9 +4,6 @@ image:
   pullPolicy: Never
 
 config:
-  secrets:
-    - kind: kubernetes
-      namespace: infrahq
   providers:
     - kind: okta
       domain: $OKTA_DOMAIN
