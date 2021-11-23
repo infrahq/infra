@@ -43,13 +43,13 @@ export interface Group {
      */
     name: string;
     /**
-     * 
+     * created time in seconds since 1970-01-01
      * @type {number}
      * @memberof Group
      */
     created: number;
     /**
-     * 
+     * updated time in seconds since 1970-01-01
      * @type {number}
      * @memberof Group
      */

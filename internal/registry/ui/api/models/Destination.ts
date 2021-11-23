@@ -14,6 +14,10 @@
 
 import { exists, mapValues } from '../runtime';
 import {
+    DestinationKind,
+    DestinationKindFromJSON,
+    DestinationKindFromJSONTyped,
+    DestinationKindToJSON,
     DestinationKubernetes,
     DestinationKubernetesFromJSON,
     DestinationKubernetesFromJSONTyped,
@@ -46,18 +50,18 @@ export interface Destination {
     name: string;
     /**
      * 
-     * @type {string}
+     * @type {DestinationKind}
      * @memberof Destination
      */
-    kind: string;
+    kind: DestinationKind;
     /**
-     * 
+     * created time in seconds since 1970-01-01
      * @type {number}
      * @memberof Destination
      */
     created: number;
     /**
-     * 
+     * updated time in seconds since 1970-01-01
      * @type {number}
      * @memberof Destination
      */
@@ -89,7 +93,7 @@ export function DestinationFromJSONTyped(json: any, ignoreDiscriminator: boolean
         'id': json['id'],
         'nodeID': json['nodeID'],
         'name': json['name'],
-        'kind': json['kind'],
+        'kind': DestinationKindFromJSON(json['kind']),
         'created': json['created'],
         'updated': json['updated'],
         'labels': json['labels'],
@@ -109,7 +113,7 @@ export function DestinationToJSON(value?: Destination | null): any {
         'id': value.id,
         'nodeID': value.nodeID,
         'name': value.name,
-        'kind': value.kind,
+        'kind': DestinationKindToJSON(value.kind),
         'created': value.created,
         'updated': value.updated,
         'labels': value.labels,

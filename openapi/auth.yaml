@@ -11,7 +11,7 @@ LoginRequestOkta:
   properties:
     domain:
       type: string
-      x-go-custom-tag: validate:"required"
+      x-go-custom-tag: validate:"fqdn,required"
     code:
       type: string
       x-go-custom-tag: validate:"required"

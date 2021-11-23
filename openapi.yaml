@@ -46,6 +46,7 @@ paths:
           name: email
           schema:
             type: string
+            format: email
           description: Filter results by user email
       responses:
         '200':
@@ -76,6 +77,7 @@ paths:
           required: true
           schema:
             type: string
+            format: uuid
           description: User ID
       responses:
         '200':
@@ -138,6 +140,7 @@ paths:
           required: true
           schema:
             type: string
+            format: uuid
           description: Group ID
       responses:
         '200':
@@ -162,7 +165,7 @@ paths:
         - in: query
           name: kind
           schema:
-            type: string
+            $ref: 'openapi/provider.yaml#/ProviderKind'
           description: Filter providers by kind
       responses:
         '200':
@@ -191,6 +194,7 @@ paths:
           required: true
           schema:
             type: string
+            format: uuid
           description: Provider ID
       responses:
         '200':
@@ -222,7 +226,7 @@ paths:
         - in: query
           name: kind
           schema:
-            type: string
+            $ref: 'openapi/destination.yaml#/DestinationKind'
           description: Filter destinations by kind
       responses:
         '200':
@@ -280,6 +284,7 @@ paths:
           required: true
           schema:
             type: string
+            format: uuid
           description: Destination ID
       responses:
         '200':
@@ -364,6 +369,7 @@ paths:
           required: true
           schema:
             type: string
+            format: uuid
           description: API key ID
       responses:
         '204':
@@ -419,7 +425,7 @@ paths:
         - in: query
           name: kind
           schema:
-            type: string
+            $ref: 'openapi/role.yaml#/RoleKind'
           description: Filter results by kind
         - in: query
           name: destination
@@ -455,6 +461,7 @@ paths:
           required: true
           schema:
             type: string
+            format: uuid
           description: Role ID
       responses:
         '200':

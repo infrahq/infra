@@ -18,6 +18,9 @@ import {
     Provider,
     ProviderFromJSON,
     ProviderToJSON,
+    ProviderKind,
+    ProviderKindFromJSON,
+    ProviderKindToJSON,
 } from '../models';
 
 export interface GetProviderRequest {
@@ -25,7 +28,7 @@ export interface GetProviderRequest {
 }
 
 export interface ListProvidersRequest {
-    kind?: string;
+    kind?: ProviderKind;
 }
 
 /**

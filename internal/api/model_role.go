@@ -16,9 +16,11 @@ import (
 
 // Role struct for Role
 type Role struct {
-	Id          string      `json:"id"`
-	Name        string      `json:"name"`
-	Created     int64       `json:"created"`
+	Id   string `json:"id"`
+	Name string `json:"name"`
+	// created time in seconds since 1970-01-01
+	Created int64 `json:"created"`
+	// updated time in seconds since 1970-01-01
 	Updated     int64       `json:"updated"`
 	Kind        RoleKind    `json:"kind"`
 	Namespace   string      `json:"namespace"`
@@ -50,6 +52,8 @@ func NewRole(id string, name string, created int64, updated int64, kind RoleKind
 // but it doesn't guarantee that properties required by API are set
 func NewRoleWithDefaults() *Role {
 	this := Role{}
+	var kind RoleKind = ROLE
+	this.Kind = kind
 	return &this
 }
 

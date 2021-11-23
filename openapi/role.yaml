@@ -13,14 +13,17 @@ Role:
   properties:
     id:
       type: string
+      format: uuid
     name:
       type: string
     created:
       type: integer
       format: int64
+      description: created time in seconds since 1970-01-01
     updated:
       type: integer
       format: int64
+      description: updated time in seconds since 1970-01-01
     kind:
       $ref: "role.yaml#/RoleKind"
     namespace:
@@ -37,6 +40,7 @@ Role:
       $ref: 'destination.yaml#/Destination'
 RoleKind:
   type: string
+  default: role
   enum:
     - role
     - cluster-role

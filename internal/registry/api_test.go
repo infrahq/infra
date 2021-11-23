@@ -16,7 +16,6 @@ import (
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/registry/mocks"
 	"github.com/infrahq/infra/secrets"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
@@ -89,7 +88,7 @@ func TestBearerTokenMiddlewareDefault(t *testing.T) {
 	c.Request = r
 
 	a.bearerAuthMiddleware(api.USERS_READ)(c)
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	require.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 func TestBearerTokenMiddlewareEmptyHeader(t *testing.T) {
@@ -116,7 +115,7 @@ func TestBearerTokenMiddlewareEmptyHeader(t *testing.T) {
 	c.Request = r
 
 	a.bearerAuthMiddleware(api.USERS_READ)(c)
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	require.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 func TestBearerTokenMiddlewareEmptyHeaderBearer(t *testing.T) {
@@ -143,7 +142,7 @@ func TestBearerTokenMiddlewareEmptyHeaderBearer(t *testing.T) {
 	c.Request = r
 
 	a.bearerAuthMiddleware(api.USERS_READ)(c)
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	require.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 func TestBearerTokenMiddlewareInvalidLength(t *testing.T) {
@@ -170,7 +169,7 @@ func TestBearerTokenMiddlewareInvalidLength(t *testing.T) {
 	c.Request = r
 
 	a.bearerAuthMiddleware(api.USERS_READ)(c)
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	require.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 func TestBearerTokenMiddlewareInvalidToken(t *testing.T) {
@@ -197,7 +196,7 @@ func TestBearerTokenMiddlewareInvalidToken(t *testing.T) {
 	c.Request = r
 
 	a.bearerAuthMiddleware(api.USERS_READ)(c)
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	require.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 func TestBearerTokenMiddlewareExpiredToken(t *testing.T) {
@@ -229,7 +228,7 @@ func TestBearerTokenMiddlewareExpiredToken(t *testing.T) {
 	c.Request = r
 
 	a.bearerAuthMiddleware(api.USERS_READ)(c)
-	assert.Equal(t, http.StatusForbidden, w.Code)
+	require.Equal(t, http.StatusForbidden, w.Code)
 }
 
 func TestBearerTokenMiddlewareValidTokenWrongPermissions(t *testing.T) {
@@ -261,7 +260,7 @@ func TestBearerTokenMiddlewareValidTokenWrongPermissions(t *testing.T) {
 	c.Request = r
 
 	a.bearerAuthMiddleware(api.API_KEYS_CREATE)(c)
-	assert.Equal(t, http.StatusForbidden, w.Code)
+	require.Equal(t, http.StatusForbidden, w.Code)
 }
 
 func TestBearerTokenMiddlewareValidToken(t *testing.T) {
@@ -293,7 +292,7 @@ func TestBearerTokenMiddlewareValidToken(t *testing.T) {
 	c.Request = r
 
 	a.bearerAuthMiddleware(api.USERS_READ)(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
 }
 
 func TestBearerTokenMiddlewareInvalidAPIKey(t *testing.T) {
@@ -322,7 +321,7 @@ func TestBearerTokenMiddlewareInvalidAPIKey(t *testing.T) {
 	c.Request = r
 
 	a.bearerAuthMiddleware(api.USERS_READ)(c)
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	require.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 func TestBearerTokenMiddlewareValidAPIKey(t *testing.T) {
@@ -356,7 +355,7 @@ func TestBearerTokenMiddlewareValidAPIKey(t *testing.T) {
 	c.Request = r
 
 	a.bearerAuthMiddleware(api.USERS_READ)(c)
-	assert.Equal(t, w.Code, http.StatusOK)
+	require.Equal(t, w.Code, http.StatusOK)
 }
 
 func TestBearerTokenMiddlewareValidAPIKeyRootPermissions(t *testing.T) {
@@ -390,7 +389,7 @@ func TestBearerTokenMiddlewareValidAPIKeyRootPermissions(t *testing.T) {
 	c.Request = r
 
 	a.bearerAuthMiddleware(api.USERS_READ)(c)
-	assert.Equal(t, w.Code, http.StatusOK)
+	require.Equal(t, w.Code, http.StatusOK)
 }
 
 func TestBearerTokenMiddlewareValidAPIKeyWrongPermission(t *testing.T) {
@@ -430,8 +429,8 @@ func TestBearerTokenMiddlewareValidAPIKeyWrongPermission(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, w.Code, http.StatusForbidden)
-	assert.Equal(t, string(api.DESTINATIONS_CREATE)+" permission is required", body.Message)
+	require.Equal(t, w.Code, http.StatusForbidden)
+	require.Equal(t, string(api.DESTINATIONS_CREATE)+" permission is required", body.Message)
 }
 
 func TestCreateDestinationNoKind(t *testing.T) {
@@ -478,7 +477,7 @@ func TestCreateDestinationNoKind(t *testing.T) {
 
 	a.bearerAuthMiddleware(api.DESTINATIONS_CREATE)(c)
 	a.CreateDestination(c)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
+	require.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 func TestCreateDestinationBadKind(t *testing.T) {
@@ -526,7 +525,7 @@ func TestCreateDestinationBadKind(t *testing.T) {
 
 	a.bearerAuthMiddleware(api.DESTINATIONS_CREATE)(c)
 	a.CreateDestination(c)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
+	require.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 func TestCreateDestinationNoAPIKey(t *testing.T) {
@@ -565,7 +564,7 @@ func TestCreateDestinationNoAPIKey(t *testing.T) {
 
 	a.bearerAuthMiddleware(api.USERS_READ)(c)
 	a.Login(c)
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	require.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 func TestCreateDestination(t *testing.T) {
@@ -613,7 +612,7 @@ func TestCreateDestination(t *testing.T) {
 
 	a.bearerAuthMiddleware(api.DESTINATIONS_CREATE)(c)
 	a.CreateDestination(c)
-	assert.Equal(t, http.StatusCreated, w.Code)
+	require.Equal(t, http.StatusCreated, w.Code)
 }
 
 func TestInsertDestinationUpdatesField(t *testing.T) {
@@ -680,18 +679,18 @@ func TestInsertDestinationUpdatesField(t *testing.T) {
 
 	a.bearerAuthMiddleware(api.DESTINATIONS_CREATE)(c)
 	a.CreateDestination(c)
-	assert.Equal(t, http.StatusCreated, w.Code)
+	require.Equal(t, http.StatusCreated, w.Code)
 
 	var body api.Destination
 	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, nodeID, body.NodeID)
+	require.Equal(t, nodeID, body.NodeID)
 	// check that the updated fields have changed
-	assert.Equal(t, newName, body.Name)
-	assert.Equal(t, newCA, body.Kubernetes.Ca)
-	assert.Equal(t, newEndpoint, body.Kubernetes.Endpoint)
+	require.Equal(t, newName, body.Name)
+	require.Equal(t, newCA, body.Kubernetes.Ca)
+	require.Equal(t, newEndpoint, body.Kubernetes.Endpoint)
 }
 
 func TestLoginHandlerEmptyRequest(t *testing.T) {
@@ -716,7 +715,7 @@ func TestLoginHandlerEmptyRequest(t *testing.T) {
 	c.Request = r
 
 	a.Login(c)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
+	require.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 func TestLoginNilOktaRequest(t *testing.T) {
@@ -750,7 +749,7 @@ func TestLoginNilOktaRequest(t *testing.T) {
 	c.Request = r
 
 	a.Login(c)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
+	require.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 func TestLoginEmptyOktaRequest(t *testing.T) {
@@ -784,7 +783,7 @@ func TestLoginEmptyOktaRequest(t *testing.T) {
 	c.Request = r
 
 	a.Login(c)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
+	require.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 func TestLoginOktaMissingDomainRequest(t *testing.T) {
@@ -820,7 +819,7 @@ func TestLoginOktaMissingDomainRequest(t *testing.T) {
 	c.Request = r
 
 	a.Login(c)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
+	require.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 func TestLoginMethodOktaMissingCodeRequest(t *testing.T) {
@@ -856,7 +855,7 @@ func TestLoginMethodOktaMissingCodeRequest(t *testing.T) {
 	c.Request = r
 
 	a.Login(c)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
+	require.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 func TestLoginMethodOkta(t *testing.T) {
@@ -925,9 +924,9 @@ func TestLoginMethodOkta(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "test@test.com", body.Name)
-	assert.NotEmpty(t, body.Token)
+	require.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, "test@test.com", body.Name)
+	require.NotEmpty(t, body.Token)
 }
 
 func TestVersion(t *testing.T) {
@@ -952,14 +951,14 @@ func TestVersion(t *testing.T) {
 	c.Request = r
 
 	a.Version(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
 
 	var body api.Version
 	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, internal.Version, body.Version)
+	require.Equal(t, internal.Version, body.Version)
 }
 
 func TestListRoles(t *testing.T) {
@@ -980,14 +979,13 @@ func TestListRoles(t *testing.T) {
 	c.Request = r
 
 	a.ListRoles(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
 
 	var roles []api.Role
-	if err := json.NewDecoder(w.Body).Decode(&roles); err != nil {
-		t.Fatal(err)
-	}
+	err := json.NewDecoder(w.Body).Decode(&roles)
+	require.NoError(t, err)
 
-	assert.Equal(t, 8, len(roles))
+	require.Equal(t, 8, len(roles))
 
 	returnedUserRoles := make(map[string][]api.User)
 	for _, r := range roles {
@@ -995,18 +993,18 @@ func TestListRoles(t *testing.T) {
 	}
 
 	// roles from direct user assignment
-	assert.Equal(t, 1, len(returnedUserRoles["admin"]))
-	assert.True(t, containsUser(returnedUserRoles["admin"], adminUser.Email))
+	require.Equal(t, 1, len(returnedUserRoles["admin"]))
+	require.True(t, containsUser(returnedUserRoles["admin"], adminUser.Email))
 
-	assert.Equal(t, 1, len(returnedUserRoles["audit"]))
-	assert.True(t, containsUser(returnedUserRoles["audit"], adminUser.Email))
+	require.Equal(t, 1, len(returnedUserRoles["audit"]))
+	require.True(t, containsUser(returnedUserRoles["audit"], adminUser.Email))
 
-	assert.Equal(t, 1, len(returnedUserRoles["pod-create"]))
-	assert.True(t, containsUser(returnedUserRoles["pod-create"], adminUser.Email))
+	require.Equal(t, 1, len(returnedUserRoles["pod-create"]))
+	require.True(t, containsUser(returnedUserRoles["pod-create"], adminUser.Email))
 
-	assert.Equal(t, 0, len(returnedUserRoles["writer"]))
+	require.Equal(t, 0, len(returnedUserRoles["writer"]))
 
-	assert.Equal(t, 0, len(returnedUserRoles["view"]))
+	require.Equal(t, 0, len(returnedUserRoles["view"]))
 
 	returnedGroupRoles := make(map[string][]api.Group)
 	for _, r := range roles {
@@ -1014,16 +1012,16 @@ func TestListRoles(t *testing.T) {
 	}
 
 	// roles from groups
-	assert.Equal(t, 0, len(returnedGroupRoles["admin"]))
+	require.Equal(t, 0, len(returnedGroupRoles["admin"]))
 
-	assert.Equal(t, 1, len(returnedGroupRoles["audit"]))
-	assert.True(t, containsGroup(returnedGroupRoles["audit"], iosDevGroup.Name))
+	require.Equal(t, 1, len(returnedGroupRoles["audit"]))
+	require.True(t, containsGroup(returnedGroupRoles["audit"], iosDevGroup.Name))
 
-	assert.Equal(t, 1, len(returnedGroupRoles["pod-create"]))
-	assert.True(t, containsGroup(returnedGroupRoles["pod-create"], iosDevGroup.Name))
+	require.Equal(t, 1, len(returnedGroupRoles["pod-create"]))
+	require.True(t, containsGroup(returnedGroupRoles["pod-create"], iosDevGroup.Name))
 
-	assert.Equal(t, 1, len(returnedGroupRoles["writer"]))
-	assert.True(t, containsGroup(returnedGroupRoles["writer"], macAdminGroup.Name))
+	require.Equal(t, 1, len(returnedGroupRoles["writer"]))
+	require.True(t, containsGroup(returnedGroupRoles["writer"], macAdminGroup.Name))
 }
 
 func TestListRolesByName(t *testing.T) {
@@ -1044,14 +1042,14 @@ func TestListRolesByName(t *testing.T) {
 	c.Request = r
 
 	a.ListRoles(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
 
 	var roles []api.Role
 	if err := json.NewDecoder(w.Body).Decode(&roles); err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, 3, len(roles))
+	require.Equal(t, 3, len(roles))
 
 	returnedUserRoles := make(map[string][]api.User)
 	for _, r := range roles {
@@ -1059,8 +1057,8 @@ func TestListRolesByName(t *testing.T) {
 	}
 
 	// roles from direct user assignment
-	assert.Equal(t, 1, len(returnedUserRoles["admin"]))
-	assert.True(t, containsUser(returnedUserRoles["admin"], adminUser.Email))
+	require.Equal(t, 1, len(returnedUserRoles["admin"]))
+	require.True(t, containsUser(returnedUserRoles["admin"], adminUser.Email))
 
 	returnedGroupRoles := make(map[string][]api.Group)
 	for _, r := range roles {
@@ -1068,7 +1066,7 @@ func TestListRolesByName(t *testing.T) {
 	}
 
 	// roles from groups
-	assert.Equal(t, 0, len(returnedGroupRoles["admin"]))
+	require.Equal(t, 0, len(returnedGroupRoles["admin"]))
 }
 
 func TestListRolesByKind(t *testing.T) {
@@ -1089,14 +1087,14 @@ func TestListRolesByKind(t *testing.T) {
 	c.Request = r
 
 	a.ListRoles(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
 
 	var roles []api.Role
 	if err := json.NewDecoder(w.Body).Decode(&roles); err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, 1, len(roles))
+	require.Equal(t, 1, len(roles))
 
 	returnedGroupRoles := make(map[string][]api.Group)
 	for _, r := range roles {
@@ -1104,8 +1102,8 @@ func TestListRolesByKind(t *testing.T) {
 	}
 
 	// roles from groups
-	assert.Equal(t, 1, len(returnedGroupRoles["pod-create"]))
-	assert.True(t, containsGroup(returnedGroupRoles["pod-create"], iosDevGroup.Name))
+	require.Equal(t, 1, len(returnedGroupRoles["pod-create"]))
+	require.True(t, containsGroup(returnedGroupRoles["pod-create"], iosDevGroup.Name))
 }
 
 func TestListRolesByMultiple(t *testing.T) {
@@ -1126,14 +1124,14 @@ func TestListRolesByMultiple(t *testing.T) {
 	c.Request = r
 
 	a.ListRoles(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
 
 	var roles []api.Role
 	if err := json.NewDecoder(w.Body).Decode(&roles); err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, 0, len(roles))
+	require.Equal(t, 0, len(roles))
 }
 
 func TestListRolesForDestinationReturnsRolesFromConfig(t *testing.T) {
@@ -1158,7 +1156,7 @@ func TestListRolesForDestinationReturnsRolesFromConfig(t *testing.T) {
 	c.Request = r
 
 	a.ListRoles(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
 
 	var roles []api.Role
 	if err := json.NewDecoder(w.Body).Decode(&roles); err != nil {
@@ -1171,8 +1169,8 @@ func TestListRolesForDestinationReturnsRolesFromConfig(t *testing.T) {
 	}
 
 	// roles from direct user assignment
-	assert.Equal(t, 1, len(returnedUserRoles["admin"]))
-	assert.True(t, containsUser(returnedUserRoles["admin"], adminUser.Email))
+	require.Equal(t, 1, len(returnedUserRoles["admin"]))
+	require.True(t, containsUser(returnedUserRoles["admin"], adminUser.Email))
 
 	returnedGroupRoles := make(map[string][]api.Group)
 	for _, r := range roles {
@@ -1180,8 +1178,8 @@ func TestListRolesForDestinationReturnsRolesFromConfig(t *testing.T) {
 	}
 
 	// roles from groups
-	assert.Equal(t, 1, len(returnedGroupRoles["writer"]))
-	assert.True(t, containsGroup(returnedGroupRoles["writer"], iosDevGroup.Name))
+	require.Equal(t, 1, len(returnedGroupRoles["writer"]))
+	require.True(t, containsGroup(returnedGroupRoles["writer"], iosDevGroup.Name))
 }
 
 func TestListRolesOnlyFindsForSpecificDestination(t *testing.T) {
@@ -1206,7 +1204,7 @@ func TestListRolesOnlyFindsForSpecificDestination(t *testing.T) {
 	c.Request = r
 
 	a.ListRoles(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
 
 	var roles []api.Role
 	if err := json.NewDecoder(w.Body).Decode(&roles); err != nil {
@@ -1253,14 +1251,14 @@ func TestListRolesForUnknownDestination(t *testing.T) {
 	c.Request = r
 
 	a.ListRoles(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
 
 	var roles []api.Role
 	if err := json.NewDecoder(w.Body).Decode(&roles); err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, 0, len(roles))
+	require.Equal(t, 0, len(roles))
 }
 
 func TestGetRole(t *testing.T) {
@@ -1290,7 +1288,7 @@ func TestGetRole(t *testing.T) {
 
 	a.GetRole(c)
 
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
 }
 
 func TestGetRoleEmptyID(t *testing.T) {
@@ -1312,7 +1310,7 @@ func TestGetRoleEmptyID(t *testing.T) {
 
 	a.GetRole(c)
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
+	require.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 func TestGetRoleNotFound(t *testing.T) {
@@ -1332,7 +1330,7 @@ func TestGetRoleNotFound(t *testing.T) {
 
 	a.GetRole(c)
 
-	assert.Equal(t, http.StatusNotFound, w.Code)
+	require.Equal(t, http.StatusNotFound, w.Code)
 }
 
 func TestListGroups(t *testing.T) {
@@ -1353,17 +1351,20 @@ func TestListGroups(t *testing.T) {
 	c.Request = r
 
 	a.ListGroups(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
+
+	// b, _ := ioutil.ReadAll(w.Body)
+	// fmt.Println(string(b))
+	// t.Fail()
 
 	var groups []api.Group
-	if err := json.NewDecoder(w.Body).Decode(&groups); err != nil {
-		t.Fatal(err)
-	}
+	err := json.NewDecoder(w.Body).Decode(&groups)
+	require.NoError(t, err)
 
-	assert.Equal(t, 2, len(groups))
+	require.Equal(t, 2, len(groups))
 
-	assert.True(t, containsGroup(groups, "ios-developers"))
-	assert.True(t, containsGroup(groups, "mac-admins"))
+	require.True(t, containsGroup(groups, "ios-developers"))
+	require.True(t, containsGroup(groups, "mac-admins"))
 }
 
 func TestListGroupsByName(t *testing.T) {
@@ -1384,16 +1385,15 @@ func TestListGroupsByName(t *testing.T) {
 	c.Request = r
 
 	a.ListGroups(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
 
 	var groups []api.Group
-	if err := json.NewDecoder(w.Body).Decode(&groups); err != nil {
-		t.Fatal(err)
-	}
+	err := json.NewDecoder(w.Body).Decode(&groups)
+	require.NoError(t, err)
 
-	assert.Equal(t, 1, len(groups))
+	require.Equal(t, 1, len(groups))
 
-	assert.True(t, containsGroup(groups, "ios-developers"))
+	require.True(t, containsGroup(groups, "ios-developers"))
 }
 
 func TestGetGroup(t *testing.T) {
@@ -1423,7 +1423,7 @@ func TestGetGroup(t *testing.T) {
 
 	a.GetGroup(c)
 
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
 }
 
 func TestGetGroupEmptyID(t *testing.T) {
@@ -1445,7 +1445,7 @@ func TestGetGroupEmptyID(t *testing.T) {
 
 	a.GetGroup(c)
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
+	require.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 func TestGetGroupNotFound(t *testing.T) {
@@ -1468,7 +1468,7 @@ func TestGetGroupNotFound(t *testing.T) {
 
 	a.GetGroup(c)
 
-	assert.Equal(t, http.StatusNotFound, w.Code)
+	require.Equal(t, http.StatusNotFound, w.Code)
 }
 
 func TestListUsers(t *testing.T) {
@@ -1489,18 +1489,18 @@ func TestListUsers(t *testing.T) {
 	c.Request = r
 
 	a.ListUsers(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
 
 	var users []api.User
 	if err := json.NewDecoder(w.Body).Decode(&users); err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, 3, len(users))
+	require.Equal(t, 3, len(users))
 
-	assert.True(t, containsUser(users, adminUser.Email))
-	assert.True(t, containsUser(users, standardUser.Email))
-	assert.True(t, containsUser(users, iosDevUser.Email))
+	require.True(t, containsUser(users, adminUser.Email))
+	require.True(t, containsUser(users, standardUser.Email))
+	require.True(t, containsUser(users, iosDevUser.Email))
 }
 
 func TestListUsersByEmail(t *testing.T) {
@@ -1521,16 +1521,16 @@ func TestListUsersByEmail(t *testing.T) {
 	c.Request = r
 
 	a.ListUsers(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
 
 	var users []api.User
 	if err := json.NewDecoder(w.Body).Decode(&users); err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, 1, len(users))
+	require.Equal(t, 1, len(users))
 
-	assert.True(t, containsUser(users, iosDevUser.Email))
+	require.True(t, containsUser(users, iosDevUser.Email))
 }
 
 func TestListUsersEmpty(t *testing.T) {
@@ -1551,14 +1551,14 @@ func TestListUsersEmpty(t *testing.T) {
 	c.Request = r
 
 	a.ListUsers(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
 
 	var users []api.User
 	if err := json.NewDecoder(w.Body).Decode(&users); err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, 0, len(users))
+	require.Equal(t, 0, len(users))
 }
 
 func TestGetUser(t *testing.T) {
@@ -1588,7 +1588,7 @@ func TestGetUser(t *testing.T) {
 
 	a.GetUser(c)
 
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
 }
 
 func TestGetUserEmptyID(t *testing.T) {
@@ -1610,7 +1610,7 @@ func TestGetUserEmptyID(t *testing.T) {
 
 	a.GetUser(c)
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
+	require.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 func TestGetUserNotFound(t *testing.T) {
@@ -1633,7 +1633,7 @@ func TestGetUserNotFound(t *testing.T) {
 
 	a.GetUser(c)
 
-	assert.Equal(t, http.StatusNotFound, w.Code)
+	require.Equal(t, http.StatusNotFound, w.Code)
 }
 
 func TestListProviders(t *testing.T) {
@@ -1654,14 +1654,14 @@ func TestListProviders(t *testing.T) {
 	c.Request = r
 
 	a.ListProviders(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
 
 	var providers []api.Provider
 	if err := json.NewDecoder(w.Body).Decode(&providers); err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, 1, len(providers))
+	require.Equal(t, 1, len(providers))
 }
 
 func TestListProvidersByType(t *testing.T) {
@@ -1682,14 +1682,14 @@ func TestListProvidersByType(t *testing.T) {
 	c.Request = r
 
 	a.ListProviders(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
 
 	var providers []api.Provider
 	if err := json.NewDecoder(w.Body).Decode(&providers); err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, 1, len(providers))
+	require.Equal(t, 1, len(providers))
 }
 
 func TestListProvidersEmpty(t *testing.T) {
@@ -1710,14 +1710,14 @@ func TestListProvidersEmpty(t *testing.T) {
 	c.Request = r
 
 	a.ListProviders(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
 
 	var providers []api.Provider
 	if err := json.NewDecoder(w.Body).Decode(&providers); err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, 0, len(providers))
+	require.Equal(t, 0, len(providers))
 }
 
 func TestGetProvider(t *testing.T) {
@@ -1747,7 +1747,7 @@ func TestGetProvider(t *testing.T) {
 
 	a.GetProvider(c)
 
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
 }
 
 func TestGetProviderEmptyID(t *testing.T) {
@@ -1769,7 +1769,7 @@ func TestGetProviderEmptyID(t *testing.T) {
 
 	a.GetProvider(c)
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
+	require.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 func TestGetProviderNotFound(t *testing.T) {
@@ -1792,7 +1792,7 @@ func TestGetProviderNotFound(t *testing.T) {
 
 	a.GetProvider(c)
 
-	assert.Equal(t, http.StatusNotFound, w.Code)
+	require.Equal(t, http.StatusNotFound, w.Code)
 }
 
 func TestListDestinations(t *testing.T) {
@@ -1813,18 +1813,18 @@ func TestListDestinations(t *testing.T) {
 	c.Request = r
 
 	a.ListDestinations(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
 
 	var destinations []api.Destination
 	if err := json.NewDecoder(w.Body).Decode(&destinations); err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, 3, len(destinations))
+	require.Equal(t, 3, len(destinations))
 
-	assert.True(t, containsDestination(destinations, "cluster-AAA"))
-	assert.True(t, containsDestination(destinations, "cluster-BBB"))
-	assert.True(t, containsDestination(destinations, "cluster-CCC"))
+	require.True(t, containsDestination(destinations, "cluster-AAA"))
+	require.True(t, containsDestination(destinations, "cluster-BBB"))
+	require.True(t, containsDestination(destinations, "cluster-CCC"))
 }
 
 func TestListDestinationsByName(t *testing.T) {
@@ -1845,16 +1845,16 @@ func TestListDestinationsByName(t *testing.T) {
 	c.Request = r
 
 	a.ListDestinations(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
 
 	var destinations []api.Destination
 	if err := json.NewDecoder(w.Body).Decode(&destinations); err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, 1, len(destinations))
+	require.Equal(t, 1, len(destinations))
 
-	assert.True(t, containsDestination(destinations, "cluster-AAA"))
+	require.True(t, containsDestination(destinations, "cluster-AAA"))
 }
 
 func TestListDestinationsByType(t *testing.T) {
@@ -1875,18 +1875,18 @@ func TestListDestinationsByType(t *testing.T) {
 	c.Request = r
 
 	a.ListDestinations(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
 
 	var destinations []api.Destination
 	if err := json.NewDecoder(w.Body).Decode(&destinations); err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, 3, len(destinations))
+	require.Equal(t, 3, len(destinations))
 
-	assert.True(t, containsDestination(destinations, "cluster-AAA"))
-	assert.True(t, containsDestination(destinations, "cluster-BBB"))
-	assert.True(t, containsDestination(destinations, "cluster-CCC"))
+	require.True(t, containsDestination(destinations, "cluster-AAA"))
+	require.True(t, containsDestination(destinations, "cluster-BBB"))
+	require.True(t, containsDestination(destinations, "cluster-CCC"))
 }
 
 func TestListDestinationsEmpty(t *testing.T) {
@@ -1907,14 +1907,14 @@ func TestListDestinationsEmpty(t *testing.T) {
 	c.Request = r
 
 	a.ListDestinations(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
 
 	var destinations []api.Destination
 	if err := json.NewDecoder(w.Body).Decode(&destinations); err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, 0, len(destinations))
+	require.Equal(t, 0, len(destinations))
 }
 
 // This is a preventative security auditing test that checks for keys with names that seem sensitive on this response
@@ -1936,14 +1936,14 @@ func TestListProvidersHasNoSensitiveValues(t *testing.T) {
 	c.Request = r
 
 	a.ListProviders(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
 
 	var providers []api.Provider
 	if err := json.NewDecoder(w.Body).Decode(&providers); err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Greater(t, len(providers), 0, "no providers returned, could not check sensitive values")
+	require.Greater(t, len(providers), 0, "no providers returned, could not check sensitive values")
 
 	var providerKeys map[string]interface{}
 
@@ -1996,7 +1996,7 @@ func TestGetDestination(t *testing.T) {
 
 	a.GetDestination(c)
 
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
 }
 
 func TestGetDestinationEmptyID(t *testing.T) {
@@ -2018,7 +2018,7 @@ func TestGetDestinationEmptyID(t *testing.T) {
 
 	a.GetDestination(c)
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
+	require.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 func TestGetDestinationNotFound(t *testing.T) {
@@ -2041,7 +2041,7 @@ func TestGetDestinationNotFound(t *testing.T) {
 
 	a.GetDestination(c)
 
-	assert.Equal(t, http.StatusNotFound, w.Code)
+	require.Equal(t, http.StatusNotFound, w.Code)
 }
 
 // This is a preventative security auditing test that checks for keys with names that seem sensitive on this response
@@ -2072,14 +2072,14 @@ func TestGetProviderHasNoSensitiveValues(t *testing.T) {
 
 	a.GetProvider(c)
 
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
 
 	var resp api.Provider
 	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
 		t.Fatal(err)
 	}
 
-	assert.NotNil(t, resp, "no provider returned, could not check sensitive values")
+	require.NotNil(t, resp, "no provider returned, could not check sensitive values")
 
 	var providerKeys map[string]interface{}
 
@@ -2148,9 +2148,9 @@ func TestCreateAPIKey(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, http.StatusCreated, w.Code)
-	assert.Equal(t, "test-api-client", body.Name)
-	assert.NotEmpty(t, body.Key)
+	require.Equal(t, http.StatusCreated, w.Code)
+	require.Equal(t, "test-api-client", body.Name)
+	require.NotEmpty(t, body.Key)
 
 	db.Delete(&APIKey{}, &APIKey{Name: "test-api-client"})
 	db.Delete(&apiKey)
@@ -2182,12 +2182,12 @@ func TestDeleteAPIKey(t *testing.T) {
 	a.bearerAuthMiddleware(api.API_KEYS_DELETE)(c)
 	a.DeleteAPIKey(c)
 
-	assert.Equal(t, http.StatusNoContent, c.Writer.Status())
+	require.Equal(t, http.StatusNoContent, c.Writer.Status())
 
 	var apiKey APIKey
 
 	db.First(&apiKey, &APIKey{Name: "test-api-delete-key"})
-	assert.Empty(t, apiKey.Id, "API key not deleted from database")
+	require.Empty(t, apiKey.Id, "API key not deleted from database")
 }
 
 func TestListAPIKeys(t *testing.T) {
@@ -2215,7 +2215,7 @@ func TestListAPIKeys(t *testing.T) {
 
 	a.bearerAuthMiddleware(api.API_KEYS_READ)(c)
 	a.ListAPIKeys(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
 
 	var keys []api.InfraAPIKey
 	if err := json.NewDecoder(w.Body).Decode(&keys); err != nil {
@@ -2228,7 +2228,7 @@ func TestListAPIKeys(t *testing.T) {
 		keyIDs[k.Name] = k.Id
 	}
 
-	assert.NotEmpty(t, keyIDs["test-key"])
+	require.NotEmpty(t, keyIDs["test-key"])
 }
 
 func containsUser(users []api.User, email string) bool {
@@ -2282,34 +2282,34 @@ func TestCredentials(t *testing.T) {
 }
 
 func TestCheckPermissionForEmptyPermissions(t *testing.T) {
-	assert.False(t, checkPermission(api.API_KEYS_CREATE, ""))
-	assert.False(t, checkPermission(api.API_KEYS_CREATE, " "))
+	require.False(t, checkPermission(api.API_KEYS_CREATE, ""))
+	require.False(t, checkPermission(api.API_KEYS_CREATE, " "))
 }
 
 func TestCheckPermissionForWrongPermissions(t *testing.T) {
-	assert.False(t, checkPermission(api.API_KEYS_CREATE, string(api.API_KEYS_DELETE)))
+	require.False(t, checkPermission(api.API_KEYS_CREATE, string(api.API_KEYS_DELETE)))
 
 	multiPermissions := strings.Join([]string{
 		string(api.USERS_READ),
 		string(api.AUTH_DELETE),
 		string(api.TOKENS_CREATE),
 	}, " ")
-	assert.False(t, checkPermission(api.API_KEYS_CREATE, multiPermissions))
+	require.False(t, checkPermission(api.API_KEYS_CREATE, multiPermissions))
 }
 
 func TestCheckPermissionForCorrectPermissions(t *testing.T) {
-	assert.True(t, checkPermission(api.API_KEYS_CREATE, string(api.API_KEYS_CREATE)))
+	require.True(t, checkPermission(api.API_KEYS_CREATE, string(api.API_KEYS_CREATE)))
 
 	multiPermissions := strings.Join([]string{
 		string(api.USERS_READ),
 		string(api.API_KEYS_CREATE),
 		string(api.TOKENS_CREATE),
 	}, " ")
-	assert.True(t, checkPermission(api.API_KEYS_CREATE, multiPermissions))
+	require.True(t, checkPermission(api.API_KEYS_CREATE, multiPermissions))
 }
 
 func TestCheckPermissionForRootPermissionsIsValid(t *testing.T) {
-	assert.True(t, checkPermission(api.API_KEYS_CREATE, string(api.STAR)))
+	require.True(t, checkPermission(api.API_KEYS_CREATE, string(api.STAR)))
 }
 
 func TestIssueSessionTokenCreatesTokenForSpecifiedUser(t *testing.T) {
@@ -2324,5 +2324,5 @@ func TestIssueSessionTokenCreatesTokenForSpecifiedUser(t *testing.T) {
 	err = db.Where(&Token{Id: id}).Find(&token).Error
 	require.NoError(t, err)
 
-	assert.Equal(t, userID, token.UserId)
+	require.Equal(t, userID, token.UserId)
 }

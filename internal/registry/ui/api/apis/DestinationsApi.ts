@@ -21,6 +21,9 @@ import {
     DestinationCreateRequest,
     DestinationCreateRequestFromJSON,
     DestinationCreateRequestToJSON,
+    DestinationKind,
+    DestinationKindFromJSON,
+    DestinationKindToJSON,
 } from '../models';
 
 export interface CreateDestinationRequest {
@@ -33,7 +36,7 @@ export interface GetDestinationRequest {
 
 export interface ListDestinationsRequest {
     name?: string;
-    kind?: string;
+    kind?: DestinationKind;
 }
 
 /**

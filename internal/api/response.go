@@ -34,12 +34,14 @@ type APIResponse struct {
 
 // NewAPIResponse returns a new APIResponse object.
 func NewAPIResponse(r *http.Response) *APIResponse {
+
 	response := &APIResponse{Response: r}
 	return response
 }
 
 // NewAPIResponseWithError returns a new APIResponse object with the provided error message.
 func NewAPIResponseWithError(errorMessage string) *APIResponse {
+
 	response := &APIResponse{Message: errorMessage}
 	return response
 }

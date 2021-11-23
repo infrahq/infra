@@ -51,13 +51,13 @@ export interface Role {
      */
     name: string;
     /**
-     * 
+     * created time in seconds since 1970-01-01
      * @type {number}
      * @memberof Role
      */
     created: number;
     /**
-     * 
+     * updated time in seconds since 1970-01-01
      * @type {number}
      * @memberof Role
      */
