@@ -18,7 +18,8 @@ Values within the same list will be combined to create a single filter, i.e. `AN
 
 ```yaml
 destinations:
-  - labels:
+  - kind: kubernetes
+    labels:
     - kubernetes
     - us-west-1
 ```
@@ -29,8 +30,11 @@ Multiple destinations can be used to create multiple filters, i.e. `OR` semantic
 
 ```yaml
 destinations:
-  - labels: [us-west-1]
-  - labels: [us-east-1]
+  - kind: kubernetes
+    labels: [us-west-1]
+  - kind: kubernetes
+    labels: [us-east-1]
+
 ```
 
 In this example, destinations having either `us-west-1` or `us-east-1` labels will be matched.

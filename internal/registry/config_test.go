@@ -433,6 +433,7 @@ groups:
         kind: cluster-role
         destinations:
           - name: cluster-AAA
+            kind: kubernetes
             namespaces:
               - infrahq
 `
@@ -451,6 +452,7 @@ groups:
         kind: cluster-role
         destinations:
           - name: cluster-AAA
+            kind: kubernetes
 `
 
 	if err := registry.importConfig([]byte(config1)); err != nil {

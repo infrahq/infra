@@ -1353,10 +1353,6 @@ func TestListGroups(t *testing.T) {
 	a.ListGroups(c)
 	require.Equal(t, http.StatusOK, w.Code)
 
-	// b, _ := ioutil.ReadAll(w.Body)
-	// fmt.Println(string(b))
-	// t.Fail()
-
 	var groups []api.Group
 	err := json.NewDecoder(w.Body).Decode(&groups)
 	require.NoError(t, err)
