@@ -76,7 +76,7 @@ func (p *ConfigProvider) cleanupDomain() {
 type ConfigDestination struct {
 	Name       string          `yaml:"name"`
 	Labels     []string        `yaml:"labels"`
-	Kind       DestinationKind `yaml:"kind"`
+	Kind       DestinationKind `yaml:"kind" validate:"required"`
 	Namespaces []string        `yaml:"namespaces"` // optional in the case of a cluster-role
 }
 
