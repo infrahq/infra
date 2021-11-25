@@ -251,7 +251,7 @@ func (a *API) ListGroups(c *gin.Context) {
 	groupName := c.Request.URL.Query().Get("name")
 
 	var groups []Group
-	if err := a.db.Preload(clause.Associations).Find(&groups, &Group{Name: groupName}).Error; err != nil {
+	if err := a.db.Preload(clause.Associations).Preload("Roles.Destination").Find(&groups, &Group{Name: groupName}).Error; err != nil {
 		logging.L.Error(err.Error())
 		sendAPIError(c, http.StatusInternalServerError, "could not list groups")
 
@@ -297,7 +297,7 @@ func (a *API) ListProviders(c *gin.Context) {
 	providerKind := c.Request.URL.Query().Get("kind")
 
 	var providers []Provider
-	if err := a.db.Find(&providers, &Provider{Kind: providerKind}).Error; err != nil {
+	if err := a.db.Find(&providers, &Provider{Kind: ProviderKind(providerKind)}).Error; err != nil {
 		logging.L.Error(err.Error())
 		sendAPIError(c, http.StatusInternalServerError, "could not list providers")
 
@@ -344,7 +344,7 @@ func (a *API) ListDestinations(c *gin.Context) {
 	destinationKind := c.Request.URL.Query().Get("kind")
 
 	var destinations []Destination
-	if err := a.db.Preload("Labels").Find(&destinations, &Destination{Name: destinationName, Kind: destinationKind}).Error; err != nil {
+	if err := a.db.Preload("Labels").Find(&destinations, &Destination{Name: destinationName, Kind: DestinationKind(destinationKind)}).Error; err != nil {
 		logging.L.Error(err.Error())
 		sendAPIError(c, http.StatusInternalServerError, "could not list destinations")
 
@@ -415,7 +415,7 @@ func (a *API) CreateDestination(c *gin.Context) {
 		}
 
 		destination.Name = body.Name
-		destination.Kind = string(body.Kind)
+		destination.Kind = DestinationKind(body.Kind)
 		destination.KubernetesCa = body.Kubernetes.Ca
 		destination.KubernetesEndpoint = body.Kubernetes.Endpoint
 
@@ -805,7 +805,7 @@ func (s *Provider) marshal() api.Provider {
 		Updated:  s.Updated,
 		ClientID: s.ClientID,
 		Domain:   s.Domain,
-		Kind:     s.Kind,
+		Kind:     string(s.Kind),
 	}
 
 	return res
@@ -815,7 +815,7 @@ func (d *Destination) marshal() api.Destination {
 	res := api.Destination{
 		NodeID:  d.NodeID,
 		Name:    d.Name,
-		Kind:    d.Kind,
+		Kind:    api.DestinationKind(d.Kind),
 		Id:      d.Id,
 		Created: d.Created,
 		Updated: d.Updated,
@@ -830,7 +830,7 @@ func (d *Destination) marshal() api.Destination {
 
 	for _, l := range d.Labels {
 		switch l.Value {
-		case d.Kind: // skip Kind
+		case string(d.Kind): // skip Kind
 		default:
 			res.Labels = append(res.Labels, l.Value)
 		}

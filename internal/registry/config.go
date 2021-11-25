@@ -47,7 +47,7 @@ func (idp *ConfigProvider) UnmarshalYAML(unmarshal func(interface{}) error) erro
 	idp.ClientID = tmp.ClientID
 	idp.ClientSecret = tmp.ClientSecret
 
-	switch tmp.Kind {
+	switch ProviderKind(tmp.Kind) {
 	case ProviderKindOkta:
 		o := ConfigOkta{}
 		if err := unmarshal(&o); err != nil {
@@ -74,9 +74,10 @@ func (p *ConfigProvider) cleanupDomain() {
 }
 
 type ConfigDestination struct {
-	Name       string   `yaml:"name"`
-	Labels     []string `yaml:"labels"`
-	Namespaces []string `yaml:"namespaces"` // optional in the case of a cluster-role
+	Name       string          `yaml:"name"`
+	Labels     []string        `yaml:"labels"`
+	Kind       DestinationKind `yaml:"kind" validate:"required"`
+	Namespaces []string        `yaml:"namespaces"` // optional in the case of a cluster-role
 }
 
 type ConfigRole struct {
@@ -212,7 +213,7 @@ func ImportProviders(db *gorm.DB, providers []ConfigProvider) error {
 
 		// check if we are about to override an existing provider
 		var existing Provider
-		if err := db.First(&existing, &Provider{Kind: p.Kind}).Error; err != nil {
+		if err := db.First(&existing, &Provider{Kind: ProviderKind(p.Kind)}).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				// expected for new records
 			} else {
@@ -225,7 +226,7 @@ func ImportProviders(db *gorm.DB, providers []ConfigProvider) error {
 		}
 
 		var provider Provider
-		if err := db.FirstOrCreate(&provider, &Provider{Kind: p.Kind}).Error; err != nil {
+		if err := db.FirstOrCreate(&provider, &Provider{Kind: ProviderKind(p.Kind)}).Error; err != nil {
 			return fmt.Errorf("create config provider: %w", err)
 		}
 
@@ -233,7 +234,7 @@ func ImportProviders(db *gorm.DB, providers []ConfigProvider) error {
 		provider.Domain = p.Domain
 		provider.ClientSecret = p.ClientSecret
 
-		switch p.Kind {
+		switch ProviderKind(p.Kind) {
 		case ProviderKindOkta:
 			cfg, ok := p.Config.(ConfigOkta)
 			if !ok {
@@ -290,7 +291,7 @@ func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (modifiedRoleI
 		// get the provider from the datastore that this group specifies
 		var provider Provider
 		// Assumes that only one kind of each provider can exist
-		provReadErr := db.Where(&Provider{Kind: g.Provider}).First(&provider).Error
+		provReadErr := db.Where(&Provider{Kind: ProviderKind(g.Provider)}).First(&provider).Error
 		if provReadErr != nil {
 			if errors.Is(provReadErr, gorm.ErrRecordNotFound) {
 				// skip this provider, it will need to be added in the config and re-applied

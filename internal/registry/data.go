@@ -27,23 +27,28 @@ import (
 var IdLen = 12
 
 type User struct {
-	Id      string `gorm:"primaryKey"`
+	Id      string `gorm:"primaryKey" validate:"uuid"`
 	Created int64  `gorm:"autoCreateTime"`
 	Updated int64  `gorm:"autoUpdateTime"`
-	Email   string `gorm:"unique"`
+	Email   string `gorm:"unique" validate:"email"`
 
 	Providers []Provider `gorm:"many2many:users_providers"`
 	Roles     []Role     `gorm:"many2many:users_roles"`
 	Groups    []Group    `gorm:"many2many:groups_users"`
 }
 
-var ProviderKindOkta = "okta"
+type ProviderKind string
+
+// nolint: leaving room for more provider kinds
+var (
+	ProviderKindOkta ProviderKind = "okta"
+)
 
 type Provider struct {
-	Id      string `gorm:"primaryKey"`
-	Created int64  `gorm:"autoCreateTime"`
-	Updated int64  `gorm:"autoUpdateTime"`
-	Kind    string `yaml:"kind"`
+	Id      string       `gorm:"primaryKey" validate:"uuid"`
+	Created int64        `gorm:"autoCreateTime"`
+	Updated int64        `gorm:"autoUpdateTime"`
+	Kind    ProviderKind `yaml:"kind"` // TODO: long-term we shouldn't have yaml serialization info here.
 
 	Domain       string
 	ClientID     string
@@ -56,26 +61,31 @@ type Provider struct {
 }
 
 type Group struct {
-	Id         string `gorm:"primaryKey"`
+	Id         string `gorm:"primaryKey" validate:"uuid"`
 	Created    int64  `gorm:"autoCreateTime"`
 	Updated    int64  `gorm:"autoUpdateTime"`
 	Name       string
-	ProviderId string
+	ProviderId string   `validate:"uuid"`
 	Provider   Provider `gorm:"foreignKey:ProviderId;references:Id"`
 
 	Roles []Role `gorm:"many2many:groups_roles"`
 	Users []User `gorm:"many2many:groups_users"`
 }
 
-var DestinationKindKubernetes = "kubernetes"
+type DestinationKind string
+
+// nolint: leaving room for more destination kinds
+var (
+	DestinationKindKubernetes DestinationKind = "kubernetes"
+)
 
 type Destination struct {
-	Id      string `gorm:"primaryKey"`
+	Id      string `gorm:"primaryKey" validate:"uuid"`
 	Created int64  `gorm:"autoCreateTime"`
 	Updated int64  `gorm:"autoUpdateTime"`
 	NodeID  string `gorm:"unique"`
 	Name    string
-	Kind    string
+	Kind    DestinationKind
 
 	KubernetesCa       string
 	KubernetesEndpoint string
@@ -84,18 +94,18 @@ type Destination struct {
 }
 
 type Label struct {
-	ID    string `gorm:"primaryKey"`
+	ID    string `gorm:"primaryKey" validate:"uuid"`
 	Value string
 }
 
 type Role struct {
-	Id            string `gorm:"primaryKey"`
+	Id            string `gorm:"primaryKey" validate:"uuid"`
 	Created       int64  `gorm:"autoCreateTime"`
 	Updated       int64  `gorm:"autoUpdateTime"`
-	Name          string
-	Kind          string
+	Name          string `validate:"required"`
+	Kind          string `validate:"required,rolekind"`
 	Namespace     string
-	DestinationId string
+	DestinationId string      `validate:"uuid"`
 	Destination   Destination `gorm:"foreignKey:DestinationId;references:Id"`
 	Groups        []Group     `gorm:"many2many:groups_roles"`
 	Users         []User      `gorm:"many2many:users_roles"`
@@ -107,7 +117,7 @@ var (
 )
 
 type Settings struct {
-	Id         string `gorm:"primaryKey"`
+	Id         string `gorm:"primaryKey" validate:"uuid"`
 	Created    int64  `gorm:"autoCreateTime"`
 	Updated    int64  `gorm:"autoUpdateTime"`
 	PrivateJWK []byte
@@ -120,27 +130,27 @@ var (
 )
 
 type Token struct {
-	Id         string `gorm:"primaryKey"`
+	Id         string `gorm:"primaryKey" validate:"uuid"`
 	Created    int64  `gorm:"autoCreateTime"`
 	Updated    int64  `gorm:"autoUpdateTime"`
 	Expires    int64
 	SecretHash []byte // if the hash of the presented token secret matches this value it is valid
 
-	Permissions string // space separated list of permissions/scopes that a token can perform
+	Permissions string `validate:"permissions"` // space separated list of permissions/scopes that a token can perform
 
-	UserId string
-	User   User `gorm:"foreignKey:UserId;references:Id;"`
+	UserId string `validate:"uuid"`
+	User   User   `gorm:"foreignKey:UserId;references:Id;"`
 }
 
 var APIKeyLen = 24
 
 type APIKey struct {
-	Id          string `gorm:"primaryKey"`
+	Id          string `gorm:"primaryKey" validate:"uuid"`
 	Created     int64  `gorm:"autoCreateTime"`
 	Updated     int64  `gorm:"autoUpdateTime"`
 	Name        string `gorm:"unique"`
 	Key         string
-	Permissions string // space separated list of permissions/scopes that a token can perform
+	Permissions string `validate:"permissions"` // space separated list of permissions/scopes that a token can perform
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {

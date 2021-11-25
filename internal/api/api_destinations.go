@@ -258,7 +258,7 @@ type APIListDestinationsRequest struct {
 	ctx        _context.Context
 	APIService *DestinationsAPIService
 	name       *string
-	kind       *string
+	kind       *DestinationKind
 }
 
 // Filter destinations by name
@@ -268,7 +268,7 @@ func (r APIListDestinationsRequest) Name(name string) APIListDestinationsRequest
 }
 
 // Filter destinations by kind
-func (r APIListDestinationsRequest) Kind(kind string) APIListDestinationsRequest {
+func (r APIListDestinationsRequest) Kind(kind DestinationKind) APIListDestinationsRequest {
 	r.kind = &kind
 	return r
 }

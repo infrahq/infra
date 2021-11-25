@@ -43,13 +43,13 @@ export interface User {
      */
     email: string;
     /**
-     * 
+     * created time in seconds since 1970-01-01
      * @type {number}
      * @memberof User
      */
     created: number;
     /**
-     * 
+     * updated time in seconds since 1970-01-01
      * @type {number}
      * @memberof User
      */

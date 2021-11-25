@@ -16,11 +16,13 @@ import (
 
 // Destination struct for Destination
 type Destination struct {
-	Id         string                 `json:"id"`
-	NodeID     string                 `json:"nodeID"`
-	Name       string                 `json:"name"`
-	Kind       string                 `json:"kind"`
-	Created    int64                  `json:"created"`
+	Id     string          `json:"id"`
+	NodeID string          `json:"nodeID"`
+	Name   string          `json:"name"`
+	Kind   DestinationKind `json:"kind"`
+	// created time in seconds since 1970-01-01
+	Created int64 `json:"created"`
+	// updated time in seconds since 1970-01-01
 	Updated    int64                  `json:"updated"`
 	Labels     []string               `json:"labels"`
 	Kubernetes *DestinationKubernetes `json:"kubernetes,omitempty"`
@@ -30,7 +32,7 @@ type Destination struct {
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewDestination(id string, nodeID string, name string, kind string, created int64, updated int64, labels []string) *Destination {
+func NewDestination(id string, nodeID string, name string, kind DestinationKind, created int64, updated int64, labels []string) *Destination {
 	this := Destination{}
 	this.Id = id
 	this.NodeID = nodeID
@@ -123,9 +125,9 @@ func (o *Destination) SetName(v string) {
 }
 
 // GetKind returns the Kind field value
-func (o *Destination) GetKind() string {
+func (o *Destination) GetKind() DestinationKind {
 	if o == nil {
-		var ret string
+		var ret DestinationKind
 		return ret
 	}
 
@@ -134,7 +136,7 @@ func (o *Destination) GetKind() string {
 
 // GetKindOk returns a tuple with the Kind field value
 // and a boolean to check if the value has been set.
-func (o *Destination) GetKindOk() (*string, bool) {
+func (o *Destination) GetKindOk() (*DestinationKind, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -142,7 +144,7 @@ func (o *Destination) GetKindOk() (*string, bool) {
 }
 
 // SetKind sets field value
-func (o *Destination) SetKind(v string) {
+func (o *Destination) SetKind(v DestinationKind) {
 	o.Kind = v
 }
 

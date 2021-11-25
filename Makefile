@@ -47,6 +47,8 @@ export GO_POST_PROCESS_FILE=bash openapi/go-post-process.sh
 
 .PHONY: openapi
 openapi: openapi/clean
+	# npm install @openapitools/openapi-generator-cli -g
+	# or brew install openapi-generator
 	openapi-generator-cli generate --generator-key go-client
 	openapi-generator-cli generate --generator-key typescript-client
 	# manually post process some files since openapi-generator forgot

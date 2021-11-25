@@ -21,10 +21,9 @@ var (
 	iosDevUser       = User{Id: "003", Email: "woz@example.com"}
 	iosDevGroup      = Group{Name: "ios-developers", ProviderId: fakeOktaProvider.Id}
 	macAdminGroup    = Group{Name: "mac-admins", ProviderId: fakeOktaProvider.Id}
-	notInConfigRole  = Role{Name: "does-not-exist"}
-	clusterA         = Destination{NodeID: "cluster-AAA", Name: "cluster-AAA"}
-	clusterB         = Destination{NodeID: "cluster-BBB", Name: "cluster-BBB"}
-	clusterC         = Destination{NodeID: "cluster-CCC", Name: "cluster-CCC"}
+	clusterA         = Destination{NodeID: "cluster-AAA", Name: "cluster-AAA", Kind: DestinationKindKubernetes}
+	clusterB         = Destination{NodeID: "cluster-BBB", Name: "cluster-BBB", Kind: DestinationKindKubernetes}
+	clusterC         = Destination{NodeID: "cluster-CCC", Name: "cluster-CCC", Kind: DestinationKindKubernetes}
 	labelKubernetes  = Label{Value: "kubernetes"}
 	labelUSWest1     = Label{Value: "us-west-1"}
 	labelUSEast1     = Label{Value: "us-east-1"}
@@ -227,7 +226,7 @@ func TestImportRolesNoMatchingLabels(t *testing.T) {
 
 func TestImportRemovesUnusedRoles(t *testing.T) {
 	var unused Role
-	err := db.Where(&Role{Name: notInConfigRole.Name}).First(&unused).Error
+	err := db.Where(&Role{Name: "does-not-exist"}).First(&unused).Error
 	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
 }
 
@@ -434,6 +433,7 @@ groups:
         kind: cluster-role
         destinations:
           - name: cluster-AAA
+            kind: kubernetes
             namespaces:
               - infrahq
 `
@@ -452,6 +452,7 @@ groups:
         kind: cluster-role
         destinations:
           - name: cluster-AAA
+            kind: kubernetes
 `
 
 	if err := registry.importConfig([]byte(config1)); err != nil {

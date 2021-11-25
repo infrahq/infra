@@ -140,11 +140,11 @@ func (a *ProvidersAPIService) GetProviderExecute(r APIGetProviderRequest) (Provi
 type APIListProvidersRequest struct {
 	ctx        _context.Context
 	APIService *ProvidersAPIService
-	kind       *string
+	kind       *ProviderKind
 }
 
 // Filter providers by kind
-func (r APIListProvidersRequest) Kind(kind string) APIListProvidersRequest {
+func (r APIListProvidersRequest) Kind(kind ProviderKind) APIListProvidersRequest {
 	r.kind = &kind
 	return r
 }

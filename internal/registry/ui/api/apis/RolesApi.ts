@@ -18,6 +18,9 @@ import {
     Role,
     RoleFromJSON,
     RoleToJSON,
+    RoleKind,
+    RoleKindFromJSON,
+    RoleKindToJSON,
 } from '../models';
 
 export interface GetRoleRequest {
@@ -26,7 +29,7 @@ export interface GetRoleRequest {
 
 export interface ListRolesRequest {
     name?: string;
-    kind?: string;
+    kind?: RoleKind;
     destination?: string;
 }
 

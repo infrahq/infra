@@ -23,6 +23,7 @@ InfraAPIKey:
   properties:
     id:
       type: string
+      format: uuid
     created:
       type: integer
       format: int64

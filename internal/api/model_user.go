@@ -16,9 +16,11 @@ import (
 
 // User struct for User
 type User struct {
-	Id      string  `json:"id"`
-	Email   string  `json:"email"`
-	Created int64   `json:"created"`
+	Id    string `json:"id"`
+	Email string `json:"email" validate:"email,required"`
+	// created time in seconds since 1970-01-01
+	Created int64 `json:"created"`
+	// updated time in seconds since 1970-01-01
 	Updated int64   `json:"updated"`
 	Groups  []Group `json:"groups"`
 	Roles   []Role  `json:"roles"`

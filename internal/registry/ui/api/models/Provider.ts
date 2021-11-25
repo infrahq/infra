@@ -26,13 +26,13 @@ export interface Provider {
      */
     id: string;
     /**
-     * 
+     * created time in seconds since 1970-01-01
      * @type {number}
      * @memberof Provider
      */
     created: number;
     /**
-     * 
+     * updated time in seconds since 1970-01-01
      * @type {number}
      * @memberof Provider
      */

@@ -141,7 +141,7 @@ type APIListRolesRequest struct {
 	ctx         _context.Context
 	APIService  *RolesAPIService
 	name        *string
-	kind        *string
+	kind        *RoleKind
 	destination *string
 }
 
@@ -152,7 +152,7 @@ func (r APIListRolesRequest) Name(name string) APIListRolesRequest {
 }
 
 // Filter results by kind
-func (r APIListRolesRequest) Kind(kind string) APIListRolesRequest {
+func (r APIListRolesRequest) Kind(kind RoleKind) APIListRolesRequest {
 	r.kind = &kind
 	return r
 }
