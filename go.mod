@@ -13,6 +13,7 @@ require (
 	github.com/DisgoOrg/disgohook v1.4.4 // indirect
 	github.com/DisgoOrg/log v1.1.2 // indirect
 	github.com/Microsoft/go-winio v0.5.1 // indirect
+	github.com/NYTimes/gziphandler v1.1.1
 	github.com/ProtonMail/go-crypto v0.0.0-20210920160938-87db9fbc61c7 // indirect
 	github.com/aws/aws-sdk-go v1.41.10
 	github.com/aws/aws-sdk-go-v2/config v1.9.0 // indirect
@@ -48,7 +49,6 @@ require (
 	github.com/muesli/termenv v0.9.0
 	github.com/okta/okta-sdk-golang/v2 v2.8.0
 	github.com/segmentio/backo-go v0.0.0-20200129164019-23eae7c10bd3 // indirect
-	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/slack-go/slack v0.9.5 // indirect
 	github.com/spf13/afero v1.6.0
 	github.com/spf13/cobra v1.2.1
@@ -73,7 +73,8 @@ require (
 	gorm.io/driver/postgres v1.2.1
 	gorm.io/driver/sqlite v1.2.0
 	gorm.io/gorm v1.22.0
-	k8s.io/api v0.22.2
-	k8s.io/apimachinery v0.22.2
-	k8s.io/client-go v0.22.2
+	k8s.io/api v0.22.3
+	k8s.io/apimachinery v0.22.3
+	k8s.io/apiserver v0.22.3
+	k8s.io/client-go v0.22.3
 )

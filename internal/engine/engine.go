@@ -25,6 +25,7 @@ import (
 	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/pro/audit"
 	"github.com/infrahq/infra/internal/registry"
 	"github.com/infrahq/infra/internal/timer"
 	"golang.org/x/crypto/acme/autocert"
@@ -98,9 +99,7 @@ var JWKCacheRefresh = 5 * time.Minute
 
 type GetJWKFunc func() (*jose.JSONWebKey, error)
 
-type HttpContextKeyEmail struct{}
-
-func jwtMiddleware(destination string, getjwk GetJWKFunc, next http.HandlerFunc) http.Handler {
+func jwtMiddleware(next http.Handler, destination string, destinationName string, getjwk GetJWKFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authorization := r.Header.Get("Authorization")
 		raw := strings.ReplaceAll(authorization, "Bearer ", "")
@@ -162,8 +161,10 @@ func jwtMiddleware(destination string, getjwk GetJWKFunc, next http.HandlerFunc)
 		}
 
 		ctx := r.Context()
-		ctx = context.WithValue(ctx, HttpContextKeyEmail{}, claims.Email)
-		next(w, r.WithContext(ctx))
+		ctx = context.WithValue(ctx, internal.HttpContextKeyEmail{}, claims.Email)
+		ctx = context.WithValue(ctx, internal.HttpContextKeyDestination{}, destination)
+		ctx = context.WithValue(ctx, internal.HttpContextKeyDestinationName{}, destinationName)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
@@ -184,7 +185,7 @@ func proxyHandler(ca []byte, bearerToken string, remote *url.URL) (http.HandlerF
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		email, ok := r.Context().Value(HttpContextKeyEmail{}).(string)
+		email, ok := r.Context().Value(internal.HttpContextKeyEmail{}).(string)
 		if !ok {
 			logging.L.Debug("Proxy handler unable to retrieve email from context")
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -194,7 +195,7 @@ func proxyHandler(ca []byte, bearerToken string, remote *url.URL) (http.HandlerF
 
 		r.Header.Set("Impersonate-User", fmt.Sprintf("infra:%s", email))
 		r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", bearerToken))
-		http.StripPrefix("/proxy", proxy).ServeHTTP(w, r)
+		proxy.ServeHTTP(w, r)
 	}, nil
 }
 
@@ -443,7 +444,7 @@ func Run(options *Options) error {
 		baseURL: u.String(),
 	}
 
-	mux.Handle("/proxy/", jwtMiddleware(chksm, cache.getjwk, ph))
+	mux.Handle("/proxy/", http.StripPrefix("/proxy", jwtMiddleware(audit.AuditMiddleware(ph), chksm, options.Name, cache.getjwk)))
 
 	tlsServer := &http.Server{
 		Addr:      ":443",
