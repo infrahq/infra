@@ -40,7 +40,10 @@ func NewAPIMux(reg *Registry, router *gin.RouterGroup) {
 		registry: reg,
 	}
 
-	authorized := router.Group("/" /*, AuthRequired()*/)
+	authorized := router.Group("/",
+		/*, AuthRequired()*/ // <--- really need something to inject userID and user into the context.
+		logging.UserAwareLoggerMiddleware,
+	)
 	{
 		authorized.GET("/users", a.bearerAuthMiddleware(api.USERS_READ), a.ListUsers)
 		authorized.GET("/users/:id", a.bearerAuthMiddleware(api.USERS_READ), a.GetUser)
@@ -86,7 +89,7 @@ func (a *API) bearerAuthMiddleware(required api.InfraAPIPermission) gin.HandlerF
 			// Fall back to checking cookies if the bearer header is not provided
 			cookie, err := c.Cookie(CookieTokenName)
 			if err != nil {
-				logging.L.Debug("could not read token from cookie")
+				logging.Logger(c).Debug("could not read token from cookie")
 				sendAPIError(c, http.StatusUnauthorized, "unauthorized")
 
 				return
@@ -99,7 +102,7 @@ func (a *API) bearerAuthMiddleware(required api.InfraAPIPermission) gin.HandlerF
 		case TokenLen:
 			token, err := ValidateAndGetToken(a.db, raw)
 			if err != nil {
-				logging.L.Debug(err.Error())
+				logging.Logger(c).Debug(err.Error())
 
 				switch err.Error() {
 				case "token expired":
@@ -146,7 +149,7 @@ func (a *API) bearerAuthMiddleware(required api.InfraAPIPermission) gin.HandlerF
 			return
 		}
 
-		logging.L.Debug("invalid token length provided")
+		logging.Logger(c).Debug("invalid token length provided")
 		sendAPIError(c, http.StatusUnauthorized, "unauthorized")
 	}
 }
@@ -198,7 +201,7 @@ func (a *API) ListUsers(c *gin.Context) {
 		return nil
 	})
 	if err != nil {
-		logging.L.Error(err.Error())
+		logging.Logger(c).Error(err.Error())
 		sendAPIError(c, http.StatusInternalServerError, "could not list users")
 
 		return
@@ -232,10 +235,10 @@ func (a *API) GetUser(c *gin.Context) {
 	})
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			logging.S.Debugf("invalid user ID: %w", err)
+			logging.Logger(c).Debugf("invalid user ID: %w", err)
 			sendAPIError(c, http.StatusNotFound, fmt.Sprintf("Could not find user ID \"%s\"", userId))
 		} else {
-			logging.S.Errorf("user ID lookup: %w", err)
+			logging.Logger(c).Errorf("user ID lookup: %w", err)
 			sendAPIError(c, http.StatusInternalServerError, err.Error())
 		}
 
@@ -252,7 +255,7 @@ func (a *API) ListGroups(c *gin.Context) {
 
 	var groups []Group
 	if err := a.db.Preload(clause.Associations).Preload("Roles.Destination").Find(&groups, &Group{Name: groupName}).Error; err != nil {
-		logging.L.Error(err.Error())
+		logging.Logger(c).Error(err.Error())
 		sendAPIError(c, http.StatusInternalServerError, "could not list groups")
 
 		return
@@ -277,10 +280,10 @@ func (a *API) GetGroup(c *gin.Context) {
 	var group Group
 	if err := a.db.Preload(clause.Associations).First(&group, &Group{Id: groupId}).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			logging.S.Debugf("invalid group ID: %w", err)
+			logging.Logger(c).Debugf("invalid group ID: %w", err)
 			sendAPIError(c, http.StatusNotFound, fmt.Sprintf("Could not find group ID \"%s\"", groupId))
 		} else {
-			logging.S.Errorf("group ID lookup: %w", err)
+			logging.Logger(c).Errorf("group ID lookup: %w", err)
 			sendAPIError(c, http.StatusInternalServerError, err.Error())
 		}
 
@@ -298,7 +301,7 @@ func (a *API) ListProviders(c *gin.Context) {
 
 	var providers []Provider
 	if err := a.db.Find(&providers, &Provider{Kind: ProviderKind(providerKind)}).Error; err != nil {
-		logging.L.Error(err.Error())
+		logging.Logger(c).Error(err.Error())
 		sendAPIError(c, http.StatusInternalServerError, "could not list providers")
 
 		return
@@ -324,10 +327,10 @@ func (a *API) GetProvider(c *gin.Context) {
 	var provider Provider
 	if err := a.db.First(&provider, &Provider{Id: providerId}).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			logging.S.Debugf("invalid provider ID: %w", err)
+			logging.Logger(c).Debugf("invalid provider ID: %w", err)
 			sendAPIError(c, http.StatusNotFound, fmt.Sprintf("Could not find provider ID \"%s\"", providerId))
 		} else {
-			logging.S.Errorf("provider ID lookup: %w", err)
+			logging.Logger(c).Errorf("provider ID lookup: %w", err)
 			sendAPIError(c, http.StatusInternalServerError, err.Error())
 		}
 
@@ -345,7 +348,7 @@ func (a *API) ListDestinations(c *gin.Context) {
 
 	var destinations []Destination
 	if err := a.db.Preload("Labels").Find(&destinations, &Destination{Name: destinationName, Kind: DestinationKind(destinationKind)}).Error; err != nil {
-		logging.L.Error(err.Error())
+		logging.Logger(c).Error(err)
 		sendAPIError(c, http.StatusInternalServerError, "could not list destinations")
 
 		return
@@ -370,10 +373,10 @@ func (a *API) GetDestination(c *gin.Context) {
 	var destination Destination
 	if err := a.db.First(&destination, &Destination{Id: destinationId}).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			logging.S.Debugf("invalid destination ID: %w", err)
+			logging.Logger(c).Debugf("invalid destination ID: %w", err)
 			sendAPIError(c, http.StatusNotFound, fmt.Sprintf("Could not find destination ID \"%s\"", destinationId))
 		} else {
-			logging.S.Errorf("destination ID lookup: %w", err)
+			logging.Logger(c).Errorf("destination ID lookup: %w", err)
 			sendAPIError(c, http.StatusInternalServerError, err.Error())
 		}
 
@@ -435,7 +438,7 @@ func (a *API) CreateDestination(c *gin.Context) {
 		return nil
 	})
 	if err != nil {
-		logging.L.Error(err.Error())
+		logging.Logger(c).Error(err.Error())
 		sendAPIError(c, http.StatusInternalServerError, err.Error())
 
 		return
@@ -451,7 +454,7 @@ func (a *API) ListAPIKeys(c *gin.Context) {
 
 	err := a.db.Find(&keys, &APIKey{Name: keyName}).Error
 	if err != nil {
-		logging.L.Error(err.Error())
+		logging.Logger(c).Error(err.Error())
 		sendAPIError(c, http.StatusInternalServerError, "could not list keys")
 
 		return
@@ -480,7 +483,7 @@ func (a *API) DeleteAPIKey(c *gin.Context) {
 	}
 
 	if err := a.db.Delete(&APIKey{Id: id}).Error; err != nil {
-		logging.S.Errorf("api key delete: %w", err)
+		logging.Logger(c).Errorf("api key delete: %w", err)
 		sendAPIError(c, http.StatusInternalServerError, err.Error())
 
 		return
@@ -531,13 +534,13 @@ func (a *API) CreateAPIKey(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrExistingKey):
-			logging.S.Debugf("API key existing creation: %w", err)
+			logging.Logger(c).Debugf("API key existing creation: %w", err)
 			sendAPIError(c, http.StatusConflict, "An API key with this name already exists")
 		case errors.Is(err, ErrKeyPermissionsNotFound):
-			logging.S.Debugf("API key permission creation: %w", err)
+			logging.Logger(c).Debugf("API key permission creation: %w", err)
 			sendAPIError(c, http.StatusBadRequest, "API key could not be created, permissions are required")
 		default:
-			logging.S.Errorf("API key creation: %w", err)
+			logging.Logger(c).Errorf("API key creation: %w", err)
 			sendAPIError(c, http.StatusInternalServerError, err.Error())
 		}
 
@@ -569,7 +572,7 @@ func (a *API) ListRoles(c *gin.Context) {
 		return nil
 	})
 	if err != nil {
-		logging.L.Error(err.Error())
+		logging.Logger(c).Error(err.Error())
 		sendAPIError(c, http.StatusInternalServerError, "could not list roles")
 
 		return
@@ -594,10 +597,10 @@ func (a *API) GetRole(c *gin.Context) {
 	var role Role
 	if err := a.db.Preload("Groups.Users").Preload(clause.Associations).First(&role, &Role{Id: roleId}).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			logging.S.Debugf("invalid role ID: %w", err)
+			logging.Logger(c).Debugf("invalid role ID: %w", err)
 			sendAPIError(c, http.StatusNotFound, fmt.Sprintf("Could not find role ID \"%s\"", roleId))
 		} else {
-			logging.S.Errorf("role ID lookup: %w", err)
+			logging.Logger(c).Errorf("role ID lookup: %w", err)
 			sendAPIError(c, http.StatusInternalServerError, err.Error())
 		}
 
@@ -667,7 +670,7 @@ func (a *API) createJWT(destination, email string) (rawJWT string, expiry time.T
 func (a *API) CreateToken(c *gin.Context) {
 	token, err := extractToken(c)
 	if err != nil {
-		logging.L.Error(err.Error())
+		logging.Logger(c).Error(err.Error())
 		sendAPIError(c, http.StatusUnauthorized, "unauthorized")
 
 		return
@@ -686,7 +689,7 @@ func (a *API) CreateToken(c *gin.Context) {
 
 	jwt, expiry, err := a.createJWT(*body.Destination, token.User.Email)
 	if err != nil {
-		logging.L.Error(err.Error())
+		logging.Logger(c).Error(err.Error())
 		sendAPIError(c, http.StatusInternalServerError, "could not generate cred")
 
 		return
@@ -713,7 +716,7 @@ func (a *API) Login(c *gin.Context) {
 	case body.Okta != nil:
 		var provider Provider
 		if err := a.db.Where(&Provider{Kind: ProviderKindOkta, Domain: body.Okta.Domain}).First(&provider).Error; err != nil {
-			logging.L.Debug("Could not retrieve okta provider from db: " + err.Error())
+			logging.Logger(c).Debug("Could not retrieve okta provider from db: " + err.Error())
 			sendAPIError(c, http.StatusBadRequest, "invalid okta login information")
 
 			return
@@ -721,7 +724,7 @@ func (a *API) Login(c *gin.Context) {
 
 		clientSecret, err := a.registry.GetSecret(provider.ClientSecret)
 		if err != nil {
-			logging.L.Error("Could not retrieve okta client secret from provider: " + err.Error())
+			logging.Logger(c).Error("Could not retrieve okta client secret from provider: " + err.Error())
 			sendAPIError(c, http.StatusInternalServerError, "invalid okta login information")
 
 			return
@@ -734,7 +737,7 @@ func (a *API) Login(c *gin.Context) {
 			clientSecret,
 		)
 		if err != nil {
-			logging.L.Debug("Could not extract email from okta info: " + err.Error())
+			logging.Logger(c).Debug("Could not extract email from okta info: " + err.Error())
 			sendAPIError(c, http.StatusUnauthorized, "invalid okta login information")
 
 			return
@@ -742,7 +745,7 @@ func (a *API) Login(c *gin.Context) {
 
 		err = a.db.Where("email = ?", email).First(&user).Error
 		if err != nil {
-			logging.L.Debug("Could not get user from database: " + err.Error())
+			logging.Logger(c).Debug("Could not get user from database: " + err.Error())
 			sendAPIError(c, http.StatusUnauthorized, "invalid okta login information")
 
 			return
@@ -754,7 +757,7 @@ func (a *API) Login(c *gin.Context) {
 
 	userToken, err := issueSessionToken(a.db, user.Id, a.registry.options.SessionDuration)
 	if err != nil {
-		logging.L.Error(err.Error())
+		logging.Logger(c).Error(err.Error())
 		sendAPIError(c, http.StatusInternalServerError, "could not create token")
 
 		return
@@ -763,7 +766,7 @@ func (a *API) Login(c *gin.Context) {
 	setAuthCookie(c, userToken, a.registry.options.SessionDuration)
 
 	if err := a.t.Enqueue(analytics.Track{Event: "infra.login", UserId: user.Id}); err != nil {
-		logging.S.Debug(err)
+		logging.Logger(c).Debug(err)
 	}
 
 	c.JSON(http.StatusOK, api.LoginResponse{Name: user.Email, Token: userToken})
@@ -772,7 +775,7 @@ func (a *API) Login(c *gin.Context) {
 func (a *API) Logout(c *gin.Context) {
 	token, err := extractToken(c)
 	if err != nil {
-		logging.L.Error(err.Error())
+		logging.Logger(c).Error(err.Error())
 		sendAPIError(c, http.StatusBadRequest, "invalid token")
 
 		return
@@ -780,7 +783,7 @@ func (a *API) Logout(c *gin.Context) {
 
 	if err := a.db.Where(&Token{UserId: token.UserId}).Delete(&Token{}).Error; err != nil {
 		sendAPIError(c, http.StatusInternalServerError, "could not log out user")
-		logging.L.Error(err.Error())
+		logging.Logger(c).Error(err.Error())
 
 		return
 	}
@@ -788,7 +791,7 @@ func (a *API) Logout(c *gin.Context) {
 	deleteAuthCookie(c)
 
 	if err := a.t.Enqueue(analytics.Track{Event: "infra.logout", UserId: token.UserId}); err != nil {
-		logging.S.Debug(err)
+		logging.Logger(c).Debug(err)
 	}
 
 	c.Status(http.StatusOK)
@@ -882,7 +885,7 @@ func marshalPermissions(permissions string) ([]api.InfraAPIPermission, error) {
 	for _, p := range storedPermissions {
 		apiPermission, err := api.NewInfraAPIPermissionFromValue(p)
 		if err != nil {
-			logging.S.Errorf("Error converting stored permission %q to API permission: %w", p, err)
+			logging.Logger(c).Errorf("Error converting stored permission %q to API permission: %w", p, err)
 			return nil, err
 		}
 

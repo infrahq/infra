@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/handlers"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -129,4 +130,33 @@ func (w *filteredWriterSyncer) Write(b []byte) (int, error) {
 
 func (w *filteredWriterSyncer) Sync() error {
 	return w.dest.Sync()
+}
+
+var (
+	ctxLoggerKey = "logger"
+)
+
+// UserAwareLoggerMiddleware saves a request-specific logger to the context
+func UserAwareLoggerMiddleware(c *gin.Context) {
+	if userID := c.GetString("userID"); userID != "" {
+		logger := L.With(
+			zapcore.Field{
+				Key:    "userID",
+				Type:   zapcore.StringType,
+				String: userID,
+			})
+		c.Set(ctxLoggerKey, logger.Sugar())
+	}
+
+	c.Next()
+}
+
+// Logger gets the request-specific logger from the context
+func Logger(c *gin.Context) *zap.SugaredLogger {
+	if loggerInf, ok := c.Get(ctxLoggerKey); ok {
+		if logger, ok := loggerInf.(*zap.SugaredLogger); ok {
+			return logger
+		}
+	}
+	return S
 }
