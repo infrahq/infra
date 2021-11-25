@@ -58,6 +58,7 @@ config:
           name: view
           destinations:
             - name: <cluster name> # cluster name in your cloud provider
+              kind: kubernetes
               namespaces:
                 - default
 ```
