@@ -52,6 +52,9 @@ openapi: openapi/clean
 	# manually post process some files since openapi-generator forgot
 	find internal/api -name '*.go' -exec $(GO_POST_PROCESS_FILE) {} \;
 
+build/openapi:
+	npx @redocly/openapi-cli bundle -o openapi-bundled.yaml openapi.yaml
+
 openapi/clean:
 	$(RM) -r internal/api/*.go
 	$(RM) -r internal/api/api internal/api/.openapi-generator
