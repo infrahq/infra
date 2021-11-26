@@ -40,6 +40,10 @@ func NewAPIMux(reg *Registry, router *gin.RouterGroup) {
 		registry: reg,
 	}
 
+	router.Use(
+		RequestTimeoutMiddleware,
+	)
+
 	authorized := router.Group("/",
 		/*, AuthRequired()*/ // <--- really need something to inject userID and user into the context.
 		logging.UserAwareLoggerMiddleware,
