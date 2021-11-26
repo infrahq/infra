@@ -59,7 +59,11 @@ host:
 		}
 
 		if len(loadedCfg.Hosts) > 0 {
-			selectedHost = promptSelectHost(loadedCfg.Hosts)
+			selectedHost, err = promptSelectHost(loadedCfg.Hosts)
+			if err != nil {
+				return err
+			}
+
 			if selectedHost != nil {
 				break host
 			}
@@ -260,7 +264,7 @@ provider:
 	return nil
 }
 
-func promptSelectHost(hosts []ClientHostConfig) *ClientHostConfig {
+func promptSelectHost(hosts []ClientHostConfig) (*ClientHostConfig, error) {
 	options := []string{}
 	for _, reg := range hosts {
 		options = append(options, reg.Host)
@@ -276,14 +280,14 @@ func promptSelectHost(hosts []ClientHostConfig) *ClientHostConfig {
 
 	err := survey.AskOne(prompt, &option, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	if option == len(options)-1 {
-		return nil
+		return nil, nil
 	}
 
-	return &hosts[option]
+	return &hosts[option], nil
 }
 
 func promptShouldSkipTLSVerify(host string) (shouldSkipTLSVerify bool, proceed bool, err error) {
