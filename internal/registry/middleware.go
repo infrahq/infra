@@ -11,7 +11,7 @@ import (
 var requestTimeout = 60 * time.Second
 
 // RequestTimeoutMiddleware adds a timeout to the request context within the Gin context.
-// To correctly abort long-running requests, this depnds on the users of the context to
+// To correctly abort long-running requests, this depends on the users of the context to
 // stop working when the context cancels.
 // Note: The goroutine for the request is never halted; if the context is not
 // passed down to lower packages and long-running tasks, then the app will not
