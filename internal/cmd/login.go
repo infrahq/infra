@@ -58,9 +58,11 @@ host:
 			}
 		}
 
-		selectedHost = promptSelectHost(loadedCfg.Hosts)
-		if selectedHost != nil {
-			break host
+		if len(loadedCfg.Hosts) > 0 {
+			selectedHost = promptSelectHost(loadedCfg.Hosts)
+			if selectedHost != nil {
+				break host
+			}
 		}
 
 		err := survey.AskOne(&survey.Input{Message: "Host"}, &options.Host, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
