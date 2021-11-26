@@ -465,7 +465,9 @@ func (a *API) ListAPIKeys(c *gin.Context) {
 	for _, k := range keys {
 		resKey, err := k.marshal()
 		if err != nil {
+			logging.Logger(c).Error(err)
 			sendAPIError(c, http.StatusInternalServerError, "unexpected value encountered while marshalling API key")
+
 			return
 		}
 
@@ -885,8 +887,7 @@ func marshalPermissions(permissions string) ([]api.InfraAPIPermission, error) {
 	for _, p := range storedPermissions {
 		apiPermission, err := api.NewInfraAPIPermissionFromValue(p)
 		if err != nil {
-			logging.Logger(c).Errorf("Error converting stored permission %q to API permission: %w", p, err)
-			return nil, err
+			return nil, fmt.Errorf("Error converting stored permission %q to API permission: %w", p, err)
 		}
 
 		apiPermissions = append(apiPermissions, *apiPermission)

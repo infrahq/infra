@@ -132,9 +132,7 @@ func (w *filteredWriterSyncer) Sync() error {
 	return w.dest.Sync()
 }
 
-var (
-	ctxLoggerKey = "logger"
-)
+var ctxLoggerKey = "logger"
 
 // UserAwareLoggerMiddleware saves a request-specific logger to the context
 func UserAwareLoggerMiddleware(c *gin.Context) {
@@ -158,5 +156,6 @@ func Logger(c *gin.Context) *zap.SugaredLogger {
 			return logger
 		}
 	}
+
 	return S
 }
