@@ -15,13 +15,13 @@
 Login to Infra
 
 ```
-infra login [HOST] [flags]
+infra login [flags]
 ```
 
 ### Examples
 
 ```
-$ infra login infra.example.com
+$ infra login
 ```
 
 ### Options
@@ -41,7 +41,7 @@ $ infra login infra.example.com
 
 ## `infra logout`
 
-Logout Infra
+Logout of Infra
 
 ```
 infra logout [flags]
@@ -69,7 +69,7 @@ $ infra logout
 
 ## `infra list`
 
-List destinations
+List infrastructure
 
 ```
 infra list [flags]
@@ -138,7 +138,7 @@ infra kubernetes use-context [NAME] [flags]
 
 ## `infra version`
 
-Display the Infra build version
+Display the Infra version
 
 ```
 infra version [flags]

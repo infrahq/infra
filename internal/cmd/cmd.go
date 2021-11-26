@@ -15,13 +15,8 @@ import (
 	"github.com/infrahq/infra/internal/engine"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry"
-	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
 )
-
-func blue(s string) string {
-	return termenv.String(s).Bold().Foreground(termenv.ColorProfile().Color("#0057FF")).String()
-}
 
 // errWithResponseContext appends the response message to a returned error
 func errWithResponseContext(err error, res *http.Response) error {
@@ -106,18 +101,13 @@ func apiClientFromConfig(host string) (*api.APIClient, error) {
 
 func newLoginCmd() (*cobra.Command, error) {
 	cmd := &cobra.Command{
-		Use:     "login [HOST]",
+		Use:     "login",
 		Short:   "Login to Infra",
-		Args:    cobra.MaximumNArgs(1),
-		Example: "$ infra login infra.example.com",
+		Example: "$ infra login",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var options LoginOptions
 			if err := internal.ParseOptions(cmd, &options); err != nil {
 				return err
-			}
-
-			if len(args) == 1 {
-				options.Host = args[0]
 			}
 
 			return login(&options)
@@ -132,7 +122,7 @@ func newLoginCmd() (*cobra.Command, error) {
 func newLogoutCmd() (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:     "logout",
-		Short:   "Logout Infra",
+		Short:   "Logout of Infra",
 		Args:    cobra.MaximumNArgs(1),
 		Example: "$ infra logout",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -156,7 +146,7 @@ func newListCmd() (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
-		Short:   "List destinations",
+		Short:   "List infrastructure",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var options ListOptions
 			if err := internal.ParseOptions(cmd, &options); err != nil {
@@ -238,7 +228,7 @@ func newEngineCmd() (*cobra.Command, error) {
 func newVersionCmd() (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:   "version",
-		Short: "Display the Infra build version",
+		Short: "Display the Infra version",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var options VersionOptions
 			if err := internal.ParseOptions(cmd, &options); err != nil {
@@ -332,8 +322,9 @@ func NewRootCmd() (*cobra.Command, error) {
 	}
 
 	rootCmd := &cobra.Command{
-		Use:   "infra",
-		Short: "Infrastructure Identity & Access Management (IAM)",
+		Use:               "infra",
+		Short:             "Infrastructure Identity & Access Management (IAM)",
+		CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: true},
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			cmd.SilenceUsage = true
 

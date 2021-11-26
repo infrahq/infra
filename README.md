@@ -152,7 +152,7 @@ You will need to get your Infra endpoint. This step will be different depending 
 Once you have your infra host, it is time to login.
 
 ```bash
-infra login $INFRA_HOST
+infra login
 ```
 
 Follow the instructions on screen to complete the login process.

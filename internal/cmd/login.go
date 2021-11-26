@@ -58,14 +58,17 @@ host:
 			}
 		}
 
-		// TODO (https://github.com/infrahq/infra/issues/496): prompt user instead of assuming the first hostname
-		// since they may not know where they are logging into
-		if len(loadedCfg.Hosts) == 1 {
-			selectedHost = &loadedCfg.Hosts[0]
-			break
+		selectedHost = promptSelectHost(loadedCfg.Hosts)
+		if selectedHost != nil {
+			break host
 		}
 
-		selectedHost = promptSelectHost(loadedCfg.Hosts)
+		err := survey.AskOne(&survey.Input{Message: "Host"}, &options.Host, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
+		if err != nil {
+			return err
+		}
+
+		fallthrough
 	default:
 		for i := range loadedCfg.Hosts {
 			if loadedCfg.Hosts[i].Host == options.Host {
@@ -85,7 +88,7 @@ host:
 		return errors.New("host endpoint is required to login")
 	}
 
-	fmt.Fprintf(os.Stderr, "%s Logging in to %s\n", blue("✓"), termenv.String(selectedHost.Host).Bold().String())
+	fmt.Fprintf(os.Stderr, "  Logging in to %s\n", termenv.String(selectedHost.Host).Bold().String())
 
 	skipTLSVerify := selectedHost.SkipTLSVerify
 	if !skipTLSVerify {
@@ -159,7 +162,7 @@ provider:
 
 		authorizeURL := "https://" + selectedProvider.Domain + "/oauth2/v1/authorize?redirect_uri=" + "http://localhost:8301&client_id=" + selectedProvider.ClientID + "&response_type=code&scope=openid+email&nonce=" + nonce + "&state=" + state
 
-		fmt.Fprintf(os.Stderr, "%s Logging in with %s...\n", blue("✓"), termenv.String("Okta").Bold().String())
+		fmt.Fprintf(os.Stderr, "  Logging in with %s...\n", termenv.String("Okta").Bold().String())
 
 		ls, err := newLocalServer()
 		if err != nil {
@@ -208,7 +211,7 @@ provider:
 		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "%s Logged in as %s\n", blue("✓"), termenv.String(loginRes.Name).Bold().String())
+	fmt.Fprintf(os.Stderr, "  Logged in as %s\n", termenv.String(loginRes.Name).Bold().String())
 
 	client, err = NewAPIClient(selectedHost.Host, skipTLSVerify)
 	if err != nil {
@@ -240,7 +243,7 @@ provider:
 
 	if len(users[0].Roles) > 0 {
 		kubeConfigFilename := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{}).ConfigAccess().GetDefaultFilename()
-		fmt.Fprintf(os.Stderr, "%s Updated %s\n", blue("✓"), termenv.String(strings.ReplaceAll(kubeConfigFilename, homeDir, "~")).Bold().String())
+		fmt.Fprintf(os.Stderr, "  Updated %s\n", termenv.String(strings.ReplaceAll(kubeConfigFilename, homeDir, "~")).Bold().String())
 	}
 
 	context, err := switchToFirstInfraContext()
@@ -249,7 +252,7 @@ provider:
 	}
 
 	if context != "" {
-		fmt.Fprintf(os.Stderr, "%s Current Kubernetes context is now %s\n", blue("✓"), termenv.String(context).Bold().String())
+		fmt.Fprintf(os.Stderr, "  Current Kubernetes context is now %s\n", termenv.String(context).Bold().String())
 	}
 
 	return nil
@@ -261,16 +264,20 @@ func promptSelectHost(hosts []ClientHostConfig) *ClientHostConfig {
 		options = append(options, reg.Host)
 	}
 
+	options = append(options, "Connect to a different host")
+
 	option := 0
 	prompt := &survey.Select{
-		Message: "Choose Infra account:",
+		Message: "Select an Infra host:",
 		Options: options,
 	}
 
-	err := survey.AskOne(prompt, &option, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithIcons(func(icons *survey.IconSet) {
-		icons.Question.Text = blue("?")
-	}))
+	err := survey.AskOne(prompt, &option, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
 	if err != nil {
+		return nil
+	}
+
+	if option == len(options)-1 {
 		return nil
 	}
 
@@ -305,9 +312,7 @@ func promptShouldSkipTLSVerify(host string) (shouldSkipTLSVerify bool, proceed b
 			Message: "Are you sure you want to continue?",
 		}
 
-		err := survey.AskOne(prompt, &proceed, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithIcons(func(icons *survey.IconSet) {
-			icons.Question.Text = blue("?")
-		}))
+		err := survey.AskOne(prompt, &proceed, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err.Error())
 			return false, false, err
@@ -344,13 +349,11 @@ func promptSelectProvider(providers []api.Provider) (*api.Provider, error) {
 	var option int
 
 	prompt := &survey.Select{
-		Message: "Choose a login method:",
+		Message: "Select a login method:",
 		Options: options,
 	}
 
-	err := survey.AskOne(prompt, &option, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithIcons(func(icons *survey.IconSet) {
-		icons.Question.Text = blue("?")
-	}))
+	err := survey.AskOne(prompt, &option, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
 	if errors.Is(err, terminal.InterruptErr) {
 		return nil, err
 	}

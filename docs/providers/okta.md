@@ -104,10 +104,3 @@ Then apply this config change:
 helm -n infrahq upgrade -f values.yaml infra infrahq/infra
 ```
 
-### Login with Okta
-
-```
-$ infra login <INFRA_HOST>
-? Choose a login method  [Use arrows to move, type to filter]
-> Okta [example.okta.com]
-```
