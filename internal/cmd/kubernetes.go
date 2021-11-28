@@ -201,9 +201,7 @@ DESTINATIONS:
 
 		var selected string
 
-		err := survey.AskOne(&prompt, &selected, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithIcons(func(icons *survey.IconSet) {
-			icons.Question.Text = blue("?")
-		}))
+		err := survey.AskOne(&prompt, &selected, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
 		if err != nil {
 			if errors.Is(err, terminal.InterruptErr) {
 				return nil
@@ -259,9 +257,7 @@ DESTINATIONS:
 
 		var selected string
 
-		err := survey.AskOne(&prompt, &selected, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithIcons(func(icons *survey.IconSet) {
-			icons.Question.Text = blue("?")
-		}))
+		err := survey.AskOne(&prompt, &selected, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
 		if err != nil {
 			if errors.Is(err, terminal.InterruptErr) {
 				return nil

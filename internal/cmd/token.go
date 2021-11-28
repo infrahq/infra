@@ -67,6 +67,10 @@ func tokenCreate(options *TokenOptions) error {
 
 		cred, res, err := credReq.Execute()
 		if err != nil {
+			if res == nil {
+				return err
+			}
+
 			switch res.StatusCode {
 			case http.StatusForbidden:
 				fmt.Fprintln(os.Stderr, "Session has expired.")

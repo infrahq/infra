@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"math/rand"
 	"net/http"
 	"os"
 	"sort"
@@ -19,12 +18,11 @@ type ListOptions struct {
 	internal.Options `mapstructure:",squash"`
 }
 
-type statusRow struct {
-	CurrentlySelected        string `header:"CURRENT"` // * if selected
-	ID                       string `header:"ID"`
+type listRow struct {
+	CurrentlySelected        string `header:" "` // * if selected
 	Name                     string `header:"NAME"`
 	Kind                     string `header:"KIND"`
-	Status                   string `header:"STATUS"`
+	ID                       string `header:"ID"`
 	Labels                   string `header:"LABELS"`
 	Endpoint                 string // don't display in table
 	CertificateAuthorityData []byte // don't display in table
@@ -63,7 +61,6 @@ func list(options *ListOptions) error {
 		}
 	}
 
-	// This shouldn't be possible but check nonetheless
 	switch {
 	case len(users) < 1:
 		return fmt.Errorf("user \"%s\" not found", config.Name)
@@ -79,7 +76,7 @@ func list(options *ListOptions) error {
 	}
 
 	// deduplicate rows
-	rows := make(map[string]statusRow)
+	rows := make(map[string]listRow)
 	for _, r := range user.Roles {
 		rows[r.Destination.Id] = newRow(r, kubeConfig.CurrentContext)
 	}
@@ -90,7 +87,7 @@ func list(options *ListOptions) error {
 		}
 	}
 
-	rowsList := make([]statusRow, 0)
+	rowsList := make([]listRow, 0)
 	for _, r := range rows {
 		rowsList = append(rowsList, r)
 	}
@@ -99,36 +96,6 @@ func list(options *ListOptions) error {
 		// Sort by combined name, descending
 		return rowsList[i].Name+rowsList[i].ID < rowsList[j].Name+rowsList[j].ID
 	})
-
-	ok, err := canReachInternet()
-	if !ok {
-		for i := range rowsList {
-			rowsList[i].Status = fmt.Sprintf("💻 → %s → ❌ Can't reach network: (%s)", globe(), err)
-		}
-	}
-
-	if ok {
-		for i, row := range rowsList {
-			// check success case first for speed.
-			ok, lastErr := canGetEngineStatus(row)
-			if ok {
-				rowsList[i].Status = "✅ OK"
-				continue
-			}
-			// if we had a problem, check all the stops in order to figure out where it's getting stuck
-			if ok, err := canConnectToEndpoint(row.Endpoint); !ok {
-				rowsList[i].Status = fmt.Sprintf("💻 → %s → ❌ Can't reach endpoint %q (%s)", globe(), row.Endpoint, err)
-				continue
-			}
-
-			if ok, err := canConnectToTLSEndpoint(row); !ok {
-				rowsList[i].Status = fmt.Sprintf("💻 → %s → 🌥  → ❌ Can't negotiate TLS (%s)", globe(), err)
-				continue
-			}
-			// if we made it here, we must be talking to something that isn't the engine.
-			rowsList[i].Status = fmt.Sprintf("💻 → %s → 🌥  → 🔒 → ❌ Can't talk to infra engine (%s)", globe(), lastErr)
-		}
-	}
 
 	printTable(rowsList)
 
@@ -139,18 +106,17 @@ func list(options *ListOptions) error {
 	return nil
 }
 
-func newRow(role api.Role, currentContext string) statusRow {
-	row := statusRow{
+func newRow(role api.Role, currentContext string) listRow {
+	row := listRow{
 		ID:     role.Destination.NodeID[:12],
 		Name:   role.Destination.Name,
-		Status: "💻 → ❌ Can't reach internet",
 		Labels: strings.Join(role.Destination.Labels, ", "),
 	}
 
 	if k8s, ok := role.Destination.GetKubernetesOk(); ok {
 		row.Endpoint = k8s.Endpoint
 		row.CertificateAuthorityData = []byte(k8s.Ca)
-		row.Kind = "Kubernetes"
+		row.Kind = "kubernetes"
 	}
 
 	parts := strings.Split(currentContext, ":")
@@ -170,18 +136,6 @@ func newRow(role api.Role, currentContext string) statusRow {
 	}
 
 	return row
-}
-
-func globe() string {
-	//nolint:gosec // No need for crypto random
-	switch rand.Intn(3) {
-	case 1:
-		return "🌍"
-	case 2:
-		return "🌏"
-	default:
-		return "🌎"
-	}
 }
 
 func printTable(data interface{}) {
