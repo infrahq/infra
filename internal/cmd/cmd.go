@@ -146,7 +146,7 @@ func newListCmd() (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
-		Short:   "List infrastructure destinations",
+		Short:   "List destinations",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var options ListOptions
 			if err := internal.ParseOptions(cmd, &options); err != nil {

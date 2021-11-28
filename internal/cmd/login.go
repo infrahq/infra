@@ -71,6 +71,10 @@ host:
 
 		err := survey.AskOne(&survey.Input{Message: "Host"}, &options.Host, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
 		if err != nil {
+			if errors.Is(err, terminal.InterruptErr) {
+				return nil
+			}
+
 			return err
 		}
 

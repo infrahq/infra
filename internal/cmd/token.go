@@ -68,7 +68,7 @@ func tokenCreate(options *TokenOptions) error {
 		cred, res, err := credReq.Execute()
 		if err != nil {
 			if res == nil {
-				return fmt.Errorf("%w", err)
+				return err
 			}
 
 			switch res.StatusCode {
