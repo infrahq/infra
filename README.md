@@ -65,7 +65,7 @@ config:
 
 See the [Helm Chart reference](./docs/helm.md) for a complete list of options configurable through Helm.
 
-> Note: Infra uses [Secrets](https://github.com/infrahq/infra/blob/main/docs/secrets.md) to securely load secrets.
+> Note: Infra uses [Secrets](./docs/secrets.md) to securely load secrets.
 > It is _not_ recommended to use plain text secrets. Considering using another supported secret type.
 
 ### Install Infra
