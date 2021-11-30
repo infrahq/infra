@@ -13,7 +13,7 @@ import (
 type ErrResultTimedOut struct{}
 
 func (e *ErrResultTimedOut) Error() string {
-	return "timed out waiting for result"
+	return "Timed out waiting for browser login"
 }
 
 type CodeResponse struct {

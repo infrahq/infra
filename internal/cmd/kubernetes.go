@@ -45,7 +45,7 @@ func newKubernetesUseCmd() (*cobra.Command, error) {
 				return err
 			}
 
-			return kubernetesUseContext(&options)
+			return formatError(kubernetesUseContext(&options))
 		},
 	}
 
@@ -92,9 +92,11 @@ func kubernetesUseContext(options *KubernetesOptions) error {
 	// This shouldn't be possible but check nonetheless
 	switch {
 	case len(users) < 1:
-		return fmt.Errorf("user %q not found", config.Name)
+		//lint:ignore ST1005, user facing error
+		return fmt.Errorf("User %q not found, is this account still valid?", config.Name)
 	case len(users) > 1:
-		return fmt.Errorf("found multiple users %q", config.Name)
+		//lint:ignore ST1005, user facing error
+		return fmt.Errorf("Found multiple users for %q, please contact your administrator", config.Name)
 	}
 
 	user := users[0]
@@ -171,7 +173,8 @@ DESTINATIONS:
 
 	switch len(destinations) {
 	case 0:
-		return fmt.Errorf("not found")
+		//lint:ignore ST1005, user facing error
+		return fmt.Errorf("No kubernetes contexts found for user, you are not assigned any kubernetes roles")
 	case 1:
 		for _, d := range destinations {
 			namespaces = d
@@ -221,7 +224,8 @@ DESTINATIONS:
 	switch len(namespaces) {
 	case 0:
 		// should be impossible
-		return fmt.Errorf("not found")
+		//lint:ignore ST1005, user facing error
+		return fmt.Errorf("No namespaces found for kubernetes contexts, your server configuration may be invalid")
 	case 1:
 		for _, n := range namespaces {
 			namespace = n[0]
@@ -309,7 +313,7 @@ func kubernetesSetContext(alias string, shortname string, namespace string) erro
 		// try infra:<ALIAS>
 		kubeconfig.CurrentContext = c.Cluster
 	} else {
-		return fmt.Errorf("context not found")
+		return fmt.Errorf("Infra context not found in local Kubernetes configuration, Infra context should be created on login")
 	}
 
 	fmt.Fprintf(os.Stderr, "Switched to context %q.\n", kubeconfig.CurrentContext)

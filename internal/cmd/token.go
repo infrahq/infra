@@ -37,7 +37,7 @@ func newTokenCreateCmd() (*cobra.Command, error) {
 				return err
 			}
 
-			return tokenCreate(&options)
+			return formatError(tokenCreate(&options))
 		},
 	}
 

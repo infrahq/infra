@@ -95,7 +95,8 @@ host:
 	}
 
 	if selectedHost == nil {
-		return errors.New("host endpoint is required to login")
+		//lint:ignore ST1005, user facing error
+		return errors.New("Host endpoint is required, ask your administrator for the endpoint you should use to login")
 	}
 
 	fmt.Fprintf(os.Stderr, "  Logging in to %s\n", termenv.String(selectedHost.Host).Bold().String())
@@ -110,7 +111,8 @@ host:
 		}
 
 		if !proceed {
-			return fmt.Errorf("user declined login")
+			//lint:ignore ST1005, user facing error
+			return fmt.Errorf("Login cancelled, TLS connection could not be verified")
 		}
 	}
 
@@ -129,7 +131,8 @@ host:
 provider:
 	switch {
 	case len(providers) == 0:
-		return errors.New("no identity providers have been configured")
+		//lint:ignore ST1005, user facing error
+		return errors.New("No identity providers have been configured for logging in with this Infra host")
 	case len(providers) == 1:
 		selectedProvider = &providers[0]
 	default:
@@ -190,7 +193,8 @@ provider:
 		}
 
 		if state != recvstate {
-			return errors.New("received state is not the same as sent state")
+			//lint:ignore ST1005, user facing error
+			return errors.New("Login aborted, Okta state did not match the expected state")
 		}
 
 		loginReq.Okta = &api.LoginRequestOkta{
@@ -198,7 +202,8 @@ provider:
 			Code:   code,
 		}
 	default:
-		return errors.New("invalid provider selected")
+		//lint:ignore ST1005, user facing error, should not happen
+		return fmt.Errorf("Invalid provider selected %q", selectedProvider.Kind)
 	}
 
 	loginRes, res, err := client.AuthAPI.Login(context.Background()).Body(loginReq).Execute()
@@ -234,11 +239,13 @@ provider:
 	}
 
 	if len(users) < 1 {
-		return fmt.Errorf("user \"%s\" not found", loginRes.Name)
+		//lint:ignore ST1005, user facing error
+		return fmt.Errorf("User %q not found at Infra host, is this account still valid?", loginRes.Name)
 	}
 
 	if len(users) > 1 {
-		return fmt.Errorf("found multiple users \"%s\"", loginRes.Name)
+		//lint:ignore ST1005, user facing error
+		return fmt.Errorf("Found multiple users found for %q, please contact your administrator", loginRes.Name)
 	}
 
 	err = updateKubeconfig(users[0])

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/goware/urlx"
 	"github.com/infrahq/infra/internal"
@@ -15,18 +16,44 @@ import (
 	"github.com/infrahq/infra/internal/engine"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry"
+	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
 )
 
-// errWithResponseContext appends the response message to a returned error
-func errWithResponseContext(err error, res *http.Response) error {
-	var apiErr api.Error
-	if decodeErr := json.NewDecoder(res.Body).Decode(&apiErr); decodeErr != nil {
-		// ignore this decoding error and return the original error
-		return err
+func red(s string) string {
+	return termenv.String(s).Bold().Foreground(termenv.ColorProfile().Color("#FA5F55")).String()
+}
+
+// formatError wraps errors in a red formatting to make them obvious in the terminal
+func formatError(err error) error {
+	if err != nil {
+		return fmt.Errorf(red(err.Error()))
 	}
 
-	return fmt.Errorf("%w (Message: %s)", err, apiErr.Message)
+	return nil
+}
+
+// errWithResponseContext prints errors with extended context from the server response
+func errWithResponseContext(err error, res *http.Response) error {
+	if strings.Contains(err.Error(), "undefined response type") || strings.Contains(err.Error(), "cannot unmarshal object into Go value") {
+		//lint:ignore ST1005, user facing error
+		return fmt.Errorf("Unable to decode server response, ensure your CLI version matches the server version (Message: %w)", err)
+	}
+
+	if res == nil {
+		//lint:ignore ST1005, user facing error
+		return fmt.Errorf("No response received, make sure the server is running at the host you are connecting to (Message: %s)", err)
+	}
+
+	var apiErr api.Error
+	if decodeErr := json.NewDecoder(res.Body).Decode(&apiErr); decodeErr == nil {
+		// decoding error can be ignored, will return the original error in that case
+		if apiErr.Message != "" {
+			return fmt.Errorf("%w (Message: %s)", err, apiErr.Message)
+		}
+	}
+
+	return err
 }
 
 func NewAPIContext(token string) context.Context {
@@ -110,7 +137,7 @@ func newLoginCmd() (*cobra.Command, error) {
 				return err
 			}
 
-			return login(&options)
+			return formatError(login(&options))
 		},
 	}
 
@@ -135,7 +162,7 @@ func newLogoutCmd() (*cobra.Command, error) {
 				options.Host = args[0]
 			}
 
-			return logout(&options)
+			return formatError(logout(&options))
 		},
 	}
 
@@ -153,7 +180,7 @@ func newListCmd() (*cobra.Command, error) {
 				return err
 			}
 
-			return list(&options)
+			return formatError(list(&options))
 		},
 	}
 
@@ -171,7 +198,7 @@ func newStartCmd() (*cobra.Command, error) {
 				return err
 			}
 
-			return registry.Run(options)
+			return formatError(registry.Run(options))
 		},
 	}
 
@@ -212,7 +239,7 @@ func newEngineCmd() (*cobra.Command, error) {
 				return err
 			}
 
-			return engine.Run(&options)
+			return formatError(engine.Run(&options))
 		},
 	}
 
@@ -235,7 +262,7 @@ func newVersionCmd() (*cobra.Command, error) {
 				return err
 			}
 
-			return version(&options)
+			return formatError(version(&options))
 		},
 	}
 
