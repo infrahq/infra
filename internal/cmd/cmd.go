@@ -42,7 +42,7 @@ func errWithResponseContext(err error, res *http.Response) error {
 
 	if res == nil {
 		//lint:ignore ST1005, user facing error
-		return fmt.Errorf("No response received, make sure the server is running at the host you are connecting to (Message: %s)", err)
+		return fmt.Errorf("No response received, make sure the server is running at the host you are connecting to (Message: %w)", err)
 	}
 
 	var apiErr api.Error
