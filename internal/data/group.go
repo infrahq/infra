@@ -37,10 +37,6 @@ func (g *Group) ToAPI() api.Group {
 		result.Roles = append(result.Roles, r.ToAPI())
 	}
 
-	// for _, p := range g.Providers {
-	// 	result.Providers = append(result.Providers, p.ToAPI())
-	// }
-
 	return result
 }
 

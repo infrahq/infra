@@ -48,19 +48,33 @@ func (p *Provider) ToAPI() api.Provider {
 		ClientID: p.ClientID,
 	}
 
-	// switch p.Kind {
-	// case ProviderKindOkta:
-	// }
-
-	// 	for _, u := range p.Users {
-	// 		result.Users = append(result.Users, u.ToAPI())
-	// 	}
-
-	// 	for _, g := range p.Groups {
-	// 		result.Groups = append(result.Groups, g.ToAPI())
-	// 	}
-
 	return result
+}
+
+func (p *Provider) SetUsers(db *gorm.DB, emails ...string) error {
+	users, err := ListUsers(db, db.Where("email IN (?)", emails))
+	if err != nil {
+		return err
+	}
+
+	if err := db.Model(p).Association("Users").Replace(users); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *Provider) SetGroups(db *gorm.DB, names ...string) error {
+	groups, err := ListGroups(db, db.Where("name IN (?)", names))
+	if err != nil {
+		return err
+	}
+
+	if err := db.Model(p).Association("Groups").Replace(groups); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func NewProvider(id string) (*Provider, error) {

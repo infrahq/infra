@@ -38,10 +38,6 @@ func (u *User) ToAPI() api.User {
 		result.Roles = append(result.Roles, r.ToAPI())
 	}
 
-	// for _, p := range u.Providers {
-	// 	result.Providers = append(result.Providers, p.ToAPI())
-	// }
-
 	return result
 }
 

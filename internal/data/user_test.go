@@ -111,7 +111,7 @@ func TestUserBindRoles(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, user := range users {
-		err = user.BindRoles(db, admin.ID)
+		err := user.BindRoles(db, admin.ID)
 		require.NoError(t, err)
 	}
 
@@ -145,6 +145,7 @@ func TestUserBindMoreRoles(t *testing.T) {
 
 	user, err := GetUser(db, &User{Email: bond.Email})
 	require.NoError(t, err)
+	require.Len(t, user.Roles, 0)
 
 	err = user.BindRoles(db, admin.ID)
 	require.NoError(t, err)
@@ -200,6 +201,7 @@ func TestUserBindLessRoles(t *testing.T) {
 
 	user, err := GetUser(db, &User{Email: bond.Email})
 	require.NoError(t, err)
+	require.Len(t, user.Roles, 0)
 
 	err = user.BindRoles(db, admin.ID, view.ID)
 	require.NoError(t, err)

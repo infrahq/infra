@@ -111,7 +111,7 @@ func TestGroupBindRoles(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, group := range groups {
-		err = group.BindRoles(db, admin.ID)
+		err := group.BindRoles(db, admin.ID)
 		require.NoError(t, err)
 	}
 
@@ -145,6 +145,7 @@ func TestGroupBindMoreRoles(t *testing.T) {
 
 	group, err := GetGroup(db, &Group{Name: everyone.Name})
 	require.NoError(t, err)
+	require.Len(t, group.Roles, 0)
 
 	err = group.BindRoles(db, admin.ID)
 	require.NoError(t, err)
@@ -200,6 +201,7 @@ func TestGroupBindLessRoles(t *testing.T) {
 
 	group, err := GetGroup(db, &Group{Name: everyone.Name})
 	require.NoError(t, err)
+	require.Len(t, group.Roles, 0)
 
 	err = group.BindRoles(db, admin.ID, view.ID)
 	require.NoError(t, err)
@@ -252,6 +254,7 @@ func TestGroupBindMoreUsers(t *testing.T) {
 
 	group, err := GetGroup(db, &Group{Name: everyone.Name})
 	require.NoError(t, err)
+	require.Len(t, group.Users, 0)
 
 	err = group.BindUsers(db, *bond)
 	require.NoError(t, err)
@@ -283,6 +286,7 @@ func TestGroupBindLessUsers(t *testing.T) {
 
 	group, err := GetGroup(db, &Group{Name: everyone.Name})
 	require.NoError(t, err)
+	require.Len(t, group.Users, 0)
 
 	err = group.BindUsers(db, *bourne, *bauer)
 	require.NoError(t, err)

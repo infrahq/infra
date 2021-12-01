@@ -40,8 +40,6 @@ func syncProviders(r *Registry) {
 }
 
 func syncProvider(r *Registry, db *gorm.DB, provider data.Provider) error {
-	logging.S.Debugf("syncing %s %s", provider.Kind, provider.Domain)
-
 	switch provider.Kind {
 	case data.ProviderKindOkta:
 		okta := NewOkta()
@@ -60,12 +58,25 @@ func syncProvider(r *Registry, db *gorm.DB, provider data.Provider) error {
 			return err
 		}
 
+		if err := provider.SetUsers(db, emails...); err != nil {
+			return err
+		}
+
 		groups, err := okta.Groups(provider.Domain, provider.ClientID, token)
 		if err != nil {
 			return err
 		}
 
 		if err := syncGroups(db, groups); err != nil {
+			return err
+		}
+
+		groupNames := make([]string, 0)
+		for k := range groups {
+			groupNames = append(groupNames, k)
+		}
+
+		if err := provider.SetGroups(db, groupNames...); err != nil {
 			return err
 		}
 
