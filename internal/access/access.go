@@ -63,7 +63,6 @@ func RequireAuthorization(c *gin.Context, require Permission) (*gorm.DB, string,
 			}
 		}
 
-		return db, authorization, nil
 	case data.APIKeyLength:
 		apiKey, err := data.GetAPIKey(db, &data.APIKey{Key: authorization})
 		if err != nil {
