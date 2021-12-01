@@ -93,6 +93,16 @@ func TestRequireAuthorization(t *testing.T) {
 				require.EqualError(t, err, "token invalid")
 			},
 		},
+		"TokenNoMatch": {
+			"permission": PermissionAPIKeyList,
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				authorization := issueToken(t, db, "existing@infrahq.com", "infra.user.read", time.Minute*1)
+				c.Set("authorization", authorization)
+			},
+			"verifyFunc": func(t *testing.T, err error) {
+				require.EqualError(t, err, "forbidden")
+			},
+		},
 		"TokenInvalidSecret": {
 			"permission": PermissionUserRead,
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
@@ -187,7 +197,7 @@ func TestRequireAuthorization(t *testing.T) {
 				require.NoError(t, err)
 			},
 		},
-		"APIKeyAuthorizedNoMatch": {
+		"APIKeyNoMatch": {
 			"permission": PermissionUserRead,
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				authorization := issueAPIKey(t, db, "infra.user.create infra.group.read")
