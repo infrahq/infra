@@ -8,18 +8,18 @@ metadata:
 data:
   config.yaml: |
     kind: kubernetes
-{{- $options := list "name" "host" "api-key" }}
-{{- $options = list "tls-cache" "skip-tls-verify" | concat $options }}
+{{- $options := list "name" "host" "apiKey" }}
+{{- $options = list "tlsCache" "skipTLSVerify" | concat $options }}
 {{- $options = list "labels" | concat $options }}
 {{- range $options }}
   {{- if hasKey $.Values . }}
     {{- if get $.Values . | kindIs "slice" }}
-    {{ . }}:
+    {{ . | kebabcase }}:
     {{- range get $.Values . }}
       - {{ . }}
     {{- end }}
     {{- else }}
-    {{ . }}: {{ get $.Values . }}
+    {{ . | kebabcase }}: {{ get $.Values . }}
     {{- end }}
   {{- end }}
 {{- end }}
