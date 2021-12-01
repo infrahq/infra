@@ -13,15 +13,11 @@ pg:
   parameters: ""
 
 
-rootAPIKey: file:/var/run/secrets/infrahq.com/infra/root-api-key
-engineAPIKey: file:/var/run/secrets/infrahq.com/engine/engine-api-key
+rootAPIKey: ""
+engineAPIKey: ""
 
 enableTelemetry: true
 enableCrashReporting: true
-
-# unset engine.apiKey so the subchart does not template another secret
-engine:
-  apiKey: ""
 
 pod:
   annotations: {}

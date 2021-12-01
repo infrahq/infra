@@ -1,6 +1,6 @@
 name: ""
 host: ""
-apiKey: file:///var/run/secrets/infrahq.com/engine/engine-api-key
+apiKey: ""
 tlsCache: /var/run/infra/data/cache
 skipTLSVerify: true
 labels: []

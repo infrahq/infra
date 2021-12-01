@@ -17,8 +17,9 @@ data:
 {{- end }}
 
   config.yaml: |
+    root-api-key: file:/var/run/secrets/infrahq.com/infra/root-api-key
+    engine-api-key: file:/var/run/secrets/infrahq.com/engine/engine-api-key
 {{- $options := list "configPath" "dbFile" "pg" "tlsCache" }}
-{{- $options = list "rootAPIKey" "engineAPIKey" | concat $options }}
 {{- $options = list "enableUI" "uiProxy" | concat $options }}
 {{- $options = list "providersSyncInterval" "destinationsSyncInterval" | concat $options }}
 {{- $options = list "enableTelemetry" "enableCrashReporting" | concat $options }}
