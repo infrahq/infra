@@ -1,8 +1,8 @@
 name: ""
 host: ""
-api-key: file:///var/run/secrets/infrahq.com/engine/engine-api-key
-tls-cache: /var/run/infra/data/cache
-skip-tls-verify: true
+apiKey: ""
+tlsCache: /var/run/infra/data/cache
+skipTLSVerify: true
 labels: []
 
 storage: 1Gi

@@ -1,9 +1,9 @@
 config: null
 storage: 1Gi
 
-config-path: /var/run/infra/config/infra.yaml
-tls-cache: /var/run/infra/data/cache
-db-file: /var/run/infra/data/infra.db
+configPath: /var/run/infra/config/infra.yaml
+tlsCache: /var/run/infra/data/cache
+dbFile: /var/run/infra/data/infra.db
 pg:
   host: ""
   port: 5432
@@ -13,14 +13,11 @@ pg:
   parameters: ""
 
 
-root-api-key: file:/var/run/secrets/infrahq.com/infra/root-api-key
-engine-api-key: file:/var/run/secrets/infrahq.com/engine/engine-api-key
+rootAPIKey: ""
+engineAPIKey: ""
 
-enable-telemetry: true
-enable-crash-reporting: true
-
-engine:
-  apiKey: ""
+enableTelemetry: true
+enableCrashReporting: true
 
 pod:
   annotations: {}
