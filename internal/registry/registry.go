@@ -189,7 +189,7 @@ func (r *Registry) scheduleSyncJobs() {
 		syncProviders(r)
 	})
 
-	// // schedule destination sync job
+	// schedule destination sync job
 	syncDestinationsTimer := timer.NewTimer()
 	syncDestinationsTimer.Start(r.options.DestinationsSyncInterval, func() {
 		syncDestinations(r.db, time.Hour*1)
