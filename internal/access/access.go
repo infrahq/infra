@@ -46,7 +46,7 @@ func RequireAuthorization(c *gin.Context, require Permission) (*gorm.DB, string,
 	case data.TokenLength:
 		token, err := data.GetToken(db, &data.Token{Key: authorization[:data.TokenKeyLength]})
 		if err != nil {
-			return nil, "", err
+			return nil, "", internal.ErrInvalid
 		}
 
 		if err := data.CheckTokenExpired(token); err != nil {

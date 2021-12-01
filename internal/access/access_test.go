@@ -85,7 +85,7 @@ func TestRequireAuthorization(t *testing.T) {
 			"permission": PermissionUserRead,
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				token := issueToken(t, db, "existing@infrahq.com", "*", time.Minute*1)
-				secret := token[:data.TokenKeyLength]
+				secret := token[data.TokenKeyLength:]
 				authorization := fmt.Sprintf("%s%s", generate.MathRandom(data.TokenKeyLength), secret)
 				c.Set("authorization", authorization)
 			},
@@ -97,14 +97,14 @@ func TestRequireAuthorization(t *testing.T) {
 			"permission": PermissionUserRead,
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				token := issueToken(t, db, "existing@infrahq.com", "*", time.Minute*1)
-				key := token[data.TokenKeyLength:]
+				key := token[:data.TokenKeyLength]
 				secret, err := generate.CryptoRandom(data.TokenSecretLength)
 				require.NoError(t, err)
 				authorization := fmt.Sprintf("%s%s", key, secret)
 				c.Set("authorization", authorization)
 			},
 			"verifyFunc": func(t *testing.T, err error) {
-				require.EqualError(t, err, "forbidden")
+				require.EqualError(t, err, "token invalid")
 			},
 		},
 		"APIKeyAuthorizedAll": {
