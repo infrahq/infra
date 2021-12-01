@@ -6,11 +6,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
+
+	"github.com/infrahq/infra/internal/registry/models"
 )
 
 var (
-	providerDevelop    = Provider{Kind: "okta", Domain: "dev.okta.com"}
-	providerProduction = Provider{Kind: "okta", Domain: "prod.okta.com"}
+	providerDevelop    = models.Provider{Kind: "okta", Domain: "dev.okta.com"}
+	providerProduction = models.Provider{Kind: "okta", Domain: "prod.okta.com"}
 )
 
 func TestProvider(t *testing.T) {
@@ -19,10 +21,10 @@ func TestProvider(t *testing.T) {
 	err := db.Create(&providerDevelop).Error
 	require.NoError(t, err)
 
-	var provider Provider
-	err = db.Preload("Okta").First(&provider, &Provider{Kind: "okta"}).Error
+	var provider models.Provider
+	err = db.Preload("Okta").First(&provider, &models.Provider{Kind: "okta"}).Error
 	require.NoError(t, err)
-	require.Equal(t, ProviderKindOkta, provider.Kind)
+	require.Equal(t, models.ProviderKindOkta, provider.Kind)
 	require.Equal(t, "dev.okta.com", provider.Domain)
 }
 
@@ -36,7 +38,7 @@ func TestCreateProviderOkta(t *testing.T) {
 	require.Equal(t, providerDevelop.Domain, provider.Domain)
 }
 
-func createProviders(t *testing.T, db *gorm.DB, providers ...Provider) {
+func createProviders(t *testing.T, db *gorm.DB, providers ...models.Provider) {
 	for i := range providers {
 		_, err := CreateProvider(db, &providers[i])
 		require.NoError(t, err)
@@ -65,7 +67,7 @@ func TestCreateOrUpdateProviderUpdate(t *testing.T) {
 	db := setup(t)
 	createProviders(t, db, providerDevelop, providerProduction)
 
-	provider, err := CreateOrUpdateProvider(db, &Provider{Domain: "tmp.okta.com"}, &providerDevelop)
+	provider, err := CreateOrUpdateProvider(db, &models.Provider{Domain: "tmp.okta.com"}, &providerDevelop)
 	require.NoError(t, err)
 	require.NotEqual(t, uuid.Nil, provider.ID)
 	require.Equal(t, providerDevelop.Kind, provider.Kind)
@@ -76,9 +78,9 @@ func TestCreateOrUpdateProviderUpdateOkta(t *testing.T) {
 	db := setup(t)
 	createProviders(t, db, providerDevelop, providerProduction)
 
-	okta := Provider{
-		Kind: ProviderKindOkta,
-		Okta: ProviderOkta{
+	okta := models.Provider{
+		Kind: models.ProviderKindOkta,
+		Okta: models.ProviderOkta{
 			APIToken: "updated-token",
 		},
 	}
@@ -88,7 +90,7 @@ func TestCreateOrUpdateProviderUpdateOkta(t *testing.T) {
 	require.NotEqual(t, uuid.Nil, provider.ID)
 	require.Equal(t, "updated-token", provider.Okta.APIToken)
 
-	fromDB, err := GetProvider(db, &Provider{Domain: provider.Domain})
+	fromDB, err := GetProvider(db, &models.Provider{Domain: provider.Domain})
 	require.NoError(t, err)
 	require.Equal(t, "dev.okta.com", fromDB.Domain)
 	require.Equal(t, "updated-token", provider.Okta.APIToken)
@@ -98,7 +100,7 @@ func TestGetProvider(t *testing.T) {
 	db := setup(t)
 	createProviders(t, db, providerDevelop, providerProduction)
 
-	provider, err := GetProvider(db, &Provider{Kind: "okta"})
+	provider, err := GetProvider(db, &models.Provider{Kind: "okta"})
 	require.NoError(t, err)
 	require.NotEqual(t, uuid.Nil, provider.ID)
 	require.Equal(t, providerDevelop.Domain, provider.Domain)
@@ -108,11 +110,11 @@ func TestListProviders(t *testing.T) {
 	db := setup(t)
 	createProviders(t, db, providerDevelop, providerProduction)
 
-	providers, err := ListProviders(db, &Provider{Kind: "okta"})
+	providers, err := ListProviders(db, &models.Provider{Kind: "okta"})
 	require.NoError(t, err)
 	require.Equal(t, 2, len(providers))
 
-	providers, err = ListProviders(db, &Provider{Kind: "okta", Domain: "dev.okta.com"})
+	providers, err = ListProviders(db, &models.Provider{Kind: "okta", Domain: "dev.okta.com"})
 	require.NoError(t, err)
 	require.Equal(t, 1, len(providers))
 }
@@ -124,15 +126,15 @@ func TestProviderSetUsers(t *testing.T) {
 	bond, err := CreateUser(db, &bond)
 	require.NoError(t, err)
 
-	providers, err := ListProviders(db, &Provider{})
+	providers, err := ListProviders(db, &models.Provider{})
 	require.NoError(t, err)
 
-	for _, provider := range providers {
-		err := provider.SetUsers(db, bond.Email)
+	for i := range providers {
+		err := SetProviderUsers(db, &providers[i], bond.Email)
 		require.NoError(t, err)
 	}
 
-	users, err := ListUsers(db, &User{})
+	users, err := ListUsers(db, &models.User{})
 	require.NoError(t, err)
 	require.Len(t, users, 1)
 	require.Len(t, users[0].Providers, 2)
@@ -151,24 +153,24 @@ func TestProviderSetMoreUsers(t *testing.T) {
 	bond, err := CreateUser(db, &bond)
 	require.NoError(t, err)
 
-	provider, err := GetProvider(db, &Provider{Domain: providerDevelop.Domain})
+	provider, err := GetProvider(db, &models.Provider{Domain: providerDevelop.Domain})
 	require.NoError(t, err)
 	require.Len(t, provider.Users, 0)
 
-	err = provider.SetUsers(db, bond.Email)
+	err = SetProviderUsers(db, provider, bond.Email)
 	require.NoError(t, err)
 
-	provider, err = GetProvider(db, &Provider{Domain: providerDevelop.Domain})
+	provider, err = GetProvider(db, &models.Provider{Domain: providerDevelop.Domain})
 	require.NoError(t, err)
 	require.Len(t, provider.Users, 1)
 
 	bourne, err := CreateUser(db, &bourne)
 	require.NoError(t, err)
 
-	err = provider.SetUsers(db, bond.Email, bourne.Email)
+	err = SetProviderUsers(db, provider, bond.Email, bourne.Email)
 	require.NoError(t, err)
 
-	provider, err = GetProvider(db, &Provider{Domain: providerDevelop.Domain})
+	provider, err = GetProvider(db, &models.Provider{Domain: providerDevelop.Domain})
 	require.NoError(t, err)
 	require.Len(t, provider.Users, 2)
 }
@@ -183,21 +185,21 @@ func TestProviderSetLessUsers(t *testing.T) {
 	bauer, err := CreateUser(db, &bauer)
 	require.NoError(t, err)
 
-	provider, err := GetProvider(db, &Provider{Domain: providerDevelop.Domain})
+	provider, err := GetProvider(db, &models.Provider{Domain: providerDevelop.Domain})
 	require.NoError(t, err)
 	require.Len(t, provider.Users, 0)
 
-	err = provider.SetUsers(db, bourne.Email, bauer.Email)
+	err = SetProviderUsers(db, provider, bourne.Email, bauer.Email)
 	require.NoError(t, err)
 
-	provider, err = GetProvider(db, &Provider{Domain: providerDevelop.Domain})
+	provider, err = GetProvider(db, &models.Provider{Domain: providerDevelop.Domain})
 	require.NoError(t, err)
 	require.Len(t, provider.Users, 2)
 
-	err = provider.SetUsers(db, bauer.Email)
+	err = SetProviderUsers(db, provider, bauer.Email)
 	require.NoError(t, err)
 
-	provider, err = GetProvider(db, &Provider{Domain: providerDevelop.Domain})
+	provider, err = GetProvider(db, &models.Provider{Domain: providerDevelop.Domain})
 	require.NoError(t, err)
 	require.Len(t, provider.Users, 1)
 }
@@ -209,15 +211,15 @@ func TestProviderSetGroups(t *testing.T) {
 	everyone, err := CreateGroup(db, &everyone)
 	require.NoError(t, err)
 
-	providers, err := ListProviders(db, &Provider{})
+	providers, err := ListProviders(db, &models.Provider{})
 	require.NoError(t, err)
 
-	for _, provider := range providers {
-		err := provider.SetGroups(db, everyone.Name)
+	for i := range providers {
+		err := SetProviderGroups(db, &providers[i], everyone.Name)
 		require.NoError(t, err)
 	}
 
-	groups, err := ListGroups(db, &Group{})
+	groups, err := ListGroups(db, &models.Group{})
 	require.NoError(t, err)
 	require.Len(t, groups, 1)
 	require.Len(t, groups[0].Providers, 2)
@@ -236,24 +238,24 @@ func TestProviderSetMoreGroups(t *testing.T) {
 	everyone, err := CreateGroup(db, &everyone)
 	require.NoError(t, err)
 
-	provider, err := GetProvider(db, &Provider{Domain: providerDevelop.Domain})
+	provider, err := GetProvider(db, &models.Provider{Domain: providerDevelop.Domain})
 	require.NoError(t, err)
 	require.Len(t, provider.Groups, 0)
 
-	err = provider.SetGroups(db, everyone.Name)
+	err = SetProviderGroups(db, provider, everyone.Name)
 	require.NoError(t, err)
 
-	provider, err = GetProvider(db, &Provider{Domain: providerDevelop.Domain})
+	provider, err = GetProvider(db, &models.Provider{Domain: providerDevelop.Domain})
 	require.NoError(t, err)
 	require.Len(t, provider.Groups, 1)
 
 	engineers, err := CreateGroup(db, &engineers)
 	require.NoError(t, err)
 
-	err = provider.SetGroups(db, everyone.Name, engineers.Name)
+	err = SetProviderGroups(db, provider, everyone.Name, engineers.Name)
 	require.NoError(t, err)
 
-	provider, err = GetProvider(db, &Provider{Domain: providerDevelop.Domain})
+	provider, err = GetProvider(db, &models.Provider{Domain: providerDevelop.Domain})
 	require.NoError(t, err)
 	require.Len(t, provider.Groups, 2)
 }
@@ -268,21 +270,21 @@ func TestProviderSetLessGroups(t *testing.T) {
 	product, err := CreateGroup(db, &product)
 	require.NoError(t, err)
 
-	provider, err := GetProvider(db, &Provider{Domain: providerDevelop.Domain})
+	provider, err := GetProvider(db, &models.Provider{Domain: providerDevelop.Domain})
 	require.NoError(t, err)
 	require.Len(t, provider.Groups, 0)
 
-	err = provider.SetGroups(db, engineers.Name, product.Name)
+	err = SetProviderGroups(db, provider, engineers.Name, product.Name)
 	require.NoError(t, err)
 
-	provider, err = GetProvider(db, &Provider{Domain: providerDevelop.Domain})
+	provider, err = GetProvider(db, &models.Provider{Domain: providerDevelop.Domain})
 	require.NoError(t, err)
 	require.Len(t, provider.Groups, 2)
 
-	err = provider.SetGroups(db, product.Name)
+	err = SetProviderGroups(db, provider, product.Name)
 	require.NoError(t, err)
 
-	provider, err = GetProvider(db, &Provider{Domain: providerDevelop.Domain})
+	provider, err = GetProvider(db, &models.Provider{Domain: providerDevelop.Domain})
 	require.NoError(t, err)
 	require.Len(t, provider.Groups, 1)
 }
@@ -291,33 +293,33 @@ func TestDeleteProviders(t *testing.T) {
 	db := setup(t)
 	createProviders(t, db, providerDevelop, providerProduction)
 
-	providers, err := ListProviders(db, &Provider{Kind: "okta"})
+	providers, err := ListProviders(db, &models.Provider{Kind: "okta"})
 	require.NoError(t, err)
 	require.Equal(t, 2, len(providers))
 
-	err = DeleteProviders(db, &Provider{Kind: "okta", Domain: "prod.okta.com"})
+	err = DeleteProviders(db, &models.Provider{Kind: "okta", Domain: "prod.okta.com"})
 	require.NoError(t, err)
 
-	_, err = GetProvider(db, &Provider{Kind: "okta", Domain: "prod.okta.com"})
+	_, err = GetProvider(db, &models.Provider{Kind: "okta", Domain: "prod.okta.com"})
 	require.EqualError(t, err, "record not found")
 
 	// deleting a nonexistent provider should not fail
-	err = DeleteProviders(db, &Provider{Kind: "okta", Domain: "prod.okta.com"})
+	err = DeleteProviders(db, &models.Provider{Kind: "okta", Domain: "prod.okta.com"})
 	require.NoError(t, err)
 
 	// deleting a provider should not delete unrelated providers
-	_, err = GetProvider(db, &Provider{Kind: "okta", Domain: "dev.okta.com"})
+	_, err = GetProvider(db, &models.Provider{Kind: "okta", Domain: "dev.okta.com"})
 	require.NoError(t, err)
 
-	err = DeleteProviders(db, &Provider{Kind: "okta"})
+	err = DeleteProviders(db, &models.Provider{Kind: "okta"})
 	require.NoError(t, err)
 
-	providers, err = ListProviders(db, &Provider{Kind: "okta"})
+	providers, err = ListProviders(db, &models.Provider{Kind: "okta"})
 	require.NoError(t, err)
 	require.Equal(t, 0, len(providers))
 
 	// make sure provider configurations are also being removed
-	var okta []ProviderOkta
+	var okta []models.ProviderOkta
 	err = db.Find(&okta).Error
 	require.NoError(t, err)
 	require.Equal(t, 0, len(okta))

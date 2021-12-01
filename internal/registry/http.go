@@ -9,7 +9,7 @@ import (
 	"gopkg.in/square/go-jose.v2"
 	"gorm.io/gorm"
 
-	"github.com/infrahq/infra/internal/data"
+	"github.com/infrahq/infra/internal/registry/data"
 )
 
 var (

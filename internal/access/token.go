@@ -10,8 +10,9 @@ import (
 	"gopkg.in/square/go-jose.v2/jwt"
 
 	"github.com/infrahq/infra/internal/api"
-	"github.com/infrahq/infra/internal/data"
 	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/internal/registry/data"
+	"github.com/infrahq/infra/internal/registry/models"
 )
 
 const (
@@ -33,13 +34,13 @@ type CustomJWTClaims struct {
 	Nonce       string `json:"nonce" validate:"required"`
 }
 
-func IssueToken(c *gin.Context, email string, sessionDuration time.Duration) (*data.User, *data.Token, error) {
+func IssueToken(c *gin.Context, email string, sessionDuration time.Duration) (*models.User, *models.Token, error) {
 	db, _, err := RequireAuthorization(c, Permission(""))
 	if err != nil {
 		return nil, nil, err
 	}
 
-	users, err := data.ListUsers(db, &data.User{Email: email})
+	users, err := data.ListUsers(db, &models.User{Email: email})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -54,7 +55,7 @@ func IssueToken(c *gin.Context, email string, sessionDuration time.Duration) (*d
 		string(PermissionCredentialCreate),
 	}, " ")
 
-	token := data.Token{
+	token := models.Token{
 		User:            users[0],
 		SessionDuration: sessionDuration,
 		Permissions:     permissions,
@@ -67,33 +68,33 @@ func IssueToken(c *gin.Context, email string, sessionDuration time.Duration) (*d
 	return &users[0], &token, nil
 }
 
-func RevokeToken(c *gin.Context) (*data.Token, error) {
+func RevokeToken(c *gin.Context) (*models.Token, error) {
 	db, authorization, err := RequireAuthorization(c, PermissionTokenRevoke)
 	if err != nil {
 		return nil, err
 	}
 
-	key := authorization[:data.TokenKeyLength]
+	key := authorization[:models.TokenKeyLength]
 
-	token, err := data.GetToken(db, &data.Token{Key: key})
+	token, err := data.GetToken(db, &models.Token{Key: key})
 	if err != nil {
 		return nil, err
 	}
 
-	if err := data.DeleteToken(db, &data.Token{Key: key}); err != nil {
+	if err := data.DeleteToken(db, &models.Token{Key: key}); err != nil {
 		return nil, err
 	}
 
 	return token, nil
 }
 
-func IssueAPIKey(c *gin.Context, template *api.InfraAPIKeyCreateRequest) (*data.APIKey, error) {
+func IssueAPIKey(c *gin.Context, template *api.InfraAPIKeyCreateRequest) (*models.APIKey, error) {
 	db, _, err := RequireAuthorization(c, PermissionAPIKeyIssue)
 	if err != nil {
 		return nil, err
 	}
 
-	var apiKey data.APIKey
+	var apiKey models.APIKey
 	if err := apiKey.FromAPICreateRequest(template); err != nil {
 		return nil, err
 	}
@@ -101,13 +102,13 @@ func IssueAPIKey(c *gin.Context, template *api.InfraAPIKeyCreateRequest) (*data.
 	return data.CreateAPIKey(db, &apiKey)
 }
 
-func ListAPIKeys(c *gin.Context, name string) ([]data.APIKey, error) {
+func ListAPIKeys(c *gin.Context, name string) ([]models.APIKey, error) {
 	db, _, err := RequireAuthorization(c, PermissionAPIKeyList)
 	if err != nil {
 		return nil, err
 	}
 
-	apiKeys, err := data.ListAPIKeys(db, &data.APIKey{Name: name})
+	apiKeys, err := data.ListAPIKeys(db, &models.APIKey{Name: name})
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +122,7 @@ func RevokeAPIKey(c *gin.Context, id string) error {
 		return err
 	}
 
-	token, err := data.NewAPIKey(id)
+	token, err := models.NewAPIKey(id)
 	if err != nil {
 		return err
 	}

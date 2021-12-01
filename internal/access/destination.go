@@ -4,7 +4,8 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/infrahq/infra/internal/api"
-	"github.com/infrahq/infra/internal/data"
+	"github.com/infrahq/infra/internal/registry/data"
+	"github.com/infrahq/infra/internal/registry/models"
 )
 
 const (
@@ -15,27 +16,27 @@ const (
 	PermissionDestinationDelete Permission = "infra.destination.delete"
 )
 
-func CreateDestination(c *gin.Context, template *api.DestinationCreateRequest) (*data.Destination, error) {
+func CreateDestination(c *gin.Context, template *api.DestinationCreateRequest) (*models.Destination, error) {
 	db, _, err := RequireAuthorization(c, PermissionDestinationCreate)
 	if err != nil {
 		return nil, err
 	}
 
-	var destination data.Destination
+	var destination models.Destination
 	if err := destination.FromAPICreateRequest(template); err != nil {
 		return nil, err
 	}
 
-	return data.CreateOrUpdateDestination(db, &destination, &data.Destination{NodeID: template.NodeID})
+	return data.CreateOrUpdateDestination(db, &destination, &models.Destination{NodeID: template.NodeID})
 }
 
-func GetDestination(c *gin.Context, id string) (*data.Destination, error) {
+func GetDestination(c *gin.Context, id string) (*models.Destination, error) {
 	db, _, err := RequireAuthorization(c, PermissionDestinationRead)
 	if err != nil {
 		return nil, err
 	}
 
-	destination, err := data.NewDestination(id)
+	destination, err := models.NewDestination(id)
 	if err != nil {
 		return nil, err
 	}
@@ -43,11 +44,11 @@ func GetDestination(c *gin.Context, id string) (*data.Destination, error) {
 	return data.GetDestination(db, destination)
 }
 
-func ListDestinations(c *gin.Context, name, kind string) ([]data.Destination, error) {
+func ListDestinations(c *gin.Context, name, kind string) ([]models.Destination, error) {
 	db, _, err := RequireAuthorization(c, PermissionDestinationRead)
 	if err != nil {
 		return nil, err
 	}
 
-	return data.ListDestinations(db, &data.Destination{Name: name, Kind: data.DestinationKind(kind)})
+	return data.ListDestinations(db, &models.Destination{Name: name, Kind: models.DestinationKind(kind)})
 }

@@ -4,7 +4,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	"github.com/infrahq/infra/internal/data"
+	"github.com/infrahq/infra/internal/registry/data"
+	"github.com/infrahq/infra/internal/registry/models"
 )
 
 const (
@@ -15,13 +16,13 @@ const (
 	PermissionRoleDelete Permission = "infra.role.delete"
 )
 
-func GetRole(c *gin.Context, id string) (*data.Role, error) {
+func GetRole(c *gin.Context, id string) (*models.Role, error) {
 	db, _, err := RequireAuthorization(c, PermissionRoleRead)
 	if err != nil {
 		return nil, err
 	}
 
-	role, err := data.NewRole(id)
+	role, err := models.NewRole(id)
 	if err != nil {
 		return nil, err
 	}
@@ -29,20 +30,20 @@ func GetRole(c *gin.Context, id string) (*data.Role, error) {
 	return data.GetRole(db, role)
 }
 
-func ListRoles(c *gin.Context, name, kind, destinationID string) ([]data.Role, error) {
+func ListRoles(c *gin.Context, name, kind, destinationID string) ([]models.Role, error) {
 	db, _, err := RequireAuthorization(c, PermissionRoleRead)
 	if err != nil {
 		return nil, err
 	}
 
 	// hardcode role kind to Kubernetes for now
-	role := data.Role{
-		Kind: data.RoleKindKubernetes,
+	role := models.Role{
+		Kind: models.RoleKindKubernetes,
 	}
 
 	switch role.Kind {
-	case data.RoleKindKubernetes:
-		role.Kubernetes.Kind = data.RoleKubernetesKind(kind)
+	case models.RoleKindKubernetes:
+		role.Kubernetes.Kind = models.RoleKubernetesKind(kind)
 		role.Kubernetes.Name = name
 	}
 

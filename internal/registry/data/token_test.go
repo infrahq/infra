@@ -10,15 +10,16 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/internal/registry/models"
 )
 
-func createToken(t *testing.T, db *gorm.DB, sessionDuration time.Duration) *Token {
-	createUsers(t, db, User{Email: "tmp@infrahq.com"})
+func createToken(t *testing.T, db *gorm.DB, sessionDuration time.Duration) *models.Token {
+	createUsers(t, db, models.User{Email: "tmp@infrahq.com"})
 
-	user, err := GetUser(db, &User{Email: "tmp@infrahq.com"})
+	user, err := GetUser(db, &models.User{Email: "tmp@infrahq.com"})
 	require.NoError(t, err)
 
-	in := Token{
+	in := models.Token{
 		User:            *user,
 		SessionDuration: sessionDuration,
 	}
@@ -43,7 +44,7 @@ func TestGetToken(t *testing.T) {
 	db := setup(t)
 	token := createToken(t, db, time.Minute*1)
 
-	fromDB, err := GetToken(db, &Token{Key: token.Key})
+	fromDB, err := GetToken(db, &models.Token{Key: token.Key})
 	require.NoError(t, err)
 	require.NotEmpty(t, token.Checksum)
 	require.Empty(t, fromDB.Secret)
@@ -79,7 +80,7 @@ func TestCheckTokenSecret(t *testing.T) {
 	err := CheckTokenSecret(token, token.SessionToken())
 	require.NoError(t, err)
 
-	random := generate.MathRandom(TokenSecretLength)
+	random := generate.MathRandom(models.TokenSecretLength)
 	authorization := fmt.Sprintf("%s%s", token.Key, random)
 
 	err = CheckTokenSecret(token, authorization)
@@ -90,21 +91,21 @@ func TestDeleteToken(t *testing.T) {
 	db := setup(t)
 	token := createToken(t, db, time.Minute*1)
 
-	_, err := GetToken(db, &Token{Key: token.Key})
+	_, err := GetToken(db, &models.Token{Key: token.Key})
 	require.NoError(t, err)
 
-	err = DeleteToken(db, &Token{Key: token.Key})
+	err = DeleteToken(db, &models.Token{Key: token.Key})
 	require.NoError(t, err)
 
-	_, err = GetToken(db, &Token{Key: token.Key})
+	_, err = GetToken(db, &models.Token{Key: token.Key})
 	require.EqualError(t, err, "record not found")
 
-	err = DeleteToken(db, &Token{Key: token.Key})
+	err = DeleteToken(db, &models.Token{Key: token.Key})
 	require.NoError(t, err)
 }
 
-func createAPIKey(t *testing.T, db *gorm.DB, name string, permissions ...string) *APIKey {
-	in := APIKey{
+func createAPIKey(t *testing.T, db *gorm.DB, name string, permissions ...string) *models.APIKey {
+	in := models.APIKey{
 		Name:        name,
 		Permissions: strings.Join(permissions, " "),
 	}
@@ -128,7 +129,7 @@ func TestGetAPIKey(t *testing.T) {
 	db := setup(t)
 	_ = createAPIKey(t, db, "tmp", "infra.*")
 
-	apiKey, err := GetAPIKey(db, &APIKey{Name: "tmp"})
+	apiKey, err := GetAPIKey(db, &models.APIKey{Name: "tmp"})
 	require.NoError(t, err)
 	require.Equal(t, "tmp", apiKey.Name)
 	require.Equal(t, "infra.*", apiKey.Permissions)
@@ -141,11 +142,11 @@ func TestListAPIKey(t *testing.T) {
 	_ = createAPIKey(t, db, "pmt", "infra.*")
 	_ = createAPIKey(t, db, "mtp", "infra.*")
 
-	apiKeys, err := ListAPIKeys(db, &APIKey{})
+	apiKeys, err := ListAPIKeys(db, &models.APIKey{})
 	require.NoError(t, err)
 	require.Len(t, apiKeys, 3)
 
-	apiKeys, err = ListAPIKeys(db, &APIKey{Name: "tmp"})
+	apiKeys, err = ListAPIKeys(db, &models.APIKey{Name: "tmp"})
 	require.NoError(t, err)
 	require.Len(t, apiKeys, 1)
 }
@@ -154,15 +155,15 @@ func TestDeleteAPIKey(t *testing.T) {
 	db := setup(t)
 	_ = createAPIKey(t, db, "tmp", "infra.*")
 
-	_, err := GetAPIKey(db, &APIKey{Name: "tmp"})
+	_, err := GetAPIKey(db, &models.APIKey{Name: "tmp"})
 	require.NoError(t, err)
 
-	err = DeleteAPIKey(db, &APIKey{Name: "tmp"})
+	err = DeleteAPIKey(db, &models.APIKey{Name: "tmp"})
 	require.NoError(t, err)
 
-	_, err = GetAPIKey(db, &APIKey{Name: "tmp"})
+	_, err = GetAPIKey(db, &models.APIKey{Name: "tmp"})
 	require.EqualError(t, err, "record not found")
 
-	err = DeleteAPIKey(db, &APIKey{Name: "tmp"})
+	err = DeleteAPIKey(db, &models.APIKey{Name: "tmp"})
 	require.NoError(t, err)
 }

@@ -8,7 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
-	"github.com/infrahq/infra/internal/data"
+	"github.com/infrahq/infra/internal/registry/data"
+	"github.com/infrahq/infra/internal/registry/models"
 )
 
 func configure(t *testing.T, db *gorm.DB) *gorm.DB {
@@ -26,7 +27,7 @@ func configure(t *testing.T, db *gorm.DB) *gorm.DB {
 	return db
 }
 
-func userGrants(t *testing.T, roles []data.Role, email string) map[string][]string {
+func userGrants(t *testing.T, roles []models.Role, email string) map[string][]string {
 	grants := make(map[string][]string)
 
 	for _, role := range roles {
@@ -35,7 +36,7 @@ func userGrants(t *testing.T, roles []data.Role, email string) map[string][]stri
 		var key string
 
 		switch role.Kind {
-		case data.RoleKindKubernetes:
+		case models.RoleKindKubernetes:
 			key = fmt.Sprintf("%s:%s:%s", role.Kubernetes.Kind, role.Kubernetes.Name, role.Kubernetes.Namespace)
 		default:
 			require.Fail(t, "unknown role kind")
@@ -60,7 +61,7 @@ func userGrants(t *testing.T, roles []data.Role, email string) map[string][]stri
 func TestImportUserRoles(t *testing.T) {
 	db := configure(t, nil)
 
-	roles, err := data.ListRoles(db, &data.Role{})
+	roles, err := data.ListRoles(db, &models.Role{})
 	require.NoError(t, err)
 
 	bond := userGrants(t, roles, userBond.Email)
@@ -74,7 +75,7 @@ func TestImportUserRoles(t *testing.T) {
 	require.ElementsMatch(t, []string(nil), unknown["role:writer"])
 }
 
-func groupGrants(t *testing.T, roles []data.Role, name string) map[string][]string {
+func groupGrants(t *testing.T, roles []models.Role, name string) map[string][]string {
 	grants := make(map[string][]string)
 
 	for _, role := range roles {
@@ -83,7 +84,7 @@ func groupGrants(t *testing.T, roles []data.Role, name string) map[string][]stri
 		var key string
 
 		switch role.Kind {
-		case data.RoleKindKubernetes:
+		case models.RoleKindKubernetes:
 			key = fmt.Sprintf("%s:%s:%s", role.Kubernetes.Kind, role.Kubernetes.Name, role.Kubernetes.Namespace)
 		default:
 			require.Fail(t, "unknown role kind")
@@ -108,7 +109,7 @@ func groupGrants(t *testing.T, roles []data.Role, name string) map[string][]stri
 func TestImportGroupRoles(t *testing.T) {
 	db := configure(t, nil)
 
-	roles, err := data.ListRoles(db, &data.Role{})
+	roles, err := data.ListRoles(db, &models.Role{})
 	require.NoError(t, err)
 
 	everyone := groupGrants(t, roles, groupEveryone.Name)
@@ -124,7 +125,7 @@ func TestImportGroupRoles(t *testing.T) {
 func TestImportRolesUnknownDestinations(t *testing.T) {
 	db := configure(t, nil)
 
-	roles, err := data.ListRoles(db, &data.Role{})
+	roles, err := data.ListRoles(db, &models.Role{})
 	require.NoError(t, err)
 
 	for _, r := range roles {
@@ -136,9 +137,9 @@ func TestImportRolesUnknownDestinations(t *testing.T) {
 func TestImportRolesNoMatchingLabels(t *testing.T) {
 	db := configure(t, nil)
 
-	roles, err := data.ListRoles(db, data.RoleSelector(db, &data.Role{
-		Kind: data.RoleKindKubernetes,
-		Kubernetes: data.RoleKubernetes{
+	roles, err := data.ListRoles(db, data.RoleSelector(db, &models.Role{
+		Kind: models.RoleKindKubernetes,
+		Kubernetes: models.RoleKubernetes{
 			Name: "view",
 		},
 	}))
@@ -149,7 +150,7 @@ func TestImportRolesNoMatchingLabels(t *testing.T) {
 func TestImportRolesRemovesUnusedRoles(t *testing.T) {
 	db := setupDB(t)
 
-	unused, err := data.CreateRole(db, &data.Role{})
+	unused, err := data.CreateRole(db, &models.Role{})
 	require.NoError(t, err)
 
 	_ = configure(t, db)
@@ -161,7 +162,7 @@ func TestImportRolesRemovesUnusedRoles(t *testing.T) {
 func TestImportProvidersOverrideDuplicate(t *testing.T) {
 	db := configure(t, nil)
 
-	providers, err := data.ListProviders(db, &data.Provider{})
+	providers, err := data.ListProviders(db, &models.Provider{})
 	require.NoError(t, err)
 	require.Len(t, providers, 1)
 }
@@ -230,7 +231,7 @@ groups:
 	err := r.importConfig([]byte(withNamespace))
 	require.NoError(t, err)
 
-	roles, err := data.ListRoles(db, &data.Role{})
+	roles, err := data.ListRoles(db, &models.Role{})
 	require.NoError(t, err)
 	require.Len(t, roles, 1)
 	require.Equal(t, "infrahq", roles[0].Kubernetes.Namespace)
@@ -238,7 +239,7 @@ groups:
 	err = r.importConfig([]byte(withoutNamespace))
 	require.NoError(t, err)
 
-	roles, err = data.ListRoles(db, &data.Role{})
+	roles, err = data.ListRoles(db, &models.Role{})
 	require.NoError(t, err)
 	require.Len(t, roles, 1)
 	require.Equal(t, "", roles[0].Kubernetes.Namespace)
