@@ -9,9 +9,10 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"golang.org/x/mod/semver"
+
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
-	"golang.org/x/mod/semver"
 )
 
 type VersionOptions struct {

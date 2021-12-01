@@ -135,18 +135,20 @@ func (w *filteredWriterSyncer) Sync() error {
 var ctxLoggerKey = "logger"
 
 // UserAwareLoggerMiddleware saves a request-specific logger to the context
-func UserAwareLoggerMiddleware(c *gin.Context) {
-	if userID := c.GetString("userID"); userID != "" {
-		logger := L.With(
-			zapcore.Field{
-				Key:    "userID",
-				Type:   zapcore.StringType,
-				String: userID,
-			})
-		c.Set(ctxLoggerKey, logger.Sugar())
-	}
+func UserAwareLoggerMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if userID := c.GetString("userID"); userID != "" {
+			logger := L.With(
+				zapcore.Field{
+					Key:    "userID",
+					Type:   zapcore.StringType,
+					String: userID,
+				})
+			c.Set(ctxLoggerKey, logger.Sugar())
+		}
 
-	c.Next()
+		c.Next()
+	}
 }
 
 // Logger gets the request-specific logger from the context

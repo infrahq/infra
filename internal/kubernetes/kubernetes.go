@@ -15,9 +15,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/infrahq/infra/internal/api"
-	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/secrets"
 	"github.com/jessevdk/go-flags"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -25,6 +22,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	rest "k8s.io/client-go/rest"
+
+	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/secrets"
 )
 
 const (
@@ -97,7 +98,7 @@ func (k *Kubernetes) updateRoleBindings(subjects map[namespaceRole][]rbacv1.Subj
 	}
 
 	for _, r := range roles.Items {
-		validNamespaceRole[namespaceRole{namespace: r.Namespace, role: r.Name, kind: string(api.ROLE)}] = true
+		validNamespaceRole[namespaceRole{namespace: r.Namespace, role: r.Name, kind: string(api.ROLEKIND_ROLE)}] = true
 	}
 
 	// store which cluster-roles currently exist locally
@@ -118,14 +119,14 @@ func (k *Kubernetes) updateRoleBindings(subjects map[namespaceRole][]rbacv1.Subj
 	for nsr, subjs := range subjects {
 		var kind string
 		switch api.RoleKind(nsr.kind) {
-		case api.ROLE:
+		case api.ROLEKIND_ROLE:
 			if !validNamespaceRole[nsr] {
 				logging.S.Warnf("role binding skipped, role does not exist with name %s in namespace %s", nsr.role, nsr.namespace)
 				continue
 			}
 
 			kind = "Role"
-		case api.CLUSTER_ROLE:
+		case api.ROLEKIND_CLUSTER_ROLE:
 			if !validClusterRole[nsr.role] {
 				logging.S.Warnf("role binding skipped, cluster-role does not exist with name %s", nsr.role)
 				continue
@@ -320,7 +321,7 @@ func (k *Kubernetes) UpdateRoles(roles []api.Role) error {
 
 	for _, r := range roles {
 		switch r.Kind {
-		case api.ROLE:
+		case api.ROLEKIND_ROLE:
 			if r.Namespace == "" {
 				logging.L.Error("skipping role binding with no namespace: " + r.Name)
 				continue
@@ -340,7 +341,7 @@ func (k *Kubernetes) UpdateRoles(roles []api.Role) error {
 				})
 			}
 
-		case api.CLUSTER_ROLE:
+		case api.ROLEKIND_CLUSTER_ROLE:
 			if r.Namespace == "" {
 				for _, u := range r.Users {
 					crbSubjects[r.Name] = append(crbSubjects[r.Name], rbacv1.Subject{

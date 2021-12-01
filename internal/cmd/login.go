@@ -15,12 +15,13 @@ import (
 	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/cli/browser"
 	"github.com/goware/urlx"
-	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/api"
-	"github.com/infrahq/infra/internal/generate"
 	"github.com/muesli/termenv"
 	"golang.org/x/term"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/internal/generate"
 )
 
 type LoginOptions struct {
@@ -46,14 +47,14 @@ func login(options *LoginOptions) error {
 
 	var selectedHost *ClientHostConfig
 
-host:
+HOST:
 	switch {
 	case options.Host == "":
 		if options.Current {
 			for i := range loadedCfg.Hosts {
 				if loadedCfg.Hosts[i].Current {
 					selectedHost = &loadedCfg.Hosts[i]
-					break host
+					break HOST
 				}
 			}
 		}
@@ -65,7 +66,7 @@ host:
 			}
 
 			if selectedHost != nil {
-				break host
+				break HOST
 			}
 		}
 
@@ -83,7 +84,7 @@ host:
 		for i := range loadedCfg.Hosts {
 			if loadedCfg.Hosts[i].Host == options.Host {
 				selectedHost = &loadedCfg.Hosts[i]
-				break host
+				break HOST
 			}
 		}
 
@@ -163,12 +164,12 @@ provider:
 		// Start OIDC flow
 		// Get auth code from Okta
 		// Send auth code to Infra to login as a user
-		state, err := generate.RandString(12)
+		state, err := generate.CryptoRandom(12)
 		if err != nil {
 			return err
 		}
 
-		nonce, err := generate.RandString(10)
+		nonce, err := generate.CryptoRandom(10)
 		if err != nil {
 			return err
 		}

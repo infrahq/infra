@@ -13,7 +13,6 @@ require (
 	github.com/DisgoOrg/disgohook v1.4.4 // indirect
 	github.com/DisgoOrg/log v1.1.2 // indirect
 	github.com/Microsoft/go-winio v0.5.1 // indirect
-	github.com/NYTimes/gziphandler v1.1.1
 	github.com/ProtonMail/go-crypto v0.0.0-20210920160938-87db9fbc61c7 // indirect
 	github.com/aws/aws-sdk-go v1.41.10
 	github.com/aws/aws-sdk-go-v2/config v1.9.0 // indirect
@@ -31,6 +30,7 @@ require (
 	github.com/go-playground/validator/v10 v10.9.0
 	github.com/golang-jwt/jwt/v4 v4.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
+	github.com/google/uuid v1.3.0
 	github.com/goreleaser/goreleaser v0.183.0
 	github.com/goreleaser/nfpm/v2 v2.7.1 // indirect
 	github.com/gorilla/handlers v1.5.1

@@ -1,17 +1,18 @@
 package registry
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"regexp"
 	"strings"
 
-	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/secrets"
-	"go.uber.org/zap"
+	"github.com/google/uuid"
 	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
+
+	"github.com/infrahq/infra/internal/access"
+	"github.com/infrahq/infra/internal/data"
+	"github.com/infrahq/infra/secrets"
 )
 
 type ConfigOkta struct {
@@ -27,10 +28,10 @@ type ConfigProvider struct {
 }
 
 type baseConfigProvider struct {
-	Kind         string `yaml:"kind"`
-	Domain       string `yaml:"domain"`
-	ClientID     string `yaml:"clientID"`
-	ClientSecret string `yaml:"clientSecret"`
+	Kind         data.ProviderKind `yaml:"kind"`
+	Domain       string            `yaml:"domain"`
+	ClientID     string            `yaml:"clientID"`
+	ClientSecret string            `yaml:"clientSecret"`
 }
 
 var _ yaml.Unmarshaler = &ConfigProvider{}
@@ -42,13 +43,13 @@ func (idp *ConfigProvider) UnmarshalYAML(unmarshal func(interface{}) error) erro
 		return fmt.Errorf("unmarshalling secret provider: %w", err)
 	}
 
-	idp.Kind = tmp.Kind
+	idp.Kind = string(tmp.Kind)
 	idp.Domain = tmp.Domain
 	idp.ClientID = tmp.ClientID
 	idp.ClientSecret = tmp.ClientSecret
 
-	switch ProviderKind(tmp.Kind) {
-	case ProviderKindOkta:
+	switch tmp.Kind {
+	case data.ProviderKindOkta:
 		o := ConfigOkta{}
 		if err := unmarshal(&o); err != nil {
 			return fmt.Errorf("unmarshal yaml: %w", err)
@@ -56,7 +57,7 @@ func (idp *ConfigProvider) UnmarshalYAML(unmarshal func(interface{}) error) erro
 
 		idp.Config = o
 	default:
-		return fmt.Errorf("unknown identity provider type %q, expected %s", tmp.Kind, ProviderKindOkta)
+		return fmt.Errorf("unknown identity provider type %q", tmp.Kind)
 	}
 
 	return nil
@@ -74,15 +75,15 @@ func (p *ConfigProvider) cleanupDomain() {
 }
 
 type ConfigDestination struct {
-	Name       string          `yaml:"name"`
-	Labels     []string        `yaml:"labels"`
-	Kind       DestinationKind `yaml:"kind" validate:"required"`
-	Namespaces []string        `yaml:"namespaces"` // optional in the case of a cluster-role
+	Name       string               `yaml:"name"`
+	Labels     []string             `yaml:"labels"`
+	Kind       data.DestinationKind `yaml:"kind" validate:"required"`
+	Namespaces []string             `yaml:"namespaces"` // optional in the case of a cluster-role
 }
 
 type ConfigRole struct {
 	Name         string              `yaml:"name" validate:"required"`
-	Kind         string              `yaml:"kind" validate:"required,oneof=role cluster-role"`
+	Kind         data.RoleKind       `yaml:"kind" validate:"required,oneof=role cluster-role"`
 	Destinations []ConfigDestination `yaml:"destinations" validate:"required,dive"`
 }
 
@@ -197,11 +198,8 @@ type Config struct {
 	Users     []ConfigUserMapping    `yaml:"users" validate:"dive"`
 }
 
-// this config is loaded at start-up and re-applied when Infra's state changes (ie. a user is added)
-var initialConfig Config
-
-func ImportProviders(db *gorm.DB, providers []ConfigProvider) error {
-	var idsToKeep []string
+func importProviders(db *gorm.DB, providers []ConfigProvider) error {
+	toKeep := make([]uuid.UUID, 0)
 
 	for _, p := range providers {
 		p.cleanupDomain()
@@ -211,204 +209,194 @@ func ImportProviders(db *gorm.DB, providers []ConfigProvider) error {
 			return fmt.Errorf("invalid domain: %w", err)
 		}
 
-		// check if we are about to override an existing provider
-		var existing Provider
-		if err := db.First(&existing, &Provider{Kind: ProviderKind(p.Kind)}).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				// expected for new records
-			} else {
-				return fmt.Errorf("existing provider lookup: %w", err)
-			}
+		provider := data.Provider{
+			Kind:         data.ProviderKind(p.Kind),
+			Domain:       p.Domain,
+			ClientID:     p.ClientID,
+			ClientSecret: p.ClientSecret,
 		}
 
-		if existing.Id != "" {
-			logging.L.Warn("overriding existing okta provider settings with configuration settings")
-		}
-
-		var provider Provider
-		if err := db.FirstOrCreate(&provider, &Provider{Kind: ProviderKind(p.Kind)}).Error; err != nil {
-			return fmt.Errorf("create config provider: %w", err)
-		}
-
-		provider.ClientID = p.ClientID
-		provider.Domain = p.Domain
-		provider.ClientSecret = p.ClientSecret
-
-		switch ProviderKind(p.Kind) {
-		case ProviderKindOkta:
+		switch provider.Kind {
+		case data.ProviderKindOkta:
 			cfg, ok := p.Config.(ConfigOkta)
 			if !ok {
 				return fmt.Errorf("expected provider config to be Okta, but was %t", p.Config)
 			}
 
-			// API token and client secret will be validated to exist when they are used
-			provider.APIToken = cfg.APIToken
+			provider.Okta.APIToken = cfg.APIToken
 
-			if err := db.Save(&provider).Error; err != nil {
-				return fmt.Errorf("save provider: %w", err)
-			}
-
-			idsToKeep = append(idsToKeep, provider.Id)
 		default:
-			// should not happen
+			// should never happen
 			return fmt.Errorf("invalid provider kind in configuration: %s", p.Kind)
 		}
-	}
 
-	if len(idsToKeep) == 0 {
-		logging.L.Debug("no valid providers found in configuration")
-		// clear the providers
-		var toDelete []Provider
-		if err := db.Where("1 = 1").Find(&toDelete).Error; err != nil {
-			return fmt.Errorf("find cleared providers: %w", err)
+		final, err := data.CreateOrUpdateProvider(db, &provider, &data.Provider{Kind: provider.Kind, Domain: provider.Domain})
+		if err != nil {
+			return err
 		}
 
-		if len(toDelete) > 0 {
-			if err := db.Where("1 = 1").Delete(toDelete).Error; err != nil {
-				return fmt.Errorf("clear providers: %w", err)
-			}
-		}
-
-		return nil
+		toKeep = append(toKeep, final.ID)
 	}
 
-	var toDelete []Provider
-	if err := db.Not(idsToKeep).Find(&toDelete).Error; err != nil {
-		return fmt.Errorf("find removed providers: %w", err)
-	}
-
-	if len(toDelete) > 0 {
-		if err := db.Where("1 = 1").Delete(toDelete).Error; err != nil {
-			return fmt.Errorf("delete removed providers: %w", err)
-		}
+	if err := data.DeleteProviders(db, db.Model(&data.Provider{}).Not(toKeep)); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func ApplyGroupMappings(db *gorm.DB, groups []ConfigGroupMapping) (modifiedRoleIDs []string, err error) {
-	for _, g := range groups {
-		// get the provider from the datastore that this group specifies
-		var provider Provider
-		// Assumes that only one kind of each provider can exist
-		provReadErr := db.Where(&Provider{Kind: ProviderKind(g.Provider)}).First(&provider).Error
-		if provReadErr != nil {
-			if errors.Is(provReadErr, gorm.ErrRecordNotFound) {
-				// skip this provider, it will need to be added in the config and re-applied
-				logging.S.Debugf("skipping group '%s' with provider '%s' in config that does not exist", g.Name, g.Provider)
-				continue
-			}
+func importUserRoleMappings(db *gorm.DB, users []ConfigUserMapping) ([]uuid.UUID, error) {
+	toKeep := make([]uuid.UUID, 0)
 
-			return nil, fmt.Errorf("group read provider: %w", provReadErr)
-		}
-
-		var group Group
-
-		grpReadErr := db.Preload("Users").Where(&Group{Name: g.Name, ProviderId: provider.Id}).First(&group).Error
-		if grpReadErr != nil {
-			if errors.Is(grpReadErr, gorm.ErrRecordNotFound) {
-				// skip this group, if they're created these roles will be added later
-				logging.L.Debug("skipping group in config import that has not yet been provisioned")
-				continue
-			}
-
-			return nil, fmt.Errorf("group read: %w", grpReadErr)
-		}
-
-		// import the roles on this group from the datastore
-		var roles []Role
-
-		var grpRoleIDs []string
-
-		roles, grpRoleIDs, err = importRoles(db, g.Roles)
-		if err != nil {
-			return nil, fmt.Errorf("group import roles: %w", err)
-		}
-
-		modifiedRoleIDs = append(modifiedRoleIDs, grpRoleIDs...)
-
-		// add the new group associations to the roles
-		for i, role := range roles {
-			if db.Model(&group).Where(&Role{Id: role.Id}).Association("Roles").Count() == 0 {
-				if err = db.Model(&group).Where(&Role{Id: role.Id}).Association("Roles").Append(&roles[i]); err != nil {
-					return nil, fmt.Errorf("group role assocations: %w", err)
-				}
-			}
-		}
-	}
-
-	return modifiedRoleIDs, nil
-}
-
-func ApplyUserMappings(db *gorm.DB, users []ConfigUserMapping) (modifiedRoleIDs []string, err error) {
 	for _, u := range users {
-		var user User
+		if err := validate.Struct(u); err != nil {
+			return nil, err
+		}
 
-		usrReadErr := db.Where(&User{Email: u.Email}).First(&user).Error
-		if usrReadErr != nil {
-			if errors.Is(usrReadErr, gorm.ErrRecordNotFound) {
-				// skip this user, if they're created these roles will be added later
-				logging.L.Debug("skipping user in config import that has not yet been provisioned")
-				continue
+		user, err := data.GetUser(db, &data.User{Email: u.Email})
+		if err != nil {
+			continue
+		}
+
+		ids, err := importRoles(db, u.Roles)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := user.BindRoles(db, ids...); err != nil {
+			return nil, err
+		}
+
+		toKeep = append(toKeep, ids...)
+	}
+
+	return toKeep, nil
+}
+
+func importGroupRoleMappings(db *gorm.DB, groups []ConfigGroupMapping) ([]uuid.UUID, error) {
+	toKeep := make([]uuid.UUID, 0)
+
+	for _, g := range groups {
+		if err := validate.Struct(g); err != nil {
+			return nil, err
+		}
+
+		group, err := data.GetGroup(db, &data.Group{Name: g.Name})
+		if err != nil {
+			continue
+		}
+
+		ids, err := importRoles(db, g.Roles)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := group.BindRoles(db, ids...); err != nil {
+			return nil, err
+		}
+
+		toKeep = append(toKeep, ids...)
+	}
+
+	return toKeep, nil
+}
+
+func importRoles(db *gorm.DB, roles []ConfigRole) ([]uuid.UUID, error) {
+	toKeep := make([]uuid.UUID, 0)
+
+	for _, r := range roles {
+		if err := validate.Struct(r); err != nil {
+			return nil, err
+		}
+
+		for _, d := range r.Destinations {
+			if err := validate.Struct(d); err != nil {
+				return nil, err
 			}
 
-			return nil, fmt.Errorf("read user: %w", usrReadErr)
-		}
+			destinations, err := data.ListDestinations(db, db.Where(
+				data.LabelSelector(db, "destination_id", d.Labels...),
+				&data.Destination{Name: d.Name, Kind: d.Kind},
+			))
+			if err != nil {
+				return nil, err
+			}
 
-		var roles []Role
+		DESTINATION:
+			for _, destination := range destinations {
+				labels := make(map[string]bool)
+				for _, l := range destination.Labels {
+					labels[l.Value] = true
+				}
 
-		// add direct user to role mappings
-		var usrRoleIDs []string
+				for _, l := range d.Labels {
+					if _, ok := labels[l]; !ok {
+						continue DESTINATION
+					}
+				}
 
-		roles, usrRoleIDs, err = importRoles(db, u.Roles)
-		if err != nil {
-			return nil, fmt.Errorf("import user roles: %w", err)
-		}
+				role := data.Role{
+					Kind:        data.RoleKind(destination.Kind),
+					Destination: destination,
+				}
 
-		modifiedRoleIDs = append(modifiedRoleIDs, usrRoleIDs...)
+				roles := make([]data.Role, 0)
 
-		// for all roles attached to this user update their user associations now that we have made sure they exist
-		// important: do not create the association on the user, that runs an upsert that creates a concurrent write because User.AfterCreate() calls this function
-		for i, role := range roles {
-			if db.Model(&user).Where(&Role{Id: role.Id}).Association("Roles").Count() == 0 {
-				if err = db.Model(&user).Where(&Role{Id: role.Id}).Association("Roles").Append(&roles[i]); err != nil {
-					return nil, fmt.Errorf("user role associations: %w", err)
+				switch role.Kind {
+				case data.RoleKindKubernetes:
+					role.Kubernetes = data.RoleKubernetes{
+						Kind: data.RoleKubernetesKind(r.Kind),
+						Name: r.Name,
+					}
+
+					if len(d.Namespaces) == 0 {
+						d.Namespaces = []string{""}
+					}
+
+					for _, namespace := range d.Namespaces {
+						role.Kubernetes.Namespace = namespace
+
+						roles = append(roles, role)
+					}
+				}
+
+				for i := range roles {
+					role, err := data.CreateOrUpdateRole(db, &roles[i], data.StrictRoleSelector(db, &roles[i]))
+					if err != nil {
+						return nil, err
+					}
+
+					toKeep = append(toKeep, role.ID)
 				}
 			}
 		}
 	}
 
-	return modifiedRoleIDs, nil
+	return toKeep, nil
 }
 
-// ImportRoleMappings iterates over user and group config and applies a role mapping to them
-func ImportRoleMappings(db *gorm.DB, groups []ConfigGroupMapping, users []ConfigUserMapping) error {
-	groupRoleIDs, err := ApplyGroupMappings(db, groups)
+func importRoleMappings(db *gorm.DB, users []ConfigUserMapping, groups []ConfigGroupMapping) error {
+	// TODO: use a Set here instead of a Slice
+	toKeep := make([]uuid.UUID, 0)
+
+	ids, err := importUserRoleMappings(db, users)
 	if err != nil {
-		return fmt.Errorf("apply group mappings: %w", err)
+		return err
 	}
 
-	userRoleIDs, err := ApplyUserMappings(db, users)
+	toKeep = append(toKeep, ids...)
+
+	ids, err = importGroupRoleMappings(db, groups)
 	if err != nil {
-		return fmt.Errorf("apply user mappings: %w", err)
+		return err
 	}
 
-	var roleIDs []string
-	roleIDs = append(roleIDs, groupRoleIDs...)
-	roleIDs = append(roleIDs, userRoleIDs...)
+	toKeep = append(toKeep, ids...)
 
-	var rolesRemoved []Role
-	if err := db.Not(roleIDs).Find(&rolesRemoved).Error; err != nil {
-		return fmt.Errorf("find roles removed in config: %w", err)
+	// explicitly query using ID field
+	if err := data.DeleteRoles(db, db.Not(toKeep)); err != nil {
+		return err
 	}
-
-	if len(rolesRemoved) > 0 {
-		if err := db.Delete(rolesRemoved).Error; err != nil {
-			return fmt.Errorf("delete config removed role: %w", err)
-		}
-	}
-
-	logging.S.Debugf("importing configuration removed %d role(s)", len(rolesRemoved))
 
 	return nil
 }
@@ -442,87 +430,61 @@ func (r *Registry) importConfig(bs []byte) error {
 		return fmt.Errorf("invalid config: %w", err)
 	}
 
-	initialConfig = config
+	r.config = config
 
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		if err := ImportProviders(tx, config.Providers); err != nil {
+		if err := importProviders(tx, config.Providers); err != nil {
 			return err
 		}
 
-		return ImportRoleMappings(tx, config.Groups, config.Users)
+		if err := importRoleMappings(tx, config.Users, config.Groups); err != nil {
+			return err
+		}
+
+		return nil
 	})
 }
 
-// import roles creates roles specified in the config, or updates their associations
-func importRoles(db *gorm.DB, roles []ConfigRole) (rolesImported []Role, importedRoleIDs []string, err error) {
-	for _, r := range roles {
-		for _, want := range r.Destinations {
-			if r.Kind == RoleKindKubernetesRole && len(want.Namespaces) == 0 {
-				return nil, nil, fmt.Errorf("%s role requires at least one namespace to be specified for the cluster %s", r.Name, want.Name)
-			}
+func (r *Registry) importAPIKeys() error {
+	type key struct {
+		Secret      string
+		Permissions []string
+	}
 
-			logging.L.Debug("want role destination", zap.String("name", want.Name), zap.Strings("labels", want.Labels), zap.Strings("namespaces", want.Namespaces))
+	keys := map[string]key{
+		"root": {
+			Secret: r.options.RootAPIKey,
+			Permissions: []string{
+				string(access.PermissionAllAlternate),
+			},
+		},
+		"engine": {
+			Secret: r.options.EngineAPIKey,
+			Permissions: []string{
+				string(access.PermissionRoleRead),
+				string(access.PermissionDestinationCreate),
+			},
+		},
+	}
 
-			var destinations []Destination
+	for k, v := range keys {
+		secret, err := r.GetSecret(v.Secret)
+		if err != nil {
+			return err
+		}
 
-			// get destinations matching _any_ requested label
-			err := db.Preload("Labels", "value in ?", want.Labels).Find(&destinations, &Destination{Name: want.Name}).Error
-			if err != nil {
-				if errors.Is(err, gorm.ErrRecordNotFound) {
-					// when a destination is added then the config import will be retried, skip for now
-					logging.L.Debug("skipping role binding for destination in config import that has not yet been discovered")
-					continue
-				}
+		apiKey := &data.APIKey{
+			Name:        k,
+			Permissions: strings.Join(v.Permissions, " "),
+			Key:         secret,
+		}
 
-				return nil, nil, fmt.Errorf("find role destination: %w", err)
-			}
-
-		DESTINATION:
-			for _, d := range destinations {
-				labels := make(map[string]bool)
-				for _, l := range d.Labels {
-					labels[l.Value] = true
-				}
-
-				// discard destinations not matching _all_ requested labels
-				for _, l := range want.Labels {
-					if _, ok := labels[l]; !ok {
-						continue DESTINATION
-					}
-				}
-
-				if len(want.Namespaces) > 0 {
-					for _, namespace := range want.Namespaces {
-						var role Role
-						if err := db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, Namespace: namespace, DestinationId: d.Id}).Error; err != nil {
-							return nil, nil, fmt.Errorf("role find create namespace: %w", err)
-						}
-
-						rolesImported = append(rolesImported, role)
-						importedRoleIDs = append(importedRoleIDs, role.Id)
-					}
-				} else {
-					var role Role
-					if err := db.FirstOrCreate(&role, &Role{Name: r.Name, Kind: r.Kind, DestinationId: d.Id}).Error; err != nil {
-						return nil, nil, fmt.Errorf("role find create: %w", err)
-					}
-
-					if role.Namespace != "" {
-						// forcefully zero out namespace
-						role.Namespace = ""
-						db.Save(&role)
-					}
-
-					rolesImported = append(rolesImported, role)
-					importedRoleIDs = append(importedRoleIDs, role.Id)
-				}
-
-				logging.L.Debug("found role destination", zap.String("id", d.Id), zap.String("name", d.Name))
-			}
+		if _, err = data.CreateAPIKey(r.db, apiKey); err != nil {
+			return err
 		}
 	}
 
-	return rolesImported, importedRoleIDs, nil
+	return nil
 }
 
 var baseSecretStorageKinds = []string{

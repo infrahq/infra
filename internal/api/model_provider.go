@@ -20,17 +20,17 @@ type Provider struct {
 	// created time in seconds since 1970-01-01
 	Created int64 `json:"created"`
 	// updated time in seconds since 1970-01-01
-	Updated  int64  `json:"updated"`
-	Domain   string `json:"domain" validate:"fqdn,required"`
-	ClientID string `json:"clientID" validate:"required"`
-	Kind     string `json:"kind" validate:"required"`
+	Updated  int64        `json:"updated"`
+	Domain   string       `json:"domain" validate:"fqdn,required"`
+	ClientID string       `json:"clientID" validate:"required"`
+	Kind     ProviderKind `json:"kind"`
 }
 
 // NewProvider instantiates a new Provider object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewProvider(id string, created int64, updated int64, domain string, clientID string, kind string) *Provider {
+func NewProvider(id string, created int64, updated int64, domain string, clientID string, kind ProviderKind) *Provider {
 	this := Provider{}
 	this.Id = id
 	this.Created = created
@@ -170,9 +170,9 @@ func (o *Provider) SetClientID(v string) {
 }
 
 // GetKind returns the Kind field value
-func (o *Provider) GetKind() string {
+func (o *Provider) GetKind() ProviderKind {
 	if o == nil {
-		var ret string
+		var ret ProviderKind
 		return ret
 	}
 
@@ -181,7 +181,7 @@ func (o *Provider) GetKind() string {
 
 // GetKindOk returns a tuple with the Kind field value
 // and a boolean to check if the value has been set.
-func (o *Provider) GetKindOk() (*string, bool) {
+func (o *Provider) GetKindOk() (*ProviderKind, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -189,7 +189,7 @@ func (o *Provider) GetKindOk() (*string, bool) {
 }
 
 // SetKind sets field value
-func (o *Provider) SetKind(v string) {
+func (o *Provider) SetKind(v ProviderKind) {
 	o.Kind = v
 }
 

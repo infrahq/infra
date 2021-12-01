@@ -8,11 +8,12 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/api"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientauthenticationv1beta1 "k8s.io/client-go/pkg/apis/clientauthentication/v1beta1"
+
+	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/api"
 )
 
 type TokenOptions struct {
@@ -67,7 +68,7 @@ func tokenCreate(options *TokenOptions) error {
 			return err
 		}
 
-		credReq := client.TokensAPI.CreateToken(ctx).Body(api.TokenRequest{Destination: &options.Destination})
+		credReq := client.TokensAPI.CreateToken(ctx).Body(api.TokenRequest{Destination: options.Destination})
 
 		cred, res, err := credReq.Execute()
 		if err != nil {

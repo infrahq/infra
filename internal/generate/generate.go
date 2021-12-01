@@ -14,8 +14,8 @@ func init() {
 	mathrand.Seed(time.Now().UnixNano())
 }
 
-// RandString generates a cryptographically-safe random number
-func RandString(n int) (string, error) {
+// CryptoRandom generates a cryptographically-safe random number
+func CryptoRandom(n int) (string, error) {
 	if n <= 0 {
 		return "", nil
 	}
@@ -33,10 +33,10 @@ func RandString(n int) (string, error) {
 	return string(bytes), nil
 }
 
-// MathRandString generates a random string that does not need to be cryptographically secure
-// This is preferred to RandString when you don't need the cryptographic security as it is
+// MathRandom generates a random string that does not need to be cryptographically secure
+// This is preferred to CryptoRandom when you don't need the cryptographic security as it is
 // not a drain on the entropy pool.
-func MathRandString(n int) string {
+func MathRandom(n int) string {
 	if n <= 0 {
 		return ""
 	}

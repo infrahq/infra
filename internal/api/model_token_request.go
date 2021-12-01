@@ -16,15 +16,16 @@ import (
 
 // TokenRequest struct for TokenRequest
 type TokenRequest struct {
-	Destination *string `json:"destination,omitempty" validate:"required"`
+	Destination string `json:"destination" validate:"required"`
 }
 
 // NewTokenRequest instantiates a new TokenRequest object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewTokenRequest() *TokenRequest {
+func NewTokenRequest(destination string) *TokenRequest {
 	this := TokenRequest{}
+	this.Destination = destination
 	return &this
 }
 
@@ -36,41 +37,33 @@ func NewTokenRequestWithDefaults() *TokenRequest {
 	return &this
 }
 
-// GetDestination returns the Destination field value if set, zero value otherwise.
+// GetDestination returns the Destination field value
 func (o *TokenRequest) GetDestination() string {
-	if o == nil || o.Destination == nil {
+	if o == nil {
 		var ret string
 		return ret
 	}
-	return *o.Destination
+
+	return o.Destination
 }
 
-// GetDestinationOk returns a tuple with the Destination field value if set, nil otherwise
+// GetDestinationOk returns a tuple with the Destination field value
 // and a boolean to check if the value has been set.
 func (o *TokenRequest) GetDestinationOk() (*string, bool) {
-	if o == nil || o.Destination == nil {
+	if o == nil {
 		return nil, false
 	}
-	return o.Destination, true
+	return &o.Destination, true
 }
 
-// HasDestination returns a boolean if a field has been set.
-func (o *TokenRequest) HasDestination() bool {
-	if o != nil && o.Destination != nil {
-		return true
-	}
-
-	return false
-}
-
-// SetDestination gets a reference to the given string and assigns it to the Destination field.
+// SetDestination sets field value
 func (o *TokenRequest) SetDestination(v string) {
-	o.Destination = &v
+	o.Destination = v
 }
 
 func (o TokenRequest) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
-	if o.Destination != nil {
+	if true {
 		toSerialize["destination"] = o.Destination
 	}
 	return json.Marshal(toSerialize)

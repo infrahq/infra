@@ -11,7 +11,8 @@
         "enablePostProcessFile": true,
         "additionalProperties": {
           "packageName": "api",
-          "isGoSubmodule": true
+          "isGoSubmodule": true,
+          "enumClassPrefix": true
         }
       },
       "typescript-client": {

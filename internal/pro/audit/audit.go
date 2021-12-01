@@ -6,14 +6,15 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/logging"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/apis/audit"
 	"k8s.io/apiserver/pkg/audit/policy"
 	genericapifilters "k8s.io/apiserver/pkg/endpoints/filters"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	genericfilters "k8s.io/apiserver/pkg/server/filters"
+
+	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/logging"
 )
 
 type AuditEvent struct {

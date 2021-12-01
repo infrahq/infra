@@ -24,7 +24,7 @@ export interface TokenRequest {
      * @type {string}
      * @memberof TokenRequest
      */
-    destination?: string;
+    destination: string;
 }
 
 export function TokenRequestFromJSON(json: any): TokenRequest {
@@ -37,7 +37,7 @@ export function TokenRequestFromJSONTyped(json: any, ignoreDiscriminator: boolea
     }
     return {
         
-        'destination': !exists(json, 'destination') ? undefined : json['destination'],
+        'destination': json['destination'],
     };
 }
 

@@ -20,7 +20,7 @@ type ProviderKind string
 
 // List of ProviderKind
 const (
-	OKTA ProviderKind = "okta"
+	PROVIDERKIND_OKTA ProviderKind = "okta"
 )
 
 var allowedProviderKindEnumValues = []ProviderKind{

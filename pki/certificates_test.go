@@ -15,8 +15,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/infrahq/infra/testutil/docker"
 	"github.com/stretchr/testify/require"
+
+	"github.com/infrahq/infra/testutil/docker"
 )
 
 func TestMain(m *testing.M) {

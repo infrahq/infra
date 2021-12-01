@@ -11,6 +11,8 @@ Token:
       format: int64
 TokenRequest:
   type: object
+  required:
+    - destination
   properties:
     destination:
       type: string

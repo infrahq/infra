@@ -10,12 +10,13 @@ import (
 
 	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/AlecAivazis/survey/v2/terminal"
-	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/api"
-	"github.com/infrahq/infra/internal/logging"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+
+	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/internal/logging"
 )
 
 type KubernetesOptions struct {

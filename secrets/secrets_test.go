@@ -15,11 +15,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/hashicorp/vault/api"
-	"github.com/infrahq/infra/testutil/docker"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+
+	"github.com/infrahq/infra/testutil/docker"
 )
 
 func TestMain(m *testing.M) {

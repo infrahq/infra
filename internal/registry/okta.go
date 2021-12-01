@@ -5,10 +5,11 @@ import (
 	"errors"
 	"time"
 
-	timer "github.com/infrahq/infra/internal/timer"
 	"github.com/okta/okta-sdk-golang/v2/okta"
 	"golang.org/x/oauth2"
 	"gopkg.in/square/go-jose.v2/jwt"
+
+	timer "github.com/infrahq/infra/internal/timer"
 )
 
 type Okta interface {

@@ -26,8 +26,7 @@ Provider:
       type: string
       x-go-custom-tag: validate:"required"
     kind:
-      type: string
-      x-go-custom-tag: validate:"required"
+      $ref: 'provider.yaml#/ProviderKind'
 ProviderKind:
   type: string
   enum:

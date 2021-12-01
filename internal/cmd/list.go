@@ -7,11 +7,12 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/lensesio/tableprinter"
+	"k8s.io/client-go/tools/clientcmd"
+
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/lensesio/tableprinter"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 type ListOptions struct {
