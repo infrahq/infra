@@ -123,13 +123,19 @@ func apiClientFromConfig(host string) (*api.APIClient, error) {
 
 func newLoginCmd() (*cobra.Command, error) {
 	cmd := &cobra.Command{
-		Use:     "login",
+		Use:     "login [HOST]",
 		Short:   "Login to Infra",
 		Example: "$ infra login",
+		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var options LoginOptions
+
 			if err := internal.ParseOptions(cmd, &options); err != nil {
 				return err
+			}
+
+			if len(args) == 1 {
+				options.Host = args[0]
 			}
 
 			if err := login(&options); err != nil {
