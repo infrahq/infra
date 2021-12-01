@@ -25,12 +25,12 @@ const (
 func RequireAuthorization(c *gin.Context, require Permission) (*gorm.DB, string, error) {
 	val, ok := c.Get("db")
 	if !ok {
-		return nil, "", fmt.Errorf("")
+		return nil, "", fmt.Errorf("database not found")
 	}
 
 	db, ok := val.(*gorm.DB)
 	if !ok {
-		return nil, "", fmt.Errorf("")
+		return nil, "", fmt.Errorf("database not found")
 	}
 
 	if len(require) == 0 {

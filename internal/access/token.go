@@ -41,7 +41,7 @@ func IssueToken(c *gin.Context, email string, sessionDuration time.Duration) (*d
 	}
 
 	if len(users) != 1 {
-		return nil, nil, fmt.Errorf("")
+		return nil, nil, fmt.Errorf("unknown user")
 	}
 
 	permissions := strings.Join([]string{
@@ -152,7 +152,7 @@ func IssueJWT(c *gin.Context, destination string) (string, *time.Time, error) {
 
 	algo, ok := signatureAlgorithmFromKeyAlgorithm[sec.Algorithm]
 	if !ok {
-		return "", nil, fmt.Errorf("")
+		return "", nil, fmt.Errorf("unsupported algorithm")
 	}
 
 	options := &jose.SignerOptions{}
