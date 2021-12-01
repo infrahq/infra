@@ -112,7 +112,7 @@ host:
 
 		if !proceed {
 			//lint:ignore ST1005, user facing error
-			return fmt.Errorf("Login cancelled, TLS connection could not be verified")
+			return fmt.Errorf("Login cancelled, not proceeding with TLS connection that could not be verified")
 		}
 	}
 

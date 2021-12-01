@@ -45,7 +45,11 @@ func newKubernetesUseCmd() (*cobra.Command, error) {
 				return err
 			}
 
-			return formatError(kubernetesUseContext(&options))
+			if err := kubernetesUseContext(&options); err != nil {
+				return formatErrorf(err.Error())
+			}
+
+			return nil
 		},
 	}
 

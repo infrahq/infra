@@ -24,13 +24,8 @@ func red(s string) string {
 	return termenv.String(s).Bold().Foreground(termenv.ColorProfile().Color("#FA5F55")).String()
 }
 
-// formatError wraps errors in a red formatting to make them obvious in the terminal
-func formatError(err error) error {
-	if err != nil {
-		return fmt.Errorf(red(err.Error()))
-	}
-
-	return nil
+func formatErrorf(format string, a ...interface{}) error {
+	return fmt.Errorf(red(format), a...)
 }
 
 // errWithResponseContext prints errors with extended context from the server response
@@ -137,7 +132,11 @@ func newLoginCmd() (*cobra.Command, error) {
 				return err
 			}
 
-			return formatError(login(&options))
+			if err := login(&options); err != nil {
+				return formatErrorf(err.Error())
+			}
+
+			return nil
 		},
 	}
 
@@ -162,7 +161,11 @@ func newLogoutCmd() (*cobra.Command, error) {
 				options.Host = args[0]
 			}
 
-			return formatError(logout(&options))
+			if err := logout(&options); err != nil {
+				return formatErrorf(err.Error())
+			}
+
+			return nil
 		},
 	}
 
@@ -180,7 +183,11 @@ func newListCmd() (*cobra.Command, error) {
 				return err
 			}
 
-			return formatError(list(&options))
+			if err := list(&options); err != nil {
+				return formatErrorf(err.Error())
+			}
+
+			return nil
 		},
 	}
 
@@ -198,7 +205,11 @@ func newStartCmd() (*cobra.Command, error) {
 				return err
 			}
 
-			return formatError(registry.Run(options))
+			if err := registry.Run(options); err != nil {
+				return formatErrorf(err.Error())
+			}
+
+			return nil
 		},
 	}
 
@@ -239,7 +250,11 @@ func newEngineCmd() (*cobra.Command, error) {
 				return err
 			}
 
-			return formatError(engine.Run(&options))
+			if err := engine.Run(&options); err != nil {
+				return formatErrorf(err.Error())
+			}
+
+			return nil
 		},
 	}
 
@@ -262,7 +277,11 @@ func newVersionCmd() (*cobra.Command, error) {
 				return err
 			}
 
-			return formatError(version(&options))
+			if err := version(&options); err != nil {
+				return formatErrorf(err.Error())
+			}
+
+			return nil
 		},
 	}
 

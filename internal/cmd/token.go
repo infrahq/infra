@@ -37,7 +37,11 @@ func newTokenCreateCmd() (*cobra.Command, error) {
 				return err
 			}
 
-			return formatError(tokenCreate(&options))
+			if err := tokenCreate(&options); err != nil {
+				return formatErrorf(err.Error())
+			}
+
+			return nil
 		},
 	}
 
