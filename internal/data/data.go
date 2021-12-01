@@ -2,7 +2,6 @@ package data
 
 import (
 	"errors"
-	"log"
 	"os"
 	"path"
 	"strings"
@@ -16,6 +15,7 @@ import (
 	"gorm.io/gorm/logger"
 
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/logging"
 )
 
 type Model struct {
@@ -43,10 +43,10 @@ func NewID() uuid.UUID {
 func NewDB(connection gorm.Dialector) (*gorm.DB, error) {
 	db, err := gorm.Open(connection, &gorm.Config{
 		Logger: logger.New(
-			log.New(os.Stdout, "\r\n", log.LstdFlags),
+			logging.StandardErrorLog(),
 			logger.Config{
 				SlowThreshold:             time.Second,
-				LogLevel:                  logger.Warn,
+				LogLevel:                  logger.Silent,
 				IgnoreRecordNotFoundError: true,
 				Colorful:                  true,
 			},
