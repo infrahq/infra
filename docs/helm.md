@@ -161,11 +161,19 @@ kubectl delete clusterrolebindings,rolebindings -l app.kubernetes.io/managed-by=
 
 | Parameter                          | Description                             | Default                      |
 |------------------------------------|-----------------------------------------|------------------------------|
-| `config`                           | Infra configuration file                | `nil`                        |
-| `crashReporting.enabled`           | Enable crash report                     | `true`                       |
-| `engine.*`                         | Engine chart values                     | (see below)                  |
-| `engine.apiKey`                    | Engine API key                          | `""` (generated)             |
-| `telemetry.enabled`                | Enable telemetry collection             | `true`                       |
+| `config`                           | Infra configuration                     | `nil` (see [configuration.md][1]) |
+| `rootAPIKey`                       | Infra root API key                      | `""` (auto-generated)        |
+| `engineAPIKey`                     | Infra engine API key                    | `""` (auto-generated)        |
+| `enableCrashReporting`             | Enable crash report                     | `true`                       |
+| `enableTelemetry`                  | Enable telemetry collection             | `true`                       |
+| `pg.*`                             | PostgresQL configuration                | (see [postgres.md][2])       |
+| `pg.host`                          | PostgresQL hostname                     | `""`                         |
+| `pg.port`                          | PostgresQL port                         | `5432`                       |
+| `pg.db-name`                       | PostgresQL database name                | `""`                         |
+| `pg.user`                          | PostgresQL username                     | `""`                         |
+| `pg.password`                      | PostgresQL password                     | `""`                         |
+| `pg.parameters`                    | Extra PostgresQL connection parameters  | `""`                         |
+| `engine.*`                         | Engine chart values                     | (see [Infra Engine][3])      |
 | `image.tag`                        | Image tag                               | `""` (latest release)        |
 | `image.repository`                 | Image repository                        | `infrahq/infra`              |
 | `image.pullPolicy`                 | Image pull policy                       | `IfNotPresent`               |
@@ -218,3 +226,7 @@ kubectl delete clusterrolebindings,rolebindings -l app.kubernetes.io/managed-by=
 | `service.clusterIP`                | Internal cluster service IP             | `nil`                        |
 | `serviceAccount.create`            | Enable service account creation         | `true`                       |
 | `serviceAccount.annotations`       | Service account annotations             | `{}`                         |
+
+[1]: configuration.md
+[2]: postgres.md
+[3]: #infra-engine

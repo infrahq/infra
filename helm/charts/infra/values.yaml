@@ -19,6 +19,7 @@ engineAPIKey: file:/var/run/secrets/infrahq.com/engine/engine-api-key
 enableTelemetry: true
 enableCrashReporting: true
 
+# unset engine.apiKey so the subchart does not template another secret
 engine:
   apiKey: ""
 
