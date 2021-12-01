@@ -15,11 +15,15 @@ import (
 )
 
 const (
-	PermissionToken            Permission = "infra.token.*"     // nolint:gosec
-	PermissionTokenIssue       Permission = "infra.token.issue" // nolint:gosec
-	PermissionTokenRead        Permission = "infra.token.read"
-	PermissionTokenList        Permission = "infra.token.list"
-	PermissionTokenRevoke      Permission = "infra.token.revoke"      // nolint:gosec
+	PermissionToken       Permission = "infra.token.*" // nolint:gosec
+	PermissionTokenRead   Permission = "infra.token.read"
+	PermissionTokenRevoke Permission = "infra.token.revoke" // nolint:gosec
+
+	PermissionAPIKey       Permission = "infra.apiKey.*"      // nolint:gosec
+	PermissionAPIKeyIssue  Permission = "infra.apiKey.issue"  // nolint:gosec
+	PermissionAPIKeyList   Permission = "infra.apiKey.list"   // nolint:gosec
+	PermissionAPIKeyRevoke Permission = "infra.apiKey.revoke" // nolint:gosec
+
 	PermissionCredentialCreate Permission = "infra.credential.create" //nolint:gosec
 )
 
@@ -84,7 +88,7 @@ func RevokeToken(c *gin.Context) (*data.Token, error) {
 }
 
 func IssueAPIKey(c *gin.Context, template *api.InfraAPIKeyCreateRequest) (*data.APIKey, error) {
-	db, _, err := RequireAuthorization(c, PermissionTokenIssue)
+	db, _, err := RequireAuthorization(c, PermissionAPIKeyIssue)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +102,7 @@ func IssueAPIKey(c *gin.Context, template *api.InfraAPIKeyCreateRequest) (*data.
 }
 
 func ListAPIKeys(c *gin.Context, name string) ([]data.APIKey, error) {
-	db, _, err := RequireAuthorization(c, PermissionTokenList)
+	db, _, err := RequireAuthorization(c, PermissionAPIKeyList)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +116,7 @@ func ListAPIKeys(c *gin.Context, name string) ([]data.APIKey, error) {
 }
 
 func RevokeAPIKey(c *gin.Context, id string) error {
-	db, _, err := RequireAuthorization(c, PermissionTokenRevoke)
+	db, _, err := RequireAuthorization(c, PermissionAPIKeyRevoke)
 	if err != nil {
 		return err
 	}

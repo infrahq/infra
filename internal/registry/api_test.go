@@ -1245,7 +1245,7 @@ func TestT(t *testing.T) {
 		// /v1/api-keys
 		"ListAPIKeys": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionTokenList))
+				apiKey := issueAPIKey(t, db, string(access.PermissionAPIKeyList))
 				c.Set("authorization", apiKey.Key)
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
@@ -1336,7 +1336,7 @@ func TestCreateAPIKey(t *testing.T) {
 	db := configure(t, nil)
 
 	apiKey := issueAPIKey(t, db, strings.Join([]string{
-		string(access.PermissionTokenIssue),
+		string(access.PermissionAPIKeyIssue),
 	}, " "))
 
 	request := api.InfraAPIKeyCreateRequest{
@@ -1381,7 +1381,7 @@ func TestDeleteAPIKey(t *testing.T) {
 
 	apiKey := issueAPIKey(t, db, strings.Join([]string{
 		string(access.PermissionUserRead),
-		string(access.PermissionTokenRevoke),
+		string(access.PermissionAPIKeyRevoke),
 	}, " "))
 
 	oldr := httptest.NewRequest(http.MethodGet, "/v1/users", nil)
