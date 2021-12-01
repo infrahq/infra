@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/goware/urlx"
 	"github.com/infrahq/infra/internal"
@@ -15,18 +16,39 @@ import (
 	"github.com/infrahq/infra/internal/engine"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry"
+	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
 )
 
-// errWithResponseContext appends the response message to a returned error
+func red(s string) string {
+	return termenv.String(s).Bold().Foreground(termenv.ColorProfile().Color("#FA5F55")).String()
+}
+
+func formatErrorf(format string, a ...interface{}) error {
+	return fmt.Errorf(red(format), a...)
+}
+
+// errWithResponseContext prints errors with extended context from the server response
 func errWithResponseContext(err error, res *http.Response) error {
-	var apiErr api.Error
-	if decodeErr := json.NewDecoder(res.Body).Decode(&apiErr); decodeErr != nil {
-		// ignore this decoding error and return the original error
-		return err
+	if strings.Contains(err.Error(), "undefined response type") || strings.Contains(err.Error(), "cannot unmarshal object into Go value") {
+		//lint:ignore ST1005, user facing error
+		return fmt.Errorf("Unable to decode server response, ensure your CLI version matches the server version (Message: %w)", err)
 	}
 
-	return fmt.Errorf("%w (Message: %s)", err, apiErr.Message)
+	if res == nil {
+		//lint:ignore ST1005, user facing error
+		return fmt.Errorf("No response received, make sure the server is running at the host you are connecting to (Message: %w)", err)
+	}
+
+	var apiErr api.Error
+	if decodeErr := json.NewDecoder(res.Body).Decode(&apiErr); decodeErr == nil {
+		// decoding error can be ignored, will return the original error in that case
+		if apiErr.Message != "" {
+			return fmt.Errorf("%w (Message: %s)", err, apiErr.Message)
+		}
+	}
+
+	return err
 }
 
 func NewAPIContext(token string) context.Context {
@@ -116,7 +138,11 @@ func newLoginCmd() (*cobra.Command, error) {
 				options.Host = args[0]
 			}
 
-			return login(&options)
+			if err := login(&options); err != nil {
+				return formatErrorf(err.Error())
+			}
+
+			return nil
 		},
 	}
 
@@ -141,7 +167,11 @@ func newLogoutCmd() (*cobra.Command, error) {
 				options.Host = args[0]
 			}
 
-			return logout(&options)
+			if err := logout(&options); err != nil {
+				return formatErrorf(err.Error())
+			}
+
+			return nil
 		},
 	}
 
@@ -159,7 +189,11 @@ func newListCmd() (*cobra.Command, error) {
 				return err
 			}
 
-			return list(&options)
+			if err := list(&options); err != nil {
+				return formatErrorf(err.Error())
+			}
+
+			return nil
 		},
 	}
 
@@ -177,7 +211,11 @@ func newStartCmd() (*cobra.Command, error) {
 				return err
 			}
 
-			return registry.Run(options)
+			if err := registry.Run(options); err != nil {
+				return formatErrorf(err.Error())
+			}
+
+			return nil
 		},
 	}
 
@@ -218,7 +256,11 @@ func newEngineCmd() (*cobra.Command, error) {
 				return err
 			}
 
-			return engine.Run(&options)
+			if err := engine.Run(&options); err != nil {
+				return formatErrorf(err.Error())
+			}
+
+			return nil
 		},
 	}
 
@@ -241,7 +283,11 @@ func newVersionCmd() (*cobra.Command, error) {
 				return err
 			}
 
-			return version(&options)
+			if err := version(&options); err != nil {
+				return formatErrorf(err.Error())
+			}
+
+			return nil
 		},
 	}
 

@@ -24,7 +24,8 @@ type ClientHostConfig struct {
 	Current       bool   `json:"current"`
 }
 
-var ErrConfigNotFound = errors.New("could not read local credentials. Are you logged in? Use \"infra login\" to login")
+//lint:ignore ST1005, user facing error
+var ErrConfigNotFound = errors.New(`Could not read local credentials. Are you logged in? Use "infra login" to login`)
 
 func NewClientConfig() *ClientConfig {
 	return &ClientConfig{

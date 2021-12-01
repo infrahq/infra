@@ -63,9 +63,11 @@ func list(options *ListOptions) error {
 
 	switch {
 	case len(users) < 1:
-		return fmt.Errorf("user \"%s\" not found", config.Name)
+		//lint:ignore ST1005, user facing error
+		return fmt.Errorf("User %q not found, is this account still valid?", config.Name)
 	case len(users) > 1:
-		return fmt.Errorf("found multiple users \"%s\"", config.Name)
+		//lint:ignore ST1005, user facing error
+		return fmt.Errorf("Found multiple users %q in Infra, the server configuration is invalid", config.Name)
 	}
 
 	user := users[0]
