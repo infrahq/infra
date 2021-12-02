@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/infrahq/infra/internal/registry"
+	"github.com/infrahq/infra/internal/data"
 	"github.com/infrahq/infra/internal/registry/models"
 	"github.com/infrahq/infra/secrets"
 	"github.com/stretchr/testify/require"
@@ -31,7 +31,10 @@ func TestEncryptedAtRest(t *testing.T) {
 	models.SymmetricKey = symmetricKey
 
 	// test
-	db, err := registry.NewSQLiteDB("file::memory:")
+	driver, err := data.NewSQLiteDriver("file::memory:")
+	require.NoError(t, err)
+
+	db, err := data.NewDB(driver)
 	require.NoError(t, err)
 
 	err = db.AutoMigrate(&StructForTesting{})
