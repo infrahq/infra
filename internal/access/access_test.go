@@ -31,22 +31,6 @@ func setupDB(t *testing.T) *gorm.DB {
 	return db
 }
 
-func issueAPIKey(t *testing.T, db *gorm.DB, permissions string) string {
-	secret, err := generate.CryptoRandom(models.APIKeyLength)
-	require.NoError(t, err)
-
-	apiKey := &models.APIKey{
-		Name:        "test",
-		Key:         secret,
-		Permissions: permissions,
-	}
-
-	apiKey, err = data.CreateAPIKey(db, apiKey)
-	require.NoError(t, err)
-
-	return apiKey.Key
-}
-
 func issueToken(t *testing.T, db *gorm.DB, email, permissions string, sessionDuration time.Duration) string {
 	user, err := data.CreateUser(db, &models.User{Email: email})
 	require.NoError(t, err)
@@ -93,11 +77,13 @@ func TestRequireAuthentication(t *testing.T) {
 		"TokenNoMatch": {
 			"permission": PermissionAPIKeyList,
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				authorization := issueToken(t, db, "existing@infrahq.com", "infra.user.read", time.Minute*1)
-				c.Set("authorization", authorization)
+				authentication := generate.MathRandom(models.TokenLength)
+				r := httptest.NewRequest(http.MethodGet, "/", nil)
+				r.Header.Add("Authorization", "Bearer "+authentication)
+				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, err error) {
-				require.EqualError(t, err, "forbidden")
+				require.EqualError(t, err, "could not get token from database, it may not exist: record not found")
 			},
 		},
 		"TokenInvalidSecret": {
