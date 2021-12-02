@@ -5,10 +5,11 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/require"
+
 	"github.com/infrahq/infra/internal/data"
 	"github.com/infrahq/infra/internal/registry/models"
 	"github.com/infrahq/infra/secrets"
-	"github.com/stretchr/testify/require"
 )
 
 type StructForTesting struct {
