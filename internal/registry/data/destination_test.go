@@ -6,14 +6,16 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
+
+	"github.com/infrahq/infra/internal/registry/models"
 )
 
 var (
-	destinationDevelop    = Destination{Name: "develop", Kind: "kubernetes", Endpoint: "dev.kubernetes.com", Kubernetes: DestinationKubernetes{CA: "notsosecret"}}
-	destinationProduction = Destination{Name: "production", Kind: "kubernetes", Endpoint: "prod.kubernetes.com", Kubernetes: DestinationKubernetes{CA: "supersecret"}}
+	destinationDevelop    = models.Destination{Name: "develop", Kind: "kubernetes", Endpoint: "dev.kubernetes.com", Kubernetes: models.DestinationKubernetes{CA: "notsosecret"}}
+	destinationProduction = models.Destination{Name: "production", Kind: "kubernetes", Endpoint: "prod.kubernetes.com", Kubernetes: models.DestinationKubernetes{CA: "supersecret"}}
 
-	labelUSWest1 = Label{Value: "us-west-1"}
-	labelUSEast1 = Label{Value: "us-east-1"}
+	labelUSWest1 = models.Label{Value: "us-west-1"}
+	labelUSEast1 = models.Label{Value: "us-east-1"}
 )
 
 func TestDestination(t *testing.T) {
@@ -22,10 +24,10 @@ func TestDestination(t *testing.T) {
 	err := db.Create(&destinationDevelop).Error
 	require.NoError(t, err)
 
-	var destination Destination
-	err = db.Preload("Kubernetes").First(&destination, &Destination{Kind: "kubernetes"}).Error
+	var destination models.Destination
+	err = db.Preload("Kubernetes").First(&destination, &models.Destination{Kind: "kubernetes"}).Error
 	require.NoError(t, err)
-	require.Equal(t, DestinationKindKubernetes, destination.Kind)
+	require.Equal(t, models.DestinationKindKubernetes, destination.Kind)
 	require.Equal(t, "notsosecret", destination.Kubernetes.CA)
 }
 
@@ -39,7 +41,7 @@ func TestCreateDestinationKubernetes(t *testing.T) {
 	require.Equal(t, destinationDevelop.Kubernetes.CA, destination.Kubernetes.CA)
 }
 
-func createDestinations(t *testing.T, db *gorm.DB, destinations ...Destination) {
+func createDestinations(t *testing.T, db *gorm.DB, destinations ...models.Destination) {
 	for i := range destinations {
 		_, err := CreateDestination(db, &destinations[i])
 		require.NoError(t, err)
@@ -68,7 +70,7 @@ func TestCreateOrUpdateDestinationUpdate(t *testing.T) {
 	db := setup(t)
 	createDestinations(t, db, destinationDevelop, destinationProduction)
 
-	destination, err := CreateOrUpdateDestination(db, &Destination{Name: "testing"}, &destinationDevelop)
+	destination, err := CreateOrUpdateDestination(db, &models.Destination{Name: "testing"}, &destinationDevelop)
 	require.NoError(t, err)
 	require.NotEqual(t, uuid.Nil, destination.ID)
 	require.Equal(t, "testing", destination.Name)
@@ -79,9 +81,9 @@ func TestCreateOrUpdateDestinationUpdateCA(t *testing.T) {
 	db := setup(t)
 	createDestinations(t, db, destinationDevelop, destinationProduction)
 
-	updateCA := Destination{
-		Kind: DestinationKindKubernetes,
-		Kubernetes: DestinationKubernetes{
+	updateCA := models.Destination{
+		Kind: models.DestinationKindKubernetes,
+		Kubernetes: models.DestinationKubernetes{
 			CA: "updated-ca",
 		},
 	}
@@ -90,7 +92,7 @@ func TestCreateOrUpdateDestinationUpdateCA(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEqual(t, uuid.Nil, destination.ID)
 
-	fromDB, err := GetDestination(db, &Destination{Name: destination.Name})
+	fromDB, err := GetDestination(db, &models.Destination{Name: destination.Name})
 	require.NoError(t, err)
 	require.Equal(t, "develop", fromDB.Name)
 	require.Equal(t, "updated-ca", fromDB.Kubernetes.CA)
@@ -99,10 +101,10 @@ func TestCreateOrUpdateDestinationUpdateCA(t *testing.T) {
 func TestCreateDestinationLabels(t *testing.T) {
 	db := setup(t)
 
-	labels := Destination{
+	labels := models.Destination{
 		Name: "labeled",
-		Kind: DestinationKindKubernetes,
-		Labels: []Label{
+		Kind: models.DestinationKindKubernetes,
+		Labels: []models.Label{
 			labelUSWest1,
 		},
 	}
@@ -112,7 +114,7 @@ func TestCreateDestinationLabels(t *testing.T) {
 	require.NotEqual(t, uuid.Nil, destination.ID)
 	require.Len(t, destination.Labels, 1)
 
-	fromDB, err := GetDestination(db, &Destination{Name: labels.Name})
+	fromDB, err := GetDestination(db, &models.Destination{Name: labels.Name})
 	require.NoError(t, err)
 	require.Len(t, fromDB.Labels, 1)
 	require.Equal(t, "us-west-1", fromDB.Labels[0].Value)
@@ -121,10 +123,10 @@ func TestCreateDestinationLabels(t *testing.T) {
 func TestCreateDestinationMoreLabels(t *testing.T) {
 	db := setup(t)
 
-	labels := Destination{
+	labels := models.Destination{
 		Name: "labeled",
-		Kind: DestinationKindKubernetes,
-		Labels: []Label{
+		Kind: models.DestinationKindKubernetes,
+		Labels: []models.Label{
 			labelUSWest1,
 		},
 	}
@@ -141,7 +143,7 @@ func TestCreateDestinationMoreLabels(t *testing.T) {
 	require.NotEqual(t, uuid.Nil, destination.ID)
 	require.Len(t, destination.Labels, 2)
 
-	fromDB, err := GetDestination(db, &Destination{Name: labels.Name})
+	fromDB, err := GetDestination(db, &models.Destination{Name: labels.Name})
 	require.NoError(t, err)
 	require.Len(t, fromDB.Labels, 2)
 	require.ElementsMatch(t, []string{"us-west-1", "us-east-1"}, []string{
@@ -153,10 +155,10 @@ func TestCreateDestinationMoreLabels(t *testing.T) {
 func TestCreateDestinationLessLabels(t *testing.T) {
 	db := setup(t)
 
-	labels := Destination{
+	labels := models.Destination{
 		Name: "labeled",
-		Kind: DestinationKindKubernetes,
-		Labels: []Label{
+		Kind: models.DestinationKindKubernetes,
+		Labels: []models.Label{
 			labelUSWest1,
 			labelUSEast1,
 		},
@@ -167,14 +169,14 @@ func TestCreateDestinationLessLabels(t *testing.T) {
 	require.NotEqual(t, uuid.Nil, destination.ID)
 	require.Len(t, destination.Labels, 2)
 
-	labels.Labels = []Label{labelUSWest1}
+	labels.Labels = []models.Label{labelUSWest1}
 
 	destination, err = CreateOrUpdateDestination(db, &labels, &labels)
 	require.NoError(t, err)
 	require.NotEqual(t, uuid.Nil, destination.ID)
 	require.Len(t, destination.Labels, 1)
 
-	fromDB, err := GetDestination(db, &Destination{Name: labels.Name})
+	fromDB, err := GetDestination(db, &models.Destination{Name: labels.Name})
 	require.NoError(t, err)
 	require.Len(t, fromDB.Labels, 1)
 	require.Equal(t, "us-west-1", fromDB.Labels[0].Value)
@@ -184,7 +186,7 @@ func TestGetDestination(t *testing.T) {
 	db := setup(t)
 	createDestinations(t, db, destinationDevelop, destinationProduction)
 
-	destination, err := GetDestination(db, &Destination{Kind: "kubernetes"})
+	destination, err := GetDestination(db, &models.Destination{Kind: "kubernetes"})
 	require.NoError(t, err)
 	require.NotEqual(t, uuid.Nil, destination.ID)
 	require.Equal(t, destinationDevelop.Kubernetes.CA, destination.Kubernetes.CA)
@@ -194,7 +196,7 @@ func TestGetDestinationLabelSelector(t *testing.T) {
 	db := setup(t)
 
 	destinationLabels := destinationDevelop
-	destinationLabels.Labels = []Label{
+	destinationLabels.Labels = []models.Label{
 		{Value: "us-west-1"},
 		{Value: "aws"},
 	}
@@ -213,7 +215,7 @@ func TestGetDestinationLabelSelectorCombo(t *testing.T) {
 	db := setup(t)
 
 	destinationLabels := destinationDevelop
-	destinationLabels.Labels = []Label{
+	destinationLabels.Labels = []models.Label{
 		{Value: "us-west-1"},
 		{Value: "aws"},
 	}
@@ -222,14 +224,14 @@ func TestGetDestinationLabelSelectorCombo(t *testing.T) {
 
 	destination, err := GetDestination(db, db.Where(
 		LabelSelector(db, "destination_id", "us-west-1"),
-		&Destination{Name: "develop"},
+		&models.Destination{Name: "develop"},
 	))
 	require.NoError(t, err)
 	require.Equal(t, 2, len(destination.Labels))
 
 	_, err = GetDestination(db, db.Where(
 		LabelSelector(db, "destination_id", "us-west-1"),
-		&Destination{Name: "production"},
+		&models.Destination{Name: "production"},
 	))
 	require.EqualError(t, err, "record not found")
 }
@@ -238,11 +240,11 @@ func TestListDestinations(t *testing.T) {
 	db := setup(t)
 	createDestinations(t, db, destinationDevelop, destinationProduction)
 
-	destinations, err := ListDestinations(db, &Destination{})
+	destinations, err := ListDestinations(db, &models.Destination{})
 	require.NoError(t, err)
 	require.Equal(t, 2, len(destinations))
 
-	destinations, err = ListDestinations(db, &Destination{Name: "production"})
+	destinations, err = ListDestinations(db, &models.Destination{Name: "production"})
 	require.NoError(t, err)
 	require.Equal(t, 1, len(destinations))
 }
@@ -251,7 +253,7 @@ func TestListDestinationsLabelSelector(t *testing.T) {
 	db := setup(t)
 
 	destinationLabels := destinationDevelop
-	destinationLabels.Labels = []Label{
+	destinationLabels.Labels = []models.Label{
 		{Value: "us-west-1"},
 		{Value: "aws"},
 	}
@@ -272,26 +274,26 @@ func TestDeleteDestinations(t *testing.T) {
 	db := setup(t)
 	createDestinations(t, db, destinationDevelop, destinationProduction)
 
-	destination, err := GetDestination(db, &Destination{Name: "develop"})
+	destination, err := GetDestination(db, &models.Destination{Name: "develop"})
 	require.NoError(t, err)
 
-	err = DeleteDestinations(db, &Destination{Name: "develop"})
+	err = DeleteDestinations(db, &models.Destination{Name: "develop"})
 	require.NoError(t, err)
 
 	// deleting a destination should remove its associated labels
-	labels := make([]Label, 0)
+	labels := make([]models.Label, 0)
 	err = db.Where("destination_id IN (?)", destination.Labels).Find(&labels).Error
 	require.NoError(t, err)
 	require.Equal(t, 0, len(labels))
 
-	_, err = GetDestination(db, &Destination{Name: "develop"})
+	_, err = GetDestination(db, &models.Destination{Name: "develop"})
 	require.EqualError(t, err, "record not found")
 
 	// deleting a nonexistent destination should not fail
-	err = DeleteDestinations(db, &Destination{Name: "develop"})
+	err = DeleteDestinations(db, &models.Destination{Name: "develop"})
 	require.NoError(t, err)
 
 	// deleting a destination should not delete unrelated destinations
-	_, err = GetDestination(db, &Destination{Name: "production"})
+	_, err = GetDestination(db, &models.Destination{Name: "production"})
 	require.NoError(t, err)
 }

@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -16,29 +15,8 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/registry/models"
 )
-
-type Model struct {
-	ID        uuid.UUID
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt `gorm:"index"`
-}
-
-// Set an ID if one does not already exist. Unfortunately, we can use `gorm:"default"`
-// tags since the ID must be dynamically generated and not all databases support UUID generation
-func (m *Model) BeforeCreate(tx *gorm.DB) error {
-	if m.ID == uuid.Nil {
-		m.ID = NewID()
-	}
-
-	return nil
-}
-
-// Generate new UUIDv1
-func NewID() uuid.UUID {
-	return uuid.Must(uuid.NewUUID())
-}
 
 func NewDB(connection gorm.Dialector) (*gorm.DB, error) {
 	db, err := gorm.Open(connection, &gorm.Config{
@@ -56,31 +34,31 @@ func NewDB(connection gorm.Dialector) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	if err := db.AutoMigrate(&User{}, &Group{}); err != nil {
+	if err := db.AutoMigrate(&models.User{}, &models.Group{}); err != nil {
 		return nil, err
 	}
 
-	if err := db.AutoMigrate(&Role{}, &RoleKubernetes{}); err != nil {
+	if err := db.AutoMigrate(&models.Role{}, &models.RoleKubernetes{}); err != nil {
 		return nil, err
 	}
 
-	if err := db.AutoMigrate(&Provider{}, &ProviderOkta{}); err != nil {
+	if err := db.AutoMigrate(&models.Provider{}, &models.ProviderOkta{}); err != nil {
 		return nil, err
 	}
 
-	if err := db.AutoMigrate(&Destination{}, &DestinationKubernetes{}); err != nil {
+	if err := db.AutoMigrate(&models.Destination{}, &models.DestinationKubernetes{}); err != nil {
 		return nil, err
 	}
 
-	if err := db.AutoMigrate(&Label{}); err != nil {
+	if err := db.AutoMigrate(&models.Label{}); err != nil {
 		return nil, err
 	}
 
-	if err := db.AutoMigrate(&Token{}, &APIKey{}); err != nil {
+	if err := db.AutoMigrate(&models.Token{}, &models.APIKey{}); err != nil {
 		return nil, err
 	}
 
-	if err := db.AutoMigrate(&Settings{}); err != nil {
+	if err := db.AutoMigrate(&models.Settings{}); err != nil {
 		return nil, err
 	}
 
@@ -157,7 +135,7 @@ func LabelSelector(db *gorm.DB, field string, labels ...string) *gorm.DB {
 	if len(labels) > 0 {
 		db = db.Where(
 			"id IN (?)",
-			db.Model(&Label{}).Select(field).Where("value IN (?)", labels),
+			db.Model(&models.Label{}).Select(field).Where("value IN (?)", labels),
 		)
 	}
 

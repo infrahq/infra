@@ -10,8 +10,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
-	"github.com/infrahq/infra/internal/data"
 	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/internal/registry/data"
+	"github.com/infrahq/infra/internal/registry/models"
 )
 
 func init() {
@@ -29,10 +30,10 @@ func setupDB(t *testing.T) *gorm.DB {
 }
 
 func issueAPIKey(t *testing.T, db *gorm.DB, permissions string) string {
-	secret, err := generate.CryptoRandom(data.APIKeyLength)
+	secret, err := generate.CryptoRandom(models.APIKeyLength)
 	require.NoError(t, err)
 
-	apiKey := &data.APIKey{
+	apiKey := &models.APIKey{
 		Name:        "test",
 		Key:         secret,
 		Permissions: permissions,
@@ -45,10 +46,10 @@ func issueAPIKey(t *testing.T, db *gorm.DB, permissions string) string {
 }
 
 func issueToken(t *testing.T, db *gorm.DB, email, permissions string, sessionDuration time.Duration) string {
-	user, err := data.CreateUser(db, &data.User{Email: email})
+	user, err := data.CreateUser(db, &models.User{Email: email})
 	require.NoError(t, err)
 
-	token := &data.Token{
+	token := &models.Token{
 		User:            *user,
 		SessionDuration: sessionDuration,
 		Permissions:     permissions,
@@ -85,8 +86,8 @@ func TestRequireAuthorization(t *testing.T) {
 			"permission": PermissionUserRead,
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				token := issueToken(t, db, "existing@infrahq.com", "*", time.Minute*1)
-				secret := token[data.TokenKeyLength:]
-				authorization := fmt.Sprintf("%s%s", generate.MathRandom(data.TokenKeyLength), secret)
+				secret := token[models.TokenKeyLength:]
+				authorization := fmt.Sprintf("%s%s", generate.MathRandom(models.TokenKeyLength), secret)
 				c.Set("authorization", authorization)
 			},
 			"verifyFunc": func(t *testing.T, err error) {
@@ -107,8 +108,8 @@ func TestRequireAuthorization(t *testing.T) {
 			"permission": PermissionUserRead,
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				token := issueToken(t, db, "existing@infrahq.com", "*", time.Minute*1)
-				key := token[:data.TokenKeyLength]
-				secret, err := generate.CryptoRandom(data.TokenSecretLength)
+				key := token[:models.TokenKeyLength]
+				secret, err := generate.CryptoRandom(models.TokenSecretLength)
 				require.NoError(t, err)
 				authorization := fmt.Sprintf("%s%s", key, secret)
 				c.Set("authorization", authorization)

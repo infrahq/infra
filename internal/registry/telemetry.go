@@ -7,7 +7,8 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/data"
+	"github.com/infrahq/infra/internal/registry/data"
+	"github.com/infrahq/infra/internal/registry/models"
 )
 
 type Telemetry struct {
@@ -61,27 +62,27 @@ func (t *Telemetry) Close() {
 }
 
 func (t *Telemetry) EnqueueHeartbeat() error {
-	users, err := data.Count(t.db, &data.User{}, &data.User{})
+	users, err := data.Count(t.db, &models.User{}, &models.User{})
 	if err != nil {
 		return err
 	}
 
-	groups, err := data.Count(t.db, &data.Group{}, &data.Group{})
+	groups, err := data.Count(t.db, &models.Group{}, &models.Group{})
 	if err != nil {
 		return err
 	}
 
-	roles, err := data.Count(t.db, &data.Role{}, &data.Role{})
+	roles, err := data.Count(t.db, &models.Role{}, &models.Role{})
 	if err != nil {
 		return err
 	}
 
-	providers, err := data.Count(t.db, &data.Provider{}, &data.Provider{})
+	providers, err := data.Count(t.db, &models.Provider{}, &models.Provider{})
 	if err != nil {
 		return err
 	}
 
-	destinations, err := data.Count(t.db, &data.Destination{}, &data.Destination{})
+	destinations, err := data.Count(t.db, &models.Destination{}, &models.Destination{})
 	if err != nil {
 		return err
 	}

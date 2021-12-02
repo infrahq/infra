@@ -22,10 +22,3 @@ func setup(t *testing.T) *gorm.DB {
 
 	return db
 }
-
-func TestID(t *testing.T) {
-	id := NewID()
-
-	require.Equal(t, id.Version().String(), "VERSION_1")
-	require.Equal(t, id.Variant().String(), "RFC4122")
-}

@@ -3,7 +3,8 @@ package access
 import (
 	"github.com/gin-gonic/gin"
 
-	"github.com/infrahq/infra/internal/data"
+	"github.com/infrahq/infra/internal/registry/data"
+	"github.com/infrahq/infra/internal/registry/models"
 )
 
 const (
@@ -14,13 +15,13 @@ const (
 	PermissionUserDelete Permission = "infra.user.delete"
 )
 
-func GetUser(c *gin.Context, id string) (*data.User, error) {
+func GetUser(c *gin.Context, id string) (*models.User, error) {
 	db, _, err := RequireAuthorization(c, PermissionUserRead)
 	if err != nil {
 		return nil, err
 	}
 
-	user, err := data.NewUser(id)
+	user, err := models.NewUser(id)
 	if err != nil {
 		return nil, err
 	}
@@ -28,11 +29,11 @@ func GetUser(c *gin.Context, id string) (*data.User, error) {
 	return data.GetUser(data.UserAssociations(db), user)
 }
 
-func ListUsers(c *gin.Context, email string) ([]data.User, error) {
+func ListUsers(c *gin.Context, email string) ([]models.User, error) {
 	db, _, err := RequireAuthorization(c, PermissionUserRead)
 	if err != nil {
 		return nil, err
 	}
 
-	return data.ListUsers(data.UserAssociations(db), &data.User{Email: email})
+	return data.ListUsers(data.UserAssociations(db), &models.User{Email: email})
 }

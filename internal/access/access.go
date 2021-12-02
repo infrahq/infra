@@ -8,7 +8,8 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/data"
+	"github.com/infrahq/infra/internal/registry/data"
+	"github.com/infrahq/infra/internal/registry/models"
 )
 
 type Permission string
@@ -43,8 +44,8 @@ func RequireAuthorization(c *gin.Context, require Permission) (*gorm.DB, string,
 	}
 
 	switch len(authorization) {
-	case data.TokenLength:
-		token, err := data.GetToken(db, &data.Token{Key: authorization[:data.TokenKeyLength]})
+	case models.TokenLength:
+		token, err := data.GetToken(db, &models.Token{Key: authorization[:models.TokenKeyLength]})
 		if err != nil {
 			return nil, "", internal.ErrInvalid
 		}
@@ -63,8 +64,8 @@ func RequireAuthorization(c *gin.Context, require Permission) (*gorm.DB, string,
 			}
 		}
 
-	case data.APIKeyLength:
-		apiKey, err := data.GetAPIKey(db, &data.APIKey{Key: authorization})
+	case models.APIKeyLength:
+		apiKey, err := data.GetAPIKey(db, &models.APIKey{Key: authorization})
 		if err != nil {
 			return nil, "", internal.ErrInvalid
 		}

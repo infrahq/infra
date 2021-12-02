@@ -11,7 +11,8 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/access"
-	"github.com/infrahq/infra/internal/data"
+	"github.com/infrahq/infra/internal/registry/data"
+	"github.com/infrahq/infra/internal/registry/models"
 	"github.com/infrahq/infra/secrets"
 )
 
@@ -28,10 +29,10 @@ type ConfigProvider struct {
 }
 
 type baseConfigProvider struct {
-	Kind         data.ProviderKind `yaml:"kind"`
-	Domain       string            `yaml:"domain"`
-	ClientID     string            `yaml:"clientID"`
-	ClientSecret string            `yaml:"clientSecret"`
+	Kind         models.ProviderKind `yaml:"kind"`
+	Domain       string              `yaml:"domain"`
+	ClientID     string              `yaml:"clientID"`
+	ClientSecret string              `yaml:"clientSecret"`
 }
 
 var _ yaml.Unmarshaler = &ConfigProvider{}
@@ -49,7 +50,7 @@ func (idp *ConfigProvider) UnmarshalYAML(unmarshal func(interface{}) error) erro
 	idp.ClientSecret = tmp.ClientSecret
 
 	switch tmp.Kind {
-	case data.ProviderKindOkta:
+	case models.ProviderKindOkta:
 		o := ConfigOkta{}
 		if err := unmarshal(&o); err != nil {
 			return fmt.Errorf("unmarshal yaml: %w", err)
@@ -75,15 +76,15 @@ func (p *ConfigProvider) cleanupDomain() {
 }
 
 type ConfigDestination struct {
-	Name       string               `yaml:"name"`
-	Labels     []string             `yaml:"labels"`
-	Kind       data.DestinationKind `yaml:"kind" validate:"required"`
-	Namespaces []string             `yaml:"namespaces"` // optional in the case of a cluster-role
+	Name       string                 `yaml:"name"`
+	Labels     []string               `yaml:"labels"`
+	Kind       models.DestinationKind `yaml:"kind" validate:"required"`
+	Namespaces []string               `yaml:"namespaces"` // optional in the case of a cluster-role
 }
 
 type ConfigRole struct {
 	Name         string              `yaml:"name" validate:"required"`
-	Kind         data.RoleKind       `yaml:"kind" validate:"required,oneof=role cluster-role"`
+	Kind         models.RoleKind     `yaml:"kind" validate:"required,oneof=role cluster-role"`
 	Destinations []ConfigDestination `yaml:"destinations" validate:"required,dive"`
 }
 
@@ -209,15 +210,15 @@ func importProviders(db *gorm.DB, providers []ConfigProvider) error {
 			return fmt.Errorf("invalid domain: %w", err)
 		}
 
-		provider := data.Provider{
-			Kind:         data.ProviderKind(p.Kind),
+		provider := models.Provider{
+			Kind:         models.ProviderKind(p.Kind),
 			Domain:       p.Domain,
 			ClientID:     p.ClientID,
 			ClientSecret: p.ClientSecret,
 		}
 
 		switch provider.Kind {
-		case data.ProviderKindOkta:
+		case models.ProviderKindOkta:
 			cfg, ok := p.Config.(ConfigOkta)
 			if !ok {
 				return fmt.Errorf("expected provider config to be Okta, but was %t", p.Config)
@@ -230,7 +231,7 @@ func importProviders(db *gorm.DB, providers []ConfigProvider) error {
 			return fmt.Errorf("invalid provider kind in configuration: %s", p.Kind)
 		}
 
-		final, err := data.CreateOrUpdateProvider(db, &provider, &data.Provider{Kind: provider.Kind, Domain: provider.Domain})
+		final, err := data.CreateOrUpdateProvider(db, &provider, &models.Provider{Kind: provider.Kind, Domain: provider.Domain})
 		if err != nil {
 			return err
 		}
@@ -238,7 +239,7 @@ func importProviders(db *gorm.DB, providers []ConfigProvider) error {
 		toKeep = append(toKeep, final.ID)
 	}
 
-	if err := data.DeleteProviders(db, db.Model(&data.Provider{}).Not(toKeep)); err != nil {
+	if err := data.DeleteProviders(db, db.Model(&models.Provider{}).Not(toKeep)); err != nil {
 		return err
 	}
 
@@ -253,7 +254,7 @@ func importUserRoleMappings(db *gorm.DB, users []ConfigUserMapping) ([]uuid.UUID
 			return nil, err
 		}
 
-		user, err := data.GetUser(db, &data.User{Email: u.Email})
+		user, err := data.GetUser(db, &models.User{Email: u.Email})
 		if err != nil {
 			continue
 		}
@@ -263,7 +264,7 @@ func importUserRoleMappings(db *gorm.DB, users []ConfigUserMapping) ([]uuid.UUID
 			return nil, err
 		}
 
-		if err := user.BindRoles(db, ids...); err != nil {
+		if err := data.BindUserRoles(db, user, ids...); err != nil {
 			return nil, err
 		}
 
@@ -281,7 +282,7 @@ func importGroupRoleMappings(db *gorm.DB, groups []ConfigGroupMapping) ([]uuid.U
 			return nil, err
 		}
 
-		group, err := data.GetGroup(db, &data.Group{Name: g.Name})
+		group, err := data.GetGroup(db, &models.Group{Name: g.Name})
 		if err != nil {
 			continue
 		}
@@ -291,7 +292,7 @@ func importGroupRoleMappings(db *gorm.DB, groups []ConfigGroupMapping) ([]uuid.U
 			return nil, err
 		}
 
-		if err := group.BindRoles(db, ids...); err != nil {
+		if err := data.BindGroupRoles(db, group, ids...); err != nil {
 			return nil, err
 		}
 
@@ -316,7 +317,7 @@ func importRoles(db *gorm.DB, roles []ConfigRole) ([]uuid.UUID, error) {
 
 			destinations, err := data.ListDestinations(db, db.Where(
 				data.LabelSelector(db, "destination_id", d.Labels...),
-				&data.Destination{Name: d.Name, Kind: d.Kind},
+				&models.Destination{Name: d.Name, Kind: d.Kind},
 			))
 			if err != nil {
 				return nil, err
@@ -335,17 +336,17 @@ func importRoles(db *gorm.DB, roles []ConfigRole) ([]uuid.UUID, error) {
 					}
 				}
 
-				role := data.Role{
-					Kind:        data.RoleKind(destination.Kind),
+				role := models.Role{
+					Kind:        models.RoleKind(destination.Kind),
 					Destination: destination,
 				}
 
-				roles := make([]data.Role, 0)
+				roles := make([]models.Role, 0)
 
 				switch role.Kind {
-				case data.RoleKindKubernetes:
-					role.Kubernetes = data.RoleKubernetes{
-						Kind: data.RoleKubernetesKind(r.Kind),
+				case models.RoleKindKubernetes:
+					role.Kubernetes = models.RoleKubernetes{
+						Kind: models.RoleKubernetesKind(r.Kind),
 						Name: r.Name,
 					}
 
@@ -473,7 +474,7 @@ func (r *Registry) importAPIKeys() error {
 			return err
 		}
 
-		apiKey := &data.APIKey{
+		apiKey := &models.APIKey{
 			Name:        k,
 			Permissions: strings.Join(v.Permissions, " "),
 			Key:         secret,

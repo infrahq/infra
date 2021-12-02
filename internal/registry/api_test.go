@@ -19,9 +19,10 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/api"
-	"github.com/infrahq/infra/internal/data"
 	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/mocks"
+	"github.com/infrahq/infra/internal/registry/models"
 	"github.com/infrahq/infra/secrets"
 )
 
@@ -43,11 +44,11 @@ func (msr *mockSecretReader) SetSecret(secretName string, secret []byte) error {
 	return nil
 }
 
-func issueAPIKey(t *testing.T, db *gorm.DB, permissions string) *data.APIKey {
-	secret, err := generate.CryptoRandom(data.APIKeyLength)
+func issueAPIKey(t *testing.T, db *gorm.DB, permissions string) *models.APIKey {
+	secret, err := generate.CryptoRandom(models.APIKeyLength)
 	require.NoError(t, err)
 
-	apiKey := &data.APIKey{
+	apiKey := &models.APIKey{
 		Name:        "test",
 		Key:         secret,
 		Permissions: permissions,
@@ -187,12 +188,12 @@ func TestCreateDestination(t *testing.T) {
 func TestCreateDestinationUpdatesField(t *testing.T) {
 	db := configure(t, nil)
 
-	destination, err := data.CreateDestination(db, &data.Destination{
-		Kind:     data.DestinationKindKubernetes,
+	destination, err := data.CreateDestination(db, &models.Destination{
+		Kind:     models.DestinationKindKubernetes,
 		NodeID:   "node-id",
 		Name:     "name",
 		Endpoint: "endpoint",
-		Kubernetes: data.DestinationKubernetes{
+		Kubernetes: models.DestinationKubernetes{
 			CA: "ca",
 		},
 	})
@@ -240,7 +241,7 @@ func TestCreateDestinationUpdatesField(t *testing.T) {
 	require.Equal(t, "updated-ca", body.Kubernetes.Ca)
 	require.Equal(t, "updated-endpoint", body.Kubernetes.Endpoint)
 
-	destinations, err := data.ListDestinations(db, &data.Destination{NodeID: "node-id"})
+	destinations, err := data.ListDestinations(db, &models.Destination{NodeID: "node-id"})
 	require.NoError(t, err)
 	require.Len(t, destinations, 1)
 	require.Equal(t, body.Id, destinations[0].ID.String())

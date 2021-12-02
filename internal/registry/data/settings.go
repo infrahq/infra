@@ -8,30 +8,21 @@ import (
 
 	"gopkg.in/square/go-jose.v2"
 	"gorm.io/gorm"
+
+	"github.com/infrahq/infra/internal/registry/models"
 )
 
-type Settings struct {
-	Model
-
-	PrivateJWK []byte
-	PublicJWK  []byte
-}
-
-func (s *Settings) BeforeSave(tx *gorm.DB) error {
-	if len(s.PrivateJWK) != 0 && len(s.PublicJWK) != 0 {
-		return nil
-	}
-
+func InitializeSettings(db *gorm.DB) (*models.Settings, error) {
 	pubkey, seckey, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	sec := jose.JSONWebKey{Key: seckey, KeyID: "", Algorithm: string(jose.ED25519), Use: "sig"}
 
 	thumb, err := sec.Thumbprint(crypto.SHA256)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	sec.KeyID = base64.URLEncoding.EncodeToString(thumb)
@@ -40,22 +31,19 @@ func (s *Settings) BeforeSave(tx *gorm.DB) error {
 
 	secs, err := sec.MarshalJSON()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	pubs, err := pub.MarshalJSON()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	s.PrivateJWK = secs
-	s.PublicJWK = pubs
+	settings := models.Settings{
+		PrivateJWK: secs,
+		PublicJWK:  pubs,
+	}
 
-	return nil
-}
-
-func InitializeSettings(db *gorm.DB) (*Settings, error) {
-	var settings Settings
 	if err := db.FirstOrCreate(&settings).Error; err != nil {
 		return nil, err
 	}
@@ -63,8 +51,8 @@ func InitializeSettings(db *gorm.DB) (*Settings, error) {
 	return &settings, nil
 }
 
-func GetSettings(db *gorm.DB) (*Settings, error) {
-	var settings Settings
+func GetSettings(db *gorm.DB) (*models.Settings, error) {
+	var settings models.Settings
 	if err := db.First(&settings).Error; err != nil {
 		return nil, err
 	}

@@ -6,12 +6,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
+
+	"github.com/infrahq/infra/internal/registry/models"
 )
 
 var (
-	bond   = User{Email: "jbond@infrahq.com"}
-	bourne = User{Email: "jbourne@infrahq.com"}
-	bauer  = User{Email: "jbauer@infrahq.com"}
+	bond   = models.User{Email: "jbond@infrahq.com"}
+	bourne = models.User{Email: "jbourne@infrahq.com"}
+	bauer  = models.User{Email: "jbauer@infrahq.com"}
 )
 
 func TestUser(t *testing.T) {
@@ -20,8 +22,8 @@ func TestUser(t *testing.T) {
 	err := db.Create(&bond).Error
 	require.NoError(t, err)
 
-	var user User
-	err = db.First(&user, &User{Email: bond.Email}).Error
+	var user models.User
+	err = db.First(&user, &models.User{Email: bond.Email}).Error
 	require.NoError(t, err)
 	require.NotEqual(t, uuid.Nil, user.ID)
 	require.Equal(t, bond.Email, user.Email)
@@ -36,7 +38,7 @@ func TestCreateUser(t *testing.T) {
 	require.Equal(t, bond.Email, user.Email)
 }
 
-func createUsers(t *testing.T, db *gorm.DB, users ...User) {
+func createUsers(t *testing.T, db *gorm.DB, users ...models.User) {
 	for i := range users {
 		_, err := CreateUser(db, &users[i])
 		require.NoError(t, err)
@@ -64,7 +66,7 @@ func TestCreateOrUpdateUserUpdate(t *testing.T) {
 	db := setup(t)
 	createUsers(t, db, bond, bourne, bauer)
 
-	user, err := CreateOrUpdateUser(db, &User{Email: "james@infrahq.com"}, &bond)
+	user, err := CreateOrUpdateUser(db, &models.User{Email: "james@infrahq.com"}, &bond)
 	require.NoError(t, err)
 	require.NotEqual(t, uuid.Nil, user.ID)
 	require.Equal(t, "james@infrahq.com", user.Email)
@@ -74,7 +76,7 @@ func TestGetUser(t *testing.T) {
 	db := setup(t)
 	createUsers(t, db, bond, bourne, bauer)
 
-	user, err := GetUser(db, User{Email: bond.Email})
+	user, err := GetUser(db, models.User{Email: bond.Email})
 	require.NoError(t, err)
 	require.NotEqual(t, uuid.Nil, user.ID)
 }
@@ -83,11 +85,11 @@ func TestListUsers(t *testing.T) {
 	db := setup(t)
 	createUsers(t, db, bond, bourne, bauer)
 
-	users, err := ListUsers(db, &User{})
+	users, err := ListUsers(db, &models.User{})
 	require.NoError(t, err)
 	require.Equal(t, 3, len(users))
 
-	users, err = ListUsers(db, &User{Email: bourne.Email})
+	users, err = ListUsers(db, &models.User{Email: bourne.Email})
 	require.NoError(t, err)
 	require.Equal(t, 1, len(users))
 }
@@ -96,10 +98,10 @@ func TestUserBindRoles(t *testing.T) {
 	db := setup(t)
 	createUsers(t, db, bond, bourne, bauer)
 
-	admin := Role{
-		Kind: RoleKindKubernetes,
-		Kubernetes: RoleKubernetes{
-			Kind: RoleKubernetesKindRole,
+	admin := models.Role{
+		Kind: models.RoleKindKubernetes,
+		Kubernetes: models.RoleKubernetes{
+			Kind: models.RoleKubernetesKindRole,
 			Name: "admin",
 		},
 	}
@@ -107,15 +109,15 @@ func TestUserBindRoles(t *testing.T) {
 	_, err := CreateRole(db, &admin)
 	require.NoError(t, err)
 
-	users, err := ListUsers(db, &User{})
+	users, err := ListUsers(db, &models.User{})
 	require.NoError(t, err)
 
-	for _, user := range users {
-		err := user.BindRoles(db, admin.ID)
+	for i := range users {
+		err := BindUserRoles(db, &users[i], admin.ID)
 		require.NoError(t, err)
 	}
 
-	roles, err := ListRoles(db, &Role{})
+	roles, err := ListRoles(db, &models.Role{})
 	require.NoError(t, err)
 	require.Len(t, roles, 1)
 	require.Len(t, roles[0].Users, 3)
@@ -132,10 +134,10 @@ func TestUserBindMoreRoles(t *testing.T) {
 	db := setup(t)
 	createUsers(t, db, bond, bourne, bauer)
 
-	admin := Role{
-		Kind: RoleKindKubernetes,
-		Kubernetes: RoleKubernetes{
-			Kind: RoleKubernetesKindRole,
+	admin := models.Role{
+		Kind: models.RoleKindKubernetes,
+		Kubernetes: models.RoleKubernetes{
+			Kind: models.RoleKubernetesKindRole,
 			Name: "admin",
 		},
 	}
@@ -143,21 +145,21 @@ func TestUserBindMoreRoles(t *testing.T) {
 	_, err := CreateRole(db, &admin)
 	require.NoError(t, err)
 
-	user, err := GetUser(db, &User{Email: bond.Email})
+	user, err := GetUser(db, &models.User{Email: bond.Email})
 	require.NoError(t, err)
 	require.Len(t, user.Roles, 0)
 
-	err = user.BindRoles(db, admin.ID)
+	err = BindUserRoles(db, user, admin.ID)
 	require.NoError(t, err)
 
-	user, err = GetUser(db, &User{Email: bond.Email})
+	user, err = GetUser(db, &models.User{Email: bond.Email})
 	require.NoError(t, err)
 	require.Len(t, user.Roles, 1)
 
-	view := Role{
-		Kind: RoleKindKubernetes,
-		Kubernetes: RoleKubernetes{
-			Kind: RoleKubernetesKindRole,
+	view := models.Role{
+		Kind: models.RoleKindKubernetes,
+		Kubernetes: models.RoleKubernetes{
+			Kind: models.RoleKubernetesKindRole,
 			Name: "view",
 		},
 	}
@@ -165,10 +167,10 @@ func TestUserBindMoreRoles(t *testing.T) {
 	_, err = CreateRole(db, &view)
 	require.NoError(t, err)
 
-	err = user.BindRoles(db, admin.ID, view.ID)
+	err = BindUserRoles(db, user, admin.ID, view.ID)
 	require.NoError(t, err)
 
-	user, err = GetUser(db, &User{Email: bond.Email})
+	user, err = GetUser(db, &models.User{Email: bond.Email})
 	require.NoError(t, err)
 	require.Len(t, user.Roles, 2)
 }
@@ -177,18 +179,18 @@ func TestUserBindLessRoles(t *testing.T) {
 	db := setup(t)
 	createUsers(t, db, bond, bourne, bauer)
 
-	admin := Role{
-		Kind: RoleKindKubernetes,
-		Kubernetes: RoleKubernetes{
-			Kind: RoleKubernetesKindRole,
+	admin := models.Role{
+		Kind: models.RoleKindKubernetes,
+		Kubernetes: models.RoleKubernetes{
+			Kind: models.RoleKubernetesKindRole,
 			Name: "admin",
 		},
 	}
 
-	view := Role{
-		Kind: RoleKindKubernetes,
-		Kubernetes: RoleKubernetes{
-			Kind: RoleKubernetesKindRole,
+	view := models.Role{
+		Kind: models.RoleKindKubernetes,
+		Kubernetes: models.RoleKubernetes{
+			Kind: models.RoleKubernetesKindRole,
 			Name: "view",
 		},
 	}
@@ -199,21 +201,21 @@ func TestUserBindLessRoles(t *testing.T) {
 	_, err = CreateRole(db, &view)
 	require.NoError(t, err)
 
-	user, err := GetUser(db, &User{Email: bond.Email})
+	user, err := GetUser(db, &models.User{Email: bond.Email})
 	require.NoError(t, err)
 	require.Len(t, user.Roles, 0)
 
-	err = user.BindRoles(db, admin.ID, view.ID)
+	err = BindUserRoles(db, user, admin.ID, view.ID)
 	require.NoError(t, err)
 
-	user, err = GetUser(db, &User{Email: bond.Email})
+	user, err = GetUser(db, &models.User{Email: bond.Email})
 	require.NoError(t, err)
 	require.Len(t, user.Roles, 2)
 
-	err = user.BindRoles(db, admin.ID)
+	err = BindUserRoles(db, user, admin.ID)
 	require.NoError(t, err)
 
-	user, err = GetUser(db, &User{Email: bond.Email})
+	user, err = GetUser(db, &models.User{Email: bond.Email})
 	require.NoError(t, err)
 	require.Len(t, user.Roles, 1)
 }
@@ -222,20 +224,20 @@ func TestDeleteUser(t *testing.T) {
 	db := setup(t)
 	createUsers(t, db, bond, bourne, bauer)
 
-	_, err := GetUser(db, &User{Email: bond.Email})
+	_, err := GetUser(db, &models.User{Email: bond.Email})
 	require.NoError(t, err)
 
-	err = DeleteUsers(db, &User{Email: bond.Email})
+	err = DeleteUsers(db, &models.User{Email: bond.Email})
 	require.NoError(t, err)
 
-	_, err = GetUser(db, &User{Email: bond.Email})
+	_, err = GetUser(db, &models.User{Email: bond.Email})
 	require.EqualError(t, err, "record not found")
 
 	// deleting a nonexistent user should not fail
-	err = DeleteUsers(db, &User{Email: bond.Email})
+	err = DeleteUsers(db, &models.User{Email: bond.Email})
 	require.NoError(t, err)
 
 	// deleting an user should not delete unrelated users
-	_, err = GetUser(db, &User{Email: bourne.Email})
+	_, err = GetUser(db, &models.User{Email: bourne.Email})
 	require.NoError(t, err)
 }

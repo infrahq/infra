@@ -8,15 +8,16 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/infrahq/infra/internal/data"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/registry/data"
+	"github.com/infrahq/infra/internal/registry/models"
 )
 
 func syncProviders(r *Registry) {
 	hub := newSentryHub("sync_providers_timer")
 	defer recoverWithSentryHub(hub)
 
-	providers, err := data.ListProviders(r.db, &data.Provider{})
+	providers, err := data.ListProviders(r.db, &models.Provider{})
 	if err != nil {
 		logging.S.Errorf("providers: %w", err)
 		return
@@ -27,7 +28,7 @@ func syncProviders(r *Registry) {
 	for _, p := range providers {
 		wg.Add(1)
 
-		go func(provider data.Provider) {
+		go func(provider models.Provider) {
 			if err := syncProvider(r, r.db, provider); err != nil {
 				logging.S.Warnf("sync provider: %w", err)
 			}
@@ -39,9 +40,9 @@ func syncProviders(r *Registry) {
 	wg.Wait()
 }
 
-func syncProvider(r *Registry, db *gorm.DB, provider data.Provider) error {
+func syncProvider(r *Registry, db *gorm.DB, provider models.Provider) error {
 	switch provider.Kind {
-	case data.ProviderKindOkta:
+	case models.ProviderKindOkta:
 		okta := NewOkta()
 
 		token, err := r.GetSecret(provider.Okta.APIToken)
@@ -58,7 +59,7 @@ func syncProvider(r *Registry, db *gorm.DB, provider data.Provider) error {
 			return err
 		}
 
-		if err := provider.SetUsers(db, emails...); err != nil {
+		if err := data.SetProviderUsers(db, &provider, emails...); err != nil {
 			return err
 		}
 
@@ -76,7 +77,7 @@ func syncProvider(r *Registry, db *gorm.DB, provider data.Provider) error {
 			groupNames = append(groupNames, k)
 		}
 
-		if err := provider.SetGroups(db, groupNames...); err != nil {
+		if err := data.SetProviderGroups(db, &provider, groupNames...); err != nil {
 			return err
 		}
 
@@ -94,7 +95,7 @@ func syncUsers(db *gorm.DB, emails []string) error {
 	toKeep := make([]uuid.UUID, 0)
 
 	for _, email := range emails {
-		user, err := data.CreateOrUpdateUser(db, &data.User{Email: email}, &data.User{Email: email})
+		user, err := data.CreateOrUpdateUser(db, &models.User{Email: email}, &models.User{Email: email})
 		if err != nil {
 			return err
 		}
@@ -102,7 +103,7 @@ func syncUsers(db *gorm.DB, emails []string) error {
 		toKeep = append(toKeep, user.ID)
 	}
 
-	if err := data.DeleteUsers(db, db.Model(&data.User{}).Not(toKeep)); err != nil {
+	if err := data.DeleteUsers(db, db.Model(&models.User{}).Not(toKeep)); err != nil {
 		return err
 	}
 
@@ -113,7 +114,7 @@ func syncGroups(db *gorm.DB, groups map[string][]string) error {
 	toKeep := make([]uuid.UUID, 0)
 
 	for name, emails := range groups {
-		group, err := data.CreateOrUpdateGroup(db, &data.Group{Name: name}, &data.Group{Name: name})
+		group, err := data.CreateOrUpdateGroup(db, &models.Group{Name: name}, &models.Group{Name: name})
 		if err != nil {
 			return err
 		}
@@ -123,14 +124,14 @@ func syncGroups(db *gorm.DB, groups map[string][]string) error {
 			return err
 		}
 
-		if err := group.BindUsers(db, users...); err != nil {
+		if err := data.BindGroupUsers(db, group, users...); err != nil {
 			return err
 		}
 
 		toKeep = append(toKeep, group.ID)
 	}
 
-	if err := data.DeleteGroups(db, db.Model(&data.Group{}).Not(toKeep)); err != nil {
+	if err := data.DeleteGroups(db, db.Model(&models.Group{}).Not(toKeep)); err != nil {
 		return err
 	}
 
@@ -143,7 +144,7 @@ func syncDestinations(db *gorm.DB, maxAge time.Duration) {
 
 	now := time.Now()
 
-	destinations, err := data.ListDestinations(db, &data.Destination{})
+	destinations, err := data.ListDestinations(db, &models.Destination{})
 	if err != nil {
 		logging.S.Errorw("sync destination", "error", err.Error())
 		return
@@ -159,7 +160,7 @@ func syncDestinations(db *gorm.DB, maxAge time.Duration) {
 		}
 	}
 
-	if err := data.DeleteDestinations(db, db.Model(&data.Destination{}).Not(toKeep)); err != nil {
+	if err := data.DeleteDestinations(db, db.Model(&models.Destination{}).Not(toKeep)); err != nil {
 		logging.S.Errorw("delete destination", "error", err.Error())
 		return
 	}

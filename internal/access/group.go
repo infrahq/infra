@@ -3,7 +3,8 @@ package access
 import (
 	"github.com/gin-gonic/gin"
 
-	"github.com/infrahq/infra/internal/data"
+	"github.com/infrahq/infra/internal/registry/data"
+	"github.com/infrahq/infra/internal/registry/models"
 )
 
 const (
@@ -14,13 +15,13 @@ const (
 	PermissionGroupDelete Permission = "infra.group.delete"
 )
 
-func GetGroup(c *gin.Context, id string) (*data.Group, error) {
+func GetGroup(c *gin.Context, id string) (*models.Group, error) {
 	db, _, err := RequireAuthorization(c, PermissionGroupRead)
 	if err != nil {
 		return nil, err
 	}
 
-	group, err := data.NewGroup(id)
+	group, err := models.NewGroup(id)
 	if err != nil {
 		return nil, err
 	}
@@ -28,11 +29,11 @@ func GetGroup(c *gin.Context, id string) (*data.Group, error) {
 	return data.GetGroup(data.GroupAssociations(db), group)
 }
 
-func ListGroups(c *gin.Context, name string) ([]data.Group, error) {
+func ListGroups(c *gin.Context, name string) ([]models.Group, error) {
 	db, _, err := RequireAuthorization(c, PermissionGroupRead)
 	if err != nil {
 		return nil, err
 	}
 
-	return data.ListGroups(data.GroupAssociations(db), &data.Group{Name: name})
+	return data.ListGroups(data.GroupAssociations(db), &models.Group{Name: name})
 }

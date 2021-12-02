@@ -23,8 +23,8 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/certs"
-	"github.com/infrahq/infra/internal/data"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/registry/data"
 	timer "github.com/infrahq/infra/internal/timer"
 	"github.com/infrahq/infra/secrets"
 )
