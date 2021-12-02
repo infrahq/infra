@@ -2,6 +2,7 @@ package registry
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -12,6 +13,13 @@ import (
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
 )
+
+// TODO: #691 set user permissions based on their internal infrahq role (user or admin)
+var defaultPermissions = strings.Join([]string{
+	"infra.user.read",
+	"infra.token.revoke",
+	"infra.token.create",
+}, " ")
 
 func syncProviders(r *Registry) {
 	hub := newSentryHub("sync_providers_timer")
@@ -95,7 +103,7 @@ func syncUsers(db *gorm.DB, emails []string) error {
 	toKeep := make([]uuid.UUID, 0)
 
 	for _, email := range emails {
-		user, err := data.CreateOrUpdateUser(db, &models.User{Email: email}, &models.User{Email: email})
+		user, err := data.CreateOrUpdateUser(db, &models.User{Email: email, Permissions: defaultPermissions}, &models.User{Email: email})
 		if err != nil {
 			return err
 		}

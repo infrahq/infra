@@ -2,7 +2,6 @@ package access
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -35,7 +34,7 @@ type CustomJWTClaims struct {
 }
 
 func IssueToken(c *gin.Context, email string, sessionDuration time.Duration) (*models.User, *models.Token, error) {
-	db, _, err := RequireAuthorization(c, Permission(""))
+	db, err := RequireAuthorization(c, Permission(""))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -49,16 +48,10 @@ func IssueToken(c *gin.Context, email string, sessionDuration time.Duration) (*m
 		return nil, nil, fmt.Errorf("unknown user")
 	}
 
-	permissions := strings.Join([]string{
-		string(PermissionUserRead),
-		string(PermissionTokenRevoke),
-		string(PermissionCredentialCreate),
-	}, " ")
-
 	token := models.Token{
 		User:            users[0],
 		SessionDuration: sessionDuration,
-		Permissions:     permissions,
+		Permissions:     users[0].Permissions,
 	}
 
 	if _, err := data.CreateToken(db, &token); err != nil {
@@ -69,12 +62,18 @@ func IssueToken(c *gin.Context, email string, sessionDuration time.Duration) (*m
 }
 
 func RevokeToken(c *gin.Context) (*models.Token, error) {
-	db, authorization, err := RequireAuthorization(c, PermissionTokenRevoke)
+	db, err := RequireAuthorization(c, PermissionTokenRevoke)
 	if err != nil {
 		return nil, err
 	}
 
-	key := authorization[:models.TokenKeyLength]
+	// added by the authentication middleware
+	authentication, ok := c.MustGet("authentication").(string)
+	if !ok {
+		return nil, err
+	}
+
+	key := authentication[:models.TokenKeyLength]
 
 	token, err := data.GetToken(db, &models.Token{Key: key})
 	if err != nil {
@@ -89,7 +88,7 @@ func RevokeToken(c *gin.Context) (*models.Token, error) {
 }
 
 func IssueAPIKey(c *gin.Context, template *api.InfraAPIKeyCreateRequest) (*models.APIKey, error) {
-	db, _, err := RequireAuthorization(c, PermissionAPIKeyIssue)
+	db, err := RequireAuthorization(c, PermissionAPIKeyIssue)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +102,7 @@ func IssueAPIKey(c *gin.Context, template *api.InfraAPIKeyCreateRequest) (*model
 }
 
 func ListAPIKeys(c *gin.Context, name string) ([]models.APIKey, error) {
-	db, _, err := RequireAuthorization(c, PermissionAPIKeyList)
+	db, err := RequireAuthorization(c, PermissionAPIKeyList)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +116,7 @@ func ListAPIKeys(c *gin.Context, name string) ([]models.APIKey, error) {
 }
 
 func RevokeAPIKey(c *gin.Context, id string) error {
-	db, _, err := RequireAuthorization(c, PermissionAPIKeyRevoke)
+	db, err := RequireAuthorization(c, PermissionAPIKeyRevoke)
 	if err != nil {
 		return err
 	}
@@ -135,12 +134,18 @@ var signatureAlgorithmFromKeyAlgorithm = map[string]string{
 }
 
 func IssueJWT(c *gin.Context, destination string) (string, *time.Time, error) {
-	db, authorization, err := RequireAuthorization(c, PermissionCredentialCreate)
+	db, err := RequireAuthorization(c, PermissionCredentialCreate)
 	if err != nil {
 		return "", nil, err
 	}
 
-	user, err := data.GetUser(db, data.UserTokenSelector(db, authorization))
+	// added by the authentication middleware
+	authentication, ok := c.MustGet("authentication").(string)
+	if !ok {
+		return "", nil, err
+	}
+
+	user, err := data.GetUser(db, data.UserTokenSelector(db, authentication))
 	if err != nil {
 		return "", nil, err
 	}

@@ -16,7 +16,7 @@ const (
 )
 
 func GetGroup(c *gin.Context, id string) (*models.Group, error) {
-	db, _, err := RequireAuthorization(c, PermissionGroupRead)
+	db, err := RequireAuthorization(c, PermissionGroupRead)
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +30,7 @@ func GetGroup(c *gin.Context, id string) (*models.Group, error) {
 }
 
 func ListGroups(c *gin.Context, name string) ([]models.Group, error) {
-	db, _, err := RequireAuthorization(c, PermissionGroupRead)
+	db, err := RequireAuthorization(c, PermissionGroupRead)
 	if err != nil {
 		return nil, err
 	}

@@ -32,7 +32,7 @@ func NewAPIMux(reg *Registry, router *gin.RouterGroup) {
 	)
 
 	authorized := router.Group("/",
-		AuthorizationMiddleware(),
+		AuthenticationMiddleware(),
 		logging.UserAwareLoggerMiddleware(),
 	)
 

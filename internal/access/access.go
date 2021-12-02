@@ -23,61 +23,85 @@ const (
 	PermissionAllDelete    Permission = "infra.*.delete"
 )
 
-func RequireAuthorization(c *gin.Context, require Permission) (*gorm.DB, string, error) {
+// RequireAuthentication checks the bearer token is present and valid then adds its permissions to the context
+func RequireAuthentication(c *gin.Context) error {
+	db, ok := c.MustGet("db").(*gorm.DB)
+	if !ok {
+		return fmt.Errorf("no database found in context for authentication")
+	}
+
+	header := c.Request.Header.Get("Authorization")
+
+	parts := strings.Split(header, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		return fmt.Errorf("valid token not found in authorization header, expecting the format `Bearer $token`")
+	}
+
+	bearer := parts[1]
+
+	switch len(bearer) {
+	case models.TokenLength:
+		token, err := data.GetToken(db, &models.Token{Key: bearer[:models.TokenKeyLength]})
+		if err != nil {
+			return fmt.Errorf("could not get token from database, it may not exist: %w", err)
+		}
+
+		if err := data.CheckTokenSecret(token, bearer); err != nil {
+			return fmt.Errorf("rejected invalid token: %w", err)
+		}
+
+		if err := data.CheckTokenExpired(token); err != nil {
+			return fmt.Errorf("rejected token: %w", err)
+		}
+
+		c.Set("authentication", bearer)
+		// TODO: add the user ID to the context if the token was issued by a user
+		c.Set("permissions", token.Permissions)
+
+		return nil
+	case models.APIKeyLength:
+		apiKey, err := data.GetAPIKey(db, &models.APIKey{Key: bearer})
+		if err != nil {
+			return fmt.Errorf("rejected invalid API key: %w", err)
+		}
+
+		c.Set("authentication", bearer)
+		c.Set("permissions", apiKey.Permissions)
+
+		return nil
+	}
+
+	return fmt.Errorf("rejected token of invalid length")
+}
+
+// RequireAuthorization checks that the context has the permissions required to perform the action
+func RequireAuthorization(c *gin.Context, require Permission) (*gorm.DB, error) {
 	val, ok := c.Get("db")
 	if !ok {
-		return nil, "", fmt.Errorf("database not found")
+		return nil, fmt.Errorf("database not found")
 	}
 
 	db, ok := val.(*gorm.DB)
 	if !ok {
-		return nil, "", fmt.Errorf("database not found")
+		return nil, fmt.Errorf("database not found")
 	}
 
 	if len(require) == 0 {
-		return db, "", nil
+		return db, nil
 	}
 
-	authorization := c.GetString("authorization")
-	if authorization == "" {
-		return nil, "", internal.ErrInvalid
+	permissions, ok := c.MustGet("permissions").(string)
+	if !ok {
+		return nil, internal.ErrForbidden
 	}
 
-	switch len(authorization) {
-	case models.TokenLength:
-		token, err := data.GetToken(db, &models.Token{Key: authorization[:models.TokenKeyLength]})
-		if err != nil {
-			return nil, "", internal.ErrInvalid
-		}
-
-		if err := data.CheckTokenExpired(token); err != nil {
-			return nil, "", internal.ErrExpired
-		}
-
-		if err := data.CheckTokenSecret(token, authorization); err != nil {
-			return nil, "", internal.ErrInvalid
-		}
-
-		for _, p := range strings.Split(token.Permissions, " ") {
-			if RequirePermission(p, string(require)) {
-				return db, authorization, nil
-			}
-		}
-
-	case models.APIKeyLength:
-		apiKey, err := data.GetAPIKey(db, &models.APIKey{Key: authorization})
-		if err != nil {
-			return nil, "", internal.ErrInvalid
-		}
-
-		for _, p := range strings.Split(apiKey.Permissions, " ") {
-			if RequirePermission(p, string(require)) {
-				return db, authorization, nil
-			}
+	for _, p := range strings.Split(permissions, " ") {
+		if RequirePermission(p, string(require)) {
+			return db, nil
 		}
 	}
 
-	return nil, "", internal.ErrForbidden
+	return nil, internal.ErrForbidden
 }
 
 func RequirePermission(permission, require string) bool {

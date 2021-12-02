@@ -2,12 +2,14 @@ package registry
 
 import (
 	"context"
-	"strings"
+	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
+	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 )
 
@@ -51,18 +53,18 @@ func DatabaseMiddleware(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-func AuthorizationMiddleware() gin.HandlerFunc {
+// AuthenticationMiddleware validates the incoming token and adds their permissions to the context
+func AuthenticationMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authorization := c.Request.Header.Get("Authorization")
+		if err := access.RequireAuthentication(c); err != nil {
+			logging.S.Debug(err.Error())
+			// IMPORTANT: do not return errors encountered during token validation, always return generic unauthorized message
+			sendAPIError(c, http.StatusUnauthorized, internal.ErrInvalid)
 
-		parts := strings.Split(authorization, " ")
-		if len(parts) != 2 {
-			return
-		} else if parts[0] != "Bearer" {
 			return
 		}
 
-		c.Set("authorization", parts[1])
+		c.Next()
 	}
 }
 

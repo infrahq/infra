@@ -9,8 +9,9 @@ import (
 type User struct {
 	Model
 
-	Name  string
-	Email string
+	Name        string
+	Email       string
+	Permissions string
 
 	Roles     []Role     `gorm:"many2many:users_roles"`
 	Providers []Provider `gorm:"many2many:users_providers"`

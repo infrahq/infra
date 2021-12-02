@@ -16,7 +16,7 @@ const (
 )
 
 func GetUser(c *gin.Context, id string) (*models.User, error) {
-	db, _, err := RequireAuthorization(c, PermissionUserRead)
+	db, err := RequireAuthorization(c, PermissionUserRead)
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +30,7 @@ func GetUser(c *gin.Context, id string) (*models.User, error) {
 }
 
 func ListUsers(c *gin.Context, email string) ([]models.User, error) {
-	db, _, err := RequireAuthorization(c, PermissionUserRead)
+	db, err := RequireAuthorization(c, PermissionUserRead)
 	if err != nil {
 		return nil, err
 	}
