@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -73,17 +74,21 @@ func (k *APIKey) ToAPICreateResponse() (*api.InfraAPIKeyCreateResponse, error) {
 	return &result, nil
 }
 
-func (k *APIKey) FromAPICreateRequest(r *api.InfraAPIKeyCreateRequest) error {
-	k.Name = r.Name
+func (k *APIKey) FromAPI(from interface{}) error {
+	if createRequest, ok := from.(*api.InfraAPIKeyCreateRequest); ok {
+		k.Name = createRequest.Name
 
-	permissions := make([]string, 0)
-	for i := range r.Permissions {
-		permissions = append(permissions, string(r.Permissions[i]))
+		permissions := make([]string, 0)
+		for i := range createRequest.Permissions {
+			permissions = append(permissions, string(createRequest.Permissions[i]))
+		}
+
+		k.Permissions = strings.Join(permissions, " ")
+
+		return nil
 	}
 
-	k.Permissions = strings.Join(permissions, " ")
-
-	return nil
+	return fmt.Errorf("unknown request")
 }
 
 func NewAPIKey(id string) (*APIKey, error) {

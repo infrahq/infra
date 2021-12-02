@@ -312,7 +312,13 @@ func (a *API) CreateAPIKey(c *gin.Context) {
 		return
 	}
 
-	apiKey, err := access.IssueAPIKey(c, &body)
+	apiKey := &models.APIKey{}
+	if err := apiKey.FromAPI(&body); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	apiKey, err := access.IssueAPIKey(c, apiKey)
 	if err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return
