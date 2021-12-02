@@ -1,6 +1,8 @@
 package models
 
 import (
+	"fmt"
+
 	"github.com/google/uuid"
 
 	"github.com/infrahq/infra/internal/api"
@@ -57,6 +59,35 @@ func (d *Destination) ToAPI() api.Destination {
 	return result
 }
 
+func (d *Destination) FromAPI(from interface{}) error {
+	if createRequest, ok := from.(*api.DestinationCreateRequest); ok {
+		d.Name = createRequest.Name
+		d.NodeID = createRequest.NodeID
+		d.Kind = DestinationKind(createRequest.Kind)
+		d.Endpoint = createRequest.Kubernetes.Endpoint
+
+		switch d.Kind {
+		case DestinationKindKubernetes:
+			d.Kubernetes = DestinationKubernetes{
+				CA: createRequest.Kubernetes.CA,
+			}
+
+		}
+
+		automaticLabels := []string{
+			string(createRequest.Kind),
+		}
+	
+		for _, l := range append(createRequest.Labels, automaticLabels...) {
+			d.Labels = append(d.Labels, Label{Value: l})
+		}
+
+		return nil
+	}
+
+	return fmt.Errorf("unknown API model")
+}
+
 func NewDestination(id string) (*Destination, error) {
 	uuid, err := uuid.Parse(id)
 	if err != nil {
@@ -68,28 +99,4 @@ func NewDestination(id string) (*Destination, error) {
 			ID: uuid,
 		},
 	}, nil
-}
-
-func (d *Destination) FromAPICreateRequest(template *api.DestinationCreateRequest) error {
-	d.Name = template.Name
-	d.NodeID = template.NodeID
-	d.Kind = DestinationKind(template.Kind)
-	d.Endpoint = template.Kubernetes.Endpoint
-
-	switch d.Kind {
-	case DestinationKindKubernetes:
-		d.Kubernetes = DestinationKubernetes{
-			CA: template.Kubernetes.CA,
-		}
-	}
-
-	automaticLabels := []string{
-		string(template.Kind),
-	}
-
-	for _, l := range append(template.Labels, automaticLabels...) {
-		d.Labels = append(d.Labels, Label{Value: l})
-	}
-
-	return nil
 }
