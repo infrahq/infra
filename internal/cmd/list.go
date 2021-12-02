@@ -47,6 +47,10 @@ func list(options *ListOptions) error {
 
 	users, res, err := client.UsersAPI.ListUsers(ctx).Email(config.Name).Execute()
 	if err != nil {
+		if res == nil {
+			return err
+		}
+
 		switch res.StatusCode {
 		case http.StatusForbidden:
 			fmt.Fprintln(os.Stderr, "Session has expired.")
