@@ -9,6 +9,10 @@ var (
 	keyBlockSizeInBytes = keyBlockSizeInBits / 8
 )
 
+var (
+	AlgorithmAESGCM = "aesgcm"
+)
+
 func NewNativeSecretProvider(storage SecretStorage) *NativeSecretProvider {
 	return &NativeSecretProvider{
 		SecretStorage: storage,
@@ -43,7 +47,7 @@ func (n *NativeSecretProvider) GenerateDataKey(rootKeyID string) (*SymmetricKey,
 
 	fullRootKey := &SymmetricKey{
 		unencrypted: rootKey,
-		Algorithm:   "aesgcm",
+		Algorithm:   AlgorithmAESGCM,
 	}
 
 	dataKey, err := cryptoRandRead(keyBlockSizeInBytes)
@@ -59,7 +63,7 @@ func (n *NativeSecretProvider) GenerateDataKey(rootKeyID string) (*SymmetricKey,
 	return &SymmetricKey{
 		unencrypted: dataKey,
 		Encrypted:   encDataKey,
-		Algorithm:   "aesgcm",
+		Algorithm:   AlgorithmAESGCM,
 		RootKeyID:   rootKeyID,
 	}, nil
 }
@@ -76,7 +80,7 @@ func (n *NativeSecretProvider) DecryptDataKey(rootKeyID string, keyData []byte) 
 
 	fullRootKey := &SymmetricKey{
 		unencrypted: rootKey,
-		Algorithm:   "aesgcm",
+		Algorithm:   AlgorithmAESGCM,
 	}
 
 	unsealed, err := Unseal(fullRootKey, keyData)
@@ -87,7 +91,7 @@ func (n *NativeSecretProvider) DecryptDataKey(rootKeyID string, keyData []byte) 
 	return &SymmetricKey{
 		unencrypted: unsealed,
 		Encrypted:   keyData,
-		Algorithm:   "aesgcm",
+		Algorithm:   AlgorithmAESGCM,
 		RootKeyID:   rootKeyID,
 	}, nil
 }
