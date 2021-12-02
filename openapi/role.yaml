@@ -7,8 +7,6 @@ Role:
     - updated
     - kind
     - namespace
-    - users
-    - groups
     - destination
   properties:
     id:

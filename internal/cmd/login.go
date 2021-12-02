@@ -259,7 +259,7 @@ provider:
 		return err
 	}
 
-	if len(users[0].Roles) > 0 {
+	if len(users[0].GetRoles()) > 0 {
 		kubeConfigFilename := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{}).ConfigAccess().GetDefaultFilename()
 		fmt.Fprintf(os.Stderr, "  Updated %s\n", termenv.String(strings.ReplaceAll(kubeConfigFilename, homeDir, "~")).Bold().String())
 	}

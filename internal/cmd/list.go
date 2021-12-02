@@ -84,12 +84,12 @@ func list(options *ListOptions) error {
 
 	// deduplicate rows
 	rows := make(map[string]listRow)
-	for _, r := range user.Roles {
+	for _, r := range user.GetRoles() {
 		rows[r.Destination.ID] = newRow(r, kubeConfig.CurrentContext)
 	}
 
-	for _, g := range user.Groups {
-		for _, r := range g.Roles {
+	for _, g := range user.GetGroups() {
+		for _, r := range g.GetRoles() {
 			rows[r.Destination.ID] = newRow(r, kubeConfig.CurrentContext)
 		}
 	}

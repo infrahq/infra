@@ -113,12 +113,12 @@ func kubernetesUseContext(options *KubernetesOptions) error {
 
 	// deduplciate candidates
 	candidates := make(map[string][]api.Role)
-	for _, r := range user.Roles {
+	for _, r := range user.GetRoles() {
 		candidates[r.Destination.NodeID] = append(candidates[r.Destination.NodeID], r)
 	}
 
-	for _, g := range user.Groups {
-		for _, r := range g.Roles {
+	for _, g := range user.GetGroups() {
+		for _, r := range g.GetRoles() {
 			candidates[r.Destination.NodeID] = append(candidates[r.Destination.NodeID], r)
 		}
 	}
@@ -342,7 +342,7 @@ func updateKubeconfig(user api.User) error {
 	aliases := make(map[string]map[string]bool)
 	roles := make(map[string]api.Role)
 
-	for _, r := range user.Roles {
+	for _, r := range user.GetRoles() {
 		if _, ok := aliases[r.Destination.Name]; !ok {
 			aliases[r.Destination.Name] = make(map[string]bool)
 		}
@@ -351,8 +351,8 @@ func updateKubeconfig(user api.User) error {
 		roles[r.ID] = r
 	}
 
-	for _, g := range user.Groups {
-		for _, r := range g.Roles {
+	for _, g := range user.GetGroups() {
+		for _, r := range g.GetRoles() {
 			if _, ok := aliases[r.Destination.Name]; !ok {
 				aliases[r.Destination.Name] = make(map[string]bool)
 			}

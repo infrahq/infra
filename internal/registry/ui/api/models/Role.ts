@@ -79,13 +79,13 @@ export interface Role {
      * @type {Array<User>}
      * @memberof Role
      */
-    users: Array<User>;
+    users?: Array<User>;
     /**
      * 
      * @type {Array<Group>}
      * @memberof Role
      */
-    groups: Array<Group>;
+    groups?: Array<Group>;
     /**
      * 
      * @type {Destination}
@@ -110,8 +110,8 @@ export function RoleFromJSONTyped(json: any, ignoreDiscriminator: boolean): Role
         'updated': json['updated'],
         'kind': RoleKindFromJSON(json['kind']),
         'namespace': json['namespace'],
-        'users': ((json['users'] as Array<any>).map(UserFromJSON)),
-        'groups': ((json['groups'] as Array<any>).map(GroupFromJSON)),
+        'users': !exists(json, 'users') ? undefined : ((json['users'] as Array<any>).map(UserFromJSON)),
+        'groups': !exists(json, 'groups') ? undefined : ((json['groups'] as Array<any>).map(GroupFromJSON)),
         'destination': DestinationFromJSON(json['destination']),
     };
 }
@@ -131,8 +131,8 @@ export function RoleToJSON(value?: Role | null): any {
         'updated': value.updated,
         'kind': RoleKindToJSON(value.kind),
         'namespace': value.namespace,
-        'users': ((value.users as Array<any>).map(UserToJSON)),
-        'groups': ((value.groups as Array<any>).map(GroupToJSON)),
+        'users': value.users === undefined ? undefined : ((value.users as Array<any>).map(UserToJSON)),
+        'groups': value.groups === undefined ? undefined : ((value.groups as Array<any>).map(GroupToJSON)),
         'destination': DestinationToJSON(value.destination),
     };
 }

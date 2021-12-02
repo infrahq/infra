@@ -24,8 +24,8 @@ type Role struct {
 	Updated     int64       `json:"updated"`
 	Kind        RoleKind    `json:"kind"`
 	Namespace   string      `json:"namespace"`
-	Users       []User      `json:"users"`
-	Groups      []Group     `json:"groups"`
+	Users       *[]User     `json:"users,omitempty"`
+	Groups      *[]Group    `json:"groups,omitempty"`
 	Destination Destination `json:"destination"`
 }
 
@@ -33,7 +33,7 @@ type Role struct {
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewRole(id string, name string, created int64, updated int64, kind RoleKind, namespace string, users []User, groups []Group, destination Destination) *Role {
+func NewRole(id string, name string, created int64, updated int64, kind RoleKind, namespace string, destination Destination) *Role {
 	this := Role{}
 	this.ID = id
 	this.Name = name
@@ -41,8 +41,6 @@ func NewRole(id string, name string, created int64, updated int64, kind RoleKind
 	this.Updated = updated
 	this.Kind = kind
 	this.Namespace = namespace
-	this.Users = users
-	this.Groups = groups
 	this.Destination = destination
 	return &this
 }
@@ -201,52 +199,68 @@ func (o *Role) SetNamespace(v string) {
 	o.Namespace = v
 }
 
-// GetUsers returns the Users field value
+// GetUsers returns the Users field value if set, zero value otherwise.
 func (o *Role) GetUsers() []User {
-	if o == nil {
+	if o == nil || o.Users == nil {
 		var ret []User
 		return ret
 	}
-
-	return o.Users
+	return *o.Users
 }
 
-// GetUsersOK returns a tuple with the Users field value
+// GetUsersOK returns a tuple with the Users field value if set, nil otherwise
 // and a boolean to check if the value has been set.
 func (o *Role) GetUsersOK() (*[]User, bool) {
-	if o == nil {
+	if o == nil || o.Users == nil {
 		return nil, false
 	}
-	return &o.Users, true
+	return o.Users, true
 }
 
-// SetUsers sets field value
+// HasUsers returns a boolean if a field has been set.
+func (o *Role) HasUsers() bool {
+	if o != nil && o.Users != nil {
+		return true
+	}
+
+	return false
+}
+
+// SetUsers gets a reference to the given []User and assigns it to the Users field.
 func (o *Role) SetUsers(v []User) {
-	o.Users = v
+	o.Users = &v
 }
 
-// GetGroups returns the Groups field value
+// GetGroups returns the Groups field value if set, zero value otherwise.
 func (o *Role) GetGroups() []Group {
-	if o == nil {
+	if o == nil || o.Groups == nil {
 		var ret []Group
 		return ret
 	}
-
-	return o.Groups
+	return *o.Groups
 }
 
-// GetGroupsOK returns a tuple with the Groups field value
+// GetGroupsOK returns a tuple with the Groups field value if set, nil otherwise
 // and a boolean to check if the value has been set.
 func (o *Role) GetGroupsOK() (*[]Group, bool) {
-	if o == nil {
+	if o == nil || o.Groups == nil {
 		return nil, false
 	}
-	return &o.Groups, true
+	return o.Groups, true
 }
 
-// SetGroups sets field value
+// HasGroups returns a boolean if a field has been set.
+func (o *Role) HasGroups() bool {
+	if o != nil && o.Groups != nil {
+		return true
+	}
+
+	return false
+}
+
+// SetGroups gets a reference to the given []Group and assigns it to the Groups field.
 func (o *Role) SetGroups(v []Group) {
-	o.Groups = v
+	o.Groups = &v
 }
 
 // GetDestination returns the Destination field value
@@ -293,10 +307,10 @@ func (o Role) MarshalJSON() ([]byte, error) {
 	if true {
 		toSerialize["namespace"] = o.Namespace
 	}
-	if true {
+	if o.Users != nil {
 		toSerialize["users"] = o.Users
 	}
-	if true {
+	if o.Groups != nil {
 		toSerialize["groups"] = o.Groups
 	}
 	if true {

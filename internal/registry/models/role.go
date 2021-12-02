@@ -54,12 +54,22 @@ func (r *Role) ToAPI() api.Role {
 		result.Namespace = r.Kubernetes.Namespace
 	}
 
+	users := make([]api.User, 0)
 	for _, u := range r.Users {
-		result.Users = append(result.Users, u.ToAPI())
+		users = append(users, u.ToAPI())
 	}
 
+	if len(users) > 0 {
+		result.SetUsers(users)
+	}
+
+	groups := make([]api.Group, 0)
 	for _, g := range r.Groups {
-		result.Groups = append(result.Groups, g.ToAPI())
+		groups = append(groups, g.ToAPI())
+	}
+
+	if len(groups) > 0 {
+		result.SetGroups(groups)
 	}
 
 	result.Destination = r.Destination.ToAPI()

@@ -25,12 +25,31 @@ func (g *Group) ToAPI() api.Group {
 		Name: g.Name,
 	}
 
+	users := make([]api.User, 0)
 	for _, u := range g.Users {
-		result.Users = append(result.Users, u.ToAPI())
+		users = append(users, u.ToAPI())
 	}
 
+	if len(users) > 0 {
+		result.SetUsers(users)
+	}
+
+	roles := make([]api.Role, 0)
 	for _, r := range g.Roles {
-		result.Roles = append(result.Roles, r.ToAPI())
+		roles = append(roles, r.ToAPI())
+	}
+
+	if len(roles) > 0 {
+		result.SetRoles(roles)
+	}
+
+	providers := make([]api.Provider, 0)
+	for _, r := range g.Providers {
+		providers = append(providers, r.ToAPI())
+	}
+
+	if len(providers) > 0 {
+		result.SetProviders(providers)
 	}
 
 	return result
