@@ -49,9 +49,9 @@ func (o *Token) GetToken() string {
 	return o.Token
 }
 
-// GetTokenOk returns a tuple with the Token field value
+// GetTokenOK returns a tuple with the Token field value
 // and a boolean to check if the value has been set.
-func (o *Token) GetTokenOk() (*string, bool) {
+func (o *Token) GetTokenOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -73,9 +73,9 @@ func (o *Token) GetExpires() int64 {
 	return o.Expires
 }
 
-// GetExpiresOk returns a tuple with the Expires field value
+// GetExpiresOK returns a tuple with the Expires field value
 // and a boolean to check if the value has been set.
-func (o *Token) GetExpiresOk() (*int64, bool) {
+func (o *Token) GetExpiresOK() (*int64, bool) {
 	if o == nil {
 		return nil, false
 	}

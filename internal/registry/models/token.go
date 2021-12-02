@@ -48,7 +48,7 @@ type APIKey struct {
 
 func (k *APIKey) ToAPI() (*api.InfraAPIKey, error) {
 	result := api.InfraAPIKey{
-		Id:      k.ID.String(),
+		ID:      k.ID.String(),
 		Created: k.CreatedAt.Unix(),
 
 		Name: k.Name,
@@ -61,7 +61,7 @@ func (k *APIKey) ToAPI() (*api.InfraAPIKey, error) {
 
 func (k *APIKey) ToAPICreateResponse() (*api.InfraAPIKeyCreateResponse, error) {
 	result := api.InfraAPIKeyCreateResponse{
-		Id:      k.ID.String(),
+		ID:      k.ID.String(),
 		Created: k.CreatedAt.Unix(),
 
 		Name: k.Name,

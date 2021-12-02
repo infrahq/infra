@@ -16,7 +16,7 @@ import (
 
 // Role struct for Role
 type Role struct {
-	Id   string `json:"id"`
+	ID   string `json:"id"`
 	Name string `json:"name"`
 	// created time in seconds since 1970-01-01
 	Created int64 `json:"created"`
@@ -35,7 +35,7 @@ type Role struct {
 // will change when the set of required properties is changed
 func NewRole(id string, name string, created int64, updated int64, kind RoleKind, namespace string, users []User, groups []Group, destination Destination) *Role {
 	this := Role{}
-	this.Id = id
+	this.ID = id
 	this.Name = name
 	this.Created = created
 	this.Updated = updated
@@ -57,28 +57,28 @@ func NewRoleWithDefaults() *Role {
 	return &this
 }
 
-// GetId returns the Id field value
-func (o *Role) GetId() string {
+// GetID returns the ID field value
+func (o *Role) GetID() string {
 	if o == nil {
 		var ret string
 		return ret
 	}
 
-	return o.Id
+	return o.ID
 }
 
-// GetIdOk returns a tuple with the Id field value
+// GetIDOK returns a tuple with the ID field value
 // and a boolean to check if the value has been set.
-func (o *Role) GetIdOk() (*string, bool) {
+func (o *Role) GetIDOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.Id, true
+	return &o.ID, true
 }
 
-// SetId sets field value
-func (o *Role) SetId(v string) {
-	o.Id = v
+// SetID sets field value
+func (o *Role) SetID(v string) {
+	o.ID = v
 }
 
 // GetName returns the Name field value
@@ -91,9 +91,9 @@ func (o *Role) GetName() string {
 	return o.Name
 }
 
-// GetNameOk returns a tuple with the Name field value
+// GetNameOK returns a tuple with the Name field value
 // and a boolean to check if the value has been set.
-func (o *Role) GetNameOk() (*string, bool) {
+func (o *Role) GetNameOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -115,9 +115,9 @@ func (o *Role) GetCreated() int64 {
 	return o.Created
 }
 
-// GetCreatedOk returns a tuple with the Created field value
+// GetCreatedOK returns a tuple with the Created field value
 // and a boolean to check if the value has been set.
-func (o *Role) GetCreatedOk() (*int64, bool) {
+func (o *Role) GetCreatedOK() (*int64, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -139,9 +139,9 @@ func (o *Role) GetUpdated() int64 {
 	return o.Updated
 }
 
-// GetUpdatedOk returns a tuple with the Updated field value
+// GetUpdatedOK returns a tuple with the Updated field value
 // and a boolean to check if the value has been set.
-func (o *Role) GetUpdatedOk() (*int64, bool) {
+func (o *Role) GetUpdatedOK() (*int64, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -163,9 +163,9 @@ func (o *Role) GetKind() RoleKind {
 	return o.Kind
 }
 
-// GetKindOk returns a tuple with the Kind field value
+// GetKindOK returns a tuple with the Kind field value
 // and a boolean to check if the value has been set.
-func (o *Role) GetKindOk() (*RoleKind, bool) {
+func (o *Role) GetKindOK() (*RoleKind, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -187,9 +187,9 @@ func (o *Role) GetNamespace() string {
 	return o.Namespace
 }
 
-// GetNamespaceOk returns a tuple with the Namespace field value
+// GetNamespaceOK returns a tuple with the Namespace field value
 // and a boolean to check if the value has been set.
-func (o *Role) GetNamespaceOk() (*string, bool) {
+func (o *Role) GetNamespaceOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -211,9 +211,9 @@ func (o *Role) GetUsers() []User {
 	return o.Users
 }
 
-// GetUsersOk returns a tuple with the Users field value
+// GetUsersOK returns a tuple with the Users field value
 // and a boolean to check if the value has been set.
-func (o *Role) GetUsersOk() (*[]User, bool) {
+func (o *Role) GetUsersOK() (*[]User, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -235,9 +235,9 @@ func (o *Role) GetGroups() []Group {
 	return o.Groups
 }
 
-// GetGroupsOk returns a tuple with the Groups field value
+// GetGroupsOK returns a tuple with the Groups field value
 // and a boolean to check if the value has been set.
-func (o *Role) GetGroupsOk() (*[]Group, bool) {
+func (o *Role) GetGroupsOK() (*[]Group, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -259,9 +259,9 @@ func (o *Role) GetDestination() Destination {
 	return o.Destination
 }
 
-// GetDestinationOk returns a tuple with the Destination field value
+// GetDestinationOK returns a tuple with the Destination field value
 // and a boolean to check if the value has been set.
-func (o *Role) GetDestinationOk() (*Destination, bool) {
+func (o *Role) GetDestinationOK() (*Destination, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -276,7 +276,7 @@ func (o *Role) SetDestination(v Destination) {
 func (o Role) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
-		toSerialize["id"] = o.Id
+		toSerialize["id"] = o.ID
 	}
 	if true {
 		toSerialize["name"] = o.Name

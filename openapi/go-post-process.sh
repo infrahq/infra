@@ -2,9 +2,18 @@
 
 gofmt -s -w $1
 
-EXPRESSIONS='s/Api/API/g'
+commands() {
+    cat <<EOF
+s/Api/API/g
+s/Id\b/ID/g
+s/IdOK/IDOK/gi
+s/Ca\b/CA/g
+s/CaOK/CAOK/gi
+s/\(Get[A-Za-z]\+\)Ok\b/\1OK/g
+EOF
+}
 
 case $(uname -s) in
-  Linux) sed -i -e ${EXPRESSIONS// / -e } $1 ;;
-  Darwin) sed -i '' -e ${EXPRESSIONS// / -e } $1 ;;
+  Linux) commands | sed -i -f- $1 ;;
+  Darwin) commands | sed -i '' -f- $1 ;;
 esac

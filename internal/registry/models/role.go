@@ -42,7 +42,7 @@ type RoleKubernetes struct {
 
 func (r *Role) ToAPI() api.Role {
 	result := api.Role{
-		Id:      r.ID.String(),
+		ID:      r.ID.String(),
 		Created: r.CreatedAt.Unix(),
 		Updated: r.UpdatedAt.Unix(),
 	}

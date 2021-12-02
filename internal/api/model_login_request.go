@@ -45,9 +45,9 @@ func (o *LoginRequest) GetOkta() LoginRequestOkta {
 	return *o.Okta
 }
 
-// GetOktaOk returns a tuple with the Okta field value if set, nil otherwise
+// GetOktaOK returns a tuple with the Okta field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *LoginRequest) GetOktaOk() (*LoginRequestOkta, bool) {
+func (o *LoginRequest) GetOktaOK() (*LoginRequestOkta, bool) {
 	if o == nil || o.Okta == nil {
 		return nil, false
 	}

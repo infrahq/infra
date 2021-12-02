@@ -16,7 +16,7 @@ import (
 
 // Destination struct for Destination
 type Destination struct {
-	Id     string          `json:"id"`
+	ID     string          `json:"id"`
 	NodeID string          `json:"nodeID"`
 	Name   string          `json:"name"`
 	Kind   DestinationKind `json:"kind"`
@@ -34,7 +34,7 @@ type Destination struct {
 // will change when the set of required properties is changed
 func NewDestination(id string, nodeID string, name string, kind DestinationKind, created int64, updated int64, labels []string) *Destination {
 	this := Destination{}
-	this.Id = id
+	this.ID = id
 	this.NodeID = nodeID
 	this.Name = name
 	this.Kind = kind
@@ -52,28 +52,28 @@ func NewDestinationWithDefaults() *Destination {
 	return &this
 }
 
-// GetId returns the Id field value
-func (o *Destination) GetId() string {
+// GetID returns the ID field value
+func (o *Destination) GetID() string {
 	if o == nil {
 		var ret string
 		return ret
 	}
 
-	return o.Id
+	return o.ID
 }
 
-// GetIdOk returns a tuple with the Id field value
+// GetIDOK returns a tuple with the ID field value
 // and a boolean to check if the value has been set.
-func (o *Destination) GetIdOk() (*string, bool) {
+func (o *Destination) GetIDOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.Id, true
+	return &o.ID, true
 }
 
-// SetId sets field value
-func (o *Destination) SetId(v string) {
-	o.Id = v
+// SetID sets field value
+func (o *Destination) SetID(v string) {
+	o.ID = v
 }
 
 // GetNodeID returns the NodeID field value
@@ -86,9 +86,9 @@ func (o *Destination) GetNodeID() string {
 	return o.NodeID
 }
 
-// GetNodeIDOk returns a tuple with the NodeID field value
+// GetNodeIDOK returns a tuple with the NodeID field value
 // and a boolean to check if the value has been set.
-func (o *Destination) GetNodeIDOk() (*string, bool) {
+func (o *Destination) GetNodeIDOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -110,9 +110,9 @@ func (o *Destination) GetName() string {
 	return o.Name
 }
 
-// GetNameOk returns a tuple with the Name field value
+// GetNameOK returns a tuple with the Name field value
 // and a boolean to check if the value has been set.
-func (o *Destination) GetNameOk() (*string, bool) {
+func (o *Destination) GetNameOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -134,9 +134,9 @@ func (o *Destination) GetKind() DestinationKind {
 	return o.Kind
 }
 
-// GetKindOk returns a tuple with the Kind field value
+// GetKindOK returns a tuple with the Kind field value
 // and a boolean to check if the value has been set.
-func (o *Destination) GetKindOk() (*DestinationKind, bool) {
+func (o *Destination) GetKindOK() (*DestinationKind, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -158,9 +158,9 @@ func (o *Destination) GetCreated() int64 {
 	return o.Created
 }
 
-// GetCreatedOk returns a tuple with the Created field value
+// GetCreatedOK returns a tuple with the Created field value
 // and a boolean to check if the value has been set.
-func (o *Destination) GetCreatedOk() (*int64, bool) {
+func (o *Destination) GetCreatedOK() (*int64, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -182,9 +182,9 @@ func (o *Destination) GetUpdated() int64 {
 	return o.Updated
 }
 
-// GetUpdatedOk returns a tuple with the Updated field value
+// GetUpdatedOK returns a tuple with the Updated field value
 // and a boolean to check if the value has been set.
-func (o *Destination) GetUpdatedOk() (*int64, bool) {
+func (o *Destination) GetUpdatedOK() (*int64, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -206,9 +206,9 @@ func (o *Destination) GetLabels() []string {
 	return o.Labels
 }
 
-// GetLabelsOk returns a tuple with the Labels field value
+// GetLabelsOK returns a tuple with the Labels field value
 // and a boolean to check if the value has been set.
-func (o *Destination) GetLabelsOk() (*[]string, bool) {
+func (o *Destination) GetLabelsOK() (*[]string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -229,9 +229,9 @@ func (o *Destination) GetKubernetes() DestinationKubernetes {
 	return *o.Kubernetes
 }
 
-// GetKubernetesOk returns a tuple with the Kubernetes field value if set, nil otherwise
+// GetKubernetesOK returns a tuple with the Kubernetes field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *Destination) GetKubernetesOk() (*DestinationKubernetes, bool) {
+func (o *Destination) GetKubernetesOK() (*DestinationKubernetes, bool) {
 	if o == nil || o.Kubernetes == nil {
 		return nil, false
 	}
@@ -255,7 +255,7 @@ func (o *Destination) SetKubernetes(v DestinationKubernetes) {
 func (o Destination) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
-		toSerialize["id"] = o.Id
+		toSerialize["id"] = o.ID
 	}
 	if true {
 		toSerialize["nodeID"] = o.NodeID

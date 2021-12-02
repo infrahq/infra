@@ -33,7 +33,7 @@ type DestinationKubernetes struct {
 
 func (d *Destination) ToAPI() api.Destination {
 	result := api.Destination{
-		Id:      d.ID.String(),
+		ID:      d.ID.String(),
 		Created: d.CreatedAt.Unix(),
 		Updated: d.UpdatedAt.Unix(),
 
@@ -45,7 +45,7 @@ func (d *Destination) ToAPI() api.Destination {
 	switch d.Kind {
 	case DestinationKindKubernetes:
 		result.Kubernetes = &api.DestinationKubernetes{
-			Ca:       d.Kubernetes.CA,
+			CA:       d.Kubernetes.CA,
 			Endpoint: d.Endpoint,
 		}
 	}
@@ -79,7 +79,7 @@ func (d *Destination) FromAPICreateRequest(template *api.DestinationCreateReques
 	switch d.Kind {
 	case DestinationKindKubernetes:
 		d.Kubernetes = DestinationKubernetes{
-			CA: template.Kubernetes.Ca,
+			CA: template.Kubernetes.CA,
 		}
 	}
 

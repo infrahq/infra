@@ -140,7 +140,7 @@ provider:
 		// Use the current provider ID if it's valid to avoid prompting the user
 		if selectedHost.ProviderID != "" && options.Current {
 			for i, provider := range providers {
-				if provider.Id == selectedHost.ProviderID {
+				if provider.ID == selectedHost.ProviderID {
 					selectedProvider = &providers[i]
 					break provider
 				}
@@ -219,7 +219,7 @@ provider:
 	selectedHost.Name = loginRes.Name
 	selectedHost.Token = loginRes.Token
 	selectedHost.SkipTLSVerify = skipTLSVerify
-	selectedHost.ProviderID = selectedProvider.Id
+	selectedHost.ProviderID = selectedProvider.ID
 	selectedHost.Current = true
 
 	err = writeConfig(loadedCfg)

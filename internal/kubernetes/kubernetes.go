@@ -295,12 +295,12 @@ func (k *Kubernetes) UpdateRoles(roles []api.Role) error {
 		users := make(map[string]api.User)
 
 		for _, u := range r.Users {
-			users[u.Id] = u
+			users[u.ID] = u
 		}
 
 		for _, g := range r.Groups {
 			for _, u := range g.Users {
-				users[u.Id] = u
+				users[u.ID] = u
 			}
 		}
 

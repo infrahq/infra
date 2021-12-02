@@ -47,9 +47,9 @@ func (o *Version) GetVersion() string {
 	return o.Version
 }
 
-// GetVersionOk returns a tuple with the Version field value
+// GetVersionOK returns a tuple with the Version field value
 // and a boolean to check if the value has been set.
-func (o *Version) GetVersionOk() (*string, bool) {
+func (o *Version) GetVersionOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}

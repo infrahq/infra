@@ -17,7 +17,7 @@ import (
 // InfraAPIKeyCreateResponse struct for InfraAPIKeyCreateResponse
 type InfraAPIKeyCreateResponse struct {
 	Key         string   `json:"key"`
-	Id          string   `json:"id"`
+	ID          string   `json:"id"`
 	Created     int64    `json:"created"`
 	Name        string   `json:"name"`
 	Permissions []string `json:"permissions"`
@@ -29,7 +29,7 @@ type InfraAPIKeyCreateResponse struct {
 // will change when the set of required properties is changed
 func NewInfraAPIKeyCreateResponse(key string, id string, created int64, name string, permissions []string) *InfraAPIKeyCreateResponse {
 	this := InfraAPIKeyCreateResponse{}
-	this.Id = id
+	this.ID = id
 	this.Created = created
 	this.Name = name
 	this.Permissions = permissions
@@ -54,9 +54,9 @@ func (o *InfraAPIKeyCreateResponse) GetKey() string {
 	return o.Key
 }
 
-// GetKeyOk returns a tuple with the Key field value
+// GetKeyOK returns a tuple with the Key field value
 // and a boolean to check if the value has been set.
-func (o *InfraAPIKeyCreateResponse) GetKeyOk() (*string, bool) {
+func (o *InfraAPIKeyCreateResponse) GetKeyOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -68,28 +68,28 @@ func (o *InfraAPIKeyCreateResponse) SetKey(v string) {
 	o.Key = v
 }
 
-// GetId returns the Id field value
-func (o *InfraAPIKeyCreateResponse) GetId() string {
+// GetID returns the ID field value
+func (o *InfraAPIKeyCreateResponse) GetID() string {
 	if o == nil {
 		var ret string
 		return ret
 	}
 
-	return o.Id
+	return o.ID
 }
 
-// GetIdOk returns a tuple with the Id field value
+// GetIDOK returns a tuple with the ID field value
 // and a boolean to check if the value has been set.
-func (o *InfraAPIKeyCreateResponse) GetIdOk() (*string, bool) {
+func (o *InfraAPIKeyCreateResponse) GetIDOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.Id, true
+	return &o.ID, true
 }
 
-// SetId sets field value
-func (o *InfraAPIKeyCreateResponse) SetId(v string) {
-	o.Id = v
+// SetID sets field value
+func (o *InfraAPIKeyCreateResponse) SetID(v string) {
+	o.ID = v
 }
 
 // GetCreated returns the Created field value
@@ -102,9 +102,9 @@ func (o *InfraAPIKeyCreateResponse) GetCreated() int64 {
 	return o.Created
 }
 
-// GetCreatedOk returns a tuple with the Created field value
+// GetCreatedOK returns a tuple with the Created field value
 // and a boolean to check if the value has been set.
-func (o *InfraAPIKeyCreateResponse) GetCreatedOk() (*int64, bool) {
+func (o *InfraAPIKeyCreateResponse) GetCreatedOK() (*int64, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -126,9 +126,9 @@ func (o *InfraAPIKeyCreateResponse) GetName() string {
 	return o.Name
 }
 
-// GetNameOk returns a tuple with the Name field value
+// GetNameOK returns a tuple with the Name field value
 // and a boolean to check if the value has been set.
-func (o *InfraAPIKeyCreateResponse) GetNameOk() (*string, bool) {
+func (o *InfraAPIKeyCreateResponse) GetNameOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -150,9 +150,9 @@ func (o *InfraAPIKeyCreateResponse) GetPermissions() []string {
 	return o.Permissions
 }
 
-// GetPermissionsOk returns a tuple with the Permissions field value
+// GetPermissionsOK returns a tuple with the Permissions field value
 // and a boolean to check if the value has been set.
-func (o *InfraAPIKeyCreateResponse) GetPermissionsOk() (*[]string, bool) {
+func (o *InfraAPIKeyCreateResponse) GetPermissionsOK() (*[]string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -170,7 +170,7 @@ func (o InfraAPIKeyCreateResponse) MarshalJSON() ([]byte, error) {
 		toSerialize["key"] = o.Key
 	}
 	if true {
-		toSerialize["id"] = o.Id
+		toSerialize["id"] = o.ID
 	}
 	if true {
 		toSerialize["created"] = o.Created

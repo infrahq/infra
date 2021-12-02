@@ -16,7 +16,7 @@ import (
 
 // User struct for User
 type User struct {
-	Id    string `json:"id"`
+	ID    string `json:"id"`
 	Email string `json:"email" validate:"email,required"`
 	// created time in seconds since 1970-01-01
 	Created int64 `json:"created"`
@@ -32,7 +32,7 @@ type User struct {
 // will change when the set of required properties is changed
 func NewUser(id string, email string, created int64, updated int64, groups []Group, roles []Role) *User {
 	this := User{}
-	this.Id = id
+	this.ID = id
 	this.Email = email
 	this.Created = created
 	this.Updated = updated
@@ -49,28 +49,28 @@ func NewUserWithDefaults() *User {
 	return &this
 }
 
-// GetId returns the Id field value
-func (o *User) GetId() string {
+// GetID returns the ID field value
+func (o *User) GetID() string {
 	if o == nil {
 		var ret string
 		return ret
 	}
 
-	return o.Id
+	return o.ID
 }
 
-// GetIdOk returns a tuple with the Id field value
+// GetIDOK returns a tuple with the ID field value
 // and a boolean to check if the value has been set.
-func (o *User) GetIdOk() (*string, bool) {
+func (o *User) GetIDOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.Id, true
+	return &o.ID, true
 }
 
-// SetId sets field value
-func (o *User) SetId(v string) {
-	o.Id = v
+// SetID sets field value
+func (o *User) SetID(v string) {
+	o.ID = v
 }
 
 // GetEmail returns the Email field value
@@ -83,9 +83,9 @@ func (o *User) GetEmail() string {
 	return o.Email
 }
 
-// GetEmailOk returns a tuple with the Email field value
+// GetEmailOK returns a tuple with the Email field value
 // and a boolean to check if the value has been set.
-func (o *User) GetEmailOk() (*string, bool) {
+func (o *User) GetEmailOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -107,9 +107,9 @@ func (o *User) GetCreated() int64 {
 	return o.Created
 }
 
-// GetCreatedOk returns a tuple with the Created field value
+// GetCreatedOK returns a tuple with the Created field value
 // and a boolean to check if the value has been set.
-func (o *User) GetCreatedOk() (*int64, bool) {
+func (o *User) GetCreatedOK() (*int64, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -131,9 +131,9 @@ func (o *User) GetUpdated() int64 {
 	return o.Updated
 }
 
-// GetUpdatedOk returns a tuple with the Updated field value
+// GetUpdatedOK returns a tuple with the Updated field value
 // and a boolean to check if the value has been set.
-func (o *User) GetUpdatedOk() (*int64, bool) {
+func (o *User) GetUpdatedOK() (*int64, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -155,9 +155,9 @@ func (o *User) GetGroups() []Group {
 	return o.Groups
 }
 
-// GetGroupsOk returns a tuple with the Groups field value
+// GetGroupsOK returns a tuple with the Groups field value
 // and a boolean to check if the value has been set.
-func (o *User) GetGroupsOk() (*[]Group, bool) {
+func (o *User) GetGroupsOK() (*[]Group, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -179,9 +179,9 @@ func (o *User) GetRoles() []Role {
 	return o.Roles
 }
 
-// GetRolesOk returns a tuple with the Roles field value
+// GetRolesOK returns a tuple with the Roles field value
 // and a boolean to check if the value has been set.
-func (o *User) GetRolesOk() (*[]Role, bool) {
+func (o *User) GetRolesOK() (*[]Role, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -196,7 +196,7 @@ func (o *User) SetRoles(v []Role) {
 func (o User) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
-		toSerialize["id"] = o.Id
+		toSerialize["id"] = o.ID
 	}
 	if true {
 		toSerialize["email"] = o.Email
