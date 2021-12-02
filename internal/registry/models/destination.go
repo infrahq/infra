@@ -71,13 +71,12 @@ func (d *Destination) FromAPI(from interface{}) error {
 			d.Kubernetes = DestinationKubernetes{
 				CA: createRequest.Kubernetes.CA,
 			}
-
 		}
 
 		automaticLabels := []string{
 			string(createRequest.Kind),
 		}
-	
+
 		for _, l := range append(createRequest.Labels, automaticLabels...) {
 			d.Labels = append(d.Labels, Label{Value: l})
 		}
