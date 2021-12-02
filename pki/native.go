@@ -44,7 +44,7 @@ type NativeCertificateProvider struct {
 
 	// TODO: support arbitrary storage
 	// secretStorage     secrets.SecretStorage
-	// secretKeyProvider secrets.SecretSymmetricKeyProvider
+	// secretKeyProvider secrets.SymmetricKeyProvider
 }
 
 type NativeCertificateProviderConfig struct {

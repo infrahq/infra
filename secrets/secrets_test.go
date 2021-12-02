@@ -128,9 +128,9 @@ func eachSecretStorageProvider(t *testing.T, eachFunc func(t *testing.T, p Secre
 	})
 }
 
-func eachSecretSymmetricKeyProvider(t *testing.T, eachFunc func(t *testing.T, p SecretSymmetricKeyProvider)) {
+func eachSymmetricKeyProvider(t *testing.T, eachFunc func(t *testing.T, p SymmetricKeyProvider)) {
 	eachProvider(t, func(t *testing.T, p interface{}) {
-		if sp, ok := p.(SecretSymmetricKeyProvider); ok {
+		if sp, ok := p.(SymmetricKeyProvider); ok {
 			eachFunc(t, sp)
 		}
 	})
@@ -178,6 +178,11 @@ func eachProvider(t *testing.T, eachFunc func(t *testing.T, p interface{})) {
 	k8s := NewKubernetesSecretProvider(clientset, "default")
 
 	providers["kubernetes"] = k8s
+
+	// add native; depends on k8s secret storage
+	n := NewNativeSecretProvider(k8s)
+
+	providers["native"] = n
 
 	// add "file"
 	providers["file"] = &FileSecretProvider{
@@ -329,12 +334,14 @@ func TestSealAndUnseal(t *testing.T) {
 		return
 	}
 
-	eachSecretSymmetricKeyProvider(t, func(t *testing.T, p SecretSymmetricKeyProvider) {
+	eachSymmetricKeyProvider(t, func(t *testing.T, p SymmetricKeyProvider) {
 		noRootKeyYet := ""
 
-		key, err := p.GenerateDataKey("random/name:foo", noRootKeyYet)
+		key, err := p.GenerateDataKey(noRootKeyYet)
 		require.NoError(t, err)
 		require.NotEmpty(t, key.RootKeyID)
+
+		require.Len(t, key.unencrypted, 32) // 256 bit keys should be used.
 
 		key2, err := p.DecryptDataKey(key.RootKeyID, key.Encrypted)
 		require.NoError(t, err)
@@ -359,17 +366,48 @@ func TestGeneratingASecondKeyFromARootKey(t *testing.T) {
 		return
 	}
 
-	eachSecretSymmetricKeyProvider(t, func(t *testing.T, p SecretSymmetricKeyProvider) {
+	eachSymmetricKeyProvider(t, func(t *testing.T, p SymmetricKeyProvider) {
 		noRootKeyYet := ""
 
-		key, err := p.GenerateDataKey("key:test/foo", noRootKeyYet)
+		key, err := p.GenerateDataKey(noRootKeyYet)
 		require.NoError(t, err)
 		require.NotEmpty(t, key.RootKeyID)
 
-		key2, err := p.GenerateDataKey("key:test/foo", key.RootKeyID)
+		key2, err := p.GenerateDataKey(key.RootKeyID)
 		require.NoError(t, err)
 		require.NotEmpty(t, key.RootKeyID)
 		require.Equal(t, key.RootKeyID, key2.RootKeyID)
 		require.NotEqual(t, key.unencrypted, key2.unencrypted)
 	})
+}
+
+func TestSealSize(t *testing.T) {
+	p := NewNativeSecretProvider(NewFileSecretProviderFromConfig(FileConfig{
+		Path: os.TempDir(),
+	}))
+
+	key, err := p.GenerateDataKey("one")
+	require.NoError(t, err)
+	require.NotEmpty(t, key.RootKeyID)
+
+	secretMessage := "toast"
+
+	encrypted, err := Seal(key, []byte(secretMessage))
+	require.NoError(t, err)
+
+	require.Len(t, encrypted, 72)
+
+	orig, err := Unseal(key, encrypted)
+	require.NoError(t, err)
+	require.EqualValues(t, secretMessage, orig)
+
+	encrypted, err = SealRaw(key, []byte(secretMessage))
+	require.NoError(t, err)
+
+	require.Len(t, encrypted, 54)
+
+	orig, err = UnsealRaw(key, encrypted)
+	require.NoError(t, err)
+
+	require.EqualValues(t, secretMessage, orig)
 }

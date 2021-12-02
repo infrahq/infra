@@ -12,8 +12,8 @@ var DefaultVaultAlgorithm = "aes256-gcm96"
 
 // ensure these interfaces are implemented properly
 var (
-	_ SecretSymmetricKeyProvider = &VaultSecretProvider{}
-	_ SecretStorage              = &VaultSecretProvider{}
+	_ SymmetricKeyProvider = &VaultSecretProvider{}
+	_ SecretStorage        = &VaultSecretProvider{}
 )
 
 type VaultSecretProvider struct {
@@ -109,10 +109,9 @@ func (v *VaultSecretProvider) SetSecret(name string, secret []byte) error {
 	return err
 }
 
-func (v *VaultSecretProvider) GenerateDataKey(name, rootKeyID string) (*SymmetricKey, error) {
-	name = nameEscape(name)
+func (v *VaultSecretProvider) GenerateDataKey(rootKeyID string) (*SymmetricKey, error) {
 	if rootKeyID == "" {
-		rootKeyID = name + "_root"
+		rootKeyID = "__infra-root"
 		if err := v.generateRootKey(rootKeyID); err != nil {
 			return nil, err
 		}
