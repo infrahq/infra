@@ -9,9 +9,7 @@ var (
 	keyBlockSizeInBytes = keyBlockSizeInBits / 8
 )
 
-var (
-	AlgorithmAESGCM = "aesgcm"
-)
+var AlgorithmAESGCM = "aesgcm"
 
 func NewNativeSecretProvider(storage SecretStorage) *NativeSecretProvider {
 	return &NativeSecretProvider{
