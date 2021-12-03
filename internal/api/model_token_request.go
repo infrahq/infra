@@ -47,9 +47,9 @@ func (o *TokenRequest) GetDestination() string {
 	return o.Destination
 }
 
-// GetDestinationOk returns a tuple with the Destination field value
+// GetDestinationOK returns a tuple with the Destination field value
 // and a boolean to check if the value has been set.
-func (o *TokenRequest) GetDestinationOk() (*string, bool) {
+func (o *TokenRequest) GetDestinationOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}

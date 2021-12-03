@@ -49,9 +49,9 @@ func (o *LoginResponse) GetToken() string {
 	return o.Token
 }
 
-// GetTokenOk returns a tuple with the Token field value
+// GetTokenOK returns a tuple with the Token field value
 // and a boolean to check if the value has been set.
-func (o *LoginResponse) GetTokenOk() (*string, bool) {
+func (o *LoginResponse) GetTokenOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -73,9 +73,9 @@ func (o *LoginResponse) GetName() string {
 	return o.Name
 }
 
-// GetNameOk returns a tuple with the Name field value
+// GetNameOK returns a tuple with the Name field value
 // and a boolean to check if the value has been set.
-func (o *LoginResponse) GetNameOk() (*string, bool) {
+func (o *LoginResponse) GetNameOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}

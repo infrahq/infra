@@ -72,7 +72,7 @@ func TestCreateDestination(t *testing.T) {
 					NodeID: "test",
 					Name:   "test",
 					Kubernetes: &api.DestinationKubernetes{
-						Ca:       "CA",
+						CA:       "CA",
 						Endpoint: "develop.infrahq.com",
 					},
 				}
@@ -88,7 +88,7 @@ func TestCreateDestination(t *testing.T) {
 			"requestFunc": func(t *testing.T) *api.DestinationCreateRequest {
 				return &api.DestinationCreateRequest{
 					Kubernetes: &api.DestinationKubernetes{
-						Ca:       "CA",
+						CA:       "CA",
 						Endpoint: "develop.infrahq.com",
 					},
 				}
@@ -105,7 +105,7 @@ func TestCreateDestination(t *testing.T) {
 				return &api.DestinationCreateRequest{
 					Kind: api.DestinationKind("unknown"),
 					Kubernetes: &api.DestinationKubernetes{
-						Ca:       "CA",
+						CA:       "CA",
 						Endpoint: "develop.infrahq.com",
 					},
 				}
@@ -122,7 +122,7 @@ func TestCreateDestination(t *testing.T) {
 				return &api.DestinationCreateRequest{
 					Kind: api.DESTINATIONKIND_KUBERNETES,
 					Kubernetes: &api.DestinationKubernetes{
-						Ca:       "CA",
+						CA:       "CA",
 						Endpoint: "develop.infrahq.com",
 					},
 				}
@@ -139,7 +139,7 @@ func TestCreateDestination(t *testing.T) {
 				return &api.DestinationCreateRequest{
 					Kind: api.DESTINATIONKIND_KUBERNETES,
 					Kubernetes: &api.DestinationKubernetes{
-						Ca:       "CA",
+						CA:       "CA",
 						Endpoint: "develop.infrahq.com",
 					},
 				}
@@ -208,7 +208,7 @@ func TestCreateDestinationUpdatesField(t *testing.T) {
 		NodeID: destination.NodeID,
 		Name:   "updated-name",
 		Kubernetes: &api.DestinationKubernetes{
-			Ca:       "updated-ca",
+			CA:       "updated-ca",
 			Endpoint: "updated-endpoint",
 		},
 	}
@@ -236,17 +236,17 @@ func TestCreateDestinationUpdatesField(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "node-id", body.NodeID)
 	require.Equal(t, "updated-name", body.Name)
-	require.Equal(t, "updated-ca", body.Kubernetes.Ca)
+	require.Equal(t, "updated-ca", body.Kubernetes.CA)
 	require.Equal(t, "updated-endpoint", body.Kubernetes.Endpoint)
 
 	destinations, err := data.ListDestinations(db, &models.Destination{NodeID: "node-id"})
 	require.NoError(t, err)
 	require.Len(t, destinations, 1)
-	require.Equal(t, body.Id, destinations[0].ID.String())
+	require.Equal(t, body.ID, destinations[0].ID.String())
 	require.Equal(t, body.NodeID, destinations[0].NodeID)
 	require.Equal(t, body.Name, destinations[0].Name)
 	require.Equal(t, body.Kubernetes.Endpoint, destinations[0].Endpoint)
-	require.Equal(t, body.Kubernetes.Ca, destinations[0].Kubernetes.CA)
+	require.Equal(t, body.Kubernetes.CA, destinations[0].Kubernetes.CA)
 }
 
 func TestLogin(t *testing.T) {
@@ -830,7 +830,7 @@ func TestT(t *testing.T) {
 				require.ElementsMatch(t, []string{"infrahq", "development"}, []string{roles[0].Namespace, roles[1].Namespace})
 
 				for _, r := range roles {
-					require.Equal(t, destinationCCC.ID.String(), r.Destination.Id)
+					require.Equal(t, destinationCCC.ID.String(), r.Destination.ID)
 					require.Equal(t, "CCC", r.Destination.Name)
 					require.Equal(t, "audit", r.Name)
 					require.Equal(t, api.ROLEKIND_ROLE, r.Kind)

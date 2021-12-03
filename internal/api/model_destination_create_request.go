@@ -54,9 +54,9 @@ func (o *DestinationCreateRequest) GetNodeID() string {
 	return o.NodeID
 }
 
-// GetNodeIDOk returns a tuple with the NodeID field value
+// GetNodeIDOK returns a tuple with the NodeID field value
 // and a boolean to check if the value has been set.
-func (o *DestinationCreateRequest) GetNodeIDOk() (*string, bool) {
+func (o *DestinationCreateRequest) GetNodeIDOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -78,9 +78,9 @@ func (o *DestinationCreateRequest) GetName() string {
 	return o.Name
 }
 
-// GetNameOk returns a tuple with the Name field value
+// GetNameOK returns a tuple with the Name field value
 // and a boolean to check if the value has been set.
-func (o *DestinationCreateRequest) GetNameOk() (*string, bool) {
+func (o *DestinationCreateRequest) GetNameOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -102,9 +102,9 @@ func (o *DestinationCreateRequest) GetKind() DestinationKind {
 	return o.Kind
 }
 
-// GetKindOk returns a tuple with the Kind field value
+// GetKindOK returns a tuple with the Kind field value
 // and a boolean to check if the value has been set.
-func (o *DestinationCreateRequest) GetKindOk() (*DestinationKind, bool) {
+func (o *DestinationCreateRequest) GetKindOK() (*DestinationKind, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -126,9 +126,9 @@ func (o *DestinationCreateRequest) GetLabels() []string {
 	return o.Labels
 }
 
-// GetLabelsOk returns a tuple with the Labels field value
+// GetLabelsOK returns a tuple with the Labels field value
 // and a boolean to check if the value has been set.
-func (o *DestinationCreateRequest) GetLabelsOk() (*[]string, bool) {
+func (o *DestinationCreateRequest) GetLabelsOK() (*[]string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -149,9 +149,9 @@ func (o *DestinationCreateRequest) GetKubernetes() DestinationKubernetes {
 	return *o.Kubernetes
 }
 
-// GetKubernetesOk returns a tuple with the Kubernetes field value if set, nil otherwise
+// GetKubernetesOK returns a tuple with the Kubernetes field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *DestinationCreateRequest) GetKubernetesOk() (*DestinationKubernetes, bool) {
+func (o *DestinationCreateRequest) GetKubernetesOK() (*DestinationKubernetes, bool) {
 	if o == nil || o.Kubernetes == nil {
 		return nil, false
 	}

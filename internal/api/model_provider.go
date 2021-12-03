@@ -16,7 +16,7 @@ import (
 
 // Provider struct for Provider
 type Provider struct {
-	Id string `json:"id"`
+	ID string `json:"id"`
 	// created time in seconds since 1970-01-01
 	Created int64 `json:"created"`
 	// updated time in seconds since 1970-01-01
@@ -32,7 +32,7 @@ type Provider struct {
 // will change when the set of required properties is changed
 func NewProvider(id string, created int64, updated int64, domain string, clientID string, kind ProviderKind) *Provider {
 	this := Provider{}
-	this.Id = id
+	this.ID = id
 	this.Created = created
 	this.Updated = updated
 	this.Domain = domain
@@ -49,28 +49,28 @@ func NewProviderWithDefaults() *Provider {
 	return &this
 }
 
-// GetId returns the Id field value
-func (o *Provider) GetId() string {
+// GetID returns the ID field value
+func (o *Provider) GetID() string {
 	if o == nil {
 		var ret string
 		return ret
 	}
 
-	return o.Id
+	return o.ID
 }
 
-// GetIdOk returns a tuple with the Id field value
+// GetIDOK returns a tuple with the ID field value
 // and a boolean to check if the value has been set.
-func (o *Provider) GetIdOk() (*string, bool) {
+func (o *Provider) GetIDOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.Id, true
+	return &o.ID, true
 }
 
-// SetId sets field value
-func (o *Provider) SetId(v string) {
-	o.Id = v
+// SetID sets field value
+func (o *Provider) SetID(v string) {
+	o.ID = v
 }
 
 // GetCreated returns the Created field value
@@ -83,9 +83,9 @@ func (o *Provider) GetCreated() int64 {
 	return o.Created
 }
 
-// GetCreatedOk returns a tuple with the Created field value
+// GetCreatedOK returns a tuple with the Created field value
 // and a boolean to check if the value has been set.
-func (o *Provider) GetCreatedOk() (*int64, bool) {
+func (o *Provider) GetCreatedOK() (*int64, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -107,9 +107,9 @@ func (o *Provider) GetUpdated() int64 {
 	return o.Updated
 }
 
-// GetUpdatedOk returns a tuple with the Updated field value
+// GetUpdatedOK returns a tuple with the Updated field value
 // and a boolean to check if the value has been set.
-func (o *Provider) GetUpdatedOk() (*int64, bool) {
+func (o *Provider) GetUpdatedOK() (*int64, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -131,9 +131,9 @@ func (o *Provider) GetDomain() string {
 	return o.Domain
 }
 
-// GetDomainOk returns a tuple with the Domain field value
+// GetDomainOK returns a tuple with the Domain field value
 // and a boolean to check if the value has been set.
-func (o *Provider) GetDomainOk() (*string, bool) {
+func (o *Provider) GetDomainOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -155,9 +155,9 @@ func (o *Provider) GetClientID() string {
 	return o.ClientID
 }
 
-// GetClientIDOk returns a tuple with the ClientID field value
+// GetClientIDOK returns a tuple with the ClientID field value
 // and a boolean to check if the value has been set.
-func (o *Provider) GetClientIDOk() (*string, bool) {
+func (o *Provider) GetClientIDOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -179,9 +179,9 @@ func (o *Provider) GetKind() ProviderKind {
 	return o.Kind
 }
 
-// GetKindOk returns a tuple with the Kind field value
+// GetKindOK returns a tuple with the Kind field value
 // and a boolean to check if the value has been set.
-func (o *Provider) GetKindOk() (*ProviderKind, bool) {
+func (o *Provider) GetKindOK() (*ProviderKind, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -196,7 +196,7 @@ func (o *Provider) SetKind(v ProviderKind) {
 func (o Provider) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
-		toSerialize["id"] = o.Id
+		toSerialize["id"] = o.ID
 	}
 	if true {
 		toSerialize["created"] = o.Created

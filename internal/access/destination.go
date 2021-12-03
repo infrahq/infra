@@ -3,7 +3,6 @@ package access
 import (
 	"github.com/gin-gonic/gin"
 
-	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
 )
@@ -16,18 +15,13 @@ const (
 	PermissionDestinationDelete Permission = "infra.destination.delete"
 )
 
-func CreateDestination(c *gin.Context, template *api.DestinationCreateRequest) (*models.Destination, error) {
+func CreateDestination(c *gin.Context, destination *models.Destination) (*models.Destination, error) {
 	db, err := RequireAuthorization(c, PermissionDestinationCreate)
 	if err != nil {
 		return nil, err
 	}
 
-	var destination models.Destination
-	if err := destination.FromAPICreateRequest(template); err != nil {
-		return nil, err
-	}
-
-	return data.CreateOrUpdateDestination(db, &destination, &models.Destination{NodeID: template.NodeID})
+	return data.CreateOrUpdateDestination(db, destination, &models.Destination{NodeID: destination.NodeID})
 }
 
 func GetDestination(c *gin.Context, id string) (*models.Destination, error) {

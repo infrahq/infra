@@ -12,6 +12,7 @@ import (
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/registry/models"
 )
 
 type API struct {
@@ -250,7 +251,13 @@ func (a *API) CreateDestination(c *gin.Context) {
 		return
 	}
 
-	destination, err := access.CreateDestination(c, &body)
+	destination := &models.Destination{}
+	if err := destination.FromAPI(&body); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	destination, err := access.CreateDestination(c, destination)
 	if err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return
@@ -312,7 +319,13 @@ func (a *API) CreateAPIKey(c *gin.Context) {
 		return
 	}
 
-	apiKey, err := access.IssueAPIKey(c, &body)
+	apiKey := &models.APIKey{}
+	if err := apiKey.FromAPI(&body); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	apiKey, err := access.IssueAPIKey(c, apiKey)
 	if err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return

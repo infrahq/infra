@@ -16,28 +16,27 @@ import (
 
 // User struct for User
 type User struct {
-	Id    string `json:"id"`
+	ID    string `json:"id"`
 	Email string `json:"email" validate:"email,required"`
 	// created time in seconds since 1970-01-01
 	Created int64 `json:"created"`
 	// updated time in seconds since 1970-01-01
-	Updated int64   `json:"updated"`
-	Groups  []Group `json:"groups"`
-	Roles   []Role  `json:"roles"`
+	Updated   int64       `json:"updated"`
+	Groups    *[]Group    `json:"groups,omitempty"`
+	Roles     *[]Role     `json:"roles,omitempty"`
+	Providers *[]Provider `json:"providers,omitempty"`
 }
 
 // NewUser instantiates a new User object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewUser(id string, email string, created int64, updated int64, groups []Group, roles []Role) *User {
+func NewUser(id string, email string, created int64, updated int64) *User {
 	this := User{}
-	this.Id = id
+	this.ID = id
 	this.Email = email
 	this.Created = created
 	this.Updated = updated
-	this.Groups = groups
-	this.Roles = roles
 	return &this
 }
 
@@ -49,28 +48,28 @@ func NewUserWithDefaults() *User {
 	return &this
 }
 
-// GetId returns the Id field value
-func (o *User) GetId() string {
+// GetID returns the ID field value
+func (o *User) GetID() string {
 	if o == nil {
 		var ret string
 		return ret
 	}
 
-	return o.Id
+	return o.ID
 }
 
-// GetIdOk returns a tuple with the Id field value
+// GetIDOK returns a tuple with the ID field value
 // and a boolean to check if the value has been set.
-func (o *User) GetIdOk() (*string, bool) {
+func (o *User) GetIDOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.Id, true
+	return &o.ID, true
 }
 
-// SetId sets field value
-func (o *User) SetId(v string) {
-	o.Id = v
+// SetID sets field value
+func (o *User) SetID(v string) {
+	o.ID = v
 }
 
 // GetEmail returns the Email field value
@@ -83,9 +82,9 @@ func (o *User) GetEmail() string {
 	return o.Email
 }
 
-// GetEmailOk returns a tuple with the Email field value
+// GetEmailOK returns a tuple with the Email field value
 // and a boolean to check if the value has been set.
-func (o *User) GetEmailOk() (*string, bool) {
+func (o *User) GetEmailOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -107,9 +106,9 @@ func (o *User) GetCreated() int64 {
 	return o.Created
 }
 
-// GetCreatedOk returns a tuple with the Created field value
+// GetCreatedOK returns a tuple with the Created field value
 // and a boolean to check if the value has been set.
-func (o *User) GetCreatedOk() (*int64, bool) {
+func (o *User) GetCreatedOK() (*int64, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -131,9 +130,9 @@ func (o *User) GetUpdated() int64 {
 	return o.Updated
 }
 
-// GetUpdatedOk returns a tuple with the Updated field value
+// GetUpdatedOK returns a tuple with the Updated field value
 // and a boolean to check if the value has been set.
-func (o *User) GetUpdatedOk() (*int64, bool) {
+func (o *User) GetUpdatedOK() (*int64, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -145,58 +144,106 @@ func (o *User) SetUpdated(v int64) {
 	o.Updated = v
 }
 
-// GetGroups returns the Groups field value
+// GetGroups returns the Groups field value if set, zero value otherwise.
 func (o *User) GetGroups() []Group {
-	if o == nil {
+	if o == nil || o.Groups == nil {
 		var ret []Group
 		return ret
 	}
-
-	return o.Groups
+	return *o.Groups
 }
 
-// GetGroupsOk returns a tuple with the Groups field value
+// GetGroupsOK returns a tuple with the Groups field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *User) GetGroupsOk() (*[]Group, bool) {
-	if o == nil {
+func (o *User) GetGroupsOK() (*[]Group, bool) {
+	if o == nil || o.Groups == nil {
 		return nil, false
 	}
-	return &o.Groups, true
+	return o.Groups, true
 }
 
-// SetGroups sets field value
+// HasGroups returns a boolean if a field has been set.
+func (o *User) HasGroups() bool {
+	if o != nil && o.Groups != nil {
+		return true
+	}
+
+	return false
+}
+
+// SetGroups gets a reference to the given []Group and assigns it to the Groups field.
 func (o *User) SetGroups(v []Group) {
-	o.Groups = v
+	o.Groups = &v
 }
 
-// GetRoles returns the Roles field value
+// GetRoles returns the Roles field value if set, zero value otherwise.
 func (o *User) GetRoles() []Role {
-	if o == nil {
+	if o == nil || o.Roles == nil {
 		var ret []Role
 		return ret
 	}
-
-	return o.Roles
+	return *o.Roles
 }
 
-// GetRolesOk returns a tuple with the Roles field value
+// GetRolesOK returns a tuple with the Roles field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *User) GetRolesOk() (*[]Role, bool) {
-	if o == nil {
+func (o *User) GetRolesOK() (*[]Role, bool) {
+	if o == nil || o.Roles == nil {
 		return nil, false
 	}
-	return &o.Roles, true
+	return o.Roles, true
 }
 
-// SetRoles sets field value
+// HasRoles returns a boolean if a field has been set.
+func (o *User) HasRoles() bool {
+	if o != nil && o.Roles != nil {
+		return true
+	}
+
+	return false
+}
+
+// SetRoles gets a reference to the given []Role and assigns it to the Roles field.
 func (o *User) SetRoles(v []Role) {
-	o.Roles = v
+	o.Roles = &v
+}
+
+// GetProviders returns the Providers field value if set, zero value otherwise.
+func (o *User) GetProviders() []Provider {
+	if o == nil || o.Providers == nil {
+		var ret []Provider
+		return ret
+	}
+	return *o.Providers
+}
+
+// GetProvidersOK returns a tuple with the Providers field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *User) GetProvidersOK() (*[]Provider, bool) {
+	if o == nil || o.Providers == nil {
+		return nil, false
+	}
+	return o.Providers, true
+}
+
+// HasProviders returns a boolean if a field has been set.
+func (o *User) HasProviders() bool {
+	if o != nil && o.Providers != nil {
+		return true
+	}
+
+	return false
+}
+
+// SetProviders gets a reference to the given []Provider and assigns it to the Providers field.
+func (o *User) SetProviders(v []Provider) {
+	o.Providers = &v
 }
 
 func (o User) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
-		toSerialize["id"] = o.Id
+		toSerialize["id"] = o.ID
 	}
 	if true {
 		toSerialize["email"] = o.Email
@@ -207,11 +254,14 @@ func (o User) MarshalJSON() ([]byte, error) {
 	if true {
 		toSerialize["updated"] = o.Updated
 	}
-	if true {
+	if o.Groups != nil {
 		toSerialize["groups"] = o.Groups
 	}
-	if true {
+	if o.Roles != nil {
 		toSerialize["roles"] = o.Roles
+	}
+	if o.Providers != nil {
+		toSerialize["providers"] = o.Providers
 	}
 	return json.Marshal(toSerialize)
 }

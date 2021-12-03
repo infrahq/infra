@@ -20,19 +20,38 @@ type User struct {
 
 func (u *User) ToAPI() api.User {
 	result := api.User{
-		Id:      u.ID.String(),
+		ID:      u.ID.String(),
 		Created: u.CreatedAt.Unix(),
 		Updated: u.UpdatedAt.Unix(),
 
 		Email: u.Email,
 	}
 
+	groups := make([]api.Group, 0)
 	for _, g := range u.Groups {
-		result.Groups = append(result.Groups, g.ToAPI())
+		groups = append(groups, g.ToAPI())
 	}
 
+	if len(groups) > 0 {
+		result.SetGroups(groups)
+	}
+
+	roles := make([]api.Role, 0)
 	for _, r := range u.Roles {
-		result.Roles = append(result.Roles, r.ToAPI())
+		roles = append(roles, r.ToAPI())
+	}
+
+	if len(roles) > 0 {
+		result.SetRoles(roles)
+	}
+
+	providers := make([]api.Provider, 0)
+	for _, r := range u.Providers {
+		providers = append(providers, r.ToAPI())
+	}
+
+	if len(providers) > 0 {
+		result.SetProviders(providers)
 	}
 
 	return result

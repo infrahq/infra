@@ -5,9 +5,6 @@ Group:
     - name
     - created
     - updated
-    - users
-    - roles
-    - providerID
   properties:
     id:
       type: string
@@ -22,9 +19,6 @@ Group:
       type: integer
       format: int64
       description: updated time in seconds since 1970-01-01
-    providerID:
-      type: string
-      format: uuid
     users:
       type: array
       items:
@@ -33,3 +27,7 @@ Group:
       type: array
       items:
         $ref: "role.yaml#/Role"
+    providers:
+      type: array
+      items:
+        $ref: "provider.yaml#/Provider"

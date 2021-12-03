@@ -49,9 +49,9 @@ func (o *LoginRequestOkta) GetDomain() string {
 	return o.Domain
 }
 
-// GetDomainOk returns a tuple with the Domain field value
+// GetDomainOK returns a tuple with the Domain field value
 // and a boolean to check if the value has been set.
-func (o *LoginRequestOkta) GetDomainOk() (*string, bool) {
+func (o *LoginRequestOkta) GetDomainOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -73,9 +73,9 @@ func (o *LoginRequestOkta) GetCode() string {
 	return o.Code
 }
 
-// GetCodeOk returns a tuple with the Code field value
+// GetCodeOK returns a tuple with the Code field value
 // and a boolean to check if the value has been set.
-func (o *LoginRequestOkta) GetCodeOk() (*string, bool) {
+func (o *LoginRequestOkta) GetCodeOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}

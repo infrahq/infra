@@ -49,9 +49,9 @@ func (o *Error) GetCode() int32 {
 	return o.Code
 }
 
-// GetCodeOk returns a tuple with the Code field value
+// GetCodeOK returns a tuple with the Code field value
 // and a boolean to check if the value has been set.
-func (o *Error) GetCodeOk() (*int32, bool) {
+func (o *Error) GetCodeOK() (*int32, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -73,9 +73,9 @@ func (o *Error) GetMessage() string {
 	return o.Message
 }
 
-// GetMessageOk returns a tuple with the Message field value
+// GetMessageOK returns a tuple with the Message field value
 // and a boolean to check if the value has been set.
-func (o *Error) GetMessageOk() (*string, bool) {
+func (o *Error) GetMessageOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}

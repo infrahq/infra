@@ -111,14 +111,14 @@ func kubernetesUseContext(options *KubernetesOptions) error {
 		return err
 	}
 
-	// deduplciate candidates
+	// deduplicate candidates
 	candidates := make(map[string][]api.Role)
-	for _, r := range user.Roles {
+	for _, r := range user.GetRoles() {
 		candidates[r.Destination.NodeID] = append(candidates[r.Destination.NodeID], r)
 	}
 
-	for _, g := range user.Groups {
-		for _, r := range g.Roles {
+	for _, g := range user.GetGroups() {
+		for _, r := range g.GetRoles() {
 			candidates[r.Destination.NodeID] = append(candidates[r.Destination.NodeID], r)
 		}
 	}
@@ -129,7 +129,7 @@ func kubernetesUseContext(options *KubernetesOptions) error {
 DESTINATIONS:
 	for _, d := range candidates {
 		for _, r := range d {
-			logging.S.Debugf("considering %s %s@%s#%s", r.Id, r.Destination.Name, r.Destination.NodeID[:12], r.Namespace)
+			logging.S.Debugf("considering %s %s@%s#%s", r.ID, r.Destination.Name, r.Destination.NodeID[:12], r.Namespace)
 			switch options.Name {
 			case "":
 			case r.Destination.Name:
@@ -342,23 +342,23 @@ func updateKubeconfig(user api.User) error {
 	aliases := make(map[string]map[string]bool)
 	roles := make(map[string]api.Role)
 
-	for _, r := range user.Roles {
+	for _, r := range user.GetRoles() {
 		if _, ok := aliases[r.Destination.Name]; !ok {
 			aliases[r.Destination.Name] = make(map[string]bool)
 		}
 
 		aliases[r.Destination.Name][r.Destination.NodeID] = true
-		roles[r.Id] = r
+		roles[r.ID] = r
 	}
 
-	for _, g := range user.Groups {
-		for _, r := range g.Roles {
+	for _, g := range user.GetGroups() {
+		for _, r := range g.GetRoles() {
 			if _, ok := aliases[r.Destination.Name]; !ok {
 				aliases[r.Destination.Name] = make(map[string]bool)
 			}
 
 			aliases[r.Destination.Name][r.Destination.NodeID] = true
-			roles[r.Id] = r
+			roles[r.ID] = r
 		}
 	}
 
@@ -386,7 +386,7 @@ func updateKubeconfig(user api.User) error {
 
 		kubeConfig.Clusters[contextName] = &clientcmdapi.Cluster{
 			Server:                   fmt.Sprintf("https://%s/proxy", role.Destination.Kubernetes.Endpoint),
-			CertificateAuthorityData: []byte(role.Destination.Kubernetes.Ca),
+			CertificateAuthorityData: []byte(role.Destination.Kubernetes.CA),
 		}
 
 		kubeConfig.Contexts[contextName] = &clientcmdapi.Context{

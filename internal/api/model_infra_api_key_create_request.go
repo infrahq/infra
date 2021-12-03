@@ -49,9 +49,9 @@ func (o *InfraAPIKeyCreateRequest) GetName() string {
 	return o.Name
 }
 
-// GetNameOk returns a tuple with the Name field value
+// GetNameOK returns a tuple with the Name field value
 // and a boolean to check if the value has been set.
-func (o *InfraAPIKeyCreateRequest) GetNameOk() (*string, bool) {
+func (o *InfraAPIKeyCreateRequest) GetNameOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -73,9 +73,9 @@ func (o *InfraAPIKeyCreateRequest) GetPermissions() []string {
 	return o.Permissions
 }
 
-// GetPermissionsOk returns a tuple with the Permissions field value
+// GetPermissionsOK returns a tuple with the Permissions field value
 // and a boolean to check if the value has been set.
-func (o *InfraAPIKeyCreateRequest) GetPermissionsOk() (*[]string, bool) {
+func (o *InfraAPIKeyCreateRequest) GetPermissionsOK() (*[]string, bool) {
 	if o == nil {
 		return nil, false
 	}

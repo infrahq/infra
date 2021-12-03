@@ -292,26 +292,29 @@ func (k *Kubernetes) UpdateRoles(roles []api.Role) error {
 
 	// group users together regardless of user or group assignment
 	for i, r := range roles {
-		users := make(map[string]api.User)
+		tmp := make(map[string]api.User)
 
-		for _, u := range r.Users {
-			users[u.Id] = u
+		for _, u := range r.GetUsers() {
+			tmp[u.ID] = u
 		}
 
-		for _, g := range r.Groups {
-			for _, u := range g.Users {
-				users[u.Id] = u
+		for _, g := range r.GetGroups() {
+			for _, u := range g.GetUsers() {
+				tmp[u.ID] = u
 			}
 		}
 
 		// zero out roles[].Users and roles[].Groups
-		roles[i].Users = []api.User{}
-		roles[i].Groups = []api.Group{}
+		roles[i].SetUsers(make([]api.User, 0))
+		roles[i].SetGroups(make([]api.Group, 0))
 
 		// repopulate with deduplicated users
-		for _, u := range users {
-			roles[i].Users = append(roles[i].Users, u)
+		users := make([]api.User, 0)
+		for _, u := range tmp {
+			users = append(users, u)
 		}
+
+		roles[i].SetUsers(users)
 	}
 
 	logging.L.Debug("syncing local roles from infra configuration")
@@ -333,7 +336,7 @@ func (k *Kubernetes) UpdateRoles(roles []api.Role) error {
 				kind:      string(r.Kind),
 			}
 
-			for _, u := range r.Users {
+			for _, u := range r.GetUsers() {
 				rbSubjects[nspaceRole] = append(rbSubjects[nspaceRole], rbacv1.Subject{
 					APIGroup: "rbac.authorization.k8s.io",
 					Kind:     "User",
@@ -343,7 +346,7 @@ func (k *Kubernetes) UpdateRoles(roles []api.Role) error {
 
 		case api.ROLEKIND_CLUSTER_ROLE:
 			if r.Namespace == "" {
-				for _, u := range r.Users {
+				for _, u := range r.GetUsers() {
 					crbSubjects[r.Name] = append(crbSubjects[r.Name], rbacv1.Subject{
 						APIGroup: "rbac.authorization.k8s.io",
 						Kind:     "User",
@@ -358,7 +361,7 @@ func (k *Kubernetes) UpdateRoles(roles []api.Role) error {
 					kind:      string(r.Kind),
 				}
 
-				for _, u := range r.Users {
+				for _, u := range r.GetUsers() {
 					rbSubjects[nspaceRole] = append(rbSubjects[nspaceRole], rbacv1.Subject{
 						APIGroup: "rbac.authorization.k8s.io",
 						Kind:     "User",

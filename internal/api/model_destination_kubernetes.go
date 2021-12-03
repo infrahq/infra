@@ -16,7 +16,7 @@ import (
 
 // DestinationKubernetes struct for DestinationKubernetes
 type DestinationKubernetes struct {
-	Ca       string `json:"ca" validate:"required"`
+	CA       string `json:"ca" validate:"required"`
 	Endpoint string `json:"endpoint" validate:"required"`
 }
 
@@ -26,7 +26,7 @@ type DestinationKubernetes struct {
 // will change when the set of required properties is changed
 func NewDestinationKubernetes(ca string, endpoint string) *DestinationKubernetes {
 	this := DestinationKubernetes{}
-	this.Ca = ca
+	this.CA = ca
 	this.Endpoint = endpoint
 	return &this
 }
@@ -39,28 +39,28 @@ func NewDestinationKubernetesWithDefaults() *DestinationKubernetes {
 	return &this
 }
 
-// GetCa returns the Ca field value
-func (o *DestinationKubernetes) GetCa() string {
+// GetCA returns the CA field value
+func (o *DestinationKubernetes) GetCA() string {
 	if o == nil {
 		var ret string
 		return ret
 	}
 
-	return o.Ca
+	return o.CA
 }
 
-// GetCaOk returns a tuple with the Ca field value
+// GetCAOK returns a tuple with the CA field value
 // and a boolean to check if the value has been set.
-func (o *DestinationKubernetes) GetCaOk() (*string, bool) {
+func (o *DestinationKubernetes) GetCAOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.Ca, true
+	return &o.CA, true
 }
 
-// SetCa sets field value
-func (o *DestinationKubernetes) SetCa(v string) {
-	o.Ca = v
+// SetCA sets field value
+func (o *DestinationKubernetes) SetCA(v string) {
+	o.CA = v
 }
 
 // GetEndpoint returns the Endpoint field value
@@ -73,9 +73,9 @@ func (o *DestinationKubernetes) GetEndpoint() string {
 	return o.Endpoint
 }
 
-// GetEndpointOk returns a tuple with the Endpoint field value
+// GetEndpointOK returns a tuple with the Endpoint field value
 // and a boolean to check if the value has been set.
-func (o *DestinationKubernetes) GetEndpointOk() (*string, bool) {
+func (o *DestinationKubernetes) GetEndpointOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -90,7 +90,7 @@ func (o *DestinationKubernetes) SetEndpoint(v string) {
 func (o DestinationKubernetes) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
-		toSerialize["ca"] = o.Ca
+		toSerialize["ca"] = o.CA
 	}
 	if true {
 		toSerialize["endpoint"] = o.Endpoint

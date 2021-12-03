@@ -14,6 +14,10 @@
 
 import { exists, mapValues } from '../runtime';
 import {
+    Provider,
+    ProviderFromJSON,
+    ProviderFromJSONTyped,
+    ProviderToJSON,
     Role,
     RoleFromJSON,
     RoleFromJSONTyped,
@@ -56,22 +60,22 @@ export interface Group {
     updated: number;
     /**
      * 
-     * @type {string}
-     * @memberof Group
-     */
-    providerID: string;
-    /**
-     * 
      * @type {Array<User>}
      * @memberof Group
      */
-    users: Array<User>;
+    users?: Array<User>;
     /**
      * 
      * @type {Array<Role>}
      * @memberof Group
      */
-    roles: Array<Role>;
+    roles?: Array<Role>;
+    /**
+     * 
+     * @type {Array<Provider>}
+     * @memberof Group
+     */
+    providers?: Array<Provider>;
 }
 
 export function GroupFromJSON(json: any): Group {
@@ -88,9 +92,9 @@ export function GroupFromJSONTyped(json: any, ignoreDiscriminator: boolean): Gro
         'name': json['name'],
         'created': json['created'],
         'updated': json['updated'],
-        'providerID': json['providerID'],
-        'users': ((json['users'] as Array<any>).map(UserFromJSON)),
-        'roles': ((json['roles'] as Array<any>).map(RoleFromJSON)),
+        'users': !exists(json, 'users') ? undefined : ((json['users'] as Array<any>).map(UserFromJSON)),
+        'roles': !exists(json, 'roles') ? undefined : ((json['roles'] as Array<any>).map(RoleFromJSON)),
+        'providers': !exists(json, 'providers') ? undefined : ((json['providers'] as Array<any>).map(ProviderFromJSON)),
     };
 }
 
@@ -107,9 +111,9 @@ export function GroupToJSON(value?: Group | null): any {
         'name': value.name,
         'created': value.created,
         'updated': value.updated,
-        'providerID': value.providerID,
-        'users': ((value.users as Array<any>).map(UserToJSON)),
-        'roles': ((value.roles as Array<any>).map(RoleToJSON)),
+        'users': value.users === undefined ? undefined : ((value.users as Array<any>).map(UserToJSON)),
+        'roles': value.roles === undefined ? undefined : ((value.roles as Array<any>).map(RoleToJSON)),
+        'providers': value.providers === undefined ? undefined : ((value.providers as Array<any>).map(ProviderToJSON)),
     };
 }
 

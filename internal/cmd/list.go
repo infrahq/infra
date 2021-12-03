@@ -84,13 +84,13 @@ func list(options *ListOptions) error {
 
 	// deduplicate rows
 	rows := make(map[string]listRow)
-	for _, r := range user.Roles {
-		rows[r.Destination.Id] = newRow(r, kubeConfig.CurrentContext)
+	for _, r := range user.GetRoles() {
+		rows[r.Destination.ID] = newRow(r, kubeConfig.CurrentContext)
 	}
 
-	for _, g := range user.Groups {
-		for _, r := range g.Roles {
-			rows[r.Destination.Id] = newRow(r, kubeConfig.CurrentContext)
+	for _, g := range user.GetGroups() {
+		for _, r := range g.GetRoles() {
+			rows[r.Destination.ID] = newRow(r, kubeConfig.CurrentContext)
 		}
 	}
 
@@ -120,9 +120,9 @@ func newRow(role api.Role, currentContext string) listRow {
 		Labels: strings.Join(role.Destination.Labels, ", "),
 	}
 
-	if k8s, ok := role.Destination.GetKubernetesOk(); ok {
+	if k8s, ok := role.Destination.GetKubernetesOK(); ok {
 		row.Endpoint = k8s.Endpoint
-		row.CertificateAuthorityData = []byte(k8s.Ca)
+		row.CertificateAuthorityData = []byte(k8s.CA)
 		row.Kind = "kubernetes"
 	}
 

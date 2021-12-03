@@ -8,7 +8,6 @@ import (
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
 
-	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
@@ -86,18 +85,13 @@ func RevokeToken(c *gin.Context) (*models.Token, error) {
 	return token, nil
 }
 
-func IssueAPIKey(c *gin.Context, template *api.InfraAPIKeyCreateRequest) (*models.APIKey, error) {
+func IssueAPIKey(c *gin.Context, apiKey *models.APIKey) (*models.APIKey, error) {
 	db, err := RequireAuthorization(c, PermissionAPIKeyIssue)
 	if err != nil {
 		return nil, err
 	}
 
-	var apiKey models.APIKey
-	if err := apiKey.FromAPICreateRequest(template); err != nil {
-		return nil, err
-	}
-
-	return data.CreateAPIKey(db, &apiKey)
+	return data.CreateAPIKey(db, apiKey)
 }
 
 func ListAPIKeys(c *gin.Context, name string) ([]models.APIKey, error) {

@@ -1,6 +1,8 @@
 package models
 
 import (
+	"fmt"
+
 	"github.com/google/uuid"
 
 	"github.com/infrahq/infra/internal/api"
@@ -33,7 +35,7 @@ type DestinationKubernetes struct {
 
 func (d *Destination) ToAPI() api.Destination {
 	result := api.Destination{
-		Id:      d.ID.String(),
+		ID:      d.ID.String(),
 		Created: d.CreatedAt.Unix(),
 		Updated: d.UpdatedAt.Unix(),
 
@@ -45,7 +47,7 @@ func (d *Destination) ToAPI() api.Destination {
 	switch d.Kind {
 	case DestinationKindKubernetes:
 		result.Kubernetes = &api.DestinationKubernetes{
-			Ca:       d.Kubernetes.CA,
+			CA:       d.Kubernetes.CA,
 			Endpoint: d.Endpoint,
 		}
 	}
@@ -55,6 +57,34 @@ func (d *Destination) ToAPI() api.Destination {
 	}
 
 	return result
+}
+
+func (d *Destination) FromAPI(from interface{}) error {
+	if createRequest, ok := from.(*api.DestinationCreateRequest); ok {
+		d.Name = createRequest.Name
+		d.NodeID = createRequest.NodeID
+		d.Kind = DestinationKind(createRequest.Kind)
+		d.Endpoint = createRequest.Kubernetes.Endpoint
+
+		switch d.Kind {
+		case DestinationKindKubernetes:
+			d.Kubernetes = DestinationKubernetes{
+				CA: createRequest.Kubernetes.CA,
+			}
+		}
+
+		automaticLabels := []string{
+			string(createRequest.Kind),
+		}
+
+		for _, l := range append(createRequest.Labels, automaticLabels...) {
+			d.Labels = append(d.Labels, Label{Value: l})
+		}
+
+		return nil
+	}
+
+	return fmt.Errorf("unknown API model")
 }
 
 func NewDestination(id string) (*Destination, error) {
@@ -68,28 +98,4 @@ func NewDestination(id string) (*Destination, error) {
 			ID: uuid,
 		},
 	}, nil
-}
-
-func (d *Destination) FromAPICreateRequest(template *api.DestinationCreateRequest) error {
-	d.Name = template.Name
-	d.NodeID = template.NodeID
-	d.Kind = DestinationKind(template.Kind)
-	d.Endpoint = template.Kubernetes.Endpoint
-
-	switch d.Kind {
-	case DestinationKindKubernetes:
-		d.Kubernetes = DestinationKubernetes{
-			CA: template.Kubernetes.Ca,
-		}
-	}
-
-	automaticLabels := []string{
-		string(template.Kind),
-	}
-
-	for _, l := range append(template.Labels, automaticLabels...) {
-		d.Labels = append(d.Labels, Label{Value: l})
-	}
-
-	return nil
 }

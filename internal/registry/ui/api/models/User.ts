@@ -18,6 +18,10 @@ import {
     GroupFromJSON,
     GroupFromJSONTyped,
     GroupToJSON,
+    Provider,
+    ProviderFromJSON,
+    ProviderFromJSONTyped,
+    ProviderToJSON,
     Role,
     RoleFromJSON,
     RoleFromJSONTyped,
@@ -59,13 +63,19 @@ export interface User {
      * @type {Array<Group>}
      * @memberof User
      */
-    groups: Array<Group>;
+    groups?: Array<Group>;
     /**
      * 
      * @type {Array<Role>}
      * @memberof User
      */
-    roles: Array<Role>;
+    roles?: Array<Role>;
+    /**
+     * 
+     * @type {Array<Provider>}
+     * @memberof User
+     */
+    providers?: Array<Provider>;
 }
 
 export function UserFromJSON(json: any): User {
@@ -82,8 +92,9 @@ export function UserFromJSONTyped(json: any, ignoreDiscriminator: boolean): User
         'email': json['email'],
         'created': json['created'],
         'updated': json['updated'],
-        'groups': ((json['groups'] as Array<any>).map(GroupFromJSON)),
-        'roles': ((json['roles'] as Array<any>).map(RoleFromJSON)),
+        'groups': !exists(json, 'groups') ? undefined : ((json['groups'] as Array<any>).map(GroupFromJSON)),
+        'roles': !exists(json, 'roles') ? undefined : ((json['roles'] as Array<any>).map(RoleFromJSON)),
+        'providers': !exists(json, 'providers') ? undefined : ((json['providers'] as Array<any>).map(ProviderFromJSON)),
     };
 }
 
@@ -100,8 +111,9 @@ export function UserToJSON(value?: User | null): any {
         'email': value.email,
         'created': value.created,
         'updated': value.updated,
-        'groups': ((value.groups as Array<any>).map(GroupToJSON)),
-        'roles': ((value.roles as Array<any>).map(RoleToJSON)),
+        'groups': value.groups === undefined ? undefined : ((value.groups as Array<any>).map(GroupToJSON)),
+        'roles': value.roles === undefined ? undefined : ((value.roles as Array<any>).map(RoleToJSON)),
+        'providers': value.providers === undefined ? undefined : ((value.providers as Array<any>).map(ProviderToJSON)),
     };
 }
 

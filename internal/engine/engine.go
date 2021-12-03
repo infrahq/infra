@@ -387,7 +387,7 @@ func Run(options *Options) error {
 			Kind:   kind,
 			Labels: options.Labels,
 			Kubernetes: &api.DestinationKubernetes{
-				Ca:       string(caBytes),
+				CA:       string(caBytes),
 				Endpoint: endpoint,
 			},
 		}).Execute()
@@ -396,7 +396,7 @@ func Run(options *Options) error {
 			return
 		}
 
-		roles, _, err := client.RolesAPI.ListRoles(ctx).Destination(destination.Id).Execute()
+		roles, _, err := client.RolesAPI.ListRoles(ctx).Destination(destination.ID).Execute()
 		if err != nil {
 			logging.S.Errorf("could not list roles: %s", err.Error())
 		}

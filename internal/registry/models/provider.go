@@ -35,7 +35,7 @@ type ProviderOkta struct {
 
 func (p *Provider) ToAPI() api.Provider {
 	result := api.Provider{
-		Id:      p.ID.String(),
+		ID:      p.ID.String(),
 		Created: p.CreatedAt.Unix(),
 		Updated: p.UpdatedAt.Unix(),
 
