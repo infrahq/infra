@@ -1207,8 +1207,8 @@ func TestT(t *testing.T) {
 		// /v1/api-keys
 		"ListAPIKeys": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				issueAPIKey(t, db, string(access.PermissionAPIKeyList))
-				c.Set("permissions", string(access.PermissionAPIKeyList))
+				issueAPIKey(t, db, string(access.PermissionAPIKeyRead))
+				c.Set("permissions", string(access.PermissionAPIKeyRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/api-keys", nil)
