@@ -33,14 +33,6 @@ func CreateToken(db *gorm.DB, token *models.Token) (*models.Token, error) {
 	return token, nil
 }
 
-func UpdateToken(db *gorm.DB, token *models.Token) (*models.Token, error) {
-	if err := update(db, &models.Token{}, token, db.Where(token, "id")); err != nil {
-		return nil, err
-	}
-
-	return token, nil
-}
-
 func GetToken(db *gorm.DB, condition interface{}) (*models.Token, error) {
 	var token models.Token
 	if err := get(db, &models.Token{}, &token, condition); err != nil {

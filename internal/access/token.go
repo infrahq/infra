@@ -33,7 +33,7 @@ type CustomJWTClaims struct {
 	Nonce       string `json:"nonce" validate:"required"`
 }
 
-func IssueToken(c *gin.Context, email string, sessionDuration time.Duration) (*models.User, *models.Token, error) {
+func IssueUserToken(c *gin.Context, email string, sessionDuration time.Duration) (*models.User, *models.Token, error) {
 	db, err := RequireAuthorization(c, Permission(""))
 	if err != nil {
 		return nil, nil, err
@@ -51,7 +51,6 @@ func IssueToken(c *gin.Context, email string, sessionDuration time.Duration) (*m
 	token := models.Token{
 		User:            users[0],
 		SessionDuration: sessionDuration,
-		Permissions:     users[0].Permissions,
 	}
 
 	if _, err := data.CreateToken(db, &token); err != nil {

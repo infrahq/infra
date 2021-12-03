@@ -1229,7 +1229,7 @@ func TestT(t *testing.T) {
 		// /v1/tokens
 		"CreateToken": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				_, token, err := access.IssueToken(c, "jbond@infrahq.com", time.Hour*1)
+				_, token, err := access.IssueUserToken(c, "jbond@infrahq.com", time.Hour*1)
 				require.NoError(t, err)
 
 				c.Set("authentication", token.SessionToken())

@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
 )
@@ -55,17 +56,16 @@ func RequireAuthentication(c *gin.Context) error {
 			return fmt.Errorf("rejected token: %w", err)
 		}
 
-		// token is valid, check if token permissions need to be updated to match parent user
-		if token.UserID != uuid.Nil && token.Permissions != token.User.Permissions {
-			token.Permissions = token.User.Permissions
-
-			if _, err := data.UpdateToken(db, token); err != nil {
-				return fmt.Errorf("update user token permissions: %w", err)
-			}
-		}
-
 		c.Set("authentication", bearer)
-		c.Set("permissions", token.Permissions)
+
+		// token is valid, check where to set permissins from
+		if token.UserID != uuid.Nil {
+			logging.S.Debug("user permissions: %s \n", token.User.Permissions)
+			// this token has a parent user, set by their current permissions
+			c.Set("permissions", token.User.Permissions)
+		} else {
+			c.Set("permissions", token.Permissions)
+		}
 
 		return nil
 	case models.APIKeyLength:

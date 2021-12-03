@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
@@ -16,9 +17,9 @@ import (
 
 // TODO: #691 set user permissions based on their internal infrahq role (user or admin)
 var defaultPermissions = strings.Join([]string{
-	"infra.user.read",
-	"infra.token.revoke",
-	"infra.token.create",
+	string(access.PermissionUserRead),
+	string(access.PermissionTokenRevoke),
+	string(access.PermissionCredentialCreate),
 }, " ")
 
 func syncProviders(r *Registry) {
