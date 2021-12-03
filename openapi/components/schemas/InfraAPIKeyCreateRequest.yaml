@@ -1,0 +1,11 @@
+type: object
+required:
+  - name
+  - permissions
+properties:
+  name:
+    type: string
+  permissions:
+    type: array
+    items:
+      $ref: ./InfraAPIPermission.yaml

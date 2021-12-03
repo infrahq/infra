@@ -1,0 +1,26 @@
+get:
+  summary: Get provider by ID
+  tags:
+    - providers
+  operationId: getProvider
+  parameters:
+    - in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Provider ID
+  responses:
+    '200':
+      description: Get provider response
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Provider.yaml
+    default:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Error.yaml

@@ -1,0 +1,27 @@
+post:
+  tags:
+    - tokens
+  security:
+    - bearerAuth: []
+  summary: Create an infrastructure destination token
+  operationId: createToken
+  x-codegen-request-body-name: body
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/TokenRequest.yaml
+  responses:
+    '200':
+      description: Create token response
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Token.yaml
+    default:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Error.yaml

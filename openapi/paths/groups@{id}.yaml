@@ -1,0 +1,28 @@
+get:
+  summary: Get group by ID
+  tags:
+    - groups
+  security:
+    - bearerAuth: []
+  operationId: getGroup
+  parameters:
+    - in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Group ID
+  responses:
+    '200':
+      description: Get group response
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Group.yaml
+    default:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Error.yaml

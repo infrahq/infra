@@ -1,0 +1,29 @@
+get:
+  summary: List users
+  tags:
+    - users
+  security:
+    - bearerAuth: []
+  operationId: listUsers
+  parameters:
+    - in: query
+      name: email
+      schema:
+        type: string
+        format: email
+      description: Filter results by user email
+  responses:
+    '200':
+      description: List users response
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: ../components/schemas/User.yaml
+    default:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Error.yaml

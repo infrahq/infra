@@ -1,0 +1,60 @@
+get:
+  tags:
+    - destinations
+  security:
+    - bearerAuth: []
+  summary: List destinations
+  operationId: listDestinations
+  parameters:
+    - in: query
+      name: name
+      schema:
+        type: string
+      description: Filter destinations by name
+    - in: query
+      name: kind
+      schema:
+        $ref: ../components/schemas/DestinationKind.yaml
+      description: Filter destinations by kind
+  responses:
+    '200':
+      description: List destinations response
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: ../components/schemas/Destination.yaml
+    default:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Error.yaml
+post:
+  tags:
+    - destinations
+  security:
+    - bearerAuth: []
+  summary: Create a destination
+  operationId: createDestination
+  x-codegen-request-body-name: body
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/DestinationCreateRequest.yaml
+  responses:
+    '200':
+      description: Create destination response
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Destination.yaml
+    default:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Error.yaml

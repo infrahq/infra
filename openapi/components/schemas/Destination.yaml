@@ -1,0 +1,33 @@
+type: object
+required:
+  - id
+  - nodeID
+  - name
+  - kind
+  - created
+  - updated
+  - labels
+properties:
+  id:
+    type: string
+    format: uuid
+  nodeID:
+    type: string
+  name:
+    type: string
+  kind:
+    $ref: ./DestinationKind.yaml
+  created:
+    type: integer
+    format: int64
+    description: created time in seconds since 1970-01-01
+  updated:
+    type: integer
+    format: int64
+    description: updated time in seconds since 1970-01-01
+  labels:
+    type: array
+    items:
+      type: string
+  kubernetes:
+    $ref: ./DestinationKubernetes.yaml

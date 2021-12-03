@@ -1,0 +1,16 @@
+post:
+  summary: Logout of Infra
+  tags:
+    - auth
+  security:
+    - bearerAuth: []
+  operationId: logout
+  responses:
+    '200':
+      description: Logout response
+    default:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Error.yaml

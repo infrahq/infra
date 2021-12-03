@@ -1,0 +1,8 @@
+#!/usr/bin/env -S sed -f
+
+s/Api/API/g
+s/Id\b/ID/g
+s/IdOK/IDOK/g
+s/Ca\b/CA/g
+s/CaOK/CAOK/g
+s/\(Get[A-Za-z]\+\)Ok\b/\1OK/g

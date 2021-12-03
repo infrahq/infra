@@ -1,0 +1,28 @@
+get:
+  summary: Get role
+  tags:
+    - roles
+  security:
+    - bearerAuth: []
+  operationId: getRole
+  parameters:
+    - in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Role ID
+  responses:
+    '200':
+      description: Role response
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Role.yaml
+    default:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Error.yaml

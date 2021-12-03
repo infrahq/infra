@@ -1,0 +1,26 @@
+get:
+  summary: List providers
+  tags:
+    - providers
+  operationId: listProviders
+  parameters:
+    - in: query
+      name: kind
+      schema:
+        $ref: ../components/schemas/ProviderKind.yaml
+      description: Filter providers by kind
+  responses:
+    '200':
+      description: List providers response
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: ../components/schemas/Provider.yaml
+    default:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Error.yaml

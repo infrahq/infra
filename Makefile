@@ -46,16 +46,20 @@ clean: helm/clean
 export GO_POST_PROCESS_FILE=bash openapi/go-post-process.sh
 
 .PHONY: openapi
-openapi: openapi/clean
-	# npm install @openapitools/openapi-generator-cli -g
-	# or brew install openapi-generator
-	openapi-generator-cli generate --generator-key go-client
-	openapi-generator-cli generate --generator-key typescript-client
+openapi: openapi/clean openapi/go openapi/typescript
+
+openapi/go: openapi/bundled.yaml
+	npx @openapitools/openapi-generator-cli generate --generator-key go-client
 	# manually post process some files since openapi-generator forgot
 	find internal/api -name '*.go' -exec $(GO_POST_PROCESS_FILE) {} \;
 
-build/openapi:
-	npx @redocly/openapi-cli bundle -o openapi-bundled.yaml openapi.yaml
+openapi/typescript: openapi/bundled.yaml
+	npx @openapitools/openapi-generator-cli generate --generator-key typescript-client
+
+.INTERMEDIATE: openapi/bundled.yaml
+
+openapi/bundled.yaml: openapi.yaml
+	npx @redocly/openapi-cli bundle -o $@ $<
 
 openapi/clean:
 	$(RM) -r internal/api/*.go

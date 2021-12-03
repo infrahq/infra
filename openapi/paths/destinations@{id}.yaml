@@ -1,0 +1,28 @@
+get:
+  tags:
+    - destinations
+  security:
+    - bearerAuth: []
+  summary: Get destination by ID
+  operationId: getDestination
+  parameters:
+    - in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Destination ID
+  responses:
+    '200':
+      description: Get destinations response
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Destination.yaml
+    default:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Error.yaml
