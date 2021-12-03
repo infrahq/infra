@@ -17,7 +17,7 @@ const (
 )
 
 func CreateDestination(c *gin.Context, template *api.DestinationCreateRequest) (*models.Destination, error) {
-	db, _, err := RequireAuthorization(c, PermissionDestinationCreate)
+	db, err := RequireAuthorization(c, PermissionDestinationCreate)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func CreateDestination(c *gin.Context, template *api.DestinationCreateRequest) (
 }
 
 func GetDestination(c *gin.Context, id string) (*models.Destination, error) {
-	db, _, err := RequireAuthorization(c, PermissionDestinationRead)
+	db, err := RequireAuthorization(c, PermissionDestinationRead)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func GetDestination(c *gin.Context, id string) (*models.Destination, error) {
 }
 
 func ListDestinations(c *gin.Context, name, kind string) ([]models.Destination, error) {
-	db, _, err := RequireAuthorization(c, PermissionDestinationRead)
+	db, err := RequireAuthorization(c, PermissionDestinationRead)
 	if err != nil {
 		return nil, err
 	}

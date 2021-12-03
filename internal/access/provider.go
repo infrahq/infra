@@ -16,7 +16,7 @@ const (
 )
 
 func GetProvider(c *gin.Context, id string) (*models.Provider, error) {
-	db, _, err := RequireAuthorization(c, Permission(""))
+	db, err := RequireAuthorization(c, Permission(""))
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +30,7 @@ func GetProvider(c *gin.Context, id string) (*models.Provider, error) {
 }
 
 func ListProviders(c *gin.Context, kind, domain string) ([]models.Provider, error) {
-	db, _, err := RequireAuthorization(c, Permission(""))
+	db, err := RequireAuthorization(c, Permission(""))
 	if err != nil {
 		return nil, err
 	}

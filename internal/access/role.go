@@ -17,7 +17,7 @@ const (
 )
 
 func GetRole(c *gin.Context, id string) (*models.Role, error) {
-	db, _, err := RequireAuthorization(c, PermissionRoleRead)
+	db, err := RequireAuthorization(c, PermissionRoleRead)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func GetRole(c *gin.Context, id string) (*models.Role, error) {
 }
 
 func ListRoles(c *gin.Context, name, kind, destinationID string) ([]models.Role, error) {
-	db, _, err := RequireAuthorization(c, PermissionRoleRead)
+	db, err := RequireAuthorization(c, PermissionRoleRead)
 	if err != nil {
 		return nil, err
 	}

@@ -32,7 +32,7 @@ func NewAPIMux(reg *Registry, router *gin.RouterGroup) {
 	)
 
 	authorized := router.Group("/",
-		AuthorizationMiddleware(),
+		AuthenticationMiddleware(),
 		logging.UserAwareLoggerMiddleware(),
 	)
 
@@ -438,7 +438,7 @@ func (a *API) Login(c *gin.Context) {
 		return
 	}
 
-	user, token, err := access.IssueToken(c, email, a.registry.options.SessionDuration)
+	user, token, err := access.IssueUserToken(c, email, a.registry.options.SessionDuration)
 	if err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return

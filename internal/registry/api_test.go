@@ -64,8 +64,7 @@ func TestCreateDestination(t *testing.T) {
 	cases := map[string]map[string]interface{}{
 		"OK": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionDestinationCreate))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionDestinationCreate))
 			},
 			"requestFunc": func(t *testing.T) *api.DestinationCreateRequest {
 				return &api.DestinationCreateRequest{
@@ -84,8 +83,7 @@ func TestCreateDestination(t *testing.T) {
 		},
 		"NoKind": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionDestinationCreate))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionDestinationCreate))
 			},
 			"requestFunc": func(t *testing.T) *api.DestinationCreateRequest {
 				return &api.DestinationCreateRequest{
@@ -101,8 +99,7 @@ func TestCreateDestination(t *testing.T) {
 		},
 		"UnknownKind": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionDestinationCreate))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionDestinationCreate))
 			},
 			"requestFunc": func(t *testing.T) *api.DestinationCreateRequest {
 				return &api.DestinationCreateRequest{
@@ -118,6 +115,9 @@ func TestCreateDestination(t *testing.T) {
 			},
 		},
 		"NoAuthorization": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				c.Set("permissions", "")
+			},
 			"requestFunc": func(t *testing.T) *api.DestinationCreateRequest {
 				return &api.DestinationCreateRequest{
 					Kind: api.DESTINATIONKIND_KUBERNETES,
@@ -128,13 +128,12 @@ func TestCreateDestination(t *testing.T) {
 				}
 			},
 			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusUnauthorized, w.Code)
+				require.Equal(t, http.StatusForbidden, w.Code)
 			},
 		},
 		"BadPermissions": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, "infra.bad.permissions")
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", "infra.bad.permissions")
 			},
 			"requestFunc": func(t *testing.T) *api.DestinationCreateRequest {
 				return &api.DestinationCreateRequest{
@@ -224,8 +223,7 @@ func TestCreateDestinationUpdatesField(t *testing.T) {
 	c.Set("db", db)
 	c.Request = r
 
-	apiKey := issueAPIKey(t, db, string(access.PermissionDestinationCreate))
-	c.Set("authorization", apiKey.Key)
+	c.Set("permissions", string(access.PermissionDestinationCreate))
 
 	a := API{}
 
@@ -421,8 +419,7 @@ func TestT(t *testing.T) {
 		// /v1/users
 		"GetUser": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionUserRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionUserRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				c.Params = append(c.Params, gin.Param{Key: "id", Value: userBond.ID.String()})
@@ -442,8 +439,7 @@ func TestT(t *testing.T) {
 		},
 		"GetUserEmptyID": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionUserRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionUserRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/users/", nil)
@@ -457,8 +453,7 @@ func TestT(t *testing.T) {
 		},
 		"GetUserUnknownUser": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionUserRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionUserRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				id, err := uuid.NewUUID()
@@ -476,8 +471,7 @@ func TestT(t *testing.T) {
 		},
 		"ListUsers": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionUserRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionUserRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/users", nil)
@@ -497,8 +491,7 @@ func TestT(t *testing.T) {
 		},
 		"ListUsersByEmail": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionUserRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionUserRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/users?email=jbond@infrahq.com", nil)
@@ -518,8 +511,7 @@ func TestT(t *testing.T) {
 		},
 		"ListUsersUnknownEmail": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionUserRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionUserRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/users?email=unknown@infrahq.com", nil)
@@ -540,8 +532,7 @@ func TestT(t *testing.T) {
 		// /v1/groups
 		"GetGroup": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionGroupRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionGroupRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				c.Params = append(c.Params, gin.Param{Key: "id", Value: groupEveryone.ID.String()})
@@ -561,8 +552,7 @@ func TestT(t *testing.T) {
 		},
 		"GetGroupEmptyID": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionGroupRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionGroupRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/groups/", nil)
@@ -576,8 +566,7 @@ func TestT(t *testing.T) {
 		},
 		"GetGroupUnknownGroup": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionGroupRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionGroupRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				id, err := uuid.NewUUID()
@@ -595,8 +584,7 @@ func TestT(t *testing.T) {
 		},
 		"ListGroups": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionGroupRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionGroupRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/groups", nil)
@@ -616,8 +604,7 @@ func TestT(t *testing.T) {
 		},
 		"ListGroupsByName": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionGroupRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionGroupRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/groups?name=Everyone", nil)
@@ -637,8 +624,7 @@ func TestT(t *testing.T) {
 		},
 		"ListGroupsUnknownName": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionGroupRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionGroupRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/groups?name=unknown", nil)
@@ -680,8 +666,7 @@ func TestT(t *testing.T) {
 		// },
 		"GetRoleEmptyID": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionRoleRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionRoleRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/roles/", nil)
@@ -695,8 +680,7 @@ func TestT(t *testing.T) {
 		},
 		"GetRoleUnknownRole": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionRoleRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionRoleRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				id, err := uuid.NewUUID()
@@ -714,8 +698,7 @@ func TestT(t *testing.T) {
 		},
 		"ListRoles": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionRoleRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionRoleRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/roles", nil)
@@ -734,8 +717,7 @@ func TestT(t *testing.T) {
 		},
 		"ListRolesByDestinationID": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionRoleRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionRoleRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/roles?destination=%s", destinationAAA.ID), nil)
@@ -760,8 +742,7 @@ func TestT(t *testing.T) {
 		},
 		"ListRolesByKind": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionRoleRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionRoleRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/roles?kind=role", nil)
@@ -784,8 +765,7 @@ func TestT(t *testing.T) {
 		},
 		"ListRolesByName": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionRoleRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionRoleRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/roles?name=admin", nil)
@@ -808,8 +788,7 @@ func TestT(t *testing.T) {
 		},
 		"ListRolesCombo": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionRoleRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionRoleRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/roles?kind=cluster-role&name=admin", nil)
@@ -833,8 +812,7 @@ func TestT(t *testing.T) {
 		},
 		"ListRolesCombo3": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionRoleRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionRoleRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/roles?destination=%s&kind=role&name=audit", destinationCCC.ID), nil)
@@ -861,8 +839,7 @@ func TestT(t *testing.T) {
 		},
 		"ListRolesNotFound": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionRoleRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionRoleRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				id, err := uuid.NewUUID()
@@ -886,8 +863,7 @@ func TestT(t *testing.T) {
 		// /v1/providers
 		"GetProvider": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionProviderRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionProviderRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				c.Params = append(c.Params, gin.Param{Key: "id", Value: providerOkta.ID.String()})
@@ -908,8 +884,7 @@ func TestT(t *testing.T) {
 		},
 		"GetProviderEmptyID": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionProviderRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionProviderRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/providers/", nil)
@@ -923,8 +898,7 @@ func TestT(t *testing.T) {
 		},
 		"GetProviderUnknownProvider": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionProviderRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionProviderRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				id, err := uuid.NewUUID()
@@ -942,8 +916,7 @@ func TestT(t *testing.T) {
 		},
 		"ListProviders": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionProviderRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionProviderRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/providers", nil)
@@ -963,8 +936,7 @@ func TestT(t *testing.T) {
 		},
 		"ListProvidersByKind": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionProviderRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionProviderRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/providers?kind=okta", nil)
@@ -984,8 +956,7 @@ func TestT(t *testing.T) {
 		},
 		"ListProvidersByDomain": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionProviderRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionProviderRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/providers?domain=test.okta.com", nil)
@@ -1005,8 +976,7 @@ func TestT(t *testing.T) {
 		},
 		"ListProvidersNotFound": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionProviderRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionProviderRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/providers?domain=nonexistent.okta.com", nil)
@@ -1025,8 +995,7 @@ func TestT(t *testing.T) {
 		},
 		"ListProvidersSensitiveInformation": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionProviderRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionProviderRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/providers?domain=test.okta.com", nil)
@@ -1062,8 +1031,7 @@ func TestT(t *testing.T) {
 		// /v1/destinations
 		"GetDestination": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionDestinationRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionDestinationRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				c.Params = append(c.Params, gin.Param{Key: "id", Value: destinationAAA.ID.String()})
@@ -1085,8 +1053,7 @@ func TestT(t *testing.T) {
 		},
 		"GetDestinationEmptyID": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionDestinationRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionDestinationRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/destinations/", nil)
@@ -1100,8 +1067,7 @@ func TestT(t *testing.T) {
 		},
 		"GetDestinationUnknownDestination": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionDestinationRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionDestinationRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				id, err := uuid.NewUUID()
@@ -1119,8 +1085,7 @@ func TestT(t *testing.T) {
 		},
 		"ListDestinations": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionDestinationRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionDestinationRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/destinations", nil)
@@ -1154,8 +1119,7 @@ func TestT(t *testing.T) {
 		},
 		"ListDestinationsByKind": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionDestinationRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionDestinationRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/destinations?kind=kubernetes", nil)
@@ -1178,8 +1142,7 @@ func TestT(t *testing.T) {
 		},
 		"ListDestinationsByName": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionDestinationRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionDestinationRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/destinations?name=AAA", nil)
@@ -1201,8 +1164,7 @@ func TestT(t *testing.T) {
 		},
 		"ListDestinationsCombo": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionDestinationRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionDestinationRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/destinations?kind=kubernetes&name=AAA", nil)
@@ -1224,8 +1186,7 @@ func TestT(t *testing.T) {
 		},
 		"ListDestinationsNotFound": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionDestinationRead))
-				c.Set("authorization", apiKey.Key)
+				c.Set("permissions", string(access.PermissionDestinationRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/destinations?name=nonexistent", nil)
@@ -1246,8 +1207,8 @@ func TestT(t *testing.T) {
 		// /v1/api-keys
 		"ListAPIKeys": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiKey := issueAPIKey(t, db, string(access.PermissionAPIKeyList))
-				c.Set("authorization", apiKey.Key)
+				issueAPIKey(t, db, string(access.PermissionAPIKeyList))
+				c.Set("permissions", string(access.PermissionAPIKeyList))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/api-keys", nil)
@@ -1268,10 +1229,11 @@ func TestT(t *testing.T) {
 		// /v1/tokens
 		"CreateToken": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				_, token, err := access.IssueToken(c, "jbond@infrahq.com", time.Hour*1)
+				_, token, err := access.IssueUserToken(c, "jbond@infrahq.com", time.Hour*1)
 				require.NoError(t, err)
 
-				c.Set("authorization", token.SessionToken())
+				c.Set("authentication", token.SessionToken())
+				c.Set("permissions", string(access.PermissionCredentialCreate))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				request := api.TokenRequest{
@@ -1336,10 +1298,6 @@ func TestT(t *testing.T) {
 func TestCreateAPIKey(t *testing.T) {
 	db := configure(t, nil)
 
-	apiKey := issueAPIKey(t, db, strings.Join([]string{
-		string(access.PermissionAPIKeyIssue),
-	}, " "))
-
 	request := api.InfraAPIKeyCreateRequest{
 		Name:        "tmp",
 		Permissions: []string{"infra.*"},
@@ -1352,7 +1310,7 @@ func TestCreateAPIKey(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Set("db", db)
-	c.Set("authorization", apiKey.Key)
+	c.Set("permissions", string(access.PermissionAPIKeyIssue))
 	c.Request = r
 
 	a := API{}
@@ -1369,7 +1327,7 @@ func TestCreateAPIKey(t *testing.T) {
 	neww := httptest.NewRecorder()
 	newc, _ := gin.CreateTestContext(neww)
 	newc.Set("db", db)
-	newc.Set("authorization", body.Key)
+	newc.Set("permissions", string(access.PermissionUserRead))
 	newc.Request = newr
 
 	a.ListUsers(newc)
@@ -1380,16 +1338,18 @@ func TestCreateAPIKey(t *testing.T) {
 func TestDeleteAPIKey(t *testing.T) {
 	db := configure(t, nil)
 
-	apiKey := issueAPIKey(t, db, strings.Join([]string{
+	permissions := strings.Join([]string{
 		string(access.PermissionUserRead),
 		string(access.PermissionAPIKeyRevoke),
-	}, " "))
+	}, " ")
+
+	apiKey := issueAPIKey(t, db, permissions)
 
 	oldr := httptest.NewRequest(http.MethodGet, "/v1/users", nil)
 	oldw := httptest.NewRecorder()
 	oldc, _ := gin.CreateTestContext(oldw)
 	oldc.Set("db", db)
-	oldc.Set("authorization", apiKey.Key)
+	oldc.Set("permissions", permissions)
 	oldc.Request = oldr
 
 	a := API{}
@@ -1402,22 +1362,11 @@ func TestDeleteAPIKey(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Set("db", db)
-	c.Set("authorization", apiKey.Key)
+	c.Set("permissions", permissions)
 	c.Request = r
 	c.Params = append(c.Params, gin.Param{Key: "id", Value: apiKey.ID.String()})
 
 	a.DeleteAPIKey(c)
 
 	require.Equal(t, http.StatusNoContent, w.Code)
-
-	newr := httptest.NewRequest(http.MethodGet, "/v1/users", nil)
-	neww := httptest.NewRecorder()
-	newc, _ := gin.CreateTestContext(neww)
-	newc.Set("db", db)
-	newc.Set("authorization", apiKey.Key)
-	newc.Request = newr
-
-	a.ListUsers(newc)
-
-	require.Equal(t, http.StatusUnauthorized, neww.Code)
 }
