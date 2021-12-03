@@ -1,0 +1,2 @@
+description: InfraAPI permissions of the form "infra.resource.action"
+type: string

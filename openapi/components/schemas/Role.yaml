@@ -1,0 +1,37 @@
+type: object
+required:
+  - id
+  - name
+  - created
+  - updated
+  - kind
+  - namespace
+  - destination
+properties:
+  id:
+    type: string
+    format: uuid
+  name:
+    type: string
+  created:
+    type: integer
+    format: int64
+    description: created time in seconds since 1970-01-01
+  updated:
+    type: integer
+    format: int64
+    description: updated time in seconds since 1970-01-01
+  kind:
+    $ref: ./RoleKind.yaml
+  namespace:
+    type: string
+  users:
+    type: array
+    items:
+      $ref: ./User.yaml
+  groups:
+    type: array
+    items:
+      $ref: ./Group.yaml
+  destination:
+    $ref: ./Destination.yaml

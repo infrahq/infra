@@ -1,0 +1,28 @@
+get:
+  summary: Get user by ID
+  tags:
+    - users
+  security:
+    - bearerAuth: []
+  operationId: getUser
+  parameters:
+    - in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: User ID
+  responses:
+    '200':
+      description: Get user response
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/User.yaml
+    default:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Error.yaml

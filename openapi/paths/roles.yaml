@@ -1,0 +1,38 @@
+get:
+  summary: List roles
+  tags:
+    - roles
+  security:
+    - bearerAuth: []
+  operationId: listRoles
+  parameters:
+    - in: query
+      name: name
+      schema:
+        type: string
+      description: Filter results by name
+    - in: query
+      name: kind
+      schema:
+        $ref: ../components/schemas/RoleKind.yaml
+      description: Filter results by kind
+    - in: query
+      name: destination
+      schema:
+        type: string
+      description: Filter results by destination
+  responses:
+    '200':
+      description: List roles response
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: ../components/schemas/Role.yaml
+    default:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Error.yaml

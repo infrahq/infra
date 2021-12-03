@@ -1,0 +1,32 @@
+type: object
+required:
+  - id
+  - name
+  - created
+  - updated
+properties:
+  id:
+    type: string
+    format: uuid
+  name:
+    type: string
+  created:
+    type: integer
+    format: int64
+    description: created time in seconds since 1970-01-01
+  updated:
+    type: integer
+    format: int64
+    description: updated time in seconds since 1970-01-01
+  users:
+    type: array
+    items:
+      $ref: ./User.yaml
+  roles:
+    type: array
+    items:
+      $ref: ./Role.yaml
+  providers:
+    type: array
+    items:
+      $ref: ./Provider.yaml

@@ -1,0 +1,55 @@
+get:
+  tags:
+    - api-keys
+  security:
+    - bearerAuth: []
+  summary: List API keys
+  operationId: listAPIKeys
+  parameters:
+    - in: query
+      name: name
+      schema:
+        type: string
+      description: Filter results by the API key name
+  responses:
+    '200':
+      description: List API keys response
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: ../components/schemas/InfraAPIKey.yaml
+    default:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Error.yaml
+post:
+  tags:
+    - api-keys
+  security:
+    - bearerAuth: []
+  summary: Create an API key
+  operationId: createAPIKey
+  x-codegen-request-body-name: body
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/InfraAPIKeyCreateRequest.yaml
+  responses:
+    '200':
+      description: Create API key response
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/InfraAPIKeyCreateResponse.yaml
+    default:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Error.yaml

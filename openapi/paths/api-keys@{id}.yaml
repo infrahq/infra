@@ -1,0 +1,24 @@
+delete:
+  tags:
+    - api-keys
+  security:
+    - bearerAuth: []
+  summary: Delete an API key
+  operationId: deleteAPIKey
+  parameters:
+    - in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: API key ID
+  responses:
+    '204':
+      description: Empty response
+    default:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Error.yaml

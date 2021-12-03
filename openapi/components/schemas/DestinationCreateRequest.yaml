@@ -1,0 +1,19 @@
+type: object
+required:
+  - nodeID
+  - name
+  - kind
+  - labels
+properties:
+  nodeID:
+    type: string
+  name:
+    type: string
+  kind:
+    $ref: ./DestinationKind.yaml
+  labels:
+    type: array
+    items:
+      type: string
+  kubernetes:
+    $ref: ./DestinationKubernetes.yaml

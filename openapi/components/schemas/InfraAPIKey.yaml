@@ -1,0 +1,19 @@
+type: object
+required:
+  - id
+  - created
+  - name
+  - permissions
+properties:
+  id:
+    type: string
+    format: uuid
+  created:
+    type: integer
+    format: int64
+  name:
+    type: string
+  permissions:
+    type: array
+    items:
+      $ref: ./InfraAPIPermission.yaml

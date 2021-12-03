@@ -1,0 +1,7 @@
+type: object
+required:
+  - destination
+properties:
+  destination:
+    type: string
+    x-go-custom-tag: validate:"required"

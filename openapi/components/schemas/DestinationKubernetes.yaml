@@ -1,0 +1,11 @@
+type: object
+required:
+  - ca
+  - endpoint
+properties:
+  ca:
+    type: string
+    x-go-custom-tag: validate:"required"
+  endpoint:
+    type: string
+    x-go-custom-tag: validate:"required"

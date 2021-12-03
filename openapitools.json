@@ -7,7 +7,7 @@
       "go-client": {
         "generatorName": "go",
         "output": "#{cwd}/internal/api",
-        "glob": "openapi.yaml",
+        "glob": "openapi/bundled.yaml",
         "enablePostProcessFile": true,
         "additionalProperties": {
           "packageName": "api",
@@ -18,7 +18,7 @@
       "typescript-client": {
         "generatorName": "typescript-fetch",
         "output": "#{cwd}/internal/registry/ui/api",
-        "glob": "openapi.yaml",
+        "glob": "openapi/bundled.yaml",
         "additionalProperties": {
           "typescriptThreePlus": true
         }
