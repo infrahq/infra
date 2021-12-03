@@ -16,4 +16,7 @@ properties:
   permissions:
     type: array
     items:
-      $ref: ./InfraAPIPermission.yaml
+      type: string
+  ttl:
+    type: string
+    description: token time to live before expiry in the form XhYmZs, for example 1h30m
