@@ -58,7 +58,7 @@ func RequireAuthentication(c *gin.Context) error {
 
 		c.Set("authentication", bearer)
 
-		// token is valid, check where to set permissins from
+		// token is valid, check where to set permissions from
 		if token.UserID != uuid.Nil {
 			logging.S.Debug("user permissions: %s \n", token.User.Permissions)
 			// this token has a parent user, set by their current permissions
