@@ -111,7 +111,7 @@ func kubernetesUseContext(options *KubernetesOptions) error {
 		return err
 	}
 
-	// deduplciate candidates
+	// deduplicate candidates
 	candidates := make(map[string][]api.Role)
 	for _, r := range user.GetRoles() {
 		candidates[r.Destination.NodeID] = append(candidates[r.Destination.NodeID], r)
