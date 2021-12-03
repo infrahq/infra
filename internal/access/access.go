@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
@@ -54,8 +55,16 @@ func RequireAuthentication(c *gin.Context) error {
 			return fmt.Errorf("rejected token: %w", err)
 		}
 
+		// token is valid, check if token permissions need to be updated to match parent user
+		if token.UserID != uuid.Nil && token.Permissions != token.User.Permissions {
+			token.Permissions = token.User.Permissions
+
+			if _, err := data.UpdateToken(db, token); err != nil {
+				return fmt.Errorf("update user token permissions: %w", err)
+			}
+		}
+
 		c.Set("authentication", bearer)
-		// TODO: add the user ID to the context if the token was issued by a user
 		c.Set("permissions", token.Permissions)
 
 		return nil
