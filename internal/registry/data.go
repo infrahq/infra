@@ -54,7 +54,7 @@ func syncProvider(r *Registry, db *gorm.DB, provider models.Provider) error {
 	case models.ProviderKindOkta:
 		okta := NewOkta()
 
-		token, err := r.GetSecret(provider.Okta.APIToken)
+		token, err := r.GetSecret(string(provider.Okta.APIToken))
 		if err != nil {
 			return err
 		}

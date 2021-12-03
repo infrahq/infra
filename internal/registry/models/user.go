@@ -10,7 +10,7 @@ type User struct {
 	Model
 
 	Name        string
-	Email       string
+	Email       string `gorm:"uniqueIndex"`
 	Permissions string
 
 	Grants    []Grant    `gorm:"many2many:users_grants"`

@@ -88,12 +88,12 @@ func TestCreateOrUpdateProviderUpdateOkta(t *testing.T) {
 	provider, err := CreateOrUpdateProvider(db, &okta, &providerDevelop)
 	require.NoError(t, err)
 	require.NotEqual(t, uuid.Nil, provider.ID)
-	require.Equal(t, "updated-token", provider.Okta.APIToken)
+	require.EqualValues(t, "updated-token", provider.Okta.APIToken)
 
 	fromDB, err := GetProvider(db, &models.Provider{Domain: provider.Domain})
 	require.NoError(t, err)
 	require.Equal(t, "dev.okta.com", fromDB.Domain)
-	require.Equal(t, "updated-token", provider.Okta.APIToken)
+	require.EqualValues(t, "updated-token", provider.Okta.APIToken)
 }
 
 func TestGetProvider(t *testing.T) {

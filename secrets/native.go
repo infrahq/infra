@@ -17,6 +17,8 @@ func NewNativeSecretProvider(storage SecretStorage) *NativeSecretProvider {
 	}
 }
 
+var _ SymmetricKeyProvider = &NativeSecretProvider{}
+
 type NativeSecretProvider struct {
 	SecretStorage SecretStorage
 }

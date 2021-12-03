@@ -1,6 +1,7 @@
 package data
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -9,14 +10,18 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/registry/models"
 )
 
 func createToken(t *testing.T, db *gorm.DB, sessionDuration time.Duration) *models.Token {
-	createUsers(t, db, models.User{Email: "tmp@infrahq.com"})
-
 	user, err := GetUser(db, &models.User{Email: "tmp@infrahq.com"})
+	if errors.Is(err, internal.ErrNotFound) {
+		createUsers(t, db, models.User{Email: "tmp@infrahq.com"})
+		user, err = GetUser(db, &models.User{Email: "tmp@infrahq.com"})
+	}
+
 	require.NoError(t, err)
 
 	in := models.Token{

@@ -25,6 +25,7 @@ import (
 	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry/data"
+	"github.com/infrahq/infra/internal/registry/models"
 	timer "github.com/infrahq/infra/internal/timer"
 	"github.com/infrahq/infra/secrets"
 )
@@ -58,11 +59,12 @@ type Options struct {
 }
 
 type Registry struct {
-	options Options
-	config  Config
-	db      *gorm.DB
-	tel     *Telemetry
-	secrets map[string]secrets.SecretStorage
+	options     Options
+	config      Config
+	db          *gorm.DB
+	tel         *Telemetry
+	secrets     map[string]secrets.SecretStorage
+	keyProvider map[string]secrets.SymmetricKeyProvider
 }
 
 const (
@@ -99,6 +101,10 @@ func Run(options Options) (err error) {
 	settings, err := data.InitializeSettings(r.db)
 	if err != nil {
 		return fmt.Errorf("settings: %w", err)
+	}
+
+	if err = r.loadDBKey(); err != nil {
+		return fmt.Errorf("loading database key: %w", err)
 	}
 
 	sentry.ConfigureScope(func(scope *sentry.Scope) {
@@ -382,4 +388,55 @@ func (r *Registry) GetSecret(name string) (string, error) {
 	}
 
 	return string(b), nil
+}
+
+var dbKeyName = "dbkey"
+
+// load encrypted db key from database
+func (r *Registry) loadDBKey() error {
+	keyRec, err := data.GetKeyByKeyName(r.db, dbKeyName)
+	if err != nil {
+		if errors.Is(err, internal.ErrNotFound) {
+			return r.createDBKey()
+		}
+
+		return err
+	}
+
+	kp := r.keyProvider["native"]
+
+	sKey, err := kp.DecryptDataKey(keyRec.RootKeyID, keyRec.Encrypted)
+	if err != nil {
+		return err
+	}
+
+	models.SymmetricKey = sKey
+
+	return nil
+}
+
+// creates db key
+func (r *Registry) createDBKey() error {
+	kp := r.keyProvider["native"]
+
+	sKey, err := kp.GenerateDataKey("")
+	if err != nil {
+		return err
+	}
+
+	key := &models.Key{
+		Name:      dbKeyName,
+		Encrypted: sKey.Encrypted,
+		Algorithm: sKey.Algorithm,
+		RootKeyID: sKey.RootKeyID,
+	}
+
+	_, err = data.CreateKey(r.db, key)
+	if err != nil {
+		return err
+	}
+
+	models.SymmetricKey = sKey
+
+	return nil
 }

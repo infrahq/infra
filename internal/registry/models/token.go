@@ -24,7 +24,7 @@ type Token struct {
 	User   User
 	UserID uuid.UUID
 
-	Key         string `gorm:"<-:create"`
+	Key         string `gorm:"<-:create;uniqueIndex"` // ID
 	Secret      string `gorm:"-"`
 	Checksum    []byte
 	Permissions string `gorm:"<-:create"`

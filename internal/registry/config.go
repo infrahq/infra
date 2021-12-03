@@ -214,7 +214,7 @@ func importProviders(db *gorm.DB, providers []ConfigProvider) error {
 			Kind:         models.ProviderKind(p.Kind),
 			Domain:       p.Domain,
 			ClientID:     p.ClientID,
-			ClientSecret: p.ClientSecret,
+			ClientSecret: models.EncryptedAtRest(p.ClientSecret),
 		}
 
 		switch provider.Kind {
@@ -224,7 +224,7 @@ func importProviders(db *gorm.DB, providers []ConfigProvider) error {
 				return fmt.Errorf("expected provider config to be Okta, but was %t", p.Config)
 			}
 
-			provider.Okta.APIToken = cfg.APIToken
+			provider.Okta.APIToken = models.EncryptedAtRest(cfg.APIToken)
 
 		default:
 			// should never happen
@@ -510,6 +510,10 @@ func (r *Registry) configureSecrets(config Config) error {
 		r.secrets = map[string]secrets.SecretStorage{}
 	}
 
+	if r.keyProvider == nil {
+		r.keyProvider = map[string]secrets.SymmetricKeyProvider{}
+	}
+
 	loadSecretConfig := func(secret ConfigSecretProvider) (err error) {
 		name := secret.Name
 		if len(name) == 0 {
@@ -683,6 +687,11 @@ func (r *Registry) loadDefaultSecretConfig() error {
 
 			r.secrets["kubernetes"] = k8s
 		}
+	}
+
+	if _, found := r.keyProvider["native"]; !found {
+		f := secrets.NewNativeSecretProvider(r.secrets["kubernetes"])
+		r.keyProvider["native"] = f
 	}
 
 	return nil

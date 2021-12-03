@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	destinationDevelop    = models.Destination{Name: "develop", Kind: "kubernetes", Endpoint: "dev.kubernetes.com", Kubernetes: models.DestinationKubernetes{CA: "notsosecret"}}
-	destinationProduction = models.Destination{Name: "production", Kind: "kubernetes", Endpoint: "prod.kubernetes.com", Kubernetes: models.DestinationKubernetes{CA: "supersecret"}}
+	destinationDevelop    = models.Destination{Name: "develop", Kind: "kubernetes", Endpoint: "dev.kubernetes.com", Kubernetes: models.DestinationKubernetes{CA: "notsosecret"}, NodeID: "one"}
+	destinationProduction = models.Destination{Name: "production", Kind: "kubernetes", Endpoint: "prod.kubernetes.com", Kubernetes: models.DestinationKubernetes{CA: "supersecret"}, NodeID: "two"}
 
 	labelUSWest1 = models.Label{Value: "us-west-1"}
 	labelUSEast1 = models.Label{Value: "us-east-1"}
@@ -53,7 +53,7 @@ func TestCreateDuplicateDestination(t *testing.T) {
 	createDestinations(t, db, destinationDevelop, destinationProduction)
 
 	_, err := CreateDestination(db, &destinationDevelop)
-	require.EqualError(t, err, "UNIQUE constraint failed: destinations.id")
+	require.EqualError(t, err, "UNIQUE constraint failed: destinations.node_id")
 }
 
 func TestCreateOrUpdateDestinationCreate(t *testing.T) {

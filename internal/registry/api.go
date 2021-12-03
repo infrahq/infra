@@ -426,7 +426,7 @@ func (a *API) Login(c *gin.Context) {
 
 		provider := providers[0]
 
-		clientSecret, err := a.registry.GetSecret(provider.ClientSecret)
+		clientSecret, err := a.registry.GetSecret(string(provider.ClientSecret))
 		if err != nil {
 			sendAPIError(c, http.StatusBadRequest, err)
 			return

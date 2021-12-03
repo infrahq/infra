@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/mocks"
 	"github.com/infrahq/infra/internal/registry/models"
+	"github.com/infrahq/infra/secrets"
 )
 
 var (
@@ -39,6 +41,16 @@ func setupDB(t *testing.T) *gorm.DB {
 
 	db, err := data.NewDB(driver)
 	require.NoError(t, err)
+
+	fp := secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{
+		Path: os.TempDir(),
+	})
+
+	kp := secrets.NewNativeSecretProvider(fp)
+	key, err := kp.GenerateDataKey("")
+	require.NoError(t, err)
+
+	models.SymmetricKey = key
 
 	providerOkta, err = data.CreateProvider(db, &models.Provider{
 		Kind:         models.ProviderKindOkta,
