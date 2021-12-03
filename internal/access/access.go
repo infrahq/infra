@@ -68,14 +68,14 @@ func RequireAuthentication(c *gin.Context) error {
 		}
 
 		return nil
-	case models.APIKeyLength:
-		apiKey, err := data.GetAPIKey(db, &models.APIKey{Key: bearer})
+	case models.APITokenLength:
+		apiToken, err := data.GetAPIToken(db, &models.APIToken{Key: bearer})
 		if err != nil {
-			return fmt.Errorf("rejected invalid API key: %w", err)
+			return fmt.Errorf("rejected invalid API token: %w", err)
 		}
 
 		c.Set("authentication", bearer)
-		c.Set("permissions", apiKey.Permissions)
+		c.Set("permissions", apiToken.Permissions)
 
 		return nil
 	}

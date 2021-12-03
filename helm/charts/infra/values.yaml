@@ -13,8 +13,8 @@ pg:
   parameters: ""
 
 
-rootAPIKey: ""
-engineAPIKey: ""
+rootAPIToken: ""
+engineAPIToken: ""
 
 enableTelemetry: true
 enableCrashReporting: true

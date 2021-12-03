@@ -109,66 +109,66 @@ func TestDeleteToken(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func createAPIKey(t *testing.T, db *gorm.DB, name string, permissions ...string) *models.APIKey {
-	in := models.APIKey{
+func createAPIToken(t *testing.T, db *gorm.DB, name string, permissions ...string) *models.APIToken {
+	in := models.APIToken{
 		Name:        name,
 		Permissions: strings.Join(permissions, " "),
 	}
 
-	apiKey, err := CreateAPIKey(db, &in)
+	apiToken, err := CreateAPIToken(db, &in)
 	require.NoError(t, err)
 
-	return apiKey
+	return apiToken
 }
 
-func TestCreateAPIKey(t *testing.T) {
+func TestCreateAPIToken(t *testing.T) {
 	db := setup(t)
 
-	apiKey := createAPIKey(t, db, "tmp", "infra.*")
-	require.Equal(t, "tmp", apiKey.Name)
-	require.Equal(t, "infra.*", apiKey.Permissions)
-	require.NotEmpty(t, apiKey.Key)
+	apiToken := createAPIToken(t, db, "tmp", "infra.*")
+	require.Equal(t, "tmp", apiToken.Name)
+	require.Equal(t, "infra.*", apiToken.Permissions)
+	require.NotEmpty(t, apiToken.Key)
 }
 
-func TestGetAPIKey(t *testing.T) {
+func TestGetAPIToken(t *testing.T) {
 	db := setup(t)
-	_ = createAPIKey(t, db, "tmp", "infra.*")
+	_ = createAPIToken(t, db, "tmp", "infra.*")
 
-	apiKey, err := GetAPIKey(db, &models.APIKey{Name: "tmp"})
+	apiToken, err := GetAPIToken(db, &models.APIToken{Name: "tmp"})
 	require.NoError(t, err)
-	require.Equal(t, "tmp", apiKey.Name)
-	require.Equal(t, "infra.*", apiKey.Permissions)
-	require.NotEmpty(t, apiKey.Key)
+	require.Equal(t, "tmp", apiToken.Name)
+	require.Equal(t, "infra.*", apiToken.Permissions)
+	require.NotEmpty(t, apiToken.Key)
 }
 
-func TestListAPIKey(t *testing.T) {
+func TestListAPIToken(t *testing.T) {
 	db := setup(t)
-	_ = createAPIKey(t, db, "tmp", "infra.*")
-	_ = createAPIKey(t, db, "pmt", "infra.*")
-	_ = createAPIKey(t, db, "mtp", "infra.*")
+	_ = createAPIToken(t, db, "tmp", "infra.*")
+	_ = createAPIToken(t, db, "pmt", "infra.*")
+	_ = createAPIToken(t, db, "mtp", "infra.*")
 
-	apiKeys, err := ListAPIKeys(db, &models.APIKey{})
+	apiTokens, err := ListAPITokens(db, &models.APIToken{})
 	require.NoError(t, err)
-	require.Len(t, apiKeys, 3)
+	require.Len(t, apiTokens, 3)
 
-	apiKeys, err = ListAPIKeys(db, &models.APIKey{Name: "tmp"})
+	apiTokens, err = ListAPITokens(db, &models.APIToken{Name: "tmp"})
 	require.NoError(t, err)
-	require.Len(t, apiKeys, 1)
+	require.Len(t, apiTokens, 1)
 }
 
-func TestDeleteAPIKey(t *testing.T) {
+func TestDeleteAPIToken(t *testing.T) {
 	db := setup(t)
-	_ = createAPIKey(t, db, "tmp", "infra.*")
+	_ = createAPIToken(t, db, "tmp", "infra.*")
 
-	_, err := GetAPIKey(db, &models.APIKey{Name: "tmp"})
+	_, err := GetAPIToken(db, &models.APIToken{Name: "tmp"})
 	require.NoError(t, err)
 
-	err = DeleteAPIKey(db, &models.APIKey{Name: "tmp"})
+	err = DeleteAPIToken(db, &models.APIToken{Name: "tmp"})
 	require.NoError(t, err)
 
-	_, err = GetAPIKey(db, &models.APIKey{Name: "tmp"})
+	_, err = GetAPIToken(db, &models.APIToken{Name: "tmp"})
 	require.EqualError(t, err, "record not found")
 
-	err = DeleteAPIKey(db, &models.APIKey{Name: "tmp"})
+	err = DeleteAPIToken(db, &models.APIToken{Name: "tmp"})
 	require.NoError(t, err)
 }

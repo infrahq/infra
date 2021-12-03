@@ -16,53 +16,46 @@ import { exists, mapValues } from '../runtime';
 /**
  * 
  * @export
- * @interface InfraAPIKey
+ * @interface InfraAPITokenCreateRequest
  */
-export interface InfraAPIKey {
+export interface InfraAPITokenCreateRequest {
     /**
      * 
      * @type {string}
-     * @memberof InfraAPIKey
-     */
-    id: string;
-    /**
-     * 
-     * @type {number}
-     * @memberof InfraAPIKey
-     */
-    created: number;
-    /**
-     * 
-     * @type {string}
-     * @memberof InfraAPIKey
+     * @memberof InfraAPITokenCreateRequest
      */
     name: string;
     /**
      * 
      * @type {Array<string>}
-     * @memberof InfraAPIKey
+     * @memberof InfraAPITokenCreateRequest
      */
     permissions: Array<string>;
+    /**
+     * token time to live before expirry in the form XhYmZs, for example 1h30m
+     * @type {string}
+     * @memberof InfraAPITokenCreateRequest
+     */
+    ttl?: string;
 }
 
-export function InfraAPIKeyFromJSON(json: any): InfraAPIKey {
-    return InfraAPIKeyFromJSONTyped(json, false);
+export function InfraAPITokenCreateRequestFromJSON(json: any): InfraAPITokenCreateRequest {
+    return InfraAPITokenCreateRequestFromJSONTyped(json, false);
 }
 
-export function InfraAPIKeyFromJSONTyped(json: any, ignoreDiscriminator: boolean): InfraAPIKey {
+export function InfraAPITokenCreateRequestFromJSONTyped(json: any, ignoreDiscriminator: boolean): InfraAPITokenCreateRequest {
     if ((json === undefined) || (json === null)) {
         return json;
     }
     return {
         
-        'id': json['id'],
-        'created': json['created'],
         'name': json['name'],
         'permissions': json['permissions'],
+        'ttl': !exists(json, 'ttl') ? undefined : json['ttl'],
     };
 }
 
-export function InfraAPIKeyToJSON(value?: InfraAPIKey | null): any {
+export function InfraAPITokenCreateRequestToJSON(value?: InfraAPITokenCreateRequest | null): any {
     if (value === undefined) {
         return undefined;
     }
@@ -71,10 +64,9 @@ export function InfraAPIKeyToJSON(value?: InfraAPIKey | null): any {
     }
     return {
         
-        'id': value.id,
-        'created': value.created,
         'name': value.name,
         'permissions': value.permissions,
+        'ttl': value.ttl,
     };
 }
 

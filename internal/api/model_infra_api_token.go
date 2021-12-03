@@ -14,20 +14,22 @@ import (
 	"encoding/json"
 )
 
-// InfraAPIKey struct for InfraAPIKey
-type InfraAPIKey struct {
+// InfraAPIToken struct for InfraAPIToken
+type InfraAPIToken struct {
 	ID          string   `json:"id"`
 	Created     int64    `json:"created"`
 	Name        string   `json:"name"`
 	Permissions []string `json:"permissions"`
+	// token time to live before expiry in the form XhYmZs, for example 1h30m
+	Ttl *string `json:"ttl,omitempty"`
 }
 
-// NewInfraAPIKey instantiates a new InfraAPIKey object
+// NewInfraAPIToken instantiates a new InfraAPIToken object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewInfraAPIKey(id string, created int64, name string, permissions []string) *InfraAPIKey {
-	this := InfraAPIKey{}
+func NewInfraAPIToken(id string, created int64, name string, permissions []string) *InfraAPIToken {
+	this := InfraAPIToken{}
 	this.ID = id
 	this.Created = created
 	this.Name = name
@@ -35,16 +37,16 @@ func NewInfraAPIKey(id string, created int64, name string, permissions []string)
 	return &this
 }
 
-// NewInfraAPIKeyWithDefaults instantiates a new InfraAPIKey object
+// NewInfraAPITokenWithDefaults instantiates a new InfraAPIToken object
 // This constructor will only assign default values to properties that have it defined,
 // but it doesn't guarantee that properties required by API are set
-func NewInfraAPIKeyWithDefaults() *InfraAPIKey {
-	this := InfraAPIKey{}
+func NewInfraAPITokenWithDefaults() *InfraAPIToken {
+	this := InfraAPIToken{}
 	return &this
 }
 
 // GetID returns the ID field value
-func (o *InfraAPIKey) GetID() string {
+func (o *InfraAPIToken) GetID() string {
 	if o == nil {
 		var ret string
 		return ret
@@ -55,7 +57,7 @@ func (o *InfraAPIKey) GetID() string {
 
 // GetIDOK returns a tuple with the ID field value
 // and a boolean to check if the value has been set.
-func (o *InfraAPIKey) GetIDOK() (*string, bool) {
+func (o *InfraAPIToken) GetIDOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -63,12 +65,12 @@ func (o *InfraAPIKey) GetIDOK() (*string, bool) {
 }
 
 // SetID sets field value
-func (o *InfraAPIKey) SetID(v string) {
+func (o *InfraAPIToken) SetID(v string) {
 	o.ID = v
 }
 
 // GetCreated returns the Created field value
-func (o *InfraAPIKey) GetCreated() int64 {
+func (o *InfraAPIToken) GetCreated() int64 {
 	if o == nil {
 		var ret int64
 		return ret
@@ -79,7 +81,7 @@ func (o *InfraAPIKey) GetCreated() int64 {
 
 // GetCreatedOK returns a tuple with the Created field value
 // and a boolean to check if the value has been set.
-func (o *InfraAPIKey) GetCreatedOK() (*int64, bool) {
+func (o *InfraAPIToken) GetCreatedOK() (*int64, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -87,12 +89,12 @@ func (o *InfraAPIKey) GetCreatedOK() (*int64, bool) {
 }
 
 // SetCreated sets field value
-func (o *InfraAPIKey) SetCreated(v int64) {
+func (o *InfraAPIToken) SetCreated(v int64) {
 	o.Created = v
 }
 
 // GetName returns the Name field value
-func (o *InfraAPIKey) GetName() string {
+func (o *InfraAPIToken) GetName() string {
 	if o == nil {
 		var ret string
 		return ret
@@ -103,7 +105,7 @@ func (o *InfraAPIKey) GetName() string {
 
 // GetNameOK returns a tuple with the Name field value
 // and a boolean to check if the value has been set.
-func (o *InfraAPIKey) GetNameOK() (*string, bool) {
+func (o *InfraAPIToken) GetNameOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -111,12 +113,12 @@ func (o *InfraAPIKey) GetNameOK() (*string, bool) {
 }
 
 // SetName sets field value
-func (o *InfraAPIKey) SetName(v string) {
+func (o *InfraAPIToken) SetName(v string) {
 	o.Name = v
 }
 
 // GetPermissions returns the Permissions field value
-func (o *InfraAPIKey) GetPermissions() []string {
+func (o *InfraAPIToken) GetPermissions() []string {
 	if o == nil {
 		var ret []string
 		return ret
@@ -127,7 +129,7 @@ func (o *InfraAPIKey) GetPermissions() []string {
 
 // GetPermissionsOK returns a tuple with the Permissions field value
 // and a boolean to check if the value has been set.
-func (o *InfraAPIKey) GetPermissionsOK() (*[]string, bool) {
+func (o *InfraAPIToken) GetPermissionsOK() (*[]string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -135,11 +137,43 @@ func (o *InfraAPIKey) GetPermissionsOK() (*[]string, bool) {
 }
 
 // SetPermissions sets field value
-func (o *InfraAPIKey) SetPermissions(v []string) {
+func (o *InfraAPIToken) SetPermissions(v []string) {
 	o.Permissions = v
 }
 
-func (o InfraAPIKey) MarshalJSON() ([]byte, error) {
+// GetTtl returns the Ttl field value if set, zero value otherwise.
+func (o *InfraAPIToken) GetTtl() string {
+	if o == nil || o.Ttl == nil {
+		var ret string
+		return ret
+	}
+	return *o.Ttl
+}
+
+// GetTtlOK returns a tuple with the Ttl field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *InfraAPIToken) GetTtlOK() (*string, bool) {
+	if o == nil || o.Ttl == nil {
+		return nil, false
+	}
+	return o.Ttl, true
+}
+
+// HasTtl returns a boolean if a field has been set.
+func (o *InfraAPIToken) HasTtl() bool {
+	if o != nil && o.Ttl != nil {
+		return true
+	}
+
+	return false
+}
+
+// SetTtl gets a reference to the given string and assigns it to the Ttl field.
+func (o *InfraAPIToken) SetTtl(v string) {
+	o.Ttl = &v
+}
+
+func (o InfraAPIToken) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
 		toSerialize["id"] = o.ID
@@ -153,41 +187,44 @@ func (o InfraAPIKey) MarshalJSON() ([]byte, error) {
 	if true {
 		toSerialize["permissions"] = o.Permissions
 	}
+	if o.Ttl != nil {
+		toSerialize["ttl"] = o.Ttl
+	}
 	return json.Marshal(toSerialize)
 }
 
-type NullableInfraAPIKey struct {
-	value *InfraAPIKey
+type NullableInfraAPIToken struct {
+	value *InfraAPIToken
 	isSet bool
 }
 
-func (v NullableInfraAPIKey) Get() *InfraAPIKey {
+func (v NullableInfraAPIToken) Get() *InfraAPIToken {
 	return v.value
 }
 
-func (v *NullableInfraAPIKey) Set(val *InfraAPIKey) {
+func (v *NullableInfraAPIToken) Set(val *InfraAPIToken) {
 	v.value = val
 	v.isSet = true
 }
 
-func (v NullableInfraAPIKey) IsSet() bool {
+func (v NullableInfraAPIToken) IsSet() bool {
 	return v.isSet
 }
 
-func (v *NullableInfraAPIKey) Unset() {
+func (v *NullableInfraAPIToken) Unset() {
 	v.value = nil
 	v.isSet = false
 }
 
-func NewNullableInfraAPIKey(val *InfraAPIKey) *NullableInfraAPIKey {
-	return &NullableInfraAPIKey{value: val, isSet: true}
+func NewNullableInfraAPIToken(val *InfraAPIToken) *NullableInfraAPIToken {
+	return &NullableInfraAPIToken{value: val, isSet: true}
 }
 
-func (v NullableInfraAPIKey) MarshalJSON() ([]byte, error) {
+func (v NullableInfraAPIToken) MarshalJSON() ([]byte, error) {
 	return json.Marshal(v.value)
 }
 
-func (v *NullableInfraAPIKey) UnmarshalJSON(src []byte) error {
+func (v *NullableInfraAPIToken) UnmarshalJSON(src []byte) error {
 	v.isSet = true
 	return json.Unmarshal(src, &v.value)
 }

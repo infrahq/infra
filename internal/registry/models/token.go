@@ -15,7 +15,7 @@ const (
 	TokenSecretLength = 24
 	TokenLength       = TokenKeyLength + TokenSecretLength
 
-	APIKeyLength = 24
+	APITokenLength = 24
 )
 
 type Token struct {
@@ -38,7 +38,7 @@ func (t *Token) SessionToken() string {
 	return t.Key + string(t.Secret)
 }
 
-type APIKey struct {
+type APIToken struct {
 	Model
 
 	Name string
@@ -47,8 +47,8 @@ type APIKey struct {
 	Permissions string `gorm:"<-:create"`
 }
 
-func (k *APIKey) ToAPI() api.InfraAPIKey {
-	result := api.InfraAPIKey{
+func (k *APIToken) ToAPI() (*api.InfraAPIToken, error) {
+	result := api.InfraAPIToken{
 		ID:      k.ID.String(),
 		Created: k.CreatedAt.Unix(),
 
@@ -60,13 +60,13 @@ func (k *APIKey) ToAPI() api.InfraAPIKey {
 	return result
 }
 
-func (k *APIKey) ToAPICreateResponse() api.InfraAPIKeyCreateResponse {
-	result := api.InfraAPIKeyCreateResponse{
+func (k *APIToken) ToAPICreateResponse() (*api.InfraAPITokenCreateResponse, error) {
+	result := api.InfraAPITokenCreateResponse{
 		ID:      k.ID.String(),
 		Created: k.CreatedAt.Unix(),
 
-		Name: k.Name,
-		Key:  k.Key,
+		Name:  k.Name,
+		Token: k.Key,
 	}
 
 	result.Permissions = append(result.Permissions, strings.Split(k.Permissions, " ")...)
@@ -74,8 +74,8 @@ func (k *APIKey) ToAPICreateResponse() api.InfraAPIKeyCreateResponse {
 	return result
 }
 
-func (k *APIKey) FromAPI(from interface{}) error {
-	if createRequest, ok := from.(*api.InfraAPIKeyCreateRequest); ok {
+func (k *APIToken) FromAPI(from interface{}) error {
+	if createRequest, ok := from.(*api.InfraAPITokenCreateRequest); ok {
 		k.Name = createRequest.Name
 
 		permissions := make([]string, 0)
@@ -91,13 +91,13 @@ func (k *APIKey) FromAPI(from interface{}) error {
 	return fmt.Errorf("unknown request")
 }
 
-func NewAPIKey(id string) (*APIKey, error) {
+func NewAPIToken(id string) (*APIToken, error) {
 	uuid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, err
 	}
 
-	return &APIKey{
+	return &APIToken{
 		Model: Model{
 			ID: uuid,
 		},

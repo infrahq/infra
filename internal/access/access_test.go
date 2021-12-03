@@ -64,7 +64,7 @@ func TestRequireAuthentication(t *testing.T) {
 		},
 		"TokenSinglePermissionUpdatedToMatchParentUser": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				authentication := issueToken(t, db, "existing@infrahq.com", string(PermissionAPIKeyIssue), time.Minute*1)
+				authentication := issueToken(t, db, "existing@infrahq.com", string(PermissionAPITokenIssue), time.Minute*1)
 				// user permissions updated after token is issued
 				_, err := data.CreateOrUpdateUser(db, &models.User{Email: "existing@infrahq.com", Permissions: string(PermissionCredentialCreate)}, &models.User{Email: "existing@infrahq.com"})
 				require.NoError(t, err)
@@ -81,7 +81,7 @@ func TestRequireAuthentication(t *testing.T) {
 		},
 		"TokenMultiplePermissionsUpdatedToMatchParentUser": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				permissions := []string{string(PermissionAPIKeyIssue), string(PermissionCredentialCreate)}
+				permissions := []string{string(PermissionAPITokenIssue), string(PermissionCredentialCreate)}
 				authentication := issueToken(t, db, "existing@infrahq.com", strings.Join(permissions, " "), time.Minute*1)
 				// user permissions updated after token is issued
 				_, err := data.CreateOrUpdateUser(db, &models.User{Email: "existing@infrahq.com", Permissions: string(PermissionCredentialCreate)}, &models.User{Email: "existing@infrahq.com"})
@@ -259,7 +259,7 @@ func TestRequireAuthorization(t *testing.T) {
 				require.NoError(t, err)
 			},
 		},
-		"APIKeyAuthorizedNotFirst": {
+		"APITokenAuthorizedNotFirst": {
 			"permission": PermissionUserRead,
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				permissions := []string{string(PermissionGroupRead), string(PermissionProviderRead), string(PermissionUserRead)}
@@ -269,7 +269,7 @@ func TestRequireAuthorization(t *testing.T) {
 				require.NoError(t, err)
 			},
 		},
-		"APIKeyAuthorizedNotLast": {
+		"APITokenAuthorizedNotLast": {
 			"permission": PermissionUserRead,
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				permissions := []string{string(PermissionGroupRead), string(PermissionUserRead), string(PermissionProviderRead)}
@@ -279,7 +279,7 @@ func TestRequireAuthorization(t *testing.T) {
 				require.NoError(t, err)
 			},
 		},
-		"APIKeyAuthorizedNoMatch": {
+		"APITokenAuthorizedNoMatch": {
 			"permission": PermissionUserRead,
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				permissions := []string{string(PermissionUserCreate), string(PermissionGroupRead)}

@@ -135,7 +135,7 @@ export interface ConfigurationParameters {
     queryParamsStringify?: (params: HTTPQuery) => string; // stringify function for query strings
     username?: string; // parameter for basic security
     password?: string; // parameter for basic security
-    apiKey?: string | ((name: string) => string); // parameter for apiKey security
+    apiToken?: string | ((name: string) => string); // parameter for apiToken security
     accessToken?: string | Promise<string> | ((name?: string, scopes?: string[]) => string | Promise<string>); // parameter for oauth2 security
     headers?: HTTPHeaders; //header params we want to use on every request
     credentials?: RequestCredentials; //value for the credentials param we want to use on each request
@@ -168,10 +168,10 @@ export class Configuration {
         return this.configuration.password;
     }
 
-    get apiKey(): ((name: string) => string) | undefined {
-        const apiKey = this.configuration.apiKey;
-        if (apiKey) {
-            return typeof apiKey === 'function' ? apiKey : () => apiKey;
+    get apiToken(): ((name: string) => string) | undefined {
+        const apiToken = this.configuration.apiToken;
+        if (apiToken) {
+            return typeof apiToken === 'function' ? apiToken : () => apiToken;
         }
         return undefined;
     }

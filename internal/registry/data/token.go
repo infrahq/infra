@@ -74,43 +74,43 @@ func DeleteToken(db *gorm.DB, condition interface{}) error {
 	return nil
 }
 
-func CreateAPIKey(db *gorm.DB, apiKey *models.APIKey) (*models.APIKey, error) {
-	if apiKey.Key == "" {
-		key, err := generate.CryptoRandom(models.APIKeyLength)
+func CreateAPIToken(db *gorm.DB, apiToken *models.APIToken) (*models.APIToken, error) {
+	if apiToken.Key == "" {
+		key, err := generate.CryptoRandom(models.APITokenLength)
 		if err != nil {
 			return nil, err
 		}
 
-		apiKey.Key = key
+		apiToken.Key = key
 	}
 
-	if err := add(db, &models.APIKey{}, apiKey, &models.APIKey{Name: apiKey.Name}); err != nil {
+	if err := add(db, &models.APIToken{}, apiToken, &models.APIToken{Name: apiToken.Name}); err != nil {
 		return nil, err
 	}
 
-	return apiKey, nil
+	return apiToken, nil
 }
 
-func GetAPIKey(db *gorm.DB, condition interface{}) (*models.APIKey, error) {
-	var apiKey models.APIKey
-	if err := get(db, &models.APIKey{}, &apiKey, condition); err != nil {
+func GetAPIToken(db *gorm.DB, condition interface{}) (*models.APIToken, error) {
+	var apiToken models.APIToken
+	if err := get(db, &models.APIToken{}, &apiToken, condition); err != nil {
 		return nil, err
 	}
 
-	return &apiKey, nil
+	return &apiToken, nil
 }
 
-func ListAPIKeys(db *gorm.DB, condition interface{}) ([]models.APIKey, error) {
-	apiKeys := make([]models.APIKey, 0)
-	if err := list(db, &models.APIKey{}, &apiKeys, condition); err != nil {
+func ListAPITokens(db *gorm.DB, condition interface{}) ([]models.APIToken, error) {
+	apiTokens := make([]models.APIToken, 0)
+	if err := list(db, &models.APIToken{}, &apiTokens, condition); err != nil {
 		return nil, err
 	}
 
-	return apiKeys, nil
+	return apiTokens, nil
 }
 
-func DeleteAPIKey(db *gorm.DB, condition interface{}) error {
-	toDelete, err := GetAPIKey(db, condition)
+func DeleteAPIToken(db *gorm.DB, condition interface{}) error {
+	toDelete, err := GetAPIToken(db, condition)
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return err
@@ -118,7 +118,7 @@ func DeleteAPIKey(db *gorm.DB, condition interface{}) error {
 	}
 
 	if toDelete != nil {
-		return remove(db, &models.APIKey{}, toDelete.ID)
+		return remove(db, &models.APIToken{}, toDelete.ID)
 	}
 
 	return nil

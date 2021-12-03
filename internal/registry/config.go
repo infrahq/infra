@@ -507,7 +507,7 @@ func (r *Registry) importConfig(bs []byte) error {
 	})
 }
 
-func (r *Registry) importAPIKeys() error {
+func (r *Registry) importAPITokens() error {
 	type key struct {
 		Secret      string
 		Permissions []string
@@ -515,13 +515,13 @@ func (r *Registry) importAPIKeys() error {
 
 	keys := map[string]key{
 		"root": {
-			Secret: r.options.RootAPIKey,
+			Secret: r.options.RootAPIToken,
 			Permissions: []string{
 				string(access.PermissionAllAlternate),
 			},
 		},
 		"engine": {
-			Secret: r.options.EngineAPIKey,
+			Secret: r.options.EngineAPIToken,
 			Permissions: []string{
 				string(access.PermissionGrantRead),
 				string(access.PermissionDestinationCreate),
@@ -535,13 +535,13 @@ func (r *Registry) importAPIKeys() error {
 			return err
 		}
 
-		apiKey := &models.APIKey{
+		apiToken := &models.APIToken{
 			Name:        k,
 			Permissions: strings.Join(v.Permissions, " "),
 			Key:         secret,
 		}
 
-		if _, err = data.CreateAPIKey(r.db, apiKey); err != nil {
+		if _, err = data.CreateAPIToken(r.db, apiToken); err != nil {
 			return err
 		}
 	}

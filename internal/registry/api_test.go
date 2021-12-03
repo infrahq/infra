@@ -51,20 +51,20 @@ func (msr *mockSecretReader) SetSecret(secretName string, secret []byte) error {
 	return nil
 }
 
-func issueAPIKey(t *testing.T, db *gorm.DB, permissions string) *models.APIKey {
-	secret, err := generate.CryptoRandom(models.APIKeyLength)
+func issueAPIToken(t *testing.T, db *gorm.DB, permissions string) *models.APIToken {
+	secret, err := generate.CryptoRandom(models.APITokenLength)
 	require.NoError(t, err)
 
-	apiKey := &models.APIKey{
+	apiToken := &models.APIToken{
 		Name:        "test",
 		Key:         secret,
 		Permissions: permissions,
 	}
 
-	apiKey, err = data.CreateAPIKey(db, apiKey)
+	apiToken, err = data.CreateAPIToken(db, apiToken)
 	require.NoError(t, err)
 
-	return apiKey
+	return apiToken
 }
 
 func TestLogin(t *testing.T) {
@@ -809,25 +809,25 @@ func TestT(t *testing.T) {
 			},
 		},
 
-		// /v1/api-keys
-		"ListAPIKeys": {
+		// /v1/api-tokens
+		"ListAPITokens": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				issueAPIKey(t, db, string(access.PermissionAPIKeyRead))
-				c.Set("permissions", string(access.PermissionAPIKeyRead))
+				issueAPIToken(t, db, string(access.PermissionAPITokenList))
+				c.Set("permissions", string(access.PermissionAPITokenList))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
-				return httptest.NewRequest(http.MethodGet, "/v1/api-keys", nil)
+				return httptest.NewRequest(http.MethodGet, "/v1/api-tokens", nil)
 			},
 			"func": func(a *API, c *gin.Context) {
-				a.ListAPIKeys(c)
+				a.ListAPITokens(c)
 			},
 			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, w.Code)
 
-				var apiKeys []api.InfraAPIKey
-				err := json.NewDecoder(w.Body).Decode(&apiKeys)
+				var apiTokens []api.InfraAPIToken
+				err := json.NewDecoder(w.Body).Decode(&apiTokens)
 				require.NoError(t, err)
-				require.Len(t, apiKeys, 1)
+				require.Len(t, apiTokens, 1)
 			},
 		},
 
@@ -900,699 +900,10 @@ func TestT(t *testing.T) {
 	}
 }
 
-func TestProvider(t *testing.T) {
-	cases := map[string]testCase{
-		"CreateOK": {
-			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionProviderCreate))
-			},
-			Request: func(t *testing.T, c *gin.Context) *http.Request {
-				request := api.ProviderRequest{
-					Kind:         api.PROVIDERKIND_OKTA,
-					Domain:       "domain.okta.com",
-					ClientID:     "client-id",
-					ClientSecret: "client-secret",
-				}
+func TestCreateAPIToken(t *testing.T) {
+	db := configure(t, nil)
 
-				bts, err := request.MarshalJSON()
-				require.NoError(t, err)
-				return httptest.NewRequest(http.MethodPost, "/v1/providers", bytes.NewReader(bts))
-			},
-			Handle: func(t *testing.T, c *gin.Context) {
-				a := API{}
-				a.CreateProvider(c)
-			},
-			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusCreated, w.Code)
-
-				var provider api.Provider
-				err := json.NewDecoder(w.Body).Decode(&provider)
-				require.NoError(t, err)
-				require.Equal(t, "domain.okta.com", provider.Domain)
-				require.Equal(t, "client-id", provider.ClientID)
-			},
-		},
-		"CreateOK/Okta": {
-			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionProviderCreate))
-			},
-			Request: func(t *testing.T, c *gin.Context) *http.Request {
-				request := api.ProviderRequest{
-					Kind:         api.PROVIDERKIND_OKTA,
-					Domain:       "domain.okta.com",
-					ClientID:     "client-id",
-					ClientSecret: "client-secret",
-					Okta: &api.ProviderOkta{
-						APIToken: "api-token",
-					},
-				}
-
-				bts, err := request.MarshalJSON()
-				require.NoError(t, err)
-				return httptest.NewRequest(http.MethodPost, "/v1/providers", bytes.NewReader(bts))
-			},
-			Handle: func(t *testing.T, c *gin.Context) {
-				a := API{}
-				a.CreateProvider(c)
-			},
-			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusCreated, w.Code)
-
-				var provider api.Provider
-				err := json.NewDecoder(w.Body).Decode(&provider)
-				require.NoError(t, err)
-				require.Equal(t, "domain.okta.com", provider.Domain)
-				require.Equal(t, "client-id", provider.ClientID)
-			},
-		},
-		"CreateNoKind": {
-			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionProviderCreate))
-			},
-			Request: func(t *testing.T, c *gin.Context) *http.Request {
-				request := api.ProviderRequest{
-					Domain:       "domain.okta.com",
-					ClientID:     "client-id",
-					ClientSecret: "client-secret",
-				}
-
-				bts, err := request.MarshalJSON()
-				require.NoError(t, err)
-				return httptest.NewRequest(http.MethodPost, "/v1/providers", bytes.NewReader(bts))
-			},
-			Handle: func(t *testing.T, c *gin.Context) {
-				a := API{}
-				a.CreateProvider(c)
-			},
-			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusBadRequest, w.Code)
-			},
-		},
-		"CreateUnknownKind": {
-			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionProviderCreate))
-			},
-			Request: func(t *testing.T, c *gin.Context) *http.Request {
-				request := api.ProviderRequest{
-					Kind:         api.ProviderKind("unknown"),
-					Domain:       "domain.okta.com",
-					ClientID:     "client-id",
-					ClientSecret: "client-secret",
-				}
-
-				bts, err := request.MarshalJSON()
-				require.NoError(t, err)
-				return httptest.NewRequest(http.MethodPost, "/v1/providers", bytes.NewReader(bts))
-			},
-			Handle: func(t *testing.T, c *gin.Context) {
-				a := API{}
-				a.CreateProvider(c)
-			},
-			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusBadRequest, w.Code)
-			},
-		},
-		"CreateNoAuthorization": {
-			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", "")
-			},
-			Request: func(t *testing.T, c *gin.Context) *http.Request {
-				request := api.ProviderRequest{
-					Kind:         api.PROVIDERKIND_OKTA,
-					Domain:       "domain.okta.com",
-					ClientID:     "client-id",
-					ClientSecret: "client-secret",
-				}
-
-				bts, err := request.MarshalJSON()
-				require.NoError(t, err)
-				return httptest.NewRequest(http.MethodPost, "/v1/providers", bytes.NewReader(bts))
-			},
-			Handle: func(t *testing.T, c *gin.Context) {
-				a := API{}
-				a.CreateProvider(c)
-			},
-			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusForbidden, w.Code)
-			},
-		},
-		"CreateBadPermissions": {
-			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionProviderUpdate))
-			},
-			Request: func(t *testing.T, c *gin.Context) *http.Request {
-				request := api.ProviderRequest{
-					Kind:         api.PROVIDERKIND_OKTA,
-					Domain:       "domain.okta.com",
-					ClientID:     "client-id",
-					ClientSecret: "client-secret",
-				}
-
-				bts, err := request.MarshalJSON()
-				require.NoError(t, err)
-				return httptest.NewRequest(http.MethodPost, "/v1/providers", bytes.NewReader(bts))
-			},
-			Handle: func(t *testing.T, c *gin.Context) {
-				a := API{}
-				a.CreateProvider(c)
-			},
-			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusForbidden, w.Code)
-			},
-		},
-		"CreateDuplicate": {
-			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionProviderCreate))
-			},
-			Request: func(t *testing.T, c *gin.Context) *http.Request {
-				request := api.ProviderRequest{
-					Kind:         api.PROVIDERKIND_OKTA,
-					Domain:       "test.okta.com",
-					ClientID:     "client-id",
-					ClientSecret: "client-secret",
-				}
-
-				bts, err := request.MarshalJSON()
-				require.NoError(t, err)
-				return httptest.NewRequest(http.MethodPost, "/v1/providers", bytes.NewReader(bts))
-			},
-			Handle: func(t *testing.T, c *gin.Context) {
-				a := API{}
-				a.CreateProvider(c)
-			},
-			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusConflict, w.Code)
-			},
-		},
-		"Update": {
-			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionProviderUpdate))
-
-				// test.okta.com is created by configure()
-				providers, err := data.ListProviders(db, &models.Provider{})
-				require.NoError(t, err)
-				require.Len(t, providers, 1)
-
-				c.Params = append(c.Params, gin.Param{Key: "id", Value: providers[0].ID.String()})
-			},
-			Request: func(t *testing.T, c *gin.Context) *http.Request {
-				request := api.ProviderRequest{
-					Domain: "test2.okta.com",
-					Kind:   api.PROVIDERKIND_OKTA,
-				}
-
-				bts, err := request.MarshalJSON()
-				require.NoError(t, err)
-
-				return httptest.NewRequest(http.MethodPut, fmt.Sprintf("/v1/providers/%s", c.Param("id")), bytes.NewReader(bts))
-			},
-			Handle: func(t *testing.T, c *gin.Context) {
-				a := API{}
-				a.UpdateProvider(c)
-			},
-			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusOK, w.Code)
-
-				var provider api.Provider
-				err := json.NewDecoder(w.Body).Decode(&provider)
-				require.NoError(t, err)
-				require.Equal(t, "test2.okta.com", provider.Domain)
-				require.Equal(t, "plaintext:0oapn0qwiQPiMIyR35d6", provider.ClientID)
-			},
-		},
-		"UpdateNotFound": {
-			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionProviderUpdate))
-			},
-			Request: func(t *testing.T, c *gin.Context) *http.Request {
-				request := api.ProviderRequest{
-					Domain: "domain.okta.com",
-					Kind:   api.PROVIDERKIND_OKTA,
-				}
-
-				bts, err := request.MarshalJSON()
-				require.NoError(t, err)
-
-				id, err := uuid.NewUUID()
-				require.NoError(t, err)
-
-				c.Params = append(c.Params, gin.Param{Key: "id", Value: id.String()})
-				return httptest.NewRequest(http.MethodPut, fmt.Sprintf("/v1/providers/%s", c.Param("id")), bytes.NewReader(bts))
-			},
-			Handle: func(t *testing.T, c *gin.Context) {
-				a := API{}
-				a.UpdateProvider(c)
-			},
-			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusNotFound, w.Code)
-			},
-		},
-		"Get": {
-			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionProviderRead))
-			},
-			Request: func(t *testing.T, c *gin.Context) *http.Request {
-				c.Params = append(c.Params, gin.Param{Key: "id", Value: providerOkta.ID.String()})
-				return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/providers/%s", providerOkta.ID), nil)
-			},
-			Handle: func(t *testing.T, c *gin.Context) {
-				a := API{}
-				a.GetProvider(c)
-			},
-			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusOK, w.Code)
-
-				var provider api.Provider
-				err := json.NewDecoder(w.Body).Decode(&provider)
-				require.NoError(t, err)
-				require.Equal(t, "test.okta.com", provider.Domain)
-				require.Equal(t, "plaintext:0oapn0qwiQPiMIyR35d6", provider.ClientID)
-			},
-		},
-		"GetEmptyID": {
-			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionProviderRead))
-			},
-			Request: func(t *testing.T, c *gin.Context) *http.Request {
-				return httptest.NewRequest(http.MethodGet, "/v1/providers/", nil)
-			},
-			Handle: func(t *testing.T, c *gin.Context) {
-				a := API{}
-				a.GetProvider(c)
-			},
-			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusBadRequest, w.Code)
-			},
-		},
-		"GetUnknownProvider": {
-			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionProviderRead))
-			},
-			Request: func(t *testing.T, c *gin.Context) *http.Request {
-				id, err := uuid.NewUUID()
-				require.NoError(t, err)
-
-				c.Params = append(c.Params, gin.Param{Key: "id", Value: id.String()})
-				return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/providers/%s", id), nil)
-			},
-			Handle: func(t *testing.T, c *gin.Context) {
-				a := API{}
-				a.GetProvider(c)
-			},
-			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusNotFound, w.Code)
-			},
-		},
-		"List": {
-			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionProviderRead))
-			},
-			Request: func(t *testing.T, c *gin.Context) *http.Request {
-				return httptest.NewRequest(http.MethodGet, "/v1/providers", nil)
-			},
-			Handle: func(t *testing.T, c *gin.Context) {
-				a := API{}
-				a.ListProviders(c)
-			},
-			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusOK, w.Code)
-
-				var providers []api.Provider
-				err := json.NewDecoder(w.Body).Decode(&providers)
-				require.NoError(t, err)
-				require.Len(t, providers, 1)
-				require.Equal(t, "test.okta.com", providers[0].Domain)
-			},
-		},
-		"ListByKind": {
-			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionProviderRead))
-			},
-			Request: func(t *testing.T, c *gin.Context) *http.Request {
-				return httptest.NewRequest(http.MethodGet, "/v1/providers?kind=okta", nil)
-			},
-			Handle: func(t *testing.T, c *gin.Context) {
-				a := API{}
-				a.ListProviders(c)
-			},
-			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusOK, w.Code)
-
-				var providers []api.Provider
-				err := json.NewDecoder(w.Body).Decode(&providers)
-				require.NoError(t, err)
-				require.Len(t, providers, 1)
-				require.Equal(t, "test.okta.com", providers[0].Domain)
-			},
-		},
-		"ListByDomain": {
-			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionProviderRead))
-			},
-			Request: func(t *testing.T, c *gin.Context) *http.Request {
-				return httptest.NewRequest(http.MethodGet, "/v1/providers?domain=test.okta.com", nil)
-			},
-			Handle: func(t *testing.T, c *gin.Context) {
-				a := API{}
-				a.ListProviders(c)
-			},
-			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusOK, w.Code)
-
-				var providers []api.Provider
-				err := json.NewDecoder(w.Body).Decode(&providers)
-				require.NoError(t, err)
-				require.Len(t, providers, 1)
-				require.Equal(t, "test.okta.com", providers[0].Domain)
-			},
-		},
-		"ListNotFound": {
-			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionProviderRead))
-			},
-			Request: func(t *testing.T, c *gin.Context) *http.Request {
-				return httptest.NewRequest(http.MethodGet, "/v1/providers?domain=nonexistent.okta.com", nil)
-			},
-			Handle: func(t *testing.T, c *gin.Context) {
-				a := API{}
-				a.ListProviders(c)
-			},
-			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusOK, w.Code)
-
-				var providers []api.Provider
-				err := json.NewDecoder(w.Body).Decode(&providers)
-				require.NoError(t, err)
-				require.Len(t, providers, 0)
-			},
-		},
-		"ListSensitiveInformation": {
-			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionProviderRead))
-			},
-			Request: func(t *testing.T, c *gin.Context) *http.Request {
-				return httptest.NewRequest(http.MethodGet, "/v1/providers?domain=test.okta.com", nil)
-			},
-			Handle: func(t *testing.T, c *gin.Context) {
-				a := API{}
-				a.ListProviders(c)
-			},
-			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusOK, w.Code)
-
-				var providers []api.Provider
-				err := json.NewDecoder(w.Body).Decode(&providers)
-				require.NoError(t, err)
-				require.Len(t, providers, 1)
-
-				raw, err := json.Marshal(providers[0])
-				require.NoError(t, err)
-
-				var provider map[string]interface{}
-				err = json.Unmarshal(raw, &provider)
-				require.NoError(t, err)
-
-				for key := range provider {
-					leak := strings.Contains(strings.ToLower(key), "secret")
-					require.False(t, leak)
-
-					leak = strings.Contains(strings.ToLower(key), "key")
-					require.False(t, leak)
-				}
-			},
-		},
-		"Delete": {
-			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionProviderDelete))
-
-				// test.okta.com is created by configure()
-				providers, err := data.ListProviders(db, &models.Provider{})
-				require.NoError(t, err)
-				require.Len(t, providers, 1)
-
-				c.Params = append(c.Params, gin.Param{Key: "id", Value: providers[0].ID.String()})
-			},
-			Request: func(t *testing.T, c *gin.Context) *http.Request {
-				request := api.ProviderRequest{
-					Domain: "test2.okta.com",
-					Kind:   api.PROVIDERKIND_OKTA,
-				}
-
-				bts, err := request.MarshalJSON()
-				require.NoError(t, err)
-
-				return httptest.NewRequest(http.MethodPut, fmt.Sprintf("/v1/providers/%s", c.Param("id")), bytes.NewReader(bts))
-			},
-			Handle: func(t *testing.T, c *gin.Context) {
-				a := API{}
-				a.DeleteProvider(c)
-			},
-			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusNoContent, w.Code)
-			},
-		},
-		"DeleteNotFound": {
-			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionProviderDelete))
-			},
-			Request: func(t *testing.T, c *gin.Context) *http.Request {
-				request := api.ProviderRequest{
-					Domain: "domain.okta.com",
-					Kind:   api.PROVIDERKIND_OKTA,
-				}
-
-				bts, err := request.MarshalJSON()
-				require.NoError(t, err)
-
-				id, err := uuid.NewUUID()
-				require.NoError(t, err)
-
-				c.Params = append(c.Params, gin.Param{Key: "id", Value: id.String()})
-				return httptest.NewRequest(http.MethodPut, fmt.Sprintf("/v1/providers/%s", c.Param("id")), bytes.NewReader(bts))
-			},
-			Handle: func(t *testing.T, c *gin.Context) {
-				a := API{}
-				a.DeleteProvider(c)
-			},
-			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusNotFound, w.Code)
-			},
-		},
-	}
-
-	for k, v := range cases {
-		t.Run(k, func(t *testing.T) {
-			_, db := configure(t, nil)
-
-			w := httptest.NewRecorder()
-			c, _ := gin.CreateTestContext(w)
-			c.Set("db", db)
-
-			r := v.Request(t, c)
-			c.Request = r
-
-			v.Setup(t, db, c)
-
-			v.Handle(t, c)
-
-			v.Verify(t, r, w)
-		})
-	}
-}
-
-func TestCreateDestination(t *testing.T) {
-	cases := map[string]map[string]interface{}{
-		"OK": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionDestinationCreate))
-			},
-			"requestFunc": func(t *testing.T) *api.DestinationCreateRequest {
-				return &api.DestinationCreateRequest{
-					Kind:   api.DESTINATIONKIND_KUBERNETES,
-					NodeID: "test",
-					Name:   "test",
-					Kubernetes: &api.DestinationKubernetes{
-						CA:       "CA",
-						Endpoint: "develop.infrahq.com",
-					},
-				}
-			},
-			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusCreated, w.Code)
-			},
-		},
-		"NoKind": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionDestinationCreate))
-			},
-			"requestFunc": func(t *testing.T) *api.DestinationCreateRequest {
-				return &api.DestinationCreateRequest{
-					Kubernetes: &api.DestinationKubernetes{
-						CA:       "CA",
-						Endpoint: "develop.infrahq.com",
-					},
-				}
-			},
-			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusBadRequest, w.Code)
-			},
-		},
-		"UnknownKind": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionDestinationCreate))
-			},
-			"requestFunc": func(t *testing.T) *api.DestinationCreateRequest {
-				return &api.DestinationCreateRequest{
-					Kind: api.DestinationKind("unknown"),
-					Kubernetes: &api.DestinationKubernetes{
-						CA:       "CA",
-						Endpoint: "develop.infrahq.com",
-					},
-				}
-			},
-			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusBadRequest, w.Code)
-			},
-		},
-		"NoAuthorization": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", "")
-			},
-			"requestFunc": func(t *testing.T) *api.DestinationCreateRequest {
-				return &api.DestinationCreateRequest{
-					Kind: api.DESTINATIONKIND_KUBERNETES,
-					Kubernetes: &api.DestinationKubernetes{
-						CA:       "CA",
-						Endpoint: "develop.infrahq.com",
-					},
-				}
-			},
-			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusForbidden, w.Code)
-			},
-		},
-		"BadPermissions": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", "infra.bad.permissions")
-			},
-			"requestFunc": func(t *testing.T) *api.DestinationCreateRequest {
-				return &api.DestinationCreateRequest{
-					Kind: api.DESTINATIONKIND_KUBERNETES,
-					Kubernetes: &api.DestinationKubernetes{
-						CA:       "CA",
-						Endpoint: "develop.infrahq.com",
-					},
-				}
-			},
-			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusForbidden, w.Code)
-			},
-		},
-	}
-
-	for k, v := range cases {
-		t.Run(k, func(t *testing.T) {
-			_, db := configure(t, nil)
-
-			requestFunc, ok := v["requestFunc"].(func(*testing.T) *api.DestinationCreateRequest)
-			require.True(t, ok)
-
-			request := requestFunc(t)
-			bts, err := request.MarshalJSON()
-			require.NoError(t, err)
-
-			r := httptest.NewRequest(http.MethodPost, "/v1/destinations", bytes.NewReader(bts))
-			w := httptest.NewRecorder()
-			c, _ := gin.CreateTestContext(w)
-			c.Set("db", db)
-			c.Request = r
-
-			authFunc, ok := v["authFunc"].(func(*testing.T, *gorm.DB, *gin.Context))
-			if ok {
-				authFunc(t, db, c)
-			}
-
-			a := API{}
-
-			a.CreateDestination(c)
-
-			verifyFunc, ok := v["verifyFunc"].(func(*testing.T, *http.Request, *httptest.ResponseRecorder))
-			require.True(t, ok)
-
-			verifyFunc(t, r, w)
-		})
-	}
-}
-
-func TestCreateDestinationUpdatesField(t *testing.T) {
-	_, db := configure(t, nil)
-
-	destination, err := data.CreateDestination(db, &models.Destination{
-		Kind:     models.DestinationKindKubernetes,
-		NodeID:   "node-id",
-		Name:     "name",
-		Endpoint: "endpoint",
-		Kubernetes: models.DestinationKubernetes{
-			CA: "ca",
-		},
-	})
-
-	require.NoError(t, err)
-	require.Equal(t, "node-id", destination.NodeID)
-	require.Equal(t, "name", destination.Name)
-	require.Equal(t, "endpoint", destination.Endpoint)
-	require.Equal(t, "ca", destination.Kubernetes.CA)
-
-	request := api.DestinationCreateRequest{
-		Kind:   api.DESTINATIONKIND_KUBERNETES,
-		NodeID: destination.NodeID,
-		Name:   "updated-name",
-		Kubernetes: &api.DestinationKubernetes{
-			CA:       "updated-ca",
-			Endpoint: "updated-endpoint",
-		},
-	}
-
-	bts, err := request.MarshalJSON()
-	require.NoError(t, err)
-
-	r := httptest.NewRequest(http.MethodPost, "/v1/destinations", bytes.NewReader(bts))
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Set("db", db)
-	c.Request = r
-
-	c.Set("permissions", string(access.PermissionDestinationCreate))
-
-	a := API{}
-
-	a.CreateDestination(c)
-
-	require.Equal(t, http.StatusCreated, w.Code)
-
-	var body api.Destination
-	err = json.NewDecoder(w.Body).Decode(&body)
-	require.NoError(t, err)
-	require.Equal(t, "node-id", body.NodeID)
-	require.Equal(t, "updated-name", body.Name)
-	require.Equal(t, "updated-ca", body.Kubernetes.CA)
-	require.Equal(t, "updated-endpoint", body.Kubernetes.Endpoint)
-
-	destinations, err := data.ListDestinations(db, &models.Destination{NodeID: "node-id"})
-	require.NoError(t, err)
-	require.Len(t, destinations, 1)
-	require.Equal(t, body.ID, destinations[0].ID.String())
-	require.Equal(t, body.NodeID, destinations[0].NodeID)
-	require.Equal(t, body.Name, destinations[0].Name)
-	require.Equal(t, body.Kubernetes.Endpoint, destinations[0].Endpoint)
-	require.Equal(t, body.Kubernetes.CA, destinations[0].Kubernetes.CA)
-}
-
-func TestCreateAPIKey(t *testing.T) {
-	_, db := configure(t, nil)
-
-	request := api.InfraAPIKeyCreateRequest{
+	request := api.InfraAPITokenCreateRequest{
 		Name:        "tmp",
 		Permissions: []string{"infra.*"},
 	}
@@ -1600,20 +911,20 @@ func TestCreateAPIKey(t *testing.T) {
 	bts, err := request.MarshalJSON()
 	require.NoError(t, err)
 
-	r := httptest.NewRequest(http.MethodPost, "/v1/api-keys", bytes.NewReader(bts))
+	r := httptest.NewRequest(http.MethodPost, "/v1/api-tokens", bytes.NewReader(bts))
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Set("db", db)
-	c.Set("permissions", string(access.PermissionAPIKeyIssue))
+	c.Set("permissions", string(access.PermissionAPITokenIssue))
 	c.Request = r
 
 	a := API{}
 
-	a.CreateAPIKey(c)
+	a.CreateAPIToken(c)
 
 	require.Equal(t, http.StatusCreated, w.Code)
 
-	var body api.InfraAPIKeyCreateResponse
+	var body api.InfraAPITokenCreateResponse
 	err = json.NewDecoder(w.Body).Decode(&body)
 	require.NoError(t, err)
 
@@ -1629,15 +940,15 @@ func TestCreateAPIKey(t *testing.T) {
 	require.Equal(t, http.StatusOK, neww.Code)
 }
 
-func TestDeleteAPIKey(t *testing.T) {
-	_, db := configure(t, nil)
+func TestDeleteAPIToken(t *testing.T) {
+	db, _ := configure(t, nil)
 
 	permissions := strings.Join([]string{
 		string(access.PermissionUserRead),
-		string(access.PermissionAPIKeyRevoke),
+		string(access.PermissionAPITokenRevoke),
 	}, " ")
 
-	apiKey := issueAPIKey(t, db, permissions)
+	apiToken := issueAPIToken(t, db, permissions)
 
 	oldr := httptest.NewRequest(http.MethodGet, "/v1/users", nil)
 	oldw := httptest.NewRecorder()
@@ -1652,15 +963,15 @@ func TestDeleteAPIKey(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, oldw.Code)
 
-	r := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/api-keys/%s", apiKey.ID.String()), nil)
+	r := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/api-tokens/%s", apiToken.ID.String()), nil)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Set("db", db)
 	c.Set("permissions", permissions)
 	c.Request = r
-	c.Params = append(c.Params, gin.Param{Key: "id", Value: apiKey.ID.String()})
+	c.Params = append(c.Params, gin.Param{Key: "id", Value: apiToken.ID.String()})
 
-	a.DeleteAPIKey(c)
+	a.DeleteAPIToken(c)
 
 	require.Equal(t, http.StatusNoContent, w.Code)
 }

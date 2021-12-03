@@ -14,69 +14,76 @@
 
 import { exists, mapValues } from '../runtime';
 import {
-    InfraAPIKey,
-    InfraAPIKeyFromJSON,
-    InfraAPIKeyFromJSONTyped,
-    InfraAPIKeyToJSON,
+    InfraAPIToken,
+    InfraAPITokenFromJSON,
+    InfraAPITokenFromJSONTyped,
+    InfraAPITokenToJSON,
 } from './';
 
 /**
  * 
  * @export
- * @interface InfraAPIKeyCreateResponse
+ * @interface InfraAPITokenCreateResponse
  */
-export interface InfraAPIKeyCreateResponse {
+export interface InfraAPITokenCreateResponse {
     /**
      * 
      * @type {string}
-     * @memberof InfraAPIKeyCreateResponse
+     * @memberof InfraAPITokenCreateResponse
      */
-    key: string;
+    token: string;
     /**
      * 
      * @type {string}
-     * @memberof InfraAPIKeyCreateResponse
+     * @memberof InfraAPITokenCreateResponse
      */
     id: string;
     /**
      * 
      * @type {number}
-     * @memberof InfraAPIKeyCreateResponse
+     * @memberof InfraAPITokenCreateResponse
      */
     created: number;
     /**
      * 
      * @type {string}
-     * @memberof InfraAPIKeyCreateResponse
+     * @memberof InfraAPITokenCreateResponse
      */
     name: string;
     /**
      * 
      * @type {Array<string>}
-     * @memberof InfraAPIKeyCreateResponse
+     * @memberof InfraAPITokenCreateResponse
      */
     permissions: Array<string>;
+    /**
+     * token time to live before expiry in the form XhYmZs, for example 1h30m
+     * @type {string}
+     * @memberof InfraAPITokenCreateResponse
+     */
+    ttl?: string;
 }
 
-export function InfraAPIKeyCreateResponseFromJSON(json: any): InfraAPIKeyCreateResponse {
-    return InfraAPIKeyCreateResponseFromJSONTyped(json, false);
+export function InfraAPITokenCreateResponseFromJSON(json: any): InfraAPITokenCreateResponse {
+    return InfraAPITokenCreateResponseFromJSONTyped(json, false);
 }
 
-export function InfraAPIKeyCreateResponseFromJSONTyped(json: any, ignoreDiscriminator: boolean): InfraAPIKeyCreateResponse {
+export function InfraAPITokenCreateResponseFromJSONTyped(json: any, ignoreDiscriminator: boolean): InfraAPITokenCreateResponse {
     if ((json === undefined) || (json === null)) {
         return json;
     }
     return {
         
-        'key': json['key'],
+        'token': json['token'],
         'id': json['id'],
         'created': json['created'],
         'name': json['name'],
         'permissions': json['permissions'],
+        'ttl': !exists(json, 'ttl') ? undefined : json['ttl'],
     };
 }
 
-export function InfraAPIKeyCreateResponseToJSON(value?: InfraAPIKeyCreateResponse | null): any {
+export function InfraAPITokenCreateResponseToJSON(value?: InfraAPITokenCreateResponse | null): any {
     if (value === undefined) {
         return undefined;
     }
@@ -85,11 +92,12 @@ export function InfraAPIKeyCreateResponseToJSON(value?: InfraAPIKeyCreateRespons
     }
     return {
         
-        'key': value.key,
+        'token': value.token,
         'id': value.id,
         'created': value.created,
         'name': value.name,
         'permissions': value.permissions,
+        'ttl': value.ttl,
     };
 }
 

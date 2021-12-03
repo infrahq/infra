@@ -8,7 +8,7 @@ metadata:
 data:
   config.yaml: |
     kind: kubernetes
-    api-key: file:///var/run/secrets/infrahq.com/engine/engine-api-key
+    api-token: file:///var/run/secrets/infrahq.com/engine/engine-api-token
 {{- $options := list "name" "host" }}
 {{- $options = list "tlsCache" "skipTLSVerify" | concat $options }}
 {{- $options = list "labels" | concat $options }}

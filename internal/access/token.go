@@ -18,10 +18,22 @@ const (
 	PermissionTokenRead   Permission = "infra.token.read"
 	PermissionTokenRevoke Permission = "infra.token.revoke" // nolint:gosec
 
+<<<<<<< HEAD
 	PermissionAPIKey       Permission = "infra.apiKey.*"      // nolint:gosec
 	PermissionAPIKeyIssue  Permission = "infra.apiKey.issue"  // nolint:gosec
 	PermissionAPIKeyRead   Permission = "infra.apiKey.read"   // nolint:gosec
 	PermissionAPIKeyRevoke Permission = "infra.apiKey.revoke" // nolint:gosec
+||||||| parent of 9f521ce (Rename API keys to API tokens)
+	PermissionAPIKey       Permission = "infra.apiKey.*"      // nolint:gosec
+	PermissionAPIKeyIssue  Permission = "infra.apiKey.issue"  // nolint:gosec
+	PermissionAPIKeyList   Permission = "infra.apiKey.list"   // nolint:gosec
+	PermissionAPIKeyRevoke Permission = "infra.apiKey.revoke" // nolint:gosec
+=======
+	PermissionAPIToken       Permission = "infra.apiToken.*"      // nolint:gosec
+	PermissionAPITokenIssue  Permission = "infra.apiToken.issue"  // nolint:gosec
+	PermissionAPITokenList   Permission = "infra.apiToken.list"   // nolint:gosec
+	PermissionAPITokenRevoke Permission = "infra.apiToken.revoke" // nolint:gosec
+>>>>>>> 9f521ce (Rename API keys to API tokens)
 
 	PermissionCredentialCreate Permission = "infra.credential.create" //nolint:gosec
 )
@@ -85,41 +97,41 @@ func RevokeToken(c *gin.Context) (*models.Token, error) {
 	return token, nil
 }
 
-func IssueAPIKey(c *gin.Context, apiKey *models.APIKey) (*models.APIKey, error) {
-	db, err := RequireAuthorization(c, PermissionAPIKeyIssue)
+func IssueAPIToken(c *gin.Context, apiToken *models.APIToken) (*models.APIToken, error) {
+	db, err := RequireAuthorization(c, PermissionAPITokenIssue)
 	if err != nil {
 		return nil, err
 	}
 
-	return data.CreateAPIKey(db, apiKey)
+	return data.CreateAPIToken(db, apiToken)
 }
 
-func ListAPIKeys(c *gin.Context, name string) ([]models.APIKey, error) {
-	db, err := RequireAuthorization(c, PermissionAPIKeyRead)
+func ListAPITokens(c *gin.Context, name string) ([]models.APIToken, error) {
+	db, err := RequireAuthorization(c, PermissionAPITokenList)
 	if err != nil {
 		return nil, err
 	}
 
-	apiKeys, err := data.ListAPIKeys(db, &models.APIKey{Name: name})
+	apiTokens, err := data.ListAPITokens(db, &models.APIToken{Name: name})
 	if err != nil {
 		return nil, err
 	}
 
-	return apiKeys, nil
+	return apiTokens, nil
 }
 
-func RevokeAPIKey(c *gin.Context, id string) error {
-	db, err := RequireAuthorization(c, PermissionAPIKeyRevoke)
+func RevokeAPIToken(c *gin.Context, id string) error {
+	db, err := RequireAuthorization(c, PermissionAPITokenRevoke)
 	if err != nil {
 		return err
 	}
 
-	token, err := models.NewAPIKey(id)
+	token, err := models.NewAPIToken(id)
 	if err != nil {
 		return err
 	}
 
-	return data.DeleteAPIKey(db, token)
+	return data.DeleteAPIToken(db, token)
 }
 
 var signatureAlgorithmFromKeyAlgorithm = map[string]string{

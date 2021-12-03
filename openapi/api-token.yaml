@@ -1,0 +1,47 @@
+InfraAPIToken:
+  type: object
+  required:
+    - id
+    - created
+    - name
+    - permissions
+  properties:
+    id:
+      type: string
+      format: uuid
+    created:
+      type: integer
+      format: int64
+    name:
+      type: string
+    permissions:
+      type: array
+      items:
+        type: string
+    ttl:
+      type: string
+      description: token time to live before expiry in the form XhYmZs, for example 1h30m
+InfraAPITokenCreateRequest:
+  type: object
+  required:
+    - name
+    - permissions
+  properties:
+    name:
+      type: string
+    permissions:
+      type: array
+      items:
+        type: string
+    ttl:
+      type: string
+      description: token time to live before expirry in the form XhYmZs, for example 1h30m
+InfraAPITokenCreateResponse:
+  allOf:
+    - $ref: 'api-token.yaml#/InfraAPIToken'
+  type: object
+  required:
+    - token
+  properties:
+    token:
+      type: string

@@ -1,6 +1,6 @@
 name: ""
 host: ""
-apiKey: ""
+apiToken: ""
 tlsCache: /var/run/infra/data/cache
 skipTLSVerify: true
 labels: []

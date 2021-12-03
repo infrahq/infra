@@ -37,7 +37,7 @@ import (
 type Options struct {
 	Name             string   `mapstructure:"name"`
 	Kind             string   `mapstructure:"kind"`
-	APIKey           string   `mapstructure:"api-key"`
+	APIToken         string   `mapstructure:"api-token"`
 	TLSCache         string   `mapstructure:"tls-cache"`
 	SkipTLSVerify    bool     `mapstructure:"skip-tls-verify"`
 	Labels           []string `mapstructure:"labels"`
@@ -241,28 +241,28 @@ func Run(options *Options) error {
 		}
 	}
 
-	engineAPIKeyURI, err := url.Parse(options.APIKey)
+	engineAPITokenURI, err := url.Parse(options.APIToken)
 	if err != nil {
 		return err
 	}
 
-	var engineAPIKey string
+	var engineAPIToken string
 
-	switch engineAPIKeyURI.Scheme {
+	switch engineAPITokenURI.Scheme {
 	case "":
 		// option does not have a scheme, assume it is plaintext
-		engineAPIKey = string(options.APIKey)
+		engineAPIToken = string(options.APIToken)
 	case "file":
 		// option is a file path, read contents from the path
-		contents, err := ioutil.ReadFile(engineAPIKeyURI.Path)
+		contents, err := ioutil.ReadFile(engineAPITokenURI.Path)
 		if err != nil {
 			return err
 		}
 
-		engineAPIKey = string(contents)
+		engineAPIToken = string(contents)
 
 	default:
-		return fmt.Errorf("unsupported secret format %s", engineAPIKeyURI.Scheme)
+		return fmt.Errorf("unsupported secret format %s", engineAPITokenURI.Scheme)
 	}
 
 	k8s, err := kubernetes.NewKubernetes()
@@ -288,7 +288,7 @@ func Run(options *Options) error {
 	u.Scheme = "https"
 
 	ctx := context.WithValue(context.Background(), api.ContextServerVariables, map[string]string{"basePath": "v1"})
-	ctx = context.WithValue(ctx, api.ContextAccessToken, engineAPIKey)
+	ctx = context.WithValue(ctx, api.ContextAccessToken, engineAPIToken)
 	config := api.NewConfiguration()
 	config.Host = u.Host
 	config.Scheme = "https"
@@ -436,7 +436,7 @@ func Run(options *Options) error {
 	cache := jwkCache{
 		client: &http.Client{
 			Transport: &BearerTransport{
-				Token: engineAPIKey,
+				Token: engineAPIToken,
 				Transport: &http.Transport{
 					TLSClientConfig: hostTLSConfig,
 				},

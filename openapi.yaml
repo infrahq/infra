@@ -21,8 +21,8 @@ tags:
     description: Manage infrastructure destinations
   - name: tokens
     description: Manage infrastructure destination tokens
-  - name: api-keys
-    description: Manage administrator API keys
+  - name: api-tokens
+    description: Manage Infra API tokens
   - name: auth
     description: Manage user authentication
   - name: version

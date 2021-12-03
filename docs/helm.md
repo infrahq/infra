@@ -162,8 +162,8 @@ kubectl delete clusterrolebindings,rolebindings -l app.kubernetes.io/managed-by=
 | Parameter                          | Description                             | Default                      |
 |------------------------------------|-----------------------------------------|------------------------------|
 | `config`                           | Infra configuration                     | `nil` (see [configuration.md][1]) |
-| `rootAPIKey`                       | Infra root API key                      | `""` (auto-generated)        |
-| `engineAPIKey`                     | Infra engine API key                    | `""` (auto-generated)        |
+| `rootAPIToken`                       | Infra root API token                      | `""` (auto-generated)        |
+| `engineAPIToken`                     | Infra engine API token                    | `""` (auto-generated)        |
 | `enableCrashReporting`             | Enable crash report                     | `true`                       |
 | `enableTelemetry`                  | Enable telemetry collection             | `true`                       |
 | `pg.*`                             | PostgresQL configuration                | (see [postgres.md][2])       |
@@ -206,7 +206,7 @@ kubectl delete clusterrolebindings,rolebindings -l app.kubernetes.io/managed-by=
 |------------------------------------|-----------------------------------------|------------------------------|
 | `name`                             | Cluster name                            | `""` (auto-discovered)       |
 | `host`                             | Infra endpoint                          | `""` (required)              |
-| `apiKey`                           | Infra API key                           | `""` (required)              |
+| `apiToken`                           | Infra API token                           | `""` (required)              |
 | `labels`                           | Additional filter labels                | `[]`                         |
 | `image.tag`                        | Image tag                               | `""` (latest release)        |
 | `image.repository`                 | Image repository                        | `infrahq/infra`              |

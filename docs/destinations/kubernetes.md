@@ -128,13 +128,13 @@ Depending on your Infra Helm configurations, the steps will differ.
 ### Get Infra API Key
 
 ```
-INFRA_API_KEY=$(kubectl -n infrahq get secrets infra-engine -o jsonpath='{.data.engine-api-key}' | base64 --decode)
+INFRA_API_TOKEN=$(kubectl -n infrahq get secrets infra-engine -o jsonpath='{.data.engine-api-token}' | base64 --decode)
 ```
 
 ---
 
 ```
-helm upgrade --install -n infrahq --create-namespace --set host=$INFRA_HOST --set apiKey=$INFRA_API_KEY infra infrahq/engine
+helm upgrade --install -n infrahq --create-namespace --set host=$INFRA_HOST --set apiToken=$INFRA_API_TOKEN infra infrahq/engine
 ```
 
 See [Helm Chart reference](./helm.md) for a complete list of options configurable through Helm.

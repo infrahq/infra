@@ -43,8 +43,8 @@ type Options struct {
 	ConfigPath      string          `mapstructure:"config-path"`
 	DBFile          string          `mapstructure:"db-file"`
 	TLSCache        string          `mapstructure:"tls-cache"`
-	RootAPIKey      string          `mapstructure:"root-api-key"`
-	EngineAPIKey    string          `mapstructure:"engine-api-key"`
+	RootAPIToken    string          `mapstructure:"root-api-token"`
+	EngineAPIToken  string          `mapstructure:"engine-api-token"`
 	PostgresOptions PostgresOptions `mapstructure:"pg"`
 
 	EnableTelemetry      bool `mapstructure:"enable-telemetry"`
@@ -125,8 +125,8 @@ func Run(options Options) (err error) {
 		return fmt.Errorf("mkdir: %w", err)
 	}
 
-	if err := r.importAPIKeys(); err != nil {
-		return fmt.Errorf("importing api keys: %w", err)
+	if err := r.importAPITokens(); err != nil {
+		return fmt.Errorf("importing api tokens: %w", err)
 	}
 
 	if err := r.runServer(); err != nil {
@@ -367,7 +367,7 @@ func (r *Registry) GetSecret(name string) (string, error) {
 	} else {
 		parts := strings.SplitN(name, ":", 2)
 		if len(parts) < 2 {
-			return "", fmt.Errorf("unexpected secret provider format %q. Expecting <kind>:<secret name>, eg env:API_KEY", name)
+			return "", fmt.Errorf("unexpected secret provider format %q. Expecting <kind>:<secret name>, eg env:API_TOKEN", name)
 		}
 		kind = parts[0]
 		name = parts[1]
