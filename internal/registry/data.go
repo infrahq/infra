@@ -15,7 +15,7 @@ import (
 	"github.com/infrahq/infra/internal/registry/models"
 )
 
-// TODO: #691 set user permissions based on their internal infrahq role (user or admin)
+// TODO: #691 set user permissions based on their internal infrahq grant (user or admin)
 var defaultPermissions = strings.Join([]string{
 	string(access.PermissionUserRead),
 	string(access.PermissionTokenRevoke),
@@ -90,7 +90,7 @@ func syncProvider(r *Registry, db *gorm.DB, provider models.Provider) error {
 			return err
 		}
 
-		if err := importRoleMappings(db, r.config.Users, r.config.Groups); err != nil {
+		if err := importGrantMappings(db, r.config.Users, r.config.Groups); err != nil {
 			return err
 		}
 

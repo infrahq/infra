@@ -1,10 +1,10 @@
 get:
-  summary: Get role
+  summary: Get grant
   tags:
-    - roles
+    - grants
   security:
     - bearerAuth: []
-  operationId: getRole
+  operationId: getGrant
   parameters:
     - in: path
       name: id
@@ -12,14 +12,14 @@ get:
       schema:
         type: string
         format: uuid
-      description: Role ID
+      description: Grant ID
   responses:
     '200':
-      description: Role response
+      description: Grant response
       content:
         application/json:
           schema:
-            $ref: ../components/schemas/Role.yaml
+            $ref: ../components/schemas/Grant.yaml
     default:
       description: Error response
       content:

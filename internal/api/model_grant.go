@@ -14,27 +14,27 @@ import (
 	"encoding/json"
 )
 
-// Role struct for Role
-type Role struct {
+// Grant struct for Grant
+type Grant struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 	// created time in seconds since 1970-01-01
 	Created int64 `json:"created"`
 	// updated time in seconds since 1970-01-01
 	Updated     int64       `json:"updated"`
-	Kind        RoleKind    `json:"kind"`
+	Kind        GrantKind   `json:"kind"`
 	Namespace   string      `json:"namespace"`
 	Users       *[]User     `json:"users,omitempty"`
 	Groups      *[]Group    `json:"groups,omitempty"`
 	Destination Destination `json:"destination"`
 }
 
-// NewRole instantiates a new Role object
+// NewGrant instantiates a new Grant object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewRole(id string, name string, created int64, updated int64, kind RoleKind, namespace string, destination Destination) *Role {
-	this := Role{}
+func NewGrant(id string, name string, created int64, updated int64, kind GrantKind, namespace string, destination Destination) *Grant {
+	this := Grant{}
 	this.ID = id
 	this.Name = name
 	this.Created = created
@@ -45,18 +45,18 @@ func NewRole(id string, name string, created int64, updated int64, kind RoleKind
 	return &this
 }
 
-// NewRoleWithDefaults instantiates a new Role object
+// NewGrantWithDefaults instantiates a new Grant object
 // This constructor will only assign default values to properties that have it defined,
 // but it doesn't guarantee that properties required by API are set
-func NewRoleWithDefaults() *Role {
-	this := Role{}
-	var kind RoleKind = ROLEKIND_ROLE
+func NewGrantWithDefaults() *Grant {
+	this := Grant{}
+	var kind GrantKind = GRANTKIND_ROLE
 	this.Kind = kind
 	return &this
 }
 
 // GetID returns the ID field value
-func (o *Role) GetID() string {
+func (o *Grant) GetID() string {
 	if o == nil {
 		var ret string
 		return ret
@@ -67,7 +67,7 @@ func (o *Role) GetID() string {
 
 // GetIDOK returns a tuple with the ID field value
 // and a boolean to check if the value has been set.
-func (o *Role) GetIDOK() (*string, bool) {
+func (o *Grant) GetIDOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -75,12 +75,12 @@ func (o *Role) GetIDOK() (*string, bool) {
 }
 
 // SetID sets field value
-func (o *Role) SetID(v string) {
+func (o *Grant) SetID(v string) {
 	o.ID = v
 }
 
 // GetName returns the Name field value
-func (o *Role) GetName() string {
+func (o *Grant) GetName() string {
 	if o == nil {
 		var ret string
 		return ret
@@ -91,7 +91,7 @@ func (o *Role) GetName() string {
 
 // GetNameOK returns a tuple with the Name field value
 // and a boolean to check if the value has been set.
-func (o *Role) GetNameOK() (*string, bool) {
+func (o *Grant) GetNameOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -99,12 +99,12 @@ func (o *Role) GetNameOK() (*string, bool) {
 }
 
 // SetName sets field value
-func (o *Role) SetName(v string) {
+func (o *Grant) SetName(v string) {
 	o.Name = v
 }
 
 // GetCreated returns the Created field value
-func (o *Role) GetCreated() int64 {
+func (o *Grant) GetCreated() int64 {
 	if o == nil {
 		var ret int64
 		return ret
@@ -115,7 +115,7 @@ func (o *Role) GetCreated() int64 {
 
 // GetCreatedOK returns a tuple with the Created field value
 // and a boolean to check if the value has been set.
-func (o *Role) GetCreatedOK() (*int64, bool) {
+func (o *Grant) GetCreatedOK() (*int64, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -123,12 +123,12 @@ func (o *Role) GetCreatedOK() (*int64, bool) {
 }
 
 // SetCreated sets field value
-func (o *Role) SetCreated(v int64) {
+func (o *Grant) SetCreated(v int64) {
 	o.Created = v
 }
 
 // GetUpdated returns the Updated field value
-func (o *Role) GetUpdated() int64 {
+func (o *Grant) GetUpdated() int64 {
 	if o == nil {
 		var ret int64
 		return ret
@@ -139,7 +139,7 @@ func (o *Role) GetUpdated() int64 {
 
 // GetUpdatedOK returns a tuple with the Updated field value
 // and a boolean to check if the value has been set.
-func (o *Role) GetUpdatedOK() (*int64, bool) {
+func (o *Grant) GetUpdatedOK() (*int64, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -147,14 +147,14 @@ func (o *Role) GetUpdatedOK() (*int64, bool) {
 }
 
 // SetUpdated sets field value
-func (o *Role) SetUpdated(v int64) {
+func (o *Grant) SetUpdated(v int64) {
 	o.Updated = v
 }
 
 // GetKind returns the Kind field value
-func (o *Role) GetKind() RoleKind {
+func (o *Grant) GetKind() GrantKind {
 	if o == nil {
-		var ret RoleKind
+		var ret GrantKind
 		return ret
 	}
 
@@ -163,7 +163,7 @@ func (o *Role) GetKind() RoleKind {
 
 // GetKindOK returns a tuple with the Kind field value
 // and a boolean to check if the value has been set.
-func (o *Role) GetKindOK() (*RoleKind, bool) {
+func (o *Grant) GetKindOK() (*GrantKind, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -171,12 +171,12 @@ func (o *Role) GetKindOK() (*RoleKind, bool) {
 }
 
 // SetKind sets field value
-func (o *Role) SetKind(v RoleKind) {
+func (o *Grant) SetKind(v GrantKind) {
 	o.Kind = v
 }
 
 // GetNamespace returns the Namespace field value
-func (o *Role) GetNamespace() string {
+func (o *Grant) GetNamespace() string {
 	if o == nil {
 		var ret string
 		return ret
@@ -187,7 +187,7 @@ func (o *Role) GetNamespace() string {
 
 // GetNamespaceOK returns a tuple with the Namespace field value
 // and a boolean to check if the value has been set.
-func (o *Role) GetNamespaceOK() (*string, bool) {
+func (o *Grant) GetNamespaceOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -195,12 +195,12 @@ func (o *Role) GetNamespaceOK() (*string, bool) {
 }
 
 // SetNamespace sets field value
-func (o *Role) SetNamespace(v string) {
+func (o *Grant) SetNamespace(v string) {
 	o.Namespace = v
 }
 
 // GetUsers returns the Users field value if set, zero value otherwise.
-func (o *Role) GetUsers() []User {
+func (o *Grant) GetUsers() []User {
 	if o == nil || o.Users == nil {
 		var ret []User
 		return ret
@@ -210,7 +210,7 @@ func (o *Role) GetUsers() []User {
 
 // GetUsersOK returns a tuple with the Users field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *Role) GetUsersOK() (*[]User, bool) {
+func (o *Grant) GetUsersOK() (*[]User, bool) {
 	if o == nil || o.Users == nil {
 		return nil, false
 	}
@@ -218,7 +218,7 @@ func (o *Role) GetUsersOK() (*[]User, bool) {
 }
 
 // HasUsers returns a boolean if a field has been set.
-func (o *Role) HasUsers() bool {
+func (o *Grant) HasUsers() bool {
 	if o != nil && o.Users != nil {
 		return true
 	}
@@ -227,12 +227,12 @@ func (o *Role) HasUsers() bool {
 }
 
 // SetUsers gets a reference to the given []User and assigns it to the Users field.
-func (o *Role) SetUsers(v []User) {
+func (o *Grant) SetUsers(v []User) {
 	o.Users = &v
 }
 
 // GetGroups returns the Groups field value if set, zero value otherwise.
-func (o *Role) GetGroups() []Group {
+func (o *Grant) GetGroups() []Group {
 	if o == nil || o.Groups == nil {
 		var ret []Group
 		return ret
@@ -242,7 +242,7 @@ func (o *Role) GetGroups() []Group {
 
 // GetGroupsOK returns a tuple with the Groups field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *Role) GetGroupsOK() (*[]Group, bool) {
+func (o *Grant) GetGroupsOK() (*[]Group, bool) {
 	if o == nil || o.Groups == nil {
 		return nil, false
 	}
@@ -250,7 +250,7 @@ func (o *Role) GetGroupsOK() (*[]Group, bool) {
 }
 
 // HasGroups returns a boolean if a field has been set.
-func (o *Role) HasGroups() bool {
+func (o *Grant) HasGroups() bool {
 	if o != nil && o.Groups != nil {
 		return true
 	}
@@ -259,12 +259,12 @@ func (o *Role) HasGroups() bool {
 }
 
 // SetGroups gets a reference to the given []Group and assigns it to the Groups field.
-func (o *Role) SetGroups(v []Group) {
+func (o *Grant) SetGroups(v []Group) {
 	o.Groups = &v
 }
 
 // GetDestination returns the Destination field value
-func (o *Role) GetDestination() Destination {
+func (o *Grant) GetDestination() Destination {
 	if o == nil {
 		var ret Destination
 		return ret
@@ -275,7 +275,7 @@ func (o *Role) GetDestination() Destination {
 
 // GetDestinationOK returns a tuple with the Destination field value
 // and a boolean to check if the value has been set.
-func (o *Role) GetDestinationOK() (*Destination, bool) {
+func (o *Grant) GetDestinationOK() (*Destination, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -283,11 +283,11 @@ func (o *Role) GetDestinationOK() (*Destination, bool) {
 }
 
 // SetDestination sets field value
-func (o *Role) SetDestination(v Destination) {
+func (o *Grant) SetDestination(v Destination) {
 	o.Destination = v
 }
 
-func (o Role) MarshalJSON() ([]byte, error) {
+func (o Grant) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
 		toSerialize["id"] = o.ID
@@ -319,38 +319,38 @@ func (o Role) MarshalJSON() ([]byte, error) {
 	return json.Marshal(toSerialize)
 }
 
-type NullableRole struct {
-	value *Role
+type NullableGrant struct {
+	value *Grant
 	isSet bool
 }
 
-func (v NullableRole) Get() *Role {
+func (v NullableGrant) Get() *Grant {
 	return v.value
 }
 
-func (v *NullableRole) Set(val *Role) {
+func (v *NullableGrant) Set(val *Grant) {
 	v.value = val
 	v.isSet = true
 }
 
-func (v NullableRole) IsSet() bool {
+func (v NullableGrant) IsSet() bool {
 	return v.isSet
 }
 
-func (v *NullableRole) Unset() {
+func (v *NullableGrant) Unset() {
 	v.value = nil
 	v.isSet = false
 }
 
-func NewNullableRole(val *Role) *NullableRole {
-	return &NullableRole{value: val, isSet: true}
+func NewNullableGrant(val *Grant) *NullableGrant {
+	return &NullableGrant{value: val, isSet: true}
 }
 
-func (v NullableRole) MarshalJSON() ([]byte, error) {
+func (v NullableGrant) MarshalJSON() ([]byte, error) {
 	return json.Marshal(v.value)
 }
 
-func (v *NullableRole) UnmarshalJSON(src []byte) error {
+func (v *NullableGrant) UnmarshalJSON(src []byte) error {
 	v.isSet = true
 	return json.Unmarshal(src, &v.value)
 }

@@ -38,7 +38,7 @@ func NewDB(connection gorm.Dialector) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	if err := db.AutoMigrate(&models.Role{}, &models.RoleKubernetes{}); err != nil {
+	if err := db.AutoMigrate(&models.Grant{}, &models.GrantKubernetes{}); err != nil {
 		return nil, err
 	}
 

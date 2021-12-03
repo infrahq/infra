@@ -6,50 +6,50 @@ import (
 	"github.com/infrahq/infra/internal/api"
 )
 
-type RoleKind string
+type GrantKind string
 
-var RoleKindKubernetes RoleKind = "kubernetes"
+var GrantKindKubernetes GrantKind = "kubernetes"
 
-type Role struct {
+type Grant struct {
 	Model
-	Kind RoleKind
+	Kind GrantKind
 
 	DestinationID uuid.UUID
 	Destination   Destination
 
-	Groups []Group `gorm:"many2many:groups_roles"`
-	Users  []User  `gorm:"many2many:users_roles"`
+	Groups []Group `gorm:"many2many:groups_grants"`
+	Users  []User  `gorm:"many2many:users_grants"`
 
-	Kubernetes RoleKubernetes
+	Kubernetes GrantKubernetes
 }
 
-type RoleKubernetesKind string
+type GrantKubernetesKind string
 
 var (
-	RoleKubernetesKindRole        RoleKubernetesKind = "role"
-	RoleKubernetesKindClusterRole RoleKubernetesKind = "cluster-role"
+	GrantKubernetesKindGrant        GrantKubernetesKind = "grant"
+	GrantKubernetesKindClusterGrant GrantKubernetesKind = "cluster-grant"
 )
 
-type RoleKubernetes struct {
+type GrantKubernetes struct {
 	Model
 
-	Kind      RoleKubernetesKind
+	Kind      GrantKubernetesKind
 	Name      string
 	Namespace string
 
-	RoleID uuid.UUID
+	GrantID uuid.UUID
 }
 
-func (r *Role) ToAPI() api.Role {
-	result := api.Role{
+func (r *Grant) ToAPI() api.Grant {
+	result := api.Grant{
 		ID:      r.ID.String(),
 		Created: r.CreatedAt.Unix(),
 		Updated: r.UpdatedAt.Unix(),
 	}
 
 	switch r.Kind {
-	case RoleKindKubernetes:
-		result.Kind = api.RoleKind(r.Kubernetes.Kind)
+	case GrantKindKubernetes:
+		result.Kind = api.GrantKind(r.Kubernetes.Kind)
 		result.Name = r.Kubernetes.Name
 		result.Namespace = r.Kubernetes.Namespace
 	}
@@ -77,13 +77,13 @@ func (r *Role) ToAPI() api.Role {
 	return result
 }
 
-func NewRole(id string) (*Role, error) {
+func NewGrant(id string) (*Grant, error) {
 	uuid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Role{
+	return &Grant{
 		Model: Model{
 			ID: uuid,
 		},

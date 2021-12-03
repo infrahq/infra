@@ -15,35 +15,35 @@
 
 import * as runtime from '../runtime';
 import {
-    Role,
-    RoleFromJSON,
-    RoleToJSON,
-    RoleKind,
-    RoleKindFromJSON,
-    RoleKindToJSON,
+    Grant,
+    GrantFromJSON,
+    GrantToJSON,
+    GrantKind,
+    GrantKindFromJSON,
+    GrantKindToJSON,
 } from '../models';
 
-export interface GetRoleRequest {
+export interface GetGrantRequest {
     id: string;
 }
 
-export interface ListRolesRequest {
+export interface ListGrantsRequest {
     name?: string;
-    kind?: RoleKind;
+    kind?: GrantKind;
     destination?: string;
 }
 
 /**
  * 
  */
-export class RolesApi extends runtime.BaseAPI {
+export class GrantsApi extends runtime.BaseAPI {
 
     /**
-     * Get role
+     * Get grant
      */
-    async getRoleRaw(requestParameters: GetRoleRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Role>> {
+    async getGrantRaw(requestParameters: GetGrantRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Grant>> {
         if (requestParameters.id === null || requestParameters.id === undefined) {
-            throw new runtime.RequiredError('id','Required parameter requestParameters.id was null or undefined when calling getRole.');
+            throw new runtime.RequiredError('id','Required parameter requestParameters.id was null or undefined when calling getGrant.');
         }
 
         const queryParameters: any = {};
@@ -59,27 +59,27 @@ export class RolesApi extends runtime.BaseAPI {
             }
         }
         const response = await this.request({
-            path: `/roles/{id}`.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters.id))),
+            path: `/grants/{id}`.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters.id))),
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => RoleFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => GrantFromJSON(jsonValue));
     }
 
     /**
-     * Get role
+     * Get grant
      */
-    async getRole(requestParameters: GetRoleRequest, initOverrides?: RequestInit): Promise<Role> {
-        const response = await this.getRoleRaw(requestParameters, initOverrides);
+    async getGrant(requestParameters: GetGrantRequest, initOverrides?: RequestInit): Promise<Grant> {
+        const response = await this.getGrantRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
-     * List roles
+     * List grants
      */
-    async listRolesRaw(requestParameters: ListRolesRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<Role>>> {
+    async listGrantsRaw(requestParameters: ListGrantsRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<Grant>>> {
         const queryParameters: any = {};
 
         if (requestParameters.name !== undefined) {
@@ -105,20 +105,20 @@ export class RolesApi extends runtime.BaseAPI {
             }
         }
         const response = await this.request({
-            path: `/roles`,
+            path: `/grants`,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(RoleFromJSON));
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(GrantFromJSON));
     }
 
     /**
-     * List roles
+     * List grants
      */
-    async listRoles(requestParameters: ListRolesRequest, initOverrides?: RequestInit): Promise<Array<Role>> {
-        const response = await this.listRolesRaw(requestParameters, initOverrides);
+    async listGrants(requestParameters: ListGrantsRequest, initOverrides?: RequestInit): Promise<Array<Grant>> {
+        const response = await this.listGrantsRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

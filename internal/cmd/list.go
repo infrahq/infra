@@ -84,12 +84,12 @@ func list(options *ListOptions) error {
 
 	// deduplicate rows
 	rows := make(map[string]listRow)
-	for _, r := range user.GetRoles() {
+	for _, r := range user.GetGrants() {
 		rows[r.Destination.ID] = newRow(r, kubeConfig.CurrentContext)
 	}
 
 	for _, g := range user.GetGroups() {
-		for _, r := range g.GetRoles() {
+		for _, r := range g.GetGrants() {
 			rows[r.Destination.ID] = newRow(r, kubeConfig.CurrentContext)
 		}
 	}
@@ -113,14 +113,14 @@ func list(options *ListOptions) error {
 	return nil
 }
 
-func newRow(role api.Role, currentContext string) listRow {
+func newRow(grant api.Grant, currentContext string) listRow {
 	row := listRow{
-		ID:     role.Destination.NodeID[:12],
-		Name:   role.Destination.Name,
-		Labels: strings.Join(role.Destination.Labels, ", "),
+		ID:     grant.Destination.NodeID[:12],
+		Name:   grant.Destination.Name,
+		Labels: strings.Join(grant.Destination.Labels, ", "),
 	}
 
-	if k8s, ok := role.Destination.GetKubernetesOK(); ok {
+	if k8s, ok := grant.Destination.GetKubernetesOK(); ok {
 		row.Endpoint = k8s.Endpoint
 		row.CertificateAuthorityData = []byte(k8s.CA)
 		row.Kind = "kubernetes"
@@ -131,8 +131,8 @@ func newRow(role api.Role, currentContext string) listRow {
 	if len(parts) >= 2 && parts[0] == "infra" {
 		// check "infra:<ALIAS>[@<NAME>][:<NAMESPACE>]"
 		parts := strings.Split(parts[1], "@")
-		if parts[0] == role.Destination.Name {
-			if len(parts) > 1 && parts[1] == role.Destination.NodeID[:12] {
+		if parts[0] == grant.Destination.Name {
+			if len(parts) > 1 && parts[1] == grant.Destination.NodeID[:12] {
 				// check "<ALIAS>@<NAME>"
 				row.CurrentlySelected = "*"
 			} else if len(parts) == 1 {

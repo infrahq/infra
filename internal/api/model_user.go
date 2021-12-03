@@ -23,7 +23,7 @@ type User struct {
 	// updated time in seconds since 1970-01-01
 	Updated   int64       `json:"updated"`
 	Groups    *[]Group    `json:"groups,omitempty"`
-	Roles     *[]Role     `json:"roles,omitempty"`
+	Grants    *[]Grant    `json:"grants,omitempty"`
 	Providers *[]Provider `json:"providers,omitempty"`
 }
 
@@ -176,36 +176,36 @@ func (o *User) SetGroups(v []Group) {
 	o.Groups = &v
 }
 
-// GetRoles returns the Roles field value if set, zero value otherwise.
-func (o *User) GetRoles() []Role {
-	if o == nil || o.Roles == nil {
-		var ret []Role
+// GetGrants returns the Grants field value if set, zero value otherwise.
+func (o *User) GetGrants() []Grant {
+	if o == nil || o.Grants == nil {
+		var ret []Grant
 		return ret
 	}
-	return *o.Roles
+	return *o.Grants
 }
 
-// GetRolesOK returns a tuple with the Roles field value if set, nil otherwise
+// GetGrantsOK returns a tuple with the Grants field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *User) GetRolesOK() (*[]Role, bool) {
-	if o == nil || o.Roles == nil {
+func (o *User) GetGrantsOK() (*[]Grant, bool) {
+	if o == nil || o.Grants == nil {
 		return nil, false
 	}
-	return o.Roles, true
+	return o.Grants, true
 }
 
-// HasRoles returns a boolean if a field has been set.
-func (o *User) HasRoles() bool {
-	if o != nil && o.Roles != nil {
+// HasGrants returns a boolean if a field has been set.
+func (o *User) HasGrants() bool {
+	if o != nil && o.Grants != nil {
 		return true
 	}
 
 	return false
 }
 
-// SetRoles gets a reference to the given []Role and assigns it to the Roles field.
-func (o *User) SetRoles(v []Role) {
-	o.Roles = &v
+// SetGrants gets a reference to the given []Grant and assigns it to the Grants field.
+func (o *User) SetGrants(v []Grant) {
+	o.Grants = &v
 }
 
 // GetProviders returns the Providers field value if set, zero value otherwise.
@@ -257,8 +257,8 @@ func (o User) MarshalJSON() ([]byte, error) {
 	if o.Groups != nil {
 		toSerialize["groups"] = o.Groups
 	}
-	if o.Roles != nil {
-		toSerialize["roles"] = o.Roles
+	if o.Grants != nil {
+		toSerialize["grants"] = o.Grants
 	}
 	if o.Providers != nil {
 		toSerialize["providers"] = o.Providers

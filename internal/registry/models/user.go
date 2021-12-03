@@ -13,7 +13,7 @@ type User struct {
 	Email       string
 	Permissions string
 
-	Roles     []Role     `gorm:"many2many:users_roles"`
+	Grants     []Grant     `gorm:"many2many:users_grants"`
 	Providers []Provider `gorm:"many2many:users_providers"`
 	Groups    []Group    `gorm:"many2many:users_groups"`
 }
@@ -36,13 +36,13 @@ func (u *User) ToAPI() api.User {
 		result.SetGroups(groups)
 	}
 
-	roles := make([]api.Role, 0)
-	for _, r := range u.Roles {
-		roles = append(roles, r.ToAPI())
+	grants := make([]api.Grant, 0)
+	for _, r := range u.Grants {
+		grants = append(grants, r.ToAPI())
 	}
 
-	if len(roles) > 0 {
-		result.SetRoles(roles)
+	if len(grants) > 0 {
+		result.SetGrants(grants)
 	}
 
 	providers := make([]api.Provider, 0)

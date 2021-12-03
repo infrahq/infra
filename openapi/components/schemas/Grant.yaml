@@ -22,7 +22,7 @@ properties:
     format: int64
     description: updated time in seconds since 1970-01-01
   kind:
-    $ref: ./RoleKind.yaml
+    $ref: ./GrantKind.yaml
   namespace:
     type: string
   users:

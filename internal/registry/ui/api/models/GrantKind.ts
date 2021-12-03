@@ -17,20 +17,20 @@
  * @export
  * @enum {string}
  */
-export enum RoleKind {
+export enum GrantKind {
     Role = 'role',
     ClusterRole = 'cluster-role'
 }
 
-export function RoleKindFromJSON(json: any): RoleKind {
-    return RoleKindFromJSONTyped(json, false);
+export function GrantKindFromJSON(json: any): GrantKind {
+    return GrantKindFromJSONTyped(json, false);
 }
 
-export function RoleKindFromJSONTyped(json: any, ignoreDiscriminator: boolean): RoleKind {
-    return json as RoleKind;
+export function GrantKindFromJSONTyped(json: any, ignoreDiscriminator: boolean): GrantKind {
+    return json as GrantKind;
 }
 
-export function RoleKindToJSON(value?: RoleKind | null): any {
+export function GrantKindToJSON(value?: GrantKind | null): any {
     return value as any;
 }
 

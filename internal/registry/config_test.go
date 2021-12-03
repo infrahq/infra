@@ -27,22 +27,22 @@ func configure(t *testing.T, db *gorm.DB) *gorm.DB {
 	return db
 }
 
-func userGrants(t *testing.T, roles []models.Role, email string) map[string][]string {
+func userGrants(t *testing.T, grants []models.Grant, email string) map[string][]string {
 	grants := make(map[string][]string)
 
-	for _, role := range roles {
-		destinationName := role.Destination.Name
+	for _, grant := range grants {
+		destinationName := grant.Destination.Name
 
 		var key string
 
-		switch role.Kind {
-		case models.RoleKindKubernetes:
-			key = fmt.Sprintf("%s:%s:%s", role.Kubernetes.Kind, role.Kubernetes.Name, role.Kubernetes.Namespace)
+		switch grant.Kind {
+		case models.GrantKindKubernetes:
+			key = fmt.Sprintf("%s:%s:%s", grant.Kubernetes.Kind, grant.Kubernetes.Name, grant.Kubernetes.Namespace)
 		default:
-			require.Fail(t, "unknown role kind")
+			require.Fail(t, "unknown grant kind")
 		}
 
-		for _, user := range role.Users {
+		for _, user := range grant.Users {
 			if user.Email != email {
 				continue
 			}
@@ -58,39 +58,39 @@ func userGrants(t *testing.T, roles []models.Role, email string) map[string][]st
 	return grants
 }
 
-func TestImportUserRoles(t *testing.T) {
+func TestImportUserGrants(t *testing.T) {
 	db := configure(t, nil)
 
-	roles, err := data.ListRoles(db, &models.Role{})
+	grants, err := data.ListGrants(db, &models.Grant{})
 	require.NoError(t, err)
 
-	bond := userGrants(t, roles, userBond.Email)
-	require.ElementsMatch(t, []string{"AAA", "BBB", "CCC"}, bond["cluster-role:admin:"])
-	require.ElementsMatch(t, []string{"CCC"}, bond["role:audit:infrahq"])
-	require.ElementsMatch(t, []string{"CCC"}, bond["role:audit:development"])
-	require.ElementsMatch(t, []string{"CCC"}, bond["role:pod-create:infrahq"])
-	require.ElementsMatch(t, []string(nil), bond["role:view"])
+	bond := userGrants(t, grants, userBond.Email)
+	require.ElementsMatch(t, []string{"AAA", "BBB", "CCC"}, bond["cluster-grant:admin:"])
+	require.ElementsMatch(t, []string{"CCC"}, bond["grant:audit:infrahq"])
+	require.ElementsMatch(t, []string{"CCC"}, bond["grant:audit:development"])
+	require.ElementsMatch(t, []string{"CCC"}, bond["grant:pod-create:infrahq"])
+	require.ElementsMatch(t, []string(nil), bond["grant:view"])
 
-	unknown := userGrants(t, roles, "unknown@infrahq.com")
-	require.ElementsMatch(t, []string(nil), unknown["role:writer"])
+	unknown := userGrants(t, grants, "unknown@infrahq.com")
+	require.ElementsMatch(t, []string(nil), unknown["grant:writer"])
 }
 
-func groupGrants(t *testing.T, roles []models.Role, name string) map[string][]string {
+func groupGrants(t *testing.T, grants []models.Grant, name string) map[string][]string {
 	grants := make(map[string][]string)
 
-	for _, role := range roles {
-		destinationName := role.Destination.Name
+	for _, grant := range grants {
+		destinationName := grant.Destination.Name
 
 		var key string
 
-		switch role.Kind {
-		case models.RoleKindKubernetes:
-			key = fmt.Sprintf("%s:%s:%s", role.Kubernetes.Kind, role.Kubernetes.Name, role.Kubernetes.Namespace)
+		switch grant.Kind {
+		case models.GrantKindKubernetes:
+			key = fmt.Sprintf("%s:%s:%s", grant.Kubernetes.Kind, grant.Kubernetes.Name, grant.Kubernetes.Namespace)
 		default:
-			require.Fail(t, "unknown role kind")
+			require.Fail(t, "unknown grant kind")
 		}
 
-		for _, group := range role.Groups {
+		for _, group := range grant.Groups {
 			if group.Name != name {
 				continue
 			}
@@ -106,56 +106,56 @@ func groupGrants(t *testing.T, roles []models.Role, name string) map[string][]st
 	return grants
 }
 
-func TestImportGroupRoles(t *testing.T) {
+func TestImportGroupGrants(t *testing.T) {
 	db := configure(t, nil)
 
-	roles, err := data.ListRoles(db, &models.Role{})
+	grants, err := data.ListGrants(db, &models.Grant{})
 	require.NoError(t, err)
 
-	everyone := groupGrants(t, roles, groupEveryone.Name)
-	require.ElementsMatch(t, []string{"AAA"}, everyone["cluster-role:writer:"])
-	require.ElementsMatch(t, []string{"CCC"}, everyone["role:audit:infrahq"])
-	require.ElementsMatch(t, []string{"CCC"}, everyone["role:audit:development"])
-	require.ElementsMatch(t, []string{"CCC"}, everyone["role:pod-create:infrahq"])
+	everyone := groupGrants(t, grants, groupEveryone.Name)
+	require.ElementsMatch(t, []string{"AAA"}, everyone["cluster-grant:writer:"])
+	require.ElementsMatch(t, []string{"CCC"}, everyone["grant:audit:infrahq"])
+	require.ElementsMatch(t, []string{"CCC"}, everyone["grant:audit:development"])
+	require.ElementsMatch(t, []string{"CCC"}, everyone["grant:pod-create:infrahq"])
 
-	engineering := groupGrants(t, roles, groupEngineers.Name)
-	require.ElementsMatch(t, []string{"BBB"}, engineering["role:writer:"])
+	engineering := groupGrants(t, grants, groupEngineers.Name)
+	require.ElementsMatch(t, []string{"BBB"}, engineering["grant:writer:"])
 }
 
-func TestImportRolesUnknownDestinations(t *testing.T) {
+func TestImportGrantsUnknownDestinations(t *testing.T) {
 	db := configure(t, nil)
 
-	roles, err := data.ListRoles(db, &models.Role{})
+	grants, err := data.ListGrants(db, &models.Grant{})
 	require.NoError(t, err)
 
-	for _, r := range roles {
+	for _, r := range grants {
 		_, err := data.GetDestination(db, db.Where("id = (?)", r.DestinationID))
 		require.NoError(t, err)
 	}
 }
 
-func TestImportRolesNoMatchingLabels(t *testing.T) {
+func TestImportGrantsNoMatchingLabels(t *testing.T) {
 	db := configure(t, nil)
 
-	roles, err := data.ListRoles(db, data.RoleSelector(db, &models.Role{
-		Kind: models.RoleKindKubernetes,
-		Kubernetes: models.RoleKubernetes{
+	grants, err := data.ListGrants(db, data.GrantSelector(db, &models.Grant{
+		Kind: models.GrantKindKubernetes,
+		Kubernetes: models.GrantKubernetes{
 			Name: "view",
 		},
 	}))
 	require.NoError(t, err)
-	require.Len(t, roles, 0)
+	require.Len(t, grants, 0)
 }
 
-func TestImportRolesRemovesUnusedRoles(t *testing.T) {
+func TestImportGrantsRemovesUnusedGrants(t *testing.T) {
 	db := setupDB(t)
 
-	unused, err := data.CreateRole(db, &models.Role{})
+	unused, err := data.CreateGrant(db, &models.Grant{})
 	require.NoError(t, err)
 
 	_ = configure(t, db)
 
-	_, err = data.GetRole(db, unused)
+	_, err = data.GetGrant(db, unused)
 	require.EqualError(t, err, "record not found")
 }
 
@@ -198,9 +198,9 @@ providers:
 groups:
   - name: Everyone
     provider: okta
-    roles:
+    grants:
       - name: cluster-admin
-        kind: cluster-role
+        kind: cluster-grant
         destinations:
           - name: AAA
             kind: kubernetes
@@ -218,9 +218,9 @@ providers:
 groups:
   - name: Everyone
     provider: okta
-    roles:
+    grants:
       - name: cluster-admin
-        kind: cluster-role
+        kind: cluster-grant
         destinations:
           - name: AAA
             kind: kubernetes
@@ -231,16 +231,16 @@ groups:
 	err := r.importConfig([]byte(withNamespace))
 	require.NoError(t, err)
 
-	roles, err := data.ListRoles(db, &models.Role{})
+	grants, err := data.ListGrants(db, &models.Grant{})
 	require.NoError(t, err)
-	require.Len(t, roles, 1)
-	require.Equal(t, "infrahq", roles[0].Kubernetes.Namespace)
+	require.Len(t, grants, 1)
+	require.Equal(t, "infrahq", grants[0].Kubernetes.Namespace)
 
 	err = r.importConfig([]byte(withoutNamespace))
 	require.NoError(t, err)
 
-	roles, err = data.ListRoles(db, &models.Role{})
+	grants, err = data.ListGrants(db, &models.Grant{})
 	require.NoError(t, err)
-	require.Len(t, roles, 1)
-	require.Equal(t, "", roles[0].Kubernetes.Namespace)
+	require.Len(t, grants, 1)
+	require.Equal(t, "", grants[0].Kubernetes.Namespace)
 }

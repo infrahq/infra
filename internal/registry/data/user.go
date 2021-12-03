@@ -10,13 +10,13 @@ import (
 	"github.com/infrahq/infra/internal/registry/models"
 )
 
-func BindUserRoles(db *gorm.DB, user *models.User, roleIDs ...uuid.UUID) error {
-	roles, err := ListRoles(db, roleIDs)
+func BindUserGrants(db *gorm.DB, user *models.User, grantIDs ...uuid.UUID) error {
+	grants, err := ListGrants(db, grantIDs)
 	if err != nil {
 		return err
 	}
 
-	if err := db.Model(user).Association("Roles").Replace(roles); err != nil {
+	if err := db.Model(user).Association("Grants").Replace(grants); err != nil {
 		return err
 	}
 
@@ -93,8 +93,8 @@ func DeleteUsers(db *gorm.DB, condition interface{}) error {
 }
 
 func UserAssociations(db *gorm.DB) *gorm.DB {
-	db = db.Preload("Roles.Kubernetes").Preload("Roles.Destination.Kubernetes")
-	db = db.Preload("Groups.Roles.Kubernetes").Preload("Groups.Roles.Destination.Kubernetes")
+	db = db.Preload("Grants.Kubernetes").Preload("Grants.Destination.Kubernetes")
+	db = db.Preload("Groups.Grants.Kubernetes").Preload("Groups.Grants.Destination.Kubernetes")
 
 	return db
 }

@@ -82,21 +82,21 @@ type ConfigDestination struct {
 	Namespaces []string               `yaml:"namespaces"` // optional in the case of a cluster-role
 }
 
-type ConfigRole struct {
+type ConfigGrant struct {
 	Name         string              `yaml:"name" validate:"required"`
-	Kind         models.RoleKind     `yaml:"kind" validate:"required,oneof=role cluster-role"`
+	Kind         models.GrantKind     `yaml:"kind" validate:"required,oneof=role cluster-role"`
 	Destinations []ConfigDestination `yaml:"destinations" validate:"required,dive"`
 }
 
 type ConfigGroupMapping struct {
 	Name     string       `yaml:"name" validate:"required"`
 	Provider string       `yaml:"provider" validate:"required"`
-	Roles    []ConfigRole `yaml:"roles" validate:"required,dive"`
+	Grants    []ConfigGrant `yaml:"grants" validate:"required,dive"`
 }
 
 type ConfigUserMapping struct {
 	Email string       `yaml:"email" validate:"required,email"`
-	Roles []ConfigRole `yaml:"roles" validate:"required,dive"`
+	Grants []ConfigGrant `yaml:"grants" validate:"required,dive"`
 }
 
 type ConfigSecretProvider struct {
@@ -246,7 +246,7 @@ func importProviders(db *gorm.DB, providers []ConfigProvider) error {
 	return nil
 }
 
-func importUserRoleMappings(db *gorm.DB, users []ConfigUserMapping) ([]uuid.UUID, error) {
+func importUserGrantMappings(db *gorm.DB, users []ConfigUserMapping) ([]uuid.UUID, error) {
 	toKeep := make([]uuid.UUID, 0)
 
 	for _, u := range users {
@@ -259,12 +259,12 @@ func importUserRoleMappings(db *gorm.DB, users []ConfigUserMapping) ([]uuid.UUID
 			continue
 		}
 
-		ids, err := importRoles(db, u.Roles)
+		ids, err := importGrants(db, u.Grants)
 		if err != nil {
 			return nil, err
 		}
 
-		if err := data.BindUserRoles(db, user, ids...); err != nil {
+		if err := data.BindUserGrants(db, user, ids...); err != nil {
 			return nil, err
 		}
 
@@ -274,7 +274,7 @@ func importUserRoleMappings(db *gorm.DB, users []ConfigUserMapping) ([]uuid.UUID
 	return toKeep, nil
 }
 
-func importGroupRoleMappings(db *gorm.DB, groups []ConfigGroupMapping) ([]uuid.UUID, error) {
+func importGroupGrantMappings(db *gorm.DB, groups []ConfigGroupMapping) ([]uuid.UUID, error) {
 	toKeep := make([]uuid.UUID, 0)
 
 	for _, g := range groups {
@@ -287,12 +287,12 @@ func importGroupRoleMappings(db *gorm.DB, groups []ConfigGroupMapping) ([]uuid.U
 			continue
 		}
 
-		ids, err := importRoles(db, g.Roles)
+		ids, err := importGrants(db, g.Grants)
 		if err != nil {
 			return nil, err
 		}
 
-		if err := data.BindGroupRoles(db, group, ids...); err != nil {
+		if err := data.BindGroupGrants(db, group, ids...); err != nil {
 			return nil, err
 		}
 
@@ -302,10 +302,10 @@ func importGroupRoleMappings(db *gorm.DB, groups []ConfigGroupMapping) ([]uuid.U
 	return toKeep, nil
 }
 
-func importRoles(db *gorm.DB, roles []ConfigRole) ([]uuid.UUID, error) {
+func importGrants(db *gorm.DB, grants []ConfigGrant) ([]uuid.UUID, error) {
 	toKeep := make([]uuid.UUID, 0)
 
-	for _, r := range roles {
+	for _, r := range grants {
 		if err := validate.Struct(r); err != nil {
 			return nil, err
 		}
@@ -336,17 +336,17 @@ func importRoles(db *gorm.DB, roles []ConfigRole) ([]uuid.UUID, error) {
 					}
 				}
 
-				role := models.Role{
-					Kind:        models.RoleKind(destination.Kind),
+				grant := models.Grant{
+					Kind:        models.GrantKind(destination.Kind),
 					Destination: destination,
 				}
 
-				roles := make([]models.Role, 0)
+				grants := make([]models.Grant, 0)
 
-				switch role.Kind {
-				case models.RoleKindKubernetes:
-					role.Kubernetes = models.RoleKubernetes{
-						Kind: models.RoleKubernetesKind(r.Kind),
+				switch grant.Kind {
+				case models.GrantKindKubernetes:
+					grant.Kubernetes = models.GrantKubernetes{
+						Kind: models.GrantKubernetesKind(r.Kind),
 						Name: r.Name,
 					}
 
@@ -355,19 +355,19 @@ func importRoles(db *gorm.DB, roles []ConfigRole) ([]uuid.UUID, error) {
 					}
 
 					for _, namespace := range d.Namespaces {
-						role.Kubernetes.Namespace = namespace
+						grant.Kubernetes.Namespace = namespace
 
-						roles = append(roles, role)
+						grants = append(grants, grant)
 					}
 				}
 
-				for i := range roles {
-					role, err := data.CreateOrUpdateRole(db, &roles[i], data.StrictRoleSelector(db, &roles[i]))
+				for i := range grants {
+					grant, err := data.CreateOrUpdateGrant(db, &grants[i], data.StrictGrantSelector(db, &grants[i]))
 					if err != nil {
 						return nil, err
 					}
 
-					toKeep = append(toKeep, role.ID)
+					toKeep = append(toKeep, grant.ID)
 				}
 			}
 		}
@@ -376,18 +376,18 @@ func importRoles(db *gorm.DB, roles []ConfigRole) ([]uuid.UUID, error) {
 	return toKeep, nil
 }
 
-func importRoleMappings(db *gorm.DB, users []ConfigUserMapping, groups []ConfigGroupMapping) error {
+func importGrantMappings(db *gorm.DB, users []ConfigUserMapping, groups []ConfigGroupMapping) error {
 	// TODO: use a Set here instead of a Slice
 	toKeep := make([]uuid.UUID, 0)
 
-	ids, err := importUserRoleMappings(db, users)
+	ids, err := importUserGrantMappings(db, users)
 	if err != nil {
 		return err
 	}
 
 	toKeep = append(toKeep, ids...)
 
-	ids, err = importGroupRoleMappings(db, groups)
+	ids, err = importGroupGrantMappings(db, groups)
 	if err != nil {
 		return err
 	}
@@ -395,7 +395,7 @@ func importRoleMappings(db *gorm.DB, users []ConfigUserMapping, groups []ConfigG
 	toKeep = append(toKeep, ids...)
 
 	// explicitly query using ID field
-	if err := data.DeleteRoles(db, db.Not(toKeep)); err != nil {
+	if err := data.DeleteGrants(db, db.Not(toKeep)); err != nil {
 		return err
 	}
 
@@ -438,7 +438,7 @@ func (r *Registry) importConfig(bs []byte) error {
 			return err
 		}
 
-		if err := importRoleMappings(tx, config.Users, config.Groups); err != nil {
+		if err := importGrantMappings(tx, config.Users, config.Groups); err != nil {
 			return err
 		}
 
@@ -462,7 +462,7 @@ func (r *Registry) importAPIKeys() error {
 		"engine": {
 			Secret: r.options.EngineAPIKey,
 			Permissions: []string{
-				string(access.PermissionRoleRead),
+				string(access.PermissionGrantRead),
 				string(access.PermissionDestinationCreate),
 			},
 		},

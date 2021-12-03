@@ -18,14 +18,14 @@ import {
     DestinationFromJSON,
     DestinationFromJSONTyped,
     DestinationToJSON,
+    GrantKind,
+    GrantKindFromJSON,
+    GrantKindFromJSONTyped,
+    GrantKindToJSON,
     Group,
     GroupFromJSON,
     GroupFromJSONTyped,
     GroupToJSON,
-    RoleKind,
-    RoleKindFromJSON,
-    RoleKindFromJSONTyped,
-    RoleKindToJSON,
     User,
     UserFromJSON,
     UserFromJSONTyped,
@@ -35,70 +35,70 @@ import {
 /**
  * 
  * @export
- * @interface Role
+ * @interface Grant
  */
-export interface Role {
+export interface Grant {
     /**
      * 
      * @type {string}
-     * @memberof Role
+     * @memberof Grant
      */
     id: string;
     /**
      * 
      * @type {string}
-     * @memberof Role
+     * @memberof Grant
      */
     name: string;
     /**
      * created time in seconds since 1970-01-01
      * @type {number}
-     * @memberof Role
+     * @memberof Grant
      */
     created: number;
     /**
      * updated time in seconds since 1970-01-01
      * @type {number}
-     * @memberof Role
+     * @memberof Grant
      */
     updated: number;
     /**
      * 
-     * @type {RoleKind}
-     * @memberof Role
+     * @type {GrantKind}
+     * @memberof Grant
      */
-    kind: RoleKind;
+    kind: GrantKind;
     /**
      * 
      * @type {string}
-     * @memberof Role
+     * @memberof Grant
      */
     namespace: string;
     /**
      * 
      * @type {Array<User>}
-     * @memberof Role
+     * @memberof Grant
      */
     users?: Array<User>;
     /**
      * 
      * @type {Array<Group>}
-     * @memberof Role
+     * @memberof Grant
      */
     groups?: Array<Group>;
     /**
      * 
      * @type {Destination}
-     * @memberof Role
+     * @memberof Grant
      */
     destination: Destination;
 }
 
-export function RoleFromJSON(json: any): Role {
-    return RoleFromJSONTyped(json, false);
+export function GrantFromJSON(json: any): Grant {
+    return GrantFromJSONTyped(json, false);
 }
 
-export function RoleFromJSONTyped(json: any, ignoreDiscriminator: boolean): Role {
+export function GrantFromJSONTyped(json: any, ignoreDiscriminator: boolean): Grant {
     if ((json === undefined) || (json === null)) {
         return json;
     }
@@ -108,7 +108,7 @@ export function RoleFromJSONTyped(json: any, ignoreDiscriminator: boolean): Role
         'name': json['name'],
         'created': json['created'],
         'updated': json['updated'],
-        'kind': RoleKindFromJSON(json['kind']),
+        'kind': GrantKindFromJSON(json['kind']),
         'namespace': json['namespace'],
         'users': !exists(json, 'users') ? undefined : ((json['users'] as Array<any>).map(UserFromJSON)),
         'groups': !exists(json, 'groups') ? undefined : ((json['groups'] as Array<any>).map(GroupFromJSON)),
@@ -116,7 +116,7 @@ export function RoleFromJSONTyped(json: any, ignoreDiscriminator: boolean): Role
     };
 }
 
-export function RoleToJSON(value?: Role | null): any {
+export function GrantToJSON(value?: Grant | null): any {
     if (value === undefined) {
         return undefined;
     }
@@ -129,7 +129,7 @@ export function RoleToJSON(value?: Role | null): any {
         'name': value.name,
         'created': value.created,
         'updated': value.updated,
-        'kind': RoleKindToJSON(value.kind),
+        'kind': GrantKindToJSON(value.kind),
         'namespace': value.namespace,
         'users': value.users === undefined ? undefined : ((value.users as Array<any>).map(UserToJSON)),
         'groups': value.groups === undefined ? undefined : ((value.groups as Array<any>).map(GroupToJSON)),

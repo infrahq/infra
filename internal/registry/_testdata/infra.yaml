@@ -18,7 +18,7 @@ providers:
 groups:
   - name: Everyone
     provider: okta
-    roles:
+    grants:
       - name: writer
         kind: cluster-role
         destinations:
@@ -41,7 +41,7 @@ groups:
               - infrahq
   - name: Engineering
     provider: okta
-    roles:
+    grants:
       - name: writer
         kind: role
         destinations:
@@ -49,7 +49,7 @@ groups:
             kind: kubernetes
   - name: adversaries
     provider: outside
-    roles:
+    grants:
       - name: admin
         kind: role
         destinations:
@@ -57,7 +57,7 @@ groups:
             kind: kubernetes
   - name: heroes
     provider: okta
-    roles:
+    grants:
       - name: writer
         kind: role
         destinations:
@@ -65,7 +65,7 @@ groups:
             kind: kubernetes
   - name: villains
     provider: okta
-    roles:
+    grants:
       - name: writer
         kind: role
         destinations:
@@ -74,7 +74,7 @@ groups:
 
 users:
   - email: jbond@infrahq.com
-    roles:
+    grants:
       - name: admin
         kind: cluster-role
         destinations:
@@ -106,7 +106,7 @@ users:
               - infrahq
             kind: kubernetes
   - email: unknown@example.com
-    roles:
+    grants:
       - name: writer
         kind: role
         destinations:
