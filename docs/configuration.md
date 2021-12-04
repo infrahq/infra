@@ -107,7 +107,7 @@ List of groups to assign access.
 | Parameter      | Description                                   |
 |----------------|-----------------------------------------------|
 | `name`         | Group name as stored in the identity provider |
-| `roles`        | Roles assigned to the user                    |
+| `grants`       | Grants assigned to the user                   |
 
 #### `users`
 
@@ -116,16 +116,16 @@ List of users to assign access.
 | Parameter      | Description                                   |
 |----------------|-----------------------------------------------|
 | `email`        | User email as stored in the identity provider |
-| `roles`        | Roles assigned to the user                    |
+| `grants`       | Grants assigned to the user                   |
 
-#### `roles`
+#### `grants`
 
-List of roles to assign to an user or group.
+List of grants to assign to an user or group.
 
 | Parameter      | Description                                  |
 |----------------|----------------------------------------------|
-| `name`         | Role name                                    |
-| `kind`         | Role type                                    |
+| `name`         | Kubernetes role name                         |
+| `kind`         | Kubernetes role kind (role, cluster-role)    |
 | `destinations` | Destinations where this role binding applies |
 
 #### `destinations`
@@ -153,7 +153,7 @@ providers:
 groups:
   - name: administrators
     provider: okta
-    roles:
+    grants:
       - name: cluster-admin
         kind: cluster-role
         destinations:
@@ -161,7 +161,7 @@ groups:
 
 users:
   - email: manager@example.com
-    roles:
+    grants:
       - name: view
         kind: cluster-role
         destinations:
@@ -172,7 +172,7 @@ users:
           - labels: [kubernetes]
 
   - email: developer@example.com
-    roles:
+    grants:
       - name: writer
         kind: role
         destinations:
