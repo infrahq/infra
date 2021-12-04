@@ -11,9 +11,9 @@ import (
 )
 
 var (
-	admin = models.Grant{Kind: "kubernetes", Kubernetes: models.GrantKubernetes{Kind: "grant", Name: "admin"}}
-	view  = models.Grant{Kind: "kubernetes", Kubernetes: models.GrantKubernetes{Kind: "grant", Name: "view"}}
-	edit  = models.Grant{Kind: "kubernetes", Kubernetes: models.GrantKubernetes{Kind: "grant", Name: "edit"}}
+	admin = models.Grant{Kind: "kubernetes", Kubernetes: models.GrantKubernetes{Kind: "role", Name: "admin"}}
+	view  = models.Grant{Kind: "kubernetes", Kubernetes: models.GrantKubernetes{Kind: "role", Name: "view"}}
+	edit  = models.Grant{Kind: "kubernetes", Kubernetes: models.GrantKubernetes{Kind: "role", Name: "edit"}}
 )
 
 func TestGrant(t *testing.T) {
@@ -26,7 +26,7 @@ func TestGrant(t *testing.T) {
 	err = db.Preload("Kubernetes").First(&grant, &models.Grant{Kind: "kubernetes"}).Error
 	require.NoError(t, err)
 	require.Equal(t, models.GrantKindKubernetes, grant.Kind)
-	require.Equal(t, models.GrantKubernetesKindGrant, grant.Kubernetes.Kind)
+	require.Equal(t, models.GrantKubernetesKindRole, grant.Kubernetes.Kind)
 	require.Equal(t, "admin", grant.Kubernetes.Name)
 }
 
@@ -63,7 +63,7 @@ func TestCreateOrUpdateGrantCreate(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEqual(t, uuid.Nil, grant.ID)
 	require.Equal(t, models.GrantKindKubernetes, grant.Kind)
-	require.Equal(t, models.GrantKubernetesKindGrant, grant.Kubernetes.Kind)
+	require.Equal(t, models.GrantKubernetesKindRole, grant.Kubernetes.Kind)
 	require.Equal(t, "admin", grant.Kubernetes.Name)
 }
 
@@ -74,7 +74,7 @@ func TestCreateOrUpdateGrantUpdateKubernetes(t *testing.T) {
 	clusterAdmin := models.Grant{
 		Kind: models.GrantKindKubernetes,
 		Kubernetes: models.GrantKubernetes{
-			Kind: "cluster-grant",
+			Kind: "cluster-role",
 			Name: "cluster-admin",
 		},
 	}
@@ -83,12 +83,12 @@ func TestCreateOrUpdateGrantUpdateKubernetes(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEqual(t, uuid.Nil, grant.ID)
 	require.Equal(t, models.GrantKindKubernetes, grant.Kind)
-	require.Equal(t, models.GrantKubernetesKindClusterGrant, grant.Kubernetes.Kind)
+	require.Equal(t, models.GrantKubernetesKindClusterRole, grant.Kubernetes.Kind)
 	require.Equal(t, "cluster-admin", grant.Kubernetes.Name)
 
 	fromDB, err := GetGrant(db, &clusterAdmin)
 	require.NoError(t, err)
-	require.Equal(t, models.GrantKubernetesKindClusterGrant, fromDB.Kubernetes.Kind)
+	require.Equal(t, models.GrantKubernetesKindClusterRole, fromDB.Kubernetes.Kind)
 	require.Equal(t, "cluster-admin", fromDB.Kubernetes.Name)
 }
 
@@ -108,7 +108,7 @@ func TestGetGrantGrantSelector(t *testing.T) {
 	grant, err := GetGrant(db, GrantSelector(db, &view))
 	require.NoError(t, err)
 	require.Equal(t, models.GrantKindKubernetes, grant.Kind)
-	require.Equal(t, models.GrantKubernetesKindGrant, grant.Kubernetes.Kind)
+	require.Equal(t, models.GrantKubernetesKindRole, grant.Kubernetes.Kind)
 	require.Equal(t, "view", grant.Kubernetes.Name)
 }
 
@@ -118,7 +118,7 @@ func TestGetGrantStrictGrantSelector(t *testing.T) {
 	namespaced := models.Grant{
 		Kind: models.GrantKindKubernetes,
 		Kubernetes: models.GrantKubernetes{
-			Kind:      "grant",
+			Kind:      "role",
 			Name:      "edit",
 			Namespace: "infrahq",
 		},
@@ -130,7 +130,7 @@ func TestGetGrantStrictGrantSelector(t *testing.T) {
 	partial := models.Grant{
 		Kind: models.GrantKindKubernetes,
 		Kubernetes: models.GrantKubernetes{
-			Kind:      "grant",
+			Kind:      "role",
 			Name:      "edit",
 			Namespace: "",
 		},
@@ -151,7 +151,7 @@ func TestGetGrantGrantSelectorByDestination(t *testing.T) {
 		Destination: *destination,
 		Kind:        models.GrantKindKubernetes,
 		Kubernetes: models.GrantKubernetes{
-			Kind:      "grant",
+			Kind:      "role",
 			Name:      "edit",
 			Namespace: "infrahq",
 		},
@@ -168,7 +168,7 @@ func TestGetGrantGrantSelectorByDestination(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, destination.ID, grant.DestinationID)
 	require.Equal(t, models.GrantKindKubernetes, grant.Kind)
-	require.Equal(t, models.GrantKubernetesKindGrant, grant.Kubernetes.Kind)
+	require.Equal(t, models.GrantKubernetesKindRole, grant.Kubernetes.Kind)
 	require.Equal(t, "edit", grant.Kubernetes.Name)
 }
 

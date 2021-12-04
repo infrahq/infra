@@ -396,7 +396,7 @@ func Run(options *Options) error {
 			return
 		}
 
-		grants, _, err := client.GrantsAPI.ListGrants(ctx).Destination(destination.ID).Execute()
+		grants, _, err := client.GrantsAPI.ListGrants(ctx).Destination(destination.ID).Kind(api.GRANTKIND_KUBERNETES).Execute()
 		if err != nil {
 			logging.S.Errorf("could not list grants: %s", err.Error())
 		}

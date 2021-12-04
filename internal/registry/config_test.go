@@ -28,7 +28,7 @@ func configure(t *testing.T, db *gorm.DB) *gorm.DB {
 }
 
 func userGrants(t *testing.T, grants []models.Grant, email string) map[string][]string {
-	grants := make(map[string][]string)
+	destinations := make(map[string][]string)
 
 	for _, grant := range grants {
 		destinationName := grant.Destination.Name
@@ -47,15 +47,15 @@ func userGrants(t *testing.T, grants []models.Grant, email string) map[string][]
 				continue
 			}
 
-			if _, ok := grants[key]; !ok {
-				grants[key] = make([]string, 0)
+			if _, ok := destinations[key]; !ok {
+				destinations[key] = make([]string, 0)
 			}
 
-			grants[key] = append(grants[key], destinationName)
+			destinations[key] = append(destinations[key], destinationName)
 		}
 	}
 
-	return grants
+	return destinations
 }
 
 func TestImportUserGrants(t *testing.T) {
@@ -65,18 +65,18 @@ func TestImportUserGrants(t *testing.T) {
 	require.NoError(t, err)
 
 	bond := userGrants(t, grants, userBond.Email)
-	require.ElementsMatch(t, []string{"AAA", "BBB", "CCC"}, bond["cluster-grant:admin:"])
-	require.ElementsMatch(t, []string{"CCC"}, bond["grant:audit:infrahq"])
-	require.ElementsMatch(t, []string{"CCC"}, bond["grant:audit:development"])
-	require.ElementsMatch(t, []string{"CCC"}, bond["grant:pod-create:infrahq"])
-	require.ElementsMatch(t, []string(nil), bond["grant:view"])
+	require.ElementsMatch(t, []string{"AAA", "BBB", "CCC"}, bond["cluster-role:admin:"])
+	require.ElementsMatch(t, []string{"CCC"}, bond["role:audit:infrahq"])
+	require.ElementsMatch(t, []string{"CCC"}, bond["role:audit:development"])
+	require.ElementsMatch(t, []string{"CCC"}, bond["role:pod-create:infrahq"])
+	require.ElementsMatch(t, []string(nil), bond["role:view"])
 
 	unknown := userGrants(t, grants, "unknown@infrahq.com")
 	require.ElementsMatch(t, []string(nil), unknown["grant:writer"])
 }
 
 func groupGrants(t *testing.T, grants []models.Grant, name string) map[string][]string {
-	grants := make(map[string][]string)
+	destinations := make(map[string][]string)
 
 	for _, grant := range grants {
 		destinationName := grant.Destination.Name
@@ -95,15 +95,15 @@ func groupGrants(t *testing.T, grants []models.Grant, name string) map[string][]
 				continue
 			}
 
-			if _, ok := grants[key]; !ok {
-				grants[key] = make([]string, 0)
+			if _, ok := destinations[key]; !ok {
+				destinations[key] = make([]string, 0)
 			}
 
-			grants[key] = append(grants[key], destinationName)
+			destinations[key] = append(destinations[key], destinationName)
 		}
 	}
 
-	return grants
+	return destinations
 }
 
 func TestImportGroupGrants(t *testing.T) {
@@ -113,13 +113,13 @@ func TestImportGroupGrants(t *testing.T) {
 	require.NoError(t, err)
 
 	everyone := groupGrants(t, grants, groupEveryone.Name)
-	require.ElementsMatch(t, []string{"AAA"}, everyone["cluster-grant:writer:"])
-	require.ElementsMatch(t, []string{"CCC"}, everyone["grant:audit:infrahq"])
-	require.ElementsMatch(t, []string{"CCC"}, everyone["grant:audit:development"])
-	require.ElementsMatch(t, []string{"CCC"}, everyone["grant:pod-create:infrahq"])
+	require.ElementsMatch(t, []string{"AAA"}, everyone["cluster-role:writer:"])
+	require.ElementsMatch(t, []string{"CCC"}, everyone["role:audit:infrahq"])
+	require.ElementsMatch(t, []string{"CCC"}, everyone["role:audit:development"])
+	require.ElementsMatch(t, []string{"CCC"}, everyone["role:pod-create:infrahq"])
 
 	engineering := groupGrants(t, grants, groupEngineers.Name)
-	require.ElementsMatch(t, []string{"BBB"}, engineering["grant:writer:"])
+	require.ElementsMatch(t, []string{"BBB"}, engineering["role:writer:"])
 }
 
 func TestImportGrantsUnknownDestinations(t *testing.T) {
@@ -200,7 +200,7 @@ groups:
     provider: okta
     grants:
       - name: cluster-admin
-        kind: cluster-grant
+        kind: cluster-role
         destinations:
           - name: AAA
             kind: kubernetes
@@ -220,7 +220,7 @@ groups:
     provider: okta
     grants:
       - name: cluster-admin
-        kind: cluster-grant
+        kind: cluster-role
         destinations:
           - name: AAA
             kind: kubernetes

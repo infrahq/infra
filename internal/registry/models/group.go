@@ -11,7 +11,7 @@ type Group struct {
 
 	Name string
 
-	Grants     []Grant     `gorm:"many2many:groups_grants"`
+	Grants    []Grant    `gorm:"many2many:groups_grants"`
 	Providers []Provider `gorm:"many2many:groups_providers"`
 	Users     []User     `gorm:"many2many:users_groups"`
 }

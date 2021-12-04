@@ -84,18 +84,18 @@ type ConfigDestination struct {
 
 type ConfigGrant struct {
 	Name         string              `yaml:"name" validate:"required"`
-	Kind         models.GrantKind     `yaml:"kind" validate:"required,oneof=role cluster-role"`
+	Kind         models.GrantKind    `yaml:"kind" validate:"required,oneof=role cluster-role"`
 	Destinations []ConfigDestination `yaml:"destinations" validate:"required,dive"`
 }
 
 type ConfigGroupMapping struct {
-	Name     string       `yaml:"name" validate:"required"`
-	Provider string       `yaml:"provider" validate:"required"`
-	Grants    []ConfigGrant `yaml:"grants" validate:"required,dive"`
+	Name     string        `yaml:"name" validate:"required"`
+	Provider string        `yaml:"provider" validate:"required"`
+	Grants   []ConfigGrant `yaml:"grants" validate:"required,dive"`
 }
 
 type ConfigUserMapping struct {
-	Email string       `yaml:"email" validate:"required,email"`
+	Email  string        `yaml:"email" validate:"required,email"`
 	Grants []ConfigGrant `yaml:"grants" validate:"required,dive"`
 }
 

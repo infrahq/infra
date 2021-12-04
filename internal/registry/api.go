@@ -341,11 +341,10 @@ func (a *API) CreateAPIKey(c *gin.Context) {
 }
 
 func (a *API) ListGrants(c *gin.Context) {
-	grantName := c.Request.URL.Query().Get("name")
 	grantKind := c.Request.URL.Query().Get("kind")
 	destinationID := c.Request.URL.Query().Get("destination")
 
-	grants, err := access.ListGrants(c, grantName, grantKind, destinationID)
+	grants, err := access.ListGrants(c, grantKind, destinationID)
 	if err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return

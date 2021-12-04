@@ -6,6 +6,8 @@ export * from './DestinationKind';
 export * from './DestinationKubernetes';
 export * from './Grant';
 export * from './GrantKind';
+export * from './GrantKubernetes';
+export * from './GrantKubernetesKind';
 export * from './Group';
 export * from './InfraAPIKey';
 export * from './InfraAPIKeyCreateRequest';

@@ -18,8 +18,7 @@
  * @enum {string}
  */
 export enum GrantKind {
-    Role = 'role',
-    ClusterRole = 'cluster-role'
+    Kubernetes = 'kubernetes'
 }
 
 export function GrantKindFromJSON(json: any): GrantKind {

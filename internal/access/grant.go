@@ -30,21 +30,14 @@ func GetGrant(c *gin.Context, id string) (*models.Grant, error) {
 	return data.GetGrant(db, grant)
 }
 
-func ListGrants(c *gin.Context, name, kind, destinationID string) ([]models.Grant, error) {
+func ListGrants(c *gin.Context, kind, destinationID string) ([]models.Grant, error) {
 	db, err := RequireAuthorization(c, PermissionGrantRead)
 	if err != nil {
 		return nil, err
 	}
 
-	// hardcode grant kind to Kubernetes for now
 	grant := models.Grant{
-		Kind: models.GrantKindKubernetes,
-	}
-
-	switch grant.Kind {
-	case models.GrantKindKubernetes:
-		grant.Kubernetes.Kind = models.GrantKubernetesKind(kind)
-		grant.Kubernetes.Name = name
+		Kind: models.GrantKind(kind),
 	}
 
 	if id, err := uuid.Parse(destinationID); err == nil {

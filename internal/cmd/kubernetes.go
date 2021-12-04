@@ -23,7 +23,7 @@ type KubernetesOptions struct {
 	Name             string
 	Namespace        string
 	LabelSelector    []string `mapstructure:"labels"`
-	GrantSelector     string   `mapstructure:"grant"`
+	GrantSelector    string   `mapstructure:"grant"`
 	internal.Options `mapstructure:",squash"`
 }
 
@@ -129,7 +129,7 @@ func kubernetesUseContext(options *KubernetesOptions) error {
 DESTINATIONS:
 	for _, d := range candidates {
 		for _, r := range d {
-			logging.S.Debugf("considering %s %s@%s#%s", r.ID, r.Destination.Name, r.Destination.NodeID[:12], r.Namespace)
+			logging.S.Debugf("considering %s %s@%s#%s", r.ID, r.Destination.Name, r.Destination.NodeID[:12], r.Kubernetes.Namespace)
 			switch options.Name {
 			case "":
 			case r.Destination.Name:
@@ -141,14 +141,14 @@ DESTINATIONS:
 
 			switch options.Namespace {
 			case "":
-			case r.Namespace:
+			case r.Kubernetes.Namespace:
 			default:
 				continue
 			}
 
 			switch options.GrantSelector {
 			case "":
-			case r.Name:
+			case r.Kubernetes.Name:
 			default:
 				continue
 			}
@@ -168,7 +168,7 @@ DESTINATIONS:
 				destinations[r.Destination.NodeID[:12]] = make(map[string][]api.Grant)
 			}
 
-			destinations[r.Destination.NodeID[:12]][r.Namespace] = append(destinations[r.Destination.NodeID[:12]][r.Namespace], r)
+			destinations[r.Destination.NodeID[:12]][r.Kubernetes.Namespace] = append(destinations[r.Destination.NodeID[:12]][r.Kubernetes.Namespace], r)
 		}
 	}
 
@@ -244,8 +244,8 @@ DESTINATIONS:
 			var namespace string
 
 			for _, r := range n {
-				names = append(names, r.Name)
-				namespace = r.Namespace
+				names = append(names, r.Kubernetes.Name)
+				namespace = r.Kubernetes.Namespace
 			}
 
 			if namespace == "" {
@@ -283,7 +283,7 @@ DESTINATIONS:
 		namespace = namespaces[parts[0]][0]
 	}
 
-	if err := kubernetesSetContext(namespace.Destination.Name, namespace.Destination.NodeID[:12], namespace.Namespace); err != nil {
+	if err := kubernetesSetContext(namespace.Destination.Name, namespace.Destination.NodeID[:12], namespace.Kubernetes.Namespace); err != nil {
 		return err
 	}
 
@@ -376,10 +376,10 @@ func updateKubeconfig(user api.User) error {
 			contextName = fmt.Sprintf("%s@%s", contextName, name)
 		}
 
-		if grant.Namespace != "" {
+		if grant.Kubernetes.Namespace != "" {
 			// destination is scoped to a namespace
 			// format: "infra:<ALIAS>[@<NAME>]:<NAMESPACE>"
-			contextName = fmt.Sprintf("%s:%s", contextName, grant.Namespace)
+			contextName = fmt.Sprintf("%s:%s", contextName, grant.Kubernetes.Namespace)
 		}
 
 		logging.S.Debugf("creating kubeconfig for %s", contextName)
@@ -392,7 +392,7 @@ func updateKubeconfig(user api.User) error {
 		kubeConfig.Contexts[contextName] = &clientcmdapi.Context{
 			Cluster:   contextName,
 			AuthInfo:  contextName,
-			Namespace: grant.Namespace,
+			Namespace: grant.Kubernetes.Namespace,
 		}
 
 		executable, err := os.Executable()

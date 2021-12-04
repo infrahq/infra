@@ -22,6 +22,10 @@ import {
     GrantKindFromJSON,
     GrantKindFromJSONTyped,
     GrantKindToJSON,
+    GrantKubernetes,
+    GrantKubernetesFromJSON,
+    GrantKubernetesFromJSONTyped,
+    GrantKubernetesToJSON,
     Group,
     GroupFromJSON,
     GroupFromJSONTyped,
@@ -45,12 +49,6 @@ export interface Grant {
      */
     id: string;
     /**
-     * 
-     * @type {string}
-     * @memberof Grant
-     */
-    name: string;
-    /**
      * created time in seconds since 1970-01-01
      * @type {number}
      * @memberof Grant
@@ -70,10 +68,16 @@ export interface Grant {
     kind: GrantKind;
     /**
      * 
-     * @type {string}
+     * @type {Destination}
      * @memberof Grant
      */
-    namespace: string;
+    destination: Destination;
+    /**
+     * 
+     * @type {GrantKubernetes}
+     * @memberof Grant
+     */
+    kubernetes?: GrantKubernetes;
     /**
      * 
      * @type {Array<User>}
@@ -86,12 +90,6 @@ export interface Grant {
      * @memberof Grant
      */
     groups?: Array<Group>;
-    /**
-     * 
-     * @type {Destination}
-     * @memberof Grant
-     */
-    destination: Destination;
 }
 
 export function GrantFromJSON(json: any): Grant {
@@ -105,14 +103,13 @@ export function GrantFromJSONTyped(json: any, ignoreDiscriminator: boolean): Gra
     return {
         
         'id': json['id'],
-        'name': json['name'],
         'created': json['created'],
         'updated': json['updated'],
         'kind': GrantKindFromJSON(json['kind']),
-        'namespace': json['namespace'],
+        'destination': DestinationFromJSON(json['destination']),
+        'kubernetes': !exists(json, 'kubernetes') ? undefined : GrantKubernetesFromJSON(json['kubernetes']),
         'users': !exists(json, 'users') ? undefined : ((json['users'] as Array<any>).map(UserFromJSON)),
         'groups': !exists(json, 'groups') ? undefined : ((json['groups'] as Array<any>).map(GroupFromJSON)),
-        'destination': DestinationFromJSON(json['destination']),
     };
 }
 
@@ -126,14 +123,13 @@ export function GrantToJSON(value?: Grant | null): any {
     return {
         
         'id': value.id,
-        'name': value.name,
         'created': value.created,
         'updated': value.updated,
         'kind': GrantKindToJSON(value.kind),
-        'namespace': value.namespace,
+        'destination': DestinationToJSON(value.destination),
+        'kubernetes': GrantKubernetesToJSON(value.kubernetes),
         'users': value.users === undefined ? undefined : ((value.users as Array<any>).map(UserToJSON)),
         'groups': value.groups === undefined ? undefined : ((value.groups as Array<any>).map(GroupToJSON)),
-        'destination': DestinationToJSON(value.destination),
     };
 }
 

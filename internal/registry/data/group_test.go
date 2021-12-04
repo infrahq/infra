@@ -101,7 +101,7 @@ func TestGroupBindGrants(t *testing.T) {
 	admin := models.Grant{
 		Kind: models.GrantKindKubernetes,
 		Kubernetes: models.GrantKubernetes{
-			Kind: models.GrantKubernetesKindGrant,
+			Kind: models.GrantKubernetesKindRole,
 			Name: "admin",
 		},
 	}
@@ -137,7 +137,7 @@ func TestGroupBindMoreGrants(t *testing.T) {
 	admin := models.Grant{
 		Kind: models.GrantKindKubernetes,
 		Kubernetes: models.GrantKubernetes{
-			Kind: models.GrantKubernetesKindGrant,
+			Kind: models.GrantKubernetesKindRole,
 			Name: "admin",
 		},
 	}
@@ -159,7 +159,7 @@ func TestGroupBindMoreGrants(t *testing.T) {
 	view := models.Grant{
 		Kind: models.GrantKindKubernetes,
 		Kubernetes: models.GrantKubernetes{
-			Kind: models.GrantKubernetesKindGrant,
+			Kind: models.GrantKubernetesKindRole,
 			Name: "view",
 		},
 	}
@@ -182,7 +182,7 @@ func TestGroupBindLessGrants(t *testing.T) {
 	admin := models.Grant{
 		Kind: models.GrantKindKubernetes,
 		Kubernetes: models.GrantKubernetes{
-			Kind: models.GrantKubernetesKindGrant,
+			Kind: models.GrantKubernetesKindRole,
 			Name: "admin",
 		},
 	}
@@ -190,7 +190,7 @@ func TestGroupBindLessGrants(t *testing.T) {
 	view := models.Grant{
 		Kind: models.GrantKindKubernetes,
 		Kubernetes: models.GrantKubernetes{
-			Kind: models.GrantKubernetesKindGrant,
+			Kind: models.GrantKubernetesKindRole,
 			Name: "view",
 		},
 	}

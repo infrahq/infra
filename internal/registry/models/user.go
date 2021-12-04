@@ -13,7 +13,7 @@ type User struct {
 	Email       string
 	Permissions string
 
-	Grants     []Grant     `gorm:"many2many:users_grants"`
+	Grants    []Grant    `gorm:"many2many:users_grants"`
 	Providers []Provider `gorm:"many2many:users_providers"`
 	Groups    []Group    `gorm:"many2many:users_groups"`
 }

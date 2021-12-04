@@ -26,8 +26,8 @@ type Grant struct {
 type GrantKubernetesKind string
 
 var (
-	GrantKubernetesKindGrant        GrantKubernetesKind = "grant"
-	GrantKubernetesKindClusterGrant GrantKubernetesKind = "cluster-grant"
+	GrantKubernetesKindRole        GrantKubernetesKind = "role"
+	GrantKubernetesKindClusterRole GrantKubernetesKind = "cluster-role"
 )
 
 type GrantKubernetes struct {
@@ -45,13 +45,16 @@ func (r *Grant) ToAPI() api.Grant {
 		ID:      r.ID.String(),
 		Created: r.CreatedAt.Unix(),
 		Updated: r.UpdatedAt.Unix(),
+		Kind:    api.GrantKind(r.Kind),
 	}
 
 	switch r.Kind {
 	case GrantKindKubernetes:
-		result.Kind = api.GrantKind(r.Kubernetes.Kind)
-		result.Name = r.Kubernetes.Name
-		result.Namespace = r.Kubernetes.Namespace
+		result.Kubernetes = &api.GrantKubernetes{
+			Kind:      api.GrantKubernetesKind(r.Kubernetes.Kind),
+			Name:      r.Kubernetes.Name,
+			Namespace: r.Kubernetes.Namespace,
+		}
 	}
 
 	users := make([]api.User, 0)

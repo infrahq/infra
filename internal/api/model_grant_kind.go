@@ -20,13 +20,11 @@ type GrantKind string
 
 // List of GrantKind
 const (
-	GRANTKIND_ROLE         GrantKind = "role"
-	GRANTKIND_CLUSTER_ROLE GrantKind = "cluster-role"
+	GRANTKIND_KUBERNETES GrantKind = "kubernetes"
 )
 
 var allowedGrantKindEnumValues = []GrantKind{
-	"role",
-	"cluster-role",
+	"kubernetes",
 }
 
 func (v *GrantKind) UnmarshalJSON(src []byte) error {

@@ -736,8 +736,14 @@ func TestT(t *testing.T) {
 					grants[0].Destination.Name,
 					grants[1].Destination.Name,
 				})
-				require.ElementsMatch(t, []string{"writer", "admin"}, []string{grants[0].Name, grants[1].Name})
-				require.ElementsMatch(t, []api.GrantKind{api.ROLEKIND_CLUSTER_ROLE, api.ROLEKIND_CLUSTER_ROLE}, []api.GrantKind{grants[0].Kind, grants[1].Kind})
+				require.ElementsMatch(t, []string{"writer", "admin"}, []string{grants[0].Kubernetes.Name, grants[1].Kubernetes.Name})
+				require.ElementsMatch(t, []api.GrantKubernetesKind{
+					api.GRANTKUBERNETESKIND_CLUSTER_ROLE,
+					api.GRANTKUBERNETESKIND_CLUSTER_ROLE,
+				}, []api.GrantKubernetesKind{
+					grants[0].Kubernetes.Kind,
+					grants[1].Kubernetes.Kind,
+				})
 			},
 		},
 		"ListGrantsByKind": {
@@ -745,7 +751,30 @@ func TestT(t *testing.T) {
 				c.Set("permissions", string(access.PermissionGrantRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
-				return httptest.NewRequest(http.MethodGet, "/v1/grants?kind=grant", nil)
+				return httptest.NewRequest(http.MethodGet, "/v1/grants?kind=kubernetes", nil)
+			},
+			"func": func(a *API, c *gin.Context) {
+				a.ListGrants(c)
+			},
+			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
+
+				var grants []api.Grant
+				err := json.NewDecoder(w.Body).Decode(&grants)
+				require.NoError(t, err)
+				require.Len(t, grants, 8)
+
+				for _, r := range grants {
+					require.Equal(t, api.GRANTKIND_KUBERNETES, r.Kind)
+				}
+			},
+		},
+		"ListGrantsCombo": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				c.Set("permissions", string(access.PermissionGrantRead))
+			},
+			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/grants?destination=%s&kind=kubernetes", destinationCCC.ID), nil)
 			},
 			"func": func(a *API, c *gin.Context) {
 				a.ListGrants(c)
@@ -759,81 +788,7 @@ func TestT(t *testing.T) {
 				require.Len(t, grants, 4)
 
 				for _, r := range grants {
-					require.Equal(t, api.ROLEKIND_ROLE, r.Kind)
-				}
-			},
-		},
-		"ListGrantsByName": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionGrantRead))
-			},
-			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
-				return httptest.NewRequest(http.MethodGet, "/v1/grants?name=admin", nil)
-			},
-			"func": func(a *API, c *gin.Context) {
-				a.ListGrants(c)
-			},
-			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusOK, w.Code)
-
-				var grants []api.Grant
-				err := json.NewDecoder(w.Body).Decode(&grants)
-				require.NoError(t, err)
-				require.Len(t, grants, 3)
-
-				for _, r := range grants {
-					require.Equal(t, "admin", r.Name)
-				}
-			},
-		},
-		"ListGrantsCombo": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionGrantRead))
-			},
-			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
-				return httptest.NewRequest(http.MethodGet, "/v1/grants?kind=cluster-grant&name=admin", nil)
-			},
-			"func": func(a *API, c *gin.Context) {
-				a.ListGrants(c)
-			},
-			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusOK, w.Code)
-
-				var grants []api.Grant
-				err := json.NewDecoder(w.Body).Decode(&grants)
-				require.NoError(t, err)
-				require.Len(t, grants, 3)
-
-				for _, r := range grants {
-					require.Equal(t, "admin", r.Name)
-					require.Equal(t, api.ROLEKIND_CLUSTER_ROLE, r.Kind)
-				}
-			},
-		},
-		"ListGrantsCombo3": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionGrantRead))
-			},
-			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
-				return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/grants?destination=%s&kind=grant&name=audit", destinationCCC.ID), nil)
-			},
-			"func": func(a *API, c *gin.Context) {
-				a.ListGrants(c)
-			},
-			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusOK, w.Code)
-
-				var grants []api.Grant
-				err := json.NewDecoder(w.Body).Decode(&grants)
-				require.NoError(t, err)
-				require.Len(t, grants, 2)
-				require.ElementsMatch(t, []string{"infrahq", "development"}, []string{grants[0].Namespace, grants[1].Namespace})
-
-				for _, r := range grants {
-					require.Equal(t, destinationCCC.ID.String(), r.Destination.ID)
-					require.Equal(t, "CCC", r.Destination.Name)
-					require.Equal(t, "audit", r.Name)
-					require.Equal(t, api.ROLEKIND_ROLE, r.Kind)
+					require.Equal(t, api.GRANTKIND_KUBERNETES, r.Kind)
 				}
 			},
 		},
