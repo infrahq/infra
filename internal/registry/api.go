@@ -279,13 +279,7 @@ func (a *API) ListAPIKeys(c *gin.Context) {
 	results := make([]api.InfraAPIKey, 0)
 
 	for _, k := range keys {
-		key, err := k.ToAPI()
-		if err != nil {
-			sendAPIError(c, http.StatusBadRequest, err)
-			return
-		}
-
-		results = append(results, *key)
+		results = append(results, k.ToAPI())
 	}
 
 	c.JSON(http.StatusOK, results)
@@ -331,12 +325,7 @@ func (a *API) CreateAPIKey(c *gin.Context) {
 		return
 	}
 
-	result, err := apiKey.ToAPICreateResponse()
-	if err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
-		return
-	}
-
+	result := apiKey.ToAPICreateResponse()
 	c.JSON(http.StatusCreated, result)
 }
 
