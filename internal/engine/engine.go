@@ -401,7 +401,7 @@ func Run(options *Options) error {
 			logging.S.Errorf("could not list grants: %s", err.Error())
 		}
 
-		err = k8s.UpdateGrants(grants)
+		err = k8s.UpdateRoles(grants)
 		if err != nil {
 			logging.S.Errorf("could not update grants: %s", err.Error())
 			return

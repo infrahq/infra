@@ -14,7 +14,7 @@ tags:
   - name: groups
     description: Manage groups
   - name: grants
-    description: Manage grants
+    description: Manage user and group role grants
   - name: providers
     description: Manage identity providers
   - name: destinations

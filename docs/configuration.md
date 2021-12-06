@@ -107,7 +107,7 @@ List of groups to assign access.
 | Parameter      | Description                                   |
 |----------------|-----------------------------------------------|
 | `name`         | Group name as stored in the identity provider |
-| `grants`       | Grants assigned to the user                   |
+| `grants`       | Role grants assigned to the user              |
 
 #### `users`
 
@@ -116,11 +116,11 @@ List of users to assign access.
 | Parameter      | Description                                   |
 |----------------|-----------------------------------------------|
 | `email`        | User email as stored in the identity provider |
-| `grants`       | Grants assigned to the user                   |
+| `grants`       | Role grants assigned to the user              |
 
 #### `grants`
 
-List of grants to assign to an user or group.
+List of role grants to assign to an user or group.
 
 | Parameter      | Description                                  |
 |----------------|----------------------------------------------|
