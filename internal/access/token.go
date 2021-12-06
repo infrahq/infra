@@ -2,12 +2,14 @@ package access
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
@@ -18,22 +20,11 @@ const (
 	PermissionTokenRead   Permission = "infra.token.read"
 	PermissionTokenRevoke Permission = "infra.token.revoke" // nolint:gosec
 
-<<<<<<< HEAD
-	PermissionAPIKey       Permission = "infra.apiKey.*"      // nolint:gosec
-	PermissionAPIKeyIssue  Permission = "infra.apiKey.issue"  // nolint:gosec
-	PermissionAPIKeyRead   Permission = "infra.apiKey.read"   // nolint:gosec
-	PermissionAPIKeyRevoke Permission = "infra.apiKey.revoke" // nolint:gosec
-||||||| parent of 9f521ce (Rename API keys to API tokens)
-	PermissionAPIKey       Permission = "infra.apiKey.*"      // nolint:gosec
-	PermissionAPIKeyIssue  Permission = "infra.apiKey.issue"  // nolint:gosec
-	PermissionAPIKeyList   Permission = "infra.apiKey.list"   // nolint:gosec
-	PermissionAPIKeyRevoke Permission = "infra.apiKey.revoke" // nolint:gosec
-=======
-	PermissionAPIToken       Permission = "infra.apiToken.*"      // nolint:gosec
-	PermissionAPITokenIssue  Permission = "infra.apiToken.issue"  // nolint:gosec
-	PermissionAPITokenList   Permission = "infra.apiToken.list"   // nolint:gosec
-	PermissionAPITokenRevoke Permission = "infra.apiToken.revoke" // nolint:gosec
->>>>>>> 9f521ce (Rename API keys to API tokens)
+	PermissionAPIToken Permission = "infra.apiToken.*" // nolint:gosec
+
+	PermissionAPITokenCreate Permission = "infra.apiToken.create" // nolint:gosec
+	PermissionAPITokenRead   Permission = "infra.apiToken.read"   // nolint:gosec
+	PermissionAPITokenDelete Permission = "infra.apiToken.delete" // nolint:gosec
 
 	PermissionCredentialCreate Permission = "infra.credential.create" //nolint:gosec
 )
@@ -97,17 +88,28 @@ func RevokeToken(c *gin.Context) (*models.Token, error) {
 	return token, nil
 }
 
-func IssueAPIToken(c *gin.Context, apiToken *models.APIToken) (*models.APIToken, error) {
-	db, err := RequireAuthorization(c, PermissionAPITokenIssue)
+func IssueAPIToken(c *gin.Context, apiToken *models.APIToken) (*models.APIToken, *models.Token, error) {
+	db, err := RequireAuthorization(c, PermissionAPITokenCreate)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return data.CreateAPIToken(db, apiToken)
+	// do not let a caller create a token with more permissions than they have
+	permissions, ok := c.MustGet("permissions").(string)
+	if !ok {
+		// there should have been permissions set by this point
+		return nil, nil, internal.ErrForbidden
+	}
+
+	if !AllRequired(strings.Split(permissions, " "), strings.Split(apiToken.Permissions, " ")) {
+		return nil, nil, fmt.Errorf("cannot create an API token with permission not granted to the token issuer")
+	}
+
+	return data.CreateAPIToken(db, apiToken, &models.Token{})
 }
 
 func ListAPITokens(c *gin.Context, name string) ([]models.APIToken, error) {
-	db, err := RequireAuthorization(c, PermissionAPITokenList)
+	db, err := RequireAuthorization(c, PermissionAPITokenRead)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +123,7 @@ func ListAPITokens(c *gin.Context, name string) ([]models.APIToken, error) {
 }
 
 func RevokeAPIToken(c *gin.Context, id string) error {
-	db, err := RequireAuthorization(c, PermissionAPITokenRevoke)
+	db, err := RequireAuthorization(c, PermissionAPITokenDelete)
 	if err != nil {
 		return err
 	}

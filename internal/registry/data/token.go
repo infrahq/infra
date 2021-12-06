@@ -74,21 +74,47 @@ func DeleteToken(db *gorm.DB, condition interface{}) error {
 	return nil
 }
 
-func CreateAPIToken(db *gorm.DB, apiToken *models.APIToken) (*models.APIToken, error) {
-	if apiToken.Key == "" {
-		key, err := generate.CryptoRandom(models.APITokenLength)
+func CreateAPIToken(db *gorm.DB, apiToken *models.APIToken, token *models.Token) (*models.APIToken, *models.Token, error) {
+	// create the token for this API token
+	if token.Key == "" {
+		key := generate.MathRandom(models.TokenKeyLength)
+		token.Key = key
+	}
+
+	if token.Secret == "" {
+		sec, err := generate.CryptoRandom(models.TokenLength)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
-		apiToken.Key = key
+		token.Secret = sec
 	}
 
-	if err := add(db, &models.APIToken{}, apiToken, &models.APIToken{Name: apiToken.Name}); err != nil {
-		return nil, err
+	chksm := sha256.Sum256([]byte(token.Secret))
+	token.Checksum = chksm[:]
+	token.Expires = time.Now().Add(apiToken.TTL)
+
+	// no duplicate API token names
+	existing, err := GetAPIToken(db, &models.APIToken{Name: apiToken.Name})
+	if err != nil && !errors.Is(err, internal.ErrNotFound) {
+		return nil, nil, fmt.Errorf("check api token existing: %w", err)
 	}
 
-	return apiToken, nil
+	if existing != nil {
+		return nil, nil, internal.ErrDuplicate
+	}
+
+	if err := add(db, &models.APIToken{}, apiToken, &models.APIToken{}); err != nil {
+		return nil, nil, fmt.Errorf("new api token: %w", err)
+	}
+
+	token.APITokenID = apiToken.ID
+
+	if err := add(db, &models.Token{}, token, &models.Token{}); err != nil {
+		return nil, nil, fmt.Errorf("new token for api: %w", err)
+	}
+
+	return apiToken, token, nil
 }
 
 func GetAPIToken(db *gorm.DB, condition interface{}) (*models.APIToken, error) {

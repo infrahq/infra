@@ -109,43 +109,46 @@ func TestDeleteToken(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func createAPIToken(t *testing.T, db *gorm.DB, name string, permissions ...string) *models.APIToken {
+func createAPIToken(t *testing.T, db *gorm.DB, name string, ttl time.Duration, permissions ...string) (*models.APIToken, *models.Token) {
 	in := models.APIToken{
 		Name:        name,
 		Permissions: strings.Join(permissions, " "),
+		TTL:         ttl,
 	}
 
-	apiToken, err := CreateAPIToken(db, &in)
+	apiToken, tkn, err := CreateAPIToken(db, &in, &models.Token{})
 	require.NoError(t, err)
 
-	return apiToken
+	return apiToken, tkn
 }
 
 func TestCreateAPIToken(t *testing.T) {
 	db := setup(t)
 
-	apiToken := createAPIToken(t, db, "tmp", "infra.*")
+	apiToken, tkn := createAPIToken(t, db, "tmp", 1*time.Hour, "infra.*")
 	require.Equal(t, "tmp", apiToken.Name)
 	require.Equal(t, "infra.*", apiToken.Permissions)
-	require.NotEmpty(t, apiToken.Key)
+	require.NotNil(t, tkn.Expires)
+	require.NotEmpty(t, tkn.SessionToken())
 }
 
 func TestGetAPIToken(t *testing.T) {
 	db := setup(t)
-	_ = createAPIToken(t, db, "tmp", "infra.*")
+	ttl := 1 * time.Hour
+	_, _ = createAPIToken(t, db, "tmp", ttl, "infra.*")
 
 	apiToken, err := GetAPIToken(db, &models.APIToken{Name: "tmp"})
 	require.NoError(t, err)
 	require.Equal(t, "tmp", apiToken.Name)
 	require.Equal(t, "infra.*", apiToken.Permissions)
-	require.NotEmpty(t, apiToken.Key)
+	require.Equal(t, ttl.String(), apiToken.TTL.String())
 }
 
 func TestListAPIToken(t *testing.T) {
 	db := setup(t)
-	_ = createAPIToken(t, db, "tmp", "infra.*")
-	_ = createAPIToken(t, db, "pmt", "infra.*")
-	_ = createAPIToken(t, db, "mtp", "infra.*")
+	_, _ = createAPIToken(t, db, "tmp", 1*time.Hour, "infra.*")
+	_, _ = createAPIToken(t, db, "pmt", 1*time.Hour, "infra.*")
+	_, _ = createAPIToken(t, db, "mtp", 1*time.Hour, "infra.*")
 
 	apiTokens, err := ListAPITokens(db, &models.APIToken{})
 	require.NoError(t, err)
@@ -158,7 +161,7 @@ func TestListAPIToken(t *testing.T) {
 
 func TestDeleteAPIToken(t *testing.T) {
 	db := setup(t)
-	_ = createAPIToken(t, db, "tmp", "infra.*")
+	_, _ = createAPIToken(t, db, "tmp", 1*time.Hour, "infra.*")
 
 	_, err := GetAPIToken(db, &models.APIToken{Name: "tmp"})
 	require.NoError(t, err)

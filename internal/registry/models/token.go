@@ -14,8 +14,6 @@ const (
 	TokenKeyLength    = 12
 	TokenSecretLength = 24
 	TokenLength       = TokenKeyLength + TokenSecretLength
-
-	APITokenLength = 24
 )
 
 type Token struct {
@@ -24,14 +22,20 @@ type Token struct {
 	User   User
 	UserID uuid.UUID
 
-	Key         string `gorm:"<-:create;uniqueIndex"` // ID
-	Secret      string `gorm:"-"`
-	Checksum    []byte
-	Permissions string `gorm:"<-:create"`
+	APIToken   APIToken
+	APITokenID uuid.UUID
+
+	Key      string `gorm:"<-:create;index"`
+	Secret   string `gorm:"-"`
+	Checksum []byte
 
 	SessionDuration time.Duration `gorm:"-"`
 
 	Expires time.Time
+}
+
+func KeyAndSecret(sessionToken string) (key, secret string) {
+	return sessionToken[:TokenKeyLength], sessionToken[TokenKeyLength:]
 }
 
 func (t *Token) SessionToken() string {
@@ -41,49 +45,55 @@ func (t *Token) SessionToken() string {
 type APIToken struct {
 	Model
 
-	Name string
-
-	Key         string `gorm:"<-:create;index"`
-	Permissions string `gorm:"<-:create"`
+	Name        string
+	Permissions string
+	TTL         time.Duration
 }
 
-func (k *APIToken) ToAPI() (*api.InfraAPIToken, error) {
-	result := api.InfraAPIToken{
+func (k *APIToken) ToAPI() *api.InfraAPIToken {
+	ttl := k.TTL.String()
+
+	return &api.InfraAPIToken{
 		ID:      k.ID.String(),
 		Created: k.CreatedAt.Unix(),
 
-		Name: k.Name,
+		Name:        k.Name,
+		Permissions: strings.Split(k.Permissions, " "),
+		Ttl:         &ttl,
 	}
-
-	result.Permissions = append(result.Permissions, strings.Split(k.Permissions, " ")...)
-
-	return result
 }
 
-func (k *APIToken) ToAPICreateResponse() (*api.InfraAPITokenCreateResponse, error) {
-	result := api.InfraAPITokenCreateResponse{
+func (k *APIToken) ToAPICreateResponse(tkn *Token) *api.InfraAPITokenCreateResponse {
+	ttl := k.TTL.String()
+
+	return &api.InfraAPITokenCreateResponse{
 		ID:      k.ID.String(),
 		Created: k.CreatedAt.Unix(),
 
-		Name:  k.Name,
-		Token: k.Key,
+		Name:        k.Name,
+		Permissions: strings.Split(k.Permissions, " "),
+		Ttl:         &ttl,
+
+		Token: tkn.SessionToken(), // be cautious, this is a secret value
 	}
-
-	result.Permissions = append(result.Permissions, strings.Split(k.Permissions, " ")...)
-
-	return result
 }
 
-func (k *APIToken) FromAPI(from interface{}) error {
+func (k *APIToken) FromAPI(from interface{}, defaultSessionDuration time.Duration) error {
 	if createRequest, ok := from.(*api.InfraAPITokenCreateRequest); ok {
-		k.Name = createRequest.Name
+		sessionDuration := defaultSessionDuration
 
-		permissions := make([]string, 0)
-		for i := range createRequest.Permissions {
-			permissions = append(permissions, string(createRequest.Permissions[i]))
+		if createRequest.Ttl != nil && *createRequest.Ttl != "" {
+			var err error
+
+			sessionDuration, err = time.ParseDuration(*createRequest.Ttl)
+			if err != nil {
+				return fmt.Errorf("parse ttl: %w", err)
+			}
 		}
 
-		k.Permissions = strings.Join(permissions, " ")
+		k.Name = createRequest.Name
+		k.Permissions = strings.Join(createRequest.Permissions, " ")
+		k.TTL = sessionDuration
 
 		return nil
 	}

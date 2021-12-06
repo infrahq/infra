@@ -41,8 +41,7 @@ func RequireAuthentication(c *gin.Context) error {
 
 	bearer := parts[1]
 
-	switch len(bearer) {
-	case models.TokenLength:
+	if len(bearer) == models.TokenLength {
 		token, err := data.GetToken(db, &models.Token{Key: bearer[:models.TokenKeyLength]})
 		if err != nil {
 			return fmt.Errorf("could not get token from database, it may not exist: %w", err)
@@ -63,19 +62,10 @@ func RequireAuthentication(c *gin.Context) error {
 			logging.S.Debug("user permissions: %s \n", token.User.Permissions)
 			// this token has a parent user, set by their current permissions
 			c.Set("permissions", token.User.Permissions)
-		} else {
-			c.Set("permissions", token.Permissions)
+		} else if token.APITokenID != uuid.Nil {
+			// this is an API token
+			c.Set("permissions", token.APIToken.Permissions)
 		}
-
-		return nil
-	case models.APITokenLength:
-		apiToken, err := data.GetAPIToken(db, &models.APIToken{Key: bearer})
-		if err != nil {
-			return fmt.Errorf("rejected invalid API token: %w", err)
-		}
-
-		c.Set("authentication", bearer)
-		c.Set("permissions", apiToken.Permissions)
 
 		return nil
 	}
@@ -105,7 +95,7 @@ func RequireAuthorization(c *gin.Context, require Permission) (*gorm.DB, error) 
 	}
 
 	for _, p := range strings.Split(permissions, " ") {
-		if RequirePermission(p, string(require)) {
+		if GrantsPermission(p, string(require)) {
 			return db, nil
 		}
 	}
@@ -113,7 +103,8 @@ func RequireAuthorization(c *gin.Context, require Permission) (*gorm.DB, error) 
 	return nil, internal.ErrForbidden
 }
 
-func RequirePermission(permission, require string) bool {
+// GrantsPermission checks if a given permission grants a required permission
+func GrantsPermission(permission, require string) bool {
 	if Permission(permission) == PermissionAll || Permission(permission) == PermissionAllAlternate {
 		return true
 	} else if permission == require {
@@ -127,6 +118,25 @@ func RequirePermission(permission, require string) bool {
 		}
 
 		return false
+	}
+
+	return true
+}
+
+// AllRequired checks if a a set of permissions contains all the required permissions
+func AllRequired(permissions, required []string) bool {
+	for _, req := range required {
+		granted := false
+		for _, p := range permissions {
+			granted = GrantsPermission(p, req)
+			if granted {
+				break
+			}
+		}
+
+		if !granted {
+			return false
+		}
 	}
 
 	return true

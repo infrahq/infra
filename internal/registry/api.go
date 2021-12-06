@@ -355,7 +355,8 @@ func (a *API) ListAPITokens(c *gin.Context) {
 	results := make([]api.InfraAPIToken, 0)
 
 	for _, k := range keys {
-		results = append(results, k.ToAPI())
+		key := k.ToAPI()
+		results = append(results, *key)
 	}
 
 	c.JSON(http.StatusOK, results)
@@ -390,24 +391,18 @@ func (a *API) CreateAPIToken(c *gin.Context) {
 	}
 
 	apiToken := &models.APIToken{}
-	if err := apiToken.FromAPI(&body); err != nil {
+	if err := apiToken.FromAPI(&body, DefaultSessionDuration); err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	apiToken, err := access.IssueAPIToken(c, apiToken)
+	apiToken, tkn, err := access.IssueAPIToken(c, apiToken)
 	if err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	result, err := apiToken.ToAPICreateResponse()
-	if err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
-		return
-	}
-
-	c.JSON(http.StatusCreated, result)
+	c.JSON(http.StatusCreated, apiToken.ToAPICreateResponse(tkn))
 }
 
 func (a *API) ListGrants(c *gin.Context) {

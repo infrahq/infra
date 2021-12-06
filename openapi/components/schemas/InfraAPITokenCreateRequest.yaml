@@ -11,4 +11,4 @@ properties:
       type: string
   ttl:
     type: string
-    description: token time to live before expirry in the form XhYmZs, for example 1h30m
+    description: Token time to live before expiry in the form XhYmZs, for example 1h30m. Defaults to 12h.

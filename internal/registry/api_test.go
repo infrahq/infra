@@ -19,7 +19,6 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/api"
-	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/mocks"
 	"github.com/infrahq/infra/internal/registry/models"
@@ -52,16 +51,13 @@ func (msr *mockSecretReader) SetSecret(secretName string, secret []byte) error {
 }
 
 func issueAPIToken(t *testing.T, db *gorm.DB, permissions string) *models.APIToken {
-	secret, err := generate.CryptoRandom(models.APITokenLength)
-	require.NoError(t, err)
-
 	apiToken := &models.APIToken{
 		Name:        "test",
-		Key:         secret,
 		Permissions: permissions,
+		TTL:         1 * time.Hour,
 	}
 
-	apiToken, err = data.CreateAPIToken(db, apiToken)
+	apiToken, _, err := data.CreateAPIToken(db, apiToken, &models.Token{})
 	require.NoError(t, err)
 
 	return apiToken
@@ -812,8 +808,8 @@ func TestT(t *testing.T) {
 		// /v1/api-tokens
 		"ListAPITokens": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				issueAPIToken(t, db, string(access.PermissionAPITokenList))
-				c.Set("permissions", string(access.PermissionAPITokenList))
+				issueAPIToken(t, db, string(access.PermissionAPITokenRead))
+				c.Set("permissions", string(access.PermissionAPITokenRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/api-tokens", nil)
@@ -905,7 +901,7 @@ func TestCreateAPIToken(t *testing.T) {
 
 	request := api.InfraAPITokenCreateRequest{
 		Name:        "tmp",
-		Permissions: []string{"infra.*"},
+		Permissions: []string{string(access.PermissionAllAlternate)},
 	}
 
 	bts, err := request.MarshalJSON()
@@ -915,7 +911,7 @@ func TestCreateAPIToken(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Set("db", db)
-	c.Set("permissions", string(access.PermissionAPITokenIssue))
+	c.Set("permissions", string(access.PermissionAllAlternate))
 	c.Request = r
 
 	a := API{}
@@ -945,7 +941,7 @@ func TestDeleteAPIToken(t *testing.T) {
 
 	permissions := strings.Join([]string{
 		string(access.PermissionUserRead),
-		string(access.PermissionAPITokenRevoke),
+		string(access.PermissionAPITokenDelete),
 	}, " ")
 
 	apiToken := issueAPIToken(t, db, permissions)
