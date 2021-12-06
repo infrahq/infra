@@ -10,9 +10,3 @@ get:
         application/json:
           schema:
             $ref: ../components/schemas/Version.yaml
-    default:
-      description: Error response
-      content:
-        application/json:
-          schema:
-            $ref: ../components/schemas/Error.yaml

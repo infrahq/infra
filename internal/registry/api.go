@@ -465,8 +465,10 @@ func (a *API) Logout(c *gin.Context) {
 
 	deleteAuthCookie(c)
 
-	if err := a.t.Enqueue(analytics.Track{Event: "infra.logout", UserId: token.UserID.String()}); err != nil {
-		logging.S.Debug(err)
+	if a.t != nil {
+		if err := a.t.Enqueue(analytics.Track{Event: "infra.logout", UserId: token.UserID.String()}); err != nil {
+			logging.S.Debug(err)
+		}
 	}
 
 	c.Status(http.StatusOK)
