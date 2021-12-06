@@ -403,7 +403,7 @@ func (r *Registry) loadDBKey() error {
 		return err
 	}
 
-	kp := r.keyProvider["native"]
+	kp := r.keyProvider["default"]
 
 	sKey, err := kp.DecryptDataKey(keyRec.RootKeyID, keyRec.Encrypted)
 	if err != nil {
@@ -417,7 +417,7 @@ func (r *Registry) loadDBKey() error {
 
 // creates db key
 func (r *Registry) createDBKey() error {
-	kp := r.keyProvider["native"]
+	kp := r.keyProvider["default"]
 
 	sKey, err := kp.GenerateDataKey("")
 	if err != nil {

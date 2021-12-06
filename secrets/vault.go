@@ -168,7 +168,9 @@ func (v *VaultSecretProvider) DecryptDataKey(rootKeyID string, keyData []byte) (
 func (v *VaultSecretProvider) RemoteEncrypt(keyID string, plain []byte) (encrypted []byte, err error) {
 	bPlain := base64.StdEncoding.EncodeToString(plain)
 
-	sec, err := v.client.Logical().Write("/transit/encrypt/"+keyID, map[string]interface{}{
+	path := fmt.Sprintf("%s/encrypt/%s", v.TransitMount, keyID)
+
+	sec, err := v.client.Logical().Write(path, map[string]interface{}{
 		"plaintext": bPlain,
 	})
 	if err != nil {
@@ -183,7 +185,9 @@ func (v *VaultSecretProvider) RemoteEncrypt(keyID string, plain []byte) (encrypt
 }
 
 func (v *VaultSecretProvider) RemoteDecrypt(keyID string, encrypted []byte) (plain []byte, err error) {
-	sec, err := v.client.Logical().Write("/transit/decrypt/"+keyID, map[string]interface{}{
+	path := fmt.Sprintf("%s/decrypt/%s", v.TransitMount, keyID)
+
+	sec, err := v.client.Logical().Write(path, map[string]interface{}{
 		"ciphertext": string(encrypted),
 	})
 	if err != nil {

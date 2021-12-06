@@ -2,7 +2,9 @@ secrets:
   - name: base64
     kind: plaintext
     base64: true
-
+keys:
+  - kind: native
+    secretStorage: file
 providers:
   - kind: okta
     domain: https://test.okta.com

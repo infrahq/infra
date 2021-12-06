@@ -10,9 +10,10 @@ import (
 
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
+	"github.com/infrahq/infra/secrets"
 )
 
-func configure(t *testing.T, db *gorm.DB) *gorm.DB {
+func configure(t *testing.T, db *gorm.DB) (*Registry, *gorm.DB) {
 	if db == nil {
 		db = setupDB(t)
 	}
@@ -20,11 +21,14 @@ func configure(t *testing.T, db *gorm.DB) *gorm.DB {
 	testdata, err := ioutil.ReadFile("_testdata/infra.yaml")
 	require.NoError(t, err)
 
-	r := Registry{db: db}
+	r := &Registry{db: db}
+	err = r.importSecretsConfig(testdata)
+	require.NoError(t, err)
+
 	err = r.importConfig(testdata)
 	require.NoError(t, err)
 
-	return db
+	return r, db
 }
 
 func userGrants(t *testing.T, grants []models.Grant, email string) map[string][]string {
@@ -59,7 +63,7 @@ func userGrants(t *testing.T, grants []models.Grant, email string) map[string][]
 }
 
 func TestImportUserGrants(t *testing.T) {
-	db := configure(t, nil)
+	_, db := configure(t, nil)
 
 	grants, err := data.ListGrants(db, &models.Grant{})
 	require.NoError(t, err)
@@ -107,7 +111,7 @@ func groupGrants(t *testing.T, grants []models.Grant, name string) map[string][]
 }
 
 func TestImportGroupGrants(t *testing.T) {
-	db := configure(t, nil)
+	_, db := configure(t, nil)
 
 	grants, err := data.ListGrants(db, &models.Grant{})
 	require.NoError(t, err)
@@ -123,7 +127,7 @@ func TestImportGroupGrants(t *testing.T) {
 }
 
 func TestImportGrantsUnknownDestinations(t *testing.T) {
-	db := configure(t, nil)
+	_, db := configure(t, nil)
 
 	grants, err := data.ListGrants(db, &models.Grant{})
 	require.NoError(t, err)
@@ -135,7 +139,7 @@ func TestImportGrantsUnknownDestinations(t *testing.T) {
 }
 
 func TestImportGrantsNoMatchingLabels(t *testing.T) {
-	db := configure(t, nil)
+	_, db := configure(t, nil)
 
 	grants, err := data.ListGrants(db, data.GrantSelector(db, &models.Grant{
 		Kind: models.GrantKindKubernetes,
@@ -153,14 +157,14 @@ func TestImportGrantsRemovesUnusedGrants(t *testing.T) {
 	unused, err := data.CreateGrant(db, &models.Grant{})
 	require.NoError(t, err)
 
-	_ = configure(t, db)
+	_, _ = configure(t, db)
 
 	_, err = data.GetGrant(db, unused)
 	require.EqualError(t, err, "record not found")
 }
 
 func TestImportProvidersOverrideDuplicate(t *testing.T) {
-	db := configure(t, nil)
+	_, db := configure(t, nil)
 
 	providers, err := data.ListProviders(db, &models.Provider{})
 	require.NoError(t, err)
@@ -243,4 +247,12 @@ groups:
 	require.NoError(t, err)
 	require.Len(t, grants, 1)
 	require.Equal(t, "", grants[0].Kubernetes.Namespace)
+}
+
+func TestImportKeyProvider(t *testing.T) {
+	r, _ := configure(t, nil)
+
+	sp, ok := r.keyProvider["native"]
+	require.True(t, ok)
+	require.IsType(t, &secrets.NativeSecretProvider{}, sp)
 }
