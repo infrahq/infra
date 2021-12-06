@@ -20,7 +20,7 @@ const (
 
 	PermissionAPIKey       Permission = "infra.apiKey.*"      // nolint:gosec
 	PermissionAPIKeyIssue  Permission = "infra.apiKey.issue"  // nolint:gosec
-	PermissionAPIKeyList   Permission = "infra.apiKey.list"   // nolint:gosec
+	PermissionAPIKeyRead   Permission = "infra.apiKey.read"   // nolint:gosec
 	PermissionAPIKeyRevoke Permission = "infra.apiKey.revoke" // nolint:gosec
 
 	PermissionCredentialCreate Permission = "infra.credential.create" //nolint:gosec
@@ -95,7 +95,7 @@ func IssueAPIKey(c *gin.Context, apiKey *models.APIKey) (*models.APIKey, error) 
 }
 
 func ListAPIKeys(c *gin.Context, name string) ([]models.APIKey, error) {
-	db, err := RequireAuthorization(c, PermissionAPIKeyList)
+	db, err := RequireAuthorization(c, PermissionAPIKeyRead)
 	if err != nil {
 		return nil, err
 	}
