@@ -1,0 +1,18 @@
+type: object
+required:
+  - kind
+  - domain
+  - clientID
+  - clientSecret
+properties:
+  kind:
+    $ref: ./ProviderKind.yaml
+  domain:
+    type: string
+    x-go-custom-tag: binding:"fqdn,required"
+  clientID:
+    type: string
+  clientSecret:
+    type: string
+  okta:
+    $ref: ./ProviderOkta.yaml
