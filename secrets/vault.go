@@ -12,8 +12,8 @@ var DefaultVaultAlgorithm = "aes256-gcm96"
 
 // ensure these interfaces are implemented properly
 var (
-	_ SecretSymmetricKeyProvider = &VaultSecretProvider{}
-	_ SecretStorage              = &VaultSecretProvider{}
+	_ SymmetricKeyProvider = &VaultSecretProvider{}
+	_ SecretStorage        = &VaultSecretProvider{}
 )
 
 type VaultSecretProvider struct {
@@ -109,10 +109,9 @@ func (v *VaultSecretProvider) SetSecret(name string, secret []byte) error {
 	return err
 }
 
-func (v *VaultSecretProvider) GenerateDataKey(name, rootKeyID string) (*SymmetricKey, error) {
-	name = nameEscape(name)
+func (v *VaultSecretProvider) GenerateDataKey(rootKeyID string) (*SymmetricKey, error) {
 	if rootKeyID == "" {
-		rootKeyID = name + "_root"
+		rootKeyID = "__infra-root"
 		if err := v.generateRootKey(rootKeyID); err != nil {
 			return nil, err
 		}
@@ -169,7 +168,9 @@ func (v *VaultSecretProvider) DecryptDataKey(rootKeyID string, keyData []byte) (
 func (v *VaultSecretProvider) RemoteEncrypt(keyID string, plain []byte) (encrypted []byte, err error) {
 	bPlain := base64.StdEncoding.EncodeToString(plain)
 
-	sec, err := v.client.Logical().Write("/transit/encrypt/"+keyID, map[string]interface{}{
+	path := fmt.Sprintf("%s/encrypt/%s", v.TransitMount, keyID)
+
+	sec, err := v.client.Logical().Write(path, map[string]interface{}{
 		"plaintext": bPlain,
 	})
 	if err != nil {
@@ -184,7 +185,9 @@ func (v *VaultSecretProvider) RemoteEncrypt(keyID string, plain []byte) (encrypt
 }
 
 func (v *VaultSecretProvider) RemoteDecrypt(keyID string, encrypted []byte) (plain []byte, err error) {
-	sec, err := v.client.Logical().Write("/transit/decrypt/"+keyID, map[string]interface{}{
+	path := fmt.Sprintf("%s/decrypt/%s", v.TransitMount, keyID)
+
+	sec, err := v.client.Logical().Write(path, map[string]interface{}{
 		"ciphertext": string(encrypted),
 	})
 	if err != nil {

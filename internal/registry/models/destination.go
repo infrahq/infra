@@ -17,7 +17,7 @@ type Destination struct {
 
 	Name     string
 	Kind     DestinationKind
-	NodeID   string
+	NodeID   string `gorm:"uniqueIndex" validate:"required"`
 	Endpoint string
 
 	Labels []Label

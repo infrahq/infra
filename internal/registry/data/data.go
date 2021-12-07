@@ -34,32 +34,25 @@ func NewDB(connection gorm.Dialector) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	if err := db.AutoMigrate(&models.User{}, &models.Group{}); err != nil {
-		return nil, err
+	tables := []interface{}{
+		&models.User{},
+		&models.Group{},
+		&models.Grant{},
+		&models.GrantKubernetes{},
+		&models.Provider{},
+		&models.ProviderOkta{},
+		&models.Destination{},
+		&models.DestinationKubernetes{},
+		&models.Label{},
+		&models.Token{},
+		&models.APIKey{},
+		&models.Settings{},
+		&models.Key{},
 	}
-
-	if err := db.AutoMigrate(&models.Grant{}, &models.GrantKubernetes{}); err != nil {
-		return nil, err
-	}
-
-	if err := db.AutoMigrate(&models.Provider{}, &models.ProviderOkta{}); err != nil {
-		return nil, err
-	}
-
-	if err := db.AutoMigrate(&models.Destination{}, &models.DestinationKubernetes{}); err != nil {
-		return nil, err
-	}
-
-	if err := db.AutoMigrate(&models.Label{}); err != nil {
-		return nil, err
-	}
-
-	if err := db.AutoMigrate(&models.Token{}, &models.APIKey{}); err != nil {
-		return nil, err
-	}
-
-	if err := db.AutoMigrate(&models.Settings{}); err != nil {
-		return nil, err
+	for _, table := range tables {
+		if err := db.AutoMigrate(table); err != nil {
+			return nil, err
+		}
 	}
 
 	return db, nil

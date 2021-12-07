@@ -152,7 +152,7 @@ func TestCreateDestination(t *testing.T) {
 
 	for k, v := range cases {
 		t.Run(k, func(t *testing.T) {
-			db := configure(t, nil)
+			_, db := configure(t, nil)
 
 			requestFunc, ok := v["requestFunc"].(func(*testing.T) *api.DestinationCreateRequest)
 			require.True(t, ok)
@@ -185,7 +185,7 @@ func TestCreateDestination(t *testing.T) {
 }
 
 func TestCreateDestinationUpdatesField(t *testing.T) {
-	db := configure(t, nil)
+	_, db := configure(t, nil)
 
 	destination, err := data.CreateDestination(db, &models.Destination{
 		Kind:     models.DestinationKindKubernetes,
@@ -327,7 +327,7 @@ func TestLogin(t *testing.T) {
 
 	for k, v := range cases {
 		t.Run(k, func(t *testing.T) {
-			db := configure(t, nil)
+			_, db := configure(t, nil)
 
 			requestFunc, ok := v["requestFunc"].(func(*testing.T) *http.Request)
 			require.True(t, ok)
@@ -352,7 +352,7 @@ func TestLogin(t *testing.T) {
 }
 
 func TestLoginOkta(t *testing.T) {
-	db := configure(t, nil)
+	_, db := configure(t, nil)
 
 	testOkta := new(mocks.Okta)
 	testOkta.On("EmailFromCode", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("jbond@infrahq.com", nil)
@@ -1216,7 +1216,7 @@ func TestT(t *testing.T) {
 
 	for k, v := range cases {
 		t.Run(k, func(t *testing.T) {
-			db := configure(t, nil)
+			_, db := configure(t, nil)
 
 			_, err := data.InitializeSettings(db)
 			require.NoError(t, err)
@@ -1251,7 +1251,7 @@ func TestT(t *testing.T) {
 }
 
 func TestCreateAPIKey(t *testing.T) {
-	db := configure(t, nil)
+	_, db := configure(t, nil)
 
 	request := api.InfraAPIKeyCreateRequest{
 		Name:        "tmp",
@@ -1291,7 +1291,7 @@ func TestCreateAPIKey(t *testing.T) {
 }
 
 func TestDeleteAPIKey(t *testing.T) {
-	db := configure(t, nil)
+	_, db := configure(t, nil)
 
 	permissions := strings.Join([]string{
 		string(access.PermissionUserRead),

@@ -11,7 +11,7 @@ import (
 )
 
 // ensure this interface is implemented properly
-var _ SecretSymmetricKeyProvider = &AWSKMSSecretProvider{}
+var _ SymmetricKeyProvider = &AWSKMSSecretProvider{}
 
 type AWSKMSSecretProvider struct {
 	AWSKMSConfig
@@ -89,9 +89,9 @@ func (k *AWSKMSSecretProvider) generateRootKey(name string) (*kms.CreateKeyOutpu
 	})
 }
 
-func (k *AWSKMSSecretProvider) GenerateDataKey(name, rootKeyID string) (*SymmetricKey, error) {
+func (k *AWSKMSSecretProvider) GenerateDataKey(rootKeyID string) (*SymmetricKey, error) {
 	if rootKeyID == "" {
-		ko, err := k.generateRootKey(name + ":root")
+		ko, err := k.generateRootKey("infra:root")
 		if err != nil {
 			return nil, fmt.Errorf("kms: generate root key: %w", err)
 		}

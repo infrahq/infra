@@ -17,7 +17,7 @@ type Provider struct {
 
 	Domain       string
 	ClientID     string
-	ClientSecret string
+	ClientSecret EncryptedAtRest
 
 	Okta ProviderOkta
 
@@ -28,7 +28,7 @@ type Provider struct {
 type ProviderOkta struct {
 	Model
 
-	APIToken string
+	APIToken EncryptedAtRest
 
 	ProviderID uuid.UUID
 }
