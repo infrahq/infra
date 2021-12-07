@@ -45,7 +45,7 @@ func (t *Token) SessionToken() string {
 type APIToken struct {
 	Model
 
-	Name        string
+	Name        string `gorm:"unique"`
 	Permissions string
 	TTL         time.Duration
 }

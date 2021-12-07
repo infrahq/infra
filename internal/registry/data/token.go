@@ -94,16 +94,6 @@ func CreateAPIToken(db *gorm.DB, apiToken *models.APIToken, token *models.Token)
 	token.Checksum = chksm[:]
 	token.Expires = time.Now().Add(apiToken.TTL)
 
-	// no duplicate API token names
-	existing, err := GetAPIToken(db, &models.APIToken{Name: apiToken.Name})
-	if err != nil && !errors.Is(err, internal.ErrNotFound) {
-		return nil, nil, fmt.Errorf("check api token existing: %w", err)
-	}
-
-	if existing != nil {
-		return nil, nil, internal.ErrDuplicate
-	}
-
 	if err := add(db, &models.APIToken{}, apiToken, &models.APIToken{}); err != nil {
 		return nil, nil, fmt.Errorf("new api token: %w", err)
 	}
