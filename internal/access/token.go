@@ -108,7 +108,7 @@ func IssueAPIToken(c *gin.Context, apiToken *models.APIToken) (*models.APIToken,
 	return data.CreateAPIToken(db, apiToken, &models.Token{})
 }
 
-func ListAPITokens(c *gin.Context, name string) ([]models.APIToken, error) {
+func ListAPITokens(c *gin.Context, name string) ([]models.APITokenTuple, error) {
 	db, err := RequireAuthorization(c, PermissionAPITokenRead)
 	if err != nil {
 		return nil, err

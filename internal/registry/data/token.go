@@ -82,7 +82,7 @@ func CreateAPIToken(db *gorm.DB, apiToken *models.APIToken, token *models.Token)
 	}
 
 	if token.Secret == "" {
-		sec, err := generate.CryptoRandom(models.TokenLength)
+		sec, err := generate.CryptoRandom(models.TokenSecretLength)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -126,13 +126,25 @@ func GetAPIToken(db *gorm.DB, condition interface{}) (*models.APIToken, error) {
 	return &apiToken, nil
 }
 
-func ListAPITokens(db *gorm.DB, condition interface{}) ([]models.APIToken, error) {
+func ListAPITokens(db *gorm.DB, condition interface{}) ([]models.APITokenTuple, error) {
 	apiTokens := make([]models.APIToken, 0)
 	if err := list(db, &models.APIToken{}, &apiTokens, condition); err != nil {
 		return nil, err
 	}
 
-	return apiTokens, nil
+	apiTokenTuples := make([]models.APITokenTuple, 0)
+
+	for _, apiTkn := range apiTokens {
+		// need to get the token to find the expiry
+		var tkn models.Token
+		if err := get(db, &models.Token{}, &tkn, &models.Token{APITokenID: apiTkn.ID}); err != nil {
+			return nil, err
+		}
+
+		apiTokenTuples = append(apiTokenTuples, models.APITokenTuple{APIToken: apiTkn, Token: tkn})
+	}
+
+	return apiTokenTuples, nil
 }
 
 func DeleteAPIToken(db *gorm.DB, condition interface{}) error {

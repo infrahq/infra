@@ -18,9 +18,10 @@ import (
 type InfraAPIToken struct {
 	ID          string   `json:"id"`
 	Created     int64    `json:"created"`
+	Expires     *int64   `json:"expires,omitempty"`
 	Name        string   `json:"name"`
 	Permissions []string `json:"permissions"`
-	// token time to live before expiry in the form XhYmZs, for example 1h30m
+	// Token time to live before expiry in the form XhYmZs, for example 1h30m. Defaults to 12h.
 	Ttl *string `json:"ttl,omitempty"`
 }
 
@@ -91,6 +92,38 @@ func (o *InfraAPIToken) GetCreatedOK() (*int64, bool) {
 // SetCreated sets field value
 func (o *InfraAPIToken) SetCreated(v int64) {
 	o.Created = v
+}
+
+// GetExpires returns the Expires field value if set, zero value otherwise.
+func (o *InfraAPIToken) GetExpires() int64 {
+	if o == nil || o.Expires == nil {
+		var ret int64
+		return ret
+	}
+	return *o.Expires
+}
+
+// GetExpiresOK returns a tuple with the Expires field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *InfraAPIToken) GetExpiresOK() (*int64, bool) {
+	if o == nil || o.Expires == nil {
+		return nil, false
+	}
+	return o.Expires, true
+}
+
+// HasExpires returns a boolean if a field has been set.
+func (o *InfraAPIToken) HasExpires() bool {
+	if o != nil && o.Expires != nil {
+		return true
+	}
+
+	return false
+}
+
+// SetExpires gets a reference to the given int64 and assigns it to the Expires field.
+func (o *InfraAPIToken) SetExpires(v int64) {
+	o.Expires = &v
 }
 
 // GetName returns the Name field value
@@ -180,6 +213,9 @@ func (o InfraAPIToken) MarshalJSON() ([]byte, error) {
 	}
 	if true {
 		toSerialize["created"] = o.Created
+	}
+	if o.Expires != nil {
+		toSerialize["expires"] = o.Expires
 	}
 	if true {
 		toSerialize["name"] = o.Name

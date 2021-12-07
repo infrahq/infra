@@ -33,6 +33,12 @@ export interface InfraAPIToken {
     created: number;
     /**
      * 
+     * @type {number}
+     * @memberof InfraAPIToken
+     */
+    expires?: number;
+    /**
+     * 
      * @type {string}
      * @memberof InfraAPIToken
      */
@@ -44,7 +50,7 @@ export interface InfraAPIToken {
      */
     permissions: Array<string>;
     /**
-     * token time to live before expiry in the form XhYmZs, for example 1h30m
+     * Token time to live before expiry in the form XhYmZs, for example 1h30m. Defaults to 12h.
      * @type {string}
      * @memberof InfraAPIToken
      */
@@ -63,6 +69,7 @@ export function InfraAPITokenFromJSONTyped(json: any, ignoreDiscriminator: boole
         
         'id': json['id'],
         'created': json['created'],
+        'expires': !exists(json, 'expires') ? undefined : json['expires'],
         'name': json['name'],
         'permissions': json['permissions'],
         'ttl': !exists(json, 'ttl') ? undefined : json['ttl'],
@@ -80,6 +87,7 @@ export function InfraAPITokenToJSON(value?: InfraAPIToken | null): any {
         
         'id': value.id,
         'created': value.created,
+        'expires': value.expires,
         'name': value.name,
         'permissions': value.permissions,
         'ttl': value.ttl,

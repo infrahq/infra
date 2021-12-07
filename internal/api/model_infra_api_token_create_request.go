@@ -18,7 +18,7 @@ import (
 type InfraAPITokenCreateRequest struct {
 	Name        string   `json:"name"`
 	Permissions []string `json:"permissions"`
-	// token time to live before expirry in the form XhYmZs, for example 1h30m
+	// Token time to live before expiry in the form XhYmZs, for example 1h30m. Defaults to 12h.
 	Ttl *string `json:"ttl,omitempty"`
 }
 

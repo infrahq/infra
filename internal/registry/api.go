@@ -346,7 +346,7 @@ func (a *API) CreateDestination(c *gin.Context) {
 func (a *API) ListAPITokens(c *gin.Context) {
 	keyName := c.Request.URL.Query().Get("name")
 
-	keys, err := access.ListAPITokens(c, keyName)
+	keyTuples, err := access.ListAPITokens(c, keyName)
 	if err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return
@@ -354,7 +354,7 @@ func (a *API) ListAPITokens(c *gin.Context) {
 
 	results := make([]api.InfraAPIToken, 0)
 
-	for _, k := range keys {
+	for _, k := range keyTuples {
 		key := k.ToAPI()
 		results = append(results, *key)
 	}

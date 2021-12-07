@@ -46,6 +46,12 @@ export interface InfraAPITokenCreateResponse {
     created: number;
     /**
      * 
+     * @type {number}
+     * @memberof InfraAPITokenCreateResponse
+     */
+    expires?: number;
+    /**
+     * 
      * @type {string}
      * @memberof InfraAPITokenCreateResponse
      */
@@ -57,7 +63,7 @@ export interface InfraAPITokenCreateResponse {
      */
     permissions: Array<string>;
     /**
-     * token time to live before expiry in the form XhYmZs, for example 1h30m
+     * Token time to live before expiry in the form XhYmZs, for example 1h30m. Defaults to 12h.
      * @type {string}
      * @memberof InfraAPITokenCreateResponse
      */
@@ -77,6 +83,7 @@ export function InfraAPITokenCreateResponseFromJSONTyped(json: any, ignoreDiscri
         'token': json['token'],
         'id': json['id'],
         'created': json['created'],
+        'expires': !exists(json, 'expires') ? undefined : json['expires'],
         'name': json['name'],
         'permissions': json['permissions'],
         'ttl': !exists(json, 'ttl') ? undefined : json['ttl'],
@@ -95,6 +102,7 @@ export function InfraAPITokenCreateResponseToJSON(value?: InfraAPITokenCreateRes
         'token': value.token,
         'id': value.id,
         'created': value.created,
+        'expires': value.expires,
         'name': value.name,
         'permissions': value.permissions,
         'ttl': value.ttl,

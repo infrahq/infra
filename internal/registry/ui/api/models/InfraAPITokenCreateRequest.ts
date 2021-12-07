@@ -32,7 +32,7 @@ export interface InfraAPITokenCreateRequest {
      */
     permissions: Array<string>;
     /**
-     * token time to live before expirry in the form XhYmZs, for example 1h30m
+     * Token time to live before expiry in the form XhYmZs, for example 1h30m. Defaults to 12h.
      * @type {string}
      * @memberof InfraAPITokenCreateRequest
      */

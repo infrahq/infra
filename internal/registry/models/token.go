@@ -39,7 +39,7 @@ func KeyAndSecret(sessionToken string) (key, secret string) {
 }
 
 func (t *Token) SessionToken() string {
-	return t.Key + string(t.Secret)
+	return t.Key + t.Secret
 }
 
 type APIToken struct {
@@ -48,6 +48,11 @@ type APIToken struct {
 	Name        string
 	Permissions string
 	TTL         time.Duration
+}
+
+type APITokenTuple struct {
+	APIToken APIToken
+	Token    Token
 }
 
 func (k *APIToken) ToAPI() *api.InfraAPIToken {
@@ -63,13 +68,30 @@ func (k *APIToken) ToAPI() *api.InfraAPIToken {
 	}
 }
 
+func (t *APITokenTuple) ToAPI() *api.InfraAPIToken {
+	ttl := t.APIToken.TTL.String()
+	exp := t.Token.Expires.Unix()
+
+	return &api.InfraAPIToken{
+		ID:      t.APIToken.ID.String(),
+		Created: t.APIToken.CreatedAt.Unix(),
+
+		Expires:     &exp,
+		Name:        t.APIToken.Name,
+		Permissions: strings.Split(t.APIToken.Permissions, " "),
+		Ttl:         &ttl,
+	}
+}
+
 func (k *APIToken) ToAPICreateResponse(tkn *Token) *api.InfraAPITokenCreateResponse {
 	ttl := k.TTL.String()
+	exp := tkn.Expires.Unix()
 
 	return &api.InfraAPITokenCreateResponse{
 		ID:      k.ID.String(),
 		Created: k.CreatedAt.Unix(),
 
+		Expires:     &exp,
 		Name:        k.Name,
 		Permissions: strings.Split(k.Permissions, " "),
 		Ttl:         &ttl,

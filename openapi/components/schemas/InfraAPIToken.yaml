@@ -11,6 +11,9 @@ properties:
   created:
     type: integer
     format: int64
+  expires:
+    type: integer
+    format: int64
   name:
     type: string
   permissions:
