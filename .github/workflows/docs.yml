@@ -1,0 +1,21 @@
+name: main
+
+on:
+  release:
+    types:
+      - released
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+      - run: npx @redocly/openapi-cli bundle openapi.yaml -o openapi.yaml
+      - uses: readmeio/github-readme-sync@v2
+        with:
+          readme-oas-key: ${{ secrets.README_API_KEY }}
+          oas-file-path: openapi.yaml
