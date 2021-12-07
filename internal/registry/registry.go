@@ -394,7 +394,7 @@ var dbKeyName = "dbkey"
 
 // load encrypted db key from database
 func (r *Registry) loadDBKey() error {
-	keyRec, err := data.GetKeyByKeyName(r.db, dbKeyName)
+	keyRec, err := data.GetKey(r.db, data.ByName(dbKeyName))
 	if err != nil {
 		if errors.Is(err, internal.ErrNotFound) {
 			return r.createDBKey()

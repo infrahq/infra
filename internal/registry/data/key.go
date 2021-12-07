@@ -21,22 +21,18 @@ func CreateKey(db *gorm.DB, key *models.Key) (*models.Key, error) {
 	return key, nil
 }
 
-func GetKeyByKeyID(db *gorm.DB, keyID []byte) (result *models.Key, err error) {
+func GetKey(db *gorm.DB, selector SelectorFunc) (result *models.Key, err error) {
 	result = &models.Key{}
 
-	if err := get(db, &models.Key{}, result, db.Where("key_id = ?", keyID)); err != nil {
+	if err := get(db, &models.Key{}, result, selector(db)); err != nil {
 		return nil, err
 	}
 
 	return result, nil
 }
 
-func GetKeyByKeyName(db *gorm.DB, name string) (result *models.Key, err error) {
-	result = &models.Key{}
-
-	if err := get(db, &models.Key{}, result, db.Where("name = ?", name)); err != nil {
-		return nil, err
+func ByKeyID(keyID int32) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("key_id = ?", keyID)
 	}
-
-	return result, nil
 }
