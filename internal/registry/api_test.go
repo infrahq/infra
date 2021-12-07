@@ -876,7 +876,7 @@ func TestT(t *testing.T) {
 }
 
 func TestCreateAPIToken(t *testing.T) {
-	db := configure(t, nil)
+	_, db := configure(t, nil)
 
 	request := api.InfraAPITokenCreateRequest{
 		Name:        "tmp",
@@ -916,7 +916,7 @@ func TestCreateAPIToken(t *testing.T) {
 }
 
 func TestDeleteAPIToken(t *testing.T) {
-	db, _ := configure(t, nil)
+	_, db := configure(t, nil)
 
 	permissions := strings.Join([]string{
 		string(access.PermissionUserRead),

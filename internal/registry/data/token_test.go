@@ -84,14 +84,10 @@ func TestGetUserTokenSelector(t *testing.T) {
 
 func TestCheckUserTokenExpired(t *testing.T) {
 	db := setup(t)
-	token := createUserToken(t, db, time.Minute*1)
+
+	token := createUserToken(t, db, time.Minute*-1)
 
 	err := CheckTokenExpired(token)
-	require.NoError(t, err)
-
-	token = createUserToken(t, db, time.Minute*-1)
-
-	err = CheckTokenExpired(token)
 	require.EqualError(t, err, "token expired")
 }
 

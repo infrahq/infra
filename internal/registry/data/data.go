@@ -47,7 +47,7 @@ func NewDB(connection gorm.Dialector) (*gorm.DB, error) {
 		&models.DestinationKubernetes{},
 		&models.Label{},
 		&models.Token{},
-		&models.APIKey{},
+		&models.APIToken{},
 		&models.Settings{},
 		&models.Key{},
 	}

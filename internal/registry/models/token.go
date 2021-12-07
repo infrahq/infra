@@ -25,7 +25,7 @@ type Token struct {
 	APIToken   APIToken
 	APITokenID uuid.UUID
 
-	Key      string `gorm:"<-:create;index"`
+	Key      string `gorm:"<-:create;uniqueIndex"`
 	Secret   string `gorm:"-"`
 	Checksum []byte
 
