@@ -106,11 +106,11 @@ func KillContainer(containerID string) {
 
 	err = cli.ContainerStop(ctx, containerID, &timeout)
 	if err != nil {
-		fmt.Println("error stopping container: " + err.Error())
+		fmt.Printf("error stopping container: %s\n", err.Error())
 	}
 
 	err = cli.ContainerRemove(ctx, containerID, types.ContainerRemoveOptions{Force: true})
 	if err != nil {
-		fmt.Println("error removing container: " + err.Error())
+		fmt.Printf("error removing container: %s\n", err.Error())
 	}
 }
