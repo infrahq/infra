@@ -20,6 +20,10 @@ type API struct {
 	registry *Registry
 }
 
+type Resource struct {
+	ID string `uri:"id" binding:"required,uuid"`
+}
+
 func NewAPIMux(reg *Registry, router *gin.RouterGroup) {
 	a := API{
 		t:        reg.tel,
@@ -46,6 +50,10 @@ func NewAPIMux(reg *Registry, router *gin.RouterGroup) {
 
 		authorized.GET("/grants", a.ListGrants)
 		authorized.GET("/grants/:id", a.GetGrant)
+
+		authorized.POST("/providers", a.CreateProvider)
+		authorized.PUT("/providers/:id", a.UpdateProvider)
+		authorized.DELETE("/providers/:id", a.DeleteProvider)
 
 		authorized.GET("/destinations", a.ListDestinations)
 		authorized.GET("/destinations/:id", a.GetDestination)
@@ -220,6 +228,74 @@ func (a *API) ListDestinations(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, results)
+}
+
+func (a *API) CreateProvider(c *gin.Context) {
+	var body api.ProviderRequest
+	if err := c.BindJSON(&body); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	provider := &models.Provider{}
+	if err := provider.FromAPI(&body); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	provider, err := access.CreateProvider(c, provider)
+	if err != nil {
+		sendAPIError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	result := provider.ToAPI()
+	c.JSON(http.StatusCreated, result)
+}
+
+func (a *API) UpdateProvider(c *gin.Context) {
+	var r Resource
+	if err := c.BindUri(&r); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	var body api.ProviderRequest
+	if err := c.BindJSON(&body); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	provider := &models.Provider{}
+	if err := provider.FromAPI(&body); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	provider, err := access.UpdateProvider(c, r.ID, provider)
+	if err != nil {
+		sendAPIError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	result := provider.ToAPI()
+	c.JSON(http.StatusOK, result)
+}
+
+func (a *API) DeleteProvider(c *gin.Context) {
+	var r Resource
+	if err := c.BindUri(&r); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	if err := access.DeleteProvider(c, r.ID); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+	c.Writer.WriteHeaderNow()
 }
 
 func (a *API) GetDestination(c *gin.Context) {

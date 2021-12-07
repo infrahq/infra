@@ -90,8 +90,28 @@ func ListProviders(db *gorm.DB, condition interface{}) ([]models.Provider, error
 	return providers, nil
 }
 
-func DeleteProviders(db *gorm.DB, condition interface{}) error {
-	toDelete, err := ListProviders(db, condition)
+func UpdateProvider(db *gorm.DB, provider *models.Provider, selector SelectorFunc) (*models.Provider, error) {
+	existing, err := GetProvider(db, selector(db))
+	if err != nil {
+		return nil, err
+	}
+
+	if err := update(db, &models.Provider{}, provider, db.Where(existing, "id")); err != nil {
+		return nil, err
+	}
+
+	switch provider.Kind {
+	case models.ProviderKindOkta:
+		if err := db.Model(existing).Association("Okta").Replace(&provider.Okta); err != nil {
+			return nil, err
+		}
+	}
+
+	return GetProvider(db, db.Where(existing, "id"))
+}
+
+func DeleteProviders(db *gorm.DB, selector SelectorFunc) error {
+	toDelete, err := ListProviders(db, selector(db))
 	if err != nil {
 		return err
 	}
@@ -105,5 +125,5 @@ func DeleteProviders(db *gorm.DB, condition interface{}) error {
 		return remove(db, &models.Provider{}, ids)
 	}
 
-	return nil
+	return internal.ErrNotFound
 }
