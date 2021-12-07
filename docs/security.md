@@ -61,7 +61,7 @@ config:
       namespace:
 ```
 
-Another alternative is that Infra can manages its own keys but stores them in a secret storage service other than kubernetes. valid secretStorage values are any secrets `name` that is already configured in config under `secrets`, as long as it's one of the types: `vault`, `awsssm`, `awssecretsmanager`, or `kubernetes`. 
+Another alternative is that Infra can manages its own keys but store them in a secret storage service other than kubernetes. Valid secretStorage values are any secrets `name` that is already configured in config under `secrets`, as long as it's one of the types: `vault`, `awsssm`, `awssecretsmanager`, or `kubernetes`. 
 
 If you're using Kubernetes for root key storage, as the config here shows, you should back up the secret offline or to secret storage such as 1Password. If you don't want to be responsible for backing up this key, switch to Vault or KMS (examples above).
 
