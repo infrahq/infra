@@ -22,6 +22,11 @@
         "additionalProperties": {
           "typescriptThreePlus": true
         }
+      },
+      "markdown": {
+        "generatorName": "markdown",
+        "output": "#{cwd}/docs/api",
+        "glob": "openapi/bundled.yaml"
       }
     }
   }
