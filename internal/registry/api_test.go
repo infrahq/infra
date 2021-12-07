@@ -457,27 +457,6 @@ func TestT(t *testing.T) {
 		},
 
 		// /v1/grants
-		// "GetGrant": map[string]interface{} {
-		// 	"authFunc": func (t *testing.T, db *gorm.DB, c *gin.Context) {
-		// 		apiKey := issueAPIKey(t, db, string(access.PermissionGrantRead))
-		// 		c.Set("authorization", apiKey.Key)
-		// 	},
-		// 	"requestFunc": func (t *testing.T, c *gin.Context) *http.Request {
-		// 		c.Params = append(c.Params, gin.Param{Key: "id", Value: grantEveryone.ID.String()})
-		// 		return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/grants/%s", grantEveryone.ID), nil)
-		// 	},
-		// 	"func": func (a *API, c *gin.Context) {
-		// 		a.GetGrant(c)
-		// 	},
-		// 	"verifyFunc": func (t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-		// 		require.Equal(t, http.StatusOK, w.Code)
-
-		// 		var grant api.Grant
-		// 		err := json.NewDecoder(w.Body).Decode(&grant)
-		// 		require.NoError(t, err)
-		// 		require.Equal(t, "Everyone", grant.Name)
-		// 	},
-		// },
 		"GetGrantEmptyID": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionGrantRead))
