@@ -45,12 +45,12 @@ func createGroups(t *testing.T, db *gorm.DB, groups ...models.Group) {
 	}
 }
 
-func TestCreateDuplicateGroup(t *testing.T) {
+func TestCreateGroupDuplicate(t *testing.T) {
 	db := setup(t)
 	createGroups(t, db, everyone, engineers, product)
 
 	_, err := CreateGroup(db, &everyone)
-	require.EqualError(t, err, "UNIQUE constraint failed: groups.id")
+	require.EqualError(t, err, "duplicate record")
 }
 
 func TestCreateOrUpdateGroupCreate(t *testing.T) {

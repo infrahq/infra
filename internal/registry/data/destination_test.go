@@ -53,7 +53,7 @@ func TestCreateDuplicateDestination(t *testing.T) {
 	createDestinations(t, db, destinationDevelop, destinationProduction)
 
 	_, err := CreateDestination(db, &destinationDevelop)
-	require.EqualError(t, err, "UNIQUE constraint failed: destinations.node_id")
+	require.EqualError(t, err, "duplicate record")
 }
 
 func TestCreateOrUpdateDestinationCreate(t *testing.T) {

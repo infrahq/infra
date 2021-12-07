@@ -50,7 +50,7 @@ func TestCreateProviderDuplicate(t *testing.T) {
 	createProviders(t, db, providerDevelop, providerProduction)
 
 	_, err := CreateProvider(db, &providerDevelop)
-	require.EqualError(t, err, "UNIQUE constraint failed: providers.id")
+	require.EqualError(t, err, "duplicate record")
 }
 
 func TestCreateOrUpdateProviderCreate(t *testing.T) {

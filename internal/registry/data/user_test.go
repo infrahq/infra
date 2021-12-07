@@ -50,7 +50,7 @@ func TestCreateDuplicateUser(t *testing.T) {
 	createUsers(t, db, bond, bourne, bauer)
 
 	_, err := CreateUser(db, &bond)
-	require.EqualError(t, err, "UNIQUE constraint failed: users.email")
+	require.EqualError(t, err, "duplicate record")
 }
 
 func TestCreateOrUpdateUserCreate(t *testing.T) {
