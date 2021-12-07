@@ -24,28 +24,28 @@ var (
 	_ _context.Context
 )
 
-// RolesAPIService RolesAPI service
-type RolesAPIService service
+// GrantsAPIService GrantsAPI service
+type GrantsAPIService service
 
-type APIGetRoleRequest struct {
+type APIGetGrantRequest struct {
 	ctx        _context.Context
-	APIService *RolesAPIService
+	APIService *GrantsAPIService
 	id         string
 }
 
-func (r APIGetRoleRequest) Execute() (Role, *_nethttp.Response, error) {
-	return r.APIService.GetRoleExecute(r)
+func (r APIGetGrantRequest) Execute() (Grant, *_nethttp.Response, error) {
+	return r.APIService.GetGrantExecute(r)
 }
 
 /*
-GetRole Get role
+GetGrant Get grant
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param id Role ID
- @return APIGetRoleRequest
+ @param id Grant ID
+ @return APIGetGrantRequest
 */
-func (a *RolesAPIService) GetRole(ctx _context.Context, id string) APIGetRoleRequest {
-	return APIGetRoleRequest{
+func (a *GrantsAPIService) GetGrant(ctx _context.Context, id string) APIGetGrantRequest {
+	return APIGetGrantRequest{
 		APIService: a,
 		ctx:        ctx,
 		id:         id,
@@ -53,23 +53,23 @@ func (a *RolesAPIService) GetRole(ctx _context.Context, id string) APIGetRoleReq
 }
 
 // Execute executes the request
-//  @return Role
-func (a *RolesAPIService) GetRoleExecute(r APIGetRoleRequest) (Role, *_nethttp.Response, error) {
+//  @return Grant
+func (a *GrantsAPIService) GetGrantExecute(r APIGetGrantRequest) (Grant, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodGet
 		localVarPostBody     interface{}
 		localVarFormFileName string
 		localVarFileName     string
 		localVarFileBytes    []byte
-		localVarReturnValue  Role
+		localVarReturnValue  Grant
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RolesAPIService.GetRole")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "GrantsAPIService.GetGrant")
 	if err != nil {
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/roles/{id}"
+	localVarPath := localBasePath + "/grants/{id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"id"+"}", _neturl.PathEscape(parameterToString(r.id, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
@@ -137,67 +137,67 @@ func (a *RolesAPIService) GetRoleExecute(r APIGetRoleRequest) (Role, *_nethttp.R
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type APIListRolesRequest struct {
+type APIListGrantsRequest struct {
 	ctx         _context.Context
-	APIService  *RolesAPIService
+	APIService  *GrantsAPIService
 	name        *string
-	kind        *RoleKind
+	kind        *GrantKind
 	destination *string
 }
 
 // Filter results by name
-func (r APIListRolesRequest) Name(name string) APIListRolesRequest {
+func (r APIListGrantsRequest) Name(name string) APIListGrantsRequest {
 	r.name = &name
 	return r
 }
 
 // Filter results by kind
-func (r APIListRolesRequest) Kind(kind RoleKind) APIListRolesRequest {
+func (r APIListGrantsRequest) Kind(kind GrantKind) APIListGrantsRequest {
 	r.kind = &kind
 	return r
 }
 
 // Filter results by destination
-func (r APIListRolesRequest) Destination(destination string) APIListRolesRequest {
+func (r APIListGrantsRequest) Destination(destination string) APIListGrantsRequest {
 	r.destination = &destination
 	return r
 }
 
-func (r APIListRolesRequest) Execute() ([]Role, *_nethttp.Response, error) {
-	return r.APIService.ListRolesExecute(r)
+func (r APIListGrantsRequest) Execute() ([]Grant, *_nethttp.Response, error) {
+	return r.APIService.ListGrantsExecute(r)
 }
 
 /*
-ListRoles List roles
+ListGrants List grants
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return APIListRolesRequest
+ @return APIListGrantsRequest
 */
-func (a *RolesAPIService) ListRoles(ctx _context.Context) APIListRolesRequest {
-	return APIListRolesRequest{
+func (a *GrantsAPIService) ListGrants(ctx _context.Context) APIListGrantsRequest {
+	return APIListGrantsRequest{
 		APIService: a,
 		ctx:        ctx,
 	}
 }
 
 // Execute executes the request
-//  @return []Role
-func (a *RolesAPIService) ListRolesExecute(r APIListRolesRequest) ([]Role, *_nethttp.Response, error) {
+//  @return []Grant
+func (a *GrantsAPIService) ListGrantsExecute(r APIListGrantsRequest) ([]Grant, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodGet
 		localVarPostBody     interface{}
 		localVarFormFileName string
 		localVarFileName     string
 		localVarFileBytes    []byte
-		localVarReturnValue  []Role
+		localVarReturnValue  []Grant
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RolesAPIService.ListRoles")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "GrantsAPIService.ListGrants")
 	if err != nil {
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/roles"
+	localVarPath := localBasePath + "/grants"
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := _neturl.Values{}

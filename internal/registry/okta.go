@@ -74,7 +74,7 @@ func (o *oktaImplementation) Emails(domain string, clientID string, apiToken str
 	return emails, nil
 }
 
-// Groups retrieves groups that exist in Okta for the configured InfraHQ group-role mappings and returns a map of group names to user lists
+// Groups retrieves groups that exist in Okta for the configured InfraHQ group-grant mappings and returns a map of group names to user lists
 func (o *oktaImplementation) Groups(domain string, clientID string, apiToken string) (map[string][]string, error) {
 	defer timer.LogTimeElapsed(time.Now(), "okta group sync")
 

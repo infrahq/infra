@@ -1,18 +1,14 @@
 type: object
 required:
   - id
-  - name
   - created
   - updated
   - kind
-  - namespace
   - destination
 properties:
   id:
     type: string
     format: uuid
-  name:
-    type: string
   created:
     type: integer
     format: int64
@@ -22,9 +18,11 @@ properties:
     format: int64
     description: updated time in seconds since 1970-01-01
   kind:
-    $ref: ./RoleKind.yaml
-  namespace:
-    type: string
+    $ref: ./GrantKind.yaml
+  destination:
+    $ref: ./Destination.yaml
+  kubernetes:
+    $ref: ./GrantKubernetes.yaml
   users:
     type: array
     items:
@@ -33,5 +31,3 @@ properties:
     type: array
     items:
       $ref: ./Group.yaml
-  destination:
-    $ref: ./Destination.yaml

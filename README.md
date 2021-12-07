@@ -53,7 +53,7 @@ config:
     # to the default namespace of your Kubernetes cluster
     - name: Everyone
       provider: okta
-      roles:
+      grants:
         - kind: cluster-role
           name: view
           destinations:

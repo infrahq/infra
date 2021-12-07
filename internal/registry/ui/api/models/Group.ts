@@ -14,14 +14,14 @@
 
 import { exists, mapValues } from '../runtime';
 import {
+    Grant,
+    GrantFromJSON,
+    GrantFromJSONTyped,
+    GrantToJSON,
     Provider,
     ProviderFromJSON,
     ProviderFromJSONTyped,
     ProviderToJSON,
-    Role,
-    RoleFromJSON,
-    RoleFromJSONTyped,
-    RoleToJSON,
     User,
     UserFromJSON,
     UserFromJSONTyped,
@@ -66,10 +66,10 @@ export interface Group {
     users?: Array<User>;
     /**
      * 
-     * @type {Array<Role>}
+     * @type {Array<Grant>}
      * @memberof Group
      */
-    roles?: Array<Role>;
+    grants?: Array<Grant>;
     /**
      * 
      * @type {Array<Provider>}
@@ -93,7 +93,7 @@ export function GroupFromJSONTyped(json: any, ignoreDiscriminator: boolean): Gro
         'created': json['created'],
         'updated': json['updated'],
         'users': !exists(json, 'users') ? undefined : ((json['users'] as Array<any>).map(UserFromJSON)),
-        'roles': !exists(json, 'roles') ? undefined : ((json['roles'] as Array<any>).map(RoleFromJSON)),
+        'grants': !exists(json, 'grants') ? undefined : ((json['grants'] as Array<any>).map(GrantFromJSON)),
         'providers': !exists(json, 'providers') ? undefined : ((json['providers'] as Array<any>).map(ProviderFromJSON)),
     };
 }
@@ -112,7 +112,7 @@ export function GroupToJSON(value?: Group | null): any {
         'created': value.created,
         'updated': value.updated,
         'users': value.users === undefined ? undefined : ((value.users as Array<any>).map(UserToJSON)),
-        'roles': value.roles === undefined ? undefined : ((value.roles as Array<any>).map(RoleToJSON)),
+        'grants': value.grants === undefined ? undefined : ((value.grants as Array<any>).map(GrantToJSON)),
         'providers': value.providers === undefined ? undefined : ((value.providers as Array<any>).map(ProviderToJSON)),
     };
 }

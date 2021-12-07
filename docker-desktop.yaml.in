@@ -13,7 +13,7 @@ config:
   groups:
     - name: Everyone
       provider: okta
-      roles:
+      grants:
         - kind: cluster-role
           name: cluster-admin
           destinations:

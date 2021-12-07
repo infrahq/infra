@@ -72,7 +72,7 @@ func (t *Telemetry) EnqueueHeartbeat() error {
 		return err
 	}
 
-	roles, err := data.Count(t.db, &models.Role{}, &models.Role{})
+	grants, err := data.Count(t.db, &models.Grant{}, &models.Grant{})
 	if err != nil {
 		return err
 	}
@@ -95,6 +95,6 @@ func (t *Telemetry) EnqueueHeartbeat() error {
 			Set("groups", groups).
 			Set("providers", providers).
 			Set("destinations", destinations).
-			Set("roles", roles),
+			Set("grants", grants),
 	})
 }

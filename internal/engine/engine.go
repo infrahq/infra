@@ -396,14 +396,14 @@ func Run(options *Options) error {
 			return
 		}
 
-		roles, _, err := client.RolesAPI.ListRoles(ctx).Destination(destination.ID).Execute()
+		grants, _, err := client.GrantsAPI.ListGrants(ctx).Destination(destination.ID).Kind(api.GRANTKIND_KUBERNETES).Execute()
 		if err != nil {
-			logging.S.Errorf("could not list roles: %s", err.Error())
+			logging.S.Errorf("could not list grants: %s", err.Error())
 		}
 
-		err = k8s.UpdateRoles(roles)
+		err = k8s.UpdateRoles(grants)
 		if err != nil {
-			logging.S.Errorf("could not update roles: %s", err.Error())
+			logging.S.Errorf("could not update grants: %s", err.Error())
 			return
 		}
 	})

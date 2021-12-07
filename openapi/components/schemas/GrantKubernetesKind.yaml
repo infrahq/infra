@@ -1,5 +1,4 @@
 type: string
-default: role
 enum:
   - role
   - cluster-role

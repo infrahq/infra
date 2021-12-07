@@ -44,8 +44,8 @@ func NewAPIMux(reg *Registry, router *gin.RouterGroup) {
 		authorized.GET("/groups", a.ListGroups)
 		authorized.GET("/groups/:id", a.GetGroup)
 
-		authorized.GET("/roles", a.ListRoles)
-		authorized.GET("/roles/:id", a.GetRole)
+		authorized.GET("/grants", a.ListGrants)
+		authorized.GET("/grants/:id", a.GetGrant)
 
 		authorized.GET("/destinations", a.ListDestinations)
 		authorized.GET("/destinations/:id", a.GetDestination)
@@ -340,39 +340,38 @@ func (a *API) CreateAPIKey(c *gin.Context) {
 	c.JSON(http.StatusCreated, result)
 }
 
-func (a *API) ListRoles(c *gin.Context) {
-	roleName := c.Request.URL.Query().Get("name")
-	roleKind := c.Request.URL.Query().Get("kind")
+func (a *API) ListGrants(c *gin.Context) {
+	grantKind := c.Request.URL.Query().Get("kind")
 	destinationID := c.Request.URL.Query().Get("destination")
 
-	roles, err := access.ListRoles(c, roleName, roleKind, destinationID)
+	grants, err := access.ListGrants(c, grantKind, destinationID)
 	if err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	results := make([]api.Role, 0)
-	for _, r := range roles {
+	results := make([]api.Grant, 0)
+	for _, r := range grants {
 		results = append(results, r.ToAPI())
 	}
 
 	c.JSON(http.StatusOK, results)
 }
 
-func (a *API) GetRole(c *gin.Context) {
-	roleID := c.Param("id")
-	if roleID == "" {
-		sendAPIError(c, http.StatusBadRequest, fmt.Errorf("invalid role ID"))
+func (a *API) GetGrant(c *gin.Context) {
+	grantID := c.Param("id")
+	if grantID == "" {
+		sendAPIError(c, http.StatusBadRequest, fmt.Errorf("invalid grant ID"))
 		return
 	}
 
-	role, err := access.GetRole(c, roleID)
+	grant, err := access.GetGrant(c, grantID)
 	if err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	result := role.ToAPI()
+	result := grant.ToAPI()
 
 	c.JSON(http.StatusOK, result)
 }

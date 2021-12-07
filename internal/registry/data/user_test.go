@@ -94,130 +94,130 @@ func TestListUsers(t *testing.T) {
 	require.Equal(t, 1, len(users))
 }
 
-func TestUserBindRoles(t *testing.T) {
+func TestUserBindGrants(t *testing.T) {
 	db := setup(t)
 	createUsers(t, db, bond, bourne, bauer)
 
-	admin := models.Role{
-		Kind: models.RoleKindKubernetes,
-		Kubernetes: models.RoleKubernetes{
-			Kind: models.RoleKubernetesKindRole,
+	admin := models.Grant{
+		Kind: models.GrantKindKubernetes,
+		Kubernetes: models.GrantKubernetes{
+			Kind: models.GrantKubernetesKindRole,
 			Name: "admin",
 		},
 	}
 
-	_, err := CreateRole(db, &admin)
+	_, err := CreateGrant(db, &admin)
 	require.NoError(t, err)
 
 	users, err := ListUsers(db, &models.User{})
 	require.NoError(t, err)
 
 	for i := range users {
-		err := BindUserRoles(db, &users[i], admin.ID)
+		err := BindUserGrants(db, &users[i], admin.ID)
 		require.NoError(t, err)
 	}
 
-	roles, err := ListRoles(db, &models.Role{})
+	grants, err := ListGrants(db, &models.Grant{})
 	require.NoError(t, err)
-	require.Len(t, roles, 1)
-	require.Len(t, roles[0].Users, 3)
+	require.Len(t, grants, 1)
+	require.Len(t, grants[0].Users, 3)
 	require.ElementsMatch(t, []string{
 		bond.Email, bourne.Email, bauer.Email,
 	}, []string{
-		roles[0].Users[0].Email,
-		roles[0].Users[1].Email,
-		roles[0].Users[2].Email,
+		grants[0].Users[0].Email,
+		grants[0].Users[1].Email,
+		grants[0].Users[2].Email,
 	})
 }
 
-func TestUserBindMoreRoles(t *testing.T) {
+func TestUserBindMoreGrants(t *testing.T) {
 	db := setup(t)
 	createUsers(t, db, bond, bourne, bauer)
 
-	admin := models.Role{
-		Kind: models.RoleKindKubernetes,
-		Kubernetes: models.RoleKubernetes{
-			Kind: models.RoleKubernetesKindRole,
+	admin := models.Grant{
+		Kind: models.GrantKindKubernetes,
+		Kubernetes: models.GrantKubernetes{
+			Kind: models.GrantKubernetesKindRole,
 			Name: "admin",
 		},
 	}
 
-	_, err := CreateRole(db, &admin)
+	_, err := CreateGrant(db, &admin)
 	require.NoError(t, err)
 
 	user, err := GetUser(db, &models.User{Email: bond.Email})
 	require.NoError(t, err)
-	require.Len(t, user.Roles, 0)
+	require.Len(t, user.Grants, 0)
 
-	err = BindUserRoles(db, user, admin.ID)
+	err = BindUserGrants(db, user, admin.ID)
 	require.NoError(t, err)
 
 	user, err = GetUser(db, &models.User{Email: bond.Email})
 	require.NoError(t, err)
-	require.Len(t, user.Roles, 1)
+	require.Len(t, user.Grants, 1)
 
-	view := models.Role{
-		Kind: models.RoleKindKubernetes,
-		Kubernetes: models.RoleKubernetes{
-			Kind: models.RoleKubernetesKindRole,
+	view := models.Grant{
+		Kind: models.GrantKindKubernetes,
+		Kubernetes: models.GrantKubernetes{
+			Kind: models.GrantKubernetesKindRole,
 			Name: "view",
 		},
 	}
 
-	_, err = CreateRole(db, &view)
+	_, err = CreateGrant(db, &view)
 	require.NoError(t, err)
 
-	err = BindUserRoles(db, user, admin.ID, view.ID)
+	err = BindUserGrants(db, user, admin.ID, view.ID)
 	require.NoError(t, err)
 
 	user, err = GetUser(db, &models.User{Email: bond.Email})
 	require.NoError(t, err)
-	require.Len(t, user.Roles, 2)
+	require.Len(t, user.Grants, 2)
 }
 
-func TestUserBindLessRoles(t *testing.T) {
+func TestUserBindLessGrants(t *testing.T) {
 	db := setup(t)
 	createUsers(t, db, bond, bourne, bauer)
 
-	admin := models.Role{
-		Kind: models.RoleKindKubernetes,
-		Kubernetes: models.RoleKubernetes{
-			Kind: models.RoleKubernetesKindRole,
+	admin := models.Grant{
+		Kind: models.GrantKindKubernetes,
+		Kubernetes: models.GrantKubernetes{
+			Kind: models.GrantKubernetesKindRole,
 			Name: "admin",
 		},
 	}
 
-	view := models.Role{
-		Kind: models.RoleKindKubernetes,
-		Kubernetes: models.RoleKubernetes{
-			Kind: models.RoleKubernetesKindRole,
+	view := models.Grant{
+		Kind: models.GrantKindKubernetes,
+		Kubernetes: models.GrantKubernetes{
+			Kind: models.GrantKubernetesKindRole,
 			Name: "view",
 		},
 	}
 
-	_, err := CreateRole(db, &admin)
+	_, err := CreateGrant(db, &admin)
 	require.NoError(t, err)
 
-	_, err = CreateRole(db, &view)
+	_, err = CreateGrant(db, &view)
 	require.NoError(t, err)
 
 	user, err := GetUser(db, &models.User{Email: bond.Email})
 	require.NoError(t, err)
-	require.Len(t, user.Roles, 0)
+	require.Len(t, user.Grants, 0)
 
-	err = BindUserRoles(db, user, admin.ID, view.ID)
+	err = BindUserGrants(db, user, admin.ID, view.ID)
 	require.NoError(t, err)
 
 	user, err = GetUser(db, &models.User{Email: bond.Email})
 	require.NoError(t, err)
-	require.Len(t, user.Roles, 2)
+	require.Len(t, user.Grants, 2)
 
-	err = BindUserRoles(db, user, admin.ID)
+	err = BindUserGrants(db, user, admin.ID)
 	require.NoError(t, err)
 
 	user, err = GetUser(db, &models.User{Email: bond.Email})
 	require.NoError(t, err)
-	require.Len(t, user.Roles, 1)
+	require.Len(t, user.Grants, 1)
 }
 
 func TestDeleteUser(t *testing.T) {

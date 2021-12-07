@@ -23,7 +23,7 @@ type KubernetesOptions struct {
 	Name             string
 	Namespace        string
 	LabelSelector    []string `mapstructure:"labels"`
-	RoleSelector     string   `mapstructure:"role"`
+	GrantSelector    string   `mapstructure:"grant"`
 	internal.Options `mapstructure:",squash"`
 }
 
@@ -54,7 +54,7 @@ func newKubernetesUseCmd() (*cobra.Command, error) {
 		},
 	}
 
-	cmd.Flags().StringP("role", "r", "", "role")
+	cmd.Flags().StringP("grant", "r", "", "grant")
 	cmd.Flags().StringP("namespace", "n", "", "namespace")
 	cmd.Flags().StringSliceP("labels", "l", []string{}, "labels")
 
@@ -112,24 +112,24 @@ func kubernetesUseContext(options *KubernetesOptions) error {
 	}
 
 	// deduplicate candidates
-	candidates := make(map[string][]api.Role)
-	for _, r := range user.GetRoles() {
+	candidates := make(map[string][]api.Grant)
+	for _, r := range user.GetGrants() {
 		candidates[r.Destination.NodeID] = append(candidates[r.Destination.NodeID], r)
 	}
 
 	for _, g := range user.GetGroups() {
-		for _, r := range g.GetRoles() {
+		for _, r := range g.GetGrants() {
 			candidates[r.Destination.NodeID] = append(candidates[r.Destination.NodeID], r)
 		}
 	}
 
 	// find candidate destinations
-	destinations := make(map[string]map[string][]api.Role)
+	destinations := make(map[string]map[string][]api.Grant)
 
 DESTINATIONS:
 	for _, d := range candidates {
 		for _, r := range d {
-			logging.S.Debugf("considering %s %s@%s#%s", r.ID, r.Destination.Name, r.Destination.NodeID[:12], r.Namespace)
+			logging.S.Debugf("considering %s %s@%s#%s", r.ID, r.Destination.Name, r.Destination.NodeID[:12], r.Kubernetes.Namespace)
 			switch options.Name {
 			case "":
 			case r.Destination.Name:
@@ -141,14 +141,14 @@ DESTINATIONS:
 
 			switch options.Namespace {
 			case "":
-			case r.Namespace:
+			case r.Kubernetes.Namespace:
 			default:
 				continue
 			}
 
-			switch options.RoleSelector {
+			switch options.GrantSelector {
 			case "":
-			case r.Name:
+			case r.Kubernetes.Name:
 			default:
 				continue
 			}
@@ -165,21 +165,21 @@ DESTINATIONS:
 			}
 
 			if _, ok := destinations[r.Destination.NodeID[:12]]; !ok {
-				destinations[r.Destination.NodeID[:12]] = make(map[string][]api.Role)
+				destinations[r.Destination.NodeID[:12]] = make(map[string][]api.Grant)
 			}
 
-			destinations[r.Destination.NodeID[:12]][r.Namespace] = append(destinations[r.Destination.NodeID[:12]][r.Namespace], r)
+			destinations[r.Destination.NodeID[:12]][r.Kubernetes.Namespace] = append(destinations[r.Destination.NodeID[:12]][r.Kubernetes.Namespace], r)
 		}
 	}
 
 	logging.S.Debugf("found %d suitable destination(s)", len(destinations))
 
-	var namespaces map[string][]api.Role
+	var namespaces map[string][]api.Grant
 
 	switch len(destinations) {
 	case 0:
 		//lint:ignore ST1005, user facing error
-		return fmt.Errorf("No kubernetes contexts found for user, you are not assigned any kubernetes roles")
+		return fmt.Errorf("No kubernetes contexts found for user, you are not assigned any kubernetes grants")
 	case 1:
 		for _, d := range destinations {
 			namespaces = d
@@ -189,7 +189,7 @@ DESTINATIONS:
 
 		for k, c := range destinations {
 			// sample one namespace for this destinations
-			var sample api.Role
+			var sample api.Grant
 			for _, n := range c {
 				sample = n[0]
 				break
@@ -224,7 +224,7 @@ DESTINATIONS:
 
 	logging.S.Debugf("found %d suitable namespace(s)", len(namespaces))
 
-	var namespace api.Role
+	var namespace api.Grant
 
 	switch len(namespaces) {
 	case 0:
@@ -244,8 +244,8 @@ DESTINATIONS:
 			var namespace string
 
 			for _, r := range n {
-				names = append(names, r.Name)
-				namespace = r.Namespace
+				names = append(names, r.Kubernetes.Name)
+				namespace = r.Kubernetes.Namespace
 			}
 
 			if namespace == "" {
@@ -283,7 +283,7 @@ DESTINATIONS:
 		namespace = namespaces[parts[0]][0]
 	}
 
-	if err := kubernetesSetContext(namespace.Destination.Name, namespace.Destination.NodeID[:12], namespace.Namespace); err != nil {
+	if err := kubernetesSetContext(namespace.Destination.Name, namespace.Destination.NodeID[:12], namespace.Kubernetes.Namespace); err != nil {
 		return err
 	}
 
@@ -338,33 +338,33 @@ func updateKubeconfig(user api.User) error {
 		return err
 	}
 
-	// deduplicate roles
+	// deduplicate grants
 	aliases := make(map[string]map[string]bool)
-	roles := make(map[string]api.Role)
+	grants := make(map[string]api.Grant)
 
-	for _, r := range user.GetRoles() {
+	for _, r := range user.GetGrants() {
 		if _, ok := aliases[r.Destination.Name]; !ok {
 			aliases[r.Destination.Name] = make(map[string]bool)
 		}
 
 		aliases[r.Destination.Name][r.Destination.NodeID] = true
-		roles[r.ID] = r
+		grants[r.ID] = r
 	}
 
 	for _, g := range user.GetGroups() {
-		for _, r := range g.GetRoles() {
+		for _, r := range g.GetGrants() {
 			if _, ok := aliases[r.Destination.Name]; !ok {
 				aliases[r.Destination.Name] = make(map[string]bool)
 			}
 
 			aliases[r.Destination.Name][r.Destination.NodeID] = true
-			roles[r.ID] = r
+			grants[r.ID] = r
 		}
 	}
 
-	for _, role := range roles {
-		name := role.Destination.NodeID[:12]
-		alias := role.Destination.Name
+	for _, grant := range grants {
+		name := grant.Destination.NodeID[:12]
+		alias := grant.Destination.Name
 
 		// TODO (#546): allow user to specify prefix, default ""
 		// format: "infra:<ALIAS>"
@@ -376,23 +376,23 @@ func updateKubeconfig(user api.User) error {
 			contextName = fmt.Sprintf("%s@%s", contextName, name)
 		}
 
-		if role.Namespace != "" {
+		if grant.Kubernetes.Namespace != "" {
 			// destination is scoped to a namespace
 			// format: "infra:<ALIAS>[@<NAME>]:<NAMESPACE>"
-			contextName = fmt.Sprintf("%s:%s", contextName, role.Namespace)
+			contextName = fmt.Sprintf("%s:%s", contextName, grant.Kubernetes.Namespace)
 		}
 
 		logging.S.Debugf("creating kubeconfig for %s", contextName)
 
 		kubeConfig.Clusters[contextName] = &clientcmdapi.Cluster{
-			Server:                   fmt.Sprintf("https://%s/proxy", role.Destination.Kubernetes.Endpoint),
-			CertificateAuthorityData: []byte(role.Destination.Kubernetes.CA),
+			Server:                   fmt.Sprintf("https://%s/proxy", grant.Destination.Kubernetes.Endpoint),
+			CertificateAuthorityData: []byte(grant.Destination.Kubernetes.CA),
 		}
 
 		kubeConfig.Contexts[contextName] = &clientcmdapi.Context{
 			Cluster:   contextName,
 			AuthInfo:  contextName,
-			Namespace: role.Namespace,
+			Namespace: grant.Kubernetes.Namespace,
 		}
 
 		executable, err := os.Executable()
@@ -403,7 +403,7 @@ func updateKubeconfig(user api.User) error {
 		kubeConfig.AuthInfos[contextName] = &clientcmdapi.AuthInfo{
 			Exec: &clientcmdapi.ExecConfig{
 				Command:         executable,
-				Args:            []string{"tokens", "create", role.Destination.NodeID},
+				Args:            []string{"tokens", "create", grant.Destination.NodeID},
 				APIVersion:      "client.authentication.k8s.io/v1beta1",
 				InteractiveMode: clientcmdapi.IfAvailableExecInteractiveMode,
 			},
@@ -424,7 +424,7 @@ func updateKubeconfig(user api.User) error {
 
 		found := false
 
-		for _, r := range roles {
+		for _, r := range grants {
 			parts := strings.Split(parts[1], "@")
 
 			switch {

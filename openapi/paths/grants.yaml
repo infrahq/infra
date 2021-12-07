@@ -1,10 +1,10 @@
 get:
-  summary: List roles
+  summary: List grants
   tags:
-    - roles
+    - grants
   security:
     - bearerAuth: []
-  operationId: listRoles
+  operationId: listGrants
   parameters:
     - in: query
       name: name
@@ -14,7 +14,7 @@ get:
     - in: query
       name: kind
       schema:
-        $ref: ../components/schemas/RoleKind.yaml
+        $ref: ../components/schemas/GrantKind.yaml
       description: Filter results by kind
     - in: query
       name: destination
@@ -23,13 +23,13 @@ get:
       description: Filter results by destination
   responses:
     '200':
-      description: List roles response
+      description: List grants response
       content:
         application/json:
           schema:
             type: array
             items:
-              $ref: ../components/schemas/Role.yaml
+              $ref: ../components/schemas/Grant.yaml
     default:
       description: Error response
       content:

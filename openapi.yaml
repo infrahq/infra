@@ -13,8 +13,8 @@ tags:
     description: Manage users
   - name: groups
     description: Manage groups
-  - name: roles
-    description: Manage roles
+  - name: grants
+    description: Manage user and group role grants
   - name: providers
     description: Manage identity providers
   - name: destinations
@@ -55,10 +55,10 @@ paths:
     $ref: openapi/paths/api-keys@{id}.yaml
   /tokens:
     $ref: openapi/paths/tokens.yaml
-  /roles:
-    $ref: openapi/paths/roles.yaml
-  /roles/{id}:
-    $ref: openapi/paths/roles@{id}.yaml
+  /grants:
+    $ref: openapi/paths/grants.yaml
+  /grants/{id}:
+    $ref: openapi/paths/grants@{id}.yaml
   /login:
     $ref: openapi/paths/login.yaml
   /logout:

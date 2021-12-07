@@ -18,13 +18,13 @@ func BindGroupUsers(db *gorm.DB, group *models.Group, users ...models.User) erro
 	return nil
 }
 
-func BindGroupRoles(db *gorm.DB, group *models.Group, roleIDs ...uuid.UUID) error {
-	roles, err := ListRoles(db, roleIDs)
+func BindGroupGrants(db *gorm.DB, group *models.Group, grantIDs ...uuid.UUID) error {
+	grants, err := ListGrants(db, grantIDs)
 	if err != nil {
 		return err
 	}
 
-	if err := db.Model(group).Association("Roles").Replace(roles); err != nil {
+	if err := db.Model(group).Association("Grants").Replace(grants); err != nil {
 		return err
 	}
 
@@ -101,8 +101,8 @@ func DeleteGroups(db *gorm.DB, condition interface{}) error {
 }
 
 func GroupAssociations(db *gorm.DB) *gorm.DB {
-	db = db.Preload("Roles.Kubernetes").Preload("Roles.Destination.Kubernetes")
-	db = db.Preload("Users.Roles.Kubernetes").Preload("Users.Roles.Destination.Kubernetes")
+	db = db.Preload("Grants.Kubernetes").Preload("Grants.Destination.Kubernetes")
+	db = db.Preload("Users.Grants.Kubernetes").Preload("Users.Grants.Destination.Kubernetes")
 
 	return db
 }

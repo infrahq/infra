@@ -94,130 +94,130 @@ func TestListGroups(t *testing.T) {
 	require.Equal(t, 1, len(groups))
 }
 
-func TestGroupBindRoles(t *testing.T) {
+func TestGroupBindGrants(t *testing.T) {
 	db := setup(t)
 	createGroups(t, db, everyone, engineers, product)
 
-	admin := models.Role{
-		Kind: models.RoleKindKubernetes,
-		Kubernetes: models.RoleKubernetes{
-			Kind: models.RoleKubernetesKindRole,
+	admin := models.Grant{
+		Kind: models.GrantKindKubernetes,
+		Kubernetes: models.GrantKubernetes{
+			Kind: models.GrantKubernetesKindRole,
 			Name: "admin",
 		},
 	}
 
-	_, err := CreateRole(db, &admin)
+	_, err := CreateGrant(db, &admin)
 	require.NoError(t, err)
 
 	groups, err := ListGroups(db, &models.Group{})
 	require.NoError(t, err)
 
 	for i := range groups {
-		err := BindGroupRoles(db, &groups[i], admin.ID)
+		err := BindGroupGrants(db, &groups[i], admin.ID)
 		require.NoError(t, err)
 	}
 
-	roles, err := ListRoles(db, &models.Role{})
+	grants, err := ListGrants(db, &models.Grant{})
 	require.NoError(t, err)
-	require.Len(t, roles, 1)
-	require.Len(t, roles[0].Groups, 3)
+	require.Len(t, grants, 1)
+	require.Len(t, grants[0].Groups, 3)
 	require.ElementsMatch(t, []string{
 		everyone.Name, engineers.Name, product.Name,
 	}, []string{
-		roles[0].Groups[0].Name,
-		roles[0].Groups[1].Name,
-		roles[0].Groups[2].Name,
+		grants[0].Groups[0].Name,
+		grants[0].Groups[1].Name,
+		grants[0].Groups[2].Name,
 	})
 }
 
-func TestGroupBindMoreRoles(t *testing.T) {
+func TestGroupBindMoreGrants(t *testing.T) {
 	db := setup(t)
 	createGroups(t, db, everyone, engineers, product)
 
-	admin := models.Role{
-		Kind: models.RoleKindKubernetes,
-		Kubernetes: models.RoleKubernetes{
-			Kind: models.RoleKubernetesKindRole,
+	admin := models.Grant{
+		Kind: models.GrantKindKubernetes,
+		Kubernetes: models.GrantKubernetes{
+			Kind: models.GrantKubernetesKindRole,
 			Name: "admin",
 		},
 	}
 
-	_, err := CreateRole(db, &admin)
+	_, err := CreateGrant(db, &admin)
 	require.NoError(t, err)
 
 	group, err := GetGroup(db, &models.Group{Name: everyone.Name})
 	require.NoError(t, err)
-	require.Len(t, group.Roles, 0)
+	require.Len(t, group.Grants, 0)
 
-	err = BindGroupRoles(db, group, admin.ID)
+	err = BindGroupGrants(db, group, admin.ID)
 	require.NoError(t, err)
 
 	group, err = GetGroup(db, &models.Group{Name: everyone.Name})
 	require.NoError(t, err)
-	require.Len(t, group.Roles, 1)
+	require.Len(t, group.Grants, 1)
 
-	view := models.Role{
-		Kind: models.RoleKindKubernetes,
-		Kubernetes: models.RoleKubernetes{
-			Kind: models.RoleKubernetesKindRole,
+	view := models.Grant{
+		Kind: models.GrantKindKubernetes,
+		Kubernetes: models.GrantKubernetes{
+			Kind: models.GrantKubernetesKindRole,
 			Name: "view",
 		},
 	}
 
-	_, err = CreateRole(db, &view)
+	_, err = CreateGrant(db, &view)
 	require.NoError(t, err)
 
-	err = BindGroupRoles(db, group, admin.ID, view.ID)
+	err = BindGroupGrants(db, group, admin.ID, view.ID)
 	require.NoError(t, err)
 
 	group, err = GetGroup(db, &models.Group{Name: everyone.Name})
 	require.NoError(t, err)
-	require.Len(t, group.Roles, 2)
+	require.Len(t, group.Grants, 2)
 }
 
-func TestGroupBindLessRoles(t *testing.T) {
+func TestGroupBindLessGrants(t *testing.T) {
 	db := setup(t)
 	createGroups(t, db, everyone, engineers, product)
 
-	admin := models.Role{
-		Kind: models.RoleKindKubernetes,
-		Kubernetes: models.RoleKubernetes{
-			Kind: models.RoleKubernetesKindRole,
+	admin := models.Grant{
+		Kind: models.GrantKindKubernetes,
+		Kubernetes: models.GrantKubernetes{
+			Kind: models.GrantKubernetesKindRole,
 			Name: "admin",
 		},
 	}
 
-	view := models.Role{
-		Kind: models.RoleKindKubernetes,
-		Kubernetes: models.RoleKubernetes{
-			Kind: models.RoleKubernetesKindRole,
+	view := models.Grant{
+		Kind: models.GrantKindKubernetes,
+		Kubernetes: models.GrantKubernetes{
+			Kind: models.GrantKubernetesKindRole,
 			Name: "view",
 		},
 	}
 
-	_, err := CreateRole(db, &admin)
+	_, err := CreateGrant(db, &admin)
 	require.NoError(t, err)
 
-	_, err = CreateRole(db, &view)
+	_, err = CreateGrant(db, &view)
 	require.NoError(t, err)
 
 	group, err := GetGroup(db, &models.Group{Name: everyone.Name})
 	require.NoError(t, err)
-	require.Len(t, group.Roles, 0)
+	require.Len(t, group.Grants, 0)
 
-	err = BindGroupRoles(db, group, admin.ID, view.ID)
+	err = BindGroupGrants(db, group, admin.ID, view.ID)
 	require.NoError(t, err)
 
 	group, err = GetGroup(db, &models.Group{Name: everyone.Name})
 	require.NoError(t, err)
-	require.Len(t, group.Roles, 2)
+	require.Len(t, group.Grants, 2)
 
-	err = BindGroupRoles(db, group, admin.ID)
+	err = BindGroupGrants(db, group, admin.ID)
 	require.NoError(t, err)
 
 	group, err = GetGroup(db, &models.Group{Name: everyone.Name})
 	require.NoError(t, err)
-	require.Len(t, group.Roles, 1)
+	require.Len(t, group.Grants, 1)
 }
 
 func TestGroupBindUsers(t *testing.T) {

@@ -11,7 +11,7 @@ type Group struct {
 
 	Name string
 
-	Roles     []Role     `gorm:"many2many:groups_roles"`
+	Grants    []Grant    `gorm:"many2many:groups_grants"`
 	Providers []Provider `gorm:"many2many:groups_providers"`
 	Users     []User     `gorm:"many2many:users_groups"`
 }
@@ -34,13 +34,13 @@ func (g *Group) ToAPI() api.Group {
 		result.SetUsers(users)
 	}
 
-	roles := make([]api.Role, 0)
-	for _, r := range g.Roles {
-		roles = append(roles, r.ToAPI())
+	grants := make([]api.Grant, 0)
+	for _, r := range g.Grants {
+		grants = append(grants, r.ToAPI())
 	}
 
-	if len(roles) > 0 {
-		result.SetRoles(roles)
+	if len(grants) > 0 {
+		result.SetGrants(grants)
 	}
 
 	providers := make([]api.Provider, 0)

@@ -23,10 +23,10 @@ properties:
     type: array
     items:
       $ref: ./Group.yaml
-  roles:
+  grants:
     type: array
     items:
-      $ref: ./Role.yaml
+      $ref: ./Grant.yaml
   providers:
     type: array
     items:
