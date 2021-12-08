@@ -3,7 +3,6 @@ package secrets
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"regexp"
@@ -67,7 +66,7 @@ func (k *KubernetesSecretProvider) SetSecret(name string, secret []byte) error {
 
 	secretParts := strings.Split(name, "/")
 	if len(secretParts) != 2 {
-		return errors.New("invalid Kubernetes secret path specified, expected exactly 2 parts but was " + fmt.Sprint(len(secretParts)))
+		return fmt.Errorf("invalid Kubernetes secret path specified, expected exactly 2 parts but was %d", len(secretParts))
 	}
 
 	objName := secretParts[0]
@@ -114,7 +113,7 @@ func (k *KubernetesSecretProvider) GetSecret(name string) (secret []byte, err er
 
 	secretParts := strings.Split(name, "/")
 	if len(secretParts) != 2 {
-		return nil, errors.New("invalid Kubernetes secret path specified, expected exactly 2 parts but was " + fmt.Sprint(len(secretParts)))
+		return nil, fmt.Errorf("invalid Kubernetes secret path specified, expected exactly 2 parts but was %d", len(secretParts))
 	}
 
 	objName := secretParts[0]
@@ -131,7 +130,7 @@ func (k *KubernetesSecretProvider) GetSecret(name string) (secret []byte, err er
 
 	secretVal, ok := retrieved.Data[key]
 	if !ok {
-		return nil, errors.New("secret could not be found in kubernetes: " + name)
+		return nil, fmt.Errorf("secret could not be found in kubernetes: %s", name)
 	}
 
 	return secretVal, nil

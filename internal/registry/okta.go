@@ -3,6 +3,7 @@ package registry
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/okta/okta-sdk-golang/v2/okta"
@@ -173,8 +174,8 @@ func (o *oktaImplementation) EmailFromCode(code string, domain string, clientID 
 		RedirectURL:  "http://localhost:8301",
 		Scopes:       []string{"openid", "email"},
 		Endpoint: oauth2.Endpoint{
-			TokenURL: "https://" + domain + "/oauth2/v1/token",
-			AuthURL:  "https://" + domain + "/oauth2/v1/authorize",
+			TokenURL: fmt.Sprintf("https://%s/oauth2/v1/token", domain),
+			AuthURL:  fmt.Sprintf("https://%s/oauth2/v1/authorize", domain),
 		},
 	}
 

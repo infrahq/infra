@@ -321,7 +321,7 @@ func (k *Kubernetes) UpdateRoles(grants []api.Grant) error {
 		switch r.Kubernetes.Kind {
 		case api.GRANTKUBERNETESKIND_ROLE:
 			if r.Kubernetes.Namespace == "" {
-				logging.L.Error("skipping role binding with no namespace: " + r.Kubernetes.Name)
+				logging.S.Errorf("skipping role binding with no namespace: %s", r.Kubernetes.Name)
 				continue
 			}
 
@@ -365,7 +365,7 @@ func (k *Kubernetes) UpdateRoles(grants []api.Grant) error {
 				}
 			}
 		default:
-			logging.L.Error("Unknown role binding kind: " + fmt.Sprintf("%v", r.Kubernetes.Kind))
+			logging.S.Errorf("Unknown role binding kind: %s", r.Kubernetes.Kind)
 		}
 	}
 
@@ -588,28 +588,28 @@ func (k *Kubernetes) Name() (string, string, error) {
 		return name, chksm, nil
 	}
 
-	logging.L.Debug("could not fetch ec2 cluster name: " + err.Error())
+	logging.S.Debugf("could not fetch ec2 cluster name: %s", err.Error())
 
 	name, err = k.gkeClusterName()
 	if err == nil {
 		return name, chksm, nil
 	}
 
-	logging.L.Debug("could not fetch gke cluster name: " + err.Error())
+	logging.S.Debugf("could not fetch gke cluster name: %s", err.Error())
 
 	name, err = k.aksClusterName()
 	if err == nil {
 		return name, chksm, nil
 	}
 
-	logging.L.Debug("could not fetch aks cluster name: " + err.Error())
+	logging.S.Debugf("could not fetch aks cluster name: %s", err.Error())
 
 	name, err = k.kubeControllerManagerClusterName()
 	if err == nil {
 		return name, chksm, nil
 	}
 
-	logging.L.Debug("could not fetch kube-controller-manager cluster name: " + err.Error())
+	logging.S.Debugf("could not fetch kube-controller-manager cluster name: %s", err.Error())
 
 	logging.L.Debug("could not fetch cluster name, resorting to hashed cluster CA")
 
