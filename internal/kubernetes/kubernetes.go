@@ -365,7 +365,7 @@ func (k *Kubernetes) UpdateRoles(grants []api.Grant) error {
 				}
 			}
 		default:
-			logging.S.Errorf("Unknown role binding kind: %v", string(r.Kubernetes.Kind))
+			logging.S.Errorf("Unknown role binding kind: %s", r.Kubernetes.Kind)
 		}
 	}
 
@@ -588,28 +588,28 @@ func (k *Kubernetes) Name() (string, string, error) {
 		return name, chksm, nil
 	}
 
-	logging.S.Debugf("could not fetch ec2 cluster name: %w", err)
+	logging.S.Debugf("could not fetch ec2 cluster name: %s", err.Error())
 
 	name, err = k.gkeClusterName()
 	if err == nil {
 		return name, chksm, nil
 	}
 
-	logging.S.Debugf("could not fetch gke cluster name: %w", err)
+	logging.S.Debugf("could not fetch gke cluster name: %s", err.Error())
 
 	name, err = k.aksClusterName()
 	if err == nil {
 		return name, chksm, nil
 	}
 
-	logging.S.Debugf("could not fetch aks cluster name: %w", err)
+	logging.S.Debugf("could not fetch aks cluster name: %s", err.Error())
 
 	name, err = k.kubeControllerManagerClusterName()
 	if err == nil {
 		return name, chksm, nil
 	}
 
-	logging.S.Debugf("could not fetch kube-controller-manager cluster name: %w", err)
+	logging.S.Debugf("could not fetch kube-controller-manager cluster name: %s", err.Error())
 
 	logging.L.Debug("could not fetch cluster name, resorting to hashed cluster CA")
 
