@@ -335,91 +335,84 @@ func Run(options *Options) error {
 		return url.Hostname()
 	})
 
-	certCacheMiss := 0
+	var destinationID string
 
 	timer := timer.NewTimer()
 	timer.Start(5*time.Second, func() {
-		host, port, err := k8s.Endpoint()
-		if err != nil {
-			logging.S.Errorf("endpoint: %w", err)
-			return
-		}
-
-		logging.S.Debugf("endpoint is: %s:%d", host, port)
-
-		if ipv4 := net.ParseIP(host); ipv4 == nil {
-			// wait for DNS resolution if endpoint is not an IPv4 address
-			if _, err := net.LookupIP(host); err != nil {
-				logging.L.Error("endpoint DNS could not be resolved, waiting to register")
+		if destinationID == "" {
+			host, port, err := k8s.Endpoint()
+			if err != nil {
+				logging.S.Errorf("endpoint: %w", err)
+				return
 			}
-		}
 
-		endpoint := fmt.Sprintf("%s:%d", host, port)
+			logging.S.Debugf("endpoint is: %s:%d", host, port)
 
-		url, err := urlx.Parse(endpoint)
-		if err != nil {
-			logging.S.Errorf("url parse: %s", err.Error())
-			return
-		}
+			if ipv4 := net.ParseIP(host); ipv4 == nil {
+				// wait for DNS resolution if endpoint is not an IPv4 address
+				if _, err := net.LookupIP(host); err != nil {
+					logging.L.Error("endpoint DNS could not be resolved, waiting to register")
+				}
+			}
 
-		caBytes, err := manager.Cache.Get(context.TODO(), fmt.Sprintf("%s.crt", url.Hostname()))
-		if err != nil {
-			if errors.Is(err, autocert.ErrCacheMiss) {
-				// first attempt to get the certificate on new service start will
-				// likely fail so a single cache miss is expected
-				certCacheMiss++
-				if certCacheMiss > 1 {
-					logging.L.Error(err.Error())
+			endpoint := fmt.Sprintf("%s:%d", host, port)
+
+			url, err := urlx.Parse(endpoint)
+			if err != nil {
+				logging.S.Errorf("url parse: %s", err.Error())
+				return
+			}
+
+			caBytes, err := manager.Cache.Get(context.TODO(), fmt.Sprintf("%s.crt", url.Hostname()))
+			if err != nil {
+				if errors.Is(err, autocert.ErrCacheMiss) {
+					return
+				} else {
+					logging.S.Errorf("cache get: %s", err.Error())
+					return
+				}
+			}
+
+			request := api.DestinationRequest{
+				NodeID: chksm,
+				Name:   options.Name,
+				Kind:   kind,
+				Labels: options.Labels,
+				Kubernetes: &api.DestinationKubernetes{
+					CA:       string(caBytes),
+					Endpoint: endpoint,
+				},
+			}
+
+			destinations, _, err := client.DestinationsAPI.ListDestinations(ctx).NodeID(chksm).Execute()
+			if err != nil {
+				logging.S.Errorf("error listing destinations: %w", err)
+				return
+			}
+
+			switch len(destinations) {
+			case 0:
+				// destination doesn't yet exist, create it
+				destination, _, err := client.DestinationsAPI.CreateDestination(ctx).Body(request).Execute()
+				if err != nil {
+					logging.S.Errorf("error creating destination: %w", err)
 					return
 				}
 
-				return
-			} else {
-				logging.S.Errorf("cache get: %s", err.Error())
-				return
-			}
-		}
+				destinationID = destination.ID
+			case 1:
+				// destination already exists, update it
+				destination, _, err := client.DestinationsAPI.UpdateDestination(ctx, destinations[0].ID).DestinationRequest(request).Execute()
+				if err != nil {
+					logging.S.Errorf("error updating destination: %w", err)
+				}
 
-		request := api.DestinationRequest{
-			NodeID: chksm,
-			Name:   options.Name,
-			Kind:   kind,
-			Labels: options.Labels,
-			Kubernetes: &api.DestinationKubernetes{
-				CA:       string(caBytes),
-				Endpoint: endpoint,
-			},
-		}
-
-		destinations, _, err := client.DestinationsAPI.ListDestinations(ctx).NodeID(chksm).Execute()
-		if err != nil {
-			logging.S.Errorf("error listing destinations: %w", err)
-			return
-		}
-
-		var destinationID string
-
-		switch len(destinations) {
-		case 0:
-			// destination doesn't yet exist, create it
-			destination, _, err := client.DestinationsAPI.CreateDestination(ctx).Body(request).Execute()
-			if err != nil {
-				logging.S.Errorf("error creating destination: %w", err)
+				destinationID = destination.ID
+			default:
+				// this shouldn't happen
+				logging.L.Info("unexpected result from ListDestinations")
 				return
 			}
-
-			destinationID = destination.ID
-		case 1:
-			// destination already exists, update it
-			destinationID = destinations[0].ID
-			_, _, err := client.DestinationsAPI.UpdateDestination(ctx, destinationID).DestinationRequest(request).Execute()
-			if err != nil {
-				logging.S.Errorf("error updating destination: %w", err)
-			}
-		default:
-			// this shouldn't happen
-			logging.L.Info("unexpected result from ListDestinations")
-			return
 		}
 
 		grants, _, err := client.GrantsAPI.ListGrants(ctx).Destination(destinationID).Kind(api.GrantKind(kind)).Execute()
