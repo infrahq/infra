@@ -41,36 +41,36 @@ func RequireAuthentication(c *gin.Context) error {
 
 	bearer := parts[1]
 
-	if len(bearer) == models.TokenLength {
-		token, err := data.GetToken(db, &models.Token{Key: bearer[:models.TokenKeyLength]})
-		if err != nil {
-			return fmt.Errorf("could not get token from database, it may not exist: %w", err)
-		}
-
-		if err := data.CheckTokenSecret(token, bearer); err != nil {
-			return fmt.Errorf("rejected invalid token: %w", err)
-		}
-
-		if err := data.CheckTokenExpired(token); err != nil {
-			return fmt.Errorf("rejected token: %w", err)
-		}
-
-		c.Set("authentication", bearer)
-
-		// token is valid, check where to set permissions from
-		if token.UserID != uuid.Nil {
-			logging.S.Debug("user permissions: %s \n", token.User.Permissions)
-			// this token has a parent user, set by their current permissions
-			c.Set("permissions", token.User.Permissions)
-		} else if token.APITokenID != uuid.Nil {
-			// this is an API token
-			c.Set("permissions", token.APIToken.Permissions)
-		}
-
-		return nil
+	if len(bearer) != models.TokenLength {
+		return fmt.Errorf("rejected token of invalid length")
 	}
 
-	return fmt.Errorf("rejected token of invalid length")
+	token, err := data.GetToken(db, &models.Token{Key: bearer[:models.TokenKeyLength]})
+	if err != nil {
+		return fmt.Errorf("could not get token from database, it may not exist: %w", err)
+	}
+
+	if err := data.CheckTokenSecret(token, bearer); err != nil {
+		return fmt.Errorf("rejected invalid token: %w", err)
+	}
+
+	if err := data.CheckTokenExpired(token); err != nil {
+		return fmt.Errorf("rejected token: %w", err)
+	}
+
+	c.Set("authentication", bearer)
+
+	// token is valid, check where to set permissions from
+	if token.UserID != uuid.Nil {
+		logging.S.Debug("user permissions: %s \n", token.User.Permissions)
+		// this token has a parent user, set by their current permissions
+		c.Set("permissions", token.User.Permissions)
+	} else if token.APITokenID != uuid.Nil {
+		// this is an API token
+		c.Set("permissions", token.APIToken.Permissions)
+	}
+
+	return nil
 }
 
 // RequireAuthorization checks that the context has the permissions required to perform the action
