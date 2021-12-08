@@ -27,60 +27,60 @@ import {
 /**
  * 
  * @export
- * @interface DestinationCreateRequest
+ * @interface DestinationRequest
  */
-export interface DestinationCreateRequest {
+export interface DestinationRequest {
+    /**
+     * 
+     * @type {DestinationKind}
+     * @memberof DestinationRequest
+     */
+    kind: DestinationKind;
     /**
      * 
      * @type {string}
-     * @memberof DestinationCreateRequest
+     * @memberof DestinationRequest
      */
     nodeID: string;
     /**
      * 
      * @type {string}
-     * @memberof DestinationCreateRequest
+     * @memberof DestinationRequest
      */
     name: string;
     /**
      * 
-     * @type {DestinationKind}
-     * @memberof DestinationCreateRequest
-     */
-    kind: DestinationKind;
-    /**
-     * 
      * @type {Array<string>}
-     * @memberof DestinationCreateRequest
+     * @memberof DestinationRequest
      */
     labels: Array<string>;
     /**
      * 
      * @type {DestinationKubernetes}
-     * @memberof DestinationCreateRequest
+     * @memberof DestinationRequest
      */
     kubernetes?: DestinationKubernetes;
 }
 
-export function DestinationCreateRequestFromJSON(json: any): DestinationCreateRequest {
-    return DestinationCreateRequestFromJSONTyped(json, false);
+export function DestinationRequestFromJSON(json: any): DestinationRequest {
+    return DestinationRequestFromJSONTyped(json, false);
 }
 
-export function DestinationCreateRequestFromJSONTyped(json: any, ignoreDiscriminator: boolean): DestinationCreateRequest {
+export function DestinationRequestFromJSONTyped(json: any, ignoreDiscriminator: boolean): DestinationRequest {
     if ((json === undefined) || (json === null)) {
         return json;
     }
     return {
         
+        'kind': DestinationKindFromJSON(json['kind']),
         'nodeID': json['nodeID'],
         'name': json['name'],
-        'kind': DestinationKindFromJSON(json['kind']),
         'labels': json['labels'],
         'kubernetes': !exists(json, 'kubernetes') ? undefined : DestinationKubernetesFromJSON(json['kubernetes']),
     };
 }
 
-export function DestinationCreateRequestToJSON(value?: DestinationCreateRequest | null): any {
+export function DestinationRequestToJSON(value?: DestinationRequest | null): any {
     if (value === undefined) {
         return undefined;
     }
@@ -89,9 +89,9 @@ export function DestinationCreateRequestToJSON(value?: DestinationCreateRequest 
     }
     return {
         
+        'kind': DestinationKindToJSON(value.kind),
         'nodeID': value.nodeID,
         'name': value.name,
-        'kind': DestinationKindToJSON(value.kind),
         'labels': value.labels,
         'kubernetes': DestinationKubernetesToJSON(value.kubernetes),
     };

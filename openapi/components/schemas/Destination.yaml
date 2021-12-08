@@ -13,10 +13,13 @@ properties:
     format: uuid
   nodeID:
     type: string
+    x-go-custom-tag: form:"nodeID"
   name:
     type: string
+    x-go-custom-tag: form:"name"
   kind:
     $ref: ./DestinationKind.yaml
+    x-go-custom-tag: form:"kind"
   created:
     type: integer
     format: int64
@@ -27,6 +30,7 @@ properties:
     description: updated time in seconds since 1970-01-01
   labels:
     type: array
+    x-go-custom-tag: form:"labels"
     items:
       type: string
   kubernetes:

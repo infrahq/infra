@@ -68,8 +68,32 @@ func ListDestinations(db *gorm.DB, condition interface{}) ([]models.Destination,
 	return destinations, nil
 }
 
-func DeleteDestinations(db *gorm.DB, condition interface{}) error {
-	toDelete, err := ListDestinations(db, condition)
+func UpdateDestination(db *gorm.DB, destination *models.Destination, selector SelectorFunc) (*models.Destination, error) {
+	existing, err := GetDestination(db, selector(db))
+	if err != nil {
+		return nil, err
+	}
+
+	if err := update(db, &models.Destination{}, destination, db.Where(existing, "id")); err != nil {
+		return nil, err
+	}
+
+	switch destination.Kind {
+	case models.DestinationKindKubernetes:
+		if err := db.Model(existing).Association("Kubernetes").Replace(&destination.Kubernetes); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := db.Model(existing).Association("Labels").Replace(&destination.Labels); err != nil {
+		return nil, err
+	}
+
+	return GetDestination(db, db.Where(existing, "id"))
+}
+
+func DeleteDestinations(db *gorm.DB, selector SelectorFunc) error {
+	toDelete, err := ListDestinations(db, selector(db))
 	if err != nil {
 		return err
 	}
@@ -83,5 +107,5 @@ func DeleteDestinations(db *gorm.DB, condition interface{}) error {
 		return remove(db, &models.Destination{}, ids)
 	}
 
-	return nil
+	return internal.ErrNotFound
 }

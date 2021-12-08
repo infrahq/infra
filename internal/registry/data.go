@@ -169,7 +169,9 @@ func syncDestinations(db *gorm.DB, maxAge time.Duration) {
 		}
 	}
 
-	if err := data.DeleteDestinations(db, db.Model(&models.Destination{}).Not(toKeep)); err != nil {
+	if err := data.DeleteDestinations(db, func(db *gorm.DB) *gorm.DB {
+		return db.Model(&models.Destination{}).Not(toKeep)
+	}); err != nil {
 		logging.S.Errorw("delete destination", "error", err.Error())
 		return
 	}

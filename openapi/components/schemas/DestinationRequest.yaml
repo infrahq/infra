@@ -5,12 +5,12 @@ required:
   - kind
   - labels
 properties:
+  kind:
+    $ref: ./DestinationKind.yaml
   nodeID:
     type: string
   name:
     type: string
-  kind:
-    $ref: ./DestinationKind.yaml
   labels:
     type: array
     items:

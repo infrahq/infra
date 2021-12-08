@@ -277,7 +277,13 @@ func TestDeleteDestinations(t *testing.T) {
 	destination, err := GetDestination(db, &models.Destination{Name: "develop"})
 	require.NoError(t, err)
 
-	err = DeleteDestinations(db, &models.Destination{Name: "develop"})
+	byName := func(name string) SelectorFunc {
+		return func(db *gorm.DB) *gorm.DB {
+			return db.Where("name = ?", name)
+		}
+	}
+
+	err = DeleteDestinations(db, byName("develop"))
 	require.NoError(t, err)
 
 	// deleting a destination should remove its associated labels
@@ -290,8 +296,8 @@ func TestDeleteDestinations(t *testing.T) {
 	require.EqualError(t, err, "record not found")
 
 	// deleting a nonexistent destination should not fail
-	err = DeleteDestinations(db, &models.Destination{Name: "develop"})
-	require.NoError(t, err)
+	err = DeleteDestinations(db, byName("develop"))
+	require.EqualError(t, err, "record not found")
 
 	// deleting a destination should not delete unrelated destinations
 	_, err = GetDestination(db, &models.Destination{Name: "production"})

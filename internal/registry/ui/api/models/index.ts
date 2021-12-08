@@ -1,9 +1,9 @@
 /* tslint:disable */
 /* eslint-disable */
 export * from './Destination';
-export * from './DestinationCreateRequest';
 export * from './DestinationKind';
 export * from './DestinationKubernetes';
+export * from './DestinationRequest';
 export * from './Grant';
 export * from './GrantKind';
 export * from './GrantKubernetes';

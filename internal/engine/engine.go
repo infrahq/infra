@@ -310,6 +310,11 @@ func Run(options *Options) error {
 		options.Name = name
 	}
 
+	kind := api.DestinationKind(options.Kind)
+	if !kind.IsValid() {
+		return fmt.Errorf("unknown destination kind: %s", options.Kind)
+	}
+
 	manager := &autocert.Manager{
 		Prompt: autocert.AcceptTOS,
 		Cache:  autocert.DirCache(options.TLSCache),
@@ -375,13 +380,7 @@ func Run(options *Options) error {
 			}
 		}
 
-		kind := api.DestinationKind(options.Kind)
-		if !kind.IsValid() {
-			logging.S.Errorf("unknown destination kind %s", options.Kind)
-			return
-		}
-
-		destination, _, err := client.DestinationsAPI.CreateDestination(ctx).Body(api.DestinationCreateRequest{
+		request := api.DestinationRequest{
 			NodeID: chksm,
 			Name:   options.Name,
 			Kind:   kind,
@@ -390,20 +389,48 @@ func Run(options *Options) error {
 				CA:       string(caBytes),
 				Endpoint: endpoint,
 			},
-		}).Execute()
+		}
+
+		destinations, _, err := client.DestinationsAPI.ListDestinations(ctx).NodeID(chksm).Execute()
 		if err != nil {
-			logging.S.Errorf("could not create destination: %s", err.Error())
+			logging.S.Errorf("error listing destinations: %w", err)
 			return
 		}
 
-		grants, _, err := client.GrantsAPI.ListGrants(ctx).Destination(destination.ID).Kind(api.GRANTKIND_KUBERNETES).Execute()
+		var destinationID string
+
+		switch len(destinations) {
+		case 0:
+			// destination doesn't yet exist, create it
+			destination, _, err := client.DestinationsAPI.CreateDestination(ctx).Body(request).Execute()
+			if err != nil {
+				logging.S.Errorf("error creating destination: %w", err)
+				return
+			}
+
+			destinationID = destination.ID
+		case 1:
+			// destination already exists, update it
+			destinationID = destinations[0].ID
+			_, _, err := client.DestinationsAPI.UpdateDestination(ctx, destinationID).DestinationRequest(request).Execute()
+			if err != nil {
+				logging.S.Errorf("error updating destination: %w", err)
+			}
+		default:
+			// this shouldn't happen
+			logging.L.Info("unexpected result from ListDestinations")
+			return
+		}
+
+		grants, _, err := client.GrantsAPI.ListGrants(ctx).Destination(destinationID).Kind(api.GrantKind(kind)).Execute()
 		if err != nil {
-			logging.S.Errorf("could not list grants: %s", err.Error())
+			logging.S.Errorf("error listing grants: %w", err)
+			return
 		}
 
 		err = k8s.UpdateRoles(grants)
 		if err != nil {
-			logging.S.Errorf("could not update grants: %s", err.Error())
+			logging.S.Errorf("error updating grants: %w", err)
 			return
 		}
 	})
