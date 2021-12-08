@@ -46,15 +46,9 @@ clean: helm/clean
 export GO_POST_PROCESS_FILE=bash openapi/go-post-process.sh
 
 .PHONY: openapi
-openapi: openapi/clean openapi/go openapi/typescript
-
-openapi/go: openapi/bundled.yaml
-	npx @openapitools/openapi-generator-cli generate --generator-key go-client
-	# manually post process some files since openapi-generator forgot
+openapi: openapi/clean openapi/bundled.yaml
+	npx @openapitools/openapi-generator-cli generate
 	find internal/api -name '*.go' -exec $(GO_POST_PROCESS_FILE) {} \;
-
-openapi/typescript: openapi/bundled.yaml
-	npx @openapitools/openapi-generator-cli generate --generator-key typescript-client
 
 .INTERMEDIATE: openapi/bundled.yaml
 
