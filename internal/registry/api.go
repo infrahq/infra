@@ -356,13 +356,18 @@ func (a *API) UpdateDestination(c *gin.Context) {
 		return
 	}
 
-	destination := &models.Destination{}
+	destination, err := models.NewDestination(r.ID)
+	if err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
 	if err := destination.FromAPI(&body); err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	destination, err := access.UpdateDestination(c, r.ID, destination)
+	destination, err = access.UpdateDestination(c, r.ID, destination)
 	if err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return
