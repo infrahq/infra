@@ -19,7 +19,7 @@ get:
           schema:
             type: array
             items:
-              $ref: ../components/schemas/InfraAPIKey.yaml
+              $ref: ../components/schemas/InfraAPIToken.yaml
     '400':
       $ref: ../components/responses/BadRequest.yaml
     '401':
@@ -46,7 +46,7 @@ post:
       content:
         application/json:
           schema:
-            $ref: ../components/schemas/InfraAPIKeyCreateResponse.yaml
+            $ref: ../components/schemas/InfraAPITokenCreateResponse.yaml
     '400':
       $ref: ../components/responses/BadRequest.yaml
     '401':
