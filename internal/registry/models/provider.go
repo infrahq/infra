@@ -1,6 +1,8 @@
 package models
 
 import (
+	"fmt"
+
 	"github.com/google/uuid"
 
 	"github.com/infrahq/infra/internal/api"
@@ -15,7 +17,7 @@ type Provider struct {
 
 	Kind ProviderKind
 
-	Domain       string
+	Domain       string `gorm:"unique"`
 	ClientID     string
 	ClientSecret EncryptedAtRest
 
@@ -45,6 +47,25 @@ func (p *Provider) ToAPI() api.Provider {
 	}
 
 	return result
+}
+
+func (p *Provider) FromAPI(from interface{}) error {
+	if request, ok := from.(*api.ProviderRequest); ok {
+		p.Kind = ProviderKind(request.Kind)
+		p.Domain = request.Domain
+		p.ClientID = request.ClientID
+		p.ClientSecret = EncryptedAtRest(request.ClientSecret)
+
+		if okta, ok := request.GetOktaOK(); ok {
+			p.Okta = ProviderOkta{
+				APIToken: EncryptedAtRest(okta.APIToken),
+			}
+		}
+
+		return nil
+	}
+
+	return fmt.Errorf("unknown provider kind")
 }
 
 func NewProvider(id string) (*Provider, error) {

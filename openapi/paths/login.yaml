@@ -17,9 +17,5 @@ post:
         application/json:
           schema:
             $ref: ../components/schemas/LoginResponse.yaml
-    default:
-      description: Error response
-      content:
-        application/json:
-          schema:
-            $ref: ../components/schemas/Error.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml

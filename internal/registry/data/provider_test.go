@@ -50,7 +50,7 @@ func TestCreateProviderDuplicate(t *testing.T) {
 	createProviders(t, db, providerDevelop, providerProduction)
 
 	_, err := CreateProvider(db, &providerDevelop)
-	require.EqualError(t, err, "UNIQUE constraint failed: providers.id")
+	require.EqualError(t, err, "duplicate record")
 }
 
 func TestCreateOrUpdateProviderCreate(t *testing.T) {
@@ -297,21 +297,35 @@ func TestDeleteProviders(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 2, len(providers))
 
-	err = DeleteProviders(db, &models.Provider{Kind: "okta", Domain: "prod.okta.com"})
+	byKindAndDomain := func(kind, domain string) SelectorFunc {
+		return func(db *gorm.DB) *gorm.DB {
+			if kind != "" {
+				db = db.Where("kind = ?", kind)
+			}
+
+			if domain != "" {
+				db = db.Where("domain = ?", domain)
+			}
+
+			return db
+		}
+	}
+
+	err = DeleteProviders(db, byKindAndDomain("okta", "prod.okta.com"))
 	require.NoError(t, err)
 
 	_, err = GetProvider(db, &models.Provider{Kind: "okta", Domain: "prod.okta.com"})
 	require.EqualError(t, err, "record not found")
 
-	// deleting a nonexistent provider should not fail
-	err = DeleteProviders(db, &models.Provider{Kind: "okta", Domain: "prod.okta.com"})
-	require.NoError(t, err)
+	// deleting a nonexistent provider should return NotFound
+	err = DeleteProviders(db, byKindAndDomain("okta", "prod.okta.com"))
+	require.EqualError(t, err, "record not found")
 
 	// deleting a provider should not delete unrelated providers
 	_, err = GetProvider(db, &models.Provider{Kind: "okta", Domain: "dev.okta.com"})
 	require.NoError(t, err)
 
-	err = DeleteProviders(db, &models.Provider{Kind: "okta"})
+	err = DeleteProviders(db, byKindAndDomain("okta", ""))
 	require.NoError(t, err)
 
 	providers, err = ListProviders(db, &models.Provider{Kind: "okta"})

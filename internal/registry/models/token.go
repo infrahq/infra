@@ -47,7 +47,7 @@ type APIKey struct {
 	Permissions string `gorm:"<-:create"`
 }
 
-func (k *APIKey) ToAPI() (*api.InfraAPIKey, error) {
+func (k *APIKey) ToAPI() api.InfraAPIKey {
 	result := api.InfraAPIKey{
 		ID:      k.ID.String(),
 		Created: k.CreatedAt.Unix(),
@@ -57,10 +57,10 @@ func (k *APIKey) ToAPI() (*api.InfraAPIKey, error) {
 
 	result.Permissions = append(result.Permissions, strings.Split(k.Permissions, " ")...)
 
-	return &result, nil
+	return result
 }
 
-func (k *APIKey) ToAPICreateResponse() (*api.InfraAPIKeyCreateResponse, error) {
+func (k *APIKey) ToAPICreateResponse() api.InfraAPIKeyCreateResponse {
 	result := api.InfraAPIKeyCreateResponse{
 		ID:      k.ID.String(),
 		Created: k.CreatedAt.Unix(),
@@ -71,7 +71,7 @@ func (k *APIKey) ToAPICreateResponse() (*api.InfraAPIKeyCreateResponse, error) {
 
 	result.Permissions = append(result.Permissions, strings.Split(k.Permissions, " ")...)
 
-	return &result, nil
+	return result
 }
 
 func (k *APIKey) FromAPI(from interface{}) error {

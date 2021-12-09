@@ -53,7 +53,7 @@ func TestCreateGrantDuplicate(t *testing.T) {
 	createGrants(t, db, admin, view, edit)
 
 	_, err := CreateGrant(db, &admin)
-	require.EqualError(t, err, "UNIQUE constraint failed: grants.id")
+	require.EqualError(t, err, "duplicate record")
 }
 
 func TestCreateOrUpdateGrantCreate(t *testing.T) {

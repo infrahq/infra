@@ -18,6 +18,8 @@ export * from './LoginResponse';
 export * from './ModelError';
 export * from './Provider';
 export * from './ProviderKind';
+export * from './ProviderOkta';
+export * from './ProviderRequest';
 export * from './Token';
 export * from './TokenRequest';
 export * from './User';

@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgconn"
+	"github.com/jackc/pgerrcode"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -74,6 +76,21 @@ func NewPostgresDriver(connection string) (gorm.Dialector, error) {
 
 func add(db *gorm.DB, kind interface{}, value interface{}, condition interface{}) error {
 	if err := db.Create(value).Error; err != nil {
+		// HACK: Compare error string instead of checking sqlite3.Error which requires
+		//       possibly cross-compiling go-sqlite3. Not worth.
+		if strings.HasPrefix(err.Error(), "UNIQUE constraint failed:") {
+			return internal.ErrDuplicate
+		}
+
+		var pgerr *pgconn.PgError
+		if errors.As(err, &pgerr) {
+			if pgerr.Code == pgerrcode.UniqueViolation {
+				return internal.ErrDuplicate
+			}
+
+			return err
+		}
+
 		return err
 	}
 

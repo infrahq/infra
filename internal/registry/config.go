@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -10,6 +11,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
@@ -290,8 +292,12 @@ func importProviders(db *gorm.DB, providers []ConfigProvider) error {
 		toKeep = append(toKeep, final.ID)
 	}
 
-	if err := data.DeleteProviders(db, db.Model(&models.Provider{}).Not(toKeep)); err != nil {
-		return err
+	if err := data.DeleteProviders(db, func(db *gorm.DB) *gorm.DB {
+		return db.Model(&models.Provider{}).Not(toKeep)
+	}); err != nil {
+		if !errors.Is(err, internal.ErrNotFound) {
+			return err
+		}
 	}
 
 	return nil

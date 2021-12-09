@@ -20,6 +20,10 @@ type API struct {
 	registry *Registry
 }
 
+type Resource struct {
+	ID string `uri:"id" binding:"required,uuid"`
+}
+
 func NewAPIMux(reg *Registry, router *gin.RouterGroup) {
 	a := API{
 		t:        reg.tel,
@@ -46,6 +50,10 @@ func NewAPIMux(reg *Registry, router *gin.RouterGroup) {
 
 		authorized.GET("/grants", a.ListGrants)
 		authorized.GET("/grants/:id", a.GetGrant)
+
+		authorized.POST("/providers", a.CreateProvider)
+		authorized.PUT("/providers/:id", a.UpdateProvider)
+		authorized.DELETE("/providers/:id", a.DeleteProvider)
 
 		authorized.GET("/destinations", a.ListDestinations)
 		authorized.GET("/destinations/:id", a.GetDestination)
@@ -114,13 +122,13 @@ func (a *API) ListUsers(c *gin.Context) {
 }
 
 func (a *API) GetUser(c *gin.Context) {
-	userID := c.Param("id")
-	if userID == "" {
-		sendAPIError(c, http.StatusBadRequest, fmt.Errorf("invalid user ID"))
+	var r Resource
+	if err := c.BindUri(&r); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	user, err := access.GetUser(c, userID)
+	user, err := access.GetUser(c, r.ID)
 	if err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return
@@ -149,13 +157,13 @@ func (a *API) ListGroups(c *gin.Context) {
 }
 
 func (a *API) GetGroup(c *gin.Context) {
-	groupID := c.Param("id")
-	if groupID == "" {
-		sendAPIError(c, http.StatusBadRequest, fmt.Errorf("invalid group ID"))
+	var r Resource
+	if err := c.BindUri(&r); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	group, err := access.GetGroup(c, groupID)
+	group, err := access.GetGroup(c, r.ID)
 	if err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return
@@ -166,8 +174,8 @@ func (a *API) GetGroup(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+// caution: this endpoint is unauthenticated, do not return sensitive info
 func (a *API) ListProviders(c *gin.Context) {
-	// caution: this endpoint is unauthenticated, do not return sensitive info
 	providerKind := c.Request.URL.Query().Get("kind")
 	providerDomain := c.Request.URL.Query().Get("domain")
 
@@ -185,15 +193,15 @@ func (a *API) ListProviders(c *gin.Context) {
 	c.JSON(http.StatusOK, results)
 }
 
+// caution: this endpoint is unauthenticated, do not return sensitive info
 func (a *API) GetProvider(c *gin.Context) {
-	// caution: this endpoint is unauthenticated, do not return sensitive info
-	providerID := c.Param("id")
-	if providerID == "" {
-		sendAPIError(c, http.StatusBadRequest, fmt.Errorf("invalid provider ID"))
+	var r Resource
+	if err := c.BindUri(&r); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	provider, err := access.GetProvider(c, providerID)
+	provider, err := access.GetProvider(c, r.ID)
 	if err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return
@@ -222,14 +230,82 @@ func (a *API) ListDestinations(c *gin.Context) {
 	c.JSON(http.StatusOK, results)
 }
 
-func (a *API) GetDestination(c *gin.Context) {
-	destinationID := c.Param("id")
-	if destinationID == "" {
-		sendAPIError(c, http.StatusBadRequest, fmt.Errorf("invalid destination ID"))
+func (a *API) CreateProvider(c *gin.Context) {
+	var body api.ProviderRequest
+	if err := c.BindJSON(&body); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	destination, err := access.GetDestination(c, destinationID)
+	provider := &models.Provider{}
+	if err := provider.FromAPI(&body); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	provider, err := access.CreateProvider(c, provider)
+	if err != nil {
+		sendAPIError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	result := provider.ToAPI()
+	c.JSON(http.StatusCreated, result)
+}
+
+func (a *API) UpdateProvider(c *gin.Context) {
+	var r Resource
+	if err := c.BindUri(&r); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	var body api.ProviderRequest
+	if err := c.BindJSON(&body); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	provider := &models.Provider{}
+	if err := provider.FromAPI(&body); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	provider, err := access.UpdateProvider(c, r.ID, provider)
+	if err != nil {
+		sendAPIError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	result := provider.ToAPI()
+	c.JSON(http.StatusOK, result)
+}
+
+func (a *API) DeleteProvider(c *gin.Context) {
+	var r Resource
+	if err := c.BindUri(&r); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	if err := access.DeleteProvider(c, r.ID); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+	c.Writer.WriteHeaderNow()
+}
+
+func (a *API) GetDestination(c *gin.Context) {
+	var r Resource
+	if err := c.BindUri(&r); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	destination, err := access.GetDestination(c, r.ID)
 	if err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return
@@ -279,26 +355,20 @@ func (a *API) ListAPIKeys(c *gin.Context) {
 	results := make([]api.InfraAPIKey, 0)
 
 	for _, k := range keys {
-		key, err := k.ToAPI()
-		if err != nil {
-			sendAPIError(c, http.StatusBadRequest, err)
-			return
-		}
-
-		results = append(results, *key)
+		results = append(results, k.ToAPI())
 	}
 
 	c.JSON(http.StatusOK, results)
 }
 
 func (a *API) DeleteAPIKey(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
-		sendAPIError(c, http.StatusBadRequest, fmt.Errorf("invalid API key ID"))
+	var r Resource
+	if err := c.BindUri(&r); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	if err := access.RevokeAPIKey(c, id); err != nil {
+	if err := access.RevokeAPIKey(c, r.ID); err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return
 	}
@@ -331,12 +401,7 @@ func (a *API) CreateAPIKey(c *gin.Context) {
 		return
 	}
 
-	result, err := apiKey.ToAPICreateResponse()
-	if err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
-		return
-	}
-
+	result := apiKey.ToAPICreateResponse()
 	c.JSON(http.StatusCreated, result)
 }
 
@@ -359,13 +424,13 @@ func (a *API) ListGrants(c *gin.Context) {
 }
 
 func (a *API) GetGrant(c *gin.Context) {
-	grantID := c.Param("id")
-	if grantID == "" {
-		sendAPIError(c, http.StatusBadRequest, fmt.Errorf("invalid grant ID"))
+	var r Resource
+	if err := c.BindUri(&r); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	grant, err := access.GetGrant(c, grantID)
+	grant, err := access.GetGrant(c, r.ID)
 	if err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return
@@ -476,8 +541,10 @@ func (a *API) Logout(c *gin.Context) {
 
 	deleteAuthCookie(c)
 
-	if err := a.t.Enqueue(analytics.Track{Event: "infra.logout", UserId: token.UserID.String()}); err != nil {
-		logging.S.Debug(err)
+	if a.t != nil {
+		if err := a.t.Enqueue(analytics.Track{Event: "infra.logout", UserId: token.UserID.String()}); err != nil {
+			logging.S.Debug(err)
+		}
 	}
 
 	c.Status(http.StatusOK)
