@@ -59,9 +59,9 @@ func NewAPIMux(reg *Registry, router *gin.RouterGroup) {
 		authorized.GET("/destinations/:id", a.GetDestination)
 		authorized.POST("/destinations", a.CreateDestination)
 
-		authorized.GET("/api-keys", a.ListAPIKeys)
-		authorized.POST("/api-keys", a.CreateAPIKey)
-		authorized.DELETE("/api-keys/:id", a.DeleteAPIKey)
+		authorized.GET("/api-tokens", a.ListAPITokens)
+		authorized.POST("/api-tokens", a.CreateAPIToken)
+		authorized.DELETE("/api-tokens/:id", a.DeleteAPIToken)
 
 		authorized.POST("/tokens", a.CreateToken)
 		authorized.POST("/logout", a.Logout)
@@ -343,32 +343,33 @@ func (a *API) CreateDestination(c *gin.Context) {
 	c.JSON(http.StatusCreated, result)
 }
 
-func (a *API) ListAPIKeys(c *gin.Context) {
+func (a *API) ListAPITokens(c *gin.Context) {
 	keyName := c.Request.URL.Query().Get("name")
 
-	keys, err := access.ListAPIKeys(c, keyName)
+	keyTuples, err := access.ListAPITokens(c, keyName)
 	if err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	results := make([]api.InfraAPIKey, 0)
+	results := make([]api.InfraAPIToken, 0)
 
-	for _, k := range keys {
-		results = append(results, k.ToAPI())
+	for _, k := range keyTuples {
+		key := k.ToAPI()
+		results = append(results, *key)
 	}
 
 	c.JSON(http.StatusOK, results)
 }
 
-func (a *API) DeleteAPIKey(c *gin.Context) {
-	var r Resource
-	if err := c.BindUri(&r); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+func (a *API) DeleteAPIToken(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		sendAPIError(c, http.StatusBadRequest, fmt.Errorf("invalid API token ID"))
 		return
 	}
 
-	if err := access.RevokeAPIKey(c, r.ID); err != nil {
+	if err := access.RevokeAPIToken(c, id); err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return
 	}
@@ -377,8 +378,8 @@ func (a *API) DeleteAPIKey(c *gin.Context) {
 	c.Writer.WriteHeaderNow()
 }
 
-func (a *API) CreateAPIKey(c *gin.Context) {
-	var body api.InfraAPIKeyCreateRequest
+func (a *API) CreateAPIToken(c *gin.Context) {
+	var body api.InfraAPITokenCreateRequest
 	if err := c.BindJSON(&body); err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return
@@ -389,20 +390,19 @@ func (a *API) CreateAPIKey(c *gin.Context) {
 		return
 	}
 
-	apiKey := &models.APIKey{}
-	if err := apiKey.FromAPI(&body); err != nil {
+	apiToken := &models.APIToken{}
+	if err := apiToken.FromAPI(&body, DefaultSessionDuration); err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	apiKey, err := access.IssueAPIKey(c, apiKey)
+	apiToken, tkn, err := access.IssueAPIToken(c, apiToken)
 	if err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	result := apiKey.ToAPICreateResponse()
-	c.JSON(http.StatusCreated, result)
+	c.JSON(http.StatusCreated, apiToken.ToAPICreateResponse(tkn))
 }
 
 func (a *API) ListGrants(c *gin.Context) {

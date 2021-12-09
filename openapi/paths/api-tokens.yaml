@@ -1,25 +1,25 @@
 get:
   tags:
-    - api-keys
+    - api-tokens
   security:
     - bearerAuth: []
-  summary: List API keys
-  operationId: listAPIKeys
+  summary: List API tokens
+  operationId: listAPITokens
   parameters:
     - in: query
       name: name
       schema:
         type: string
-      description: Filter results by the API key name
+      description: Filter results by the API token name
   responses:
     '200':
-      description: List API keys response
+      description: List API tokens response
       content:
         application/json:
           schema:
             type: array
             items:
-              $ref: ../components/schemas/InfraAPIKey.yaml
+              $ref: ../components/schemas/InfraAPIToken.yaml
     '400':
       $ref: ../components/responses/BadRequest.yaml
     '401':
@@ -28,25 +28,25 @@ get:
       $ref: ../components/responses/Forbidden.yaml
 post:
   tags:
-    - api-keys
+    - api-tokens
   security:
     - bearerAuth: []
-  summary: Create an API key
-  operationId: createAPIKey
+  summary: Create an API token
+  operationId: createAPIToken
   x-codegen-request-body-name: body
   requestBody:
     required: true
     content:
       application/json:
         schema:
-          $ref: ../components/schemas/InfraAPIKeyCreateRequest.yaml
+          $ref: '../components/schemas/InfraAPITokenCreateRequest.yaml'
   responses:
     '200':
-      description: Create API key response
+      description: Create API token response
       content:
         application/json:
           schema:
-            $ref: ../components/schemas/InfraAPIKeyCreateResponse.yaml
+            $ref: ../components/schemas/InfraAPITokenCreateResponse.yaml
     '400':
       $ref: ../components/responses/BadRequest.yaml
     '401':

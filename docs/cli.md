@@ -15,7 +15,7 @@
 Login to Infra
 
 ```
-infra login [flags]
+infra login [HOST] [flags]
 ```
 
 ### Examples
@@ -69,7 +69,7 @@ $ infra logout
 
 ## `infra list`
 
-List infrastructure
+List destinations
 
 ```
 infra list [flags]

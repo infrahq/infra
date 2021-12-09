@@ -17,8 +17,8 @@ data:
 {{- end }}
 
   config.yaml: |
-    root-api-key: file:/var/run/secrets/infrahq.com/infra/root-api-key
-    engine-api-key: file:/var/run/secrets/infrahq.com/engine/engine-api-key
+    root-api-token: file:/var/run/secrets/infrahq.com/infra/root-api-token
+    engine-api-token: file:/var/run/secrets/infrahq.com/engine/engine-api-token
 {{- $options := list "configPath" "dbFile" "pg" "tlsCache" }}
 {{- $options = list "enableUI" "uiProxy" | concat $options }}
 {{- $options = list "providersSyncInterval" "destinationsSyncInterval" | concat $options }}

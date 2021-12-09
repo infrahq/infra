@@ -24,55 +24,55 @@ var (
 	_ _context.Context
 )
 
-// APIKeysAPIService APIKeysAPI service
-type APIKeysAPIService service
+// APITokensAPIService APITokensAPI service
+type APITokensAPIService service
 
-type APICreateAPIKeyRequest struct {
+type APICreateAPITokenRequest struct {
 	ctx        _context.Context
-	APIService *APIKeysAPIService
-	body       *InfraAPIKeyCreateRequest
+	APIService *APITokensAPIService
+	body       *InfraAPITokenCreateRequest
 }
 
-func (r APICreateAPIKeyRequest) Body(body InfraAPIKeyCreateRequest) APICreateAPIKeyRequest {
+func (r APICreateAPITokenRequest) Body(body InfraAPITokenCreateRequest) APICreateAPITokenRequest {
 	r.body = &body
 	return r
 }
 
-func (r APICreateAPIKeyRequest) Execute() (InfraAPIKeyCreateResponse, *_nethttp.Response, error) {
-	return r.APIService.CreateAPIKeyExecute(r)
+func (r APICreateAPITokenRequest) Execute() (InfraAPITokenCreateResponse, *_nethttp.Response, error) {
+	return r.APIService.CreateAPITokenExecute(r)
 }
 
 /*
-CreateAPIKey Create an API key
+CreateAPIToken Create an API token
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return APICreateAPIKeyRequest
+ @return APICreateAPITokenRequest
 */
-func (a *APIKeysAPIService) CreateAPIKey(ctx _context.Context) APICreateAPIKeyRequest {
-	return APICreateAPIKeyRequest{
+func (a *APITokensAPIService) CreateAPIToken(ctx _context.Context) APICreateAPITokenRequest {
+	return APICreateAPITokenRequest{
 		APIService: a,
 		ctx:        ctx,
 	}
 }
 
 // Execute executes the request
-//  @return InfraAPIKeyCreateResponse
-func (a *APIKeysAPIService) CreateAPIKeyExecute(r APICreateAPIKeyRequest) (InfraAPIKeyCreateResponse, *_nethttp.Response, error) {
+//  @return InfraAPITokenCreateResponse
+func (a *APITokensAPIService) CreateAPITokenExecute(r APICreateAPITokenRequest) (InfraAPITokenCreateResponse, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodPost
 		localVarPostBody     interface{}
 		localVarFormFileName string
 		localVarFileName     string
 		localVarFileBytes    []byte
-		localVarReturnValue  InfraAPIKeyCreateResponse
+		localVarReturnValue  InfraAPITokenCreateResponse
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "APIKeysAPIService.CreateAPIKey")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "APITokensAPIService.CreateAPIToken")
 	if err != nil {
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/api-keys"
+	localVarPath := localBasePath + "/api-tokens"
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := _neturl.Values{}
@@ -166,25 +166,25 @@ func (a *APIKeysAPIService) CreateAPIKeyExecute(r APICreateAPIKeyRequest) (Infra
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type APIDeleteAPIKeyRequest struct {
+type APIDeleteAPITokenRequest struct {
 	ctx        _context.Context
-	APIService *APIKeysAPIService
+	APIService *APITokensAPIService
 	id         string
 }
 
-func (r APIDeleteAPIKeyRequest) Execute() (*_nethttp.Response, error) {
-	return r.APIService.DeleteAPIKeyExecute(r)
+func (r APIDeleteAPITokenRequest) Execute() (*_nethttp.Response, error) {
+	return r.APIService.DeleteAPITokenExecute(r)
 }
 
 /*
-DeleteAPIKey Delete an API key
+DeleteAPIToken Delete an API token
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param id API key ID
- @return APIDeleteAPIKeyRequest
+ @param id API token ID
+ @return APIDeleteAPITokenRequest
 */
-func (a *APIKeysAPIService) DeleteAPIKey(ctx _context.Context, id string) APIDeleteAPIKeyRequest {
-	return APIDeleteAPIKeyRequest{
+func (a *APITokensAPIService) DeleteAPIToken(ctx _context.Context, id string) APIDeleteAPITokenRequest {
+	return APIDeleteAPITokenRequest{
 		APIService: a,
 		ctx:        ctx,
 		id:         id,
@@ -192,7 +192,7 @@ func (a *APIKeysAPIService) DeleteAPIKey(ctx _context.Context, id string) APIDel
 }
 
 // Execute executes the request
-func (a *APIKeysAPIService) DeleteAPIKeyExecute(r APIDeleteAPIKeyRequest) (*_nethttp.Response, error) {
+func (a *APITokensAPIService) DeleteAPITokenExecute(r APIDeleteAPITokenRequest) (*_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodDelete
 		localVarPostBody     interface{}
@@ -201,12 +201,12 @@ func (a *APIKeysAPIService) DeleteAPIKeyExecute(r APIDeleteAPIKeyRequest) (*_net
 		localVarFileBytes    []byte
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "APIKeysAPIService.DeleteAPIKey")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "APITokensAPIService.DeleteAPIToken")
 	if err != nil {
 		return nil, GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/api-keys/{id}"
+	localVarPath := localBasePath + "/api-tokens/{id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"id"+"}", _neturl.PathEscape(parameterToString(r.id, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
@@ -287,53 +287,53 @@ func (a *APIKeysAPIService) DeleteAPIKeyExecute(r APIDeleteAPIKeyRequest) (*_net
 	return localVarHTTPResponse, nil
 }
 
-type APIListAPIKeysRequest struct {
+type APIListAPITokensRequest struct {
 	ctx        _context.Context
-	APIService *APIKeysAPIService
+	APIService *APITokensAPIService
 	name       *string
 }
 
-// Filter results by the API key name
-func (r APIListAPIKeysRequest) Name(name string) APIListAPIKeysRequest {
+// Filter results by the API token name
+func (r APIListAPITokensRequest) Name(name string) APIListAPITokensRequest {
 	r.name = &name
 	return r
 }
 
-func (r APIListAPIKeysRequest) Execute() ([]InfraAPIKey, *_nethttp.Response, error) {
-	return r.APIService.ListAPIKeysExecute(r)
+func (r APIListAPITokensRequest) Execute() ([]InfraAPIToken, *_nethttp.Response, error) {
+	return r.APIService.ListAPITokensExecute(r)
 }
 
 /*
-ListAPIKeys List API keys
+ListAPITokens List API tokens
 
  @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return APIListAPIKeysRequest
+ @return APIListAPITokensRequest
 */
-func (a *APIKeysAPIService) ListAPIKeys(ctx _context.Context) APIListAPIKeysRequest {
-	return APIListAPIKeysRequest{
+func (a *APITokensAPIService) ListAPITokens(ctx _context.Context) APIListAPITokensRequest {
+	return APIListAPITokensRequest{
 		APIService: a,
 		ctx:        ctx,
 	}
 }
 
 // Execute executes the request
-//  @return []InfraAPIKey
-func (a *APIKeysAPIService) ListAPIKeysExecute(r APIListAPIKeysRequest) ([]InfraAPIKey, *_nethttp.Response, error) {
+//  @return []InfraAPIToken
+func (a *APITokensAPIService) ListAPITokensExecute(r APIListAPITokensRequest) ([]InfraAPIToken, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodGet
 		localVarPostBody     interface{}
 		localVarFormFileName string
 		localVarFileName     string
 		localVarFileBytes    []byte
-		localVarReturnValue  []InfraAPIKey
+		localVarReturnValue  []InfraAPIToken
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "APIKeysAPIService.ListAPIKeys")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "APITokensAPIService.ListAPITokens")
 	if err != nil {
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/api-keys"
+	localVarPath := localBasePath + "/api-tokens"
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := _neturl.Values{}

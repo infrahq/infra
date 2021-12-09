@@ -16,40 +16,52 @@ import { exists, mapValues } from '../runtime';
 /**
  * 
  * @export
- * @interface InfraAPIKey
+ * @interface InfraAPIToken
  */
-export interface InfraAPIKey {
+export interface InfraAPIToken {
     /**
      * 
      * @type {string}
-     * @memberof InfraAPIKey
+     * @memberof InfraAPIToken
      */
     id: string;
     /**
      * 
      * @type {number}
-     * @memberof InfraAPIKey
+     * @memberof InfraAPIToken
      */
     created: number;
     /**
      * 
+     * @type {number}
+     * @memberof InfraAPIToken
+     */
+    expires?: number;
+    /**
+     * 
      * @type {string}
-     * @memberof InfraAPIKey
+     * @memberof InfraAPIToken
      */
     name: string;
     /**
      * 
      * @type {Array<string>}
-     * @memberof InfraAPIKey
+     * @memberof InfraAPIToken
      */
     permissions: Array<string>;
+    /**
+     * Token time to live before expiry in the form XhYmZs, for example 1h30m. Defaults to 12h.
+     * @type {string}
+     * @memberof InfraAPIToken
+     */
+    ttl?: string;
 }
 
-export function InfraAPIKeyFromJSON(json: any): InfraAPIKey {
-    return InfraAPIKeyFromJSONTyped(json, false);
+export function InfraAPITokenFromJSON(json: any): InfraAPIToken {
+    return InfraAPITokenFromJSONTyped(json, false);
 }
 
-export function InfraAPIKeyFromJSONTyped(json: any, ignoreDiscriminator: boolean): InfraAPIKey {
+export function InfraAPITokenFromJSONTyped(json: any, ignoreDiscriminator: boolean): InfraAPIToken {
     if ((json === undefined) || (json === null)) {
         return json;
     }
@@ -57,12 +69,14 @@ export function InfraAPIKeyFromJSONTyped(json: any, ignoreDiscriminator: boolean
         
         'id': json['id'],
         'created': json['created'],
+        'expires': !exists(json, 'expires') ? undefined : json['expires'],
         'name': json['name'],
         'permissions': json['permissions'],
+        'ttl': !exists(json, 'ttl') ? undefined : json['ttl'],
     };
 }
 
-export function InfraAPIKeyToJSON(value?: InfraAPIKey | null): any {
+export function InfraAPITokenToJSON(value?: InfraAPIToken | null): any {
     if (value === undefined) {
         return undefined;
     }
@@ -73,8 +87,10 @@ export function InfraAPIKeyToJSON(value?: InfraAPIKey | null): any {
         
         'id': value.id,
         'created': value.created,
+        'expires': value.expires,
         'name': value.name,
         'permissions': value.permissions,
+        'ttl': value.ttl,
     };
 }
 

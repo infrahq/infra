@@ -19,7 +19,6 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/api"
-	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/mocks"
 	"github.com/infrahq/infra/internal/registry/models"
@@ -51,20 +50,17 @@ func (msr *mockSecretReader) SetSecret(secretName string, secret []byte) error {
 	return nil
 }
 
-func issueAPIKey(t *testing.T, db *gorm.DB, permissions string) *models.APIKey {
-	secret, err := generate.CryptoRandom(models.APIKeyLength)
-	require.NoError(t, err)
-
-	apiKey := &models.APIKey{
+func issueAPIToken(t *testing.T, db *gorm.DB, permissions string) *models.APIToken {
+	apiToken := &models.APIToken{
 		Name:        "test",
-		Key:         secret,
 		Permissions: permissions,
+		TTL:         1 * time.Hour,
 	}
 
-	apiKey, err = data.CreateAPIKey(db, apiKey)
+	apiToken, _, err := data.CreateAPIToken(db, apiToken, &models.Token{})
 	require.NoError(t, err)
 
-	return apiKey
+	return apiToken
 }
 
 func TestLogin(t *testing.T) {
@@ -461,27 +457,6 @@ func TestT(t *testing.T) {
 		},
 
 		// /v1/grants
-		// "GetGrant": map[string]interface{} {
-		// 	"authFunc": func (t *testing.T, db *gorm.DB, c *gin.Context) {
-		// 		apiKey := issueAPIKey(t, db, string(access.PermissionGrantRead))
-		// 		c.Set("authorization", apiKey.Key)
-		// 	},
-		// 	"requestFunc": func (t *testing.T, c *gin.Context) *http.Request {
-		// 		c.Params = append(c.Params, gin.Param{Key: "id", Value: grantEveryone.ID.String()})
-		// 		return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/grants/%s", grantEveryone.ID), nil)
-		// 	},
-		// 	"func": func (a *API, c *gin.Context) {
-		// 		a.GetGrant(c)
-		// 	},
-		// 	"verifyFunc": func (t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-		// 		require.Equal(t, http.StatusOK, w.Code)
-
-		// 		var grant api.Grant
-		// 		err := json.NewDecoder(w.Body).Decode(&grant)
-		// 		require.NoError(t, err)
-		// 		require.Equal(t, "Everyone", grant.Name)
-		// 	},
-		// },
 		"GetGrantEmptyID": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionGrantRead))
@@ -809,25 +784,25 @@ func TestT(t *testing.T) {
 			},
 		},
 
-		// /v1/api-keys
-		"ListAPIKeys": {
+		// /v1/api-tokens
+		"ListAPITokens": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				issueAPIKey(t, db, string(access.PermissionAPIKeyRead))
-				c.Set("permissions", string(access.PermissionAPIKeyRead))
+				issueAPIToken(t, db, string(access.PermissionAPITokenRead))
+				c.Set("permissions", string(access.PermissionAPITokenRead))
 			},
 			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
-				return httptest.NewRequest(http.MethodGet, "/v1/api-keys", nil)
+				return httptest.NewRequest(http.MethodGet, "/v1/api-tokens", nil)
 			},
 			"func": func(a *API, c *gin.Context) {
-				a.ListAPIKeys(c)
+				a.ListAPITokens(c)
 			},
 			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, w.Code)
 
-				var apiKeys []api.InfraAPIKey
-				err := json.NewDecoder(w.Body).Decode(&apiKeys)
+				var apiTokens []api.InfraAPIToken
+				err := json.NewDecoder(w.Body).Decode(&apiTokens)
 				require.NoError(t, err)
-				require.Len(t, apiKeys, 1)
+				require.Len(t, apiTokens, 1)
 			},
 		},
 
@@ -1589,31 +1564,31 @@ func TestCreateDestinationUpdatesField(t *testing.T) {
 	require.Equal(t, body.Kubernetes.CA, destinations[0].Kubernetes.CA)
 }
 
-func TestCreateAPIKey(t *testing.T) {
+func TestCreateAPIToken(t *testing.T) {
 	_, db := configure(t, nil)
 
-	request := api.InfraAPIKeyCreateRequest{
+	request := api.InfraAPITokenCreateRequest{
 		Name:        "tmp",
-		Permissions: []string{"infra.*"},
+		Permissions: []string{string(access.PermissionAllAlternate)},
 	}
 
 	bts, err := request.MarshalJSON()
 	require.NoError(t, err)
 
-	r := httptest.NewRequest(http.MethodPost, "/v1/api-keys", bytes.NewReader(bts))
+	r := httptest.NewRequest(http.MethodPost, "/v1/api-tokens", bytes.NewReader(bts))
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Set("db", db)
-	c.Set("permissions", string(access.PermissionAPIKeyIssue))
+	c.Set("permissions", string(access.PermissionAllAlternate))
 	c.Request = r
 
 	a := API{}
 
-	a.CreateAPIKey(c)
+	a.CreateAPIToken(c)
 
 	require.Equal(t, http.StatusCreated, w.Code)
 
-	var body api.InfraAPIKeyCreateResponse
+	var body api.InfraAPITokenCreateResponse
 	err = json.NewDecoder(w.Body).Decode(&body)
 	require.NoError(t, err)
 
@@ -1629,15 +1604,15 @@ func TestCreateAPIKey(t *testing.T) {
 	require.Equal(t, http.StatusOK, neww.Code)
 }
 
-func TestDeleteAPIKey(t *testing.T) {
+func TestDeleteAPIToken(t *testing.T) {
 	_, db := configure(t, nil)
 
 	permissions := strings.Join([]string{
 		string(access.PermissionUserRead),
-		string(access.PermissionAPIKeyRevoke),
+		string(access.PermissionAPITokenDelete),
 	}, " ")
 
-	apiKey := issueAPIKey(t, db, permissions)
+	apiToken := issueAPIToken(t, db, permissions)
 
 	oldr := httptest.NewRequest(http.MethodGet, "/v1/users", nil)
 	oldw := httptest.NewRecorder()
@@ -1652,15 +1627,15 @@ func TestDeleteAPIKey(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, oldw.Code)
 
-	r := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/api-keys/%s", apiKey.ID.String()), nil)
+	r := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/api-tokens/%s", apiToken.ID.String()), nil)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Set("db", db)
 	c.Set("permissions", permissions)
 	c.Request = r
-	c.Params = append(c.Params, gin.Param{Key: "id", Value: apiKey.ID.String()})
+	c.Params = append(c.Params, gin.Param{Key: "id", Value: apiToken.ID.String()})
 
-	a.DeleteAPIKey(c)
+	a.DeleteAPIToken(c)
 
 	require.Equal(t, http.StatusNoContent, w.Code)
 }

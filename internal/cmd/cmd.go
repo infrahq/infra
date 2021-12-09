@@ -221,8 +221,8 @@ func newStartCmd() (*cobra.Command, error) {
 	}
 
 	cmd.Flags().StringP("config-path", "c", "", "Infra config file")
-	cmd.Flags().String("root-api-key", "", "root API key")
-	cmd.Flags().String("engine-api-key", "", "engine registration API key")
+	cmd.Flags().String("root-api-token", "", "root API token")
+	cmd.Flags().String("engine-api-token", "", "engine registration API token")
 	cmd.Flags().String("tls-cache", "", "path to cache self-signed and Let's Encrypt TLS certificates")
 	cmd.Flags().String("db-file", "", "path to database file")
 	cmd.Flags().String("pg.host", "", "PostgreSQL host")
@@ -267,7 +267,7 @@ func newEngineCmd() (*cobra.Command, error) {
 
 	cmd.Flags().StringP("name", "n", "", "destination name")
 	cmd.Flags().StringP("kind", "k", "", "destination kind")
-	cmd.Flags().String("api-key", "", "engine registry API key")
+	cmd.Flags().String("api-token", "", "engine registry API token")
 	cmd.Flags().String("tls-cache", "", "path to cache self-signed and Let's Encrypt TLS certificates")
 	cmd.Flags().Bool("skip-tls-verify", true, "skip TLS verification")
 

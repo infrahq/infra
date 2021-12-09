@@ -16,28 +16,34 @@ import { exists, mapValues } from '../runtime';
 /**
  * 
  * @export
- * @interface InfraAPIKeyCreateRequest
+ * @interface InfraAPITokenCreateRequest
  */
-export interface InfraAPIKeyCreateRequest {
+export interface InfraAPITokenCreateRequest {
     /**
      * 
      * @type {string}
-     * @memberof InfraAPIKeyCreateRequest
+     * @memberof InfraAPITokenCreateRequest
      */
     name: string;
     /**
      * 
      * @type {Array<string>}
-     * @memberof InfraAPIKeyCreateRequest
+     * @memberof InfraAPITokenCreateRequest
      */
     permissions: Array<string>;
+    /**
+     * Token time to live before expiry in the form XhYmZs, for example 1h30m. Defaults to 12h.
+     * @type {string}
+     * @memberof InfraAPITokenCreateRequest
+     */
+    ttl?: string;
 }
 
-export function InfraAPIKeyCreateRequestFromJSON(json: any): InfraAPIKeyCreateRequest {
-    return InfraAPIKeyCreateRequestFromJSONTyped(json, false);
+export function InfraAPITokenCreateRequestFromJSON(json: any): InfraAPITokenCreateRequest {
+    return InfraAPITokenCreateRequestFromJSONTyped(json, false);
 }
 
-export function InfraAPIKeyCreateRequestFromJSONTyped(json: any, ignoreDiscriminator: boolean): InfraAPIKeyCreateRequest {
+export function InfraAPITokenCreateRequestFromJSONTyped(json: any, ignoreDiscriminator: boolean): InfraAPITokenCreateRequest {
     if ((json === undefined) || (json === null)) {
         return json;
     }
@@ -45,10 +51,11 @@ export function InfraAPIKeyCreateRequestFromJSONTyped(json: any, ignoreDiscrimin
         
         'name': json['name'],
         'permissions': json['permissions'],
+        'ttl': !exists(json, 'ttl') ? undefined : json['ttl'],
     };
 }
 
-export function InfraAPIKeyCreateRequestToJSON(value?: InfraAPIKeyCreateRequest | null): any {
+export function InfraAPITokenCreateRequestToJSON(value?: InfraAPITokenCreateRequest | null): any {
     if (value === undefined) {
         return undefined;
     }
@@ -59,6 +66,7 @@ export function InfraAPIKeyCreateRequestToJSON(value?: InfraAPIKeyCreateRequest 
         
         'name': value.name,
         'permissions': value.permissions,
+        'ttl': value.ttl,
     };
 }
 

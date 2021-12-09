@@ -15,40 +15,40 @@
 
 import * as runtime from '../runtime';
 import {
-    InfraAPIKey,
-    InfraAPIKeyFromJSON,
-    InfraAPIKeyToJSON,
-    InfraAPIKeyCreateRequest,
-    InfraAPIKeyCreateRequestFromJSON,
-    InfraAPIKeyCreateRequestToJSON,
-    InfraAPIKeyCreateResponse,
-    InfraAPIKeyCreateResponseFromJSON,
-    InfraAPIKeyCreateResponseToJSON,
+    InfraAPIToken,
+    InfraAPITokenFromJSON,
+    InfraAPITokenToJSON,
+    InfraAPITokenCreateRequest,
+    InfraAPITokenCreateRequestFromJSON,
+    InfraAPITokenCreateRequestToJSON,
+    InfraAPITokenCreateResponse,
+    InfraAPITokenCreateResponseFromJSON,
+    InfraAPITokenCreateResponseToJSON,
 } from '../models';
 
-export interface CreateAPIKeyRequest {
-    body: InfraAPIKeyCreateRequest;
+export interface CreateAPITokenRequest {
+    body: InfraAPITokenCreateRequest;
 }
 
-export interface DeleteAPIKeyRequest {
+export interface DeleteAPITokenRequest {
     id: string;
 }
 
-export interface ListAPIKeysRequest {
+export interface ListAPITokensRequest {
     name?: string;
 }
 
 /**
  * 
  */
-export class ApiKeysApi extends runtime.BaseAPI {
+export class ApiTokensApi extends runtime.BaseAPI {
 
     /**
-     * Create an API key
+     * Create an API token
      */
-    async createAPIKeyRaw(requestParameters: CreateAPIKeyRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<InfraAPIKeyCreateResponse>> {
+    async createAPITokenRaw(requestParameters: CreateAPITokenRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<InfraAPITokenCreateResponse>> {
         if (requestParameters.body === null || requestParameters.body === undefined) {
-            throw new runtime.RequiredError('body','Required parameter requestParameters.body was null or undefined when calling createAPIKey.');
+            throw new runtime.RequiredError('body','Required parameter requestParameters.body was null or undefined when calling createAPIToken.');
         }
 
         const queryParameters: any = {};
@@ -66,30 +66,30 @@ export class ApiKeysApi extends runtime.BaseAPI {
             }
         }
         const response = await this.request({
-            path: `/api-keys`,
+            path: `/api-tokens`,
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: InfraAPIKeyCreateRequestToJSON(requestParameters.body),
+            body: InfraAPITokenCreateRequestToJSON(requestParameters.body),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => InfraAPIKeyCreateResponseFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => InfraAPITokenCreateResponseFromJSON(jsonValue));
     }
 
     /**
-     * Create an API key
+     * Create an API token
      */
-    async createAPIKey(requestParameters: CreateAPIKeyRequest, initOverrides?: RequestInit): Promise<InfraAPIKeyCreateResponse> {
-        const response = await this.createAPIKeyRaw(requestParameters, initOverrides);
+    async createAPIToken(requestParameters: CreateAPITokenRequest, initOverrides?: RequestInit): Promise<InfraAPITokenCreateResponse> {
+        const response = await this.createAPITokenRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
-     * Delete an API key
+     * Delete an API token
      */
-    async deleteAPIKeyRaw(requestParameters: DeleteAPIKeyRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<void>> {
+    async deleteAPITokenRaw(requestParameters: DeleteAPITokenRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<void>> {
         if (requestParameters.id === null || requestParameters.id === undefined) {
-            throw new runtime.RequiredError('id','Required parameter requestParameters.id was null or undefined when calling deleteAPIKey.');
+            throw new runtime.RequiredError('id','Required parameter requestParameters.id was null or undefined when calling deleteAPIToken.');
         }
 
         const queryParameters: any = {};
@@ -105,7 +105,7 @@ export class ApiKeysApi extends runtime.BaseAPI {
             }
         }
         const response = await this.request({
-            path: `/api-keys/{id}`.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters.id))),
+            path: `/api-tokens/{id}`.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters.id))),
             method: 'DELETE',
             headers: headerParameters,
             query: queryParameters,
@@ -115,16 +115,16 @@ export class ApiKeysApi extends runtime.BaseAPI {
     }
 
     /**
-     * Delete an API key
+     * Delete an API token
      */
-    async deleteAPIKey(requestParameters: DeleteAPIKeyRequest, initOverrides?: RequestInit): Promise<void> {
-        await this.deleteAPIKeyRaw(requestParameters, initOverrides);
+    async deleteAPIToken(requestParameters: DeleteAPITokenRequest, initOverrides?: RequestInit): Promise<void> {
+        await this.deleteAPITokenRaw(requestParameters, initOverrides);
     }
 
     /**
-     * List API keys
+     * List API tokens
      */
-    async listAPIKeysRaw(requestParameters: ListAPIKeysRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<InfraAPIKey>>> {
+    async listAPITokensRaw(requestParameters: ListAPITokensRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<InfraAPIToken>>> {
         const queryParameters: any = {};
 
         if (requestParameters.name !== undefined) {
@@ -142,20 +142,20 @@ export class ApiKeysApi extends runtime.BaseAPI {
             }
         }
         const response = await this.request({
-            path: `/api-keys`,
+            path: `/api-tokens`,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(InfraAPIKeyFromJSON));
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(InfraAPITokenFromJSON));
     }
 
     /**
-     * List API keys
+     * List API tokens
      */
-    async listAPIKeys(requestParameters: ListAPIKeysRequest, initOverrides?: RequestInit): Promise<Array<InfraAPIKey>> {
-        const response = await this.listAPIKeysRaw(requestParameters, initOverrides);
+    async listAPITokens(requestParameters: ListAPITokensRequest, initOverrides?: RequestInit): Promise<Array<InfraAPIToken>> {
+        const response = await this.listAPITokensRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

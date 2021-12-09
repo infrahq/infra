@@ -41,46 +41,36 @@ func RequireAuthentication(c *gin.Context) error {
 
 	bearer := parts[1]
 
-	switch len(bearer) {
-	case models.TokenLength:
-		token, err := data.GetToken(db, &models.Token{Key: bearer[:models.TokenKeyLength]})
-		if err != nil {
-			return fmt.Errorf("could not get token from database, it may not exist: %w", err)
-		}
-
-		if err := data.CheckTokenSecret(token, bearer); err != nil {
-			return fmt.Errorf("rejected invalid token: %w", err)
-		}
-
-		if err := data.CheckTokenExpired(token); err != nil {
-			return fmt.Errorf("rejected token: %w", err)
-		}
-
-		c.Set("authentication", bearer)
-
-		// token is valid, check where to set permissions from
-		if token.UserID != uuid.Nil {
-			logging.S.Debug("user permissions: %s \n", token.User.Permissions)
-			// this token has a parent user, set by their current permissions
-			c.Set("permissions", token.User.Permissions)
-		} else {
-			c.Set("permissions", token.Permissions)
-		}
-
-		return nil
-	case models.APIKeyLength:
-		apiKey, err := data.GetAPIKey(db, &models.APIKey{Key: bearer})
-		if err != nil {
-			return fmt.Errorf("rejected invalid API key: %w", err)
-		}
-
-		c.Set("authentication", bearer)
-		c.Set("permissions", apiKey.Permissions)
-
-		return nil
+	if len(bearer) != models.TokenLength {
+		return fmt.Errorf("rejected token of invalid length")
 	}
 
-	return fmt.Errorf("rejected token of invalid length")
+	token, err := data.GetToken(db, &models.Token{Key: bearer[:models.TokenKeyLength]})
+	if err != nil {
+		return fmt.Errorf("could not get token from database, it may not exist: %w", err)
+	}
+
+	if err := data.CheckTokenSecret(token, bearer); err != nil {
+		return fmt.Errorf("rejected invalid token: %w", err)
+	}
+
+	if err := data.CheckTokenExpired(token); err != nil {
+		return fmt.Errorf("rejected token: %w", err)
+	}
+
+	c.Set("authentication", bearer)
+
+	// token is valid, check where to set permissions from
+	if token.UserID != uuid.Nil {
+		logging.S.Debug("user permissions: %s \n", token.User.Permissions)
+		// this token has a parent user, set by their current permissions
+		c.Set("permissions", token.User.Permissions)
+	} else if token.APITokenID != uuid.Nil {
+		// this is an API token
+		c.Set("permissions", token.APIToken.Permissions)
+	}
+
+	return nil
 }
 
 // RequireAuthorization checks that the context has the permissions required to perform the action
@@ -105,7 +95,7 @@ func RequireAuthorization(c *gin.Context, require Permission) (*gorm.DB, error) 
 	}
 
 	for _, p := range strings.Split(permissions, " ") {
-		if RequirePermission(p, string(require)) {
+		if GrantsPermission(p, string(require)) {
 			return db, nil
 		}
 	}
@@ -113,7 +103,8 @@ func RequireAuthorization(c *gin.Context, require Permission) (*gorm.DB, error) 
 	return nil, internal.ErrForbidden
 }
 
-func RequirePermission(permission, require string) bool {
+// GrantsPermission checks if a given permission grants a required permission
+func GrantsPermission(permission, require string) bool {
 	if Permission(permission) == PermissionAll || Permission(permission) == PermissionAllAlternate {
 		return true
 	} else if permission == require {
@@ -127,6 +118,25 @@ func RequirePermission(permission, require string) bool {
 		}
 
 		return false
+	}
+
+	return true
+}
+
+// AllRequired checks if a a set of permissions contains all the required permissions
+func AllRequired(permissions, required []string) bool {
+	for _, req := range required {
+		granted := false
+		for _, p := range permissions {
+			granted = GrantsPermission(p, req)
+			if granted {
+				break
+			}
+		}
+
+		if !granted {
+			return false
+		}
 	}
 
 	return true

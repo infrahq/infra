@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
@@ -38,7 +39,6 @@ func issueToken(t *testing.T, db *gorm.DB, email, permissions string, sessionDur
 	token := &models.Token{
 		User:            *user,
 		SessionDuration: sessionDuration,
-		Permissions:     permissions,
 	}
 	token, err = data.CreateToken(db, token)
 	require.NoError(t, err)
@@ -64,7 +64,7 @@ func TestRequireAuthentication(t *testing.T) {
 		},
 		"TokenSinglePermissionUpdatedToMatchParentUser": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				authentication := issueToken(t, db, "existing@infrahq.com", string(PermissionAPIKeyIssue), time.Minute*1)
+				authentication := issueToken(t, db, "existing@infrahq.com", string(PermissionAPITokenCreate), time.Minute*1)
 				// user permissions updated after token is issued
 				_, err := data.CreateOrUpdateUser(db, &models.User{Email: "existing@infrahq.com", Permissions: string(PermissionCredentialCreate)}, &models.User{Email: "existing@infrahq.com"})
 				require.NoError(t, err)
@@ -81,7 +81,7 @@ func TestRequireAuthentication(t *testing.T) {
 		},
 		"TokenMultiplePermissionsUpdatedToMatchParentUser": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				permissions := []string{string(PermissionAPIKeyIssue), string(PermissionCredentialCreate)}
+				permissions := []string{string(PermissionAPITokenCreate), string(PermissionCredentialCreate)}
 				authentication := issueToken(t, db, "existing@infrahq.com", strings.Join(permissions, " "), time.Minute*1)
 				// user permissions updated after token is issued
 				_, err := data.CreateOrUpdateUser(db, &models.User{Email: "existing@infrahq.com", Permissions: string(PermissionCredentialCreate)}, &models.User{Email: "existing@infrahq.com"})
@@ -259,7 +259,7 @@ func TestRequireAuthorization(t *testing.T) {
 				require.NoError(t, err)
 			},
 		},
-		"APIKeyAuthorizedNotFirst": {
+		"APITokenAuthorizedNotFirst": {
 			"permission": PermissionUserRead,
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				permissions := []string{string(PermissionGroupRead), string(PermissionProviderRead), string(PermissionUserRead)}
@@ -269,7 +269,7 @@ func TestRequireAuthorization(t *testing.T) {
 				require.NoError(t, err)
 			},
 		},
-		"APIKeyAuthorizedNotLast": {
+		"APITokenAuthorizedNotLast": {
 			"permission": PermissionUserRead,
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				permissions := []string{string(PermissionGroupRead), string(PermissionUserRead), string(PermissionProviderRead)}
@@ -279,7 +279,7 @@ func TestRequireAuthorization(t *testing.T) {
 				require.NoError(t, err)
 			},
 		},
-		"APIKeyAuthorizedNoMatch": {
+		"APITokenAuthorizedNoMatch": {
 			"permission": PermissionUserRead,
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				permissions := []string{string(PermissionUserCreate), string(PermissionGroupRead)}
@@ -318,6 +318,63 @@ func TestRequireAuthorization(t *testing.T) {
 			require.True(t, ok)
 
 			verifyFunc(t, err)
+		})
+	}
+}
+
+func TestAllRequired(t *testing.T) {
+	cases := map[string]map[string]interface{}{
+		"ExactMatch": {
+			"permissions": []string{string(PermissionUserRead)},
+			"required":    []string{string(PermissionUserRead)},
+			"expected":    true,
+		},
+		"SubsetMatch": {
+			"permissions": []string{string(PermissionUserCreate), string(PermissionUserRead)},
+			"required":    []string{string(PermissionUserRead)},
+			"expected":    true,
+		},
+		"NoMatch": {
+			"permissions": []string{string(PermissionUserCreate), string(PermissionUserRead)},
+			"required":    []string{string(PermissionUserDelete)},
+			"expected":    false,
+		},
+		"NoPermissions": {
+			"permissions": []string{},
+			"required":    []string{string(PermissionUserDelete)},
+			"expected":    false,
+		},
+		"AllPermissions": {
+			"permissions": []string{string(PermissionAll)},
+			"required":    []string{string(PermissionUserDelete)},
+			"expected":    true,
+		},
+		"AllPermissionsAlternate": {
+			"permissions": []string{string(PermissionAllAlternate)},
+			"required":    []string{string(PermissionUserDelete)},
+			"expected":    true,
+		},
+		"AllPermissionsForResource": {
+			"permissions": []string{string(PermissionUser)},
+			"required":    []string{string(PermissionUserDelete)},
+			"expected":    true,
+		},
+	}
+
+	for k, v := range cases {
+		t.Run(k, func(t *testing.T) {
+			permissions, ok := v["permissions"].([]string)
+			require.True(t, ok)
+
+			required, ok := v["required"].([]string)
+			require.True(t, ok)
+
+			result := AllRequired(permissions, required)
+
+			expected, ok := v["expected"].(bool)
+			require.True(t, ok)
+
+			assert.Equal(t, expected, result)
 		})
 	}
 }

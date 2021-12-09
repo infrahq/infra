@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-export * from './ApiKeysApi';
+export * from './ApiTokensApi';
 export * from './AuthApi';
 export * from './DestinationsApi';
 export * from './GrantsApi';

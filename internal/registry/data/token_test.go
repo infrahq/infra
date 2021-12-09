@@ -15,7 +15,9 @@ import (
 	"github.com/infrahq/infra/internal/registry/models"
 )
 
-func createToken(t *testing.T, db *gorm.DB, sessionDuration time.Duration) *models.Token {
+func createUserToken(t *testing.T, db *gorm.DB, sessionDuration time.Duration) *models.Token {
+	createUsers(t, db, models.User{Email: "tmp@infrahq.com"})
+
 	user, err := GetUser(db, &models.User{Email: "tmp@infrahq.com"})
 	if errors.Is(err, internal.ErrNotFound) {
 		createUsers(t, db, models.User{Email: "tmp@infrahq.com"})
@@ -35,52 +37,9 @@ func createToken(t *testing.T, db *gorm.DB, sessionDuration time.Duration) *mode
 	return token
 }
 
-func TestCreateToken(t *testing.T) {
-	db := setup(t)
-
-	token := createToken(t, db, time.Minute*1)
-	require.NotEmpty(t, token.Checksum)
-	require.NotEmpty(t, token.Secret)
-	require.NotEmpty(t, token.Key)
-	require.WithinDuration(t, token.Expires, time.Now(), time.Minute*1)
-}
-
-func TestGetToken(t *testing.T) {
-	db := setup(t)
-	token := createToken(t, db, time.Minute*1)
-
-	fromDB, err := GetToken(db, &models.Token{Key: token.Key})
-	require.NoError(t, err)
-	require.NotEmpty(t, token.Checksum)
-	require.Empty(t, fromDB.Secret)
-	require.NotEmpty(t, token.Key)
-}
-
-func TestGetUserTokenSelector(t *testing.T) {
-	db := setup(t)
-	token := createToken(t, db, time.Minute*1)
-
-	user, err := GetUser(db, UserTokenSelector(db, token.SessionToken()))
-	require.NoError(t, err)
-	require.Equal(t, "tmp@infrahq.com", user.Email)
-}
-
-func TestCheckTokenExpired(t *testing.T) {
-	db := setup(t)
-	token := createToken(t, db, time.Minute*1)
-
-	err := CheckTokenExpired(token)
-	require.NoError(t, err)
-
-	token = createToken(t, db, time.Minute*-1)
-
-	err = CheckTokenExpired(token)
-	require.EqualError(t, err, "token expired")
-}
-
 func TestCheckTokenSecret(t *testing.T) {
 	db := setup(t)
-	token := createToken(t, db, time.Minute*1)
+	token := createUserToken(t, db, time.Minute*1)
 
 	err := CheckTokenSecret(token, token.SessionToken())
 	require.NoError(t, err)
@@ -92,9 +51,49 @@ func TestCheckTokenSecret(t *testing.T) {
 	require.EqualError(t, err, "token invalid secret")
 }
 
-func TestDeleteToken(t *testing.T) {
+func TestCreateUserToken(t *testing.T) {
 	db := setup(t)
-	token := createToken(t, db, time.Minute*1)
+
+	token := createUserToken(t, db, time.Minute*1)
+	require.NotEmpty(t, token.Checksum)
+	require.NotEmpty(t, token.Secret)
+	require.NotEmpty(t, token.Key)
+	require.Len(t, token.SessionToken(), models.TokenLength)
+	require.WithinDuration(t, token.Expires, time.Now(), time.Minute*1)
+}
+
+func TestGetUserToken(t *testing.T) {
+	db := setup(t)
+	token := createUserToken(t, db, time.Minute*1)
+
+	fromDB, err := GetToken(db, &models.Token{Key: token.Key})
+	require.NoError(t, err)
+	require.NotEmpty(t, token.Checksum)
+	require.Empty(t, fromDB.Secret)
+	require.NotEmpty(t, token.Key)
+}
+
+func TestGetUserTokenSelector(t *testing.T) {
+	db := setup(t)
+	token := createUserToken(t, db, time.Minute*1)
+
+	user, err := GetUser(db, UserTokenSelector(db, token.SessionToken()))
+	require.NoError(t, err)
+	require.Equal(t, "tmp@infrahq.com", user.Email)
+}
+
+func TestCheckUserTokenExpired(t *testing.T) {
+	db := setup(t)
+
+	token := createUserToken(t, db, time.Minute*-1)
+
+	err := CheckTokenExpired(token)
+	require.EqualError(t, err, "token expired")
+}
+
+func TestDeleteUserToken(t *testing.T) {
+	db := setup(t)
+	token := createUserToken(t, db, time.Minute*1)
 
 	_, err := GetToken(db, &models.Token{Key: token.Key})
 	require.NoError(t, err)
@@ -109,66 +108,80 @@ func TestDeleteToken(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func createAPIKey(t *testing.T, db *gorm.DB, name string, permissions ...string) *models.APIKey {
-	in := models.APIKey{
+func createAPIToken(t *testing.T, db *gorm.DB, name string, ttl time.Duration, permissions ...string) (*models.APIToken, *models.Token) {
+	in := models.APIToken{
 		Name:        name,
 		Permissions: strings.Join(permissions, " "),
+		TTL:         ttl,
 	}
 
-	apiKey, err := CreateAPIKey(db, &in)
+	apiToken, tkn, err := CreateAPIToken(db, &in, &models.Token{})
 	require.NoError(t, err)
 
-	return apiKey
+	return apiToken, tkn
 }
 
-func TestCreateAPIKey(t *testing.T) {
+func TestCreateAPIToken(t *testing.T) {
 	db := setup(t)
 
-	apiKey := createAPIKey(t, db, "tmp", "infra.*")
-	require.Equal(t, "tmp", apiKey.Name)
-	require.Equal(t, "infra.*", apiKey.Permissions)
-	require.NotEmpty(t, apiKey.Key)
+	apiToken, token := createAPIToken(t, db, "tmp", 1*time.Hour, "infra.*")
+	require.Equal(t, "tmp", apiToken.Name)
+	require.Equal(t, "infra.*", apiToken.Permissions)
+	require.NotEmpty(t, token.Checksum)
+	require.NotEmpty(t, token.Secret)
+	require.NotEmpty(t, token.Key)
+	require.Len(t, token.SessionToken(), models.TokenLength)
+	require.WithinDuration(t, token.Expires, time.Now(), 1*time.Hour)
 }
 
-func TestGetAPIKey(t *testing.T) {
+func TestGetAPIToken(t *testing.T) {
 	db := setup(t)
-	_ = createAPIKey(t, db, "tmp", "infra.*")
+	ttl := 1 * time.Hour
+	_, _ = createAPIToken(t, db, "tmp", ttl, "infra.*")
 
-	apiKey, err := GetAPIKey(db, &models.APIKey{Name: "tmp"})
+	apiToken, err := GetAPIToken(db, &models.APIToken{Name: "tmp"})
 	require.NoError(t, err)
-	require.Equal(t, "tmp", apiKey.Name)
-	require.Equal(t, "infra.*", apiKey.Permissions)
-	require.NotEmpty(t, apiKey.Key)
+	require.Equal(t, "tmp", apiToken.Name)
+	require.Equal(t, "infra.*", apiToken.Permissions)
+	require.Equal(t, ttl.String(), apiToken.TTL.String())
 }
 
-func TestListAPIKey(t *testing.T) {
+func TestListAPIToken(t *testing.T) {
 	db := setup(t)
-	_ = createAPIKey(t, db, "tmp", "infra.*")
-	_ = createAPIKey(t, db, "pmt", "infra.*")
-	_ = createAPIKey(t, db, "mtp", "infra.*")
+	_, _ = createAPIToken(t, db, "tmp", 1*time.Hour, "infra.*")
+	_, _ = createAPIToken(t, db, "pmt", 1*time.Hour, "infra.*")
+	_, _ = createAPIToken(t, db, "mtp", 1*time.Hour, "infra.*")
 
-	apiKeys, err := ListAPIKeys(db, &models.APIKey{})
+	apiTokens, err := ListAPITokens(db, &models.APIToken{})
 	require.NoError(t, err)
-	require.Len(t, apiKeys, 3)
+	require.Len(t, apiTokens, 3)
 
-	apiKeys, err = ListAPIKeys(db, &models.APIKey{Name: "tmp"})
+	apiTokens, err = ListAPITokens(db, &models.APIToken{Name: "tmp"})
 	require.NoError(t, err)
-	require.Len(t, apiKeys, 1)
+	require.Len(t, apiTokens, 1)
 }
 
-func TestDeleteAPIKey(t *testing.T) {
+func TestDeleteAPIToken(t *testing.T) {
 	db := setup(t)
-	_ = createAPIKey(t, db, "tmp", "infra.*")
+	_, _ = createAPIToken(t, db, "tmp", 1*time.Hour, "infra.*")
 
-	_, err := GetAPIKey(db, &models.APIKey{Name: "tmp"})
+	_, err := GetAPIToken(db, &models.APIToken{Name: "tmp"})
 	require.NoError(t, err)
 
-	err = DeleteAPIKey(db, &models.APIKey{Name: "tmp"})
+	err = DeleteAPIToken(db, &models.APIToken{Name: "tmp"})
 	require.NoError(t, err)
 
-	_, err = GetAPIKey(db, &models.APIKey{Name: "tmp"})
+	_, err = GetAPIToken(db, &models.APIToken{Name: "tmp"})
 	require.EqualError(t, err, "record not found")
 
-	err = DeleteAPIKey(db, &models.APIKey{Name: "tmp"})
+	err = DeleteAPIToken(db, &models.APIToken{Name: "tmp"})
 	require.NoError(t, err)
+}
+
+func TestCheckAPITokenExpired(t *testing.T) {
+	db := setup(t)
+	_, token := createAPIToken(t, db, "tmp", -1*time.Hour, "infra.*")
+
+	err := CheckTokenExpired(token)
+	require.EqualError(t, err, "token expired")
 }

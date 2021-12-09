@@ -1,10 +1,10 @@
 delete:
   tags:
-    - api-keys
+    - api-tokens
   security:
     - bearerAuth: []
-  summary: Delete an API key
-  operationId: deleteAPIKey
+  summary: Delete an API token
+  operationId: deleteAPIToken
   parameters:
     - in: path
       name: id
@@ -12,7 +12,7 @@ delete:
       schema:
         type: string
         format: uuid
-      description: API key ID
+      description: API token ID
   responses:
     '204':
       $ref: ../components/responses/NoContent.yaml

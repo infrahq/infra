@@ -21,8 +21,8 @@ tags:
     description: Manage infrastructure destinations
   - name: tokens
     description: Manage infrastructure destination tokens
-  - name: api-keys
-    description: Manage administrator API keys
+  - name: api-tokens
+    description: Manage Infra API tokens
   - name: auth
     description: Manage user authentication
   - name: version
@@ -49,10 +49,10 @@ paths:
     $ref: openapi/paths/destinations.yaml
   /destinations/{id}:
     $ref: openapi/paths/destinations@{id}.yaml
-  /api-keys:
-    $ref: openapi/paths/api-keys.yaml
-  /api-keys/{id}:
-    $ref: openapi/paths/api-keys@{id}.yaml
+  /api-tokens:
+    $ref: openapi/paths/api-tokens.yaml
+  /api-tokens/{id}:
+    $ref: openapi/paths/api-tokens@{id}.yaml
   /tokens:
     $ref: openapi/paths/tokens.yaml
   /grants:

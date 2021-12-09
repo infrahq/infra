@@ -2,12 +2,14 @@ package access
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
@@ -18,10 +20,11 @@ const (
 	PermissionTokenRead   Permission = "infra.token.read"
 	PermissionTokenRevoke Permission = "infra.token.revoke" // nolint:gosec
 
-	PermissionAPIKey       Permission = "infra.apiKey.*"      // nolint:gosec
-	PermissionAPIKeyIssue  Permission = "infra.apiKey.issue"  // nolint:gosec
-	PermissionAPIKeyRead   Permission = "infra.apiKey.read"   // nolint:gosec
-	PermissionAPIKeyRevoke Permission = "infra.apiKey.revoke" // nolint:gosec
+	PermissionAPIToken Permission = "infra.apiToken.*" // nolint:gosec
+
+	PermissionAPITokenCreate Permission = "infra.apiToken.create" // nolint:gosec
+	PermissionAPITokenRead   Permission = "infra.apiToken.read"   // nolint:gosec
+	PermissionAPITokenDelete Permission = "infra.apiToken.delete" // nolint:gosec
 
 	PermissionCredentialCreate Permission = "infra.credential.create" //nolint:gosec
 )
@@ -85,41 +88,52 @@ func RevokeToken(c *gin.Context) (*models.Token, error) {
 	return token, nil
 }
 
-func IssueAPIKey(c *gin.Context, apiKey *models.APIKey) (*models.APIKey, error) {
-	db, err := RequireAuthorization(c, PermissionAPIKeyIssue)
+func IssueAPIToken(c *gin.Context, apiToken *models.APIToken) (*models.APIToken, *models.Token, error) {
+	db, err := RequireAuthorization(c, PermissionAPITokenCreate)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return data.CreateAPIKey(db, apiKey)
+	// do not let a caller create a token with more permissions than they have
+	permissions, ok := c.MustGet("permissions").(string)
+	if !ok {
+		// there should have been permissions set by this point
+		return nil, nil, internal.ErrForbidden
+	}
+
+	if !AllRequired(strings.Split(permissions, " "), strings.Split(apiToken.Permissions, " ")) {
+		return nil, nil, fmt.Errorf("cannot create an API token with permission not granted to the token issuer")
+	}
+
+	return data.CreateAPIToken(db, apiToken, &models.Token{})
 }
 
-func ListAPIKeys(c *gin.Context, name string) ([]models.APIKey, error) {
-	db, err := RequireAuthorization(c, PermissionAPIKeyRead)
+func ListAPITokens(c *gin.Context, name string) ([]models.APITokenTuple, error) {
+	db, err := RequireAuthorization(c, PermissionAPITokenRead)
 	if err != nil {
 		return nil, err
 	}
 
-	apiKeys, err := data.ListAPIKeys(db, &models.APIKey{Name: name})
+	apiTokens, err := data.ListAPITokens(db, &models.APIToken{Name: name})
 	if err != nil {
 		return nil, err
 	}
 
-	return apiKeys, nil
+	return apiTokens, nil
 }
 
-func RevokeAPIKey(c *gin.Context, id string) error {
-	db, err := RequireAuthorization(c, PermissionAPIKeyRevoke)
+func RevokeAPIToken(c *gin.Context, id string) error {
+	db, err := RequireAuthorization(c, PermissionAPITokenDelete)
 	if err != nil {
 		return err
 	}
 
-	token, err := models.NewAPIKey(id)
+	token, err := models.NewAPIToken(id)
 	if err != nil {
 		return err
 	}
 
-	return data.DeleteAPIKey(db, token)
+	return data.DeleteAPIToken(db, token)
 }
 
 var signatureAlgorithmFromKeyAlgorithm = map[string]string{

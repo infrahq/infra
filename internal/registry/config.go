@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"gopkg.in/yaml.v2"
@@ -17,6 +18,8 @@ import (
 	"github.com/infrahq/infra/internal/registry/models"
 	"github.com/infrahq/infra/secrets"
 )
+
+const oneHundredYears = time.Hour * 876000
 
 type ConfigOkta struct {
 	APIToken string `yaml:"apiToken" validate:"required"`
@@ -507,7 +510,7 @@ func (r *Registry) importConfig(bs []byte) error {
 	})
 }
 
-func (r *Registry) importAPIKeys() error {
+func (r *Registry) importAPITokens() error {
 	type key struct {
 		Secret      string
 		Permissions []string
@@ -515,13 +518,13 @@ func (r *Registry) importAPIKeys() error {
 
 	keys := map[string]key{
 		"root": {
-			Secret: r.options.RootAPIKey,
+			Secret: r.options.RootAPIToken,
 			Permissions: []string{
 				string(access.PermissionAllAlternate),
 			},
 		},
 		"engine": {
-			Secret: r.options.EngineAPIKey,
+			Secret: r.options.EngineAPIToken,
 			Permissions: []string{
 				string(access.PermissionGrantRead),
 				string(access.PermissionDestinationCreate),
@@ -530,19 +533,27 @@ func (r *Registry) importAPIKeys() error {
 	}
 
 	for k, v := range keys {
-		secret, err := r.GetSecret(v.Secret)
+		tokenSecret, err := r.GetSecret(v.Secret)
 		if err != nil {
 			return err
 		}
 
-		apiKey := &models.APIKey{
-			Name:        k,
-			Permissions: strings.Join(v.Permissions, " "),
-			Key:         secret,
+		if len(tokenSecret) != models.TokenLength {
+			return fmt.Errorf("secret for %q token must be %d characters in length, but is %d", k, models.TokenLength, len(tokenSecret))
 		}
 
-		if _, err = data.CreateAPIKey(r.db, apiKey); err != nil {
-			return err
+		key, sec := models.KeyAndSecret(tokenSecret)
+
+		tkn := &models.Token{Key: key, Secret: sec}
+
+		apiToken := &models.APIToken{
+			Name:        k,
+			Permissions: strings.Join(v.Permissions, " "),
+			TTL:         oneHundredYears,
+		}
+
+		if _, _, err = data.CreateAPIToken(r.db, apiToken, tkn); err != nil {
+			return fmt.Errorf("import API tokens: %w", err)
 		}
 	}
 
