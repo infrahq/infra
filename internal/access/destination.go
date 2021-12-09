@@ -48,10 +48,10 @@ func ListDestinations(c *gin.Context, kind, nodeID, name string, labels []string
 		data.LabelSelector(db, "destination_id", labels...),
 		db.Where(
 			&models.Destination{
-			Kind: models.DestinationKind(kind),
-			NodeID: nodeID,
-			Name: name,
-		}),
+				Kind:   models.DestinationKind(kind),
+				NodeID: nodeID,
+				Name:   name,
+			}),
 	))
 }
 

@@ -1345,8 +1345,8 @@ func TestDestination(t *testing.T) {
 			Request: func(t *testing.T, c *gin.Context) *http.Request {
 				request := api.DestinationRequest{
 					NodeID: "AAA",
-					Name: "aaa",
-					Kind: api.DESTINATIONKIND_KUBERNETES,
+					Name:   "aaa",
+					Kind:   api.DESTINATIONKIND_KUBERNETES,
 					Labels: []string{},
 				}
 
@@ -1376,8 +1376,8 @@ func TestDestination(t *testing.T) {
 			Request: func(t *testing.T, c *gin.Context) *http.Request {
 				request := api.DestinationRequest{
 					NodeID: "XYZ",
-					Name: "XYZ",
-					Kind: api.DESTINATIONKIND_KUBERNETES,
+					Name:   "XYZ",
+					Kind:   api.DESTINATIONKIND_KUBERNETES,
 					Labels: []string{},
 				}
 
