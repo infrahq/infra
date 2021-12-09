@@ -29,13 +29,6 @@ func init() {
 	gin.SetMode(gin.TestMode)
 }
 
-type testCase struct {
-	Setup   func(*testing.T, *gorm.DB, *gin.Context)
-	Request func(*testing.T, *gin.Context) *http.Request
-	Handle  func(*testing.T, *gin.Context)
-	Verify  func(*testing.T, *http.Request, *httptest.ResponseRecorder)
-}
-
 type mockSecretReader struct{}
 
 func NewMockSecretReader() secrets.SecretStorage {
