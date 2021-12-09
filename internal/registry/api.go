@@ -250,13 +250,18 @@ func (a *API) UpdateProvider(c *gin.Context) {
 		return
 	}
 
-	provider := &models.Provider{}
+	provider, err := models.NewProvider(r.ID)
+	if err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
 	if err := provider.FromAPI(&body); err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	provider, err := access.UpdateProvider(c, r.ID, provider)
+	provider, err = access.UpdateProvider(c, r.ID, provider)
 	if err != nil {
 		sendAPIError(c, http.StatusInternalServerError, err)
 		return
