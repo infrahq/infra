@@ -91,20 +91,20 @@ func TestCheckUserTokenExpired(t *testing.T) {
 	require.EqualError(t, err, "token expired")
 }
 
-func TestDeleteUserToken(t *testing.T) {
+func TestRevokeUserToken(t *testing.T) {
 	db := setup(t)
 	token := createUserToken(t, db, time.Minute*1)
 
 	_, err := GetToken(db, &models.Token{Key: token.Key})
 	require.NoError(t, err)
 
-	err = DeleteToken(db, &models.Token{Key: token.Key})
+	err = RemoveToken(db, &models.Token{Key: token.Key})
 	require.NoError(t, err)
 
 	_, err = GetToken(db, &models.Token{Key: token.Key})
 	require.EqualError(t, err, "record not found")
 
-	err = DeleteToken(db, &models.Token{Key: token.Key})
+	err = RemoveToken(db, &models.Token{Key: token.Key})
 	require.NoError(t, err)
 }
 
@@ -163,7 +163,7 @@ func TestListAPIToken(t *testing.T) {
 
 func TestDeleteAPIToken(t *testing.T) {
 	db := setup(t)
-	_, _ = createAPIToken(t, db, "tmp", 1*time.Hour, "infra.*")
+	_, tkn := createAPIToken(t, db, "tmp", 1*time.Hour, "infra.*")
 
 	_, err := GetAPIToken(db, &models.APIToken{Name: "tmp"})
 	require.NoError(t, err)
@@ -174,8 +174,11 @@ func TestDeleteAPIToken(t *testing.T) {
 	_, err = GetAPIToken(db, &models.APIToken{Name: "tmp"})
 	require.EqualError(t, err, "record not found")
 
+	_, err = GetToken(db, tkn)
+	require.EqualError(t, err, "record not found")
+
 	err = DeleteAPIToken(db, &models.APIToken{Name: "tmp"})
-	require.NoError(t, err)
+	require.Error(t, err, "record not found")
 }
 
 func TestCheckAPITokenExpired(t *testing.T) {

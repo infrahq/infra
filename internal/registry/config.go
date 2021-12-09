@@ -14,6 +14,7 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
 	"github.com/infrahq/infra/secrets"
@@ -554,7 +555,15 @@ func (r *Registry) importAPITokens() error {
 			TTL:         oneHundredYears,
 		}
 
-		if _, _, err = data.CreateAPIToken(r.db, apiToken, tkn); err != nil {
+		if err := data.DeleteAPIToken(r.db, &models.APIToken{Name: apiToken.Name}); err != nil {
+			if !errors.Is(err, internal.ErrNotFound) {
+				return fmt.Errorf("clear api tokens: %w", err)
+			}
+
+			logging.S.Debugf("not clearing old %s API token, it didnt exist", apiToken.Name)
+		}
+
+		if _, _, err := data.CreateAPIToken(r.db, apiToken, tkn); err != nil {
 			return fmt.Errorf("import API tokens: %w", err)
 		}
 	}

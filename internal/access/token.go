@@ -81,7 +81,7 @@ func RevokeToken(c *gin.Context) (*models.Token, error) {
 		return nil, err
 	}
 
-	if err := data.DeleteToken(db, &models.Token{Key: key}); err != nil {
+	if err := data.RemoveToken(db, &models.Token{Key: key}); err != nil {
 		return nil, err
 	}
 

@@ -59,7 +59,7 @@ func CheckTokenSecret(t *models.Token, authorization string) error {
 	return nil
 }
 
-func DeleteToken(db *gorm.DB, condition interface{}) error {
+func RemoveToken(db *gorm.DB, condition interface{}) error {
 	toDelete, err := GetToken(db, condition)
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
@@ -69,6 +69,21 @@ func DeleteToken(db *gorm.DB, condition interface{}) error {
 
 	if toDelete != nil {
 		return remove(db, &models.Token{}, toDelete.ID)
+	}
+
+	return nil
+}
+
+func DeleteToken(db *gorm.DB, condition interface{}) error {
+	toDelete, err := GetToken(db, condition)
+	if err != nil {
+		if !errors.Is(err, internal.ErrNotFound) {
+			return err
+		}
+	}
+
+	if toDelete != nil {
+		return delete(db, &models.Token{}, toDelete.ID)
 	}
 
 	return nil
@@ -141,15 +156,24 @@ func DeleteAPIToken(db *gorm.DB, condition interface{}) error {
 	toDelete, err := GetAPIToken(db, condition)
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
-			return err
+			return fmt.Errorf("delete api token: %w", err)
 		}
+
+		return err
 	}
 
-	if toDelete != nil {
-		return remove(db, &models.APIToken{}, toDelete.ID)
+	token, err := GetToken(db, &models.Token{APITokenID: toDelete.ID})
+	if err == nil {
+		if err := DeleteToken(db, token); err != nil {
+			return fmt.Errorf("delete token for api token: %w", err)
+		}
+	} else if !errors.Is(err, internal.ErrNotFound) {
+		return fmt.Errorf("get token for api: %w", err)
 	}
 
-	return nil
+	// proceed with deletion of API client even if there is no token for some reason
+
+	return delete(db, &models.APIToken{}, toDelete.ID)
 }
 
 func UserTokenSelector(db *gorm.DB, authorization string) *gorm.DB {
