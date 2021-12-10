@@ -7,15 +7,26 @@ get:
   operationId: listDestinations
   parameters:
     - in: query
+      name: kind
+      schema:
+        $ref: ../components/schemas/DestinationKind.yaml
+      description: Filter destinations by kind
+    - in: query
+      name: nodeID
+      schema:
+        type: string
+      description: Filter destinations by node ID
+    - in: query
       name: name
       schema:
         type: string
       description: Filter destinations by name
     - in: query
-      name: kind
+      name: labels
       schema:
-        $ref: ../components/schemas/DestinationKind.yaml
-      description: Filter destinations by kind
+        type: array
+        items:
+          type: string
   responses:
     '200':
       description: List destinations response
@@ -44,7 +55,7 @@ post:
     content:
       application/json:
         schema:
-          $ref: ../components/schemas/DestinationCreateRequest.yaml
+          $ref: ../components/schemas/DestinationRequest.yaml
   responses:
     '201':
       description: Create destination response

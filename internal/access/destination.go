@@ -38,11 +38,37 @@ func GetDestination(c *gin.Context, id string) (*models.Destination, error) {
 	return data.GetDestination(db, destination)
 }
 
-func ListDestinations(c *gin.Context, name, kind string) ([]models.Destination, error) {
+func ListDestinations(c *gin.Context, kind, nodeID, name string, labels []string) ([]models.Destination, error) {
 	db, err := RequireAuthorization(c, PermissionDestinationRead)
 	if err != nil {
 		return nil, err
 	}
 
-	return data.ListDestinations(db, &models.Destination{Name: name, Kind: models.DestinationKind(kind)})
+	return data.ListDestinations(db, db.Where(
+		data.LabelSelector(db, "destination_id", labels...),
+		db.Where(
+			&models.Destination{
+				Kind:   models.DestinationKind(kind),
+				NodeID: nodeID,
+				Name:   name,
+			}),
+	))
+}
+
+func UpdateDestination(c *gin.Context, id string, destination *models.Destination) (*models.Destination, error) {
+	db, err := RequireAuthorization(c, PermissionDestinationUpdate)
+	if err != nil {
+		return nil, err
+	}
+
+	return data.UpdateDestination(db, destination, data.ByID(id))
+}
+
+func DeleteDestination(c *gin.Context, id string) error {
+	db, err := RequireAuthorization(c, PermissionDestinationDelete)
+	if err != nil {
+		return err
+	}
+
+	return data.DeleteDestinations(db, data.ByID(id))
 }

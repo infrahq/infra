@@ -60,31 +60,30 @@ func (d *Destination) ToAPI() api.Destination {
 }
 
 func (d *Destination) FromAPI(from interface{}) error {
-	if createRequest, ok := from.(*api.DestinationCreateRequest); ok {
-		d.Name = createRequest.Name
-		d.NodeID = createRequest.NodeID
-		d.Kind = DestinationKind(createRequest.Kind)
-		d.Endpoint = createRequest.Kubernetes.Endpoint
+	if request, ok := from.(*api.DestinationRequest); ok {
+		d.Name = request.Name
+		d.NodeID = request.NodeID
+		d.Kind = DestinationKind(request.Kind)
 
-		switch d.Kind {
-		case DestinationKindKubernetes:
+		if kubernetes, ok := request.GetKubernetesOK(); ok {
+			d.Endpoint = kubernetes.Endpoint
 			d.Kubernetes = DestinationKubernetes{
-				CA: createRequest.Kubernetes.CA,
+				CA: kubernetes.CA,
 			}
 		}
 
 		automaticLabels := []string{
-			string(createRequest.Kind),
+			string(request.Kind),
 		}
 
-		for _, l := range append(createRequest.Labels, automaticLabels...) {
+		for _, l := range append(request.Labels, automaticLabels...) {
 			d.Labels = append(d.Labels, Label{Value: l})
 		}
 
 		return nil
 	}
 
-	return fmt.Errorf("unknown API model")
+	return fmt.Errorf("unknown destination model")
 }
 
 func NewDestination(id string) (*Destination, error) {

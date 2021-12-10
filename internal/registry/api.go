@@ -58,6 +58,8 @@ func NewAPIMux(reg *Registry, router *gin.RouterGroup) {
 		authorized.GET("/destinations", a.ListDestinations)
 		authorized.GET("/destinations/:id", a.GetDestination)
 		authorized.POST("/destinations", a.CreateDestination)
+		authorized.PUT("/destinations/:id", a.UpdateDestination)
+		authorized.DELETE("/destinations/:id", a.DeleteDestination)
 
 		authorized.GET("/api-tokens", a.ListAPITokens)
 		authorized.POST("/api-tokens", a.CreateAPIToken)
@@ -212,24 +214,6 @@ func (a *API) GetProvider(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-func (a *API) ListDestinations(c *gin.Context) {
-	destinationName := c.Request.URL.Query().Get("name")
-	destinationKind := c.Request.URL.Query().Get("kind")
-
-	destinations, err := access.ListDestinations(c, destinationName, destinationKind)
-	if err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
-		return
-	}
-
-	results := make([]api.Destination, 0)
-	for _, d := range destinations {
-		results = append(results, d.ToAPI())
-	}
-
-	c.JSON(http.StatusOK, results)
-}
-
 func (a *API) CreateProvider(c *gin.Context) {
 	var body api.ProviderRequest
 	if err := c.BindJSON(&body); err != nil {
@@ -266,13 +250,18 @@ func (a *API) UpdateProvider(c *gin.Context) {
 		return
 	}
 
-	provider := &models.Provider{}
+	provider, err := models.NewProvider(r.ID)
+	if err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
 	if err := provider.FromAPI(&body); err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	provider, err := access.UpdateProvider(c, r.ID, provider)
+	provider, err = access.UpdateProvider(c, r.ID, provider)
 	if err != nil {
 		sendAPIError(c, http.StatusInternalServerError, err)
 		return
@@ -298,6 +287,27 @@ func (a *API) DeleteProvider(c *gin.Context) {
 	c.Writer.WriteHeaderNow()
 }
 
+func (a *API) ListDestinations(c *gin.Context) {
+	var query api.Destination
+	if err := c.ShouldBindQuery(&query); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	destinations, err := access.ListDestinations(c, string(query.Kind), query.NodeID, query.Name, query.Labels)
+	if err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	results := make([]api.Destination, 0)
+	for _, d := range destinations {
+		results = append(results, d.ToAPI())
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
 func (a *API) GetDestination(c *gin.Context) {
 	var r Resource
 	if err := c.BindUri(&r); err != nil {
@@ -316,13 +326,8 @@ func (a *API) GetDestination(c *gin.Context) {
 }
 
 func (a *API) CreateDestination(c *gin.Context) {
-	var body api.DestinationCreateRequest
+	var body api.DestinationRequest
 	if err := c.BindJSON(&body); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
-		return
-	}
-
-	if err := validate.Struct(body); err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return
 	}
@@ -341,6 +346,56 @@ func (a *API) CreateDestination(c *gin.Context) {
 
 	result := destination.ToAPI()
 	c.JSON(http.StatusCreated, result)
+}
+
+func (a *API) UpdateDestination(c *gin.Context) {
+	var r Resource
+	if err := c.BindUri(&r); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	var body api.DestinationRequest
+	if err := c.BindJSON(&body); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	destination, err := models.NewDestination(r.ID)
+	if err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	if err := destination.FromAPI(&body); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	destination, err = access.UpdateDestination(c, r.ID, destination)
+	if err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	result := destination.ToAPI()
+	c.JSON(http.StatusOK, result)
+}
+
+func (a *API) DeleteDestination(c *gin.Context) {
+	var r Resource
+	if err := c.BindUri(&r); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	if err := access.DeleteDestination(c, r.ID); err != nil {
+		sendAPIError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+	c.Writer.WriteHeaderNow()
 }
 
 func (a *API) ListAPITokens(c *gin.Context) {

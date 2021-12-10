@@ -18,16 +18,20 @@ import {
     Destination,
     DestinationFromJSON,
     DestinationToJSON,
-    DestinationCreateRequest,
-    DestinationCreateRequestFromJSON,
-    DestinationCreateRequestToJSON,
     DestinationKind,
     DestinationKindFromJSON,
     DestinationKindToJSON,
+    DestinationRequest,
+    DestinationRequestFromJSON,
+    DestinationRequestToJSON,
 } from '../models';
 
 export interface CreateDestinationRequest {
-    body: DestinationCreateRequest;
+    body: DestinationRequest;
+}
+
+export interface DeleteDestinationRequest {
+    id: string;
 }
 
 export interface GetDestinationRequest {
@@ -35,8 +39,15 @@ export interface GetDestinationRequest {
 }
 
 export interface ListDestinationsRequest {
-    name?: string;
     kind?: DestinationKind;
+    nodeID?: string;
+    name?: string;
+    labels?: Array<string>;
+}
+
+export interface UpdateDestinationRequest {
+    id: string;
+    destinationRequest: DestinationRequest;
 }
 
 /**
@@ -71,7 +82,7 @@ export class DestinationsApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: DestinationCreateRequestToJSON(requestParameters.body),
+            body: DestinationRequestToJSON(requestParameters.body),
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => DestinationFromJSON(jsonValue));
@@ -86,7 +97,45 @@ export class DestinationsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get destination by ID
+     * Delete a destination by ID
+     */
+    async deleteDestinationRaw(requestParameters: DeleteDestinationRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Destination>> {
+        if (requestParameters.id === null || requestParameters.id === undefined) {
+            throw new runtime.RequiredError('id','Required parameter requestParameters.id was null or undefined when calling deleteDestination.');
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+        const response = await this.request({
+            path: `/destinations/{id}`.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters.id))),
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => DestinationFromJSON(jsonValue));
+    }
+
+    /**
+     * Delete a destination by ID
+     */
+    async deleteDestination(requestParameters: DeleteDestinationRequest, initOverrides?: RequestInit): Promise<Destination> {
+        const response = await this.deleteDestinationRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get a destination by ID
      */
     async getDestinationRaw(requestParameters: GetDestinationRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Destination>> {
         if (requestParameters.id === null || requestParameters.id === undefined) {
@@ -116,7 +165,7 @@ export class DestinationsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get destination by ID
+     * Get a destination by ID
      */
     async getDestination(requestParameters: GetDestinationRequest, initOverrides?: RequestInit): Promise<Destination> {
         const response = await this.getDestinationRaw(requestParameters, initOverrides);
@@ -129,12 +178,20 @@ export class DestinationsApi extends runtime.BaseAPI {
     async listDestinationsRaw(requestParameters: ListDestinationsRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Array<Destination>>> {
         const queryParameters: any = {};
 
+        if (requestParameters.kind !== undefined) {
+            queryParameters['kind'] = requestParameters.kind;
+        }
+
+        if (requestParameters.nodeID !== undefined) {
+            queryParameters['nodeID'] = requestParameters.nodeID;
+        }
+
         if (requestParameters.name !== undefined) {
             queryParameters['name'] = requestParameters.name;
         }
 
-        if (requestParameters.kind !== undefined) {
-            queryParameters['kind'] = requestParameters.kind;
+        if (requestParameters.labels) {
+            queryParameters['labels'] = requestParameters.labels;
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -162,6 +219,51 @@ export class DestinationsApi extends runtime.BaseAPI {
      */
     async listDestinations(requestParameters: ListDestinationsRequest, initOverrides?: RequestInit): Promise<Array<Destination>> {
         const response = await this.listDestinationsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Update a destination by ID
+     */
+    async updateDestinationRaw(requestParameters: UpdateDestinationRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Destination>> {
+        if (requestParameters.id === null || requestParameters.id === undefined) {
+            throw new runtime.RequiredError('id','Required parameter requestParameters.id was null or undefined when calling updateDestination.');
+        }
+
+        if (requestParameters.destinationRequest === null || requestParameters.destinationRequest === undefined) {
+            throw new runtime.RequiredError('destinationRequest','Required parameter requestParameters.destinationRequest was null or undefined when calling updateDestination.');
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+        const response = await this.request({
+            path: `/destinations/{id}`.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters.id))),
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: DestinationRequestToJSON(requestParameters.destinationRequest),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => DestinationFromJSON(jsonValue));
+    }
+
+    /**
+     * Update a destination by ID
+     */
+    async updateDestination(requestParameters: UpdateDestinationRequest, initOverrides?: RequestInit): Promise<Destination> {
+        const response = await this.updateDestinationRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

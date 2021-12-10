@@ -608,182 +608,6 @@ func TestT(t *testing.T) {
 			},
 		},
 
-		// /v1/destinations
-		"GetDestination": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionDestinationRead))
-			},
-			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
-				c.Params = append(c.Params, gin.Param{Key: "id", Value: destinationAAA.ID.String()})
-				return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/destinations/%s", destinationAAA.ID), nil)
-			},
-			"func": func(a *API, c *gin.Context) {
-				a.GetDestination(c)
-			},
-			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusOK, w.Code)
-
-				var destination api.Destination
-				err := json.NewDecoder(w.Body).Decode(&destination)
-				require.NoError(t, err)
-				require.Equal(t, "AAA", destination.Name)
-				require.Equal(t, "AAA", destination.NodeID)
-				require.Equal(t, "develop.infrahq.com", destination.Kubernetes.Endpoint)
-			},
-		},
-		"GetDestinationEmptyID": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionDestinationRead))
-			},
-			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
-				return httptest.NewRequest(http.MethodGet, "/v1/destinations/", nil)
-			},
-			"func": func(a *API, c *gin.Context) {
-				a.GetDestination(c)
-			},
-			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusBadRequest, w.Code)
-			},
-		},
-		"GetDestinationUnknownDestination": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionDestinationRead))
-			},
-			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
-				id, err := uuid.NewUUID()
-				require.NoError(t, err)
-
-				c.Params = append(c.Params, gin.Param{Key: "id", Value: id.String()})
-				return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/destinations/%s", id), nil)
-			},
-			"func": func(a *API, c *gin.Context) {
-				a.GetDestination(c)
-			},
-			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusNotFound, w.Code)
-			},
-		},
-		"ListDestinations": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionDestinationRead))
-			},
-			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
-				return httptest.NewRequest(http.MethodGet, "/v1/destinations", nil)
-			},
-			"func": func(a *API, c *gin.Context) {
-				a.ListDestinations(c)
-			},
-			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusOK, w.Code)
-
-				var destinations []api.Destination
-				err := json.NewDecoder(w.Body).Decode(&destinations)
-				require.NoError(t, err)
-				require.Len(t, destinations, 3)
-				require.ElementsMatch(t, []string{"AAA", "BBB", "CCC"}, []string{
-					destinations[0].Name,
-					destinations[1].Name,
-					destinations[2].Name,
-				})
-				require.ElementsMatch(t, []string{"AAA", "BBB", "CCC"}, []string{
-					destinations[0].NodeID,
-					destinations[1].NodeID,
-					destinations[2].NodeID,
-				})
-				require.ElementsMatch(t, []string{"develop.infrahq.com", "stage.infrahq.com", "production.infrahq.com"}, []string{
-					destinations[0].Kubernetes.Endpoint,
-					destinations[1].Kubernetes.Endpoint,
-					destinations[2].Kubernetes.Endpoint,
-				})
-			},
-		},
-		"ListDestinationsByKind": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionDestinationRead))
-			},
-			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
-				return httptest.NewRequest(http.MethodGet, "/v1/destinations?kind=kubernetes", nil)
-			},
-			"func": func(a *API, c *gin.Context) {
-				a.ListDestinations(c)
-			},
-			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusOK, w.Code)
-
-				var destinations []api.Destination
-				err := json.NewDecoder(w.Body).Decode(&destinations)
-				require.NoError(t, err)
-				require.Len(t, destinations, 3)
-
-				for _, d := range destinations {
-					require.Equal(t, api.DESTINATIONKIND_KUBERNETES, d.Kind)
-				}
-			},
-		},
-		"ListDestinationsByName": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionDestinationRead))
-			},
-			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
-				return httptest.NewRequest(http.MethodGet, "/v1/destinations?name=AAA", nil)
-			},
-			"func": func(a *API, c *gin.Context) {
-				a.ListDestinations(c)
-			},
-			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusOK, w.Code)
-
-				var destinations []api.Destination
-				err := json.NewDecoder(w.Body).Decode(&destinations)
-				require.NoError(t, err)
-				require.Len(t, destinations, 1)
-				require.Equal(t, "AAA", destinations[0].Name)
-				require.Equal(t, "AAA", destinations[0].NodeID)
-				require.Equal(t, "develop.infrahq.com", destinations[0].Kubernetes.Endpoint)
-			},
-		},
-		"ListDestinationsCombo": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionDestinationRead))
-			},
-			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
-				return httptest.NewRequest(http.MethodGet, "/v1/destinations?kind=kubernetes&name=AAA", nil)
-			},
-			"func": func(a *API, c *gin.Context) {
-				a.ListDestinations(c)
-			},
-			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusOK, w.Code)
-
-				var destinations []api.Destination
-				err := json.NewDecoder(w.Body).Decode(&destinations)
-				require.NoError(t, err)
-				require.Len(t, destinations, 1)
-				require.Equal(t, "AAA", destinations[0].Name)
-				require.Equal(t, "AAA", destinations[0].NodeID)
-				require.Equal(t, "develop.infrahq.com", destinations[0].Kubernetes.Endpoint)
-			},
-		},
-		"ListDestinationsNotFound": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(access.PermissionDestinationRead))
-			},
-			"requestFunc": func(t *testing.T, c *gin.Context) *http.Request {
-				return httptest.NewRequest(http.MethodGet, "/v1/destinations?name=nonexistent", nil)
-			},
-			"func": func(a *API, c *gin.Context) {
-				a.ListDestinations(c)
-			},
-			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusOK, w.Code)
-
-				var destinations []api.Destination
-				err := json.NewDecoder(w.Body).Decode(&destinations)
-				require.NoError(t, err)
-				require.Len(t, destinations, 0)
-			},
-		},
-
 		// /v1/api-tokens
 		"ListAPITokens": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
@@ -1375,14 +1199,14 @@ func TestProvider(t *testing.T) {
 	}
 }
 
-func TestCreateDestination(t *testing.T) {
-	cases := map[string]map[string]interface{}{
-		"OK": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+func TestDestination(t *testing.T) {
+	cases := map[string]testCase{
+		"CreateOK": {
+			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionDestinationCreate))
 			},
-			"requestFunc": func(t *testing.T) *api.DestinationCreateRequest {
-				return &api.DestinationCreateRequest{
+			Request: func(t *testing.T, c *gin.Context) *http.Request {
+				request := api.DestinationRequest{
 					Kind:   api.DESTINATIONKIND_KUBERNETES,
 					NodeID: "test",
 					Name:   "test",
@@ -1391,76 +1215,409 @@ func TestCreateDestination(t *testing.T) {
 						Endpoint: "develop.infrahq.com",
 					},
 				}
+
+				bts, err := request.MarshalJSON()
+
+				require.NoError(t, err)
+				return httptest.NewRequest(http.MethodPost, "/v1/destinations", bytes.NewReader(bts))
 			},
-			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+			Handle: func(t *testing.T, c *gin.Context) {
+				a := API{}
+				a.CreateDestination(c)
+			},
+			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusCreated, w.Code)
 			},
 		},
-		"NoKind": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+		"CreateNoKind": {
+			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionDestinationCreate))
 			},
-			"requestFunc": func(t *testing.T) *api.DestinationCreateRequest {
-				return &api.DestinationCreateRequest{
+			Request: func(t *testing.T, c *gin.Context) *http.Request {
+				request := api.DestinationRequest{
 					Kubernetes: &api.DestinationKubernetes{
 						CA:       "CA",
 						Endpoint: "develop.infrahq.com",
 					},
 				}
+
+				bts, err := request.MarshalJSON()
+
+				require.NoError(t, err)
+				return httptest.NewRequest(http.MethodPost, "/v1/destinations", bytes.NewReader(bts))
 			},
-			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+			Handle: func(t *testing.T, c *gin.Context) {
+				a := API{}
+				a.CreateDestination(c)
+			},
+			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, w.Code)
 			},
 		},
-		"UnknownKind": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+		"CreateUnknownKind": {
+			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionDestinationCreate))
 			},
-			"requestFunc": func(t *testing.T) *api.DestinationCreateRequest {
-				return &api.DestinationCreateRequest{
+			Request: func(t *testing.T, c *gin.Context) *http.Request {
+				request := api.DestinationRequest{
 					Kind: api.DestinationKind("unknown"),
 					Kubernetes: &api.DestinationKubernetes{
 						CA:       "CA",
 						Endpoint: "develop.infrahq.com",
 					},
 				}
+
+				bts, err := request.MarshalJSON()
+
+				require.NoError(t, err)
+				return httptest.NewRequest(http.MethodPost, "/v1/destinations", bytes.NewReader(bts))
 			},
-			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+			Handle: func(t *testing.T, c *gin.Context) {
+				a := API{}
+				a.CreateDestination(c)
+			},
+			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, w.Code)
 			},
 		},
-		"NoAuthorization": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+		"CreateNoAuthorization": {
+			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", "")
 			},
-			"requestFunc": func(t *testing.T) *api.DestinationCreateRequest {
-				return &api.DestinationCreateRequest{
+			Request: func(t *testing.T, c *gin.Context) *http.Request {
+				request := api.DestinationRequest{
 					Kind: api.DESTINATIONKIND_KUBERNETES,
 					Kubernetes: &api.DestinationKubernetes{
 						CA:       "CA",
 						Endpoint: "develop.infrahq.com",
 					},
 				}
+
+				bts, err := request.MarshalJSON()
+
+				require.NoError(t, err)
+				return httptest.NewRequest(http.MethodPost, "/v1/destinations", bytes.NewReader(bts))
 			},
-			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+			Handle: func(t *testing.T, c *gin.Context) {
+				a := API{}
+				a.CreateDestination(c)
+			},
+			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusForbidden, w.Code)
 			},
 		},
-		"BadPermissions": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+		"CreateBadPermissions": {
+			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", "infra.bad.permissions")
 			},
-			"requestFunc": func(t *testing.T) *api.DestinationCreateRequest {
-				return &api.DestinationCreateRequest{
+			Request: func(t *testing.T, c *gin.Context) *http.Request {
+				request := api.DestinationRequest{
 					Kind: api.DESTINATIONKIND_KUBERNETES,
 					Kubernetes: &api.DestinationKubernetes{
 						CA:       "CA",
 						Endpoint: "develop.infrahq.com",
 					},
 				}
+
+				bts, err := request.MarshalJSON()
+
+				require.NoError(t, err)
+				return httptest.NewRequest(http.MethodPost, "/v1/destinations", bytes.NewReader(bts))
 			},
-			"verifyFunc": func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+			Handle: func(t *testing.T, c *gin.Context) {
+				a := API{}
+				a.CreateDestination(c)
+			},
+			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusForbidden, w.Code)
+			},
+		},
+		"Update": {
+			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				c.Set("permissions", string(access.PermissionDestinationUpdate))
+
+				// AAA is created by configure()
+				aaa, err := data.GetDestination(db, &models.Destination{NodeID: "AAA"})
+				require.NoError(t, err)
+
+				c.Params = append(c.Params, gin.Param{Key: "id", Value: aaa.ID.String()})
+			},
+			Request: func(t *testing.T, c *gin.Context) *http.Request {
+				request := api.DestinationRequest{
+					NodeID: "AAA",
+					Name:   "aaa",
+					Kind:   api.DESTINATIONKIND_KUBERNETES,
+					Labels: []string{},
+				}
+
+				bts, err := request.MarshalJSON()
+				require.NoError(t, err)
+
+				return httptest.NewRequest(http.MethodPut, fmt.Sprintf("/v1/destinations/%s", c.Param("id")), bytes.NewReader(bts))
+			},
+			Handle: func(t *testing.T, c *gin.Context) {
+				a := API{}
+				a.UpdateDestination(c)
+			},
+			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
+
+				var destination api.Destination
+				err := json.NewDecoder(w.Body).Decode(&destination)
+				require.NoError(t, err)
+				require.Equal(t, "AAA", destination.NodeID)
+				require.Equal(t, "aaa", destination.Name)
+			},
+		},
+		"UpdateNotFound": {
+			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				c.Set("permissions", string(access.PermissionDestinationUpdate))
+			},
+			Request: func(t *testing.T, c *gin.Context) *http.Request {
+				request := api.DestinationRequest{
+					NodeID: "XYZ",
+					Name:   "XYZ",
+					Kind:   api.DESTINATIONKIND_KUBERNETES,
+					Labels: []string{},
+				}
+
+				bts, err := request.MarshalJSON()
+				require.NoError(t, err)
+
+				id, err := uuid.NewUUID()
+				require.NoError(t, err)
+
+				c.Params = append(c.Params, gin.Param{Key: "id", Value: id.String()})
+				return httptest.NewRequest(http.MethodPut, fmt.Sprintf("/v1/destinations/%s", c.Param("id")), bytes.NewReader(bts))
+			},
+			Handle: func(t *testing.T, c *gin.Context) {
+				a := API{}
+				a.UpdateDestination(c)
+			},
+			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, w.Code)
+			},
+		},
+		"Get": {
+			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				c.Set("permissions", string(access.PermissionDestinationRead))
+			},
+			Request: func(t *testing.T, c *gin.Context) *http.Request {
+				c.Params = append(c.Params, gin.Param{Key: "id", Value: destinationAAA.ID.String()})
+				return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/destinations/%s", destinationAAA.ID), nil)
+			},
+			Handle: func(t *testing.T, c *gin.Context) {
+				a := API{}
+				a.GetDestination(c)
+			},
+			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
+
+				var destination api.Destination
+				err := json.NewDecoder(w.Body).Decode(&destination)
+				require.NoError(t, err)
+				require.Equal(t, "AAA", destination.Name)
+				require.Equal(t, "AAA", destination.NodeID)
+				require.Equal(t, "develop.infrahq.com", destination.Kubernetes.Endpoint)
+			},
+		},
+		"GetEmptyID": {
+			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				c.Set("permissions", string(access.PermissionDestinationRead))
+			},
+			Request: func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/destinations/", nil)
+			},
+			Handle: func(t *testing.T, c *gin.Context) {
+				a := API{}
+				a.GetDestination(c)
+			},
+			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, w.Code)
+			},
+		},
+		"GetUnknownDestination": {
+			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				c.Set("permissions", string(access.PermissionDestinationRead))
+			},
+			Request: func(t *testing.T, c *gin.Context) *http.Request {
+				id, err := uuid.NewUUID()
+				require.NoError(t, err)
+
+				c.Params = append(c.Params, gin.Param{Key: "id", Value: id.String()})
+				return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/destinations/%s", id), nil)
+			},
+			Handle: func(t *testing.T, c *gin.Context) {
+				a := API{}
+				a.GetDestination(c)
+			},
+			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, w.Code)
+			},
+		},
+		"List": {
+			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				c.Set("permissions", string(access.PermissionDestinationRead))
+			},
+			Request: func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/destinations", nil)
+			},
+			Handle: func(t *testing.T, c *gin.Context) {
+				a := API{}
+				a.ListDestinations(c)
+			},
+			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
+
+				var destinations []api.Destination
+				err := json.NewDecoder(w.Body).Decode(&destinations)
+				require.NoError(t, err)
+				require.Len(t, destinations, 3)
+				require.ElementsMatch(t, []string{"AAA", "BBB", "CCC"}, []string{
+					destinations[0].Name,
+					destinations[1].Name,
+					destinations[2].Name,
+				})
+				require.ElementsMatch(t, []string{"AAA", "BBB", "CCC"}, []string{
+					destinations[0].NodeID,
+					destinations[1].NodeID,
+					destinations[2].NodeID,
+				})
+				require.ElementsMatch(t, []string{"develop.infrahq.com", "stage.infrahq.com", "production.infrahq.com"}, []string{
+					destinations[0].Kubernetes.Endpoint,
+					destinations[1].Kubernetes.Endpoint,
+					destinations[2].Kubernetes.Endpoint,
+				})
+			},
+		},
+		"ListByKind": {
+			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				c.Set("permissions", string(access.PermissionDestinationRead))
+			},
+			Request: func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/destinations?kind=kubernetes", nil)
+			},
+			Handle: func(t *testing.T, c *gin.Context) {
+				a := API{}
+				a.ListDestinations(c)
+			},
+			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
+
+				var destinations []api.Destination
+				err := json.NewDecoder(w.Body).Decode(&destinations)
+				require.NoError(t, err)
+				require.Len(t, destinations, 3)
+
+				for _, d := range destinations {
+					require.Equal(t, api.DESTINATIONKIND_KUBERNETES, d.Kind)
+				}
+			},
+		},
+		"ListByName": {
+			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				c.Set("permissions", string(access.PermissionDestinationRead))
+			},
+			Request: func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/destinations?name=AAA", nil)
+			},
+			Handle: func(t *testing.T, c *gin.Context) {
+				a := API{}
+				a.ListDestinations(c)
+			},
+			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
+
+				var destinations []api.Destination
+				err := json.NewDecoder(w.Body).Decode(&destinations)
+				require.NoError(t, err)
+				require.Len(t, destinations, 1)
+				require.Equal(t, "AAA", destinations[0].Name)
+				require.Equal(t, "AAA", destinations[0].NodeID)
+				require.Equal(t, "develop.infrahq.com", destinations[0].Kubernetes.Endpoint)
+			},
+		},
+		"ListCombo": {
+			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				c.Set("permissions", string(access.PermissionDestinationRead))
+			},
+			Request: func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/destinations?kind=kubernetes&name=AAA", nil)
+			},
+			Handle: func(t *testing.T, c *gin.Context) {
+				a := API{}
+				a.ListDestinations(c)
+			},
+			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
+
+				var destinations []api.Destination
+				err := json.NewDecoder(w.Body).Decode(&destinations)
+				require.NoError(t, err)
+				require.Len(t, destinations, 1)
+				require.Equal(t, "AAA", destinations[0].Name)
+				require.Equal(t, "AAA", destinations[0].NodeID)
+				require.Equal(t, "develop.infrahq.com", destinations[0].Kubernetes.Endpoint)
+			},
+		},
+		"ListNotFound": {
+			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				c.Set("permissions", string(access.PermissionDestinationRead))
+			},
+			Request: func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/v1/destinations?name=nonexistent", nil)
+			},
+			Handle: func(t *testing.T, c *gin.Context) {
+				a := API{}
+				a.ListDestinations(c)
+			},
+			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, w.Code)
+
+				var destinations []api.Destination
+				err := json.NewDecoder(w.Body).Decode(&destinations)
+				require.NoError(t, err)
+				require.Len(t, destinations, 0)
+			},
+		},
+		"Delete": {
+			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				c.Set("permissions", string(access.PermissionDestinationDelete))
+
+				// AAA is created by configure()
+				aaa, err := data.GetDestination(db, &models.Destination{NodeID: "AAA"})
+				require.NoError(t, err)
+
+				c.Params = append(c.Params, gin.Param{Key: "id", Value: aaa.ID.String()})
+			},
+			Request: func(t *testing.T, c *gin.Context) *http.Request {
+				return httptest.NewRequest(http.MethodPut, fmt.Sprintf("/v1/destinations/%s", c.Param("id")), nil)
+			},
+			Handle: func(t *testing.T, c *gin.Context) {
+				a := API{}
+				a.DeleteDestination(c)
+			},
+			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNoContent, w.Code)
+			},
+		},
+		"DeleteNotFound": {
+			Setup: func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				c.Set("permissions", string(access.PermissionDestinationDelete))
+			},
+			Request: func(t *testing.T, c *gin.Context) *http.Request {
+				id, err := uuid.NewUUID()
+				require.NoError(t, err)
+
+				c.Params = append(c.Params, gin.Param{Key: "id", Value: id.String()})
+				return httptest.NewRequest(http.MethodPut, fmt.Sprintf("/v1/destinations/%s", c.Param("id")), nil)
+			},
+			Handle: func(t *testing.T, c *gin.Context) {
+				a := API{}
+				a.DeleteDestination(c)
+			},
+			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, w.Code)
 			},
 		},
 	}
@@ -1469,32 +1626,18 @@ func TestCreateDestination(t *testing.T) {
 		t.Run(k, func(t *testing.T) {
 			_, db := configure(t, nil)
 
-			requestFunc, ok := v["requestFunc"].(func(*testing.T) *api.DestinationCreateRequest)
-			require.True(t, ok)
-
-			request := requestFunc(t)
-			bts, err := request.MarshalJSON()
-			require.NoError(t, err)
-
-			r := httptest.NewRequest(http.MethodPost, "/v1/destinations", bytes.NewReader(bts))
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 			c.Set("db", db)
+
+			r := v.Request(t, c)
 			c.Request = r
 
-			authFunc, ok := v["authFunc"].(func(*testing.T, *gorm.DB, *gin.Context))
-			if ok {
-				authFunc(t, db, c)
-			}
+			v.Setup(t, db, c)
 
-			a := API{}
+			v.Handle(t, c)
 
-			a.CreateDestination(c)
-
-			verifyFunc, ok := v["verifyFunc"].(func(*testing.T, *http.Request, *httptest.ResponseRecorder))
-			require.True(t, ok)
-
-			verifyFunc(t, r, w)
+			v.Verify(t, r, w)
 		})
 	}
 }
@@ -1518,7 +1661,7 @@ func TestCreateDestinationUpdatesField(t *testing.T) {
 	require.Equal(t, "endpoint", destination.Endpoint)
 	require.Equal(t, "ca", destination.Kubernetes.CA)
 
-	request := api.DestinationCreateRequest{
+	request := api.DestinationRequest{
 		Kind:   api.DESTINATIONKIND_KUBERNETES,
 		NodeID: destination.NodeID,
 		Name:   "updated-name",

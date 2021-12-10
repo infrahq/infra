@@ -527,7 +527,9 @@ func (r *Registry) importAPITokens() error {
 			Secret: r.options.EngineAPIToken,
 			Permissions: []string{
 				string(access.PermissionGrantRead),
+				string(access.PermissionDestinationRead),
 				string(access.PermissionDestinationCreate),
+				string(access.PermissionDestinationUpdate),
 			},
 		},
 	}
