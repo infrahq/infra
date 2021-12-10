@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -9,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry/data"
@@ -172,7 +174,9 @@ func syncDestinations(db *gorm.DB, maxAge time.Duration) {
 	if err := data.DeleteDestinations(db, func(db *gorm.DB) *gorm.DB {
 		return db.Model(&models.Destination{}).Not(toKeep)
 	}); err != nil {
-		logging.S.Errorw("delete destination", "error", err.Error())
-		return
+		if !errors.Is(err, internal.ErrNotFound) {
+			logging.S.Errorw("delete destination", "error", err.Error())
+			return
+		}
 	}
 }
