@@ -61,9 +61,9 @@ func (d *Destination) ToAPI() api.Destination {
 
 func (d *Destination) FromAPI(from interface{}) error {
 	if request, ok := from.(*api.DestinationRequest); ok {
+		d.Kind = DestinationKind(request.Kind)
 		d.Name = request.Name
 		d.NodeID = request.NodeID
-		d.Kind = DestinationKind(request.Kind)
 
 		if kubernetes, ok := request.GetKubernetesOK(); ok {
 			d.Endpoint = kubernetes.Endpoint

@@ -10,4 +10,5 @@ type Label struct {
 	Value string
 
 	DestinationID uuid.UUID
+	GrantID       uuid.UUID
 }
