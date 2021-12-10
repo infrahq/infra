@@ -308,7 +308,9 @@ func TestRecreateDestinationSameNodeID(t *testing.T) {
 	db := setup(t)
 	createDestinations(t, db, destinationDevelop, destinationProduction)
 
-	err := DeleteDestinations(db, &models.Destination{NodeID: "develop"})
+	err := DeleteDestinations(db, func(db *gorm.DB) *gorm.DB {
+		return db.Where(&models.Destination{NodeID: "develop"})
+	})
 	require.NoError(t, err)
 
 	_, err = CreateDestination(db, &models.Destination{NodeID: "develop"})
