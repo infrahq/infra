@@ -20,25 +20,26 @@ type Grant struct {
 	// created time in seconds since 1970-01-01
 	Created int64 `json:"created"`
 	// updated time in seconds since 1970-01-01
-	Updated     int64            `json:"updated"`
-	Kind        GrantKind        `json:"kind"`
-	Destination Destination      `json:"destination"`
-	Kubernetes  *GrantKubernetes `json:"kubernetes,omitempty"`
-	Users       *[]User          `json:"users,omitempty"`
-	Groups      *[]Group         `json:"groups,omitempty"`
+	Updated      int64         `json:"updated"`
+	Role         string        `json:"role" validate:"required"`
+	ResourceName *string       `json:"resourceName,omitempty" validate:"required"`
+	Users        *[]User       `json:"users,omitempty"`
+	Groups       *[]Group      `json:"groups,omitempty"`
+	Labels       *[]string     `json:"labels,omitempty" form:"labels"`
+	Resource     GrantResource `json:"resource"`
 }
 
 // NewGrant instantiates a new Grant object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewGrant(id string, created int64, updated int64, kind GrantKind, destination Destination) *Grant {
+func NewGrant(id string, created int64, updated int64, role string, resource GrantResource) *Grant {
 	this := Grant{}
 	this.ID = id
 	this.Created = created
 	this.Updated = updated
-	this.Kind = kind
-	this.Destination = destination
+	this.Role = role
+	this.Resource = resource
 	return &this
 }
 
@@ -122,84 +123,60 @@ func (o *Grant) SetUpdated(v int64) {
 	o.Updated = v
 }
 
-// GetKind returns the Kind field value
-func (o *Grant) GetKind() GrantKind {
+// GetRole returns the Role field value
+func (o *Grant) GetRole() string {
 	if o == nil {
-		var ret GrantKind
+		var ret string
 		return ret
 	}
 
-	return o.Kind
+	return o.Role
 }
 
-// GetKindOK returns a tuple with the Kind field value
+// GetRoleOK returns a tuple with the Role field value
 // and a boolean to check if the value has been set.
-func (o *Grant) GetKindOK() (*GrantKind, bool) {
+func (o *Grant) GetRoleOK() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.Kind, true
+	return &o.Role, true
 }
 
-// SetKind sets field value
-func (o *Grant) SetKind(v GrantKind) {
-	o.Kind = v
+// SetRole sets field value
+func (o *Grant) SetRole(v string) {
+	o.Role = v
 }
 
-// GetDestination returns the Destination field value
-func (o *Grant) GetDestination() Destination {
-	if o == nil {
-		var ret Destination
+// GetResourceName returns the ResourceName field value if set, zero value otherwise.
+func (o *Grant) GetResourceName() string {
+	if o == nil || o.ResourceName == nil {
+		var ret string
 		return ret
 	}
-
-	return o.Destination
+	return *o.ResourceName
 }
 
-// GetDestinationOK returns a tuple with the Destination field value
+// GetResourceNameOK returns a tuple with the ResourceName field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *Grant) GetDestinationOK() (*Destination, bool) {
-	if o == nil {
+func (o *Grant) GetResourceNameOK() (*string, bool) {
+	if o == nil || o.ResourceName == nil {
 		return nil, false
 	}
-	return &o.Destination, true
+	return o.ResourceName, true
 }
 
-// SetDestination sets field value
-func (o *Grant) SetDestination(v Destination) {
-	o.Destination = v
-}
-
-// GetKubernetes returns the Kubernetes field value if set, zero value otherwise.
-func (o *Grant) GetKubernetes() GrantKubernetes {
-	if o == nil || o.Kubernetes == nil {
-		var ret GrantKubernetes
-		return ret
-	}
-	return *o.Kubernetes
-}
-
-// GetKubernetesOK returns a tuple with the Kubernetes field value if set, nil otherwise
-// and a boolean to check if the value has been set.
-func (o *Grant) GetKubernetesOK() (*GrantKubernetes, bool) {
-	if o == nil || o.Kubernetes == nil {
-		return nil, false
-	}
-	return o.Kubernetes, true
-}
-
-// HasKubernetes returns a boolean if a field has been set.
-func (o *Grant) HasKubernetes() bool {
-	if o != nil && o.Kubernetes != nil {
+// HasResourceName returns a boolean if a field has been set.
+func (o *Grant) HasResourceName() bool {
+	if o != nil && o.ResourceName != nil {
 		return true
 	}
 
 	return false
 }
 
-// SetKubernetes gets a reference to the given GrantKubernetes and assigns it to the Kubernetes field.
-func (o *Grant) SetKubernetes(v GrantKubernetes) {
-	o.Kubernetes = &v
+// SetResourceName gets a reference to the given string and assigns it to the ResourceName field.
+func (o *Grant) SetResourceName(v string) {
+	o.ResourceName = &v
 }
 
 // GetUsers returns the Users field value if set, zero value otherwise.
@@ -266,6 +243,62 @@ func (o *Grant) SetGroups(v []Group) {
 	o.Groups = &v
 }
 
+// GetLabels returns the Labels field value if set, zero value otherwise.
+func (o *Grant) GetLabels() []string {
+	if o == nil || o.Labels == nil {
+		var ret []string
+		return ret
+	}
+	return *o.Labels
+}
+
+// GetLabelsOK returns a tuple with the Labels field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *Grant) GetLabelsOK() (*[]string, bool) {
+	if o == nil || o.Labels == nil {
+		return nil, false
+	}
+	return o.Labels, true
+}
+
+// HasLabels returns a boolean if a field has been set.
+func (o *Grant) HasLabels() bool {
+	if o != nil && o.Labels != nil {
+		return true
+	}
+
+	return false
+}
+
+// SetLabels gets a reference to the given []string and assigns it to the Labels field.
+func (o *Grant) SetLabels(v []string) {
+	o.Labels = &v
+}
+
+// GetResource returns the Resource field value
+func (o *Grant) GetResource() GrantResource {
+	if o == nil {
+		var ret GrantResource
+		return ret
+	}
+
+	return o.Resource
+}
+
+// GetResourceOK returns a tuple with the Resource field value
+// and a boolean to check if the value has been set.
+func (o *Grant) GetResourceOK() (*GrantResource, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Resource, true
+}
+
+// SetResource sets field value
+func (o *Grant) SetResource(v GrantResource) {
+	o.Resource = v
+}
+
 func (o Grant) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
@@ -278,19 +311,22 @@ func (o Grant) MarshalJSON() ([]byte, error) {
 		toSerialize["updated"] = o.Updated
 	}
 	if true {
-		toSerialize["kind"] = o.Kind
+		toSerialize["role"] = o.Role
 	}
-	if true {
-		toSerialize["destination"] = o.Destination
-	}
-	if o.Kubernetes != nil {
-		toSerialize["kubernetes"] = o.Kubernetes
+	if o.ResourceName != nil {
+		toSerialize["resourceName"] = o.ResourceName
 	}
 	if o.Users != nil {
 		toSerialize["users"] = o.Users
 	}
 	if o.Groups != nil {
 		toSerialize["groups"] = o.Groups
+	}
+	if o.Labels != nil {
+		toSerialize["labels"] = o.Labels
+	}
+	if true {
+		toSerialize["resource"] = o.Resource
 	}
 	return json.Marshal(toSerialize)
 }

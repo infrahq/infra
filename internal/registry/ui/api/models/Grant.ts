@@ -14,18 +14,10 @@
 
 import { exists, mapValues } from '../runtime';
 import {
-    Destination,
-    DestinationFromJSON,
-    DestinationFromJSONTyped,
-    DestinationToJSON,
-    GrantKind,
-    GrantKindFromJSON,
-    GrantKindFromJSONTyped,
-    GrantKindToJSON,
-    GrantKubernetes,
-    GrantKubernetesFromJSON,
-    GrantKubernetesFromJSONTyped,
-    GrantKubernetesToJSON,
+    GrantResource,
+    GrantResourceFromJSON,
+    GrantResourceFromJSONTyped,
+    GrantResourceToJSON,
     Group,
     GroupFromJSON,
     GroupFromJSONTyped,
@@ -62,22 +54,16 @@ export interface Grant {
     updated: number;
     /**
      * 
-     * @type {GrantKind}
+     * @type {string}
      * @memberof Grant
      */
-    kind: GrantKind;
+    role: string;
     /**
      * 
-     * @type {Destination}
+     * @type {string}
      * @memberof Grant
      */
-    destination: Destination;
-    /**
-     * 
-     * @type {GrantKubernetes}
-     * @memberof Grant
-     */
-    kubernetes?: GrantKubernetes;
+    resourceName?: string;
     /**
      * 
      * @type {Array<User>}
@@ -90,6 +76,18 @@ export interface Grant {
      * @memberof Grant
      */
     groups?: Array<Group>;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof Grant
+     */
+    labels?: Array<string>;
+    /**
+     * 
+     * @type {GrantResource}
+     * @memberof Grant
+     */
+    resource: GrantResource;
 }
 
 export function GrantFromJSON(json: any): Grant {
@@ -105,11 +103,12 @@ export function GrantFromJSONTyped(json: any, ignoreDiscriminator: boolean): Gra
         'id': json['id'],
         'created': json['created'],
         'updated': json['updated'],
-        'kind': GrantKindFromJSON(json['kind']),
-        'destination': DestinationFromJSON(json['destination']),
-        'kubernetes': !exists(json, 'kubernetes') ? undefined : GrantKubernetesFromJSON(json['kubernetes']),
+        'role': json['role'],
+        'resourceName': !exists(json, 'resourceName') ? undefined : json['resourceName'],
         'users': !exists(json, 'users') ? undefined : ((json['users'] as Array<any>).map(UserFromJSON)),
         'groups': !exists(json, 'groups') ? undefined : ((json['groups'] as Array<any>).map(GroupFromJSON)),
+        'labels': !exists(json, 'labels') ? undefined : json['labels'],
+        'resource': GrantResourceFromJSON(json['resource']),
     };
 }
 
@@ -125,11 +124,12 @@ export function GrantToJSON(value?: Grant | null): any {
         'id': value.id,
         'created': value.created,
         'updated': value.updated,
-        'kind': GrantKindToJSON(value.kind),
-        'destination': DestinationToJSON(value.destination),
-        'kubernetes': GrantKubernetesToJSON(value.kubernetes),
+        'role': value.role,
+        'resourceName': value.resourceName,
         'users': value.users === undefined ? undefined : ((value.users as Array<any>).map(UserToJSON)),
         'groups': value.groups === undefined ? undefined : ((value.groups as Array<any>).map(GroupToJSON)),
+        'labels': value.labels,
+        'resource': GrantResourceToJSON(value.resource),
     };
 }
 

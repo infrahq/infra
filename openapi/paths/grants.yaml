@@ -5,22 +5,6 @@ get:
   security:
     - bearerAuth: []
   operationId: listGrants
-  parameters:
-    - in: query
-      name: name
-      schema:
-        type: string
-      description: Filter results by name
-    - in: query
-      name: kind
-      schema:
-        $ref: ../components/schemas/GrantKind.yaml
-      description: Filter results by kind
-    - in: query
-      name: destination
-      schema:
-        type: string
-      description: Filter results by destination
   responses:
     '200':
       description: List grants response
@@ -36,3 +20,32 @@ get:
       $ref: ../components/responses/Unauthorized.yaml
     '403':
       $ref: ../components/responses/Forbidden.yaml
+post:
+  summary: Create a grant
+  security:
+    - bearerAuth: []
+  tags:
+    - grants
+  operationId: createGrant
+  x-codegen-request-body-name: body
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/GrantRequest.yaml
+  responses:
+    '201':
+      description: Create grant success
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Grant.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/Forbidden.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

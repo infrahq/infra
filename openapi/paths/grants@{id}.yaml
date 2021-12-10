@@ -26,3 +26,61 @@ get:
       $ref: ../components/responses/Unauthorized.yaml
     '403':
       $ref: ../components/responses/Forbidden.yaml
+put:
+  summary: Update a grant by ID
+  tags:
+    - grants
+  operationId: updateGrant
+  parameters:
+    - in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Grant ID
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/GrantRequest.yaml
+  responses:
+    '200':
+      description: Update grant success
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Grant.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/Forbidden.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+delete:
+  summary: Delete a grant by ID
+  security:
+    - bearerAuth: []
+  tags:
+    - grants
+  operationId: deleteGrant
+  parameters:
+    - in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Grant ID
+  responses:
+    '204':
+      $ref: ../components/responses/NoContent.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/Forbidden.yaml

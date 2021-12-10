@@ -2,11 +2,11 @@ type: object
 required:
   - kind
   - name
-  - namespace
+  - path
 properties:
   kind:
-    $ref: ./GrantKubernetesKind.yaml
+    type: string
   name:
     type: string
-  namespace:
+  path:
     type: string

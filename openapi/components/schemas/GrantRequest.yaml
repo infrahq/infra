@@ -1,0 +1,23 @@
+type: object
+required:
+  - role
+  - resource
+properties:
+  role:
+    type: string
+  resource:
+    $ref: ./GrantResource.yaml
+  users:
+    type: array
+    items:
+      type: string
+      format: uuid
+  groups:
+    type: array
+    items:
+      type: string
+      format: uuid
+  labels:
+    type: array
+    items:
+      type: string
