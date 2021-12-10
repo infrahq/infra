@@ -10,7 +10,7 @@ type User struct {
 	Model
 
 	Name        string
-	Email       string `gorm:"uniqueIndex"`
+	Email       string `gorm:"uniqueIndex:,where:deleted_at is NULL"`
 	Permissions string
 
 	Grants    []Grant    `gorm:"many2many:users_grants"`

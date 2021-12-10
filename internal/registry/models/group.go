@@ -9,7 +9,7 @@ import (
 type Group struct {
 	Model
 
-	Name string
+	Name string `gorm:"uniqueIndex:,where:deleted_at is NULL"`
 
 	Grants    []Grant    `gorm:"many2many:groups_grants"`
 	Providers []Provider `gorm:"many2many:groups_providers"`

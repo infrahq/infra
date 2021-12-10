@@ -241,3 +241,14 @@ func TestDeleteUser(t *testing.T) {
 	_, err = GetUser(db, &models.User{Email: bourne.Email})
 	require.NoError(t, err)
 }
+
+func TestRecreateUserSameEmail(t *testing.T) {
+	db := setup(t)
+	createUsers(t, db, bond, bourne, bauer)
+
+	err := DeleteUsers(db, &models.User{Email: bond.Email})
+	require.NoError(t, err)
+
+	_, err = CreateUser(db, &models.User{Email: bond.Email})
+	require.NoError(t, err)
+}

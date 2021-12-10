@@ -326,3 +326,14 @@ func TestDeleteGroup(t *testing.T) {
 	_, err = GetGroup(db, &models.Group{Name: engineers.Name})
 	require.NoError(t, err)
 }
+
+func TestRecreateGroupSameName(t *testing.T) {
+	db := setup(t)
+	createGroups(t, db, everyone, engineers, product)
+
+	err := DeleteGroups(db, &models.Group{Name: everyone.Name})
+	require.NoError(t, err)
+
+	_, err = CreateGroup(db, &models.Group{Name: everyone.Name})
+	require.NoError(t, err)
+}

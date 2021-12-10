@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	destinationDevelop    = models.Destination{Name: "develop", Kind: "kubernetes", Endpoint: "dev.kubernetes.com", Kubernetes: models.DestinationKubernetes{CA: "notsosecret"}, NodeID: "one"}
-	destinationProduction = models.Destination{Name: "production", Kind: "kubernetes", Endpoint: "prod.kubernetes.com", Kubernetes: models.DestinationKubernetes{CA: "supersecret"}, NodeID: "two"}
+	destinationDevelop    = models.Destination{Name: "develop", Kind: "kubernetes", Endpoint: "dev.kubernetes.com", Kubernetes: models.DestinationKubernetes{CA: "notsosecret"}, NodeID: "develop"}
+	destinationProduction = models.Destination{Name: "production", Kind: "kubernetes", Endpoint: "prod.kubernetes.com", Kubernetes: models.DestinationKubernetes{CA: "supersecret"}, NodeID: "production"}
 
 	labelUSWest1 = models.Label{Value: "us-west-1"}
 	labelUSEast1 = models.Label{Value: "us-east-1"}
@@ -295,5 +295,16 @@ func TestDeleteDestinations(t *testing.T) {
 
 	// deleting a destination should not delete unrelated destinations
 	_, err = GetDestination(db, &models.Destination{Name: "production"})
+	require.NoError(t, err)
+}
+
+func TestRecreateDestinationSameNodeID(t *testing.T) {
+	db := setup(t)
+	createDestinations(t, db, destinationDevelop, destinationProduction)
+
+	err := DeleteDestinations(db, &models.Destination{NodeID: "develop"})
+	require.NoError(t, err)
+
+	_, err = CreateDestination(db, &models.Destination{NodeID: "develop"})
 	require.NoError(t, err)
 }

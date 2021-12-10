@@ -11,7 +11,7 @@ type Model struct {
 	ID        uuid.UUID
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt `gorm:"index"`
+	DeletedAt gorm.DeletedAt
 }
 
 // Set an ID if one does not already exist. Unfortunately, we can use `gorm:"default"`
