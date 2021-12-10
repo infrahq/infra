@@ -17,7 +17,7 @@ type Provider struct {
 
 	Kind ProviderKind
 
-	Domain       string `gorm:"unique"`
+	Domain       string `gorm:"uniqueIndex:,where:deleted_at is NULL"`
 	ClientID     string
 	ClientSecret EncryptedAtRest
 

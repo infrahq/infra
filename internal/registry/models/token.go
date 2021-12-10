@@ -25,7 +25,7 @@ type Token struct {
 	APIToken   APIToken
 	APITokenID uuid.UUID
 
-	Key      string `gorm:"<-:create;uniqueIndex"`
+	Key      string `gorm:"<-:create;uniqueIndex:,where:deleted_at is NULL"`
 	Secret   string `gorm:"-"`
 	Checksum []byte
 
@@ -45,7 +45,7 @@ func (t *Token) SessionToken() string {
 type APIToken struct {
 	Model
 
-	Name        string `gorm:"unique"`
+	Name        string `gorm:"uniqueIndex:,where:deleted_at is NULL"`
 	Permissions string
 	TTL         time.Duration
 }

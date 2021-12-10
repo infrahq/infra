@@ -338,3 +338,16 @@ func TestDeleteProviders(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 0, len(okta))
 }
+
+func TestRecreateProviderSameDomain(t *testing.T) {
+	db := setup(t)
+	createProviders(t, db, providerDevelop, providerProduction)
+
+	err := DeleteProviders(db, func(db *gorm.DB) *gorm.DB {
+		return db.Where(&models.Provider{Domain: "dev.okta.com"})
+	})
+	require.NoError(t, err)
+
+	_, err = CreateProvider(db, &models.Provider{Domain: "dev.okta.com"})
+	require.NoError(t, err)
+}
