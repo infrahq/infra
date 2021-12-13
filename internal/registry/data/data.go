@@ -128,15 +128,8 @@ func update(db *gorm.DB, kind interface{}, value interface{}, condition interfac
 	return nil
 }
 
-// remove soft-deletes an entity
-func remove(db *gorm.DB, kind interface{}, condition interface{}) error {
-	return db.Model(kind).Select(clause.Associations).Where(condition).Delete(kind).Error
-}
-
-// delete completely removes an entity from the database,
-// use this if you require a unique constraint, otherwise use remove instead
 func delete(db *gorm.DB, kind interface{}, condition interface{}) error {
-	return db.Model(kind).Select(clause.Associations).Where(condition).Unscoped().Delete(kind).Error
+	return db.Model(kind).Select(clause.Associations).Where(condition).Delete(kind).Error
 }
 
 func Count(db *gorm.DB, kind interface{}, condition interface{}) (*int64, error) {

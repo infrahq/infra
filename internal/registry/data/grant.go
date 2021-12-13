@@ -76,7 +76,7 @@ func DeleteGrants(db *gorm.DB, condition interface{}) error {
 			ids = append(ids, g.ID)
 		}
 
-		return remove(db, &models.Grant{}, ids)
+		return delete(db, &models.Grant{}, ids)
 	}
 
 	return nil

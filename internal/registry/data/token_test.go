@@ -98,13 +98,13 @@ func TestRevokeUserToken(t *testing.T) {
 	_, err := GetToken(db, &models.Token{Key: token.Key})
 	require.NoError(t, err)
 
-	err = RemoveToken(db, &models.Token{Key: token.Key})
+	err = DeleteToken(db, &models.Token{Key: token.Key})
 	require.NoError(t, err)
 
 	_, err = GetToken(db, &models.Token{Key: token.Key})
 	require.EqualError(t, err, "record not found")
 
-	err = RemoveToken(db, &models.Token{Key: token.Key})
+	err = DeleteToken(db, &models.Token{Key: token.Key})
 	require.NoError(t, err)
 }
 

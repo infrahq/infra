@@ -59,21 +59,6 @@ func CheckTokenSecret(t *models.Token, authorization string) error {
 	return nil
 }
 
-func RemoveToken(db *gorm.DB, condition interface{}) error {
-	toDelete, err := GetToken(db, condition)
-	if err != nil {
-		if !errors.Is(err, internal.ErrNotFound) {
-			return err
-		}
-	}
-
-	if toDelete != nil {
-		return remove(db, &models.Token{}, toDelete.ID)
-	}
-
-	return nil
-}
-
 func DeleteToken(db *gorm.DB, condition interface{}) error {
 	toDelete, err := GetToken(db, condition)
 	if err != nil {

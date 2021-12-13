@@ -86,7 +86,7 @@ func DeleteUsers(db *gorm.DB, condition interface{}) error {
 			ids = append(ids, g.ID)
 		}
 
-		return remove(db, &models.User{}, ids)
+		return delete(db, &models.User{}, ids)
 	}
 
 	return nil
