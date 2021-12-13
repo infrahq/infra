@@ -128,7 +128,7 @@ func update(db *gorm.DB, kind interface{}, value interface{}, condition interfac
 	return nil
 }
 
-func delete(db *gorm.DB, kind interface{}, condition interface{}) error {
+func remove(db *gorm.DB, kind interface{}, condition interface{}) error {
 	return db.Model(kind).Select(clause.Associations).Where(condition).Delete(kind).Error
 }
 

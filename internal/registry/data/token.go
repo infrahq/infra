@@ -68,7 +68,7 @@ func DeleteToken(db *gorm.DB, condition interface{}) error {
 	}
 
 	if toDelete != nil {
-		return delete(db, &models.Token{}, toDelete.ID)
+		return remove(db, &models.Token{}, toDelete.ID)
 	}
 
 	return nil
@@ -158,7 +158,7 @@ func DeleteAPIToken(db *gorm.DB, condition interface{}) error {
 
 	// proceed with deletion of API client even if there is no token for some reason
 
-	return delete(db, &models.APIToken{}, toDelete.ID)
+	return remove(db, &models.APIToken{}, toDelete.ID)
 }
 
 func UserTokenSelector(db *gorm.DB, authorization string) *gorm.DB {

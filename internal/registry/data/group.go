@@ -94,7 +94,7 @@ func DeleteGroups(db *gorm.DB, condition interface{}) error {
 			ids = append(ids, g.ID)
 		}
 
-		return delete(db, &models.Group{}, ids)
+		return remove(db, &models.Group{}, ids)
 	}
 
 	return nil

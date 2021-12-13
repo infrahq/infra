@@ -122,7 +122,7 @@ func DeleteProviders(db *gorm.DB, selector SelectorFunc) error {
 			ids = append(ids, g.ID)
 		}
 
-		return delete(db, &models.Provider{}, ids)
+		return remove(db, &models.Provider{}, ids)
 	}
 
 	return internal.ErrNotFound

@@ -104,7 +104,7 @@ func DeleteDestinations(db *gorm.DB, selector SelectorFunc) error {
 			ids = append(ids, g.ID)
 		}
 
-		return delete(db, &models.Destination{}, ids)
+		return remove(db, &models.Destination{}, ids)
 	}
 
 	return internal.ErrNotFound
