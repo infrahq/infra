@@ -7,12 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
-
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/registry/models"
+	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
 
 func createUserToken(t *testing.T, db *gorm.DB, sessionDuration time.Duration) *models.Token {
@@ -49,6 +48,54 @@ func TestCheckTokenSecret(t *testing.T) {
 
 	err = CheckTokenSecret(token, authorization)
 	require.EqualError(t, err, "token invalid secret")
+}
+
+func TestCreateOrUpdateTokenCreate(t *testing.T) {
+	db := setup(t)
+
+	exampleKey := generate.MathRandom(models.TokenKeyLength)
+
+	in := &models.Token{
+		SessionDuration: 1 * time.Hour,
+		Key:             exampleKey,
+	}
+
+	// it should not exist before the call
+	_, err := GetToken(db, &models.Token{Key: exampleKey})
+	require.ErrorIs(t, err, internal.ErrNotFound)
+
+	token, err := CreateOrUpdateToken(db, in, &models.Token{Key: exampleKey})
+	require.NoError(t, err)
+	require.NotEmpty(t, token.Secret)
+	require.True(t, time.Now().Before(token.Expires))
+	require.Equal(t, in.Key, token.Key)
+}
+
+func TestCreateOrUpdateTokenUpdate(t *testing.T) {
+	db := setup(t)
+
+	before := &models.Token{
+		SessionDuration: 1 * time.Hour,
+		Key:             generate.MathRandom(models.TokenKeyLength),
+	}
+
+	// it should not exist before the call
+	beforeUpdate, err := CreateToken(db, before)
+	require.NoError(t, err, internal.ErrNotFound)
+
+	after := &models.Token{
+		Key:             before.Key,
+		SessionDuration: 2 * time.Hour,
+		Secret:          generate.MathRandom(models.TokenSecretLength),
+	}
+
+	afterUpdate, err := CreateOrUpdateToken(db, after, &models.Token{Key: before.Key})
+	require.NoError(t, err)
+	require.Equal(t, beforeUpdate.Key, afterUpdate.Key)
+	require.Equal(t, beforeUpdate.ID, afterUpdate.ID)
+	require.Equal(t, after.Secret, afterUpdate.Secret)
+	require.NotEqual(t, beforeUpdate.Checksum, afterUpdate.Checksum)
+	require.NotEqual(t, beforeUpdate.Expires, afterUpdate.Expires)
 }
 
 func TestCreateUserToken(t *testing.T) {
@@ -132,6 +179,78 @@ func TestCreateAPIToken(t *testing.T) {
 	require.NotEmpty(t, token.Key)
 	require.Len(t, token.SessionToken(), models.TokenLength)
 	require.WithinDuration(t, token.Expires, time.Now(), 1*time.Hour)
+}
+
+func TestCreateOrUpdateAPITokenCreate(t *testing.T) {
+	db := setup(t)
+
+	name := "create-or-update-api-token-create"
+
+	in := &models.APIToken{
+		Name:        name,
+		Permissions: "infra.users.read",
+		TTL:         1 * time.Hour,
+	}
+
+	// should not exist before creation
+	_, err := GetAPIToken(db, &models.APIToken{Name: name})
+	require.ErrorIs(t, err, internal.ErrNotFound)
+
+	var token models.Token
+	apiToken, err := CreateOrUpdateAPIToken(db, in, &token, &models.APIToken{Name: name})
+	require.NoError(t, err)
+	require.Equal(t, in.Name, apiToken.Name)
+	require.Equal(t, in.Permissions, apiToken.Permissions)
+	require.Equal(t, in.TTL, apiToken.TTL)
+	require.NotEmpty(t, token.Secret)
+	require.NotEmpty(t, token.Key)
+}
+
+func TestCreateOrUpdateAPITokenUpdate(t *testing.T) {
+	db := setup(t)
+
+	name := "create-or-update-api-token-update"
+
+	before := &models.APIToken{
+		Name:        name,
+		Permissions: "infra.users.read",
+		TTL:         1 * time.Hour,
+	}
+
+	// it should not exist before the call
+	var beforeToken models.Token
+	beforeUpdate, _, err := CreateAPIToken(db, before, &beforeToken)
+	require.NoError(t, err, internal.ErrNotFound)
+
+	after := &models.APIToken{
+		Name:        name,
+		Permissions: "infra.users.create",
+		TTL:         2 * time.Hour,
+	}
+
+	afterToken := &models.Token{
+		Key:    generate.MathRandom(models.TokenKeyLength),
+		Secret: generate.MathRandom(models.TokenLength),
+	}
+
+	afterUpdate, err := CreateOrUpdateAPIToken(db, after, afterToken, &models.APIToken{Name: name})
+	require.NoError(t, err)
+	require.Equal(t, afterUpdate.ID, beforeUpdate.ID)
+	require.Equal(t, beforeUpdate.Name, afterUpdate.Name)
+	require.Equal(t, after.Permissions, afterUpdate.Permissions)
+	require.Equal(t, after.TTL, afterUpdate.TTL)
+
+	// make sure the associated token is updated
+	var tokens []models.Token
+	err = list(db, &models.Token{}, &tokens, &models.Token{APITokenID: afterUpdate.ID})
+	require.NoError(t, err)
+	require.Len(t, tokens, 1)
+
+	token := tokens[0]
+	require.Equal(t, afterToken.Key, token.Key)
+	// need to check the secret, it isn't returned on list
+	err = CheckTokenSecret(&token, afterToken.SessionToken())
+	require.NoError(t, err)
 }
 
 func TestGetAPIToken(t *testing.T) {

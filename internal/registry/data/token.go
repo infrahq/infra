@@ -10,27 +10,53 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/registry/models"
 )
 
 func CreateToken(db *gorm.DB, token *models.Token) (*models.Token, error) {
-	secret, err := generate.CryptoRandom(models.TokenSecretLength)
-	if err != nil {
-		return nil, err
+	if err := models.Issue(token); err != nil {
+		return nil, fmt.Errorf("issue token create: %w", err)
 	}
-
-	chksm := sha256.Sum256([]byte(secret))
-	token.Checksum = chksm[:]
-	token.Secret = secret
-	token.Key = generate.MathRandom(models.TokenKeyLength)
-	token.Expires = time.Now().Add(token.SessionDuration)
 
 	if err := add(db, &models.Token{}, token, &models.Token{}); err != nil {
 		return nil, err
 	}
 
 	return token, nil
+}
+
+func CreateOrUpdateToken(db *gorm.DB, token *models.Token, condition interface{}) (*models.Token, error) {
+	existing, err := GetToken(db, condition)
+	if err != nil {
+		if !errors.Is(err, internal.ErrNotFound) {
+			return nil, err
+		}
+
+		token, err := CreateToken(db, token)
+		if err != nil {
+			return nil, err
+		}
+
+		return token, nil
+	}
+
+	if err := models.Issue(token); err != nil {
+		return nil, fmt.Errorf("issue token update: %w", err)
+	}
+
+	if err := update(db, &models.Token{}, token, db.Where(existing, "id")); err != nil {
+		return nil, err
+	}
+
+	result, err := GetToken(db, db.Where(existing, "id"))
+	if err != nil {
+		return nil, fmt.Errorf("get token after update: %w", err)
+	}
+
+	// the secret needs to be set, because it is not stored in the database
+	result.Secret = token.Secret
+
+	return result, nil
 }
 
 func GetToken(db *gorm.DB, condition interface{}) (*models.Token, error) {
@@ -75,36 +101,58 @@ func DeleteToken(db *gorm.DB, condition interface{}) error {
 }
 
 func CreateAPIToken(db *gorm.DB, apiToken *models.APIToken, token *models.Token) (*models.APIToken, *models.Token, error) {
-	// create the token for this API token
-	if token.Key == "" {
-		key := generate.MathRandom(models.TokenKeyLength)
-		token.Key = key
-	}
-
-	if token.Secret == "" {
-		sec, err := generate.CryptoRandom(models.TokenSecretLength)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		token.Secret = sec
-	}
-
-	chksm := sha256.Sum256([]byte(token.Secret))
-	token.Checksum = chksm[:]
-	token.Expires = time.Now().Add(apiToken.TTL)
-
 	if err := add(db, &models.APIToken{}, apiToken, &models.APIToken{}); err != nil {
 		return nil, nil, fmt.Errorf("new api token: %w", err)
 	}
 
 	token.APITokenID = apiToken.ID
+	token.SessionDuration = apiToken.TTL
 
-	if err := add(db, &models.Token{}, token, &models.Token{}); err != nil {
-		return nil, nil, fmt.Errorf("new token for api: %w", err)
+	token, err := CreateToken(db, token)
+	if err != nil {
+		return nil, nil, fmt.Errorf("create api token issue: %w", err)
 	}
 
 	return apiToken, token, nil
+}
+
+func CreateOrUpdateAPIToken(db *gorm.DB, apiToken *models.APIToken, token *models.Token, condition interface{}) (*models.APIToken, error) {
+	existing, err := GetAPIToken(db, condition)
+	if err != nil {
+		if !errors.Is(err, internal.ErrNotFound) {
+			return nil, err
+		}
+
+		apiToken, _, err := CreateAPIToken(db, apiToken, token)
+		if err != nil {
+			return nil, err
+		}
+
+		return apiToken, nil
+	}
+
+	existingTkn, err := GetToken(db, &models.Token{APITokenID: existing.ID})
+	if err != nil {
+		return nil, fmt.Errorf("get old API token: %w", err)
+	}
+
+	if err := update(db, &models.APIToken{}, apiToken, condition); err != nil {
+		return nil, err
+	}
+
+	token.APITokenID = existing.ID
+	token.SessionDuration = apiToken.TTL
+
+	_, err = CreateToken(db, token)
+	if err != nil {
+		return nil, fmt.Errorf("update api token issue: %w", err)
+	}
+
+	if err := DeleteToken(db, db.Where(existingTkn, "id")); err != nil {
+		return nil, fmt.Errorf("remove old api token: %w", err)
+	}
+
+	return GetAPIToken(db, &models.APIToken{})
 }
 
 func GetAPIToken(db *gorm.DB, condition interface{}) (*models.APIToken, error) {

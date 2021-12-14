@@ -1,6 +1,7 @@
 package models
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"strings"
 	"time"
@@ -8,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/internal/generate"
 )
 
 const (
@@ -32,6 +34,29 @@ type Token struct {
 	SessionDuration time.Duration `gorm:"-"`
 
 	Expires time.Time
+}
+
+// Issue sets the secret fields of a token, and the token expiry based on its lifetime
+func Issue(token *Token) error {
+	if token.Key == "" {
+		key := generate.MathRandom(TokenKeyLength)
+		token.Key = key
+	}
+
+	if token.Secret == "" {
+		generated, err := generate.CryptoRandom(TokenSecretLength)
+		if err != nil {
+			return err
+		}
+
+		token.Secret = generated
+	}
+
+	chksm := sha256.Sum256([]byte(token.Secret))
+	token.Checksum = chksm[:]
+	token.Expires = time.Now().Add(token.SessionDuration)
+
+	return nil
 }
 
 func KeyAndSecret(sessionToken string) (key, secret string) {
