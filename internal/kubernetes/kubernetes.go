@@ -18,10 +18,10 @@ import (
 	"github.com/jessevdk/go-flags"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	rest "k8s.io/client-go/rest"
+	"k8s.io/client-go/rest"
 
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/logging"
@@ -30,20 +30,17 @@ import (
 
 const (
 	NamespaceFilePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
-	CaFilePath        = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+	CAFilePath        = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
 )
 
-// namespaceRole is used as a tuple to pair namespaces and grants as a map key
-type namespaceRole struct {
+type BindingID struct {
+	name string
 	namespace string
-	role      string
-	kind      string
 }
 
-// rbIdentifier is used to compare RoleBindings by their unique fields
-type rbIdentifier struct {
+type Binding struct {
+	role string
 	namespace string
-	name      string
 }
 
 type Kubernetes struct {
@@ -77,203 +74,134 @@ func NewKubernetes() (*Kubernetes, error) {
 	return k, err
 }
 
-// updateRoleBindings generates RoleBindings for Grants and ClusterRoles within a specific namespace
-func (k *Kubernetes) updateRoleBindings(subjects map[namespaceRole][]rbacv1.Subject) error {
+func (k *Kubernetes) updateBindings(bindings map[Binding][]rbacv1.Subject) error {
+	ctx := context.Background()
+	options := metav1.ListOptions{LabelSelector: "app.kubernetes.io/managed-by=infra"}
+
 	clientset, err := kubernetes.NewForConfig(k.Config)
 	if err != nil {
 		return err
 	}
 
-	// store which grants currently exist locally
-	validNamespaceGrant := make(map[namespaceRole]bool)
-	// passing an empty string to grants for the namespace returns all grants
-	grants, err := clientset.RbacV1().Roles("").List(context.TODO(), metav1.ListOptions{})
+	rbs, err := clientset.RbacV1().RoleBindings("").List(ctx, options)
 	if err != nil {
 		return err
 	}
 
-	for _, r := range grants.Items {
-		validNamespaceGrant[namespaceRole{namespace: r.Namespace, role: r.Name, kind: string(api.GRANTKUBERNETESKIND_ROLE)}] = true
+	knownRBs := make(map[BindingID]bool)
+	for _, rb := range rbs.Items {
+		knownRBs[BindingID{name: rb.Name, namespace: rb.Namespace}] = true
 	}
 
-	// store which cluster-grants currently exist locally
-	validClusterGrant := make(map[string]bool)
-
-	crs, err := clientset.RbacV1().ClusterRoles().List(context.TODO(), metav1.ListOptions{})
+	crbs, err := clientset.RbacV1().ClusterRoleBindings().List(ctx, options)
 	if err != nil {
 		return err
 	}
 
-	for _, cr := range crs.Items {
-		validClusterGrant[cr.Name] = true
+	knownCRBs := make(map[BindingID]bool)
+	for _, crb := range crbs.Items {
+		knownCRBs[BindingID{name: crb.Name}] = true
 	}
 
-	// create the namespaced role bindings for all the users of each of the role assignments
-	rbs := []*rbacv1.RoleBinding{}
-
-	for nsr, subjs := range subjects {
-		var kind string
-		switch api.GrantKubernetesKind(nsr.kind) {
-		case api.GRANTKUBERNETESKIND_ROLE:
-			if !validNamespaceGrant[nsr] {
-				logging.S.Warnf("role binding skipped, role does not exist with name %s in namespace %s", nsr.role, nsr.namespace)
-				continue
+	for binding, subjects := range bindings {
+		if !strings.HasPrefix(binding.role, "cluster-") && binding.namespace != "" {
+			if err := k.updateRoleBindings(ctx, clientset, binding, subjects, knownRBs); err != nil {
+				logging.S.Infof("update role binding: %w", err)
 			}
-
-			kind = "Role"
-		case api.GRANTKUBERNETESKIND_CLUSTER_ROLE:
-			if !validClusterGrant[nsr.role] {
-				logging.S.Warnf("role binding skipped, cluster-role does not exist with name %s", nsr.role)
-				continue
-			}
-
-			kind = "ClusterRole"
-		default:
-			logging.S.Warnf("grantbinding skipped, invalid kind: %s", nsr.kind)
 			continue
 		}
 
-		rbs = append(rbs, &rbacv1.RoleBinding{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: fmt.Sprintf("infra:%s", nsr.role),
-				Labels: map[string]string{
-					"app.kubernetes.io/managed-by": "infra",
-				},
-				Namespace: nsr.namespace,
-			},
-			Subjects: subjs,
-			RoleRef: rbacv1.RoleRef{
-				APIGroup: "rbac.authorization.k8s.io",
-				Kind:     kind,
-				Name:     nsr.role,
-			},
-		})
-	}
-
-	existingInfraRbs, err := clientset.RbacV1().RoleBindings("").List(context.TODO(), metav1.ListOptions{LabelSelector: "app.kubernetes.io/managed-by=infra"})
-	if err != nil {
-		return err
-	}
-
-	toDelete := make(map[rbIdentifier]rbacv1.RoleBinding)
-
-	for _, existingRb := range existingInfraRbs.Items {
-		rbID := rbIdentifier{
-			namespace: existingRb.Namespace,
-			name:      existingRb.Name,
+		if err := k.updateClusterRoleBindings(ctx, clientset, binding, subjects, knownCRBs); err != nil {
+			logging.S.Infof("update cluster role binding: %w", err)
 		}
-		toDelete[rbID] = existingRb
 	}
 
-	// Create or update RoleBindings for users
-	for _, rb := range rbs {
-		_, err = clientset.RbacV1().RoleBindings(rb.Namespace).Update(context.TODO(), rb, metav1.UpdateOptions{})
-		if err != nil {
-			if k8sErrors.IsNotFound(err) {
-				_, err = clientset.RbacV1().RoleBindings(rb.Namespace).Create(context.TODO(), rb, metav1.CreateOptions{})
-				if err != nil {
-					if k8sErrors.IsNotFound(err) {
-						// the namespace does not exist
-						// we can proceed in this case, the role mapping is just not applicable to this cluster
-						logging.S.Warnf("skipping unapplicable namespace for this cluster: %s %s", rb.Namespace, err.Error())
-						continue
-					}
-
-					return err
-				}
-			} else {
-				return err
-			}
+	for rb := range knownRBs {
+		if err := clientset.RbacV1().RoleBindings(rb.namespace).Delete(ctx, rb.name, metav1.DeleteOptions{}); err != nil {
+			logging.S.Infof("delete role binding: %w", err)
+			continue
 		}
-		// remove anything we update or create from the previous RoleBindings that will be deleted
-		delete(toDelete, rbIdentifier{namespace: rb.Namespace, name: rb.Name})
 	}
 
-	// Delete any Role-kind RoleBindings managed by infra that aren't in the config
-	// Do not need to worry about deleted namespaces as they will also delete all their resources
-	for _, td := range toDelete {
-		err := clientset.RbacV1().RoleBindings(td.Namespace).Delete(context.TODO(), td.Name, metav1.DeleteOptions{})
-		if err != nil {
-			return err
+	for crb := range knownCRBs {
+		if err := clientset.RbacV1().ClusterRoleBindings().Delete(ctx, crb.name, metav1.DeleteOptions{}); err != nil {
+			logging.S.Infof("delete cluster role binding: %w", err)
+			continue
 		}
 	}
 
 	return nil
 }
 
-// UpdateClusterRoleBindings generates ClusterRoleBindings for GrantMappings
-func (k *Kubernetes) updateClusterRoleBindings(subjects map[string][]rbacv1.Subject) error {
-	clientset, err := kubernetes.NewForConfig(k.Config)
+func (k *Kubernetes) updateRoleBindings(ctx context.Context, clientset *kubernetes.Clientset, binding Binding, subjects []rbacv1.Subject, known map[BindingID]bool) error {
+	name := fmt.Sprintf("infra:%s", binding.role)
+	id := BindingID{name: name, namespace: binding.namespace}
+
+	rb := rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			Labels: map[string]string{
+				"app.kubernetes.io/managed-by": "infra",
+			},
+			Namespace: binding.namespace,
+		},
+		Subjects: subjects,
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind: "Role",
+			Name: binding.role,
+		},
+	}
+
+	var err error
+
+	if _, ok := known[id]; !ok {
+		_, err = clientset.RbacV1().RoleBindings(binding.namespace).Create(ctx, &rb, metav1.CreateOptions{})
+	} else {
+		_, err = clientset.RbacV1().RoleBindings(binding.namespace).Update(ctx, &rb, metav1.UpdateOptions{})
+	}
+
 	if err != nil {
 		return err
 	}
 
-	// store which cluster-grants currently exist locally
-	validClusterGrant := make(map[string]bool)
+	delete(known, id)
 
-	crs, err := clientset.RbacV1().ClusterRoles().List(context.TODO(), metav1.ListOptions{})
+	return nil
+}
+
+func (k *Kubernetes) updateClusterRoleBindings(ctx context.Context, clientset *kubernetes.Clientset, binding Binding, subjects []rbacv1.Subject, known map[BindingID]bool) error {
+	name := fmt.Sprintf("infra:%s", binding.role)
+	id := BindingID{name: name}
+
+	crb := rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			Labels: map[string]string{
+				"app.kubernetes.io/managed-by": "infra",
+			},
+		},
+		Subjects: subjects,
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind: "ClusterRole",
+			Name: binding.role,
+		},
+	}
+
+	var err error
+
+	if _, ok := known[id]; !ok {
+		_, err = clientset.RbacV1().ClusterRoleBindings().Create(ctx, &crb, metav1.CreateOptions{})
+	} else {
+		_, err = clientset.RbacV1().ClusterRoleBindings().Update(ctx, &crb, metav1.UpdateOptions{})
+	}
+
 	if err != nil {
 		return err
 	}
 
-	for _, cr := range crs.Items {
-		validClusterGrant[cr.Name] = true
-	}
-
-	crbs := []*rbacv1.ClusterRoleBinding{}
-
-	for role, subjs := range subjects {
-		if validClusterGrant[role] {
-			crbs = append(crbs, &rbacv1.ClusterRoleBinding{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: fmt.Sprintf("infra:%s", role),
-					Labels: map[string]string{
-						"app.kubernetes.io/managed-by": "infra",
-					},
-				},
-				Subjects: subjs,
-				RoleRef: rbacv1.RoleRef{
-					APIGroup: "rbac.authorization.k8s.io",
-					Kind:     "ClusterRole",
-					Name:     role,
-				},
-			})
-		}
-	}
-
-	existingInfraCrbs, err := clientset.RbacV1().ClusterRoleBindings().List(context.TODO(), metav1.ListOptions{LabelSelector: "app.kubernetes.io/managed-by=infra"})
-	if err != nil {
-		return err
-	}
-
-	toDelete := make(map[string]bool)
-	for _, existingCrb := range existingInfraCrbs.Items {
-		toDelete[existingCrb.Name] = true
-	}
-
-	// Create or update CRBs for users
-	for _, crb := range crbs {
-		_, err = clientset.RbacV1().ClusterRoleBindings().Update(context.TODO(), crb, metav1.UpdateOptions{})
-		if err != nil {
-			if k8sErrors.IsNotFound(err) {
-				_, err = clientset.RbacV1().ClusterRoleBindings().Create(context.TODO(), crb, metav1.CreateOptions{})
-				if err != nil {
-					return err
-				}
-			} else {
-				return err
-			}
-		}
-
-		delete(toDelete, crb.Name)
-	}
-
-	for name := range toDelete {
-		err := clientset.RbacV1().ClusterRoleBindings().Delete(context.TODO(), name, metav1.DeleteOptions{})
-		if err != nil {
-			return err
-		}
-	}
+	delete(known, id)
 
 	return nil
 }
@@ -283,98 +211,37 @@ func (k *Kubernetes) UpdateRoles(grants []api.Grant) error {
 	k.mu.Lock()
 	defer k.mu.Unlock()
 
-	logging.L.Debug("deduplicating users")
+	bindings := make(map[Binding][]rbacv1.Subject)
 
-	// group users together regardless of user or group assignment
-	for i, r := range grants {
-		tmp := make(map[string]api.User)
-
-		for _, u := range r.GetUsers() {
-			tmp[u.ID] = u
+	for _, g := range grants {
+		if g.Resource.Kind != "kubernetes" {
+			continue
 		}
 
-		for _, g := range r.GetGroups() {
-			for _, u := range g.GetUsers() {
-				tmp[u.ID] = u
-			}
+		binding := Binding{
+			role: g.Role,
+			namespace: g.Resource.Path,
 		}
 
-		// zero out grants[].Users and grants[].Groups
-		grants[i].SetUsers(make([]api.User, 0))
-		grants[i].SetGroups(make([]api.Group, 0))
-
-		// repopulate with deduplicated users
-		users := make([]api.User, 0)
-		for _, u := range tmp {
-			users = append(users, u)
+		for _, u := range g.GetUsers() {
+			bindings[binding] = append(bindings[binding], rbacv1.Subject{
+				APIGroup: "rbac.authorization.k8s.io",
+				Kind: "User",
+				Name: u.Email,
+			})
 		}
 
-		grants[i].SetUsers(users)
-	}
-
-	logging.L.Debug("syncing local grants from infra configuration")
-	// group together all users with the same role/namespace permissions
-	rbSubjects := make(map[namespaceRole][]rbacv1.Subject) // role bindings
-	crbSubjects := make(map[string][]rbacv1.Subject)       // cluster-role bindings
-
-	for _, r := range grants {
-		switch r.Kubernetes.Kind {
-		case api.GRANTKUBERNETESKIND_ROLE:
-			if r.Kubernetes.Namespace == "" {
-				logging.S.Errorf("skipping role binding with no namespace: %s", r.Kubernetes.Name)
-				continue
-			}
-
-			nspaceGrant := namespaceRole{
-				namespace: r.Kubernetes.Namespace,
-				role:      r.Kubernetes.Name,
-				kind:      string(r.Kubernetes.Kind),
-			}
-
-			for _, u := range r.GetUsers() {
-				rbSubjects[nspaceGrant] = append(rbSubjects[nspaceGrant], rbacv1.Subject{
-					APIGroup: "rbac.authorization.k8s.io",
-					Kind:     "User",
-					Name:     fmt.Sprintf("infra:%s", u.Email),
-				})
-			}
-
-		case api.GRANTKUBERNETESKIND_CLUSTER_ROLE:
-			if r.Kubernetes.Namespace == "" {
-				for _, u := range r.GetUsers() {
-					crbSubjects[r.Kubernetes.Name] = append(crbSubjects[r.Kubernetes.Name], rbacv1.Subject{
-						APIGroup: "rbac.authorization.k8s.io",
-						Kind:     "User",
-						Name:     fmt.Sprintf("infra:%s", u.Email),
-					})
-				}
-			} else {
-				// if this is a cluster role bound to a namespace, it needs a role binding rather than a cluster role binding
-				nspaceGrant := namespaceRole{
-					namespace: r.Kubernetes.Namespace,
-					role:      r.Kubernetes.Name,
-					kind:      string(r.Kubernetes.Kind),
-				}
-
-				for _, u := range r.GetUsers() {
-					rbSubjects[nspaceGrant] = append(rbSubjects[nspaceGrant], rbacv1.Subject{
-						APIGroup: "rbac.authorization.k8s.io",
-						Kind:     "User",
-						Name:     fmt.Sprintf("infra:%s", u.Email),
-					})
-				}
-			}
-		default:
-			logging.S.Errorf("Unknown role binding kind: %s", r.Kubernetes.Kind)
+		for _, g := range g.GetGroups() {
+			bindings[binding] = append(bindings[binding], rbacv1.Subject{
+				APIGroup: "rbac.authorization.k8s.io",
+				Kind: "Group",
+				Name: g.Name,
+			})
 		}
 	}
 
-	if err := k.updateRoleBindings(rbSubjects); err != nil {
-		return fmt.Errorf("update role bindings: %w", err)
-	}
-
-	if err := k.updateClusterRoleBindings(crbSubjects); err != nil {
-		return fmt.Errorf("update cluster role bindings: %w", err)
+	if err := k.updateBindings(bindings); err != nil {
+		return fmt.Errorf("update bindings: %w", err)
 	}
 
 	return nil
@@ -627,7 +494,7 @@ func (k *Kubernetes) Namespace() (string, error) {
 }
 
 func (k *Kubernetes) CA() ([]byte, error) {
-	contents, err := ioutil.ReadFile(CaFilePath)
+	contents, err := ioutil.ReadFile(CAFilePath)
 	if err != nil {
 		return nil, err
 	}
