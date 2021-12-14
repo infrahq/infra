@@ -5,8 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/infrahq/infra/internal/generate"
 	"github.com/stretchr/testify/require"
+
+	"github.com/infrahq/infra/internal/generate"
 )
 
 func TestIssueToken(t *testing.T) {

@@ -7,11 +7,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
+
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/registry/models"
-	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
 )
 
 func createUserToken(t *testing.T, db *gorm.DB, sessionDuration time.Duration) *models.Token {
