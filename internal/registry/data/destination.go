@@ -11,6 +11,10 @@ import (
 )
 
 func CreateDestination(db *gorm.DB, destination *models.Destination) (*models.Destination, error) {
+	if err := FindOrInitLabels(db, destination.Labels); err != nil {
+		return nil, err
+	}
+
 	if err := add(db, &models.Destination{}, destination, &models.Destination{}); err != nil {
 		return nil, err
 	}
@@ -19,6 +23,10 @@ func CreateDestination(db *gorm.DB, destination *models.Destination) (*models.De
 }
 
 func CreateOrUpdateDestination(db *gorm.DB, destination *models.Destination, condition interface{}) (*models.Destination, error) {
+	if err := FindOrInitLabels(db, destination.Labels); err != nil {
+		return nil, err
+	}
+
 	existing, err := GetDestination(db, condition)
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
@@ -69,6 +77,10 @@ func ListDestinations(db *gorm.DB, condition interface{}) ([]models.Destination,
 }
 
 func UpdateDestination(db *gorm.DB, destination *models.Destination, selector SelectorFunc) (*models.Destination, error) {
+	if err := FindOrInitLabels(db, destination.Labels); err != nil {
+		return nil, err
+	}
+
 	existing, err := GetDestination(db, selector(db))
 	if err != nil {
 		return nil, err
