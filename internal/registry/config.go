@@ -555,7 +555,7 @@ func (r *Registry) importAPITokens() error {
 		}
 
 		if _, err := data.CreateOrUpdateAPIToken(r.db, apiToken, tkn, &models.APIToken{Name: apiToken.Name}); err != nil {
-			return fmt.Errorf("update api tokens: %w", err)
+			return fmt.Errorf("import API tokens: %w", err)
 		}
 	}
 
