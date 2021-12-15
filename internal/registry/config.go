@@ -81,15 +81,15 @@ func (p *ConfigProvider) cleanupDomain() {
 }
 
 type ConfigDestination struct {
-	Name       string                 `yaml:"name"`
-	Labels     []string               `yaml:"labels"`
-	Kind       models.DestinationKind `yaml:"kind" validate:"required"`
-	Namespaces []string               `yaml:"namespaces"` // optional in the case of a cluster-role
+	Name       string   `yaml:"name"`
+	Labels     []string `yaml:"labels"`
+	Kind       string   `yaml:"kind" validate:"required"`
+	Namespaces []string `yaml:"namespaces"` // optional in the case of a cluster-role
 }
 
 type ConfigGrant struct {
 	Name         string              `yaml:"name" validate:"required"`
-	Kind         models.GrantKind    `yaml:"kind" validate:"required,oneof=role cluster-role"`
+	Kind         string              `yaml:"kind" validate:"required,oneof=role cluster-role"`
 	Destinations []ConfigDestination `yaml:"destinations" validate:"required,dive"`
 }
 
@@ -365,70 +365,44 @@ func importGroupGrantMappings(db *gorm.DB, groups []ConfigGroupMapping) ([]uuid.
 func importGrants(db *gorm.DB, grants []ConfigGrant) ([]uuid.UUID, error) {
 	toKeep := make([]uuid.UUID, 0)
 
-	for _, r := range grants {
-		if err := validate.Struct(r); err != nil {
+	for _, g := range grants {
+		if err := validate.Struct(g); err != nil {
 			return nil, err
 		}
 
-		for _, d := range r.Destinations {
+		for _, d := range g.Destinations {
 			if err := validate.Struct(d); err != nil {
 				return nil, err
 			}
 
-			destinations, err := data.ListDestinations(db, db.Where(
-				data.LabelSelector(db, "destination_id", d.Labels...),
-				&models.Destination{Name: d.Name, Kind: d.Kind},
-			))
-			if err != nil {
-				return nil, err
+			grant := models.Grant{
+				Role: g.Name,
+				Resource: models.Resource{
+					Kind: d.Kind,
+					Name: d.Name,
+				},
 			}
 
-		DESTINATION:
-			for _, destination := range destinations {
-				labels := make(map[string]bool)
-				for _, l := range destination.Labels {
-					labels[l.Value] = true
+			for _, l := range d.Labels {
+				grant.Labels = append(grant.Labels, models.Label{Value: l})
+			}
+
+			if len(d.Namespaces) == 0 {
+				d.Namespaces = []string{""}
+			}
+
+			for _, namespace := range d.Namespaces {
+				logging.S.Infof("namespace:%s", namespace)
+				grant.Resource.Path = namespace
+
+				grant, err := data.CreateOrUpdateGrant(db, &grant, models.Grant{})
+				if err != nil {
+					return nil, err
 				}
 
-				for _, l := range d.Labels {
-					if _, ok := labels[l]; !ok {
-						continue DESTINATION
-					}
-				}
+				logging.S.Infof("grant:%s", grant)
 
-				grant := models.Grant{
-					Kind:        models.GrantKind(destination.Kind),
-					Destination: destination,
-				}
-
-				grants := make([]models.Grant, 0)
-
-				switch grant.Kind {
-				case models.GrantKindKubernetes:
-					grant.Kubernetes = models.GrantKubernetes{
-						Kind: models.GrantKubernetesKind(r.Kind),
-						Name: r.Name,
-					}
-
-					if len(d.Namespaces) == 0 {
-						d.Namespaces = []string{""}
-					}
-
-					for _, namespace := range d.Namespaces {
-						grant.Kubernetes.Namespace = namespace
-
-						grants = append(grants, grant)
-					}
-				}
-
-				for i := range grants {
-					grant, err := data.CreateOrUpdateGrant(db, &grants[i], data.StrictGrantSelector(db, &grants[i]))
-					if err != nil {
-						return nil, err
-					}
-
-					toKeep = append(toKeep, grant.ID)
-				}
+				toKeep = append(toKeep, grant.ID)
 			}
 		}
 	}
