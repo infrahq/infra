@@ -19,6 +19,10 @@ func BindGroupUsers(db *gorm.DB, group *models.Group, users ...models.User) erro
 }
 
 func BindGroupGrants(db *gorm.DB, group *models.Group, grantIDs ...uuid.UUID) error {
+	for _, g := range group.Grants {
+		grantIDs = append(grantIDs, g.ID)
+	}
+
 	grants, err := ListGrants(db, grantIDs)
 	if err != nil {
 		return err

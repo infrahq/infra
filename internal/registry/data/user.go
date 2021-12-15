@@ -11,6 +11,10 @@ import (
 )
 
 func BindUserGrants(db *gorm.DB, user *models.User, grantIDs ...uuid.UUID) error {
+	for _, g := range user.Grants {
+		grantIDs = append(grantIDs, g.ID)
+	}
+
 	grants, err := ListGrants(db, grantIDs)
 	if err != nil {
 		return err
