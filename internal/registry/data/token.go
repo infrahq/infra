@@ -131,11 +131,6 @@ func CreateOrUpdateAPIToken(db *gorm.DB, apiToken *models.APIToken, token *model
 		return apiToken, nil
 	}
 
-	existingTkn, err := GetToken(db, &models.Token{APITokenID: existing.ID})
-	if err != nil {
-		return nil, fmt.Errorf("get old API token: %w", err)
-	}
-
 	if err := update(db, &models.APIToken{}, apiToken, db.Where(existing, "id")); err != nil {
 		return nil, err
 	}
@@ -143,16 +138,12 @@ func CreateOrUpdateAPIToken(db *gorm.DB, apiToken *models.APIToken, token *model
 	token.APITokenID = existing.ID
 	token.SessionDuration = apiToken.TTL
 
-	_, err = CreateToken(db, token)
+	_, err = CreateOrUpdateToken(db, token, &models.Token{APITokenID: existing.ID})
 	if err != nil {
 		return nil, fmt.Errorf("update api token issue: %w", err)
 	}
 
-	if err := DeleteToken(db, db.Where(existingTkn, "id")); err != nil {
-		return nil, fmt.Errorf("remove old api token: %w", err)
-	}
-
-	return GetAPIToken(db, &models.APIToken{})
+	return GetAPIToken(db, db.Where(existing, "id"))
 }
 
 func GetAPIToken(db *gorm.DB, condition interface{}) (*models.APIToken, error) {
