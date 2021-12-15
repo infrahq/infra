@@ -56,9 +56,9 @@ func GetGrant(db *gorm.DB, condition interface{}) (*models.Grant, error) {
 	return &grant, nil
 }
 
-func ListGrants(db *gorm.DB, condition interface{}) ([]models.Grant, error) {
+func ListGrants(db *gorm.DB, selector SelectorFunc) ([]models.Grant, error) {
 	grants := make([]models.Grant, 0)
-	if err := list(db, &models.Grant{}, &grants, condition); err != nil {
+	if err := list(db, &models.Grant{}, &grants, selector(db)); err != nil {
 		return nil, err
 	}
 
@@ -83,7 +83,9 @@ func UpdateGrant(db *gorm.DB, grant *models.Grant, selector SelectorFunc) (*mode
 }
 
 func DeleteGrants(db *gorm.DB, condition interface{}) error {
-	toDelete, err := ListGrants(db, condition)
+	toDelete, err := ListGrants(db, func(db *gorm.DB) *gorm.DB {
+		return db.Where(condition)
+	})
 	if err != nil {
 		return err
 	}
@@ -98,4 +100,25 @@ func DeleteGrants(db *gorm.DB, condition interface{}) error {
 	}
 
 	return nil
+}
+
+func ByGrantUser(user *models.User) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Joins("Users", user)
+	}
+}
+
+func ByGrantGroup(group *models.Group) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Joins("Groups", group)
+	}
+}
+
+func ByGrantDestination(destination *models.Destination) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		db = db.Where("resource_kind = ?", destination.Kind)
+		db = db.Where("resource_name = ?", destination.Name).Or("resource_name = ''")
+		db = db.Joins("Labels", destination.Labels)
+		return db
+	}
 }

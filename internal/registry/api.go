@@ -44,9 +44,11 @@ func NewAPIMux(reg *Registry, router *gin.RouterGroup) {
 	{
 		authorized.GET("/users", a.ListUsers)
 		authorized.GET("/users/:id", a.GetUser)
+		authorized.GET("/users/:id/grants", a.GetUserGrants)
 
 		authorized.GET("/groups", a.ListGroups)
 		authorized.GET("/groups/:id", a.GetGroup)
+		authorized.GET("/groups/:id/grants", a.GetGroupGrants)
 
 		authorized.GET("/grants", a.ListGrants)
 		authorized.GET("/grants/:id", a.GetGrant)
@@ -60,6 +62,7 @@ func NewAPIMux(reg *Registry, router *gin.RouterGroup) {
 
 		authorized.GET("/destinations", a.ListDestinations)
 		authorized.GET("/destinations/:id", a.GetDestination)
+		authorized.GET("/destinations/:id/grants", a.GetDestinationGrants)
 		authorized.POST("/destinations", a.CreateDestination)
 		authorized.PUT("/destinations/:id", a.UpdateDestination)
 		authorized.DELETE("/destinations/:id", a.DeleteDestination)
@@ -144,6 +147,33 @@ func (a *API) GetUser(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+func (a *API) GetUserGrants(c *gin.Context) {
+	var r Resource
+	if err := c.BindUri(&r); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	user, err := access.GetUser(c, r.ID)
+	if err != nil {
+		sendAPIError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	grants, err := access.ListGrants(c, user, nil, nil)
+	if err != nil {
+		sendAPIError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	results := make([]api.Grant, 0)
+	for _, g := range grants {
+		results = append(results, g.ToAPI())
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
 func (a *API) ListGroups(c *gin.Context) {
 	groupName := c.Request.URL.Query().Get("name")
 
@@ -177,6 +207,33 @@ func (a *API) GetGroup(c *gin.Context) {
 	result := group.ToAPI()
 
 	c.JSON(http.StatusOK, result)
+}
+
+func (a *API) GetGroupGrants(c *gin.Context) {
+	var r Resource
+	if err := c.BindUri(&r); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	group, err := access.GetGroup(c, r.ID)
+	if err != nil {
+		sendAPIError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	grants, err := access.ListGrants(c, nil, group, nil)
+	if err != nil {
+		sendAPIError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	results := make([]api.Grant, 0)
+	for _, g := range grants {
+		results = append(results, g.ToAPI())
+	}
+
+	c.JSON(http.StatusOK, results)
 }
 
 // caution: this endpoint is unauthenticated, do not return sensitive info
@@ -328,6 +385,33 @@ func (a *API) GetDestination(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+func (a *API) GetDestinationGrants(c *gin.Context) {
+	var r Resource
+	if err := c.BindUri(&r); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	destination, err := access.GetDestination(c, r.ID)
+	if err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	grants, err := access.ListGrants(c, nil, nil, destination)
+	if err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	results := make([]api.Grant, 0)
+	for _, grant := range grants {
+		results = append(results, grant.ToAPI())
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
 func (a *API) CreateDestination(c *gin.Context) {
 	var body api.DestinationRequest
 	if err := c.BindJSON(&body); err != nil {
@@ -464,10 +548,7 @@ func (a *API) CreateAPIToken(c *gin.Context) {
 }
 
 func (a *API) ListGrants(c *gin.Context) {
-	grantKind := c.Request.URL.Query().Get("kind")
-	destinationID := c.Request.URL.Query().Get("destination")
-
-	grants, err := access.ListGrants(c, grantKind, destinationID)
+	grants, err := access.ListGrants(c, nil, nil, nil)
 	if err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return

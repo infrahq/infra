@@ -415,7 +415,7 @@ func Run(options *Options) error {
 			}
 		}
 
-		grants, _, err := client.GrantsAPI.ListGrants(ctx).Destination(destinationID).Kind(api.GrantKind(kind)).Execute()
+		grants, _, err := client.GrantsAPI.ListGrants(ctx).Execute()
 		if err != nil {
 			logging.S.Errorf("error listing grants: %w", err)
 			return

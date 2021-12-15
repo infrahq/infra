@@ -23,7 +23,9 @@ func BindGroupGrants(db *gorm.DB, group *models.Group, grantIDs ...uuid.UUID) er
 		grantIDs = append(grantIDs, g.ID)
 	}
 
-	grants, err := ListGrants(db, grantIDs)
+	grants, err := ListGrants(db, func(db *gorm.DB) *gorm.DB {
+		return db.Where(grantIDs)
+	})
 	if err != nil {
 		return err
 	}

@@ -15,7 +15,9 @@ func BindUserGrants(db *gorm.DB, user *models.User, grantIDs ...uuid.UUID) error
 		grantIDs = append(grantIDs, g.ID)
 	}
 
-	grants, err := ListGrants(db, grantIDs)
+	grants, err := ListGrants(db, func(db *gorm.DB) *gorm.DB {
+		return db.Where(grantIDs)
+	})
 	if err != nil {
 		return err
 	}

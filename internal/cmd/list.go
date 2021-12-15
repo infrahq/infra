@@ -1,18 +1,18 @@
 package cmd
 
 import (
-	"fmt"
-	"net/http"
+	// "fmt"
+	// "net/http"
 	"os"
-	"sort"
-	"strings"
+	// "sort"
+	// "strings"
 
 	"github.com/lensesio/tableprinter"
-	"k8s.io/client-go/tools/clientcmd"
+	// "k8s.io/client-go/tools/clientcmd"
 
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/api"
-	"github.com/infrahq/infra/internal/logging"
+	// "github.com/infrahq/infra/internal/api"
+	// "github.com/infrahq/infra/internal/logging"
 )
 
 type ListOptions struct {
@@ -30,120 +30,120 @@ type listRow struct {
 }
 
 func list(options *ListOptions) error {
-	config, err := currentHostConfig()
-	if err != nil {
-		return err
-	}
+	//config, err := currentHostConfig()
+	//if err != nil {
+	//	return err
+	//}
 
-	client, err := apiClientFromConfig(options.Host)
-	if err != nil {
-		return err
-	}
+	//client, err := apiClientFromConfig(options.Host)
+	//if err != nil {
+	//	return err
+	//}
 
-	ctx, err := apiContextFromConfig(options.Host)
-	if err != nil {
-		return err
-	}
+	//ctx, err := apiContextFromConfig(options.Host)
+	//if err != nil {
+	//	return err
+	//}
 
-	users, res, err := client.UsersAPI.ListUsers(ctx).Email(config.Name).Execute()
-	if err != nil {
-		if res == nil {
-			return err
-		}
+	//users, res, err := client.UsersAPI.ListUsers(ctx).Email(config.Name).Execute()
+	//if err != nil {
+	//	if res == nil {
+	//		return err
+	//	}
 
-		switch res.StatusCode {
-		case http.StatusForbidden:
-			fmt.Fprintln(os.Stderr, "Session has expired.")
+	//	switch res.StatusCode {
+	//	case http.StatusForbidden:
+	//		fmt.Fprintln(os.Stderr, "Session has expired.")
 
-			if err = login(&LoginOptions{Current: true}); err != nil {
-				return err
-			}
+	//		if err = login(&LoginOptions{Current: true}); err != nil {
+	//			return err
+	//		}
 
-			return list(options)
+	//		return list(options)
 
-		default:
-			return errWithResponseContext(err, res)
-		}
-	}
+	//	default:
+	//		return errWithResponseContext(err, res)
+	//	}
+	//}
 
-	switch {
-	case len(users) < 1:
-		//lint:ignore ST1005, user facing error
-		return fmt.Errorf("User %q not found, is this account still valid?", config.Name)
-	case len(users) > 1:
-		//lint:ignore ST1005, user facing error
-		return fmt.Errorf("Found multiple users %q in Infra, the server configuration is invalid", config.Name)
-	}
+	//switch {
+	//case len(users) < 1:
+	//	//lint:ignore ST1005, user facing error
+	//	return fmt.Errorf("User %q not found, is this account still valid?", config.Name)
+	//case len(users) > 1:
+	//	//lint:ignore ST1005, user facing error
+	//	return fmt.Errorf("Found multiple users %q in Infra, the server configuration is invalid", config.Name)
+	//}
 
-	user := users[0]
+	//user := users[0]
 
-	kubeConfig, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), nil).RawConfig()
-	if err != nil {
-		logging.S.Errorf("k8s error: %w", err)
-	}
+	//kubeConfig, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), nil).RawConfig()
+	//if err != nil {
+	//	logging.S.Errorf("k8s error: %w", err)
+	//}
 
-	// deduplicate rows
-	rows := make(map[string]listRow)
-	for _, r := range user.GetGrants() {
-		rows[r.Destination.ID] = newRow(r, kubeConfig.CurrentContext)
-	}
+	//// deduplicate rows
+	//rows := make(map[string]listRow)
+	//for _, r := range user.GetGrants() {
+	//	rows[r.Destination.ID] = newRow(r, kubeConfig.CurrentContext)
+	//}
 
-	for _, g := range user.GetGroups() {
-		for _, r := range g.GetGrants() {
-			rows[r.Destination.ID] = newRow(r, kubeConfig.CurrentContext)
-		}
-	}
+	//for _, g := range user.GetGroups() {
+	//	for _, r := range g.GetGrants() {
+	//		rows[r.Destination.ID] = newRow(r, kubeConfig.CurrentContext)
+	//	}
+	//}
 
-	rowsList := make([]listRow, 0)
-	for _, r := range rows {
-		rowsList = append(rowsList, r)
-	}
+	//rowsList := make([]listRow, 0)
+	//for _, r := range rows {
+	//	rowsList = append(rowsList, r)
+	//}
 
-	sort.SliceStable(rowsList, func(i, j int) bool {
-		// Sort by combined name, descending
-		return rowsList[i].Name+rowsList[i].ID < rowsList[j].Name+rowsList[j].ID
-	})
+	//sort.SliceStable(rowsList, func(i, j int) bool {
+	//	// Sort by combined name, descending
+	//	return rowsList[i].Name+rowsList[i].ID < rowsList[j].Name+rowsList[j].ID
+	//})
 
-	printTable(rowsList)
+	//printTable(rowsList)
 
-	if err := updateKubeconfig(user); err != nil {
-		return err
-	}
+	//if err := updateKubeconfig(user); err != nil {
+	//	return err
+	//}
 
 	return nil
 }
 
-func newRow(grant api.Grant, currentContext string) listRow {
-	row := listRow{
-		ID:     grant.Destination.NodeID[:12],
-		Name:   grant.Destination.Name,
-		Labels: strings.Join(grant.Destination.Labels, ", "),
-	}
+// func newRow(grant api.Grant, currentContext string) listRow {
+// 	row := listRow{
+// 		ID:     grant.Destination.NodeID[:12],
+// 		Name:   grant.Destination.Name,
+// 		Labels: strings.Join(grant.Destination.Labels, ", "),
+// 	}
 
-	if k8s, ok := grant.Destination.GetKubernetesOK(); ok {
-		row.Endpoint = k8s.Endpoint
-		row.CertificateAuthorityData = []byte(k8s.CA)
-		row.Kind = "kubernetes"
-	}
+// 	if k8s, ok := grant.Destination.GetKubernetesOK(); ok {
+// 		row.Endpoint = k8s.Endpoint
+// 		row.CertificateAuthorityData = []byte(k8s.CA)
+// 		row.Kind = "kubernetes"
+// 	}
 
-	parts := strings.Split(currentContext, ":")
-	// TODO (#546): check against user specified prefix
-	if len(parts) >= 2 && parts[0] == "infra" {
-		// check "infra:<ALIAS>[@<NAME>][:<NAMESPACE>]"
-		parts := strings.Split(parts[1], "@")
-		if parts[0] == grant.Destination.Name {
-			if len(parts) > 1 && parts[1] == grant.Destination.NodeID[:12] {
-				// check "<ALIAS>@<NAME>"
-				row.CurrentlySelected = "*"
-			} else if len(parts) == 1 {
-				// check "<ALIAS>"
-				row.CurrentlySelected = "*"
-			}
-		}
-	}
+// 	parts := strings.Split(currentContext, ":")
+// 	// TODO (#546): check against user specified prefix
+// 	if len(parts) >= 2 && parts[0] == "infra" {
+// 		// check "infra:<ALIAS>[@<NAME>][:<NAMESPACE>]"
+// 		parts := strings.Split(parts[1], "@")
+// 		if parts[0] == grant.Destination.Name {
+// 			if len(parts) > 1 && parts[1] == grant.Destination.NodeID[:12] {
+// 				// check "<ALIAS>@<NAME>"
+// 				row.CurrentlySelected = "*"
+// 			} else if len(parts) == 1 {
+// 				// check "<ALIAS>"
+// 				row.CurrentlySelected = "*"
+// 			}
+// 		}
+// 	}
 
-	return row
-}
+// 	return row
+// }
 
 func printTable(data interface{}) {
 	table := tableprinter.New(os.Stdout)

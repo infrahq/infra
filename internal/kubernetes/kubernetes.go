@@ -104,6 +104,7 @@ func (k *Kubernetes) updateBindings(bindings map[Binding][]rbacv1.Subject) error
 	}
 
 	for binding, subjects := range bindings {
+		logging.S.Infof("role:%s namespace:%s", binding.role, binding.namespace)
 		if !strings.HasPrefix(binding.role, "cluster-") && binding.namespace != "" {
 			if err := k.updateRoleBindings(ctx, clientset, binding, subjects, knownRBs); err != nil {
 				logging.S.Infof("update role binding: %w", err)

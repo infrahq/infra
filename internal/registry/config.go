@@ -16,6 +16,7 @@ import (
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/secrets"
 )
 
@@ -428,10 +429,9 @@ func importGrantMappings(db *gorm.DB, users []ConfigUserMapping, groups []Config
 
 	toKeep = append(toKeep, ids...)
 
-	// explicitly query using ID field
-	if err := data.DeleteGrants(db, db.Not(toKeep)); err != nil {
-		return err
-	}
+	// if err := data.DeleteGrants(db, db.Not(toKeep)); err != nil {
+	// 	return err
+	// }
 
 	return nil
 }
@@ -529,7 +529,7 @@ func (r *Registry) importAPITokens() error {
 		}
 
 		if _, _, err = data.CreateAPIToken(r.db, apiToken, tkn); err != nil {
-			return fmt.Errorf("import API tokens: %w", err)
+			// return fmt.Errorf("import API tokens: %w", err)
 		}
 	}
 
