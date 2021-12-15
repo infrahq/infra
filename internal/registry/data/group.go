@@ -101,8 +101,5 @@ func DeleteGroups(db *gorm.DB, condition interface{}) error {
 }
 
 func GroupAssociations(db *gorm.DB) *gorm.DB {
-	db = db.Preload("Grants.Kubernetes").Preload("Grants.Destination.Kubernetes")
-	db = db.Preload("Users.Grants.Kubernetes").Preload("Users.Grants.Destination.Kubernetes")
-
 	return db
 }

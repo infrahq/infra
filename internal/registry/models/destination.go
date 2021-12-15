@@ -20,7 +20,7 @@ type Destination struct {
 	NodeID   string `gorm:"uniqueIndex:,where:deleted_at is NULL" validate:"required"`
 	Endpoint string
 
-	Labels []Label
+	Labels []Label `gorm:"many2many:destination_labels"`
 
 	Kubernetes DestinationKubernetes
 }

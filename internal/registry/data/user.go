@@ -93,8 +93,5 @@ func DeleteUsers(db *gorm.DB, condition interface{}) error {
 }
 
 func UserAssociations(db *gorm.DB) *gorm.DB {
-	db = db.Preload("Grants.Kubernetes").Preload("Grants.Destination.Kubernetes")
-	db = db.Preload("Groups.Grants.Kubernetes").Preload("Groups.Grants.Destination.Kubernetes")
-
 	return db
 }

@@ -12,13 +12,13 @@ import (
 type Grant struct {
 	Model
 
-	Role     string `gorm:"uniqueIndex:idx_grants_role_resource"`
+	Role     string `gorm:"uniqueIndex:idx_grants_role_resource,where:deleted_at is NULL"`
 	Resource `gorm:"embeddedPrefix:resource_"`
 
 	Groups []Group `gorm:"many2many:groups_grants"`
 	Users  []User  `gorm:"many2many:users_grants"`
 
-	Labels []Label
+	Labels []Label `gorm:"many2many:grant_labels"`
 }
 
 type Resource struct {

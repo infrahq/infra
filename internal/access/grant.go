@@ -2,7 +2,6 @@ package access
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
@@ -15,6 +14,15 @@ const (
 	PermissionGrantUpdate Permission = "infra.grant.update"
 	PermissionGrantDelete Permission = "infra.grant.delete"
 )
+
+func CreateGrant(c *gin.Context, grant *models.Grant) (*models.Grant, error) {
+	db, err := RequireAuthorization(c, PermissionGrantCreate)
+	if err != nil {
+		return nil, err
+	}
+
+	return data.CreateGrant(db, grant)
+}
 
 func GetGrant(c *gin.Context, id string) (*models.Grant, error) {
 	db, err := RequireAuthorization(c, PermissionGrantRead)
@@ -37,12 +45,28 @@ func ListGrants(c *gin.Context, kind, destinationID string) ([]models.Grant, err
 	}
 
 	grant := models.Grant{
-		Kind: models.GrantKind(kind),
+		Resource: models.Resource{
+			Kind: kind,
+		},
 	}
 
-	if id, err := uuid.Parse(destinationID); err == nil {
-		grant.DestinationID = id
+	return data.ListGrants(db, &grant)
+}
+
+func UpdateGrant(c *gin.Context, id string, grant *models.Grant) (*models.Grant, error) {
+	db, err := RequireAuthorization(c, PermissionGrantUpdate)
+	if err != nil {
+		return nil, err
 	}
 
-	return data.ListGrants(db, data.GrantSelector(db, &grant))
+	return data.UpdateGrant(db, grant, data.ByID(id))
+}
+
+func DeleteGrant(c *gin.Context, id string) error {
+	db, err := RequireAuthorization(c, PermissionGrantDelete)
+	if err != nil {
+		return err
+	}
+
+	return data.DeleteGrants(db, data.ByID(id))
 }

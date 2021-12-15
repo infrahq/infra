@@ -50,6 +50,9 @@ func NewAPIMux(reg *Registry, router *gin.RouterGroup) {
 
 		authorized.GET("/grants", a.ListGrants)
 		authorized.GET("/grants/:id", a.GetGrant)
+		authorized.POST("/grants", a.CreateGrant)
+		authorized.PUT("/grants/:id", a.UpdateGrant)
+		authorized.DELETE("/grants/:id", a.DeleteGrant)
 
 		authorized.POST("/providers", a.CreateProvider)
 		authorized.PUT("/providers/:id", a.UpdateProvider)
@@ -494,6 +497,79 @@ func (a *API) GetGrant(c *gin.Context) {
 	result := grant.ToAPI()
 
 	c.JSON(http.StatusOK, result)
+}
+
+func (a *API) CreateGrant(c *gin.Context) {
+	var body api.GrantRequest
+	if err := c.BindJSON(&body); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	grant := &models.Grant{}
+	if err := grant.FromAPI(&body); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	grant, err := access.CreateGrant(c, grant)
+	if err != nil {
+		sendAPIError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	result := grant.ToAPI()
+	c.JSON(http.StatusCreated, result)
+}
+
+func (a *API) UpdateGrant(c *gin.Context) {
+	var r Resource
+	if err := c.BindUri(&r); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	var body api.GrantRequest
+	if err := c.BindJSON(&body); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	grant, err := models.NewGrant(r.ID)
+	if err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	if err := grant.FromAPI(&body); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	grant, err = access.UpdateGrant(c, r.ID, grant)
+	if err != nil {
+		sendAPIError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	result := grant.ToAPI()
+	c.JSON(http.StatusOK, result)
+}
+
+func (a *API) DeleteGrant(c *gin.Context) {
+	var r Resource
+	if err := c.BindUri(&r); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	if err := access.DeleteGrant(c, r.ID); err != nil {
+		sendAPIError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+	c.Writer.WriteHeaderNow()
 }
 
 func (a *API) CreateToken(c *gin.Context) {

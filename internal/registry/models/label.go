@@ -1,14 +1,10 @@
 package models
 
-import (
-	"github.com/google/uuid"
-)
-
 type Label struct {
 	Model
 
 	Value string
 
-	DestinationID uuid.UUID
-	GrantID       uuid.UUID
+	Destinations []Destination `gorm:"many2many:destination_labels"`
+	Grant        []Grant       `gorm:"many2many:grant_labels"`
 }
