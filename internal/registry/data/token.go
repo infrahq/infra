@@ -10,13 +10,28 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/registry/models"
 )
 
 func CreateToken(db *gorm.DB, token *models.Token) (*models.Token, error) {
-	if err := models.Issue(token); err != nil {
-		return nil, fmt.Errorf("issue token create: %w", err)
+	if token.Key == "" {
+		key := generate.MathRandom(models.TokenKeyLength)
+		token.Key = key
 	}
+
+	if token.Secret == "" {
+		generated, err := generate.CryptoRandom(models.TokenSecretLength)
+		if err != nil {
+			return nil, err
+		}
+
+		token.Secret = generated
+	}
+
+	chksm := sha256.Sum256([]byte(token.Secret))
+	token.Checksum = chksm[:]
+	token.Expires = time.Now().Add(token.SessionDuration)
 
 	if err := add(db, &models.Token{}, token, &models.Token{}); err != nil {
 		return nil, err
@@ -40,9 +55,16 @@ func CreateOrUpdateToken(db *gorm.DB, token *models.Token, condition interface{}
 		return token, nil
 	}
 
-	if err := models.Issue(token); err != nil {
-		return nil, fmt.Errorf("issue token update: %w", err)
+	if token.Key == "" {
+		token.Key = existing.Key
 	}
+
+	if token.Secret != "" {
+		chksm := sha256.Sum256([]byte(token.Secret))
+		token.Checksum = chksm[:]
+	}
+
+	// no updating expiry here, because there isn't a need for it yet - Bruce
 
 	if err := update(db, &models.Token{}, token, db.Where(existing, "id")); err != nil {
 		return nil, err
