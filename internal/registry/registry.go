@@ -194,12 +194,6 @@ func (r *Registry) scheduleSyncJobs() {
 	syncProvidersTimer.Start(r.options.ProvidersSyncInterval, func() {
 		syncProviders(r)
 	})
-
-	// schedule destination sync job
-	syncDestinationsTimer := timer.NewTimer()
-	syncDestinationsTimer.Start(r.options.DestinationsSyncInterval, func() {
-		syncDestinations(r.db, time.Hour*1)
-	})
 }
 
 func (r *Registry) configureTelemetry() error {
