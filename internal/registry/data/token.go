@@ -136,7 +136,7 @@ func CreateOrUpdateAPIToken(db *gorm.DB, apiToken *models.APIToken, token *model
 		return nil, fmt.Errorf("get old API token: %w", err)
 	}
 
-	if err := update(db, &models.APIToken{}, apiToken, condition); err != nil {
+	if err := update(db, &models.APIToken{}, apiToken, db.Where(existing, "id")); err != nil {
 		return nil, err
 	}
 
