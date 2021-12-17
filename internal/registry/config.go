@@ -554,7 +554,7 @@ func (r *Registry) importAPITokens() error {
 			TTL:         oneHundredYears,
 		}
 
-		if _, _, err = data.CreateAPIToken(r.db, apiToken, tkn); err != nil {
+		if _, err := data.CreateOrUpdateAPIToken(r.db, apiToken, tkn, &models.APIToken{Name: apiToken.Name}); err != nil {
 			return fmt.Errorf("import API tokens: %w", err)
 		}
 	}
