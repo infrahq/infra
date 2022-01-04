@@ -163,6 +163,7 @@ func jwtMiddleware(next http.Handler, destination string, destinationName string
 
 		ctx := r.Context()
 		ctx = context.WithValue(ctx, internal.HttpContextKeyEmail{}, claims.Email)
+		ctx = context.WithValue(ctx, internal.HttpContextKeyGroups{}, claims.Groups)
 		ctx = context.WithValue(ctx, internal.HttpContextKeyDestination{}, destination)
 		ctx = context.WithValue(ctx, internal.HttpContextKeyDestinationName{}, destinationName)
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -194,7 +195,20 @@ func proxyHandler(ca []byte, bearerToken string, remote *url.URL) (http.HandlerF
 			return
 		}
 
+		groups, ok := r.Context().Value(internal.HttpContextKeyGroups{}).([]string)
+		if !ok {
+			logging.L.Debug("Proxy handler unable to retrieve groups from context")
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+
+			return
+		}
+
 		r.Header.Set("Impersonate-User", fmt.Sprintf("infra:%s", email))
+
+		for _, g := range groups {
+			r.Header.Set("Impersonate-Group", fmt.Sprintf("infra:%s", g))
+		}
+
 		r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", bearerToken))
 		proxy.ServeHTTP(w, r)
 	}, nil
