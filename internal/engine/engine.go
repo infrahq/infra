@@ -25,9 +25,9 @@ import (
 	"gopkg.in/square/go-jose.v2/jwt"
 
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/certs"
+	"github.com/infrahq/infra/internal/claims"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/pro/audit"
@@ -127,7 +127,7 @@ func jwtMiddleware(next http.Handler, destination string, destinationName string
 		out := make(map[string]interface{})
 		claims := struct {
 			jwt.Claims
-			access.CustomJWTClaims
+			claims.Custom
 		}{}
 		if err := tok.Claims(key, &claims, &out); err != nil {
 			logging.L.Debug("Invalid token claims")
@@ -149,7 +149,7 @@ func jwtMiddleware(next http.Handler, destination string, destinationName string
 			return
 		}
 
-		if err := validator.New().Struct(claims.CustomJWTClaims); err != nil {
+		if err := validator.New().Struct(claims.Custom); err != nil {
 			logging.L.Debug("JWT custom claims not valid")
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
