@@ -27,7 +27,7 @@ const (
 	PermissionCredentialCreate Permission = "infra.credential.create" //nolint:gosec
 )
 
-// IssueUserToken creates a session token that a user presents to Infra to assert authentication
+// IssueUserToken creates a session token that a user presents to the Infra server for authentication
 func IssueUserToken(c *gin.Context, email string, sessionDuration time.Duration) (*models.User, *models.Token, error) {
 	db, err := RequireAuthorization(c, Permission(""))
 	if err != nil {
@@ -81,7 +81,7 @@ func RevokeToken(c *gin.Context) (*models.Token, error) {
 	return token, nil
 }
 
-// IssueAPIToken creates a configurable session token that can be used to directly interact with the Infra API
+// IssueAPIToken creates a configurable session token that can be used to directly interact with the Infra server API
 func IssueAPIToken(c *gin.Context, apiToken *models.APIToken) (*models.APIToken, *models.Token, error) {
 	db, err := RequireAuthorization(c, PermissionAPITokenCreate)
 	if err != nil {

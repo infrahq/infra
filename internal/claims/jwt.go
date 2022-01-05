@@ -58,7 +58,7 @@ func CreateJWT(jwk []byte, user *models.User, destination string) (string, *time
 		IssuedAt:  jwt.NewNumericDate(now),
 	}
 
-	var groupNames []string
+	groupNames := make([]string, 0)
 	for _, g := range user.Groups {
 		groupNames = append(groupNames, g.Name)
 	}
