@@ -49,7 +49,7 @@ func CreateJWT(jwk []byte, user *models.User, destination string) (string, *time
 	}
 
 	now := time.Now()
-	expiry := now.Add(time.Minute * 5)
+	expiry := now.Add(time.Second * 30)
 
 	claim := jwt.Claims{
 		Issuer:    "InfraHQ",
