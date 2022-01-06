@@ -14,7 +14,7 @@ import (
 // Custom defines extended custom claims on top of the claims provided by go-jose
 type Custom struct {
 	Email       string   `json:"email" validate:"required"`
-	Groups      []string `json:"groups"`
+	Groups      []string `json:"groups" validate:"required"`
 	Destination string   `json:"dest" validate:"required"`
 	Nonce       string   `json:"nonce" validate:"required"`
 }
@@ -49,7 +49,7 @@ func CreateJWT(jwk []byte, user *models.User, destination string) (string, *time
 	}
 
 	now := time.Now()
-	expiry := now.Add(time.Second * 30)
+	expiry := now.Add(time.Minute * 1)
 
 	claim := jwt.Claims{
 		Issuer:    "InfraHQ",
