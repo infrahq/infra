@@ -124,6 +124,7 @@ func generateJWT(priv *jose.JSONWebKey, expiry time.Time) (string, error) {
 	}
 	custom := claims.Custom{
 		Email:       "test@test.com",
+		Groups:      []string{"developers"},
 		Nonce:       "randomstring",
 		Destination: "k8s",
 	}
