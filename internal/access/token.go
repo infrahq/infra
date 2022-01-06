@@ -6,11 +6,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"gopkg.in/square/go-jose.v2"
-	"gopkg.in/square/go-jose.v2/jwt"
 
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/internal/claims"
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
 )
@@ -29,12 +27,7 @@ const (
 	PermissionCredentialCreate Permission = "infra.credential.create" //nolint:gosec
 )
 
-type CustomJWTClaims struct {
-	Email       string `json:"email" validate:"required"`
-	Destination string `json:"dest" validate:"required"`
-	Nonce       string `json:"nonce" validate:"required"`
-}
-
+// IssueUserToken creates a session token that a user presents to the Infra server for authentication
 func IssueUserToken(c *gin.Context, email string, sessionDuration time.Duration) (*models.User, *models.Token, error) {
 	db, err := RequireAuthorization(c, Permission(""))
 	if err != nil {
@@ -88,6 +81,7 @@ func RevokeToken(c *gin.Context) (*models.Token, error) {
 	return token, nil
 }
 
+// IssueAPIToken creates a configurable session token that can be used to directly interact with the Infra server API
 func IssueAPIToken(c *gin.Context, apiToken *models.APIToken) (*models.APIToken, *models.Token, error) {
 	db, err := RequireAuthorization(c, PermissionAPITokenCreate)
 	if err != nil {
@@ -136,10 +130,7 @@ func RevokeAPIToken(c *gin.Context, id string) error {
 	return data.DeleteAPIToken(db, token)
 }
 
-var signatureAlgorithmFromKeyAlgorithm = map[string]string{
-	"ED25519": "EdDSA", // elliptic curve 25519
-}
-
+// IssueJWT creates a JWT that is presented to engines to assert authentication and claims
 func IssueJWT(c *gin.Context, destination string) (string, *time.Time, error) {
 	db, err := RequireAuthorization(c, PermissionCredentialCreate)
 	if err != nil {
@@ -162,48 +153,5 @@ func IssueJWT(c *gin.Context, destination string) (string, *time.Time, error) {
 		return "", nil, err
 	}
 
-	var sec jose.JSONWebKey
-	if err := sec.UnmarshalJSON(settings.PrivateJWK); err != nil {
-		return "", nil, err
-	}
-
-	algo, ok := signatureAlgorithmFromKeyAlgorithm[sec.Algorithm]
-	if !ok {
-		return "", nil, fmt.Errorf("unsupported algorithm")
-	}
-
-	options := &jose.SignerOptions{}
-
-	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.SignatureAlgorithm(algo), Key: sec}, options.WithType("JWT"))
-	if err != nil {
-		return "", nil, err
-	}
-
-	nonce, err := generate.CryptoRandom(10)
-	if err != nil {
-		return "", nil, err
-	}
-
-	now := time.Now()
-	expiry := now.Add(time.Minute * 5)
-
-	claim := jwt.Claims{
-		Issuer:    "InfraHQ",
-		NotBefore: jwt.NewNumericDate(now.Add(time.Minute * -5)), // adjust for clock drift
-		Expiry:    jwt.NewNumericDate(expiry),
-		IssuedAt:  jwt.NewNumericDate(now),
-	}
-
-	custom := CustomJWTClaims{
-		Email:       user.Email,
-		Destination: destination,
-		Nonce:       nonce,
-	}
-
-	raw, err := jwt.Signed(signer).Claims(claim).Claims(custom).CompactSerialize()
-	if err != nil {
-		return "", nil, err
-	}
-
-	return raw, &expiry, nil
+	return claims.CreateJWT(settings.PrivateJWK, user, destination)
 }

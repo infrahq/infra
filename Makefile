@@ -101,7 +101,6 @@ dev: $(VALUES) helm build/docker
 dev/clean:
 	kubectl config use-context docker-desktop
 	helm $(NS) uninstall infra || true
-	helm $(NS) uninstall infra-engine || true
 
 release: goreleaser
 	goreleaser release -f .goreleaser.yml --rm-dist
