@@ -21,7 +21,9 @@ type User struct {
 	// created time in seconds since 1970-01-01
 	Created int64 `json:"created"`
 	// updated time in seconds since 1970-01-01
-	Updated   int64       `json:"updated"`
+	Updated int64 `json:"updated"`
+	// timestamp of this users last interaction with Infra in seconds since 1970-01-01, 0 when a user has never connected
+	LastSeen  int64       `json:"lastSeen"`
 	Groups    *[]Group    `json:"groups,omitempty"`
 	Grants    *[]Grant    `json:"grants,omitempty"`
 	Providers *[]Provider `json:"providers,omitempty"`
@@ -31,12 +33,13 @@ type User struct {
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewUser(id string, email string, created int64, updated int64) *User {
+func NewUser(id string, email string, created int64, updated int64, lastSeen int64) *User {
 	this := User{}
 	this.ID = id
 	this.Email = email
 	this.Created = created
 	this.Updated = updated
+	this.LastSeen = lastSeen
 	return &this
 }
 
@@ -142,6 +145,30 @@ func (o *User) GetUpdatedOK() (*int64, bool) {
 // SetUpdated sets field value
 func (o *User) SetUpdated(v int64) {
 	o.Updated = v
+}
+
+// GetLastSeen returns the LastSeen field value
+func (o *User) GetLastSeen() int64 {
+	if o == nil {
+		var ret int64
+		return ret
+	}
+
+	return o.LastSeen
+}
+
+// GetLastSeenOK returns a tuple with the LastSeen field value
+// and a boolean to check if the value has been set.
+func (o *User) GetLastSeenOK() (*int64, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.LastSeen, true
+}
+
+// SetLastSeen sets field value
+func (o *User) SetLastSeen(v int64) {
+	o.LastSeen = v
 }
 
 // GetGroups returns the Groups field value if set, zero value otherwise.
@@ -253,6 +280,9 @@ func (o User) MarshalJSON() ([]byte, error) {
 	}
 	if true {
 		toSerialize["updated"] = o.Updated
+	}
+	if true {
+		toSerialize["lastSeen"] = o.LastSeen
 	}
 	if o.Groups != nil {
 		toSerialize["groups"] = o.Groups

@@ -2,6 +2,7 @@ package data
 
 import (
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -87,6 +88,22 @@ func DeleteUsers(db *gorm.DB, condition interface{}) error {
 		}
 
 		return remove(db, &models.User{}, ids)
+	}
+
+	return nil
+}
+
+// UpdateUserLastSeen updates the last time a user was seen without replacing the whole user
+func UpdateUserLastSeen(db *gorm.DB, id uuid.UUID, t time.Time) error {
+	user, err := GetUser(db, db.Where("id = ?", id))
+	if err != nil {
+		return err
+	}
+
+	user.LastSeen = t
+
+	if err := update(db, &models.User{}, user, db.Where(user, "id")); err != nil {
+		return err
 	}
 
 	return nil

@@ -1,6 +1,8 @@
 package models
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 
 	"github.com/infrahq/infra/internal/api"
@@ -12,6 +14,7 @@ type User struct {
 	Name        string
 	Email       string `gorm:"uniqueIndex:,where:deleted_at is NULL"`
 	Permissions string
+	LastSeen    time.Time // updated on when user uses a session token
 
 	Grants    []Grant    `gorm:"many2many:users_grants"`
 	Providers []Provider `gorm:"many2many:users_providers"`
@@ -19,10 +22,16 @@ type User struct {
 }
 
 func (u *User) ToAPI() api.User {
+	lastSeen := u.LastSeen.Unix()
+	if lastSeen < 0 {
+		lastSeen = 0
+	}
+
 	result := api.User{
-		ID:      u.ID.String(),
-		Created: u.CreatedAt.Unix(),
-		Updated: u.UpdatedAt.Unix(),
+		ID:       u.ID.String(),
+		Created:  u.CreatedAt.Unix(),
+		Updated:  u.UpdatedAt.Unix(),
+		LastSeen: lastSeen,
 
 		Email: u.Email,
 	}
