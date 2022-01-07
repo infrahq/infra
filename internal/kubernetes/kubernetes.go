@@ -302,7 +302,7 @@ func (k *Kubernetes) UpdateRoles(grants []api.Grant) error {
 				kind:      string(r.Kubernetes.Kind),
 			}
 
-			for _, u := range r.GetUsers() {
+			for _, u := range r.Users {
 				rbSubjects[nspaceRole] = append(rbSubjects[nspaceRole], rbacv1.Subject{
 					APIGroup: "rbac.authorization.k8s.io",
 					Kind:     "User",
@@ -310,7 +310,7 @@ func (k *Kubernetes) UpdateRoles(grants []api.Grant) error {
 				})
 			}
 
-			for _, g := range r.GetGroups() {
+			for _, g := range r.Groups {
 				rbSubjects[nspaceRole] = append(rbSubjects[nspaceRole], rbacv1.Subject{
 					APIGroup: "rbac.authorization.k8s.io",
 					Kind:     "Group",
@@ -320,7 +320,7 @@ func (k *Kubernetes) UpdateRoles(grants []api.Grant) error {
 
 		case api.GRANTKUBERNETESKIND_CLUSTER_ROLE:
 			if r.Kubernetes.Namespace == "" {
-				for _, u := range r.GetUsers() {
+				for _, u := range r.Users {
 					crbSubjects[r.Kubernetes.Name] = append(crbSubjects[r.Kubernetes.Name], rbacv1.Subject{
 						APIGroup: "rbac.authorization.k8s.io",
 						Kind:     "User",
@@ -328,7 +328,7 @@ func (k *Kubernetes) UpdateRoles(grants []api.Grant) error {
 					})
 				}
 
-				for _, g := range r.GetGroups() {
+				for _, g := range r.Groups {
 					crbSubjects[r.Kubernetes.Name] = append(crbSubjects[r.Kubernetes.Name], rbacv1.Subject{
 						APIGroup: "rbac.authorization.k8s.io",
 						Kind:     "Group",
@@ -343,7 +343,7 @@ func (k *Kubernetes) UpdateRoles(grants []api.Grant) error {
 					kind:      string(r.Kubernetes.Kind),
 				}
 
-				for _, u := range r.GetUsers() {
+				for _, u := range r.Users {
 					rbSubjects[nspaceRole] = append(rbSubjects[nspaceRole], rbacv1.Subject{
 						APIGroup: "rbac.authorization.k8s.io",
 						Kind:     "User",
@@ -351,7 +351,7 @@ func (k *Kubernetes) UpdateRoles(grants []api.Grant) error {
 					})
 				}
 
-				for _, g := range r.GetGroups() {
+				for _, g := range r.Groups {
 					rbSubjects[nspaceRole] = append(rbSubjects[nspaceRole], rbacv1.Subject{
 						APIGroup: "rbac.authorization.k8s.io",
 						Kind:     "Group",

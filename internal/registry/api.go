@@ -6,6 +6,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"gopkg.in/segmentio/analytics-go.v3"
 
 	"github.com/infrahq/infra/internal"
@@ -20,8 +22,22 @@ type API struct {
 	registry *Registry
 }
 
+type stringUUID string
+
+func (s stringUUID) UUID() (uuid.UUID, error) {
+	r, err := uuid.Parse(string(s))
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
+	}
+	return r, nil
+}
+
 type Resource struct {
-	ID string `uri:"id" binding:"required,uuid"`
+	ID uuid.UUID
+}
+
+type resource struct {
+	ID stringUUID `uri:"id" binding:"required,uuid"`
 }
 
 func NewAPIMux(reg *Registry, router *gin.RouterGroup) {
@@ -81,13 +97,12 @@ func NewAPIMux(reg *Registry, router *gin.RouterGroup) {
 	}
 }
 
-func sendAPIError(c *gin.Context, code int, err error) {
-	message := err.Error()
+func sendAPIError(c *gin.Context, err error) {
+	code := http.StatusInternalServerError
+	message := "internal server error" // don't leak any info by default
 
 	switch {
-	case errors.Is(err, internal.ErrExpired):
-		fallthrough
-	case errors.Is(err, internal.ErrInvalid):
+	case errors.Is(err, internal.ErrUnauthorized):
 		code = http.StatusUnauthorized
 		message = "unauthorized"
 	case errors.Is(err, internal.ErrForbidden):
@@ -95,9 +110,19 @@ func sendAPIError(c *gin.Context, code int, err error) {
 		message = "forbidden"
 	case errors.Is(err, internal.ErrDuplicate):
 		code = http.StatusConflict
+		message = err.Error()
 	case errors.Is(err, internal.ErrNotFound):
 		code = http.StatusNotFound
+		message = err.Error()
+	case errors.Is(err, internal.ErrBadRequest):
+		code = http.StatusBadRequest
+		message = err.Error()
+	case errors.Is(err, (*validator.InvalidValidationError)(nil)):
+		code = http.StatusBadRequest
+		message = err.Error()
 	}
+
+	logging.Logger(c).Errorw(err.Error(), "statusCode", code)
 
 	c.JSON(code, &api.Error{
 		Code:    int32(code),
@@ -107,11 +132,11 @@ func sendAPIError(c *gin.Context, code int, err error) {
 }
 
 func (a *API) ListUsers(c *gin.Context) {
-	userEmail := c.Request.URL.Query().Get("email")
+	userEmail := c.Query("email")
 
 	users, err := access.ListUsers(c, userEmail)
 	if err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
@@ -124,15 +149,15 @@ func (a *API) ListUsers(c *gin.Context) {
 }
 
 func (a *API) GetUser(c *gin.Context) {
-	var r Resource
-	if err := c.BindUri(&r); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+	r, err := bindUriResource(c)
+	if err != nil {
+		sendAPIError(c, err)
 		return
 	}
 
 	user, err := access.GetUser(c, r.ID)
 	if err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
@@ -146,7 +171,7 @@ func (a *API) ListGroups(c *gin.Context) {
 
 	groups, err := access.ListGroups(c, groupName)
 	if err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
@@ -159,21 +184,19 @@ func (a *API) ListGroups(c *gin.Context) {
 }
 
 func (a *API) GetGroup(c *gin.Context) {
-	var r Resource
-	if err := c.BindUri(&r); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+	r, err := bindUriResource(c)
+	if err != nil {
+		sendAPIError(c, err)
 		return
 	}
 
 	group, err := access.GetGroup(c, r.ID)
 	if err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
-	result := group.ToAPI()
-
-	c.JSON(http.StatusOK, result)
+	c.JSON(http.StatusOK, group.ToAPI())
 }
 
 // caution: this endpoint is unauthenticated, do not return sensitive info
@@ -183,7 +206,7 @@ func (a *API) ListProviders(c *gin.Context) {
 
 	providers, err := access.ListProviders(c, providerKind, providerDomain)
 	if err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
@@ -197,15 +220,15 @@ func (a *API) ListProviders(c *gin.Context) {
 
 // caution: this endpoint is unauthenticated, do not return sensitive info
 func (a *API) GetProvider(c *gin.Context) {
-	var r Resource
-	if err := c.BindUri(&r); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+	r, err := bindUriResource(c)
+	if err != nil {
+		sendAPIError(c, err)
 		return
 	}
 
 	provider, err := access.GetProvider(c, r.ID)
 	if err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
@@ -217,19 +240,19 @@ func (a *API) GetProvider(c *gin.Context) {
 func (a *API) CreateProvider(c *gin.Context) {
 	var body api.ProviderRequest
 	if err := c.BindJSON(&body); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
 	provider := &models.Provider{}
 	if err := provider.FromAPI(&body); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
 	provider, err := access.CreateProvider(c, provider)
 	if err != nil {
-		sendAPIError(c, http.StatusInternalServerError, err)
+		sendAPIError(c, err)
 		return
 	}
 
@@ -238,32 +261,32 @@ func (a *API) CreateProvider(c *gin.Context) {
 }
 
 func (a *API) UpdateProvider(c *gin.Context) {
-	var r Resource
-	if err := c.BindUri(&r); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+	r, err := bindUriResource(c)
+	if err != nil {
+		sendAPIError(c, err)
 		return
 	}
 
 	var body api.ProviderRequest
 	if err := c.BindJSON(&body); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
 	provider, err := models.NewProvider(r.ID)
 	if err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
 	if err := provider.FromAPI(&body); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
 	provider, err = access.UpdateProvider(c, r.ID, provider)
 	if err != nil {
-		sendAPIError(c, http.StatusInternalServerError, err)
+		sendAPIError(c, err)
 		return
 	}
 
@@ -272,14 +295,14 @@ func (a *API) UpdateProvider(c *gin.Context) {
 }
 
 func (a *API) DeleteProvider(c *gin.Context) {
-	var r Resource
-	if err := c.BindUri(&r); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+	r, err := bindUriResource(c)
+	if err != nil {
+		sendAPIError(c, err)
 		return
 	}
 
 	if err := access.DeleteProvider(c, r.ID); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
@@ -290,34 +313,34 @@ func (a *API) DeleteProvider(c *gin.Context) {
 func (a *API) ListDestinations(c *gin.Context) {
 	var query api.Destination
 	if err := c.ShouldBindQuery(&query); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
 	destinations, err := access.ListDestinations(c, string(query.Kind), query.NodeID, query.Name, query.Labels)
 	if err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
 	results := make([]api.Destination, 0)
 	for _, d := range destinations {
-		results = append(results, d.ToAPI())
+		results = append(results, *d.ToAPI())
 	}
 
 	c.JSON(http.StatusOK, results)
 }
 
 func (a *API) GetDestination(c *gin.Context) {
-	var r Resource
-	if err := c.BindUri(&r); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+	r, err := bindUriResource(c)
+	if err != nil {
+		sendAPIError(c, err)
 		return
 	}
 
 	destination, err := access.GetDestination(c, r.ID)
 	if err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
@@ -328,19 +351,19 @@ func (a *API) GetDestination(c *gin.Context) {
 func (a *API) CreateDestination(c *gin.Context) {
 	var body api.DestinationRequest
 	if err := c.BindJSON(&body); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
 		return
 	}
 
 	destination := &models.Destination{}
 	if err := destination.FromAPI(&body); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
-	destination, err := access.CreateDestination(c, destination)
+	err := access.CreateDestination(c, destination)
 	if err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
@@ -349,32 +372,28 @@ func (a *API) CreateDestination(c *gin.Context) {
 }
 
 func (a *API) UpdateDestination(c *gin.Context) {
-	var r Resource
-	if err := c.BindUri(&r); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+	r, err := bindUriResource(c)
+	if err != nil {
+		sendAPIError(c, err)
 		return
 	}
 
 	var body api.DestinationRequest
 	if err := c.BindJSON(&body); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
-	destination, err := models.NewDestination(r.ID)
-	if err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
-		return
-	}
+	destination := &models.Destination{Model: models.Model{ID: r.ID}}
 
 	if err := destination.FromAPI(&body); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
-	destination, err = access.UpdateDestination(c, r.ID, destination)
+	err = access.UpdateDestination(c, destination)
 	if err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
@@ -383,14 +402,14 @@ func (a *API) UpdateDestination(c *gin.Context) {
 }
 
 func (a *API) DeleteDestination(c *gin.Context) {
-	var r Resource
-	if err := c.BindUri(&r); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+	r, err := bindUriResource(c)
+	if err != nil {
+		sendAPIError(c, err)
 		return
 	}
 
 	if err := access.DeleteDestination(c, r.ID); err != nil {
-		sendAPIError(c, http.StatusInternalServerError, err)
+		sendAPIError(c, err)
 		return
 	}
 
@@ -403,7 +422,7 @@ func (a *API) ListAPITokens(c *gin.Context) {
 
 	keyTuples, err := access.ListAPITokens(c, keyName)
 	if err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
@@ -418,14 +437,14 @@ func (a *API) ListAPITokens(c *gin.Context) {
 }
 
 func (a *API) DeleteAPIToken(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
-		sendAPIError(c, http.StatusBadRequest, fmt.Errorf("invalid API token ID"))
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		sendAPIError(c, fmt.Errorf("%w: invalid API key ID: %s", internal.ErrBadRequest, err))
 		return
 	}
 
 	if err := access.RevokeAPIToken(c, id); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
@@ -436,24 +455,24 @@ func (a *API) DeleteAPIToken(c *gin.Context) {
 func (a *API) CreateAPIToken(c *gin.Context) {
 	var body api.InfraAPITokenCreateRequest
 	if err := c.BindJSON(&body); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
 		return
 	}
 
 	if err := validate.Struct(body); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
 	apiToken := &models.APIToken{}
 	if err := apiToken.FromAPI(&body, DefaultSessionDuration); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
-	apiToken, tkn, err := access.IssueAPIToken(c, apiToken)
+	tkn, err := access.IssueAPIToken(c, apiToken)
 	if err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
@@ -461,12 +480,12 @@ func (a *API) CreateAPIToken(c *gin.Context) {
 }
 
 func (a *API) ListGrants(c *gin.Context) {
-	grantKind := c.Request.URL.Query().Get("kind")
-	destinationID := c.Request.URL.Query().Get("destination")
+	grantKind := c.Query("kind")
+	destinationID, _ := uuid.Parse(c.Query("destination")) // should be destinationID ?
 
-	grants, err := access.ListGrants(c, grantKind, destinationID)
+	grants, err := access.ListGrants(c, models.GrantKind(grantKind), destinationID)
 	if err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
@@ -479,15 +498,15 @@ func (a *API) ListGrants(c *gin.Context) {
 }
 
 func (a *API) GetGrant(c *gin.Context) {
-	var r Resource
-	if err := c.BindUri(&r); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+	r, err := bindUriResource(c)
+	if err != nil {
+		sendAPIError(c, err)
 		return
 	}
 
 	grant, err := access.GetGrant(c, r.ID)
 	if err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
@@ -499,18 +518,18 @@ func (a *API) GetGrant(c *gin.Context) {
 func (a *API) CreateToken(c *gin.Context) {
 	var body api.TokenRequest
 	if err := c.BindJSON(&body); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
 		return
 	}
 
 	if err := validate.Struct(body); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
 	token, expiry, err := access.IssueJWT(c, body.Destination)
 	if err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
@@ -520,12 +539,12 @@ func (a *API) CreateToken(c *gin.Context) {
 func (a *API) Login(c *gin.Context) {
 	var body api.LoginRequest
 	if err := c.BindJSON(&body); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
 		return
 	}
 
 	if err := validate.Struct(body); err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
 		return
 	}
 
@@ -535,12 +554,12 @@ func (a *API) Login(c *gin.Context) {
 	case body.Okta != nil:
 		providers, err := access.ListProviders(c, "okta", body.Okta.Domain)
 		if err != nil {
-			sendAPIError(c, http.StatusBadRequest, err)
+			sendAPIError(c, err)
 			return
 		}
 
 		if len(providers) == 0 {
-			sendAPIError(c, http.StatusBadRequest, err)
+			sendAPIError(c, internal.ErrBadRequest)
 			return
 		}
 
@@ -548,7 +567,7 @@ func (a *API) Login(c *gin.Context) {
 
 		clientSecret, err := a.registry.GetSecret(string(provider.ClientSecret))
 		if err != nil {
-			sendAPIError(c, http.StatusBadRequest, err)
+			sendAPIError(c, err)
 			return
 		}
 
@@ -561,18 +580,18 @@ func (a *API) Login(c *gin.Context) {
 
 		email, err = okta.EmailFromCode(body.Okta.Code, provider.Domain, provider.ClientID, clientSecret)
 		if err != nil {
-			sendAPIError(c, http.StatusBadRequest, err)
+			sendAPIError(c, err)
 			return
 		}
 
 	default:
-		sendAPIError(c, http.StatusBadRequest, fmt.Errorf("invalid login request"))
+		sendAPIError(c, fmt.Errorf("invalid login request: %w", internal.ErrBadRequest))
 		return
 	}
 
 	user, token, err := access.IssueUserToken(c, email, a.registry.options.SessionDuration)
 	if err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
@@ -590,7 +609,7 @@ func (a *API) Login(c *gin.Context) {
 func (a *API) Logout(c *gin.Context) {
 	token, err := access.RevokeToken(c)
 	if err != nil {
-		sendAPIError(c, http.StatusBadRequest, err)
+		sendAPIError(c, err)
 		return
 	}
 
@@ -607,4 +626,18 @@ func (a *API) Logout(c *gin.Context) {
 
 func (a *API) Version(c *gin.Context) {
 	c.JSON(http.StatusOK, api.Version{Version: internal.Version})
+}
+
+func bindUriResource(c *gin.Context) (Resource, error) {
+	r := resource{}
+	if err := c.BindUri(&r); err != nil {
+		return Resource{}, fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
+	}
+
+	id, err := r.ID.UUID()
+	if err != nil {
+		return Resource{}, err
+	}
+
+	return Resource{ID: id}, nil
 }

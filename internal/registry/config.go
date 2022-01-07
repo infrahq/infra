@@ -409,8 +409,9 @@ func importGrants(db *gorm.DB, grants []ConfigGrant) ([]uuid.UUID, error) {
 				}
 
 				grant := models.Grant{
-					Kind:        models.GrantKind(destination.Kind),
-					Destination: destination,
+					Kind:          models.GrantKind(destination.Kind),
+					Destination:   &destination,
+					DestinationID: destination.ID,
 				}
 
 				grants := make([]models.Grant, 0)
@@ -434,7 +435,7 @@ func importGrants(db *gorm.DB, grants []ConfigGrant) ([]uuid.UUID, error) {
 				}
 
 				for i := range grants {
-					grant, err := data.CreateOrUpdateGrant(db, &grants[i], data.StrictGrantSelector(db, &grants[i]))
+					grant, err := data.CreateOrUpdateGrant(db, &grants[i])
 					if err != nil {
 						return nil, fmt.Errorf("persist grant: %w", err)
 					}
@@ -467,7 +468,10 @@ func importGrantMappings(db *gorm.DB, users []ConfigUserMapping, groups []Config
 	toKeep = append(toKeep, ids...)
 
 	// explicitly query using ID field
-	if err := data.DeleteGrants(db, db.Not(toKeep)); err != nil {
+	if err := data.DeleteGrants(db, data.NotByIDs(toKeep)); err != nil {
+		if err == internal.ErrNotFound {
+			return nil
+		}
 		return fmt.Errorf("not kept: %w", err)
 	}
 
@@ -532,7 +536,7 @@ func (r *Registry) importAPITokens() error {
 		"root": {
 			Secret: r.options.RootAPIToken,
 			Permissions: []string{
-				string(access.PermissionAllAlternate),
+				string(access.PermissionAllInfra),
 			},
 		},
 		"engine": {
@@ -566,7 +570,7 @@ func (r *Registry) importAPITokens() error {
 			TTL:         oneHundredYears,
 		}
 
-		if _, err := data.CreateOrUpdateAPIToken(r.db, apiToken, tkn, &models.APIToken{Name: apiToken.Name}); err != nil {
+		if _, err := data.CreateOrUpdateAPIToken(r.db, apiToken, tkn, data.ByName(apiToken.Name)); err != nil {
 			return fmt.Errorf("import API tokens: %w", err)
 		}
 	}

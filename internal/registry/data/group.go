@@ -19,7 +19,7 @@ func BindGroupUsers(db *gorm.DB, group *models.Group, users ...models.User) erro
 }
 
 func BindGroupGrants(db *gorm.DB, group *models.Group, grantIDs ...uuid.UUID) error {
-	grants, err := ListGrants(db, grantIDs)
+	grants, err := ListGrants(db, ByIDs(grantIDs))
 	if err != nil {
 		return err
 	}
@@ -71,6 +71,15 @@ func GetGroup(db *gorm.DB, condition interface{}) (*models.Group, error) {
 	}
 
 	return &group, nil
+}
+
+func ListUserGroups(db *gorm.DB, userID uuid.UUID) (result []models.Group, err error) {
+	err = db.Model("Group").Joins("User").Where("groups_users.user_id = ?", userID).Find(&result).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 func ListGroups(db *gorm.DB, condition interface{}) ([]models.Group, error) {

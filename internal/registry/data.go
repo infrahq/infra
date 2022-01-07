@@ -114,7 +114,7 @@ func syncUsers(db *gorm.DB, emails []string) error {
 		toKeep = append(toKeep, user.ID)
 	}
 
-	if err := data.DeleteUsers(db, db.Model(&models.User{}).Not(toKeep)); err != nil {
+	if err := data.DeleteUsers(db, data.ByIDNotInList(toKeep)); err != nil {
 		return err
 	}
 
@@ -130,7 +130,7 @@ func syncGroups(db *gorm.DB, groups map[string][]string) error {
 			return err
 		}
 
-		users, err := data.ListUsers(db, db.Where("email IN (?)", emails))
+		users, err := data.ListUsers(db, data.ByEmailInList(emails))
 		if err != nil {
 			return err
 		}

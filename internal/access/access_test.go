@@ -1,19 +1,17 @@
 package access
 
 import (
-	"fmt"
-	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
-	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
 )
@@ -32,341 +30,175 @@ func setupDB(t *testing.T) *gorm.DB {
 	return db
 }
 
-func issueToken(t *testing.T, db *gorm.DB, email, permissions string, sessionDuration time.Duration) string {
-	user, err := data.CreateUser(db, &models.User{Email: email, Permissions: permissions})
-	require.NoError(t, err)
-
-	token := &models.Token{
-		UserID:          user.ID,
-		SessionDuration: sessionDuration,
-	}
-	token, err = data.CreateToken(db, token)
-	require.NoError(t, err)
-
-	return token.SessionToken()
-}
-
-func TestRequireAuthentication(t *testing.T) {
-	cases := map[string]map[string]interface{}{
-		"UserTokenValid": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				authentication := issueToken(t, db, "existing@infrahq.com", "*", time.Minute*1)
-				r := httptest.NewRequest(http.MethodGet, "/", nil)
-				r.Header.Add("Authorization", "Bearer "+authentication)
-				c.Request = r
+func TestRequireAuthorization(t *testing.T) {
+	cases := []struct {
+		Name                string
+		RequiredPermissions []Permission
+		AuthFunc            func(t *testing.T, db *gorm.DB, c *gin.Context)
+		VerifyFunc          func(t *testing.T, err error)
+	}{
+		{
+			Name:                "AuthorizedAll",
+			RequiredPermissions: []Permission{PermissionUserRead},
+			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				c.Set("permissions", string(PermissionAll))
 			},
-			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
+			VerifyFunc: func(t *testing.T, err error) {
 				require.NoError(t, err)
-				permissions, ok := c.Get("permissions")
-				require.True(t, ok)
-				require.Equal(t, "*", permissions)
 			},
 		},
-		"APITokenValid": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				_, token, err := data.CreateAPIToken(db, &models.APIToken{Name: "valid-api-client", Permissions: "*", TTL: 1 * time.Minute}, &models.Token{})
-				require.NoError(t, err)
-
-				r := httptest.NewRequest(http.MethodGet, "/", nil)
-				r.Header.Add("Authorization", "Bearer "+token.SessionToken())
-				c.Request = r
+		{
+			Name:                "AuthorizedAllInfra",
+			RequiredPermissions: []Permission{PermissionUserRead},
+			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				c.Set("permissions", string(PermissionAllInfra))
 			},
-			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
+			VerifyFunc: func(t *testing.T, err error) {
 				require.NoError(t, err)
-				permissions, ok := c.Get("permissions")
-				require.True(t, ok)
-				require.Equal(t, "*", permissions)
 			},
 		},
-		"TokenSinglePermissionUpdatedToMatchParentUser": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				authentication := issueToken(t, db, "existing@infrahq.com", string(PermissionAPITokenCreate), time.Minute*1)
-				// user permissions updated after token is issued
-				_, err := data.CreateOrUpdateUser(db, &models.User{Email: "existing@infrahq.com", Permissions: string(PermissionCredentialCreate)}, &models.User{Email: "existing@infrahq.com"})
+		{
+			Name:                "AuthorizedExactMatch",
+			RequiredPermissions: []Permission{PermissionUserRead},
+			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				c.Set("permissions", string(PermissionUserRead))
+			},
+			VerifyFunc: func(t *testing.T, err error) {
 				require.NoError(t, err)
-				r := httptest.NewRequest(http.MethodGet, "/", nil)
-				r.Header.Add("Authorization", "Bearer "+authentication)
-				c.Request = r
 			},
-			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
+		},
+		{
+			Name:                "AuthorizedOneOfMany",
+			RequiredPermissions: []Permission{PermissionUserRead},
+			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				permissions := []string{string(PermissionUserRead), string(PermissionUserCreate), string(PermissionUserDelete)}
+				c.Set("permissions", strings.Join(permissions, " "))
+			},
+			VerifyFunc: func(t *testing.T, err error) {
 				require.NoError(t, err)
-				permissions, ok := c.Get("permissions")
-				require.True(t, ok)
-				require.Equal(t, string(PermissionCredentialCreate), permissions)
 			},
 		},
-		"TokenMultiplePermissionsUpdatedToMatchParentUser": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				permissions := []string{string(PermissionAPITokenCreate), string(PermissionCredentialCreate)}
-				authentication := issueToken(t, db, "existing@infrahq.com", strings.Join(permissions, " "), time.Minute*1)
-				// user permissions updated after token is issued
-				_, err := data.CreateOrUpdateUser(db, &models.User{Email: "existing@infrahq.com", Permissions: string(PermissionCredentialCreate)}, &models.User{Email: "existing@infrahq.com"})
+		{
+			Name:                "AuthorizedWildcardAction",
+			RequiredPermissions: []Permission{PermissionUserRead},
+			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				c.Set("permissions", string(PermissionUser))
+			},
+			VerifyFunc: func(t *testing.T, err error) {
 				require.NoError(t, err)
-				r := httptest.NewRequest(http.MethodGet, "/", nil)
-				r.Header.Add("Authorization", "Bearer "+authentication)
-				c.Request = r
 			},
-			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
+		},
+		{
+			Name:                "AuthorizedWildcardResource",
+			RequiredPermissions: []Permission{PermissionUserRead},
+			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				c.Set("permissions", string(PermissionAllRead))
+			},
+			VerifyFunc: func(t *testing.T, err error) {
 				require.NoError(t, err)
-				permissions, ok := c.Get("permissions")
-				require.True(t, ok)
-				require.Equal(t, string(PermissionCredentialCreate), permissions)
 			},
 		},
-		"TokenExpired": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				authentication := issueToken(t, db, "existing@infrahq.com", "*", time.Minute*-1)
-				r := httptest.NewRequest(http.MethodGet, "/", nil)
-				r.Header.Add("Authorization", "Bearer "+authentication)
-				c.Request = r
+		{
+			Name:                "APITokenAuthorizedNotFirst",
+			RequiredPermissions: []Permission{PermissionUserRead},
+			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				permissions := []string{string(PermissionGroupRead), string(PermissionProviderRead), string(PermissionUserRead)}
+				c.Set("permissions", strings.Join(permissions, " "))
 			},
-			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.EqualError(t, err, "rejected token: token expired")
-			},
-		},
-		"TokenInvalidKey": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				token := issueToken(t, db, "existing@infrahq.com", "*", time.Minute*1)
-				secret := token[models.TokenKeyLength:]
-				authentication := fmt.Sprintf("%s%s", generate.MathRandom(models.TokenKeyLength), secret)
-				r := httptest.NewRequest(http.MethodGet, "/", nil)
-				r.Header.Add("Authorization", "Bearer "+authentication)
-				c.Request = r
-			},
-			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.EqualError(t, err, "could not get token from database, it may not exist: record not found")
-			},
-		},
-		"TokenNoMatch": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				authentication := generate.MathRandom(models.TokenLength)
-				r := httptest.NewRequest(http.MethodGet, "/", nil)
-				r.Header.Add("Authorization", "Bearer "+authentication)
-				c.Request = r
-			},
-			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.EqualError(t, err, "could not get token from database, it may not exist: record not found")
-			},
-		},
-		"TokenInvalidSecret": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				token := issueToken(t, db, "existing@infrahq.com", "*", time.Minute*1)
-				key := token[:models.TokenKeyLength]
-				secret, err := generate.CryptoRandom(models.TokenSecretLength)
+			VerifyFunc: func(t *testing.T, err error) {
 				require.NoError(t, err)
-				authentication := fmt.Sprintf("%s%s", key, secret)
-				r := httptest.NewRequest(http.MethodGet, "/", nil)
-				r.Header.Add("Authorization", "Bearer "+authentication)
-				c.Request = r
-			},
-			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.EqualError(t, err, "rejected invalid token: token invalid secret")
 			},
 		},
-		"UnknownAuthenticationMethod": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				authentication, err := generate.CryptoRandom(32)
+		{
+			Name:                "APITokenAuthorizedNotLast",
+			RequiredPermissions: []Permission{PermissionUserRead},
+			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				permissions := []string{string(PermissionGroupRead), string(PermissionUserRead), string(PermissionProviderRead)}
+				c.Set("permissions", strings.Join(permissions, " "))
+			},
+			VerifyFunc: func(t *testing.T, err error) {
 				require.NoError(t, err)
-				r := httptest.NewRequest(http.MethodGet, "/", nil)
-				r.Header.Add("Authorization", "Bearer "+authentication)
-				c.Request = r
-			},
-			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.EqualError(t, err, "rejected token of invalid length")
 			},
 		},
-		"NoAuthentication": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				// nil pointer if we don't seup the request header here
-				r := httptest.NewRequest(http.MethodGet, "/", nil)
-				c.Request = r
+		{
+			Name:                "APITokenAuthorizedNoMatch",
+			RequiredPermissions: []Permission{PermissionUserRead},
+			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				permissions := []string{string(PermissionUserCreate), string(PermissionGroupRead)}
+				c.Set("permissions", strings.Join(permissions, " "))
 			},
-			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.EqualError(t, err, "valid token not found in authorization header, expecting the format `Bearer $token`")
-			},
-		},
-		"EmptyAuthentication": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				r := httptest.NewRequest(http.MethodGet, "/", nil)
-				r.Header.Add("Authorization", "")
-				c.Request = r
-			},
-			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.EqualError(t, err, "valid token not found in authorization header, expecting the format `Bearer $token`")
+			VerifyFunc: func(t *testing.T, err error) {
+				require.EqualError(t, err, `missing permission "infra.user.read": forbidden`)
 			},
 		},
-		"TokenParentUserDeleted": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				email := "token-parent@infrahq.com"
-				authentication := issueToken(t, db, email, "*", time.Minute*1)
-
-				err := data.DeleteUsers(db, &models.User{Email: email})
+		{
+			Name:                "NotRequired",
+			RequiredPermissions: []Permission{},
+			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
+			},
+			VerifyFunc: func(t *testing.T, err error) {
 				require.NoError(t, err)
-
-				r := httptest.NewRequest(http.MethodGet, "/", nil)
-				r.Header.Add("Authorization", "Bearer "+authentication)
-				c.Request = r
-			},
-			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.EqualError(t, err, "token user lookup: record not found")
-			},
-		},
-		"TokenParentAPIClientDeleted": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				apiClient := "token-client"
-				apiToken, token, err := data.CreateAPIToken(db, &models.APIToken{Name: apiClient}, &models.Token{})
-				require.NoError(t, err)
-
-				err = data.DeleteAPIToken(db, apiToken)
-				require.NoError(t, err)
-
-				r := httptest.NewRequest(http.MethodGet, "/", nil)
-				r.Header.Add("Authorization", "Bearer "+token.SessionToken())
-				c.Request = r
-			},
-			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.EqualError(t, err, "could not get token from database, it may not exist: record not found")
 			},
 		},
 	}
 
-	for k, v := range cases {
-		t.Run(k, func(t *testing.T) {
+	for _, test := range cases {
+		t.Run(test.Name, func(t *testing.T) {
 			db := setupDB(t)
 
 			c, _ := gin.CreateTestContext(httptest.NewRecorder())
 			c.Set("db", db)
 
-			authFunc, ok := v["authFunc"].(func(*testing.T, *gorm.DB, *gin.Context))
-			require.True(t, ok)
-			authFunc(t, db, c)
+			test.AuthFunc(t, db, c)
 
-			err := RequireAuthentication(c)
-
-			verifyFunc, ok := v["verifyFunc"].(func(*testing.T, *gin.Context, error))
-			require.True(t, ok)
-
-			verifyFunc(t, c, err)
+			_, err := requireAuthorization(c, test.RequiredPermissions...)
+			test.VerifyFunc(t, err)
 		})
 	}
 }
 
-func TestRequireAuthorization(t *testing.T) {
-	cases := map[string]map[string]interface{}{
-		"AuthorizedAll": {
-			"permission": PermissionUserRead,
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(PermissionAll))
-			},
-			"verifyFunc": func(t *testing.T, err error) {
-				require.NoError(t, err)
-			},
+func TestRequireAuthorizationWithCheck(t *testing.T) {
+	userID := uuid.New()
+
+	tests := []struct {
+		Name             string
+		CurrentUser      *models.User
+		PermissionWanted Permission
+		CustomCheckFn    func(cUser *models.User) bool
+		ErrorExpected    error
+	}{
+		{
+			Name:             "wrong user with no permissions",
+			CurrentUser:      &models.User{},
+			PermissionWanted: PermissionDestinationRead,
+			CustomCheckFn:    func(cUser *models.User) bool { return false },
+			ErrorExpected:    internal.ErrForbidden,
 		},
-		"AuthorizedAllAlternate": {
-			"permission": PermissionUserRead,
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(PermissionAllAlternate))
-			},
-			"verifyFunc": func(t *testing.T, err error) {
-				require.NoError(t, err)
-			},
-		},
-		"AuthorizedExactMatch": {
-			"permission": PermissionUserRead,
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(PermissionUserRead))
-			},
-			"verifyFunc": func(t *testing.T, err error) {
-				require.NoError(t, err)
-			},
-		},
-		"AuthorizedOneOfMany": {
-			"permission": PermissionUserRead,
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				permissions := []string{string(PermissionUserRead), string(PermissionUserCreate), string(PermissionUserDelete)}
-				c.Set("permissions", strings.Join(permissions, " "))
-			},
-			"verifyFunc": func(t *testing.T, err error) {
-				require.NoError(t, err)
-			},
-		},
-		"AuthorizedWildcardAction": {
-			"permission": PermissionUserRead,
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(PermissionUser))
-			},
-			"verifyFunc": func(t *testing.T, err error) {
-				require.NoError(t, err)
-			},
-		},
-		"AuthorizedWildcardResource": {
-			"permission": PermissionUserRead,
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(PermissionAllRead))
-			},
-			"verifyFunc": func(t *testing.T, err error) {
-				require.NoError(t, err)
-			},
-		},
-		"APITokenAuthorizedNotFirst": {
-			"permission": PermissionUserRead,
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				permissions := []string{string(PermissionGroupRead), string(PermissionProviderRead), string(PermissionUserRead)}
-				c.Set("permissions", strings.Join(permissions, " "))
-			},
-			"verifyFunc": func(t *testing.T, err error) {
-				require.NoError(t, err)
-			},
-		},
-		"APITokenAuthorizedNotLast": {
-			"permission": PermissionUserRead,
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				permissions := []string{string(PermissionGroupRead), string(PermissionUserRead), string(PermissionProviderRead)}
-				c.Set("permissions", strings.Join(permissions, " "))
-			},
-			"verifyFunc": func(t *testing.T, err error) {
-				require.NoError(t, err)
-			},
-		},
-		"APITokenAuthorizedNoMatch": {
-			"permission": PermissionUserRead,
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				permissions := []string{string(PermissionUserCreate), string(PermissionGroupRead)}
-				c.Set("permissions", strings.Join(permissions, " "))
-			},
-			"verifyFunc": func(t *testing.T, err error) {
-				require.EqualError(t, err, "forbidden")
-			},
-		},
-		"NotRequired": {
-			"permission": Permission(""),
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-			},
-			"verifyFunc": func(t *testing.T, err error) {
-				require.NoError(t, err)
-			},
+		{
+			Name:             "right user with no permissions",
+			CurrentUser:      &models.User{Model: models.Model{ID: userID}},
+			PermissionWanted: PermissionDestinationRead,
+			CustomCheckFn:    func(cUser *models.User) bool { return cUser.ID == userID },
+			ErrorExpected:    nil,
 		},
 	}
 
-	for k, v := range cases {
-		t.Run(k, func(t *testing.T) {
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
 			db := setupDB(t)
-
-			c, _ := gin.CreateTestContext(httptest.NewRecorder())
+			c, _ := gin.CreateTestContext(nil)
 			c.Set("db", db)
+			c.Set("permissions", test.CurrentUser.Permissions)
+			c.Set("user", test.CurrentUser)
+			c.Set("user_id", test.CurrentUser.ID)
 
-			authFunc, ok := v["authFunc"].(func(*testing.T, *gorm.DB, *gin.Context))
-			require.True(t, ok)
-			authFunc(t, db, c)
+			_, err := requireAuthorizationWithCheck(c, test.PermissionWanted, test.CustomCheckFn)
 
-			permission, ok := v["permission"].(Permission)
-			require.True(t, ok)
-			_, err := RequireAuthorization(c, permission)
-
-			verifyFunc, ok := v["verifyFunc"].(func(*testing.T, error))
-			require.True(t, ok)
-
-			verifyFunc(t, err)
+			if test.ErrorExpected != nil {
+				require.ErrorIs(t, err, test.ErrorExpected)
+			} else {
+				require.NoError(t, err)
+			}
 		})
 	}
 }
@@ -399,7 +231,7 @@ func TestAllRequired(t *testing.T) {
 			"expected":    true,
 		},
 		"AllPermissionsAlternate": {
-			"permissions": []string{string(PermissionAllAlternate)},
+			"permissions": []string{string(PermissionAllInfra)},
 			"required":    []string{string(PermissionUserDelete)},
 			"expected":    true,
 		},

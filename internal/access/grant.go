@@ -16,33 +16,31 @@ const (
 	PermissionGrantDelete Permission = "infra.grant.delete"
 )
 
-func GetGrant(c *gin.Context, id string) (*models.Grant, error) {
-	db, err := RequireAuthorization(c, PermissionGrantRead)
+func GetGrant(c *gin.Context, id uuid.UUID) (*models.Grant, error) {
+	db, err := requireAuthorization(c, PermissionGrantRead)
 	if err != nil {
 		return nil, err
 	}
 
-	grant, err := models.NewGrant(id)
-	if err != nil {
-		return nil, err
-	}
-
-	return data.GetGrant(db, grant)
+	return data.GetGrant(db, data.ByID(id))
 }
 
-func ListGrants(c *gin.Context, kind, destinationID string) ([]models.Grant, error) {
-	db, err := RequireAuthorization(c, PermissionGrantRead)
+func ListGrants(c *gin.Context, kind models.GrantKind, destinationID uuid.UUID) ([]models.Grant, error) {
+	db, err := requireAuthorization(c, PermissionGrantRead)
 	if err != nil {
 		return nil, err
 	}
 
-	grant := models.Grant{
-		Kind: models.GrantKind(kind),
+	return data.ListGrants(db, data.ByGrantKind(kind), data.ByDestinationID(destinationID))
+}
+
+func ListUserGrants(c *gin.Context, userID uuid.UUID) ([]models.Grant, error) {
+	db, err := requireAuthorizationWithCheck(c, PermissionGrantRead, func(user *models.User) bool {
+		return userID == user.ID
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	if id, err := uuid.Parse(destinationID); err == nil {
-		grant.DestinationID = id
-	}
-
-	return data.ListGrants(db, data.GrantSelector(db, &grant))
+	return data.ListUserGrants(db, userID)
 }

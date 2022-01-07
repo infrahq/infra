@@ -7,20 +7,56 @@ import (
 
 type SelectorFunc func(db *gorm.DB) *gorm.DB
 
-func ByID(id string) SelectorFunc {
+func ByID(id uuid.UUID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("id = ?", id)
+		return db.Where("id = ?", id.String())
 	}
 }
 
-func ByUUID(id uuid.UUID) SelectorFunc {
+func ByAPITokenID(id uuid.UUID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("id = ?", id)
+		return db.Where("api_token_id = ?", id.String())
 	}
 }
 
 func ByName(name string) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("name = ?", name)
+		if len(name) > 0 {
+			return db.Where("name = ?", name)
+		}
+
+		return db
+	}
+}
+
+func ByEmail(email string) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		if len(email) > 0 {
+			return db.Where("email = ?", email)
+		}
+
+		return db
+	}
+}
+
+func ByIDs(ids []uuid.UUID) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("id in (?)", ids)
+	}
+}
+
+func ByKey(key string) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("key = ?", key)
+	}
+}
+
+func ByDestinationID(id uuid.UUID) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		if id == uuid.Nil {
+			return db
+		}
+
+		return db.Where("destination_id = ?", id)
 	}
 }

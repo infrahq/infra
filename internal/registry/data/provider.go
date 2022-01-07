@@ -11,7 +11,7 @@ import (
 )
 
 func SetProviderUsers(db *gorm.DB, provider *models.Provider, emails ...string) error {
-	users, err := ListUsers(db, db.Where("email IN (?)", emails))
+	users, err := ListUsers(db, ByEmailInList(emails))
 	if err != nil {
 		return err
 	}

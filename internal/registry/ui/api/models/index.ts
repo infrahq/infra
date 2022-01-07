@@ -4,6 +4,7 @@ export * from './Destination';
 export * from './DestinationKind';
 export * from './DestinationKubernetes';
 export * from './DestinationRequest';
+export * from './DestinationUpdateRequest';
 export * from './Grant';
 export * from './GrantKind';
 export * from './GrantKubernetes';

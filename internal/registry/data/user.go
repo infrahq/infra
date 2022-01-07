@@ -12,7 +12,7 @@ import (
 )
 
 func BindUserGrants(db *gorm.DB, user *models.User, grantIDs ...uuid.UUID) error {
-	grants, err := ListGrants(db, grantIDs)
+	grants, err := ListGrants(db, ByIDs(grantIDs))
 	if err != nil {
 		return err
 	}
@@ -46,7 +46,7 @@ func CreateOrUpdateUser(db *gorm.DB, user *models.User, condition interface{}) (
 		return user, nil
 	}
 
-	if err := UpdateUser(db, user, ByUUID(existing.ID)); err != nil {
+	if err := UpdateUser(db, user, ByID(existing.ID)); err != nil {
 		return nil, err
 	}
 
@@ -62,7 +62,12 @@ func GetUser(db *gorm.DB, condition interface{}) (*models.User, error) {
 	return &user, nil
 }
 
-func ListUsers(db *gorm.DB, condition interface{}) ([]models.User, error) {
+func ListUsers(db *gorm.DB, selectors ...SelectorFunc) ([]models.User, error) {
+	condition := db
+	for _, selector := range selectors {
+		condition = selector(condition)
+	}
+
 	users := make([]models.User, 0)
 	if err := list(db, &models.User{}, &users, condition); err != nil {
 		return nil, err
@@ -71,8 +76,8 @@ func ListUsers(db *gorm.DB, condition interface{}) ([]models.User, error) {
 	return users, nil
 }
 
-func DeleteUsers(db *gorm.DB, condition interface{}) error {
-	toDelete, err := ListUsers(db, condition)
+func DeleteUsers(db *gorm.DB, selectors ...SelectorFunc) error {
+	toDelete, err := ListUsers(db.Select("id"), selectors...)
 	if err != nil {
 		return err
 	}
@@ -119,4 +124,19 @@ func UserAssociations(db *gorm.DB) *gorm.DB {
 	db = db.Preload("Groups.Grants.Kubernetes").Preload("Groups.Grants.Destination.Kubernetes")
 
 	return db
+}
+
+func ByEmailInList(emails []string) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("email in (?)", emails)
+	}
+}
+
+func ByIDNotInList(ids []uuid.UUID) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		if len(ids) > 0 {
+			return db.Where("id not in (?)", ids)
+		}
+		return db
+	}
 }

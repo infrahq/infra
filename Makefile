@@ -43,24 +43,6 @@ docs:
 clean: helm/clean
 	$(RM) -r dist
 
-export GO_POST_PROCESS_FILE=bash openapi/go-post-process.sh
-
-.PHONY: openapi
-openapi: openapi/clean openapi/bundled.yaml
-	npx @openapitools/openapi-generator-cli generate
-	find internal/api -name '*.go' -exec $(GO_POST_PROCESS_FILE) {} \;
-
-.INTERMEDIATE: openapi/bundled.yaml
-
-openapi/bundled.yaml: openapi.yaml
-	npx @redocly/openapi-cli bundle -o $@ $<
-
-openapi/clean:
-	$(RM) -r internal/api/*.go
-	$(RM) -r internal/api/api internal/api/.openapi-generator
-	$(RM) -r internal/registry/ui/api/apis internal/registry/ui/api/models
-	$(RM) -r internal/api/.openapi-generator
-
 goreleaser:
 	@command -v goreleaser >/dev/null || { echo "install goreleaser @ https://goreleaser.com/install/#install-the-pre-compiled-binary" && exit 1; }
 

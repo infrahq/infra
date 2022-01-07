@@ -34,5 +34,8 @@ func setup(t *testing.T) *gorm.DB {
 	logging.L = zaptest.NewLogger(t)
 	logging.S = logging.L.Sugar()
 
+	// err = CreateDestination(db, &destK8s)
+	// require.NoError(t, err)
+
 	return db
 }

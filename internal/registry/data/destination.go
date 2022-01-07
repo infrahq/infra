@@ -1,8 +1,6 @@
 package data
 
 import (
-	"errors"
-
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
@@ -10,44 +8,31 @@ import (
 	"github.com/infrahq/infra/internal/registry/models"
 )
 
-func CreateDestination(db *gorm.DB, destination *models.Destination) (*models.Destination, error) {
+func CreateDestination(db *gorm.DB, destination *models.Destination) error {
 	if err := add(db, &models.Destination{}, destination, &models.Destination{}); err != nil {
-		return nil, err
+		return err
 	}
 
-	return destination, nil
+	return nil
 }
 
-func CreateOrUpdateDestination(db *gorm.DB, destination *models.Destination, condition interface{}) (*models.Destination, error) {
-	existing, err := GetDestination(db, condition)
-	if err != nil {
-		if !errors.Is(err, internal.ErrNotFound) {
-			return nil, err
-		}
-
-		if _, err := CreateDestination(db, destination); err != nil {
-			return nil, err
-		}
-
-		return destination, nil
-	}
-
-	if err := update(db, &models.Destination{}, destination, db.Where(existing, "id")); err != nil {
-		return nil, err
+func UpdateDestination(db *gorm.DB, destination *models.Destination) error {
+	if err := update(db, &models.Destination{}, destination, db.Where(destination, "id")); err != nil {
+		return err
 	}
 
 	switch destination.Kind {
 	case models.DestinationKindKubernetes:
-		if err := db.Model(existing).Association("Kubernetes").Replace(&destination.Kubernetes); err != nil {
-			return nil, err
+		if err := db.Model(destination).Association("Kubernetes").Replace(&destination.Kubernetes); err != nil {
+			return err
 		}
 	}
 
-	if err := db.Model(existing).Association("Labels").Replace(&destination.Labels); err != nil {
-		return nil, err
+	if err := db.Model(destination).Association("Labels").Replace(&destination.Labels); err != nil {
+		return err
 	}
 
-	return GetDestination(db, db.Where(existing, "id"))
+	return nil
 }
 
 func GetDestination(db *gorm.DB, condition interface{}) (*models.Destination, error) {
@@ -61,35 +46,26 @@ func GetDestination(db *gorm.DB, condition interface{}) (*models.Destination, er
 
 func ListDestinations(db *gorm.DB, condition interface{}) ([]models.Destination, error) {
 	destinations := make([]models.Destination, 0)
-	if err := list(db, &models.Destination{}, &destinations, condition); err != nil {
+	if err := list(db.Preload("Labels").Preload("Kubernetes"), &models.Destination{}, &destinations, condition); err != nil {
 		return nil, err
 	}
 
 	return destinations, nil
 }
 
-func UpdateDestination(db *gorm.DB, destination *models.Destination, selector SelectorFunc) (*models.Destination, error) {
-	existing, err := GetDestination(db, selector(db))
+func ListUserDestinations(db *gorm.DB, userID uuid.UUID) (result []models.Destination, err error) {
+	var destinationIDs []uuid.UUID
+	err = db.Model(models.Grant{}).Select("distinct destination_id").Joins("users_grants").Where("users_grants.user_id = ?", userID).Scan(&destinationIDs).Error
 	if err != nil {
 		return nil, err
 	}
 
-	if err := update(db, &models.Destination{}, destination, db.Where(existing, "id")); err != nil {
+	err = db.Model(models.Destination{}).Where("id in (?)", destinationIDs).Find(&result).Error
+	if err != nil {
 		return nil, err
 	}
 
-	switch destination.Kind {
-	case models.DestinationKindKubernetes:
-		if err := db.Model(existing).Association("Kubernetes").Replace(&destination.Kubernetes); err != nil {
-			return nil, err
-		}
-	}
-
-	if err := db.Model(existing).Association("Labels").Replace(&destination.Labels); err != nil {
-		return nil, err
-	}
-
-	return GetDestination(db, db.Where(existing, "id"))
+	return result, nil
 }
 
 func DeleteDestinations(db *gorm.DB, selector SelectorFunc) error {

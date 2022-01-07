@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/google/uuid"
 
@@ -16,11 +17,13 @@ type Destination struct {
 	Model
 
 	Name     string
-	Kind     DestinationKind
-	NodeID   string `gorm:"uniqueIndex:,where:deleted_at is NULL" validate:"required"`
+	Kind     DestinationKind `validate:"required"`
+	NodeID   string          `gorm:"uniqueIndex:,where:deleted_at is NULL" validate:"required"` // TODO: rename to UniqueID
 	Endpoint string
 
 	Labels []Label
+
+	// Metadata []byte
 
 	Kubernetes DestinationKubernetes
 }
@@ -33,7 +36,10 @@ type DestinationKubernetes struct {
 	DestinationID uuid.UUID
 }
 
-func (d *Destination) ToAPI() api.Destination {
+func (d *Destination) ToAPI() *api.Destination {
+	if d == nil {
+		return nil
+	}
 	result := api.Destination{
 		ID:      d.ID.String(),
 		Created: d.CreatedAt.Unix(),
@@ -56,16 +62,19 @@ func (d *Destination) ToAPI() api.Destination {
 		result.Labels = append(result.Labels, l.Value)
 	}
 
-	return result
+	return &result
 }
 
 func (d *Destination) FromAPI(from interface{}) error {
+	if reflect.ValueOf(from).IsNil() {
+		return nil
+	}
 	if request, ok := from.(*api.DestinationRequest); ok {
 		d.Name = request.Name
 		d.NodeID = request.NodeID
 		d.Kind = DestinationKind(request.Kind)
 
-		if kubernetes, ok := request.GetKubernetesOK(); ok {
+		if kubernetes := request.Kubernetes; kubernetes != nil {
 			d.Endpoint = kubernetes.Endpoint
 			d.Kubernetes = DestinationKubernetes{
 				CA: kubernetes.CA,
@@ -83,7 +92,7 @@ func (d *Destination) FromAPI(from interface{}) error {
 		return nil
 	}
 
-	return fmt.Errorf("unknown destination model")
+	return fmt.Errorf("unknown destination model: " + reflect.TypeOf(from).String())
 }
 
 func NewDestination(id string) (*Destination, error) {

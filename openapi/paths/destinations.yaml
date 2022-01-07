@@ -69,3 +69,30 @@ post:
       $ref: ../components/responses/Unauthorized.yaml
     '403':
       $ref: ../components/responses/Forbidden.yaml
+put:
+  tags:
+    - destinations
+  security:
+    - bearerAuth: []
+  summary: Update a destination
+  operationId: updateDestination
+  x-codegen-request-body-name: body
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/DestinationUpdateRequest.yaml
+  responses:
+    '200':
+      description: Updated destination response
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Destination.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/Forbidden.yaml

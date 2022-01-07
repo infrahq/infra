@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/claims"
@@ -29,12 +30,12 @@ const (
 
 // IssueUserToken creates a session token that a user presents to the Infra server for authentication
 func IssueUserToken(c *gin.Context, email string, sessionDuration time.Duration) (*models.User, *models.Token, error) {
-	db, err := RequireAuthorization(c, Permission(""))
+	db, err := requireAuthorization(c)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	users, err := data.ListUsers(db, &models.User{Email: email})
+	users, err := data.ListUsers(db, data.ByEmail(email))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -54,7 +55,7 @@ func IssueUserToken(c *gin.Context, email string, sessionDuration time.Duration)
 
 	users[0].LastSeenAt = time.Now()
 
-	if err := data.UpdateUser(db, &users[0], data.ByUUID(users[0].ID)); err != nil {
+	if err := data.UpdateUser(db, &users[0], data.ByID(users[0].ID)); err != nil {
 		return nil, nil, fmt.Errorf("user update fail: %w", err)
 	}
 
@@ -62,7 +63,7 @@ func IssueUserToken(c *gin.Context, email string, sessionDuration time.Duration)
 }
 
 func RevokeToken(c *gin.Context) (*models.Token, error) {
-	db, err := RequireAuthorization(c, PermissionTokenRevoke)
+	db, err := requireAuthorization(c, PermissionTokenRevoke)
 	if err != nil {
 		return nil, err
 	}
@@ -75,12 +76,12 @@ func RevokeToken(c *gin.Context) (*models.Token, error) {
 
 	key := authentication[:models.TokenKeyLength]
 
-	token, err := data.GetToken(db, &models.Token{Key: key})
+	token, err := data.GetToken(db, data.ByKey(key))
 	if err != nil {
 		return nil, err
 	}
 
-	if err := data.DeleteToken(db, &models.Token{Key: key}); err != nil {
+	if err := data.DeleteToken(db, data.ByKey(key)); err != nil {
 		return nil, err
 	}
 
@@ -88,28 +89,28 @@ func RevokeToken(c *gin.Context) (*models.Token, error) {
 }
 
 // IssueAPIToken creates a configurable session token that can be used to directly interact with the Infra server API
-func IssueAPIToken(c *gin.Context, apiToken *models.APIToken) (*models.APIToken, *models.Token, error) {
-	db, err := RequireAuthorization(c, PermissionAPITokenCreate)
+func IssueAPIToken(c *gin.Context, apiToken *models.APIToken) (*models.Token, error) {
+	db, err := requireAuthorization(c, PermissionAPITokenCreate)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// do not let a caller create a token with more permissions than they have
 	permissions, ok := c.MustGet("permissions").(string)
 	if !ok {
 		// there should have been permissions set by this point
-		return nil, nil, internal.ErrForbidden
+		return nil, internal.ErrForbidden
 	}
 
 	if !AllRequired(strings.Split(permissions, " "), strings.Split(apiToken.Permissions, " ")) {
-		return nil, nil, fmt.Errorf("cannot create an API token with permission not granted to the token issuer")
+		return nil, fmt.Errorf("cannot create an API token with permission not granted to the token issuer")
 	}
 
-	return data.CreateAPIToken(db, apiToken, &models.Token{})
+	return data.CreateAPIToken(db, apiToken)
 }
 
 func ListAPITokens(c *gin.Context, name string) ([]models.APITokenTuple, error) {
-	db, err := RequireAuthorization(c, PermissionAPITokenRead)
+	db, err := requireAuthorization(c, PermissionAPITokenRead)
 	if err != nil {
 		return nil, err
 	}
@@ -122,23 +123,18 @@ func ListAPITokens(c *gin.Context, name string) ([]models.APITokenTuple, error) 
 	return apiTokens, nil
 }
 
-func RevokeAPIToken(c *gin.Context, id string) error {
-	db, err := RequireAuthorization(c, PermissionAPITokenDelete)
+func RevokeAPIToken(c *gin.Context, id uuid.UUID) error {
+	db, err := requireAuthorization(c, PermissionAPITokenDelete)
 	if err != nil {
 		return err
 	}
 
-	token, err := models.NewAPIToken(id)
-	if err != nil {
-		return err
-	}
-
-	return data.DeleteAPIToken(db, token)
+	return data.DeleteAPIToken(db, id)
 }
 
 // IssueJWT creates a JWT that is presented to engines to assert authentication and claims
 func IssueJWT(c *gin.Context, destination string) (string, *time.Time, error) {
-	db, err := RequireAuthorization(c, PermissionCredentialCreate)
+	db, err := requireAuthorization(c, PermissionCredentialCreate)
 	if err != nil {
 		return "", nil, err
 	}

@@ -85,139 +85,13 @@ func TestListUsers(t *testing.T) {
 	db := setup(t)
 	createUsers(t, db, bond, bourne, bauer)
 
-	users, err := ListUsers(db, &models.User{})
+	users, err := ListUsers(db)
 	require.NoError(t, err)
 	require.Equal(t, 3, len(users))
 
-	users, err = ListUsers(db, &models.User{Email: bourne.Email})
+	users, err = ListUsers(db, ByEmail(bourne.Email))
 	require.NoError(t, err)
 	require.Equal(t, 1, len(users))
-}
-
-func TestUserBindGrants(t *testing.T) {
-	db := setup(t)
-	createUsers(t, db, bond, bourne, bauer)
-
-	admin := models.Grant{
-		Kind: models.GrantKindKubernetes,
-		Kubernetes: models.GrantKubernetes{
-			Kind: models.GrantKubernetesKindRole,
-			Name: "admin",
-		},
-	}
-
-	_, err := CreateGrant(db, &admin)
-	require.NoError(t, err)
-
-	users, err := ListUsers(db, &models.User{})
-	require.NoError(t, err)
-
-	for i := range users {
-		err := BindUserGrants(db, &users[i], admin.ID)
-		require.NoError(t, err)
-	}
-
-	grants, err := ListGrants(db, &models.Grant{})
-	require.NoError(t, err)
-	require.Len(t, grants, 1)
-	require.Len(t, grants[0].Users, 3)
-	require.ElementsMatch(t, []string{
-		bond.Email, bourne.Email, bauer.Email,
-	}, []string{
-		grants[0].Users[0].Email,
-		grants[0].Users[1].Email,
-		grants[0].Users[2].Email,
-	})
-}
-
-func TestUserBindMoreGrants(t *testing.T) {
-	db := setup(t)
-	createUsers(t, db, bond, bourne, bauer)
-
-	admin := models.Grant{
-		Kind: models.GrantKindKubernetes,
-		Kubernetes: models.GrantKubernetes{
-			Kind: models.GrantKubernetesKindRole,
-			Name: "admin",
-		},
-	}
-
-	_, err := CreateGrant(db, &admin)
-	require.NoError(t, err)
-
-	user, err := GetUser(db, &models.User{Email: bond.Email})
-	require.NoError(t, err)
-	require.Len(t, user.Grants, 0)
-
-	err = BindUserGrants(db, user, admin.ID)
-	require.NoError(t, err)
-
-	user, err = GetUser(db, &models.User{Email: bond.Email})
-	require.NoError(t, err)
-	require.Len(t, user.Grants, 1)
-
-	view := models.Grant{
-		Kind: models.GrantKindKubernetes,
-		Kubernetes: models.GrantKubernetes{
-			Kind: models.GrantKubernetesKindRole,
-			Name: "view",
-		},
-	}
-
-	_, err = CreateGrant(db, &view)
-	require.NoError(t, err)
-
-	err = BindUserGrants(db, user, admin.ID, view.ID)
-	require.NoError(t, err)
-
-	user, err = GetUser(db, &models.User{Email: bond.Email})
-	require.NoError(t, err)
-	require.Len(t, user.Grants, 2)
-}
-
-func TestUserBindLessGrants(t *testing.T) {
-	db := setup(t)
-	createUsers(t, db, bond, bourne, bauer)
-
-	admin := models.Grant{
-		Kind: models.GrantKindKubernetes,
-		Kubernetes: models.GrantKubernetes{
-			Kind: models.GrantKubernetesKindRole,
-			Name: "admin",
-		},
-	}
-
-	view := models.Grant{
-		Kind: models.GrantKindKubernetes,
-		Kubernetes: models.GrantKubernetes{
-			Kind: models.GrantKubernetesKindRole,
-			Name: "view",
-		},
-	}
-
-	_, err := CreateGrant(db, &admin)
-	require.NoError(t, err)
-
-	_, err = CreateGrant(db, &view)
-	require.NoError(t, err)
-
-	user, err := GetUser(db, &models.User{Email: bond.Email})
-	require.NoError(t, err)
-	require.Len(t, user.Grants, 0)
-
-	err = BindUserGrants(db, user, admin.ID, view.ID)
-	require.NoError(t, err)
-
-	user, err = GetUser(db, &models.User{Email: bond.Email})
-	require.NoError(t, err)
-	require.Len(t, user.Grants, 2)
-
-	err = BindUserGrants(db, user, admin.ID)
-	require.NoError(t, err)
-
-	user, err = GetUser(db, &models.User{Email: bond.Email})
-	require.NoError(t, err)
-	require.Len(t, user.Grants, 1)
 }
 
 func TestDeleteUser(t *testing.T) {
@@ -227,14 +101,14 @@ func TestDeleteUser(t *testing.T) {
 	_, err := GetUser(db, &models.User{Email: bond.Email})
 	require.NoError(t, err)
 
-	err = DeleteUsers(db, &models.User{Email: bond.Email})
+	err = DeleteUsers(db, ByEmail(bond.Email))
 	require.NoError(t, err)
 
 	_, err = GetUser(db, &models.User{Email: bond.Email})
 	require.EqualError(t, err, "record not found")
 
 	// deleting a nonexistent user should not fail
-	err = DeleteUsers(db, &models.User{Email: bond.Email})
+	err = DeleteUsers(db, ByEmail(bond.Email))
 	require.NoError(t, err)
 
 	// deleting an user should not delete unrelated users
@@ -246,7 +120,7 @@ func TestRecreateUserSameEmail(t *testing.T) {
 	db := setup(t)
 	createUsers(t, db, bond, bourne, bauer)
 
-	err := DeleteUsers(db, &models.User{Email: bond.Email})
+	err := DeleteUsers(db, ByEmail(bond.Email))
 	require.NoError(t, err)
 
 	_, err = CreateUser(db, &models.User{Email: bond.Email})

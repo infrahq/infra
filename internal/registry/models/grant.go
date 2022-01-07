@@ -8,17 +8,24 @@ import (
 
 type GrantKind string
 
-var GrantKindKubernetes GrantKind = "kubernetes"
+var (
+	GrantKindInfra      GrantKind = "infra"
+	GrantKindKubernetes GrantKind = "kubernetes"
+)
 
 type Grant struct {
 	Model
-	Kind GrantKind
+	Kind GrantKind `validate:"required"`
 
-	DestinationID uuid.UUID
-	Destination   Destination
+	DestinationID uuid.UUID `validate:"required"`
+	Destination   *Destination
 
 	Groups []Group `gorm:"many2many:groups_grants"`
 	Users  []User  `gorm:"many2many:users_grants"`
+
+	// name
+	// role
+	// permissions
 
 	Kubernetes GrantKubernetes
 }
@@ -63,7 +70,7 @@ func (r *Grant) ToAPI() api.Grant {
 	}
 
 	if len(users) > 0 {
-		result.SetUsers(users)
+		result.Users = users
 	}
 
 	groups := make([]api.Group, 0)
@@ -72,7 +79,7 @@ func (r *Grant) ToAPI() api.Grant {
 	}
 
 	if len(groups) > 0 {
-		result.SetGroups(groups)
+		result.Groups = groups
 	}
 
 	result.Destination = r.Destination.ToAPI()

@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
 	"github.com/infrahq/infra/secrets"
@@ -65,7 +66,7 @@ func userGrants(t *testing.T, grants []models.Grant, email string) map[string][]
 func TestImportUserGrants(t *testing.T) {
 	_, db := configure(t, nil)
 
-	grants, err := data.ListGrants(db, &models.Grant{})
+	grants, err := data.ListGrants(db)
 	require.NoError(t, err)
 
 	bond := userGrants(t, grants, userBond.Email)
@@ -113,7 +114,7 @@ func groupGrants(t *testing.T, grants []models.Grant, name string) map[string][]
 func TestImportGroupGrants(t *testing.T) {
 	_, db := configure(t, nil)
 
-	grants, err := data.ListGrants(db, &models.Grant{})
+	grants, err := data.ListGrants(db)
 	require.NoError(t, err)
 
 	everyone := groupGrants(t, grants, groupEveryone.Name)
@@ -129,7 +130,7 @@ func TestImportGroupGrants(t *testing.T) {
 func TestImportGrantsUnknownDestinations(t *testing.T) {
 	_, db := configure(t, nil)
 
-	grants, err := data.ListGrants(db, &models.Grant{})
+	grants, err := data.ListGrants(db)
 	require.NoError(t, err)
 
 	for _, r := range grants {
@@ -141,52 +142,11 @@ func TestImportGrantsUnknownDestinations(t *testing.T) {
 func TestImportGrantsNoMatchingLabels(t *testing.T) {
 	_, db := configure(t, nil)
 
-	grants, err := data.ListGrants(db, data.GrantSelector(db, &models.Grant{
-		Kind: models.GrantKindKubernetes,
-		Kubernetes: models.GrantKubernetes{
-			Name: "view",
-		},
-	}))
-	require.NoError(t, err)
-	require.Len(t, grants, 0)
-}
-
-func TestImportGrantsRemovesUnusedGrants(t *testing.T) {
-	db := setupDB(t)
-
-	unused, err := data.CreateGrant(db, &models.Grant{})
-	require.NoError(t, err)
-
-	_, _ = configure(t, db)
-
-	_, err = data.GetGrant(db, unused)
-	require.EqualError(t, err, "record not found")
-}
-
-func TestImportProvidersOverrideDuplicate(t *testing.T) {
-	_, db := configure(t, nil)
-
-	providers, err := data.ListProviders(db, &models.Provider{})
-	require.NoError(t, err)
-	require.Len(t, providers, 1)
-}
-
-func TestCleanupDomain(t *testing.T) {
-	p := ConfigProvider{Domain: "dev123123-admin.okta.com "}
-	p.cleanupDomain()
-	require.Equal(t, "dev123123.okta.com", p.Domain)
-
-	p = ConfigProvider{Domain: "dev123123.okta.com "}
-	p.cleanupDomain()
-	require.Equal(t, "dev123123.okta.com", p.Domain)
-
-	p = ConfigProvider{Domain: "https://dev123123.okta.com "}
-	p.cleanupDomain()
-	require.Equal(t, "dev123123.okta.com", p.Domain)
-
-	p = ConfigProvider{Domain: "http://dev123123.okta.com "}
-	p.cleanupDomain()
-	require.Equal(t, "dev123123.okta.com", p.Domain)
+	_, err := data.GetGrantByModel(db, &models.Grant{
+		Kind:       models.GrantKindKubernetes,
+		Kubernetes: models.GrantKubernetes{Name: "view"},
+	})
+	require.ErrorIs(t, err, internal.ErrNotFound)
 }
 
 func TestFirstNamespaceThenNoNamespace(t *testing.T) {
@@ -235,7 +195,7 @@ groups:
 	err := r.importConfig([]byte(withNamespace))
 	require.NoError(t, err)
 
-	grants, err := data.ListGrants(db, &models.Grant{})
+	grants, err := data.ListGrants(db)
 	require.NoError(t, err)
 	require.Len(t, grants, 1)
 	require.Equal(t, "infrahq", grants[0].Kubernetes.Namespace)
@@ -243,7 +203,7 @@ groups:
 	err = r.importConfig([]byte(withoutNamespace))
 	require.NoError(t, err)
 
-	grants, err = data.ListGrants(db, &models.Grant{})
+	grants, err = data.ListGrants(db)
 	require.NoError(t, err)
 	require.Len(t, grants, 1)
 	require.Equal(t, "", grants[0].Kubernetes.Namespace)

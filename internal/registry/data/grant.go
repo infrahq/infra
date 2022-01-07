@@ -19,8 +19,8 @@ func CreateGrant(db *gorm.DB, grant *models.Grant) (*models.Grant, error) {
 	return grant, nil
 }
 
-func CreateOrUpdateGrant(db *gorm.DB, grant *models.Grant, condition interface{}) (*models.Grant, error) {
-	existing, err := GetGrant(db, condition)
+func CreateOrUpdateGrant(db *gorm.DB, grant *models.Grant) (*models.Grant, error) {
+	existing, err := GetGrantByModel(db, grant)
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return nil, fmt.Errorf("get: %w", err)
@@ -56,17 +56,44 @@ func GetGrant(db *gorm.DB, condition interface{}) (*models.Grant, error) {
 	return &grant, nil
 }
 
-func ListGrants(db *gorm.DB, condition interface{}) ([]models.Grant, error) {
+func ListUserGrants(db *gorm.DB, userID uuid.UUID) (result []models.Grant, err error) {
+	err = db.Model((*models.Grant)(nil)).Where("user_id = ?", userID).Find(&result).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func GetGrantByModel(db *gorm.DB, grant *models.Grant) (result *models.Grant, err error) {
+	result = &models.Grant{}
+
+	err = db.Model(&models.Grant{}).
+		Joins("left join grant_kubernetes g on g.grant_id = grants.id").
+		Where("grants.destination_id = ? and grants.kind = ? and g.namespace = ? and g.name = ?", grant.DestinationID, grant.Kind, grant.Kubernetes.Namespace, grant.Kubernetes.Name).
+		First(result).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, internal.ErrNotFound
+		}
+
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func ListGrants(db *gorm.DB, selectors ...SelectorFunc) ([]models.Grant, error) {
 	grants := make([]models.Grant, 0)
-	if err := list(db, &models.Grant{}, &grants, condition); err != nil {
+	if err := list(db, &models.Grant{}, &grants, selectors); err != nil {
 		return nil, err
 	}
 
 	return grants, nil
 }
 
-func DeleteGrants(db *gorm.DB, condition interface{}) error {
-	toDelete, err := ListGrants(db, condition)
+func DeleteGrants(db *gorm.DB, selectors ...SelectorFunc) error {
+	toDelete, err := ListGrants(db, selectors...)
 	if err != nil {
 		return err
 	}
@@ -80,42 +107,55 @@ func DeleteGrants(db *gorm.DB, condition interface{}) error {
 		return remove(db, &models.Grant{}, ids)
 	}
 
-	return nil
-}
-
-func GrantSelector(db *gorm.DB, grant *models.Grant) *gorm.DB {
-	switch grant.Kind {
-	case models.GrantKindKubernetes:
-		db = db.Where(
-			"id IN (?)",
-			db.Model(&models.GrantKubernetes{}).Select("grant_id").Where(grant.Kubernetes),
-		)
-	}
-
-	if grant.Destination.ID != uuid.Nil {
-		db = db.Where("destination_id in (?)", grant.Destination.ID)
-	}
-
-	return db.Where(&grant)
+	return internal.ErrNotFound
 }
 
 // StrictGrantSelector matches all fields exactly, including initialized fields.
 func StrictGrantSelector(db *gorm.DB, grant *models.Grant) *gorm.DB {
-	switch grant.Kind {
-	case models.GrantKindKubernetes:
-		db = db.Where(
-			"id IN (?)",
-			db.Model(&models.GrantKubernetes{}).Select("grant_id").Where(map[string]interface{}{
-				"kind":      grant.Kubernetes.Kind,
-				"name":      grant.Kubernetes.Name,
-				"namespace": grant.Kubernetes.Namespace,
-			}),
-		)
-	}
+	return db.Joins("left join grant_kubernetes g on g.grant_id = grants.id").Where("grants.destination_id = ? and grants.kind = ? and grant_kubernetes.namespace = ? and grant_kubernetes.name = ?", grant.Destination.ID, grant.Kind, grant.Kubernetes.Namespace, grant.Kubernetes.Name)
+}
 
-	if grant.Destination.ID != uuid.Nil {
-		db = db.Where("destination_id in (?)", grant.Destination.ID)
-	}
+func ByGrantKind(kind models.GrantKind) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		if len(kind) == 0 {
+			return db
+		}
 
-	return db.Where(&grant)
+		switch kind {
+		case models.GrantKindKubernetes:
+			return db.Where("kind = ?", kind)
+		default:
+			// panic("unknown grant kind: " + string(kind))
+			db.Logger.Error(db.Statement.Context, "unknown grant kind: "+string(kind))
+			db.AddError(fmt.Errorf("%w: unknown grant kind: %q", internal.ErrBadRequest, string(kind)))
+			return db.Where("1 = 2")
+		}
+	}
+}
+
+func ByDestinationKind(kind models.DestinationKind) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		if len(kind) == 0 {
+			return db
+		}
+
+		switch kind {
+		case models.DestinationKindKubernetes:
+			return db.Where("kind = ?", kind)
+		default:
+			db.Logger.Error(db.Statement.Context, "unknown destination kind: "+string(kind))
+			db.AddError(fmt.Errorf("%w: unknown destination kind: %q", internal.ErrBadRequest, string(kind)))
+			return db.Where("1 = 2")
+		}
+	}
+}
+
+func NotByIDs(ids []uuid.UUID) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		if len(ids) == 0 {
+			return db
+		}
+
+		return db.Where("id not in (?)", ids)
+	}
 }

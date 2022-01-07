@@ -134,7 +134,7 @@ func TestProviderSetUsers(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	users, err := ListUsers(db, &models.User{})
+	users, err := ListUsers(db)
 	require.NoError(t, err)
 	require.Len(t, users, 1)
 	require.Len(t, users[0].Providers, 2)

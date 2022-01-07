@@ -84,12 +84,12 @@ func list(options *ListOptions) error {
 
 	// deduplicate rows
 	rows := make(map[string]listRow)
-	for _, r := range user.GetGrants() {
+	for _, r := range user.Grants {
 		rows[r.Destination.ID] = newRow(r, kubeConfig.CurrentContext)
 	}
 
-	for _, g := range user.GetGroups() {
-		for _, r := range g.GetGrants() {
+	for _, g := range user.Groups {
+		for _, r := range g.Grants {
 			rows[r.Destination.ID] = newRow(r, kubeConfig.CurrentContext)
 		}
 	}
@@ -120,7 +120,7 @@ func newRow(grant api.Grant, currentContext string) listRow {
 		Labels: strings.Join(grant.Destination.Labels, ", "),
 	}
 
-	if k8s, ok := grant.Destination.GetKubernetesOK(); ok {
+	if k8s := grant.Destination.Kubernetes; k8s != nil {
 		row.Endpoint = k8s.Endpoint
 		row.CertificateAuthorityData = []byte(k8s.CA)
 		row.Kind = "kubernetes"
