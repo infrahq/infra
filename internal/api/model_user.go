@@ -22,7 +22,7 @@ type User struct {
 	Created int64 `json:"created"`
 	// updated time in seconds since 1970-01-01
 	Updated int64 `json:"updated"`
-	// timestamp of this users last interaction with Infra in seconds since 1970-01-01, 0 when a user has never connected
+	// timestamp of this user's last interaction with Infra in seconds since 1970-01-01, 0 when a user has never connected
 	LastSeen  int64       `json:"lastSeen"`
 	Groups    *[]Group    `json:"groups,omitempty"`
 	Grants    *[]Grant    `json:"grants,omitempty"`

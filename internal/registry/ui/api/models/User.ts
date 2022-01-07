@@ -59,7 +59,7 @@ export interface User {
      */
     updated: number;
     /**
-     * timestamp of this users last interaction with Infra in seconds since 1970-01-01, 0 when a user has never connected
+     * timestamp of this user's last interaction with Infra in seconds since 1970-01-01, 0 when a user has never connected
      * @type {number}
      * @memberof User
      */
