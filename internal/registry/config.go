@@ -316,7 +316,13 @@ func importUserGrantMappings(db *gorm.DB, users []ConfigUserMapping) ([]uuid.UUI
 
 		user, err := data.GetUser(db, &models.User{Email: u.Email})
 		if err != nil {
-			continue
+			if !errors.Is(err, internal.ErrNotFound) {
+				return nil, err
+			}
+
+			if user, err = data.CreateUser(db, &models.User{Email: u.Email, Permissions: defaultPermissions}); err != nil {
+				return nil, err
+			}
 		}
 
 		ids, err := importGrants(db, u.Grants)
@@ -344,7 +350,13 @@ func importGroupGrantMappings(db *gorm.DB, groups []ConfigGroupMapping) ([]uuid.
 
 		group, err := data.GetGroup(db, &models.Group{Name: g.Name})
 		if err != nil {
-			continue
+			if !errors.Is(err, internal.ErrNotFound) {
+				return nil, err
+			}
+
+			if group, err = data.CreateGroup(db, &models.Group{Name: g.Name}); err != nil {
+				return nil, err
+			}
 		}
 
 		ids, err := importGrants(db, g.Grants)

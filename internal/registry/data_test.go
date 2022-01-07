@@ -142,70 +142,26 @@ func TestSyncUsers(t *testing.T) {
 	require.Subset(t, []string{"jbond@infrahq.com", "jbourne@infrahq.com"}, []string{users[1].Email})
 }
 
-func TestSyncUsersDeleteNonExistentUsers(t *testing.T) {
-	db := setupDB(t)
-
-	// mock no users found in provider
-	mockUsers := make([]string, 0)
-
-	testOkta := new(mocks.Okta)
-	testOkta.On("Users", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(mockUsers, nil)
-
-	err := syncUsers(db, mockUsers)
-	require.NoError(t, err)
-
-	users, err := data.ListUsers(db, &models.User{})
-	require.NoError(t, err)
-	require.Len(t, users, 0)
-}
-
 func TestSyncGroups(t *testing.T) {
 	db := setupDB(t)
-
 	mockGroups := make(map[string][]string)
 	mockGroups["heroes"] = []string{}
-
 	testOkta := new(mocks.Okta)
 	testOkta.On("Groups", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(mockGroups, nil)
-
 	err := syncGroups(db, mockGroups)
 	require.NoError(t, err)
-
-	heroes, err := data.ListGroups(db, &models.Group{})
+	_, err = data.GetGroup(db, &models.Group{Name: "heroes"})
 	require.NoError(t, err)
-	require.Len(t, heroes, 1)
-	require.Equal(t, "heroes", heroes[0].Name)
-}
-
-func TestSyncGroupsDeleteNonExistentGroups(t *testing.T) {
-	db := setupDB(t)
-
-	// mock no groups found in provider
-	mockGroups := make(map[string][]string)
-
-	testOkta := new(mocks.Okta)
-	testOkta.On("Groups", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(mockGroups, nil)
-
-	err := syncGroups(db, mockGroups)
-	require.NoError(t, err)
-
-	groups, err := data.ListGroups(db, &models.Group{})
-	require.NoError(t, err)
-	require.Len(t, groups, 0)
 }
 
 func TestSyncGroupsIgnoresUnknownUsers(t *testing.T) {
 	db := setupDB(t)
-
 	mockGroups := make(map[string][]string)
 	mockGroups["heroes"] = []string{"jbourne@infrahq.com", "nonexistent@infrahq.com"}
-
 	testOkta := new(mocks.Okta)
 	testOkta.On("Groups", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(mockGroups, nil)
-
 	err := syncGroups(db, mockGroups)
 	require.NoError(t, err)
-
 	heroes, err := data.GetGroup(db, &models.Group{Name: "heroes"})
 	require.NoError(t, err)
 	require.Len(t, heroes.Users, 1)
