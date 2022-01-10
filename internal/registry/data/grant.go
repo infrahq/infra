@@ -105,9 +105,9 @@ func StrictGrantSelector(db *gorm.DB, grant *models.Grant) *gorm.DB {
 		db = db.Where(
 			"id IN (?)",
 			db.Model(&models.GrantKubernetes{}).Select("grant_id").Where(map[string]interface{}{
-				"Kind":      grant.Kubernetes.Kind,
-				"Name":      grant.Kubernetes.Name,
-				"Namespace": grant.Kubernetes.Namespace,
+				"kind":      grant.Kubernetes.Kind,
+				"name":      grant.Kubernetes.Name,
+				"namespace": grant.Kubernetes.Namespace,
 			}),
 		)
 	}
