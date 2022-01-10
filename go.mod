@@ -28,7 +28,7 @@ require (
 	github.com/lensesio/tableprinter v0.0.0-20201125135848-89e81fc956e7
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6 // indirect
 	github.com/muesli/termenv v0.9.0
-	github.com/okta/okta-sdk-golang/v2 v2.8.0
+	github.com/okta/okta-sdk-golang/v2 v2.9.2
 	github.com/segmentio/backo-go v0.0.0-20200129164019-23eae7c10bd3 // indirect
 	github.com/spf13/afero v1.6.0
 	github.com/spf13/cobra v1.3.0
