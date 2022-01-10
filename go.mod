@@ -21,7 +21,7 @@ require (
 	github.com/caarlos0/env/v6 v6.7.2 // indirect
 	github.com/cli/browser v1.1.0
 	github.com/dghubble/go-twitter v0.0.0-20211002212826-ad02880e616b // indirect
-	github.com/docker/docker v20.10.10+incompatible
+	github.com/docker/docker v20.10.12+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/elazarl/go-bindata-assetfs v1.0.1
 	github.com/getsentry/sentry-go v0.11.0
