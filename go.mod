@@ -7,8 +7,11 @@ require (
 	github.com/aws/aws-sdk-go v1.42.30
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/cli/browser v1.1.0
+	github.com/containerd/containerd v1.3.4 // indirect
+	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/docker v20.10.12+incompatible
 	github.com/docker/go-connections v0.4.0
+	github.com/docker/go-units v0.4.0 // indirect
 	github.com/elazarl/go-bindata-assetfs v1.0.1
 	github.com/getsentry/sentry-go v0.11.0
 	github.com/gin-gonic/gin v1.7.7
@@ -19,7 +22,7 @@ require (
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/goware/urlx v0.3.1
-	github.com/hashicorp/vault/api v1.2.0
+	github.com/hashicorp/vault/api v1.3.1
 	github.com/jackc/pgconn v1.10.1
 	github.com/jackc/pgerrcode v0.0.0-20201024163028-a0d42d470451
 	github.com/jessevdk/go-flags v1.5.0
@@ -27,8 +30,11 @@ require (
 	github.com/kevinburke/go-bindata v3.22.0+incompatible
 	github.com/lensesio/tableprinter v0.0.0-20201125135848-89e81fc956e7
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6 // indirect
+	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/muesli/termenv v0.9.0
 	github.com/okta/okta-sdk-golang/v2 v2.9.2
+	github.com/opencontainers/go-digest v1.0.0 // indirect
+	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/segmentio/backo-go v0.0.0-20200129164019-23eae7c10bd3 // indirect
 	github.com/spf13/afero v1.6.0
 	github.com/spf13/cobra v1.3.0
@@ -46,6 +52,7 @@ require (
 	gorm.io/driver/postgres v1.2.3
 	gorm.io/driver/sqlite v1.2.6
 	gorm.io/gorm v1.22.4
+	gotest.tools v2.2.0+incompatible // indirect
 	k8s.io/api v0.22.3
 	k8s.io/apimachinery v0.22.3
 	k8s.io/apiserver v0.22.3
