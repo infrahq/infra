@@ -18,6 +18,7 @@ import (
 	sentryhttp "github.com/getsentry/sentry-go/http"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/handlers"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/crypto/acme/autocert"
 	"gorm.io/gorm"
 
@@ -216,29 +217,44 @@ func (r *Registry) configureTelemetry() error {
 	return nil
 }
 
+func serve(server *http.Server) {
+	if err := server.ListenAndServe(); err != nil {
+		logging.S.Errorf("server: %w", err)
+	}
+}
+
 func (r *Registry) runServer() error {
 	h := HTTP{db: r.db}
 	router := gin.New()
 
 	router.Use(gin.Recovery())
-	router.GET("/healthz", Healthz)
 	router.GET("/.well-known/jwks.json", h.WellKnownJWKs)
+	router.GET("/healthz", Healthz)
+
 	NewAPIMux(r, router.Group("/v1"))
 
 	sentryHandler := sentryhttp.New(sentryhttp.Options{})
 
-	plaintextServer := http.Server{
+	metrics := gin.New()
+	metrics.GET("/metrics", func(c *gin.Context) {
+		promhttp.Handler().ServeHTTP(c.Writer, c.Request)
+	})
+
+	metricsServer := &http.Server{
+		Addr:     ":9090",
+		Handler:  handlers.CustomLoggingHandler(io.Discard, metrics, logging.ZapLogFormatter),
+		ErrorLog: logging.StandardErrorLog(),
+	}
+
+	go serve(metricsServer)
+
+	plaintextServer := &http.Server{
 		Addr:     ":80",
 		Handler:  handlers.CustomLoggingHandler(io.Discard, sentryHandler.Handle(router), logging.ZapLogFormatter),
 		ErrorLog: logging.StandardErrorLog(),
 	}
 
-	go func() {
-		err := plaintextServer.ListenAndServe()
-		if err != nil {
-			logging.L.Error(err.Error())
-		}
-	}()
+	go serve(plaintextServer)
 
 	manager := &autocert.Manager{
 		Prompt: autocert.AcceptTOS,

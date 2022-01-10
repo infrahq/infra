@@ -3,9 +3,14 @@ package registry
 import (
 	"context"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
@@ -40,6 +45,7 @@ func RequestTimeoutMiddleware() gin.HandlerFunc {
 	}
 }
 
+// DatabaseMiddleware injects a `db` object into the Gin context.
 func DatabaseMiddleware(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		err := db.Transaction(func(tx *gorm.DB) error {
@@ -68,10 +74,56 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 	}
 }
 
+var requestInProgressGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
+	Namespace: "http",
+	Name:      "requests_in_progress",
+	Help:      "Number of HTTP requests currently in progress.",
+}, []string{"method", "handler"})
+
+var requestCount = promauto.NewCounterVec(prometheus.CounterOpts{
+	Namespace: "http",
+	Name:      "requests_total",
+	Help:      "Total number of HTTP requests served.",
+}, []string{"method", "handler", "status"})
+
+var requestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
+	Namespace: "http",
+	Name:      "requests_duration_seconds",
+	Help:      "A histogram of the duration, in seconds, handling HTTP requests.",
+	Buckets:   prometheus.ExponentialBuckets(0.001, 2, 15),
+}, []string{"method", "handler", "status"})
+
+// MetricsMiddleware wraps the request with a standard set of Prometheus metrics.
+// It has an additional responsibility of stripping out any unique identifiers as it will
+// drastically increase the cardinality, and cost, of produced metrics.
 func MetricsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// TODO: do something with this middleware
-		// t := time.Now()
+		t := time.Now()
+		path := make([]string, 0)
+
+		parts := strings.Split(c.Request.URL.Path, "/")
+		for _, part := range parts {
+			if _, err := uuid.Parse(part); err != nil {
+				path = append(path, part)
+			} else {
+				path = append(path, ":id")
+			}
+		}
+
+		labels := prometheus.Labels{
+			"method":  c.Request.Method,
+			"handler": strings.Join(path, "/"),
+		}
+
+		requestInProgressGauge.With(labels).Inc()
+
 		c.Next()
+
+		requestInProgressGauge.With(labels).Dec()
+
+		labels["status"] = strconv.Itoa(c.Writer.Status())
+
+		requestCount.With(labels).Inc()
+		requestDuration.With(labels).Observe(time.Since(t).Seconds())
 	}
 }
