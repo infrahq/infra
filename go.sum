@@ -1944,9 +1944,8 @@ gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b h1:h8qDotaEPuJATrMmW04NCwg7v
 gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
 gorm.io/driver/postgres v1.2.3 h1:f4t0TmNMy9gh3TU2PX+EppoA6YsgFnyq8Ojtddb42To=
 gorm.io/driver/postgres v1.2.3/go.mod h1:pJV6RgYQPG47aM1f0QeOzFH9HxQc8JcmAgjRCgS0wjs=
-gorm.io/driver/sqlite v1.2.0 h1:75nUMfI4ld1zlYhB7T2x4e16049G8QRwq8UiOrR1s6k=
-gorm.io/driver/sqlite v1.2.0/go.mod h1:/vg6HFQYm4dulhTwa5/O5pcSIK2Hz94LJl89aNWsNX0=
-gorm.io/gorm v1.21.16/go.mod h1:F+OptMscr0P2F2qU97WT1WimdH9GaQPoDW7AYd5i2Y0=
+gorm.io/driver/sqlite v1.2.6 h1:SStaH/b+280M7C8vXeZLz/zo9cLQmIGwwj3cSj7p6l4=
+gorm.io/driver/sqlite v1.2.6/go.mod h1:gyoX0vHiiwi0g49tv+x2E7l8ksauLK0U/gShcdUsjWY=
 gorm.io/gorm v1.22.3/go.mod h1:F+OptMscr0P2F2qU97WT1WimdH9GaQPoDW7AYd5i2Y0=
 gorm.io/gorm v1.22.4 h1:8aPcyEJhY0MAt8aY6Dc524Pn+pO29K+ydu+e/cXSpQM=
 gorm.io/gorm v1.22.4/go.mod h1:1aeVC+pe9ZmvKZban/gW4QPra7PRoTEssyc922qCAkk=
