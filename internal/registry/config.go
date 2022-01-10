@@ -311,7 +311,7 @@ func importUserGrantMappings(db *gorm.DB, users []ConfigUserMapping) ([]uuid.UUI
 
 	for _, u := range users {
 		if err := validate.Struct(u); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("user validate: %w", err)
 		}
 
 		user, err := data.GetUser(db, &models.User{Email: u.Email})
@@ -321,11 +321,11 @@ func importUserGrantMappings(db *gorm.DB, users []ConfigUserMapping) ([]uuid.UUI
 
 		ids, err := importGrants(db, u.Grants)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("import grants: %w", err)
 		}
 
 		if err := data.BindUserGrants(db, user, ids...); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("bind grant: %w", err)
 		}
 
 		toKeep = append(toKeep, ids...)
@@ -339,7 +339,7 @@ func importGroupGrantMappings(db *gorm.DB, groups []ConfigGroupMapping) ([]uuid.
 
 	for _, g := range groups {
 		if err := validate.Struct(g); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("group validate: %w", err)
 		}
 
 		group, err := data.GetGroup(db, &models.Group{Name: g.Name})
@@ -349,11 +349,11 @@ func importGroupGrantMappings(db *gorm.DB, groups []ConfigGroupMapping) ([]uuid.
 
 		ids, err := importGrants(db, g.Grants)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("import grants: %w", err)
 		}
 
 		if err := data.BindGroupGrants(db, group, ids...); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("bind grants: %w", err)
 		}
 
 		toKeep = append(toKeep, ids...)
@@ -367,12 +367,12 @@ func importGrants(db *gorm.DB, grants []ConfigGrant) ([]uuid.UUID, error) {
 
 	for _, r := range grants {
 		if err := validate.Struct(r); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("validate grant: %w", err)
 		}
 
 		for _, d := range r.Destinations {
 			if err := validate.Struct(d); err != nil {
-				return nil, err
+				return nil, fmt.Errorf("validate destination: %w", err)
 			}
 
 			destinations, err := data.ListDestinations(db, db.Where(
@@ -380,7 +380,7 @@ func importGrants(db *gorm.DB, grants []ConfigGrant) ([]uuid.UUID, error) {
 				&models.Destination{Name: d.Name, Kind: d.Kind},
 			))
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("list destinations: %w", err)
 			}
 
 		DESTINATION:
@@ -424,7 +424,7 @@ func importGrants(db *gorm.DB, grants []ConfigGrant) ([]uuid.UUID, error) {
 				for i := range grants {
 					grant, err := data.CreateOrUpdateGrant(db, &grants[i], data.StrictGrantSelector(db, &grants[i]))
 					if err != nil {
-						return nil, err
+						return nil, fmt.Errorf("persist grant: %w", err)
 					}
 
 					toKeep = append(toKeep, grant.ID)
@@ -442,21 +442,21 @@ func importGrantMappings(db *gorm.DB, users []ConfigUserMapping, groups []Config
 
 	ids, err := importUserGrantMappings(db, users)
 	if err != nil {
-		return err
+		return fmt.Errorf("user mapping: %w", err)
 	}
 
 	toKeep = append(toKeep, ids...)
 
 	ids, err = importGroupGrantMappings(db, groups)
 	if err != nil {
-		return err
+		return fmt.Errorf("group mapping: %w", err)
 	}
 
 	toKeep = append(toKeep, ids...)
 
 	// explicitly query using ID field
 	if err := data.DeleteGrants(db, db.Not(toKeep)); err != nil {
-		return err
+		return fmt.Errorf("not kept: %w", err)
 	}
 
 	return nil
@@ -499,11 +499,11 @@ func (r *Registry) importConfig(bs []byte) error {
 
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		if err := importProviders(tx, config.Providers); err != nil {
-			return err
+			return fmt.Errorf("providers: %w", err)
 		}
 
 		if err := importGrantMappings(tx, config.Users, config.Groups); err != nil {
-			return err
+			return fmt.Errorf("grants: %w", err)
 		}
 
 		return nil
