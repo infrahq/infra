@@ -3,40 +3,22 @@ module github.com/infrahq/infra
 go 1.16
 
 require (
-	cloud.google.com/go/kms v1.1.0 // indirect
-	cloud.google.com/go/storage v1.18.2 // indirect
 	github.com/AlecAivazis/survey/v2 v2.3.2
-	github.com/AlekSi/pointer v1.2.0 // indirect
-	github.com/Azure/azure-sdk-for-go v58.3.0+incompatible // indirect
-	github.com/Azure/go-autorest/autorest v0.11.21 // indirect
-	github.com/Azure/go-autorest/autorest/adal v0.9.16 // indirect
-	github.com/DisgoOrg/disgohook v1.4.4 // indirect
-	github.com/DisgoOrg/log v1.1.2 // indirect
-	github.com/Microsoft/go-winio v0.5.1 // indirect
-	github.com/ProtonMail/go-crypto v0.0.0-20210920160938-87db9fbc61c7 // indirect
 	github.com/aws/aws-sdk-go v1.42.30
-	github.com/aws/aws-sdk-go-v2/config v1.9.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/kms v1.8.0 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
-	github.com/caarlos0/env/v6 v6.7.2 // indirect
 	github.com/cli/browser v1.1.0
-	github.com/dghubble/go-twitter v0.0.0-20211002212826-ad02880e616b // indirect
 	github.com/docker/docker v20.10.12+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/elazarl/go-bindata-assetfs v1.0.1
 	github.com/getsentry/sentry-go v0.11.0
-	github.com/gin-gonic/gin v1.7.4
+	github.com/gin-gonic/gin v1.7.7
 	github.com/go-playground/validator/v10 v10.9.0
-	github.com/golang-jwt/jwt/v4 v4.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/uuid v1.3.0
-	github.com/goreleaser/goreleaser v0.183.0
-	github.com/goreleaser/nfpm/v2 v2.7.1 // indirect
+	github.com/goreleaser/goreleaser v1.2.5
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/goware/urlx v0.3.1
-	github.com/hashicorp/go-retryablehttp v0.7.0 // indirect
-	github.com/hashicorp/go-version v1.3.0 // indirect
 	github.com/hashicorp/vault/api v1.2.0
 	github.com/jackc/pgconn v1.10.1
 	github.com/jackc/pgerrcode v0.0.0-20201024163028-a0d42d470451
@@ -48,16 +30,13 @@ require (
 	github.com/muesli/termenv v0.9.0
 	github.com/okta/okta-sdk-golang/v2 v2.8.0
 	github.com/segmentio/backo-go v0.0.0-20200129164019-23eae7c10bd3 // indirect
-	github.com/slack-go/slack v0.9.5 // indirect
 	github.com/spf13/afero v1.6.0
-	github.com/spf13/cobra v1.2.1
+	github.com/spf13/cobra v1.3.0
 	github.com/spf13/viper v1.10.1
 	github.com/stretchr/testify v1.7.0
-	github.com/vartanbeno/go-reddit/v2 v2.0.1 // indirect
-	github.com/xanzy/go-gitlab v0.51.1 // indirect
 	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
-	go.uber.org/zap v1.19.1
-	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
+	go.uber.org/zap v1.20.0
+	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3
 	golang.org/x/mod v0.5.1
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
 	golang.org/x/term v0.0.0-20210503060354-a79de5458b56
