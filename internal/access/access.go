@@ -66,6 +66,7 @@ func RequireAuthentication(c *gin.Context) error {
 		if err != nil {
 			return fmt.Errorf("token user lookup: %w", err)
 		}
+
 		logging.S.Debug("user permissions: %s \n", u.Permissions)
 		// this token has a parent user, set by their current permissions
 		c.Set("permissions", u.Permissions)
