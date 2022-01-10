@@ -2,6 +2,7 @@ package access
 
 import (
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
@@ -15,13 +16,22 @@ const (
 	PermissionDestinationDelete Permission = "infra.destination.delete"
 )
 
-func CreateDestination(c *gin.Context, destination *models.Destination) (*models.Destination, error) {
+func CreateDestination(c *gin.Context, destination *models.Destination, sync func(db *gorm.DB) error) (*models.Destination, error) {
 	db, err := RequireAuthorization(c, PermissionDestinationCreate)
 	if err != nil {
 		return nil, err
 	}
 
-	return data.CreateOrUpdateDestination(db, destination, &models.Destination{NodeID: destination.NodeID})
+	dest, err := data.CreateOrUpdateDestination(db, destination, &models.Destination{NodeID: destination.NodeID})
+	if err != nil {
+		return nil, err
+	}
+
+	if err := sync(db); err != nil {
+		return nil, err
+	}
+
+	return dest, nil
 }
 
 func GetDestination(c *gin.Context, id string) (*models.Destination, error) {
@@ -55,13 +65,22 @@ func ListDestinations(c *gin.Context, kind, nodeID, name string, labels []string
 	))
 }
 
-func UpdateDestination(c *gin.Context, id string, destination *models.Destination) (*models.Destination, error) {
+func UpdateDestination(c *gin.Context, id string, destination *models.Destination, sync func(db *gorm.DB) error) (*models.Destination, error) {
 	db, err := RequireAuthorization(c, PermissionDestinationUpdate)
 	if err != nil {
 		return nil, err
 	}
 
-	return data.UpdateDestination(db, destination, data.ByID(id))
+	dest, err := data.UpdateDestination(db, destination, data.ByID(id))
+	if err != nil {
+		return nil, err
+	}
+
+	if err := sync(db); err != nil {
+		return nil, err
+	}
+
+	return dest, nil
 }
 
 func DeleteDestination(c *gin.Context, id string) error {

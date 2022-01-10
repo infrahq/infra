@@ -32,7 +32,7 @@ func init() {
 type testCase struct {
 	Setup   func(*testing.T, *gorm.DB, *gin.Context)
 	Request func(*testing.T, *gin.Context) *http.Request
-	Handle  func(*testing.T, *gin.Context)
+	Handle  func(*testing.T, *gin.Context, *Registry)
 	Verify  func(*testing.T, *http.Request, *httptest.ResponseRecorder)
 }
 
@@ -717,7 +717,7 @@ func TestProvider(t *testing.T) {
 				require.NoError(t, err)
 				return httptest.NewRequest(http.MethodPost, "/v1/providers", bytes.NewReader(bts))
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.CreateProvider(c)
 			},
@@ -750,7 +750,7 @@ func TestProvider(t *testing.T) {
 				require.NoError(t, err)
 				return httptest.NewRequest(http.MethodPost, "/v1/providers", bytes.NewReader(bts))
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.CreateProvider(c)
 			},
@@ -779,7 +779,7 @@ func TestProvider(t *testing.T) {
 				require.NoError(t, err)
 				return httptest.NewRequest(http.MethodPost, "/v1/providers", bytes.NewReader(bts))
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.CreateProvider(c)
 			},
@@ -803,7 +803,7 @@ func TestProvider(t *testing.T) {
 				require.NoError(t, err)
 				return httptest.NewRequest(http.MethodPost, "/v1/providers", bytes.NewReader(bts))
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.CreateProvider(c)
 			},
@@ -827,7 +827,7 @@ func TestProvider(t *testing.T) {
 				require.NoError(t, err)
 				return httptest.NewRequest(http.MethodPost, "/v1/providers", bytes.NewReader(bts))
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.CreateProvider(c)
 			},
@@ -851,7 +851,7 @@ func TestProvider(t *testing.T) {
 				require.NoError(t, err)
 				return httptest.NewRequest(http.MethodPost, "/v1/providers", bytes.NewReader(bts))
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.CreateProvider(c)
 			},
@@ -875,7 +875,7 @@ func TestProvider(t *testing.T) {
 				require.NoError(t, err)
 				return httptest.NewRequest(http.MethodPost, "/v1/providers", bytes.NewReader(bts))
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.CreateProvider(c)
 			},
@@ -905,7 +905,7 @@ func TestProvider(t *testing.T) {
 
 				return httptest.NewRequest(http.MethodPut, fmt.Sprintf("/v1/providers/%s", c.Param("id")), bytes.NewReader(bts))
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.UpdateProvider(c)
 			},
@@ -938,7 +938,7 @@ func TestProvider(t *testing.T) {
 				c.Params = append(c.Params, gin.Param{Key: "id", Value: id.String()})
 				return httptest.NewRequest(http.MethodPut, fmt.Sprintf("/v1/providers/%s", c.Param("id")), bytes.NewReader(bts))
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.UpdateProvider(c)
 			},
@@ -954,7 +954,7 @@ func TestProvider(t *testing.T) {
 				c.Params = append(c.Params, gin.Param{Key: "id", Value: providerOkta.ID.String()})
 				return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/providers/%s", providerOkta.ID), nil)
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.GetProvider(c)
 			},
@@ -975,7 +975,7 @@ func TestProvider(t *testing.T) {
 			Request: func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/providers/", nil)
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.GetProvider(c)
 			},
@@ -994,7 +994,7 @@ func TestProvider(t *testing.T) {
 				c.Params = append(c.Params, gin.Param{Key: "id", Value: id.String()})
 				return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/providers/%s", id), nil)
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.GetProvider(c)
 			},
@@ -1009,7 +1009,7 @@ func TestProvider(t *testing.T) {
 			Request: func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/providers", nil)
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.ListProviders(c)
 			},
@@ -1030,7 +1030,7 @@ func TestProvider(t *testing.T) {
 			Request: func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/providers?kind=okta", nil)
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.ListProviders(c)
 			},
@@ -1051,7 +1051,7 @@ func TestProvider(t *testing.T) {
 			Request: func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/providers?domain=test.okta.com", nil)
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.ListProviders(c)
 			},
@@ -1072,7 +1072,7 @@ func TestProvider(t *testing.T) {
 			Request: func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/providers?domain=nonexistent.okta.com", nil)
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.ListProviders(c)
 			},
@@ -1092,7 +1092,7 @@ func TestProvider(t *testing.T) {
 			Request: func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/providers?domain=test.okta.com", nil)
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.ListProviders(c)
 			},
@@ -1142,7 +1142,7 @@ func TestProvider(t *testing.T) {
 
 				return httptest.NewRequest(http.MethodPut, fmt.Sprintf("/v1/providers/%s", c.Param("id")), bytes.NewReader(bts))
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.DeleteProvider(c)
 			},
@@ -1169,7 +1169,7 @@ func TestProvider(t *testing.T) {
 				c.Params = append(c.Params, gin.Param{Key: "id", Value: id.String()})
 				return httptest.NewRequest(http.MethodPut, fmt.Sprintf("/v1/providers/%s", c.Param("id")), bytes.NewReader(bts))
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.DeleteProvider(c)
 			},
@@ -1181,7 +1181,7 @@ func TestProvider(t *testing.T) {
 
 	for k, v := range cases {
 		t.Run(k, func(t *testing.T) {
-			_, db := configure(t, nil)
+			reg, db := configure(t, nil)
 
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
@@ -1192,7 +1192,7 @@ func TestProvider(t *testing.T) {
 
 			v.Setup(t, db, c)
 
-			v.Handle(t, c)
+			v.Handle(t, c, reg)
 
 			v.Verify(t, r, w)
 		})
@@ -1221,8 +1221,8 @@ func TestDestination(t *testing.T) {
 				require.NoError(t, err)
 				return httptest.NewRequest(http.MethodPost, "/v1/destinations", bytes.NewReader(bts))
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
-				a := API{}
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
+				a := API{registry: reg}
 				a.CreateDestination(c)
 			},
 			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
@@ -1246,7 +1246,7 @@ func TestDestination(t *testing.T) {
 				require.NoError(t, err)
 				return httptest.NewRequest(http.MethodPost, "/v1/destinations", bytes.NewReader(bts))
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.CreateDestination(c)
 			},
@@ -1272,7 +1272,7 @@ func TestDestination(t *testing.T) {
 				require.NoError(t, err)
 				return httptest.NewRequest(http.MethodPost, "/v1/destinations", bytes.NewReader(bts))
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.CreateDestination(c)
 			},
@@ -1298,7 +1298,7 @@ func TestDestination(t *testing.T) {
 				require.NoError(t, err)
 				return httptest.NewRequest(http.MethodPost, "/v1/destinations", bytes.NewReader(bts))
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.CreateDestination(c)
 			},
@@ -1324,7 +1324,7 @@ func TestDestination(t *testing.T) {
 				require.NoError(t, err)
 				return httptest.NewRequest(http.MethodPost, "/v1/destinations", bytes.NewReader(bts))
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.CreateDestination(c)
 			},
@@ -1355,8 +1355,8 @@ func TestDestination(t *testing.T) {
 
 				return httptest.NewRequest(http.MethodPut, fmt.Sprintf("/v1/destinations/%s", c.Param("id")), bytes.NewReader(bts))
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
-				a := API{}
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
+				a := API{registry: reg}
 				a.UpdateDestination(c)
 			},
 			Verify: func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder) {
@@ -1390,7 +1390,7 @@ func TestDestination(t *testing.T) {
 				c.Params = append(c.Params, gin.Param{Key: "id", Value: id.String()})
 				return httptest.NewRequest(http.MethodPut, fmt.Sprintf("/v1/destinations/%s", c.Param("id")), bytes.NewReader(bts))
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.UpdateDestination(c)
 			},
@@ -1406,7 +1406,7 @@ func TestDestination(t *testing.T) {
 				c.Params = append(c.Params, gin.Param{Key: "id", Value: destinationAAA.ID.String()})
 				return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/destinations/%s", destinationAAA.ID), nil)
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.GetDestination(c)
 			},
@@ -1428,7 +1428,7 @@ func TestDestination(t *testing.T) {
 			Request: func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/destinations/", nil)
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.GetDestination(c)
 			},
@@ -1447,7 +1447,7 @@ func TestDestination(t *testing.T) {
 				c.Params = append(c.Params, gin.Param{Key: "id", Value: id.String()})
 				return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/destinations/%s", id), nil)
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.GetDestination(c)
 			},
@@ -1462,7 +1462,7 @@ func TestDestination(t *testing.T) {
 			Request: func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/destinations", nil)
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.ListDestinations(c)
 			},
@@ -1497,7 +1497,7 @@ func TestDestination(t *testing.T) {
 			Request: func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/destinations?kind=kubernetes", nil)
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.ListDestinations(c)
 			},
@@ -1521,7 +1521,7 @@ func TestDestination(t *testing.T) {
 			Request: func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/destinations?name=AAA", nil)
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.ListDestinations(c)
 			},
@@ -1544,7 +1544,7 @@ func TestDestination(t *testing.T) {
 			Request: func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/destinations?kind=kubernetes&name=AAA", nil)
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.ListDestinations(c)
 			},
@@ -1567,7 +1567,7 @@ func TestDestination(t *testing.T) {
 			Request: func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodGet, "/v1/destinations?name=nonexistent", nil)
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.ListDestinations(c)
 			},
@@ -1593,7 +1593,7 @@ func TestDestination(t *testing.T) {
 			Request: func(t *testing.T, c *gin.Context) *http.Request {
 				return httptest.NewRequest(http.MethodPut, fmt.Sprintf("/v1/destinations/%s", c.Param("id")), nil)
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.DeleteDestination(c)
 			},
@@ -1612,7 +1612,7 @@ func TestDestination(t *testing.T) {
 				c.Params = append(c.Params, gin.Param{Key: "id", Value: id.String()})
 				return httptest.NewRequest(http.MethodPut, fmt.Sprintf("/v1/destinations/%s", c.Param("id")), nil)
 			},
-			Handle: func(t *testing.T, c *gin.Context) {
+			Handle: func(t *testing.T, c *gin.Context, reg *Registry) {
 				a := API{}
 				a.DeleteDestination(c)
 			},
@@ -1624,7 +1624,7 @@ func TestDestination(t *testing.T) {
 
 	for k, v := range cases {
 		t.Run(k, func(t *testing.T) {
-			_, db := configure(t, nil)
+			reg, db := configure(t, nil)
 
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
@@ -1635,7 +1635,7 @@ func TestDestination(t *testing.T) {
 
 			v.Setup(t, db, c)
 
-			v.Handle(t, c)
+			v.Handle(t, c, reg)
 
 			v.Verify(t, r, w)
 		})
@@ -1643,7 +1643,7 @@ func TestDestination(t *testing.T) {
 }
 
 func TestCreateDestinationUpdatesField(t *testing.T) {
-	_, db := configure(t, nil)
+	reg, db := configure(t, nil)
 
 	destination, err := data.CreateDestination(db, &models.Destination{
 		Kind:     models.DestinationKindKubernetes,
@@ -1683,7 +1683,7 @@ func TestCreateDestinationUpdatesField(t *testing.T) {
 
 	c.Set("permissions", string(access.PermissionDestinationCreate))
 
-	a := API{}
+	a := API{registry: reg}
 
 	a.CreateDestination(c)
 

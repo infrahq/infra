@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -436,7 +437,12 @@ func importGrants(db *gorm.DB, grants []ConfigGrant) ([]uuid.UUID, error) {
 	return toKeep, nil
 }
 
+var grantMu = &sync.Mutex{}
+
 func importGrantMappings(db *gorm.DB, users []ConfigUserMapping, groups []ConfigGroupMapping) error {
+	grantMu.Lock()
+	defer grantMu.Unlock()
+
 	// TODO: use a Set here instead of a Slice
 	toKeep := make([]uuid.UUID, 0)
 

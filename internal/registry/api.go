@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gopkg.in/segmentio/analytics-go.v3"
+	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
@@ -338,7 +339,11 @@ func (a *API) CreateDestination(c *gin.Context) {
 		return
 	}
 
-	destination, err := access.CreateDestination(c, destination)
+	sync := func(db *gorm.DB) error {
+		return importGrantMappings(db, a.registry.config.Users, a.registry.config.Groups)
+	}
+
+	destination, err := access.CreateDestination(c, destination, sync)
 	if err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return
@@ -372,7 +377,11 @@ func (a *API) UpdateDestination(c *gin.Context) {
 		return
 	}
 
-	destination, err = access.UpdateDestination(c, r.ID, destination)
+	sync := func(db *gorm.DB) error {
+		return importGrantMappings(db, a.registry.config.Users, a.registry.config.Groups)
+	}
+
+	destination, err = access.UpdateDestination(c, r.ID, destination, sync)
 	if err != nil {
 		sendAPIError(c, http.StatusBadRequest, err)
 		return
