@@ -122,6 +122,10 @@ func Run(options Options) (err error) {
 		return fmt.Errorf("configuring telemetry: %w", err)
 	}
 
+	if err := SetupMetrics(r.db); err != nil {
+		return fmt.Errorf("configuring metrics: %w", err)
+	}
+
 	if err := os.MkdirAll(options.TLSCache, os.ModePerm); err != nil {
 		return fmt.Errorf("mkdir: %w", err)
 	}

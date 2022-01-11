@@ -10,7 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
@@ -73,25 +72,6 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
-
-var requestInProgressGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
-	Namespace: "http",
-	Name:      "requests_in_progress",
-	Help:      "Number of HTTP requests currently in progress.",
-}, []string{"method", "handler"})
-
-var requestCount = promauto.NewCounterVec(prometheus.CounterOpts{
-	Namespace: "http",
-	Name:      "requests_total",
-	Help:      "Total number of HTTP requests served.",
-}, []string{"method", "handler", "status"})
-
-var requestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
-	Namespace: "http",
-	Name:      "requests_duration_seconds",
-	Help:      "A histogram of the duration, in seconds, handling HTTP requests.",
-	Buckets:   prometheus.ExponentialBuckets(0.001, 2, 15),
-}, []string{"method", "handler", "status"})
 
 // MetricsMiddleware wraps the request with a standard set of Prometheus metrics.
 // It has an additional responsibility of stripping out any unique identifiers as it will
