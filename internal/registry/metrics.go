@@ -114,5 +114,32 @@ func SetupMetrics(db *gorm.DB) error {
 		return float64(*count)
 	})
 
+	promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "database",
+		Name:      "info",
+		Help:      "Information about configured database.",
+	}, []string{"name"}).With(prometheus.Labels{
+		"name": db.Dialector.Name(),
+	}).Set(1)
+
+	promauto.NewGaugeFunc(prometheus.GaugeOpts{
+		Namespace: "database",
+		Name:      "connected",
+		Help:      "Database connection status.",
+	}, func() float64 {
+		pinger, ok := db.ConnPool.(interface{ Ping() error })
+		if !ok {
+			logging.L.Warn("ping: not supported")
+			return -1
+		}
+
+		if err := pinger.Ping(); err != nil {
+			logging.L.Warn("ping: not connected")
+			return 0
+		}
+
+		return 1
+	})
+
 	return nil
 }
