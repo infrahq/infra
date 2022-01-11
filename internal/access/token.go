@@ -52,8 +52,10 @@ func IssueUserToken(c *gin.Context, email string, sessionDuration time.Duration)
 		return nil, nil, err
 	}
 
-	if err := data.UpdateUserLastSeen(db, users[0].ID, time.Now()); err != nil {
-		return nil, nil, fmt.Errorf("user look-up fail: %w", err)
+	users[0].LastSeen = time.Now()
+
+	if _, err := data.UpdateUser(db, &users[0], data.ByUUID(users[0].ID)); err != nil {
+		return nil, nil, fmt.Errorf("user update fail: %w", err)
 	}
 
 	return &users[0], &token, nil

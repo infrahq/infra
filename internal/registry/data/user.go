@@ -2,7 +2,7 @@ package data
 
 import (
 	"errors"
-	"time"
+	"fmt"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -46,15 +46,7 @@ func CreateOrUpdateUser(db *gorm.DB, user *models.User, condition interface{}) (
 		return user, nil
 	}
 
-	if err := update(db, &models.User{}, user, db.Where(existing, "id")); err != nil {
-		return nil, err
-	}
-
-	if err := get(db, &models.User{}, user, db.Where(existing, "id")); err != nil {
-		return nil, err
-	}
-
-	return user, nil
+	return UpdateUser(db, user, ByUUID(existing.ID))
 }
 
 func GetUser(db *gorm.DB, condition interface{}) (*models.User, error) {
@@ -93,20 +85,29 @@ func DeleteUsers(db *gorm.DB, condition interface{}) error {
 	return nil
 }
 
-// UpdateUserLastSeen updates the last time a user was seen without replacing the whole user
-func UpdateUserLastSeen(db *gorm.DB, id uuid.UUID, t time.Time) error {
-	user, err := GetUser(db, db.Where("id = ?", id))
+func UpdateUser(db *gorm.DB, user *models.User, selector SelectorFunc) (*models.User, error) {
+	existing, err := GetUser(db, selector(db))
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("get existing: %w", err)
 	}
 
-	user.LastSeen = t
-
-	if err := update(db, &models.User{}, user, db.Where(user, "id")); err != nil {
-		return err
+	if err := update(db, &models.User{}, user, db.Where(existing, "id")); err != nil {
+		return nil, fmt.Errorf("update: %w", err)
 	}
 
-	return nil
+	if err := db.Model(existing).Association("Grants").Replace(&user.Grants); err != nil {
+		return nil, fmt.Errorf("grants: %w", err)
+	}
+
+	if err := db.Model(existing).Association("Providers").Replace(&user.Providers); err != nil {
+		return nil, fmt.Errorf("providers: %w", err)
+	}
+
+	if err := db.Model(existing).Association("Groups").Replace(&user.Groups); err != nil {
+		return nil, fmt.Errorf("groups: %w", err)
+	}
+
+	return GetUser(db, db.Where(existing, "id"))
 }
 
 func UserAssociations(db *gorm.DB) *gorm.DB {

@@ -68,8 +68,9 @@ func RequireAuthentication(c *gin.Context) error {
 			return fmt.Errorf("token user lookup: %w", err)
 		}
 
-		if err := data.UpdateUserLastSeen(db, token.UserID, time.Now()); err != nil {
-			return fmt.Errorf("user look-up fail: %w", err)
+		u.LastSeen = time.Now()
+		if _, err := data.UpdateUser(db, u, data.ByUUID(u.ID)); err != nil {
+			return fmt.Errorf("user update fail: %w", err)
 		}
 
 		logging.S.Debug("user permissions: %s \n", u.Permissions)

@@ -1,10 +1,19 @@
 package data
 
-import "gorm.io/gorm"
+import (
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 type SelectorFunc func(db *gorm.DB) *gorm.DB
 
 func ByID(id string) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("id = ?", id)
+	}
+}
+
+func ByUUID(id uuid.UUID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("id = ?", id)
 	}
