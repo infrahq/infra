@@ -4,6 +4,7 @@ required:
   - email
   - created
   - updated
+  - lastSeenAt
 properties:
   id:
     type: string
@@ -19,6 +20,10 @@ properties:
     type: integer
     format: int64
     description: updated time in seconds since 1970-01-01
+  lastSeenAt:
+    type: integer
+    format: int64
+    description: timestamp of this user's last interaction with Infra in seconds since 1970-01-01
   groups:
     type: array
     items:

@@ -49,30 +49,6 @@ groups:
         destinations:
           - name: BBB
             kind: kubernetes
-  - name: adversaries
-    provider: outside
-    grants:
-      - name: admin
-        kind: role
-        destinations:
-          - name: AAA
-            kind: kubernetes
-  - name: heroes
-    provider: okta
-    grants:
-      - name: writer
-        kind: role
-        destinations:
-          - name: CCC
-            kind: kubernetes
-  - name: villains
-    provider: okta
-    grants:
-      - name: writer
-        kind: role
-        destinations:
-          - name: CCC
-            kind: kubernetes
 
 users:
   - email: jbond@infrahq.com
@@ -106,11 +82,4 @@ users:
               - us-east-1
             namespaces:
               - infrahq
-            kind: kubernetes
-  - email: unknown@example.com
-    grants:
-      - name: writer
-        kind: role
-        destinations:
-          - name: AAA
             kind: kubernetes

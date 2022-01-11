@@ -3,6 +3,7 @@ package access
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -65,6 +66,11 @@ func RequireAuthentication(c *gin.Context) error {
 		u, err := data.GetUser(db, db.Where("id = (?)", token.UserID))
 		if err != nil {
 			return fmt.Errorf("token user lookup: %w", err)
+		}
+
+		u.LastSeenAt = time.Now()
+		if err := data.UpdateUser(db, u, data.ByUUID(u.ID)); err != nil {
+			return fmt.Errorf("user update fail: %w", err)
 		}
 
 		logging.S.Debug("user permissions: %s \n", u.Permissions)
