@@ -5,6 +5,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"gorm.io/gorm"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
@@ -32,6 +33,17 @@ var (
 )
 
 func SetupMetrics(db *gorm.DB) error {
+	promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "build",
+		Name:      "info",
+		Help:      "Build information about Infra Server.",
+	}, []string{"branch", "version", "commit", "date"}).With(prometheus.Labels{
+		"branch":  internal.Branch,
+		"version": internal.Version,
+		"commit":  internal.Commit,
+		"date":    internal.Date,
+	}).Set(1)
+
 	promauto.NewGaugeFunc(prometheus.GaugeOpts{
 		Namespace: "infra",
 		Name:      "users",
