@@ -35,6 +35,7 @@ require (
 	github.com/okta/okta-sdk-golang/v2 v2.9.2
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.0.1 // indirect
+	github.com/prometheus/client_golang v1.11.0
 	github.com/segmentio/backo-go v0.0.0-20200129164019-23eae7c10bd3 // indirect
 	github.com/spf13/afero v1.8.0
 	github.com/spf13/cobra v1.3.0

@@ -42,6 +42,9 @@ service:
     - name: https
       port: 443
       targetPort: 443
+    - name: metrics
+      port: 9090
+      targetPort: 9090
 
 ingress:
   enabled: false
