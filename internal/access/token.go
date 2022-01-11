@@ -44,7 +44,7 @@ func IssueUserToken(c *gin.Context, email string, sessionDuration time.Duration)
 	}
 
 	token := models.Token{
-		User:            users[0],
+		UserID:          users[0].ID,
 		SessionDuration: sessionDuration,
 	}
 

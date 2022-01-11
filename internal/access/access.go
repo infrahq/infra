@@ -62,12 +62,21 @@ func RequireAuthentication(c *gin.Context) error {
 
 	// token is valid, check where to set permissions from
 	if token.UserID != uuid.Nil {
-		logging.S.Debug("user permissions: %s \n", token.User.Permissions)
+		u, err := data.GetUser(db, db.Where("id = (?)", token.UserID))
+		if err != nil {
+			return fmt.Errorf("token user lookup: %w", err)
+		}
+
+		logging.S.Debug("user permissions: %s \n", u.Permissions)
 		// this token has a parent user, set by their current permissions
-		c.Set("permissions", token.User.Permissions)
+		c.Set("permissions", u.Permissions)
 	} else if token.APITokenID != uuid.Nil {
+		at, err := data.GetAPIToken(db, db.Where("id = (?)", token.APITokenID))
+		if err != nil {
+			return fmt.Errorf("token api permission lookup: %w", err)
+		}
 		// this is an API token
-		c.Set("permissions", token.APIToken.Permissions)
+		c.Set("permissions", at.Permissions)
 	}
 
 	return nil

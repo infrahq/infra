@@ -2,6 +2,7 @@ package data
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -22,11 +23,11 @@ func CreateOrUpdateGrant(db *gorm.DB, grant *models.Grant, condition interface{}
 	existing, err := GetGrant(db, condition)
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
-			return nil, err
+			return nil, fmt.Errorf("get: %w", err)
 		}
 
 		if _, err := CreateGrant(db, grant); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("create: %w", err)
 		}
 
 		return grant, nil
@@ -39,7 +40,7 @@ func CreateOrUpdateGrant(db *gorm.DB, grant *models.Grant, condition interface{}
 	switch grant.Kind {
 	case models.GrantKindKubernetes:
 		if err := db.Model(existing).Association("Kubernetes").Replace(&grant.Kubernetes); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("update: %w", err)
 		}
 	}
 
@@ -105,9 +106,9 @@ func StrictGrantSelector(db *gorm.DB, grant *models.Grant) *gorm.DB {
 		db = db.Where(
 			"id IN (?)",
 			db.Model(&models.GrantKubernetes{}).Select("grant_id").Where(map[string]interface{}{
-				"Kind":      grant.Kubernetes.Kind,
-				"Name":      grant.Kubernetes.Name,
-				"Namespace": grant.Kubernetes.Namespace,
+				"kind":      grant.Kubernetes.Kind,
+				"name":      grant.Kubernetes.Name,
+				"namespace": grant.Kubernetes.Namespace,
 			}),
 		)
 	}

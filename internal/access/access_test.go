@@ -37,7 +37,7 @@ func issueToken(t *testing.T, db *gorm.DB, email, permissions string, sessionDur
 	require.NoError(t, err)
 
 	token := &models.Token{
-		User:            *user,
+		UserID:          user.ID,
 		SessionDuration: sessionDuration,
 	}
 	token, err = data.CreateToken(db, token)
@@ -48,11 +48,27 @@ func issueToken(t *testing.T, db *gorm.DB, email, permissions string, sessionDur
 
 func TestRequireAuthentication(t *testing.T) {
 	cases := map[string]map[string]interface{}{
-		"TokenValid": {
+		"UserTokenValid": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				authentication := issueToken(t, db, "existing@infrahq.com", "*", time.Minute*1)
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "Bearer "+authentication)
+				c.Request = r
+			},
+			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
+				require.NoError(t, err)
+				permissions, ok := c.Get("permissions")
+				require.True(t, ok)
+				require.Equal(t, "*", permissions)
+			},
+		},
+		"APITokenValid": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				_, token, err := data.CreateAPIToken(db, &models.APIToken{Name: "valid-api-client", Permissions: "*", TTL: 1 * time.Minute}, &models.Token{})
+				require.NoError(t, err)
+
+				r := httptest.NewRequest(http.MethodGet, "/", nil)
+				r.Header.Add("Authorization", "Bearer "+token.SessionToken())
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
@@ -177,6 +193,39 @@ func TestRequireAuthentication(t *testing.T) {
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
 				require.EqualError(t, err, "valid token not found in authorization header, expecting the format `Bearer $token`")
+			},
+		},
+		"TokenParentUserDeleted": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				email := "token-parent@infrahq.com"
+				authentication := issueToken(t, db, email, "*", time.Minute*1)
+
+				err := data.DeleteUsers(db, &models.User{Email: email})
+				require.NoError(t, err)
+
+				r := httptest.NewRequest(http.MethodGet, "/", nil)
+				r.Header.Add("Authorization", "Bearer "+authentication)
+				c.Request = r
+			},
+			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
+				require.EqualError(t, err, "token user lookup: record not found")
+			},
+		},
+		"TokenParentAPIClientDeleted": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				apiClient := "token-client"
+				apiToken, token, err := data.CreateAPIToken(db, &models.APIToken{Name: apiClient}, &models.Token{})
+				require.NoError(t, err)
+
+				err = data.DeleteAPIToken(db, apiToken)
+				require.NoError(t, err)
+
+				r := httptest.NewRequest(http.MethodGet, "/", nil)
+				r.Header.Add("Authorization", "Bearer "+token.SessionToken())
+				c.Request = r
+			},
+			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
+				require.EqualError(t, err, "could not get token from database, it may not exist: record not found")
 			},
 		},
 	}

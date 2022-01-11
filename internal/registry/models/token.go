@@ -19,10 +19,8 @@ const (
 type Token struct {
 	Model
 
-	User   User
 	UserID uuid.UUID
 
-	APIToken   APIToken
 	APITokenID uuid.UUID
 
 	Key      string `gorm:"<-;uniqueIndex:,where:deleted_at is NULL"`

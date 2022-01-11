@@ -27,7 +27,7 @@ func createUserToken(t *testing.T, db *gorm.DB, sessionDuration time.Duration) *
 	require.NoError(t, err)
 
 	in := models.Token{
-		User:            *user,
+		UserID:          user.ID,
 		SessionDuration: sessionDuration,
 	}
 
