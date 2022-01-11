@@ -46,7 +46,11 @@ func CreateOrUpdateUser(db *gorm.DB, user *models.User, condition interface{}) (
 		return user, nil
 	}
 
-	return UpdateUser(db, user, ByUUID(existing.ID))
+	if err := UpdateUser(db, user, ByUUID(existing.ID)); err != nil {
+		return nil, err
+	}
+
+	return GetUser(db, db.Where(existing, "id"))
 }
 
 func GetUser(db *gorm.DB, condition interface{}) (*models.User, error) {
@@ -85,29 +89,29 @@ func DeleteUsers(db *gorm.DB, condition interface{}) error {
 	return nil
 }
 
-func UpdateUser(db *gorm.DB, user *models.User, selector SelectorFunc) (*models.User, error) {
+func UpdateUser(db *gorm.DB, user *models.User, selector SelectorFunc) error {
 	existing, err := GetUser(db, selector(db))
 	if err != nil {
-		return nil, fmt.Errorf("get existing: %w", err)
+		return fmt.Errorf("get existing: %w", err)
 	}
 
 	if err := update(db, &models.User{}, user, db.Where(existing, "id")); err != nil {
-		return nil, fmt.Errorf("update: %w", err)
+		return fmt.Errorf("update: %w", err)
 	}
 
 	if err := db.Model(existing).Association("Grants").Replace(&user.Grants); err != nil {
-		return nil, fmt.Errorf("grants: %w", err)
+		return fmt.Errorf("grants: %w", err)
 	}
 
 	if err := db.Model(existing).Association("Providers").Replace(&user.Providers); err != nil {
-		return nil, fmt.Errorf("providers: %w", err)
+		return fmt.Errorf("providers: %w", err)
 	}
 
 	if err := db.Model(existing).Association("Groups").Replace(&user.Groups); err != nil {
-		return nil, fmt.Errorf("groups: %w", err)
+		return fmt.Errorf("groups: %w", err)
 	}
 
-	return GetUser(db, db.Where(existing, "id"))
+	return nil
 }
 
 func UserAssociations(db *gorm.DB) *gorm.DB {

@@ -59,11 +59,11 @@ export interface User {
      */
     updated: number;
     /**
-     * timestamp of this user's last interaction with Infra in seconds since 1970-01-01, 0 when a user has never connected
+     * timestamp of this user's last interaction with Infra in seconds since 1970-01-01
      * @type {number}
      * @memberof User
      */
-    lastSeen: number;
+    lastSeenAt: number;
     /**
      * 
      * @type {Array<Group>}
@@ -98,7 +98,7 @@ export function UserFromJSONTyped(json: any, ignoreDiscriminator: boolean): User
         'email': json['email'],
         'created': json['created'],
         'updated': json['updated'],
-        'lastSeen': json['lastSeen'],
+        'lastSeenAt': json['lastSeenAt'],
         'groups': !exists(json, 'groups') ? undefined : ((json['groups'] as Array<any>).map(GroupFromJSON)),
         'grants': !exists(json, 'grants') ? undefined : ((json['grants'] as Array<any>).map(GrantFromJSON)),
         'providers': !exists(json, 'providers') ? undefined : ((json['providers'] as Array<any>).map(ProviderFromJSON)),
@@ -118,7 +118,7 @@ export function UserToJSON(value?: User | null): any {
         'email': value.email,
         'created': value.created,
         'updated': value.updated,
-        'lastSeen': value.lastSeen,
+        'lastSeenAt': value.lastSeenAt,
         'groups': value.groups === undefined ? undefined : ((value.groups as Array<any>).map(GroupToJSON)),
         'grants': value.grants === undefined ? undefined : ((value.grants as Array<any>).map(GrantToJSON)),
         'providers': value.providers === undefined ? undefined : ((value.providers as Array<any>).map(ProviderToJSON)),

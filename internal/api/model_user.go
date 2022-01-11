@@ -22,24 +22,24 @@ type User struct {
 	Created int64 `json:"created"`
 	// updated time in seconds since 1970-01-01
 	Updated int64 `json:"updated"`
-	// timestamp of this user's last interaction with Infra in seconds since 1970-01-01, 0 when a user has never connected
-	LastSeen  int64       `json:"lastSeen"`
-	Groups    *[]Group    `json:"groups,omitempty"`
-	Grants    *[]Grant    `json:"grants,omitempty"`
-	Providers *[]Provider `json:"providers,omitempty"`
+	// timestamp of this user's last interaction with Infra in seconds since 1970-01-01
+	LastSeenAt int64       `json:"lastSeenAt"`
+	Groups     *[]Group    `json:"groups,omitempty"`
+	Grants     *[]Grant    `json:"grants,omitempty"`
+	Providers  *[]Provider `json:"providers,omitempty"`
 }
 
 // NewUser instantiates a new User object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewUser(id string, email string, created int64, updated int64, lastSeen int64) *User {
+func NewUser(id string, email string, created int64, updated int64, lastSeenAt int64) *User {
 	this := User{}
 	this.ID = id
 	this.Email = email
 	this.Created = created
 	this.Updated = updated
-	this.LastSeen = lastSeen
+	this.LastSeenAt = lastSeenAt
 	return &this
 }
 
@@ -147,28 +147,28 @@ func (o *User) SetUpdated(v int64) {
 	o.Updated = v
 }
 
-// GetLastSeen returns the LastSeen field value
-func (o *User) GetLastSeen() int64 {
+// GetLastSeenAt returns the LastSeenAt field value
+func (o *User) GetLastSeenAt() int64 {
 	if o == nil {
 		var ret int64
 		return ret
 	}
 
-	return o.LastSeen
+	return o.LastSeenAt
 }
 
-// GetLastSeenOK returns a tuple with the LastSeen field value
+// GetLastSeenAtOK returns a tuple with the LastSeenAt field value
 // and a boolean to check if the value has been set.
-func (o *User) GetLastSeenOK() (*int64, bool) {
+func (o *User) GetLastSeenAtOK() (*int64, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.LastSeen, true
+	return &o.LastSeenAt, true
 }
 
-// SetLastSeen sets field value
-func (o *User) SetLastSeen(v int64) {
-	o.LastSeen = v
+// SetLastSeenAt sets field value
+func (o *User) SetLastSeenAt(v int64) {
+	o.LastSeenAt = v
 }
 
 // GetGroups returns the Groups field value if set, zero value otherwise.
@@ -282,7 +282,7 @@ func (o User) MarshalJSON() ([]byte, error) {
 		toSerialize["updated"] = o.Updated
 	}
 	if true {
-		toSerialize["lastSeen"] = o.LastSeen
+		toSerialize["lastSeenAt"] = o.LastSeenAt
 	}
 	if o.Groups != nil {
 		toSerialize["groups"] = o.Groups
