@@ -2,6 +2,7 @@ package registry
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -10,7 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
-
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
@@ -112,31 +112,35 @@ func MetricsMiddleware() gin.HandlerFunc {
 
 // RequireAuthentication checks the bearer token is present and valid then adds its permissions to the context
 func RequireAuthentication(c *gin.Context) error {
-	db := c.MustGet("db").(*gorm.DB)
+	db, ok := c.MustGet("db").(*gorm.DB)
+	if !ok {
+		return errors.New("unknown db type in context")
+	}
+
 	header := c.Request.Header.Get("Authorization")
 
 	parts := strings.Split(header, " ")
 	if len(parts) != 2 || parts[0] != "Bearer" {
-		return fmt.Errorf("valid token not found in authorization header, expecting the format `Bearer $token`")
+		return fmt.Errorf("%w: valid token not found in authorization header, expecting the format `Bearer $token`", internal.ErrUnauthorized)
 	}
 
 	bearer := parts[1]
 
 	if len(bearer) != models.TokenLength {
-		return fmt.Errorf("rejected token of invalid length")
+		return fmt.Errorf("%w: rejected token of invalid length", internal.ErrUnauthorized)
 	}
 
 	token, err := data.GetToken(db, data.ByKey(bearer[:models.TokenKeyLength]))
 	if err != nil {
-		return fmt.Errorf("could not get token from database, it may not exist: %w", err)
+		return fmt.Errorf("%w could not get token from database, it may not exist: %s", internal.ErrUnauthorized, err)
 	}
 
 	if err := data.CheckTokenSecret(token, bearer); err != nil {
-		return fmt.Errorf("rejected invalid token: %w", err)
+		return fmt.Errorf("%w: rejected invalid token: %s", internal.ErrUnauthorized, err)
 	}
 
 	if err := data.CheckTokenExpired(token); err != nil {
-		return fmt.Errorf("rejected token: %w", err)
+		return fmt.Errorf("%w: rejected token: %s", internal.ErrUnauthorized, err)
 	}
 
 	c.Set("authentication", bearer)

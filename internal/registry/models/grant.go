@@ -62,6 +62,7 @@ func (r *Grant) ToAPI() api.Grant {
 			Name:      r.Kubernetes.Name,
 			Namespace: r.Kubernetes.Namespace,
 		}
+	case GrantKindInfra:
 	}
 
 	users := make([]api.User, 0)

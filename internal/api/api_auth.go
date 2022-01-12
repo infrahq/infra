@@ -1,3 +1,4 @@
+//nolint
 package api
 
 import (
@@ -111,6 +112,7 @@ func (a *AuthAPIService) LoginExecute(r APILoginRequest) (LoginResponse, *_netht
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
+
 		if localVarHTTPResponse.StatusCode == 400 {
 			var v Error
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
@@ -118,8 +120,10 @@ func (a *AuthAPIService) LoginExecute(r APILoginRequest) (LoginResponse, *_netht
 				newErr.error = err.Error()
 				return localVarReturnValue, localVarHTTPResponse, newErr
 			}
+
 			newErr.model = v
 		}
+
 		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
@@ -217,6 +221,7 @@ func (a *AuthAPIService) LogoutExecute(r APILogoutRequest) (*_nethttp.Response, 
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
+
 		if localVarHTTPResponse.StatusCode == 400 {
 			var v Error
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
@@ -227,25 +232,33 @@ func (a *AuthAPIService) LogoutExecute(r APILogoutRequest) (*_nethttp.Response, 
 			newErr.model = v
 			return localVarHTTPResponse, newErr
 		}
+
 		if localVarHTTPResponse.StatusCode == 401 {
 			var v Error
+
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
 				return localVarHTTPResponse, newErr
 			}
+
 			newErr.model = v
+
 			return localVarHTTPResponse, newErr
 		}
+
 		if localVarHTTPResponse.StatusCode == 403 {
 			var v Error
+
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
 				return localVarHTTPResponse, newErr
 			}
+
 			newErr.model = v
 		}
+
 		return localVarHTTPResponse, newErr
 	}
 

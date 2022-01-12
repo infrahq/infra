@@ -53,6 +53,7 @@ func hasAuthorization(c *gin.Context, requires ...Permission) (bool, error) {
 	if !ok {
 		return false, fmt.Errorf("%w: requestor has no permissions", internal.ErrForbidden)
 	}
+
 	permissions := strings.Split(permissionStr, " ")
 
 outer:

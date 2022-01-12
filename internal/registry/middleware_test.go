@@ -9,12 +9,13 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
+
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
-	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
 )
 
 func TestRequestTimeoutError(t *testing.T) {
@@ -104,7 +105,7 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.EqualError(t, err, "rejected token: token expired")
+				require.Contains(t, err.Error(), "rejected token: token expired")
 			},
 		},
 		"TokenInvalidKey": {
@@ -117,7 +118,7 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.EqualError(t, err, "could not get token from database, it may not exist: record not found")
+				require.Contains(t, err.Error(), "could not get token from database, it may not exist: record not found")
 			},
 		},
 		"TokenNoMatch": {
@@ -128,7 +129,7 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.EqualError(t, err, "could not get token from database, it may not exist: record not found")
+				require.Contains(t, err.Error(), "could not get token from database, it may not exist: record not found")
 			},
 		},
 		"TokenInvalidSecret": {
@@ -143,7 +144,7 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.EqualError(t, err, "rejected invalid token: token invalid secret")
+				require.Contains(t, err.Error(), "rejected invalid token: token invalid secret")
 			},
 		},
 		"UnknownAuthenticationMethod": {
@@ -155,7 +156,7 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.EqualError(t, err, "rejected token of invalid length")
+				require.Contains(t, err.Error(), "rejected token of invalid length")
 			},
 		},
 		"NoAuthentication": {
@@ -165,7 +166,7 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.EqualError(t, err, "valid token not found in authorization header, expecting the format `Bearer $token`")
+				require.Contains(t, err.Error(), "valid token not found in authorization header, expecting the format `Bearer $token`")
 			},
 		},
 		"EmptyAuthentication": {
@@ -175,7 +176,7 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.EqualError(t, err, "valid token not found in authorization header, expecting the format `Bearer $token`")
+				require.Contains(t, err.Error(), "valid token not found in authorization header, expecting the format `Bearer $token`")
 			},
 		},
 	}

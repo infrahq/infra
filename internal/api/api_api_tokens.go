@@ -1,3 +1,4 @@
+//nolint
 package api
 
 import (
@@ -67,6 +68,7 @@ func (a *APITokensAPIService) CreateAPITokenExecute(r APICreateAPITokenRequest) 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := _neturl.Values{}
 	localVarFormParams := _neturl.Values{}
+
 	if r.body == nil {
 		return localVarReturnValue, nil, reportError("body is required and must be specified")
 	}
@@ -90,6 +92,7 @@ func (a *APITokensAPIService) CreateAPITokenExecute(r APICreateAPITokenRequest) 
 	}
 	// body params
 	localVarPostBody = r.body
+
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, localVarFormFileName, localVarFileName, localVarFileBytes)
 	if err != nil {
 		return localVarReturnValue, nil, err
@@ -101,46 +104,59 @@ func (a *APITokensAPIService) CreateAPITokenExecute(r APICreateAPITokenRequest) 
 	}
 
 	localVarBody, err := _ioutil.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = _ioutil.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
 		return localVarReturnValue, localVarHTTPResponse, err
 	}
+
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = _ioutil.NopCloser(bytes.NewBuffer(localVarBody))
 
 	if localVarHTTPResponse.StatusCode >= 300 {
 		newErr := GenericOpenAPIError{
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
+
 		if localVarHTTPResponse.StatusCode == 400 {
 			var v Error
+
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
 				return localVarReturnValue, localVarHTTPResponse, newErr
 			}
+
 			newErr.model = v
+
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
+
 		if localVarHTTPResponse.StatusCode == 401 {
 			var v Error
+
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
 				return localVarReturnValue, localVarHTTPResponse, newErr
 			}
+
 			newErr.model = v
+
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
+
 		if localVarHTTPResponse.StatusCode == 403 {
 			var v Error
+
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
 				return localVarReturnValue, localVarHTTPResponse, newErr
 			}
+
 			newErr.model = v
 		}
+
 		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
@@ -150,6 +166,7 @@ func (a *APITokensAPIService) CreateAPITokenExecute(r APICreateAPITokenRequest) 
 			body:  localVarBody,
 			error: err.Error(),
 		}
+
 		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
@@ -197,7 +214,7 @@ func (a *APITokensAPIService) DeleteAPITokenExecute(r APIDeleteAPITokenRequest) 
 	}
 
 	localVarPath := localBasePath + "/api-tokens/{id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"id"+"}", _neturl.PathEscape(parameterToString(r.id, "")), -1)
+	localVarPath = strings.ReplaceAll(localVarPath, "{"+"id"+"}", _neturl.PathEscape(parameterToString(r.id, "")))
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := _neturl.Values{}
@@ -220,6 +237,7 @@ func (a *APITokensAPIService) DeleteAPITokenExecute(r APIDeleteAPITokenRequest) 
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, localVarFormFileName, localVarFileName, localVarFileBytes)
 	if err != nil {
 		return nil, err
@@ -231,46 +249,58 @@ func (a *APITokensAPIService) DeleteAPITokenExecute(r APIDeleteAPITokenRequest) 
 	}
 
 	localVarBody, err := _ioutil.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = _ioutil.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
 		return localVarHTTPResponse, err
 	}
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = _ioutil.NopCloser(bytes.NewBuffer(localVarBody))
 
 	if localVarHTTPResponse.StatusCode >= 300 {
 		newErr := GenericOpenAPIError{
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
+
 		if localVarHTTPResponse.StatusCode == 400 {
 			var v Error
+
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
 				return localVarHTTPResponse, newErr
 			}
+
 			newErr.model = v
+
 			return localVarHTTPResponse, newErr
 		}
+
 		if localVarHTTPResponse.StatusCode == 401 {
 			var v Error
+
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
 				return localVarHTTPResponse, newErr
 			}
+
 			newErr.model = v
+
 			return localVarHTTPResponse, newErr
 		}
+
 		if localVarHTTPResponse.StatusCode == 403 {
 			var v Error
+
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
 				return localVarHTTPResponse, newErr
 			}
+
 			newErr.model = v
 		}
+
 		return localVarHTTPResponse, newErr
 	}
 
@@ -349,6 +379,7 @@ func (a *APITokensAPIService) ListAPITokensExecute(r APIListAPITokensRequest) ([
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, localVarFormFileName, localVarFileName, localVarFileBytes)
 	if err != nil {
 		return localVarReturnValue, nil, err
@@ -371,6 +402,7 @@ func (a *APITokensAPIService) ListAPITokensExecute(r APIListAPITokensRequest) ([
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
+
 		if localVarHTTPResponse.StatusCode == 400 {
 			var v Error
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
@@ -378,9 +410,12 @@ func (a *APITokensAPIService) ListAPITokensExecute(r APIListAPITokensRequest) ([
 				newErr.error = err.Error()
 				return localVarReturnValue, localVarHTTPResponse, newErr
 			}
+
 			newErr.model = v
+
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
+
 		if localVarHTTPResponse.StatusCode == 401 {
 			var v Error
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
@@ -388,9 +423,12 @@ func (a *APITokensAPIService) ListAPITokensExecute(r APIListAPITokensRequest) ([
 				newErr.error = err.Error()
 				return localVarReturnValue, localVarHTTPResponse, newErr
 			}
+
 			newErr.model = v
+
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
+
 		if localVarHTTPResponse.StatusCode == 403 {
 			var v Error
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
@@ -398,8 +436,10 @@ func (a *APITokensAPIService) ListAPITokensExecute(r APIListAPITokensRequest) ([
 				newErr.error = err.Error()
 				return localVarReturnValue, localVarHTTPResponse, newErr
 			}
+
 			newErr.model = v
 		}
+
 		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
@@ -409,6 +449,7 @@ func (a *APITokensAPIService) ListAPITokensExecute(r APIListAPITokensRequest) ([
 			body:  localVarBody,
 			error: err.Error(),
 		}
+
 		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 

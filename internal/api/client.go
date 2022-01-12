@@ -1,3 +1,4 @@
+//nolint
 package api
 
 import (
@@ -18,10 +19,8 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"golang.org/x/oauth2"
 )
@@ -87,10 +86,6 @@ func NewAPIClient(cfg *Configuration) *APIClient {
 	return c
 }
 
-func atoi(in string) (int, error) {
-	return strconv.Atoi(in)
-}
-
 // selectHeaderContentType select a content type from the available list.
 func selectHeaderContentType(contentTypes []string) string {
 	if len(contentTypes) == 0 {
@@ -118,25 +113,11 @@ func selectHeaderAccept(accepts []string) string {
 // contains is a case insensitive match, finding needle in a haystack
 func contains(haystack []string, needle string) bool {
 	for _, a := range haystack {
-		if strings.ToLower(a) == strings.ToLower(needle) {
+		if strings.EqualFold(a, needle) {
 			return true
 		}
 	}
 	return false
-}
-
-// Verify optional parameters are of the correct type.
-func typeCheckParameter(obj interface{}, expected string, name string) error {
-	// Make sure there is an object.
-	if obj == nil {
-		return nil
-	}
-
-	// Check the type is as expected.
-	if reflect.TypeOf(obj).String() != expected {
-		return fmt.Errorf("Expected %s to be of type %s but received %s.", name, expected, reflect.TypeOf(obj).String())
-	}
-	return nil
 }
 
 // parameterToString convert interface{} parameters to string, using a delimiter if format is provided.
@@ -155,21 +136,12 @@ func parameterToString(obj interface{}, collectionFormat string) string {
 	}
 
 	if reflect.TypeOf(obj).Kind() == reflect.Slice {
-		return strings.Trim(strings.Replace(fmt.Sprint(obj), " ", delimiter, -1), "[]")
+		return strings.Trim(strings.ReplaceAll(fmt.Sprint(obj), " ", delimiter), "[]")
 	} else if t, ok := obj.(time.Time); ok {
 		return t.Format(time.RFC3339)
 	}
 
 	return fmt.Sprintf("%v", obj)
-}
-
-// helper for converting interface{} parameters to json strings
-func parameterToJson(obj interface{}) (string, error) {
-	jsonBuf, err := json.Marshal(obj)
-	if err != nil {
-		return "", err
-	}
-	return string(jsonBuf), err
 }
 
 // callAPI do the request.
@@ -179,6 +151,7 @@ func (c *APIClient) callAPI(request *http.Request) (*http.Response, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		log.Printf("\n%s\n", string(dump))
 	}
 
@@ -192,6 +165,7 @@ func (c *APIClient) callAPI(request *http.Request) (*http.Response, error) {
 		if err != nil {
 			return resp, err
 		}
+
 		log.Printf("\n%s\n", string(dump))
 	}
 	return resp, err
@@ -214,7 +188,6 @@ func (c *APIClient) prepareRequest(
 	formFileName string,
 	fileName string,
 	fileBytes []byte) (localVarRequest *http.Request, err error) {
-
 	var body *bytes.Buffer
 
 	// Detect postBody type and post.
@@ -253,7 +226,7 @@ func (c *APIClient) prepareRequest(
 		}
 		if len(fileBytes) > 0 && fileName != "" {
 			w.Boundary()
-			//_, fileNm := filepath.Split(fileName)
+			// _, fileNm := filepath.Split(fileName)
 			part, err := w.CreateFormFile(formFileName, filepath.Base(fileName))
 			if err != nil {
 				return nil, err
@@ -269,6 +242,7 @@ func (c *APIClient) prepareRequest(
 
 		// Set Content-Length
 		headerParams["Content-Length"] = fmt.Sprintf("%d", body.Len())
+
 		w.Close()
 	}
 
@@ -300,7 +274,7 @@ func (c *APIClient) prepareRequest(
 
 	// Adding Query Param
 	query := url.Query()
-	for k, v := range queryParams {
+	for k, v := range queryParams { //nolint:wsl
 		for _, iv := range v {
 			query.Add(k, iv)
 		}
@@ -357,7 +331,6 @@ func (c *APIClient) prepareRequest(
 		if auth, ok := ctx.Value(ContextAccessToken).(string); ok {
 			localVarRequest.Header.Add("Authorization", "Bearer "+auth)
 		}
-
 	}
 
 	for header, value := range c.cfg.DefaultHeader {
@@ -434,6 +407,7 @@ func setBody(body interface{}, contentType string) (bodyBuf *bytes.Buffer, err e
 		bodyBuf = &bytes.Buffer{}
 	}
 
+	//nolint:gocritic
 	if reader, ok := body.(io.Reader); ok {
 		_, err = bodyBuf.ReadFrom(reader)
 	} else if fp, ok := body.(**os.File); ok {
@@ -466,6 +440,7 @@ func detectContentType(body interface{}) string {
 	contentType := "text/plain; charset=utf-8"
 	kind := reflect.TypeOf(body).Kind()
 
+	// nolint:exhaustive
 	switch kind {
 	case reflect.Struct, reflect.Map, reflect.Ptr:
 		contentType = "application/json; charset=utf-8"
@@ -488,6 +463,7 @@ type cacheControl map[string]string
 func parseCacheControl(headers http.Header) cacheControl {
 	cc := cacheControl{}
 	ccHeader := headers.Get("Cache-Control")
+
 	for _, part := range strings.Split(ccHeader, ",") {
 		part = strings.Trim(part, " ")
 		if part == "" {
@@ -530,10 +506,6 @@ func CacheExpires(r *http.Response) time.Time {
 		}
 	}
 	return expires
-}
-
-func strlen(s string) int {
-	return utf8.RuneCountInString(s)
 }
 
 // GenericOpenAPIError Provides access to the body, error and model on returned errors.

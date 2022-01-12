@@ -40,6 +40,7 @@ func (d *Destination) ToAPI() *api.Destination {
 	if d == nil {
 		return nil
 	}
+
 	result := api.Destination{
 		ID:      d.ID.String(),
 		Created: d.CreatedAt.Unix(),
@@ -69,6 +70,7 @@ func (d *Destination) FromAPI(from interface{}) error {
 	if reflect.ValueOf(from).IsNil() {
 		return nil
 	}
+
 	if request, ok := from.(*api.DestinationRequest); ok {
 		d.Name = request.Name
 		d.NodeID = request.NodeID

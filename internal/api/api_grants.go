@@ -1,3 +1,4 @@
+//nolint
 package api
 
 import (
@@ -60,7 +61,7 @@ func (a *GrantsAPIService) GetGrantExecute(r APIGetGrantRequest) (Grant, *_netht
 	}
 
 	localVarPath := localBasePath + "/grants/{id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"id"+"}", _neturl.PathEscape(parameterToString(r.id, "")), -1)
+	localVarPath = strings.ReplaceAll(localVarPath, "{"+"id"+"}", _neturl.PathEscape(parameterToString(r.id, "")))
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := _neturl.Values{}
@@ -105,6 +106,7 @@ func (a *GrantsAPIService) GetGrantExecute(r APIGetGrantRequest) (Grant, *_netht
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
+
 		if localVarHTTPResponse.StatusCode == 400 {
 			var v Error
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
@@ -263,6 +265,7 @@ func (a *GrantsAPIService) ListGrantsExecute(r APIListGrantsRequest) ([]Grant, *
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
+
 		if localVarHTTPResponse.StatusCode == 400 {
 			var v Error
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))

@@ -396,7 +396,7 @@ func importGrants(db *gorm.DB, grants []ConfigGrant) ([]uuid.UUID, error) {
 			}
 
 		DESTINATION:
-			for _, destination := range destinations {
+			for i, destination := range destinations {
 				labels := make(map[string]bool)
 				for _, l := range destination.Labels {
 					labels[l.Value] = true
@@ -410,13 +410,14 @@ func importGrants(db *gorm.DB, grants []ConfigGrant) ([]uuid.UUID, error) {
 
 				grant := models.Grant{
 					Kind:          models.GrantKind(destination.Kind),
-					Destination:   &destination,
+					Destination:   &destinations[i],
 					DestinationID: destination.ID,
 				}
 
 				grants := make([]models.Grant, 0)
 
 				switch grant.Kind {
+				case models.GrantKindInfra:
 				case models.GrantKindKubernetes:
 					grant.Kubernetes = models.GrantKubernetes{
 						Kind: models.GrantKubernetesKind(r.Kind),
@@ -469,9 +470,10 @@ func importGrantMappings(db *gorm.DB, users []ConfigUserMapping, groups []Config
 
 	// explicitly query using ID field
 	if err := data.DeleteGrants(db, data.NotByIDs(toKeep)); err != nil {
-		if err == internal.ErrNotFound {
+		if errors.Is(err, internal.ErrNotFound) {
 			return nil
 		}
+
 		return fmt.Errorf("not kept: %w", err)
 	}
 

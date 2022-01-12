@@ -1,3 +1,4 @@
+//nolint
 package api
 
 import (
@@ -113,6 +114,7 @@ func (a *DestinationsAPIService) CreateDestinationExecute(r APICreateDestination
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
+
 		if localVarHTTPResponse.StatusCode == 400 {
 			var v Error
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
@@ -123,6 +125,7 @@ func (a *DestinationsAPIService) CreateDestinationExecute(r APICreateDestination
 			newErr.model = v
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
+
 		if localVarHTTPResponse.StatusCode == 401 {
 			var v Error
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
@@ -133,6 +136,7 @@ func (a *DestinationsAPIService) CreateDestinationExecute(r APICreateDestination
 			newErr.model = v
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
+
 		if localVarHTTPResponse.StatusCode == 403 {
 			var v Error
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
@@ -200,7 +204,7 @@ func (a *DestinationsAPIService) DeleteDestinationExecute(r APIDeleteDestination
 	}
 
 	localVarPath := localBasePath + "/destinations/{id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"id"+"}", _neturl.PathEscape(parameterToString(r.id, "")), -1)
+	localVarPath = strings.ReplaceAll(localVarPath, "{"+"id"+"}", _neturl.PathEscape(parameterToString(r.id, "")))
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := _neturl.Values{}
@@ -245,6 +249,7 @@ func (a *DestinationsAPIService) DeleteDestinationExecute(r APIDeleteDestination
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
+
 		if localVarHTTPResponse.StatusCode == 400 {
 			var v Error
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
@@ -255,6 +260,7 @@ func (a *DestinationsAPIService) DeleteDestinationExecute(r APIDeleteDestination
 			newErr.model = v
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
+
 		if localVarHTTPResponse.StatusCode == 401 {
 			var v Error
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
@@ -265,6 +271,7 @@ func (a *DestinationsAPIService) DeleteDestinationExecute(r APIDeleteDestination
 			newErr.model = v
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
+
 		if localVarHTTPResponse.StatusCode == 403 {
 			var v Error
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
@@ -332,7 +339,7 @@ func (a *DestinationsAPIService) GetDestinationExecute(r APIGetDestinationReques
 	}
 
 	localVarPath := localBasePath + "/destinations/{id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"id"+"}", _neturl.PathEscape(parameterToString(r.id, "")), -1)
+	localVarPath = strings.ReplaceAll(localVarPath, "{"+"id"+"}", _neturl.PathEscape(parameterToString(r.id, "")))
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := _neturl.Values{}
@@ -377,35 +384,47 @@ func (a *DestinationsAPIService) GetDestinationExecute(r APIGetDestinationReques
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
+
 		if localVarHTTPResponse.StatusCode == 400 {
 			var v Error
+
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
 				return localVarReturnValue, localVarHTTPResponse, newErr
 			}
+
 			newErr.model = v
+
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
+
 		if localVarHTTPResponse.StatusCode == 401 {
 			var v Error
+
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
 				return localVarReturnValue, localVarHTTPResponse, newErr
 			}
+
 			newErr.model = v
+
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
+
 		if localVarHTTPResponse.StatusCode == 403 {
 			var v Error
+
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
 				return localVarReturnValue, localVarHTTPResponse, newErr
 			}
+
 			newErr.model = v
 		}
+
 		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
@@ -447,6 +466,7 @@ func (r APIListDestinationsRequest) Name(name string) APIListDestinationsRequest
 	r.name = &name
 	return r
 }
+
 func (r APIListDestinationsRequest) Labels(labels []string) APIListDestinationsRequest {
 	r.labels = &labels
 	return r
@@ -495,12 +515,15 @@ func (a *DestinationsAPIService) ListDestinationsExecute(r APIListDestinationsRe
 	if r.kind != nil {
 		localVarQueryParams.Add("kind", parameterToString(*r.kind, ""))
 	}
+
 	if r.nodeID != nil {
 		localVarQueryParams.Add("nodeID", parameterToString(*r.nodeID, ""))
 	}
+
 	if r.name != nil {
 		localVarQueryParams.Add("name", parameterToString(*r.name, ""))
 	}
+
 	if r.labels != nil {
 		t := *r.labels
 		if reflect.TypeOf(t).Kind() == reflect.Slice {
@@ -551,6 +574,7 @@ func (a *DestinationsAPIService) ListDestinationsExecute(r APIListDestinationsRe
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
+
 		if localVarHTTPResponse.StatusCode == 400 {
 			var v Error
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
@@ -644,7 +668,7 @@ func (a *DestinationsAPIService) UpdateDestinationExecute(r APIUpdateDestination
 	}
 
 	localVarPath := localBasePath + "/destinations/{id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"id"+"}", _neturl.PathEscape(parameterToString(r.id, "")), -1)
+	localVarPath = strings.ReplaceAll(localVarPath, "{"+"id"+"}", _neturl.PathEscape(parameterToString(r.id, "")))
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := _neturl.Values{}
@@ -694,6 +718,7 @@ func (a *DestinationsAPIService) UpdateDestinationExecute(r APIUpdateDestination
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
+
 		if localVarHTTPResponse.StatusCode == 400 {
 			var v Error
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
@@ -704,8 +729,10 @@ func (a *DestinationsAPIService) UpdateDestinationExecute(r APIUpdateDestination
 			newErr.model = v
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
+
 		if localVarHTTPResponse.StatusCode == 401 {
 			var v Error
+
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

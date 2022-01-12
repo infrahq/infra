@@ -38,6 +38,7 @@ func CreateOrUpdateGrant(db *gorm.DB, grant *models.Grant) (*models.Grant, error
 	}
 
 	switch grant.Kind {
+	case models.GrantKindInfra:
 	case models.GrantKindKubernetes:
 		if err := db.Model(existing).Association("Kubernetes").Replace(&grant.Kubernetes); err != nil {
 			return nil, fmt.Errorf("update: %w", err)
@@ -122,12 +123,13 @@ func ByGrantKind(kind models.GrantKind) SelectorFunc {
 		}
 
 		switch kind {
-		case models.GrantKindKubernetes:
+		case models.GrantKindInfra, models.GrantKindKubernetes:
 			return db.Where("kind = ?", kind)
 		default:
 			// panic("unknown grant kind: " + string(kind))
 			db.Logger.Error(db.Statement.Context, "unknown grant kind: "+string(kind))
-			db.AddError(fmt.Errorf("%w: unknown grant kind: %q", internal.ErrBadRequest, string(kind)))
+			_ = db.AddError(fmt.Errorf("%w: unknown grant kind: %q", internal.ErrBadRequest, string(kind)))
+
 			return db.Where("1 = 2")
 		}
 	}
@@ -144,7 +146,8 @@ func ByDestinationKind(kind models.DestinationKind) SelectorFunc {
 			return db.Where("kind = ?", kind)
 		default:
 			db.Logger.Error(db.Statement.Context, "unknown destination kind: "+string(kind))
-			db.AddError(fmt.Errorf("%w: unknown destination kind: %q", internal.ErrBadRequest, string(kind)))
+			_ = db.AddError(fmt.Errorf("%w: unknown destination kind: %q", internal.ErrBadRequest, string(kind)))
+
 			return db.Where("1 = 2")
 		}
 	}

@@ -137,6 +137,7 @@ func ByIDNotInList(ids []uuid.UUID) SelectorFunc {
 		if len(ids) > 0 {
 			return db.Where("id not in (?)", ids)
 		}
+
 		return db
 	}
 }

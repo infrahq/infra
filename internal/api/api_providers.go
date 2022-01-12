@@ -1,3 +1,4 @@
+//nolint
 package api
 
 import (
@@ -112,6 +113,7 @@ func (a *ProvidersAPIService) CreateProviderExecute(r APICreateProviderRequest) 
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
+
 		if localVarHTTPResponse.StatusCode == 400 {
 			var v Error
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
@@ -207,7 +209,7 @@ func (a *ProvidersAPIService) DeleteProviderExecute(r APIDeleteProviderRequest) 
 	}
 
 	localVarPath := localBasePath + "/providers/{id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"id"+"}", _neturl.PathEscape(parameterToString(r.id, "")), -1)
+	localVarPath = strings.ReplaceAll(localVarPath, "{"+"id"+"}", _neturl.PathEscape(parameterToString(r.id, "")))
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := _neturl.Values{}
@@ -252,6 +254,7 @@ func (a *ProvidersAPIService) DeleteProviderExecute(r APIDeleteProviderRequest) 
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
+
 		if localVarHTTPResponse.StatusCode == 400 {
 			var v Error
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
@@ -330,7 +333,7 @@ func (a *ProvidersAPIService) GetProviderExecute(r APIGetProviderRequest) (Provi
 	}
 
 	localVarPath := localBasePath + "/providers/{id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"id"+"}", _neturl.PathEscape(parameterToString(r.id, "")), -1)
+	localVarPath = strings.ReplaceAll(localVarPath, "{"+"id"+"}", _neturl.PathEscape(parameterToString(r.id, "")))
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := _neturl.Values{}
@@ -375,6 +378,7 @@ func (a *ProvidersAPIService) GetProviderExecute(r APIGetProviderRequest) (Provi
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
+
 		if localVarHTTPResponse.StatusCode == 400 {
 			var v Error
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
@@ -493,6 +497,7 @@ func (a *ProvidersAPIService) ListProvidersExecute(r APIListProvidersRequest) ([
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
+
 		if localVarHTTPResponse.StatusCode == 400 {
 			var v Error
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
@@ -566,7 +571,7 @@ func (a *ProvidersAPIService) UpdateProviderExecute(r APIUpdateProviderRequest) 
 	}
 
 	localVarPath := localBasePath + "/providers/{id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"id"+"}", _neturl.PathEscape(parameterToString(r.id, "")), -1)
+	localVarPath = strings.ReplaceAll(localVarPath, "{"+"id"+"}", _neturl.PathEscape(parameterToString(r.id, "")))
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := _neturl.Values{}

@@ -70,7 +70,7 @@ func TestCreateDestination(t *testing.T) {
 			},
 			RequestFunc: func(t *testing.T) *api.DestinationRequest {
 				return &api.DestinationRequest{
-					Kind:   api.DESTINATIONKIND_KUBERNETES,
+					Kind:   api.DestinationKindKubernetes,
 					NodeID: "test",
 					Name:   "test",
 					Kubernetes: &api.DestinationKubernetes{
@@ -125,7 +125,7 @@ func TestCreateDestination(t *testing.T) {
 			},
 			RequestFunc: func(t *testing.T) *api.DestinationRequest {
 				return &api.DestinationRequest{
-					Kind: api.DESTINATIONKIND_KUBERNETES,
+					Kind: api.DestinationKindKubernetes,
 					Kubernetes: &api.DestinationKubernetes{
 						CA:       "CA",
 						Endpoint: "develop.infrahq.com",
@@ -143,7 +143,7 @@ func TestCreateDestination(t *testing.T) {
 			},
 			RequestFunc: func(t *testing.T) *api.DestinationRequest {
 				return &api.DestinationRequest{
-					Kind: api.DESTINATIONKIND_KUBERNETES,
+					Kind: api.DestinationKindKubernetes,
 					Kubernetes: &api.DestinationKubernetes{
 						CA:       "CA",
 						Endpoint: "develop.infrahq.com",
@@ -672,8 +672,8 @@ func TestT(t *testing.T) {
 				})
 				require.ElementsMatch(t, []string{"writer", "admin"}, []string{grants[0].Kubernetes.Name, grants[1].Kubernetes.Name})
 				require.ElementsMatch(t, []api.GrantKubernetesKind{
-					api.GRANTKUBERNETESKIND_CLUSTER_ROLE,
-					api.GRANTKUBERNETESKIND_CLUSTER_ROLE,
+					api.GrantKubernetesKindClusterRole,
+					api.GrantKubernetesKindClusterRole,
 				}, []api.GrantKubernetesKind{
 					grants[0].Kubernetes.Kind,
 					grants[1].Kubernetes.Kind,
@@ -700,7 +700,7 @@ func TestT(t *testing.T) {
 				require.Len(t, grants, 8)
 
 				for _, r := range grants {
-					require.Equal(t, api.GRANTKIND_KUBERNETES, r.Kind)
+					require.Equal(t, api.GrantKindKubernetes, r.Kind)
 				}
 			},
 		},
@@ -724,7 +724,7 @@ func TestT(t *testing.T) {
 				require.Len(t, grants, 4)
 
 				for _, r := range grants {
-					require.Equal(t, api.GRANTKIND_KUBERNETES, r.Kind)
+					require.Equal(t, api.GrantKindKubernetes, r.Kind)
 				}
 			},
 		},
@@ -775,9 +775,8 @@ func TestT(t *testing.T) {
 				require.Len(t, grants, 0)
 			},
 		},
-
-		// /v1/api-tokens
-		{Name: "ListAPITokens",
+		{
+			Name: "ListAPITokens",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				issueAPIToken(t, db, string(access.PermissionAPITokenRead))
 				c.Set("permissions", string(access.PermissionAPITokenRead))
@@ -797,9 +796,8 @@ func TestT(t *testing.T) {
 				require.Len(t, apiTokens, 1)
 			},
 		},
-
-		// /v1/tokens
-		{Name: "CreateToken",
+		{
+			Name: "CreateToken",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				_, token, err := access.IssueUserToken(c, "jbond@infrahq.com", time.Hour*1)
 				require.NoError(t, err)
@@ -862,13 +860,14 @@ func TestProvider(t *testing.T) {
 		HandlerFunc func(a *API, c *gin.Context)
 		VerifyFunc  func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder)
 	}{
-		{Name: "CreateOK",
+		{
+			Name: "CreateOK",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionProviderCreate))
 			},
 			RequestFunc: func(t *testing.T, c *gin.Context) *http.Request {
 				request := api.ProviderRequest{
-					Kind:         api.PROVIDERKIND_OKTA,
+					Kind:         api.ProviderKindOkta,
 					Domain:       "domain.okta.com",
 					ClientID:     "client-id",
 					ClientSecret: "client-secret",
@@ -891,13 +890,14 @@ func TestProvider(t *testing.T) {
 				require.Equal(t, "client-id", provider.ClientID)
 			},
 		},
-		{Name: "CreateOK/Okta",
+		{
+			Name: "CreateOK/Okta",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionProviderCreate))
 			},
 			RequestFunc: func(t *testing.T, c *gin.Context) *http.Request {
 				request := api.ProviderRequest{
-					Kind:         api.PROVIDERKIND_OKTA,
+					Kind:         api.ProviderKindOkta,
 					Domain:       "domain.okta.com",
 					ClientID:     "client-id",
 					ClientSecret: "client-secret",
@@ -923,7 +923,8 @@ func TestProvider(t *testing.T) {
 				require.Equal(t, "client-id", provider.ClientID)
 			},
 		},
-		{Name: "CreateNoKind",
+		{
+			Name: "CreateNoKind",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionProviderCreate))
 			},
@@ -945,7 +946,8 @@ func TestProvider(t *testing.T) {
 				require.Equal(t, http.StatusBadRequest, w.Code)
 			},
 		},
-		{Name: "CreateUnknownKind",
+		{
+			Name: "CreateUnknownKind",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionProviderCreate))
 			},
@@ -968,13 +970,14 @@ func TestProvider(t *testing.T) {
 				require.Equal(t, http.StatusBadRequest, w.Code)
 			},
 		},
-		{Name: "CreateNoAuthorization",
+		{
+			Name: "CreateNoAuthorization",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", "")
 			},
 			RequestFunc: func(t *testing.T, c *gin.Context) *http.Request {
 				request := api.ProviderRequest{
-					Kind:         api.PROVIDERKIND_OKTA,
+					Kind:         api.ProviderKindOkta,
 					Domain:       "domain.okta.com",
 					ClientID:     "client-id",
 					ClientSecret: "client-secret",
@@ -991,13 +994,14 @@ func TestProvider(t *testing.T) {
 				require.Equal(t, http.StatusForbidden, w.Code)
 			},
 		},
-		{Name: "CreateBadPermissions",
+		{
+			Name: "CreateBadPermissions",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionProviderUpdate))
 			},
 			RequestFunc: func(t *testing.T, c *gin.Context) *http.Request {
 				request := api.ProviderRequest{
-					Kind:         api.PROVIDERKIND_OKTA,
+					Kind:         api.ProviderKindOkta,
 					Domain:       "domain.okta.com",
 					ClientID:     "client-id",
 					ClientSecret: "client-secret",
@@ -1014,13 +1018,14 @@ func TestProvider(t *testing.T) {
 				require.Equal(t, http.StatusForbidden, w.Code)
 			},
 		},
-		{Name: "CreateDuplicate",
+		{
+			Name: "CreateDuplicate",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionProviderCreate))
 			},
 			RequestFunc: func(t *testing.T, c *gin.Context) *http.Request {
 				request := api.ProviderRequest{
-					Kind:         api.PROVIDERKIND_OKTA,
+					Kind:         api.ProviderKindOkta,
 					Domain:       "test.okta.com",
 					ClientID:     "client-id",
 					ClientSecret: "client-secret",
@@ -1037,7 +1042,8 @@ func TestProvider(t *testing.T) {
 				require.Equal(t, http.StatusConflict, w.Code)
 			},
 		},
-		{Name: "Update",
+		{
+			Name: "Update",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionProviderUpdate))
 
@@ -1051,7 +1057,7 @@ func TestProvider(t *testing.T) {
 			RequestFunc: func(t *testing.T, c *gin.Context) *http.Request {
 				request := api.ProviderRequest{
 					Domain: "test2.okta.com",
-					Kind:   api.PROVIDERKIND_OKTA,
+					Kind:   api.ProviderKindOkta,
 				}
 
 				bts, err := json.Marshal(request)
@@ -1072,14 +1078,15 @@ func TestProvider(t *testing.T) {
 				require.Equal(t, "plaintext:0oapn0qwiQPiMIyR35d6", provider.ClientID)
 			},
 		},
-		{Name: "UpdateNotFound",
+		{
+			Name: "UpdateNotFound",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionProviderUpdate))
 			},
 			RequestFunc: func(t *testing.T, c *gin.Context) *http.Request {
 				request := api.ProviderRequest{
 					Domain: "domain.okta.com",
-					Kind:   api.PROVIDERKIND_OKTA,
+					Kind:   api.ProviderKindOkta,
 				}
 
 				bts, err := json.Marshal(request)
@@ -1098,7 +1105,8 @@ func TestProvider(t *testing.T) {
 				require.Equal(t, http.StatusNotFound, w.Code)
 			},
 		},
-		{Name: "Get",
+		{
+			Name: "Get",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionProviderRead))
 			},
@@ -1119,7 +1127,8 @@ func TestProvider(t *testing.T) {
 				require.Equal(t, "plaintext:0oapn0qwiQPiMIyR35d6", provider.ClientID)
 			},
 		},
-		{Name: "GetEmptyID",
+		{
+			Name: "GetEmptyID",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionProviderRead))
 			},
@@ -1133,7 +1142,8 @@ func TestProvider(t *testing.T) {
 				require.Equal(t, http.StatusBadRequest, w.Code)
 			},
 		},
-		{Name: "GetUnknownProvider",
+		{
+			Name: "GetUnknownProvider",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionProviderRead))
 			},
@@ -1151,7 +1161,8 @@ func TestProvider(t *testing.T) {
 				require.Equal(t, http.StatusNotFound, w.Code)
 			},
 		},
-		{Name: "List",
+		{
+			Name: "List",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionProviderRead))
 			},
@@ -1171,7 +1182,8 @@ func TestProvider(t *testing.T) {
 				require.Equal(t, "test.okta.com", providers[0].Domain)
 			},
 		},
-		{Name: "ListByKind",
+		{
+			Name: "ListByKind",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionProviderRead))
 			},
@@ -1191,7 +1203,8 @@ func TestProvider(t *testing.T) {
 				require.Equal(t, "test.okta.com", providers[0].Domain)
 			},
 		},
-		{Name: "ListByDomain",
+		{
+			Name: "ListByDomain",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionProviderRead))
 			},
@@ -1211,7 +1224,8 @@ func TestProvider(t *testing.T) {
 				require.Equal(t, "test.okta.com", providers[0].Domain)
 			},
 		},
-		{Name: "ListNotFound",
+		{
+			Name: "ListNotFound",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionProviderRead))
 			},
@@ -1230,7 +1244,8 @@ func TestProvider(t *testing.T) {
 				require.Len(t, providers, 0)
 			},
 		},
-		{Name: "ListSensitiveInformation",
+		{
+			Name: "ListSensitiveInformation",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionProviderRead))
 			},
@@ -1264,7 +1279,8 @@ func TestProvider(t *testing.T) {
 				}
 			},
 		},
-		{Name: "Delete",
+		{
+			Name: "Delete",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionProviderDelete))
 
@@ -1278,7 +1294,7 @@ func TestProvider(t *testing.T) {
 			RequestFunc: func(t *testing.T, c *gin.Context) *http.Request {
 				request := api.ProviderRequest{
 					Domain: "test2.okta.com",
-					Kind:   api.PROVIDERKIND_OKTA,
+					Kind:   api.ProviderKindOkta,
 				}
 
 				bts, err := json.Marshal(request)
@@ -1293,14 +1309,15 @@ func TestProvider(t *testing.T) {
 				require.Equal(t, http.StatusNoContent, w.Code)
 			},
 		},
-		{Name: "DeleteNotFound",
+		{
+			Name: "DeleteNotFound",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionProviderDelete))
 			},
 			RequestFunc: func(t *testing.T, c *gin.Context) *http.Request {
 				request := api.ProviderRequest{
 					Domain: "domain.okta.com",
-					Kind:   api.PROVIDERKIND_OKTA,
+					Kind:   api.ProviderKindOkta,
 				}
 
 				bts, err := json.Marshal(request)
@@ -1350,13 +1367,14 @@ func TestDestination(t *testing.T) {
 		VerifyFunc  func(t *testing.T, r *http.Request, w *httptest.ResponseRecorder)
 	}{
 
-		{Name: "CreateOK",
+		{
+			Name: "CreateOK",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionDestinationCreate))
 			},
 			RequestFunc: func(t *testing.T, c *gin.Context) *http.Request {
 				request := api.DestinationRequest{
-					Kind:   api.DESTINATIONKIND_KUBERNETES,
+					Kind:   api.DestinationKindKubernetes,
 					NodeID: "test",
 					Name:   "test",
 					Kubernetes: &api.DestinationKubernetes{
@@ -1377,7 +1395,8 @@ func TestDestination(t *testing.T) {
 				require.Equal(t, http.StatusCreated, w.Code)
 			},
 		},
-		{Name: "CreateNoKind",
+		{
+			Name: "CreateNoKind",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionDestinationCreate))
 			},
@@ -1401,7 +1420,8 @@ func TestDestination(t *testing.T) {
 				require.Equal(t, http.StatusBadRequest, w.Code)
 			},
 		},
-		{Name: "CreateUnknownKind",
+		{
+			Name: "CreateUnknownKind",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionDestinationCreate))
 			},
@@ -1426,13 +1446,14 @@ func TestDestination(t *testing.T) {
 				require.Equal(t, http.StatusBadRequest, w.Code)
 			},
 		},
-		{Name: "CreateNoAuthorization",
+		{
+			Name: "CreateNoAuthorization",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", "")
 			},
 			RequestFunc: func(t *testing.T, c *gin.Context) *http.Request {
 				request := api.DestinationRequest{
-					Kind: api.DESTINATIONKIND_KUBERNETES,
+					Kind: api.DestinationKindKubernetes,
 					Kubernetes: &api.DestinationKubernetes{
 						CA:       "CA",
 						Endpoint: "develop.infrahq.com",
@@ -1451,13 +1472,14 @@ func TestDestination(t *testing.T) {
 				require.Equal(t, http.StatusForbidden, w.Code)
 			},
 		},
-		{Name: "CreateBadPermissions",
+		{
+			Name: "CreateBadPermissions",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", "infra.bad.permissions")
 			},
 			RequestFunc: func(t *testing.T, c *gin.Context) *http.Request {
 				request := api.DestinationRequest{
-					Kind: api.DESTINATIONKIND_KUBERNETES,
+					Kind: api.DestinationKindKubernetes,
 					Kubernetes: &api.DestinationKubernetes{
 						CA:       "CA",
 						Endpoint: "develop.infrahq.com",
@@ -1476,7 +1498,8 @@ func TestDestination(t *testing.T) {
 				require.Equal(t, http.StatusForbidden, w.Code)
 			},
 		},
-		{Name: "Update",
+		{
+			Name: "Update",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionDestinationUpdate))
 
@@ -1490,7 +1513,7 @@ func TestDestination(t *testing.T) {
 				request := api.DestinationRequest{
 					NodeID: "AAA",
 					Name:   "aaa",
-					Kind:   api.DESTINATIONKIND_KUBERNETES,
+					Kind:   api.DestinationKindKubernetes,
 					Labels: []string{},
 				}
 
@@ -1512,7 +1535,8 @@ func TestDestination(t *testing.T) {
 				require.Equal(t, "aaa", destination.Name)
 			},
 		},
-		{Name: "UpdateNotFound",
+		{
+			Name: "UpdateNotFound",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionDestinationUpdate))
 			},
@@ -1520,7 +1544,7 @@ func TestDestination(t *testing.T) {
 				request := api.DestinationRequest{
 					NodeID: "XYZ",
 					Name:   "XYZ",
-					Kind:   api.DESTINATIONKIND_KUBERNETES,
+					Kind:   api.DestinationKindKubernetes,
 					Labels: []string{},
 				}
 
@@ -1540,7 +1564,8 @@ func TestDestination(t *testing.T) {
 				require.Equal(t, http.StatusNotFound, w.Code)
 			},
 		},
-		{Name: "Get",
+		{
+			Name: "Get",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionDestinationRead))
 			},
@@ -1562,7 +1587,8 @@ func TestDestination(t *testing.T) {
 				require.Equal(t, "develop.infrahq.com", destination.Kubernetes.Endpoint)
 			},
 		},
-		{Name: "GetEmptyID",
+		{
+			Name: "GetEmptyID",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionDestinationRead))
 			},
@@ -1576,7 +1602,8 @@ func TestDestination(t *testing.T) {
 				require.Equal(t, http.StatusBadRequest, w.Code)
 			},
 		},
-		{Name: "GetUnknownDestination",
+		{
+			Name: "GetUnknownDestination",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionDestinationRead))
 			},
@@ -1594,7 +1621,8 @@ func TestDestination(t *testing.T) {
 				require.Equal(t, http.StatusNotFound, w.Code)
 			},
 		},
-		{Name: "List",
+		{
+			Name: "List",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionDestinationRead))
 			},
@@ -1628,7 +1656,8 @@ func TestDestination(t *testing.T) {
 				})
 			},
 		},
-		{Name: "ListByKind",
+		{
+			Name: "ListByKind",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionDestinationRead))
 			},
@@ -1647,11 +1676,12 @@ func TestDestination(t *testing.T) {
 				require.Len(t, destinations, 3)
 
 				for _, d := range destinations {
-					require.Equal(t, api.DESTINATIONKIND_KUBERNETES, d.Kind)
+					require.Equal(t, api.DestinationKindKubernetes, d.Kind)
 				}
 			},
 		},
-		{Name: "ListByName",
+		{
+			Name: "ListByName",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionDestinationRead))
 			},
@@ -1673,7 +1703,8 @@ func TestDestination(t *testing.T) {
 				require.Equal(t, "develop.infrahq.com", destinations[0].Kubernetes.Endpoint)
 			},
 		},
-		{Name: "ListCombo",
+		{
+			Name: "ListCombo",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionDestinationRead))
 			},
@@ -1695,7 +1726,8 @@ func TestDestination(t *testing.T) {
 				require.Equal(t, "develop.infrahq.com", destinations[0].Kubernetes.Endpoint)
 			},
 		},
-		{Name: "ListNotFound",
+		{
+			Name: "ListNotFound",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionDestinationRead))
 			},
@@ -1714,7 +1746,8 @@ func TestDestination(t *testing.T) {
 				require.Len(t, destinations, 0)
 			},
 		},
-		{Name: "Delete",
+		{
+			Name: "Delete",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionDestinationDelete))
 
@@ -1734,7 +1767,8 @@ func TestDestination(t *testing.T) {
 				require.Equal(t, http.StatusNoContent, w.Code)
 			},
 		},
-		{Name: "DeleteNotFound",
+		{
+			Name: "DeleteNotFound",
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				c.Set("permissions", string(access.PermissionDestinationDelete))
 			},
@@ -1792,7 +1826,7 @@ func TestCreateDestinationUpdatesField(t *testing.T) {
 
 	request := api.DestinationRequest{
 		ID:     uuid.New(),
-		Kind:   api.DESTINATIONKIND_KUBERNETES,
+		Kind:   api.DestinationKindKubernetes,
 		NodeID: destination.NodeID,
 		Name:   "updated-name",
 		Kubernetes: &api.DestinationKubernetes{

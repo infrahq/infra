@@ -10,21 +10,24 @@ type DestinationKind string
 
 // List of DestinationKind
 const (
-	DESTINATIONKIND_KUBERNETES DestinationKind = "kubernetes"
+	DestinationKindKubernetes DestinationKind = "kubernetes"
 )
 
-var allowedDestinationKindEnumValues = []DestinationKind{
-	"kubernetes",
+var ValidDestinationKinds = []DestinationKind{
+	DestinationKindKubernetes,
 }
 
 func (v *DestinationKind) UnmarshalJSON(src []byte) error {
 	var value string
+
 	err := json.Unmarshal(src, &value)
 	if err != nil {
 		return err
 	}
+
 	enumTypeValue := DestinationKind(value)
-	for _, existing := range allowedDestinationKindEnumValues {
+
+	for _, existing := range ValidDestinationKinds {
 		if existing == enumTypeValue {
 			*v = enumTypeValue
 			return nil
@@ -36,10 +39,11 @@ func (v *DestinationKind) UnmarshalJSON(src []byte) error {
 
 // IsValid return true if the value is valid for the enum, false otherwise
 func (v DestinationKind) IsValid() bool {
-	for _, existing := range allowedDestinationKindEnumValues {
+	for _, existing := range ValidDestinationKinds {
 		if existing == v {
 			return true
 		}
 	}
+
 	return false
 }

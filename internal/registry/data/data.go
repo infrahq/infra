@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
 	"gorm.io/driver/postgres"
@@ -15,7 +16,6 @@ import (
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry/models"
@@ -112,6 +112,7 @@ func get(db *gorm.DB, kind interface{}, value interface{}, condition interface{}
 		for _, selector := range t {
 			db2 = selector(db2)
 		}
+
 		condition = db2
 	}
 
@@ -135,6 +136,7 @@ func list(db *gorm.DB, kind interface{}, values interface{}, condition interface
 		for _, selector := range t {
 			db2 = selector(db2)
 		}
+
 		condition = db2
 	}
 
@@ -159,6 +161,7 @@ func update(db *gorm.DB, kind interface{}, value interface{}, condition interfac
 		for _, selector := range t {
 			db2 = selector(db2)
 		}
+
 		condition = db2
 	}
 
@@ -181,6 +184,7 @@ func remove(db *gorm.DB, kind interface{}, condition interface{}) error {
 		for _, selector := range t {
 			db2 = selector(db2)
 		}
+
 		condition = db2
 	}
 

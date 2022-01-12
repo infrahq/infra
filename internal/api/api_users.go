@@ -1,3 +1,4 @@
+//nolint
 package api
 
 import (
@@ -60,7 +61,7 @@ func (a *UsersAPIService) GetUserExecute(r APIGetUserRequest) (User, *_nethttp.R
 	}
 
 	localVarPath := localBasePath + "/users/{id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"id"+"}", _neturl.PathEscape(parameterToString(r.id, "")), -1)
+	localVarPath = strings.ReplaceAll(localVarPath, "{"+"id"+"}", _neturl.PathEscape(parameterToString(r.id, "")))
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := _neturl.Values{}

@@ -29,6 +29,7 @@ func (s stringUUID) UUID() (uuid.UUID, error) {
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
 	}
+
 	return r, nil
 }
 
@@ -149,7 +150,7 @@ func (a *API) ListUsers(c *gin.Context) {
 }
 
 func (a *API) GetUser(c *gin.Context) {
-	r, err := bindUriResource(c)
+	r, err := bindURIResource(c)
 	if err != nil {
 		sendAPIError(c, err)
 		return
@@ -184,7 +185,7 @@ func (a *API) ListGroups(c *gin.Context) {
 }
 
 func (a *API) GetGroup(c *gin.Context) {
-	r, err := bindUriResource(c)
+	r, err := bindURIResource(c)
 	if err != nil {
 		sendAPIError(c, err)
 		return
@@ -220,7 +221,7 @@ func (a *API) ListProviders(c *gin.Context) {
 
 // caution: this endpoint is unauthenticated, do not return sensitive info
 func (a *API) GetProvider(c *gin.Context) {
-	r, err := bindUriResource(c)
+	r, err := bindURIResource(c)
 	if err != nil {
 		sendAPIError(c, err)
 		return
@@ -261,7 +262,7 @@ func (a *API) CreateProvider(c *gin.Context) {
 }
 
 func (a *API) UpdateProvider(c *gin.Context) {
-	r, err := bindUriResource(c)
+	r, err := bindURIResource(c)
 	if err != nil {
 		sendAPIError(c, err)
 		return
@@ -295,7 +296,7 @@ func (a *API) UpdateProvider(c *gin.Context) {
 }
 
 func (a *API) DeleteProvider(c *gin.Context) {
-	r, err := bindUriResource(c)
+	r, err := bindURIResource(c)
 	if err != nil {
 		sendAPIError(c, err)
 		return
@@ -332,7 +333,7 @@ func (a *API) ListDestinations(c *gin.Context) {
 }
 
 func (a *API) GetDestination(c *gin.Context) {
-	r, err := bindUriResource(c)
+	r, err := bindURIResource(c)
 	if err != nil {
 		sendAPIError(c, err)
 		return
@@ -372,7 +373,7 @@ func (a *API) CreateDestination(c *gin.Context) {
 }
 
 func (a *API) UpdateDestination(c *gin.Context) {
-	r, err := bindUriResource(c)
+	r, err := bindURIResource(c)
 	if err != nil {
 		sendAPIError(c, err)
 		return
@@ -402,7 +403,7 @@ func (a *API) UpdateDestination(c *gin.Context) {
 }
 
 func (a *API) DeleteDestination(c *gin.Context) {
-	r, err := bindUriResource(c)
+	r, err := bindURIResource(c)
 	if err != nil {
 		sendAPIError(c, err)
 		return
@@ -498,7 +499,7 @@ func (a *API) ListGrants(c *gin.Context) {
 }
 
 func (a *API) GetGrant(c *gin.Context) {
-	r, err := bindUriResource(c)
+	r, err := bindURIResource(c)
 	if err != nil {
 		sendAPIError(c, err)
 		return
@@ -628,7 +629,7 @@ func (a *API) Version(c *gin.Context) {
 	c.JSON(http.StatusOK, api.Version{Version: internal.Version})
 }
 
-func bindUriResource(c *gin.Context) (Resource, error) {
+func bindURIResource(c *gin.Context) (Resource, error) {
 	r := resource{}
 	if err := c.BindUri(&r); err != nil {
 		return Resource{}, fmt.Errorf("%w: %s", internal.ErrBadRequest, err)

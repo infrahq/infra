@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/google/uuid"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/registry/models"
@@ -114,6 +114,7 @@ func DeleteToken(db *gorm.DB, selector SelectorFunc) error {
 
 func CreateAPIToken(db *gorm.DB, apiToken *models.APIToken) (*models.Token, error) {
 	token := &models.Token{}
+
 	if err := add(db, &models.APIToken{}, apiToken, &models.APIToken{}); err != nil {
 		return nil, fmt.Errorf("new api token: %w", err)
 	}
@@ -140,6 +141,7 @@ func CreateOrUpdateAPIToken(db *gorm.DB, apiToken *models.APIToken, token *model
 		if err != nil {
 			return nil, err
 		}
+
 		*token = *newToken // update the calling object with the new token
 
 		return apiToken, nil

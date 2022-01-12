@@ -10,21 +10,24 @@ type ProviderKind string
 
 // List of ProviderKind
 const (
-	PROVIDERKIND_OKTA ProviderKind = "okta"
+	ProviderKindOkta ProviderKind = "okta"
 )
 
-var allowedProviderKindEnumValues = []ProviderKind{
-	"okta",
+var ValidProviderKinds = []ProviderKind{
+	ProviderKindOkta,
 }
 
 func (v *ProviderKind) UnmarshalJSON(src []byte) error {
 	var value string
+
 	err := json.Unmarshal(src, &value)
 	if err != nil {
 		return err
 	}
+
 	enumTypeValue := ProviderKind(value)
-	for _, existing := range allowedProviderKindEnumValues {
+
+	for _, existing := range ValidProviderKinds {
 		if existing == enumTypeValue {
 			*v = enumTypeValue
 			return nil

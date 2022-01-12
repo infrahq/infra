@@ -55,6 +55,7 @@ func ListDestinations(db *gorm.DB, condition interface{}) ([]models.Destination,
 
 func ListUserDestinations(db *gorm.DB, userID uuid.UUID) (result []models.Destination, err error) {
 	var destinationIDs []uuid.UUID
+
 	err = db.Model(models.Grant{}).Select("distinct destination_id").Joins("users_grants").Where("users_grants.user_id = ?", userID).Scan(&destinationIDs).Error
 	if err != nil {
 		return nil, err

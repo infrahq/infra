@@ -1,3 +1,4 @@
+//nolint
 package api
 
 import (
@@ -121,17 +122,20 @@ func (sc ServerConfigurations) URL(index int, variables map[string]string) (stri
 	for name, variable := range server.Variables {
 		if value, ok := variables[name]; ok {
 			found := bool(len(variable.EnumValues) == 0)
+
 			for _, enumValue := range variable.EnumValues {
 				if value == enumValue {
 					found = true
 				}
 			}
+
 			if !found {
-				return "", fmt.Errorf("The variable %s in the server URL has invalid value %v. Must be %v", name, value, variable.EnumValues)
+				return "", fmt.Errorf("the variable %s in the server URL has invalid value %q. Must be one of %v", name, value, variable.EnumValues)
 			}
-			url = strings.Replace(url, "{"+name+"}", value, -1)
+
+			url = strings.ReplaceAll(url, "{"+name+"}", value)
 		} else {
-			url = strings.Replace(url, "{"+name+"}", variable.DefaultValue, -1)
+			url = strings.ReplaceAll(url, "{"+name+"}", variable.DefaultValue)
 		}
 	}
 	return url, nil

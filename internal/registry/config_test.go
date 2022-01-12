@@ -43,6 +43,7 @@ func userGrants(t *testing.T, grants []models.Grant, email string) map[string][]
 		switch grant.Kind {
 		case models.GrantKindKubernetes:
 			key = fmt.Sprintf("%s:%s:%s", grant.Kubernetes.Kind, grant.Kubernetes.Name, grant.Kubernetes.Namespace)
+		case models.GrantKindInfra:
 		default:
 			require.Fail(t, "unknown grant kind")
 		}
@@ -91,6 +92,7 @@ func groupGrants(t *testing.T, grants []models.Grant, name string) map[string][]
 		switch grant.Kind {
 		case models.GrantKindKubernetes:
 			key = fmt.Sprintf("%s:%s:%s", grant.Kubernetes.Kind, grant.Kubernetes.Name, grant.Kubernetes.Namespace)
+		case models.GrantKindInfra:
 		default:
 			require.Fail(t, "unknown grant kind")
 		}

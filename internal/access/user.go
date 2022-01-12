@@ -16,9 +16,7 @@ const (
 	PermissionUserDelete Permission = "infra.user.delete"
 )
 
-var (
-	RoleAdmin = []Permission{PermissionAllInfra}
-)
+var RoleAdmin = []Permission{PermissionAllInfra}
 
 func currentUser(c *gin.Context) *models.User {
 	userObj, exists := c.Get("user")
@@ -34,6 +32,8 @@ func currentUser(c *gin.Context) *models.User {
 	return user
 }
 
+// nolint until this is used
+// nolint
 func currentUserID(c *gin.Context) (id uuid.UUID, found bool) {
 	userIDObj, exists := c.Get("user_id")
 	if !exists {
