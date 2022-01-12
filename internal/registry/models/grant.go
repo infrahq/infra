@@ -23,9 +23,6 @@ type Grant struct {
 	Groups []Group `gorm:"many2many:groups_grants"`
 	Users  []User  `gorm:"many2many:users_grants"`
 
-	// name
-	// role
-	// permissions
 
 	Kubernetes GrantKubernetes
 }
