@@ -53,7 +53,7 @@ func DatabaseMiddleware(db *gorm.DB) gin.HandlerFunc {
 			return nil
 		})
 		if err != nil {
-			logging.L.Info("something went wrong, idk")
+			logging.S.Debugf(err.Error())
 		}
 	}
 }
