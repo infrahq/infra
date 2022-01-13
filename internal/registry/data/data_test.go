@@ -34,6 +34,5 @@ func setup(t *testing.T) *gorm.DB {
 	logging.L = zaptest.NewLogger(t)
 	logging.S = logging.L.Sugar()
 
-
 	return db
 }
