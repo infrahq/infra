@@ -77,7 +77,7 @@ func setupDB(t *testing.T) *gorm.DB {
 	err = data.BindGroupUsers(db, groupEveryone, *userBourne)
 	require.NoError(t, err)
 
-	destinationAAA, err = data.CreateDestination(db, &models.Destination{
+	destinationAAA = &models.Destination{
 		Kind:     models.DestinationKindKubernetes,
 		Name:     "AAA",
 		NodeID:   "AAA",
@@ -88,10 +88,11 @@ func setupDB(t *testing.T) *gorm.DB {
 		Kubernetes: models.DestinationKubernetes{
 			CA: "myca",
 		},
-	})
+	}
+	err = data.CreateDestination(db, destinationAAA)
 	require.NoError(t, err)
 
-	destinationBBB, err = data.CreateDestination(db, &models.Destination{
+	destinationBBB = &models.Destination{
 		Kind:     models.DestinationKindKubernetes,
 		Name:     "BBB",
 		NodeID:   "BBB",
@@ -103,10 +104,11 @@ func setupDB(t *testing.T) *gorm.DB {
 		Kubernetes: models.DestinationKubernetes{
 			CA: "myotherca",
 		},
-	})
+	}
+	err = data.CreateDestination(db, destinationBBB)
 	require.NoError(t, err)
 
-	destinationCCC, err = data.CreateDestination(db, &models.Destination{
+	destinationCCC = &models.Destination{
 		Kind:     models.DestinationKindKubernetes,
 		Name:     "CCC",
 		NodeID:   "CCC",
@@ -118,7 +120,8 @@ func setupDB(t *testing.T) *gorm.DB {
 		Kubernetes: models.DestinationKubernetes{
 			CA: "myotherotherca",
 		},
-	})
+	}
+	err = data.CreateDestination(db, destinationCCC)
 	require.NoError(t, err)
 
 	return db
@@ -135,7 +138,7 @@ func TestSyncUsers(t *testing.T) {
 	err := syncUsers(db, mockUsers)
 	require.NoError(t, err)
 
-	users, err := data.ListUsers(db, &models.User{})
+	users, err := data.ListUsers(db)
 	require.NoError(t, err)
 	require.Len(t, users, 2)
 	require.Subset(t, []string{"jbond@infrahq.com", "jbourne@infrahq.com"}, []string{users[0].Email})
@@ -162,7 +165,7 @@ func TestSyncGroupsIgnoresUnknownUsers(t *testing.T) {
 	testOkta.On("Groups", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(mockGroups, nil)
 	err := syncGroups(db, mockGroups)
 	require.NoError(t, err)
-	heroes, err := data.GetGroup(db, &models.Group{Name: "heroes"})
+	heroes, err := data.GetGroup(db, data.ByName("heroes"))
 	require.NoError(t, err)
 	require.Len(t, heroes.Users, 1)
 	require.Equal(t, heroes.Users[0].Email, "jbourne@infrahq.com")

@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 )
 
@@ -118,7 +119,7 @@ func (k *APIToken) FromAPI(from interface{}, defaultSessionDuration time.Duratio
 		return nil
 	}
 
-	return fmt.Errorf("unknown request")
+	return fmt.Errorf("%w: unknown request", internal.ErrBadRequest)
 }
 
 func NewAPIToken(id string) (*APIToken, error) {

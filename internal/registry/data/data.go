@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
 	"gorm.io/driver/postgres"
@@ -75,6 +76,11 @@ func NewPostgresDriver(connection string) (gorm.Dialector, error) {
 }
 
 func add(db *gorm.DB, kind interface{}, value interface{}, condition interface{}) error {
+	v := validator.New()
+	if err := v.Struct(value); err != nil {
+		return err
+	}
+
 	if err := db.Create(value).Error; err != nil {
 		// HACK: Compare error string instead of checking sqlite3.Error which requires
 		//       possibly cross-compiling go-sqlite3. Not worth.
@@ -98,6 +104,18 @@ func add(db *gorm.DB, kind interface{}, value interface{}, condition interface{}
 }
 
 func get(db *gorm.DB, kind interface{}, value interface{}, condition interface{}) error {
+	switch t := condition.(type) {
+	case SelectorFunc:
+		condition = t(db)
+	case []SelectorFunc:
+		db2 := db
+		for _, selector := range t {
+			db2 = selector(db2)
+		}
+
+		condition = db2
+	}
+
 	if err := db.Model(kind).Preload(clause.Associations).Where(condition).First(value).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return internal.ErrNotFound
@@ -110,6 +128,18 @@ func get(db *gorm.DB, kind interface{}, value interface{}, condition interface{}
 }
 
 func list(db *gorm.DB, kind interface{}, values interface{}, condition interface{}) error {
+	switch t := condition.(type) {
+	case SelectorFunc:
+		condition = t(db)
+	case []SelectorFunc:
+		db2 := db
+		for _, selector := range t {
+			db2 = selector(db2)
+		}
+
+		condition = db2
+	}
+
 	if err := db.Model(kind).Preload(clause.Associations).Where(condition).Find(values).Error; err != nil {
 		return err
 	}
@@ -118,6 +148,23 @@ func list(db *gorm.DB, kind interface{}, values interface{}, condition interface
 }
 
 func update(db *gorm.DB, kind interface{}, value interface{}, condition interface{}) error {
+	v := validator.New()
+	if err := v.Struct(value); err != nil {
+		return err
+	}
+
+	switch t := condition.(type) {
+	case SelectorFunc:
+		condition = t(db)
+	case []SelectorFunc:
+		db2 := db
+		for _, selector := range t {
+			db2 = selector(db2)
+		}
+
+		condition = db2
+	}
+
 	r := db.Model(kind).Where(condition).Updates(value)
 	if err := r.Error; err != nil {
 		return err
@@ -129,6 +176,18 @@ func update(db *gorm.DB, kind interface{}, value interface{}, condition interfac
 }
 
 func remove(db *gorm.DB, kind interface{}, condition interface{}) error {
+	switch t := condition.(type) {
+	case SelectorFunc:
+		condition = t(db)
+	case []SelectorFunc:
+		db2 := db
+		for _, selector := range t {
+			db2 = selector(db2)
+		}
+
+		condition = db2
+	}
+
 	return db.Model(kind).Select(clause.Associations).Where(condition).Delete(kind).Error
 }
 

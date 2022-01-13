@@ -1,8 +1,6 @@
 package models
 
 import (
-	"github.com/google/uuid"
-
 	"github.com/infrahq/infra/internal/api"
 )
 
@@ -31,7 +29,7 @@ func (g *Group) ToAPI() api.Group {
 	}
 
 	if len(users) > 0 {
-		result.SetUsers(users)
+		result.Users = users
 	}
 
 	grants := make([]api.Grant, 0)
@@ -40,7 +38,7 @@ func (g *Group) ToAPI() api.Group {
 	}
 
 	if len(grants) > 0 {
-		result.SetGrants(grants)
+		result.Grants = grants
 	}
 
 	providers := make([]api.Provider, 0)
@@ -49,21 +47,8 @@ func (g *Group) ToAPI() api.Group {
 	}
 
 	if len(providers) > 0 {
-		result.SetProviders(providers)
+		result.Providers = providers
 	}
 
 	return result
-}
-
-func NewGroup(id string) (*Group, error) {
-	uuid, err := uuid.Parse(id)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Group{
-		Model: Model{
-			ID: uuid,
-		},
-	}, nil
 }

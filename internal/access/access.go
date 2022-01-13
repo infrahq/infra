@@ -3,131 +3,94 @@ package access
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
 )
 
 type Permission string
 
 const (
-	PermissionAll          Permission = "*"
-	PermissionAllAlternate Permission = "infra.*"
-	PermissionAllCreate    Permission = "infra.*.create"
-	PermissionAllRead      Permission = "infra.*.read"
-	PermissionAllUpdate    Permission = "infra.*.update"
-	PermissionAllDelete    Permission = "infra.*.delete"
+	PermissionAll       Permission = "*"
+	PermissionAllInfra  Permission = "infra.*"
+	PermissionAllCreate Permission = "infra.*.create"
+	PermissionAllRead   Permission = "infra.*.read"
+	PermissionAllUpdate Permission = "infra.*.update"
+	PermissionAllDelete Permission = "infra.*.delete"
 )
 
-// RequireAuthentication checks the bearer token is present and valid then adds its permissions to the context
-func RequireAuthentication(c *gin.Context) error {
-	db, ok := c.MustGet("db").(*gorm.DB)
-	if !ok {
-		return fmt.Errorf("no database found in context for authentication")
-	}
+// requireAuthorizationWithCheck checks first if the customCheckFunc returns true.
+// If so, the user is an owner of the object or has some direct right to do the action requested,
+// and thus the rest of the permission checks can be skipped.
+// This should be used conservatively for things like record ownership.
+// If customCheckFunc returns false, the requestor must prove access via permissions.
+// Note that customCheckFunc is only called when there is a currentUser present in the request.
+func requireAuthorizationWithCheck(c *gin.Context, require Permission, customCheckFunc func(currUser *models.User) bool) (*gorm.DB, error) {
+	db := getDB(c)
 
-	header := c.Request.Header.Get("Authorization")
+	user := currentUser(c)
 
-	parts := strings.Split(header, " ")
-	if len(parts) != 2 || parts[0] != "Bearer" {
-		return fmt.Errorf("valid token not found in authorization header, expecting the format `Bearer $token`")
-	}
-
-	bearer := parts[1]
-
-	if len(bearer) != models.TokenLength {
-		return fmt.Errorf("rejected token of invalid length")
-	}
-
-	token, err := data.GetToken(db, &models.Token{Key: bearer[:models.TokenKeyLength]})
-	if err != nil {
-		return fmt.Errorf("could not get token from database, it may not exist: %w", err)
-	}
-
-	if err := data.CheckTokenSecret(token, bearer); err != nil {
-		return fmt.Errorf("rejected invalid token: %w", err)
-	}
-
-	if err := data.CheckTokenExpired(token); err != nil {
-		return fmt.Errorf("rejected token: %w", err)
-	}
-
-	c.Set("authentication", bearer)
-
-	// token is valid, check where to set permissions from
-	if token.UserID != uuid.Nil {
-		u, err := data.GetUser(db, db.Where("id = (?)", token.UserID))
-		if err != nil {
-			return fmt.Errorf("token user lookup: %w", err)
-		}
-
-		u.LastSeenAt = time.Now()
-		if err := data.UpdateUser(db, u, data.ByUUID(u.ID)); err != nil {
-			return fmt.Errorf("user update fail: %w", err)
-		}
-
-		logging.S.Debug("user permissions: %s \n", u.Permissions)
-		// this token has a parent user, set by their current permissions
-		c.Set("permissions", u.Permissions)
-	} else if token.APITokenID != uuid.Nil {
-		at, err := data.GetAPIToken(db, db.Where("id = (?)", token.APITokenID))
-		if err != nil {
-			return fmt.Errorf("token api permission lookup: %w", err)
-		}
-		// this is an API token
-		c.Set("permissions", at.Permissions)
-	}
-
-	return nil
-}
-
-// RequireAuthorization checks that the context has the permissions required to perform the action
-func RequireAuthorization(c *gin.Context, require Permission) (*gorm.DB, error) {
-	val, ok := c.Get("db")
-	if !ok {
-		return nil, fmt.Errorf("database not found")
-	}
-
-	db, ok := val.(*gorm.DB)
-	if !ok {
-		return nil, fmt.Errorf("database not found")
-	}
-
-	if len(require) == 0 {
+	if user != nil && customCheckFunc(user) {
 		return db, nil
 	}
 
-	permissions, ok := c.MustGet("permissions").(string)
-	if !ok {
-		return nil, internal.ErrForbidden
-	}
-
-	for _, p := range strings.Split(permissions, " ") {
-		if GrantsPermission(p, string(require)) {
-			return db, nil
-		}
-	}
-
-	return nil, internal.ErrForbidden
+	return requireAuthorization(c, require)
 }
 
-// GrantsPermission checks if a given permission grants a required permission
-func GrantsPermission(permission, require string) bool {
-	if Permission(permission) == PermissionAll || Permission(permission) == PermissionAllAlternate {
+func getDB(c *gin.Context) *gorm.DB {
+	return c.MustGet("db").(*gorm.DB)
+}
+
+func hasAuthorization(c *gin.Context, requires ...Permission) (bool, error) {
+	if len(requires) == 0 {
+		return true, nil
+	}
+
+	permissionStr, ok := c.MustGet("permissions").(string)
+	if !ok {
+		return false, fmt.Errorf("%w: requestor has no permissions", internal.ErrForbidden)
+	}
+
+	permissions := strings.Split(permissionStr, " ")
+
+outer:
+	for _, required := range requires {
+		for _, p := range permissions {
+			if hasRequiredPermission(p, string(required)) {
+				continue outer
+			}
+		}
+		return false, fmt.Errorf("missing permission %q: %w", required, internal.ErrForbidden)
+	}
+
+	return true, nil
+}
+
+// requireAuthorization checks that the context has the permissions required to perform the action
+func requireAuthorization(c *gin.Context, requires ...Permission) (*gorm.DB, error) {
+	db := getDB(c)
+
+	ok, err := hasAuthorization(c, requires...)
+	if !ok {
+		return nil, err
+	}
+
+	return db, nil
+}
+
+// hasRequiredPermission checks if a given permission grants a required permission
+func hasRequiredPermission(permission, required string) bool {
+	if Permission(permission) == PermissionAll || Permission(permission) == PermissionAllInfra {
 		return true
-	} else if permission == require {
+	} else if permission == required {
 		return true
 	}
 
 	parts := strings.Split(permission, ".")
-	for i, part := range strings.Split(require, ".") {
+	for i, part := range strings.Split(required, ".") {
 		if part == parts[i] || parts[i] == "*" {
 			continue
 		}
@@ -143,7 +106,7 @@ func AllRequired(permissions, required []string) bool {
 	for _, req := range required {
 		granted := false
 		for _, p := range permissions {
-			granted = GrantsPermission(p, req)
+			granted = hasRequiredPermission(p, req)
 			if granted {
 				break
 			}

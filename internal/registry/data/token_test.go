@@ -62,10 +62,10 @@ func TestCreateOrUpdateTokenCreate(t *testing.T) {
 	}
 
 	// it should not exist before the call
-	_, err := GetToken(db, &models.Token{Key: exampleKey})
+	_, err := GetToken(db, ByKey(exampleKey))
 	require.ErrorIs(t, err, internal.ErrNotFound)
 
-	token, err := CreateOrUpdateToken(db, in, &models.Token{Key: exampleKey})
+	token, err := CreateOrUpdateToken(db, in, ByKey(exampleKey))
 	require.NoError(t, err)
 	require.NotEmpty(t, token.Secret)
 	require.True(t, time.Now().Before(token.Expires))
@@ -90,7 +90,7 @@ func TestCreateOrUpdateTokenUpdate(t *testing.T) {
 		Secret:          generate.MathRandom(models.TokenSecretLength),
 	}
 
-	afterUpdate, err := CreateOrUpdateToken(db, after, &models.Token{Key: before.Key})
+	afterUpdate, err := CreateOrUpdateToken(db, after, ByKey(before.Key))
 	require.NoError(t, err)
 	require.Equal(t, beforeUpdate.Key, afterUpdate.Key)
 	require.Equal(t, beforeUpdate.ID, afterUpdate.ID)
@@ -114,7 +114,7 @@ func TestGetUserToken(t *testing.T) {
 	db := setup(t)
 	token := createUserToken(t, db, time.Minute*1)
 
-	fromDB, err := GetToken(db, &models.Token{Key: token.Key})
+	fromDB, err := GetToken(db, ByKey(token.Key))
 	require.NoError(t, err)
 	require.NotEmpty(t, token.Checksum)
 	require.Empty(t, fromDB.Secret)
@@ -143,27 +143,27 @@ func TestRevokeUserToken(t *testing.T) {
 	db := setup(t)
 	token := createUserToken(t, db, time.Minute*1)
 
-	_, err := GetToken(db, &models.Token{Key: token.Key})
+	_, err := GetToken(db, ByKey(token.Key))
 	require.NoError(t, err)
 
-	err = DeleteToken(db, &models.Token{Key: token.Key})
+	err = DeleteToken(db, ByKey(token.Key))
 	require.NoError(t, err)
 
-	_, err = GetToken(db, &models.Token{Key: token.Key})
+	_, err = GetToken(db, ByKey(token.Key))
 	require.EqualError(t, err, "record not found")
 
-	err = DeleteToken(db, &models.Token{Key: token.Key})
+	err = DeleteToken(db, ByKey(token.Key))
 	require.NoError(t, err)
 }
 
 func createAPIToken(t *testing.T, db *gorm.DB, name string, ttl time.Duration, permissions ...string) (*models.APIToken, *models.Token) {
-	in := models.APIToken{
+	apiToken := &models.APIToken{
 		Name:        name,
 		Permissions: strings.Join(permissions, " "),
 		TTL:         ttl,
 	}
 
-	apiToken, tkn, err := CreateAPIToken(db, &in, &models.Token{})
+	tkn, err := CreateAPIToken(db, apiToken)
 	require.NoError(t, err)
 
 	return apiToken, tkn
@@ -194,11 +194,11 @@ func TestCreateOrUpdateAPITokenCreate(t *testing.T) {
 	}
 
 	// should not exist before creation
-	_, err := GetAPIToken(db, &models.APIToken{Name: name})
+	_, err := GetAPIToken(db, ByName(name))
 	require.ErrorIs(t, err, internal.ErrNotFound)
 
-	var token models.Token
-	apiToken, err := CreateOrUpdateAPIToken(db, in, &token, &models.APIToken{Name: name})
+	token := &models.Token{}
+	apiToken, err := CreateOrUpdateAPIToken(db, in, token, ByName(name))
 	require.NoError(t, err)
 	require.Equal(t, in.Name, apiToken.Name)
 	require.Equal(t, in.Permissions, apiToken.Permissions)
@@ -219,8 +219,7 @@ func TestCreateOrUpdateAPITokenUpdate(t *testing.T) {
 	}
 
 	// it should not exist before the call
-	var beforeToken models.Token
-	beforeUpdate, _, err := CreateAPIToken(db, before, &beforeToken)
+	_, err := CreateAPIToken(db, before)
 	require.NoError(t, err, internal.ErrNotFound)
 
 	after := &models.APIToken{
@@ -234,10 +233,12 @@ func TestCreateOrUpdateAPITokenUpdate(t *testing.T) {
 		Secret: generate.MathRandom(models.TokenLength),
 	}
 
-	afterUpdate, err := CreateOrUpdateAPIToken(db, after, afterToken, &models.APIToken{Name: name})
+	_, err = CreateOrUpdateAPIToken(db, after, afterToken, ByName(name))
 	require.NoError(t, err)
-	require.Equal(t, afterUpdate.ID, beforeUpdate.ID)
-	require.Equal(t, beforeUpdate.Name, afterUpdate.Name)
+	afterUpdate, err := GetAPIToken(db, ByID(after.ID))
+	require.NoError(t, err)
+	require.Equal(t, afterUpdate.ID, before.ID)
+	require.Equal(t, before.Name, afterUpdate.Name)
 	require.Equal(t, after.Permissions, afterUpdate.Permissions)
 	require.Equal(t, after.TTL, afterUpdate.TTL)
 
@@ -259,7 +260,7 @@ func TestGetAPIToken(t *testing.T) {
 	ttl := 1 * time.Hour
 	_, _ = createAPIToken(t, db, "tmp", ttl, "infra.*")
 
-	apiToken, err := GetAPIToken(db, &models.APIToken{Name: "tmp"})
+	apiToken, err := GetAPIToken(db, ByName("tmp"))
 	require.NoError(t, err)
 	require.Equal(t, "tmp", apiToken.Name)
 	require.Equal(t, "infra.*", apiToken.Permissions)
@@ -285,19 +286,19 @@ func TestDeleteAPIToken(t *testing.T) {
 	db := setup(t)
 	_, tkn := createAPIToken(t, db, "tmp", 1*time.Hour, "infra.*")
 
-	_, err := GetAPIToken(db, &models.APIToken{Name: "tmp"})
+	k, err := GetAPIToken(db, ByName("tmp"))
 	require.NoError(t, err)
 
-	err = DeleteAPIToken(db, &models.APIToken{Name: "tmp"})
+	err = DeleteAPIToken(db, k.ID)
 	require.NoError(t, err)
 
-	_, err = GetAPIToken(db, &models.APIToken{Name: "tmp"})
+	_, err = GetAPIToken(db, ByName("tmp"))
 	require.EqualError(t, err, "record not found")
 
-	_, err = GetToken(db, tkn)
+	_, err = GetToken(db, ByKey(tkn.Key))
 	require.EqualError(t, err, "record not found")
 
-	err = DeleteAPIToken(db, &models.APIToken{Name: "tmp"})
+	err = DeleteAPIToken(db, k.ID)
 	require.Error(t, err, "record not found")
 }
 

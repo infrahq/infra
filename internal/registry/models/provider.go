@@ -68,15 +68,10 @@ func (p *Provider) FromAPI(from interface{}) error {
 	return fmt.Errorf("unknown provider kind")
 }
 
-func NewProvider(id string) (*Provider, error) {
-	uid, err := uuid.Parse(id)
-	if err != nil {
-		return nil, err
-	}
-
+func NewProvider(id uuid.UUID) (*Provider, error) {
 	return &Provider{
 		Model: Model{
-			ID: uid,
+			ID: id,
 		},
 	}, nil
 }

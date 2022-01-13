@@ -56,13 +56,13 @@ func Healthz(c *gin.Context) {
 func (h *HTTP) WellKnownJWKs(c *gin.Context) {
 	settings, err := data.GetSettings(h.db)
 	if err != nil {
-		sendAPIError(c, http.StatusInternalServerError, fmt.Errorf("could not get JWKs"))
+		sendAPIError(c, fmt.Errorf("could not get JWKs"))
 		return
 	}
 
 	var pubKey jose.JSONWebKey
 	if err := pubKey.UnmarshalJSON(settings.PublicJWK); err != nil {
-		sendAPIError(c, http.StatusInternalServerError, fmt.Errorf("could not get JWKs"))
+		sendAPIError(c, fmt.Errorf("could not get JWKs"))
 		return
 	}
 

@@ -50,6 +50,10 @@ export interface UpdateDestinationRequest {
     destinationRequest: DestinationRequest;
 }
 
+export interface UpdateDestinationRequest {
+    body: DestinationUpdateRequest;
+}
+
 /**
  * 
  */
@@ -223,15 +227,11 @@ export class DestinationsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Update a destination by ID
+     * Update a destination
      */
     async updateDestinationRaw(requestParameters: UpdateDestinationRequest, initOverrides?: RequestInit): Promise<runtime.ApiResponse<Destination>> {
-        if (requestParameters.id === null || requestParameters.id === undefined) {
-            throw new runtime.RequiredError('id','Required parameter requestParameters.id was null or undefined when calling updateDestination.');
-        }
-
-        if (requestParameters.destinationRequest === null || requestParameters.destinationRequest === undefined) {
-            throw new runtime.RequiredError('destinationRequest','Required parameter requestParameters.destinationRequest was null or undefined when calling updateDestination.');
+        if (requestParameters.body === null || requestParameters.body === undefined) {
+            throw new runtime.RequiredError('body','Required parameter requestParameters.body was null or undefined when calling updateDestination.');
         }
 
         const queryParameters: any = {};
@@ -249,18 +249,18 @@ export class DestinationsApi extends runtime.BaseAPI {
             }
         }
         const response = await this.request({
-            path: `/destinations/{id}`.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters.id))),
+            path: `/destinations`,
             method: 'PUT',
             headers: headerParameters,
             query: queryParameters,
-            body: DestinationRequestToJSON(requestParameters.destinationRequest),
+            body: DestinationUpdateRequestToJSON(requestParameters.body),
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => DestinationFromJSON(jsonValue));
     }
 
     /**
-     * Update a destination by ID
+     * Update a destination
      */
     async updateDestination(requestParameters: UpdateDestinationRequest, initOverrides?: RequestInit): Promise<Destination> {
         const response = await this.updateDestinationRaw(requestParameters, initOverrides);

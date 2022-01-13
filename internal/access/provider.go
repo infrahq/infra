@@ -2,6 +2,7 @@ package access
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
@@ -16,7 +17,7 @@ const (
 )
 
 func CreateProvider(c *gin.Context, provider *models.Provider) (*models.Provider, error) {
-	db, err := RequireAuthorization(c, PermissionProviderCreate)
+	db, err := requireAuthorization(c, PermissionProviderCreate)
 	if err != nil {
 		return nil, err
 	}
@@ -24,22 +25,17 @@ func CreateProvider(c *gin.Context, provider *models.Provider) (*models.Provider
 	return data.CreateProvider(db, provider)
 }
 
-func GetProvider(c *gin.Context, id string) (*models.Provider, error) {
-	db, err := RequireAuthorization(c, Permission(""))
+func GetProvider(c *gin.Context, id uuid.UUID) (*models.Provider, error) {
+	db, err := requireAuthorization(c)
 	if err != nil {
 		return nil, err
 	}
 
-	provider, err := models.NewProvider(id)
-	if err != nil {
-		return nil, err
-	}
-
-	return data.GetProvider(db, provider)
+	return data.GetProvider(db, data.ByID(id))
 }
 
 func ListProviders(c *gin.Context, kind, domain string) ([]models.Provider, error) {
-	db, err := RequireAuthorization(c, Permission(""))
+	db, err := requireAuthorization(c)
 	if err != nil {
 		return nil, err
 	}
@@ -47,8 +43,8 @@ func ListProviders(c *gin.Context, kind, domain string) ([]models.Provider, erro
 	return data.ListProviders(db, &models.Provider{Kind: models.ProviderKind(kind), Domain: domain})
 }
 
-func UpdateProvider(c *gin.Context, id string, provider *models.Provider) (*models.Provider, error) {
-	db, err := RequireAuthorization(c, PermissionProviderUpdate)
+func UpdateProvider(c *gin.Context, id uuid.UUID, provider *models.Provider) (*models.Provider, error) {
+	db, err := requireAuthorization(c, PermissionProviderUpdate)
 	if err != nil {
 		return nil, err
 	}
@@ -56,8 +52,8 @@ func UpdateProvider(c *gin.Context, id string, provider *models.Provider) (*mode
 	return data.UpdateProvider(db, provider, data.ByID(id))
 }
 
-func DeleteProvider(c *gin.Context, id string) error {
-	db, err := RequireAuthorization(c, PermissionProviderDelete)
+func DeleteProvider(c *gin.Context, id uuid.UUID) error {
+	db, err := requireAuthorization(c, PermissionProviderDelete)
 	if err != nil {
 		return err
 	}
