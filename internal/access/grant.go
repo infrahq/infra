@@ -2,6 +2,7 @@ package access
 
 import (
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
@@ -43,4 +44,14 @@ func ListUserGrants(c *gin.Context, userID uid.ID) ([]models.Grant, error) {
 	}
 
 	return data.ListUserGrants(db, userID)
+}
+
+// TODO: #760 - needed to sync grants when a destination is registered or changed
+func SyncGrants(c *gin.Context, sync func(db *gorm.DB) error) error {
+	db, err := requireAuthorization(c)
+	if err != nil {
+		return err
+	}
+
+	return sync(db)
 }

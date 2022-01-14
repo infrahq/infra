@@ -40,6 +40,18 @@ func (t *Token) SessionToken() string {
 	return t.Key + t.Secret
 }
 
+// ProviderToken tracks the access and refresh tokens from an identity provider associated with a user
+type ProviderToken struct {
+	Model
+
+	UserID     uuid.UUID
+	ProviderID uuid.UUID
+
+	AccessToken  EncryptedAtRest
+	RefreshToken EncryptedAtRest
+	Expiry       time.Time
+}
+
 type APIToken struct {
 	Model
 

@@ -31,7 +31,7 @@ const (
 func requireAuthorizationWithCheck(c *gin.Context, require Permission, customCheckFunc func(currUser *models.User) bool) (*gorm.DB, error) {
 	db := getDB(c)
 
-	user := currentUser(c)
+	user := CurrentUser(c)
 
 	if user != nil && customCheckFunc(user) {
 		return db, nil

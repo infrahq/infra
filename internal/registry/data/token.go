@@ -95,6 +95,24 @@ func DeleteToken(db *gorm.DB, selector SelectorFunc) error {
 	return remove(db, &models.Token{}, selector)
 }
 
+func CreateProviderToken(db *gorm.DB, token *models.ProviderToken) error {
+	return add(db, &models.ProviderToken{}, token, &models.ProviderToken{})
+}
+
+func UpdateProviderToken(db *gorm.DB, token *models.ProviderToken) error {
+	return update(db, &models.ProviderToken{}, token, ByID(token.ID))
+}
+
+func GetProviderToken(db *gorm.DB, selector SelectorFunc) (*models.ProviderToken, error) {
+	result := &models.ProviderToken{}
+
+	if err := get(db, &models.ProviderToken{}, result, selector); err != nil {
+		return nil, fmt.Errorf("get provider token: %w", err)
+	}
+
+	return result, nil
+}
+
 func CreateAPIToken(db *gorm.DB, apiToken *models.APIToken) error {
 	if err := add(db, &models.APIToken{}, apiToken, &models.APIToken{}); err != nil {
 		return fmt.Errorf("new api token: %w", err)
@@ -156,9 +174,16 @@ func DeleteAPIToken(db *gorm.DB, id uid.ID) error {
 	return remove(db, &models.APIToken{}, toDelete.ID)
 }
 
-func UserTokenSelector(db *gorm.DB, authorization string) *gorm.DB {
-	return db.Where(
-		"id = (?)",
-		db.Model(&models.Token{}).Select("user_id").Where(&models.Token{Key: authorization[:models.TokenKeyLength]}),
-	)
+// IssueUserSessionToken creates an Infra session token for the specified user
+func IssueUserSessionToken(db *gorm.DB, user *models.User, sessionDuration time.Duration) (string, error) {
+	token := models.Token{
+		UserID:          user.ID,
+		SessionDuration: sessionDuration,
+	}
+
+	if _, err := CreateToken(db, &token); err != nil {
+		return "", fmt.Errorf("create user session token: %w", err)
+	}
+
+	return token.SessionToken(), nil
 }

@@ -3,6 +3,7 @@ package registry
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -13,6 +14,115 @@ import (
 	"github.com/infrahq/infra/internal/registry/models"
 	"github.com/infrahq/infra/secrets"
 )
+
+var (
+	providerOkta *models.Provider
+
+	userBond   *models.User
+	userBourne *models.User
+
+	groupEveryone  *models.Group
+	groupEngineers *models.Group
+
+	destinationAAA *models.Destination
+	destinationBBB *models.Destination
+	destinationCCC *models.Destination
+
+	labelKubernetes = models.Label{Value: "kubernetes"}
+	labelUSWest1    = models.Label{Value: "us-west-1"}
+	labelUSEast1    = models.Label{Value: "us-east-1"}
+)
+
+func setupDB(t *testing.T) *gorm.DB {
+	setupLogging(t)
+
+	driver, err := data.NewSQLiteDriver("file::memory:")
+	require.NoError(t, err)
+
+	db, err := data.NewDB(driver)
+	require.NoError(t, err)
+
+	fp := secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{
+		Path: os.TempDir(),
+	})
+
+	kp := secrets.NewNativeSecretProvider(fp)
+	key, err := kp.GenerateDataKey("")
+	require.NoError(t, err)
+
+	models.SymmetricKey = key
+
+	providerOkta, err = data.CreateProvider(db, &models.Provider{
+		Kind:         models.ProviderKindOkta,
+		Domain:       "test.okta.com",
+		ClientSecret: "supersecret",
+	})
+	require.NoError(t, err)
+
+	userBond, err = data.CreateUser(db, &models.User{Email: "jbond@infrahq.com"})
+	require.NoError(t, err)
+
+	userBourne, err = data.CreateUser(db, &models.User{Email: "jbourne@infrahq.com"})
+	require.NoError(t, err)
+
+	groupEveryone, err = data.CreateGroup(db, &models.Group{Name: "Everyone"})
+	require.NoError(t, err)
+
+	groupEngineers, err = data.CreateGroup(db, &models.Group{Name: "Engineering"})
+	require.NoError(t, err)
+
+	err = data.BindUserGroups(db, userBourne, *groupEveryone)
+	require.NoError(t, err)
+
+	destinationAAA = &models.Destination{
+		Kind:     models.DestinationKindKubernetes,
+		Name:     "AAA",
+		NodeID:   "AAA",
+		Endpoint: "develop.infrahq.com",
+		Labels: []models.Label{
+			labelKubernetes,
+		},
+		Kubernetes: models.DestinationKubernetes{
+			CA: "myca",
+		},
+	}
+	err = data.CreateDestination(db, destinationAAA)
+	require.NoError(t, err)
+
+	destinationBBB = &models.Destination{
+		Kind:     models.DestinationKindKubernetes,
+		Name:     "BBB",
+		NodeID:   "BBB",
+		Endpoint: "stage.infrahq.com",
+		Labels: []models.Label{
+			labelKubernetes,
+			labelUSWest1,
+		},
+		Kubernetes: models.DestinationKubernetes{
+			CA: "myotherca",
+		},
+	}
+	err = data.CreateDestination(db, destinationBBB)
+	require.NoError(t, err)
+
+	destinationCCC = &models.Destination{
+		Kind:     models.DestinationKindKubernetes,
+		Name:     "CCC",
+		NodeID:   "CCC",
+		Endpoint: "production.infrahq.com",
+		Labels: []models.Label{
+			labelKubernetes,
+			labelUSEast1,
+		},
+		Kubernetes: models.DestinationKubernetes{
+			CA: "myotherotherca",
+		},
+	}
+	err = data.CreateDestination(db, destinationCCC)
+	require.NoError(t, err)
+
+	return db
+}
 
 func configure(t *testing.T, db *gorm.DB) (*Registry, *gorm.DB) {
 	if db == nil {

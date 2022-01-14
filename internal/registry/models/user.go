@@ -9,7 +9,6 @@ import (
 type User struct {
 	Model
 
-	Name        string
 	Email       string `gorm:"uniqueIndex:,where:deleted_at is NULL"`
 	Permissions string
 	LastSeenAt  time.Time // updated on when user uses a session token

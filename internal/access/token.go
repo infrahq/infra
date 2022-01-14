@@ -1,6 +1,7 @@
 package access
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/claims"
+	"github.com/infrahq/infra/internal/registry/authn"
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
 	"github.com/infrahq/infra/uid"
@@ -28,38 +30,96 @@ const (
 	PermissionCredentialCreate Permission = "infra.credential.create" //nolint:gosec
 )
 
-// IssueUserToken creates a session token that a user presents to the Infra server for authentication
-func IssueUserToken(c *gin.Context, email string, sessionDuration time.Duration) (*models.User, *models.Token, error) {
+// the default permissions a user is assigned on account creation
+var DefaultPermissions = strings.Join([]string{
+	string(PermissionUserRead),
+	string(PermissionTokenRevoke),
+	string(PermissionCredentialCreate),
+}, " ")
+
+func ExchangeAuthCodeForSessionToken(c *gin.Context, code string, provider *models.Provider, oidc authn.OIDC, sessionDuration time.Duration) (*models.User, string, error) {
 	db, err := requireAuthorization(c)
 	if err != nil {
-		return nil, nil, err
+		return nil, "", err
 	}
 
-	users, err := data.ListUsers(db, data.ByEmail(email))
+	// exchange code for tokens from identity provider (these tokens are for the IDP, not Infra)
+	accessToken, refreshToken, expiry, email, err := oidc.ExchangeAuthCodeForProviderTokens(code)
 	if err != nil {
-		return nil, nil, err
+		return nil, "", fmt.Errorf("exhange code for tokens: %w", err)
 	}
 
-	if len(users) != 1 {
-		return nil, nil, fmt.Errorf("unknown user")
+	user, err := data.GetUser(db, data.ByEmail(email))
+	if err != nil {
+		if !errors.Is(err, internal.ErrNotFound) {
+			return nil, "", fmt.Errorf("get user: %w", err)
+		}
+
+		if user, err = data.CreateUser(db, &models.User{Email: email, Permissions: DefaultPermissions}); err != nil {
+			return nil, "", fmt.Errorf("create user: %w", err)
+		}
 	}
 
-	token := models.Token{
-		UserID:          users[0].ID,
-		SessionDuration: sessionDuration,
+	err = data.AppendProviderUsers(db, provider, *user)
+	if err != nil {
+		return nil, "", fmt.Errorf("add user for provider login: %w", err)
 	}
 
-	if err := data.CreateToken(db, &token); err != nil {
-		return nil, nil, err
+	provToken := &models.ProviderToken{
+		UserID:       user.ID,
+		ProviderID:   provider.ID,
+		AccessToken:  models.EncryptedAtRest(accessToken),
+		RefreshToken: models.EncryptedAtRest(refreshToken),
+		Expiry:       expiry,
 	}
 
-	users[0].LastSeenAt = time.Now()
+	// create or update the provider token for this user, one set of tokens/user for each provider
+	existing, err := data.GetProviderToken(db, data.ByUserID(user.ID))
+	if err != nil {
+		if !errors.Is(err, internal.ErrNotFound) {
+			return nil, "", fmt.Errorf("existing provider token: %w", err)
+		}
 
-	if err := data.UpdateUser(db, &users[0], data.ByID(users[0].ID)); err != nil {
-		return nil, nil, fmt.Errorf("user update fail: %w", err)
+		if err := data.CreateProviderToken(db, provToken); err != nil {
+			return nil, "", fmt.Errorf("create provider tokens: %w", err)
+		}
+	} else {
+		if existing.ProviderID != provToken.ProviderID {
+			// revoke the users current session token, their grants may be about to change
+			if err := data.DeleteToken(db, data.ByUserID(user.ID)); err != nil && !errors.Is(err, internal.ErrNotFound) {
+				return nil, "", fmt.Errorf("revoke old session token: %w", err)
+			}
+		}
+
+		provToken.ID = existing.ID
+
+		if err := data.UpdateProviderToken(db, provToken); err != nil {
+			return nil, "", fmt.Errorf("update provider token: %w", err)
+		}
 	}
 
-	return &users[0], &token, nil
+	// get current identity provider groups
+	info, err := oidc.GetUserInfo(provToken)
+	if err != nil {
+		return nil, "", fmt.Errorf("login user info: %w", err)
+	}
+
+	err = UpdateUserInfo(c, info, user, provider)
+	if err != nil {
+		return nil, "", fmt.Errorf("update info on login: %w", err)
+	}
+
+	sessionToken, err := data.IssueUserSessionToken(db, user, sessionDuration)
+	if err != nil {
+		return nil, "", fmt.Errorf("issue session token from code: %w", err)
+	}
+
+	user.LastSeenAt = time.Now()
+	if err := data.UpdateUser(db, user, data.ByID(user.ID)); err != nil {
+		return nil, "", fmt.Errorf("login update last seen: %w", err)
+	}
+
+	return user, sessionToken, nil
 }
 
 func RevokeToken(c *gin.Context) (*models.Token, error) {
@@ -149,14 +209,9 @@ func IssueJWT(c *gin.Context, destination string) (string, *time.Time, error) {
 	}
 
 	// added by the authentication middleware
-	authentication, ok := c.MustGet("authentication").(string)
+	user, ok := c.MustGet("user").(*models.User)
 	if !ok {
-		return "", nil, err
-	}
-
-	user, err := data.GetUser(db, data.UserTokenSelector(db, authentication))
-	if err != nil {
-		return "", nil, err
+		return "", nil, errors.New("no jwt context user")
 	}
 
 	settings, err := data.GetSettings(db)
@@ -165,4 +220,30 @@ func IssueJWT(c *gin.Context, destination string) (string, *time.Time, error) {
 	}
 
 	return claims.CreateJWT(settings.PrivateJWK, user, destination)
+}
+
+// RetrieveUserProviderTokens gets the provider tokens that the current session token was created for
+func RetrieveUserProviderTokens(c *gin.Context) (*models.ProviderToken, error) {
+	db, err := requireAuthorization(c)
+	if err != nil {
+		return nil, err
+	}
+
+	// added by the authentication middleware
+	user, ok := c.MustGet("user").(*models.User)
+	if !ok {
+		return nil, errors.New("no provider token context user")
+	}
+
+	return data.GetProviderToken(db, data.ByUserID(user.ID))
+}
+
+// UpdateProviderToken overwrites an existing set of provider tokens
+func UpdateProviderToken(c *gin.Context, providerToken *models.ProviderToken) error {
+	db, err := requireAuthorization(c)
+	if err != nil {
+		return err
+	}
+
+	return data.UpdateProviderToken(db, providerToken)
 }

@@ -21,52 +21,11 @@ import (
 
 const oneHundredYears = time.Hour * 876000
 
-type ConfigOkta struct {
-	APIToken string `yaml:"apiToken" validate:"required"`
-}
-
 type ConfigProvider struct {
-	Kind         string      `yaml:"kind" validate:"required"`
-	Domain       string      `yaml:"domain" validate:"required"`
-	ClientID     string      `yaml:"clientID" validate:"required"`
-	ClientSecret string      `yaml:"clientSecret" validate:"required"`
-	Config       interface{} // contains identity-provider-specific config
-}
-
-type baseConfigProvider struct {
-	Kind         models.ProviderKind `yaml:"kind"`
-	Domain       string              `yaml:"domain"`
-	ClientID     string              `yaml:"clientID"`
-	ClientSecret string              `yaml:"clientSecret"`
-}
-
-var _ yaml.Unmarshaler = &ConfigProvider{}
-
-func (idp *ConfigProvider) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	tmp := &baseConfigProvider{}
-
-	if err := unmarshal(&tmp); err != nil {
-		return fmt.Errorf("unmarshalling secret provider: %w", err)
-	}
-
-	idp.Kind = string(tmp.Kind)
-	idp.Domain = tmp.Domain
-	idp.ClientID = tmp.ClientID
-	idp.ClientSecret = tmp.ClientSecret
-
-	switch tmp.Kind {
-	case models.ProviderKindOkta:
-		o := ConfigOkta{}
-		if err := unmarshal(&o); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		idp.Config = o
-	default:
-		return fmt.Errorf("unknown identity provider type %q", tmp.Kind)
-	}
-
-	return nil
+	Kind         string `yaml:"kind" validate:"required"`
+	Domain       string `yaml:"domain" validate:"required"`
+	ClientID     string `yaml:"clientID" validate:"required"`
+	ClientSecret string `yaml:"clientSecret" validate:"required"`
 }
 
 var (
@@ -273,20 +232,6 @@ func importProviders(db *gorm.DB, providers []ConfigProvider) error {
 			ClientSecret: models.EncryptedAtRest(p.ClientSecret),
 		}
 
-		switch provider.Kind {
-		case models.ProviderKindOkta:
-			cfg, ok := p.Config.(ConfigOkta)
-			if !ok {
-				return fmt.Errorf("expected provider config to be Okta, but was %t", p.Config)
-			}
-
-			provider.Okta.APIToken = models.EncryptedAtRest(cfg.APIToken)
-
-		default:
-			// should never happen
-			return fmt.Errorf("invalid provider kind in configuration: %s", p.Kind)
-		}
-
 		final, err := data.CreateOrUpdateProvider(db, &provider, &models.Provider{Kind: provider.Kind, Domain: provider.Domain})
 		if err != nil {
 			return err
@@ -320,7 +265,7 @@ func importUserGrantMappings(db *gorm.DB, users []ConfigUserMapping) ([]uid.ID, 
 				return nil, err
 			}
 
-			if user, err = data.CreateUser(db, &models.User{Email: u.Email, Permissions: defaultPermissions}); err != nil {
+			if user, err = data.CreateUser(db, &models.User{Email: u.Email, Permissions: access.DefaultPermissions}); err != nil {
 				return nil, err
 			}
 		}

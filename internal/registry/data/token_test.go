@@ -121,15 +121,6 @@ func TestGetUserToken(t *testing.T) {
 	require.NotEmpty(t, token.Key)
 }
 
-func TestGetUserTokenSelector(t *testing.T) {
-	db := setup(t)
-	token := createUserToken(t, db, time.Minute*1)
-
-	user, err := GetUser(db, UserTokenSelector(db, token.SessionToken()))
-	require.NoError(t, err)
-	require.Equal(t, "tmp@infrahq.com", user.Email)
-}
-
 func TestCheckUserTokenExpired(t *testing.T) {
 	db := setup(t)
 

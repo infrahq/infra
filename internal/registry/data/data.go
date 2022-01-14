@@ -43,7 +43,7 @@ func NewDB(connection gorm.Dialector) (*gorm.DB, error) {
 		&models.Grant{},
 		&models.GrantKubernetes{},
 		&models.Provider{},
-		&models.ProviderOkta{},
+		&models.ProviderToken{},
 		&models.Destination{},
 		&models.DestinationKubernetes{},
 		&models.Label{},

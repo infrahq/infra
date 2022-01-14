@@ -116,8 +116,6 @@ func Run(options Options) (err error) {
 		return fmt.Errorf("loading config from file: %w", err)
 	}
 
-	r.scheduleSyncJobs()
-
 	if err := r.configureTelemetry(); err != nil {
 		return fmt.Errorf("configuring telemetry: %w", err)
 	}
@@ -190,15 +188,6 @@ func (r *Registry) loadConfigFromFile() (err error) {
 	}
 
 	return nil
-}
-
-// schedule the user and group sync jobs, does not schedule when the jobs stop running
-func (r *Registry) scheduleSyncJobs() {
-	// be careful with this sync job, there are Okta rate limits on these requests
-	syncProvidersTimer := timer.NewTimer()
-	syncProvidersTimer.Start(r.options.ProvidersSyncInterval, func() {
-		syncProviders(r)
-	})
 }
 
 func (r *Registry) configureTelemetry() error {

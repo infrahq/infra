@@ -9,7 +9,6 @@ config:
       domain: $OKTA_DOMAIN
       clientID: $OKTA_CLIENT_ID
       clientSecret: $OKTA_CLIENT_SECRET
-      apiToken: $OKTA_API_TOKEN
   groups:
     - name: Everyone
       provider: okta

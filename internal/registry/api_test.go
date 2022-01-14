@@ -8,15 +8,14 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/internal/registry/authn"
 	"github.com/infrahq/infra/internal/registry/data"
-	"github.com/infrahq/infra/internal/registry/mocks"
 	"github.com/infrahq/infra/internal/registry/models"
 	"github.com/infrahq/infra/secrets"
 )
@@ -147,7 +146,14 @@ func TestCreateDestination(t *testing.T) {
 
 			test.AuthFunc(t, db, c)
 
-			a := API{}
+			a := API{
+				registry: &Registry{
+					config: Config{
+						Users:  []ConfigUserMapping{},
+						Groups: []ConfigGroupMapping{},
+					},
+				},
+			}
 
 			resp, err := a.CreateDestination(c, test.RequestFunc(t))
 			test.VerifyFunc(t, resp, err)
@@ -168,7 +174,6 @@ func TestLogin(t *testing.T) {
 			},
 			VerifyFunc: func(t *testing.T, r *api.LoginResponse, err error) {
 				require.ErrorIs(t, err, internal.ErrBadRequest)
-
 			},
 		},
 		{
@@ -180,7 +185,6 @@ func TestLogin(t *testing.T) {
 			},
 			VerifyFunc: func(t *testing.T, r *api.LoginResponse, err error) {
 				require.ErrorIs(t, err, internal.ErrBadRequest)
-
 			},
 		},
 		{
@@ -242,11 +246,33 @@ func TestLogin(t *testing.T) {
 	}
 }
 
+type mockOIDCImplementation struct {
+	UserEmailResp  string
+	UserGroupsResp []string
+}
+
+func NewMockOIDC(userEmail string, userGroups []string) authn.OIDC {
+	return &mockOIDCImplementation{
+		UserEmailResp:  userEmail,
+		UserGroupsResp: userGroups,
+	}
+}
+
+func (m *mockOIDCImplementation) ExchangeAuthCodeForProviderTokens(code string) (acc, ref string, exp time.Time, email string, err error) {
+	return "acc", "ref", exp, m.UserEmailResp, nil
+}
+
+func (o *mockOIDCImplementation) RefreshAccessToken(providerTokens *models.ProviderToken) (accessToken string, expiry *time.Time, err error) {
+	// never update
+	return string(providerTokens.AccessToken), &providerTokens.Expiry, nil
+}
+
+func (m *mockOIDCImplementation) GetUserInfo(providerTokens *models.ProviderToken) (*authn.UserInfo, error) {
+	return &authn.UserInfo{Email: m.UserEmailResp, Groups: m.UserGroupsResp}, nil
+}
+
 func TestLoginOkta(t *testing.T) {
 	_, db := configure(t, nil)
-
-	testOkta := new(mocks.Okta)
-	testOkta.On("EmailFromCode", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("jbond@infrahq.com", nil)
 
 	request := api.LoginRequest{
 		Okta: &api.LoginRequestOkta{
@@ -257,7 +283,8 @@ func TestLoginOkta(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	c.Set("okta", testOkta)
+	testOIDC := NewMockOIDC("jbond@infrahq.com", []string{})
+	c.Set("oidc", testOIDC)
 	c.Set("db", db)
 
 	a := API{
