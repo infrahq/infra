@@ -50,7 +50,7 @@ func issueAPIToken(t *testing.T, db *gorm.DB, permissions string) *models.APITok
 		TTL:         1 * time.Hour,
 	}
 
-	_, err := data.CreateAPIToken(db, apiToken)
+	_, err := data.CreateAPIToken(db, apiToken, &models.Token{})
 	require.NoError(t, err)
 
 	return apiToken

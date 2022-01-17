@@ -112,9 +112,7 @@ func DeleteToken(db *gorm.DB, selector SelectorFunc) error {
 	return remove(db, &models.Token{}, selector)
 }
 
-func CreateAPIToken(db *gorm.DB, apiToken *models.APIToken) (*models.Token, error) {
-	token := &models.Token{}
-
+func CreateAPIToken(db *gorm.DB, apiToken *models.APIToken, token *models.Token) (*models.Token, error) {
 	if err := add(db, &models.APIToken{}, apiToken, &models.APIToken{}); err != nil {
 		return nil, fmt.Errorf("new api token: %w", err)
 	}
@@ -130,6 +128,7 @@ func CreateAPIToken(db *gorm.DB, apiToken *models.APIToken) (*models.Token, erro
 	return token, nil
 }
 
+// CreateOrUpdateAPI token creates an API token, the passed in token can be used to set the key and secret
 func CreateOrUpdateAPIToken(db *gorm.DB, apiToken *models.APIToken, token *models.Token, selector SelectorFunc) (*models.APIToken, error) {
 	existing, err := GetAPIToken(db, selector)
 	if err != nil {
@@ -137,12 +136,10 @@ func CreateOrUpdateAPIToken(db *gorm.DB, apiToken *models.APIToken, token *model
 			return nil, err
 		}
 
-		newToken, err := CreateAPIToken(db, apiToken)
+		_, err := CreateAPIToken(db, apiToken, token)
 		if err != nil {
 			return nil, err
 		}
-
-		*token = *newToken // update the calling object with the new token
 
 		return apiToken, nil
 	}

@@ -106,7 +106,7 @@ func IssueAPIToken(c *gin.Context, apiToken *models.APIToken) (*models.Token, er
 		return nil, fmt.Errorf("cannot create an API token with permission not granted to the token issuer")
 	}
 
-	return data.CreateAPIToken(db, apiToken)
+	return data.CreateAPIToken(db, apiToken, &models.Token{})
 }
 
 func ListAPITokens(c *gin.Context, name string) ([]models.APITokenTuple, error) {

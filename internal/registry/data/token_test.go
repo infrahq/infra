@@ -163,7 +163,7 @@ func createAPIToken(t *testing.T, db *gorm.DB, name string, ttl time.Duration, p
 		TTL:         ttl,
 	}
 
-	tkn, err := CreateAPIToken(db, apiToken)
+	tkn, err := CreateAPIToken(db, apiToken, &models.Token{})
 	require.NoError(t, err)
 
 	return apiToken, tkn
@@ -218,9 +218,8 @@ func TestCreateOrUpdateAPITokenUpdate(t *testing.T) {
 		TTL:         1 * time.Hour,
 	}
 
-	// it should not exist before the call
-	_, err := CreateAPIToken(db, before)
-	require.NoError(t, err, internal.ErrNotFound)
+	_, err := CreateAPIToken(db, before, &models.Token{})
+	require.NoError(t, err)
 
 	after := &models.APIToken{
 		Name:        name,
