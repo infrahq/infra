@@ -66,7 +66,10 @@ func kubernetesUseContext(options *KubernetesOptions) error {
 		return err
 	}
 
-	client := api.Client{}
+	client, err := apiClient()
+	if err != nil {
+		return err
+	}
 
 	users, err := client.ListUsers(config.Name)
 	if err != nil {

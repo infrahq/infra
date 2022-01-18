@@ -12,7 +12,6 @@ import (
 	"golang.org/x/mod/semver"
 
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/logging"
 )
 
@@ -26,7 +25,11 @@ func version(options *VersionOptions) error {
 	clientVersion := internal.Version
 	serverVersion := "disconnected"
 
-	client := api.Client{}
+	client, err := apiClient()
+	if err != nil {
+		return err
+	}
+
 	version, err := client.GetVersion()
 	if err == nil {
 		serverVersion = version.Version

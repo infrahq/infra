@@ -30,7 +30,10 @@ type listRow struct {
 }
 
 func list(options *ListOptions) error {
-	client := api.Client{}
+	client, err := apiClient()
+	if err != nil {
+		return err
+	}
 
 	config, err := currentHostConfig()
 	if err != nil {

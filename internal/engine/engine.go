@@ -301,11 +301,15 @@ func Run(options *Options) error {
 
 	u.Scheme = "https"
 
-	client := api.Client{Http: http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: hostTLSConfig,
+	client := api.Client{
+		Base:  u.String(),
+		Token: options.APIToken,
+		Http: http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: hostTLSConfig,
+			},
 		},
-	}}
+	}
 
 	name, chksm, err := k8s.Name()
 	if err != nil {

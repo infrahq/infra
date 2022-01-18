@@ -32,7 +32,7 @@ func cleanupKubeconfig(config *ClientHostConfig) error {
 func logoutOne(config *ClientHostConfig) error {
 	logging.S.Debugf("logging out %s", config.Host)
 
-	client := api.Client{}
+	client := apiClientWith(config.Host, config.Token, config.SkipTLSVerify)
 
 	err := client.Logout()
 	if err != nil {

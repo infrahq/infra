@@ -117,7 +117,7 @@ HOST:
 		}
 	}
 
-	client := api.Client{}
+	client := apiClientWith(selectedHost.Host, "", selectedHost.SkipTLSVerify)
 
 	providers, err := client.ListProviders()
 	if err != nil {
@@ -226,7 +226,8 @@ provider:
 
 	fmt.Fprintf(os.Stderr, "  Logged in as %s\n", termenv.String(loginRes.Name).Bold().String())
 
-	// TODO: auth
+	client = apiClientWith(selectedHost.Host, selectedHost.Token, selectedHost.SkipTLSVerify)
+
 	users, err := client.ListUsers(loginRes.Name)
 	if err != nil {
 		return err

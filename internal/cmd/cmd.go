@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/goware/urlx"
 	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
 
@@ -63,6 +65,35 @@ func infraHomeDir() (string, error) {
 	}
 
 	return infraDir, nil
+}
+
+func apiClient() (*api.Client, error) {
+	config, err := readHostConfig("")
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := urlx.Parse(config.Host)
+	if err != nil {
+		return nil, fmt.Errorf("parsing host: %w", err)
+	}
+
+	return apiClientWith(u.String(), config.Token, config.SkipTLSVerify), nil
+}
+
+func apiClientWith(base string, token string, skipTLSVerify bool) *api.Client {
+	return &api.Client{
+		Base:  base,
+		Token: token,
+		Http: http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					//nolint:gosec // We may purposely set insecureskipverify via a flag
+					InsecureSkipVerify: skipTLSVerify,
+				},
+			},
+		},
+	}
 }
 
 func newLoginCmd() (*cobra.Command, error) {
