@@ -54,7 +54,7 @@ require (
 	gorm.io/gorm v1.22.5
 	gotest.tools v2.2.0+incompatible // indirect
 	k8s.io/api v0.22.3
-	k8s.io/apimachinery v0.23.1
+	k8s.io/apimachinery v0.22.3
 	k8s.io/apiserver v0.22.3
 	k8s.io/client-go v0.22.3
 )
