@@ -564,16 +564,61 @@ func (r *Registry) importAPITokens() error {
 
 		key, sec := models.KeyAndSecret(tokenSecret)
 
-		tkn := &models.Token{Key: key, Secret: sec}
+		existing, err := data.GetAPIToken(r.db, data.ByName(k))
+		if err != nil {
+			if !errors.Is(err, internal.ErrNotFound) {
+				return err
+			}
 
-		apiToken := &models.APIToken{
-			Name:        k,
-			Permissions: strings.Join(v.Permissions, " "),
-			TTL:         oneHundredYears,
-		}
+			apiToken := &models.APIToken{
+				Name:        k,
+				Permissions: strings.Join(v.Permissions, " "),
+				TTL:         oneHundredYears,
+			}
 
-		if _, err := data.CreateOrUpdateAPIToken(r.db, apiToken, tkn, data.ByName(apiToken.Name)); err != nil {
-			return fmt.Errorf("import API tokens: %w", err)
+			if err := data.CreateAPIToken(r.db, apiToken); err != nil {
+				return err
+			}
+
+			tkn := &models.Token{Key: key, Secret: sec, APITokenID: apiToken.ID, SessionDuration: apiToken.TTL}
+
+			if err := data.CreateToken(r.db, tkn); err != nil {
+				return fmt.Errorf("create api token from config: %w", err)
+			}
+
+		} else {
+			existing.Permissions = strings.Join(v.Permissions, " ")
+			existing.TTL = oneHundredYears
+
+			err := data.UpdateAPIToken(r.db, existing)
+			if err != nil {
+				return err
+			}
+
+			// create or update associated token
+			existingToken, err := data.GetToken(r.db, data.ByKey(key))
+			if err != nil {
+				if !errors.Is(err, internal.ErrNotFound) {
+					return err
+				}
+
+				tkn := &models.Token{Key: key, Secret: sec, APITokenID: existing.ID, SessionDuration: existing.TTL}
+
+				if err := data.CreateToken(r.db, tkn); err != nil {
+					return fmt.Errorf("create token from config: %w", err)
+				}
+
+			} else {
+				existingToken.APITokenID = existing.ID
+				existingToken.Key = key
+				existingToken.Secret = sec
+				existingToken.SessionDuration = existing.TTL
+
+				if err := data.UpdateToken(r.db, existingToken, data.ByID(existingToken.ID)); err != nil {
+					return fmt.Errorf("update token from config: %w", err)
+				}
+			}
+
 		}
 	}
 

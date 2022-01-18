@@ -49,7 +49,7 @@ func IssueUserToken(c *gin.Context, email string, sessionDuration time.Duration)
 		SessionDuration: sessionDuration,
 	}
 
-	if _, err := data.CreateToken(db, &token); err != nil {
+	if err := data.CreateToken(db, &token); err != nil {
 		return nil, nil, err
 	}
 
@@ -106,7 +106,16 @@ func IssueAPIToken(c *gin.Context, apiToken *models.APIToken) (*models.Token, er
 		return nil, fmt.Errorf("cannot create an API token with permission not granted to the token issuer")
 	}
 
-	return data.CreateAPIToken(db, apiToken, &models.Token{})
+	if err := data.CreateAPIToken(db, apiToken); err != nil {
+		return nil, fmt.Errorf("create api token: %w", err)
+	}
+
+	token := &models.Token{APITokenID: apiToken.ID}
+	if err := data.CreateToken(db, token); err != nil {
+		return nil, fmt.Errorf("create token: %w", err)
+	}
+
+	return token, nil
 }
 
 func ListAPITokens(c *gin.Context, name string) ([]models.APITokenTuple, error) {
