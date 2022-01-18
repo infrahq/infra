@@ -18,8 +18,9 @@ require (
 	github.com/go-playground/validator/v10 v10.10.0
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/uuid v1.3.0
-	github.com/goreleaser/goreleaser v1.2.5
+	github.com/goreleaser/goreleaser v1.3.1
 	github.com/gorilla/handlers v1.5.1
+	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/goware/urlx v0.3.1
 	github.com/hashicorp/vault/api v1.3.1
 	github.com/jackc/pgconn v1.10.1
@@ -28,6 +29,7 @@ require (
 	github.com/kataras/tablewriter v0.0.0-20180708051242-e063d29b7c23 // indirect
 	github.com/kevinburke/go-bindata v3.22.0+incompatible
 	github.com/lensesio/tableprinter v0.0.0-20201125135848-89e81fc956e7
+	github.com/matryer/is v1.4.0 // indirect
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/muesli/termenv v0.9.0
