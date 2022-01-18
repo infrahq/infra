@@ -1,28 +1,21 @@
 # Okta
 
-## Configure
-
-| Parameter       | Description                 |
-|-----------------|-----------------------------|
-| `domain`        | Okta domain                 |
-| `clientID`      | Okta client ID              |
-| `clientSecret`  | Okta client secret          |
-
-## Connect an Okta Provider
-
-This guide will walk you through the process of setting up Okta as an identity provider for Infra. At the end of this process you will have updated your Infra configuration with an Okta provider that looks something like this:
+## Quickstart
 
 ```
-providers:
-  - kind: okta
-    domain: acme.okta.com
-    clientID: 0oapn0qwiQPiMIyR35d6
-    clientSecret: kubernetes:infra-okta/clientSecret
+infra providers add Okta \
+  --url <your okta url (or domain)> \
+  --client-id <your okta client id> \
+  --client-secret <your okta client secret>
 ```
 
-## Create an Okta App
+To find these values, see the guide below:
 
-1. Login to the Okta administrative dashboard.
+## Okta Configuration
+
+## 1. Create an Okta App
+
+1. Login to the Okta dashboard.
 2. Under the left menu click **Applications > Applications**.  
 Click **Create App Integration**.  
 Select **OIDC – OpenID Connect** and **Web Application**.  
@@ -55,56 +48,4 @@ Click **Save**.
 The Okta client secret is sensitive information which should not be stored in the Infra configuration file. In order for Infra to access this secret values it should be stored in a secret provider, for this example we will use Kubernetes Secret objects **in the same namespace that the Infra is deployed in**.
 
 Create [a Kubernetes Secret object](https://kubernetes.io/docs/tasks/configmap-secret/) to store the Okta client secret (noted in step 4 of `Create an Okta App`). You can name this Secret as you desire, this name will be specified in the Infra configuration.
-
-#### Example Secret Creation
-
-There are [many ways to store secrets](../secrets.md). Here's an example of using Kubernetes for the secret storage.
-
-Store the Okta client secret using a Kubernetes Secret object in the namespace that Infra is running in.
-```
-$ OKTA_CLIENT_SECRET=jfpn0qwiQPiMIfs408fjs048fjpn0qwiQPiMajsdf08j10j2
-
-$ kubectl -n infrahq create secret generic infra-okta --from-literal=clientSecret=$OKTA_CLIENT_SECRET
-```
-
-see [secrets.md](../secrets.md) for further details.
-
-## Add Okta Information to Infra Configuration
-
-Edit your [Infra configuration](./configuration.md) (e.g. `infra.yaml`) to include an Okta provider:
-
-```yaml
-# infra.yaml
----
-providers:
-  - kind: okta
-    domain: example.okta.com
-    clientID: 0oapn0qwiQPiMIyR35d6
-    clientSecret: kubernetes:infra-okta/clientSecret  # <secret kind>:<secret name>
-```
-
-Then apply this config change:
-
-```
-helm -n infrahq upgrade --set-file config=infra.yaml infra infrahq/infra
-```
-
-Infra configuration can also be added to Helm values:
-
-```yaml
-# values.yaml
----
-config:
-  providers:
-    - kind: okta
-      domain: example.okta.com
-      clientID: 0oapn0qwiQPiMIyR35d6
-      clientSecret: kubernetes:infra-okta/clientSecret  # <secret kind>:<secret name>
-```
-
-Then apply this config change:
-
-```
-helm -n infrahq upgrade -f values.yaml infra infrahq/infra
-```
 

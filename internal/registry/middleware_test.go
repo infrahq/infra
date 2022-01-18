@@ -9,19 +9,47 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
-
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
+	"github.com/infrahq/infra/uid"
+	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
+
+func setupDB(t *testing.T) *gorm.DB {
+	driver, err := data.NewSQLiteDriver("file::memory:")
+	require.NoError(t, err)
+
+	db, err := data.NewDB(driver)
+	require.NoError(t, err)
+
+	return db
+}
+
+func issueToken(t *testing.T, db *gorm.DB, email, permissions string, sessionDuration time.Duration) string {
+	user := &models.User{Email: email, Permissions: permissions}
+
+	err := data.CreateUser(db, user)
+	require.NoError(t, err)
+
+	token := &models.APIToken{
+		UserID:      user.ID,
+		Permissions: permissions,
+		ExpiresAt:   time.Now().Add(sessionDuration),
+	}
+	body, err := data.CreateAPIToken(db, token)
+	require.NoError(t, err)
+
+	return body
+}
 
 func TestRequestTimeoutError(t *testing.T) {
 	requestTimeout = 100 * time.Millisecond
 
 	router := gin.New()
+	gin.SetMode(gin.ReleaseMode)
 	router.Use(RequestTimeoutMiddleware())
 	router.GET("/", func(c *gin.Context) {
 		time.Sleep(110 * time.Millisecond)
@@ -37,6 +65,7 @@ func TestRequestTimeoutSuccess(t *testing.T) {
 	requestTimeout = 60 * time.Second
 
 	router := gin.New()
+	gin.SetMode(gin.ReleaseMode)
 	router.Use(RequestTimeoutMiddleware())
 	router.GET("/", func(c *gin.Context) {
 		require.NoError(t, c.Request.Context().Err())
@@ -47,8 +76,9 @@ func TestRequestTimeoutSuccess(t *testing.T) {
 }
 
 func TestRequireAuthentication(t *testing.T) {
+	gin.SetMode(gin.ReleaseMode)
 	cases := map[string]map[string]interface{}{
-		"TokenValid": {
+		"APITokenValid": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				authentication := issueToken(t, db, "existing@infrahq.com", "*", time.Minute*1)
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -62,12 +92,9 @@ func TestRequireAuthentication(t *testing.T) {
 				require.Equal(t, "*", permissions)
 			},
 		},
-		"TokenSinglePermissionUpdatedToMatchParentUser": {
+		"APITokenSetsPermissions": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				authentication := issueToken(t, db, "existing@infrahq.com", string(access.PermissionAPITokenCreate), time.Minute*1)
-				// user permissions updated after token is issued
-				_, err := data.CreateOrUpdateUser(db, &models.User{Email: "existing@infrahq.com", Permissions: string(access.PermissionCredentialCreate)})
-				require.NoError(t, err)
+				authentication := issueToken(t, db, "existing@infrahq.com", string(access.PermissionTokenCreate), time.Minute*1)
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "Bearer "+authentication)
 				c.Request = r
@@ -76,28 +103,10 @@ func TestRequireAuthentication(t *testing.T) {
 				require.NoError(t, err)
 				permissions, ok := c.Get("permissions")
 				require.True(t, ok)
-				require.Equal(t, string(access.PermissionCredentialCreate), permissions)
+				require.Equal(t, string(access.PermissionTokenCreate), permissions)
 			},
 		},
-		"TokenMultiplePermissionsUpdatedToMatchParentUser": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				permissions := []string{string(access.PermissionAPITokenCreate), string(access.PermissionCredentialCreate)}
-				authentication := issueToken(t, db, "existing@infrahq.com", strings.Join(permissions, " "), time.Minute*1)
-				// user permissions updated after token is issued
-				_, err := data.CreateOrUpdateUser(db, &models.User{Email: "existing@infrahq.com", Permissions: string(access.PermissionCredentialCreate)})
-				require.NoError(t, err)
-				r := httptest.NewRequest(http.MethodGet, "/", nil)
-				r.Header.Add("Authorization", "Bearer "+authentication)
-				c.Request = r
-			},
-			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.NoError(t, err)
-				permissions, ok := c.Get("permissions")
-				require.True(t, ok)
-				require.Equal(t, string(access.PermissionCredentialCreate), permissions)
-			},
-		},
-		"TokenExpired": {
+		"APITokenExpired": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				authentication := issueToken(t, db, "existing@infrahq.com", "*", time.Minute*-1)
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -105,46 +114,43 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.Contains(t, err.Error(), "rejected token: token expired")
+				require.Contains(t, err.Error(), "token expired")
 			},
 		},
-		"TokenInvalidKey": {
+		"APITokenInvalidKey": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				token := issueToken(t, db, "existing@infrahq.com", "*", time.Minute*1)
-				secret := token[models.TokenKeyLength:]
-				authentication := fmt.Sprintf("%s%s", generate.MathRandom(models.TokenKeyLength), secret)
+				secret := token[:models.APITokenSecretLength]
+				authentication := fmt.Sprintf("%s.%s", uid.New().String(), secret)
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "Bearer "+authentication)
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.Contains(t, err.Error(), "could not get token from database, it may not exist: record not found")
+				require.Contains(t, err.Error(), "record not found")
 			},
 		},
-		"TokenNoMatch": {
+		"APITokenNoMatch": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				authentication := generate.MathRandom(models.TokenLength)
+				authentication := fmt.Sprintf("%s.%s", uid.New().String(), generate.MathRandom(models.APITokenSecretLength))
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "Bearer "+authentication)
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.Contains(t, err.Error(), "could not get token from database, it may not exist: record not found")
+				require.Contains(t, err.Error(), "record not found")
 			},
 		},
-		"TokenInvalidSecret": {
+		"APITokenInvalidSecret": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				token := issueToken(t, db, "existing@infrahq.com", "*", time.Minute*1)
-				key := token[:models.TokenKeyLength]
-				secret, err := generate.CryptoRandom(models.TokenSecretLength)
-				require.NoError(t, err)
-				authentication := fmt.Sprintf("%s%s", key, secret)
+				authentication := fmt.Sprintf("%s.%s", strings.Split(token, ".")[0], generate.MathRandom(models.APITokenSecretLength))
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "Bearer "+authentication)
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.Contains(t, err.Error(), "rejected invalid token: token invalid secret")
+				require.Contains(t, err.Error(), "token invalid secret")
 			},
 		},
 		"UnknownAuthenticationMethod": {
@@ -156,7 +162,7 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.Contains(t, err.Error(), "rejected token of invalid length")
+				require.Contains(t, err.Error(), "rejected token format")
 			},
 		},
 		"NoAuthentication": {
@@ -192,7 +198,7 @@ func TestRequireAuthentication(t *testing.T) {
 			require.True(t, ok)
 			authFunc(t, db, c)
 
-			err := RequireAuthentication(c)
+			err := RequireAPIToken(c)
 
 			verifyFunc, ok := v["verifyFunc"].(func(*testing.T, *gin.Context, error))
 			require.True(t, ok)
@@ -200,19 +206,4 @@ func TestRequireAuthentication(t *testing.T) {
 			verifyFunc(t, c, err)
 		})
 	}
-}
-
-func issueToken(t *testing.T, db *gorm.DB, email, permissions string, sessionDuration time.Duration) string {
-	user := &models.User{Email: email, Permissions: permissions}
-	err := data.CreateUser(db, user)
-	require.NoError(t, err)
-
-	token := &models.Token{
-		UserID:          user.ID,
-		SessionDuration: sessionDuration,
-	}
-	err = data.CreateToken(db, token)
-	require.NoError(t, err)
-
-	return token.SessionToken()
 }

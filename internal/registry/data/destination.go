@@ -12,19 +12,8 @@ func CreateDestination(db *gorm.DB, destination *models.Destination) error {
 	return add(db, destination)
 }
 
-func UpdateDestination(db *gorm.DB, destination *models.Destination) error {
+func SaveDestination(db *gorm.DB, destination *models.Destination) error {
 	if err := save(db, destination); err != nil {
-		return err
-	}
-
-	switch destination.Kind {
-	case models.DestinationKindKubernetes:
-		if err := db.Model(destination).Association("Kubernetes").Replace(&destination.Kubernetes); err != nil {
-			return err
-		}
-	}
-
-	if err := db.Model(destination).Association("Labels").Replace(&destination.Labels); err != nil {
 		return err
 	}
 
@@ -36,23 +25,7 @@ func GetDestination(db *gorm.DB, selectors ...SelectorFunc) (*models.Destination
 }
 
 func ListDestinations(db *gorm.DB, selectors ...SelectorFunc) ([]models.Destination, error) {
-	return list[models.Destination](db.Preload("Labels").Preload("Kubernetes"), selectors...)
-}
-
-func ListUserDestinations(db *gorm.DB, userID uid.ID) (result []models.Destination, err error) {
-	var destinationIDs []uid.ID
-
-	err = db.Model(models.Grant{}).Select("distinct destination_id").Joins("users_grants").Where("users_grants.user_id = ?", userID).Scan(&destinationIDs).Error
-	if err != nil {
-		return nil, err
-	}
-
-	err = db.Model(models.Destination{}).Where("id in (?)", destinationIDs).Find(&result).Error
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
+	return list[models.Destination](db, selectors...)
 }
 
 func DeleteDestinations(db *gorm.DB, selector SelectorFunc) error {
@@ -67,7 +40,7 @@ func DeleteDestinations(db *gorm.DB, selector SelectorFunc) error {
 			ids = append(ids, g.ID)
 		}
 
-		return removeAll[models.Destination](db, ByIDs(ids))
+		return deleteAll[models.Destination](db, ByIDs(ids))
 	}
 
 	return internal.ErrNotFound

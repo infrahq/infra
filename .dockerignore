@@ -16,3 +16,5 @@ internal/registry/ui
 dist
 infra.yaml
 docker-desktop.yaml
+ui
+infra

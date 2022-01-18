@@ -17,3 +17,15 @@ type Grant struct {
 
 	ExpiresAt *int64 `json:"expires_at"` // time this grant expires at in seconds since 1970-01-01 00:00:00 UTC
 }
+
+type ListGrantsRequest struct {
+	Identity  string `form:"identity"`
+	Resource  string `form:"resource"`
+	Privilege string `form:"privilege"`
+}
+
+type CreateGrantRequest struct {
+	Identity  string `json:"identity" validate:"required"`
+	Resource  string `json:"resource" validate:"required"`
+	Privilege string `json:"privilege" validate:"required"`
+}

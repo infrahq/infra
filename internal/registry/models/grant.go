@@ -32,7 +32,8 @@ type Grant struct {
 	Privilege string `validate:"required"` // role or permission
 	Resource  string `validate:"required"` // Universal Resource Notation
 
-	CreatedBy          uid.ID `validate:"required"`
+	CreatedBy uid.ID
+
 	ExpiresAt          *time.Time
 	LastUsedAt         *time.Time
 	ExpiresAfterUnused time.Duration
@@ -49,6 +50,7 @@ func (r *Grant) ToAPI() api.Grant {
 		Privilege: r.Privilege,
 		Resource:  r.Resource,
 	}
+
 	if r.ExpiresAt != nil {
 		u := r.ExpiresAt.Unix()
 		result.ExpiresAt = &u

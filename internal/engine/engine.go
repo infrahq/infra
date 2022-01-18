@@ -30,19 +30,18 @@ import (
 	"github.com/infrahq/infra/internal/claims"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/pro/audit"
 	"github.com/infrahq/infra/internal/timer"
 	"github.com/infrahq/infra/uid"
+
+	rbacv1 "k8s.io/api/rbac/v1"
 )
 
 type Options struct {
-	Server        string   `yaml:"server"`
-	Name          string   `yaml:"name"`
-	Kind          string   `yaml:"kind"`
-	APIToken      string   `yaml:"apiToken"`
-	TLSCache      string   `yaml:"tlsCache"`
-	SkipTLSVerify bool     `yaml:"skipTLSVerify"`
-	Labels        []string `yaml:"labels"`
+	Server        string `yaml:"server"`
+	Name          string `yaml:"name"`
+	APIToken      string `yaml:"apiToken"`
+	TLSCache      string `yaml:"tlsCache"`
+	SkipTLSVerify bool   `yaml:"skipTLSVerify"`
 }
 
 type jwkCache struct {
@@ -101,7 +100,7 @@ var JWKCacheRefresh = 5 * time.Minute
 
 type getJWKFunc func() (*jose.JSONWebKey, error)
 
-func jwtMiddleware(next http.Handler, destination string, destinationName string, getJWK getJWKFunc) http.Handler {
+func jwtMiddleware(next http.Handler, getJWK getJWKFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authorization := r.Header.Get("Authorization")
 		raw := strings.ReplaceAll(authorization, "Bearer ", "")
@@ -137,15 +136,14 @@ func jwtMiddleware(next http.Handler, destination string, destinationName string
 		}
 
 		err = claims.Claims.Validate(jwt.Expected{
-			Issuer: "InfraHQ",
-			Time:   time.Now(),
+			Time: time.Now(),
 		})
 		switch {
 		case errors.Is(err, jwt.ErrExpired):
 			http.Error(w, "expired", http.StatusUnauthorized)
 			return
 		case err != nil:
-			logging.L.Debug("Invalid JWT")
+			logging.S.Debugf("Invalid JWT %s", err.Error())
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -156,19 +154,94 @@ func jwtMiddleware(next http.Handler, destination string, destinationName string
 			return
 		}
 
-		if claims.Destination != destination {
-			logging.S.Debugf("JWT custom claims destination %q does not match expected destination %q", claims.Destination, destination)
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
-			return
-		}
-
 		ctx := r.Context()
 		ctx = context.WithValue(ctx, internal.HttpContextKeyEmail{}, claims.Email)
 		ctx = context.WithValue(ctx, internal.HttpContextKeyGroups{}, claims.Groups)
-		ctx = context.WithValue(ctx, internal.HttpContextKeyDestination{}, destination)
-		ctx = context.WithValue(ctx, internal.HttpContextKeyDestinationName{}, destinationName)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+// UpdateRoles converts infra grants to role-bindings in the current cluster
+func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) error {
+	logging.L.Debug("syncing local grants from infra configuration")
+
+	crSubjects := make(map[string][]rbacv1.Subject)                           // cluster-role: subject
+	crnSubjects := make(map[kubernetes.ClusterRoleNamespace][]rbacv1.Subject) // cluster-role+namespace: subject
+
+	for _, g := range grants {
+		var name string
+		var kind string
+
+		switch {
+		case strings.HasPrefix(g.Identity, "g:"):
+			var id uid.ID
+
+			err := id.UnmarshalText([]byte(strings.TrimPrefix(g.Identity, "g:")))
+			if err != nil {
+				return err
+			}
+
+			group, err := c.GetGroup(id)
+			if err != nil {
+				return err
+			}
+
+			name = group.Name
+			kind = rbacv1.GroupKind
+
+		case strings.HasPrefix(g.Identity, "u:"):
+			var id uid.ID
+
+			err := id.UnmarshalText([]byte(strings.TrimPrefix(g.Identity, "u:")))
+			if err != nil {
+				return err
+			}
+
+			user, err := c.GetUser(id)
+			if err != nil {
+				return err
+			}
+
+			name = user.Email
+			kind = rbacv1.UserKind
+		}
+
+		subj := rbacv1.Subject{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     kind,
+			Name:     name,
+		}
+
+		parts := strings.Split(g.Resource, ".")
+
+		var crn kubernetes.ClusterRoleNamespace
+		switch len(parts) {
+		// kubernetes.<cluster>
+		case 2:
+			crn.ClusterRole = g.Privilege
+			crSubjects[g.Privilege] = append(crSubjects[g.Privilege], subj)
+
+		// kubernetes.<cluster>.<namespace>
+		case 3:
+			crn.ClusterRole = g.Privilege
+			crn.Namespace = parts[2]
+			crnSubjects[crn] = append(crnSubjects[crn], subj)
+
+		default:
+			logging.S.Warnf("invalid grant resource: %s", g.Resource)
+			continue
+		}
+	}
+
+	if err := k.UpdateClusterRoleBindings(crSubjects); err != nil {
+		return fmt.Errorf("update cluster role bindings: %w", err)
+	}
+
+	if err := k.UpdateRoleBindings(crnSubjects); err != nil {
+		return fmt.Errorf("update cluster role bindings: %w", err)
+	}
+
+	return nil
 }
 
 func proxyHandler(ca []byte, bearerToken string, remote *url.URL) (http.HandlerFunc, error) {
@@ -204,10 +277,10 @@ func proxyHandler(ca []byte, bearerToken string, remote *url.URL) (http.HandlerF
 			return
 		}
 
-		r.Header.Set("Impersonate-User", fmt.Sprintf("infra:%s", email))
+		r.Header.Set("Impersonate-User", email)
 
 		for _, g := range groups {
-			r.Header.Add("Impersonate-Group", fmt.Sprintf("infra:%s", g))
+			r.Header.Add("Impersonate-Group", g)
 		}
 
 		r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", bearerToken))
@@ -256,65 +329,23 @@ func Run(options Options) error {
 		}
 	}
 
-	engineAPITokenURI, err := url.Parse(options.APIToken)
-	if err != nil {
-		return err
-	}
-
-	var engineAPIToken string
-
-	switch engineAPITokenURI.Scheme {
-	case "":
-		// option does not have a scheme, assume it is plaintext
-		engineAPIToken = string(options.APIToken)
-	case "file":
-		// option is a file path, read contents from the path
-		contents, err := ioutil.ReadFile(engineAPITokenURI.Path)
-		if err != nil {
-			return err
-		}
-
-		engineAPIToken = string(contents)
-
-	default:
-		return fmt.Errorf("unsupported secret format %s", engineAPITokenURI.Scheme)
-	}
-
 	k8s, err := kubernetes.NewKubernetes()
 	if err != nil {
 		return err
 	}
 
-	u, err := urlx.Parse(options.Server)
+	autoname, chksm, err := k8s.Name()
 	if err != nil {
-		return err
-	}
-
-	u.Scheme = "https"
-
-	client := api.Client{
-		Url:   u.String(),
-		Token: engineAPIToken,
-		Http: http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: hostTLSConfig,
-			},
-		},
-	}
-
-	name, chksm, err := k8s.Name()
-	if err != nil {
-		logging.S.Errorf("k8s error: %w", err)
+		logging.S.Errorf("k8s name error: %w", err)
 		return err
 	}
 
 	if options.Name == "" {
-		options.Name = name
+		options.Name = autoname
 	}
 
-	kind := api.DestinationKind(options.Kind)
-	if !kind.IsValid() {
-		return fmt.Errorf("unknown destination kind: %s", options.Kind)
+	if !strings.HasPrefix(options.Name, "kubernetes.") {
+		options.Name = fmt.Sprintf("kubernetes.%s", options.Name)
 	}
 
 	manager := &autocert.Manager{
@@ -339,8 +370,33 @@ func Run(options Options) error {
 
 	var destinationID uid.ID
 
+	u, err := urlx.Parse(options.Server)
+	if err != nil {
+		logging.S.Errorf("server: %w", err)
+	}
+
+	u.Scheme = "https"
+
 	timer := timer.NewTimer()
 	timer.Start(5*time.Second, func() {
+		contents, err := ioutil.ReadFile(options.APIToken)
+		if err != nil {
+			logging.S.Errorf("could not load api token: %w", err)
+			return
+		}
+
+		engineAPIToken := string(contents)
+
+		client := &api.Client{
+			Url:   u.String(),
+			Token: engineAPIToken,
+			Http: http.Client{
+				Transport: &http.Transport{
+					TLSClientConfig: hostTLSConfig,
+				},
+			},
+		}
+
 		if destinationID == 0 {
 			host, port, err := k8s.Endpoint()
 			if err != nil {
@@ -375,7 +431,7 @@ func Run(options Options) error {
 				}
 			}
 
-			destinations, err := client.ListDestinations(chksm)
+			destinations, err := client.ListDestinations(api.ListDestinationsRequest{Name: "", UniqueID: chksm})
 			if err != nil {
 				logging.S.Errorf("error listing destinations: %w", err)
 				return
@@ -384,13 +440,11 @@ func Run(options Options) error {
 			switch len(destinations) {
 			case 0:
 				request := &api.CreateDestinationRequest{
-					NodeID: chksm,
-					Name:   options.Name,
-					Kind:   kind,
-					Labels: options.Labels,
-					Kubernetes: &api.DestinationKubernetes{
-						CA:       string(caBytes),
-						Endpoint: endpoint,
+					Name:     options.Name,
+					UniqueID: chksm,
+					Connection: api.DestinationConnection{
+						CA:  string(caBytes),
+						URL: endpoint,
 					},
 				}
 
@@ -402,18 +456,17 @@ func Run(options Options) error {
 
 				destinationID = destination.ID
 			case 1:
-				request := &api.UpdateDestinationRequest{
-					NodeID: chksm,
-					Name:   options.Name,
-					Kind:   kind,
-					Labels: options.Labels,
-					Kubernetes: &api.DestinationKubernetes{
-						CA:       string(caBytes),
-						Endpoint: endpoint,
+				request := api.UpdateDestinationRequest{
+					ID:       destinations[0].ID,
+					Name:     options.Name,
+					UniqueID: chksm,
+					Connection: api.DestinationConnection{
+						CA:  string(caBytes),
+						URL: endpoint,
 					},
 				}
 
-				_, err := client.UpdateDestination(destinations[0].ID, request)
+				_, err := client.UpdateDestination(request)
 				if err != nil {
 					logging.S.Errorf("error updating destination: %w", err)
 				}
@@ -424,13 +477,29 @@ func Run(options Options) error {
 			}
 		}
 
-		grants, err := client.ListGrants(api.DestinationKindKubernetes, destinationID)
+		grants, err := client.ListGrants(api.ListGrantsRequest{Resource: options.Name})
 		if err != nil {
 			logging.S.Errorf("error listing grants: %w", err)
 			return
 		}
 
-		err = k8s.UpdateRoles(grants)
+		namespaces, err := k8s.Namespaces()
+		if err != nil {
+			logging.S.Errorf("error listing namespaces: %w", err)
+			return
+		}
+
+		for _, n := range namespaces {
+			g, err := client.ListGrants(api.ListGrantsRequest{Resource: fmt.Sprintf("%s.%s", options.Name, n)})
+			if err != nil {
+				logging.S.Errorf("error listing grants: %w", err)
+				return
+			}
+
+			grants = append(grants, g...)
+		}
+
+		err = updateRoles(client, k8s, grants)
 		if err != nil {
 			logging.S.Errorf("error updating grants: %w", err)
 			return
@@ -465,7 +534,6 @@ func Run(options Options) error {
 	cache := jwkCache{
 		client: &http.Client{
 			Transport: &BearerTransport{
-				Token: engineAPIToken,
 				Transport: &http.Transport{
 					TLSClientConfig: hostTLSConfig,
 				},
@@ -474,7 +542,7 @@ func Run(options Options) error {
 		baseURL: u.String(),
 	}
 
-	mux.Handle("/proxy/", http.StripPrefix("/proxy", jwtMiddleware(audit.AuditMiddleware(ph), chksm, options.Name, cache.getJWK)))
+	mux.Handle("/proxy/", http.StripPrefix("/proxy", jwtMiddleware(ph, cache.getJWK)))
 
 	tlsServer := &http.Server{
 		Addr:      ":443",

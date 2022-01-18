@@ -15,7 +15,6 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry/data"
-	"github.com/infrahq/infra/internal/registry/models"
 )
 
 var requestTimeout = 60 * time.Second
@@ -62,7 +61,7 @@ func DatabaseMiddleware(db *gorm.DB) gin.HandlerFunc {
 // AuthenticationMiddleware validates the incoming token and adds their permissions to the context
 func AuthenticationMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if err := RequireAuthentication(c); err != nil {
+		if err := RequireAPIToken(c); err != nil {
 			logging.S.Debug(err.Error())
 			// IMPORTANT: do not return errors encountered during token validation, always return generic unauthorized message
 			sendAPIError(c, internal.ErrUnauthorized)
@@ -99,8 +98,8 @@ func MetricsMiddleware(path string) gin.HandlerFunc {
 	}
 }
 
-// RequireAuthentication checks the bearer token is present and valid then adds its permissions to the context
-func RequireAuthentication(c *gin.Context) error {
+// RequireAPIToken checks the bearer token is present and valid then adds its permissions to the context
+func RequireAPIToken(c *gin.Context) error {
 	db, ok := c.MustGet("db").(*gorm.DB)
 	if !ok {
 		return errors.New("unknown db type in context")
@@ -115,24 +114,12 @@ func RequireAuthentication(c *gin.Context) error {
 
 	bearer := parts[1]
 
-	if len(bearer) != models.TokenLength {
-		return fmt.Errorf("%w: rejected token of invalid length", internal.ErrUnauthorized)
-	}
-
-	token, err := data.GetToken(db, data.ByKey(bearer[:models.TokenKeyLength]))
+	token, err := data.LookupAPIToken(db, bearer)
 	if err != nil {
-		return fmt.Errorf("%w could not get token from database, it may not exist: %s", internal.ErrUnauthorized, err)
+		return fmt.Errorf("%w: invalid token: %s", internal.ErrUnauthorized, err)
 	}
 
-	if err := data.CheckTokenSecret(token, bearer); err != nil {
-		return fmt.Errorf("%w: rejected invalid token: %s", internal.ErrUnauthorized, err)
-	}
-
-	if err := data.CheckTokenExpired(token); err != nil {
-		return fmt.Errorf("%w: rejected token: %s", internal.ErrUnauthorized, err)
-	}
-
-	c.Set("authentication", bearer)
+	c.Set("token", token)
 
 	// token is valid, check where to set permissions from
 	if token.UserID != 0 {
@@ -143,22 +130,18 @@ func RequireAuthentication(c *gin.Context) error {
 		}
 
 		c.Set("permissions", user.Permissions)
-		c.Set("user_id", token.UserID)
 		logging.S.Debugf("user permissions: %s", user.Permissions)
 
 		user.LastSeenAt = time.Now()
-		if err := data.UpdateUser(db, user, data.ByID(user.ID)); err != nil {
+		if err = data.SaveUser(db, user); err != nil {
 			return fmt.Errorf("%w: user update fail: %s", internal.ErrUnauthorized, err)
 		}
 
 		c.Set("user", user)
-	} else if token.APITokenID != 0 {
-		// this is an API token
-		apiToken, err := data.GetAPIToken(db, data.ByID(token.APITokenID))
-		if err != nil {
-			return fmt.Errorf("api client for token: %w", err)
-		}
-		c.Set("permissions", apiToken.Permissions)
+	}
+
+	if len(token.Permissions) > 0 {
+		c.Set("permissions", token.Permissions)
 	}
 
 	return nil

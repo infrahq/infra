@@ -7,5 +7,5 @@ metadata:
 {{- include "engine.labels" . | nindent 4 }}
 data:
   config.yaml: |-
-    apiToken: file:///var/run/secrets/infrahq.com/engine/engine-api-token
+    apiToken: /var/run/secrets/infrahq.com/engine/api-token
     {{- toYaml $config | nindent 4 }}

@@ -71,7 +71,7 @@ func (o *oidcImplementation) tokenSource(providerTokens *models.ProviderToken) (
 	userToken := &oauth2.Token{
 		AccessToken:  string(providerTokens.AccessToken),
 		RefreshToken: string(providerTokens.RefreshToken),
-		Expiry:       providerTokens.Expiry,
+		Expiry:       providerTokens.ExpiresAt,
 	}
 
 	return conf.TokenSource(ctx, userToken), nil

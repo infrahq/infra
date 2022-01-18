@@ -2,19 +2,20 @@ package api
 
 import "github.com/infrahq/infra/uid"
 
-// Group struct for Group
 type Group struct {
-	ID   uid.ID `json:"id"`
-	Name string `json:"name"`
-	// created time in seconds since 1970-01-01
-	Created int64 `json:"created"`
-	// updated time in seconds since 1970-01-01
-	Updated   int64      `json:"updated"`
-	Users     []User     `json:"users,omitempty"`
-	Grants    []Grant    `json:"grants,omitempty"`
-	Providers []Provider `json:"providers,omitempty"`
+	ID         uid.ID `json:"id"`
+	Name       string `json:"name"`
+	Created    int64  `json:"created"`
+	Updated    int64  `json:"updated"`
+	ProviderID uid.ID `json:"providerID"`
 }
 
 type ListGroupsRequest struct {
-	GroupName string `form:"name"`
+	Name       string `form:"name"`
+	ProviderID uid.ID `form:"provider_id"`
+}
+
+type CreateGroupRequest struct {
+	Name       string `json:"name" validate:"required"`
+	ProviderID uid.ID `json:"providerID" validate:"required"`
 }

@@ -7,16 +7,17 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/registry/models"
-)
-
-var (
-	bond   = models.User{Email: "jbond@infrahq.com"}
-	bourne = models.User{Email: "jbourne@infrahq.com"}
-	bauer  = models.User{Email: "jbauer@infrahq.com"}
+	"github.com/infrahq/infra/uid"
 )
 
 func TestUser(t *testing.T) {
 	db := setup(t)
+
+	var providerID = uid.New()
+
+	var (
+		bond = models.User{Email: "jbond@infrahq.com", ProviderID: providerID}
+	)
 
 	err := db.Create(&bond).Error
 	require.NoError(t, err)
@@ -28,14 +29,6 @@ func TestUser(t *testing.T) {
 	require.Equal(t, bond.Email, user.Email)
 }
 
-func TestCreateUser(t *testing.T) {
-	db := setup(t)
-
-	err := CreateUser(db, &bond)
-	require.NoError(t, err)
-	require.NotEqual(t, 0, bond.ID)
-}
-
 func createUsers(t *testing.T, db *gorm.DB, users ...models.User) {
 	for i := range users {
 		err := CreateUser(db, &users[i])
@@ -45,6 +38,15 @@ func createUsers(t *testing.T, db *gorm.DB, users ...models.User) {
 
 func TestCreateDuplicateUser(t *testing.T) {
 	db := setup(t)
+
+	var providerID = uid.New()
+
+	var (
+		bond   = models.User{Email: "jbond@infrahq.com", ProviderID: providerID}
+		bourne = models.User{Email: "jbourne@infrahq.com", ProviderID: providerID}
+		bauer  = models.User{Email: "jbauer@infrahq.com", ProviderID: providerID}
+	)
+
 	createUsers(t, db, bond, bourne, bauer)
 
 	b := bond
@@ -53,29 +55,17 @@ func TestCreateDuplicateUser(t *testing.T) {
 	require.Contains(t, err.Error(), "duplicate record")
 }
 
-func TestCreateOrUpdateUserCreate(t *testing.T) {
-	db := setup(t)
-
-	user, err := CreateOrUpdateUser(db, &bond)
-	require.NoError(t, err)
-	require.NotEqual(t, 0, user.ID)
-	require.Equal(t, bond.Email, user.Email)
-}
-
-func TestCreateOrUpdateUserUpdate(t *testing.T) {
-	db := setup(t)
-	createUsers(t, db, bond, bourne, bauer)
-
-	bond.ID = 0
-	bond.Email = "james@infrahq.com"
-	user, err := CreateOrUpdateUser(db, &bond)
-	require.NoError(t, err)
-	require.NotEqual(t, 0, user.ID)
-	require.Equal(t, "james@infrahq.com", user.Email)
-}
-
 func TestGetUser(t *testing.T) {
 	db := setup(t)
+
+	var providerID = uid.New()
+
+	var (
+		bond   = models.User{Email: "jbond@infrahq.com", ProviderID: providerID}
+		bourne = models.User{Email: "jbourne@infrahq.com", ProviderID: providerID}
+		bauer  = models.User{Email: "jbauer@infrahq.com", ProviderID: providerID}
+	)
+
 	createUsers(t, db, bond, bourne, bauer)
 
 	user, err := GetUser(db, ByEmail(bond.Email))
@@ -85,6 +75,15 @@ func TestGetUser(t *testing.T) {
 
 func TestListUsers(t *testing.T) {
 	db := setup(t)
+
+	var providerID = uid.New()
+
+	var (
+		bond   = models.User{Email: "jbond@infrahq.com", ProviderID: providerID}
+		bourne = models.User{Email: "jbourne@infrahq.com", ProviderID: providerID}
+		bauer  = models.User{Email: "jbauer@infrahq.com", ProviderID: providerID}
+	)
+
 	createUsers(t, db, bond, bourne, bauer)
 
 	users, err := ListUsers(db)
@@ -98,6 +97,15 @@ func TestListUsers(t *testing.T) {
 
 func TestDeleteUser(t *testing.T) {
 	db := setup(t)
+
+	var providerID = uid.New()
+
+	var (
+		bond   = models.User{Email: "jbond@infrahq.com", ProviderID: providerID}
+		bourne = models.User{Email: "jbourne@infrahq.com", ProviderID: providerID}
+		bauer  = models.User{Email: "jbauer@infrahq.com", ProviderID: providerID}
+	)
+
 	createUsers(t, db, bond, bourne, bauer)
 
 	_, err := GetUser(db, ByEmail(bond.Email))
@@ -120,6 +128,15 @@ func TestDeleteUser(t *testing.T) {
 
 func TestRecreateUserSameEmail(t *testing.T) {
 	db := setup(t)
+
+	var providerID = uid.New()
+
+	var (
+		bond   = models.User{Email: "jbond@infrahq.com", ProviderID: providerID}
+		bourne = models.User{Email: "jbourne@infrahq.com", ProviderID: providerID}
+		bauer  = models.User{Email: "jbauer@infrahq.com", ProviderID: providerID}
+	)
+
 	createUsers(t, db, bond, bourne, bauer)
 
 	err := DeleteUsers(db, ByEmail(bond.Email))

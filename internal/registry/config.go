@@ -1,396 +1,61 @@
 package registry
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 
 	"gopkg.in/yaml.v2"
-	"gorm.io/gorm"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
-	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/internal/config"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
 	"github.com/infrahq/infra/secrets"
-	"github.com/infrahq/infra/uid"
 )
 
-const oneHundredYears = time.Hour * 876000
-
-type ConfigProvider struct {
-	Kind         string `yaml:"kind" validate:"required"`
-	Domain       string `yaml:"domain" validate:"required"`
-	ClientID     string `yaml:"clientID" validate:"required"`
-	ClientSecret string `yaml:"clientSecret" validate:"required"`
-}
-
-var (
-	dashAdminRemover = regexp.MustCompile(`(.*)\-admin(\.okta\.com)`)
-	protocolRemover  = regexp.MustCompile(`http[s]?://`)
-)
-
-func (p *ConfigProvider) cleanupDomain() {
-	p.Domain = strings.TrimSpace(p.Domain)
-	p.Domain = dashAdminRemover.ReplaceAllString(p.Domain, "$1$2")
-	p.Domain = protocolRemover.ReplaceAllString(p.Domain, "")
-}
-
-type ConfigDestination struct {
-	Name       string                 `yaml:"name"`
-	Labels     []string               `yaml:"labels"`
-	Kind       models.DestinationKind `yaml:"kind" validate:"required"`
-	Namespaces []string               `yaml:"namespaces"` // optional in the case of a cluster-role
-}
-
-type ConfigGrant struct {
-	Name         string                 `yaml:"name" validate:"required"`
-	Kind         models.DestinationKind `yaml:"kind" validate:"required,oneof=role cluster-role"`
-	Destinations []ConfigDestination    `yaml:"destinations" validate:"required,dive"`
-}
-
-type ConfigGroupMapping struct {
-	Name     string        `yaml:"name" validate:"required"`
-	Provider string        `yaml:"provider" validate:"required"`
-	Grants   []ConfigGrant `yaml:"grants" validate:"required,dive"`
-}
-
-type ConfigUserMapping struct {
-	Email  string        `yaml:"email" validate:"required,email"`
-	Grants []ConfigGrant `yaml:"grants" validate:"required,dive"`
-}
-
-type ConfigSecretProvider struct {
-	Kind   string      `yaml:"kind" validate:"required"`
-	Name   string      `yaml:"name"` // optional
-	Config interface{} // contains secret-provider-specific config
-}
-
-type ConfigSecretKeyProvider struct {
+type KeyProvider struct {
 	Kind   string      `yaml:"kind" validate:"required"`
 	Config interface{} // contains secret-provider-specific config
 }
 
-type simpleConfigSecretProvider struct {
-	Kind string `yaml:"kind"`
-	Name string `yaml:"name"`
-}
-
-// ensure these implements yaml.Unmarshaller for the custom config field support
-var (
-	_ yaml.Unmarshaler = &ConfigSecretProvider{}
-	_ yaml.Unmarshaler = &ConfigSecretKeyProvider{}
-)
-
-func (sp *ConfigSecretKeyProvider) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	tmp := &simpleConfigSecretProvider{}
-
-	if err := unmarshal(&tmp); err != nil {
-		return fmt.Errorf("unmarshalling secret provider: %w", err)
-	}
-
-	sp.Kind = tmp.Kind
-
-	switch sp.Kind {
-	case "vault":
-		p := secrets.NewVaultConfig()
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
-	case "awskms":
-		p := secrets.NewAWSKMSConfig()
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		if err := unmarshal(&p.AWSConfig); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
-	case "native":
-		p := nativeSecretProviderConfig{}
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
-	default:
-		return fmt.Errorf("unknown key provider type %q, expected one of %q", sp.Kind, secrets.SymmetricKeyProviderKinds)
-	}
-
-	return nil
-}
-
-func (sp *ConfigSecretProvider) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	tmp := &simpleConfigSecretProvider{}
-
-	if err := unmarshal(&tmp); err != nil {
-		return fmt.Errorf("unmarshalling secret provider: %w", err)
-	}
-
-	sp.Kind = tmp.Kind
-	sp.Name = tmp.Name
-
-	switch tmp.Kind {
-	case "vault":
-		p := secrets.NewVaultConfig()
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
-	case "awsssm":
-		p := secrets.AWSSSMConfig{}
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		if err := unmarshal(&p.AWSConfig); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
-	case "awssecretsmanager":
-		p := secrets.AWSSecretsManagerConfig{}
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		if err := unmarshal(&p.AWSConfig); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
-	case "kubernetes":
-		p := secrets.NewKubernetesConfig()
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
-	case "env":
-		p := secrets.GenericConfig{}
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
-	case "file":
-		p := secrets.FileConfig{}
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		if err := unmarshal(&p.GenericConfig); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
-	case "plaintext", "":
-		p := secrets.GenericConfig{}
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
-	default:
-		return fmt.Errorf("unknown secret provider type %q, expected one of %q", tmp.Kind, secrets.SecretStorageProviderKinds)
-	}
-
-	return nil
-}
-
-type Config struct {
-	Secrets   []ConfigSecretProvider    `yaml:"secrets" validate:"dive"`
-	Keys      []ConfigSecretKeyProvider `yaml:"keys" validate:"dive"`
-	Providers []ConfigProvider          `yaml:"providers" validate:"dive"`
-	Groups    []ConfigGroupMapping      `yaml:"groups" validate:"dive"`
-	Users     []ConfigUserMapping       `yaml:"users" validate:"dive"`
-}
-
-func importProviders(db *gorm.DB, providers []ConfigProvider) error {
-	toKeep := make([]uid.ID, 0)
-
-	for _, p := range providers {
-		p.cleanupDomain()
-
-		// domain has been modified, so need to re-validate
-		if err := validate.Struct(p); err != nil {
-			return fmt.Errorf("invalid domain: %w", err)
-		}
-
-		provider := &models.Provider{
-			Kind:         models.ProviderKind(p.Kind),
-			Domain:       p.Domain,
-			ClientID:     p.ClientID,
-			ClientSecret: models.EncryptedAtRest(p.ClientSecret),
-		}
-
-		final, err := data.CreateOrUpdateProvider(db, provider)
-		if err != nil {
-			return err
-		}
-
-		toKeep = append(toKeep, final.ID)
-	}
-
-	if err := data.DeleteProviders(db, func(db *gorm.DB) *gorm.DB {
-		return db.Model((*models.Provider)(nil)).Not(toKeep)
-	}); err != nil {
-		if !errors.Is(err, internal.ErrNotFound) {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// importConfig tries to import all valid fields in a config file and removes old config
-func (r *Registry) importConfig() error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
-		if err := importProviders(tx, r.options.Providers); err != nil {
-			return fmt.Errorf("providers: %w", err)
-		}
-
-		// todo: import grants
-
-		return nil
-	})
-}
-
-func (r *Registry) importAPITokens() error {
-	type key struct {
-		Secret      string
-		Permissions []string
-	}
-
-	keys := map[string]key{
-		"root": {
-			Secret: r.options.RootAPIToken,
-			Permissions: []string{
-				string(access.PermissionAllInfra),
-			},
-		},
-		"engine": {
-			Secret: r.options.EngineAPIToken,
-			Permissions: []string{
-				string(access.PermissionGrantRead),
-				string(access.PermissionDestinationRead),
-				string(access.PermissionDestinationCreate),
-				string(access.PermissionDestinationUpdate),
-			},
-		},
-	}
-
-	for k, v := range keys {
-		tokenSecret, err := r.GetSecret(v.Secret)
-		if err != nil && !errors.Is(err, secrets.ErrNotFound) {
-			return err
-		}
-
-		// if empty, generate it
-		if tokenSecret == "" {
-			tokenSecret, err = generate.CryptoRandom(36)
-			if err != nil {
-				return err
-			}
-
-			if err := r.SetSecret(v.Secret, tokenSecret); err != nil {
-				return err
-			}
-		}
-
-		if len(tokenSecret) != models.TokenLength {
-			return fmt.Errorf("secret for %q token must be %d characters in length, but is %d", k, models.TokenLength, len(tokenSecret))
-		}
-
-		key, sec := models.KeyAndSecret(tokenSecret)
-
-		existing, err := data.GetAPIToken(r.db, data.ByName(k))
-		if err != nil {
-			if !errors.Is(err, internal.ErrNotFound) {
-				return err
-			}
-
-			apiToken := &models.APIToken{
-				Name:        k,
-				Permissions: strings.Join(v.Permissions, " "),
-				TTL:         oneHundredYears,
-			}
-
-			if err := data.CreateAPIToken(r.db, apiToken); err != nil {
-				return err
-			}
-
-			tkn := &models.Token{Key: key, Secret: sec, APITokenID: apiToken.ID, SessionDuration: apiToken.TTL}
-
-			if err := data.CreateToken(r.db, tkn); err != nil {
-				return fmt.Errorf("create api token from config: %w", err)
-			}
-		} else {
-			existing.Permissions = strings.Join(v.Permissions, " ")
-			existing.TTL = oneHundredYears
-
-			err := data.UpdateAPIToken(r.db, existing)
-			if err != nil {
-				return err
-			}
-
-			// create or update associated token
-			existingToken, err := data.GetToken(r.db, data.ByKey(key))
-			if err != nil {
-				if !errors.Is(err, internal.ErrNotFound) {
-					return err
-				}
-
-				tkn := &models.Token{Key: key, Secret: sec, APITokenID: existing.ID, SessionDuration: existing.TTL}
-
-				if err := data.CreateToken(r.db, tkn); err != nil {
-					return fmt.Errorf("create token from config: %w", err)
-				}
-
-			} else {
-				existingToken.APITokenID = existing.ID
-				existingToken.Secret = sec
-				existingToken.SessionDuration = existing.TTL
-
-				if err := data.UpdateToken(r.db, existingToken, data.ByID(existingToken.ID)); err != nil {
-					return fmt.Errorf("update token from config: %w", err)
-				}
-			}
-
-		}
-	}
-
-	return nil
-}
-
-var baseSecretStorageKinds = []string{
-	"env",
-	"file",
-	"plaintext",
-	"kubernetes",
-}
-
-func isABaseSecretStorageKind(s string) bool {
-	for _, item := range baseSecretStorageKinds {
-		if item == s {
-			return true
-		}
-	}
-
-	return false
-}
+var _ yaml.Unmarshaler = &KeyProvider{}
 
 type nativeSecretProviderConfig struct {
-	SecretStorageName string `yaml:"secretStorage"`
+	SecretStorageName string `yaml:"secretProvider"`
+}
+
+func (r *Registry) importConfig() error {
+	if r.options.Import == nil {
+		logging.L.Debug("Skipping config import, import not specified")
+		return nil
+	}
+
+	rootAPIToken, err := r.GetSecret(r.options.RootAPIToken)
+	if err != nil {
+		return fmt.Errorf("importing config: %w", err)
+	}
+
+	client := &api.Client{
+		Url:   "https://localhost:443",
+		Token: rootAPIToken,
+		Http: http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					//nolint:gosec // purposely set for localhost
+					InsecureSkipVerify: true,
+				},
+			},
+		},
+	}
+
+	return config.Import(client, *r.options.Import, true)
 }
 
 func (r *Registry) importSecretKeys() error {
@@ -413,7 +78,7 @@ func (r *Registry) importSecretKeys() error {
 
 			storageProvider, found := r.secrets[cfg.SecretStorageName]
 			if !found {
-				return fmt.Errorf("secret provider name %q not found", cfg.SecretStorageName)
+				return fmt.Errorf("secret storage name %q not found", cfg.SecretStorageName)
 			}
 
 			sp := secrets.NewNativeSecretProvider(storageProvider)
@@ -463,12 +128,82 @@ func (r *Registry) importSecretKeys() error {
 	return nil
 }
 
+func (sp *KeyProvider) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	tmp := &simpleConfigSecretProvider{}
+
+	if err := unmarshal(&tmp); err != nil {
+		return fmt.Errorf("unmarshalling secret provider: %w", err)
+	}
+
+	sp.Kind = tmp.Kind
+
+	switch sp.Kind {
+	case "vault":
+		p := secrets.NewVaultConfig()
+		if err := unmarshal(&p); err != nil {
+			return fmt.Errorf("unmarshal yaml: %w", err)
+		}
+
+		sp.Config = p
+	case "awskms":
+		p := secrets.NewAWSKMSConfig()
+		if err := unmarshal(&p); err != nil {
+			return fmt.Errorf("unmarshal yaml: %w", err)
+		}
+
+		if err := unmarshal(&p.AWSConfig); err != nil {
+			return fmt.Errorf("unmarshal yaml: %w", err)
+		}
+
+		sp.Config = p
+	case "native":
+		p := nativeSecretProviderConfig{}
+		if err := unmarshal(&p); err != nil {
+			return fmt.Errorf("unmarshal yaml: %w", err)
+		}
+
+		sp.Config = p
+	default:
+		return fmt.Errorf("unknown key provider type %q, expected one of %q", sp.Kind, secrets.SymmetricKeyProviderKinds)
+	}
+
+	return nil
+}
+
+type SecretProvider struct {
+	Kind   string      `yaml:"kind" validate:"required"`
+	Name   string      `yaml:"name"` // optional
+	Config interface{} // contains secret-provider-specific config
+}
+
+type simpleConfigSecretProvider struct {
+	Kind string `yaml:"kind"`
+	Name string `yaml:"name"`
+}
+
+var baseSecretStorageKinds = []string{
+	"env",
+	"file",
+	"plaintext",
+	"kubernetes",
+}
+
+func isABaseSecretStorageKind(s string) bool {
+	for _, item := range baseSecretStorageKinds {
+		if item == s {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (r *Registry) importSecrets() error {
 	if r.secrets == nil {
 		r.secrets = map[string]secrets.SecretStorage{}
 	}
 
-	loadSecretConfig := func(secret ConfigSecretProvider) (err error) {
+	loadSecretConfig := func(secret SecretProvider) (err error) {
 		name := secret.Name
 		if len(name) == 0 {
 			name = secret.Kind
@@ -641,6 +376,153 @@ func (r *Registry) loadDefaultSecretConfig() error {
 
 			r.secrets["kubernetes"] = k8s
 		}
+	}
+
+	return nil
+}
+
+func (sp *SecretProvider) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	tmp := &simpleConfigSecretProvider{}
+
+	if err := unmarshal(&tmp); err != nil {
+		return fmt.Errorf("unmarshalling secret provider: %w", err)
+	}
+
+	sp.Kind = tmp.Kind
+	sp.Name = tmp.Name
+
+	switch tmp.Kind {
+	case "vault":
+		p := secrets.NewVaultConfig()
+		if err := unmarshal(&p); err != nil {
+			return fmt.Errorf("unmarshal yaml: %w", err)
+		}
+
+		sp.Config = p
+	case "awsssm":
+		p := secrets.AWSSSMConfig{}
+		if err := unmarshal(&p); err != nil {
+			return fmt.Errorf("unmarshal yaml: %w", err)
+		}
+
+		if err := unmarshal(&p.AWSConfig); err != nil {
+			return fmt.Errorf("unmarshal yaml: %w", err)
+		}
+
+		sp.Config = p
+	case "awssecretsmanager":
+		p := secrets.AWSSecretsManagerConfig{}
+		if err := unmarshal(&p); err != nil {
+			return fmt.Errorf("unmarshal yaml: %w", err)
+		}
+
+		if err := unmarshal(&p.AWSConfig); err != nil {
+			return fmt.Errorf("unmarshal yaml: %w", err)
+		}
+
+		sp.Config = p
+	case "kubernetes":
+		p := secrets.NewKubernetesConfig()
+		if err := unmarshal(&p); err != nil {
+			return fmt.Errorf("unmarshal yaml: %w", err)
+		}
+
+		sp.Config = p
+	case "env":
+		p := secrets.GenericConfig{}
+		if err := unmarshal(&p); err != nil {
+			return fmt.Errorf("unmarshal yaml: %w", err)
+		}
+
+		sp.Config = p
+	case "file":
+		p := secrets.FileConfig{}
+		if err := unmarshal(&p); err != nil {
+			return fmt.Errorf("unmarshal yaml: %w", err)
+		}
+
+		if err := unmarshal(&p.GenericConfig); err != nil {
+			return fmt.Errorf("unmarshal yaml: %w", err)
+		}
+
+		sp.Config = p
+	case "plaintext", "":
+		p := secrets.GenericConfig{}
+		if err := unmarshal(&p); err != nil {
+			return fmt.Errorf("unmarshal yaml: %w", err)
+		}
+
+		sp.Config = p
+	default:
+		return fmt.Errorf("unknown secret provider type %q, expected one of %q", tmp.Kind, secrets.SecretStorageProviderKinds)
+	}
+
+	return nil
+}
+
+func (r *Registry) importAPITokens() error {
+	type key struct {
+		Secret      string
+		Permissions []string
+	}
+
+	keys := map[string]key{
+		"root": {
+			Secret: r.options.RootAPIToken,
+			Permissions: []string{
+				string(access.PermissionAllInfra),
+			},
+		},
+		"engine": {
+			Secret: r.options.EngineAPIToken,
+			Permissions: []string{
+				string(access.PermissionUserRead),
+				string(access.PermissionGroupRead),
+				string(access.PermissionGrantRead),
+				string(access.PermissionDestinationRead),
+				string(access.PermissionDestinationCreate),
+				string(access.PermissionDestinationUpdate),
+			},
+		},
+	}
+
+	for k, v := range keys {
+		raw, err := r.GetSecret(v.Secret)
+		if err != nil && !errors.Is(err, secrets.ErrNotFound) {
+			return err
+		}
+
+		// if a valid token is being passed in, verify it's correct and skip creating
+		if raw != "" {
+			at, err := data.LookupAPIToken(r.db, raw)
+			if err != nil {
+				return fmt.Errorf("import api tokens: %w", err)
+			}
+
+			if at.Name == k && at.Permissions == strings.Join(v.Permissions, " ") {
+				// if the api key exists, then we already have this token
+				continue
+			}
+		}
+
+		// if token isn't valid or does not match name & permissions
+		// delete any existing tokens, create a new one, and save it back to the secret
+		err = data.DeleteAPITokens(r.db, data.ByName(k))
+		if err != nil {
+			return err
+		}
+
+		token := &models.APIToken{
+			Name:        k,
+			Permissions: strings.Join(v.Permissions, " "),
+			ExpiresAt:   time.Now().Add(time.Hour * 876000),
+		}
+		body, err := data.CreateAPIToken(r.db, token)
+		if err != nil {
+			return err
+		}
+
+		err = r.SetSecret(v.Secret, body)
 	}
 
 	return nil

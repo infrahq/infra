@@ -18,6 +18,7 @@ type ClientConfig struct {
 
 // current: v0.3
 type ClientHostConfig struct {
+	ID            uid.ID `json:"id"`
 	Name          string `json:"name"`
 	Host          string `json:"host"`
 	Token         string `json:"token"`

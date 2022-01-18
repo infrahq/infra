@@ -13,9 +13,9 @@ func ByID(id uid.ID) SelectorFunc {
 	}
 }
 
-func ByAPITokenID(id uid.ID) SelectorFunc {
+func ByIDs(ids []uid.ID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("api_token_id = ?", id)
+		return db.Where("id in (?)", ids)
 	}
 }
 
@@ -35,19 +35,13 @@ func ByName(name string) SelectorFunc {
 	}
 }
 
-func ByNodeID(nodeID string) SelectorFunc {
+func ByUniqueID(nodeID string) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		if len(nodeID) > 0 {
-			return db.Where("node_id = ?", nodeID)
+			return db.Where("unique_id = ?", nodeID)
 		}
 
 		return db
-	}
-}
-
-func ByNameInList(names []string) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("name in (?)", names)
 	}
 }
 
@@ -61,9 +55,13 @@ func ByEmail(email string) SelectorFunc {
 	}
 }
 
-func ByIDs(ids []uid.ID) SelectorFunc {
+func ByProviderID(id uid.ID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("id in (?)", ids)
+		if id == 0 {
+			return db
+		}
+
+		return db.Where("provider_id = ?", id)
 	}
 }
 
@@ -73,18 +71,52 @@ func ByKey(key string) SelectorFunc {
 	}
 }
 
-func ByDestinationID(id uid.ID) SelectorFunc {
+func ByURL(url string) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
-		if id == 0 {
+		if len(url) == 0 {
 			return db
 		}
 
-		return db.Where("destination_id = ?", id)
+		return db.Where("url = ?", url)
+	}
+}
+
+func ByIdentity(identity string) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		if identity == "" {
+			return db
+		}
+
+		return db.Where("identity = ?", identity)
+	}
+}
+
+func ByIdentityUserID(userID uid.ID) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		if userID == 0 {
+			return db
+		}
+
+		return db.Where("identity = ?", "u:"+userID.String())
+	}
+}
+
+func ByIdentityGroupID(groupID uid.ID) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		if groupID == 0 {
+			return db
+		}
+
+		return db.Where("identity = ?", "g:"+groupID.String())
 	}
 }
 
 func ByUserID(userID uid.ID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
+		if userID == 0 {
+			return db
+		}
+
 		return db.Where("user_id = ?", userID)
 	}
 }

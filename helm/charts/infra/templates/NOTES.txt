@@ -26,9 +26,4 @@
 
     $ infra login $INFRA_SERVER
 
-  Next steps:
-
-    * Connect additional identity providers: https://github.com/infrahq/infra/blob/main/docs/providers/
-    * Connect additional infrastructure destinations: https://github.com/infrahq/infra/blob/main/docs/destinations/
-
 *************************************************

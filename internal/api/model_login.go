@@ -1,18 +1,14 @@
 package api
 
-// LoginRequest struct for LoginRequest
+import "github.com/infrahq/infra/uid"
+
 type LoginRequest struct {
-	Okta *LoginRequestOkta `json:"okta,omitempty"`
+	ProviderID uid.ID `json:"providerID" validate:"required"`
+	Code       string `json:"code" validate:"required"`
 }
 
-// LoginResponse struct for LoginResponse
 type LoginResponse struct {
-	Token string `json:"token"`
+	ID    uid.ID `json:"id"`
 	Name  string `json:"name"`
-}
-
-// LoginRequestOkta struct for LoginRequestOkta
-type LoginRequestOkta struct {
-	Domain string `json:"domain" validate:"fqdn,required"`
-	Code   string `json:"code" validate:"required"`
+	Token string `json:"token"`
 }

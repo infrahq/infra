@@ -1,18 +1,8 @@
 logLevel: debug
-config:
-  providers:
-    - kind: okta
-      domain: $OKTA_DOMAIN
-      clientID: $OKTA_CLIENT_ID
-      clientSecret: $OKTA_CLIENT_SECRET
-  groups:
-    - name: Everyone
-      provider: okta
-      grants:
-        - kind: cluster-role
-          name: cluster-admin
-          destinations:
-            - kind: kubernetes
+
+image:
+  tag: $IMAGE_TAG
+  pullPolicy: Never
 
 image:
   tag: $IMAGE_TAG
@@ -26,6 +16,7 @@ engine:
   image:
     tag: $IMAGE_TAG
     pullPolicy: Never
+
   service:
     ports:
       - name: https

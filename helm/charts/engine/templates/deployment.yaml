@@ -38,16 +38,13 @@ spec:
             - name: {{ .name }}
               containerPort: {{ .targetPort }}
 {{- end }}
-          env:
-            - name: INFRA_V
-              value: {{ .Values.v | quote }}
           volumeMounts:
             - name: config
               mountPath: /var/run/infra/config
               readOnly: true
             - name: data
               mountPath: /var/run/infra/data
-            - name: engine-secret
+            - name: engine
               mountPath: /var/run/secrets/infrahq.com/engine
               readOnly: true
           readinessProbe:
@@ -72,6 +69,6 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: {{ include "engine.fullname" . }}
-        - name: engine-secret
+        - name: engine
           secret:
             secretName: infra-engine

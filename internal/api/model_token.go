@@ -1,12 +1,16 @@
 package api
 
-// Token struct for Token
-type Token struct {
-	Token   string `json:"token"`
-	Expires int64  `json:"expires"`
+import (
+	"time"
+
+	"github.com/infrahq/infra/uid"
+)
+
+type CreateTokenRequest struct {
+	UserID uid.ID `json:"userID" validate:"required"`
 }
 
-// TokenRequest struct for TokenRequest
-type TokenRequest struct {
-	Destination string `json:"destination" validate:"required"`
+type CreateTokenResponse struct {
+	Expires time.Time `json:"expires"`
+	Token   string    `json:"token"`
 }

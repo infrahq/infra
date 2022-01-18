@@ -58,7 +58,7 @@ func NewLogger(level zapcore.LevelEnabler) (*zap.Logger, error) {
 }
 
 func ZapLogFormatter(_ io.Writer, params handlers.LogFormatterParams) {
-	L.Debug("handled request",
+	L.Info("handled request",
 		zap.String("method", params.Request.Method),
 		zap.String("path", params.URL.Path),
 		zap.Int("status", params.StatusCode),

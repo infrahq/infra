@@ -2,25 +2,22 @@ package api
 
 import "github.com/infrahq/infra/uid"
 
-// User struct for User
 type User struct {
-	ID    uid.ID `json:"id"`
-	Email string `json:"email" validate:"email,required"`
-	// created time in seconds since 1970-01-01
-	Created int64 `json:"created"`
-	// updated time in seconds since 1970-01-01
-	Updated int64 `json:"updated"`
-	// timestamp of this user's last interaction with Infra in seconds since 1970-01-01
-	LastSeenAt int64      `json:"lastSeenAt"`
-	Groups     []Group    `json:"groups,omitempty"`
-	Grants     []Grant    `json:"grants,omitempty"`
-	Providers  []Provider `json:"providers,omitempty"`
+	ID          uid.ID   `json:"id"`
+	Email       string   `json:"email" validate:"email,required"`
+	Created     int64    `json:"created"`
+	Updated     int64    `json:"updated"`
+	LastSeenAt  int64    `json:"lastSeenAt"`
+	ProviderID  uid.ID   `json:"providerID"`
+	Permissions []string `json:"permissions"`
 }
 
 type ListUsersRequest struct {
-	Email string `form:"email"`
+	Email      string `form:"email"`
+	ProviderID uid.ID `form:"provider_id"`
 }
 
-type Resource struct {
-	ID uid.ID `uri:"id" validate:"required"`
+type CreateUserRequest struct {
+	Email      string `json:"email" validate:"email,required"`
+	ProviderID uid.ID `json:"providerID" validate:"required"`
 }
