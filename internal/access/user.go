@@ -3,9 +3,9 @@ package access
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/gin-gonic/gin"
-
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/registry/authn"
 	"github.com/infrahq/infra/internal/registry/data"
@@ -21,8 +21,6 @@ const (
 	PermissionUserDelete Permission = "infra.user.delete"
 )
 
-var RoleAdmin = []Permission{PermissionAllInfra}
-
 func CurrentUser(c *gin.Context) *models.User {
 	userObj, exists := c.Get("user")
 	if !exists {
@@ -37,26 +35,6 @@ func CurrentUser(c *gin.Context) *models.User {
 	return user
 }
 
-// nolint until this is used
-// nolint
-func currentUserID(c *gin.Context) (id uid.ID, found bool) {
-	userIDObj, exists := c.Get("user_id")
-	if !exists {
-		return 0, false
-	}
-
-	userID, ok := userIDObj.(uid.ID)
-	if !ok {
-		return 0, false
-	}
-
-	if userID == 0 {
-		return 0, false
-	}
-
-	return userID, true
-}
-
 func GetUser(c *gin.Context, id uid.ID) (*models.User, error) {
 	db, err := requireAuthorizationWithCheck(c, PermissionUserRead, func(currentUser *models.User) bool {
 		// current user is allowed to fetch their own record,
@@ -67,10 +45,34 @@ func GetUser(c *gin.Context, id uid.ID) (*models.User, error) {
 		return nil, err
 	}
 
-	return data.GetUser(data.UserAssociations(db), data.ByID(id))
+	return data.GetUser(db, data.ByID(id))
 }
 
-func ListUsers(c *gin.Context, email string) ([]models.User, error) {
+func CreateUser(c *gin.Context, user *models.User) error {
+	db, err := requireAuthorization(c, PermissionUserCreate)
+	if err != nil {
+		return err
+	}
+
+	if user.Permissions == "" {
+		user.Permissions = DefaultUserPermissions
+	}
+
+	// do not let a caller create a token with more permissions than they have
+	permissions, ok := c.MustGet("permissions").(string)
+	if !ok {
+		// there should have been permissions set by this point
+		return internal.ErrForbidden
+	}
+
+	if user.Permissions != "" && !AllRequired(strings.Split(permissions, " "), strings.Split(user.Permissions, " ")) {
+		return fmt.Errorf("cannot create a user with permission not granted to the user")
+	}
+
+	return data.CreateUser(db, user)
+}
+
+func ListUsers(c *gin.Context, email string, providerID uid.ID) ([]models.User, error) {
 	db, err := requireAuthorizationWithCheck(c, PermissionUserRead, func(currentUser *models.User) bool {
 		return currentUser.Email == email
 	})
@@ -78,7 +80,7 @@ func ListUsers(c *gin.Context, email string) ([]models.User, error) {
 		return nil, err
 	}
 
-	return data.ListUsers(data.UserAssociations(db), data.ByEmail(email))
+	return data.ListUsers(db, data.ByEmail(email), data.ByProviderID(providerID))
 }
 
 func UpdateUserInfo(c *gin.Context, info *authn.UserInfo, user *models.User, provider *models.Provider) error {
@@ -98,6 +100,7 @@ func UpdateUserInfo(c *gin.Context, info *authn.UserInfo, user *models.User, pro
 			}
 
 			group = &models.Group{Name: name}
+
 			if err = data.CreateGroup(db, group); err != nil {
 				return fmt.Errorf("create group: %w", err)
 			}

@@ -1,72 +1,31 @@
 package api
 
-import (
-	"encoding/json"
-	"fmt"
+import "github.com/infrahq/infra/uid"
 
-	"github.com/infrahq/infra/uid"
-)
-
-// Provider struct for Provider
 type Provider struct {
-	ID uid.ID `json:"id"`
-	// created time in seconds since 1970-01-01
-	Created int64 `json:"created"`
-	// updated time in seconds since 1970-01-01
-	Updated  int64        `json:"updated"`
-	Domain   string       `json:"domain" validate:"fqdn,required"`
-	ClientID string       `json:"clientID" validate:"required"`
-	Kind     ProviderKind `json:"kind"`
+	ID       uid.ID `json:"id"`
+	Name     string `json:"name"`
+	Created  int64  `json:"created"`
+	Updated  int64  `json:"updated"`
+	URL      string `json:"url" validate:"fqdn,required"`
+	ClientID string `json:"clientID" validate:"required"`
 }
 
 type CreateProviderRequest struct {
-	Kind         ProviderKind `json:"kind" validate:"required"`
-	Domain       string       `json:"domain" validate:"fqdn,required"`
-	ClientID     string       `json:"clientID"`
-	ClientSecret string       `json:"clientSecret"`
+	Name         string `json:"name" validate:"required"`
+	URL          string `json:"url" validate:"required"`
+	ClientID     string `json:"clientID"`
+	ClientSecret string `json:"clientSecret"`
 }
 
 type UpdateProviderRequest struct {
-	ID           uid.ID       `uri:"id" json:"-" validate:"required"`
-	Kind         ProviderKind `json:"kind"`
-	Domain       string       `json:"domain" validate:"fqdn,required"`
-	ClientID     string       `json:"clientID"`
-	ClientSecret string       `json:"clientSecret"`
+	ID           uid.ID `uri:"id" json:"-" validate:"required"`
+	Name         string `json:"name"`
+	URL          string `json:"url"`
+	ClientID     string `json:"clientID"`
+	ClientSecret string `json:"clientSecret"`
 }
 
 type ListProvidersRequest struct {
-	ProviderKind ProviderKind `form:"kind"`
-	Domain       string       `form:"domain"`
-}
-
-// ProviderKind the model 'ProviderKind'
-type ProviderKind string
-
-// List of ProviderKind
-const (
-	ProviderKindOkta ProviderKind = "okta"
-)
-
-var ValidProviderKinds = []ProviderKind{
-	ProviderKindOkta,
-}
-
-func (v *ProviderKind) UnmarshalJSON(src []byte) error {
-	var value string
-
-	err := json.Unmarshal(src, &value)
-	if err != nil {
-		return err
-	}
-
-	enumTypeValue := ProviderKind(value)
-
-	for _, existing := range ValidProviderKinds {
-		if existing == enumTypeValue {
-			*v = enumTypeValue
-			return nil
-		}
-	}
-
-	return fmt.Errorf("%+v is not a valid ProviderKind", value)
+	Name string `form:"name"`
 }

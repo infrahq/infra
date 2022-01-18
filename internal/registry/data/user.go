@@ -1,12 +1,10 @@
 package data
 
 import (
-	"errors"
 	"fmt"
 
 	"gorm.io/gorm"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/registry/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -19,43 +17,8 @@ func BindUserGroups(db *gorm.DB, user *models.User, groups ...models.Group) erro
 	return nil
 }
 
-// func BindUserGrants(db *gorm.DB, user *models.User, grantIDs ...uid.ID) error {
-// 	grants, err := ListGrants(db, ByIDs(grantIDs))
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	if err := db.Model(user).Association("Grants").Replace(grants); err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }
-
 func CreateUser(db *gorm.DB, user *models.User) error {
 	return add(db, user)
-}
-
-// CreateOrUpdateUser is deprecated
-func CreateOrUpdateUser(db *gorm.DB, user *models.User, selectors ...SelectorFunc) (*models.User, error) {
-	existing, err := GetUser(db, ByEmail(user.Email))
-	if err != nil {
-		if !errors.Is(err, internal.ErrNotFound) {
-			return nil, err
-		}
-
-		if err := CreateUser(db, user); err != nil {
-			return nil, err
-		}
-
-		return user, nil
-	}
-
-	if err := UpdateUser(db, user, ByID(existing.ID)); err != nil {
-		return nil, err
-	}
-
-	return GetUser(db, ByID(existing.ID))
 }
 
 func GetUser(db *gorm.DB, selectors ...SelectorFunc) (*models.User, error) {
@@ -72,53 +35,21 @@ func DeleteUsers(db *gorm.DB, selectors ...SelectorFunc) error {
 		return err
 	}
 
-	if len(toDelete) > 0 {
-		ids := make([]uid.ID, 0)
-		for _, g := range toDelete {
-			ids = append(ids, g.ID)
-		}
+	ids := make([]uid.ID, 0)
+	for _, u := range toDelete {
+		ids = append(ids, u.ID)
 
-		return removeAll[models.User](db, ByIDs(ids))
+		err := DeleteGrants(db, ByIdentityUserID(u.ID))
+		if err != nil {
+			return err
+		}
 	}
 
-	return nil
+	return deleteAll[models.User](db, ByIDs(ids))
 }
 
 func SaveUser(db *gorm.DB, user *models.User) error {
 	return save(db, user)
-}
-
-// UpdateUser is deprecated, use SaveUser instead
-func UpdateUser(db *gorm.DB, user *models.User, selector SelectorFunc) error {
-	existing, err := GetUser(db, selector)
-	if err != nil {
-		return fmt.Errorf("get existing: %w", err)
-	}
-
-	if err := update(db, existing.ID, user); err != nil {
-		return fmt.Errorf("save: %w", err)
-	}
-
-	if err := db.Model(existing).Association("Grants").Replace(&user.Grants); err != nil {
-		return fmt.Errorf("grants: %w", err)
-	}
-
-	if err := db.Model(existing).Association("Providers").Replace(&user.Providers); err != nil {
-		return fmt.Errorf("providers: %w", err)
-	}
-
-	if err := db.Model(existing).Association("Groups").Replace(&user.Groups); err != nil {
-		return fmt.Errorf("groups: %w", err)
-	}
-
-	return nil
-}
-
-func UserAssociations(db *gorm.DB) *gorm.DB {
-	db = db.Preload("Grants.Kubernetes").Preload("Grants.Destination.Kubernetes")
-	db = db.Preload("Groups.Grants.Kubernetes").Preload("Groups.Grants.Destination.Kubernetes")
-
-	return db
 }
 
 func ByEmailInList(emails []string) SelectorFunc {

@@ -3,7 +3,6 @@ package cmd
 import (
 	"errors"
 
-	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/logging"
 )
 
@@ -31,16 +30,8 @@ func logout() error {
 			continue
 		}
 
-		err = client.Logout()
-		if err != nil {
-			logging.S.Debug(err.Error())
-		}
+		client.Logout()
 	}
 
-	// clear kubeconfig
-	if err := updateKubeconfig(api.User{}); err != nil {
-		return err
-	}
-
-	return nil
+	return clearKubeconfig()
 }

@@ -1,11 +1,9 @@
 logLevel: info
 
 config:
-  apiToken: ""
   server: ""
   name: ""
-  skipTLSVerify: true
-  labels: []
+  apiToken: ""
   tlsCache: /var/run/infra/data/cache
 
 storage: 1Gi

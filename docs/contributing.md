@@ -36,9 +36,6 @@ The local setup can be customized with environment varibles. Some are required f
 
 | Name             | Description                                                   | Default               |
 |------------------|---------------------------------------------------------------|-----------------------|
-| `OKTA_DOMAIN`    | Okta domain URL                                               | (required)            |
-| `OKTA_CLIENT_ID` | Okta client ID                                                | (required)            |
-| `OKTA_SECRET`    | Kubernetes secret containing Okta client secret and API token | (required)            |
 | `NAMESPACE`      | Kubernetes namespace to install `infra`                       | `""`                  |
 | `IMAGE_TAG`      | Docker tag                                                    | `0.0.0-development`   |
 | `VALUES`         | Values file to pass to Helm                                   | `docker-desktop.yaml` |

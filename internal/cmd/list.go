@@ -1,103 +1,105 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
-	"os"
-	"sort"
-
-	"github.com/lensesio/tableprinter"
+	"strings"
 
 	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/uid"
 )
 
 type listRow struct {
-	CurrentlySelected        string `header:" "` // * if selected
-	Name                     string `header:"NAME"`
-	Kind                     string `header:"KIND"`
-	ID                       string `header:"ID"`
-	Labels                   string `header:"LABELS"`
-	Endpoint                 string // don't display in table
-	CertificateAuthorityData []byte // don't display in table
+	Name   string `header:"DESTINATION"`
+	Access string `header:"ACCESS"`
 }
 
 func list() error {
-	config, err := currentHostConfig()
-	if err != nil {
-		return err
-	}
-
 	client, err := defaultAPIClient()
 	if err != nil {
 		return err
 	}
 
-	users, err := client.ListUsers(config.Name)
+	config, err := currentHostConfig()
 	if err != nil {
-		if errors.Is(err, api.ErrForbidden) {
-			fmt.Fprintln(os.Stderr, "Session has expired.")
-
-			if err = login(&LoginOptions{Current: true}); err != nil {
-				return err
-			}
-
-			return list()
-		}
-
 		return err
 	}
 
+	if config.ID == 0 {
+		return fmt.Errorf("no active user")
+	}
+
+	grants, err := client.ListUserGrants(config.ID)
+	if err != nil {
+		return err
+	}
+
+	groups, err := client.ListUserGroups(config.ID)
+	if err != nil {
+		return err
+	}
+
+	for _, g := range groups {
+		groupGrants, err := client.ListGroupGrants(g.ID)
+		if err != nil {
+			return err
+		}
+
+		grants = append(grants, groupGrants...)
+	}
+
+	var rows []listRow
+
+	for _, g := range grants {
+		if g.Resource == "infra" {
+			continue
+		}
+
+		rows = append(rows, listRow{
+			Name:   g.Resource,
+			Access: g.Privilege,
+		})
+	}
+
+	printTable(rows)
+
+	return updateKubeconfig()
+}
+
+func info(client *api.Client, g api.Grant) (provider string, name string, err error) {
+	var id uid.ID
+
 	switch {
-	case len(users) < 1:
-		//lint:ignore ST1005, user facing error
-		return fmt.Errorf("User %q not found", config.Name)
-	case len(users) > 1:
-		//lint:ignore ST1005, user facing error
-		return fmt.Errorf("Found multiple users %q in Infra, the server configuration is invalid", config.Name)
+	case strings.HasPrefix(g.Identity, "u:"):
+		if err := id.UnmarshalText([]byte(strings.TrimPrefix(g.Identity, "u:"))); err != nil {
+			return "", "", err
+		}
+
+		user, err := client.GetUser(id)
+		if err != nil {
+			return "", "", err
+		}
+
+		provider, err := client.GetProvider(user.ProviderID)
+		if err != nil {
+			return "", "", err
+		}
+
+		return provider.Name, user.Email, nil
+	default:
+		if err := id.UnmarshalText([]byte(strings.TrimPrefix(g.Identity, "g:"))); err != nil {
+			return "", "", err
+		}
+
+		group, err := client.GetGroup(id)
+		if err != nil {
+			return "", "", err
+		}
+
+		provider, err := client.GetProvider(group.ProviderID)
+		if err != nil {
+			return "", "", err
+		}
+
+		return provider.Name, group.Name, nil
 	}
-
-	rows := make(map[string]listRow)
-	// todo: iterate grants and groups and call newRow() to display them?
-
-	rowsList := make([]listRow, 0)
-	for _, r := range rows {
-		rowsList = append(rowsList, r)
-	}
-
-	sort.SliceStable(rowsList, func(i, j int) bool {
-		// Sort by combined name, descending
-		return rowsList[i].Name+rowsList[i].ID < rowsList[j].Name+rowsList[j].ID
-	})
-
-	printTable(rowsList)
-
-	// if err := updateKubeconfig(user); err != nil {
-	// 	return err
-	// }
-
-	return nil
-}
-
-func newRow(grant api.Grant, currentContext string) listRow {
-	row := listRow{}
-
-	return row
-}
-
-func printTable(data interface{}) {
-	table := tableprinter.New(os.Stdout)
-
-	table.AutoFormatHeaders = true
-	table.HeaderAlignment = tableprinter.AlignLeft
-	table.AutoWrapText = false
-	table.DefaultAlignment = tableprinter.AlignLeft
-	table.CenterSeparator = ""
-	table.ColumnSeparator = ""
-	table.RowSeparator = ""
-	table.HeaderLine = false
-	table.BorderBottom = false
-	table.BorderLeft = false
-	table.BorderRight = false
-	table.BorderTop = false
-	table.Print(data)
 }

@@ -2,53 +2,25 @@ package models
 
 import (
 	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/uid"
 )
 
 type Group struct {
 	Model
 
-	Name string `gorm:"uniqueIndex:,where:deleted_at is NULL"`
+	Name string `gorm:"uniqueIndex:idx_groups_name_provider_id,where:deleted_at is NULL"`
 
-	Grants    []Grant    `gorm:"many2many:groups_grants"`
-	Providers []Provider `gorm:"many2many:groups_providers"`
-	Users     []User     `gorm:"many2many:users_groups"`
+	ProviderID uid.ID `gorm:"uniqueIndex:idx_groups_name_provider_id,where:deleted_at is NULL"`
+
+	Users []User `gorm:"many2many:users_groups"`
 }
 
-func (g *Group) ToAPI() api.Group {
-	result := api.Group{
-		ID:      g.ID,
-		Created: g.CreatedAt.Unix(),
-		Updated: g.UpdatedAt.Unix(),
-
-		Name: g.Name,
+func (g *Group) ToAPI() *api.Group {
+	return &api.Group{
+		ID:         g.ID,
+		Created:    g.CreatedAt.Unix(),
+		Updated:    g.UpdatedAt.Unix(),
+		Name:       g.Name,
+		ProviderID: g.ProviderID,
 	}
-
-	users := make([]api.User, 0)
-	for _, u := range g.Users {
-		users = append(users, u.ToAPI())
-	}
-
-	if len(users) > 0 {
-		result.Users = users
-	}
-
-	grants := make([]api.Grant, 0)
-	for _, r := range g.Grants {
-		grants = append(grants, r.ToAPI())
-	}
-
-	if len(grants) > 0 {
-		result.Grants = grants
-	}
-
-	providers := make([]api.Provider, 0)
-	for _, r := range g.Providers {
-		providers = append(providers, r.ToAPI())
-	}
-
-	if len(providers) > 0 {
-		result.Providers = providers
-	}
-
-	return result
 }

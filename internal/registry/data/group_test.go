@@ -7,16 +7,17 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/registry/models"
-)
-
-var (
-	everyone  = models.Group{Name: "Everyone"}
-	engineers = models.Group{Name: "Engineering"}
-	product   = models.Group{Name: "Product"}
+	"github.com/infrahq/infra/uid"
 )
 
 func TestGroup(t *testing.T) {
 	db := setup(t)
+
+	var providerID = uid.New()
+
+	var (
+		everyone = models.Group{Name: "Everyone", ProviderID: providerID}
+	)
 
 	err := db.Create(&everyone).Error
 	require.NoError(t, err)
@@ -30,6 +31,12 @@ func TestGroup(t *testing.T) {
 
 func TestCreateGroup(t *testing.T) {
 	db := setup(t)
+
+	var providerID = uid.New()
+
+	var (
+		everyone = models.Group{Name: "Everyone", ProviderID: providerID}
+	)
 
 	err := CreateGroup(db, &everyone)
 	group := everyone
@@ -46,17 +53,32 @@ func createGroups(t *testing.T, db *gorm.DB, groups ...models.Group) {
 }
 
 func TestCreateGroupDuplicate(t *testing.T) {
+	var providerID = uid.New()
+
+	var (
+		everyone  = models.Group{Name: "Everyone", ProviderID: providerID}
+		engineers = models.Group{Name: "Engineering", ProviderID: providerID}
+		product   = models.Group{Name: "Product", ProviderID: providerID}
+	)
+
 	db := setup(t)
 	createGroups(t, db, everyone, engineers, product)
 
-	e := everyone
-	e.ID = 0
-	err := CreateGroup(db, &e)
+	err := CreateGroup(db, &models.Group{Name: "Everyone", ProviderID: providerID})
 	require.Contains(t, err.Error(), "duplicate record")
 }
 
 func TestGetGroup(t *testing.T) {
 	db := setup(t)
+
+	var providerID = uid.New()
+
+	var (
+		everyone  = models.Group{Name: "Everyone", ProviderID: providerID}
+		engineers = models.Group{Name: "Engineering", ProviderID: providerID}
+		product   = models.Group{Name: "Product", ProviderID: providerID}
+	)
+
 	createGroups(t, db, everyone, engineers, product)
 
 	group, err := GetGroup(db, ByName(everyone.Name))
@@ -66,6 +88,15 @@ func TestGetGroup(t *testing.T) {
 
 func TestListGroups(t *testing.T) {
 	db := setup(t)
+
+	var providerID = uid.New()
+
+	var (
+		everyone  = models.Group{Name: "Everyone", ProviderID: providerID}
+		engineers = models.Group{Name: "Engineering", ProviderID: providerID}
+		product   = models.Group{Name: "Product", ProviderID: providerID}
+	)
+
 	createGroups(t, db, everyone, engineers, product)
 
 	groups, err := ListGroups(db)
@@ -79,6 +110,16 @@ func TestListGroups(t *testing.T) {
 
 func TestGroupBindUsers(t *testing.T) {
 	db := setup(t)
+
+	var providerID = uid.New()
+
+	var (
+		everyone  = models.Group{Name: "Everyone", ProviderID: providerID}
+		engineers = models.Group{Name: "Engineering", ProviderID: providerID}
+		product   = models.Group{Name: "Product", ProviderID: providerID}
+		bond      = models.User{Email: "jbond@infrahq.com", ProviderID: providerID}
+	)
+
 	createGroups(t, db, everyone, engineers, product)
 
 	err := CreateUser(db, &bond)
@@ -106,6 +147,17 @@ func TestGroupBindUsers(t *testing.T) {
 
 func TestGroupBindMoreUsers(t *testing.T) {
 	db := setup(t)
+
+	var providerID = uid.New()
+
+	var (
+		everyone  = models.Group{Name: "Everyone", ProviderID: providerID}
+		engineers = models.Group{Name: "Engineering", ProviderID: providerID}
+		product   = models.Group{Name: "Product", ProviderID: providerID}
+		bond      = models.User{Email: "jbond@infrahq.com", ProviderID: providerID}
+		bourne    = models.User{Email: "jbourne@infrahq.com", ProviderID: providerID}
+	)
+
 	createGroups(t, db, everyone, engineers, product)
 
 	err := CreateUser(db, &bond)
@@ -135,6 +187,17 @@ func TestGroupBindMoreUsers(t *testing.T) {
 
 func TestGroupBindLessUsers(t *testing.T) {
 	db := setup(t)
+
+	var providerID = uid.New()
+
+	var (
+		everyone  = models.Group{Name: "Everyone", ProviderID: providerID}
+		engineers = models.Group{Name: "Engineering", ProviderID: providerID}
+		product   = models.Group{Name: "Product", ProviderID: providerID}
+		bourne    = models.User{Email: "jbourne@infrahq.com", ProviderID: providerID}
+		bauer     = models.User{Email: "jbauer@infrahq.com", ProviderID: providerID}
+	)
+
 	createGroups(t, db, everyone, engineers, product)
 
 	err := CreateUser(db, &bourne)
@@ -164,6 +227,15 @@ func TestGroupBindLessUsers(t *testing.T) {
 
 func TestDeleteGroup(t *testing.T) {
 	db := setup(t)
+
+	var providerID = uid.New()
+
+	var (
+		everyone  = models.Group{Name: "Everyone", ProviderID: providerID}
+		engineers = models.Group{Name: "Engineering", ProviderID: providerID}
+		product   = models.Group{Name: "Product", ProviderID: providerID}
+	)
+
 	createGroups(t, db, everyone, engineers, product)
 
 	_, err := GetGroup(db, ByName(everyone.Name))
@@ -186,6 +258,15 @@ func TestDeleteGroup(t *testing.T) {
 
 func TestRecreateGroupSameName(t *testing.T) {
 	db := setup(t)
+
+	var providerID = uid.New()
+
+	var (
+		everyone  = models.Group{Name: "Everyone", ProviderID: providerID}
+		engineers = models.Group{Name: "Engineering", ProviderID: providerID}
+		product   = models.Group{Name: "Product", ProviderID: providerID}
+	)
+
 	createGroups(t, db, everyone, engineers, product)
 
 	err := DeleteGroups(db, ByName(everyone.Name))

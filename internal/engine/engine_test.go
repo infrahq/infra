@@ -28,7 +28,7 @@ func TestJWTMiddlewareNoAuthHeader(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	handler := jwtMiddleware(emptyHandler, "k8s", "k8s", func() (*jose.JSONWebKey, error) {
+	handler := jwtMiddleware(emptyHandler, func() (*jose.JSONWebKey, error) {
 		return &jose.JSONWebKey{}, nil
 	})
 
@@ -50,7 +50,7 @@ func TestJWTMiddlewareNoToken(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	handler := jwtMiddleware(emptyHandler, "k8s", "k8s", func() (*jose.JSONWebKey, error) {
+	handler := jwtMiddleware(emptyHandler, func() (*jose.JSONWebKey, error) {
 		return &jose.JSONWebKey{}, nil
 	})
 
@@ -74,7 +74,7 @@ func TestJWTMiddlewareInvalidJWKs(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	handler := jwtMiddleware(emptyHandler, "k8s", "k8s", func() (*jose.JSONWebKey, error) {
+	handler := jwtMiddleware(emptyHandler, func() (*jose.JSONWebKey, error) {
 		return nil, errors.New("could not fetch JWKs")
 	})
 
@@ -123,10 +123,9 @@ func generateJWT(priv *jose.JSONWebKey, expiry time.Time) (string, error) {
 		IssuedAt: jwt.NewNumericDate(time.Now()),
 	}
 	custom := claims.Custom{
-		Email:       "test@test.com",
-		Groups:      []string{"developers"},
-		Nonce:       "randomstring",
-		Destination: "k8s",
+		Email:  "test@test.com",
+		Groups: []string{"developers"},
+		Nonce:  "randomstring",
 	}
 
 	raw, err := jwt.Signed(signer).Claims(cl).Claims(custom).CompactSerialize()
@@ -149,7 +148,7 @@ func TestJWTMiddlewareInvalidJWT(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	handler := jwtMiddleware(emptyHandler, "k8s", "k8s", func() (*jose.JSONWebKey, error) {
+	handler := jwtMiddleware(emptyHandler, func() (*jose.JSONWebKey, error) {
 		return pub, nil
 	})
 
@@ -179,7 +178,7 @@ func TestJWTMiddlewareExpiredJWT(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	handler := jwtMiddleware(emptyHandler, "k8s", "k8s", func() (*jose.JSONWebKey, error) {
+	handler := jwtMiddleware(emptyHandler, func() (*jose.JSONWebKey, error) {
 		return pub, nil
 	})
 
@@ -214,7 +213,7 @@ func TestJWTMiddlewareWrongHeader(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	handler := jwtMiddleware(emptyHandler, "k8s", "k8s", func() (*jose.JSONWebKey, error) {
+	handler := jwtMiddleware(emptyHandler, func() (*jose.JSONWebKey, error) {
 		return pub, nil
 	})
 
@@ -222,36 +221,6 @@ func TestJWTMiddlewareWrongHeader(t *testing.T) {
 	require.NoError(t, err)
 
 	req.Header.Set("Authorization", "Bearer "+expiredJWT)
-
-	handler.ServeHTTP(rr, req)
-
-	res := rr.Result()
-	defer res.Body.Close()
-
-	require.Equal(t, http.StatusUnauthorized, res.StatusCode)
-}
-
-func TestJWTMiddlewareWrongDestination(t *testing.T) {
-	pub, priv, err := generateJWK()
-	require.NoError(t, err)
-
-	validJWT, err := generateJWT(priv, time.Now().Add(3*time.Hour))
-	require.NoError(t, err)
-
-	emptyHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-
-	rr := httptest.NewRecorder()
-
-	handler := jwtMiddleware(emptyHandler, "anotherdestination", "anotherDestination", func() (*jose.JSONWebKey, error) {
-		return pub, nil
-	})
-
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
-	require.NoError(t, err)
-
-	req.Header.Set("Authorization", "Bearer "+validJWT)
 
 	handler.ServeHTTP(rr, req)
 
@@ -278,7 +247,7 @@ func TestJWTMiddlewareValidJWTSetsEmail(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	handler := jwtMiddleware(emptyHandler, "k8s", "k8s", func() (*jose.JSONWebKey, error) {
+	handler := jwtMiddleware(emptyHandler, func() (*jose.JSONWebKey, error) {
 		return pub, nil
 	})
 
@@ -312,7 +281,7 @@ func TestProxyHandler(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	handler := jwtMiddleware(emptyHandler, "k8s", "k8s", func() (*jose.JSONWebKey, error) {
+	handler := jwtMiddleware(emptyHandler, func() (*jose.JSONWebKey, error) {
 		return pub, nil
 	})
 

@@ -1,12 +1,12 @@
 package cmd
 
 import (
+	"context"
 	"crypto/x509"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
-	"sort"
 	"strings"
 	"time"
 
@@ -16,283 +16,297 @@ import (
 	"github.com/goware/urlx"
 	"github.com/muesli/termenv"
 	"golang.org/x/term"
-	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/uid"
 )
 
-type LoginOptions struct {
-	Host    string
-	Current bool
-	Timeout time.Duration
-}
-
-func login(options *LoginOptions) error {
+func relogin() error {
 	// TODO (https://github.com/infrahq/infra/issues/488): support non-interactive login
 	if !term.IsTerminal(int(os.Stdin.Fd())) {
-		return ErrConfigNotFound
+		return errors.New("Non-interactive login is not supported")
 	}
 
-	loadedCfg, err := readConfig()
+	currentConfig, err := currentHostConfig()
+	if err != nil {
+		return err
+	}
+
+	client, err := apiClient(currentConfig.Host, "", currentConfig.SkipTLSVerify)
+	if err != nil {
+		return err
+	}
+
+	if currentConfig.ProviderID == 0 {
+		return errors.New("can not renew login without provider")
+	}
+
+	provider, err := client.GetProvider(currentConfig.ProviderID)
+	if err != nil {
+		return err
+	}
+
+	code, err := oidcflow(provider.URL, provider.ClientID)
+	if err != nil {
+		return err
+	}
+
+	loginReq := &api.LoginRequest{
+		ProviderID: provider.ID,
+		Code:       code,
+	}
+
+	loginRes, err := client.Login(loginReq)
+	if err != nil {
+		return err
+	}
+
+	return finishLogin(currentConfig.Host, loginRes.ID, loginRes.Name, loginRes.Token, currentConfig.SkipTLSVerify, 0)
+}
+
+func login(host string) error {
+	// TODO (https://github.com/infrahq/infra/issues/488): support non-interactive login
+	if !term.IsTerminal(int(os.Stdin.Fd())) {
+		return errors.New("Non-interactive login is not supported")
+	}
+
+	config, err := readConfig()
 	if err != nil && !errors.Is(err, ErrConfigNotFound) {
 		return err
 	}
 
-	if loadedCfg == nil {
-		loadedCfg = NewClientConfig()
+	if config == nil {
+		config = NewClientConfig()
 	}
 
-	var selectedHost *ClientHostConfig
-
-HOST:
-	switch {
-	case options.Host == "":
-		if options.Current {
-			for i := range loadedCfg.Hosts {
-				if loadedCfg.Hosts[i].Current {
-					selectedHost = &loadedCfg.Hosts[i]
-					break HOST
-				}
-			}
+	if host == "" {
+		var hosts []string
+		for _, h := range config.Hosts {
+			hosts = append(hosts, h.Host)
 		}
 
-		if len(loadedCfg.Hosts) > 0 {
-			selectedHost, err = promptSelectHost(loadedCfg.Hosts)
-			if err != nil {
-				return err
-			}
-
-			if selectedHost != nil {
-				break HOST
-			}
-		}
-
-		err := survey.AskOne(&survey.Input{Message: "Host"}, &options.Host, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
+		host, err = promptHost(hosts)
 		if err != nil {
-			if errors.Is(err, terminal.InterruptErr) {
-				return nil
-			}
-
 			return err
 		}
-
-		fallthrough
-	default:
-		for i := range loadedCfg.Hosts {
-			if loadedCfg.Hosts[i].Host == options.Host {
-				selectedHost = &loadedCfg.Hosts[i]
-				break HOST
-			}
-		}
-
-		loadedCfg.Hosts = append(loadedCfg.Hosts, ClientHostConfig{
-			Host:    options.Host,
-			Current: true,
-		})
-		selectedHost = &loadedCfg.Hosts[len(loadedCfg.Hosts)-1]
 	}
 
-	if selectedHost == nil {
+	fmt.Fprintf(os.Stderr, "  Logging in to %s\n", termenv.String(host).Bold().String())
+
+	skipTLSVerify, proceed, err := promptShouldSkipTLSVerify(host)
+	if err != nil {
+		return err
+	}
+
+	if !proceed {
 		//lint:ignore ST1005, user facing error
-		return errors.New("Host endpoint is required, ask your administrator for the endpoint you should use to login")
+		return fmt.Errorf("Could not verify TLS connection")
 	}
 
-	fmt.Fprintf(os.Stderr, "  Logging in to %s\n", termenv.String(selectedHost.Host).Bold().String())
+	client, err := apiClient(host, "", skipTLSVerify)
+	if err != nil {
+		return err
+	}
 
-	skipTLSVerify := selectedHost.SkipTLSVerify
-	if !skipTLSVerify {
-		var proceed bool
+	providers, err := client.ListProviders("")
+	if err != nil {
+		return err
+	}
 
-		skipTLSVerify, proceed, err = promptShouldSkipTLSVerify(selectedHost.Host)
+	var options []string
+	for _, p := range providers {
+		options = append(options, fmt.Sprintf("%s (%s)", p.Name, p.URL))
+	}
+
+	options = append(options, "Login with API Token")
+
+	option, err := promptProvider(options)
+	if err != nil {
+		return err
+	}
+
+	// api token
+	if option == len(options)-1 {
+		var token string
+
+		err = survey.AskOne(&survey.Password{Message: "Your API Token:"}, &token, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
 		if err != nil {
 			return err
 		}
 
-		if !proceed {
-			//lint:ignore ST1005, user facing error
-			return fmt.Errorf("Login cancelled, not proceeding with TLS connection that could not be verified")
-		}
+		return finishLogin(host, 0, "system", token, skipTLSVerify, 0)
 	}
 
-	client, err := apiClient(selectedHost.Host, "", skipTLSVerify)
+	provider := providers[option]
+
+	code, err := oidcflow(provider.URL, provider.ClientID)
 	if err != nil {
 		return err
 	}
 
-	providers, err := client.ListProviders()
+	loginReq := &api.LoginRequest{
+		ProviderID: provider.ID,
+		Code:       code,
+	}
+
+	loginRes, err := client.Login(loginReq)
 	if err != nil {
 		return err
 	}
 
-	var selectedProvider *api.Provider
+	return finishLogin(host, loginRes.ID, loginRes.Name, loginRes.Token, skipTLSVerify, provider.ID)
+}
 
-provider:
-	switch {
-	case len(providers) == 0:
-		//lint:ignore ST1005, user facing error
-		return errors.New("No identity providers have been configured for logging in with this Infra host")
-	case len(providers) == 1:
-		selectedProvider = &providers[0]
-	default:
-		// Use the current provider ID if it's valid to avoid prompting the user
-		if selectedHost.ProviderID != 0 && options.Current {
-			for i, provider := range providers {
-				if provider.ID == selectedHost.ProviderID {
-					selectedProvider = &providers[i]
-					break provider
-				}
-			}
-		}
-
-		selectedProvider, err = promptSelectProvider(providers)
-		if errors.Is(err, terminal.InterruptErr) {
-			return nil
-		}
-
-		if err != nil {
-			return err
-		}
-	}
-
-	var loginReq api.LoginRequest
-
-	switch {
-	case selectedProvider.Kind == "okta":
-		// Start OIDC flow
-		// Get auth code from Okta
-		// Send auth code to Infra to login as a user
-		state, err := generate.CryptoRandom(12)
-		if err != nil {
-			return err
-		}
-
-		authorizeURL := fmt.Sprintf("https://%s/oauth2/v1/authorize?redirect_uri=http://localhost:8301&client_id=%s&response_type=code&scope=openid+email+groups+offline_access&state=%s", selectedProvider.Domain, selectedProvider.ClientID, state)
-
-		fmt.Fprintf(os.Stderr, "  Logging in with %s...\n", termenv.String("Okta").Bold().String())
-
-		ls, err := newLocalServer()
-		if err != nil {
-			return err
-		}
-
-		err = browser.OpenURL(authorizeURL)
-		if err != nil {
-			return err
-		}
-
-		code, recvstate, err := ls.wait(options.Timeout)
-		if err != nil {
-			return err
-		}
-
-		if state != recvstate {
-			//lint:ignore ST1005, user facing error
-			return errors.New("Login aborted, Okta state did not match the expected state")
-		}
-
-		loginReq.Okta = &api.LoginRequestOkta{
-			Domain: selectedProvider.Domain,
-			Code:   code,
-		}
-	default:
-		//lint:ignore ST1005, user facing error, should not happen
-		return fmt.Errorf("Invalid provider selected %q", selectedProvider.Kind)
-	}
-
-	loginRes, err := client.Login(&loginReq)
+func finishLogin(host string, id uid.ID, name string, token string, skipTLSVerify bool, providerID uid.ID) error {
+	client, err := apiClient(host, token, skipTLSVerify)
 	if err != nil {
 		return err
 	}
 
-	for i := range loadedCfg.Hosts {
-		loadedCfg.Hosts[i].Current = false
-	}
-
-	selectedHost.Name = loginRes.Name
-	selectedHost.Token = loginRes.Token
-	selectedHost.SkipTLSVerify = skipTLSVerify
-	selectedHost.ProviderID = selectedProvider.ID
-	selectedHost.Current = true
-
-	err = writeConfig(loadedCfg)
+	_, err = client.ListUsers(api.ListUsersRequest{Email: name})
 	if err != nil {
 		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "  Logged in as %s\n", termenv.String(loginRes.Name).Bold().String())
+	fmt.Fprintf(os.Stderr, "  Logged in as %s\n", termenv.String(name).Bold().String())
 
-	client, err = apiClient(selectedHost.Host, selectedHost.Token, selectedHost.SkipTLSVerify)
+	config, err := readConfig()
+	if err != nil && !errors.Is(err, ErrConfigNotFound) {
+		return err
+	}
+
+	if config == nil {
+		config = NewClientConfig()
+	}
+
+	var hostConfig ClientHostConfig
+
+	hostConfig.ID = id
+	hostConfig.Current = true
+	hostConfig.Host = host
+	hostConfig.Name = name
+	hostConfig.ProviderID = providerID
+	hostConfig.Token = token
+	hostConfig.SkipTLSVerify = skipTLSVerify
+
+	var found bool
+
+	for i, c := range config.Hosts {
+		if c.Host == host {
+			config.Hosts[i] = hostConfig
+			found = true
+		}
+	}
+
+	if !found {
+		config.Hosts = append(config.Hosts, hostConfig)
+	}
+
+	err = writeConfig(config)
 	if err != nil {
 		return err
 	}
 
-	users, err := client.ListUsers(loginRes.Name)
-	if err != nil {
-		return err
-	}
-
-	if len(users) < 1 {
-		//lint:ignore ST1005, user facing error
-		return fmt.Errorf("User %q not found at Infra host, is this account still valid?", loginRes.Name)
-	}
-
-	if len(users) > 1 {
-		//lint:ignore ST1005, user facing error
-		return fmt.Errorf("Found multiple users found for %q, please contact your administrator", loginRes.Name)
-	}
-
-	err = updateKubeconfig(users[0])
-	if err != nil {
-		return err
-	}
-
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	if len(users[0].Grants) > 0 {
-		kubeConfigFilename := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{}).ConfigAccess().GetDefaultFilename()
-		fmt.Fprintf(os.Stderr, "  Updated %s\n", termenv.String(strings.ReplaceAll(kubeConfigFilename, homeDir, "~")).Bold().String())
-	}
-
-	context, err := switchToFirstInfraContext()
-	if err != nil {
-		return err
-	}
-
-	if context != "" {
-		fmt.Fprintf(os.Stderr, "  Current Kubernetes context is now %s\n", termenv.String(context).Bold().String())
+	if id != 0 {
+		return updateKubeconfig()
 	}
 
 	return nil
 }
 
-func promptSelectHost(hosts []ClientHostConfig) (*ClientHostConfig, error) {
-	options := []string{}
-	for _, reg := range hosts {
-		options = append(options, reg.Host)
+func oidcflow(url string, clientId string) (string, error) {
+	state, err := generate.CryptoRandom(12)
+	if err != nil {
+		return "", err
 	}
 
-	options = append(options, "Connect to a different host")
+	u, err := urlx.Parse(url)
+	if err != nil {
+		return "", err
+	}
 
-	option := 0
+	authorizeURL := fmt.Sprintf("https://%s/oauth2/v1/authorize?redirect_uri=http://localhost:8301&client_id=%s&response_type=code&scope=openid+email+groups+offline_access&state=%s", u.Host, clientId, state)
+
+	fmt.Fprintf(os.Stderr, "  Logging in with %s...\n", termenv.String("Okta").Bold().String())
+
+	ls, err := newLocalServer()
+	if err != nil {
+		return "", err
+	}
+
+	err = browser.OpenURL(authorizeURL)
+	if err != nil {
+		return "", err
+	}
+
+	code, recvstate, err := ls.wait(time.Minute * 5)
+	if err != nil {
+		return "", err
+	}
+
+	if state != recvstate {
+		//lint:ignore ST1005, user facing error
+		return "", errors.New("Login aborted, provider state did not match the expected state")
+	}
+
+	return code, nil
+}
+
+func promptProvider(providers []string) (int, error) {
+	var option int
+
 	prompt := &survey.Select{
-		Message: "Select an Infra host:",
-		Options: options,
+		Message: "Select a login method:",
+		Options: providers,
 	}
 
 	err := survey.AskOne(prompt, &option, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
+	if errors.Is(err, terminal.InterruptErr) {
+		return 0, err
+	}
+
+	return option, nil
+}
+
+type hostchoice struct {
+	Host string
+	Auto bool
+}
+
+func promptHost(hosts []string) (string, error) {
+	var option int
+
+	hosts = append(hosts, "Connect to a different host")
+
+	if len(hosts) > 0 {
+		prompt := &survey.Select{
+			Message: "Select an Infra host:",
+			Options: hosts,
+		}
+
+		err := survey.AskOne(prompt, &option, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
+		if err != nil {
+			return "", err
+		}
+	}
+
+	if option != len(hosts)-1 {
+		return hosts[option], nil
+	}
+
+	var host string
+
+	err := survey.AskOne(&survey.Input{Message: "Host:"}, &host, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	if option == len(options)-1 {
-		return nil, nil
+	if host == "" {
+		return "", errors.New("Host is required")
 	}
 
-	return &hosts[option], nil
+	return host, nil
 }
 
 func promptShouldSkipTLSVerify(host string) (shouldSkipTLSVerify bool, proceed bool, err error) {
@@ -304,14 +318,14 @@ func promptShouldSkipTLSVerify(host string) (shouldSkipTLSVerify bool, proceed b
 	url.Scheme = "https"
 	urlString := url.String()
 
-	req, err := http.NewRequest(http.MethodGet, urlString, nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, urlString, nil)
 	if err != nil {
 		return false, false, err
 	}
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		if !errors.Is(err, x509.CertificateInvalidError{}) && !errors.Is(err, x509.SystemRootsError{}) && !strings.Contains(err.Error(), "certificate is not trusted") {
+		if !errors.As(err, &x509.UnknownAuthorityError{}) && !errors.As(err, &x509.HostnameError{}) && !strings.Contains(err.Error(), "certificate is not trusted") {
 			return false, false, err
 		}
 
@@ -338,82 +352,4 @@ func promptShouldSkipTLSVerify(host string) (shouldSkipTLSVerify bool, proceed b
 	defer res.Body.Close()
 
 	return false, true, nil
-}
-
-func promptSelectProvider(providers []api.Provider) (*api.Provider, error) {
-	if providers == nil {
-		return nil, errors.New("providers cannot be nil")
-	}
-
-	sort.Slice(providers, func(i, j int) bool {
-		return providers[i].Created > providers[j].Created
-	})
-
-	options := []string{}
-
-	for _, p := range providers {
-		if p.Kind == "okta" {
-			options = append(options, fmt.Sprintf("Okta [%s]", p.Domain))
-		}
-	}
-
-	var option int
-
-	prompt := &survey.Select{
-		Message: "Select a login method:",
-		Options: options,
-	}
-
-	err := survey.AskOne(prompt, &option, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
-	if errors.Is(err, terminal.InterruptErr) {
-		return nil, err
-	}
-
-	return &providers[option], nil
-}
-
-func clientConfig() clientcmd.ClientConfig {
-	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-	loadingRules.WarnIfAllMissing = false
-
-	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
-}
-
-func switchToFirstInfraContext() (string, error) {
-	defaultConfig := clientConfig()
-
-	kubeConfig, err := defaultConfig.RawConfig()
-	if err != nil {
-		return "", err
-	}
-
-	resultContext := ""
-
-	if kubeConfig.Contexts[kubeConfig.CurrentContext] != nil && strings.HasPrefix(kubeConfig.CurrentContext, "infra:") {
-		// if the current context is an infra-controlled context, stay there
-		resultContext = kubeConfig.CurrentContext
-	} else {
-		for _, c := range kubeConfig.Contexts {
-			if !strings.HasPrefix(c.Cluster, "infra:") {
-				continue
-			}
-
-			// prefer a context with "default" or no namespace
-			if c.Namespace == "" || c.Namespace == "default" {
-				resultContext = c.Cluster
-				break
-			}
-
-			resultContext = c.Cluster
-		}
-	}
-
-	if resultContext != "" {
-		kubeConfig.CurrentContext = resultContext
-		if err = clientcmd.WriteToFile(kubeConfig, defaultConfig.ConfigAccess().GetDefaultFilename()); err != nil {
-			return "", err
-		}
-	}
-
-	return resultContext, nil
 }

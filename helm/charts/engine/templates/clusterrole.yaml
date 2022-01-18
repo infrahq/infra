@@ -14,11 +14,8 @@ rules:
   - apiGroups: [""]
     resources:
       - pods
-    verbs:
-      - list
-  - apiGroups: [""]
-    resources:
       - services
+      - namespaces
     verbs:
       - list
   - apiGroups:

@@ -15,10 +15,12 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/crypto/acme/autocert"
+	"gopkg.in/square/go-jose.v2"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/certs"
+	"github.com/infrahq/infra/internal/config"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
@@ -27,22 +29,24 @@ import (
 )
 
 type Options struct {
-	Config                  `yaml:",inline"`
-	TLSCache                string        `yaml:"tlsCache"`
-	RootAPIToken            string        `yaml:"rootAPIToken"`
-	EngineAPIToken          string        `yaml:"engineAPIToken"`
-	DBFile                  string        `yaml:"dbFile" `
-	DBEncryptionKey         string        `yaml:"dbEncryptionKey"`
-	DBEncryptionKeyProvider string        `yaml:"dbEncryptionKeyProvider"`
-	DBHost                  string        `yaml:"dbHost" `
-	DBPort                  int           `yaml:"dbPort"`
-	DBName                  string        `yaml:"dbName"`
-	DBUser                  string        `yaml:"dbUser"`
-	DBPassword              string        `yaml:"dbPassword"`
-	DBParameters            string        `yaml:"dbParameters"`
-	EnableTelemetry         bool          `yaml:"enableTelemetry"`
-	EnableCrashReporting    bool          `yaml:"enableCrashReporting"`
-	SessionDuration         time.Duration `yaml:"sessionDuration"`
+	Import                  *config.Config   `yaml:"import"`
+	Secrets                 []SecretProvider `yaml:"secrets" validate:"dive"`
+	Keys                    []KeyProvider    `yaml:"keys" validate:"dive"`
+	TLSCache                string           `yaml:"tlsCache"`
+	RootAPIToken            string           `yaml:"rootAPIToken"`
+	EngineAPIToken          string           `yaml:"engineAPIToken"`
+	DBFile                  string           `yaml:"dbFile" `
+	DBEncryptionKey         string           `yaml:"dbEncryptionKey"`
+	DBEncryptionKeyProvider string           `yaml:"dbEncryptionKeyProvider"`
+	DBHost                  string           `yaml:"dbHost" `
+	DBPort                  int              `yaml:"dbPort"`
+	DBName                  string           `yaml:"dbName"`
+	DBUser                  string           `yaml:"dbUser"`
+	DBPassword              string           `yaml:"dbPassword"`
+	DBParameters            string           `yaml:"dbParameters"`
+	EnableTelemetry         bool             `yaml:"enableTelemetry"`
+	EnableCrashReporting    bool             `yaml:"enableCrashReporting"`
+	SessionDuration         time.Duration    `yaml:"sessionDuration"`
 }
 
 type Registry struct {
@@ -52,8 +56,6 @@ type Registry struct {
 	secrets map[string]secrets.SecretStorage
 	keys    map[string]secrets.SymmetricKeyProvider
 }
-
-const DefaultSessionDuration time.Duration = time.Hour * 12
 
 func Run(options Options) (err error) {
 	r := &Registry{
@@ -101,10 +103,6 @@ func Run(options Options) (err error) {
 		scope.SetContext("registryId", settings.ID)
 	})
 
-	if err := r.importConfig(); err != nil {
-		return fmt.Errorf("import config: %w", err)
-	}
-
 	if err := r.configureTelemetry(); err != nil {
 		return fmt.Errorf("configuring telemetry: %w", err)
 	}
@@ -120,6 +118,13 @@ func Run(options Options) (err error) {
 	if err := r.importAPITokens(); err != nil {
 		return fmt.Errorf("importing api tokens: %w", err)
 	}
+
+	// TODO: this should instead happen after runserver and we should wait for the server to close
+	go func() {
+		if err := r.importConfig(); err != nil {
+			logging.S.Error(fmt.Errorf("import config: %w", err))
+		}
+	}()
 
 	if err := r.runServer(); err != nil {
 		return fmt.Errorf("running server: %w", err)
@@ -155,12 +160,34 @@ func serve(server *http.Server) {
 }
 
 func (r *Registry) runServer() error {
-	h := HTTP{db: r.db}
+	gin.SetMode(gin.ReleaseMode)
+
 	router := gin.New()
 
 	router.Use(gin.Recovery())
-	router.GET("/.well-known/jwks.json", h.WellKnownJWKs)
-	router.GET("/healthz", Healthz)
+	router.GET("/.well-known/jwks.json", func(c *gin.Context) {
+		settings, err := data.GetSettings(r.db)
+		if err != nil {
+			sendAPIError(c, fmt.Errorf("could not get JWKs"))
+			return
+		}
+
+		var pubKey jose.JSONWebKey
+		if err := pubKey.UnmarshalJSON(settings.PublicJWK); err != nil {
+			sendAPIError(c, fmt.Errorf("could not get JWKs"))
+			return
+		}
+
+		c.JSON(http.StatusOK, struct {
+			Keys []jose.JSONWebKey `json:"keys"`
+		}{
+			[]jose.JSONWebKey{pubKey},
+		})
+	})
+
+	router.GET("/healthz", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
 
 	NewAPIMux(r, router.Group("/v1"))
 
@@ -186,6 +213,10 @@ func (r *Registry) runServer() error {
 	}
 
 	go serve(plaintextServer)
+
+	if err := os.MkdirAll(r.options.TLSCache, os.ModePerm); err != nil {
+		return fmt.Errorf("create tls cache: %w", err)
+	}
 
 	manager := &autocert.Manager{
 		Prompt: autocert.AcceptTOS,

@@ -1,36 +1,44 @@
 package models
 
 import (
+	"time"
+
 	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/uid"
 )
-
-type ProviderKind string
-
-var ProviderKindOkta ProviderKind = "okta"
 
 type Provider struct {
 	Model
 
-	Kind ProviderKind `gorm:"uniqueIndex:idx_provider_kind_domain,where:deleted_at is NULL"`
-
-	Domain       string `gorm:"uniqueIndex:idx_provider_kind_domain,where:deleted_at is NULL"`
+	Name         string `gorm:"uniqueIndex:,where:deleted_at is NULL" validate:"required"`
+	URL          string `validate:"required"`
 	ClientID     string
 	ClientSecret EncryptedAtRest
 
-	Users  []User  `gorm:"many2many:users_providers"`
-	Groups []Group `gorm:"many2many:groups_providers"`
+	Users  []User
+	Groups []Group
 }
 
-func (p *Provider) ToAPI() api.Provider {
-	result := api.Provider{
+func (p *Provider) ToAPI() *api.Provider {
+	return &api.Provider{
+		Name:    p.Name,
 		ID:      p.ID,
 		Created: p.CreatedAt.Unix(),
 		Updated: p.UpdatedAt.Unix(),
 
-		Kind:     api.ProviderKind(p.Kind),
-		Domain:   p.Domain,
+		URL:      p.URL,
 		ClientID: p.ClientID,
 	}
+}
 
-	return result
+// ProviderToken tracks the access and refresh tokens from an identity provider associated with a user
+type ProviderToken struct {
+	Model
+
+	UserID     uid.ID
+	ProviderID uid.ID
+
+	AccessToken  EncryptedAtRest
+	RefreshToken EncryptedAtRest
+	ExpiresAt    time.Time
 }

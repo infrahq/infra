@@ -2,7 +2,6 @@ package access
 
 import (
 	"github.com/gin-gonic/gin"
-
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
 	"github.com/infrahq/infra/uid"
@@ -25,13 +24,13 @@ func CreateDestination(c *gin.Context, destination *models.Destination) error {
 	return data.CreateDestination(db, destination)
 }
 
-func UpdateDestination(c *gin.Context, destination *models.Destination) error {
+func SaveDestination(c *gin.Context, destination *models.Destination) error {
 	db, err := requireAuthorization(c, PermissionDestinationUpdate)
 	if err != nil {
 		return err
 	}
 
-	return data.UpdateDestination(db, destination)
+	return data.SaveDestination(db, destination)
 }
 
 func GetDestination(c *gin.Context, id uid.ID) (*models.Destination, error) {
@@ -43,18 +42,13 @@ func GetDestination(c *gin.Context, id uid.ID) (*models.Destination, error) {
 	return data.GetDestination(db, data.ByID(id))
 }
 
-func ListDestinations(c *gin.Context, kind, nodeID, name string, labels []string) ([]models.Destination, error) {
+func ListDestinations(c *gin.Context, uniqueID, name string) ([]models.Destination, error) {
 	db, err := requireAuthorization(c, PermissionDestinationRead)
 	if err != nil {
 		return nil, err
 	}
 
-	return data.ListDestinations(db,
-		data.ByLabels("destination_id", labels),
-		data.ByDestinationKind(models.DestinationKind(kind)),
-		data.ByNodeID(nodeID),
-		data.ByName(name),
-	)
+	return data.ListDestinations(db, data.ByUniqueID(uniqueID), data.ByName(name))
 }
 
 func DeleteDestination(c *gin.Context, id uid.ID) error {
@@ -64,15 +58,4 @@ func DeleteDestination(c *gin.Context, id uid.ID) error {
 	}
 
 	return data.DeleteDestinations(db, data.ByID(id))
-}
-
-func ListUserDestinations(c *gin.Context, userID uid.ID) ([]models.Destination, error) {
-	db, err := requireAuthorizationWithCheck(c, PermissionDestinationRead, func(user *models.User) bool {
-		return userID == user.ID
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return data.ListUserDestinations(db, userID)
 }

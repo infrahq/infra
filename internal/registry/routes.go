@@ -26,13 +26,20 @@ func (a *API) registerRoutes(router *gin.RouterGroup) {
 
 	{
 		get(authorized, "/users", a.ListUsers)
+		post(authorized, "/users", a.CreateUser)
 		get(authorized, "/users/:id", a.GetUser)
+		get(authorized, "/users/:id/groups", a.ListUserGroups)
+		get(authorized, "/users/:id/grants", a.ListUserGrants)
 
 		get(authorized, "/groups", a.ListGroups)
+		post(authorized, "/groups", a.CreateGroup)
 		get(authorized, "/groups/:id", a.GetGroup)
+		get(authorized, "/groups/:id/grants", a.ListGroupGrants)
 
-		// get(authorized, "/grants", a.ListGrants)
+		get(authorized, "/grants", a.ListGrants)
 		get(authorized, "/grants/:id", a.GetGrant)
+		post(authorized, "/grants", a.CreateGrant)
+		delete(authorized, "/grants/:id", a.DeleteGrant)
 
 		post(authorized, "/providers", a.CreateProvider)
 		put(authorized, "/providers/:id", a.UpdateProvider)
@@ -44,11 +51,12 @@ func (a *API) registerRoutes(router *gin.RouterGroup) {
 		put(authorized, "/destinations/:id", a.UpdateDestination)
 		delete(authorized, "/destinations/:id", a.DeleteDestination)
 
+		post(authorized, "/tokens", a.CreateToken)
+
 		get(authorized, "/api-tokens", a.ListAPITokens)
 		post(authorized, "/api-tokens", a.CreateAPIToken)
 		delete(authorized, "/api-tokens/:id", a.DeleteAPIToken)
 
-		post(authorized, "/tokens", a.CreateToken)
 		post(authorized, "/logout", a.Logout)
 	}
 

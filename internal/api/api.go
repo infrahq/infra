@@ -1,6 +1,14 @@
 package api
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/infrahq/infra/uid"
+)
+
+type Resource struct {
+	ID uid.ID `uri:"id" validate:"required"`
+}
 
 var (
 	// ErrUnauthorized refers to the http response code unauthorized, which really means not authenticated, despite its name. See https://stackoverflow.com/a/6937030/155585
@@ -14,7 +22,6 @@ var (
 	ErrInternal   = fmt.Errorf("internal error")
 )
 
-// Error struct for Error
 type Error struct {
 	Code    int32  `json:"code"`
 	Message string `json:"message"`

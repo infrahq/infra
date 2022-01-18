@@ -1,12 +1,14 @@
 logLevel: info
 
 config:
+  rootAPIToken: kubernetes:infra/root-api-token
+  engineAPIToken: kubernetes:infra-engine/api-token
   tlsCache: /var/run/infra/data/cache
   dbFile: /var/run/infra/data/infra.db
   dbEncryptionKey: infra/db-key
   keys:
     - kind: native
-      secretStorage: kubernetes
+      secretProvider: kubernetes
 
 storage: 1Gi
 

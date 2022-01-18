@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
-	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -23,7 +22,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	rest "k8s.io/client-go/rest"
 
-	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/secrets"
 )
@@ -33,21 +31,7 @@ const (
 	CaFilePath        = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
 )
 
-// namespaceRole is used as a tuple to pair namespaces and grants as a map key
-type namespaceRole struct {
-	namespace string
-	role      string
-	kind      string
-}
-
-// rbIdentifier is used to compare RoleBindings by their unique fields
-type rbIdentifier struct {
-	namespace string
-	name      string
-}
-
 type Kubernetes struct {
-	mu           sync.Mutex
 	Config       *rest.Config
 	SecretReader secrets.SecretStorage
 }
@@ -77,27 +61,21 @@ func NewKubernetes() (*Kubernetes, error) {
 	return k, err
 }
 
-// updateRoleBindings generates RoleBindings for Grants and ClusterRoles within a specific namespace
-func (k *Kubernetes) updateRoleBindings(subjects map[namespaceRole][]rbacv1.Subject) error {
+// namespaceRole is used as a tuple to pair namespaces and grants as a map key
+type ClusterRoleNamespace struct {
+	ClusterRole string
+	Namespace   string
+}
+
+// UpdateClusterRoleBindings generates ClusterRoleBindings for GrantMappings
+func (k *Kubernetes) UpdateClusterRoleBindings(subjects map[string][]rbacv1.Subject) error {
 	clientset, err := kubernetes.NewForConfig(k.Config)
 	if err != nil {
 		return err
 	}
 
-	// store which roles currently exist locally
-	validNamespaceRole := make(map[namespaceRole]bool)
-	// passing an empty string to roles for the namespace returns all roles
-	roles, err := clientset.RbacV1().Roles("").List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		return err
-	}
-
-	for _, r := range roles.Items {
-		validNamespaceRole[namespaceRole{namespace: r.Namespace, role: r.Name, kind: string(api.GrantKubernetesKindRole)}] = true
-	}
-
 	// store which cluster-roles currently exist locally
-	validClusterRole := make(map[string]bool)
+	validClusterRoles := make(map[string]bool)
 
 	crs, err := clientset.RbacV1().ClusterRoles().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
@@ -105,47 +83,110 @@ func (k *Kubernetes) updateRoleBindings(subjects map[namespaceRole][]rbacv1.Subj
 	}
 
 	for _, cr := range crs.Items {
-		validClusterRole[cr.Name] = true
+		validClusterRoles[cr.Name] = true
+	}
+
+	crbs := []*rbacv1.ClusterRoleBinding{}
+
+	for cr, subjs := range subjects {
+		if !validClusterRoles[cr] {
+			logging.S.Warnf("cluster role binding %s skipped, it does not exist", cr)
+			continue
+		}
+
+		crbs = append(crbs, &rbacv1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: fmt.Sprintf("infra:%s", cr),
+				Labels: map[string]string{
+					"app.kubernetes.io/managed-by": "infra",
+				},
+			},
+			Subjects: subjs,
+			RoleRef: rbacv1.RoleRef{
+				APIGroup: "rbac.authorization.k8s.io",
+				Kind:     "ClusterRole",
+				Name:     cr,
+			},
+		})
+	}
+
+	existingInfraCrbs, err := clientset.RbacV1().ClusterRoleBindings().List(context.Background(), metav1.ListOptions{LabelSelector: "app.kubernetes.io/managed-by=infra"})
+	if err != nil {
+		return err
+	}
+
+	toDelete := make(map[string]bool)
+	for _, existingCrb := range existingInfraCrbs.Items {
+		toDelete[existingCrb.Name] = true
+	}
+
+	// Create or update CRBs for users
+	for _, crb := range crbs {
+		_, err = clientset.RbacV1().ClusterRoleBindings().Update(context.Background(), crb, metav1.UpdateOptions{})
+		if err != nil {
+			if k8sErrors.IsNotFound(err) {
+				_, err = clientset.RbacV1().ClusterRoleBindings().Create(context.Background(), crb, metav1.CreateOptions{})
+				if err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
+		}
+
+		delete(toDelete, crb.Name)
+	}
+
+	for name := range toDelete {
+		err := clientset.RbacV1().ClusterRoleBindings().Delete(context.Background(), name, metav1.DeleteOptions{})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (k *Kubernetes) UpdateRoleBindings(subjects map[ClusterRoleNamespace][]rbacv1.Subject) error {
+	clientset, err := kubernetes.NewForConfig(k.Config)
+	if err != nil {
+		return err
+	}
+
+	// store which cluster-roles currently exist locally
+	validClusterRoles := make(map[string]bool)
+
+	crs, err := clientset.RbacV1().ClusterRoles().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	for _, cr := range crs.Items {
+		validClusterRoles[cr.Name] = true
 	}
 
 	// create the namespaced role bindings for all the users of each of the role assignments
 	rbs := []*rbacv1.RoleBinding{}
 
-	for nsr, subjs := range subjects {
-		var kind string
-		switch api.GrantKubernetesKind(nsr.kind) {
-		case api.GrantKubernetesKindRole:
-			if !validNamespaceRole[nsr] {
-				logging.S.Warnf("role binding skipped, role does not exist with name %s in namespace %s", nsr.role, nsr.namespace)
-				continue
-			}
-
-			kind = "Role"
-		case api.GrantKubernetesKindClusterRole:
-			if !validClusterRole[nsr.role] {
-				logging.S.Warnf("role binding skipped, cluster-role does not exist with name %s", nsr.role)
-				continue
-			}
-
-			kind = "ClusterRole"
-		default:
-			logging.S.Warnf("grantbinding skipped, invalid kind: %s", nsr.kind)
+	for crn, subjs := range subjects {
+		if !validClusterRoles[crn.ClusterRole] {
+			logging.S.Warnf("cluster role binding %s skipped, it does not exist", crn.ClusterRole)
 			continue
 		}
 
 		rbs = append(rbs, &rbacv1.RoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: fmt.Sprintf("infra:%s", nsr.role),
+				Name: fmt.Sprintf("infra:%s", crn.ClusterRole),
 				Labels: map[string]string{
 					"app.kubernetes.io/managed-by": "infra",
 				},
-				Namespace: nsr.namespace,
+				Namespace: crn.Namespace,
 			},
 			Subjects: subjs,
 			RoleRef: rbacv1.RoleRef{
 				APIGroup: "rbac.authorization.k8s.io",
-				Kind:     kind,
-				Name:     nsr.role,
+				Kind:     "ClusterRole",
+				Name:     crn.ClusterRole,
 			},
 		})
 	}
@@ -153,6 +194,11 @@ func (k *Kubernetes) updateRoleBindings(subjects map[namespaceRole][]rbacv1.Subj
 	existingInfraRbs, err := clientset.RbacV1().RoleBindings("").List(context.TODO(), metav1.ListOptions{LabelSelector: "app.kubernetes.io/managed-by=infra"})
 	if err != nil {
 		return err
+	}
+
+	type rbIdentifier struct {
+		namespace string
+		name      string
 	}
 
 	toDelete := make(map[rbIdentifier]rbacv1.RoleBinding)
@@ -201,93 +247,40 @@ func (k *Kubernetes) updateRoleBindings(subjects map[namespaceRole][]rbacv1.Subj
 	return nil
 }
 
-// UpdateClusterRoleBindings generates ClusterRoleBindings for GrantMappings
-func (k *Kubernetes) updateClusterRoleBindings(subjects map[string][]rbacv1.Subject) error {
+func (k *Kubernetes) Namespaces() ([]string, error) {
 	clientset, err := kubernetes.NewForConfig(k.Config)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// store which cluster-roles currently exist locally
-	validClusterRoles := make(map[string]bool)
-
-	crs, err := clientset.RbacV1().ClusterRoles().List(context.TODO(), metav1.ListOptions{})
+	namespaces, err := clientset.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	for _, cr := range crs.Items {
-		validClusterRoles[cr.Name] = true
+	results := make([]string, len(namespaces.Items))
+	for i, n := range namespaces.Items {
+		results[i] = n.Name
 	}
 
-	crbs := []*rbacv1.ClusterRoleBinding{}
-
-	for role, subjs := range subjects {
-		if validClusterRoles[role] {
-			crbs = append(crbs, &rbacv1.ClusterRoleBinding{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: fmt.Sprintf("infra:%s", role),
-					Labels: map[string]string{
-						"app.kubernetes.io/managed-by": "infra",
-					},
-				},
-				Subjects: subjs,
-				RoleRef: rbacv1.RoleRef{
-					APIGroup: "rbac.authorization.k8s.io",
-					Kind:     "ClusterRole",
-					Name:     role,
-				},
-			})
-		}
-	}
-
-	existingInfraCrbs, err := clientset.RbacV1().ClusterRoleBindings().List(context.TODO(), metav1.ListOptions{LabelSelector: "app.kubernetes.io/managed-by=infra"})
-	if err != nil {
-		return err
-	}
-
-	toDelete := make(map[string]bool)
-	for _, existingCrb := range existingInfraCrbs.Items {
-		toDelete[existingCrb.Name] = true
-	}
-
-	// Create or update CRBs for users
-	for _, crb := range crbs {
-		_, err = clientset.RbacV1().ClusterRoleBindings().Update(context.TODO(), crb, metav1.UpdateOptions{})
-		if err != nil {
-			if k8sErrors.IsNotFound(err) {
-				_, err = clientset.RbacV1().ClusterRoleBindings().Create(context.TODO(), crb, metav1.CreateOptions{})
-				if err != nil {
-					return err
-				}
-			} else {
-				return err
-			}
-		}
-
-		delete(toDelete, crb.Name)
-	}
-
-	for name := range toDelete {
-		err := clientset.RbacV1().ClusterRoleBindings().Delete(context.TODO(), name, metav1.DeleteOptions{})
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return results, nil
 }
 
-// UpdateRoles converts infra grants to role-bindings in the current cluster
-func (k *Kubernetes) UpdateRoles(grants []api.Grant) error {
-	k.mu.Lock()
-	defer k.mu.Unlock()
+func parse(destination string) (kind string, cluster string, namespace string) {
+	parts := strings.Split(destination, "/")
+	if len(parts) > 0 {
+		kind = parts[0]
+	}
 
-	logging.L.Debug("syncing local grants from infra configuration")
-	// group together all users with the same role/namespace permissions
-	// TODO: write me
+	if len(parts) > 1 {
+		cluster = parts[1]
+	}
 
-	return nil
+	if len(parts) > 2 {
+		namespace = parts[2]
+	}
+
+	return kind, cluster, namespace
 }
 
 func (k *Kubernetes) ec2ClusterName() (string, error) {

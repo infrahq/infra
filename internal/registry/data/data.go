@@ -3,6 +3,7 @@ package data
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path"
 	"strings"
@@ -17,7 +18,6 @@ import (
 	"gorm.io/gorm/logger"
 
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -25,7 +25,7 @@ import (
 func NewDB(connection gorm.Dialector) (*gorm.DB, error) {
 	db, err := gorm.Open(connection, &gorm.Config{
 		Logger: logger.New(
-			logging.StandardErrorLog(),
+			log.New(os.Stdout, "\r\n", log.LstdFlags),
 			logger.Config{
 				SlowThreshold:             time.Second,
 				LogLevel:                  logger.Warn,
@@ -45,9 +45,6 @@ func NewDB(connection gorm.Dialector) (*gorm.DB, error) {
 		&models.Provider{},
 		&models.ProviderToken{},
 		&models.Destination{},
-		&models.DestinationKubernetes{},
-		&models.Label{},
-		&models.Token{},
 		&models.APIToken{},
 		&models.Settings{},
 		&models.Key{},
@@ -127,28 +124,6 @@ func save[T models.Modelable](db *gorm.DB, model *T) error {
 
 		return err
 	}
-
-	return nil
-}
-
-// update is deprecated. it has to skip validation to work and should not be used.
-func update[T models.Modelable](db *gorm.DB, id uid.ID, model *T) error {
-
-	if err := db.Where("id = ?", id).Updates(model).Error; err != nil {
-		if strings.HasPrefix(err.Error(), "UNIQUE constraint failed:") {
-			return fmt.Errorf("%w: %s", internal.ErrDuplicate, err)
-		}
-
-		var pgerr *pgconn.PgError
-		if errors.As(err, &pgerr) {
-			if pgerr.Code == pgerrcode.UniqueViolation {
-				return fmt.Errorf("%w: %s", internal.ErrDuplicate, err)
-			}
-		}
-
-		return err
-	}
-
 	return nil
 }
 
@@ -195,8 +170,8 @@ func delete[T models.Modelable](db *gorm.DB, id uid.ID) error {
 	return db.Delete(new(T), id).Error
 }
 
-func removeAll[T models.Modelable](db *gorm.DB, selector SelectorFunc, selectors ...SelectorFunc) error {
-	db2 := selector(db)
+func deleteAll[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) error {
+	db2 := db
 	for _, selector := range selectors {
 		db2 = selector(db2)
 	}
@@ -216,17 +191,4 @@ func Count[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (*int64, 
 	}
 
 	return &count, nil
-}
-
-func ByLabels(field string, labels []string) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		if len(labels) > 0 {
-			db = db.Where(
-				"id IN (?)",
-				db.Model((*models.Label)(nil)).Select(field).Where("value IN (?)", labels),
-			)
-		}
-
-		return db
-	}
 }

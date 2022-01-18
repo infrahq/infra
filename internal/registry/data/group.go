@@ -1,11 +1,8 @@
 package data
 
 import (
-	"errors"
-
 	"gorm.io/gorm"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/registry/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -18,60 +15,26 @@ func BindGroupUsers(db *gorm.DB, group *models.Group, users ...models.User) erro
 	return nil
 }
 
-// func BindGroupGrants(db *gorm.DB, group *models.Group, grantIDs ...uid.ID) error {
-// 	grants, err := ListGrants(db, ByIDs(grantIDs))
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	if err := db.Model(group).Association("Grants").Replace(grants); err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }
-
 func CreateGroup(db *gorm.DB, group *models.Group) error {
 	return add(db, group)
-}
-
-// CreateOrUpdateGroup is deprecated
-func CreateOrUpdateGroup(db *gorm.DB, group *models.Group, selectors ...SelectorFunc) (*models.Group, error) {
-	existing, err := GetGroup(db, ByName(group.Name))
-	if err != nil {
-		if !errors.Is(err, internal.ErrNotFound) {
-			return nil, err
-		}
-
-		if err := CreateGroup(db, group); err != nil {
-			return nil, err
-		}
-
-		return group, nil
-	}
-
-	if err := update(db, existing.ID, group); err != nil {
-		return nil, err
-	}
-
-	return get[models.Group](db, ByID(existing.ID))
 }
 
 func GetGroup(db *gorm.DB, selectors ...SelectorFunc) (*models.Group, error) {
 	return get[models.Group](db, selectors...)
 }
 
+func ListGroups(db *gorm.DB, selectors ...SelectorFunc) ([]models.Group, error) {
+	return list[models.Group](db, selectors...)
+}
+
 func ListUserGroups(db *gorm.DB, userID uid.ID) (result []models.Group, err error) {
-	err = db.Model("Group").Joins("User").Where("groups_users.user_id = ?", userID).Find(&result).Error
+	user := &models.User{Model: models.Model{ID: userID}}
+	err = db.Model(user).Association("Groups").Find(&result)
 	if err != nil {
 		return nil, err
 	}
 
 	return result, nil
-}
-
-func ListGroups(db *gorm.DB, selectors ...SelectorFunc) ([]models.Group, error) {
-	return list[models.Group](db, selectors...)
 }
 
 func DeleteGroups(db *gorm.DB, selectors ...SelectorFunc) error {
@@ -80,14 +43,15 @@ func DeleteGroups(db *gorm.DB, selectors ...SelectorFunc) error {
 		return err
 	}
 
-	if len(toDelete) > 0 {
-		ids := make([]uid.ID, 0)
-		for _, g := range toDelete {
-			ids = append(ids, g.ID)
-		}
+	ids := make([]uid.ID, 0)
+	for _, g := range toDelete {
+		ids = append(ids, g.ID)
 
-		return removeAll[models.Group](db, ByIDs(ids))
+		err := DeleteGrants(db, ByIdentityGroupID(g.ID))
+		if err != nil {
+			return err
+		}
 	}
 
-	return nil
+	return deleteAll[models.Group](db, ByIDs(ids))
 }

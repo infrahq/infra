@@ -1,15 +1,10 @@
 package registry
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"gopkg.in/square/go-jose.v2"
-	"gorm.io/gorm"
-
-	"github.com/infrahq/infra/internal/registry/data"
 )
 
 var (
@@ -43,32 +38,4 @@ func setAuthCookie(c *gin.Context, token string, sessionDuration time.Duration) 
 func deleteAuthCookie(c *gin.Context) {
 	c.SetCookie(CookieTokenName, "", CookieMaxAgeDeleteImmediately, CookiePath, CookieDomain, CookieSecureHTTPSOnly, CookieHTTPOnlyNotJavascriptAccessible)
 	c.SetCookie(CookieLoginName, "", CookieMaxAgeDeleteImmediately, CookiePath, CookieDomain, CookieSecureHTTPSOnly, CookieHTTPOnlyNotJavascriptAccessible)
-}
-
-type HTTP struct {
-	db *gorm.DB
-}
-
-func Healthz(c *gin.Context) {
-	c.Status(http.StatusOK)
-}
-
-func (h *HTTP) WellKnownJWKs(c *gin.Context) {
-	settings, err := data.GetSettings(h.db)
-	if err != nil {
-		sendAPIError(c, fmt.Errorf("could not get JWKs"))
-		return
-	}
-
-	var pubKey jose.JSONWebKey
-	if err := pubKey.UnmarshalJSON(settings.PublicJWK); err != nil {
-		sendAPIError(c, fmt.Errorf("could not get JWKs"))
-		return
-	}
-
-	c.JSON(http.StatusOK, struct {
-		Keys []jose.JSONWebKey `json:"keys"`
-	}{
-		[]jose.JSONWebKey{pubKey},
-	})
 }

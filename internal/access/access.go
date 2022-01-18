@@ -22,6 +22,13 @@ const (
 	PermissionAllDelete Permission = "infra.*.delete"
 )
 
+var DefaultUserPermissions = strings.Join([]string{
+	string(PermissionUserRead),
+	string(PermissionGroupRead),
+	string(PermissionDestinationRead),
+	string(PermissionGrantRead),
+}, " ")
+
 // requireAuthorizationWithCheck checks first if the customCheckFunc returns true.
 // If so, the user is an owner of the object or has some direct right to do the action requested,
 // and thus the rest of the permission checks can be skipped.
