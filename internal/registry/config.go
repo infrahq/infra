@@ -585,7 +585,6 @@ func (r *Registry) importAPITokens() error {
 			if err := data.CreateToken(r.db, tkn); err != nil {
 				return fmt.Errorf("create api token from config: %w", err)
 			}
-
 		} else {
 			existing.Permissions = strings.Join(v.Permissions, " ")
 			existing.TTL = oneHundredYears
