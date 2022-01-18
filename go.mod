@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.2
-	github.com/aws/aws-sdk-go v1.42.32
+	github.com/aws/aws-sdk-go v1.42.35
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/cli/browser v1.1.0
 	github.com/containerd/containerd v1.3.4 // indirect
@@ -20,6 +20,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/goreleaser/goreleaser v1.2.5
 	github.com/gorilla/handlers v1.5.1
+	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/goware/urlx v0.3.1
 	github.com/hashicorp/vault/api v1.3.1
 	github.com/jackc/pgconn v1.10.1
