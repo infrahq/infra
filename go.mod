@@ -20,7 +20,6 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/goreleaser/goreleaser v1.3.1
 	github.com/gorilla/handlers v1.5.1
-	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/goware/urlx v0.3.1
 	github.com/hashicorp/vault/api v1.3.1
 	github.com/jackc/pgconn v1.10.1
@@ -38,7 +37,7 @@ require (
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/prometheus/client_golang v1.11.0
 	github.com/segmentio/backo-go v0.0.0-20200129164019-23eae7c10bd3 // indirect
-	github.com/spf13/afero v1.8.0
+	github.com/spf13/afero v1.8.0 // indirect
 	github.com/spf13/cobra v1.3.0
 	github.com/spf13/viper v1.10.1
 	github.com/stretchr/testify v1.7.0
@@ -55,8 +54,8 @@ require (
 	gorm.io/driver/sqlite v1.2.6
 	gorm.io/gorm v1.22.5
 	gotest.tools v2.2.0+incompatible // indirect
-	k8s.io/api v0.22.3
-	k8s.io/apimachinery v0.22.3
+	k8s.io/api v0.23.1
+	k8s.io/apimachinery v0.23.1
 	k8s.io/apiserver v0.22.3
 	k8s.io/client-go v0.22.3
 )
