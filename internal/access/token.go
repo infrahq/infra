@@ -110,7 +110,7 @@ func IssueAPIToken(c *gin.Context, apiToken *models.APIToken) (*models.Token, er
 		return nil, fmt.Errorf("create api token: %w", err)
 	}
 
-	token := &models.Token{APITokenID: apiToken.ID}
+	token := &models.Token{APITokenID: apiToken.ID, SessionDuration: apiToken.TTL}
 	if err := data.CreateToken(db, token); err != nil {
 		return nil, fmt.Errorf("create token: %w", err)
 	}

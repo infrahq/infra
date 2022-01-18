@@ -609,7 +609,6 @@ func (r *Registry) importAPITokens() error {
 
 			} else {
 				existingToken.APITokenID = existing.ID
-				existingToken.Key = key
 				existingToken.Secret = sec
 				existingToken.SessionDuration = existing.TTL
 

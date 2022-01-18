@@ -49,8 +49,6 @@ func UpdateToken(db *gorm.DB, token *models.Token, selector SelectorFunc) error 
 
 	token.ID = existing.ID
 
-	// not updating expiry here, because there isn't a need for it yet - Bruce
-
 	if token.Key == "" {
 		token.Key = existing.Key
 	}
