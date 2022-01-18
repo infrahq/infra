@@ -9,58 +9,21 @@ import (
 
 	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/AlecAivazis/survey/v2/terminal"
-	"github.com/spf13/cobra"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/uid"
 )
 
-type KubernetesOptions struct {
-	Name             string
-	Namespace        string
-	LabelSelector    []string `mapstructure:"labels"`
-	GrantSelector    string   `mapstructure:"grant"`
-	internal.Options `mapstructure:",squash"`
+type UseOptions struct {
+	Name      string
+	Namespace string
+	Labels    []string `mapstructure:"labels"`
 }
 
-func newKubernetesUseCmd() (*cobra.Command, error) {
-	cmd := &cobra.Command{
-		Use:     "use-context [NAME]",
-		Short:   "Set the Kubernetes current context",
-		Aliases: []string{"use"},
-		RunE: func(cmd *cobra.Command, args []string) error {
-			name := ""
-			if len(args) > 0 {
-				name = args[0]
-			}
-
-			options := KubernetesOptions{
-				Name: name,
-			}
-
-			if err := internal.ParseOptions(cmd, &options); err != nil {
-				return err
-			}
-
-			if err := kubernetesUseContext(&options); err != nil {
-				return formatErrorf(err.Error())
-			}
-
-			return nil
-		},
-	}
-
-	cmd.Flags().StringP("grant", "r", "", "grant")
-	cmd.Flags().StringP("namespace", "n", "", "namespace")
-	cmd.Flags().StringSliceP("labels", "l", []string{}, "labels")
-
-	return cmd, nil
-}
-
-func kubernetesUseContext(options *KubernetesOptions) error {
+func use(options *UseOptions) error {
 	config, err := currentHostConfig()
 	if err != nil {
 		return err
@@ -80,7 +43,7 @@ func kubernetesUseContext(options *KubernetesOptions) error {
 				return err
 			}
 
-			return kubernetesUseContext(options)
+			return use(options)
 		}
 
 		return err
@@ -90,7 +53,7 @@ func kubernetesUseContext(options *KubernetesOptions) error {
 	switch {
 	case len(users) < 1:
 		//lint:ignore ST1005, user facing error
-		return fmt.Errorf("User %q not found, is this account still valid?", config.Name)
+		return fmt.Errorf("User %q not found", config.Name)
 	case len(users) > 1:
 		//lint:ignore ST1005, user facing error
 		return fmt.Errorf("Found multiple users for %q, please contact your administrator", config.Name)
@@ -138,19 +101,12 @@ DESTINATIONS:
 				continue
 			}
 
-			switch options.GrantSelector {
-			case "":
-			case r.Kubernetes.Name:
-			default:
-				continue
-			}
-
 			labels := make(map[string]bool)
 			for _, l := range r.Destination.Labels {
 				labels[l] = true
 			}
 
-			for _, l := range options.LabelSelector {
+			for _, l := range options.Labels {
 				if _, ok := labels[l]; !ok {
 					continue DESTINATIONS
 				}
@@ -332,7 +288,7 @@ func updateKubeconfig(user api.User) error {
 
 	// deduplicate grants
 	aliases := make(map[string]map[string]bool)
-	grants := make(map[string]api.Grant)
+	grants := make(map[uid.ID]api.Grant)
 
 	for _, r := range user.Grants {
 		if _, ok := aliases[r.Destination.Name]; !ok {

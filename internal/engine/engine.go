@@ -32,16 +32,17 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/pro/audit"
 	"github.com/infrahq/infra/internal/timer"
+	"github.com/infrahq/infra/uid"
 )
 
 type Options struct {
-	Name             string   `mapstructure:"name"`
-	Kind             string   `mapstructure:"kind"`
-	APIToken         string   `mapstructure:"api-token"`
-	TLSCache         string   `mapstructure:"tls-cache"`
-	SkipTLSVerify    bool     `mapstructure:"skip-tls-verify"`
-	Labels           []string `mapstructure:"labels"`
-	internal.Options `mapstructure:",squash"`
+	Server        string   `yaml:"server"`
+	Name          string   `yaml:"name"`
+	Kind          string   `yaml:"kind"`
+	APIToken      string   `yaml:"apiToken"`
+	TLSCache      string   `yaml:"tlsCache"`
+	SkipTLSVerify bool     `yaml:"skipTLSVerify"`
+	Labels        []string `yaml:"labels"`
 }
 
 type jwkCache struct {
@@ -227,7 +228,7 @@ func (b *BearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return b.Transport.RoundTrip(req)
 }
 
-func Run(options *Options) error {
+func Run(options Options) error {
 	hostTLSConfig := &tls.Config{MinVersion: tls.VersionTLS12}
 
 	if options.SkipTLSVerify {
@@ -284,17 +285,7 @@ func Run(options *Options) error {
 		return err
 	}
 
-	if options.Host == "" {
-		service, err := k8s.Service("infra")
-		if err != nil {
-			return err
-		}
-
-		metadata := service.ObjectMeta
-		options.Host = fmt.Sprintf("%s.%s", metadata.Name, metadata.Namespace)
-	}
-
-	u, err := urlx.Parse(options.Host)
+	u, err := urlx.Parse(options.Server)
 	if err != nil {
 		return err
 	}
@@ -346,11 +337,11 @@ func Run(options *Options) error {
 		return url.Hostname()
 	})
 
-	var destinationID string
+	var destinationID uid.ID
 
 	timer := timer.NewTimer()
 	timer.Start(5*time.Second, func() {
-		if destinationID == "" {
+		if destinationID == 0 {
 			host, port, err := k8s.Endpoint()
 			if err != nil {
 				logging.S.Errorf("endpoint: %w", err)

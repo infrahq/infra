@@ -9,7 +9,7 @@ import (
 
 // Destination struct for Destination
 type Destination struct {
-	ID     string          `json:"id"`
+	ID     uid.ID          `json:"id"`
 	NodeID string          `json:"nodeID" form:"nodeID"`
 	Name   string          `json:"name" form:"name"`
 	Kind   DestinationKind `json:"kind"`
@@ -35,7 +35,6 @@ type ListDestinationsRequest struct {
 }
 
 type CreateDestinationRequest struct {
-	ID         uid.ID                 `json:"id"`
 	Kind       DestinationKind        `json:"kind"`
 	NodeID     string                 `json:"nodeID" validate:"required"`
 	Name       string                 `json:"name" validate:"required"`
@@ -44,7 +43,7 @@ type CreateDestinationRequest struct {
 }
 
 type UpdateDestinationRequest struct {
-	ID         uid.ID                 `json:"id" uri:"id" validate:"required"`
+	ID         uid.ID                 `uri:"id" json:"-" validate:"required"`
 	Kind       DestinationKind        `json:"kind"`
 	NodeID     string                 `json:"nodeID" validate:"required"`
 	Name       string                 `json:"name" validate:"required"`

@@ -37,10 +37,11 @@ func TestBindsJSON(t *testing.T) {
 	require.NoError(t, err)
 	body := bytes.NewBufferString(`{"alpha": "zeta"}`)
 	c.Request = &http.Request{
-		URL:    uri,
-		Method: "GET",
-		Body:   io.NopCloser(body),
-		Header: http.Header{"Content-Type": []string{"application/json"}},
+		URL:           uri,
+		Method:        "GET",
+		Body:          io.NopCloser(body),
+		ContentLength: int64(body.Len()),
+		Header:        http.Header{"Content-Type": []string{"application/json"}},
 	}
 	r := &struct {
 		Alpha string `json:"alpha"`

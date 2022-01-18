@@ -17,23 +17,21 @@ import (
 )
 
 var (
-	L, _                                    = Initialize(int(zap.InfoLevel))
+	Level                                   = zap.NewAtomicLevel()
+	L, _                                    = NewLogger(Level)
 	S                   *zap.SugaredLogger  = L.Sugar()
 	defaultStderrWriter zapcore.WriteSyncer = os.Stderr
 	defaultStdoutWriter zapcore.WriteSyncer = os.Stdout
 )
 
-func Initialize(v int) (*zap.Logger, error) {
-	atom := zap.NewAtomicLevelAt(zapcore.Level(-v))
+func SetLevel(level string) error {
+	return Level.UnmarshalText([]byte(level))
+}
 
-	var (
-		encoder zapcore.Encoder
-		writer  zapcore.WriteSyncer
-	)
-
+func NewLogger(level zapcore.LevelEnabler) (*zap.Logger, error) {
 	if term.IsTerminal(int(os.Stdin.Fd())) {
-		writer = zapcore.Lock(filtered(defaultStderrWriter))
-		encoder = zapcore.NewConsoleEncoder(zapcore.EncoderConfig{
+		writer := zapcore.Lock(filtered(defaultStderrWriter))
+		encoder := zapcore.NewConsoleEncoder(zapcore.EncoderConfig{
 			MessageKey: "message",
 
 			LevelKey:    "level",
@@ -45,14 +43,18 @@ func Initialize(v int) (*zap.Logger, error) {
 			CallerKey:    "caller",
 			EncodeCaller: zapcore.ShortCallerEncoder,
 		})
-	} else {
-		writer = zapcore.Lock(filtered(defaultStdoutWriter))
-		encoder = zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig())
+
+		return zap.New(zapcore.NewCore(encoder, writer, level), zap.AddCaller()), nil
 	}
 
-	core := zapcore.NewCore(encoder, writer, atom)
-
-	return zap.New(core, zap.AddCaller()), nil
+	return zap.New(
+		zapcore.NewCore(
+			zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
+			zapcore.Lock(filtered(defaultStdoutWriter)),
+			level,
+		),
+		zap.AddCaller(),
+	), nil
 }
 
 func ZapLogFormatter(_ io.Writer, params handlers.LogFormatterParams) {

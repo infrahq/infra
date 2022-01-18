@@ -120,7 +120,7 @@ You will need to get your Infra endpoint. This step will be different depending 
   <summary><strong>Ingress</strong></summary>
 
   ```
-  INFRA_HOST=$(kubectl -n infrahq get ingress -l infrahq.com/component=infra -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
+  INFRA_SERVER=$(kubectl -n infrahq get ingress -l infrahq.com/component=infra -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
   ```
 </details>
 
@@ -134,7 +134,7 @@ You will need to get your Infra endpoint. This step will be different depending 
   ```
 
   ```
-  INFRA_HOST=$(kubectl -n infrahq get services -l infrahq.com/component=infra -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
+  INFRA_SERVER=$(kubectl -n infrahq get services -l infrahq.com/component=infra -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
   ```
 </details>
 
@@ -144,7 +144,7 @@ You will need to get your Infra endpoint. This step will be different depending 
   ```
   CONTAINER_PORT=$(kubectl -n infrahq get services -l infrahq.com/component=infra -o jsonpath="{.items[].spec.ports[0].port}")
   kubectl -n infrahq port-forward services infra 8080:$CONTAINER_PORT &
-  INFRA_HOST='localhost:8080'
+  INFRA_SERVER='localhost:8080'
   ```
 </details>
 

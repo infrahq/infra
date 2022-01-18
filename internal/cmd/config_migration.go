@@ -1,5 +1,7 @@
 package cmd
 
+import "github.com/infrahq/infra/uid"
+
 type ClientConfigV0dot1 struct {
 	Version       string `json:"version"` // always blank in v0.1
 	Name          string `json:"name"`
@@ -46,12 +48,15 @@ func (c ClientConfigV0dot2) ToV0dot3() *ClientConfig {
 	}
 
 	for _, h := range c.Hosts {
+		providerID := uid.New()
+		providerID.UnmarshalText([]byte(h.SourceID))
+
 		conf.Hosts = append(conf.Hosts, ClientHostConfig{
 			Name:          h.Name,
 			Host:          h.Host,
 			Token:         h.Token,
 			SkipTLSVerify: h.SkipTLSVerify,
-			ProviderID:    h.SourceID,
+			ProviderID:    providerID,
 			Current:       h.Current,
 		})
 	}

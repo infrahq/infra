@@ -32,7 +32,7 @@ spec:
         - name: infra
           image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args: [start, -f, /var/run/infra/config/config.yaml]
+          args: ["server", "-f", "/var/run/infra/config/config.yaml", "--log-level", {{ .Values.logLevel | quote }}]
           ports:
 {{- range .Values.service.ports }}
             - name: {{ .name }}

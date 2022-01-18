@@ -1,4 +1,4 @@
----
+{{- $config := omit .Values.config "apiToken" }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -6,21 +6,6 @@ metadata:
   labels:
 {{- include "engine.labels" . | nindent 4 }}
 data:
-  config.yaml: |
-    kind: kubernetes
-    api-token: file:///var/run/secrets/infrahq.com/engine/engine-api-token
-{{- $options := list "name" "host" }}
-{{- $options = list "tlsCache" "skipTLSVerify" | concat $options }}
-{{- $options = list "labels" | concat $options }}
-{{- range $options }}
-  {{- if hasKey $.Values . }}
-    {{- if get $.Values . | kindIs "slice" }}
-    {{ . | kebabcase }}:
-    {{- range get $.Values . }}
-      - {{ . }}
-    {{- end }}
-    {{- else }}
-    {{ . | kebabcase }}: {{ get $.Values . }}
-    {{- end }}
-  {{- end }}
-{{- end }}
+  config.yaml: |-
+    apiToken: file:///var/run/secrets/infrahq.com/engine/engine-api-token
+    {{- toYaml $config | nindent 4 }}

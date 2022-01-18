@@ -2,54 +2,20 @@ package cmd
 
 import (
 	"crypto/tls"
-	"encoding/json"
-	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/goware/urlx"
-	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v2"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/engine"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry"
 )
-
-func red(s string) string {
-	return termenv.String(s).Bold().Foreground(termenv.ColorProfile().Color("#FA5F55")).String()
-}
-
-func formatErrorf(format string, a ...interface{}) error {
-	return fmt.Errorf(red(format), a...)
-}
-
-// errWithResponseContext prints errors with extended context from the server response
-func errWithResponseContext(err error, res *http.Response) error {
-	if strings.Contains(err.Error(), "undefined response type") || strings.Contains(err.Error(), "cannot unmarshal object into Go value") {
-		//lint:ignore ST1005, user facing error
-		return fmt.Errorf("Unable to decode server response, ensure your CLI version matches the server version (Message: %w)", err)
-	}
-
-	if res == nil {
-		//lint:ignore ST1005, user facing error
-		return fmt.Errorf("No response received, make sure the server is running at the host you are connecting to (Message: %w)", err)
-	}
-
-	var apiErr api.Error
-	if decodeErr := json.NewDecoder(res.Body).Decode(&apiErr); decodeErr == nil {
-		// decoding error can be ignored, will return the original error in that case
-		if apiErr.Message != "" {
-			return fmt.Errorf("%w (Message: %s)", err, apiErr.Message)
-		}
-	}
-
-	return err
-}
 
 func infraHomeDir() (string, error) {
 	homeDir, err := os.UserHomeDir()
@@ -98,295 +64,270 @@ func apiClient(host string, token string, skipTLSVerify bool) (*api.Client, erro
 	}, nil
 }
 
-func newLoginCmd() (*cobra.Command, error) {
+func newLoginCmd() *cobra.Command {
+	var options LoginOptions
+
 	cmd := &cobra.Command{
-		Use:     "login [HOST]",
+		Use:     "login [SERVER]",
 		Short:   "Login to Infra",
 		Example: "$ infra login",
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var options LoginOptions
-
-			if err := internal.ParseOptions(cmd, &options); err != nil {
-				return err
-			}
-
 			if len(args) == 1 {
 				options.Host = args[0]
 			}
 
 			if err := login(&options); err != nil {
-				return formatErrorf(err.Error())
-			}
-
-			return nil
-		},
-	}
-
-	cmd.Flags().DurationP("timeout", "t", defaultTimeout, "login timeout")
-
-	return cmd, nil
-}
-
-func newLogoutCmd() (*cobra.Command, error) {
-	cmd := &cobra.Command{
-		Use:     "logout",
-		Short:   "Logout of Infra",
-		Args:    cobra.MaximumNArgs(1),
-		Example: "$ infra logout",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			var options LogoutOptions
-			if err := internal.ParseOptions(cmd, &options); err != nil {
 				return err
 			}
 
-			if len(args) == 1 {
-				options.Host = args[0]
-			}
-
-			if err := logout(&options); err != nil {
-				return formatErrorf(err.Error())
-			}
-
 			return nil
 		},
 	}
 
-	return cmd, nil
+	cmd.Flags().DurationVarP(&options.Timeout, "timeout", "t", defaultTimeout, "login timeout")
+
+	return cmd
 }
 
-func newListCmd() (*cobra.Command, error) {
+var logoutCmd = &cobra.Command{
+	Use:     "logout",
+	Short:   "Logout of Infra",
+	Example: "$ infra logout",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := logout(); err != nil {
+			return err
+		}
+
+		return nil
+	},
+}
+
+func listCmd() *cobra.Command {
+	var all bool
+
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
-		Short:   "List destinations",
+		Short:   "List infrastructure",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var options ListOptions
-			if err := internal.ParseOptions(cmd, &options); err != nil {
-				return err
-			}
-
-			if err := list(&options); err != nil {
-				return formatErrorf(err.Error())
-			}
-
-			return nil
+			return list()
 		},
 	}
 
-	return cmd, nil
+	cmd.Flags().BoolVarP(&all, "all", "a", false, "list all infrastructure (default shows infrastructure you have access to)")
+
+	return cmd
 }
 
-func newStartCmd() (*cobra.Command, error) {
+func newServerCmd() (*cobra.Command, error) {
+	var (
+		options    registry.Options
+		configFile string
+	)
+
+	var err error
+
+	parseConfig := func() {
+		if configFile == "" {
+			return
+		}
+
+		var contents []byte
+
+		contents, err = ioutil.ReadFile(configFile)
+		if err != nil {
+			return
+		}
+
+		err = yaml.Unmarshal(contents, &options)
+	}
+
+	cobra.OnInitialize(parseConfig)
+
 	cmd := &cobra.Command{
-		Use:    "start",
-		Short:  "Start Infra",
-		Hidden: true,
+		Use:   "server",
+		Short: "Start Infra Server",
+
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var options registry.Options
-			if err := internal.ParseOptions(cmd, &options); err != nil {
+			if err != nil {
 				return err
 			}
 
-			if err := registry.Run(options); err != nil {
-				return formatErrorf(err.Error())
-			}
-
-			return nil
+			return registry.Run(options)
 		},
 	}
 
-	cmd.Flags().StringP("config-path", "c", "", "Infra config file")
-	cmd.Flags().String("root-api-token", "", "root API token")
-	cmd.Flags().String("engine-api-token", "", "engine registration API token")
-	cmd.Flags().String("tls-cache", "", "path to cache self-signed and Let's Encrypt TLS certificates")
-	cmd.Flags().String("db-file", "", "path to database file")
-	cmd.Flags().String("pg.host", "", "PostgreSQL host")
-	cmd.Flags().Int("pg.port", -1, "PostgreSQL port")
-	cmd.Flags().String("pg.db-name", "", "PostgreSQL database name")
-	cmd.Flags().String("pg.user", "", "PostgreSQL user")
-	cmd.Flags().String("pg.password", "", "PostgreSQL password")
-	cmd.Flags().String("pg.parameters", "", "additional PostgreSQL connection parameters")
+	infraDir, err := infraHomeDir()
+	if err != nil {
+		return nil, err
+	}
 
-	cmd.Flags().String("ui-proxy", "", "proxy UI requests to this host")
-	cmd.Flags().Bool("enable-ui", false, "enable UI")
-
-	cmd.Flags().Duration("providers-sync-interval", registry.DefaultProvidersSyncInterval, "the interval at which Infra will poll identity providers for users and groups")
-	cmd.Flags().Duration("destinations-sync-interval", registry.DefaultDestinationsSyncInterval, "the interval at which Infra will poll destinations")
-
-	cmd.Flags().Bool("enable-telemetry", true, "enable telemetry")
-	cmd.Flags().Bool("enable-crash-reporting", true, "enable crash reporting")
-
-	cmd.Flags().DurationP("session-duration", "d", registry.DefaultSessionDuration, "session duration")
+	cmd.Flags().StringVarP(&configFile, "config-file", "f", "", "Server configuration file")
+	cmd.Flags().StringVar(&options.RootAPIToken, "root-api-token", "file:"+filepath.Join(infraDir, "root-api-token"), "Root API token (secret)")
+	cmd.Flags().StringVar(&options.EngineAPIToken, "engine-api-token", "file:"+filepath.Join(infraDir, "engine-api-token"), "Engine API token (secret)")
+	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(infraDir, "tls"), "Directory to cache TLS certificates")
+	cmd.Flags().StringVar(&options.DBFile, "db-file", filepath.Join(infraDir, "db"), "Path to database file")
+	cmd.Flags().StringVar(&options.DBEncryptionKey, "db-encryption-key", filepath.Join(infraDir, "key"), "Database encryption key")
+	cmd.Flags().StringVar(&options.DBEncryptionKeyProvider, "db-encryption-key-provider", "native", "Database encryption key provider")
+	cmd.Flags().StringVar(&options.DBHost, "db-host", "", "Database host")
+	cmd.Flags().IntVar(&options.DBPort, "db-port", 5432, "Database port")
+	cmd.Flags().StringVar(&options.DBName, "db-name", "", "Database name")
+	cmd.Flags().StringVar(&options.DBUser, "db-user", "", "Database user")
+	cmd.Flags().StringVar(&options.DBPassword, "db-password", "", "Database password (secret)")
+	cmd.Flags().StringVar(&options.DBParameters, "db-parameters", "", "Database additional connection parameters")
+	cmd.Flags().BoolVar(&options.EnableTelemetry, "enable-telemetry", true, "Enable telemetry")
+	cmd.Flags().BoolVar(&options.EnableCrashReporting, "enable-crash-reporting", true, "Enable crash reporting")
+	cmd.Flags().DurationVarP(&options.SessionDuration, "session-duration", "d", registry.DefaultSessionDuration, "Session duration")
 
 	return cmd, nil
 }
 
-func newEngineCmd() (*cobra.Command, error) {
+func newEngineCmd() *cobra.Command {
+	var (
+		options          engine.Options
+		engineConfigFile string
+		err              error
+	)
+
+	parseConfig := func() {
+		if engineConfigFile == "" {
+			return
+		}
+
+		var contents []byte
+
+		contents, err = ioutil.ReadFile(engineConfigFile)
+		if err != nil {
+			return
+		}
+
+		err = yaml.Unmarshal(contents, &options)
+	}
+
+	cobra.OnInitialize(parseConfig)
+
 	cmd := &cobra.Command{
-		Use:    "engine",
-		Short:  "Start Infra Engine",
-		Hidden: true,
+		Use:   "engine",
+		Short: "Start Infra Engine",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var options engine.Options
-			if err := internal.ParseOptions(cmd, &options); err != nil {
+			if err != nil {
 				return err
 			}
 
-			if err := engine.Run(&options); err != nil {
-				return formatErrorf(err.Error())
+			if err := engine.Run(options); err != nil {
+				return err
 			}
 
 			return nil
 		},
 	}
 
-	cmd.Flags().StringP("name", "n", "", "destination name")
-	cmd.Flags().StringP("kind", "k", "", "destination kind")
-	cmd.Flags().String("api-token", "", "engine registry API token")
-	cmd.Flags().String("tls-cache", "", "path to cache self-signed and Let's Encrypt TLS certificates")
-	cmd.Flags().Bool("skip-tls-verify", true, "skip TLS verification")
+	cmd.Flags().StringVarP(&engineConfigFile, "config-file", "f", "", "Engine config file")
+	cmd.Flags().StringVarP(&options.Name, "name", "n", "", "Destination name")
+	cmd.Flags().StringVarP(&options.Kind, "kind", "k", "kubernetes", "Destination kind")
+	cmd.Flags().StringVar(&options.APIToken, "api-token", "", "Engine API token (use file:// to load from a file)")
+	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", "", "Path to cache self-signed and Let's Encrypt TLS certificates")
+	cmd.Flags().StringVar(&options.Server, "server", "", "Infra Server hostname")
+	cmd.Flags().BoolVar(&options.SkipTLSVerify, "skip-tls-verify", true, "Skip TLS verification")
 
-	return cmd, nil
+	return cmd
 }
 
-func newVersionCmd() (*cobra.Command, error) {
+func newUseCmd() *cobra.Command {
+	var (
+		namespace string
+		labels    []string
+	)
+
 	cmd := &cobra.Command{
-		Use:   "version",
-		Short: "Display the Infra version",
+		Use:   "use [INFRASTRUCTURE]",
+		Short: "Connect to infrastructure",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var options VersionOptions
-			if err := internal.ParseOptions(cmd, &options); err != nil {
-				return err
+			name := ""
+			if len(args) > 0 {
+				name = args[0]
 			}
 
-			if err := version(&options); err != nil {
-				return formatErrorf(err.Error())
+			if err := use(&UseOptions{
+				Name:      name,
+				Namespace: namespace,
+				Labels:    labels,
+			}); err != nil {
+				return err
 			}
 
 			return nil
 		},
 	}
 
-	cmd.Flags().Bool("client", false, "Display client version only")
-	cmd.Flags().Bool("server", false, "Display server version only")
+	cmd.Flags().StringVarP(&namespace, "namespace", "n", "", "Namespace")
+	cmd.Flags().StringSliceVarP(&labels, "labels", "l", []string{}, "Labels")
 
-	return cmd, nil
+	return cmd
 }
 
-func newTokensCmd() (*cobra.Command, error) {
+var tokensCreateCmd = &cobra.Command{
+	Use:   "create DESTINATION",
+	Short: "Create a JWT token for connecting to a destination, e.g. Kubernetes",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := tokensCreate(args[0]); err != nil {
+			return err
+		}
+
+		return nil
+	},
+}
+
+func newTokensCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "tokens",
-		Short: "Token subcommands",
+		Short: "Create & manage identity tokens",
 	}
 
-	tokenCreateCmd, err := newTokenCreateCmd()
-	if err != nil {
-		return nil, err
-	}
+	cmd.AddCommand(tokensCreateCmd)
 
-	cmd.AddCommand(tokenCreateCmd)
-
-	return cmd, nil
+	return cmd
 }
 
-func newKubernetesCmd() (*cobra.Command, error) {
-	cmd := &cobra.Command{
-		Use:     "kubernetes",
-		Short:   "Kubernetes subcommands",
-		Aliases: []string{"k", "k8s"},
-	}
-
-	kubernetesUseCmd, err := newKubernetesUseCmd()
-	if err != nil {
-		return nil, err
-	}
-
-	cmd.AddCommand(kubernetesUseCmd)
-
-	return cmd, nil
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Display the Infra version",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return version()
+	},
 }
 
 func NewRootCmd() (*cobra.Command, error) {
 	cobra.EnableCommandSorting = false
 
-	loginCmd, err := newLoginCmd()
-	if err != nil {
-		return nil, err
-	}
-
-	logoutCmd, err := newLogoutCmd()
-	if err != nil {
-		return nil, err
-	}
-
-	listCmd, err := newListCmd()
-	if err != nil {
-		return nil, err
-	}
-
-	tokensCmd, err := newTokensCmd()
-	if err != nil {
-		return nil, err
-	}
-
-	kubernetesCmd, err := newKubernetesCmd()
-	if err != nil {
-		return nil, err
-	}
-
-	versionCmd, err := newVersionCmd()
-	if err != nil {
-		return nil, err
-	}
-
-	startCmd, err := newStartCmd()
-	if err != nil {
-		return nil, err
-	}
-
-	engineCmd, err := newEngineCmd()
-	if err != nil {
-		return nil, err
-	}
+	var level string
 
 	rootCmd := &cobra.Command{
 		Use:               "infra",
-		Short:             "Infrastructure Identity & Access Management (IAM)",
 		CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: true},
+		SilenceUsage:      true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			cmd.SilenceUsage = true
-
-			var options internal.Options
-			if err := internal.ParseOptions(cmd, &options); err != nil {
-				return err
-			}
-
-			logger, err := logging.Initialize(options.V)
-			if err != nil {
-				logging.L.Warn(err.Error())
-			} else {
-				logging.L = logger
-				logging.S = logger.Sugar()
-			}
-
-			return nil
+			return logging.SetLevel(level)
 		},
 	}
 
-	rootCmd.AddCommand(loginCmd)
+	serverCmd, err := newServerCmd()
+	if err != nil {
+		return nil, err
+	}
+
+	rootCmd.AddCommand(newLoginCmd())
 	rootCmd.AddCommand(logoutCmd)
-	rootCmd.AddCommand(listCmd)
-	rootCmd.AddCommand(tokensCmd)
-	rootCmd.AddCommand(kubernetesCmd)
+	rootCmd.AddCommand(newUseCmd())
+	rootCmd.AddCommand(listCmd())
+	rootCmd.AddCommand(newTokensCmd())
+	rootCmd.AddCommand(serverCmd)
+	rootCmd.AddCommand(newEngineCmd())
 	rootCmd.AddCommand(versionCmd)
 
-	rootCmd.AddCommand(startCmd)
-	rootCmd.AddCommand(engineCmd)
-
-	rootCmd.PersistentFlags().StringP("config-file", "f", "", "Infra configuration file path")
-	rootCmd.PersistentFlags().StringP("host", "H", "", "Infra host")
-	rootCmd.PersistentFlags().CountP("v", "v", "Log verbosity")
+	rootCmd.PersistentFlags().StringVar(&level, "log-level", "info", "Log level (error, warn, info, debug)")
 
 	return rootCmd, nil
 }

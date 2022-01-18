@@ -16,7 +16,7 @@ type Group struct {
 
 func (g *Group) ToAPI() api.Group {
 	result := api.Group{
-		ID:      g.ID.String(),
+		ID:      g.ID,
 		Created: g.CreatedAt.Unix(),
 		Updated: g.UpdatedAt.Unix(),
 

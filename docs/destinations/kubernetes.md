@@ -97,7 +97,7 @@ Depending on your Infra Helm configurations, the steps will differ.
   <summary><strong>Ingress</strong></summary>
 
   ```
-  INFRA_HOST=$(kubectl -n infrahq get ingress -l infrahq.com/component=infra -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
+  INFRA_SERVER=$(kubectl -n infrahq get ingress -l infrahq.com/component=infra -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
   ```
 </details>
 
@@ -111,7 +111,7 @@ Depending on your Infra Helm configurations, the steps will differ.
   ```
 
   ```
-  INFRA_HOST=$(kubectl -n infrahq get services -l infrahq.com/component=infra -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
+  INFRA_SERVER=$(kubectl -n infrahq get services -l infrahq.com/component=infra -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
   ```
 </details>
 
@@ -121,7 +121,7 @@ Depending on your Infra Helm configurations, the steps will differ.
   ```
   CONTAINER_PORT=$(kubectl -n infrahq get services -l infrahq.com/component=infra -o jsonpath="{.items[].spec.ports[0].port}")
   kubectl -n infrahq port-forward service infra 8080:$CONTAINER_PORT &
-  INFRA_HOST='localhost:8080'
+  INFRA_SERVER='localhost:8080'
   ```
 </details>
 
@@ -134,7 +134,7 @@ INFRA_API_TOKEN=$(kubectl -n infrahq get secrets infra-engine -o jsonpath='{.dat
 ---
 
 ```
-helm upgrade --install -n infrahq --create-namespace --set host=$INFRA_HOST --set apiToken=$INFRA_API_TOKEN infra infrahq/engine
+helm upgrade --install -n infrahq --create-namespace --set config.server=$INFRA_SERVER --set config.apiToken=$INFRA_API_TOKEN infra infrahq/engine
 ```
 
 See [Helm Chart reference](./helm.md) for a complete list of options configurable through Helm.

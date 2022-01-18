@@ -44,7 +44,7 @@ type GrantKubernetes struct {
 
 func (r *Grant) ToAPI() api.Grant {
 	result := api.Grant{
-		ID:      r.ID.String(),
+		ID:      r.ID,
 		Created: r.CreatedAt.Unix(),
 		Updated: r.UpdatedAt.Unix(),
 		Kind:    api.GrantKind(r.Kind),

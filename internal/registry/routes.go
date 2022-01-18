@@ -152,7 +152,7 @@ func bind(c *gin.Context, req interface{}) error {
 	if err := c.ShouldBindQuery(req); err != nil {
 		return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
 	}
-	if c.Request.Body != nil {
+	if c.Request.Body != nil && c.Request.ContentLength > 0 {
 		if err := c.ShouldBindJSON(req); err != nil {
 			return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
 		}

@@ -38,3 +38,7 @@ func (u *ID) UnmarshalText(b []byte) error {
 	*u = ID(id)
 	return nil
 }
+
+func (u *ID) MarshalText() ([]byte, error) {
+	return []byte(u.String()), nil
+}

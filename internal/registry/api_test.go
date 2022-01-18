@@ -139,7 +139,7 @@ func TestCreateDestination(t *testing.T) {
 
 	for _, test := range cases {
 		t.Run(test.Name, func(t *testing.T) {
-			_, db := configure(t, nil)
+			db := setupDB(t)
 
 			c, _ := gin.CreateTestContext(nil)
 			c.Set("db", db)
@@ -148,9 +148,11 @@ func TestCreateDestination(t *testing.T) {
 
 			a := API{
 				registry: &Registry{
-					config: Config{
-						Users:  []ConfigUserMapping{},
-						Groups: []ConfigGroupMapping{},
+					options: Options{
+						Config: Config{
+							Users:  []ConfigUserMapping{},
+							Groups: []ConfigGroupMapping{},
+						},
 					},
 				},
 			}
@@ -228,7 +230,7 @@ func TestLogin(t *testing.T) {
 
 	for _, test := range cases {
 		t.Run(test.Name, func(t *testing.T) {
-			_, db := configure(t, nil)
+			db := setupDB(t)
 
 			c, _ := gin.CreateTestContext(nil)
 			c.Set("db", db)
@@ -272,7 +274,7 @@ func (m *mockOIDCImplementation) GetUserInfo(providerTokens *models.ProviderToke
 }
 
 func TestLoginOkta(t *testing.T) {
-	_, db := configure(t, nil)
+	reg := setupRegistry(t)
 
 	request := api.LoginRequest{
 		Okta: &api.LoginRequestOkta{
@@ -283,17 +285,13 @@ func TestLoginOkta(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
+
 	testOIDC := NewMockOIDC("jbond@infrahq.com", []string{})
 	c.Set("oidc", testOIDC)
-	c.Set("db", db)
+	c.Set("db", reg.db)
 
 	a := API{
-		registry: &Registry{
-			secrets: map[string]secrets.SecretStorage{
-				"base64": NewMockSecretReader(),
-			},
-			options: Options{SessionDuration: oneHundredYears},
-		},
+		registry: reg,
 	}
 
 	resp, err := a.Login(c, &request)
@@ -304,7 +302,7 @@ func TestLoginOkta(t *testing.T) {
 }
 
 func TestCreateAPIToken(t *testing.T) {
-	_, db := configure(t, nil)
+	reg := setupRegistry(t)
 
 	request := &api.InfraAPITokenCreateRequest{
 		Name:        "tmp",
@@ -312,7 +310,7 @@ func TestCreateAPIToken(t *testing.T) {
 	}
 
 	c, _ := gin.CreateTestContext(nil)
-	c.Set("db", db)
+	c.Set("db", reg.db)
 	c.Set("permissions", string(access.PermissionAllInfra))
 
 	a := API{}
@@ -322,7 +320,7 @@ func TestCreateAPIToken(t *testing.T) {
 	require.NoError(t, err)
 
 	newc, _ := gin.CreateTestContext(nil)
-	newc.Set("db", db)
+	newc.Set("db", reg.db)
 	newc.Set("permissions", string(access.PermissionUserRead))
 
 	_, err = a.ListUsers(newc, &api.ListUsersRequest{})
@@ -330,17 +328,17 @@ func TestCreateAPIToken(t *testing.T) {
 }
 
 func TestDeleteAPIToken(t *testing.T) {
-	_, db := configure(t, nil)
+	reg := setupRegistry(t)
 
 	permissions := strings.Join([]string{
 		string(access.PermissionUserRead),
 		string(access.PermissionAPITokenDelete),
 	}, " ")
 
-	apiToken := issueAPIToken(t, db, permissions)
+	apiToken := issueAPIToken(t, reg.db, permissions)
 
 	oldc, _ := gin.CreateTestContext(nil)
-	oldc.Set("db", db)
+	oldc.Set("db", reg.db)
 	oldc.Set("permissions", permissions)
 
 	a := API{}
@@ -350,7 +348,7 @@ func TestDeleteAPIToken(t *testing.T) {
 	require.NoError(t, err)
 
 	c, _ := gin.CreateTestContext(nil)
-	c.Set("db", db)
+	c.Set("db", reg.db)
 	c.Set("permissions", permissions)
 
 	err = a.DeleteAPIToken(c, &api.Resource{ID: apiToken.ID})

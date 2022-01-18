@@ -69,7 +69,7 @@ func (k *APIToken) ToAPI() *api.InfraAPIToken {
 	ttl := k.TTL.String()
 
 	return &api.InfraAPIToken{
-		ID:      k.ID.String(),
+		ID:      k.ID,
 		Created: k.CreatedAt.Unix(),
 
 		Name:        k.Name,
@@ -83,7 +83,7 @@ func (t *APITokenTuple) ToAPI() *api.InfraAPIToken {
 	exp := t.Token.Expires.Unix()
 
 	return &api.InfraAPIToken{
-		ID:      t.APIToken.ID.String(),
+		ID:      t.APIToken.ID,
 		Created: t.APIToken.CreatedAt.Unix(),
 
 		Expires:     &exp,
@@ -98,7 +98,7 @@ func (k *APIToken) ToAPICreateResponse(tkn *Token) *api.InfraAPITokenCreateRespo
 	exp := tkn.Expires.Unix()
 
 	return &api.InfraAPITokenCreateResponse{
-		ID:      k.ID.String(),
+		ID:      k.ID,
 		Created: k.CreatedAt.Unix(),
 
 		Expires:     &exp,
