@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"path/filepath"
 	"time"
@@ -58,26 +58,14 @@ func tokenCreate(options *TokenOptions) error {
 	}
 
 	if os.IsNotExist(err) || isExpired(execCredential) {
-		client, err := apiClientFromConfig(options.Host)
+		client, err := defaultAPIClient()
 		if err != nil {
 			return err
 		}
 
-		ctx, err := apiContextFromConfig(options.Host)
+		token, err := client.CreateToken(&api.TokenRequest{Destination: options.Destination})
 		if err != nil {
-			return err
-		}
-
-		credReq := client.TokensAPI.CreateToken(ctx).Body(api.TokenRequest{Destination: options.Destination})
-
-		cred, res, err := credReq.Execute()
-		if err != nil {
-			if res == nil {
-				return err
-			}
-
-			switch res.StatusCode {
-			case http.StatusForbidden:
+			if errors.Is(err, api.ErrForbidden) {
 				fmt.Fprintln(os.Stderr, "Session has expired.")
 
 				if err = login(&LoginOptions{Current: true}); err != nil {
@@ -85,10 +73,8 @@ func tokenCreate(options *TokenOptions) error {
 				}
 
 				return tokenCreate(options)
-
-			default:
-				return errWithResponseContext(err, res)
 			}
+			return err
 		}
 
 		execCredential = &clientauthenticationv1beta1.ExecCredential{
@@ -98,8 +84,8 @@ func tokenCreate(options *TokenOptions) error {
 			},
 			Spec: clientauthenticationv1beta1.ExecCredentialSpec{},
 			Status: &clientauthenticationv1beta1.ExecCredentialStatus{
-				Token:               cred.Token,
-				ExpirationTimestamp: &metav1.Time{Time: time.Unix(cred.Expires, 0)},
+				Token:               token.Token,
+				ExpirationTimestamp: &metav1.Time{Time: time.Unix(token.Expires, 0)},
 			},
 		}
 		if err := setCache("tokens", options.Destination, execCredential); err != nil {

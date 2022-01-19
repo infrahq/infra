@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -52,34 +51,6 @@ func errWithResponseContext(err error, res *http.Response) error {
 	return err
 }
 
-func NewAPIContext(token string) context.Context {
-	return context.WithValue(context.Background(), api.ContextAccessToken, token)
-}
-
-func NewAPIClient(host string, skipTLSVerify bool) (*api.APIClient, error) {
-	u, err := urlx.Parse(host)
-	if err != nil {
-		return nil, fmt.Errorf("parsing host: %w", err)
-	}
-
-	config := api.NewConfiguration()
-	config.Host = u.Host
-	config.Scheme = "https"
-
-	if skipTLSVerify {
-		config.HTTPClient = &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					//nolint:gosec // We may purposely set insecureskipverify via a flag
-					InsecureSkipVerify: true,
-				},
-			},
-		}
-	}
-
-	return api.NewAPIClient(config), nil
-}
-
 func infraHomeDir() (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -96,30 +67,35 @@ func infraHomeDir() (string, error) {
 	return infraDir, nil
 }
 
-func apiContextFromConfig(host string) (context.Context, error) {
-	config, err := readHostConfig(host)
+func defaultAPIClient() (*api.Client, error) {
+	config, err := readHostConfig("")
 	if err != nil {
 		return nil, err
 	}
 
-	if config == nil {
-		return nil, ErrConfigNotFound
-	}
-
-	return NewAPIContext(config.Token), nil
+	return apiClient(config.Host, config.Token, config.SkipTLSVerify)
 }
 
-func apiClientFromConfig(host string) (*api.APIClient, error) {
-	config, err := readHostConfig(host)
+func apiClient(host string, token string, skipTLSVerify bool) (*api.Client, error) {
+	u, err := urlx.Parse(host)
 	if err != nil {
 		return nil, err
 	}
 
-	if config == nil {
-		return nil, ErrConfigNotFound
-	}
+	u.Scheme = "https"
 
-	return NewAPIClient(config.Host, config.SkipTLSVerify)
+	return &api.Client{
+		Url:   u.String(),
+		Token: token,
+		Http: http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					//nolint:gosec // We may purposely set insecureskipverify via a flag
+					InsecureSkipVerify: skipTLSVerify,
+				},
+			},
+		},
+	}, nil
 }
 
 func newLoginCmd() (*cobra.Command, error) {

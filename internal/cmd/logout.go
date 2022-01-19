@@ -32,19 +32,12 @@ func cleanupKubeconfig(config *ClientHostConfig) error {
 func logoutOne(config *ClientHostConfig) error {
 	logging.S.Debugf("logging out %s", config.Host)
 
-	client, err := apiClientFromConfig(config.Host)
+	client, err := apiClient(config.Host, config.Token, config.SkipTLSVerify)
 	if err != nil {
-		logging.S.Warnf("%s", err.Error())
-		return cleanupKubeconfig(config)
+		return err
 	}
 
-	ctx, err := apiContextFromConfig(config.Host)
-	if err != nil {
-		logging.S.Warnf("%s", err.Error())
-		return cleanupKubeconfig(config)
-	}
-
-	_, err = client.AuthAPI.Logout(ctx).Execute()
+	err = client.Logout()
 	if err != nil {
 		logging.S.Warnf("%s", err.Error())
 		return cleanupKubeconfig(config)

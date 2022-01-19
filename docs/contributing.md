@@ -2,14 +2,13 @@
 
 ## Setup
 
-1. Install [Go](https://golang.org/doc/install)
+1. Install [Go 1.18](https://go.dev/dl/#go1.18beta1)
 1. Clone the project
 
     ```bash
     git clone https://github.com/infrahq/infra
     cd infra
     ```
-
 1. Install tools
 
     ```bash

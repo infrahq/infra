@@ -1,4 +1,0 @@
-type: object
-properties:
-  okta:
-    $ref: ./LoginRequestOkta.yaml

@@ -1,5 +1,19 @@
 package api
 
+import "fmt"
+
+var (
+	// ErrUnauthorized refers to the http response code unauthorized, which really means not authenticated, despite its name. See https://stackoverflow.com/a/6937030/155585
+	ErrUnauthorized = fmt.Errorf("unauthorized")
+	// ErrForbidden means you don't have permissions to the requested resource
+	ErrForbidden = fmt.Errorf("forbidden")
+
+	ErrDuplicate  = fmt.Errorf("duplicate record")
+	ErrNotFound   = fmt.Errorf("record not found")
+	ErrBadRequest = fmt.Errorf("bad request")
+	ErrInternal   = fmt.Errorf("internal error")
+)
+
 // Error struct for Error
 type Error struct {
 	Code    int32  `json:"code"`
