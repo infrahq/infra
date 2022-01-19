@@ -103,19 +103,19 @@ func sendAPIError(c *gin.Context, err error) {
 	message := "internal server error" // don't leak any info by default
 
 	switch {
-	case errors.Is(err, api.ErrUnauthorized):
+	case errors.Is(err, internal.ErrUnauthorized):
 		code = http.StatusUnauthorized
 		message = "unauthorized"
-	case errors.Is(err, api.ErrForbidden):
+	case errors.Is(err, internal.ErrForbidden):
 		code = http.StatusForbidden
 		message = "forbidden"
-	case errors.Is(err, api.ErrDuplicate):
+	case errors.Is(err, internal.ErrDuplicate):
 		code = http.StatusConflict
 		message = err.Error()
-	case errors.Is(err, api.ErrNotFound):
+	case errors.Is(err, internal.ErrNotFound):
 		code = http.StatusNotFound
 		message = err.Error()
-	case errors.Is(err, api.ErrBadRequest):
+	case errors.Is(err, internal.ErrBadRequest):
 		code = http.StatusBadRequest
 		message = err.Error()
 	case errors.Is(err, (*validator.InvalidValidationError)(nil)):
