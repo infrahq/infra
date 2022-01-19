@@ -3,14 +3,13 @@
 ## Setup
 
 1. Install [Go 1.18](https://go.dev/dl/#go1.18beta1)
-2. Clone the project
+1. Clone the project
 
     ```bash
     git clone https://github.com/infrahq/infra
     cd infra
     ```
-
-3. Install tools
+1. Install tools
 
     ```bash
     go get
