@@ -73,17 +73,19 @@ func apiClient() (*api.Client, error) {
 		return nil, err
 	}
 
-	u, err := urlx.Parse(config.Host)
-	if err != nil {
-		return nil, fmt.Errorf("parsing host: %w", err)
-	}
-
-	return apiClientWith(u.String(), config.Token, config.SkipTLSVerify), nil
+	return apiClientWith(config.Host, config.Token, config.SkipTLSVerify)
 }
 
-func apiClientWith(base string, token string, skipTLSVerify bool) *api.Client {
+func apiClientWith(host string, token string, skipTLSVerify bool) (*api.Client, error) {
+	u, err := urlx.Parse(host)
+	if err != nil {
+		return nil, err
+	}
+
+	u.Scheme = "https"
+
 	return &api.Client{
-		Base:  base,
+		Base:  u.String(),
 		Token: token,
 		Http: http.Client{
 			Transport: &http.Transport{
@@ -93,7 +95,7 @@ func apiClientWith(base string, token string, skipTLSVerify bool) *api.Client {
 				},
 			},
 		},
-	}
+	}, nil
 }
 
 func newLoginCmd() (*cobra.Command, error) {

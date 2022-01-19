@@ -22,10 +22,15 @@ func checkError(status int, body []byte) error {
 
 	_ = json.Unmarshal(body, &apiError)
 
-	// TODO: finish these
 	switch apiError.Code {
+	case http.StatusUnauthorized:
+		return ErrUnauthorized
 	case http.StatusForbidden:
 		return ErrForbidden
+	case http.StatusConflict:
+		return ErrDuplicate
+	case http.StatusNotFound:
+		return ErrNotFound
 	case http.StatusBadRequest:
 		return fmt.Errorf("%w: %s", ErrForbidden, apiError.Message)
 	}
@@ -33,17 +38,20 @@ func checkError(status int, body []byte) error {
 	return nil
 }
 
-func get[Res any](client Client, path string, query map[string]string) (res *Res, err error) {
-	req, err := http.NewRequest(http.MethodGet, path, nil)
+func get[Res any](client Client, path string, query map[string]string) (*Res, error) {
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s%s", client.Base, path), nil)
 	if err != nil {
 		return nil, err
 	}
 
+	req.Header.Add("Authorization", "Bearer "+client.Token)
+
+	q := req.URL.Query()
 	for k, v := range query {
-		req.URL.Query().Set(k, v)
+		q.Set(k, v)
 	}
 
-	req.Header.Add("Authorization", "Bearer "+client.Token)
+	req.URL.RawQuery = q.Encode()
 
 	resp, err := client.Http.Do(req)
 	if err != nil {
@@ -61,25 +69,29 @@ func get[Res any](client Client, path string, query map[string]string) (res *Res
 		return nil, err
 	}
 
-	err = json.Unmarshal(body, res)
+	var res Res
+	err = json.Unmarshal(body, &res)
 	if err != nil {
 		return nil, err
 	}
 
-	return res, nil
+	return &res, nil
 }
 
 func list[Res any](client Client, path string, query map[string]string) ([]Res, error) {
-	req, err := http.NewRequest(http.MethodGet, path, nil)
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s%s", client.Base, path), nil)
 	if err != nil {
 		return nil, err
 	}
 
 	req.Header.Add("Authorization", "Bearer "+client.Token)
 
+	q := req.URL.Query()
 	for k, v := range query {
-		req.URL.Query().Set(k, v)
+		q.Set(k, v)
 	}
+
+	req.URL.RawQuery = q.Encode()
 
 	resp, err := client.Http.Do(req)
 	if err != nil {
@@ -106,13 +118,13 @@ func list[Res any](client Client, path string, query map[string]string) ([]Res, 
 	return res, nil
 }
 
-func request[Req, Res any](client Client, method string, path string, req *Req) (res *Res, err error) {
+func request[Req, Res any](client Client, method string, path string, req *Req) (*Res, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
 	}
 
-	httpReq, err := http.NewRequest(method, path, bytes.NewReader(body))
+	httpReq, err := http.NewRequest(method, fmt.Sprintf("%s%s", client.Base, path), bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
@@ -136,12 +148,13 @@ func request[Req, Res any](client Client, method string, path string, req *Req) 
 		return nil, err
 	}
 
-	err = json.Unmarshal(body, res)
+	var res Res
+	err = json.Unmarshal(body, &res)
 	if err != nil {
 		return nil, err
 	}
 
-	return res, nil
+	return &res, nil
 }
 
 func post[Req, Res any](client Client, path string, req *Req) (res *Res, err error) {

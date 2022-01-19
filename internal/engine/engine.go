@@ -303,7 +303,7 @@ func Run(options *Options) error {
 
 	client := api.Client{
 		Base:  u.String(),
-		Token: options.APIToken,
+		Token: engineAPIToken,
 		Http: http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: hostTLSConfig,

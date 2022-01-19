@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"crypto/x509"
 	"errors"
 	"fmt"
@@ -117,7 +116,10 @@ HOST:
 		}
 	}
 
-	client := apiClientWith(selectedHost.Host, "", selectedHost.SkipTLSVerify)
+	client, err := apiClientWith(selectedHost.Host, "", skipTLSVerify)
+	if err != nil {
+		return err
+	}
 
 	providers, err := client.ListProviders()
 	if err != nil {
@@ -226,7 +228,10 @@ provider:
 
 	fmt.Fprintf(os.Stderr, "  Logged in as %s\n", termenv.String(loginRes.Name).Bold().String())
 
-	client = apiClientWith(selectedHost.Host, selectedHost.Token, selectedHost.SkipTLSVerify)
+	client, err = apiClientWith(selectedHost.Host, selectedHost.Token, selectedHost.SkipTLSVerify)
+	if err != nil {
+		return err
+	}
 
 	users, err := client.ListUsers(loginRes.Name)
 	if err != nil {
@@ -305,14 +310,14 @@ func promptShouldSkipTLSVerify(host string) (shouldSkipTLSVerify bool, proceed b
 	url.Scheme = "https"
 	urlString := url.String()
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, urlString, nil)
+	req, err := http.NewRequest(http.MethodGet, urlString, nil)
 	if err != nil {
 		return false, false, err
 	}
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		if !errors.As(err, &x509.UnknownAuthorityError{}) && !errors.As(err, &x509.HostnameError{}) {
+		if !errors.Is(err, x509.CertificateInvalidError{}) && !errors.Is(err, x509.SystemRootsError{}) && !strings.Contains(err.Error(), "certificate is not trusted") {
 			return false, false, err
 		}
 
