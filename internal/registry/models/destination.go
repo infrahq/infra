@@ -71,7 +71,7 @@ func (d *Destination) FromAPI(from interface{}) error {
 		return nil
 	}
 
-	if request, ok := from.(*api.DestinationRequest); ok {
+	if request, ok := from.(*api.CreateDestinationRequest); ok {
 		d.Name = request.Name
 		d.NodeID = request.NodeID
 		d.Kind = DestinationKind(request.Kind)

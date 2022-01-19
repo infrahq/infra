@@ -1,5 +1,12 @@
 package api
 
+import (
+	"encoding/json"
+	"fmt"
+
+	"github.com/google/uuid"
+)
+
 // Destination struct for Destination
 type Destination struct {
 	ID     string          `json:"id"`
@@ -12,4 +19,78 @@ type Destination struct {
 	Updated    int64                  `json:"updated"`
 	Labels     []string               `json:"labels" form:"labels"`
 	Kubernetes *DestinationKubernetes `json:"kubernetes,omitempty"`
+}
+
+// DestinationKubernetes struct for DestinationKubernetes
+type DestinationKubernetes struct {
+	CA       string `json:"ca" validate:"required"`
+	Endpoint string `json:"endpoint" validate:"required"`
+}
+
+type ListDestinationsRequest struct {
+	Kind   DestinationKind `query:"kind"`
+	NodeID string          `query:"node_id"`
+	Name   string          `query:"name"`
+	Labels []string        `query:"labels"`
+}
+
+type CreateDestinationRequest struct {
+	ID         uuid.UUID              `json:"id"`
+	Kind       DestinationKind        `json:"kind"`
+	NodeID     string                 `json:"nodeID" validate:"required"`
+	Name       string                 `json:"name" validate:"required"`
+	Labels     []string               `json:"labels"`
+	Kubernetes *DestinationKubernetes `json:"kubernetes,omitempty"`
+}
+
+type UpdateDestinationRequest struct {
+	ID         uuid.UUID              `json:"id" uri:"id" validate:"required"`
+	Kind       DestinationKind        `json:"kind"`
+	NodeID     string                 `json:"nodeID" validate:"required"`
+	Name       string                 `json:"name" validate:"required"`
+	Labels     []string               `json:"labels"`
+	Kubernetes *DestinationKubernetes `json:"kubernetes,omitempty"`
+}
+
+// DestinationKind the model 'DestinationKind'
+type DestinationKind string
+
+// List of DestinationKind
+const (
+	DestinationKindKubernetes DestinationKind = "kubernetes"
+)
+
+var ValidDestinationKinds = []DestinationKind{
+	DestinationKindKubernetes,
+}
+
+func (v *DestinationKind) UnmarshalJSON(src []byte) error {
+	var value string
+
+	err := json.Unmarshal(src, &value)
+	if err != nil {
+		return err
+	}
+
+	enumTypeValue := DestinationKind(value)
+
+	for _, existing := range ValidDestinationKinds {
+		if existing == enumTypeValue {
+			*v = enumTypeValue
+			return nil
+		}
+	}
+
+	return fmt.Errorf("%+v is not a valid DestinationKind", value)
+}
+
+// IsValid return true if the value is valid for the enum, false otherwise
+func (v DestinationKind) IsValid() bool {
+	for _, existing := range ValidDestinationKinds {
+		if existing == v {
+			return true
+		}
+	}
+
+	return false
 }

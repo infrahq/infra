@@ -7,7 +7,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/google/uuid"
 	"gopkg.in/segmentio/analytics-go.v3"
 
 	"github.com/infrahq/infra/internal"
@@ -20,25 +19,6 @@ import (
 type API struct {
 	t        *Telemetry
 	registry *Registry
-}
-
-type stringUUID string
-
-func (s stringUUID) UUID() (uuid.UUID, error) {
-	r, err := uuid.Parse(string(s))
-	if err != nil {
-		return uuid.Nil, fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
-	}
-
-	return r, nil
-}
-
-type Resource struct {
-	ID uuid.UUID
-}
-
-type resource struct {
-	ID stringUUID `uri:"id" binding:"required,uuid"`
 }
 
 func NewAPIMux(reg *Registry, router *gin.RouterGroup) {
@@ -59,44 +39,122 @@ func NewAPIMux(reg *Registry, router *gin.RouterGroup) {
 	)
 
 	{
-		authorized.GET("/users", a.ListUsers)
-		authorized.GET("/users/:id", a.GetUser)
+		get(authorized, "/users", a.ListUsers)
+		get(authorized, "/users/:id", a.GetUser)
 
-		authorized.GET("/groups", a.ListGroups)
-		authorized.GET("/groups/:id", a.GetGroup)
+		get(authorized, "/groups", a.ListGroups)
+		get(authorized, "/groups/:id", a.GetGroup)
 
-		authorized.GET("/grants", a.ListGrants)
-		authorized.GET("/grants/:id", a.GetGrant)
+		get(authorized, "/grants", a.ListGrants)
+		get(authorized, "/grants/:id", a.GetGrant)
 
-		authorized.POST("/providers", a.CreateProvider)
-		authorized.PUT("/providers/:id", a.UpdateProvider)
-		authorized.DELETE("/providers/:id", a.DeleteProvider)
+		post(authorized, "/providers", a.CreateProvider)
+		put(authorized, "/providers/:id", a.UpdateProvider)
+		delete(authorized, "/providers/:id", a.DeleteProvider)
 
-		authorized.GET("/destinations", a.ListDestinations)
-		authorized.GET("/destinations/:id", a.GetDestination)
-		authorized.POST("/destinations", a.CreateDestination)
-		authorized.PUT("/destinations/:id", a.UpdateDestination)
-		authorized.DELETE("/destinations/:id", a.DeleteDestination)
+		get(authorized, "/destinations", a.ListDestinations)
+		get(authorized, "/destinations/:id", a.GetDestination)
+		post(authorized, "/destinations", a.CreateDestination)
+		put(authorized, "/destinations/:id", a.UpdateDestination)
+		delete(authorized, "/destinations/:id", a.DeleteDestination)
 
-		authorized.GET("/api-tokens", a.ListAPITokens)
-		authorized.POST("/api-tokens", a.CreateAPIToken)
-		authorized.DELETE("/api-tokens/:id", a.DeleteAPIToken)
+		get(authorized, "/api-tokens", a.ListAPITokens)
+		post(authorized, "/api-tokens", a.CreateAPIToken)
+		delete(authorized, "/api-tokens/:id", a.DeleteAPIToken)
 
-		authorized.POST("/tokens", a.CreateToken)
-		authorized.POST("/logout", a.Logout)
+		post(authorized, "/tokens", a.CreateToken)
+		post(authorized, "/logout", a.Logout)
 	}
 
-	// these endpoints are left unauthenticated so that infra login can see what the providers are that are available
+	// these endpoints are left unauthenticated
 	unauthorized := router.Group("/")
 
 	{
-		unauthorized.GET("/providers", a.ListProviders)
-		unauthorized.GET("/providers/:id", a.GetProvider)
+		get(unauthorized, "/providers", a.ListProviders)
+		get(unauthorized, "/providers/:id", a.GetProvider)
 
-		unauthorized.POST("/login", a.Login)
-		unauthorized.GET("/version", a.Version)
+		post(unauthorized, "/login", a.Login)
+		get(unauthorized, "/version", a.Version)
+	}
+
+}
+
+func get[Req, Res any](r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		req := *new(Req)
+		// TODO: bind uri and query
+		c.Bind(req)
+		if err := validate.Struct(req); err != nil {
+			sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
+			return
+		}
+		resp, err := handler(c, req)
+		if err != nil {
+			sendAPIError(c, err)
+			return
+		}
+		c.JSON(http.StatusOK, resp)
 	}
 }
+
+func post[Req, Res any](r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		req := *new(Req)
+		// TODO: bind uri and query
+		c.Bind(req)
+		if err := validate.Struct(req); err != nil {
+			sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
+			return
+		}
+		resp, err := handler(c, req)
+		if err != nil {
+			sendAPIError(c, err)
+			return
+		}
+		c.JSON(http.StatusCreated, resp)
+	}
+}
+
+func put[Req, Res any](r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		req := *new(Req)
+		// TODO: bind uri and query
+		c.Bind(req)
+		if err := validate.Struct(req); err != nil {
+			sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
+			return
+		}
+		resp, err := handler(c, req)
+		if err != nil {
+			sendAPIError(c, err)
+			return
+		}
+		c.JSON(http.StatusOK, resp)
+	}
+}
+
+func delete[Req any](r *gin.RouterGroup, path string, handler ReqHandlerFunc[Req]) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		req := *new(Req)
+		// TODO: bind uri and query
+		c.Bind(req)
+		if err := validate.Struct(req); err != nil {
+			sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
+			return
+		}
+		err := handler(c, req)
+		if err != nil {
+			sendAPIError(c, err)
+			return
+		}
+		c.Status(http.StatusNoContent)
+		c.Writer.WriteHeaderNow()
+	}
+}
+
+type ReqHandlerFunc[Req any] func(c *gin.Context, req Req) error
+type ResHandlerFunc[Res any] func(c *gin.Context) (Res, error)
+type ReqResHandlerFunc[Req, Res any] func(c *gin.Context, req Req) (Res, error)
 
 func sendAPIError(c *gin.Context, err error) {
 	code := http.StatusInternalServerError
@@ -132,362 +190,206 @@ func sendAPIError(c *gin.Context, err error) {
 	c.Abort()
 }
 
-func (a *API) ListUsers(c *gin.Context) {
-	userEmail := c.Query("email")
-
-	users, err := access.ListUsers(c, userEmail)
+func (a *API) ListUsers(c *gin.Context, r *api.ListUsersRequest) ([]api.User, error) {
+	users, err := access.ListUsers(c, r.Email)
 	if err != nil {
-		sendAPIError(c, err)
-		return
+		return nil, err
 	}
 
-	results := make([]api.User, 0)
-	for _, u := range users {
-		results = append(results, u.ToAPI())
+	results := make([]api.User, len(users))
+	for i, u := range users {
+		results[i] = u.ToAPI()
 	}
 
-	c.JSON(http.StatusOK, results)
+	return results, nil
 }
 
-func (a *API) GetUser(c *gin.Context) {
-	r, err := bindURIResource(c)
-	if err != nil {
-		sendAPIError(c, err)
-		return
-	}
-
+func (a *API) GetUser(c *gin.Context, r *api.Resource) (*api.User, error) {
 	user, err := access.GetUser(c, r.ID)
 	if err != nil {
-		sendAPIError(c, err)
-		return
+		return nil, err
 	}
 
-	result := user.ToAPI()
-
-	c.JSON(http.StatusOK, result)
+	resp := user.ToAPI()
+	return &resp, nil
 }
 
-func (a *API) ListGroups(c *gin.Context) {
-	groupName := c.Request.URL.Query().Get("name")
-
-	groups, err := access.ListGroups(c, groupName)
+func (a *API) ListGroups(c *gin.Context, r *api.ListGroupsRequest) ([]api.Group, error) {
+	groups, err := access.ListGroups(c, r.GroupName)
 	if err != nil {
-		sendAPIError(c, err)
-		return
+		return nil, err
 	}
 
-	results := make([]api.Group, 0)
-	for _, g := range groups {
-		results = append(results, g.ToAPI())
+	results := make([]api.Group, len(groups))
+	for i, g := range groups {
+		results[i] = g.ToAPI()
 	}
 
-	c.JSON(http.StatusOK, results)
+	return results, nil
 }
 
-func (a *API) GetGroup(c *gin.Context) {
-	r, err := bindURIResource(c)
-	if err != nil {
-		sendAPIError(c, err)
-		return
-	}
-
+func (a *API) GetGroup(c *gin.Context, r *api.Resource) (*api.Group, error) {
 	group, err := access.GetGroup(c, r.ID)
 	if err != nil {
-		sendAPIError(c, err)
-		return
+		return nil, err
 	}
 
-	c.JSON(http.StatusOK, group.ToAPI())
+	resp := group.ToAPI()
+	return &resp, nil
 }
 
 // caution: this endpoint is unauthenticated, do not return sensitive info
-func (a *API) ListProviders(c *gin.Context) {
-	providerKind := c.Request.URL.Query().Get("kind")
-	providerDomain := c.Request.URL.Query().Get("domain")
-
-	providers, err := access.ListProviders(c, providerKind, providerDomain)
+func (a *API) ListProviders(c *gin.Context, r *api.ListProvidersRequest) ([]api.Provider, error) {
+	providers, err := access.ListProviders(c, models.ProviderKind(r.ProviderKind), r.Domain)
 	if err != nil {
-		sendAPIError(c, err)
-		return
+		return nil, err
 	}
 
-	results := make([]api.Provider, 0)
-	for _, p := range providers {
-		results = append(results, p.ToAPI())
+	results := make([]api.Provider, len(providers))
+	for i, p := range providers {
+		results[i] = p.ToAPI()
 	}
 
-	c.JSON(http.StatusOK, results)
+	return results, nil
 }
 
 // caution: this endpoint is unauthenticated, do not return sensitive info
-func (a *API) GetProvider(c *gin.Context) {
-	r, err := bindURIResource(c)
-	if err != nil {
-		sendAPIError(c, err)
-		return
-	}
-
+func (a *API) GetProvider(c *gin.Context, r *api.Resource) (*api.Provider, error) {
 	provider, err := access.GetProvider(c, r.ID)
 	if err != nil {
-		sendAPIError(c, err)
-		return
+		return nil, err
 	}
 
 	result := provider.ToAPI()
-
-	c.JSON(http.StatusOK, result)
+	return &result, nil
 }
 
-func (a *API) CreateProvider(c *gin.Context) {
-	var body api.ProviderRequest
-	if err := c.BindJSON(&body); err != nil {
-		sendAPIError(c, err)
-		return
-	}
-
+func (a *API) CreateProvider(c *gin.Context, r *api.CreateProviderRequest) (*api.Provider, error) {
 	provider := &models.Provider{}
-	if err := provider.FromAPI(&body); err != nil {
-		sendAPIError(c, err)
-		return
+	if err := provider.FromAPI(&r); err != nil {
+		return nil, err
 	}
 
 	provider, err := access.CreateProvider(c, provider)
 	if err != nil {
-		sendAPIError(c, err)
-		return
+		return nil, err
 	}
 
 	result := provider.ToAPI()
-	c.JSON(http.StatusCreated, result)
+	return &result, nil
 }
 
-func (a *API) UpdateProvider(c *gin.Context) {
-	r, err := bindURIResource(c)
+func (a *API) UpdateProvider(c *gin.Context, r *api.UpdateProviderRequest) (*api.Provider, error) {
+	provider := models.NewProvider(r.ID)
+	if err := provider.FromAPI(r); err != nil {
+		return nil, err
+	}
+
+	provider, err := access.UpdateProvider(c, r.ID, provider)
 	if err != nil {
-		sendAPIError(c, err)
-		return
-	}
-
-	var body api.ProviderRequest
-	if err := c.BindJSON(&body); err != nil {
-		sendAPIError(c, err)
-		return
-	}
-
-	provider, err := models.NewProvider(r.ID)
-	if err != nil {
-		sendAPIError(c, err)
-		return
-	}
-
-	if err := provider.FromAPI(&body); err != nil {
-		sendAPIError(c, err)
-		return
-	}
-
-	provider, err = access.UpdateProvider(c, r.ID, provider)
-	if err != nil {
-		sendAPIError(c, err)
-		return
+		return nil, err
 	}
 
 	result := provider.ToAPI()
-	c.JSON(http.StatusOK, result)
+	return &result, nil
 }
 
-func (a *API) DeleteProvider(c *gin.Context) {
-	r, err := bindURIResource(c)
-	if err != nil {
-		sendAPIError(c, err)
-		return
-	}
-
-	if err := access.DeleteProvider(c, r.ID); err != nil {
-		sendAPIError(c, err)
-		return
-	}
-
-	c.Status(http.StatusNoContent)
-	c.Writer.WriteHeaderNow()
+func (a *API) DeleteProvider(c *gin.Context, r *api.Resource) error {
+	return access.DeleteProvider(c, r.ID)
 }
 
-func (a *API) ListDestinations(c *gin.Context) {
-	var query api.Destination
-	if err := c.ShouldBindQuery(&query); err != nil {
-		sendAPIError(c, err)
-		return
-	}
-
-	destinations, err := access.ListDestinations(c, string(query.Kind), query.NodeID, query.Name, query.Labels)
+func (a *API) ListDestinations(c *gin.Context, r *api.ListDestinationsRequest) ([]api.Destination, error) {
+	destinations, err := access.ListDestinations(c, string(r.Kind), r.NodeID, r.Name, r.Labels)
 	if err != nil {
-		sendAPIError(c, err)
-		return
+		return nil, err
 	}
 
-	results := make([]api.Destination, 0)
-	for _, d := range destinations {
-		results = append(results, *d.ToAPI())
+	results := make([]api.Destination, len(destinations))
+	for i, d := range destinations {
+		results[i] = *d.ToAPI()
 	}
 
-	c.JSON(http.StatusOK, results)
+	return results, nil
 }
 
-func (a *API) GetDestination(c *gin.Context) {
-	r, err := bindURIResource(c)
-	if err != nil {
-		sendAPIError(c, err)
-		return
-	}
-
+func (a *API) GetDestination(c *gin.Context, r *api.Resource) (*api.Destination, error) {
 	destination, err := access.GetDestination(c, r.ID)
 	if err != nil {
-		sendAPIError(c, err)
-		return
+		return nil, err
 	}
 
-	result := destination.ToAPI()
-	c.JSON(http.StatusOK, result)
+	return destination.ToAPI(), nil
 }
 
-func (a *API) CreateDestination(c *gin.Context) {
-	var body api.DestinationRequest
-	if err := c.BindJSON(&body); err != nil {
-		sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
-		return
-	}
-
+func (a *API) CreateDestination(c *gin.Context, r *api.CreateDestinationRequest) (*api.Destination, error) {
 	destination := &models.Destination{}
-	if err := destination.FromAPI(&body); err != nil {
-		sendAPIError(c, err)
-		return
+	if err := destination.FromAPI(r); err != nil {
+		return nil, err
 	}
 
 	err := access.CreateDestination(c, destination)
 	if err != nil {
-		sendAPIError(c, err)
-		return
+		return nil, err
 	}
 
 	result := destination.ToAPI()
-	c.JSON(http.StatusCreated, result)
+	return result, nil
 }
 
-func (a *API) UpdateDestination(c *gin.Context) {
-	r, err := bindURIResource(c)
-	if err != nil {
-		sendAPIError(c, err)
-		return
-	}
-
-	var body api.DestinationRequest
-	if err := c.BindJSON(&body); err != nil {
-		sendAPIError(c, err)
-		return
-	}
-
+func (a *API) UpdateDestination(c *gin.Context, r *api.UpdateDestinationRequest) (*api.Destination, error) {
 	destination := &models.Destination{Model: models.Model{ID: r.ID}}
-
-	if err := destination.FromAPI(&body); err != nil {
-		sendAPIError(c, err)
-		return
+	if err := destination.FromAPI(r); err != nil {
+		return nil, err
 	}
 
-	err = access.UpdateDestination(c, destination)
-	if err != nil {
-		sendAPIError(c, err)
-		return
+	if err := access.UpdateDestination(c, destination); err != nil {
+		return nil, err
 	}
 
-	result := destination.ToAPI()
-	c.JSON(http.StatusOK, result)
+	return destination.ToAPI(), nil
 }
 
-func (a *API) DeleteDestination(c *gin.Context) {
-	r, err := bindURIResource(c)
-	if err != nil {
-		sendAPIError(c, err)
-		return
-	}
-
-	if err := access.DeleteDestination(c, r.ID); err != nil {
-		sendAPIError(c, err)
-		return
-	}
-
-	c.Status(http.StatusNoContent)
-	c.Writer.WriteHeaderNow()
+func (a *API) DeleteDestination(c *gin.Context, r *api.Resource) error {
+	return access.DeleteDestination(c, r.ID)
 }
 
-func (a *API) ListAPITokens(c *gin.Context) {
-	keyName := c.Request.URL.Query().Get("name")
-
-	keyTuples, err := access.ListAPITokens(c, keyName)
+func (a *API) ListAPITokens(c *gin.Context, r *api.ListAPITokensRequest) ([]api.InfraAPIToken, error) {
+	keyTuples, err := access.ListAPITokens(c, r.KeyName)
 	if err != nil {
-		sendAPIError(c, err)
-		return
+		return nil, err
 	}
 
-	results := make([]api.InfraAPIToken, 0)
+	results := make([]api.InfraAPIToken, len(keyTuples))
 
-	for _, k := range keyTuples {
-		key := k.ToAPI()
-		results = append(results, *key)
+	for i, k := range keyTuples {
+		results[i] = *(k.ToAPI())
 	}
 
-	c.JSON(http.StatusOK, results)
+	return results, nil
 }
 
-func (a *API) DeleteAPIToken(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		sendAPIError(c, fmt.Errorf("%w: invalid API key ID: %s", internal.ErrBadRequest, err))
-		return
-	}
-
-	if err := access.RevokeAPIToken(c, id); err != nil {
-		sendAPIError(c, err)
-		return
-	}
-
-	c.Status(http.StatusNoContent)
-	c.Writer.WriteHeaderNow()
+func (a *API) DeleteAPIToken(c *gin.Context, r *api.Resource) error {
+	return access.RevokeAPIToken(c, r.ID)
 }
 
-func (a *API) CreateAPIToken(c *gin.Context) {
-	var body api.InfraAPITokenCreateRequest
-	if err := c.BindJSON(&body); err != nil {
-		sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
-		return
-	}
-
-	if err := validate.Struct(body); err != nil {
-		sendAPIError(c, err)
-		return
-	}
-
+func (a *API) CreateAPIToken(c *gin.Context, r *api.InfraAPITokenCreateRequest) (*api.InfraAPITokenCreateResponse, error) {
 	apiToken := &models.APIToken{}
-	if err := apiToken.FromAPI(&body, DefaultSessionDuration); err != nil {
-		sendAPIError(c, err)
-		return
+	if err := apiToken.FromAPI(r, DefaultSessionDuration); err != nil {
+		return nil, err
 	}
 
 	tkn, err := access.IssueAPIToken(c, apiToken)
 	if err != nil {
-		sendAPIError(c, err)
-		return
+		return nil, err
 	}
 
-	c.JSON(http.StatusCreated, apiToken.ToAPICreateResponse(tkn))
+	return apiToken.ToAPICreateResponse(tkn), nil
 }
 
-func (a *API) ListGrants(c *gin.Context) {
-	grantKind := c.Query("kind")
-	destinationID, _ := uuid.Parse(c.Query("destination")) // should be destinationID ?
-
-	grants, err := access.ListGrants(c, models.GrantKind(grantKind), destinationID)
+func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) ([]api.Grant, error) {
+	grants, err := access.ListGrants(c, models.GrantKind(r.GrantKind), r.DestinationID)
 	if err != nil {
-		sendAPIError(c, err)
-		return
+		return nil, err
 	}
 
 	results := make([]api.Grant, 0)
@@ -495,81 +397,47 @@ func (a *API) ListGrants(c *gin.Context) {
 		results = append(results, r.ToAPI())
 	}
 
-	c.JSON(http.StatusOK, results)
+	return results, nil
 }
 
-func (a *API) GetGrant(c *gin.Context) {
-	r, err := bindURIResource(c)
-	if err != nil {
-		sendAPIError(c, err)
-		return
-	}
-
+func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {
 	grant, err := access.GetGrant(c, r.ID)
 	if err != nil {
-		sendAPIError(c, err)
-		return
+		return nil, err
 	}
 
 	result := grant.ToAPI()
-
-	c.JSON(http.StatusOK, result)
+	return &result, nil
 }
 
-func (a *API) CreateToken(c *gin.Context) {
-	var body api.TokenRequest
-	if err := c.BindJSON(&body); err != nil {
-		sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
-		return
-	}
-
-	if err := validate.Struct(body); err != nil {
-		sendAPIError(c, err)
-		return
-	}
-
-	token, expiry, err := access.IssueJWT(c, body.Destination)
+func (a *API) CreateToken(c *gin.Context, r *api.TokenRequest) (*api.Token, error) {
+	token, expiry, err := access.IssueJWT(c, r.Destination)
 	if err != nil {
-		sendAPIError(c, err)
-		return
+		return nil, err
 	}
 
-	c.JSON(http.StatusOK, api.Token{Token: token, Expires: expiry.Unix()})
+	return &api.Token{Token: token, Expires: expiry.Unix()}, nil
 }
 
-func (a *API) Login(c *gin.Context) {
-	var body api.LoginRequest
-	if err := c.BindJSON(&body); err != nil {
-		sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
-		return
-	}
-
-	if err := validate.Struct(body); err != nil {
-		sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
-		return
-	}
-
+func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, error) {
 	var email string
 
 	switch {
-	case body.Okta != nil:
-		providers, err := access.ListProviders(c, "okta", body.Okta.Domain)
+	case r.Okta != nil:
+		providers, err := access.ListProviders(c, "okta", r.Okta.Domain)
 		if err != nil {
-			sendAPIError(c, err)
-			return
+			return nil, err
 		}
 
 		if len(providers) == 0 {
-			sendAPIError(c, internal.ErrBadRequest)
-			return
+			return nil, fmt.Errorf("%w: no such provider", internal.ErrBadRequest)
 		}
 
-		provider := providers[0]
+		provider := providers[0] // TODO: should probably check all providers, not the first one.
 
 		clientSecret, err := a.registry.GetSecret(string(provider.ClientSecret))
 		if err != nil {
-			sendAPIError(c, err)
-			return
+			return nil, err
 		}
 
 		var okta Okta
@@ -579,21 +447,18 @@ func (a *API) Login(c *gin.Context) {
 			okta = NewOkta()
 		}
 
-		email, err = okta.EmailFromCode(body.Okta.Code, provider.Domain, provider.ClientID, clientSecret)
+		email, err = okta.EmailFromCode(r.Okta.Code, provider.Domain, provider.ClientID, clientSecret)
 		if err != nil {
-			sendAPIError(c, err)
-			return
+			return nil, err
 		}
 
 	default:
-		sendAPIError(c, fmt.Errorf("invalid login request: %w", internal.ErrBadRequest))
-		return
+		return nil, fmt.Errorf("%w: invalid login request", internal.ErrBadRequest)
 	}
 
 	user, token, err := access.IssueUserToken(c, email, a.registry.options.SessionDuration)
 	if err != nil {
-		sendAPIError(c, err)
-		return
+		return nil, err
 	}
 
 	setAuthCookie(c, token.SessionToken(), a.registry.options.SessionDuration)
@@ -604,14 +469,13 @@ func (a *API) Login(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, api.LoginResponse{Name: user.Email, Token: token.SessionToken()})
+	return &api.LoginResponse{Name: user.Email, Token: token.SessionToken()}, nil
 }
 
-func (a *API) Logout(c *gin.Context) {
+func (a *API) Logout(c *gin.Context, r *api.EmptyRequest) (*api.EmptyResponse, error) {
 	token, err := access.RevokeToken(c)
 	if err != nil {
-		sendAPIError(c, err)
-		return
+		return nil, err
 	}
 
 	deleteAuthCookie(c)
@@ -622,23 +486,9 @@ func (a *API) Logout(c *gin.Context) {
 		}
 	}
 
-	c.Status(http.StatusOK)
+	return nil, nil
 }
 
-func (a *API) Version(c *gin.Context) {
-	c.JSON(http.StatusOK, api.Version{Version: internal.Version})
-}
-
-func bindURIResource(c *gin.Context) (Resource, error) {
-	r := resource{}
-	if err := c.BindUri(&r); err != nil {
-		return Resource{}, fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
-	}
-
-	id, err := r.ID.UUID()
-	if err != nil {
-		return Resource{}, err
-	}
-
-	return Resource{ID: id}, nil
+func (a *API) Version(c *gin.Context, r *api.EmptyRequest) (*api.Version, error) {
+	return &api.Version{Version: internal.Version}, nil
 }

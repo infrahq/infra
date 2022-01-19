@@ -1,5 +1,7 @@
 package api
 
+import "github.com/google/uuid"
+
 // Grant struct for Grant
 type Grant struct {
 	ID string `json:"id"`
@@ -12,4 +14,9 @@ type Grant struct {
 	Kubernetes  *GrantKubernetes `json:"kubernetes,omitempty"`
 	Users       []User           `json:"users,omitempty"`
 	Groups      []Group          `json:"groups,omitempty"`
+}
+
+type ListGrantsRequest struct {
+	GrantKind     GrantKind `query:"kind"`
+	DestinationID uuid.UUID `query:"destination_id"`
 }

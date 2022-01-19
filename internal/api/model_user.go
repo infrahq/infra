@@ -1,5 +1,7 @@
 package api
 
+import "github.com/google/uuid"
+
 // User struct for User
 type User struct {
 	ID    string `json:"id"`
@@ -13,4 +15,12 @@ type User struct {
 	Groups     []Group    `json:"groups,omitempty"`
 	Grants     []Grant    `json:"grants,omitempty"`
 	Providers  []Provider `json:"providers,omitempty"`
+}
+
+type ListUsersRequest struct {
+	Email string `query:"email"`
+}
+
+type Resource struct {
+	ID uuid.UUID `uri:"id" validate:"required"`
 }

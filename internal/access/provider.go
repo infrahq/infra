@@ -34,13 +34,13 @@ func GetProvider(c *gin.Context, id uuid.UUID) (*models.Provider, error) {
 	return data.GetProvider(db, data.ByID(id))
 }
 
-func ListProviders(c *gin.Context, kind, domain string) ([]models.Provider, error) {
+func ListProviders(c *gin.Context, kind models.ProviderKind, domain string) ([]models.Provider, error) {
 	db, err := requireAuthorization(c)
 	if err != nil {
 		return nil, err
 	}
 
-	return data.ListProviders(db, &models.Provider{Kind: models.ProviderKind(kind), Domain: domain})
+	return data.ListProviders(db, &models.Provider{Kind: kind, Domain: domain})
 }
 
 func UpdateProvider(c *gin.Context, id uuid.UUID, provider *models.Provider) (*models.Provider, error) {

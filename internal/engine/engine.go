@@ -384,17 +384,6 @@ func Run(options *Options) error {
 				}
 			}
 
-			request := &api.DestinationRequest{
-				NodeID: chksm,
-				Name:   options.Name,
-				Kind:   kind,
-				Labels: options.Labels,
-				Kubernetes: &api.DestinationKubernetes{
-					CA:       string(caBytes),
-					Endpoint: endpoint,
-				},
-			}
-
 			destinations, err := client.ListDestinations(chksm)
 			if err != nil {
 				logging.S.Errorf("error listing destinations: %w", err)
@@ -403,6 +392,17 @@ func Run(options *Options) error {
 
 			switch len(destinations) {
 			case 0:
+				request := &api.CreateDestinationRequest{
+					NodeID: chksm,
+					Name:   options.Name,
+					Kind:   kind,
+					Labels: options.Labels,
+					Kubernetes: &api.DestinationKubernetes{
+						CA:       string(caBytes),
+						Endpoint: endpoint,
+					},
+				}
+
 				destination, err := client.CreateDestination(request)
 				if err != nil {
 					logging.S.Errorf("error creating destination: %w", err)
@@ -411,6 +411,17 @@ func Run(options *Options) error {
 
 				destinationID = destination.ID
 			case 1:
+				request := &api.UpdateDestinationRequest{
+					NodeID: chksm,
+					Name:   options.Name,
+					Kind:   kind,
+					Labels: options.Labels,
+					Kubernetes: &api.DestinationKubernetes{
+						CA:       string(caBytes),
+						Endpoint: endpoint,
+					},
+				}
+
 				_, err := client.UpdateDestination(destinations[0].ID, request)
 				if err != nil {
 					logging.S.Errorf("error updating destination: %w", err)

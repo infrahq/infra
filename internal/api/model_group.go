@@ -12,3 +12,7 @@ type Group struct {
 	Grants    []Grant    `json:"grants,omitempty"`
 	Providers []Provider `json:"providers,omitempty"`
 }
+
+type ListGroupsRequest struct {
+	GroupName string `query:"name"`
+}
