@@ -181,12 +181,12 @@ func (c Client) ListGrants(kind GrantKind, destinationID string) ([]Grant, error
 	return list[Grant](c, "/v1/grants", map[string]string{"kind": string(kind), "destination_id": destinationID})
 }
 
-func (c Client) CreateDestination(req *DestinationRequest) (*Destination, error) {
-	return post[DestinationRequest, Destination](c, "/v1/destinations", req)
+func (c Client) CreateDestination(req *CreateDestinationRequest) (*Destination, error) {
+	return post[CreateDestinationRequest, Destination](c, "/v1/destinations", req)
 }
 
-func (c Client) UpdateDestination(id string, req *DestinationRequest) (*Destination, error) {
-	return put[DestinationRequest, Destination](c, fmt.Sprintf("/v1/destinations/%s", id), req)
+func (c Client) UpdateDestination(id string, req *UpdateDestinationRequest) (*Destination, error) {
+	return put[UpdateDestinationRequest, Destination](c, fmt.Sprintf("/v1/destinations/%s", id), req)
 }
 
 func (c Client) CreateToken(req *TokenRequest) (*Token, error) {

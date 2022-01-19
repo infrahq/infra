@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 )
 
@@ -50,28 +51,28 @@ func (p *Provider) ToAPI() api.Provider {
 }
 
 func (p *Provider) FromAPI(from interface{}) error {
-	if request, ok := from.(*api.ProviderRequest); ok {
+	if request, ok := from.(*api.CreateProviderRequest); ok {
 		p.Kind = ProviderKind(request.Kind)
 		p.Domain = request.Domain
 		p.ClientID = request.ClientID
 		p.ClientSecret = EncryptedAtRest(request.ClientSecret)
 
-		if okta, ok := request.GetOktaOK(); ok {
+		if request.Okta != nil {
 			p.Okta = ProviderOkta{
-				APIToken: EncryptedAtRest(okta.APIToken),
+				APIToken: EncryptedAtRest(request.Okta.APIToken),
 			}
 		}
 
 		return nil
 	}
 
-	return fmt.Errorf("unknown provider kind")
+	return fmt.Errorf("%w: unknown provider kind", internal.ErrBadRequest)
 }
 
-func NewProvider(id uuid.UUID) (*Provider, error) {
+func NewProvider(id uuid.UUID) *Provider {
 	return &Provider{
 		Model: Model{
 			ID: id,
 		},
-	}, nil
+	}
 }

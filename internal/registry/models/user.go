@@ -23,7 +23,7 @@ type User struct {
 
 func (u *User) ToAPI() api.User {
 	result := api.User{
-		ID:      u.ID.String(),
+		ID:      api.UUID(u.ID.String()),
 		Created: u.CreatedAt.Unix(),
 		Updated: u.UpdatedAt.Unix(),
 
