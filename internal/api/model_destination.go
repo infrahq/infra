@@ -28,10 +28,10 @@ type DestinationKubernetes struct {
 }
 
 type ListDestinationsRequest struct {
-	Kind   DestinationKind `query:"kind"`
-	NodeID string          `query:"node_id"`
-	Name   string          `query:"name"`
-	Labels []string        `query:"labels"`
+	Kind   DestinationKind `form:"kind"`
+	NodeID string          `form:"node_id"`
+	Name   string          `form:"name"`
+	Labels []string        `form:"labels"`
 }
 
 type CreateDestinationRequest struct {

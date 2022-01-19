@@ -17,6 +17,6 @@ type Grant struct {
 }
 
 type ListGrantsRequest struct {
-	GrantKind     GrantKind `query:"kind"`
-	DestinationID uuid.UUID `query:"destination_id"`
+	GrantKind     GrantKind `form:"kind"`
+	DestinationID uuid.UUID `form:"destination_id"`
 }

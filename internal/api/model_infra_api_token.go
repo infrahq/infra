@@ -12,5 +12,5 @@ type InfraAPIToken struct {
 }
 
 type ListAPITokensRequest struct {
-	KeyName string `query:"name"`
+	KeyName string `form:"name"`
 }

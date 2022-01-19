@@ -27,134 +27,8 @@ func NewAPIMux(reg *Registry, router *gin.RouterGroup) {
 		registry: reg,
 	}
 
-	router.Use(
-		RequestTimeoutMiddleware(),
-		MetricsMiddleware(),
-		DatabaseMiddleware(reg.db),
-	)
-
-	authorized := router.Group("/",
-		AuthenticationMiddleware(),
-		logging.UserAwareLoggerMiddleware(),
-	)
-
-	{
-		get(authorized, "/users", a.ListUsers)
-		get(authorized, "/users/:id", a.GetUser)
-
-		get(authorized, "/groups", a.ListGroups)
-		get(authorized, "/groups/:id", a.GetGroup)
-
-		get(authorized, "/grants", a.ListGrants)
-		get(authorized, "/grants/:id", a.GetGrant)
-
-		post(authorized, "/providers", a.CreateProvider)
-		put(authorized, "/providers/:id", a.UpdateProvider)
-		delete(authorized, "/providers/:id", a.DeleteProvider)
-
-		get(authorized, "/destinations", a.ListDestinations)
-		get(authorized, "/destinations/:id", a.GetDestination)
-		post(authorized, "/destinations", a.CreateDestination)
-		put(authorized, "/destinations/:id", a.UpdateDestination)
-		delete(authorized, "/destinations/:id", a.DeleteDestination)
-
-		get(authorized, "/api-tokens", a.ListAPITokens)
-		post(authorized, "/api-tokens", a.CreateAPIToken)
-		delete(authorized, "/api-tokens/:id", a.DeleteAPIToken)
-
-		post(authorized, "/tokens", a.CreateToken)
-		post(authorized, "/logout", a.Logout)
-	}
-
-	// these endpoints are left unauthenticated
-	unauthorized := router.Group("/")
-
-	{
-		get(unauthorized, "/providers", a.ListProviders)
-		get(unauthorized, "/providers/:id", a.GetProvider)
-
-		post(unauthorized, "/login", a.Login)
-		get(unauthorized, "/version", a.Version)
-	}
-
+	a.registerRoutes(router)
 }
-
-func get[Req, Res any](r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		req := *new(Req)
-		// TODO: bind uri and query
-		c.Bind(req)
-		if err := validate.Struct(req); err != nil {
-			sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
-			return
-		}
-		resp, err := handler(c, req)
-		if err != nil {
-			sendAPIError(c, err)
-			return
-		}
-		c.JSON(http.StatusOK, resp)
-	}
-}
-
-func post[Req, Res any](r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		req := *new(Req)
-		// TODO: bind uri and query
-		c.Bind(req)
-		if err := validate.Struct(req); err != nil {
-			sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
-			return
-		}
-		resp, err := handler(c, req)
-		if err != nil {
-			sendAPIError(c, err)
-			return
-		}
-		c.JSON(http.StatusCreated, resp)
-	}
-}
-
-func put[Req, Res any](r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		req := *new(Req)
-		// TODO: bind uri and query
-		c.Bind(req)
-		if err := validate.Struct(req); err != nil {
-			sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
-			return
-		}
-		resp, err := handler(c, req)
-		if err != nil {
-			sendAPIError(c, err)
-			return
-		}
-		c.JSON(http.StatusOK, resp)
-	}
-}
-
-func delete[Req any](r *gin.RouterGroup, path string, handler ReqHandlerFunc[Req]) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		req := *new(Req)
-		// TODO: bind uri and query
-		c.Bind(req)
-		if err := validate.Struct(req); err != nil {
-			sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
-			return
-		}
-		err := handler(c, req)
-		if err != nil {
-			sendAPIError(c, err)
-			return
-		}
-		c.Status(http.StatusNoContent)
-		c.Writer.WriteHeaderNow()
-	}
-}
-
-type ReqHandlerFunc[Req any] func(c *gin.Context, req Req) error
-type ResHandlerFunc[Res any] func(c *gin.Context) (Res, error)
-type ReqResHandlerFunc[Req, Res any] func(c *gin.Context, req Req) (Res, error)
 
 func sendAPIError(c *gin.Context, err error) {
 	code := http.StatusInternalServerError
@@ -205,7 +79,7 @@ func (a *API) ListUsers(c *gin.Context, r *api.ListUsersRequest) ([]api.User, er
 }
 
 func (a *API) GetUser(c *gin.Context, r *api.Resource) (*api.User, error) {
-	user, err := access.GetUser(c, r.ID)
+	user, err := access.GetUser(c, r.ID.ToUUID())
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +103,7 @@ func (a *API) ListGroups(c *gin.Context, r *api.ListGroupsRequest) ([]api.Group,
 }
 
 func (a *API) GetGroup(c *gin.Context, r *api.Resource) (*api.Group, error) {
-	group, err := access.GetGroup(c, r.ID)
+	group, err := access.GetGroup(c, r.ID.ToUUID())
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +129,7 @@ func (a *API) ListProviders(c *gin.Context, r *api.ListProvidersRequest) ([]api.
 
 // caution: this endpoint is unauthenticated, do not return sensitive info
 func (a *API) GetProvider(c *gin.Context, r *api.Resource) (*api.Provider, error) {
-	provider, err := access.GetProvider(c, r.ID)
+	provider, err := access.GetProvider(c, r.ID.ToUUID())
 	if err != nil {
 		return nil, err
 	}
@@ -295,7 +169,7 @@ func (a *API) UpdateProvider(c *gin.Context, r *api.UpdateProviderRequest) (*api
 }
 
 func (a *API) DeleteProvider(c *gin.Context, r *api.Resource) error {
-	return access.DeleteProvider(c, r.ID)
+	return access.DeleteProvider(c, r.ID.ToUUID())
 }
 
 func (a *API) ListDestinations(c *gin.Context, r *api.ListDestinationsRequest) ([]api.Destination, error) {
@@ -313,7 +187,7 @@ func (a *API) ListDestinations(c *gin.Context, r *api.ListDestinationsRequest) (
 }
 
 func (a *API) GetDestination(c *gin.Context, r *api.Resource) (*api.Destination, error) {
-	destination, err := access.GetDestination(c, r.ID)
+	destination, err := access.GetDestination(c, r.ID.ToUUID())
 	if err != nil {
 		return nil, err
 	}
@@ -350,7 +224,7 @@ func (a *API) UpdateDestination(c *gin.Context, r *api.UpdateDestinationRequest)
 }
 
 func (a *API) DeleteDestination(c *gin.Context, r *api.Resource) error {
-	return access.DeleteDestination(c, r.ID)
+	return access.DeleteDestination(c, r.ID.ToUUID())
 }
 
 func (a *API) ListAPITokens(c *gin.Context, r *api.ListAPITokensRequest) ([]api.InfraAPIToken, error) {
@@ -369,7 +243,7 @@ func (a *API) ListAPITokens(c *gin.Context, r *api.ListAPITokensRequest) ([]api.
 }
 
 func (a *API) DeleteAPIToken(c *gin.Context, r *api.Resource) error {
-	return access.RevokeAPIToken(c, r.ID)
+	return access.RevokeAPIToken(c, r.ID.ToUUID())
 }
 
 func (a *API) CreateAPIToken(c *gin.Context, r *api.InfraAPITokenCreateRequest) (*api.InfraAPITokenCreateResponse, error) {
@@ -401,7 +275,7 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) ([]api.Grant,
 }
 
 func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {
-	grant, err := access.GetGrant(c, r.ID)
+	grant, err := access.GetGrant(c, r.ID.ToUUID())
 	if err != nil {
 		return nil, err
 	}

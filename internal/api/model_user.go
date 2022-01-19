@@ -4,7 +4,7 @@ import "github.com/google/uuid"
 
 // User struct for User
 type User struct {
-	ID    string `json:"id"`
+	ID    UUID   `json:"id"`
 	Email string `json:"email" validate:"email,required"`
 	// created time in seconds since 1970-01-01
 	Created int64 `json:"created"`
@@ -18,9 +18,16 @@ type User struct {
 }
 
 type ListUsersRequest struct {
-	Email string `query:"email"`
+	Email string `form:"email"`
 }
 
 type Resource struct {
-	ID uuid.UUID `uri:"id" validate:"required"`
+	ID UUID `uri:"id" validate:"required"`
+}
+
+type UUID string
+
+func (u UUID) ToUUID() uuid.UUID {
+	id, _ := uuid.Parse(string(u))
+	return id
 }

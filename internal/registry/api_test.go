@@ -322,7 +322,7 @@ func TestDeleteAPIToken(t *testing.T) {
 	c.Set("db", db)
 	c.Set("permissions", permissions)
 
-	err = a.DeleteAPIToken(c, &api.Resource{ID: apiToken.ID})
+	err = a.DeleteAPIToken(c, &api.Resource{ID: api.UUID(apiToken.ID.String())})
 
 	require.NoError(t, err)
 }

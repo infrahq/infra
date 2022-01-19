@@ -14,5 +14,5 @@ type Group struct {
 }
 
 type ListGroupsRequest struct {
-	GroupName string `query:"name"`
+	GroupName string `form:"name"`
 }
