@@ -22,9 +22,3 @@ jobs:
     - uses: actions/checkout@v2
     - uses: Azure/setup-helm@v1
     - run: make helm/lint tag=0.0.0-development
-  go-lint:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - uses: golangci/golangci-lint-action@v2
-  
