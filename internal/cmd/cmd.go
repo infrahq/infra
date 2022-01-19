@@ -67,16 +67,16 @@ func infraHomeDir() (string, error) {
 	return infraDir, nil
 }
 
-func apiClient() (*api.Client, error) {
+func defaultAPIClient() (*api.Client, error) {
 	config, err := readHostConfig("")
 	if err != nil {
 		return nil, err
 	}
 
-	return NewAPIClient(config.Host, config.Token, config.SkipTLSVerify)
+	return apiClient(config.Host, config.Token, config.SkipTLSVerify)
 }
 
-func NewAPIClient(host string, token string, skipTLSVerify bool) (*api.Client, error) {
+func apiClient(host string, token string, skipTLSVerify bool) (*api.Client, error) {
 	u, err := urlx.Parse(host)
 	if err != nil {
 		return nil, err
@@ -85,7 +85,7 @@ func NewAPIClient(host string, token string, skipTLSVerify bool) (*api.Client, e
 	u.Scheme = "https"
 
 	return &api.Client{
-		Base:  u.String(),
+		Url:   u.String(),
 		Token: token,
 		Http: http.Client{
 			Transport: &http.Transport{

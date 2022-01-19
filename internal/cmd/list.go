@@ -30,7 +30,7 @@ type listRow struct {
 }
 
 func list(options *ListOptions) error {
-	client, err := apiClient()
+	client, err := defaultAPIClient()
 	if err != nil {
 		return err
 	}

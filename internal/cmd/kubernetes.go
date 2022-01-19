@@ -66,7 +66,7 @@ func kubernetesUseContext(options *KubernetesOptions) error {
 		return err
 	}
 
-	client, err := apiClient()
+	client, err := defaultAPIClient()
 	if err != nil {
 		return err
 	}

@@ -302,7 +302,7 @@ func Run(options *Options) error {
 	u.Scheme = "https"
 
 	client := api.Client{
-		Base:  u.String(),
+		Url:   u.String(),
 		Token: engineAPIToken,
 		Http: http.Client{
 			Transport: &http.Transport{

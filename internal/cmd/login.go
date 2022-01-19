@@ -116,7 +116,7 @@ HOST:
 		}
 	}
 
-	client, err := NewAPIClient(selectedHost.Host, "", skipTLSVerify)
+	client, err := apiClient(selectedHost.Host, "", skipTLSVerify)
 	if err != nil {
 		return err
 	}
@@ -228,7 +228,7 @@ provider:
 
 	fmt.Fprintf(os.Stderr, "  Logged in as %s\n", termenv.String(loginRes.Name).Bold().String())
 
-	client, err = NewAPIClient(selectedHost.Host, selectedHost.Token, selectedHost.SkipTLSVerify)
+	client, err = apiClient(selectedHost.Host, selectedHost.Token, selectedHost.SkipTLSVerify)
 	if err != nil {
 		return err
 	}

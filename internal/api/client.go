@@ -9,7 +9,7 @@ import (
 )
 
 type Client struct {
-	Base  string
+	Url   string
 	Token string
 	Http  http.Client
 }
@@ -39,7 +39,7 @@ func checkError(status int, body []byte) error {
 }
 
 func get[Res any](client Client, path string, query map[string]string) (*Res, error) {
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s%s", client.Base, path), nil)
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s%s", client.Url, path), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +79,7 @@ func get[Res any](client Client, path string, query map[string]string) (*Res, er
 }
 
 func list[Res any](client Client, path string, query map[string]string) ([]Res, error) {
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s%s", client.Base, path), nil)
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s%s", client.Url, path), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +124,7 @@ func request[Req, Res any](client Client, method string, path string, req *Req) 
 		return nil, err
 	}
 
-	httpReq, err := http.NewRequest(method, fmt.Sprintf("%s%s", client.Base, path), bytes.NewReader(body))
+	httpReq, err := http.NewRequest(method, fmt.Sprintf("%s%s", client.Url, path), bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}

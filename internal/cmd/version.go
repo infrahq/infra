@@ -25,7 +25,7 @@ func version(options *VersionOptions) error {
 	clientVersion := internal.Version
 	serverVersion := "disconnected"
 
-	client, err := apiClient()
+	client, err := defaultAPIClient()
 	if err != nil {
 		return err
 	}

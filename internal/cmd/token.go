@@ -58,7 +58,7 @@ func tokenCreate(options *TokenOptions) error {
 	}
 
 	if os.IsNotExist(err) || isExpired(execCredential) {
-		client, err := apiClient()
+		client, err := defaultAPIClient()
 		if err != nil {
 			return err
 		}
