@@ -73,10 +73,10 @@ func apiClient() (*api.Client, error) {
 		return nil, err
 	}
 
-	return apiClientWith(config.Host, config.Token, config.SkipTLSVerify)
+	return NewAPIClient(config.Host, config.Token, config.SkipTLSVerify)
 }
 
-func apiClientWith(host string, token string, skipTLSVerify bool) (*api.Client, error) {
+func NewAPIClient(host string, token string, skipTLSVerify bool) (*api.Client, error) {
 	u, err := urlx.Parse(host)
 	if err != nil {
 		return nil, err
