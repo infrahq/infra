@@ -109,10 +109,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/caarlos0/ctrlc v1.0.0 // indirect
 	github.com/caarlos0/env/v6 v6.9.1 // indirect
-<<<<<<< HEAD
-=======
 	github.com/caarlos0/go-reddit/v3 v3.0.1 // indirect
->>>>>>> acbd2ffa (wip client)
 	github.com/caarlos0/go-shellwords v1.0.12 // indirect
 	github.com/cavaliergopher/cpio v1.0.1 // indirect
 	github.com/cenkalti/backoff/v3 v3.0.0 // indirect
