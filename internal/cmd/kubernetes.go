@@ -3,7 +3,6 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"sort"
 	"strings"
@@ -67,20 +66,11 @@ func kubernetesUseContext(options *KubernetesOptions) error {
 		return err
 	}
 
-	client, err := apiClientFromConfig(options.Host)
-	if err != nil {
-		return err
-	}
+	client := api.Client{}
 
-	context, err := apiContextFromConfig(options.Host)
+	users, err := client.ListUsers(config.Name)
 	if err != nil {
-		return err
-	}
-
-	users, res, err := client.UsersAPI.ListUsers(context).Email(config.Name).Execute()
-	if err != nil {
-		switch res.StatusCode {
-		case http.StatusForbidden:
+		if errors.Is(err, api.ErrForbidden) {
 			fmt.Fprintln(os.Stderr, "Session has expired.")
 
 			if err = login(&LoginOptions{Current: true}); err != nil {
@@ -88,10 +78,9 @@ func kubernetesUseContext(options *KubernetesOptions) error {
 			}
 
 			return kubernetesUseContext(options)
-
-		default:
-			return errWithResponseContext(err, res)
 		}
+
+		return err
 	}
 
 	// This shouldn't be possible but check nonetheless

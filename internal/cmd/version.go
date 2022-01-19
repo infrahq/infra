@@ -12,6 +12,7 @@ import (
 	"golang.org/x/mod/semver"
 
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/logging"
 )
 
@@ -25,13 +26,10 @@ func version(options *VersionOptions) error {
 	clientVersion := internal.Version
 	serverVersion := "disconnected"
 
-	// Note that we use the client to get this version, but it is in fact the server version
-	client, err := apiClientFromConfig(options.Host)
+	client := api.Client{}
+	version, err := client.GetVersion()
 	if err == nil {
-		v, _, err := client.VersionAPI.Version(context.Background()).Execute()
-		if err == nil {
-			serverVersion = v.Version
-		}
+		serverVersion = version.Version
 	}
 
 	err = checkUpdate(clientVersion, serverVersion)

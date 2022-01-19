@@ -1,8 +1,8 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"sort"
 	"strings"
@@ -30,29 +30,16 @@ type listRow struct {
 }
 
 func list(options *ListOptions) error {
+	client := api.Client{}
+
 	config, err := currentHostConfig()
 	if err != nil {
 		return err
 	}
 
-	client, err := apiClientFromConfig(options.Host)
+	users, err := client.ListUsers(config.Name)
 	if err != nil {
-		return err
-	}
-
-	ctx, err := apiContextFromConfig(options.Host)
-	if err != nil {
-		return err
-	}
-
-	users, res, err := client.UsersAPI.ListUsers(ctx).Email(config.Name).Execute()
-	if err != nil {
-		if res == nil {
-			return err
-		}
-
-		switch res.StatusCode {
-		case http.StatusForbidden:
+		if errors.Is(err, api.ErrForbidden) {
 			fmt.Fprintln(os.Stderr, "Session has expired.")
 
 			if err = login(&LoginOptions{Current: true}); err != nil {
@@ -60,10 +47,9 @@ func list(options *ListOptions) error {
 			}
 
 			return list(options)
-
-		default:
-			return errWithResponseContext(err, res)
 		}
+
+		return err
 	}
 
 	switch {

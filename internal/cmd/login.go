@@ -117,14 +117,11 @@ HOST:
 		}
 	}
 
-	client, err := NewAPIClient(selectedHost.Host, skipTLSVerify)
+	client := api.Client{}
+
+	providers, err := client.ListProviders()
 	if err != nil {
 		return err
-	}
-
-	providers, res, err := client.ProvidersAPI.ListProviders(context.Background()).Execute()
-	if err != nil {
-		return errWithResponseContext(err, res)
 	}
 
 	var selectedProvider *api.Provider
@@ -207,9 +204,9 @@ provider:
 		return fmt.Errorf("Invalid provider selected %q", selectedProvider.Kind)
 	}
 
-	loginRes, res, err := client.AuthAPI.Login(context.Background()).Body(loginReq).Execute()
+	loginRes, err := client.Login(&loginReq)
 	if err != nil {
-		return errWithResponseContext(err, res)
+		return err
 	}
 
 	for i := range loadedCfg.Hosts {
@@ -229,14 +226,10 @@ provider:
 
 	fmt.Fprintf(os.Stderr, "  Logged in as %s\n", termenv.String(loginRes.Name).Bold().String())
 
-	client, err = NewAPIClient(selectedHost.Host, skipTLSVerify)
+	// TODO: auth
+	users, err := client.ListUsers(loginRes.Name)
 	if err != nil {
 		return err
-	}
-
-	users, res, err := client.UsersAPI.ListUsers(NewAPIContext(loginRes.Token)).Email(loginRes.Name).Execute()
-	if err != nil {
-		return errWithResponseContext(err, res)
 	}
 
 	if len(users) < 1 {

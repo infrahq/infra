@@ -301,18 +301,11 @@ func Run(options *Options) error {
 
 	u.Scheme = "https"
 
-	ctx := context.WithValue(context.Background(), api.ContextServerVariables, map[string]string{"basePath": "v1"})
-	ctx = context.WithValue(ctx, api.ContextAccessToken, engineAPIToken)
-	config := api.NewConfiguration()
-	config.Host = u.Host
-	config.Scheme = "https"
-	config.HTTPClient = &http.Client{
+	client := api.Client{Http: http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: hostTLSConfig,
 		},
-	}
-
-	client := api.NewAPIClient(config)
+	}}
 
 	name, chksm, err := k8s.Name()
 	if err != nil {
@@ -387,7 +380,7 @@ func Run(options *Options) error {
 				}
 			}
 
-			request := api.DestinationRequest{
+			request := &api.DestinationRequest{
 				NodeID: chksm,
 				Name:   options.Name,
 				Kind:   kind,
@@ -398,7 +391,7 @@ func Run(options *Options) error {
 				},
 			}
 
-			destinations, _, err := client.DestinationsAPI.ListDestinations(ctx).NodeID(chksm).Execute()
+			destinations, err := client.ListDestinations(chksm)
 			if err != nil {
 				logging.S.Errorf("error listing destinations: %w", err)
 				return
@@ -406,8 +399,7 @@ func Run(options *Options) error {
 
 			switch len(destinations) {
 			case 0:
-				// destination doesn't yet exist, create it
-				destination, _, err := client.DestinationsAPI.CreateDestination(ctx).Body(request).Execute()
+				destination, err := client.CreateDestination(request)
 				if err != nil {
 					logging.S.Errorf("error creating destination: %w", err)
 					return
@@ -415,13 +407,10 @@ func Run(options *Options) error {
 
 				destinationID = destination.ID
 			case 1:
-				// destination already exists, update it
-				destination, _, err := client.DestinationsAPI.UpdateDestination(ctx, destinations[0].ID).DestinationRequest(request).Execute()
+				_, err := client.UpdateDestination(destinations[0].ID, request)
 				if err != nil {
 					logging.S.Errorf("error updating destination: %w", err)
 				}
-
-				destinationID = destination.ID
 			default:
 				// this shouldn't happen
 				logging.L.Info("unexpected result from ListDestinations")
@@ -429,7 +418,7 @@ func Run(options *Options) error {
 			}
 		}
 
-		grants, _, err := client.GrantsAPI.ListGrants(ctx).Destination(destinationID).Kind(api.GrantKind(kind)).Execute()
+		grants, err := client.ListGrants(api.GrantKindKubernetes, destinationID)
 		if err != nil {
 			logging.S.Errorf("error listing grants: %w", err)
 			return

@@ -1,8 +1,0 @@
-allOf:
-  - $ref: './InfraAPIToken.yaml'
-type: object
-required:
-  - token
-properties:
-  token:
-    type: string

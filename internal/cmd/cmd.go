@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -10,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/goware/urlx"
 	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
 
@@ -52,34 +49,6 @@ func errWithResponseContext(err error, res *http.Response) error {
 	return err
 }
 
-func NewAPIContext(token string) context.Context {
-	return context.WithValue(context.Background(), api.ContextAccessToken, token)
-}
-
-func NewAPIClient(host string, skipTLSVerify bool) (*api.APIClient, error) {
-	u, err := urlx.Parse(host)
-	if err != nil {
-		return nil, fmt.Errorf("parsing host: %w", err)
-	}
-
-	config := api.NewConfiguration()
-	config.Host = u.Host
-	config.Scheme = "https"
-
-	if skipTLSVerify {
-		config.HTTPClient = &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					//nolint:gosec // We may purposely set insecureskipverify via a flag
-					InsecureSkipVerify: true,
-				},
-			},
-		}
-	}
-
-	return api.NewAPIClient(config), nil
-}
-
 func infraHomeDir() (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -94,32 +63,6 @@ func infraHomeDir() (string, error) {
 	}
 
 	return infraDir, nil
-}
-
-func apiContextFromConfig(host string) (context.Context, error) {
-	config, err := readHostConfig(host)
-	if err != nil {
-		return nil, err
-	}
-
-	if config == nil {
-		return nil, ErrConfigNotFound
-	}
-
-	return NewAPIContext(config.Token), nil
-}
-
-func apiClientFromConfig(host string) (*api.APIClient, error) {
-	config, err := readHostConfig(host)
-	if err != nil {
-		return nil, err
-	}
-
-	if config == nil {
-		return nil, ErrConfigNotFound
-	}
-
-	return NewAPIClient(config.Host, config.SkipTLSVerify)
 }
 
 func newLoginCmd() (*cobra.Command, error) {
