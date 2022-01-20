@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"gorm.io/gorm"
 
@@ -78,23 +77,13 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 // MetricsMiddleware wraps the request with a standard set of Prometheus metrics.
 // It has an additional responsibility of stripping out any unique identifiers as it will
 // drastically increase the cardinality, and cost, of produced metrics.
-func MetricsMiddleware() gin.HandlerFunc {
+func MetricsMiddleware(path string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		t := time.Now()
-		path := make([]string, 0)
-
-		parts := strings.Split(c.Request.URL.Path, "/")
-		for _, part := range parts {
-			if _, err := uuid.Parse(part); err != nil {
-				path = append(path, part)
-			} else {
-				path = append(path, ":id")
-			}
-		}
 
 		labels := prometheus.Labels{
 			"method":  c.Request.Method,
-			"handler": strings.Join(path, "/"),
+			"handler": path,
 		}
 
 		requestInProgressGauge.With(labels).Inc()
@@ -146,7 +135,7 @@ func RequireAuthentication(c *gin.Context) error {
 	c.Set("authentication", bearer)
 
 	// token is valid, check where to set permissions from
-	if token.UserID != uuid.Nil {
+	if token.UserID != 0 {
 		// this token has a parent user, set by their current permissions
 		user, err := data.GetUser(db, data.ByID(token.UserID))
 		if err != nil {
@@ -163,7 +152,7 @@ func RequireAuthentication(c *gin.Context) error {
 		}
 
 		c.Set("user", user)
-	} else if token.APITokenID != uuid.Nil {
+	} else if token.APITokenID != 0 {
 		// this is an API token
 		apiToken, err := data.GetAPIToken(db, data.ByID(token.APITokenID))
 		if err != nil {

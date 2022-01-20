@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/google/uuid"
+	"github.com/infrahq/infra/uuid"
 )
 
 // Destination struct for Destination

@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/google/uuid"
+	"github.com/infrahq/infra/uuid"
 )
 
 type Label struct {

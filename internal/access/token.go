@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/infrahq/infra/uuid"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/claims"

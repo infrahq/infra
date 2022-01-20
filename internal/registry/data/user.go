@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/uuid"
+	"github.com/infrahq/infra/uuid"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"

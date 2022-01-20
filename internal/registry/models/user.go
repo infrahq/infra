@@ -3,8 +3,6 @@ package models
 import (
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/infrahq/infra/internal/api"
 )
 
@@ -23,7 +21,7 @@ type User struct {
 
 func (u *User) ToAPI() api.User {
 	result := api.User{
-		ID:      api.UUID(u.ID.String()),
+		ID:      u.ID,
 		Created: u.CreatedAt.Unix(),
 		Updated: u.UpdatedAt.Unix(),
 
@@ -62,17 +60,4 @@ func (u *User) ToAPI() api.User {
 	}
 
 	return result
-}
-
-func NewUser(id string) (*User, error) {
-	uuid, err := uuid.Parse(id)
-	if err != nil {
-		return nil, err
-	}
-
-	return &User{
-		Model: Model{
-			ID: uuid,
-		},
-	}, nil
 }

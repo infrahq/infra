@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/google/uuid"
+	"github.com/infrahq/infra/uuid"
 
 	"github.com/infrahq/infra/internal/api"
 )
@@ -82,17 +82,4 @@ func (r *Grant) ToAPI() api.Grant {
 	result.Destination = r.Destination.ToAPI()
 
 	return result
-}
-
-func NewGrant(id string) (*Grant, error) {
-	uuid, err := uuid.Parse(id)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Grant{
-		Model: Model{
-			ID: uuid,
-		},
-	}, nil
 }

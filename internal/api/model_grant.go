@@ -1,6 +1,6 @@
 package api
 
-import "github.com/google/uuid"
+import "github.com/infrahq/infra/uuid"
 
 // Grant struct for Grant
 type Grant struct {

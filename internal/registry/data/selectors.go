@@ -1,7 +1,7 @@
 package data
 
 import (
-	"github.com/google/uuid"
+	"github.com/infrahq/infra/uuid"
 	"gorm.io/gorm"
 )
 
@@ -9,13 +9,13 @@ type SelectorFunc func(db *gorm.DB) *gorm.DB
 
 func ByID(id uuid.UUID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("id = ?", id.String())
+		return db.Where("id = ?", id)
 	}
 }
 
 func ByAPITokenID(id uuid.UUID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("api_token_id = ?", id.String())
+		return db.Where("api_token_id = ?", id)
 	}
 }
 
@@ -53,7 +53,7 @@ func ByKey(key string) SelectorFunc {
 
 func ByDestinationID(id uuid.UUID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
-		if id == uuid.Nil {
+		if id == 0 {
 			return db
 		}
 

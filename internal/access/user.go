@@ -2,7 +2,7 @@ package access
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/infrahq/infra/uuid"
 
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
@@ -37,16 +37,16 @@ func currentUser(c *gin.Context) *models.User {
 func currentUserID(c *gin.Context) (id uuid.UUID, found bool) {
 	userIDObj, exists := c.Get("user_id")
 	if !exists {
-		return uuid.Nil, false
+		return 0, false
 	}
 
 	userID, ok := userIDObj.(uuid.UUID)
 	if !ok {
-		return uuid.Nil, false
+		return 0, false
 	}
 
-	if userID == uuid.Nil {
-		return uuid.Nil, false
+	if userID == 0 {
+		return 0, false
 	}
 
 	return userID, true

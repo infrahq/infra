@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/infrahq/infra/uuid"
 	"gorm.io/gorm"
 )
 
@@ -17,7 +17,7 @@ type Model struct {
 // Set an ID if one does not already exist. Unfortunately, we can use `gorm:"default"`
 // tags since the ID must be dynamically generated and not all databases support UUID generation
 func (m *Model) BeforeCreate(tx *gorm.DB) error {
-	if m.ID == uuid.Nil {
+	if m.ID == 0 {
 		m.ID = NewID()
 	}
 
@@ -26,5 +26,5 @@ func (m *Model) BeforeCreate(tx *gorm.DB) error {
 
 // Generate new UUIDv1
 func NewID() uuid.UUID {
-	return uuid.Must(uuid.NewUUID())
+	return uuid.New()
 }

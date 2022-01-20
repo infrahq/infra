@@ -3,7 +3,7 @@ package models
 import (
 	"fmt"
 
-	"github.com/google/uuid"
+	"github.com/infrahq/infra/uuid"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"

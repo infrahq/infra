@@ -266,8 +266,8 @@ func TestLoginOkta(t *testing.T) {
 	}
 
 	resp, err := a.Login(c, &request)
-
 	require.NoError(t, err)
+
 	require.Equal(t, "jbond@infrahq.com", resp.Name)
 	require.NotEmpty(t, resp.Token)
 }
@@ -322,7 +322,6 @@ func TestDeleteAPIToken(t *testing.T) {
 	c.Set("db", db)
 	c.Set("permissions", permissions)
 
-	err = a.DeleteAPIToken(c, &api.Resource{ID: api.UUID(apiToken.ID.String())})
-
+	err = a.DeleteAPIToken(c, &api.Resource{ID: apiToken.ID})
 	require.NoError(t, err)
 }

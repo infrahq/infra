@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/infrahq/infra/uuid"
 	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
 

@@ -79,7 +79,7 @@ func (a *API) ListUsers(c *gin.Context, r *api.ListUsersRequest) ([]api.User, er
 }
 
 func (a *API) GetUser(c *gin.Context, r *api.Resource) (*api.User, error) {
-	user, err := access.GetUser(c, r.ID.ToUUID())
+	user, err := access.GetUser(c, r.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func (a *API) ListGroups(c *gin.Context, r *api.ListGroupsRequest) ([]api.Group,
 }
 
 func (a *API) GetGroup(c *gin.Context, r *api.Resource) (*api.Group, error) {
-	group, err := access.GetGroup(c, r.ID.ToUUID())
+	group, err := access.GetGroup(c, r.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +129,7 @@ func (a *API) ListProviders(c *gin.Context, r *api.ListProvidersRequest) ([]api.
 
 // caution: this endpoint is unauthenticated, do not return sensitive info
 func (a *API) GetProvider(c *gin.Context, r *api.Resource) (*api.Provider, error) {
-	provider, err := access.GetProvider(c, r.ID.ToUUID())
+	provider, err := access.GetProvider(c, r.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +169,7 @@ func (a *API) UpdateProvider(c *gin.Context, r *api.UpdateProviderRequest) (*api
 }
 
 func (a *API) DeleteProvider(c *gin.Context, r *api.Resource) error {
-	return access.DeleteProvider(c, r.ID.ToUUID())
+	return access.DeleteProvider(c, r.ID)
 }
 
 func (a *API) ListDestinations(c *gin.Context, r *api.ListDestinationsRequest) ([]api.Destination, error) {
@@ -187,7 +187,7 @@ func (a *API) ListDestinations(c *gin.Context, r *api.ListDestinationsRequest) (
 }
 
 func (a *API) GetDestination(c *gin.Context, r *api.Resource) (*api.Destination, error) {
-	destination, err := access.GetDestination(c, r.ID.ToUUID())
+	destination, err := access.GetDestination(c, r.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +224,7 @@ func (a *API) UpdateDestination(c *gin.Context, r *api.UpdateDestinationRequest)
 }
 
 func (a *API) DeleteDestination(c *gin.Context, r *api.Resource) error {
-	return access.DeleteDestination(c, r.ID.ToUUID())
+	return access.DeleteDestination(c, r.ID)
 }
 
 func (a *API) ListAPITokens(c *gin.Context, r *api.ListAPITokensRequest) ([]api.InfraAPIToken, error) {
@@ -243,7 +243,7 @@ func (a *API) ListAPITokens(c *gin.Context, r *api.ListAPITokensRequest) ([]api.
 }
 
 func (a *API) DeleteAPIToken(c *gin.Context, r *api.Resource) error {
-	return access.RevokeAPIToken(c, r.ID.ToUUID())
+	return access.RevokeAPIToken(c, r.ID)
 }
 
 func (a *API) CreateAPIToken(c *gin.Context, r *api.InfraAPITokenCreateRequest) (*api.InfraAPITokenCreateResponse, error) {
@@ -275,7 +275,7 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) ([]api.Grant,
 }
 
 func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {
-	grant, err := access.GetGrant(c, r.ID.ToUUID())
+	grant, err := access.GetGrant(c, r.ID)
 	if err != nil {
 		return nil, err
 	}
