@@ -15,7 +15,6 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/goreleaser/goreleaser v1.3.1
 	github.com/gorilla/handlers v1.5.1
-	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/goware/urlx v0.3.1
 	github.com/hashicorp/vault/api v1.3.1
 	github.com/jackc/pgconn v1.10.1
@@ -33,17 +32,17 @@ require (
 	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3
 	golang.org/x/mod v0.5.1
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
-	golang.org/x/term v0.0.0-20210503060354-a79de5458b56
+	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b
 	gopkg.in/segmentio/analytics-go.v3 v3.1.0
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/postgres v1.2.3
 	gorm.io/driver/sqlite v1.2.6
 	gorm.io/gorm v1.22.5
-	k8s.io/api v0.22.3
-	k8s.io/apimachinery v0.22.3
+	k8s.io/api v0.23.2
+	k8s.io/apimachinery v0.23.2
 	k8s.io/apiserver v0.22.3
-	k8s.io/client-go v0.22.3
+	k8s.io/client-go v0.23.2
 )
 
 require (
@@ -280,6 +279,7 @@ require (
 	k8s.io/klog/v2 v2.30.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20211115234752-e816edb12b65 // indirect
 	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b // indirect
-	sigs.k8s.io/structured-merge-diff/v4 v4.1.2 // indirect
+	sigs.k8s.io/json v0.0.0-20211020170558-c049b76a60c6 // indirect
+	sigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
