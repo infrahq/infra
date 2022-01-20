@@ -210,7 +210,7 @@ func issueToken(t *testing.T, db *gorm.DB, email, permissions string, sessionDur
 		UserID:          user.ID,
 		SessionDuration: sessionDuration,
 	}
-	token, err = data.CreateToken(db, token)
+	err = data.CreateToken(db, token)
 	require.NoError(t, err)
 
 	return token.SessionToken()

@@ -15,7 +15,7 @@ import (
 	"github.com/infrahq/infra/internal/registry/models"
 )
 
-func CreateToken(db *gorm.DB, token *models.Token) (*models.Token, error) {
+func CreateToken(db *gorm.DB, token *models.Token) error {
 	if token.Key == "" {
 		key := generate.MathRandom(models.TokenKeyLength)
 		token.Key = key
@@ -24,7 +24,7 @@ func CreateToken(db *gorm.DB, token *models.Token) (*models.Token, error) {
 	if token.Secret == "" {
 		generated, err := generate.CryptoRandom(models.TokenSecretLength)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		token.Secret = generated
@@ -35,26 +35,19 @@ func CreateToken(db *gorm.DB, token *models.Token) (*models.Token, error) {
 	token.Expires = time.Now().Add(token.SessionDuration)
 
 	if err := add(db, &models.Token{}, token, &models.Token{}); err != nil {
-		return nil, err
+		return err
 	}
 
-	return token, nil
+	return nil
 }
 
-func CreateOrUpdateToken(db *gorm.DB, token *models.Token, selector SelectorFunc) (*models.Token, error) {
+func UpdateToken(db *gorm.DB, token *models.Token, selector SelectorFunc) error {
 	existing, err := GetToken(db, selector)
 	if err != nil {
-		if !errors.Is(err, internal.ErrNotFound) {
-			return nil, err
-		}
-
-		token, err := CreateToken(db, token)
-		if err != nil {
-			return nil, err
-		}
-
-		return token, nil
+		return err
 	}
+
+	token.ID = existing.ID
 
 	if token.Key == "" {
 		token.Key = existing.Key
@@ -65,21 +58,11 @@ func CreateOrUpdateToken(db *gorm.DB, token *models.Token, selector SelectorFunc
 		token.Checksum = chksm[:]
 	}
 
-	// no updating expiry here, because there isn't a need for it yet - Bruce
-
-	if err := update(db, &models.Token{}, token, db.Where(existing, "id")); err != nil {
-		return nil, err
+	if err := update(db, &models.Token{}, token, ByID(existing.ID)); err != nil {
+		return err
 	}
 
-	result, err := GetToken(db, ByID(existing.ID))
-	if err != nil {
-		return nil, fmt.Errorf("get token after update: %w", err)
-	}
-
-	// the secret needs to be set, because it is not stored in the database
-	result.Secret = token.Secret
-
-	return result, nil
+	return nil
 }
 
 func GetToken(db *gorm.DB, selector SelectorFunc) (*models.Token, error) {
@@ -112,56 +95,16 @@ func DeleteToken(db *gorm.DB, selector SelectorFunc) error {
 	return remove(db, &models.Token{}, selector)
 }
 
-func CreateAPIToken(db *gorm.DB, apiToken *models.APIToken) (*models.Token, error) {
-	token := &models.Token{}
-
+func CreateAPIToken(db *gorm.DB, apiToken *models.APIToken) error {
 	if err := add(db, &models.APIToken{}, apiToken, &models.APIToken{}); err != nil {
-		return nil, fmt.Errorf("new api token: %w", err)
+		return fmt.Errorf("new api token: %w", err)
 	}
 
-	token.APITokenID = apiToken.ID
-	token.SessionDuration = apiToken.TTL
-
-	token, err := CreateToken(db, token)
-	if err != nil {
-		return nil, fmt.Errorf("create api token issue: %w", err)
-	}
-
-	return token, nil
+	return nil
 }
 
-func CreateOrUpdateAPIToken(db *gorm.DB, apiToken *models.APIToken, token *models.Token, selector SelectorFunc) (*models.APIToken, error) {
-	existing, err := GetAPIToken(db, selector)
-	if err != nil {
-		if !errors.Is(err, internal.ErrNotFound) {
-			return nil, err
-		}
-
-		newToken, err := CreateAPIToken(db, apiToken)
-		if err != nil {
-			return nil, err
-		}
-
-		*token = *newToken // update the calling object with the new token
-
-		return apiToken, nil
-	}
-
-	apiToken.ID = existing.ID
-
-	if err := update(db, &models.APIToken{}, apiToken, db.Where(existing, "id")); err != nil {
-		return nil, err
-	}
-
-	token.APITokenID = existing.ID
-	token.SessionDuration = apiToken.TTL
-
-	_, err = CreateOrUpdateToken(db, token, ByAPITokenID(existing.ID))
-	if err != nil {
-		return nil, fmt.Errorf("update api token issue: %w", err)
-	}
-
-	return GetAPIToken(db, ByID(existing.ID))
+func UpdateAPIToken(db *gorm.DB, apiToken *models.APIToken) error {
+	return update(db, &models.APIToken{}, apiToken, ByID(apiToken.ID))
 }
 
 func GetAPIToken(db *gorm.DB, selector SelectorFunc) (*models.APIToken, error) {
