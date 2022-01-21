@@ -44,8 +44,8 @@ func (t *Token) SessionToken() string {
 type ProviderToken struct {
 	Model
 
-	UserID     uuid.UUID
-	ProviderID uuid.UUID
+	UserID     uid.ID
+	ProviderID uid.ID
 
 	AccessToken  EncryptedAtRest
 	RefreshToken EncryptedAtRest

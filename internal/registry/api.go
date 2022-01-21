@@ -205,18 +205,17 @@ func (a *API) CreateDestination(c *gin.Context, r *api.CreateDestinationRequest)
 
 	err := access.CreateDestination(c, destination)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create destination: %w", err)
 	}
 
 	sync := func(db *gorm.DB) error {
 		return importGrantMappings(db, a.registry.config.Users, a.registry.config.Groups)
 	}
 	if err := access.SyncGrants(c, sync); err != nil {
-		sendAPIError(c, err)
+		return nil, fmt.Errorf("sync grants destination create: %w", err)
 	}
 
-	result := destination.ToAPI()
-	return result, nil
+	return destination.ToAPI(), nil
 }
 
 func (a *API) UpdateDestination(c *gin.Context, r *api.UpdateDestinationRequest) (*api.Destination, error) {
@@ -226,14 +225,14 @@ func (a *API) UpdateDestination(c *gin.Context, r *api.UpdateDestinationRequest)
 	}
 
 	if err := access.UpdateDestination(c, destination); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("update destination: %w", err)
 	}
 
 	sync := func(db *gorm.DB) error {
 		return importGrantMappings(db, a.registry.config.Users, a.registry.config.Groups)
 	}
 	if err := access.SyncGrants(c, sync); err != nil {
-		sendAPIError(c, err)
+		return nil, fmt.Errorf("sync grants destination update: %w", err)
 	}
 
 	return destination.ToAPI(), nil
@@ -301,25 +300,13 @@ func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {
 }
 
 func (a *API) CreateToken(c *gin.Context, r *api.TokenRequest) (*api.Token, error) {
-	var body api.TokenRequest
-	if err := c.BindJSON(&body); err != nil {
-		sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
-		return
-	}
-
-	if err := validate.Struct(body); err != nil {
-		sendAPIError(c, err)
-		return
-	}
-
 	// sync the user information before doing this sensitive action
 	err := a.updateUserInfo(c)
 	if err != nil {
-		sendAPIError(c, err)
-		return
+		return nil, err
 	}
 
-	token, expiry, err := access.IssueJWT(c, body.Destination)
+	token, expiry, err := access.IssueJWT(c, r.Destination)
 	if err != nil {
 		return nil, err
 	}
@@ -328,19 +315,8 @@ func (a *API) CreateToken(c *gin.Context, r *api.TokenRequest) (*api.Token, erro
 }
 
 func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, error) {
-	var body api.LoginRequest
-	if err := c.BindJSON(&body); err != nil {
-		sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
-		return
-	}
-
-	if err := validate.Struct(body); err != nil {
-		sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
-		return
-	}
-
-	if body.Okta != nil {
-		providers, err := access.ListProviders(c, "okta", body.Okta.Domain)
+	if r.Okta != nil {
+		providers, err := access.ListProviders(c, "okta", r.Okta.Domain)
 		if err != nil {
 			return nil, err
 		}
@@ -349,14 +325,14 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 			return nil, fmt.Errorf("%w: no such provider", internal.ErrBadRequest)
 		}
 
-		provider := providers[0] // TODO: should probably check all providers, not the first one.
+		provider := &providers[0] // TODO: should probably check all providers, not the first one.
 
 		oidc, err := a.providerClient(c, provider)
 		if err != nil {
 			return nil, err
 		}
 
-		user, token, err := access.ExchangeAuthCodeForSessionToken(c, body.Okta.Code, provider, oidc, a.registry.options.SessionDuration)
+		user, token, err := access.ExchangeAuthCodeForSessionToken(c, r.Okta.Code, provider, oidc, a.registry.options.SessionDuration)
 		if err != nil {
 			return nil, err
 		}
@@ -369,12 +345,10 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 			}
 		}
 
-		c.JSON(http.StatusOK, api.LoginResponse{Name: user.Email, Token: token})
-
 		return &api.LoginResponse{Name: user.Email, Token: token}, nil
 	}
 
-	return nil, internal.ErrBadRequest
+	return nil, fmt.Errorf("%w: invalid login request", internal.ErrBadRequest)
 }
 
 func (a *API) Logout(c *gin.Context, r *api.EmptyRequest) (*api.EmptyResponse, error) {
@@ -458,7 +432,6 @@ func (a *API) updateUserInfo(c *gin.Context) error {
 }
 
 func (a *API) providerClient(c *gin.Context, provider *models.Provider) (authn.OIDC, error) {
-	// TODO: generalize this when we support more providers than Okta
 	if val, ok := c.Get("oidc"); ok {
 		// oidc is added to the context during unit tests
 		oidc, _ := val.(authn.OIDC)

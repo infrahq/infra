@@ -181,7 +181,7 @@ func IssueUserSessionToken(db *gorm.DB, user *models.User, sessionDuration time.
 		SessionDuration: sessionDuration,
 	}
 
-	if _, err := CreateToken(db, &token); err != nil {
+	if err := CreateToken(db, &token); err != nil {
 		return "", fmt.Errorf("create user session token: %w", err)
 	}
 
