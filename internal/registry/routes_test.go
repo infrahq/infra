@@ -115,4 +115,6 @@ func TestGetRoute(t *testing.T) {
 	for _, route := range routes {
 		route.HandlerFunc(c)
 	}
+
+	require.EqualValues(t, http.StatusOK, w.Code)
 }
