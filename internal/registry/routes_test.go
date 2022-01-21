@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"testing"
 
@@ -84,4 +85,34 @@ func TestBindsSnowflake(t *testing.T) {
 
 	require.Equal(t, id, r.ID)
 	require.Equal(t, id2, r.FormID)
+}
+
+func TestBindsEmptyRequest(t *testing.T) {
+	c, _ := gin.CreateTestContext(nil)
+
+	uri, err := url.Parse("/foo")
+	require.NoError(t, err)
+	c.Request = &http.Request{URL: uri, Method: "GET"}
+	r := &api.EmptyRequest{}
+	err = bind(c, r)
+	require.NoError(t, err)
+}
+
+func TestGetRoute(t *testing.T) {
+	w := httptest.NewRecorder()
+	c, e := gin.CreateTestContext(w)
+	uri, _ := url.Parse("/")
+	c.Request = &http.Request{
+		URL: uri,
+	}
+	r := e.Group("/")
+
+	get(r, "/", func(c *gin.Context, req *api.EmptyRequest) (*api.EmptyResponse, error) {
+		return &api.EmptyResponse{}, nil
+	})
+	routes := e.Routes()
+
+	for _, route := range routes {
+		route.HandlerFunc(c)
+	}
 }
