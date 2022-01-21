@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/infrahq/infra/uuid"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/registry/models"
+	"github.com/infrahq/infra/uid"
 )
 
 func CreateGrant(db *gorm.DB, grant *models.Grant) (*models.Grant, error) {
@@ -57,7 +57,7 @@ func GetGrant(db *gorm.DB, condition interface{}) (*models.Grant, error) {
 	return &grant, nil
 }
 
-func ListUserGrants(db *gorm.DB, userID uuid.UUID) (result []models.Grant, err error) {
+func ListUserGrants(db *gorm.DB, userID uid.ID) (result []models.Grant, err error) {
 	err = db.Model((*models.Grant)(nil)).Where("user_id = ?", userID).Find(&result).Error
 	if err != nil {
 		return nil, err
@@ -100,7 +100,7 @@ func DeleteGrants(db *gorm.DB, selectors ...SelectorFunc) error {
 	}
 
 	if len(toDelete) > 0 {
-		ids := make([]uuid.UUID, 0)
+		ids := make([]uid.ID, 0)
 		for _, g := range toDelete {
 			ids = append(ids, g.ID)
 		}
@@ -153,7 +153,7 @@ func ByDestinationKind(kind models.DestinationKind) SelectorFunc {
 	}
 }
 
-func NotByIDs(ids []uuid.UUID) SelectorFunc {
+func NotByIDs(ids []uid.ID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		if len(ids) == 0 {
 			return db

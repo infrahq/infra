@@ -2,10 +2,10 @@ package access
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/infrahq/infra/uuid"
 
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
+	"github.com/infrahq/infra/uid"
 )
 
 const (
@@ -34,13 +34,13 @@ func currentUser(c *gin.Context) *models.User {
 
 // nolint until this is used
 // nolint
-func currentUserID(c *gin.Context) (id uuid.UUID, found bool) {
+func currentUserID(c *gin.Context) (id uid.ID, found bool) {
 	userIDObj, exists := c.Get("user_id")
 	if !exists {
 		return 0, false
 	}
 
-	userID, ok := userIDObj.(uuid.UUID)
+	userID, ok := userIDObj.(uid.ID)
 	if !ok {
 		return 0, false
 	}
@@ -52,7 +52,7 @@ func currentUserID(c *gin.Context) (id uuid.UUID, found bool) {
 	return userID, true
 }
 
-func GetUser(c *gin.Context, id uuid.UUID) (*models.User, error) {
+func GetUser(c *gin.Context, id uid.ID) (*models.User, error) {
 	db, err := requireAuthorizationWithCheck(c, PermissionUserRead, func(currentUser *models.User) bool {
 		// current user is allowed to fetch their own record,
 		// even without the infra.users.read permission

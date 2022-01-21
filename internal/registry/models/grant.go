@@ -1,9 +1,8 @@
 package models
 
 import (
-	"github.com/infrahq/infra/uuid"
-
 	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/uid"
 )
 
 type GrantKind string
@@ -17,7 +16,7 @@ type Grant struct {
 	Model
 	Kind GrantKind `validate:"required"`
 
-	DestinationID uuid.UUID `validate:"required"`
+	DestinationID uid.ID `validate:"required"`
 	Destination   *Destination
 
 	Groups []Group `gorm:"many2many:groups_grants"`
@@ -40,7 +39,7 @@ type GrantKubernetes struct {
 	Name      string
 	Namespace string
 
-	GrantID uuid.UUID
+	GrantID uid.ID
 }
 
 func (r *Grant) ToAPI() api.Grant {

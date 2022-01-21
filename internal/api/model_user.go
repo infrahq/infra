@@ -1,11 +1,11 @@
 package api
 
-import "github.com/infrahq/infra/uuid"
+import "github.com/infrahq/infra/uid"
 
 // User struct for User
 type User struct {
-	ID    uuid.UUID `json:"id"`
-	Email string    `json:"email" validate:"email,required"`
+	ID    uid.ID `json:"id"`
+	Email string `json:"email" validate:"email,required"`
 	// created time in seconds since 1970-01-01
 	Created int64 `json:"created"`
 	// updated time in seconds since 1970-01-01
@@ -22,5 +22,5 @@ type ListUsersRequest struct {
 }
 
 type Resource struct {
-	ID uuid.UUID `uri:"id" validate:"required"`
+	ID uid.ID `uri:"id" validate:"required"`
 }

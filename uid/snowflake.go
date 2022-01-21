@@ -1,4 +1,4 @@
-package uuid
+package uid
 
 import (
 	"math/rand"
@@ -7,7 +7,7 @@ import (
 	"github.com/bwmarrin/snowflake"
 )
 
-type UUID snowflake.ID
+type ID snowflake.ID
 
 var idGen *snowflake.Node
 
@@ -22,19 +22,19 @@ func init() {
 
 }
 
-func New() UUID {
-	return UUID(idGen.Generate())
+func New() ID {
+	return ID(idGen.Generate())
 }
 
-func (u UUID) String() string {
+func (u ID) String() string {
 	return snowflake.ID(u).Base58()
 }
 
-func (u *UUID) UnmarshalText(b []byte) error {
+func (u *ID) UnmarshalText(b []byte) error {
 	id, err := snowflake.ParseBase58(b)
 	if err != nil {
 		return err
 	}
-	*u = UUID(id)
+	*u = ID(id)
 	return nil
 }

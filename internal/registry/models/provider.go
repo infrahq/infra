@@ -3,10 +3,9 @@ package models
 import (
 	"fmt"
 
-	"github.com/infrahq/infra/uuid"
-
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/uid"
 )
 
 type ProviderKind string
@@ -33,7 +32,7 @@ type ProviderOkta struct {
 
 	APIToken EncryptedAtRest
 
-	ProviderID uuid.UUID
+	ProviderID uid.ID
 }
 
 func (p *Provider) ToAPI() api.Provider {
@@ -69,7 +68,7 @@ func (p *Provider) FromAPI(from interface{}) error {
 	return fmt.Errorf("%w: unknown provider kind", internal.ErrBadRequest)
 }
 
-func NewProvider(id uuid.UUID) *Provider {
+func NewProvider(id uid.ID) *Provider {
 	return &Provider{
 		Model: Model{
 			ID: id,

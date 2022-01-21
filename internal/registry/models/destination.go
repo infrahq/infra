@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/infrahq/infra/uuid"
-
 	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/uid"
 )
 
 type DestinationKind string
@@ -33,7 +32,7 @@ type DestinationKubernetes struct {
 
 	CA string
 
-	DestinationID uuid.UUID
+	DestinationID uid.ID
 }
 
 func (d *Destination) ToAPI() *api.Destination {

@@ -2,10 +2,10 @@ package access
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/infrahq/infra/uuid"
 
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
+	"github.com/infrahq/infra/uid"
 )
 
 const (
@@ -25,7 +25,7 @@ func CreateProvider(c *gin.Context, provider *models.Provider) (*models.Provider
 	return data.CreateProvider(db, provider)
 }
 
-func GetProvider(c *gin.Context, id uuid.UUID) (*models.Provider, error) {
+func GetProvider(c *gin.Context, id uid.ID) (*models.Provider, error) {
 	db, err := requireAuthorization(c)
 	if err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func ListProviders(c *gin.Context, kind models.ProviderKind, domain string) ([]m
 	return data.ListProviders(db, &models.Provider{Kind: kind, Domain: domain})
 }
 
-func UpdateProvider(c *gin.Context, id uuid.UUID, provider *models.Provider) (*models.Provider, error) {
+func UpdateProvider(c *gin.Context, id uid.ID, provider *models.Provider) (*models.Provider, error) {
 	db, err := requireAuthorization(c, PermissionProviderUpdate)
 	if err != nil {
 		return nil, err
@@ -52,7 +52,7 @@ func UpdateProvider(c *gin.Context, id uuid.UUID, provider *models.Provider) (*m
 	return data.UpdateProvider(db, provider, data.ByID(id))
 }
 
-func DeleteProvider(c *gin.Context, id uuid.UUID) error {
+func DeleteProvider(c *gin.Context, id uid.ID) error {
 	db, err := requireAuthorization(c, PermissionProviderDelete)
 	if err != nil {
 		return err

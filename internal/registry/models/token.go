@@ -5,10 +5,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/infrahq/infra/uuid"
-
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/uid"
 )
 
 const (
@@ -20,9 +19,9 @@ const (
 type Token struct {
 	Model
 
-	UserID uuid.UUID
+	UserID uid.ID
 
-	APITokenID uuid.UUID
+	APITokenID uid.ID
 
 	Key      string `gorm:"<-;uniqueIndex:,where:deleted_at is NULL"`
 	Secret   string `gorm:"-"`

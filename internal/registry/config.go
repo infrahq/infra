@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/infrahq/infra/uuid"
 	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
 
@@ -17,6 +16,7 @@ import (
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
 	"github.com/infrahq/infra/secrets"
+	"github.com/infrahq/infra/uid"
 )
 
 const oneHundredYears = time.Hour * 876000
@@ -256,7 +256,7 @@ type Config struct {
 }
 
 func importProviders(db *gorm.DB, providers []ConfigProvider) error {
-	toKeep := make([]uuid.UUID, 0)
+	toKeep := make([]uid.ID, 0)
 
 	for _, p := range providers {
 		p.cleanupDomain()
@@ -306,8 +306,8 @@ func importProviders(db *gorm.DB, providers []ConfigProvider) error {
 	return nil
 }
 
-func importUserGrantMappings(db *gorm.DB, users []ConfigUserMapping) ([]uuid.UUID, error) {
-	toKeep := make([]uuid.UUID, 0)
+func importUserGrantMappings(db *gorm.DB, users []ConfigUserMapping) ([]uid.ID, error) {
+	toKeep := make([]uid.ID, 0)
 
 	for _, u := range users {
 		if err := validate.Struct(u); err != nil {
@@ -340,8 +340,8 @@ func importUserGrantMappings(db *gorm.DB, users []ConfigUserMapping) ([]uuid.UUI
 	return toKeep, nil
 }
 
-func importGroupGrantMappings(db *gorm.DB, groups []ConfigGroupMapping) ([]uuid.UUID, error) {
-	toKeep := make([]uuid.UUID, 0)
+func importGroupGrantMappings(db *gorm.DB, groups []ConfigGroupMapping) ([]uid.ID, error) {
+	toKeep := make([]uid.ID, 0)
 
 	for _, g := range groups {
 		if err := validate.Struct(g); err != nil {
@@ -374,8 +374,8 @@ func importGroupGrantMappings(db *gorm.DB, groups []ConfigGroupMapping) ([]uuid.
 	return toKeep, nil
 }
 
-func importGrants(db *gorm.DB, grants []ConfigGrant) ([]uuid.UUID, error) {
-	toKeep := make([]uuid.UUID, 0)
+func importGrants(db *gorm.DB, grants []ConfigGrant) ([]uid.ID, error) {
+	toKeep := make([]uid.ID, 0)
 
 	for _, r := range grants {
 		if err := validate.Struct(r); err != nil {
@@ -452,7 +452,7 @@ func importGrants(db *gorm.DB, grants []ConfigGrant) ([]uuid.UUID, error) {
 
 func importGrantMappings(db *gorm.DB, users []ConfigUserMapping, groups []ConfigGroupMapping) error {
 	// TODO: use a Set here instead of a Slice
-	toKeep := make([]uuid.UUID, 0)
+	toKeep := make([]uid.ID, 0)
 
 	ids, err := importUserGrantMappings(db, users)
 	if err != nil {

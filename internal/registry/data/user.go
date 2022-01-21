@@ -4,14 +4,14 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/infrahq/infra/uuid"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/registry/models"
+	"github.com/infrahq/infra/uid"
 )
 
-func BindUserGrants(db *gorm.DB, user *models.User, grantIDs ...uuid.UUID) error {
+func BindUserGrants(db *gorm.DB, user *models.User, grantIDs ...uid.ID) error {
 	grants, err := ListGrants(db, ByIDs(grantIDs))
 	if err != nil {
 		return err
@@ -83,7 +83,7 @@ func DeleteUsers(db *gorm.DB, selectors ...SelectorFunc) error {
 	}
 
 	if len(toDelete) > 0 {
-		ids := make([]uuid.UUID, 0)
+		ids := make([]uid.ID, 0)
 		for _, g := range toDelete {
 			ids = append(ids, g.ID)
 		}
@@ -132,7 +132,7 @@ func ByEmailInList(emails []string) SelectorFunc {
 	}
 }
 
-func ByIDNotInList(ids []uuid.UUID) SelectorFunc {
+func ByIDNotInList(ids []uid.ID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		if len(ids) > 0 {
 			return db.Where("id not in (?)", ids)

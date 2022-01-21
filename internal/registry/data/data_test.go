@@ -11,7 +11,7 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry/models"
 	"github.com/infrahq/infra/secrets"
-	"github.com/infrahq/infra/uuid"
+	"github.com/infrahq/infra/uid"
 )
 
 func setup(t *testing.T) *gorm.DB {
@@ -41,7 +41,7 @@ func setup(t *testing.T) *gorm.DB {
 func TestSnowflakeIDSerialization(t *testing.T) {
 	db := setup(t)
 
-	id := uuid.New()
+	id := uid.New()
 	g := &models.Group{Model: models.Model{ID: id}, Name: "Foo"}
 	err := db.Create(g).Error
 	require.NoError(t, err)

@@ -10,7 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/infrahq/infra/internal/api"
-	"github.com/infrahq/infra/uuid"
+	"github.com/infrahq/infra/uid"
 	"github.com/stretchr/testify/require"
 )
 
@@ -68,16 +68,16 @@ func TestBindsUUIDs(t *testing.T) {
 func TestBindsSnowflake(t *testing.T) {
 	c, _ := gin.CreateTestContext(nil)
 
-	id := uuid.New()
-	id2 := uuid.New()
+	id := uid.New()
+	id2 := uid.New()
 
 	uri, err := url.Parse(fmt.Sprintf("/foo/%s?form_id=%s", id.String(), id2.String()))
 	require.NoError(t, err)
 	c.Request = &http.Request{URL: uri, Method: "GET"}
 	c.Params = append(c.Params, gin.Param{Key: "id", Value: id.String()})
 	r := &struct {
-		ID     uuid.UUID `uri:"id"`
-		FormID uuid.UUID `form:"form_id"`
+		ID     uid.ID `uri:"id"`
+		FormID uid.ID `form:"form_id"`
 	}{}
 	err = bind(c, r)
 	require.NoError(t, err)

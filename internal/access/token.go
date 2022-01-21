@@ -6,12 +6,12 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/infrahq/infra/uuid"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/claims"
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
+	"github.com/infrahq/infra/uid"
 )
 
 const (
@@ -123,7 +123,7 @@ func ListAPITokens(c *gin.Context, name string) ([]models.APITokenTuple, error) 
 	return apiTokens, nil
 }
 
-func RevokeAPIToken(c *gin.Context, id uuid.UUID) error {
+func RevokeAPIToken(c *gin.Context, id uid.ID) error {
 	db, err := requireAuthorization(c, PermissionAPITokenDelete)
 	if err != nil {
 		return err

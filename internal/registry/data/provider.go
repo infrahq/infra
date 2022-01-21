@@ -3,11 +3,11 @@ package data
 import (
 	"errors"
 
-	"github.com/infrahq/infra/uuid"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/registry/models"
+	"github.com/infrahq/infra/uid"
 )
 
 func SetProviderUsers(db *gorm.DB, provider *models.Provider, emails ...string) error {
@@ -117,7 +117,7 @@ func DeleteProviders(db *gorm.DB, selector SelectorFunc) error {
 	}
 
 	if len(toDelete) > 0 {
-		ids := make([]uuid.UUID, 0)
+		ids := make([]uid.ID, 0)
 		for _, g := range toDelete {
 			ids = append(ids, g.ID)
 		}
