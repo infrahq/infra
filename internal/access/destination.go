@@ -2,10 +2,10 @@ package access
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
+	"github.com/infrahq/infra/uid"
 )
 
 const (
@@ -34,7 +34,7 @@ func UpdateDestination(c *gin.Context, destination *models.Destination) error {
 	return data.UpdateDestination(db, destination)
 }
 
-func GetDestination(c *gin.Context, id uuid.UUID) (*models.Destination, error) {
+func GetDestination(c *gin.Context, id uid.ID) (*models.Destination, error) {
 	db, err := requireAuthorization(c, PermissionDestinationRead)
 	if err != nil {
 		return nil, err
@@ -60,7 +60,7 @@ func ListDestinations(c *gin.Context, kind, nodeID, name string, labels []string
 	))
 }
 
-func DeleteDestination(c *gin.Context, id uuid.UUID) error {
+func DeleteDestination(c *gin.Context, id uid.ID) error {
 	db, err := requireAuthorization(c, PermissionDestinationDelete)
 	if err != nil {
 		return err
@@ -69,7 +69,7 @@ func DeleteDestination(c *gin.Context, id uuid.UUID) error {
 	return data.DeleteDestinations(db, data.ByID(id))
 }
 
-func ListUserDestinations(c *gin.Context, userID uuid.UUID) ([]models.Destination, error) {
+func ListUserDestinations(c *gin.Context, userID uid.ID) ([]models.Destination, error) {
 	db, err := requireAuthorizationWithCheck(c, PermissionDestinationRead, func(user *models.User) bool {
 		return userID == user.ID
 	})

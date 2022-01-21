@@ -11,6 +11,7 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry/models"
 	"github.com/infrahq/infra/secrets"
+	"github.com/infrahq/infra/uid"
 )
 
 func setup(t *testing.T) *gorm.DB {
@@ -35,4 +36,24 @@ func setup(t *testing.T) *gorm.DB {
 	logging.S = logging.L.Sugar()
 
 	return db
+}
+
+func TestSnowflakeIDSerialization(t *testing.T) {
+	db := setup(t)
+
+	id := uid.New()
+	g := &models.Group{Model: models.Model{ID: id}, Name: "Foo"}
+	err := db.Create(g).Error
+	require.NoError(t, err)
+
+	var group models.Group
+	err = db.First(&group, &models.Group{Name: "Foo"}).Error
+	require.NoError(t, err)
+	require.NotEqual(t, 0, group.ID)
+
+	var intID int64
+	err = db.Select("id").Table("groups").Scan(&intID).Error
+	require.NoError(t, err)
+
+	require.Equal(t, int64(id), intID)
 }

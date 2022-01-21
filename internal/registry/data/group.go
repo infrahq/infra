@@ -3,11 +3,11 @@ package data
 import (
 	"errors"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/registry/models"
+	"github.com/infrahq/infra/uid"
 )
 
 func BindGroupUsers(db *gorm.DB, group *models.Group, users ...models.User) error {
@@ -18,7 +18,7 @@ func BindGroupUsers(db *gorm.DB, group *models.Group, users ...models.User) erro
 	return nil
 }
 
-func BindGroupGrants(db *gorm.DB, group *models.Group, grantIDs ...uuid.UUID) error {
+func BindGroupGrants(db *gorm.DB, group *models.Group, grantIDs ...uid.ID) error {
 	grants, err := ListGrants(db, ByIDs(grantIDs))
 	if err != nil {
 		return err
@@ -73,7 +73,7 @@ func GetGroup(db *gorm.DB, condition interface{}) (*models.Group, error) {
 	return &group, nil
 }
 
-func ListUserGroups(db *gorm.DB, userID uuid.UUID) (result []models.Group, err error) {
+func ListUserGroups(db *gorm.DB, userID uid.ID) (result []models.Group, err error) {
 	err = db.Model("Group").Joins("User").Where("groups_users.user_id = ?", userID).Find(&result).Error
 	if err != nil {
 		return nil, err
@@ -98,7 +98,7 @@ func DeleteGroups(db *gorm.DB, condition interface{}) error {
 	}
 
 	if len(toDelete) > 0 {
-		ids := make([]uuid.UUID, 0)
+		ids := make([]uid.ID, 0)
 		for _, g := range toDelete {
 			ids = append(ids, g.ID)
 		}

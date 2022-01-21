@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/google/uuid"
+	"github.com/infrahq/infra/uid"
 )
 
 // Provider struct for Provider
@@ -28,7 +28,7 @@ type CreateProviderRequest struct {
 }
 
 type UpdateProviderRequest struct {
-	ID           uuid.UUID     `uri:"id" json:"id"`
+	ID           uid.ID        `uri:"id" json:"id"`
 	Kind         ProviderKind  `json:"kind"`
 	Domain       string        `json:"domain" validate:"fqdn,required"`
 	ClientID     string        `json:"clientID"`

@@ -2,10 +2,10 @@ package access
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
+	"github.com/infrahq/infra/uid"
 )
 
 const (
@@ -16,7 +16,7 @@ const (
 	PermissionGrantDelete Permission = "infra.grant.delete"
 )
 
-func GetGrant(c *gin.Context, id uuid.UUID) (*models.Grant, error) {
+func GetGrant(c *gin.Context, id uid.ID) (*models.Grant, error) {
 	db, err := requireAuthorization(c, PermissionGrantRead)
 	if err != nil {
 		return nil, err
@@ -25,7 +25,7 @@ func GetGrant(c *gin.Context, id uuid.UUID) (*models.Grant, error) {
 	return data.GetGrant(db, data.ByID(id))
 }
 
-func ListGrants(c *gin.Context, kind models.GrantKind, destinationID uuid.UUID) ([]models.Grant, error) {
+func ListGrants(c *gin.Context, kind models.GrantKind, destinationID uid.ID) ([]models.Grant, error) {
 	db, err := requireAuthorization(c, PermissionGrantRead)
 	if err != nil {
 		return nil, err
@@ -34,7 +34,7 @@ func ListGrants(c *gin.Context, kind models.GrantKind, destinationID uuid.UUID) 
 	return data.ListGrants(db, data.ByGrantKind(kind), data.ByDestinationID(destinationID))
 }
 
-func ListUserGrants(c *gin.Context, userID uuid.UUID) ([]models.Grant, error) {
+func ListUserGrants(c *gin.Context, userID uid.ID) ([]models.Grant, error) {
 	db, err := requireAuthorizationWithCheck(c, PermissionGrantRead, func(user *models.User) bool {
 		return userID == user.ID
 	})

@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/google/uuid"
-
 	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/uid"
 )
 
 type DestinationKind string
@@ -33,7 +32,7 @@ type DestinationKubernetes struct {
 
 	CA string
 
-	DestinationID uuid.UUID
+	DestinationID uid.ID
 }
 
 func (d *Destination) ToAPI() *api.Destination {
@@ -95,17 +94,4 @@ func (d *Destination) FromAPI(from interface{}) error {
 	}
 
 	return fmt.Errorf("unknown destination model: " + reflect.TypeOf(from).String())
-}
-
-func NewDestination(id string) (*Destination, error) {
-	uuid, err := uuid.Parse(id)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Destination{
-		Model: Model{
-			ID: uuid,
-		},
-	}, nil
 }

@@ -1,6 +1,6 @@
 package api
 
-import "github.com/google/uuid"
+import "github.com/infrahq/infra/uid"
 
 // Grant struct for Grant
 type Grant struct {
@@ -18,5 +18,5 @@ type Grant struct {
 
 type ListGrantsRequest struct {
 	GrantKind     GrantKind `form:"kind"`
-	DestinationID uuid.UUID `form:"destination_id"`
+	DestinationID uid.ID    `form:"destination_id"`
 }

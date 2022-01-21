@@ -5,10 +5,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/uid"
 )
 
 const (
@@ -20,9 +19,9 @@ const (
 type Token struct {
 	Model
 
-	UserID uuid.UUID
+	UserID uid.ID
 
-	APITokenID uuid.UUID
+	APITokenID uid.ID
 
 	Key      string `gorm:"<-;uniqueIndex:,where:deleted_at is NULL"`
 	Secret   string `gorm:"-"`
@@ -120,17 +119,4 @@ func (k *APIToken) FromAPI(from interface{}, defaultSessionDuration time.Duratio
 	}
 
 	return fmt.Errorf("%w: unknown request", internal.ErrBadRequest)
-}
-
-func NewAPIToken(id string) (*APIToken, error) {
-	uuid, err := uuid.Parse(id)
-	if err != nil {
-		return nil, err
-	}
-
-	return &APIToken{
-		Model: Model{
-			ID: uuid,
-		},
-	}, nil
 }

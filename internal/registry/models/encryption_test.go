@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/google/uuid"
+	"github.com/infrahq/infra/uid"
 	"github.com/stretchr/testify/require"
 
 	"github.com/infrahq/infra/internal/registry/data"
@@ -13,7 +13,7 @@ import (
 )
 
 type StructForTesting struct {
-	ID      string `gorm:"primaryKey" validate:"uuid"`
+	ID      uid.ID `gorm:"primaryKey"`
 	ASecret models.EncryptedAtRest
 }
 
@@ -41,7 +41,7 @@ func TestEncryptedAtRest(t *testing.T) {
 	err = db.AutoMigrate(&StructForTesting{})
 	require.NoError(t, err)
 
-	id := uuid.NewString()
+	id := uid.New()
 
 	m := &StructForTesting{
 		ID:      id,

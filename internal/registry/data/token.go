@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/registry/models"
+	"github.com/infrahq/infra/uid"
 )
 
 func CreateToken(db *gorm.DB, token *models.Token) error {
@@ -137,7 +137,7 @@ func ListAPITokens(db *gorm.DB, condition interface{}) ([]models.APITokenTuple, 
 	return apiTokenTuples, nil
 }
 
-func DeleteAPIToken(db *gorm.DB, id uuid.UUID) error {
+func DeleteAPIToken(db *gorm.DB, id uid.ID) error {
 	toDelete, err := GetAPIToken(db, ByID(id))
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {

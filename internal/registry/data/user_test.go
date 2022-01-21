@@ -3,7 +3,6 @@ package data
 import (
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
@@ -25,7 +24,7 @@ func TestUser(t *testing.T) {
 	var user models.User
 	err = db.First(&user, &models.User{Email: bond.Email}).Error
 	require.NoError(t, err)
-	require.NotEqual(t, uuid.Nil, user.ID)
+	require.NotEqual(t, 0, user.ID)
 	require.Equal(t, bond.Email, user.Email)
 }
 
@@ -34,7 +33,7 @@ func TestCreateUser(t *testing.T) {
 
 	user, err := CreateUser(db, &bond)
 	require.NoError(t, err)
-	require.NotEqual(t, uuid.Nil, user.ID)
+	require.NotEqual(t, 0, user.ID)
 	require.Equal(t, bond.Email, user.Email)
 }
 
@@ -58,7 +57,7 @@ func TestCreateOrUpdateUserCreate(t *testing.T) {
 
 	user, err := CreateOrUpdateUser(db, &bond, &bond)
 	require.NoError(t, err)
-	require.NotEqual(t, uuid.Nil, user.ID)
+	require.NotEqual(t, 0, user.ID)
 	require.Equal(t, bond.Email, user.Email)
 }
 
@@ -68,7 +67,7 @@ func TestCreateOrUpdateUserUpdate(t *testing.T) {
 
 	user, err := CreateOrUpdateUser(db, &models.User{Email: "james@infrahq.com"}, &bond)
 	require.NoError(t, err)
-	require.NotEqual(t, uuid.Nil, user.ID)
+	require.NotEqual(t, 0, user.ID)
 	require.Equal(t, "james@infrahq.com", user.Email)
 }
 
@@ -78,7 +77,7 @@ func TestGetUser(t *testing.T) {
 
 	user, err := GetUser(db, models.User{Email: bond.Email})
 	require.NoError(t, err)
-	require.NotEqual(t, uuid.Nil, user.ID)
+	require.NotEqual(t, 0, user.ID)
 }
 
 func TestListUsers(t *testing.T) {

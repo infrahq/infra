@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/google/uuid"
+	"github.com/infrahq/infra/uid"
 )
 
 // Destination struct for Destination
@@ -35,7 +35,7 @@ type ListDestinationsRequest struct {
 }
 
 type CreateDestinationRequest struct {
-	ID         uuid.UUID              `json:"id"`
+	ID         uid.ID                 `json:"id"`
 	Kind       DestinationKind        `json:"kind"`
 	NodeID     string                 `json:"nodeID" validate:"required"`
 	Name       string                 `json:"name" validate:"required"`
@@ -44,7 +44,7 @@ type CreateDestinationRequest struct {
 }
 
 type UpdateDestinationRequest struct {
-	ID         uuid.UUID              `json:"id" uri:"id" validate:"required"`
+	ID         uid.ID                 `json:"id" uri:"id" validate:"required"`
 	Kind       DestinationKind        `json:"kind"`
 	NodeID     string                 `json:"nodeID" validate:"required"`
 	Name       string                 `json:"name" validate:"required"`

@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
@@ -15,6 +14,7 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
+	"github.com/infrahq/infra/uid"
 )
 
 // TODO: #691 set user permissions based on their internal infrahq grant (user or admin)
@@ -103,7 +103,7 @@ func syncProvider(r *Registry, db *gorm.DB, provider models.Provider) error {
 }
 
 func syncUsers(db *gorm.DB, emails []string) error {
-	toKeep := make([]uuid.UUID, 0)
+	toKeep := make([]uid.ID, 0)
 
 	for _, email := range emails {
 		user, err := data.CreateOrUpdateUser(db, &models.User{Email: email, Permissions: defaultPermissions}, &models.User{Email: email})
@@ -122,7 +122,7 @@ func syncUsers(db *gorm.DB, emails []string) error {
 }
 
 func syncGroups(db *gorm.DB, groups map[string][]string) error {
-	toKeep := make([]uuid.UUID, 0)
+	toKeep := make([]uid.ID, 0)
 
 	for name, emails := range groups {
 		group, err := data.CreateOrUpdateGroup(db, &models.Group{Name: name}, &models.Group{Name: name})
@@ -161,7 +161,7 @@ func syncDestinations(db *gorm.DB, maxAge time.Duration) {
 		return
 	}
 
-	toKeep := make([]uuid.UUID, 0)
+	toKeep := make([]uid.ID, 0)
 
 	for _, d := range destinations {
 		expires := d.UpdatedAt.Add(maxAge)

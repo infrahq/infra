@@ -1,11 +1,11 @@
 package data
 
 import (
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/registry/models"
+	"github.com/infrahq/infra/uid"
 )
 
 func CreateDestination(db *gorm.DB, destination *models.Destination) error {
@@ -53,8 +53,8 @@ func ListDestinations(db *gorm.DB, condition interface{}) ([]models.Destination,
 	return destinations, nil
 }
 
-func ListUserDestinations(db *gorm.DB, userID uuid.UUID) (result []models.Destination, err error) {
-	var destinationIDs []uuid.UUID
+func ListUserDestinations(db *gorm.DB, userID uid.ID) (result []models.Destination, err error) {
+	var destinationIDs []uid.ID
 
 	err = db.Model(models.Grant{}).Select("distinct destination_id").Joins("users_grants").Where("users_grants.user_id = ?", userID).Scan(&destinationIDs).Error
 	if err != nil {
@@ -76,7 +76,7 @@ func DeleteDestinations(db *gorm.DB, selector SelectorFunc) error {
 	}
 
 	if len(toDelete) > 0 {
-		ids := make([]uuid.UUID, 0)
+		ids := make([]uid.ID, 0)
 		for _, g := range toDelete {
 			ids = append(ids, g.ID)
 		}

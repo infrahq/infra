@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
@@ -14,6 +13,7 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
+	"github.com/infrahq/infra/uid"
 )
 
 func init() {
@@ -158,7 +158,7 @@ func TestRequireAuthorization(t *testing.T) {
 }
 
 func TestRequireAuthorizationWithCheck(t *testing.T) {
-	userID := uuid.New()
+	userID := uid.New()
 
 	tests := []struct {
 		Name             string

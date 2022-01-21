@@ -1,21 +1,21 @@
 package data
 
 import (
-	"github.com/google/uuid"
+	"github.com/infrahq/infra/uid"
 	"gorm.io/gorm"
 )
 
 type SelectorFunc func(db *gorm.DB) *gorm.DB
 
-func ByID(id uuid.UUID) SelectorFunc {
+func ByID(id uid.ID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("id = ?", id.String())
+		return db.Where("id = ?", id)
 	}
 }
 
-func ByAPITokenID(id uuid.UUID) SelectorFunc {
+func ByAPITokenID(id uid.ID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("api_token_id = ?", id.String())
+		return db.Where("api_token_id = ?", id)
 	}
 }
 
@@ -39,7 +39,7 @@ func ByEmail(email string) SelectorFunc {
 	}
 }
 
-func ByIDs(ids []uuid.UUID) SelectorFunc {
+func ByIDs(ids []uid.ID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("id in (?)", ids)
 	}
@@ -51,9 +51,9 @@ func ByKey(key string) SelectorFunc {
 	}
 }
 
-func ByDestinationID(id uuid.UUID) SelectorFunc {
+func ByDestinationID(id uid.ID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
-		if id == uuid.Nil {
+		if id == 0 {
 			return db
 		}
 

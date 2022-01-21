@@ -3,7 +3,6 @@ package data
 import (
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
@@ -33,7 +32,7 @@ func TestCreateProviderOkta(t *testing.T) {
 
 	provider, err := CreateProvider(db, &providerDevelop)
 	require.NoError(t, err)
-	require.NotEqual(t, uuid.Nil, provider.ID)
+	require.NotEqual(t, 0, provider.ID)
 	require.Equal(t, providerDevelop.Kind, provider.Kind)
 	require.Equal(t, providerDevelop.Domain, provider.Domain)
 }
@@ -58,7 +57,7 @@ func TestCreateOrUpdateProviderCreate(t *testing.T) {
 
 	provider, err := CreateOrUpdateProvider(db, &providerDevelop, &providerDevelop)
 	require.NoError(t, err)
-	require.NotEqual(t, uuid.Nil, provider.ID)
+	require.NotEqual(t, 0, provider.ID)
 	require.Equal(t, providerDevelop.Kind, provider.Kind)
 	require.Equal(t, providerDevelop.Domain, provider.Domain)
 }
@@ -69,7 +68,7 @@ func TestCreateOrUpdateProviderUpdate(t *testing.T) {
 
 	provider, err := CreateOrUpdateProvider(db, &models.Provider{Domain: "tmp.okta.com"}, &providerDevelop)
 	require.NoError(t, err)
-	require.NotEqual(t, uuid.Nil, provider.ID)
+	require.NotEqual(t, 0, provider.ID)
 	require.Equal(t, providerDevelop.Kind, provider.Kind)
 	require.Equal(t, "tmp.okta.com", provider.Domain)
 }
@@ -87,7 +86,7 @@ func TestCreateOrUpdateProviderUpdateOkta(t *testing.T) {
 
 	provider, err := CreateOrUpdateProvider(db, &okta, &providerDevelop)
 	require.NoError(t, err)
-	require.NotEqual(t, uuid.Nil, provider.ID)
+	require.NotEqual(t, 0, provider.ID)
 	require.EqualValues(t, "updated-token", provider.Okta.APIToken)
 
 	fromDB, err := GetProvider(db, &models.Provider{Domain: provider.Domain})
@@ -102,7 +101,7 @@ func TestGetProvider(t *testing.T) {
 
 	provider, err := GetProvider(db, &models.Provider{Kind: "okta"})
 	require.NoError(t, err)
-	require.NotEqual(t, uuid.Nil, provider.ID)
+	require.NotEqual(t, 0, provider.ID)
 	require.Equal(t, providerDevelop.Domain, provider.Domain)
 }
 

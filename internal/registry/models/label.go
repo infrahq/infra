@@ -1,13 +1,11 @@
 package models
 
-import (
-	"github.com/google/uuid"
-)
+import "github.com/infrahq/infra/uid"
 
 type Label struct {
 	Model
 
 	Value string
 
-	DestinationID uuid.UUID
+	DestinationID uid.ID
 }

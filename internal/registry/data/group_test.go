@@ -3,7 +3,6 @@ package data
 import (
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
@@ -25,7 +24,7 @@ func TestGroup(t *testing.T) {
 	var group models.Group
 	err = db.First(&group, &models.Group{Name: everyone.Name}).Error
 	require.NoError(t, err)
-	require.NotEqual(t, uuid.Nil, group.ID)
+	require.NotEqual(t, 0, group.ID)
 	require.Equal(t, everyone.Name, group.Name)
 }
 
@@ -34,7 +33,7 @@ func TestCreateGroup(t *testing.T) {
 
 	group, err := CreateGroup(db, &everyone)
 	require.NoError(t, err)
-	require.NotEqual(t, uuid.Nil, group.ID)
+	require.NotEqual(t, 0, group.ID)
 	require.Equal(t, everyone.Name, group.Name)
 }
 
@@ -59,7 +58,7 @@ func TestGetGroup(t *testing.T) {
 
 	group, err := GetGroup(db, models.Group{Name: everyone.Name})
 	require.NoError(t, err)
-	require.NotEqual(t, uuid.Nil, group.ID)
+	require.NotEqual(t, 0, group.ID)
 }
 
 func TestListGroups(t *testing.T) {

@@ -2,6 +2,7 @@ package registry
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/uid"
 	"github.com/stretchr/testify/require"
 )
 
@@ -52,13 +54,34 @@ func TestBindsJSON(t *testing.T) {
 func TestBindsUUIDs(t *testing.T) {
 	c, _ := gin.CreateTestContext(nil)
 
-	uri, err := url.Parse("/foo/e4d97df0-51c8-4eb8-91d4-d9a6314bfd83")
+	uri, err := url.Parse("/foo/e4d97df2")
 	require.NoError(t, err)
 	c.Request = &http.Request{URL: uri, Method: "GET"}
-	c.Params = append(c.Params, gin.Param{Key: "id", Value: "e4d97df0-51c8-4eb8-91d4-d9a6314bfd83"})
+	c.Params = append(c.Params, gin.Param{Key: "id", Value: "e4d97df2"})
 	r := &api.Resource{}
 	err = bind(c, r)
 	require.NoError(t, err)
 
-	require.EqualValues(t, "e4d97df0-51c8-4eb8-91d4-d9a6314bfd83", r.ID)
+	require.EqualValues(t, "e4d97df2", r.ID.String())
+}
+
+func TestBindsSnowflake(t *testing.T) {
+	c, _ := gin.CreateTestContext(nil)
+
+	id := uid.New()
+	id2 := uid.New()
+
+	uri, err := url.Parse(fmt.Sprintf("/foo/%s?form_id=%s", id.String(), id2.String()))
+	require.NoError(t, err)
+	c.Request = &http.Request{URL: uri, Method: "GET"}
+	c.Params = append(c.Params, gin.Param{Key: "id", Value: id.String()})
+	r := &struct {
+		ID     uid.ID `uri:"id"`
+		FormID uid.ID `form:"form_id"`
+	}{}
+	err = bind(c, r)
+	require.NoError(t, err)
+
+	require.Equal(t, id, r.ID)
+	require.Equal(t, id2, r.FormID)
 }
