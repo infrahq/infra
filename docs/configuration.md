@@ -148,7 +148,6 @@ providers:
     domain: acme.okta.com
     clientID: 0oapn0qwiQPiMIyR35d6
     clientSecret: kubernetes:infra-okta/clientSecret
-    apiToken: kubernetes:infra-okta/apiToken
 
 groups:
   - name: administrators

@@ -72,7 +72,7 @@ dev: $(VALUES) helm build/docker
 	# get client secret from:
 	# https://dev-02708987-admin.okta.com/admin/app/oidc_client/instance/0oapn0qwiQPiMIyR35d6/#tab-general
 	# create the required secret with:
-	# kubectl $(NS) create secret generic $(OKTA_SECRET) --from-literal=clientSecret=$$OKTA_CLIENT_SECRET --from-literal=apiToken=$$OKTA_API_TOKEN
+	# kubectl $(NS) create secret generic $(OKTA_SECRET) --from-literal=clientSecret=$$OKTA_CLIENT_SECRET
 
 	kubectl config use-context docker-desktop
 	kubectl $(NS) get secrets $(INFRA_OKTA) >/dev/null

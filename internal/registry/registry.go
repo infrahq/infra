@@ -350,7 +350,7 @@ func (r *Registry) getPostgresConnectionString() (string, error) {
 }
 
 // GetSecret implements the secret definition scheme for Infra.
-// eg plaintext:pass123, or kubernetes:infra-okta/apiToken
+// eg plaintext:pass123, or kubernetes:infra-okta/clientSecret
 // it's an abstraction around all secret providers
 func (r *Registry) GetSecret(name string) (string, error) {
 	var kind string

@@ -270,7 +270,6 @@ providers:
     domain: https://test.example.com
     clientID: plaintext:0oapn0qwiQPiMIyR35d6
     clientSecret: kubernetes:okta-secrets/clientSecret
-    apiToken: kubernetes:okta-secrets/apiToken
 groups:
   - name: Everyone
     provider: okta
@@ -290,7 +289,6 @@ providers:
     domain: https://test.example.com
     clientID: plaintext:0oapn0qwiQPiMIyR35d6
     clientSecret: kubernetes:okta-secrets/clientSecret
-    apiToken: kubernetes:okta-secrets/apiToken
 groups:
   - name: Everyone
     provider: okta

@@ -25,14 +25,6 @@ type Provider struct {
 	Groups []Group `gorm:"many2many:groups_providers"`
 }
 
-type ProviderOkta struct {
-	Model
-
-	APIToken EncryptedAtRest
-
-	ProviderID uid.ID
-}
-
 func (p *Provider) ToAPI() api.Provider {
 	result := api.Provider{
 		ID:      p.ID.String(),
