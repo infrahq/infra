@@ -173,7 +173,7 @@ provider:
 			return err
 		}
 
-		authorizeURL := fmt.Sprintf("https://%s/oauth2/v1/authorize?redirect_uri=http://localhost:8301&client_id=%s&response_type=code&scope=openid+email&nonce=%s&state=%s", selectedProvider.Domain, selectedProvider.ClientID, nonce, state)
+		authorizeURL := fmt.Sprintf("https://%s/oauth2/v1/authorize?redirect_uri=http://localhost:8301&client_id=%s&response_type=code&scope=openid+email+groups+offline_access&nonce=%s&state=%s", selectedProvider.Domain, selectedProvider.ClientID, nonce, state)
 
 		fmt.Fprintf(os.Stderr, "  Logging in with %s...\n", termenv.String("Okta").Bold().String())
 

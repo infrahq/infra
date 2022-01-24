@@ -46,7 +46,6 @@ config:
       domain: <Okta domain>
       clientID: <Okta client id>
       clientSecret: <Okta client secret>
-      apiToken: <Okta api token>
 
   groups:
     # Grants the "Everyone" Okta group read-only access

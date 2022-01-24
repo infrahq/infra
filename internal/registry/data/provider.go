@@ -2,6 +2,8 @@ package data
 
 import (
 	"errors"
+	"fmt"
+	"sync"
 
 	"gorm.io/gorm"
 
@@ -10,27 +12,25 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func SetProviderUsers(db *gorm.DB, provider *models.Provider, emails ...string) error {
-	users, err := ListUsers(db, ByEmailInList(emails))
-	if err != nil {
-		return err
-	}
+var mu sync.Mutex
+
+func AppendProviderUsers(db *gorm.DB, provider *models.Provider, user models.User) error {
+	mu.Lock()
+	defer mu.Unlock()
+
+	users := provider.Users
+	users = append(users, user)
 
 	if err := db.Model(provider).Association("Users").Replace(users); err != nil {
-		return err
+		return fmt.Errorf("append provider users: %w", err)
 	}
 
 	return nil
 }
 
-func SetProviderGroups(db *gorm.DB, provider *models.Provider, names ...string) error {
-	groups, err := ListGroups(db, db.Where("name IN (?)", names))
-	if err != nil {
-		return err
-	}
-
-	if err := db.Model(provider).Association("Groups").Replace(groups); err != nil {
-		return err
+func AppendProviderGroups(db *gorm.DB, provider *models.Provider, group *models.Group) error {
+	if err := db.Model(provider).Association("Groups").Append(group); err != nil {
+		return fmt.Errorf("append provider groups: %w", err)
 	}
 
 	return nil
@@ -62,13 +62,6 @@ func CreateOrUpdateProvider(db *gorm.DB, provider *models.Provider, condition in
 		return nil, err
 	}
 
-	switch provider.Kind {
-	case models.ProviderKindOkta:
-		if err := db.Model(existing).Association("Okta").Replace(&provider.Okta); err != nil {
-			return nil, err
-		}
-	}
-
 	return GetProvider(db, db.Where(existing, "id"))
 }
 
@@ -98,13 +91,6 @@ func UpdateProvider(db *gorm.DB, provider *models.Provider, selector SelectorFun
 
 	if err := update(db, &models.Provider{}, provider, db.Where(existing, "id")); err != nil {
 		return nil, err
-	}
-
-	switch provider.Kind {
-	case models.ProviderKindOkta:
-		if err := db.Model(existing).Association("Okta").Replace(&provider.Okta); err != nil {
-			return nil, err
-		}
 	}
 
 	return GetProvider(db, db.Where(existing, "id"))

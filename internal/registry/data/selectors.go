@@ -60,3 +60,9 @@ func ByDestinationID(id uid.ID) SelectorFunc {
 		return db.Where("destination_id = ?", id)
 	}
 }
+
+func ByUserID(userID uid.ID) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("user_id = ?", userID)
+	}
+}

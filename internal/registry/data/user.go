@@ -11,6 +11,14 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+func BindUserGroups(db *gorm.DB, user *models.User, groups ...models.Group) error {
+	if err := db.Model(user).Association("Groups").Replace(groups); err != nil {
+		return fmt.Errorf("bind user groups: %w", err)
+	}
+
+	return nil
+}
+
 func BindUserGrants(db *gorm.DB, user *models.User, grantIDs ...uid.ID) error {
 	grants, err := ListGrants(db, ByIDs(grantIDs))
 	if err != nil {

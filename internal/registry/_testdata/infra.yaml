@@ -10,12 +10,10 @@ providers:
     domain: https://test.okta.com
     clientID: base64:MG9hcG4wcXdpUVBpTUl5UjM1ZDY=
     clientSecret: base64:c3VwZXJzZWNyZXQ=
-    apiToken: base64:dGVyY2VzcmVwdXM=
   - kind: okta
     domain: https://test.okta.com
     clientID: plaintext:0oapn0qwiQPiMIyR35d6
     clientSecret: base64:c3VwZXJzZWNyZXQ=
-    apiToken: base64:dGVyY2VzcmVwdXM=
 
 groups:
   - name: Everyone

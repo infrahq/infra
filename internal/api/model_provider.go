@@ -20,29 +20,23 @@ type Provider struct {
 }
 
 type CreateProviderRequest struct {
-	Kind         ProviderKind  `json:"kind" validate:"required"`
-	Domain       string        `json:"domain" validate:"fqdn,required"`
-	ClientID     string        `json:"clientID"`
-	ClientSecret string        `json:"clientSecret"`
-	Okta         *ProviderOkta `json:"okta,omitempty"`
+	Kind         ProviderKind `json:"kind" validate:"required"`
+	Domain       string       `json:"domain" validate:"fqdn,required"`
+	ClientID     string       `json:"clientID"`
+	ClientSecret string       `json:"clientSecret"`
 }
 
 type UpdateProviderRequest struct {
-	ID           uid.ID        `uri:"id" json:"id"`
-	Kind         ProviderKind  `json:"kind"`
-	Domain       string        `json:"domain" validate:"fqdn,required"`
-	ClientID     string        `json:"clientID"`
-	ClientSecret string        `json:"clientSecret"`
-	Okta         *ProviderOkta `json:"okta,omitempty"`
+	ID           uid.ID       `uri:"id" json:"id"`
+	Kind         ProviderKind `json:"kind"`
+	Domain       string       `json:"domain" validate:"fqdn,required"`
+	ClientID     string       `json:"clientID"`
+	ClientSecret string       `json:"clientSecret"`
 }
 
 type ListProvidersRequest struct {
 	ProviderKind ProviderKind `form:"kind"`
 	Domain       string       `form:"domain"`
-}
-
-type ProviderOkta struct {
-	APIToken string `json:"apiToken"`
 }
 
 // ProviderKind the model 'ProviderKind'

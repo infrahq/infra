@@ -139,12 +139,12 @@ func RequireAuthentication(c *gin.Context) error {
 		// this token has a parent user, set by their current permissions
 		user, err := data.GetUser(db, data.ByID(token.UserID))
 		if err != nil {
-			return fmt.Errorf("%w: %s", internal.ErrUnauthorized, err)
+			return fmt.Errorf("user for token: %w", err)
 		}
 
 		c.Set("permissions", user.Permissions)
 		c.Set("user_id", token.UserID)
-		logging.S.Debug("user permissions: %s \n", user.Permissions)
+		logging.S.Debugf("user permissions: %s", user.Permissions)
 
 		user.LastSeenAt = time.Now()
 		if err := data.UpdateUser(db, user, data.ByID(user.ID)); err != nil {
@@ -156,7 +156,7 @@ func RequireAuthentication(c *gin.Context) error {
 		// this is an API token
 		apiToken, err := data.GetAPIToken(db, data.ByID(token.APITokenID))
 		if err != nil {
-			return fmt.Errorf("%w: %s", internal.ErrUnauthorized, err)
+			return fmt.Errorf("api client for token: %w", err)
 		}
 		c.Set("permissions", apiToken.Permissions)
 	}

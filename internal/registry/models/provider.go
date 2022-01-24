@@ -21,18 +21,8 @@ type Provider struct {
 	ClientID     string
 	ClientSecret EncryptedAtRest
 
-	Okta ProviderOkta
-
 	Users  []User  `gorm:"many2many:users_providers"`
 	Groups []Group `gorm:"many2many:groups_providers"`
-}
-
-type ProviderOkta struct {
-	Model
-
-	APIToken EncryptedAtRest
-
-	ProviderID uid.ID
 }
 
 func (p *Provider) ToAPI() api.Provider {
@@ -55,12 +45,6 @@ func (p *Provider) FromAPI(from interface{}) error {
 		p.Domain = request.Domain
 		p.ClientID = request.ClientID
 		p.ClientSecret = EncryptedAtRest(request.ClientSecret)
-
-		if request.Okta != nil {
-			p.Okta = ProviderOkta{
-				APIToken: EncryptedAtRest(request.Okta.APIToken),
-			}
-		}
 
 		return nil
 	}

@@ -1,8 +1,13 @@
 package access
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 
+	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/registry/authn"
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
 	"github.com/infrahq/infra/uid"
@@ -18,7 +23,7 @@ const (
 
 var RoleAdmin = []Permission{PermissionAllInfra}
 
-func currentUser(c *gin.Context) *models.User {
+func CurrentUser(c *gin.Context) *models.User {
 	userObj, exists := c.Get("user")
 	if !exists {
 		return nil
@@ -74,4 +79,37 @@ func ListUsers(c *gin.Context, email string) ([]models.User, error) {
 	}
 
 	return data.ListUsers(data.UserAssociations(db), data.ByEmail(email))
+}
+
+func UpdateUserInfo(c *gin.Context, info *authn.UserInfo, user *models.User, provider *models.Provider) error {
+	db, err := requireAuthorization(c)
+	if err != nil {
+		return err
+	}
+
+	// add user to groups they are currently in
+	var groups []models.Group
+
+	for _, name := range info.Groups {
+		group, err := data.GetGroup(db, data.ByName(name))
+		if err != nil {
+			if !errors.Is(err, internal.ErrNotFound) {
+				return fmt.Errorf("get group: %w", err)
+			}
+
+			if group, err = data.CreateGroup(db, &models.Group{Name: name}); err != nil {
+				return fmt.Errorf("create group: %w", err)
+			}
+		}
+
+		err = data.AppendProviderGroups(db, provider, group)
+		if err != nil {
+			return fmt.Errorf("user provider info: %w", err)
+		}
+
+		groups = append(groups, *group)
+	}
+
+	// remove user from groups they are no longer in
+	return data.BindUserGroups(db, user, groups...)
 }
