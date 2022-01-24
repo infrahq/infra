@@ -13,7 +13,6 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
-	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
 	"github.com/infrahq/infra/secrets"
@@ -511,7 +510,6 @@ func (r *Registry) importAPITokens() error {
 		key, sec := models.KeyAndSecret(tokenSecret)
 
 		existing, err := data.GetAPIToken(r.db, data.ByName(k))
-		logging.S.Debug(existing)
 		if err != nil {
 			if !errors.Is(err, internal.ErrNotFound) {
 				return err
@@ -542,9 +540,7 @@ func (r *Registry) importAPITokens() error {
 			}
 
 			// create or update associated token
-			fmt.Printf("existing API token: %s\n", existing.Name)
 			existingToken, err := data.GetToken(r.db, data.ByKey(key))
-			fmt.Printf("existing token: %v\n", existingToken)
 			if err != nil {
 				if !errors.Is(err, internal.ErrNotFound) {
 					return err
