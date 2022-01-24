@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/registry/models"
 	"golang.org/x/oauth2"
@@ -41,23 +42,31 @@ func NewOIDC(domain, clientID, clientSecret string) OIDC {
 }
 
 // clientConfig returns the OAuth client configuration needed to interact with an identity provider
-func (o *oidcImplementation) clientConfig() *oauth2.Config {
-	return &oauth2.Config{
+func (o *oidcImplementation) clientConfig(ctx context.Context) (*oauth2.Config, *oidc.Provider, error) {
+	// TODO: we should be caching this information locally
+	provider, err := oidc.NewProvider(ctx, fmt.Sprintf("https://%s", o.Domain))
+	if err != nil {
+		return nil, nil, fmt.Errorf("get provider openid info: %w", err)
+	}
+
+	conf := &oauth2.Config{
 		ClientID:     o.ClientID,
 		ClientSecret: o.ClientSecret,
 		RedirectURL:  "http://localhost:8301",
-		Scopes:       []string{"openid", "email", "groups", "offline_access"},
-		Endpoint: oauth2.Endpoint{
-			TokenURL: fmt.Sprintf("https://%s/oauth2/v1/token", o.Domain),
-			AuthURL:  fmt.Sprintf("https://%s/oauth2/v1/authorize", o.Domain),
-		},
+		Scopes:       []string{oidc.ScopeOpenID, "email", "groups", oidc.ScopeOfflineAccess},
+		Endpoint:     provider.Endpoint(),
 	}
+
+	return conf, provider, nil
 }
 
 // tokenSource is used to call an identity provider with the specified provider tokens
-func (o *oidcImplementation) tokenSource(providerTokens *models.ProviderToken) oauth2.TokenSource {
+func (o *oidcImplementation) tokenSource(providerTokens *models.ProviderToken) (oauth2.TokenSource, error) {
 	ctx := context.Background()
-	conf := o.clientConfig()
+	conf, _, err := o.clientConfig(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("call idp with tokens: %w", err)
+	}
 
 	userToken := &oauth2.Token{
 		AccessToken:  string(providerTokens.AccessToken),
@@ -65,67 +74,64 @@ func (o *oidcImplementation) tokenSource(providerTokens *models.ProviderToken) o
 		Expiry:       providerTokens.Expiry,
 	}
 
-	return conf.TokenSource(ctx, userToken)
+	return conf.TokenSource(ctx, userToken), nil
 }
 
-func (o *oidcImplementation) ExchangeAuthCodeForProviderTokens(code string) (accessToken, refreshToken string, accessTokenExpiry time.Time, email string, err error) {
+func (o *oidcImplementation) ExchangeAuthCodeForProviderTokens(code string) (rawAccessToken, rawRefreshToken string, accessTokenExpiry time.Time, email string, err error) {
 	ctx := context.Background()
-	conf := o.clientConfig()
+	conf, provider, err := o.clientConfig(ctx)
+	if err != nil {
+		return "", "", time.Time{}, "", fmt.Errorf("client exchange code: %w", err)
+	}
 
 	exchanged, err := conf.Exchange(ctx, code)
 	if err != nil {
 		return "", "", time.Time{}, "", fmt.Errorf("code exchange: %w", err)
 	}
 
-	accessToken, ok := exchanged.Extra("access_token").(string)
+	rawAccessToken, ok := exchanged.Extra("access_token").(string)
 	if !ok {
 		return "", "", time.Time{}, "", errors.New("could not extract access token from oauth2")
 	}
 
-	refreshToken, ok = exchanged.Extra("refresh_token").(string)
+	rawRefreshToken, ok = exchanged.Extra("refresh_token").(string)
 	if !ok {
 		return "", "", time.Time{}, "", errors.New("could not extract refresh token from oauth2")
 	}
 
-	idToken, ok := exchanged.Extra("id_token").(string)
+	rawIDToken, ok := exchanged.Extra("id_token").(string)
 	if !ok {
 		return "", "", time.Time{}, "", errors.New("could not extract id_token from oauth2 token")
 	}
 
-	parsedAcc, err := jwt.ParseSigned(accessToken)
+	exp, err := getAccessTokenExpiry(rawAccessToken)
 	if err != nil {
-		return "", "", time.Time{}, "", fmt.Errorf("validate acc: %w", err)
+		return "", "", time.Time{}, "", fmt.Errorf("get exp: %w", err)
 	}
 
-	parsedID, err := jwt.ParseSigned(idToken)
+	// we get sensitive claims from the ID token, must validate them
+	verifier := provider.Verifier(&oidc.Config{ClientID: o.ClientID})
+	idToken, err := verifier.Verify(ctx, rawIDToken)
 	if err != nil {
-		return "", "", time.Time{}, "", fmt.Errorf("parse signed: %w", err)
+		return "", "", time.Time{}, "", fmt.Errorf("validate id token: %w", err)
 	}
 
-	accClaims := &jwt.Claims{}
-
-	// TODO: #815, validate claims
-	err = parsedAcc.UnsafeClaimsWithoutVerification(accClaims)
-	if err != nil {
-		return "", "", time.Time{}, "", fmt.Errorf("acc token claims: %w", err)
+	var claims struct {
+		Email string `json:"email"`
 	}
-
-	attributes := make(map[string]interface{})
-	if err := parsedID.UnsafeClaimsWithoutVerification(&attributes); err != nil {
+	if err := idToken.Claims(&claims); err != nil {
 		return "", "", time.Time{}, "", fmt.Errorf("id cliams: %w", err)
 	}
 
-	email, ok = attributes["email"].(string)
-	if !ok {
-		return "", "", time.Time{}, "", errors.New("could not extract email from identity provider token")
-	}
-
-	return accessToken, refreshToken, accClaims.Expiry.Time(), email, nil
+	return rawAccessToken, rawRefreshToken, exp, claims.Email, nil
 }
 
 // RefreshAccessToken uses the refresh token to get a new access token if it is expired
 func (o *oidcImplementation) RefreshAccessToken(providerTokens *models.ProviderToken) (accessToken string, expiry *time.Time, err error) {
-	tokenSource := o.tokenSource(providerTokens)
+	tokenSource, err := o.tokenSource(providerTokens)
+	if err != nil {
+		return "", nil, fmt.Errorf("ref token source: %w", err)
+	}
 
 	newToken, err := tokenSource.Token() // this refreshes token if needed
 	if err != nil {
@@ -139,7 +145,10 @@ func (o *oidcImplementation) RefreshAccessToken(providerTokens *models.ProviderT
 // make sure an access token is valid (not expired) before using this
 func (o *oidcImplementation) GetUserInfo(providerTokens *models.ProviderToken) (*UserInfo, error) {
 	ctx := context.Background()
-	tokenSource := o.tokenSource(providerTokens)
+	tokenSource, err := o.tokenSource(providerTokens)
+	if err != nil {
+		return nil, fmt.Errorf("info token source: %w", err)
+	}
 
 	userInfoEndpoint := fmt.Sprintf("https://%s/oauth2/v1/userinfo", o.Domain)
 
@@ -170,4 +179,19 @@ func (o *oidcImplementation) GetUserInfo(providerTokens *models.ProviderToken) (
 	}
 
 	return info, nil
+}
+
+func getAccessTokenExpiry(rawAccessToken string) (time.Time, error) {
+	accessToken, err := jwt.ParseSigned(rawAccessToken)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("parse acc: %w", err)
+	}
+
+	accClaims := &jwt.Claims{}
+	// as long as we are only getting the expiry for the access token claims here we dont need to validate them
+	err = accessToken.UnsafeClaimsWithoutVerification(accClaims)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("acc token exp claim: %w", err)
+	}
+	return accClaims.Expiry.Time(), nil
 }
