@@ -48,6 +48,8 @@ On the **OpenID Connect ID Token** select **Edit**.
 Update the **Groups claim filter** to `groups` `Matches regex` `.*`.  
 Click **Save**.
 
+![groups_claim](https://user-images.githubusercontent.com/5853428/150852764-9a447ab5-7e24-483d-86e3-cd2767b07b56.png)
+
 ### Add the Okta client secret to the Infra deployment
 
 The Okta client secret is sensitive information which should not be stored in the Infra configuration file. In order for Infra to access this secret values it should be stored in a secret provider, for this example we will use Kubernetes Secret objects **in the same namespace that the Infra is deployed in**.
