@@ -43,7 +43,7 @@ func NewOIDC(domain, clientID, clientSecret string) OIDC {
 
 // clientConfig returns the OAuth client configuration needed to interact with an identity provider
 func (o *oidcImplementation) clientConfig(ctx context.Context) (*oauth2.Config, *oidc.Provider, error) {
-	// TODO: we should be caching this information locally
+	// TODO: #834 we should be caching this information locally
 	provider, err := oidc.NewProvider(ctx, fmt.Sprintf("https://%s", o.Domain))
 	if err != nil {
 		return nil, nil, fmt.Errorf("get provider openid info: %w", err)
