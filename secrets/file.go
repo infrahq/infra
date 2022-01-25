@@ -75,7 +75,7 @@ func (fp *FileSecretProvider) GetSecret(name string) (secret []byte, err error) 
 	f, err := os.Open(fullPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, nil
+			return nil, ErrNotFound
 		}
 
 		return nil, fmt.Errorf("opening file %q: %w", fullPath, err)

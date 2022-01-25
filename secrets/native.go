@@ -1,6 +1,9 @@
 package secrets
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 var (
 	infraKeyNamespace   = "infra-x"                         // k8s doesn't like names that start or end with _
@@ -30,7 +33,9 @@ func (n *NativeSecretProvider) GenerateDataKey(rootKeyID string) (*SymmetricKey,
 
 	rootKey, err := n.SecretStorage.GetSecret(rootKeyID)
 	if err != nil {
-		return nil, fmt.Errorf("getting root key: %w", err)
+		if !errors.Is(err, ErrNotFound) {
+			return nil, fmt.Errorf("getting root key: %w", err)
+		}
 	}
 
 	if len(rootKey) == 0 {

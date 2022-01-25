@@ -1,10 +1,8 @@
 package secrets
 
 import (
-	"encoding/base64"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -16,9 +14,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/hashicorp/vault/api"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v2"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/infrahq/infra/testutil/docker"
 )
@@ -207,69 +205,15 @@ func eachProvider(t *testing.T, eachFunc func(t *testing.T, p interface{})) {
 }
 
 func kubeConfig(t *testing.T) *rest.Config {
-	tlsClientConfig := rest.TLSClientConfig{}
+	config := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+		clientcmd.NewDefaultClientConfigLoadingRules(),
+		&clientcmd.ConfigOverrides{},
+	)
 
-	home := os.ExpandEnv("$HOME")
-	f, err := os.Open(home + "/.kube/config")
+	restConfig, err := config.ClientConfig()
 	require.NoError(t, err)
 
-	config := struct {
-		Clusters []struct {
-			Name    string `yaml:"name"`
-			Cluster struct {
-				Server                   string `yaml:"server"`
-				CertificateAuthorityData string `yaml:"certificate-authority-data"`
-			} `yaml:"cluster"`
-		} `yaml:"clusters"`
-		Contexts []struct {
-			Context struct {
-				Cluster string `yaml:"cluster"`
-				User    string `yaml:"user"`
-				Name    string `yaml:"name"`
-			} `yaml:"context"`
-		}
-		CurrentContext string `yaml:"current-context"`
-		Users          []struct {
-			Name string `yaml:"name"`
-			User struct {
-				ClientCertificateData string `yaml:"client-certificate-data"`
-				ClientKeyData         string `yaml:"client-key-data"`
-			}
-		}
-	}{}
-
-	b, err := ioutil.ReadAll(f)
-	require.NoError(t, err)
-
-	err = yaml.Unmarshal(b, &config)
-	require.NoError(t, err)
-
-	server := ""
-
-	for _, cluster := range config.Clusters {
-		if cluster.Name == config.CurrentContext {
-			c := cluster.Cluster
-			server = c.Server
-
-			if len(c.CertificateAuthorityData) > 0 {
-				ca, err := base64.StdEncoding.DecodeString(c.CertificateAuthorityData)
-				require.NoError(t, err)
-				certData, err := base64.StdEncoding.DecodeString(config.Users[0].User.ClientCertificateData)
-				require.NoError(t, err)
-				keyData, err := base64.StdEncoding.DecodeString(config.Users[0].User.ClientKeyData)
-				require.NoError(t, err)
-
-				tlsClientConfig.CAData = ca
-				tlsClientConfig.CertData = certData
-				tlsClientConfig.KeyData = keyData
-			}
-		}
-	}
-
-	return &rest.Config{
-		Host:            server,
-		TLSClientConfig: tlsClientConfig,
-	}
+	return restConfig
 }
 
 func TestSaveAndLoadSecret(t *testing.T) {
@@ -279,9 +223,9 @@ func TestSaveAndLoadSecret(t *testing.T) {
 	}
 
 	eachSecretStorageProvider(t, func(t *testing.T, storage SecretStorage) {
-		t.Run("getting a secret that doesn't exist probably shouldn't error", func(t *testing.T) {
+		t.Run("getting a secret that doesn't exist should error", func(t *testing.T) {
 			_, err := storage.GetSecret("doesnt/exist")
-			require.NoError(t, err)
+			require.ErrorIs(t, err, ErrNotFound)
 		})
 
 		t.Run("can set and get a secret", func(t *testing.T) {

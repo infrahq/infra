@@ -99,7 +99,7 @@ func (s *AWSSSM) GetSecret(name string) (secret []byte, err error) {
 		var aerr awserr.Error
 		if errors.As(err, &aerr) {
 			if aerr.Code() == ssm.ErrCodeParameterNotFound {
-				return nil, nil
+				return nil, ErrNotFound
 			}
 		}
 

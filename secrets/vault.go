@@ -78,11 +78,11 @@ func (v *VaultSecretProvider) GetSecret(name string) ([]byte, error) {
 	}
 
 	if sec == nil || sec.Data == nil {
-		return nil, nil
+		return nil, ErrNotFound
 	}
 
 	if _, ok := sec.Data["data"]; !ok {
-		return nil, nil
+		return nil, ErrNotFound
 	}
 
 	data, ok := sec.Data["data"].(map[string]interface{})
