@@ -58,6 +58,11 @@ func (fp *EnvSecretProvider) GetSecret(name string) (secret []byte, err error) {
 		b = []byte(os.Getenv(name))
 	}
 
+	_, present := os.LookupEnv(name)
+	if !present {
+		return nil, ErrNotFound
+	}
+
 	var result []byte
 	if fp.Base64 {
 		result = make([]byte, fp.encoder().DecodedLen(len(b)))

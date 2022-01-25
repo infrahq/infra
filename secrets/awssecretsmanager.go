@@ -108,7 +108,7 @@ func (s *AWSSecretsManager) GetSecret(name string) (secret []byte, err error) {
 		var aerr awserr.Error
 		if errors.As(err, &aerr) {
 			if aerr.Code() == secretsmanager.ErrCodeResourceNotFoundException {
-				return nil, nil
+				return nil, ErrNotFound
 			}
 		}
 

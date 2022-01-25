@@ -12,6 +12,8 @@ import (
 	"fmt"
 )
 
+var ErrNotFound = fmt.Errorf("secret not found")
+
 // SecretStorage is implemented by a provider if the provider gives a mechanism for storing arbitrary secrets.
 type SecretStorage interface {
 	// Use secrets when you don't want to store the underlying data, eg secret tokens

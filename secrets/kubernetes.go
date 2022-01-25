@@ -122,7 +122,7 @@ func (k *KubernetesSecretProvider) GetSecret(name string) (secret []byte, err er
 	retrieved, err := k.client.CoreV1().Secrets(k.Namespace).Get(context.TODO(), objName, metav1.GetOptions{})
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
-			return nil, nil
+			return nil, ErrNotFound
 		}
 
 		return nil, err
@@ -130,7 +130,7 @@ func (k *KubernetesSecretProvider) GetSecret(name string) (secret []byte, err er
 
 	secretVal, ok := retrieved.Data[key]
 	if !ok {
-		return nil, fmt.Errorf("secret could not be found in kubernetes: %s", name)
+		return nil, ErrNotFound
 	}
 
 	return secretVal, nil
