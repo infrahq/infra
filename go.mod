@@ -15,7 +15,6 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/goreleaser/goreleaser v1.3.1
 	github.com/gorilla/handlers v1.5.1
-	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/goware/urlx v0.3.1
 	github.com/hashicorp/vault/api v1.3.1
 	github.com/jackc/pgconn v1.10.1
@@ -39,13 +38,16 @@ require (
 	gorm.io/driver/postgres v1.2.3
 	gorm.io/driver/sqlite v1.2.6
 	gorm.io/gorm v1.22.5
-	k8s.io/api v0.22.3
-	k8s.io/apimachinery v0.22.3
+	k8s.io/api v0.23.3
+	k8s.io/apimachinery v0.23.3
 	k8s.io/apiserver v0.22.3
 	k8s.io/client-go v0.22.3
 )
 
-require github.com/bwmarrin/snowflake v0.3.0
+require (
+	github.com/bwmarrin/snowflake v0.3.0
+	github.com/coreos/go-oidc/v3 v3.1.0
+)
 
 require (
 	cloud.google.com/go v0.99.0 // indirect
@@ -112,7 +114,6 @@ require (
 	github.com/cncf/udpa/go v0.0.0-20210930031921-04548b0d99d4 // indirect
 	github.com/cncf/xds/go v0.0.0-20211216145620-d92e9ce0af51 // indirect
 	github.com/containerd/containerd v1.3.4 // indirect
-	github.com/coreos/go-oidc/v3 v3.1.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dghubble/go-twitter v0.0.0-20211115160449-93a8679adecb // indirect
@@ -278,8 +279,9 @@ require (
 	k8s.io/component-base v0.22.3 // indirect
 	k8s.io/klog/v2 v2.30.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20211115234752-e816edb12b65 // indirect
-	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b // indirect
-	sigs.k8s.io/structured-merge-diff/v4 v4.1.2 // indirect
+	k8s.io/utils v0.0.0-20211116205334-6203023598ed // indirect
+	sigs.k8s.io/json v0.0.0-20211020170558-c049b76a60c6 // indirect
+	sigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
 
