@@ -1,9 +1,11 @@
 apiVersion: v2
 name: infra
-description: Infra
+version: 0.1.0
+description: A Helm chart for Infra
 type: application
-version: 0.0.0-development
-appVersion: 0.0.0-development
 
 dependencies:
+  - name: server
+    condition: server.enabled
   - name: engine
+    condition: engine.enabled

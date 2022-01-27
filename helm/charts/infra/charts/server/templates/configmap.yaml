@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "server.fullname" . }}
+  labels:
+{{- include "server.labels" . | nindent 4 }}
+data:
+  infra.yaml: |
+{{- range $key, $val := omit .Values.config "import" }}
+{{- if kindIs "invalid" $val }}
+    # skipping invalid value: {{ $val }} ({{ kindOf $val }})
+{{- else if kindIs "map" $val }}
+    {{ $key }}:
+{{- $val | toYaml | nindent 6 }}
+{{- else if kindIs "slice" $val }}
+    {{ $key }}:
+{{- $val | toYaml | nindent 6 }}
+{{- else if kindIs "string" $val }}
+    {{ $key }}: {{ tpl $val $ }}
+{{- else }}
+    {{ $key }}: {{ $val }}
+{{- end }}
+{{- end }}
+
+{{- if .Values.persistentVolumeClaim.enabled }}
+{{- if not (hasKey .Values.config "tlsCache") }}
+    tlsCache: /var/lib/infrahq/server/tls.cache
+{{- end }}
+
+{{- if not (hasKey .Values.config "dbFile") }}
+    dbFile: /var/lib/infrahq/server/sqlite3.db
+{{- end }}
+
+{{- if not (hasKey .Values.config "dbEncryptionKey") }}
+    dbEncryptionKey: /var/lib/infrahq/server/sqlite3.db.key
+{{- end }}
+
+{{- end }}
+
+
+    import:
+{{- $import := .Values.config.import | default dict }}
+      providers:
+{{- $import.providers | default list | concat .Values.additionalProviders | uniq | toYaml | nindent 8 }}
+
+      destinations:
+{{- $import.destinations | default list | concat .Values.additionalDestinations | uniq | toYaml | nindent 8 }}
+
+      users:
+{{- $import.users | default list | concat .Values.additionalUsers | uniq | toYaml | nindent 8 }}
+
+      groups:
+{{- $import.groups | default list | concat .Values.additionalGroups | uniq | toYaml | nindent 8 }}
+
+      grants:
+{{- $import.grants | default list | concat .Values.additionalGrants | uniq | toYaml | nindent 8 }}

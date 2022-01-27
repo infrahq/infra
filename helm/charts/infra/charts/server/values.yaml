@@ -1,0 +1,363 @@
+global: {}
+
+## Number of server pods to run
+## No effect unless `autoscaling.enabled` is `false`
+replicas: 1
+
+## Server image configurations
+image:
+  ## The image repository to use for the server deployment
+  repository: infrahq/infra
+
+  ## The image tag to use instead of the default {{ .Chart.AppVersion }}
+  tag: ""
+
+  ## The pull policy to use when pulling (downloading) the server image
+  ## Ref: https://kubernetes.io/docs/concepts/containers/images/#image-pull-policy
+  pullPolicy: IfNotPresent
+
+## One or more Secret to use when pulling the server image
+## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+imagePullSecrets: []
+# - name: "image-pull-secret"
+
+## Environment variables to pass to the server container
+env: []
+# - name: "INFRA_LOG_LEVEL"
+#   value: "info"
+
+## ConfigMap or Secret references containing environment variables to pass to the server container
+## Ref: https://kubernetes.io/docs/tasks/inject-data-application/define-environment-variable-container/
+envFrom: []
+# - configMapRef:
+#     name: configmap-name
+# - secretRef:
+#     name: secret-name
+
+## Server service account configurations
+serviceAccount:
+
+  ## Create the service account
+  create: true
+
+  ## Name of the service account to use instead of the default templated fullname
+  name: ""
+
+  ## Annotations to apply to the service account
+  annotations: {}
+
+  ## Automount service account API credentials
+  automountServiceAccountToken: true
+
+## Labels to apply to the server pod
+podLabels: {}
+
+## Annotations to apply to the server pod
+podAnnotations: {}
+
+## Security context for the server pod
+podSecurityContext: {}
+#   fsGroup: 2000
+
+## Security context for the server container
+securityContext: {}
+#   runAsUser: 999
+#   runAsGroup: 999
+#   readOnlyRootFilesystem: true
+
+
+## Liveness probe for the default backend
+## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
+livenessProbe:
+
+  ## Minimum number of consecutive successes before the probe is considered successful
+  successThreshold: 1
+
+  ## Minimum number of consecutive failures before the probe is considered failed
+  failureThreshold: 3
+
+  ## Seconds after container starts before the probe is initialized
+  initialDelaySeconds: 10
+
+  ## Seconds between consecutive probes
+  periodSeconds: 10
+
+  ## Seconds before the probe times out
+  timeoutSeconds: 1
+
+## Readiness probe for the default backend
+## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
+readinessProbe:
+
+  ## Minimum number of consecutive successes before the probe is considered successful
+  successThreshold: 1
+
+  ## Minimum number of consecutive failures before the probe is considered failed
+  failureThreshold: 3
+
+  ## Seconds after container starts before the probe is initialized
+  initialDelaySeconds: 10
+
+  ## Seconds between consecutive probes
+  periodSeconds: 10
+
+  ## Seconds before the probe times out
+  timeoutSeconds: 1
+
+## Additional volumes to attach to the server pod
+volumes: []
+# - name: configmap-volume
+#   configMap:
+#     name: configmap-name
+# - name: secret-volume
+#   secret:
+#     secretName: secret-name
+
+## Additioanl volume mounts to attach to the server container
+volumeMounts: []
+# - name: configmap-volume
+#   mountPath: /mnt/configmap
+# - name: secret-volume
+#   mountPath: /mnt/secret
+#   readOnly: true
+
+## Server service configurations
+service:
+
+  ## Service type
+  ## Ref: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
+  type: ClusterIP
+
+  ## Service labels
+  labels: {}
+
+  ## Service annotations
+  annotations: {}
+
+  ## HTTP service port
+  port: 80
+
+  ## HTTP service port name
+  portName: http
+
+  ## HTTP service node port
+  ## No effect unless `server.service.type` is `NodePort`
+  nodePort: 80
+
+  ## HTTPS service port
+  securePort: 443
+
+  ## HTTPS service port name
+  securePortName: https
+
+  ## HTTPS service node port
+  ## No effect unless `server.service.type` is `NodePort`
+  secureNodePort: 443
+
+  ## IP of the load balancer to create
+  ## No effect unless `server.service.type` is `LoadBalancer`
+  loadBalancerIP: ""
+
+  ## Source IP ranges that can access the service
+  loadBalancerSourceRanges: []
+
+  ## External IPs that can be used to access the service
+  externalIPs: []
+
+  ## Control how traffic from external sources are routed
+  ## Supports `Cluster` or `Local`
+  externalTrafficPolicy: ""
+
+  ## Control session-based routing of client connections
+  ## Supports `ClientIP` or `None`
+  sessionAffinity: ""
+
+## Metrics configurations
+metrics:
+
+  ## Enable server metrics
+  enabled: false
+
+  ## Metrics service configurations
+  service:
+
+    ## Metrics service labels
+    labels: {}
+
+    ## Metrics service annotations
+    annotations: {}
+
+    ## Metrics service port
+    port: 9090
+
+    ## Metrics service port name
+    portName: metrics
+
+  ## Service monitor configurations
+  serviceMonitor:
+
+    ## Enable service monitor
+    enabled: false
+
+    ## Service monitor labels
+    labels: {}
+
+    ## Service monitor annotations
+    annotations: {}
+
+    ## Service monitor scrape interval
+    interval: 30s
+
+    ## Prometheus relabel configs to apply to samples before scraping
+    relabelings: []
+
+    ## Prometheus metric relabel configs to apply to samples before ingesting
+    metricRelabelings: []
+
+## Server ingress configurations
+ingress:
+
+  ## Enable server ingress resource
+  enabled: false
+
+  ## Ingress labels
+  labels: {}
+
+  ## Ingress annotations
+  annotations: {}
+
+  ## Name of the ingress controller that will implement this resource
+  className: ""
+
+  ## Hostnames to apply this ingress to
+  ## Must not be empty if `ingress.enabled` is `true`
+  hosts: []
+  # - infra.example.com
+
+  ## Paths to apply this ingress to
+  paths:
+    - /
+
+  ## Type of path
+  ## One of `Exact`, `Prefix`, or `ImplementationSpecific`
+  pathType: Prefix
+
+  ## Additional paths to attach to the ingress
+  additionalPaths: []
+  # Kubernetes <1.19, using `networking.k8s.io/v1beta1`
+  # - path: /*
+  #   backend:
+  #     serviceName: ssl-redirect
+  #     servicePort: use-annotation
+  # Kubernetes >=1.19, using `networking.k8s.io/v1`
+  # - path: /*
+  #   pathType: Prefix
+  #   backend:
+  #     service:
+  #       name: ssl-redirect
+  #       port:
+  #         name: use-annotation
+
+  ## Ingress TLS configurations
+  tls: []
+  # - secretName: infra-tls-certificate
+  #   hosts:
+  #     - infra.example.com
+
+## Server persistent volume claim configurations
+persistentVolumeClaim:
+
+  ## Enable server persistent volume claim
+  enabled: true
+
+  ## Persistent volume claim labels
+  labels: {}
+
+  ## Persistent volume claim annotations
+  annotations: {}
+
+  ## Name of the storage controller that will implement this resource
+  className: ""
+
+  ## Resource requests and limits for the persistent volume claim
+  resources:
+    requests:
+      storage: 2Gi
+  #   limits:
+  #     storage: 4Gi
+
+## Resource requests and limits for the server pod
+resources: {}
+#   requests:
+#     cpu: 250m
+#     memory: 256Mi
+#   limits:
+#     cpu: 500m
+#     memory: 512Mi
+
+## Server autoscaling configurations
+autoscaling:
+
+  ## Enable server autoscaling
+  enabled: false
+
+  ## Minimum number of server pods to run
+  minReplicas: 1
+
+  ## Maximum number of server pods to run
+  maxReplicas: 3
+
+  ## Target average CPU utilization percentage
+  targetCPUUtilizationPercentage: 50
+
+  ## Target average memory utilization percentage
+  targetMemoryUtilizationPercentage: 50
+
+## Server node selector configurations
+nodeSelector: {}
+
+## Server tolerations configurations
+tolerations: []
+
+## Server affinity configurations
+affinity: {}
+
+## Admin user configurations
+admin:
+
+  ## Create admin user
+  create: false
+
+  ## Admin user name
+  username: admin
+
+  ## Admin user password. If omitted or empty, a password will be randomly generated
+  password: ""
+
+## Primary configuration
+## Ref: https://github.com/infrahq/infra/blob/main/docs/configuration.md
+config: {}
+
+## Additional identity providers to configure
+## Ref: https://github.com/infrahq/infra/blob/main/docs/providers/
+additionalProviders: []
+# - name: Development Okta
+#   domain: https://dev.okta.com
+#   clientID: 0oapn0qwiQPiMIyR35d6
+#   clientSecret: env:OKTA_CLIENT_SECRET
+
+## Additional infrastructure destinations to configure
+## Ref: https://github.com/infrahq/infra/blob/main/docs/destinations/
+additionalDestinations: []
+
+## Additional users to configure
+## Ref: https://github.com/infrahq/infra/blob/main/docs/configuration.md
+additionalUsers: []
+
+## Additional groups to configure
+## Ref: https://github.com/infrahq/infra/blob/main/docs/configuration.md
+additionalGroups: []
+
+## Additional grants to configure
+## Ref: https://github.com/infrahq/infra/blob/main/docs/configuration.md
+additionalGrants: []
