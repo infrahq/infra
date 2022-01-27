@@ -1,11 +1,7 @@
 package models
 
 import (
-	"fmt"
-
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
-	"github.com/infrahq/infra/uid"
 )
 
 type ProviderKind string
@@ -27,7 +23,7 @@ type Provider struct {
 
 func (p *Provider) ToAPI() api.Provider {
 	result := api.Provider{
-		ID:      p.ID.String(),
+		ID:      p.ID,
 		Created: p.CreatedAt.Unix(),
 		Updated: p.UpdatedAt.Unix(),
 
@@ -37,25 +33,4 @@ func (p *Provider) ToAPI() api.Provider {
 	}
 
 	return result
-}
-
-func (p *Provider) FromAPI(from interface{}) error {
-	if request, ok := from.(*api.CreateProviderRequest); ok {
-		p.Kind = ProviderKind(request.Kind)
-		p.Domain = request.Domain
-		p.ClientID = request.ClientID
-		p.ClientSecret = EncryptedAtRest(request.ClientSecret)
-
-		return nil
-	}
-
-	return fmt.Errorf("%w: unknown provider kind", internal.ErrBadRequest)
-}
-
-func NewProvider(id uid.ID) *Provider {
-	return &Provider{
-		Model: Model{
-			ID: id,
-		},
-	}
 }

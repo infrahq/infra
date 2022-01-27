@@ -1,14 +1,9 @@
-//go:generate npm run export --silent --prefix ../../ui
-//go:generate go-bindata -pkg registry -nocompress -o ./bindata_ui.go -prefix "../../ui/out/" ../../ui/out/...
-
 package registry
 
 import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -31,52 +26,42 @@ import (
 	"github.com/infrahq/infra/secrets"
 )
 
-type PostgresOptions struct {
-	PostgresHost       string `mapstructure:"host"`
-	PostgresPort       int    `mapstructure:"port"`
-	PostgresDBName     string `mapstructure:"db-name"`
-	PostgresUser       string `mapstructure:"user"`
-	PostgresPassword   string `mapstructure:"password"`
-	PostgresParameters string `mapstructure:"parameters"`
-}
-
 type Options struct {
-	ConfigPath      string          `mapstructure:"config-path"`
-	DBFile          string          `mapstructure:"db-file"`
-	TLSCache        string          `mapstructure:"tls-cache"`
-	RootAPIToken    string          `mapstructure:"root-api-token"`
-	EngineAPIToken  string          `mapstructure:"engine-api-token"`
-	PostgresOptions PostgresOptions `mapstructure:"pg"`
-
-	EnableTelemetry      bool `mapstructure:"enable-telemetry"`
-	EnableCrashReporting bool `mapstructure:"enable-crash-reporting"`
-
-	ProvidersSyncInterval    time.Duration `mapstructure:"providers-sync-interval"`
-	DestinationsSyncInterval time.Duration `mapstructure:"destinations-sync-interval"`
-
-	SessionDuration time.Duration `mapstructure:"session-duration"`
-
-	internal.Options `mapstructure:",squash"`
+	Config                  `yaml:",inline"`
+	TLSCache                string        `yaml:"tlsCache"`
+	RootAPIToken            string        `yaml:"rootAPIToken"`
+	EngineAPIToken          string        `yaml:"engineAPIToken"`
+	DBFile                  string        `yaml:"dbFile" `
+	DBEncryptionKey         string        `yaml:"dbEncryptionKey"`
+	DBEncryptionKeyProvider string        `yaml:"dbEncryptionKeyProvider"`
+	DBHost                  string        `yaml:"dbHost" `
+	DBPort                  int           `yaml:"dbPort"`
+	DBName                  string        `yaml:"dbName"`
+	DBUser                  string        `yaml:"dbUser"`
+	DBPassword              string        `yaml:"dbPassword"`
+	DBParameters            string        `yaml:"dbParameters"`
+	EnableTelemetry         bool          `yaml:"enableTelemetry"`
+	EnableCrashReporting    bool          `yaml:"enableCrashReporting"`
+	SessionDuration         time.Duration `yaml:"sessionDuration"`
 }
 
 type Registry struct {
-	options     Options
-	config      Config
-	db          *gorm.DB
-	tel         *Telemetry
-	secrets     map[string]secrets.SecretStorage
-	keyProvider map[string]secrets.SymmetricKeyProvider
+	options Options
+	db      *gorm.DB
+	tel     *Telemetry
+	secrets map[string]secrets.SecretStorage
+	keys    map[string]secrets.SymmetricKeyProvider
 }
 
-const (
-	DefaultProvidersSyncInterval    time.Duration = time.Second * 60
-	DefaultDestinationsSyncInterval time.Duration = time.Minute * 5
-	DefaultSessionDuration          time.Duration = time.Hour * 12
-)
+const DefaultSessionDuration time.Duration = time.Hour * 12
 
 func Run(options Options) (err error) {
 	r := &Registry{
 		options: options,
+	}
+
+	if err := validate.Struct(options); err != nil {
+		return fmt.Errorf("invalid options: %w", err)
 	}
 
 	if err, ok := r.configureSentry(); ok {
@@ -85,8 +70,12 @@ func Run(options Options) (err error) {
 		return fmt.Errorf("configure sentry: %w", err)
 	}
 
-	if err = r.loadSecretsConfigFromFile(); err != nil {
-		return fmt.Errorf("loading secrets config from file: %w", err)
+	if err := r.importSecrets(); err != nil {
+		return fmt.Errorf("secrets config: %w", err)
+	}
+
+	if err := r.importSecretKeys(); err != nil {
+		return fmt.Errorf("key config: %w", err)
 	}
 
 	driver, err := r.getDatabaseDriver()
@@ -112,8 +101,8 @@ func Run(options Options) (err error) {
 		scope.SetContext("registryId", settings.ID)
 	})
 
-	if err = r.loadConfigFromFile(); err != nil {
-		return fmt.Errorf("loading config from file: %w", err)
+	if err := r.importConfig(); err != nil {
+		return fmt.Errorf("import config: %w", err)
 	}
 
 	if err := r.configureTelemetry(); err != nil {
@@ -124,7 +113,7 @@ func Run(options Options) (err error) {
 		return fmt.Errorf("configuring metrics: %w", err)
 	}
 
-	if err := os.MkdirAll(options.TLSCache, os.ModePerm); err != nil {
+	if err := os.MkdirAll(r.options.TLSCache, os.ModePerm); err != nil {
 		return fmt.Errorf("mkdir: %w", err)
 	}
 
@@ -137,57 +126,6 @@ func Run(options Options) (err error) {
 	}
 
 	return logging.L.Sync()
-}
-
-func (r *Registry) readConfig() []byte {
-	var contents []byte
-
-	if r.options.ConfigPath != "" {
-		var err error
-
-		contents, err = ioutil.ReadFile(r.options.ConfigPath)
-		if err != nil {
-			var perr *fs.PathError
-
-			switch {
-			case errors.As(err, &perr):
-				logging.S.Warnf("no config file found at %s", r.options.ConfigPath)
-			default:
-				logging.L.Error(err.Error())
-			}
-		}
-	}
-
-	return contents
-}
-
-// loadSecretsConfigFromFile only loads secret providers, this is needed before reading the whole config to connect to a database
-func (r *Registry) loadSecretsConfigFromFile() (err error) {
-	contents := r.readConfig()
-	if len(contents) > 0 {
-		err = r.importSecretsConfig(contents)
-		if err != nil {
-			return err
-		}
-	} else {
-		logging.L.Warn("skipped importing secret providers empty config")
-	}
-
-	return nil
-}
-
-func (r *Registry) loadConfigFromFile() (err error) {
-	contents := r.readConfig()
-	if len(contents) > 0 {
-		err = r.importConfig(contents)
-		if err != nil {
-			return err
-		}
-	} else {
-		logging.L.Warn("skipped importing empty config")
-	}
-
-	return nil
 }
 
 func (r *Registry) configureTelemetry() error {
@@ -312,19 +250,17 @@ func (r *Registry) getDatabaseDriver() (gorm.Dialector, error) {
 
 // getPostgresConnectionString parses postgres configuration options and returns the connection string
 func (r *Registry) getPostgresConnectionString() (string, error) {
-	options := r.options.PostgresOptions
-
 	var pgConn strings.Builder
 
-	if options.PostgresHost != "" {
+	if r.options.DBHost != "" {
 		// config has separate postgres parameters set, combine them into a connection DSN now
-		fmt.Fprintf(&pgConn, "host=%s ", options.PostgresHost)
+		fmt.Fprintf(&pgConn, "host=%s ", r.options.DBHost)
 
-		if options.PostgresUser != "" {
-			fmt.Fprintf(&pgConn, "user=%s ", options.PostgresUser)
+		if r.options.DBUser != "" {
+			fmt.Fprintf(&pgConn, "user=%s ", r.options.DBUser)
 
-			if options.PostgresPassword != "" {
-				pass, err := r.GetSecret(options.PostgresPassword)
+			if r.options.DBPassword != "" {
+				pass, err := r.GetSecret(r.options.DBPassword)
 				if err != nil {
 					return "", fmt.Errorf("postgres secret: %w", err)
 				}
@@ -333,47 +269,45 @@ func (r *Registry) getPostgresConnectionString() (string, error) {
 			}
 		}
 
-		if options.PostgresPort > 0 {
-			fmt.Fprintf(&pgConn, "port=%d ", options.PostgresPort)
+		if r.options.DBPort > 0 {
+			fmt.Fprintf(&pgConn, "port=%d ", r.options.DBPort)
 		}
 
-		if options.PostgresDBName != "" {
-			fmt.Fprintf(&pgConn, "dbname=%s ", options.PostgresDBName)
+		if r.options.DBName != "" {
+			fmt.Fprintf(&pgConn, "dbname=%s ", r.options.DBName)
 		}
 
-		if options.PostgresParameters != "" {
-			fmt.Fprintf(&pgConn, "%s", options.PostgresParameters)
+		if r.options.DBParameters != "" {
+			fmt.Fprintf(&pgConn, "%s", r.options.DBParameters)
 		}
 	}
 
 	return strings.TrimSpace(pgConn.String()), nil
 }
 
+func secretKindAndName(secret string) (kind string, name string, err error) {
+	if !strings.Contains(secret, ":") {
+		return "plaintext", secret, nil
+	}
+
+	parts := strings.SplitN(secret, ":", 2)
+	if len(parts) < 2 {
+		return "", "", fmt.Errorf("unexpected secret provider format %q. Expecting <kind>:<secret name>, eg env:API_TOKEN", name)
+	}
+
+	kind = parts[0]
+	name = parts[1]
+
+	return kind, name, nil
+}
+
 // GetSecret implements the secret definition scheme for Infra.
-// eg plaintext:pass123, or kubernetes:infra-okta/clientSecret
+// eg plaintext:pass123, or kubernetes:infra-okta/apiToken
 // it's an abstraction around all secret providers
 func (r *Registry) GetSecret(name string) (string, error) {
-	var kind string
-
-	if !strings.Contains(name, ":") {
-		// we'll have to guess at what type of secret it is.
-		// our default guesses are kubernetes, or plain
-		if strings.Count(name, "/") == 1 {
-			// guess kubernetes for historical reasons
-			kind = "kubernetes"
-		} else {
-			// guess plain because users sometimes mistake the field for plaintext
-			kind = "plaintext"
-		}
-
-		logging.S.Warnf("Secret kind was not specified, expecting secrets in the format <kind>:<secret name>. Assuming its kind is %q", kind)
-	} else {
-		parts := strings.SplitN(name, ":", 2)
-		if len(parts) < 2 {
-			return "", fmt.Errorf("unexpected secret provider format %q. Expecting <kind>:<secret name>, eg env:API_TOKEN", name)
-		}
-		kind = parts[0]
-		name = parts[1]
+	kind, name, err := secretKindAndName(name)
+	if err != nil {
+		return "", err
 	}
 
 	secretProvider, found := r.secrets[kind]
@@ -393,22 +327,44 @@ func (r *Registry) GetSecret(name string) (string, error) {
 	return string(b), nil
 }
 
+func (r *Registry) SetSecret(name string, value string) error {
+	kind, name, err := secretKindAndName(name)
+	if err != nil {
+		return err
+	}
+
+	secretProvider, found := r.secrets[kind]
+	if !found {
+		return fmt.Errorf("secret provider %q not found in configuration for field %q", kind, name)
+	}
+
+	err = secretProvider.SetSecret(name, []byte(value))
+	if err != nil {
+		return fmt.Errorf("setting secret: %w", err)
+	}
+
+	return nil
+}
+
 var dbKeyName = "dbkey"
 
 // load encrypted db key from database
 func (r *Registry) loadDBKey() error {
+	key, ok := r.keys[r.options.DBEncryptionKeyProvider]
+	if !ok {
+		return fmt.Errorf("key provider %s not configured", r.options.DBEncryptionKeyProvider)
+	}
+
 	keyRec, err := data.GetKey(r.db, data.ByName(dbKeyName))
 	if err != nil {
 		if errors.Is(err, internal.ErrNotFound) {
-			return r.createDBKey()
+			return r.createDBKey(key, r.options.DBEncryptionKey)
 		}
 
 		return err
 	}
 
-	kp := r.keyProvider["default"]
-
-	sKey, err := kp.DecryptDataKey(keyRec.RootKeyID, keyRec.Encrypted)
+	sKey, err := key.DecryptDataKey(r.options.DBEncryptionKey, keyRec.Encrypted)
 	if err != nil {
 		return err
 	}
@@ -419,10 +375,8 @@ func (r *Registry) loadDBKey() error {
 }
 
 // creates db key
-func (r *Registry) createDBKey() error {
-	kp := r.keyProvider["default"]
-
-	sKey, err := kp.GenerateDataKey("")
+func (r *Registry) createDBKey(provider secrets.SymmetricKeyProvider, rootKeyId string) error {
+	sKey, err := provider.GenerateDataKey(rootKeyId)
 	if err != nil {
 		return err
 	}

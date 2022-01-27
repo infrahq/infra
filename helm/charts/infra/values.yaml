@@ -1,23 +1,14 @@
-config: null
+logLevel: info
+
+config:
+  tlsCache: /var/run/infra/data/cache
+  dbFile: /var/run/infra/data/infra.db
+  dbEncryptionKey: infra/db-key
+  keys:
+    - kind: native
+      secretStorage: kubernetes
+
 storage: 1Gi
-
-configPath: /var/run/infra/config/infra.yaml
-tlsCache: /var/run/infra/data/cache
-dbFile: /var/run/infra/data/infra.db
-pg:
-  host: ""
-  port: 5432
-  db-name: postgres
-  user: ""
-  password: ""
-  parameters: ""
-
-
-rootAPIToken: ""
-engineAPIToken: ""
-
-enableTelemetry: true
-enableCrashReporting: true
 
 pod:
   annotations: {}
@@ -30,6 +21,10 @@ image:
   repository: infrahq/infra
   tag: ""
   pullPolicy: IfNotPresent
+
+engine:
+  config:
+    server: infra
 
 service:
   type: LoadBalancer

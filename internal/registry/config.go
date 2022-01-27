@@ -13,6 +13,7 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
+	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
 	"github.com/infrahq/infra/secrets"
@@ -425,47 +426,14 @@ func importGrantMappings(db *gorm.DB, users []ConfigUserMapping, groups []Config
 	return nil
 }
 
-// importSecretsConfig imports only the secret providers found in a config file
-func (r *Registry) importSecretsConfig(bs []byte) error {
-	var config Config
-	if err := yaml.Unmarshal(bs, &config); err != nil {
-		return err
-	}
-
-	if err := validate.Struct(config); err != nil {
-		return fmt.Errorf("invalid config: %w", err)
-	}
-
-	if err := r.configureSecrets(config); err != nil {
-		return fmt.Errorf("secrets config: %w", err)
-	}
-
-	if err := r.configureSecretKeys(config); err != nil {
-		return fmt.Errorf("secrets config: %w", err)
-	}
-
-	return nil
-}
-
 // importConfig tries to import all valid fields in a config file and removes old config
-func (r *Registry) importConfig(bs []byte) error {
-	var config Config
-	if err := yaml.Unmarshal(bs, &config); err != nil {
-		return err
-	}
-
-	if err := validate.Struct(config); err != nil {
-		return fmt.Errorf("invalid config: %w", err)
-	}
-
-	r.config = config
-
+func (r *Registry) importConfig() error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		if err := importProviders(tx, config.Providers); err != nil {
+		if err := importProviders(tx, r.options.Providers); err != nil {
 			return fmt.Errorf("providers: %w", err)
 		}
 
-		if err := importGrantMappings(tx, config.Users, config.Groups); err != nil {
+		if err := importGrantMappings(tx, r.options.Users, r.options.Groups); err != nil {
 			return fmt.Errorf("grants: %w", err)
 		}
 
@@ -499,8 +467,20 @@ func (r *Registry) importAPITokens() error {
 
 	for k, v := range keys {
 		tokenSecret, err := r.GetSecret(v.Secret)
-		if err != nil {
+		if err != nil && !errors.Is(err, secrets.ErrNotFound) {
 			return err
+		}
+
+		// if empty, generate it
+		if tokenSecret == "" {
+			tokenSecret, err = generate.CryptoRandom(36)
+			if err != nil {
+				return err
+			}
+
+			if err := r.SetSecret(v.Secret, tokenSecret); err != nil {
+				return err
+			}
 		}
 
 		if len(tokenSecret) != models.TokenLength {
@@ -589,18 +569,17 @@ type nativeSecretProviderConfig struct {
 	SecretStorageName string `yaml:"secretStorage"`
 }
 
-func (r *Registry) configureSecretKeys(config Config) error {
+func (r *Registry) importSecretKeys() error {
 	var err error
 
-	if r.keyProvider == nil {
-		r.keyProvider = map[string]secrets.SymmetricKeyProvider{}
+	if r.keys == nil {
+		r.keys = map[string]secrets.SymmetricKeyProvider{}
 	}
 
-	// default
-	r.keyProvider["native"] = secrets.NewNativeSecretProvider(r.secrets["kubernetes"])
-	r.keyProvider["default"] = r.keyProvider["native"]
+	// default to file-based native secret provider
+	r.keys["native"] = secrets.NewNativeSecretProvider(r.secrets["file"])
 
-	for _, keyConfig := range config.Keys {
+	for _, keyConfig := range r.options.Keys {
 		switch keyConfig.Kind {
 		case "native":
 			cfg, ok := keyConfig.Config.(nativeSecretProviderConfig)
@@ -610,12 +589,11 @@ func (r *Registry) configureSecretKeys(config Config) error {
 
 			storageProvider, found := r.secrets[cfg.SecretStorageName]
 			if !found {
-				return fmt.Errorf("secret storage name %q not found", cfg.SecretStorageName)
+				return fmt.Errorf("secret provider name %q not found", cfg.SecretStorageName)
 			}
 
 			sp := secrets.NewNativeSecretProvider(storageProvider)
-			r.keyProvider[keyConfig.Kind] = sp
-			r.keyProvider["default"] = sp
+			r.keys[keyConfig.Kind] = sp
 		case "awskms":
 			cfg, ok := keyConfig.Config.(secrets.AWSKMSConfig)
 			if !ok {
@@ -637,8 +615,7 @@ func (r *Registry) configureSecretKeys(config Config) error {
 				return err
 			}
 
-			r.keyProvider[keyConfig.Kind] = sp
-			r.keyProvider["default"] = sp
+			r.keys[keyConfig.Kind] = sp
 		case "vault":
 			cfg, ok := keyConfig.Config.(secrets.VaultConfig)
 			if !ok {
@@ -655,15 +632,14 @@ func (r *Registry) configureSecretKeys(config Config) error {
 				return err
 			}
 
-			r.keyProvider[keyConfig.Kind] = sp
-			r.keyProvider["default"] = sp
+			r.keys[keyConfig.Kind] = sp
 		}
 	}
 
 	return nil
 }
 
-func (r *Registry) configureSecrets(config Config) error {
+func (r *Registry) importSecrets() error {
 	if r.secrets == nil {
 		r.secrets = map[string]secrets.SecretStorage{}
 	}
@@ -784,7 +760,7 @@ func (r *Registry) configureSecrets(config Config) error {
 	}
 
 	// check all base types first
-	for _, secret := range config.Secrets {
+	for _, secret := range r.options.Secrets {
 		if !isABaseSecretStorageKind(secret.Kind) {
 			continue
 		}
@@ -799,7 +775,7 @@ func (r *Registry) configureSecrets(config Config) error {
 	}
 
 	// now load non-base types which might depend on them.
-	for _, secret := range config.Secrets {
+	for _, secret := range r.options.Secrets {
 		if isABaseSecretStorageKind(secret.Kind) {
 			continue
 		}

@@ -1,8 +1,4 @@
-v: 1
-image:
-  tag: $IMAGE_TAG
-  pullPolicy: Never
-
+logLevel: debug
 config:
   providers:
     - kind: okta
@@ -18,9 +14,15 @@ config:
           destinations:
             - kind: kubernetes
 
+image:
+  tag: $IMAGE_TAG
+  pullPolicy: Never
+
 engine:
-  v: 1
-  name: docker-desktop
+  logLevel: debug
+  config:
+    name: docker-desktop
+
   image:
     tag: $IMAGE_TAG
     pullPolicy: Never

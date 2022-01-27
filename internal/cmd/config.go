@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/infrahq/infra/uid"
 )
 
 // current: v0.3
@@ -20,7 +22,7 @@ type ClientHostConfig struct {
 	Host          string `json:"host"`
 	Token         string `json:"token"`
 	SkipTLSVerify bool   `json:"skip-tls-verify"` // where is the other cert info stored?
-	ProviderID    string `json:"provider-id"`
+	ProviderID    uid.ID `json:"provider-id"`
 	Current       bool   `json:"current"`
 }
 
@@ -112,7 +114,7 @@ func readHostConfig(host string) (*ClientHostConfig, error) {
 		}
 	}
 
-	return nil, nil
+	return nil, ErrConfigNotFound
 }
 
 func removeHostConfig(host string) error {

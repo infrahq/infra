@@ -1,8 +1,10 @@
 package api
 
+import "github.com/infrahq/infra/uid"
+
 // InfraAPIToken struct for InfraAPIToken
 type InfraAPIToken struct {
-	ID          string   `json:"id"`
+	ID          uid.ID   `json:"id"`
 	Created     int64    `json:"created"`
 	Expires     *int64   `json:"expires,omitempty"`
 	Name        string   `json:"name"`
@@ -26,7 +28,7 @@ type InfraAPITokenCreateRequest struct {
 // InfraAPITokenCreateResponse struct for InfraAPITokenCreateResponse
 type InfraAPITokenCreateResponse struct {
 	Token       string   `json:"token"`
-	ID          string   `json:"id"`
+	ID          uid.ID   `json:"id"`
 	Created     int64    `json:"created"`
 	Expires     *int64   `json:"expires,omitempty"`
 	Name        string   `json:"name"`

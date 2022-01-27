@@ -1,8 +1,10 @@
 package api
 
+import "github.com/infrahq/infra/uid"
+
 // Group struct for Group
 type Group struct {
-	ID   string `json:"id"`
+	ID   uid.ID `json:"id"`
 	Name string `json:"name"`
 	// created time in seconds since 1970-01-01
 	Created int64 `json:"created"`

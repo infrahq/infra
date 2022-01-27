@@ -1,9 +1,12 @@
-name: ""
-host: ""
-apiToken: ""
-tlsCache: /var/run/infra/data/cache
-skipTLSVerify: true
-labels: []
+logLevel: info
+
+config:
+  apiToken: ""
+  server: ""
+  name: ""
+  skipTLSVerify: true
+  labels: []
+  tlsCache: /var/run/infra/data/cache
 
 storage: 1Gi
 

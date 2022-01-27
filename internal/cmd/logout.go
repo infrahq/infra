@@ -1,70 +1,46 @@
 package cmd
 
 import (
-	"os"
-	"path/filepath"
+	"errors"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/logging"
 )
 
-type LogoutOptions struct {
-	internal.Options `mapstructure:",squash"`
-}
-
-func cleanupKubeconfig(config *ClientHostConfig) error {
-	if config.Current {
-		logging.L.Debug("cleaning up kubeconfig")
-
-		_ = updateKubeconfig(api.User{})
-
-		infraDir, err := infraHomeDir()
-		if err == nil {
-			logging.L.Debug("cleaning up cache")
-			os.RemoveAll(filepath.Join(infraDir, "cache"))
-		}
+func logout() error {
+	config, err := readConfig()
+	if errors.Is(err, ErrConfigNotFound) {
+		logging.S.Debug(err.Error())
+		return nil
 	}
 
-	return removeHostConfig(config.Host)
-}
-
-func logoutOne(config *ClientHostConfig) error {
-	logging.S.Debugf("logging out %s", config.Host)
-
-	client, err := apiClient(config.Host, config.Token, config.SkipTLSVerify)
 	if err != nil {
+		logging.S.Debug(err.Error())
 		return err
 	}
 
-	err = client.Logout()
-	if err != nil {
-		logging.S.Warnf("%s", err.Error())
-		return cleanupKubeconfig(config)
-	}
-
-	return cleanupKubeconfig(config)
-}
-
-func logout(options *LogoutOptions) error {
-	if options.Host == "" {
-		configs, _ := readConfig()
-		if configs != nil {
-			for i := range configs.Hosts {
-				_ = logoutOne(&configs.Hosts[i])
-			}
+	for _, hostConfig := range config.Hosts {
+		if err := removeHostConfig(hostConfig.Host); err != nil {
+			logging.S.Warn(err.Error())
+			continue
 		}
 
-		return nil
+		client, err := apiClient(hostConfig.Host, hostConfig.Token, hostConfig.SkipTLSVerify)
+		if err != nil {
+			logging.S.Warn(err.Error())
+			continue
+		}
+
+		err = client.Logout()
+		if err != nil {
+			logging.S.Debug(err.Error())
+		}
 	}
 
-	config, err := readHostConfig(options.Host)
-	if err != nil {
-		logging.S.Warnf("%s", err.Error())
-		return nil
+	// clear kubeconfig
+	if err := updateKubeconfig(api.User{}); err != nil {
+		return err
 	}
-
-	_ = logoutOne(config)
 
 	return nil
 }

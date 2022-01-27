@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/infrahq/infra/uid"
 )
 
 type Client struct {
@@ -177,16 +179,16 @@ func (c Client) ListProviders() ([]Provider, error) {
 	return list[Provider](c, "/v1/providers", nil)
 }
 
-func (c Client) ListGrants(kind GrantKind, destinationID string) ([]Grant, error) {
-	return list[Grant](c, "/v1/grants", map[string]string{"kind": string(kind), "destination_id": destinationID})
+func (c Client) ListGrants(kind GrantKind, destinationID uid.ID) ([]Grant, error) {
+	return list[Grant](c, "/v1/grants", map[string]string{"kind": string(kind), "destination_id": destinationID.String()})
 }
 
 func (c Client) CreateDestination(req *CreateDestinationRequest) (*Destination, error) {
 	return post[CreateDestinationRequest, Destination](c, "/v1/destinations", req)
 }
 
-func (c Client) UpdateDestination(id string, req *UpdateDestinationRequest) (*Destination, error) {
-	return put[UpdateDestinationRequest, Destination](c, fmt.Sprintf("/v1/destinations/%s", id), req)
+func (c Client) UpdateDestination(id uid.ID, req *UpdateDestinationRequest) (*Destination, error) {
+	return put[UpdateDestinationRequest, Destination](c, fmt.Sprintf("/v1/destinations/%s", id.String()), req)
 }
 
 func (c Client) CreateToken(req *TokenRequest) (*Token, error) {

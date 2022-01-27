@@ -7,17 +7,13 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/lensesio/tableprinter"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/uid"
+	"github.com/lensesio/tableprinter"
 )
-
-type ListOptions struct {
-	internal.Options `mapstructure:",squash"`
-}
 
 type listRow struct {
 	CurrentlySelected        string `header:" "` // * if selected
@@ -29,13 +25,13 @@ type listRow struct {
 	CertificateAuthorityData []byte // don't display in table
 }
 
-func list(options *ListOptions) error {
-	client, err := defaultAPIClient()
+func list() error {
+	config, err := currentHostConfig()
 	if err != nil {
 		return err
 	}
 
-	config, err := currentHostConfig()
+	client, err := defaultAPIClient()
 	if err != nil {
 		return err
 	}
@@ -49,7 +45,7 @@ func list(options *ListOptions) error {
 				return err
 			}
 
-			return list(options)
+			return list()
 		}
 
 		return err
@@ -58,7 +54,7 @@ func list(options *ListOptions) error {
 	switch {
 	case len(users) < 1:
 		//lint:ignore ST1005, user facing error
-		return fmt.Errorf("User %q not found, is this account still valid?", config.Name)
+		return fmt.Errorf("User %q not found", config.Name)
 	case len(users) > 1:
 		//lint:ignore ST1005, user facing error
 		return fmt.Errorf("Found multiple users %q in Infra, the server configuration is invalid", config.Name)
@@ -72,7 +68,7 @@ func list(options *ListOptions) error {
 	}
 
 	// deduplicate rows
-	rows := make(map[string]listRow)
+	rows := make(map[uid.ID]listRow)
 	for _, r := range user.Grants {
 		rows[r.Destination.ID] = newRow(r, kubeConfig.CurrentContext)
 	}

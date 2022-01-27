@@ -18,15 +18,14 @@ import (
 	"golang.org/x/term"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/generate"
 )
 
 type LoginOptions struct {
-	Current          bool          `mapstructure:"current"`
-	Timeout          time.Duration `mapstructure:"timeout"`
-	internal.Options `mapstructure:",squash"`
+	Host    string
+	Current bool
+	Timeout time.Duration
 }
 
 func login(options *LoginOptions) error {
@@ -137,7 +136,7 @@ provider:
 		selectedProvider = &providers[0]
 	default:
 		// Use the current provider ID if it's valid to avoid prompting the user
-		if selectedHost.ProviderID != "" && options.Current {
+		if selectedHost.ProviderID != 0 && options.Current {
 			for i, provider := range providers {
 				if provider.ID == selectedHost.ProviderID {
 					selectedProvider = &providers[i]

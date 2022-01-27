@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
@@ -124,22 +125,31 @@ func setupDB(t *testing.T) *gorm.DB {
 	return db
 }
 
-func configure(t *testing.T, db *gorm.DB) (*Registry, *gorm.DB) {
-	if db == nil {
-		db = setupDB(t)
-	}
-
+func setupRegistry(t *testing.T) *Registry {
 	testdata, err := ioutil.ReadFile("_testdata/infra.yaml")
 	require.NoError(t, err)
 
-	r := &Registry{db: db}
-	err = r.importSecretsConfig(testdata)
+	return setupRegistryWithConfig(t, testdata)
+}
+
+func setupRegistryWithConfig(t *testing.T, config []byte) *Registry {
+	return setupRegistryWithConfigAndDb(t, config, setupDB(t))
+}
+
+func setupRegistryWithConfigAndDb(t *testing.T, config []byte, db *gorm.DB) *Registry {
+	var options Options
+	err := yaml.Unmarshal(config, &options)
 	require.NoError(t, err)
 
-	err = r.importConfig(testdata)
+	r := &Registry{options: options, db: db}
+
+	err = r.importSecrets()
 	require.NoError(t, err)
 
-	return r, db
+	err = r.importConfig()
+	require.NoError(t, err)
+
+	return r
 }
 
 func userGrants(t *testing.T, grants []models.Grant, email string) map[string][]string {
@@ -175,9 +185,9 @@ func userGrants(t *testing.T, grants []models.Grant, email string) map[string][]
 }
 
 func TestImportUserGrants(t *testing.T) {
-	_, db := configure(t, nil)
+	r := setupRegistry(t)
 
-	grants, err := data.ListGrants(db)
+	grants, err := data.ListGrants(r.db)
 	require.NoError(t, err)
 
 	bond := userGrants(t, grants, userBond.Email)
@@ -224,9 +234,9 @@ func groupGrants(t *testing.T, grants []models.Grant, name string) map[string][]
 }
 
 func TestImportGroupGrants(t *testing.T) {
-	_, db := configure(t, nil)
+	r := setupRegistry(t)
 
-	grants, err := data.ListGrants(db)
+	grants, err := data.ListGrants(r.db)
 	require.NoError(t, err)
 
 	everyone := groupGrants(t, grants, groupEveryone.Name)
@@ -240,21 +250,21 @@ func TestImportGroupGrants(t *testing.T) {
 }
 
 func TestImportGrantsUnknownDestinations(t *testing.T) {
-	_, db := configure(t, nil)
+	r := setupRegistry(t)
 
-	grants, err := data.ListGrants(db)
+	grants, err := data.ListGrants(r.db)
 	require.NoError(t, err)
 
-	for _, r := range grants {
-		_, err := data.GetDestination(db, db.Where("id = (?)", r.DestinationID))
+	for _, g := range grants {
+		_, err := data.GetDestination(r.db, r.db.Where("id = (?)", g.DestinationID))
 		require.NoError(t, err)
 	}
 }
 
 func TestImportGrantsNoMatchingLabels(t *testing.T) {
-	_, db := configure(t, nil)
+	r := setupRegistry(t)
 
-	_, err := data.GetGrantByModel(db, &models.Grant{
+	_, err := data.GetGrantByModel(r.db, &models.Grant{
 		Kind:       models.GrantKindKubernetes,
 		Kubernetes: models.GrantKubernetes{Name: "view"},
 	})
@@ -300,29 +310,17 @@ groups:
             kind: kubernetes
 `
 
-	r := Registry{db: db}
-
-	err := r.importConfig([]byte(withNamespace))
-	require.NoError(t, err)
+	setupRegistryWithConfigAndDb(t, []byte(withNamespace), db)
 
 	grants, err := data.ListGrants(db)
 	require.NoError(t, err)
 	require.Len(t, grants, 1)
 	require.Equal(t, "infrahq", grants[0].Kubernetes.Namespace)
 
-	err = r.importConfig([]byte(withoutNamespace))
-	require.NoError(t, err)
+	setupRegistryWithConfigAndDb(t, []byte(withoutNamespace), db)
 
 	grants, err = data.ListGrants(db)
 	require.NoError(t, err)
 	require.Len(t, grants, 1)
 	require.Equal(t, "", grants[0].Kubernetes.Namespace)
-}
-
-func TestImportKeyProvider(t *testing.T) {
-	r, _ := configure(t, nil)
-
-	sp, ok := r.keyProvider["native"]
-	require.True(t, ok)
-	require.IsType(t, &secrets.NativeSecretProvider{}, sp)
 }

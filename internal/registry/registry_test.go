@@ -18,62 +18,47 @@ func setupLogging(t *testing.T) {
 func TestGetPostgresConnectionURL(t *testing.T) {
 	setupLogging(t)
 
-	pg := PostgresOptions{}
-	opts := Options{PostgresOptions: pg}
-	r := &Registry{options: opts, secrets: make(map[string]secrets.SecretStorage)}
+	r := &Registry{options: Options{}, secrets: make(map[string]secrets.SecretStorage)}
 
 	f := secrets.NewPlainSecretProviderFromConfig(secrets.GenericConfig{})
 	r.secrets["plaintext"] = f
 
 	url, err := r.getPostgresConnectionString()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	require.Empty(t, url)
 
-	r.options.PostgresOptions.PostgresHost = "localhost"
+	r.options.DBHost = "localhost"
 
 	url, err = r.getPostgresConnectionString()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	require.Equal(t, "host=localhost", url)
 
-	r.options.PostgresOptions.PostgresPort = 5432
+	r.options.DBPort = 5432
 
 	url, err = r.getPostgresConnectionString()
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	require.NoError(t, err)
 	require.Equal(t, "host=localhost port=5432", url)
 
-	r.options.PostgresOptions.PostgresUser = "user"
+	r.options.DBUser = "user"
 
 	url, err = r.getPostgresConnectionString()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	require.Equal(t, "host=localhost user=user port=5432", url)
 
-	r.options.PostgresOptions.PostgresPassword = "plaintext:secret"
+	r.options.DBPassword = "plaintext:secret"
 
 	url, err = r.getPostgresConnectionString()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	require.Equal(t, "host=localhost user=user password=secret port=5432", url)
 
-	r.options.PostgresOptions.PostgresDBName = "postgres"
+	r.options.DBName = "postgres"
 
 	url, err = r.getPostgresConnectionString()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	require.Equal(t, "host=localhost user=user password=secret port=5432 dbname=postgres", url)
 }

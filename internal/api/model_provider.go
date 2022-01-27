@@ -9,7 +9,7 @@ import (
 
 // Provider struct for Provider
 type Provider struct {
-	ID string `json:"id"`
+	ID uid.ID `json:"id"`
 	// created time in seconds since 1970-01-01
 	Created int64 `json:"created"`
 	// updated time in seconds since 1970-01-01
@@ -27,7 +27,7 @@ type CreateProviderRequest struct {
 }
 
 type UpdateProviderRequest struct {
-	ID           uid.ID       `uri:"id" json:"id"`
+	ID           uid.ID       `uri:"id" json:"-" validate:"required"`
 	Kind         ProviderKind `json:"kind"`
 	Domain       string       `json:"domain" validate:"fqdn,required"`
 	ClientID     string       `json:"clientID"`

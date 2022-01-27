@@ -5,32 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
-
-func TestConfigDefault(t *testing.T) {
-	logger, _ := Initialize(0)
-
-	require.NotNil(t, logger)
-
-	if checked := logger.Check(zap.InfoLevel, "default"); checked == nil {
-		require.Fail(t, "could not log info level messages")
-	}
-
-	if checked := logger.Check(zap.DebugLevel, "not default"); checked != nil {
-		require.Fail(t, "should not log debug level messages")
-	}
-}
-
-func TestConfigValidLevel(t *testing.T) {
-	logger, _ := Initialize(1)
-
-	require.NotNil(t, logger)
-
-	if checked := logger.Check(zap.DebugLevel, "not default"); checked == nil {
-		require.Fail(t, "could not log debug level messages")
-	}
-}
 
 func TestFiltersOutBearerTokenValue(t *testing.T) {
 	// remove this test after Go patches https://github.com/golang/go/pull/48979
@@ -56,7 +32,7 @@ func TestFiltersOutBearerTokenValue(t *testing.T) {
 		defaultStdoutWriter = writeSyncer
 		defaultStderrWriter = writeSyncer
 
-		logger, err := Initialize(int(zap.InfoLevel))
+		logger, err := NewLogger(zapcore.InfoLevel)
 		require.NoError(t, err)
 
 		logger.Sugar().Info(testCase.Input)

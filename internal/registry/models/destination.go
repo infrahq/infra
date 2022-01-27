@@ -1,9 +1,6 @@
 package models
 
 import (
-	"fmt"
-	"reflect"
-
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/uid"
 )
@@ -41,7 +38,7 @@ func (d *Destination) ToAPI() *api.Destination {
 	}
 
 	result := api.Destination{
-		ID:      d.ID.String(),
+		ID:      d.ID,
 		Created: d.CreatedAt.Unix(),
 		Updated: d.UpdatedAt.Unix(),
 
@@ -65,33 +62,48 @@ func (d *Destination) ToAPI() *api.Destination {
 	return &result
 }
 
-func (d *Destination) FromAPI(from interface{}) error {
-	if reflect.ValueOf(from).IsNil() {
-		return nil
+func (d *Destination) FromCreateAPI(from *api.CreateDestinationRequest) error {
+	d.Name = from.Name
+	d.NodeID = from.NodeID
+	d.Kind = DestinationKind(from.Kind)
+
+	if kubernetes := from.Kubernetes; kubernetes != nil {
+		d.Endpoint = kubernetes.Endpoint
+		d.Kubernetes = DestinationKubernetes{
+			CA: kubernetes.CA,
+		}
 	}
 
-	if request, ok := from.(*api.CreateDestinationRequest); ok {
-		d.Name = request.Name
-		d.NodeID = request.NodeID
-		d.Kind = DestinationKind(request.Kind)
-
-		if kubernetes := request.Kubernetes; kubernetes != nil {
-			d.Endpoint = kubernetes.Endpoint
-			d.Kubernetes = DestinationKubernetes{
-				CA: kubernetes.CA,
-			}
-		}
-
-		automaticLabels := []string{
-			string(request.Kind),
-		}
-
-		for _, l := range append(request.Labels, automaticLabels...) {
-			d.Labels = append(d.Labels, Label{Value: l})
-		}
-
-		return nil
+	automaticLabels := []string{
+		string(from.Kind),
 	}
 
-	return fmt.Errorf("unknown destination model: " + reflect.TypeOf(from).String())
+	for _, l := range append(from.Labels, automaticLabels...) {
+		d.Labels = append(d.Labels, Label{Value: l})
+	}
+
+	return nil
+}
+
+func (d *Destination) FromUpdateAPI(from *api.UpdateDestinationRequest) error {
+	d.Name = from.Name
+	d.NodeID = from.NodeID
+	d.Kind = DestinationKind(from.Kind)
+
+	if kubernetes := from.Kubernetes; kubernetes != nil {
+		d.Endpoint = kubernetes.Endpoint
+		d.Kubernetes = DestinationKubernetes{
+			CA: kubernetes.CA,
+		}
+	}
+
+	automaticLabels := []string{
+		string(from.Kind),
+	}
+
+	for _, l := range append(from.Labels, automaticLabels...) {
+		d.Labels = append(d.Labels, Label{Value: l})
+	}
+
+	return nil
 }

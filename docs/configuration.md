@@ -1,106 +1,58 @@
 # Configuration
 
-## Overview
+For teams who require configuration to be stored in version control, Infra can be entirely configured as code.
 
-For teams who require configuration to be stored in version control, Infra can be managed via Helm values or a standalone file.
-
-## Helm Values
-
-Infra configuration can be added to Helm values under the `config` key.
-
-First, create a `values.yaml`. If a `values.yaml` already exists, update it to include the following:
+## Usage
 
 ```
-# values.yaml
----
-config:
-  providers:
-    [...]
-  groups:
-    [...]
-  users:
-    [...]
+# Helm
+helm install infra infrahq/infra --set-file config=config.yaml
+
+# Linux, macOS, Windows
+infra server -f config.yaml
 ```
 
-See [Helm Chart reference](./helm.md) for a complete list of options configurable through Helm.
+## Reference
 
-Then, apply it to Infra:
-
-```
-helm -n infrahq upgrade -f values.yaml infra infrahq/infra
-```
-
-## Configurations
-
-### Configuration File
-
-Configuration values can be configured through configuration files. Support formats include `json`, `yaml`, `toml`, and `ini`. The configuration file must be called `config`, e.g. `config.json`, `config.yaml`, `config.ini`, etc.
-
-Configuration files are searched in the following paths, in order:
-
-* `.` (current working directory)
-* `~/.infra` (user home directory)
-* `/etc/infra`
-
-Note: only the first configuration file found will be used.
-
-Configuration file can also be explicitly supplied through environment variable `INFRA_CONFIG_FILE` or command line parameter `--config-file` or `-f`.
-
-### Environment Variables
-
-Most configuration values can be configured through environment variables. Environment variables start with `INFRA`, e.g. `INFRA_CONFIG_FILE`. Environment variables have higher precedence than values found in configuration files.
-
-### Command Line Parameters
-
-Most configuration values can be configured through command line parameters. Command line parameters have higher precedence than environment variables or configuration files.
-
-See [CLI Reference](./cli.md) for a complete list of support command line parameters.
-
-### Reference
-
-| Configuration | Subcommand | Description                 | Default | Environment Variable | Command Line Parameter |
-|---------------|------------|-----------------------------|---------|----------------------|------------------------|
-| `host`        |            | Infra host URL              | `""`    | `INFRA_HOST`         | `--host`, `-H`         |
-| `config-file` |            | Configuration file path     | `""`    | `INFRA_CONFIG_FILE`  | `--config-file`, `-f`  |
-| `v`           |            | Log verbosity               | `0`     | `INFRA_V`            | `--v`, `-v`            |
-| `timeout`     | `login`    | Login timeout               | `5m0s`  | `INFRA_TIMEOUT`      | `--timeout`, `-t`      |
-| `client`      | `version`  | Display client version only | `false` | `INFRA_CLIENT`       | `--client`             |
-| `server`      | `version`  | Display server version only | `false` | `INFRA_SERVER`       | `--server`             |
+| Option                                               | Description                                                                                    |
+|------------------------------------------------------|------------------------------------------------------------------------------------------------|
+| `providers`                                          | Identity providers (see below)                                                                 |
+| `groups`                                             | Groups and their grants (see below)                                                            |
+| `users`                                              | Users and their grants (see below)                                                             |
+| `secrets`                                            | Secrets configurations (see [Secrets](./secrets.md) for more info)                             |
+| `keys`                                               | Encryption key configuration (see [Keys](./keys.md) for more info)                             |
+| `dbEncryptionKey`                                    | Database encryption key                                                                                   |
+| `dbEncryptionKeyProvider`                            | Database encryption key provider (default "native" – see [Keys](./keys.md) for more info)      |
+| `dbFile`                                             | Path to database file (default "~/.infra/db")                                                  |
+| `dbHost`                                             | Database host                                                                                  |
+| `dbPort`                                             | Database host                                                                                  |
+| `dbName`                                             | Database name                                                                                  |
+| `dbUser`                                             | Database user                                                                                  |
+| `dbParameters`                                       | Path to database file (default "~/.infra/db")                                                  |
+| `dbPassword` ([secret](./secrets.md))                | Path to database file (default "~/.infra/db")                                                  |
+| `enableCrashReporting`                               | Enable crash reporting (default true)                                                          |
+| `enableTelemetry`                                    | Enable telemetry (default true)                                                                |
+| `engineAPIToken` ([secret](./secrets.md))            | Engine API token secret (default "file:~/.infra/engine-api-token")                             |
+| `rootAPIToken` ([secret](./secrets.md))              | Root API token secret (default "file:~/.infra/root-api-token")                                 |
+| `sessionDuration`                                    | Session duration (default 12h0m0s)                                                             |
+| `tlsCache`                                           | Directory to cache TLS certificates (default "~/.infra/tls")                                   |
 
 
-## Infra Configurations
-
-First, create a config file `infra.yaml`:
-
-```
-providers:
-  [...]
-groups:
-  [...]
-users:
-  [...]
-```
-
-Then, apply it to Infra:
-
-```
-helm -n infrahq upgrade --set-file=config=infra.yaml infra infrahq/infra
-```
-
-### Reference
-
-#### `providers`
+### `providers`
 
 List of identity providers used to synchronize users and groups.
 
 | Parameter      | Description                                  |
 |----------------|----------------------------------------------|
-| `kind`         | Provider type                                |
-|                | Additional provider-specific parameters      |
+| `kind`         | Provider type (e.g. "okta")                  |
+| `domain`       | provider domain                              |
+| `clientID`     | OpenID client ID                             |
+| `clientSecret` | OpenID client secret                         |
+| `apiToken`     | Provider API token                           |
 
 See [Identity Providers](./providers/) for a full list of configurable values.
 
-#### `groups`
+### `groups`
 
 List of groups to assign access.
 
@@ -109,7 +61,7 @@ List of groups to assign access.
 | `name`         | Group name as stored in the identity provider |
 | `grants`       | Role grants assigned to the user              |
 
-#### `users`
+### `users`
 
 List of users to assign access.
 
@@ -118,7 +70,7 @@ List of users to assign access.
 | `email`        | User email as stored in the identity provider |
 | `grants`       | Role grants assigned to the user              |
 
-#### `grants`
+### `grants`
 
 List of role grants to assign to an user or group.
 
@@ -128,19 +80,11 @@ List of role grants to assign to an user or group.
 | `kind`         | Kubernetes role kind (role, cluster-role)    |
 | `destinations` | Destinations where this role binding applies |
 
-#### `destinations`
+### `secrets`
 
-List of infrastructure destination to synchronize access permissions.
+See [secrets](./secrets.md) for more information
 
-| Parameter      | Description                                  |
-|----------------|----------------------------------------------|
-| `name`         | Destination name                             |
-| `labels`       | Additional filter labels                     |
-|                | Additional destination-specific parameters   |
-
-See [Infrastructure Destinations](./destinations/) for a full list of configurable values.
-
-### Full Example
+## Full Example
 
 ```yaml
 providers:

@@ -15,5 +15,5 @@ curl --request POST \
   --header 'Authorization: Bearer $INFRA_ROOT_API_TOKEN' \
   --header 'Content-Type: application/json' \
   --data '{"name": "example-api-token", "permissions": ["infra.user.read"]}'
-  https://$INFRA_HOST/v1/api-tokens
+  https://$INFRA_SERVER/v1/api-tokens
 ```

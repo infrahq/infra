@@ -159,56 +159,47 @@ kubectl delete clusterrolebindings,rolebindings -l app.kubernetes.io/managed-by=
 
 ### Infra
 
-| Parameter                          | Description                             | Default                      |                                                 |
-|------------------------------------|-----------------------------------------|--------------------------------------------------------------------------------|
-| `config`                           | Infra configuration                     | `nil` (see [configuration.md][1])                                              |
-| `rootAPIToken`                     | Infra root API token                    | `""` (auto-generated)                                                          |
-| `engineAPIToken`                   | Infra engine API token                  | `""` (auto-generated)                                                          |
-| `enableCrashReporting`             | Enable crash report                     | `true`                                                                         |
-| `enableTelemetry`                  | Enable telemetry collection             | `true`                                                                         |
-| `pg.*`                             | PostgresQL configuration                | (see [postgres.md][2])                                                         |
-| `pg.host`                          | PostgresQL hostname                     | `""`                                                                           |
-| `pg.port`                          | PostgresQL port                         | `5432`                                                                         |
-| `pg.db-name`                       | PostgresQL database name                | `""`                                                                           |
-| `pg.user`                          | PostgresQL username                     | `""`                                                                           |
-| `pg.password`                      | PostgresQL password                     | `""`                                                                           |
-| `pg.parameters`                    | Extra PostgresQL connection parameters  | `""`                                                                           |
-| `engine.*`                         | Engine chart values                     | (see [Infra Engine][3])                                                        |
-| `image.tag`                        | Image tag                               | `""` (latest release)                                                          |
-| `image.repository`                 | Image repository                        | `infrahq/infra`                                                                |
-| `image.pullPolicy`                 | Image pull policy                       | `IfNotPresent`                                                                 |
-| `ingress.enabled`                  | Enable ingress                          | `false`                                                                        |
-| `ingress.host`                     | Ingress host                            | `""`                                                                           |
-| `ingress.tls`                      | Ingress tls configuration               | `[]`                                                                           |
-| `ingress.servicePort`              | Target http service port backend        | `80`                                                                           |
-| `ingress.annotations`              | Ingress annotations (https)             | `{}`                                                                           |
-| `ingress.labels`                   | Ingress labels (https)                  | `{}`                                                                           |
-| `pod.annotations`                  | Pod annotations                         | `{}`                                                                           |
-| `service.type`                     | Service type                            | `LoadBalancer`                                                                 |
-| `service.ports`                    | Service ports                           | `[{name:http, port:80 targetPort:80}, {name:https, port:443, targetPort:443}]` |
-| `service.ports[].port`             | Service port                            | `nil`                                                                          |
-| `service.ports[].name`             | Service port name                       | `nil`                                                                          |
-| `service.ports[].targetPort`       | Service port target                     | `nil`                                                                          |
-| `service.ports[].protocol`         | Service port protocol                   | `TCP`                                                                          |
-| `service.labels`                   | Service labels                          | `{}`                                                                           |
-| `service.annotations`              | Service annotations                     | `{}`                                                                           |
-| `service.loadBalancerIP`           | IP address to assign to load balancer   | `nil`                                                                          |
-| `service.loadBalancerSourceRanges` | List of IP CIDRs allowed access         | `[]`                                                                           |
-| `service.externalIPs`              | Service external IP addresses           | `[]`                                                                           |
-| `service.clusterIP`                | Internal cluster service IP             | `nil`                                                                          |
-| `serviceAccount.create`            | Enable service account creation         | `true`                                                                         |
-| `serviceAccount.annotations`       | Service account annotations             | `{}`                                                                           |
-| `storage`                          | Storage size                            | `1Gi`                                                                          |
+| Parameter                          | Description                                              | Default                                                                        |
+|------------------------------------|----------------------------------------------------------|--------------------------------------------------------------------------------|
+| `config`                           | Infra configuration (see [configuration.md][1])          | `nil`                                                                          |
+| `engine`                           | Engine chart values                                      | (see [Infra Engine][3])                                                        |
+| `image.tag`                        | Image tag                                                | `""` (latest release)                                                          |
+| `image.repository`                 | Image repository                                         | `infrahq/infra`                                                                |
+| `image.pullPolicy`                 | Image pull policy                                        | `IfNotPresent`                                                                 |
+| `ingress.enabled`                  | Enable ingress                                           | `false`                                                                        |
+| `ingress.host`                     | Ingress host                                             | `""`                                                                           |
+| `ingress.tls`                      | Ingress tls configuration                                | `[]`                                                                           |
+| `ingress.servicePort`              | Target http service port backend                         | `80`                                                                           |
+| `ingress.annotations`              | Ingress annotations (https)                              | `{}`                                                                           |
+| `ingress.labels`                   | Ingress labels (https)                                   | `{}`                                                                           |
+| `pod.annotations`                  | Pod annotations                                          | `{}`                                                                           |
+| `service.type`                     | Service type                                             | `LoadBalancer`                                                                 |
+| `service.ports`                    | Service ports                                            | `[{name:http, port:80 targetPort:80}, {name:https, port:443, targetPort:443}]` |
+| `service.ports[].port`             | Service port                                             | `nil`                                                                          |
+| `service.ports[].name`             | Service port name                                        | `nil`                                                                          |
+| `service.ports[].targetPort`       | Service port target                                      | `nil`                                                                          |
+| `service.ports[].protocol`         | Service port protocol                                    | `TCP`                                                                          |
+| `service.labels`                   | Service labels                                           | `{}`                                                                           |
+| `service.annotations`              | Service annotations                                      | `{}`                                                                           |
+| `service.loadBalancerIP`           | IP address to assign to load balancer                    | `nil`                                                                          |
+| `service.loadBalancerSourceRanges` | List of IP CIDRs allowed access                          | `[]`                                                                           |
+| `service.externalIPs`              | Service external IP addresses                            | `[]`                                                                           |
+| `service.clusterIP`                | Internal cluster service IP                              | `nil`                                                                          |
+| `serviceAccount.create`            | Enable service account creation                          | `true`                                                                         |
+| `serviceAccount.annotations`       | Service account annotations                              | `{}`                                                                           |
+| `storage`                          | Storage size                                             | `1Gi`                                                                          |
 
 ### Infra Engine
 
 | Parameter                          | Description                             | Default                                    |
 |------------------------------------|-----------------------------------------|--------------------------------------------|
-| `name`                             | Cluster name                            | `""` (auto-discovered)                     |
-| `host`                             | Infra endpoint                          | `""` (required)                            |
-| `apiToken`                         | Infra API token                         | `""` (required)                            |
-| `labels`                           | Additional filter labels                | `[]`                                       |
-| `image.tag`                        | Image tag                               | `""` (latest release)                      |
+| `config.apiToken`                  | Infra API Token                         | `""`                                       |
+| `config.server`                    | Infra Server to this cluster connect to | `""`                                       |
+| `config.name`                      | Name for cluster                        | `""`                                       |
+| `config.skipTLSVerify`             | Don't enforce TLS verification          | `true`                                     |
+| `config.labels`                    | Additional labels for this cluster      | `[]`                                       |
+| `config.tlsCache`                  | Directory to cache self-signed TLS certs| `/var/run/infra/data/cache`                |
+| `image.tag`                        | Image tag                               | `""`                                       |
 | `image.repository`                 | Image repository                        | `infrahq/infra`                            |
 | `image.pullPolicy`                 | Image pull policy                       | `IfNotPresent`                             |
 | `pod.annotations`                  | Pod annotations                         | `{}`                                       |

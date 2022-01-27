@@ -32,7 +32,7 @@ spec:
         - name: engine
           image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args: ["engine", "-f", "/var/run/infra/config/config.yaml"]
+          args: ["engine", "-f", "/var/run/infra/config/config.yaml", "--log-level", {{ .Values.logLevel | quote }}]
           ports:
 {{- range .Values.service.ports }}
             - name: {{ .name }}

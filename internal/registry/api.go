@@ -141,9 +141,11 @@ func (a *API) GetProvider(c *gin.Context, r *api.Resource) (*api.Provider, error
 }
 
 func (a *API) CreateProvider(c *gin.Context, r *api.CreateProviderRequest) (*api.Provider, error) {
-	provider := &models.Provider{}
-	if err := provider.FromAPI(&r); err != nil {
-		return nil, err
+	provider := &models.Provider{
+		Kind:         models.ProviderKind(r.Kind),
+		Domain:       r.Domain,
+		ClientID:     r.ClientID,
+		ClientSecret: models.EncryptedAtRest(r.ClientSecret),
 	}
 
 	provider, err := access.CreateProvider(c, provider)
@@ -156,9 +158,14 @@ func (a *API) CreateProvider(c *gin.Context, r *api.CreateProviderRequest) (*api
 }
 
 func (a *API) UpdateProvider(c *gin.Context, r *api.UpdateProviderRequest) (*api.Provider, error) {
-	provider := models.NewProvider(r.ID)
-	if err := provider.FromAPI(r); err != nil {
-		return nil, err
+	provider := &models.Provider{
+		Model: models.Model{
+			ID: r.ID,
+		},
+		Kind:         models.ProviderKind(r.Kind),
+		Domain:       r.Domain,
+		ClientID:     r.ClientID,
+		ClientSecret: models.EncryptedAtRest(r.ClientSecret),
 	}
 
 	provider, err := access.UpdateProvider(c, r.ID, provider)
@@ -199,7 +206,7 @@ func (a *API) GetDestination(c *gin.Context, r *api.Resource) (*api.Destination,
 
 func (a *API) CreateDestination(c *gin.Context, r *api.CreateDestinationRequest) (*api.Destination, error) {
 	destination := &models.Destination{}
-	if err := destination.FromAPI(r); err != nil {
+	if err := destination.FromCreateAPI(r); err != nil {
 		return nil, err
 	}
 
@@ -209,7 +216,7 @@ func (a *API) CreateDestination(c *gin.Context, r *api.CreateDestinationRequest)
 	}
 
 	sync := func(db *gorm.DB) error {
-		return importGrantMappings(db, a.registry.config.Users, a.registry.config.Groups)
+		return importGrantMappings(db, a.registry.options.Users, a.registry.options.Groups)
 	}
 	if err := access.SyncGrants(c, sync); err != nil {
 		return nil, fmt.Errorf("sync grants destination create: %w", err)
@@ -220,7 +227,7 @@ func (a *API) CreateDestination(c *gin.Context, r *api.CreateDestinationRequest)
 
 func (a *API) UpdateDestination(c *gin.Context, r *api.UpdateDestinationRequest) (*api.Destination, error) {
 	destination := &models.Destination{Model: models.Model{ID: r.ID}}
-	if err := destination.FromAPI(r); err != nil {
+	if err := destination.FromUpdateAPI(r); err != nil {
 		return nil, err
 	}
 
@@ -229,7 +236,7 @@ func (a *API) UpdateDestination(c *gin.Context, r *api.UpdateDestinationRequest)
 	}
 
 	sync := func(db *gorm.DB) error {
-		return importGrantMappings(db, a.registry.config.Users, a.registry.config.Groups)
+		return importGrantMappings(db, a.registry.options.Users, a.registry.options.Groups)
 	}
 	if err := access.SyncGrants(c, sync); err != nil {
 		return nil, fmt.Errorf("sync grants destination update: %w", err)
