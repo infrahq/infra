@@ -62,27 +62,27 @@ func (t *Telemetry) Close() {
 }
 
 func (t *Telemetry) EnqueueHeartbeat() error {
-	users, err := data.Count(t.db, &models.User{}, &models.User{})
+	users, err := data.Count[models.User](t.db)
 	if err != nil {
 		return err
 	}
 
-	groups, err := data.Count(t.db, &models.Group{}, &models.Group{})
+	groups, err := data.Count[models.User](t.db)
 	if err != nil {
 		return err
 	}
 
-	grants, err := data.Count(t.db, &models.Grant{}, &models.Grant{})
+	grants, err := data.Count[models.Grant](t.db)
 	if err != nil {
 		return err
 	}
 
-	providers, err := data.Count(t.db, &models.Provider{}, &models.Provider{})
+	providers, err := data.Count[models.Provider](t.db)
 	if err != nil {
 		return err
 	}
 
-	destinations, err := data.Count(t.db, &models.Destination{}, &models.Destination{})
+	destinations, err := data.Count[models.Destination](t.db)
 	if err != nil {
 		return err
 	}

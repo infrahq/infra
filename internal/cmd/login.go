@@ -371,3 +371,49 @@ func promptSelectProvider(providers []api.Provider) (*api.Provider, error) {
 
 	return &providers[option], nil
 }
+
+func clientConfig() clientcmd.ClientConfig {
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	loadingRules.WarnIfAllMissing = false
+
+	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
+}
+
+func switchToFirstInfraContext() (string, error) {
+	defaultConfig := clientConfig()
+
+	kubeConfig, err := defaultConfig.RawConfig()
+	if err != nil {
+		return "", err
+	}
+
+	resultContext := ""
+
+	if kubeConfig.Contexts[kubeConfig.CurrentContext] != nil && strings.HasPrefix(kubeConfig.CurrentContext, "infra:") {
+		// if the current context is an infra-controlled context, stay there
+		resultContext = kubeConfig.CurrentContext
+	} else {
+		for _, c := range kubeConfig.Contexts {
+			if !strings.HasPrefix(c.Cluster, "infra:") {
+				continue
+			}
+
+			// prefer a context with "default" or no namespace
+			if c.Namespace == "" || c.Namespace == "default" {
+				resultContext = c.Cluster
+				break
+			}
+
+			resultContext = c.Cluster
+		}
+	}
+
+	if resultContext != "" {
+		kubeConfig.CurrentContext = resultContext
+		if err = clientcmd.WriteToFile(kubeConfig, defaultConfig.ConfigAccess().GetDefaultFilename()); err != nil {
+			return "", err
+		}
+	}
+
+	return resultContext, nil
+}

@@ -2,6 +2,7 @@ package data
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path"
 	"strings"
@@ -13,12 +14,12 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/registry/models"
+	"github.com/infrahq/infra/uid"
 )
 
 func NewDB(connection gorm.Dialector) (*gorm.DB, error) {
@@ -27,7 +28,7 @@ func NewDB(connection gorm.Dialector) (*gorm.DB, error) {
 			logging.StandardErrorLog(),
 			logger.Config{
 				SlowThreshold:             time.Second,
-				LogLevel:                  logger.Silent,
+				LogLevel:                  logger.Warn,
 				IgnoreRecordNotFoundError: true,
 				Colorful:                  true,
 			},
@@ -41,7 +42,6 @@ func NewDB(connection gorm.Dialector) (*gorm.DB, error) {
 		&models.User{},
 		&models.Group{},
 		&models.Grant{},
-		&models.GrantKubernetes{},
 		&models.Provider{},
 		&models.ProviderToken{},
 		&models.Destination{},
@@ -75,26 +75,54 @@ func NewPostgresDriver(connection string) (gorm.Dialector, error) {
 	return postgres.Open(connection), nil
 }
 
-func add(db *gorm.DB, kind interface{}, value interface{}, condition interface{}) error {
+func get[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (*T, error) {
+	db2 := db
+	for _, selector := range selectors {
+		db2 = selector(db2)
+	}
+
+	model := new(T)
+	if err := db2.Model((*T)(nil)).First(model).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, internal.ErrNotFound
+		}
+
+		return nil, err
+	}
+
+	return model, nil
+}
+
+func list[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) ([]T, error) {
+	db2 := db
+	for _, selector := range selectors {
+		db2 = selector(db2)
+	}
+
+	models := make([]T, 0)
+	if err := db2.Model((*T)(nil)).Find(&models).Error; err != nil {
+		return nil, err
+	}
+
+	return models, nil
+}
+
+func save[T models.Modelable](db *gorm.DB, model *T) error {
 	v := validator.New()
-	if err := v.Struct(value); err != nil {
+	if err := v.Struct(model); err != nil {
 		return err
 	}
 
-	if err := db.Create(value).Error; err != nil {
-		// HACK: Compare error string instead of checking sqlite3.Error which requires
-		//       possibly cross-compiling go-sqlite3. Not worth.
+	if err := db.Save(model).Error; err != nil {
 		if strings.HasPrefix(err.Error(), "UNIQUE constraint failed:") {
-			return internal.ErrDuplicate
+			return fmt.Errorf("%w: %s", internal.ErrDuplicate, err)
 		}
 
 		var pgerr *pgconn.PgError
 		if errors.As(err, &pgerr) {
 			if pgerr.Code == pgerrcode.UniqueViolation {
-				return internal.ErrDuplicate
+				return fmt.Errorf("%w: %s", internal.ErrDuplicate, err)
 			}
-
-			return err
 		}
 
 		return err
@@ -103,110 +131,102 @@ func add(db *gorm.DB, kind interface{}, value interface{}, condition interface{}
 	return nil
 }
 
-func get(db *gorm.DB, kind interface{}, value interface{}, condition interface{}) error {
-	switch t := condition.(type) {
-	case SelectorFunc:
-		condition = t(db)
-	case []SelectorFunc:
-		db2 := db
-		for _, selector := range t {
-			db2 = selector(db2)
+// update is deprecated. it has to skip validation to work and should not be used.
+func update[T models.Modelable](db *gorm.DB, id uid.ID, model *T) error {
+
+	if err := db.Where("id = ?", id).Updates(model).Error; err != nil {
+		if strings.HasPrefix(err.Error(), "UNIQUE constraint failed:") {
+			return fmt.Errorf("%w: %s", internal.ErrDuplicate, err)
 		}
 
-		condition = db2
+		var pgerr *pgconn.PgError
+		if errors.As(err, &pgerr) {
+			if pgerr.Code == pgerrcode.UniqueViolation {
+				return fmt.Errorf("%w: %s", internal.ErrDuplicate, err)
+			}
+		}
+
+		return err
 	}
 
-	if err := db.Model(kind).Preload(clause.Associations).Where(condition).First(value).Error; err != nil {
+	return nil
+}
+
+func load[T models.Modelable](db *gorm.DB, id uid.ID) (*T, error) {
+	model := new(T)
+	if err := db.Model((*T)(nil)).Where("id = ?", id).First(model).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return internal.ErrNotFound
+			return nil, internal.ErrNotFound
 		}
 
-		return err
+		return nil, err
 	}
 
-	return nil
+	return model, nil
 }
 
-func list(db *gorm.DB, kind interface{}, values interface{}, condition interface{}) error {
-	switch t := condition.(type) {
-	case SelectorFunc:
-		condition = t(db)
-	case []SelectorFunc:
-		db2 := db
-		for _, selector := range t {
-			db2 = selector(db2)
-		}
-
-		condition = db2
-	}
-
-	if err := db.Model(kind).Preload(clause.Associations).Where(condition).Find(values).Error; err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func update(db *gorm.DB, kind interface{}, value interface{}, condition interface{}) error {
+func add[T models.Modelable](db *gorm.DB, model *T) error {
 	v := validator.New()
-	if err := v.Struct(value); err != nil {
+	if err := v.Struct(model); err != nil {
 		return err
 	}
 
-	switch t := condition.(type) {
-	case SelectorFunc:
-		condition = t(db)
-	case []SelectorFunc:
-		db2 := db
-		for _, selector := range t {
-			db2 = selector(db2)
+	if err := db.Create(model).Error; err != nil {
+		// HACK: Compare error string instead of checking sqlite3.Error which requires
+		//       possibly cross-compiling go-sqlite3. Not worth.
+		if strings.HasPrefix(err.Error(), "UNIQUE constraint failed:") {
+			return fmt.Errorf("%w: %s", internal.ErrDuplicate, err)
 		}
 
-		condition = db2
-	}
+		var pgerr *pgconn.PgError
+		if errors.As(err, &pgerr) {
+			if pgerr.Code == pgerrcode.UniqueViolation {
+				return fmt.Errorf("%w: %s", internal.ErrDuplicate, err)
+			}
+		}
 
-	r := db.Model(kind).Where(condition).Updates(value)
-	if err := r.Error; err != nil {
 		return err
-	} else if r.RowsAffected == 0 {
-		return internal.ErrNotFound
 	}
 
 	return nil
 }
 
-func remove(db *gorm.DB, kind interface{}, condition interface{}) error {
-	switch t := condition.(type) {
-	case SelectorFunc:
-		condition = t(db)
-	case []SelectorFunc:
-		db2 := db
-		for _, selector := range t {
-			db2 = selector(db2)
-		}
-
-		condition = db2
-	}
-
-	return db.Model(kind).Select(clause.Associations).Where(condition).Delete(kind).Error
+func delete[T models.Modelable](db *gorm.DB, id uid.ID) error {
+	return db.Delete(new(T), id).Error
 }
 
-func Count(db *gorm.DB, kind interface{}, condition interface{}) (*int64, error) {
+func removeAll[T models.Modelable](db *gorm.DB, selector SelectorFunc, selectors ...SelectorFunc) error {
+	db2 := selector(db)
+	for _, selector := range selectors {
+		db2 = selector(db2)
+	}
+
+	return db2.Delete(new(T)).Error
+}
+
+func Count[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (*int64, error) {
+	db2 := db
+	for _, selector := range selectors {
+		db2 = selector(db2)
+	}
+
 	var count int64
-	if err := db.Model(kind).Where(condition).Count(&count).Error; err != nil {
+	if err := db.Model((*T)(nil)).Count(&count).Error; err != nil {
 		return nil, err
 	}
 
 	return &count, nil
 }
 
-func LabelSelector(db *gorm.DB, field string, labels ...string) *gorm.DB {
-	if len(labels) > 0 {
-		db = db.Where(
-			"id IN (?)",
-			db.Model(&models.Label{}).Select(field).Where("value IN (?)", labels),
-		)
-	}
+func ByLabels(field string, labels []string) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		if len(labels) > 0 {
+			db = db.Where(
+				"id IN (?)",
+				db.Model((*models.Label)(nil)).Select(field).Where("value IN (?)", labels),
+			)
+		}
 
-	return db
+		return db
+	}
 }

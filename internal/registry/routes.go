@@ -31,7 +31,7 @@ func (a *API) registerRoutes(router *gin.RouterGroup) {
 		get(authorized, "/groups", a.ListGroups)
 		get(authorized, "/groups/:id", a.GetGroup)
 
-		get(authorized, "/grants", a.ListGrants)
+		// get(authorized, "/grants", a.ListGrants)
 		get(authorized, "/grants/:id", a.GetGrant)
 
 		post(authorized, "/providers", a.CreateProvider)

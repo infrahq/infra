@@ -1,8 +1,9 @@
 package data
 
 import (
-	"errors"
 	"fmt"
+	"math"
+	"strings"
 
 	"gorm.io/gorm"
 
@@ -11,90 +12,57 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func CreateGrant(db *gorm.DB, grant *models.Grant) (*models.Grant, error) {
-	if err := add(db, &models.Grant{}, grant, &models.Grant{}); err != nil {
-		return nil, err
-	}
-
-	return grant, nil
+func CreateGrant(db *gorm.DB, grant *models.Grant) error {
+	return add(db, grant)
 }
 
-func CreateOrUpdateGrant(db *gorm.DB, grant *models.Grant) (*models.Grant, error) {
-	existing, err := GetGrantByModel(db, grant)
+func Can(db *gorm.DB, identity, privilege, resource string) (bool, error) {
+	grants, err := list[models.Grant](db, ByIdentity(identity), ByPrivilege(privilege), ByResource(resource))
 	if err != nil {
-		if !errors.Is(err, internal.ErrNotFound) {
-			return nil, fmt.Errorf("get: %w", err)
-		}
-
-		if _, err := CreateGrant(db, grant); err != nil {
-			return nil, fmt.Errorf("create: %w", err)
-		}
-
-		return grant, nil
+		return false, err
 	}
 
-	if err := update(db, &models.Grant{}, grant, db.Where(existing, "id")); err != nil {
-		return nil, err
-	}
-
-	switch grant.Kind {
-	case models.GrantKindInfra:
-	case models.GrantKindKubernetes:
-		if err := db.Model(existing).Association("Kubernetes").Replace(&grant.Kubernetes); err != nil {
-			return nil, fmt.Errorf("update: %w", err)
+	for _, grant := range grants {
+		if grant.Matches(identity, privilege, resource) {
+			return true, nil
 		}
 	}
 
-	return GetGrant(db, db.Where(existing, "id"))
+	return false, nil
 }
 
-func GetGrant(db *gorm.DB, condition interface{}) (*models.Grant, error) {
-	var grant models.Grant
-	if err := get(db, &models.Grant{}, &grant, condition); err != nil {
+// CreateOrUpdateGrant is deprecated; this function does not work properly, and can't be logically fixed;
+// eg it can't remove grants that should no longer exist
+func CreateOrUpdateGrant(db *gorm.DB, grant *models.Grant) (*models.Grant, error) {
+	// A grant is unique by its resource, identity, and privilege
+	g := &models.Grant{}
+	err := db.Model((*models.Grant)(nil)).Where("identity = ? and privilege = ? and resource = ?", grant.Identity, grant.Privilege, grant.Resource).First(g).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
 
-	return &grant, nil
+	if err == gorm.ErrRecordNotFound {
+		err := CreateGrant(db, grant)
+		return grant, err
+	}
+
+	if err := update(db, g.ID, grant); err != nil {
+		return nil, err
+	}
+
+	return get[models.Grant](db, ByID(g.ID))
+}
+
+func GetGrant(db *gorm.DB, selectors ...SelectorFunc) (*models.Grant, error) {
+	return get[models.Grant](db, selectors...)
 }
 
 func ListUserGrants(db *gorm.DB, userID uid.ID) (result []models.Grant, err error) {
-	err = db.Model((*models.Grant)(nil)).Where("user_id = ?", userID).Find(&result).Error
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-func GetGrantByModel(db *gorm.DB, grant *models.Grant) (result *models.Grant, err error) {
-	result = &models.Grant{}
-
-	err = db.Model(&models.Grant{}).
-		Joins("left join grant_kubernetes g on g.grant_id = grants.id").
-		Where("grants.destination_id = ? and grants.kind = ? and g.namespace = ? and g.name = ?", grant.DestinationID, grant.Kind, grant.Kubernetes.Namespace, grant.Kubernetes.Name).
-		First(result).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, internal.ErrNotFound
-		}
-
-		return nil, err
-	}
-
-	return result, nil
-}
-
-func ListGrants(db *gorm.DB, selectors ...SelectorFunc) ([]models.Grant, error) {
-	grants := make([]models.Grant, 0)
-	if err := list(db, &models.Grant{}, &grants, selectors); err != nil {
-		return nil, err
-	}
-
-	return grants, nil
+	return list[models.Grant](db, ByIdentityUserID(userID))
 }
 
 func DeleteGrants(db *gorm.DB, selectors ...SelectorFunc) error {
-	toDelete, err := ListGrants(db, selectors...)
+	toDelete, err := list[models.Grant](db, selectors...)
 	if err != nil {
 		return err
 	}
@@ -105,34 +73,10 @@ func DeleteGrants(db *gorm.DB, selectors ...SelectorFunc) error {
 			ids = append(ids, g.ID)
 		}
 
-		return remove(db, &models.Grant{}, ids)
+		return removeAll[models.Grant](db, ByIDs(ids))
 	}
 
 	return internal.ErrNotFound
-}
-
-// StrictGrantSelector matches all fields exactly, including initialized fields.
-func StrictGrantSelector(db *gorm.DB, grant *models.Grant) *gorm.DB {
-	return db.Joins("left join grant_kubernetes g on g.grant_id = grants.id").Where("grants.destination_id = ? and grants.kind = ? and grant_kubernetes.namespace = ? and grant_kubernetes.name = ?", grant.Destination.ID, grant.Kind, grant.Kubernetes.Namespace, grant.Kubernetes.Name)
-}
-
-func ByGrantKind(kind models.GrantKind) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		if len(kind) == 0 {
-			return db
-		}
-
-		switch kind {
-		case models.GrantKindInfra, models.GrantKindKubernetes:
-			return db.Where("kind = ?", kind)
-		default:
-			// panic("unknown grant kind: " + string(kind))
-			db.Logger.Error(db.Statement.Context, "unknown grant kind: "+string(kind))
-			_ = db.AddError(fmt.Errorf("%w: unknown grant kind: %q", internal.ErrBadRequest, string(kind)))
-
-			return db.Where("1 = 2")
-		}
-	}
 }
 
 func ByDestinationKind(kind models.DestinationKind) SelectorFunc {
@@ -142,7 +86,26 @@ func ByDestinationKind(kind models.DestinationKind) SelectorFunc {
 		}
 
 		switch kind {
-		case models.DestinationKindKubernetes:
+		case models.DestinationKindInfra, models.DestinationKindKubernetes:
+			return db.Where("kind = ?", kind)
+		default:
+			// panic("unknown grant kind: " + string(kind))
+			db.Logger.Error(db.Statement.Context, "unknown destination kind: "+string(kind))
+			_ = db.AddError(fmt.Errorf("%w: unknown destination kind: %q", internal.ErrBadRequest, string(kind)))
+
+			return db.Where("1 = 2")
+		}
+	}
+}
+
+func ByProviderKind(kind models.ProviderKind) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		if len(kind) == 0 {
+			return db
+		}
+
+		switch kind {
+		case models.ProviderKindOkta:
 			return db.Where("kind = ?", kind)
 		default:
 			db.Logger.Error(db.Statement.Context, "unknown destination kind: "+string(kind))
@@ -150,6 +113,15 @@ func ByDestinationKind(kind models.DestinationKind) SelectorFunc {
 
 			return db.Where("1 = 2")
 		}
+	}
+}
+func ByDomain(domain string) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		if len(domain) == 0 {
+			return db
+		}
+
+		return db.Where("domain = ?", domain)
 	}
 }
 
@@ -160,5 +132,69 @@ func NotByIDs(ids []uid.ID) SelectorFunc {
 		}
 
 		return db.Where("id not in (?)", ids)
+	}
+}
+
+func ByIdentityUserID(userID uid.ID) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("identity = ?", "u:"+userID.String())
+	}
+}
+
+func ByIdentity(s string) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("identity = ?", s)
+	}
+}
+
+func ByResource(s string) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		resources := wildcardCombinations(s)
+		return db.Where("resource in (?)", resources)
+	}
+}
+
+// wildcardCombinations turns infra.foo.1 into:
+// infra.foo.1
+// infra.foo.*
+// infra.*
+// See TestWildcardCombinations for details
+// the idea is to count in binary and use the binary int as a bitmask for which
+// elements to swap out with a wildcard
+func wildcardCombinations(s string) []string {
+	results := []string{}
+	parts := strings.Split(s, ".")
+	max := math.Pow(2, float64(len(parts)))
+
+	for i := 0; i < int(math.Ceil(max))/2; i++ {
+		if i&0b11 == 0b10 { // skip *.<id> types, as it makes no sense.
+			continue
+		}
+		parts = strings.Split(s, ".")
+		j := i
+		pos := len(parts) - 1
+		for j > 0 {
+			bit := j & 1
+			j = j >> 1
+			if bit == 1 {
+				parts[pos] = "*"
+			}
+			pos--
+			if pos == 0 {
+				break
+			}
+		}
+		s := strings.Join(parts, ".")
+		for strings.HasSuffix(s, ".*.*") {
+			s = s[:len(s)-2]
+		}
+		results = append(results, s)
+	}
+	return results
+}
+
+func ByPrivilege(s string) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("privilege = ?", s)
 	}
 }

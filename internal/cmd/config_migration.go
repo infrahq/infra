@@ -21,7 +21,7 @@ type ClientHostConfigV0dot2 struct {
 	Host          string `json:"host"`
 	Token         string `json:"token"`
 	SkipTLSVerify bool   `json:"skip-tls-verify"`
-	SourceID      string `json:"source-id"`
+	SourceID      uid.ID `json:"source-id"`
 	Current       bool   `json:"current"`
 }
 
@@ -49,7 +49,7 @@ func (c ClientConfigV0dot2) ToV0dot3() *ClientConfig {
 
 	for _, h := range c.Hosts {
 		providerID := uid.New()
-		providerID.UnmarshalText([]byte(h.SourceID))
+		h.SourceID = providerID
 
 		conf.Hosts = append(conf.Hosts, ClientHostConfig{
 			Name:          h.Name,

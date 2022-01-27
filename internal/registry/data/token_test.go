@@ -18,10 +18,10 @@ import (
 func createUserToken(t *testing.T, db *gorm.DB, sessionDuration time.Duration) *models.Token {
 	createUsers(t, db, models.User{Email: "tmp@infrahq.com"})
 
-	user, err := GetUser(db, &models.User{Email: "tmp@infrahq.com"})
+	user, err := GetUser(db, ByEmail("tmp@infrahq.com"))
 	if errors.Is(err, internal.ErrNotFound) {
 		createUsers(t, db, models.User{Email: "tmp@infrahq.com"})
-		user, err = GetUser(db, &models.User{Email: "tmp@infrahq.com"})
+		user, err = GetUser(db, ByEmail("tmp@infrahq.com"))
 	}
 
 	require.NoError(t, err)
@@ -221,11 +221,11 @@ func TestListAPIToken(t *testing.T) {
 	_, _ = createAPIToken(t, db, "pmt", 1*time.Hour, "infra.*")
 	_, _ = createAPIToken(t, db, "mtp", 1*time.Hour, "infra.*")
 
-	apiTokens, err := ListAPITokens(db, &models.APIToken{})
+	apiTokens, err := ListAPITokens(db)
 	require.NoError(t, err)
 	require.Len(t, apiTokens, 3)
 
-	apiTokens, err = ListAPITokens(db, &models.APIToken{Name: "tmp"})
+	apiTokens, err = ListAPITokens(db, ByName("tmp"))
 	require.NoError(t, err)
 	require.Len(t, apiTokens, 1)
 }
