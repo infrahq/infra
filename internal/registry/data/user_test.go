@@ -48,14 +48,16 @@ func TestCreateDuplicateUser(t *testing.T) {
 	db := setup(t)
 	createUsers(t, db, bond, bourne, bauer)
 
-	_, err := CreateUser(db, &bond)
-	require.EqualError(t, err, "duplicate record")
+	b := bond
+	b.ID = 0
+	_, err := CreateUser(db, &b)
+	require.Contains(t, err.Error(), "duplicate record")
 }
 
 func TestCreateOrUpdateUserCreate(t *testing.T) {
 	db := setup(t)
 
-	user, err := CreateOrUpdateUser(db, &bond, &bond)
+	user, err := CreateOrUpdateUser(db, &bond)
 	require.NoError(t, err)
 	require.NotEqual(t, 0, user.ID)
 	require.Equal(t, bond.Email, user.Email)
@@ -65,7 +67,9 @@ func TestCreateOrUpdateUserUpdate(t *testing.T) {
 	db := setup(t)
 	createUsers(t, db, bond, bourne, bauer)
 
-	user, err := CreateOrUpdateUser(db, &models.User{Email: "james@infrahq.com"}, &bond)
+	bond.ID = 0
+	bond.Email = "james@infrahq.com"
+	user, err := CreateOrUpdateUser(db, &bond)
 	require.NoError(t, err)
 	require.NotEqual(t, 0, user.ID)
 	require.Equal(t, "james@infrahq.com", user.Email)
@@ -75,7 +79,7 @@ func TestGetUser(t *testing.T) {
 	db := setup(t)
 	createUsers(t, db, bond, bourne, bauer)
 
-	user, err := GetUser(db, models.User{Email: bond.Email})
+	user, err := GetUser(db, ByEmail(bond.Email))
 	require.NoError(t, err)
 	require.NotEqual(t, 0, user.ID)
 }
@@ -97,13 +101,13 @@ func TestDeleteUser(t *testing.T) {
 	db := setup(t)
 	createUsers(t, db, bond, bourne, bauer)
 
-	_, err := GetUser(db, &models.User{Email: bond.Email})
+	_, err := GetUser(db, ByEmail(bond.Email))
 	require.NoError(t, err)
 
 	err = DeleteUsers(db, ByEmail(bond.Email))
 	require.NoError(t, err)
 
-	_, err = GetUser(db, &models.User{Email: bond.Email})
+	_, err = GetUser(db, ByEmail(bond.Email))
 	require.EqualError(t, err, "record not found")
 
 	// deleting a nonexistent user should not fail
@@ -111,7 +115,7 @@ func TestDeleteUser(t *testing.T) {
 	require.NoError(t, err)
 
 	// deleting an user should not delete unrelated users
-	_, err = GetUser(db, &models.User{Email: bourne.Email})
+	_, err = GetUser(db, ByEmail(bourne.Email))
 	require.NoError(t, err)
 }
 

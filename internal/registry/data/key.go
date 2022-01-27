@@ -14,7 +14,7 @@ func CreateKey(db *gorm.DB, key *models.Key) (*models.Key, error) {
 		key.KeyID = mathrand.Int31() // nolint:gosec
 	}
 
-	if err := add(db, &models.Key{}, key, nil); err != nil {
+	if err := add(db, key); err != nil {
 		return nil, err
 	}
 
@@ -22,13 +22,7 @@ func CreateKey(db *gorm.DB, key *models.Key) (*models.Key, error) {
 }
 
 func GetKey(db *gorm.DB, selector SelectorFunc) (result *models.Key, err error) {
-	result = &models.Key{}
-
-	if err := get(db, &models.Key{}, result, selector(db)); err != nil {
-		return nil, err
-	}
-
-	return result, nil
+	return get[models.Key](db, selector)
 }
 
 func ByKeyID(keyID int32) SelectorFunc {

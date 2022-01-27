@@ -21,7 +21,7 @@ type ClientHostConfigV0dot2 struct {
 	Host          string `json:"host"`
 	Token         string `json:"token"`
 	SkipTLSVerify bool   `json:"skip-tls-verify"`
-	SourceID      string `json:"source-id"`
+	SourceID      uid.ID `json:"source-id"`
 	Current       bool   `json:"current"`
 }
 

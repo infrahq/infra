@@ -66,7 +66,7 @@ func TestRequireAuthentication(t *testing.T) {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				authentication := issueToken(t, db, "existing@infrahq.com", string(access.PermissionAPITokenCreate), time.Minute*1)
 				// user permissions updated after token is issued
-				_, err := data.CreateOrUpdateUser(db, &models.User{Email: "existing@infrahq.com", Permissions: string(access.PermissionCredentialCreate)}, &models.User{Email: "existing@infrahq.com"})
+				_, err := data.CreateOrUpdateUser(db, &models.User{Email: "existing@infrahq.com", Permissions: string(access.PermissionCredentialCreate)})
 				require.NoError(t, err)
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "Bearer "+authentication)
@@ -84,7 +84,7 @@ func TestRequireAuthentication(t *testing.T) {
 				permissions := []string{string(access.PermissionAPITokenCreate), string(access.PermissionCredentialCreate)}
 				authentication := issueToken(t, db, "existing@infrahq.com", strings.Join(permissions, " "), time.Minute*1)
 				// user permissions updated after token is issued
-				_, err := data.CreateOrUpdateUser(db, &models.User{Email: "existing@infrahq.com", Permissions: string(access.PermissionCredentialCreate)}, &models.User{Email: "existing@infrahq.com"})
+				_, err := data.CreateOrUpdateUser(db, &models.User{Email: "existing@infrahq.com", Permissions: string(access.PermissionCredentialCreate)})
 				require.NoError(t, err)
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "Bearer "+authentication)

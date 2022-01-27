@@ -1,84 +1,57 @@
 package models
 
 import (
+	"time"
+
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/uid"
 )
 
-type GrantKind string
-
-var (
-	GrantKindInfra      GrantKind = "infra"
-	GrantKindKubernetes GrantKind = "kubernetes"
-)
-
+// Grant is a lean tuple of identity <-> privilege <-> resource (URN) relationships.
+// bloat should be avoided here since this model is going to be used heavily.
+//
+// Identity
+// 		Identity is a string specifying a user, group, the name of a role, or another grant
+// 			- a user: u:E97WmsYfvo
+// 			- a group: g:CCoJ1ornpf
+// 			- a role: ?
+// 			- a grant: ?
+// Privilege
+// 		Privilege is a predicate that describes what sort of access the identity has to the resource
+// URN
+// 		URN is Universal Resource Notation.
+// Expiry
+//    time you want the grant to expire at
+//
+// Defining
 type Grant struct {
 	Model
-	Kind GrantKind `validate:"required"`
 
-	DestinationID uid.ID `validate:"required"`
-	Destination   *Destination
+	Identity  string `validate:"required"` // polymorphic reference. Format is "u:<idstr>" for users, "g:<idstr>" for groups, "m:<idstr>" for machines
+	Privilege string `validate:"required"` // role or permission
+	Resource  string `validate:"required"` // Universal Resource Notation
 
-	Groups []Group `gorm:"many2many:groups_grants"`
-	Users  []User  `gorm:"many2many:users_grants"`
-
-	Kubernetes GrantKubernetes
-}
-
-type GrantKubernetesKind string
-
-var (
-	GrantKubernetesKindRole        GrantKubernetesKind = "role"
-	GrantKubernetesKindClusterRole GrantKubernetesKind = "cluster-role"
-)
-
-type GrantKubernetes struct {
-	Model
-
-	Kind      GrantKubernetesKind
-	Name      string
-	Namespace string
-
-	GrantID uid.ID
+	CreatedBy          uid.ID `validate:"required"`
+	ExpiresAt          *time.Time
+	LastUsedAt         time.Time
+	ExpiresAfterUnused time.Duration
 }
 
 func (r *Grant) ToAPI() api.Grant {
 	result := api.Grant{
-		ID:      r.ID,
-		Created: r.CreatedAt.Unix(),
-		Updated: r.UpdatedAt.Unix(),
-		Kind:    api.GrantKind(r.Kind),
-	}
+		ID:        r.ID,
+		Created:   r.CreatedAt.Unix(),
+		Updated:   r.UpdatedAt.Unix(),
+		CreatedBy: r.CreatedBy,
 
-	switch r.Kind {
-	case GrantKindKubernetes:
-		result.Kubernetes = &api.GrantKubernetes{
-			Kind:      api.GrantKubernetesKind(r.Kubernetes.Kind),
-			Name:      r.Kubernetes.Name,
-			Namespace: r.Kubernetes.Namespace,
-		}
-	case GrantKindInfra:
+		Identity:  r.Identity,
+		Privilege: r.Privilege,
+		Resource:  r.Resource,
 	}
-
-	users := make([]api.User, 0)
-	for _, u := range r.Users {
-		users = append(users, u.ToAPI())
+	if r.ExpiresAt != nil {
+		u := r.ExpiresAt.Unix()
+		result.ExpiresAt = &u
 	}
-
-	if len(users) > 0 {
-		result.Users = users
-	}
-
-	groups := make([]api.Group, 0)
-	for _, g := range r.Groups {
-		groups = append(groups, g.ToAPI())
-	}
-
-	if len(groups) > 0 {
-		result.Groups = groups
-	}
-
-	result.Destination = r.Destination.ToAPI()
 
 	return result
 }

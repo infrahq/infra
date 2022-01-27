@@ -40,7 +40,7 @@ func ListProviders(c *gin.Context, kind models.ProviderKind, domain string) ([]m
 		return nil, err
 	}
 
-	return data.ListProviders(db, &models.Provider{Kind: kind, Domain: domain})
+	return data.ListProviders(db, data.ByProviderKind(kind), data.ByDomain(domain))
 }
 
 func UpdateProvider(c *gin.Context, id uid.ID, provider *models.Provider) (*models.Provider, error) {

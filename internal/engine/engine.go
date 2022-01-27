@@ -424,7 +424,7 @@ func Run(options Options) error {
 			}
 		}
 
-		grants, err := client.ListGrants(api.GrantKindKubernetes, destinationID)
+		grants, err := client.ListGrants(api.DestinationKindKubernetes, destinationID)
 		if err != nil {
 			logging.S.Errorf("error listing grants: %w", err)
 			return

@@ -18,29 +18,30 @@ func BindGroupUsers(db *gorm.DB, group *models.Group, users ...models.User) erro
 	return nil
 }
 
-func BindGroupGrants(db *gorm.DB, group *models.Group, grantIDs ...uid.ID) error {
-	grants, err := ListGrants(db, ByIDs(grantIDs))
-	if err != nil {
-		return err
-	}
+// func BindGroupGrants(db *gorm.DB, group *models.Group, grantIDs ...uid.ID) error {
+// 	grants, err := ListGrants(db, ByIDs(grantIDs))
+// 	if err != nil {
+// 		return err
+// 	}
 
-	if err := db.Model(group).Association("Grants").Replace(grants); err != nil {
-		return err
-	}
+// 	if err := db.Model(group).Association("Grants").Replace(grants); err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 func CreateGroup(db *gorm.DB, group *models.Group) (*models.Group, error) {
-	if err := add(db, &models.Group{}, group, &models.Group{}); err != nil {
+	if err := add(db, group); err != nil {
 		return nil, err
 	}
 
 	return group, nil
 }
 
-func CreateOrUpdateGroup(db *gorm.DB, group *models.Group, condition interface{}) (*models.Group, error) {
-	existing, err := GetGroup(db, condition)
+// CreateOrUpdateGroup is deprecated
+func CreateOrUpdateGroup(db *gorm.DB, group *models.Group, selectors ...SelectorFunc) (*models.Group, error) {
+	_, err := GetGroup(db, ByName(group.Name))
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return nil, err
@@ -53,24 +54,15 @@ func CreateOrUpdateGroup(db *gorm.DB, group *models.Group, condition interface{}
 		return group, nil
 	}
 
-	if err := update(db, &models.Group{}, group, db.Where(existing, "id")); err != nil {
-		return nil, err
-	}
-
-	if err := get(db, &models.Group{}, group, db.Where(existing, "id")); err != nil {
+	if err := save(db, group); err != nil {
 		return nil, err
 	}
 
 	return group, nil
 }
 
-func GetGroup(db *gorm.DB, condition interface{}) (*models.Group, error) {
-	var group models.Group
-	if err := get(db, &models.Group{}, &group, condition); err != nil {
-		return nil, err
-	}
-
-	return &group, nil
+func GetGroup(db *gorm.DB, selectors ...SelectorFunc) (*models.Group, error) {
+	return get[models.Group](db, selectors...)
 }
 
 func ListUserGroups(db *gorm.DB, userID uid.ID) (result []models.Group, err error) {
@@ -82,17 +74,12 @@ func ListUserGroups(db *gorm.DB, userID uid.ID) (result []models.Group, err erro
 	return result, nil
 }
 
-func ListGroups(db *gorm.DB, condition interface{}) ([]models.Group, error) {
-	groups := make([]models.Group, 0)
-	if err := list(db, &models.Group{}, &groups, condition); err != nil {
-		return nil, err
-	}
-
-	return groups, nil
+func ListGroups(db *gorm.DB, selectors ...SelectorFunc) ([]models.Group, error) {
+	return list[models.Group](db, selectors...)
 }
 
-func DeleteGroups(db *gorm.DB, condition interface{}) error {
-	toDelete, err := ListGroups(db, condition)
+func DeleteGroups(db *gorm.DB, selectors ...SelectorFunc) error {
+	toDelete, err := ListGroups(db, selectors...)
 	if err != nil {
 		return err
 	}
@@ -103,7 +90,7 @@ func DeleteGroups(db *gorm.DB, condition interface{}) error {
 			ids = append(ids, g.ID)
 		}
 
-		return remove(db, &models.Group{}, ids)
+		return removeAll[models.Group](db, ByIDs(ids))
 	}
 
 	return nil

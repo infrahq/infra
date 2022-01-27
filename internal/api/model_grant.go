@@ -1,22 +1,19 @@
 package api
 
-import "github.com/infrahq/infra/uid"
+import (
+	"github.com/infrahq/infra/uid"
+)
 
-// Grant struct for Grant
 type Grant struct {
 	ID uid.ID `json:"id"`
-	// created time in seconds since 1970-01-01
-	Created int64 `json:"created"`
-	// updated time in seconds since 1970-01-01
-	Updated     int64            `json:"updated"`
-	Kind        GrantKind        `json:"kind"`
-	Destination *Destination     `json:"destination"`
-	Kubernetes  *GrantKubernetes `json:"kubernetes,omitempty"`
-	Users       []User           `json:"users,omitempty"`
-	Groups      []Group          `json:"groups,omitempty"`
-}
 
-type ListGrantsRequest struct {
-	GrantKind     GrantKind `form:"kind"`
-	DestinationID uid.ID    `form:"destination_id"`
+	Created   int64  `json:"created"`    // created time in seconds since 1970-01-01 00:00:00 UTC
+	CreatedBy uid.ID `json:"created_by"` // id of user who created the grant
+	Updated   int64  `json:"updated"`    // updated time in seconds since 1970-01-01 00:00:00 UTC
+
+	Identity  string `json:"identity"`  // format is "u:<idstr>" for users, "g:<idstr>" for groups
+	Privilege string `json:"privilege"` // role or permission
+	Resource  string `json:"resource"`  // Universal Resource Notation
+
+	ExpiresAt *int64 `json:"expires_at"` // time this grant expires at in seconds since 1970-01-01 00:00:00 UTC
 }

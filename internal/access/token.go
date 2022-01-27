@@ -184,7 +184,7 @@ func ListAPITokens(c *gin.Context, name string) ([]models.APITokenTuple, error) 
 		return nil, err
 	}
 
-	apiTokens, err := data.ListAPITokens(db, &models.APIToken{Name: name})
+	apiTokens, err := data.ListAPITokens(db, data.ByName(name))
 	if err != nil {
 		return nil, err
 	}

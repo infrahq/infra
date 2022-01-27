@@ -74,7 +74,7 @@ func (k *APIToken) ToAPI() *api.InfraAPIToken {
 
 		Name:        k.Name,
 		Permissions: strings.Split(k.Permissions, " "),
-		Ttl:         &ttl,
+		TTL:         &ttl,
 	}
 }
 
@@ -89,7 +89,7 @@ func (t *APITokenTuple) ToAPI() *api.InfraAPIToken {
 		Expires:     &exp,
 		Name:        t.APIToken.Name,
 		Permissions: strings.Split(t.APIToken.Permissions, " "),
-		Ttl:         &ttl,
+		TTL:         &ttl,
 	}
 }
 
@@ -104,7 +104,7 @@ func (k *APIToken) ToAPICreateResponse(tkn *Token) *api.InfraAPITokenCreateRespo
 		Expires:     &exp,
 		Name:        k.Name,
 		Permissions: strings.Split(k.Permissions, " "),
-		Ttl:         &ttl,
+		TTL:         &ttl,
 
 		Token: tkn.SessionToken(), // be cautious, this is a secret value
 	}
@@ -114,10 +114,10 @@ func (k *APIToken) FromAPI(from interface{}, defaultSessionDuration time.Duratio
 	if createRequest, ok := from.(*api.InfraAPITokenCreateRequest); ok {
 		sessionDuration := defaultSessionDuration
 
-		if createRequest.Ttl != nil && *createRequest.Ttl != "" {
+		if createRequest.TTL != nil && *createRequest.TTL != "" {
 			var err error
 
-			sessionDuration, err = time.ParseDuration(*createRequest.Ttl)
+			sessionDuration, err = time.ParseDuration(*createRequest.TTL)
 			if err != nil {
 				return fmt.Errorf("parse ttl: %w", err)
 			}

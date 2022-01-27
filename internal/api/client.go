@@ -179,7 +179,7 @@ func (c Client) ListProviders() ([]Provider, error) {
 	return list[Provider](c, "/v1/providers", nil)
 }
 
-func (c Client) ListGrants(kind GrantKind, destinationID uid.ID) ([]Grant, error) {
+func (c Client) ListGrants(kind DestinationKind, destinationID uid.ID) ([]Grant, error) {
 	return list[Grant](c, "/v1/grants", map[string]string{"kind": string(kind), "destination_id": destinationID.String()})
 }
 
@@ -188,7 +188,7 @@ func (c Client) CreateDestination(req *CreateDestinationRequest) (*Destination, 
 }
 
 func (c Client) UpdateDestination(id uid.ID, req *UpdateDestinationRequest) (*Destination, error) {
-	return put[UpdateDestinationRequest, Destination](c, fmt.Sprintf("/v1/destinations/%s", id.String()), req)
+	return put[UpdateDestinationRequest, Destination](c, fmt.Sprintf("/v1/destinations/%s", id), req)
 }
 
 func (c Client) CreateToken(req *TokenRequest) (*Token, error) {

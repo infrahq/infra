@@ -282,20 +282,6 @@ func (a *API) CreateAPIToken(c *gin.Context, r *api.InfraAPITokenCreateRequest) 
 	return apiToken.ToAPICreateResponse(tkn), nil
 }
 
-func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) ([]api.Grant, error) {
-	grants, err := access.ListGrants(c, models.GrantKind(r.GrantKind), r.DestinationID)
-	if err != nil {
-		return nil, err
-	}
-
-	results := make([]api.Grant, 0)
-	for _, r := range grants {
-		results = append(results, r.ToAPI())
-	}
-
-	return results, nil
-}
-
 func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {
 	grant, err := access.GetGrant(c, r.ID)
 	if err != nil {

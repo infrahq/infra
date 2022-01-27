@@ -10,7 +10,7 @@ type InfraAPIToken struct {
 	Name        string   `json:"name"`
 	Permissions []string `json:"permissions"`
 	// Token time to live before expiry in the form XhYmZs, for example 1h30m. Defaults to 12h.
-	Ttl *string `json:"ttl,omitempty"`
+	TTL *string `json:"ttl,omitempty"`
 }
 
 type ListAPITokensRequest struct {
@@ -22,7 +22,7 @@ type InfraAPITokenCreateRequest struct {
 	Name        string   `json:"name"`
 	Permissions []string `json:"permissions"`
 	// Token time to live before expiry in the form XhYmZs, for example 1h30m. Defaults to 12h.
-	Ttl *string `json:"ttl,omitempty"`
+	TTL *string `json:"ttl,omitempty"`
 }
 
 // InfraAPITokenCreateResponse struct for InfraAPITokenCreateResponse
@@ -34,5 +34,5 @@ type InfraAPITokenCreateResponse struct {
 	Name        string   `json:"name"`
 	Permissions []string `json:"permissions"`
 	// Token time to live before expiry in the form XhYmZs, for example 1h30m. Defaults to 12h.
-	Ttl *string `json:"ttl,omitempty"`
+	TTL *string `json:"ttl,omitempty"`
 }

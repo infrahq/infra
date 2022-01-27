@@ -37,15 +37,16 @@ func AppendProviderGroups(db *gorm.DB, provider *models.Provider, group *models.
 }
 
 func CreateProvider(db *gorm.DB, provider *models.Provider) (*models.Provider, error) {
-	if err := add(db, &models.Provider{}, provider, provider); err != nil {
+	if err := add(db, provider); err != nil {
 		return nil, err
 	}
 
 	return provider, nil
 }
 
-func CreateOrUpdateProvider(db *gorm.DB, provider *models.Provider, condition interface{}) (*models.Provider, error) {
-	existing, err := GetProvider(db, condition)
+// CreateOrUpdateProvider is deprecated
+func CreateOrUpdateProvider(db *gorm.DB, provider *models.Provider) (*models.Provider, error) {
+	existing, err := GetProvider(db, ByProviderKind(provider.Kind), ByDomain(provider.Domain))
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return nil, err
@@ -58,46 +59,39 @@ func CreateOrUpdateProvider(db *gorm.DB, provider *models.Provider, condition in
 		return provider, nil
 	}
 
-	if err := update(db, &models.Provider{}, provider, db.Where(existing, "id")); err != nil {
+	existing.ClientID = provider.ClientID
+	existing.ClientSecret = provider.ClientSecret
+
+	if err := save(db, existing); err != nil {
 		return nil, err
 	}
 
-	return GetProvider(db, db.Where(existing, "id"))
+	return GetProvider(db, ByID(existing.ID))
 }
 
-func GetProvider(db *gorm.DB, condition interface{}) (*models.Provider, error) {
-	var provider models.Provider
-	if err := get(db, &models.Provider{}, &provider, condition); err != nil {
-		return nil, err
-	}
-
-	return &provider, nil
+func GetProvider(db *gorm.DB, selectors ...SelectorFunc) (*models.Provider, error) {
+	return get[models.Provider](db, selectors...)
 }
 
-func ListProviders(db *gorm.DB, condition interface{}) ([]models.Provider, error) {
-	providers := make([]models.Provider, 0)
-	if err := list(db, &models.Provider{}, &providers, condition); err != nil {
-		return nil, err
-	}
-
-	return providers, nil
+func ListProviders(db *gorm.DB, selectors ...SelectorFunc) ([]models.Provider, error) {
+	return list[models.Provider](db, selectors...)
 }
 
 func UpdateProvider(db *gorm.DB, provider *models.Provider, selector SelectorFunc) (*models.Provider, error) {
-	existing, err := GetProvider(db, selector(db))
+	existing, err := GetProvider(db, selector)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := update(db, &models.Provider{}, provider, db.Where(existing, "id")); err != nil {
+	if err := save(db, existing); err != nil {
 		return nil, err
 	}
 
-	return GetProvider(db, db.Where(existing, "id"))
+	return GetProvider(db, ByID(existing.ID))
 }
 
-func DeleteProviders(db *gorm.DB, selector SelectorFunc) error {
-	toDelete, err := ListProviders(db, selector(db))
+func DeleteProviders(db *gorm.DB, selectors ...SelectorFunc) error {
+	toDelete, err := ListProviders(db, selectors...)
 	if err != nil {
 		return err
 	}
@@ -108,7 +102,7 @@ func DeleteProviders(db *gorm.DB, selector SelectorFunc) error {
 			ids = append(ids, g.ID)
 		}
 
-		return remove(db, &models.Provider{}, ids)
+		return removeAll[models.Provider](db, ByIDs(ids))
 	}
 
 	return internal.ErrNotFound

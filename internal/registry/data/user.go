@@ -19,29 +19,30 @@ func BindUserGroups(db *gorm.DB, user *models.User, groups ...models.Group) erro
 	return nil
 }
 
-func BindUserGrants(db *gorm.DB, user *models.User, grantIDs ...uid.ID) error {
-	grants, err := ListGrants(db, ByIDs(grantIDs))
-	if err != nil {
-		return err
-	}
+// func BindUserGrants(db *gorm.DB, user *models.User, grantIDs ...uid.ID) error {
+// 	grants, err := ListGrants(db, ByIDs(grantIDs))
+// 	if err != nil {
+// 		return err
+// 	}
 
-	if err := db.Model(user).Association("Grants").Replace(grants); err != nil {
-		return err
-	}
+// 	if err := db.Model(user).Association("Grants").Replace(grants); err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 func CreateUser(db *gorm.DB, user *models.User) (*models.User, error) {
-	if err := add(db, &models.User{}, user, &models.User{}); err != nil {
+	if err := add(db, user); err != nil {
 		return nil, err
 	}
 
 	return user, nil
 }
 
-func CreateOrUpdateUser(db *gorm.DB, user *models.User, condition interface{}) (*models.User, error) {
-	existing, err := GetUser(db, condition)
+// CreateOrUpdateUser is deprecated
+func CreateOrUpdateUser(db *gorm.DB, user *models.User, selectors ...SelectorFunc) (*models.User, error) {
+	existing, err := GetUser(db, ByEmail(user.Email))
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return nil, err
@@ -58,30 +59,15 @@ func CreateOrUpdateUser(db *gorm.DB, user *models.User, condition interface{}) (
 		return nil, err
 	}
 
-	return GetUser(db, db.Where(existing, "id"))
+	return GetUser(db, ByID(existing.ID))
 }
 
-func GetUser(db *gorm.DB, condition interface{}) (*models.User, error) {
-	var user models.User
-	if err := get(db, &models.User{}, &user, condition); err != nil {
-		return nil, err
-	}
-
-	return &user, nil
+func GetUser(db *gorm.DB, selectors ...SelectorFunc) (*models.User, error) {
+	return get[models.User](db, selectors...)
 }
 
 func ListUsers(db *gorm.DB, selectors ...SelectorFunc) ([]models.User, error) {
-	condition := db
-	for _, selector := range selectors {
-		condition = selector(condition)
-	}
-
-	users := make([]models.User, 0)
-	if err := list(db, &models.User{}, &users, condition); err != nil {
-		return nil, err
-	}
-
-	return users, nil
+	return list[models.User](db, selectors...)
 }
 
 func DeleteUsers(db *gorm.DB, selectors ...SelectorFunc) error {
@@ -96,20 +82,20 @@ func DeleteUsers(db *gorm.DB, selectors ...SelectorFunc) error {
 			ids = append(ids, g.ID)
 		}
 
-		return remove(db, &models.User{}, ids)
+		return removeAll[models.User](db, ByIDs(ids))
 	}
 
 	return nil
 }
 
 func UpdateUser(db *gorm.DB, user *models.User, selector SelectorFunc) error {
-	existing, err := GetUser(db, selector(db))
+	existing, err := GetUser(db, selector)
 	if err != nil {
 		return fmt.Errorf("get existing: %w", err)
 	}
 
-	if err := update(db, &models.User{}, user, db.Where(existing, "id")); err != nil {
-		return fmt.Errorf("update: %w", err)
+	if err := save(db, user); err != nil {
+		return fmt.Errorf("save: %w", err)
 	}
 
 	if err := db.Model(existing).Association("Grants").Replace(&user.Grants); err != nil {

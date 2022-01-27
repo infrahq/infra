@@ -34,7 +34,7 @@ func CreateToken(db *gorm.DB, token *models.Token) error {
 	token.Checksum = chksm[:]
 	token.Expires = time.Now().Add(token.SessionDuration)
 
-	if err := add(db, &models.Token{}, token, &models.Token{}); err != nil {
+	if err := add(db, token); err != nil {
 		return err
 	}
 
@@ -58,7 +58,7 @@ func UpdateToken(db *gorm.DB, token *models.Token, selector SelectorFunc) error 
 		token.Checksum = chksm[:]
 	}
 
-	if err := update(db, &models.Token{}, token, ByID(existing.ID)); err != nil {
+	if err := save(db, token); err != nil {
 		return err
 	}
 
@@ -66,12 +66,7 @@ func UpdateToken(db *gorm.DB, token *models.Token, selector SelectorFunc) error 
 }
 
 func GetToken(db *gorm.DB, selector SelectorFunc) (*models.Token, error) {
-	var token models.Token
-	if err := get(db, &models.Token{}, &token, selector); err != nil {
-		return nil, err
-	}
-
-	return &token, nil
+	return get[models.Token](db, selector)
 }
 
 func CheckTokenExpired(t *models.Token) error {
@@ -92,21 +87,20 @@ func CheckTokenSecret(t *models.Token, authorization string) error {
 }
 
 func DeleteToken(db *gorm.DB, selector SelectorFunc) error {
-	return remove(db, &models.Token{}, selector)
+	return removeAll[models.Token](db, selector)
 }
 
 func CreateProviderToken(db *gorm.DB, token *models.ProviderToken) error {
-	return add(db, &models.ProviderToken{}, token, &models.ProviderToken{})
+	return add(db, token)
 }
 
 func UpdateProviderToken(db *gorm.DB, token *models.ProviderToken) error {
-	return update(db, &models.ProviderToken{}, token, ByID(token.ID))
+	return update(db, token, ByID(token.ID))
 }
 
 func GetProviderToken(db *gorm.DB, selector SelectorFunc) (*models.ProviderToken, error) {
-	result := &models.ProviderToken{}
-
-	if err := get(db, &models.ProviderToken{}, result, selector); err != nil {
+	result, err := get[models.ProviderToken](db, selector)
+	if err != nil {
 		return nil, fmt.Errorf("get provider token: %w", err)
 	}
 
@@ -114,7 +108,7 @@ func GetProviderToken(db *gorm.DB, selector SelectorFunc) (*models.ProviderToken
 }
 
 func CreateAPIToken(db *gorm.DB, apiToken *models.APIToken) error {
-	if err := add(db, &models.APIToken{}, apiToken, &models.APIToken{}); err != nil {
+	if err := add(db, apiToken); err != nil {
 		return fmt.Errorf("new api token: %w", err)
 	}
 
@@ -122,34 +116,33 @@ func CreateAPIToken(db *gorm.DB, apiToken *models.APIToken) error {
 }
 
 func UpdateAPIToken(db *gorm.DB, apiToken *models.APIToken) error {
-	return update(db, &models.APIToken{}, apiToken, ByID(apiToken.ID))
+	return save(db, apiToken)
 }
 
 func GetAPIToken(db *gorm.DB, selector SelectorFunc) (*models.APIToken, error) {
-	var apiToken models.APIToken
-	if err := get(db, &models.APIToken{}, &apiToken, selector); err != nil {
-		return nil, err
-	}
-
-	return &apiToken, nil
+	return get[models.APIToken](db, selector)
 }
 
-func ListAPITokens(db *gorm.DB, condition interface{}) ([]models.APITokenTuple, error) {
-	apiTokens := make([]models.APIToken, 0)
-	if err := list(db, &models.APIToken{}, &apiTokens, condition); err != nil {
+func ListAPITokens(db *gorm.DB, selectors ...SelectorFunc) ([]models.APITokenTuple, error) {
+	ids := []uid.ID{}
+	apiTokens, err := list[models.APIToken](db, selectors...)
+	if err != nil {
 		return nil, err
+	}
+	for _, t := range apiTokens {
+		ids = append(ids, t.ID)
 	}
 
 	apiTokenTuples := make([]models.APITokenTuple, 0)
+	tokens, err := list[models.Token](db, ByAPITokenIDs(ids))
 
 	for _, apiTkn := range apiTokens {
-		// need to get the token to find the expiry
-		var tkn models.Token
-		if err := get(db, &models.Token{}, &tkn, &models.Token{APITokenID: apiTkn.ID}); err != nil {
-			return nil, err
+		for _, tkn := range tokens {
+			if tkn.APITokenID == apiTkn.ID {
+				apiTokenTuples = append(apiTokenTuples, models.APITokenTuple{APIToken: apiTkn, Token: tkn})
+				break
+			}
 		}
-
-		apiTokenTuples = append(apiTokenTuples, models.APITokenTuple{APIToken: apiTkn, Token: tkn})
 	}
 
 	return apiTokenTuples, nil
@@ -171,7 +164,7 @@ func DeleteAPIToken(db *gorm.DB, id uid.ID) error {
 
 	// proceed with deletion of API client even if there is no token for some reason
 
-	return remove(db, &models.APIToken{}, toDelete.ID)
+	return delete[models.APIToken](db, toDelete.ID)
 }
 
 // IssueUserSessionToken creates an Infra session token for the specified user
