@@ -25,7 +25,8 @@ func CreateOrUpdateGrant(db *gorm.DB, grant *models.Grant) (*models.Grant, error
 	}
 
 	if err == gorm.ErrRecordNotFound {
-		return CreateGrant(db, grant)
+		err := CreateGrant(db, grant)
+		return grant, err
 	}
 
 	// grant exists.
