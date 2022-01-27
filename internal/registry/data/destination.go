@@ -9,15 +9,11 @@ import (
 )
 
 func CreateDestination(db *gorm.DB, destination *models.Destination) error {
-	if err := add(db, &models.Destination{}, destination, &models.Destination{}); err != nil {
-		return err
-	}
-
-	return nil
+	return add(db, destination)
 }
 
 func UpdateDestination(db *gorm.DB, destination *models.Destination) error {
-	if err := update(db, &models.Destination{}, destination, db.Where(destination, "id")); err != nil {
+	if err := save(db, destination); err != nil {
 		return err
 	}
 
@@ -35,22 +31,12 @@ func UpdateDestination(db *gorm.DB, destination *models.Destination) error {
 	return nil
 }
 
-func GetDestination(db *gorm.DB, condition interface{}) (*models.Destination, error) {
-	var destination models.Destination
-	if err := get(db, &models.Destination{}, &destination, condition); err != nil {
-		return nil, err
-	}
-
-	return &destination, nil
+func GetDestination(db *gorm.DB, selectors ...SelectorFunc) (*models.Destination, error) {
+	return get[models.Destination](db, selectors...)
 }
 
-func ListDestinations(db *gorm.DB, condition interface{}) ([]models.Destination, error) {
-	destinations := make([]models.Destination, 0)
-	if err := list(db.Preload("Labels").Preload("Kubernetes"), &models.Destination{}, &destinations, condition); err != nil {
-		return nil, err
-	}
-
-	return destinations, nil
+func ListDestinations(db *gorm.DB, selectors ...SelectorFunc) ([]models.Destination, error) {
+	return list[models.Destination](db.Preload("Labels").Preload("Kubernetes"), selectors...)
 }
 
 func ListUserDestinations(db *gorm.DB, userID uid.ID) (result []models.Destination, err error) {
@@ -70,7 +56,7 @@ func ListUserDestinations(db *gorm.DB, userID uid.ID) (result []models.Destinati
 }
 
 func DeleteDestinations(db *gorm.DB, selector SelectorFunc) error {
-	toDelete, err := ListDestinations(db, selector(db))
+	toDelete, err := ListDestinations(db, selector)
 	if err != nil {
 		return err
 	}
@@ -81,7 +67,7 @@ func DeleteDestinations(db *gorm.DB, selector SelectorFunc) error {
 			ids = append(ids, g.ID)
 		}
 
-		return remove(db, &models.Destination{}, ids)
+		return removeAll[models.Destination](db, ByIDs(ids))
 	}
 
 	return internal.ErrNotFound

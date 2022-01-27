@@ -48,9 +48,9 @@ type ConfigDestination struct {
 }
 
 type ConfigGrant struct {
-	Name         string              `yaml:"name" validate:"required"`
-	Kind         models.GrantKind    `yaml:"kind" validate:"required,oneof=role cluster-role"`
-	Destinations []ConfigDestination `yaml:"destinations" validate:"required,dive"`
+	Name         string                 `yaml:"name" validate:"required"`
+	Kind         models.DestinationKind `yaml:"kind" validate:"required,oneof=role cluster-role"`
+	Destinations []ConfigDestination    `yaml:"destinations" validate:"required,dive"`
 }
 
 type ConfigGroupMapping struct {
@@ -226,14 +226,14 @@ func importProviders(db *gorm.DB, providers []ConfigProvider) error {
 			return fmt.Errorf("invalid domain: %w", err)
 		}
 
-		provider := models.Provider{
+		provider := &models.Provider{
 			Kind:         models.ProviderKind(p.Kind),
 			Domain:       p.Domain,
 			ClientID:     p.ClientID,
 			ClientSecret: models.EncryptedAtRest(p.ClientSecret),
 		}
 
-		final, err := data.CreateOrUpdateProvider(db, &provider, &models.Provider{Kind: provider.Kind, Domain: provider.Domain})
+		final, err := data.CreateOrUpdateProvider(db, provider)
 		if err != nil {
 			return err
 		}
@@ -242,185 +242,11 @@ func importProviders(db *gorm.DB, providers []ConfigProvider) error {
 	}
 
 	if err := data.DeleteProviders(db, func(db *gorm.DB) *gorm.DB {
-		return db.Model(&models.Provider{}).Not(toKeep)
+		return db.Model((*models.Provider)(nil)).Not(toKeep)
 	}); err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return err
 		}
-	}
-
-	return nil
-}
-
-func importUserGrantMappings(db *gorm.DB, users []ConfigUserMapping) ([]uid.ID, error) {
-	toKeep := make([]uid.ID, 0)
-
-	for _, u := range users {
-		if err := validate.Struct(u); err != nil {
-			return nil, fmt.Errorf("user validate: %w", err)
-		}
-
-		user, err := data.GetUser(db, &models.User{Email: u.Email})
-		if err != nil {
-			if !errors.Is(err, internal.ErrNotFound) {
-				return nil, err
-			}
-
-			if user, err = data.CreateUser(db, &models.User{Email: u.Email, Permissions: access.DefaultPermissions}); err != nil {
-				return nil, err
-			}
-		}
-
-		ids, err := importGrants(db, u.Grants)
-		if err != nil {
-			return nil, fmt.Errorf("import grants: %w", err)
-		}
-
-		if err := data.BindUserGrants(db, user, ids...); err != nil {
-			return nil, fmt.Errorf("bind grant: %w", err)
-		}
-
-		toKeep = append(toKeep, ids...)
-	}
-
-	return toKeep, nil
-}
-
-func importGroupGrantMappings(db *gorm.DB, groups []ConfigGroupMapping) ([]uid.ID, error) {
-	toKeep := make([]uid.ID, 0)
-
-	for _, g := range groups {
-		if err := validate.Struct(g); err != nil {
-			return nil, fmt.Errorf("group validate: %w", err)
-		}
-
-		group, err := data.GetGroup(db, &models.Group{Name: g.Name})
-		if err != nil {
-			if !errors.Is(err, internal.ErrNotFound) {
-				return nil, err
-			}
-
-			if group, err = data.CreateGroup(db, &models.Group{Name: g.Name}); err != nil {
-				return nil, err
-			}
-		}
-
-		ids, err := importGrants(db, g.Grants)
-		if err != nil {
-			return nil, fmt.Errorf("import grants: %w", err)
-		}
-
-		if err := data.BindGroupGrants(db, group, ids...); err != nil {
-			return nil, fmt.Errorf("bind grants: %w", err)
-		}
-
-		toKeep = append(toKeep, ids...)
-	}
-
-	return toKeep, nil
-}
-
-func importGrants(db *gorm.DB, grants []ConfigGrant) ([]uid.ID, error) {
-	toKeep := make([]uid.ID, 0)
-
-	for _, r := range grants {
-		if err := validate.Struct(r); err != nil {
-			return nil, fmt.Errorf("validate grant: %w", err)
-		}
-
-		for _, d := range r.Destinations {
-			if err := validate.Struct(d); err != nil {
-				return nil, fmt.Errorf("validate destination: %w", err)
-			}
-
-			destinations, err := data.ListDestinations(db, db.Where(
-				data.LabelSelector(db, "destination_id", d.Labels...),
-				&models.Destination{Name: d.Name, Kind: d.Kind},
-			))
-			if err != nil {
-				return nil, fmt.Errorf("list destinations: %w", err)
-			}
-
-		DESTINATION:
-			for i, destination := range destinations {
-				labels := make(map[string]bool)
-				for _, l := range destination.Labels {
-					labels[l.Value] = true
-				}
-
-				for _, l := range d.Labels {
-					if _, ok := labels[l]; !ok {
-						continue DESTINATION
-					}
-				}
-
-				grant := models.Grant{
-					Kind:          models.GrantKind(destination.Kind),
-					Destination:   &destinations[i],
-					DestinationID: destination.ID,
-				}
-
-				grants := make([]models.Grant, 0)
-
-				switch grant.Kind {
-				case models.GrantKindInfra:
-				case models.GrantKindKubernetes:
-					grant.Kubernetes = models.GrantKubernetes{
-						Kind: models.GrantKubernetesKind(r.Kind),
-						Name: r.Name,
-					}
-
-					if len(d.Namespaces) == 0 {
-						d.Namespaces = []string{""}
-					}
-
-					for _, namespace := range d.Namespaces {
-						grant.Kubernetes.Namespace = namespace
-
-						grants = append(grants, grant)
-					}
-				}
-
-				for i := range grants {
-					grant, err := data.CreateOrUpdateGrant(db, &grants[i])
-					if err != nil {
-						return nil, fmt.Errorf("persist grant: %w", err)
-					}
-
-					toKeep = append(toKeep, grant.ID)
-				}
-			}
-		}
-	}
-
-	return toKeep, nil
-}
-
-func importGrantMappings(db *gorm.DB, users []ConfigUserMapping, groups []ConfigGroupMapping) error {
-	// TODO: use a Set here instead of a Slice
-	toKeep := make([]uid.ID, 0)
-
-	ids, err := importUserGrantMappings(db, users)
-	if err != nil {
-		return fmt.Errorf("user mapping: %w", err)
-	}
-
-	toKeep = append(toKeep, ids...)
-
-	ids, err = importGroupGrantMappings(db, groups)
-	if err != nil {
-		return fmt.Errorf("group mapping: %w", err)
-	}
-
-	toKeep = append(toKeep, ids...)
-
-	// explicitly query using ID field
-	if err := data.DeleteGrants(db, data.NotByIDs(toKeep)); err != nil {
-		if errors.Is(err, internal.ErrNotFound) {
-			return nil
-		}
-
-		return fmt.Errorf("not kept: %w", err)
 	}
 
 	return nil
@@ -433,9 +259,7 @@ func (r *Registry) importConfig() error {
 			return fmt.Errorf("providers: %w", err)
 		}
 
-		if err := importGrantMappings(tx, r.options.Users, r.options.Groups); err != nil {
-			return fmt.Errorf("grants: %w", err)
-		}
+		// todo: import grants
 
 		return nil
 	})

@@ -30,7 +30,8 @@ func TestProvider(t *testing.T) {
 func TestCreateProviderOkta(t *testing.T) {
 	db := setup(t)
 
-	provider, err := CreateProvider(db, &providerDevelop)
+	p := providerDevelop
+	provider, err := CreateProvider(db, &p)
 	require.NoError(t, err)
 	require.NotEqual(t, 0, provider.ID)
 	require.Equal(t, providerDevelop.Kind, provider.Kind)
@@ -39,7 +40,7 @@ func TestCreateProviderOkta(t *testing.T) {
 
 func createProviders(t *testing.T, db *gorm.DB, providers ...models.Provider) {
 	for i := range providers {
-		_, err := CreateProvider(db, &providers[i])
+		_, err := CreateOrUpdateProvider(db, &providers[i])
 		require.NoError(t, err)
 	}
 }
@@ -48,14 +49,16 @@ func TestCreateProviderDuplicate(t *testing.T) {
 	db := setup(t)
 	createProviders(t, db, providerDevelop, providerProduction)
 
-	_, err := CreateProvider(db, &providerDevelop)
-	require.EqualError(t, err, "duplicate record")
+	p := providerDevelop
+	_, err := CreateProvider(db, &p)
+	require.Contains(t, err.Error(), "duplicate record")
 }
 
 func TestCreateOrUpdateProviderCreate(t *testing.T) {
 	db := setup(t)
 
-	provider, err := CreateOrUpdateProvider(db, &providerDevelop, &providerDevelop)
+	p := providerDevelop
+	provider, err := CreateOrUpdateProvider(db, &p)
 	require.NoError(t, err)
 	require.NotEqual(t, 0, provider.ID)
 	require.Equal(t, providerDevelop.Kind, provider.Kind)
@@ -66,7 +69,10 @@ func TestCreateOrUpdateProviderUpdate(t *testing.T) {
 	db := setup(t)
 	createProviders(t, db, providerDevelop, providerProduction)
 
-	provider, err := CreateOrUpdateProvider(db, &models.Provider{Domain: "tmp.okta.com"}, &providerDevelop)
+	p := providerDevelop
+	p.ID = 0
+	p.Domain = "tmp.okta.com"
+	provider, err := CreateOrUpdateProvider(db, &p)
 	require.NoError(t, err)
 	require.NotEqual(t, 0, provider.ID)
 	require.Equal(t, providerDevelop.Kind, provider.Kind)
@@ -77,7 +83,7 @@ func TestGetProvider(t *testing.T) {
 	db := setup(t)
 	createProviders(t, db, providerDevelop, providerProduction)
 
-	provider, err := GetProvider(db, &models.Provider{Kind: "okta"})
+	provider, err := GetProvider(db, ByProviderKind("okta"))
 	require.NoError(t, err)
 	require.NotEqual(t, 0, provider.ID)
 	require.Equal(t, providerDevelop.Domain, provider.Domain)
@@ -87,55 +93,42 @@ func TestListProviders(t *testing.T) {
 	db := setup(t)
 	createProviders(t, db, providerDevelop, providerProduction)
 
-	providers, err := ListProviders(db, &models.Provider{Kind: "okta"})
+	providers, err := ListProviders(db, ByProviderKind("okta"))
 	require.NoError(t, err)
 	require.Equal(t, 2, len(providers))
 
-	providers, err = ListProviders(db, &models.Provider{Kind: "okta", Domain: "dev.okta.com"})
+	providers, err = ListProviders(db, ByProviderKind("okta"), ByDomain("dev.okta.com"))
 	require.NoError(t, err)
 	require.Equal(t, 1, len(providers))
 }
 
 func TestDeleteProviders(t *testing.T) {
+
 	db := setup(t)
 	createProviders(t, db, providerDevelop, providerProduction)
 
-	providers, err := ListProviders(db, &models.Provider{Kind: "okta"})
+	providers, err := ListProviders(db, ByProviderKind("okta"))
 	require.NoError(t, err)
 	require.Equal(t, 2, len(providers))
 
-	byKindAndDomain := func(kind, domain string) SelectorFunc {
-		return func(db *gorm.DB) *gorm.DB {
-			if kind != "" {
-				db = db.Where("kind = ?", kind)
-			}
-
-			if domain != "" {
-				db = db.Where("domain = ?", domain)
-			}
-
-			return db
-		}
-	}
-
-	err = DeleteProviders(db, byKindAndDomain("okta", "prod.okta.com"))
+	err = DeleteProviders(db, ByProviderKind("okta"), ByDomain("prod.okta.com"))
 	require.NoError(t, err)
 
-	_, err = GetProvider(db, &models.Provider{Kind: "okta", Domain: "prod.okta.com"})
+	_, err = GetProvider(db, ByProviderKind("okta"), ByDomain("prod.okta.com"))
 	require.EqualError(t, err, "record not found")
 
 	// deleting a nonexistent provider should return NotFound
-	err = DeleteProviders(db, byKindAndDomain("okta", "prod.okta.com"))
+	err = DeleteProviders(db, ByProviderKind("okta"), ByDomain("prod.okta.com"))
 	require.EqualError(t, err, "record not found")
 
 	// deleting a provider should not delete unrelated providers
-	_, err = GetProvider(db, &models.Provider{Kind: "okta", Domain: "dev.okta.com"})
+	_, err = GetProvider(db, ByProviderKind("okta"), ByDomain("dev.okta.com"))
 	require.NoError(t, err)
 
-	err = DeleteProviders(db, byKindAndDomain("okta", ""))
+	err = DeleteProviders(db, ByProviderKind("okta"), ByDomain(""))
 	require.NoError(t, err)
 
-	providers, err = ListProviders(db, &models.Provider{Kind: "okta"})
+	providers, err = ListProviders(db, ByProviderKind("okta"))
 	require.NoError(t, err)
 	require.Equal(t, 0, len(providers))
 }

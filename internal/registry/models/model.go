@@ -7,12 +7,19 @@ import (
 	"gorm.io/gorm"
 )
 
+// Modelable is an interface that determines if a struct is a model. It's simply models that compose models.Model
+type Modelable interface {
+	IsAModel() // there's nothing specific about this function except that all Model structs will have it.
+}
+
 type Model struct {
 	ID        uid.ID
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt gorm.DeletedAt
 }
+
+func (Model) IsAModel() {}
 
 // Set an ID if one does not already exist. Unfortunately, we can use `gorm:"default"`
 // tags since the ID must be dynamically generated and not all databases support UUID generation

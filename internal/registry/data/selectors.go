@@ -19,6 +19,12 @@ func ByAPITokenID(id uid.ID) SelectorFunc {
 	}
 }
 
+func ByAPITokenIDs(id []uid.ID) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("api_token_id in (?)", id)
+	}
+}
+
 func ByName(name string) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		if len(name) > 0 {
@@ -26,6 +32,22 @@ func ByName(name string) SelectorFunc {
 		}
 
 		return db
+	}
+}
+
+func ByNodeID(nodeID string) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		if len(nodeID) > 0 {
+			return db.Where("node_id = ?", nodeID)
+		}
+
+		return db
+	}
+}
+
+func ByNameInList(names []string) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("name in (?)", names)
 	}
 }
 

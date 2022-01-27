@@ -7,7 +7,10 @@ import (
 
 type DestinationKind string
 
-var DestinationKindKubernetes DestinationKind = "kubernetes"
+var (
+	DestinationKindKubernetes DestinationKind = "kubernetes"
+	DestinationKindInfra      DestinationKind = "infra"
+)
 
 type Destination struct {
 	Model

@@ -1,7 +1,6 @@
 package registry
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -10,7 +9,6 @@ import (
 	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/registry/data"
 	"github.com/infrahq/infra/internal/registry/models"
 	"github.com/infrahq/infra/secrets"
@@ -60,16 +58,20 @@ func setupDB(t *testing.T) *gorm.DB {
 	})
 	require.NoError(t, err)
 
-	userBond, err = data.CreateUser(db, &models.User{Email: "jbond@infrahq.com"})
+	userBond = &models.User{Email: "jbond@infrahq.com"}
+	err = data.CreateUser(db, userBond)
 	require.NoError(t, err)
 
-	userBourne, err = data.CreateUser(db, &models.User{Email: "jbourne@infrahq.com"})
+	userBourne = &models.User{Email: "jbourne@infrahq.com"}
+	err = data.CreateUser(db, userBourne)
 	require.NoError(t, err)
 
-	groupEveryone, err = data.CreateGroup(db, &models.Group{Name: "Everyone"})
+	groupEveryone = &models.Group{Name: "Everyone"}
+	err = data.CreateGroup(db, groupEveryone)
 	require.NoError(t, err)
 
-	groupEngineers, err = data.CreateGroup(db, &models.Group{Name: "Engineering"})
+	groupEngineers = &models.Group{Name: "Engineering"}
+	err = data.CreateGroup(db, groupEngineers)
 	require.NoError(t, err)
 
 	err = data.BindUserGroups(db, userBourne, *groupEveryone)
@@ -146,181 +148,19 @@ func setupRegistryWithConfigAndDb(t *testing.T, config []byte, db *gorm.DB) *Reg
 	err = r.importSecrets()
 	require.NoError(t, err)
 
+	err = r.importSecretKeys()
+	require.NoError(t, err)
+
 	err = r.importConfig()
 	require.NoError(t, err)
 
 	return r
 }
 
-func userGrants(t *testing.T, grants []models.Grant, email string) map[string][]string {
-	destinations := make(map[string][]string)
-
-	for _, grant := range grants {
-		destinationName := grant.Destination.Name
-
-		var key string
-
-		switch grant.Kind {
-		case models.GrantKindKubernetes:
-			key = fmt.Sprintf("%s:%s:%s", grant.Kubernetes.Kind, grant.Kubernetes.Name, grant.Kubernetes.Namespace)
-		case models.GrantKindInfra:
-		default:
-			require.Fail(t, "unknown grant kind")
-		}
-
-		for _, user := range grant.Users {
-			if user.Email != email {
-				continue
-			}
-
-			if _, ok := destinations[key]; !ok {
-				destinations[key] = make([]string, 0)
-			}
-
-			destinations[key] = append(destinations[key], destinationName)
-		}
-	}
-
-	return destinations
-}
-
-func TestImportUserGrants(t *testing.T) {
+func TestImportKeyProvider(t *testing.T) {
 	r := setupRegistry(t)
 
-	grants, err := data.ListGrants(r.db)
-	require.NoError(t, err)
-
-	bond := userGrants(t, grants, userBond.Email)
-	require.ElementsMatch(t, []string{"AAA", "BBB", "CCC"}, bond["cluster-role:admin:"])
-	require.ElementsMatch(t, []string{"CCC"}, bond["role:audit:infrahq"])
-	require.ElementsMatch(t, []string{"CCC"}, bond["role:audit:development"])
-	require.ElementsMatch(t, []string{"CCC"}, bond["role:pod-create:infrahq"])
-	require.ElementsMatch(t, []string(nil), bond["role:view"])
-
-	unknown := userGrants(t, grants, "unknown@infrahq.com")
-	require.ElementsMatch(t, []string(nil), unknown["grant:writer"])
-}
-
-func groupGrants(t *testing.T, grants []models.Grant, name string) map[string][]string {
-	destinations := make(map[string][]string)
-
-	for _, grant := range grants {
-		destinationName := grant.Destination.Name
-
-		var key string
-
-		switch grant.Kind {
-		case models.GrantKindKubernetes:
-			key = fmt.Sprintf("%s:%s:%s", grant.Kubernetes.Kind, grant.Kubernetes.Name, grant.Kubernetes.Namespace)
-		case models.GrantKindInfra:
-		default:
-			require.Fail(t, "unknown grant kind")
-		}
-
-		for _, group := range grant.Groups {
-			if group.Name != name {
-				continue
-			}
-
-			if _, ok := destinations[key]; !ok {
-				destinations[key] = make([]string, 0)
-			}
-
-			destinations[key] = append(destinations[key], destinationName)
-		}
-	}
-
-	return destinations
-}
-
-func TestImportGroupGrants(t *testing.T) {
-	r := setupRegistry(t)
-
-	grants, err := data.ListGrants(r.db)
-	require.NoError(t, err)
-
-	everyone := groupGrants(t, grants, groupEveryone.Name)
-	require.ElementsMatch(t, []string{"AAA"}, everyone["cluster-role:writer:"])
-	require.ElementsMatch(t, []string{"CCC"}, everyone["role:audit:infrahq"])
-	require.ElementsMatch(t, []string{"CCC"}, everyone["role:audit:development"])
-	require.ElementsMatch(t, []string{"CCC"}, everyone["role:pod-create:infrahq"])
-
-	engineering := groupGrants(t, grants, groupEngineers.Name)
-	require.ElementsMatch(t, []string{"BBB"}, engineering["role:writer:"])
-}
-
-func TestImportGrantsUnknownDestinations(t *testing.T) {
-	r := setupRegistry(t)
-
-	grants, err := data.ListGrants(r.db)
-	require.NoError(t, err)
-
-	for _, g := range grants {
-		_, err := data.GetDestination(r.db, r.db.Where("id = (?)", g.DestinationID))
-		require.NoError(t, err)
-	}
-}
-
-func TestImportGrantsNoMatchingLabels(t *testing.T) {
-	r := setupRegistry(t)
-
-	_, err := data.GetGrantByModel(r.db, &models.Grant{
-		Kind:       models.GrantKindKubernetes,
-		Kubernetes: models.GrantKubernetes{Name: "view"},
-	})
-	require.ErrorIs(t, err, internal.ErrNotFound)
-}
-
-func TestFirstNamespaceThenNoNamespace(t *testing.T) {
-	db := setupDB(t)
-
-	withNamespace := `
-providers:
-  - kind: okta
-    domain: https://test.example.com
-    clientID: plaintext:0oapn0qwiQPiMIyR35d6
-    clientSecret: kubernetes:okta-secrets/clientSecret
-groups:
-  - name: Everyone
-    provider: okta
-    grants:
-      - name: cluster-admin
-        kind: cluster-role
-        destinations:
-          - name: AAA
-            kind: kubernetes
-            namespaces:
-              - infrahq
-`
-
-	withoutNamespace := `
-providers:
-  - kind: okta
-    domain: https://test.example.com
-    clientID: plaintext:0oapn0qwiQPiMIyR35d6
-    clientSecret: kubernetes:okta-secrets/clientSecret
-groups:
-  - name: Everyone
-    provider: okta
-    grants:
-      - name: cluster-admin
-        kind: cluster-role
-        destinations:
-          - name: AAA
-            kind: kubernetes
-`
-
-	setupRegistryWithConfigAndDb(t, []byte(withNamespace), db)
-
-	grants, err := data.ListGrants(db)
-	require.NoError(t, err)
-	require.Len(t, grants, 1)
-	require.Equal(t, "infrahq", grants[0].Kubernetes.Namespace)
-
-	setupRegistryWithConfigAndDb(t, []byte(withoutNamespace), db)
-
-	grants, err = data.ListGrants(db)
-	require.NoError(t, err)
-	require.Len(t, grants, 1)
-	require.Equal(t, "", grants[0].Kubernetes.Namespace)
+	sp, ok := r.keys["native"]
+	require.True(t, ok)
+	require.IsType(t, &secrets.NativeSecretProvider{}, sp)
 }

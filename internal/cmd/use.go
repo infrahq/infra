@@ -4,11 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"sort"
 	"strings"
 
-	survey "github.com/AlecAivazis/survey/v2"
-	"github.com/AlecAivazis/survey/v2/terminal"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
@@ -67,182 +64,133 @@ func use(options *UseOptions) error {
 	}
 
 	// deduplicate candidates
-	candidates := make(map[string][]api.Grant)
+	destinations := make(map[string][]api.Grant)
 	for _, r := range user.Grants {
-		candidates[r.Destination.NodeID] = append(candidates[r.Destination.NodeID], r)
+		destName := strings.Join(strings.Split(r.Resource, ".")[0:2], ".")
+		destinations[destName] = append(destinations[destName], r)
 	}
 
 	for _, g := range user.Groups {
 		for _, r := range g.Grants {
-			candidates[r.Destination.NodeID] = append(candidates[r.Destination.NodeID], r)
+			destName := strings.Join(strings.Split(r.Resource, ".")[0:2], ".")
+			destinations[destName] = append(destinations[destName], r)
 		}
 	}
 
-	// find candidate destinations
-	destinations := make(map[string]map[string][]api.Grant)
+	// var namespaces map[string][]api.Grant
 
-DESTINATIONS:
-	for _, d := range candidates {
-		for _, r := range d {
-			logging.S.Debugf("considering %s %s@%s#%s", r.ID, r.Destination.Name, r.Destination.NodeID[:12], r.Kubernetes.Namespace)
-			switch options.Name {
-			case "":
-			case r.Destination.Name:
-			case r.Destination.NodeID:
-			case r.Destination.NodeID[:12]:
-			default:
-				continue
-			}
+	// switch len(destinations) {
+	// case 0:
+	// 	//lint:ignore ST1005, user facing error
+	// 	return fmt.Errorf("No kubernetes contexts found for user, you are not assigned any kubernetes grants")
+	// case 1:
+	// 	for _, d := range destinations {
+	// 		namespaces = d
+	// 	}
+	// default:
+	// 	promptOptions := make([]string, 0)
 
-			switch options.Namespace {
-			case "":
-			case r.Kubernetes.Namespace:
-			default:
-				continue
-			}
+	// 	for k, c := range destinations {
+	// 		// sample one namespace for this destinations
+	// 		var sample api.Grant
+	// 		for _, n := range c {
+	// 			sample = n[0]
+	// 			break
+	// 		}
 
-			labels := make(map[string]bool)
-			for _, l := range r.Destination.Labels {
-				labels[l] = true
-			}
+	// 		promptOptions = append(promptOptions, fmt.Sprintf("%s %s [%s]", k, sample.Destination.Name, strings.Join(sample.Destination.Labels, ", ")))
+	// 	}
 
-			for _, l := range options.Labels {
-				if _, ok := labels[l]; !ok {
-					continue DESTINATIONS
-				}
-			}
+	// 	sort.Slice(promptOptions, func(i, j int) bool {
+	// 		return promptOptions[i] < promptOptions[j]
+	// 	})
 
-			if _, ok := destinations[r.Destination.NodeID[:12]]; !ok {
-				destinations[r.Destination.NodeID[:12]] = make(map[string][]api.Grant)
-			}
+	// 	prompt := survey.Select{
+	// 		Message: "Select a cluster:",
+	// 		Options: promptOptions,
+	// 	}
 
-			destinations[r.Destination.NodeID[:12]][r.Kubernetes.Namespace] = append(destinations[r.Destination.NodeID[:12]][r.Kubernetes.Namespace], r)
-		}
-	}
+	// 	var selected string
 
-	logging.S.Debugf("found %d suitable destination(s)", len(destinations))
+	// 	err := survey.AskOne(&prompt, &selected, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
+	// 	if err != nil {
+	// 		if errors.Is(err, terminal.InterruptErr) {
+	// 			return nil
+	// 		}
 
-	var namespaces map[string][]api.Grant
+	// 		return err
+	// 	}
 
-	switch len(destinations) {
-	case 0:
-		//lint:ignore ST1005, user facing error
-		return fmt.Errorf("No kubernetes contexts found for user, you are not assigned any kubernetes grants")
-	case 1:
-		for _, d := range destinations {
-			namespaces = d
-		}
-	default:
-		promptOptions := make([]string, 0)
+	// 	parts := strings.Split(selected, " ")
+	// 	namespaces = destinations[parts[0]]
+	// }
 
-		for k, c := range destinations {
-			// sample one namespace for this destinations
-			var sample api.Grant
-			for _, n := range c {
-				sample = n[0]
-				break
-			}
+	// logging.S.Debugf("found %d suitable namespace(s)", len(namespaces))
 
-			promptOptions = append(promptOptions, fmt.Sprintf("%s %s [%s]", k, sample.Destination.Name, strings.Join(sample.Destination.Labels, ", ")))
-		}
+	// var namespace api.Grant
 
-		sort.Slice(promptOptions, func(i, j int) bool {
-			return promptOptions[i] < promptOptions[j]
-		})
+	// switch len(namespaces) {
+	// case 0:
+	// 	// should be impossible
+	// 	//lint:ignore ST1005, user facing error
+	// 	return fmt.Errorf("No namespaces found for kubernetes contexts, your server configuration may be invalid")
+	// case 1:
+	// 	for _, n := range namespaces {
+	// 		namespace = n[0]
+	// 	}
+	// default:
+	// 	promptOptions := make([]string, 0)
 
-		prompt := survey.Select{
-			Message: "Select a cluster:",
-			Options: promptOptions,
-		}
+	// 	for _, n := range namespaces {
+	// 		names := make([]string, 0)
 
-		var selected string
+	// 		var namespace string
 
-		err := survey.AskOne(&prompt, &selected, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
-		if err != nil {
-			if errors.Is(err, terminal.InterruptErr) {
-				return nil
-			}
+	// 		for _, r := range n {
+	// 			names = append(names, r.Kubernetes.Name)
+	// 			namespace = r.Kubernetes.Namespace
+	// 		}
 
-			return err
-		}
+	// 		if namespace == "" {
+	// 			namespace = "*"
+	// 		}
 
-		parts := strings.Split(selected, " ")
-		namespaces = destinations[parts[0]]
-	}
+	// 		promptOptions = append(promptOptions, fmt.Sprintf("%s [%s]", namespace, strings.Join(names, ", ")))
+	// 	}
 
-	logging.S.Debugf("found %d suitable namespace(s)", len(namespaces))
+	// 	sort.Slice(promptOptions, func(i, j int) bool {
+	// 		return promptOptions[i] < promptOptions[j]
+	// 	})
 
-	var namespace api.Grant
+	// 	prompt := survey.Select{
+	// 		Message: "Select a namespace:",
+	// 		Options: promptOptions,
+	// 	}
 
-	switch len(namespaces) {
-	case 0:
-		// should be impossible
-		//lint:ignore ST1005, user facing error
-		return fmt.Errorf("No namespaces found for kubernetes contexts, your server configuration may be invalid")
-	case 1:
-		for _, n := range namespaces {
-			namespace = n[0]
-		}
-	default:
-		promptOptions := make([]string, 0)
+	// 	var selected string
 
-		for _, n := range namespaces {
-			names := make([]string, 0)
+	// 	err := survey.AskOne(&prompt, &selected, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
+	// 	if err != nil {
+	// 		if errors.Is(err, terminal.InterruptErr) {
+	// 			return nil
+	// 		}
 
-			var namespace string
+	// 		return err
+	// 	}
 
-			for _, r := range n {
-				names = append(names, r.Kubernetes.Name)
-				namespace = r.Kubernetes.Namespace
-			}
+	// 	parts := strings.Split(selected, " ")
+	// 	if parts[0] == "*" {
+	// 		parts[0] = ""
+	// 	}
 
-			if namespace == "" {
-				namespace = "*"
-			}
+	// 	namespace = namespaces[parts[0]][0]
+	// }
 
-			promptOptions = append(promptOptions, fmt.Sprintf("%s [%s]", namespace, strings.Join(names, ", ")))
-		}
-
-		sort.Slice(promptOptions, func(i, j int) bool {
-			return promptOptions[i] < promptOptions[j]
-		})
-
-		prompt := survey.Select{
-			Message: "Select a namespace:",
-			Options: promptOptions,
-		}
-
-		var selected string
-
-		err := survey.AskOne(&prompt, &selected, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
-		if err != nil {
-			if errors.Is(err, terminal.InterruptErr) {
-				return nil
-			}
-
-			return err
-		}
-
-		parts := strings.Split(selected, " ")
-		if parts[0] == "*" {
-			parts[0] = ""
-		}
-
-		namespace = namespaces[parts[0]][0]
-	}
-
-	if err := kubernetesSetContext(namespace.Destination.Name, namespace.Destination.NodeID[:12], namespace.Kubernetes.Namespace); err != nil {
-		return err
-	}
+	// if err := kubernetesSetContext(namespace.Destination.Name, namespace.Destination.NodeID[:12], namespace.Kubernetes.Namespace); err != nil {
+	// 	return err
+	// }
 
 	return nil
-}
-
-func clientConfig() clientcmd.ClientConfig {
-	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-	loadingRules.WarnIfAllMissing = false
-
-	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
 }
 
 func kubernetesSetContext(alias string, shortname string, namespace string) error {
@@ -401,43 +349,4 @@ func updateKubeconfig(user api.User) error {
 	}
 
 	return nil
-}
-
-func switchToFirstInfraContext() (string, error) {
-	defaultConfig := clientConfig()
-
-	kubeConfig, err := defaultConfig.RawConfig()
-	if err != nil {
-		return "", err
-	}
-
-	resultContext := ""
-
-	if kubeConfig.Contexts[kubeConfig.CurrentContext] != nil && strings.HasPrefix(kubeConfig.CurrentContext, "infra:") {
-		// if the current context is an infra-controlled context, stay there
-		resultContext = kubeConfig.CurrentContext
-	} else {
-		for _, c := range kubeConfig.Contexts {
-			if !strings.HasPrefix(c.Cluster, "infra:") {
-				continue
-			}
-
-			// prefer a context with "default" or no namespace
-			if c.Namespace == "" || c.Namespace == "default" {
-				resultContext = c.Cluster
-				break
-			}
-
-			resultContext = c.Cluster
-		}
-	}
-
-	if resultContext != "" {
-		kubeConfig.CurrentContext = resultContext
-		if err = clientcmd.WriteToFile(kubeConfig, defaultConfig.ConfigAccess().GetDefaultFilename()); err != nil {
-			return "", err
-		}
-	}
-
-	return resultContext, nil
 }

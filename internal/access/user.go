@@ -97,7 +97,8 @@ func UpdateUserInfo(c *gin.Context, info *authn.UserInfo, user *models.User, pro
 				return fmt.Errorf("get group: %w", err)
 			}
 
-			if group, err = data.CreateGroup(db, &models.Group{Name: name}); err != nil {
+			group = &models.Group{Name: name}
+			if err = data.CreateGroup(db, group); err != nil {
 				return fmt.Errorf("create group: %w", err)
 			}
 		}

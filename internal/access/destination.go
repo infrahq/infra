@@ -49,15 +49,12 @@ func ListDestinations(c *gin.Context, kind, nodeID, name string, labels []string
 		return nil, err
 	}
 
-	return data.ListDestinations(db, db.Where(
-		data.LabelSelector(db, "destination_id", labels...),
-		db.Where(
-			&models.Destination{
-				Kind:   models.DestinationKind(kind),
-				NodeID: nodeID,
-				Name:   name,
-			}),
-	))
+	return data.ListDestinations(db,
+		data.ByLabels("destination_id", labels),
+		data.ByDestinationKind(models.DestinationKind(kind)),
+		data.ByNodeID(nodeID),
+		data.ByName(name),
+	)
 }
 
 func DeleteDestination(c *gin.Context, id uid.ID) error {

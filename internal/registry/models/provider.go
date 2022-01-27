@@ -11,9 +11,9 @@ var ProviderKindOkta ProviderKind = "okta"
 type Provider struct {
 	Model
 
-	Kind ProviderKind
+	Kind ProviderKind `gorm:"uniqueIndex:idx_provider_kind_domain,where:deleted_at is NULL"`
 
-	Domain       string `gorm:"uniqueIndex:,where:deleted_at is NULL"`
+	Domain       string `gorm:"uniqueIndex:idx_provider_kind_domain,where:deleted_at is NULL"`
 	ClientID     string
 	ClientSecret EncryptedAtRest
 
