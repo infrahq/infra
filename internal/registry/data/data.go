@@ -40,6 +40,7 @@ func NewDB(connection gorm.Dialector) (*gorm.DB, error) {
 
 	tables := []interface{}{
 		&models.User{},
+		&models.Machine{},
 		&models.Group{},
 		&models.Grant{},
 		&models.Provider{},

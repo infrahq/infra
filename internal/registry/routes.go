@@ -9,9 +9,11 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 )
 
-type ReqHandlerFunc[Req any] func(c *gin.Context, req *Req) error
-type ResHandlerFunc[Res any] func(c *gin.Context) (Res, error)
-type ReqResHandlerFunc[Req, Res any] func(c *gin.Context, req *Req) (Res, error)
+type (
+	ReqHandlerFunc[Req any]         func(c *gin.Context, req *Req) error
+	ResHandlerFunc[Res any]         func(c *gin.Context) (Res, error)
+	ReqResHandlerFunc[Req, Res any] func(c *gin.Context, req *Req) (Res, error)
+)
 
 func (a *API) registerRoutes(router *gin.RouterGroup) {
 	router.Use(
@@ -30,6 +32,10 @@ func (a *API) registerRoutes(router *gin.RouterGroup) {
 		get(authorized, "/users/:id", a.GetUser)
 		get(authorized, "/users/:id/groups", a.ListUserGroups)
 		get(authorized, "/users/:id/grants", a.ListUserGrants)
+
+		get(authorized, "/machines", a.ListMachines)
+		post(authorized, "/machines", a.CreateMachine)
+		delete(authorized, "/machines/:id", a.DeleteMachine)
 
 		get(authorized, "/groups", a.ListGroups)
 		post(authorized, "/groups", a.CreateGroup)
