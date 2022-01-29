@@ -203,7 +203,8 @@ func TestRequireAuthentication(t *testing.T) {
 }
 
 func issueToken(t *testing.T, db *gorm.DB, email, permissions string, sessionDuration time.Duration) string {
-	user, err := data.CreateUser(db, &models.User{Email: email, Permissions: permissions})
+	user := &models.User{Email: email, Permissions: permissions}
+	err := data.CreateUser(db, user)
 	require.NoError(t, err)
 
 	token := &models.Token{

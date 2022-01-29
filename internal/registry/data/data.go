@@ -188,6 +188,7 @@ func Count[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (*int64, 
 	for _, selector := range selectors {
 		db2 = selector(db2)
 	}
+
 	var count int64
 	if err := db.Model((*T)(nil)).Count(&count).Error; err != nil {
 		return nil, err

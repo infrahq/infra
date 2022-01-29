@@ -32,12 +32,8 @@ func BindUserGroups(db *gorm.DB, user *models.User, groups ...models.Group) erro
 // 	return nil
 // }
 
-func CreateUser(db *gorm.DB, user *models.User) (*models.User, error) {
-	if err := add(db, user); err != nil {
-		return nil, err
-	}
-
-	return user, nil
+func CreateUser(db *gorm.DB, user *models.User) error {
+	return add(db, user)
 }
 
 // CreateOrUpdateUser is deprecated
@@ -48,7 +44,7 @@ func CreateOrUpdateUser(db *gorm.DB, user *models.User, selectors ...SelectorFun
 			return nil, err
 		}
 
-		if _, err := CreateUser(db, user); err != nil {
+		if err := CreateUser(db, user); err != nil {
 			return nil, err
 		}
 

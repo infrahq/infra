@@ -31,15 +31,14 @@ func TestUser(t *testing.T) {
 func TestCreateUser(t *testing.T) {
 	db := setup(t)
 
-	user, err := CreateUser(db, &bond)
+	err := CreateUser(db, &bond)
 	require.NoError(t, err)
-	require.NotEqual(t, 0, user.ID)
-	require.Equal(t, bond.Email, user.Email)
+	require.NotEqual(t, 0, bond.ID)
 }
 
 func createUsers(t *testing.T, db *gorm.DB, users ...models.User) {
 	for i := range users {
-		_, err := CreateUser(db, &users[i])
+		err := CreateUser(db, &users[i])
 		require.NoError(t, err)
 	}
 }
@@ -50,7 +49,7 @@ func TestCreateDuplicateUser(t *testing.T) {
 
 	b := bond
 	b.ID = 0
-	_, err := CreateUser(db, &b)
+	err := CreateUser(db, &b)
 	require.Contains(t, err.Error(), "duplicate record")
 }
 
@@ -126,6 +125,6 @@ func TestRecreateUserSameEmail(t *testing.T) {
 	err := DeleteUsers(db, ByEmail(bond.Email))
 	require.NoError(t, err)
 
-	_, err = CreateUser(db, &models.User{Email: bond.Email})
+	err = CreateUser(db, &models.User{Email: bond.Email})
 	require.NoError(t, err)
 }

@@ -31,12 +31,8 @@ func BindGroupUsers(db *gorm.DB, group *models.Group, users ...models.User) erro
 // 	return nil
 // }
 
-func CreateGroup(db *gorm.DB, group *models.Group) (*models.Group, error) {
-	if err := add(db, group); err != nil {
-		return nil, err
-	}
-
-	return group, nil
+func CreateGroup(db *gorm.DB, group *models.Group) error {
+	return add(db, group)
 }
 
 // CreateOrUpdateGroup is deprecated
@@ -47,7 +43,7 @@ func CreateOrUpdateGroup(db *gorm.DB, group *models.Group, selectors ...Selector
 			return nil, err
 		}
 
-		if _, err := CreateGroup(db, group); err != nil {
+		if err := CreateGroup(db, group); err != nil {
 			return nil, err
 		}
 
@@ -94,11 +90,4 @@ func DeleteGroups(db *gorm.DB, selectors ...SelectorFunc) error {
 	}
 
 	return nil
-}
-
-func GroupAssociations(db *gorm.DB) *gorm.DB {
-	db = db.Preload("Grants.Kubernetes").Preload("Grants.Destination.Kubernetes")
-	db = db.Preload("Users.Grants.Kubernetes").Preload("Users.Grants.Destination.Kubernetes")
-
-	return db
 }

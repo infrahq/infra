@@ -31,7 +31,8 @@ func TestGroup(t *testing.T) {
 func TestCreateGroup(t *testing.T) {
 	db := setup(t)
 
-	group, err := CreateGroup(db, &everyone)
+	err := CreateGroup(db, &everyone)
+	group := everyone
 	require.NoError(t, err)
 	require.NotEqual(t, 0, group.ID)
 	require.Equal(t, everyone.Name, group.Name)
@@ -39,7 +40,7 @@ func TestCreateGroup(t *testing.T) {
 
 func createGroups(t *testing.T, db *gorm.DB, groups ...models.Group) {
 	for i := range groups {
-		_, err := CreateGroup(db, &groups[i])
+		err := CreateGroup(db, &groups[i])
 		require.NoError(t, err)
 	}
 }
@@ -50,7 +51,7 @@ func TestCreateGroupDuplicate(t *testing.T) {
 
 	e := everyone
 	e.ID = 0
-	_, err := CreateGroup(db, &e)
+	err := CreateGroup(db, &e)
 	require.Contains(t, err.Error(), "duplicate record")
 }
 
@@ -80,14 +81,14 @@ func TestGroupBindUsers(t *testing.T) {
 	db := setup(t)
 	createGroups(t, db, everyone, engineers, product)
 
-	bond, err := CreateUser(db, &bond)
+	err := CreateUser(db, &bond)
 	require.NoError(t, err)
 
 	groups, err := ListGroups(db)
 	require.NoError(t, err)
 
 	for i := range groups {
-		err := BindGroupUsers(db, &groups[i], *bond)
+		err := BindGroupUsers(db, &groups[i], bond)
 		require.NoError(t, err)
 	}
 
@@ -107,24 +108,24 @@ func TestGroupBindMoreUsers(t *testing.T) {
 	db := setup(t)
 	createGroups(t, db, everyone, engineers, product)
 
-	bond, err := CreateUser(db, &bond)
+	err := CreateUser(db, &bond)
 	require.NoError(t, err)
 
 	group, err := GetGroup(db.Preload("Users"), ByName(everyone.Name))
 	require.NoError(t, err)
 	require.Len(t, group.Users, 0)
 
-	err = BindGroupUsers(db, group, *bond)
+	err = BindGroupUsers(db, group, bond)
 	require.NoError(t, err)
 
 	group, err = GetGroup(db.Preload("Users"), ByName(everyone.Name))
 	require.NoError(t, err)
 	require.Len(t, group.Users, 1)
 
-	bourne, err := CreateUser(db, &bourne)
+	err = CreateUser(db, &bourne)
 	require.NoError(t, err)
 
-	err = BindGroupUsers(db, group, *bond, *bourne)
+	err = BindGroupUsers(db, group, bond, bourne)
 	require.NoError(t, err)
 
 	group, err = GetGroup(db.Preload("Users"), ByName(everyone.Name))
@@ -136,24 +137,24 @@ func TestGroupBindLessUsers(t *testing.T) {
 	db := setup(t)
 	createGroups(t, db, everyone, engineers, product)
 
-	bourne, err := CreateUser(db, &bourne)
+	err := CreateUser(db, &bourne)
 	require.NoError(t, err)
 
-	bauer, err := CreateUser(db, &bauer)
+	err = CreateUser(db, &bauer)
 	require.NoError(t, err)
 
 	group, err := GetGroup(db.Preload("Users"), ByName(everyone.Name))
 	require.NoError(t, err)
 	require.Len(t, group.Users, 0)
 
-	err = BindGroupUsers(db, group, *bourne, *bauer)
+	err = BindGroupUsers(db, group, bourne, bauer)
 	require.NoError(t, err)
 
 	group, err = GetGroup(db.Preload("Users"), ByName(everyone.Name))
 	require.NoError(t, err)
 	require.Len(t, group.Users, 2)
 
-	err = BindGroupUsers(db, group, *bauer)
+	err = BindGroupUsers(db, group, bauer)
 	require.NoError(t, err)
 
 	group, err = GetGroup(db.Preload("Users"), ByName(everyone.Name))
@@ -190,6 +191,6 @@ func TestRecreateGroupSameName(t *testing.T) {
 	err := DeleteGroups(db, ByName(everyone.Name))
 	require.NoError(t, err)
 
-	_, err = CreateGroup(db, &models.Group{Name: everyone.Name})
+	err = CreateGroup(db, &models.Group{Name: everyone.Name})
 	require.NoError(t, err)
 }
