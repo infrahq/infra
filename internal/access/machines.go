@@ -23,7 +23,7 @@ func CreateMachine(c *gin.Context, machine *models.Machine) error {
 		return err
 	}
 
-	// do not let a caller create a token with more permissions than they have
+	// do not let a caller create a machine with more permissions than they have
 	permissions, ok := c.MustGet("permissions").(string)
 	if !ok {
 		// there should have been permissions set by this point
