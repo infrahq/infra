@@ -1,24 +1,24 @@
-logLevel: debug
-
-image:
-  tag: $IMAGE_TAG
-  pullPolicy: Never
-
-image:
-  tag: $IMAGE_TAG
-  pullPolicy: Never
-
-engine:
-  logLevel: debug
-  config:
-    name: docker-desktop
-
+global:
   image:
     tag: $IMAGE_TAG
     pullPolicy: Never
 
-  service:
-    ports:
-      - name: https
-        port: 8443
-        targetPort: 443
+server:
+  additionalProviders:
+    - name: okta
+      url: $OKTA_DOMAIN
+      clientID: $OKTA_CLIENT_ID
+      clientSecret: $OKTA_CLIENT_SECRET
+
+  additionalGroups:
+    - name: Everyone
+      provider: okta
+      grants:
+        - kind: cluster-role
+          name: cluster-admin
+          destinations:
+            - kind: kubernetes
+
+engine:
+  config:
+    name: docker-desktop

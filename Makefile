@@ -14,27 +14,21 @@ test-all:
 	go test ./...
 
 .PHONY: helm
-helm: helm/engine.tgz helm/infra.tgz
+helm:
+	# hack: search and replace appVersion in all helm charts
+	find helm/charts -name 'Chart.yaml' -exec sed -i.1 "s/appVersion: 0.0.0/appVersion: $(tag)/" {} \;
+	helm package -d $@ helm/charts/*/charts/* --app-version $(tag)
+	helm package -d $@ helm/charts/* --app-version $(tag)
 	helm repo index helm
+	# clean up after the hack
+	find helm/charts -name 'Chart.yaml' -exec sed -i.1 "s/appVersion: $(tag)/appVersion: 0.0.0/" {} \;
+	find helm/charts -name 'Chart.yaml.1' -delete
 
-helm/%.tgz: helm/charts/%
-	$(RM) $(@D)/$*-*.tgz
-	helm package -d $(@D) $< --version $(tag) --app-version $(tag)
-
-helm/charts/infra/charts/:
-	mkdir -p $@
-
-helm/charts/infra/charts/%.tgz: helm/%.tgz helm/charts/infra/charts/
-	$(RM) $(@D)/*.tgz
-	ln -sf $(realpath $<) $(@D)
-
-helm/infra.tgz: helm/charts/infra/charts/engine-$(tag).tgz
-
-helm/lint: helm
-	helm lint helm/charts/*
+helm/lint:
+	helm lint helm/charts/* helm/charts/*/charts/*
 
 helm/clean:
-	$(RM) -r helm/*.tgz helm/charts/infra/charts
+	$(RM) -r helm/*.tgz
 
 .PHONY: docs
 docs:
@@ -65,7 +59,7 @@ docker-desktop.yaml: docker-desktop.yaml.in
 NS = $(patsubst %,-n %,$(NAMESPACE))
 VALUES ?= docker-desktop.yaml
 
-dev: $(VALUES) helm build/docker
+dev: $(VALUES) build/docker
 	# docker desktop setup for the dev environment
 	# create a token and get the token secret from:
 	# https://dev-02708987-admin.okta.com/admin/access/api/tokens
