@@ -24,7 +24,7 @@ require (
 	github.com/kevinburke/go-bindata v3.23.0+incompatible
 	github.com/lensesio/tableprinter v0.0.0-20201125135848-89e81fc956e7
 	github.com/muesli/termenv v0.9.0
-	github.com/prometheus/client_golang v1.12.0
+	github.com/prometheus/client_golang v1.12.1
 	github.com/segmentio/backo-go v0.0.0-20200129164019-23eae7c10bd3 // indirect
 	github.com/spf13/cobra v1.3.0
 	github.com/stretchr/testify v1.7.0
