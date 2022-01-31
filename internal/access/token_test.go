@@ -64,10 +64,10 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 				existingGroup1 := &models.Group{Name: "existing1"}
 				existingGroup2 := &models.Group{Name: "existing2"}
 
-				_, err := data.CreateGroup(db, existingGroup1)
+				err := data.CreateGroup(db, existingGroup1)
 				require.NoError(t, err)
 
-				_, err = data.CreateGroup(db, existingGroup2)
+				err = data.CreateGroup(db, existingGroup2)
 				require.NoError(t, err)
 
 				return &mockOIDCImplementation{
@@ -92,7 +92,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 		},
 		"ExistingUserNewGroups": {
 			"setup": func(t *testing.T, db *gorm.DB) authn.OIDC {
-				_, err := data.CreateUser(db, &models.User{Email: "existingusernewgroups@example.com"})
+				err := data.CreateUser(db, &models.User{Email: "existingusernewgroups@example.com"})
 				require.NoError(t, err)
 
 				return &mockOIDCImplementation{
@@ -117,13 +117,13 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 		},
 		"ExistingUserExistingGroups": {
 			"setup": func(t *testing.T, db *gorm.DB) authn.OIDC {
-				_, err := data.CreateUser(db, &models.User{Email: "existinguserexistinggroups@example.com"})
+				err := data.CreateUser(db, &models.User{Email: "existinguserexistinggroups@example.com"})
 				require.NoError(t, err)
 
-				_, err = data.CreateGroup(db, &models.Group{Name: "existinguserexistinggroups1"})
+				err = data.CreateGroup(db, &models.Group{Name: "existinguserexistinggroups1"})
 				require.NoError(t, err)
 
-				_, err = data.CreateGroup(db, &models.Group{Name: "existinguserexistinggroups2"})
+				err = data.CreateGroup(db, &models.Group{Name: "existinguserexistinggroups2"})
 				require.NoError(t, err)
 
 				return &mockOIDCImplementation{

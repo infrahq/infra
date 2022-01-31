@@ -95,7 +95,7 @@ func CreateProviderToken(db *gorm.DB, token *models.ProviderToken) error {
 }
 
 func UpdateProviderToken(db *gorm.DB, token *models.ProviderToken) error {
-	return update(db, token, ByID(token.ID))
+	return update(db, token.ID, token)
 }
 
 func GetProviderToken(db *gorm.DB, selector SelectorFunc) (*models.ProviderToken, error) {

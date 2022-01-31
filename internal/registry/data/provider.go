@@ -63,7 +63,7 @@ func CreateOrUpdateProvider(db *gorm.DB, provider *models.Provider) (*models.Pro
 		return nil, err
 	}
 
-	return get[models.Provider](db.Preload("Okta"), ByID(existing.ID))
+	return get[models.Provider](db, ByID(existing.ID))
 }
 
 func GetProvider(db *gorm.DB, selectors ...SelectorFunc) (*models.Provider, error) {

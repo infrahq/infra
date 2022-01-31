@@ -8,7 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"gopkg.in/segmentio/analytics-go.v3"
-	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
@@ -215,13 +214,6 @@ func (a *API) CreateDestination(c *gin.Context, r *api.CreateDestinationRequest)
 		return nil, fmt.Errorf("create destination: %w", err)
 	}
 
-	sync := func(db *gorm.DB) error {
-		return importGrantMappings(db, a.registry.options.Users, a.registry.options.Groups)
-	}
-	if err := access.SyncGrants(c, sync); err != nil {
-		return nil, fmt.Errorf("sync grants destination create: %w", err)
-	}
-
 	return destination.ToAPI(), nil
 }
 
@@ -233,13 +225,6 @@ func (a *API) UpdateDestination(c *gin.Context, r *api.UpdateDestinationRequest)
 
 	if err := access.UpdateDestination(c, destination); err != nil {
 		return nil, fmt.Errorf("update destination: %w", err)
-	}
-
-	sync := func(db *gorm.DB) error {
-		return importGrantMappings(db, a.registry.options.Users, a.registry.options.Groups)
-	}
-	if err := access.SyncGrants(c, sync); err != nil {
-		return nil, fmt.Errorf("sync grants destination update: %w", err)
 	}
 
 	return destination.ToAPI(), nil
