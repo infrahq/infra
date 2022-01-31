@@ -41,6 +41,9 @@ app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 app.kubernetes.io/component: {{ .Chart.Name }}
+{{- if or .Values.labels .Values.global.labels }}
+{{ .Values.global.labels | default dict | merge .Values.labels | toYaml }}
+{{- end }}
 {{- end }}
 
 {{/*
@@ -52,6 +55,26 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
+Pod labels
+*/}}
+{{- define "engine.podLabels" -}}
+{{- include "engine.selectorLabels" . }}
+{{- if or .Values.podLabels .Values.global.podLabels }}
+{{ .Values.global.podLabels | default dict | merge .Values.podLabels | toYaml }}
+{{- end }}
+{{- end }}
+
+{{/*
+Pod annotations
+*/}}
+{{- define "engine.podAnnotations" -}}
+rollme: {{ include (print .Template.BasePath "/configmap.yaml") . | sha1sum }}
+{{- if or .Values.podAnnotations .Values.global.podAnnotations }}
+{{- .Values.global.podAnnotations | default dict | merge .Values.podAnnotations | toYaml }}
+{{- end }}
+{{- end }}
+
+{{/*
 Create the name of the service account to use
 */}}
 {{- define "engine.serviceAccountName" -}}
@@ -60,4 +83,50 @@ Create the name of the service account to use
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
+{{- end }}
+
+{{/*
+Engine image repository.
+If global value is present, use global value. Otherwise, use local value.
+*/}}
+{{- define "engine.image.repository" -}}
+{{- if .Values.global.image }}
+{{- .Values.global.image.repository | default .Values.image.repository }}
+{{- else }}
+{{- .Values.image.repository }}
+{{- end }}
+{{- end }}
+
+{{/*
+Engine image tag.
+If a local override exists, use the local override. Otherwise, if a global
+override exists, use the global override.  If `image.tag` does not exist,
+use AppVersion defined in Chart.
+*/}}
+{{- define "engine.image.tag" -}}
+{{- if .Values.global.image }}
+{{- .Values.image.tag | default .Values.global.image.tag | default .Chart.AppVersion }}
+{{- else }}
+{{- .Values.image.tag | default .Chart.AppVersion }}
+{{- end }}
+{{- end }}
+
+{{/*
+Engine image pull policy.
+If global value is present, use global value. Otherwise, use local value.
+*/}}
+{{- define "engine.image.pullPolicy" -}}
+{{- if .Values.global.image }}
+{{- .Values.global.image.pullPolicy | default .Values.image.pullPolicy }}
+{{- else }}
+{{- .Values.image.pullPolicy }}
+{{- end }}
+{{- end }}
+
+{{/*
+Engine image pull secrets.
+If global value is present, use global value. Otherwise, use local value.
+*/}}
+{{- define "engine.imagePullSecrets" -}}
+{{- .Values.global.imagePullSecrets | default list | concat .Values.imagePullSecrets | uniq | toYaml }}
 {{- end }}

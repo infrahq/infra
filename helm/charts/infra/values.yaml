@@ -15,23 +15,30 @@ global:
     pullPolicy: IfNotPresent
 
   ## One or more Secret to use when pulling images
+  ## Global values will be merged into local values
   ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
   imagePullSecrets: []
   # - name: "image-pull-secret"
 
+  ## Additional labels to apply to all resources
+  ## Global values will be merged into local values
+  labels: {}
+
   ## Labels to apply for all deployed pods
+  ## Global values will be merged into local values
   podLabels: {}
 
   ## Annotations to apply for all deployed pods
+  ## Global values will be merged into local values
   podAnnotations: {}
-
-  ## Additional labels to apply to all resources
-  additionalLabels: {}
 
 # Default server configurations
 # Ref: https://github.com/infrahq/infra/blob/main/helm/charts/infra/charts/server/README.md
 
 server:
+
+  nameOverride: ""
+  fullnameOverride: ""
 
   ## Deploy the server
   enabled: true
@@ -56,6 +63,10 @@ server:
   ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
   imagePullSecrets: []
   # - name: "image-pull-secret"
+
+  ## Additional labels to apply to all resources
+  ## Global values will be merged into local values
+  labels: {}
 
   ## Environment variables to pass to the server container
   env: []
@@ -100,7 +111,6 @@ server:
   #   runAsUser: 999
   #   runAsGroup: 999
   #   readOnlyRootFilesystem: true
-
 
   ## Liveness probe for the default backend
   ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
@@ -391,6 +401,9 @@ server:
 
 engine:
 
+  nameOverride: ""
+  fullnameOverride: ""
+
   ## Deploy the engine
   enabled: true
 
@@ -414,6 +427,10 @@ engine:
   ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
   imagePullSecrets: []
   # - name: "image-pull-secret"
+
+  ## Additional labels to apply to all resources
+  ## Global values will be merged into local values
+  labels: {}
 
   ## Environment variables to pass to the engine container
   env: []

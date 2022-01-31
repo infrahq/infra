@@ -13,28 +13,23 @@ spec:
 {{- include "engine.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      annotations:
-{{- toYaml .Values.podAnnotations | nindent 8 }}
       labels:
-{{- include "engine.selectorLabels" . | nindent 8 }}
-{{- if .Values.podLabels }}
-{{- toYaml .Values.podLabels | nindent 8 }}
-{{- end }}
+{{- include "engine.podLabels" . | nindent 8 }}
+      annotations:
+{{- include "engine.podAnnotations" . | nindent 8 }}
     spec:
       automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
       serviceAccountName: {{ include "engine.serviceAccountName" . }}
-{{- with .Values.imagePullSecrets }}
       imagePullSecrets:
-{{- toYaml . | nindent 8 }}
-{{- end }}
+{{- include "engine.imagePullSecrets" . | nindent 8 }}
       securityContext:
 {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
 {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: "{{ include "engine.image.repository" . }}:{{ include "engine.image.tag" . }}"
+          imagePullPolicy: {{ include "engine.image.pullPolicy" . }}
           args: ["engine", "-f", "/etc/infrahq/infra.yaml"]
           env:
 {{- toYaml .Values.env | nindent 12 }}
