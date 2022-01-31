@@ -47,7 +47,7 @@ func ListMachines(c *gin.Context, name string) ([]models.Machine, error) {
 		return nil, err
 	}
 
-	machines, err := data.ListMachines(db, &models.Machine{Name: name})
+	machines, err := data.ListMachines(db, data.ByName(name))
 	if err != nil {
 		return nil, err
 	}
@@ -61,5 +61,5 @@ func DeleteMachine(c *gin.Context, id uid.ID) error {
 		return err
 	}
 
-	return data.DeleteMachine(db, id)
+	return data.DeleteMachine(db, data.ByID(id))
 }

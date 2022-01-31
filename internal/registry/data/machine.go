@@ -1,7 +1,6 @@
 package data
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/infrahq/infra/internal"
@@ -18,9 +17,9 @@ func CreateMachine(db *gorm.DB, machine *models.Machine) error {
 	return nil
 }
 
-func ListMachines(db *gorm.DB, condition interface{}) ([]models.Machine, error) {
+func ListMachines(db *gorm.DB, selectors ...SelectorFunc) ([]models.Machine, error) {
 	machines := make([]models.Machine, 0)
-	if err := list(db, &models.Machine{}, &machines, condition); err != nil {
+	if err := list(db, &models.Machine{}, &machines, selectors); err != nil {
 		return nil, err
 	}
 
@@ -36,15 +35,20 @@ func GetMachine(db *gorm.DB, selector SelectorFunc) (*models.Machine, error) {
 	return machine, nil
 }
 
-func DeleteMachine(db *gorm.DB, id uid.ID) error {
-	toDelete, err := GetMachine(db, ByID(id))
+func DeleteMachine(db *gorm.DB, selectors ...SelectorFunc) error {
+	toDelete, err := ListMachines(db, selectors...)
 	if err != nil {
-		if !errors.Is(err, internal.ErrNotFound) {
-			return fmt.Errorf("delete machine: %w", err)
-		}
-
 		return err
 	}
 
-	return remove(db, &models.Machine{}, toDelete.ID)
+	if len(toDelete) > 0 {
+		ids := make([]uid.ID, 0)
+		for _, m := range toDelete {
+			ids = append(ids, m.ID)
+		}
+
+		return remove(db, &models.Machine{}, ids)
+	}
+
+	return internal.ErrNotFound
 }
