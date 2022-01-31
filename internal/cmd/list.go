@@ -9,7 +9,6 @@ import (
 	"github.com/lensesio/tableprinter"
 
 	"github.com/infrahq/infra/internal/api"
-	"github.com/infrahq/infra/uid"
 )
 
 type listRow struct {
@@ -57,24 +56,8 @@ func list() error {
 		return fmt.Errorf("Found multiple users %q in Infra, the server configuration is invalid", config.Name)
 	}
 
-	user := users[0]
-
-	// kubeConfig, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), nil).RawConfig()
-	// if err != nil {
-	// 	logging.S.Errorf("k8s error: %w", err)
-	// }
-
-	// deduplicate rows
-	rows := make(map[uid.ID]listRow)
-	// for _, r := range user.Grants {
-	// 	rows[r.Destination.ID] = newRow(r, kubeConfig.CurrentContext)
-	// }
-
-	// for _, g := range user.Groups {
-	// 	for _, r := range g.Grants {
-	// 		rows[r.Destination.ID] = newRow(r, kubeConfig.CurrentContext)
-	// 	}
-	// }
+	rows := make(map[string]listRow)
+	// todo: iterate grants and groups and call newRow() to display them?
 
 	rowsList := make([]listRow, 0)
 	for _, r := range rows {
@@ -96,33 +79,7 @@ func list() error {
 }
 
 func newRow(grant api.Grant, currentContext string) listRow {
-	row := listRow{
-		// ID:     grant.Destination.NodeID[:12],
-		// Name:   grant.Destination.Name,
-		// Labels: strings.Join(grant.Destination.Labels, ", "),
-	}
-
-	// if k8s := grant.Destination.Kubernetes; k8s != nil {
-	// 	row.Endpoint = k8s.Endpoint
-	// 	row.CertificateAuthorityData = []byte(k8s.CA)
-	// 	row.Kind = "kubernetes"
-	// }
-
-	// parts := strings.Split(currentContext, ":")
-	// // TODO (#546): check against user specified prefix
-	// if len(parts) >= 2 && parts[0] == "infra" {
-	// 	// check "infra:<ALIAS>[@<NAME>][:<NAMESPACE>]"
-	// 	parts := strings.Split(parts[1], "@")
-	// 	if parts[0] == grant.Destination.Name {
-	// 		if len(parts) > 1 && parts[1] == grant.Destination.NodeID[:12] {
-	// 			// check "<ALIAS>@<NAME>"
-	// 			row.CurrentlySelected = "*"
-	// 		} else if len(parts) == 1 {
-	// 			// check "<ALIAS>"
-	// 			row.CurrentlySelected = "*"
-	// 		}
-	// 	}
-	// }
+	row := listRow{}
 
 	return row
 }
