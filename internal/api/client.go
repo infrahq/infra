@@ -270,12 +270,24 @@ func (c Client) DeleteDestination(id uid.ID) error {
 	return delete(c, fmt.Sprintf("/v1/destinations/%s", id))
 }
 
-func (c Client) CreateToken(req *CreateTokenRequest) (*CreateTokenResponse, error) {
-	return post[CreateTokenRequest, CreateTokenResponse](c, "/v1/tokens", req)
-}
-
 func (c Client) CreateAPIToken(req *CreateAPITokenRequest) (*CreateAPITokenResponse, error) {
 	return post[CreateAPITokenRequest, CreateAPITokenResponse](c, "/v1/api-tokens", req)
+}
+
+func (c Client) CreateMachine(req *MachineCreateRequest) (*Machine, error) {
+	return post[MachineCreateRequest, Machine](c, "/v1/machines", req)
+}
+
+func (c Client) ListMachines(name string) ([]Machine, error) {
+	return list[Machine](c, "/v1/machines", map[string]string{"name": name})
+}
+
+func (c Client) DeleteMachine(id uid.ID) error {
+	return delete(c, fmt.Sprintf("/v1/machines/%s", id))
+}
+
+func (c Client) CreateToken(req *CreateTokenRequest) (*CreateTokenResponse, error) {
+	return post[CreateTokenRequest, CreateTokenResponse](c, "/v1/tokens", req)
 }
 
 func (c Client) Login(req *LoginRequest) (*LoginResponse, error) {

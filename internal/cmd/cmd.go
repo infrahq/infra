@@ -937,6 +937,70 @@ func newImportCmd() *cobra.Command {
 	return cmd
 }
 
+func newMachinesCreateCmd() *cobra.Command {
+	var options MachinesCreateOptions
+
+	cmd := &cobra.Command{
+		Use:   "create [NAME] [DESCRIPTION] [PERMISSIONS]",
+		Short: "Create a machine identity, e.x. a service that needs to access infrastructure",
+		Args:  cobra.MaximumNArgs(3),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) > 0 {
+				options.Name = args[0]
+			}
+
+			if len(args) > 1 {
+				options.Description = args[1]
+			}
+
+			if len(args) == 3 {
+				options.Permissions = args[2]
+			}
+
+			return createMachine(&options)
+		},
+	}
+
+	return cmd
+}
+
+var machinesDeleteCmd = &cobra.Command{
+	Use:   "remove MACHINE",
+	Short: "Remove a machine identity",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		client, err := defaultAPIClient()
+		if err != nil {
+			return err
+		}
+
+		machines, err := client.ListMachines(args[0])
+		if err != nil {
+			return err
+		}
+
+		for _, m := range machines {
+			err := client.DeleteMachine(m.ID)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	},
+}
+
+func newMachinesCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "machines",
+		Short: "Create & manage machine identities",
+	}
+
+	cmd.AddCommand(newMachinesCreateCmd())
+	cmd.AddCommand(machinesDeleteCmd)
+
+	return cmd
+}
+
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Display the Infra version",
@@ -971,6 +1035,7 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.AddCommand(newAccessCmd())
 	rootCmd.AddCommand(newDestinationsCmd())
 	rootCmd.AddCommand(newProvidersCmd())
+	rootCmd.AddCommand(newMachinesCmd())
 	rootCmd.AddCommand(newTokensCmd())
 	rootCmd.AddCommand(newImportCmd())
 	rootCmd.AddCommand(infoCmd)
