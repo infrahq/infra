@@ -551,7 +551,7 @@ func (k *Kubernetes) Service(component string) (*corev1.Service, error) {
 	}
 
 	services, err := clientset.CoreV1().Services(namespace).List(context.Background(), metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("infrahq.com/component=%s", component),
+		LabelSelector: fmt.Sprintf("app.kubernetes.io/component=%s,app.kubernetes.io/instance=infra", component),
 	})
 	if err != nil {
 		return nil, err

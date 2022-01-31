@@ -3,13 +3,34 @@ kind: Service
 metadata:
   name: {{ include "engine.fullname" . }}
   labels:
-    {{- include "engine.labels" . | nindent 4 }}
+{{- include "engine.labels" . | nindent 4 }}
+{{- if .Values.service.labels }}
+{{- toYaml .Values.service.labels | nindent 4 }}
+{{- end }}
+  annotations:
+{{- toYaml .Values.service.annotations | nindent 4 }}
 spec:
   type: {{ .Values.service.type }}
+{{- if eq .Values.service.type "LoadBalancer" }}
+  loadBalancerIP: {{ .Values.service.loadBalancerIP }}
+  loadBalancerSourceRanges:
+{{- toYaml .Values.service.loadBalancerSourceRanges | nindent 4 }}
+{{- end }}
+  externalIPs:
+{{- toYaml .Values.service.externalIPs | nindent 4 }}
+{{- if .Values.service.externalTrafficPolicy }}
+  externalTrafficPolicy: {{ .Values.service.externalTrafficPolicy }}
+{{- end }}
+{{- if .Values.service.sessionAffinity }}
+  sessionAffinity: {{ .Values.service.sessionAffinity }}
+{{- end }}
   ports:
-    - port: {{ .Values.service.port }}
-      targetPort: http
+    - port: {{ .Values.service.securePort }}
+      name: {{ .Values.service.securePortName }}
+      targetPort: https
       protocol: TCP
-      name: http
+{{- if eq .Values.service.type "NodePort" }}
+      nodePort: {{ .Values.service.secureNodePort }}
+{{- end }}
   selector:
-    {{- include "engine.selectorLabels" . | nindent 4 }}
+{{- include "engine.selectorLabels" . | nindent 4 }}

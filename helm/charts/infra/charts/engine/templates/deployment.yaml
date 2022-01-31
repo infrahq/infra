@@ -3,59 +3,101 @@ kind: Deployment
 metadata:
   name: {{ include "engine.fullname" . }}
   labels:
-    {{- include "engine.labels" . | nindent 4 }}
+{{- include "engine.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
+{{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
-  {{- end }}
+{{- end }}
   selector:
     matchLabels:
-      {{- include "engine.selectorLabels" . | nindent 6 }}
+{{- include "engine.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
       annotations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+{{- toYaml .Values.podAnnotations | nindent 8 }}
       labels:
-        {{- include "engine.selectorLabels" . | nindent 8 }}
+{{- include "engine.selectorLabels" . | nindent 8 }}
+{{- if .Values.podLabels }}
+{{- toYaml .Values.podLabels | nindent 8 }}
+{{- end }}
     spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
       serviceAccountName: {{ include "engine.serviceAccountName" . }}
+{{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+{{- toYaml . | nindent 8 }}
+{{- end }}
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+{{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
+{{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["engine", "-f", "/etc/infrahq/infra.yaml"]
+          env:
+{{- toYaml .Values.env | nindent 12 }}
+          envFrom:
+{{- toYaml .Values.envFrom | nindent 12 }}
+          volumeMounts:
+            - name: conf
+              mountPath: /etc/infrahq
+              readOnly: true
+{{- if .Values.persistentVolumeClaim.enabled }}
+            - name: data
+              mountPath: /var/lib/infrahq/infra
+{{- end }}
+{{- if .Values.volumeMounts }}
+{{- toYaml .Values.volumeMounts | nindent 12 }}
+{{- end }}
           ports:
-            - name: http
-              containerPort: 80
+            - name: https
+              containerPort: 443
               protocol: TCP
           livenessProbe:
             httpGet:
-              path: /
-              port: http
+              path: /healthz
+              port: https
+              scheme: HTTPS
+            successThreshold: {{ .Values.livenessProbe.successThreshold }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
           readinessProbe:
             httpGet:
-              path: /
-              port: http
+              path: /healthz
+              port: https
+              scheme: HTTPS
+            successThreshold: {{ .Values.readinessProbe.successThreshold }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
-      {{- with .Values.nodeSelector }}
+{{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: conf
+          configMap:
+            name: {{ include "engine.fullname" . }}
+{{- if .Values.persistentVolumeClaim.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "engine.fullname" . }}
+{{- end }}
+{{- if .Values.volumes }}
+{{- toYaml .Values.volumes | nindent 8 }}
+{{- end }}
+{{- with .Values.nodeSelector }}
       nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.affinity }}
+{{- toYaml . | nindent 8 }}
+{{- end }}
+{{- with .Values.affinity }}
       affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.tolerations }}
+{{- toYaml . | nindent 8 }}
+{{- end }}
+{{- with .Values.tolerations }}
       tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+{{- toYaml . | nindent 8 }}
+{{- end }}
