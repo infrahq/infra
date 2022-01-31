@@ -46,10 +46,11 @@ func CreateOrUpdateGrant(db *gorm.DB, grant *models.Grant) (*models.Grant, error
 		return grant, err
 	}
 
-	// grant exists.
-	g.ExpiresAt = grant.ExpiresAt
+	if err := update(db, g.ID, grant); err != nil {
+		return nil, err
+	}
 
-	return g, save(db, g)
+	return get[models.Grant](db, ByID(g.ID))
 }
 
 func GetGrant(db *gorm.DB, selectors ...SelectorFunc) (*models.Grant, error) {
@@ -188,10 +189,6 @@ func wildcardCombinations(s string) []string {
 			s = s[:len(s)-2]
 		}
 		results = append(results, s)
-		// for strings.Contains(s, ".*.*") {
-		// 	s = strings.ReplaceAll(s, ".*.*", ".*")
-		// 	results = append(results, s)
-		// }
 	}
 	return results
 }

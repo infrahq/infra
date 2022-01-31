@@ -84,13 +84,18 @@ func DeleteUsers(db *gorm.DB, selectors ...SelectorFunc) error {
 	return nil
 }
 
+func SaveUser(db *gorm.DB, user *models.User) error {
+	return save(db, user)
+}
+
+// UpdateUser is deprecated, use SaveUser instead
 func UpdateUser(db *gorm.DB, user *models.User, selector SelectorFunc) error {
 	existing, err := GetUser(db, selector)
 	if err != nil {
 		return fmt.Errorf("get existing: %w", err)
 	}
 
-	if err := save(db, user); err != nil {
+	if err := update(db, existing.ID, user); err != nil {
 		return fmt.Errorf("save: %w", err)
 	}
 

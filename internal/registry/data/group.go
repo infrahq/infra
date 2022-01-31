@@ -37,7 +37,7 @@ func CreateGroup(db *gorm.DB, group *models.Group) error {
 
 // CreateOrUpdateGroup is deprecated
 func CreateOrUpdateGroup(db *gorm.DB, group *models.Group, selectors ...SelectorFunc) (*models.Group, error) {
-	_, err := GetGroup(db, ByName(group.Name))
+	existing, err := GetGroup(db, ByName(group.Name))
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return nil, err
@@ -50,11 +50,11 @@ func CreateOrUpdateGroup(db *gorm.DB, group *models.Group, selectors ...Selector
 		return group, nil
 	}
 
-	if err := save(db, group); err != nil {
+	if err := update(db, existing.ID, group); err != nil {
 		return nil, err
 	}
 
-	return group, nil
+	return get[models.Group](db, ByID(existing.ID))
 }
 
 func GetGroup(db *gorm.DB, selectors ...SelectorFunc) (*models.Group, error) {

@@ -59,14 +59,11 @@ func CreateOrUpdateProvider(db *gorm.DB, provider *models.Provider) (*models.Pro
 		return provider, nil
 	}
 
-	existing.ClientID = provider.ClientID
-	existing.ClientSecret = provider.ClientSecret
-
-	if err := save(db, existing); err != nil {
+	if err := update(db, existing.ID, provider); err != nil {
 		return nil, err
 	}
 
-	return GetProvider(db, ByID(existing.ID))
+	return get[models.Provider](db.Preload("Okta"), ByID(existing.ID))
 }
 
 func GetProvider(db *gorm.DB, selectors ...SelectorFunc) (*models.Provider, error) {

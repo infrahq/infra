@@ -131,6 +131,27 @@ func save[T models.Modelable](db *gorm.DB, model *T) error {
 	return nil
 }
 
+// update is deprecated. it has to skip validation to work and should not be used.
+func update[T models.Modelable](db *gorm.DB, id uid.ID, model *T) error {
+
+	if err := db.Where("id = ?", id).Updates(model).Error; err != nil {
+		if strings.HasPrefix(err.Error(), "UNIQUE constraint failed:") {
+			return fmt.Errorf("%w: %s", internal.ErrDuplicate, err)
+		}
+
+		var pgerr *pgconn.PgError
+		if errors.As(err, &pgerr) {
+			if pgerr.Code == pgerrcode.UniqueViolation {
+				return fmt.Errorf("%w: %s", internal.ErrDuplicate, err)
+			}
+		}
+
+		return err
+	}
+
+	return nil
+}
+
 func load[T models.Modelable](db *gorm.DB, id uid.ID) (*T, error) {
 	model := new(T)
 	if err := db.Model((*T)(nil)).Where("id = ?", id).First(model).Error; err != nil {

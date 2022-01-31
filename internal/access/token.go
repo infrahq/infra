@@ -55,7 +55,8 @@ func ExchangeAuthCodeForSessionToken(c *gin.Context, code string, provider *mode
 			return nil, "", fmt.Errorf("get user: %w", err)
 		}
 
-		if user, err = data.CreateUser(db, &models.User{Email: email, Permissions: DefaultPermissions}); err != nil {
+		user = &models.User{Email: email, Permissions: DefaultPermissions}
+		if err = data.CreateUser(db, user); err != nil {
 			return nil, "", fmt.Errorf("create user: %w", err)
 		}
 	}
