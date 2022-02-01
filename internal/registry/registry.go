@@ -323,7 +323,7 @@ func secretKindAndName(secret string) (kind string, name string, err error) {
 
 	parts := strings.SplitN(secret, ":", 2)
 	if len(parts) < 2 {
-		return "", "", fmt.Errorf("unexpected secret provider format %q. Expecting <kind>:<secret name>, eg env:API_TOKEN", name)
+		return "", "", fmt.Errorf("unexpected secret provider format %q. Expecting <kind>:<secret name>, eg env:ACCESS_TOKEN", name)
 	}
 
 	kind = parts[0]

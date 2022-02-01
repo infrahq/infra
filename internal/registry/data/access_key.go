@@ -14,12 +14,23 @@ import (
 )
 
 func CreateAccessKey(db *gorm.DB, authnKey *models.AccessKey) (body string, err error) {
-	generated, err := generate.CryptoRandom(models.AccessKeySecretLength)
-	if err != nil {
-		return "", err
+	if authnKey.Key == "" {
+		key, err := generate.CryptoRandom(models.AccessKeyKeyLength)
+		if err != nil {
+			return "", err
+		}
+
+		authnKey.Key = key
 	}
 
-	authnKey.Secret = generated
+	if authnKey.Secret == "" {
+		secret, err := generate.CryptoRandom(models.AccessKeySecretLength)
+		if err != nil {
+			return "", err
+		}
+
+		authnKey.Secret = secret
+	}
 
 	chksm := sha256.Sum256([]byte(authnKey.Secret))
 	authnKey.SecretChecksum = chksm[:]
@@ -32,7 +43,7 @@ func CreateAccessKey(db *gorm.DB, authnKey *models.AccessKey) (body string, err 
 		return "", err
 	}
 
-	return authnKey.ID.String() + "." + authnKey.Secret, nil
+	return fmt.Sprintf("%s.%s", authnKey.Key, authnKey.Secret), nil
 }
 
 func ListAccessKeys(db *gorm.DB, selectors ...SelectorFunc) ([]models.AccessKey, error) {
@@ -67,12 +78,7 @@ func LookupAccessKey(db *gorm.DB, authnKey string) (*models.AccessKey, error) {
 		return nil, fmt.Errorf("rejected access key format")
 	}
 
-	id := uid.New()
-	if err := id.UnmarshalText([]byte(parts[0])); err != nil {
-		return nil, fmt.Errorf("%w: rejected access key format", err)
-	}
-
-	t, err := GetAccessKeys(db, ByID(id))
+	t, err := GetAccessKeys(db, ByKey(parts[0]))
 	if err != nil {
 		return nil, fmt.Errorf("%w could not get access key from database, it may not exist", err)
 	}

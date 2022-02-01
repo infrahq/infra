@@ -19,12 +19,6 @@ func ByIDs(ids []uid.ID) SelectorFunc {
 	}
 }
 
-func ByAccessKeyIDs(id []uid.ID) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("api_token_id in (?)", id)
-	}
-}
-
 func ByName(name string) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		if len(name) > 0 {

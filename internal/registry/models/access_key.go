@@ -6,7 +6,10 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-var AccessKeySecretLength = 24
+var (
+	AccessKeyKeyLength    = 10
+	AccessKeySecretLength = 24
+)
 
 // AccessKey is a session token presented to the Infra server as proof of authentication
 type AccessKey struct {
@@ -18,6 +21,7 @@ type AccessKey struct {
 	// TODO: remove me with machine identities
 	Permissions string
 
+	Key            string
 	Secret         string `gorm:"-"`
 	SecretChecksum []byte
 }
