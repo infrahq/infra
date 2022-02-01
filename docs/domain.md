@@ -1,4 +1,5 @@
-# Adding a domain
+# Adding a custom domain
+This guide helps you add a domain for logging into Infra (ie. `infra login infra.example.com`).
 
 ## Find your Infra Server endpoint
 
