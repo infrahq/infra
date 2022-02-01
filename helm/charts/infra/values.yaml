@@ -188,7 +188,7 @@ server:
 
     ## HTTP service node port
     ## No effect unless `server.service.type` is `NodePort`
-    nodePort: 80
+    nodePort: 30080
 
     ## HTTPS service port
     securePort: 443
@@ -198,7 +198,7 @@ server:
 
     ## HTTPS service node port
     ## No effect unless `server.service.type` is `NodePort`
-    secureNodePort: 443
+    secureNodePort: 30443
 
     ## IP of the load balancer to create
     ## No effect unless `server.service.type` is `LoadBalancer`
@@ -556,7 +556,7 @@ engine:
 
     ## HTTP service node port
     ## No effect unless `engine.service.type` is `NodePort`
-    nodePort: 80
+    nodePort: 30080
 
     ## HTTPS service port
     securePort: 443
@@ -566,7 +566,7 @@ engine:
 
     ## HTTPS service node port
     ## No effect unless `engine.service.type` is `NodePort`
-    secureNodePort: 443
+    secureNodePort: 30443
 
     ## IP of the load balancer to create
     ## No effect unless `engine.service.type` is `LoadBalancer`

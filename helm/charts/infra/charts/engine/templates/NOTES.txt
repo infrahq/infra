@@ -1,0 +1,20 @@
+********************************************************************************
+
+                                Welcome to Infra
+
+{{- if hasKey .Values.config "server" }}
+{{- if not .Values.accessToken }}
+
+  NOTE: Missing `accessToken`. This instance will not be able to establish
+  a connection to the Infra Server.
+{{- end }}
+
+  Check the status of this cluster in https://{{ .Values.config.server }}.
+{{- else }}
+
+  NOTE: Infra Engine is installed in in-cluster mode. If connecting to an
+  external Infra Server instance, make sure to specify `server` when installing
+  Infra Engine.
+{{- end }}
+
+********************************************************************************
