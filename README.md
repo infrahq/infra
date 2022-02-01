@@ -71,9 +71,10 @@ Infra is **identity and access management** for your cloud infrastructure. It pu
 # adding an Identity Provider 
 # currently only Okta is supported
 providers: 
-  url: example.okta.com
-  clientId: example_jsldf08j23d081j2d12sd 
-  clientSecret:  example_plain_secret #see note above
+  - name: Okta
+    url: example.okta.com
+    clientID: example_jsldf08j23d081j2d12sd 
+    clientSecret:  example_plain_secret #see note above
 
 grants:
 # 1. Set up an initial user from IdP to become Infra administrator
