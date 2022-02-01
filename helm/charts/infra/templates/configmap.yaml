@@ -8,6 +8,6 @@ data:
   config.yaml: |
 {{- if .Values.config.import }}
     import:
-      {{- toYaml .Values.config.import | nindent 6 }}
+      {{- .Values.config.import | nindent 6 }}
 {{- end }}
     {{- toYaml (omit .Values.config "import") | nindent 4 }}
