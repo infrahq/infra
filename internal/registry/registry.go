@@ -333,7 +333,7 @@ func secretKindAndName(secret string) (kind string, name string, err error) {
 }
 
 // GetSecret implements the secret definition scheme for Infra.
-// eg plaintext:pass123, or kubernetes:infra-okta/accessKey
+// eg plaintext:pass123, or kubernetes:infra-okta/clientSecret
 // it's an abstraction around all secret providers
 func (r *Registry) GetSecret(name string) (string, error) {
 	kind, name, err := secretKindAndName(name)
