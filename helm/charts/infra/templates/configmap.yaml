@@ -6,4 +6,8 @@ metadata:
 {{- include "infra.labels" . | nindent 4 }}
 data:
   config.yaml: |
-    {{- toYaml .Values.config | nindent 4 }}
+{{- if .Values.config.import }}
+    import:
+      {{- toYaml .Values.config.import | nindent 6 }}
+{{- end }}
+    {{- toYaml (omit .Values.config "import") | nindent 4 }}
