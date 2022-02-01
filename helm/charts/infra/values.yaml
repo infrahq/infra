@@ -5,10 +5,7 @@ config:
   engineAccessKey: file:/var/run/secrets/infrahq.com/engine/access-key
   tlsCache: /var/run/infra/data/cache
   dbFile: /var/run/infra/data/infra.db
-  dbEncryptionKey: infra/db-key
-  keys:
-    - kind: native
-      secretProvider: kubernetes
+  dbEncryptionKey: /var/run/infra/data/infra.db.key
 
 storage: 1Gi
 
