@@ -964,6 +964,42 @@ func newMachinesCreateCmd() *cobra.Command {
 	return cmd
 }
 
+var machinesListCmd = &cobra.Command{
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List machines",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		client, err := defaultAPIClient()
+		if err != nil {
+			return err
+		}
+
+		machines, err := client.ListMachines("")
+		if err != nil {
+			return err
+		}
+
+		type row struct {
+			Name        string   `header:"Name"`
+			Permissions []string `header:"Permissions"`
+			Description string   `header:"Description"`
+		}
+
+		var rows []row
+		for _, m := range machines {
+			rows = append(rows, row{
+				Name:        m.Name,
+				Permissions: m.Permissions,
+				Description: m.Description,
+			})
+		}
+
+		printTable(rows)
+
+		return nil
+	},
+}
+
 var machinesDeleteCmd = &cobra.Command{
 	Use:   "remove MACHINE",
 	Short: "Remove a machine identity",
@@ -996,6 +1032,7 @@ func newMachinesCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(newMachinesCreateCmd())
+	cmd.AddCommand(machinesListCmd)
 	cmd.AddCommand(machinesDeleteCmd)
 
 	return cmd
