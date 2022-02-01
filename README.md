@@ -117,15 +117,6 @@ helm repo add infrahq https://helm.infrahq.com/
 helm install -n infrahq --create-namespace infra infrahq/infra --set-file config.import=infra.yaml
 ```
 
-You'll need the Infra Root API Token to log into Infra. Please generate this token by running the following commands: 
-
-```
-ROOT_API_TOKEN=$(kubectl -n infrahq get secrets infra -o jsonpath='{.data.root-api-token}' | base64 --decode)
-echo $ROOT_API_TOKEN
-```
-
-**Please store this in a safe place.** 
-
 Next, you'll need to find the URL of Infra Server to log into Infra. 
 
 <details>
