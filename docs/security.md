@@ -20,13 +20,10 @@ When deploying Infra, we recommend Infra be deployed in its own namespace to min
 These secrets can be stored in a variety of [secret storage backends](secrets.md), including Kubernetes secrets, Vault, AWS Secrets Manager, AWS SSM (Systems Manager Parameter Store), and some simple options exist for loading secrets from the OS or container, such as: loading secrets from environment variables, loading secrets from files on the file system, and even plaintext secrets directly in the configuration file (though this is not recommended). With all types except for `plaintext`, the respective secret object names are specified in the configuration file and the actual secret is never persisted in Infra's storage. In the case of all secret types (including `plaintext`), the secret data is [encrypted at rest in the db](#Encrypted_At_Rest).
 
 ### Okta secrets
-Infra uses an Okta application client secret and access key in order to allow users to authenticate via an OpenID Connect (OIDC) authorization code flow.
+Infra uses an Okta application client secret in order to allow users to authenticate via an OpenID Connect (OIDC) authorization code flow.
 
 #### Okta client secret usage:
 The client secret is loaded server-side from the specified Kubernetes secret only when a user is logging in via Okta.
-
-#### Okta access key usage:
-The Okta access key is only used for read actions. It is retrieved from the kubernetes secret when validating that the Okta connection is valid and when syncing users/groups.
 
 ## Encrypted At Rest
 
