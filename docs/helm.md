@@ -193,7 +193,7 @@ kubectl delete clusterrolebindings,rolebindings -l app.kubernetes.io/managed-by=
 
 | Parameter                          | Description                             | Default                                    |
 |------------------------------------|-----------------------------------------|--------------------------------------------|
-| `config.apiToken`                  | Infra API Token                         | `""`                                       |
+| `config.accessKey`                  | Infra Access Key                         | `""`                                       |
 | `config.server`                    | Infra Server to this cluster connect to | `""`                                       |
 | `config.name`                      | Name for cluster                        | `""`                                       |
 | `config.skipTLSVerify`             | Don't enforce TLS verification          | `true`                                     |

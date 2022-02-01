@@ -1,8 +1,8 @@
 logLevel: info
 
 config:
-  rootAPIToken: kubernetes:infra/root-api-token
-  engineAPIToken: kubernetes:infra-engine/api-token
+  rootAccessKey: kubernetes:infra/root-access-key
+  engineAccessKey: kubernetes:infra-engine/access-key
   tlsCache: /var/run/infra/data/cache
   dbFile: /var/run/infra/data/infra.db
   dbEncryptionKey: infra/db-key

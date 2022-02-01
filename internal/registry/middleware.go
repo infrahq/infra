@@ -61,7 +61,7 @@ func DatabaseMiddleware(db *gorm.DB) gin.HandlerFunc {
 // AuthenticationMiddleware validates the incoming token and adds their permissions to the context
 func AuthenticationMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if err := RequireAPIToken(c); err != nil {
+		if err := RequireAccessKey(c); err != nil {
 			logging.S.Debug(err.Error())
 			// IMPORTANT: do not return errors encountered during token validation, always return generic unauthorized message
 			sendAPIError(c, internal.ErrUnauthorized)
@@ -98,8 +98,8 @@ func MetricsMiddleware(path string) gin.HandlerFunc {
 	}
 }
 
-// RequireAPIToken checks the bearer token is present and valid then adds its permissions to the context
-func RequireAPIToken(c *gin.Context) error {
+// RequireAccessKey checks the bearer token is present and valid then adds its permissions to the context
+func RequireAccessKey(c *gin.Context) error {
 	db, ok := c.MustGet("db").(*gorm.DB)
 	if !ok {
 		return errors.New("unknown db type in context")
@@ -114,7 +114,7 @@ func RequireAPIToken(c *gin.Context) error {
 
 	bearer := parts[1]
 
-	token, err := data.LookupAPIToken(db, bearer)
+	token, err := data.LookupAccessKey(db, bearer)
 	if err != nil {
 		return fmt.Errorf("%w: invalid token: %s", internal.ErrUnauthorized, err)
 	}

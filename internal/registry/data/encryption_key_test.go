@@ -8,10 +8,10 @@ import (
 	"github.com/infrahq/infra/internal/registry/models"
 )
 
-func TestKeys(t *testing.T) {
+func TestEncryptionKeys(t *testing.T) {
 	db := setup(t)
 
-	k, err := CreateKey(db, &models.Key{
+	k, err := CreateEncryptionKey(db, &models.EncryptionKey{
 		Name:      "foo",
 		Encrypted: []byte{0x00},
 		Algorithm: "foo",
@@ -20,12 +20,12 @@ func TestKeys(t *testing.T) {
 
 	require.NotZero(t, k.KeyID)
 
-	k2, err := GetKey(db, ByKeyID(k.KeyID))
+	k2, err := GetEncryptionKey(db, ByEncryptionKeyID(k.KeyID))
 	require.NoError(t, err)
 
 	require.Equal(t, "foo", k2.Name)
 
-	k3, err := GetKey(db, ByName("foo"))
+	k3, err := GetEncryptionKey(db, ByName("foo"))
 	require.NoError(t, err)
 
 	require.Equal(t, k.ID, k3.ID)

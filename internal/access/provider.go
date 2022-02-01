@@ -92,7 +92,7 @@ func UpdateProviderToken(c *gin.Context, providerToken *models.ProviderToken) er
 	return data.UpdateProviderToken(db, providerToken)
 }
 
-func ExchangeAuthCodeForAPIToken(c *gin.Context, code string, provider *models.Provider, oidc authn.OIDC, sessionDuration time.Duration) (*models.User, string, error) {
+func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.Provider, oidc authn.OIDC, sessionDuration time.Duration) (*models.User, string, error) {
 	db := getDB(c)
 
 	// exchange code for tokens from identity provider (these tokens are for the IDP, not Infra)
@@ -140,7 +140,7 @@ func ExchangeAuthCodeForAPIToken(c *gin.Context, code string, provider *models.P
 	} else {
 		if existing.ProviderID != provToken.ProviderID {
 			// revoke the users current session token, their grants may be about to change
-			if err := data.DeleteAPITokens(db, data.ByUserID(user.ID)); err != nil && !errors.Is(err, internal.ErrNotFound) {
+			if err := data.DeleteAccessKeys(db, data.ByUserID(user.ID)); err != nil && !errors.Is(err, internal.ErrNotFound) {
 				return nil, "", fmt.Errorf("revoke old session token: %w", err)
 			}
 		}
@@ -163,12 +163,12 @@ func ExchangeAuthCodeForAPIToken(c *gin.Context, code string, provider *models.P
 		return nil, "", fmt.Errorf("update info on login: %w", err)
 	}
 
-	token := &models.APIToken{
+	token := &models.AccessKey{
 		UserID:    user.ID,
 		ExpiresAt: time.Now().Add(sessionDuration),
 	}
 
-	body, err := data.CreateAPIToken(db, token)
+	body, err := data.CreateAccessKey(db, token)
 	if err != nil {
 		return nil, body, fmt.Errorf("create token: %w", err)
 	}

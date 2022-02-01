@@ -119,18 +119,18 @@ func login(host string) error {
 		options = append(options, fmt.Sprintf("%s (%s)", p.Name, p.URL))
 	}
 
-	options = append(options, "Login with API Token")
+	options = append(options, "Login with Access Key")
 
 	option, err := promptProvider(options)
 	if err != nil {
 		return err
 	}
 
-	// api token
+	// access key
 	if option == len(options)-1 {
 		var token string
 
-		err = survey.AskOne(&survey.Password{Message: "Your API Token:"}, &token, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
+		err = survey.AskOne(&survey.Password{Message: "Your Access Key:"}, &token, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
 		if err != nil {
 			return err
 		}

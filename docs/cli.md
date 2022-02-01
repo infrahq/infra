@@ -417,9 +417,9 @@ infra server [flags]
       --db-user string                      Database user
       --enable-crash-reporting              Enable crash reporting (default true)
       --enable-telemetry                    Enable telemetry (default true)
-      --engine-api-token string             Engine API token (secret) (default "file:/Users/jmorgan/.infra/engine-api-token")
+      --engine-access-key string             Engine access key (secret) (default "file:/Users/jmorgan/.infra/engine-access-key")
   -h, --help                                help for server
-      --root-api-token string               Root API token (secret) (default "file:/Users/jmorgan/.infra/root-api-token")
+      --root-access-key string               Root access key (secret) (default "file:/Users/jmorgan/.infra/root-access-key")
   -d, --session-duration duration           Session duration (default 12h0m0s)
       --tls-cache string                    Directory to cache TLS certificates (default "/Users/jmorgan/.infra/tls")
 ```
@@ -441,7 +441,7 @@ infra engine [flags]
 ### Options
 
 ```
-      --api-token string     Infra API token (use file:// to load from a file)
+      --access-key string     Infra access key (use file:// to load from a file)
   -f, --config-file string   Engine config file
   -h, --help                 help for engine
   -n, --name string          Destination name

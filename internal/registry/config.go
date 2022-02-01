@@ -37,14 +37,14 @@ func (r *Registry) importConfig() error {
 		return nil
 	}
 
-	rootAPIToken, err := r.GetSecret(r.options.RootAPIToken)
+	rootAccessKey, err := r.GetSecret(r.options.RootAccessKey)
 	if err != nil {
 		return fmt.Errorf("importing config: %w", err)
 	}
 
 	client := &api.Client{
 		Url:   "https://localhost:443",
-		Token: rootAPIToken,
+		Token: rootAccessKey,
 		Http: http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
@@ -460,7 +460,7 @@ func (sp *SecretProvider) UnmarshalYAML(unmarshal func(interface{}) error) error
 	return nil
 }
 
-func (r *Registry) importAPITokens() error {
+func (r *Registry) importAccessKeys() error {
 	type key struct {
 		Secret      string
 		Permissions []string
@@ -468,13 +468,13 @@ func (r *Registry) importAPITokens() error {
 
 	keys := map[string]key{
 		"root": {
-			Secret: r.options.RootAPIToken,
+			Secret: r.options.RootAccessKey,
 			Permissions: []string{
 				string(access.PermissionAllInfra),
 			},
 		},
 		"engine": {
-			Secret: r.options.EngineAPIToken,
+			Secret: r.options.EngineAccessKey,
 			Permissions: []string{
 				string(access.PermissionUserRead),
 				string(access.PermissionGroupRead),
@@ -494,9 +494,9 @@ func (r *Registry) importAPITokens() error {
 
 		// if a valid token is being passed in, verify it's correct and skip creating
 		if raw != "" {
-			at, err := data.LookupAPIToken(r.db, raw)
+			at, err := data.LookupAccessKey(r.db, raw)
 			if err != nil {
-				return fmt.Errorf("import api tokens: %w", err)
+				return fmt.Errorf("import access keys: %w", err)
 			}
 
 			if at.Name == k && at.Permissions == strings.Join(v.Permissions, " ") {
@@ -507,17 +507,17 @@ func (r *Registry) importAPITokens() error {
 
 		// if token isn't valid or does not match name & permissions
 		// delete any existing tokens, create a new one, and save it back to the secret
-		err = data.DeleteAPITokens(r.db, data.ByName(k))
+		err = data.DeleteAccessKeys(r.db, data.ByName(k))
 		if err != nil {
 			return err
 		}
 
-		token := &models.APIToken{
+		token := &models.AccessKey{
 			Name:        k,
 			Permissions: strings.Join(v.Permissions, " "),
 			ExpiresAt:   time.Now().Add(time.Hour * 876000),
 		}
-		body, err := data.CreateAPIToken(r.db, token)
+		body, err := data.CreateAccessKey(r.db, token)
 		if err != nil {
 			return err
 		}
