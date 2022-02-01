@@ -487,7 +487,7 @@ var destinationsListCmd = &cobra.Command{
 var destinationsAddCmd = &cobra.Command{
 	Use:   "add TYPE NAME",
 	Short: "Connect a destination",
-	Args:  cobra.ExactArgs(2),
+	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := defaultAPIClient()
 		if err != nil {
@@ -521,14 +521,24 @@ var destinationsAddCmd = &cobra.Command{
 			return err
 		}
 
+		command := "    helm install infra-engine infrahq/engine"
+		if len(args) > 1 {
+			command += fmt.Sprintf(" --set config.name=%s", args[1])
+		}
+		command += fmt.Sprintf(" --set config.apiToken=%s ", token.Token)
+		command += fmt.Sprintf(" --set config.server=%s ", config.Host)
+
+		// TODO: replace me with a certificate fingerprint
+		// so even when users have self-signed certificates
+		// infra can establish a secure TLS connection
+		if config.SkipTLSVerify {
+			command += "  --set config.skipTLSVerify=true"
+		}
+
 		fmt.Println()
 		fmt.Println("Run the following command to connect a kubernetes cluster:")
 		fmt.Println()
-		if config.SkipTLSVerify {
-			fmt.Printf("    helm install infrahq/engine --set infra.name=%s --set infra.apiToken=%s --set infra.host=%s --set infra.skipTLSVerify=true", args[1], token.Token, config.Host)
-		} else {
-			fmt.Printf("    helm install infrahq/engine --set infra.name=%s --set infra.apiToken=%s --set infra.host=%s", args[1], token.Token, config.Host)
-		}
+		fmt.Println(command)
 		fmt.Println()
 		fmt.Println()
 		return nil
