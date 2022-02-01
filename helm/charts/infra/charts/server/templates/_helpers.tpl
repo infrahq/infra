@@ -130,3 +130,20 @@ If global value is present, use global value. Otherwise, use local value.
 {{- define "server.imagePullSecrets" -}}
 {{- .Values.global.imagePullSecrets | default list | concat .Values.imagePullSecrets | uniq | toYaml }}
 {{- end }}
+
+{{/*
+Create an system access key. If one is defined through values, use it. Otherwise look for an
+existing secret and use its password. If the secret does not exist, randomly generate a password.
+*/}}
+{{- define "server.systemAccessKey" -}}
+{{- if .Values.systemAccessKey }}
+{{- .Values.systemAccessKey }}
+{{- else }}
+{{- $secret := lookup "v1" "Secret" .Release.Namespace (printf "%s-system-access-key" .Release.Name) }}
+{{- if $secret }}
+{{- index $secret "data" "access-key" | b64dec }}
+{{- else }}
+{{- randAlphaNum 10 }}.{{ randAlphaNum 24 }}
+{{- end }}
+{{- end }}
+{{- end }}

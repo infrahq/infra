@@ -372,6 +372,9 @@ server:
   ## Ref: https://github.com/infrahq/infra/blob/main/docs/cli.md#infra-server
   config: {}
 
+  ## Server system access key
+  systemAccessKey: ""
+
   ## Additional identity providers to configure
   ## Ref: https://github.com/infrahq/infra/blob/main/docs/providers/
   additionalProviders: []
@@ -694,3 +697,6 @@ engine:
   ## Primary engine configuration
   ## Ref: https://github.com/infrahq/infra/blob/main/docs/cli.md#infra-engine
   config: {}
+
+  ## Server access key
+  accessKey: ""

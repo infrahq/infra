@@ -6,7 +6,10 @@ metadata:
 {{- include "server.labels" . | nindent 4 }}
 data:
   infra.yaml: |
-{{- range $key, $val := omit .Values.config "import" }}
+    systemAccessKey: file:/var/run/secrets/infrahq.com/root-access-key/access-key
+    accessKey: file:/var/run/secrets/infrahq.com/access-key/access-key
+
+{{- range $key, $val := omit .Values.config "import" "rootAPIToken" "engineAPIToken" }}
 {{- if kindIs "invalid" $val }}
     # skipping invalid value: {{ $val }} ({{ kindOf $val }})
 {{- else if kindIs "map" $val }}

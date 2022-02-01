@@ -10,7 +10,9 @@ data:
     server: {{ .Release.Name }}-server.{{ .Release.Namespace }}
 {{- end }}
 
-{{- range $key, $val := .Values.config }}
+    accessKey: /var/run/secrets/infrahq.com/access-key/access-key
+
+{{- range $key, $val := omit .Values.config "apiToken" }}
 {{- if kindIs "invalid" $val }}
     # skipping invalid value: {{ $val }} ({{ kindOf $val }})
 {{- else if kindIs "map" $val }}
