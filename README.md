@@ -80,7 +80,7 @@ grants:
   - user: you@example.com
     role: admin
     resource: infra
-# 1. Set up an initial group of users from IdP to become Infra administrator
+# Or set up an initial group of users from IdP to become Infra administrator
   - group: Admin  # case sensitive 
     role: admin 
     resource: infra 
