@@ -65,6 +65,8 @@ Infra is **identity and access management** for your cloud infrastructure. It pu
 > Note: Infra uses [Secrets](./docs/secrets.md) to securely load secrets.
 > It is _not_ recommended to use plain text secrets. Considering using another supported secret type.
 
+> Please follow [Okta Configuration](./docs/providers/okta.md) to obtain clientID and clientSecret for connecting Okta to Infra. 
+
 ```yaml
 # example infra.yaml
 
