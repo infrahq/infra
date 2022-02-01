@@ -275,6 +275,39 @@ func (a *API) ListDestinations(c *gin.Context, r *api.ListDestinationsRequest) (
 	return results, nil
 }
 
+func (a *API) CreateMachine(c *gin.Context, r *api.MachineCreateRequest) (*api.Machine, error) {
+	machine := &models.Machine{}
+	if err := machine.FromAPI(r); err != nil {
+		return nil, err
+	}
+
+	err := access.CreateMachine(c, machine)
+	if err != nil {
+		return nil, err
+	}
+
+	return machine.ToAPI(), nil
+}
+
+func (a *API) ListMachines(c *gin.Context, r *api.ListMachinesRequest) ([]api.Machine, error) {
+	machines, err := access.ListMachines(c, r.MachineName)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]api.Machine, len(machines))
+
+	for i, k := range machines {
+		results[i] = *(k.ToAPI())
+	}
+
+	return results, nil
+}
+
+func (a *API) DeleteMachine(c *gin.Context, r *api.Resource) error {
+	return access.DeleteMachine(c, r.ID)
+}
+
 func (a *API) GetDestination(c *gin.Context, r *api.Resource) (*api.Destination, error) {
 	destination, err := access.GetDestination(c, r.ID)
 	if err != nil {
