@@ -19,7 +19,7 @@ func version() error {
 	// Note that we use the client to get this version, but it is in fact the server version
 	client, err := defaultAPIClient()
 	if err != nil {
-		fmt.Fprintln(w, "Server: disconnected")
+		fmt.Fprintln(w, "Server:\t", "disconnected")
 		logging.S.Debug(err)
 		fmt.Fprintln(w)
 		return nil
@@ -27,7 +27,7 @@ func version() error {
 
 	version, err := client.GetVersion()
 	if err != nil {
-		fmt.Fprintln(w, "Server: disconnected")
+		fmt.Fprintln(w, "Server:\t", "disconnected")
 		logging.S.Debug(err)
 		fmt.Fprintln(w)
 		return nil
