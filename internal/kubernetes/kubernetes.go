@@ -8,8 +8,10 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -486,7 +488,12 @@ func (k *Kubernetes) Name() (string, string, error) {
 	hash := h.Sum(nil)
 	chksm := hex.EncodeToString(hash)
 
-	name, err := k.ec2ClusterName()
+	name := chksm[:12]
+	if _, err := net.DialTimeout("tcp", "169.254.169.254:80", 1 * time.Second); err != nil {
+		goto END
+	}
+
+	name, err = k.ec2ClusterName()
 	if err == nil {
 		return name, chksm, nil
 	}
@@ -514,10 +521,11 @@ func (k *Kubernetes) Name() (string, string, error) {
 
 	logging.S.Debugf("could not fetch kube-controller-manager cluster name: %s", err.Error())
 
+END:
 	logging.L.Debug("could not fetch cluster name, resorting to hashed cluster CA")
 
 	// truncated checksum will be used as default name if one could not be found
-	return chksm[:12], chksm, nil
+	return name, chksm, nil
 }
 
 func (k *Kubernetes) Namespace() (string, error) {
