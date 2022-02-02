@@ -41,14 +41,14 @@ func (r *Registry) importConfig() error {
 		return nil
 	}
 
-	systemAccessKey, err := r.GetSecret(r.options.RootAccessKey)
+	adminAccessKey, err := r.GetSecret(r.options.AdminAccessKey)
 	if err != nil {
 		return fmt.Errorf("importing config: %w", err)
 	}
 
 	client := &api.Client{
 		Url:   "https://localhost:443",
-		Token: systemAccessKey,
+		Token: adminAccessKey,
 		Http: http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
@@ -471,14 +471,14 @@ func (r *Registry) importAccessKeys() error {
 	}
 
 	keys := map[string]key{
-		"system": {
-			Secret: r.options.RootAccessKey,
+		"admin": {
+			Secret: r.options.AdminAccessKey,
 			Permissions: []string{
 				string(access.PermissionAllInfra),
 			},
 		},
 		"engine": {
-			Secret: r.options.EngineAccessKey,
+			Secret: r.options.AccessKey,
 			Permissions: []string{
 				string(access.PermissionUserRead),
 				string(access.PermissionGroupRead),

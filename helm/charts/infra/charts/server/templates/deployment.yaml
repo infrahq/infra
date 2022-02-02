@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "server.fullname" . }}
+  labels:
+{{- include "server.labels" . | nindent 4 }}
+spec:
+{{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+{{- end }}
+  selector:
+    matchLabels:
+{{- include "server.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+{{- include "server.podLabels" . | nindent 8 }}
+      annotations:
+{{- include "server.podAnnotations" . | nindent 8 }}
+    spec:
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      serviceAccountName: {{ include "server.serviceAccountName" . }}
+      imagePullSecrets:
+{{- include "server.imagePullSecrets" . | nindent 8 }}
+      securityContext:
+{{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+{{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ include "server.image.repository" . }}:{{ include "server.image.tag" . }}"
+          imagePullPolicy: {{ include "server.image.pullPolicy" . }}
+          args: ["server", "-f", "/etc/infrahq/infra.yaml"]
+          env:
+{{- toYaml .Values.env | nindent 12 }}
+          envFrom:
+{{- toYaml .Values.envFrom | nindent 12 }}
+          volumeMounts:
+            - name: conf
+              mountPath: /etc/infrahq
+              readOnly: true
+{{- if .Values.persistentVolumeClaim.enabled }}
+            - name: data
+              mountPath: /var/lib/infrahq/server
+{{- end }}
+            - name: admin-access-key
+              mountPath: /var/run/secrets/infrahq.com/admin-access-key
+            - name: access-key
+              mountPath: /var/run/secrets/infrahq.com/access-key
+{{- if .Values.volumeMounts }}
+{{- toYaml .Values.volumeMounts | nindent 12 }}
+{{- end }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+            - name: https
+              containerPort: 443
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            successThreshold: {{ .Values.livenessProbe.successThreshold }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            successThreshold: {{ .Values.readinessProbe.successThreshold }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+          resources:
+{{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: conf
+          configMap:
+            name: {{ include "server.fullname" . }}
+{{- if .Values.persistentVolumeClaim.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "server.fullname" . }}
+{{- end }}
+        - name: admin-access-key
+          secret:
+            secretName: {{ .Release.Name }}-admin-access-key
+        - name: access-key
+          secret:
+            secretName: {{ .Release.Name }}-access-key
+            optional: true
+{{- if .Values.volumes }}
+{{- toYaml .Values.volumes | nindent 8 }}
+{{- end }}
+{{- with .Values.nodeSelector }}
+      nodeSelector:
+{{- toYaml . | nindent 8 }}
+{{- end }}
+{{- with .Values.affinity }}
+      affinity:
+{{- toYaml . | nindent 8 }}
+{{- end }}
+{{- with .Values.tolerations }}
+      tolerations:
+{{- toYaml . | nindent 8 }}
+{{- end }}

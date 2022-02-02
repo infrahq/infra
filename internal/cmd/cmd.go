@@ -633,8 +633,8 @@ func newServerCmd() (*cobra.Command, error) {
 	}
 
 	cmd.Flags().StringVarP(&configFile, "config-file", "f", "", "Server configuration file")
-	cmd.Flags().StringVar(&options.RootAccessKey, "system-access-key", "file:"+filepath.Join(infraDir, "system-access-key"), "Root access key (secret)")
-	cmd.Flags().StringVar(&options.EngineAccessKey, "engine-access-key", "file:"+filepath.Join(infraDir, "engine-access-key"), "Engine access key (secret)")
+	cmd.Flags().StringVar(&options.AdminAccessKey, "admin-access-key", "file:"+filepath.Join(infraDir, "admin-access-key"), "Admin access key (secret)")
+	cmd.Flags().StringVar(&options.AccessKey, "access-key", "file:"+filepath.Join(infraDir, "access-key"), "Access key (secret)")
 	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(infraDir, "tls"), "Directory to cache TLS certificates")
 	cmd.Flags().StringVar(&options.DBFile, "db-file", filepath.Join(infraDir, "db"), "Path to database file")
 	cmd.Flags().StringVar(&options.DBEncryptionKey, "db-encryption-key", filepath.Join(infraDir, "key"), "Database encryption key")
@@ -692,10 +692,15 @@ func newEngineCmd() *cobra.Command {
 		},
 	}
 
+	infraDir, err := infraHomeDir()
+	if err != nil {
+		return nil
+	}
+
 	cmd.Flags().StringVarP(&engineConfigFile, "config-file", "f", "", "Engine config file")
 	cmd.Flags().StringVarP(&options.Name, "name", "n", "", "Destination name")
 	cmd.Flags().StringVar(&options.AccessKey, "access-key", "", "Infra access key (use file:// to load from a file)")
-	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", "", "Path to cache self-signed and Let's Encrypt TLS certificates")
+	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(infraDir, "tls"), "Directory to cache TLS certificates")
 	cmd.Flags().StringVar(&options.Server, "server", "", "Infra Server hostname")
 	cmd.Flags().BoolVar(&options.SkipTLSVerify, "skip-tls-verify", true, "Skip TLS verification")
 

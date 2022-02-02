@@ -417,9 +417,9 @@ infra server [flags]
       --db-user string                      Database user
       --enable-crash-reporting              Enable crash reporting (default true)
       --enable-telemetry                    Enable telemetry (default true)
-      --engine-access-key string             Engine access key (secret) (default "file:/Users/jmorgan/.infra/engine-access-key")
-  -h, --help                                help for server
-      --system-access-key string               Root access key (secret) (default "file:/Users/jmorgan/.infra/system-access-key")
+      --access-key string                   Access key (secret) (default "file:/Users/jmorgan/.infra/access-key")
+  -h, --help                                Help for server
+      --admin-access-key string             Admin access key (secret) (default "file:/Users/jmorgan/.infra/admin-access-key")
   -d, --session-duration duration           Session duration (default 12h0m0s)
       --tls-cache string                    Directory to cache TLS certificates (default "/Users/jmorgan/.infra/tls")
 ```

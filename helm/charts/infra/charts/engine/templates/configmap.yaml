@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "engine.fullname" . }}
+  labels:
+{{- include "engine.labels" . | nindent 4 }}
+data:
+  infra.yaml: |
+{{- if and .Values.global (not (hasKey .Values.config "server")) }}
+    server: {{ .Release.Name }}-server.{{ .Release.Namespace }}
+{{- end }}
+
+    accessKey: /var/run/secrets/infrahq.com/access-key/access-key
+
+{{- range $key, $val := omit .Values.config "apiToken" }}
+{{- if kindIs "invalid" $val }}
+    # skipping invalid value: {{ $val }} ({{ kindOf $val }})
+{{- else if kindIs "map" $val }}
+    {{ $key }}:
+{{- $val | toYaml | nindent 6 }}
+{{- else if kindIs "slice" $val }}
+    {{ $key }}:
+{{- $val | toYaml | nindent 6 }}
+{{- else if kindIs "string" $val }}
+    {{ $key }}: {{ tpl $val $ }}
+{{- else }}
+    {{ $key }}: {{ $val }}
+{{- end }}
+{{- end }}
