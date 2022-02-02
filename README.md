@@ -186,7 +186,6 @@ We take security very seriously. If you have found a security vulnerability plea
 
 ## [Documentation](./docs)
 
-* [API Reference](./docs/api.md)
 * [Infra CLI Reference](./docs/cli.md)
 * [Helm Chart Reference](./docs/helm.md)
 * [Contributing](./docs/contributing.md)
