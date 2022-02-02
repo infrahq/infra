@@ -14,6 +14,7 @@ import (
 
 	"gopkg.in/yaml.v2"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/config"
@@ -470,7 +471,7 @@ func (r *Registry) importAccessKeys() error {
 	}
 
 	keys := map[string]key{
-		"root": {
+		"system": {
 			Secret: r.options.RootAccessKey,
 			Permissions: []string{
 				string(access.PermissionAllInfra),
@@ -489,6 +490,8 @@ func (r *Registry) importAccessKeys() error {
 		},
 	}
 
+	errs := make(map[string]error, 0)
+
 	for k, v := range keys {
 		if v.Secret == "" {
 			logging.S.Debugf("%s: unset secret", k)
@@ -497,29 +500,36 @@ func (r *Registry) importAccessKeys() error {
 
 		raw, err := r.GetSecret(v.Secret)
 		if err != nil && !errors.Is(err, secrets.ErrNotFound) {
-			logging.S.Warnf("%s: access key secret: %w", k, err)
+			errs[k] = fmt.Errorf("secret: %w", err)
 			continue
+		}
+
+		ak, err := data.LookupAccessKey(r.db, raw)
+		if err != nil {
+			if !errors.Is(err, internal.ErrNotFound) {
+				errs[k] = fmt.Errorf("lookup: %w", err)
+				continue
+			}
 		}
 
 		parts := strings.Split(raw, ".")
 		if len(parts) < 2 {
-			logging.S.Warnf("%s: access key format", k)
+			errs[k] = fmt.Errorf("format: %w", err)
 			continue
 		}
 
-		at, err := data.LookupAccessKey(r.db, raw)
-		if err == nil {
+		if ak != nil {
 			sum := sha256.Sum256([]byte(parts[1]))
 
 			// if token name, permissions, and secret checksum all match the input, skip recreating the token
-			if at.Name == k && at.Permissions == strings.Join(v.Permissions, " ") && subtle.ConstantTimeCompare(at.SecretChecksum, sum[:]) != 1 {
+			if ak.Name == k && ak.Permissions == strings.Join(v.Permissions, " ") && subtle.ConstantTimeCompare(ak.SecretChecksum, sum[:]) != 1 {
 				logging.S.Debugf("%s: skip recreating token", k)
 				continue
 			}
 
 			err = data.DeleteAccessKeys(r.db, data.ByName(k))
 			if err != nil {
-				logging.S.Warnf("%s: delete access key: %w", k, err)
+				errs[k] = fmt.Errorf("delete: %w", err)
 				continue
 			}
 		}
@@ -532,8 +542,21 @@ func (r *Registry) importAccessKeys() error {
 			ExpiresAt:   time.Now().Add(math.MaxInt64),
 		}
 		if _, err := data.CreateAccessKey(r.db, token); err != nil {
-			logging.S.Warnf("%s: create access key: %w", k, err)
+			errs[k] = fmt.Errorf("create: %w", err)
 		}
+	}
+
+	if len(errs) > 0 {
+		var err error
+		for k, v := range errs {
+			if err == nil {
+				err = fmt.Errorf("%s %s", k, v)
+			} else {
+				err = fmt.Errorf("%w, %s %s", err, k, v)
+			}
+		}
+
+		return err
 	}
 
 	return nil

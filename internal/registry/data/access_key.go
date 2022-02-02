@@ -23,6 +23,10 @@ func CreateAccessKey(db *gorm.DB, authnKey *models.AccessKey) (body string, err 
 		authnKey.Key = key
 	}
 
+	if len(authnKey.Key) != models.AccessKeyKeyLength {
+		return "", fmt.Errorf("invalid key length")
+	}
+
 	if authnKey.Secret == "" {
 		secret, err := generate.CryptoRandom(models.AccessKeySecretLength)
 		if err != nil {
@@ -30,6 +34,10 @@ func CreateAccessKey(db *gorm.DB, authnKey *models.AccessKey) (body string, err 
 		}
 
 		authnKey.Secret = secret
+	}
+
+	if len(authnKey.Secret) != models.AccessKeySecretLength {
+		return "", fmt.Errorf("invalid secret length")
 	}
 
 	chksm := sha256.Sum256([]byte(authnKey.Secret))
