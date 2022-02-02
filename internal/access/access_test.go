@@ -103,7 +103,7 @@ func TestRequireAuthorization(t *testing.T) {
 			},
 		},
 		{
-			Name:                "APITokenAuthorizedNotFirst",
+			Name:                "AccessKeyAuthorizedNotFirst",
 			RequiredPermissions: []Permission{PermissionUserRead},
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				permissions := []string{string(PermissionGroupRead), string(PermissionProviderRead), string(PermissionUserRead)}
@@ -114,7 +114,7 @@ func TestRequireAuthorization(t *testing.T) {
 			},
 		},
 		{
-			Name:                "APITokenAuthorizedNotLast",
+			Name:                "AccessKeyAuthorizedNotLast",
 			RequiredPermissions: []Permission{PermissionUserRead},
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				permissions := []string{string(PermissionGroupRead), string(PermissionUserRead), string(PermissionProviderRead)}
@@ -125,7 +125,7 @@ func TestRequireAuthorization(t *testing.T) {
 			},
 		},
 		{
-			Name:                "APITokenAuthorizedNoMatch",
+			Name:                "AccessKeyAuthorizedNoMatch",
 			RequiredPermissions: []Permission{PermissionUserRead},
 			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				permissions := []string{string(PermissionUserCreate), string(PermissionGroupRead)}
@@ -415,7 +415,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			require.True(t, ok)
 			mockOIDC := setupFunc(t, db)
 
-			u, sess, err := ExchangeAuthCodeForAPIToken(c, "123somecode", provider, mockOIDC, time.Minute)
+			u, sess, err := ExchangeAuthCodeForAccessKey(c, "123somecode", provider, mockOIDC, time.Minute)
 
 			verifyFunc, ok := v["verify"].(func(*testing.T, *models.User, string, error))
 			require.True(t, ok)

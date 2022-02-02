@@ -270,8 +270,8 @@ func (c Client) DeleteDestination(id uid.ID) error {
 	return delete(c, fmt.Sprintf("/v1/destinations/%s", id))
 }
 
-func (c Client) CreateAPIToken(req *CreateAPITokenRequest) (*CreateAPITokenResponse, error) {
-	return post[CreateAPITokenRequest, CreateAPITokenResponse](c, "/v1/api-tokens", req)
+func (c Client) CreateAccessKey(req *CreateAccessKeyRequest) (*CreateAccessKeyResponse, error) {
+	return post[CreateAccessKeyRequest, CreateAccessKeyResponse](c, "/v1/access-keys", req)
 }
 
 func (c Client) CreateMachine(req *MachineCreateRequest) (*Machine, error) {

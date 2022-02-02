@@ -12,57 +12,57 @@ import (
 	"gorm.io/gorm"
 )
 
-func createAPIToken(t *testing.T, db *gorm.DB, sessionDuration time.Duration) (string, *models.APIToken) {
+func createAccessKey(t *testing.T, db *gorm.DB, sessionDuration time.Duration) (string, *models.AccessKey) {
 	user := &models.User{Email: "tmp@infrahq.com"}
 	err := CreateUser(db, user)
 	require.NoError(t, err)
 
-	token := &models.APIToken{
+	token := &models.AccessKey{
 		UserID:    user.ID,
 		ExpiresAt: time.Now().Add(sessionDuration),
 	}
 
-	body, err := CreateAPIToken(db, token)
+	body, err := CreateAccessKey(db, token)
 	require.NoError(t, err)
 
 	return body, token
 }
 
-func TestCheckAPITokenSecret(t *testing.T) {
+func TestCheckAccessKeySecret(t *testing.T) {
 	db := setup(t)
-	body, _ := createAPIToken(t, db, time.Hour*5)
+	body, _ := createAccessKey(t, db, time.Hour*5)
 
-	_, err := LookupAPIToken(db, body)
+	_, err := LookupAccessKey(db, body)
 	require.NoError(t, err)
 
-	random := generate.MathRandom(models.APITokenSecretLength)
+	random := generate.MathRandom(models.AccessKeySecretLength)
 	authorization := fmt.Sprintf("%s.%s", strings.Split(body, ".")[0], random)
 
-	_, err = LookupAPIToken(db, authorization)
-	require.EqualError(t, err, "token invalid secret")
+	_, err = LookupAccessKey(db, authorization)
+	require.EqualError(t, err, "access key invalid secret")
 }
 
-func TestDeleteAPIToken(t *testing.T) {
+func TestDeleteAccessKey(t *testing.T) {
 	db := setup(t)
-	_, token := createAPIToken(t, db, time.Minute*5)
+	_, token := createAccessKey(t, db, time.Minute*5)
 
-	_, err := GetAPIToken(db, ByID(token.ID))
+	_, err := GetAccessKeys(db, ByID(token.ID))
 	require.NoError(t, err)
 
-	err = DeleteAPIToken(db, token.ID)
+	err = DeleteAccessKey(db, token.ID)
 	require.NoError(t, err)
 
-	_, err = GetAPIToken(db, ByID(token.ID))
+	_, err = GetAccessKeys(db, ByID(token.ID))
 	require.EqualError(t, err, "record not found")
 
-	err = DeleteAPITokens(db, ByID(token.ID))
+	err = DeleteAccessKeys(db, ByID(token.ID))
 	require.NoError(t, err)
 }
 
-func TestCheckAPITokenExpired(t *testing.T) {
+func TestCheckAccessKeyExpired(t *testing.T) {
 	db := setup(t)
-	body, _ := createAPIToken(t, db, -1*time.Hour)
+	body, _ := createAccessKey(t, db, -1*time.Hour)
 
-	_, err := LookupAPIToken(db, body)
+	_, err := LookupAccessKey(db, body)
 	require.EqualError(t, err, "token expired")
 }

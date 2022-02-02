@@ -6,9 +6,10 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-var APITokenSecretLength = 24
+var AccessKeySecretLength = 24
 
-type APIToken struct {
+// AccessKey is a session token presented to the Infra server as proof of authentication
+type AccessKey struct {
 	Model
 	Name      string // optional name
 	UserID    uid.ID

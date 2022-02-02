@@ -33,8 +33,8 @@ type Options struct {
 	Secrets                 []SecretProvider `yaml:"secrets" validate:"dive"`
 	Keys                    []KeyProvider    `yaml:"keys" validate:"dive"`
 	TLSCache                string           `yaml:"tlsCache"`
-	RootAPIToken            string           `yaml:"rootAPIToken"`
-	EngineAPIToken          string           `yaml:"engineAPIToken"`
+	RootAccessKey           string           `yaml:"systemAccessKey"`
+	EngineAccessKey         string           `yaml:"engineAccessKey"`
 	DBFile                  string           `yaml:"dbFile" `
 	DBEncryptionKey         string           `yaml:"dbEncryptionKey"`
 	DBEncryptionKeyProvider string           `yaml:"dbEncryptionKeyProvider"`
@@ -115,8 +115,8 @@ func Run(options Options) (err error) {
 		return fmt.Errorf("mkdir: %w", err)
 	}
 
-	if err := r.importAPITokens(); err != nil {
-		return fmt.Errorf("importing api tokens: %w", err)
+	if err := r.importAccessKeys(); err != nil {
+		return fmt.Errorf("importing access keys: %w", err)
 	}
 
 	// TODO: this should instead happen after runserver and we should wait for the server to close
@@ -333,7 +333,7 @@ func secretKindAndName(secret string) (kind string, name string, err error) {
 }
 
 // GetSecret implements the secret definition scheme for Infra.
-// eg plaintext:pass123, or kubernetes:infra-okta/apiToken
+// eg plaintext:pass123, or kubernetes:infra-okta/clientSecret
 // it's an abstraction around all secret providers
 func (r *Registry) GetSecret(name string) (string, error) {
 	kind, name, err := secretKindAndName(name)
@@ -386,7 +386,7 @@ func (r *Registry) loadDBKey() error {
 		return fmt.Errorf("key provider %s not configured", r.options.DBEncryptionKeyProvider)
 	}
 
-	keyRec, err := data.GetKey(r.db, data.ByName(dbKeyName))
+	keyRec, err := data.GetEncryptionKey(r.db, data.ByName(dbKeyName))
 	if err != nil {
 		if errors.Is(err, internal.ErrNotFound) {
 			return r.createDBKey(key, r.options.DBEncryptionKey)
@@ -412,14 +412,14 @@ func (r *Registry) createDBKey(provider secrets.SymmetricKeyProvider, rootKeyId 
 		return err
 	}
 
-	key := &models.Key{
+	key := &models.EncryptionKey{
 		Name:      dbKeyName,
 		Encrypted: sKey.Encrypted,
 		Algorithm: sKey.Algorithm,
 		RootKeyID: sKey.RootKeyID,
 	}
 
-	_, err = data.CreateKey(r.db, key)
+	_, err = data.CreateEncryptionKey(r.db, key)
 	if err != nil {
 		return err
 	}

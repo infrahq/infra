@@ -3,7 +3,7 @@ logLevel: info
 config:
   server: ""
   name: ""
-  apiToken: ""
+  accessKey: ""
   tlsCache: /var/run/infra/data/cache
 
 storage: 1Gi

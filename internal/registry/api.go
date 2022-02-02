@@ -369,16 +369,16 @@ func (a *API) CreateToken(c *gin.Context, r *api.CreateTokenRequest) (*api.Creat
 	return &api.CreateTokenResponse{Token: token.Token, Expires: token.Expires}, nil
 }
 
-func (a *API) ListAPITokens(c *gin.Context, r *api.EmptyRequest) ([]api.APIToken, error) {
-	apiTokens, err := access.ListAPITokens(c)
+func (a *API) ListAccessKeys(c *gin.Context, r *api.EmptyRequest) ([]api.AccessKey, error) {
+	accessKeys, err := access.ListAccessKeys(c)
 	if err != nil {
 		return nil, err
 	}
 
-	results := make([]api.APIToken, len(apiTokens))
+	results := make([]api.AccessKey, len(accessKeys))
 
-	for i, a := range apiTokens {
-		results[i] = api.APIToken{
+	for i, a := range accessKeys {
+		results[i] = api.AccessKey{
 			ID:          a.ID,
 			Name:        a.Name,
 			Permissions: strings.Split(a.Permissions, " "),
@@ -390,26 +390,26 @@ func (a *API) ListAPITokens(c *gin.Context, r *api.EmptyRequest) ([]api.APIToken
 	return results, nil
 }
 
-func (a *API) DeleteAPIToken(c *gin.Context, r *api.Resource) error {
-	return access.DeleteAPIToken(c, r.ID)
+func (a *API) DeleteAccessKey(c *gin.Context, r *api.Resource) error {
+	return access.DeleteAccessKey(c, r.ID)
 }
 
-func (a *API) CreateAPIToken(c *gin.Context, r *api.CreateAPITokenRequest) (*api.CreateAPITokenResponse, error) {
-	apiToken := &models.APIToken{
+func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*api.CreateAccessKeyResponse, error) {
+	accessKey := &models.AccessKey{
 		Name:        r.Name,
 		Permissions: strings.Join(r.Permissions, " "),
 		ExpiresAt:   time.Now().Add(r.Ttl),
 	}
 
-	raw, err := access.CreateAPIToken(c, apiToken)
+	raw, err := access.CreateAccessKey(c, accessKey)
 	if err != nil {
 		return nil, err
 	}
 
-	return &api.CreateAPITokenResponse{
-		ID:      apiToken.ID,
-		Created: apiToken.CreatedAt,
-		Token:   raw,
+	return &api.CreateAccessKeyResponse{
+		ID:        accessKey.ID,
+		Created:   accessKey.CreatedAt,
+		AccessKey: raw,
 	}, nil
 }
 
@@ -468,7 +468,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 		return nil, err
 	}
 
-	user, token, err := access.ExchangeAuthCodeForAPIToken(c, r.Code, provider, oidc, a.registry.options.SessionDuration)
+	user, token, err := access.ExchangeAuthCodeForAccessKey(c, r.Code, provider, oidc, a.registry.options.SessionDuration)
 	if err != nil {
 		return nil, err
 	}
@@ -485,7 +485,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 }
 
 func (a *API) Logout(c *gin.Context, r *api.EmptyRequest) (*api.EmptyResponse, error) {
-	err := access.DeleteAllUserAPITokens(c)
+	err := access.DeleteAllUserAccessKeys(c)
 	if err != nil {
 		return nil, err
 	}
@@ -543,7 +543,7 @@ func (a *API) updateUserInfo(c *gin.Context) error {
 	info, err := oidc.GetUserInfo(providerTokens)
 	if err != nil {
 		if errors.Is(err, internal.ErrForbidden) {
-			err := access.DeleteAllUserAPITokens(c)
+			err := access.DeleteAllUserAccessKeys(c)
 			if err != nil {
 				logging.S.Errorf("failed to revoke invalid user session: %w", err)
 			}

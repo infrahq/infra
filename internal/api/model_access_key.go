@@ -6,8 +6,8 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-// InfraAPIToken struct for InfraAPIToken
-type APIToken struct {
+// InfraAccessKey struct for InfraAccessKey
+type AccessKey struct {
 	ID          uid.ID    `json:"id"`
 	Created     time.Time `json:"created"`
 	Expires     time.Time `json:"expires,omitempty"`
@@ -15,14 +15,14 @@ type APIToken struct {
 	Permissions []string  `json:"permissions"`
 }
 
-type CreateAPITokenRequest struct {
+type CreateAccessKeyRequest struct {
 	Name        string        `json:"name"`
 	Permissions []string      `json:"permissions"`
 	Ttl         time.Duration `json:"ttl,omitempty"`
 }
 
-type CreateAPITokenResponse struct {
-	Token       string    `json:"token"`
+type CreateAccessKeyResponse struct {
+	AccessKey   string    `json:"access-key"`
 	ID          uid.ID    `json:"id"`
 	Created     time.Time `json:"created"`
 	Expires     time.Time `json:"expires,omitempty"`

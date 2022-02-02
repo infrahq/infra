@@ -59,9 +59,9 @@ func (a *API) registerRoutes(router *gin.RouterGroup) {
 
 		post(authorized, "/tokens", a.CreateToken)
 
-		get(authorized, "/api-tokens", a.ListAPITokens)
-		post(authorized, "/api-tokens", a.CreateAPIToken)
-		delete(authorized, "/api-tokens/:id", a.DeleteAPIToken)
+		get(authorized, "/access-keys", a.ListAccessKeys)
+		post(authorized, "/access-keys", a.CreateAccessKey)
+		delete(authorized, "/access-keys/:id", a.DeleteAccessKey)
 
 		post(authorized, "/logout", a.Logout)
 	}

@@ -494,7 +494,7 @@ var destinationsAddCmd = &cobra.Command{
 			return err
 		}
 
-		token, err := client.CreateAPIToken(&api.CreateAPITokenRequest{
+		token, err := client.CreateAccessKey(&api.CreateAccessKeyRequest{
 			Name: args[0],
 			Ttl:  time.Hour * 8760,
 
@@ -525,7 +525,7 @@ var destinationsAddCmd = &cobra.Command{
 		if len(args) > 1 {
 			command += fmt.Sprintf(" --set config.name=%s", args[1])
 		}
-		command += fmt.Sprintf(" --set config.apiToken=%s ", token.Token)
+		command += fmt.Sprintf(" --set config.accessKey=%s ", token.AccessKey)
 		command += fmt.Sprintf(" --set config.server=%s ", config.Host)
 
 		// TODO: replace me with a certificate fingerprint
@@ -633,8 +633,8 @@ func newServerCmd() (*cobra.Command, error) {
 	}
 
 	cmd.Flags().StringVarP(&configFile, "config-file", "f", "", "Server configuration file")
-	cmd.Flags().StringVar(&options.RootAPIToken, "root-api-token", "file:"+filepath.Join(infraDir, "root-api-token"), "Root API token (secret)")
-	cmd.Flags().StringVar(&options.EngineAPIToken, "engine-api-token", "file:"+filepath.Join(infraDir, "engine-api-token"), "Engine API token (secret)")
+	cmd.Flags().StringVar(&options.RootAccessKey, "system-access-key", "file:"+filepath.Join(infraDir, "system-access-key"), "Root access key (secret)")
+	cmd.Flags().StringVar(&options.EngineAccessKey, "engine-access-key", "file:"+filepath.Join(infraDir, "engine-access-key"), "Engine access key (secret)")
 	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(infraDir, "tls"), "Directory to cache TLS certificates")
 	cmd.Flags().StringVar(&options.DBFile, "db-file", filepath.Join(infraDir, "db"), "Path to database file")
 	cmd.Flags().StringVar(&options.DBEncryptionKey, "db-encryption-key", filepath.Join(infraDir, "key"), "Database encryption key")
@@ -694,7 +694,7 @@ func newEngineCmd() *cobra.Command {
 
 	cmd.Flags().StringVarP(&engineConfigFile, "config-file", "f", "", "Engine config file")
 	cmd.Flags().StringVarP(&options.Name, "name", "n", "", "Destination name")
-	cmd.Flags().StringVar(&options.APIToken, "api-token", "", "Infra API token (use file:// to load from a file)")
+	cmd.Flags().StringVar(&options.AccessKey, "access-key", "", "Infra access key (use file:// to load from a file)")
 	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", "", "Path to cache self-signed and Let's Encrypt TLS certificates")
 	cmd.Flags().StringVar(&options.Server, "server", "", "Infra Server hostname")
 	cmd.Flags().BoolVar(&options.SkipTLSVerify, "skip-tls-verify", true, "Skip TLS verification")

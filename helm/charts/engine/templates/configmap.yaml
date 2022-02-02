@@ -1,4 +1,4 @@
-{{- $config := omit .Values.config "apiToken" }}
+{{- $config := omit .Values.config "accessKey" }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -7,5 +7,5 @@ metadata:
 {{- include "engine.labels" . | nindent 4 }}
 data:
   config.yaml: |-
-    apiToken: /var/run/secrets/infrahq.com/engine/api-token
+    accessKey: /var/run/secrets/infrahq.com/engine/access-key
     {{- toYaml $config | nindent 4 }}

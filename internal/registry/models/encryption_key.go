@@ -1,6 +1,6 @@
 package models
 
-type Key struct {
+type EncryptionKey struct {
 	Model
 
 	KeyID     int32 `gorm:"uniqueIndex"` // a short identifier for the key that can be embedded with the encrypted payload

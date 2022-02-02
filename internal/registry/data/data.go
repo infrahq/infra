@@ -46,9 +46,9 @@ func NewDB(connection gorm.Dialector) (*gorm.DB, error) {
 		&models.Provider{},
 		&models.ProviderToken{},
 		&models.Destination{},
-		&models.APIToken{},
+		&models.AccessKey{},
 		&models.Settings{},
-		&models.Key{},
+		&models.EncryptionKey{},
 	}
 	for _, table := range tables {
 		if err := db.AutoMigrate(table); err != nil {

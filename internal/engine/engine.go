@@ -39,7 +39,7 @@ import (
 type Options struct {
 	Server        string `yaml:"server"`
 	Name          string `yaml:"name"`
-	APIToken      string `yaml:"apiToken"`
+	AccessKey     string `yaml:"accessKey"`
 	TLSCache      string `yaml:"tlsCache"`
 	SkipTLSVerify bool   `yaml:"skipTLSVerify"`
 }
@@ -379,17 +379,17 @@ func Run(options Options) error {
 
 	timer := timer.NewTimer()
 	timer.Start(5*time.Second, func() {
-		contents, err := ioutil.ReadFile(options.APIToken)
+		contents, err := ioutil.ReadFile(options.AccessKey)
 		if err != nil {
-			logging.S.Errorf("could not load api token: %w", err)
+			logging.S.Errorf("could not load access key: %w", err)
 			return
 		}
 
-		engineAPIToken := string(contents)
+		engineAccessKey := string(contents)
 
 		client := &api.Client{
 			Url:   u.String(),
-			Token: engineAPIToken,
+			Token: engineAccessKey,
 			Http: http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: hostTLSConfig,
