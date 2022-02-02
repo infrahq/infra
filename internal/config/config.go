@@ -24,8 +24,8 @@ type Grant struct {
 }
 
 type Config struct {
-	Providers []Provider `yaml:"providers"`
-	Grants    []Grant    `yaml:"grants"`
+	Providers []Provider `yaml:"providers" validate:"dive"`
+	Grants    []Grant    `yaml:"grants" validate:"dive"`
 }
 
 func Import(c *api.Client, config Config, replace bool) error {
