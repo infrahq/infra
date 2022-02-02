@@ -372,8 +372,8 @@ server:
   ## Ref: https://github.com/infrahq/infra/blob/main/docs/cli.md#infra-server
   config: {}
 
-  ## Server system access key
-  systemAccessKey: ""
+  ## Server admin access key
+  adminAccessKey: ""
 
   ## Additional identity providers to configure
   ## Ref: https://github.com/infrahq/infra/blob/main/docs/providers/

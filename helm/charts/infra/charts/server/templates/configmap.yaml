@@ -6,7 +6,7 @@ metadata:
 {{- include "server.labels" . | nindent 4 }}
 data:
   infra.yaml: |
-    systemAccessKey: file:/var/run/secrets/infrahq.com/root-access-key/access-key
+    adminAccessKey: file:/var/run/secrets/infrahq.com/admin-access-key/access-key
     accessKey: file:/var/run/secrets/infrahq.com/access-key/access-key
 
 {{- range $key, $val := omit .Values.config "import" "rootAPIToken" "engineAPIToken" }}

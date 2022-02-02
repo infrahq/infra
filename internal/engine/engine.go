@@ -385,11 +385,11 @@ func Run(options Options) error {
 			return
 		}
 
-		engineAccessKey := string(contents)
+		accessKey := string(contents)
 
 		client := &api.Client{
 			Url:   u.String(),
-			Token: engineAccessKey,
+			Token: accessKey,
 			Http: http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: hostTLSConfig,

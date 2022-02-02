@@ -132,14 +132,14 @@ If global value is present, use global value. Otherwise, use local value.
 {{- end }}
 
 {{/*
-Create an system access key. If one is defined through values, use it. Otherwise look for an
+Create an admin access key. If one is defined through values, use it. Otherwise look for an
 existing secret and use its password. If the secret does not exist, randomly generate a password.
 */}}
-{{- define "server.systemAccessKey" -}}
-{{- if .Values.systemAccessKey }}
-{{- .Values.systemAccessKey }}
+{{- define "server.adminAccessKey" -}}
+{{- if .Values.adminAccessKey }}
+{{- .Values.adminAccessKey }}
 {{- else }}
-{{- $secret := lookup "v1" "Secret" .Release.Namespace (printf "%s-system-access-key" .Release.Name) }}
+{{- $secret := lookup "v1" "Secret" .Release.Namespace (printf "%s-admin-access-key" .Release.Name) }}
 {{- if $secret }}
 {{- index $secret "data" "access-key" | b64dec }}
 {{- else }}

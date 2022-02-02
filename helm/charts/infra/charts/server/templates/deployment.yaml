@@ -43,8 +43,8 @@ spec:
             - name: data
               mountPath: /var/lib/infrahq/server
 {{- end }}
-            - name: system-access-key
-              mountPath: /var/run/secrets/infrahq.com/system-access-key
+            - name: admin-access-key
+              mountPath: /var/run/secrets/infrahq.com/admin-access-key
             - name: access-key
               mountPath: /var/run/secrets/infrahq.com/access-key
 {{- if .Values.volumeMounts }}
@@ -89,9 +89,9 @@ spec:
           persistentVolumeClaim:
             claimName: {{ include "server.fullname" . }}
 {{- end }}
-        - name: system-access-key
+        - name: admin-access-key
           secret:
-            secretName: {{ .Release.Name }}-system-access-key
+            secretName: {{ .Release.Name }}-admin-access-key
         - name: access-key
           secret:
             secretName: {{ .Release.Name }}-access-key
