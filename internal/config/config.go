@@ -16,8 +16,9 @@ type Provider struct {
 }
 
 type Grant struct {
-	User     string `yaml:"user" validate:"excluded_with=Group"`
-	Group    string `yaml:"group" validate:"excluded_with=User"`
+	User     string `yaml:"user" validate:"excluded_with=Group,excluded_with=Machine"`
+	Group    string `yaml:"group" validate:"excluded_with=User,excluded_with=Machine"`
+	Machine  string `yaml:"machine" validate:"excluded_with=User,excluded_with=Group"`
 	Provider string `yaml:"provider"`
 	Role     string `yaml:"role" validate:"required"`
 	Resource string `yaml:"resource" validate:"required"`
@@ -148,6 +149,28 @@ func Import(c *api.Client, config Config, replace bool) error {
 			}
 
 			identityID = "g:" + group.ID.String()
+		}
+
+		// create machine if it doesn't exist
+		if g.Machine != "" {
+			machines, err := c.ListMachines(api.ListMachinesRequest{g.Machine})
+			if err != nil {
+				return fmt.Errorf("error importing grant: %w", err)
+			}
+
+			var machine *api.Machine
+			if len(machines) == 0 {
+				machine, err = c.CreateMachine(&api.CreateMachineRequest{
+					Name: g.Machine,
+				})
+				if err != nil {
+					return err
+				}
+			} else {
+				machine = &machines[0]
+			}
+
+			identityID = "m:" + machine.ID.String()
 		}
 
 		// create grant if it doesn't exist

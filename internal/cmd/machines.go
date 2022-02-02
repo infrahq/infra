@@ -56,7 +56,7 @@ func createMachine(options *MachinesCreateOptions) error {
 		return err
 	}
 
-	_, err = client.CreateMachine(&api.MachineCreateRequest{Name: options.Name, Description: options.Description, Permissions: strings.Split(options.Permissions, " ")})
+	_, err = client.CreateMachine(&api.CreateMachineRequest{Name: options.Name, Description: options.Description, Permissions: strings.Split(options.Permissions, " ")})
 	if err != nil {
 		return err
 	}

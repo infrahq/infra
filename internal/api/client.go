@@ -274,12 +274,12 @@ func (c Client) CreateAccessKey(req *CreateAccessKeyRequest) (*CreateAccessKeyRe
 	return post[CreateAccessKeyRequest, CreateAccessKeyResponse](c, "/v1/access-keys", req)
 }
 
-func (c Client) CreateMachine(req *MachineCreateRequest) (*Machine, error) {
-	return post[MachineCreateRequest, Machine](c, "/v1/machines", req)
+func (c Client) CreateMachine(req *CreateMachineRequest) (*Machine, error) {
+	return post[CreateMachineRequest, Machine](c, "/v1/machines", req)
 }
 
-func (c Client) ListMachines(name string) ([]Machine, error) {
-	return list[Machine](c, "/v1/machines", map[string]string{"name": name})
+func (c Client) ListMachines(req ListMachinesRequest) ([]Machine, error) {
+	return list[Machine](c, "/v1/machines", map[string]string{"name": req.Name})
 }
 
 func (c Client) DeleteMachine(id uid.ID) error {
