@@ -419,7 +419,7 @@ infra server [flags]
       --enable-telemetry                    Enable telemetry (default true)
       --engine-access-key string             Engine access key (secret) (default "file:/Users/jmorgan/.infra/engine-access-key")
   -h, --help                                help for server
-      --root-access-key string               Root access key (secret) (default "file:/Users/jmorgan/.infra/root-access-key")
+      --system-access-key string               Root access key (secret) (default "file:/Users/jmorgan/.infra/system-access-key")
   -d, --session-duration duration           Session duration (default 12h0m0s)
       --tls-cache string                    Directory to cache TLS certificates (default "/Users/jmorgan/.infra/tls")
 ```

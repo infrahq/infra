@@ -62,6 +62,7 @@ func DeleteAccessKey(c *gin.Context, id uid.ID) error {
 }
 
 func DeleteAllUserAccessKeys(c *gin.Context) error {
+	// does not need access check, this action is limited to the calling user
 	user := CurrentUser(c)
 	db := getDB(c)
 

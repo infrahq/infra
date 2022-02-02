@@ -48,7 +48,17 @@ func DeleteAccessKey(db *gorm.DB, id uid.ID) error {
 }
 
 func DeleteAccessKeys(db *gorm.DB, selectors ...SelectorFunc) error {
-	return deleteAll[models.AccessKey](db, selectors...)
+	toDelete, err := list[models.AccessKey](db, selectors...)
+	if err != nil {
+		return err
+	}
+
+	ids := make([]uid.ID, 0)
+	for _, k := range toDelete {
+		ids = append(ids, k.ID)
+	}
+
+	return deleteAll[models.AccessKey](db, ByIDs(ids))
 }
 
 func LookupAccessKey(db *gorm.DB, authnKey string) (*models.AccessKey, error) {

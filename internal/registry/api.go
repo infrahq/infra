@@ -407,9 +407,9 @@ func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*a
 	}
 
 	return &api.CreateAccessKeyResponse{
-		ID:      accessKey.ID,
-		Created: accessKey.CreatedAt,
-		Key:     raw,
+		ID:        accessKey.ID,
+		Created:   accessKey.CreatedAt,
+		AccessKey: raw,
 	}, nil
 }
 

@@ -37,14 +37,14 @@ func (r *Registry) importConfig() error {
 		return nil
 	}
 
-	rootAccessKey, err := r.GetSecret(r.options.RootAccessKey)
+	systemAccessKey, err := r.GetSecret(r.options.RootAccessKey)
 	if err != nil {
 		return fmt.Errorf("importing config: %w", err)
 	}
 
 	client := &api.Client{
 		Url:   "https://localhost:443",
-		Token: rootAccessKey,
+		Token: systemAccessKey,
 		Http: http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{

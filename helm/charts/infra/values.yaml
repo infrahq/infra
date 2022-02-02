@@ -1,7 +1,7 @@
 logLevel: info
 
 config:
-  rootAccessKey: kubernetes:infra/root-access-key
+  systemAccessKey: kubernetes:infra/system-access-key
   engineAccessKey: kubernetes:infra-engine/access-key
   tlsCache: /var/run/infra/data/cache
   dbFile: /var/run/infra/data/infra.db

@@ -22,7 +22,7 @@ type CreateAccessKeyRequest struct {
 }
 
 type CreateAccessKeyResponse struct {
-	Key         string    `json:"key"`
+	AccessKey   string    `json:"access-key"`
 	ID          uid.ID    `json:"id"`
 	Created     time.Time `json:"created"`
 	Expires     time.Time `json:"expires,omitempty"`

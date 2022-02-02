@@ -525,7 +525,7 @@ var destinationsAddCmd = &cobra.Command{
 		if len(args) > 1 {
 			command += fmt.Sprintf(" --set config.name=%s", args[1])
 		}
-		command += fmt.Sprintf(" --set config.accessKey=%s ", token.Key)
+		command += fmt.Sprintf(" --set config.accessKey=%s ", token.AccessKey)
 		command += fmt.Sprintf(" --set config.server=%s ", config.Host)
 
 		// TODO: replace me with a certificate fingerprint
@@ -633,7 +633,7 @@ func newServerCmd() (*cobra.Command, error) {
 	}
 
 	cmd.Flags().StringVarP(&configFile, "config-file", "f", "", "Server configuration file")
-	cmd.Flags().StringVar(&options.RootAccessKey, "root-access-key", "file:"+filepath.Join(infraDir, "root-access-key"), "Root access key (secret)")
+	cmd.Flags().StringVar(&options.RootAccessKey, "system-access-key", "file:"+filepath.Join(infraDir, "system-access-key"), "Root access key (secret)")
 	cmd.Flags().StringVar(&options.EngineAccessKey, "engine-access-key", "file:"+filepath.Join(infraDir, "engine-access-key"), "Engine access key (secret)")
 	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(infraDir, "tls"), "Directory to cache TLS certificates")
 	cmd.Flags().StringVar(&options.DBFile, "db-file", filepath.Join(infraDir, "db"), "Path to database file")

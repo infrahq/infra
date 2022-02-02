@@ -33,7 +33,7 @@ type Options struct {
 	Secrets                 []SecretProvider `yaml:"secrets" validate:"dive"`
 	Keys                    []KeyProvider    `yaml:"keys" validate:"dive"`
 	TLSCache                string           `yaml:"tlsCache"`
-	RootAccessKey           string           `yaml:"rootAccessKey"`
+	RootAccessKey           string           `yaml:"systemAccessKey"`
 	EngineAccessKey         string           `yaml:"engineAccessKey"`
 	DBFile                  string           `yaml:"dbFile" `
 	DBEncryptionKey         string           `yaml:"dbEncryptionKey"`
