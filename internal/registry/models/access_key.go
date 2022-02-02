@@ -21,7 +21,7 @@ type AccessKey struct {
 	// TODO: remove me with machine identities
 	Permissions string
 
-	Key            string
+	Key            string `gorm:"<-;uniqueIndex:,where:deleted_at is NULL"`
 	Secret         string `gorm:"-"`
 	SecretChecksum []byte
 }
