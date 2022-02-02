@@ -1,6 +1,8 @@
 package registry
 
 import (
+	"crypto/sha256"
+	"crypto/subtle"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -499,10 +501,18 @@ func (r *Registry) importAccessKeys() error {
 			continue
 		}
 
+		parts := strings.Split(raw, ".")
+		if len(parts) < 2 {
+			logging.S.Warnf("%s: access key format", k)
+			continue
+		}
+
 		at, err := data.LookupAccessKey(r.db, raw)
 		if err == nil {
-			// if token name and permissions matches input, skip it
-			if at.Name == k && at.Permissions == strings.Join(v.Permissions, " ") {
+			sum := sha256.Sum256([]byte(parts[1]))
+
+			// if token name, permissions, and secret checksum all match the input, skip recreating the token
+			if at.Name == k && at.Permissions == strings.Join(v.Permissions, " ") && subtle.ConstantTimeCompare(at.SecretChecksum, sum[:]) != 1 {
 				logging.S.Debugf("%s: skip recreating token", k)
 				continue
 			}
@@ -512,12 +522,6 @@ func (r *Registry) importAccessKeys() error {
 				logging.S.Warnf("%s: delete access key: %w", k, err)
 				continue
 			}
-		}
-
-		parts := strings.Split(raw, ".")
-		if len(parts) < 2 {
-			logging.S.Warnf("%s: access key format", k)
-			continue
 		}
 
 		token := &models.AccessKey{
