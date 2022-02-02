@@ -1,9 +1,12 @@
 package registry
 
 import (
+	"crypto/sha256"
+	"crypto/subtle"
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"os"
 	"strings"
@@ -11,6 +14,7 @@ import (
 
 	"gopkg.in/yaml.v2"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/config"
@@ -467,7 +471,7 @@ func (r *Registry) importAccessKeys() error {
 	}
 
 	keys := map[string]key{
-		"root": {
+		"system": {
 			Secret: r.options.RootAccessKey,
 			Permissions: []string{
 				string(access.PermissionAllInfra),
@@ -486,43 +490,73 @@ func (r *Registry) importAccessKeys() error {
 		},
 	}
 
+	errs := make(map[string]error, 0)
+
 	for k, v := range keys {
-		raw, err := r.GetSecret(v.Secret)
-		if err != nil && !errors.Is(err, secrets.ErrNotFound) {
-			return err
+		if v.Secret == "" {
+			logging.S.Debugf("%s: unset secret", k)
+			continue
 		}
 
-		// if a valid token is being passed in, verify it's correct and skip creating
-		if raw != "" {
-			at, err := data.LookupAccessKey(r.db, raw)
-			if err != nil {
-				return fmt.Errorf("import access keys: %w", err)
-			}
+		raw, err := r.GetSecret(v.Secret)
+		if err != nil && !errors.Is(err, secrets.ErrNotFound) {
+			errs[k] = fmt.Errorf("secret: %w", err)
+			continue
+		}
 
-			if at.Name == k && at.Permissions == strings.Join(v.Permissions, " ") {
-				// if the api key exists, then we already have this token
+		ak, err := data.LookupAccessKey(r.db, raw)
+		if err != nil {
+			if !errors.Is(err, internal.ErrNotFound) {
+				errs[k] = fmt.Errorf("lookup: %w", err)
 				continue
 			}
 		}
 
-		// if token isn't valid or does not match name & permissions
-		// delete any existing tokens, create a new one, and save it back to the secret
-		err = data.DeleteAccessKeys(r.db, data.ByName(k))
-		if err != nil {
-			return err
+		parts := strings.Split(raw, ".")
+		if len(parts) < 2 {
+			errs[k] = fmt.Errorf("format: %w", err)
+			continue
+		}
+
+		if ak != nil {
+			sum := sha256.Sum256([]byte(parts[1]))
+
+			// if token name, permissions, and secret checksum all match the input, skip recreating the token
+			if ak.Name == k && ak.Permissions == strings.Join(v.Permissions, " ") && subtle.ConstantTimeCompare(ak.SecretChecksum, sum[:]) != 1 {
+				logging.S.Debugf("%s: skip recreating token", k)
+				continue
+			}
+
+			err = data.DeleteAccessKeys(r.db, data.ByName(k))
+			if err != nil {
+				errs[k] = fmt.Errorf("delete: %w", err)
+				continue
+			}
 		}
 
 		token := &models.AccessKey{
 			Name:        k,
+			Key:         parts[0],
+			Secret:      parts[1],
 			Permissions: strings.Join(v.Permissions, " "),
-			ExpiresAt:   time.Now().Add(time.Hour * 876000),
+			ExpiresAt:   time.Now().Add(math.MaxInt64),
 		}
-		body, err := data.CreateAccessKey(r.db, token)
-		if err != nil {
-			return err
+		if _, err := data.CreateAccessKey(r.db, token); err != nil {
+			errs[k] = fmt.Errorf("create: %w", err)
+		}
+	}
+
+	if len(errs) > 0 {
+		var err error
+		for k, v := range errs {
+			if err == nil {
+				err = fmt.Errorf("%s %s", k, v)
+			} else {
+				err = fmt.Errorf("%w, %s %s", err, k, v)
+			}
 		}
 
-		err = r.SetSecret(v.Secret, body)
+		return err
 	}
 
 	return nil
