@@ -78,6 +78,9 @@ dev/clean:
 	kubectl config use-context docker-desktop
 	helm $(NS) uninstall infra || true
 
+docker:
+	docker buildx build --push --platform linux/amd64,linux/arm64 --build-arg BUILDVERSION=$(tag) --build-arg TELEMETRY_WRITE_KEY=${TELEMETRY_WRITE_KEY} --build-arg CRASH_REPORTING_DSN=${CRASH_REPORTING_DSN} . -t infrahq/infra:$(tag)
+
 release: goreleaser
 	goreleaser release -f .goreleaser.yml --rm-dist
 
