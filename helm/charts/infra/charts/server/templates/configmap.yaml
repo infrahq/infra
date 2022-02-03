@@ -9,7 +9,7 @@ data:
     adminAccessKey: file:/var/run/secrets/infrahq.com/admin-access-key/access-key
     accessKey: file:/var/run/secrets/infrahq.com/access-key/access-key
 
-{{- range $key, $val := omit .Values.config "import"}}
+{{- range $key, $val := omit .Values.config "import" "adminAccessKey" "accessKey" }}
 {{- if kindIs "invalid" $val }}
     # skipping invalid value: {{ $val }} ({{ kindOf $val }})
 {{- else if kindIs "map" $val }}

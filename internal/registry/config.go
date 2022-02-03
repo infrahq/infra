@@ -494,13 +494,18 @@ func (r *Registry) importAccessKeys() error {
 
 	for k, v := range keys {
 		if v.Secret == "" {
-			logging.S.Debugf("%s: unset secret", k)
+			logging.S.Debugf("%s: secret not set; skipping", k)
 			continue
 		}
 
 		raw, err := r.GetSecret(v.Secret)
 		if err != nil && !errors.Is(err, secrets.ErrNotFound) {
 			errs[k] = fmt.Errorf("secret: %w", err)
+			continue
+		}
+
+		if raw == "" {
+			logging.S.Debugf("%s: secret value not set; skipping", k)
 			continue
 		}
 
