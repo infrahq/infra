@@ -16,11 +16,11 @@ type Machine struct {
 }
 
 type ListMachinesRequest struct {
-	MachineName string `form:"name"`
+	Name string `form:"name"`
 }
 
-// MachineCreateRequest struct for MachineCreateRequest
-type MachineCreateRequest struct {
+// CreateMachineRequest struct for CreateMachineRequest
+type CreateMachineRequest struct {
 	Name        string   `json:"name"`
 	Description string   `json:"description"`
 	Permissions []string `json:"permissions"`

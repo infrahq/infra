@@ -275,7 +275,7 @@ func (a *API) ListDestinations(c *gin.Context, r *api.ListDestinationsRequest) (
 	return results, nil
 }
 
-func (a *API) CreateMachine(c *gin.Context, r *api.MachineCreateRequest) (*api.Machine, error) {
+func (a *API) CreateMachine(c *gin.Context, r *api.CreateMachineRequest) (*api.Machine, error) {
 	machine := &models.Machine{}
 	if err := machine.FromAPI(r); err != nil {
 		return nil, err
@@ -290,7 +290,7 @@ func (a *API) CreateMachine(c *gin.Context, r *api.MachineCreateRequest) (*api.M
 }
 
 func (a *API) ListMachines(c *gin.Context, r *api.ListMachinesRequest) ([]api.Machine, error) {
-	machines, err := access.ListMachines(c, r.MachineName)
+	machines, err := access.ListMachines(c, r.Name)
 	if err != nil {
 		return nil, err
 	}

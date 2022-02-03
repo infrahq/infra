@@ -37,7 +37,7 @@ func (m *Machine) ToAPI() *api.Machine {
 }
 
 func (m *Machine) FromAPI(from interface{}) error {
-	if createRequest, ok := from.(*api.MachineCreateRequest); ok {
+	if createRequest, ok := from.(*api.CreateMachineRequest); ok {
 		m.Name = createRequest.Name
 		m.Description = createRequest.Description
 		m.Permissions = strings.Join(createRequest.Permissions, " ")

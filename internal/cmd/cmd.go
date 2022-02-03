@@ -979,7 +979,7 @@ var machinesListCmd = &cobra.Command{
 			return err
 		}
 
-		machines, err := client.ListMachines("")
+		machines, err := client.ListMachines(api.ListMachinesRequest{})
 		if err != nil {
 			return err
 		}
@@ -1014,7 +1014,7 @@ var machinesDeleteCmd = &cobra.Command{
 			return err
 		}
 
-		machines, err := client.ListMachines(args[0])
+		machines, err := client.ListMachines(api.ListMachinesRequest{Name: args[0]})
 		if err != nil {
 			return err
 		}
