@@ -1,6 +1,6 @@
 {{- if and .Values.metrics.enabled .Values.metrics.serviceMonitor.enabled }}
 ---
-apiVersion: v1
+apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: {{ include "server.fullname" . }}
@@ -21,7 +21,8 @@ spec:
       metricRelabelings:
 {{- toYaml .Values.metrics.serviceMonitor.metricRelabelings | nindent 8 }}
   selector:
-{{- include "server.selectorLabels" . | nindent 4 }}
+    matchLabels:
+{{- include "server.selectorLabels" . | nindent 6 }}
   namespaceSelector:
     matchNames:
       - {{ .Release.Namespace }}
