@@ -8,11 +8,6 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-type listRow struct {
-	Name   string `header:"DESTINATION"`
-	Access string `header:"ACCESS"`
-}
-
 func list() error {
 	client, err := defaultAPIClient()
 	if err != nil {
@@ -26,6 +21,11 @@ func list() error {
 
 	if config.ID == 0 {
 		return fmt.Errorf("no active user")
+	}
+
+	destinations, err := client.ListDestinations(api.ListDestinationsRequest{})
+	if err != nil {
+		return err
 	}
 
 	grants, err := client.ListUserGrants(config.ID)
@@ -47,22 +47,33 @@ func list() error {
 		grants = append(grants, groupGrants...)
 	}
 
-	var rows []listRow
-
+	gs := make(map[string]string)
 	for _, g := range grants {
-		if g.Resource == "infra" {
+		// aggregate privileges
+		gs[g.Resource] = gs[g.Resource] + g.Privilege + " "
+	}
+
+	type row struct {
+		Name   string `header:"RESOURCE"`
+		Access string `header:"ACCESS"`
+	}
+
+	var rows []row
+
+	for k, v := range gs {
+		if strings.HasPrefix(k, "infra") {
 			continue
 		}
 
-		rows = append(rows, listRow{
-			Name:   g.Resource,
-			Access: g.Privilege,
+		rows = append(rows, row{
+			Name:   k,
+			Access: v,
 		})
 	}
 
 	printTable(rows)
 
-	return updateKubeconfig()
+	return writeKubeconfig(destinations, grants)
 }
 
 func info(client *api.Client, g api.Grant) (provider string, name string, err error) {

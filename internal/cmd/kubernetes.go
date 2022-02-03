@@ -8,6 +8,7 @@ import (
 	"github.com/goware/urlx"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/uid"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
@@ -42,36 +43,45 @@ func kubernetesSetContext(name string) error {
 	return nil
 }
 
-func updateKubeconfig() error {
-	config, err := currentHostConfig()
+func updateKubeconfig(client *api.Client, userID uid.ID) error {
+	destinations, err := client.ListDestinations(api.ListDestinationsRequest{})
 	if err != nil {
-		return err
+		return nil
 	}
 
-	if config.ID == 0 {
-		return fmt.Errorf("no active user")
+	grants, err := client.ListUserGrants(userID)
+	if err != nil {
+		return nil
 	}
 
+	groups, err := client.ListUserGroups(userID)
+	if err != nil {
+		return nil
+	}
+
+	for _, g := range groups {
+		groupGrants, err := client.ListGroupGrants(g.ID)
+		if err != nil {
+			return nil
+		}
+
+		grants = append(grants, groupGrants...)
+	}
+
+	return writeKubeconfig(destinations, grants)
+}
+
+func writeKubeconfig(destinations []api.Destination, grants []api.Grant) error {
 	defaultConfig := clientConfig()
 	kubeConfig, err := defaultConfig.RawConfig()
 	if err != nil {
 		return err
 	}
 
-	client, err := defaultAPIClient()
-	if err != nil {
-		return err
-	}
+	keep := make(map[string]bool)
+	for _, g := range grants {
 
-	grants, err := client.ListUserGrants(config.ID)
-	if err != nil {
-		return err
-	}
-
-	contexts := make(map[string]bool)
-
-	for _, grant := range grants {
-		parts := strings.Split(grant.Resource, ".")
+		parts := strings.Split(g.Resource, ".")
 
 		kind := parts[0]
 
@@ -86,23 +96,20 @@ func updateKubeconfig() error {
 			namespace = parts[2]
 		}
 
-		destinations, err := client.ListDestinations(api.ListDestinationsRequest{Name: kind + "." + cluster})
-		if err != nil {
-			return err
-		}
-
-		if len(destinations) == 0 {
-			continue
-		}
-
 		context := "infra:" + cluster
 
 		if namespace != "" {
 			context += ":" + namespace
 		}
 
-		url := destinations[0].Connection.URL
-		ca := destinations[0].Connection.CA
+		var url, ca string
+		for _, d := range destinations {
+			if strings.HasPrefix(g.Resource, d.Name) {
+				url = d.Connection.URL
+				ca = d.Connection.CA
+				break
+			}
+		}
 
 		u, err := urlx.Parse(url)
 		if err != nil {
@@ -138,7 +145,7 @@ func updateKubeconfig() error {
 			},
 		}
 
-		contexts[context] = true
+		keep[context] = true
 	}
 
 	// cleanup others
@@ -153,7 +160,7 @@ func updateKubeconfig() error {
 			continue
 		}
 
-		if _, ok := contexts[c]; !ok {
+		if _, ok := keep[c]; !ok {
 			delete(kubeConfig.Clusters, c)
 			delete(kubeConfig.Contexts, c)
 			delete(kubeConfig.AuthInfos, c)

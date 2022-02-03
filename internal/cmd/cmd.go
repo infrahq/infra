@@ -149,7 +149,17 @@ infra use kubernetes.development.kube-system
 				name = args[0]
 			}
 
-			err := updateKubeconfig()
+			client, err := defaultAPIClient()
+			if err != nil {
+				return err
+			}
+
+			config, err := currentHostConfig()
+			if err != nil {
+				return err
+			}
+
+			err = updateKubeconfig(client, config.ID)
 			if err != nil {
 				return err
 			}
@@ -190,12 +200,16 @@ var accessListCmd = &cobra.Command{
 			Provider string `header:"PROVIDER"`
 			Identity string `header:"IDENTITY"`
 			Access   string `header:"ACCESS"`
-			Name     string `header:"DESTINATION"`
+			Resource string `header:"RESOURCE"`
 		}
 
 		var rows []row
-		for _, c := range grants {
-			provider, identity, err := info(client, c)
+		for _, g := range grants {
+			if strings.HasPrefix(g.Resource, "infra") {
+				continue
+			}
+
+			provider, identity, err := info(client, g)
 			if err != nil {
 				return err
 			}
@@ -203,8 +217,8 @@ var accessListCmd = &cobra.Command{
 			rows = append(rows, row{
 				Provider: provider,
 				Identity: identity,
-				Name:     c.Resource,
-				Access:   c.Privilege,
+				Access:   g.Privilege,
+				Resource: g.Resource,
 			})
 		}
 
