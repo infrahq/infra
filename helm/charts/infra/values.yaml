@@ -376,27 +376,9 @@ server:
   adminAccessKey: ""
 
   ## Additional identity providers to configure
-  ## Ref: https://github.com/infrahq/infra/blob/main/docs/providers/
   additionalProviders: []
-  # - name: Development Okta
-  #   domain: https://dev.okta.com
-  #   clientID: 0oapn0qwiQPiMIyR35d6
-  #   clientSecret: env:OKTA_CLIENT_SECRET
-
-  ## Additional infrastructure destinations to configure
-  ## Ref: https://github.com/infrahq/infra/blob/main/docs/destinations/
-  additionalDestinations: []
-
-  ## Additional users to configure
-  ## Ref: https://github.com/infrahq/infra/blob/main/docs/configuration.md
-  additionalUsers: []
-
-  ## Additional groups to configure
-  ## Ref: https://github.com/infrahq/infra/blob/main/docs/configuration.md
-  additionalGroups: []
 
   ## Additional grants to configure
-  ## Ref: https://github.com/infrahq/infra/blob/main/docs/configuration.md
   additionalGrants: []
 
 ## Default engine configurations

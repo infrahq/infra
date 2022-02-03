@@ -10,15 +10,15 @@ server:
       clientID: $OKTA_CLIENT_ID
       clientSecret: $OKTA_CLIENT_SECRET
 
-  additionalGroups:
-    - name: Everyone
-      provider: okta
-      grants:
-        - kind: cluster-role
-          name: cluster-admin
-          destinations:
-            - kind: kubernetes
+  additionalGrants:
+    - group: Everyone
+      role: cluster-admin
+      resource: kubernetes.docker-desktop
 
 engine:
   config:
     name: docker-desktop
+
+  image:
+    tag: $IMAGE_TAG
+    pullPolicy: Never
