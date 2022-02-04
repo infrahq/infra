@@ -9,6 +9,7 @@
     git clone https://github.com/infrahq/infra
     cd infra
     ```
+
 1. Install tools
 
     ```bash
@@ -48,11 +49,46 @@ make dev
 
 If further customization is required, additional values files can be supplied to the installation by modifying the `VALUES` environment variable. It is recommended to append to `VALUES` rather than fully overriding it.
 
+Some common configurations for local development include:
+
+* Disabling persistence
+
 ```yaml
 # example infra.yaml
 ---
-enable-telemetry: false
-enable-crash-reporting: false
+server:
+  persistence:
+    enabled: false
+
+engine:
+  pesistence:
+    enabled: false
+```
+
+* Disabling telemetry and crash reporting
+
+```yaml
+# example infra.yaml
+---
+server:
+  config:
+    enable-telemetry: false
+    enable-crash-reporting: false
+```
+
+* Enabling Kubernetes LoadBalancer
+
+```yaml
+# example infra.yaml
+---
+server:
+  service:
+    type: LoadBalancer
+
+engine:
+  service:
+    type: LoadBalancer
+    securePort: 8443  # to avoid colliding with infra-server's securePort (443)
 ```
 
 See [Helm Chart reference](./helm.md) for a complete list of options configurable through Helm.
@@ -72,70 +108,4 @@ Or
 
 ```bash
 make dev VALUES='infra.yaml docker-desktop.yaml'
-```
-
-## Generate OpenAPI Clients
-
-### Setup
-
-* Install [OpenAPI Generator](https://openapi-generator.tech/docs/installation)
-
----
-
-```bash
-make openapi
-```
-
-## Generate docs
-
-```bash
-make docs
-```
-
-## Test
-
-Run tests:
-
-```bash
-make test
-```
-
-## Releasing a new version of Infra
-
-### 1. Create a release on GitHub, marked as pre-release
-
-1. Head over to https://github.com/infrahq/infra/releases and click **Draft a new Release**
-2. Fill out the form with the new version as the tag and release name as shown below:
-
-![release screenshot](https://user-images.githubusercontent.com/5853428/137145290-7edef0ce-658b-4b78-b76c-663490ce547a.png)
-
-
-3. Click **Publish Release**
-
-A new version of Infra will be prepared and released via GitHub actions.
-
-### 2. Verify release
-
-Verify the [release job](https://github.com/infrahq/infra/actions/workflows/release.yml) succeeded.
-
-### 3. Mark as released
-
-1. Navigate back to https://github.com/infrahq/infra/releases and click on your release.
-2. Uncheck **This is a pre-release**
-
-You're done!
-
-## Manual release
-
-To release from your local computer, switch to the tag you want to release (e.g. `v0.0.8`) and run:
-
-```bash
-# Build and publish binaries
-make release
-
-# Build and publish helm charts
-make release/helm
-
-# Build and publish Docker images
-make release/docker
 ```
