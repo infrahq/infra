@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/ed25519"
 	"crypto/rand"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/base64"
@@ -384,6 +385,35 @@ func (n *NativeCertificateProvider) loadFromDisk() error {
 	n.previousKeypair.PrivateKey = b
 
 	return nil
+}
+
+func (n *NativeCertificateProvider) TLSCertificates() ([]tls.Certificate, error) {
+	result := []tls.Certificate{}
+
+	keyPairs := []keyPair{
+		n.previousKeypair,
+		n.activeKeypair,
+	}
+	for _, keyPair := range keyPairs {
+		certPEM := pem.EncodeToMemory(&pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: keyPair.certRaw,
+		})
+
+		keyPEM := pem.EncodeToMemory(&pem.Block{
+			Type:  "PRIVATE KEY",
+			Bytes: keyPair.PrivateKey,
+		})
+
+		cert, err := tls.X509KeyPair(certPEM, keyPEM)
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, cert)
+	}
+
+	return result, nil
 }
 
 func readFromPEMFile(file string) (pems []*pem.Block, err error) {
