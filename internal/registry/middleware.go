@@ -80,21 +80,13 @@ func MetricsMiddleware(path string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		t := time.Now()
 
-		labels := prometheus.Labels{
-			"method":  c.Request.Method,
-			"handler": path,
-		}
-
-		requestInProgressGauge.With(labels).Inc()
-
 		c.Next()
 
-		requestInProgressGauge.With(labels).Dec()
-
-		labels["status"] = strconv.Itoa(c.Writer.Status())
-
-		requestCount.With(labels).Inc()
-		requestDuration.With(labels).Observe(time.Since(t).Seconds())
+		requestDuration.With(prometheus.Labels{
+			"method":  c.Request.Method,
+			"handler": path,
+			"status":  strconv.Itoa(c.Writer.Status()),
+		}).Observe(time.Since(t).Seconds())
 	}
 }
 

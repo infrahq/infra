@@ -105,72 +105,62 @@ go_memstats_sys_bytes 7.5580424e+07
 # HELP go_threads Number of OS threads created.
 # TYPE go_threads gauge
 go_threads 9
-# HELP http_requests_duration_seconds A histogram of the duration, in seconds, handling HTTP requests.
-# TYPE http_requests_duration_seconds histogram
-http_requests_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="0.001"} 1
-http_requests_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="0.002"} 1
-http_requests_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="0.004"} 1
-http_requests_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="0.008"} 1
-http_requests_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="0.016"} 1
-http_requests_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="0.032"} 1
-http_requests_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="0.064"} 1
-http_requests_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="0.128"} 1
-http_requests_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="0.256"} 1
-http_requests_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="0.512"} 1
-http_requests_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="1.024"} 1
-http_requests_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="2.048"} 1
-http_requests_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="4.096"} 1
-http_requests_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="8.192"} 1
-http_requests_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="16.384"} 1
-http_requests_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="+Inf"} 1
-http_requests_duration_seconds_sum{handler="/v1/destinations",method="GET",status="200"} 0.000855667
-http_requests_duration_seconds_count{handler="/v1/destinations",method="GET",status="200"} 1
-http_requests_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="0.001"} 0
-http_requests_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="0.002"} 0
-http_requests_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="0.004"} 0
-http_requests_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="0.008"} 1
-http_requests_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="0.016"} 1
-http_requests_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="0.032"} 1
-http_requests_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="0.064"} 1
-http_requests_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="0.128"} 1
-http_requests_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="0.256"} 1
-http_requests_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="0.512"} 1
-http_requests_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="1.024"} 1
-http_requests_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="2.048"} 1
-http_requests_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="4.096"} 1
-http_requests_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="8.192"} 1
-http_requests_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="16.384"} 1
-http_requests_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="+Inf"} 1
-http_requests_duration_seconds_sum{handler="/v1/destinations/:id",method="PUT",status="200"} 0.006805916
-http_requests_duration_seconds_count{handler="/v1/destinations/:id",method="PUT",status="200"} 1
-http_requests_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="0.001"} 2
-http_requests_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="0.002"} 6
-http_requests_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="0.004"} 11
-http_requests_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="0.008"} 11
-http_requests_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="0.016"} 12
-http_requests_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="0.032"} 12
-http_requests_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="0.064"} 12
-http_requests_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="0.128"} 12
-http_requests_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="0.256"} 12
-http_requests_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="0.512"} 12
-http_requests_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="1.024"} 12
-http_requests_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="2.048"} 12
-http_requests_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="4.096"} 12
-http_requests_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="8.192"} 12
-http_requests_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="16.384"} 12
-http_requests_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="+Inf"} 12
-http_requests_duration_seconds_sum{handler="/v1/grants",method="GET",status="200"} 0.031218166
-http_requests_duration_seconds_count{handler="/v1/grants",method="GET",status="200"} 12
-# HELP http_requests_in_progress Number of HTTP requests currently in progress.
-# TYPE http_requests_in_progress gauge
-http_requests_in_progress{handler="/v1/destinations",method="GET"} 0
-http_requests_in_progress{handler="/v1/destinations/:id",method="PUT"} 0
-http_requests_in_progress{handler="/v1/grants",method="GET"} 0
-# HELP http_requests_total Total number of HTTP requests served.
-# TYPE http_requests_total counter
-http_requests_total{handler="/v1/destinations",method="GET",status="200"} 1
-http_requests_total{handler="/v1/destinations/:id",method="PUT",status="200"} 1
-http_requests_total{handler="/v1/grants",method="GET",status="200"} 12
+# HELP http_request_duration_seconds A histogram of the duration, in seconds, handling HTTP requests.
+# TYPE http_request_duration_seconds histogram
+http_request_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="0.001"} 1
+http_request_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="0.002"} 1
+http_request_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="0.004"} 1
+http_request_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="0.008"} 1
+http_request_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="0.016"} 1
+http_request_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="0.032"} 1
+http_request_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="0.064"} 1
+http_request_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="0.128"} 1
+http_request_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="0.256"} 1
+http_request_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="0.512"} 1
+http_request_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="1.024"} 1
+http_request_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="2.048"} 1
+http_request_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="4.096"} 1
+http_request_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="8.192"} 1
+http_request_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="16.384"} 1
+http_request_duration_seconds_bucket{handler="/v1/destinations",method="GET",status="200",le="+Inf"} 1
+http_request_duration_seconds_sum{handler="/v1/destinations",method="GET",status="200"} 0.000855667
+http_request_duration_seconds_count{handler="/v1/destinations",method="GET",status="200"} 1
+http_request_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="0.001"} 0
+http_request_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="0.002"} 0
+http_request_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="0.004"} 0
+http_request_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="0.008"} 1
+http_request_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="0.016"} 1
+http_request_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="0.032"} 1
+http_request_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="0.064"} 1
+http_request_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="0.128"} 1
+http_request_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="0.256"} 1
+http_request_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="0.512"} 1
+http_request_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="1.024"} 1
+http_request_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="2.048"} 1
+http_request_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="4.096"} 1
+http_request_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="8.192"} 1
+http_request_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="16.384"} 1
+http_request_duration_seconds_bucket{handler="/v1/destinations/:id",method="PUT",status="200",le="+Inf"} 1
+http_request_duration_seconds_sum{handler="/v1/destinations/:id",method="PUT",status="200"} 0.006805916
+http_request_duration_seconds_count{handler="/v1/destinations/:id",method="PUT",status="200"} 1
+http_request_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="0.001"} 2
+http_request_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="0.002"} 6
+http_request_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="0.004"} 11
+http_request_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="0.008"} 11
+http_request_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="0.016"} 12
+http_request_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="0.032"} 12
+http_request_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="0.064"} 12
+http_request_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="0.128"} 12
+http_request_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="0.256"} 12
+http_request_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="0.512"} 12
+http_request_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="1.024"} 12
+http_request_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="2.048"} 12
+http_request_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="4.096"} 12
+http_request_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="8.192"} 12
+http_request_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="16.384"} 12
+http_request_duration_seconds_bucket{handler="/v1/grants",method="GET",status="200",le="+Inf"} 12
+http_request_duration_seconds_sum{handler="/v1/grants",method="GET",status="200"} 0.031218166
+http_request_duration_seconds_count{handler="/v1/grants",method="GET",status="200"} 12
 # HELP infra_destinations Number of destinations managed by Infra.
 # TYPE infra_destinations gauge
 infra_destinations 1
