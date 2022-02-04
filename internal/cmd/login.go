@@ -196,7 +196,10 @@ func finishLogin(host string, id uid.ID, name string, token string, skipTLSVerif
 		if c.Host == host {
 			config.Hosts[i] = hostConfig
 			found = true
+			continue
 		}
+
+		config.Hosts[i].Current = false
 	}
 
 	if !found {
