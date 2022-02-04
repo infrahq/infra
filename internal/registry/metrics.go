@@ -11,26 +11,12 @@ import (
 	"github.com/infrahq/infra/internal/registry/models"
 )
 
-var (
-	requestInProgressGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "http",
-		Name:      "requests_in_progress",
-		Help:      "Number of HTTP requests currently in progress.",
-	}, []string{"method", "handler"})
-
-	requestCount = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "http",
-		Name:      "requests_total",
-		Help:      "Total number of HTTP requests served.",
-	}, []string{"method", "handler", "status"})
-
-	requestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: "http",
-		Name:      "requests_duration_seconds",
-		Help:      "A histogram of the duration, in seconds, handling HTTP requests.",
-		Buckets:   prometheus.ExponentialBuckets(0.001, 2, 15),
-	}, []string{"method", "handler", "status"})
-)
+var requestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
+	Namespace: "http",
+	Name:      "request_duration_seconds",
+	Help:      "A histogram of the duration, in seconds, handling HTTP requests.",
+	Buckets:   prometheus.ExponentialBuckets(0.001, 2, 15),
+}, []string{"method", "handler", "status"})
 
 func SetupMetrics(db *gorm.DB) error {
 	promauto.NewGaugeVec(prometheus.GaugeOpts{
