@@ -1,21 +1,21 @@
-{{- if .Values.persistentVolumeClaim.enabled }}
+{{- if .Values.persistence.enabled }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: {{ include "engine.fullname" . }}
   labels:
 {{- include "engine.labels" . | nindent 4 }}
-{{- if .Values.persistentVolumeClaim.labels }}
-{{- toYaml .Values.persistentVolumeClaim.labels | nindent 4 }}
+{{- if .Values.persistence.labels }}
+{{- toYaml .Values.persistence.labels | nindent 4 }}
 {{- end }}
   annotations:
-{{- toYaml .Values.persistentVolumeClaim.annotations | nindent 4 }}
+{{- toYaml .Values.persistence.annotations | nindent 4 }}
 spec:
-{{- if .Values.persistentVolumeClaim.className }}
-  storageClassName: {{ .Values.persistentVolumeClaim.className | quote }}
+{{- if .Values.persistence.className }}
+  storageClassName: {{ .Values.persistence.className | quote }}
 {{- end }}
   accessModes:
     - ReadWriteOnce
   resources:
-{{- toYaml .Values.persistentVolumeClaim.resources | nindent 6 }}
+{{- toYaml .Values.persistence.resources | nindent 6 }}
 {{- end }}

@@ -264,22 +264,22 @@ ingress:
   #   hosts:
   #     - infra.example.com
 
-## Server persistent volume claim configurations
-persistentVolumeClaim:
+## Server persistence configurations
+persistence:
 
-  ## Enable server persistent volume claim
+  ## Enable server persistence
   enabled: true
 
-  ## Persistent volume claim labels
+  ## persistence labels
   labels: {}
 
-  ## Persistent volume claim annotations
+  ## persistence annotations
   annotations: {}
 
   ## Name of the storage controller that will implement this resource
   className: ""
 
-  ## Resource requests and limits for the persistent volume claim
+  ## Resource requests and limits for the persistence
   resources:
     requests:
       storage: 2Gi

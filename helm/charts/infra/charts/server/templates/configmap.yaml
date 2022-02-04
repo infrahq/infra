@@ -25,7 +25,7 @@ data:
 {{- end }}
 {{- end }}
 
-{{- if .Values.persistentVolumeClaim.enabled }}
+{{- if .Values.persistence.enabled }}
 {{- if not (hasKey .Values.config "tlsCache") }}
     tlsCache: /var/lib/infrahq/server/tls.cache
 {{- end }}

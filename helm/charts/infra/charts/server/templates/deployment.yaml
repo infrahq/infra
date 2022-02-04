@@ -39,7 +39,7 @@ spec:
             - name: conf
               mountPath: /etc/infrahq
               readOnly: true
-{{- if .Values.persistentVolumeClaim.enabled }}
+{{- if .Values.persistence.enabled }}
             - name: data
               mountPath: /var/lib/infrahq/server
 {{- end }}
@@ -84,7 +84,7 @@ spec:
         - name: conf
           configMap:
             name: {{ include "server.fullname" . }}
-{{- if .Values.persistentVolumeClaim.enabled }}
+{{- if .Values.persistence.enabled }}
         - name: data
           persistentVolumeClaim:
             claimName: {{ include "server.fullname" . }}
