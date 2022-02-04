@@ -65,13 +65,13 @@ Infra is **identity and access management** for your cloud infrastructure. It pu
 > Note: Infra uses [Secrets](./docs/secrets.md) to securely load secrets.
 > It is _not_ recommended to use plain text secrets. Considering using another supported secret type.
 
-> Please follow [Okta Configuration](./docs/providers/okta.md) to obtain `clientID` and `clientSecret` for connecting Okta to Infra. 
+> Please follow [Okta Configuration](./docs/providers/okta.md) to obtain clientID and clientSecret for connecting Okta to Infra. 
 
 ```yaml
 # example infra.yaml
 
-# Add an Identity Provider 
-# Only Okta is supported currently
+# adding an Identity Provider 
+# currently only Okta is supported
 providers: 
   - name: Okta
     url: example.okta.com
@@ -79,120 +79,76 @@ providers:
     clientSecret:  example_plain_secret #see note above
 
 grants:
-# 1. Grant user(s) or group(s) as Infra administrator
-# Setup an user as Infra administrator
+# 1. Set up an initial user from IdP to become Infra administrator
   - user: you@example.com
     role: admin
     resource: infra
-# Or setup an group of users as Infra administrator
-  - group: Admin  # case sensitive 
-    role: admin 
-    resource: infra
 
-# 2. Grant user(s) or group(s) to have access to a resources
-# Example of granting access to an individual user the `cluster-admin` role. The name is specified when installing Infra Engine. 
+# 2. Grant group(s) or user(s) from IdP to have access to the determined resource
+
+# Example for granting access to an individual user the cluster admin role on a Kubernetes cluster named 'example-cluster'. This name is specified when installing Infra Engine. 
+
   - user: you@example.com 
-    role: cluster-admin                  # cluster_roles required
-    resource: kubernetes.example-cluster # limit access to the `example-cluster` Kubernetes cluster
+    role: cluster-admin  #cluster_roles required
+    resource: kubernetes.example-cluster # kubernetes cluster name 
 
-# Example of granting access to an individual user the 'edit' role in the `web` namespace.
-# In this case, Infra will automatically scope the access to a namespace.
+# Example for granting access to an individual user the cluster role 'edit' on a namespace. In this case, Infra will automatically scope the cluster-role to a namespace. 
+
   - user: you@example.com
-    role: edit                               # cluster_roles required
-    resource: kubernetes.example-cluster.web # limit access to only the `web` namespace in the `example-cluster` Kubernetes cluster
+    role: edit  #cluster_roles required
+    resource: kubernetes.example-cluster.web #specifying the 'web' namespace inside kubernetes cluster named 'example-cluster' 
 
-# Example of granting access to a group the `view` role.
+# Example for granting access to a group called 'Everyone' from Okta to the Kubernetes cluster named 'example-cluster'. 
   - group: Everyone
-    role: view                           # cluster_roles required
-    resource: kubernetes.example-cluster # limit access to the `example-cluster` Kubernetes cluster
+    role: view  #cluster_roles required
+    resource: kubernetes.example-cluster
 ```
 
 ### Step 3: Install Infra 
 
+
 ```bash
 helm repo add infrahq https://helm.infrahq.com/
-helm repo update
-helm upgrade --install -n infrahq --create-namespace infra infrahq/infra --set-file config.import=infra.yaml
+
+helm install -n infrahq --create-namespace infra infrahq/infra --set-file config.import=infra.yaml
 ```
-
-Infra can be configuration using Helm values. To see the available configuration values, run:
-
-```bash
-helm show values infrahq/infra
-```
-
-### Step 4: Login to Infra
 
 Next, you'll need to find the URL of Infra Server to log into Infra. 
 
-#### Port Forwarding
+<details>
+  <summary><strong>Default (LoadBalancer)</strong></summary>
+  Note: It may take a few minutes for the LoadBalancer endpoint to be assigned. You can watch the status of the service with: 
 
-Kubernetes port forwarding can be used in access the API server.
+  ```bash
+    INFRA_SERVER=$(kubectl -n infrahq get services -l infrahq.com/component=infra -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
+    echo $INFRA_SERVER
+  ```
+</details>
+<details>
+  <summary><strong>Ingress</strong></summary>
 
-```bash
-kubectl -n infrahq port-forward service infra-server 8080:80 8443:443
-```
+  ```bash
+  INFRA_SERVER=$(kubectl -n infrahq get ingress -l infrahq.com/component=infra -o jsonpath="{.items[].status.loadBalancer.ingress[*]['ip', 'hostname']}")
+  ```
 
-Infra API server can now be accessed on `localhost:8080` or `localhost:8443`
+</details>
 
-#### LoadBalancer
+<details>
+  <summary><strong>ClusterIP</strong></summary>
 
-Change the Infra Server service type to `LoadBalancer`.
+  ```bash
+  CONTAINER_PORT=$(kubectl -n infrahq get services -l infrahq.com/component=infra -o jsonpath="{.items[].spec.ports[0].port}")
+  kubectl -n infrahq port-forward services infra 8080:$CONTAINER_PORT &
+  INFRA_SERVER='localhost:8080'
+  ```
+</details>
 
-```bash
-kubectl -n infrahq patch service infra-server -p '{"spec": {"type": "LoadBalancer"}}'
-```
-
-Note: It may take a few minutes for the LoadBalancer endpoint to be assigned. You can watch the status of the service with:
-
-```bash
-kubectl -n infrahq get service infra-server -w
-```
-
-Once the endpoint is ready, get the Infra API server URL.
-
-```bash
-kubectl -n infrahq get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}"
-```
-
-#### Ingress
-
-Follow the [Ingress documentation](./docs/helm.md#advanced-ingress-configuration) to configure your Infra Server with Kubernetes ingress. 
-Once configured, get the Infra API server URL.
+From the terminal login to Infra 
 
 ```bash
-kubectl -n infrahq get ingress infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}"
-```
-
-#### API Server Access Key
-
-If not provided by the user during Helm install, the admin access key will be randomly generated. Retrieve it using `kubectl`.
-
-WARNING: This access key grants full access to Infra. Do not share it.
-
-```bash
-kubectl -n infrahq get secret infra-admin-access-key -o jsonpath='{.data.access-key}' | base64 -d
-```
-
-Once you have access to the Infra API server and the access key, login to Infra from the terminal.
-
-```bash
-infra login <INFRA_API_SERVER>
+infra login `URL` 
 ``` 
 
-### Step 5: Access the Cluster
-
-In order to get access to the cluster, the engine service must be accessible externally. The easiest way to achieve this is to use a LoadBalancer service.
-
-```bash
-kubectl -n infrahq patch service infra-engine -p '{"spec": {"type": "LoadBalancer"}}'
-```
-
-Switch to the cluster with Infra CLI.
-
-```bash
-infra use kubernetes.example_cluster
-```
 
 ## Next Steps
 
@@ -216,6 +172,7 @@ helm install infrahq/engine --set infra.name=kubernetes.example-name --set infra
 
 ```
 helm repo update
+
 helm upgrade -n infrahq --create-namespace infra infrahq/infra --set-file config.import=infra.yaml
 ```
 
