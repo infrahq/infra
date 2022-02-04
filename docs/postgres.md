@@ -7,11 +7,15 @@ When using Infra in a production environment configuring an external Postgres da
 ```yaml
 # example values.yaml
 ---
-config:
-  dbHost: example.com
-  dbPort: 5432
-  dbName: myinfra
-  dbUser: myuser
-  dbPassword: kubernetes:infra-postgres/pass # the password can be populated from Infra secrets, in this example a Kubernetes secret is used
-# etc...
+server:
+  envFrom:
+    - secretRef:
+        name: my-infrahq-secrets
+
+  config:
+    dbHost: example.com
+    dbPort: 5432
+    dbName: myinfra
+    dbUser: myuser
+    dbPassword: env:POSTGRES_DB_PASSWORD # the password can be populated from my-infrahq-secrets injected into the environment
 ```
