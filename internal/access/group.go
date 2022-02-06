@@ -2,8 +2,8 @@ package access
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/infrahq/infra/internal/registry/data"
-	"github.com/infrahq/infra/internal/registry/models"
+	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 

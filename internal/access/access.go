@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/registry/models"
+	"github.com/infrahq/infra/internal/server/models"
 )
 
 type Permission string

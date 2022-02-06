@@ -131,7 +131,7 @@ func (n *NativeCertificateProvider) SignCertificate(csr x509.CertificateRequest)
 	switch csr.Subject.CommonName {
 	case rootCAName:
 		return nil, fmt.Errorf("cannot sign cert pretending to be the root CA")
-	case "Engine", "Registry", "Client":
+	case "Engine", "Server", "Client":
 		// these are ok.
 	default:
 		return nil, fmt.Errorf("invalid Subject name %q", csr.Subject.CommonName)

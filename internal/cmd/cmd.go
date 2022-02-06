@@ -22,7 +22,7 @@ import (
 	"github.com/infrahq/infra/internal/config"
 	"github.com/infrahq/infra/internal/engine"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/registry"
+	"github.com/infrahq/infra/internal/server"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -591,7 +591,7 @@ func newDestinationsCmd() *cobra.Command {
 
 func newServerCmd() (*cobra.Command, error) {
 	var (
-		options    registry.Options
+		options    server.Options
 		configFile string
 	)
 
@@ -623,7 +623,7 @@ func newServerCmd() (*cobra.Command, error) {
 				return err
 			}
 
-			return registry.Run(options)
+			return server.Run(options)
 		},
 	}
 
