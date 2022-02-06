@@ -15,6 +15,9 @@
 * [infra providers list](#infra-providers-list)
 * [infra providers add](#infra-providers-add)
 * [infra providers remove](#infra-providers-remove)
+* [infra machines create](#infra-machines-create)
+* [infra machines list](#infra-machines-list)
+* [infra machines remove](#infra-machines-remove)
 * [infra tokens create](#infra-tokens-create)
 * [infra import](#infra-import)
 * [infra info](#infra-info)
@@ -333,6 +336,66 @@ infra providers remove PROVIDER [flags]
       --log-level string   Log level (error, warn, info, debug) (default "info")
 ```
 
+## `infra machines create`
+
+Create a machine identity, e.x. a service that needs to access infrastructure
+
+```
+infra machines create [NAME] [DESCRIPTION] [PERMISSIONS] [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for create
+```
+
+### Options inherited from parent commands
+
+```
+      --log-level string   Log level (error, warn, info, debug) (default "info")
+```
+
+## `infra machines list`
+
+List machines
+
+```
+infra machines list [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for list
+```
+
+### Options inherited from parent commands
+
+```
+      --log-level string   Log level (error, warn, info, debug) (default "info")
+```
+
+## `infra machines remove`
+
+Remove a machine identity
+
+```
+infra machines remove MACHINE [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for remove
+```
+
+### Options inherited from parent commands
+
+```
+      --log-level string   Log level (error, warn, info, debug) (default "info")
+```
+
 ## `infra tokens create`
 
 Create a token
@@ -405,6 +468,8 @@ infra server [flags]
 ### Options
 
 ```
+      --access-key string                   Access key (secret) (default "file:/Users/jmorgan/.infra/access-key")
+      --admin-access-key string             Admin access key (secret) (default "file:/Users/jmorgan/.infra/admin-access-key")
   -f, --config-file string                  Server configuration file
       --db-encryption-key string            Database encryption key (default "/Users/jmorgan/.infra/key")
       --db-encryption-key-provider string   Database encryption key provider (default "native")
@@ -417,9 +482,7 @@ infra server [flags]
       --db-user string                      Database user
       --enable-crash-reporting              Enable crash reporting (default true)
       --enable-telemetry                    Enable telemetry (default true)
-      --access-key string                   Access key (secret) (default "file:/Users/jmorgan/.infra/access-key")
-  -h, --help                                Help for server
-      --admin-access-key string             Admin access key (secret) (default "file:/Users/jmorgan/.infra/admin-access-key")
+  -h, --help                                help for server
   -d, --session-duration duration           Session duration (default 12h0m0s)
       --tls-cache string                    Directory to cache TLS certificates (default "/Users/jmorgan/.infra/tls")
 ```
@@ -441,13 +504,13 @@ infra engine [flags]
 ### Options
 
 ```
-      --access-key string     Infra access key (use file:// to load from a file)
+      --access-key string    Infra access key (use file:// to load from a file)
   -f, --config-file string   Engine config file
   -h, --help                 help for engine
   -n, --name string          Destination name
       --server string        Infra Server hostname
       --skip-tls-verify      Skip TLS verification (default true)
-      --tls-cache string     Path to cache self-signed and Let's Encrypt TLS certificates
+      --tls-cache string     Directory to cache TLS certificates (default "/Users/jmorgan/.infra/tls")
 ```
 
 ### Options inherited from parent commands
