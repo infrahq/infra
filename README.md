@@ -198,14 +198,14 @@ Using Infra CLI:
 
 Generate the helm install command via
 ```
-infra destinations add kubernetes example-name
+infra destinations add kubernetes example-cluster
 ```
 
 Run the output Helm command on the Kubernetes cluster to be added.
 
 Example:
 ```
-helm upgrade --install infra-engine infrahq/engine --set config.accessKey=2pVqDSdkTF.oSCEe6czoBWdgc6wRz0ywK8y --set config.name=kubernetes.example-name --set config.server=localhost --set config.skipTLSVerify=true
+helm upgrade --install infra-engine infrahq/engine --set config.accessKey=2pVqDSdkTF.oSCEe6czoBWdgc6wRz0ywK8y --set config.name=kubernetes.example-cluster --set config.server=https://infra.acme.com
 ```
 
 ### Upgrade Infra

@@ -417,7 +417,7 @@ func newEngineCmd() *cobra.Command {
 	cmd.Flags().StringP("access-key", "a", "", "Infra access key (use file:// to load from a file)")
 	cmd.Flags().StringP("name", "n", "", "Destination name")
 	cmd.Flags().String("tls-cache", "$HOME/.infra/cache", "Directory to cache TLS certificates")
-	cmd.Flags().Bool("skip-tls-verify", true, "Skip verifying server TLS certificate")
+	cmd.Flags().Bool("skip-tls-verify", false, "Skip verifying server TLS certificates")
 
 	return cmd
 }
