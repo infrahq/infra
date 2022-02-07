@@ -14,7 +14,10 @@ import (
 
 	"github.com/goware/urlx"
 	"github.com/lensesio/tableprinter"
+	"github.com/mcuadros/go-defaults"
+	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 
 	"github.com/infrahq/infra/internal/api"
@@ -23,6 +26,55 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server"
 )
+
+func parseOptions(cmd *cobra.Command, options interface{}, envPrefix string) error {
+	v := viper.New()
+
+	if err := v.BindPFlags(cmd.Flags()); err != nil {
+		return err
+	}
+
+	v.SetConfigName("infra")
+	v.SetConfigType("yaml")
+
+	v.AddConfigPath("/etc/infrahq")
+	v.AddConfigPath("$HOME/.infra")
+	v.AddConfigPath(".")
+
+	if configFileFlag := cmd.Flags().Lookup("config-file"); configFileFlag != nil {
+		if configFile := configFileFlag.Value.String(); configFile != "" {
+			v.SetConfigFile(configFile)
+		}
+	}
+
+	v.SetEnvPrefix(envPrefix)
+	v.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+	v.AutomaticEnv()
+
+	// workaround for viper not correctly binding env vars
+	// https://github.com/spf13/viper/issues/761
+	envKeys := make(map[string]interface{})
+	if err := mapstructure.Decode(options, &envKeys); err != nil {
+		return err
+	}
+
+	for envKey := range envKeys {
+		if err := v.BindEnv(envKey); err != nil {
+			return err
+		}
+	}
+
+	defaults.SetDefaults(options)
+
+	if err := v.ReadInConfig(); err != nil {
+		var errNotFound *viper.ConfigFileNotFoundError
+		if errors.As(err, &errNotFound) {
+			return err
+		}
+	}
+
+	return v.Unmarshal(options)
+}
 
 func infraHomeDir() (string, error) {
 	homeDir, err := os.UserHomeDir()
@@ -88,23 +140,27 @@ func apiClient(host string, token string, skipTLSVerify bool) (*api.Client, erro
 	}, nil
 }
 
-type loginOptions struct {
-	host string `mapstructure:"host"`
-}
-
 func newLoginCmd() *cobra.Command {
+	type loginOptions struct {
+		Host string `mapstructure:"host"`
+	}
+
 	return &cobra.Command{
 		Use:     "login [SERVER]",
-		Short:   "Login to Infra",
+		Short:   "Login to Infra Server",
 		Example: "$ infra login",
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var host string
-			if len(args) == 1 {
-				host = args[0]
+			var options loginOptions
+			if err := parseOptions(cmd, &options, "INFRA"); err != nil {
+				return err
 			}
 
-			return login(host)
+			if len(args) == 1 {
+				options.Host = args[0]
+			}
+
+			return login(options.Host)
 		},
 	}
 }
@@ -115,11 +171,7 @@ func newLogoutCmd() *cobra.Command {
 		Short:   "Logout of Infra",
 		Example: "$ infra logout",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := logout(); err != nil {
-				return err
-			}
-
-			return nil
+			return logout()
 		},
 	}
 }
@@ -148,10 +200,7 @@ infra use kubernetes.development.kube-system
 		`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			name := ""
-			if len(args) > 0 {
-				name = args[0]
-			}
+			name := args[0]
 
 			client, err := defaultAPIClient()
 			if err != nil {
@@ -484,14 +533,21 @@ func newVersionCmd() *cobra.Command {
 func NewRootCmd() (*cobra.Command, error) {
 	cobra.EnableCommandSorting = false
 
-	var level string
+	type rootOptions struct {
+		LogLevel string `mapstructure:"log-level"`
+	}
 
 	rootCmd := &cobra.Command{
 		Use:               "infra",
 		CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: true},
 		SilenceUsage:      true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			return logging.SetLevel(level)
+			var options rootOptions
+			if err := parseOptions(cmd, &options, "INFRA"); err != nil {
+				return err
+			}
+
+			return logging.SetLevel(options.LogLevel)
 		},
 	}
 
@@ -515,7 +571,7 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.AddCommand(newEngineCmd())
 	rootCmd.AddCommand(newVersionCmd())
 
-	rootCmd.PersistentFlags().StringVar(&level, "log-level", "info", "Log level (error, warn, info, debug)")
+	rootCmd.PersistentFlags().String("log-level", "info", "Set the log level. One of error, warn, info, or debug")
 
 	return rootCmd, nil
 }
