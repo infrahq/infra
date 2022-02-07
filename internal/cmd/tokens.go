@@ -6,11 +6,26 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientauthenticationv1beta1 "k8s.io/client-go/pkg/apis/clientauthentication/v1beta1"
 
 	"github.com/infrahq/infra/internal/api"
 )
+
+func newTokensCreateCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "create",
+		Short: "Create a token",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := tokensCreate(); err != nil {
+				return err
+			}
+
+			return nil
+		},
+	}
+}
 
 func tokensCreate() error {
 	execCredential := &clientauthenticationv1beta1.ExecCredential{}
