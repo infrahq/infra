@@ -32,6 +32,10 @@ func (u ID) String() string {
 }
 
 func Parse(b []byte) (ID, error) {
+	if len(b) > 11 {
+		return ID(0), fmt.Errorf("invalid id %q", string(b))
+	}
+
 	id, err := snowflake.ParseBase58(b)
 	if err != nil {
 		return ID(0), err
