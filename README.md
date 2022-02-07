@@ -130,7 +130,7 @@ Next, you'll need to find the URL of Infra Server to login to Infra.
 Kubernetes port forwarding can be used in access the API server.
 
 ```bash
-kubectl -n infrahq port-forward service infra-server 8080:80 8443:443
+kubectl -n infrahq port-forward deployments/infra-server 8080:80 8443:443
 ```
 
 Infra API server can now be accessed on `localhost:8080` or `localhost:8443`
