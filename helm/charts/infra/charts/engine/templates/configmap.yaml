@@ -12,7 +12,7 @@ data:
 
     accessKey: /var/run/secrets/infrahq.com/access-key/access-key
 
-{{- range $key, $val := omit .Values.config "apiToken" }}
+{{- range $key, $val := omit .Values.config "accessKey" }}
 {{- if kindIs "invalid" $val }}
     # skipping invalid value: {{ $val }} ({{ kindOf $val }})
 {{- else if kindIs "map" $val }}
