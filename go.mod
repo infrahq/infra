@@ -18,7 +18,7 @@ require (
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/goware/urlx v0.3.1
 	github.com/hashicorp/vault/api v1.3.1
-	github.com/jackc/pgconn v1.10.1
+	github.com/jackc/pgconn v1.11.0
 	github.com/jackc/pgerrcode v0.0.0-20201024163028-a0d42d470451
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/kevinburke/go-bindata v3.23.0+incompatible
