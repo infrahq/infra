@@ -29,7 +29,8 @@ In **General Settings** > **Grant type** select **Authorization Code** and **Ref
 For **Sign-in redirect URIs** write `http://localhost:8301`. For **Assignments** select the groups which will have access through Infra.  
 Click **Save**.
 
-![okta_app_creation_group_assignment](https://user-images.githubusercontent.com/5853428/130118354-b7ebeee7-4b7b-41cf-a022-ad165fa6f5db.png)
+![okta_app_creation_group_assignment](https://user-images.githubusercontent.com/5853428/152881012-f319128f-0de7-467b-a124-21f44cd40bfa.png)
+
 
 
 4. On the **General** tab, **note** the **Client ID**, **Client Secret**, and **Okta domain** for adding your Okta information to Infra later.
