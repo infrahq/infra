@@ -322,18 +322,6 @@ tolerations: []
 ## Server affinity configurations
 affinity: {}
 
-## Admin user configurations
-admin:
-
-  ## Create admin user
-  create: false
-
-  ## Admin user name
-  username: admin
-
-  ## Admin user password. If omitted or empty, a password will be randomly generated
-  password: ""
-
 ## Primary configuration
 ## Ref: https://github.com/infrahq/infra/blob/main/docs/configuration.md
 config: {}
