@@ -90,12 +90,12 @@ grants:
     resource: infra
 
 # 2. Grant user(s) or group(s) access to a resources
-# Example of granting access to an individual user the `cluster-admin` role. The name is specified when installing Infra Engine.
+# Example of granting access to an individual user the `cluster-admin` role. The name of a resource is specified when installing the Infra Engine at that location.
   - user: you@example.com
     role: cluster-admin                  # cluster_roles required
     resource: kubernetes.example-cluster # limit access to the `example-cluster` Kubernetes cluster
 
-# Example of granting access to an individual user the 'edit' role in the `web` namespace.
+# Example of granting access to an individual user through assigning them to the 'edit' role in the `web` namespace.
 # In this case, Infra will automatically scope the access to a namespace.
   - user: you@example.com
     role: edit                               # cluster_roles required
@@ -115,7 +115,7 @@ helm repo update
 helm upgrade --install -n infrahq --create-namespace infra infrahq/infra --set-file config.import=infra.yaml
 ```
 
-Infra can be configuration using Helm values. To see the available configuration values, run:
+Infra can be configured using Helm values. To see the available configuration values, run:
 
 ```bash
 helm show values infrahq/infra
@@ -123,7 +123,7 @@ helm show values infrahq/infra
 
 ### Step 4: Login to Infra
 
-Next, you'll need to find the URL of Infra Server to log into Infra.
+Next, you'll need to find the URL of Infra Server to login to Infra.
 
 #### Port Forwarding
 
@@ -157,7 +157,7 @@ kubectl -n infrahq get service infra-server -o jsonpath="{.status.loadBalancer.i
 
 #### Ingress
 
-Follow the [Ingress documentation](./docs/helm.md#advanced-ingress-configuration) to configure your Infra Server with Kubernetes ingress.
+Follow the [Ingress documentation](./docs/helm.md#advanced-ingress-configuration) to configure your Infra Server with a Kubernetes ingress.
 Once configured, get the Infra API server URL.
 
 ```bash
@@ -168,7 +168,7 @@ kubectl -n infrahq get ingress infra-server -o jsonpath="{.status.loadBalancer.i
 
 If not provided by the user during Helm install, the admin access key will be randomly generated. Retrieve it using `kubectl`.
 
-WARNING: This access key grants full access to Infra. Do not share it.
+WARNING: This admin access key grants full access to Infra. Do not share it.
 
 ```bash
 kubectl -n infrahq get secret infra-admin-access-key -o jsonpath='{.data.access-key}' | base64 -d
