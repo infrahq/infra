@@ -89,7 +89,7 @@ grants:
     role: admin
     resource: infra
 
-# 2. Grant user(s) or group(s) to have access to a resources
+# 2. Grant user(s) or group(s) access to a resources
 # Example of granting access to an individual user the `cluster-admin` role. The name is specified when installing Infra Engine.
   - user: you@example.com
     role: cluster-admin                  # cluster_roles required
