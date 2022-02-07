@@ -10,7 +10,6 @@ gon.json
 Makefile
 Dockerfile
 build
-internal/registry/ui
 .test
 .vscode
 dist

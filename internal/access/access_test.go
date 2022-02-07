@@ -13,9 +13,9 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/registry/authn"
-	"github.com/infrahq/infra/internal/registry/data"
-	"github.com/infrahq/infra/internal/registry/models"
+	"github.com/infrahq/infra/internal/server/authn"
+	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/secrets"
 	"github.com/infrahq/infra/uid"
 )
