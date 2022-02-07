@@ -30,6 +30,8 @@ go run .
 * Install [Docker](https://docker.com/)
   * (macOS, Windows) [Docker Desktop](https://www.docker.com/products/docker-desktop)
   * (Linux) [Docker Engine](https://docs.docker.com/engine/install)
+* `envsubst`
+  * (macOS, Linux) `brew install gettext`
 
 ---
 
