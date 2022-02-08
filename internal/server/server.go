@@ -113,8 +113,10 @@ func Run(options Options) (err error) {
 		scope.SetContext("serverId", settings.ID)
 	})
 
-	if err := server.configureTelemetry(); err != nil {
-		return fmt.Errorf("configuring telemetry: %w", err)
+	if options.EnableTelemetry {
+		if err := configureTelemetry(server.db); err != nil {
+			return fmt.Errorf("configuring telemetry: %w", err)
+		}
 	}
 
 	if err := SetupMetrics(server.db); err != nil {
@@ -143,19 +145,15 @@ func Run(options Options) (err error) {
 	return logging.L.Sync()
 }
 
-func (s *Server) configureTelemetry() error {
-	var err error
-
-	s.tel, err = NewTelemetry(s.db)
+func configureTelemetry(db *gorm.DB) error {
+	tel, err := NewTelemetry(db)
 	if err != nil {
 		return err
 	}
 
-	s.tel.SetEnabled(s.options.EnableTelemetry)
-
 	telemetryTimer := timer.NewTimer()
-	telemetryTimer.Start(60*time.Minute, func() {
-		if err := s.tel.EnqueueHeartbeat(); err != nil {
+	telemetryTimer.Start(1*time.Hour, func() {
+		if err := tel.EnqueueHeartbeat(); err != nil {
 			logging.S.Debug(err)
 		}
 	})
