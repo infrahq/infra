@@ -66,11 +66,10 @@ func list() error {
 }
 
 func info(client *api.Client, g api.Grant) (provider string, name string, err error) {
-	var id uid.ID
-
 	switch {
 	case strings.HasPrefix(g.Identity, "u:"):
-		if err := id.UnmarshalText([]byte(strings.TrimPrefix(g.Identity, "u:"))); err != nil {
+		id, err := uid.ParseString(strings.TrimPrefix(g.Identity, "u:"))
+		if err != nil {
 			return "", "", err
 		}
 
@@ -86,7 +85,8 @@ func info(client *api.Client, g api.Grant) (provider string, name string, err er
 
 		return provider.Name, user.Email, nil
 	default:
-		if err := id.UnmarshalText([]byte(strings.TrimPrefix(g.Identity, "g:"))); err != nil {
+		id, err := uid.ParseString(strings.TrimPrefix(g.Identity, "g:"))
+		if err != nil {
 			return "", "", err
 		}
 

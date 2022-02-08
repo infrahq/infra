@@ -64,8 +64,7 @@ func CreateGrant(c *gin.Context, grant *models.Grant) error {
 
 	// TODO (https://github.com/infrahq/infra/issues/855): replace permissions with actual grant models
 	if grant.Resource == "infra" && grant.Privilege == "admin" {
-		var userID uid.ID
-		err := userID.UnmarshalText([]byte(strings.TrimPrefix(grant.Identity, "u:")))
+		userID, err := uid.ParseString(strings.TrimPrefix(grant.Identity, "u:"))
 		if err != nil {
 			return fmt.Errorf("invalid identity id: %w", err)
 		}
@@ -98,8 +97,7 @@ func DeleteGrant(c *gin.Context, id uid.ID) error {
 	}
 
 	if grant.Resource == "infra" && grant.Privilege == "admin" {
-		var userID uid.ID
-		err := userID.UnmarshalText([]byte(strings.TrimPrefix(grant.Identity, "u:")))
+		userID, err := uid.ParseString(strings.TrimPrefix(grant.Identity, "u:"))
 		if err != nil {
 			return fmt.Errorf("invalid identity id: %w", err)
 		}

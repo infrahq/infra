@@ -1,6 +1,7 @@
 package uid
 
 import (
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -30,12 +31,34 @@ func (u ID) String() string {
 	return snowflake.ID(u).Base58()
 }
 
-func (u *ID) UnmarshalText(b []byte) error {
+func Parse(b []byte) (ID, error) {
+	if len(b) > 11 {
+		return ID(0), fmt.Errorf("invalid id %q", string(b))
+	}
+
 	id, err := snowflake.ParseBase58(b)
+	if err != nil {
+		return ID(0), err
+	}
+
+	if id < 0 {
+		return ID(0), fmt.Errorf("invalid id %q", string(b))
+	}
+
+	return ID(id), nil
+}
+
+func ParseString(s string) (ID, error) {
+	return Parse([]byte(s))
+}
+
+func (u *ID) UnmarshalText(b []byte) error {
+	id, err := Parse(b)
 	if err != nil {
 		return err
 	}
-	*u = ID(id)
+
+	*u = id
 	return nil
 }
 

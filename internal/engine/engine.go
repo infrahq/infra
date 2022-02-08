@@ -174,9 +174,7 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 
 		switch {
 		case strings.HasPrefix(g.Identity, "g:"):
-			var id uid.ID
-
-			err := id.UnmarshalText([]byte(strings.TrimPrefix(g.Identity, "g:")))
+			id, err := uid.ParseString(strings.TrimPrefix(g.Identity, "g:"))
 			if err != nil {
 				return err
 			}
@@ -190,9 +188,7 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 			kind = rbacv1.GroupKind
 
 		case strings.HasPrefix(g.Identity, "u:"):
-			var id uid.ID
-
-			err := id.UnmarshalText([]byte(strings.TrimPrefix(g.Identity, "u:")))
+			id, err := uid.ParseString(strings.TrimPrefix(g.Identity, "u:"))
 			if err != nil {
 				return err
 			}
