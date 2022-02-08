@@ -468,13 +468,20 @@ func newInfoCmd() *cobra.Command {
 }
 
 func newImportCmd() *cobra.Command {
-	var replace bool
+	type importOptions struct {
+		Replace bool
+	}
 
 	cmd := &cobra.Command{
 		Use:   "import [FILE]",
 		Short: "Import an infra server configuration",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			var options importOptions
+			if err := parseOptions(cmd, &options, "INFRA_IMPORT"); err != nil {
+				return err
+			}
+
 			client, err := defaultAPIClient()
 			if err != nil {
 				return err
@@ -491,11 +498,11 @@ func newImportCmd() *cobra.Command {
 				return err
 			}
 
-			return config.Import(client, c, replace)
+			return config.Import(client, c, options.Replace)
 		},
 	}
 
-	cmd.Flags().BoolVar(&replace, "replace", false, "replace any existing configuration")
+	cmd.Flags().Bool("replace", false, "replace any existing configuration")
 
 	return cmd
 }
