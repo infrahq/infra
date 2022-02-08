@@ -12,7 +12,6 @@ import (
 )
 
 type Telemetry struct {
-	enabled bool
 	client  analytics.Client
 	db      *gorm.DB
 }
@@ -22,21 +21,14 @@ func NewTelemetry(db *gorm.DB) (*Telemetry, error) {
 		return nil, errors.New("db cannot be nil")
 	}
 
-	enabled := internal.TelemetryWriteKey != ""
-
 	return &Telemetry{
-		enabled: enabled,
 		client:  analytics.New(internal.TelemetryWriteKey),
 		db:      db,
 	}, nil
 }
 
-func (t *Telemetry) SetEnabled(enabled bool) {
-	t.enabled = enabled
-}
-
 func (t *Telemetry) Enqueue(track analytics.Track) error {
-	if !t.enabled {
+	if internal.TelemetryWriteKey == "" {
 		return nil
 	}
 
