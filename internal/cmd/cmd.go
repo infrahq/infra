@@ -17,8 +17,10 @@ import (
 	"github.com/mcuadros/go-defaults"
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
+	"github.com/iancoleman/strcase"
 
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/config"
@@ -29,10 +31,6 @@ import (
 
 func parseOptions(cmd *cobra.Command, options interface{}, envPrefix string) error {
 	v := viper.New()
-
-	if err := v.BindPFlags(cmd.Flags()); err != nil {
-		return err
-	}
 
 	v.SetConfigName("infra")
 	v.SetConfigType("yaml")
@@ -58,10 +56,33 @@ func parseOptions(cmd *cobra.Command, options interface{}, envPrefix string) err
 		return err
 	}
 
+	// bind file options (lower camel case) to environment options (envPrefix + upper snake case)
+	// e.g. accessKey -> INFRA_ENGINE_ACCESS_KEY
 	for envKey := range envKeys {
-		if err := v.BindEnv(envKey); err != nil {
+		fullEnvKey := fmt.Sprintf("%s_%s", envPrefix, envKey)
+		if err := v.BindEnv(envKey, strcase.ToScreamingSnake(fullEnvKey)); err != nil {
 			return err
 		}
+	}
+
+	errs := make([]error, 0)
+	// bind command line options (lower snake case) to file options (lower camel case)
+	// e.g. access-key -> accessKey
+	cmd.Flags().VisitAll(func(f *pflag.Flag) {
+		if err := v.BindPFlag(strcase.ToLowerCamel(f.Name), f); err != nil {
+			errs = append(errs, err)
+		}
+	})
+
+	if len(errs) > 0 {
+		var sb strings.Builder
+		sb.WriteString("multiple errors seen while binding flags:\n\n")
+
+		for _, err := range errs {
+			fmt.Fprintf(&sb, "* %s\n", err)
+		}
+
+		return errors.New(sb.String())
 	}
 
 	defaults.SetDefaults(options)
@@ -324,56 +345,28 @@ func newServerCmd() (*cobra.Command, error) {
 }
 
 func newEngineCmd() *cobra.Command {
-	var (
-		options          engine.Options
-		engineConfigFile string
-		err              error
-	)
-
-	parseConfig := func() {
-		if engineConfigFile == "" {
-			return
-		}
-
-		var contents []byte
-
-		contents, err = ioutil.ReadFile(engineConfigFile)
-		if err != nil {
-			return
-		}
-
-		err = yaml.Unmarshal(contents, &options)
-	}
-
-	cobra.OnInitialize(parseConfig)
-
 	cmd := &cobra.Command{
 		Use:   "engine",
 		Short: "Start Infra Engine",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err != nil {
+			// override default strcase.ToLowerCamel behaviour
+			strcase.ConfigureAcronym("skip-tls-verify", "skipTLSVerify")
+
+			var options engine.Options
+			if err := parseOptions(cmd, &options, "INFRA_ENGINE"); err != nil {
 				return err
 			}
 
-			if err := engine.Run(options); err != nil {
-				return err
-			}
-
-			return nil
+			return engine.Run(options)
 		},
 	}
 
-	infraDir, err := infraHomeDir()
-	if err != nil {
-		return nil
-	}
-
-	cmd.Flags().StringVarP(&engineConfigFile, "config-file", "f", "", "Engine config file")
-	cmd.Flags().StringVarP(&options.Name, "name", "n", "", "Destination name")
-	cmd.Flags().StringVar(&options.AccessKey, "access-key", "", "Infra access key (use file:// to load from a file)")
-	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(infraDir, "tls"), "Directory to cache TLS certificates")
-	cmd.Flags().StringVar(&options.Server, "server", "", "Infra Server hostname")
-	cmd.Flags().BoolVar(&options.SkipTLSVerify, "skip-tls-verify", true, "Skip TLS verification")
+	cmd.Flags().StringP("config-file", "f", "", "Engine config file")
+	cmd.Flags().StringP("server", "s", "", "Infra Server hostname")
+	cmd.Flags().StringP("access-key", "a", "", "Infra access key (use file:// to load from a file)")
+	cmd.Flags().StringP("name", "n", "", "Destination name")
+	cmd.Flags().String("tls-cache", "$HOME/.infra/cache", "Directory to cache TLS certificates")
+	cmd.Flags().Bool("skip-tls-verify", true, "Skip verifying server TLS certificate")
 
 	return cmd
 }
@@ -534,7 +527,7 @@ func NewRootCmd() (*cobra.Command, error) {
 	cobra.EnableCommandSorting = false
 
 	type rootOptions struct {
-		LogLevel string `mapstructure:"log-level"`
+		LogLevel string `mapstructure:"logLevel"`
 	}
 
 	rootCmd := &cobra.Command{
