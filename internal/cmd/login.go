@@ -212,7 +212,7 @@ func finishLogin(host string, id uid.ID, name string, token string, skipTLSVerif
 	}
 
 	if id != 0 {
-		return updateKubeconfig()
+		return updateKubeconfig(client, id)
 	}
 
 	return nil
