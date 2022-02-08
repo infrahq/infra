@@ -41,6 +41,9 @@ data:
 
     import:
 {{- $import := .Values.config.import | default dict }}
+{{- if kindIs "string" .Values.config.import }}
+{{- $import = fromYaml .Values.config.import }}
+{{- end }}
       providers:
 {{- $import.providers | default list | concat .Values.additionalProviders | uniq | toYaml | nindent 8 }}
       grants:
