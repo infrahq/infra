@@ -1,3 +1,6 @@
+//go:generate npm run export --silent --prefix ../../ui
+//go:generate go-bindata -pkg server -nocompress -o ./bindata_ui.go -prefix "../../ui/out/" ../../ui/out/...
+
 package server
 
 import (
@@ -5,14 +8,19 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httputil"
 	"os"
 	"strings"
 	"time"
 
+	assetfs "github.com/elazarl/go-bindata-assetfs"
 	"github.com/getsentry/sentry-go"
 	sentryhttp "github.com/getsentry/sentry-go/http"
+	"github.com/gin-contrib/gzip"
+	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/handlers"
+	"github.com/goware/urlx"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/crypto/acme/autocert"
 	"gopkg.in/square/go-jose.v2"
@@ -46,7 +54,9 @@ type Options struct {
 	DBParameters            string           `yaml:"dbParameters"`
 	EnableTelemetry         bool             `yaml:"enableTelemetry"`
 	EnableCrashReporting    bool             `yaml:"enableCrashReporting"`
+	EnableUI                bool             `yaml:"enableUI"`
 	SessionDuration         time.Duration    `yaml:"sessionDuration"`
+	UIProxyURL              string           `yaml:"uiProxyURL"`
 }
 
 type Server struct {
@@ -190,6 +200,53 @@ func (s *Server) runServer() error {
 	})
 
 	NewAPIMux(s, router.Group("/v1"))
+
+	// UI
+	if s.options.EnableUI {
+		if s.options.UIProxyURL != "" {
+			remote, err := urlx.Parse(s.options.UIProxyURL)
+			if err != nil {
+				return err
+			}
+
+			proxy := httputil.NewSingleHostReverseProxy(remote)
+			proxy.Director = func(req *http.Request) {
+				req.Host = remote.Host
+				req.URL.Scheme = remote.Scheme
+				req.URL.Host = remote.Host
+			}
+
+			router.Use(func(c *gin.Context) {
+				proxy.ServeHTTP(c.Writer, c.Request)
+			})
+		} else {
+			assetFS := &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo}
+			staticFS := &StaticFileSystem{base: assetFS}
+			router.Use(gzip.Gzip(gzip.DefaultCompression), static.Serve("/", staticFS))
+
+			// 404
+			router.NoRoute(func(c *gin.Context) {
+				if strings.HasPrefix(c.Request.URL.Path, "/v1") {
+					c.Status(404)
+					c.Writer.WriteHeaderNow()
+					return
+				}
+
+				c.Status(http.StatusNotFound)
+				buf, err := assetFS.Asset("404.html")
+				if err != nil {
+					logging.S.Error(err)
+				}
+
+				_, err = c.Writer.Write(buf)
+				if err != nil {
+					logging.S.Error(err)
+				}
+
+				c.Status(http.StatusNotFound)
+			})
+		}
+	}
 
 	sentryHandler := sentryhttp.New(sentryhttp.Options{})
 

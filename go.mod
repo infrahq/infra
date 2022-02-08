@@ -46,6 +46,9 @@ require (
 require (
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/coreos/go-oidc/v3 v3.1.0
+	github.com/gin-contrib/gzip v0.0.5
+	github.com/gin-contrib/static v0.0.1
+	github.com/spf13/afero v1.6.0
 )
 
 require (
