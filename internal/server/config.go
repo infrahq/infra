@@ -490,8 +490,6 @@ func (s *Server) importAccessKeys() error {
 		},
 	}
 
-	errs := make(map[string]error, 0)
-
 	for k, v := range keys {
 		if v.Secret == "" {
 			logging.S.Debugf("%s: secret not set; skipping", k)
@@ -500,8 +498,7 @@ func (s *Server) importAccessKeys() error {
 
 		raw, err := s.GetSecret(v.Secret)
 		if err != nil && !errors.Is(err, secrets.ErrNotFound) {
-			errs[k] = fmt.Errorf("secret: %w", err)
-			continue
+			return fmt.Errorf("%s secret: %w", k, err)
 		}
 
 		if raw == "" {
@@ -512,15 +509,13 @@ func (s *Server) importAccessKeys() error {
 		ak, err := data.LookupAccessKey(s.db, raw)
 		if err != nil {
 			if !errors.Is(err, internal.ErrNotFound) {
-				errs[k] = fmt.Errorf("lookup: %w", err)
-				continue
+				return fmt.Errorf("%s lookup: %w", k, err)
 			}
 		}
 
 		parts := strings.Split(raw, ".")
 		if len(parts) < 2 {
-			errs[k] = fmt.Errorf("format: %w", err)
-			continue
+			return fmt.Errorf("%s format: %w", k, err)
 		}
 
 		if ak != nil {
@@ -534,8 +529,7 @@ func (s *Server) importAccessKeys() error {
 
 			err = data.DeleteAccessKeys(s.db, data.ByName(k))
 			if err != nil {
-				errs[k] = fmt.Errorf("delete: %w", err)
-				continue
+				return fmt.Errorf("%s delete: %w", k, err)
 			}
 		}
 
@@ -547,21 +541,8 @@ func (s *Server) importAccessKeys() error {
 			ExpiresAt:   time.Now().Add(math.MaxInt64),
 		}
 		if _, err := data.CreateAccessKey(s.db, token); err != nil {
-			errs[k] = fmt.Errorf("create: %w", err)
+			return fmt.Errorf("%s create: %w", k, err)
 		}
-	}
-
-	if len(errs) > 0 {
-		var err error
-		for k, v := range errs {
-			if err == nil {
-				err = fmt.Errorf("%s %s", k, v)
-			} else {
-				err = fmt.Errorf("%w, %s %s", err, k, v)
-			}
-		}
-
-		return err
 	}
 
 	return nil
