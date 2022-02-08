@@ -6,6 +6,12 @@ import (
 	"github.com/infrahq/infra/internal/api"
 )
 
+type providerOptions struct {
+	URL string
+	ClientID string `mapstructure:"client-id"`
+	ClientSecret string `mapstructure:"client-secret"`
+}
+
 func newProvidersListCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "list",
@@ -40,17 +46,16 @@ func newProvidersListCmd() *cobra.Command {
 }
 
 func newProvidersAddCmd() *cobra.Command {
-	var (
-		url          string
-		clientID     string
-		clientSecret string
-	)
-
 	cmd := &cobra.Command{
 		Use:   "add NAME",
 		Short: "Connect an identity provider",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			var options providerOptions
+			if err := parseOptions(cmd, &options, "INFRA_PROVIDER"); err != nil {
+				return err
+			}
+
 			client, err := defaultAPIClient()
 			if err != nil {
 				return err
@@ -58,9 +63,9 @@ func newProvidersAddCmd() *cobra.Command {
 
 			_, err = client.CreateProvider(&api.CreateProviderRequest{
 				Name:         args[0],
-				URL:          url,
-				ClientID:     clientID,
-				ClientSecret: clientSecret,
+				URL:          options.URL,
+				ClientID:     options.ClientID,
+				ClientSecret: options.ClientSecret,
 			})
 			if err != nil {
 				return err
@@ -70,9 +75,9 @@ func newProvidersAddCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&url, "url", "", "url or domain (e.g. acme.okta.com)")
-	cmd.Flags().StringVar(&clientID, "client-id", "", "OpenID Client ID")
-	cmd.Flags().StringVar(&clientSecret, "client-secret", "", "OpenID Client Secret")
+	cmd.Flags().String("url", "", "url or domain (e.g. acme.okta.com)")
+	cmd.Flags().String("client-id", "", "OpenID Client ID")
+	cmd.Flags().String("client-secret", "", "OpenID Client Secret")
 
 	return cmd
 }
