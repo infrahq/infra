@@ -37,11 +37,11 @@ import (
 )
 
 type Options struct {
-	Server        string `yaml:"server"`
-	Name          string `yaml:"name"`
-	AccessKey     string `yaml:"accessKey"`
-	TLSCache      string `yaml:"tlsCache"`
-	SkipTLSVerify bool   `yaml:"skipTLSVerify"`
+	Server        string `mapstructure:"server"`
+	Name          string `mapstructure:"name"`
+	AccessKey     string `mapstructure:"accessKey"`
+	TLSCache      string `mapstructure:"tlsCache"`
+	SkipTLSVerify bool   `mapstructure:"skipTLSVerify"`
 }
 
 type jwkCache struct {
