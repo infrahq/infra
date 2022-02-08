@@ -108,7 +108,7 @@ grants:
 ```bash
 helm repo add infrahq https://helm.infrahq.com/
 helm repo update
-helm upgrade --install -n infrahq --create-namespace infra infrahq/infra --set-file config.import=infra.yaml
+helm upgrade --install -n infrahq --create-namespace infra infrahq/infra --set-file server.config.import=infra.yaml
 ```
 
 Infra can be configured using Helm values. To see the available configuration values, run:
@@ -212,7 +212,7 @@ helm install infrahq/engine --set infra.name=kubernetes.example-name --set infra
 
 ```
 helm repo update
-helm upgrade -n infrahq --create-namespace infra infrahq/infra --set-file config.import=infra.yaml
+helm upgrade -n infrahq --create-namespace infra infrahq/infra --set-file server.config.import=infra.yaml
 ```
 
 ## [Security](./docs/security.md)
