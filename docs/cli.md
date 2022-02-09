@@ -28,10 +28,10 @@
 
 ## `infra login`
 
-Login to Infra
+Login to Infra Server
 
 ```
-infra login [HOST] [flags]
+infra login [SERVER] [flags]
 ```
 
 ### Examples
@@ -49,7 +49,7 @@ $ infra login
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Log level (error, warn, info, debug) (default "info")
+      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
 ```
 
 ## `infra logout`
@@ -75,7 +75,7 @@ $ infra logout
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Log level (error, warn, info, debug) (default "info")
+      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
 ```
 
 ## `infra list`
@@ -95,7 +95,7 @@ infra list [flags]
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Log level (error, warn, info, debug) (default "info")
+      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
 ```
 
 ## `infra use`
@@ -127,7 +127,7 @@ infra use kubernetes.development.kube-system
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Log level (error, warn, info, debug) (default "info")
+      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
 ```
 
 ## `infra access list`
@@ -135,7 +135,7 @@ infra use kubernetes.development.kube-system
 List access
 
 ```
-infra access list [flags]
+infra access list [DESTINATION] [flags]
 ```
 
 ### Options
@@ -147,7 +147,7 @@ infra access list [flags]
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Log level (error, warn, info, debug) (default "info")
+      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
 ```
 
 ## `infra access grant`
@@ -163,13 +163,13 @@ infra access grant DESTINATION [flags]
 ```
 
 # Grant user admin access to a cluster
-infra grant -u suzie@acme.com -r admin kubernetes.production 
+infra access grant -u suzie@acme.com -r admin kubernetes.production
 
 # Grant group admin access to a namespace
-infra grant -g Engineering -r admin kubernetes.production.default
+infra access grant -g Engineering -r admin kubernetes.production.default
 
 # Grant user admin access to infra itself
-infra grant -u admin@acme.com -r admin infra
+infra access grant -u admin@acme.com -r admin infra
 
 ```
 
@@ -186,7 +186,7 @@ infra grant -u admin@acme.com -r admin infra
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Log level (error, warn, info, debug) (default "info")
+      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
 ```
 
 ## `infra access revoke`
@@ -210,7 +210,7 @@ infra access revoke DESTINATION [flags]
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Log level (error, warn, info, debug) (default "info")
+      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
 ```
 
 ## `infra destinations list`
@@ -230,7 +230,7 @@ infra destinations list [flags]
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Log level (error, warn, info, debug) (default "info")
+      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
 ```
 
 ## `infra destinations add`
@@ -250,7 +250,7 @@ infra destinations add TYPE NAME [flags]
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Log level (error, warn, info, debug) (default "info")
+      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
 ```
 
 ## `infra destinations remove`
@@ -270,7 +270,7 @@ infra destinations remove DESTINATION [flags]
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Log level (error, warn, info, debug) (default "info")
+      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
 ```
 
 ## `infra providers list`
@@ -290,7 +290,7 @@ infra providers list [flags]
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Log level (error, warn, info, debug) (default "info")
+      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
 ```
 
 ## `infra providers add`
@@ -313,7 +313,7 @@ infra providers add NAME [flags]
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Log level (error, warn, info, debug) (default "info")
+      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
 ```
 
 ## `infra providers remove`
@@ -333,27 +333,30 @@ infra providers remove PROVIDER [flags]
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Log level (error, warn, info, debug) (default "info")
+      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
 ```
 
 ## `infra machines create`
 
-Create a machine identity, e.x. a service that needs to access infrastructure
+Create a machine identity, e.g. a service that needs to access infrastructure
 
 ```
-infra machines create [NAME] [DESCRIPTION] [PERMISSIONS] [flags]
+infra machines create [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for create
+  -d, --description string   Description of the machine identity
+  -h, --help                 help for create
+  -n, --name string          Name of the machine identity
+  -p, --permissions string   Permissions of the machine identity
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Log level (error, warn, info, debug) (default "info")
+      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
 ```
 
 ## `infra machines list`
@@ -373,7 +376,7 @@ infra machines list [flags]
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Log level (error, warn, info, debug) (default "info")
+      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
 ```
 
 ## `infra machines remove`
@@ -393,7 +396,7 @@ infra machines remove MACHINE [flags]
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Log level (error, warn, info, debug) (default "info")
+      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
 ```
 
 ## `infra tokens create`
@@ -413,7 +416,7 @@ infra tokens create [flags]
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Log level (error, warn, info, debug) (default "info")
+      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
 ```
 
 ## `infra import`
@@ -434,7 +437,7 @@ infra import [FILE] [flags]
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Log level (error, warn, info, debug) (default "info")
+      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
 ```
 
 ## `infra info`
@@ -454,7 +457,7 @@ infra info [flags]
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Log level (error, warn, info, debug) (default "info")
+      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
 ```
 
 ## `infra server`
@@ -468,29 +471,30 @@ infra server [flags]
 ### Options
 
 ```
-      --access-key string                   Access key (secret) (default "file:/Users/jmorgan/.infra/access-key")
-      --admin-access-key string             Admin access key (secret) (default "file:/Users/jmorgan/.infra/admin-access-key")
+      --access-key string                   Access key (secret)
+      --admin-access-key string             Admin access key (secret)
   -f, --config-file string                  Server configuration file
-      --db-encryption-key string            Database encryption key (default "/Users/jmorgan/.infra/key")
+      --db-encryption-key string            Database encryption key (default "$HOME/.infra/sqlite3.db.key")
       --db-encryption-key-provider string   Database encryption key provider (default "native")
-      --db-file string                      Path to database file (default "/Users/jmorgan/.infra/db")
       --db-host string                      Database host
-      --db-name string                      Database name
+      --db-name string                      Database name (default "$HOME/.infra/sqlite3.db")
       --db-parameters string                Database additional connection parameters
       --db-password string                  Database password (secret)
-      --db-port int                         Database port (default 5432)
-      --db-user string                      Database user
+      --db-port int                         Database port
+      --db-username string                  Database user
       --enable-crash-reporting              Enable crash reporting (default true)
       --enable-telemetry                    Enable telemetry (default true)
+      --enable-ui                           Enable Infra Server UI
   -h, --help                                help for server
-  -d, --session-duration duration           Session duration (default 12h0m0s)
-      --tls-cache string                    Directory to cache TLS certificates (default "/Users/jmorgan/.infra/tls")
+  -d, --session-duration duration           User session duration (default 12h0m0s)
+      --tls-cache string                    Directory to cache TLS certificates (default "$HOME/.infra/cache")
+      --ui-proxy-url string                 Proxy upstream UI requests to this url
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Log level (error, warn, info, debug) (default "info")
+      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
 ```
 
 ## `infra engine`
@@ -504,19 +508,19 @@ infra engine [flags]
 ### Options
 
 ```
-      --access-key string    Infra access key (use file:// to load from a file)
+  -a, --access-key string    Infra access key (use file:// to load from a file)
   -f, --config-file string   Engine config file
   -h, --help                 help for engine
   -n, --name string          Destination name
-      --server string        Infra Server hostname
-      --skip-tls-verify      Skip TLS verification (default true)
-      --tls-cache string     Directory to cache TLS certificates (default "/Users/jmorgan/.infra/tls")
+  -s, --server string        Infra Server hostname
+      --skip-tls-verify      Skip verifying server TLS certificate (default true)
+      --tls-cache string     Directory to cache TLS certificates (default "$HOME/.infra/cache")
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Log level (error, warn, info, debug) (default "info")
+      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
 ```
 
 ## `infra version`
@@ -536,6 +540,6 @@ infra version [flags]
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Log level (error, warn, info, debug) (default "info")
+      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
 ```
 
