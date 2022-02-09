@@ -71,8 +71,10 @@ dev: $(VALUES) build/docker
 	kubectl config use-context docker-desktop
 	kubectl $(NS) get secrets $(INFRA_OKTA) >/dev/null
 	helm $(NS) upgrade --install --create-namespace $(patsubst %,-f %,$(VALUES)) --wait infra helm/charts/infra
+	kubectl -n infrahq patch service infra-engine -p '{"spec": {"type": "LoadBalancer"}}'
 	@[ -z "$(NS)" ] || kubectl config set-context --current --namespace=$(NAMESPACE)
 	@echo Admin Access Key: $$(kubectl $(NS) get secrets infra-admin-access-key -o jsonpath='{.data.access-key}' | base64 --decode)
+	kubectl -n infrahq port-forward deployments/infra-server 8080:80 8443:443
 
 dev/clean:
 	kubectl config use-context docker-desktop
