@@ -661,7 +661,9 @@ func newServerCmd() (*cobra.Command, error) {
 	cmd.Flags().StringVar(&options.DBParameters, "db-parameters", "", "Database additional connection parameters")
 	cmd.Flags().BoolVar(&options.EnableTelemetry, "enable-telemetry", true, "Enable telemetry")
 	cmd.Flags().BoolVar(&options.EnableCrashReporting, "enable-crash-reporting", true, "Enable crash reporting")
+	cmd.Flags().BoolVar(&options.EnableUI, "enable-ui", false, "Enable ui")
 	cmd.Flags().DurationVarP(&options.SessionDuration, "session-duration", "d", time.Hour*12, "Session duration")
+	cmd.Flags().StringVar(&options.UIProxyURL, "ui-proxy", "", "Proxy upstream UI requests to this url")
 
 	return cmd, nil
 }
