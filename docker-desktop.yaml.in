@@ -4,6 +4,9 @@ global:
     pullPolicy: Never
 
 server:
+  service:
+    type: LoadBalancer
+
   additionalProviders:
     - name: okta
       url: $OKTA_DOMAIN
@@ -16,6 +19,10 @@ server:
       resource: kubernetes.docker-desktop
 
 engine:
+  service:
+    type: LoadBalancer
+    securePort: 8443 
+  
   config:
     name: docker-desktop
 
