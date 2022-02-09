@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/go-playground/validator/v10"
+
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/uid"
 )

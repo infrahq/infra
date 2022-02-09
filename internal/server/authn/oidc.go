@@ -9,10 +9,11 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/server/models"
 	"golang.org/x/oauth2"
 	"gopkg.in/square/go-jose.v2/jwt"
+
+	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/server/models"
 )
 
 // UserInfo captures the fields from a user-info response that we care about

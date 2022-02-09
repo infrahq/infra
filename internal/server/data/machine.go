@@ -1,9 +1,10 @@
 package data
 
 import (
+	"gorm.io/gorm"
+
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
-	"gorm.io/gorm"
 )
 
 func CreateMachine(db *gorm.DB, machine *models.Machine) error {

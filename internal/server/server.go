@@ -37,29 +37,29 @@ import (
 )
 
 type Options struct {
-	TLSCache                string           `mapstructure:"tlsCache"`
-	AdminAccessKey          string           `mapstructure:"adminAccessKey"`
-	AccessKey               string           `mapstructure:"accessKey"`
-	EnableTelemetry         bool             `mapstructure:"enableTelemetry"`
-	EnableCrashReporting    bool             `mapstructure:"enableCrashReporting"`
-	EnableUI                bool             `mapstructure:"enableUI"`
-	UIProxyURL              string           `mapstructure:"uiProxyURL"`
-	SessionDuration         time.Duration    `mapstructure:"sessionDuration"`
+	TLSCache             string        `mapstructure:"tlsCache"`
+	AdminAccessKey       string        `mapstructure:"adminAccessKey"`
+	AccessKey            string        `mapstructure:"accessKey"`
+	EnableTelemetry      bool          `mapstructure:"enableTelemetry"`
+	EnableCrashReporting bool          `mapstructure:"enableCrashReporting"`
+	EnableUI             bool          `mapstructure:"enableUI"`
+	UIProxyURL           string        `mapstructure:"uiProxyURL"`
+	SessionDuration      time.Duration `mapstructure:"sessionDuration"`
 
-	DBFile                  string           `mapstructure:"dbFile" `
-	DBEncryptionKey         string           `mapstructure:"dbEncryptionKey"`
-	DBEncryptionKeyProvider string           `mapstructure:"dbEncryptionKeyProvider"`
-	DBHost                  string           `mapstructure:"dbHost" `
-	DBPort                  int              `mapstructure:"dbPort"`
-	DBName                  string           `mapstructure:"dbName"`
-	DBUser                  string           `mapstructure:"dbUser"`
-	DBPassword              string           `mapstructure:"dbPassword"`
-	DBParameters            string           `mapstructure:"dbParameters"`
+	DBFile                  string `mapstructure:"dbFile" `
+	DBEncryptionKey         string `mapstructure:"dbEncryptionKey"`
+	DBEncryptionKeyProvider string `mapstructure:"dbEncryptionKeyProvider"`
+	DBHost                  string `mapstructure:"dbHost" `
+	DBPort                  int    `mapstructure:"dbPort"`
+	DBName                  string `mapstructure:"dbName"`
+	DBUser                  string `mapstructure:"dbUser"`
+	DBPassword              string `mapstructure:"dbPassword"`
+	DBParameters            string `mapstructure:"dbParameters"`
 
-	Keys                    []KeyProvider    `mapstructure:"keys"`
-	Secrets                 []SecretProvider `mapstructure:"secrets"`
+	Keys    []KeyProvider    `mapstructure:"keys"`
+	Secrets []SecretProvider `mapstructure:"secrets"`
 
-	Import                  *config.Config   `mapstructure:"import"`
+	Import *config.Config `mapstructure:"import"`
 }
 
 type Server struct {

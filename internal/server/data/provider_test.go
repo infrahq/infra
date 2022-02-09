@@ -13,7 +13,7 @@ import (
 func TestProvider(t *testing.T) {
 	db := setup(t)
 
-	var providerDevelop = models.Provider{Name: "okta-development", URL: "dev.okta.com"}
+	providerDevelop := models.Provider{Name: "okta-development", URL: "dev.okta.com"}
 
 	err := db.Create(&providerDevelop).Error
 	require.NoError(t, err)
@@ -27,7 +27,7 @@ func TestProvider(t *testing.T) {
 func TestCreateProviderOkta(t *testing.T) {
 	db := setup(t)
 
-	var providerDevelop = models.Provider{Name: "okta-development", URL: "dev.okta.com"}
+	providerDevelop := models.Provider{Name: "okta-development", URL: "dev.okta.com"}
 
 	p := providerDevelop
 	err := CreateProvider(db, &p)

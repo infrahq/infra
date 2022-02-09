@@ -3,9 +3,10 @@ package data
 import (
 	"testing"
 
-	"github.com/infrahq/infra/internal/server/models"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
+
+	"github.com/infrahq/infra/internal/server/models"
 )
 
 var tom = &models.User{Email: "tom@infrahq.com"}
@@ -25,7 +26,6 @@ func TestBasicGrant(t *testing.T) {
 	can(t, db, "steven", "read", "infra.groups.1")
 	can(t, db, "steven", "read", "infra.groups.2")
 	cant(t, db, "steven", "write", "infra.groups.1")
-
 }
 
 func grant(t *testing.T, db *gorm.DB, currentUser *models.User, identity, privilege, resource string) {

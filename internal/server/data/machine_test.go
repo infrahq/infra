@@ -3,9 +3,10 @@ package data
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/stretchr/testify/require"
 )
 
 func TestCreateMachineExistingName(t *testing.T) {

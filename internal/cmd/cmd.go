@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/goware/urlx"
+	"github.com/iancoleman/strcase"
 	"github.com/lensesio/tableprinter"
 	"github.com/mcuadros/go-defaults"
 	"github.com/mitchellh/mapstructure"
@@ -20,7 +21,6 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
-	"github.com/iancoleman/strcase"
 
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/config"

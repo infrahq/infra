@@ -23,6 +23,7 @@ import (
 	"golang.org/x/crypto/acme/autocert"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
+	rbacv1 "k8s.io/api/rbac/v1"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
@@ -32,8 +33,6 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/timer"
 	"github.com/infrahq/infra/uid"
-
-	rbacv1 "k8s.io/api/rbac/v1"
 )
 
 type Options struct {

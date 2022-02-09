@@ -1,8 +1,9 @@
 package data
 
 import (
-	"github.com/infrahq/infra/uid"
 	"gorm.io/gorm"
+
+	"github.com/infrahq/infra/uid"
 )
 
 type SelectorFunc func(db *gorm.DB) *gorm.DB
