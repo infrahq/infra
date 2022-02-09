@@ -280,5 +280,17 @@ tolerations: []
 ## Engine affinity configurations
 affinity: {}
 
-## TODO
+## Primary engine configuration
+## Ref: https://github.com/infrahq/infra/blob/main/docs/cli.md#infra-engine
 config: {}
+## Infra Server address
+#   server: ""
+
+## Destination name
+#   name: ""
+
+## Skip verify server TLS certificate
+#   skipTLSVerify: true
+
+## Server access key
+accessKey: ""

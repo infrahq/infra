@@ -371,6 +371,43 @@ server:
   ## Primary server configuration
   ## Ref: https://github.com/infrahq/infra/blob/main/docs/cli.md#infra-server
   config: {}
+  ## Database name
+  #   dbName: ""
+
+  ## Database host
+  #   dbHost: ""
+
+  ## Database port
+  #   dbPort: 0
+
+  ## Database username
+  #   dbUsername: ""
+
+  ## Database password. Use `file:` or `env:` to reference a file or environment variable
+  ## Ref: https://github.com/infrahq/infra/blob/main/docs/secrets.md
+  #   dbPassword: ""
+
+  ## Extra database parameters
+  ## For PostgresQL: see https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING
+  #   dbParameters: ""
+
+  ## Path on the filesystem to store the database encryption key
+  #   dbEncryptionKey: ""
+
+  ## Enable service telemetry
+  #   enableTelemetry: true
+
+  ## Enable service crash reporting
+  #   enableCrashReporting: true
+
+  ## Enable server UI
+  #   enableUI: false
+
+  ## Server UI proxy URL
+  #   uiProxyURL: ""
+
+  ## Duration of an user session
+  #   sessionDuration: 12h0m0s
 
   ## Server admin access key
   adminAccessKey: ""
@@ -679,6 +716,14 @@ engine:
   ## Primary engine configuration
   ## Ref: https://github.com/infrahq/infra/blob/main/docs/cli.md#infra-engine
   config: {}
+  ## Infra Server address
+  #   server: ""
+
+  ## Destination name
+  #   name: ""
+
+  ## Skip verify server TLS certificate
+  #   skipTLSVerify: true
 
   ## Server access key
   accessKey: ""
