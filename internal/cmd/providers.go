@@ -7,8 +7,8 @@ import (
 )
 
 type providerOptions struct {
-	URL string
-	ClientID string `mapstructure:"client-id"`
+	URL          string
+	ClientID     string `mapstructure:"client-id"`
 	ClientSecret string `mapstructure:"client-secret"`
 }
 

@@ -11,10 +11,10 @@ import (
 )
 
 type accessOptions struct {
-	User string `mapstructure:"user"`
-	Group string `mapstructure:"group"`
+	User     string `mapstructure:"user"`
+	Group    string `mapstructure:"group"`
 	Provider string `mapstructure:"provider"`
-	Role string `mapstructure:"role"`
+	Role     string `mapstructure:"role"`
 }
 
 func newAccessListCmd() *cobra.Command {
@@ -22,7 +22,7 @@ func newAccessListCmd() *cobra.Command {
 		Use:     "list [DESTINATION]",
 		Aliases: []string{"ls"},
 		Short:   "List access",
-		Args: cobra.RangeArgs(0, 1),
+		Args:    cobra.RangeArgs(0, 1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var resource string
 			if len(args) > 0 {
@@ -38,25 +38,25 @@ func newAccessListCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-	
+
 			type row struct {
 				Provider string `header:"PROVIDER"`
 				Identity string `header:"IDENTITY"`
 				Access   string `header:"ACCESS"`
 				Resource string `header:"RESOURCE"`
 			}
-	
+
 			var rows []row
 			for _, g := range grants {
 				if strings.HasPrefix(g.Resource, "infra") {
 					continue
 				}
-	
+
 				provider, identity, err := info(client, g)
 				if err != nil {
 					return err
 				}
-	
+
 				rows = append(rows, row{
 					Provider: provider,
 					Identity: identity,
@@ -64,9 +64,9 @@ func newAccessListCmd() *cobra.Command {
 					Resource: g.Resource,
 				})
 			}
-	
+
 			printTable(rows)
-	
+
 			return nil
 		},
 	}
@@ -254,9 +254,9 @@ func newAccessRevokeCmd() *cobra.Command {
 			}
 
 			grants, err := client.ListGrants(api.ListGrantsRequest{
-				Identity: id,
+				Identity:  id,
 				Privilege: options.Role,
-				Resource: args[0],
+				Resource:  args[0],
 			})
 			if err != nil {
 				return err

@@ -3,8 +3,8 @@ package cmd
 import (
 	"strings"
 
-	"github.com/spf13/cobra"
 	survey "github.com/AlecAivazis/survey/v2"
+	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/internal/api"
 )
@@ -96,7 +96,7 @@ func newMachinesDeleteCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "remove MACHINE",
 		Short: "Remove a machine identity",
-		Args: cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := defaultAPIClient()
 			if err != nil {

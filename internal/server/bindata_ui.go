@@ -475,28 +475,28 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		"static": {nil, map[string]*bintree{
 			"chunks": {nil, map[string]*bintree{
 				"framework-6e4ba497ae0c8a3f.js": {_nextStaticChunksFramework6e4ba497ae0c8a3fJs, map[string]*bintree{}},
-				"main-a56127814584ab09.js": {_nextStaticChunksMainA56127814584ab09Js, map[string]*bintree{}},
+				"main-a56127814584ab09.js":      {_nextStaticChunksMainA56127814584ab09Js, map[string]*bintree{}},
 				"pages": {nil, map[string]*bintree{
-					"_app-ca6aae25bc99a05f.js": {_nextStaticChunksPages_appCa6aae25bc99a05fJs, map[string]*bintree{}},
+					"_app-ca6aae25bc99a05f.js":   {_nextStaticChunksPages_appCa6aae25bc99a05fJs, map[string]*bintree{}},
 					"_error-2280fa386d040b66.js": {_nextStaticChunksPages_error2280fa386d040b66Js, map[string]*bintree{}},
-					"index-c2e830315fe66c83.js": {_nextStaticChunksPagesIndexC2e830315fe66c83Js, map[string]*bintree{}},
+					"index-c2e830315fe66c83.js":  {_nextStaticChunksPagesIndexC2e830315fe66c83Js, map[string]*bintree{}},
 				}},
 				"polyfills-5cd94c89d3acac5f.js": {_nextStaticChunksPolyfills5cd94c89d3acac5fJs, map[string]*bintree{}},
-				"webpack-69bfa6990bb9e155.js": {_nextStaticChunksWebpack69bfa6990bb9e155Js, map[string]*bintree{}},
+				"webpack-69bfa6990bb9e155.js":   {_nextStaticChunksWebpack69bfa6990bb9e155Js, map[string]*bintree{}},
 			}},
 			"css": {nil, map[string]*bintree{
 				"c437c33467c84f59.css": {_nextStaticCssC437c33467c84f59Css, map[string]*bintree{}},
 			}},
 			"ecyWtYmiAIMV8eoh8Goqy": {nil, map[string]*bintree{
-				"_buildManifest.js": {_nextStaticEcywtymiaimv8eoh8goqy_buildmanifestJs, map[string]*bintree{}},
+				"_buildManifest.js":      {_nextStaticEcywtymiaimv8eoh8goqy_buildmanifestJs, map[string]*bintree{}},
 				"_middlewareManifest.js": {_nextStaticEcywtymiaimv8eoh8goqy_middlewaremanifestJs, map[string]*bintree{}},
-				"_ssgManifest.js": {_nextStaticEcywtymiaimv8eoh8goqy_ssgmanifestJs, map[string]*bintree{}},
+				"_ssgManifest.js":        {_nextStaticEcywtymiaimv8eoh8goqy_ssgmanifestJs, map[string]*bintree{}},
 			}},
 		}},
 	}},
 	"favicon.png": {faviconPng, map[string]*bintree{}},
-	"icon.svg": {iconSvg, map[string]*bintree{}},
-	"index.html": {indexHtml, map[string]*bintree{}},
+	"icon.svg":    {iconSvg, map[string]*bintree{}},
+	"index.html":  {indexHtml, map[string]*bintree{}},
 }}
 
 // RestoreAsset restores an asset under the given directory.

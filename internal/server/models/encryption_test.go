@@ -4,12 +4,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/infrahq/infra/uid"
 	"github.com/stretchr/testify/require"
 
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/secrets"
+	"github.com/infrahq/infra/uid"
 )
 
 type StructForTesting struct {

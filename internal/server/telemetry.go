@@ -12,8 +12,8 @@ import (
 )
 
 type Telemetry struct {
-	client  analytics.Client
-	db      *gorm.DB
+	client analytics.Client
+	db     *gorm.DB
 }
 
 func NewTelemetry(db *gorm.DB) (*Telemetry, error) {
@@ -22,8 +22,8 @@ func NewTelemetry(db *gorm.DB) (*Telemetry, error) {
 	}
 
 	return &Telemetry{
-		client:  analytics.New(internal.TelemetryWriteKey),
-		db:      db,
+		client: analytics.New(internal.TelemetryWriteKey),
+		db:     db,
 	}, nil
 }
 

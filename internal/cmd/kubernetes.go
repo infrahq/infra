@@ -6,11 +6,12 @@ import (
 	"strings"
 
 	"github.com/goware/urlx"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/uid"
-	"k8s.io/client-go/tools/clientcmd"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
 func clientConfig() clientcmd.ClientConfig {

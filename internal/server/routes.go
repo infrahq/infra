@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 )

@@ -489,7 +489,7 @@ func (k *Kubernetes) Name() (string, string, error) {
 	chksm := hex.EncodeToString(hash)
 
 	name := chksm[:12]
-	if _, err := net.DialTimeout("tcp", "169.254.169.254:80", 1 * time.Second); err != nil {
+	if _, err := net.DialTimeout("tcp", "169.254.169.254:80", 1*time.Second); err != nil {
 		goto END
 	}
 

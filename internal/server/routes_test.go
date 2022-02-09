@@ -10,9 +10,10 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/require"
+
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/uid"
-	"github.com/stretchr/testify/require"
 )
 
 func TestBindsQuery(t *testing.T) {
@@ -50,7 +51,6 @@ func TestBindsJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	require.EqualValues(t, "zeta", r.Alpha)
-
 }
 
 func TestBindsUUIDs(t *testing.T) {

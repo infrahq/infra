@@ -13,11 +13,9 @@ import (
 func TestGroup(t *testing.T) {
 	db := setup(t)
 
-	var providerID = uid.New()
+	providerID := uid.New()
 
-	var (
-		everyone = models.Group{Name: "Everyone", ProviderID: providerID}
-	)
+	everyone := models.Group{Name: "Everyone", ProviderID: providerID}
 
 	err := db.Create(&everyone).Error
 	require.NoError(t, err)
@@ -32,11 +30,9 @@ func TestGroup(t *testing.T) {
 func TestCreateGroup(t *testing.T) {
 	db := setup(t)
 
-	var providerID = uid.New()
+	providerID := uid.New()
 
-	var (
-		everyone = models.Group{Name: "Everyone", ProviderID: providerID}
-	)
+	everyone := models.Group{Name: "Everyone", ProviderID: providerID}
 
 	err := CreateGroup(db, &everyone)
 	group := everyone
@@ -53,7 +49,7 @@ func createGroups(t *testing.T, db *gorm.DB, groups ...models.Group) {
 }
 
 func TestCreateGroupDuplicate(t *testing.T) {
-	var providerID = uid.New()
+	providerID := uid.New()
 
 	var (
 		everyone  = models.Group{Name: "Everyone", ProviderID: providerID}
@@ -71,7 +67,7 @@ func TestCreateGroupDuplicate(t *testing.T) {
 func TestGetGroup(t *testing.T) {
 	db := setup(t)
 
-	var providerID = uid.New()
+	providerID := uid.New()
 
 	var (
 		everyone  = models.Group{Name: "Everyone", ProviderID: providerID}
@@ -89,7 +85,7 @@ func TestGetGroup(t *testing.T) {
 func TestListGroups(t *testing.T) {
 	db := setup(t)
 
-	var providerID = uid.New()
+	providerID := uid.New()
 
 	var (
 		everyone  = models.Group{Name: "Everyone", ProviderID: providerID}
@@ -111,7 +107,7 @@ func TestListGroups(t *testing.T) {
 func TestGroupBindUsers(t *testing.T) {
 	db := setup(t)
 
-	var providerID = uid.New()
+	providerID := uid.New()
 
 	var (
 		everyone  = models.Group{Name: "Everyone", ProviderID: providerID}
@@ -148,7 +144,7 @@ func TestGroupBindUsers(t *testing.T) {
 func TestGroupBindMoreUsers(t *testing.T) {
 	db := setup(t)
 
-	var providerID = uid.New()
+	providerID := uid.New()
 
 	var (
 		everyone  = models.Group{Name: "Everyone", ProviderID: providerID}
@@ -188,7 +184,7 @@ func TestGroupBindMoreUsers(t *testing.T) {
 func TestGroupBindLessUsers(t *testing.T) {
 	db := setup(t)
 
-	var providerID = uid.New()
+	providerID := uid.New()
 
 	var (
 		everyone  = models.Group{Name: "Everyone", ProviderID: providerID}
@@ -228,7 +224,7 @@ func TestGroupBindLessUsers(t *testing.T) {
 func TestDeleteGroup(t *testing.T) {
 	db := setup(t)
 
-	var providerID = uid.New()
+	providerID := uid.New()
 
 	var (
 		everyone  = models.Group{Name: "Everyone", ProviderID: providerID}
@@ -259,7 +255,7 @@ func TestDeleteGroup(t *testing.T) {
 func TestRecreateGroupSameName(t *testing.T) {
 	db := setup(t)
 
-	var providerID = uid.New()
+	providerID := uid.New()
 
 	var (
 		everyone  = models.Group{Name: "Everyone", ProviderID: providerID}

@@ -13,11 +13,9 @@ import (
 func TestUser(t *testing.T) {
 	db := setup(t)
 
-	var providerID = uid.New()
+	providerID := uid.New()
 
-	var (
-		bond = models.User{Email: "jbond@infrahq.com", ProviderID: providerID}
-	)
+	bond := models.User{Email: "jbond@infrahq.com", ProviderID: providerID}
 
 	err := db.Create(&bond).Error
 	require.NoError(t, err)
@@ -39,7 +37,7 @@ func createUsers(t *testing.T, db *gorm.DB, users ...models.User) {
 func TestCreateDuplicateUser(t *testing.T) {
 	db := setup(t)
 
-	var providerID = uid.New()
+	providerID := uid.New()
 
 	var (
 		bond   = models.User{Email: "jbond@infrahq.com", ProviderID: providerID}
@@ -58,7 +56,7 @@ func TestCreateDuplicateUser(t *testing.T) {
 func TestGetUser(t *testing.T) {
 	db := setup(t)
 
-	var providerID = uid.New()
+	providerID := uid.New()
 
 	var (
 		bond   = models.User{Email: "jbond@infrahq.com", ProviderID: providerID}
@@ -76,7 +74,7 @@ func TestGetUser(t *testing.T) {
 func TestListUsers(t *testing.T) {
 	db := setup(t)
 
-	var providerID = uid.New()
+	providerID := uid.New()
 
 	var (
 		bond   = models.User{Email: "jbond@infrahq.com", ProviderID: providerID}
@@ -98,7 +96,7 @@ func TestListUsers(t *testing.T) {
 func TestDeleteUser(t *testing.T) {
 	db := setup(t)
 
-	var providerID = uid.New()
+	providerID := uid.New()
 
 	var (
 		bond   = models.User{Email: "jbond@infrahq.com", ProviderID: providerID}
@@ -129,7 +127,7 @@ func TestDeleteUser(t *testing.T) {
 func TestRecreateUserSameEmail(t *testing.T) {
 	db := setup(t)
 
-	var providerID = uid.New()
+	providerID := uid.New()
 
 	var (
 		bond   = models.User{Email: "jbond@infrahq.com", ProviderID: providerID}

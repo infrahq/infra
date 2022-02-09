@@ -3,8 +3,9 @@ package models
 import (
 	"time"
 
-	"github.com/infrahq/infra/uid"
 	"gorm.io/gorm"
+
+	"github.com/infrahq/infra/uid"
 )
 
 // Modelable is an interface that determines if a struct is a model. It's simply models that compose models.Model

@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/infrahq/infra/uid"
 	"github.com/stretchr/testify/require"
+
+	"github.com/infrahq/infra/uid"
 )
 
 func TestJSONCanUnmarshal(t *testing.T) {
@@ -24,8 +25,8 @@ func TestJSONCanUnmarshal(t *testing.T) {
 }
 
 func TestBadIDs(t *testing.T) {
-	ok := "npL6MjP8Qfc"   //0x7fffffffffffffff
-	bad1 := "npL6MjP8Qfd" //0x7fffffffffffffff + 1
+	ok := "npL6MjP8Qfc"   // 0x7fffffffffffffff
+	bad1 := "npL6MjP8Qfd" // 0x7fffffffffffffff + 1
 	// bad2 := "JPwcyDCgEuq" //0xffffffffffffffff + 1
 	bad3 := "JPwcyDCgEuqJPwcyDCgEuq"
 

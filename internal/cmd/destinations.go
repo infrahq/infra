@@ -6,12 +6,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/access"
+	"github.com/infrahq/infra/internal/api"
 )
 
 func newDestinationsListCmd() *cobra.Command {
-	return  &cobra.Command{
+	return &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List connected destinations",

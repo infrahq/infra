@@ -6,10 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/infrahq/infra/internal/generate"
-	"github.com/infrahq/infra/internal/server/models"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
+
+	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/internal/server/models"
 )
 
 func createAccessKey(t *testing.T, db *gorm.DB, sessionDuration time.Duration) (string, *models.AccessKey) {

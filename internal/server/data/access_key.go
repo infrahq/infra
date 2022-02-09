@@ -7,10 +7,11 @@ import (
 	"strings"
 	"time"
 
+	"gorm.io/gorm"
+
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
-	"gorm.io/gorm"
 )
 
 func CreateAccessKey(db *gorm.DB, authnKey *models.AccessKey) (body string, err error) {
