@@ -65,6 +65,18 @@ func list() error {
 			continue
 		}
 
+		var exists bool
+		for _, d := range destinations {
+			if strings.HasPrefix(k, d.Name) {
+				exists = true
+				break
+			}
+		}
+
+		if !exists {
+			continue
+		}
+
 		rows = append(rows, row{
 			Name:   k,
 			Access: v,

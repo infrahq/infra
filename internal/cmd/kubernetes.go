@@ -103,12 +103,18 @@ func writeKubeconfig(destinations []api.Destination, grants []api.Grant) error {
 		}
 
 		var url, ca string
+		var exists bool
 		for _, d := range destinations {
 			if strings.HasPrefix(g.Resource, d.Name) {
 				url = d.Connection.URL
 				ca = d.Connection.CA
+				exists = true
 				break
 			}
+		}
+
+		if !exists {
+			continue
 		}
 
 		u, err := urlx.Parse(url)
