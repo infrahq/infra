@@ -77,7 +77,7 @@ func apiClient(host string, token string, skipTLSVerify bool) (*api.Client, erro
 	u.Scheme = "https"
 
 	return &api.Client{
-		Url:   u.String(),
+		Url:   fmt.Sprintf("%s://%s", u.Scheme, u.Host),
 		Token: token,
 		Http: http.Client{
 			Transport: &http.Transport{

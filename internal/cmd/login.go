@@ -92,6 +92,13 @@ func login(host string) error {
 		}
 	}
 
+	u, err := urlx.Parse(host)
+	if err != nil {
+		return err
+	}
+
+	host = u.Host
+
 	fmt.Fprintf(os.Stderr, "  Logging in to %s\n", termenv.String(host).Bold().String())
 
 	skipTLSVerify, proceed, err := promptShouldSkipTLSVerify(host)
@@ -218,18 +225,13 @@ func finishLogin(host string, id uid.ID, name string, token string, skipTLSVerif
 	return nil
 }
 
-func oidcflow(url string, clientId string) (string, error) {
+func oidcflow(host string, clientId string) (string, error) {
 	state, err := generate.CryptoRandom(12)
 	if err != nil {
 		return "", err
 	}
 
-	u, err := urlx.Parse(url)
-	if err != nil {
-		return "", err
-	}
-
-	authorizeURL := fmt.Sprintf("https://%s/oauth2/v1/authorize?redirect_uri=http://localhost:8301&client_id=%s&response_type=code&scope=openid+email+groups+offline_access&state=%s", u.Host, clientId, state)
+	authorizeURL := fmt.Sprintf("https://%s/oauth2/v1/authorize?redirect_uri=http://localhost:8301&client_id=%s&response_type=code&scope=openid+email+groups+offline_access&state=%s", host, clientId, state)
 
 	fmt.Fprintf(os.Stderr, "  Logging in with %s...\n", termenv.String("Okta").Bold().String())
 
