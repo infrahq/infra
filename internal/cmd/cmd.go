@@ -279,6 +279,27 @@ func newDestinationsCmd() *cobra.Command {
 	return cmd
 }
 
+func canonicalPath(in string) (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	out := in
+	if strings.HasPrefix(in, "$HOME") {
+		out = strings.Replace(in, "$HOME", homeDir, 1)
+	} else if strings.HasPrefix(in, "~") {
+		out = strings.Replace(in, "~", homeDir, 1)
+	}
+
+	abs, err := filepath.Abs(out)
+	if err != nil {
+		return "", err
+	}
+
+	return abs, nil
+}
+
 func newServerCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "server",
@@ -293,6 +314,27 @@ func newServerCmd() *cobra.Command {
 			if err := parseOptions(cmd, &options, "INFRA_SERVER"); err != nil {
 				return err
 			}
+
+			tlsCache, err := canonicalPath(options.TLSCache)
+			if err != nil {
+				return err
+			}
+
+			options.TLSCache = tlsCache
+
+			dbFile, err := canonicalPath(options.DBFile)
+			if err != nil {
+				return err
+			}
+
+			options.DBFile = dbFile
+
+			dbEncryptionKey, err := canonicalPath(options.DBEncryptionKey)
+			if err != nil {
+				return err
+			}
+
+			options.DBEncryptionKey = dbEncryptionKey
 
 			return server.Run(options)
 		},
@@ -332,6 +374,20 @@ func newEngineCmd() *cobra.Command {
 			if err := parseOptions(cmd, &options, "INFRA_ENGINE"); err != nil {
 				return err
 			}
+
+			accessKey, err := canonicalPath(options.AccessKey)
+			if err != nil {
+				return err
+			}
+
+			options.AccessKey = accessKey
+
+			tlsCache, err := canonicalPath(options.TLSCache)
+			if err != nil {
+				return err
+			}
+
+			options.TLSCache = tlsCache
 
 			return engine.Run(options)
 		},
