@@ -140,6 +140,8 @@ func login(host string) error {
 
 	provider := providers[option]
 
+	fmt.Fprintf(os.Stderr, "  Logging in with %s...\n", termenv.String(provider.Name).Bold().String())
+
 	code, err := oidcflow(provider.URL, provider.ClientID)
 	if err != nil {
 		return err
@@ -230,8 +232,6 @@ func oidcflow(url string, clientId string) (string, error) {
 	}
 
 	authorizeURL := fmt.Sprintf("https://%s/oauth2/v1/authorize?redirect_uri=http://localhost:8301&client_id=%s&response_type=code&scope=openid+email+groups+offline_access&state=%s", u.Host, clientId, state)
-
-	fmt.Fprintf(os.Stderr, "  Logging in with %s...\n", termenv.String("Okta").Bold().String())
 
 	ls, err := newLocalServer()
 	if err != nil {
