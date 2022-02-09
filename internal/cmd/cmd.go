@@ -279,37 +279,18 @@ func newDestinationsCmd() *cobra.Command {
 	return cmd
 }
 
-func newServerCmd() (*cobra.Command, error) {
-	var (
-		options    server.Options
-		configFile string
-	)
-
-	var err error
-
-	parseConfig := func() {
-		if configFile == "" {
-			return
-		}
-
-		var contents []byte
-
-		contents, err = ioutil.ReadFile(configFile)
-		if err != nil {
-			return
-		}
-
-		err = yaml.Unmarshal(contents, &options)
-	}
-
-	cobra.OnInitialize(parseConfig)
-
+func newServerCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "server",
 		Short: "Start Infra Server",
 
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err != nil {
+			// override default strcase.ToLowerCamel behaviour
+			strcase.ConfigureAcronym("enable-ui", "enableUI")
+			strcase.ConfigureAcronym("ui-proxy-url", "uiProxyURL")
+
+			var options server.Options
+			if err := parseOptions(cmd, &options, "INFRA_SERVER"); err != nil {
 				return err
 			}
 
@@ -317,31 +298,26 @@ func newServerCmd() (*cobra.Command, error) {
 		},
 	}
 
-	infraDir, err := infraHomeDir()
-	if err != nil {
-		return nil, err
-	}
+	cmd.Flags().StringP("config-file", "f", "", "Server configuration file")
+	cmd.Flags().String("admin-access-key", "", "Admin access key (secret)")
+	cmd.Flags().String("access-key", "", "Access key (secret)")
+	cmd.Flags().String("tls-cache", "$HOME/.infra/cache", "Directory to cache TLS certificates")
+	cmd.Flags().String("db-file", "$HOME/.infra/sqlite3.db", "Path to SQLite 3 database")
+	cmd.Flags().String("db-name", "", "Database name")
+	cmd.Flags().String("db-host", "", "Database host")
+	cmd.Flags().Int("db-port", 0, "Database port")
+	cmd.Flags().String("db-username", "", "Database user")
+	cmd.Flags().String("db-password", "", "Database password (secret)")
+	cmd.Flags().String("db-parameters", "", "Database additional connection parameters")
+	cmd.Flags().String("db-encryption-key", "$HOME/.infra/sqlite3.db.key", "Database encryption key")
+	cmd.Flags().String("db-encryption-key-provider", "native", "Database encryption key provider")
+	cmd.Flags().Bool("enable-telemetry", true, "Enable telemetry")
+	cmd.Flags().Bool("enable-crash-reporting", true, "Enable crash reporting")
+	cmd.Flags().Bool("enable-ui", false, "Enable Infra Server UI")
+	cmd.Flags().String("ui-proxy-url", "", "Proxy upstream UI requests to this url")
+	cmd.Flags().DurationP("session-duration", "d", time.Hour*12, "User session duration")
 
-	cmd.Flags().StringVarP(&configFile, "config-file", "f", "", "Server configuration file")
-	cmd.Flags().StringVar(&options.AdminAccessKey, "admin-access-key", "file:"+filepath.Join(infraDir, "admin-access-key"), "Admin access key (secret)")
-	cmd.Flags().StringVar(&options.AccessKey, "access-key", "file:"+filepath.Join(infraDir, "access-key"), "Access key (secret)")
-	cmd.Flags().StringVar(&options.TLSCache, "tls-cache", filepath.Join(infraDir, "tls"), "Directory to cache TLS certificates")
-	cmd.Flags().StringVar(&options.DBFile, "db-file", filepath.Join(infraDir, "db"), "Path to database file")
-	cmd.Flags().StringVar(&options.DBEncryptionKey, "db-encryption-key", filepath.Join(infraDir, "key"), "Database encryption key")
-	cmd.Flags().StringVar(&options.DBEncryptionKeyProvider, "db-encryption-key-provider", "native", "Database encryption key provider")
-	cmd.Flags().StringVar(&options.DBHost, "db-host", "", "Database host")
-	cmd.Flags().IntVar(&options.DBPort, "db-port", 5432, "Database port")
-	cmd.Flags().StringVar(&options.DBName, "db-name", "", "Database name")
-	cmd.Flags().StringVar(&options.DBUser, "db-user", "", "Database user")
-	cmd.Flags().StringVar(&options.DBPassword, "db-password", "", "Database password (secret)")
-	cmd.Flags().StringVar(&options.DBParameters, "db-parameters", "", "Database additional connection parameters")
-	cmd.Flags().BoolVar(&options.EnableTelemetry, "enable-telemetry", true, "Enable telemetry")
-	cmd.Flags().BoolVar(&options.EnableCrashReporting, "enable-crash-reporting", true, "Enable crash reporting")
-	cmd.Flags().BoolVar(&options.EnableUI, "enable-ui", false, "Enable ui")
-	cmd.Flags().DurationVarP(&options.SessionDuration, "session-duration", "d", time.Hour*12, "Session duration")
-	cmd.Flags().StringVar(&options.UIProxyURL, "ui-proxy", "", "Proxy upstream UI requests to this url")
-
-	return cmd, nil
+	return cmd
 }
 
 func newEngineCmd() *cobra.Command {
@@ -551,11 +527,6 @@ func NewRootCmd() (*cobra.Command, error) {
 		},
 	}
 
-	serverCmd, err := newServerCmd()
-	if err != nil {
-		return nil, err
-	}
-
 	rootCmd.AddCommand(newLoginCmd())
 	rootCmd.AddCommand(newLogoutCmd())
 	rootCmd.AddCommand(newListCmd())
@@ -567,7 +538,7 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.AddCommand(newTokensCmd())
 	rootCmd.AddCommand(newImportCmd())
 	rootCmd.AddCommand(newInfoCmd())
-	rootCmd.AddCommand(serverCmd)
+	rootCmd.AddCommand(newServerCmd())
 	rootCmd.AddCommand(newEngineCmd())
 	rootCmd.AddCommand(newVersionCmd())
 
