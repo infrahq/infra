@@ -476,12 +476,13 @@ infra server [flags]
   -f, --config-file string                  Server configuration file
       --db-encryption-key string            Database encryption key (default "$HOME/.infra/sqlite3.db.key")
       --db-encryption-key-provider string   Database encryption key provider (default "native")
+      --db-file string                      Path to SQLite 3 database (default "$HOME/.infra/sqlite3.db")
       --db-host string                      Database host
-      --db-name string                      Database name (default "$HOME/.infra/sqlite3.db")
+      --db-name string                      Database name
       --db-parameters string                Database additional connection parameters
       --db-password string                  Database password (secret)
       --db-port int                         Database port
-      --db-username string                  Database user
+      --db-username string                  Database username
       --enable-crash-reporting              Enable crash reporting (default true)
       --enable-telemetry                    Enable telemetry (default true)
       --enable-ui                           Enable Infra Server UI
