@@ -187,14 +187,20 @@ func newLoginCmd() *cobra.Command {
 }
 
 func newLogoutCmd() *cobra.Command {
-	return &cobra.Command{
+	var force bool
+
+	cmd := &cobra.Command{
 		Use:     "logout",
 		Short:   "Logout of Infra",
 		Example: "$ infra logout",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return logout()
+			return logout(force)
 		},
 	}
+
+	cmd.Flags().BoolVarP(&force, "force", "f", false, "logout and remove context")
+
+	return cmd
 }
 
 func newListCmd() *cobra.Command {

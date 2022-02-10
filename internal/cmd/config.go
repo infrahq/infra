@@ -118,7 +118,7 @@ func readHostConfig(host string) (*ClientHostConfig, error) {
 	return nil, ErrConfigNotFound
 }
 
-func removeHostConfig(host string) error {
+func removeHostConfig(host string, force bool) error {
 	cfg, err := readConfig()
 	if err != nil {
 		return err
@@ -126,7 +126,12 @@ func removeHostConfig(host string) error {
 
 	for i, c := range cfg.Hosts {
 		if c.Host == host {
+			if force {
 			cfg.Hosts = append(cfg.Hosts[:i], cfg.Hosts[i+1:]...)
+			} else {
+				cfg.Hosts[i].Token = ""
+			}
+
 			break
 		}
 	}
