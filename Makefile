@@ -17,8 +17,8 @@ test-all:
 helm:
 	# hack: search and replace appVersion in all helm charts
 	find helm/charts -name 'Chart.yaml' -exec sed -i.1 "s/appVersion: 0.0.0/appVersion: $(tag)/" {} \;
-	helm package -d $@ helm/charts/*/charts/* --app-version $(tag)
-	helm package -d $@ helm/charts/* --app-version $(tag)
+	helm package -d $@ helm/charts/*/charts/* --version $(tag) --app-version $(tag)
+	helm package -d $@ helm/charts/* --version $(tag) --app-version $(tag)
 	helm repo index helm
 	# clean up after the hack
 	find helm/charts -name 'Chart.yaml' -exec sed -i.1 "s/appVersion: $(tag)/appVersion: 0.0.0/" {} \;
