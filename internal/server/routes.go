@@ -18,6 +18,7 @@ type (
 
 func (a *API) registerRoutes(router *gin.RouterGroup) {
 	router.Use(
+		MetricsMiddleware(),
 		RequestTimeoutMiddleware(),
 		DatabaseMiddleware(a.server.db),
 	)
@@ -80,7 +81,7 @@ func (a *API) registerRoutes(router *gin.RouterGroup) {
 }
 
 func get[Req, Res any](r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) {
-	r.GET(path, MetricsMiddleware(path), func(c *gin.Context) {
+	r.GET(path, func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
 			sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
@@ -100,7 +101,7 @@ func get[Req, Res any](r *gin.RouterGroup, path string, handler ReqResHandlerFun
 }
 
 func post[Req, Res any](r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) {
-	r.POST(path, MetricsMiddleware(path), func(c *gin.Context) {
+	r.POST(path, func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
 			sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
@@ -120,7 +121,7 @@ func post[Req, Res any](r *gin.RouterGroup, path string, handler ReqResHandlerFu
 }
 
 func put[Req, Res any](r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) {
-	r.PUT(path, MetricsMiddleware(path), func(c *gin.Context) {
+	r.PUT(path, func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
 			sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
@@ -140,7 +141,7 @@ func put[Req, Res any](r *gin.RouterGroup, path string, handler ReqResHandlerFun
 }
 
 func delete[Req any](r *gin.RouterGroup, path string, handler ReqHandlerFunc[Req]) {
-	r.DELETE(path, MetricsMiddleware(path), func(c *gin.Context) {
+	r.DELETE(path, func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
 			sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))

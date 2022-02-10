@@ -74,18 +74,17 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 }
 
 // MetricsMiddleware wraps the request with a standard set of Prometheus metrics.
-// It has an additional responsibility of stripping out any unique identifiers as it will
-// drastically increase the cardinality, and cost, of produced metrics.
-func MetricsMiddleware(path string) gin.HandlerFunc {
+func MetricsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		t := time.Now()
 
 		c.Next()
 
 		requestDuration.With(prometheus.Labels{
-			"method":  c.Request.Method,
-			"handler": path,
-			"status":  strconv.Itoa(c.Writer.Status()),
+			"host":   c.Request.Host,
+			"method": c.Request.Method,
+			"path":   c.FullPath(),
+			"status": strconv.Itoa(c.Writer.Status()),
 		}).Observe(time.Since(t).Seconds())
 	}
 }
