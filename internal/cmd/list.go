@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/infrahq/infra/internal/api"
-	"github.com/infrahq/infra/uid"
 )
 
 func list() error {
@@ -20,7 +19,7 @@ func list() error {
 	}
 
 	if config.ID == 0 {
-		return fmt.Errorf("no active user")
+		return fmt.Errorf("no active identity")
 	}
 
 	destinations, err := client.ListDestinations(api.ListDestinationsRequest{})
@@ -28,23 +27,32 @@ func list() error {
 		return err
 	}
 
-	grants, err := client.ListUserGrants(config.ID)
-	if err != nil {
-		return err
-	}
+	var grants []api.Grant
+	if config.ProviderID != 0 {
 
-	groups, err := client.ListUserGroups(config.ID)
-	if err != nil {
-		return err
-	}
-
-	for _, g := range groups {
-		groupGrants, err := client.ListGroupGrants(g.ID)
+		grants, err = client.ListUserGrants(config.ID)
 		if err != nil {
 			return err
 		}
 
-		grants = append(grants, groupGrants...)
+		groups, err := client.ListUserGroups(config.ID)
+		if err != nil {
+			return err
+		}
+
+		for _, g := range groups {
+			groupGrants, err := client.ListGroupGrants(g.ID)
+			if err != nil {
+				return err
+			}
+
+			grants = append(grants, groupGrants...)
+		}
+	} else {
+		grants, err = client.ListMachineGrants(config.ID)
+		if err != nil {
+			return err
+		}
 	}
 
 	gs := make(map[string]string)
@@ -89,13 +97,13 @@ func list() error {
 }
 
 func info(client *api.Client, g api.Grant) (provider string, name string, err error) {
-	switch {
-	case strings.HasPrefix(g.Identity, "u:"):
-		id, err := uid.ParseString(strings.TrimPrefix(g.Identity, "u:"))
-		if err != nil {
-			return "", "", err
-		}
+	id, err := g.Identity.ID()
+	if err != nil {
+		return "", "", err
+	}
 
+	switch {
+	case g.Identity.IsUser():
 		user, err := client.GetUser(id)
 		if err != nil {
 			return "", "", err
@@ -107,12 +115,14 @@ func info(client *api.Client, g api.Grant) (provider string, name string, err er
 		}
 
 		return provider.Name, user.Email, nil
-	default:
-		id, err := uid.ParseString(strings.TrimPrefix(g.Identity, "g:"))
+	case g.Identity.IsMachine():
+		machine, err := client.GetMachine(id)
 		if err != nil {
 			return "", "", err
 		}
 
+		return "", machine.Name, nil
+	default:
 		group, err := client.GetGroup(id)
 		if err != nil {
 			return "", "", err

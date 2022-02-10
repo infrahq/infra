@@ -28,9 +28,9 @@ import (
 type Grant struct {
 	Model
 
-	Identity  string `validate:"required"` // polymorphic reference. Format is "u:<idstr>" for users, "g:<idstr>" for groups, "m:<idstr>" for machines
-	Privilege string `validate:"required"` // role or permission
-	Resource  string `validate:"required"` // Universal Resource Notation
+	Identity  uid.PolymorphicID `validate:"required"`
+	Privilege string            `validate:"required"` // role or permission
+	Resource  string            `validate:"required"` // Universal Resource Notation
 
 	CreatedBy uid.ID
 
@@ -59,7 +59,7 @@ func (r *Grant) ToAPI() api.Grant {
 	return result
 }
 
-func (g *Grant) Matches(identity, privilege, resource string) bool {
+func (g *Grant) Matches(identity uid.PolymorphicID, privilege, resource string) bool {
 	if identity != g.Identity {
 		return false
 	}

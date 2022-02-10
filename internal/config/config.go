@@ -105,8 +105,9 @@ func Import(c *api.Client, config Config, replace bool) error {
 			}
 		}
 
-		// create user if it doesn't exist
-		var identityID string
+		// create identifier if it doesn't exist
+		var identityID uid.PolymorphicID
+
 		if g.User != "" {
 			users, err := c.ListUsers(api.ListUsersRequest{Email: g.User})
 			if err != nil {
@@ -126,7 +127,7 @@ func Import(c *api.Client, config Config, replace bool) error {
 				user = &users[0]
 			}
 
-			identityID = "u:" + user.ID.String()
+			identityID = uid.NewUserPolymorphicID(user.ID)
 		}
 
 		// create group if it doesn't exist
@@ -149,12 +150,12 @@ func Import(c *api.Client, config Config, replace bool) error {
 				group = &groups[0]
 			}
 
-			identityID = "g:" + group.ID.String()
+			identityID = uid.NewGroupPolymorphicID(group.ID)
 		}
 
 		// create machine if it doesn't exist
 		if g.Machine != "" {
-			machines, err := c.ListMachines(api.ListMachinesRequest{g.Machine})
+			machines, err := c.ListMachines(api.ListMachinesRequest{Name: g.Machine})
 			if err != nil {
 				return fmt.Errorf("error importing grant: %w", err)
 			}
@@ -171,7 +172,7 @@ func Import(c *api.Client, config Config, replace bool) error {
 				machine = &machines[0]
 			}
 
-			identityID = "m:" + machine.ID.String()
+			identityID = uid.NewMachinePolymorphicID(machine.ID)
 		}
 
 		// create grant if it doesn't exist

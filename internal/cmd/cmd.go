@@ -239,7 +239,7 @@ infra use kubernetes.development.kube-system
 				return err
 			}
 
-			err = updateKubeconfig(client, config.ID)
+			err = updateKubeconfig(client, config.PolymorphicID)
 			if err != nil {
 				return err
 			}
@@ -268,6 +268,19 @@ func newAccessCmd() *cobra.Command {
 	cmd.AddCommand(newAccessListCmd())
 	cmd.AddCommand(newAccessGrantCmd())
 	cmd.AddCommand(newAccessRevokeCmd())
+
+	return cmd
+}
+
+func newKeysCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "keys",
+		Short: "Manage access keys used by machines to authenticate with Infra and call the API",
+	}
+
+	cmd.AddCommand(newKeysListCmd())
+	cmd.AddCommand(newKeysCreateCmd())
+	cmd.AddCommand(newKeysDeleteCmd())
 
 	return cmd
 }
@@ -454,46 +467,57 @@ func newInfoCmd() *cobra.Command {
 			fmt.Fprintln(w)
 			fmt.Fprintln(w, "Server:\t", config.Host)
 
-			if config.ID == 0 {
-				fmt.Fprintln(w, "User:\t", "system")
-				fmt.Fprintln(w)
-				return nil
-			}
+			admin := false
 
-			provider, err := client.GetProvider(config.ProviderID)
-			if err != nil {
-				return err
-			}
-
-			fmt.Fprintln(w, "Identity Provider:\t", provider.Name, fmt.Sprintf("(%s)", provider.URL))
-
-			user, err := client.GetUser(config.ID)
-			if err != nil {
-				return err
-			}
-
-			fmt.Fprintln(w, "User:\t", user.Email)
-
-			groups, err := client.ListUserGroups(config.ID)
-			if err != nil {
-				return err
-			}
-
-			var names string
-			for i, g := range groups {
-				if i != 0 {
-					names += ", "
+			if config.ProviderID != 0 {
+				// a provider implies this is a user identity
+				provider, err := client.GetProvider(config.ProviderID)
+				if err != nil {
+					return err
 				}
 
-				names += g.Name
-			}
+				fmt.Fprintln(w, "Identity Provider:\t", provider.Name, fmt.Sprintf("(%s)", provider.URL))
 
-			fmt.Fprintln(w, "Groups:\t", names)
+				user, err := client.GetUser(config.ID)
+				if err != nil {
+					return err
+				}
 
-			admin := false
-			for _, p := range user.Permissions {
-				if p == "infra.*" {
-					admin = true
+				fmt.Fprintln(w, "User:\t", user.Email)
+
+				groups, err := client.ListUserGroups(config.ID)
+				if err != nil {
+					return err
+				}
+
+				var names string
+				for i, g := range groups {
+					if i != 0 {
+						names += ", "
+					}
+
+					names += g.Name
+				}
+
+				fmt.Fprintln(w, "Groups:\t", names)
+
+				for _, p := range user.Permissions {
+					if p == "infra.*" {
+						admin = true
+					}
+				}
+			} else {
+				machine, err := client.GetMachine(config.ID)
+				if err != nil {
+					return err
+				}
+
+				fmt.Fprintln(w, "Machine:\t", machine.Name)
+
+				for _, p := range machine.Permissions {
+					if p == "infra.*" {
+						admin = true
+					}
 				}
 			}
 
@@ -594,6 +618,7 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.AddCommand(newListCmd())
 	rootCmd.AddCommand(newUseCmd())
 	rootCmd.AddCommand(newAccessCmd())
+	rootCmd.AddCommand(newKeysCmd())
 	rootCmd.AddCommand(newDestinationsCmd())
 	rootCmd.AddCommand(newProvidersCmd())
 	rootCmd.AddCommand(newMachinesCmd())

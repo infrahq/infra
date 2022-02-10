@@ -76,33 +76,23 @@ func ByURL(url string) SelectorFunc {
 	}
 }
 
-func ByIdentity(identity string) SelectorFunc {
+func ByIdentity(polymorphicID uid.PolymorphicID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
-		if identity == "" {
+		if polymorphicID == "" {
 			return db
 		}
 
-		return db.Where("identity = ?", identity)
+		return db.Where("identity = ?", string(polymorphicID))
 	}
 }
 
-func ByIdentityUserID(userID uid.ID) SelectorFunc {
+func ByMachineIDIssuedFor(machineID uid.ID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
-		if userID == 0 {
+		if machineID == 0 {
 			return db
 		}
 
-		return db.Where("identity = ?", "u:"+userID.String())
-	}
-}
-
-func ByIdentityGroupID(groupID uid.ID) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		if groupID == 0 {
-			return db
-		}
-
-		return db.Where("identity = ?", "g:"+groupID.String())
+		return db.Where("issued_for = ?", "m:"+machineID.String())
 	}
 }
 

@@ -8,11 +8,13 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/uid"
 )
 
 type accessOptions struct {
 	User     string `mapstructure:"user"`
 	Group    string `mapstructure:"group"`
+	Machine  string `mapstructure:"machine"`
 	Provider string `mapstructure:"provider"`
 	Role     string `mapstructure:"role"`
 }
@@ -119,7 +121,7 @@ infra access grant -u admin@acme.com -r admin infra
 				return errors.New("specific role with -r or --role")
 			}
 
-			var id strings.Builder
+			var id uid.PolymorphicID
 
 			if options.User != "" {
 				// create user if they don't exist
@@ -127,8 +129,6 @@ infra access grant -u admin@acme.com -r admin infra
 				if err != nil {
 					return err
 				}
-
-				id.WriteString("u:")
 
 				if len(users) == 0 {
 					newUser, err := client.CreateUser(&api.CreateUserRequest{
@@ -139,9 +139,9 @@ infra access grant -u admin@acme.com -r admin infra
 						return err
 					}
 
-					id.WriteString(newUser.ID.String())
+					id = uid.NewUserPolymorphicID(newUser.ID)
 				} else {
-					id.WriteString(users[0].ID.String())
+					id = uid.NewUserPolymorphicID(users[0].ID)
 				}
 			}
 
@@ -152,8 +152,6 @@ infra access grant -u admin@acme.com -r admin infra
 					return err
 				}
 
-				id.WriteString("g:")
-
 				if len(groups) == 0 {
 					newGroup, err := client.CreateGroup(&api.CreateGroupRequest{
 						Name:       options.Group,
@@ -163,14 +161,35 @@ infra access grant -u admin@acme.com -r admin infra
 						return err
 					}
 
-					id.WriteString(newGroup.ID.String())
+					id = uid.NewGroupPolymorphicID(newGroup.ID)
 				} else {
-					id.WriteString(groups[0].ID.String())
+					id = uid.NewGroupPolymorphicID(groups[0].ID)
+				}
+			}
+
+			if options.Machine != "" {
+				// create machine if they don't exist
+				machines, err := client.ListMachines(api.ListMachinesRequest{Name: options.Machine})
+				if err != nil {
+					return err
+				}
+
+				if len(machines) == 0 {
+					newMachine, err := client.CreateMachine(&api.CreateMachineRequest{
+						Name: options.Machine,
+					})
+					if err != nil {
+						return err
+					}
+
+					id = uid.NewMachinePolymorphicID(newMachine.ID)
+				} else {
+					id = uid.NewMachinePolymorphicID(machines[0].ID)
 				}
 			}
 
 			_, err = client.CreateGrant(&api.CreateGrantRequest{
-				Identity:  id.String(),
+				Identity:  id,
 				Privilege: options.Role,
 				Resource:  args[0],
 			})
@@ -185,6 +204,7 @@ infra access grant -u admin@acme.com -r admin infra
 	}
 
 	cmd.Flags().StringP("user", "u", "", "User to grant access to")
+	cmd.Flags().StringP("machine", "m", "", "Machine to grant access to")
 	cmd.Flags().StringP("group", "g", "", "Group to grant access to")
 	cmd.Flags().StringP("provider", "p", "", "Provider from which to grant user access to")
 	cmd.Flags().StringP("role", "r", "", "Role to grant")
@@ -225,7 +245,7 @@ func newAccessRevokeCmd() *cobra.Command {
 				return errors.New("only allowed one of --user or --group")
 			}
 
-			var id string
+			var id uid.PolymorphicID
 
 			if options.User != "" {
 				users, err := client.ListUsers(api.ListUsersRequest{Email: options.User})
@@ -237,7 +257,7 @@ func newAccessRevokeCmd() *cobra.Command {
 					return errors.New("no such user")
 				}
 
-				id = fmt.Sprintf("u:%s", users[0].ID.String())
+				id = uid.NewUserPolymorphicID(users[0].ID)
 			}
 
 			if options.Group != "" {
@@ -250,7 +270,20 @@ func newAccessRevokeCmd() *cobra.Command {
 					return errors.New("no such group")
 				}
 
-				id = fmt.Sprintf("g:%s", groups[0].ID.String())
+				id = uid.NewGroupPolymorphicID(groups[0].ID)
+			}
+
+			if options.Machine != "" {
+				machines, err := client.ListMachines(api.ListMachinesRequest{Name: options.Machine})
+				if err != nil {
+					return err
+				}
+
+				if len(machines) == 0 {
+					return errors.New("no such machine")
+				}
+
+				id = uid.NewMachinePolymorphicID(machines[0].ID)
 			}
 
 			grants, err := client.ListGrants(api.ListGrantsRequest{

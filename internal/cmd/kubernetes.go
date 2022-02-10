@@ -44,29 +44,44 @@ func kubernetesSetContext(name string) error {
 	return nil
 }
 
-func updateKubeconfig(client *api.Client, userID uid.ID) error {
+func updateKubeconfig(client *api.Client, identityPolymorphicID uid.PolymorphicID) error {
 	destinations, err := client.ListDestinations(api.ListDestinationsRequest{})
 	if err != nil {
 		return nil
 	}
 
-	grants, err := client.ListUserGrants(userID)
+	id, err := identityPolymorphicID.ID()
 	if err != nil {
-		return nil
+		return err
 	}
 
-	groups, err := client.ListUserGroups(userID)
-	if err != nil {
-		return nil
-	}
-
-	for _, g := range groups {
-		groupGrants, err := client.ListGroupGrants(g.ID)
+	var grants []api.Grant
+	if identityPolymorphicID.IsUser() {
+		// infer that this is a user
+		grants, err = client.ListUserGrants(id)
 		if err != nil {
-			return nil
+			return err
 		}
 
-		grants = append(grants, groupGrants...)
+		groups, err := client.ListUserGroups(id)
+		if err != nil {
+			return err
+		}
+
+		for _, g := range groups {
+			groupGrants, err := client.ListGroupGrants(g.ID)
+			if err != nil {
+				return err
+			}
+
+			grants = append(grants, groupGrants...)
+		}
+	} else {
+		// infer that this is a machine
+		grants, err = client.ListMachineGrants(id)
+		if err != nil {
+			return err
+		}
 	}
 
 	return writeKubeconfig(destinations, grants)

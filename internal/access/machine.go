@@ -18,6 +18,20 @@ const (
 	PermissionMachineDelete Permission = "infra.machine.delete"
 )
 
+func CurrentMachine(c *gin.Context) *models.Machine {
+	machineObj, exists := c.Get("machine")
+	if !exists {
+		return nil
+	}
+
+	machine, ok := machineObj.(*models.Machine)
+	if !ok {
+		return nil
+	}
+
+	return machine
+}
+
 func CreateMachine(c *gin.Context, machine *models.Machine) error {
 	db, err := requireAuthorization(c, PermissionMachineCreate)
 	if err != nil {
@@ -40,6 +54,15 @@ func CreateMachine(c *gin.Context, machine *models.Machine) error {
 	}
 
 	return nil
+}
+
+func GetMachine(c *gin.Context, id uid.ID) (*models.Machine, error) {
+	db, err := requireAuthorization(c, PermissionMachineRead)
+	if err != nil {
+		return nil, err
+	}
+
+	return data.GetMachine(db, data.ByID(id))
 }
 
 func ListMachines(c *gin.Context, name string) ([]models.Machine, error) {

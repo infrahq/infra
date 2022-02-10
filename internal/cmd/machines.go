@@ -1,53 +1,36 @@
 package cmd
 
 import (
+	"fmt"
 	"strings"
 
-	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/internal/api"
 )
 
 type machineOptions struct {
-	Name        string `mapstructure:"name"`
 	Description string `mapstructure:"description"`
 	Permissions string `mapstructure:"permissions"`
 }
 
-var (
-	surveyName = &survey.Question{
-		Name:     "name",
-		Prompt:   &survey.Input{Message: "Name: "},
-		Validate: survey.Required,
-	}
-	surveyDescription = &survey.Question{
-		Name:     "description",
-		Prompt:   &survey.Input{Message: "Description: "},
-		Validate: survey.Required,
-	}
-	surveyPermissions = &survey.Question{
-		Name:     "permissions",
-		Prompt:   &survey.Input{Message: "Permissions: "},
-		Validate: survey.Required,
-	}
-)
-
 func newMachinesCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "create",
+		Use:   "create [NAME]",
 		Short: "Create a machine identity, e.g. a service that needs to access infrastructure",
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			name := args[0]
+
 			var options machineOptions
 			if err := parseOptions(cmd, &options, "INFRA_MACHINE"); err != nil {
 				return err
 			}
 
-			return createMachine(&options)
+			return createMachine(name, &options)
 		},
 	}
 
-	cmd.Flags().StringP("name", "n", "", "Name of the machine identity")
 	cmd.Flags().StringP("description", "d", "", "Description of the machine identity")
 	cmd.Flags().StringP("permissions", "p", "", "Permissions of the machine identity")
 
@@ -120,35 +103,32 @@ func newMachinesDeleteCmd() *cobra.Command {
 	}
 }
 
-func createMachine(options *machineOptions) error {
-	requiredInformation := []*survey.Question{}
-
-	if options.Name == "" {
-		requiredInformation = append(requiredInformation, surveyName)
-	}
-	if options.Description == "" {
-		requiredInformation = append(requiredInformation, surveyDescription)
-	}
-	if options.Permissions == "" {
-		requiredInformation = append(requiredInformation, surveyPermissions)
-	}
-
-	if len(requiredInformation) > 0 {
-		err := survey.Ask(requiredInformation, options)
-		if err != nil {
-			return err
-		}
-	}
-
+func createMachine(name string, options *machineOptions) error {
 	client, err := defaultAPIClient()
 	if err != nil {
 		return err
 	}
 
-	_, err = client.CreateMachine(&api.CreateMachineRequest{Name: options.Name, Description: options.Description, Permissions: strings.Split(options.Permissions, " ")})
+	_, err = client.CreateMachine(&api.CreateMachineRequest{Name: name, Description: options.Description, Permissions: strings.Split(options.Permissions, " ")})
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func getMachineFromName(client *api.Client, name string) (*api.Machine, error) {
+	machines, err := client.ListMachines(api.ListMachinesRequest{Name: name})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(machines) == 0 {
+		return nil, fmt.Errorf("no machine found with this name")
+	}
+
+	if len(machines) != 1 {
+		return nil, fmt.Errorf("invalid machines response, there should only be one machine that matches a name, but multiple were found")
+	}
+	return &machines[0], nil
 }

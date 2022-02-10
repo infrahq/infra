@@ -37,7 +37,15 @@ func (a *API) registerRoutes(router *gin.RouterGroup) {
 
 		get(authorized, "/machines", a.ListMachines)
 		post(authorized, "/machines", a.CreateMachine)
+		get(authorized, "/machines/:id", a.GetMachine)
 		delete(authorized, "/machines/:id", a.DeleteMachine)
+		get(authorized, "/machines/:id/grants", a.ListMachineGrants)
+
+		get(authorized, "/access-keys", a.ListAccessKeys)
+		post(authorized, "/access-keys", a.CreateAccessKey)
+		delete(authorized, "/access-keys/:id", a.DeleteAccessKey)
+
+		get(authorized, "/introspect", a.Introspect)
 
 		get(authorized, "/groups", a.ListGroups)
 		post(authorized, "/groups", a.CreateGroup)
@@ -60,10 +68,6 @@ func (a *API) registerRoutes(router *gin.RouterGroup) {
 		delete(authorized, "/destinations/:id", a.DeleteDestination)
 
 		post(authorized, "/tokens", a.CreateToken)
-
-		get(authorized, "/access-keys", a.ListAccessKeys)
-		post(authorized, "/access-keys", a.CreateAccessKey)
-		delete(authorized, "/access-keys/:id", a.DeleteAccessKey)
 
 		post(authorized, "/logout", a.Logout)
 	}

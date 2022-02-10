@@ -6,26 +6,33 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-// InfraAccessKey struct for InfraAccessKey
 type AccessKey struct {
-	ID          uid.ID    `json:"id"`
-	Created     time.Time `json:"created"`
-	Expires     time.Time `json:"expires,omitempty"`
-	Name        string    `json:"name"`
-	Permissions []string  `json:"permissions"`
+	ID                uid.ID            `json:"id"`
+	Created           time.Time         `json:"created"`
+	Name              string            `json:"name"`
+	IssuedFor         uid.PolymorphicID `json:"issuedFor"`
+	Expires           time.Time         `json:"expires,omitempty"`
+	ExtensionDeadline time.Time         `json:"extensionDeadline"`
+}
+
+type ListAccessKeysRequest struct {
+	MachineID uid.ID `form:"machineID"`
+	Name      string `form:"name"`
 }
 
 type CreateAccessKeyRequest struct {
-	Name        string        `json:"name"`
-	Permissions []string      `json:"permissions"`
-	Ttl         time.Duration `json:"ttl,omitempty"`
+	MachineID         uid.ID `json:"machineID" validate:"required"`
+	Name              string `json:"name"`
+	TTL               string `json:"ttl"`                         // maximum time valid
+	ExtensionDeadline string `json:"extensionDeadline,omitempty"` // the access key must be used within this amount of time to renew validity
 }
 
 type CreateAccessKeyResponse struct {
-	AccessKey   string    `json:"access-key"`
-	ID          uid.ID    `json:"id"`
-	Created     time.Time `json:"created"`
-	Expires     time.Time `json:"expires,omitempty"`
-	Name        string    `json:"name"`
-	Permissions []string  `json:"permissions"`
+	ID                uid.ID            `json:"id"`
+	Created           time.Time         `json:"created"`
+	Name              string            `json:"name"`
+	IssuedFor         uid.PolymorphicID `json:"issuedFor"`
+	Expires           time.Time         `json:"expires"`           // after this deadline the key is no longer valid
+	ExtensionDeadline time.Time         `json:"extensionDeadline"` // the key must be used by this time to remain valid
+	AccessKey         string            `json:"accessKey"`
 }

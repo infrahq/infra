@@ -29,16 +29,31 @@ func setupDB(t *testing.T) *gorm.DB {
 	return db
 }
 
-func issueToken(t *testing.T, db *gorm.DB, email, permissions string, sessionDuration time.Duration) string {
+func issueUserToken(t *testing.T, db *gorm.DB, email, permissions string, sessionDuration time.Duration) string {
 	user := &models.User{Email: email, Permissions: permissions}
 
 	err := data.CreateUser(db, user)
 	require.NoError(t, err)
 
 	token := &models.AccessKey{
-		UserID:      user.ID,
-		Permissions: permissions,
-		ExpiresAt:   time.Now().Add(sessionDuration),
+		IssuedFor: user.PolymorphicIdentifier(),
+		ExpiresAt: time.Now().Add(sessionDuration),
+	}
+	body, err := data.CreateAccessKey(db, token)
+	require.NoError(t, err)
+
+	return body
+}
+
+func issueMachineToken(t *testing.T, db *gorm.DB, name, permissions string, sessionDuration time.Duration) string {
+	machine := &models.Machine{Name: name, Permissions: permissions}
+
+	err := data.CreateMachine(db, machine)
+	require.NoError(t, err)
+
+	token := &models.AccessKey{
+		IssuedFor: machine.PolymorphicIdentifier(),
+		ExpiresAt: time.Now().Add(sessionDuration),
 	}
 	body, err := data.CreateAccessKey(db, token)
 	require.NoError(t, err)
@@ -81,7 +96,7 @@ func TestRequireAuthentication(t *testing.T) {
 	cases := map[string]map[string]interface{}{
 		"AccessKeyValid": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				authentication := issueToken(t, db, "existing@infrahq.com", "*", time.Minute*1)
+				authentication := issueUserToken(t, db, "existing@infrahq.com", "*", time.Minute*1)
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "Bearer "+authentication)
 				c.Request = r
@@ -93,9 +108,23 @@ func TestRequireAuthentication(t *testing.T) {
 				require.Equal(t, "*", permissions)
 			},
 		},
-		"AccessKeySetsPermissions": {
+		"AccessKeySetsUserPermissions": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				authentication := issueToken(t, db, "existing@infrahq.com", string(access.PermissionTokenCreate), time.Minute*1)
+				authentication := issueUserToken(t, db, "existing@infrahq.com", string(access.PermissionTokenCreate), time.Minute*1)
+				r := httptest.NewRequest(http.MethodGet, "/", nil)
+				r.Header.Add("Authorization", "Bearer "+authentication)
+				c.Request = r
+			},
+			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
+				require.NoError(t, err)
+				permissions, ok := c.Get("permissions")
+				require.True(t, ok)
+				require.Equal(t, string(access.PermissionTokenCreate), permissions)
+			},
+		},
+		"AccessKeySetsMachinePermissions": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				authentication := issueMachineToken(t, db, "Wall-E", string(access.PermissionTokenCreate), time.Minute*1)
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "Bearer "+authentication)
 				c.Request = r
@@ -109,7 +138,7 @@ func TestRequireAuthentication(t *testing.T) {
 		},
 		"AccessKeyExpired": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				authentication := issueToken(t, db, "existing@infrahq.com", "*", time.Minute*-1)
+				authentication := issueUserToken(t, db, "existing@infrahq.com", "*", time.Minute*-1)
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "Bearer "+authentication)
 				c.Request = r
@@ -120,7 +149,7 @@ func TestRequireAuthentication(t *testing.T) {
 		},
 		"AccessKeyInvalidKey": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				token := issueToken(t, db, "existing@infrahq.com", "*", time.Minute*1)
+				token := issueUserToken(t, db, "existing@infrahq.com", "*", time.Minute*1)
 				secret := token[:models.AccessKeySecretLength]
 				authentication := fmt.Sprintf("%s.%s", uid.New().String(), secret)
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -144,7 +173,7 @@ func TestRequireAuthentication(t *testing.T) {
 		},
 		"AccessKeyInvalidSecret": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				token := issueToken(t, db, "existing@infrahq.com", "*", time.Minute*1)
+				token := issueUserToken(t, db, "existing@infrahq.com", "*", time.Minute*1)
 				authentication := fmt.Sprintf("%s.%s", strings.Split(token, ".")[0], generate.MathRandom(models.AccessKeySecretLength))
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "Bearer "+authentication)

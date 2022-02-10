@@ -155,6 +155,11 @@ func jwtMiddleware(next http.Handler, getJWK getJWKFunc) http.Handler {
 
 		ctx := r.Context()
 		ctx = context.WithValue(ctx, internal.HttpContextKeyEmail{}, claims.Email)
+
+		if claims.Machine != "" {
+			ctx = context.WithValue(ctx, internal.HttpContextKeyMachine{}, fmt.Sprintf("machine:%s", claims.Machine))
+		}
+
 		ctx = context.WithValue(ctx, internal.HttpContextKeyGroups{}, claims.Groups)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -171,13 +176,13 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 		var name string
 		var kind string
 
-		switch {
-		case strings.HasPrefix(g.Identity, "g:"):
-			id, err := uid.ParseString(strings.TrimPrefix(g.Identity, "g:"))
-			if err != nil {
-				return err
-			}
+		id, err := g.Identity.ID()
+		if err != nil {
+			return err
+		}
 
+		switch {
+		case g.Identity.IsGroup():
 			group, err := c.GetGroup(id)
 			if err != nil {
 				return err
@@ -186,18 +191,22 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 			name = group.Name
 			kind = rbacv1.GroupKind
 
-		case strings.HasPrefix(g.Identity, "u:"):
-			id, err := uid.ParseString(strings.TrimPrefix(g.Identity, "u:"))
-			if err != nil {
-				return err
-			}
-
+		case g.Identity.IsUser():
 			user, err := c.GetUser(id)
 			if err != nil {
 				return err
 			}
 
 			name = user.Email
+			kind = rbacv1.UserKind
+
+		case g.Identity.IsMachine():
+			machine, err := c.GetMachine(id)
+			if err != nil {
+				return err
+			}
+
+			name = fmt.Sprintf("machine:%s", machine.Name)
 			kind = rbacv1.UserKind
 		}
 
@@ -256,12 +265,20 @@ func proxyHandler(ca []byte, bearerToken string, remote *url.URL) (http.HandlerF
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		email, ok := r.Context().Value(internal.HttpContextKeyEmail{}).(string)
-		if !ok {
-			logging.L.Debug("Proxy handler unable to retrieve email from context")
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
+		identity, ok := r.Context().Value(internal.HttpContextKeyEmail{}).(string)
 
-			return
+		if !ok || identity == "" {
+			logging.L.Debug("Proxy handler unable to retrieve email from context")
+
+			// try machine before failing
+			identity, ok = r.Context().Value(internal.HttpContextKeyMachine{}).(string)
+			if !ok || identity == "" {
+				logging.L.Debug("Proxy handler unable to retrieve machine from context")
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
+
+				return
+			}
+
 		}
 
 		groups, ok := r.Context().Value(internal.HttpContextKeyGroups{}).([]string)
@@ -272,7 +289,7 @@ func proxyHandler(ca []byte, bearerToken string, remote *url.URL) (http.HandlerF
 			return
 		}
 
-		r.Header.Set("Impersonate-User", email)
+		r.Header.Set("Impersonate-User", identity)
 
 		for _, g := range groups {
 			r.Header.Add("Impersonate-Group", g)

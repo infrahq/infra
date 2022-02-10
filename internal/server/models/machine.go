@@ -7,6 +7,7 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/uid"
 )
 
 type Machine struct {
@@ -46,4 +47,8 @@ func (m *Machine) FromAPI(from interface{}) error {
 	}
 
 	return fmt.Errorf("%w: unknown request", internal.ErrBadRequest)
+}
+
+func (m *Machine) PolymorphicIdentifier() uid.PolymorphicID {
+	return uid.NewMachinePolymorphicID(m.ID)
 }

@@ -2,7 +2,6 @@ package access
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -28,7 +27,7 @@ func GetGrant(c *gin.Context, id uid.ID) (*models.Grant, error) {
 	return data.GetGrant(db, data.ByID(id))
 }
 
-func ListGrants(c *gin.Context, identity string, resource string, privilege string) ([]models.Grant, error) {
+func ListGrants(c *gin.Context, identity uid.PolymorphicID, resource string, privilege string) ([]models.Grant, error) {
 	db, err := requireAuthorization(c, PermissionGrantRead)
 	if err != nil {
 		return nil, err
@@ -38,14 +37,25 @@ func ListGrants(c *gin.Context, identity string, resource string, privilege stri
 }
 
 func ListUserGrants(c *gin.Context, userID uid.ID) ([]models.Grant, error) {
-	db, err := requireAuthorizationWithCheck(c, PermissionGrantRead, func(user *models.User) bool {
-		return userID == user.ID
+	db, err := requireAuthorizationWithCheck(c, PermissionGrantRead, func(id uid.ID) bool {
+		return userID == id
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	return data.ListUserGrants(db, userID)
+}
+
+func ListMachineGrants(c *gin.Context, machineID uid.ID) ([]models.Grant, error) {
+	db, err := requireAuthorizationWithCheck(c, PermissionGrantRead, func(id uid.ID) bool {
+		return machineID == id
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return data.ListMachineGrants(db, machineID)
 }
 
 func ListGroupGrants(c *gin.Context, groupID uid.ID) ([]models.Grant, error) {
@@ -65,7 +75,7 @@ func CreateGrant(c *gin.Context, grant *models.Grant) error {
 
 	// TODO (https://github.com/infrahq/infra/issues/855): replace permissions with actual grant models
 	if grant.Resource == "infra" && grant.Privilege == "admin" {
-		userID, err := uid.ParseString(strings.TrimPrefix(grant.Identity, "u:"))
+		userID, err := grant.Identity.ID()
 		if err != nil {
 			return fmt.Errorf("invalid identity id: %w", err)
 		}
@@ -98,7 +108,7 @@ func DeleteGrant(c *gin.Context, id uid.ID) error {
 	}
 
 	if grant.Resource == "infra" && grant.Privilege == "admin" {
-		userID, err := uid.ParseString(strings.TrimPrefix(grant.Identity, "u:"))
+		userID, err := grant.Identity.ID()
 		if err != nil {
 			return fmt.Errorf("invalid identity id: %w", err)
 		}

@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
 var tom = &models.User{Email: "tom@infrahq.com"}
@@ -16,19 +17,19 @@ func TestBasicGrant(t *testing.T) {
 	err := CreateUser(db, tom)
 	require.NoError(t, err)
 
-	grant(t, db, tom, "steven", "read", "infra.groups.1")
+	grant(t, db, tom, "u:steven", "read", "infra.groups.1")
 
-	can(t, db, "steven", "read", "infra.groups.1")
-	cant(t, db, "steven", "read", "infra.groups.2")
-	cant(t, db, "steven", "write", "infra.groups.1")
+	can(t, db, "u:steven", "read", "infra.groups.1")
+	cant(t, db, "u:steven", "read", "infra.groups.2")
+	cant(t, db, "u:steven", "write", "infra.groups.1")
 
-	grant(t, db, tom, "steven", "read", "infra.groups.*")
-	can(t, db, "steven", "read", "infra.groups.1")
-	can(t, db, "steven", "read", "infra.groups.2")
-	cant(t, db, "steven", "write", "infra.groups.1")
+	grant(t, db, tom, "u:steven", "read", "infra.groups.*")
+	can(t, db, "u:steven", "read", "infra.groups.1")
+	can(t, db, "u:steven", "read", "infra.groups.2")
+	cant(t, db, "u:steven", "write", "infra.groups.1")
 }
 
-func grant(t *testing.T, db *gorm.DB, currentUser *models.User, identity, privilege, resource string) {
+func grant(t *testing.T, db *gorm.DB, currentUser *models.User, identity uid.PolymorphicID, privilege, resource string) {
 	err := CreateGrant(db, &models.Grant{
 		Identity:  identity,
 		Privilege: privilege,
@@ -38,13 +39,13 @@ func grant(t *testing.T, db *gorm.DB, currentUser *models.User, identity, privil
 	require.NoError(t, err)
 }
 
-func can(t *testing.T, db *gorm.DB, identity, privilege, resource string) {
+func can(t *testing.T, db *gorm.DB, identity uid.PolymorphicID, privilege, resource string) {
 	canAccess, err := Can(db, identity, privilege, resource)
 	require.NoError(t, err)
 	require.True(t, canAccess)
 }
 
-func cant(t *testing.T, db *gorm.DB, identity, privilege, resource string) {
+func cant(t *testing.T, db *gorm.DB, identity uid.PolymorphicID, privilege, resource string) {
 	canAccess, err := Can(db, identity, privilege, resource)
 	require.NoError(t, err)
 	require.False(t, canAccess)

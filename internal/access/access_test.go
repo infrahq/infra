@@ -163,26 +163,53 @@ func TestRequireAuthorization(t *testing.T) {
 
 func TestRequireAuthorizationWithCheck(t *testing.T) {
 	userID := uid.New()
+	machineID := uid.New()
 
 	tests := []struct {
 		Name             string
-		CurrentUser      *models.User
+		SetupContext     func(c *gin.Context)
 		PermissionWanted Permission
-		CustomCheckFn    func(cUser *models.User) bool
+		CustomCheckFn    func(id uid.ID) bool
 		ErrorExpected    error
 	}{
 		{
-			Name:             "wrong user with no permissions",
-			CurrentUser:      &models.User{},
+			Name: "wrong user with no permissions",
+			SetupContext: func(c *gin.Context) {
+				c.Set("permissions", "")
+				c.Set("user", &models.User{})
+			},
 			PermissionWanted: PermissionDestinationRead,
-			CustomCheckFn:    func(cUser *models.User) bool { return false },
+			CustomCheckFn:    func(id uid.ID) bool { return false },
 			ErrorExpected:    internal.ErrForbidden,
 		},
 		{
-			Name:             "right user with no permissions",
-			CurrentUser:      &models.User{Model: models.Model{ID: userID}},
+			Name: "right user with no permissions",
+			SetupContext: func(c *gin.Context) {
+				c.Set("permissions", "")
+				c.Set("user", &models.User{Model: models.Model{ID: userID}})
+			},
 			PermissionWanted: PermissionDestinationRead,
-			CustomCheckFn:    func(cUser *models.User) bool { return cUser.ID == userID },
+			CustomCheckFn:    func(id uid.ID) bool { return id == userID },
+			ErrorExpected:    nil,
+		},
+		{
+			Name: "wrong machine with no permissions",
+			SetupContext: func(c *gin.Context) {
+				c.Set("permissions", "")
+				c.Set("machine", &models.Machine{})
+			},
+			PermissionWanted: PermissionDestinationRead,
+			CustomCheckFn:    func(id uid.ID) bool { return false },
+			ErrorExpected:    internal.ErrForbidden,
+		},
+		{
+			Name: "right machine with no permissions",
+			SetupContext: func(c *gin.Context) {
+				c.Set("permissions", "")
+				c.Set("machine", &models.Machine{Model: models.Model{ID: machineID}})
+			},
+			PermissionWanted: PermissionDestinationRead,
+			CustomCheckFn:    func(id uid.ID) bool { return id == machineID },
 			ErrorExpected:    nil,
 		},
 	}
@@ -192,8 +219,7 @@ func TestRequireAuthorizationWithCheck(t *testing.T) {
 			db := setupDB(t)
 			c, _ := gin.CreateTestContext(nil)
 			c.Set("db", db)
-			c.Set("permissions", test.CurrentUser.Permissions)
-			c.Set("user", test.CurrentUser)
+			test.SetupContext(c)
 
 			_, err := requireAuthorizationWithCheck(c, test.PermissionWanted, test.CustomCheckFn)
 

@@ -55,6 +55,10 @@ func CreateAccessKey(db *gorm.DB, authnKey *models.AccessKey) (body string, err 
 	return fmt.Sprintf("%s.%s", authnKey.Key, authnKey.Secret), nil
 }
 
+func SaveAccessKey(db *gorm.DB, key *models.AccessKey) error {
+	return save(db, key)
+}
+
 func ListAccessKeys(db *gorm.DB, selectors ...SelectorFunc) ([]models.AccessKey, error) {
 	return list[models.AccessKey](db, selectors...)
 }
@@ -81,7 +85,7 @@ func DeleteAccessKeys(db *gorm.DB, selectors ...SelectorFunc) error {
 	return deleteAll[models.AccessKey](db, ByIDs(ids))
 }
 
-func LookupAccessKey(db *gorm.DB, authnKey string) (*models.AccessKey, error) {
+func ValidateAccessKey(db *gorm.DB, authnKey string) (*models.AccessKey, error) {
 	parts := strings.Split(authnKey, ".")
 	if len(parts) < 2 {
 		return nil, fmt.Errorf("rejected access key format")
@@ -99,6 +103,15 @@ func LookupAccessKey(db *gorm.DB, authnKey string) (*models.AccessKey, error) {
 
 	if time.Now().After(t.ExpiresAt) {
 		return nil, fmt.Errorf("token expired")
+	}
+
+	if !t.ExtensionDeadline.IsZero() {
+		if !time.Now().Before(t.ExtensionDeadline) {
+			return nil, fmt.Errorf("token extension deadline exceeded")
+		}
+
+		t.ExtensionDeadline = time.Now().Add(t.Extension)
+		SaveAccessKey(db, t)
 	}
 
 	return t, nil

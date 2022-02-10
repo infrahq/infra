@@ -11,6 +11,10 @@ func CreateMachine(db *gorm.DB, machine *models.Machine) error {
 	return add(db, machine)
 }
 
+func SaveMachine(db *gorm.DB, machine *models.Machine) error {
+	return save(db, machine)
+}
+
 func ListMachines(db *gorm.DB, selectors ...SelectorFunc) ([]models.Machine, error) {
 	return list[models.Machine](db, selectors...)
 }
