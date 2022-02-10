@@ -1,4 +1,6 @@
-import styled from "styled-components";
+import styled from 'styled-components';
+import { faUnlockKeyhole } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
 const RegisterContainer = styled.section`
   margin-left: auto;
@@ -31,6 +33,7 @@ const Register = () => {
       <RegisterDescription>
         Securely manage access to your infrastructure. Take a moment to create your account and start managing access today.
       </RegisterDescription>
+      <FontAwesomeIcon icon={faUnlockKeyhole} />
     </RegisterContainer>
   )
 };
