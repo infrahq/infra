@@ -1,30 +1,50 @@
-********************************************************************************
+################################################################################
 
                                 Welcome to Infra
 
-  Login to this cluster with infra-cli: https://github.com/infrahq/infra#install-infra-cli
+  Login to this cluster with infra-cli:
+
+    https://github.com/infrahq/infra#install-infra-cli
 
 {{- if .Values.server.ingress.enabled }}
 {{- with first .Values.server.ingress.hosts }}
 
-    $ INFRA_SERVER={{ . }}
+  $ infra login {{ . }}
+
 {{- end }}
 {{- else if eq .Values.server.service.type "NodePort" }}
 
-    $ NODE_HOST=$(kubectl -n {{ .Release.Namespace }} get nodes -o jsonpath="{.status.addresses[0].address}")
-    $ NODE_PORT=$(kubectl -n {{ .Release.Namespace }} get services/{{ include "infra.server.fullname" . }} -o jsonpath="{.spec.ports[0].nodePort}")
-    $ INFRA_SERVER=$NODE_HOST:$NODE_PORT
+  $ NODE_HOST=$(kubectl -n {{ .Release.Namespace }} get nodes -o jsonpath="{.status.addresses[0].address}")
+  $ NODE_PORT=$(kubectl -n {{ .Release.Namespace }} get services/{{ include "infra.server.fullname" . }} -o jsonpath="{.spec.ports[0].nodePort}")
+  $ infra login $NODE_HOST:NODE_PORT
+
 {{- else if eq .Values.server.service.type "LoadBalancer" }}
 
-      NOTE: It may take a few minutes for the LoadBalancer to become available.
-      You can watch the status of by running `kubectl -n {{ .Release.Namespace }} get services/{{ include "infra.server.fullname" . }} -w`
+  NOTE: It may take a few minutes for the LoadBalancer to become available.
+  You can watch the status of by running `kubectl -n {{ .Release.Namespace }} get services/{{ include "infra.server.fullname" . }} -w`
 
-    $ INFRA_SERVER=$(kubectl -n {{ .Release.Namespace }} get services/{{ include "infra.server.fullname" . }} -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}")
+  $ LOADBALANCER=$(kubectl -n {{ .Release.Namespace }} get services/{{ include "infra.server.fullname" . }} -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}")
+  $ infra login $LOADBALANCER
+
 {{- else if contains .Values.server.service.type "ClusterIP" }}
 
-    $ kubectl -n {{ .Release.Namespace }} port-forward deployments/{{ include "infra.server.fullname" . }} 8080:80 8443:443
+  $ kubectl -n {{ .Release.Namespace }} port-forward deployments/{{ include "infra.server.fullname" . }} 8080:80 8443:443
+
+  Infra API server can now be accessed on localhost:8443
+
+  $ infra login localhost:8443
+
 {{- end }}
 
-    $ infra login $INFRA_SERVER
+{{- if not .Values.server.persistence.enabled }}
+{{- if and (not (hasKey .Values.server.config "dbHost")) (not .Values.server.config.dbHost) }}
 
-********************************************************************************
+################################# WARNING ######################################
+
+   Server persistence is not enabled. Data will be lost on pod restart
+   Enable persistence or connect an external datastore for data integrity.
+
+{{- end }}
+{{- end }}
+
+################################################################################

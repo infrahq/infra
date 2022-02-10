@@ -381,7 +381,7 @@ server:
   #   dbPort: 0
 
   ## Database username
-  #   dbUsername: ""
+  #   dbUser: ""
 
   ## Database password. Use `file:` or `env:` to reference a file or environment variable
   ## Ref: https://github.com/infrahq/infra/blob/main/docs/secrets.md
