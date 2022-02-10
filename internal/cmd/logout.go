@@ -6,7 +6,7 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 )
 
-func logout() error {
+func logout(force bool) error {
 	config, err := readConfig()
 	if errors.Is(err, ErrConfigNotFound) {
 		logging.S.Debug(err.Error())
@@ -19,7 +19,7 @@ func logout() error {
 	}
 
 	for _, hostConfig := range config.Hosts {
-		if err := removeHostConfig(hostConfig.Host); err != nil {
+		if err := removeHostConfig(hostConfig.Host, force); err != nil {
 			logging.S.Warn(err.Error())
 			continue
 		}
