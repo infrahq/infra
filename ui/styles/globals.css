@@ -1,3 +1,5 @@
 html, body, #__next {
-    font-family: sans-serif;
+  font-family: "Inter", sans-serif;
+  color: #FFFFFF;
+  background: #0A0E12;
 }
