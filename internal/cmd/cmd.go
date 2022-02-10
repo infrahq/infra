@@ -348,7 +348,7 @@ func newServerCmd() *cobra.Command {
 	cmd.Flags().String("db-name", "", "Database name")
 	cmd.Flags().String("db-host", "", "Database host")
 	cmd.Flags().Int("db-port", 0, "Database port")
-	cmd.Flags().String("db-username", "", "Database user")
+	cmd.Flags().String("db-username", "", "Database username")
 	cmd.Flags().String("db-password", "", "Database password (secret)")
 	cmd.Flags().String("db-parameters", "", "Database additional connection parameters")
 	cmd.Flags().String("db-encryption-key", "$HOME/.infra/sqlite3.db.key", "Database encryption key")
