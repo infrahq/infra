@@ -23,6 +23,31 @@
 go run .
 ```
 
+## Run Infra Server (Docker)
+
+### Setup
+
+* Install [Docker](https://docker.com/)
+  * (macOS, Windows) [Docker Desktop](https://www.docker.com/products/docker-desktop)
+  * (Linux) [Docker Engine](https://docs.docker.com/engine/install)
+
+### Steps
+
+1. Build or pull the Infra Docker image
+1. Generate an admin access key
+
+```bash
+randascii() { python -c "import random, string; print(''.join([random.choice(string.ascii_letters) for _ in range($1)]))"; }
+ADMIN_ACCESS_KEY=$(echo $(randascii 10).$(randascii 24))
+docker run -d -p 8080:80/tcp -p 8443:443/tcp --name infra-server infrahq/infra server --admin-access-key $ADMIN_ACCESS_KEY
+```
+
+1. Access the API server
+
+```bash
+curl -H "Authorization: Bearer $ADMIN_ACCESS_KEY" localhost:8080/v1/users
+```
+
 ## Run a full local setup
 
 ### Setup
