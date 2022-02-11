@@ -11,10 +11,16 @@ const LoginContainer = styled.section`
   max-width: 24rem;
   padding-top: 2rem;
 
+  display: grid;
+  grid-template-rows: 1fr auto;
+  min-height: 100%;
+`
+
+const Content = styled.div`
   & > *:not(:first-child) {
     padding-top: 1.5rem;
   }
-`
+`;
 
 const LoginIdentiySourceList = styled.div`
   margin-top: 2rem;
@@ -68,9 +74,9 @@ const HelpContainer = styled.div`
 `;
 
 const Footer = styled.div`
-  position: absolute;
-  bottom: 0;
-  padding-bottom: 1rem;
+  grid-row-start: 2;
+  grid-row-end: 3;
+  padding: 2rem 0;
 `;
 
 const Login = () => {
@@ -82,33 +88,34 @@ const Login = () => {
 
   return (
     <LoginContainer>
-      <AccountHeader
-        header='Login to Infra'
-        subheader='Securely manage access to your infrastructure. Take a moment to create your account and start managing access today.'
-      />
-      <LoginIdentiySourceList>
-        <IdentitySourceBtn type='okta' disabled={false} onClick={handleOktaLogin} />
-      </LoginIdentiySourceList>
-
-      <LoginIdentiySourceComingSoonListContainer>
-        <LoginIdentiySourceComingSoonListHeader>Coming Soon</LoginIdentiySourceComingSoonListHeader>
-      </LoginIdentiySourceComingSoonListContainer>
-      <LoginIdentiySourceComingSoonList>        
-        {comingSoonList.map((identity) => 
-          <div key={identity}>
-            <IdentitySourceBtn type={identity} disabled={true} />
-          </div>
-        )}
-      </LoginIdentiySourceComingSoonList>
-      <HelpContainer>
-        <span>Having trouble loggin in?</span>
-        <Link href='/account/register'>
-          <a>Use API Access Key</a>
-        </Link>
-      </HelpContainer>
-        <Footer>
-          <AccountFooter />
-        </Footer>
+      <Content>
+        <AccountHeader
+          header='Login to Infra'
+          subheader='Securely manage access to your infrastructure. Take a moment to create your account and start managing access today.'
+        />
+        <LoginIdentiySourceList>
+          <IdentitySourceBtn type='okta' disabled={false} onClick={handleOktaLogin} />
+        </LoginIdentiySourceList>
+        <LoginIdentiySourceComingSoonListContainer>
+          <LoginIdentiySourceComingSoonListHeader>Coming Soon</LoginIdentiySourceComingSoonListHeader>
+          <LoginIdentiySourceComingSoonList>        
+            {comingSoonList.map((identity) => 
+              <div key={identity}>
+                <IdentitySourceBtn type={identity} disabled={true} />
+              </div>
+            )}
+          </LoginIdentiySourceComingSoonList>
+        </LoginIdentiySourceComingSoonListContainer>
+        <HelpContainer>
+          <span>Having trouble loggin in?</span>
+          <Link href='/account/register'>
+            <a>Use API Access Key</a>
+          </Link>
+        </HelpContainer>
+      </Content>
+      <Footer>
+        <AccountFooter />
+      </Footer>
     </LoginContainer>
   )
 };

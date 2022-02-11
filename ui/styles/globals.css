@@ -1,4 +1,5 @@
 html, body, #__next {
+  height: 98%;
   font-family: "Inter", sans-serif;
   color: #FFFFFF;
   background: #0A0E12;

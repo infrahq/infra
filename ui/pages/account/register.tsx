@@ -12,6 +12,12 @@ const RegisterContainer = styled.section`
   max-width: 24rem;
   padding-top: 2rem;
 
+  display: grid;
+  grid-template-rows: 1fr auto;
+  min-height: 100%;
+`
+
+const Content = styled.div`
   & > *:not(:first-child) {
     padding-top: 1.5rem;
   }
@@ -22,9 +28,9 @@ const AccessKeyInputContainer = styled.div`
 `;
 
 const Footer = styled.div`
-  position: absolute;
-  bottom: 0;
-  padding-bottom: 1rem;
+  grid-row-start: 2;
+  grid-row-end: 3;
+  padding: 2rem 0;
 `;
 
 const Register = () => {
@@ -36,19 +42,21 @@ const Register = () => {
 
   return (
     <RegisterContainer>
-      <AccountHeader 
-        header='Infra Admin API Access Key'
-        subheader='Securely manage access to your infrastructure. Take a moment to create your account and start managing access today.'
-      />
-      <AccessKeyInputContainer>
-        <AccessKeyInput 
-          value={value}
-          onChange={e => setValue(e.target.value)}
+      <Content>
+        <AccountHeader 
+          header='Infra Admin API Access Key'
+          subheader='Securely manage access to your infrastructure. Take a moment to create your account and start managing access today.'
         />
-      </AccessKeyInputContainer>
-      <section>
-        <ActionButton onClick={handleLogin} children='Login'/>
-      </section>
+        <AccessKeyInputContainer>
+          <AccessKeyInput 
+            value={value}
+            onChange={e => setValue(e.target.value)}
+          />
+        </AccessKeyInputContainer>
+        <section>
+          <ActionButton onClick={handleLogin} children='Login'/>
+        </section>
+      </Content>
       <Footer>
         <AccountFooter />
       </Footer>
