@@ -127,7 +127,7 @@ func removeHostConfig(host string, force bool) error {
 	for i, c := range cfg.Hosts {
 		if c.Host == host {
 			if force {
-			cfg.Hosts = append(cfg.Hosts[:i], cfg.Hosts[i+1:]...)
+				cfg.Hosts = append(cfg.Hosts[:i], cfg.Hosts[i+1:]...)
 			} else {
 				cfg.Hosts[i].Token = ""
 			}
