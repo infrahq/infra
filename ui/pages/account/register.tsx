@@ -1,39 +1,57 @@
+import { useState } from 'react';
 import styled from 'styled-components';
-import { faUnlockKeyhole } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+
+import AccessKeyInput from '../../components/AccessKeyInput';
+import ActionButton from '../../components/ActionButton';
+import AccountFooter from '../../components/AccountFooter';
+import AccountHeader from '../../components/AccountHeader';
 
 const RegisterContainer = styled.section`
   margin-left: auto;
   margin-right: auto;
   max-width: 24rem;
-  padding-top: 1.5rem;
+  padding-top: 2rem;
 
+  & > *:not(:first-child) {
+    padding-top: 1.5rem;
+  }
 `;
 
-const RegisterHeader = styled.h1`
-  font-size: 1.375rem;
-  line-height: 1.7rem;
-  letter-spacing: -0.035em;
-  font-weight: normal;
+const AccessKeyInputContainer = styled.div`
+  margin-top: 1.5rem;
 `;
 
-const RegisterDescription = styled.p`
-  font-weight: normal;
-  font-size: .6875rem;
-  line-height: 156.52%;
-  opacity: .5;
+const Footer = styled.div`
+  position: absolute;
+  bottom: 0;
+  padding-bottom: 1rem;
 `;
 
 const Register = () => {
+  const [value, setValue] = useState('');
+
+  const handleLogin = () => {
+    console.log('handle login with access key');
+  };
+
   return (
     <RegisterContainer>
-      <RegisterHeader>
-        Infra Admin API Access Key
-      </RegisterHeader>
-      <RegisterDescription>
-        Securely manage access to your infrastructure. Take a moment to create your account and start managing access today.
-      </RegisterDescription>
-      <FontAwesomeIcon icon={faUnlockKeyhole} />
+      <AccountHeader 
+        header='Infra Admin API Access Key'
+        subheader='Securely manage access to your infrastructure. Take a moment to create your account and start managing access today.'
+      />
+      <AccessKeyInputContainer>
+        <AccessKeyInput 
+          value={value}
+          onChange={e => setValue(e.target.value)}
+        />
+      </AccessKeyInputContainer>
+      <section>
+        <ActionButton onClick={handleLogin} children='Login'/>
+      </section>
+      <Footer>
+        <AccountFooter />
+      </Footer>
     </RegisterContainer>
   )
 };
