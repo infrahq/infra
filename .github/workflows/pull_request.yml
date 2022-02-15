@@ -22,7 +22,7 @@ jobs:
       - run: make helm/lint tag=0.0.0-development
 
   docker:
-    if: startsWith(github.head_ref, 'release-please-') == 'true'
+    if: startsWith(github.head_ref, 'release-please-') == true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
