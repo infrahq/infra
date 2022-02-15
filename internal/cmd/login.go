@@ -288,7 +288,7 @@ func promptHost(hosts []string) (string, error) {
 	if len(hosts) > 0 {
 
 		prompt := &survey.Select{
-			Message: defaultOpt,
+			Message: "Select an Infra host:",
 			Options: hosts,
 		}
 
