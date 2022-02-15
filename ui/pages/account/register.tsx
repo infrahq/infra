@@ -1,10 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import styled from 'styled-components';
+import axios from 'axios';
+import Router from 'next/router'; 
+
 
 import AccessKeyInput from '../../components/AccessKeyInput';
 import ActionButton from '../../components/ActionButton';
 import AccountFooter from '../../components/AccountFooter';
 import AccountHeader from '../../components/AccountHeader';
+import { useCookies } from 'react-cookie';
 
 const RegisterContainer = styled.section`
   margin-left: auto;
@@ -35,9 +39,30 @@ const Footer = styled.div`
 
 const Register = () => {
   const [value, setValue] = useState('');
+  const [cookie, setCookie] = useCookies(['accessKey']);
+  
+  useEffect(() => {
+    if(!!cookie.accessKey && cookie.accessKey !== undefined) {
+      Router.push({
+        pathname: '/',
+      }, undefined, { shallow: true });
+    }
+  }, [])
 
-  const handleLogin = () => {
-    console.log('handle login with access key');
+  const handleLogin = async () => {
+    // get cookie to access to the api
+    // document.cookie = `access_key=${value}`
+    setCookie('accessKey', value, { path: '/' });
+
+    await axios.get('/v1/users', { headers: { Authorization: `Bearer ${value}` } })
+    .then((response) => {
+      Router.push({
+        pathname: '/',
+      }, undefined, { shallow: true });
+    })
+    .catch((error) => {
+      console.log(error);
+    });
   };
 
   return (
