@@ -17,6 +17,7 @@ jobs:
         with:
           command: manifest
           config-file: .github/release-please.json
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
 
   binaries:
     needs: release-please
