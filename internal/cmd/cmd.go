@@ -620,7 +620,6 @@ func Run() error {
 	err = cmd.Execute()
 	printError(err)
 	return err
-	// return cmd.Execute()
 }
 
 func printError(err error) {
