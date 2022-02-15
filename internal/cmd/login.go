@@ -344,7 +344,6 @@ func promptShouldSkipTLSVerify(host string) (shouldSkipTLSVerify bool, proceed b
 
 		err := survey.AskOne(prompt, &proceed, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err.Error())
 			return false, false, err
 		}
 
