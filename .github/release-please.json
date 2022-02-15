@@ -3,7 +3,7 @@
   "bump-patch-for-minor-pre-major": true,
   "packages": {
     ".": {
-      "release-type": "simple"
+      "release-type": "go"
     }
   }
 }
