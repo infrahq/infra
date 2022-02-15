@@ -1,17 +1,35 @@
 import styled from 'styled-components';
 
+export const enum IdentitySourceType {
+  Okta = 'okta',
+  Google = 'google',
+  Azure = 'azure',
+  Gitlab = 'gitlab'
+}
+
+export interface IdentitySourceProvider {
+  type: IdentitySourceType,
+  name?: string,
+  redirectURL?: string
+}
+
 interface IdentitySourceBtnField {
-  disabled: boolean;
-  type: string;
+  providers: IdentitySourceProvider[];
   onClick?: () => void;
 }
 
+const IdentitySourceBtnContainer = styled.div`
+  & > *:not(:first-child) {
+    margin-top: .3rem;
+  }
+`;
+
 const IdentitySourceContainer = styled.button`
-  width: 373px;
-  height: 45px;
+  width: 24rem;
+  height: 3rem;
   background: rgba(255,255,255,0.02);
   opacity: ${props => props.disabled ? '.56' : '1'};
-  border-radius: 4px;
+  border-radius: .25rem;
   border: none;
   cursor: ${props => props.disabled ? 'default' : 'pointer'};
   color: #FFFFFF;
@@ -25,7 +43,7 @@ const IdentitySourceContainer = styled.button`
 const IdentitySourceContentContainer = styled.div`
   display: flex;
   flex-direction: row;
-  padding: 6px 7px;
+  padding: .5rem;
 `
 
 const IdentitySourceLogo = styled.div`
@@ -35,40 +53,60 @@ const IdentitySourceLogo = styled.div`
 const IdentitySourceContentDescriptionContainer = styled.div`
   padding-left: 1rem;
   text-align: left;
+
+  & > *:not(:first-child) {
+    padding-top: .15rem;
+  }
 `;
 
 const DescriptionHeader = styled.div`
   font-weight: 100;
-  font-size: 12px;
-  line-height: 15px;
+  font-size: .75rem;
+  line-height: 1rem;
   text-transform: capitalize;
 `;
 
 const DescriptionSubheader = styled.div`
   font-weight: 100;
-  font-size: 9px;
-  line-height: 11px;
+  font-size: .5rem;
+  line-height: .75rem;
   text-transform: uppercase;
   color: #FFFFFF;
   opacity: 0.3;
 `;
 
-const IdentitySourceBtn = ({ type, disabled, onClick }: IdentitySourceBtnField ) => {
+const IdentitySourceBtn = ({ providers }: IdentitySourceBtnField ) => {
+
+  const clickHandle = (redirectURL:string|undefined) => {
+    if (redirectURL !== undefined) {
+      document.location.href = 'https://' + redirectURL;
+    }
+
+    return;
+  }
+
   return (
-    <IdentitySourceContainer
-      onClick={disabled ? undefined : onClick }
-      disabled={disabled}
-    >
-      <IdentitySourceContentContainer>
-        <IdentitySourceLogo>
-          <img src={`/${type}.svg`} />
-        </IdentitySourceLogo>
-        <IdentitySourceContentDescriptionContainer>
-          <DescriptionHeader>{type}</DescriptionHeader>
-          <DescriptionSubheader>Identity Source</DescriptionSubheader>
-        </IdentitySourceContentDescriptionContainer>
-      </IdentitySourceContentContainer>
-    </IdentitySourceContainer>
+    <IdentitySourceBtnContainer>
+      {providers.map((provider, index) => {
+        return (
+          <IdentitySourceContainer
+            key={index}
+            onClick={!provider.redirectURL ? undefined : () => clickHandle(provider.redirectURL) }
+            disabled={!provider.redirectURL}
+          >
+            <IdentitySourceContentContainer>
+              <IdentitySourceLogo>
+                <img src={`/${provider.type}.svg`} />
+              </IdentitySourceLogo>
+              <IdentitySourceContentDescriptionContainer>
+                <DescriptionHeader>{provider.type}</DescriptionHeader>
+                <DescriptionSubheader>{provider.name ? provider.name : 'Identity Source'}</DescriptionSubheader>
+              </IdentitySourceContentDescriptionContainer>
+            </IdentitySourceContentContainer>
+          </IdentitySourceContainer>
+        )
+      })}
+    </IdentitySourceBtnContainer>
   )
 };
 

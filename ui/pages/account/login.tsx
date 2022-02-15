@@ -3,7 +3,7 @@ import Link from 'next/link';
 
 import AccountFooter from "../../components/AccountFooter";
 import AccountHeader from "../../components/AccountHeader";
-import IdentitySourceBtn from "../../components/IdentitySourceBtn";
+import IdentitySourceBtn, { IdentitySourceProvider, IdentitySourceType }  from "../../components/IdentitySourceBtn";
 
 const LoginContainer = styled.section`
   margin-left: auto;
@@ -80,11 +80,30 @@ const Footer = styled.div`
 `;
 
 const Login = () => {
-  const handleOktaLogin = () => {
-    console.log('you click to log in with Okta')
-  }
+  const comingSoonList: IdentitySourceProvider[] = [
+    {
+      type: IdentitySourceType.Google,
+    }, 
+    {
+      type: IdentitySourceType.Azure,
+    },
+    {
+      type: IdentitySourceType.Gitlab
+    }
+  ];
 
-  const comingSoonList = ['google', 'azure', 'gitlab'];
+  const possibleIdentityProviders: IdentitySourceProvider[] = [
+    {
+      type: IdentitySourceType.Okta,
+      name: 'okta',
+      redirectURL: 'dev-02708987.okta.com'
+    },
+    {
+      type: IdentitySourceType.Okta,
+      name: 'okta2',
+      redirectURL: 'dev-02708989.okta.com'
+    }
+  ];
 
   return (
     <LoginContainer>
@@ -94,14 +113,14 @@ const Login = () => {
           subheader='Securely manage access to your infrastructure. Take a moment to create your account and start managing access today.'
         />
         <LoginIdentiySourceList>
-          <IdentitySourceBtn type='okta' disabled={false} onClick={handleOktaLogin} />
+          <IdentitySourceBtn providers={possibleIdentityProviders} />
         </LoginIdentiySourceList>
         <LoginIdentiySourceComingSoonListContainer>
           <LoginIdentiySourceComingSoonListHeader>Coming Soon</LoginIdentiySourceComingSoonListHeader>
           <LoginIdentiySourceComingSoonList>        
             {comingSoonList.map((identity) => 
-              <div key={identity}>
-                <IdentitySourceBtn type={identity} disabled={true} />
+              <div key={identity.type}>
+                <IdentitySourceBtn providers={[identity]} />
               </div>
             )}
           </LoginIdentiySourceComingSoonList>
