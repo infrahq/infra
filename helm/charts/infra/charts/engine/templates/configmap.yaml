@@ -15,6 +15,11 @@ data:
 
 {{- if and .Values.global (not (hasKey .Values.config "server")) }}
     server: {{ .Release.Name }}-server.{{ .Release.Namespace }}
+
+{{- if (not (hasKey .Values.config "skipTLSVerify")) }}
+    # skip tls verify if we're connecting to an in-cluster server
+    skipTLSVerify: true
+{{- end }}
 {{- end }}
 
 {{- range $key, $val := omit .Values.config "accessKey" }}
