@@ -623,11 +623,12 @@ func Run() error {
 }
 
 func printError(err error) {
+	const divider string = "\n========\n"
 	if err != nil {
 		if errors.Is(err, terminal.InterruptErr) {
-			fmt.Fprint(os.Stderr, "^C")
+			fmt.Fprintf(os.Stderr, "%sExiting - user terminated%s", divider, divider)
 		} else {
-			fmt.Fprint(os.Stderr, err.Error())
+			fmt.Fprintf(os.Stderr, "%sExiting - error:\n%s%s", divider, err.Error(), divider)
 		}
 	}
 }
