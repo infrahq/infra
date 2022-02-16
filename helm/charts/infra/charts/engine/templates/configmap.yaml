@@ -6,11 +6,16 @@ metadata:
 {{- include "engine.labels" . | nindent 4 }}
 data:
   infra.yaml: |
+{{- $accessKey := default "" .Values.config.accessKey }}
+{{- if and $accessKey (or (hasPrefix "file:" $accessKey) (hasPrefix "env:" $accessKey)) }}
+    accessKey: {{ $accessKey }}
+{{- else }}
+    accessKey: file:/var/run/secrets/infrahq.com/access-key/access-key
+{{- end }}
+
 {{- if and .Values.global (not (hasKey .Values.config "server")) }}
     server: {{ .Release.Name }}-server.{{ .Release.Namespace }}
 {{- end }}
-
-    accessKey: /var/run/secrets/infrahq.com/access-key/access-key
 
 {{- range $key, $val := omit .Values.config "accessKey" }}
 {{- if kindIs "invalid" $val }}
