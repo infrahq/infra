@@ -371,6 +371,10 @@ server:
   ## Primary server configuration
   ## Ref: https://github.com/infrahq/infra/blob/main/docs/cli.md#infra-server
   config: {}
+
+  ## Server admin access key
+  #   adminAccessKey: ""
+
   ## Database name
   #   dbName: ""
 
@@ -408,9 +412,6 @@ server:
 
   ## Duration of an user session
   #   sessionDuration: 12h0m0s
-
-  ## Server admin access key
-  adminAccessKey: ""
 
   ## Additional identity providers to configure
   additionalProviders: []
@@ -716,6 +717,9 @@ engine:
   ## Primary engine configuration
   ## Ref: https://github.com/infrahq/infra/blob/main/docs/cli.md#infra-engine
   config: {}
+  ## Server access key
+  #   accessKey: ""
+
   ## Infra Server address
   #   server: ""
 
@@ -724,6 +728,3 @@ engine:
 
   ## Skip verify server TLS certificate
   #   skipTLSVerify: true
-
-  ## Server access key
-  accessKey: ""
