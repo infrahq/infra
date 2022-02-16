@@ -487,6 +487,8 @@ func Run(options Options) error {
 				if err != nil {
 					logging.S.Errorf("error updating destination: %w", err)
 				}
+
+				destinationID = destinations[0].ID
 			default:
 				// this shouldn't happen
 				logging.L.Info("unexpected result from ListDestinations")
