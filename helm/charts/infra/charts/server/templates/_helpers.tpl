@@ -136,8 +136,8 @@ Create an admin access key. If one is defined through values, use it. Otherwise 
 existing secret and use its password. If the secret does not exist, randomly generate a password.
 */}}
 {{- define "server.adminAccessKey" -}}
-{{- if .Values.adminAccessKey }}
-{{- .Values.adminAccessKey }}
+{{- if .Values.config.adminAccessKey }}
+{{- .Values.config.adminAccessKey }}
 {{- else }}
 {{- $secret := lookup "v1" "Secret" .Release.Namespace (printf "%s-admin-access-key" .Release.Name) }}
 {{- if $secret }}

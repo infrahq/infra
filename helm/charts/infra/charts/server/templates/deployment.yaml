@@ -92,6 +92,7 @@ spec:
         - name: admin-access-key
           secret:
             secretName: {{ .Release.Name }}-admin-access-key
+            optional: true
         - name: access-key
           secret:
             secretName: {{ .Release.Name }}-access-key

@@ -6,8 +6,19 @@ metadata:
 {{- include "server.labels" . | nindent 4 }}
 data:
   infra.yaml: |
+{{- $adminAccessKey := default "" .Values.config.adminAccessKey }}
+{{- if and $adminAccessKey (or (hasPrefix "file:" $adminAccessKey) (hasPrefix "env:" $adminAccessKey)) }}
+    adminAccessKey: {{ $adminAccessKey }}
+{{- else }}
     adminAccessKey: file:/var/run/secrets/infrahq.com/admin-access-key/access-key
+{{- end }}
+
+{{- $accessKey := default "" .Values.config.accessKey }}
+{{- if and $accessKey (or (hasPrefix "file:" $accessKey) (hasPrefix "env:" $accessKey)) }}
+    accessKey: {{ $accessKey }}
+{{- else }}
     accessKey: file:/var/run/secrets/infrahq.com/access-key/access-key
+{{- end }}
 
 {{- range $key, $val := omit .Values.config "import" "adminAccessKey" "accessKey" }}
 {{- if kindIs "invalid" $val }}
