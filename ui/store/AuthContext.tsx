@@ -35,26 +35,27 @@ const AuthContext = createContext<AppContextInterface>({
 })
 
 export const AuthContextProvider = ({ children }:any) => {
+  const hasProvider: ProviderField[] = 
+  [{"id":"2H21T3DkBw","name":"okta","created":-62135596800,"updated":1644606820,"url":"dev-02708987.okta.com","clientID":"0oapn0qwiQPiMIyR35d6"},
+  {"id":"2H21T3DkBw","name":"okta2 - invalid","created":-62135596800,"updated":1644606820,"url":"dev-02708988.okta.com","clientID":"0oapn0qwiQPiMIyR35d6"}];
+  
   const [user, setUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
   const [loginError, setLoginError] = useState(false);
-  const [providers, setProviders] = useState<ProviderField[] | []>([]);
+  const [providers, setProviders] = useState<ProviderField[] | []>(hasProvider);
   const [cookie, setCookie] = useCookies(['accessKey']);
 
 
   useEffect(() => {
+
+    // check the /v1/providers
+    console.log(providers);
+    console.log(providers.length);
+
     authCheck();
   }, []);
 
   const authCheck = () => {
-    // check the /v1/providers
-    const hasProvider: ProviderField[] = 
-    [{"id":"2H21T3DkBw","name":"okta","created":-62135596800,"updated":1644606820,"url":"dev-02708987.okta.com","clientID":"0oapn0qwiQPiMIyR35d6"},
-    {"id":"2H21T3DkBw","name":"okta2 - invalid","created":-62135596800,"updated":1644606820,"url":"dev-02708988.okta.com","clientID":"0oapn0qwiQPiMIyR35d6"}];
-
-    setProviders(hasProvider);
-    // setProviders([]);
-
     if (providers.length > 0) {
       Router.push({
         pathname: '/account/login',

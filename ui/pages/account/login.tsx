@@ -4,6 +4,8 @@ import Link from 'next/link';
 import AccountFooter from "../../components/AccountFooter";
 import AccountHeader from "../../components/AccountHeader";
 import IdentitySourceBtn, { IdentitySourceProvider, IdentitySourceType }  from "../../components/IdentitySourceBtn";
+import AuthContext from "../../store/AuthContext";
+import { useContext } from "react";
 
 const LoginContainer = styled.section`
   margin-left: auto;
@@ -80,6 +82,7 @@ const Footer = styled.div`
 `;
 
 const Login = () => {
+  const { providers, login } = useContext(AuthContext);
   const comingSoonList: IdentitySourceProvider[] = [
     {
       type: IdentitySourceType.Google,
@@ -96,12 +99,12 @@ const Login = () => {
     {
       type: IdentitySourceType.Okta,
       name: 'okta',
-      redirectURL: 'dev-02708987.okta.com'
+      url: 'dev-02708987.okta.com'
     },
     {
       type: IdentitySourceType.Okta,
       name: 'okta2',
-      redirectURL: 'dev-02708989.okta.com'
+      url: 'dev-02708989.okta.com'
     }
   ];
 
