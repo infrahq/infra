@@ -3,37 +3,58 @@ import Router from 'next/router';
 import axios from 'axios';
 import { useCookies } from 'react-cookie';
 
+interface AppContextInterface {
+  user: any,
+  login: () => void,
+  logout: () => void,
+  register: (key:string) => void,
+  cookie: {},
+  authReady: boolean,
+  loginError: boolean,
+  providers: ProviderField[] | []
+}
 
-const AuthContext = createContext({
+interface ProviderField {
+  id: string,
+  name: string,
+  created: number,
+  updated: number,
+  url: string,
+  clientID: string
+};
+
+const AuthContext = createContext<AppContextInterface>({
   user: null,
   login: () => {},
   logout: () => {},
-  register: (key: string) => {},
+  register: () => {},
   cookie: {},
   authReady: false,
   loginError: false,
+  providers: [],
 })
 
 export const AuthContextProvider = ({ children }:any) => {
   const [user, setUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
   const [loginError, setLoginError] = useState(false);
+  const [providers, setProviders] = useState<ProviderField[] | []>([]);
   const [cookie, setCookie] = useCookies(['accessKey']);
 
 
   useEffect(() => {
-    // on initial load - run auth check 
     authCheck();
-
   }, []);
 
   const authCheck = () => {
     // check the /v1/providers
-    const hasProvider = [{"id":"2H21T3DkBw","name":"okta","created":-62135596800,"updated":1644606820,"url":"dev-02708987.okta.com","clientID":"0oapn0qwiQPiMIyR35d6"}];
-    // const providers:any[] = hasProvider;
-    const providers:any[] = [];
+    const hasProvider: ProviderField[] = 
+    [{"id":"2H21T3DkBw","name":"okta","created":-62135596800,"updated":1644606820,"url":"dev-02708987.okta.com","clientID":"0oapn0qwiQPiMIyR35d6"},
+    {"id":"2H21T3DkBw","name":"okta2 - invalid","created":-62135596800,"updated":1644606820,"url":"dev-02708988.okta.com","clientID":"0oapn0qwiQPiMIyR35d6"}];
 
-    // save the provider to localstorage / redux?
+    setProviders(hasProvider);
+    // setProviders([]);
+
     if (providers.length > 0) {
       Router.push({
         pathname: '/account/login',
@@ -56,7 +77,7 @@ export const AuthContextProvider = ({ children }:any) => {
   const register = async (key: string) => {
     setCookie('accessKey', key, { path: '/' });
 
-    // // need to handle multiple axios called
+    // TODO: need to handle multiple axios called
 
     // const usersList =  axios.get('/v1/users', { headers: { Authorization: `Bearer ${key}` } });
     // const machinesList =  axios.get('/v1/machines', { headers: { Authorization: `Bearer ${key}` } });
@@ -84,7 +105,7 @@ export const AuthContextProvider = ({ children }:any) => {
     });
   }
 
-  const context = { user, login, logout, register, cookie, authReady, loginError }
+  const context:AppContextInterface = { user, login, logout, register, cookie, authReady, loginError, providers }
 
   return (
     <AuthContext.Provider value={context}>

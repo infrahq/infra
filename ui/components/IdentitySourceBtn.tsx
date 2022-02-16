@@ -10,7 +10,9 @@ export const enum IdentitySourceType {
 export interface IdentitySourceProvider {
   type: IdentitySourceType,
   name?: string,
-  redirectURL?: string
+  url?: string,
+  clientID?: string,
+  id?: string
 }
 
 interface IdentitySourceBtnField {
@@ -77,9 +79,9 @@ const DescriptionSubheader = styled.div`
 
 const IdentitySourceBtn = ({ providers }: IdentitySourceBtnField ) => {
 
-  const clickHandle = (redirectURL:string|undefined) => {
-    if (redirectURL !== undefined) {
-      document.location.href = 'https://' + redirectURL;
+  const clickHandle = (url:string|undefined) => {
+    if (url !== undefined) {
+      document.location.href = 'https://' + url;
     }
 
     return;
@@ -91,8 +93,8 @@ const IdentitySourceBtn = ({ providers }: IdentitySourceBtnField ) => {
         return (
           <IdentitySourceContainer
             key={index}
-            onClick={!provider.redirectURL ? undefined : () => clickHandle(provider.redirectURL) }
-            disabled={!provider.redirectURL}
+            onClick={!provider.url ? undefined : () => clickHandle(provider.url) }
+            disabled={!provider.url}
           >
             <IdentitySourceContentContainer>
               <IdentitySourceLogo>
