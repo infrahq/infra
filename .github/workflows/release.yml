@@ -1,40 +1,51 @@
 name: release
 
 on:
-  release:
-    types:
-      - created
+  push:
+    branches:
+      - main
 
 jobs:
-  release-binaries:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release-please.release_created }}
+      release_name: ${{ steps.release-please.tag_name }}
+    steps:
+      - id: release-please
+        uses: google-github-actions/release-please-action@v3
+        with:
+          command: manifest
+          config-file: .github/release-please.json
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+
+  binaries:
+    needs: release-please
+    if: needs.release-please.outputs.release_created
     runs-on: ubuntu-latest
     steps:
-      - name: Code checkout
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
         with:
-          stable: 'false'
-          go-version: '1.18.0-beta1'
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
+          stable: false
+          go-version: 1.18.0-beta1
+      - uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-2
       - run: |
           go get
-          make tools
-      - run: |
-          make release
+          make tools release tag=${{ needs.release-please.outputs.release_name }}
           echo $GITHUB_REF | cut -d/ -f3- | tee latest
           aws s3 cp latest s3://releases.infrahq.com/infra/latest
         env:
           GITHUB_TOKEN: ${{ secrets.GORELEASER_GITHUB_TOKEN }}
           GEMFURY_TOKEN: ${{ secrets.GORELEASER_GEMFURY_TOKEN }}
 
-  release-docker:
+  docker:
+    needs: release-please
+    if: needs.release-please.outputs.release_created
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -43,21 +54,23 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - run: make release/docker
+      - run: make release/docker tag=${{ needs.release-please.outputs.release_name }}
         env:
           TELEMETRY_WRITE_KEY: ${{ secrets.TELEMETRY_WRITE_KEY }}
           CRASH_REPORTING_DSN: ${{ secrets.CRASH_REPORTING_DSN }}
 
-  release-helm:
-    needs: release-docker
+  helm:
+    needs: release-please
+    if: needs.release-please.outputs.release_created
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: azure/setup-helm@v1
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-2
-    - run: make release/helm
+      - uses: actions/checkout@v2
+      - uses: azure/setup-helm@v1
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+      - run: |
+          make helm tag=${{ needs.release-please.outputs.release_name }}
+          aws s3 sync helm s3://helm.infrahq.com --exclude "*" --include "index.yaml" --include "*.tgz"

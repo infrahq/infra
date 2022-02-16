@@ -281,16 +281,22 @@ type hostchoice struct {
 
 func promptHost(hosts []string) (string, error) {
 	var option int
+	const defaultOpt string = "Connect to a different host"
 
-	hosts = append(hosts, "Connect to a different host")
+	hosts = append(hosts, defaultOpt)
 
 	if len(hosts) > 0 {
+
 		prompt := &survey.Select{
 			Message: "Select an Infra host:",
 			Options: hosts,
 		}
 
-		err := survey.AskOne(prompt, &option, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
+		filter := func(filterValue string, optValue string, optIndex int) bool {
+			return strings.Contains(optValue, filterValue) || strings.EqualFold(optValue, defaultOpt)
+		}
+
+		err := survey.AskOne(prompt, &option, survey.WithFilter(filter), survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
 		if err != nil {
 			return "", err
 		}
