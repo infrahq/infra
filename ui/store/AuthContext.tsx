@@ -10,12 +10,14 @@ const AuthContext = createContext({
   logout: () => {},
   register: (key: string) => {},
   cookie: {},
-  authReady: false
+  authReady: false,
+  loginError: false,
 })
 
 export const AuthContextProvider = ({ children }:any) => {
   const [user, setUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
+  const [loginError, setLoginError] = useState(false);
   const [cookie, setCookie] = useCookies(['accessKey']);
 
 
@@ -54,25 +56,35 @@ export const AuthContextProvider = ({ children }:any) => {
   const register = async (key: string) => {
     setCookie('accessKey', key, { path: '/' });
 
+    // // need to handle multiple axios called
+
+    // const usersList =  axios.get('/v1/users', { headers: { Authorization: `Bearer ${key}` } });
+    // const machinesList =  axios.get('/v1/machines', { headers: { Authorization: `Bearer ${key}` } });
+
+    // await axios.all([usersList, machinesList]).then(axios.spread((...responses) => {
+    //   setUser(responses[0].data);
+    //   setMachine(responses[1].data);
+
+    //   // redirect to '/'
+
+    // })).catch((errors) => {
+
+    // })
+
     await axios.get('/v1/users', { headers: { Authorization: `Bearer ${key}` } })
     .then((response) => {
-      if (response.status === 200) {
-        Router.push({
-          pathname: '/',
-        }, undefined, { shallow: true });
-        setAuthReady(true);
-
-        // call machine to set user
-        // setUser()
-      }
+      Router.push({
+        pathname: '/',
+      }, undefined, { shallow: true });
+      setAuthReady(true);
     })
     .catch((error) => {
       console.log(error);
+      setLoginError(true);
     });
-
   }
 
-  const context = { user, login, logout, register, cookie, authReady }
+  const context = { user, login, logout, register, cookie, authReady, loginError }
 
   return (
     <AuthContext.Provider value={context}>

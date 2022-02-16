@@ -1,8 +1,6 @@
 import { useContext, useEffect, useState } from 'react';
 import styled from 'styled-components';
-import axios from 'axios';
 import Router from 'next/router'; 
-import { useCookies } from 'react-cookie';
 
 import AccessKeyInput from '../../components/AccessKeyInput';
 import ActionButton from '../../components/ActionButton';
@@ -38,7 +36,7 @@ const Footer = styled.div`
 `;
 
 const Register = () => {
-  const { authReady, register} = useContext(AuthContext)
+  const { authReady, register } = useContext(AuthContext)
   const [value, setValue] = useState('');
   
   useEffect(() => {
