@@ -8,7 +8,7 @@ import AccessKeyInput from '../../components/AccessKeyInput';
 import ActionButton from '../../components/ActionButton';
 import AccountFooter from '../../components/AccountFooter';
 import AccountHeader from '../../components/AccountHeader';
-import AuthContext from '../../components/AuthContext';
+import AuthContext from '../../store/AuthContext';
 
 const RegisterContainer = styled.section`
   margin-left: auto;
