@@ -19,11 +19,18 @@ func GetGrant(db *gorm.DB, selectors ...SelectorFunc) (*models.Grant, error) {
 }
 
 func ListUserGrants(db *gorm.DB, userID uid.ID) (result []models.Grant, err error) {
-	return list[models.Grant](db, ByIdentityUserID(userID))
+	polymorphicID := uid.NewUserPolymorphicID(userID)
+	return ListGrants(db, ByIdentity(polymorphicID))
+}
+
+func ListMachineGrants(db *gorm.DB, machineID uid.ID) (result []models.Grant, err error) {
+	polymorphicID := uid.NewMachinePolymorphicID(machineID)
+	return ListGrants(db, ByIdentity(polymorphicID))
 }
 
 func ListGroupGrants(db *gorm.DB, groupID uid.ID) (result []models.Grant, err error) {
-	return list[models.Grant](db, ByIdentityGroupID(groupID))
+	polymorphicID := uid.NewGroupPolymorphicID(groupID)
+	return ListGrants(db, ByIdentity(polymorphicID))
 }
 
 func ListGrants(db *gorm.DB, selectors ...SelectorFunc) ([]models.Grant, error) {
@@ -44,7 +51,7 @@ func DeleteGrants(db *gorm.DB, selectors ...SelectorFunc) error {
 	return deleteAll[models.Grant](db, ByIDs(ids))
 }
 
-func Can(db *gorm.DB, identity, privilege, resource string) (bool, error) {
+func Can(db *gorm.DB, identity uid.PolymorphicID, privilege, resource string) (bool, error) {
 	grants, err := list[models.Grant](db, ByIdentity(identity), ByPrivilege(privilege), ByResource(resource))
 	if err != nil {
 		return false, err

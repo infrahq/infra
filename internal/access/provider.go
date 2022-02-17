@@ -165,7 +165,7 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 	}
 
 	token := &models.AccessKey{
-		UserID:    user.ID,
+		IssuedFor: user.PolymorphicIdentifier(),
 		ExpiresAt: time.Now().Add(sessionDuration),
 	}
 

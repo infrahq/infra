@@ -111,7 +111,7 @@ func generateJWK() (pub *jose.JSONWebKey, priv *jose.JSONWebKey, err error) {
 	return pub, priv, err
 }
 
-func generateJWT(priv *jose.JSONWebKey, expiry time.Time) (string, error) {
+func generateJWT(priv *jose.JSONWebKey, email, machineName string, expiry time.Time) (string, error) {
 	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.EdDSA, Key: priv}, (&jose.SignerOptions{}).WithType("JWT"))
 	if err != nil {
 		return "", err
@@ -122,10 +122,19 @@ func generateJWT(priv *jose.JSONWebKey, expiry time.Time) (string, error) {
 		Expiry:   jwt.NewNumericDate(expiry),
 		IssuedAt: jwt.NewNumericDate(time.Now()),
 	}
-	custom := claims.Custom{
-		Email:  "test@test.com",
-		Groups: []string{"developers"},
-		Nonce:  "randomstring",
+
+	var custom claims.Custom
+	if email != "" {
+		custom = claims.Custom{
+			Email:  email,
+			Groups: []string{"developers"},
+			Nonce:  "randomstring",
+		}
+	} else {
+		custom = claims.Custom{
+			Machine: machineName,
+			Nonce:   "randomstring",
+		}
 	}
 
 	raw, err := jwt.Signed(signer).Claims(cl).Claims(custom).CompactSerialize()
@@ -169,7 +178,7 @@ func TestJWTMiddlewareExpiredJWT(t *testing.T) {
 	pub, priv, err := generateJWK()
 	require.NoError(t, err)
 
-	expiredJWT, err := generateJWT(priv, time.Now().Add(-1*time.Hour))
+	expiredJWT, err := generateJWT(priv, "test@example.com", "", time.Now().Add(-1*time.Hour))
 	require.NoError(t, err)
 
 	emptyHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -204,7 +213,7 @@ func TestJWTMiddlewareWrongHeader(t *testing.T) {
 	pub, priv, err := generateJWK()
 	require.NoError(t, err)
 
-	expiredJWT, err := generateJWT(priv, time.Now().Add(-1*time.Hour))
+	expiredJWT, err := generateJWT(priv, "test@example.com", "", time.Now().Add(-1*time.Hour))
 	require.NoError(t, err)
 
 	emptyHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -230,17 +239,51 @@ func TestJWTMiddlewareWrongHeader(t *testing.T) {
 	require.Equal(t, http.StatusUnauthorized, res.StatusCode)
 }
 
+func TestJWTMiddlewareValidJWTSetsMachineName(t *testing.T) {
+	pub, priv, err := generateJWK()
+	require.NoError(t, err)
+
+	validJWT, err := generateJWT(priv, "", "arnold", time.Now().Add(3*time.Hour))
+	require.NoError(t, err)
+
+	emptyHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		name, ok := r.Context().Value(internal.HttpContextKeyMachine{}).(string)
+		require.True(t, ok)
+		require.Equal(t, "machine:arnold", name)
+
+		w.WriteHeader(http.StatusOK)
+	})
+
+	rr := httptest.NewRecorder()
+
+	handler := jwtMiddleware(emptyHandler, func() (*jose.JSONWebKey, error) {
+		return pub, nil
+	})
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
+	require.NoError(t, err)
+
+	req.Header.Set("Authorization", "Bearer "+validJWT)
+
+	handler.ServeHTTP(rr, req)
+
+	res := rr.Result()
+	defer res.Body.Close()
+
+	require.Equal(t, http.StatusOK, res.StatusCode)
+}
+
 func TestJWTMiddlewareValidJWTSetsEmail(t *testing.T) {
 	pub, priv, err := generateJWK()
 	require.NoError(t, err)
 
-	validJWT, err := generateJWT(priv, time.Now().Add(3*time.Hour))
+	validJWT, err := generateJWT(priv, "test@example.com", "", time.Now().Add(3*time.Hour))
 	require.NoError(t, err)
 
 	emptyHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		email, ok := r.Context().Value(internal.HttpContextKeyEmail{}).(string)
 		require.True(t, ok)
-		require.Equal(t, "test@test.com", email)
+		require.Equal(t, "test@example.com", email)
 
 		w.WriteHeader(http.StatusOK)
 	})
@@ -268,13 +311,13 @@ func TestProxyHandler(t *testing.T) {
 	pub, priv, err := generateJWK()
 	require.NoError(t, err)
 
-	validJWT, err := generateJWT(priv, time.Now().Add(3*time.Hour))
+	validJWT, err := generateJWT(priv, "test@example.com", "", time.Now().Add(3*time.Hour))
 	require.NoError(t, err)
 
 	emptyHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		email, ok := r.Context().Value(internal.HttpContextKeyEmail{}).(string)
 		require.True(t, ok)
-		require.Equal(t, "test@test.com", email)
+		require.Equal(t, "test@example.com", email)
 
 		w.WriteHeader(http.StatusOK)
 	})

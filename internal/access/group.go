@@ -44,8 +44,8 @@ func GetGroup(c *gin.Context, id uid.ID) (*models.Group, error) {
 }
 
 func ListUserGroups(c *gin.Context, userID uid.ID) ([]models.Group, error) {
-	db, err := requireAuthorizationWithCheck(c, PermissionGroupRead, func(user *models.User) bool {
-		return userID == user.ID
+	db, err := requireAuthorizationWithCheck(c, PermissionGroupRead, func(id uid.ID) bool {
+		return userID == id
 	})
 	if err != nil {
 		return nil, err

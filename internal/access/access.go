@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
 type Permission string
@@ -35,12 +35,18 @@ var DefaultUserPermissions = strings.Join([]string{
 // This should be used conservatively for things like record ownership.
 // If customCheckFunc returns false, the requestor must prove access via permissions.
 // Note that customCheckFunc is only called when there is a currentUser present in the request.
-func requireAuthorizationWithCheck(c *gin.Context, require Permission, customCheckFunc func(currUser *models.User) bool) (*gorm.DB, error) {
+func requireAuthorizationWithCheck(c *gin.Context, require Permission, customCheckFunc func(id uid.ID) bool) (*gorm.DB, error) {
 	db := getDB(c)
 
 	user := CurrentUser(c)
 
-	if user != nil && customCheckFunc(user) {
+	if user != nil && customCheckFunc(user.ID) {
+		return db, nil
+	}
+
+	machine := CurrentMachine(c)
+
+	if machine != nil && customCheckFunc(machine.ID) {
 		return db, nil
 	}
 

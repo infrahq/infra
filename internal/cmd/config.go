@@ -18,13 +18,14 @@ type ClientConfig struct {
 
 // current: v0.3
 type ClientHostConfig struct {
-	ID            uid.ID `json:"id"`
-	Name          string `json:"name"`
-	Host          string `json:"host"`
-	Token         string `json:"token,omitempty"`
-	SkipTLSVerify bool   `json:"skip-tls-verify"` // where is the other cert info stored?
-	ProviderID    uid.ID `json:"provider-id"`
-	Current       bool   `json:"current"`
+	ID            uid.ID            `json:"id"`
+	PolymorphicID uid.PolymorphicID `json:"polymorphic-id"`
+	Name          string            `json:"name"`
+	Host          string            `json:"host"`
+	Token         string            `json:"token,omitempty"`
+	SkipTLSVerify bool              `json:"skip-tls-verify"` // where is the other cert info stored?
+	ProviderID    uid.ID            `json:"provider-id"`
+	Current       bool              `json:"current"`
 }
 
 //lint:ignore ST1005, user facing error

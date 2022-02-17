@@ -18,6 +18,7 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/authn"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
 type API struct {
@@ -304,8 +305,46 @@ func (a *API) ListMachines(c *gin.Context, r *api.ListMachinesRequest) ([]api.Ma
 	return results, nil
 }
 
+func (a *API) GetMachine(c *gin.Context, r *api.Resource) (*api.Machine, error) {
+	machine, err := access.GetMachine(c, r.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return machine.ToAPI(), nil
+}
+
 func (a *API) DeleteMachine(c *gin.Context, r *api.Resource) error {
 	return access.DeleteMachine(c, r.ID)
+}
+
+func (a *API) ListMachineGrants(c *gin.Context, r *api.Resource) ([]api.Grant, error) {
+	grants, err := access.ListMachineGrants(c, r.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]api.Grant, len(grants))
+	for i, g := range grants {
+		results[i] = g.ToAPI()
+	}
+
+	return results, nil
+}
+
+// Introspect is used by clients to get info about the token they are using
+func (a *API) Introspect(c *gin.Context, r *api.EmptyRequest) (*api.Introspect, error) {
+	user := access.CurrentUser(c)
+	if user != nil {
+		return &api.Introspect{ID: user.ID, Name: user.Email, IdentityType: "user"}, nil
+	}
+
+	machine := access.CurrentMachine(c)
+	if machine != nil {
+		return &api.Introspect{ID: machine.ID, Name: machine.Name, IdentityType: "machine"}, nil
+	}
+
+	return nil, fmt.Errorf("no identity context found for token")
 }
 
 func (a *API) GetDestination(c *gin.Context, r *api.Resource) (*api.Destination, error) {
@@ -356,21 +395,34 @@ func (a *API) DeleteDestination(c *gin.Context, r *api.Resource) error {
 }
 
 func (a *API) CreateToken(c *gin.Context, r *api.CreateTokenRequest) (*api.CreateTokenResponse, error) {
-	err := a.updateUserInfo(c)
-	if err != nil {
-		return nil, err
+	if access.CurrentUser(c) != nil {
+		err := a.updateUserInfo(c)
+		if err != nil {
+			return nil, err
+		}
+
+		token, err := access.CreateUserToken(c)
+		if err != nil {
+			return nil, err
+		}
+
+		return &api.CreateTokenResponse{Token: token.Token, Expires: token.Expires}, nil
 	}
 
-	token, err := access.CreateUserToken(c)
-	if err != nil {
-		return nil, err
+	if access.CurrentMachine(c) != nil {
+		token, err := access.CreateMachineToken(c)
+		if err != nil {
+			return nil, err
+		}
+
+		return &api.CreateTokenResponse{Token: token.Token, Expires: token.Expires}, nil
 	}
 
-	return &api.CreateTokenResponse{Token: token.Token, Expires: token.Expires}, nil
+	return nil, fmt.Errorf("no identity found in token: %s", internal.ErrUnauthorized)
 }
 
-func (a *API) ListAccessKeys(c *gin.Context, r *api.EmptyRequest) ([]api.AccessKey, error) {
-	accessKeys, err := access.ListAccessKeys(c)
+func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) ([]api.AccessKey, error) {
+	accessKeys, err := access.ListAccessKeys(c, r.MachineID, r.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -379,11 +431,12 @@ func (a *API) ListAccessKeys(c *gin.Context, r *api.EmptyRequest) ([]api.AccessK
 
 	for i, a := range accessKeys {
 		results[i] = api.AccessKey{
-			ID:          a.ID,
-			Name:        a.Name,
-			Permissions: strings.Split(a.Permissions, " "),
-			Created:     a.CreatedAt,
-			Expires:     a.ExpiresAt,
+			ID:                a.ID,
+			Name:              a.Name,
+			Created:           a.CreatedAt,
+			IssuedFor:         a.IssuedFor,
+			Expires:           a.ExpiresAt,
+			ExtensionDeadline: a.ExtensionDeadline,
 		}
 	}
 
@@ -396,20 +449,42 @@ func (a *API) DeleteAccessKey(c *gin.Context, r *api.Resource) error {
 
 func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*api.CreateAccessKeyResponse, error) {
 	accessKey := &models.AccessKey{
-		Name:        r.Name,
-		Permissions: strings.Join(r.Permissions, " "),
-		ExpiresAt:   time.Now().Add(r.Ttl),
+		IssuedFor: uid.NewMachinePolymorphicID(r.MachineID),
+		Name:      r.Name,
+		ExpiresAt: time.Now().Add(1 * time.Hour),
 	}
 
-	raw, err := access.CreateAccessKey(c, accessKey)
+	if r.TTL != "" {
+		lifetime, err := time.ParseDuration(r.TTL)
+		if err != nil {
+			return nil, fmt.Errorf("invalid ttl: %w", err)
+		}
+		accessKey.ExpiresAt = time.Now().Add(lifetime)
+	}
+
+	if r.ExtensionDeadline != "" {
+		extension, err := time.ParseDuration(r.ExtensionDeadline)
+		if err != nil {
+			return nil, fmt.Errorf("invalid extension deadline: %w", err)
+		}
+
+		accessKey.Extension = extension
+		accessKey.ExtensionDeadline = time.Now().Add(extension)
+	}
+
+	raw, err := access.CreateAccessKey(c, accessKey, r.MachineID)
 	if err != nil {
 		return nil, err
 	}
 
 	return &api.CreateAccessKeyResponse{
-		ID:        accessKey.ID,
-		Created:   accessKey.CreatedAt,
-		AccessKey: raw,
+		ID:                accessKey.ID,
+		Created:           accessKey.CreatedAt,
+		Name:              accessKey.Name,
+		IssuedFor:         accessKey.IssuedFor,
+		Expires:           accessKey.ExpiresAt,
+		ExtensionDeadline: accessKey.ExtensionDeadline,
+		AccessKey:         raw,
 	}, nil
 }
 
@@ -501,7 +576,6 @@ func (a *API) Version(c *gin.Context, r *api.EmptyRequest) (*api.Version, error)
 
 // updateUserInfo calls the identity provider used to authenticate this user session to update their current information
 func (a *API) updateUserInfo(c *gin.Context) error {
-	// TODO: filter out machine users instead of returning nil
 	user := access.CurrentUser(c)
 	if user == nil {
 		return nil

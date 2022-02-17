@@ -2,11 +2,8 @@ package access
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/gin-gonic/gin"
-
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -19,30 +16,24 @@ const (
 	PermissionAccessKeyDelete Permission = "infra.accesskey.delete"
 )
 
-func ListAccessKeys(c *gin.Context) ([]models.AccessKey, error) {
+func ListAccessKeys(c *gin.Context, machineID uid.ID, name string) ([]models.AccessKey, error) {
 	db, err := requireAuthorization(c, PermissionAccessKeyRead)
 	if err != nil {
 		return nil, err
 	}
 
-	return data.ListAccessKeys(db)
+	return data.ListAccessKeys(db, data.ByMachineIDIssuedFor(machineID), data.ByName(name))
 }
 
-func CreateAccessKey(c *gin.Context, token *models.AccessKey) (body string, err error) {
+func CreateAccessKey(c *gin.Context, token *models.AccessKey, machineID uid.ID) (body string, err error) {
 	db, err := requireAuthorization(c, PermissionAccessKeyCreate)
 	if err != nil {
 		return "", err
 	}
 
-	// do not let a caller create a token with more permissions than they have
-	permissions, ok := c.MustGet("permissions").(string)
-	if !ok {
-		// there should have been permissions set by this point
-		return "", internal.ErrForbidden
-	}
-
-	if token.Permissions != "" && !AllRequired(strings.Split(permissions, " "), strings.Split(token.Permissions, " ")) {
-		return "", fmt.Errorf("cannot create an access key with permission not granted to the token issuer")
+	_, err = data.GetMachine(db, data.ByID(machineID))
+	if err != nil {
+		return "", fmt.Errorf("get access key machine: %w", err)
 	}
 
 	body, err = data.CreateAccessKey(db, token)
@@ -58,13 +49,16 @@ func DeleteAccessKey(c *gin.Context, id uid.ID) error {
 	if err != nil {
 		return err
 	}
-
-	return data.DeleteAccessKey(db, id)
+	return data.DeleteAccessKeys(db, data.ByID(id))
 }
 
 func DeleteAllUserAccessKeys(c *gin.Context) error {
 	// does not need access check, this action is limited to the calling user
 	user := CurrentUser(c)
+	if user == nil {
+		return fmt.Errorf("no active user")
+	}
+
 	db := getDB(c)
 
 	return data.DeleteAccessKeys(db, data.ByUserID(user.ID))

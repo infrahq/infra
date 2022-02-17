@@ -39,7 +39,7 @@ func DeleteUsers(db *gorm.DB, selectors ...SelectorFunc) error {
 	for _, u := range toDelete {
 		ids = append(ids, u.ID)
 
-		err := DeleteGrants(db, ByIdentityUserID(u.ID))
+		err := DeleteGrants(db, ByIdentity(u.PolymorphicIdentifier()))
 		if err != nil {
 			return err
 		}

@@ -51,6 +51,10 @@ func ParseString(s string) (ID, error) {
 	return Parse([]byte(s))
 }
 
+func ParsePolymorphicID(pid PolymorphicID) (ID, error) {
+	return ParseString(string(pid))
+}
+
 func (u *ID) UnmarshalText(b []byte) error {
 	id, err := Parse(b)
 	if err != nil {

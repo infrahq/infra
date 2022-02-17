@@ -57,19 +57,31 @@ func newDestinationsAddCmd() *cobra.Command {
 				return err
 			}
 
-			token, err := client.CreateAccessKey(&api.CreateAccessKeyRequest{
-				Name: args[0],
-				Ttl:  time.Hour * 8760,
-
-				// TODO: extract permissions out of access into api package
+			destination := &api.CreateMachineRequest{
+				Name:        args[1],
+				Description: fmt.Sprintf("%s %s destination", args[1], args[0]),
+				// TODO: create grants rather than static permissions
 				Permissions: []string{
 					string(access.PermissionUserRead),
+					string(access.PermissionMachineRead),
 					string(access.PermissionGroupRead),
 					string(access.PermissionGrantRead),
 					string(access.PermissionDestinationRead),
 					string(access.PermissionDestinationCreate),
 					string(access.PermissionDestinationUpdate),
 				},
+			}
+
+			created, err := client.CreateMachine(destination)
+			if err != nil {
+				return err
+			}
+
+			lifetime := time.Hour * 24 * 365
+			token, err := client.CreateAccessKey(&api.CreateAccessKeyRequest{
+				MachineID: created.ID,
+				Name:      fmt.Sprintf("access key presented by %s %s destination", args[1], args[0]),
+				TTL:       lifetime.String(),
 			})
 			if err != nil {
 				return err

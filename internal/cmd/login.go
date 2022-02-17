@@ -62,7 +62,7 @@ func relogin() error {
 		return err
 	}
 
-	return finishLogin(currentConfig.Host, loginRes.ID, loginRes.Name, loginRes.Token, currentConfig.SkipTLSVerify, 0)
+	return finishLogin(currentConfig.Host, uid.NewUserPolymorphicID(loginRes.ID), loginRes.Name, loginRes.Token, currentConfig.SkipTLSVerify, 0)
 }
 
 func login(host string) error {
@@ -142,7 +142,13 @@ func login(host string) error {
 			return err
 		}
 
-		return finishLogin(host, 0, "system", token, skipTLSVerify, 0)
+		client.Token = token
+		info, err := client.Introspect()
+		if err != nil {
+			return err
+		}
+
+		return finishLogin(host, uid.NewMachinePolymorphicID(info.ID), info.Name, token, skipTLSVerify, 0)
 	}
 
 	provider := providers[option]
@@ -164,20 +170,10 @@ func login(host string) error {
 		return err
 	}
 
-	return finishLogin(host, loginRes.ID, loginRes.Name, loginRes.Token, skipTLSVerify, provider.ID)
+	return finishLogin(host, uid.NewUserPolymorphicID(loginRes.ID), loginRes.Name, loginRes.Token, skipTLSVerify, provider.ID)
 }
 
-func finishLogin(host string, id uid.ID, name string, token string, skipTLSVerify bool, providerID uid.ID) error {
-	client, err := apiClient(host, token, skipTLSVerify)
-	if err != nil {
-		return err
-	}
-
-	_, err = client.ListUsers(api.ListUsersRequest{Email: name})
-	if err != nil {
-		return err
-	}
-
+func finishLogin(host string, polymorphicID uid.PolymorphicID, name string, token string, skipTLSVerify bool, providerID uid.ID) error {
 	fmt.Fprintf(os.Stderr, "  Logged in as %s\n", termenv.String(name).Bold().String())
 
 	config, err := readConfig()
@@ -191,7 +187,13 @@ func finishLogin(host string, id uid.ID, name string, token string, skipTLSVerif
 
 	var hostConfig ClientHostConfig
 
+	id, err := polymorphicID.ID()
+	if err != nil {
+		return err
+	}
+
 	hostConfig.ID = id
+	hostConfig.PolymorphicID = polymorphicID
 	hostConfig.Current = true
 	hostConfig.Host = host
 	hostConfig.Name = name
@@ -220,11 +222,12 @@ func finishLogin(host string, id uid.ID, name string, token string, skipTLSVerif
 		return err
 	}
 
-	if id != 0 {
-		return updateKubeconfig(client, id)
+	client, err := apiClient(host, token, skipTLSVerify)
+	if err != nil {
+		return err
 	}
 
-	return nil
+	return updateKubeconfig(client, polymorphicID)
 }
 
 func oidcflow(host string, clientId string) (string, error) {

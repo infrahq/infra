@@ -14,12 +14,12 @@ var (
 // AccessKey is a session token presented to the Infra server as proof of authentication
 type AccessKey struct {
 	Model
-	Name      string // optional name
-	UserID    uid.ID
-	ExpiresAt time.Time
+	Name      string            `gorm:"uniqueIndex:,where:deleted_at is NULL"`
+	IssuedFor uid.PolymorphicID `validate:"required"`
 
-	// TODO: remove me with machine identities
-	Permissions string
+	ExpiresAt         time.Time     `validate:"required"`
+	Extension         time.Duration // how long to increase the lifetime extension deadline by
+	ExtensionDeadline time.Time
 
 	Key            string `gorm:"<-;uniqueIndex:,where:deleted_at is NULL"`
 	Secret         string `gorm:"-"`

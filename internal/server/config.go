@@ -482,6 +482,7 @@ func (s *Server) importAccessKeys() error {
 			Permissions: []string{
 				string(access.PermissionUserRead),
 				string(access.PermissionGroupRead),
+				string(access.PermissionMachineRead),
 				string(access.PermissionGrantRead),
 				string(access.PermissionDestinationRead),
 				string(access.PermissionDestinationCreate),
@@ -506,7 +507,27 @@ func (s *Server) importAccessKeys() error {
 			continue
 		}
 
-		ak, err := data.LookupAccessKey(s.db, raw)
+		// create the machine identity if it doesn't exist
+		machine, err := data.GetMachine(s.db, data.ByName(k))
+		if err != nil {
+			if !errors.Is(err, internal.ErrNotFound) {
+				return fmt.Errorf("get identity: %w", err)
+			}
+
+			machine = &models.Machine{
+				Name:        k,
+				Description: fmt.Sprintf("%s default infra server machine identity", k),
+				Permissions: strings.Join(v.Permissions, " "),
+				LastSeenAt:  time.Now(),
+			}
+
+			err = data.CreateMachine(s.db, machine)
+			if err != nil {
+				return fmt.Errorf("create identity: %w", err)
+			}
+		}
+
+		ak, err := data.ValidateAccessKey(s.db, raw)
 		if err != nil {
 			if !errors.Is(err, internal.ErrNotFound) {
 				return fmt.Errorf("%s lookup: %w", k, err)
@@ -518,27 +539,29 @@ func (s *Server) importAccessKeys() error {
 			return fmt.Errorf("%s format: %w", k, err)
 		}
 
+		name := fmt.Sprintf("default %s access key", k)
+
 		if ak != nil {
 			sum := sha256.Sum256([]byte(parts[1]))
 
 			// if token name, permissions, and secret checksum all match the input, skip recreating the token
-			if ak.Name == k && ak.Permissions == strings.Join(v.Permissions, " ") && subtle.ConstantTimeCompare(ak.SecretChecksum, sum[:]) != 1 {
+			if ak.Name == name && subtle.ConstantTimeCompare(ak.SecretChecksum, sum[:]) != 1 {
 				logging.S.Debugf("%s: skip recreating token", k)
 				continue
 			}
 
-			err = data.DeleteAccessKeys(s.db, data.ByName(k))
+			err = data.DeleteAccessKeys(s.db, data.ByName(name))
 			if err != nil {
 				return fmt.Errorf("%s delete: %w", k, err)
 			}
 		}
 
 		token := &models.AccessKey{
-			Name:        k,
-			Key:         parts[0],
-			Secret:      parts[1],
-			Permissions: strings.Join(v.Permissions, " "),
-			ExpiresAt:   time.Now().Add(math.MaxInt64),
+			Name:      name,
+			Key:       parts[0],
+			Secret:    parts[1],
+			IssuedFor: machine.PolymorphicIdentifier(),
+			ExpiresAt: time.Now().Add(math.MaxInt64),
 		}
 		if _, err := data.CreateAccessKey(s.db, token); err != nil {
 			return fmt.Errorf("%s create: %w", k, err)

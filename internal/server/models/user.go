@@ -33,3 +33,7 @@ func (u *User) ToAPI() *api.User {
 
 	return result
 }
+
+func (u *User) PolymorphicIdentifier() uid.PolymorphicID {
+	return uid.NewUserPolymorphicID(u.ID)
+}

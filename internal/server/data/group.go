@@ -47,7 +47,7 @@ func DeleteGroups(db *gorm.DB, selectors ...SelectorFunc) error {
 	for _, g := range toDelete {
 		ids = append(ids, g.ID)
 
-		err := DeleteGrants(db, ByIdentityGroupID(g.ID))
+		err := DeleteGrants(db, ByIdentity(g.PolymorphicIdentifier()))
 		if err != nil {
 			return err
 		}

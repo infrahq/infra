@@ -247,7 +247,7 @@ func (c Client) DeleteProvider(id uid.ID) error {
 }
 
 func (c Client) ListGrants(req ListGrantsRequest) ([]Grant, error) {
-	return list[Grant](c, "/v1/grants", map[string]string{"resource": req.Resource, "identity": req.Identity, "privilege": req.Privilege})
+	return list[Grant](c, "/v1/grants", map[string]string{"resource": req.Resource, "identity": string(req.Identity), "privilege": req.Privilege})
 }
 
 func (c Client) CreateGrant(req *CreateGrantRequest) (*Grant, error) {
@@ -270,8 +270,24 @@ func (c Client) DeleteDestination(id uid.ID) error {
 	return delete(c, fmt.Sprintf("/v1/destinations/%s", id))
 }
 
+func (c Client) Introspect() (*Introspect, error) {
+	return get[Introspect](c, "/v1/introspect")
+}
+
 func (c Client) CreateAccessKey(req *CreateAccessKeyRequest) (*CreateAccessKeyResponse, error) {
 	return post[CreateAccessKeyRequest, CreateAccessKeyResponse](c, "/v1/access-keys", req)
+}
+
+func (c Client) ListAccessKeys(req ListAccessKeysRequest) ([]AccessKey, error) {
+	return list[AccessKey](c, "/v1/access-keys", map[string]string{"machineID": req.MachineID.String(), "name": req.Name})
+}
+
+func (c Client) DeleteAccessKey(id uid.ID) error {
+	return delete(c, fmt.Sprintf("/v1/access-keys/%s", id))
+}
+
+func (c Client) GetMachine(id uid.ID) (*Machine, error) {
+	return get[Machine](c, fmt.Sprintf("/v1/machines/%s", id))
 }
 
 func (c Client) CreateMachine(req *CreateMachineRequest) (*Machine, error) {
@@ -284,6 +300,10 @@ func (c Client) ListMachines(req ListMachinesRequest) ([]Machine, error) {
 
 func (c Client) DeleteMachine(id uid.ID) error {
 	return delete(c, fmt.Sprintf("/v1/machines/%s", id))
+}
+
+func (c Client) ListMachineGrants(id uid.ID) ([]Grant, error) {
+	return list[Grant](c, fmt.Sprintf("/v1/machines/%s/grants", id), nil)
 }
 
 func (c Client) CreateToken(req *CreateTokenRequest) (*CreateTokenResponse, error) {

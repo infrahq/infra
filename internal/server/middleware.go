@@ -15,6 +15,7 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/uid"
 )
 
 var requestTimeout = 60 * time.Second
@@ -105,35 +106,78 @@ func RequireAccessKey(c *gin.Context) error {
 
 	bearer := parts[1]
 
-	token, err := data.LookupAccessKey(db, bearer)
+	token, err := data.ValidateAccessKey(db, bearer)
 	if err != nil {
 		return fmt.Errorf("%w: invalid token: %s", internal.ErrUnauthorized, err)
 	}
 
 	c.Set("token", token)
 
-	// token is valid, check where to set permissions from
-	if token.UserID != 0 {
-		// this token has a parent user, set by their current permissions
-		user, err := data.GetUser(db, data.ByID(token.UserID))
-		if err != nil {
-			return fmt.Errorf("user for token: %w", err)
-		}
-
-		c.Set("permissions", user.Permissions)
-		logging.S.Debugf("user permissions: %s", user.Permissions)
-
-		user.LastSeenAt = time.Now()
-		if err = data.SaveUser(db, user); err != nil {
-			return fmt.Errorf("%w: user update fail: %s", internal.ErrUnauthorized, err)
-		}
-
-		c.Set("user", user)
+	issID, err := token.IssuedFor.ID()
+	if err != nil {
+		return fmt.Errorf("%w: invalid token issue: %s", internal.ErrUnauthorized, err)
 	}
 
-	if len(token.Permissions) > 0 {
-		c.Set("permissions", token.Permissions)
+	// this token has a parent identity, set by their current permissions
+	if token.IssuedFor.IsUser() {
+		if err := setUserContext(c, db, issID.String()); err != nil {
+			return fmt.Errorf("set user context: %v", err)
+		}
 	}
+
+	if token.IssuedFor.IsMachine() {
+		if err := setMachineContext(c, db, issID.String()); err != nil {
+			return fmt.Errorf("set machine context: %v", err)
+		}
+	}
+
+	return nil
+}
+
+func setUserContext(c *gin.Context, db *gorm.DB, id string) error {
+	userID, err := uid.ParseString(strings.TrimPrefix(id, "u:"))
+	if err != nil {
+		return fmt.Errorf("user id context: %w", err)
+	}
+
+	user, err := data.GetUser(db, data.ByID(userID))
+	if err != nil {
+		return fmt.Errorf("user for token: %w", err)
+	}
+
+	c.Set("permissions", user.Permissions)
+	logging.S.Debugf("user permissions: %s", user.Permissions)
+
+	user.LastSeenAt = time.Now()
+	if err = data.SaveUser(db, user); err != nil {
+		return fmt.Errorf("%w: user update fail: %s", internal.ErrUnauthorized, err)
+	}
+
+	c.Set("user", user)
+
+	return nil
+}
+
+func setMachineContext(c *gin.Context, db *gorm.DB, id string) error {
+	machineID, err := uid.ParseString(strings.TrimPrefix(id, "m:"))
+	if err != nil {
+		return fmt.Errorf("machine id context: %w", err)
+	}
+
+	machine, err := data.GetMachine(db, data.ByID(machineID))
+	if err != nil {
+		return fmt.Errorf("machine for token: %w", err)
+	}
+
+	c.Set("permissions", machine.Permissions)
+	logging.S.Debugf("machine permissions: %s", machine.Permissions)
+
+	machine.LastSeenAt = time.Now()
+	if err = data.SaveMachine(db, machine); err != nil {
+		return fmt.Errorf("%w: machine update fail: %s", internal.ErrUnauthorized, err)
+	}
+
+	c.Set("machine", machine)
 
 	return nil
 }

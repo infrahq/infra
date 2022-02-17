@@ -11,21 +11,21 @@ type Grant struct {
 	CreatedBy uid.ID `json:"created_by"` // id of user who created the grant
 	Updated   int64  `json:"updated"`    // updated time in seconds since 1970-01-01 00:00:00 UTC
 
-	Identity  string `json:"identity"`  // format is "u:<idstr>" for users, "g:<idstr>" for groups
-	Privilege string `json:"privilege"` // role or permission
-	Resource  string `json:"resource"`  // Universal Resource Notation
+	Identity  uid.PolymorphicID `json:"identity"`
+	Privilege string            `json:"privilege"` // role or permission
+	Resource  string            `json:"resource"`  // Universal Resource Notation
 
 	ExpiresAt *int64 `json:"expires_at"` // time this grant expires at in seconds since 1970-01-01 00:00:00 UTC
 }
 
 type ListGrantsRequest struct {
-	Identity  string `form:"identity"`
-	Resource  string `form:"resource"`
-	Privilege string `form:"privilege"`
+	Identity  uid.PolymorphicID `form:"identity"`
+	Resource  string            `form:"resource"`
+	Privilege string            `form:"privilege"`
 }
 
 type CreateGrantRequest struct {
-	Identity  string `json:"identity" validate:"required"`
-	Resource  string `json:"resource" validate:"required"`
-	Privilege string `json:"privilege" validate:"required"`
+	Identity  uid.PolymorphicID `json:"identity" validate:"required"`
+	Resource  string            `json:"resource" validate:"required"`
+	Privilege string            `json:"privilege" validate:"required"`
 }

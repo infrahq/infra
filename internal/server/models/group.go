@@ -24,3 +24,7 @@ func (g *Group) ToAPI() *api.Group {
 		ProviderID: g.ProviderID,
 	}
 }
+
+func (g *Group) PolymorphicIdentifier() uid.PolymorphicID {
+	return uid.NewGroupPolymorphicID(g.ID)
+}

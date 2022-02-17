@@ -37,10 +37,10 @@ func CurrentUser(c *gin.Context) *models.User {
 }
 
 func GetUser(c *gin.Context, id uid.ID) (*models.User, error) {
-	db, err := requireAuthorizationWithCheck(c, PermissionUserRead, func(currentUser *models.User) bool {
+	db, err := requireAuthorizationWithCheck(c, PermissionUserRead, func(tokenUserID uid.ID) bool {
 		// current user is allowed to fetch their own record,
 		// even without the infra.users.read permission
-		return currentUser.ID == id
+		return tokenUserID == id
 	})
 	if err != nil {
 		return nil, err
@@ -74,9 +74,7 @@ func CreateUser(c *gin.Context, user *models.User) error {
 }
 
 func ListUsers(c *gin.Context, email string, providerID uid.ID) ([]models.User, error) {
-	db, err := requireAuthorizationWithCheck(c, PermissionUserRead, func(currentUser *models.User) bool {
-		return currentUser.Email == email
-	})
+	db, err := requireAuthorization(c, PermissionUserRead)
 	if err != nil {
 		return nil, err
 	}
