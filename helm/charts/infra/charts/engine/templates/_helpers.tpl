@@ -70,7 +70,7 @@ Pod annotations
 {{- define "engine.podAnnotations" -}}
 rollme: {{ include (print .Template.BasePath "/configmap.yaml") . | sha1sum }}
 {{- if or .Values.podAnnotations .Values.global.podAnnotations }}
-{{- .Values.global.podAnnotations | default dict | merge .Values.podAnnotations | toYaml }}
+{{ .Values.global.podAnnotations | default dict | merge .Values.podAnnotations | toYaml }}
 {{- end }}
 {{- end }}
 
