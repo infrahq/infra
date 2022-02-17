@@ -19,6 +19,7 @@ import (
 	"github.com/infrahq/infra/internal/server/authn"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
+	"github.com/infrahq/infra/secrets"
 )
 
 type API struct {
@@ -636,7 +637,7 @@ func (a *API) providerClient(c *gin.Context, provider *models.Provider) (authn.O
 		return oidc, nil
 	}
 
-	clientSecret, err := a.server.GetSecret(string(provider.ClientSecret))
+	clientSecret, err := secrets.GetSecret(string(provider.ClientSecret), a.server.secrets)
 	if err != nil {
 		logging.S.Debugf("could not get client secret: %w", err)
 		return nil, fmt.Errorf("error loading provider client")
