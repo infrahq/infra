@@ -4,7 +4,7 @@ import Link from 'next/link';
 import AccountFooter from "../../components/AccountFooter";
 import AccountHeader from "../../components/AccountHeader";
 import IdentitySourceBtn, { IdentitySourceProvider, IdentitySourceType }  from "../../components/IdentitySourceBtn";
-import AuthContext from "../../store/AuthContext";
+import AuthContext, { ProviderField } from "../../store/AuthContext";
 import { useContext } from "react";
 
 const LoginContainer = styled.section`
@@ -82,7 +82,7 @@ const Footer = styled.div`
 `;
 
 const Login = () => {
-  const { providers, login } = useContext(AuthContext);
+  const { providers } = useContext(AuthContext);
   const comingSoonList: IdentitySourceProvider[] = [
     {
       type: IdentitySourceType.Google,
@@ -95,19 +95,6 @@ const Login = () => {
     }
   ];
 
-  const possibleIdentityProviders: IdentitySourceProvider[] = [
-    {
-      type: IdentitySourceType.Okta,
-      name: 'okta',
-      url: 'dev-02708987.okta.com'
-    },
-    {
-      type: IdentitySourceType.Okta,
-      name: 'okta2',
-      url: 'dev-02708989.okta.com'
-    }
-  ];
-
   return (
     <LoginContainer>
       <Content>
@@ -116,7 +103,7 @@ const Login = () => {
           subheader='Securely manage access to your infrastructure. Take a moment to create your account and start managing access today.'
         />
         <LoginIdentiySourceList>
-          <IdentitySourceBtn providers={possibleIdentityProviders} />
+          <IdentitySourceBtn providers={providers} />
         </LoginIdentiySourceList>
         <LoginIdentiySourceComingSoonListContainer>
           <LoginIdentiySourceComingSoonListHeader>Coming Soon</LoginIdentiySourceComingSoonListHeader>

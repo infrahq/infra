@@ -1,4 +1,6 @@
+import { useContext } from 'react';
 import styled from 'styled-components';
+import AuthContext, { ProviderField } from '../store/AuthContext';
 
 export const enum IdentitySourceType {
   Okta = 'okta',
@@ -12,11 +14,13 @@ export interface IdentitySourceProvider {
   name?: string,
   url?: string,
   clientID?: string,
-  id?: string
+  id?: string,
+  created?: number,
+  updated?: number,
 }
 
 interface IdentitySourceBtnField {
-  providers: IdentitySourceProvider[];
+  providers: IdentitySourceProvider[] | ProviderField[];
   onClick?: () => void;
 }
 
@@ -78,13 +82,10 @@ const DescriptionSubheader = styled.div`
 `;
 
 const IdentitySourceBtn = ({ providers }: IdentitySourceBtnField ) => {
+  const { login } = useContext(AuthContext);
 
-  const clickHandle = (url:string|undefined) => {
-    if (url !== undefined) {
-      document.location.href = 'https://' + url;
-    }
-
-    return;
+  const clickHandle = (provider: ProviderField) => {
+    login(provider);    
   }
 
   return (
@@ -93,7 +94,7 @@ const IdentitySourceBtn = ({ providers }: IdentitySourceBtnField ) => {
         return (
           <IdentitySourceContainer
             key={index}
-            onClick={!provider.url ? undefined : () => clickHandle(provider.url) }
+            onClick={!provider.url ? undefined : () => clickHandle(provider as ProviderField) }
             disabled={!provider.url}
           >
             <IdentitySourceContentContainer>
