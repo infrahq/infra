@@ -4,12 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/prometheus/client_golang/prometheus"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
@@ -71,22 +69,6 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 		}
 
 		c.Next()
-	}
-}
-
-// MetricsMiddleware wraps the request with a standard set of Prometheus metrics.
-func MetricsMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		t := time.Now()
-
-		c.Next()
-
-		requestDuration.With(prometheus.Labels{
-			"host":   c.Request.Host,
-			"method": c.Request.Method,
-			"path":   c.FullPath(),
-			"status": strconv.Itoa(c.Writer.Status()),
-		}).Observe(time.Since(t).Seconds())
 	}
 }
 

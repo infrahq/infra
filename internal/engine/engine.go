@@ -12,26 +12,27 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
-	"net/url"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/handlers"
 	"github.com/goware/urlx"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/crypto/acme/autocert"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
 	rbacv1 "k8s.io/api/rbac/v1"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/claims"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/timer"
+	"github.com/infrahq/infra/metrics"
 	"github.com/infrahq/infra/secrets"
 	"github.com/infrahq/infra/uid"
 )
@@ -98,29 +99,42 @@ func (j *jwkCache) getJWK() (*jose.JSONWebKey, error) {
 
 var JWKCacheRefresh = 5 * time.Minute
 
+type BearerTransport struct {
+	Token     string
+	Transport http.RoundTripper
+}
+
+func (b *BearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if b.Token != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", b.Token))
+	}
+
+	return b.Transport.RoundTrip(req)
+}
+
 type getJWKFunc func() (*jose.JSONWebKey, error)
 
-func jwtMiddleware(next http.Handler, getJWK getJWKFunc) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authorization := r.Header.Get("Authorization")
+func jwtMiddleware(getJWK getJWKFunc) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authorization := c.GetHeader("Authorization")
 		raw := strings.ReplaceAll(authorization, "Bearer ", "")
 		if raw == "" {
-			logging.L.Debug("No bearer token found")
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			logging.L.Debug("no bearer token found")
+			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
 		tok, err := jwt.ParseSigned(raw)
 		if err != nil {
-			logging.L.Debug("Invalid jwt signature")
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			logging.L.Debug("invalid jwt signature")
+			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
 		key, err := getJWK()
 		if err != nil {
-			logging.L.Debug("Could not get jwk")
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			logging.L.Debug("could not get jwk")
+			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
@@ -130,8 +144,8 @@ func jwtMiddleware(next http.Handler, getJWK getJWKFunc) http.Handler {
 			claims.Custom
 		}{}
 		if err := tok.Claims(key, &claims, &out); err != nil {
-			logging.L.Debug("Invalid token claims")
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			logging.L.Debug("invalid token claims")
+			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
@@ -140,30 +154,69 @@ func jwtMiddleware(next http.Handler, getJWK getJWKFunc) http.Handler {
 		})
 		switch {
 		case errors.Is(err, jwt.ErrExpired):
-			http.Error(w, "expired", http.StatusUnauthorized)
+			logging.S.Debugf("expired JWT %s", err.Error())
+			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		case err != nil:
-			logging.S.Debugf("Invalid JWT %s", err.Error())
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			logging.S.Debugf("invalid JWT %s", err.Error())
+			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
 		if err := validator.New().Struct(claims.Custom); err != nil {
 			logging.L.Debug("JWT custom claims not valid")
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
-		ctx := r.Context()
-		ctx = context.WithValue(ctx, internal.HttpContextKeyEmail{}, claims.Email)
+		c.Set("email", claims.Email)
+		c.Set("machine", claims.Machine)
+		c.Set("groups", claims.Groups)
 
-		if claims.Machine != "" {
-			ctx = context.WithValue(ctx, internal.HttpContextKeyMachine{}, fmt.Sprintf("machine:%s", claims.Machine))
+		c.Next()
+	}
+}
+
+func proxyMiddleware(proxy *httputil.ReverseProxy, bearerToken string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		email, ok := c.MustGet("email").(string)
+		if !ok {
+			logging.S.Debug("required field 'email' not found")
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
 		}
 
-		ctx = context.WithValue(ctx, internal.HttpContextKeyGroups{}, claims.Groups)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
+		machine, ok := c.MustGet("machine").(string)
+		if !ok {
+			logging.S.Debug("required field 'machine' not found")
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
+		groups, ok := c.MustGet("groups").([]string)
+		if !ok {
+			logging.S.Debug("required field 'groups' not found")
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
+		if email != "" {
+			c.Request.Header.Set("Impersonate-User", email)
+		} else if machine != "" {
+			c.Request.Header.Set("Impersonate-User", fmt.Sprintf("machine:%s", machine))
+		} else {
+			logging.S.Debug("unable to determine identity")
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
+		for _, g := range groups {
+			c.Request.Header.Add("Impersonate-Group", g)
+		}
+
+		c.Request.Header.Set("Authorization", fmt.Sprintf("Bearer %s", bearerToken))
+		proxy.ServeHTTP(c.Writer, c.Request)
+	}
 }
 
 // UpdateRoles converts infra grants to role-bindings in the current cluster
@@ -247,71 +300,6 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 	}
 
 	return nil
-}
-
-func proxyHandler(ca []byte, bearerToken string, remote *url.URL) (http.HandlerFunc, error) {
-	caCertPool := x509.NewCertPool()
-	ok := caCertPool.AppendCertsFromPEM(ca)
-
-	if !ok {
-		return nil, errors.New("could not append ca to client cert bundle")
-	}
-
-	proxy := httputil.NewSingleHostReverseProxy(remote)
-	proxy.Transport = &http.Transport{
-		TLSClientConfig: &tls.Config{
-			RootCAs:    caCertPool,
-			MinVersion: tls.VersionTLS12,
-		},
-	}
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		identity, ok := r.Context().Value(internal.HttpContextKeyEmail{}).(string)
-
-		if !ok || identity == "" {
-			logging.L.Debug("Proxy handler unable to retrieve email from context")
-
-			// try machine before failing
-			identity, ok = r.Context().Value(internal.HttpContextKeyMachine{}).(string)
-			if !ok || identity == "" {
-				logging.L.Debug("Proxy handler unable to retrieve machine from context")
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
-
-				return
-			}
-
-		}
-
-		groups, ok := r.Context().Value(internal.HttpContextKeyGroups{}).([]string)
-		if !ok {
-			logging.L.Debug("Proxy handler unable to retrieve groups from context")
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
-
-			return
-		}
-
-		r.Header.Set("Impersonate-User", identity)
-
-		for _, g := range groups {
-			r.Header.Add("Impersonate-Group", g)
-		}
-
-		r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", bearerToken))
-		proxy.ServeHTTP(w, r)
-	}, nil
-}
-
-type BearerTransport struct {
-	Token     string
-	Transport http.RoundTripper
-}
-
-func (b *BearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	if b.Token != "" {
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", b.Token))
-	}
-
-	return b.Transport.RoundTrip(req)
 }
 
 func Run(options Options) error {
@@ -527,28 +515,13 @@ func Run(options Options) error {
 
 	defer timer.Stop()
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		if _, err := w.Write([]byte("OK")); err != nil {
-			logging.L.Error(err.Error())
-		}
+	gin.SetMode(gin.ReleaseMode)
+
+	router := gin.New()
+	router.Use(gin.Recovery())
+	router.GET("/healthz", func(c *gin.Context) {
+		c.Status(http.StatusOK)
 	})
-
-	remote, err := urlx.Parse(k8s.Config.Host)
-	if err != nil {
-		return fmt.Errorf("parsing host config: %w", err)
-	}
-
-	ca, err := ioutil.ReadFile(k8s.Config.TLSClientConfig.CAFile)
-	if err != nil {
-		return fmt.Errorf("reading CA file: %w", err)
-	}
-
-	ph, err := proxyHandler(ca, k8s.Config.BearerToken, remote)
-	if err != nil {
-		return fmt.Errorf("setting proxy handler: %w", err)
-	}
 
 	cache := jwkCache{
 		client: &http.Client{
@@ -561,12 +534,58 @@ func Run(options Options) error {
 		baseURL: u.String(),
 	}
 
-	mux.Handle("/proxy/", http.StripPrefix("/proxy", jwtMiddleware(ph, cache.getJWK)))
+	proxyHost, err := urlx.Parse(k8s.Config.Host)
+	if err != nil {
+		return fmt.Errorf("parsing host config: %w", err)
+	}
+
+	caCert, err := k8s.CA()
+	if err != nil {
+		return fmt.Errorf("reading CA file: %w", err)
+	}
+
+	certPool := x509.NewCertPool()
+
+	ok := certPool.AppendCertsFromPEM(caCert)
+	if !ok {
+		return errors.New("could not append CA to client cert bundle")
+	}
+
+	proxy := httputil.NewSingleHostReverseProxy(proxyHost)
+	proxy.Transport = &http.Transport{
+		TLSClientConfig: &tls.Config{
+			RootCAs:    certPool,
+			MinVersion: tls.VersionTLS12,
+		},
+	}
+
+	router.Use(
+		metrics.Middleware(),
+		jwtMiddleware(cache.getJWK),
+		proxyMiddleware(proxy, k8s.Config.BearerToken),
+	)
+
+	metrics := gin.New()
+	metrics.GET("/metrics", func(c *gin.Context) {
+		promhttp.Handler().ServeHTTP(c.Writer, c.Request)
+	})
+
+	metricsServer := &http.Server{
+		Addr:     ":9090",
+		Handler:  handlers.CustomLoggingHandler(io.Discard, metrics, logging.ZapLogFormatter),
+		ErrorLog: logging.StandardErrorLog(),
+	}
+
+	go func() {
+		if err := metricsServer.ListenAndServe(); err != nil {
+			logging.S.Errorf("server: %w", err)
+		}
+	}()
 
 	tlsServer := &http.Server{
 		Addr:      ":443",
 		TLSConfig: tlsConfig,
-		Handler:   handlers.CustomLoggingHandler(io.Discard, mux, logging.ZapLogFormatter),
+		Handler:   handlers.CustomLoggingHandler(io.Discard, router, logging.ZapLogFormatter),
 		ErrorLog:  logging.StandardErrorLog(),
 	}
 

@@ -1,94 +1,73 @@
 package engine
 
 import (
-	"context"
+	"fmt"
 	"crypto"
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/claims"
 )
 
+func init() {
+	gin.SetMode(gin.TestMode)
+}
+
 func TestJWTMiddlewareNoAuthHeader(t *testing.T) {
-	emptyHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
+	r := httptest.NewRequest(http.MethodGet, "/apis", nil)
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Request = r
 
-	rr := httptest.NewRecorder()
-
-	handler := jwtMiddleware(emptyHandler, func() (*jose.JSONWebKey, error) {
+	handler := jwtMiddleware(func() (*jose.JSONWebKey, error) {
 		return &jose.JSONWebKey{}, nil
 	})
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
-	require.NoError(t, err)
+	handler(c)
 
-	handler.ServeHTTP(rr, req)
-
-	res := rr.Result()
-	defer res.Body.Close()
-
-	require.Equal(t, http.StatusUnauthorized, res.StatusCode)
+	require.Equal(t, http.StatusUnauthorized, c.Writer.Status())
 }
 
 func TestJWTMiddlewareNoToken(t *testing.T) {
-	emptyHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
+	r := httptest.NewRequest(http.MethodGet, "/apis", nil)
+	r.Header.Set("Authorization", "username:password")
 
-	rr := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Request = r
 
-	handler := jwtMiddleware(emptyHandler, func() (*jose.JSONWebKey, error) {
+	handler := jwtMiddleware(func() (*jose.JSONWebKey, error) {
 		return &jose.JSONWebKey{}, nil
 	})
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
-	require.NoError(t, err)
+	handler(c)
 
-	req.Header.Set("Authorization", "username:password")
-
-	handler.ServeHTTP(rr, req)
-
-	res := rr.Result()
-	defer res.Body.Close()
-
-	require.Equal(t, http.StatusUnauthorized, res.StatusCode)
+	require.Equal(t, http.StatusUnauthorized, c.Writer.Status())
 }
 
 func TestJWTMiddlewareInvalidJWKs(t *testing.T) {
-	emptyHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
+	r := httptest.NewRequest(http.MethodGet, "/apis", nil)
+	r.Header.Set("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZW1haWwiOiJ0ZXN0QHRlc3QuY29tIiwiaWF0IjoxNTE2MjM5MDIyfQ.j7o5o8GBkybaYXdFJIi8O6mPF50E-gJWZ3reLfMQD68")
 
-	rr := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Request = r
 
-	handler := jwtMiddleware(emptyHandler, func() (*jose.JSONWebKey, error) {
+	handler := jwtMiddleware(func() (*jose.JSONWebKey, error) {
 		return nil, errors.New("could not fetch JWKs")
 	})
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
-	require.NoError(t, err)
+	handler(c)
 
-	req.Header.Set("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZW1haWwiOiJ0ZXN0QHRlc3QuY29tIiwiaWF0IjoxNTE2MjM5MDIyfQ.j7o5o8GBkybaYXdFJIi8O6mPF50E-gJWZ3reLfMQD68")
-
-	handler.ServeHTTP(rr, req)
-
-	res := rr.Result()
-	defer res.Body.Close()
-
-	require.Equal(t, http.StatusUnauthorized, res.StatusCode)
+	require.Equal(t, http.StatusUnauthorized, c.Writer.Status())
 }
 
 func generateJWK() (pub *jose.JSONWebKey, priv *jose.JSONWebKey, err error) {
@@ -109,6 +88,25 @@ func generateJWK() (pub *jose.JSONWebKey, priv *jose.JSONWebKey, err error) {
 	pub = &jose.JSONWebKey{Key: pubkey, KeyID: kid, Algorithm: string(jose.ED25519), Use: "sig"}
 
 	return pub, priv, err
+}
+
+func TestJWTMiddlewareInvalidJWT(t *testing.T) {
+	pub, _, err := generateJWK()
+	require.NoError(t, err)
+
+	r := httptest.NewRequest(http.MethodGet, "/apis", nil)
+	r.Header.Set("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZW1haWwiOiJ0ZXN0QHRlc3QuY29tIiwiaWF0IjoxNTE2MjM5MDIyfQ.j7o5o8GBkybaYXdFJIi8O6mPF50E-gJWZ3reLfMQD68")
+
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Request = r
+
+	handler := jwtMiddleware(func() (*jose.JSONWebKey, error) {
+		return pub, nil
+	})
+
+	handler(c)
+
+	require.Equal(t, http.StatusUnauthorized, c.Writer.Status())
 }
 
 func generateJWT(priv *jose.JSONWebKey, email, machineName string, expiry time.Time) (string, error) {
@@ -145,198 +143,92 @@ func generateJWT(priv *jose.JSONWebKey, email, machineName string, expiry time.T
 	return raw, nil
 }
 
-func TestJWTMiddlewareInvalidJWT(t *testing.T) {
-	pub, _, err := generateJWK()
-	require.NoError(t, err)
-
-	invalidjwt := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZW1haWwiOiJ0ZXN0QHRlc3QuY29tIiwiaWF0IjoxNTE2MjM5MDIyfQ.j7o5o8GBkybaYXdFJIi8O6mPF50E-gJWZ3reLfMQD68"
-
-	emptyHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-
-	rr := httptest.NewRecorder()
-
-	handler := jwtMiddleware(emptyHandler, func() (*jose.JSONWebKey, error) {
-		return pub, nil
-	})
-
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
-	require.NoError(t, err)
-
-	req.Header.Set("Authorization", "Bearer "+invalidjwt)
-
-	handler.ServeHTTP(rr, req)
-
-	res := rr.Result()
-	defer res.Body.Close()
-
-	require.Equal(t, http.StatusUnauthorized, res.StatusCode)
-}
-
 func TestJWTMiddlewareExpiredJWT(t *testing.T) {
-	pub, priv, err := generateJWK()
+	pub, sec, err := generateJWK()
 	require.NoError(t, err)
 
-	expiredJWT, err := generateJWT(priv, "test@example.com", "", time.Now().Add(-1*time.Hour))
+	jwt, err := generateJWT(sec, "test@example.com", "", time.Now().Add(-1*time.Hour))
 	require.NoError(t, err)
 
-	emptyHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
+	r := httptest.NewRequest(http.MethodGet, "/apis", nil)
+	r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", jwt))
 
-	rr := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Request = r
 
-	handler := jwtMiddleware(emptyHandler, func() (*jose.JSONWebKey, error) {
+	handler := jwtMiddleware(func() (*jose.JSONWebKey, error) {
 		return pub, nil
 	})
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
-	require.NoError(t, err)
+	handler(c)
 
-	req.Header.Set("Authorization", "Bearer "+expiredJWT)
-
-	handler.ServeHTTP(rr, req)
-
-	res := rr.Result()
-	defer res.Body.Close()
-
-	require.Equal(t, http.StatusUnauthorized, res.StatusCode)
-
-	data, err := ioutil.ReadAll(res.Body)
-	require.NoError(t, err)
-
-	require.Equal(t, "expired\n", string(data))
+	require.Equal(t, http.StatusUnauthorized, c.Writer.Status())
 }
 
-func TestJWTMiddlewareWrongHeader(t *testing.T) {
-	pub, priv, err := generateJWK()
+func TestJWTMiddlewareValidJWT(t *testing.T) {
+	pub, sec, err := generateJWK()
 	require.NoError(t, err)
 
-	expiredJWT, err := generateJWT(priv, "test@example.com", "", time.Now().Add(-1*time.Hour))
+	jwt, err := generateJWT(sec, "test@example.com", "", time.Now().Add(1*time.Hour))
 	require.NoError(t, err)
 
-	emptyHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
+	r := httptest.NewRequest(http.MethodGet, "/apis", nil)
+	r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", jwt))
 
-	rr := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Request = r
 
-	handler := jwtMiddleware(emptyHandler, func() (*jose.JSONWebKey, error) {
+	handler := jwtMiddleware(func() (*jose.JSONWebKey, error) {
 		return pub, nil
 	})
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
-	require.NoError(t, err)
+	handler(c)
 
-	req.Header.Set("Authorization", "Bearer "+expiredJWT)
+	require.Equal(t, http.StatusOK, c.Writer.Status())
 
-	handler.ServeHTTP(rr, req)
+	email, emailExists := c.Get("email")
+	require.True(t, emailExists)
+	require.Equal(t, "test@example.com", email)
 
-	res := rr.Result()
-	defer res.Body.Close()
+	machine, machineExists := c.Get("machine")
+	require.True(t, machineExists)
+	require.Empty(t, machine)
 
-	require.Equal(t, http.StatusUnauthorized, res.StatusCode)
+	groups, groupsExists := c.Get("groups")
+	require.True(t, groupsExists)
+	require.Equal(t, []string{"developers"}, groups)
 }
 
-func TestJWTMiddlewareValidJWTSetsMachineName(t *testing.T) {
-	pub, priv, err := generateJWK()
+func TestJWTMiddlewareValidMachineJWT(t *testing.T) {
+	pub, sec, err := generateJWK()
 	require.NoError(t, err)
 
-	validJWT, err := generateJWT(priv, "", "arnold", time.Now().Add(3*time.Hour))
+	jwt, err := generateJWT(sec, "", "arnold", time.Now().Add(1*time.Hour))
 	require.NoError(t, err)
 
-	emptyHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		name, ok := r.Context().Value(internal.HttpContextKeyMachine{}).(string)
-		require.True(t, ok)
-		require.Equal(t, "machine:arnold", name)
+	r := httptest.NewRequest(http.MethodGet, "/apis", nil)
+	r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", jwt))
 
-		w.WriteHeader(http.StatusOK)
-	})
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Request = r
 
-	rr := httptest.NewRecorder()
-
-	handler := jwtMiddleware(emptyHandler, func() (*jose.JSONWebKey, error) {
+	handler := jwtMiddleware(func() (*jose.JSONWebKey, error) {
 		return pub, nil
 	})
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
-	require.NoError(t, err)
+	handler(c)
 
-	req.Header.Set("Authorization", "Bearer "+validJWT)
+	require.Equal(t, http.StatusOK, c.Writer.Status())
 
-	handler.ServeHTTP(rr, req)
+	email, emailExists := c.Get("email")
+	require.True(t, emailExists)
+	require.Empty(t, email)
 
-	res := rr.Result()
-	defer res.Body.Close()
+	machine, machineExists := c.Get("machine")
+	require.True(t, machineExists)
+	require.Equal(t, "arnold", machine)
 
-	require.Equal(t, http.StatusOK, res.StatusCode)
-}
-
-func TestJWTMiddlewareValidJWTSetsEmail(t *testing.T) {
-	pub, priv, err := generateJWK()
-	require.NoError(t, err)
-
-	validJWT, err := generateJWT(priv, "test@example.com", "", time.Now().Add(3*time.Hour))
-	require.NoError(t, err)
-
-	emptyHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		email, ok := r.Context().Value(internal.HttpContextKeyEmail{}).(string)
-		require.True(t, ok)
-		require.Equal(t, "test@example.com", email)
-
-		w.WriteHeader(http.StatusOK)
-	})
-
-	rr := httptest.NewRecorder()
-
-	handler := jwtMiddleware(emptyHandler, func() (*jose.JSONWebKey, error) {
-		return pub, nil
-	})
-
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
-	require.NoError(t, err)
-
-	req.Header.Set("Authorization", "Bearer "+validJWT)
-
-	handler.ServeHTTP(rr, req)
-
-	res := rr.Result()
-	defer res.Body.Close()
-
-	require.Equal(t, http.StatusOK, res.StatusCode)
-}
-
-func TestProxyHandler(t *testing.T) {
-	pub, priv, err := generateJWK()
-	require.NoError(t, err)
-
-	validJWT, err := generateJWT(priv, "test@example.com", "", time.Now().Add(3*time.Hour))
-	require.NoError(t, err)
-
-	emptyHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		email, ok := r.Context().Value(internal.HttpContextKeyEmail{}).(string)
-		require.True(t, ok)
-		require.Equal(t, "test@example.com", email)
-
-		w.WriteHeader(http.StatusOK)
-	})
-
-	rr := httptest.NewRecorder()
-
-	handler := jwtMiddleware(emptyHandler, func() (*jose.JSONWebKey, error) {
-		return pub, nil
-	})
-
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
-	require.NoError(t, err)
-
-	req.Header.Set("Authorization", "Bearer "+validJWT)
-
-	handler.ServeHTTP(rr, req)
-
-	res := rr.Result()
-	defer res.Body.Close()
-
-	require.Equal(t, http.StatusOK, res.StatusCode)
+	groups, groupsExists := c.Get("groups")
+	require.True(t, groupsExists)
+	require.Empty(t, groups)
 }
