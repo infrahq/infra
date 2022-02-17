@@ -1,9 +1,11 @@
+## Summary
+
 <!-- Include a summary of the change and/or why it's necessary. -->
 
+## Checklist
+
 <!-- 
-Checklists help us remember things.
-Change [ ] to [x] to show completion, or whatever :D
-Add to .github/pull_request_template.md if you think there's something we should consider before merging.
+Checklists help us remember things.  Change [ ] to [x] to show completion.
 -->
 
 - [ ] Wrote appropriate unit tests
@@ -12,7 +14,12 @@ Add to .github/pull_request_template.md if you think there's something we should
 - [ ] Updated associated configuration where necessary
 - [ ] Change is backwards compatible if it needs to be (user can upgrade without manual steps?)
 - [ ] Nothing sensitive logged
+- [ ] Commit message conforms to [Conventional Commit][1]
 
-<!-- You can link to the issue it closes using a keyword like "Resolves #1234". -->
+## Related Issues
+
+<!-- Link any related issues using `Resolves #1234`. -->
 
 Resolves #
+
+[1]: https://www.conventionalcommits.org/en/v1.0.0/
