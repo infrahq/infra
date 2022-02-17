@@ -1,3 +1,4 @@
+{{- if .Values.server.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -5,8 +6,8 @@ metadata:
   labels:
 {{- include "server.labels" . | nindent 4 }}
 spec:
-{{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
+{{- if not .Values.server.autoscaling.enabled }}
+  replicas: {{ .Values.server.replicaCount }}
 {{- end }}
   selector:
     matchLabels:
@@ -18,28 +19,28 @@ spec:
       annotations:
 {{- include "server.podAnnotations" . | nindent 8 }}
     spec:
-      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      automountServiceAccountToken: {{ .Values.server.serviceAccount.automountServiceAccountToken }}
       serviceAccountName: {{ include "server.serviceAccountName" . }}
       imagePullSecrets:
 {{- include "server.imagePullSecrets" . | nindent 8 }}
       securityContext:
-{{- toYaml .Values.podSecurityContext | nindent 8 }}
+{{- toYaml .Values.server.podSecurityContext | nindent 8 }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
-{{- toYaml .Values.securityContext | nindent 12 }}
+{{- toYaml .Values.server.securityContext | nindent 12 }}
           image: "{{ include "server.image.repository" . }}:{{ include "server.image.tag" . }}"
           imagePullPolicy: {{ include "server.image.pullPolicy" . }}
           args: ["server", "-f", "/etc/infrahq/infra.yaml"]
           env:
-{{- toYaml .Values.env | nindent 12 }}
+{{- toYaml .Values.server.env | nindent 12 }}
           envFrom:
-{{- toYaml .Values.envFrom | nindent 12 }}
+{{- toYaml .Values.server.envFrom | nindent 12 }}
           volumeMounts:
             - name: conf
               mountPath: /etc/infrahq
               readOnly: true
-{{- if .Values.persistence.enabled }}
+{{- if .Values.server.persistence.enabled }}
             - name: data
               mountPath: /var/lib/infrahq/server
 {{- end }}
@@ -47,8 +48,8 @@ spec:
               mountPath: /var/run/secrets/infrahq.com/admin-access-key
             - name: access-key
               mountPath: /var/run/secrets/infrahq.com/access-key
-{{- if .Values.volumeMounts }}
-{{- toYaml .Values.volumeMounts | nindent 12 }}
+{{- if .Values.server.volumeMounts }}
+{{- toYaml .Values.server.volumeMounts | nindent 12 }}
 {{- end }}
           ports:
             - name: http
@@ -64,27 +65,27 @@ spec:
             httpGet:
               path: /healthz
               port: http
-            successThreshold: {{ .Values.livenessProbe.successThreshold }}
-            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
-            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
-            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.server.livenessProbe.successThreshold }}
+            failureThreshold: {{ .Values.server.livenessProbe.failureThreshold }}
+            initialDelaySeconds: {{ .Values.server.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.server.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.server.livenessProbe.timeoutSeconds }}
           readinessProbe:
             httpGet:
               path: /healthz
               port: http
-            successThreshold: {{ .Values.readinessProbe.successThreshold }}
-            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
-            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
-            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.server.readinessProbe.successThreshold }}
+            failureThreshold: {{ .Values.server.readinessProbe.failureThreshold }}
+            initialDelaySeconds: {{ .Values.server.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.server.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.server.readinessProbe.timeoutSeconds }}
           resources:
-{{- toYaml .Values.resources | nindent 12 }}
+{{- toYaml .Values.server.resources | nindent 12 }}
       volumes:
         - name: conf
           configMap:
             name: {{ include "server.fullname" . }}
-{{- if .Values.persistence.enabled }}
+{{- if .Values.server.persistence.enabled }}
         - name: data
           persistentVolumeClaim:
             claimName: {{ include "server.fullname" . }}
@@ -97,18 +98,19 @@ spec:
           secret:
             secretName: {{ .Release.Name }}-access-key
             optional: true
-{{- if .Values.volumes }}
-{{- toYaml .Values.volumes | nindent 8 }}
+{{- if .Values.server.volumes }}
+{{- toYaml .Values.server.volumes | nindent 8 }}
 {{- end }}
-{{- with .Values.nodeSelector }}
+{{- with .Values.server.nodeSelector }}
       nodeSelector:
 {{- toYaml . | nindent 8 }}
 {{- end }}
-{{- with .Values.affinity }}
+{{- with .Values.server.affinity }}
       affinity:
 {{- toYaml . | nindent 8 }}
 {{- end }}
-{{- with .Values.tolerations }}
+{{- with .Values.server.tolerations }}
       tolerations:
 {{- toYaml . | nindent 8 }}
+{{- end }}
 {{- end }}

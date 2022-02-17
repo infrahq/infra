@@ -1,0 +1,31 @@
+{{- if .Values.server.enabled }}
+{{- if and .Values.server.metrics.enabled .Values.server.metrics.serviceMonitor.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "server.fullname" . }}
+  labels:
+{{- include "server.labels" . | nindent 4 }}
+{{- if .Values.server.metrics.serviceMonitor.labels }}
+{{- toYaml .Values.server.metrics.serviceMonitor.labels | nindent 4 }}
+{{- end }}
+  annotations:
+{{- toYaml .Values.server.metrics.serviceMonitor.annotations | nindent 4 }}
+spec:
+  endpoints:
+    - path: /metrics
+      port: {{ .Values.server.metrics.service.portName }}
+      interval: {{ .Values.server.metrics.serviceMonitor.interval }}
+      relabelings:
+{{- toYaml .Values.server.metrics.serviceMonitor.relabelings | nindent 8 }}
+      metricRelabelings:
+{{- toYaml .Values.server.metrics.serviceMonitor.metricRelabelings | nindent 8 }}
+  selector:
+    matchLabels:
+{{- include "server.selectorLabels" . | nindent 6 }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+{{- end }}
+{{- end }}

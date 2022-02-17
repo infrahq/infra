@@ -1,0 +1,45 @@
+{{- if .Values.server.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "server.fullname" . }}
+  labels:
+{{- include "server.labels" . | nindent 4 }}
+{{- if .Values.server.service.labels }}
+{{- toYaml .Values.server.service.labels | nindent 4 }}
+{{- end }}
+  annotations:
+{{- toYaml .Values.server.service.annotations | nindent 4 }}
+spec:
+  type: {{ .Values.server.service.type }}
+{{- if eq .Values.server.service.type "LoadBalancer" }}
+  loadBalancerIP: {{ .Values.server.service.loadBalancerIP }}
+  loadBalancerSourceRanges:
+{{- toYaml .Values.server.service.loadBalancerSourceRanges | nindent 4 }}
+{{- end }}
+  externalIPs:
+{{- toYaml .Values.server.service.externalIPs | nindent 4 }}
+{{- if .Values.server.service.externalTrafficPolicy }}
+  externalTrafficPolicy: {{ .Values.server.service.externalTrafficPolicy }}
+{{- end }}
+{{- if .Values.server.service.sessionAffinity }}
+  sessionAffinity: {{ .Values.server.service.sessionAffinity }}
+{{- end }}
+  ports:
+    - port: {{ .Values.server.service.port }}
+      name: {{ .Values.server.service.portName }}
+      targetPort: http
+      protocol: TCP
+{{- if eq .Values.server.service.type "NodePort" }}
+      nodePort: {{ .Values.server.service.nodePort }}
+{{- end }}
+    - port: {{ .Values.server.service.securePort }}
+      name: {{ .Values.server.service.securePortName }}
+      targetPort: https
+      protocol: TCP
+{{- if eq .Values.server.service.type "NodePort" }}
+      nodePort: {{ .Values.server.service.secureNodePort }}
+{{- end }}
+  selector:
+{{- include "server.selectorLabels" . | nindent 4 }}
+{{- end }}

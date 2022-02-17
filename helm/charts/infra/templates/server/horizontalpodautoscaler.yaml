@@ -1,4 +1,5 @@
-{{- if .Values.autoscaling.enabled }}
+{{- if .Values.server.enabled }}
+{{- if .Values.server.autoscaling.enabled }}
 {{- if semverCompare ">=1.22-0" .Capabilities.KubeVersion.GitVersion -}}
 apiVersion: autoscaling/v2beta2
 {{- else }}
@@ -14,31 +15,32 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: {{ include "server.fullname" . }}
-  minReplicas: {{ .Values.autoscaling.minReplicas }}
-  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  minReplicas: {{ .Values.server.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.server.autoscaling.maxReplicas }}
   metrics:
-{{- if .Values.autoscaling.targetCPUUtilizationPercentage }}
+{{- if .Values.server.autoscaling.targetCPUUtilizationPercentage }}
     - type: Resource
       resource:
         name: cpu
 {{- if semverCompare ">=1.22-0" .Capabilities.KubeVersion.GitVersion }}
         target:
           type: Utilization
-          averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+          averageUtilization: {{ .Values.server.autoscaling.targetCPUUtilizationPercentage }}
 {{- else }}
-        targetAverageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+        targetAverageUtilization: {{ .Values.server.autoscaling.targetCPUUtilizationPercentage }}
 {{- end }}
 {{- end }}
-{{- if .Values.autoscaling.targetMemoryUtilizationPercentage }}
+{{- if .Values.server.autoscaling.targetMemoryUtilizationPercentage }}
     - type: Resource
       resource:
         name: memory
 {{- if semverCompare ">=1.22-0" .Capabilities.KubeVersion.GitVersion }}
         target:
           type: Utilization
-          averageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
+          averageUtilization: {{ .Values.server.autoscaling.targetMemoryUtilizationPercentage }}
 {{- else }}
-        targetAverageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
+        targetAverageUtilization: {{ .Values.server.autoscaling.targetMemoryUtilizationPercentage }}
+{{- end }}
 {{- end }}
 {{- end }}
 {{- end }}

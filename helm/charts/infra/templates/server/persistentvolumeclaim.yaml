@@ -1,0 +1,23 @@
+{{- if .Values.server.enabled }}
+{{- if .Values.server.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "server.fullname" . }}
+  labels:
+{{- include "server.labels" . | nindent 4 }}
+{{- if .Values.server.persistence.labels }}
+{{- toYaml .Values.server.persistence.labels | nindent 4 }}
+{{- end }}
+  annotations:
+{{- toYaml .Values.server.persistence.annotations | nindent 4 }}
+spec:
+{{- if .Values.server.persistence.className }}
+  storageClassName: {{ .Values.server.persistence.className | quote }}
+{{- end }}
+  accessModes:
+    - ReadWriteOnce
+  resources:
+{{- toYaml .Values.server.persistence.resources | nindent 6 }}
+{{- end }}
+{{- end }}

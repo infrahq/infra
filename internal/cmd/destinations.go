@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -96,24 +97,28 @@ func newDestinationsAddCmd() *cobra.Command {
 				return err
 			}
 
-			command := "    helm install infra-engine infrahq/engine"
+			var sb strings.Builder
+			sb.WriteString("    helm install infra infrahq/infra")
+			sb.WriteString(" --set server.enabled=false")
+
 			if len(args) > 1 {
-				command += fmt.Sprintf(" --set config.name=%s", args[1])
+				fmt.Fprintf(&sb, " --set engine.config.name=%s", args[1])
 			}
-			command += fmt.Sprintf(" --set config.accessKey=%s ", token.AccessKey)
-			command += fmt.Sprintf(" --set config.server=%s ", config.Host)
+
+			fmt.Fprintf(&sb, " --set engine.config.accessKey=%s", token.AccessKey)
+			fmt.Fprintf(&sb, " --set engine.config.server=%s", config.Host)
 
 			// TODO: replace me with a certificate fingerprint
 			// so even when users have self-signed certificates
 			// infra can establish a secure TLS connection
 			if config.SkipTLSVerify {
-				command += "  --set config.skipTLSVerify=true"
+				sb.WriteString(" --set engine.config.skipTLSVerify=true")
 			}
 
 			fmt.Println()
 			fmt.Println("Run the following command to connect a kubernetes cluster:")
 			fmt.Println()
-			fmt.Println(command)
+			fmt.Println(sb.String())
 			fmt.Println()
 			fmt.Println()
 			return nil

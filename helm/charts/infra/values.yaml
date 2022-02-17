@@ -1,6 +1,9 @@
 # Default configurations
 # Ref: https://github.com/infrahq/infra
 
+nameOverride: ""
+fullnameOverride: ""
+
 global:
 
   image:
@@ -37,11 +40,9 @@ global:
 
 server:
 
-  nameOverride: ""
-  fullnameOverride: ""
-
   ## Deploy the server
   enabled: true
+  componentName: server
 
   ## Number of server pods to run
   ## No effect unless `autoscaling.enabled` is `false`
@@ -424,11 +425,9 @@ server:
 
 engine:
 
-  nameOverride: ""
-  fullnameOverride: ""
-
   ## Deploy the engine
   enabled: true
+  componentName: engine
 
   ## Number of engine pods to run
   ## No effect unless `autoscaling.enabled` is `false`
