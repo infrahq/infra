@@ -61,7 +61,7 @@ func sendAPIError(c *gin.Context, err error) {
 		message = err.Error()
 	}
 
-	logging.Logger(c).Debugw(err.Error(), "statusCode", code)
+	logging.Logger(c).Errorw(err.Error(), "statusCode", code)
 
 	c.JSON(code, &api.Error{
 		Code:    int32(code),
