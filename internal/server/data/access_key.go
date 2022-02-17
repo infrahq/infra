@@ -14,45 +14,53 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func CreateAccessKey(db *gorm.DB, authnKey *models.AccessKey) (body string, err error) {
-	if authnKey.Key == "" {
+func CreateAccessKey(db *gorm.DB, accessKey *models.AccessKey) (body string, err error) {
+	if accessKey.Key == "" {
 		key, err := generate.CryptoRandom(models.AccessKeyKeyLength)
 		if err != nil {
 			return "", err
 		}
 
-		authnKey.Key = key
+		accessKey.Key = key
 	}
 
-	if len(authnKey.Key) != models.AccessKeyKeyLength {
+	if len(accessKey.Key) != models.AccessKeyKeyLength {
 		return "", fmt.Errorf("invalid key length")
 	}
 
-	if authnKey.Secret == "" {
+	if accessKey.Secret == "" {
 		secret, err := generate.CryptoRandom(models.AccessKeySecretLength)
 		if err != nil {
 			return "", err
 		}
 
-		authnKey.Secret = secret
+		accessKey.Secret = secret
 	}
 
-	if len(authnKey.Secret) != models.AccessKeySecretLength {
+	if len(accessKey.Secret) != models.AccessKeySecretLength {
 		return "", fmt.Errorf("invalid secret length")
 	}
 
-	chksm := sha256.Sum256([]byte(authnKey.Secret))
-	authnKey.SecretChecksum = chksm[:]
+	chksm := sha256.Sum256([]byte(accessKey.Secret))
+	accessKey.SecretChecksum = chksm[:]
 
-	if authnKey.ExpiresAt.IsZero() {
-		authnKey.ExpiresAt = time.Now().Add(time.Hour * 12)
+	if accessKey.ExpiresAt.IsZero() {
+		accessKey.ExpiresAt = time.Now().Add(time.Hour * 12)
 	}
 
-	if err := add(db, authnKey); err != nil {
+	if accessKey.Name == "" {
+		if accessKey.ID == 0 {
+			accessKey.ID = uid.New()
+		}
+
+		accessKey.Name = accessKey.ID.String()
+	}
+
+	if err := add(db, accessKey); err != nil {
 		return "", err
 	}
 
-	return fmt.Sprintf("%s.%s", authnKey.Key, authnKey.Secret), nil
+	return fmt.Sprintf("%s.%s", accessKey.Key, accessKey.Secret), nil
 }
 
 func SaveAccessKey(db *gorm.DB, key *models.AccessKey) error {

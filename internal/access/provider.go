@@ -164,14 +164,14 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 		return nil, "", fmt.Errorf("update info on login: %w", err)
 	}
 
-	token := &models.AccessKey{
+	key := &models.AccessKey{
 		IssuedFor: user.PolymorphicIdentifier(),
 		ExpiresAt: time.Now().Add(sessionDuration),
 	}
 
-	body, err := data.CreateAccessKey(db, token)
+	body, err := data.CreateAccessKey(db, key)
 	if err != nil {
-		return nil, body, fmt.Errorf("create token: %w", err)
+		return nil, body, fmt.Errorf("create access key: %w", err)
 	}
 
 	user.LastSeenAt = time.Now()
