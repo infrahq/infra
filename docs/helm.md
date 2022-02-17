@@ -147,13 +147,6 @@ helm uninstall -n infrahq infra
 
 # Remove potential secrets created for Infra
 kubectl delete -n infrahq secret/infra-okta
-```
-
-## Uninstall Infra Engine
-
-```bash
-# Remove Infra Engine
-helm uninstall -n infrahq infra
 
 # Remove rolebindings & clusterrolebindings created by Infra Engine
 kubectl delete clusterrolebindings,rolebindings -l app.kubernetes.io/managed-by=infra --all-namespaces

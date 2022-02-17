@@ -1,6 +1,0 @@
-apiVersion: v2
-name: server
-version: 0.1.0
-description: A Helm chart for Infra Server
-type: application
-appVersion: 0.0.0

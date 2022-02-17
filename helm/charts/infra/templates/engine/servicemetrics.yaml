@@ -1,0 +1,24 @@
+{{- if .Values.engine.enabled }}
+{{- if .Values.engine.metrics.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "engine.fullname" . }}-metrics
+  labels:
+{{- include "engine.labels" . | nindent 4 }}
+{{- if .Values.engine.metrics.service.labels }}
+{{- toYaml .Values.engine.metrics.service.labels | nindent 4 }}
+{{- end }}
+  annotations:
+{{- toYaml .Values.engine.metrics.service.annotations | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.engine.metrics.service.port }}
+      name: {{ .Values.engine.metrics.service.portName }}
+      targetPort: metrics
+      protocol: TCP
+  selector:
+{{- include "engine.selectorLabels" . | nindent 4 }}
+{{- end }}
+{{- end }}

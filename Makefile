@@ -15,17 +15,11 @@ test-all:
 
 .PHONY: helm
 helm:
-	# hack: search and replace appVersion in all helm charts
-	find helm/charts -name 'Chart.yaml' -exec sed -i.1 "s/appVersion: 0.0.0/appVersion: $(tag)/" {} \;
-	helm package -d $@ helm/charts/*/charts/* --version $(tag) --app-version $(tag)
 	helm package -d $@ helm/charts/* --version $(tag) --app-version $(tag)
 	helm repo index helm
-	# clean up after the hack
-	find helm/charts -name 'Chart.yaml' -exec sed -i.1 "s/appVersion: $(tag)/appVersion: 0.0.0/" {} \;
-	find helm/charts -name 'Chart.yaml.1' -delete
 
 helm/lint:
-	helm lint helm/charts/* helm/charts/*/charts/*
+	helm lint helm/charts/*
 
 helm/clean:
 	$(RM) -r helm/*.tgz

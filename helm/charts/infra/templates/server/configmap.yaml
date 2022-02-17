@@ -1,3 +1,4 @@
+{{- if .Values.server.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -6,21 +7,21 @@ metadata:
 {{- include "server.labels" . | nindent 4 }}
 data:
   infra.yaml: |
-{{- $adminAccessKey := default "" .Values.config.adminAccessKey }}
+{{- $adminAccessKey := default "" .Values.server.config.adminAccessKey }}
 {{- if and $adminAccessKey (or (hasPrefix "file:" $adminAccessKey) (hasPrefix "env:" $adminAccessKey)) }}
     adminAccessKey: {{ $adminAccessKey }}
 {{- else }}
     adminAccessKey: file:/var/run/secrets/infrahq.com/admin-access-key/access-key
 {{- end }}
 
-{{- $accessKey := default "" .Values.config.accessKey }}
+{{- $accessKey := default "" .Values.server.config.accessKey }}
 {{- if and $accessKey (or (hasPrefix "file:" $accessKey) (hasPrefix "env:" $accessKey)) }}
     accessKey: {{ $accessKey }}
 {{- else }}
     accessKey: file:/var/run/secrets/infrahq.com/access-key/access-key
 {{- end }}
 
-{{- range $key, $val := omit .Values.config "import" "adminAccessKey" "accessKey" }}
+{{- range $key, $val := omit .Values.server.config "import" "adminAccessKey" "accessKey" }}
 {{- if kindIs "invalid" $val }}
     # skipping invalid value: {{ $val }} ({{ kindOf $val }})
 {{- else if kindIs "map" $val }}
@@ -36,26 +37,27 @@ data:
 {{- end }}
 {{- end }}
 
-{{- if .Values.persistence.enabled }}
-{{- if not (hasKey .Values.config "tlsCache") }}
+{{- if .Values.server.persistence.enabled }}
+{{- if not (hasKey .Values.server.config "tlsCache") }}
     tlsCache: /var/lib/infrahq/server/tls.cache
 {{- end }}
 
-{{- if not (hasKey .Values.config "dbFile") }}
+{{- if not (hasKey .Values.server.config "dbFile") }}
     dbFile: /var/lib/infrahq/server/sqlite3.db
 {{- end }}
 
-{{- if not (hasKey .Values.config "dbEncryptionKey") }}
+{{- if not (hasKey .Values.server.config "dbEncryptionKey") }}
     dbEncryptionKey: /var/lib/infrahq/server/sqlite3.db.key
 {{- end }}
 {{- end }}
 
     import:
-{{- $import := .Values.config.import | default dict }}
-{{- if kindIs "string" .Values.config.import }}
-{{- $import = fromYaml .Values.config.import }}
+{{- $import := .Values.server.config.import | default dict }}
+{{- if kindIs "string" .Values.server.config.import }}
+{{- $import = fromYaml .Values.server.config.import }}
 {{- end }}
       providers:
-{{- $import.providers | default list | concat .Values.additionalProviders | uniq | toYaml | nindent 8 }}
+{{- $import.providers | default list | concat .Values.server.additionalProviders | uniq | toYaml | nindent 8 }}
       grants:
-{{- $import.grants | default list | concat .Values.additionalGrants | uniq | toYaml | nindent 8 }}
+{{- $import.grants | default list | concat .Values.server.additionalGrants | uniq | toYaml | nindent 8 }}
+{{- end }}
