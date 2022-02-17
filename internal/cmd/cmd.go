@@ -394,13 +394,6 @@ func newEngineCmd() *cobra.Command {
 				return err
 			}
 
-			accessKey, err := canonicalPath(options.AccessKey)
-			if err != nil {
-				return err
-			}
-
-			options.AccessKey = accessKey
-
 			tlsCache, err := canonicalPath(options.TLSCache)
 			if err != nil {
 				return err
