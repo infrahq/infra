@@ -172,6 +172,48 @@ service:
   ## Supports `ClientIP` or `None`
   sessionAffinity: ""
 
+## Metrics configurations
+metrics:
+
+  ## Enable engine metrics
+  enabled: false
+
+  ## Metrics service configurations
+  service:
+
+    ## Metrics service labels
+    labels: {}
+
+    ## Metrics service annotations
+    annotations: {}
+
+    ## Metrics service port
+    port: 9090
+
+    ## Metrics service port name
+    portName: metrics
+
+  ## Service monitor configurations
+  serviceMonitor:
+
+    ## Enable service monitor
+    enabled: false
+
+    ## Service monitor labels
+    labels: {}
+
+    ## Service monitor annotations
+    annotations: {}
+
+    ## Service monitor scrape interval
+    interval: 30s
+
+    ## Prometheus relabel configs to apply to samples before scraping
+    relabelings: []
+
+    ## Prometheus metric relabel configs to apply to samples before ingesting
+    metricRelabelings: []
+
 ## Engine ingress configurations
 ingress:
 

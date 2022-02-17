@@ -11,13 +11,6 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-var requestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
-	Namespace: "http",
-	Name:      "request_duration_seconds",
-	Help:      "A histogram of the duration, in seconds, handling HTTP requests.",
-	Buckets:   prometheus.ExponentialBuckets(0.001, 2, 15),
-}, []string{"host", "method", "path", "status"})
-
 func SetupMetrics(db *gorm.DB) error {
 	promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "build",

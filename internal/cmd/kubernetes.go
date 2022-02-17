@@ -143,7 +143,7 @@ func writeKubeconfig(destinations []api.Destination, grants []api.Grant) error {
 		logging.S.Debugf("creating kubeconfig for %s", context)
 
 		kubeConfig.Clusters[context] = &clientcmdapi.Cluster{
-			Server:                   fmt.Sprintf("%s/proxy", u.String()),
+			Server:                   u.String(),
 			CertificateAuthorityData: []byte(ca),
 		}
 

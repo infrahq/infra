@@ -8,6 +8,7 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/metrics"
 )
 
 type (
@@ -18,7 +19,7 @@ type (
 
 func (a *API) registerRoutes(router *gin.RouterGroup) {
 	router.Use(
-		MetricsMiddleware(),
+		metrics.Middleware(),
 		RequestTimeoutMiddleware(),
 		DatabaseMiddleware(a.server.db),
 	)

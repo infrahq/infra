@@ -29,8 +29,8 @@ import (
 )
 
 const (
-	NamespaceFilePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
-	CaFilePath        = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+	namespaceFilePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+	caFilePath        = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
 )
 
 type Kubernetes struct {
@@ -529,7 +529,7 @@ END:
 }
 
 func (k *Kubernetes) Namespace() (string, error) {
-	contents, err := ioutil.ReadFile(NamespaceFilePath)
+	contents, err := ioutil.ReadFile(namespaceFilePath)
 	if err != nil {
 		return "", err
 	}
@@ -538,7 +538,7 @@ func (k *Kubernetes) Namespace() (string, error) {
 }
 
 func (k *Kubernetes) CA() ([]byte, error) {
-	contents, err := ioutil.ReadFile(CaFilePath)
+	contents, err := ioutil.ReadFile(caFilePath)
 	if err != nil {
 		return nil, err
 	}
