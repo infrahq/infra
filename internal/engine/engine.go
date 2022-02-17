@@ -32,6 +32,7 @@ import (
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/timer"
+	"github.com/infrahq/infra/secrets"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -380,7 +381,11 @@ func Run(options Options) error {
 		return url.Hostname()
 	})
 
-	var destinationID uid.ID
+	basicSecretStorage := map[string]secrets.SecretStorage{
+		"env":       secrets.NewEnvSecretProviderFromConfig(secrets.GenericConfig{}),
+		"file":      secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{}),
+		"plaintext": secrets.NewPlainSecretProviderFromConfig(secrets.GenericConfig{}),
+	}
 
 	u, err := urlx.Parse(options.Server)
 	if err != nil {
@@ -389,15 +394,15 @@ func Run(options Options) error {
 
 	u.Scheme = "https"
 
+	var destinationID uid.ID
+
 	timer := timer.NewTimer()
 	timer.Start(5*time.Second, func() {
-		contents, err := ioutil.ReadFile(options.AccessKey)
+		accessKey, err := secrets.GetSecret(options.AccessKey, basicSecretStorage)
 		if err != nil {
-			logging.S.Errorf("could not load access key: %w", err)
+			logging.S.Infof("%w", err)
 			return
 		}
-
-		accessKey := string(contents)
 
 		client := &api.Client{
 			Url:   u.String(),
