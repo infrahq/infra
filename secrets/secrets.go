@@ -10,6 +10,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"strings"
 )
 
 var ErrNotFound = fmt.Errorf("secret not found")
@@ -83,6 +84,71 @@ func cryptoRandRead(length int) ([]byte, error) {
 	}
 
 	return b, nil
+}
+
+func secretKindAndName(secret string) (kind string, name string, err error) {
+	if !strings.Contains(secret, ":") {
+		return "plaintext", secret, nil
+	}
+
+	parts := strings.SplitN(secret, ":", 2)
+	if len(parts) < 2 {
+		return "", "", fmt.Errorf("unexpected secret provider format %q. Expecting <kind>:<secret name>, eg env:ACCESS_TOKEN", name)
+	}
+
+	kind = parts[0]
+	name = parts[1]
+
+	return kind, name, nil
+}
+
+// GetSecret implements the secret definition scheme for Infra.
+// eg plaintext:pass123, or kubernetes:infra-okta/clientSecret
+// it's an abstraction around all secret providers
+func GetSecret(name string, storage map[string]SecretStorage) (string, error) {
+	b, err := GetSecretRaw(name, storage)
+	if err != nil {
+		return "", fmt.Errorf("getting secret: %w", err)
+	}
+
+	if b == nil {
+		return "", nil
+	}
+
+	return string(b), nil
+}
+
+func GetSecretRaw(name string, storage map[string]SecretStorage) ([]byte, error) {
+	kind, name, err := secretKindAndName(name)
+	if err != nil {
+		return nil, err
+	}
+
+	secretProvider, found := storage[kind]
+	if !found {
+		return nil, fmt.Errorf("provider %q not found for field %q", kind, name)
+	}
+
+	return secretProvider.GetSecret(name)
+}
+
+func SetSecret(name, value string, storage map[string]SecretStorage) error {
+	kind, name, err := secretKindAndName(name)
+	if err != nil {
+		return err
+	}
+
+	secretProvider, found := storage[kind]
+	if !found {
+		return fmt.Errorf("provider %q not found for field %q", kind, name)
+	}
+
+	err = secretProvider.SetSecret(name, []byte(value))
+	if err != nil {
+		return fmt.Errorf("setting secret: %w", err)
+	}
+
+	return nil
 }
 
 // SealRaw encrypts plaintext with a decrypted data key and returns it in a raw binary format

@@ -349,7 +349,7 @@ func (s *Server) getPostgresConnectionString() (string, error) {
 			fmt.Fprintf(&pgConn, "user=%s ", s.options.DBUser)
 
 			if s.options.DBPassword != "" {
-				pass, err := s.GetSecret(s.options.DBPassword)
+				pass, err := secrets.GetSecret(s.options.DBPassword, s.secrets)
 				if err != nil {
 					return "", fmt.Errorf("postgres secret: %w", err)
 				}
@@ -372,67 +372,6 @@ func (s *Server) getPostgresConnectionString() (string, error) {
 	}
 
 	return strings.TrimSpace(pgConn.String()), nil
-}
-
-func secretKindAndName(secret string) (kind string, name string, err error) {
-	if !strings.Contains(secret, ":") {
-		return "plaintext", secret, nil
-	}
-
-	parts := strings.SplitN(secret, ":", 2)
-	if len(parts) < 2 {
-		return "", "", fmt.Errorf("unexpected secret provider format %q. Expecting <kind>:<secret name>, eg env:ACCESS_TOKEN", name)
-	}
-
-	kind = parts[0]
-	name = parts[1]
-
-	return kind, name, nil
-}
-
-// GetSecret implements the secret definition scheme for Infra.
-// eg plaintext:pass123, or kubernetes:infra-okta/clientSecret
-// it's an abstraction around all secret providers
-func (s *Server) GetSecret(name string) (string, error) {
-	kind, name, err := secretKindAndName(name)
-	if err != nil {
-		return "", err
-	}
-
-	secretProvider, found := s.secrets[kind]
-	if !found {
-		return "", fmt.Errorf("secret provider %q not found in configuration for field %q", kind, name)
-	}
-
-	b, err := secretProvider.GetSecret(name)
-	if err != nil {
-		return "", fmt.Errorf("getting secret: %w", err)
-	}
-
-	if b == nil {
-		return "", nil
-	}
-
-	return string(b), nil
-}
-
-func (s *Server) SetSecret(name string, value string) error {
-	kind, name, err := secretKindAndName(name)
-	if err != nil {
-		return err
-	}
-
-	secretProvider, found := s.secrets[kind]
-	if !found {
-		return fmt.Errorf("secret provider %q not found in configuration for field %q", kind, name)
-	}
-
-	err = secretProvider.SetSecret(name, []byte(value))
-	if err != nil {
-		return fmt.Errorf("setting secret: %w", err)
-	}
-
-	return nil
 }
 
 var dbKeyName = "dbkey"

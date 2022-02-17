@@ -41,7 +41,7 @@ func (s *Server) importConfig() error {
 		return nil
 	}
 
-	adminAccessKey, err := s.GetSecret(s.options.AdminAccessKey)
+	adminAccessKey, err := secrets.GetSecret(s.options.AdminAccessKey, s.secrets)
 	if err != nil {
 		return fmt.Errorf("importing config: %w", err)
 	}
@@ -93,12 +93,12 @@ func (s *Server) importSecretKeys() error {
 				return fmt.Errorf("expected key config to be AWSKMSConfig, but was %t", keyConfig.Config)
 			}
 
-			cfg.AccessKeyID, err = s.GetSecret(cfg.AccessKeyID)
+			cfg.AccessKeyID, err = secrets.GetSecret(cfg.AccessKeyID, s.secrets)
 			if err != nil {
 				return fmt.Errorf("getting secret for awskms accessKeyID: %w", err)
 			}
 
-			cfg.SecretAccessKey, err = s.GetSecret(cfg.SecretAccessKey)
+			cfg.SecretAccessKey, err = secrets.GetSecret(cfg.SecretAccessKey, s.secrets)
 			if err != nil {
 				return fmt.Errorf("getting secret for awskms secretAccessKey: %w", err)
 			}
@@ -115,7 +115,7 @@ func (s *Server) importSecretKeys() error {
 				return fmt.Errorf("expected key config to be VaultConfig, but was %t", keyConfig.Config)
 			}
 
-			cfg.Token, err = s.GetSecret(cfg.Token)
+			cfg.Token, err = secrets.GetSecret(cfg.Token, s.secrets)
 			if err != nil {
 				return err
 			}
@@ -224,7 +224,7 @@ func (s *Server) importSecrets() error {
 				return fmt.Errorf("expected secret config to be VaultConfig, but was %t", secret.Config)
 			}
 
-			cfg.Token, err = s.GetSecret(cfg.Token)
+			cfg.Token, err = secrets.GetSecret(cfg.Token, s.secrets)
 			if err != nil {
 				return err
 			}
@@ -241,12 +241,12 @@ func (s *Server) importSecrets() error {
 				return fmt.Errorf("expected secret config to be AWSSSMConfig, but was %t", secret.Config)
 			}
 
-			cfg.AccessKeyID, err = s.GetSecret(cfg.AccessKeyID)
+			cfg.AccessKeyID, err = secrets.GetSecret(cfg.AccessKeyID, s.secrets)
 			if err != nil {
 				return err
 			}
 
-			cfg.SecretAccessKey, err = s.GetSecret(cfg.SecretAccessKey)
+			cfg.SecretAccessKey, err = secrets.GetSecret(cfg.SecretAccessKey, s.secrets)
 			if err != nil {
 				return err
 			}
@@ -263,12 +263,12 @@ func (s *Server) importSecrets() error {
 				return fmt.Errorf("expected secret config to be AWSSecretsManagerConfig, but was %t", secret.Config)
 			}
 
-			cfg.AccessKeyID, err = s.GetSecret(cfg.AccessKeyID)
+			cfg.AccessKeyID, err = secrets.GetSecret(cfg.AccessKeyID, s.secrets)
 			if err != nil {
 				return err
 			}
 
-			cfg.SecretAccessKey, err = s.GetSecret(cfg.SecretAccessKey)
+			cfg.SecretAccessKey, err = secrets.GetSecret(cfg.SecretAccessKey, s.secrets)
 			if err != nil {
 				return err
 			}
@@ -497,7 +497,7 @@ func (s *Server) importAccessKeys() error {
 			continue
 		}
 
-		raw, err := s.GetSecret(v.Secret)
+		raw, err := secrets.GetSecret(v.Secret, s.secrets)
 		if err != nil && !errors.Is(err, secrets.ErrNotFound) {
 			return fmt.Errorf("%s secret: %w", k, err)
 		}
