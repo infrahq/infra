@@ -3,9 +3,9 @@
                                 Welcome to Infra
 
 {{- if hasKey .Values.config "server" }}
-{{- if not .Values.accessToken }}
+{{- if not .Values.config.accessKey }}
 
-  NOTE: Missing `accessToken`. This instance will not be able to establish
+  NOTE: Missing `config.accessKey`. This instance will not be able to establish
   a connection to the Infra Server.
 {{- end }}
 
