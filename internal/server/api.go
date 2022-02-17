@@ -44,24 +44,30 @@ func sendAPIError(c *gin.Context, err error) {
 	case errors.Is(err, internal.ErrUnauthorized):
 		code = http.StatusUnauthorized
 		message = "unauthorized"
+		logging.Logger(c).Debugw(err.Error(), "statusCode", code)
 	case errors.Is(err, internal.ErrForbidden):
 		code = http.StatusForbidden
 		message = "forbidden"
+		logging.Logger(c).Debugw(err.Error(), "statusCode", code)
 	case errors.Is(err, internal.ErrDuplicate):
 		code = http.StatusConflict
 		message = err.Error()
+		logging.Logger(c).Debugw(err.Error(), "statusCode", code)
 	case errors.Is(err, internal.ErrNotFound):
 		code = http.StatusNotFound
 		message = err.Error()
+		logging.Logger(c).Debugw(err.Error(), "statusCode", code)
 	case errors.Is(err, internal.ErrBadRequest):
 		code = http.StatusBadRequest
 		message = err.Error()
+		logging.Logger(c).Debugw(err.Error(), "statusCode", code)
 	case errors.Is(err, (*validator.InvalidValidationError)(nil)):
 		code = http.StatusBadRequest
 		message = err.Error()
+		logging.Logger(c).Debugw(err.Error(), "statusCode", code)
+	default:
+		logging.Logger(c).Errorw(err.Error(), "statusCode", code)
 	}
-
-	logging.Logger(c).Debugw(err.Error(), "statusCode", code)
 
 	c.JSON(code, &api.Error{
 		Code:    int32(code),
