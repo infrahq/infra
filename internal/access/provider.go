@@ -93,7 +93,7 @@ func UpdateProviderToken(c *gin.Context, providerToken *models.ProviderToken) er
 	return data.UpdateProviderToken(db, providerToken)
 }
 
-func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.Provider, oidc authn.OIDC, sessionDuration time.Duration) (*models.User, string, error) {
+func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.Provider, oidc authn.OIDC, sessionDuration time.Duration, redirectURL string) (*models.User, string, error) {
 	db := getDB(c)
 
 	// exchange code for tokens from identity provider (these tokens are for the IDP, not Infra)
@@ -123,6 +123,7 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 	provToken := &models.ProviderToken{
 		UserID:       user.ID,
 		ProviderID:   provider.ID,
+		RedirectURL:  redirectURL,
 		AccessToken:  models.EncryptedAtRest(accessToken),
 		RefreshToken: models.EncryptedAtRest(refreshToken),
 		ExpiresAt:    expiry,

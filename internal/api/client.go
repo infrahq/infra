@@ -11,9 +11,9 @@ import (
 )
 
 type Client struct {
-	Url   string
-	Token string
-	Http  http.Client
+	Url       string
+	AccessKey string
+	Http      http.Client
 }
 
 func checkError(status int, body []byte) error {
@@ -45,7 +45,7 @@ func get[Res any](client Client, path string) (*Res, error) {
 		return nil, err
 	}
 
-	req.Header.Add("Authorization", "Bearer "+client.Token)
+	req.Header.Add("Authorization", "Bearer "+client.AccessKey)
 
 	resp, err := client.Http.Do(req)
 	if err != nil {
@@ -78,7 +78,7 @@ func list[Res any](client Client, path string, query map[string]string) ([]Res, 
 		return nil, err
 	}
 
-	req.Header.Add("Authorization", "Bearer "+client.Token)
+	req.Header.Add("Authorization", "Bearer "+client.AccessKey)
 
 	q := req.URL.Query()
 	for k, v := range query {
@@ -123,7 +123,7 @@ func request[Req, Res any](client Client, method string, path string, req *Req) 
 		return nil, err
 	}
 
-	httpReq.Header.Add("Authorization", "Bearer "+client.Token)
+	httpReq.Header.Add("Authorization", "Bearer "+client.AccessKey)
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	resp, err := client.Http.Do(httpReq)
@@ -165,7 +165,7 @@ func delete(client Client, path string) error {
 		return err
 	}
 
-	req.Header.Add("Authorization", "Bearer "+client.Token)
+	req.Header.Add("Authorization", "Bearer "+client.AccessKey)
 
 	resp, err := client.Http.Do(req)
 	if err != nil {

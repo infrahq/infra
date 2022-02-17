@@ -18,8 +18,8 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/authn"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/uid"
 	"github.com/infrahq/infra/secrets"
+	"github.com/infrahq/infra/uid"
 )
 
 type API struct {
@@ -539,17 +539,17 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 		return nil, err
 	}
 
-	oidc, err := a.providerClient(c, provider)
+	oidc, err := a.providerClient(c, provider, r.RedirectURL)
 	if err != nil {
 		return nil, err
 	}
 
-	user, token, err := access.ExchangeAuthCodeForAccessKey(c, r.Code, provider, oidc, a.server.options.SessionDuration)
+	user, key, err := access.ExchangeAuthCodeForAccessKey(c, r.Code, provider, oidc, a.server.options.SessionDuration, r.RedirectURL)
 	if err != nil {
 		return nil, err
 	}
 
-	setAuthCookie(c, token, a.server.options.SessionDuration)
+	setAuthCookie(c, key, a.server.options.SessionDuration)
 
 	if a.t != nil {
 		if err := a.t.Enqueue(analytics.Track{Event: "infra.login", UserId: user.ID.String()}); err != nil {
@@ -557,7 +557,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 		}
 	}
 
-	return &api.LoginResponse{ID: user.ID, Name: user.Email, Token: token}, nil
+	return &api.LoginResponse{ID: user.ID, Name: user.Email, AccessKey: key}, nil
 }
 
 func (a *API) Logout(c *gin.Context, r *api.EmptyRequest) (*api.EmptyResponse, error) {
@@ -592,7 +592,7 @@ func (a *API) updateUserInfo(c *gin.Context) error {
 		return fmt.Errorf("user info provider: %w", err)
 	}
 
-	oidc, err := a.providerClient(c, provider)
+	oidc, err := a.providerClient(c, provider, providerTokens.RedirectURL)
 	if err != nil {
 		return fmt.Errorf("update provider client: %w", err)
 	}
@@ -630,7 +630,7 @@ func (a *API) updateUserInfo(c *gin.Context) error {
 	return access.UpdateUserInfo(c, info, user, provider)
 }
 
-func (a *API) providerClient(c *gin.Context, provider *models.Provider) (authn.OIDC, error) {
+func (a *API) providerClient(c *gin.Context, provider *models.Provider, redirectURL string) (authn.OIDC, error) {
 	if val, ok := c.Get("oidc"); ok {
 		// oidc is added to the context during unit tests
 		oidc, _ := val.(authn.OIDC)
@@ -643,5 +643,5 @@ func (a *API) providerClient(c *gin.Context, provider *models.Provider) (authn.O
 		return nil, fmt.Errorf("error loading provider client")
 	}
 
-	return authn.NewOIDC(provider.URL, provider.ClientID, clientSecret), nil
+	return authn.NewOIDC(provider.URL, provider.ClientID, clientSecret, redirectURL), nil
 }

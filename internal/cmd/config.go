@@ -22,7 +22,7 @@ type ClientHostConfig struct {
 	PolymorphicID uid.PolymorphicID `json:"polymorphic-id"`
 	Name          string            `json:"name"`
 	Host          string            `json:"host"`
-	Token         string            `json:"token,omitempty"`
+	AccessKey     string            `json:"access-key,omitempty"`
 	SkipTLSVerify bool              `json:"skip-tls-verify"` // where is the other cert info stored?
 	ProviderID    uid.ID            `json:"provider-id"`
 	Current       bool              `json:"current"`
@@ -130,7 +130,7 @@ func removeHostConfig(host string, force bool) error {
 			if force {
 				cfg.Hosts = append(cfg.Hosts[:i], cfg.Hosts[i+1:]...)
 			} else {
-				cfg.Hosts[i].Token = ""
+				cfg.Hosts[i].AccessKey = ""
 			}
 
 			break

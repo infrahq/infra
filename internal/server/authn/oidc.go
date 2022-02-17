@@ -32,13 +32,15 @@ type oidcImplementation struct {
 	Domain       string
 	ClientID     string
 	ClientSecret string
+	RedirectURL  string
 }
 
-func NewOIDC(domain, clientID, clientSecret string) OIDC {
+func NewOIDC(domain, clientID, clientSecret, redirectURL string) OIDC {
 	return &oidcImplementation{
 		Domain:       domain,
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
+		RedirectURL:  redirectURL,
 	}
 }
 
@@ -53,7 +55,7 @@ func (o *oidcImplementation) clientConfig(ctx context.Context) (*oauth2.Config, 
 	conf := &oauth2.Config{
 		ClientID:     o.ClientID,
 		ClientSecret: o.ClientSecret,
-		RedirectURL:  "http://localhost:8301",
+		RedirectURL:  o.RedirectURL,
 		Scopes:       []string{oidc.ScopeOpenID, "email", "groups", oidc.ScopeOfflineAccess},
 		Endpoint:     provider.Endpoint(),
 	}

@@ -136,10 +136,10 @@ func defaultAPIClient() (*api.Client, error) {
 		return nil, err
 	}
 
-	return apiClient(config.Host, config.Token, config.SkipTLSVerify)
+	return apiClient(config.Host, config.AccessKey, config.SkipTLSVerify)
 }
 
-func apiClient(host string, token string, skipTLSVerify bool) (*api.Client, error) {
+func apiClient(host string, accessKey string, skipTLSVerify bool) (*api.Client, error) {
 	u, err := urlx.Parse(host)
 	if err != nil {
 		return nil, err
@@ -148,8 +148,8 @@ func apiClient(host string, token string, skipTLSVerify bool) (*api.Client, erro
 	u.Scheme = "https"
 
 	return &api.Client{
-		Url:   fmt.Sprintf("%s://%s", u.Scheme, u.Host),
-		Token: token,
+		Url:       fmt.Sprintf("%s://%s", u.Scheme, u.Host),
+		AccessKey: accessKey,
 		Http: http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{

@@ -47,8 +47,8 @@ func (s *Server) importConfig() error {
 	}
 
 	client := &api.Client{
-		Url:   "https://localhost:443",
-		Token: adminAccessKey,
+		Url:       "https://localhost:443",
+		AccessKey: adminAccessKey,
 		Http: http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{

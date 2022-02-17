@@ -22,6 +22,8 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+const cliLoginRedirectURL = "http://localhost:8301"
+
 func relogin() error {
 	// TODO (https://github.com/infrahq/infra/issues/488): support non-interactive login
 	if !term.IsTerminal(int(os.Stdin.Fd())) {
@@ -53,8 +55,9 @@ func relogin() error {
 	}
 
 	loginReq := &api.LoginRequest{
-		ProviderID: provider.ID,
-		Code:       code,
+		ProviderID:  provider.ID,
+		RedirectURL: cliLoginRedirectURL,
+		Code:        code,
 	}
 
 	loginRes, err := client.Login(loginReq)
@@ -62,7 +65,7 @@ func relogin() error {
 		return err
 	}
 
-	return finishLogin(currentConfig.Host, uid.NewUserPolymorphicID(loginRes.ID), loginRes.Name, loginRes.Token, currentConfig.SkipTLSVerify, 0)
+	return finishLogin(currentConfig.Host, uid.NewUserPolymorphicID(loginRes.ID), loginRes.Name, loginRes.AccessKey, currentConfig.SkipTLSVerify, 0)
 }
 
 func login(host string) error {
@@ -135,20 +138,20 @@ func login(host string) error {
 
 	// access key
 	if option == len(options)-1 {
-		var token string
+		var key string
 
-		err = survey.AskOne(&survey.Password{Message: "Your Access Key:"}, &token, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
+		err = survey.AskOne(&survey.Password{Message: "Your Access Key:"}, &key, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
 		if err != nil {
 			return err
 		}
 
-		client.Token = token
+		client.AccessKey = key
 		info, err := client.Introspect()
 		if err != nil {
 			return err
 		}
 
-		return finishLogin(host, uid.NewMachinePolymorphicID(info.ID), info.Name, token, skipTLSVerify, 0)
+		return finishLogin(host, uid.NewMachinePolymorphicID(info.ID), info.Name, key, skipTLSVerify, 0)
 	}
 
 	provider := providers[option]
@@ -161,8 +164,9 @@ func login(host string) error {
 	}
 
 	loginReq := &api.LoginRequest{
-		ProviderID: provider.ID,
-		Code:       code,
+		ProviderID:  provider.ID,
+		RedirectURL: cliLoginRedirectURL,
+		Code:        code,
 	}
 
 	loginRes, err := client.Login(loginReq)
@@ -170,10 +174,10 @@ func login(host string) error {
 		return err
 	}
 
-	return finishLogin(host, uid.NewUserPolymorphicID(loginRes.ID), loginRes.Name, loginRes.Token, skipTLSVerify, provider.ID)
+	return finishLogin(host, uid.NewUserPolymorphicID(loginRes.ID), loginRes.Name, loginRes.AccessKey, skipTLSVerify, provider.ID)
 }
 
-func finishLogin(host string, polymorphicID uid.PolymorphicID, name string, token string, skipTLSVerify bool, providerID uid.ID) error {
+func finishLogin(host string, polymorphicID uid.PolymorphicID, name string, accessKey string, skipTLSVerify bool, providerID uid.ID) error {
 	fmt.Fprintf(os.Stderr, "  Logged in as %s\n", termenv.String(name).Bold().String())
 
 	config, err := readConfig()
@@ -198,7 +202,7 @@ func finishLogin(host string, polymorphicID uid.PolymorphicID, name string, toke
 	hostConfig.Host = host
 	hostConfig.Name = name
 	hostConfig.ProviderID = providerID
-	hostConfig.Token = token
+	hostConfig.AccessKey = accessKey
 	hostConfig.SkipTLSVerify = skipTLSVerify
 
 	var found bool
@@ -222,7 +226,7 @@ func finishLogin(host string, polymorphicID uid.PolymorphicID, name string, toke
 		return err
 	}
 
-	client, err := apiClient(host, token, skipTLSVerify)
+	client, err := apiClient(host, accessKey, skipTLSVerify)
 	if err != nil {
 		return err
 	}

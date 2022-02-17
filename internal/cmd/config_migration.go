@@ -54,7 +54,7 @@ func (c ClientConfigV0dot2) ToV0dot3() *ClientConfig {
 		conf.Hosts = append(conf.Hosts, ClientHostConfig{
 			Name:          h.Name,
 			Host:          h.Host,
-			Token:         h.Token,
+			AccessKey:     h.Token,
 			SkipTLSVerify: h.SkipTLSVerify,
 			ProviderID:    providerID,
 			Current:       h.Current,

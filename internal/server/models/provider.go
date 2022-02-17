@@ -35,8 +35,9 @@ func (p *Provider) ToAPI() *api.Provider {
 type ProviderToken struct {
 	Model
 
-	UserID     uid.ID
-	ProviderID uid.ID
+	UserID      uid.ID
+	ProviderID  uid.ID
+	RedirectURL string `validate:"required"` // needs to match the redirect URL specified when the token was issued for refreshing
 
 	AccessToken  EncryptedAtRest
 	RefreshToken EncryptedAtRest
