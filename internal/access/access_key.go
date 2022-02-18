@@ -25,7 +25,7 @@ func ListAccessKeys(c *gin.Context, machineID uid.ID, name string) ([]models.Acc
 	return data.ListAccessKeys(db, data.ByMachineIDIssuedFor(machineID), data.ByName(name))
 }
 
-func CreateAccessKey(c *gin.Context, token *models.AccessKey, machineID uid.ID) (body string, err error) {
+func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey, machineID uid.ID) (body string, err error) {
 	db, err := requireAuthorization(c, PermissionAccessKeyCreate)
 	if err != nil {
 		return "", err
@@ -36,7 +36,7 @@ func CreateAccessKey(c *gin.Context, token *models.AccessKey, machineID uid.ID) 
 		return "", fmt.Errorf("get access key machine: %w", err)
 	}
 
-	body, err = data.CreateAccessKey(db, token)
+	body, err = data.CreateAccessKey(db, accessKey)
 	if err != nil {
 		return "", fmt.Errorf("create token: %w", err)
 	}
