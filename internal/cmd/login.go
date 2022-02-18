@@ -19,6 +19,7 @@ import (
 
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -347,13 +348,15 @@ func promptShouldSkipTLSVerify(host string) (shouldSkipTLSVerify bool, proceed b
 			return false, false, err
 		}
 
-		proceed := false
+		logging.S.Debug(err)
 
-		fmt.Fprintf(os.Stderr, "Could not verify certificate for host %q: %s\n", host, err)
+		fmt.Printf("  The authenticity of host '%s' can't be established.\n", host)
 
 		prompt := &survey.Confirm{
-			Message: "Are you sure you want to continue?",
+			Message: fmt.Sprintf("Are you sure you want to continue?"),
 		}
+
+		proceed := false
 
 		err := survey.AskOne(prompt, &proceed, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
 		if err != nil {
