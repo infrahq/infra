@@ -24,7 +24,7 @@ func logout(force bool) error {
 			continue
 		}
 
-		client, err := apiClient(hostConfig.Host, hostConfig.Token, hostConfig.SkipTLSVerify)
+		client, err := apiClient(hostConfig.Host, hostConfig.AccessKey, hostConfig.SkipTLSVerify)
 		if err != nil {
 			logging.S.Warn(err.Error())
 			continue
