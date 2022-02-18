@@ -1,11 +1,13 @@
 import styled from "styled-components";
 import Link from 'next/link';
+import Router from "next/router";
+import { useContext, useEffect } from "react";
 
 import AccountFooter from "../../components/AccountFooter";
 import AccountHeader from "../../components/AccountHeader";
-import IdentitySourceBtn, { IdentitySourceProvider, IdentitySourceType }  from "../../components/IdentitySourceBtn";
-import AuthContext, { ProviderField } from "../../store/AuthContext";
-import { useContext } from "react";
+import IdentitySourceBtn, { IdentitySourceProvider }  from "../../components/IdentitySourceBtn";
+
+import AuthContext from "../../store/AuthContext";
 
 const LoginContainer = styled.section`
   margin-left: auto;
@@ -82,18 +84,36 @@ const Footer = styled.div`
 `;
 
 const Login = () => {
-  const { providers } = useContext(AuthContext);
+  const { providers, authReady } = useContext(AuthContext);
   const comingSoonList: IdentitySourceProvider[] = [
     {
-      type: IdentitySourceType.Google,
+      type: 'google',
     }, 
     {
-      type: IdentitySourceType.Azure,
+      type: 'azure',
     },
     {
-      type: IdentitySourceType.Gitlab
+      type: 'gitlab'
     }
   ];
+
+  const getProviderType = (url: string):string => {
+    let tempURL = url;
+    return tempURL.replace(/^https?:\/\//, '').split('/')[0].split('.').reverse()[1]; 
+  }
+
+  const providerWithType = providers.map((item) => {
+    const type = getProviderType(item.url);
+    return {...item, type}
+  })
+
+  useEffect(() => {
+    if(authReady) {
+      Router.push({
+        pathname: '/',
+      }, undefined, { shallow: true });
+    }
+  }, [])
 
   return (
     <LoginContainer>
@@ -103,7 +123,7 @@ const Login = () => {
           subheader='Securely manage access to your infrastructure. Take a moment to create your account and start managing access today.'
         />
         <LoginIdentiySourceList>
-          <IdentitySourceBtn providers={providers} />
+          <IdentitySourceBtn providers={providerWithType} />
         </LoginIdentiySourceList>
         <LoginIdentiySourceComingSoonListContainer>
           <LoginIdentiySourceComingSoonListHeader>Coming Soon</LoginIdentiySourceComingSoonListHeader>

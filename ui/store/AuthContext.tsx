@@ -3,68 +3,71 @@ import Router from 'next/router';
 import axios from 'axios';
 import { useCookies } from 'react-cookie';
 
-import { IdentitySourceType } from '../components/IdentitySourceBtn';
-
 interface AppContextInterface {
+  authReady: boolean,
+  cookie: {},
+  loginError: boolean,
+  providers: ProviderField[]
   user: any,
+  getAccessKey: (code: string, providerID: string) => void,
   login: (selectedIdp: ProviderField) => void,
   logout: () => void,
   register: (key:string) => void,
-  cookie: {},
-  authReady: boolean,
-  loginError: boolean,
-  providers: ProviderField[]
 }
 
 export interface ProviderField {
   id: string,
-  name: string,
+  clientID: string,
   created: number,
+  name: string,
   updated: number,
   url: string,
-  clientID: string,
-  type: IdentitySourceType
 };
 
 const AuthContext = createContext<AppContextInterface>({
+  authReady: false,
+  cookie: {},
+  loginError: false,
+  providers: [],
   user: null,
+  getAccessKey: () => {},
   login: () => {},
   logout: () => {},
   register: () => {},
-  cookie: {},
-  authReady: false,
-  loginError: false,
-  providers: [],
 })
 
 export const AuthContextProvider = ({ children }:any) => { 
   const [user, setUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
   const [loginError, setLoginError] = useState(false);
-  const [providers, setProviders] = useState<ProviderField[]>(
-    [{"id":"2H21T3DkBw","name":"okta","created":-62135596800,"updated":1644606820,"url":"dev-02708987.okta.com","clientID":"0oapn0qwiQPiMIyR35d6", "type": IdentitySourceType.Okta},
-    {"id":"2H21T3DkBw","name":"okta2 - invalid","created":-62135596800,"updated":1644606820,"url":"dev-02708988.okta.com","clientID":"0oapn0qwiQPiMIyR35d6", "type": IdentitySourceType.Okta}]
-  );
-  // const [providers, setProviders] = useState<ProviderField[]>([]);
+
+  const [providers, setProviders] = useState<ProviderField[]>([]);
   const [cookie, setCookie, removeCookies] = useCookies(['accessKey']);
 
   useEffect(() => {
-
     axios.get('/v1/providers')
     .then((response) => {
-      // setProviders(response.data);
+      setProviders(response.data);
+
+      redirectAccountPage(response.data);
+      // if (response.data.length > 0) {
+      //   Router.push({
+      //     pathname: '/account/login',
+      //   }, undefined, { shallow: true });
+      // } else {
+      //   Router.push({
+      //     pathname: '/account/register',
+      //   }, undefined, { shallow: true });
+      // }
     })
     .catch((error) => {
       console.log(error);
       setLoginError(true);
     })
-    .finally(() => {
-      authCheck();
-    });
   }, []);
 
-  const authCheck = () => {
-    if (providers.length > 0) {
+  const redirectAccountPage = (currentProviders : ProviderField[]) => {
+    if (currentProviders.length > 0) {
       Router.push({
         pathname: '/account/login',
       }, undefined, { shallow: true });
@@ -75,24 +78,58 @@ export const AuthContextProvider = ({ children }:any) => {
     }
   }
 
-  const login = (selectedIdp: ProviderField) => {
-    console.log('log in with', selectedIdp);
+  const getCurrentUser = async() => {
+    return await axios.get('/v1/users', { headers: { Authorization: `Bearer ${cookie.accessKey}` } })
+    .then((response) => {
+      return response.data[0];
+    })
+  }
 
+  const getAccessKey = async (code: string, providerID: string) => {
+    axios.post('/v1/login', {providerID, code})
+    .then(async(response) => {
+      setCookie('accessKey', response.data.token, { path: '/' });
+      setAuthReady(true);
+
+      const userData = await getCurrentUser();
+      setUser(userData);
+      
+      Router.push({
+        pathname: '/',
+      }, undefined, { shallow: true });
+    })
+    .catch((error) => {
+      setAuthReady(false);
+      setLoginError(true);
+      Router.push({
+        pathname: '/account/login',
+      }, undefined, { shallow: true });
+    })
+  }
+
+  const login = (selectedIdp: ProviderField) => {
     localStorage.setItem('providerId', selectedIdp.id);
     const state = [...Array(10)].map(i=>(~~(Math.random()*36)).toString(36)).join('');
     localStorage.setItem('state', state);
-    console.log(state);
-    const infraRedirect = 'https://localhost/'
+
+    const infraRedirect = window.location.origin + `/account/callback`;
     const authorizeURL= `https://${selectedIdp.url}/oauth2/v1/authorize?redirect_uri=${infraRedirect}&client_id=${selectedIdp.clientID}&response_type=code&scope=openid+email+groups+offline_access&state=${state}`;
 
-    console.log(selectedIdp.url);
     document.location.href = authorizeURL;
   }
 
   const logout = () => {
-    localStorage.removeItem('provideId');
-    localStorage.removeItem('state');
-    removeCookies('accessKey', { path: '/' });
+
+    console.log('logout:', cookie.accessKey)
+    axios.post('/v1/logout', { headers: { Authorization: `Bearer ${cookie.accessKey}` }})
+    .then((response) => {
+      removeCookies('accessKey', { path: '/' });
+
+
+      // redirect based on provider[]
+      redirectAccountPage(providers);
+      console.log(response);
+    })
   }
 
   const register = async (key: string) => {
@@ -126,7 +163,17 @@ export const AuthContextProvider = ({ children }:any) => {
     });
   }
 
-  const context:AppContextInterface = { user, login, logout, register, cookie, authReady, loginError, providers }
+  const context:AppContextInterface = { 
+    authReady,
+    cookie,
+    loginError,
+    providers,
+    user,
+    getAccessKey,
+    login,
+    logout,
+    register
+  }
 
   return (
     <AuthContext.Provider value={context}>

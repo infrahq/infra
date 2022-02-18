@@ -1,11 +1,29 @@
-import Link from "next/link";
+import { useContext, useEffect, useState } from "react"
+import AuthContext from "../store/AuthContext"
+import styled from 'styled-components';
 
 export default function Index () {
+  const { logout, user } = useContext(AuthContext);
+
+  // TODO: default value of currentUser
+  const [currentUser, setCurrentUser] = useState('user');
+  console.log(currentUser);
+
+  useEffect(() => {
+    if(user !== null) {
+      setCurrentUser(user.email);
+    }
+  }, [])
+
+  const handleLogout = () => {
+    console.log('handlelogout')
+    logout();
+  }
+
   return (
     <div>
-      You&apos;ve successfully installed Infra. To continue, see the <a className='underline' href="https://github.com/infrahq/infra">documentation</a>.
-      <Link href='/account/login'>login</Link>
-      <Link href='/account/register'>register</Link>
+      <p>{currentUser}</p>
+      <button onClick={handleLogout}>Logout</button>
     </div>
   )
 }

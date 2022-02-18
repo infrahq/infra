@@ -2,15 +2,8 @@ import { useContext } from 'react';
 import styled from 'styled-components';
 import AuthContext, { ProviderField } from '../store/AuthContext';
 
-export const enum IdentitySourceType {
-  Okta = 'okta',
-  Google = 'google',
-  Azure = 'azure',
-  Gitlab = 'gitlab'
-}
-
 export interface IdentitySourceProvider {
-  type: IdentitySourceType,
+  type: string,
   name?: string,
   url?: string,
   clientID?: string,
@@ -20,7 +13,7 @@ export interface IdentitySourceProvider {
 }
 
 interface IdentitySourceBtnField {
-  providers: IdentitySourceProvider[] | ProviderField[];
+  providers: IdentitySourceProvider[];
   onClick?: () => void;
 }
 
@@ -85,7 +78,7 @@ const IdentitySourceBtn = ({ providers }: IdentitySourceBtnField ) => {
   const { login } = useContext(AuthContext);
 
   const clickHandle = (provider: ProviderField) => {
-    login(provider);    
+    login(provider);
   }
 
   return (
