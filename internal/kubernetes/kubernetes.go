@@ -487,44 +487,29 @@ func (k *Kubernetes) Name() (string, string, error) {
 	h.Write(ca)
 	hash := h.Sum(nil)
 	chksm := hex.EncodeToString(hash)
-
 	name := chksm[:12]
-	if _, err := net.DialTimeout("tcp", "169.254.169.254:80", 1*time.Second); err != nil {
-		goto END
+
+	// 169.254.169.254 is an address used by cloud platforms for instance metadata
+	if _, err := net.DialTimeout("tcp", "169.254.169.254:80", 1*time.Second); err == nil {
+		if name, err := k.ec2ClusterName(); err == nil {
+			return name, chksm, nil
+		}
+
+		if name, err := k.gkeClusterName(); err == nil {
+			return name, chksm, nil
+		}
+
+		if name, err := k.aksClusterName(); err == nil {
+			return name, chksm, nil
+		}
 	}
 
-	name, err = k.ec2ClusterName()
-	if err == nil {
+	if name, err := k.kubeControllerManagerClusterName(); err == nil {
 		return name, chksm, nil
 	}
-
-	logging.S.Debugf("could not fetch ec2 cluster name: %s", err.Error())
-
-	name, err = k.gkeClusterName()
-	if err == nil {
-		return name, chksm, nil
-	}
-
-	logging.S.Debugf("could not fetch gke cluster name: %s", err.Error())
-
-	name, err = k.aksClusterName()
-	if err == nil {
-		return name, chksm, nil
-	}
-
-	logging.S.Debugf("could not fetch aks cluster name: %s", err.Error())
-
-	name, err = k.kubeControllerManagerClusterName()
-	if err == nil {
-		return name, chksm, nil
-	}
-
-	logging.S.Debugf("could not fetch kube-controller-manager cluster name: %s", err.Error())
-
-END:
-	logging.L.Debug("could not fetch cluster name, resorting to hashed cluster CA")
 
 	// truncated checksum will be used as default name if one could not be found
+	logging.L.Debug("could not fetch cluster name, resorting to hashed cluster CA")
 	return name, chksm, nil
 }
 
