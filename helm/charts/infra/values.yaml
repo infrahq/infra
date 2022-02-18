@@ -416,9 +416,25 @@ server:
 
   ## Additional identity providers to configure
   additionalProviders: []
+  # - name: ""
+  #   url: ""
+  #   clientID: ""
+  #   clientSecret: ""
 
   ## Additional grants to configure
   additionalGrants: []
+  # Grant user 'admin@example.com' Infra admin
+  # - user: admin@example.com
+  #   role: admin
+  #   resource: infra
+  # Grant user 'admin@example.com' edit to Kubernetes cluster 'docker-desktop'
+  # - user: admin@example.com
+  #   role: edit
+  #   resource: kubernetes.docker-desktop
+  # Grant group 'Everyone' view to Kubernetes cluster 'docker-desktop', namespace 'default'
+  # - group: Everyone
+  #   role: view
+  #   resource: kubernetes.docker-desktop.default
 
 ## Default engine configurations
 ## Ref: https://github.com/infrahq/infra/blob/main/helm/charts/infra/charts/engine/README.md
