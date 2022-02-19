@@ -105,7 +105,7 @@ func TestCertificatesImplementations(t *testing.T) {
 		}
 
 		t.Run("signing Cert Signing Requests", func(t *testing.T) {
-			cert, err := generateClientCertificate("Engine")
+			cert, err := generateClientCertificate("Connector")
 			require.NoError(t, err)
 
 			csr := x509.CertificateRequest{
@@ -136,6 +136,7 @@ func TestCertificatesImplementations(t *testing.T) {
 }
 
 func init() {
+	// only used in tests
 	randReader = rand.New(rand.NewSource(0)) //nolint:gosec
 }
 
@@ -145,7 +146,7 @@ func generateClientCertificate(subject string) (*x509.Certificate, error) {
 		return nil, fmt.Errorf("generating keys: %w", err)
 	}
 
-	kp := keyPair{
+	kp := KeyPair{
 		PublicKey:  pub,
 		PrivateKey: prv,
 	}
@@ -158,7 +159,7 @@ func generateClientCertificate(subject string) (*x509.Certificate, error) {
 	return cert, nil
 }
 
-func createClientCertSignedBy(signer, signee keyPair, subject string, lifetime time.Duration) (*x509.Certificate, []byte, error) {
+func createClientCertSignedBy(signer, signee KeyPair, subject string, lifetime time.Duration) (*x509.Certificate, []byte, error) {
 	sig := ed25519.Sign(signer.PrivateKey, signee.PublicKey)
 	if !ed25519.Verify(signer.PublicKey, signee.PublicKey, sig) {
 		return nil, nil, errors.New("self-signed certificate doesn't match signature")
@@ -174,7 +175,7 @@ func createClientCertSignedBy(signer, signee keyPair, subject string, lifetime t
 		NotBefore:          time.Now(),
 		NotAfter:           time.Now().Add(lifetime),
 		KeyUsage:           x509.KeyUsageDataEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:        []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+		ExtKeyUsage:        []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 	}
 
 	// create client certificate from template and CA public key

@@ -4,12 +4,19 @@
 package server
 
 import (
+	"crypto/ed25519"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/http/httputil"
 	"os"
+	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -22,17 +29,16 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/goware/urlx"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"golang.org/x/crypto/acme/autocert"
 	"gopkg.in/square/go-jose.v2"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/config"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	timer "github.com/infrahq/infra/internal/timer"
+	"github.com/infrahq/infra/pki"
 	"github.com/infrahq/infra/secrets"
 )
 
@@ -46,6 +52,7 @@ type Options struct {
 	UIProxyURL           string        `mapstructure:"uiProxyURL"`
 	EnableSetup          bool          `mapstructure:"enableSetup"`
 	SessionDuration      time.Duration `mapstructure:"sessionDuration"`
+	InfraHomeDir         string        `mapstructure:"infraHomeDir"`
 
 	DBFile                  string `mapstructure:"dbFile" `
 	DBEncryptionKey         string `mapstructure:"dbEncryptionKey"`
@@ -64,11 +71,12 @@ type Options struct {
 }
 
 type Server struct {
-	options Options
-	db      *gorm.DB
-	tel     *Telemetry
-	secrets map[string]secrets.SecretStorage
-	keys    map[string]secrets.SymmetricKeyProvider
+	options             Options
+	db                  *gorm.DB
+	tel                 *Telemetry
+	secrets             map[string]secrets.SecretStorage
+	keys                map[string]secrets.SymmetricKeyProvider
+	certificateProvider pki.CertificateProvider
 }
 
 func Run(options Options) (err error) {
@@ -108,6 +116,10 @@ func Run(options Options) (err error) {
 		return fmt.Errorf("loading database key: %w", err)
 	}
 
+	if err = server.loadCertificateProvider(); err != nil {
+		return fmt.Errorf("loading certificate provider: %w", err)
+	}
+
 	if options.EnableTelemetry {
 		if err := configureTelemetry(server.db); err != nil {
 			return fmt.Errorf("configuring telemetry: %w", err)
@@ -135,15 +147,12 @@ func Run(options Options) (err error) {
 		scope.SetContext("serverId", settings.ID)
 	})
 
-	// TODO: this should instead happen after runserver and we should wait for the server to close
-	go func() {
-		if err := server.importConfig(); err != nil {
-			logging.S.Error(fmt.Errorf("import config: %w", err))
-		}
-	}()
-
 	if err := server.runServer(); err != nil {
 		return fmt.Errorf("running server: %w", err)
+	}
+
+	if err := server.importConfig(); err != nil {
+		logging.S.Error(fmt.Errorf("import config: %w", err))
 	}
 
 	return logging.L.Sync()
@@ -165,45 +174,119 @@ func configureTelemetry(db *gorm.DB) error {
 	return nil
 }
 
+func (s *Server) loadCertificateProvider() (err error) {
+	fullRotationInDays := 365
+	keyPath := path.Join(s.options.InfraHomeDir, "keys")
+	_ = os.MkdirAll(keyPath, 0o700)
+
+	s.certificateProvider, err = pki.NewNativeCertificateProvider(pki.NativeCertificateProviderConfig{
+		// TODO: Update to db storage
+		StoragePath:                   keyPath,
+		FullKeyRotationDurationInDays: fullRotationInDays,
+	})
+	if err != nil {
+		return err
+	}
+
+	if len(s.certificateProvider.ActiveCAs()) == 0 {
+		logging.S.Info("Creating Root CA certificate")
+		if err := s.certificateProvider.CreateCA(); err != nil {
+			return fmt.Errorf("creating CA certificates: %w", err)
+		}
+	}
+
+	// automatically rotate CAs as the oldest one expires
+	if len(s.certificateProvider.ActiveCAs()) == 1 {
+		logging.S.Info("Rotating Root CA certificate")
+		if err := s.certificateProvider.RotateCA(); err != nil {
+			return fmt.Errorf("rotating CA: %w", err)
+		}
+	}
+
+	// if the current cert is going to expire in less than FullKeyRotationDurationInDays/2 days, rotate.
+	rotationWindow := time.Now().AddDate(0, 0, fullRotationInDays/2)
+	if s.certificateProvider.ActiveCAs()[1].NotAfter.Before(rotationWindow) {
+		logging.S.Info("Half-Rotating Root CA certificate")
+		if err := s.certificateProvider.RotateCA(); err != nil {
+			return fmt.Errorf("rotating CA: %w", err)
+		}
+	}
+
+	path := filepath.Join(s.options.InfraHomeDir, "keys", "trusted-client-keys")
+	err = filepath.Walk(path, func(path string, info fs.FileInfo, err error) error {
+		if !info.IsDir() {
+			pems, raw, err := pki.ReadFromPEMFile(path)
+			if err != nil {
+				return fmt.Errorf("reading pem file %q: %w", info.Name(), err)
+			}
+
+			cert, err := x509.ParseCertificate(pems[0].Bytes)
+			if err != nil {
+				return err
+			}
+
+			name := cert.Subject.CommonName
+			ident := ""
+			switch {
+			case strings.HasPrefix(name, "User"):
+				ident = "u:" + strings.Split(name, " ")[1]
+			case strings.HasPrefix(name, "Machine"):
+				ident = "m:" + strings.Split(name, " ")[1]
+			}
+
+			tc := &models.TrustedCertificate{
+				PublicKey: cert.PublicKey.(ed25519.PublicKey),
+				CertPEM:   raw,
+				ExpiresAt: cert.NotAfter,
+				Identity:  ident,
+			}
+			// insert into db.
+			err = data.TrustPublicKey(s.db, tc)
+			if err != nil {
+				return fmt.Errorf("saving trusted public key: %w", err)
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func serve(server *http.Server) {
 	if err := server.ListenAndServe(); err != nil {
 		logging.S.Errorf("server: %w", err)
 	}
 }
 
-func (s *Server) runServer() error {
-	gin.SetMode(gin.ReleaseMode)
+func (s *Server) wellKnownJWKsHandler(c *gin.Context) {
+	settings, err := data.GetSettings(s.db)
+	if err != nil {
+		sendAPIError(c, fmt.Errorf("could not get JWKs"))
+		return
+	}
 
-	router := gin.New()
+	var pubKey jose.JSONWebKey
+	if err := pubKey.UnmarshalJSON(settings.PublicJWK); err != nil {
+		sendAPIError(c, fmt.Errorf("could not get JWKs"))
+		return
+	}
 
-	router.Use(gin.Recovery())
-	router.GET("/.well-known/jwks.json", func(c *gin.Context) {
-		settings, err := data.GetSettings(s.db)
-		if err != nil {
-			sendAPIError(c, fmt.Errorf("could not get JWKs"))
-			return
-		}
-
-		var pubKey jose.JSONWebKey
-		if err := pubKey.UnmarshalJSON(settings.PublicJWK); err != nil {
-			sendAPIError(c, fmt.Errorf("could not get JWKs"))
-			return
-		}
-
-		c.JSON(http.StatusOK, struct {
-			Keys []jose.JSONWebKey `json:"keys"`
-		}{
-			[]jose.JSONWebKey{pubKey},
-		})
+	c.JSON(http.StatusOK, struct {
+		Keys []jose.JSONWebKey `json:"keys"`
+	}{
+		[]jose.JSONWebKey{pubKey},
 	})
+}
 
-	router.GET("/healthz", func(c *gin.Context) {
-		c.Status(http.StatusOK)
-	})
+func (s *Server) healthHandler(c *gin.Context) {
+	c.Status(http.StatusOK)
+}
 
-	NewAPIMux(s, router.Group("/v1"))
-
-	// UI
+func (s *Server) ui(router *gin.Engine) error {
 	if s.options.EnableUI {
 		if s.options.UIProxyURL != "" {
 			remote, err := urlx.Parse(s.options.UIProxyURL)
@@ -250,6 +333,24 @@ func (s *Server) runServer() error {
 		}
 	}
 
+	return nil
+}
+
+func (s *Server) runServer() error {
+	gin.SetMode(gin.ReleaseMode)
+
+	router := gin.New()
+
+	router.Use(gin.Recovery())
+	router.GET("/.well-known/jwks.json", s.wellKnownJWKsHandler)
+	router.GET("/healthz", s.healthHandler)
+
+	NewAPIMux(s, router.Group("/v1"))
+
+	if err := s.ui(router); err != nil {
+		return err
+	}
+
 	sentryHandler := sentryhttp.New(sentryhttp.Options{})
 
 	metrics := gin.New()
@@ -265,6 +366,7 @@ func (s *Server) runServer() error {
 
 	go serve(metricsServer)
 
+	// TODO: Remove plaintext server?
 	plaintextServer := &http.Server{
 		Addr:     ":80",
 		Handler:  handlers.CustomLoggingHandler(io.Discard, sentryHandler.Handle(router), logging.ZapLogFormatter),
@@ -277,15 +379,10 @@ func (s *Server) runServer() error {
 		return fmt.Errorf("create tls cache: %w", err)
 	}
 
-	manager := &autocert.Manager{
-		Prompt: autocert.AcceptTOS,
-		Cache:  autocert.DirCache(s.options.TLSCache),
+	tlsConfig, err := s.serverTLSConfig()
+	if err != nil {
+		return fmt.Errorf("tls config: %w", err)
 	}
-
-	tlsConfig := manager.TLSConfig()
-	tlsConfig.GetCertificate = certs.SelfSignedOrLetsEncryptCert(manager, func() string {
-		return ""
-	})
 
 	tlsServer := &http.Server{
 		Addr:      ":443",
@@ -299,6 +396,52 @@ func (s *Server) runServer() error {
 	}
 
 	return nil
+}
+
+func (s *Server) serverTLSConfig() (*tls.Config, error) {
+	serverTLSCerts, err := s.certificateProvider.TLSCertificates()
+	if err != nil {
+		return nil, fmt.Errorf("getting tls certs: %w", err)
+	}
+
+	caPool := x509.NewCertPool()
+
+	for _, cert := range s.certificateProvider.ActiveCAs() {
+		cert := cert
+		caPool.AddCert(&cert)
+	}
+
+	tcerts, err := data.TrustedCertificates(s.db)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, tcert := range tcerts {
+		p, _ := pem.Decode(tcert.CertPEM)
+
+		cert, err := x509.ParseCertificate(p.Bytes)
+		if err != nil {
+			return nil, err
+		}
+
+		if cert.NotAfter.After(time.Now()) {
+			logging.S.Debugf("Trusting user certificate %q\n", cert.Subject.CommonName)
+			caPool.AddCert(cert)
+		}
+	}
+
+	return &tls.Config{
+		Certificates: serverTLSCerts,
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		ClientCAs:    caPool,
+		MinVersion:   tls.VersionTLS12,
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+		},
+	}, nil
 }
 
 // configureSentry returns ok:true when sentry is configured and initialized, or false otherwise. It can be used to know if `defer recoverWithSentryHub(sentry.CurrentHub())` can be called

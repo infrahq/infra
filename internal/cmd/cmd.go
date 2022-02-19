@@ -524,6 +524,19 @@ func newInfoCmd() *cobra.Command {
 	}
 }
 
+func newCertificatesCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "certificates [COMMAND]",
+		Short: "Create & manage certificates",
+		Args:  cobra.MinimumNArgs(1),
+	}
+
+	cmd.AddCommand(createCertificateCmd())
+	cmd.AddCommand(trustCertificateCmd())
+
+	return cmd
+}
+
 func newImportCmd() *cobra.Command {
 	type importOptions struct {
 		Replace bool
@@ -620,6 +633,7 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.AddCommand(newMachinesCmd())
 	rootCmd.AddCommand(newTokensCmd())
 	rootCmd.AddCommand(newImportCmd())
+	rootCmd.AddCommand(newCertificatesCmd())
 	rootCmd.AddCommand(newInfoCmd())
 	rootCmd.AddCommand(newServerCmd())
 	rootCmd.AddCommand(newEngineCmd())
