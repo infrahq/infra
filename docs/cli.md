@@ -107,7 +107,7 @@ infra list [flags]
 Connect to a destination
 
 ```
-infra use [DESTINATION] [flags]
+infra use DESTINATION [flags]
 ```
 
 ### Examples
@@ -115,10 +115,10 @@ infra use [DESTINATION] [flags]
 ```
 
 # Connect to a Kubernetes cluster
-infra use kubernetes.development
+$ infra use kubernetes.development
 
 # Connect to a Kubernetes namespace
-infra use kubernetes.development.kube-system
+$ infra use kubernetes.development.kube-system
 		
 ```
 
@@ -167,13 +167,13 @@ infra access grant DESTINATION [flags]
 ```
 
 # Grant user admin access to a cluster
-infra access grant -u suzie@acme.com -r admin kubernetes.production
+$ infra access grant -u suzie@acme.com -r admin kubernetes.production
 
 # Grant group admin access to a namespace
-infra access grant -g Engineering -r admin kubernetes.production.default
+$ infra access grant -g Engineering -r admin kubernetes.production.default
 
 # Grant user admin access to infra itself
-infra access grant -u admin@acme.com -r admin infra
+$ infra access grant -u admin@acme.com -r admin infra
 
 ```
 
@@ -207,6 +207,7 @@ infra access revoke DESTINATION [flags]
 ```
   -g, --group string      Group to revoke access from
   -h, --help              help for revoke
+  -m, --machine string    Machine to revoke access from
   -p, --provider string   Provider from which to revoke access from
   -r, --role string       Role to revoke
   -u, --user string       User to revoke access from
@@ -244,7 +245,7 @@ infra keys list [flags]
 Create an access key for authentication
 
 ```
-infra keys create [ACCESS_KEY_NAME] [MACHINE_NAME] [flags]
+infra keys create ACCESS_KEY_NAME MACHINE_NAME [flags]
 ```
 
 ### Examples
@@ -275,7 +276,7 @@ infra keys create main wall-e 12h --extension-deadline=1h
 Delete access keys
 
 ```
-infra keys delete [ACCESS_KEY_NAME] [flags]
+infra keys delete ACCESS_KEY_NAME [flags]
 ```
 
 ### Options
@@ -372,19 +373,27 @@ infra providers list [flags]
 
 ## `infra providers add`
 
-Connect an identity provider
+Add an identity provider
+
+### Synopsis
+
+
+Add an identity provider for users to authenticate.
+
+NAME: The name of the identity provider (e.g. okta)
+URL: The base URL of the domain used to login with the identity provider (e.g. acme.okta.com)
+CLIENT_ID: The Infra application OpenID Connect client ID
+CLIENT_SECRET: The Infra application OpenID Connect client secret
+		
 
 ```
-infra providers add NAME [flags]
+infra providers add NAME URL CLIENT_ID CLIENT_SECRET [flags]
 ```
 
 ### Options
 
 ```
-      --client-id string       OpenID Client ID
-      --client-secret string   OpenID Client Secret
-  -h, --help                   help for add
-      --url string             url or domain (e.g. acme.okta.com)
+  -h, --help   help for add
 ```
 
 ### Options inherited from parent commands
@@ -418,7 +427,7 @@ infra providers remove PROVIDER [flags]
 Create a machine identity, e.g. a service that needs to access infrastructure
 
 ```
-infra machines create [NAME] [flags]
+infra machines create NAME [flags]
 ```
 
 ### Options
@@ -497,10 +506,10 @@ infra tokens create [flags]
 
 ## `infra import`
 
-Import an infra server configuration
+Import an Infra server configuration
 
 ```
-infra import [FILE] [flags]
+infra import FILE [flags]
 ```
 
 ### Options

@@ -216,14 +216,14 @@ func newListCmd() *cobra.Command {
 
 func newUseCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "use [DESTINATION]",
+		Use:   "use DESTINATION",
 		Short: "Connect to a destination",
 		Example: `
 # Connect to a Kubernetes cluster
-infra use kubernetes.development
+$ infra use kubernetes.development
 
 # Connect to a Kubernetes namespace
-infra use kubernetes.development.kube-system
+$ infra use kubernetes.development.kube-system
 		`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -429,7 +429,7 @@ func newTokensCmd() *cobra.Command {
 func newProvidersCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "providers",
-		Short: "Connect & manage identity providers",
+		Short: "Add & manage identity providers",
 	}
 
 	cmd.AddCommand(newProvidersListCmd())
@@ -528,7 +528,7 @@ func newImportCmd() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:   "import [FILE]",
+		Use:   "import FILE",
 		Short: "Import an Infra server configuration",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
