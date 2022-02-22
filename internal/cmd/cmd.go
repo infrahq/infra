@@ -529,7 +529,7 @@ func newImportCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "import [FILE]",
-		Short: "Import an infra server configuration",
+		Short: "Import an Infra server configuration",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var options importOptions
