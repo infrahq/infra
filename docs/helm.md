@@ -75,7 +75,7 @@ server:
 
 ## Advanced Ingress Configuration
 
-Infra Servers can be configured exposes port 80 (HTTP) and 443 (HTTPS). Use the following Ingress controller specific examples to configure Infra Server Ingress.
+Infra server can be configured exposes port 80 (HTTP) and 443 (HTTPS). Use the following Ingress controller specific examples to configure Infra server Ingress.
 
 ### Ambassador (Service Annotations)
 

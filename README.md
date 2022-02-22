@@ -119,7 +119,7 @@ helm show values infrahq/infra
 
 ### Step 4: Login to Infra
 
-Next, you'll need to find the URL of Infra Server to login to Infra.
+Next, you'll need to find the URL of the Infra server to login to Infra.
 
 #### Port Forwarding
 
@@ -133,7 +133,7 @@ Infra API server can now be accessed on `localhost:8080` or `localhost:8443`
 
 #### LoadBalancer
 
-Change the Infra Server service type to `LoadBalancer`.
+Change the Infra server service type to `LoadBalancer`.
 
 ```bash
 kubectl -n infrahq patch service infra-server -p '{"spec": {"type": "LoadBalancer"}}'
@@ -153,7 +153,7 @@ kubectl -n infrahq get service infra-server -o jsonpath="{.status.loadBalancer.i
 
 #### Ingress
 
-Follow the [Ingress documentation](./docs/helm.md#advanced-ingress-configuration) to configure your Infra Server with a Kubernetes ingress.
+Follow the [Ingress documentation](./docs/helm.md#advanced-ingress-configuration) to configure your Infra server with a Kubernetes ingress.
 Once configured, get the Infra API server URL.
 
 ```bash
