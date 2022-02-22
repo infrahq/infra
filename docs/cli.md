@@ -9,6 +9,9 @@
 * [infra access list](#infra-access-list)
 * [infra access grant](#infra-access-grant)
 * [infra access revoke](#infra-access-revoke)
+* [infra keys list](#infra-keys-list)
+* [infra keys create](#infra-keys-create)
+* [infra keys delete](#infra-keys-delete)
 * [infra destinations list](#infra-destinations-list)
 * [infra destinations add](#infra-destinations-add)
 * [infra destinations remove](#infra-destinations-remove)
@@ -28,7 +31,7 @@
 
 ## `infra login`
 
-Login to Infra Server
+Login to Infra server
 
 ```
 infra login [SERVER] [flags]
@@ -69,7 +72,8 @@ $ infra logout
 ### Options
 
 ```
-  -h, --help   help for logout
+  -f, --force   logout and remove context
+  -h, --help    help for logout
 ```
 
 ### Options inherited from parent commands
@@ -178,6 +182,7 @@ infra access grant -u admin@acme.com -r admin infra
 ```
   -g, --group string      Group to grant access to
   -h, --help              help for grant
+  -m, --machine string    Machine to grant access to
   -p, --provider string   Provider from which to grant user access to
   -r, --role string       Role to grant
   -u, --user string       User to grant access to
@@ -205,6 +210,78 @@ infra access revoke DESTINATION [flags]
   -p, --provider string   Provider from which to revoke access from
   -r, --role string       Role to revoke
   -u, --user string       User to revoke access from
+```
+
+### Options inherited from parent commands
+
+```
+      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+```
+
+## `infra keys list`
+
+List access keys
+
+```
+infra keys list [flags]
+```
+
+### Options
+
+```
+  -h, --help             help for list
+  -m, --machine string   The name of a machine to list access keys for
+```
+
+### Options inherited from parent commands
+
+```
+      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+```
+
+## `infra keys create`
+
+Create an access key for authentication
+
+```
+infra keys create [ACCESS_KEY_NAME] [MACHINE_NAME] [flags]
+```
+
+### Examples
+
+```
+
+# Create an access key for the machine "wall-e" called main that expires in 12 hours and must be used every hour to remain valid
+infra keys create main wall-e 12h --extension-deadline=1h
+
+```
+
+### Options
+
+```
+  -e, --extension-deadline string   A specified deadline that an access key must be used within to remain valid
+  -h, --help                        help for create
+  -t, --ttl string                  The total time that an access key will be valid for
+```
+
+### Options inherited from parent commands
+
+```
+      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+```
+
+## `infra keys delete`
+
+Delete access keys
+
+```
+infra keys delete [ACCESS_KEY_NAME] [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for delete
 ```
 
 ### Options inherited from parent commands
@@ -341,7 +418,7 @@ infra providers remove PROVIDER [flags]
 Create a machine identity, e.g. a service that needs to access infrastructure
 
 ```
-infra machines create [flags]
+infra machines create [NAME] [flags]
 ```
 
 ### Options
@@ -349,7 +426,6 @@ infra machines create [flags]
 ```
   -d, --description string   Description of the machine identity
   -h, --help                 help for create
-  -n, --name string          Name of the machine identity
   -p, --permissions string   Permissions of the machine identity
 ```
 
@@ -462,7 +538,7 @@ infra info [flags]
 
 ## `infra server`
 
-Start Infra Server
+Start Infra server
 
 ```
 infra server [flags]
@@ -485,7 +561,7 @@ infra server [flags]
       --db-username string                  Database username
       --enable-crash-reporting              Enable crash reporting (default true)
       --enable-telemetry                    Enable telemetry (default true)
-      --enable-ui                           Enable Infra Server UI
+      --enable-ui                           Enable Infra server UI
   -h, --help                                help for server
   -d, --session-duration duration           User session duration (default 12h0m0s)
       --tls-cache string                    Directory to cache TLS certificates (default "$HOME/.infra/cache")
@@ -513,8 +589,8 @@ infra engine [flags]
   -f, --config-file string   Engine config file
   -h, --help                 help for engine
   -n, --name string          Destination name
-  -s, --server string        Infra Server hostname
-      --skip-tls-verify      Skip verifying server TLS certificate (default true)
+  -s, --server string        Infra server hostname
+      --skip-tls-verify      Skip verifying server TLS certificates
       --tls-cache string     Directory to cache TLS certificates (default "$HOME/.infra/cache")
 ```
 

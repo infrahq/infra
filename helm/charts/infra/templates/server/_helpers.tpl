@@ -96,7 +96,7 @@ Create the name of the service account to use
 {{- end }}
 
 {{/*
-Server image repository.
+Infra server image repository.
 If global value is present, use global value. Otherwise, use local value.
 */}}
 {{- define "server.image.repository" -}}
@@ -108,7 +108,7 @@ If global value is present, use global value. Otherwise, use local value.
 {{- end }}
 
 {{/*
-Server image tag.
+Infra server image tag.
 If a local override exists, use the local override. Otherwise, if a global
 override exists, use the global override.  If `image.tag` does not exist,
 use AppVersion defined in Chart.
@@ -122,7 +122,7 @@ use AppVersion defined in Chart.
 {{- end }}
 
 {{/*
-Server image pull policy.
+Infra server image pull policy.
 If global value is present, use global value. Otherwise, use local value.
 */}}
 {{- define "server.image.pullPolicy" -}}
@@ -134,7 +134,7 @@ If global value is present, use global value. Otherwise, use local value.
 {{- end }}
 
 {{/*
-Server image pull secrets.
+Infra server image pull secrets.
 If global value is present, use global value. Otherwise, use local value.
 */}}
 {{- define "server.imagePullSecrets" -}}

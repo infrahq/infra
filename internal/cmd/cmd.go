@@ -168,7 +168,7 @@ func newLoginCmd() *cobra.Command {
 
 	return &cobra.Command{
 		Use:     "login [SERVER]",
-		Short:   "Login to Infra Server",
+		Short:   "Login to Infra server",
 		Example: "$ infra login",
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -322,7 +322,7 @@ func canonicalPath(in string) (string, error) {
 func newServerCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "server",
-		Short: "Start Infra Server",
+		Short: "Start Infra server",
 
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// override default strcase.ToLowerCamel behaviour
@@ -374,7 +374,7 @@ func newServerCmd() *cobra.Command {
 	cmd.Flags().String("db-encryption-key-provider", "native", "Database encryption key provider")
 	cmd.Flags().Bool("enable-telemetry", true, "Enable telemetry")
 	cmd.Flags().Bool("enable-crash-reporting", true, "Enable crash reporting")
-	cmd.Flags().Bool("enable-ui", false, "Enable Infra Server UI")
+	cmd.Flags().Bool("enable-ui", false, "Enable Infra server UI")
 	cmd.Flags().String("ui-proxy-url", "", "Proxy upstream UI requests to this url")
 	cmd.Flags().DurationP("session-duration", "d", time.Hour*12, "User session duration")
 
@@ -406,7 +406,7 @@ func newEngineCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringP("config-file", "f", "", "Engine config file")
-	cmd.Flags().StringP("server", "s", "", "Infra Server hostname")
+	cmd.Flags().StringP("server", "s", "", "Infra server hostname")
 	cmd.Flags().StringP("access-key", "a", "", "Infra access key (use file:// to load from a file)")
 	cmd.Flags().StringP("name", "n", "", "Destination name")
 	cmd.Flags().String("tls-cache", "$HOME/.infra/cache", "Directory to cache TLS certificates")

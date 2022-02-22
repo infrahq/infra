@@ -48,7 +48,7 @@ server:
   ## No effect unless `autoscaling.enabled` is `false`
   replicas: 1
 
-  ## Server image configurations
+  ## Infra server image configurations
   image:
     ## The image repository to use for the server deployment
     repository: infrahq/infra
@@ -82,7 +82,7 @@ server:
   # - secretRef:
   #     name: secret-name
 
-  ## Server service account configurations
+  ## Infra server service account configurations
   serviceAccount:
 
     ## Create the service account
@@ -168,7 +168,7 @@ server:
   #   mountPath: /mnt/secret
   #   readOnly: true
 
-  ## Server service configurations
+  ## Infra server service configurations
   service:
 
     ## Service type
@@ -261,7 +261,7 @@ server:
       ## Prometheus metric relabel configs to apply to samples before ingesting
       metricRelabelings: []
 
-  ## Server ingress configurations
+  ## Infra server ingress configurations
   ingress:
 
     ## Enable server ingress resource
@@ -311,7 +311,7 @@ server:
     #   hosts:
     #     - infra.example.com
 
-  ## Server persistence configurations
+  ## Infra server persistence configurations
   persistence:
 
     ## Enable server persistence
@@ -342,7 +342,7 @@ server:
   #     cpu: 500m
   #     memory: 512Mi
 
-  ## Server autoscaling configurations
+  ## Infra server autoscaling configurations
   autoscaling:
 
     ## Enable server autoscaling
@@ -360,20 +360,20 @@ server:
     ## Target average memory utilization percentage
     targetMemoryUtilizationPercentage: 50
 
-  ## Server node selector configurations
+  ## Infra server node selector configurations
   nodeSelector: {}
 
-  ## Server tolerations configurations
+  ## Infra server tolerations configurations
   tolerations: []
 
-  ## Server affinity configurations
+  ## Infra server affinity configurations
   affinity: {}
 
   ## Primary server configuration
   ## Ref: https://github.com/infrahq/infra/blob/main/docs/cli.md#infra-server
   config: {}
 
-  ## Server admin access key
+  ## Infra server admin access key
   #   adminAccessKey: ""
 
   ## Database name
@@ -408,7 +408,7 @@ server:
   ## Enable server UI
   #   enableUI: false
 
-  ## Server UI proxy URL
+  ## Infra server UI proxy URL
   #   uiProxyURL: ""
 
   ## Duration of an user session
@@ -449,7 +449,7 @@ engine:
   ## No effect unless `autoscaling.enabled` is `false`
   replicas: 1
 
-  ## Engine image configurations
+  ## Infra engine image configurations
   image:
     ## The image repository to use for the engine deployment
     repository: infrahq/infra
@@ -483,7 +483,7 @@ engine:
   # - secretRef:
   #     name: secret-name
 
-  ## Engine service account configurations
+  ## Infra engine service account configurations
   serviceAccount:
 
     ## Create the service account
@@ -570,7 +570,7 @@ engine:
   #   mountPath: /mnt/secret
   #   readOnly: true
 
-  ## Engine service configurations
+  ## Infra engine service configurations
   service:
 
     ## Service type
@@ -663,7 +663,7 @@ engine:
       ## Prometheus metric relabel configs to apply to samples before ingesting
       metricRelabelings: []
 
-  ## Engine ingress configurations
+  ## Infra engine ingress configurations
   ingress:
 
     ## Enable engine ingress resource
@@ -713,7 +713,7 @@ engine:
     #   hosts:
     #     - infra.example.com
 
-  ## Engine persistence configurations
+  ## Infra engine persistence configurations
   persistence:
 
     ## Enable server persistence
@@ -744,7 +744,7 @@ engine:
   #     cpu: 500m
   #     memory: 512Mi
 
-  ## Engine autoscaling configurations
+  ## Infra engine autoscaling configurations
   autoscaling:
 
     ## Enable engine autoscaling
@@ -762,22 +762,22 @@ engine:
     ## Target average memory utilization percentage
     targetMemoryUtilizationPercentage: 50
 
-  ## Engine node selector configurations
+  ## Infra engine node selector configurations
   nodeSelector: {}
 
-  ## Engine tolerations configurations
+  ## Infra engine tolerations configurations
   tolerations: []
 
-  ## Engine affinity configurations
+  ## Infra engine affinity configurations
   affinity: {}
 
   ## Primary engine configuration
   ## Ref: https://github.com/infrahq/infra/blob/main/docs/cli.md#infra-engine
   config: {}
-  ## Server access key
+  ## Infra server access key
   #   accessKey: ""
 
-  ## Infra Server address
+  ## Infra server address
   #   server: ""
 
   ## Destination name
