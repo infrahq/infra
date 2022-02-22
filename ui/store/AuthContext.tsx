@@ -9,7 +9,7 @@ interface AppContextInterface {
   loginError: boolean,
   providers: ProviderField[]
   user: any,
-  getAccessKey: (code: string, providerID: string) => void,
+  getAccessKey: (code: string, providerID: string, redirectURL: string) => void,
   login: (selectedIdp: ProviderField) => void,
   logout: () => void,
   register: (key:string) => void,
@@ -46,23 +46,13 @@ export const AuthContextProvider = ({ children }:any) => {
 
   useEffect(() => {
     axios.get('/v1/providers')
-    .then((response) => {
-      setProviders(response.data);
-
-      redirectAccountPage(response.data);
-      // if (response.data.length > 0) {
-      //   Router.push({
-      //     pathname: '/account/login',
-      //   }, undefined, { shallow: true });
-      // } else {
-      //   Router.push({
-      //     pathname: '/account/register',
-      //   }, undefined, { shallow: true });
-      // }
-    })
-    .catch((error) => {
-      console.log(error);
-      setLoginError(true);
+      .then((response) => {
+        setProviders(response.data);
+        redirectAccountPage(response.data);
+      })
+      .catch((error) => {
+        console.log(error);
+        setLoginError(true);
     })
   }, []);
 
@@ -85,10 +75,10 @@ export const AuthContextProvider = ({ children }:any) => {
     })
   }
 
-  const getAccessKey = async (code: string, providerID: string) => {
-    axios.post('/v1/login', {providerID, code})
+  const getAccessKey = async (code: string, providerID: string, redirectURL: string) => {
+    axios.post('/v1/login', {providerID, code, redirectURL})
     .then(async(response) => {
-      setCookie('accessKey', response.data.token, { path: '/' });
+      setCookie('accessKey', response.data.accessKey, { path: '/' });
       setAuthReady(true);
 
       const userData = await getCurrentUser();
@@ -109,13 +99,14 @@ export const AuthContextProvider = ({ children }:any) => {
 
   const login = (selectedIdp: ProviderField) => {
     localStorage.setItem('providerId', selectedIdp.id);
+
     const state = [...Array(10)].map(i=>(~~(Math.random()*36)).toString(36)).join('');
     localStorage.setItem('state', state);
 
     const infraRedirect = window.location.origin + `/account/callback`;
-    const authorizeURL= `https://${selectedIdp.url}/oauth2/v1/authorize?redirect_uri=${infraRedirect}&client_id=${selectedIdp.clientID}&response_type=code&scope=openid+email+groups+offline_access&state=${state}`;
+    localStorage.setItem('redirectURL', infraRedirect);
 
-    document.location.href = authorizeURL;
+    document.location.href = `https://${selectedIdp.url}/oauth2/v1/authorize?redirect_uri=${infraRedirect}&client_id=${selectedIdp.clientID}&response_type=code&scope=openid+email+groups+offline_access&state=${state}`;
   }
 
   const logout = () => {
