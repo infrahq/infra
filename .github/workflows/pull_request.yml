@@ -56,7 +56,7 @@ jobs:
       - run: ./node_modules/.bin/commitlint --from origin/$GITHUB_BASE_REF --to @ --verbose --config .github/commitlint.config.js
 
   binaries:
-    if: startsWith(github.head_ref, 'release-please-') == true
+    if: startsWith(github.head_ref, 'release-branch-build') == true
     needs: [setup, test]
     runs-on: ubuntu-latest
     steps:
@@ -82,7 +82,7 @@ jobs:
           path: 'dist/*'
 
   docker:
-    if: startsWith(github.head_ref, 'release-please-') == true
+    if: startsWith(github.head_ref, 'release-branch-build') == true
     needs: [setup, test]
     runs-on: ubuntu-latest
     steps:
@@ -119,7 +119,7 @@ jobs:
             BUILDVERSION=${{ needs.setup.outputs.version }}
 
   helm:
-    if: startsWith(github.head_ref, 'release-please-') == true
+    if: startsWith(github.head_ref, 'release-branch-build') == true
     needs: [setup, helm-lint]
     runs-on: ubuntu-latest
     steps:
@@ -135,7 +135,7 @@ jobs:
           path: 'dist/*'
 
   upload:
-    if: startsWith(github.head_ref, 'release-please-') == true
+    if: startsWith(github.head_ref, 'release-branch-build') == true
     needs: [binaries, docker, helm]
     runs-on: ubuntu-latest
     steps:
