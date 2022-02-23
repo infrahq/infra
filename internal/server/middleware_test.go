@@ -108,6 +108,31 @@ func TestRequireAuthentication(t *testing.T) {
 				require.Equal(t, "*", permissions)
 			},
 		},
+		"AccessKeyCookieValid": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				authentication := issueUserToken(t, db, "existing@infrahq.com", "*", time.Minute*1)
+				r := httptest.NewRequest(http.MethodGet, "/", nil)
+
+				r.AddCookie(&http.Cookie{
+					Name:     CookieAuthorizationName,
+					Value:    authentication,
+					MaxAge:   int(time.Until(time.Now().Add(time.Minute * 1)).Seconds()),
+					Path:     CookiePath,
+					Domain:   CookieDomain,
+					SameSite: http.SameSiteStrictMode,
+					Secure:   CookieSecureHTTPSOnly,
+					HttpOnly: CookieHTTPOnlyNotJavascriptAccessible,
+				})
+
+				c.Request = r
+			},
+			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
+				require.NoError(t, err)
+				permissions, ok := c.Get("permissions")
+				require.True(t, ok)
+				require.Equal(t, "*", permissions)
+			},
+		},
 		"AccessKeySetsUserPermissions": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				authentication := issueUserToken(t, db, "existing@infrahq.com", string(access.PermissionTokenCreate), time.Minute*1)
@@ -202,7 +227,7 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.Contains(t, err.Error(), "valid token not found in authorization header, expecting the format `Bearer $token`")
+				require.Contains(t, err.Error(), "valid token not found in request")
 			},
 		},
 		"EmptyAuthentication": {
@@ -212,7 +237,39 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.Contains(t, err.Error(), "valid token not found in authorization header, expecting the format `Bearer $token`")
+				require.Contains(t, err.Error(), "valid token not found in request")
+			},
+		},
+		"EmptySpaceAuthentication": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				r := httptest.NewRequest(http.MethodGet, "/", nil)
+				r.Header.Add("Authorization", " ")
+				c.Request = r
+			},
+			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
+				require.Contains(t, err.Error(), "valid token not found in request")
+			},
+		},
+		"EmptyCookieAuthentication": {
+			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+				r := httptest.NewRequest(http.MethodGet, "/", nil)
+
+				r.AddCookie(&http.Cookie{
+					Name:     CookieAuthorizationName,
+					Value:    "",
+					MaxAge:   int(time.Until(time.Now().Add(time.Minute * 1)).Seconds()),
+					Path:     CookiePath,
+					Domain:   CookieDomain,
+					SameSite: http.SameSiteStrictMode,
+					Secure:   CookieSecureHTTPSOnly,
+					HttpOnly: CookieHTTPOnlyNotJavascriptAccessible,
+				})
+
+				r.Header.Add("Authorization", " ")
+				c.Request = r
+			},
+			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
+				require.Contains(t, err.Error(), "skipped validating empty token")
 			},
 		},
 	}
