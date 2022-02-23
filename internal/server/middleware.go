@@ -81,12 +81,25 @@ func RequireAccessKey(c *gin.Context) error {
 
 	header := c.Request.Header.Get("Authorization")
 
+	bearer := ""
+
 	parts := strings.Split(header, " ")
-	if len(parts) != 2 || parts[0] != "Bearer" {
-		return fmt.Errorf("%w: valid token not found in authorization header, expecting the format `Bearer $token`", internal.ErrUnauthorized)
+	if len(parts) == 2 && parts[0] == "Bearer" {
+		bearer = parts[1]
+	} else {
+		// Fall back to checking cookies
+		cookie, err := c.Cookie(CookieAuthorizationName)
+		if err != nil {
+			return fmt.Errorf("%w: valid token not found in request", internal.ErrUnauthorized)
+		}
+
+		bearer = cookie
 	}
 
-	bearer := parts[1]
+	// this will get caught by key validation, but check to be safe
+	if strings.TrimSpace(bearer) == "" {
+		return fmt.Errorf("%w: skipped validating empty token", internal.ErrUnauthorized)
+	}
 
 	token, err := data.ValidateAccessKey(db, bearer)
 	if err != nil {
