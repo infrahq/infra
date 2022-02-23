@@ -136,7 +136,7 @@ const Login = () => {
           </LoginIdentitySourceComingSoonList>
         </LoginIdentitySourceComingSoonListContainer>
         <HelpContainer>
-          <span>Having trouble loggin in?</span>
+          <span>Having trouble logging in?</span>
           <Link href='/account/register'>
             <a>Use API Access Key</a>
           </Link>

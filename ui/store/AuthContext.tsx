@@ -44,16 +44,20 @@ export const AuthContextProvider = ({ children }:any) => {
   const [providers, setProviders] = useState<ProviderField[]>([]);
   const [cookie, setCookie, removeCookies] = useCookies(['accessKey']);
 
+  // TODO: need to revisit this - potential memory leak somewhere
   useEffect(() => {
+    const source = axios.CancelToken.source();
     axios.get('/v1/providers')
       .then((response) => {
         setProviders(response.data);
         redirectAccountPage(response.data);
       })
       .catch((error) => {
-        console.log(error);
         setLoginError(true);
-    })
+    });
+    return function () {
+      source.cancel("Cancelling in cleanup");
+    };
   }, []);
 
   const redirectAccountPage = (currentProviders : ProviderField[]) => {
@@ -68,25 +72,37 @@ export const AuthContextProvider = ({ children }:any) => {
     }
   }
 
-  const getCurrentUser = async() => {
-    return await axios.get('/v1/users', { headers: { Authorization: `Bearer ${cookie.accessKey}` } })
+  const getCurrentUser = async (key: string) => {
+    return await axios.get('/v1/introspect', { headers: { Authorization: `Bearer ${key}` } })
     .then((response) => {
-      return response.data[0];
+      return response.data;
     })
+    .catch((error) => {
+      setAuthReady(false);
+      setLoginError(true);
+    })
+  }
+
+  const redirectToDashboard = async (key: string) => {
+    try {
+      const currentUser = await getCurrentUser(key)
+      
+      setUser(currentUser);
+      setAuthReady(true);
+
+      Router.push({
+        pathname: '/',
+      }, undefined, { shallow: true })
+    } catch(error) {
+      setLoginError(true);
+    }
   }
 
   const getAccessKey = async (code: string, providerID: string, redirectURL: string) => {
     axios.post('/v1/login', {providerID, code, redirectURL})
     .then(async(response) => {
       setCookie('accessKey', response.data.accessKey, { path: '/' });
-      setAuthReady(true);
-
-      const userData = await getCurrentUser();
-      setUser(userData);
-      
-      Router.push({
-        pathname: '/',
-      }, undefined, { shallow: true });
+      await redirectToDashboard(response.data.accessKey);
     })
     .catch((error) => {
       setAuthReady(false);
@@ -109,49 +125,20 @@ export const AuthContextProvider = ({ children }:any) => {
     document.location.href = `https://${selectedIdp.url}/oauth2/v1/authorize?redirect_uri=${infraRedirect}&client_id=${selectedIdp.clientID}&response_type=code&scope=openid+email+groups+offline_access&state=${state}`;
   }
 
+  // TODO: it is not working right now
   const logout = () => {
-
-    console.log('logout:', cookie.accessKey)
     axios.post('/v1/logout', { headers: { Authorization: `Bearer ${cookie.accessKey}` }})
     .then((response) => {
       removeCookies('accessKey', { path: '/' });
 
-
       // redirect based on provider[]
       redirectAccountPage(providers);
-      console.log(response);
     })
   }
 
   const register = async (key: string) => {
     setCookie('accessKey', key, { path: '/' });
-
-    // TODO: need to handle multiple axios called
-
-    // const usersList =  axios.get('/v1/users', { headers: { Authorization: `Bearer ${key}` } });
-    // const machinesList =  axios.get('/v1/machines', { headers: { Authorization: `Bearer ${key}` } });
-
-    // await axios.all([usersList, machinesList]).then(axios.spread((...responses) => {
-    //   setUser(responses[0].data);
-    //   setMachine(responses[1].data);
-
-    //   // redirect to '/'
-
-    // })).catch((errors) => {
-
-    // })
-
-    await axios.get('/v1/users', { headers: { Authorization: `Bearer ${key}` } })
-    .then((response) => {
-      Router.push({
-        pathname: '/',
-      }, undefined, { shallow: true });
-      setAuthReady(true);
-    })
-    .catch((error) => {
-      console.log(error);
-      setLoginError(true);
-    });
+    await redirectToDashboard(key);
   }
 
   const context:AppContextInterface = { 
