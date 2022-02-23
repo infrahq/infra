@@ -12,6 +12,10 @@ jobs:
         with:
           stable: false
           go-version: 1.18.0-rc1
+      - uses: actions/cache@v2
+        with:
+          path: /root/.cache/
+          key: ${{ runner.os }}-go-build
       - run: make test
 
   helm-lint:
