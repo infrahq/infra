@@ -26,17 +26,17 @@ const Content = styled.div`
   }
 `;
 
-const LoginIdentiySourceList = styled.div`
+const LoginIdentitySourceList = styled.div`
   margin-top: 2rem;
 `;
 
-const LoginIdentiySourceComingSoonListContainer = styled.div`
+const LoginIdentitySourceComingSoonListContainer = styled.div`
   & > *:not(:first-child) {
     padding-top: 1.25rem;
   }
 `;
 
-const LoginIdentiySourceComingSoonListHeader = styled.div`
+const LoginIdentitySourceComingSoonListHeader = styled.div`
   font-weight: 100;
   font-size: 12px;
   line-height: 15px;
@@ -48,7 +48,7 @@ const LoginIdentiySourceComingSoonListHeader = styled.div`
   opacity: 0.56;
 `;
 
-const LoginIdentiySourceComingSoonList = styled.div`
+const LoginIdentitySourceComingSoonList = styled.div`
   & > *:not(:first-child) {
     padding-top: .25rem;
   }
@@ -122,19 +122,19 @@ const Login = () => {
           header='Login to Infra'
           subheader='Securely manage access to your infrastructure. Take a moment to create your account and start managing access today.'
         />
-        <LoginIdentiySourceList>
+        <LoginIdentitySourceList>
           <IdentitySourceBtn providers={providerWithType} />
-        </LoginIdentiySourceList>
-        <LoginIdentiySourceComingSoonListContainer>
-          <LoginIdentiySourceComingSoonListHeader>Coming Soon</LoginIdentiySourceComingSoonListHeader>
-          <LoginIdentiySourceComingSoonList>        
+        </LoginIdentitySourceList>
+        <LoginIdentitySourceComingSoonListContainer>
+          <LoginIdentitySourceComingSoonListHeader>Coming Soon</LoginIdentitySourceComingSoonListHeader>
+          <LoginIdentitySourceComingSoonList>        
             {comingSoonList.map((identity) => 
               <div key={identity.type}>
                 <IdentitySourceBtn providers={[identity]} />
               </div>
             )}
-          </LoginIdentiySourceComingSoonList>
-        </LoginIdentiySourceComingSoonListContainer>
+          </LoginIdentitySourceComingSoonList>
+        </LoginIdentitySourceComingSoonListContainer>
         <HelpContainer>
           <span>Having trouble loggin in?</span>
           <Link href='/account/register'>
