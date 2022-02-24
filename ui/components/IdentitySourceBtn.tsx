@@ -1,6 +1,6 @@
-import { useContext } from 'react';
-import styled from 'styled-components';
-import AuthContext, { ProviderField } from '../store/AuthContext';
+import { useContext } from 'react'
+import styled from 'styled-components'
+import AuthContext, { ProviderField } from '../store/AuthContext'
 
 export interface IdentitySourceProvider {
   type: string,
@@ -9,19 +9,19 @@ export interface IdentitySourceProvider {
   clientID?: string,
   id?: string,
   created?: number,
-  updated?: number,
+  updated?: number
 }
 
 interface IdentitySourceBtnField {
-  providers: IdentitySourceProvider[];
-  onClick?: () => void;
+  providers: IdentitySourceProvider[],
+  onClick?: () => void
 }
 
 const IdentitySourceBtnContainer = styled.div`
   & > *:not(:first-child) {
     margin-top: .3rem;
   }
-`;
+`
 
 const IdentitySourceContainer = styled.button`
   width: 24rem;
@@ -37,7 +37,7 @@ const IdentitySourceContainer = styled.button`
     ? '' 
     : '&:hover { opacity: .95 }'
   }
-`;
+`
 
 const IdentitySourceContentContainer = styled.div`
   display: flex;
@@ -47,7 +47,7 @@ const IdentitySourceContentContainer = styled.div`
 
 const IdentitySourceLogo = styled.div`
   padding-top: .4rem;  
-`;
+`
 
 const IdentitySourceContentDescriptionContainer = styled.div`
   padding-left: 1rem;
@@ -56,14 +56,14 @@ const IdentitySourceContentDescriptionContainer = styled.div`
   & > *:not(:first-child) {
     padding-top: .15rem;
   }
-`;
+`
 
 const DescriptionHeader = styled.div`
   font-weight: 100;
   font-size: .75rem;
   line-height: 1rem;
   text-transform: capitalize;
-`;
+`
 
 const DescriptionSubheader = styled.div`
   font-weight: 100;
@@ -72,14 +72,10 @@ const DescriptionSubheader = styled.div`
   text-transform: uppercase;
   color: #FFFFFF;
   opacity: 0.3;
-`;
+`
 
 const IdentitySourceBtn = ({ providers }: IdentitySourceBtnField ) => {
-  const { login } = useContext(AuthContext);
-
-  const clickHandle = (provider: ProviderField) => {
-    login(provider);
-  }
+  const { login } = useContext(AuthContext)
 
   return (
     <IdentitySourceBtnContainer>
@@ -87,7 +83,7 @@ const IdentitySourceBtn = ({ providers }: IdentitySourceBtnField ) => {
         return (
           <IdentitySourceContainer
             key={index}
-            onClick={!provider.url ? undefined : () => clickHandle(provider as ProviderField) }
+            onClick={!provider.url ? undefined : () => login(provider as ProviderField) }
             disabled={!provider.url}
           >
             <IdentitySourceContentContainer>
@@ -104,6 +100,6 @@ const IdentitySourceBtn = ({ providers }: IdentitySourceBtnField ) => {
       })}
     </IdentitySourceBtnContainer>
   )
-};
+}
 
-export default IdentitySourceBtn;
+export default IdentitySourceBtn

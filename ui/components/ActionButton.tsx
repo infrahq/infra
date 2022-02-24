@@ -1,9 +1,9 @@
 import styled from 'styled-components';
 
 interface Button {
-  children: React.ReactNode;
-  onClick: () => void;
-  size?: 'large' | 'small';
+  children: React.ReactNode,
+  onClick: () => void,
+  size?: 'large' | 'small'
 };
 
 const StyledButton = styled.button<Button>`
@@ -18,13 +18,13 @@ const StyledButton = styled.button<Button>`
   &:hover {
     opacity: .95;
   }
-`;
+`
 
 
-const ActionButton = ({children, onClick, size = 'large'}: Button) => {
+const ActionButton = ({ children, onClick, size = 'large' }: Button) => {
   return (
     <StyledButton onClick={onClick} size={size}>{children}</StyledButton>
   )
-};
+}
 
-export default ActionButton; 
+export default ActionButton

@@ -1,4 +1,4 @@
-import styled from "styled-components";
+import styled from 'styled-components'
 
 interface AccessKeyInputField {
   value: string,
@@ -7,21 +7,21 @@ interface AccessKeyInputField {
 
 const AccessKeyInputContainer = styled.section`
   position: relative;
-`;
+`
 
 const InputGroup = styled.div`
   opacity: 0.5;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-sizing: border-box;
   border-radius: 2px;
-`;
+`
 
 const StyledInputContainer = styled.div`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   padding: 0 .5rem 0 .75rem;
-`;
+`
 
 const StyledInput = styled.input.attrs({ 
   type: 'text',
@@ -35,7 +35,7 @@ const StyledInput = styled.input.attrs({
   &:focus-visible {
     outline: 0;
   }
-`;
+`
 
 const Label = styled.span`
   position: absolute;
@@ -49,7 +49,7 @@ const Label = styled.span`
   font-size: .625rem;
   line-height: .75rem;
   color: rgba(255, 255, 255, 0.5);
-`;
+`
 
 const AccessKeyInput = ({ value, onChange }: AccessKeyInputField) => {
   return (
@@ -67,6 +67,6 @@ const AccessKeyInput = ({ value, onChange }: AccessKeyInputField) => {
       </InputGroup>
     </AccessKeyInputContainer>
   )
-};
+}
 
-export default AccessKeyInput;
+export default AccessKeyInput

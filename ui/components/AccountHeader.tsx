@@ -1,19 +1,19 @@
-import styled from 'styled-components';
+import styled from 'styled-components'
 
 interface Header {
-  header: string;
-  subheader: string;
+  header: string,
+  subheader: string
 }
 
 const HeaderContainer = styled.div`
   & > *:not(:first-child) {
     padding-top: 1.5rem;
   }
-`;
+`
 
 const LogoContainer = styled.div`
   text-align: center;
-`;
+`
 
 const StyledHeader = styled.div`
   font-size: 1.375rem;
@@ -21,7 +21,7 @@ const StyledHeader = styled.div`
   letter-spacing: -0.035em;
   font-weight: 200;
   text-align: center;
-`;
+`
 
 const StyledSubheader = styled.div`
   font-weight: 100;
@@ -30,7 +30,7 @@ const StyledSubheader = styled.div`
   opacity: .5;
   text-align: center;
   padding: 0 1rem;
-`;
+`
 
 const AccountHeader = ({ header, subheader }:Header) => {
   return (
@@ -42,6 +42,6 @@ const AccountHeader = ({ header, subheader }:Header) => {
       <StyledSubheader>{subheader}</StyledSubheader>
     </HeaderContainer>
   )
-};
+}
 
-export default AccountHeader;
+export default AccountHeader

@@ -1,13 +1,12 @@
-import styled from "styled-components";
-import Link from 'next/link';
-import Router from "next/router";
-import { useContext, useEffect } from "react";
+import styled from 'styled-components'
+import Link from 'next/link'
+import Router from 'next/router'
+import { useContext, useEffect } from 'react'
 
-import AccountFooter from "../../components/AccountFooter";
-import AccountHeader from "../../components/AccountHeader";
-import IdentitySourceBtn, { IdentitySourceProvider }  from "../../components/IdentitySourceBtn";
+import AccountHeader from '../../components/AccountHeader'
+import IdentitySourceBtn  from '../../components/IdentitySourceBtn'
 
-import AuthContext from "../../store/AuthContext";
+import AuthContext from '../../store/AuthContext'
 
 const LoginContainer = styled.section`
   margin-left: auto;
@@ -24,11 +23,11 @@ const Content = styled.div`
   & > *:not(:first-child) {
     padding-top: 1.5rem;
   }
-`;
+`
 
 const LoginIdentitySourceList = styled.div`
   margin-top: 2rem;
-`;
+`
 
 const HelpContainer = styled.div`
   margin-top: 3rem;
@@ -51,16 +50,14 @@ const HelpContainer = styled.div`
       opacity: .95;
     }
   }
-`;
-
+`
 
 const Login = () => {
   const { providers, authReady, hasRedirected } = useContext(AuthContext);
 
-  console.log(hasRedirected);
   const getProviderType = (url: string):string => {
     let tempURL = url;
-    return tempURL.replace(/^https?:\/\//, '').split('/')[0].split('.').reverse()[1]; 
+    return tempURL.replace(/^https?:\/\//, '').split('/')[0].split('.').reverse()[1]
   }
 
   const providerWithType = providers.map((item) => {
@@ -72,7 +69,7 @@ const Login = () => {
     if(authReady) {
       Router.push({
         pathname: '/',
-      }, undefined, { shallow: true });
+      }, undefined, { shallow: true })
     }
   }, [])
 
@@ -98,6 +95,6 @@ const Login = () => {
       </Content>
     </LoginContainer>
   )
-};
+}
 
-export default Login;
+export default Login
