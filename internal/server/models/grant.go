@@ -74,8 +74,11 @@ func (g *Grant) Matches(identity uid.PolymorphicID, privilege, resource string) 
 }
 
 func matchSegment(resource, resourceGrant string) bool {
+	resourceGrant = strings.TrimSuffix(resourceGrant, ".*")
+
 	resourceParts := strings.Split(resource, ".")
 	resourceGrantParts := strings.Split(resourceGrant, ".")
+
 	if len(resourceParts) < len(resourceGrantParts) {
 		return false
 	}

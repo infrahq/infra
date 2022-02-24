@@ -3,10 +3,26 @@ package uid
 import (
 	"fmt"
 	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
 // PolymorphicID is a reference of the format "u:<idstr>" for users, "m:<idstr>" for machines, and "g:<idstr>" for groups
 type PolymorphicID string
+
+func CurrentIdentity(c *gin.Context) *PolymorphicID {
+	polymorphicIDObj, exists := c.Get("identity")
+	if !exists {
+		return nil
+	}
+
+	polymorphicID, ok := polymorphicIDObj.(PolymorphicID)
+	if !ok {
+		return nil
+	}
+
+	return &polymorphicID
+}
 
 func (p PolymorphicID) ID() (ID, error) {
 	id := string(p)[2:]

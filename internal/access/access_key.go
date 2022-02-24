@@ -9,15 +9,8 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-const (
-	PermissionAccessKey       Permission = "infra.accesskey.*"
-	PermissionAccessKeyCreate Permission = "infra.accesskey.create"
-	PermissionAccessKeyRead   Permission = "infra.accesskey.read"
-	PermissionAccessKeyDelete Permission = "infra.accesskey.delete"
-)
-
 func ListAccessKeys(c *gin.Context, machineID uid.ID, name string) ([]models.AccessKey, error) {
-	db, err := requireAuthorization(c, PermissionAccessKeyRead)
+	db, err := requireInfraRole(c, AdminRole, ViewRole)
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +19,7 @@ func ListAccessKeys(c *gin.Context, machineID uid.ID, name string) ([]models.Acc
 }
 
 func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey, machineID uid.ID) (body string, err error) {
-	db, err := requireAuthorization(c, PermissionAccessKeyCreate)
+	db, err := requireInfraRole(c, AdminRole)
 	if err != nil {
 		return "", err
 	}
@@ -45,15 +38,16 @@ func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey, machineID uid.
 }
 
 func DeleteAccessKey(c *gin.Context, id uid.ID) error {
-	db, err := requireAuthorization(c, PermissionAccessKeyDelete)
+	db, err := requireInfraRole(c, AdminRole)
 	if err != nil {
 		return err
 	}
+
 	return data.DeleteAccessKeys(db, data.ByID(id))
 }
 
 func DeleteAllUserAccessKeys(c *gin.Context) error {
-	// does not need access check, this action is limited to the calling user
+	// does not need authorization check, this action is limited to the calling user
 	user := CurrentUser(c)
 	if user == nil {
 		return fmt.Errorf("no active user")

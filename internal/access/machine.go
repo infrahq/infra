@@ -2,20 +2,12 @@ package access
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
-)
-
-const (
-	PermissionMachineCreate Permission = "infra.machine.create"
-	PermissionMachineRead   Permission = "infra.machine.read"
-	PermissionMachineDelete Permission = "infra.machine.delete"
 )
 
 func CurrentMachine(c *gin.Context) *models.Machine {
@@ -33,20 +25,9 @@ func CurrentMachine(c *gin.Context) *models.Machine {
 }
 
 func CreateMachine(c *gin.Context, machine *models.Machine) error {
-	db, err := requireAuthorization(c, PermissionMachineCreate)
+	db, err := requireInfraRole(c, AdminRole)
 	if err != nil {
 		return err
-	}
-
-	// do not let a caller create a machine with more permissions than they have
-	permissions, ok := c.MustGet("permissions").(string)
-	if !ok {
-		// there should have been permissions set by this point
-		return internal.ErrForbidden
-	}
-
-	if !AllRequired(strings.Split(permissions, " "), strings.Split(machine.Permissions, " ")) {
-		return fmt.Errorf("cannot create a machine identity with permissions not granted to the creator")
 	}
 
 	if err := data.CreateMachine(db, machine); err != nil {
@@ -57,7 +38,7 @@ func CreateMachine(c *gin.Context, machine *models.Machine) error {
 }
 
 func GetMachine(c *gin.Context, id uid.ID) (*models.Machine, error) {
-	db, err := requireAuthorization(c, PermissionMachineRead)
+	db, err := requireInfraRole(c, AdminRole, ViewRole, ConnectorRole)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +47,7 @@ func GetMachine(c *gin.Context, id uid.ID) (*models.Machine, error) {
 }
 
 func ListMachines(c *gin.Context, name string) ([]models.Machine, error) {
-	db, err := requireAuthorization(c, PermissionMachineRead)
+	db, err := requireInfraRole(c, AdminRole, ViewRole, ConnectorRole)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +61,7 @@ func ListMachines(c *gin.Context, name string) ([]models.Machine, error) {
 }
 
 func DeleteMachine(c *gin.Context, id uid.ID) error {
-	db, err := requireAuthorization(c, PermissionMachineDelete)
+	db, err := requireInfraRole(c, AdminRole)
 	if err != nil {
 		return err
 	}
