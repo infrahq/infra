@@ -8,7 +8,7 @@ Infra supports many secret storage backends, including, but not limited to:
 - AWS SSM (Systems Manager Parameter Store)
 - Environment variables
 - Files on the file system
-- plaintext secrets (though probably not recommended)
+- plaintext secrets (though not recommended)
 
 ## Usage
 
