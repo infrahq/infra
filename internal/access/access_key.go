@@ -61,5 +61,5 @@ func DeleteAllUserAccessKeys(c *gin.Context) error {
 
 	db := getDB(c)
 
-	return data.DeleteAccessKeys(db, data.ByUserID(user.ID))
+	return data.DeleteAccessKeys(db, data.ByUserIDIssuedFor(user.ID))
 }
