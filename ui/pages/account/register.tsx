@@ -1,13 +1,12 @@
-import { useContext, useEffect, useState } from 'react';
-import styled from 'styled-components';
-import Router from 'next/router'; 
+import { useContext, useEffect, useState } from 'react'
+import styled from 'styled-components'
+import Router from 'next/router'
 
-import AccessKeyInput from '../../components/AccessKeyInput';
-import ActionButton from '../../components/ActionButton';
-import AccountFooter from '../../components/AccountFooter';
-import AccountHeader from '../../components/AccountHeader';
+import AccessKeyInput from '../../components/AccessKeyInput'
+import ActionButton from '../../components/ActionButton'
+import AccountHeader from '../../components/AccountHeader'
 
-import AuthContext from '../../store/AuthContext';
+import AuthContext from '../../store/AuthContext'
 
 const RegisterContainer = styled.section`
   margin-left: auto;
@@ -24,47 +23,47 @@ const Content = styled.div`
   & > *:not(:first-child) {
     padding-top: 1.5rem;
   }
-`;
+`
 
 const AccessKeyInputContainer = styled.div`
   margin-top: 1.5rem;
-`;
+`
 
 const Register = () => {
   const { authReady, register } = useContext(AuthContext)
-  const [value, setValue] = useState('');
-  
+  const [value, setValue] = useState('')
+
   useEffect(() => {
-    if(authReady) {
+    if (authReady) {
       Router.push({
-        pathname: '/',
-      }, undefined, { shallow: true });
+        pathname: '/'
+      }, undefined, { shallow: true })
     }
   }, [])
 
   const handleLogin = async () => {
-    register(value);
-  };
+    register(value)
+  }
 
   return (
     <RegisterContainer>
       <Content>
-        <AccountHeader 
+        <AccountHeader
           header='Infra Admin API Access Key'
           subheader='Securely manage access to your infrastructure. Take a moment to create your account and start managing access today.'
         />
         <AccessKeyInputContainer>
-          <AccessKeyInput 
+          <AccessKeyInput
             value={value}
             onChange={e => setValue(e.target.value)}
           />
         </AccessKeyInputContainer>
         <section>
-          <ActionButton onClick={handleLogin} children='Login'/>
+          <ActionButton onClick={handleLogin} children='Login' />
         </section>
       </Content>
     </RegisterContainer>
   )
-};
+}
 
-export default Register;
+export default Register

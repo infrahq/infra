@@ -6,6 +6,7 @@ import { useCookies } from 'react-cookie';
 interface AppContextInterface {
   authReady: boolean,
   cookie: {},
+  hasRedirected: boolean,
   loginError: boolean,
   providers: ProviderField[]
   user: any,
@@ -27,6 +28,7 @@ export interface ProviderField {
 const AuthContext = createContext<AppContextInterface>({
   authReady: false,
   cookie: {},
+  hasRedirected: false,
   loginError: false,
   providers: [],
   user: null,
@@ -50,6 +52,7 @@ const redirectAccountPage = (currentProviders : ProviderField[]) => {
 
 export const AuthContextProvider = ({ children }:any) => { 
   const [user, setUser] = useState(null);
+  const [hasRedirected, setHasRedirected] = useState(false);
   const [loginError, setLoginError] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   
@@ -101,6 +104,7 @@ export const AuthContextProvider = ({ children }:any) => {
   }
 
   const getAccessKey = async (code: string, providerID: string, redirectURL: string) => {
+    setHasRedirected(true);
     axios.post('/v1/login', { providerID, code, redirectURL })
     .then(async(response) => {
       setCookie('accessKey', response.data.accessKey, { path: '/' });
@@ -146,6 +150,7 @@ export const AuthContextProvider = ({ children }:any) => {
   const context:AppContextInterface = { 
     authReady,
     cookie,
+    hasRedirected,
     loginError,
     providers,
     user,

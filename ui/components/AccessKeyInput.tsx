@@ -2,7 +2,7 @@ import styled from "styled-components";
 
 interface AccessKeyInputField {
   value: string,
-  onChange: (e:any) => void;
+  onChange: (e:any) => void
 }
 
 const AccessKeyInputContainer = styled.section`

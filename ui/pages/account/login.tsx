@@ -55,8 +55,9 @@ const HelpContainer = styled.div`
 
 
 const Login = () => {
-  const { providers, authReady } = useContext(AuthContext);
+  const { providers, authReady, hasRedirected } = useContext(AuthContext);
 
+  console.log(hasRedirected);
   const getProviderType = (url: string):string => {
     let tempURL = url;
     return tempURL.replace(/^https?:\/\//, '').split('/')[0].split('.').reverse()[1]; 
@@ -78,6 +79,9 @@ const Login = () => {
   return (
     <LoginContainer>
       <Content>
+        <p>
+          {hasRedirected}
+        </p>
         <AccountHeader
           header='Login to Infra'
           subheader='Securely manage access to your infrastructure. Take a moment to create your account and start managing access today.'
