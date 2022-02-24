@@ -61,7 +61,7 @@ const Login = () => {
   }
 
   const providerWithType = providers.map((item) => {
-    const type = getProviderType(item.url);
+    const type = getProviderType(item.url)
     return {...item, type}
   })
 
