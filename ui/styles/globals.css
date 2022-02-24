@@ -1,5 +1,11 @@
+html {
+  position: relative; 
+  height: 100%;
+}
+
 html, body, #__next {
-  height: 98%;
+  margin:0;
+  padding:0;
   font-family: 'SF Pro Text', BlinkMacSystemFont, Segoe UI, Ubuntu, sans-serif;
   color: #FFFFFF;
   background: #0A0E12;

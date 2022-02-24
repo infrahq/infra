@@ -78,9 +78,11 @@ const HelpContainer = styled.div`
 `;
 
 const Footer = styled.div`
+  position: absolute;
   grid-row-start: 2;
   grid-row-end: 3;
   padding: 2rem 0;
+  bottom: 0;
 `;
 
 const Login = () => {
