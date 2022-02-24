@@ -57,7 +57,6 @@ func updateKubeconfig(client *api.Client, identityPolymorphicID uid.PolymorphicI
 
 	var grants []api.Grant
 	if identityPolymorphicID.IsUser() {
-		// infer that this is a user
 		grants, err = client.ListUserGrants(id)
 		if err != nil {
 			return err

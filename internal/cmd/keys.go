@@ -14,7 +14,7 @@ type keyCreateOptions struct {
 
 func newKeysCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "create [ACCESS_KEY_NAME] [MACHINE_NAME]",
+		Use:   "create ACCESS_KEY_NAME MACHINE_NAME",
 		Short: "Create an access key for authentication",
 		Example: `
 # Create an access key for the machine "wall-e" called main that expires in 12 hours and must be used every hour to remain valid
@@ -59,7 +59,7 @@ infra keys create main wall-e 12h --extension-deadline=1h
 
 func newKeysDeleteCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "delete [ACCESS_KEY_NAME]",
+		Use:   "delete ACCESS_KEY_NAME",
 		Short: "Delete access keys",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

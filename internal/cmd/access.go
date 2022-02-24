@@ -80,13 +80,13 @@ func newAccessGrantCmd() *cobra.Command {
 		Short: "Grant access",
 		Example: `
 # Grant user admin access to a cluster
-infra access grant -u suzie@acme.com -r admin kubernetes.production
+$ infra access grant -u suzie@acme.com -r admin kubernetes.production
 
 # Grant group admin access to a namespace
-infra access grant -g Engineering -r admin kubernetes.production.default
+$ infra access grant -g Engineering -r admin kubernetes.production.default
 
 # Grant user admin access to infra itself
-infra access grant -u admin@acme.com -r admin infra
+$ infra access grant -u admin@acme.com -r admin infra
 `,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -100,25 +100,33 @@ infra access grant -u admin@acme.com -r admin infra
 				return err
 			}
 
-			providers, err := client.ListProviders(options.Provider)
-			if err != nil {
-				return err
-			}
+			var providers []api.Provider
 
-			if len(providers) == 0 {
-				return errors.New("no identity providers connected")
-			}
+			if options.Machine != "" {
+				providers, err = client.ListProviders(options.Provider)
+				if err != nil {
+					return err
+				}
 
-			if len(providers) > 1 {
-				return errors.New("specify provider with -p or --provider")
-			}
+				if len(providers) == 0 {
+					return errors.New("no identity providers connected")
+				}
 
-			if options.User != "" && options.Group != "" {
-				return errors.New("only allowed one of --user or --group")
+				if len(providers) > 1 {
+					return errors.New("specify provider with -p or --provider")
+				}
+
+				if options.User != "" && options.Group != "" {
+					return errors.New("only allowed one of --user or --group")
+				}
+			} else {
+				if options.User != "" || options.Group != "" {
+					return errors.New("cannot specify --user or --group with --machine")
+				}
 			}
 
 			if options.Role == "" {
-				return errors.New("specific role with -r or --role")
+				return errors.New("specify role with -r or --role")
 			}
 
 			var id uid.PolymorphicID
@@ -228,21 +236,29 @@ func newAccessRevokeCmd() *cobra.Command {
 				return err
 			}
 
-			providers, err := client.ListProviders(options.Provider)
-			if err != nil {
-				return err
-			}
+			var providers []api.Provider
 
-			if len(providers) == 0 {
-				return errors.New("No identity providers connected")
-			}
+			if options.Machine != "" {
+				providers, err = client.ListProviders(options.Provider)
+				if err != nil {
+					return err
+				}
 
-			if len(providers) > 1 {
-				return errors.New("Specify provider with -p or --provider")
-			}
+				if len(providers) == 0 {
+					return errors.New("No identity providers connected")
+				}
 
-			if options.User != "" && options.Group != "" {
-				return errors.New("only allowed one of --user or --group")
+				if len(providers) > 1 {
+					return errors.New("Specify provider with -p or --provider")
+				}
+
+				if options.User != "" && options.Group != "" {
+					return errors.New("only allowed one of --user or --group")
+				}
+			} else {
+				if options.User != "" || options.Group != "" {
+					return errors.New("cannot specify --user or --group with --machine")
+				}
 			}
 
 			var id uid.PolymorphicID
@@ -310,6 +326,7 @@ func newAccessRevokeCmd() *cobra.Command {
 
 	cmd.Flags().StringP("user", "u", "", "User to revoke access from")
 	cmd.Flags().StringP("group", "g", "", "Group to revoke access from")
+	cmd.Flags().StringP("machine", "m", "", "Machine to revoke access from")
 	cmd.Flags().StringP("provider", "p", "", "Provider from which to revoke access from")
 	cmd.Flags().StringP("role", "r", "", "Role to revoke")
 

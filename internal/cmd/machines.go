@@ -16,7 +16,7 @@ type machineOptions struct {
 
 func newMachinesCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "create [NAME]",
+		Use:   "create NAME",
 		Short: "Create a machine identity, e.g. a service that needs to access infrastructure",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

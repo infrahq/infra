@@ -51,7 +51,7 @@ func newDestinationsAddCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "add TYPE NAME",
 		Short: "Connect a destination",
-		Args:  cobra.MinimumNArgs(1),
+		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := defaultAPIClient()
 			if err != nil {

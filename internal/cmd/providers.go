@@ -47,9 +47,17 @@ func newProvidersListCmd() *cobra.Command {
 
 func newProvidersAddCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "add NAME",
-		Short: "Connect an identity provider",
-		Args:  cobra.ExactArgs(1),
+		Use:   "add NAME URL CLIENT_ID CLIENT_SECRET",
+		Short: "Add an identity provider",
+		Long: `
+Add an identity provider for users to authenticate.
+
+NAME: The name of the identity provider (e.g. okta)
+URL: The base URL of the domain used to login with the identity provider (e.g. acme.okta.com)
+CLIENT_ID: The Infra application OpenID Connect client ID
+CLIENT_SECRET: The Infra application OpenID Connect client secret
+		`,
+		Args: cobra.ExactArgs(4),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var options providerOptions
 			if err := parseOptions(cmd, &options, "INFRA_PROVIDER"); err != nil {
@@ -63,9 +71,9 @@ func newProvidersAddCmd() *cobra.Command {
 
 			_, err = client.CreateProvider(&api.CreateProviderRequest{
 				Name:         args[0],
-				URL:          options.URL,
-				ClientID:     options.ClientID,
-				ClientSecret: options.ClientSecret,
+				URL:          args[1],
+				ClientID:     args[2],
+				ClientSecret: args[3],
 			})
 			if err != nil {
 				return err
@@ -74,10 +82,6 @@ func newProvidersAddCmd() *cobra.Command {
 			return nil
 		},
 	}
-
-	cmd.Flags().String("url", "", "url or domain (e.g. acme.okta.com)")
-	cmd.Flags().String("client-id", "", "OpenID Client ID")
-	cmd.Flags().String("client-secret", "", "OpenID Client Secret")
 
 	return cmd
 }
