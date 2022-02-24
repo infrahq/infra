@@ -1,10 +1,10 @@
-import styled from 'styled-components';
+import styled from 'styled-components'
 
 interface Button {
   children: React.ReactNode,
   onClick: () => void,
   size?: 'large' | 'small'
-};
+}
 
 const StyledButton = styled.button<Button>`
   width: ${props => props.size === 'large' ? '24rem' : '12rem'};

@@ -53,10 +53,10 @@ const HelpContainer = styled.div`
 `
 
 const Login = () => {
-  const { providers, authReady, hasRedirected } = useContext(AuthContext);
+  const { providers, authReady, hasRedirected } = useContext(AuthContext)
 
   const getProviderType = (url: string):string => {
-    let tempURL = url;
+    let tempURL = url
     return tempURL.replace(/^https?:\/\//, '').split('/')[0].split('.').reverse()[1]
   }
 
