@@ -36,11 +36,23 @@ const AuthContext = createContext<AppContextInterface>({
   register: () => {},
 })
 
+const redirectAccountPage = (currentProviders : ProviderField[]) => {
+  if (currentProviders.length > 0) {
+    Router.push({
+      pathname: '/account/login',
+    }, undefined, { shallow: true });
+  } else {
+    Router.push({
+      pathname: '/account/register',
+    }, undefined, { shallow: true });
+  }
+}
+
 export const AuthContextProvider = ({ children }:any) => { 
   const [user, setUser] = useState(null);
-  const [authReady, setAuthReady] = useState(false);
   const [loginError, setLoginError] = useState(false);
-
+  const [authReady, setAuthReady] = useState(false);
+  
   const [providers, setProviders] = useState<ProviderField[]>([]);
   const [cookie, setCookie, removeCookies] = useCookies(['accessKey']);
 
@@ -60,20 +72,10 @@ export const AuthContextProvider = ({ children }:any) => {
     };
   }, []);
 
-  const redirectAccountPage = (currentProviders : ProviderField[]) => {
-    if (currentProviders.length > 0) {
-      Router.push({
-        pathname: '/account/login',
-      }, undefined, { shallow: true });
-    } else {
-      Router.push({
-        pathname: '/account/register',
-      }, undefined, { shallow: true });
-    }
-  }
 
   const getCurrentUser = async (key: string) => {
     return await axios.get('/v1/introspect', { headers: { Authorization: `Bearer ${key}` } })
+    // return await axios.get('/v1/introspect')
     .then((response) => {
       return response.data;
     })
@@ -99,7 +101,7 @@ export const AuthContextProvider = ({ children }:any) => {
   }
 
   const getAccessKey = async (code: string, providerID: string, redirectURL: string) => {
-    axios.post('/v1/login', {providerID, code, redirectURL})
+    axios.post('/v1/login', { providerID, code, redirectURL })
     .then(async(response) => {
       setCookie('accessKey', response.data.accessKey, { path: '/' });
       await redirectToDashboard(response.data.accessKey);
@@ -127,7 +129,7 @@ export const AuthContextProvider = ({ children }:any) => {
 
   // TODO: it is not working right now
   const logout = () => {
-    axios.post('/v1/logout', { headers: { Authorization: `Bearer ${cookie.accessKey}` }})
+    axios.post('/v1/logout', {}, { headers: { Authorization: `Bearer ${cookie.accessKey}` }})
     .then((response) => {
       removeCookies('accessKey', { path: '/' });
 

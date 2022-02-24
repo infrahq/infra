@@ -30,30 +30,6 @@ const LoginIdentitySourceList = styled.div`
   margin-top: 2rem;
 `;
 
-const LoginIdentitySourceComingSoonListContainer = styled.div`
-  & > *:not(:first-child) {
-    padding-top: 1.25rem;
-  }
-`;
-
-const LoginIdentitySourceComingSoonListHeader = styled.div`
-  font-weight: 100;
-  font-size: 12px;
-  line-height: 15px;
-  display: flex;
-  align-items: center;
-
-  color: #FFFFFF;
-
-  opacity: 0.56;
-`;
-
-const LoginIdentitySourceComingSoonList = styled.div`
-  & > *:not(:first-child) {
-    padding-top: .25rem;
-  }
-`;
-
 const HelpContainer = styled.div`
   margin-top: 3rem;
   font-weight: 100;
@@ -77,27 +53,9 @@ const HelpContainer = styled.div`
   }
 `;
 
-const Footer = styled.div`
-  position: absolute;
-  grid-row-start: 2;
-  grid-row-end: 3;
-  padding: 2rem 0;
-  bottom: 0;
-`;
 
 const Login = () => {
   const { providers, authReady } = useContext(AuthContext);
-  const comingSoonList: IdentitySourceProvider[] = [
-    {
-      type: 'google',
-    }, 
-    {
-      type: 'azure',
-    },
-    {
-      type: 'gitlab'
-    }
-  ];
 
   const getProviderType = (url: string):string => {
     let tempURL = url;
@@ -127,16 +85,6 @@ const Login = () => {
         <LoginIdentitySourceList>
           <IdentitySourceBtn providers={providerWithType} />
         </LoginIdentitySourceList>
-        <LoginIdentitySourceComingSoonListContainer>
-          <LoginIdentitySourceComingSoonListHeader>Coming Soon</LoginIdentitySourceComingSoonListHeader>
-          <LoginIdentitySourceComingSoonList>        
-            {comingSoonList.map((identity) => 
-              <div key={identity.type}>
-                <IdentitySourceBtn providers={[identity]} />
-              </div>
-            )}
-          </LoginIdentitySourceComingSoonList>
-        </LoginIdentitySourceComingSoonListContainer>
         <HelpContainer>
           <span>Having trouble logging in?</span>
           <Link href='/account/register'>
@@ -144,9 +92,6 @@ const Login = () => {
           </Link>
         </HelpContainer>
       </Content>
-      <Footer>
-        <AccountFooter />
-      </Footer>
     </LoginContainer>
   )
 };

@@ -30,14 +30,6 @@ const AccessKeyInputContainer = styled.div`
   margin-top: 1.5rem;
 `;
 
-const Footer = styled.div`
-  position: absolute;
-  grid-row-start: 2;
-  grid-row-end: 3;
-  padding: 2rem 0;
-  bottom: 0;
-`;
-
 const Register = () => {
   const { authReady, register } = useContext(AuthContext)
   const [value, setValue] = useState('');
@@ -71,9 +63,6 @@ const Register = () => {
           <ActionButton onClick={handleLogin} children='Login'/>
         </section>
       </Content>
-      <Footer>
-        <AccountFooter />
-      </Footer>
     </RegisterContainer>
   )
 };

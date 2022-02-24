@@ -8,7 +8,7 @@ export default function Index () {
   const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
-    if(typeof user !== 'undefined') {
+    if(user) {
       setCurrentUser(user.name);
     }
   }, [])
