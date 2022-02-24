@@ -134,12 +134,7 @@ func Run(options Options) (err error) {
 		return fmt.Errorf("importing access keys: %w", err)
 	}
 
-	// TODO: this should instead happen after runserver and we should wait for the server to close
-	go func() {
-		if err := server.importConfig(); err != nil {
-			logging.S.Error(fmt.Errorf("import config: %w", err))
-		}
-	}()
+	go server.importConfig()
 
 	if err := server.runServer(); err != nil {
 		return fmt.Errorf("running server: %w", err)

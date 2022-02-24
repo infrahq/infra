@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -19,6 +20,7 @@ import (
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/config"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/timer"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/secrets"
@@ -35,31 +37,47 @@ type nativeSecretProviderConfig struct {
 	SecretStorageName string `yaml:"secretProvider"`
 }
 
-func (s *Server) importConfig() error {
+func (s *Server) importConfig() {
 	if s.options.Import == nil {
-		logging.L.Debug("Skipping config import, import not specified")
-		return nil
+		logging.L.Debug("skipping config import; import not specified")
+		return
 	}
 
 	adminAccessKey, err := secrets.GetSecret(s.options.AdminAccessKey, s.secrets)
 	if err != nil {
-		return fmt.Errorf("importing config: %w", err)
+		logging.S.Errorf("import: %w", err)
+		return
 	}
 
-	client := &api.Client{
-		Url:       "https://localhost:443",
-		AccessKey: adminAccessKey,
-		Http: http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					//nolint:gosec // purposely set for localhost
-					InsecureSkipVerify: true,
+	timer := timer.NewTimer()
+	timer.Start(1*time.Second, func() {
+		// ping :80 to check server is alive and well before attempting import
+		if _, err := net.DialTimeout("tcp", "localhost:80", 1*time.Millisecond); err != nil {
+			logging.S.Debugf("import: server not ready")
+			return
+		}
+
+		client := &api.Client{
+			Url:       "https://localhost:443",
+			AccessKey: adminAccessKey,
+			Http: http.Client{
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{
+						//nolint:gosec // purposely set for localhost
+						InsecureSkipVerify: true,
+					},
 				},
 			},
-		},
-	}
+		}
 
-	return config.Import(client, *s.options.Import, true)
+		if err := config.Import(client, *s.options.Import, true); err != nil {
+			logging.S.Infof("import: %w", err)
+		}
+
+		timer.Stop()
+	})
+
+	return
 }
 
 func (s *Server) importSecretKeys() error {
