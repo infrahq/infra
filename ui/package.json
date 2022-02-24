@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "standard --fix",
     "export": "rm -rf .next out && npm install --silent --no-progress > /dev/null && next build > /dev/null && next export -s > /dev/null"
   },
   "dependencies": {
@@ -30,6 +31,7 @@
     "eslint": "^8.9.0",
     "eslint-config-next": "^12.1.0",
     "@types/styled-components": "^5.1.22",
-    "typescript": "4.5.5"
+    "typescript": "4.5.5",
+    "standard": "*"
   }
 }
