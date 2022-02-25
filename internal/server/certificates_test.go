@@ -39,8 +39,9 @@ func (m *mockCertificateProvider) SignCertificate(csr x509.CertificateRequest) (
 }
 
 func TestCertificateSigningRequest(t *testing.T) {
-	cp, err := pki.NewNativeCertificateProvider(pki.NativeCertificateProviderConfig{
-		StoragePath:                   t.TempDir(),
+	db := setupDB(t)
+
+	cp, err := pki.NewNativeCertificateProvider(db, pki.NativeCertificateProviderConfig{
 		FullKeyRotationDurationInDays: 2,
 	})
 	require.NoError(t, err)
@@ -49,11 +50,10 @@ func TestCertificateSigningRequest(t *testing.T) {
 	err = cp.RotateCA()
 	require.NoError(t, err)
 
-	// cm := &CertificateManager{
-	// 	CertificateProvider: cp,
-	// }
-	// _ = cm
-
+	reg := &Server{
+		certificateProvider: cp,
+	}
+	_ = reg
 	user := &models.User{
 		Model: models.Model{ID: uid.New()},
 		Email: "joe@example.com",
@@ -66,11 +66,11 @@ func TestCertificateSigningRequest(t *testing.T) {
 	signedCert, signedRaw, err := pki.SignUserCert(cp, keyPair.Cert, user)
 	require.NoError(t, err)
 	keyPair.SignedCert = signedCert
-	keyPair.SignedCertRaw = signedRaw
+	keyPair.SignedCertPEM = signedRaw
 	// TODO: finish
 
 	// c, _ := gin.CreateTestContext(nil)
-	// resp, err := cm.handleCertificateSigningRequest(c, &CertificateSigningRequest{
+	// resp, err := reg.handleCertificateSigningRequest(c, &CertificateSigningRequest{
 	// 	PublicCertificate: pub,
 	// })
 	// require.NoError(t, err)
@@ -79,13 +79,16 @@ func TestCertificateSigningRequest(t *testing.T) {
 }
 
 func TestCertificateSigningWorks(t *testing.T) {
-	cp, err := pki.NewNativeCertificateProvider(pki.NativeCertificateProviderConfig{
-		StoragePath:                   t.TempDir(),
+	db := setupDB(t)
+
+	cp, err := pki.NewNativeCertificateProvider(db, pki.NativeCertificateProviderConfig{
 		FullKeyRotationDurationInDays: 2,
 	})
 	require.NoError(t, err)
+
 	err = cp.CreateCA()
 	require.NoError(t, err)
+
 	err = cp.RotateCA()
 	require.NoError(t, err)
 
@@ -101,7 +104,7 @@ func TestCertificateSigningWorks(t *testing.T) {
 	signedCert, signedRaw, err := pki.SignUserCert(cp, keyPair.Cert, user)
 	require.NoError(t, err)
 	keyPair.SignedCert = signedCert
-	keyPair.SignedCertRaw = signedRaw
+	keyPair.SignedCertPEM = signedRaw
 
 	// create a test server and client to make sure the certs work.
 	requireMutualTLSWorks(t, keyPair, cp)

@@ -6,16 +6,21 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/base64"
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"log"
 	"math/big"
 	"net"
 	"os"
-	"path"
 	"strings"
 	"time"
+
+	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/registry/data"
+	"github.com/infrahq/infra/internal/registry/models"
+	"github.com/infrahq/infra/secrets"
+	"gorm.io/gorm"
 )
 
 const (
@@ -39,35 +44,128 @@ var (
 type NativeCertificateProvider struct {
 	NativeCertificateProviderConfig
 
+	db *gorm.DB
+
 	activeKeypair   KeyPair
 	previousKeypair KeyPair
 
-	// TODO: support arbitrary storage
-	// secretStorage     secrets.SecretStorage
+	secretStorage secrets.SecretStorage
 	// secretKeyProvider secrets.SymmetricKeyProvider
 }
 
 type NativeCertificateProviderConfig struct {
-	StoragePath                   string
+	// StoragePath                   string
 	FullKeyRotationDurationInDays int
-	// Algorithm string // only ed25519 so far.
+	KeyAlgorithm                  string // only ed25519 so far.
+	SigningAlgorithm              string
+	InitialRootCAPublicKey        []byte
+	InitialRootCACert             []byte
+	InitialRootCAPrivateKey       []byte
 }
 
-func NewNativeCertificateProvider(cfg NativeCertificateProviderConfig) (*NativeCertificateProvider, error) {
+func NewNativeCertificateProvider(db *gorm.DB, cfg NativeCertificateProviderConfig) (*NativeCertificateProvider, error) {
 	if cfg.FullKeyRotationDurationInDays == 0 {
 		cfg.FullKeyRotationDurationInDays = 365
 	}
 
 	p := &NativeCertificateProvider{
 		NativeCertificateProviderConfig: cfg,
+		db:                              db,
 	}
-	if err := p.loadFromDisk(); err != nil {
-		if !errors.Is(err, os.ErrNotExist) {
-			return nil, err
+
+	if err := p.loadFromDB(); err != nil {
+		return nil, err
+	}
+
+	if p.activeKeypair.SignedCert == nil &&
+		len(cfg.InitialRootCAPublicKey) > 0 &&
+		len(cfg.InitialRootCACert) > 0 &&
+		len(cfg.InitialRootCAPrivateKey) > 0 {
+		pubKey, err := base64.StdEncoding.DecodeString(string(cfg.InitialRootCAPublicKey))
+		if err != nil {
+			return nil, fmt.Errorf("reading initialRootCAPublicKey: %w", err)
+		}
+
+		cert, err := base64.StdEncoding.DecodeString(string(cfg.InitialRootCACert))
+		if err != nil {
+			return nil, fmt.Errorf("reading initialRootCACert: %w", err)
+		}
+
+		prvKey, err := base64.StdEncoding.DecodeString(string(cfg.InitialRootCAPrivateKey))
+		if err != nil {
+			return nil, fmt.Errorf("reading initialRootCAPrivateKey: %w", err)
+		}
+
+		c, err := x509.ParseCertificate(cert)
+		if err != nil {
+			return nil, fmt.Errorf("parsing initialRootCACert: %w", err)
+		}
+
+		certPEM := pem.EncodeToMemory(&pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: cert,
+		})
+
+		p.activeKeypair = KeyPair{
+			KeyAlgorithm:     p.KeyAlgorithm,
+			SigningAlgorithm: p.SigningAlgorithm,
+			PublicKey:        pubKey,
+			PrivateKey:       prvKey,
+			SignedCertPEM:    certPEM,
+			SignedCert:       c,
 		}
 	}
 
 	return p, nil
+}
+
+func (n *NativeCertificateProvider) Preload(rootCACertificate, publicKey []byte) (err error) {
+	if n.activeKeypair.SignedCert != nil {
+		return fmt.Errorf("cannot preload a certificate when another one is already loaded.")
+	}
+
+	partsFound := 0
+	rest := rootCACertificate
+	var p *pem.Block
+	var cert *x509.Certificate
+	var privateKey ed25519.PrivateKey
+	for len(rest) > 0 {
+		partsFound++
+		p, rest = pem.Decode(rootCACertificate)
+
+		switch {
+		case strings.Contains(p.Type, "PRIVATE KEY"):
+			key, err := x509.ParsePKCS8PrivateKey(p.Bytes)
+			if err != nil {
+				return fmt.Errorf("parsing private key from certificate: %w", err)
+			}
+			privateKey = key.(ed25519.PrivateKey)
+		case strings.Contains(p.Type, "CERTIFICATE"):
+			cert, err = x509.ParseCertificate(p.Bytes)
+			if err != nil {
+				return fmt.Errorf("parsing root certificate: %w", err)
+			}
+		}
+	}
+
+	if partsFound > 2 {
+		return fmt.Errorf("expected one certificate and one private key, but got certificate chain")
+	}
+
+	if partsFound < 2 {
+		return fmt.Errorf("expected one certificate and one private key")
+	}
+
+	n.activeKeypair = KeyPair{
+		KeyAlgorithm:     cert.PublicKeyAlgorithm.String(),
+		SigningAlgorithm: cert.SignatureAlgorithm.String(),
+		PublicKey:        publicKey,
+		PrivateKey:       privateKey,
+		SignedCertPEM:    rootCACertificate,
+		SignedCert:       cert,
+	}
+
+	return n.RotateCA()
 }
 
 // CreateCA creates a new root CA and immediately does a half-rotation.
@@ -93,23 +191,24 @@ func (n *NativeCertificateProvider) CreateCA() error {
 		Bytes: raw,
 	})
 
-	n.activeKeypair.CertRaw = pemBytes
-	n.activeKeypair.SignedCertRaw = pemBytes
-	n.activeKeypair.Cert = cert
+	n.activeKeypair.SignedCertPEM = pemBytes
 	n.activeKeypair.SignedCert = cert
+	n.activeKeypair.KeyAlgorithm = x509.Ed25519.String()
+	n.activeKeypair.SigningAlgorithm = x509.PureEd25519.String()
 
 	return n.RotateCA()
 }
 
+// ActiveCAs returns the currently in-use CAs, the newest cert is always the last in the list
 func (n *NativeCertificateProvider) ActiveCAs() []x509.Certificate {
 	result := []x509.Certificate{}
 
-	if n.previousKeypair.Cert != nil && certActive(n.previousKeypair.Cert) {
-		result = append(result, *n.previousKeypair.Cert)
+	if n.previousKeypair.SignedCert != nil && certActive(n.previousKeypair.SignedCert) {
+		result = append(result, *n.previousKeypair.SignedCert)
 	}
 
-	if n.activeKeypair.Cert != nil && certActive(n.activeKeypair.Cert) {
-		result = append(result, *n.activeKeypair.Cert)
+	if n.activeKeypair.SignedCert != nil && certActive(n.activeKeypair.SignedCert) {
+		result = append(result, *n.activeKeypair.SignedCert)
 	}
 
 	return result
@@ -156,7 +255,7 @@ func (n *NativeCertificateProvider) SignCertificate(csr x509.CertificateRequest)
 		PublicKey:          csr.PublicKey,
 		IPAddresses:        []net.IP{net.ParseIP("127.0.0.1"), net.IPv6loopback},
 		SerialNumber:       big.NewInt(2),
-		Issuer:             n.activeKeypair.Cert.Subject,
+		Issuer:             n.activeKeypair.SignedCert.Subject,
 		Subject:            csr.Subject,
 		EmailAddresses:     csr.EmailAddresses,
 		Extensions:         csr.Extensions,      // TODO: security issue?
@@ -167,15 +266,15 @@ func (n *NativeCertificateProvider) SignCertificate(csr x509.CertificateRequest)
 		ExtKeyUsage:        []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 	}
 
-	if !n.activeKeypair.Cert.IsCA {
+	if !n.activeKeypair.SignedCert.IsCA {
 		panic("not ca")
 	}
 
-	if n.activeKeypair.Cert.KeyUsage&x509.KeyUsageCertSign != x509.KeyUsageCertSign {
+	if n.activeKeypair.SignedCert.KeyUsage&x509.KeyUsageCertSign != x509.KeyUsageCertSign {
 		panic("can't sign keys with this cert")
 	}
 
-	signedCert, err := x509.CreateCertificate(randReader, certTemplate, n.activeKeypair.Cert, csr.PublicKey, n.activeKeypair.PrivateKey)
+	signedCert, err := x509.CreateCertificate(randReader, certTemplate, n.activeKeypair.SignedCert, csr.PublicKey, n.activeKeypair.PrivateKey)
 	if err != nil {
 		return nil, fmt.Errorf("creating cert: %w", err)
 	}
@@ -213,21 +312,16 @@ func (n *NativeCertificateProvider) RotateCA() error {
 		Bytes: raw,
 	})
 
-	n.activeKeypair.CertRaw = pemBytes
-	n.activeKeypair.SignedCertRaw = pemBytes
-	n.activeKeypair.Cert = cert
+	n.activeKeypair.SignedCertPEM = pemBytes
 	n.activeKeypair.SignedCert = cert
+	n.activeKeypair.KeyAlgorithm = x509.Ed25519.String()
+	n.activeKeypair.SigningAlgorithm = x509.PureEd25519.String()
 
-	return n.saveToDisk()
+	return n.saveToDB()
 }
 
 // createCertSignedBy signs the signee public key using the signer private key, allowing anyone to verify the signature with the signer public key. Certificate expires after _lifetime_
 func createCertSignedBy(signer, signee KeyPair, lifetime time.Duration) (*x509.Certificate, []byte, error) {
-	// sig := ed25519.Sign(signer.PrivateKey, signee.PublicKey)
-	// if !ed25519.Verify(signer.PublicKey, signee.PublicKey, sig) {
-	// 	return nil, nil, errors.New("self-signed certificate doesn't match signature")
-	// }
-
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 
 	serial, err := rand.Int(randReader, serialNumberLimit)
@@ -257,7 +351,7 @@ func createCertSignedBy(signer, signee KeyPair, lifetime time.Duration) (*x509.C
 		BasicConstraintsValid: true,
 
 		// SubjectAltName values
-		DNSNames:    []string{"localhost"}, // TODO: Support domain names for services
+		DNSNames:    []string{"localhost"}, // TODO: Support domain names for services?
 		IPAddresses: []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback},
 		// EmailAddresses []string
 		// URIs           []*url.URL
@@ -290,51 +384,6 @@ func createCertSignedBy(signer, signee KeyPair, lifetime time.Duration) (*x509.C
 	return cert, rawCert, nil
 }
 
-func (n *NativeCertificateProvider) saveToDisk() error {
-	err := os.MkdirAll(n.StoragePath, 0o600)
-	if err != nil && !os.IsExist(err) {
-		log.Printf("creating directory %q", n.StoragePath)
-	}
-
-	err = writeToFile(path.Join(n.StoragePath, "root.crt"), n.activeKeypair.CertRaw)
-	if err != nil {
-		return fmt.Errorf("writing PEM: %w", err)
-	}
-
-	marshalledPrvKey, err := x509.MarshalPKCS8PrivateKey(n.activeKeypair.PrivateKey)
-	if err != nil {
-		return fmt.Errorf("marshalling private key: %w", err)
-	}
-
-	err = writePEMToFile(path.Join(n.StoragePath, "root.key"), &pem.Block{
-		Type:  "PRIVATE KEY",
-		Bytes: marshalledPrvKey,
-	})
-	if err != nil {
-		return fmt.Errorf("writing PEM: %w", err)
-	}
-
-	err = writeToFile(path.Join(n.StoragePath, "root-previous.crt"), n.previousKeypair.CertRaw)
-	if err != nil {
-		return fmt.Errorf("writing PEM: %w", err)
-	}
-
-	marshalledPrvKey, err = x509.MarshalPKCS8PrivateKey(n.previousKeypair.PrivateKey)
-	if err != nil {
-		return fmt.Errorf("marshalling private key: %w", err)
-	}
-
-	err = writePEMToFile(path.Join(n.StoragePath, "root-previous.key"), &pem.Block{
-		Type:  "PRIVATE KEY",
-		Bytes: marshalledPrvKey,
-	})
-	if err != nil {
-		return fmt.Errorf("writing PEM: %w", err)
-	}
-
-	return nil
-}
-
 func writePEMToFile(file string, p *pem.Block) error {
 	f, err := os.Create(file)
 	if err != nil {
@@ -349,101 +398,80 @@ func writePEMToFile(file string, p *pem.Block) error {
 	return f.Close()
 }
 
-func writeToFile(file string, data []byte) error {
-	f, err := os.Create(file)
+func (n *NativeCertificateProvider) loadFromDB() error {
+	certs, err := data.ListRootCertificates(n.db)
 	if err != nil {
-		return fmt.Errorf("creating %s: %w", file, err)
+		return err
 	}
 
-	i, err := f.Write(data)
-	if err != nil {
-		return fmt.Errorf("writing root certificate: %w", err)
+	if len(certs) >= 1 {
+		n.activeKeypair, err = certificateToKeyPair(&certs[0])
+		if err != nil {
+			return err
+		}
+
+		if len(certs) >= 2 {
+			n.previousKeypair, err = certificateToKeyPair(&certs[1])
+			if err != nil {
+				return err
+			}
+		}
 	}
 
-	if i != len(data) {
-		return fmt.Errorf("incomplete file write to %s", file)
-	}
-
-	return f.Close()
+	return nil
 }
 
-func (n *NativeCertificateProvider) loadFromDisk() error {
-	var ok bool
-
-	_ = os.MkdirAll(n.StoragePath, 0o700)
-
-	pems, bytes, err := ReadFromPEMFile(path.Join(n.StoragePath, "root.crt"))
+func certificateToKeyPair(c *models.RootCertificate) (KeyPair, error) {
+	// the certificate doesn't have pem armoring on it.
+	cert, err := x509.ParseCertificate([]byte(c.SignedCert))
 	if err != nil {
-		return fmt.Errorf("reading cert: %w", err)
-	}
-	n.activeKeypair.CertRaw = bytes
-
-	cert, err := x509.ParseCertificate(pems[0].Bytes)
-	if err != nil {
-		return fmt.Errorf("parsing certificate: %w", err)
+		return KeyPair{}, fmt.Errorf("couldn't read certificate from db: %w", err)
 	}
 
-	n.activeKeypair.Cert = cert
+	return KeyPair{
+		KeyAlgorithm:     c.KeyAlgorithm,
+		SigningAlgorithm: c.SigningAlgorithm,
+		PublicKey:        ed25519.PublicKey(c.PublicKey),
+		PrivateKey:       ed25519.PrivateKey(c.PrivateKey),
+		SignedCertPEM:    []byte(c.SignedCert),
+		SignedCert:       cert,
+	}, nil
+}
 
-	// nolint:exhaustive
-	switch cert.PublicKeyAlgorithm {
-	case x509.Ed25519:
-		n.activeKeypair.PublicKey, ok = cert.PublicKey.(ed25519.PublicKey)
-		if !ok {
-			return fmt.Errorf("unexpected key type %t, expected ed25519", cert.PublicKey)
+func keyPairToCertificate(k KeyPair) *models.RootCertificate {
+	// don't store the certificate with pem encoding; it's padding that only assists a known-plaintext attack
+	b, _ := pem.Decode(k.SignedCertPEM)
+
+	return &models.RootCertificate{
+		KeyAlgorithm:     k.KeyAlgorithm,
+		SigningAlgorithm: k.SigningAlgorithm,
+		PublicKey:        models.Base64(k.PublicKey),
+		PrivateKey:       models.EncryptedAtRest(k.PrivateKey),
+		SignedCert:       models.EncryptedAtRest(b.Bytes),
+		ExpiresAt:        k.SignedCert.NotAfter,
+	}
+}
+
+// saveToDB stores new certs to the database. Used when rotating keys.
+func (n *NativeCertificateProvider) saveToDB() error {
+	certs := []*models.RootCertificate{
+		keyPairToCertificate(n.previousKeypair),
+		keyPairToCertificate(n.activeKeypair),
+	}
+	// only create the previous keypair if it doesn't already exist.
+	for _, cert := range certs {
+		c, err := data.GetRootCertificate(n.db, data.ByPublicKey(cert.PublicKey))
+		if c != nil {
+			continue
 		}
-	default:
-		panic("unexpected key algorithm " + cert.PublicKeyAlgorithm.String())
-	}
-
-	pems, _, err = ReadFromPEMFile(path.Join(n.StoragePath, "root.key"))
-	if err != nil {
-		return fmt.Errorf("reading PEM: %w", err)
-	}
-
-	key, err := x509.ParsePKCS8PrivateKey(pems[0].Bytes)
-	if err != nil {
-		return fmt.Errorf("decoding key: %w", err)
-	}
-
-	n.activeKeypair.PrivateKey = key.(ed25519.PrivateKey)
-
-	pems, bytes, err = ReadFromPEMFile(path.Join(n.StoragePath, "root-previous.crt"))
-	if err != nil {
-		return fmt.Errorf("reading cert: %w", err)
-	}
-
-	n.previousKeypair.CertRaw = bytes
-
-	cert, err = x509.ParseCertificate(pems[0].Bytes)
-	if err != nil {
-		return fmt.Errorf("parsing certificate: %w", err)
-	}
-
-	n.previousKeypair.Cert = cert
-
-	// nolint:exhaustive
-	switch cert.PublicKeyAlgorithm {
-	case x509.Ed25519:
-		n.previousKeypair.PublicKey, ok = cert.PublicKey.(ed25519.PublicKey)
-		if !ok {
-			return fmt.Errorf("unexpected key type %t, expected ed25519", cert.PublicKey)
+		if !errors.Is(err, internal.ErrNotFound) {
+			return fmt.Errorf("checking for existing cert: %w", err)
 		}
-	default:
-		panic("unexpected key algorithm " + cert.PublicKeyAlgorithm.String())
-	}
 
-	pems, _, err = ReadFromPEMFile(path.Join(n.StoragePath, "root-previous.key"))
-	if err != nil {
-		return fmt.Errorf("reading PEM: %w", err)
+		if err := data.AddRootCertificate(n.db, cert); err != nil {
+			return fmt.Errorf("adding CA certificate: %w", err)
+		}
 	}
-
-	key, err = x509.ParsePKCS8PrivateKey(pems[0].Bytes)
-	if err != nil {
-		return fmt.Errorf("decoding key: %w", err)
-	}
-
-	n.previousKeypair.PrivateKey = key.(ed25519.PrivateKey)
 
 	return nil
 }

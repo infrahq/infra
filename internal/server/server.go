@@ -7,6 +7,7 @@ import (
 	"crypto/ed25519"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -29,10 +30,12 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/goware/urlx"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"golang.org/x/crypto/acme/autocert"
 	"gopkg.in/square/go-jose.v2"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/config"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
@@ -68,6 +71,14 @@ type Options struct {
 	Secrets []SecretProvider `mapstructure:"secrets"`
 
 	Import *config.Config `mapstructure:"import"`
+
+	NetworkEncryption string `yaml:"networkEncryption"` // mtls (default), e2ee, none.
+	Certificates      struct {
+		TrustInitialClientPublicKey string `yaml:"trustInitialClientPublicKey"`
+		InitialRootCACert           string `yaml:"initialRootCACert"`
+		InitialRootCAPublicKey      string `yaml:"initialRootCAPublicKey"`
+		FullKeyRotationInDays       int    `yaml:"fullKeyRotationInDays"` // 365 default
+	} `yaml:"certificates"`
 }
 
 type Server struct {
@@ -116,7 +127,7 @@ func Run(options Options) (err error) {
 		return fmt.Errorf("loading database key: %w", err)
 	}
 
-	if err = server.loadCertificateProvider(); err != nil {
+	if err = server.loadCertificates(); err != nil {
 		return fmt.Errorf("loading certificate provider: %w", err)
 	}
 
@@ -174,20 +185,45 @@ func configureTelemetry(db *gorm.DB) error {
 	return nil
 }
 
-func (s *Server) loadCertificateProvider() (err error) {
-	fullRotationInDays := 365
+func (s *Server) loadCertificates() (err error) {
+	if s.options.Certificates.FullKeyRotationInDays == 0 {
+		s.options.Certificates.FullKeyRotationInDays = 365
+	}
+
+	fullRotationInDays := s.options.Certificates.FullKeyRotationInDays
+
 	keyPath := path.Join(s.options.InfraHomeDir, "keys")
 	_ = os.MkdirAll(keyPath, 0o700)
 
-	s.certificateProvider, err = pki.NewNativeCertificateProvider(pki.NativeCertificateProviderConfig{
-		// TODO: Update to db storage
-		StoragePath:                   keyPath,
+	// TODO: check certificate provider from config
+	s.certificateProvider, err = pki.NewNativeCertificateProvider(s.db, pki.NativeCertificateProviderConfig{
 		FullKeyRotationDurationInDays: fullRotationInDays,
+		InitialRootCAPublicKey:        []byte(s.options.Certificates.InitialRootCAPublicKey),
+		InitialRootCACert:             []byte(s.options.Certificates.InitialRootCACert),
 	})
 	if err != nil {
 		return err
 	}
 
+	// if there's no active CAs, try loading them from options.
+	cert := s.options.Certificates.InitialRootCACert
+	key := s.options.Certificates.InitialRootCAPublicKey
+
+	if len(s.certificateProvider.ActiveCAs()) == 0 && len(cert) > 0 && len(key) > 0 {
+		jsonBytes := fmt.Sprintf(`{"ServerKey":{"CertPEM":"%s", "PublicKey":"%s"}}`, cert, key)
+		kp := &pki.KeyPair{}
+		err := json.Unmarshal([]byte(jsonBytes), kp)
+		if err != nil {
+			return fmt.Errorf("reading initialRootCACert and initialRootCAPublicKey: %w", err)
+		}
+
+		err = s.certificateProvider.Preload(kp.CertPEM, kp.PublicKey)
+		if err != nil && err.Error() != internal.ErrNotImplemented.Error() {
+			return fmt.Errorf("preloading initialRootCACert and initialRootCAPublicKey: %w", err)
+		}
+	}
+
+	// if still no active CAs, create them
 	if len(s.certificateProvider.ActiveCAs()) == 0 {
 		logging.S.Info("Creating Root CA certificate")
 		if err := s.certificateProvider.CreateCA(); err != nil {
@@ -205,7 +241,8 @@ func (s *Server) loadCertificateProvider() (err error) {
 
 	// if the current cert is going to expire in less than FullKeyRotationDurationInDays/2 days, rotate.
 	rotationWindow := time.Now().AddDate(0, 0, fullRotationInDays/2)
-	if s.certificateProvider.ActiveCAs()[1].NotAfter.Before(rotationWindow) {
+	activeCAs := s.certificateProvider.ActiveCAs()
+	if len(activeCAs) < 2 || activeCAs[1].NotAfter.Before(rotationWindow) {
 		logging.S.Info("Half-Rotating Root CA certificate")
 		if err := s.certificateProvider.RotateCA(); err != nil {
 			return fmt.Errorf("rotating CA: %w", err)
@@ -235,11 +272,12 @@ func (s *Server) loadCertificateProvider() (err error) {
 			}
 
 			tc := &models.TrustedCertificate{
-				PublicKey: cert.PublicKey.(ed25519.PublicKey),
+				PublicKey: models.Base64(cert.PublicKey.(ed25519.PublicKey)),
 				CertPEM:   raw,
 				ExpiresAt: cert.NotAfter,
 				Identity:  ident,
 			}
+
 			// insert into db.
 			err = data.TrustPublicKey(s.db, tc)
 			if err != nil {
@@ -399,49 +437,63 @@ func (s *Server) runServer() error {
 }
 
 func (s *Server) serverTLSConfig() (*tls.Config, error) {
-	serverTLSCerts, err := s.certificateProvider.TLSCertificates()
-	if err != nil {
-		return nil, fmt.Errorf("getting tls certs: %w", err)
-	}
+	switch s.options.NetworkEncryption {
+	case "mtls":
+		serverTLSCerts, err := s.certificateProvider.TLSCertificates()
+		if err != nil {
+			return nil, fmt.Errorf("getting tls certs: %w", err)
+		}
 
-	caPool := x509.NewCertPool()
+		caPool := x509.NewCertPool()
 
-	for _, cert := range s.certificateProvider.ActiveCAs() {
-		cert := cert
-		caPool.AddCert(&cert)
-	}
+		for _, cert := range s.certificateProvider.ActiveCAs() {
+			cert := cert
+			caPool.AddCert(&cert)
+		}
 
-	tcerts, err := data.TrustedCertificates(s.db)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, tcert := range tcerts {
-		p, _ := pem.Decode(tcert.CertPEM)
-
-		cert, err := x509.ParseCertificate(p.Bytes)
+		tcerts, err := data.ListTrustedClientCertificates(s.db)
 		if err != nil {
 			return nil, err
 		}
 
-		if cert.NotAfter.After(time.Now()) {
-			logging.S.Debugf("Trusting user certificate %q\n", cert.Subject.CommonName)
-			caPool.AddCert(cert)
-		}
-	}
+		for _, tcert := range tcerts {
+			p, _ := pem.Decode(tcert.CertPEM)
 
-	return &tls.Config{
-		Certificates: serverTLSCerts,
-		ClientAuth:   tls.RequireAndVerifyClientCert,
-		ClientCAs:    caPool,
-		MinVersion:   tls.VersionTLS12,
-		CipherSuites: []uint16{
-			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
-			tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-		},
-	}, nil
+			cert, err := x509.ParseCertificate(p.Bytes)
+			if err != nil {
+				return nil, err
+			}
+
+			if cert.NotAfter.After(time.Now()) {
+				logging.S.Debugf("Trusting user certificate %q\n", cert.Subject.CommonName)
+				caPool.AddCert(cert)
+			}
+		}
+
+		return &tls.Config{
+			Certificates: serverTLSCerts,
+			ClientAuth:   tls.RequireAndVerifyClientCert,
+			ClientCAs:    caPool,
+			MinVersion:   tls.VersionTLS12,
+			CipherSuites: []uint16{
+				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+			},
+		}, nil
+	default: // "none" or blank
+		manager := &autocert.Manager{
+			Prompt: autocert.AcceptTOS,
+			Cache:  autocert.DirCache(s.options.TLSCache),
+		}
+		tlsConfig := manager.TLSConfig()
+		tlsConfig.GetCertificate = certs.SelfSignedOrLetsEncryptCert(manager, func() string {
+			return ""
+		})
+
+		return tlsConfig, nil
+	}
 }
 
 // configureSentry returns ok:true when sentry is configured and initialized, or false otherwise. It can be used to know if `defer recoverWithSentryHub(sentry.CurrentHub())` can be called

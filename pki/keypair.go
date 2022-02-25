@@ -1,6 +1,7 @@
 package pki
 
 import (
+	"crypto"
 	"crypto/ed25519"
 	"crypto/tls"
 	"crypto/x509"
@@ -9,20 +10,27 @@ import (
 	"fmt"
 )
 
+// PrivateKey is an interface compatible with the go stdlib ed25519, ecdsa, and rsa keys
+type PrivateKey interface {
+	Public() crypto.PublicKey
+	Equal(x crypto.PrivateKey) bool
+}
+
 type KeyPair struct {
-	KeyType       string // KeyType //  (string) == "ed25519" maybe
-	PublicKey     ed25519.PublicKey
-	PrivateKey    ed25519.PrivateKey `json:",omitempty"`
-	CertRaw       []byte             `json:",omitempty"`
-	SignedCertRaw []byte             `json:",omitempty"`
-	Cert          *x509.Certificate  `json:"-"`
-	SignedCert    *x509.Certificate  `json:"-"`
+	KeyAlgorithm     string
+	SigningAlgorithm string
+	PublicKey        ed25519.PublicKey
+	PrivateKey       ed25519.PrivateKey `json:",omitempty"`
+	CertPEM          []byte             `json:",omitempty"` // pem encoded
+	SignedCertPEM    []byte             `json:",omitempty"` // pem encoded
+	Cert             *x509.Certificate  `json:"-"`
+	SignedCert       *x509.Certificate  `json:"-"`
 }
 
 func (k *KeyPair) TLSCertificate() (*tls.Certificate, error) {
-	bytes := k.SignedCertRaw
+	bytes := k.SignedCertPEM
 	if len(bytes) == 0 {
-		bytes = k.CertRaw
+		bytes = k.CertPEM
 	}
 
 	keyPEM, err := MarshalPrivateKey(k.PrivateKey)
@@ -46,10 +54,10 @@ func (k *KeyPair) UnmarshalJSON(data []byte) error {
 
 	k.PublicKey = tmpKeyPair.PublicKey
 	k.PrivateKey = tmpKeyPair.PrivateKey
-	k.CertRaw = tmpKeyPair.CertRaw
-	k.SignedCertRaw = tmpKeyPair.SignedCertRaw
+	k.CertPEM = tmpKeyPair.CertPEM
+	k.SignedCertPEM = tmpKeyPair.SignedCertPEM
 
-	p, _ := pem.Decode(k.CertRaw)
+	p, _ := pem.Decode(k.CertPEM)
 	cert, err := x509.ParseCertificate(p.Bytes)
 	if err != nil {
 		return fmt.Errorf("parsing raw certificate: %w", err)
@@ -57,8 +65,8 @@ func (k *KeyPair) UnmarshalJSON(data []byte) error {
 
 	k.Cert = cert
 
-	if len(k.SignedCertRaw) > 0 {
-		p, _ = pem.Decode(k.SignedCertRaw)
+	if len(k.SignedCertPEM) > 0 {
+		p, _ = pem.Decode(k.SignedCertPEM)
 		cert, err := x509.ParseCertificate(p.Bytes)
 		if err != nil {
 			return fmt.Errorf("parsing signed certificate: %w", err)

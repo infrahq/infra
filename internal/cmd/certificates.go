@@ -2,11 +2,16 @@ package cmd
 
 import (
 	"crypto/ed25519"
+	"crypto/rand"
 	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math/big"
+	"net"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -46,9 +51,11 @@ func trustCertificateCmd() *cobra.Command {
 
 	opts := &struct {
 		PEM string
+		Key string
 	}{}
 
 	cmd.PersistentFlags().StringVar(&opts.PEM, "pem", "", "load the certificate to trust from a pem file")
+	cmd.PersistentFlags().StringVar(&opts.Key, "key", "", "trust the server public key provided")
 
 	clientCmd := &cobra.Command{
 		Use:   "client",
@@ -120,7 +127,7 @@ func trustCertificateCmd() *cobra.Command {
 			}
 
 			keydata.ServerKey = &pki.KeyPair{
-				CertRaw:   raw,
+				CertPEM:   raw,
 				Cert:      cert,
 				PublicKey: cert.PublicKey.(ed25519.PublicKey),
 			}
@@ -168,48 +175,65 @@ func createClientCertificate() error {
 }
 
 func createRootCertificate() error {
-	keydata, err := readLocalKeys()
-	if err != nil && !errors.Is(err, ErrConfigNotFound) {
-		return err
-	}
-
-	if keydata == nil {
-		keydata = &KeyData{}
-	}
-
-	// if keydata.ServerKey != nil {
-	// 	path, _ := keysPath()
-	// 	return fmt.Errorf("file %q already contains root server keys", path)
-	// }
-
-	dir, err := infraHomeDir()
+	pub, prv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
-		return err
+		return fmt.Errorf("generating keys: %w", err)
 	}
 
-	storagePath := filepath.Join(dir, "keys")
+	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 
-	cp, err := pki.NewNativeCertificateProvider(pki.NativeCertificateProviderConfig{
-		StoragePath:                   storagePath,
-		FullKeyRotationDurationInDays: 365,
-	})
+	serial, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
-		return err
+		return fmt.Errorf("creating random serial: %w", err)
 	}
 
-	if len(cp.ActiveCAs()) > 0 {
-		return fmt.Errorf("root certificates already exist at " + storagePath)
+	certTemplate := &x509.Certificate{
+		SignatureAlgorithm: x509.PureEd25519,
+		PublicKeyAlgorithm: x509.Ed25519,
+		PublicKey:          pub,
+		SerialNumber:       serial,
+		Issuer:             pkix.Name{CommonName: "Root Infra CA"},
+		Subject:            pkix.Name{CommonName: "Root Infra CA"},
+		NotBefore:          time.Now(),
+		NotAfter:           time.Now().Add(7 * 24 * time.Hour), // temporary
+		KeyUsage: x509.KeyUsageCertSign |
+			x509.KeyUsageDigitalSignature |
+			x509.KeyUsageCRLSign |
+			x509.KeyUsageKeyAgreement |
+			x509.KeyUsageKeyEncipherment,
+		ExtKeyUsage: []x509.ExtKeyUsage{
+			x509.ExtKeyUsageClientAuth,
+			x509.ExtKeyUsageServerAuth,
+		},
+		IsCA:                  true,
+		BasicConstraintsValid: true,
+
+		DNSNames:    []string{"localhost"}, // TODO: Support domain names for services?
+		IPAddresses: []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback},
 	}
 
-	if err := cp.CreateCA(); err != nil {
-		return err
+	// create client certificate from template and CA public key
+	rawCert, err := x509.CreateCertificate(rand.Reader, certTemplate, certTemplate, pub, prv)
+	if err != nil {
+		return fmt.Errorf("creating certificate: %w", err)
 	}
 
 	fmt.Printf(`
-CA keys written to %s/root.crt and %s/root.key. These should be used for installing Infra, then discarded.
+server:
+  certificates:
+    initialRootCACert: %s
+    initialRootCAPublicKey: %s
+    initialRootCAPrivateKey: %s
+
+These should be used for installing Infra, then discarded, as infra will manage key rotation itself.
 You can trust the root certificate like so: 
-		infra certificates trust server --pem %s/root.crt
-`, storagePath, storagePath, storagePath)
+    infra certificates trust server --key %s
+`,
+		base64.StdEncoding.EncodeToString(rawCert),
+		base64.StdEncoding.EncodeToString(pub),
+		base64.StdEncoding.EncodeToString(prv),
+		base64.StdEncoding.EncodeToString(pub),
+	)
 
 	return nil
 }
@@ -273,9 +297,9 @@ func writeLocalKeys(keydata *KeyData) error {
 		return err
 	}
 
-	data = keydata.ClientKey.CertRaw
-	if len(keydata.ClientKey.SignedCertRaw) > 0 {
-		data = keydata.ClientKey.SignedCertRaw
+	data = keydata.ClientKey.CertPEM
+	if len(keydata.ClientKey.SignedCertPEM) > 0 {
+		data = keydata.ClientKey.SignedCertPEM
 	}
 
 	err = ioutil.WriteFile(filepath.Join(path, "cert.pem"), data, 0o600)
@@ -284,7 +308,7 @@ func writeLocalKeys(keydata *KeyData) error {
 	}
 
 	if keydata.ServerKey != nil {
-		err = ioutil.WriteFile(filepath.Join(path, "server.crt"), keydata.ServerKey.CertRaw, 0o600)
+		err = ioutil.WriteFile(filepath.Join(path, "server.crt"), keydata.ServerKey.CertPEM, 0o600)
 		if err != nil {
 			return err
 		}

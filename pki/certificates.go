@@ -34,6 +34,9 @@ type CertificateProvider interface {
 	// Caller should have already validated that it's okay to sign this certificate by verifying the sender's authenticity, and that they own the resources they're asking to be certified for.
 	// A Certificate Signing Request can be parsed with `x509.ParseCertificateRequest()`
 	SignCertificate(csr x509.CertificateRequest) (pemBytes []byte, err error)
+
+	// Preload attempts to preload the root certificate into the system. If this is not possible in this implementation of the certificate provider, it should return internal.ErrNotImplemented or a simple errors.New("not implemented")
+	Preload(rootCACertificate, publicKey []byte) error
 }
 
 func MakeUserCert(commonName string, lifetime time.Duration) (*KeyPair, error) {
@@ -71,7 +74,7 @@ func MakeUserCert(commonName string, lifetime time.Duration) (*KeyPair, error) {
 
 	keyPair := &KeyPair{
 		Cert:       cert,
-		CertRaw:    pemBytes,
+		CertPEM:    pemBytes,
 		PublicKey:  pub,
 		PrivateKey: prv,
 	}

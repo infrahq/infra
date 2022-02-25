@@ -12,7 +12,8 @@ var (
 	// ErrForbidden means you don't have permissions to the requested resource
 	ErrForbidden = fmt.Errorf("forbidden")
 
-	ErrDuplicate  = fmt.Errorf("duplicate record")
-	ErrNotFound   = fmt.Errorf("record not found")
-	ErrBadRequest = fmt.Errorf("bad request")
+	ErrDuplicate      = fmt.Errorf("duplicate record")
+	ErrNotFound       = fmt.Errorf("record not found")
+	ErrBadRequest     = fmt.Errorf("bad request")
+	ErrNotImplemented = fmt.Errorf("not implemented")
 )
