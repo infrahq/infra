@@ -92,7 +92,17 @@ func ByMachineIDIssuedFor(machineID uid.ID) SelectorFunc {
 			return db
 		}
 
-		return db.Where("issued_for = ?", "m:"+machineID.String())
+		return db.Where("issued_for = ?", uid.NewMachinePolymorphicID(machineID))
+	}
+}
+
+func ByUserIDIssuedFor(userID uid.ID) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		if userID == 0 {
+			return db
+		}
+
+		return db.Where("issued_for = ?", uid.NewUserPolymorphicID(userID))
 	}
 }
 
