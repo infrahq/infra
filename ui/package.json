@@ -30,7 +30,7 @@
     "@types/react": "17.0.39",
     "eslint": "^8.9.0",
     "eslint-config-next": "^12.1.0",
-    "@types/styled-components": "^5.1.22",
+    "@types/styled-components": "^5.1.23",
     "typescript": "4.5.5",
     "standard": "*"
   }
