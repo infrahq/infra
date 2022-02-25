@@ -4,7 +4,7 @@ import "github.com/infrahq/infra/uid"
 
 // Machine struct for Machine Identities
 type Machine struct {
-	ID      uid.ID `json:"id"`
+	ID      uid.ID `json:"id" swaggertype:"string"`
 	Created int64  `json:"created"`
 	// updated time in seconds since 1970-01-01
 	Updated int64 `json:"updated"`
