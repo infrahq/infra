@@ -33,6 +33,8 @@ secrets:
     namespace: mynamespace
 ```
 
+namespace defaults to whatever is defined in `/var/run/secrets/kubernetes.io/serviceaccount/namespace`, or the `default` namespace.
+
 ### Vault
 
 ```yaml
