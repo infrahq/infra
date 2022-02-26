@@ -77,7 +77,7 @@ const Login = () => {
     <LoginContainer>
       <Content>
         {hasRedirected ? 
-          <p></p> : 
+          <></> : 
           <>
             <AccountHeader
               header='Login to Infra'
