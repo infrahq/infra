@@ -133,11 +133,10 @@ export const AuthContextProvider = ({ children }:any) => {
   // TODO: it is not working right now
   const logout = () => {
     axios.post('/v1/logout', {}, { headers: { Authorization: `Bearer ${cookie.accessKey}` }})
-    .then((response) => {
-      removeCookies('accessKey', { path: '/' })
-
-      // redirect based on provider[]
+    .then(() => {
+      setAuthReady(false)
       redirectAccountPage(providers)
+      removeCookies('accessKey', { path: '/' })
     })
   }
 
