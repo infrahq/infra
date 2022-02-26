@@ -272,10 +272,12 @@ func (s *Server) loadCertificates() (err error) {
 			}
 
 			tc := &models.TrustedCertificate{
-				PublicKey: models.Base64(cert.PublicKey.(ed25519.PublicKey)),
-				CertPEM:   raw,
-				ExpiresAt: cert.NotAfter,
-				Identity:  ident,
+				KeyAlgorithm:     x509.PureEd25519.String(),
+				SigningAlgorithm: x509.Ed25519.String(),
+				PublicKey:        models.Base64(cert.PublicKey.(ed25519.PublicKey)),
+				CertPEM:          raw,
+				ExpiresAt:        cert.NotAfter,
+				Identity:         ident,
 			}
 
 			// insert into db.
