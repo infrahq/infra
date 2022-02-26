@@ -76,22 +76,24 @@ const Login = () => {
   return (
     <LoginContainer>
       <Content>
-        <p>
-          {hasRedirected}
-        </p>
-        <AccountHeader
-          header='Login to Infra'
-          subheader='Securely manage access to your infrastructure. Take a moment to create your account and start managing access today.'
-        />
-        <LoginIdentitySourceList>
-          <IdentitySourceBtn providers={providerWithType} />
-        </LoginIdentitySourceList>
-        <HelpContainer>
-          <span>Having trouble logging in?</span>
-          <Link href='/account/register'>
-            <a>Use API Access Key</a>
-          </Link>
-        </HelpContainer>
+        {hasRedirected ? 
+          <></> : 
+          <>
+            <AccountHeader
+              header='Login to Infra'
+              subheader='Securely manage access to your infrastructure. Take a moment to create your account and start managing access today.'
+            />
+            <LoginIdentitySourceList>
+              <IdentitySourceBtn providers={providerWithType} />
+            </LoginIdentitySourceList>
+            <HelpContainer>
+              <span>Having trouble logging in?</span>
+              <Link href='/account/register'>
+                <a>Use API Access Key</a>
+              </Link>
+            </HelpContainer>
+          </>
+        }
       </Content>
     </LoginContainer>
   )
