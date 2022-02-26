@@ -12,6 +12,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/goware/urlx"
 	"github.com/iancoleman/strcase"
 	"github.com/lensesio/tableprinter"
@@ -596,6 +597,7 @@ func NewRootCmd() (*cobra.Command, error) {
 		Use:               "infra",
 		CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: true},
 		SilenceUsage:      true,
+		SilenceErrors:     true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			var options rootOptions
 			if err := parseOptions(cmd, &options, "INFRA"); err != nil {
@@ -633,5 +635,15 @@ func Run() error {
 		return err
 	}
 
-	return cmd.Execute()
+	err = cmd.Execute()
+	printError(err)
+	return err
+}
+
+func printError(err error) {
+	if err != nil {
+		if !errors.Is(err, terminal.InterruptErr) {
+			fmt.Fprint(os.Stderr, err.Error())
+		}
+	}
 }
