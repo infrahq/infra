@@ -526,12 +526,7 @@ func newInfoCmd() *cobra.Command {
 				fmt.Fprintln(w, "Admin:\t", admin)
 				fmt.Fprintln(w)
 			} else if idType == machine {
-				fmt.Fprintln(os.Stderr, "7.1")
 				machine, err := client.GetMachine(config.ID)
-
-				fmt.Fprintln(os.Stderr, "6.1")
-				fmt.Fprintln(os.Stderr, client.AccessKey)
-				fmt.Fprintln(os.Stderr, "6.2")
 				if err != nil {
 					fmt.Fprintln(os.Stderr, "6.3")
 					return err
