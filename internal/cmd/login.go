@@ -120,6 +120,34 @@ func login(host string) error {
 		return err
 	}
 
+	setupRequired, err := client.SetupRequired()
+	if err != nil {
+		return err
+	}
+
+	var accessKey string
+
+	if setupRequired.Required {
+		doSetup, err := promptSetup()
+		if err != nil {
+			return err
+		}
+
+		if !doSetup {
+			return errors.New("Could not complete setup")
+		}
+
+		setup, err := client.Setup()
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("  Store this in a secure location. You will not see it again.\n")
+		fmt.Printf("  Access Key: %s\n", setup.AccessKey)
+
+		accessKey = setup.AccessKey
+	}
+
 	providers, err := client.ListProviders("")
 	if err != nil {
 		return err
@@ -131,28 +159,32 @@ func login(host string) error {
 	}
 
 	options = append(options, "Login with Access Key")
+	var option int
 
-	option, err := promptProvider(options)
-	if err != nil {
-		return err
-	}
-
-	// access key
-	if option == len(options)-1 {
-		var key string
-
-		err = survey.AskOne(&survey.Password{Message: "Your Access Key:"}, &key, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
+	if len(options) > 1 {
+		option, err = promptProvider(options)
 		if err != nil {
 			return err
 		}
+	}
 
-		client.AccessKey = key
+	// access key
+	if option == len(options) - 1 {
+		if accessKey == "" {
+			err = survey.AskOne(&survey.Password{Message: "Access Key:"}, &accessKey, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
+			if err != nil {
+				return err
+			}
+		}
+
+		client.AccessKey = accessKey
+
 		info, err := client.Introspect()
 		if err != nil {
 			return err
 		}
 
-		return finishLogin(host, uid.NewMachinePolymorphicID(info.ID), info.Name, key, skipTLSVerify, 0)
+		return finishLogin(host, uid.NewMachinePolymorphicID(info.ID), info.Name, accessKey, skipTLSVerify, 0)
 	}
 
 	provider := providers[option]
@@ -353,7 +385,7 @@ func promptShouldSkipTLSVerify(host string) (shouldSkipTLSVerify bool, proceed b
 		fmt.Printf("  The authenticity of host '%s' can't be established.\n", host)
 
 		prompt := &survey.Confirm{
-			Message: fmt.Sprintf("Are you sure you want to continue?"),
+			Message: "Are you sure you want to continue?",
 		}
 
 		proceed := false
@@ -372,4 +404,19 @@ func promptShouldSkipTLSVerify(host string) (shouldSkipTLSVerify bool, proceed b
 	defer res.Body.Close()
 
 	return false, true, nil
+}
+
+func promptSetup() (bool, error) {
+	var proceed bool
+
+	prompt := &survey.Confirm{
+		Message: "Setup incomplete. Continue to complete setup?",
+	}
+
+	err := survey.AskOne(prompt, &proceed, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
+	if err != nil {
+		return false, err
+	}
+
+	return proceed, nil
 }
