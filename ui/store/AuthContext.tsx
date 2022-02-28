@@ -3,17 +3,10 @@ import Router from 'next/router'
 import axios from 'axios'
 import { useCookies } from 'react-cookie'
 
-interface AppContextInterface {
-  authReady: boolean
-  cookie: {}
-  hasRedirected: boolean
-  loginError: boolean
-  providers: ProviderField[]
-  user: any
-  getAccessKey: (code: string, providerID: string, redirectURL: string) => void
-  login: (selectedIdp: ProviderField) => void
-  logout: () => void
-  register: (key: string) => void
+export interface User {
+  id: string
+  name: string
+  identityType: string
 }
 
 export interface ProviderField {
@@ -25,6 +18,19 @@ export interface ProviderField {
   url: string
 }
 
+interface AppContextInterface {
+  authReady: boolean
+  cookie: {}
+  hasRedirected: boolean
+  loginError: boolean
+  providers: ProviderField[]
+  user: User | null
+  getAccessKey: (code: string, providerID: string, redirectURL: string) => Promise<void>
+  login: (selectedIdp: ProviderField) => void
+  logout: () => Promise<void>
+  register: (key: string) => Promise<void>
+}
+
 const AuthContext = createContext<AppContextInterface>({
   authReady: false,
   cookie: {},
@@ -32,40 +38,40 @@ const AuthContext = createContext<AppContextInterface>({
   loginError: false,
   providers: [],
   user: null,
-  getAccessKey: () => {},
+  getAccessKey: async () => {},
   login: () => {},
-  logout: () => {},
-  register: () => {}
+  logout: async () => {},
+  register: async () => {}
 })
 
-const redirectAccountPage = (currentProviders: ProviderField[]): void => {
+// TODO: need to revisit this - when refresh the page, this get call
+const redirectAccountPage = async (currentProviders: ProviderField[]): Promise<void> => {
   if (currentProviders.length > 0) {
-    Router.push({
+    await Router.push({
       pathname: '/account/login'
     }, undefined, { shallow: true })
   } else {
-    Router.push({
+    await Router.push({
       pathname: '/account/register'
     }, undefined, { shallow: true })
   }
 }
 
 export const AuthContextProvider = ({ children }: any): any => {
-  const [user, setUser] = useState(null)
-  const [hasRedirected, setHasRedirected] = useState(false)
-  const [loginError, setLoginError] = useState(false)
-  const [authReady, setAuthReady] = useState(false)
+  const [user, setUser] = useState<User | null>(null)
+  const [hasRedirected, setHasRedirected] = useState<boolean>(false)
+  const [loginError, setLoginError] = useState<boolean>(false)
+  const [authReady, setAuthReady] = useState<boolean>(false)
 
   const [providers, setProviders] = useState<ProviderField[]>([])
   const [cookie, setCookie, removeCookies] = useCookies(['accessKey'])
 
-  // TODO: need to revisit this - potential memory leak somewhere
   useEffect(() => {
     const source = axios.CancelToken.source()
     axios.get('/v1/providers')
-      .then((response) => {
+      .then(async (response) => {
         setProviders(response.data)
-        redirectAccountPage(response.data)
+        await redirectAccountPage(response.data)
       })
       .catch(() => {
         setLoginError(true)
@@ -75,7 +81,7 @@ export const AuthContextProvider = ({ children }: any): any => {
     }
   }, [])
 
-  const getCurrentUser = async (key: string) => {
+  const getCurrentUser = async (key: string): Promise<User> => {
     return await axios.get('/v1/introspect', { headers: { Authorization: `Bearer ${key}` } })
       .then((response) => {
         return response.data
@@ -86,14 +92,14 @@ export const AuthContextProvider = ({ children }: any): any => {
       })
   }
 
-  const redirectToDashboard = async (key: string) => {
+  const redirectToDashboard = async (key: string): Promise<void> => {
     try {
       const currentUser = await getCurrentUser(key)
 
       setUser(currentUser)
       setAuthReady(true)
 
-      Router.push({
+      await Router.push({
         pathname: '/'
       }, undefined, { shallow: true })
     } catch (error) {
@@ -101,17 +107,17 @@ export const AuthContextProvider = ({ children }: any): any => {
     }
   }
 
-  const getAccessKey = async (code: string, providerID: string, redirectURL: string) => {
+  const getAccessKey = async (code: string, providerID: string, redirectURL: string): Promise<void> => {
     setHasRedirected(true)
     axios.post('/v1/login', { providerID, code, redirectURL })
       .then(async (response) => {
         setCookie('accessKey', response.data.accessKey, { path: '/' })
         await redirectToDashboard(response.data.accessKey)
       })
-      .catch(() => {
+      .catch(async () => {
         setAuthReady(false)
         setLoginError(true)
-        Router.push({
+        await Router.push({
           pathname: '/account/login'
         }, undefined, { shallow: true })
       })
@@ -129,18 +135,17 @@ export const AuthContextProvider = ({ children }: any): any => {
     document.location.href = `https://${selectedIdp.url}/oauth2/v1/authorize?redirect_uri=${infraRedirect}&client_id=${selectedIdp.clientID}&response_type=code&scope=openid+email+groups+offline_access&state=${state}`
   }
 
-  // TODO: it is not working right now
-  const logout = (): void => {
-    axios.post('/v1/logout', {}, { headers: { Authorization: `Bearer ${cookie.accessKey}` } })
-      .then(() => {
+  const logout = async (): Promise<void> => {
+    await axios.post('/v1/logout', {}, { headers: { Authorization: `Bearer ${cookie.accessKey}` } })
+      .then(async () => {
         setAuthReady(false)
         setHasRedirected(false)
-        redirectAccountPage(providers)
+        await redirectAccountPage(providers)
         removeCookies('accessKey', { path: '/' })
       })
   }
 
-  const register = async (key: string) => {
+  const register = async (key: string): Promise<void> => {
     setCookie('accessKey', key, { path: '/' })
     await redirectToDashboard(key)
   }

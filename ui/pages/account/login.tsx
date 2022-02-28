@@ -52,6 +52,12 @@ const HelpContainer = styled.div`
   }
 `
 
+export const readyToRedirect = async (): Promise<any> => {
+  await Router.push({
+    pathname: '/'
+  }, undefined, { shallow: true })
+}
+
 const Login = (): JSX.Element => {
   const { providers, authReady, hasRedirected } = useContext(AuthContext)
 
@@ -67,9 +73,7 @@ const Login = (): JSX.Element => {
 
   useEffect(() => {
     if (authReady) {
-      Router.push({
-        pathname: '/'
-      }, undefined, { shallow: true })
+      readyToRedirect()
     }
   }, [])
 
@@ -77,22 +81,23 @@ const Login = (): JSX.Element => {
     <LoginContainer>
       <Content>
         {hasRedirected
-          ? <></>
-          : <>
-            <AccountHeader
-              header='Login to Infra'
-              subheader='Securely manage access to your infrastructure. Take a moment to create your account and start managing access today.'
-            />
-            <LoginIdentitySourceList>
-              <IdentitySourceBtn providers={providerWithType} />
-            </LoginIdentitySourceList>
-            <HelpContainer>
-              <span>Having trouble logging in?</span>
-              <Link href='/account/register'>
-                <a>Use API Access Key</a>
-              </Link>
-            </HelpContainer>
-          </>}
+          ? (<></>)
+          : (
+            <>
+              <AccountHeader
+                header='Login to Infra'
+                subheader='Securely manage access to your infrastructure. Take a moment to create your account and start managing access today.'
+              />
+              <LoginIdentitySourceList>
+                <IdentitySourceBtn providers={providerWithType} />
+              </LoginIdentitySourceList>
+              <HelpContainer>
+                <span>Having trouble logging in?</span>
+                <Link href='/account/register'>
+                  <a>Use API Access Key</a>
+                </Link>
+              </HelpContainer>
+            </>)}
       </Content>
     </LoginContainer>
   )
