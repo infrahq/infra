@@ -30,6 +30,28 @@ import (
 	"github.com/infrahq/infra/internal/server"
 )
 
+var errorNotLoggedIn = fmt.Errorf("Not logged in. Run \"infra login\" before running this command.")
+
+type idType int64
+
+const (
+	user idType = iota
+	machine
+	notLoggedIn
+)
+
+func loggedInAs(c *ClientHostConfig) idType {
+	if c.AccessKey == "" {
+		return notLoggedIn
+	}
+
+	if c.ProviderID != 0 {
+		return user
+	} else {
+		return machine
+	}
+}
+
 func parseOptions(cmd *cobra.Command, options interface{}, envPrefix string) error {
 	v := viper.New()
 
@@ -458,65 +480,74 @@ func newInfoCmd() *cobra.Command {
 			w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
 			defer w.Flush()
 
-			fmt.Fprintln(w)
-			fmt.Fprintln(w, "Server:\t", config.Host)
-
 			admin := false
 
-			if config.ProviderID != 0 {
-				// a provider implies this is a user identity
+			idType := loggedInAs(config)
+			if idType == notLoggedIn {
+				return errorNotLoggedIn
+			}
+
+			if idType == user {
 				provider, err := client.GetProvider(config.ProviderID)
 				if err != nil {
 					return err
 				}
-
-				fmt.Fprintln(w, "Identity Provider:\t", provider.Name, fmt.Sprintf("(%s)", provider.URL))
 
 				user, err := client.GetUser(config.ID)
 				if err != nil {
 					return err
 				}
 
-				fmt.Fprintln(w, "User:\t", user.Email)
-
 				groups, err := client.ListUserGroups(config.ID)
 				if err != nil {
 					return err
 				}
 
-				var names string
+				var groupsStr string
 				for i, g := range groups {
 					if i != 0 {
-						names += ", "
+						groupsStr += ", "
 					}
 
-					names += g.Name
+					groupsStr += g.Name
 				}
-
-				fmt.Fprintln(w, "Groups:\t", names)
 
 				for _, p := range user.Permissions {
 					if p == "infra.*" {
 						admin = true
 					}
 				}
-			} else {
+
+				fmt.Fprintln(w)
+				fmt.Fprintln(w, "Server:\t", config.Host)
+				fmt.Fprintf(w, "Identity Provider:\t %s (%s)\n", provider.Name, provider.URL)
+				fmt.Fprintln(w, "User:\t", user.Email)
+				fmt.Fprintln(w, "Groups:\t", groupsStr)
+				fmt.Fprintln(w, "Admin:\t", admin)
+				fmt.Fprintln(w)
+			} else if idType == machine {
+				fmt.Fprintln(os.Stderr, "7.1")
 				machine, err := client.GetMachine(config.ID)
+
+				fmt.Fprintln(os.Stderr, "6.1")
+				fmt.Fprintln(os.Stderr, client.AccessKey)
+				fmt.Fprintln(os.Stderr, "6.2")
 				if err != nil {
+					fmt.Fprintln(os.Stderr, "6.3")
 					return err
 				}
-
-				fmt.Fprintln(w, "Machine:\t", machine.Name)
 
 				for _, p := range machine.Permissions {
 					if p == "infra.*" {
 						admin = true
 					}
 				}
+				fmt.Fprintln(w)
+				fmt.Fprintln(w, "Server:\t", config.Host)
+				fmt.Fprintln(w, "Machine:\t", machine.Name)
+				fmt.Fprintln(w, "Admin:\t", admin)
+				fmt.Fprintln(w)
 			}
-
-			fmt.Fprintln(w, "Admin:\t", admin)
-			fmt.Fprintln(w)
 
 			return nil
 		},
