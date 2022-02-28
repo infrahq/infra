@@ -102,7 +102,7 @@ $ infra access grant -u admin@acme.com -r admin infra
 
 			var providers []api.Provider
 
-			if options.Machine != "" {
+			if options.Machine == "" {
 				providers, err = client.ListProviders(options.Provider)
 				if err != nil {
 					return err
