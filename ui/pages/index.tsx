@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from 'react'
 import AuthContext from '../store/AuthContext'
 
-export default function Index () {
+export default function Index (): JSX.Element {
   const { logout, user } = useContext(AuthContext)
 
   // TODO: default value of currentUser
@@ -13,7 +13,7 @@ export default function Index () {
     }
   }, [])
 
-  const handleLogout = () => {
+  const handleLogout = (): void => {
     logout()
   }
 

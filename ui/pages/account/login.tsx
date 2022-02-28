@@ -4,7 +4,7 @@ import Router from 'next/router'
 import { useContext, useEffect } from 'react'
 
 import AccountHeader from '../../components/AccountHeader'
-import IdentitySourceBtn  from '../../components/IdentitySourceBtn'
+import IdentitySourceBtn from '../../components/IdentitySourceBtn'
 
 import AuthContext from '../../store/AuthContext'
 
@@ -52,23 +52,23 @@ const HelpContainer = styled.div`
   }
 `
 
-const Login = () => {
+const Login = (): JSX.Element => {
   const { providers, authReady, hasRedirected } = useContext(AuthContext)
 
-  const getProviderType = (url: string):string => {
-    let tempURL = url
+  const getProviderType = (url: string): string => {
+    const tempURL = url
     return tempURL.replace(/^https?:\/\//, '').split('/')[0].split('.').reverse()[1]
   }
 
   const providerWithType = providers.map((item) => {
     const type = getProviderType(item.url)
-    return {...item, type}
+    return { ...item, type }
   })
 
   useEffect(() => {
-    if(authReady) {
+    if (authReady) {
       Router.push({
-        pathname: '/',
+        pathname: '/'
       }, undefined, { shallow: true })
     }
   }, [])
@@ -76,9 +76,9 @@ const Login = () => {
   return (
     <LoginContainer>
       <Content>
-        {hasRedirected ? 
-          <></> : 
-          <>
+        {hasRedirected
+          ? <></>
+          : <>
             <AccountHeader
               header='Login to Infra'
               subheader='Securely manage access to your infrastructure. Take a moment to create your account and start managing access today.'
@@ -92,8 +92,7 @@ const Login = () => {
                 <a>Use API Access Key</a>
               </Link>
             </HelpContainer>
-          </>
-        }
+          </>}
       </Content>
     </LoginContainer>
   )

@@ -4,24 +4,24 @@ import axios from 'axios'
 import { useCookies } from 'react-cookie'
 
 interface AppContextInterface {
-  authReady: boolean,
-  cookie: {},
-  hasRedirected: boolean,
-  loginError: boolean,
+  authReady: boolean
+  cookie: {}
+  hasRedirected: boolean
+  loginError: boolean
   providers: ProviderField[]
-  user: any,
-  getAccessKey: (code: string, providerID: string, redirectURL: string) => void,
-  login: (selectedIdp: ProviderField) => void,
-  logout: () => void,
-  register: (key:string) => void
+  user: any
+  getAccessKey: (code: string, providerID: string, redirectURL: string) => void
+  login: (selectedIdp: ProviderField) => void
+  logout: () => void
+  register: (key: string) => void
 }
 
 export interface ProviderField {
-  id: string,
-  clientID: string,
-  created: number,
-  name: string,
-  updated: number,
+  id: string
+  clientID: string
+  created: number
+  name: string
+  updated: number
   url: string
 }
 
@@ -38,24 +38,24 @@ const AuthContext = createContext<AppContextInterface>({
   register: () => {}
 })
 
-const redirectAccountPage = (currentProviders : ProviderField[]) => {
+const redirectAccountPage = (currentProviders: ProviderField[]): void => {
   if (currentProviders.length > 0) {
     Router.push({
-      pathname: '/account/login',
+      pathname: '/account/login'
     }, undefined, { shallow: true })
   } else {
     Router.push({
-      pathname: '/account/register',
+      pathname: '/account/register'
     }, undefined, { shallow: true })
   }
 }
 
-export const AuthContextProvider = ({ children }:any) => { 
+export const AuthContextProvider = ({ children }: any): any => {
   const [user, setUser] = useState(null)
   const [hasRedirected, setHasRedirected] = useState(false)
   const [loginError, setLoginError] = useState(false)
   const [authReady, setAuthReady] = useState(false)
-  
+
   const [providers, setProviders] = useState<ProviderField[]>([])
   const [cookie, setCookie, removeCookies] = useCookies(['accessKey'])
 
@@ -67,37 +67,36 @@ export const AuthContextProvider = ({ children }:any) => {
         setProviders(response.data)
         redirectAccountPage(response.data)
       })
-      .catch((error) => {
+      .catch(() => {
         setLoginError(true)
-    })
+      })
     return function () {
-      source.cancel("Cancelling in cleanup")
+      source.cancel('Cancelling in cleanup')
     }
   }, [])
 
-
   const getCurrentUser = async (key: string) => {
     return await axios.get('/v1/introspect', { headers: { Authorization: `Bearer ${key}` } })
-    .then((response) => {
-      return response.data
-    })
-    .catch((error) => {
-      setAuthReady(false)
-      setLoginError(true)
-    })
+      .then((response) => {
+        return response.data
+      })
+      .catch(() => {
+        setAuthReady(false)
+        setLoginError(true)
+      })
   }
 
   const redirectToDashboard = async (key: string) => {
     try {
       const currentUser = await getCurrentUser(key)
-      
+
       setUser(currentUser)
       setAuthReady(true)
 
       Router.push({
-        pathname: '/',
+        pathname: '/'
       }, undefined, { shallow: true })
-    } catch(error) {
+    } catch (error) {
       setLoginError(true)
     }
   }
@@ -105,39 +104,40 @@ export const AuthContextProvider = ({ children }:any) => {
   const getAccessKey = async (code: string, providerID: string, redirectURL: string) => {
     setHasRedirected(true)
     axios.post('/v1/login', { providerID, code, redirectURL })
-    .then(async(response) => {
-      setCookie('accessKey', response.data.accessKey, { path: '/' })
-      await redirectToDashboard(response.data.accessKey)
-    })
-    .catch((error) => {
-      setAuthReady(false)
-      setLoginError(true)
-      Router.push({
-        pathname: '/account/login',
-      }, undefined, { shallow: true })
-    })
+      .then(async (response) => {
+        setCookie('accessKey', response.data.accessKey, { path: '/' })
+        await redirectToDashboard(response.data.accessKey)
+      })
+      .catch(() => {
+        setAuthReady(false)
+        setLoginError(true)
+        Router.push({
+          pathname: '/account/login'
+        }, undefined, { shallow: true })
+      })
   }
 
-  const login = (selectedIdp: ProviderField) => {
+  const login = (selectedIdp: ProviderField): void => {
     localStorage.setItem('providerId', selectedIdp.id)
 
-    const state = [...Array(10)].map(i=>(~~(Math.random()*36)).toString(36)).join('')
+    const state = [...Array(10)].map(() => (~~(Math.random() * 36)).toString(36)).join('')
     localStorage.setItem('state', state)
 
-    const infraRedirect = window.location.origin + `/account/callback`
+    const infraRedirect = window.location.origin + '/account/callback'
     localStorage.setItem('redirectURL', infraRedirect)
 
     document.location.href = `https://${selectedIdp.url}/oauth2/v1/authorize?redirect_uri=${infraRedirect}&client_id=${selectedIdp.clientID}&response_type=code&scope=openid+email+groups+offline_access&state=${state}`
   }
 
   // TODO: it is not working right now
-  const logout = () => {
-    axios.post('/v1/logout', {}, { headers: { Authorization: `Bearer ${cookie.accessKey}` }})
-    .then(() => {
-      setAuthReady(false)
-      redirectAccountPage(providers)
-      removeCookies('accessKey', { path: '/' })
-    })
+  const logout = (): void => {
+    axios.post('/v1/logout', {}, { headers: { Authorization: `Bearer ${cookie.accessKey}` } })
+      .then(() => {
+        setAuthReady(false)
+        setHasRedirected(false)
+        redirectAccountPage(providers)
+        removeCookies('accessKey', { path: '/' })
+      })
   }
 
   const register = async (key: string) => {
@@ -145,7 +145,7 @@ export const AuthContextProvider = ({ children }:any) => {
     await redirectToDashboard(key)
   }
 
-  const context:AppContextInterface = { 
+  const context: AppContextInterface = {
     authReady,
     cookie,
     hasRedirected,
@@ -160,7 +160,7 @@ export const AuthContextProvider = ({ children }:any) => {
 
   return (
     <AuthContext.Provider value={context}>
-      { children }
+      {children}
     </AuthContext.Provider>
   )
 }

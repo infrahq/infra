@@ -29,7 +29,7 @@ const AccessKeyInputContainer = styled.div`
   margin-top: 1.5rem;
 `
 
-const Register = () => {
+const Register = (): JSX.Element => {
   const { authReady, register } = useContext(AuthContext)
   const [value, setValue] = useState('')
 
@@ -41,7 +41,7 @@ const Register = () => {
     }
   }, [])
 
-  const handleLogin = async () => {
+  const handleLogin = (): void => {
     register(value)
   }
 

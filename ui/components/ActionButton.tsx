@@ -1,8 +1,8 @@
 import styled from 'styled-components'
 
 interface Button {
-  children: React.ReactNode,
-  onClick: () => void,
+  children: React.ReactNode
+  onClick: () => void
   size?: 'large' | 'small'
 }
 
@@ -20,8 +20,7 @@ const StyledButton = styled.button<Button>`
   }
 `
 
-
-const ActionButton = ({ children, onClick, size = 'large' }: Button) => {
+const ActionButton = ({ children, onClick, size = 'large' }: Button): JSX.Element => {
   return (
     <StyledButton onClick={onClick} size={size}>{children}</StyledButton>
   )
