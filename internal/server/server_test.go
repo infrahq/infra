@@ -6,7 +6,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
+	"github.com/infrahq/infra/internal/config"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/secrets"
 )
 
@@ -61,4 +63,92 @@ func TestGetPostgresConnectionURL(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, "host=localhost user=user password=secret port=5432 dbname=postgres", url)
+}
+
+func TestSetupRequired(t *testing.T) {
+	db := setupDB(t)
+	s := Server{db: db}
+
+	// cases where setup is enabled
+	cases := map[string]Options{
+		"EnableSetup": {
+			EnableSetup: true,
+		},
+		"NoImportProviders": {
+			EnableSetup: true,
+			Import: &config.Config{
+				Providers: []config.Provider{},
+			},
+		},
+		"NoImportGrants": {
+			EnableSetup: true,
+			Import: &config.Config{
+				Grants: []config.Grant{},
+			},
+		},
+	}
+
+	for name, options := range cases {
+		t.Run(name, func(t *testing.T) {
+			s.options = options
+			require.True(t, s.setupRequired())
+		})
+	}
+
+	// cases where setup is disabled through configs
+	cases = map[string]Options{
+		"DisableSetup": {
+			EnableSetup: false,
+		},
+		"AdminAccessKey": {
+			EnableSetup:    true,
+			AdminAccessKey: "admin-access-key",
+		},
+		"AccessKey": {
+			EnableSetup: true,
+			AccessKey:   "access-key",
+		},
+		"ImportProviders": {
+			EnableSetup: true,
+			Import: &config.Config{
+				Providers: []config.Provider{
+					{
+						Name: "provider",
+					},
+				},
+			},
+		},
+		"ImportGrants": {
+			EnableSetup: true,
+			Import: &config.Config{
+				Grants: []config.Grant{
+					{
+						Role: "admin",
+					},
+				},
+			},
+		},
+	}
+
+	for name, options := range cases {
+		t.Run(name, func(t *testing.T) {
+			s.options = options
+			require.False(t, s.setupRequired())
+		})
+	}
+
+	// reset options
+	s.options = Options{
+		EnableSetup: true,
+	}
+
+	err := db.Create(&models.Machine{Name: "non-admin"}).Error
+	require.NoError(t, err)
+
+	require.True(t, s.setupRequired())
+
+	err = db.Create(&models.Machine{Name: "admin"}).Error
+	require.NoError(t, err)
+
+	require.False(t, s.setupRequired())
 }

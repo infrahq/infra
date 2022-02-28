@@ -77,10 +77,14 @@ func (a *API) registerRoutes(router *gin.RouterGroup) {
 	unauthorized := router.Group("/")
 
 	{
+		get(unauthorized, "/setup", a.SetupRequired)
+		post(unauthorized, "/setup", a.Setup)
+
+		post(unauthorized, "/login", a.Login)
+
 		get(unauthorized, "/providers", a.ListProviders)
 		get(unauthorized, "/providers/:id", a.GetProvider)
 
-		post(unauthorized, "/login", a.Login)
 		get(unauthorized, "/version", a.Version)
 	}
 }

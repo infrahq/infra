@@ -12,7 +12,7 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func InitializeSettings(db *gorm.DB) (*models.Settings, error) {
+func InitializeSettings(db *gorm.DB, setupRequired bool) (*models.Settings, error) {
 	pubkey, seckey, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		return nil, err
@@ -39,12 +39,17 @@ func InitializeSettings(db *gorm.DB) (*models.Settings, error) {
 		return nil, err
 	}
 
+	defaults := models.Settings{
+		SetupRequired: setupRequired,
+	}
+
 	settings := models.Settings{
 		PrivateJWK: secs,
 		PublicJWK:  pubs,
 	}
 
-	if err := db.FirstOrCreate(&settings).Error; err != nil {
+	// Attrs() assigns the field iff the record is not found
+	if err := db.Attrs(defaults).FirstOrCreate(&settings).Error; err != nil {
 		return nil, err
 	}
 
@@ -58,4 +63,8 @@ func GetSettings(db *gorm.DB) (*models.Settings, error) {
 	}
 
 	return &settings, nil
+}
+
+func SaveSettings(db *gorm.DB, settings *models.Settings) error {
+	return save(db, settings)
 }

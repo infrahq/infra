@@ -539,6 +539,34 @@ func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) error {
 	return access.DeleteGrant(c, r.ID)
 }
 
+func (a *API) SetupRequired(c *gin.Context, _ *api.EmptyRequest) (*api.SetupRequiredResponse, error) {
+	setupRequired, err := access.SetupRequired(c)
+	if err != nil {
+		return nil, err
+	}
+
+	return &api.SetupRequiredResponse{
+		Required: setupRequired,
+	}, nil
+}
+
+func (a *API) Setup(c *gin.Context, _ *api.EmptyRequest) (*api.CreateAccessKeyResponse, error) {
+	raw, accessKey, err := access.Setup(c)
+	if err != nil {
+		return nil, err
+	}
+
+	return &api.CreateAccessKeyResponse{
+		ID:                accessKey.ID,
+		Created:           accessKey.CreatedAt,
+		Name:              accessKey.Name,
+		IssuedFor:         accessKey.IssuedFor,
+		Expires:           accessKey.ExpiresAt,
+		ExtensionDeadline: accessKey.ExtensionDeadline,
+		AccessKey:         raw,
+	}, nil
+}
+
 func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, error) {
 	provider, err := access.GetProvider(c, r.ProviderID)
 	if err != nil {
