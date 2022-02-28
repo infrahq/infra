@@ -17,8 +17,8 @@ import (
 	"time"
 
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/registry/data"
-	"github.com/infrahq/infra/internal/registry/models"
+	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/secrets"
 	"gorm.io/gorm"
 )
