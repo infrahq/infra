@@ -44,6 +44,7 @@ type Options struct {
 	EnableCrashReporting bool          `mapstructure:"enableCrashReporting"`
 	EnableUI             bool          `mapstructure:"enableUI"`
 	UIProxyURL           string        `mapstructure:"uiProxyURL"`
+	EnableSetup          bool          `mapstructure:"enableSetup"`
 	SessionDuration      time.Duration `mapstructure:"sessionDuration"`
 
 	DBFile                  string `mapstructure:"dbFile" `
@@ -103,18 +104,9 @@ func Run(options Options) (err error) {
 		return fmt.Errorf("db: %w", err)
 	}
 
-	settings, err := data.InitializeSettings(server.db)
-	if err != nil {
-		return fmt.Errorf("settings: %w", err)
-	}
-
 	if err = server.loadDBKey(); err != nil {
 		return fmt.Errorf("loading database key: %w", err)
 	}
-
-	sentry.ConfigureScope(func(scope *sentry.Scope) {
-		scope.SetContext("serverId", settings.ID)
-	})
 
 	if options.EnableTelemetry {
 		if err := configureTelemetry(server.db); err != nil {
@@ -133,6 +125,15 @@ func Run(options Options) (err error) {
 	if err := server.importAccessKeys(); err != nil {
 		return fmt.Errorf("importing access keys: %w", err)
 	}
+
+	settings, err := data.InitializeSettings(server.db, server.setupRequired())
+	if err != nil {
+		return fmt.Errorf("settings: %w", err)
+	}
+
+	sentry.ConfigureScope(func(scope *sentry.Scope) {
+		scope.SetContext("serverId", settings.ID)
+	})
 
 	// TODO: this should instead happen after runserver and we should wait for the server to close
 	go func() {
@@ -424,4 +425,28 @@ func (s *Server) createDBKey(provider secrets.SymmetricKeyProvider, rootKeyId st
 	models.SymmetricKey = sKey
 
 	return nil
+}
+
+func (s *Server) setupRequired() bool {
+	if !s.options.EnableSetup {
+		return false
+	}
+
+	if s.options.AdminAccessKey != "" || s.options.AccessKey != "" {
+		return false
+	}
+
+	if s.options.Import != nil {
+		if len(s.options.Import.Providers) != 0 || len(s.options.Import.Grants) != 0 {
+			return false
+		}
+	}
+
+	machines, err := data.ListMachines(s.db, data.ByName("admin"))
+	if err != nil {
+		logging.S.Errorf("machines: %w", err)
+		return false
+	}
+
+	return len(machines) == 0
 }

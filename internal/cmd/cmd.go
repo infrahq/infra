@@ -378,6 +378,7 @@ func newServerCmd() *cobra.Command {
 	cmd.Flags().Bool("enable-ui", false, "Enable Infra server UI")
 	cmd.Flags().String("ui-proxy-url", "", "Proxy upstream UI requests to this url")
 	cmd.Flags().DurationP("session-duration", "d", time.Hour*12, "User session duration")
+	cmd.Flags().Bool("enable-setup", true, "Enable one-time setup")
 
 	return cmd
 }
