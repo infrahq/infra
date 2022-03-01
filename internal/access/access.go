@@ -25,6 +25,7 @@ func getCurrentIdentity(c *gin.Context) uid.PolymorphicID {
 	return c.MustGet("identity").(uid.PolymorphicID)
 }
 
+// hasAuthorization checks if a caller is the owner of a resource before checking if they have an approprite role to access it
 func hasAuthorization(c *gin.Context, requestedResource uid.ID, isResourceOwner func(c *gin.Context, requestedResourceID uid.ID) (bool, error), oneOfRoles ...string) (*gorm.DB, error) {
 	owner, err := isResourceOwner(c, requestedResource)
 	if err != nil {
