@@ -1,20 +1,20 @@
 import { useContext, useEffect, useState } from 'react'
 import AuthContext from '../store/AuthContext'
 
-export default function Index () {
+export default function Index (): JSX.Element {
   const { logout, user } = useContext(AuthContext)
 
   // TODO: default value of currentUser
-  const [currentUser, setCurrentUser] = useState(null)
+  const [currentUser, setCurrentUser] = useState<string | null>(null)
 
   useEffect(() => {
-    if (user) {
+    if (user != null) {
       setCurrentUser(user.name)
     }
   }, [])
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async (): Promise<void> => {
+    await logout()
   }
 
   return (

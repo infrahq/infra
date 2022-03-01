@@ -1,7 +1,7 @@
 import styled from 'styled-components'
 
 interface Header {
-  header: string,
+  header: string
   subheader: string
 }
 
@@ -32,7 +32,7 @@ const StyledSubheader = styled.div`
   padding: 0 1rem;
 `
 
-const AccountHeader = ({ header, subheader }:Header) => {
+const AccountHeader = ({ header, subheader }: Header): JSX.Element => {
   return (
     <HeaderContainer>
       <LogoContainer>

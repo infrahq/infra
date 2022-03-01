@@ -3,17 +3,17 @@ import styled from 'styled-components'
 import AuthContext, { ProviderField } from '../store/AuthContext'
 
 export interface IdentitySourceProvider {
-  type: string,
-  name?: string,
-  url?: string,
-  clientID?: string,
-  id?: string,
-  created?: number,
-  updated?: number
+  type: string
+  name: string
+  url: string
+  clientID: string
+  id: string
+  created: number
+  updated: number
 }
 
 interface IdentitySourceBtnField {
-  providers: IdentitySourceProvider[],
+  providers: IdentitySourceProvider[]
   onClick?: () => void
 }
 
@@ -27,14 +27,14 @@ const IdentitySourceContainer = styled.button`
   width: 24rem;
   height: 3rem;
   background: rgba(255,255,255,0.02);
-  opacity: ${props => props.disabled ? '.56' : '1'};
+  opacity: ${props => props.disabled != null && props.disabled ? '.56' : '1'};
   border-radius: .25rem;
   border: none;
-  cursor: ${props => props.disabled ? 'default' : 'pointer'};
+  cursor: ${props => props.disabled != null && props.disabled ? 'default' : 'pointer'};
   color: #FFFFFF;
 
-  ${ props => props.disabled 
-    ? '' 
+  ${props => props.disabled != null && props.disabled
+    ? ''
     : '&:hover { opacity: .95 }'
   }
 `
@@ -74,7 +74,7 @@ const DescriptionSubheader = styled.div`
   opacity: 0.3;
 `
 
-const IdentitySourceBtn = ({ providers }: IdentitySourceBtnField ) => {
+const IdentitySourceBtn = ({ providers }: IdentitySourceBtnField): JSX.Element => {
   const { login } = useContext(AuthContext)
 
   return (
@@ -83,8 +83,8 @@ const IdentitySourceBtn = ({ providers }: IdentitySourceBtnField ) => {
         return (
           <IdentitySourceContainer
             key={index}
-            onClick={!provider.url ? undefined : () => login(provider as ProviderField) }
-            disabled={!provider.url}
+            onClick={() => login(provider as ProviderField)}
+            disabled={false}
           >
             <IdentitySourceContentContainer>
               <IdentitySourceLogo>
@@ -92,7 +92,7 @@ const IdentitySourceBtn = ({ providers }: IdentitySourceBtnField ) => {
               </IdentitySourceLogo>
               <IdentitySourceContentDescriptionContainer>
                 <DescriptionHeader>{provider.type}</DescriptionHeader>
-                <DescriptionSubheader>{provider.name ? provider.name : 'Identity Source'}</DescriptionSubheader>
+                <DescriptionSubheader>{provider.name}</DescriptionSubheader>
               </IdentitySourceContentDescriptionContainer>
             </IdentitySourceContentContainer>
           </IdentitySourceContainer>

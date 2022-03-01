@@ -17,7 +17,14 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    "incremental": true
+    "incremental": true,
+    "outDir": "./dist",
+    "declaration": true,
+    "checkJs": true,
+    "newLine": "lf",
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
   },
   "include": [
     "next-env.d.ts",

@@ -1,8 +1,8 @@
 import styled from 'styled-components'
 
 interface AccessKeyInputField {
-  value: string,
-  onChange: (e:any) => void
+  value: string
+  onChange: (e: any) => void
 }
 
 const AccessKeyInputContainer = styled.section`
@@ -23,8 +23,8 @@ const StyledInputContainer = styled.div`
   padding: 0 .5rem 0 .75rem;
 `
 
-const StyledInput = styled.input.attrs({ 
-  type: 'text',
+const StyledInput = styled.input.attrs({
+  type: 'text'
 })`
   border: none;
   background: transparent;
@@ -51,13 +51,13 @@ const Label = styled.span`
   color: rgba(255, 255, 255, 0.5);
 `
 
-const AccessKeyInput = ({ value, onChange }: AccessKeyInputField) => {
+const AccessKeyInput = ({ value, onChange }: AccessKeyInputField): JSX.Element => {
   return (
     <AccessKeyInputContainer>
       <InputGroup>
         <Label>Admin API Access Key</Label>
         <StyledInputContainer>
-          <StyledInput 
+          <StyledInput
             value={value}
             onChange={onChange}
           />
