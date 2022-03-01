@@ -120,6 +120,6 @@ func ByUserID(userID uid.ID) SelectorFunc {
 func NotCreatedBySystem() SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		// the created_by field is default 0 when not set by default
-		return db.Where("created_by != ?", 0)
+		return db.Where("created_by != 0")
 	}
 }
