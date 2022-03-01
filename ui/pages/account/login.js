@@ -52,16 +52,16 @@ const HelpContainer = styled.div`
   }
 `
 
-export const readyToRedirect = async (): Promise<any> => {
+export const readyToRedirect = async () => {
   await Router.push({
     pathname: '/'
   }, undefined, { shallow: true })
 }
 
-const Login = (): JSX.Element => {
+const Login = () => {
   const { providers, authReady, hasRedirected } = useContext(AuthContext)
 
-  const getProviderType = (url: string): string => {
+  const getProviderType = (url) => {
     const tempURL = url
     return tempURL.replace(/^https?:\/\//, '').split('/')[0].split('.').reverse()[1]
   }

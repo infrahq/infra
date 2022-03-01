@@ -1,12 +1,7 @@
 import styled from 'styled-components'
+import PropTypes from 'prop-types'
 
-interface Button {
-  children: React.ReactNode
-  onClick: () => void
-  size?: 'large' | 'small'
-}
-
-const StyledButton = styled.button<Button>`
+const StyledButton = styled.button`
   width: ${props => props.size === 'large' ? '24rem' : '12rem'};
   height: ${props => props.size === 'large' ? '2.125rem' : '1.5rem'};
   background: linear-gradient(266.64deg, #CB56FF -53.31%, #4EB2F4 93.79%);
@@ -20,10 +15,16 @@ const StyledButton = styled.button<Button>`
   }
 `
 
-const ActionButton = ({ children, onClick, size = 'large' }: Button): JSX.Element => {
+const ActionButton = ({ value, onClick, size = 'large' }) => {
   return (
-    <StyledButton onClick={onClick} size={size}>{children}</StyledButton>
+    <StyledButton onClick={onClick} size={size}>{value}</StyledButton>
   )
+}
+
+ActionButton.prototype = {
+  value: PropTypes.string.isRequired,
+  onClick: PropTypes.func.isRequired,
+  size: PropTypes.oneOf(['large', 'small'])
 }
 
 export default ActionButton

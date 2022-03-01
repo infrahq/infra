@@ -1,9 +1,5 @@
+import PropTypes from 'prop-types'
 import styled from 'styled-components'
-
-interface AccessKeyInputField {
-  value: string
-  onChange: (e: any) => void
-}
 
 const AccessKeyInputContainer = styled.section`
   position: relative;
@@ -51,7 +47,7 @@ const Label = styled.span`
   color: rgba(255, 255, 255, 0.5);
 `
 
-const AccessKeyInput = ({ value, onChange }: AccessKeyInputField): JSX.Element => {
+const AccessKeyInput = ({ value, onChange }) => {
   return (
     <AccessKeyInputContainer>
       <InputGroup>
@@ -67,6 +63,11 @@ const AccessKeyInput = ({ value, onChange }: AccessKeyInputField): JSX.Element =
       </InputGroup>
     </AccessKeyInputContainer>
   )
+}
+
+AccessKeyInput.prototype = {
+  value: PropTypes.string.isRequired,
+  onChange: PropTypes.func.isRequired
 }
 
 export default AccessKeyInput
