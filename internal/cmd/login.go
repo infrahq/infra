@@ -128,22 +128,15 @@ func login(host string) error {
 	var accessKey string
 
 	if setupRequired.Required {
-		doSetup, err := promptSetup()
-		if err != nil {
-			return err
-		}
-
-		if !doSetup {
-			return errors.New("Could not complete setup")
-		}
-
 		setup, err := client.Setup()
 		if err != nil {
 			return err
 		}
 
-		fmt.Printf("  Store this in a secure location. You will not see it again.\n")
+		fmt.Println()
+		fmt.Printf("  Congratulations, Infra has been successfully installed.\n\n")
 		fmt.Printf("  Access Key: %s\n", setup.AccessKey)
+		fmt.Printf(fmt.Sprintf("  %s", termenv.String("IMPORTANT: Store in a safe place. You will not see it again.\n\n").Bold().String()))
 
 		accessKey = setup.AccessKey
 	}
@@ -404,19 +397,4 @@ func promptShouldSkipTLSVerify(host string) (shouldSkipTLSVerify bool, proceed b
 	defer res.Body.Close()
 
 	return false, true, nil
-}
-
-func promptSetup() (bool, error) {
-	var proceed bool
-
-	prompt := &survey.Confirm{
-		Message: "Setup incomplete. Continue to complete setup?",
-	}
-
-	err := survey.AskOne(prompt, &proceed, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
-	if err != nil {
-		return false, err
-	}
-
-	return proceed, nil
 }
