@@ -330,14 +330,7 @@ func newServerCmd() *cobra.Command {
 			strcase.ConfigureAcronym("enable-ui", "enableUI")
 			strcase.ConfigureAcronym("ui-proxy-url", "uiProxyURL")
 
-			homeDir, err := infraHomeDir()
-			if err != nil {
-				return err
-			}
-			options := server.Options{
-				InfraHomeDir: homeDir,
-			}
-
+			options := server.Options{}
 			if err := parseOptions(cmd, &options, "INFRA_SERVER"); err != nil {
 				return err
 			}

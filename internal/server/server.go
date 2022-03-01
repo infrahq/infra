@@ -15,7 +15,6 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"os"
-	"path"
 	"strings"
 	"time"
 
@@ -53,7 +52,6 @@ type Options struct {
 	UIProxyURL           string        `mapstructure:"uiProxyURL"`
 	EnableSetup          bool          `mapstructure:"enableSetup"`
 	SessionDuration      time.Duration `mapstructure:"sessionDuration"`
-	InfraHomeDir         string
 
 	DBFile                  string `mapstructure:"dbFile" `
 	DBEncryptionKey         string `mapstructure:"dbEncryptionKey"`
@@ -189,9 +187,6 @@ func (s *Server) loadCertificates() (err error) {
 	}
 
 	fullRotationInDays := s.options.Certificates.FullKeyRotationInDays
-
-	keyPath := path.Join(s.options.InfraHomeDir, "keys")
-	_ = os.MkdirAll(keyPath, 0o700)
 
 	// TODO: check certificate provider from config
 	s.certificateProvider, err = pki.NewNativeCertificateProvider(s.db, pki.NativeCertificateProviderConfig{

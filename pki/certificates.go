@@ -97,7 +97,6 @@ func SignUserCert(cp CertificateProvider, cert *x509.Certificate, user *models.U
 		PublicKey:          cert.PublicKey,
 		Subject:            cert.Subject,
 		EmailAddresses:     []string{user.Email},
-		IPAddresses:        cert.IPAddresses,
 		Extensions:         cert.Extensions,
 		ExtraExtensions:    cert.ExtraExtensions,
 		SignatureAlgorithm: x509.PureEd25519,

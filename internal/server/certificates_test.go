@@ -17,27 +17,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type mockCertificateProvider struct {
-	mainCA x509.Certificate
-	prevCA x509.Certificate
-}
-
-func (m *mockCertificateProvider) CreateCA() error {
-	return nil
-}
-func (m *mockCertificateProvider) RotateCA() error {
-	return nil
-}
-func (m *mockCertificateProvider) ActiveCAs() []x509.Certificate {
-	return []x509.Certificate{}
-}
-func (m *mockCertificateProvider) TLSCertificates() ([]tls.Certificate, error) {
-	return []tls.Certificate{}, nil
-}
-func (m *mockCertificateProvider) SignCertificate(csr x509.CertificateRequest) (pemBytes []byte, err error) {
-	return nil, nil
-}
-
 func TestCertificateSigningWorks(t *testing.T) {
 	db := setupDB(t)
 
@@ -111,6 +90,7 @@ func requireMutualTLSWorks(t *testing.T, clientKeypair *pki.KeyPair, cp pki.Cert
 	http := http.Client{
 		Transport: transport,
 	}
+
 	resp, err := http.Get(server.URL)
 	require.NoError(t, err)
 

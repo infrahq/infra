@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -248,7 +249,6 @@ func (n *NativeCertificateProvider) SignCertificate(csr x509.CertificateRequest)
 	certTemplate := &x509.Certificate{
 		Signature:          csr.Signature,
 		SignatureAlgorithm: csr.SignatureAlgorithm,
-
 		PublicKeyAlgorithm: csr.PublicKeyAlgorithm,
 		PublicKey:          csr.PublicKey,
 		SerialNumber:       big.NewInt(2),
@@ -348,7 +348,8 @@ func createCertSignedBy(signer, signee KeyPair, lifetime time.Duration) (*x509.C
 		BasicConstraintsValid: true,
 
 		// SubjectAltName values
-		DNSNames: []string{"localhost"}, // TODO: Support domain names for services?
+		IPAddresses: []net.IP{net.ParseIP("127.0.0.1"), net.IPv6loopback},
+		DNSNames:    []string{"localhost"}, // TODO: Support domain names for services?
 	}
 
 	signeeCert := signee.Cert
