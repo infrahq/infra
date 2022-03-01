@@ -171,7 +171,7 @@ func createClientCertSignedBy(signer, signee KeyPair, subject string, lifetime t
 		PublicKey:          signee.PublicKey,
 		SerialNumber:       big.NewInt(rand.Int63()), //nolint:gosec
 		Subject:            pkix.Name{CommonName: subject},
-		NotBefore:          time.Now(),
+		NotBefore:          time.Now().Add(-5 * time.Minute),
 		NotAfter:           time.Now().Add(lifetime),
 		KeyUsage:           x509.KeyUsageDataEncipherment | x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:        []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},

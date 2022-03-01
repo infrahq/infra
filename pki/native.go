@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"net"
 	"os"
 	"strings"
 	"time"
@@ -252,14 +251,13 @@ func (n *NativeCertificateProvider) SignCertificate(csr x509.CertificateRequest)
 
 		PublicKeyAlgorithm: csr.PublicKeyAlgorithm,
 		PublicKey:          csr.PublicKey,
-		IPAddresses:        []net.IP{net.ParseIP("127.0.0.1"), net.IPv6loopback},
 		SerialNumber:       big.NewInt(2),
 		Issuer:             n.activeKeypair.SignedCert.Subject,
 		Subject:            csr.Subject,
 		EmailAddresses:     csr.EmailAddresses,
 		Extensions:         csr.Extensions,      // TODO: security issue?
 		ExtraExtensions:    csr.ExtraExtensions, // TODO: security issue?
-		NotBefore:          time.Now(),
+		NotBefore:          time.Now().Add(-5 * time.Minute),
 		NotAfter:           time.Now().Add(24 * time.Hour),
 		KeyUsage:           x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 		ExtKeyUsage:        []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
@@ -335,7 +333,7 @@ func createCertSignedBy(signer, signee KeyPair, lifetime time.Duration) (*x509.C
 		SerialNumber:       serial,
 		Issuer:             pkix.Name{CommonName: rootCAName},
 		Subject:            pkix.Name{CommonName: rootCAName},
-		NotBefore:          time.Now(),
+		NotBefore:          time.Now().Add(-5 * time.Minute),
 		NotAfter:           time.Now().Add(lifetime),
 		KeyUsage: x509.KeyUsageCertSign |
 			x509.KeyUsageDigitalSignature |
@@ -350,10 +348,7 @@ func createCertSignedBy(signer, signee KeyPair, lifetime time.Duration) (*x509.C
 		BasicConstraintsValid: true,
 
 		// SubjectAltName values
-		DNSNames:    []string{"localhost"}, // TODO: Support domain names for services?
-		IPAddresses: []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback},
-		// EmailAddresses []string
-		// URIs           []*url.URL
+		DNSNames: []string{"localhost"}, // TODO: Support domain names for services?
 	}
 
 	signeeCert := signee.Cert

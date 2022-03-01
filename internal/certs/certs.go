@@ -34,7 +34,7 @@ func SelfSignedCert(hosts []string) ([]byte, []byte, error) {
 		Subject: pkix.Name{
 			Organization: []string{"Infra"},
 		},
-		NotBefore:             time.Now(),
+		NotBefore:             time.Now().Add(-5 * time.Minute),
 		NotAfter:              time.Now().AddDate(0, 0, 365),
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment | x509.KeyUsageCertSign,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},

@@ -23,7 +23,6 @@ import (
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 
-	"github.com/infrahq/infra/feature"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/config"
 	"github.com/infrahq/infra/internal/engine"
@@ -532,19 +531,6 @@ func newInfoCmd() *cobra.Command {
 	}
 }
 
-func newCertificatesCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "certificates [COMMAND]",
-		Short: "Create & manage certificates",
-		Args:  cobra.MinimumNArgs(1),
-	}
-
-	cmd.AddCommand(createCertificateCmd())
-	cmd.AddCommand(trustCertificateCmd())
-
-	return cmd
-}
-
 func newImportCmd() *cobra.Command {
 	type importOptions struct {
 		Replace bool
@@ -646,16 +632,13 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.AddCommand(newMachinesCmd())
 	rootCmd.AddCommand(newTokensCmd())
 	rootCmd.AddCommand(newImportCmd())
-	if feature.Flag("Certificates") {
-		rootCmd.AddCommand(newCertificatesCmd())
-	}
 	rootCmd.AddCommand(newInfoCmd())
 	rootCmd.AddCommand(newServerCmd())
 	rootCmd.AddCommand(newEngineCmd())
 	rootCmd.AddCommand(newVersionCmd())
 
 	rootCmd.PersistentFlags().String("log-level", "info", "Set the log level. One of error, warn, info, or debug")
-	rootCmd.PersistentFlags().Bool("non-interactive", false, "don't assume an interactive tty, even if there is one")
+	rootCmd.PersistentFlags().Bool("non-interactive", false, "don't assume an interactive terminal, even if there is one")
 
 	return rootCmd, nil
 }

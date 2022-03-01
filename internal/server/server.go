@@ -4,20 +4,18 @@
 package server
 
 import (
-	"crypto/ed25519"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"net/http"
 	"net/http/httputil"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -72,13 +70,13 @@ type Options struct {
 
 	Import *config.Config `mapstructure:"import"`
 
-	NetworkEncryption string `yaml:"networkEncryption"` // mtls (default), e2ee, none.
+	NetworkEncryption string `mapstructure:"networkEncryption"` // mtls (default), e2ee, none.
 	Certificates      struct {
-		TrustInitialClientPublicKey string `yaml:"trustInitialClientPublicKey"`
-		InitialRootCACert           string `yaml:"initialRootCACert"`
-		InitialRootCAPublicKey      string `yaml:"initialRootCAPublicKey"`
-		FullKeyRotationInDays       int    `yaml:"fullKeyRotationInDays"` // 365 default
-	} `yaml:"certificates"`
+		TrustInitialClientPublicKey string `mapstructure:"trustInitialClientPublicKey"`
+		InitialRootCACert           string `mapstructure:"initialRootCACert"`
+		InitialRootCAPublicKey      string `mapstructure:"initialRootCAPublicKey"`
+		FullKeyRotationInDays       int    `mapstructure:"fullKeyRotationInDays"` // 365 default
+	} `mapstructure:"certificates"`
 }
 
 type Server struct {
@@ -249,48 +247,26 @@ func (s *Server) loadCertificates() (err error) {
 		}
 	}
 
-	path := filepath.Join(s.options.InfraHomeDir, "keys", "trusted-client-keys")
-	err = filepath.Walk(path, func(path string, info fs.FileInfo, err error) error {
-		if !info.IsDir() {
-			pems, raw, err := pki.ReadFromPEMFile(path)
-			if err != nil {
-				return fmt.Errorf("reading pem file %q: %w", info.Name(), err)
-			}
-
-			cert, err := x509.ParseCertificate(pems[0].Bytes)
-			if err != nil {
-				return err
-			}
-
-			name := cert.Subject.CommonName
-			ident := ""
-			switch {
-			case strings.HasPrefix(name, "User"):
-				ident = "u:" + strings.Split(name, " ")[1]
-			case strings.HasPrefix(name, "Machine"):
-				ident = "m:" + strings.Split(name, " ")[1]
-			}
-
-			tc := &models.TrustedCertificate{
-				KeyAlgorithm:     x509.PureEd25519.String(),
-				SigningAlgorithm: x509.Ed25519.String(),
-				PublicKey:        models.Base64(cert.PublicKey.(ed25519.PublicKey)),
-				CertPEM:          raw,
-				ExpiresAt:        cert.NotAfter,
-				Identity:         ident,
-			}
-
-			// insert into db.
-			err = data.TrustPublicKey(s.db, tc)
-			if err != nil {
-				return fmt.Errorf("saving trusted public key: %w", err)
-			}
+	if len(s.options.Certificates.TrustInitialClientPublicKey) > 0 {
+		key := s.options.Certificates.TrustInitialClientPublicKey
+		rawKey, err := base64.StdEncoding.DecodeString(key)
+		if err != nil {
+			return fmt.Errorf("reading trustInitialClientPublicKey: %w", err)
 		}
 
-		return nil
-	})
-	if err != nil {
-		return err
+		tc := &models.TrustedCertificate{
+			KeyAlgorithm:     x509.PureEd25519.String(),
+			SigningAlgorithm: x509.Ed25519.String(),
+			PublicKey:        models.Base64(rawKey),
+			// CertPEM:          raw,
+			// ExpiresAt:        cert.NotAfter,
+			// Identity:         ident,
+		}
+
+		err = data.TrustPublicKey(s.db, tc)
+		if err != nil {
+			return fmt.Errorf("saving trusted public key: %w", err)
+		}
 	}
 
 	return nil
@@ -406,7 +382,6 @@ func (s *Server) runServer() error {
 
 	go serve(metricsServer)
 
-	// TODO: Remove plaintext server?
 	plaintextServer := &http.Server{
 		Addr:     ":80",
 		Handler:  handlers.CustomLoggingHandler(io.Discard, sentryHandler.Handle(router), logging.ZapLogFormatter),

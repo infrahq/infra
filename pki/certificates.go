@@ -50,11 +50,10 @@ func MakeUserCert(commonName string, lifetime time.Duration) (*KeyPair, error) {
 		PublicKey:          pub,
 		SerialNumber:       big.NewInt(rand.Int63()), //nolint:gosec
 		Subject:            pkix.Name{CommonName: commonName},
-		// IPAddresses:        []net.IP{net.ParseIP("127.0.0.1"), net.IPv6loopback},
-		NotBefore:   time.Now(),
-		NotAfter:    time.Now().Add(lifetime),
-		KeyUsage:    x509.KeyUsageDataEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+		NotBefore:          time.Now().Add(-5 * time.Minute),
+		NotAfter:           time.Now().Add(lifetime),
+		KeyUsage:           x509.KeyUsageDataEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:        []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 	}
 
 	rawCert, err := x509.CreateCertificate(randReader, &certTemplate, &certTemplate, pub, prv)
