@@ -104,6 +104,10 @@ func writeKubeconfig(destinations []api.Destination, grants []api.Grant) error {
 			continue
 		}
 
+		if len(parts) < 2 {
+			continue
+		}
+
 		cluster := parts[1]
 
 		var namespace string
@@ -120,6 +124,8 @@ func writeKubeconfig(destinations []api.Destination, grants []api.Grant) error {
 		var url, ca string
 		var exists bool
 		for _, d := range destinations {
+			// eg resource:  "kubernetes.foo.bar"
+			// eg dest name: "kubernetes.foo"
 			if strings.HasPrefix(g.Resource, d.Name) {
 				url = d.Connection.URL
 				ca = d.Connection.CA
