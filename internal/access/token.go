@@ -7,12 +7,6 @@ import (
 
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/uid"
-)
-
-const (
-	PermissionToken       Permission = "infra.token.*"
-	PermissionTokenCreate Permission = "infra.token.create"
 )
 
 func CreateUserToken(c *gin.Context) (token *models.Token, err error) {
@@ -21,12 +15,8 @@ func CreateUserToken(c *gin.Context) (token *models.Token, err error) {
 		return nil, fmt.Errorf("no active user")
 	}
 
-	db, err := requireAuthorizationWithCheck(c, PermissionTokenCreate, func(id uid.ID) bool {
-		return user.ID == id
-	})
-	if err != nil {
-		return nil, err
-	}
+	// does not need authorization check, limited to calling user
+	db := getDB(c)
 
 	return data.CreateUserToken(db, user.ID)
 }
@@ -38,12 +28,8 @@ func CreateMachineToken(c *gin.Context) (token *models.Token, err error) {
 		return nil, fmt.Errorf("no active machine")
 	}
 
-	db, err := requireAuthorizationWithCheck(c, PermissionTokenCreate, func(id uid.ID) bool {
-		return machine.ID == id
-	})
-	if err != nil {
-		return nil, err
-	}
+	// does not need authorization check, limited to calling machine
+	db := getDB(c)
 
 	return data.CreateMachineToken(db, machine.ID)
 }

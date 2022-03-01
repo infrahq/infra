@@ -14,10 +14,8 @@ import (
 )
 
 func SetupRequired(c *gin.Context) (bool, error) {
-	db, err := requireAuthorization(c)
-	if err != nil {
-		return false, err
-	}
+	// no authorization is setup yet
+	db := getDB(c)
 
 	settings, err := data.GetSettings(db)
 	if err != nil {
@@ -28,10 +26,8 @@ func SetupRequired(c *gin.Context) (bool, error) {
 }
 
 func Setup(c *gin.Context) (string, *models.AccessKey, error) {
-	db, err := requireAuthorization(c)
-	if err != nil {
-		return "", nil, err
-	}
+	// no authorization is setup yet
+	db := getDB(c)
 
 	settings, err := data.GetSettings(db)
 	if err != nil {
@@ -47,7 +43,6 @@ func Setup(c *gin.Context) (string, *models.AccessKey, error) {
 	machine := &models.Machine{
 		Name:        name,
 		Description: "Infra admin machine identity",
-		Permissions: string(PermissionAllInfra),
 		LastSeenAt:  time.Now(),
 	}
 
@@ -64,6 +59,17 @@ func Setup(c *gin.Context) (string, *models.AccessKey, error) {
 	raw, err := data.CreateAccessKey(db, key)
 	if err != nil {
 		return "", nil, err
+	}
+
+	grant := &models.Grant{
+		Identity:  machine.PolymorphicIdentifier(),
+		Privilege: AdminRole,
+		Resource:  "infra",
+	}
+
+	err = data.CreateGrant(db, grant)
+	if err != nil {
+		return "", nil, fmt.Errorf("admin grant: %w", err)
 	}
 
 	settings.SetupRequired = false

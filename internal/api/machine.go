@@ -9,10 +9,9 @@ type Machine struct {
 	// updated time in seconds since 1970-01-01
 	Updated int64 `json:"updated"`
 	// timestamp of this machine's last interaction with Infra in seconds since 1970-01-01
-	LastSeenAt  int64    `json:"lastSeenAt"`
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	Permissions []string `json:"permissions"`
+	LastSeenAt  int64  `json:"lastSeenAt"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 }
 
 type ListMachinesRequest struct {
@@ -21,7 +20,6 @@ type ListMachinesRequest struct {
 
 // CreateMachineRequest struct for CreateMachineRequest
 type CreateMachineRequest struct {
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	Permissions []string `json:"permissions"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 }

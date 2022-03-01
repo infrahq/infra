@@ -8,16 +8,8 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-const (
-	PermissionDestination       Permission = "infra.destination.*"
-	PermissionDestinationCreate Permission = "infra.destination.create"
-	PermissionDestinationRead   Permission = "infra.destination.read"
-	PermissionDestinationUpdate Permission = "infra.destination.update"
-	PermissionDestinationDelete Permission = "infra.destination.delete"
-)
-
 func CreateDestination(c *gin.Context, destination *models.Destination) error {
-	db, err := requireAuthorization(c, PermissionDestinationCreate)
+	db, err := requireInfraRole(c, AdminRole, ConnectorRole)
 	if err != nil {
 		return err
 	}
@@ -26,7 +18,7 @@ func CreateDestination(c *gin.Context, destination *models.Destination) error {
 }
 
 func SaveDestination(c *gin.Context, destination *models.Destination) error {
-	db, err := requireAuthorization(c, PermissionDestinationUpdate)
+	db, err := requireInfraRole(c, AdminRole, ConnectorRole)
 	if err != nil {
 		return err
 	}
@@ -35,7 +27,7 @@ func SaveDestination(c *gin.Context, destination *models.Destination) error {
 }
 
 func GetDestination(c *gin.Context, id uid.ID) (*models.Destination, error) {
-	db, err := requireAuthorization(c, PermissionDestinationRead)
+	db, err := requireInfraRole(c, AdminRole, ConnectorRole, UserRole)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +36,7 @@ func GetDestination(c *gin.Context, id uid.ID) (*models.Destination, error) {
 }
 
 func ListDestinations(c *gin.Context, uniqueID, name string) ([]models.Destination, error) {
-	db, err := requireAuthorization(c, PermissionDestinationRead)
+	db, err := requireInfraRole(c, AdminRole, ConnectorRole, UserRole)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +45,7 @@ func ListDestinations(c *gin.Context, uniqueID, name string) ([]models.Destinati
 }
 
 func DeleteDestination(c *gin.Context, id uid.ID) error {
-	db, err := requireAuthorization(c, PermissionDestinationDelete)
+	db, err := requireInfraRole(c, AdminRole)
 	if err != nil {
 		return err
 	}

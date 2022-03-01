@@ -466,28 +466,18 @@ func (sp *SecretProvider) UnmarshalYAML(unmarshal func(interface{}) error) error
 
 func (s *Server) importAccessKeys() error {
 	type key struct {
-		Secret      string
-		Permissions []string
+		Secret string
+		Role   string
 	}
 
 	keys := map[string]key{
 		"admin": {
 			Secret: s.options.AdminAccessKey,
-			Permissions: []string{
-				string(access.PermissionAllInfra),
-			},
+			Role:   access.AdminRole,
 		},
 		"engine": {
 			Secret: s.options.AccessKey,
-			Permissions: []string{
-				string(access.PermissionUserRead),
-				string(access.PermissionGroupRead),
-				string(access.PermissionMachineRead),
-				string(access.PermissionGrantRead),
-				string(access.PermissionDestinationRead),
-				string(access.PermissionDestinationCreate),
-				string(access.PermissionDestinationUpdate),
-			},
+			Role:   access.ConnectorRole,
 		},
 	}
 
@@ -517,11 +507,21 @@ func (s *Server) importAccessKeys() error {
 			machine = &models.Machine{
 				Name:        k,
 				Description: fmt.Sprintf("%s default infra server machine identity", k),
-				Permissions: strings.Join(v.Permissions, " "),
 				LastSeenAt:  time.Now(),
 			}
 
 			err = data.CreateMachine(s.db, machine)
+			if err != nil {
+				return fmt.Errorf("create identity: %w", err)
+			}
+
+			grant := &models.Grant{
+				Identity:  machine.PolymorphicIdentifier(),
+				Privilege: v.Role,
+				Resource:  "infra",
+			}
+
+			err = data.CreateGrant(s.db, grant)
 			if err != nil {
 				return fmt.Errorf("create identity: %w", err)
 			}
@@ -544,7 +544,7 @@ func (s *Server) importAccessKeys() error {
 		if ak != nil {
 			sum := sha256.Sum256([]byte(parts[1]))
 
-			// if token name, permissions, and secret checksum all match the input, skip recreating the token
+			// if token name and secret checksum match the input, skip recreating the token
 			if ak.Name == name && subtle.ConstantTimeCompare(ak.SecretChecksum, sum[:]) != 1 {
 				logging.S.Debugf("%s: skip recreating token", k)
 				continue

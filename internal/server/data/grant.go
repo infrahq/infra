@@ -1,9 +1,6 @@
 package data
 
 import (
-	"math"
-	"strings"
-
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/server/models"
@@ -20,17 +17,17 @@ func GetGrant(db *gorm.DB, selectors ...SelectorFunc) (*models.Grant, error) {
 
 func ListUserGrants(db *gorm.DB, userID uid.ID) (result []models.Grant, err error) {
 	polymorphicID := uid.NewUserPolymorphicID(userID)
-	return ListGrants(db, ByIdentity(polymorphicID))
+	return ListGrants(db, ByIdentity(polymorphicID), NotCreatedBySystem())
 }
 
 func ListMachineGrants(db *gorm.DB, machineID uid.ID) (result []models.Grant, err error) {
 	polymorphicID := uid.NewMachinePolymorphicID(machineID)
-	return ListGrants(db, ByIdentity(polymorphicID))
+	return ListGrants(db, ByIdentity(polymorphicID), NotCreatedBySystem())
 }
 
 func ListGroupGrants(db *gorm.DB, groupID uid.ID) (result []models.Grant, err error) {
 	polymorphicID := uid.NewGroupPolymorphicID(groupID)
-	return ListGrants(db, ByIdentity(polymorphicID))
+	return ListGrants(db, ByIdentity(polymorphicID), NotCreatedBySystem())
 }
 
 func ListGrants(db *gorm.DB, selectors ...SelectorFunc) ([]models.Grant, error) {
@@ -51,61 +48,6 @@ func DeleteGrants(db *gorm.DB, selectors ...SelectorFunc) error {
 	return deleteAll[models.Grant](db, ByIDs(ids))
 }
 
-func Can(db *gorm.DB, identity uid.PolymorphicID, privilege, resource string) (bool, error) {
-	grants, err := list[models.Grant](db, ByIdentity(identity), ByPrivilege(privilege), ByResource(resource))
-	if err != nil {
-		return false, err
-	}
-
-	for _, grant := range grants {
-		if grant.Matches(identity, privilege, resource) {
-			return true, nil
-		}
-	}
-
-	return false, nil
-}
-
-// wildcardCombinations turns infra.foo.1 into:
-// infra.foo.1
-// infra.foo.*
-// infra.*
-// See TestWildcardCombinations for details
-// the idea is to count in binary and use the binary int as a bitmask for which
-// elements to swap out with a wildcard
-func wildcardCombinations(s string) []string {
-	results := []string{}
-	parts := strings.Split(s, ".")
-	max := math.Pow(2, float64(len(parts)))
-
-	for i := 0; i < int(math.Ceil(max))/2; i++ {
-		if i&0b11 == 0b10 { // skip *.<id> types, as it makes no sense.
-			continue
-		}
-		parts = strings.Split(s, ".")
-		j := i
-		pos := len(parts) - 1
-		for j > 0 {
-			bit := j & 1
-			j = j >> 1
-			if bit == 1 {
-				parts[pos] = "*"
-			}
-			pos--
-			if pos == 0 {
-				break
-			}
-		}
-		s := strings.Join(parts, ".")
-		for strings.HasSuffix(s, ".*.*") {
-			s = s[:len(s)-2]
-		}
-		results = append(results, s)
-	}
-
-	return results
-}
-
 func ByPrivilege(s string) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		if s == "" {
@@ -122,7 +64,6 @@ func ByResource(s string) SelectorFunc {
 			return db
 		}
 
-		resources := wildcardCombinations(s)
-		return db.Where("resource in (?)", resources)
+		return db.Where("resource = ?", s)
 	}
 }

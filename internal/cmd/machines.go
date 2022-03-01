@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -11,7 +10,6 @@ import (
 
 type machineOptions struct {
 	Description string `mapstructure:"description"`
-	Permissions string `mapstructure:"permissions"`
 }
 
 func newMachinesCreateCmd() *cobra.Command {
@@ -32,7 +30,6 @@ func newMachinesCreateCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringP("description", "d", "", "Description of the machine identity")
-	cmd.Flags().StringP("permissions", "p", "", "Permissions of the machine identity")
 
 	return cmd
 }
@@ -54,16 +51,14 @@ func newMachinesListCmd() *cobra.Command {
 			}
 
 			type row struct {
-				Name        string   `header:"Name"`
-				Permissions []string `header:"Permissions"`
-				Description string   `header:"Description"`
+				Name        string `header:"Name"`
+				Description string `header:"Description"`
 			}
 
 			var rows []row
 			for _, m := range machines {
 				rows = append(rows, row{
 					Name:        m.Name,
-					Permissions: m.Permissions,
 					Description: m.Description,
 				})
 			}
@@ -109,7 +104,7 @@ func createMachine(name string, options *machineOptions) error {
 		return err
 	}
 
-	_, err = client.CreateMachine(&api.CreateMachineRequest{Name: name, Description: options.Description, Permissions: strings.Split(options.Permissions, " ")})
+	_, err = client.CreateMachine(&api.CreateMachineRequest{Name: name, Description: options.Description})
 	if err != nil {
 		return err
 	}

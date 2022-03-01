@@ -462,8 +462,6 @@ func newInfoCmd() *cobra.Command {
 			fmt.Fprintln(w)
 			fmt.Fprintln(w, "Server:\t", config.Host)
 
-			admin := false
-
 			if config.ProviderID != 0 {
 				// a provider implies this is a user identity
 				provider, err := client.GetProvider(config.ProviderID)
@@ -495,12 +493,6 @@ func newInfoCmd() *cobra.Command {
 				}
 
 				fmt.Fprintln(w, "Groups:\t", names)
-
-				for _, p := range user.Permissions {
-					if p == "infra.*" {
-						admin = true
-					}
-				}
 			} else {
 				machine, err := client.GetMachine(config.ID)
 				if err != nil {
@@ -508,16 +500,7 @@ func newInfoCmd() *cobra.Command {
 				}
 
 				fmt.Fprintln(w, "Machine:\t", machine.Name)
-
-				for _, p := range machine.Permissions {
-					if p == "infra.*" {
-						admin = true
-					}
-				}
 			}
-
-			fmt.Fprintln(w, "Admin:\t", admin)
-			fmt.Fprintln(w)
 
 			return nil
 		},

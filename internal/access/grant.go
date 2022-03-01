@@ -10,36 +10,26 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-const (
-	PermissionGrant       Permission = "infra.grant.*"
-	PermissionGrantCreate Permission = "infra.grant.create"
-	PermissionGrantRead   Permission = "infra.grant.read"
-	PermissionGrantUpdate Permission = "infra.grant.update"
-	PermissionGrantDelete Permission = "infra.grant.delete"
-)
-
 func GetGrant(c *gin.Context, id uid.ID) (*models.Grant, error) {
-	db, err := requireAuthorization(c, PermissionGrantRead)
+	db, err := requireInfraRole(c, AdminRole)
 	if err != nil {
 		return nil, err
 	}
 
-	return data.GetGrant(db, data.ByID(id))
+	return data.GetGrant(db, data.ByID(id), data.NotCreatedBySystem())
 }
 
 func ListGrants(c *gin.Context, identity uid.PolymorphicID, resource string, privilege string) ([]models.Grant, error) {
-	db, err := requireAuthorization(c, PermissionGrantRead)
+	db, err := requireInfraRole(c, AdminRole, ConnectorRole)
 	if err != nil {
 		return nil, err
 	}
 
-	return data.ListGrants(db, data.ByIdentity(identity), data.ByResource(resource), data.ByPrivilege(privilege))
+	return data.ListGrants(db, data.ByIdentity(identity), data.ByResource(resource), data.ByPrivilege(privilege), data.NotCreatedBySystem())
 }
 
 func ListUserGrants(c *gin.Context, userID uid.ID) ([]models.Grant, error) {
-	db, err := requireAuthorizationWithCheck(c, PermissionGrantRead, func(id uid.ID) bool {
-		return userID == id
-	})
+	db, err := hasAuthorization(c, userID, isUserSelf, AdminRole)
 	if err != nil {
 		return nil, err
 	}
@@ -48,9 +38,7 @@ func ListUserGrants(c *gin.Context, userID uid.ID) ([]models.Grant, error) {
 }
 
 func ListMachineGrants(c *gin.Context, machineID uid.ID) ([]models.Grant, error) {
-	db, err := requireAuthorizationWithCheck(c, PermissionGrantRead, func(id uid.ID) bool {
-		return machineID == id
-	})
+	db, err := hasAuthorization(c, machineID, isMachineSelf, AdminRole)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +47,7 @@ func ListMachineGrants(c *gin.Context, machineID uid.ID) ([]models.Grant, error)
 }
 
 func ListGroupGrants(c *gin.Context, groupID uid.ID) ([]models.Grant, error) {
-	db, err := requireAuthorization(c, PermissionGrantRead)
+	db, err := hasAuthorization(c, groupID, isUserInGroup, AdminRole)
 	if err != nil {
 		return nil, err
 	}
@@ -68,62 +56,28 @@ func ListGroupGrants(c *gin.Context, groupID uid.ID) ([]models.Grant, error) {
 }
 
 func CreateGrant(c *gin.Context, grant *models.Grant) error {
-	db, err := requireAuthorization(c, PermissionGrantCreate)
+	db, err := requireInfraRole(c, AdminRole)
 	if err != nil {
 		return err
 	}
 
-	// TODO (https://github.com/infrahq/infra/issues/855): replace permissions with actual grant models
-	if grant.Resource == "infra" && grant.Privilege == "admin" {
-		userID, err := grant.Identity.ID()
-		if err != nil {
-			return fmt.Errorf("invalid identity id: %w", err)
-		}
+	creator := getCurrentIdentity(c)
 
-		user, err := data.GetUser(db, data.ByID(userID))
-		if err != nil {
-			return fmt.Errorf("could not get user: %w", err)
-		}
-
-		user.Permissions = "infra.*"
-		err = data.SaveUser(db, user)
-		if err != nil {
-			return err
-		}
+	creatorID, err := creator.ID()
+	if err != nil {
+		return fmt.Errorf("set id from context: %w", err)
 	}
+
+	grant.CreatedBy = creatorID
 
 	return data.CreateGrant(db, grant)
 }
 
 func DeleteGrant(c *gin.Context, id uid.ID) error {
-	db, err := requireAuthorization(c, PermissionGrantDelete)
+	db, err := requireInfraRole(c, AdminRole)
 	if err != nil {
 		return err
 	}
 
-	// TODO: replace permissions with actual grant models
-	grant, err := data.GetGrant(db, data.ByID(id))
-	if err != nil {
-		return err
-	}
-
-	if grant.Resource == "infra" && grant.Privilege == "admin" {
-		userID, err := grant.Identity.ID()
-		if err != nil {
-			return fmt.Errorf("invalid identity id: %w", err)
-		}
-
-		user, err := data.GetUser(db, data.ByID(userID))
-		if err != nil {
-			return fmt.Errorf("could not get user: %w", err)
-		}
-
-		user.Permissions = DefaultUserPermissions
-		err = data.SaveUser(db, user)
-		if err != nil {
-			return err
-		}
-	}
-
-	return data.DeleteGrants(db, data.ByID(id))
+	return data.DeleteGrants(db, data.ByID(id), data.NotCreatedBySystem())
 }

@@ -3,7 +3,6 @@ package access
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -14,13 +13,11 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-const (
-	PermissionUser       Permission = "infra.user.*"
-	PermissionUserCreate Permission = "infra.user.create"
-	PermissionUserRead   Permission = "infra.user.read"
-	PermissionUserUpdate Permission = "infra.user.update"
-	PermissionUserDelete Permission = "infra.user.delete"
-)
+// isUserSelf is used by authorization checks to see if the calling user is requesting their own attributes
+func isUserSelf(c *gin.Context, requestedResourceID uid.ID) (bool, error) {
+	user := CurrentUser(c)
+	return user != nil && user.ID == requestedResourceID, nil
+}
 
 func CurrentUser(c *gin.Context) *models.User {
 	userObj, exists := c.Get("user")
@@ -37,11 +34,7 @@ func CurrentUser(c *gin.Context) *models.User {
 }
 
 func GetUser(c *gin.Context, id uid.ID) (*models.User, error) {
-	db, err := requireAuthorizationWithCheck(c, PermissionUserRead, func(tokenUserID uid.ID) bool {
-		// current user is allowed to fetch their own record,
-		// even without the infra.users.read permission
-		return tokenUserID == id
-	})
+	db, err := hasAuthorization(c, id, isUserSelf, AdminRole, ConnectorRole)
 	if err != nil {
 		return nil, err
 	}
@@ -50,31 +43,16 @@ func GetUser(c *gin.Context, id uid.ID) (*models.User, error) {
 }
 
 func CreateUser(c *gin.Context, user *models.User) error {
-	db, err := requireAuthorization(c, PermissionUserCreate)
+	db, err := requireInfraRole(c, AdminRole)
 	if err != nil {
 		return err
-	}
-
-	if user.Permissions == "" {
-		user.Permissions = DefaultUserPermissions
-	}
-
-	// do not let a caller create a token with more permissions than they have
-	permissions, ok := c.MustGet("permissions").(string)
-	if !ok {
-		// there should have been permissions set by this point
-		return internal.ErrForbidden
-	}
-
-	if user.Permissions != "" && !AllRequired(strings.Split(permissions, " "), strings.Split(user.Permissions, " ")) {
-		return fmt.Errorf("cannot create a user with permission not granted to the user")
 	}
 
 	return data.CreateUser(db, user)
 }
 
 func ListUsers(c *gin.Context, email string, providerID uid.ID) ([]models.User, error) {
-	db, err := requireAuthorization(c, PermissionUserRead)
+	db, err := requireInfraRole(c, AdminRole, ConnectorRole)
 	if err != nil {
 		return nil, err
 	}
@@ -83,10 +61,8 @@ func ListUsers(c *gin.Context, email string, providerID uid.ID) ([]models.User, 
 }
 
 func UpdateUserInfo(c *gin.Context, info *authn.UserInfo, user *models.User, provider *models.Provider) error {
-	db, err := requireAuthorization(c)
-	if err != nil {
-		return err
-	}
+	// no auth, this is not publically exposed
+	db := getDB(c)
 
 	// add user to groups they are currently in
 	var groups []models.Group

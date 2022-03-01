@@ -1,7 +1,6 @@
 package models
 
 import (
-	"strings"
 	"time"
 
 	"github.com/infrahq/infra/internal/api"
@@ -57,33 +56,4 @@ func (r *Grant) ToAPI() api.Grant {
 	}
 
 	return result
-}
-
-func (g *Grant) Matches(identity uid.PolymorphicID, privilege, resource string) bool {
-	if identity != g.Identity {
-		return false
-	}
-	if privilege != g.Privilege {
-		return false
-	}
-	if resource != g.Resource {
-		return matchSegment(resource, g.Resource)
-	}
-
-	return true
-}
-
-func matchSegment(resource, resourceGrant string) bool {
-	resourceParts := strings.Split(resource, ".")
-	resourceGrantParts := strings.Split(resourceGrant, ".")
-	if len(resourceParts) < len(resourceGrantParts) {
-		return false
-	}
-	for i := range resourceGrantParts {
-		if resourceGrantParts[i] != resourceParts[i] && resourceGrantParts[i] != "*" {
-			return false
-		}
-	}
-
-	return true
 }

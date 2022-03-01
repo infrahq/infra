@@ -9,6 +9,7 @@ import (
 
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/uid"
 )
 
 func newDestinationsListCmd() *cobra.Command {
@@ -53,6 +54,10 @@ func newDestinationsAddCmd() *cobra.Command {
 		Short: "Connect a destination",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if args[0] != "kubernetes" {
+				return fmt.Errorf("Supported types: `kubernetes`")
+			}
+
 			client, err := defaultAPIClient()
 			if err != nil {
 				return err
@@ -61,19 +66,20 @@ func newDestinationsAddCmd() *cobra.Command {
 			destination := &api.CreateMachineRequest{
 				Name:        args[1],
 				Description: fmt.Sprintf("%s %s destination", args[1], args[0]),
-				// TODO: create grants rather than static permissions
-				Permissions: []string{
-					string(access.PermissionUserRead),
-					string(access.PermissionMachineRead),
-					string(access.PermissionGroupRead),
-					string(access.PermissionGrantRead),
-					string(access.PermissionDestinationRead),
-					string(access.PermissionDestinationCreate),
-					string(access.PermissionDestinationUpdate),
-				},
 			}
 
 			created, err := client.CreateMachine(destination)
+			if err != nil {
+				return err
+			}
+
+			destinationGrant := &api.CreateGrantRequest{
+				Identity:  uid.NewMachinePolymorphicID(created.ID),
+				Privilege: access.ConnectorRole,
+				Resource:  "infra",
+			}
+
+			_, err = client.CreateGrant(destinationGrant)
 			if err != nil {
 				return err
 			}
@@ -86,10 +92,6 @@ func newDestinationsAddCmd() *cobra.Command {
 			})
 			if err != nil {
 				return err
-			}
-
-			if args[0] != "kubernetes" {
-				return fmt.Errorf("Supported types: `kubernetes`")
 			}
 
 			config, err := currentHostConfig()
