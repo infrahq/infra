@@ -587,7 +587,7 @@ func newVersionCmd() *cobra.Command {
 	}
 }
 
-var nonInteractiveTerminal bool
+var nonInteractiveMode bool
 
 func NewRootCmd() (*cobra.Command, error) {
 	cobra.EnableCommandSorting = false
@@ -608,7 +608,7 @@ func NewRootCmd() (*cobra.Command, error) {
 				return err
 			}
 
-			nonInteractiveTerminal = options.NonInteractive
+			nonInteractiveMode = options.NonInteractive
 
 			return logging.SetLevel(options.LogLevel)
 		},

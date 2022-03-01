@@ -27,7 +27,7 @@ const cliLoginRedirectURL = "http://localhost:8301"
 
 func relogin() error {
 	// TODO (https://github.com/infrahq/infra/issues/488): support non-interactive login
-	if !isInteractiveTerminal() {
+	if !isInteractiveMode() {
 		return errors.New("Non-interactive login is not supported")
 	}
 
@@ -69,8 +69,8 @@ func relogin() error {
 	return finishLogin(currentConfig.Host, uid.NewUserPolymorphicID(loginRes.ID), loginRes.Name, loginRes.AccessKey, currentConfig.SkipTLSVerify, 0)
 }
 
-func isInteractiveTerminal() bool {
-	if nonInteractiveTerminal {
+func isInteractiveMode() bool {
+	if nonInteractiveMode {
 		// user explicitly asked for a non-interactive terminal
 		return false
 	}
@@ -79,22 +79,12 @@ func isInteractiveTerminal() bool {
 		return false
 	}
 
-	fi, err := os.Stdin.Stat()
-	if err != nil {
-		return false
-	}
-
-	if (fi.Mode() & os.ModeCharDevice) == 0 {
-		// data is being piped in
-		return false
-	}
-
 	return term.IsTerminal(int(os.Stdin.Fd()))
 }
 
 func login(host string) error {
 	// TODO (https://github.com/infrahq/infra/issues/488): support non-interactive login
-	if !isInteractiveTerminal() {
+	if !isInteractiveMode() {
 		return errors.New("Non-interactive login is not supported")
 	}
 
@@ -185,7 +175,7 @@ func login(host string) error {
 	}
 
 	// access key
-	if option == len(options) - 1 {
+	if option == len(options)-1 {
 		if accessKey == "" {
 			err = survey.AskOne(&survey.Password{Message: "Access Key:"}, &accessKey, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
 			if err != nil {
