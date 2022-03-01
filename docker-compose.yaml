@@ -7,12 +7,6 @@ services:
     ports:
       - 8080:80
       - 8443:443
-    environment:
-      - INFRA_LOG_LEVEL=${LOG_LEVEL:-}
-      - INFRA_SERVER_ADMIN_ACCESS_KEY=${ADMIN_ACCESS_KEY:-}
-      - INFRA_SERVER_ENABLE_TELEMETRY=${ENABLE_TELEMETRY:-}
-      - INFRA_SERVER_ENABLE_CRASH_REPORTING=${ENABLE_CRASH_REPORTING:-}
-      - INFRA_SERVER_ENABLE_SETUP=${ENABLE_SETUP:-}
     volumes:
       - data:/root/.infra
 volumes:
