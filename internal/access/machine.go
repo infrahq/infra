@@ -10,6 +10,12 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+// isMachineSelf is used by authorization checks to see if the calling machine is requesting their own attributes
+func isMachineSelf(c *gin.Context, requestedResourceID uid.ID) (bool, error) {
+	machine := CurrentMachine(c)
+	return machine != nil && machine.ID == requestedResourceID, nil
+}
+
 func CurrentMachine(c *gin.Context) *models.Machine {
 	machineObj, exists := c.Get("machine")
 	if !exists {
@@ -38,7 +44,7 @@ func CreateMachine(c *gin.Context, machine *models.Machine) error {
 }
 
 func GetMachine(c *gin.Context, id uid.ID) (*models.Machine, error) {
-	db, err := requireInfraRole(c, AdminRole, ViewRole, ConnectorRole)
+	db, err := requireInfraRole(c, AdminRole, ConnectorRole)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +53,7 @@ func GetMachine(c *gin.Context, id uid.ID) (*models.Machine, error) {
 }
 
 func ListMachines(c *gin.Context, name string) ([]models.Machine, error) {
-	db, err := requireInfraRole(c, AdminRole, ViewRole, ConnectorRole)
+	db, err := requireInfraRole(c, AdminRole, ConnectorRole)
 	if err != nil {
 		return nil, err
 	}

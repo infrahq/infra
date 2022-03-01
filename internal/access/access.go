@@ -13,7 +13,6 @@ import (
 
 const (
 	AdminRole     = "admin"
-	ViewRole      = "view"
 	UserRole      = "user"
 	ConnectorRole = "connector"
 )
@@ -22,17 +21,31 @@ func getDB(c *gin.Context) *gorm.DB {
 	return c.MustGet("db").(*gorm.DB)
 }
 
+func getCurrentIdentity(c *gin.Context) uid.PolymorphicID {
+	return c.MustGet("identity").(uid.PolymorphicID)
+}
+
+func hasAuthorization(c *gin.Context, requestedResource uid.ID, isResourceOwner func(c *gin.Context, requestedResourceID uid.ID) (bool, error), oneOfRoles ...string) (*gorm.DB, error) {
+	owner, err := isResourceOwner(c, requestedResource)
+	if err != nil {
+		return nil, fmt.Errorf("owner lookup: %w", err)
+	}
+
+	if owner {
+		return getDB(c), nil
+	}
+
+	return requireInfraRole(c, oneOfRoles...)
+}
+
 // requireInfraRole checks that the identity in the context can perform an action on a resource based on their granted roles
 func requireInfraRole(c *gin.Context, oneOfRoles ...string) (*gorm.DB, error) {
 	db := getDB(c)
 
-	identity := uid.CurrentIdentity(c)
-	if identity == nil {
-		return nil, fmt.Errorf("no active identity")
-	}
+	identity := getCurrentIdentity(c)
 
 	for _, role := range oneOfRoles {
-		ok, err := Can(db, *identity, role, "infra")
+		ok, err := Can(db, identity, role, "infra")
 		if err != nil {
 			return nil, err
 		}
@@ -75,11 +88,5 @@ func Can(db *gorm.DB, identity uid.PolymorphicID, privilege, resource string) (b
 		return false, fmt.Errorf("has grants: %w", err)
 	}
 
-	for _, grant := range grants {
-		if grant.Matches(identity, privilege, resource) {
-			return true, nil
-		}
-	}
-
-	return false, nil
+	return len(grants) > 0, nil
 }

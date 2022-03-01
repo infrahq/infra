@@ -27,7 +27,7 @@ func SaveDestination(c *gin.Context, destination *models.Destination) error {
 }
 
 func GetDestination(c *gin.Context, id uid.ID) (*models.Destination, error) {
-	db, err := requireInfraRole(c, AdminRole, ViewRole, ConnectorRole, UserRole)
+	db, err := requireInfraRole(c, AdminRole, ConnectorRole, UserRole)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func GetDestination(c *gin.Context, id uid.ID) (*models.Destination, error) {
 }
 
 func ListDestinations(c *gin.Context, uniqueID, name string) ([]models.Destination, error) {
-	db, err := requireInfraRole(c, AdminRole, ViewRole, ConnectorRole, UserRole)
+	db, err := requireInfraRole(c, AdminRole, ConnectorRole, UserRole)
 	if err != nil {
 		return nil, err
 	}

@@ -2,15 +2,35 @@ package access
 
 import (
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
+// isUserInGroup is used by authorization checks to see if the calling user is requesting their own attributes
+func isUserInGroup(c *gin.Context, requestedResourceID uid.ID) (bool, error) {
+	user := CurrentUser(c)
+
+	if user != nil {
+		lookupDB := getDB(c)
+		groups, err := data.ListUserGroups(lookupDB, user.ID)
+		if err != nil {
+			return false, err
+		}
+
+		for _, g := range groups {
+			if g.ID == requestedResourceID {
+				return true, nil
+			}
+		}
+	}
+
+	return false, nil
+}
+
 func ListGroups(c *gin.Context, name string, providerID uid.ID) ([]models.Group, error) {
-	db, err := requireInfraRole(c, AdminRole, ViewRole, ConnectorRole)
+	db, err := requireInfraRole(c, AdminRole, ConnectorRole)
 	if err != nil {
 		return nil, err
 	}
@@ -28,49 +48,18 @@ func CreateGroup(c *gin.Context, group *models.Group) error {
 }
 
 func GetGroup(c *gin.Context, id uid.ID) (*models.Group, error) {
-	user := CurrentUser(c)
-	userGroups := make(map[uid.ID]bool)
-
-	var db *gorm.DB
-
-	if user != nil {
-		lookupDB := getDB(c)
-		groups, err := data.ListUserGroups(lookupDB, user.ID)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, g := range groups {
-			userGroups[g.ID] = true
-		}
-	}
-
-	if userGroups[id] {
-		// user is in group
-		db = getDB(c)
-	} else {
-		var err error
-		db, err = requireInfraRole(c, AdminRole, ViewRole, ConnectorRole)
-		if err != nil {
-			return nil, err
-		}
+	db, err := hasAuthorization(c, id, isUserInGroup, AdminRole)
+	if err != nil {
+		return nil, err
 	}
 
 	return data.GetGroup(db, data.ByID(id))
 }
 
 func ListUserGroups(c *gin.Context, userID uid.ID) ([]models.Group, error) {
-	user := CurrentUser(c)
-
-	var db *gorm.DB
-	if user != nil && user.ID == userID {
-		db = getDB(c)
-	} else {
-		var err error
-		db, err = requireInfraRole(c, AdminRole, ViewRole)
-		if err != nil {
-			return nil, err
-		}
+	db, err := hasAuthorization(c, userID, isUserSelf, AdminRole)
+	if err != nil {
+		return nil, err
 	}
 
 	return data.ListUserGroups(db, userID)

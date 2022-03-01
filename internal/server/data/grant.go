@@ -1,8 +1,6 @@
 package data
 
 import (
-	"strings"
-
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/server/models"
@@ -66,16 +64,6 @@ func ByResource(s string) SelectorFunc {
 			return db
 		}
 
-		// remove the trailing resource name if it's contained in a parent
-		split := strings.Split(s, ".")
-		if len(split) > 1 {
-			split = split[:len(split)-1]
-			s = strings.Join(split, ".")
-		}
-
-		// match anything contained in this resource
-		s = s + "%"
-
-		return db.Where("resource LIKE (?)", s)
+		return db.Where("resource = ?", s)
 	}
 }

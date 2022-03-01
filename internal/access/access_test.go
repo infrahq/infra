@@ -44,20 +44,19 @@ func TestBasicGrant(t *testing.T) {
 
 	grant(t, db, tom, "u:steven", "read", "infra.groups.1")
 	can(t, db, "u:steven", "read", "infra.groups.1")
-	can(t, db, "u:steven", "read", "infra.groups.1.1")
 	cant(t, db, "u:steven", "read", "infra.groups")
 	cant(t, db, "u:steven", "read", "infra.groups.2")
 	cant(t, db, "u:steven", "write", "infra.groups.1")
 
-	grant(t, db, tom, "u:bob", "read", "infra.groups.*")
+	grant(t, db, tom, "u:bob", "read", "infra.groups")
 	can(t, db, "u:bob", "read", "infra.groups")
-	can(t, db, "u:bob", "read", "infra.groups.1")
-	cant(t, db, "u:bob", "write", "infra.groups.1")
+	cant(t, db, "u:bob", "read", "infra.groups.1") // currently we check for exact grant match, this may change as grants evolve
+	cant(t, db, "u:bob", "write", "infra.groups")
 
 	grant(t, db, tom, "u:alice", "read", "infra.machines")
-	can(t, db, "u:alice", "read", "infra.machines.1")
 	can(t, db, "u:alice", "read", "infra.machines")
 	cant(t, db, "u:alice", "read", "infra")
+	cant(t, db, "u:alice", "read", "infra.machines.1")
 	cant(t, db, "u:alice", "write", "infra.machines")
 }
 
@@ -76,9 +75,9 @@ func TestUsersGroupGrant(t *testing.T) {
 	c.Set("identity", tom.PolymorphicIdentifier())
 	c.Set("user", tom)
 
-	grant(t, db, tom, tomsGroup.PolymorphicIdentifier(), ViewRole, "infra")
+	grant(t, db, tom, tomsGroup.PolymorphicIdentifier(), UserRole, "infra")
 
-	authDB, err := requireInfraRole(c, ViewRole)
+	authDB, err := requireInfraRole(c, UserRole)
 	assert.NoError(t, err)
 	assert.NotNil(t, authDB)
 
@@ -86,7 +85,7 @@ func TestUsersGroupGrant(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, authDB)
 
-	authDB, err = requireInfraRole(c, AdminRole, ViewRole)
+	authDB, err = requireInfraRole(c, AdminRole, UserRole)
 	assert.NoError(t, err)
 	assert.NotNil(t, authDB)
 }

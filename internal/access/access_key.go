@@ -10,7 +10,7 @@ import (
 )
 
 func ListAccessKeys(c *gin.Context, machineID uid.ID, name string) ([]models.AccessKey, error) {
-	db, err := requireInfraRole(c, AdminRole, ViewRole)
+	db, err := requireInfraRole(c, AdminRole)
 	if err != nil {
 		return nil, err
 	}

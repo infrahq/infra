@@ -526,20 +526,7 @@ func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.Grant
 		Identity:  r.Identity,
 	}
 
-	creator := uid.CurrentIdentity(c)
-
-	if creator == nil {
-		return nil, fmt.Errorf("no identity found in context")
-	}
-
-	creatorID, err := creator.ID()
-	if err != nil {
-		return nil, fmt.Errorf("set id from context: %w", err)
-	}
-
-	grant.CreatedBy = creatorID
-
-	err = access.CreateGrant(c, grant)
+	err := access.CreateGrant(c, grant)
 	if err != nil {
 		return nil, err
 	}

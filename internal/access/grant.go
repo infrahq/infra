@@ -1,8 +1,9 @@
 package access
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -10,7 +11,7 @@ import (
 )
 
 func GetGrant(c *gin.Context, id uid.ID) (*models.Grant, error) {
-	db, err := requireInfraRole(c, AdminRole, ViewRole)
+	db, err := requireInfraRole(c, AdminRole)
 	if err != nil {
 		return nil, err
 	}
@@ -19,7 +20,7 @@ func GetGrant(c *gin.Context, id uid.ID) (*models.Grant, error) {
 }
 
 func ListGrants(c *gin.Context, identity uid.PolymorphicID, resource string, privilege string) ([]models.Grant, error) {
-	db, err := requireInfraRole(c, AdminRole, ViewRole, ConnectorRole)
+	db, err := requireInfraRole(c, AdminRole, ConnectorRole)
 	if err != nil {
 		return nil, err
 	}
@@ -28,66 +29,27 @@ func ListGrants(c *gin.Context, identity uid.PolymorphicID, resource string, pri
 }
 
 func ListUserGrants(c *gin.Context, userID uid.ID) ([]models.Grant, error) {
-	user := CurrentUser(c)
-
-	var db *gorm.DB
-	if user != nil && user.ID == userID {
-		db = getDB(c)
-	} else {
-		var err error
-		db, err = requireInfraRole(c, AdminRole, ViewRole)
-		if err != nil {
-			return nil, err
-		}
+	db, err := hasAuthorization(c, userID, isUserSelf, AdminRole)
+	if err != nil {
+		return nil, err
 	}
 
 	return data.ListUserGrants(db, userID)
 }
 
 func ListMachineGrants(c *gin.Context, machineID uid.ID) ([]models.Grant, error) {
-	machine := CurrentMachine(c)
-
-	var db *gorm.DB
-	if machine != nil && machine.ID == machineID {
-		db = getDB(c)
-	} else {
-		var err error
-		db, err = requireInfraRole(c, AdminRole, ViewRole)
-		if err != nil {
-			return nil, err
-		}
+	db, err := hasAuthorization(c, machineID, isMachineSelf, AdminRole)
+	if err != nil {
+		return nil, err
 	}
 
 	return data.ListMachineGrants(db, machineID)
 }
 
 func ListGroupGrants(c *gin.Context, groupID uid.ID) ([]models.Grant, error) {
-	user := CurrentUser(c)
-	userGroups := make(map[uid.ID]bool)
-
-	var db *gorm.DB
-
-	if user != nil {
-		lookupDB := getDB(c)
-		groups, err := data.ListUserGroups(lookupDB, user.ID)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, g := range groups {
-			userGroups[g.ID] = true
-		}
-	}
-
-	if userGroups[groupID] {
-		// user is in group
-		db = getDB(c)
-	} else {
-		var err error
-		db, err = requireInfraRole(c, AdminRole, ViewRole)
-		if err != nil {
-			return nil, err
-		}
+	db, err := hasAuthorization(c, groupID, isUserInGroup, AdminRole)
+	if err != nil {
+		return nil, err
 	}
 
 	return data.ListGroupGrants(db, groupID)
@@ -98,6 +60,15 @@ func CreateGrant(c *gin.Context, grant *models.Grant) error {
 	if err != nil {
 		return err
 	}
+
+	creator := getCurrentIdentity(c)
+
+	creatorID, err := creator.ID()
+	if err != nil {
+		return fmt.Errorf("set id from context: %w", err)
+	}
+
+	grant.CreatedBy = creatorID
 
 	return data.CreateGrant(db, grant)
 }

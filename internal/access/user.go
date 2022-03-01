@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/authn"
@@ -13,6 +12,12 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
+
+// isUserSelf is used by authorization checks to see if the calling user is requesting their own attributes
+func isUserSelf(c *gin.Context, requestedResourceID uid.ID) (bool, error) {
+	user := CurrentUser(c)
+	return user != nil && user.ID == requestedResourceID, nil
+}
 
 func CurrentUser(c *gin.Context) *models.User {
 	userObj, exists := c.Get("user")
@@ -29,17 +34,9 @@ func CurrentUser(c *gin.Context) *models.User {
 }
 
 func GetUser(c *gin.Context, id uid.ID) (*models.User, error) {
-	user := CurrentUser(c)
-
-	var db *gorm.DB
-	if user != nil && user.ID == id {
-		db = getDB(c)
-	} else {
-		var err error
-		db, err = requireInfraRole(c, AdminRole, ViewRole, ConnectorRole)
-		if err != nil {
-			return nil, err
-		}
+	db, err := hasAuthorization(c, id, isUserSelf, AdminRole, ConnectorRole)
+	if err != nil {
+		return nil, err
 	}
 
 	return data.GetUser(db, data.ByID(id))
@@ -55,7 +52,7 @@ func CreateUser(c *gin.Context, user *models.User) error {
 }
 
 func ListUsers(c *gin.Context, email string, providerID uid.ID) ([]models.User, error) {
-	db, err := requireInfraRole(c, AdminRole, ViewRole, ConnectorRole)
+	db, err := requireInfraRole(c, AdminRole, ConnectorRole)
 	if err != nil {
 		return nil, err
 	}
