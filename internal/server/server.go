@@ -68,13 +68,11 @@ type Options struct {
 
 	Import *config.Config `mapstructure:"import"`
 
-	NetworkEncryption string `mapstructure:"networkEncryption"` // mtls (default), e2ee, none.
-	Certificates      struct {
-		TrustInitialClientPublicKey string `mapstructure:"trustInitialClientPublicKey"`
-		InitialRootCACert           string `mapstructure:"initialRootCACert"`
-		InitialRootCAPublicKey      string `mapstructure:"initialRootCAPublicKey"`
-		FullKeyRotationInDays       int    `mapstructure:"fullKeyRotationInDays"` // 365 default
-	} `mapstructure:"certificates"`
+	NetworkEncryption           string `mapstructure:"networkEncryption"` // mtls (default), e2ee, none.
+	TrustInitialClientPublicKey string `mapstructure:"trustInitialClientPublicKey"`
+	InitialRootCACert           string `mapstructure:"initialRootCACert"`
+	InitialRootCAPublicKey      string `mapstructure:"initialRootCAPublicKey"`
+	FullKeyRotationInDays       int    `mapstructure:"fullKeyRotationInDays"` // 365 default
 }
 
 type Server struct {
@@ -182,25 +180,25 @@ func configureTelemetry(db *gorm.DB) error {
 }
 
 func (s *Server) loadCertificates() (err error) {
-	if s.options.Certificates.FullKeyRotationInDays == 0 {
-		s.options.Certificates.FullKeyRotationInDays = 365
+	if s.options.FullKeyRotationInDays == 0 {
+		s.options.FullKeyRotationInDays = 365
 	}
 
-	fullRotationInDays := s.options.Certificates.FullKeyRotationInDays
+	fullRotationInDays := s.options.FullKeyRotationInDays
 
 	// TODO: check certificate provider from config
 	s.certificateProvider, err = pki.NewNativeCertificateProvider(s.db, pki.NativeCertificateProviderConfig{
 		FullKeyRotationDurationInDays: fullRotationInDays,
-		InitialRootCAPublicKey:        []byte(s.options.Certificates.InitialRootCAPublicKey),
-		InitialRootCACert:             []byte(s.options.Certificates.InitialRootCACert),
+		InitialRootCAPublicKey:        []byte(s.options.InitialRootCAPublicKey),
+		InitialRootCACert:             []byte(s.options.InitialRootCACert),
 	})
 	if err != nil {
 		return err
 	}
 
 	// if there's no active CAs, try loading them from options.
-	cert := s.options.Certificates.InitialRootCACert
-	key := s.options.Certificates.InitialRootCAPublicKey
+	cert := s.options.InitialRootCACert
+	key := s.options.InitialRootCAPublicKey
 
 	if len(s.certificateProvider.ActiveCAs()) == 0 && len(cert) > 0 && len(key) > 0 {
 		jsonBytes := fmt.Sprintf(`{"ServerKey":{"CertPEM":"%s", "PublicKey":"%s"}}`, cert, key)
@@ -242,8 +240,8 @@ func (s *Server) loadCertificates() (err error) {
 		}
 	}
 
-	if len(s.options.Certificates.TrustInitialClientPublicKey) > 0 {
-		key := s.options.Certificates.TrustInitialClientPublicKey
+	if len(s.options.TrustInitialClientPublicKey) > 0 {
+		key := s.options.TrustInitialClientPublicKey
 		rawKey, err := base64.StdEncoding.DecodeString(key)
 		if err != nil {
 			return fmt.Errorf("reading trustInitialClientPublicKey: %w", err)

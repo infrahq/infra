@@ -17,5 +17,3 @@ secrets/foo/bar:secret
 secrets/foo2/bar
 secrets/foo2/bar2
 secrets/foo3/bar:secret
-
-.featureflag
