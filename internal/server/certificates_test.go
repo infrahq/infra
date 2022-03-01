@@ -122,11 +122,3 @@ func requireMutualTLSWorks(t *testing.T, clientKeypair *pki.KeyPair, cp pki.Cert
 	body := strings.TrimSpace(string(respBodyBytes[:]))
 	require.Equal(t, "success!", body)
 }
-
-func TestGetFingerprintFromKubernetes(t *testing.T) {}
-
-func TestSignCertificate(t *testing.T) {}
-
-func TestGetActiveCertificates(t *testing.T) {}
-
-func TestTrustFingerprint(t *testing.T) {}
