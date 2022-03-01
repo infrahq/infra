@@ -3,15 +3,11 @@
 By default the Infra server will have two machine identities that use access keys to authenticate.
 
 ## Admin Identity
-The admin is the default root identity for interacting with Infra server. It is granted permissions to perform all operations within Infra. It should be used during initial setup, then its credentials should be stored securely in case it is needed in the future.
+The admin is the default root identity for interacting with Infra server. It is granted Infra admin role and can call all Infra endpoints. It should be used during initial setup, then its credentials should be stored securely in case it is needed in the future.
 
-To authenticate as the admin identity use the default admin access key. If this key is not provided by the user during Helm install, the admin access key will be randomly generated. Retrieve it using `kubectl`.
+To authenticate as the admin identity use the default admin access key. If this key is not provided by the user during Helm install, it can be retrieved through following the setup process.
 
 WARNING: This admin access key grants full access to Infra. Do not share it. Consider backing this value up in a secure place, such as a secret manager, to use for emergency access only.
-
-```bash
-kubectl -n infrahq get secret infra-admin-access-key -o jsonpath='{.data.access-key}' | base64 -d
-```
 
 This key can then be used to login to Infra.
 ```
