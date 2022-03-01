@@ -190,7 +190,6 @@ var baseSecretStorageKinds = []string{
 	"file",
 	"plaintext",
 	"kubernetes",
-	"postgres",
 }
 
 func isABaseSecretStorageKind(s string) bool {

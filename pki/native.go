@@ -54,7 +54,6 @@ type NativeCertificateProvider struct {
 }
 
 type NativeCertificateProviderConfig struct {
-	// StoragePath                   string
 	FullKeyRotationDurationInDays int
 	KeyAlgorithm                  string // only ed25519 so far.
 	SigningAlgorithm              string
