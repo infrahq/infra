@@ -330,7 +330,7 @@ func newServerCmd() *cobra.Command {
 			strcase.ConfigureAcronym("enable-ui", "enableUI")
 			strcase.ConfigureAcronym("ui-proxy-url", "uiProxyURL")
 
-			var options server.Options
+			options := server.Options{}
 			if err := parseOptions(cmd, &options, "INFRA_SERVER"); err != nil {
 				return err
 			}
@@ -570,11 +570,14 @@ func newVersionCmd() *cobra.Command {
 	}
 }
 
+var nonInteractiveMode bool
+
 func NewRootCmd() (*cobra.Command, error) {
 	cobra.EnableCommandSorting = false
 
 	type rootOptions struct {
-		LogLevel string `mapstructure:"logLevel"`
+		LogLevel       string `mapstructure:"logLevel"`
+		NonInteractive bool   `mapstructure:"nonInteractive"`
 	}
 
 	rootCmd := &cobra.Command{
@@ -587,6 +590,8 @@ func NewRootCmd() (*cobra.Command, error) {
 			if err := parseOptions(cmd, &options, "INFRA"); err != nil {
 				return err
 			}
+
+			nonInteractiveMode = options.NonInteractive
 
 			return logging.SetLevel(options.LogLevel)
 		},
@@ -609,6 +614,7 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.AddCommand(newVersionCmd())
 
 	rootCmd.PersistentFlags().String("log-level", "info", "Set the log level. One of error, warn, info, or debug")
+	rootCmd.PersistentFlags().Bool("non-interactive", false, "don't assume an interactive terminal, even if there is one")
 
 	return rootCmd, nil
 }

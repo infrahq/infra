@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/secrets"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -24,6 +26,17 @@ func setupDB(t *testing.T) *gorm.DB {
 
 	db, err := data.NewDB(driver)
 	require.NoError(t, err)
+
+	fp := secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{
+		Path: os.TempDir(),
+	})
+
+	kp := secrets.NewNativeSecretProvider(fp)
+
+	key, err := kp.GenerateDataKey("")
+	require.NoError(t, err)
+
+	models.SymmetricKey = key
 
 	return db
 }

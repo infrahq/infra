@@ -11,11 +11,9 @@ import (
 	"github.com/infrahq/infra/metrics"
 )
 
-type (
-	ReqHandlerFunc[Req any]         func(c *gin.Context, req *Req) error
-	ResHandlerFunc[Res any]         func(c *gin.Context) (Res, error)
-	ReqResHandlerFunc[Req, Res any] func(c *gin.Context, req *Req) (Res, error)
-)
+type ReqHandlerFunc[Req any] func(c *gin.Context, req *Req) error
+type ResHandlerFunc[Res any] func(c *gin.Context) (Res, error)
+type ReqResHandlerFunc[Req, Res any] func(c *gin.Context, req *Req) (Res, error)
 
 func (a *API) registerRoutes(router *gin.RouterGroup) {
 	router.Use(
