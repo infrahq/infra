@@ -38,46 +38,6 @@ func (m *mockCertificateProvider) SignCertificate(csr x509.CertificateRequest) (
 	return nil, nil
 }
 
-func TestCertificateSigningRequest(t *testing.T) {
-	db := setupDB(t)
-
-	cp, err := pki.NewNativeCertificateProvider(db, pki.NativeCertificateProviderConfig{
-		FullKeyRotationDurationInDays: 2,
-	})
-	require.NoError(t, err)
-	err = cp.CreateCA()
-	require.NoError(t, err)
-	err = cp.RotateCA()
-	require.NoError(t, err)
-
-	reg := &Server{
-		certificateProvider: cp,
-	}
-	_ = reg
-	user := &models.User{
-		Model: models.Model{ID: uid.New()},
-		Email: "joe@example.com",
-	}
-
-	keyPair, err := pki.MakeUserCert("User "+user.ID.String(), 24*time.Hour)
-	require.NoError(t, err)
-
-	// happens on the server, needs to be a request for this.
-	signedCert, signedRaw, err := pki.SignUserCert(cp, keyPair.Cert, user)
-	require.NoError(t, err)
-	keyPair.SignedCert = signedCert
-	keyPair.SignedCertPEM = signedRaw
-	// TODO: finish
-
-	// c, _ := gin.CreateTestContext(nil)
-	// resp, err := reg.handleCertificateSigningRequest(c, &CertificateSigningRequest{
-	// 	PublicCertificate: pub,
-	// })
-	// require.NoError(t, err)
-
-	// require.Equal(t, true, resp.PendingApproval)
-}
-
 func TestCertificateSigningWorks(t *testing.T) {
 	db := setupDB(t)
 
