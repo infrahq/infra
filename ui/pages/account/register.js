@@ -29,9 +29,9 @@ const AccessKeyInputContainer = styled.div`
   margin-top: 1.5rem;
 `
 
-const Register = (): JSX.Element => {
+const Register = () => {
   const { authReady, register } = useContext(AuthContext)
-  const [value, setValue] = useState<string>('')
+  const [value, setValue] = useState('')
 
   useEffect(() => {
     if (authReady) {
@@ -39,7 +39,7 @@ const Register = (): JSX.Element => {
     }
   }, [])
 
-  const handleLogin = async (): Promise<void> => {
+  const handleLogin = async () => {
     await register(value)
   }
 
@@ -57,7 +57,7 @@ const Register = (): JSX.Element => {
           />
         </AccessKeyInputContainer>
         <section>
-          <ActionButton onClick={handleLogin} children='Login' />
+          <ActionButton onClick={handleLogin} value='Login' />
         </section>
       </Content>
     </RegisterContainer>

@@ -1,21 +1,8 @@
 import { useContext } from 'react'
 import styled from 'styled-components'
-import AuthContext, { ProviderField } from '../store/AuthContext'
+import PropTypes from 'prop-types'
 
-export interface IdentitySourceProvider {
-  type: string
-  name: string
-  url: string
-  clientID: string
-  id: string
-  created: number
-  updated: number
-}
-
-interface IdentitySourceBtnField {
-  providers: IdentitySourceProvider[]
-  onClick?: () => void
-}
+import AuthContext from '../store/AuthContext'
 
 const IdentitySourceBtnContainer = styled.div`
   & > *:not(:first-child) {
@@ -74,7 +61,7 @@ const DescriptionSubheader = styled.div`
   opacity: 0.3;
 `
 
-const IdentitySourceBtn = ({ providers }: IdentitySourceBtnField): JSX.Element => {
+const IdentitySourceBtn = ({ providers }) => {
   const { login } = useContext(AuthContext)
 
   return (
@@ -83,7 +70,7 @@ const IdentitySourceBtn = ({ providers }: IdentitySourceBtnField): JSX.Element =
         return (
           <IdentitySourceContainer
             key={index}
-            onClick={() => login(provider as ProviderField)}
+            onClick={() => login(provider)}
             disabled={false}
           >
             <IdentitySourceContentContainer>
@@ -100,6 +87,19 @@ const IdentitySourceBtn = ({ providers }: IdentitySourceBtnField): JSX.Element =
       })}
     </IdentitySourceBtnContainer>
   )
+}
+
+IdentitySourceBtn.prototype = {
+  providers: PropTypes.arrayOf(PropTypes.shape({
+    type: PropTypes.string,
+    name: PropTypes.string,
+    url: PropTypes.string,
+    clientID: PropTypes.string,
+    id: PropTypes.string,
+    created: PropTypes.number,
+    updated: PropTypes.number
+  })).isRequired,
+  onClick: PropTypes.func
 }
 
 export default IdentitySourceBtn
