@@ -27,7 +27,7 @@ const cliLoginRedirectURL = "http://localhost:8301"
 
 func relogin() error {
 	// TODO (https://github.com/infrahq/infra/issues/488): support non-interactive login
-	if !istty() {
+	if !isInteractiveTerminal() {
 		return errors.New("Non-interactive login is not supported")
 	}
 
@@ -69,15 +69,32 @@ func relogin() error {
 	return finishLogin(currentConfig.Host, uid.NewUserPolymorphicID(loginRes.ID), loginRes.Name, loginRes.AccessKey, currentConfig.SkipTLSVerify, 0)
 }
 
-func istty() bool {
-	// TODO: check for --tty arg?
+func isInteractiveTerminal() bool {
+	if nonInteractiveTerminal {
+		// user explicitly asked for a non-interactive terminal
+		return false
+	}
+
+	if os.Stdin == nil {
+		return false
+	}
+
+	fi, err := os.Stdin.Stat()
+	if err != nil {
+		return false
+	}
+
+	if (fi.Mode() & os.ModeCharDevice) == 0 {
+		// data is being piped in
+		return false
+	}
 
 	return term.IsTerminal(int(os.Stdin.Fd()))
 }
 
 func login(host string) error {
 	// TODO (https://github.com/infrahq/infra/issues/488): support non-interactive login
-	if !istty() {
+	if !isInteractiveTerminal() {
 		return errors.New("Non-interactive login is not supported")
 	}
 

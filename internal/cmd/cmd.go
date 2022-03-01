@@ -23,6 +23,7 @@ import (
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 
+	"github.com/infrahq/infra/feature"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/config"
 	"github.com/infrahq/infra/internal/engine"
@@ -330,7 +331,14 @@ func newServerCmd() *cobra.Command {
 			strcase.ConfigureAcronym("enable-ui", "enableUI")
 			strcase.ConfigureAcronym("ui-proxy-url", "uiProxyURL")
 
-			var options server.Options
+			homeDir, err := infraHomeDir()
+			if err != nil {
+				return err
+			}
+			options := server.Options{
+				InfraHomeDir: homeDir,
+			}
+
 			if err := parseOptions(cmd, &options, "INFRA_SERVER"); err != nil {
 				return err
 			}
@@ -600,11 +608,14 @@ func newVersionCmd() *cobra.Command {
 	}
 }
 
+var nonInteractiveTerminal bool
+
 func NewRootCmd() (*cobra.Command, error) {
 	cobra.EnableCommandSorting = false
 
 	type rootOptions struct {
-		LogLevel string `mapstructure:"logLevel"`
+		LogLevel       string `mapstructure:"logLevel"`
+		NonInteractive bool   `mapstructure:"nonInteractive"`
 	}
 
 	rootCmd := &cobra.Command{
@@ -617,6 +628,8 @@ func NewRootCmd() (*cobra.Command, error) {
 			if err := parseOptions(cmd, &options, "INFRA"); err != nil {
 				return err
 			}
+
+			nonInteractiveTerminal = options.NonInteractive
 
 			return logging.SetLevel(options.LogLevel)
 		},
@@ -633,13 +646,16 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.AddCommand(newMachinesCmd())
 	rootCmd.AddCommand(newTokensCmd())
 	rootCmd.AddCommand(newImportCmd())
-	rootCmd.AddCommand(newCertificatesCmd())
+	if feature.Flag("Certificates") {
+		rootCmd.AddCommand(newCertificatesCmd())
+	}
 	rootCmd.AddCommand(newInfoCmd())
 	rootCmd.AddCommand(newServerCmd())
 	rootCmd.AddCommand(newEngineCmd())
 	rootCmd.AddCommand(newVersionCmd())
 
 	rootCmd.PersistentFlags().String("log-level", "info", "Set the log level. One of error, warn, info, or debug")
+	rootCmd.PersistentFlags().Bool("non-interactive", false, "don't assume an interactive tty, even if there is one")
 
 	return rootCmd, nil
 }

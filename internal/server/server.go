@@ -55,7 +55,7 @@ type Options struct {
 	UIProxyURL           string        `mapstructure:"uiProxyURL"`
 	EnableSetup          bool          `mapstructure:"enableSetup"`
 	SessionDuration      time.Duration `mapstructure:"sessionDuration"`
-	InfraHomeDir         string        `mapstructure:"infraHomeDir"`
+	InfraHomeDir         string
 
 	DBFile                  string `mapstructure:"dbFile" `
 	DBEncryptionKey         string `mapstructure:"dbEncryptionKey"`
