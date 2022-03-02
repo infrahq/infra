@@ -594,10 +594,10 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 		}
 
 		return &api.LoginResponse{PolymorphicID: user.PolymorphicIdentifier(), Name: user.Email, AccessKey: key}, nil
-	case r.KeyExchange != nil:
+	case r.AccessKey != "":
 		expires := time.Now().Add(a.server.options.SessionDuration)
 
-		polymorphicID, name, key, err := access.ExchangeAccessKey(c, r.KeyExchange.AccessKey, expires)
+		key, machine, err := access.ExchangeAccessKey(c, r.AccessKey, expires)
 		if err != nil {
 			return nil, err
 		}
@@ -605,19 +605,19 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 		setAuthCookie(c, key, a.server.options.SessionDuration)
 
 		if a.t != nil {
-			if err := a.t.Enqueue(analytics.Track{Event: "infra.login.exchange", UserId: polymorphicID.String()}); err != nil {
+			if err := a.t.Enqueue(analytics.Track{Event: "infra.login.exchange", UserId: machine.PolymorphicIdentifier().String()}); err != nil {
 				logging.S.Debug(err)
 			}
 		}
 
-		return &api.LoginResponse{PolymorphicID: *polymorphicID, Name: name, AccessKey: key}, nil
+		return &api.LoginResponse{PolymorphicID: machine.PolymorphicIdentifier(), Name: machine.Name, AccessKey: key}, nil
 	}
 
 	return nil, api.ErrBadRequest
 }
 
 func (a *API) Logout(c *gin.Context, r *api.EmptyRequest) (*api.EmptyResponse, error) {
-	err := access.DeleteAllUserAccessKeys(c)
+	err := access.DeleteRequestAccessKey(c)
 	if err != nil {
 		return nil, err
 	}

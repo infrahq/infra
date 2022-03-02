@@ -8,13 +8,9 @@ type LoginRequestOIDC struct {
 	Code        string `json:"code" validate:"required"`
 }
 
-type LoginRequestKeyExchange struct {
-	AccessKey string `json:"accessKey" validate:"required"`
-}
-
 type LoginRequest struct {
-	OIDC        *LoginRequestOIDC        `json:"oidc" validate:"excluded_with=KeyExchange"`
-	KeyExchange *LoginRequestKeyExchange `json:"exchange" validate:"excluded_with=OIDC"`
+	OIDC      *LoginRequestOIDC `json:"oidc" validate:"excluded_with=KeyExchange"`
+	AccessKey string            `json:"accessKey"  validate:"excluded_with=OIDC"`
 }
 
 type LoginResponse struct {

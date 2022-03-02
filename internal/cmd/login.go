@@ -187,9 +187,7 @@ func login(host string) error {
 			}
 		}
 
-		loginReq.KeyExchange = &api.LoginRequestKeyExchange{
-			AccessKey: accessKey,
-		}
+		loginReq.AccessKey = accessKey
 	} else {
 		provider := providers[option]
 		providerID = provider.ID
