@@ -8,6 +8,10 @@ import (
 // PolymorphicID is a reference of the format "u:<idstr>" for users, "m:<idstr>" for machines, and "g:<idstr>" for groups
 type PolymorphicID string
 
+func (p PolymorphicID) String() string {
+	return string(p)
+}
+
 func (p PolymorphicID) ID() (ID, error) {
 	id := string(p)[2:]
 	return ParseString(id)

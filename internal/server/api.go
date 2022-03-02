@@ -568,30 +568,52 @@ func (a *API) Setup(c *gin.Context, _ *api.EmptyRequest) (*api.CreateAccessKeyRe
 }
 
 func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, error) {
-	provider, err := access.GetProvider(c, r.ProviderID)
-	if err != nil {
-		return nil, err
-	}
-
-	oidc, err := a.providerClient(c, provider, r.RedirectURL)
-	if err != nil {
-		return nil, err
-	}
-
-	user, key, err := access.ExchangeAuthCodeForAccessKey(c, r.Code, provider, oidc, a.server.options.SessionDuration, r.RedirectURL)
-	if err != nil {
-		return nil, err
-	}
-
-	setAuthCookie(c, key, a.server.options.SessionDuration)
-
-	if a.t != nil {
-		if err := a.t.Enqueue(analytics.Track{Event: "infra.login", UserId: user.ID.String()}); err != nil {
-			logging.S.Debug(err)
+	switch true {
+	case r.OIDC != nil:
+		provider, err := access.GetProvider(c, r.OIDC.ProviderID)
+		if err != nil {
+			return nil, err
 		}
+
+		oidc, err := a.providerClient(c, provider, r.OIDC.RedirectURL)
+		if err != nil {
+			return nil, err
+		}
+
+		user, key, err := access.ExchangeAuthCodeForAccessKey(c, r.OIDC.Code, provider, oidc, a.server.options.SessionDuration, r.OIDC.RedirectURL)
+		if err != nil {
+			return nil, err
+		}
+
+		setAuthCookie(c, key, a.server.options.SessionDuration)
+
+		if a.t != nil {
+			if err := a.t.Enqueue(analytics.Track{Event: "infra.login.oidc", UserId: user.PolymorphicIdentifier().String()}); err != nil {
+				logging.S.Debug(err)
+			}
+		}
+
+		return &api.LoginResponse{PolymorphicID: user.PolymorphicIdentifier(), Name: user.Email, AccessKey: key}, nil
+	case r.KeyExchange != nil:
+		expires := time.Now().Add(a.server.options.SessionDuration)
+
+		polymorphicID, name, key, err := access.ExchangeAccessKey(c, r.KeyExchange.AccessKey, expires)
+		if err != nil {
+			return nil, err
+		}
+
+		setAuthCookie(c, key, a.server.options.SessionDuration)
+
+		if a.t != nil {
+			if err := a.t.Enqueue(analytics.Track{Event: "infra.login.exchange", UserId: polymorphicID.String()}); err != nil {
+				logging.S.Debug(err)
+			}
+		}
+
+		return &api.LoginResponse{PolymorphicID: *polymorphicID, Name: name, AccessKey: key}, nil
 	}
 
-	return &api.LoginResponse{ID: user.ID, Name: user.Email, AccessKey: key}, nil
+	return nil, api.ErrBadRequest
 }
 
 func (a *API) Logout(c *gin.Context, r *api.EmptyRequest) (*api.EmptyResponse, error) {
