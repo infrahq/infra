@@ -4,6 +4,7 @@ package logging
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -58,11 +59,25 @@ func NewLogger(level zapcore.LevelEnabler) (*zap.Logger, error) {
 }
 
 func ZapLogFormatter(_ io.Writer, params handlers.LogFormatterParams) {
-	L.Info("handled request",
-		zap.String("method", params.Request.Method),
-		zap.String("path", params.URL.Path),
-		zap.Int("status", params.StatusCode),
-		zap.Int("size", params.Size))
+	// "<REQUEST_METHOD> <REQUEST_URL_PATH>" <RESPONSE_CODE> <RESPONSE_SIZE> "<HOST>" <USER_AGENT> <REMOTE_HOST> <REQUEST_SIZE>
+	msg := fmt.Sprintf("\"%s %s\" %d %d \"%s\" %s %s %d",
+		params.Request.Method,
+		params.Request.URL.Path,
+		params.StatusCode,
+		params.Size,
+		params.Request.Host,
+		params.Request.UserAgent(),
+		params.Request.RemoteAddr,
+		params.Request.ContentLength,
+	)
+
+	L.WithOptions(zap.AddCallerSkip(2)).Sugar().Infow(
+		msg,
+		"method", params.Request.Method,
+		"path", params.Request.URL.Path,
+		"statusCode", params.StatusCode,
+		"remoteAddr", params.Request.RemoteAddr,
+	)
 }
 
 func StandardErrorLog() *log.Logger {
