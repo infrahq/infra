@@ -161,7 +161,7 @@ func UserAwareLoggerMiddleware() gin.HandlerFunc {
 					Type:   zapcore.StringType,
 					String: userID,
 				})
-			c.Set(ctxLoggerKey, logger.Sugar())
+			c.Set(ctxLoggerKey, logger)
 		}
 
 		c.Next()
@@ -169,12 +169,29 @@ func UserAwareLoggerMiddleware() gin.HandlerFunc {
 }
 
 // Logger gets the request-specific logger from the context
-func Logger(c *gin.Context) *zap.SugaredLogger {
+// If a request-specific logger cannot be found, use the default logger
+func Logger(c *gin.Context) *zap.Logger {
 	if loggerInf, ok := c.Get(ctxLoggerKey); ok {
-		if logger, ok := loggerInf.(*zap.SugaredLogger); ok {
+		if logger, ok := loggerInf.(*zap.Logger); ok {
 			return logger
 		}
 	}
 
-	return S
+	return L
+}
+
+// Sugared variant of Logger
+func SugarLogger(c *gin.Context) *zap.SugaredLogger {
+	return Logger(c).Sugar()
+}
+
+// WrappedLogger skips the most recent caller
+// Useful for functions that logs for callers
+func WrappedLogger(c *gin.Context) *zap.Logger {
+	return Logger(c).WithOptions(zap.AddCallerSkip(1))
+}
+
+// Sugared variant of WrappedLogger
+func WrappedSugarLogger(c *gin.Context) *zap.SugaredLogger {
+	return WrappedLogger(c).Sugar()
 }
