@@ -58,7 +58,7 @@ export const AuthContextProvider = ({ children }) => {
       .then((response) => {
         return response.data
       })
-      .catch(() => {
+      .catch((error) => {
         setAuthReady(false)
         setLoginError(true)
       })
@@ -68,12 +68,14 @@ export const AuthContextProvider = ({ children }) => {
     try {
       const currentUser = await getCurrentUser(key)
 
-      setUser(currentUser)
-      setAuthReady(true)
-
-      await Router.push({
-        pathname: '/'
-      }, undefined, { shallow: true })
+      if (currentUser) {
+        setUser(currentUser)
+        setAuthReady(true)
+  
+        await Router.push({
+          pathname: '/'
+        }, undefined, { shallow: true })
+      }
     } catch (error) {
       setLoginError(true)
     }
@@ -117,6 +119,7 @@ export const AuthContextProvider = ({ children }) => {
       })
   }
 
+  // TODO: verify access key
   const register = async (key) => {
     setCookie('accessKey', key, { path: '/' })
     await redirectToDashboard(key)

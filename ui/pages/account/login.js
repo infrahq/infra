@@ -59,7 +59,7 @@ export const readyToRedirect = async () => {
 }
 
 const Login = () => {
-  const { providers, authReady, hasRedirected } = useContext(AuthContext)
+  const { providers, authReady, hasRedirected, login } = useContext(AuthContext)
 
   const getProviderType = (url) => {
     const tempURL = url
@@ -68,7 +68,8 @@ const Login = () => {
 
   const providerWithType = providers.map((item) => {
     const type = getProviderType(item.url)
-    return { ...item, type }
+    const onClick = () => login(item)
+    return { ...item, type, onClick }
   })
 
   useEffect(() => {

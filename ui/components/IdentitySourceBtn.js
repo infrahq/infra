@@ -1,8 +1,5 @@
-import { useContext } from 'react'
 import styled from 'styled-components'
 import PropTypes from 'prop-types'
-
-import AuthContext from '../store/AuthContext'
 
 const IdentitySourceBtnContainer = styled.div`
   & > *:not(:first-child) {
@@ -61,17 +58,15 @@ const DescriptionSubheader = styled.div`
   opacity: 0.3;
 `
 
-const IdentitySourceBtn = ({ providers }) => {
-  const { login } = useContext(AuthContext)
-
+const IdentitySourceBtn = ({ providers}) => {
   return (
     <IdentitySourceBtnContainer>
       {providers.map((provider, index) => {
         return (
           <IdentitySourceContainer
             key={index}
-            onClick={() => login(provider)}
-            disabled={false}
+            onClick={() => provider.onClick()}
+            disabled={provider.disabled || false}
           >
             <IdentitySourceContentContainer>
               <IdentitySourceLogo>
@@ -97,9 +92,10 @@ IdentitySourceBtn.prototype = {
     clientID: PropTypes.string,
     id: PropTypes.string,
     created: PropTypes.number,
-    updated: PropTypes.number
+    updated: PropTypes.number,
+    onClick: PropTypes.func,
+    disabled: PropTypes.bool
   })).isRequired,
-  onClick: PropTypes.func
 }
 
 export default IdentitySourceBtn

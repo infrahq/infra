@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from 'react'
 import styled from 'styled-components'
 
-import AccessKeyInput from '../../components/AccessKeyInput'
+import Input from '../../components/Input'
 import ActionButton from '../../components/ActionButton'
 import AccountHeader from '../../components/AccountHeader'
 
@@ -51,7 +51,8 @@ const Register = () => {
           subheader='Securely manage access to your infrastructure. Take a moment to create your account and start managing access today.'
         />
         <AccessKeyInputContainer>
-          <AccessKeyInput
+          <Input
+            label='Admin API Access Key'
             value={value}
             onChange={e => setValue(e.target.value)}
           />

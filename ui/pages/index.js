@@ -1,5 +1,8 @@
+import Link from 'next/link'
 import { useContext, useEffect, useState } from 'react'
 import AuthContext from '../store/AuthContext'
+
+
 
 export default function Index () {
   const { logout, user } = useContext(AuthContext)
@@ -20,6 +23,9 @@ export default function Index () {
   return (
     <div>
       <p>{currentUser}</p>
+      <Link href='/providers/connect'>
+        <a>Connect Identity Providers</a>
+      </Link>
       <button onClick={handleLogout}>Logout</button>
     </div>
   )

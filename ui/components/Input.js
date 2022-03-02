@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types'
 import styled from 'styled-components'
 
-const AccessKeyInputContainer = styled.section`
+const InputContainer = styled.section`
   position: relative;
 `
 
@@ -47,11 +47,11 @@ const Label = styled.span`
   color: rgba(255, 255, 255, 0.5);
 `
 
-const AccessKeyInput = ({ value, onChange }) => {
+const Input = ({ label, value, onChange }) => {
   return (
-    <AccessKeyInputContainer>
+    <InputContainer>
       <InputGroup>
-        <Label>Admin API Access Key</Label>
+        <Label>{label}</Label>
         <StyledInputContainer>
           <StyledInput
             value={value}
@@ -61,13 +61,14 @@ const AccessKeyInput = ({ value, onChange }) => {
         </StyledInputContainer>
 
       </InputGroup>
-    </AccessKeyInputContainer>
+    </InputContainer>
   )
 }
 
-AccessKeyInput.prototype = {
+Input.prototype = {
+  label: PropTypes.string.isRequired,
   value: PropTypes.string.isRequired,
   onChange: PropTypes.func.isRequired
 }
 
-export default AccessKeyInput
+export default Input
