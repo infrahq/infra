@@ -32,26 +32,6 @@ import (
 
 var errorNotLoggedIn = fmt.Errorf("Not logged in. Run \"infra login\" before running this command.")
 
-type idType int64
-
-const (
-	user idType = iota
-	machine
-	notLoggedIn
-)
-
-func loggedInAs(c *ClientHostConfig) idType {
-	if c.AccessKey == "" {
-		return notLoggedIn
-	}
-
-	if c.ProviderID != 0 {
-		return user
-	} else {
-		return machine
-	}
-}
-
 func parseOptions(cmd *cobra.Command, options interface{}, envPrefix string) error {
 	v := viper.New()
 
@@ -482,12 +462,11 @@ func newInfoCmd() *cobra.Command {
 
 			admin := false
 
-			idType := loggedInAs(config)
-			if idType == notLoggedIn {
+			if !config.isLoggedIn() {
 				return errorNotLoggedIn
 			}
 
-			if idType == user {
+			if config.isUser() {
 				provider, err := client.GetProvider(config.ProviderID)
 				if err != nil {
 					return err
@@ -525,7 +504,7 @@ func newInfoCmd() *cobra.Command {
 				fmt.Fprintln(w, "Groups:\t", groupsStr)
 				fmt.Fprintln(w, "Admin:\t", admin)
 				fmt.Fprintln(w)
-			} else if idType == machine {
+			} else if config.isMachine() {
 				machine, err := client.GetMachine(config.ID)
 				if err != nil {
 					fmt.Fprintln(os.Stderr, "6.3")

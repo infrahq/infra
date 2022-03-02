@@ -28,6 +28,18 @@ type ClientHostConfig struct {
 	Current       bool              `json:"current"`
 }
 
+func (c *ClientHostConfig) isLoggedIn() bool {
+	return c.AccessKey != ""
+}
+
+func (c *ClientHostConfig) isUser() bool {
+	return c.ProviderID != 0
+}
+
+func (c *ClientHostConfig) isMachine() bool {
+	return !c.isUser()
+}
+
 //lint:ignore ST1005, user facing error
 var ErrConfigNotFound = errors.New(`Could not read local credentials. Are you logged in? Use "infra login" to login`)
 
