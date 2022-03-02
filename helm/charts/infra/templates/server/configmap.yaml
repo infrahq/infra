@@ -7,21 +7,7 @@ metadata:
 {{- include "server.labels" . | nindent 4 }}
 data:
   infra.yaml: |
-{{- $adminAccessKey := default "" .Values.server.config.adminAccessKey }}
-{{- if and $adminAccessKey (or (hasPrefix "file:" $adminAccessKey) (hasPrefix "env:" $adminAccessKey)) }}
-    adminAccessKey: {{ $adminAccessKey }}
-{{- else }}
-    adminAccessKey: file:/var/run/secrets/infrahq.com/admin-access-key/access-key
-{{- end }}
-
-{{- $accessKey := default "" .Values.server.config.accessKey }}
-{{- if and $accessKey (or (hasPrefix "file:" $accessKey) (hasPrefix "env:" $accessKey)) }}
-    accessKey: {{ $accessKey }}
-{{- else }}
-    accessKey: file:/var/run/secrets/infrahq.com/access-key/access-key
-{{- end }}
-
-{{- range $key, $val := omit .Values.server.config "import" "adminAccessKey" "accessKey" }}
+{{- range $key, $val := omit .Values.server.config "providers" "grants" "adminAccessKey" "accessKey" }}
 {{- if kindIs "invalid" $val }}
     # skipping invalid value: {{ $val }} ({{ kindOf $val }})
 {{- else if kindIs "map" $val }}
@@ -35,6 +21,20 @@ data:
 {{- else }}
     {{ $key }}: {{ $val }}
 {{- end }}
+{{- end }}
+
+{{- $adminAccessKey := default "" .Values.server.config.adminAccessKey }}
+{{- if and $adminAccessKey (or (hasPrefix "file:" $adminAccessKey) (hasPrefix "env:" $adminAccessKey)) }}
+    adminAccessKey: {{ $adminAccessKey }}
+{{- else }}
+    adminAccessKey: file:/var/run/secrets/infrahq.com/admin-access-key/access-key
+{{- end }}
+
+{{- $accessKey := default "" .Values.server.config.accessKey }}
+{{- if and $accessKey (or (hasPrefix "file:" $accessKey) (hasPrefix "env:" $accessKey)) }}
+    accessKey: {{ $accessKey }}
+{{- else }}
+    accessKey: file:/var/run/secrets/infrahq.com/access-key/access-key
 {{- end }}
 
 {{- if .Values.server.persistence.enabled }}
@@ -51,13 +51,8 @@ data:
 {{- end }}
 {{- end }}
 
-    import:
-{{- $import := .Values.server.config.import | default dict }}
-{{- if kindIs "string" .Values.server.config.import }}
-{{- $import = fromYaml .Values.server.config.import }}
-{{- end }}
-      providers:
-{{- $import.providers | default list | concat .Values.server.additionalProviders | uniq | toYaml | nindent 8 }}
-      grants:
-{{- $import.grants | default list | concat .Values.server.additionalGrants | uniq | toYaml | nindent 8 }}
+    providers:
+{{- .Values.server.config.providers | default list | concat .Values.server.additionalProviders | uniq | toYaml | nindent 6 }}
+    grants:
+{{- .Values.server.config.grants | default list | concat .Values.server.additionalGrants | uniq | toYaml | nindent 6 }}
 {{- end }}

@@ -17,17 +17,17 @@ func GetGrant(db *gorm.DB, selectors ...SelectorFunc) (*models.Grant, error) {
 
 func ListUserGrants(db *gorm.DB, userID uid.ID) (result []models.Grant, err error) {
 	polymorphicID := uid.NewUserPolymorphicID(userID)
-	return ListGrants(db, ByIdentity(polymorphicID), NotCreatedBySystem())
+	return ListGrants(db, ByIdentity(polymorphicID), NotCreatedBy(models.CreatedBySystem))
 }
 
 func ListMachineGrants(db *gorm.DB, machineID uid.ID) (result []models.Grant, err error) {
 	polymorphicID := uid.NewMachinePolymorphicID(machineID)
-	return ListGrants(db, ByIdentity(polymorphicID), NotCreatedBySystem())
+	return ListGrants(db, ByIdentity(polymorphicID), NotCreatedBy(models.CreatedBySystem))
 }
 
 func ListGroupGrants(db *gorm.DB, groupID uid.ID) (result []models.Grant, err error) {
 	polymorphicID := uid.NewGroupPolymorphicID(groupID)
-	return ListGrants(db, ByIdentity(polymorphicID), NotCreatedBySystem())
+	return ListGrants(db, ByIdentity(polymorphicID), NotCreatedBy(models.CreatedBySystem))
 }
 
 func ListGrants(db *gorm.DB, selectors ...SelectorFunc) ([]models.Grant, error) {

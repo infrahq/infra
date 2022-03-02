@@ -20,6 +20,12 @@ func ByIDs(ids []uid.ID) SelectorFunc {
 	}
 }
 
+func ByNotIDs(ids []uid.ID) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Not(ids)
+	}
+}
+
 func ByName(name string) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		if len(name) > 0 {
@@ -116,10 +122,10 @@ func ByUserID(userID uid.ID) SelectorFunc {
 	}
 }
 
-// NotCreatedBySystem filters out any entities that do not have a "created by" field set, meaning they were created internally
-func NotCreatedBySystem() SelectorFunc {
+// NotCreatedBy filters out entities not created by the passed in ID
+func NotCreatedBy(id uid.ID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		// the created_by field is default 0 when not set by default
-		return db.Where("created_by != 0")
+		return db.Where("created_by != ?", id)
 	}
 }
