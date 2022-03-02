@@ -152,12 +152,14 @@ func Run(options Options) (err error) {
 		scope.SetContext("serverId", settings.ID)
 	})
 
+	go func() {
+		if err := server.importConfig(); err != nil {
+			logging.S.Error(fmt.Errorf("import config: %w", err))
+		}
+	}()
+
 	if err := server.runServer(); err != nil {
 		return fmt.Errorf("running server: %w", err)
-	}
-
-	if err := server.importConfig(); err != nil {
-		logging.S.Error(fmt.Errorf("import config: %w", err))
 	}
 
 	return logging.L.Sync()
