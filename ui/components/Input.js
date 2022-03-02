@@ -47,7 +47,7 @@ const Label = styled.span`
   color: rgba(255, 255, 255, 0.5);
 `
 
-const Input = ({ label, value, onChange }) => {
+const Input = ({ label, value, onChange, showImage=false }) => {
   return (
     <InputContainer>
       <InputGroup>
@@ -57,7 +57,7 @@ const Input = ({ label, value, onChange }) => {
             value={value}
             onChange={onChange}
           />
-          <img src='/accessKeyLockIcon.svg' />
+          {showImage ? <img src='/accessKeyLockIcon.svg' /> : <></>}
         </StyledInputContainer>
 
       </InputGroup>
@@ -68,7 +68,8 @@ const Input = ({ label, value, onChange }) => {
 Input.prototype = {
   label: PropTypes.string.isRequired,
   value: PropTypes.string.isRequired,
-  onChange: PropTypes.func.isRequired
+  onChange: PropTypes.func.isRequired,
+  showImage: PropTypes.bool
 }
 
 export default Input

@@ -55,6 +55,7 @@ const Register = () => {
             label='Admin API Access Key'
             value={value}
             onChange={e => setValue(e.target.value)}
+            showImage
           />
         </AccessKeyInputContainer>
         <section>
