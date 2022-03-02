@@ -11,7 +11,7 @@ import (
 )
 
 func GetGrant(c *gin.Context, id uid.ID) (*models.Grant, error) {
-	db, err := requireInfraRole(c, AdminRole)
+	db, err := requireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return nil, err
 	}
@@ -20,7 +20,7 @@ func GetGrant(c *gin.Context, id uid.ID) (*models.Grant, error) {
 }
 
 func ListGrants(c *gin.Context, identity uid.PolymorphicID, resource string, privilege string) ([]models.Grant, error) {
-	db, err := requireInfraRole(c, AdminRole, ConnectorRole)
+	db, err := requireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole)
 	if err != nil {
 		return nil, err
 	}
@@ -29,7 +29,7 @@ func ListGrants(c *gin.Context, identity uid.PolymorphicID, resource string, pri
 }
 
 func ListUserGrants(c *gin.Context, userID uid.ID) ([]models.Grant, error) {
-	db, err := hasAuthorization(c, userID, isUserSelf, AdminRole)
+	db, err := hasAuthorization(c, userID, isUserSelf, models.InfraAdminRole)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +38,7 @@ func ListUserGrants(c *gin.Context, userID uid.ID) ([]models.Grant, error) {
 }
 
 func ListMachineGrants(c *gin.Context, machineID uid.ID) ([]models.Grant, error) {
-	db, err := hasAuthorization(c, machineID, isMachineSelf, AdminRole)
+	db, err := hasAuthorization(c, machineID, isMachineSelf, models.InfraAdminRole)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func ListMachineGrants(c *gin.Context, machineID uid.ID) ([]models.Grant, error)
 }
 
 func ListGroupGrants(c *gin.Context, groupID uid.ID) ([]models.Grant, error) {
-	db, err := hasAuthorization(c, groupID, isUserInGroup, AdminRole)
+	db, err := hasAuthorization(c, groupID, isUserInGroup, models.InfraAdminRole)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func ListGroupGrants(c *gin.Context, groupID uid.ID) ([]models.Grant, error) {
 }
 
 func CreateGrant(c *gin.Context, grant *models.Grant) error {
-	db, err := requireInfraRole(c, AdminRole)
+	db, err := requireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
 	}
@@ -74,7 +74,7 @@ func CreateGrant(c *gin.Context, grant *models.Grant) error {
 }
 
 func DeleteGrant(c *gin.Context, id uid.ID) error {
-	db, err := requireInfraRole(c, AdminRole)
+	db, err := requireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
 	}

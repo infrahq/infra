@@ -34,7 +34,7 @@ func CurrentUser(c *gin.Context) *models.User {
 }
 
 func GetUser(c *gin.Context, id uid.ID) (*models.User, error) {
-	db, err := hasAuthorization(c, id, isUserSelf, AdminRole, ConnectorRole)
+	db, err := hasAuthorization(c, id, isUserSelf, models.InfraAdminRole, models.InfraConnectorRole)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func GetUser(c *gin.Context, id uid.ID) (*models.User, error) {
 }
 
 func CreateUser(c *gin.Context, user *models.User) error {
-	db, err := requireInfraRole(c, AdminRole)
+	db, err := requireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
 	}
@@ -52,7 +52,7 @@ func CreateUser(c *gin.Context, user *models.User) error {
 }
 
 func ListUsers(c *gin.Context, email string, providerID uid.ID) ([]models.User, error) {
-	db, err := requireInfraRole(c, AdminRole, ConnectorRole)
+	db, err := requireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole)
 	if err != nil {
 		return nil, err
 	}

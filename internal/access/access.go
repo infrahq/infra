@@ -11,12 +11,6 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-const (
-	AdminRole     = "admin"
-	UserRole      = "user"
-	ConnectorRole = "connector"
-)
-
 func getDB(c *gin.Context) *gorm.DB {
 	return c.MustGet("db").(*gorm.DB)
 }

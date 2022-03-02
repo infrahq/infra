@@ -15,7 +15,7 @@ import (
 )
 
 func CreateProvider(c *gin.Context, provider *models.Provider) error {
-	db, err := requireInfraRole(c, AdminRole)
+	db, err := requireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
 	}
@@ -36,7 +36,7 @@ func ListProviders(c *gin.Context, name string) ([]models.Provider, error) {
 }
 
 func SaveProvider(c *gin.Context, provider *models.Provider) error {
-	db, err := requireInfraRole(c, AdminRole)
+	db, err := requireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
 	}
@@ -45,7 +45,7 @@ func SaveProvider(c *gin.Context, provider *models.Provider) error {
 }
 
 func DeleteProvider(c *gin.Context, id uid.ID) error {
-	db, err := requireInfraRole(c, AdminRole)
+	db, err := requireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
 	}
@@ -99,7 +99,7 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 
 		// by default the user role in infra can see all destinations
 		// #1084 - create grants for only destinations a user has access to
-		roleGrant := &models.Grant{Identity: user.PolymorphicIdentifier(), Privilege: UserRole, Resource: "infra"}
+		roleGrant := &models.Grant{Identity: user.PolymorphicIdentifier(), Privilege: models.InfraUserRole, Resource: "infra"}
 		if err := data.CreateGrant(db, roleGrant); err != nil {
 			return nil, "", fmt.Errorf("user role grant: %w", err)
 		}
