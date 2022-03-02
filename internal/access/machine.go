@@ -31,7 +31,7 @@ func CurrentMachine(c *gin.Context) *models.Machine {
 }
 
 func CreateMachine(c *gin.Context, machine *models.Machine) error {
-	db, err := requireInfraRole(c, AdminRole)
+	db, err := requireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
 	}
@@ -44,7 +44,7 @@ func CreateMachine(c *gin.Context, machine *models.Machine) error {
 }
 
 func GetMachine(c *gin.Context, id uid.ID) (*models.Machine, error) {
-	db, err := requireInfraRole(c, AdminRole, ConnectorRole)
+	db, err := requireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func GetMachine(c *gin.Context, id uid.ID) (*models.Machine, error) {
 }
 
 func ListMachines(c *gin.Context, name string) ([]models.Machine, error) {
-	db, err := requireInfraRole(c, AdminRole, ConnectorRole)
+	db, err := requireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func ListMachines(c *gin.Context, name string) ([]models.Machine, error) {
 }
 
 func DeleteMachine(c *gin.Context, id uid.ID) error {
-	db, err := requireInfraRole(c, AdminRole)
+	db, err := requireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
 	}

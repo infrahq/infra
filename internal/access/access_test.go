@@ -75,17 +75,17 @@ func TestUsersGroupGrant(t *testing.T) {
 	c.Set("identity", tom.PolymorphicIdentifier())
 	c.Set("user", tom)
 
-	grant(t, db, tom, tomsGroup.PolymorphicIdentifier(), UserRole, "infra")
+	grant(t, db, tom, tomsGroup.PolymorphicIdentifier(), models.InfraUserRole, "infra")
 
-	authDB, err := requireInfraRole(c, UserRole)
+	authDB, err := requireInfraRole(c, models.InfraUserRole)
 	assert.NoError(t, err)
 	assert.NotNil(t, authDB)
 
-	authDB, err = requireInfraRole(c, AdminRole)
+	authDB, err = requireInfraRole(c, models.InfraAdminRole)
 	assert.Error(t, err)
 	assert.Nil(t, authDB)
 
-	authDB, err = requireInfraRole(c, AdminRole, UserRole)
+	authDB, err = requireInfraRole(c, models.InfraAdminRole, models.InfraUserRole)
 	assert.NoError(t, err)
 	assert.NotNil(t, authDB)
 }

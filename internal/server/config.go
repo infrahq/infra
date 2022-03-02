@@ -15,7 +15,6 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/config"
 	"github.com/infrahq/infra/internal/logging"
@@ -473,11 +472,11 @@ func (s *Server) importAccessKeys() error {
 	keys := map[string]key{
 		"admin": {
 			Secret: s.options.AdminAccessKey,
-			Role:   access.AdminRole,
+			Role:   models.InfraAdminRole,
 		},
 		"engine": {
 			Secret: s.options.AccessKey,
-			Role:   access.ConnectorRole,
+			Role:   models.InfraConnectorRole,
 		},
 	}
 

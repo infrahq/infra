@@ -63,7 +63,7 @@ func Setup(c *gin.Context) (string, *models.AccessKey, error) {
 
 	grant := &models.Grant{
 		Identity:  machine.PolymorphicIdentifier(),
-		Privilege: AdminRole,
+		Privilege: models.InfraAdminRole,
 		Resource:  "infra",
 	}
 

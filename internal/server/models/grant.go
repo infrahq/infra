@@ -7,6 +7,12 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+const (
+	InfraAdminRole     = "admin"
+	InfraUserRole      = "user"
+	InfraConnectorRole = "connector"
+)
+
 // Grant is a lean tuple of identity <-> privilege <-> resource (URN) relationships.
 // bloat should be avoided here since this model is going to be used heavily.
 //

@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -75,7 +75,7 @@ func newDestinationsAddCmd() *cobra.Command {
 
 			destinationGrant := &api.CreateGrantRequest{
 				Identity:  uid.NewMachinePolymorphicID(created.ID),
-				Privilege: access.ConnectorRole,
+				Privilege: models.InfraConnectorRole,
 				Resource:  "infra",
 			}
 
