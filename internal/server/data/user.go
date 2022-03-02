@@ -51,19 +51,3 @@ func DeleteUsers(db *gorm.DB, selectors ...SelectorFunc) error {
 func SaveUser(db *gorm.DB, user *models.User) error {
 	return save(db, user)
 }
-
-func ByEmailInList(emails []string) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("email in (?)", emails)
-	}
-}
-
-func ByIDNotInList(ids []uid.ID) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		if len(ids) > 0 {
-			return db.Where("id not in (?)", ids)
-		}
-
-		return db
-	}
-}

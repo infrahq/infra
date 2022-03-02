@@ -16,7 +16,7 @@ func GetGrant(c *gin.Context, id uid.ID) (*models.Grant, error) {
 		return nil, err
 	}
 
-	return data.GetGrant(db, data.ByID(id), data.NotCreatedBySystem())
+	return data.GetGrant(db, data.ByID(id), data.NotCreatedBy(models.CreatedBySystem))
 }
 
 func ListGrants(c *gin.Context, identity uid.PolymorphicID, resource string, privilege string) ([]models.Grant, error) {
@@ -25,7 +25,7 @@ func ListGrants(c *gin.Context, identity uid.PolymorphicID, resource string, pri
 		return nil, err
 	}
 
-	return data.ListGrants(db, data.ByIdentity(identity), data.ByResource(resource), data.ByPrivilege(privilege), data.NotCreatedBySystem())
+	return data.ListGrants(db, data.ByIdentity(identity), data.ByResource(resource), data.ByPrivilege(privilege), data.NotCreatedBy(models.CreatedBySystem))
 }
 
 func ListUserGrants(c *gin.Context, userID uid.ID) ([]models.Grant, error) {
@@ -79,5 +79,5 @@ func DeleteGrant(c *gin.Context, id uid.ID) error {
 		return err
 	}
 
-	return data.DeleteGrants(db, data.ByID(id), data.NotCreatedBySystem())
+	return data.DeleteGrants(db, data.ByID(id), data.NotCreatedBy(models.CreatedBySystem))
 }

@@ -33,7 +33,6 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/certs"
-	"github.com/infrahq/infra/internal/config"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -66,7 +65,7 @@ type Options struct {
 	Keys    []KeyProvider    `mapstructure:"keys"`
 	Secrets []SecretProvider `mapstructure:"secrets"`
 
-	Import *config.Config `mapstructure:"import"`
+	Config `mapstructure:",squash"`
 
 	NetworkEncryption           string `mapstructure:"networkEncryption"` // mtls (default), e2ee, none.
 	TrustInitialClientPublicKey string `mapstructure:"trustInitialClientPublicKey"`
@@ -152,12 +151,12 @@ func Run(options Options) (err error) {
 		scope.SetContext("serverId", settings.ID)
 	})
 
-	if err := server.runServer(); err != nil {
-		return fmt.Errorf("running server: %w", err)
+	if err := loadConfig(server.db, server.options.Config); err != nil {
+		return fmt.Errorf("configs: %w", err)
 	}
 
-	if err := server.importConfig(); err != nil {
-		logging.S.Error(fmt.Errorf("import config: %w", err))
+	if err := server.runServer(); err != nil {
+		return fmt.Errorf("running server: %w", err)
 	}
 
 	return logging.L.Sync()
@@ -601,10 +600,8 @@ func (s *Server) setupRequired() bool {
 		return false
 	}
 
-	if s.options.Import != nil {
-		if len(s.options.Import.Providers) != 0 || len(s.options.Import.Grants) != 0 {
-			return false
-		}
+	if len(s.options.Config.Providers) != 0 || len(s.options.Config.Grants) != 0 {
+		return false
 	}
 
 	machines, err := data.ListMachines(s.db, data.ByName("admin"))
