@@ -30,7 +30,7 @@ import (
 	"github.com/infrahq/infra/internal/server"
 )
 
-var errorNotLoggedIn = fmt.Errorf("Not logged in. Run \"infra login\" before running this command.")
+var errorNotLoggedIn = fmt.Errorf("Not logged in. Run 'infra login' before running this command.")
 
 func parseOptions(cmd *cobra.Command, options interface{}, envPrefix string) error {
 	v := viper.New()
