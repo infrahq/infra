@@ -448,18 +448,17 @@ func Run(options Options) error {
 				logging.S.Warn("registering engine with cluster IP, it may not be externally accessible without an ingress or load balancer")
 			}
 
-			// these are checked in the future to see if they have updated
-			endpoint = currentEndpoint
-			ca = string(caBytes)
-
 			destinations, err := client.ListDestinations(api.ListDestinationsRequest{Name: "", UniqueID: chksm})
 			if err != nil {
 				logging.S.Errorf("error listing destinations: %w", err)
 				return
 			}
 
-			switch len(destinations) {
-			case 0:
+			if len(destinations) == 0 {
+				// these are checked in the future to see if they have updated
+				endpoint = currentEndpoint
+				ca = string(caBytes)
+
 				request := &api.CreateDestinationRequest{
 					Name:     options.Name,
 					UniqueID: chksm,
@@ -476,27 +475,6 @@ func Run(options Options) error {
 				}
 
 				destinationID = destination.ID
-			case 1:
-				request := api.UpdateDestinationRequest{
-					ID:       destinations[0].ID,
-					Name:     options.Name,
-					UniqueID: chksm,
-					Connection: api.DestinationConnection{
-						CA:  ca,
-						URL: endpoint,
-					},
-				}
-
-				_, err := client.UpdateDestination(request)
-				if err != nil {
-					logging.S.Errorf("error updating destination: %w", err)
-				}
-
-				destinationID = destinations[0].ID
-			default:
-				// this shouldn't happen
-				logging.L.Info("unexpected result from ListDestinations")
-				return
 			}
 		}
 
@@ -512,7 +490,7 @@ func Run(options Options) error {
 				Name:     options.Name,
 				UniqueID: chksm,
 				Connection: api.DestinationConnection{
-					CA:  string(caBytes),
+					CA:  ca,
 					URL: endpoint,
 				},
 			}
