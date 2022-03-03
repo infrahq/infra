@@ -179,7 +179,7 @@ secrets:
     base64Raw: false
 ```
 
-which you would then use in the `infra.yaml` file as shown:
+Which you would then use in the `infra.yaml` file as shown:
 
 ```yaml
     clientSecret: base64text:bXlTdXBFclNlY3JFdA==
