@@ -162,7 +162,7 @@ Sometimes it can be handy to support plain text secrets right in the yaml config
     clientSecret: plaintext:mySupErSecrEt
 ```
 
-Optionally for plaintext secrets, you can leave off the secret backend name for plaintext secrets:
+Optionally for plaintext secrets, you can leave off the secret back-end name:
 
 ```yaml
     clientSecret: mySupErSecrEt
