@@ -76,7 +76,7 @@ providers:
   - name: Okta
     url: example.okta.com
     clientID: example_jsldf08j23d081j2d12sd
-    clientSecret:  example_plain_secret #see note above
+    clientSecret:  env:example_secret #see note above about secrets
 
 grants:
 # 1. Grant user(s) or group(s) as Infra administrator

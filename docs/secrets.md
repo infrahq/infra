@@ -8,7 +8,7 @@ Infra supports many secret storage backends, including, but not limited to:
 - AWS SSM (Systems Manager Parameter Store)
 - Environment variables
 - Files on the file system
-- plaintext secrets (though probably not recommended)
+- plaintext secrets (though not recommended)
 
 ## Usage
 
@@ -32,6 +32,8 @@ secrets:
     kind: kubernetes
     namespace: mynamespace
 ```
+
+namespace defaults to whatever is defined in `/var/run/secrets/kubernetes.io/serviceaccount/namespace`, or the `default` namespace.
 
 ### Vault
 
@@ -97,7 +99,7 @@ secrets:
     clientSecret: env:OKTA_CLIENT_SECRET
 ```
 
-env is built-in and does not need to be declared, but if you do want to declare the configuration for it, you could use this to create a custom env handler, like so:
+**env** is built-in and does not need to be declared, but if you do want to declare the configuration for it, you could use this to create a custom env handler which base64 encodes the secret:
 
 ```yaml
 secrets:
@@ -108,11 +110,13 @@ secrets:
     base64Raw: false
 ```
 
-which you would then use like:
+which you would then use like this. First create the environment variable:
 
 ```bash
 $ export OKTA_CLIENT_SECRET="c3VwZXIgc2VjcmV0IQ=="
 ```
+
+Then use the name of the secret back-end and the name of the environment variable in the `infra.yaml` file:
 
 ```yaml
     clientSecret: base64env:OKTA_CLIENT_SECRET
@@ -120,13 +124,13 @@ $ export OKTA_CLIENT_SECRET="c3VwZXIgc2VjcmV0IQ=="
 
 ### Files on the file system
 
-It's a common pattern to write secrets to a file on disk and then have an app read them.
+It's a common pattern to write secrets to a set of files on disk and then have an app read them. Note that one secret is stored per file in plaintext.
 
 ```yaml
     clientSecret: file:/var/secrets/okta-client-secret.txt
 ```
 
-file is built-in and does not need to be declared, but if you do want to declare the configuration for it, you could use this to create a custom handler, like so:
+**file** is built-in and does not need to be declared, but if you do want to declare the configuration for it, you could use this to create a custom handler, like so:
 
 ```yaml
 secrets:
@@ -138,11 +142,13 @@ secrets:
     path: /var/secrets # optional: assume all files mentioned are in this root directory
 ```
 
-which you would then use like:
+which you would then use as follows. First base64 encode a string and write it to a file:
 
 ```bash
 $ echo "c3VwZXIgc2VjcmV0IQ==" > /var/secrets/okta-client-secret.txt
 ```
+
+Then in the `infra.yaml` file, use the name of the secrets config declaration and then the name of the file. 
 
 ```yaml
     clientSecret: base64file:okta-client-secret.txt
@@ -156,7 +162,13 @@ Sometimes it can be handy to support plain text secrets right in the yaml config
     clientSecret: plaintext:mySupErSecrEt
 ```
 
-plain is built-in and does not need to be declared, but if you do want to declare the configuration for it, you could use this to create a custom handler, like so:
+Optionally for plaintext secrets, you can leave off the secret back-end name:
+
+```yaml
+    clientSecret: mySupErSecrEt
+```
+
+**plaintext** is built-in and does not need to be declared, but if you do want to declare the configuration for it so that you can include base64 encoded strings, you could use this to create a custom handler:
 
 ```yaml
 secrets:
@@ -167,7 +179,7 @@ secrets:
     base64Raw: false
 ```
 
-which you would then use like:
+Which you would then use in the `infra.yaml` file as shown:
 
 ```yaml
     clientSecret: base64text:bXlTdXBFclNlY3JFdA==
