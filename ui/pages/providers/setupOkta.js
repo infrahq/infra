@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import Router from 'next/router'
+import axios from 'axios'
 import styled from 'styled-components'
 
 import ExitButton from '../../components/ExitButtn'
@@ -53,22 +54,26 @@ const SetupOkta = () => {
     // update the state
     if (currentPage === page.Setup) {
       console.log(value)
+      axios.post('/v1/providers', {name: value.name, url: value.domain, clientID: value.clientId, clientSecret: value.clientSecret})
+        .then((response) => {
+        console.log(response);
+      })
       // call the endpoint to connect with okta provider
       // when it is successed then update the current page
-      setCurrentPage(page.connected)
-      // set the return value as provider
-      const returnValue = {
-        type: 'okta',
-        name: 'okta-test',
-        id: '3GuiBghzw1',
-        created: 1645809213,
-        updated: 1646159548,
-        url: 'dev-02708987.okta.com',
-        clientID: '0oapn0qwiQPiMIyR35d6',
-        view: true,
-        disabled: true
-      }
-      setProvider(returnValue)
+      // setCurrentPage(page.connected)
+      // // set the return value as provider
+      // const returnValue = {
+      //   type: 'okta',
+      //   name: 'okta-test',
+      //   id: '3GuiBghzw1',
+      //   created: 1645809213,
+      //   updated: 1646159548,
+      //   url: 'dev-02708987.okta.com',
+      //   clientID: '0oapn0qwiQPiMIyR35d6',
+      //   view: true,
+      //   disabled: true
+      // }
+      // setProvider(returnValue)
     }
 
     if (currentPage === page.connected) {

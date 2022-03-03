@@ -53,13 +53,6 @@ const Setup = ({ value, parentCallback }) => {
       <InputList>
         <div>
           <Input
-            label='Name of Provider'
-            value={value.name}
-            onChange={e => parentCallback(e.target.value, 'name')}
-          />
-        </div>
-        <div>
-          <Input
             label='Okta Domain'
             value={value.domain}
             onChange={e => parentCallback(e.target.value, 'domain')}
