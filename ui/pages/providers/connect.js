@@ -3,7 +3,7 @@ import styled from 'styled-components'
 
 import ExitButton from '../../components/ExitButtn'
 import IdentitySourceBtn from '../../components/IdentitySourceBtn'
-import Header from '../../components/providers/Header'
+import Header from '../../components/Header'
 
 const ConnectProviderContainer = styled.section`
   position: relative;

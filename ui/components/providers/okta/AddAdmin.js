@@ -2,7 +2,7 @@ import Link from 'next/link'
 import styled from 'styled-components'
 
 import Input from "../../Input"
-import Header from "../Header"
+import Header from "../../Header"
 
 const StyledLink = styled.div`
   font-weight: 100;
