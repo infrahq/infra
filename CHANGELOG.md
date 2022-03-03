@@ -1,5 +1,39 @@
 # Changelog
 
+### [0.5.9](https://github.com/infrahq/infra/compare/v0.5.8...v0.5.9) (2022-03-03)
+
+
+### Features
+
+* add docker-compose.yml ([8399b7c](https://github.com/infrahq/infra/commit/8399b7ccf4f249c520f03acac10faac4069eccf5))
+* add one-time setup endpoint ([8bcfe2f](https://github.com/infrahq/infra/commit/8bcfe2f2fcf132b14d6cc38725d851d071beaed5))
+* Certificates management ([#1086](https://github.com/infrahq/infra/issues/1086)) ([09802a3](https://github.com/infrahq/infra/commit/09802a3b7563f95ef2d52e0ff9b913b3a2d0a259))
+* **cmd:** setup if required during CLI login ([b7b3b84](https://github.com/infrahq/infra/commit/b7b3b841eb2c5463748d98e748a2586c526de998))
+* **helm:** single helm chart ([a1ffddd](https://github.com/infrahq/infra/commit/a1ffddd5950430001b2772facd68e50082e067d6))
+* remove infra permissions ([#855](https://github.com/infrahq/infra/issues/855)) ([#1085](https://github.com/infrahq/infra/issues/1085)) ([fb7f3fe](https://github.com/infrahq/infra/commit/fb7f3fe3a82e0e019e732a2e97876ada878cd11d))
+* switching back to js ([#1111](https://github.com/infrahq/infra/issues/1111)) ([578d874](https://github.com/infrahq/infra/commit/578d8749acf87b2fdc1060b404bfd98d48aeaa8e))
+
+
+### Bug Fixes
+
+* add start up log to server/engine ([ba200e0](https://github.com/infrahq/infra/commit/ba200e0d705c2ef2d0082229d4e23163070c41c4))
+* better client error messages ([#1126](https://github.com/infrahq/infra/issues/1126)) ([7c37bcb](https://github.com/infrahq/infra/commit/7c37bcb08234206abdd4d0c4ef478d5f57ee9a3c))
+* clean up tls cert error display in cli ([#1032](https://github.com/infrahq/infra/issues/1032)) ([4d14842](https://github.com/infrahq/infra/commit/4d14842ff0407986da7d22dbe58b537dfae85b37))
+* cli required parameter validation ([#1045](https://github.com/infrahq/infra/issues/1045)) ([c2938c5](https://github.com/infrahq/infra/commit/c2938c5f96cbf8d47e84029b8e73009475ea71ac))
+* **cli:** info checks if user is logged in ([#1100](https://github.com/infrahq/infra/issues/1100)) ([bbae6d9](https://github.com/infrahq/infra/commit/bbae6d9022db86e6ad8fd23efb140522c1130b86))
+* **cli:** small if-statement flip for machine validation options ([#1096](https://github.com/infrahq/infra/issues/1096)) ([e4c7b4a](https://github.com/infrahq/infra/commit/e4c7b4a58fd82ad3584ca67433ccb2f409652d7a))
+* engine connection updating ([#955](https://github.com/infrahq/infra/issues/955)) ([#1131](https://github.com/infrahq/infra/issues/1131)) ([b1cea2b](https://github.com/infrahq/infra/commit/b1cea2ba27c85dbe434f8bc05ade8b864bfd080b))
+* http request logging ([cbcb13b](https://github.com/infrahq/infra/commit/cbcb13b54dd0f83253a739839acf1d88591bb761))
+* include provider in jwt claim ([#1132](https://github.com/infrahq/infra/issues/1132)) ([43e979c](https://github.com/infrahq/infra/commit/43e979c4b454a40d4dbda130b9a3a446d290b9b7))
+* infra casing ([#1043](https://github.com/infrahq/infra/issues/1043)) ([8a1da13](https://github.com/infrahq/infra/commit/8a1da1378676d5a543b414f8382968fdf1826210))
+* load config directly into db ([ea515cc](https://github.com/infrahq/infra/commit/ea515cc8fe79209773bd8b5dc60e62ecc6945ae6))
+* remove cmd dependency on access ([#1117](https://github.com/infrahq/infra/issues/1117)) ([c745f54](https://github.com/infrahq/infra/commit/c745f544f90fb658ab8b938a433418abb1b28cb3))
+* remove user token by issued for on logout ([#1066](https://github.com/infrahq/infra/issues/1066)) ([882b5ce](https://github.com/infrahq/infra/commit/882b5ceb0c57eadca1278974c386ed248e87b1dc))
+* replace logging.Logger with logging.WrappedLogger ([c3c047b](https://github.com/infrahq/infra/commit/c3c047bd5e5014e759460328593cb62939d8d5b7))
+* resolves issue with panic around unexpected grant syntax ([#1113](https://github.com/infrahq/infra/issues/1113)) ([269454b](https://github.com/infrahq/infra/commit/269454b10b461dd181e4cad806268f031426f82a))
+* update .gitignore to include infra binary ([#1072](https://github.com/infrahq/infra/issues/1072)) ([cfa2248](https://github.com/infrahq/infra/commit/cfa2248d4d97f772d3182e95d92aa5b81d3f6a17))
+* when logout it should redirect back to login page ([#1089](https://github.com/infrahq/infra/issues/1089)) ([c15dab1](https://github.com/infrahq/infra/commit/c15dab114bf459956054f2254158fd95d4a254be))
+
 ### [0.5.8](https://github.com/infrahq/infra/compare/v0.5.7...v0.5.8) (2022-02-18)
 
 
