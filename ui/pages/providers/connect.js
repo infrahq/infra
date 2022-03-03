@@ -90,8 +90,11 @@ const Connect = () => {
         />
         <Header
           header='Choose an Identity Provider'
-          subheader={<>Currently there are no identity providers connected to Infra. <br />
-            Choose your IdP source below and get connected.</>}
+          subheader={
+            <>Currently there are no identity providers connected to Infra. <br />
+              Choose your IdP source below and get connected.
+            </>
+          }
         />
         <IdentitySourceList>
           <div>

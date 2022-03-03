@@ -58,7 +58,7 @@ export const AuthContextProvider = ({ children }) => {
       .then((response) => {
         return response.data
       })
-      .catch((error) => {
+      .catch(() => {
         setAuthReady(false)
         setLoginError(true)
       })
@@ -71,7 +71,7 @@ export const AuthContextProvider = ({ children }) => {
       if (currentUser) {
         setUser(currentUser)
         setAuthReady(true)
-  
+
         await Router.push({
           pathname: '/'
         }, undefined, { shallow: true })

@@ -11,13 +11,13 @@ const IdentitySourceContainer = styled.button`
   width: 24rem;
   height: 3rem;
   background: rgba(255,255,255,0.02);
-  opacity: ${props => props.disabled != null && props.disabled ? '.56' : '1'};
+  opacity: ${props => props.disabled && !props.readOnly ? '.56' : '1'};
   border-radius: .25rem;
   border: none;
-  cursor: ${props => props.disabled != null && props.disabled ? 'default' : 'pointer'};
+  cursor: ${props => props.disabled ? 'default' : 'pointer'};
   color: #FFFFFF;
 
-  ${props => props.disabled != null && props.disabled
+  ${props => props.disabled
     ? ''
     : '&:hover { opacity: .95 }'
   }
@@ -58,7 +58,7 @@ const DescriptionSubheader = styled.div`
   opacity: 0.3;
 `
 
-const IdentitySourceBtn = ({ providers}) => {
+const IdentitySourceBtn = ({ providers }) => {
   return (
     <IdentitySourceBtnContainer>
       {providers.map((provider, index) => {
@@ -67,6 +67,7 @@ const IdentitySourceBtn = ({ providers}) => {
             key={index}
             onClick={() => provider.onClick()}
             disabled={provider.disabled || false}
+            readOnly={provider.view || false}
           >
             <IdentitySourceContentContainer>
               <IdentitySourceLogo>
@@ -94,8 +95,9 @@ IdentitySourceBtn.prototype = {
     created: PropTypes.number,
     updated: PropTypes.number,
     onClick: PropTypes.func,
-    disabled: PropTypes.bool
-  })).isRequired,
+    disabled: PropTypes.bool,
+    view: PropTypes.bool
+  })).isRequired
 }
 
 export default IdentitySourceBtn

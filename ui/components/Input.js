@@ -47,7 +47,7 @@ const Label = styled.span`
   color: rgba(255, 255, 255, 0.5);
 `
 
-const Input = ({ label, value, onChange, showImage=false }) => {
+const Input = ({ label, value, onChange, showImage = false }) => {
   return (
     <InputContainer>
       <InputGroup>

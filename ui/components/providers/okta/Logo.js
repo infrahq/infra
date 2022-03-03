@@ -6,7 +6,7 @@ const LogoContainer = styled.section`
   justify-content: space-between;
   width: 6rem;
   height: 2rem;
-`;
+`
 
 const OktaLogo = styled.img`
   width: 33.27px;

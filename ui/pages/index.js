@@ -2,8 +2,6 @@ import Link from 'next/link'
 import { useContext, useEffect, useState } from 'react'
 import AuthContext from '../store/AuthContext'
 
-
-
 export default function Index () {
   const { logout, user } = useContext(AuthContext)
 
