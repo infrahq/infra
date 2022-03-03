@@ -54,6 +54,14 @@ type jwkCache struct {
 	baseURL string
 }
 
+type localDetails struct {
+	endpoint      string
+	ca            string
+	name          string
+	chksm         string
+	destinationID uid.ID
+}
+
 func (j *jwkCache) getJWK() (*jose.JSONWebKey, error) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
@@ -382,8 +390,10 @@ func Run(options Options) error {
 
 	u.Scheme = "https"
 
-	var destinationID uid.ID
-	var endpoint, ca string
+	localDetails := &localDetails{
+		name:  options.Name,
+		chksm: chksm,
+	}
 
 	timer := timer.NewTimer()
 	timer.Start(5*time.Second, func() {
@@ -418,9 +428,9 @@ func Run(options Options) error {
 			}
 		}
 
-		currentEndpoint := fmt.Sprintf("%s:%d", host, port)
+		endpoint := fmt.Sprintf("%s:%d", host, port)
 
-		url, err := urlx.Parse(currentEndpoint)
+		url, err := urlx.Parse(endpoint)
 		if err != nil {
 			logging.S.Errorf("url parse: %s", err.Error())
 			return
@@ -437,7 +447,10 @@ func Run(options Options) error {
 			}
 		}
 
-		if destinationID == 0 {
+		if localDetails.destinationID == 0 {
+			localDetails.ca = string(caBytes)
+			localDetails.endpoint = endpoint
+
 			isClusterIP, err := k8s.IsServiceTypeClusterIP()
 			if err != nil {
 				logging.S.Debugf("could not check destination service type: %w", err)
@@ -447,56 +460,19 @@ func Run(options Options) error {
 				logging.S.Warn("registering engine with cluster IP, it may not be externally accessible without an ingress or load balancer")
 			}
 
-			destinations, err := client.ListDestinations(api.ListDestinationsRequest{Name: "", UniqueID: chksm})
+			err = registerDestination(client, localDetails)
 			if err != nil {
-				logging.S.Errorf("error listing destinations: %w", err)
+				logging.S.Errorf("initializing destination: %w", err)
 				return
 			}
+		} else if localDetails.endpoint != endpoint || localDetails.ca != string(caBytes) {
+			localDetails.ca = string(caBytes)
+			localDetails.endpoint = endpoint
 
-			if len(destinations) == 0 {
-				// these are checked in the future to see if they have updated
-				endpoint = currentEndpoint
-				ca = string(caBytes)
-
-				request := &api.CreateDestinationRequest{
-					Name:     options.Name,
-					UniqueID: chksm,
-					Connection: api.DestinationConnection{
-						CA:  ca,
-						URL: endpoint,
-					},
-				}
-
-				destination, err := client.CreateDestination(request)
-				if err != nil {
-					logging.S.Errorf("error creating destination: %w", err)
-					return
-				}
-
-				destinationID = destination.ID
-			}
-		}
-
-		// this will only be possible on an update cycle
-		if endpoint != currentEndpoint || ca != string(caBytes) {
-			logging.S.Debug("updating engine information at server")
-
-			endpoint = currentEndpoint
-			ca = string(caBytes)
-
-			request := api.UpdateDestinationRequest{
-				ID:       destinationID,
-				Name:     options.Name,
-				UniqueID: chksm,
-				Connection: api.DestinationConnection{
-					CA:  ca,
-					URL: endpoint,
-				},
-			}
-
-			_, err := client.UpdateDestination(request)
+			err = refreshDestination(client, localDetails)
 			if err != nil {
-				logging.S.Errorf("error updating existing destination: %w", err)
+				logging.S.Errorf("initializing destination: %w", err)
+				return
 			}
 		}
 
@@ -608,4 +584,53 @@ func Run(options Options) error {
 	logging.L.Info("serving on port 443")
 
 	return tlsServer.ListenAndServeTLS("", "")
+}
+
+// registerDestination creates a destination in the infra server if it does not exist
+func registerDestination(client *api.Client, local *localDetails) error {
+	destinations, err := client.ListDestinations(api.ListDestinationsRequest{Name: "", UniqueID: local.chksm})
+	if err != nil {
+		return fmt.Errorf("error listing destinations: %w", err)
+	}
+
+	if len(destinations) == 0 {
+		request := &api.CreateDestinationRequest{
+			Name:     local.name,
+			UniqueID: local.chksm,
+			Connection: api.DestinationConnection{
+				CA:  local.ca,
+				URL: local.endpoint,
+			},
+		}
+
+		destination, err := client.CreateDestination(request)
+		if err != nil {
+			return fmt.Errorf("error creating destination: %w", err)
+		}
+
+		local.destinationID = destination.ID
+	} else {
+		local.destinationID = destinations[0].ID
+		return refreshDestination(client, local)
+	}
+
+	return nil
+}
+
+func refreshDestination(client *api.Client, local *localDetails) error {
+	logging.S.Debug("updating engine information at server")
+
+	request := api.UpdateDestinationRequest{
+		ID:       local.destinationID,
+		Name:     local.name,
+		UniqueID: local.chksm,
+		Connection: api.DestinationConnection{
+			CA:  local.ca,
+			URL: local.endpoint,
+		},
+	}
+
+	_, err := client.UpdateDestination(request)
+
+	return fmt.Errorf("error updating existing destination: %w", err)
 }
