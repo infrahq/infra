@@ -29,15 +29,7 @@ type ClientHostConfig struct {
 }
 
 func (c *ClientHostConfig) isLoggedIn() bool {
-	return c.AccessKey != ""
-}
-
-func (c *ClientHostConfig) isUser() bool {
-	return c.ProviderID != 0
-}
-
-func (c *ClientHostConfig) isMachine() bool {
-	return !c.isUser()
+	return c.AccessKey != "" || c.PolymorphicID != ""
 }
 
 //lint:ignore ST1005, user facing error

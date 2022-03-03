@@ -465,7 +465,7 @@ func newInfoCmd() *cobra.Command {
 				return errorNotLoggedIn
 			}
 
-			if config.isUser() {
+			if config.PolymorphicID.IsUser() {
 				provider, err := client.GetProvider(config.ProviderID)
 				if err != nil {
 					return err
@@ -504,7 +504,7 @@ func newInfoCmd() *cobra.Command {
 
 				fmt.Fprintln(w)
 				fmt.Fprintln(w, "Server:\t", config.Host)
-				fmt.Fprintln(w, "Machine:\t", machine.Name)
+				fmt.Fprintln(w, "Machine User:\t", machine.Name)
 				fmt.Fprintln(w)
 			}
 
