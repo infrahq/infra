@@ -30,6 +30,8 @@ import (
 	"github.com/infrahq/infra/internal/server"
 )
 
+var errorNotLoggedIn = fmt.Errorf("Not logged in. Run 'infra login' before running this command.")
+
 func parseOptions(cmd *cobra.Command, options interface{}, envPrefix string) error {
 	v := viper.New()
 
@@ -459,47 +461,51 @@ func newInfoCmd() *cobra.Command {
 			w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
 			defer w.Flush()
 
-			fmt.Fprintln(w)
-			fmt.Fprintln(w, "Server:\t", config.Host)
+			if !config.isLoggedIn() {
+				return errorNotLoggedIn
+			}
 
-			if config.ProviderID != 0 {
-				// a provider implies this is a user identity
+			if config.PolymorphicID.IsUser() {
 				provider, err := client.GetProvider(config.ProviderID)
 				if err != nil {
 					return err
 				}
-
-				fmt.Fprintln(w, "Identity Provider:\t", provider.Name, fmt.Sprintf("(%s)", provider.URL))
 
 				user, err := client.GetUser(config.ID)
 				if err != nil {
 					return err
 				}
 
-				fmt.Fprintln(w, "User:\t", user.Email)
-
 				groups, err := client.ListUserGroups(config.ID)
 				if err != nil {
 					return err
 				}
 
-				var names string
+				var groupsStr string
 				for i, g := range groups {
 					if i != 0 {
-						names += ", "
+						groupsStr += ", "
 					}
 
-					names += g.Name
+					groupsStr += g.Name
 				}
 
-				fmt.Fprintln(w, "Groups:\t", names)
-			} else {
+				fmt.Fprintln(w)
+				fmt.Fprintln(w, "Server:\t", config.Host)
+				fmt.Fprintf(w, "Identity Provider:\t %s (%s)\n", provider.Name, provider.URL)
+				fmt.Fprintln(w, "User:\t", user.Email)
+				fmt.Fprintln(w)
+			} else if config.PolymorphicID.IsMachine() {
 				machine, err := client.GetMachine(config.ID)
 				if err != nil {
+					fmt.Fprintln(os.Stderr, "6.3")
 					return err
 				}
 
-				fmt.Fprintln(w, "Machine:\t", machine.Name)
+				fmt.Fprintln(w)
+				fmt.Fprintln(w, "Server:\t", config.Host)
+				fmt.Fprintln(w, "Machine User:\t", machine.Name)
+				fmt.Fprintln(w)
 			}
 
 			return nil
