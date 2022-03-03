@@ -81,7 +81,7 @@ export const AuthContextProvider = ({ children }) => {
 
   const getAccessKey = async (code, providerID, redirectURL) => {
     setHasRedirected(true)
-    axios.post('/v1/login', { providerID, code, redirectURL })
+    axios.post('/v1/login', { oidc: { providerID, code, redirectURL }})
       .then(async (response) => {
         setCookie('accessKey', response.data.accessKey, { path: '/' })
         await redirectToDashboard(response.data.accessKey)

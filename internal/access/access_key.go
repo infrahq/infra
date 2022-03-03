@@ -2,12 +2,19 @@ package access
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
+
+func currentAccessKey(c *gin.Context) *models.AccessKey {
+	return c.MustGet("key").(*models.AccessKey)
+}
 
 func ListAccessKeys(c *gin.Context, machineID uid.ID, name string) ([]models.AccessKey, error) {
 	db, err := requireInfraRole(c, models.InfraAdminRole)
@@ -46,6 +53,15 @@ func DeleteAccessKey(c *gin.Context, id uid.ID) error {
 	return data.DeleteAccessKeys(db, data.ByID(id))
 }
 
+func DeleteRequestAccessKey(c *gin.Context) error {
+	// does not need authorization check, this action is limited to the calling key
+	key := currentAccessKey(c)
+
+	db := getDB(c)
+
+	return data.DeleteAccessKey(db, key.ID)
+}
+
 func DeleteAllUserAccessKeys(c *gin.Context) error {
 	// does not need authorization check, this action is limited to the calling user
 	user := CurrentUser(c)
@@ -56,4 +72,46 @@ func DeleteAllUserAccessKeys(c *gin.Context) error {
 	db := getDB(c)
 
 	return data.DeleteAccessKeys(db, data.ByUserIDIssuedFor(user.ID))
+}
+
+// ExchangeAccessKey allows a key exchange to get a new key with a shorter lifetime
+func ExchangeAccessKey(c *gin.Context, requestingAccessKey string, expiry time.Time) (string, *models.Machine, error) {
+	db := getDB(c)
+
+	validatedRequestKey, err := data.ValidateAccessKey(db, requestingAccessKey)
+	if err != nil {
+		logging.S.Debugf("access key was found to be invalid in exchange: %s", err)
+		return "", nil, fmt.Errorf("unauthorized")
+	}
+
+	if expiry.After(validatedRequestKey.ExpiresAt) {
+		return "", nil, fmt.Errorf("%w: cannot exchange an access key for another access key with a longer lifetime", internal.ErrBadRequest)
+	}
+
+	if !validatedRequestKey.IssuedFor.IsMachine() {
+		// this flow isn't supported for user identities yet
+		return "", nil, internal.ErrNotImplemented
+	}
+
+	machineID, err := validatedRequestKey.IssuedFor.ID()
+	if err != nil {
+		return "", nil, fmt.Errorf("parse exchange issue id: %w", err)
+	}
+
+	machine, err := data.GetMachine(db, data.ByID(machineID))
+	if err != nil {
+		return "", nil, fmt.Errorf("get machine exchange: %w", err)
+	}
+
+	exchangedAccessKey := &models.AccessKey{
+		IssuedFor: validatedRequestKey.IssuedFor,
+		ExpiresAt: expiry,
+	}
+
+	secret, err := data.CreateAccessKey(db, exchangedAccessKey)
+	if err != nil {
+		return "", nil, fmt.Errorf("create exchanged token: %w", err)
+	}
+
+	return secret, machine, nil
 }

@@ -101,27 +101,26 @@ func RequireAccessKey(c *gin.Context) error {
 		return fmt.Errorf("%w: skipped validating empty token", internal.ErrUnauthorized)
 	}
 
-	token, err := data.ValidateAccessKey(db, bearer)
+	accessKey, err := data.ValidateAccessKey(db, bearer)
 	if err != nil {
 		return fmt.Errorf("%w: invalid token: %s", internal.ErrUnauthorized, err)
 	}
 
-	c.Set("token", token)
-	c.Set("identity", token.IssuedFor)
+	c.Set("key", accessKey)
+	c.Set("identity", accessKey.IssuedFor)
 
-	issID, err := token.IssuedFor.ID()
+	issID, err := accessKey.IssuedFor.ID()
 	if err != nil {
 		return fmt.Errorf("%w: invalid token issue: %s", internal.ErrUnauthorized, err)
 	}
 
-	// set the token has a parent identity in the context
-	if token.IssuedFor.IsUser() {
+	if accessKey.IssuedFor.IsUser() {
 		if err := setUserContext(c, db, issID.String()); err != nil {
 			return fmt.Errorf("set user context: %v", err)
 		}
 	}
 
-	if token.IssuedFor.IsMachine() {
+	if accessKey.IssuedFor.IsMachine() {
 		if err := setMachineContext(c, db, issID.String()); err != nil {
 			return fmt.Errorf("set machine context: %v", err)
 		}
