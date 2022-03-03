@@ -1,7 +1,6 @@
 package models
 
 import (
-	"strings"
 	"time"
 
 	"github.com/infrahq/infra/internal/api"
@@ -11,9 +10,8 @@ import (
 type User struct {
 	Model
 
-	Email       string `gorm:"uniqueIndex:idx_users_email_provider_id,where:deleted_at is NULL"`
-	Permissions string
-	LastSeenAt  time.Time // updated on when user uses a session token
+	Email      string    `gorm:"uniqueIndex:idx_users_email_provider_id,where:deleted_at is NULL"`
+	LastSeenAt time.Time // updated on when user uses a session token
 
 	ProviderID uid.ID `gorm:"uniqueIndex:idx_users_email_provider_id,where:deleted_at is NULL"`
 
@@ -22,13 +20,12 @@ type User struct {
 
 func (u *User) ToAPI() *api.User {
 	result := &api.User{
-		ID:          u.ID,
-		Created:     u.CreatedAt.Unix(),
-		Updated:     u.UpdatedAt.Unix(),
-		Email:       u.Email,
-		ProviderID:  u.ProviderID,
-		LastSeenAt:  u.LastSeenAt.Unix(),
-		Permissions: strings.Split(u.Permissions, " "),
+		ID:         u.ID,
+		Created:    u.CreatedAt.Unix(),
+		Updated:    u.UpdatedAt.Unix(),
+		Email:      u.Email,
+		ProviderID: u.ProviderID,
+		LastSeenAt: u.LastSeenAt.Unix(),
 	}
 
 	return result

@@ -8,16 +8,29 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-const (
-	PermissionGroup       Permission = "infra.group.*"
-	PermissionGroupCreate Permission = "infra.group.create"
-	PermissionGroupRead   Permission = "infra.group.read"
-	PermissionGroupUpdate Permission = "infra.group.update"
-	PermissionGroupDelete Permission = "infra.group.delete"
-)
+// isUserInGroup is used by authorization checks to see if the calling user is requesting their own attributes
+func isUserInGroup(c *gin.Context, requestedResourceID uid.ID) (bool, error) {
+	user := CurrentUser(c)
+
+	if user != nil {
+		lookupDB := getDB(c)
+		groups, err := data.ListUserGroups(lookupDB, user.ID)
+		if err != nil {
+			return false, err
+		}
+
+		for _, g := range groups {
+			if g.ID == requestedResourceID {
+				return true, nil
+			}
+		}
+	}
+
+	return false, nil
+}
 
 func ListGroups(c *gin.Context, name string, providerID uid.ID) ([]models.Group, error) {
-	db, err := requireAuthorization(c, PermissionGroupRead)
+	db, err := requireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole)
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +39,7 @@ func ListGroups(c *gin.Context, name string, providerID uid.ID) ([]models.Group,
 }
 
 func CreateGroup(c *gin.Context, group *models.Group) error {
-	db, err := requireAuthorization(c, PermissionGroupCreate)
+	db, err := requireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
 	}
@@ -35,7 +48,7 @@ func CreateGroup(c *gin.Context, group *models.Group) error {
 }
 
 func GetGroup(c *gin.Context, id uid.ID) (*models.Group, error) {
-	db, err := requireAuthorization(c, PermissionGroupRead)
+	db, err := hasAuthorization(c, id, isUserInGroup, models.InfraAdminRole)
 	if err != nil {
 		return nil, err
 	}
@@ -44,9 +57,7 @@ func GetGroup(c *gin.Context, id uid.ID) (*models.Group, error) {
 }
 
 func ListUserGroups(c *gin.Context, userID uid.ID) ([]models.Group, error) {
-	db, err := requireAuthorizationWithCheck(c, PermissionGroupRead, func(id uid.ID) bool {
-		return userID == id
-	})
+	db, err := hasAuthorization(c, userID, isUserSelf, models.InfraAdminRole)
 	if err != nil {
 		return nil, err
 	}

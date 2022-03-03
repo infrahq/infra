@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -12,10 +13,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
-	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/secrets"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -26,11 +27,22 @@ func setupDB(t *testing.T) *gorm.DB {
 	db, err := data.NewDB(driver)
 	require.NoError(t, err)
 
+	fp := secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{
+		Path: os.TempDir(),
+	})
+
+	kp := secrets.NewNativeSecretProvider(fp)
+
+	key, err := kp.GenerateDataKey("")
+	require.NoError(t, err)
+
+	models.SymmetricKey = key
+
 	return db
 }
 
-func issueUserToken(t *testing.T, db *gorm.DB, email, permissions string, sessionDuration time.Duration) string {
-	user := &models.User{Email: email, Permissions: permissions}
+func issueUserToken(t *testing.T, db *gorm.DB, email string, sessionDuration time.Duration) string {
+	user := &models.User{Email: email}
 
 	err := data.CreateUser(db, user)
 	require.NoError(t, err)
@@ -45,8 +57,8 @@ func issueUserToken(t *testing.T, db *gorm.DB, email, permissions string, sessio
 	return body
 }
 
-func issueMachineToken(t *testing.T, db *gorm.DB, name, permissions string, sessionDuration time.Duration) string {
-	machine := &models.Machine{Name: name, Permissions: permissions}
+func issueMachineToken(t *testing.T, db *gorm.DB, name string, sessionDuration time.Duration) string {
+	machine := &models.Machine{Name: name}
 
 	err := data.CreateMachine(db, machine)
 	require.NoError(t, err)
@@ -96,74 +108,18 @@ func TestRequireAuthentication(t *testing.T) {
 	cases := map[string]map[string]interface{}{
 		"AccessKeyValid": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				authentication := issueUserToken(t, db, "existing@infrahq.com", "*", time.Minute*1)
+				authentication := issueUserToken(t, db, "existing@infrahq.com", time.Minute*1)
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "Bearer "+authentication)
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
 				require.NoError(t, err)
-				permissions, ok := c.Get("permissions")
-				require.True(t, ok)
-				require.Equal(t, "*", permissions)
-			},
-		},
-		"AccessKeyCookieValid": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				authentication := issueUserToken(t, db, "existing@infrahq.com", "*", time.Minute*1)
-				r := httptest.NewRequest(http.MethodGet, "/", nil)
-
-				r.AddCookie(&http.Cookie{
-					Name:     CookieAuthorizationName,
-					Value:    authentication,
-					MaxAge:   int(time.Until(time.Now().Add(time.Minute * 1)).Seconds()),
-					Path:     CookiePath,
-					Domain:   CookieDomain,
-					SameSite: http.SameSiteStrictMode,
-					Secure:   CookieSecureHTTPSOnly,
-					HttpOnly: CookieHTTPOnlyNotJavascriptAccessible,
-				})
-
-				c.Request = r
-			},
-			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.NoError(t, err)
-				permissions, ok := c.Get("permissions")
-				require.True(t, ok)
-				require.Equal(t, "*", permissions)
-			},
-		},
-		"AccessKeySetsUserPermissions": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				authentication := issueUserToken(t, db, "existing@infrahq.com", string(access.PermissionTokenCreate), time.Minute*1)
-				r := httptest.NewRequest(http.MethodGet, "/", nil)
-				r.Header.Add("Authorization", "Bearer "+authentication)
-				c.Request = r
-			},
-			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.NoError(t, err)
-				permissions, ok := c.Get("permissions")
-				require.True(t, ok)
-				require.Equal(t, string(access.PermissionTokenCreate), permissions)
-			},
-		},
-		"AccessKeySetsMachinePermissions": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				authentication := issueMachineToken(t, db, "Wall-E", string(access.PermissionTokenCreate), time.Minute*1)
-				r := httptest.NewRequest(http.MethodGet, "/", nil)
-				r.Header.Add("Authorization", "Bearer "+authentication)
-				c.Request = r
-			},
-			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.NoError(t, err)
-				permissions, ok := c.Get("permissions")
-				require.True(t, ok)
-				require.Equal(t, string(access.PermissionTokenCreate), permissions)
 			},
 		},
 		"AccessKeyExpired": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				authentication := issueUserToken(t, db, "existing@infrahq.com", "*", time.Minute*-1)
+				authentication := issueUserToken(t, db, "existing@infrahq.com", time.Minute*-1)
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "Bearer "+authentication)
 				c.Request = r
@@ -174,7 +130,7 @@ func TestRequireAuthentication(t *testing.T) {
 		},
 		"AccessKeyInvalidKey": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				token := issueUserToken(t, db, "existing@infrahq.com", "*", time.Minute*1)
+				token := issueUserToken(t, db, "existing@infrahq.com", time.Minute*1)
 				secret := token[:models.AccessKeySecretLength]
 				authentication := fmt.Sprintf("%s.%s", uid.New().String(), secret)
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -198,7 +154,7 @@ func TestRequireAuthentication(t *testing.T) {
 		},
 		"AccessKeyInvalidSecret": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				token := issueUserToken(t, db, "existing@infrahq.com", "*", time.Minute*1)
+				token := issueUserToken(t, db, "existing@infrahq.com", time.Minute*1)
 				authentication := fmt.Sprintf("%s.%s", strings.Split(token, ".")[0], generate.MathRandom(models.AccessKeySecretLength))
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "Bearer "+authentication)

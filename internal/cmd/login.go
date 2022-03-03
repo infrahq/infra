@@ -27,7 +27,7 @@ const cliLoginRedirectURL = "http://localhost:8301"
 
 func relogin() error {
 	// TODO (https://github.com/infrahq/infra/issues/488): support non-interactive login
-	if !term.IsTerminal(int(os.Stdin.Fd())) {
+	if !isInteractiveMode() {
 		return errors.New("Non-interactive login is not supported")
 	}
 
@@ -69,9 +69,22 @@ func relogin() error {
 	return finishLogin(currentConfig.Host, uid.NewUserPolymorphicID(loginRes.ID), loginRes.Name, loginRes.AccessKey, currentConfig.SkipTLSVerify, 0)
 }
 
+func isInteractiveMode() bool {
+	if nonInteractiveMode {
+		// user explicitly asked for a non-interactive terminal
+		return false
+	}
+
+	if os.Stdin == nil {
+		return false
+	}
+
+	return term.IsTerminal(int(os.Stdin.Fd()))
+}
+
 func login(host string) error {
 	// TODO (https://github.com/infrahq/infra/issues/488): support non-interactive login
-	if !term.IsTerminal(int(os.Stdin.Fd())) {
+	if !isInteractiveMode() {
 		return errors.New("Non-interactive login is not supported")
 	}
 
@@ -120,6 +133,27 @@ func login(host string) error {
 		return err
 	}
 
+	setupRequired, err := client.SetupRequired()
+	if err != nil {
+		return err
+	}
+
+	var accessKey string
+
+	if setupRequired.Required {
+		setup, err := client.Setup()
+		if err != nil {
+			return err
+		}
+
+		fmt.Println()
+		fmt.Printf("  Congratulations, Infra has been successfully installed.\n\n")
+		fmt.Printf("  Access Key: %s\n", setup.AccessKey)
+		fmt.Printf(fmt.Sprintf("  %s", termenv.String("IMPORTANT: Store in a safe place. You will not see it again.\n\n").Bold().String()))
+
+		accessKey = setup.AccessKey
+	}
+
 	providers, err := client.ListProviders("")
 	if err != nil {
 		return err
@@ -131,28 +165,32 @@ func login(host string) error {
 	}
 
 	options = append(options, "Login with Access Key")
+	var option int
 
-	option, err := promptProvider(options)
-	if err != nil {
-		return err
+	if len(options) > 1 {
+		option, err = promptProvider(options)
+		if err != nil {
+			return err
+		}
 	}
 
 	// access key
 	if option == len(options)-1 {
-		var key string
-
-		err = survey.AskOne(&survey.Password{Message: "Your Access Key:"}, &key, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
-		if err != nil {
-			return err
+		if accessKey == "" {
+			err = survey.AskOne(&survey.Password{Message: "Access Key:"}, &accessKey, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
+			if err != nil {
+				return err
+			}
 		}
 
-		client.AccessKey = key
+		client.AccessKey = accessKey
+
 		info, err := client.Introspect()
 		if err != nil {
 			return err
 		}
 
-		return finishLogin(host, uid.NewMachinePolymorphicID(info.ID), info.Name, key, skipTLSVerify, 0)
+		return finishLogin(host, uid.NewMachinePolymorphicID(info.ID), info.Name, accessKey, skipTLSVerify, 0)
 	}
 
 	provider := providers[option]
@@ -353,7 +391,7 @@ func promptShouldSkipTLSVerify(host string) (shouldSkipTLSVerify bool, proceed b
 		fmt.Printf("  The authenticity of host '%s' can't be established.\n", host)
 
 		prompt := &survey.Confirm{
-			Message: fmt.Sprintf("Are you sure you want to continue?"),
+			Message: "Are you sure you want to continue?",
 		}
 
 		proceed := false

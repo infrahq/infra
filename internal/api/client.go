@@ -319,6 +319,14 @@ func (c Client) Logout() error {
 	return err
 }
 
+func (c Client) SetupRequired() (*SetupRequiredResponse, error) {
+	return get[SetupRequiredResponse](c, "/v1/setup")
+}
+
+func (c Client) Setup() (*CreateAccessKeyResponse, error) {
+	return post[EmptyRequest, CreateAccessKeyResponse](c, "/v1/setup", &EmptyRequest{})
+}
+
 func (c Client) GetVersion() (*Version, error) {
 	return get[Version](c, "/v1/version")
 }

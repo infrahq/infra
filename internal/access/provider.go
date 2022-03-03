@@ -14,16 +14,8 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-const (
-	PermissionProvider       Permission = "infra.provider.*"
-	PermissionProviderCreate Permission = "infra.provider.create"
-	PermissionProviderRead   Permission = "infra.provider.read"
-	PermissionProviderUpdate Permission = "infra.provider.update"
-	PermissionProviderDelete Permission = "infra.provider.delete"
-)
-
 func CreateProvider(c *gin.Context, provider *models.Provider) error {
-	db, err := requireAuthorization(c, PermissionProviderCreate)
+	db, err := requireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
 	}
@@ -32,25 +24,19 @@ func CreateProvider(c *gin.Context, provider *models.Provider) error {
 }
 
 func GetProvider(c *gin.Context, id uid.ID) (*models.Provider, error) {
-	db, err := requireAuthorization(c)
-	if err != nil {
-		return nil, err
-	}
+	db := getDB(c)
 
 	return data.GetProvider(db, data.ByID(id))
 }
 
 func ListProviders(c *gin.Context, name string) ([]models.Provider, error) {
-	db, err := requireAuthorization(c)
-	if err != nil {
-		return nil, err
-	}
+	db := getDB(c)
 
 	return data.ListProviders(db, data.ByName(name))
 }
 
 func SaveProvider(c *gin.Context, provider *models.Provider) error {
-	db, err := requireAuthorization(c, PermissionProviderUpdate)
+	db, err := requireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
 	}
@@ -59,7 +45,7 @@ func SaveProvider(c *gin.Context, provider *models.Provider) error {
 }
 
 func DeleteProvider(c *gin.Context, id uid.ID) error {
-	db, err := requireAuthorization(c, PermissionProviderDelete)
+	db, err := requireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
 	}
@@ -69,31 +55,28 @@ func DeleteProvider(c *gin.Context, id uid.ID) error {
 
 // RetrieveUserProviderTokens gets the provider tokens that the current session token was created for
 func RetrieveUserProviderTokens(c *gin.Context) (*models.ProviderToken, error) {
-	db, err := requireAuthorization(c)
-	if err != nil {
-		return nil, err
-	}
-
 	// added by the authentication middleware
 	user, ok := c.MustGet("user").(*models.User)
 	if !ok {
 		return nil, errors.New("no provider token context user")
 	}
 
+	// does not need authorization check, this action is limited to the calling user
+	db := getDB(c)
+
 	return data.GetProviderToken(db, data.ByUserID(user.ID))
 }
 
 // UpdateProviderToken overwrites an existing set of provider tokens
 func UpdateProviderToken(c *gin.Context, providerToken *models.ProviderToken) error {
-	db, err := requireAuthorization(c)
-	if err != nil {
-		return err
-	}
+	// does not need authorization check, this function should only be called internally
+	db := getDB(c)
 
 	return data.UpdateProviderToken(db, providerToken)
 }
 
 func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.Provider, oidc authn.OIDC, sessionDuration time.Duration, redirectURL string) (*models.User, string, error) {
+	// does not need authorization check, this function should only be called internally
 	db := getDB(c)
 
 	// exchange code for tokens from identity provider (these tokens are for the IDP, not Infra)
@@ -108,10 +91,17 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 			return nil, "", fmt.Errorf("get user: %w", err)
 		}
 
-		user = &models.User{Email: email, Permissions: DefaultUserPermissions}
+		user = &models.User{Email: email}
 
 		if err := data.CreateUser(db, user); err != nil {
 			return nil, "", fmt.Errorf("create user: %w", err)
+		}
+
+		// by default the user role in infra can see all destinations
+		// #1084 - create grants for only destinations a user has access to
+		roleGrant := &models.Grant{Identity: user.PolymorphicIdentifier(), Privilege: models.InfraUserRole, Resource: "infra"}
+		if err := data.CreateGrant(db, roleGrant); err != nil {
+			return nil, "", fmt.Errorf("user role grant: %w", err)
 		}
 	}
 

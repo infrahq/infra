@@ -1,12 +1,12 @@
 import { useContext, useEffect, useState } from 'react'
 import styled from 'styled-components'
-import Router from 'next/router'
 
 import AccessKeyInput from '../../components/AccessKeyInput'
 import ActionButton from '../../components/ActionButton'
 import AccountHeader from '../../components/AccountHeader'
 
 import AuthContext from '../../store/AuthContext'
+import { readyToRedirect } from './login'
 
 const RegisterContainer = styled.section`
   margin-left: auto;
@@ -35,14 +35,12 @@ const Register = () => {
 
   useEffect(() => {
     if (authReady) {
-      Router.push({
-        pathname: '/'
-      }, undefined, { shallow: true })
+      readyToRedirect()
     }
   }, [])
 
   const handleLogin = async () => {
-    register(value)
+    await register(value)
   }
 
   return (
@@ -59,7 +57,7 @@ const Register = () => {
           />
         </AccessKeyInputContainer>
         <section>
-          <ActionButton onClick={handleLogin} children='Login' />
+          <ActionButton onClick={handleLogin} value='Login' />
         </section>
       </Content>
     </RegisterContainer>

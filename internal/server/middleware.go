@@ -57,7 +57,7 @@ func DatabaseMiddleware(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-// AuthenticationMiddleware validates the incoming token and adds their permissions to the context
+// AuthenticationMiddleware validates the incoming token
 func AuthenticationMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if err := RequireAccessKey(c); err != nil {
@@ -72,7 +72,7 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 	}
 }
 
-// RequireAccessKey checks the bearer token is present and valid then adds its permissions to the context
+// RequireAccessKey checks the bearer token is present and valid
 func RequireAccessKey(c *gin.Context) error {
 	db, ok := c.MustGet("db").(*gorm.DB)
 	if !ok {
@@ -107,13 +107,14 @@ func RequireAccessKey(c *gin.Context) error {
 	}
 
 	c.Set("token", token)
+	c.Set("identity", token.IssuedFor)
 
 	issID, err := token.IssuedFor.ID()
 	if err != nil {
 		return fmt.Errorf("%w: invalid token issue: %s", internal.ErrUnauthorized, err)
 	}
 
-	// this token has a parent identity, set by their current permissions
+	// set the token has a parent identity in the context
 	if token.IssuedFor.IsUser() {
 		if err := setUserContext(c, db, issID.String()); err != nil {
 			return fmt.Errorf("set user context: %v", err)
@@ -140,9 +141,6 @@ func setUserContext(c *gin.Context, db *gorm.DB, id string) error {
 		return fmt.Errorf("user for token: %w", err)
 	}
 
-	c.Set("permissions", user.Permissions)
-	logging.S.Debugf("user permissions: %s", user.Permissions)
-
 	user.LastSeenAt = time.Now()
 	if err = data.SaveUser(db, user); err != nil {
 		return fmt.Errorf("%w: user update fail: %s", internal.ErrUnauthorized, err)
@@ -163,9 +161,6 @@ func setMachineContext(c *gin.Context, db *gorm.DB, id string) error {
 	if err != nil {
 		return fmt.Errorf("machine for token: %w", err)
 	}
-
-	c.Set("permissions", machine.Permissions)
-	logging.S.Debugf("machine permissions: %s", machine.Permissions)
 
 	machine.LastSeenAt = time.Now()
 	if err = data.SaveMachine(db, machine); err != nil {

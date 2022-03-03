@@ -8,13 +8,13 @@ export default function Index () {
   const [currentUser, setCurrentUser] = useState(null)
 
   useEffect(() => {
-    if (user) {
+    if (user != null) {
       setCurrentUser(user.name)
     }
   }, [])
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
   }
 
   return (

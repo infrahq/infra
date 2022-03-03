@@ -8,15 +8,15 @@ const Callback = () => {
     const urlSearchParams = new URLSearchParams(window.location.search)
     const params = Object.fromEntries(urlSearchParams.entries())
 
-    if(params.state === localStorage.getItem('state')) {
+    if (params.state === window.localStorage.getItem('state')) {
       getAccessKey(params.code,
-        localStorage.getItem('providerId') as string,
-        localStorage.getItem('redirectURL') as string
+        window.localStorage.getItem('providerId'),
+        window.localStorage.getItem('redirectURL')
       )
 
-      localStorage.removeItem('providerId')
-      localStorage.removeItem('state')
-      localStorage.removeItem('redirectURL')
+      window.localStorage.removeItem('providerId')
+      window.localStorage.removeItem('state')
+      window.localStorage.removeItem('redirectURL')
     }
   }, [])
 

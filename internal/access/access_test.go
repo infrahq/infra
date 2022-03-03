@@ -3,7 +3,6 @@ package access
 import (
 	"net/http/httptest"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -12,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/authn"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -34,259 +32,84 @@ func setupDB(t *testing.T) *gorm.DB {
 	return db
 }
 
-func TestRequireAuthorization(t *testing.T) {
-	cases := []struct {
-		Name                string
-		RequiredPermissions []Permission
-		AuthFunc            func(t *testing.T, db *gorm.DB, c *gin.Context)
-		VerifyFunc          func(t *testing.T, err error)
-	}{
-		{
-			Name:                "AuthorizedAll",
-			RequiredPermissions: []Permission{PermissionUserRead},
-			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(PermissionAll))
-			},
-			VerifyFunc: func(t *testing.T, err error) {
-				require.NoError(t, err)
-			},
-		},
-		{
-			Name:                "AuthorizedAllInfra",
-			RequiredPermissions: []Permission{PermissionUserRead},
-			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(PermissionAllInfra))
-			},
-			VerifyFunc: func(t *testing.T, err error) {
-				require.NoError(t, err)
-			},
-		},
-		{
-			Name:                "AuthorizedExactMatch",
-			RequiredPermissions: []Permission{PermissionUserRead},
-			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(PermissionUserRead))
-			},
-			VerifyFunc: func(t *testing.T, err error) {
-				require.NoError(t, err)
-			},
-		},
-		{
-			Name:                "AuthorizedOneOfMany",
-			RequiredPermissions: []Permission{PermissionUserRead},
-			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				permissions := []string{string(PermissionUserRead), string(PermissionUserCreate), string(PermissionUserDelete)}
-				c.Set("permissions", strings.Join(permissions, " "))
-			},
-			VerifyFunc: func(t *testing.T, err error) {
-				require.NoError(t, err)
-			},
-		},
-		{
-			Name:                "AuthorizedWildcardAction",
-			RequiredPermissions: []Permission{PermissionUserRead},
-			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(PermissionUser))
-			},
-			VerifyFunc: func(t *testing.T, err error) {
-				require.NoError(t, err)
-			},
-		},
-		{
-			Name:                "AuthorizedWildcardResource",
-			RequiredPermissions: []Permission{PermissionUserRead},
-			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				c.Set("permissions", string(PermissionAllRead))
-			},
-			VerifyFunc: func(t *testing.T, err error) {
-				require.NoError(t, err)
-			},
-		},
-		{
-			Name:                "AccessKeyAuthorizedNotFirst",
-			RequiredPermissions: []Permission{PermissionUserRead},
-			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				permissions := []string{string(PermissionGroupRead), string(PermissionProviderRead), string(PermissionUserRead)}
-				c.Set("permissions", strings.Join(permissions, " "))
-			},
-			VerifyFunc: func(t *testing.T, err error) {
-				require.NoError(t, err)
-			},
-		},
-		{
-			Name:                "AccessKeyAuthorizedNotLast",
-			RequiredPermissions: []Permission{PermissionUserRead},
-			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				permissions := []string{string(PermissionGroupRead), string(PermissionUserRead), string(PermissionProviderRead)}
-				c.Set("permissions", strings.Join(permissions, " "))
-			},
-			VerifyFunc: func(t *testing.T, err error) {
-				require.NoError(t, err)
-			},
-		},
-		{
-			Name:                "AccessKeyAuthorizedNoMatch",
-			RequiredPermissions: []Permission{PermissionUserRead},
-			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				permissions := []string{string(PermissionUserCreate), string(PermissionGroupRead)}
-				c.Set("permissions", strings.Join(permissions, " "))
-			},
-			VerifyFunc: func(t *testing.T, err error) {
-				require.EqualError(t, err, `missing permission "infra.user.read": forbidden`)
-			},
-		},
-		{
-			Name:                "NotRequired",
-			RequiredPermissions: []Permission{},
-			AuthFunc: func(t *testing.T, db *gorm.DB, c *gin.Context) {
-			},
-			VerifyFunc: func(t *testing.T, err error) {
-				require.NoError(t, err)
-			},
-		},
-	}
+var (
+	tom       = &models.User{Email: "tom@infrahq.com"}
+	tomsGroup = &models.Group{Name: "tom's group"}
+)
 
-	for _, test := range cases {
-		t.Run(test.Name, func(t *testing.T) {
-			db := setupDB(t)
+func TestBasicGrant(t *testing.T) {
+	db := setupDB(t)
+	err := data.CreateUser(db, tom)
+	require.NoError(t, err)
 
-			c, _ := gin.CreateTestContext(httptest.NewRecorder())
-			c.Set("db", db)
+	grant(t, db, tom, "u:steven", "read", "infra.groups.1")
+	can(t, db, "u:steven", "read", "infra.groups.1")
+	cant(t, db, "u:steven", "read", "infra.groups")
+	cant(t, db, "u:steven", "read", "infra.groups.2")
+	cant(t, db, "u:steven", "write", "infra.groups.1")
 
-			test.AuthFunc(t, db, c)
+	grant(t, db, tom, "u:bob", "read", "infra.groups")
+	can(t, db, "u:bob", "read", "infra.groups")
+	cant(t, db, "u:bob", "read", "infra.groups.1") // currently we check for exact grant match, this may change as grants evolve
+	cant(t, db, "u:bob", "write", "infra.groups")
 
-			_, err := requireAuthorization(c, test.RequiredPermissions...)
-			test.VerifyFunc(t, err)
-		})
-	}
+	grant(t, db, tom, "u:alice", "read", "infra.machines")
+	can(t, db, "u:alice", "read", "infra.machines")
+	cant(t, db, "u:alice", "read", "infra")
+	cant(t, db, "u:alice", "read", "infra.machines.1")
+	cant(t, db, "u:alice", "write", "infra.machines")
 }
 
-func TestRequireAuthorizationWithCheck(t *testing.T) {
-	userID := uid.New()
-	machineID := uid.New()
+func TestUsersGroupGrant(t *testing.T) {
+	db := setupDB(t)
+	err := data.CreateUser(db, tom)
+	require.NoError(t, err)
 
-	tests := []struct {
-		Name             string
-		SetupContext     func(c *gin.Context)
-		PermissionWanted Permission
-		CustomCheckFn    func(id uid.ID) bool
-		ErrorExpected    error
-	}{
-		{
-			Name: "wrong user with no permissions",
-			SetupContext: func(c *gin.Context) {
-				c.Set("permissions", "")
-				c.Set("user", &models.User{})
-			},
-			PermissionWanted: PermissionDestinationRead,
-			CustomCheckFn:    func(id uid.ID) bool { return false },
-			ErrorExpected:    internal.ErrForbidden,
-		},
-		{
-			Name: "right user with no permissions",
-			SetupContext: func(c *gin.Context) {
-				c.Set("permissions", "")
-				c.Set("user", &models.User{Model: models.Model{ID: userID}})
-			},
-			PermissionWanted: PermissionDestinationRead,
-			CustomCheckFn:    func(id uid.ID) bool { return id == userID },
-			ErrorExpected:    nil,
-		},
-		{
-			Name: "wrong machine with no permissions",
-			SetupContext: func(c *gin.Context) {
-				c.Set("permissions", "")
-				c.Set("machine", &models.Machine{})
-			},
-			PermissionWanted: PermissionDestinationRead,
-			CustomCheckFn:    func(id uid.ID) bool { return false },
-			ErrorExpected:    internal.ErrForbidden,
-		},
-		{
-			Name: "right machine with no permissions",
-			SetupContext: func(c *gin.Context) {
-				c.Set("permissions", "")
-				c.Set("machine", &models.Machine{Model: models.Model{ID: machineID}})
-			},
-			PermissionWanted: PermissionDestinationRead,
-			CustomCheckFn:    func(id uid.ID) bool { return id == machineID },
-			ErrorExpected:    nil,
-		},
-	}
+	err = data.CreateGroup(db, tomsGroup)
+	require.NoError(t, err)
 
-	for _, test := range tests {
-		t.Run(test.Name, func(t *testing.T) {
-			db := setupDB(t)
-			c, _ := gin.CreateTestContext(nil)
-			c.Set("db", db)
-			test.SetupContext(c)
+	err = data.BindGroupUsers(db, tomsGroup, *tom)
 
-			_, err := requireAuthorizationWithCheck(c, test.PermissionWanted, test.CustomCheckFn)
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Set("db", db)
+	c.Set("identity", tom.PolymorphicIdentifier())
+	c.Set("user", tom)
 
-			if test.ErrorExpected != nil {
-				require.ErrorIs(t, err, test.ErrorExpected)
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
+	grant(t, db, tom, tomsGroup.PolymorphicIdentifier(), models.InfraUserRole, "infra")
+
+	authDB, err := requireInfraRole(c, models.InfraUserRole)
+	assert.NoError(t, err)
+	assert.NotNil(t, authDB)
+
+	authDB, err = requireInfraRole(c, models.InfraAdminRole)
+	assert.Error(t, err)
+	assert.Nil(t, authDB)
+
+	authDB, err = requireInfraRole(c, models.InfraAdminRole, models.InfraUserRole)
+	assert.NoError(t, err)
+	assert.NotNil(t, authDB)
 }
 
-func TestAllRequired(t *testing.T) {
-	cases := map[string]map[string]interface{}{
-		"ExactMatch": {
-			"permissions": []string{string(PermissionUserRead)},
-			"required":    []string{string(PermissionUserRead)},
-			"expected":    true,
-		},
-		"SubsetMatch": {
-			"permissions": []string{string(PermissionUserCreate), string(PermissionUserRead)},
-			"required":    []string{string(PermissionUserRead)},
-			"expected":    true,
-		},
-		"NoMatch": {
-			"permissions": []string{string(PermissionUserCreate), string(PermissionUserRead)},
-			"required":    []string{string(PermissionUserDelete)},
-			"expected":    false,
-		},
-		"NoPermissions": {
-			"permissions": []string{},
-			"required":    []string{string(PermissionUserDelete)},
-			"expected":    false,
-		},
-		"AllPermissions": {
-			"permissions": []string{string(PermissionAll)},
-			"required":    []string{string(PermissionUserDelete)},
-			"expected":    true,
-		},
-		"AllPermissionsAlternate": {
-			"permissions": []string{string(PermissionAllInfra)},
-			"required":    []string{string(PermissionUserDelete)},
-			"expected":    true,
-		},
-		"AllPermissionsForResource": {
-			"permissions": []string{string(PermissionUser)},
-			"required":    []string{string(PermissionUserDelete)},
-			"expected":    true,
-		},
-	}
+func grant(t *testing.T, db *gorm.DB, currentUser *models.User, identity uid.PolymorphicID, privilege, resource string) {
+	err := data.CreateGrant(db, &models.Grant{
+		Identity:  identity,
+		Privilege: privilege,
+		Resource:  resource,
+		CreatedBy: currentUser.ID,
+	})
+	require.NoError(t, err)
+}
 
-	for k, v := range cases {
-		t.Run(k, func(t *testing.T) {
-			permissions, ok := v["permissions"].([]string)
-			require.True(t, ok)
+func can(t *testing.T, db *gorm.DB, identity uid.PolymorphicID, privilege, resource string) {
+	canAccess, err := Can(db, identity, privilege, resource)
+	require.NoError(t, err)
+	require.True(t, canAccess)
+}
 
-			required, ok := v["required"].([]string)
-			require.True(t, ok)
-
-			result := AllRequired(permissions, required)
-
-			expected, ok := v["expected"].(bool)
-			require.True(t, ok)
-
-			assert.Equal(t, expected, result)
-		})
-	}
+func cant(t *testing.T, db *gorm.DB, identity uid.PolymorphicID, privilege, resource string) {
+	canAccess, err := Can(db, identity, privilege, resource)
+	require.NoError(t, err)
+	require.False(t, canAccess)
 }
 
 // mockOIDC is a mock oidc identity provider

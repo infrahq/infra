@@ -115,3 +115,11 @@ func ByUserID(userID uid.ID) SelectorFunc {
 		return db.Where("user_id = ?", userID)
 	}
 }
+
+// NotCreatedBySystem filters out any entities that do not have a "created by" field set, meaning they were created internally
+func NotCreatedBySystem() SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		// the created_by field is default 0 when not set by default
+		return db.Where("created_by != 0")
+	}
+}

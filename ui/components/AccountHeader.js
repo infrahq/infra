@@ -1,9 +1,5 @@
 import styled from 'styled-components'
-
-interface Header {
-  header: string,
-  subheader: string
-}
+import PropTypes from 'prop-types'
 
 const HeaderContainer = styled.div`
   & > *:not(:first-child) {
@@ -32,7 +28,7 @@ const StyledSubheader = styled.div`
   padding: 0 1rem;
 `
 
-const AccountHeader = ({ header, subheader }:Header) => {
+const AccountHeader = ({ header, subheader }) => {
   return (
     <HeaderContainer>
       <LogoContainer>
@@ -42,6 +38,11 @@ const AccountHeader = ({ header, subheader }:Header) => {
       <StyledSubheader>{subheader}</StyledSubheader>
     </HeaderContainer>
   )
+}
+
+AccountHeader.prototype = {
+  header: PropTypes.string,
+  subheader: PropTypes.string
 }
 
 export default AccountHeader

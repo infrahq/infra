@@ -1,0 +1,13 @@
+version: "3.9"
+
+services:
+  server:
+    image: infrahq/infra:${VERSION:-latest}
+    container_name: infra-server
+    ports:
+      - 8080:80
+      - 8443:443
+    volumes:
+      - data:/root/.infra
+volumes:
+  data: {}
