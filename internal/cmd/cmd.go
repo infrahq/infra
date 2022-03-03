@@ -339,9 +339,8 @@ func canonicalPath(in string) (string, error) {
 
 func newServerCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:               "server",
-		Short:             "Start Infra server",
-		PersistentPreRunE: mustBeLoggedIn,
+		Use:   "server",
+		Short: "Start Infra server",
 
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// override default strcase.ToLowerCamel behaviour
@@ -403,9 +402,8 @@ func newServerCmd() *cobra.Command {
 
 func newEngineCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:               "engine",
-		Short:             "Start Infra Engine",
-		PersistentPreRunE: mustBeLoggedIn,
+		Use:   "engine",
+		Short: "Start Infra Engine",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// override default strcase.ToLowerCamel behaviour
 			strcase.ConfigureAcronym("skip-tls-verify", "skipTLSVerify")
