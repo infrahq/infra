@@ -445,7 +445,7 @@ func Run(options Options) error {
 			}
 
 			if isClusterIP {
-				logging.S.Warn("registering engine with cluster IP, it may not be externally accessible without port-forwarding")
+				logging.S.Warn("registering engine with cluster IP, it may not be externally accessible without an ingress or load balancer")
 			}
 
 			// these are checked in the future to see if they have updated
