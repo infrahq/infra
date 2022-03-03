@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useState, useContext } from 'react'
 import Router from 'next/router'
 import axios from 'axios'
 import styled from 'styled-components'
@@ -6,8 +6,9 @@ import styled from 'styled-components'
 import ExitButton from '../../components/ExitButtn'
 import ActionButton from '../../components/ActionButton'
 import Setup from '../../components/providers/okta/setup'
-import Connected from '../../components/providers/okta/connected'
 import AddAdmin from '../../components/providers/okta/AddAdmin'
+
+import AuthContext from '../../store/AuthContext'
 
 const SetupContainer = styled.section`
   position: relative;
@@ -37,14 +38,15 @@ const Footer = styled.section`
 `
 
 const SetupOkta = () => {
-  const page = Object.freeze({ Setup: 1, connected: 2, AddAdmin: 3 })
+  const { cookie, setNewProvider } = useContext(AuthContext)
+
+  const page = Object.freeze({ Setup: 1, AddAdmin: 2 })
+
   const [currentPage, setCurrentPage] = useState(page.Setup)
-  const [provider, setProvider] = useState({})
   const [adminEmail, setAdminEmail] = useState('');
 
-
   const [value, setValue] = useState({
-    name: 'Okta',
+    name: 'okta',
     domain: '',
     clientId: '',
     clientSecret: ''
@@ -53,31 +55,15 @@ const SetupOkta = () => {
   const moveToNext = async () => {
     // update the state
     if (currentPage === page.Setup) {
-      console.log(value)
-      axios.post('/v1/providers', {name: value.name, url: value.domain, clientID: value.clientId, clientSecret: value.clientSecret})
+      axios.post('/v1/providers', 
+        { name: value.name, url: value.domain, clientID: value.clientId, clientSecret: value.clientSecret},
+        { headers: { Authorization: `Bearer ${cookie.accessKey}` } })
         .then((response) => {
-        console.log(response);
-      })
-      // call the endpoint to connect with okta provider
-      // when it is successed then update the current page
-      // setCurrentPage(page.connected)
-      // // set the return value as provider
-      // const returnValue = {
-      //   type: 'okta',
-      //   name: 'okta-test',
-      //   id: '3GuiBghzw1',
-      //   created: 1645809213,
-      //   updated: 1646159548,
-      //   url: 'dev-02708987.okta.com',
-      //   clientID: '0oapn0qwiQPiMIyR35d6',
-      //   view: true,
-      //   disabled: true
-      // }
-      // setProvider(returnValue)
-    }
-
-    if (currentPage === page.connected) {
-      setCurrentPage(page.AddAdmin)
+          setNewProvider(response)
+          setCurrentPage(page.AddAdmin)
+        }).catch((error) => {
+          console.log('error:', error);
+        })
     }
 
     if (currentPage === page.AddAdmin) {
@@ -105,12 +91,10 @@ const SetupOkta = () => {
     switch (pageType) {
       case page.Setup:
         return <Setup value={value} parentCallback={updateValue} />
-      case page.connected:
-        return <Connected provider={provider} />
       case page.AddAdmin:
         return <AddAdmin email={adminEmail} parentCallback={updateEmail} />
       default:
-        return <Setup parentCallback={callback} />
+        return <Setup value={value} parentCallback={updateValue} />
     }
   }
 

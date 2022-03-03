@@ -3,6 +3,29 @@ import styled from 'styled-components'
 
 import Input from "../../Input"
 import Header from "../../Header"
+import Logo from './Logo'
+
+const HelpContainer = styled.div`
+  font-weight: 100;
+  font-size: 11px;
+  line-height: 13px;
+  max-width: 24rem;
+
+  span {
+    opacity: .5;
+  }
+
+  a {
+    padding-left: .5rem;
+    color: #93DEFF;
+    text-decoration: none;
+
+    :hover {
+      opacity: .95;
+      text-decoration: underline;
+    }
+  }
+`
 
 const StyledLink = styled.div`
   font-weight: 100;
@@ -28,11 +51,22 @@ const StyledLink = styled.div`
 const AddAdmin = ({ email, parentCallback }) => {
   return (
     <>
+      <Logo />
       <Header
-        header='Assign an infra admin'
-        subheader='Great work. Now set up your infra admininstrator.'
+        header='Set up an infra admin'
+        subheader={
+          <HelpContainer>
+            <span>Great work. Now provide an email of your Okta users that you would like to make an Infra admistrator.</span>
+            <a
+              target='_blank'
+              rel='noreferrer'
+              href='https://github.com/infrahq/infra/blob/main/docs/providers/okta.md'
+            >
+              Make sure to assign them in Okta.
+            </a>
+          </HelpContainer>
+        }
       />
-      <img src='/adminCard.svg' />
       <div>
         <Input 
           label='Admin Email'

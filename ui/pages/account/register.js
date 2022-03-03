@@ -56,6 +56,7 @@ const Register = () => {
             value={value}
             onChange={e => setValue(e.target.value)}
             showImage
+            type='password'
           />
         </AccessKeyInputContainer>
         <section>

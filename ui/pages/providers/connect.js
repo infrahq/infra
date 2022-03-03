@@ -32,23 +32,6 @@ const IdentitySourceList = styled.section`
   }
 `
 
-const ComingSoonList = styled.div`
-  & > *:not(:first-child) {
-    padding-top: 20px;
-  }
-
-  opacity: 0.3;
-`
-
-const ComingSoonHeader = styled.div`
-  font-weight: normal;
-  font-size: 12px;
-  line-height: 15px;
-
-  display: flex;
-  align-items: center;
-`
-
 const setupOkta = async () => {
   await Router.push({
     pathname: '/providers/setupOkta'
@@ -57,27 +40,8 @@ const setupOkta = async () => {
 
 const avaliableProviderList = [{
   type: 'okta',
-  name: 'Identity Source',
+  name: 'Identity Provider',
   onClick: () => setupOkta()
-}]
-
-const commingSoonProviderList = [{
-  type: 'google',
-  name: 'Identity Source',
-  onClick: undefined,
-  disabled: true
-},
-{
-  type: 'azure',
-  name: 'Identity Source',
-  onClick: undefined,
-  disabled: true
-},
-{
-  type: 'gitlab',
-  name: 'Identity Source',
-  onClick: undefined,
-  disabled: true
 }]
 
 const Connect = () => {
@@ -100,10 +64,6 @@ const Connect = () => {
           <div>
             <IdentitySourceBtn providers={avaliableProviderList} />
           </div>
-          <ComingSoonList>
-            <ComingSoonHeader>Comming Soon</ComingSoonHeader>
-            <IdentitySourceBtn providers={commingSoonProviderList} />
-          </ComingSoonList>
         </IdentitySourceList>
       </ConnectProviderContent>
       <NavButton>

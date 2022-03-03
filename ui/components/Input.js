@@ -19,9 +19,7 @@ const StyledInputContainer = styled.div`
   padding: 0 .5rem 0 .75rem;
 `
 
-const StyledInput = styled.input.attrs({
-  type: 'text'
-})`
+const StyledInput = styled.input`
   border: none;
   background: transparent;
   width: 20.75rem;
@@ -47,13 +45,14 @@ const Label = styled.span`
   color: rgba(255, 255, 255, 0.75);
 `
 
-const Input = ({ label, value, onChange, showImage = false }) => {
+const Input = ({ label, value, onChange, showImage = false, type = 'text' }) => {
   return (
     <InputContainer>
       <InputGroup>
         <Label>{label}</Label>
         <StyledInputContainer>
           <StyledInput
+            type={type}
             value={value}
             onChange={onChange}
           />
@@ -69,7 +68,8 @@ Input.prototype = {
   label: PropTypes.string.isRequired,
   value: PropTypes.string.isRequired,
   onChange: PropTypes.func.isRequired,
-  showImage: PropTypes.bool
+  showImage: PropTypes.bool,
+  type: PropTypes.oneOf(['text', 'password'])
 }
 
 export default Input

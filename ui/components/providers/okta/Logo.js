@@ -4,6 +4,8 @@ const LogoContainer = styled.section`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+  margin-left: auto;
+  margin-right: auto;
   width: 6rem;
   height: 2rem;
 `

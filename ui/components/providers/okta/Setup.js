@@ -35,11 +35,11 @@ const InputList = styled.div`
 const Setup = ({ value, parentCallback }) => {
   return (
     <>
+      <Logo />
       <Header
         header='Connect Okta'
-        subheader='Apply your Okta credentials in order to sync your users to Infra.'
+        subheader='Provide your Okta credentials in order to sync your users to Infra.'
       />
-      <Logo />
       <HelpContainer>
         <span>To find these values</span>
         <a
@@ -70,6 +70,7 @@ const Setup = ({ value, parentCallback }) => {
             label='Okta Client Secret'
             value={value.clientSecret}
             onChange={e => parentCallback(e.target.value, 'clientSecret')}
+            type='password'
           />
         </div>
 

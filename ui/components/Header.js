@@ -2,7 +2,7 @@ import styled from 'styled-components'
 
 const Container = styled.section`
   & > *:not(:first-child) {
-    padding-top: .5rem;
+    padding-top: 1rem;
   }
 `
 
@@ -23,7 +23,7 @@ const StyledSubheader = styled.div`
   display: flex;
   align-items: center;
 
-  opacity: 0.4;
+  opacity: .5;
 `
 
 const Header = ({ header, subheader }) => {

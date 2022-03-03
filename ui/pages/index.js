@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import Router from 'next/router'
 import { useContext, useEffect, useState } from 'react'
 import ActionButton from '../components/ActionButton'
@@ -8,7 +7,7 @@ import AuthContext from '../store/AuthContext'
 export default function Index () {
   const { logout, user, providers } = useContext(AuthContext)
   const [currentUser, setCurrentUser] = useState(null)
-    
+  
   useEffect(() => {
     if (user != null) {
       setCurrentUser(user)

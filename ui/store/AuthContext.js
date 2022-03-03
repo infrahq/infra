@@ -13,7 +13,8 @@ const AuthContext = createContext({
   getAccessKey: async (code, providerID, redirectURL) => {},
   login: (selectedIdp) => {},
   logout: async () => {},
-  register: async (key) => {}
+  register: async (key) => {},
+  setNewProvider: (provider) => {}
 })
 
 // TODO: need to revisit this - when refresh the page, this get call
@@ -62,6 +63,10 @@ export const AuthContextProvider = ({ children }) => {
         setAuthReady(false)
         setLoginError(true)
       })
+  }
+
+  const setNewProvider = (provider) => {
+    setProviders(currentProviders => [...currentProviders, provider])
   }
 
   const redirectToDashboard = async (key) => {
@@ -135,7 +140,8 @@ export const AuthContextProvider = ({ children }) => {
     getAccessKey,
     login,
     logout,
-    register
+    register,
+    setNewProvider
   }
 
   return (
