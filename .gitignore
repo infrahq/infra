@@ -10,7 +10,7 @@ release
 docker-desktop.yaml
 
 # infra binary
-infra
+dist/*/infra
 
 # test secrets
 secrets/foo/bar:secret
