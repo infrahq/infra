@@ -26,6 +26,7 @@ import (
 	"gopkg.in/square/go-jose.v2/jwt"
 	rbacv1 "k8s.io/api/rbac/v1"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/api"
 	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/claims"
@@ -600,7 +601,7 @@ func Run(options Options) error {
 		ErrorLog:  logging.StandardErrorLog(),
 	}
 
-	logging.L.Info("serving on port 443")
+	logging.S.Infof("starting infra (%s) - https:%s metrics:%s", internal.Version, tlsServer.Addr, metricsServer.Addr)
 
 	return tlsServer.ListenAndServeTLS("", "")
 }
