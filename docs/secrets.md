@@ -116,7 +116,7 @@ which you would then use like this. First create the environment variable:
 $ export OKTA_CLIENT_SECRET="c3VwZXIgc2VjcmV0IQ=="
 ```
 
-Then use the name of the secret backend and the name of the environment variable in the `infra.yaml` file:
+Then use the name of the secret back-end and the name of the environment variable in the `infra.yaml` file:
 
 ```yaml
     clientSecret: base64env:OKTA_CLIENT_SECRET
