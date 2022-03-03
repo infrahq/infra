@@ -1,8 +1,9 @@
+import { useCallback, useState } from 'react'
+import Router from 'next/router'
 import styled from 'styled-components'
 
 import ExitButton from '../../components/ExitButtn'
 import ActionButton from '../../components/ActionButton'
-import { useCallback, useState } from 'react'
 import Setup from '../../components/providers/okta/setup'
 import Connected from '../../components/providers/okta/connected'
 import AddAdmin from '../../components/providers/okta/AddAdmin'
@@ -38,6 +39,8 @@ const SetupOkta = () => {
   const page = Object.freeze({ Setup: 1, connected: 2, AddAdmin: 3 })
   const [currentPage, setCurrentPage] = useState(page.Setup)
   const [provider, setProvider] = useState({})
+  const [adminEmail, setAdminEmail] = useState('');
+
 
   const [value, setValue] = useState({
     name: 'Okta',
@@ -46,7 +49,7 @@ const SetupOkta = () => {
     clientSecret: ''
   })
 
-  const moveToNext = () => {
+  const moveToNext = async () => {
     // update the state
     if (currentPage === page.Setup) {
       console.log(value)
@@ -71,23 +74,36 @@ const SetupOkta = () => {
     if (currentPage === page.connected) {
       setCurrentPage(page.AddAdmin)
     }
+
+    if (currentPage === page.AddAdmin) {
+      console.log(adminEmail);
+      // set the admin email to the infra admin 
+      // if success then redirect back to dashboard 
+      await Router.push({
+        pathname: '/'
+      }, undefined, { shallow: true })
+    }
   }
 
-  const callback = useCallback((callbackvalue, type) => {
+  const updateValue = useCallback((callbackvalue, type) => {
     setValue(previousState => ({
       ...previousState,
       [type]: callbackvalue
     }))
   }, [])
 
+  const updateEmail = useCallback((email) => {
+    setAdminEmail(email)
+  })
+
   const content = (pageType) => {
     switch (pageType) {
       case page.Setup:
-        return <Setup parentCallback={callback} />
+        return <Setup value={value} parentCallback={updateValue} />
       case page.connected:
         return <Connected provider={provider} />
       case page.AddAdmin:
-        return <AddAdmin />
+        return <AddAdmin email={adminEmail} parentCallback={updateEmail} />
       default:
         return <Setup parentCallback={callback} />
     }

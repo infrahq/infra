@@ -48,6 +48,7 @@ const HelpContainer = styled.div`
 
     :hover {
       opacity: .95;
+      text-decoration: underline;
     }
   }
 `

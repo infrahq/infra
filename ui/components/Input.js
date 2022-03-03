@@ -7,7 +7,7 @@ const InputContainer = styled.section`
 
 const InputGroup = styled.div`
   opacity: 0.5;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   box-sizing: border-box;
   border-radius: 2px;
 `
@@ -35,7 +35,7 @@ const StyledInput = styled.input.attrs({
 
 const Label = styled.span`
   position: absolute;
-  width: 6.625rem;
+  width: auto;
   height: .75rem;
   left: .625rem;
   top: -5px;
@@ -44,7 +44,7 @@ const Label = styled.span`
   font-weight: 100;
   font-size: .625rem;
   line-height: .75rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.75);
 `
 
 const Input = ({ label, value, onChange, showImage = false }) => {

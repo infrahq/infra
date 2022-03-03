@@ -2,7 +2,6 @@ import styled from 'styled-components'
 
 import Header from '../Header'
 import Logo from './Logo'
-import { useState } from 'react'
 import Input from '../../Input'
 
 const HelpContainer = styled.div`
@@ -22,6 +21,7 @@ const HelpContainer = styled.div`
 
     :hover {
       opacity: .95;
+      text-decoration: underline;
     }
   }
 `
@@ -32,12 +32,7 @@ const InputList = styled.div`
   }
 `
 
-const Setup = ({ parentCallback }) => {
-  const [name, setName] = useState('Okta')
-  const [domain, setDomain] = useState('')
-  const [clientId, setClientId] = useState('')
-  const [clientSecret, setClientSecret] = useState('')
-
+const Setup = ({ value, parentCallback }) => {
   return (
     <>
       <Header
@@ -59,41 +54,29 @@ const Setup = ({ parentCallback }) => {
         <div>
           <Input
             label='Name of Provider'
-            value={name}
-            onChange={(e) => {
-              setName(e.target.value)
-              parentCallback(e.target.value, 'name')
-            }}
+            value={value.name}
+            onChange={e => parentCallback(e.target.value, 'name')}
           />
         </div>
         <div>
           <Input
             label='Okta Domain'
-            value={domain}
-            onChange={(e) => {
-              setDomain(e.target.value)
-              parentCallback(e.target.value, 'domain')
-            }}
+            value={value.domain}
+            onChange={e => parentCallback(e.target.value, 'domain')}
           />
         </div>
         <div>
           <Input
             label='Okta Client ID'
-            value={clientId}
-            onChange={(e) => {
-              setClientId(e.target.value)
-              parentCallback(e.target.value, 'clientId')
-            }}
+            value={value.clientId}
+            onChange={e => parentCallback(e.target.value, 'clientId')}
           />
         </div>
         <div>
           <Input
             label='Okta Client Secret'
-            value={clientSecret}
-            onChange={(e) => {
-              setClientSecret(e.target.value)
-              parentCallback(e.target.value, 'clientSecret')
-            }}
+            value={value.clientSecret}
+            onChange={e => parentCallback(e.target.value, 'clientSecret')}
           />
         </div>
 
