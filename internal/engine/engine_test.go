@@ -1,12 +1,12 @@
 package engine
 
 import (
-	"fmt"
 	"crypto"
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -124,9 +124,10 @@ func generateJWT(priv *jose.JSONWebKey, email, machineName string, expiry time.T
 	var custom claims.Custom
 	if email != "" {
 		custom = claims.Custom{
-			Email:  email,
-			Groups: []string{"developers"},
-			Nonce:  "randomstring",
+			Email:    email,
+			Groups:   []string{"developers"},
+			Nonce:    "randomstring",
+			Provider: "okta",
 		}
 	} else {
 		custom = claims.Custom{
