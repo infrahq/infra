@@ -148,7 +148,7 @@ which you would then use as follows. First base64 encode a string and write it t
 $ echo "c3VwZXIgc2VjcmV0IQ==" > /var/secrets/okta-client-secret.txt
 ```
 
-then in the `infra.yaml` file, use the name of the secrets config declaration and then the name of the file. 
+Then in the `infra.yaml` file, use the name of the secrets config declaration and then the name of the file. 
 
 ```yaml
     clientSecret: base64file:okta-client-secret.txt
