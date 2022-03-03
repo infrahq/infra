@@ -383,8 +383,7 @@ func Run(options Options) error {
 	u.Scheme = "https"
 
 	var destinationID uid.ID
-	var endpoint string
-	var ca string
+	var endpoint, ca string
 
 	timer := timer.NewTimer()
 	timer.Start(5*time.Second, func() {
