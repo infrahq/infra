@@ -639,7 +639,7 @@ func Run() error {
 func printError(err error) {
 	if err != nil {
 		if !errors.Is(err, terminal.InterruptErr) {
-			fmt.Fprint(os.Stderr, err.Error())
+			fmt.Fprintln(os.Stderr, "error: "+err.Error())
 		}
 	}
 }
