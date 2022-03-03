@@ -130,7 +130,7 @@ It's a common pattern to write secrets to a set of files on disk and then have a
     clientSecret: file:/var/secrets/okta-client-secret.txt
 ```
 
-**file** is built-in and does not need to be declared, but if you do want to declare the configuration for it, you could use this to create a custom handler which , like so:
+**file** is built-in and does not need to be declared, but if you do want to declare the configuration for it, you could use this to create a custom handler, like so:
 
 ```yaml
 secrets:
