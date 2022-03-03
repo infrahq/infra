@@ -19,7 +19,11 @@ type Client struct {
 func checkError(status int, body []byte) error {
 	var apiError Error
 
-	_ = json.Unmarshal(body, &apiError)
+	err := json.Unmarshal(body, &apiError)
+	if err != nil {
+		apiError.Message = string(body)
+		apiError.Code = int32(status)
+	}
 
 	switch apiError.Code {
 	case http.StatusUnauthorized:
@@ -49,24 +53,24 @@ func get[Res any](client Client, path string) (*Res, error) {
 
 	resp, err := client.Http.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GET %q: %w", path, err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("reading response: %w", err)
 	}
 
 	err = checkError(resp.StatusCode, body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GET %q responded %d: %w", path, resp.StatusCode, err)
 	}
 
 	var res Res
 	err = json.Unmarshal(body, &res)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parsing json response: %w. partial text: %q", err, partialText(body, 100))
 	}
 
 	return &res, nil
@@ -89,24 +93,24 @@ func list[Res any](client Client, path string, query map[string]string) ([]Res, 
 
 	resp, err := client.Http.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GET %q: %w", path, err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("reading response: %w", err)
 	}
 
 	err = checkError(resp.StatusCode, body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GET %q responded %d: %w", path, resp.StatusCode, err)
 	}
 
 	var res []Res
 	err = json.Unmarshal(body, &res)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parsing json response: %w. partial text: %q", err, partialText(body, 100))
 	}
 
 	return res, nil
@@ -115,7 +119,7 @@ func list[Res any](client Client, path string, query map[string]string) ([]Res, 
 func request[Req, Res any](client Client, method string, path string, req *Req) (*Res, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("marshal json: %w", err)
 	}
 
 	httpReq, err := http.NewRequest(method, fmt.Sprintf("%s%s", client.Url, path), bytes.NewReader(body))
@@ -128,24 +132,24 @@ func request[Req, Res any](client Client, method string, path string, req *Req) 
 
 	resp, err := client.Http.Do(httpReq)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s %q: %w", method, path, err)
 	}
 	defer resp.Body.Close()
 
 	body, err = io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("reading response: %w", err)
 	}
 
 	err = checkError(resp.StatusCode, body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s %q responded %d: %w", method, path, resp.StatusCode, err)
 	}
 
 	var res Res
 	err = json.Unmarshal(body, &res)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parsing json response: %w. partial text: %q", err, partialText(body, 100))
 	}
 
 	return &res, nil
@@ -169,18 +173,18 @@ func delete(client Client, path string) error {
 
 	resp, err := client.Http.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("DELETE %q: %w", path, err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return fmt.Errorf("reading response: %w", err)
 	}
 
 	err = checkError(resp.StatusCode, body)
 	if err != nil {
-		return err
+		return fmt.Errorf("DELETE %q responded %d: %w", path, resp.StatusCode, err)
 	}
 
 	return nil
@@ -329,4 +333,12 @@ func (c Client) Setup() (*CreateAccessKeyResponse, error) {
 
 func (c Client) GetVersion() (*Version, error) {
 	return get[Version](c, "/v1/version")
+}
+
+func partialText(body []byte, limit int) string {
+	if len(body) <= limit {
+		return string(body)
+	}
+
+	return string(body[:limit]) + "..."
 }
