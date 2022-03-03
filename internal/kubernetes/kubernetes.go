@@ -593,3 +593,12 @@ func (k *Kubernetes) Endpoint() (string, int, error) {
 
 	return host, int(service.Spec.Ports[0].Port), nil
 }
+
+func (k *Kubernetes) IsServiceTypeClusterIP() (bool, error) {
+	service, err := k.Service("engine")
+	if err != nil {
+		return false, err
+	}
+
+	return service.Spec.Type == corev1.ServiceTypeClusterIP, nil
+}
