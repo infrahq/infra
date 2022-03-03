@@ -383,6 +383,8 @@ func Run(options Options) error {
 	u.Scheme = "https"
 
 	var destinationID uid.ID
+	var endpoint string
+	var ca string
 
 	timer := timer.NewTimer()
 	timer.Start(5*time.Second, func() {
@@ -402,39 +404,53 @@ func Run(options Options) error {
 			},
 		}
 
+		host, port, err := k8s.Endpoint()
+		if err != nil {
+			logging.S.Errorf("endpoint: %w", err)
+			return
+		}
+
+		logging.S.Debugf("endpoint is: %s:%d", host, port)
+
+		if ipv4 := net.ParseIP(host); ipv4 == nil {
+			// wait for DNS resolution if endpoint is not an IPv4 address
+			if _, err := net.LookupIP(host); err != nil {
+				logging.L.Error("endpoint DNS could not be resolved, waiting to register")
+			}
+		}
+
+		currentEndpoint := fmt.Sprintf("%s:%d", host, port)
+
+		url, err := urlx.Parse(currentEndpoint)
+		if err != nil {
+			logging.S.Errorf("url parse: %s", err.Error())
+			return
+		}
+
+		caBytes, err := manager.Cache.Get(context.TODO(), fmt.Sprintf("%s.crt", url.Hostname()))
+		if err != nil {
+			if errors.Is(err, autocert.ErrCacheMiss) {
+				logging.S.Debugf("failed loading CA: %s", err.Error())
+				return
+			} else {
+				logging.S.Errorf("cache get: %s", err.Error())
+				return
+			}
+		}
+
 		if destinationID == 0 {
-			host, port, err := k8s.Endpoint()
+			isClusterIP, err := k8s.IsServiceTypeClusterIP()
 			if err != nil {
-				logging.S.Errorf("endpoint: %w", err)
-				return
+				logging.S.Debugf("could not check destination service type: %w", err)
 			}
 
-			logging.S.Debugf("endpoint is: %s:%d", host, port)
-
-			if ipv4 := net.ParseIP(host); ipv4 == nil {
-				// wait for DNS resolution if endpoint is not an IPv4 address
-				if _, err := net.LookupIP(host); err != nil {
-					logging.L.Error("endpoint DNS could not be resolved, waiting to register")
-				}
+			if isClusterIP {
+				logging.S.Warn("registering engine with cluster IP, it may not be externally accessible without port-forwarding")
 			}
 
-			endpoint := fmt.Sprintf("%s:%d", host, port)
-
-			url, err := urlx.Parse(endpoint)
-			if err != nil {
-				logging.S.Errorf("url parse: %s", err.Error())
-				return
-			}
-
-			caBytes, err := manager.Cache.Get(context.TODO(), fmt.Sprintf("%s.crt", url.Hostname()))
-			if err != nil {
-				if errors.Is(err, autocert.ErrCacheMiss) {
-					return
-				} else {
-					logging.S.Errorf("cache get: %s", err.Error())
-					return
-				}
-			}
+			// these are checked in the future to see if they have updated
+			endpoint = currentEndpoint
+			ca = string(caBytes)
 
 			destinations, err := client.ListDestinations(api.ListDestinationsRequest{Name: "", UniqueID: chksm})
 			if err != nil {
@@ -448,7 +464,7 @@ func Run(options Options) error {
 					Name:     options.Name,
 					UniqueID: chksm,
 					Connection: api.DestinationConnection{
-						CA:  string(caBytes),
+						CA:  ca,
 						URL: endpoint,
 					},
 				}
@@ -466,7 +482,7 @@ func Run(options Options) error {
 					Name:     options.Name,
 					UniqueID: chksm,
 					Connection: api.DestinationConnection{
-						CA:  string(caBytes),
+						CA:  ca,
 						URL: endpoint,
 					},
 				}
@@ -481,6 +497,29 @@ func Run(options Options) error {
 				// this shouldn't happen
 				logging.L.Info("unexpected result from ListDestinations")
 				return
+			}
+		}
+
+		// this will only be possible on an update cycle
+		if endpoint != currentEndpoint || ca != string(caBytes) {
+			logging.S.Debug("updating engine information at server")
+
+			endpoint = currentEndpoint
+			ca = string(caBytes)
+
+			request := api.UpdateDestinationRequest{
+				ID:       destinationID,
+				Name:     options.Name,
+				UniqueID: chksm,
+				Connection: api.DestinationConnection{
+					CA:  string(caBytes),
+					URL: endpoint,
+				},
+			}
+
+			_, err := client.UpdateDestination(request)
+			if err != nil {
+				logging.S.Errorf("error updating existing destination: %w", err)
 			}
 		}
 
