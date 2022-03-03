@@ -1,8 +1,8 @@
 import Link from 'next/link'
 import styled from 'styled-components'
 
-import Input from "../../Input"
-import Header from "../../Header"
+import Input from '../../Input'
+import Header from '../../Header'
 import Logo from './Logo'
 
 const HelpContainer = styled.div`
@@ -68,13 +68,13 @@ const AddAdmin = ({ email, parentCallback }) => {
         }
       />
       <div>
-        <Input 
+        <Input
           label='Admin Email'
           value={email}
           onChange={(e) => parentCallback(e.target.value)}
         />
       </div>
-      <Link  href='/'>
+      <Link href='/'>
         <StyledLink>
           <a>Or set up an Infra admin later.</a>
         </StyledLink>

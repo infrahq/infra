@@ -43,7 +43,7 @@ const SetupOkta = () => {
   const page = Object.freeze({ Setup: 1, AddAdmin: 2 })
 
   const [currentPage, setCurrentPage] = useState(page.Setup)
-  const [adminEmail, setAdminEmail] = useState('');
+  const [adminEmail, setAdminEmail] = useState('')
 
   const [value, setValue] = useState({
     name: 'okta',
@@ -55,21 +55,21 @@ const SetupOkta = () => {
   const moveToNext = async () => {
     // update the state
     if (currentPage === page.Setup) {
-      axios.post('/v1/providers', 
-        { name: value.name, url: value.domain, clientID: value.clientId, clientSecret: value.clientSecret},
+      axios.post('/v1/providers',
+        { name: value.name, url: value.domain, clientID: value.clientId, clientSecret: value.clientSecret },
         { headers: { Authorization: `Bearer ${cookie.accessKey}` } })
         .then((response) => {
           setNewProvider(response)
           setCurrentPage(page.AddAdmin)
         }).catch((error) => {
-          console.log('error:', error);
+          console.log('error:', error)
         })
     }
 
     if (currentPage === page.AddAdmin) {
-      console.log(adminEmail);
-      // set the admin email to the infra admin 
-      // if success then redirect back to dashboard 
+      console.log(adminEmail)
+      // set the admin email to the infra admin
+      // if success then redirect back to dashboard
       await Router.push({
         pathname: '/'
       }, undefined, { shallow: true })

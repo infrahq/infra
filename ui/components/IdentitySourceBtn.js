@@ -89,7 +89,7 @@ IdentitySourceBtn.prototype = {
     id: PropTypes.string,
     created: PropTypes.number,
     updated: PropTypes.number,
-    onClick: PropTypes.func,
+    onClick: PropTypes.func
   })).isRequired
 }
 

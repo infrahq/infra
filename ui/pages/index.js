@@ -7,7 +7,7 @@ import AuthContext from '../store/AuthContext'
 export default function Index () {
   const { logout, user, providers } = useContext(AuthContext)
   const [currentUser, setCurrentUser] = useState(null)
-  
+
   useEffect(() => {
     if (user != null) {
       setCurrentUser(user)
@@ -27,13 +27,15 @@ export default function Index () {
   return (
     <div>
       {currentUser ? <p>{currentUser.name}</p> : <></>}
-      {providers.length > 0 ? (<></>) : (
-        <ActionButton 
-          onClick={() => handleConnectProviders()}
-          value='Connect Identity Providers'
-          size='small'
-        />
-      )}
+      {providers.length > 0
+        ? (<></>)
+        : (
+          <ActionButton
+            onClick={() => handleConnectProviders()}
+            value='Connect Identity Providers'
+            size='small'
+          />
+          )}
       <button onClick={handleLogout}>Logout</button>
     </div>
   )
