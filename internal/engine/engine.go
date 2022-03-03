@@ -172,6 +172,7 @@ func jwtMiddleware(getJWK getJWKFunc) gin.HandlerFunc {
 		c.Set("email", claims.Email)
 		c.Set("machine", claims.Machine)
 		c.Set("groups", claims.Groups)
+		c.Set("provider", claims.Provider)
 
 		c.Next()
 	}
@@ -200,8 +201,20 @@ func proxyMiddleware(proxy *httputil.ReverseProxy, bearerToken string) gin.Handl
 			return
 		}
 
+		provider, ok := c.MustGet("provider").(string)
+		if !ok {
+			logging.S.Debug("required field 'provider' not found")
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
+		userParts := []string{email}
+		if len(provider) > 0 {
+			userParts = append([]string{provider}, userParts...)
+		}
+
 		if email != "" {
-			c.Request.Header.Set("Impersonate-User", email)
+			c.Request.Header.Set("Impersonate-User", strings.Join(userParts, ":"))
 		} else if machine != "" {
 			c.Request.Header.Set("Impersonate-User", fmt.Sprintf("machine:%s", machine))
 		} else {
@@ -253,6 +266,12 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 
 			name = user.Email
 			kind = rbacv1.UserKind
+			provider, err := c.GetProvider(user.ProviderID)
+			if err != nil {
+				return err
+			}
+
+			name = provider.Name + ":" + name
 
 		case g.Identity.IsMachine():
 			machine, err := c.GetMachine(id)

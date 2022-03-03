@@ -18,7 +18,7 @@ var signatureAlgorithmFromKeyAlgorithm = map[string]string{
 	"ED25519": "EdDSA", // elliptic curve 25519
 }
 
-func createJWT(db *gorm.DB, userEmail, machineName string, groups []string, expires time.Time) (string, error) {
+func createJWT(db *gorm.DB, user *models.User, machine *models.Machine, groups []string, expires time.Time) (string, error) {
 	settings, err := GetSettings(db)
 	if err != nil {
 		return "", err
@@ -56,16 +56,22 @@ func createJWT(db *gorm.DB, userEmail, machineName string, groups []string, expi
 
 	var custom claims.Custom
 
-	if machineName != "" {
+	if machine != nil {
 		custom = claims.Custom{
-			Machine: machineName,
+			Machine: machine.Name,
 			Nonce:   nonce,
 		}
 	} else {
+		p, err := GetProvider(db, ByID(user.ProviderID))
+		if err != nil {
+			return "", fmt.Errorf("get provider: %w", err)
+		}
+
 		custom = claims.Custom{
-			Email:  userEmail,
-			Groups: groups,
-			Nonce:  nonce,
+			Email:    user.Email,
+			Groups:   groups,
+			Nonce:    nonce,
+			Provider: p.Name,
 		}
 	}
 
@@ -95,7 +101,7 @@ func CreateUserToken(db *gorm.DB, userID uid.ID) (token *models.Token, err error
 
 	expires := time.Now().Add(time.Minute * 5)
 
-	jwt, err := createJWT(db, user.Email, "", groups, expires)
+	jwt, err := createJWT(db, user, nil, groups, expires)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +117,7 @@ func CreateMachineToken(db *gorm.DB, machineID uid.ID) (token *models.Token, err
 
 	expires := time.Now().Add(time.Minute * 5)
 
-	jwt, err := createJWT(db, "", machine.Name, nil, expires)
+	jwt, err := createJWT(db, nil, machine, nil, expires)
 	if err != nil {
 		return nil, err
 	}
