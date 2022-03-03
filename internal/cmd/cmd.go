@@ -495,7 +495,7 @@ func newInfoCmd() *cobra.Command {
 				fmt.Fprintf(w, "Identity Provider:\t %s (%s)\n", provider.Name, provider.URL)
 				fmt.Fprintln(w, "User:\t", user.Email)
 				fmt.Fprintln(w)
-			} else if config.isMachine() {
+			} else if config.PolymorphicID.IsMachine() {
 				machine, err := client.GetMachine(config.ID)
 				if err != nil {
 					fmt.Fprintln(os.Stderr, "6.3")
