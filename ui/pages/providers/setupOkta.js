@@ -44,6 +44,7 @@ const SetupOkta = () => {
 
   const [currentPage, setCurrentPage] = useState(page.Setup)
   const [adminEmail, setAdminEmail] = useState('')
+  const [providerId, setProviderId] = useState(null)
 
   const [value, setValue] = useState({
     name: 'okta',
@@ -53,21 +54,35 @@ const SetupOkta = () => {
   })
 
   const moveToNext = async () => {
-    // update the state
     if (currentPage === page.Setup) {
       axios.post('/v1/providers',
         { name: value.name, url: value.domain, clientID: value.clientId, clientSecret: value.clientSecret },
         { headers: { Authorization: `Bearer ${cookie.accessKey}` } })
         .then((response) => {
-          setNewProvider(response)
+          setNewProvider(response.data)
+          setProviderId(response.data.id)
           setCurrentPage(page.AddAdmin)
         }).catch((error) => {
           console.log('error:', error)
         })
     }
-
     if (currentPage === page.AddAdmin) {
-      console.log(adminEmail)
+      // check if user exists
+      const params = {
+        email: adminEmail,
+        provider_id: providerId
+      }
+      // TODO: returning 401 at the moment
+      const currentUser = await axios.get('/v1/users', { params }, { headers: { Authorization: `Bearer ${cookie.accessKey}` } });
+
+      // if (currentUser == null) {
+      //   axios.post
+      // }
+
+      // if it doesn't exist, create one
+
+      // otherwise grant access with the user id
+
       // set the admin email to the infra admin
       // if success then redirect back to dashboard
       await Router.push({

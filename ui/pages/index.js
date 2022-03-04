@@ -8,6 +8,8 @@ export default function Index () {
   const { logout, user, providers } = useContext(AuthContext)
   const [currentUser, setCurrentUser] = useState(null)
 
+  console.log(providers);
+
   useEffect(() => {
     if (user != null) {
       setCurrentUser(user)
@@ -28,7 +30,18 @@ export default function Index () {
     <div>
       {currentUser ? <p>{currentUser.name}</p> : <></>}
       {providers.length > 0
-        ? (<></>)
+        ? (
+          <div>
+            {providers.map((item) => {
+              return (
+                <div key={item.id}>
+                  <span>{item.name} / </span>
+                  <span>{item.url}</span>
+                </div>
+              )
+            })}
+          </div>
+        )
         : (
           <ActionButton
             onClick={() => handleConnectProviders()}
