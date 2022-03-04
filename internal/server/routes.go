@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
 
 	"github.com/infrahq/infra/internal"
@@ -17,14 +18,16 @@ type ReqResHandlerFunc[Req, Res any] func(c *gin.Context, req *Req) (Res, error)
 
 func (a *API) registerRoutes(router *gin.RouterGroup) {
 	router.Use(
+		sentrygin.New(sentrygin.Options{}),
 		metrics.Middleware(),
+		logging.IdentityAwareMiddleware(),
+		logging.Middleware(),
 		RequestTimeoutMiddleware(),
 		DatabaseMiddleware(a.server.db),
 	)
 
 	authorized := router.Group("/",
 		AuthenticationMiddleware(),
-		logging.UserAwareLoggerMiddleware(),
 	)
 
 	{

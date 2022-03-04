@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -18,7 +17,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/gorilla/handlers"
 	"github.com/goware/urlx"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/crypto/acme/autocert"
@@ -584,7 +582,7 @@ func Run(options Options) error {
 
 	metricsServer := &http.Server{
 		Addr:     ":9090",
-		Handler:  handlers.CustomLoggingHandler(io.Discard, metrics, logging.ZapLogFormatter),
+		Handler:  metrics,
 		ErrorLog: logging.StandardErrorLog(),
 	}
 
@@ -597,7 +595,7 @@ func Run(options Options) error {
 	tlsServer := &http.Server{
 		Addr:      ":443",
 		TLSConfig: tlsConfig,
-		Handler:   handlers.CustomLoggingHandler(io.Discard, router, logging.ZapLogFormatter),
+		Handler:   router,
 		ErrorLog:  logging.StandardErrorLog(),
 	}
 

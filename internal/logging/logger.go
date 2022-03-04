@@ -5,16 +5,16 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/handlers"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"golang.org/x/term"
+
+	"github.com/infrahq/infra/uid"
 )
 
 var (
@@ -56,28 +56,6 @@ func NewLogger(level zapcore.LevelEnabler) (*zap.Logger, error) {
 		),
 		zap.AddCaller(),
 	), nil
-}
-
-func ZapLogFormatter(_ io.Writer, params handlers.LogFormatterParams) {
-	// "<REQUEST_METHOD> <REQUEST_URL_PATH>" <RESPONSE_CODE> <RESPONSE_SIZE> "<HOST>" <USER_AGENT> <REMOTE_HOST> <REQUEST_SIZE>
-	msg := fmt.Sprintf("\"%s %s\" %d %d \"%s\" %s %s %d",
-		params.Request.Method,
-		params.Request.URL.Path,
-		params.StatusCode,
-		params.Size,
-		params.Request.Host,
-		params.Request.UserAgent(),
-		params.Request.RemoteAddr,
-		params.Request.ContentLength,
-	)
-
-	L.WithOptions(zap.AddCallerSkip(2)).Sugar().Infow(
-		msg,
-		"method", params.Request.Method,
-		"path", params.Request.URL.Path,
-		"statusCode", params.StatusCode,
-		"remoteAddr", params.Request.RemoteAddr,
-	)
 }
 
 func StandardErrorLog() *log.Logger {
@@ -149,19 +127,19 @@ func (w *filteredWriterSyncer) Sync() error {
 	return w.dest.Sync()
 }
 
-var ctxLoggerKey = "logger"
-
 // UserAwareLoggerMiddleware saves a request-specific logger to the context
-func UserAwareLoggerMiddleware() gin.HandlerFunc {
+func IdentityAwareMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if userID := c.GetString("userID"); userID != "" {
-			logger := L.With(
-				zapcore.Field{
-					Key:    "userID",
-					Type:   zapcore.StringType,
-					String: userID,
-				})
-			c.Set(ctxLoggerKey, logger)
+		if val, ok := c.Get("identity"); ok {
+			if id, ok := val.(uid.PolymorphicID); ok {
+				logger := L.With(
+					zapcore.Field{
+						Key:    "id",
+						Type:   zapcore.StringType,
+						String: id.String(),
+					})
+				c.Set("logger", logger)
+			}
 		}
 
 		c.Next()
@@ -171,7 +149,7 @@ func UserAwareLoggerMiddleware() gin.HandlerFunc {
 // Logger gets the request-specific logger from the context
 // If a request-specific logger cannot be found, use the default logger
 func Logger(c *gin.Context) *zap.Logger {
-	if loggerInf, ok := c.Get(ctxLoggerKey); ok {
+	if loggerInf, ok := c.Get("logger"); ok {
 		if logger, ok := loggerInf.(*zap.Logger); ok {
 			return logger
 		}
@@ -194,4 +172,31 @@ func WrappedLogger(c *gin.Context) *zap.Logger {
 // Sugared variant of WrappedLogger
 func WrappedSugarLogger(c *gin.Context) *zap.SugaredLogger {
 	return WrappedLogger(c).Sugar()
+}
+
+// Middleware logs incoming requests using configured logger
+func Middleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Next()
+
+		msg := fmt.Sprintf(
+			"\"%s %s\" %d %d \"%s\" %s %s %d",
+			c.Request.Method,
+			c.Request.URL.Path,
+			c.Writer.Status(),
+			c.Writer.Size(),
+			c.Request.Host,
+			c.Request.UserAgent(),
+			c.Request.RemoteAddr,
+			c.Request.ContentLength,
+		)
+
+		SugarLogger(c).Infow(
+			msg,
+			"method", c.Request.Method,
+			"path", c.Request.URL.Path,
+			"statusCode", c.Writer.Status(),
+			"remoteAddr", c.Request.RemoteAddr,
+		)
+	}
 }

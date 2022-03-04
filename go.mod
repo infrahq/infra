@@ -14,7 +14,6 @@ require (
 	github.com/go-playground/validator/v10 v10.10.0
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/goreleaser/goreleaser v1.5.0
-	github.com/gorilla/handlers v1.5.1
 	github.com/goware/urlx v0.3.1
 	github.com/hashicorp/vault/api v1.4.1
 	github.com/jackc/pgconn v1.11.0
@@ -133,7 +132,6 @@ require (
 	github.com/envoyproxy/go-control-plane v0.10.1 // indirect
 	github.com/envoyproxy/protoc-gen-validate v0.6.2 // indirect
 	github.com/fatih/color v1.13.0 // indirect
-	github.com/felixge/httpsnoop v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
