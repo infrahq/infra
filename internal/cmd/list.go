@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	mapset "github.com/deckarep/golang-set"
 	"github.com/infrahq/infra/internal/api"
 )
 
@@ -55,10 +56,14 @@ func list() error {
 		}
 	}
 
-	gs := make(map[string]string)
+	gs := make(map[string]mapset.Set)
 	for _, g := range grants {
 		// aggregate privileges
-		gs[g.Resource] = gs[g.Resource] + g.Privilege + " "
+		if gs[g.Resource] == nil {
+			gs[g.Resource] = mapset.NewSet()
+		}
+
+		gs[g.Resource].Add(g.Privilege)
 	}
 
 	type row struct {
@@ -87,7 +92,7 @@ func list() error {
 
 		rows = append(rows, row{
 			Name:   k,
-			Access: v,
+			Access: v.String()[4 : len(v.String())-1],
 		})
 	}
 
