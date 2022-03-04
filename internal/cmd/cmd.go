@@ -27,7 +27,18 @@ import (
 	"github.com/infrahq/infra/internal/server"
 )
 
-var errorNotLoggedIn = fmt.Errorf("Not logged in. Run 'infra login' before running this command.")
+func mustBeLoggedIn(cmd *cobra.Command, args []string) error {
+	config, err := currentHostConfig()
+	if err != nil {
+		return err
+	}
+
+	if !config.isLoggedIn() {
+		return fmt.Errorf("Not logged in. Run 'infra login' before running this command.")
+	}
+
+	return nil
+}
 
 func parseOptions(cmd *cobra.Command, options interface{}, envPrefix string) error {
 	v := viper.New()
@@ -205,9 +216,10 @@ func newLogoutCmd() *cobra.Command {
 
 func newListCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:     "list",
-		Aliases: []string{"ls"},
-		Short:   "List destinations and your access",
+		Use:               "list",
+		Aliases:           []string{"ls"},
+		Short:             "List destinations and your access",
+		PersistentPreRunE: mustBeLoggedIn,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return list()
 		},
@@ -225,7 +237,8 @@ $ infra use kubernetes.development
 # Connect to a Kubernetes namespace
 $ infra use kubernetes.development.kube-system
 		`,
-		Args: cobra.ExactArgs(1),
+		Args:              cobra.ExactArgs(1),
+		PersistentPreRunE: mustBeLoggedIn,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
@@ -261,8 +274,9 @@ $ infra use kubernetes.development.kube-system
 
 func newAccessCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "access",
-		Short: "Manage access",
+		Use:               "access",
+		Short:             "Manage access",
+		PersistentPreRunE: mustBeLoggedIn,
 	}
 
 	cmd.AddCommand(newAccessListCmd())
@@ -274,8 +288,9 @@ func newAccessCmd() *cobra.Command {
 
 func newKeysCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "keys",
-		Short: "Manage access keys used by machines to authenticate with Infra and call the API",
+		Use:               "keys",
+		Short:             "Manage access keys used by machines to authenticate with Infra and call the API",
+		PersistentPreRunE: mustBeLoggedIn,
 	}
 
 	cmd.AddCommand(newKeysListCmd())
@@ -287,8 +302,9 @@ func newKeysCmd() *cobra.Command {
 
 func newDestinationsCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "destinations",
-		Short: "Connect & manage destinations",
+		Use:               "destinations",
+		Short:             "Connect & manage destinations",
+		PersistentPreRunE: mustBeLoggedIn,
 	}
 
 	cmd.AddCommand(newDestinationsListCmd())
@@ -418,8 +434,9 @@ func newEngineCmd() *cobra.Command {
 
 func newTokensCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "tokens",
-		Short: "Create & manage tokens",
+		Use:               "tokens",
+		Short:             "Create & manage tokens",
+		PersistentPreRunE: mustBeLoggedIn,
 	}
 
 	cmd.AddCommand(newTokensCreateCmd())
@@ -429,8 +446,9 @@ func newTokensCmd() *cobra.Command {
 
 func newProvidersCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "providers",
-		Short: "Add & manage identity providers",
+		Use:               "providers",
+		Short:             "Add & manage identity providers",
+		PersistentPreRunE: mustBeLoggedIn,
 	}
 
 	cmd.AddCommand(newProvidersListCmd())
@@ -442,8 +460,9 @@ func newProvidersCmd() *cobra.Command {
 
 func newInfoCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "info",
-		Short: "Display the info about the current session",
+		Use:     "info",
+		Short:   "Display the info about the current session",
+		PreRunE: mustBeLoggedIn,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config, err := currentHostConfig()
 			if err != nil {
@@ -457,10 +476,6 @@ func newInfoCmd() *cobra.Command {
 
 			w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
 			defer w.Flush()
-
-			if !config.isLoggedIn() {
-				return errorNotLoggedIn
-			}
 
 			if config.PolymorphicID.IsUser() {
 				provider, err := client.GetProvider(config.ProviderID)
@@ -512,8 +527,9 @@ func newInfoCmd() *cobra.Command {
 
 func newMachinesCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "machines",
-		Short: "Create & manage machine identities",
+		Use:               "machines",
+		Short:             "Create & manage machine identities",
+		PersistentPreRunE: mustBeLoggedIn,
 	}
 
 	cmd.AddCommand(newMachinesCreateCmd())
