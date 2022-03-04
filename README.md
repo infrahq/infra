@@ -207,7 +207,7 @@ Run the output Helm command on the Kubernetes cluster to be added.
 
 Example:
 ```
-helm upgrade --install infra-engine infrahq/engine --set config.accessKey=2pVqDSdkTF.oSCEe6czoBWdgc6wRz0ywK8y --set config.name=kubernetes.example-cluster --set config.server=https://infra.acme.com
+helm upgrade --install infra-engine infrahq/infra --set engine.config.accessKey=2pVqDSdkTF.oSCEe6czoBWdgc6wRz0ywK8y --set engine.config.name=kubernetes.example-cluster --set engine.config.server=https://infra.acme.com
 ```
 
 ### Upgrade Infra
