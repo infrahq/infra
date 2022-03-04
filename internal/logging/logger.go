@@ -4,6 +4,7 @@ package logging
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -58,11 +59,25 @@ func NewLogger(level zapcore.LevelEnabler) (*zap.Logger, error) {
 }
 
 func ZapLogFormatter(_ io.Writer, params handlers.LogFormatterParams) {
-	L.Info("handled request",
-		zap.String("method", params.Request.Method),
-		zap.String("path", params.URL.Path),
-		zap.Int("status", params.StatusCode),
-		zap.Int("size", params.Size))
+	// "<REQUEST_METHOD> <REQUEST_URL_PATH>" <RESPONSE_CODE> <RESPONSE_SIZE> "<HOST>" <USER_AGENT> <REMOTE_HOST> <REQUEST_SIZE>
+	msg := fmt.Sprintf("\"%s %s\" %d %d \"%s\" %s %s %d",
+		params.Request.Method,
+		params.Request.URL.Path,
+		params.StatusCode,
+		params.Size,
+		params.Request.Host,
+		params.Request.UserAgent(),
+		params.Request.RemoteAddr,
+		params.Request.ContentLength,
+	)
+
+	L.WithOptions(zap.AddCallerSkip(2)).Sugar().Infow(
+		msg,
+		"method", params.Request.Method,
+		"path", params.Request.URL.Path,
+		"statusCode", params.StatusCode,
+		"remoteAddr", params.Request.RemoteAddr,
+	)
 }
 
 func StandardErrorLog() *log.Logger {
@@ -146,7 +161,7 @@ func UserAwareLoggerMiddleware() gin.HandlerFunc {
 					Type:   zapcore.StringType,
 					String: userID,
 				})
-			c.Set(ctxLoggerKey, logger.Sugar())
+			c.Set(ctxLoggerKey, logger)
 		}
 
 		c.Next()
@@ -154,12 +169,29 @@ func UserAwareLoggerMiddleware() gin.HandlerFunc {
 }
 
 // Logger gets the request-specific logger from the context
-func Logger(c *gin.Context) *zap.SugaredLogger {
+// If a request-specific logger cannot be found, use the default logger
+func Logger(c *gin.Context) *zap.Logger {
 	if loggerInf, ok := c.Get(ctxLoggerKey); ok {
-		if logger, ok := loggerInf.(*zap.SugaredLogger); ok {
+		if logger, ok := loggerInf.(*zap.Logger); ok {
 			return logger
 		}
 	}
 
-	return S
+	return L
+}
+
+// Sugared variant of Logger
+func SugarLogger(c *gin.Context) *zap.SugaredLogger {
+	return Logger(c).Sugar()
+}
+
+// WrappedLogger skips the most recent caller
+// Useful for functions that logs for callers
+func WrappedLogger(c *gin.Context) *zap.Logger {
+	return Logger(c).WithOptions(zap.AddCallerSkip(1))
+}
+
+// Sugared variant of WrappedLogger
+func WrappedSugarLogger(c *gin.Context) *zap.SugaredLogger {
+	return WrappedLogger(c).Sugar()
 }

@@ -2,14 +2,19 @@ package api
 
 import "github.com/infrahq/infra/uid"
 
-type LoginRequest struct {
+type LoginRequestOIDC struct {
 	ProviderID  uid.ID `json:"providerID" validate:"required"`
 	RedirectURL string `json:"redirectURL" validate:"required"`
 	Code        string `json:"code" validate:"required"`
 }
 
+type LoginRequest struct {
+	OIDC      *LoginRequestOIDC `json:"oidc" validate:"excluded_with=KeyExchange"`
+	AccessKey string            `json:"accessKey"  validate:"excluded_with=OIDC"`
+}
+
 type LoginResponse struct {
-	ID        uid.ID `json:"id"`
-	Name      string `json:"name"`
-	AccessKey string `json:"accessKey"`
+	PolymorphicID uid.PolymorphicID `json:"polymorphicId"`
+	Name          string            `json:"name"`
+	AccessKey     string            `json:"accessKey"`
 }

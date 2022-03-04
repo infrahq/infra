@@ -6,10 +6,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
-	"github.com/infrahq/infra/internal/config"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/secrets"
+	"github.com/infrahq/infra/uid"
 )
 
 func setupLogging(t *testing.T) {
@@ -76,14 +76,14 @@ func TestSetupRequired(t *testing.T) {
 		},
 		"NoImportProviders": {
 			EnableSetup: true,
-			Import: &config.Config{
-				Providers: []config.Provider{},
+			Config: Config{
+				Providers: []Provider{},
 			},
 		},
 		"NoImportGrants": {
 			EnableSetup: true,
-			Import: &config.Config{
-				Grants: []config.Grant{},
+			Config: Config{
+				Grants: []Grant{},
 			},
 		},
 	}
@@ -110,8 +110,8 @@ func TestSetupRequired(t *testing.T) {
 		},
 		"ImportProviders": {
 			EnableSetup: true,
-			Import: &config.Config{
-				Providers: []config.Provider{
+			Config: Config{
+				Providers: []Provider{
 					{
 						Name: "provider",
 					},
@@ -120,8 +120,8 @@ func TestSetupRequired(t *testing.T) {
 		},
 		"ImportGrants": {
 			EnableSetup: true,
-			Import: &config.Config{
-				Grants: []config.Grant{
+			Config: Config{
+				Grants: []Grant{
 					{
 						Role: "admin",
 					},
@@ -151,4 +151,697 @@ func TestSetupRequired(t *testing.T) {
 	require.NoError(t, err)
 
 	require.False(t, s.setupRequired())
+}
+
+func TestLoadConfigEmpty(t *testing.T) {
+	db := setupDB(t)
+
+	err := loadConfig(db, Config{})
+	require.NoError(t, err)
+
+	var providers, grants int64
+
+	err = db.Model(&models.Provider{}).Count(&providers).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(0), providers)
+
+	err = db.Model(&models.Grant{}).Count(&grants).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(0), grants)
+}
+
+func TestLoadConfigInvalid(t *testing.T) {
+	cases := map[string]Config{
+		"MissingProviderName": {
+			Providers: []Provider{
+				{
+					URL: "demo.okta.com",
+					ClientID: "client-id",
+					ClientSecret: "client-secret",
+				},
+			},
+		},
+		"MissingProviderURL": {
+			Providers: []Provider{
+				{
+					Name: "okta",
+					ClientID: "client-id",
+					ClientSecret: "client-secret",
+				},
+			},
+		},
+		"MissingProviderClientID": {
+			Providers: []Provider{
+				{
+					Name: "okta",
+					URL: "demo.okta.com",
+					ClientSecret: "client-secret",
+				},
+			},
+		},
+		"MissingProviderClientSecret": {
+			Providers: []Provider{
+				{
+					Name: "okta",
+					URL: "demo.okta.com",
+					ClientID: "client-id",
+				},
+			},
+		},
+		"MissingGrantIdentity": {
+			Grants: []Grant{
+				{
+					Role: "admin",
+					Resource: "kubernetes.test-cluster",
+				},
+			},
+		},
+		"MissingGrantRole": {
+			Grants: []Grant{
+				{
+					Machine: "T-1000",
+					Resource: "kubernetes.test-cluster",
+				},
+			},
+		},
+		"MissingGrantResource": {
+			Grants: []Grant{
+				{
+					Machine: "T-1000",
+					Role: "admin",
+				},
+			},
+		},
+		"UserGrantWithZeroProviders": {
+			Grants: []Grant{
+				{
+					User: "test@example.com",
+					Role: "admin",
+					Resource: "kubernetes.test-cluster",
+				},
+			},
+		},
+		"GroupGrantWithZeroProviders": {
+			Grants: []Grant{
+				{
+					Group: "Everyone",
+					Role: "admin",
+					Resource: "kubernetes.test-cluster",
+				},
+			},
+		},
+		"UserGrantWithMultipleProviders": {
+			Providers: []Provider{
+				{
+					Name: "okta",
+					URL: "demo.okta.com",
+					ClientID: "client-id",
+					ClientSecret: "client-secret",
+				},
+				{
+					Name: "atko",
+					URL: "demo.atko.com",
+					ClientID: "client-id",
+					ClientSecret: "client-secret",
+				},
+			},
+			Grants: []Grant{
+				{
+					User: "test@example.com",
+					Role: "admin",
+					Resource: "kubernetes.test-cluster",
+				},
+			},
+		},
+		"GroupGrantWithMultipleProviders": {
+			Providers: []Provider{
+				{
+					Name: "okta",
+					URL: "demo.okta.com",
+					ClientID: "client-id",
+					ClientSecret: "client-secret",
+				},
+				{
+					Name: "atko",
+					URL: "demo.atko.com",
+					ClientID: "client-id",
+					ClientSecret: "client-secret",
+				},
+			},
+			Grants: []Grant{
+				{
+					Group: "Everyone",
+					Role: "admin",
+					Resource: "kubernetes.test-cluster",
+				},
+			},
+		},
+	}
+
+	for name, config := range cases {
+		t.Run(name, func(t *testing.T) {
+			db := setupDB(t)
+
+			err := loadConfig(db, config)
+			require.Error(t, err)
+		})
+	}
+}
+
+func TestLoadConfigWithProviders(t *testing.T) {
+	db := setupDB(t)
+
+	config := Config{
+		Providers: []Provider{
+			{
+				Name: "okta",
+				URL: "demo.okta.com",
+				ClientID: "client-id",
+				ClientSecret: "client-secret",
+			},
+		},
+	}
+
+	err := loadConfig(db, config)
+	require.NoError(t, err)
+
+	var provider models.Provider
+	err = db.Where("name = ?", "okta").First(&provider).Error
+	require.NoError(t, err)
+	require.Equal(t, "okta", provider.Name)
+	require.Equal(t, "demo.okta.com", provider.URL)
+	require.Equal(t, "client-id", provider.ClientID)
+	require.Equal(t, models.EncryptedAtRest("client-secret"), provider.ClientSecret)
+}
+
+func TestLoadConfigWithUserGrantsImplicitProvider(t *testing.T) {
+	db := setupDB(t)
+
+	config := Config{
+		Providers: []Provider{
+			{
+				Name: "okta",
+				URL: "demo.okta.com",
+				ClientID: "client-id",
+				ClientSecret: "client-secret",
+			},
+		},
+		Grants: []Grant{
+			{
+				User: "test@example.com",
+				Role: "admin",
+				Resource: "kubernetes.test-cluster",
+			},
+		},
+	}
+
+	err := loadConfig(db, config)
+	require.NoError(t, err)
+
+	var provider models.Provider
+	err = db.Where("name = ?", "okta").First(&provider).Error
+	require.NoError(t, err)
+
+	var user models.User
+	err = db.Where("email = ?", "test@example.com").First(&user).Error
+	require.NoError(t, err)
+	require.Equal(t, provider.ID, user.ProviderID)
+
+	var grant models.Grant
+	err = db.Where("identity = ?", uid.NewUserPolymorphicID(user.ID)).First(&grant).Error
+	require.NoError(t, err)
+	require.Equal(t, "admin", grant.Privilege)
+	require.Equal(t, "kubernetes.test-cluster", grant.Resource)
+}
+
+func TestLoadConfigWithUserGrantsExplicitProvider(t *testing.T) {
+	db := setupDB(t)
+
+	config := Config{
+		Providers: []Provider{
+			{
+				Name: "okta",
+				URL: "demo.okta.com",
+				ClientID: "client-id",
+				ClientSecret: "client-secret",
+			},
+			{
+				Name: "atko",
+				URL: "demo.atko.com",
+				ClientID: "client-id",
+				ClientSecret: "client-secret",
+			},
+		},
+		Grants: []Grant{
+			{
+				User: "test@example.com",
+				Role: "admin",
+				Resource: "kubernetes.test-cluster",
+				Provider: "atko",
+			},
+		},
+	}
+
+	err := loadConfig(db, config)
+	require.NoError(t, err)
+
+	var provider models.Provider
+	err = db.Where("name = ?", "atko").First(&provider).Error
+	require.NoError(t, err)
+
+	var user models.User
+	err = db.Where("email = ?", "test@example.com").First(&user).Error
+	require.NoError(t, err)
+	require.Equal(t, provider.ID, user.ProviderID)
+
+	var grant models.Grant
+	err = db.Where("identity = ?", uid.NewUserPolymorphicID(user.ID)).First(&grant).Error
+	require.NoError(t, err)
+	require.Equal(t, "admin", grant.Privilege)
+	require.Equal(t, "kubernetes.test-cluster", grant.Resource)
+}
+
+func TestLoadConfigWithGroupGrantsImplicitProvider(t *testing.T) {
+	db := setupDB(t)
+
+	config := Config{
+		Providers: []Provider{
+			{
+				Name: "okta",
+				URL: "demo.okta.com",
+				ClientID: "client-id",
+				ClientSecret: "client-secret",
+			},
+		},
+		Grants: []Grant{
+			{
+				Group: "Everyone",
+				Role: "admin",
+				Resource: "kubernetes.test-cluster",
+			},
+		},
+	}
+
+	err := loadConfig(db, config)
+	require.NoError(t, err)
+
+	var provider models.Provider
+	err = db.Where("name = ?", "okta").First(&provider).Error
+	require.NoError(t, err)
+
+	var group models.Group
+	err = db.Where("name = ?", "Everyone").First(&group).Error
+	require.NoError(t, err)
+	require.Equal(t, provider.ID, group.ProviderID)
+
+	var grant models.Grant
+	err = db.Where("identity = ?", uid.NewGroupPolymorphicID(group.ID)).First(&grant).Error
+	require.NoError(t, err)
+	require.Equal(t, "admin", grant.Privilege)
+	require.Equal(t, "kubernetes.test-cluster", grant.Resource)
+}
+
+func TestLoadConfigWithGroupGrantsExplicitProvider(t *testing.T) {
+	db := setupDB(t)
+
+	config := Config{
+		Providers: []Provider{
+			{
+				Name: "okta",
+				URL: "demo.okta.com",
+				ClientID: "client-id",
+				ClientSecret: "client-secret",
+			},
+			{
+				Name: "atko",
+				URL: "demo.atko.com",
+				ClientID: "client-id",
+				ClientSecret: "client-secret",
+			},
+		},
+		Grants: []Grant{
+			{
+				Group: "Everyone",
+				Role: "admin",
+				Resource: "kubernetes.test-cluster",
+				Provider: "atko",
+			},
+		},
+	}
+
+	err := loadConfig(db, config)
+	require.NoError(t, err)
+
+	var provider models.Provider
+	err = db.Where("name = ?", "atko").First(&provider).Error
+	require.NoError(t, err)
+
+	var group models.Group
+	err = db.Where("name = ?", "Everyone").First(&group).Error
+	require.NoError(t, err)
+	require.Equal(t, provider.ID, group.ProviderID)
+
+	var grant models.Grant
+	err = db.Where("identity = ?", uid.NewGroupPolymorphicID(group.ID)).First(&grant).Error
+	require.NoError(t, err)
+	require.Equal(t, "admin", grant.Privilege)
+	require.Equal(t, "kubernetes.test-cluster", grant.Resource)
+}
+
+func TestLoadConfigWithMachineGrants(t *testing.T) {
+	db := setupDB(t)
+
+	config := Config{
+		Grants: []Grant{
+			{
+				Machine: "T-1000",
+				Role: "admin",
+				Resource: "kubernetes.test-cluster",
+			},
+		},
+	}
+
+	err := loadConfig(db, config)
+	require.NoError(t, err)
+
+	var machine models.Machine
+	err = db.Where("name = ?", "T-1000").First(&machine).Error
+	require.NoError(t, err)
+
+	var grant models.Grant
+	err = db.Where("identity = ?", uid.NewMachinePolymorphicID(machine.ID)).First(&grant).Error
+	require.NoError(t, err)
+	require.Equal(t, "admin", grant.Privilege)
+	require.Equal(t, "kubernetes.test-cluster", grant.Resource)
+}
+
+func TestLoadConfigPruneConfig(t *testing.T) {
+	db := setupDB(t)
+
+	config := Config{
+		Providers: []Provider{
+			{
+				Name: "okta",
+				URL: "demo.okta.com",
+				ClientID: "client-id",
+				ClientSecret: "client-secret",
+			},
+		},
+		Grants: []Grant{
+			{
+				User: "test@example.com",
+				Role: "admin",
+				Resource: "kubernetes.test-cluster",
+			},
+			{
+				Group: "Everyone",
+				Role: "admin",
+				Resource: "kubernetes.test-cluster",
+			},
+			{
+				Machine: "T-1000",
+				Role: "admin",
+				Resource: "kubernetes.test-cluster",
+			},
+		},
+	}
+
+	err := loadConfig(db, config)
+	require.NoError(t, err)
+
+	var providers, grants, users, groups, machines int64
+
+	err = db.Model(&models.Provider{}).Count(&providers).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(1), providers)
+
+	err = db.Model(&models.Grant{}).Count(&grants).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(3), grants)
+
+	err = db.Model(&models.User{}).Count(&users).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(1), users)
+
+	err = db.Model(&models.Group{}).Count(&groups).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(1), groups)
+
+	err = db.Model(&models.Machine{}).Count(&machines).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(1), machines)
+
+	err = loadConfig(db, Config{})
+	require.NoError(t, err)
+
+	err = db.Model(&models.Provider{}).Count(&providers).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(0), providers)
+
+	err = db.Model(&models.Grant{}).Count(&grants).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(0), grants)
+
+	// removing provider also removes users/groups
+	err = db.Model(&models.User{}).Count(&users).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(0), users)
+
+	err = db.Model(&models.Group{}).Count(&groups).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(0), groups)
+
+	// but not machines
+	err = db.Model(&models.Machine{}).Count(&machines).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(1), machines)
+}
+
+func TestLoadConfigPruneGrants(t *testing.T) {
+	db := setupDB(t)
+
+	config := Config{
+		Providers: []Provider{
+			{
+				Name: "okta",
+				URL: "demo.okta.com",
+				ClientID: "client-id",
+				ClientSecret: "client-secret",
+			},
+		},
+		Grants: []Grant{
+			{
+				User: "test@example.com",
+				Role: "admin",
+				Resource: "kubernetes.test-cluster",
+			},
+			{
+				Group: "Everyone",
+				Role: "admin",
+				Resource: "kubernetes.test-cluster",
+			},
+			{
+				Machine: "T-1000",
+				Role: "admin",
+				Resource: "kubernetes.test-cluster",
+			},
+		},
+	}
+
+	err := loadConfig(db, config)
+	require.NoError(t, err)
+
+	var providers, grants, users, groups, machines int64
+
+	err = db.Model(&models.Provider{}).Count(&providers).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(1), providers)
+
+	err = db.Model(&models.Grant{}).Count(&grants).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(3), grants)
+
+	err = db.Model(&models.User{}).Count(&users).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(1), users)
+
+	err = db.Model(&models.Group{}).Count(&groups).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(1), groups)
+
+	err = db.Model(&models.Machine{}).Count(&machines).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(1), machines)
+
+	providersOnly := Config{
+		Providers: []Provider{
+			{
+				Name: "okta",
+				URL: "demo.okta.com",
+				ClientID: "client-id",
+				ClientSecret: "client-secret",
+			},
+		},
+	}
+
+	err = loadConfig(db, providersOnly)
+	require.NoError(t, err)
+
+	err = db.Model(&models.Provider{}).Count(&providers).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(1), providers)
+
+	err = db.Model(&models.Grant{}).Count(&grants).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(0), grants)
+
+	err = db.Model(&models.User{}).Count(&users).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(1), users)
+
+	err = db.Model(&models.Group{}).Count(&groups).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(1), groups)
+
+	err = db.Model(&models.Machine{}).Count(&machines).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(1), machines)
+}
+
+func TestLoadConfigUpdate(t *testing.T) {
+	db := setupDB(t)
+
+	config := Config{
+		Providers: []Provider{
+			{
+				Name: "okta",
+				URL: "demo.okta.com",
+				ClientID: "client-id",
+				ClientSecret: "client-secret",
+			},
+		},
+		Grants: []Grant{
+			{
+				User: "test@example.com",
+				Role: "admin",
+				Resource: "kubernetes.test-cluster",
+			},
+			{
+				Group: "Everyone",
+				Role: "admin",
+				Resource: "kubernetes.test-cluster",
+			},
+			{
+				Machine: "T-1000",
+				Role: "admin",
+				Resource: "kubernetes.test-cluster",
+			},
+		},
+	}
+
+	err := loadConfig(db, config)
+	require.NoError(t, err)
+
+	var providers, users, groups, machines int64
+
+	err = db.Model(&models.Provider{}).Count(&providers).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(1), providers)
+
+	grants := make([]models.Grant, 0)
+	err = db.Find(&grants).Error
+	require.NoError(t, err)
+	require.Len(t, grants, 3)
+	require.Equal(t, "admin", grants[0].Privilege)
+	require.Equal(t, "admin", grants[1].Privilege)
+	require.Equal(t, "admin", grants[2].Privilege)
+
+	err = db.Model(&models.User{}).Count(&users).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(1), users)
+
+	err = db.Model(&models.Group{}).Count(&groups).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(1), groups)
+
+	err = db.Model(&models.Machine{}).Count(&machines).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(1), machines)
+
+	updatedConfig := Config{
+		Providers: []Provider{
+			{
+				Name: "atko",
+				URL: "demo.atko.com",
+				ClientID: "client-id-2",
+				ClientSecret: "client-secret-2",
+			},
+		},
+		Grants: []Grant{
+			{
+				User: "test@example.com",
+				Role: "view",
+				Resource: "kubernetes.test-cluster",
+			},
+			{
+				Group: "Everyone",
+				Role: "view",
+				Resource: "kubernetes.test-cluster",
+			},
+			{
+				Machine: "T-1000",
+				Role: "view",
+				Resource: "kubernetes.test-cluster",
+			},
+		},
+	}
+
+	err = loadConfig(db, updatedConfig)
+	require.NoError(t, err)
+
+	err = db.Model(&models.Provider{}).Count(&providers).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(1), providers)
+
+	var provider models.Provider
+	err = db.Where("name = ?", "atko").First(&provider).Error
+	require.NoError(t, err)
+	require.Equal(t, "atko", provider.Name)
+	require.Equal(t, "demo.atko.com", provider.URL)
+	require.Equal(t, "client-id-2", provider.ClientID)
+	require.Equal(t, models.EncryptedAtRest("client-secret-2"), provider.ClientSecret)
+
+	grants = make([]models.Grant, 0)
+	err = db.Find(&grants).Error
+	require.NoError(t, err)
+	require.Len(t, grants, 3)
+	require.Equal(t, "view", grants[0].Privilege)
+	require.Equal(t, "view", grants[1].Privilege)
+	require.Equal(t, "view", grants[2].Privilege)
+
+	err = db.Model(&models.User{}).Count(&users).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(1), users)
+
+	var user models.User
+	err = db.Where("email = ?", "test@example.com").First(&user).Error
+	require.NoError(t, err)
+	require.Equal(t, provider.ID, user.ProviderID)
+
+	err = db.Model(&models.Group{}).Count(&groups).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(1), groups)
+
+	var group models.Group
+	err = db.Where("name = ?", "Everyone").First(&group).Error
+	require.NoError(t, err)
+	require.Equal(t, provider.ID, group.ProviderID)
+
+	err = db.Model(&models.Machine{}).Count(&machines).Error
+	require.NoError(t, err)
+	require.Equal(t, int64(1), machines)
+
+	var machine models.Machine
+	err = db.Where("name = ?", "T-1000").First(&machine).Error
+	require.NoError(t, err)
 }

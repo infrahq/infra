@@ -48,7 +48,7 @@ func CreateGroup(c *gin.Context, group *models.Group) error {
 }
 
 func GetGroup(c *gin.Context, id uid.ID) (*models.Group, error) {
-	db, err := hasAuthorization(c, id, isUserInGroup, models.InfraAdminRole)
+	db, err := hasAuthorization(c, id, isUserInGroup, models.InfraAdminRole, models.InfraConnectorRole)
 	if err != nil {
 		return nil, err
 	}

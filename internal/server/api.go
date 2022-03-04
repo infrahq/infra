@@ -44,29 +44,29 @@ func sendAPIError(c *gin.Context, err error) {
 	case errors.Is(err, internal.ErrUnauthorized):
 		code = http.StatusUnauthorized
 		message = "unauthorized"
-		logging.Logger(c).Debugw(err.Error(), "statusCode", code)
+		logging.WrappedSugarLogger(c).Debugw(err.Error(), "statusCode", code)
 	case errors.Is(err, internal.ErrForbidden):
 		code = http.StatusForbidden
 		message = "forbidden"
-		logging.Logger(c).Debugw(err.Error(), "statusCode", code)
+		logging.WrappedSugarLogger(c).Debugw(err.Error(), "statusCode", code)
 	case errors.Is(err, internal.ErrDuplicate):
 		code = http.StatusConflict
 		message = err.Error()
-		logging.Logger(c).Debugw(err.Error(), "statusCode", code)
+		logging.WrappedSugarLogger(c).Debugw(err.Error(), "statusCode", code)
 	case errors.Is(err, internal.ErrNotFound):
 		code = http.StatusNotFound
 		message = err.Error()
-		logging.Logger(c).Debugw(err.Error(), "statusCode", code)
+		logging.WrappedSugarLogger(c).Debugw(err.Error(), "statusCode", code)
 	case errors.Is(err, internal.ErrBadRequest):
 		code = http.StatusBadRequest
 		message = err.Error()
-		logging.Logger(c).Debugw(err.Error(), "statusCode", code)
+		logging.WrappedSugarLogger(c).Debugw(err.Error(), "statusCode", code)
 	case errors.Is(err, (*validator.InvalidValidationError)(nil)):
 		code = http.StatusBadRequest
 		message = err.Error()
-		logging.Logger(c).Debugw(err.Error(), "statusCode", code)
+		logging.WrappedSugarLogger(c).Debugw(err.Error(), "statusCode", code)
 	default:
-		logging.Logger(c).Errorw(err.Error(), "statusCode", code)
+		logging.WrappedSugarLogger(c).Errorw(err.Error(), "statusCode", code)
 	}
 
 	c.JSON(code, &api.Error{
@@ -568,34 +568,56 @@ func (a *API) Setup(c *gin.Context, _ *api.EmptyRequest) (*api.CreateAccessKeyRe
 }
 
 func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, error) {
-	provider, err := access.GetProvider(c, r.ProviderID)
-	if err != nil {
-		return nil, err
-	}
-
-	oidc, err := a.providerClient(c, provider, r.RedirectURL)
-	if err != nil {
-		return nil, err
-	}
-
-	user, key, err := access.ExchangeAuthCodeForAccessKey(c, r.Code, provider, oidc, a.server.options.SessionDuration, r.RedirectURL)
-	if err != nil {
-		return nil, err
-	}
-
-	setAuthCookie(c, key, a.server.options.SessionDuration)
-
-	if a.t != nil {
-		if err := a.t.Enqueue(analytics.Track{Event: "infra.login", UserId: user.ID.String()}); err != nil {
-			logging.S.Debug(err)
+	switch {
+	case r.OIDC != nil:
+		provider, err := access.GetProvider(c, r.OIDC.ProviderID)
+		if err != nil {
+			return nil, err
 		}
+
+		oidc, err := a.providerClient(c, provider, r.OIDC.RedirectURL)
+		if err != nil {
+			return nil, err
+		}
+
+		user, key, err := access.ExchangeAuthCodeForAccessKey(c, r.OIDC.Code, provider, oidc, a.server.options.SessionDuration, r.OIDC.RedirectURL)
+		if err != nil {
+			return nil, err
+		}
+
+		setAuthCookie(c, key, a.server.options.SessionDuration)
+
+		if a.t != nil {
+			if err := a.t.Enqueue(analytics.Track{Event: "infra.login.oidc", UserId: user.PolymorphicIdentifier().String()}); err != nil {
+				logging.S.Debug(err)
+			}
+		}
+
+		return &api.LoginResponse{PolymorphicID: user.PolymorphicIdentifier(), Name: user.Email, AccessKey: key}, nil
+	case r.AccessKey != "":
+		expires := time.Now().Add(a.server.options.SessionDuration)
+
+		key, machine, err := access.ExchangeAccessKey(c, r.AccessKey, expires)
+		if err != nil {
+			return nil, err
+		}
+
+		setAuthCookie(c, key, a.server.options.SessionDuration)
+
+		if a.t != nil {
+			if err := a.t.Enqueue(analytics.Track{Event: "infra.login.exchange", UserId: machine.PolymorphicIdentifier().String()}); err != nil {
+				logging.S.Debug(err)
+			}
+		}
+
+		return &api.LoginResponse{PolymorphicID: machine.PolymorphicIdentifier(), Name: machine.Name, AccessKey: key}, nil
 	}
 
-	return &api.LoginResponse{ID: user.ID, Name: user.Email, AccessKey: key}, nil
+	return nil, api.ErrBadRequest
 }
 
 func (a *API) Logout(c *gin.Context, r *api.EmptyRequest) (*api.EmptyResponse, error) {
-	err := access.DeleteAllUserAccessKeys(c)
+	err := access.DeleteRequestAccessKey(c)
 	if err != nil {
 		return nil, err
 	}

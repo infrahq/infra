@@ -56,9 +56,11 @@ func relogin() error {
 	}
 
 	loginReq := &api.LoginRequest{
-		ProviderID:  provider.ID,
-		RedirectURL: cliLoginRedirectURL,
-		Code:        code,
+		OIDC: &api.LoginRequestOIDC{
+			ProviderID:  provider.ID,
+			RedirectURL: cliLoginRedirectURL,
+			Code:        code,
+		},
 	}
 
 	loginRes, err := client.Login(loginReq)
@@ -66,7 +68,7 @@ func relogin() error {
 		return err
 	}
 
-	return finishLogin(currentConfig.Host, uid.NewUserPolymorphicID(loginRes.ID), loginRes.Name, loginRes.AccessKey, currentConfig.SkipTLSVerify, 0)
+	return finishLogin(currentConfig.Host, loginRes.PolymorphicID, loginRes.Name, loginRes.AccessKey, currentConfig.SkipTLSVerify, 0)
 }
 
 func isInteractiveMode() bool {
@@ -174,7 +176,9 @@ func login(host string) error {
 		}
 	}
 
-	// access key
+	var providerID uid.ID
+	var loginReq api.LoginRequest
+
 	if option == len(options)-1 {
 		if accessKey == "" {
 			err = survey.AskOne(&survey.Password{Message: "Access Key:"}, &accessKey, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
@@ -183,37 +187,31 @@ func login(host string) error {
 			}
 		}
 
-		client.AccessKey = accessKey
+		loginReq.AccessKey = accessKey
+	} else {
+		provider := providers[option]
+		providerID = provider.ID
 
-		info, err := client.Introspect()
+		fmt.Fprintf(os.Stderr, "  Logging in with %s...\n", termenv.String(provider.Name).Bold().String())
+
+		code, err := oidcflow(provider.URL, provider.ClientID)
 		if err != nil {
 			return err
 		}
 
-		return finishLogin(host, uid.NewMachinePolymorphicID(info.ID), info.Name, accessKey, skipTLSVerify, 0)
+		loginReq.OIDC = &api.LoginRequestOIDC{
+			ProviderID:  provider.ID,
+			RedirectURL: cliLoginRedirectURL,
+			Code:        code,
+		}
 	}
 
-	provider := providers[option]
-
-	fmt.Fprintf(os.Stderr, "  Logging in with %s...\n", termenv.String(provider.Name).Bold().String())
-
-	code, err := oidcflow(provider.URL, provider.ClientID)
+	loginRes, err := client.Login(&loginReq)
 	if err != nil {
 		return err
 	}
 
-	loginReq := &api.LoginRequest{
-		ProviderID:  provider.ID,
-		RedirectURL: cliLoginRedirectURL,
-		Code:        code,
-	}
-
-	loginRes, err := client.Login(loginReq)
-	if err != nil {
-		return err
-	}
-
-	return finishLogin(host, uid.NewUserPolymorphicID(loginRes.ID), loginRes.Name, loginRes.AccessKey, skipTLSVerify, provider.ID)
+	return finishLogin(host, loginRes.PolymorphicID, loginRes.Name, loginRes.AccessKey, skipTLSVerify, providerID)
 }
 
 func finishLogin(host string, polymorphicID uid.PolymorphicID, name string, accessKey string, skipTLSVerify bool, providerID uid.ID) error {

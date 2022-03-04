@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -21,10 +20,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"gopkg.in/yaml.v2"
 
 	"github.com/infrahq/infra/internal/api"
-	"github.com/infrahq/infra/internal/config"
 	"github.com/infrahq/infra/internal/engine"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server"
@@ -528,47 +525,6 @@ func newInfoCmd() *cobra.Command {
 	}
 }
 
-func newImportCmd() *cobra.Command {
-	type importOptions struct {
-		Replace bool
-	}
-
-	cmd := &cobra.Command{
-		Use:               "import FILE",
-		Short:             "Import an Infra server configuration",
-		Args:              cobra.ExactArgs(1),
-		PersistentPreRunE: mustBeLoggedIn,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			var options importOptions
-			if err := parseOptions(cmd, &options, "INFRA_IMPORT"); err != nil {
-				return err
-			}
-
-			client, err := defaultAPIClient()
-			if err != nil {
-				return err
-			}
-
-			contents, err := ioutil.ReadFile(args[0])
-			if err != nil {
-				return fmt.Errorf("reading configuration file: %w", err)
-			}
-
-			var c config.Config
-			err = yaml.Unmarshal(contents, &c)
-			if err != nil {
-				return err
-			}
-
-			return config.Import(client, c, options.Replace)
-		},
-	}
-
-	cmd.Flags().Bool("replace", false, "replace any existing configuration")
-
-	return cmd
-}
-
 func newMachinesCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "machines",
@@ -630,7 +586,6 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.AddCommand(newProvidersCmd())
 	rootCmd.AddCommand(newMachinesCmd())
 	rootCmd.AddCommand(newTokensCmd())
-	rootCmd.AddCommand(newImportCmd())
 	rootCmd.AddCommand(newInfoCmd())
 	rootCmd.AddCommand(newServerCmd())
 	rootCmd.AddCommand(newEngineCmd())

@@ -35,7 +35,7 @@ func checkError(status int, body []byte) error {
 	case http.StatusNotFound:
 		return ErrNotFound
 	case http.StatusBadRequest:
-		return fmt.Errorf("%w: %s", ErrForbidden, apiError.Message)
+		return fmt.Errorf("%w: %s", ErrBadRequest, apiError.Message)
 	case http.StatusInternalServerError:
 		return ErrInternal
 	}

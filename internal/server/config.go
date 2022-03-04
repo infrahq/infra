@@ -3,25 +3,45 @@ package server
 import (
 	"crypto/sha256"
 	"crypto/subtle"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"math"
-	"net/http"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"gopkg.in/yaml.v2"
+	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/api"
-	"github.com/infrahq/infra/internal/config"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/secrets"
+	"github.com/infrahq/infra/uid"
 )
+
+type Provider struct {
+	Name         string `mapstructure:"name" validate:"required"`
+	URL          string `mapstructure:"url" validate:"required"`
+	ClientID     string `mapstructure:"clientID" validate:"required"`
+	ClientSecret string `mapstructure:"clientSecret" validate:"required"`
+}
+
+type Grant struct {
+	User     string `mapstructure:"user" validate:"excluded_with=Group,excluded_with=Machine"`
+	Group    string `mapstructure:"group" validate:"excluded_with=User,excluded_with=Machine"`
+	Machine  string `mapstructure:"machine" validate:"excluded_with=User,excluded_with=Group"`
+	Provider string `mapstructure:"provider"`
+	Role     string `mapstructure:"role" validate:"required"`
+	Resource string `mapstructure:"resource" validate:"required"`
+}
+
+type Config struct {
+	Providers []Provider `mapstructure:"providers" validate:"dive"`
+	Grants    []Grant    `mapstructure:"grants" validate:"dive"`
+}
 
 type KeyProvider struct {
 	Kind   string      `yaml:"kind" validate:"required"`
@@ -32,33 +52,6 @@ var _ yaml.Unmarshaler = &KeyProvider{}
 
 type nativeSecretProviderConfig struct {
 	SecretStorageName string `yaml:"secretProvider"`
-}
-
-func (s *Server) importConfig() error {
-	if s.options.Import == nil {
-		logging.L.Debug("Skipping config import, import not specified")
-		return nil
-	}
-
-	adminAccessKey, err := secrets.GetSecret(s.options.AdminAccessKey, s.secrets)
-	if err != nil {
-		return fmt.Errorf("importing config: %w", err)
-	}
-
-	client := &api.Client{
-		Url:       "https://localhost:443",
-		AccessKey: adminAccessKey,
-		Http: http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					//nolint:gosec // purposely set for localhost
-					InsecureSkipVerify: true,
-				},
-			},
-		},
-	}
-
-	return config.Import(client, *s.options.Import, true)
 }
 
 func (s *Server) importSecretKeys() error {
@@ -568,4 +561,226 @@ func (s *Server) importAccessKeys() error {
 	}
 
 	return nil
+}
+
+func loadConfig(db *gorm.DB, config Config) error {
+	if err := validator.New().Struct(config); err != nil {
+		return err
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := loadProviders(tx, config.Providers); err != nil {
+			return err
+		}
+
+		if err := loadGrants(tx, config.Grants); err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func loadProviders(db *gorm.DB, providers []Provider) error {
+	toKeep := make([]uid.ID, 0)
+
+	for _, p := range providers {
+		provider, err := loadProvider(db, p)
+		if err != nil {
+			return err
+		}
+
+		toKeep = append(toKeep, provider.ID)
+	}
+
+	// remove _all_ providers not defined in config
+	err := data.DeleteProviders(db, data.ByNotIDs(toKeep))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func loadProvider(db *gorm.DB, input Provider) (*models.Provider, error) {
+	provider, err := data.GetProvider(db, data.ByName(input.Name))
+	if err != nil {
+		if !errors.Is(err, internal.ErrNotFound) {
+			return nil, err
+		}
+
+		provider := &models.Provider{
+			Name:         input.Name,
+			URL:          input.URL,
+			ClientID:     input.ClientID,
+			ClientSecret: models.EncryptedAtRest(input.ClientSecret),
+		}
+
+		if err := data.CreateProvider(db, provider); err != nil {
+			return nil, err
+		}
+
+		return provider, nil
+	}
+
+	// provider already exists, update it
+	provider.URL = input.URL
+	provider.ClientID = input.ClientID
+	provider.ClientSecret = models.EncryptedAtRest(input.ClientSecret)
+
+	if err := data.SaveProvider(db, provider); err != nil {
+		return nil, err
+	}
+
+	return provider, nil
+}
+
+func loadGrants(db *gorm.DB, grants []Grant) error {
+	toKeep := make([]uid.ID, 0)
+
+	providers, err := data.ListProviders(db)
+	if err != nil {
+		return err
+	}
+
+	providersMap := make(map[string]uid.ID)
+	for _, provider := range providers {
+		providersMap[provider.Name] = provider.ID
+	}
+
+	for _, g := range grants {
+		grant, err := loadGrant(db, g, providersMap)
+		if err != nil {
+			return err
+		}
+
+		toKeep = append(toKeep, grant.ID)
+	}
+
+	// remove _all_ grants not defined in config
+	err = data.DeleteGrants(db, data.ByNotIDs(toKeep), data.NotCreatedBy(models.CreatedBySystem))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func loadGrant(db *gorm.DB, input Grant, providers map[string]uid.ID) (*models.Grant, error) {
+	var id uid.PolymorphicID
+	var providerID uid.ID
+
+	if input.User != "" || input.Group != "" {
+		// user/group grants require additional input validation
+		if len(providers) < 1 {
+			return nil, errors.New("")
+		}
+
+		if len(providers) > 1 && input.Provider == "" {
+			return nil, errors.New("")
+		}
+
+		provider := input.Provider
+		if provider == "" {
+			for key := range providers {
+				provider = key
+			}
+		}
+
+		var ok bool
+		providerID, ok = providers[provider]
+		if !ok {
+			return nil, fmt.Errorf("unknown provider: %s", provider)
+		}
+	}
+
+	switch {
+	case input.User != "":
+		user, err := data.GetUser(db, data.ByEmail(input.User))
+		if err != nil {
+			if !errors.Is(err, internal.ErrNotFound) {
+				return nil, err
+			}
+
+			logging.S.Debugf("creating placeholder user %q", input.User)
+
+			// user does not exist yet, create a placeholder
+			user = &models.User{
+				Email:      input.User,
+				ProviderID: providerID,
+			}
+
+			if err := data.CreateUser(db, user); err != nil {
+				return nil, err
+			}
+		}
+
+		id = uid.NewUserPolymorphicID(user.ID)
+
+	case input.Group != "":
+		group, err := data.GetGroup(db, data.ByName(input.Group))
+		if err != nil {
+			if !errors.Is(err, internal.ErrNotFound) {
+				return nil, err
+			}
+
+			logging.S.Debugf("creating placeholder group %q", input.Group)
+
+			// group does not exist yet, create a placeholder
+			group = &models.Group{
+				Name:       input.Group,
+				ProviderID: providerID,
+			}
+
+			if err := data.CreateGroup(db, group); err != nil {
+				return nil, err
+			}
+		}
+
+		id = uid.NewGroupPolymorphicID(group.ID)
+
+	case input.Machine != "":
+		machine, err := data.GetMachine(db, data.ByName(input.Machine))
+		if err != nil {
+			if !errors.Is(err, internal.ErrNotFound) {
+				return nil, err
+			}
+
+			logging.S.Debugf("creating machine %q", input.Machine)
+
+			// machine does not exist, create it
+			machine = &models.Machine{
+				Name: input.Machine,
+			}
+
+			if err := data.CreateMachine(db, machine); err != nil {
+				return nil, err
+			}
+		}
+
+		id = uid.NewMachinePolymorphicID(machine.ID)
+
+	default:
+		return nil, errors.New("invalid grant: missing identity")
+	}
+
+	grant, err := data.GetGrant(db, data.ByIdentity(id), data.ByResource(input.Resource), data.ByPrivilege(input.Role))
+	if err != nil {
+		if !errors.Is(err, internal.ErrNotFound) {
+			return nil, err
+		}
+
+		grant = &models.Grant{
+			Identity:  id,
+			Resource:  input.Resource,
+			Privilege: input.Role,
+			CreatedBy: models.CreatedByConfig,
+		}
+
+		if err := data.CreateGrant(db, grant); err != nil {
+			return nil, err
+		}
+	}
+
+	return grant, nil
 }
