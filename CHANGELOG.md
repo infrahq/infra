@@ -1,5 +1,13 @@
 # Changelog
 
+### [0.5.10](https://github.com/infrahq/infra/compare/v0.5.9...v0.5.10) (2022-03-04)
+
+
+### Bug Fixes
+
+* **cli:** logged out error for most commands ([#1130](https://github.com/infrahq/infra/issues/1130)) ([93392aa](https://github.com/infrahq/infra/commit/93392aadb6169265f0bfa7c6216189c7b12750ac))
+* db locked message in sqlite ([#1147](https://github.com/infrahq/infra/issues/1147)) ([838e842](https://github.com/infrahq/infra/commit/838e842a2b2d59c88bf3ee6bd86801defd085244))
+
 ### [0.5.9](https://github.com/infrahq/infra/compare/v0.5.8...v0.5.9) (2022-03-03)
 
 
