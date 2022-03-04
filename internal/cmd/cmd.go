@@ -179,7 +179,7 @@ func newLoginCmd() *cobra.Command {
 
 	return &cobra.Command{
 		Use:     "login [SERVER]",
-		Short:   "Login to Infra server",
+		Short:   "Login to Infra",
 		Example: "$ infra login",
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -218,7 +218,7 @@ func newListCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:               "list",
 		Aliases:           []string{"ls"},
-		Short:             "List destinations and your access",
+		Short:             "List accessible destinations",
 		PersistentPreRunE: mustBeLoggedIn,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return list()
@@ -229,7 +229,7 @@ func newListCmd() *cobra.Command {
 func newUseCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "use DESTINATION",
-		Short: "Connect to a destination",
+		Short: "Access a destination",
 		Example: `
 # Connect to a Kubernetes cluster
 $ infra use kubernetes.development
@@ -272,10 +272,10 @@ $ infra use kubernetes.development.kube-system
 	}
 }
 
-func newAccessCmd() *cobra.Command {
+func newGrantsCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:               "access",
-		Short:             "Manage access",
+		Use:               "grants",
+		Short:             "Manage access to destinations",
 		PersistentPreRunE: mustBeLoggedIn,
 	}
 
@@ -289,7 +289,7 @@ func newAccessCmd() *cobra.Command {
 func newKeysCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "keys",
-		Short:             "Manage access keys used by machines to authenticate with Infra and call the API",
+		Short:             "Manage system access keys for machine identities used by machines to authenticate with Infra and call the API",
 		PersistentPreRunE: mustBeLoggedIn,
 	}
 
@@ -303,7 +303,8 @@ func newKeysCmd() *cobra.Command {
 func newDestinationsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "destinations",
-		Short:             "Connect & manage destinations",
+		Aliases:           []string{"dst", "dest", "destination"},
+		Short:             "Manage destinations",
 		PersistentPreRunE: mustBeLoggedIn,
 	}
 
@@ -447,7 +448,7 @@ func newTokensCmd() *cobra.Command {
 func newProvidersCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "providers",
-		Short:             "Add & manage identity providers",
+		Short:             "Manage identity providers",
 		PersistentPreRunE: mustBeLoggedIn,
 	}
 
@@ -525,16 +526,17 @@ func newInfoCmd() *cobra.Command {
 	}
 }
 
-func newMachinesCmd() *cobra.Command {
+func newIdentitiesCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:               "machines",
-		Short:             "Create & manage machine identities",
+		Use:               "identities",
+		Aliases:           []string{"id", "identity"},
+		Short:             "Manage identities (users & machines)",
 		PersistentPreRunE: mustBeLoggedIn,
 	}
 
-	cmd.AddCommand(newMachinesCreateCmd())
-	cmd.AddCommand(newMachinesListCmd())
-	cmd.AddCommand(newMachinesDeleteCmd())
+	cmd.AddCommand(newIdentitiesCreateCmd())
+	cmd.AddCommand(newIdentitiesListCmd())
+	cmd.AddCommand(newIdentitiesDeleteCmd())
 
 	return cmd
 }
@@ -580,11 +582,11 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.AddCommand(newLogoutCmd())
 	rootCmd.AddCommand(newListCmd())
 	rootCmd.AddCommand(newUseCmd())
-	rootCmd.AddCommand(newAccessCmd())
+	rootCmd.AddCommand(newGrantsCmd())
 	rootCmd.AddCommand(newKeysCmd())
 	rootCmd.AddCommand(newDestinationsCmd())
 	rootCmd.AddCommand(newProvidersCmd())
-	rootCmd.AddCommand(newMachinesCmd())
+	rootCmd.AddCommand(newIdentitiesCmd())
 	rootCmd.AddCommand(newTokensCmd())
 	rootCmd.AddCommand(newInfoCmd())
 	rootCmd.AddCommand(newServerCmd())

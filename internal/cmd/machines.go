@@ -12,7 +12,7 @@ type machineOptions struct {
 	Description string `mapstructure:"description"`
 }
 
-func newMachinesCreateCmd() *cobra.Command {
+func newIdentitiesCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create NAME",
 		Short: "Create a machine identity, e.g. a service that needs to access infrastructure",
@@ -34,7 +34,7 @@ func newMachinesCreateCmd() *cobra.Command {
 	return cmd
 }
 
-func newMachinesListCmd() *cobra.Command {
+func newIdentitiesListCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
@@ -70,7 +70,7 @@ func newMachinesListCmd() *cobra.Command {
 	}
 }
 
-func newMachinesDeleteCmd() *cobra.Command {
+func newIdentitiesDeleteCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "remove MACHINE",
 		Short: "Remove a machine identity",
