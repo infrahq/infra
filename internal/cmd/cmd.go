@@ -31,14 +31,15 @@ import (
 )
 
 func mustBeLoggedIn(cmd *cobra.Command, args []string) error {
-	var errNotLoggedIn = fmt.Errorf("Not logged in. Run 'infra login' before running this command.")
-
 	config, err := currentHostConfig()
 	if err != nil {
 		return err
-	} else if !config.isLoggedIn() {
-		return errNotLoggedIn
 	}
+
+	if !config.isLoggedIn() {
+		return fmt.Errorf("Not logged in. Run 'infra login' before running this command.")
+	}
+
 	return nil
 }
 
