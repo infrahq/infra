@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/infrahq/infra/internal/cmd"
+	"github.com/infrahq/infra/cmd"
 )
 
 func main() {
