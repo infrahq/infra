@@ -289,7 +289,7 @@ func newGrantsCmd() *cobra.Command {
 func newKeysCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "keys",
-		Short:             "Manage system access keys for machine identities used by machines to authenticate with Infra and call the API",
+		Short:             "Manage system access keys for machine identities to authenticate with Infra and call the API",
 		PersistentPreRunE: mustBeLoggedIn,
 	}
 
