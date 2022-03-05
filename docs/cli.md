@@ -22,7 +22,6 @@
 * [infra machines list](#infra-machines-list)
 * [infra machines remove](#infra-machines-remove)
 * [infra tokens create](#infra-tokens-create)
-* [infra import](#infra-import)
 * [infra info](#infra-info)
 * [infra server](#infra-server)
 * [infra engine](#infra-engine)
@@ -53,6 +52,7 @@ $ infra login
 
 ```
       --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
 ## `infra logout`
@@ -80,6 +80,7 @@ $ infra logout
 
 ```
       --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
 ## `infra list`
@@ -100,6 +101,7 @@ infra list [flags]
 
 ```
       --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
 ## `infra use`
@@ -132,6 +134,7 @@ $ infra use kubernetes.development.kube-system
 
 ```
       --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
 ## `infra access list`
@@ -152,6 +155,7 @@ infra access list [DESTINATION] [flags]
 
 ```
       --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
 ## `infra access grant`
@@ -192,6 +196,7 @@ $ infra access grant -u admin@acme.com -r admin infra
 
 ```
       --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
 ## `infra access revoke`
@@ -217,6 +222,7 @@ infra access revoke DESTINATION [flags]
 
 ```
       --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
 ## `infra keys list`
@@ -238,6 +244,7 @@ infra keys list [flags]
 
 ```
       --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
 ## `infra keys create`
@@ -269,6 +276,7 @@ infra keys create main wall-e 12h --extension-deadline=1h
 
 ```
       --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
 ## `infra keys delete`
@@ -289,6 +297,7 @@ infra keys delete ACCESS_KEY_NAME [flags]
 
 ```
       --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
 ## `infra destinations list`
@@ -309,6 +318,7 @@ infra destinations list [flags]
 
 ```
       --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
 ## `infra destinations add`
@@ -329,6 +339,7 @@ infra destinations add TYPE NAME [flags]
 
 ```
       --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
 ## `infra destinations remove`
@@ -349,6 +360,7 @@ infra destinations remove DESTINATION [flags]
 
 ```
       --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
 ## `infra providers list`
@@ -369,6 +381,7 @@ infra providers list [flags]
 
 ```
       --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
 ## `infra providers add`
@@ -400,6 +413,7 @@ infra providers add NAME URL CLIENT_ID CLIENT_SECRET [flags]
 
 ```
       --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
 ## `infra providers remove`
@@ -420,6 +434,7 @@ infra providers remove PROVIDER [flags]
 
 ```
       --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
 ## `infra machines create`
@@ -435,13 +450,13 @@ infra machines create NAME [flags]
 ```
   -d, --description string   Description of the machine identity
   -h, --help                 help for create
-  -p, --permissions string   Permissions of the machine identity
 ```
 
 ### Options inherited from parent commands
 
 ```
       --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
 ## `infra machines list`
@@ -462,6 +477,7 @@ infra machines list [flags]
 
 ```
       --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
 ## `infra machines remove`
@@ -482,6 +498,7 @@ infra machines remove MACHINE [flags]
 
 ```
       --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
 ## `infra tokens create`
@@ -502,27 +519,7 @@ infra tokens create [flags]
 
 ```
       --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
-```
-
-## `infra import`
-
-Import an Infra server configuration
-
-```
-infra import FILE [flags]
-```
-
-### Options
-
-```
-  -h, --help      help for import
-      --replace   replace any existing configuration
-```
-
-### Options inherited from parent commands
-
-```
-      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
 ## `infra info`
@@ -543,6 +540,7 @@ infra info [flags]
 
 ```
       --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
 ## `infra server`
@@ -569,6 +567,7 @@ infra server [flags]
       --db-port int                         Database port
       --db-username string                  Database username
       --enable-crash-reporting              Enable crash reporting (default true)
+      --enable-setup                        Enable one-time setup (default true)
       --enable-telemetry                    Enable telemetry (default true)
       --enable-ui                           Enable Infra server UI
   -h, --help                                help for server
@@ -581,6 +580,7 @@ infra server [flags]
 
 ```
       --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
 ## `infra engine`
@@ -607,6 +607,7 @@ infra engine [flags]
 
 ```
       --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
 ## `infra version`
@@ -627,5 +628,6 @@ infra version [flags]
 
 ```
       --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
