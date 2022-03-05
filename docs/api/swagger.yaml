@@ -1,0 +1,804 @@
+basePath: /v1
+definitions:
+  api.CreateAccessKeyResponse:
+    properties:
+      accessKey:
+        type: string
+      created:
+        type: string
+      expires:
+        description: after this deadline the key is no longer valid
+        type: string
+      extensionDeadline:
+        description: the key must be used by this time to remain valid
+        type: string
+      id:
+        type: string
+      issuedFor:
+        type: string
+      name:
+        type: string
+    type: object
+  api.CreateDestinationRequest:
+    properties:
+      connection:
+        $ref: '#/definitions/api.DestinationConnection'
+      name:
+        type: string
+      uniqueID:
+        type: string
+    required:
+    - name
+    type: object
+  api.CreateGrantRequest:
+    properties:
+      identity:
+        example: u:42MobtmDmU
+        type: string
+      privilege:
+        example: admin
+        type: string
+      resource:
+        example: kubernetes.production
+        type: string
+    required:
+    - identity
+    - privilege
+    - resource
+    type: object
+  api.CreateGroupRequest:
+    properties:
+      name:
+        example: Engineering
+        type: string
+      providerID:
+        example: 3VGSwuC7zf
+        type: string
+    required:
+    - name
+    - providerID
+    type: object
+  api.CreateProviderRequest:
+    properties:
+      clientID:
+        example: 0oapn0qwiQPiMIyR35d6
+        type: string
+      clientSecret:
+        example: jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU
+        type: string
+      name:
+        example: okta
+        type: string
+      url:
+        example: infrahq.okta.com
+        type: string
+    required:
+    - name
+    - url
+    type: object
+  api.CreateUserRequest:
+    properties:
+      email:
+        example: example@infrahq.com
+        type: string
+      providerID:
+        example: 3VGSwuC7zf
+        type: string
+    required:
+    - email
+    - providerID
+    type: object
+  api.Destination:
+    properties:
+      connection:
+        $ref: '#/definitions/api.DestinationConnection'
+      created:
+        description: created time in seconds since 1970-01-01 00:00:00 UTC
+        example: 1646427487
+        type: integer
+      id:
+        example: 42FmGLCWzf
+        type: string
+      name:
+        example: kubernetes.production
+        type: string
+      uniqueID:
+        example: 94c2c570a20311180ec325fd56
+        type: string
+      updated:
+        description: updated time in seconds since 1970-01-01 00:00:00 UTC
+        example: 1646427981
+        type: integer
+    type: object
+  api.DestinationConnection:
+    properties:
+      ca:
+        example: |
+          -----BEGIN CERTIFICATE-----
+          MIIDNTCCAh2gAwIBAgIRALRetnpcTo9O3V2fAK3ix+c
+          -----END CERTIFICATE-----
+        type: string
+      url:
+        example: ad60eab86122a.us-west-2.elb.amazonaws.com
+        type: string
+    required:
+    - url
+    type: object
+  api.Grant:
+    properties:
+      created:
+        description: created time in seconds since 1970-01-01 00:00:00 UTC
+        example: 1646359105
+        type: integer
+      created_by:
+        description: id of user who created the grant
+        example: 42MobtmDmU
+        type: string
+      expires_at:
+        description: time this grant expires at in seconds since 1970-01-01 00:00:00
+          UTC
+        example: 1646365215
+        type: integer
+      id:
+        example: 42Fjr45Kqm
+        type: string
+      identity:
+        example: u:42MobtmDmU
+        type: string
+      privilege:
+        description: role or permission
+        example: admin
+        type: string
+      resource:
+        description: destination resource
+        example: kubernetes.production
+        type: string
+      updated:
+        description: updated time in seconds since 1970-01-01 00:00:00 UTC
+        example: 1646359105
+        type: integer
+    type: object
+  api.Group:
+    properties:
+      created:
+        example: 1646427487
+        type: integer
+      id:
+        example: 42MobtmDmU
+        type: string
+      name:
+        example: Engineering
+        type: string
+      providerID:
+        example: 3VGSwuC7zf
+        type: string
+      updated:
+        example: 1646427981
+        type: integer
+    type: object
+  api.LoginRequest:
+    properties:
+      accessKey:
+        type: string
+      oidc:
+        $ref: '#/definitions/api.LoginRequestOIDC'
+    type: object
+  api.LoginRequestOIDC:
+    properties:
+      code:
+        type: string
+      providerID:
+        type: string
+      redirectURL:
+        type: string
+    required:
+    - code
+    - providerID
+    - redirectURL
+    type: object
+  api.LoginResponse:
+    properties:
+      accessKey:
+        type: string
+      name:
+        type: string
+      polymorphicId:
+        type: string
+    type: object
+  api.Provider:
+    properties:
+      clientID:
+        example: 0oapn0qwiQPiMIyR35d6
+        type: string
+      created:
+        example: 1646427487
+        type: integer
+      id:
+        example: 3VGSwuC7zf
+        type: string
+      name:
+        example: okta
+        type: string
+      updated:
+        example: 1646427981
+        type: integer
+      url:
+        example: infrahq.okta.com
+        type: string
+    required:
+    - clientID
+    - url
+    type: object
+  api.SetupRequiredResponse:
+    properties:
+      required:
+        type: boolean
+    type: object
+  api.UpdateDestinationRequest:
+    properties:
+      connection:
+        $ref: '#/definitions/api.DestinationConnection'
+      name:
+        type: string
+      uniqueID:
+        type: string
+    required:
+    - name
+    type: object
+  api.UpdateProviderRequest:
+    properties:
+      clientID:
+        example: 0oapn0qwiQPiMIyR35d6
+        type: string
+      clientSecret:
+        example: jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU
+        type: string
+      name:
+        example: okta
+        type: string
+      url:
+        example: infrahq.okta.com
+        type: string
+    type: object
+  api.User:
+    properties:
+      created:
+        example: 1646427487
+        type: integer
+      email:
+        example: example@infrahq.com
+        type: string
+      id:
+        example: 42MobtmDmU
+        type: string
+      lastSeenAt:
+        example: 1646427487
+        type: integer
+      providerID:
+        example: 3VGSwuC7zf
+        type: string
+      updated:
+        example: 1646427981
+        type: integer
+    type: object
+host: api.infrahq.com
+info:
+  contact: {}
+  title: Infra API
+  version: "1.0"
+paths:
+  /destinations:
+    get:
+      parameters:
+      - description: destination name to filter by
+        in: query
+        name: name
+        type: string
+      - description: unique destination id to filter by
+        in: query
+        name: unique_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.Destination'
+            type: array
+      security:
+      - AccessKey: []
+      summary: List all destinations
+      tags:
+      - Destinations
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Parameters
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.CreateDestinationRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            items:
+              $ref: '#/definitions/api.Destination'
+            type: array
+      security:
+      - AccessKey: []
+      summary: Create a destination
+      tags:
+      - Destinations
+  /destinations/{id}:
+    delete:
+      parameters:
+      - description: Unique ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ""
+      security:
+      - AccessKey: []
+      summary: Delete a destination
+      tags:
+      - Destinations
+    put:
+      parameters:
+      - description: Unique ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Parameters
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.UpdateDestinationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.Destination'
+      security:
+      - AccessKey: []
+      summary: Update a destination
+      tags:
+      - Destinations
+  /grants:
+    get:
+      parameters:
+      - description: resource to filter by
+        in: query
+        name: resource
+        type: string
+      - description: 'identity id to filter by, prefixed by u:, g: or m:'
+        in: query
+        name: identity
+        type: string
+      - description: privilege to filter by
+        in: query
+        name: privilege
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.Grant'
+            type: array
+      security:
+      - AccessKey: []
+      summary: List all grants
+      tags:
+      - Grants
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Parameters
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.CreateGrantRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            items:
+              $ref: '#/definitions/api.Grant'
+            type: array
+      security:
+      - AccessKey: []
+      summary: Create a grant
+      tags:
+      - Grants
+  /grants/{id}:
+    delete:
+      parameters:
+      - description: grant ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+      security:
+      - AccessKey: []
+      summary: Delete a grant
+      tags:
+      - Grants
+  /groups:
+    get:
+      parameters:
+      - description: group name to filter by
+        in: query
+        name: name
+        type: string
+      - description: provider id to filter by
+        in: query
+        name: provider_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.Group'
+            type: array
+      security:
+      - AccessKey: []
+      summary: List all groups
+      tags:
+      - Groups
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Parameters
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.CreateGroupRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.Group'
+      security:
+      - AccessKey: []
+      summary: Create a group
+      tags:
+      - Groups
+  /groups/{id}:
+    get:
+      parameters:
+      - description: Unique ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.Group'
+      security:
+      - AccessKey: []
+      summary: Retrieve a group
+      tags:
+      - Groups
+  /login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Parameters
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.LoginResponse'
+            type: array
+      summary: Log in to the Infra API
+      tags:
+      - Login & Setup
+  /logout:
+    post:
+      responses:
+        "200":
+          description: ""
+      summary: Logout of the Infra API
+      tags:
+      - Login & Setup
+  /providers:
+    get:
+      parameters:
+      - description: name to filter by
+        in: query
+        name: name
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.Provider'
+            type: array
+      summary: List all providers
+      tags:
+      - Providers
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Parameters
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.CreateProviderRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            items:
+              $ref: '#/definitions/api.Provider'
+            type: array
+      security:
+      - AccessKey: []
+      summary: Connect a provider
+      tags:
+      - Providers
+  /providers/{id}:
+    delete:
+      parameters:
+      - description: Unique ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ""
+      security:
+      - AccessKey: []
+      summary: Delete a provider
+      tags:
+      - Providers
+    get:
+      parameters:
+      - description: Unique ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.Provider'
+      summary: Retrieve a provider
+      tags:
+      - Providers
+    put:
+      parameters:
+      - description: Unique ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Parameters
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.UpdateProviderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.Provider'
+      security:
+      - AccessKey: []
+      summary: Update a provider
+      tags:
+      - Providers
+  /setup:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.SetupRequiredResponse'
+      summary: Verify if Infra needs setup
+      tags:
+      - Login & Setup
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.CreateAccessKeyResponse'
+            type: array
+      summary: Setup and initialize Infra
+      tags:
+      - Login & Setup
+  /users:
+    get:
+      parameters:
+      - description: email to filter by
+        in: query
+        name: email
+        type: string
+      - description: provider id to filter by
+        in: query
+        name: provider_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.User'
+            type: array
+      security:
+      - AccessKey: []
+      summary: List all users
+      tags:
+      - Users
+    post:
+      parameters:
+      - description: Parameters
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.User'
+      security:
+      - AccessKey: []
+      summary: Create a user
+      tags:
+      - Users
+  /users/{id}:
+    get:
+      parameters:
+      - description: Unique ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.User'
+      security:
+      - AccessKey: []
+      summary: Retrieve a user
+      tags:
+      - Users
+  /users/{id}/grants:
+    get:
+      parameters:
+      - description: Unique ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.Grant'
+      security:
+      - AccessKey: []
+      summary: List a user's grants
+      tags:
+      - Users
+  /users/{id}/groups:
+    get:
+      parameters:
+      - description: Unique ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.Group'
+            type: array
+      security:
+      - AccessKey: []
+      summary: List grants for a group
+      tags:
+      - Groups
+securityDefinitions:
+  AccessKey:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
+tags:
+- description: Manage Users
+  name: Users
+- description: Manage Groups
+  name: Groups
+- description: Manage Providers
+  name: Providers
+- description: Manage Grants
+  name: Grants
+- description: Manage Destinations
+  name: Destinations
