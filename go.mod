@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.2
-	github.com/aws/aws-sdk-go v1.43.7
+	github.com/aws/aws-sdk-go v1.43.12
 	github.com/cli/browser v1.1.0
 	github.com/docker/docker v20.10.12+incompatible
 	github.com/docker/go-connections v0.4.0
@@ -52,6 +52,7 @@ require (
 	github.com/spf13/afero v1.8.1
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.10.1
+	github.com/swaggo/swag v1.8.0
 )
 
 require (
@@ -248,7 +249,6 @@ require (
 	github.com/spf13/cast v1.4.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
-	github.com/swaggo/swag v1.8.0 // indirect
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
 	github.com/ugorji/go/codec v1.2.6 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
