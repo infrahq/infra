@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.2
-	github.com/aws/aws-sdk-go v1.43.7
+	github.com/aws/aws-sdk-go v1.43.12
 	github.com/cli/browser v1.1.0
 	github.com/docker/docker v20.10.12+incompatible
 	github.com/docker/go-connections v0.4.0
@@ -13,8 +13,7 @@ require (
 	github.com/gin-gonic/gin v1.7.7
 	github.com/go-playground/validator/v10 v10.10.0
 	github.com/google/uuid v1.3.0 // indirect
-	github.com/goreleaser/goreleaser v1.5.0
-	github.com/gorilla/handlers v1.5.1
+	github.com/goreleaser/goreleaser v1.6.1
 	github.com/goware/urlx v0.3.1
 	github.com/hashicorp/vault/api v1.4.1
 	github.com/jackc/pgconn v1.11.0
@@ -36,7 +35,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/postgres v1.3.1
 	gorm.io/driver/sqlite v1.3.1
-	gorm.io/gorm v1.23.1
+	gorm.io/gorm v1.23.2
 	k8s.io/api v0.23.4
 	k8s.io/apimachinery v0.23.4
 	k8s.io/client-go v0.23.4
@@ -53,6 +52,7 @@ require (
 	github.com/spf13/afero v1.8.1
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.10.1
+	github.com/swaggo/swag v1.8.0
 )
 
 require (
@@ -77,6 +77,7 @@ require (
 	github.com/DisgoOrg/disgohook v1.4.4 // indirect
 	github.com/DisgoOrg/log v1.1.2 // indirect
 	github.com/DisgoOrg/restclient v1.2.8 // indirect
+	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Masterminds/semver/v3 v3.1.1 // indirect
@@ -90,7 +91,7 @@ require (
 	github.com/apex/log v1.9.0 // indirect
 	github.com/armon/go-metrics v0.3.10 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
-	github.com/atc0005/go-teams-notify/v2 v2.6.0 // indirect
+	github.com/atc0005/go-teams-notify/v2 v2.6.1 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.11.2 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.11.0 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.6.4 // indirect
@@ -133,13 +134,17 @@ require (
 	github.com/envoyproxy/go-control-plane v0.10.1 // indirect
 	github.com/envoyproxy/protoc-gen-validate v0.6.2 // indirect
 	github.com/fatih/color v1.13.0 // indirect
-	github.com/felixge/httpsnoop v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
+	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-git/go-billy/v5 v5.3.1 // indirect
 	github.com/go-git/go-git/v5 v5.4.2 // indirect
 	github.com/go-logr/logr v1.2.0 // indirect
+	github.com/go-openapi/jsonpointer v0.19.5 // indirect
+	github.com/go-openapi/jsonreference v0.19.6 // indirect
+	github.com/go-openapi/spec v0.20.4 // indirect
+	github.com/go-openapi/swag v0.19.15 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect
 	github.com/go-playground/universal-translator v0.18.0 // indirect
 	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible // indirect
@@ -150,8 +155,8 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/google/go-cmp v0.5.6 // indirect
-	github.com/google/go-github/v42 v42.0.0 // indirect
+	github.com/google/go-cmp v0.5.7 // indirect
+	github.com/google/go-github/v43 v43.0.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/rpmpack v0.0.0-20211125064518-d0ed9b1b61b9 // indirect
@@ -160,7 +165,7 @@ require (
 	github.com/googleapis/gnostic v0.5.5 // indirect
 	github.com/goreleaser/chglog v0.1.2 // indirect
 	github.com/goreleaser/fileglob v1.3.0 // indirect
-	github.com/goreleaser/nfpm/v2 v2.13.0 // indirect
+	github.com/goreleaser/nfpm/v2 v2.14.0 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
@@ -195,14 +200,17 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.4 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kataras/tablewriter v0.0.0-20180708051242-e063d29b7c23 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/kevinburke/ssh_config v1.1.0 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
+	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/magiconair/properties v1.8.5 // indirect
+	github.com/mailru/easyjson v0.7.6 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-ieproxy v0.0.1 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
@@ -238,14 +246,15 @@ require (
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
-	github.com/slack-go/slack v0.10.1 // indirect
+	github.com/slack-go/slack v0.10.2 // indirect
 	github.com/spf13/cast v1.4.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
 	github.com/ugorji/go/codec v1.2.6 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
-	github.com/xanzy/go-gitlab v0.55.1 // indirect
+	github.com/urfave/cli/v2 v2.3.0 // indirect
+	github.com/xanzy/go-gitlab v0.56.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.1 // indirect
 	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
 	go.opencensus.io v0.23.0 // indirect
@@ -257,6 +266,7 @@ require (
 	golang.org/x/sys v0.0.0-20220204135822-1c1b9b1eba6a // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11 // indirect
+	golang.org/x/tools v0.1.7 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/api v0.63.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect

@@ -11,7 +11,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httputil"
 	"os"
@@ -20,11 +19,9 @@ import (
 
 	assetfs "github.com/elazarl/go-bindata-assetfs"
 	"github.com/getsentry/sentry-go"
-	sentryhttp "github.com/getsentry/sentry-go/http"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/handlers"
 	"github.com/goware/urlx"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/crypto/acme/autocert"
@@ -359,8 +356,6 @@ func (s *Server) runServer() error {
 		return err
 	}
 
-	sentryHandler := sentryhttp.New(sentryhttp.Options{})
-
 	metrics := gin.New()
 	metrics.GET("/metrics", func(c *gin.Context) {
 		promhttp.Handler().ServeHTTP(c.Writer, c.Request)
@@ -368,7 +363,7 @@ func (s *Server) runServer() error {
 
 	metricsServer := &http.Server{
 		Addr:     ":9090",
-		Handler:  handlers.CustomLoggingHandler(io.Discard, metrics, logging.ZapLogFormatter),
+		Handler:  metrics,
 		ErrorLog: logging.StandardErrorLog(),
 	}
 
@@ -376,7 +371,7 @@ func (s *Server) runServer() error {
 
 	plaintextServer := &http.Server{
 		Addr:     ":80",
-		Handler:  handlers.CustomLoggingHandler(io.Discard, sentryHandler.Handle(router), logging.ZapLogFormatter),
+		Handler:  router,
 		ErrorLog: logging.StandardErrorLog(),
 	}
 
@@ -394,7 +389,7 @@ func (s *Server) runServer() error {
 	tlsServer := &http.Server{
 		Addr:      ":443",
 		TLSConfig: tlsConfig,
-		Handler:   handlers.CustomLoggingHandler(io.Discard, sentryHandler.Handle(router), logging.ZapLogFormatter),
+		Handler:   router,
 		ErrorLog:  logging.StandardErrorLog(),
 	}
 

@@ -60,7 +60,7 @@ Infra is **identity and access management** for your cloud infrastructure. It pu
 
 </details>
 
-### Step 2: Configure Infra YAML
+### Step 2: Configure `values.yaml`
 
 > Note: Infra uses [Secrets](./docs/secrets.md) to securely load secrets.
 > It is _not_ recommended to use plain text secrets. Considering using another supported secret type.
@@ -68,39 +68,41 @@ Infra is **identity and access management** for your cloud infrastructure. It pu
 > Please follow [Okta Configuration](./docs/providers/okta.md) to obtain `clientID` and `clientSecret` for connecting Okta to Infra.
 
 ```yaml
-# example infra.yaml
+# example values.yaml
+server:
+  config:
 
-# Add an Identity Provider
-# Only Okta is supported currently
-providers:
-  - name: Okta
-    url: example.okta.com
-    clientID: example_jsldf08j23d081j2d12sd
-    clientSecret:  env:example_secret #see note above about secrets
+    # Add an Identity Provider
+    # Only Okta is supported currently
+    providers:
+      - name: Okta
+        url: example.okta.com
+        clientID: example_jsldf08j23d081j2d12sd
+        clientSecret:  env:example_secret #see note above about secrets
 
-grants:
-# 1. Grant user(s) or group(s) as Infra administrator
-# Setup an user as Infra administrator
-  - user: you@example.com
-    role: admin
-    resource: infra
+    grants:
+    # 1. Grant user(s) or group(s) as Infra administrator
+    # Setup an user as Infra administrator
+      - user: you@example.com
+        role: admin
+        resource: infra
 
-# 2. Grant user(s) or group(s) access to a resources
-# Example of granting access to an individual user the `cluster-admin` role. The name of a resource is specified when installing the Infra Engine at that location.
-  - user: you@example.com
-    role: cluster-admin                  # cluster_roles required
-    resource: kubernetes.example-cluster # limit access to the `example-cluster` Kubernetes cluster
+    # 2. Grant user(s) or group(s) access to a resources
+    # Example of granting access to an individual user the `cluster-admin` role. The name of a resource is specified when installing the Infra Engine at that location.
+      - user: you@example.com
+        role: cluster-admin                  # cluster_roles required
+        resource: kubernetes.example-cluster # limit access to the `example-cluster` Kubernetes cluster
 
-# Example of granting access to an individual user through assigning them to the 'edit' role in the `web` namespace.
-# In this case, Infra will automatically scope the access to a namespace.
-  - user: you@example.com
-    role: edit                               # cluster_roles required
-    resource: kubernetes.example-cluster.web # limit access to only the `web` namespace in the `example-cluster` Kubernetes cluster
+    # Example of granting access to an individual user through assigning them to the 'edit' role in the `web` namespace.
+    # In this case, Infra will automatically scope the access to a namespace.
+      - user: you@example.com
+        role: edit                               # cluster_roles required
+        resource: kubernetes.example-cluster.web # limit access to only the `web` namespace in the `example-cluster` Kubernetes cluster
 
-# Example of granting access to a group the `view` role.
-  - group: Everyone
-    role: view                           # cluster_roles required
-    resource: kubernetes.example-cluster # limit access to the `example-cluster` Kubernetes cluster
+    # Example of granting access to a group the `view` role.
+      - group: Everyone
+        role: view                           # cluster_roles required
+        resource: kubernetes.example-cluster # limit access to the `example-cluster` Kubernetes cluster
 ```
 
 ### Step 3: Install Infra
@@ -108,7 +110,7 @@ grants:
 ```bash
 helm repo add infrahq https://helm.infrahq.com/
 helm repo update
-helm upgrade --install -n infrahq --create-namespace infra infrahq/infra --set-file server.config.import=infra.yaml
+helm upgrade --install -n infrahq --create-namespace infra infrahq/infra -f values.yaml
 ```
 
 Infra can be configured using Helm values. To see the available configuration values, run:
@@ -212,7 +214,7 @@ helm upgrade --install infra-engine infrahq/engine --set config.accessKey=2pVqDS
 
 ```
 helm repo update
-helm upgrade -n infrahq --create-namespace infra infrahq/infra --set-file server.config.import=infra.yaml
+helm upgrade -n infrahq --create-namespace infra infrahq/infra -f values.yaml
 ```
 
 ## [Security](./docs/security.md)

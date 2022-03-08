@@ -38,6 +38,16 @@ func NewDB(connection gorm.Dialector) (*gorm.DB, error) {
 		return nil, err
 	}
 
+	if connection.Name() == "sqlite" {
+		// avoid issues with concurrent writes by telling gorm
+		// not to open multiple connections in the connection pool
+		db2, err := db.DB()
+		if err != nil {
+			return nil, fmt.Errorf("getting db driver: %w", err)
+		}
+		db2.SetMaxOpenConns(1)
+	}
+
 	tables := []interface{}{
 		&models.User{},
 		&models.Machine{},

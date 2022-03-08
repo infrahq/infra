@@ -7,7 +7,7 @@ import (
 )
 
 type CreateTokenRequest struct {
-	UserID uid.ID `json:"userID" validate:"required"`
+	UserID uid.ID `json:"userID" validate:"required" swaggertype:"string"`
 }
 
 type CreateTokenResponse struct {

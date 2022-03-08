@@ -7,28 +7,28 @@ import (
 )
 
 type AccessKey struct {
-	ID                uid.ID            `json:"id"`
+	ID                uid.ID            `json:"id" swaggertype:"string"`
 	Created           time.Time         `json:"created"`
 	Name              string            `json:"name"`
-	IssuedFor         uid.PolymorphicID `json:"issuedFor"`
+	IssuedFor         uid.PolymorphicID `json:"issuedFor" swaggertype:"string"`
 	Expires           time.Time         `json:"expires,omitempty"`
 	ExtensionDeadline time.Time         `json:"extensionDeadline"`
 }
 
 type ListAccessKeysRequest struct {
-	MachineID uid.ID `form:"machineID"`
+	MachineID uid.ID `form:"machine_id" swaggertype:"string"`
 	Name      string `form:"name"`
 }
 
 type CreateAccessKeyRequest struct {
-	MachineID         uid.ID `json:"machineID" validate:"required"`
+	MachineID         uid.ID `json:"machineID" validate:"required" swaggertype:"string"`
 	Name              string `json:"name"`
 	TTL               string `json:"ttl"`                         // maximum time valid
 	ExtensionDeadline string `json:"extensionDeadline,omitempty"` // the access key must be used within this amount of time to renew validity
 }
 
 type CreateAccessKeyResponse struct {
-	ID                uid.ID            `json:"id"`
+	ID                uid.ID            `json:"id" swaggertype:"string"`
 	Created           time.Time         `json:"created"`
 	Name              string            `json:"name"`
 	IssuedFor         uid.PolymorphicID `json:"issuedFor"`
