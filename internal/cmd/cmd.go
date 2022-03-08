@@ -279,9 +279,9 @@ func newGrantsCmd() *cobra.Command {
 		PersistentPreRunE: mustBeLoggedIn,
 	}
 
-	cmd.AddCommand(newAccessListCmd())
-	cmd.AddCommand(newAccessGrantCmd())
-	cmd.AddCommand(newAccessRevokeCmd())
+	cmd.AddCommand(newGrantsListCmd())
+	cmd.AddCommand(newGrantAddCmd())
+	cmd.AddCommand(newGrantRemoveCmd())
 
 	return cmd
 }
@@ -289,13 +289,13 @@ func newGrantsCmd() *cobra.Command {
 func newKeysCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "keys",
-		Short:             "Manage system access keys for machine identities to authenticate with Infra and call the API",
+		Short:             "Manage access keys for machine identities to authenticate with Infra and call the API",
 		PersistentPreRunE: mustBeLoggedIn,
 	}
 
 	cmd.AddCommand(newKeysListCmd())
-	cmd.AddCommand(newKeysCreateCmd())
-	cmd.AddCommand(newKeysDeleteCmd())
+	cmd.AddCommand(newKeysAddCmd())
+	cmd.AddCommand(newKeysRemoveCmd())
 
 	return cmd
 }
@@ -440,7 +440,7 @@ func newTokensCmd() *cobra.Command {
 		PersistentPreRunE: mustBeLoggedIn,
 	}
 
-	cmd.AddCommand(newTokensCreateCmd())
+	cmd.AddCommand(newTokensAddCmd())
 
 	return cmd
 }
@@ -534,9 +534,9 @@ func newIdentitiesCmd() *cobra.Command {
 		PersistentPreRunE: mustBeLoggedIn,
 	}
 
-	cmd.AddCommand(newIdentitiesCreateCmd())
+	cmd.AddCommand(newIdentitiesAddCmd())
 	cmd.AddCommand(newIdentitiesListCmd())
-	cmd.AddCommand(newIdentitiesDeleteCmd())
+	cmd.AddCommand(newIdentitiesRemoveCmd())
 
 	return cmd
 }

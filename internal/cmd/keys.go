@@ -12,9 +12,9 @@ type keyCreateOptions struct {
 	ExtensionDeadline string `mapstructure:"extension-deadline"`
 }
 
-func newKeysCreateCmd() *cobra.Command {
+func newKeysAddCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "create ACCESS_KEY_NAME MACHINE_NAME",
+		Use:   "add ACCESS_KEY_NAME MACHINE_NAME",
 		Short: "Create an access key for authentication",
 		Example: `
 # Create an access key for the machine "wall-e" called main that expires in 12 hours and must be used every hour to remain valid
@@ -57,10 +57,10 @@ infra keys create main wall-e 12h --extension-deadline=1h
 	return cmd
 }
 
-func newKeysDeleteCmd() *cobra.Command {
+func newKeysRemoveCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "delete ACCESS_KEY_NAME",
-		Short: "Delete access keys",
+		Use:   "remove ACCESS_KEY_NAME",
+		Short: "Delete an access key",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := defaultAPIClient()
