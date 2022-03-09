@@ -238,7 +238,7 @@ func newGrantRemoveCmd() *cobra.Command {
 
 			var providers []api.Provider
 
-			if options.Machine != "" {
+			if options.Machine == "" {
 				providers, err = client.ListProviders(options.Provider)
 				if err != nil {
 					return err
