@@ -37,6 +37,17 @@ const Footer = styled.section`
   right: .5rem;
 `
 
+const grantAdminAccess = async (userId, accesskey) => {
+  await axios.post('/v1/grants',
+    { identity: userId, resource: 'infra', privilege: 'admin' },
+    { headers: { Authorization: `Bearer ${accesskey}` } })
+    .then(async () => {
+      await Router.push({ pathname: '/'}, undefined, { shallow: true })
+    }).catch((error) => {
+      console.log(error)
+    })
+}
+
 const SetupOkta = () => {
   const { cookie, setNewProvider } = useContext(AuthContext)
 
@@ -55,7 +66,7 @@ const SetupOkta = () => {
 
   const moveToNext = async () => {
     if (currentPage === page.Setup) {
-      axios.post('/v1/providers',
+      await axios.post('/v1/providers',
         { name: value.name, url: value.domain, clientID: value.clientId, clientSecret: value.clientSecret },
         { headers: { Authorization: `Bearer ${cookie.accessKey}` } })
         .then((response) => {
@@ -67,27 +78,28 @@ const SetupOkta = () => {
         })
     }
     if (currentPage === page.AddAdmin) {
-      // check if user exists
       const params = {
         email: adminEmail,
         provider_id: providerId
       }
-      // TODO: returning 401 at the moment
-      const currentUser = await axios.get('/v1/users', { params }, { headers: { Authorization: `Bearer ${cookie.accessKey}` } });
 
-      // if (currentUser == null) {
-      //   axios.post
-      // }
-
-      // if it doesn't exist, create one
-
-      // otherwise grant access with the user id
-
-      // set the admin email to the infra admin
-      // if success then redirect back to dashboard
-      await Router.push({
-        pathname: '/'
-      }, undefined, { shallow: true })
+      await axios.get('/v1/users', { params, headers: { Authorization: `Bearer ${cookie.accessKey}` } })
+        .then(async (response) => {
+          if (response.data.length === 0) {
+            await axios.post('/v1/users', 
+            { email: adminEmail, providerID: providerId },
+            { headers: { Authorization: `Bearer ${cookie.accessKey}` } })
+            .then(async (response) => {
+              await grantAdminAccess(response.data.id, cookie.accessKey)
+            }).catch((error) => {
+              console.log(error)
+            })
+          } else {
+            grantAdminAccess(response.data[0].id, cookie.accessKey)
+          }
+        }).catch((error) => {
+          console.log(error)
+        })
     }
   }
 
