@@ -25,7 +25,7 @@
     "@types/react": "17.0.39",
     "eslint": "^8.10.0",
     "eslint-config-next": "^12.1.0",
-    "@types/styled-components": "^5.1.23",
+    "@types/styled-components": "^5.1.24",
     "standard": "*"
   }
 }
