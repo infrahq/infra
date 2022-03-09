@@ -19,11 +19,11 @@ type accessOptions struct {
 	Role     string `mapstructure:"role"`
 }
 
-func newAccessListCmd() *cobra.Command {
+func newGrantsListCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "list [DESTINATION]",
 		Aliases: []string{"ls"},
-		Short:   "List access",
+		Short:   "List grants",
 		Args:    cobra.RangeArgs(0, 1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var resource string
@@ -54,7 +54,7 @@ func newAccessListCmd() *cobra.Command {
 					continue
 				}
 
-				provider, identity, err := info(client, g)
+				provider, identity, err := listInfo(client, g)
 				if err != nil {
 					return err
 				}
@@ -74,10 +74,10 @@ func newAccessListCmd() *cobra.Command {
 	}
 }
 
-func newAccessGrantCmd() *cobra.Command {
+func newGrantAddCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "grant DESTINATION",
-		Short: "Grant access",
+		Use:   "add DESTINATION",
+		Short: "Grant access to a destination",
 		Example: `
 # Grant user admin access to a cluster
 $ infra access grant -u suzie@acme.com -r admin kubernetes.production
@@ -220,10 +220,10 @@ $ infra access grant -u admin@acme.com -r admin infra
 	return cmd
 }
 
-func newAccessRevokeCmd() *cobra.Command {
+func newGrantRemoveCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "revoke DESTINATION",
-		Short: "Revoke access",
+		Use:   "remove DESTINATION",
+		Short: "Revoke access to a destination",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var options accessOptions

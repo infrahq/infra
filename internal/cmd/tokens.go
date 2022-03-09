@@ -13,9 +13,9 @@ import (
 	"github.com/infrahq/infra/internal/api"
 )
 
-func newTokensCreateCmd() *cobra.Command {
+func newTokensAddCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "create",
+		Use:   "add",
 		Short: "Create a token",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := tokensCreate(); err != nil {

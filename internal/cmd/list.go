@@ -96,7 +96,7 @@ func list() error {
 	return writeKubeconfig(destinations, grants)
 }
 
-func info(client *api.Client, g api.Grant) (provider string, name string, err error) {
+func listInfo(client *api.Client, g api.Grant) (provider string, name string, err error) {
 	id, err := g.Identity.ID()
 	if err != nil {
 		return "", "", err

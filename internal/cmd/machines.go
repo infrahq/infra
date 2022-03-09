@@ -12,10 +12,10 @@ type machineOptions struct {
 	Description string `mapstructure:"description"`
 }
 
-func newMachinesCreateCmd() *cobra.Command {
+func newIdentitiesAddCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "create NAME",
-		Short: "Create a machine identity, e.g. a service that needs to access infrastructure",
+		Use:   "add NAME",
+		Short: "Create a machine identity",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
@@ -34,11 +34,11 @@ func newMachinesCreateCmd() *cobra.Command {
 	return cmd
 }
 
-func newMachinesListCmd() *cobra.Command {
+func newIdentitiesListCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
-		Short:   "List machines",
+		Short:   "List all identities (users & machines)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := defaultAPIClient()
 			if err != nil {
@@ -70,10 +70,10 @@ func newMachinesListCmd() *cobra.Command {
 	}
 }
 
-func newMachinesDeleteCmd() *cobra.Command {
+func newIdentitiesRemoveCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "remove MACHINE",
-		Short: "Remove a machine identity",
+		Short: "Delete a machine identity",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := defaultAPIClient()

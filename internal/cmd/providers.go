@@ -16,7 +16,7 @@ func newProvidersListCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
-		Short:   "List identity providers",
+		Short:   "List connected identity providers",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := defaultAPIClient()
 			if err != nil {
@@ -48,7 +48,7 @@ func newProvidersListCmd() *cobra.Command {
 func newProvidersAddCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add NAME URL CLIENT_ID CLIENT_SECRET",
-		Short: "Add an identity provider",
+		Short: "Connect an identity provider",
 		Long: `
 Add an identity provider for users to authenticate.
 
