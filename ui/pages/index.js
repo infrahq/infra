@@ -8,8 +8,6 @@ export default function Index () {
   const { logout, user, providers } = useContext(AuthContext)
   const [currentUser, setCurrentUser] = useState(null)
 
-  console.log(providers);
-
   useEffect(() => {
     if (user != null) {
       setCurrentUser(user)

@@ -34,4 +34,4 @@ yarn-error.log*
 .vercel
 
 # infra binary
-infra
+dist/*/infra
