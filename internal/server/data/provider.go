@@ -1,29 +1,11 @@
 package data
 
 import (
-	"fmt"
-
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
-
-func AppendProviderUsers(db *gorm.DB, provider *models.Provider, user *models.User) error {
-	if err := db.Model(provider).Association("Users").Append(user); err != nil {
-		return fmt.Errorf("append provider users: %w", err)
-	}
-
-	return nil
-}
-
-func AppendProviderGroups(db *gorm.DB, provider *models.Provider, group *models.Group) error {
-	if err := db.Model(provider).Association("Groups").Append(group); err != nil {
-		return fmt.Errorf("append provider groups: %w", err)
-	}
-
-	return nil
-}
 
 func CreateProvider(db *gorm.DB, provider *models.Provider) error {
 	return add(db, provider)
@@ -63,6 +45,10 @@ func DeleteProviders(db *gorm.DB, selectors ...SelectorFunc) error {
 	}
 
 	return deleteAll[models.Provider](db, ByIDs(ids))
+}
+
+func AppendProviderUsers(db *gorm.DB, provider *models.Provider, user *models.User) error {
+	return appendAssociation(db, provider, "Users", user)
 }
 
 func CreateProviderToken(db *gorm.DB, token *models.ProviderToken) error {
