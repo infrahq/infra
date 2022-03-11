@@ -1,4 +1,4 @@
-{{- if .Values.server.enabled }}
+{{- if include "server.enabled" . | eq "true" }}
 {{- if and .Values.server.metrics.enabled .Values.server.metrics.serviceMonitor.enabled }}
 ---
 apiVersion: monitoring.coreos.com/v1

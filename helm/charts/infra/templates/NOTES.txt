@@ -2,7 +2,7 @@
 
                                 Welcome to Infra
 
-{{- if .Values.server.enabled }}
+{{- if include "server.enabled" . | eq "true" }}
 
   Login to this cluster with infra-cli:
 
