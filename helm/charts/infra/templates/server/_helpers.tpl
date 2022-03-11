@@ -157,3 +157,10 @@ existing secret and use its password. If the secret does not exist, randomly gen
 {{- end }}
 {{- end }}
 {{- end }}
+
+{{/*
+Infer whether server should be deployed based on server.enabled and engine.config.server.
+*/}}
+{{- define "server.enabled" -}}
+{{- and .Values.server.enabled (not .Values.engine.config.server) }}
+{{- end }}

@@ -1,4 +1,4 @@
-{{- if .Values.server.enabled }}
+{{- if include "server.enabled" . | eq "true" }}
 {{- if .Values.server.autoscaling.enabled }}
 {{- if semverCompare ">=1.22-0" .Capabilities.KubeVersion.GitVersion -}}
 apiVersion: autoscaling/v2beta2

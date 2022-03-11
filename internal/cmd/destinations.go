@@ -101,7 +101,6 @@ func newDestinationsAddCmd() *cobra.Command {
 
 			var sb strings.Builder
 			sb.WriteString("    helm install infra infrahq/infra")
-			sb.WriteString(" --set server.enabled=false")
 
 			if len(args) > 1 {
 				fmt.Fprintf(&sb, " --set engine.config.name=%s", args[1])

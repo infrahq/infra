@@ -1,4 +1,4 @@
-{{- if .Values.server.enabled }}
+{{- if include "server.enabled" . | eq "true" }}
 {{- if .Values.server.ingress.enabled }}
 {{- if and .Values.server.ingress.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
 {{- if not (hasKey .Values.server.ingress.annotations "kubernetes.io/ingress.class") }}

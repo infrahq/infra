@@ -1,4 +1,4 @@
-{{- if .Values.server.enabled }}
+{{- if include "server.enabled" . | eq "true" }}
 {{- if .Values.server.persistence.enabled }}
 apiVersion: v1
 kind: PersistentVolumeClaim
