@@ -561,12 +561,25 @@ func NewRootCmd() (*cobra.Command, error) {
 		NonInteractive bool   `mapstructure:"nonInteractive"`
 	}
 
+	var (
+		v bool
+		i bool
+	)
+
 	rootCmd := &cobra.Command{
 		Use:               "infra",
 		CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: true},
 		SilenceUsage:      true,
 		SilenceErrors:     true,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if v {
+				return version()
+			} else if i {
+				return info()
+			}
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
 			var options rootOptions
 			if err := parseOptions(cmd, &options, "INFRA"); err != nil {
 				return err
@@ -592,6 +605,9 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.AddCommand(newServerCmd())
 	rootCmd.AddCommand(newEngineCmd())
 	rootCmd.AddCommand(newVersionCmd())
+
+	rootCmd.Flags().BoolVarP(&v, "version", "v", false, "Display Infra version")
+	rootCmd.Flags().BoolVarP(&i, "info", "i", false, "Display info about the current session")
 
 	rootCmd.PersistentFlags().String("log-level", "info", "Set the log level. One of error, warn, info, or debug")
 	rootCmd.PersistentFlags().Bool("non-interactive", false, "don't assume an interactive terminal, even if there is one")
