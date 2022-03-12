@@ -166,7 +166,7 @@ func writeKubeconfig(destinations []api.Destination, grants []api.Grant) error {
 		kubeConfig.AuthInfos[context] = &clientcmdapi.AuthInfo{
 			Exec: &clientcmdapi.ExecConfig{
 				Command:         executable,
-				Args:            []string{"tokens", "create"},
+				Args:            []string{"tokens", "add"},
 				APIVersion:      "client.authentication.k8s.io/v1beta1",
 				InteractiveMode: clientcmdapi.IfAvailableExecInteractiveMode,
 			},
