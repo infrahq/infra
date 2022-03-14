@@ -2,10 +2,11 @@ import Router from 'next/router'
 import { useContext, useEffect, useState } from 'react'
 import ActionButton from '../components/ActionButton'
 
+import Nav from '../components/nav'
 import AuthContext from '../store/AuthContext'
 
 export default function Index () {
-  const { logout, user, providers } = useContext(AuthContext)
+  const { logout, user } = useContext(AuthContext)
   const [currentUser, setCurrentUser] = useState(null)
 
   useEffect(() => {
@@ -26,6 +27,7 @@ export default function Index () {
 
   return (
     <div>
+      <Nav />
       {currentUser ? <p>{currentUser.name}</p> : <></>}
       {providers.length > 0
         ? (
@@ -47,7 +49,6 @@ export default function Index () {
             size='small'
           />
           )}
-      <button onClick={handleLogout}>Logout</button>
     </div>
   )
 }
