@@ -4,7 +4,7 @@ import Router from 'next/router'
 import { useContext, useEffect } from 'react'
 
 import AccountHeader from '../../components/AccountHeader'
-import IdentitySourceBtn from '../../components/IdentitySourceBtn'
+import IdentityProviderBtn from '../../components/IdentityProviderBtn'
 
 import AuthContext from '../../store/AuthContext'
 
@@ -25,7 +25,7 @@ const Content = styled.div`
   }
 `
 
-const LoginIdentitySourceList = styled.div`
+const LoginIdentityProviderList = styled.div`
   margin-top: 2rem;
 `
 
@@ -90,9 +90,9 @@ const Login = () => {
                 header='Login to Infra'
                 subheader='Securely manage access to your infrastructure. Take a moment to create your account and start managing access today.'
               />
-              <LoginIdentitySourceList>
-                <IdentitySourceBtn providers={providerWithType} />
-              </LoginIdentitySourceList>
+              <LoginIdentityProviderList>
+                <IdentityProviderBtn providers={providerWithType} />
+              </LoginIdentityProviderList>
               <HelpContainer>
                 <span>Having trouble logging in?</span>
                 <Link href='/account/register'>

@@ -1,9 +1,9 @@
 import Router from 'next/router'
 import styled from 'styled-components'
 
-import ExitButton from '../../components/ExitButtn'
-import IdentitySourceBtn from '../../components/IdentitySourceBtn'
-import Header from '../../components/Header'
+import ExitButton from '../../../components/ExitButton'
+import IdentityProviderBtn from '../../../components/IdentityProviderBtn'
+import Header from '../../../components/Header'
 
 const ConnectProviderContainer = styled.section`
   position: relative;
@@ -26,7 +26,7 @@ const NavButton = styled.div`
   right: .5rem;
 `
 
-const IdentitySourceList = styled.section`
+const IdentityProviderList = styled.section`
   & > *:not(:first-child) {
     padding-top: 42px;
   }
@@ -34,7 +34,7 @@ const IdentitySourceList = styled.section`
 
 const setupOkta = async () => {
   await Router.push({
-    pathname: '/providers/setupOkta'
+    pathname: '/providers/add/details'
   }, undefined, { shallow: true })
 }
 
@@ -44,12 +44,12 @@ const avaliableProviderList = [{
   onClick: () => setupOkta()
 }]
 
-const Connect = () => {
+const Select = () => {
   return (
     <ConnectProviderContainer>
       <ConnectProviderContent>
         <Header
-          header='connect identity Providers'
+          header='Connect Identity Providers'
           subheader='People, Groups and Machines'
         />
         <Header
@@ -60,11 +60,11 @@ const Connect = () => {
             </>
           }
         />
-        <IdentitySourceList>
+        <IdentityProviderList>
           <div>
-            <IdentitySourceBtn providers={avaliableProviderList} />
+            <IdentityProviderBtn providers={avaliableProviderList} />
           </div>
-        </IdentitySourceList>
+        </IdentityProviderList>
       </ConnectProviderContent>
       <NavButton>
         <ExitButton />
@@ -73,4 +73,4 @@ const Connect = () => {
   )
 }
 
-export default Connect
+export default Select

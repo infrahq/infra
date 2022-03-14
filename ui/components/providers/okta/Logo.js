@@ -31,8 +31,8 @@ const Logo = () => {
   return (
     <LogoContainer>
       <OktaLogo src='/okta.svg' />
-      <ConnectedArrowLogo src='/connectedArrow.svg' />
-      <InfraLogo src='/infraIcon.svg' />
+      <ConnectedArrowLogo src='/connected-arrow.svg' />
+      <InfraLogo src='/infra-icon.svg' />
     </LogoContainer>
   )
 }

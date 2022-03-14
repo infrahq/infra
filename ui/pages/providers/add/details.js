@@ -3,12 +3,12 @@ import Router from 'next/router'
 import axios from 'axios'
 import styled from 'styled-components'
 
-import ExitButton from '../../components/ExitButtn'
-import ActionButton from '../../components/ActionButton'
-import Setup from '../../components/providers/okta/setup'
-import AddAdmin from '../../components/providers/okta/AddAdmin'
+import ExitButton from '../../../components/ExitButton'
+import ActionButton from '../../../components/ActionButton'
+import Setup from '../../../components/providers/okta/setup'
+import AddAdmin from '../../../components/providers/okta/AddAdmin'
 
-import AuthContext from '../../store/AuthContext'
+import AuthContext from '../../../store/AuthContext'
 
 const SetupContainer = styled.section`
   position: relative;
@@ -48,7 +48,7 @@ const grantAdminAccess = async (userId, accesskey) => {
     })
 }
 
-const SetupOkta = () => {
+const Details = () => {
   const { cookie, setNewProvider } = useContext(AuthContext)
 
   const page = Object.freeze({ Setup: 1, AddAdmin: 2 })
@@ -142,4 +142,4 @@ const SetupOkta = () => {
   )
 }
 
-export default SetupOkta
+export default Details

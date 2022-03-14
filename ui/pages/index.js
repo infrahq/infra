@@ -20,7 +20,7 @@ export default function Index () {
 
   const handleConnectProviders = async () => {
     await Router.push({
-      pathname: '/providers/connect'
+      pathname: '/providers/add/select'
     }, undefined, { shallow: true })
   }
 

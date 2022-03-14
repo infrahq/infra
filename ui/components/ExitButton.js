@@ -13,7 +13,7 @@ const ExitButton = () => {
   return (
     <ExitBtnContainer>
       <Link href='/'>
-        <img src='/closeIcon.svg' />
+        <img src='/close-icon.svg' />
       </Link>
     </ExitBtnContainer>
   )

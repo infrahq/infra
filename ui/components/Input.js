@@ -56,7 +56,7 @@ const Input = ({ label, value, onChange, showImage = false, type = 'text' }) => 
             value={value}
             onChange={onChange}
           />
-          {showImage ? <img src='/accessKeyLockIcon.svg' /> : <></>}
+          {showImage ? <img src='/access-key-lock-icon.svg' /> : <></>}
         </StyledInputContainer>
 
       </InputGroup>

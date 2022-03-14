@@ -1,13 +1,13 @@
 import styled from 'styled-components'
 import PropTypes from 'prop-types'
 
-const IdentitySourceBtnContainer = styled.div`
+const IdentityProviderBtnContainer = styled.div`
   & > *:not(:first-child) {
     margin-top: .3rem;
   }
 `
 
-const IdentitySourceContainer = styled.button`
+const IdentityProviderContainer = styled.button`
   width: 24rem;
   height: 3rem;
   background: rgba(255,255,255,0.02);
@@ -20,17 +20,17 @@ const IdentitySourceContainer = styled.button`
   &:hover { opacity: .95 }
 `
 
-const IdentitySourceContentContainer = styled.div`
+const IdentityProviderContentContainer = styled.div`
   display: flex;
   flex-direction: row;
   padding: .5rem;
 `
 
-const IdentitySourceLogo = styled.div`
+const IdentityProviderLogo = styled.div`
   padding-top: .4rem;  
 `
 
-const IdentitySourceContentDescriptionContainer = styled.div`
+const IdentityProviderContentDescriptionContainer = styled.div`
   padding-left: 1rem;
   text-align: left;
 
@@ -55,32 +55,32 @@ const DescriptionSubheader = styled.div`
   opacity: 0.3;
 `
 
-const IdentitySourceBtn = ({ providers }) => {
+const IdentityProviderBtn = ({ providers }) => {
   return (
-    <IdentitySourceBtnContainer>
+    <IdentityProviderBtnContainer>
       {providers.map((provider, index) => {
         return (
-          <IdentitySourceContainer
+          <IdentityProviderContainer
             key={index}
             onClick={() => provider.onClick()}
           >
-            <IdentitySourceContentContainer>
-              <IdentitySourceLogo>
+            <IdentityProviderContentContainer>
+              <IdentityProviderLogo>
                 <img src={`/${provider.type}.svg`} />
-              </IdentitySourceLogo>
-              <IdentitySourceContentDescriptionContainer>
+              </IdentityProviderLogo>
+              <IdentityProviderContentDescriptionContainer>
                 <DescriptionHeader>{provider.type}</DescriptionHeader>
                 <DescriptionSubheader>{provider.name}</DescriptionSubheader>
-              </IdentitySourceContentDescriptionContainer>
-            </IdentitySourceContentContainer>
-          </IdentitySourceContainer>
+              </IdentityProviderContentDescriptionContainer>
+            </IdentityProviderContentContainer>
+          </IdentityProviderContainer>
         )
       })}
-    </IdentitySourceBtnContainer>
+    </IdentityProviderBtnContainer>
   )
 }
 
-IdentitySourceBtn.prototype = {
+IdentityProviderBtn.prototype = {
   providers: PropTypes.arrayOf(PropTypes.shape({
     type: PropTypes.string,
     name: PropTypes.string,
@@ -93,4 +93,4 @@ IdentitySourceBtn.prototype = {
   })).isRequired
 }
 
-export default IdentitySourceBtn
+export default IdentityProviderBtn
