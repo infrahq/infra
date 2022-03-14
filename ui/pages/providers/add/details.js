@@ -10,11 +10,11 @@ import AddAdmin from '../../../components/providers/okta/AddAdmin'
 
 import AuthContext from '../../../store/AuthContext'
 
-const SetupContainer = styled.section`
+const AddProviderDetailContainer = styled.section`
   position: relative;
 `
 
-const SetupContainerContent = styled.section`
+const AddProviderDetailContainerContent = styled.section`
   margin-left: auto;
   margin-right: auto;
   max-width: 24rem;
@@ -127,14 +127,14 @@ const Details = () => {
 
   return (
     <>
-      <SetupContainer>
-        <SetupContainerContent>
+      <AddProviderDetailContainer>
+        <AddProviderDetailContainerContent>
           {content(currentPage)}
-        </SetupContainerContent>
+        </AddProviderDetailContainerContent>
         <Nav>
           <ExitButton />
         </Nav>
-      </SetupContainer>
+      </AddProviderDetailContainer>
       <Footer>
         <ActionButton onClick={() => moveToNext()} value={currentPage === page.Setup ? 'Connect' : 'Proceed'} size='small' />
       </Footer>
