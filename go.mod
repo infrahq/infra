@@ -13,7 +13,7 @@ require (
 	github.com/gin-gonic/gin v1.7.7
 	github.com/go-playground/validator/v10 v10.10.1
 	github.com/google/uuid v1.3.0 // indirect
-	github.com/goreleaser/goreleaser v1.6.1
+	github.com/goreleaser/goreleaser v1.6.3
 	github.com/goware/urlx v0.3.1
 	github.com/hashicorp/vault/api v1.4.1
 	github.com/jackc/pgconn v1.11.0
