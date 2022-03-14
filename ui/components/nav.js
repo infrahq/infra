@@ -1,8 +1,7 @@
-import { useContext, useEffect, useState } from 'react'
 import Link from 'next/link'
 import styled from 'styled-components'
 
-import AuthContext from '../store/AuthContext'
+import UserDropdown from './UserDropdown'
 
 const NavContainer = styled.div`
   display: flex;
@@ -21,23 +20,17 @@ const NavOptionsContainer = styled.div`
     color: #FFFFFF;
   }
 
-  & > *:not(:first-child) {
+  & > *:not(:first-child):not(:last-child) {
     margin-left: 2.125rem;
   }
 
+  & > *:last-child {
+    margin-left: 1.125rem;
+  }
 `
 
 
 const Nav = () => {
-  const { user } = useContext(AuthContext)
-  const [userName, setUserName] = useState(null)
-
-  useEffect(() => {
-    if (user != null) {
-      setUserName(user.name)
-    }
-  }, [])
-
   return (
     <NavContainer>
       <>
@@ -52,9 +45,7 @@ const Nav = () => {
           <Link href='/providers'>
             <a>Identity providers</a>
           </Link>
-          <a>
-            {userName}
-          </a>
+          <UserDropdown />
         </NavOptionsContainer>
       </>
     </NavContainer>

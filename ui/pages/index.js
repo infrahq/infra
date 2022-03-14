@@ -2,7 +2,7 @@ import Router from 'next/router'
 import { useContext, useEffect, useState } from 'react'
 import ActionButton from '../components/ActionButton'
 
-import Nav from '../components/nav'
+import Nav from '../components/Nav'
 import AuthContext from '../store/AuthContext'
 
 export default function Index () {
