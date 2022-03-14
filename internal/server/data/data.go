@@ -3,11 +3,9 @@ package data
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path"
 	"strings"
-	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgconn"
@@ -24,15 +22,7 @@ import (
 
 func NewDB(connection gorm.Dialector) (*gorm.DB, error) {
 	db, err := gorm.Open(connection, &gorm.Config{
-		Logger: logger.New(
-			log.New(os.Stdout, "\r\n", log.LstdFlags),
-			logger.Config{
-				SlowThreshold:             time.Second,
-				LogLevel:                  logger.Warn,
-				IgnoreRecordNotFoundError: true,
-				Colorful:                  true,
-			},
-		),
+		Logger: logger.Discard,
 	})
 	if err != nil {
 		return nil, err
