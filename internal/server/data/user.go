@@ -8,7 +8,7 @@ import (
 )
 
 func BindUserGroups(db *gorm.DB, user *models.User, groups ...models.Group) error {
-	return bind(db, user, "Groups", groups)
+	return bindAssociations(db, user, "Groups", groups)
 }
 
 func CreateUser(db *gorm.DB, user *models.User) error {

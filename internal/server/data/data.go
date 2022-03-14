@@ -206,8 +206,8 @@ func Count[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (*int64, 
 	return &count, nil
 }
 
-// bind replaces the association (U) of the entity (T)
-func bind[T models.Modelable, U models.Modelable](db *gorm.DB, model *T, association string, replacements []U) error {
+// bindAssociations replaces the association (U) of the entity (T)
+func bindAssociations[T models.Modelable, U models.Modelable](db *gorm.DB, model *T, association string, replacements []U) error {
 	if err := db.Model(model).Association(association).Replace(replacements); err != nil {
 		return fmt.Errorf("bind: %w", err)
 	}
