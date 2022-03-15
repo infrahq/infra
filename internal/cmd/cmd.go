@@ -520,7 +520,6 @@ func newInfoCmd() *cobra.Command {
 			} else if config.PolymorphicID.IsMachine() {
 				machine, err := client.GetMachine(config.ID)
 				if err != nil {
-					fmt.Fprintln(os.Stderr, "6.3")
 					return err
 				}
 
