@@ -88,9 +88,12 @@ func (a *API) registerRoutes(router *gin.RouterGroup) {
 
 		get(unauthorized, "/version", a.Version)
 	}
+
+	generateOpenAPI()
 }
 
 func get[Req, Res any](r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) {
+	register("GET", r.BasePath(), path, handler)
 	r.GET(path, func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
@@ -109,6 +112,7 @@ func get[Req, Res any](r *gin.RouterGroup, path string, handler ReqResHandlerFun
 }
 
 func post[Req, Res any](r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) {
+	register("POST", r.BasePath(), path, handler)
 	r.POST(path, func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
@@ -127,6 +131,7 @@ func post[Req, Res any](r *gin.RouterGroup, path string, handler ReqResHandlerFu
 }
 
 func put[Req, Res any](r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) {
+	register("PUT", r.BasePath(), path, handler)
 	r.PUT(path, func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
@@ -145,6 +150,7 @@ func put[Req, Res any](r *gin.RouterGroup, path string, handler ReqResHandlerFun
 }
 
 func delete[Req any](r *gin.RouterGroup, path string, handler ReqHandlerFunc[Req]) {
+	registerReq("DELETE", r.BasePath(), path, handler)
 	r.DELETE(path, func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
