@@ -1,4 +1,5 @@
 tag := $(patsubst v%,%,$(shell git describe --tags))
+version := $(tag:v%=%)
 
 generate:
 	go generate ./...
@@ -15,7 +16,7 @@ test-all:
 
 .PHONY: helm
 helm:
-	helm package -d $@ helm/charts/* --version $(tag) --app-version $(tag)
+	helm package -d $@ helm/charts/* --version $(version) --app-version $(version)
 	helm repo index helm
 
 helm/lint:
@@ -74,13 +75,13 @@ dev/clean:
 	helm $(NS) uninstall infra || true
 
 docker:
-	docker buildx build --push --platform linux/amd64,linux/arm64 --build-arg BUILDVERSION=$(tag) --build-arg TELEMETRY_WRITE_KEY=${TELEMETRY_WRITE_KEY} --build-arg CRASH_REPORTING_DSN=${CRASH_REPORTING_DSN} . -t infrahq/infra:$(tag)
+	docker buildx build --push --platform linux/amd64,linux/arm64 --build-arg BUILDVERSION=$(version) --build-arg TELEMETRY_WRITE_KEY=${TELEMETRY_WRITE_KEY} --build-arg CRASH_REPORTING_DSN=${CRASH_REPORTING_DSN} . -t infrahq/infra:$(version)
 
 release: goreleaser
 	goreleaser release -f .goreleaser.yml --rm-dist
 
 release/docker:
-	docker buildx build --push --platform linux/amd64,linux/arm64 --build-arg BUILDVERSION=$(tag) --build-arg TELEMETRY_WRITE_KEY=${TELEMETRY_WRITE_KEY} --build-arg CRASH_REPORTING_DSN=${CRASH_REPORTING_DSN} . -t infrahq/infra:$(tag) -t infrahq/infra
+	docker buildx build --push --platform linux/amd64,linux/arm64 --build-arg BUILDVERSION=$(version) --build-arg TELEMETRY_WRITE_KEY=${TELEMETRY_WRITE_KEY} --build-arg CRASH_REPORTING_DSN=${CRASH_REPORTING_DSN} . -t infrahq/infra:$(version) -t infrahq/infra
 
 release/helm: helm
 	aws s3 --region us-east-2 sync helm s3://helm.infrahq.com --exclude "*" --include "index.yaml" --include "*.tgz"
