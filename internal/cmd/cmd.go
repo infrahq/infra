@@ -27,7 +27,11 @@ import (
 	"github.com/infrahq/infra/internal/server"
 )
 
-func mustBeLoggedIn(cmd *cobra.Command, args []string) error {
+func mustBeLoggedInC(cmd *cobra.Command, args []string) error {
+	return mustBeLoggedIn()
+}
+
+func mustBeLoggedIn() error {
 	config, err := currentHostConfig()
 	if err != nil {
 		return err
@@ -219,7 +223,7 @@ func newListCmd() *cobra.Command {
 		Use:               "list",
 		Aliases:           []string{"ls"},
 		Short:             "List accessible destinations",
-		PersistentPreRunE: mustBeLoggedIn,
+		PersistentPreRunE: mustBeLoggedInC,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return list()
 		},
@@ -238,7 +242,7 @@ $ infra use kubernetes.development
 $ infra use kubernetes.development.kube-system
 		`,
 		Args:              cobra.ExactArgs(1),
-		PersistentPreRunE: mustBeLoggedIn,
+		PersistentPreRunE: mustBeLoggedInC,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
@@ -276,7 +280,7 @@ func newGrantsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "grants",
 		Short:             "Manage access to destinations",
-		PersistentPreRunE: mustBeLoggedIn,
+		PersistentPreRunE: mustBeLoggedInC,
 	}
 
 	cmd.AddCommand(newGrantsListCmd())
@@ -290,7 +294,7 @@ func newKeysCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "keys",
 		Short:             "Manage access keys for machine identities to authenticate with Infra and call the API",
-		PersistentPreRunE: mustBeLoggedIn,
+		PersistentPreRunE: mustBeLoggedInC,
 	}
 
 	cmd.AddCommand(newKeysListCmd())
@@ -305,7 +309,7 @@ func newDestinationsCmd() *cobra.Command {
 		Use:               "destinations",
 		Aliases:           []string{"dst", "dest", "destination"},
 		Short:             "Manage destinations",
-		PersistentPreRunE: mustBeLoggedIn,
+		PersistentPreRunE: mustBeLoggedInC,
 	}
 
 	cmd.AddCommand(newDestinationsListCmd())
@@ -437,7 +441,7 @@ func newTokensCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "tokens",
 		Short:             "Create & manage tokens",
-		PersistentPreRunE: mustBeLoggedIn,
+		PersistentPreRunE: mustBeLoggedInC,
 	}
 
 	cmd.AddCommand(newTokensAddCmd())
@@ -449,7 +453,7 @@ func newProvidersCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "providers",
 		Short:             "Manage identity providers",
-		PersistentPreRunE: mustBeLoggedIn,
+		PersistentPreRunE: mustBeLoggedInC,
 	}
 
 	cmd.AddCommand(newProvidersListCmd())
@@ -463,7 +467,8 @@ func newInfoCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "info",
 		Short:   "Display the info about the current session",
-		PreRunE: mustBeLoggedIn,
+		Hidden:  true,
+		PreRunE: mustBeLoggedInC,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config, err := currentHostConfig()
 			if err != nil {
@@ -531,7 +536,7 @@ func newIdentitiesCmd() *cobra.Command {
 		Use:               "identities",
 		Aliases:           []string{"id", "identity"},
 		Short:             "Manage identities (users & machines)",
-		PersistentPreRunE: mustBeLoggedIn,
+		PersistentPreRunE: mustBeLoggedInC,
 	}
 
 	cmd.AddCommand(newIdentitiesAddCmd())
@@ -543,8 +548,9 @@ func newIdentitiesCmd() *cobra.Command {
 
 func newVersionCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "version",
-		Short: "Display the Infra version",
+		Use:    "version",
+		Short:  "Display the Infra version",
+		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return version()
 		},
@@ -571,15 +577,7 @@ func NewRootCmd() (*cobra.Command, error) {
 		CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: true},
 		SilenceUsage:      true,
 		SilenceErrors:     true,
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			if v {
-				return version()
-			} else if i {
-				return info()
-			}
-			return nil
-		},
-		RunE: func(cmd *cobra.Command, args []string) error {
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			var options rootOptions
 			if err := parseOptions(cmd, &options, "INFRA"); err != nil {
 				return err
@@ -588,6 +586,19 @@ func NewRootCmd() (*cobra.Command, error) {
 			nonInteractiveMode = options.NonInteractive
 
 			return logging.SetLevel(options.LogLevel)
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if v {
+				return version()
+			} else if i {
+				err := mustBeLoggedIn()
+
+				if err != nil {
+					return err
+				}
+				return info()
+			}
+			return cmd.Help()
 		},
 	}
 
