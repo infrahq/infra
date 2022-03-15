@@ -6,7 +6,7 @@ import Nav from '../components/Nav'
 import AuthContext from '../store/AuthContext'
 
 export default function Index () {
-  const { logout, user } = useContext(AuthContext)
+  const { user, providers } = useContext(AuthContext)
   const [currentUser, setCurrentUser] = useState(null)
 
   useEffect(() => {
@@ -14,10 +14,6 @@ export default function Index () {
       setCurrentUser(user)
     }
   }, [])
-
-  const handleLogout = async () => {
-    await logout()
-  }
 
   const handleConnectProviders = async () => {
     await Router.push({

@@ -1,5 +1,5 @@
 import styled from 'styled-components'
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useState, useRef } from 'react'
 
 import AuthContext from '../store/AuthContext'
 
@@ -15,6 +15,11 @@ const UserDropdownHeader = styled.button`
   border-radius: 4px;
   color: #FFFFFF;
   cursor: pointer;
+  opacity: .8;
+
+  &:hover {
+    opacity: 1;
+  }
 `;
 
 const UserDropdownContent = styled.div`
@@ -89,12 +94,29 @@ const LogoutBtn = styled.a`
   cursor: pointer;
 `;
 
-
 const UserDropdown = () => {
-  const { user, logout } = useContext(AuthContext)
+  const { user, logout,  } = useContext(AuthContext)
   const [currentUser, setCurrentUser] = useState(null)
   const [iconText, setIconText] = useState(null)
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  
+  const wrapperRef = useRef(null)
+
+  const useOutsideAlerter = (ref) => {
+    useEffect(() => {
+      const handleClickOutside = (event) => {
+        if (ref.current && !ref.current.contains(event.target)) {
+          setDropdownOpen(false)
+        }
+      }
+      document.addEventListener("mousedown", handleClickOutside)
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside)
+      };
+    }, [ref])
+  }
+  
+  useOutsideAlerter(wrapperRef)
   
   useEffect(() => {
     if (user != null) {
@@ -102,22 +124,18 @@ const UserDropdown = () => {
       getIconText(user.name)
     }
   }, [])
-  
+
   const getIconText = (name) => {
     setIconText(name[0].toUpperCase())
   }
 
-  const getUserRole = () => {
-
-  }
-
   const handleLogout = async () => {
-    setDropdownOpen(false)
+    setDropdownOpen(false);
     await logout()
   }
 
   return (
-    <UserDropdownContainer>
+    <UserDropdownContainer ref={wrapperRef}>
       <UserDropdownHeader onClick={() => setDropdownOpen(!dropdownOpen)}>
         {iconText}
       </UserDropdownHeader>

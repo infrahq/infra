@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import styled from 'styled-components'
+import { useRouter } from 'next/router'
+import styled, { css } from 'styled-components'
 
 import UserDropdown from './UserDropdown'
 
@@ -10,16 +11,6 @@ const NavContainer = styled.div`
   margin-top: 1rem;
 `
 const NavOptionsContainer = styled.div`
-  a {
-    font-style: normal;
-    font-weight: 400;
-    font-size: 11px;
-    line-height: 13px;
-    text-transform: uppercase;
-    text-decoration: none;
-    color: #FFFFFF;
-  }
-
   & > *:not(:first-child):not(:last-child) {
     margin-left: 2.125rem;
   }
@@ -29,21 +20,48 @@ const NavOptionsContainer = styled.div`
   }
 `
 
+const NavItem = styled.a`
+  font-style: normal;
+  font-weight: 400;
+  font-size: 11px;
+  line-height: 13px;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: #bdc4d1;
+  opacity: .6;
+  transition: all .2s ease-in;
+
+  &:hover {
+    opacity: 1
+  }
+
+  ${props =>
+    props.selected && css`
+      opacity: 1;
+      color: #FFFFFF;
+  `}
+`
+
 
 const Nav = () => {
+  const page = Object.freeze({access: '', infrastructure: 'infrastructure', provider: 'providers'})
+
+  const router = useRouter()
+  const pathname = router.pathname.substring(1);
+
   return (
     <NavContainer>
       <>
         <div><img src='/brand.svg' /></div>
         <NavOptionsContainer>
           <Link href='/'>
-            <a>Access</a>
+            <NavItem selected={pathname === page.access ? true : ''}>Access</NavItem>
           </Link>
           <Link href='/infrastructure'>
-            <a>Infrastructure</a>
+            <NavItem selected={pathname === page.infrastructure ? true : ''}>Infrastructure</NavItem>
           </Link>
           <Link href='/providers'>
-            <a>Identity providers</a>
+            <NavItem selected={pathname === page.provider ? true : ''}>Identity providers</NavItem>
           </Link>
           <UserDropdown />
         </NavOptionsContainer>
