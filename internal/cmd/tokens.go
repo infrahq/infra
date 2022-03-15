@@ -40,13 +40,21 @@ func tokensCreate() error {
 		return err
 	}
 
-	if config.ID == 0 {
-		return fmt.Errorf("no active user")
+	id := config.PolymorphicID
+	if id == "" {
+		return fmt.Errorf("no active identity")
 	}
 
-	token, err := client.CreateToken(&api.CreateTokenRequest{
-		UserID: config.ID,
-	})
+	if !id.IsUser() && !id.IsMachine() {
+		return fmt.Errorf("unsupported identity for operation: %s", id)
+	}
+
+	userID, err := id.ID()
+	if err != nil {
+		return err
+	}
+
+	token, err := client.CreateToken(&api.CreateTokenRequest{UserID: userID})
 	if err != nil {
 		if errors.Is(err, api.ErrForbidden) {
 			fmt.Fprintln(os.Stderr, "Session has expired.")

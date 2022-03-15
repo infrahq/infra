@@ -478,18 +478,28 @@ func newInfoCmd() *cobra.Command {
 			w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
 			defer w.Flush()
 
-			if config.PolymorphicID.IsUser() {
+			id := config.PolymorphicID
+			if id == "" {
+				return fmt.Errorf("no active identity")
+			}
+
+			if id.IsUser() {
+				userID, err := id.ID()
+				if err != nil {
+					return err
+				}
+
 				provider, err := client.GetProvider(config.ProviderID)
 				if err != nil {
 					return err
 				}
 
-				user, err := client.GetUser(config.ID)
+				user, err := client.GetUser(userID)
 				if err != nil {
 					return err
 				}
 
-				groups, err := client.ListUserGroups(config.ID)
+				groups, err := client.ListUserGroups(userID)
 				if err != nil {
 					return err
 				}
@@ -508,8 +518,13 @@ func newInfoCmd() *cobra.Command {
 				fmt.Fprintf(w, "Identity Provider:\t %s (%s)\n", provider.Name, provider.URL)
 				fmt.Fprintln(w, "User:\t", user.Email)
 				fmt.Fprintln(w)
-			} else if config.PolymorphicID.IsMachine() {
-				machine, err := client.GetMachine(config.ID)
+			} else if id.IsMachine() {
+				machineID, err := id.ID()
+				if err != nil {
+					return err
+				}
+
+				machine, err := client.GetMachine(machineID)
 				if err != nil {
 					fmt.Fprintln(os.Stderr, "6.3")
 					return err
@@ -519,6 +534,8 @@ func newInfoCmd() *cobra.Command {
 				fmt.Fprintln(w, "Server:\t", config.Host)
 				fmt.Fprintln(w, "Machine User:\t", machine.Name)
 				fmt.Fprintln(w)
+			} else {
+				return fmt.Errorf("unsupported identity for operation: %s", id)
 			}
 
 			return nil
