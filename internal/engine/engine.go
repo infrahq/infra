@@ -648,7 +648,9 @@ func refreshDestination(client *api.Client, local *localDetails) error {
 		},
 	}
 
-	_, err := client.UpdateDestination(request)
+	if _, err := client.UpdateDestination(request); err != nil {
+		return fmt.Errorf("error updating existing destination: %w", err)
+	}
 
-	return fmt.Errorf("error updating existing destination: %w", err)
+	return nil
 }
