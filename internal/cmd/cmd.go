@@ -21,7 +21,7 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
-	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/engine"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server"

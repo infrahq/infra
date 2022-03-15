@@ -10,7 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientauthenticationv1beta1 "k8s.io/client-go/pkg/apis/clientauthentication/v1beta1"
 
-	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/api"
 )
 
 func newTokensAddCmd() *cobra.Command {

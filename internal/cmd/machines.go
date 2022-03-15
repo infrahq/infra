@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/api"
 )
 
 type machineOptions struct {

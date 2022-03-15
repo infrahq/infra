@@ -17,7 +17,7 @@ import (
 	"github.com/muesli/termenv"
 	"golang.org/x/term"
 
-	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/uid"

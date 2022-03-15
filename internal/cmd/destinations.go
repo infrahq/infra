@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
