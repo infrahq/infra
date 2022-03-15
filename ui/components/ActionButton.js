@@ -9,6 +9,8 @@ const StyledButton = styled.button`
   border: none;
   color: #ffffff;
   cursor: pointer;
+  font-size: 10px;
+  font-weight: 100;
 
   &:hover {
     opacity: .95;

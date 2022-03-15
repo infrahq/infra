@@ -4,7 +4,7 @@ import Router from 'next/router'
 import { useContext, useEffect } from 'react'
 
 import AccountHeader from '../../components/AccountHeader'
-import IdentitySourceBtn from '../../components/IdentitySourceBtn'
+import IdentityProviderBtn from '../../components/IdentityProviderBtn'
 
 import AuthContext from '../../store/AuthContext'
 
@@ -25,7 +25,7 @@ const Content = styled.div`
   }
 `
 
-const LoginIdentitySourceList = styled.div`
+const LoginIdentityProviderList = styled.div`
   margin-top: 2rem;
 `
 
@@ -48,6 +48,7 @@ const HelpContainer = styled.div`
 
     :hover {
       opacity: .95;
+      text-decoration: underline;
     }
   }
 `
@@ -59,7 +60,7 @@ export const readyToRedirect = async () => {
 }
 
 const Login = () => {
-  const { providers, authReady, hasRedirected } = useContext(AuthContext)
+  const { providers, authReady, hasRedirected, login } = useContext(AuthContext)
 
   const getProviderType = (url) => {
     const tempURL = url
@@ -68,7 +69,8 @@ const Login = () => {
 
   const providerWithType = providers.map((item) => {
     const type = getProviderType(item.url)
-    return { ...item, type }
+    const onClick = () => login(item)
+    return { ...item, type, onClick }
   })
 
   useEffect(() => {
@@ -88,9 +90,9 @@ const Login = () => {
                 header='Login to Infra'
                 subheader='Securely manage access to your infrastructure. Take a moment to create your account and start managing access today.'
               />
-              <LoginIdentitySourceList>
-                <IdentitySourceBtn providers={providerWithType} />
-              </LoginIdentitySourceList>
+              <LoginIdentityProviderList>
+                <IdentityProviderBtn providers={providerWithType} />
+              </LoginIdentityProviderList>
               <HelpContainer>
                 <span>Having trouble logging in?</span>
                 <Link href='/account/register'>
