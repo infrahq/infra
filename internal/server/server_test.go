@@ -845,3 +845,44 @@ func TestLoadConfigUpdate(t *testing.T) {
 	err = db.Where("name = ?", "T-1000").First(&machine).Error
 	require.NoError(t, err)
 }
+
+func TestImportAccessKeys(t *testing.T) {
+	db := setupDB(t)
+
+	s := Server{db: db}
+
+	s.options = Options{
+		AdminAccessKey: "BlgpvURSGF.NdcemBdzxLTGIcjPXwPoZNrb",
+		AccessKey: "tuogTmCFSk.FzoWHhNonnRztyRChPUiMqDx",
+	}
+
+	err := s.importSecrets()
+	require.NoError(t, err)
+
+	err = s.importAccessKeys()
+	require.NoError(t, err)
+}
+
+func TestImportAccessKeysUpdate(t *testing.T) {
+	db := setupDB(t)
+
+	s := Server{db: db}
+
+	s.options = Options{
+		AdminAccessKey: "BlgpvURSGF.NdcemBdzxLTGIcjPXwPoZNrb",
+		AccessKey: "tuogTmCFSk.FzoWHhNonnRztyRChPUiMqDx",
+	}
+
+	err := s.importSecrets()
+	require.NoError(t, err)
+
+	err = s.importAccessKeys()
+	require.NoError(t, err)
+
+	s.options = Options {
+		AdminAccessKey: "EKoHADINYX.NfhgLRqggYgdQiQXoxrNwgOe",
+	}
+
+	err = s.importAccessKeys()
+	require.NoError(t, err)
+}
