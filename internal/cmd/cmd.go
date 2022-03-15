@@ -441,6 +441,7 @@ func newTokensCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "tokens",
 		Short:             "Create & manage tokens",
+		Hidden:            true,
 		PersistentPreRunE: mustBeLoggedInC,
 	}
 
