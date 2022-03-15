@@ -27,7 +27,6 @@ helm/clean:
 .PHONY: docs
 docs:
 	go run ./internal/docgen
-	swag init --outputTypes yaml --generalInfo ./internal/api/client.go --output ./docs/api
 
 clean: helm/clean
 	$(RM) -r dist
