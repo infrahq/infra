@@ -336,6 +336,21 @@ func canonicalPath(in string) (string, error) {
 	return abs, nil
 }
 
+func newOpenAPICmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:    "openapi",
+		Short:  "generate the openapi spec",
+		Hidden: true,
+
+		RunE: func(cmd *cobra.Command, args []string) error {
+			s := &server.Server{}
+			s.GenerateRoutes()
+			return nil
+		},
+	}
+	return cmd
+}
+
 func newServerCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "server",
@@ -590,6 +605,7 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.AddCommand(newTokensCmd())
 	rootCmd.AddCommand(newInfoCmd())
 	rootCmd.AddCommand(newServerCmd())
+	rootCmd.AddCommand(newOpenAPICmd())
 	rootCmd.AddCommand(newEngineCmd())
 	rootCmd.AddCommand(newVersionCmd())
 

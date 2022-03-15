@@ -12,7 +12,6 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/infrahq/infra/internal/api"
-	"gopkg.in/yaml.v3"
 )
 
 var openAPISchema = openapi3.T{}
@@ -188,7 +187,7 @@ func buildProperty(f reflect.StructField, t reflect.Type, parentSchema *openapi3
 
 		for i := 0; i < t.NumField(); i++ {
 			f2 := t.Field(i)
-			s.Properties[f2.Name] = buildProperty(f2, f.Type, s)
+			s.Properties[f2.Name] = buildProperty(f2, f2.Type, s)
 		}
 	}
 
@@ -197,7 +196,26 @@ func buildProperty(f reflect.StructField, t reflect.Type, parentSchema *openapi3
 	}
 }
 
+func isDev() bool {
+	dirs := []string{".git", "docs"}
+	for _, dir := range dirs {
+		info, err := os.Stat(dir)
+		if err != nil {
+			return false
+		}
+		if !info.IsDir() {
+			return false
+		}
+	}
+
+	return true
+}
+
 func generateOpenAPI() {
+	if !isDev() {
+		return
+	}
+
 	openAPISchema.OpenAPI = "3.0.0"
 	openAPISchema.Info = &openapi3.Info{
 		Title:       "Infra API",
@@ -208,19 +226,9 @@ func generateOpenAPI() {
 	openAPISchema.Servers = append(openAPISchema.Servers, &openapi3.Server{
 		URL: "https://api.infrahq.com",
 	})
-	f, err := os.Create("openapi3.yml")
-	if err != nil {
-		panic(err)
-	}
-	defer f.Close()
-	enc := yaml.NewEncoder(f)
-	if err := enc.Encode(openAPISchema); err != nil {
-		fmt.Println(err.Error())
-		os.Exit(1)
-	}
 
 	// json
-	f2, err := os.Create("openapi3.json")
+	f2, err := os.Create("docs/api/openapi3.json")
 	if err != nil {
 		panic(err)
 	}
@@ -231,8 +239,6 @@ func generateOpenAPI() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-
-	os.Exit(0)
 }
 
 func setTagInfo(f reflect.StructField, t reflect.Type, schema, parentSchema *openapi3.Schema) {
@@ -488,7 +494,7 @@ func getDefaultExampleForType(t reflect.Type) string {
 	case "uid.PolymorphicID":
 		return "u:4yJ3n3D8E3"
 	case "time.Time":
-		return time.Now().UTC().Format(time.RFC3339)
+		return exampleTime
 	default:
 		return ""
 	}

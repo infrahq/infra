@@ -26,7 +26,7 @@ helm/clean:
 	$(RM) -r helm/*.tgz
 
 .PHONY: docs
-docs:
+docs: openapi
 	go run ./internal/docgen
 
 clean: helm/clean
@@ -88,5 +88,17 @@ release/helm: helm
 golangci-lint:
 	@command -v golangci-lint >/dev/null || { echo "install golangci-lint @ https://golangci-lint.run/usage/install/#local-installation" && exit 1; }
 
+openapi-lint:
+	@command -v openapi --version >/dev/null || { echo "openapi missing, try: npm install -g @redocly/openapi-cli" && exit 1; }
+	openapi lint ./docs/api/openapi3.json
+
 lint: golangci-lint
 	golangci-lint run ./...
+
+openapi:
+	go run . openapi
+
+readme: openapi openapi-lint
+	rdme versions --key=${README_API_KEY} | grep 1.`date +%Y%m%d` >/dev/null || \
+		rdme versions:create --version=v1.`date +%Y%m%d` --key=${README_API_KEY}
+	rdme openapi --version=v1.`date +%Y%m%d` --key=${README_API_KEY} ./docs/api/openapi3.json
