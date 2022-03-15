@@ -10,6 +10,7 @@ const AuthContext = createContext({
   loginError: false,
   providers: [],
   user: null,
+  newestProvider: null,
   getAccessKey: async (code, providerID, redirectURL) => {},
   login: (selectedIdp) => {},
   logout: async () => {},
@@ -37,6 +38,7 @@ export const AuthContextProvider = ({ children }) => {
   const [authReady, setAuthReady] = useState(false)
 
   const [providers, setProviders] = useState([])
+  const [newestProvider, setNewestProvider] = useState(null)
   const [cookie, setCookie, removeCookies] = useCookies(['accessKey'])
 
   useEffect(() => {
@@ -67,6 +69,7 @@ export const AuthContextProvider = ({ children }) => {
 
   const setNewProvider = (provider) => {
     setProviders(currentProviders => [...currentProviders, provider])
+    setNewestProvider(provider);
   }
 
   const redirectToDashboard = async (key) => {
@@ -137,6 +140,7 @@ export const AuthContextProvider = ({ children }) => {
     loginError,
     providers,
     user,
+    newestProvider,
     getAccessKey,
     login,
     logout,

@@ -34,7 +34,7 @@ const IdentityProviderList = styled.section`
 
 const setupOkta = async () => {
   await Router.push({
-    pathname: '/providers/add/details'
+    pathname: '/providers/add/okta'
   }, undefined, { shallow: true })
 }
 
