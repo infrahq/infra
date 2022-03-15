@@ -265,6 +265,7 @@
       "Provider": {
         "properties": {
           "clientID": {
+            "example": "0oapn0qwiQPiMIyR35d6",
             "type": "string"
           },
           "created": {
@@ -278,6 +279,7 @@
             "type": "string"
           },
           "name": {
+            "example": "okta",
             "type": "string"
           },
           "updated": {
@@ -285,6 +287,7 @@
             "type": "integer"
           },
           "url": {
+            "example": "infrahq.okta.com",
             "type": "string"
           }
         },
@@ -362,7 +365,7 @@
           {
             "example": "4yJ3n3D8E2",
             "in": "query",
-            "name": "machineID",
+            "name": "machine_id",
             "schema": {
               "example": "4yJ3n3D8E2",
               "format": "uid",
@@ -2545,9 +2548,11 @@
         "operationId": "ListProviders",
         "parameters": [
           {
+            "example": "okta",
             "in": "query",
             "name": "name",
             "schema": {
+              "example": "okta",
               "type": "string"
             }
           }
@@ -2631,15 +2636,19 @@
               "schema": {
                 "properties": {
                   "clientID": {
+                    "example": "0oapn0qwiQPiMIyR35d6",
                     "type": "string"
                   },
                   "clientSecret": {
+                    "example": "jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU",
                     "type": "string"
                   },
                   "name": {
+                    "example": "okta",
                     "type": "string"
                   },
                   "url": {
+                    "example": "infrahq.okta.com",
                     "type": "string"
                   }
                 },
@@ -2912,15 +2921,19 @@
               "schema": {
                 "properties": {
                   "clientID": {
+                    "example": "0oapn0qwiQPiMIyR35d6",
                     "type": "string"
                   },
                   "clientSecret": {
+                    "example": "jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU",
                     "type": "string"
                   },
                   "name": {
+                    "example": "okta",
                     "type": "string"
                   },
                   "url": {
+                    "example": "infrahq.okta.com",
                     "type": "string"
                   }
                 },
@@ -3237,9 +3250,11 @@
         "operationId": "ListUsers",
         "parameters": [
           {
+            "example": "email@example.com",
             "in": "query",
             "name": "email",
             "schema": {
+              "example": "email@example.com",
               "type": "string"
             }
           },
