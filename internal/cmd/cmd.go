@@ -280,6 +280,7 @@ func newGrantsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "grants",
 		Short:             "Manage access to destinations",
+		Aliases:           []string{"grant"},
 		PersistentPreRunE: mustBeLoggedInC,
 	}
 
@@ -294,6 +295,7 @@ func newKeysCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "keys",
 		Short:             "Manage access keys for machine identities to authenticate with Infra and call the API",
+		Aliases:           []string{"key"},
 		PersistentPreRunE: mustBeLoggedInC,
 	}
 
@@ -454,6 +456,7 @@ func newProvidersCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "providers",
 		Short:             "Manage identity providers",
+		Aliases:           []string{"provider"},
 		PersistentPreRunE: mustBeLoggedInC,
 	}
 
