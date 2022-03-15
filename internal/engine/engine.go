@@ -25,7 +25,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/claims"
 	"github.com/infrahq/infra/internal/kubernetes"

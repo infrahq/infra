@@ -14,7 +14,7 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
-	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/authn"
 	"github.com/infrahq/infra/internal/server/models"

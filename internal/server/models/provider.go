@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/uid"
 )
 
