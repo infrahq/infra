@@ -552,10 +552,8 @@ func NewRootCmd() (*cobra.Command, error) {
 			if v {
 				return version()
 			} else if i {
-				err := mustBeLoggedIn()
-
-				if err != nil {
-					return err
+				if err := mustBeLoggedIn(); err != nil {
+				    return err
 				}
 				return info()
 			}
