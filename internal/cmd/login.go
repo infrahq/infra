@@ -228,12 +228,6 @@ func finishLogin(host string, polymorphicID uid.PolymorphicID, name string, acce
 
 	var hostConfig ClientHostConfig
 
-	id, err := polymorphicID.ID()
-	if err != nil {
-		return err
-	}
-
-	hostConfig.ID = id
 	hostConfig.PolymorphicID = polymorphicID
 	hostConfig.Current = true
 	hostConfig.Host = host

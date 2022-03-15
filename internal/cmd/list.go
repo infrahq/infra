@@ -19,24 +19,24 @@ func list() error {
 		return err
 	}
 
-	if config.ID == 0 {
+	id := config.PolymorphicID
+	if id == "" {
 		return fmt.Errorf("no active identity")
 	}
 
-	destinations, err := client.ListDestinations(api.ListDestinationsRequest{})
-	if err != nil {
-		return err
-	}
-
 	var grants []api.Grant
-	if config.ProviderID != 0 {
-
-		grants, err = client.ListUserGrants(config.ID)
+	if id.IsUser() {
+		userID, err := id.ID()
 		if err != nil {
 			return err
 		}
 
-		groups, err := client.ListUserGroups(config.ID)
+		grants, err = client.ListUserGrants(userID)
+		if err != nil {
+			return err
+		}
+
+		groups, err := client.ListUserGroups(userID)
 		if err != nil {
 			return err
 		}
@@ -49,11 +49,18 @@ func list() error {
 
 			grants = append(grants, groupGrants...)
 		}
-	} else {
-		grants, err = client.ListMachineGrants(config.ID)
+	} else if id.IsMachine() {
+		machineID, err := id.ID()
 		if err != nil {
 			return err
 		}
+
+		grants, err = client.ListMachineGrants(machineID)
+		if err != nil {
+			return err
+		}
+	} else {
+		return fmt.Errorf("unsupported identity for operation: %s", id)
 	}
 
 	gs := make(map[string]mapset.Set)
@@ -64,6 +71,11 @@ func list() error {
 		}
 
 		gs[g.Resource].Add(g.Privilege)
+	}
+
+	destinations, err := client.ListDestinations(api.ListDestinationsRequest{})
+	if err != nil {
+		return err
 	}
 
 	type row struct {
