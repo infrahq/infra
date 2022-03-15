@@ -26,10 +26,6 @@ import (
 	"github.com/infrahq/infra/internal/server"
 )
 
-func mustBeLoggedInC(cmd *cobra.Command, args []string) error {
-	return mustBeLoggedIn()
-}
-
 func mustBeLoggedIn() error {
 	config, err := currentHostConfig()
 	if err != nil {
@@ -219,10 +215,12 @@ func newLogoutCmd() *cobra.Command {
 
 func newListCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:               "list",
-		Aliases:           []string{"ls"},
-		Short:             "List accessible destinations",
-		PersistentPreRunE: mustBeLoggedInC,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List accessible destinations",
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return mustBeLoggedIn()
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return list()
 		},
@@ -240,8 +238,10 @@ $ infra use kubernetes.development
 # Connect to a Kubernetes namespace
 $ infra use kubernetes.development.kube-system
 		`,
-		Args:              cobra.ExactArgs(1),
-		PersistentPreRunE: mustBeLoggedInC,
+		Args: cobra.ExactArgs(1),
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return mustBeLoggedIn()
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
@@ -277,10 +277,12 @@ $ infra use kubernetes.development.kube-system
 
 func newGrantsCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:               "grants",
-		Short:             "Manage access to destinations",
-		Aliases:           []string{"grant"},
-		PersistentPreRunE: mustBeLoggedInC,
+		Use:     "grants",
+		Short:   "Manage access to destinations",
+		Aliases: []string{"grant"},
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return mustBeLoggedIn()
+		},
 	}
 
 	cmd.AddCommand(newGrantsListCmd())
@@ -292,10 +294,12 @@ func newGrantsCmd() *cobra.Command {
 
 func newKeysCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:               "keys",
-		Short:             "Manage access keys for machine identities to authenticate with Infra and call the API",
-		Aliases:           []string{"key"},
-		PersistentPreRunE: mustBeLoggedInC,
+		Use:     "keys",
+		Short:   "Manage access keys for machine identities to authenticate with Infra and call the API",
+		Aliases: []string{"key"},
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return mustBeLoggedIn()
+		},
 	}
 
 	cmd.AddCommand(newKeysListCmd())
@@ -307,10 +311,12 @@ func newKeysCmd() *cobra.Command {
 
 func newDestinationsCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:               "destinations",
-		Aliases:           []string{"dst", "dest", "destination"},
-		Short:             "Manage destinations",
-		PersistentPreRunE: mustBeLoggedInC,
+		Use:     "destinations",
+		Aliases: []string{"dst", "dest", "destination"},
+		Short:   "Manage destinations",
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return mustBeLoggedIn()
+		},
 	}
 
 	cmd.AddCommand(newDestinationsListCmd())
@@ -440,10 +446,12 @@ func newEngineCmd() *cobra.Command {
 
 func newTokensCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:               "tokens",
-		Short:             "Create & manage tokens",
-		Hidden:            true,
-		PersistentPreRunE: mustBeLoggedInC,
+		Use:    "tokens",
+		Short:  "Create & manage tokens",
+		Hidden: true,
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return mustBeLoggedIn()
+		},
 	}
 
 	cmd.AddCommand(newTokensAddCmd())
@@ -453,10 +461,12 @@ func newTokensCmd() *cobra.Command {
 
 func newProvidersCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:               "providers",
-		Short:             "Manage identity providers",
-		Aliases:           []string{"provider"},
-		PersistentPreRunE: mustBeLoggedInC,
+		Use:     "providers",
+		Short:   "Manage identity providers",
+		Aliases: []string{"provider"},
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return mustBeLoggedIn()
+		},
 	}
 
 	cmd.AddCommand(newProvidersListCmd())
@@ -468,10 +478,12 @@ func newProvidersCmd() *cobra.Command {
 
 func newInfoCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:     "info",
-		Short:   "Display the info about the current session",
-		Hidden:  true,
-		PreRunE: mustBeLoggedInC,
+		Use:    "info",
+		Short:  "Display the info about the current session",
+		Hidden: true,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return mustBeLoggedIn()
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return info()
 		},
@@ -480,10 +492,12 @@ func newInfoCmd() *cobra.Command {
 
 func newIdentitiesCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:               "identities",
-		Aliases:           []string{"id", "identity"},
-		Short:             "Manage identities (users & machines)",
-		PersistentPreRunE: mustBeLoggedInC,
+		Use:     "identities",
+		Aliases: []string{"id", "identity"},
+		Short:   "Manage identities (users & machines)",
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return mustBeLoggedIn()
+		},
 	}
 
 	cmd.AddCommand(newIdentitiesAddCmd())
