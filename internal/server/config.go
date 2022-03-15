@@ -526,7 +526,7 @@ func (s *Server) importAccessKeys() error {
 
 		name := fmt.Sprintf("default %s access key", k)
 
-		ak, err := data.GetAccessKeys(s.db, data.ByMachineIDIssuedFor(machine.ID))
+		ak, err := data.GetAccessKey(s.db, data.ByMachineIDIssuedFor(machine.ID))
 		if err != nil {
 			if !errors.Is(err, internal.ErrNotFound) {
 				return err

@@ -71,7 +71,7 @@ func ListAccessKeys(db *gorm.DB, selectors ...SelectorFunc) ([]models.AccessKey,
 	return list[models.AccessKey](db, selectors...)
 }
 
-func GetAccessKeys(db *gorm.DB, selectors ...SelectorFunc) (*models.AccessKey, error) {
+func GetAccessKey(db *gorm.DB, selectors ...SelectorFunc) (*models.AccessKey, error) {
 	return get[models.AccessKey](db, selectors...)
 }
 
@@ -99,7 +99,7 @@ func ValidateAccessKey(db *gorm.DB, authnKey string) (*models.AccessKey, error) 
 		return nil, fmt.Errorf("rejected access key format")
 	}
 
-	t, err := GetAccessKeys(db, ByKey(parts[0]))
+	t, err := GetAccessKey(db, ByKey(parts[0]))
 	if err != nil {
 		return nil, fmt.Errorf("%w could not get access key from database, it may not exist", err)
 	}
