@@ -489,6 +489,11 @@ func (s *Server) importAccessKeys() error {
 			continue
 		}
 
+		parts := strings.Split(raw, ".")
+		if len(parts) < 2 {
+			return fmt.Errorf("%s format: %w", k, err)
+		}
+
 		// create the machine identity if it doesn't exist
 		machine, err := data.GetMachine(s.db, data.ByName(k))
 		if err != nil {
@@ -519,25 +524,20 @@ func (s *Server) importAccessKeys() error {
 			}
 		}
 
-		ak, err := data.ValidateAccessKey(s.db, raw)
+		name := fmt.Sprintf("default %s access key", k)
+
+		ak, err := data.GetAccessKeys(s.db, data.ByMachineIDIssuedFor(machine.ID))
 		if err != nil {
 			if !errors.Is(err, internal.ErrNotFound) {
-				return fmt.Errorf("%s lookup: %w", k, err)
+				return err
 			}
 		}
-
-		parts := strings.Split(raw, ".")
-		if len(parts) < 2 {
-			return fmt.Errorf("%s format: %w", k, err)
-		}
-
-		name := fmt.Sprintf("default %s access key", k)
 
 		if ak != nil {
 			sum := sha256.Sum256([]byte(parts[1]))
 
-			// if token name and secret checksum match the input, skip recreating the token
-			if ak.Name == name && subtle.ConstantTimeCompare(ak.SecretChecksum, sum[:]) != 1 {
+			// if token name, key, and secret checksum match input, skip recreating the token
+			if ak.Name == name && subtle.ConstantTimeCompare([]byte(ak.Key), []byte(parts[0])) != 1 && subtle.ConstantTimeCompare(ak.SecretChecksum, sum[:]) != 1 {
 				logging.S.Debugf("%s: skip recreating token", k)
 				continue
 			}
