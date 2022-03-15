@@ -77,9 +77,7 @@
 
 {{- end }}
 
-{{- if .Values.engine.ingress.enabled }}
-
-{{- else if eq .Values.engine.service.type "LoadBalancer" }}
+{{- if eq .Values.engine.service.type "LoadBalancer" }}
 
 {{- else }}
 

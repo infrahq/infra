@@ -663,56 +663,6 @@ engine:
       ## Prometheus metric relabel configs to apply to samples before ingesting
       metricRelabelings: []
 
-  ## Infra engine ingress configurations
-  ingress:
-
-    ## Enable engine ingress resource
-    enabled: false
-
-    ## Ingress labels
-    labels: {}
-
-    ## Ingress annotations
-    annotations: {}
-
-    ## Name of the ingress controller that will implement this resource
-    className: ""
-
-    ## Hostnames to apply this ingress to
-    ## Must not be empty if `ingress.enabled` is `true`
-    hosts: []
-    # - infra.example.com
-
-    ## Paths to apply this ingress to
-    paths:
-      - /
-
-    ## Type of path
-    ## One of `Exact`, `Prefix`, or `ImplementationSpecific`
-    pathType: Prefix
-
-    ## Additional paths to attach to the ingress
-    additionalPaths: []
-    # Kubernetes <1.19, using `networking.k8s.io/v1beta1`
-    # - path: /*
-    #   backend:
-    #     serviceName: ssl-redirect
-    #     servicePort: use-annotation
-    # Kubernetes >=1.19, using `networking.k8s.io/v1`
-    # - path: /*
-    #   pathType: Prefix
-    #   backend:
-    #     service:
-    #       name: ssl-redirect
-    #       port:
-    #         name: use-annotation
-
-    ## Ingress TLS configurations
-    tls: []
-    # - secretName: infra-tls-certificate
-    #   hosts:
-    #     - infra.example.com
-
   ## Infra engine persistence configurations
   persistence:
 
