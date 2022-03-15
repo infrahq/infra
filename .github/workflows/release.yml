@@ -81,10 +81,10 @@ jobs:
           make helm tag=${{ needs.release-please.outputs.release_name }}
           aws s3 sync helm s3://helm.infrahq.com --exclude "*" --include "index.yaml" --include "*.tgz"
 
-  readme:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: readmeio/rdme@7.0.0
-        with:
-          rdme: openapi ./docs/api/swagger.yaml --key=${{ secrets.README_API_KEY }} --id=6222ae0352ca1a0028faf020
+  # readme:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: readmeio/rdme@7.0.0
+  #       with:
+  #         rdme: openapi ./docs/api/openapi3.json --key=${{ secrets.README_API_KEY }} --id=6222ae0352ca1a0028faf020
