@@ -157,3 +157,10 @@ existing secret and use its password. If the secret does not exist, randomly gen
 {{- end }}
 {{- end }}
 {{- end }}
+
+{{/*
+Infer whether Infra engine should be deployed based on engine.enabled, engine.config.server, and engine.config.accessKey.
+*/}}
+{{- define "engine.enabled" -}}
+{{- or .Values.engine.enabled (not (empty .Values.engine.config.server)) (not (empty .Values.engine.config.accessKey)) }}
+{{- end }}

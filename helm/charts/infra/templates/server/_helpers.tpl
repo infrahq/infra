@@ -142,7 +142,7 @@ If global value is present, use global value. Otherwise, use local value.
 {{- end }}
 
 {{/*
-Infer whether server should be deployed based on server.enabled and engine.config.server.
+Infer whether Infra server should be deployed based on server.enabled and engine.config.server.
 */}}
 {{- define "server.enabled" -}}
 {{- and .Values.server.enabled (not .Values.engine.config.server) }}
