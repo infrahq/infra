@@ -442,7 +442,7 @@ server:
 engine:
 
   ## Deploy the engine
-  enabled: true
+  enabled: false
   componentName: engine
 
   ## Number of engine pods to run

@@ -48,7 +48,7 @@
 
 {{- end }}
 {{- end }}
-{{- else if .Values.engine.enabled }}
+{{- else if include "engine.enabled" . | eq "true" }}
 
 {{- if not .Values.engine.config.name }}
 
