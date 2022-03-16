@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/api"
 )
 
 var openAPISchema = openapi3.T{}
