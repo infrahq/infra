@@ -23,6 +23,12 @@ var (
 )
 
 type Error struct {
-	Code    int32  `json:"code"` // should be a repeat of the http response status code
-	Message string `json:"message"`
+	Code        int32        `json:"code"` // should be a repeat of the http response status code
+	Message     string       `json:"message"`
+	FieldErrors []FieldError `json:"fieldErrors,omitempty"`
+}
+
+type FieldError struct {
+	FieldName string   `json:"fieldName"`
+	Errors    []string `json:"errors"`
 }

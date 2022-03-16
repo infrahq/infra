@@ -3,13 +3,11 @@ package server
 import (
 	"errors"
 	"fmt"
-	"net/http"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 	"gopkg.in/segmentio/analytics-go.v3"
 
 	"github.com/infrahq/infra/internal"
@@ -27,53 +25,13 @@ type API struct {
 	server *Server
 }
 
-func NewAPIMux(server *Server, router *gin.RouterGroup) {
+func NewAPI(server *Server, router *gin.RouterGroup) {
 	a := API{
 		t:      server.tel,
 		server: server,
 	}
 
 	a.registerRoutes(router)
-}
-
-func sendAPIError(c *gin.Context, err error) {
-	code := http.StatusInternalServerError
-	message := "internal server error" // don't leak any info by default
-
-	switch {
-	case errors.Is(err, internal.ErrUnauthorized):
-		code = http.StatusUnauthorized
-		message = "unauthorized"
-		logging.WrappedSugarLogger(c).Debugw(err.Error(), "statusCode", code)
-	case errors.Is(err, internal.ErrForbidden):
-		code = http.StatusForbidden
-		message = "forbidden"
-		logging.WrappedSugarLogger(c).Debugw(err.Error(), "statusCode", code)
-	case errors.Is(err, internal.ErrDuplicate):
-		code = http.StatusConflict
-		message = err.Error()
-		logging.WrappedSugarLogger(c).Debugw(err.Error(), "statusCode", code)
-	case errors.Is(err, internal.ErrNotFound):
-		code = http.StatusNotFound
-		message = err.Error()
-		logging.WrappedSugarLogger(c).Debugw(err.Error(), "statusCode", code)
-	case errors.Is(err, internal.ErrBadRequest):
-		code = http.StatusBadRequest
-		message = err.Error()
-		logging.WrappedSugarLogger(c).Debugw(err.Error(), "statusCode", code)
-	case errors.Is(err, (*validator.InvalidValidationError)(nil)):
-		code = http.StatusBadRequest
-		message = err.Error()
-		logging.WrappedSugarLogger(c).Debugw(err.Error(), "statusCode", code)
-	default:
-		logging.WrappedSugarLogger(c).Errorw(err.Error(), "statusCode", code)
-	}
-
-	c.JSON(code, &api.Error{
-		Code:    int32(code),
-		Message: message,
-	})
-	c.Abort()
 }
 
 func (a *API) ListUsers(c *gin.Context, r *api.ListUsersRequest) ([]api.User, error) {

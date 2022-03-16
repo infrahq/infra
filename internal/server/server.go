@@ -350,7 +350,7 @@ func (s *Server) runServer() error {
 	router.GET("/.well-known/jwks.json", s.wellKnownJWKsHandler)
 	router.GET("/healthz", s.healthHandler)
 
-	NewAPIMux(s, router.Group("/v1"))
+	NewAPI(s, router.Group("/v1"))
 
 	if err := s.ui(router); err != nil {
 		return err
