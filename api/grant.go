@@ -26,6 +26,6 @@ type ListGrantsRequest struct {
 
 type CreateGrantRequest struct {
 	Identity  uid.PolymorphicID `json:"identity" validate:"required"`
-	Resource  string            `json:"resource" validate:"required" example:"kubernetes.clustername.secrets.*"`
+	Resource  string            `json:"resource" validate:"required" example:"kubernetes.production"`
 	Privilege string            `json:"privilege" validate:"required" example:"read"`
 }
