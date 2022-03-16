@@ -354,7 +354,7 @@
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
     "title": "Infra API",
-    "version": "2022-03-15"
+    "version": "2022-03-16"
   },
   "paths": {
     "/v1/access-keys": {
@@ -1137,11 +1137,11 @@
             }
           },
           {
-            "example": "kubernetes.clustername.secrets.*",
+            "example": "kubernetes.production",
             "in": "query",
             "name": "resource",
             "schema": {
-              "example": "kubernetes.clustername.secrets.*",
+              "example": "kubernetes.production",
               "type": "string"
             }
           },
