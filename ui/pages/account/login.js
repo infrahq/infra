@@ -4,7 +4,7 @@ import Router from 'next/router'
 import { useContext, useEffect } from 'react'
 
 import AccountHeader from '../../components/AccountHeader'
-import IdentityProviderBtn from '../../components/IdentityProviderBtn'
+import IdentityProviderButton from '../../components/IdentityProviderButton'
 
 import AuthContext from '../../store/AuthContext'
 
@@ -91,7 +91,7 @@ const Login = () => {
                 subheader='Securely manage access to your infrastructure. Take a moment to create your account and start managing access today.'
               />
               <LoginIdentityProviderList>
-                <IdentityProviderBtn providers={providerWithType} />
+                <IdentityProviderButton providers={providerWithType} />
               </LoginIdentityProviderList>
               <HelpContainer>
                 <span>Having trouble logging in?</span>

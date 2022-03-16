@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import styled from 'styled-components'
 
-const ExitBtnContainer = styled.div`
+const ExitButtonContainer = styled.div`
   cursor: pointer;
 
   &:hover {
@@ -11,11 +11,11 @@ const ExitBtnContainer = styled.div`
 
 const ExitButton = () => {
   return (
-    <ExitBtnContainer>
+    <ExitButtonContainer>
       <Link href='/'>
         <img src='/close-icon.svg' />
       </Link>
-    </ExitBtnContainer>
+    </ExitButtonContainer>
   )
 }
 
