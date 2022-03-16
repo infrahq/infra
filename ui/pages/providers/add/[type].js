@@ -70,14 +70,14 @@ const Details = () => {
 
   const moveToNext = async () => {
     await axios.post('/v1/providers',
-    { name: value.name, url: value.domain, clientID: value.clientId, clientSecret: value.clientSecret },
-    { headers: { Authorization: `Bearer ${cookie.accessKey}` } })
-    .then((response) => {
-      setNewProvider(response.data)
-      addAdmins()
-    }).catch((error) => {
-      console.log('error:', error)
-    })
+      { name: value.name, url: value.domain, clientID: value.clientId, clientSecret: value.clientSecret },
+      { headers: { Authorization: `Bearer ${cookie.accessKey}` } })
+      .then((response) => {
+        setNewProvider(response.data)
+        addAdmins()
+      }).catch((error) => {
+        console.log('error:', error)
+      })
   }
 
   return (
@@ -94,7 +94,7 @@ const Details = () => {
         <ActionButton onClick={() => moveToNext()} value='Connect' size='small' />
       </Footer>
     </>
-  );
+  )
 }
- 
-export default Details;
+
+export default Details

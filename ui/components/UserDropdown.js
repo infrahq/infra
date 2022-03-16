@@ -5,7 +5,7 @@ import AuthContext from '../store/AuthContext'
 
 const UserDropdownContainer = styled.span`
   position: relative;
-`;
+`
 
 const UserDropdownHeader = styled.button`
   width: 26px;
@@ -20,7 +20,7 @@ const UserDropdownHeader = styled.button`
   &:hover {
     opacity: 1;
   }
-`;
+`
 
 const UserDropdownContent = styled.div`
   background: #373C41;
@@ -35,7 +35,7 @@ const UserDropdownContent = styled.div`
   max-height: 117px;
   max-width: calc(-24px + 100vw);
   padding: 11px 7px 0px;
-`;
+`
 
 const UserDropdownContentHeader = styled.div`
   display: flex;
@@ -45,7 +45,7 @@ const UserDropdownContentHeader = styled.div`
   & > *:not(:first-child) {
     padding-left: .5rem
   }
-`;
+`
 
 const Avatar = styled.div`
   width: 36px;
@@ -58,24 +58,24 @@ const Avatar = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-`;
+`
 
 const Content = styled.div`
   font-weight: 400;
   font-size: 11px;
   line-height: 13px;
   padding-top: .25rem;
-`;
+`
 
 const Role = styled.div`
   color: rgba(255, 255, 255, 0.48);
-`;
+`
 
 const LogoutContainer = styled.div`
   border-top: 1px solid rgba(255, 255, 255, .1);
   margin-left: -.45rem;
   margin-right: -.45rem
-`;
+`
 
 const LogoutBtn = styled.a`
   font-weight: 400;
@@ -92,14 +92,13 @@ const LogoutBtn = styled.a`
   white-space: nowrap;
   width: 100%;
   cursor: pointer;
-`;
+`
 
 const UserDropdown = () => {
-  const { user, logout,  } = useContext(AuthContext)
-  const [currentUser, setCurrentUser] = useState(null)
+  const { user, logout } = useContext(AuthContext)
   const [iconText, setIconText] = useState(null)
   const [dropdownOpen, setDropdownOpen] = useState(false)
-  
+
   const wrapperRef = useRef(null)
 
   const useOutsideAlerter = (ref) => {
@@ -109,18 +108,17 @@ const UserDropdown = () => {
           setDropdownOpen(false)
         }
       }
-      document.addEventListener("mousedown", handleClickOutside)
+      document.addEventListener('mousedown', handleClickOutside)
       return () => {
-        document.removeEventListener("mousedown", handleClickOutside)
-      };
+        document.removeEventListener('mousedown', handleClickOutside)
+      }
     }, [ref])
   }
-  
+
   useOutsideAlerter(wrapperRef)
-  
+
   useEffect(() => {
     if (user != null) {
-      setCurrentUser(user)
       getIconText(user.name)
     }
   }, [])
@@ -130,7 +128,7 @@ const UserDropdown = () => {
   }
 
   const handleLogout = async () => {
-    setDropdownOpen(false);
+    setDropdownOpen(false)
     await logout()
   }
 
@@ -139,7 +137,7 @@ const UserDropdown = () => {
       <UserDropdownHeader onClick={() => setDropdownOpen(!dropdownOpen)}>
         {iconText}
       </UserDropdownHeader>
-      {dropdownOpen && 
+      {dropdownOpen &&
         <UserDropdownContent>
           <UserDropdownContentHeader>
             <Avatar>
@@ -153,8 +151,7 @@ const UserDropdown = () => {
           <LogoutContainer>
             <LogoutBtn onClick={() => handleLogout()}>LOGOUT</LogoutBtn>
           </LogoutContainer>
-        </UserDropdownContent>
-      }
+        </UserDropdownContent>}
     </UserDropdownContainer>
   )
 }

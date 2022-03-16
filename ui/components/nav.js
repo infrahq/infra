@@ -42,12 +42,11 @@ const NavItem = styled.a`
   `}
 `
 
-
 const Nav = () => {
-  const page = Object.freeze({access: '', infrastructure: 'infrastructure', provider: 'providers'})
+  const page = Object.freeze({ access: '', infrastructure: 'infrastructure', provider: 'providers' })
 
   const router = useRouter()
-  const pathname = router.pathname.substring(1);
+  const pathname = router.pathname.substring(1)
 
   return (
     <NavContainer>

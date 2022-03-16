@@ -37,7 +37,7 @@ export default function Index () {
               )
             })}
           </div>
-        )
+          )
         : (
           <ActionButton
             onClick={() => handleConnectProviders()}
