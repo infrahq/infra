@@ -21,11 +21,11 @@ type Grant struct {
 type ListGrantsRequest struct {
 	Identity  uid.PolymorphicID `form:"identity"`
 	Resource  string            `form:"resource" example:"kubernetes.production"`
-	Privilege string            `form:"privilege" example:"read"`
+	Privilege string            `form:"privilege" example:"view"`
 }
 
 type CreateGrantRequest struct {
 	Identity  uid.PolymorphicID `json:"identity" validate:"required"`
 	Resource  string            `json:"resource" validate:"required" example:"kubernetes.production"`
-	Privilege string            `json:"privilege" validate:"required" example:"read"`
+	Privilege string            `json:"privilege" validate:"required" example:"view"`
 }
