@@ -24,17 +24,19 @@ data:
 {{- end }}
 
 {{- $adminAccessKey := default "" .Values.server.config.adminAccessKey }}
-{{- if and $adminAccessKey (or (hasPrefix "file:" $adminAccessKey) (hasPrefix "env:" $adminAccessKey)) }}
-    adminAccessKey: {{ $adminAccessKey }}
-{{- else }}
+{{- if and $adminAccessKey (not (hasPrefix "file:" $adminAccessKey)) (not (hasPrefix "env:" $adminAccessKey)) }}
     adminAccessKey: file:/var/run/secrets/infrahq.com/admin-access-key/access-key
+{{- else if $adminAccessKey }}
+    adminAccessKey: {{ $adminAccessKey }}
 {{- end }}
 
-{{- $accessKey := default "" .Values.server.config.accessKey }}
+{{- if .Values.engine.enabled }}
+{{- $accessKey := default "" .Values.engine.config.accessKey }}
 {{- if and $accessKey (or (hasPrefix "file:" $accessKey) (hasPrefix "env:" $accessKey)) }}
     accessKey: {{ $accessKey }}
 {{- else }}
     accessKey: file:/var/run/secrets/infrahq.com/access-key/access-key
+{{- end }}
 {{- end }}
 
 {{- if .Values.server.persistence.enabled }}

@@ -44,10 +44,15 @@ spec:
             - name: data
               mountPath: /var/lib/infrahq/server
 {{- end }}
+{{- $adminAccessKey := default "" .Values.server.config.adminAccessKey -}}
+{{- if and $adminAccessKey (not (hasPrefix "file:" $adminAccessKey)) (not (hasPrefix "env:" $adminAccessKey)) }}
             - name: admin-access-key
               mountPath: /var/run/secrets/infrahq.com/admin-access-key
+{{- end }}
+{{- if .Values.engine.enabled }}
             - name: access-key
               mountPath: /var/run/secrets/infrahq.com/access-key
+{{- end }}
 {{- if .Values.server.volumeMounts }}
 {{- toYaml .Values.server.volumeMounts | nindent 12 }}
 {{- end }}
@@ -90,14 +95,19 @@ spec:
           persistentVolumeClaim:
             claimName: {{ include "server.fullname" . }}
 {{- end }}
+{{- $adminAccessKey := default "" .Values.server.config.adminAccessKey -}}
+{{- if and $adminAccessKey (not (hasPrefix "file:" $adminAccessKey)) (not (hasPrefix "env:" $adminAccessKey)) }}
         - name: admin-access-key
           secret:
             secretName: {{ .Release.Name }}-admin-access-key
             optional: true
+{{- end }}
+{{- if .Values.engine.enabled }}
         - name: access-key
           secret:
             secretName: {{ .Release.Name }}-access-key
             optional: true
+{{- end }}
 {{- if .Values.server.volumes }}
 {{- toYaml .Values.server.volumes | nindent 8 }}
 {{- end }}

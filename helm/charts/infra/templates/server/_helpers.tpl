@@ -142,23 +142,6 @@ If global value is present, use global value. Otherwise, use local value.
 {{- end }}
 
 {{/*
-Create an admin access key. If one is defined through values, use it. Otherwise look for an
-existing secret and use its password. If the secret does not exist, randomly generate a password.
-*/}}
-{{- define "server.adminAccessKey" -}}
-{{- if .Values.server.config.adminAccessKey }}
-{{- .Values.server.config.adminAccessKey }}
-{{- else }}
-{{- $secret := lookup "v1" "Secret" .Release.Namespace (printf "%s-admin-access-key" .Release.Name) }}
-{{- if $secret }}
-{{- index $secret "data" "access-key" | b64dec }}
-{{- else }}
-{{- randAlphaNum 10 }}.{{ randAlphaNum 24 }}
-{{- end }}
-{{- end }}
-{{- end }}
-
-{{/*
 Infer whether server should be deployed based on server.enabled and engine.config.server.
 */}}
 {{- define "server.enabled" -}}
