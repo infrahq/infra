@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.18rc1 AS builder
+FROM --platform=$BUILDPLATFORM golang:1.18 AS builder
 RUN apt-get update && \
     apt-get install -y gcc-aarch64-linux-gnu gcc-x86-64-linux-gnu && \
     ln -s /usr/bin/aarch64-linux-gnu-gcc /usr/bin/arm64-linux-gnu-gcc  && \

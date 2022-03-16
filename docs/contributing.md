@@ -2,7 +2,7 @@
 
 ## Setup
 
-1. Install [Go 1.18](https://go.dev/dl/#go1.18rc1)
+1. Install [Go 1.18](https://go.dev/dl/#go1.18)
 1. Clone the project
 
     ```bash
