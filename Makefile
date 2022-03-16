@@ -67,7 +67,6 @@ dev: $(VALUES) build/docker
 	kubectl $(NS) get secrets $(INFRA_OKTA) >/dev/null
 	helm $(NS) upgrade --install --create-namespace $(patsubst %,-f %,$(VALUES)) --wait infra helm/charts/infra
 	@[ -z "$(NS)" ] || kubectl config set-context --current --namespace=$(NAMESPACE)
-	@echo Admin Access Key: $$(kubectl $(NS) get secrets infra-admin-access-key -o jsonpath='{.data.access-key}' | base64 --decode)
 
 dev/clean:
 	kubectl config use-context docker-desktop
