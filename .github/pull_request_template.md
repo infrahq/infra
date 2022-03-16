@@ -22,4 +22,6 @@ Checklists help us remember things.  Change [ ] to [x] to show completion.
 
 Resolves #
 
+[![pull request](https://github.com/infrahq/infra/actions/workflows/pull_request.yml/badge.svg)](https://github.com/infrahq/infra/actions/workflows/pull_request.yml)
+
 [1]: https://www.conventionalcommits.org/en/v1.0.0/
