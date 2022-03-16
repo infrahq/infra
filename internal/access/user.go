@@ -81,11 +81,6 @@ func UpdateUserInfo(c *gin.Context, info *authn.UserInfo, user *models.User, pro
 			}
 		}
 
-		err = data.AppendProviderGroups(db, provider, group)
-		if err != nil {
-			return fmt.Errorf("user provider info: %w", err)
-		}
-
 		groups = append(groups, *group)
 	}
 

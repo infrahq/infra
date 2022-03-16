@@ -1,8 +1,6 @@
 package data
 
 import (
-	"fmt"
-
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/server/models"
@@ -10,11 +8,7 @@ import (
 )
 
 func BindUserGroups(db *gorm.DB, user *models.User, groups ...models.Group) error {
-	if err := db.Model(user).Association("Groups").Replace(groups); err != nil {
-		return fmt.Errorf("bind user groups: %w", err)
-	}
-
-	return nil
+	return bindAssociations(db, user, "Groups", groups)
 }
 
 func CreateUser(db *gorm.DB, user *models.User) error {
