@@ -90,9 +90,11 @@
           "connection": {
             "properties": {
               "CA": {
+                "example": "-----BEGIN CERTIFICATE-----\nMIIDNTCCAh2gAwIBAgIRALRetnpcTo9O3V2fAK3ix+c\n-----END CERTIFICATE-----\n",
                 "type": "string"
               },
               "URL": {
+                "example": "aa60eexample.us-west-2.elb.amazonaws.com",
                 "type": "string"
               }
             },
@@ -115,6 +117,7 @@
             "type": "string"
           },
           "uniqueID": {
+            "example": "94c2c570a20311180ec325fd56",
             "type": "string"
           },
           "updated": {
@@ -129,6 +132,23 @@
           "code": {
             "format": "int32",
             "type": "integer"
+          },
+          "fieldErrors": {
+            "items": {
+              "properties": {
+                "Errors": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "FieldName": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
           },
           "message": {
             "type": "string"
@@ -738,9 +758,11 @@
                   "connection": {
                     "properties": {
                       "CA": {
+                        "example": "-----BEGIN CERTIFICATE-----\nMIIDNTCCAh2gAwIBAgIRALRetnpcTo9O3V2fAK3ix+c\n-----END CERTIFICATE-----\n",
                         "type": "string"
                       },
                       "URL": {
+                        "example": "aa60eexample.us-west-2.elb.amazonaws.com",
                         "type": "string"
                       }
                     },
@@ -1026,9 +1048,11 @@
                   "connection": {
                     "properties": {
                       "CA": {
+                        "example": "-----BEGIN CERTIFICATE-----\nMIIDNTCCAh2gAwIBAgIRALRetnpcTo9O3V2fAK3ix+c\n-----END CERTIFICATE-----\n",
                         "type": "string"
                       },
                       "URL": {
+                        "example": "aa60eexample.us-west-2.elb.amazonaws.com",
                         "type": "string"
                       }
                     },
@@ -1146,11 +1170,11 @@
             }
           },
           {
-            "example": "read",
+            "example": "view",
             "in": "query",
             "name": "privilege",
             "schema": {
-              "example": "read",
+              "example": "view",
               "type": "string"
             }
           }
@@ -1240,11 +1264,11 @@
                     "type": "string"
                   },
                   "privilege": {
-                    "example": "read",
+                    "example": "view",
                     "type": "string"
                   },
                   "resource": {
-                    "example": "kubernetes.clustername.secrets.*",
+                    "example": "kubernetes.production",
                     "type": "string"
                   }
                 },

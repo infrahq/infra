@@ -146,7 +146,7 @@ func createComponent(rst reflect.Type) *openapi3.SchemaRef {
 
 		for i := 0; i < rst.NumField(); i++ {
 			f := rst.Field(i)
-			schema.Properties[getFieldName(f)] = buildProperty(f, f.Type, schema)
+			schema.Properties[getFieldName(f, rst)] = buildProperty(f, f.Type, rst, schema)
 		}
 
 		if _, ok := openAPISchema.Components.Schemas[rst.Name()]; ok {
@@ -169,17 +169,17 @@ func createComponent(rst reflect.Type) *openapi3.SchemaRef {
 	}
 }
 
-func buildProperty(f reflect.StructField, t reflect.Type, parentSchema *openapi3.Schema) *openapi3.SchemaRef {
+func buildProperty(f reflect.StructField, t, parent reflect.Type, parentSchema *openapi3.Schema) *openapi3.SchemaRef {
 	if t.Kind() == reflect.Pointer {
-		return buildProperty(f, t.Elem(), parentSchema)
+		return buildProperty(f, t.Elem(), parent, parentSchema)
 	}
 
 	s := &openapi3.Schema{}
 	setTypeInfo(t, s)
-	setTagInfo(f, t, s, parentSchema)
+	setTagInfo(f, t, parent, s, parentSchema)
 
 	if s.Type == "array" {
-		s.Items = buildProperty(f, t.Elem(), parentSchema)
+		s.Items = buildProperty(f, t.Elem(), parent, parentSchema)
 	}
 
 	if s.Type == "object" {
@@ -187,7 +187,7 @@ func buildProperty(f reflect.StructField, t reflect.Type, parentSchema *openapi3
 
 		for i := 0; i < t.NumField(); i++ {
 			f2 := t.Field(i)
-			s.Properties[f2.Name] = buildProperty(f2, f2.Type, s)
+			s.Properties[f2.Name] = buildProperty(f2, f2.Type, t, s)
 		}
 	}
 
@@ -241,7 +241,7 @@ func generateOpenAPI() {
 	}
 }
 
-func setTagInfo(f reflect.StructField, t reflect.Type, schema, parentSchema *openapi3.Schema) {
+func setTagInfo(f reflect.StructField, t, parent reflect.Type, schema, parentSchema *openapi3.Schema) {
 	if ex := getDefaultExampleForType(t); len(ex) > 0 {
 		schema.Example = ex
 	}
@@ -252,7 +252,7 @@ func setTagInfo(f reflect.StructField, t reflect.Type, schema, parentSchema *ope
 	if validate, ok := f.Tag.Lookup("validate"); ok {
 		for _, val := range strings.Split(validate, ",") {
 			if val == "required" && parentSchema != nil {
-				parentSchema.Required = append(parentSchema.Required, getFieldName(f))
+				parentSchema.Required = append(parentSchema.Required, getFieldName(f, parent))
 			}
 			if val == "email" {
 				schema.Example = "email@example.com"
@@ -403,7 +403,7 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 			if name, ok := f.Tag.Lookup("json"); ok {
 				jsonName := strings.Split(name, ",")[0]
 				if jsonName != "-" {
-					prop := buildProperty(f, f.Type, schema)
+					prop := buildProperty(f, f.Type, r, schema)
 
 					schema.Properties[name] = prop
 					continue
@@ -412,33 +412,27 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 
 			// if not, it's a query or uri parameter
 			p := &openapi3.Parameter{
-				Name:     getFieldName(f),
-				Schema:   buildProperty(f, f.Type, nil),
+				Name:     getFieldName(f, r),
+				Schema:   buildProperty(f, f.Type, r, nil),
 				Required: false,
 				In:       "",
 			}
 
 			if name, ok := f.Tag.Lookup("form"); ok {
-				if name == "-" {
-					continue
-				}
 				p.Name = name
 				p.In = "query"
 			}
 
 			if name, ok := f.Tag.Lookup("uri"); ok {
 				uriName := strings.Split(name, ",")[0]
-				if uriName == "-" {
-					continue
-				}
 				p.Name = uriName
 				p.In = "path"
 				p.Required = true
 			}
 
 			if p.In == "" {
-				// field isn't properly labelled, so let's not assume it's public.
-				continue
+				// field isn't properly labelled
+				panic(fmt.Sprintf("field %q of struct %q must have a tag (json, form, or uri) with a name or '-'", f.Name, r.Name()))
 			}
 
 			if ex := getDefaultExampleForType(f.Type); len(ex) > 0 {
@@ -511,9 +505,11 @@ func structNameWithPkg(t reflect.Type) string {
 	return t.Name()
 }
 
-func getFieldName(f reflect.StructField) string {
+func getFieldName(f reflect.StructField, parent reflect.Type) string {
 	if name, ok := f.Tag.Lookup("json"); ok {
-		return strings.Split(name, ",")[0]
+		if name != "-" {
+			return strings.Split(name, ",")[0]
+		}
 	}
 
 	if name, ok := f.Tag.Lookup("form"); ok {
@@ -524,5 +520,5 @@ func getFieldName(f reflect.StructField) string {
 		return name
 	}
 
-	return ""
+	panic(fmt.Sprintf("field %q of struct %q must have a tag (json, form, or uri) with a name or '-'", f.Name, parent.Name()))
 }
