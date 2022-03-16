@@ -54,7 +54,6 @@ const Avatar = styled.div`
   border: 0;
   border-radius: 4px;
   color: #FFFFFF;
-
   display: flex;
   justify-content: center;
   align-items: center;
@@ -83,8 +82,6 @@ const LogoutBtn = styled.a`
   line-height: 13px;
   text-transform: uppercase;
   opacity: .5;
-  
-
   box-sizing: border-box;
   display: block;
   height: 28px;
