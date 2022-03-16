@@ -173,7 +173,7 @@ server:
 
     ## Service type
     ## Ref: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
-    type: ClusterIP
+    type: LoadBalancer
 
     ## Service labels
     labels: {}
@@ -575,7 +575,7 @@ engine:
 
     ## Service type
     ## Ref: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
-    type: ClusterIP
+    type: LoadBalancer
 
     ## Service labels
     labels: {}
@@ -594,7 +594,7 @@ engine:
     nodePort: 30080
 
     ## HTTPS service port
-    securePort: 443
+    securePort: 8443
 
     ## HTTPS service port name
     securePortName: https
