@@ -526,18 +526,18 @@ func (s *Server) importAccessKeys() error {
 
 		name := fmt.Sprintf("default %s access key", k)
 
-		ak, err := data.GetAccessKey(s.db, data.ByMachineIDIssuedFor(machine.ID))
+		accessKey, err := data.GetAccessKey(s.db, data.ByMachineIDIssuedFor(machine.ID))
 		if err != nil {
 			if !errors.Is(err, internal.ErrNotFound) {
 				return err
 			}
 		}
 
-		if ak != nil {
+		if accessKey != nil {
 			sum := sha256.Sum256([]byte(parts[1]))
 
 			// if token name, key, and secret checksum match input, skip recreating the token
-			if ak.Name == name && subtle.ConstantTimeCompare([]byte(ak.Key), []byte(parts[0])) != 1 && subtle.ConstantTimeCompare(ak.SecretChecksum, sum[:]) != 1 {
+			if accessKey.Name == name && subtle.ConstantTimeCompare([]byte(accessKey.Key), []byte(parts[0])) != 1 && subtle.ConstantTimeCompare(accessKey.SecretChecksum, sum[:]) != 1 {
 				logging.S.Debugf("%s: skip recreating token", k)
 				continue
 			}
@@ -548,14 +548,14 @@ func (s *Server) importAccessKeys() error {
 			}
 		}
 
-		token := &models.AccessKey{
+		accessKey = &models.AccessKey{
 			Name:      name,
 			Key:       parts[0],
 			Secret:    parts[1],
 			IssuedFor: machine.PolymorphicIdentifier(),
 			ExpiresAt: time.Now().Add(math.MaxInt64),
 		}
-		if _, err := data.CreateAccessKey(s.db, token); err != nil {
+		if _, err := data.CreateAccessKey(s.db, accessKey); err != nil {
 			return fmt.Errorf("%s create: %w", k, err)
 		}
 	}
