@@ -6,7 +6,7 @@ import (
 
 type Destination struct {
 	ID       uid.ID `json:"id"`
-	UniqueID string `json:"uniqueID" form:"uniqueID"`
+	UniqueID string `json:"uniqueID" form:"uniqueID" example:"94c2c570a20311180ec325fd56"`
 	Name     string `json:"name" form:"name"`
 	// created time in seconds since 1970-01-01
 	Created int64 `json:"created"`
@@ -16,8 +16,8 @@ type Destination struct {
 }
 
 type DestinationConnection struct {
-	URL string `json:"url" validate:"required"`
-	CA  string `json:"ca"`
+	URL string `json:"url" validate:"required" example:"aa60eexample.us-west-2.elb.amazonaws.com"`
+	CA  string `json:"ca" example:"-----BEGIN CERTIFICATE-----\nMIIDNTCCAh2gAwIBAgIRALRetnpcTo9O3V2fAK3ix+c\n-----END CERTIFICATE-----\n"`
 }
 
 type ListDestinationsRequest struct {
