@@ -76,7 +76,7 @@ const LogoutContainer = styled.div`
   margin-right: -.45rem
 `
 
-const LogoutBtn = styled.a`
+const LogoutButton = styled.a`
   font-weight: 400;
   font-size: 11px;
   line-height: 13px;
@@ -146,7 +146,7 @@ const UserDropdown = () => {
             </Content>
           </UserDropdownContentHeader>
           <LogoutContainer>
-            <LogoutBtn onClick={() => handleLogout()}>LOGOUT</LogoutBtn>
+            <LogoutButton onClick={() => handleLogout()}>LOGOUT</LogoutButton>
           </LogoutContainer>
         </UserDropdownContent>}
     </UserDropdownContainer>

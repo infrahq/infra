@@ -30,7 +30,7 @@ const Admins = () => {
   })
 
   const moveToNext = async () => {
-    const providerId = newestProvider.id
+    const providerId = newestProvider && newestProvider.id
     const params = {
       email: adminEmail,
       provider_id: providerId

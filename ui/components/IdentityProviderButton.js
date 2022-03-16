@@ -1,7 +1,7 @@
 import styled from 'styled-components'
 import PropTypes from 'prop-types'
 
-const IdentityProviderBtnContainer = styled.div`
+const IdentityProviderButtonContainer = styled.div`
   & > *:not(:first-child) {
     margin-top: .3rem;
   }
@@ -55,9 +55,9 @@ const DescriptionSubheader = styled.div`
   opacity: 0.3;
 `
 
-const IdentityProviderBtn = ({ providers }) => {
+const IdentityProviderButton = ({ providers }) => {
   return (
-    <IdentityProviderBtnContainer>
+    <IdentityProviderButtonContainer>
       {providers.map((provider, index) => {
         return (
           <IdentityProviderContainer
@@ -76,11 +76,11 @@ const IdentityProviderBtn = ({ providers }) => {
           </IdentityProviderContainer>
         )
       })}
-    </IdentityProviderBtnContainer>
+    </IdentityProviderButtonContainer>
   )
 }
 
-IdentityProviderBtn.prototype = {
+IdentityProviderButton.prototype = {
   providers: PropTypes.arrayOf(PropTypes.shape({
     type: PropTypes.string,
     name: PropTypes.string,
@@ -93,4 +93,4 @@ IdentityProviderBtn.prototype = {
   })).isRequired
 }
 
-export default IdentityProviderBtn
+export default IdentityProviderButton

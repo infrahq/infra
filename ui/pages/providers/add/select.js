@@ -2,7 +2,7 @@ import Router from 'next/router'
 import styled from 'styled-components'
 
 import ExitButton from '../../../components/ExitButton'
-import IdentityProviderBtn from '../../../components/IdentityProviderBtn'
+import IdentityProviderButton from '../../../components/IdentityProviderButton'
 import Header from '../../../components/Header'
 
 const ConnectProviderContainer = styled.section`
@@ -62,7 +62,7 @@ const Select = () => {
         />
         <IdentityProviderList>
           <div>
-            <IdentityProviderBtn providers={avaliableProviderList} />
+            <IdentityProviderButton providers={avaliableProviderList} />
           </div>
         </IdentityProviderList>
       </ConnectProviderContent>
