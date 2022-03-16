@@ -26,7 +26,7 @@ helm/clean:
 	$(RM) -r helm/*.tgz
 
 .PHONY: docs
-docs:
+docs: openapi
 	go run ./internal/docgen
 
 clean: helm/clean
@@ -90,3 +90,10 @@ golangci-lint:
 
 lint: golangci-lint
 	golangci-lint run ./...
+
+openapi-lint: docs/api/openapi3.json
+	@command -v openapi --version >/dev/null || { echo "openapi missing, try: npm install -g @redocly/openapi-cli" && exit 1; }
+	openapi lint $<
+
+docs/api/openapi3.json:
+	go run . openapi
