@@ -20,7 +20,7 @@ type Grant struct {
 
 type ListGrantsRequest struct {
 	Identity  uid.PolymorphicID `form:"identity"`
-	Resource  string            `form:"resource" example:"kubernetes.clustername.secrets.*"`
+	Resource  string            `form:"resource" example:"kubernetes.production"`
 	Privilege string            `form:"privilege" example:"read"`
 }
 
