@@ -401,7 +401,7 @@ func (s *Server) runServer() error {
 		ErrorLog:  logging.StandardErrorLog(),
 	}
 
-	logging.S.Infof("starting infra (%s) - http:%s https%s metrics:%s", internal.Version, plaintextServer.Addr, tlsServer.Addr, metricsServer.Addr)
+	logging.S.Infof("starting infra (%s) - http:%s https:%s metrics:%s", internal.Version, plaintextServer.Addr, tlsServer.Addr, metricsServer.Addr)
 
 	if err := tlsServer.ListenAndServeTLS("", ""); err != nil {
 		return err
