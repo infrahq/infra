@@ -58,7 +58,7 @@ func UpdateCredential(c *gin.Context, user *models.User, newPassword string) err
 		return fmt.Errorf("%w: cannot set user passwords in this provider", internal.ErrBadRequest)
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.MinCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return fmt.Errorf("hash: %w", err)
 	}

@@ -10,9 +10,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"gopkg.in/segmentio/analytics-go.v3"
 
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
-	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/authn"
 	"github.com/infrahq/infra/internal/server/data"
@@ -606,10 +606,10 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 		}
 
 		return &api.LoginResponse{PolymorphicID: machine.PolymorphicIdentifier(), Name: machine.Name, AccessKey: key}, nil
-	case r.Email != "" && r.Password != "":
+	case r.Credentials != nil:
 		expires := time.Now().Add(a.server.options.SessionDuration)
 
-		key, user, requiresUpdate, err := access.LoginWithUserCredential(c, r.Email, r.Password, expires)
+		key, user, requiresUpdate, err := access.LoginWithUserCredential(c, r.Credentials.Email, r.Credentials.Password, expires)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %v", internal.ErrForbidden, err.Error())
 		}

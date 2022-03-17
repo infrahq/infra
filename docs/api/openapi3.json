@@ -1998,8 +1998,20 @@
                   "accessKey": {
                     "type": "string"
                   },
-                  "email": {
-                    "type": "string"
+                  "credentials": {
+                    "properties": {
+                      "Email": {
+                        "type": "string"
+                      },
+                      "Password": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "email",
+                      "password"
+                    ],
+                    "type": "object"
                   },
                   "oidc": {
                     "properties": {
@@ -2022,9 +2034,6 @@
                       "code"
                     ],
                     "type": "object"
-                  },
-                  "password": {
-                    "type": "string"
                   }
                 },
                 "type": "object"
@@ -3313,7 +3322,6 @@
             "example": "email@example.com",
             "in": "query",
             "name": "email",
-            "required": true,
             "schema": {
               "example": "email@example.com",
               "type": "string"
@@ -3687,6 +3695,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "minLength": 8,
                 "properties": {
                   "password": {
                     "type": "string"
