@@ -85,7 +85,7 @@ func newDestinationsAddCmd() *cobra.Command {
 			}
 
 			lifetime := time.Hour * 24 * 365
-			token, err := client.CreateAccessKey(&api.CreateAccessKeyRequest{
+			accessKey, err := client.CreateAccessKey(&api.CreateAccessKeyRequest{
 				MachineID: created.ID,
 				Name:      fmt.Sprintf("access key presented by %s %s destination", args[1], args[0]),
 				TTL:       lifetime.String(),
@@ -100,13 +100,13 @@ func newDestinationsAddCmd() *cobra.Command {
 			}
 
 			var sb strings.Builder
-			sb.WriteString("    helm install infra infrahq/infra")
+			sb.WriteString("    helm install infra-engine infrahq/infra")
 
 			if len(args) > 1 {
 				fmt.Fprintf(&sb, " --set engine.config.name=%s", args[1])
 			}
 
-			fmt.Fprintf(&sb, " --set engine.config.accessKey=%s", token.AccessKey)
+			fmt.Fprintf(&sb, " --set engine.config.accessKey=%s", accessKey.AccessKey)
 			fmt.Fprintf(&sb, " --set engine.config.server=%s", config.Host)
 
 			// TODO: replace me with a certificate fingerprint
@@ -120,7 +120,6 @@ func newDestinationsAddCmd() *cobra.Command {
 			fmt.Println("Run the following command to connect a kubernetes cluster:")
 			fmt.Println()
 			fmt.Println(sb.String())
-			fmt.Println()
 			fmt.Println()
 			return nil
 		},

@@ -406,6 +406,18 @@ func Run(options Options) error {
 		logging.S.Errorf("server: %w", err)
 	}
 
+	// server is localhost which should never be the case. try to infer the actual host
+	if strings.HasPrefix(u.Host, "localhost") {
+		server, err := k8s.Service("server")
+		if err != nil {
+			logging.S.Warnf("no cluster-local infra server found for %q. check engine configurations", u.Host)
+		} else {
+			host := fmt.Sprintf("%s.%s", server.ObjectMeta.Name, server.ObjectMeta.Namespace)
+			logging.S.Debugf("using cluster-local infra server at %q instead of %q", host, u.Host)
+			u.Host = host
+		}
+	}
+
 	u.Scheme = "https"
 
 	localDetails := &localDetails{
@@ -548,7 +560,7 @@ func Run(options Options) error {
 		return fmt.Errorf("parsing host config: %w", err)
 	}
 
-	caCert, err := k8s.CA()
+	caCert, err := kubernetes.CA()
 	if err != nil {
 		return fmt.Errorf("reading CA file: %w", err)
 	}
