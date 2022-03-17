@@ -80,13 +80,13 @@ func newGrantAddCmd() *cobra.Command {
 		Short: "Grant access to a destination",
 		Example: `
 # Grant user admin access to a cluster
-$ infra access grant -u suzie@acme.com -r admin kubernetes.production
+$ infra grants add -u suzie@acme.com -r admin kubernetes.production
 
 # Grant group admin access to a namespace
-$ infra access grant -g Engineering -r admin kubernetes.production.default
+$ infra grants add -g Engineering -r admin kubernetes.production.default
 
 # Grant user admin access to infra itself
-$ infra access grant -u admin@acme.com -r admin infra
+$ infra grants add -u admin@acme.com -r admin infra
 `,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
