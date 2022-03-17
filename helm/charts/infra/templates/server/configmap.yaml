@@ -30,8 +30,8 @@ data:
     adminAccessKey: {{ $adminAccessKey }}
 {{- end }}
 
-{{- if include "engine.enabled" . | eq "true" }}
-{{- $accessKey := default "" .Values.engine.config.accessKey }}
+{{- if include "connector.enabled" . | eq "true" }}
+{{- $accessKey := default "" .Values.connector.config.accessKey }}
 {{- if and $accessKey (or (hasPrefix "file:" $accessKey) (hasPrefix "env:" $accessKey)) }}
     accessKey: {{ $accessKey }}
 {{- else }}

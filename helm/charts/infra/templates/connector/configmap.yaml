@@ -1,13 +1,13 @@
-{{- if include "engine.enabled" . | eq "true" }}
+{{- if include "connector.enabled" . | eq "true" }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "engine.fullname" . }}
+  name: {{ include "connector.fullname" . }}
   labels:
-{{- include "engine.labels" . | nindent 4 }}
+{{- include "connector.labels" . | nindent 4 }}
 data:
   infra.yaml: |
-{{- $accessKey := default "" .Values.engine.config.accessKey }}
+{{- $accessKey := default "" .Values.connector.config.accessKey }}
 {{- if and $accessKey (or (hasPrefix "file:" $accessKey) (hasPrefix "env:" $accessKey)) }}
     accessKey: {{ $accessKey }}
 {{- else }}
@@ -17,13 +17,13 @@ data:
 {{- if include "server.enabled" . | eq "true" }}
     server: {{ .Release.Name }}-server.{{ .Release.Namespace }}
 
-{{- if (not (hasKey .Values.engine.config "skipTLSVerify")) }}
+{{- if (not (hasKey .Values.connector.config "skipTLSVerify")) }}
     # skip tls verify if we're connecting to an in-cluster server
     skipTLSVerify: true
 {{- end }}
 {{- end }}
 
-{{- range $key, $val := omit .Values.engine.config "accessKey" }}
+{{- range $key, $val := omit .Values.connector.config "accessKey" }}
 {{- if kindIs "invalid" $val }}
     # skipping invalid value: {{ $val }} ({{ kindOf $val }})
 {{- else if kindIs "map" $val }}

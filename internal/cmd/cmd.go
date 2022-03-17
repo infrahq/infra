@@ -21,7 +21,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/infrahq/infra/api"
-	"github.com/infrahq/infra/internal/engine"
+	"github.com/infrahq/infra/internal/connector"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server"
 )
@@ -67,7 +67,7 @@ func parseOptions(cmd *cobra.Command, options interface{}, envPrefix string) err
 	}
 
 	// bind file options (lower camel case) to environment options (envPrefix + upper snake case)
-	// e.g. accessKey -> INFRA_ENGINE_ACCESS_KEY
+	// e.g. accessKey -> INFRA_CONNECTOR_ACCESS_KEY
 	for envKey := range envKeys {
 		fullEnvKey := fmt.Sprintf("%s_%s", envPrefix, envKey)
 		if err := v.BindEnv(envKey, strcase.ToScreamingSnake(fullEnvKey)); err != nil {
@@ -365,7 +365,7 @@ func newOpenAPICmd() *cobra.Command {
 func newServerCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "server",
-		Short: "Start Infra server",
+		Short: "Start the Infra server",
 
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// override default strcase.ToLowerCamel behaviour
@@ -425,16 +425,16 @@ func newServerCmd() *cobra.Command {
 	return cmd
 }
 
-func newEngineCmd() *cobra.Command {
+func newConnectorCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "engine",
-		Short: "Start Infra Engine",
+		Use:   "connector",
+		Short: "Start the Infra connector",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// override default strcase.ToLowerCamel behaviour
 			strcase.ConfigureAcronym("skip-tls-verify", "skipTLSVerify")
 
-			var options engine.Options
-			if err := parseOptions(cmd, &options, "INFRA_ENGINE"); err != nil {
+			var options connector.Options
+			if err := parseOptions(cmd, &options, "INFRA_CONNECTOR"); err != nil {
 				return err
 			}
 
@@ -445,11 +445,11 @@ func newEngineCmd() *cobra.Command {
 
 			options.TLSCache = tlsCache
 
-			return engine.Run(options)
+			return connector.Run(options)
 		},
 	}
 
-	cmd.Flags().StringP("config-file", "f", "", "Engine config file")
+	cmd.Flags().StringP("config-file", "f", "", "Connector config file")
 	cmd.Flags().StringP("server", "s", "", "Infra server hostname")
 	cmd.Flags().StringP("access-key", "a", "", "Infra access key (use file:// to load from a file)")
 	cmd.Flags().StringP("name", "n", "", "Destination name")
@@ -590,7 +590,7 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.AddCommand(newInfoCmd())
 	rootCmd.AddCommand(newServerCmd())
 	rootCmd.AddCommand(newOpenAPICmd())
-	rootCmd.AddCommand(newEngineCmd())
+	rootCmd.AddCommand(newConnectorCmd())
 	rootCmd.AddCommand(newVersionCmd())
 
 	rootCmd.Flags().BoolVarP(&versionFlag, "version", "v", false, "Display Infra version")

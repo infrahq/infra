@@ -5,12 +5,12 @@ If you have found a security vulnerability please disclose it privately to us by
 
 ## General Security
 ### HTTPS
-By default Infra and Infra engine communicate via encrypted HTTPS connections with validated certificates. When using self-signed certificates, an error will be printed in the logs. Certificate validation can be strongly enforced using the `--force-tls-verify` flag.
+By default Infra and Infra connector communicate via encrypted HTTPS connections with validated certificates. When using self-signed certificates, an error will be printed in the logs. Certificate validation can be strongly enforced using the `--force-tls-verify` flag.
 
 ### Authentication
 When users login to Infra as a valid user they are issued a session token with a 24 character secret that is randomly generated. The SHA256 hash of this token is stored server-side for token validation. This session token is stored locally under `~/.infra`.
 
-When a user connects to a cluster after login, Infra issues a new JWT signed with an ECDSA signature using P-521 and SHA-512. This JWT is verified by the engine. If JWT and the user role is valid at the destination, the user is granted access.
+When a user connects to a cluster after login, Infra issues a new JWT signed with an ECDSA signature using P-521 and SHA-512. This JWT is verified by the connector. If JWT and the user role is valid at the destination, the user is granted access.
 
 ## Deployment
 When deploying Infra, we recommend Infra be deployed in its own namespace to minimize the deployment scope. 

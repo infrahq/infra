@@ -557,9 +557,9 @@ func (k *Kubernetes) Service(component string) (*corev1.Service, error) {
 	return &services.Items[0], nil
 }
 
-// Find a suitable Endpoint to use by inspecting the engine's Service objects
+// Find a suitable Endpoint to use by inspecting Service objects
 func (k *Kubernetes) Endpoint() (string, int, error) {
-	service, err := k.Service("engine")
+	service, err := k.Service("connector")
 	if err != nil {
 		return "", -1, err
 	}
@@ -595,7 +595,7 @@ func (k *Kubernetes) Endpoint() (string, int, error) {
 }
 
 func (k *Kubernetes) IsServiceTypeClusterIP() (bool, error) {
-	service, err := k.Service("engine")
+	service, err := k.Service("connector")
 	if err != nil {
 		return false, err
 	}

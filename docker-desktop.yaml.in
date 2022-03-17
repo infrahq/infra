@@ -18,7 +18,7 @@ server:
       role: cluster-admin
       resource: kubernetes.docker-desktop
 
-engine:
+connector:
   config:
     name: docker-desktop
 

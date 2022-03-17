@@ -48,50 +48,50 @@
 
 {{- end }}
 {{- end }}
-{{- else if include "engine.enabled" . | eq "true" }}
+{{- else if include "connector.enabled" . | eq "true" }}
 
-{{- if not .Values.engine.config.name }}
+{{- if not .Values.connector.config.name }}
 
-  NOTE: Missing `engine.config.name`. A name will be generated from available
+  NOTE: Missing `connector.config.name`. A name will be generated from available
   cluster metadata. If this behaviour is not desired, consider setting a
-  name with `engine.config.name`.
+  name with `connector.config.name`.
 
 {{- end }}
 
-{{- if not .Values.engine.config.server }}
+{{- if not .Values.connector.config.server }}
 
-  NOTE: Missing `engine.config.server`. Assuming an in-cluster deployment.
-  If this is not correct, set an Infra instance with `engine.config.server`.
+  NOTE: Missing `connector.config.server`. Assuming an in-cluster deployment.
+  If this is not correct, set an Infra instance with `connector.config.server`.
 
 {{- end }}
 
-{{- if not .Values.engine.config.accessKey }}
+{{- if not .Values.connector.config.accessKey }}
 
-  NOTE: Missing `engine.config.accessKey`. This instance will not be able to
+  NOTE: Missing `connector.config.accessKey`. This instance will not be able to
   establish a connection to Infra. If you do not already have an access key,
   generate one using Infra CLI.
 
-  $ infra destinations add kubernetes {{ .Values.engine.config.name | default "my-cluster" }}
+  $ infra destinations add kubernetes {{ .Values.connector.config.name | default "my-cluster" }}
 
-  Set an access key with `engine.config.accessKey`.
+  Set an access key with `connector.config.accessKey`.
 
 {{- end }}
 
-{{- if eq .Values.engine.service.type "LoadBalancer" }}
+{{- if eq .Values.connector.service.type "LoadBalancer" }}
 
 {{- else }}
 
-  NOTE: This Kubernetes engine is configured with Kubernetes Service
-  type {{ .Values.engine.service.type | quote }}. It may not be accessible by Infra or Infra CLI.
+  NOTE: This Kubernetes connector is configured with Kubernetes Service
+  type {{ .Values.connector.service.type | quote }}. It may not be accessible by Infra or Infra CLI.
 
   Consider using Service type "LoadBalancer" if problems persist with
-  `engine.service.type=LoadBalancer`.
+  `connector.service.type=LoadBalancer`.
 
 {{- end }}
 
   Check this cluster has been successfully registered with Infra:
 
-  $ infra destinations list | grep {{ .Values.engine.config.name | default "my-cluster" }}
+  $ infra destinations list | grep {{ .Values.connector.config.name | default "my-cluster" }}
 
 {{- end }}
 

@@ -100,20 +100,20 @@ func newDestinationsAddCmd() *cobra.Command {
 			}
 
 			var sb strings.Builder
-			sb.WriteString("    helm install infra-engine infrahq/infra")
+			sb.WriteString("    helm install infra-connector infrahq/infra")
 
 			if len(args) > 1 {
-				fmt.Fprintf(&sb, " --set engine.config.name=%s", args[1])
+				fmt.Fprintf(&sb, " --set connector.config.name=%s", args[1])
 			}
 
-			fmt.Fprintf(&sb, " --set engine.config.accessKey=%s", accessKey.AccessKey)
-			fmt.Fprintf(&sb, " --set engine.config.server=%s", config.Host)
+			fmt.Fprintf(&sb, " --set connector.config.accessKey=%s", accessKey.AccessKey)
+			fmt.Fprintf(&sb, " --set connector.config.server=%s", config.Host)
 
 			// TODO: replace me with a certificate fingerprint
 			// so even when users have self-signed certificates
 			// infra can establish a secure TLS connection
 			if config.SkipTLSVerify {
-				sb.WriteString(" --set engine.config.skipTLSVerify=true")
+				sb.WriteString(" --set connector.config.skipTLSVerify=true")
 			}
 
 			fmt.Println()

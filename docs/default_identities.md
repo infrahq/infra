@@ -18,5 +18,5 @@ $ infra login $INFRA_SERVER
   Logged in as admin
 ```
 
-## Engine Identity
-This is the identity associated with the default Infra engine created on installation of the Infra server. It is the identity and access key the default engine uses to connect the the Infra server. The default engine access key can be specified in the Helm install, otherwise it is randomly generated.
+## Connector Identity
+This is the identity associated with the default Infra connector created on installation of the Infra server. It is the identity and access key the default connector uses to connect the the Infra server. The default connector access key can be specified in the Helm install, otherwise it is randomly generated.
