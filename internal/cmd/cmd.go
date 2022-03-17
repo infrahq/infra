@@ -529,8 +529,8 @@ func NewRootCmd() (*cobra.Command, error) {
 	}
 
 	var (
-		v bool
-		i bool
+		versionFlag bool
+		infoFlag    bool
 	)
 
 	rootCmd := &cobra.Command{
@@ -549,10 +549,10 @@ func NewRootCmd() (*cobra.Command, error) {
 			return logging.SetLevel(options.LogLevel)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if v {
+			if versionFlag {
 				return version()
 			}
-			if i {
+			if infoFlag {
 				if err := mustBeLoggedIn(); err != nil {
 					return err
 				}
@@ -577,8 +577,8 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.AddCommand(newEngineCmd())
 	rootCmd.AddCommand(newVersionCmd())
 
-	rootCmd.Flags().BoolVarP(&v, "version", "v", false, "Display Infra version")
-	rootCmd.Flags().BoolVarP(&i, "info", "i", false, "Display info about the current session")
+	rootCmd.Flags().BoolVarP(&versionFlag, "version", "v", false, "Display Infra version")
+	rootCmd.Flags().BoolVarP(&infoFlag, "info", "i", false, "Display info about the current session")
 
 	rootCmd.PersistentFlags().String("log-level", "info", "Set the log level. One of error, warn, info, or debug")
 	rootCmd.PersistentFlags().Bool("non-interactive", false, "don't assume an interactive terminal, even if there is one")
