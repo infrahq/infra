@@ -48,7 +48,7 @@ func NewKubernetes() (*Kubernetes, error) {
 
 	k.Config = config
 
-	namespace, err := k.Namespace()
+	namespace, err := Namespace()
 	if err != nil {
 		return k, err
 	}
@@ -478,7 +478,7 @@ func (k *Kubernetes) kubeControllerManagerClusterName() (string, error) {
 }
 
 func (k *Kubernetes) Name() (string, string, error) {
-	ca, err := k.CA()
+	ca, err := CA()
 	if err != nil {
 		return "", "", err
 	}
@@ -513,7 +513,7 @@ func (k *Kubernetes) Name() (string, string, error) {
 	return name, chksm, nil
 }
 
-func (k *Kubernetes) Namespace() (string, error) {
+func Namespace() (string, error) {
 	contents, err := ioutil.ReadFile(namespaceFilePath)
 	if err != nil {
 		return "", err
@@ -522,7 +522,7 @@ func (k *Kubernetes) Namespace() (string, error) {
 	return string(contents), nil
 }
 
-func (k *Kubernetes) CA() ([]byte, error) {
+func CA() ([]byte, error) {
 	contents, err := ioutil.ReadFile(caFilePath)
 	if err != nil {
 		return nil, err
@@ -538,13 +538,13 @@ func (k *Kubernetes) Service(component string) (*corev1.Service, error) {
 		return nil, err
 	}
 
-	namespace, err := k.Namespace()
+	namespace, err := Namespace()
 	if err != nil {
 		return nil, err
 	}
 
 	services, err := clientset.CoreV1().Services(namespace).List(context.Background(), metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("app.kubernetes.io/component=%s,app.kubernetes.io/instance=infra", component),
+		LabelSelector: fmt.Sprintf("app.infrahq.com/component=%s", component),
 	})
 	if err != nil {
 		return nil, err

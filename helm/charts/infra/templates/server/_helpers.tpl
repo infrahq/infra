@@ -45,6 +45,7 @@ Common labels
 */}}
 {{- define "server.labels" -}}
 helm.sh/chart: {{ include "server.chart" . }}
+app.infrahq.com/component: {{ .Values.server.componentName }}
 {{ include "server.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
@@ -61,7 +62,6 @@ Selector labels
 {{- define "server.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "server.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
-app.kubernetes.io/component: {{ .Values.server.componentName }}
 {{- end }}
 
 {{/*

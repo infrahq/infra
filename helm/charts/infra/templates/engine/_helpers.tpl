@@ -45,6 +45,7 @@ Common labels
 */}}
 {{- define "engine.labels" -}}
 helm.sh/chart: {{ include "engine.chart" . }}
+app.infrahq.com/component: {{ .Values.engine.componentName }}
 {{ include "engine.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
@@ -61,7 +62,6 @@ Selector labels
 {{- define "engine.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "engine.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
-app.kubernetes.io/component: {{ .Values.engine.componentName }}
 {{- end }}
 
 {{/*
