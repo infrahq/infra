@@ -7,6 +7,8 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+const InternalInfraProviderName = "infra"
+
 func CreateProvider(db *gorm.DB, provider *models.Provider) error {
 	return add(db, provider)
 }

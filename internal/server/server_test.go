@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap/zaptest"
 
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/secrets"
 	"github.com/infrahq/infra/uid"
@@ -163,7 +164,7 @@ func TestLoadConfigEmpty(t *testing.T) {
 
 	err = db.Model(&models.Provider{}).Count(&providers).Error
 	require.NoError(t, err)
-	require.Equal(t, int64(0), providers)
+	require.Equal(t, int64(1), providers) // just the infra provider
 
 	err = db.Model(&models.Grant{}).Count(&grants).Error
 	require.NoError(t, err)
@@ -175,8 +176,8 @@ func TestLoadConfigInvalid(t *testing.T) {
 		"MissingProviderName": {
 			Providers: []Provider{
 				{
-					URL: "demo.okta.com",
-					ClientID: "client-id",
+					URL:          "demo.okta.com",
+					ClientID:     "client-id",
 					ClientSecret: "client-secret",
 				},
 			},
@@ -184,8 +185,8 @@ func TestLoadConfigInvalid(t *testing.T) {
 		"MissingProviderURL": {
 			Providers: []Provider{
 				{
-					Name: "okta",
-					ClientID: "client-id",
+					Name:         "okta",
+					ClientID:     "client-id",
 					ClientSecret: "client-secret",
 				},
 			},
@@ -193,8 +194,8 @@ func TestLoadConfigInvalid(t *testing.T) {
 		"MissingProviderClientID": {
 			Providers: []Provider{
 				{
-					Name: "okta",
-					URL: "demo.okta.com",
+					Name:         "okta",
+					URL:          "demo.okta.com",
 					ClientSecret: "client-secret",
 				},
 			},
@@ -202,8 +203,8 @@ func TestLoadConfigInvalid(t *testing.T) {
 		"MissingProviderClientSecret": {
 			Providers: []Provider{
 				{
-					Name: "okta",
-					URL: "demo.okta.com",
+					Name:     "okta",
+					URL:      "demo.okta.com",
 					ClientID: "client-id",
 				},
 			},
@@ -211,7 +212,7 @@ func TestLoadConfigInvalid(t *testing.T) {
 		"MissingGrantIdentity": {
 			Grants: []Grant{
 				{
-					Role: "admin",
+					Role:     "admin",
 					Resource: "kubernetes.test-cluster",
 				},
 			},
@@ -219,7 +220,7 @@ func TestLoadConfigInvalid(t *testing.T) {
 		"MissingGrantRole": {
 			Grants: []Grant{
 				{
-					Machine: "T-1000",
+					Machine:  "T-1000",
 					Resource: "kubernetes.test-cluster",
 				},
 			},
@@ -228,47 +229,29 @@ func TestLoadConfigInvalid(t *testing.T) {
 			Grants: []Grant{
 				{
 					Machine: "T-1000",
-					Role: "admin",
-				},
-			},
-		},
-		"UserGrantWithZeroProviders": {
-			Grants: []Grant{
-				{
-					User: "test@example.com",
-					Role: "admin",
-					Resource: "kubernetes.test-cluster",
-				},
-			},
-		},
-		"GroupGrantWithZeroProviders": {
-			Grants: []Grant{
-				{
-					Group: "Everyone",
-					Role: "admin",
-					Resource: "kubernetes.test-cluster",
+					Role:    "admin",
 				},
 			},
 		},
 		"UserGrantWithMultipleProviders": {
 			Providers: []Provider{
 				{
-					Name: "okta",
-					URL: "demo.okta.com",
-					ClientID: "client-id",
+					Name:         "okta",
+					URL:          "demo.okta.com",
+					ClientID:     "client-id",
 					ClientSecret: "client-secret",
 				},
 				{
-					Name: "atko",
-					URL: "demo.atko.com",
-					ClientID: "client-id",
+					Name:         "atko",
+					URL:          "demo.atko.com",
+					ClientID:     "client-id",
 					ClientSecret: "client-secret",
 				},
 			},
 			Grants: []Grant{
 				{
-					User: "test@example.com",
-					Role: "admin",
+					User:     "test@example.com",
+					Role:     "admin",
 					Resource: "kubernetes.test-cluster",
 				},
 			},
@@ -276,22 +259,22 @@ func TestLoadConfigInvalid(t *testing.T) {
 		"GroupGrantWithMultipleProviders": {
 			Providers: []Provider{
 				{
-					Name: "okta",
-					URL: "demo.okta.com",
-					ClientID: "client-id",
+					Name:         "okta",
+					URL:          "demo.okta.com",
+					ClientID:     "client-id",
 					ClientSecret: "client-secret",
 				},
 				{
-					Name: "atko",
-					URL: "demo.atko.com",
-					ClientID: "client-id",
+					Name:         "atko",
+					URL:          "demo.atko.com",
+					ClientID:     "client-id",
 					ClientSecret: "client-secret",
 				},
 			},
 			Grants: []Grant{
 				{
-					Group: "Everyone",
-					Role: "admin",
+					Group:    "Everyone",
+					Role:     "admin",
 					Resource: "kubernetes.test-cluster",
 				},
 			},
@@ -314,9 +297,9 @@ func TestLoadConfigWithProviders(t *testing.T) {
 	config := Config{
 		Providers: []Provider{
 			{
-				Name: "okta",
-				URL: "demo.okta.com",
-				ClientID: "client-id",
+				Name:         "okta",
+				URL:          "demo.okta.com",
+				ClientID:     "client-id",
 				ClientSecret: "client-secret",
 			},
 		},
@@ -338,18 +321,10 @@ func TestLoadConfigWithUserGrantsImplicitProvider(t *testing.T) {
 	db := setupDB(t)
 
 	config := Config{
-		Providers: []Provider{
-			{
-				Name: "okta",
-				URL: "demo.okta.com",
-				ClientID: "client-id",
-				ClientSecret: "client-secret",
-			},
-		},
 		Grants: []Grant{
 			{
-				User: "test@example.com",
-				Role: "admin",
+				User:     "test@example.com",
+				Role:     "admin",
 				Resource: "kubernetes.test-cluster",
 			},
 		},
@@ -359,7 +334,7 @@ func TestLoadConfigWithUserGrantsImplicitProvider(t *testing.T) {
 	require.NoError(t, err)
 
 	var provider models.Provider
-	err = db.Where("name = ?", "okta").First(&provider).Error
+	err = db.Where("name = ?", data.InternalInfraProviderName).First(&provider).Error
 	require.NoError(t, err)
 
 	var user models.User
@@ -380,22 +355,22 @@ func TestLoadConfigWithUserGrantsExplicitProvider(t *testing.T) {
 	config := Config{
 		Providers: []Provider{
 			{
-				Name: "okta",
-				URL: "demo.okta.com",
-				ClientID: "client-id",
+				Name:         "okta",
+				URL:          "demo.okta.com",
+				ClientID:     "client-id",
 				ClientSecret: "client-secret",
 			},
 			{
-				Name: "atko",
-				URL: "demo.atko.com",
-				ClientID: "client-id",
+				Name:         "atko",
+				URL:          "demo.atko.com",
+				ClientID:     "client-id",
 				ClientSecret: "client-secret",
 			},
 		},
 		Grants: []Grant{
 			{
-				User: "test@example.com",
-				Role: "admin",
+				User:     "test@example.com",
+				Role:     "admin",
 				Resource: "kubernetes.test-cluster",
 				Provider: "atko",
 			},
@@ -425,18 +400,10 @@ func TestLoadConfigWithGroupGrantsImplicitProvider(t *testing.T) {
 	db := setupDB(t)
 
 	config := Config{
-		Providers: []Provider{
-			{
-				Name: "okta",
-				URL: "demo.okta.com",
-				ClientID: "client-id",
-				ClientSecret: "client-secret",
-			},
-		},
 		Grants: []Grant{
 			{
-				Group: "Everyone",
-				Role: "admin",
+				Group:    "Everyone",
+				Role:     "admin",
 				Resource: "kubernetes.test-cluster",
 			},
 		},
@@ -446,7 +413,7 @@ func TestLoadConfigWithGroupGrantsImplicitProvider(t *testing.T) {
 	require.NoError(t, err)
 
 	var provider models.Provider
-	err = db.Where("name = ?", "okta").First(&provider).Error
+	err = db.Where("name = ?", data.InternalInfraProviderName).First(&provider).Error
 	require.NoError(t, err)
 
 	var group models.Group
@@ -467,22 +434,22 @@ func TestLoadConfigWithGroupGrantsExplicitProvider(t *testing.T) {
 	config := Config{
 		Providers: []Provider{
 			{
-				Name: "okta",
-				URL: "demo.okta.com",
-				ClientID: "client-id",
+				Name:         "okta",
+				URL:          "demo.okta.com",
+				ClientID:     "client-id",
 				ClientSecret: "client-secret",
 			},
 			{
-				Name: "atko",
-				URL: "demo.atko.com",
-				ClientID: "client-id",
+				Name:         "atko",
+				URL:          "demo.atko.com",
+				ClientID:     "client-id",
 				ClientSecret: "client-secret",
 			},
 		},
 		Grants: []Grant{
 			{
-				Group: "Everyone",
-				Role: "admin",
+				Group:    "Everyone",
+				Role:     "admin",
 				Resource: "kubernetes.test-cluster",
 				Provider: "atko",
 			},
@@ -514,8 +481,8 @@ func TestLoadConfigWithMachineGrants(t *testing.T) {
 	config := Config{
 		Grants: []Grant{
 			{
-				Machine: "T-1000",
-				Role: "admin",
+				Machine:  "T-1000",
+				Role:     "admin",
 				Resource: "kubernetes.test-cluster",
 			},
 		},
@@ -541,26 +508,28 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 	config := Config{
 		Providers: []Provider{
 			{
-				Name: "okta",
-				URL: "demo.okta.com",
-				ClientID: "client-id",
+				Name:         "okta",
+				URL:          "demo.okta.com",
+				ClientID:     "client-id",
 				ClientSecret: "client-secret",
 			},
 		},
 		Grants: []Grant{
 			{
-				User: "test@example.com",
-				Role: "admin",
+				User:     "test@example.com",
+				Provider: "okta",
+				Role:     "admin",
 				Resource: "kubernetes.test-cluster",
 			},
 			{
-				Group: "Everyone",
-				Role: "admin",
+				Group:    "Everyone",
+				Provider: "okta",
+				Role:     "admin",
 				Resource: "kubernetes.test-cluster",
 			},
 			{
-				Machine: "T-1000",
-				Role: "admin",
+				Machine:  "T-1000",
+				Role:     "admin",
 				Resource: "kubernetes.test-cluster",
 			},
 		},
@@ -573,7 +542,7 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 
 	err = db.Model(&models.Provider{}).Count(&providers).Error
 	require.NoError(t, err)
-	require.Equal(t, int64(1), providers)
+	require.Equal(t, int64(2), providers) // okta and infra providers
 
 	err = db.Model(&models.Grant{}).Count(&grants).Error
 	require.NoError(t, err)
@@ -596,7 +565,7 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 
 	err = db.Model(&models.Provider{}).Count(&providers).Error
 	require.NoError(t, err)
-	require.Equal(t, int64(0), providers)
+	require.Equal(t, int64(1), providers) // infra provider only
 
 	err = db.Model(&models.Grant{}).Count(&grants).Error
 	require.NoError(t, err)
@@ -623,26 +592,28 @@ func TestLoadConfigPruneGrants(t *testing.T) {
 	config := Config{
 		Providers: []Provider{
 			{
-				Name: "okta",
-				URL: "demo.okta.com",
-				ClientID: "client-id",
+				Name:         "okta",
+				URL:          "demo.okta.com",
+				ClientID:     "client-id",
 				ClientSecret: "client-secret",
 			},
 		},
 		Grants: []Grant{
 			{
-				User: "test@example.com",
-				Role: "admin",
+				User:     "test@example.com",
+				Provider: "okta",
+				Role:     "admin",
 				Resource: "kubernetes.test-cluster",
 			},
 			{
-				Group: "Everyone",
-				Role: "admin",
+				Group:    "Everyone",
+				Provider: "okta",
+				Role:     "admin",
 				Resource: "kubernetes.test-cluster",
 			},
 			{
-				Machine: "T-1000",
-				Role: "admin",
+				Machine:  "T-1000",
+				Role:     "admin",
 				Resource: "kubernetes.test-cluster",
 			},
 		},
@@ -655,7 +626,7 @@ func TestLoadConfigPruneGrants(t *testing.T) {
 
 	err = db.Model(&models.Provider{}).Count(&providers).Error
 	require.NoError(t, err)
-	require.Equal(t, int64(1), providers)
+	require.Equal(t, int64(2), providers) // infra and okta
 
 	err = db.Model(&models.Grant{}).Count(&grants).Error
 	require.NoError(t, err)
@@ -676,9 +647,9 @@ func TestLoadConfigPruneGrants(t *testing.T) {
 	providersOnly := Config{
 		Providers: []Provider{
 			{
-				Name: "okta",
-				URL: "demo.okta.com",
-				ClientID: "client-id",
+				Name:         "okta",
+				URL:          "demo.okta.com",
+				ClientID:     "client-id",
 				ClientSecret: "client-secret",
 			},
 		},
@@ -689,7 +660,7 @@ func TestLoadConfigPruneGrants(t *testing.T) {
 
 	err = db.Model(&models.Provider{}).Count(&providers).Error
 	require.NoError(t, err)
-	require.Equal(t, int64(1), providers)
+	require.Equal(t, int64(2), providers) // infra and okta
 
 	err = db.Model(&models.Grant{}).Count(&grants).Error
 	require.NoError(t, err)
@@ -714,26 +685,28 @@ func TestLoadConfigUpdate(t *testing.T) {
 	config := Config{
 		Providers: []Provider{
 			{
-				Name: "okta",
-				URL: "demo.okta.com",
-				ClientID: "client-id",
+				Name:         "okta",
+				URL:          "demo.okta.com",
+				ClientID:     "client-id",
 				ClientSecret: "client-secret",
 			},
 		},
 		Grants: []Grant{
 			{
-				User: "test@example.com",
-				Role: "admin",
+				User:     "test@example.com",
+				Provider: "okta",
+				Role:     "admin",
 				Resource: "kubernetes.test-cluster",
 			},
 			{
-				Group: "Everyone",
-				Role: "admin",
+				Group:    "Everyone",
+				Provider: "okta",
+				Role:     "admin",
 				Resource: "kubernetes.test-cluster",
 			},
 			{
-				Machine: "T-1000",
-				Role: "admin",
+				Machine:  "T-1000",
+				Role:     "admin",
 				Resource: "kubernetes.test-cluster",
 			},
 		},
@@ -746,7 +719,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 
 	err = db.Model(&models.Provider{}).Count(&providers).Error
 	require.NoError(t, err)
-	require.Equal(t, int64(1), providers)
+	require.Equal(t, int64(2), providers) // infra and okta
 
 	grants := make([]models.Grant, 0)
 	err = db.Find(&grants).Error
@@ -771,26 +744,28 @@ func TestLoadConfigUpdate(t *testing.T) {
 	updatedConfig := Config{
 		Providers: []Provider{
 			{
-				Name: "atko",
-				URL: "demo.atko.com",
-				ClientID: "client-id-2",
+				Name:         "atko",
+				URL:          "demo.atko.com",
+				ClientID:     "client-id-2",
 				ClientSecret: "client-secret-2",
 			},
 		},
 		Grants: []Grant{
 			{
-				User: "test@example.com",
-				Role: "view",
+				User:     "test@example.com",
+				Provider: "atko",
+				Role:     "view",
 				Resource: "kubernetes.test-cluster",
 			},
 			{
-				Group: "Everyone",
-				Role: "view",
+				Group:    "Everyone",
+				Provider: "atko",
+				Role:     "view",
 				Resource: "kubernetes.test-cluster",
 			},
 			{
-				Machine: "T-1000",
-				Role: "view",
+				Machine:  "T-1000",
+				Role:     "view",
 				Resource: "kubernetes.test-cluster",
 			},
 		},
@@ -801,7 +776,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 
 	err = db.Model(&models.Provider{}).Count(&providers).Error
 	require.NoError(t, err)
-	require.Equal(t, int64(1), providers)
+	require.Equal(t, int64(2), providers) // infra and atko
 
 	var provider models.Provider
 	err = db.Where("name = ?", "atko").First(&provider).Error

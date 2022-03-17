@@ -51,6 +51,28 @@ func CreateUser(c *gin.Context, user *models.User) error {
 	return data.CreateUser(db, user)
 }
 
+func DeleteUser(c *gin.Context, id uid.ID) error {
+	db, err := requireInfraRole(c, models.InfraAdminRole)
+	if err != nil {
+		return err
+	}
+
+	// if a user does not exist in the Infra provider this won't be found, but we can proceed
+	credential, err := data.GetCredential(db, data.ByIdentity(uid.NewUserPolymorphicID(id)))
+	if err != nil && !errors.Is(err, internal.ErrNotFound) {
+		return fmt.Errorf("get delete user creds: %w", err)
+	}
+
+	if credential != nil {
+		err := data.DeleteCredential(db, credential.ID)
+		if err != nil {
+			return fmt.Errorf("delete user creds: %w", err)
+		}
+	}
+
+	return data.DeleteUser(db, id)
+}
+
 func ListUsers(c *gin.Context, email string, providerID uid.ID) ([]models.User, error) {
 	db, err := requireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole)
 	if err != nil {

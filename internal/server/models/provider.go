@@ -11,7 +11,7 @@ type Provider struct {
 	Model
 
 	Name         string `gorm:"uniqueIndex:,where:deleted_at is NULL" validate:"required"`
-	URL          string `validate:"required"`
+	URL          string
 	ClientID     string
 	ClientSecret EncryptedAtRest
 

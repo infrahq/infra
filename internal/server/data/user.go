@@ -23,6 +23,10 @@ func ListUsers(db *gorm.DB, selectors ...SelectorFunc) ([]models.User, error) {
 	return list[models.User](db, selectors...)
 }
 
+func DeleteUser(db *gorm.DB, id uid.ID) error {
+	return delete[models.User](db, id)
+}
+
 func DeleteUsers(db *gorm.DB, selectors ...SelectorFunc) error {
 	toDelete, err := ListUsers(db.Select("id"), selectors...)
 	if err != nil {

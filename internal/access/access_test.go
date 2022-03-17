@@ -242,21 +242,11 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
 		c.Set("db", db)
 
-		// secret provider setup
-		sp := secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{
-			Path: os.TempDir(),
-		})
-
-		rootKey := "db_at_rest"
-		symmetricKeyProvider := secrets.NewNativeSecretProvider(sp)
-		symmetricKey, err := symmetricKeyProvider.GenerateDataKey(rootKey)
-		require.NoError(t, err)
-
-		models.SymmetricKey = symmetricKey
+		SetupTestSecretProvider(t)
 
 		// setup fake identity provider
 		provider := &models.Provider{Name: "mockoidc", URL: "mockOIDC.example.com"}
-		err = data.CreateProvider(db, provider)
+		err := data.CreateProvider(db, provider)
 		require.NoError(t, err)
 
 		t.Run(k, func(t *testing.T) {
@@ -272,4 +262,17 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			verifyFunc(t, u, sess, err)
 		})
 	}
+}
+
+func SetupTestSecretProvider(t *testing.T) {
+	sp := secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{
+		Path: os.TempDir(),
+	})
+
+	rootKey := "db_at_rest"
+	symmetricKeyProvider := secrets.NewNativeSecretProvider(sp)
+	symmetricKey, err := symmetricKeyProvider.GenerateDataKey(rootKey)
+	require.NoError(t, err)
+
+	models.SymmetricKey = symmetricKey
 }

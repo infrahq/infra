@@ -15,6 +15,7 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/authn"
+	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/secrets"
 	"github.com/infrahq/infra/uid"
@@ -57,18 +58,54 @@ func (a *API) GetUser(c *gin.Context, r *api.Resource) (*api.User, error) {
 	return user.ToAPI(), nil
 }
 
-func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.User, error) {
+func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateUserResponse, error) {
 	user := &models.User{
 		Email:      r.Email,
 		ProviderID: r.ProviderID,
 	}
 
-	err := access.CreateUser(c, user)
+	provider, err := access.GetProvider(c, r.ProviderID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := access.CreateUser(c, user); err != nil {
+		return nil, err
+	}
+
+	var oneTimePassword string
+	if provider.Name == data.InternalInfraProviderName {
+		oneTimePassword, err = access.CreateCredential(c, *user)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &api.CreateUserResponse{
+		ID:              user.ID,
+		Email:           user.Email,
+		ProviderID:      user.ProviderID,
+		OneTimePassword: oneTimePassword,
+	}, nil
+}
+
+func (a *API) UpdateUser(c *gin.Context, r *api.UpdateUserRequest) (*api.User, error) {
+	// right now this endpoint can only update a user's credentials, so get the user
+	user, err := access.GetUser(c, r.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = access.UpdateCredential(c, user, r.Password)
 	if err != nil {
 		return nil, err
 	}
 
 	return user.ToAPI(), nil
+}
+
+func (a *API) DeleteUser(c *gin.Context, r *api.Resource) error {
+	return access.DeleteUser(c, r.ID)
 }
 
 func (a *API) ListUserGrants(c *gin.Context, r *api.Resource) ([]api.Grant, error) {
@@ -569,6 +606,23 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 		}
 
 		return &api.LoginResponse{PolymorphicID: machine.PolymorphicIdentifier(), Name: machine.Name, AccessKey: key}, nil
+	case r.Email != "" && r.Password != "":
+		expires := time.Now().Add(a.server.options.SessionDuration)
+
+		key, user, requiresUpdate, err := access.LoginWithUserCredential(c, r.Email, r.Password, expires)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %v", internal.ErrForbidden, err.Error())
+		}
+
+		setAuthCookie(c, key, a.server.options.SessionDuration)
+
+		if a.t != nil {
+			if err := a.t.Enqueue(analytics.Track{Event: "infra.login.credentials", UserId: user.PolymorphicIdentifier().String()}); err != nil {
+				logging.S.Debug(err)
+			}
+		}
+
+		return &api.LoginResponse{PolymorphicID: user.PolymorphicIdentifier(), Name: user.Email, AccessKey: key, PasswordUpdateRequired: requiresUpdate}, nil
 	}
 
 	return nil, api.ErrBadRequest

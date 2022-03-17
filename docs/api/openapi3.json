@@ -85,6 +85,33 @@
           }
         }
       },
+      "CreateUserResponse": {
+        "properties": {
+          "email": {
+            "example": "email@example.com",
+            "type": "string"
+          },
+          "id": {
+            "example": "4yJ3n3D8E2",
+            "format": "uid",
+            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+            "type": "string"
+          },
+          "oneTimePassword": {
+            "type": "string"
+          },
+          "providerID": {
+            "example": "4yJ3n3D8E2",
+            "format": "uid",
+            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "providerID"
+        ]
+      },
       "Destination": {
         "properties": {
           "connection": {
@@ -246,6 +273,9 @@
           "name": {
             "type": "string"
           },
+          "passwordUpdateRequired": {
+            "type": "boolean"
+          },
           "polymorphicId": {
             "example": "u:4yJ3n3D8E3",
             "format": "poly-uid",
@@ -374,7 +404,7 @@
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
     "title": "Infra API",
-    "version": "2022-03-16"
+    "version": "2022-03-17"
   },
   "paths": {
     "/v1/access-keys": {
@@ -1968,6 +1998,9 @@
                   "accessKey": {
                     "type": "string"
                   },
+                  "email": {
+                    "type": "string"
+                  },
                   "oidc": {
                     "properties": {
                       "Code": {
@@ -1989,6 +2022,9 @@
                       "code"
                     ],
                     "type": "object"
+                  },
+                  "password": {
+                    "type": "string"
                   }
                 },
                 "type": "object"
@@ -3277,6 +3313,7 @@
             "example": "email@example.com",
             "in": "query",
             "name": "email",
+            "required": true,
             "schema": {
               "example": "email@example.com",
               "type": "string"
@@ -3447,7 +3484,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/User"
+                  "$ref": "#/components/schemas/CreateUserResponse"
                 }
               }
             },
@@ -3461,6 +3498,90 @@
       }
     },
     "/v1/users/{id}": {
+      "delete": {
+        "description": "DeleteUser",
+        "operationId": "DeleteUser",
+        "parameters": [
+          {
+            "example": "4yJ3n3D8E2",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "example": "4yJ3n3D8E2",
+              "format": "uid",
+              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized: Requestor is not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden: Requestor does not have the right permissions"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Duplicate Record"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "DeleteUser",
+        "tags": [
+          "User"
+        ]
+      },
       "get": {
         "description": "GetUser",
         "operationId": "GetUser",
@@ -3541,6 +3662,107 @@
           }
         },
         "summary": "GetUser",
+        "tags": [
+          "User"
+        ]
+      },
+      "put": {
+        "description": "UpdateUser",
+        "operationId": "UpdateUser",
+        "parameters": [
+          {
+            "example": "4yJ3n3D8E2",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "example": "4yJ3n3D8E2",
+              "format": "uid",
+              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "password"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized: Requestor is not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden: Requestor does not have the right permissions"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Duplicate Record"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "UpdateUser",
         "tags": [
           "User"
         ]
