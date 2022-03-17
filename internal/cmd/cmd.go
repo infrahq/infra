@@ -551,9 +551,10 @@ func NewRootCmd() (*cobra.Command, error) {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if v {
 				return version()
-			} else if i {
+			}
+			if i {
 				if err := mustBeLoggedIn(); err != nil {
-				    return err
+					return err
 				}
 				return info()
 			}
