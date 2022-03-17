@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"text/tabwriter"
 	"time"
 
 	"github.com/AlecAivazis/survey/v2/terminal"
@@ -27,7 +26,7 @@ import (
 	"github.com/infrahq/infra/internal/server"
 )
 
-func mustBeLoggedIn(cmd *cobra.Command, args []string) error {
+func mustBeLoggedIn() error {
 	config, err := currentHostConfig()
 	if err != nil {
 		return err
@@ -216,10 +215,12 @@ func newLogoutCmd() *cobra.Command {
 
 func newListCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:               "list",
-		Aliases:           []string{"ls"},
-		Short:             "List accessible destinations",
-		PersistentPreRunE: mustBeLoggedIn,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List accessible destinations",
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return mustBeLoggedIn()
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return list()
 		},
@@ -237,8 +238,10 @@ $ infra use kubernetes.development
 # Connect to a Kubernetes namespace
 $ infra use kubernetes.development.kube-system
 		`,
-		Args:              cobra.ExactArgs(1),
-		PersistentPreRunE: mustBeLoggedIn,
+		Args: cobra.ExactArgs(1),
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return mustBeLoggedIn()
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
@@ -274,9 +277,12 @@ $ infra use kubernetes.development.kube-system
 
 func newGrantsCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:               "grants",
-		Short:             "Manage access to destinations",
-		PersistentPreRunE: mustBeLoggedIn,
+		Use:     "grants",
+		Short:   "Manage access to destinations",
+		Aliases: []string{"grant"},
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return mustBeLoggedIn()
+		},
 	}
 
 	cmd.AddCommand(newGrantsListCmd())
@@ -288,9 +294,12 @@ func newGrantsCmd() *cobra.Command {
 
 func newKeysCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:               "keys",
-		Short:             "Manage access keys for machine identities to authenticate with Infra and call the API",
-		PersistentPreRunE: mustBeLoggedIn,
+		Use:     "keys",
+		Short:   "Manage access keys for machine identities to authenticate with Infra and call the API",
+		Aliases: []string{"key"},
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return mustBeLoggedIn()
+		},
 	}
 
 	cmd.AddCommand(newKeysListCmd())
@@ -302,10 +311,12 @@ func newKeysCmd() *cobra.Command {
 
 func newDestinationsCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:               "destinations",
-		Aliases:           []string{"dst", "dest", "destination"},
-		Short:             "Manage destinations",
-		PersistentPreRunE: mustBeLoggedIn,
+		Use:     "destinations",
+		Aliases: []string{"dst", "dest", "destination"},
+		Short:   "Manage destinations",
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return mustBeLoggedIn()
+		},
 	}
 
 	cmd.AddCommand(newDestinationsListCmd())
@@ -450,9 +461,12 @@ func newEngineCmd() *cobra.Command {
 
 func newTokensCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:               "tokens",
-		Short:             "Create & manage tokens",
-		PersistentPreRunE: mustBeLoggedIn,
+		Use:    "tokens",
+		Short:  "Create & manage tokens",
+		Hidden: true,
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return mustBeLoggedIn()
+		},
 	}
 
 	cmd.AddCommand(newTokensAddCmd())
@@ -462,9 +476,12 @@ func newTokensCmd() *cobra.Command {
 
 func newProvidersCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:               "providers",
-		Short:             "Manage identity providers",
-		PersistentPreRunE: mustBeLoggedIn,
+		Use:     "providers",
+		Short:   "Manage identity providers",
+		Aliases: []string{"provider"},
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return mustBeLoggedIn()
+		},
 	}
 
 	cmd.AddCommand(newProvidersListCmd())
@@ -476,94 +493,26 @@ func newProvidersCmd() *cobra.Command {
 
 func newInfoCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:     "info",
-		Short:   "Display the info about the current session",
-		PreRunE: mustBeLoggedIn,
+		Use:    "info",
+		Short:  "Display the info about the current session",
+		Hidden: true,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return mustBeLoggedIn()
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			config, err := currentHostConfig()
-			if err != nil {
-				return err
-			}
-
-			client, err := defaultAPIClient()
-			if err != nil {
-				return err
-			}
-
-			w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
-			defer w.Flush()
-
-			id := config.PolymorphicID
-			if id == "" {
-				return fmt.Errorf("no active identity")
-			}
-
-			if id.IsUser() {
-				userID, err := id.ID()
-				if err != nil {
-					return err
-				}
-
-				provider, err := client.GetProvider(config.ProviderID)
-				if err != nil {
-					return err
-				}
-
-				user, err := client.GetUser(userID)
-				if err != nil {
-					return err
-				}
-
-				groups, err := client.ListUserGroups(userID)
-				if err != nil {
-					return err
-				}
-
-				var groupsStr string
-				for i, g := range groups {
-					if i != 0 {
-						groupsStr += ", "
-					}
-
-					groupsStr += g.Name
-				}
-
-				fmt.Fprintln(w)
-				fmt.Fprintln(w, "Server:\t", config.Host)
-				fmt.Fprintf(w, "Identity Provider:\t %s (%s)\n", provider.Name, provider.URL)
-				fmt.Fprintln(w, "User:\t", user.Email)
-				fmt.Fprintln(w)
-			} else if id.IsMachine() {
-				machineID, err := id.ID()
-				if err != nil {
-					return err
-				}
-
-				machine, err := client.GetMachine(machineID)
-				if err != nil {
-					fmt.Fprintln(os.Stderr, "6.3")
-					return err
-				}
-
-				fmt.Fprintln(w)
-				fmt.Fprintln(w, "Server:\t", config.Host)
-				fmt.Fprintln(w, "Machine User:\t", machine.Name)
-				fmt.Fprintln(w)
-			} else {
-				return fmt.Errorf("unsupported identity for operation: %s", id)
-			}
-
-			return nil
+			return info()
 		},
 	}
 }
 
 func newIdentitiesCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:               "identities",
-		Aliases:           []string{"id", "identity"},
-		Short:             "Manage identities (users & machines)",
-		PersistentPreRunE: mustBeLoggedIn,
+		Use:     "identities",
+		Aliases: []string{"id", "identity"},
+		Short:   "Manage identities (users & machines)",
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return mustBeLoggedIn()
+		},
 	}
 
 	cmd.AddCommand(newIdentitiesAddCmd())
@@ -575,8 +524,9 @@ func newIdentitiesCmd() *cobra.Command {
 
 func newVersionCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "version",
-		Short: "Display the Infra version",
+		Use:    "version",
+		Short:  "Display the Infra version",
+		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return version()
 		},
@@ -593,6 +543,11 @@ func NewRootCmd() (*cobra.Command, error) {
 		NonInteractive bool   `mapstructure:"nonInteractive"`
 	}
 
+	var (
+		versionFlag bool
+		infoFlag    bool
+	)
+
 	rootCmd := &cobra.Command{
 		Use:               "infra",
 		CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: true},
@@ -607,6 +562,18 @@ func NewRootCmd() (*cobra.Command, error) {
 			nonInteractiveMode = options.NonInteractive
 
 			return logging.SetLevel(options.LogLevel)
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if versionFlag {
+				return version()
+			}
+			if infoFlag {
+				if err := mustBeLoggedIn(); err != nil {
+					return err
+				}
+				return info()
+			}
+			return cmd.Help()
 		},
 	}
 
@@ -625,6 +592,9 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.AddCommand(newOpenAPICmd())
 	rootCmd.AddCommand(newEngineCmd())
 	rootCmd.AddCommand(newVersionCmd())
+
+	rootCmd.Flags().BoolVarP(&versionFlag, "version", "v", false, "Display Infra version")
+	rootCmd.Flags().BoolVarP(&infoFlag, "info", "i", false, "Display info about the current session")
 
 	rootCmd.PersistentFlags().String("log-level", "info", "Set the log level. One of error, warn, info, or debug")
 	rootCmd.PersistentFlags().Bool("non-interactive", false, "don't assume an interactive terminal, even if there is one")
