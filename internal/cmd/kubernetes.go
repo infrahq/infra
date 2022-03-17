@@ -9,7 +9,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
-	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/uid"
 )
@@ -166,7 +166,7 @@ func writeKubeconfig(destinations []api.Destination, grants []api.Grant) error {
 		kubeConfig.AuthInfos[context] = &clientcmdapi.AuthInfo{
 			Exec: &clientcmdapi.ExecConfig{
 				Command:         executable,
-				Args:            []string{"tokens", "create"},
+				Args:            []string{"tokens", "add"},
 				APIVersion:      "client.authentication.k8s.io/v1beta1",
 				InteractiveMode: clientcmdapi.IfAvailableExecInteractiveMode,
 			},

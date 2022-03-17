@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/infrahq/infra/internal"
@@ -14,7 +15,7 @@ func version() error {
 	defer w.Flush()
 
 	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Client:\t", internal.Version)
+	fmt.Fprintln(w, "Client:\t", strings.TrimPrefix(internal.Version, "v"))
 
 	// Note that we use the client to get this version, but it is in fact the server version
 	client, err := defaultAPIClient()
@@ -33,7 +34,7 @@ func version() error {
 		return nil
 	}
 
-	fmt.Fprintln(w, "Server:\t", version.Version)
+	fmt.Fprintln(w, "Server:\t", strings.TrimPrefix(version.Version, "v"))
 	fmt.Fprintln(w)
 
 	return nil

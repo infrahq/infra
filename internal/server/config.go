@@ -489,6 +489,11 @@ func (s *Server) importAccessKeys() error {
 			continue
 		}
 
+		parts := strings.Split(raw, ".")
+		if len(parts) < 2 {
+			return fmt.Errorf("%s format: %w", k, err)
+		}
+
 		// create the machine identity if it doesn't exist
 		machine, err := data.GetMachine(s.db, data.ByName(k))
 		if err != nil {
@@ -519,25 +524,20 @@ func (s *Server) importAccessKeys() error {
 			}
 		}
 
-		ak, err := data.ValidateAccessKey(s.db, raw)
+		name := fmt.Sprintf("default %s access key", k)
+
+		accessKey, err := data.GetAccessKey(s.db, data.ByMachineIDIssuedFor(machine.ID))
 		if err != nil {
 			if !errors.Is(err, internal.ErrNotFound) {
-				return fmt.Errorf("%s lookup: %w", k, err)
+				return err
 			}
 		}
 
-		parts := strings.Split(raw, ".")
-		if len(parts) < 2 {
-			return fmt.Errorf("%s format: %w", k, err)
-		}
-
-		name := fmt.Sprintf("default %s access key", k)
-
-		if ak != nil {
+		if accessKey != nil {
 			sum := sha256.Sum256([]byte(parts[1]))
 
-			// if token name and secret checksum match the input, skip recreating the token
-			if ak.Name == name && subtle.ConstantTimeCompare(ak.SecretChecksum, sum[:]) != 1 {
+			// if token name, key, and secret checksum match input, skip recreating the token
+			if accessKey.Name == name && subtle.ConstantTimeCompare([]byte(accessKey.Key), []byte(parts[0])) != 1 && subtle.ConstantTimeCompare(accessKey.SecretChecksum, sum[:]) != 1 {
 				logging.S.Debugf("%s: skip recreating token", k)
 				continue
 			}
@@ -548,14 +548,14 @@ func (s *Server) importAccessKeys() error {
 			}
 		}
 
-		token := &models.AccessKey{
+		accessKey = &models.AccessKey{
 			Name:      name,
 			Key:       parts[0],
 			Secret:    parts[1],
 			IssuedFor: machine.PolymorphicIdentifier(),
 			ExpiresAt: time.Now().Add(math.MaxInt64),
 		}
-		if _, err := data.CreateAccessKey(s.db, token); err != nil {
+		if _, err := data.CreateAccessKey(s.db, accessKey); err != nil {
 			return fmt.Errorf("%s create: %w", k, err)
 		}
 	}

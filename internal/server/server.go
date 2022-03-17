@@ -80,6 +80,10 @@ type Server struct {
 	certificateProvider pki.CertificateProvider
 }
 
+func init() {
+	gin.SetMode(gin.ReleaseMode)
+}
+
 func Run(options Options) (err error) {
 	server := &Server{
 		options: options,
@@ -341,16 +345,20 @@ func (s *Server) ui(router *gin.Engine) error {
 	return nil
 }
 
-func (s *Server) runServer() error {
-	gin.SetMode(gin.ReleaseMode)
-
+func (s *Server) GenerateRoutes() *gin.Engine {
 	router := gin.New()
 
 	router.Use(gin.Recovery())
 	router.GET("/.well-known/jwks.json", s.wellKnownJWKsHandler)
 	router.GET("/healthz", s.healthHandler)
 
-	NewAPIMux(s, router.Group("/v1"))
+	NewAPI(s, router.Group("/v1"))
+
+	return router
+}
+
+func (s *Server) runServer() error {
+	router := s.GenerateRoutes()
 
 	if err := s.ui(router); err != nil {
 		return err

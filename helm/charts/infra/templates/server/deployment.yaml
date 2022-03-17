@@ -1,4 +1,4 @@
-{{- if .Values.server.enabled }}
+{{- if include "server.enabled" . | eq "true" }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:

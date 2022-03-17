@@ -14,7 +14,7 @@ data:
     accessKey: file:/var/run/secrets/infrahq.com/access-key/access-key
 {{- end }}
 
-{{- if and .Values.server.enabled (not (hasKey .Values.engine.config "server")) }}
+{{- if include "server.enabled" . | eq "true" }}
     server: {{ .Release.Name }}-server.{{ .Release.Namespace }}
 
 {{- if (not (hasKey .Values.engine.config "skipTLSVerify")) }}

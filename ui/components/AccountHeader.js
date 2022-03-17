@@ -32,7 +32,7 @@ const AccountHeader = ({ header, subheader }) => {
   return (
     <HeaderContainer>
       <LogoContainer>
-        <img src='/infraIcon.svg' />
+        <img src='/infra-icon.svg' />
       </LogoContainer>
       <StyledHeader>{header}</StyledHeader>
       <StyledSubheader>{subheader}</StyledSubheader>

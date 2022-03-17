@@ -4,3 +4,7 @@ html, body, #__next {
   color: #FFFFFF;
   background: #0A0E12;
 }
+
+body {
+  margin: 0 .75rem;
+}

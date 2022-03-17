@@ -64,13 +64,13 @@ func TestDeleteAccessKey(t *testing.T) {
 	db := setup(t)
 	_, token := createAccessKey(t, db, time.Minute*5)
 
-	_, err := GetAccessKeys(db, ByID(token.ID))
+	_, err := GetAccessKey(db, ByID(token.ID))
 	require.NoError(t, err)
 
 	err = DeleteAccessKey(db, token.ID)
 	require.NoError(t, err)
 
-	_, err = GetAccessKeys(db, ByID(token.ID))
+	_, err = GetAccessKey(db, ByID(token.ID))
 	require.EqualError(t, err, "record not found")
 
 	err = DeleteAccessKeys(db, ByID(token.ID))

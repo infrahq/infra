@@ -2,7 +2,7 @@
 
                                 Welcome to Infra
 
-{{- if .Values.server.enabled }}
+{{- if include "server.enabled" . | eq "true" }}
 
   Login to this cluster with infra-cli:
 
@@ -77,9 +77,7 @@
 
 {{- end }}
 
-{{- if .Values.engine.ingress.enabled }}
-
-{{- else if eq .Values.engine.service.type "LoadBalancer" }}
+{{- if eq .Values.engine.service.type "LoadBalancer" }}
 
 {{- else }}
 

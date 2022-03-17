@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -15,8 +15,7 @@ type Provider struct {
 	ClientID     string
 	ClientSecret EncryptedAtRest
 
-	Users  []User
-	Groups []Group
+	Users []User
 }
 
 func (p *Provider) ToAPI() *api.Provider {

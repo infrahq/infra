@@ -1,42 +1,36 @@
-import { useContext } from 'react'
 import styled from 'styled-components'
 import PropTypes from 'prop-types'
 
-import AuthContext from '../store/AuthContext'
-
-const IdentitySourceBtnContainer = styled.div`
+const IdentityProviderButtonContainer = styled.div`
   & > *:not(:first-child) {
     margin-top: .3rem;
   }
 `
 
-const IdentitySourceContainer = styled.button`
+const IdentityProviderContainer = styled.button`
   width: 24rem;
   height: 3rem;
   background: rgba(255,255,255,0.02);
-  opacity: ${props => props.disabled != null && props.disabled ? '.56' : '1'};
+  opacity: 1;
   border-radius: .25rem;
   border: none;
-  cursor: ${props => props.disabled != null && props.disabled ? 'default' : 'pointer'};
+  cursor: pointer;
   color: #FFFFFF;
 
-  ${props => props.disabled != null && props.disabled
-    ? ''
-    : '&:hover { opacity: .95 }'
-  }
+  &:hover { opacity: .95 }
 `
 
-const IdentitySourceContentContainer = styled.div`
+const IdentityProviderContentContainer = styled.div`
   display: flex;
   flex-direction: row;
   padding: .5rem;
 `
 
-const IdentitySourceLogo = styled.div`
+const IdentityProviderLogo = styled.div`
   padding-top: .4rem;  
 `
 
-const IdentitySourceContentDescriptionContainer = styled.div`
+const IdentityProviderContentDescriptionContainer = styled.div`
   padding-left: 1rem;
   text-align: left;
 
@@ -61,35 +55,32 @@ const DescriptionSubheader = styled.div`
   opacity: 0.3;
 `
 
-const IdentitySourceBtn = ({ providers }) => {
-  const { login } = useContext(AuthContext)
-
+const IdentityProviderButton = ({ providers }) => {
   return (
-    <IdentitySourceBtnContainer>
+    <IdentityProviderButtonContainer>
       {providers.map((provider, index) => {
         return (
-          <IdentitySourceContainer
+          <IdentityProviderContainer
             key={index}
-            onClick={() => login(provider)}
-            disabled={false}
+            onClick={() => provider.onClick()}
           >
-            <IdentitySourceContentContainer>
-              <IdentitySourceLogo>
+            <IdentityProviderContentContainer>
+              <IdentityProviderLogo>
                 <img src={`/${provider.type}.svg`} />
-              </IdentitySourceLogo>
-              <IdentitySourceContentDescriptionContainer>
+              </IdentityProviderLogo>
+              <IdentityProviderContentDescriptionContainer>
                 <DescriptionHeader>{provider.type}</DescriptionHeader>
                 <DescriptionSubheader>{provider.name}</DescriptionSubheader>
-              </IdentitySourceContentDescriptionContainer>
-            </IdentitySourceContentContainer>
-          </IdentitySourceContainer>
+              </IdentityProviderContentDescriptionContainer>
+            </IdentityProviderContentContainer>
+          </IdentityProviderContainer>
         )
       })}
-    </IdentitySourceBtnContainer>
+    </IdentityProviderButtonContainer>
   )
 }
 
-IdentitySourceBtn.prototype = {
+IdentityProviderButton.prototype = {
   providers: PropTypes.arrayOf(PropTypes.shape({
     type: PropTypes.string,
     name: PropTypes.string,
@@ -97,9 +88,9 @@ IdentitySourceBtn.prototype = {
     clientID: PropTypes.string,
     id: PropTypes.string,
     created: PropTypes.number,
-    updated: PropTypes.number
-  })).isRequired,
-  onClick: PropTypes.func
+    updated: PropTypes.number,
+    onClick: PropTypes.func
+  })).isRequired
 }
 
-export default IdentitySourceBtn
+export default IdentityProviderButton

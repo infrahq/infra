@@ -18,7 +18,6 @@ type ClientConfig struct {
 
 // current: v0.3
 type ClientHostConfig struct {
-	ID            uid.ID            `json:"id"`
 	PolymorphicID uid.PolymorphicID `json:"polymorphic-id"`
 	Name          string            `json:"name"`
 	Host          string            `json:"host"`

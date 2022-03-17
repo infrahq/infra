@@ -1,13 +1,13 @@
 import PropTypes from 'prop-types'
 import styled from 'styled-components'
 
-const AccessKeyInputContainer = styled.section`
+const InputContainer = styled.section`
   position: relative;
 `
 
 const InputGroup = styled.div`
   opacity: 0.5;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   box-sizing: border-box;
   border-radius: 2px;
 `
@@ -19,9 +19,7 @@ const StyledInputContainer = styled.div`
   padding: 0 .5rem 0 .75rem;
 `
 
-const StyledInput = styled.input.attrs({
-  type: 'text'
-})`
+const StyledInput = styled.input`
   border: none;
   background: transparent;
   width: 20.75rem;
@@ -35,7 +33,7 @@ const StyledInput = styled.input.attrs({
 
 const Label = styled.span`
   position: absolute;
-  width: 6.625rem;
+  width: auto;
   height: .75rem;
   left: .625rem;
   top: -5px;
@@ -44,30 +42,34 @@ const Label = styled.span`
   font-weight: 100;
   font-size: .625rem;
   line-height: .75rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.75);
 `
 
-const AccessKeyInput = ({ value, onChange }) => {
+const Input = ({ label, value, onChange, showImage = false, type = 'text' }) => {
   return (
-    <AccessKeyInputContainer>
+    <InputContainer>
       <InputGroup>
-        <Label>Admin API Access Key</Label>
+        <Label>{label}</Label>
         <StyledInputContainer>
           <StyledInput
+            type={type}
             value={value}
             onChange={onChange}
           />
-          <img src='/accessKeyLockIcon.svg' />
+          {showImage ? <img src='/access-key-lock-icon.svg' /> : <></>}
         </StyledInputContainer>
 
       </InputGroup>
-    </AccessKeyInputContainer>
+    </InputContainer>
   )
 }
 
-AccessKeyInput.prototype = {
+Input.prototype = {
+  label: PropTypes.string.isRequired,
   value: PropTypes.string.isRequired,
-  onChange: PropTypes.func.isRequired
+  onChange: PropTypes.func.isRequired,
+  showImage: PropTypes.bool,
+  type: PropTypes.oneOf(['text', 'password'])
 }
 
-export default AccessKeyInput
+export default Input

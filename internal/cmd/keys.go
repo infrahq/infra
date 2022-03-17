@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/api"
 	"github.com/spf13/cobra"
 )
 

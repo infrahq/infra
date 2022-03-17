@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "next": "^12.1.0",
-    "axios": "^0.26.0",
+    "axios": "^0.26.1",
     "babel-plugin-styled-components": "^2.0.6",
     "react": "17.0.2",
     "react-cookie": "^4.1.1",
@@ -22,8 +22,8 @@
   },
   "devDependencies": {
     "@types/node": "^17.0.21",
-    "@types/react": "17.0.39",
-    "eslint": "^8.10.0",
+    "@types/react": "17.0.40",
+    "eslint": "^8.11.0",
     "eslint-config-next": "^12.1.0",
     "@types/styled-components": "^5.1.24",
     "standard": "*"

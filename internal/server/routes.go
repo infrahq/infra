@@ -88,84 +88,82 @@ func (a *API) registerRoutes(router *gin.RouterGroup) {
 
 		get(unauthorized, "/version", a.Version)
 	}
+
+	generateOpenAPI()
 }
 
 func get[Req, Res any](r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) {
+	register("GET", r.BasePath(), path, handler)
 	r.GET(path, func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
-			sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
+			sendAPIError(c, err)
 			return
 		}
-		if err := validate.Struct(req); err != nil {
-			sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
-			return
-		}
+
 		resp, err := handler(c, req)
 		if err != nil {
 			sendAPIError(c, err)
 			return
 		}
+
 		c.JSON(http.StatusOK, resp)
 	})
 }
 
 func post[Req, Res any](r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) {
+	register("POST", r.BasePath(), path, handler)
 	r.POST(path, func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
-			sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
+			sendAPIError(c, err)
 			return
 		}
-		if err := validate.Struct(req); err != nil {
-			sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
-			return
-		}
+
 		resp, err := handler(c, req)
 		if err != nil {
 			sendAPIError(c, err)
 			return
 		}
+
 		c.JSON(http.StatusCreated, resp)
 	})
 }
 
 func put[Req, Res any](r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) {
+	register("PUT", r.BasePath(), path, handler)
 	r.PUT(path, func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
-			sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
+			sendAPIError(c, err)
 			return
 		}
-		if err := validate.Struct(req); err != nil {
-			sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
-			return
-		}
+
 		resp, err := handler(c, req)
 		if err != nil {
 			sendAPIError(c, err)
 			return
 		}
+
 		c.JSON(http.StatusOK, resp)
 	})
 }
 
 func delete[Req any](r *gin.RouterGroup, path string, handler ReqHandlerFunc[Req]) {
+	registerReq("DELETE", r.BasePath(), path, handler)
 	r.DELETE(path, func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
-			sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
+			sendAPIError(c, err)
 			return
 		}
-		if err := validate.Struct(req); err != nil {
-			sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrBadRequest, err))
-			return
-		}
+
 		err := handler(c, req)
 		if err != nil {
 			sendAPIError(c, err)
 			return
 		}
+
 		c.Status(http.StatusNoContent)
 		c.Writer.WriteHeaderNow()
 	})
@@ -175,13 +173,19 @@ func bind(c *gin.Context, req interface{}) error {
 	if err := c.ShouldBindUri(req); err != nil {
 		return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
 	}
+
 	if err := c.ShouldBindQuery(req); err != nil {
 		return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
 	}
+
 	if c.Request.Body != nil && c.Request.ContentLength > 0 {
 		if err := c.ShouldBindJSON(req); err != nil {
 			return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
 		}
+	}
+
+	if err := validate.Struct(req); err != nil {
+		return err
 	}
 
 	return nil

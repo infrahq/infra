@@ -10,10 +10,12 @@ const AuthContext = createContext({
   loginError: false,
   providers: [],
   user: null,
+  newestProvider: null,
   getAccessKey: async (code, providerID, redirectURL) => {},
   login: (selectedIdp) => {},
   logout: async () => {},
-  register: async (key) => {}
+  register: async (key) => {},
+  setNewProvider: (provider) => {}
 })
 
 // TODO: need to revisit this - when refresh the page, this get call
@@ -36,6 +38,7 @@ export const AuthContextProvider = ({ children }) => {
   const [authReady, setAuthReady] = useState(false)
 
   const [providers, setProviders] = useState([])
+  const [newestProvider, setNewestProvider] = useState(null)
   const [cookie, setCookie, removeCookies] = useCookies(['accessKey'])
 
   useEffect(() => {
@@ -64,16 +67,23 @@ export const AuthContextProvider = ({ children }) => {
       })
   }
 
+  const setNewProvider = (provider) => {
+    setProviders(currentProviders => [...currentProviders, provider])
+    setNewestProvider(provider)
+  }
+
   const redirectToDashboard = async (key) => {
     try {
       const currentUser = await getCurrentUser(key)
 
-      setUser(currentUser)
-      setAuthReady(true)
+      if (currentUser) {
+        setUser(currentUser)
+        setAuthReady(true)
 
-      await Router.push({
-        pathname: '/'
-      }, undefined, { shallow: true })
+        await Router.push({
+          pathname: '/'
+        }, undefined, { shallow: true })
+      }
     } catch (error) {
       setLoginError(true)
     }
@@ -81,7 +91,7 @@ export const AuthContextProvider = ({ children }) => {
 
   const getAccessKey = async (code, providerID, redirectURL) => {
     setHasRedirected(true)
-    axios.post('/v1/login', { oidc: { providerID, code, redirectURL }})
+    axios.post('/v1/login', { oidc: { providerID, code, redirectURL } })
       .then(async (response) => {
         setCookie('accessKey', response.data.accessKey, { path: '/' })
         await redirectToDashboard(response.data.accessKey)
@@ -117,6 +127,7 @@ export const AuthContextProvider = ({ children }) => {
       })
   }
 
+  // TODO: verify access key
   const register = async (key) => {
     setCookie('accessKey', key, { path: '/' })
     await redirectToDashboard(key)
@@ -129,10 +140,12 @@ export const AuthContextProvider = ({ children }) => {
     loginError,
     providers,
     user,
+    newestProvider,
     getAccessKey,
     login,
     logout,
-    register
+    register,
+    setNewProvider
   }
 
   return (

@@ -1,5 +1,14 @@
 # Changelog
 
+### [0.5.11](https://github.com/infrahq/infra/compare/v0.5.10...v0.5.11) (2022-03-12)
+
+
+### Bug Fixes
+
+* gitignore ignores helm/charts/infra ([c413389](https://github.com/infrahq/infra/commit/c413389869148133913ce4c9384274765329bd35))
+* update infra kube config tokens command ([#1170](https://github.com/infrahq/infra/issues/1170)) ([bb8e654](https://github.com/infrahq/infra/commit/bb8e654316349eef0a15ea7ee4d0e2a73b6368e8))
+* use correct readme uploader action ([176567d](https://github.com/infrahq/infra/commit/176567dfb6111bf974402ce3093b8f822adb34c2))
+
 ### [0.5.10](https://github.com/infrahq/infra/compare/v0.5.9...v0.5.10) (2022-03-04)
 
 

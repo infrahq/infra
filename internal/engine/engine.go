@@ -25,7 +25,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/api"
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/claims"
 	"github.com/infrahq/infra/internal/kubernetes"
@@ -528,7 +528,6 @@ func Run(options Options) error {
 	gin.SetMode(gin.ReleaseMode)
 
 	router := gin.New()
-	router.Use(gin.Recovery())
 	router.GET("/healthz", func(c *gin.Context) {
 		c.Status(http.StatusOK)
 	})
@@ -648,7 +647,9 @@ func refreshDestination(client *api.Client, local *localDetails) error {
 		},
 	}
 
-	_, err := client.UpdateDestination(request)
+	if _, err := client.UpdateDestination(request); err != nil {
+		return fmt.Errorf("error updating existing destination: %w", err)
+	}
 
-	return fmt.Errorf("error updating existing destination: %w", err)
+	return nil
 }
