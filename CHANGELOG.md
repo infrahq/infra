@@ -1,5 +1,29 @@
 # Changelog
 
+### [0.5.12](https://github.com/infrahq/infra/compare/v0.5.11...v0.5.12) (2022-03-17)
+
+
+### Features
+
+* adding okta provider ([#1164](https://github.com/infrahq/infra/issues/1164)) ([4880990](https://github.com/infrahq/infra/commit/4880990fc8814899a6afb06d01371fe632da8789))
+* **helm:** disable engine install by default ([416239d](https://github.com/infrahq/infra/commit/416239dbddf6ff947f87d5bfac26350e8d88c22b))
+* **helm:** infer server.enabled ([166eb4e](https://github.com/infrahq/infra/commit/166eb4e17046005920bc1145cceb01d8d924968f))
+* infer server if configured for localhost ([93c6fca](https://github.com/infrahq/infra/commit/93c6fca03b9430f7365998b9effbb11b7f30f34e))
+
+
+### Bug Fixes
+
+* **cli:** outputs unique list of grants for each dest ([#1140](https://github.com/infrahq/infra/issues/1140)) ([158bc9c](https://github.com/infrahq/infra/commit/158bc9ca7d836d0c324349e5c9ec8d5af2d630b3))
+* **cmd:** use single field to cache client identity ([567e664](https://github.com/infrahq/infra/commit/567e664051004bda5ecc24051b619e133bbce16d))
+* consistent version format ([31ecc2a](https://github.com/infrahq/infra/commit/31ecc2a025f8ddb9fea54bf2efe091682f5303ab))
+* **data:** discard gorm logs ([fe7ec71](https://github.com/infrahq/infra/commit/fe7ec7149fabe49aa76a628c9c7da9d492271f1c))
+* **engine:** remove Recovery middleware ([d24e8e2](https://github.com/infrahq/infra/commit/d24e8e2a4b17393e92ab3b292341a70e397303ed))
+* **helm:** remove engine ingress values ([48f448e](https://github.com/infrahq/infra/commit/48f448ecda803a825158349769d3de962a4f4196))
+* improves UX around validation errors ([#1209](https://github.com/infrahq/infra/issues/1209)) ([becacb0](https://github.com/infrahq/infra/commit/becacb06eb63b2cafe5425b4ca7105c9e8c403ba))
+* nil error log when destination refreshed ([#1185](https://github.com/infrahq/infra/issues/1185)) ([ec73d52](https://github.com/infrahq/infra/commit/ec73d5222519cb477f13ee0a62472add08686aed))
+* **server:** fix import access key when key part changes ([7977e08](https://github.com/infrahq/infra/commit/7977e08c0ded403abc3b204d5a5df06d93068cca))
+* update grant examples ([#1222](https://github.com/infrahq/infra/issues/1222)) ([45617cc](https://github.com/infrahq/infra/commit/45617cc36af420fff1f6b97bf7e9c26138bf310b))
+
 ### [0.5.11](https://github.com/infrahq/infra/compare/v0.5.10...v0.5.11) (2022-03-12)
 
 
