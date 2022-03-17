@@ -1998,21 +1998,6 @@
                   "accessKey": {
                     "type": "string"
                   },
-                  "credentials": {
-                    "properties": {
-                      "Email": {
-                        "type": "string"
-                      },
-                      "Password": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "email",
-                      "password"
-                    ],
-                    "type": "object"
-                  },
                   "oidc": {
                     "properties": {
                       "Code": {
@@ -2032,6 +2017,21 @@
                       "providerID",
                       "redirectURL",
                       "code"
+                    ],
+                    "type": "object"
+                  },
+                  "passwordCredentials": {
+                    "properties": {
+                      "Email": {
+                        "type": "string"
+                      },
+                      "Password": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "email",
+                      "password"
                     ],
                     "type": "object"
                   }

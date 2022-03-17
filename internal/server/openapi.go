@@ -257,7 +257,7 @@ func setTagInfo(f reflect.StructField, t, parent reflect.Type, schema, parentSch
 			if val == "required" && parentSchema != nil {
 				parentSchema.Required = append(parentSchema.Required, getFieldName(f, parent))
 			}
-			if strings.Contains(val, "min=") {
+			if strings.HasPrefix(val, "min=") {
 				minLength := strings.Split(val, "min=")
 				if len(minLength) != 2 {
 					panic("min length tag does not match expected format")
@@ -461,7 +461,7 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 					if val == "required" {
 						p.Required = true
 					}
-					if strings.Contains(val, "min=") {
+					if strings.HasPrefix(val, "min=") {
 						minLength := strings.Split(val, "min=")
 						if len(minLength) != 2 {
 							panic("min length tag does not match expected format")

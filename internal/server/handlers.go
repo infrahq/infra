@@ -606,12 +606,12 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 		}
 
 		return &api.LoginResponse{PolymorphicID: machine.PolymorphicIdentifier(), Name: machine.Name, AccessKey: key}, nil
-	case r.Credentials != nil:
+	case r.PasswordCredentials != nil:
 		expires := time.Now().Add(a.server.options.SessionDuration)
 
-		key, user, requiresUpdate, err := access.LoginWithUserCredential(c, r.Credentials.Email, r.Credentials.Password, expires)
+		key, user, requiresUpdate, err := access.LoginWithUserCredential(c, r.PasswordCredentials.Email, r.PasswordCredentials.Password, expires)
 		if err != nil {
-			return nil, fmt.Errorf("%w: %v", internal.ErrForbidden, err.Error())
+			return nil, fmt.Errorf("%w: %v", internal.ErrUnauthorized, err.Error())
 		}
 
 		setAuthCookie(c, key, a.server.options.SessionDuration)
