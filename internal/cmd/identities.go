@@ -12,6 +12,7 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
 var ErrUserNotFound = errors.New(`no users found with this name`)
@@ -32,7 +33,7 @@ func newIdentitiesAddCmd() *cobra.Command {
 			name := args[0]
 
 			var options identityOptions
-			if err := parseOptions(cmd, &options, "INFRA_MACHINE"); err != nil {
+			if err := parseOptions(cmd, &options, "INFRA_IDENTITY"); err != nil {
 				return err
 			}
 
@@ -62,7 +63,7 @@ func newIdentitiesAddCmd() *cobra.Command {
 
 	cmd.Flags().BoolP("user", "u", false, "Indicate that this identity is a user")
 	cmd.Flags().BoolP("machine", "m", false, "Indicate that this identity is a machine")
-	cmd.Flags().StringP("description", "d", "", "Description of the machine identity")
+	cmd.Flags().StringP("description", "d", "", "Description of a machine identity")
 
 	return cmd
 }
@@ -76,7 +77,7 @@ func newIdentitiesEditCmd() *cobra.Command {
 			name := args[0]
 
 			var options identityOptions
-			if err := parseOptions(cmd, &options, "INFRA_MACHINE"); err != nil {
+			if err := parseOptions(cmd, &options, "INFRA_IDENTITY"); err != nil {
 				return err
 			}
 
@@ -128,21 +129,49 @@ func newIdentitiesListCmd() *cobra.Command {
 				return err
 			}
 
+			type row struct {
+				Name        string `header:"Name"`
+				Type        string `header:"Type"`
+				Provider    string `header:"Provider"`
+				Description string `header:"Description"`
+			}
+
 			machines, err := client.ListMachines(api.ListMachinesRequest{})
 			if err != nil {
 				return err
 			}
 
-			type row struct {
-				Name        string `header:"Name"`
-				Description string `header:"Description"`
-			}
-
 			var rows []row
+
 			for _, m := range machines {
 				rows = append(rows, row{
 					Name:        m.Name,
+					Type:        "machine",
 					Description: m.Description,
+				})
+			}
+
+			users, err := client.ListUsers(api.ListUsersRequest{})
+			if err != nil {
+				return err
+			}
+
+			providers := make(map[uid.ID]string)
+
+			for _, u := range users {
+				if providers[u.ProviderID] == "" {
+					p, err := client.GetProvider(u.ProviderID)
+					if err != nil {
+						logging.S.Debugf("unable to retrieve user provider: %w", err)
+					} else {
+						providers[p.ID] = p.Name
+					}
+				}
+
+				rows = append(rows, row{
+					Name:     u.Email,
+					Type:     "user",
+					Provider: providers[u.ProviderID],
 				})
 			}
 
@@ -162,7 +191,7 @@ func newIdentitiesRemoveCmd() *cobra.Command {
 			name := args[0]
 
 			var options identityOptions
-			if err := parseOptions(cmd, &options, "INFRA_MACHINE"); err != nil {
+			if err := parseOptions(cmd, &options, "INFRA_IDENTITY"); err != nil {
 				return err
 			}
 
@@ -264,7 +293,7 @@ func updateUser(name, newPassword string) error {
 	infraProvider, err := GetProviderFromName(client, models.InternalInfraProviderName)
 	if err != nil {
 		logging.S.Debug(err)
-		return fmt.Errorf("no infra provider found, to manage local user create a local provider named 'infra'")
+		return fmt.Errorf("no infra provider found, to manage local users create a local provider named 'infra'")
 	}
 
 	user := &api.User{}
@@ -274,7 +303,7 @@ func updateUser(name, newPassword string) error {
 		return err
 	}
 
-	if config.ProviderID == infraProvider.ID && config.Name == name {
+	if config.ProviderID == infraProvider.ID && config.Name == name && config.ProviderID != 1 {
 		// this is a user updating their own password
 		currentID, err := config.PolymorphicID.ID()
 		if err != nil {
@@ -312,6 +341,7 @@ func getMachineFromName(client *api.Client, name string) (*api.Machine, error) {
 	if len(machines) != 1 {
 		return nil, fmt.Errorf("invalid machines response, there should only be one machine that matches a name, but multiple were found")
 	}
+
 	return &machines[0], nil
 }
 

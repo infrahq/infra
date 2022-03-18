@@ -126,7 +126,7 @@ $ infra grants add -u admin@acme.com -r admin infra
 
 			if options.User != "" {
 				// create user if they don't exist
-				users, err := client.ListUsers(api.ListUsersRequest{Email: options.User})
+				users, err := client.ListUsers(api.ListUsersRequest{Email: options.User, ProviderID: provider.ID})
 				if err != nil {
 					return err
 				}
@@ -148,7 +148,7 @@ $ infra grants add -u admin@acme.com -r admin infra
 
 			if options.Group != "" {
 				// create group if they don't exist
-				groups, err := client.ListGroups(api.ListGroupsRequest{Name: options.Group})
+				groups, err := client.ListGroups(api.ListGroupsRequest{Name: options.Group, ProviderID: provider.ID})
 				if err != nil {
 					return err
 				}
@@ -229,7 +229,6 @@ func newGrantRemoveCmd() *cobra.Command {
 				return err
 			}
 
-			// TODO
 			var provider *api.Provider
 
 			if options.Machine == "" {
@@ -240,8 +239,6 @@ func newGrantRemoveCmd() *cobra.Command {
 					}
 					return err
 				}
-				// TODO
-				fmt.Println(provider)
 
 				if options.User != "" && options.Group != "" {
 					return errors.New("only allowed one of --user or --group")
@@ -253,7 +250,7 @@ func newGrantRemoveCmd() *cobra.Command {
 			var id uid.PolymorphicID
 
 			if options.User != "" {
-				users, err := client.ListUsers(api.ListUsersRequest{Email: options.User})
+				users, err := client.ListUsers(api.ListUsersRequest{Email: options.User, ProviderID: provider.ID})
 				if err != nil {
 					return err
 				}
@@ -266,7 +263,7 @@ func newGrantRemoveCmd() *cobra.Command {
 			}
 
 			if options.Group != "" {
-				groups, err := client.ListGroups(api.ListGroupsRequest{Name: options.Group})
+				groups, err := client.ListGroups(api.ListGroupsRequest{Name: options.Group, ProviderID: provider.ID})
 				if err != nil {
 					return err
 				}

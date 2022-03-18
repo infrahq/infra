@@ -12,7 +12,7 @@ type User struct {
 }
 
 type ListUsersRequest struct {
-	Email      string `form:"email" validate:"email"`
+	Email      string `form:"email"`
 	ProviderID uid.ID `form:"provider_id"`
 }
 
