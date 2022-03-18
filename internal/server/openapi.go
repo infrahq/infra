@@ -266,7 +266,7 @@ func setTagInfo(f reflect.StructField, t, parent reflect.Type, schema, parentSch
 				if err != nil {
 					panic("unexpected min length: " + err.Error())
 				}
-				parentSchema.MinLength = len
+				schema.MinLength = len
 			}
 			if val == "email" {
 				schema.Example = "email@example.com"
