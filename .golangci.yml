@@ -10,7 +10,10 @@ linters-settings:
       - name: var-naming
         arguments: [[ ID, API, HTTP ], []]
   gci:
-    local-prefixes: github.com/infrahq/infra
+    sections:
+      - standard
+      - default
+      - prefix(github.com/infrahq/infra)
   gocritic:
     disabled-checks:
       - singleCaseSwitch
