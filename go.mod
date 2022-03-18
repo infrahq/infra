@@ -284,3 +284,4 @@ require (
 )
 
 replace github.com/gin-gonic/gin => github.com/infrahq/gin v1.7.2-0.20220120203023-0eaa562f3a8a
+replace github.com/spf13/cobra => github.com/infrahq/cobra v1.4.0

@@ -73,7 +73,7 @@ func relogin() error {
 }
 
 func isInteractiveMode() bool {
-	if nonInteractiveMode {
+	if rootOptions.NonInteractive {
 		// user explicitly asked for a non-interactive terminal
 		return false
 	}

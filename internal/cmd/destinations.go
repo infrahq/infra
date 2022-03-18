@@ -5,11 +5,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/spf13/cobra"
-
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
+	"github.com/spf13/cobra"
 )
 
 func newDestinationsListCmd() *cobra.Command {
