@@ -8,6 +8,20 @@ import (
 )
 
 func CreateGrant(db *gorm.DB, grant *models.Grant) error {
+	// check first if it exists
+	grants, err := list[models.Grant](db, ByIdentity(grant.Identity), ByResource(grant.Resource))
+	if err != nil {
+		return err
+	}
+	for _, existingGrant := range grants {
+		if existingGrant.Privilege == grant.Privilege &&
+			existingGrant.ExpiresAfterUnused == grant.ExpiresAfterUnused &&
+			existingGrant.ExpiresAt == grant.ExpiresAt {
+			// exact match exists, no need to store it twice.
+			return nil
+		}
+	}
+
 	return add(db, grant)
 }
 
