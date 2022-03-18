@@ -3,7 +3,10 @@
   "bump-patch-for-minor-pre-major": true,
   "packages": {
     ".": {
-      "release-type": "go"
+      "release-type": "go",
+      "extra-files": [
+        "helm/infra/Chart.yaml"
+      ]
     }
   }
 }
