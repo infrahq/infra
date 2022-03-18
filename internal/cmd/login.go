@@ -20,6 +20,7 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -162,8 +163,15 @@ func login(host string) error {
 	}
 
 	var options []string
+	var oidcProviders []api.Provider
+
 	for _, p := range providers {
-		options = append(options, fmt.Sprintf("%s (%s)", p.Name, p.URL))
+		if p.Name == models.InternalInfraProviderName {
+			// TODO
+		} else {
+			options = append(options, fmt.Sprintf("%s (%s)", p.Name, p.URL))
+			oidcProviders = append(oidcProviders, p)
+		}
 	}
 
 	options = append(options, "Login with Access Key")
@@ -189,7 +197,7 @@ func login(host string) error {
 
 		loginReq.AccessKey = accessKey
 	} else {
-		provider := providers[option]
+		provider := oidcProviders[option]
 		providerID = provider.ID
 
 		fmt.Fprintf(os.Stderr, "  Logging in with %s...\n", termenv.String(provider.Name).Bold().String())
