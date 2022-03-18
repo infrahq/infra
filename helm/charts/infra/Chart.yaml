@@ -1,6 +1,8 @@
 apiVersion: v2
 name: infra
-version: 0.4.14
 description: A Helm chart for Infra
 type: application
-appVersion: 0.0.0
+## {x-release-please-start-version}
+version: 0.5.12
+appVersion: 0.5.12
+## {x-release-please-end}
