@@ -204,6 +204,14 @@ func (c Client) CreateUser(req *CreateUserRequest) (*CreateUserResponse, error) 
 	return post[CreateUserRequest, CreateUserResponse](c, "/v1/users", req)
 }
 
+func (c Client) UpdateUser(req *UpdateUserRequest) (*User, error) {
+	return put[UpdateUserRequest, User](c, fmt.Sprintf("/v1/users/%s", req.ID.String()), req)
+}
+
+func (c Client) DeleteUser(id uid.ID) error {
+	return delete(c, fmt.Sprintf("/v1/users/%s", id))
+}
+
 func (c Client) ListUserGrants(id uid.ID) ([]Grant, error) {
 	return list[Grant](c, fmt.Sprintf("/v1/users/%s/grants", id), nil)
 }

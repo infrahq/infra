@@ -100,20 +100,15 @@ $ infra grants add -u admin@acme.com -r admin infra
 				return err
 			}
 
-			var providers []api.Provider
+			var provider *api.Provider
 
 			if options.Machine == "" {
-				providers, err = client.ListProviders(options.Provider)
+				provider, err = GetProviderFromName(client, options.Provider)
 				if err != nil {
+					if errors.Is(err, ErrProviderNotUnique) {
+						return fmt.Errorf("specify provider with -p or --provider: %w", err)
+					}
 					return err
-				}
-
-				if len(providers) == 0 {
-					return errors.New("no identity providers connected")
-				}
-
-				if len(providers) > 1 {
-					return errors.New("specify provider with -p or --provider")
 				}
 
 				if options.User != "" && options.Group != "" {
@@ -139,7 +134,7 @@ $ infra grants add -u admin@acme.com -r admin infra
 				if len(users) == 0 {
 					newUser, err := client.CreateUser(&api.CreateUserRequest{
 						Email:      options.User,
-						ProviderID: providers[0].ID,
+						ProviderID: provider.ID,
 					})
 					if err != nil {
 						return err
@@ -161,7 +156,7 @@ $ infra grants add -u admin@acme.com -r admin infra
 				if len(groups) == 0 {
 					newGroup, err := client.CreateGroup(&api.CreateGroupRequest{
 						Name:       options.Group,
-						ProviderID: providers[0].ID,
+						ProviderID: provider.ID,
 					})
 					if err != nil {
 						return err
@@ -234,21 +229,19 @@ func newGrantRemoveCmd() *cobra.Command {
 				return err
 			}
 
-			var providers []api.Provider
+			// TODO
+			var provider *api.Provider
 
 			if options.Machine == "" {
-				providers, err = client.ListProviders(options.Provider)
+				provider, err = GetProviderFromName(client, options.Provider)
 				if err != nil {
+					if errors.Is(err, ErrProviderNotUnique) {
+						return fmt.Errorf("specify provider with -p or --provider: %w", err)
+					}
 					return err
 				}
-
-				if len(providers) == 0 {
-					return errors.New("No identity providers connected")
-				}
-
-				if len(providers) > 1 {
-					return errors.New("Specify provider with -p or --provider")
-				}
+				// TODO
+				fmt.Println(provider)
 
 				if options.User != "" && options.Group != "" {
 					return errors.New("only allowed one of --user or --group")

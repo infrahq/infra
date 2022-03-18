@@ -518,6 +518,7 @@ func newIdentitiesCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(newIdentitiesAddCmd())
+	cmd.AddCommand(newIdentitiesEditCmd())
 	cmd.AddCommand(newIdentitiesListCmd())
 	cmd.AddCommand(newIdentitiesRemoveCmd())
 

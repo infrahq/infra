@@ -1,10 +1,15 @@
 package cmd
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
 )
+
+var ErrProviderNotUnique = errors.New(`unique provider name not specified`)
 
 type providerOptions struct {
 	URL          string
@@ -113,4 +118,21 @@ func newProvidersRemoveCmd() *cobra.Command {
 			return nil
 		},
 	}
+}
+
+func GetProviderFromName(client *api.Client, name string) (*api.Provider, error) {
+	providers, err := client.ListProviders(name)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(providers) == 0 {
+		return nil, fmt.Errorf("no identity providers connected with the name %s", name)
+	}
+
+	if len(providers) > 1 {
+		return nil, ErrProviderNotUnique
+	}
+
+	return &providers[0], nil
 }
