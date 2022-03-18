@@ -24,7 +24,9 @@ var (
 func register[Req, Res any](method, basePath, path string, handler ReqResHandlerFunc[Req, Res]) {
 	funcName := getFuncName(handler)
 
+	//nolint:gocritic
 	rqt := reflect.TypeOf(*new(Req))
+	//nolint:gocritic
 	rst := reflect.TypeOf(*new(Res))
 
 	reg(method, basePath, path, funcName, rqt, rst)
@@ -33,17 +35,9 @@ func register[Req, Res any](method, basePath, path string, handler ReqResHandler
 func registerReq[Req any](method, basePath, path string, handler ReqHandlerFunc[Req]) {
 	funcName := getFuncName(handler)
 
+	//nolint:gocritic
 	rqt := reflect.TypeOf(*new(Req))
 	rst := reflect.TypeOf(nil)
-
-	reg(method, basePath, path, funcName, rqt, rst)
-}
-
-func registerRes[Res any](method, basePath, path string, handler ResHandlerFunc[Res]) {
-	funcName := getFuncName(handler)
-
-	rqt := reflect.TypeOf(nil)
-	rst := reflect.TypeOf(*new(Res))
 
 	reg(method, basePath, path, funcName, rqt, rst)
 }
@@ -57,6 +51,7 @@ func reg(method, basePath, path, funcName string, rqt, rst reflect.Type) {
 	if openAPISchema.Components.Schemas == nil {
 		openAPISchema.Components.Schemas = openapi3.Schemas{}
 	}
+
 	if openAPISchema.Paths == nil {
 		openAPISchema.Paths = openapi3.Paths{}
 	}
@@ -70,9 +65,11 @@ func reg(method, basePath, path, funcName string, rqt, rst reflect.Type) {
 	op.OperationID = funcName
 	op.Description = funcName
 	op.Summary = funcName
+
 	if rqt != nil {
 		buildRequest(rqt, op)
 	}
+
 	op.Responses = buildResponse(rst)
 
 	restMethods := []string{"Get", "List", "Delete", "Create", "Update"}
@@ -123,6 +120,7 @@ func getFuncName(i interface{}) string {
 	nameParts := strings.Split(name, ".")
 	name = nameParts[len(nameParts)-1]
 	name = strings.TrimSuffix(name, "-fm")
+
 	return name
 }
 
@@ -131,6 +129,7 @@ func createComponent(rst reflect.Type) *openapi3.SchemaRef {
 		openAPISchema.Components.Schemas = openapi3.Schemas{}
 	}
 
+	//nolint:exhaustive
 	switch rst.Kind() {
 	case reflect.Pointer:
 		return createComponent(rst.Elem())
@@ -207,6 +206,7 @@ func isDev() bool {
 		if err != nil {
 			return false
 		}
+
 		if !info.IsDir() {
 			return false
 		}
@@ -239,9 +239,9 @@ func generateOpenAPI() {
 	defer f2.Close()
 	enc2 := json.NewEncoder(f2)
 	enc2.SetIndent("", "  ")
+
 	if err := enc2.Encode(openAPISchema); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		panic(err)
 	}
 }
 
@@ -253,22 +253,27 @@ func setTagInfo(f reflect.StructField, t, parent reflect.Type, schema, parentSch
 	if example, ok := f.Tag.Lookup("example"); ok {
 		schema.Example = example
 	}
+
 	if validate, ok := f.Tag.Lookup("validate"); ok {
 		for _, val := range strings.Split(validate, ",") {
 			if val == "required" && parentSchema != nil {
 				parentSchema.Required = append(parentSchema.Required, getFieldName(f, parent))
 			}
+
 			if strings.HasPrefix(val, "min=") {
 				minLength := strings.Split(val, "min=")
 				if len(minLength) != 2 {
 					panic("min length tag does not match expected format")
 				}
+
 				len, err := strconv.ParseUint(minLength[1], 10, 64)
 				if err != nil {
 					panic("unexpected min length: " + err.Error())
 				}
+
 				schema.MinLength = len
 			}
+
 			if val == "email" {
 				schema.Example = "email@example.com"
 			}
@@ -286,21 +291,25 @@ func setTypeInfo(t reflect.Type, schema *openapi3.Schema) {
 		schema.Type = "string"
 		schema.Format = "date-time" // date-time is rfc3339
 		schema.Example = exampleTime
+
 		return
 	case "uid.ID":
 		schema.Type = "string"
 		schema.Format = "uid"
 		schema.Pattern = `[\da-zA-HJ-NP-Z]{1,11}`
 		schema.Example = "4yJ3n3D8E2"
+
 		return
 	case "uid.PolymorphicID":
 		schema.Type = "string"
 		schema.Format = "poly-uid"
 		schema.Pattern = `\w:[\da-zA-HJ-NP-Z]{1,11}`
 		schema.Example = "u:4yJ3n3D8E3"
+
 		return
 	}
 
+	//nolint:exhaustive
 	switch t.Kind() {
 	case reflect.Pointer:
 		setTypeInfo(t.Elem(), schema)
@@ -405,6 +414,7 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 		Properties: openapi3.Schemas{},
 	}
 
+	//nolint:exhaustive
 	switch r.Kind() {
 	case reflect.Pointer:
 		buildRequest(r.Elem(), op)
@@ -420,6 +430,7 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 					prop := buildProperty(f, f.Type, r, schema)
 
 					schema.Properties[name] = prop
+
 					continue
 				}
 			}
@@ -462,17 +473,21 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 					if val == "required" {
 						p.Required = true
 					}
+
 					if strings.HasPrefix(val, "min=") {
 						minLength := strings.Split(val, "min=")
 						if len(minLength) != 2 {
 							panic("min length tag does not match expected format")
 						}
+
 						len, err := strconv.ParseUint(minLength[1], 10, 64)
 						if err != nil {
 							panic("unexpected min length: " + err.Error())
 						}
+
 						p.Schema.Value.MinLength = len
 					}
+
 					if val == "email" {
 						p.Example = "email@example.com"
 					}

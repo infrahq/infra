@@ -12,9 +12,9 @@ import (
 )
 
 type Client struct {
-	Url       string
+	URL       string
 	AccessKey string
-	Http      http.Client
+	HTTP      http.Client
 }
 
 func checkError(status int, body []byte) error {
@@ -49,14 +49,14 @@ func checkError(status int, body []byte) error {
 }
 
 func get[Res any](client Client, path string) (*Res, error) {
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s%s", client.Url, path), nil)
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s%s", client.URL, path), nil)
 	if err != nil {
 		return nil, err
 	}
 
 	req.Header.Add("Authorization", "Bearer "+client.AccessKey)
 
-	resp, err := client.Http.Do(req)
+	resp, err := client.HTTP.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("GET %q: %w", path, err)
 	}
@@ -73,8 +73,7 @@ func get[Res any](client Client, path string) (*Res, error) {
 	}
 
 	var res Res
-	err = json.Unmarshal(body, &res)
-	if err != nil {
+	if err := json.Unmarshal(body, &res); err != nil {
 		return nil, fmt.Errorf("parsing json response: %w. partial text: %q", err, partialText(body, 100))
 	}
 
@@ -82,7 +81,7 @@ func get[Res any](client Client, path string) (*Res, error) {
 }
 
 func list[Res any](client Client, path string, query map[string]string) ([]Res, error) {
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s%s", client.Url, path), nil)
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s%s", client.URL, path), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +95,7 @@ func list[Res any](client Client, path string, query map[string]string) ([]Res, 
 
 	req.URL.RawQuery = q.Encode()
 
-	resp, err := client.Http.Do(req)
+	resp, err := client.HTTP.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("GET %q: %w", path, err)
 	}
@@ -113,8 +112,7 @@ func list[Res any](client Client, path string, query map[string]string) ([]Res, 
 	}
 
 	var res []Res
-	err = json.Unmarshal(body, &res)
-	if err != nil {
+	if err := json.Unmarshal(body, &res); err != nil {
 		return nil, fmt.Errorf("parsing json response: %w. partial text: %q", err, partialText(body, 100))
 	}
 
@@ -127,7 +125,7 @@ func request[Req, Res any](client Client, method string, path string, req *Req) 
 		return nil, fmt.Errorf("marshal json: %w", err)
 	}
 
-	httpReq, err := http.NewRequest(method, fmt.Sprintf("%s%s", client.Url, path), bytes.NewReader(body))
+	httpReq, err := http.NewRequest(method, fmt.Sprintf("%s%s", client.URL, path), bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +133,7 @@ func request[Req, Res any](client Client, method string, path string, req *Req) 
 	httpReq.Header.Add("Authorization", "Bearer "+client.AccessKey)
 	httpReq.Header.Set("Content-Type", "application/json")
 
-	resp, err := client.Http.Do(httpReq)
+	resp, err := client.HTTP.Do(httpReq)
 	if err != nil {
 		return nil, fmt.Errorf("%s %q: %w", method, path, err)
 	}
@@ -152,8 +150,7 @@ func request[Req, Res any](client Client, method string, path string, req *Req) 
 	}
 
 	var res Res
-	err = json.Unmarshal(body, &res)
-	if err != nil {
+	if err := json.Unmarshal(body, &res); err != nil {
 		return nil, fmt.Errorf("parsing json response: %w. partial text: %q", err, partialText(body, 100))
 	}
 
@@ -169,14 +166,14 @@ func put[Req, Res any](client Client, path string, req *Req) (res *Res, err erro
 }
 
 func delete(client Client, path string) error {
-	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s%s", client.Url, path), nil)
+	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s%s", client.URL, path), nil)
 	if err != nil {
 		return err
 	}
 
 	req.Header.Add("Authorization", "Bearer "+client.AccessKey)
 
-	resp, err := client.Http.Do(req)
+	resp, err := client.HTTP.Do(req)
 	if err != nil {
 		return fmt.Errorf("DELETE %q: %w", path, err)
 	}

@@ -12,10 +12,12 @@ func TestOpenAPIGen(t *testing.T) {
 	// must run from infra root dir
 	wd, err := os.Getwd()
 	require.NoError(t, err)
+
 	parts := strings.Split(wd, string(os.PathSeparator))
 
 	if parts[len(parts)-1] != "infra" {
-		os.Chdir("../..")
+		err := os.Chdir("../..")
+		require.NoError(t, err)
 	}
 
 	s := &Server{}

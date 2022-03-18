@@ -202,9 +202,9 @@ func (s *Server) loadCertificates() (err error) {
 
 	if len(s.certificateProvider.ActiveCAs()) == 0 && len(cert) > 0 && len(key) > 0 {
 		jsonBytes := fmt.Sprintf(`{"ServerKey":{"CertPEM":"%s", "PublicKey":"%s"}}`, cert, key)
+
 		kp := &pki.KeyPair{}
-		err := json.Unmarshal([]byte(jsonBytes), kp)
-		if err != nil {
+		if err := json.Unmarshal([]byte(jsonBytes), kp); err != nil {
 			return fmt.Errorf("reading initialRootCACert and initialRootCAPublicKey: %w", err)
 		}
 
@@ -217,6 +217,7 @@ func (s *Server) loadCertificates() (err error) {
 	// if still no active CAs, create them
 	if len(s.certificateProvider.ActiveCAs()) == 0 {
 		logging.S.Info("Creating Root CA certificate")
+
 		if err := s.certificateProvider.CreateCA(); err != nil {
 			return fmt.Errorf("creating CA certificates: %w", err)
 		}
@@ -225,6 +226,7 @@ func (s *Server) loadCertificates() (err error) {
 	// automatically rotate CAs as the oldest one expires
 	if len(s.certificateProvider.ActiveCAs()) == 1 {
 		logging.S.Info("Rotating Root CA certificate")
+
 		if err := s.certificateProvider.RotateCA(); err != nil {
 			return fmt.Errorf("rotating CA: %w", err)
 		}
@@ -232,9 +234,11 @@ func (s *Server) loadCertificates() (err error) {
 
 	// if the current cert is going to expire in less than FullKeyRotationDurationInDays/2 days, rotate.
 	rotationWindow := time.Now().AddDate(0, 0, fullRotationInDays/2)
+
 	activeCAs := s.certificateProvider.ActiveCAs()
 	if len(activeCAs) < 2 || activeCAs[1].NotAfter.Before(rotationWindow) {
 		logging.S.Info("Half-Rotating Root CA certificate")
+
 		if err := s.certificateProvider.RotateCA(); err != nil {
 			return fmt.Errorf("rotating CA: %w", err)
 		}
@@ -242,6 +246,7 @@ func (s *Server) loadCertificates() (err error) {
 
 	if len(s.options.TrustInitialClientPublicKey) > 0 {
 		key := s.options.TrustInitialClientPublicKey
+
 		rawKey, err := base64.StdEncoding.DecodeString(key)
 		if err != nil {
 			return fmt.Errorf("reading trustInitialClientPublicKey: %w", err)
@@ -453,6 +458,7 @@ func (s *Server) serverTLSConfig() (*tls.Config, error) {
 				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
 				tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+				//nolint:gosec
 				tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
 			},
 		}, nil

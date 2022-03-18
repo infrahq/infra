@@ -14,6 +14,7 @@ func isUserInGroup(c *gin.Context, requestedResourceID uid.ID) (bool, error) {
 
 	if user != nil {
 		lookupDB := getDB(c)
+
 		groups, err := data.ListUserGroups(lookupDB, user.ID)
 		if err != nil {
 			return false, err

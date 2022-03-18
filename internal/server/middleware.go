@@ -116,13 +116,13 @@ func RequireAccessKey(c *gin.Context) error {
 
 	if accessKey.IssuedFor.IsUser() {
 		if err := setUserContext(c, db, issID.String()); err != nil {
-			return fmt.Errorf("set user context: %v", err)
+			return fmt.Errorf("set user context: %w", err)
 		}
 	}
 
 	if accessKey.IssuedFor.IsMachine() {
 		if err := setMachineContext(c, db, issID.String()); err != nil {
-			return fmt.Errorf("set machine context: %v", err)
+			return fmt.Errorf("set machine context: %w", err)
 		}
 	}
 

@@ -670,8 +670,10 @@ func loadGrants(db *gorm.DB, grants []Grant) error {
 }
 
 func loadGrant(db *gorm.DB, input Grant, providers map[string]uid.ID) (*models.Grant, error) {
-	var id uid.PolymorphicID
-	var providerID uid.ID
+	var (
+		id         uid.PolymorphicID
+		providerID uid.ID
+	)
 
 	if input.User != "" || input.Group != "" {
 		// user/group grants require additional input validation
@@ -691,6 +693,7 @@ func loadGrant(db *gorm.DB, input Grant, providers map[string]uid.ID) (*models.G
 		}
 
 		var ok bool
+
 		providerID, ok = providers[provider]
 		if !ok {
 			return nil, fmt.Errorf("unknown provider: %s", provider)

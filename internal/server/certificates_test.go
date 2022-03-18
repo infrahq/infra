@@ -43,6 +43,7 @@ func TestCertificateSigningWorks(t *testing.T) {
 	// happens on the server, needs to be a request for this.
 	signedCert, signedRaw, err := pki.SignUserCert(cp, keyPair.Cert, user)
 	require.NoError(t, err)
+
 	keyPair.SignedCert = signedCert
 	keyPair.SignedCertPEM = signedRaw
 
@@ -100,6 +101,6 @@ func requireMutualTLSWorks(t *testing.T, clientKeypair *pki.KeyPair, cp pki.Cert
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
 	require.NoError(t, err)
 
-	body := strings.TrimSpace(string(respBodyBytes[:]))
+	body := strings.TrimSpace(string(respBodyBytes))
 	require.Equal(t, "success!", body)
 }

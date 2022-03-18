@@ -23,6 +23,7 @@ func version() error {
 		fmt.Fprintln(w, "Server:\t", "disconnected")
 		logging.S.Debug(err)
 		fmt.Fprintln(w)
+
 		return nil
 	}
 
@@ -31,6 +32,7 @@ func version() error {
 		fmt.Fprintln(w, "Server:\t", "disconnected")
 		logging.S.Debug(err)
 		fmt.Fprintln(w)
+
 		return nil
 	}
 

@@ -119,10 +119,8 @@ $ infra grants add -u admin@acme.com -r admin infra
 				if options.User != "" && options.Group != "" {
 					return errors.New("only allowed one of --user or --group")
 				}
-			} else {
-				if options.User != "" || options.Group != "" {
-					return errors.New("cannot specify --user or --group with --machine")
-				}
+			} else if options.User != "" || options.Group != "" {
+				return errors.New("cannot specify --user or --group with --machine")
 			}
 
 			if options.Role == "" {
@@ -255,10 +253,8 @@ func newGrantRemoveCmd() *cobra.Command {
 				if options.User != "" && options.Group != "" {
 					return errors.New("only allowed one of --user or --group")
 				}
-			} else {
-				if options.User != "" || options.Group != "" {
-					return errors.New("cannot specify --user or --group with --machine")
-				}
+			} else if options.User != "" || options.Group != "" {
+				return errors.New("cannot specify --user or --group with --machine")
 			}
 
 			var id uid.PolymorphicID

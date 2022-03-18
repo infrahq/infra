@@ -162,8 +162,10 @@ func login(host string) error {
 		return err
 	}
 
-	var options []string
-	var oidcProviders []api.Provider
+	var (
+		options       []string
+		oidcProviders []api.Provider
+	)
 
 	for _, p := range providers {
 		if p.Name == models.InternalInfraProviderName {
@@ -175,6 +177,7 @@ func login(host string) error {
 	}
 
 	options = append(options, "Login with Access Key")
+
 	var option int
 
 	if len(options) > 1 {
@@ -184,8 +187,10 @@ func login(host string) error {
 		}
 	}
 
-	var providerID uid.ID
-	var loginReq api.LoginRequest
+	var (
+		providerID uid.ID
+		loginReq   api.LoginRequest
+	)
 
 	if option == len(options)-1 {
 		if accessKey == "" {
@@ -250,6 +255,7 @@ func finishLogin(host string, polymorphicID uid.PolymorphicID, name string, acce
 		if c.Host == host {
 			config.Hosts[i] = hostConfig
 			found = true
+
 			continue
 		}
 
@@ -320,19 +326,14 @@ func promptProvider(providers []string) (int, error) {
 	return option, nil
 }
 
-type hostchoice struct {
-	Host string
-	Auto bool
-}
-
 func promptHost(hosts []string) (string, error) {
 	var option int
+
 	const defaultOpt string = "Connect to a different host"
 
 	hosts = append(hosts, defaultOpt)
 
 	if len(hosts) > 0 {
-
 		prompt := &survey.Select{
 			Message: "Select an Infra host:",
 			Options: hosts,

@@ -66,6 +66,7 @@ func (o *oidcImplementation) clientConfig(ctx context.Context) (*oauth2.Config, 
 // tokenSource is used to call an identity provider with the specified provider tokens
 func (o *oidcImplementation) tokenSource(providerTokens *models.ProviderToken) (oauth2.TokenSource, error) {
 	ctx := context.Background()
+
 	conf, _, err := o.clientConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("call idp with tokens: %w", err)
@@ -82,6 +83,7 @@ func (o *oidcImplementation) tokenSource(providerTokens *models.ProviderToken) (
 
 func (o *oidcImplementation) ExchangeAuthCodeForProviderTokens(code string) (rawAccessToken, rawRefreshToken string, accessTokenExpiry time.Time, email string, err error) {
 	ctx := context.Background()
+
 	conf, provider, err := o.clientConfig(ctx)
 	if err != nil {
 		return "", "", time.Time{}, "", fmt.Errorf("client exchange code: %w", err)
@@ -114,6 +116,7 @@ func (o *oidcImplementation) ExchangeAuthCodeForProviderTokens(code string) (raw
 
 	// we get sensitive claims from the ID token, must validate them
 	verifier := provider.Verifier(&oidc.Config{ClientID: o.ClientID})
+
 	idToken, err := verifier.Verify(ctx, rawIDToken)
 	if err != nil {
 		return "", "", time.Time{}, "", fmt.Errorf("validate id token: %w", err)
@@ -122,6 +125,7 @@ func (o *oidcImplementation) ExchangeAuthCodeForProviderTokens(code string) (raw
 	var claims struct {
 		Email string `json:"email"`
 	}
+
 	if err := idToken.Claims(&claims); err != nil {
 		return "", "", time.Time{}, "", fmt.Errorf("id cliams: %w", err)
 	}
@@ -148,6 +152,7 @@ func (o *oidcImplementation) RefreshAccessToken(providerTokens *models.ProviderT
 // make sure an access token is valid (not expired) before using this
 func (o *oidcImplementation) GetUserInfo(providerTokens *models.ProviderToken) (*UserInfo, error) {
 	ctx := context.Background()
+
 	tokenSource, err := o.tokenSource(providerTokens)
 	if err != nil {
 		return nil, fmt.Errorf("info token source: %w", err)
@@ -196,5 +201,6 @@ func getAccessTokenExpiry(rawAccessToken string) (time.Time, error) {
 	if err != nil {
 		return time.Time{}, fmt.Errorf("acc token exp claim: %w", err)
 	}
+
 	return accClaims.Expiry.Time(), nil
 }

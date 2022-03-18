@@ -16,6 +16,8 @@ func init() {
 	snowflake.Epoch = time.Date(2022, 1, 1, 0, 0, 0, 0, time.UTC).UnixMilli()
 
 	var err error
+
+	//nolint:gosec // do not need cryptographic random value here
 	idGen, err = snowflake.NewNode(rand.Int63n(1024))
 	if err != nil {
 		panic(err)
@@ -62,6 +64,7 @@ func (u *ID) UnmarshalText(b []byte) error {
 	}
 
 	*u = id
+
 	return nil
 }
 

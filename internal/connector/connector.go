@@ -124,10 +124,12 @@ type getJWKFunc func() (*jose.JSONWebKey, error)
 func jwtMiddleware(getJWK getJWKFunc) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authorization := c.GetHeader("Authorization")
+
 		raw := strings.ReplaceAll(authorization, "Bearer ", "")
 		if raw == "" {
 			logging.L.Debug("no bearer token found")
 			c.AbortWithStatus(http.StatusUnauthorized)
+
 			return
 		}
 
@@ -135,6 +137,7 @@ func jwtMiddleware(getJWK getJWKFunc) gin.HandlerFunc {
 		if err != nil {
 			logging.L.Debug("invalid jwt signature")
 			c.AbortWithStatus(http.StatusUnauthorized)
+
 			return
 		}
 
@@ -142,37 +145,44 @@ func jwtMiddleware(getJWK getJWKFunc) gin.HandlerFunc {
 		if err != nil {
 			logging.L.Debug("could not get jwk")
 			c.AbortWithStatus(http.StatusUnauthorized)
+
 			return
 		}
 
-		out := make(map[string]interface{})
-		claims := struct {
+		var claims struct {
 			jwt.Claims
 			claims.Custom
-		}{}
+		}
+
+		out := make(map[string]interface{})
 		if err := tok.Claims(key, &claims, &out); err != nil {
 			logging.L.Debug("invalid token claims")
 			c.AbortWithStatus(http.StatusUnauthorized)
+
 			return
 		}
 
 		err = claims.Claims.Validate(jwt.Expected{
 			Time: time.Now(),
 		})
+
 		switch {
 		case errors.Is(err, jwt.ErrExpired):
 			logging.S.Debugf("expired JWT %s", err.Error())
 			c.AbortWithStatus(http.StatusUnauthorized)
+
 			return
 		case err != nil:
 			logging.S.Debugf("invalid JWT %s", err.Error())
 			c.AbortWithStatus(http.StatusUnauthorized)
+
 			return
 		}
 
 		if err := validator.New().Struct(claims.Custom); err != nil {
 			logging.L.Debug("JWT custom claims not valid")
 			c.AbortWithStatus(http.StatusUnauthorized)
+
 			return
 		}
 
@@ -191,6 +201,7 @@ func proxyMiddleware(proxy *httputil.ReverseProxy, bearerToken string) gin.Handl
 		if !ok {
 			logging.S.Debug("required field 'email' not found")
 			c.AbortWithStatus(http.StatusUnauthorized)
+
 			return
 		}
 
@@ -198,6 +209,7 @@ func proxyMiddleware(proxy *httputil.ReverseProxy, bearerToken string) gin.Handl
 		if !ok {
 			logging.S.Debug("required field 'machine' not found")
 			c.AbortWithStatus(http.StatusUnauthorized)
+
 			return
 		}
 
@@ -205,6 +217,7 @@ func proxyMiddleware(proxy *httputil.ReverseProxy, bearerToken string) gin.Handl
 		if !ok {
 			logging.S.Debug("required field 'groups' not found")
 			c.AbortWithStatus(http.StatusUnauthorized)
+
 			return
 		}
 
@@ -212,6 +225,7 @@ func proxyMiddleware(proxy *httputil.ReverseProxy, bearerToken string) gin.Handl
 		if !ok {
 			logging.S.Debug("required field 'provider' not found")
 			c.AbortWithStatus(http.StatusUnauthorized)
+
 			return
 		}
 
@@ -220,13 +234,15 @@ func proxyMiddleware(proxy *httputil.ReverseProxy, bearerToken string) gin.Handl
 			userParts = append([]string{provider}, userParts...)
 		}
 
-		if email != "" {
+		switch {
+		case email != "":
 			c.Request.Header.Set("Impersonate-User", strings.Join(userParts, ":"))
-		} else if machine != "" {
+		case machine != "":
 			c.Request.Header.Set("Impersonate-User", fmt.Sprintf("machine:%s", machine))
-		} else {
+		default:
 			logging.S.Debug("unable to determine identity")
 			c.AbortWithStatus(http.StatusUnauthorized)
+
 			return
 		}
 
@@ -247,8 +263,7 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 	crnSubjects := make(map[kubernetes.ClusterRoleNamespace][]rbacv1.Subject) // cluster-role+namespace: subject
 
 	for _, g := range grants {
-		var name string
-		var kind string
+		var name, kind string
 
 		id, err := g.Identity.ID()
 		if err != nil {
@@ -273,6 +288,7 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 
 			name = user.Email
 			kind = rbacv1.UserKind
+
 			provider, err := c.GetProvider(user.ProviderID)
 			if err != nil {
 				return err
@@ -299,6 +315,7 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 		parts := strings.Split(g.Resource, ".")
 
 		var crn kubernetes.ClusterRoleNamespace
+
 		switch len(parts) {
 		// kubernetes.<cluster>
 		case 2:
@@ -434,9 +451,9 @@ func Run(options Options) error {
 		}
 
 		client := &api.Client{
-			Url:       u.String(),
+			URL:       u.String(),
 			AccessKey: accessKey,
-			Http: http.Client{
+			HTTP: http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: hostTLSConfig,
 				},

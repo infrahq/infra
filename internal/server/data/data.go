@@ -35,6 +35,7 @@ func NewDB(connection gorm.Dialector) (*gorm.DB, error) {
 		if err != nil {
 			return nil, fmt.Errorf("getting db driver: %w", err)
 		}
+
 		db2.SetMaxOpenConns(1)
 	}
 
@@ -128,20 +129,8 @@ func save[T models.Modelable](db *gorm.DB, model *T) error {
 
 		return err
 	}
+
 	return nil
-}
-
-func load[T models.Modelable](db *gorm.DB, id uid.ID) (*T, error) {
-	model := new(T)
-	if err := db.Model((*T)(nil)).Where("id = ?", id).First(model).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, internal.ErrNotFound
-		}
-
-		return nil, err
-	}
-
-	return model, nil
 }
 
 func add[T models.Modelable](db *gorm.DB, model *T) error {
@@ -211,5 +200,6 @@ func appendAssociation[T models.Modelable, U models.Modelable](db *gorm.DB, mode
 	if err := db.Model(model).Association(association).Append(associatedEntity); err != nil {
 		return fmt.Errorf("append: %w", err)
 	}
+
 	return nil
 }

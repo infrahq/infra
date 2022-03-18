@@ -32,9 +32,12 @@ func (s *EncryptedAtRest) Scan(v interface{}) error {
 		return fmt.Errorf("models.SymmetricKey is not set")
 	}
 
-	b := []byte(v.(string))
+	vStr, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("unsupported type: %T", v)
+	}
 
-	b, err := secrets.Unseal(SymmetricKey, b)
+	b, err := secrets.Unseal(SymmetricKey, []byte(vStr))
 	if err != nil {
 		return fmt.Errorf("unsealing secret field: %w", err)
 	}

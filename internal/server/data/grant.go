@@ -13,6 +13,7 @@ func CreateGrant(db *gorm.DB, grant *models.Grant) error {
 	if err != nil {
 		return err
 	}
+
 	for _, existingGrant := range grants {
 		if existingGrant.Privilege == grant.Privilege &&
 			existingGrant.ExpiresAfterUnused == grant.ExpiresAfterUnused &&

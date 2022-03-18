@@ -86,6 +86,7 @@ func parseOptions(cmd *cobra.Command, options interface{}, envPrefix string) err
 
 	if len(errs) > 0 {
 		var sb strings.Builder
+
 		sb.WriteString("multiple errors seen while binding flags:\n\n")
 
 		for _, err := range errs {
@@ -158,9 +159,9 @@ func apiClient(host string, accessKey string, skipTLSVerify bool) (*api.Client, 
 	u.Scheme = "https"
 
 	return &api.Client{
-		Url:       fmt.Sprintf("%s://%s", u.Scheme, u.Host),
+		URL:       fmt.Sprintf("%s://%s", u.Scheme, u.Host),
 		AccessKey: accessKey,
-		Http: http.Client{
+		HTTP: http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
 					//nolint:gosec // We may purposely set insecureskipverify via a flag
@@ -359,6 +360,7 @@ func newOpenAPICmd() *cobra.Command {
 			return nil
 		},
 	}
+
 	return cmd
 }
 
@@ -610,6 +612,7 @@ func Run() error {
 
 	err = cmd.Execute()
 	printError(err)
+
 	return err
 }
 

@@ -119,7 +119,9 @@ func ValidateAccessKey(db *gorm.DB, authnKey string) (*models.AccessKey, error) 
 		}
 
 		t.ExtensionDeadline = time.Now().Add(t.Extension)
-		SaveAccessKey(db, t)
+		if err := SaveAccessKey(db, t); err != nil {
+			return nil, err
+		}
 	}
 
 	return t, nil

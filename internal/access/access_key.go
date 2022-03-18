@@ -13,7 +13,12 @@ import (
 )
 
 func currentAccessKey(c *gin.Context) *models.AccessKey {
-	return c.MustGet("key").(*models.AccessKey)
+	accessKey, ok := c.MustGet("key").(*models.AccessKey)
+	if !ok {
+		return nil
+	}
+
+	return accessKey
 }
 
 func ListAccessKeys(c *gin.Context, machineID uid.ID, name string) ([]models.AccessKey, error) {
