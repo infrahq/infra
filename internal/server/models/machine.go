@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/uid"
 )
 

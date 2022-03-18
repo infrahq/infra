@@ -5,11 +5,12 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	"golang.org/x/crypto/bcrypt"
 )
 
 func CreateCredential(c *gin.Context, user models.User) (string, error) {

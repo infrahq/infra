@@ -7,9 +7,10 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/require"
+
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
-	"github.com/stretchr/testify/require"
 )
 
 func TestSendAPIError(t *testing.T) {
@@ -69,7 +70,7 @@ func TestSendAPIError(t *testing.T) {
 				Code:    http.StatusBadRequest,
 				Message: "Email: is required",
 				FieldErrors: []api.FieldError{
-					api.FieldError{
+					{
 						FieldName: "Email",
 						Errors:    []string{"is required"},
 					},
@@ -84,7 +85,7 @@ func TestSendAPIError(t *testing.T) {
 				Code:    http.StatusBadRequest,
 				Message: `Email: failed the "email" check`,
 				FieldErrors: []api.FieldError{
-					api.FieldError{
+					{
 						FieldName: "Email",
 						Errors:    []string{`failed the "email" check`},
 					},
@@ -109,7 +110,5 @@ func TestSendAPIError(t *testing.T) {
 
 			require.Equal(t, test.result.FieldErrors, actual.FieldErrors)
 		})
-
 	}
-
 }

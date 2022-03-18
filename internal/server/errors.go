@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
@@ -19,7 +20,7 @@ func sendAPIError(c *gin.Context, err error) {
 		Message: "internal server error", // don't leak any info by default
 	}
 
-	var validationErrors = &validator.ValidationErrors{}
+	validationErrors := &validator.ValidationErrors{}
 
 	switch {
 	case errors.Is(err, internal.ErrUnauthorized):

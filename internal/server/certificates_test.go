@@ -11,10 +11,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/pki"
 	"github.com/infrahq/infra/uid"
-	"github.com/stretchr/testify/require"
 )
 
 func TestCertificateSigningWorks(t *testing.T) {

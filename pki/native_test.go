@@ -4,11 +4,12 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
+
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/secrets"
-	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
 )
 
 func setupDB(t *testing.T) *gorm.DB {

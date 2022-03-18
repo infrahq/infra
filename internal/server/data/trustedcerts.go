@@ -5,9 +5,10 @@ import (
 	"errors"
 	"time"
 
+	"gorm.io/gorm"
+
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/models"
-	"gorm.io/gorm"
 )
 
 // TrustPublicKey trusts a public key (in base64 format) from a user or service

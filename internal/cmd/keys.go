@@ -3,8 +3,9 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/infrahq/infra/api"
 	"github.com/spf13/cobra"
+
+	"github.com/infrahq/infra/api"
 )
 
 type keyCreateOptions struct {

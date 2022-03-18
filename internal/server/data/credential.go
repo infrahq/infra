@@ -3,10 +3,11 @@ package data
 import (
 	"fmt"
 
-	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/uid"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+
+	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
 func CreateCredential(db *gorm.DB, credential *models.Credential) error {
