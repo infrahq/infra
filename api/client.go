@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -38,6 +39,10 @@ func checkError(status int, body []byte) error {
 		return fmt.Errorf("%w: %s", ErrBadRequest, apiError.Message)
 	case http.StatusInternalServerError:
 		return ErrInternal
+	}
+
+	if status >= 400 {
+		return errors.New(http.StatusText(status))
 	}
 
 	return nil
