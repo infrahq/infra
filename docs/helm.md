@@ -107,6 +107,8 @@ server:
     hosts:
       - infra.example.com # edit me
     className: alb
+    paths:
+      - '/*'
     annotations:
       alb.ingress.kubernetes.io/scheme: internet-facing         # (optional: use "internal" for non-internet facing)
       alb.ingress.kubernetes.io/backend-protocol: HTTP
