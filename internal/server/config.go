@@ -570,7 +570,7 @@ func loadConfig(db *gorm.DB, config Config) error {
 
 	return db.Transaction(func(tx *gorm.DB) error {
 		// add the internal Infra identity store to providers
-		config.Providers = append(config.Providers, Provider{Name: data.InternalInfraProviderName})
+		config.Providers = append(config.Providers, Provider{Name: models.InternalInfraProviderName})
 
 		if err := loadProviders(tx, config.Providers); err != nil {
 			return err

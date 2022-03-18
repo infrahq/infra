@@ -54,7 +54,7 @@ func UpdateCredential(c *gin.Context, user *models.User, newPassword string) err
 	}
 
 	// only internal Infra users can have username/password authentication
-	if provider.Name != data.InternalInfraProviderName {
+	if provider.Name != models.InternalInfraProviderName {
 		return fmt.Errorf("%w: cannot set user passwords in this provider", internal.ErrBadRequest)
 	}
 
@@ -88,7 +88,7 @@ func UpdateCredential(c *gin.Context, user *models.User, newPassword string) err
 func LoginWithUserCredential(c *gin.Context, email, password string, expiry time.Time) (string, *models.User, bool, error) {
 	db := getDB(c)
 
-	infraProvider, err := data.GetProvider(db, data.ByName(data.InternalInfraProviderName))
+	infraProvider, err := data.GetProvider(db, data.ByName(models.InternalInfraProviderName))
 	if err != nil {
 		return "", nil, false, fmt.Errorf("%w: internal provider: %v", internal.ErrUnauthorized, err)
 	}

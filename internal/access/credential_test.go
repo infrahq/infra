@@ -37,7 +37,7 @@ func TestLoginWithUserCredential(t *testing.T) {
 
 	SetupTestSecretProvider(t)
 
-	provider := &models.Provider{Name: data.InternalInfraProviderName}
+	provider := &models.Provider{Name: models.InternalInfraProviderName}
 	err = data.CreateProvider(db, provider)
 	require.NoError(t, err)
 

@@ -7,6 +7,8 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+const InternalInfraProviderName = "infra"
+
 type Provider struct {
 	Model
 

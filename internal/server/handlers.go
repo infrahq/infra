@@ -15,7 +15,6 @@ import (
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/authn"
-	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/secrets"
 	"github.com/infrahq/infra/uid"
@@ -74,7 +73,7 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 	}
 
 	var oneTimePassword string
-	if provider.Name == data.InternalInfraProviderName {
+	if provider.Name == models.InternalInfraProviderName {
 		oneTimePassword, err = access.CreateCredential(c, *user)
 		if err != nil {
 			return nil, err

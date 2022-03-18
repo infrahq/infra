@@ -7,7 +7,6 @@ import (
 	"go.uber.org/zap/zaptest"
 
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/secrets"
 	"github.com/infrahq/infra/uid"
@@ -334,7 +333,7 @@ func TestLoadConfigWithUserGrantsImplicitProvider(t *testing.T) {
 	require.NoError(t, err)
 
 	var provider models.Provider
-	err = db.Where("name = ?", data.InternalInfraProviderName).First(&provider).Error
+	err = db.Where("name = ?", models.InternalInfraProviderName).First(&provider).Error
 	require.NoError(t, err)
 
 	var user models.User
@@ -413,7 +412,7 @@ func TestLoadConfigWithGroupGrantsImplicitProvider(t *testing.T) {
 	require.NoError(t, err)
 
 	var provider models.Provider
-	err = db.Where("name = ?", data.InternalInfraProviderName).First(&provider).Error
+	err = db.Where("name = ?", models.InternalInfraProviderName).First(&provider).Error
 	require.NoError(t, err)
 
 	var group models.Group
@@ -828,7 +827,7 @@ func TestImportAccessKeys(t *testing.T) {
 
 	s.options = Options{
 		AdminAccessKey: "BlgpvURSGF.NdcemBdzxLTGIcjPXwPoZNrb",
-		AccessKey: "tuogTmCFSk.FzoWHhNonnRztyRChPUiMqDx",
+		AccessKey:      "tuogTmCFSk.FzoWHhNonnRztyRChPUiMqDx",
 	}
 
 	err := s.importSecrets()
@@ -845,7 +844,7 @@ func TestImportAccessKeysUpdate(t *testing.T) {
 
 	s.options = Options{
 		AdminAccessKey: "BlgpvURSGF.NdcemBdzxLTGIcjPXwPoZNrb",
-		AccessKey: "tuogTmCFSk.FzoWHhNonnRztyRChPUiMqDx",
+		AccessKey:      "tuogTmCFSk.FzoWHhNonnRztyRChPUiMqDx",
 	}
 
 	err := s.importSecrets()
@@ -854,7 +853,7 @@ func TestImportAccessKeysUpdate(t *testing.T) {
 	err = s.importAccessKeys()
 	require.NoError(t, err)
 
-	s.options = Options {
+	s.options = Options{
 		AdminAccessKey: "EKoHADINYX.NfhgLRqggYgdQiQXoxrNwgOe",
 	}
 
