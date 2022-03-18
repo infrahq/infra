@@ -20,7 +20,7 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version: '1.18'
-      - uses: golangci/golangci-lint-action@v2
+      - uses: golangci/golangci-lint-action@v3.1.0
 
   helm-lint:
     runs-on: ubuntu-latest
