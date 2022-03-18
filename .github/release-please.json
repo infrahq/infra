@@ -5,7 +5,7 @@
     ".": {
       "release-type": "go",
       "extra-files": [
-        "helm/infra/Chart.yaml"
+        "helm/charts/infra/Chart.yaml"
       ]
     }
   }
