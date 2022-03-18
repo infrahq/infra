@@ -26,7 +26,9 @@ func list() error {
 	}
 
 	var grants []api.Grant
-	if id.IsUser() {
+
+	switch {
+	case id.IsUser():
 		userID, err := id.ID()
 		if err != nil {
 			return err
@@ -50,7 +52,7 @@ func list() error {
 
 			grants = append(grants, groupGrants...)
 		}
-	} else if id.IsMachine() {
+	case id.IsMachine():
 		machineID, err := id.ID()
 		if err != nil {
 			return err
@@ -60,7 +62,7 @@ func list() error {
 		if err != nil {
 			return err
 		}
-	} else {
+	default:
 		return fmt.Errorf("unsupported identity for operation: %s", id)
 	}
 
@@ -92,6 +94,7 @@ func list() error {
 		}
 
 		var exists bool
+
 		for _, d := range destinations {
 			if strings.HasPrefix(k, d.Name) {
 				exists = true

@@ -34,6 +34,9 @@ func (k *KeyPair) TLSCertificate() (*tls.Certificate, error) {
 	}
 
 	keyPEM, err := MarshalPrivateKey(k.PrivateKey)
+	if err != nil {
+		return nil, fmt.Errorf("marshal keypair: %w", err)
+	}
 
 	cert, err := tls.X509KeyPair(bytes, keyPEM)
 	if err != nil {
@@ -44,8 +47,9 @@ func (k *KeyPair) TLSCertificate() (*tls.Certificate, error) {
 }
 
 func (k *KeyPair) UnmarshalJSON(data []byte) error {
-	type TmpKeyPair KeyPair
-	tmpKeyPair := &TmpKeyPair{}
+	type TemporaryKeyPair KeyPair
+
+	tmpKeyPair := &TemporaryKeyPair{}
 
 	err := json.Unmarshal(data, &tmpKeyPair)
 	if err != nil {
@@ -58,6 +62,7 @@ func (k *KeyPair) UnmarshalJSON(data []byte) error {
 	k.SignedCertPEM = tmpKeyPair.SignedCertPEM
 
 	p, _ := pem.Decode(k.CertPEM)
+
 	cert, err := x509.ParseCertificate(p.Bytes)
 	if err != nil {
 		return fmt.Errorf("parsing raw certificate: %w", err)
@@ -67,6 +72,7 @@ func (k *KeyPair) UnmarshalJSON(data []byte) error {
 
 	if len(k.SignedCertPEM) > 0 {
 		p, _ = pem.Decode(k.SignedCertPEM)
+
 		cert, err := x509.ParseCertificate(p.Bytes)
 		if err != nil {
 			return fmt.Errorf("parsing signed certificate: %w", err)

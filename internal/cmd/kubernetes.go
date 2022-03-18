@@ -88,14 +88,15 @@ func updateKubeconfig(client *api.Client, identityPolymorphicID uid.PolymorphicI
 
 func writeKubeconfig(destinations []api.Destination, grants []api.Grant) error {
 	defaultConfig := clientConfig()
+
 	kubeConfig, err := defaultConfig.RawConfig()
 	if err != nil {
 		return err
 	}
 
 	keep := make(map[string]bool)
-	for _, g := range grants {
 
+	for _, g := range grants {
 		parts := strings.Split(g.Resource, ".")
 
 		kind := parts[0]
@@ -121,8 +122,11 @@ func writeKubeconfig(destinations []api.Destination, grants []api.Grant) error {
 			context += ":" + namespace
 		}
 
-		var url, ca string
-		var exists bool
+		var (
+			url, ca string
+			exists  bool
+		)
+
 		for _, d := range destinations {
 			// eg resource:  "kubernetes.foo.bar"
 			// eg dest name: "kubernetes.foo"
@@ -130,6 +134,7 @@ func writeKubeconfig(destinations []api.Destination, grants []api.Grant) error {
 				url = d.Connection.URL
 				ca = d.Connection.CA
 				exists = true
+
 				break
 			}
 		}
@@ -205,6 +210,7 @@ func writeKubeconfig(destinations []api.Destination, grants []api.Grant) error {
 
 func clearKubeconfig() error {
 	defaultConfig := clientConfig()
+
 	kubeConfig, err := defaultConfig.RawConfig()
 	if err != nil {
 		return err

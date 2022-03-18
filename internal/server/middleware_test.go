@@ -57,22 +57,6 @@ func issueUserToken(t *testing.T, db *gorm.DB, email string, sessionDuration tim
 	return body
 }
 
-func issueMachineToken(t *testing.T, db *gorm.DB, name string, sessionDuration time.Duration) string {
-	machine := &models.Machine{Name: name}
-
-	err := data.CreateMachine(db, machine)
-	require.NoError(t, err)
-
-	token := &models.AccessKey{
-		IssuedFor: machine.PolymorphicIdentifier(),
-		ExpiresAt: time.Now().Add(sessionDuration),
-	}
-	body, err := data.CreateAccessKey(db, token)
-	require.NoError(t, err)
-
-	return body
-}
-
 func TestRequestTimeoutError(t *testing.T) {
 	requestTimeout = 100 * time.Millisecond
 
@@ -105,6 +89,7 @@ func TestRequestTimeoutSuccess(t *testing.T) {
 
 func TestRequireAuthentication(t *testing.T) {
 	gin.SetMode(gin.ReleaseMode)
+
 	cases := map[string]map[string]interface{}{
 		"AccessKeyValid": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {

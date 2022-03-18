@@ -21,6 +21,7 @@ func TestBindsQuery(t *testing.T) {
 
 	uri, err := url.Parse("/foo?alpha=beta")
 	require.NoError(t, err)
+
 	c.Request = &http.Request{URL: uri, Method: "GET"}
 	r := &struct {
 		Alpha string `form:"alpha"`
@@ -36,6 +37,7 @@ func TestBindsJSON(t *testing.T) {
 
 	uri, err := url.Parse("/foo")
 	require.NoError(t, err)
+
 	body := bytes.NewBufferString(`{"alpha": "zeta"}`)
 	c.Request = &http.Request{
 		URL:           uri,
@@ -58,6 +60,7 @@ func TestBindsUUIDs(t *testing.T) {
 
 	uri, err := url.Parse("/foo/e4d97df2")
 	require.NoError(t, err)
+
 	c.Request = &http.Request{URL: uri, Method: "GET"}
 	c.Params = append(c.Params, gin.Param{Key: "id", Value: "e4d97df2"})
 	r := &api.Resource{}
@@ -75,6 +78,7 @@ func TestBindsSnowflake(t *testing.T) {
 
 	uri, err := url.Parse(fmt.Sprintf("/foo/%s?form_id=%s", id.String(), id2.String()))
 	require.NoError(t, err)
+
 	c.Request = &http.Request{URL: uri, Method: "GET"}
 	c.Params = append(c.Params, gin.Param{Key: "id", Value: id.String()})
 	r := &struct {
@@ -93,6 +97,7 @@ func TestBindsEmptyRequest(t *testing.T) {
 
 	uri, err := url.Parse("/foo")
 	require.NoError(t, err)
+
 	c.Request = &http.Request{URL: uri, Method: "GET"}
 	r := &api.EmptyRequest{}
 	err = bind(c, r)
@@ -111,6 +116,7 @@ func TestGetRoute(t *testing.T) {
 	get(r, "/", func(c *gin.Context, req *api.EmptyRequest) (*api.EmptyResponse, error) {
 		return &api.EmptyResponse{}, nil
 	})
+
 	routes := e.Routes()
 
 	for _, route := range routes {

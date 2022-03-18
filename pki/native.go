@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"math/big"
 	"net"
-	"os"
 	"strings"
 	"time"
 
@@ -21,7 +20,6 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/secrets"
 )
 
 const (
@@ -49,9 +47,6 @@ type NativeCertificateProvider struct {
 
 	activeKeypair   KeyPair
 	previousKeypair KeyPair
-
-	secretStorage secrets.SecretStorage
-	// secretKeyProvider secrets.SymmetricKeyProvider
 }
 
 type NativeCertificateProviderConfig struct {
@@ -126,11 +121,16 @@ func (n *NativeCertificateProvider) Preload(rootCACertificate, publicKey []byte)
 
 	partsFound := 0
 	rest := rootCACertificate
-	var p *pem.Block
-	var cert *x509.Certificate
-	var privateKey ed25519.PrivateKey
+
+	var (
+		p          *pem.Block
+		cert       *x509.Certificate
+		privateKey ed25519.PrivateKey
+	)
+
 	for len(rest) > 0 {
 		partsFound++
+
 		p, rest = pem.Decode(rootCACertificate)
 
 		switch {
@@ -139,7 +139,14 @@ func (n *NativeCertificateProvider) Preload(rootCACertificate, publicKey []byte)
 			if err != nil {
 				return fmt.Errorf("parsing private key from certificate: %w", err)
 			}
-			privateKey = key.(ed25519.PrivateKey)
+
+			var ok bool
+
+			privateKey, ok = key.(ed25519.PrivateKey)
+			if !ok {
+				return fmt.Errorf("unknown type for key: %T", key)
+			}
+
 		case strings.Contains(p.Type, "CERTIFICATE"):
 			cert, err = x509.ParseCertificate(p.Bytes)
 			if err != nil {
@@ -380,20 +387,6 @@ func createCertSignedBy(signer, signee KeyPair, lifetime time.Duration) (*x509.C
 	return cert, rawCert, nil
 }
 
-func writePEMToFile(file string, p *pem.Block) error {
-	f, err := os.Create(file)
-	if err != nil {
-		return fmt.Errorf("creating %s: %w", file, err)
-	}
-
-	err = pem.Encode(f, p)
-	if err != nil {
-		return fmt.Errorf("writing root certificate: %w", err)
-	}
-
-	return f.Close()
-}
-
 func (n *NativeCertificateProvider) loadFromDB() error {
 	certs, err := data.ListRootCertificates(n.db)
 	if err != nil {
@@ -460,6 +453,7 @@ func (n *NativeCertificateProvider) saveToDB() error {
 		if c != nil {
 			continue
 		}
+
 		if !errors.Is(err, internal.ErrNotFound) {
 			return fmt.Errorf("checking for existing cert: %w", err)
 		}

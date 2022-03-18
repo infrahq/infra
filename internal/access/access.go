@@ -12,11 +12,21 @@ import (
 )
 
 func getDB(c *gin.Context) *gorm.DB {
-	return c.MustGet("db").(*gorm.DB)
+	db, ok := c.MustGet("db").(*gorm.DB)
+	if !ok {
+		return nil
+	}
+
+	return db
 }
 
 func getCurrentIdentity(c *gin.Context) uid.PolymorphicID {
-	return c.MustGet("identity").(uid.PolymorphicID)
+	id, ok := c.MustGet("identity").(uid.PolymorphicID)
+	if !ok {
+		return ""
+	}
+
+	return id
 }
 
 // hasAuthorization checks if a caller is the owner of a resource before checking if they have an approprite role to access it

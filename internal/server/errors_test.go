@@ -103,7 +103,8 @@ func TestSendAPIError(t *testing.T) {
 
 			require.EqualValues(t, test.result.Code, resp.Result().StatusCode)
 			actual := &api.Error{}
-			json.NewDecoder(resp.Body).Decode(actual)
+			err := json.NewDecoder(resp.Body).Decode(actual)
+			require.NoError(t, err)
 
 			require.Equal(t, test.result.Code, actual.Code)
 			require.Equal(t, test.result.Message, actual.Message)

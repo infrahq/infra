@@ -64,6 +64,7 @@ func eachProvider(t *testing.T, eachFunc func(t *testing.T, p CertificateProvide
 	require.NoError(t, err)
 
 	defer os.RemoveAll(tmpDir)
+
 	db := setupDB(t)
 
 	p, err := NewNativeCertificateProvider(db, NativeCertificateProviderConfig{})

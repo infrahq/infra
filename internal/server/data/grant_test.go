@@ -24,5 +24,6 @@ func TestDuplicateGrant(t *testing.T) {
 	require.NoError(t, err)
 
 	grants, err := ListGrants(db, ByIdentity("u:1234567"), ByResource("infra"))
+	require.NoError(t, err)
 	require.Len(t, grants, 1)
 }

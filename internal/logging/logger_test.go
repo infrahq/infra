@@ -41,7 +41,9 @@ func TestFiltersOutBearerTokenValue(t *testing.T) {
 		err = json.Unmarshal(writeSyncer.data, &m)
 		require.NoError(t, err)
 
-		require.Equal(t, testCase.Expected, m["msg"].(string))
+		msg, ok := m["msg"].(string)
+		require.True(t, ok)
+		require.Equal(t, testCase.Expected, msg)
 	}
 }
 

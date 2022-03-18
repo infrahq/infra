@@ -10,9 +10,11 @@ func logout(force bool) error {
 	config, err := readConfig()
 	if err != nil {
 		logging.S.Debug(err.Error())
+
 		if errors.Is(err, ErrConfigNotFound) {
 			return nil
 		}
+
 		return err
 	}
 
@@ -28,7 +30,7 @@ func logout(force bool) error {
 			continue
 		}
 
-		client.Logout()
+		_ = client.Logout()
 	}
 
 	return clearKubeconfig()

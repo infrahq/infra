@@ -268,23 +268,6 @@ func (k *Kubernetes) Namespaces() ([]string, error) {
 	return results, nil
 }
 
-func parse(destination string) (kind string, cluster string, namespace string) {
-	parts := strings.Split(destination, "/")
-	if len(parts) > 0 {
-		kind = parts[0]
-	}
-
-	if len(parts) > 1 {
-		cluster = parts[1]
-	}
-
-	if len(parts) > 2 {
-		namespace = parts[2]
-	}
-
-	return kind, cluster, namespace
-}
-
 func (k *Kubernetes) ec2ClusterName() (string, error) {
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://169.254.169.254/latest/dynamic/instance-identity/document", nil)
 	if err != nil {
@@ -510,6 +493,7 @@ func (k *Kubernetes) Name() (string, string, error) {
 
 	// truncated checksum will be used as default name if one could not be found
 	logging.L.Debug("could not fetch cluster name, resorting to hashed cluster CA")
+
 	return name, chksm, nil
 }
 

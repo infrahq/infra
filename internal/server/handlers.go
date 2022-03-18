@@ -220,6 +220,7 @@ func cleanupURL(url string) string {
 	url = strings.TrimSpace(url)
 	url = dashAdminRemover.ReplaceAllString(url, "$1$2")
 	url = protocolRemover.ReplaceAllString(url, "")
+
 	return url
 }
 
@@ -237,6 +238,7 @@ func (a *API) CreateProvider(c *gin.Context, r *api.CreateProviderRequest) (*api
 	}
 
 	result := provider.ToAPI()
+
 	return result, nil
 }
 
@@ -419,7 +421,7 @@ func (a *API) CreateToken(c *gin.Context, r *api.CreateTokenRequest) (*api.Creat
 		return &api.CreateTokenResponse{Token: token.Token, Expires: token.Expires}, nil
 	}
 
-	return nil, fmt.Errorf("no identity found in token: %s", internal.ErrUnauthorized)
+	return nil, fmt.Errorf("no identity found in token: %w", internal.ErrUnauthorized)
 }
 
 func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) ([]api.AccessKey, error) {
@@ -460,6 +462,7 @@ func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*a
 		if err != nil {
 			return nil, fmt.Errorf("invalid ttl: %w", err)
 		}
+
 		accessKey.ExpiresAt = time.Now().Add(lifetime)
 	}
 
@@ -510,6 +513,7 @@ func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {
 	}
 
 	result := grant.ToAPI()
+
 	return &result, nil
 }
 
@@ -526,6 +530,7 @@ func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.Grant
 	}
 
 	result := grant.ToAPI()
+
 	return &result, nil
 }
 
@@ -689,8 +694,10 @@ func (a *API) updateUserInfo(c *gin.Context) error {
 			if err != nil {
 				logging.S.Errorf("failed to revoke invalid user session: %w", err)
 			}
+
 			deleteAuthCookie(c)
 		}
+
 		return fmt.Errorf("update user info: %w", err)
 	}
 

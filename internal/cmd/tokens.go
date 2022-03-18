@@ -28,8 +28,6 @@ func newTokensAddCmd() *cobra.Command {
 }
 
 func tokensCreate() error {
-	execCredential := &clientauthenticationv1beta1.ExecCredential{}
-
 	client, err := defaultAPIClient()
 	if err != nil {
 		return err
@@ -69,7 +67,7 @@ func tokensCreate() error {
 		return err
 	}
 
-	execCredential = &clientauthenticationv1beta1.ExecCredential{
+	execCredential := &clientauthenticationv1beta1.ExecCredential{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ExecCredential",
 			APIVersion: clientauthenticationv1beta1.SchemeGroupVersion.String(),

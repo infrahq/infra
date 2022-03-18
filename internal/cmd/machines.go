@@ -125,5 +125,6 @@ func getMachineFromName(client *api.Client, name string) (*api.Machine, error) {
 	if len(machines) != 1 {
 		return nil, fmt.Errorf("invalid machines response, there should only be one machine that matches a name, but multiple were found")
 	}
+
 	return &machines[0], nil
 }

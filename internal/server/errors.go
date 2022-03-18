@@ -68,6 +68,7 @@ func sendAPIError(c *gin.Context, err error) {
 
 func parseFieldErrors(resp *api.Error, validationErrors *validator.ValidationErrors) {
 	errs := map[string][]string{}
+
 	for _, field := range *validationErrors {
 		msg := ""
 		if field.Tag() == "required" {
@@ -76,7 +77,7 @@ func parseFieldErrors(resp *api.Error, validationErrors *validator.ValidationErr
 			msg = fmt.Sprintf("failed the %q check", field.Tag())
 		}
 
-		errs[field.Namespace()] = append(errs[field.Field()], msg)
+		errs[field.Field()] = append(errs[field.Field()], msg)
 	}
 
 	for f, vals := range errs {
@@ -89,6 +90,7 @@ func parseFieldErrors(resp *api.Error, validationErrors *validator.ValidationErr
 		for _, fe := range resp.FieldErrors {
 			errs = append(errs, fe.FieldName+": "+strings.Join(fe.Errors, ", "))
 		}
+
 		resp.Message = strings.Join(errs, ". ")
 	}
 }

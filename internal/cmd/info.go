@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
 )
 
@@ -25,7 +26,8 @@ func info() error {
 		return fmt.Errorf("no active identity")
 	}
 
-	if id.IsUser() {
+	switch {
+	case id.IsUser():
 		userID, err := id.ID()
 		if err != nil {
 			return err
@@ -41,26 +43,23 @@ func info() error {
 			return err
 		}
 
-		groups, err := client.ListUserGroups(userID)
+		userGroups, err := client.ListUserGroups(userID)
 		if err != nil {
 			return err
 		}
 
-		var groupsStr string
-		for i, g := range groups {
-			if i != 0 {
-				groupsStr += ", "
-			}
-
-			groupsStr += g.Name
+		groups := make([]string, 0)
+		for _, g := range userGroups {
+			groups = append(groups, g.Name)
 		}
 
 		fmt.Fprintln(w)
 		fmt.Fprintln(w, "Server:\t", config.Host)
 		fmt.Fprintf(w, "Identity Provider:\t %s (%s)\n", provider.Name, provider.URL)
 		fmt.Fprintln(w, "User:\t", user.Email)
+		fmt.Fprintln(w, "Groups:\t", strings.Join(groups, ", "))
 		fmt.Fprintln(w)
-	} else if id.IsMachine() {
+	case id.IsMachine():
 		machineID, err := id.ID()
 		if err != nil {
 			return err
@@ -76,7 +75,7 @@ func info() error {
 		fmt.Fprintln(w, "Server:\t", config.Host)
 		fmt.Fprintln(w, "Machine User:\t", machine.Name)
 		fmt.Fprintln(w)
-	} else {
+	default:
 		return fmt.Errorf("unsupported identity for operation: %s", id)
 	}
 

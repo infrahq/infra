@@ -35,8 +35,9 @@ func TestCreateGroup(t *testing.T) {
 	everyone := models.Group{Name: "Everyone", ProviderID: providerID}
 
 	err := CreateGroup(db, &everyone)
-	group := everyone
 	require.NoError(t, err)
+
+	group := everyone
 	require.NotEqual(t, 0, group.ID)
 	require.Equal(t, everyone.Name, group.Name)
 }

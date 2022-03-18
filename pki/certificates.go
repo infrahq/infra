@@ -82,10 +82,11 @@ func MakeUserCert(commonName string, lifetime time.Duration) (*KeyPair, error) {
 }
 
 func SignUserCert(cp CertificateProvider, cert *x509.Certificate, user *models.User) (*x509.Certificate, []byte, error) {
-	rawCert := cert.Raw
 	if len(cert.Raw) == 0 {
 		panic("cert.Raw is missing")
 	}
+
+	rawCert := cert.Raw
 
 	if !strings.HasPrefix(cert.Subject.CommonName, "User ") {
 		return nil, nil, fmt.Errorf("invalid certificate common name for user certificate")

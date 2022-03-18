@@ -69,6 +69,7 @@ func TestUsersGroupGrant(t *testing.T) {
 	require.NoError(t, err)
 
 	err = data.BindGroupUsers(db, tomsGroup, *tom)
+	require.NoError(t, err)
 
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())
 	c.Set("db", db)

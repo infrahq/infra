@@ -43,8 +43,7 @@ func ValidateCredential(db *gorm.DB, user *models.User, password string) (bool, 
 
 	if userCredential.OneTimePassword {
 		userCredential.OneTimePasswordUsed = true
-		err = SaveCredential(db, userCredential)
-		if err != nil {
+		if err := SaveCredential(db, userCredential); err != nil {
 			return false, fmt.Errorf("save otp used: %w", err)
 		}
 	}
