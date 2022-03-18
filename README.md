@@ -88,7 +88,7 @@ server:
         resource: infra
 
     # 2. Grant user(s) or group(s) access to a resources
-    # Example of granting access to an individual user the `cluster-admin` role. The name of a resource is specified when installing the Infra Engine at that location.
+    # Example of granting access to an individual user the `cluster-admin` role. The name of a resource is specified when installing the Infra connector at that location.
       - user: you@example.com
         role: cluster-admin                  # cluster_roles required
         resource: kubernetes.example-cluster # limit access to the `example-cluster` Kubernetes cluster
@@ -180,10 +180,10 @@ infra login <INFRA_API_SERVER>
 
 ### Step 5: Access the Cluster
 
-In order to get access to the cluster, the engine service must be accessible externally. The easiest way to achieve this is to use a LoadBalancer service.
+In order to get access to the cluster, the connector service must be accessible externally. The easiest way to achieve this is to use a LoadBalancer service.
 
 ```bash
-kubectl -n infrahq patch service infra-engine -p '{"spec": {"type": "LoadBalancer"}}'
+kubectl -n infrahq patch service infra-connector -p '{"spec": {"type": "LoadBalancer"}}'
 ```
 
 Switch to the cluster with Infra CLI.
@@ -207,7 +207,7 @@ Run the output Helm command on the Kubernetes cluster to be added.
 
 Example:
 ```
-helm upgrade --install infra-engine infrahq/infra --set engine.config.accessKey=2pVqDSdkTF.oSCEe6czoBWdgc6wRz0ywK8y --set engine.config.name=kubernetes.example-cluster --set engine.config.server=https://infra.acme.com
+helm upgrade --install infra-connector infrahq/infra --set connector.config.accessKey=2pVqDSdkTF.oSCEe6czoBWdgc6wRz0ywK8y --set connector.config.name=kubernetes.example-cluster --set connector.config.server=https://infra.acme.com
 ```
 
 ### Upgrade Infra

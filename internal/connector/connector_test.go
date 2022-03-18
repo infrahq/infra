@@ -1,4 +1,4 @@
-package engine
+package connector
 
 import (
 	"crypto"

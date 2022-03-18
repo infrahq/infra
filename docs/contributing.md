@@ -62,7 +62,7 @@ server:
   persistence:
     enabled: false
 
-engine:
+connector:
   pesistence:
     enabled: false
 ```
@@ -87,7 +87,7 @@ server:
   service:
     type: LoadBalancer
 
-engine:
+connector:
   service:
     type: LoadBalancer
     securePort: 8443  # to avoid colliding with infra-server's securePort (443)

@@ -26,7 +26,7 @@ helm/clean:
 	$(RM) -r helm/*.tgz
 
 .PHONY: docs
-docs: openapi
+docs: docs/api/openapi3.json
 	go run ./internal/docgen
 
 clean: helm/clean

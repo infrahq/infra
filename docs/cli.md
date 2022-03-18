@@ -6,31 +6,31 @@
 * [infra logout](#infra-logout)
 * [infra list](#infra-list)
 * [infra use](#infra-use)
-* [infra access list](#infra-access-list)
-* [infra access grant](#infra-access-grant)
-* [infra access revoke](#infra-access-revoke)
+* [infra grants list](#infra-grants-list)
+* [infra grants add](#infra-grants-add)
+* [infra grants remove](#infra-grants-remove)
 * [infra keys list](#infra-keys-list)
-* [infra keys create](#infra-keys-create)
-* [infra keys delete](#infra-keys-delete)
+* [infra keys add](#infra-keys-add)
+* [infra keys remove](#infra-keys-remove)
 * [infra destinations list](#infra-destinations-list)
 * [infra destinations add](#infra-destinations-add)
 * [infra destinations remove](#infra-destinations-remove)
 * [infra providers list](#infra-providers-list)
 * [infra providers add](#infra-providers-add)
 * [infra providers remove](#infra-providers-remove)
-* [infra machines create](#infra-machines-create)
-* [infra machines list](#infra-machines-list)
-* [infra machines remove](#infra-machines-remove)
-* [infra tokens create](#infra-tokens-create)
+* [infra identities add](#infra-identities-add)
+* [infra identities list](#infra-identities-list)
+* [infra identities remove](#infra-identities-remove)
+* [infra tokens add](#infra-tokens-add)
 * [infra info](#infra-info)
 * [infra server](#infra-server)
-* [infra engine](#infra-engine)
+* [infra connector](#infra-connector)
 * [infra version](#infra-version)
 
 
 ## `infra login`
 
-Login to Infra server
+Login to Infra
 
 ```
 infra login [SERVER] [flags]
@@ -85,7 +85,7 @@ $ infra logout
 
 ## `infra list`
 
-List destinations and your access
+List accessible destinations
 
 ```
 infra list [flags]
@@ -106,7 +106,7 @@ infra list [flags]
 
 ## `infra use`
 
-Connect to a destination
+Access a destination
 
 ```
 infra use DESTINATION [flags]
@@ -137,12 +137,12 @@ $ infra use kubernetes.development.kube-system
       --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
-## `infra access list`
+## `infra grants list`
 
-List access
+List grants
 
 ```
-infra access list [DESTINATION] [flags]
+infra grants list [DESTINATION] [flags]
 ```
 
 ### Options
@@ -158,12 +158,12 @@ infra access list [DESTINATION] [flags]
       --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
-## `infra access grant`
+## `infra grants add`
 
-Grant access
+Grant access to a destination
 
 ```
-infra access grant DESTINATION [flags]
+infra grants add DESTINATION [flags]
 ```
 
 ### Examples
@@ -171,13 +171,13 @@ infra access grant DESTINATION [flags]
 ```
 
 # Grant user admin access to a cluster
-$ infra access grant -u suzie@acme.com -r admin kubernetes.production
+$ infra grants add -u suzie@acme.com -r admin kubernetes.production
 
 # Grant group admin access to a namespace
-$ infra access grant -g Engineering -r admin kubernetes.production.default
+$ infra grants add -g Engineering -r admin kubernetes.production.default
 
 # Grant user admin access to infra itself
-$ infra access grant -u admin@acme.com -r admin infra
+$ infra grants add -u admin@acme.com -r admin infra
 
 ```
 
@@ -185,7 +185,7 @@ $ infra access grant -u admin@acme.com -r admin infra
 
 ```
   -g, --group string      Group to grant access to
-  -h, --help              help for grant
+  -h, --help              help for add
   -m, --machine string    Machine to grant access to
   -p, --provider string   Provider from which to grant user access to
   -r, --role string       Role to grant
@@ -199,19 +199,19 @@ $ infra access grant -u admin@acme.com -r admin infra
       --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
-## `infra access revoke`
+## `infra grants remove`
 
-Revoke access
+Revoke access to a destination
 
 ```
-infra access revoke DESTINATION [flags]
+infra grants remove DESTINATION [flags]
 ```
 
 ### Options
 
 ```
   -g, --group string      Group to revoke access from
-  -h, --help              help for revoke
+  -h, --help              help for remove
   -m, --machine string    Machine to revoke access from
   -p, --provider string   Provider from which to revoke access from
   -r, --role string       Role to revoke
@@ -247,12 +247,12 @@ infra keys list [flags]
       --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
-## `infra keys create`
+## `infra keys add`
 
 Create an access key for authentication
 
 ```
-infra keys create ACCESS_KEY_NAME MACHINE_NAME [flags]
+infra keys add ACCESS_KEY_NAME MACHINE_NAME [flags]
 ```
 
 ### Examples
@@ -268,7 +268,7 @@ infra keys create main wall-e 12h --extension-deadline=1h
 
 ```
   -e, --extension-deadline string   A specified deadline that an access key must be used within to remain valid
-  -h, --help                        help for create
+  -h, --help                        help for add
   -t, --ttl string                  The total time that an access key will be valid for
 ```
 
@@ -279,18 +279,18 @@ infra keys create main wall-e 12h --extension-deadline=1h
       --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
-## `infra keys delete`
+## `infra keys remove`
 
-Delete access keys
+Delete an access key
 
 ```
-infra keys delete ACCESS_KEY_NAME [flags]
+infra keys remove ACCESS_KEY_NAME [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for delete
+  -h, --help   help for remove
 ```
 
 ### Options inherited from parent commands
@@ -365,7 +365,7 @@ infra destinations remove DESTINATION [flags]
 
 ## `infra providers list`
 
-List identity providers
+List connected identity providers
 
 ```
 infra providers list [flags]
@@ -386,7 +386,7 @@ infra providers list [flags]
 
 ## `infra providers add`
 
-Add an identity provider
+Connect an identity provider
 
 ### Synopsis
 
@@ -437,19 +437,19 @@ infra providers remove PROVIDER [flags]
       --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
-## `infra machines create`
+## `infra identities add`
 
-Create a machine identity, e.g. a service that needs to access infrastructure
+Create a machine identity
 
 ```
-infra machines create NAME [flags]
+infra identities add NAME [flags]
 ```
 
 ### Options
 
 ```
   -d, --description string   Description of the machine identity
-  -h, --help                 help for create
+  -h, --help                 help for add
 ```
 
 ### Options inherited from parent commands
@@ -459,12 +459,12 @@ infra machines create NAME [flags]
       --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
-## `infra machines list`
+## `infra identities list`
 
-List machines
+List all identities (users & machines)
 
 ```
-infra machines list [flags]
+infra identities list [flags]
 ```
 
 ### Options
@@ -480,12 +480,12 @@ infra machines list [flags]
       --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
-## `infra machines remove`
+## `infra identities remove`
 
-Remove a machine identity
+Delete a machine identity
 
 ```
-infra machines remove MACHINE [flags]
+infra identities remove MACHINE [flags]
 ```
 
 ### Options
@@ -501,18 +501,18 @@ infra machines remove MACHINE [flags]
       --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
-## `infra tokens create`
+## `infra tokens add`
 
 Create a token
 
 ```
-infra tokens create [flags]
+infra tokens add [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for create
+  -h, --help   help for add
 ```
 
 ### Options inherited from parent commands
@@ -545,7 +545,7 @@ infra info [flags]
 
 ## `infra server`
 
-Start Infra server
+Start the Infra server
 
 ```
 infra server [flags]
@@ -583,20 +583,20 @@ infra server [flags]
       --non-interactive    don't assume an interactive terminal, even if there is one
 ```
 
-## `infra engine`
+## `infra connector`
 
-Start Infra Engine
+Start the Infra connector
 
 ```
-infra engine [flags]
+infra connector [flags]
 ```
 
 ### Options
 
 ```
   -a, --access-key string    Infra access key (use file:// to load from a file)
-  -f, --config-file string   Engine config file
-  -h, --help                 help for engine
+  -f, --config-file string   Connector config file
+  -h, --help                 help for connector
   -n, --name string          Destination name
   -s, --server string        Infra server hostname
       --skip-tls-verify      Skip verifying server TLS certificates

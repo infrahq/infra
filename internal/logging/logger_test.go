@@ -23,8 +23,8 @@ func TestFiltersOutBearerTokenValue(t *testing.T) {
 			Expected: `could not create destination: Post \"https://{anonymized}\": net/http: invalid header field value`,
 		},
 		{
-			Input:    `{"level":"error","ts":1637161597.990963,"caller":"engine/engine.go:400","msg":"could not create destination: Post \"https://{anonymized}\": net/http: invalid header field value \"Bearer {anonymized_token}\\n\" for key Authorization"}`,
-			Expected: `{"level":"error","ts":1637161597.990963,"caller":"engine/engine.go:400","msg":"could not create destination: Post \"https://{anonymized}\": net/http: invalid header field value for key Authorization"}`,
+			Input:    `{"level":"error","ts":1637161597.990963,"caller":"connector/connector.go:400","msg":"could not create destination: Post \"https://{anonymized}\": net/http: invalid header field value \"Bearer {anonymized_token}\\n\" for key Authorization"}`,
+			Expected: `{"level":"error","ts":1637161597.990963,"caller":"connector/connector.go:400","msg":"could not create destination: Post \"https://{anonymized}\": net/http: invalid header field value for key Authorization"}`,
 		},
 	}
 	for _, testCase := range tests {

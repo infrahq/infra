@@ -1,0 +1,109 @@
+{{- if include "connector.enabled" . | eq "true" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "connector.fullname" . }}
+  labels:
+{{- include "connector.labels" . | nindent 4 }}
+spec:
+{{- if not .Values.connector.autoscaling.enabled }}
+  replicas: {{ .Values.connector.replicaCount }}
+{{- end }}
+  selector:
+    matchLabels:
+{{- include "connector.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+{{- include "connector.podLabels" . | nindent 8 }}
+      annotations:
+{{- include "connector.podAnnotations" . | nindent 8 }}
+    spec:
+      automountServiceAccountToken: {{ .Values.connector.serviceAccount.automountServiceAccountToken }}
+      serviceAccountName: {{ include "connector.serviceAccountName" . }}
+      imagePullSecrets:
+{{- include "connector.imagePullSecrets" . | nindent 8 }}
+      securityContext:
+{{- toYaml .Values.connector.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+{{- toYaml .Values.connector.securityContext | nindent 12 }}
+          image: "{{ include "connector.image.repository" . }}:{{ include "connector.image.tag" . }}"
+          imagePullPolicy: {{ include "connector.image.pullPolicy" . }}
+          args: ["connector", "-f", "/etc/infrahq/infra.yaml"]
+          env:
+{{- toYaml .Values.connector.env | nindent 12 }}
+          envFrom:
+{{- toYaml .Values.connector.envFrom | nindent 12 }}
+          volumeMounts:
+            - name: conf
+              mountPath: /etc/infrahq
+              readOnly: true
+{{- if .Values.connector.persistence.enabled }}
+            - name: data
+              mountPath: /var/lib/infrahq/infra
+{{- end }}
+            - name: access-key
+              mountPath: /var/run/secrets/infrahq.com/access-key
+{{- if .Values.connector.volumeMounts }}
+{{- toYaml .Values.connector.volumeMounts | nindent 12 }}
+{{- end }}
+          ports:
+            - name: https
+              containerPort: 443
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: https
+              scheme: HTTPS
+            successThreshold: {{ .Values.connector.livenessProbe.successThreshold }}
+            failureThreshold: {{ .Values.connector.livenessProbe.failureThreshold }}
+            initialDelaySeconds: {{ .Values.connector.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.connector.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.connector.livenessProbe.timeoutSeconds }}
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: https
+              scheme: HTTPS
+            successThreshold: {{ .Values.connector.readinessProbe.successThreshold }}
+            failureThreshold: {{ .Values.connector.readinessProbe.failureThreshold }}
+            initialDelaySeconds: {{ .Values.connector.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.connector.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.connector.readinessProbe.timeoutSeconds }}
+          resources:
+{{- toYaml .Values.connector.resources | nindent 12 }}
+      volumes:
+        - name: conf
+          configMap:
+            name: {{ include "connector.fullname" . }}
+{{- if .Values.connector.persistence.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "connector.fullname" . }}
+{{- end }}
+        - name: access-key
+          secret:
+            secretName: {{ .Release.Name }}-access-key
+            optional: true
+{{- if .Values.connector.volumes }}
+{{- toYaml .Values.connector.volumes | nindent 8 }}
+{{- end }}
+{{- with .Values.connector.nodeSelector }}
+      nodeSelector:
+{{- toYaml . | nindent 8 }}
+{{- end }}
+{{- with .Values.connector.affinity }}
+      affinity:
+{{- toYaml . | nindent 8 }}
+{{- end }}
+{{- with .Values.connector.tolerations }}
+      tolerations:
+{{- toYaml . | nindent 8 }}
+{{- end }}
+{{- end }}

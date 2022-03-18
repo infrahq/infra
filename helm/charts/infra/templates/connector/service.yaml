@@ -1,0 +1,38 @@
+{{- if include "connector.enabled" . | eq "true" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "connector.fullname" . }}
+  labels:
+{{- include "connector.labels" . | nindent 4 }}
+{{- if .Values.connector.service.labels }}
+{{- toYaml .Values.connector.service.labels | nindent 4 }}
+{{- end }}
+  annotations:
+{{- toYaml .Values.connector.service.annotations | nindent 4 }}
+spec:
+  type: {{ .Values.connector.service.type }}
+{{- if eq .Values.connector.service.type "LoadBalancer" }}
+  loadBalancerIP: {{ .Values.connector.service.loadBalancerIP }}
+  loadBalancerSourceRanges:
+{{- toYaml .Values.connector.service.loadBalancerSourceRanges | nindent 4 }}
+{{- end }}
+  externalIPs:
+{{- toYaml .Values.connector.service.externalIPs | nindent 4 }}
+{{- if .Values.connector.service.externalTrafficPolicy }}
+  externalTrafficPolicy: {{ .Values.connector.service.externalTrafficPolicy }}
+{{- end }}
+{{- if .Values.connector.service.sessionAffinity }}
+  sessionAffinity: {{ .Values.connector.service.sessionAffinity }}
+{{- end }}
+  ports:
+    - port: {{ .Values.connector.service.securePort }}
+      name: {{ .Values.connector.service.securePortName }}
+      targetPort: https
+      protocol: TCP
+{{- if eq .Values.connector.service.type "NodePort" }}
+      nodePort: {{ .Values.connector.service.secureNodePort }}
+{{- end }}
+  selector:
+{{- include "connector.selectorLabels" . | nindent 4 }}
+{{- end }}

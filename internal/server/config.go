@@ -467,7 +467,7 @@ func (s *Server) importAccessKeys() error {
 			Secret: s.options.AdminAccessKey,
 			Role:   models.InfraAdminRole,
 		},
-		"engine": {
+		"connector": {
 			Secret: s.options.AccessKey,
 			Role:   models.InfraConnectorRole,
 		},

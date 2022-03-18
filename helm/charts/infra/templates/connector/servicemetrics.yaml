@@ -1,0 +1,24 @@
+{{- if include "connector.enabled" . | eq "true" }}
+{{- if .Values.connector.metrics.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "connector.fullname" . }}-metrics
+  labels:
+{{- include "connector.labels" . | nindent 4 }}
+{{- if .Values.connector.metrics.service.labels }}
+{{- toYaml .Values.connector.metrics.service.labels | nindent 4 }}
+{{- end }}
+  annotations:
+{{- toYaml .Values.connector.metrics.service.annotations | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.connector.metrics.service.port }}
+      name: {{ .Values.connector.metrics.service.portName }}
+      targetPort: metrics
+      protocol: TCP
+  selector:
+{{- include "connector.selectorLabels" . | nindent 4 }}
+{{- end }}
+{{- end }}

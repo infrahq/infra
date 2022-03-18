@@ -436,32 +436,32 @@ server:
   #   role: view
   #   resource: kubernetes.docker-desktop.default
 
-## Default engine configurations
-## Ref: https://github.com/infrahq/infra/blob/main/helm/charts/infra/charts/engine/README.md
+## Default connector configurations
+## Ref: https://github.com/infrahq/infra/blob/main/helm/charts/infra/charts/connector/README.md
 
-engine:
+connector:
 
-  ## Deploy the engine
+  ## Deploy the connector
   enabled: false
-  componentName: engine
+  componentName: connector
 
-  ## Number of engine pods to run
+  ## Number of connector pods to run
   ## No effect unless `autoscaling.enabled` is `false`
   replicas: 1
 
-  ## Infra engine image configurations
+  ## Infra connector image configurations
   image:
-    ## The image repository to use for the engine deployment
+    ## The image repository to use for the connector deployment
     repository: infrahq/infra
 
     ## The image tag to use instead of the default {{ .Chart.AppVersion }}
     tag: ""
 
-    ## The pull policy to use when pulling (downloading) the engine image
+    ## The pull policy to use when pulling (downloading) the connector image
     ## Ref: https://kubernetes.io/docs/concepts/containers/images/#image-pull-policy
     pullPolicy: IfNotPresent
 
-  ## One or more Secret to use when pulling the engine image
+  ## One or more Secret to use when pulling the connector image
   ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
   imagePullSecrets: []
   # - name: "image-pull-secret"
@@ -470,12 +470,12 @@ engine:
   ## Global values will be merged into local values
   labels: {}
 
-  ## Environment variables to pass to the engine container
+  ## Environment variables to pass to the connector container
   env: []
   # - name: "INFRA_LOG_LEVEL"
   #   value: "info"
 
-  ## ConfigMap or Secret references containing environment variables to pass to the engine container
+  ## ConfigMap or Secret references containing environment variables to pass to the connector container
   ## Ref: https://kubernetes.io/docs/tasks/inject-data-application/define-environment-variable-container/
   envFrom: []
   # - configMapRef:
@@ -483,7 +483,7 @@ engine:
   # - secretRef:
   #     name: secret-name
 
-  ## Infra engine service account configurations
+  ## Infra connector service account configurations
   serviceAccount:
 
     ## Create the service account
@@ -498,17 +498,17 @@ engine:
     ## Automount service account API credentials
     automountServiceAccountToken: true
 
-  ## Labels to apply to the engine pod
+  ## Labels to apply to the connector pod
   podLabels: {}
 
-  ## Annotations to apply to the engine pod
+  ## Annotations to apply to the connector pod
   podAnnotations: {}
 
-  ## Security context for the engine pod
+  ## Security context for the connector pod
   podSecurityContext: {}
   #   fsGroup: 2000
 
-  ## Security context for the engine container
+  ## Security context for the connector container
   securityContext: {}
   #   runAsUser: 999
   #   runAsGroup: 999
@@ -570,7 +570,7 @@ engine:
   #   mountPath: /mnt/secret
   #   readOnly: true
 
-  ## Infra engine service configurations
+  ## Infra connector service configurations
   service:
 
     ## Service type
@@ -590,7 +590,7 @@ engine:
     portName: http
 
     ## HTTP service node port
-    ## No effect unless `engine.service.type` is `NodePort`
+    ## No effect unless `connector.service.type` is `NodePort`
     nodePort: 30080
 
     ## HTTPS service port
@@ -600,11 +600,11 @@ engine:
     securePortName: https
 
     ## HTTPS service node port
-    ## No effect unless `engine.service.type` is `NodePort`
+    ## No effect unless `connector.service.type` is `NodePort`
     secureNodePort: 30443
 
     ## IP of the load balancer to create
-    ## No effect unless `engine.service.type` is `LoadBalancer`
+    ## No effect unless `connector.service.type` is `LoadBalancer`
     loadBalancerIP: ""
 
     ## Source IP ranges that can access the service
@@ -624,7 +624,7 @@ engine:
   ## Metrics configurations
   metrics:
 
-    ## Enable engine metrics
+    ## Enable connector metrics
     enabled: false
 
     ## Metrics service configurations
@@ -663,7 +663,7 @@ engine:
       ## Prometheus metric relabel configs to apply to samples before ingesting
       metricRelabelings: []
 
-  ## Infra engine persistence configurations
+  ## Infra connector persistence configurations
   persistence:
 
     ## Enable server persistence
@@ -685,7 +685,7 @@ engine:
     #   limits:
     #     storage: 4Gi
 
-  ## Resource requests and limits for the engine pod
+  ## Resource requests and limits for the connector pod
   resources: {}
   #   requests:
   #     cpu: 250m
@@ -694,16 +694,16 @@ engine:
   #     cpu: 500m
   #     memory: 512Mi
 
-  ## Infra engine autoscaling configurations
+  ## Infra connector autoscaling configurations
   autoscaling:
 
-    ## Enable engine autoscaling
+    ## Enable connector autoscaling
     enabled: false
 
-    ## Minimum number of engine pods to run
+    ## Minimum number of connector pods to run
     minReplicas: 1
 
-    ## Maximum number of engine pods to run
+    ## Maximum number of connector pods to run
     maxReplicas: 3
 
     ## Target average CPU utilization percentage
@@ -712,17 +712,17 @@ engine:
     ## Target average memory utilization percentage
     targetMemoryUtilizationPercentage: 50
 
-  ## Infra engine node selector configurations
+  ## Infra connector node selector configurations
   nodeSelector: {}
 
-  ## Infra engine tolerations configurations
+  ## Infra connector tolerations configurations
   tolerations: []
 
-  ## Infra engine affinity configurations
+  ## Infra connector affinity configurations
   affinity: {}
 
-  ## Primary engine configuration
-  ## Ref: https://github.com/infrahq/infra/blob/main/docs/cli.md#infra-engine
+  ## Primary connector configuration
+  ## Ref: https://github.com/infrahq/infra/blob/main/docs/cli.md#infra-connector
   config: {}
   ## Infra server access key
   #   accessKey: ""

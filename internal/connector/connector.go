@@ -1,4 +1,4 @@
-package engine
+package connector
 
 import (
 	"context"
@@ -24,8 +24,8 @@ import (
 	"gopkg.in/square/go-jose.v2/jwt"
 	rbacv1 "k8s.io/api/rbac/v1"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/claims"
 	"github.com/infrahq/infra/internal/kubernetes"
@@ -410,7 +410,7 @@ func Run(options Options) error {
 	if strings.HasPrefix(u.Host, "localhost") {
 		server, err := k8s.Service("server")
 		if err != nil {
-			logging.S.Warnf("no cluster-local infra server found for %q. check engine configurations", u.Host)
+			logging.S.Warnf("no cluster-local infra server found for %q. check connector configurations", u.Host)
 		} else {
 			host := fmt.Sprintf("%s.%s", server.ObjectMeta.Name, server.ObjectMeta.Namespace)
 			logging.S.Debugf("using cluster-local infra server at %q instead of %q", host, u.Host)
@@ -487,7 +487,7 @@ func Run(options Options) error {
 			}
 
 			if isClusterIP {
-				logging.S.Warn("registering engine with cluster IP, it may not be externally accessible without an ingress or load balancer")
+				logging.S.Warn("registering with cluster IP, it may not be externally accessible without an ingress or load balancer")
 			}
 
 			err = registerDestination(client, localDetails)
@@ -647,7 +647,7 @@ func registerDestination(client *api.Client, local *localDetails) error {
 }
 
 func refreshDestination(client *api.Client, local *localDetails) error {
-	logging.S.Debug("updating engine information at server")
+	logging.S.Debug("updating information at server")
 
 	request := api.UpdateDestinationRequest{
 		ID:       local.destinationID,
