@@ -3,8 +3,9 @@ package data
 import (
 	"testing"
 
-	"github.com/infrahq/infra/internal/server/models"
 	"github.com/stretchr/testify/require"
+
+	"github.com/infrahq/infra/internal/server/models"
 )
 
 func TestDuplicateGrant(t *testing.T) {

@@ -8,7 +8,6 @@ import (
 
 func logout(force bool) error {
 	config, err := readConfig()
-
 	if err != nil {
 		logging.S.Debug(err.Error())
 		if errors.Is(err, ErrConfigNotFound) {
