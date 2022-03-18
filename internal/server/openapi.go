@@ -16,8 +16,20 @@ import (
 )
 
 var (
-	openAPISchema  = openapi3.T{}
-	pathIDReplacer = regexp.MustCompile(`:\w+`)
+	openAPISchema             = openapi3.T{}
+	pathIDReplacer            = regexp.MustCompile(`:\w+`)
+	funcPartialNameToTagNames = map[string]string{
+		"Grant":       "Grants",
+		"User":        "Users",
+		"Group":       "Groups",
+		"Machine":     "Machines",
+		"AccessKey":   "Authentication",
+		"Provider":    "Providers",
+		"Destination": "Destinations",
+		"Token":       "Destinations",
+		"Login":       "Authentication",
+		"Logout":      "Authentication",
+	}
 )
 
 func register[Req, Res any](method, basePath, path string, handler ReqResHandlerFunc[Req, Res]) {
@@ -74,25 +86,17 @@ func reg(method, basePath, path, funcName string, rqt, rst reflect.Type) {
 	}
 	op.Responses = buildResponse(rst)
 
-	restMethods := []string{"Get", "List", "Delete", "Create", "Update"}
 tagLoop:
-	for _, method := range restMethods {
-		if strings.HasPrefix(funcName, method) {
-			tagName := strings.TrimPrefix(funcName, method)
-			// depluralize
-			tagName = strings.TrimSuffix(tagName, "s")
+	for partialName, tagName := range funcPartialNameToTagNames {
+		if strings.Contains(funcName, partialName) {
 			for _, tag := range op.Tags {
 				if tag == tagName {
-					break tagLoop
+					continue tagLoop
 				}
 			}
 			op.Tags = append(op.Tags, tagName)
-		}
-	}
 
-	switch funcName {
-	case "Login", "Logout":
-		op.Tags = append(op.Tags, "Authentication")
+		}
 	}
 
 	if len(op.Tags) == 0 {
@@ -266,7 +270,7 @@ func setTagInfo(f reflect.StructField, t, parent reflect.Type, schema, parentSch
 				if err != nil {
 					panic("unexpected min length: " + err.Error())
 				}
-				parentSchema.MinLength = len
+				schema.MinLength = len
 			}
 			if val == "email" {
 				schema.Example = "email@example.com"

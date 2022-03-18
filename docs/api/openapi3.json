@@ -404,7 +404,7 @@
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
     "title": "Infra API",
-    "version": "2022-03-17"
+    "version": "2022-03-18"
   },
   "paths": {
     "/v1/access-keys": {
@@ -498,7 +498,7 @@
         },
         "summary": "ListAccessKeys",
         "tags": [
-          "AccessKey"
+          "Authentication"
         ]
       },
       "post": {
@@ -597,7 +597,7 @@
         },
         "summary": "CreateAccessKey",
         "tags": [
-          "AccessKey"
+          "Authentication"
         ]
       }
     },
@@ -683,7 +683,7 @@
         },
         "summary": "DeleteAccessKey",
         "tags": [
-          "AccessKey"
+          "Authentication"
         ]
       }
     },
@@ -774,7 +774,7 @@
         },
         "summary": "ListDestinations",
         "tags": [
-          "Destination"
+          "Destinations"
         ]
       },
       "post": {
@@ -880,7 +880,7 @@
         },
         "summary": "CreateDestination",
         "tags": [
-          "Destination"
+          "Destinations"
         ]
       }
     },
@@ -966,7 +966,7 @@
         },
         "summary": "DeleteDestination",
         "tags": [
-          "Destination"
+          "Destinations"
         ]
       },
       "get": {
@@ -1050,7 +1050,7 @@
         },
         "summary": "GetDestination",
         "tags": [
-          "Destination"
+          "Destinations"
         ]
       },
       "put": {
@@ -1170,7 +1170,7 @@
         },
         "summary": "UpdateDestination",
         "tags": [
-          "Destination"
+          "Destinations"
         ]
       }
     },
@@ -1276,7 +1276,7 @@
         },
         "summary": "ListGrants",
         "tags": [
-          "Grant"
+          "Grants"
         ]
       },
       "post": {
@@ -1376,7 +1376,7 @@
         },
         "summary": "CreateGrant",
         "tags": [
-          "Grant"
+          "Grants"
         ]
       }
     },
@@ -1462,7 +1462,7 @@
         },
         "summary": "DeleteGrant",
         "tags": [
-          "Grant"
+          "Grants"
         ]
       },
       "get": {
@@ -1546,7 +1546,7 @@
         },
         "summary": "GetGrant",
         "tags": [
-          "Grant"
+          "Grants"
         ]
       }
     },
@@ -1641,7 +1641,7 @@
         },
         "summary": "ListGroups",
         "tags": [
-          "Group"
+          "Groups"
         ]
       },
       "post": {
@@ -1735,7 +1735,7 @@
         },
         "summary": "CreateGroup",
         "tags": [
-          "Group"
+          "Groups"
         ]
       }
     },
@@ -1821,7 +1821,7 @@
         },
         "summary": "GetGroup",
         "tags": [
-          "Group"
+          "Groups"
         ]
       }
     },
@@ -1910,7 +1910,8 @@
         },
         "summary": "ListGroupGrants",
         "tags": [
-          "GroupGrant"
+          "Grants",
+          "Groups"
         ]
       }
     },
@@ -2261,7 +2262,7 @@
         },
         "summary": "ListMachines",
         "tags": [
-          "Machine"
+          "Machines"
         ]
       },
       "post": {
@@ -2348,7 +2349,7 @@
         },
         "summary": "CreateMachine",
         "tags": [
-          "Machine"
+          "Machines"
         ]
       }
     },
@@ -2434,7 +2435,7 @@
         },
         "summary": "DeleteMachine",
         "tags": [
-          "Machine"
+          "Machines"
         ]
       },
       "get": {
@@ -2518,7 +2519,7 @@
         },
         "summary": "GetMachine",
         "tags": [
-          "Machine"
+          "Machines"
         ]
       }
     },
@@ -2607,7 +2608,8 @@
         },
         "summary": "ListMachineGrants",
         "tags": [
-          "MachineGrant"
+          "Grants",
+          "Machines"
         ]
       }
     },
@@ -2693,7 +2695,7 @@
         },
         "summary": "ListProviders",
         "tags": [
-          "Provider"
+          "Providers"
         ]
       },
       "post": {
@@ -2794,7 +2796,7 @@
         },
         "summary": "CreateProvider",
         "tags": [
-          "Provider"
+          "Providers"
         ]
       }
     },
@@ -2880,7 +2882,7 @@
         },
         "summary": "DeleteProvider",
         "tags": [
-          "Provider"
+          "Providers"
         ]
       },
       "get": {
@@ -2964,7 +2966,7 @@
         },
         "summary": "GetProvider",
         "tags": [
-          "Provider"
+          "Providers"
         ]
       },
       "put": {
@@ -3075,7 +3077,7 @@
         },
         "summary": "UpdateProvider",
         "tags": [
-          "Provider"
+          "Providers"
         ]
       }
     },
@@ -3309,7 +3311,7 @@
         },
         "summary": "CreateToken",
         "tags": [
-          "Token"
+          "Destinations"
         ]
       }
     },
@@ -3406,7 +3408,7 @@
         },
         "summary": "ListUsers",
         "tags": [
-          "User"
+          "Users"
         ]
       },
       "post": {
@@ -3501,7 +3503,7 @@
         },
         "summary": "CreateUser",
         "tags": [
-          "User"
+          "Users"
         ]
       }
     },
@@ -3587,7 +3589,7 @@
         },
         "summary": "DeleteUser",
         "tags": [
-          "User"
+          "Users"
         ]
       },
       "get": {
@@ -3671,7 +3673,7 @@
         },
         "summary": "GetUser",
         "tags": [
-          "User"
+          "Users"
         ]
       },
       "put": {
@@ -3695,9 +3697,9 @@
           "content": {
             "application/json": {
               "schema": {
-                "minLength": 8,
                 "properties": {
                   "password": {
+                    "minLength": 8,
                     "type": "string"
                   }
                 },
@@ -3773,7 +3775,7 @@
         },
         "summary": "UpdateUser",
         "tags": [
-          "User"
+          "Users"
         ]
       }
     },
@@ -3862,7 +3864,8 @@
         },
         "summary": "ListUserGrants",
         "tags": [
-          "UserGrant"
+          "Users",
+          "Grants"
         ]
       }
     },
@@ -3951,7 +3954,8 @@
         },
         "summary": "ListUserGroups",
         "tags": [
-          "UserGroup"
+          "Users",
+          "Groups"
         ]
       }
     },
