@@ -6,7 +6,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -80,8 +79,7 @@ func ExchangeAccessKey(c *gin.Context, requestingAccessKey string, expiry time.T
 
 	validatedRequestKey, err := data.ValidateAccessKey(db, requestingAccessKey)
 	if err != nil {
-		logging.S.Debugf("access key was found to be invalid in exchange: %s", err)
-		return "", nil, fmt.Errorf("unauthorized")
+		return "", nil, fmt.Errorf("%w: invalid access key in exchange: %v", internal.ErrUnauthorized, err)
 	}
 
 	if expiry.After(validatedRequestKey.ExpiresAt) {
@@ -95,7 +93,7 @@ func ExchangeAccessKey(c *gin.Context, requestingAccessKey string, expiry time.T
 
 	machineID, err := validatedRequestKey.IssuedFor.ID()
 	if err != nil {
-		return "", nil, fmt.Errorf("parse exchange issue id: %w", err)
+		return "", nil, fmt.Errorf("%w: parse exchange issue id: %v", internal.ErrUnauthorized, err)
 	}
 
 	machine, err := data.GetMachine(db, data.ByID(machineID))

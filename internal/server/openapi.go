@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,8 +15,10 @@ import (
 	"github.com/infrahq/infra/api"
 )
 
-var openAPISchema = openapi3.T{}
-var pathIDReplacer = regexp.MustCompile(`:\w+`)
+var (
+	openAPISchema  = openapi3.T{}
+	pathIDReplacer = regexp.MustCompile(`:\w+`)
+)
 
 func register[Req, Res any](method, basePath, path string, handler ReqResHandlerFunc[Req, Res]) {
 	funcName := getFuncName(handler)
@@ -254,12 +257,22 @@ func setTagInfo(f reflect.StructField, t, parent reflect.Type, schema, parentSch
 			if val == "required" && parentSchema != nil {
 				parentSchema.Required = append(parentSchema.Required, getFieldName(f, parent))
 			}
+			if strings.HasPrefix(val, "min=") {
+				minLength := strings.Split(val, "min=")
+				if len(minLength) != 2 {
+					panic("min length tag does not match expected format")
+				}
+				len, err := strconv.ParseUint(minLength[1], 10, 64)
+				if err != nil {
+					panic("unexpected min length: " + err.Error())
+				}
+				parentSchema.MinLength = len
+			}
 			if val == "email" {
 				schema.Example = "email@example.com"
 			}
 		}
 	}
-
 }
 
 var exampleTime = time.Date(2022, 3, 14, 9, 48, 0, 0, time.UTC).Format(time.RFC3339)
@@ -448,6 +461,17 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 					if val == "required" {
 						p.Required = true
 					}
+					if strings.HasPrefix(val, "min=") {
+						minLength := strings.Split(val, "min=")
+						if len(minLength) != 2 {
+							panic("min length tag does not match expected format")
+						}
+						len, err := strconv.ParseUint(minLength[1], 10, 64)
+						if err != nil {
+							panic("unexpected min length: " + err.Error())
+						}
+						p.Schema.Value.MinLength = len
+					}
 					if val == "email" {
 						p.Example = "email@example.com"
 					}
@@ -473,7 +497,6 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 			},
 		}
 	}
-
 }
 
 func getDefaultExampleForType(t reflect.Type) string {

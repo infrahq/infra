@@ -569,6 +569,9 @@ func loadConfig(db *gorm.DB, config Config) error {
 	}
 
 	return db.Transaction(func(tx *gorm.DB) error {
+		// add the internal Infra identity store to providers
+		config.Providers = append(config.Providers, Provider{Name: models.InternalInfraProviderName})
+
 		if err := loadProviders(tx, config.Providers); err != nil {
 			return err
 		}
@@ -593,7 +596,7 @@ func loadProviders(db *gorm.DB, providers []Provider) error {
 		toKeep = append(toKeep, provider.ID)
 	}
 
-	// remove _all_ providers not defined in config
+	// remove _all_ providers not defined in config or internal
 	err := data.DeleteProviders(db, data.ByNotIDs(toKeep))
 	if err != nil {
 		return err
@@ -673,11 +676,11 @@ func loadGrant(db *gorm.DB, input Grant, providers map[string]uid.ID) (*models.G
 	if input.User != "" || input.Group != "" {
 		// user/group grants require additional input validation
 		if len(providers) < 1 {
-			return nil, errors.New("")
+			return nil, errors.New("no providers configured")
 		}
 
 		if len(providers) > 1 && input.Provider == "" {
-			return nil, errors.New("")
+			return nil, errors.New("grant provider must be specified")
 		}
 
 		provider := input.Provider

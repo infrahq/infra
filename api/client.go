@@ -198,8 +198,8 @@ func (c Client) GetUser(id uid.ID) (*User, error) {
 	return get[User](c, fmt.Sprintf("/v1/users/%s", id))
 }
 
-func (c Client) CreateUser(req *CreateUserRequest) (*User, error) {
-	return post[CreateUserRequest, User](c, "/v1/users", req)
+func (c Client) CreateUser(req *CreateUserRequest) (*CreateUserResponse, error) {
+	return post[CreateUserRequest, CreateUserResponse](c, "/v1/users", req)
 }
 
 func (c Client) ListUserGrants(id uid.ID) ([]Grant, error) {
