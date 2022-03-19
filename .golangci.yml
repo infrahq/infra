@@ -31,7 +31,7 @@ linters:
     - forcetypeassert
     - gci
     - gocritic
-    - goimports
+    - gofmt
     - gofumpt
     - gosec
     - gosimple
