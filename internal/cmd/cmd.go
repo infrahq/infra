@@ -303,7 +303,8 @@ func newGrantsCmd() *cobra.Command {
 func newKeysCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "keys",
-		Short:   "Manage access keys for machine identities to authenticate with Infra and call the API",
+		Short:   "Manage access keys",
+		Long:    "Manage access keys for machine identities to authenticate with Infra and call the API",
 		Aliases: []string{"key"},
 		Group:   " Management:",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -584,20 +585,20 @@ func NewRootCmd() (*cobra.Command, error) {
 		},
 	}
 
-	//Core
+	// Core
 	rootCmd.AddCommand(newLoginCmd())
 	rootCmd.AddCommand(newLogoutCmd())
 	rootCmd.AddCommand(newListCmd())
 	rootCmd.AddCommand(newUseCmd())
 
-	//Management
+	// Management
 	rootCmd.AddCommand(newDestinationsCmd())
 	rootCmd.AddCommand(newGrantsCmd())
 	rootCmd.AddCommand(newIdentitiesCmd())
 	rootCmd.AddCommand(newKeysCmd())
 	rootCmd.AddCommand(newProvidersCmd())
 
-	//Hidden
+	// Hidden
 	rootCmd.AddCommand(newTokensCmd())
 	rootCmd.AddCommand(newInfoCmd())
 	rootCmd.AddCommand(newServerCmd())
@@ -613,7 +614,7 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.PersistentFlags().Bool("help", false, "Display help")
 
 	rootCmd.SetHelpCommandGroup(" Other:")
-	rootCmd.SetHelpTemplate(helpTemplate())
+	// rootCmd.SetUsageTemplate(usageTemplate())
 	return rootCmd, nil
 }
 
