@@ -184,7 +184,7 @@ func newLoginCmd() *cobra.Command {
 		Short:   "Login to Infra",
 		Example: "$ infra login",
 		Args:    cobra.MaximumNArgs(1),
-		Group:   "- CORE",
+		Group:   " Core:",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var options loginOptions
 			if err := parseOptions(cmd, &options, "INFRA"); err != nil {
@@ -207,7 +207,7 @@ func newLogoutCmd() *cobra.Command {
 		Use:     "logout",
 		Short:   "Logout of Infra",
 		Example: "$ infra logout",
-		Group:   "- CORE",
+		Group:   " Core:",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return logout(force)
 		},
@@ -223,7 +223,7 @@ func newListCmd() *cobra.Command {
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List accessible destinations",
-		Group:   "- CORE",
+		Group:   " Core:",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			return mustBeLoggedIn()
 		},
@@ -245,7 +245,7 @@ $ infra use kubernetes.development
 $ infra use kubernetes.development.kube-system
 		`,
 		Args:  cobra.ExactArgs(1),
-		Group: "- CORE",
+		Group: " Core:",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			return mustBeLoggedIn()
 		},
@@ -287,7 +287,7 @@ func newGrantsCmd() *cobra.Command {
 		Use:     "grants",
 		Short:   "Manage access to destinations",
 		Aliases: []string{"grant"},
-		Group:   "- MANAGEMENT",
+		Group:   " Management:",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			return mustBeLoggedIn()
 		},
@@ -305,7 +305,7 @@ func newKeysCmd() *cobra.Command {
 		Use:     "keys",
 		Short:   "Manage access keys for machine identities to authenticate with Infra and call the API",
 		Aliases: []string{"key"},
-		Group:   "- MANAGEMENT",
+		Group:   " Management:",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			return mustBeLoggedIn()
 		},
@@ -323,7 +323,7 @@ func newDestinationsCmd() *cobra.Command {
 		Use:     "destinations",
 		Aliases: []string{"dst", "dest", "destination"},
 		Short:   "Manage destinations",
-		Group:   "- MANAGEMENT",
+		Group:   " Management:",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			return mustBeLoggedIn()
 		},
@@ -491,7 +491,7 @@ func newProvidersCmd() *cobra.Command {
 		Use:     "providers",
 		Short:   "Manage identity providers",
 		Aliases: []string{"provider"},
-		Group:   "- MANAGEMENT",
+		Group:   " Management:",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			return mustBeLoggedIn()
 		},
@@ -523,7 +523,7 @@ func newIdentitiesCmd() *cobra.Command {
 		Use:     "identities",
 		Aliases: []string{"id", "identity"},
 		Short:   "Manage identities (users & machines)",
-		Group:   "- MANAGEMENT",
+		Group:   " Management:",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			return mustBeLoggedIn()
 		},
@@ -584,15 +584,20 @@ func NewRootCmd() (*cobra.Command, error) {
 		},
 	}
 
+	//Core
 	rootCmd.AddCommand(newLoginCmd())
 	rootCmd.AddCommand(newLogoutCmd())
 	rootCmd.AddCommand(newListCmd())
 	rootCmd.AddCommand(newUseCmd())
-	rootCmd.AddCommand(newGrantsCmd())
-	rootCmd.AddCommand(newKeysCmd())
+
+	//Management
 	rootCmd.AddCommand(newDestinationsCmd())
-	rootCmd.AddCommand(newProvidersCmd())
+	rootCmd.AddCommand(newGrantsCmd())
 	rootCmd.AddCommand(newIdentitiesCmd())
+	rootCmd.AddCommand(newKeysCmd())
+	rootCmd.AddCommand(newProvidersCmd())
+
+	//Hidden
 	rootCmd.AddCommand(newTokensCmd())
 	rootCmd.AddCommand(newInfoCmd())
 	rootCmd.AddCommand(newServerCmd())
@@ -601,12 +606,14 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.AddCommand(newVersionCmd())
 
 	rootCmd.Flags().BoolP("version", "v", false, "Display Infra version")
-	rootCmd.Flags().BoolP("info", "i", false, "Display info about the current session")
+	rootCmd.Flags().BoolP("info", "i", false, "Display info about the current logged in session")
 
-	rootCmd.PersistentFlags().String("log-level", "info", "Set the log level. One of error, warn, info, or debug")
-	rootCmd.PersistentFlags().Bool("non-interactive", false, "don't assume an interactive terminal, even if there is one")
+	rootCmd.PersistentFlags().String("log-level", "info", "Show logs when running the command [error, warn, info, debug]")
+	rootCmd.PersistentFlags().Bool("non-interactive", false, "Disable all prompts for input")
+	rootCmd.PersistentFlags().Bool("help", false, "Display help")
 
-	rootCmd.SetHelpCommandGroup("- OTHER")
+	rootCmd.SetHelpCommandGroup(" Other:")
+	rootCmd.SetHelpTemplate(helpTemplate())
 	return rootCmd, nil
 }
 
