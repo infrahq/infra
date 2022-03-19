@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.6.0](https://github.com/infrahq/infra/compare/v0.5.12...v0.6.0) (2022-03-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* **fix:** rename engine to connector
+
+### Features
+
+* local infra users ([#1223](https://github.com/infrahq/infra/issues/1223)) ([67b1f90](https://github.com/infrahq/infra/commit/67b1f90e5c63ad1134e8d69162b82960e651d070))
+* rename engine to connector ([#1229](https://github.com/infrahq/infra/issues/1229)) ([c0ebc01](https://github.com/infrahq/infra/commit/c0ebc018cd1b331ce629b44875734644aec0e22a))
+
+
+### Bug Fixes
+
+* **ci:** bump helm chart version with release ([#1239](https://github.com/infrahq/infra/issues/1239)) ([ac09090](https://github.com/infrahq/infra/commit/ac090907905c35b3044adcafd6cefc9f5ee29923))
+* client should skip json parse body on unknown errors ([#1242](https://github.com/infrahq/infra/issues/1242)) ([8b1e805](https://github.com/infrahq/infra/commit/8b1e805ce280a4f2692e03f8c893d1b185f94063))
+* dont store duplicate grants ([#1228](https://github.com/infrahq/infra/issues/1228)) ([aa49ec6](https://github.com/infrahq/infra/commit/aa49ec6f24381532884782020eab9b72d36340b4))
+* hide infra provider from login CLI ([#1240](https://github.com/infrahq/infra/issues/1240)) ([1725ac5](https://github.com/infrahq/infra/commit/1725ac5a9dc3da11ccce7a168aab7d620aa5ad4d))
+* remove unused package-lock.json ([7e5b344](https://github.com/infrahq/infra/commit/7e5b34446afc6641291fae706c579d4c67c3b350))
+
+
+### Miscellaneous Chores
+
+* **fix:** rename engine to connector ([#1244](https://github.com/infrahq/infra/issues/1244)) ([23d89a6](https://github.com/infrahq/infra/commit/23d89a6ee93ffbafd4b508e78aa336c11a29b1a5))
+
 ### [0.5.12](https://github.com/infrahq/infra/compare/v0.5.11...v0.5.12) (2022-03-17)
 
 
