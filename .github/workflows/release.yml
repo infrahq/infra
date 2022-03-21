@@ -36,7 +36,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-2
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: /root/.cache/
           key: ${{ runner.os }}-go-build
