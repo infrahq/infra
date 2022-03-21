@@ -31,7 +31,7 @@ const IdentityProviderButton = ({ providers }) => {
             key={index}
             onClick={() => provider.onClick()}
           >
-            <IdentityProvider type={provider.type} name={provider.name} /> 
+            <IdentityProvider type={provider.type} name={provider.name} />
           </IdentityProviderContainer>
         )
       })}

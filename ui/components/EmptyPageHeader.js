@@ -24,7 +24,6 @@ const StyledSubheader = styled.div`
   padding-bottom: 3.5rem;
 `
 
-
 const EmptyPageHeader = ({ header, subheader, actionButtonHeader, onClickActionButton }) => {
   return (
     <EmptyPageHeaderContainer>

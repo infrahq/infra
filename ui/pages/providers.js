@@ -4,7 +4,6 @@ import styled from 'styled-components'
 
 import Navigation from '../components/Nav/Navigation'
 import PageHeader from '../components/PageHeader'
-import ActionButton from '../components/ActionButton'
 
 import AuthContext from '../store/AuthContext'
 import FormattedTime from '../components/FormattedTime'
@@ -53,7 +52,6 @@ const TableContentText = styled.div`
   line-height: 0px;
 `
 
-
 const Providers = () => {
   const { providers } = useContext(AuthContext)
 
@@ -79,28 +77,29 @@ const Providers = () => {
         </TableHeader>
         <div>
           {providers.length > 0
-          ? (
-            <TableContentContainer>
-              {providers.map((item) => {
-                return (
-                  <TableContent key={item.id}>
-                    <IdentityProvider type='okta' name={item.name} />
-                    <TableContentText>{item.url}</TableContentText>
-                    <TableContentText>
-                      <FormattedTime time={item.created} />
-                    </TableContentText>
-                  </TableContent>
-                )
-              })}
-            </TableContentContainer>
-            )
-          : (
-              <EmptyPageHeader 
+            ? (
+              <TableContentContainer>
+                {providers.map((item) => {
+                  return (
+                    <TableContent key={item.id}>
+                      <IdentityProvider type='okta' name={item.name} />
+                      <TableContentText>{item.url}</TableContentText>
+                      <TableContentText>
+                        <FormattedTime time={item.created} />
+                      </TableContentText>
+                    </TableContent>
+                  )
+                })}
+              </TableContentContainer>
+              )
+            : (
+              <EmptyPageHeader
                 header='Identity Providers'
                 subheader='No identity providers connected.'
                 actionButtonHeader='Connect Identity Providers'
-                onClickActionButton={() => handleConnectProviders()} />
-            )}
+                onClickActionButton={() => handleConnectProviders()}
+              />
+              )}
         </div>
       </div>
     </div>

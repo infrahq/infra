@@ -1,4 +1,4 @@
-import Navigation from "../components/Nav/Navigation"
+import Navigation from '../components/Nav/Navigation'
 
 const Infrastructure = () => {
   return (

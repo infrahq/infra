@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types'
 
 const FormattedTime = ({ time }) => {
-  const dateTime = new Date(time* 1000);
+  const dateTime = new Date(time * 1000)
 
   const intervals = [
     { label: 'year', seconds: 31536000 },
@@ -10,13 +10,13 @@ const FormattedTime = ({ time }) => {
     { label: 'hour', seconds: 3600 },
     { label: 'minute', seconds: 60 },
     { label: 'second', seconds: 1 }
-  ];
-  
-  function timeSince(date) {
-    const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
-    const interval = intervals.find(i => i.seconds < seconds);
-    const count = Math.floor(seconds / interval.seconds);
-    return `${count} ${interval.label}${count !== 1 ? 's' : ''} ago`;
+  ]
+
+  function timeSince (date) {
+    const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
+    const interval = intervals.find(i => i.seconds < seconds)
+    const count = Math.floor(seconds / interval.seconds)
+    return `${count} ${interval.label}${count !== 1 ? 's' : ''} ago`
   }
 
   return (

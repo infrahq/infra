@@ -55,13 +55,13 @@ const Navigation = () => {
         <div><img src='/brand.svg' /></div>
         <NavOptionsContainer>
           <Link href='/'>
-            <NavItem selected={pathname === page.access ? true : false}>Access</NavItem>
+            <NavItem selected={pathname === page.access}>Access</NavItem>
           </Link>
           <Link href='/infrastructure'>
-            <NavItem selected={pathname === page.infrastructure ? true : false}>Infrastructure</NavItem>
+            <NavItem selected={pathname === page.infrastructure}>Infrastructure</NavItem>
           </Link>
           <Link href='/providers'>
-            <NavItem selected={pathname === page.provider ? true : false}>Identity providers</NavItem>
+            <NavItem selected={pathname === page.provider}>Identity providers</NavItem>
           </Link>
           <UserDropdown />
         </NavOptionsContainer>
