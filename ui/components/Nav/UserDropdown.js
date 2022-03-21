@@ -1,7 +1,7 @@
 import styled from 'styled-components'
 import { useContext, useEffect, useState, useRef } from 'react'
 
-import AuthContext from '../store/AuthContext'
+import AuthContext from '../../store/AuthContext'
 
 const UserDropdownContainer = styled.span`
   position: relative;
