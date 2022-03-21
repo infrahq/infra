@@ -1,12 +1,15 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"reflect"
 	"regexp"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -85,7 +88,8 @@ func reg(method, basePath, path, funcName string, rqt, rst reflect.Type) {
 	op.Responses = buildResponse(rst)
 
 tagLoop:
-	for partialName, tagName := range funcPartialNameToTagNames {
+	for _, partialName := range orderedTagNames() {
+		tagName := funcPartialNameToTagNames[partialName]
 		if strings.Contains(funcName, partialName) {
 			for _, tag := range op.Tags {
 				if tag == tagName {
@@ -126,6 +130,17 @@ func getFuncName(i interface{}) string {
 	name = strings.TrimSuffix(name, "-fm")
 
 	return name
+}
+
+func orderedTagNames() []string {
+	tagNames := []string{}
+	for k := range funcPartialNameToTagNames {
+		tagNames = append(tagNames, k)
+	}
+
+	sort.Strings(tagNames)
+
+	return tagNames
 }
 
 func createComponent(rst reflect.Type) *openapi3.SchemaRef {
@@ -235,18 +250,66 @@ func generateOpenAPI() {
 		URL: "https://api.infrahq.com",
 	})
 
-	// json
-	f2, err := os.Create("docs/api/openapi3.json")
+	if changedSinceLastRun() {
+		f2, err := os.Create("docs/api/openapi3.json")
+		if err != nil {
+			panic(err)
+		}
+		defer f2.Close()
+		enc2 := json.NewEncoder(f2)
+		enc2.SetIndent("", "  ")
+
+		if err := enc2.Encode(openAPISchema); err != nil {
+			panic(err)
+		}
+	}
+}
+
+func changedSinceLastRun() bool {
+	origVersion := openAPISchema.Info.Version
+	defer func() {
+		openAPISchema.Info.Version = origVersion
+	}()
+
+	// read last file
+	f, err := os.Open("docs/api/openapi3.json")
+	if err != nil {
+		panic("expected docs/api/openapi3.json to exist but didn't find it: " + err.Error())
+	}
+	defer f.Close()
+
+	oldOpenAPISchema := openapi3.T{}
+
+	err = json.NewDecoder(f).Decode(&oldOpenAPISchema)
+	if err != nil {
+		panic("couldn't parse last openapi schema: " + err.Error())
+	}
+
+	oldDate := oldOpenAPISchema.Info.Version
+
+	openAPISchema.Info.Version = oldDate
+
+	_, err = f.Seek(0, 0)
 	if err != nil {
 		panic(err)
 	}
-	defer f2.Close()
-	enc2 := json.NewEncoder(f2)
+
+	bufLast := &bytes.Buffer{}
+
+	_, err = io.Copy(bufLast, f)
+	if err != nil {
+		panic("couldn't read file contents: " + err.Error())
+	}
+
+	bufTmp := &bytes.Buffer{}
+	enc2 := json.NewEncoder(bufTmp)
 	enc2.SetIndent("", "  ")
 
 	if err := enc2.Encode(openAPISchema); err != nil {
 		panic(err)
 	}
+
+	return !bytes.Equal(bufLast.Bytes(), bufTmp.Bytes())
 }
 
 func setTagInfo(f reflect.StructField, t, parent reflect.Type, schema, parentSchema *openapi3.Schema) {
