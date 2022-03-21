@@ -61,10 +61,6 @@ Some common configurations for local development include:
 server:
   persistence:
     enabled: false
-
-connector:
-  pesistence:
-    enabled: false
 ```
 
 * Disabling telemetry and crash reporting

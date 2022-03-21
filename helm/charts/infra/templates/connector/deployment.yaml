@@ -40,9 +40,9 @@ spec:
             - name: conf
               mountPath: /etc/infrahq
               readOnly: true
-{{- if .Values.connector.persistence.enabled }}
-            - name: data
-              mountPath: /var/lib/infrahq/infra
+{{- if and (not .Values.connector.config.tlsCert) (not .Values.connector.config.tlsKey) }}
+            - name: tls
+              mountPath: /var/run/secrets/infrahq.com/tls
 {{- end }}
             - name: access-key
               mountPath: /var/run/secrets/infrahq.com/access-key
@@ -82,10 +82,10 @@ spec:
         - name: conf
           configMap:
             name: {{ include "connector.fullname" . }}
-{{- if .Values.connector.persistence.enabled }}
-        - name: data
-          persistentVolumeClaim:
-            claimName: {{ include "connector.fullname" . }}
+{{- if and (not .Values.connector.config.tlsCert) (not .Values.connector.config.tlsKey) }}
+        - name: tls
+          secret:
+            secretName: {{ include "connector.fullname" . }}-tls
 {{- end }}
         - name: access-key
           secret:
