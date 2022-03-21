@@ -1,5 +1,17 @@
 # Changelog
 
+### [0.6.1](https://github.com/infrahq/infra/compare/v0.6.0...v0.6.1) (2022-03-21)
+
+
+### Features
+
+* Local Identity CLI ([#1269](https://github.com/infrahq/infra/issues/1269)) ([a5159b2](https://github.com/infrahq/infra/commit/a5159b27043d2f55955c604b619a01015a0677f1))
+
+
+### Bug Fixes
+
+* make openapi generation deterministic ([#1270](https://github.com/infrahq/infra/issues/1270)) ([d371b56](https://github.com/infrahq/infra/commit/d371b56c8723544e6117dc8b98d8b82516a8bc0c))
+
 ## [0.6.0](https://github.com/infrahq/infra/compare/v0.5.12...v0.6.0) (2022-03-19)
 
 
