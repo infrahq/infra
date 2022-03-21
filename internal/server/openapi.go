@@ -137,7 +137,9 @@ func orderedTagNames() []string {
 	for k := range funcPartialNameToTagNames {
 		tagNames = append(tagNames, k)
 	}
+
 	sort.Strings(tagNames)
+
 	return tagNames
 }
 
@@ -277,6 +279,7 @@ func changedSinceLastRun() bool {
 	defer f.Close()
 
 	oldOpenAPISchema := openapi3.T{}
+
 	err = json.NewDecoder(f).Decode(&oldOpenAPISchema)
 	if err != nil {
 		panic("couldn't parse last openapi schema: " + err.Error())
@@ -286,8 +289,13 @@ func changedSinceLastRun() bool {
 
 	openAPISchema.Info.Version = oldDate
 
-	f.Seek(0, 0)
+	_, err = f.Seek(0, 0)
+	if err != nil {
+		panic(err)
+	}
+
 	bufLast := &bytes.Buffer{}
+
 	_, err = io.Copy(bufLast, f)
 	if err != nil {
 		panic("couldn't read file contents: " + err.Error())
