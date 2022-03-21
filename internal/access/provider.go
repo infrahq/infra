@@ -14,6 +14,16 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+// CurrentIdentityProvider returns the provider for the current identity in the request context
+func CurrentIdentityProvider(c *gin.Context) (*models.Provider, error) {
+	u, ok := c.MustGet("user").(*models.User)
+	if !ok {
+		return nil, fmt.Errorf("no user in request context")
+	}
+
+	return GetProvider(c, u.ProviderID)
+}
+
 func CreateProvider(c *gin.Context, provider *models.Provider) error {
 	db, err := requireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
