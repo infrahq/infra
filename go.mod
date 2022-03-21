@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.3
-	github.com/aws/aws-sdk-go v1.43.17
+	github.com/aws/aws-sdk-go v1.43.21
 	github.com/cli/browser v1.1.0
 	github.com/docker/docker v20.10.13+incompatible
 	github.com/docker/go-connections v0.4.0
@@ -35,9 +35,9 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/postgres v1.3.1
 	gorm.io/driver/sqlite v1.3.1
-	gorm.io/gorm v1.23.2
+	gorm.io/gorm v1.23.3
 	k8s.io/api v0.23.4
-	k8s.io/apimachinery v0.23.4
+	k8s.io/apimachinery v0.23.5
 	k8s.io/client-go v0.23.4
 )
 
@@ -45,7 +45,7 @@ require (
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/coreos/go-oidc/v3 v3.1.0
 	github.com/deckarep/golang-set v1.8.0
-	github.com/getkin/kin-openapi v0.91.0
+	github.com/getkin/kin-openapi v0.92.0
 	github.com/gin-contrib/gzip v0.0.5
 	github.com/gin-contrib/static v0.0.1
 	github.com/iancoleman/strcase v0.2.0
