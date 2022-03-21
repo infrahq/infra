@@ -3,7 +3,7 @@ module github.com/infrahq/infra
 go 1.18
 
 require (
-	github.com/AlecAivazis/survey/v2 v2.3.2
+	github.com/AlecAivazis/survey/v2 v2.3.3
 	github.com/aws/aws-sdk-go v1.43.17
 	github.com/cli/browser v1.1.0
 	github.com/docker/docker v20.10.13+incompatible
@@ -121,7 +121,6 @@ require (
 	github.com/cncf/xds/go v0.0.0-20211216145620-d92e9ce0af51 // indirect
 	github.com/containerd/containerd v1.3.4 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
-	github.com/creack/pty v1.1.11 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dghubble/go-twitter v0.0.0-20211115160449-93a8679adecb // indirect
 	github.com/dghubble/oauth1 v0.7.1 // indirect
