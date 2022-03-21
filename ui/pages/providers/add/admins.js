@@ -14,7 +14,7 @@ const grantAdminAccess = async (userId, accesskey) => {
     { identity: userId, resource: 'infra', privilege: 'admin' },
     { headers: { Authorization: `Bearer ${accesskey}` } })
     .then(async () => {
-      await Router.push({ pathname: '/' }, undefined, { shallow: true })
+      await Router.push({ pathname: '/providers' }, undefined, { shallow: true })
     }).catch((error) => {
       console.log(error)
     })
@@ -62,7 +62,7 @@ const Admins = () => {
           <AddAdmin email={adminEmail} parentCallback={updateEmail} />
         </AddContainerContent>
         <Nav>
-          <ExitButton />
+          <ExitButton previousPage='/providers' />
         </Nav>
       </AddContainer>
       <Footer>
