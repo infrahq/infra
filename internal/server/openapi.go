@@ -128,18 +128,16 @@ func getFuncName(i interface{}) string {
 	nameParts := strings.Split(name, ".")
 	name = nameParts[len(nameParts)-1]
 	name = strings.TrimSuffix(name, "-fm")
-
 	return name
 }
 
 func orderedTagNames() []string {
-	tagNames := []string{}
+	tagNames := make([]string, 0, len(funcPartialNameToTagNames))
 	for k := range funcPartialNameToTagNames {
 		tagNames = append(tagNames, k)
 	}
 
 	sort.Strings(tagNames)
-
 	return tagNames
 }
 
@@ -218,98 +216,62 @@ func buildProperty(f reflect.StructField, t, parent reflect.Type, parentSchema *
 	}
 }
 
-func isDev() bool {
-	dirs := []string{".git", "docs"}
-	for _, dir := range dirs {
-		info, err := os.Stat(dir)
-		if err != nil {
-			return false
-		}
-
-		if !info.IsDir() {
-			return false
-		}
-	}
-
-	return true
-}
-
-func generateOpenAPI() {
-	if !isDev() {
-		return
-	}
-
+func writeOpenAPISpec(version string, out io.Writer) error {
 	openAPISchema.OpenAPI = "3.0.0"
 	openAPISchema.Info = &openapi3.Info{
 		Title:       "Infra API",
-		Version:     time.Now().Format("2006-01-02"),
+		Version:     version,
 		Description: "Infra API",
 		License:     &openapi3.License{Name: "Apache 2.0", URL: "https://www.apache.org/licenses/LICENSE-2.0.html"},
 	}
 	openAPISchema.Servers = append(openAPISchema.Servers, &openapi3.Server{
 		URL: "https://api.infrahq.com",
 	})
+	encoder := json.NewEncoder(out)
+	encoder.SetIndent("", "  ")
 
-	if changedSinceLastRun() {
-		f2, err := os.Create("docs/api/openapi3.json")
-		if err != nil {
-			panic(err)
-		}
-		defer f2.Close()
-		enc2 := json.NewEncoder(f2)
-		enc2.SetIndent("", "  ")
-
-		if err := enc2.Encode(openAPISchema); err != nil {
-			panic(err)
-		}
+	if err := encoder.Encode(openAPISchema); err != nil {
+		return fmt.Errorf("failed to write schema: %w", err)
 	}
+	return nil
 }
 
-func changedSinceLastRun() bool {
-	origVersion := openAPISchema.Info.Version
-	defer func() {
-		openAPISchema.Info.Version = origVersion
-	}()
-
-	// read last file
-	f, err := os.Open("docs/api/openapi3.json")
+func writeOpenAPISpecToFile(filename string) error {
+	old, err := readOpenAPISpec(filename)
 	if err != nil {
-		panic("expected docs/api/openapi3.json to exist but didn't find it: " + err.Error())
+		return err
 	}
-	defer f.Close()
 
-	oldOpenAPISchema := openapi3.T{}
+	version := time.Now().Format("2006-01-02")
+	old.Info.Version = version
 
-	err = json.NewDecoder(f).Decode(&oldOpenAPISchema)
+	var buf bytes.Buffer
+	if err := writeOpenAPISpec(version, &buf); err != nil {
+		return err
+	}
+
+	if reflect.DeepEqual(openAPISchema, old) {
+		// no changes to the schema
+		return nil
+	}
+
+	// nolint: gosec // 0644 is the right mode
+	return os.WriteFile(filename, buf.Bytes(), 0o644)
+}
+
+func readOpenAPISpec(filename string) (openapi3.T, error) {
+	spec := openapi3.T{}
+
+	fh, err := os.Open(filename)
 	if err != nil {
-		panic("couldn't parse last openapi schema: " + err.Error())
+		return spec, fmt.Errorf("failed to create file: %w", err)
 	}
+	defer fh.Close()
 
-	oldDate := oldOpenAPISchema.Info.Version
-
-	openAPISchema.Info.Version = oldDate
-
-	_, err = f.Seek(0, 0)
-	if err != nil {
-		panic(err)
+	if err := json.NewDecoder(fh).Decode(&spec); err != nil {
+		return spec, fmt.Errorf("failed to parse last openapi schema from %s: %w", filename, err)
 	}
-
-	bufLast := &bytes.Buffer{}
-
-	_, err = io.Copy(bufLast, f)
-	if err != nil {
-		panic("couldn't read file contents: " + err.Error())
-	}
-
-	bufTmp := &bytes.Buffer{}
-	enc2 := json.NewEncoder(bufTmp)
-	enc2.SetIndent("", "  ")
-
-	if err := enc2.Encode(openAPISchema); err != nil {
-		panic(err)
-	}
-
-	return !bytes.Equal(bufLast.Bytes(), bufTmp.Bytes())
+	return spec, nil
 }
 
 func setTagInfo(f reflect.StructField, t, parent reflect.Type, schema, parentSchema *openapi3.Schema) {
