@@ -29,7 +29,7 @@ func newIdentitiesAddCmd() *cobra.Command {
 			name := args[0]
 
 			var options identityOptions
-			if err := parseOptions(cmd, &options, "INFRA_IDENTITY"); err != nil {
+			if err := parseOptions(cmd, &options, ""); err != nil {
 				return err
 			}
 
@@ -66,7 +66,7 @@ func newIdentitiesEditCmd() *cobra.Command {
 			name := args[0]
 
 			var options identityOptions
-			if err := parseOptions(cmd, &options, "INFRA_IDENTITY"); err != nil {
+			if err := parseOptions(cmd, &options, ""); err != nil {
 				return err
 			}
 
@@ -173,7 +173,7 @@ func newIdentitiesRemoveCmd() *cobra.Command {
 			name := args[0]
 
 			var options identityOptions
-			if err := parseOptions(cmd, &options, "INFRA_IDENTITY"); err != nil {
+			if err := parseOptions(cmd, &options, ""); err != nil {
 				return err
 			}
 

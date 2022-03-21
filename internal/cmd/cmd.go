@@ -55,23 +55,25 @@ func parseOptions(cmd *cobra.Command, options interface{}, envPrefix string) err
 		}
 	}
 
-	v.SetEnvPrefix(envPrefix)
-	v.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
-	v.AutomaticEnv()
+	if envPrefix != "" {
+		v.SetEnvPrefix(envPrefix)
+		v.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+		v.AutomaticEnv()
 
-	// workaround for viper not correctly binding env vars
-	// https://github.com/spf13/viper/issues/761
-	envKeys := make(map[string]interface{})
-	if err := mapstructure.Decode(options, &envKeys); err != nil {
-		return err
-	}
-
-	// bind file options (lower camel case) to environment options (envPrefix + upper snake case)
-	// e.g. accessKey -> INFRA_CONNECTOR_ACCESS_KEY
-	for envKey := range envKeys {
-		fullEnvKey := fmt.Sprintf("%s_%s", envPrefix, envKey)
-		if err := v.BindEnv(envKey, strcase.ToScreamingSnake(fullEnvKey)); err != nil {
+		// workaround for viper not correctly binding env vars
+		// https://github.com/spf13/viper/issues/761
+		envKeys := make(map[string]interface{})
+		if err := mapstructure.Decode(options, &envKeys); err != nil {
 			return err
+		}
+
+		// bind file options (lower camel case) to environment options (envPrefix + upper snake case)
+		// e.g. accessKey -> INFRA_CONNECTOR_ACCESS_KEY
+		for envKey := range envKeys {
+			fullEnvKey := fmt.Sprintf("%s_%s", envPrefix, envKey)
+			if err := v.BindEnv(envKey, strcase.ToScreamingSnake(fullEnvKey)); err != nil {
+				return err
+			}
 		}
 	}
 
