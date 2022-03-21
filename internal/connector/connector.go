@@ -41,6 +41,8 @@ type Options struct {
 	Name          string `mapstructure:"name"`
 	AccessKey     string `mapstructure:"accessKey"`
 	TLSCache      string `mapstructure:"tlsCache"`
+	TLSCert       string `mapstructure:"tlsCert"`
+	TLSKey        string `mapstructure:"tlsKey"`
 	SkipTLSVerify bool   `mapstructure:"skipTLSVerify"`
 }
 
@@ -392,25 +394,38 @@ func Run(options Options) error {
 		options.Name = fmt.Sprintf("kubernetes.%s", options.Name)
 	}
 
+	serverName := "infra-connector"
+
 	manager := &autocert.Manager{
 		Prompt: autocert.AcceptTOS,
 		Cache:  autocert.DirCache(options.TLSCache),
 	}
 
-	tlsConfig := manager.TLSConfig()
-	tlsConfig.GetCertificate = certs.SelfSignedOrLetsEncryptCert(manager, func() string {
-		host, _, err := k8s.Endpoint()
+	var tlsConfig *tls.Config
+
+	if options.TLSCert != "" || options.TLSKey != "" {
+		certBytes, err := ioutil.ReadFile(options.TLSCert)
 		if err != nil {
-			return ""
+			return err
 		}
 
-		url, err := urlx.Parse(host)
+		keypair, err := tls.LoadX509KeyPair(options.TLSCert, options.TLSKey)
 		if err != nil {
-			return ""
+			return err
 		}
 
-		return url.Hostname()
-	})
+		tlsConfig = &tls.Config{
+			MinVersion:   tls.VersionTLS12,
+			Certificates: []tls.Certificate{keypair},
+		}
+
+		if err := manager.Cache.Put(context.TODO(), serverName, certBytes); err != nil {
+			return err
+		}
+	} else {
+		tlsConfig := manager.TLSConfig()
+		tlsConfig.GetCertificate = certs.SelfSignedOrLetsEncryptCert(manager, serverName)
+	}
 
 	basicSecretStorage := map[string]secrets.SecretStorage{
 		"env":       secrets.NewEnvSecretProviderFromConfig(secrets.GenericConfig{}),
@@ -460,30 +475,7 @@ func Run(options Options) error {
 			},
 		}
 
-		host, port, err := k8s.Endpoint()
-		if err != nil {
-			logging.S.Errorf("endpoint: %w", err)
-			return
-		}
-
-		logging.S.Debugf("endpoint is: %s:%d", host, port)
-
-		if ipv4 := net.ParseIP(host); ipv4 == nil {
-			// wait for DNS resolution if endpoint is not an IPv4 address
-			if _, err := net.LookupIP(host); err != nil {
-				logging.L.Error("endpoint DNS could not be resolved, waiting to register")
-			}
-		}
-
-		endpoint := fmt.Sprintf("%s:%d", host, port)
-
-		url, err := urlx.Parse(endpoint)
-		if err != nil {
-			logging.S.Errorf("url parse: %s", err.Error())
-			return
-		}
-
-		caBytes, err := manager.Cache.Get(context.TODO(), fmt.Sprintf("%s.crt", url.Hostname()))
+		caBytes, err := manager.Cache.Get(context.TODO(), serverName)
 		if err != nil {
 			if errors.Is(err, autocert.ErrCacheMiss) {
 				logging.S.Debugf("failed loading CA: %s", err.Error())
@@ -493,6 +485,23 @@ func Run(options Options) error {
 				return
 			}
 		}
+
+		host, port, err := k8s.Endpoint()
+		if err != nil {
+			logging.S.Errorf("endpoint: %w", err)
+			return
+		}
+
+		if ipv4 := net.ParseIP(host); ipv4 == nil {
+			// wait for DNS resolution if endpoint is not an IPv4 address
+			if _, err := net.LookupIP(host); err != nil {
+				logging.L.Error("host could not be resolved")
+				return
+			}
+		}
+
+		endpoint := fmt.Sprintf("%s:%d", host, port)
+		logging.S.Debugf("connector serving on %s", endpoint)
 
 		if localDetails.destinationID == 0 {
 			localDetails.ca = string(caBytes)

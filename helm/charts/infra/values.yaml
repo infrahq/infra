@@ -663,28 +663,6 @@ connector:
       ## Prometheus metric relabel configs to apply to samples before ingesting
       metricRelabelings: []
 
-  ## Infra connector persistence configurations
-  persistence:
-
-    ## Enable server persistence
-    enabled: true
-
-    ## persistence labels
-    labels: {}
-
-    ## persistence annotations
-    annotations: {}
-
-    ## Name of the storage controller that will implement this resource
-    className: ""
-
-    ## Resource requests and limits for the persistence
-    resources:
-      requests:
-        storage: 2Gi
-    #   limits:
-    #     storage: 4Gi
-
   ## Resource requests and limits for the connector pod
   resources: {}
   #   requests:

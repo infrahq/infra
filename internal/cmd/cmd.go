@@ -466,6 +466,8 @@ func newConnectorCmd() *cobra.Command {
 	cmd.Flags().StringP("server", "s", "", "Infra server hostname")
 	cmd.Flags().StringP("access-key", "a", "", "Infra access key (use file:// to load from a file)")
 	cmd.Flags().StringP("name", "n", "", "Destination name")
+	cmd.Flags().String("tls-cert", "$HOME/.infra/cache/tls.crt", "Path to TLS certificate file")
+	cmd.Flags().String("tls-key", "$HOME/.infra/cache/tls.key", "Path to TLS key file")
 	cmd.Flags().String("tls-cache", "$HOME/.infra/cache", "Directory to cache TLS certificates")
 	cmd.Flags().Bool("skip-tls-verify", false, "Skip verifying server TLS certificates")
 

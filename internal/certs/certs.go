@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"golang.org/x/crypto/acme/autocert"
+
+	"github.com/infrahq/infra/internal/logging"
 )
 
 func SelfSignedCert(hosts []string) ([]byte, []byte, error) {
@@ -72,47 +74,42 @@ func SelfSignedCert(hosts []string) ([]byte, []byte, error) {
 	return certPEM.Bytes(), keyPEM.Bytes(), nil
 }
 
-func SelfSignedOrLetsEncryptCert(manager *autocert.Manager, serverNameFunc func() string) func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+func SelfSignedOrLetsEncryptCert(manager *autocert.Manager, serverName string) func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 	return func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 		cert, err := manager.GetCertificate(hello)
 		if err == nil {
 			return cert, nil
 		}
 
-		serverName := serverNameFunc()
 		if serverName == "" {
 			serverName = hello.ServerName
 		}
 
-		name := serverName
-		if name == "" {
-			name = hello.Conn.LocalAddr().String()
+		if serverName == "" {
+			serverName = hello.Conn.LocalAddr().String()
 		}
 
-		certBytes, keyBytes, err := func() ([]byte, []byte, error) {
-			certBytes, err := manager.Cache.Get(context.TODO(), name+".crt")
-			if err != nil {
-				return nil, nil, err
-			}
-
-			keyBytes, err := manager.Cache.Get(context.TODO(), name+".key")
-			if err != nil {
-				return nil, nil, err
-			}
-
-			return certBytes, keyBytes, nil
-		}()
+		certBytes, err := manager.Cache.Get(context.TODO(), serverName)
 		if err != nil {
-			certBytes, keyBytes, err = SelfSignedCert([]string{name})
+			logging.S.Warnf("cert: %w", err)
+		}
+
+		keyBytes, err := manager.Cache.Get(context.TODO(), serverName+".key")
+		if err != nil {
+			logging.S.Warnf("key: %w", err)
+		}
+
+		if certBytes == nil && keyBytes == nil {
+			certBytes, keyBytes, err = SelfSignedCert([]string{serverName})
 			if err != nil {
 				return nil, err
 			}
 
-			if err := manager.Cache.Put(context.TODO(), name+".crt", certBytes); err != nil {
+			if err := manager.Cache.Put(context.TODO(), serverName, certBytes); err != nil {
 				return nil, err
 			}
 
-			if err := manager.Cache.Put(context.TODO(), name+".key", keyBytes); err != nil {
+			if err := manager.Cache.Put(context.TODO(), serverName+".key", keyBytes); err != nil {
 				return nil, err
 			}
 		}

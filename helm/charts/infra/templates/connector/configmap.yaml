@@ -7,6 +7,22 @@ metadata:
 {{- include "connector.labels" . | nindent 4 }}
 data:
   infra.yaml: |
+{{- range $key, $val := omit .Values.connector.config "accessKey" }}
+{{- if kindIs "invalid" $val }}
+    # skipping invalid value: {{ $val }} ({{ kindOf $val }})
+{{- else if kindIs "map" $val }}
+    {{ $key }}:
+{{- $val | toYaml | nindent 6 }}
+{{- else if kindIs "slice" $val }}
+    {{ $key }}:
+{{- $val | toYaml | nindent 6 }}
+{{- else if kindIs "string" $val }}
+    {{ $key }}: {{ tpl $val $ }}
+{{- else }}
+    {{ $key }}: {{ $val }}
+{{- end }}
+{{- end }}
+
 {{- $accessKey := default "" .Values.connector.config.accessKey }}
 {{- if and $accessKey (or (hasPrefix "file:" $accessKey) (hasPrefix "env:" $accessKey)) }}
     accessKey: {{ $accessKey }}
@@ -23,19 +39,8 @@ data:
 {{- end }}
 {{- end }}
 
-{{- range $key, $val := omit .Values.connector.config "accessKey" }}
-{{- if kindIs "invalid" $val }}
-    # skipping invalid value: {{ $val }} ({{ kindOf $val }})
-{{- else if kindIs "map" $val }}
-    {{ $key }}:
-{{- $val | toYaml | nindent 6 }}
-{{- else if kindIs "slice" $val }}
-    {{ $key }}:
-{{- $val | toYaml | nindent 6 }}
-{{- else if kindIs "string" $val }}
-    {{ $key }}: {{ tpl $val $ }}
-{{- else }}
-    {{ $key }}: {{ $val }}
-{{- end }}
+{{- if and (not .Values.connector.config.tlsCert) (not .Values.connector.config.tlsKey) }}
+    tlsCert: /var/run/secrets/infrahq.com/tls/tls.crt
+    tlsKey: /var/run/secrets/infrahq.com/tls/tls.key
 {{- end }}
 {{- end }}

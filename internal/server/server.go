@@ -468,9 +468,7 @@ func (s *Server) serverTLSConfig() (*tls.Config, error) {
 			Cache:  autocert.DirCache(s.options.TLSCache),
 		}
 		tlsConfig := manager.TLSConfig()
-		tlsConfig.GetCertificate = certs.SelfSignedOrLetsEncryptCert(manager, func() string {
-			return ""
-		})
+		tlsConfig.GetCertificate = certs.SelfSignedOrLetsEncryptCert(manager, "")
 
 		return tlsConfig, nil
 	}
