@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
@@ -113,4 +115,17 @@ func newProvidersRemoveCmd() *cobra.Command {
 			return nil
 		},
 	}
+}
+
+func GetProviderByName(client *api.Client, name string) (*api.Provider, error) {
+	providers, err := client.ListProviders(name)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(providers) == 0 {
+		return nil, fmt.Errorf("no identity providers connected with the name %s", name)
+	}
+
+	return &providers[0], nil
 }

@@ -399,9 +399,16 @@ func (a *API) DeleteDestination(c *gin.Context, r *api.Resource) error {
 
 func (a *API) CreateToken(c *gin.Context, r *api.CreateTokenRequest) (*api.CreateTokenResponse, error) {
 	if access.CurrentUser(c) != nil {
-		err := a.updateUserInfo(c)
+		currentIDP, err := access.CurrentIdentityProvider(c)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("token user IDP: %w", err)
+		}
+
+		if currentIDP.Name != models.InternalInfraProviderName {
+			err := a.updateUserInfo(c)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		token, err := access.CreateUserToken(c)
