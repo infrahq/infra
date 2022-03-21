@@ -127,10 +127,5 @@ func GetProviderByName(client *api.Client, name string) (*api.Provider, error) {
 		return nil, fmt.Errorf("no identity providers connected with the name %s", name)
 	}
 
-	if len(providers) > 1 {
-		// this should not happen
-		return nil, ErrProviderNotUnique
-	}
-
 	return &providers[0], nil
 }
