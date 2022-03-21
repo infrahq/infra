@@ -51,6 +51,5 @@ linters:
     - unused
     - varcheck
     - wastedassign
-    - wsl
   disable:
     - scopelint
