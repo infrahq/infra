@@ -15,13 +15,9 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-var ErrUserNotFound = errors.New(`no users found with this name`)
-
 type identityOptions struct {
 	Description string `mapstructure:"description"`
 	Password    bool   `mapstructure:"password"`
-	IsUser      bool   `mapstructure:"user"`
-	IsMachine   bool   `mapstructure:"machine"`
 }
 
 func newIdentitiesAddCmd() *cobra.Command {
@@ -37,12 +33,7 @@ func newIdentitiesAddCmd() *cobra.Command {
 				return err
 			}
 
-			isUser, err := isUser(options, name)
-			if err != nil {
-				return err
-			}
-
-			if isUser {
+			if isUser(name) {
 				userCreateResp, err := createUser(name)
 				if err != nil {
 					return err
@@ -61,8 +52,6 @@ func newIdentitiesAddCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolP("user", "u", false, "Indicate that this identity is a user")
-	cmd.Flags().BoolP("machine", "m", false, "Indicate that this identity is a machine")
 	cmd.Flags().StringP("description", "d", "", "Description of a machine identity")
 
 	return cmd
@@ -81,12 +70,7 @@ func newIdentitiesEditCmd() *cobra.Command {
 				return err
 			}
 
-			isUser, err := isUser(options, name)
-			if err != nil {
-				return err
-			}
-
-			if isUser {
+			if isUser(name) {
 				if !options.Password {
 					return errors.New("specify the --password flag to update the password")
 				}
@@ -111,8 +95,6 @@ func newIdentitiesEditCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolP("user", "u", false, "Indicate that this identity is a user")
-	cmd.Flags().BoolP("machine", "m", false, "Indicate that this identity is a machine")
 	cmd.Flags().BoolP("password", "p", false, "Prompt to update a local user's password")
 
 	return cmd
@@ -200,12 +182,7 @@ func newIdentitiesRemoveCmd() *cobra.Command {
 				return err
 			}
 
-			isUser, err := isUser(options, name)
-			if err != nil {
-				return err
-			}
-
-			if isUser {
+			if isUser(name) {
 				users, err := client.ListUsers(api.ListUsersRequest{Email: name})
 				if err != nil {
 					return err
@@ -235,13 +212,11 @@ func newIdentitiesRemoveCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolP("user", "u", false, "Indicate that this identity is a user")
-	cmd.Flags().BoolP("machine", "m", false, "Indicate that this identity is a machine")
-
 	return cmd
 }
 
-func isUserEmail(name string) bool {
+func isUser(name string) bool {
+	// infer based on the name being an email
 	_, err := mail.ParseAddress(name)
 	if err != nil {
 		logging.S.Debug(err)
@@ -270,7 +245,7 @@ func createUser(email string) (*api.CreateUserResponse, error) {
 		return nil, err
 	}
 
-	infraProvider, err := GetProviderFromName(client, models.InternalInfraProviderName)
+	infraProvider, err := GetProviderByName(client, models.InternalInfraProviderName)
 	if err != nil {
 		logging.S.Debug(err)
 		return nil, fmt.Errorf("no infra provider found, to manage local user create a local provider named 'infra'")
@@ -290,7 +265,7 @@ func updateUser(name, newPassword string) error {
 		return err
 	}
 
-	infraProvider, err := GetProviderFromName(client, models.InternalInfraProviderName)
+	infraProvider, err := GetProviderByName(client, models.InternalInfraProviderName)
 	if err != nil {
 		logging.S.Debug(err)
 		return fmt.Errorf("no infra provider found, to manage local users create a local provider named 'infra'")
@@ -303,7 +278,7 @@ func updateUser(name, newPassword string) error {
 		return err
 	}
 
-	if config.ProviderID == infraProvider.ID && config.Name == name && config.ProviderID != 1 {
+	if config.ProviderID == infraProvider.ID && config.Name == name {
 		// this is a user updating their own password
 		currentID, err := config.PolymorphicID.ID()
 		if err != nil {
@@ -360,20 +335,4 @@ func getUserFromName(client *api.Client, name string, provider *api.Provider) (*
 	}
 
 	return &users[0], nil
-}
-
-func isUser(options identityOptions, name string) (bool, error) {
-	isUser := options.IsUser
-	isMachine := options.IsMachine
-
-	if isUser && isMachine {
-		return false, errors.New("only allowed one of --user or --machine")
-	}
-
-	// infer based on the name being an email
-	if !isUser && !isMachine && isUserEmail(name) {
-		isUser = true
-	}
-
-	return isUser, nil
 }

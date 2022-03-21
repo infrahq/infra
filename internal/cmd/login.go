@@ -69,7 +69,7 @@ func relogin() error {
 		return err
 	}
 
-	return finishLogin(currentConfig.Host, loginRes.PolymorphicID, loginRes.Name, loginRes.AccessKey, currentConfig.SkipTLSVerify, 0, false)
+	return finishLogin(currentConfig.Host, currentConfig.SkipTLSVerify, provider.ID, loginRes)
 }
 
 func isInteractiveMode() bool {
@@ -136,54 +136,17 @@ func login(host string) error {
 		return err
 	}
 
-	setupRequired, err := client.SetupRequired()
+	// get the initial access key if this is a new Infra deploy
+	accessKey, err := checkDoSetup(client)
 	if err != nil {
 		return err
 	}
 
-	var accessKey string
-
-	if setupRequired.Required {
-		setup, err := client.Setup()
-		if err != nil {
-			return err
-		}
-
-		fmt.Println()
-		fmt.Printf("  Congratulations, Infra has been successfully installed.\n\n")
-		fmt.Printf("  Access Key: %s\n", setup.AccessKey)
-		fmt.Printf(fmt.Sprintf("  %s", termenv.String("IMPORTANT: Store in a safe place. You will not see it again.\n\n").Bold().String()))
-
-		accessKey = setup.AccessKey
-	}
-
-	providers, err := client.ListProviders("")
+	// setup the authentication options Infra supports (OIDC, local, access key exchange, etc.)
+	options, oidcProviders, providerID, err := authenticationOptions(client)
 	if err != nil {
 		return err
 	}
-
-	localUsersEnabled := false
-
-	var options []string
-	var oidcProviders []api.Provider
-	var providerID uid.ID
-
-	for _, p := range providers {
-		if p.Name == models.InternalInfraProviderName {
-			localUsersEnabled = true
-			providerID = p.ID // default to the local infra provider, if something else is selected it will update
-		} else {
-			options = append(options, fmt.Sprintf("%s (%s)", p.Name, p.URL))
-			oidcProviders = append(oidcProviders, p)
-		}
-	}
-
-	if localUsersEnabled {
-		// this is separate so that it appears as the bottom of the list
-		options = append(options, "Email and Password")
-	}
-
-	options = append(options, "Login with Access Key")
 
 	var option int
 
@@ -194,75 +157,33 @@ func login(host string) error {
 		}
 	}
 
-	var loginReq api.LoginRequest
+	loginReq := &api.LoginRequest{}
 
-	if option == len(options)-1 {
-		if accessKey == "" {
-			err = survey.AskOne(&survey.Password{Message: "Access Key:"}, &accessKey, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
-			if err != nil {
-				return err
-			}
-		}
-
-		loginReq.AccessKey = accessKey
-	} else if option == len(options)-2 {
-		fmt.Println("  Logging in with email and password...")
-
-		credentials := struct {
-			Email    string
-			Password string
-		}{}
-
-		emailPassPrompt := []*survey.Question{
-			{
-				Name:     "Email",
-				Prompt:   &survey.Input{Message: "Email: "},
-				Validate: survey.Required,
-			},
-			{
-				Name:     "Password",
-				Prompt:   &survey.Password{Message: "Password: "},
-				Validate: survey.Required,
-			},
-		}
-
-		err = survey.Ask(emailPassPrompt, &credentials, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
-		if err != nil {
+	switch option {
+	case len(options) - 1:
+		if err := setupAccessKeyExchangeLogin(loginReq, accessKey); err != nil {
 			return err
 		}
-
-		loginReq.PasswordCredentials = &api.LoginRequestPasswordCredentials{
-			Email:    credentials.Email,
-			Password: credentials.Password,
-		}
-	} else {
-		provider := oidcProviders[option]
-		providerID = provider.ID
-
-		fmt.Fprintf(os.Stderr, "  Logging in with %s...\n", termenv.String(provider.Name).Bold().String())
-
-		code, err := oidcflow(provider.URL, provider.ClientID)
-		if err != nil {
+	case len(options) - 2:
+		if err := setupEmailAndPasswordLogin(loginReq); err != nil {
 			return err
 		}
-
-		loginReq.OIDC = &api.LoginRequestOIDC{
-			ProviderID:  provider.ID,
-			RedirectURL: cliLoginRedirectURL,
-			Code:        code,
+	default:
+		if providerID, err = getOIDCAuthCode(loginReq, oidcProviders, option); err != nil {
+			return err
 		}
 	}
 
-	loginRes, err := client.Login(&loginReq)
+	loginRes, err := client.Login(loginReq)
 	if err != nil {
 		return err
 	}
 
-	return finishLogin(host, loginRes.PolymorphicID, loginRes.Name, loginRes.AccessKey, skipTLSVerify, providerID, loginRes.PasswordUpdateRequired)
+	return finishLogin(host, skipTLSVerify, providerID, loginRes)
 }
 
-func finishLogin(host string, polymorphicID uid.PolymorphicID, name string, accessKey string, skipTLSVerify bool, providerID uid.ID, passwordUpdateRequired bool) error {
-	fmt.Fprintf(os.Stderr, "  Logged in as %s\n", termenv.String(name).Bold().String())
+func finishLogin(host string, skipTLSVerify bool, providerID uid.ID, loginRes *api.LoginResponse) error {
+	fmt.Fprintf(os.Stderr, "  Logged in as %s\n", termenv.String(loginRes.Name).Bold().String())
 
 	config, err := readConfig()
 	if err != nil && !errors.Is(err, ErrConfigNotFound) {
@@ -275,12 +196,12 @@ func finishLogin(host string, polymorphicID uid.PolymorphicID, name string, acce
 
 	var hostConfig ClientHostConfig
 
-	hostConfig.PolymorphicID = polymorphicID
+	hostConfig.PolymorphicID = loginRes.PolymorphicID
 	hostConfig.Current = true
 	hostConfig.Host = host
-	hostConfig.Name = name
+	hostConfig.Name = loginRes.Name
 	hostConfig.ProviderID = providerID
-	hostConfig.AccessKey = accessKey
+	hostConfig.AccessKey = loginRes.AccessKey
 	hostConfig.SkipTLSVerify = skipTLSVerify
 
 	var found bool
@@ -305,32 +226,17 @@ func finishLogin(host string, polymorphicID uid.PolymorphicID, name string, acce
 		return err
 	}
 
-	client, err := apiClient(host, accessKey, skipTLSVerify)
+	client, err := apiClient(host, loginRes.AccessKey, skipTLSVerify)
 	if err != nil {
 		return err
 	}
 
-	if err := updateKubeconfig(client, polymorphicID); err != nil {
+	if err := updateKubeconfig(client, loginRes.PolymorphicID); err != nil {
 		return err
 	}
 
-	if passwordUpdateRequired {
-		newPassword := ""
-		err = survey.AskOne(&survey.Password{Message: "One time password used, please set a new password:"}, &newPassword, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
-		if err != nil {
-			return err
-		}
-
-		userID, err := polymorphicID.ID()
-		if err != nil {
-			return fmt.Errorf("update user id login: %w", err)
-		}
-
-		if _, err := client.UpdateUser(&api.UpdateUserRequest{ID: userID, Password: newPassword}); err != nil {
-			return fmt.Errorf("update user login: %w", err)
-		}
-
-		fmt.Println("  Password updated, you're all set")
+	if loginRes.PasswordUpdateRequired {
+		updateUserPassword(client, loginRes.PolymorphicID)
 	}
 
 	return nil
@@ -468,4 +374,148 @@ func promptShouldSkipTLSVerify(host string) (shouldSkipTLSVerify bool, proceed b
 	defer res.Body.Close()
 
 	return false, true, nil
+}
+
+// authenticationOptions returns the ways to login based on the configuration of Infra
+func authenticationOptions(client *api.Client) ([]string, []api.Provider, uid.ID, error) {
+	providers, err := client.ListProviders("")
+	if err != nil {
+		return nil, nil, 0, err
+	}
+
+	localUsersEnabled := false
+
+	options := []string{}
+	oidcProviders := []api.Provider{}
+	defaultProvider := uid.ID(0)
+
+	for _, p := range providers {
+		if p.Name == models.InternalInfraProviderName {
+			localUsersEnabled = true
+			defaultProvider = p.ID // default to the local infra provider, if something else is selected it will update
+		} else {
+			options = append(options, fmt.Sprintf("%s (%s)", p.Name, p.URL))
+			oidcProviders = append(oidcProviders, p)
+		}
+	}
+
+	if localUsersEnabled {
+		// this is separate so that it appears as the bottom of the list
+		options = append(options, "Email and Password")
+	}
+
+	options = append(options, "Login with Access Key")
+
+	return options, oidcProviders, defaultProvider, nil
+}
+
+// checkDoSetup gets the inital admin access key if Infra setup is required
+func checkDoSetup(client *api.Client) (string, error) {
+	setupRequired, err := client.SetupRequired()
+	if err != nil {
+		return "", err
+	}
+
+	if setupRequired.Required {
+		setup, err := client.Setup()
+		if err != nil {
+			return "", err
+		}
+
+		fmt.Println()
+		fmt.Printf("  Congratulations, Infra has been successfully installed.\n\n")
+		fmt.Printf("  Access Key: %s\n", setup.AccessKey)
+		fmt.Printf(fmt.Sprintf("  %s", termenv.String("IMPORTANT: Store in a safe place. You will not see it again.\n\n").Bold().String()))
+
+		return setup.AccessKey, nil
+	}
+
+	return "", nil
+}
+
+// setupAccessKeyExchangeLogin prompts for the access key to login to Infra
+func setupAccessKeyExchangeLogin(loginReq *api.LoginRequest, accessKey string) error {
+	if accessKey == "" {
+		if err := survey.AskOne(&survey.Password{Message: "Access Key:"}, &accessKey, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
+			return err
+		}
+	}
+
+	loginReq.AccessKey = accessKey
+
+	return nil
+}
+
+// setupEmailAndPasswordLogin prompts for the username and password to login to Infra
+func setupEmailAndPasswordLogin(loginReq *api.LoginRequest) error {
+	fmt.Println("  Logging in with email and password...")
+
+	var credentials struct {
+		Email    string
+		Password string
+	}
+
+	emailPassPrompt := []*survey.Question{
+		{
+			Name:     "Email",
+			Prompt:   &survey.Input{Message: "Email: "},
+			Validate: survey.Required,
+		},
+		{
+			Name:     "Password",
+			Prompt:   &survey.Password{Message: "Password: "},
+			Validate: survey.Required,
+		},
+	}
+
+	if err := survey.Ask(emailPassPrompt, &credentials, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
+		return err
+	}
+
+	loginReq.PasswordCredentials = &api.LoginRequestPasswordCredentials{
+		Email:    credentials.Email,
+		Password: credentials.Password,
+	}
+
+	return nil
+}
+
+func getOIDCAuthCode(loginReq *api.LoginRequest, oidcProviders []api.Provider, option int) (uid.ID, error) {
+	provider := oidcProviders[option]
+
+	fmt.Fprintf(os.Stderr, "  Logging in with %s...\n", termenv.String(provider.Name).Bold().String())
+
+	code, err := oidcflow(provider.URL, provider.ClientID)
+	if err != nil {
+		return uid.ID(0), err
+	}
+
+	loginReq.OIDC = &api.LoginRequestOIDC{
+		ProviderID:  provider.ID,
+		RedirectURL: cliLoginRedirectURL,
+		Code:        code,
+	}
+
+	return provider.ID, nil
+}
+
+// updateUserPassword sets the user password after a one time password is used to login
+func updateUserPassword(client *api.Client, userPID uid.PolymorphicID) error {
+	newPassword := ""
+	if err := survey.AskOne(&survey.Password{Message: "One time password used, please set a new password:"}, &newPassword, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
+		return err
+	}
+
+	userID, err := userPID.ID()
+	if err != nil {
+		return fmt.Errorf("update user id login: %w", err)
+	}
+
+	if _, err := client.UpdateUser(&api.UpdateUserRequest{ID: userID, Password: newPassword}); err != nil {
+		return fmt.Errorf("update user login: %w", err)
+	}
+
+	fmt.Println("  Password updated, you're all set")
+
+	return nil
 }

@@ -103,7 +103,7 @@ $ infra grants add -u admin@acme.com -r admin infra
 			var provider *api.Provider
 
 			if options.Machine == "" {
-				provider, err = GetProviderFromName(client, options.Provider)
+				provider, err = GetProviderByName(client, options.Provider)
 				if err != nil {
 					if errors.Is(err, ErrProviderNotUnique) {
 						return fmt.Errorf("specify provider with -p or --provider: %w", err)
@@ -232,7 +232,7 @@ func newGrantRemoveCmd() *cobra.Command {
 			var provider *api.Provider
 
 			if options.Machine == "" {
-				provider, err = GetProviderFromName(client, options.Provider)
+				provider, err = GetProviderByName(client, options.Provider)
 				if err != nil {
 					if errors.Is(err, ErrProviderNotUnique) {
 						return fmt.Errorf("specify provider with -p or --provider: %w", err)

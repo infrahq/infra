@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -30,9 +29,6 @@ type ClientHostConfig struct {
 func (c *ClientHostConfig) isLoggedIn() bool {
 	return c.AccessKey != ""
 }
-
-//lint:ignore ST1005, user facing error
-var ErrConfigNotFound = errors.New(`Could not read local credentials. Are you logged in? Use "infra login" to login`)
 
 func NewClientConfig() *ClientConfig {
 	return &ClientConfig{
