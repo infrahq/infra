@@ -61,8 +61,6 @@ const Providers = () => {
     }, undefined, { shallow: true })
   }
 
-  console.log(providers)
-
   return (
     <div>
       <Navigation />
