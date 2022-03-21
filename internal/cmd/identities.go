@@ -222,6 +222,7 @@ func isUser(name string) bool {
 		logging.S.Debug(err)
 		return false
 	}
+
 	return true
 }
 
@@ -284,6 +285,7 @@ func updateUser(name, newPassword string) error {
 		if err != nil {
 			return err
 		}
+
 		user.ID = currentID
 	} else {
 		user, err = getUserFromName(client, name, infraProvider)

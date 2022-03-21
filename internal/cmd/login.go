@@ -236,7 +236,9 @@ func finishLogin(host string, skipTLSVerify bool, providerID uid.ID, loginRes *a
 	}
 
 	if loginRes.PasswordUpdateRequired {
-		updateUserPassword(client, loginRes.PolymorphicID)
+		if err := updateUserPassword(client, loginRes.PolymorphicID); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -409,7 +411,7 @@ func authenticationOptions(client *api.Client) ([]string, []api.Provider, uid.ID
 	return options, oidcProviders, defaultProvider, nil
 }
 
-// checkDoSetup gets the inital admin access key if Infra setup is required
+// checkDoSetup gets the initial admin access key if Infra setup is required
 func checkDoSetup(client *api.Client) (string, error) {
 	setupRequired, err := client.SetupRequired()
 	if err != nil {
