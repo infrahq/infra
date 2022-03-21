@@ -358,6 +358,7 @@ func canonicalPath(in string) (string, error) {
 	return abs, nil
 }
 
+// TODO: remove
 func newOpenAPICmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:    "openapi",

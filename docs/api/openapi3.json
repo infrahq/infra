@@ -3321,11 +3321,9 @@
         "operationId": "ListUsers",
         "parameters": [
           {
-            "example": "email@example.com",
             "in": "query",
             "name": "email",
             "schema": {
-              "example": "email@example.com",
               "type": "string"
             }
           },
