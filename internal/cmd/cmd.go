@@ -213,7 +213,7 @@ func newLogoutCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVarP(&force, "force", "f", false, "logout and remove context")
+	cmd.Flags().BoolVar(&force, "force", false, "logout and remove context")
 
 	return cmd
 }
@@ -431,7 +431,7 @@ func newServerCmd() *cobra.Command {
 	cmd.Flags().Bool("enable-crash-reporting", true, "Enable crash reporting")
 	cmd.Flags().Bool("enable-ui", false, "Enable Infra server UI")
 	cmd.Flags().String("ui-proxy-url", "", "Proxy upstream UI requests to this url")
-	cmd.Flags().DurationP("session-duration", "d", time.Hour*12, "User session duration")
+	cmd.Flags().Duration("session-duration", time.Hour*12, "User session duration")
 	cmd.Flags().Bool("enable-setup", true, "Enable one-time setup")
 
 	return cmd
@@ -609,8 +609,8 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.AddCommand(newConnectorCmd())
 	rootCmd.AddCommand(newVersionCmd())
 
-	rootCmd.Flags().BoolP("version", "v", false, "Display Infra version")
-	rootCmd.Flags().BoolP("info", "i", false, "Display info about the current logged in session")
+	rootCmd.Flags().Bool("version", false, "Display Infra version")
+	rootCmd.Flags().Bool("info", false, "Display info about the current logged in session")
 
 	rootCmd.PersistentFlags().String("log-level", "info", "Show logs when running the command [error, warn, info, debug]")
 	rootCmd.PersistentFlags().Bool("non-interactive", false, "Disable all prompts for input")
