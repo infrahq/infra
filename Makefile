@@ -95,4 +95,4 @@ openapi-lint: docs/api/openapi3.json
 	openapi lint $<
 
 docs/api/openapi3.json:
-	go run . openapi
+	go run ./internal/openapigen $@

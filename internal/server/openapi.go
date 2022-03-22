@@ -236,7 +236,7 @@ func writeOpenAPISpec(version string, out io.Writer) error {
 	return nil
 }
 
-func writeOpenAPISpecToFile(filename string) error {
+func WriteOpenAPISpecToFile(filename string) error {
 	old, err := readOpenAPISpec(filename)
 	if err != nil {
 		return err
