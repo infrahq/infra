@@ -1,8 +1,6 @@
 env:
-  # Disable CGO for now. This means binaries won't be able to run
-  # "infra server" until we enable CGO at a later time.
-  # TODO (https://github.com/infrahq/infra/issues/65)
-  - CGO_ENABLED=0
+  # We can disable CGO when we stop using sqlite or find a native go sqlite library.
+  - CGO_ENABLED=1
   - GO111MODULE=on
 project_name: infra
 builds:

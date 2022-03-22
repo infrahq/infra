@@ -3,3 +3,5 @@ version: "3.9"
 services:
   server:
     build: .
+    environment:
+      - CGO_ENABLED=1
