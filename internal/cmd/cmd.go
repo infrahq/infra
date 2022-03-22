@@ -565,7 +565,6 @@ func NewRootCmd() (*cobra.Command, error) {
 		SilenceUsage:      true,
 		SilenceErrors:     true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-
 			if err := parseOptions(cmd, &rootOptions, "INFRA"); err != nil {
 				return err
 			}
