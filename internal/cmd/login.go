@@ -73,7 +73,7 @@ func relogin() error {
 }
 
 func isInteractiveMode() bool {
-	if nonInteractiveMode {
+	if rootOptions.NonInteractive {
 		// user explicitly asked for a non-interactive terminal
 		return false
 	}
@@ -300,7 +300,7 @@ func promptHost(hosts []string) (string, error) {
 
 	if len(hosts) > 0 {
 		prompt := &survey.Select{
-			Message: "Select an Infra host:",
+			Message: "Select a server:",
 			Options: hosts,
 		}
 
