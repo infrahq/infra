@@ -618,7 +618,7 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.PersistentFlags().Bool("help", false, "Display help")
 
 	rootCmd.SetHelpCommandGroup("Other commands:")
-	// rootCmd.SetUsageTemplate(usageTemplate())
+	rootCmd.SetUsageTemplate(usageTemplate())
 	return rootCmd, nil
 }
 
@@ -654,10 +654,10 @@ Examples:
 {{.Example}}{{end}}{{if .HasAvailableSubCommands}}{{$cmds := .Commands}}{{if eq (len .Groups) 0}}
   
 Available Commands:{{end}}{{range $cmds}}{{if (and (eq .Group "") (or .IsAvailableCommand (eq .Name "help")))}}
-  {{rpad .Name .NamePadding }} B{{.Short}}{{end}}{{end}}{{range $group := .Groups}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{range $group := .Groups}}
 
 {{.Title}}{{range $cmds}}{{if (and (eq .Group $group.Group) (or .IsAvailableCommand (eq .Name "help")))}}
-  {{rpad .Name .NamePadding }} A{{.Short}}{{end}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
 
 Flags:
 {{.LocalFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
