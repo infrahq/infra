@@ -15,6 +15,6 @@ func TestWriteOpenAPISpec(t *testing.T) {
 	s.GenerateRoutes()
 
 	filename := "../../docs/api/openapi3.json"
-	err := writeOpenAPISpecToFile(filename)
+	err := WriteOpenAPISpecToFile(filename)
 	require.NoError(t, err)
 }
