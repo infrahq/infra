@@ -184,7 +184,7 @@ func newLoginCmd() *cobra.Command {
 		Short:   "Login to Infra",
 		Example: "$ infra login",
 		Args:    cobra.MaximumNArgs(1),
-		Group:   " Core:",
+		Group:   "Core commands:",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var options loginOptions
 			if err := parseOptions(cmd, &options, "INFRA"); err != nil {
@@ -207,7 +207,7 @@ func newLogoutCmd() *cobra.Command {
 		Use:     "logout",
 		Short:   "Logout of Infra",
 		Example: "$ infra logout",
-		Group:   " Core:",
+		Group:   "Core commands:",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return logout(force)
 		},
@@ -223,7 +223,7 @@ func newListCmd() *cobra.Command {
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List accessible destinations",
-		Group:   " Core:",
+		Group:   "Core commands:",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			return mustBeLoggedIn()
 		},
@@ -245,7 +245,7 @@ $ infra use kubernetes.development
 $ infra use kubernetes.development.kube-system
 		`,
 		Args:  cobra.ExactArgs(1),
-		Group: " Core:",
+		Group: "Core commands:",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			return mustBeLoggedIn()
 		},
@@ -287,7 +287,7 @@ func newGrantsCmd() *cobra.Command {
 		Use:     "grants",
 		Short:   "Manage access to destinations",
 		Aliases: []string{"grant"},
-		Group:   " Management:",
+		Group:   "Management commands:",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			return mustBeLoggedIn()
 		},
@@ -306,7 +306,7 @@ func newKeysCmd() *cobra.Command {
 		Short:   "Manage access keys",
 		Long:    "Manage access keys for machine identities to authenticate with Infra and call the API",
 		Aliases: []string{"key"},
-		Group:   " Management:",
+		Group:   "Management commands:",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			return mustBeLoggedIn()
 		},
@@ -324,7 +324,7 @@ func newDestinationsCmd() *cobra.Command {
 		Use:     "destinations",
 		Aliases: []string{"dst", "dest", "destination"},
 		Short:   "Manage destinations",
-		Group:   " Management:",
+		Group:   "Management commands:",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			return mustBeLoggedIn()
 		},
@@ -492,7 +492,7 @@ func newProvidersCmd() *cobra.Command {
 		Use:     "providers",
 		Short:   "Manage identity providers",
 		Aliases: []string{"provider"},
-		Group:   " Management:",
+		Group:   "Management commands:",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			return mustBeLoggedIn()
 		},
@@ -524,7 +524,7 @@ func newIdentitiesCmd() *cobra.Command {
 		Use:     "identities",
 		Aliases: []string{"id", "identity"},
 		Short:   "Manage identities (users & machines)",
-		Group:   " Management:",
+		Group:   "Management commands:",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			return mustBeLoggedIn()
 		},
@@ -565,11 +565,15 @@ func NewRootCmd() (*cobra.Command, error) {
 		SilenceUsage:      true,
 		SilenceErrors:     true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+
 			if err := parseOptions(cmd, &rootOptions, "INFRA"); err != nil {
 				return err
 			}
+			if err := logging.SetLevel(rootOptions.LogLevel); err != nil {
+				return err
+			}
 
-			return logging.SetLevel(rootOptions.LogLevel)
+			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if rootOptions.Version {
@@ -585,13 +589,13 @@ func NewRootCmd() (*cobra.Command, error) {
 		},
 	}
 
-	// Core
+	// Core commands:
 	rootCmd.AddCommand(newLoginCmd())
 	rootCmd.AddCommand(newLogoutCmd())
 	rootCmd.AddCommand(newListCmd())
 	rootCmd.AddCommand(newUseCmd())
 
-	// Management
+	// Management commands:
 	rootCmd.AddCommand(newDestinationsCmd())
 	rootCmd.AddCommand(newGrantsCmd())
 	rootCmd.AddCommand(newIdentitiesCmd())
@@ -613,7 +617,7 @@ func NewRootCmd() (*cobra.Command, error) {
 	rootCmd.PersistentFlags().Bool("non-interactive", false, "Disable all prompts for input")
 	rootCmd.PersistentFlags().Bool("help", false, "Display help")
 
-	rootCmd.SetHelpCommandGroup(" Other:")
+	rootCmd.SetHelpCommandGroup("Other commands:")
 	// rootCmd.SetUsageTemplate(usageTemplate())
 	return rootCmd, nil
 }
@@ -636,4 +640,34 @@ func printError(err error) {
 			fmt.Fprintln(os.Stderr, "error: "+err.Error())
 		}
 	}
+}
+
+func usageTemplate() string {
+	return `Usage:{{if .Runnable}}
+  {{.UseLine}}{{end}}{{if .HasAvailableSubCommands}}
+  {{.CommandPath}} [command]{{end}}{{if gt (len .Aliases) 0}}
+
+Aliases:
+  {{.NameAndAliases}}{{end}}{{if .HasExample}}
+
+Examples:
+{{.Example}}{{end}}{{if .HasAvailableSubCommands}}{{$cmds := .Commands}}{{if eq (len .Groups) 0}}
+  
+Available Commands:{{end}}{{range $cmds}}{{if (and (eq .Group "") (or .IsAvailableCommand (eq .Name "help")))}}
+  {{rpad .Name .NamePadding }} B{{.Short}}{{end}}{{end}}{{range $group := .Groups}}
+
+{{.Title}}{{range $cmds}}{{if (and (eq .Group $group.Group) (or .IsAvailableCommand (eq .Name "help")))}}
+  {{rpad .Name .NamePadding }} A{{.Short}}{{end}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
+
+Flags:
+{{.LocalFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
+
+Global Flags:
+{{.InheritedFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasHelpSubCommands}}
+
+Additional help topics:{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
+  {{rpad .CommandPath .CommandPathPadding}} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableSubCommands}}
+
+Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
+`
 }
