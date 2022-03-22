@@ -5,6 +5,8 @@ run:
 
   timeout: 5m
 
+  go 1.18
+
 linters-settings:
   revive:
     rules:
