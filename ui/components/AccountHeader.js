@@ -27,7 +27,7 @@ const StyledTitle = styled.div`
   font-size: 11px;
   line-height: 156.52%;
   text-align: center;
-  padding: 1.5rem .5rem 1rem;
+  padding: 1rem .5rem 0rem;
 `
 
 const AccountHeader = ({ header, subheader, title }) => {
@@ -37,7 +37,7 @@ const AccountHeader = ({ header, subheader, title }) => {
         <img src='/infra-icon.svg' />
       </LogoContainer>
       <StyledHeader>{header}</StyledHeader>
-      <StyledTitle>{title}</StyledTitle>
+      {title && <StyledTitle>{title}</StyledTitle>}
       <StyledSubheader>{subheader}</StyledSubheader>
     </>
   )

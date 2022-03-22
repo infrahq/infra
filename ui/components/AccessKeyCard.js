@@ -4,7 +4,6 @@ import styled from 'styled-components'
 const AccessKeyCardContainer = styled.section`
   width: auto;
   height: 194px;
-
   background: #0E151C;
   border: 1px solid;
   border-image: linear-gradient(to left, #000000 100%, #FC7CFF 44%, #11B9DE 52%);
@@ -60,16 +59,58 @@ const AccessKeyTitle = styled.div`
 `
 
 const AccessKeyText = styled.div`
-  font-family: 'IBM Plex Mono';
-  font-style: normal;
   font-weight: 300;
-  font-size: 15px;
+  font-size: 13px;
   line-height: 88.5%;
   letter-spacing: 0.065em;
   padding-top: 11px;
 `
 
+const AccessKeyButtonGroups = styled.div`
+  display: flex;
+  flex-direction: row-reverse;
+
+  padding-top: 1rem;
+`
+
+const AccessKeyButton = styled.button`
+  display: flex;
+  flex-direction: row;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+
+  & > *:not(:first-child) {
+    padding-left: .5rem;
+  }
+`
+
+const AccessKeyButtonText = styled.div`
+  font-weight: 400;
+  font-size: 10px;
+  line-height: 12px;
+  display: flex;
+  align-items: center;
+  letter-spacing: -0.035em;
+  opacity: 0.45;
+  padding-left: .5rem;
+  color: #FFFFFF;
+
+  &:hover {
+    opacity: 1;
+  }
+`
+
+const AccessKeyButtonIcon = styled.img`
+  width: 10px;
+  height: 13px;
+`
+
 const AccessKeyCard = ({ accessKey }) => {
+  const handleDownloadPdf = () => {
+    console.log('handleing pdf')
+  }
+
   return (
     <AccessKeyCardContainer>
       <AccessKeyCardTitle>Infra Access Key</AccessKeyCardTitle>
@@ -78,19 +119,19 @@ const AccessKeyCard = ({ accessKey }) => {
         <AccessKeyInfraLogo src='/card-infra-logo.svg' />
         <AccessKeyInforContainer>
           <AccessKeyTitle>Access Key</AccessKeyTitle>
-          <AccessKeyText>{accessKey}</AccessKeyText>
+          <AccessKeyText id='accessKey'>{accessKey}</AccessKeyText>
         </AccessKeyInforContainer>
       </AccessKeyContent>
-      {/* <AccessKeyButtonGroups>
-        <AccessKeyButton>
-          <AccessKeyButtonLogo></AccessKeyButtonLogo>
-          <AccessKeyButtonText></AccessKeyButtonText>
+      <AccessKeyButtonGroups>
+        <AccessKeyButton onClick={() => {navigator.clipboard.writeText(accessKey); alert('Copied the access key!')}}>
+          <AccessKeyButtonIcon src='/copy-icon.svg' />
+          <AccessKeyButtonText>COPY</AccessKeyButtonText>
         </AccessKeyButton>
-        <AccessKeyButton>
-          <AccessKeyButtonLogo></AccessKeyButtonLogo>
-          <AccessKeyButtonText></AccessKeyButtonText>
+        <AccessKeyButton onClick={() => handleDownloadPdf()}>
+          <AccessKeyButtonIcon src='/pdf-icon.svg' />
+          <AccessKeyButtonText>PDF</AccessKeyButtonText>
         </AccessKeyButton>
-      </AccessKeyButtonGroups> */}
+      </AccessKeyButtonGroups>
     </AccessKeyCardContainer>
   )
 }
