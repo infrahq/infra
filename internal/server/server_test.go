@@ -342,7 +342,7 @@ func TestLoadConfigWithUserGrantsImplicitProvider(t *testing.T) {
 	require.Equal(t, provider.ID, user.ProviderID)
 
 	var grant models.Grant
-	err = db.Where("identity = ?", uid.NewUserPolymorphicID(user.ID)).First(&grant).Error
+	err = db.Where("subject = ?", uid.NewUserPolymorphicID(user.ID)).First(&grant).Error
 	require.NoError(t, err)
 	require.Equal(t, "admin", grant.Privilege)
 	require.Equal(t, "kubernetes.test-cluster", grant.Resource)
@@ -389,7 +389,7 @@ func TestLoadConfigWithUserGrantsExplicitProvider(t *testing.T) {
 	require.Equal(t, provider.ID, user.ProviderID)
 
 	var grant models.Grant
-	err = db.Where("identity = ?", uid.NewUserPolymorphicID(user.ID)).First(&grant).Error
+	err = db.Where("subject = ?", uid.NewUserPolymorphicID(user.ID)).First(&grant).Error
 	require.NoError(t, err)
 	require.Equal(t, "admin", grant.Privilege)
 	require.Equal(t, "kubernetes.test-cluster", grant.Resource)
@@ -421,7 +421,7 @@ func TestLoadConfigWithGroupGrantsImplicitProvider(t *testing.T) {
 	require.Equal(t, provider.ID, group.ProviderID)
 
 	var grant models.Grant
-	err = db.Where("identity = ?", uid.NewGroupPolymorphicID(group.ID)).First(&grant).Error
+	err = db.Where("subject = ?", uid.NewGroupPolymorphicID(group.ID)).First(&grant).Error
 	require.NoError(t, err)
 	require.Equal(t, "admin", grant.Privilege)
 	require.Equal(t, "kubernetes.test-cluster", grant.Resource)
@@ -468,7 +468,7 @@ func TestLoadConfigWithGroupGrantsExplicitProvider(t *testing.T) {
 	require.Equal(t, provider.ID, group.ProviderID)
 
 	var grant models.Grant
-	err = db.Where("identity = ?", uid.NewGroupPolymorphicID(group.ID)).First(&grant).Error
+	err = db.Where("subject = ?", uid.NewGroupPolymorphicID(group.ID)).First(&grant).Error
 	require.NoError(t, err)
 	require.Equal(t, "admin", grant.Privilege)
 	require.Equal(t, "kubernetes.test-cluster", grant.Resource)
@@ -495,7 +495,7 @@ func TestLoadConfigWithMachineGrants(t *testing.T) {
 	require.NoError(t, err)
 
 	var grant models.Grant
-	err = db.Where("identity = ?", uid.NewMachinePolymorphicID(machine.ID)).First(&grant).Error
+	err = db.Where("subject = ?", uid.NewMachinePolymorphicID(machine.ID)).First(&grant).Error
 	require.NoError(t, err)
 	require.Equal(t, "admin", grant.Privilege)
 	require.Equal(t, "kubernetes.test-cluster", grant.Resource)

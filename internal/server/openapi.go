@@ -283,6 +283,10 @@ func setTagInfo(f reflect.StructField, t, parent reflect.Type, schema, parentSch
 		schema.Example = example
 	}
 
+	if note, ok := f.Tag.Lookup("note"); ok {
+		schema.Description = note
+	}
+
 	if validate, ok := f.Tag.Lookup("validate"); ok {
 		for _, val := range strings.Split(validate, ",") {
 			if val == "required" && parentSchema != nil {
@@ -495,6 +499,10 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 
 			if example, ok := f.Tag.Lookup("example"); ok {
 				p.Example = example
+			}
+
+			if note, ok := f.Tag.Lookup("note"); ok {
+				p.Description = note
 			}
 
 			if validate, ok := f.Tag.Lookup("validate"); ok {

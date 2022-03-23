@@ -39,25 +39,8 @@ func NewDB(connection gorm.Dialector) (*gorm.DB, error) {
 		db2.SetMaxOpenConns(1)
 	}
 
-	tables := []interface{}{
-		&models.User{},
-		&models.Machine{},
-		&models.Group{},
-		&models.Grant{},
-		&models.Provider{},
-		&models.ProviderToken{},
-		&models.Destination{},
-		&models.AccessKey{},
-		&models.Settings{},
-		&models.EncryptionKey{},
-		&models.TrustedCertificate{},
-		&models.RootCertificate{},
-		&models.Credential{},
-	}
-	for _, table := range tables {
-		if err := db.AutoMigrate(table); err != nil {
-			return nil, err
-		}
+	if err = migrate(db); err != nil {
+		return nil, fmt.Errorf("migration failed: %w", err)
 	}
 
 	return db, nil

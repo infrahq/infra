@@ -19,7 +19,7 @@ func createAccessKey(t *testing.T, db *gorm.DB, sessionDuration time.Duration) (
 	require.NoError(t, err)
 
 	token := &models.AccessKey{
-		IssuedFor: user.PolymorphicIdentifier(),
+		IssuedFor: user.PolyID(),
 		ExpiresAt: time.Now().Add(sessionDuration),
 	}
 
@@ -35,7 +35,7 @@ func createAccessKeyWithExtensionDeadline(t *testing.T, db *gorm.DB, ttl, exensi
 	require.NoError(t, err)
 
 	token := &models.AccessKey{
-		IssuedFor:         machine.PolymorphicIdentifier(),
+		IssuedFor:         machine.PolyID(),
 		ExpiresAt:         time.Now().Add(ttl),
 		ExtensionDeadline: time.Now().Add(exensionDeadline),
 	}

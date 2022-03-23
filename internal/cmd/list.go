@@ -118,13 +118,13 @@ func list() error {
 }
 
 func listInfo(client *api.Client, g api.Grant) (provider string, name string, err error) {
-	id, err := g.Identity.ID()
+	id, err := g.Subject.ID()
 	if err != nil {
 		return "", "", err
 	}
 
 	switch {
-	case g.Identity.IsUser():
+	case g.Subject.IsUser():
 		user, err := client.GetUser(id)
 		if err != nil {
 			return "", "", err
@@ -136,7 +136,7 @@ func listInfo(client *api.Client, g api.Grant) (provider string, name string, er
 		}
 
 		return provider.Name, user.Email, nil
-	case g.Identity.IsMachine():
+	case g.Subject.IsMachine():
 		machine, err := client.GetMachine(id)
 		if err != nil {
 			return "", "", err
