@@ -403,7 +403,7 @@ func authenticationOptions(client *api.Client) ([]string, []api.Provider, uid.ID
 
 	if localUsersEnabled {
 		// this is separate so that it appears as the bottom of the list
-		options = append(options, "Email and Password")
+		options = append(options, "Login with Email and Password")
 	}
 
 	options = append(options, "Login with Access Key")
