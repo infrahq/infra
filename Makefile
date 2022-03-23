@@ -88,7 +88,7 @@ golangci-lint:
 	@command -v golangci-lint >/dev/null || { echo "install golangci-lint @ https://golangci-lint.run/usage/install/#local-installation" && exit 1; }
 
 lint: golangci-lint
-	golangci-lint run ./...
+	golangci-lint run --fix
 
 openapi-lint: docs/api/openapi3.json
 	@command -v openapi --version >/dev/null || { echo "openapi missing, try: npm install -g @redocly/openapi-cli" && exit 1; }
