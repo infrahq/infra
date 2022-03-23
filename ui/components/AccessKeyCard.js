@@ -1,8 +1,10 @@
 import PropTypes from 'prop-types'
 import styled from 'styled-components'
+import html2canvas from "html2canvas"
+import { jsPDF } from "jspdf"
 
 const AccessKeyCardContainer = styled.section`
-  width: auto;
+  max-width: 24rem;
   height: 194px;
   background: #0E151C;
   border: 1px solid;
@@ -24,7 +26,7 @@ const AccessKeyCardTitle = styled.div`
 
 // TODO
 const AccessKeyRectangle = styled.div`
-  width: 24rem;
+  max-width: 24rem;
   height: 47px;
   background: linear-gradient(270.09deg, #0F1011 -29.65%, rgba(94, 94, 94, 0) 86.18%);
   padding-top: 7px;
@@ -62,8 +64,8 @@ const AccessKeyText = styled.div`
   font-weight: 300;
   font-size: 13px;
   line-height: 88.5%;
-  letter-spacing: 0.065em;
   padding-top: 11px;
+  word-break: break-word;
 `
 
 const AccessKeyButtonGroups = styled.div`
@@ -108,22 +110,37 @@ const AccessKeyButtonIcon = styled.img`
 
 const AccessKeyCard = ({ accessKey }) => {
   const handleDownloadPdf = () => {
-    console.log('handleing pdf')
+    const input = document.getElementById('divToDownload')
+    html2canvas(input)
+    .then((canvas) => {
+      const imgData = canvas.toDataURL('image/png')
+      const pdf = new jsPDF();
+      pdf.addImage(imgData, 'JPEG', 0, 0);
+      pdf.save("accessKey.pdf");
+    })
+  }
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(accessKey).then(() => {
+      alert('Copied the access key!')
+    },() => {
+      alert('Oops! Something went wrong, please try again!')
+    });
   }
 
   return (
-    <AccessKeyCardContainer>
+    <AccessKeyCardContainer id="divToDownload">
       <AccessKeyCardTitle>Infra Access Key</AccessKeyCardTitle>
       <AccessKeyRectangle></AccessKeyRectangle>
       <AccessKeyContent>
         <AccessKeyInfraLogo src='/card-infra-logo.svg' />
         <AccessKeyInforContainer>
           <AccessKeyTitle>Access Key</AccessKeyTitle>
-          <AccessKeyText id='accessKey'>{accessKey}</AccessKeyText>
+          <AccessKeyText>{accessKey}</AccessKeyText>
         </AccessKeyInforContainer>
       </AccessKeyContent>
       <AccessKeyButtonGroups>
-        <AccessKeyButton onClick={() => {navigator.clipboard.writeText(accessKey); alert('Copied the access key!')}}>
+        <AccessKeyButton onClick={() => handleCopy()}>
           <AccessKeyButtonIcon src='/copy-icon.svg' />
           <AccessKeyButtonText>COPY</AccessKeyButtonText>
         </AccessKeyButton>

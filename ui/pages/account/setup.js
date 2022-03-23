@@ -19,13 +19,8 @@ const SetupContainer = styled.section`
 
 const Content = styled.div`
   & > *:not(:first-child) {
-    margin-top: 1rem;
+    margin-top: 1.5rem;
   }
-`
-
-const AccountTitle = styled.div`
-  font-weight: 700;
-  color: #FFFFFF;
 `
 
 const WarningSection = styled.div`

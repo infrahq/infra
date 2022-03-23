@@ -73,7 +73,7 @@ const Role = styled.div`
 const LogoutContainer = styled.div`
   border-top: 1px solid rgba(255, 255, 255, .1);
   margin-left: -.45rem;
-  margin-right: -.45rem
+  margin-right: -.45rem;
 `
 
 const LogoutButton = styled.a`
@@ -142,7 +142,8 @@ const UserDropdown = () => {
             </Avatar>
             <Content>
               <div>{user.name}</div>
-              <Role>{user.identityType}</Role>
+              {/* TODO */}
+              {/* <Role>{user.polymorphicId}</Role>  */}
             </Content>
           </UserDropdownContentHeader>
           <LogoutContainer>
