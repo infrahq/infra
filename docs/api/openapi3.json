@@ -196,7 +196,7 @@
             "type": "string"
           },
           "expires_at": {
-            "description": "grant should expire after this time",
+            "description": "grant expires after this time",
             "format": "int64",
             "type": "integer"
           },
@@ -409,7 +409,7 @@
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
     "title": "Infra API",
-    "version": "2022-03-23"
+    "version": "2022-03-24"
   },
   "paths": {
     "/v1/access-keys": {
@@ -1303,7 +1303,7 @@
                     "type": "string"
                   },
                   "subject": {
-                    "description": "a polymorphic field primarily expecting an user, or group ID",
+                    "description": "a polymorphic field primarily expecting a user, machine, or group ID",
                     "example": "u:4yJ3n3D8E3",
                     "format": "poly-uid",
                     "pattern": "\\w:[\\da-zA-HJ-NP-Z]{1,11}",
