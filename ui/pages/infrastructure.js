@@ -1,9 +1,9 @@
-import Nav from '../components/Nav'
+import Navigation from '../components/Nav/Navigation'
 
 const Infrastructure = () => {
   return (
     <div>
-      <Nav />
+      <Navigation />
       <>this is infrastructure page</>
     </div>
   )

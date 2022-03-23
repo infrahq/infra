@@ -30,6 +30,7 @@ const NavItem = styled.a`
   color: #bdc4d1;
   opacity: .6;
   transition: all .2s ease-in;
+  cursor: pointer;
 
   &:hover {
     opacity: 1
@@ -42,11 +43,11 @@ const NavItem = styled.a`
   `}
 `
 
-const Nav = () => {
-  const page = Object.freeze({ access: '', infrastructure: 'infrastructure', provider: 'providers' })
+const Navigation = () => {
+  const page = Object.freeze({ access: '/', infrastructure: '/infrastructure', provider: '/providers' })
 
   const router = useRouter()
-  const pathname = router.pathname.substring(1)
+  const pathname = router.pathname
 
   return (
     <NavContainer>
@@ -54,13 +55,13 @@ const Nav = () => {
         <div><img src='/brand.svg' /></div>
         <NavOptionsContainer>
           <Link href='/'>
-            <NavItem selected={pathname === page.access ? true : ''}>Access</NavItem>
+            <NavItem selected={pathname === page.access}>Access</NavItem>
           </Link>
           <Link href='/infrastructure'>
-            <NavItem selected={pathname === page.infrastructure ? true : ''}>Infrastructure</NavItem>
+            <NavItem selected={pathname === page.infrastructure}>Infrastructure</NavItem>
           </Link>
           <Link href='/providers'>
-            <NavItem selected={pathname === page.provider ? true : ''}>Identity providers</NavItem>
+            <NavItem selected={pathname === page.provider}>Identity providers</NavItem>
           </Link>
           <UserDropdown />
         </NavOptionsContainer>
@@ -69,4 +70,4 @@ const Nav = () => {
   )
 }
 
-export default Nav
+export default Navigation

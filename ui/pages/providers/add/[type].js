@@ -87,7 +87,7 @@ const Details = () => {
           {content(type)}
         </AddContainerContent>
         <Nav>
-          <ExitButton />
+          <ExitButton previousPage='/providers' />
         </Nav>
       </AddContainer>
       <Footer>
