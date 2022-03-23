@@ -438,7 +438,7 @@ func checkDoSetup(client *api.Client) (string, error) {
 // setupAccessKeyExchangeLogin prompts for the access key to login to Infra
 func setupAccessKeyExchangeLogin(loginReq *api.LoginRequest, accessKey string) error {
 	if accessKey == "" {
-		if err := survey.AskOne(&survey.Password{Message: "Access Key:"}, &accessKey, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
+		if err := survey.AskOne(&survey.Password{Message: "Access Key:"}, &accessKey, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithValidator(survey.Required)); err != nil {
 			return err
 		}
 	}
