@@ -216,41 +216,46 @@ func buildProperty(f reflect.StructField, t, parent reflect.Type, parentSchema *
 	}
 }
 
-func writeOpenAPISpec(version string, out io.Writer) error {
-	openAPISchema.OpenAPI = "3.0.0"
-	openAPISchema.Info = &openapi3.Info{
+func writeOpenAPISpec(spec openapi3.T, version string, out io.Writer) error {
+	spec.OpenAPI = "3.0.0"
+	spec.Info = &openapi3.Info{
 		Title:       "Infra API",
 		Version:     version,
 		Description: "Infra API",
 		License:     &openapi3.License{Name: "Apache 2.0", URL: "https://www.apache.org/licenses/LICENSE-2.0.html"},
 	}
-	openAPISchema.Servers = append(openAPISchema.Servers, &openapi3.Server{
-		URL: "https://api.infrahq.com",
-	})
+	spec.Servers = []*openapi3.Server{
+		{URL: "https://api.infrahq.com"},
+	}
 	encoder := json.NewEncoder(out)
 	encoder.SetIndent("", "  ")
 
-	if err := encoder.Encode(openAPISchema); err != nil {
+	if err := encoder.Encode(spec); err != nil {
 		return fmt.Errorf("failed to write schema: %w", err)
 	}
 	return nil
 }
 
 func WriteOpenAPISpecToFile(filename string) error {
+	version := time.Now().Format("2006-01-02")
+
+	var buf bytes.Buffer
+	if err := writeOpenAPISpec(openAPISchema, version, &buf); err != nil {
+		return err
+	}
+
 	old, err := readOpenAPISpec(filename)
 	if err != nil {
 		return err
 	}
-
-	version := time.Now().Format("2006-01-02")
 	old.Info.Version = version
 
-	var buf bytes.Buffer
-	if err := writeOpenAPISpec(version, &buf); err != nil {
+	var oldBuf bytes.Buffer
+	if err := writeOpenAPISpec(old, version, &oldBuf); err != nil {
 		return err
 	}
 
-	if reflect.DeepEqual(openAPISchema, old) {
+	if bytes.Equal(buf.Bytes(), oldBuf.Bytes()) {
 		// no changes to the schema
 		return nil
 	}
