@@ -4,6 +4,7 @@
 package server
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
@@ -169,8 +170,7 @@ func configureTelemetry(db *gorm.DB) error {
 		return err
 	}
 
-	telemetryTimer := timer.NewTimer()
-	telemetryTimer.Start(1*time.Hour, func() {
+	timer.Start(context.TODO(), 1*time.Hour, func(context.Context) {
 		if err := tel.EnqueueHeartbeat(); err != nil {
 			logging.S.Debug(err)
 		}

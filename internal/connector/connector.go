@@ -457,8 +457,9 @@ func Run(options Options) error {
 		chksm: chksm,
 	}
 
-	timer := timer.NewTimer()
-	timer.Start(5*time.Second, func() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	timer.Start(ctx, 5*time.Second, func(context.Context) {
 		accessKey, err := secrets.GetSecret(options.AccessKey, basicSecretStorage)
 		if err != nil {
 			logging.S.Infof("%w", err)
@@ -560,8 +561,6 @@ func Run(options Options) error {
 			return
 		}
 	})
-
-	defer timer.Stop()
 
 	gin.SetMode(gin.ReleaseMode)
 
