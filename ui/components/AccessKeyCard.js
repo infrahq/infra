@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types'
 import styled from 'styled-components'
-import html2canvas from "html2canvas"
-import { jsPDF } from "jspdf"
+import html2canvas from 'html2canvas'
+import { jsPDF as PDF } from 'jspdf'
 
 const AccessKeyCardContainer = styled.section`
   max-width: 24rem;
@@ -112,26 +112,26 @@ const AccessKeyCard = ({ accessKey }) => {
   const handleDownloadPdf = () => {
     const input = document.getElementById('divToDownload')
     html2canvas(input)
-    .then((canvas) => {
-      const imgData = canvas.toDataURL('image/png')
-      const pdf = new jsPDF();
-      pdf.addImage(imgData, 'JPEG', 0, 0);
-      pdf.save("accessKey.pdf");
-    })
+      .then((canvas) => {
+        const imgData = canvas.toDataURL('image/png')
+        const pdf = new PDF()
+        pdf.addImage(imgData, 'JPEG', 0, 0)
+        pdf.save('accessKey.pdf')
+      })
   }
 
   const handleCopy = () => {
     navigator.clipboard.writeText(accessKey).then(() => {
-      alert('Copied the access key!')
-    },() => {
-      alert('Oops! Something went wrong, please try again!')
-    });
+      window.alert('Copied the access key!')
+    }, () => {
+      window.alert('Oops! Something went wrong, please try again!')
+    })
   }
 
   return (
-    <AccessKeyCardContainer id="divToDownload">
+    <AccessKeyCardContainer id='divToDownload'>
       <AccessKeyCardTitle>Infra Access Key</AccessKeyCardTitle>
-      <AccessKeyRectangle></AccessKeyRectangle>
+      <AccessKeyRectangle />
       <AccessKeyContent>
         <AccessKeyInfraLogo src='/card-infra-logo.svg' />
         <AccessKeyInforContainer>

@@ -15,31 +15,31 @@ const WelcomeContainer = styled.section`
   display: grid;
   grid-template-rows: 1fr auto;
   min-height: 100%;
-`;
+`
 
 const WelcomeImg = styled.img`
   margin-left: -5rem;
 `
 
-
 const Welcome = () => {
   const { setup } = useContext(AuthContext)
-  
+
   const handleSetup = async () => {
     await setup()
   }
-  
+
   return (
     <WelcomeContainer>
       <div>
-        <AccountHeader 
+        <AccountHeader
           header='Welcome to Infra'
           subheader='Infra has been successfully installed. Please click Get Started below to obtain your Infra Access Key.'
         />
         <WelcomeImg src='/welcome.svg' />
         <ActionButton
           onClick={handleSetup}
-          value='Get Started' />
+          value='Get Started'
+        />
       </div>
     </WelcomeContainer>
   )

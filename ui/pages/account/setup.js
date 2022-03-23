@@ -56,14 +56,12 @@ const WarningContentText = styled.div`
   padding-top: 1rem;
 `
 
-
-
 const Setup = () => {
   const { accessKey, register } = useContext(AuthContext)
   const [currentAccessKey, setCurrentAccessKey] = useState(null)
 
   useEffect(() => {
-    if(accessKey != null) {
+    if (accessKey != null) {
       setCurrentAccessKey(accessKey)
     }
   }, [])
@@ -87,7 +85,8 @@ const Setup = () => {
         </WarningSection>
         <ActionButton
           onClick={handleLogin}
-          value='Continue' />
+          value='Continue'
+        />
       </Content>
     </SetupContainer>
   )

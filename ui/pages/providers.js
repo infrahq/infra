@@ -3,7 +3,6 @@ import { useContext, useEffect, useState } from 'react'
 import styled from 'styled-components'
 import axios from 'axios'
 
-
 import Navigation from '../components/nav/Navigation'
 import PageHeader from '../components/PageHeader'
 
@@ -57,19 +56,19 @@ const TableContentText = styled.div`
 const Providers = () => {
   const { providers, updateProviders } = useContext(AuthContext)
 
-  const [ currentProviders, setCurrentProviders ] = useState([])
+  const [currentProviders, setCurrentProviders] = useState([])
 
   useEffect(() => {
     if (providers.length === 0) {
       axios.get('/v1/providers')
-      .then((response) => {
-        const idpList = response.data.filter((item) => item.name !== 'infra')
-        setCurrentProviders(idpList)
-        updateProviders(idpList)
-      })
-      .catch((error) => {
-        console.log(error)
-      })
+        .then((response) => {
+          const idpList = response.data.filter((item) => item.name !== 'infra')
+          setCurrentProviders(idpList)
+          updateProviders(idpList)
+        })
+        .catch((error) => {
+          console.log(error)
+        })
     } else {
       setCurrentProviders(providers)
     }

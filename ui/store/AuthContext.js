@@ -45,15 +45,15 @@ export const AuthContextProvider = ({ children }) => {
 
   useEffect(() => {
     const source = axios.CancelToken.source()
-    axios.get('/v1/setup').then((async (response) => {
+    axios.get('/v1/setup').then(async (response) => {
       if (response.data.required === true) {
         await Router.push({
           pathname: '/account/welcome'
         }, undefined, { shallow: true })
       } else {
-        getProviders();
+        getProviders()
       }
-    }))
+    })
     return function () {
       source.cancel('Cancelling in cleanup')
     }
@@ -61,18 +61,18 @@ export const AuthContextProvider = ({ children }) => {
 
   const getProviders = () => {
     axios.get('/v1/providers')
-    .then(async (response) => {
-      const idpList = response.data.filter((item) => item.name !== 'infra')
-      setProviders(idpList)
-      await redirectAccountPage(idpList)
-    })
-    .catch(() => {
-      setLoginError(true)
-    })
+      .then(async (response) => {
+        const idpList = response.data.filter((item) => item.name !== 'infra')
+        setProviders(idpList)
+        await redirectAccountPage(idpList)
+      })
+      .catch(() => {
+        setLoginError(true)
+      })
   }
 
   const setNewProvider = (provider) => {
-    updateProviders(provider);
+    updateProviders(provider)
     setNewestProvider(provider)
   }
 
@@ -86,10 +86,10 @@ export const AuthContextProvider = ({ children }) => {
       name: loginInfor.name
     })
     setAuthReady(true)
-    
+
     await Router.push({
-        pathname: '/'
-      }, undefined, { shallow: true })
+      pathname: '/'
+    }, undefined, { shallow: true })
   }
 
   const loginCallback = async (code, providerID, redirectURL) => {
@@ -139,14 +139,14 @@ export const AuthContextProvider = ({ children }) => {
   }
 
   const register = async (key) => {
-    await axios.post('/v1/login', {accessKey: key})
-    .then((response) => {
-      redirectToDashboard(response.data)
-    })
-    .catch((error) => {
-      setLoginError(error)
-      setAuthReady(false)
-    })
+    await axios.post('/v1/login', { accessKey: key })
+      .then((response) => {
+        redirectToDashboard(response.data)
+      })
+      .catch((error) => {
+        setLoginError(error)
+        setAuthReady(false)
+      })
   }
 
   const context = {
