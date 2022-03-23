@@ -1293,7 +1293,7 @@
               "schema": {
                 "properties": {
                   "privilege": {
-                    "description": "a role or permission. Defaults to 'connect' if left blank",
+                    "description": "a role or permission",
                     "example": "view",
                     "type": "string"
                   },
@@ -1312,6 +1312,7 @@
                 },
                 "required": [
                   "subject",
+                  "privilege",
                   "resource"
                 ],
                 "type": "object"
