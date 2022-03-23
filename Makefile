@@ -94,5 +94,6 @@ openapi-lint: docs/api/openapi3.json
 	@command -v openapi --version >/dev/null || { echo "openapi missing, try: npm install -g @redocly/openapi-cli" && exit 1; }
 	openapi lint $<
 
+.PHONY: docs/api/openapi3.json
 docs/api/openapi3.json:
 	go run ./internal/openapigen $@

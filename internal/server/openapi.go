@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -17,6 +16,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal"
 )
 
 var (
@@ -216,11 +216,11 @@ func buildProperty(f reflect.StructField, t, parent reflect.Type, parentSchema *
 	}
 }
 
-func writeOpenAPISpec(spec openapi3.T, version string, out io.Writer) error {
+func writeOpenAPISpec(spec openapi3.T, out io.Writer) error {
 	spec.OpenAPI = "3.0.0"
 	spec.Info = &openapi3.Info{
 		Title:       "Infra API",
-		Version:     version,
+		Version:     internal.Version,
 		Description: "Infra API",
 		License:     &openapi3.License{Name: "Apache 2.0", URL: "https://www.apache.org/licenses/LICENSE-2.0.html"},
 	}
@@ -237,46 +237,15 @@ func writeOpenAPISpec(spec openapi3.T, version string, out io.Writer) error {
 }
 
 func WriteOpenAPISpecToFile(filename string) error {
-	version := time.Now().Format("2006-01-02")
-
-	var buf bytes.Buffer
-	if err := writeOpenAPISpec(openAPISchema, version, &buf); err != nil {
-		return err
-	}
-
-	old, err := readOpenAPISpec(filename)
+	fh, err := os.Create(filename)
 	if err != nil {
 		return err
-	}
-	old.Info.Version = version
-
-	var oldBuf bytes.Buffer
-	if err := writeOpenAPISpec(old, version, &oldBuf); err != nil {
-		return err
-	}
-
-	if bytes.Equal(buf.Bytes(), oldBuf.Bytes()) {
-		// no changes to the schema
-		return nil
-	}
-
-	// nolint: gosec // 0644 is the right mode
-	return os.WriteFile(filename, buf.Bytes(), 0o644)
-}
-
-func readOpenAPISpec(filename string) (openapi3.T, error) {
-	spec := openapi3.T{}
-
-	fh, err := os.Open(filename)
-	if err != nil {
-		return spec, fmt.Errorf("failed to create file: %w", err)
 	}
 	defer fh.Close()
-
-	if err := json.NewDecoder(fh).Decode(&spec); err != nil {
-		return spec, fmt.Errorf("failed to parse last openapi schema from %s: %w", filename, err)
+	if err := writeOpenAPISpec(openAPISchema, fh); err != nil {
+		return err
 	}
-	return spec, nil
+	return nil
 }
 
 func setTagInfo(f reflect.StructField, t, parent reflect.Type, schema, parentSchema *openapi3.Schema) {
