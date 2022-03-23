@@ -30,7 +30,7 @@ import (
 	"github.com/infrahq/infra/internal/claims"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/timer"
+	"github.com/infrahq/infra/internal/repeat"
 	"github.com/infrahq/infra/metrics"
 	"github.com/infrahq/infra/secrets"
 	"github.com/infrahq/infra/uid"
@@ -459,7 +459,7 @@ func Run(options Options) error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	timer.Start(ctx, 5*time.Second, func(context.Context) {
+	repeat.Start(ctx, 5*time.Second, func(context.Context) {
 		accessKey, err := secrets.GetSecret(options.AccessKey, basicSecretStorage)
 		if err != nil {
 			logging.S.Infof("%w", err)

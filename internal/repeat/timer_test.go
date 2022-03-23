@@ -1,4 +1,4 @@
-package timer
+package repeat
 
 import (
 	"context"
@@ -26,7 +26,7 @@ func TestStart_StopsWithContextCancelled(t *testing.T) {
 	require.Less(t, time.Since(start), time.Second)
 }
 
-func TestStart_SyncCallsNeverOverlap(t *testing.T) {
+func TestStart_CallsToRunNeverOverlap(t *testing.T) {
 	done := make(chan struct{})
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -49,7 +49,7 @@ func TestStart_SyncCallsNeverOverlap(t *testing.T) {
 	<-done
 }
 
-func TestStart_SkipsRunWhenSyncRunsLongerThanInterval(t *testing.T) {
+func TestStart_SkipsRunWhenPreviousRunsLongerThanInterval(t *testing.T) {
 	done := make(chan struct{})
 
 	ctx, cancel := context.WithCancel(context.Background())

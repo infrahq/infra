@@ -1,11 +1,12 @@
-package timer
+package repeat
 
 import (
 	"context"
 	"time"
 )
 
-// Start calls run and then sleeps for interval. Start runs until the context is cancelled.
+// Start a goroutine which repeatedly calls run and then sleep for interval between each
+// call. The goroutine runs until the context is cancelled.
 func Start(ctx context.Context, interval time.Duration, run func(context.Context)) {
 	go func() {
 		run(ctx)
