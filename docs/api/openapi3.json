@@ -189,7 +189,7 @@
             "type": "integer"
           },
           "created_by": {
-            "description": "id of user who created the grant",
+            "description": "id of the identity that created the grant",
             "example": "4yJ3n3D8E2",
             "format": "uid",
             "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
