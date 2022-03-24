@@ -411,7 +411,7 @@ server:
   ## Infra server UI proxy URL
   #   uiProxyURL: ""
 
-  ## Duration of an user session
+  ## Duration of a user session
   #   sessionDuration: 12h0m0s
 
   ## Additional identity providers to configure

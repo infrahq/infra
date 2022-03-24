@@ -25,14 +25,12 @@ func newIdentitiesAddCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add NAME|EMAIL",
 		Short: "Create an identity.",
-		Long: `Create a machine identity with NAME or an user identity with EMAIL.
+		Long: `Create a machine identity with NAME or a user identity with EMAIL.
 
 NAME must only contain alphanumeric characters ('a-z', 'A-Z', '0-9') or the
 special characters '-', '_', or '/' and has a maximum length of 256 characters.
 
-EMAIL must conform to RFC5322 Addr-Spec specificiations. This value accepts a
-complete RFC5322 address, e.g. "Alice <alice@example.com>", however only the
-address component will be used.
+EMAIL must contain a valid email address in the form of "<local>@<domain>".
 		`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -250,7 +248,7 @@ func newIdentitiesRemoveCmd() *cobra.Command {
 	return cmd
 }
 
-// checkNameOrEmail infers whether the input s specifies an user identity (email) or a machine
+// checkNameOrEmail infers whether the input s specifies a user identity (email) or a machine
 // identity (name). The input is considered a name if it has the format `^[a-zA-Z0-9-_/]+$`.
 // All other input formats will be considered an email. If an email input fails validation,
 // return an error.

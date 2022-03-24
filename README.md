@@ -82,7 +82,7 @@ server:
 
     grants:
     # 1. Grant user(s) or group(s) as Infra administrator
-    # Setup an user as Infra administrator
+    # Setup a user as Infra administrator
       - user: you@example.com
         role: admin
         resource: infra
