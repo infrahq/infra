@@ -4,6 +4,7 @@
 package server
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
@@ -31,9 +32,9 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/repeat"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	timer "github.com/infrahq/infra/internal/timer"
 	"github.com/infrahq/infra/pki"
 	"github.com/infrahq/infra/secrets"
 )
@@ -169,8 +170,7 @@ func configureTelemetry(db *gorm.DB) error {
 		return err
 	}
 
-	telemetryTimer := timer.NewTimer()
-	telemetryTimer.Start(1*time.Hour, func() {
+	repeat.Start(context.TODO(), 1*time.Hour, func(context.Context) {
 		if err := tel.EnqueueHeartbeat(); err != nil {
 			logging.S.Debug(err)
 		}
