@@ -30,7 +30,7 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           stable: false
-          go-version: '1.18'
+          go-version: "1.18"
       - uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -93,16 +93,15 @@ jobs:
         with:
           clientId: ${{ secrets.SIRVCLIENTID }}
           clientSecret: ${{ secrets.SIRVCLIENTSECRET}}
-          source_dir: 'docs/images'
-          output_dir: 'docs'
+          source_dir: "docs/images"
+          output_dir: "docs"
       - uses: technovangelist/gh-rm-prepaction@main
         with:
-          ignorelist: "images, api"
+          ignorelist: "images, api, archive"
           docsdirectory: "docs"
         env:
           readmeapikey: ${{ secrets.READMEAPIKEY }}
       - uses: readmeio/rdme@7.0.0
         with:
-          rdme: docs ./docs --key=${{secrets.README_API_KEY}} --version=${{ needs.release-please.outputs.release_name }}
+          rdme: docs ./docs --key=${{secrets.READMEAPIKEY}} --version=${{ needs.release-please.outputs.release_name }}
   #         rdme: openapi ./docs/api/openapi3.json --key=${{ secrets.README_API_KEY }} --id=6222ae0352ca1a0028faf020
-
