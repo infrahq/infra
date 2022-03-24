@@ -100,8 +100,8 @@ jobs:
           ignorelist: "images, api, archive"
           docsdirectory: "docs"
         env:
-          readmeapikey: ${{ secrets.READMEAPIKEY }}
+          readmeapikey: ${{ secrets.README_API_KEY }}
       - uses: readmeio/rdme@7.0.0
         with:
-          rdme: docs ./docs --key=${{secrets.READMEAPIKEY}} --version=${{ needs.release-please.outputs.release_name }}
+          rdme: docs ./docs --key=${{secrets.README_API_KEY}} --version=${{ needs.release-please.outputs.release_name }}
   #         rdme: openapi ./docs/api/openapi3.json --key=${{ secrets.README_API_KEY }} --id=6222ae0352ca1a0028faf020
