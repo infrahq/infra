@@ -83,6 +83,8 @@ jobs:
 
   readme:
     runs-on: ubuntu-latest
+    needs: [release-please]
+    if: needs.release-please.outputs.release_created
     steps:
       - uses: actions/checkout@v2
       - uses: technovangelist/gh-rm-prepaction@main
@@ -97,6 +99,8 @@ jobs:
   #         rdme: openapi ./docs/api/openapi3.json --key=${{ secrets.README_API_KEY }} --id=6222ae0352ca1a0028faf020
   imagesync:
     runs-on: ubuntu-latest
+    needs: [release-please]
+    if: needs.release-please.outputs.release_created
     environment: main
     steps:
       - uses: actions/checkout@v2
