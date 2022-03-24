@@ -21,7 +21,7 @@ If applicable, add screenshots to help explain your problem.
 * Kubernetes version (use `kubectl version`)
 * Where you are running Kubernetes (e.g. EKS, AKS, GKE, Docker Desktop, Minikube, etc.)
 
-Relevant Infra Logs
+**Relevant Infra Logs**
 Use `kubectl logs deployment/infra-connector` and `kubectl logs deployment/infra-server` and add any suspicious logs here (do not post any sensitive information, and only post small snippets!).
 
 **Additional context**
