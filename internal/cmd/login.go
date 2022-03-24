@@ -460,12 +460,12 @@ func setupEmailAndPasswordLogin(loginReq *api.LoginRequest) error {
 	emailPassPrompt := []*survey.Question{
 		{
 			Name:     "Email",
-			Prompt:   &survey.Input{Message: "Email: "},
+			Prompt:   &survey.Input{Message: "Email:"},
 			Validate: survey.Required,
 		},
 		{
 			Name:     "Password",
-			Prompt:   &survey.Password{Message: "Password: "},
+			Prompt:   &survey.Password{Message: "Password:"},
 			Validate: survey.Required,
 		},
 	}
