@@ -8,7 +8,7 @@ type Grant struct {
 	ID uid.ID `json:"id"`
 
 	Created   int64  `json:"created"` // created time in seconds since 1970-01-01 00:00:00 UTC
-	CreatedBy uid.ID `json:"created_by" note:"id of user who created the grant"`
+	CreatedBy uid.ID `json:"created_by" note:"id of the identity that created the grant"`
 	Updated   int64  `json:"updated"` // updated time in seconds since 1970-01-01 00:00:00 UTC
 
 	Subject   uid.PolymorphicID `json:"subject" note:"a polymorphic field primarily expecting an user, or group ID"`
