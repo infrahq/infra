@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.7.0](https://github.com/infrahq/infra/compare/v0.6.1...v0.7.0) (2022-03-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* **cli:** some CLI short flags were removed.
+
+### Features
+
+* **connector:** add support for bringing in custom certificates ([2650769](https://github.com/infrahq/infra/commit/26507694d625ab81ae0cbfbbc88630208be64ef8))
+
+
+### Bug Fixes
+
+* **cmd:** destinations add takes dot notation as input ([6eb393c](https://github.com/infrahq/infra/commit/6eb393c1ce848ed44b3da26559fec7b9804a00b7))
+* do not fail on no groups or ref from oidc ([#1281](https://github.com/infrahq/infra/issues/1281)) ([bbc0247](https://github.com/infrahq/infra/commit/bbc02474136a7763840dc2151f816380b3bf825d))
+* give users infra grant on creation ([#1295](https://github.com/infrahq/infra/issues/1295)) ([c472b41](https://github.com/infrahq/infra/commit/c472b410eb00b14023abf16542ef80ca970963e7))
+* update config for styled component ([#1307](https://github.com/infrahq/infra/issues/1307)) ([91aa01f](https://github.com/infrahq/infra/commit/91aa01ff61761caf6508c60717194ba6d659eac2))
+
+
+### Styles
+
+* **cli:** remove some short flags from CLI commands ([4f1ef00](https://github.com/infrahq/infra/commit/4f1ef00403940313e852bfcf7c83e0ea7ae31f71))
+
 ### [0.6.1](https://github.com/infrahq/infra/compare/v0.6.0...v0.6.1) (2022-03-21)
 
 
