@@ -11,7 +11,9 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version: '1.18'
-      - run: make test
+      - run: go install gotest.tools/gotestsum@v1.7.0
+      - run: go mod tidy
+      - run: ~/go/bin/gotestsum --no-color=false -ftestname -- -short -race ./...
 
   go-lint:
     runs-on: ubuntu-latest
