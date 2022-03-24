@@ -2,8 +2,9 @@ package data
 
 import (
 	"github.com/go-gormigrate/gormigrate/v2"
-	"github.com/infrahq/infra/internal/server/models"
 	"gorm.io/gorm"
+
+	"github.com/infrahq/infra/internal/server/models"
 )
 
 func migrate(db *gorm.DB) error {
@@ -12,7 +13,7 @@ func migrate(db *gorm.DB) error {
 		{
 			ID: "202203231621", // current date
 			Migrate: func(tx *gorm.DB) error {
-				// it's a good pratice to copy any used structs inside the function,
+				// it's a good practice to copy any used structs inside the function,
 				// so side-effects are prevented if the original struct changes
 
 				if tx.Migrator().HasColumn(&models.Grant{}, "identity") {
