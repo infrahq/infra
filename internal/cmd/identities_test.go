@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"math/rand"
 	"strings"
 	"testing"
@@ -9,24 +10,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func random(n int, includeIllegalRunes bool) string {
+func random(n int) string {
 	rand.Seed(time.Now().UnixNano())
 
 	upper := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	lower := []rune("abcdefghijklmnopqrstuvwxyz")
 	digit := []rune("0123456789")
 	special := []rune("-_/")
-	illegal := []rune("!@#$%^&*()=+[];:<>?")
 
 	charset := make([]rune, 0)
 	charset = append(charset, upper...)
 	charset = append(charset, lower...)
 	charset = append(charset, digit...)
 	charset = append(charset, special...)
-
-	if includeIllegalRunes {
-		charset = append(charset, illegal...)
-	}
 
 	var b strings.Builder
 	for i := 0; i < n; i++ {
@@ -60,17 +56,22 @@ func TestCheckNameOrEmail(t *testing.T) {
 }
 
 func TestCheckNameOrEmailInvalidName(t *testing.T) {
-	_, _, err := checkNameOrEmail(random(257, false))
-	require.Error(t, err)
+	_, _, err := checkNameOrEmail(random(257))
+	require.ErrorContains(t, err, "invalid name: exceed maximum length requirement of 256 characters")
 
-	_, _, err = checkNameOrEmail(random(16, true))
-	require.Error(t, err)
+	// inputs with illegal runes are _not_ considered a name so it will
+	// be passed to email validation instead
+	illegalRunes := []rune("!@#$%^&*()=+[]{}\\|;:'\",.<>?")
+	for _, r := range illegalRunes {
+		_, _, err = checkNameOrEmail(string(r))
+		require.ErrorContains(t, err, fmt.Sprintf("invalid email: %q", string(r)))
+	}
 }
 
 func TestCheckNameOrEmailInvalidEmail(t *testing.T) {
 	_, _, err := checkNameOrEmail("@example.com")
-	require.Error(t, err)
+	require.ErrorContains(t, err, "invalid email: \"@example.com\"")
 
 	_, _, err = checkNameOrEmail("alice@")
-	require.Error(t, err)
+	require.ErrorContains(t, err, "invalid email: \"alice@\"")
 }
