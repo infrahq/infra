@@ -72,6 +72,11 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 		return nil, err
 	}
 
+	defaultGrant := &models.Grant{Identity: user.PolymorphicIdentifier(), Privilege: models.InfraUserRole, Resource: "infra"}
+	if err := access.CreateGrant(c, defaultGrant); err != nil {
+		return nil, err
+	}
+
 	var oneTimePassword string
 	if provider.Name == models.InternalInfraProviderName {
 		oneTimePassword, err = access.CreateCredential(c, *user)
