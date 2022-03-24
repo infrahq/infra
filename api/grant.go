@@ -15,7 +15,7 @@ type Grant struct {
 	Privilege string            `json:"privilege" note:"a role or permission"`
 	Resource  string            `json:"resource" note:"a resource name in Infra's Universal Resource Notation"`
 
-	ExpiresAt *int64 `json:"expires_at" note:"grant should expire after this time"`
+	ExpiresAt *int64 `json:"expires_at" note:"grant expires after this time"`
 }
 
 type ListGrantsRequest struct {
