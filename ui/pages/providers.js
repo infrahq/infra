@@ -1,8 +1,9 @@
 import Router from 'next/router'
-import { useContext } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import styled from 'styled-components'
+import axios from 'axios'
 
-import Navigation from '../components/Nav/Navigation'
+import Navigation from '../components/nav/Navigation'
 import PageHeader from '../components/PageHeader'
 
 import AuthContext from '../store/AuthContext'
@@ -37,7 +38,7 @@ const TableHeaderTitle = styled.p`
 `
 
 const TableContentContainer = styled.div`
-  padding-top: 1rem
+  padding-top: 1rem;
 `
 
 const TableContent = styled.div`
@@ -53,7 +54,25 @@ const TableContentText = styled.div`
 `
 
 const Providers = () => {
-  const { providers } = useContext(AuthContext)
+  const { providers, updateProviders } = useContext(AuthContext)
+
+  const [currentProviders, setCurrentProviders] = useState([])
+
+  useEffect(() => {
+    if (providers.length === 0) {
+      axios.get('/v1/providers')
+        .then((response) => {
+          const idpList = response.data.filter((item) => item.name !== 'infra')
+          setCurrentProviders(idpList)
+          updateProviders(idpList)
+        })
+        .catch((error) => {
+          console.log(error)
+        })
+    } else {
+      setCurrentProviders(providers)
+    }
+  }, [])
 
   const handleConnectProviders = async () => {
     await Router.push({
@@ -71,13 +90,13 @@ const Providers = () => {
         <TableHeader>
           <TableHeaderTitle>Identity Provider</TableHeaderTitle>
           <TableHeaderTitle>Domain</TableHeaderTitle>
-          <TableHeaderTitle><img src='./clock.svg' /></TableHeaderTitle>
+          <TableHeaderTitle>Added</TableHeaderTitle>
         </TableHeader>
         <div>
-          {providers.length > 0
+          {currentProviders.length > 0
             ? (
               <TableContentContainer>
-                {providers.map((item) => {
+                {currentProviders.map((item) => {
                   return (
                     <TableContent key={item.id}>
                       <IdentityProvider type='okta' name={item.name} />

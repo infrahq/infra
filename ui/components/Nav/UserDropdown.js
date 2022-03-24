@@ -66,14 +66,10 @@ const Content = styled.div`
   padding-top: .25rem;
 `
 
-const Role = styled.div`
-  color: rgba(255, 255, 255, 0.48);
-`
-
 const LogoutContainer = styled.div`
   border-top: 1px solid rgba(255, 255, 255, .1);
   margin-left: -.45rem;
-  margin-right: -.45rem
+  margin-right: -.45rem;
 `
 
 const LogoutButton = styled.a`
@@ -142,7 +138,6 @@ const UserDropdown = () => {
             </Avatar>
             <Content>
               <div>{user.name}</div>
-              <Role>{user.identityType}</Role>
             </Content>
           </UserDropdownContentHeader>
           <LogoutContainer>

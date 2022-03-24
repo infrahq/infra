@@ -13,6 +13,8 @@
   "dependencies": {
     "axios": "^0.26.1",
     "babel-plugin-styled-components": "^2.0.6",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^2.5.1",
     "next": "^12.1.0",
     "react": "17.0.2",
     "react-cookie": "^4.1.1",

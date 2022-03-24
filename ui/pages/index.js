@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from 'react'
 
-import Navigation from '../components/Nav/Navigation'
+import Navigation from '../components/nav/Navigation'
 
 import AuthContext from '../store/AuthContext'
 
