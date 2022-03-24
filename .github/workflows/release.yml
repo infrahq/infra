@@ -87,13 +87,14 @@ jobs:
     if: needs.release-please.outputs.release_created
     steps:
       - uses: actions/checkout@v2
-      - uses: technovangelist/sirvsync-action@main
+      - uses: sirv/gh-action-sirv@main
+        name: Upload to Sirv
+        id: Sirv
         with:
-          sourcedir: "docs/images"
-          destinationdir: "docs"
-        env:
-          sirvClientId: ${{ secrets.SIRVCLIENTID }}
-          sirvClientSecret: ${{ secrets.SIRVCLIENTSECRET }}
+          clientId: ${{ secrets.SIRVCLIENTID }}
+          clientSecret: ${{ secrets.SIRVCLIENTSECRET}}
+          source_dir: 'docs/images'
+          output_dir: 'docs'
       - uses: technovangelist/gh-rm-prepaction@main
         with:
           ignorelist: "images, api"
