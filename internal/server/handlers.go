@@ -72,7 +72,7 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 		return nil, err
 	}
 
-	defaultGrant := &models.Grant{Identity: user.PolymorphicIdentifier(), Privilege: models.InfraUserRole, Resource: "infra"}
+	defaultGrant := &models.Grant{Subject: user.PolyID(), Privilege: models.InfraUserRole, Resource: "infra"}
 	if err := access.CreateGrant(c, defaultGrant); err != nil {
 		return nil, err
 	}
