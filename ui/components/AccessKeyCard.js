@@ -7,8 +7,9 @@ const AccessKeyCardContainer = styled.section`
   max-width: 24rem;
   height: 194px;
   background: #0E151C;
-  border: 1px solid;
-  border-image: linear-gradient(to left, #000000 100%, #FC7CFF 44%, #11B9DE 52%);
+  border: 1px solid #3B3B3B;
+  /* border: 1px solid; */
+  /* border-image: linear-gradient(to left, #000000 100%, #FC7CFF 44%, #11B9DE 52%); */
   box-sizing: border-box;
   box-shadow: -38px 3px 44px rgba(0, 0, 0, 0.63);
   border-radius: 20px;
@@ -71,7 +72,7 @@ const AccessKeyText = styled.div`
 const AccessKeyButtonGroups = styled.div`
   display: flex;
   flex-direction: row-reverse;
-
+  padding-right: 0.5rem;
   padding-top: 1rem;
 `
 
