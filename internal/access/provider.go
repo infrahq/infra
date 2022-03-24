@@ -1,6 +1,7 @@
 package access
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -92,6 +93,10 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 	// exchange code for tokens from identity provider (these tokens are for the IDP, not Infra)
 	accessToken, refreshToken, expiry, email, err := oidc.ExchangeAuthCodeForProviderTokens(code)
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return nil, "", fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
+		}
+
 		return nil, "", fmt.Errorf("exhange code for tokens: %w", err)
 	}
 
@@ -157,6 +162,10 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 	// get current identity provider groups
 	info, err := oidc.GetUserInfo(provToken)
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return nil, "", fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
+		}
+
 		return nil, "", fmt.Errorf("login user info: %w", err)
 	}
 

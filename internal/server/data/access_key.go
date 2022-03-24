@@ -101,7 +101,7 @@ func ValidateAccessKey(db *gorm.DB, authnKey string) (*models.AccessKey, error) 
 
 	t, err := GetAccessKey(db, ByKey(parts[0]))
 	if err != nil {
-		return nil, fmt.Errorf("%w could not get access key from database, it may not exist", err)
+		return nil, fmt.Errorf("%w: could not get access key from database, it may not exist", err)
 	}
 
 	sum := sha256.Sum256([]byte(parts[1]))
