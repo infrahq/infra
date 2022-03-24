@@ -207,7 +207,7 @@ Using Infra CLI:
 
 Generate the helm install command via
 ```
-infra destinations add kubernetes example-cluster
+infra destinations add kubernetes.example-cluster
 ```
 
 Run the output Helm command on the Kubernetes cluster to be added.
