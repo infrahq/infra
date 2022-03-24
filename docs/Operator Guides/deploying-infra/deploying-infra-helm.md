@@ -1,8 +1,5 @@
----
-title: Kubernetes (Helm)
-category: 621db0f4274ff400307ba431
-parentDoc: 6127b5ba22a796006179c09b
----
+# Kubernetes (Helm)
+
 
 > Note: Infra uses [Secrets](./docs/secrets.md) to securely load secrets.
 > It is _not_ recommended to use plain text secrets. Considering using another supported secret type.

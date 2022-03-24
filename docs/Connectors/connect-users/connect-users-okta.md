@@ -1,8 +1,5 @@
----
-title: Okta
-category: 615bc9d124eca4007fa0d27c
-parentDoc: 621c0d6ad9b09e00a6b222bc
----
+# Okta
+
 
 ```bash
 infra providers add Okta \

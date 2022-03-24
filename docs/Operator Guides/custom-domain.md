@@ -1,7 +1,6 @@
----
-title: Custom Domain
-category: 621db0f4274ff400307ba431
----
+# Custom Domain
+
+
 ## Find your Infra Registry endpoint
 
 ```

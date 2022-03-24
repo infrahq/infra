@@ -1,7 +1,4 @@
----
-title: Quickstart
-category: 6125661f1d211d0010ef10a4
----
+# Quickstart
 
 [block:image]
 {

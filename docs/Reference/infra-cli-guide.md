@@ -1,36 +1,32 @@
----
-title: CLI Reference
-category: 615bc105e8fc4f0038e952ca
----
+# CLI Reference
 
 ## Commands
 
-* [infra login](#infra-login)
-* [infra logout](#infra-logout)
-* [infra list](#infra-list)
-* [infra use](#infra-use)
-* [infra grants list](#infra-grants-list)
-* [infra grants add](#infra-grants-add)
-* [infra grants revoke](#infra-grants-revoke)
-* [infra keys list](#infra-keys-list)
-* [infra keys create](#infra-keys-create)
-* [infra keys delete](#infra-keys-delete)
-* [infra destinations list](#infra-destinations-list)
-* [infra destinations add](#infra-destinations-add)
-* [infra destinations remove](#infra-destinations-remove)
-* [infra providers list](#infra-providers-list)
-* [infra providers add](#infra-providers-add)
-* [infra providers remove](#infra-providers-remove)
-* [infra machines create](#infra-machines-create)
-* [infra machines list](#infra-machines-list)
-* [infra machines remove](#infra-machines-remove)
-* [infra tokens create](#infra-tokens-create)
-* [infra import](#infra-import)
-* [infra info](#infra-info)
-* [infra server](#infra-server)
-* [infra engine](#infra-engine)
-* [infra version](#infra-version)
-
+- [infra login](#infra-login)
+- [infra logout](#infra-logout)
+- [infra list](#infra-list)
+- [infra use](#infra-use)
+- [infra grants list](#infra-grants-list)
+- [infra grants add](#infra-grants-add)
+- [infra grants revoke](#infra-grants-revoke)
+- [infra keys list](#infra-keys-list)
+- [infra keys create](#infra-keys-create)
+- [infra keys delete](#infra-keys-delete)
+- [infra destinations list](#infra-destinations-list)
+- [infra destinations add](#infra-destinations-add)
+- [infra destinations remove](#infra-destinations-remove)
+- [infra providers list](#infra-providers-list)
+- [infra providers add](#infra-providers-add)
+- [infra providers remove](#infra-providers-remove)
+- [infra machines create](#infra-machines-create)
+- [infra machines list](#infra-machines-list)
+- [infra machines remove](#infra-machines-remove)
+- [infra tokens create](#infra-tokens-create)
+- [infra import](#infra-import)
+- [infra info](#infra-info)
+- [infra server](#infra-server)
+- [infra engine](#infra-engine)
+- [infra version](#infra-version)
 
 ## `infra login`
 
@@ -122,7 +118,7 @@ $ infra use kubernetes.development
 
 # Connect to a Kubernetes namespace
 $ infra use kubernetes.development.kube-system
-		
+
 ```
 
 ### Options
@@ -380,14 +376,12 @@ Add an identity provider
 
 ### Synopsis
 
-
 Add an identity provider for users to authenticate.
 
 NAME: The name of the identity provider (e.g. okta)
 URL: The base URL of the domain used to login with the identity provider (e.g. acme.okta.com)
 CLIENT_ID: The Infra application OpenID Connect client ID
 CLIENT_SECRET: The Infra application OpenID Connect client secret
-		
 
 ```
 infra providers add NAME URL CLIENT_ID CLIENT_SECRET [flags]
