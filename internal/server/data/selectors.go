@@ -82,6 +82,16 @@ func ByURL(url string) SelectorFunc {
 	}
 }
 
+func BySubject(polymorphicID uid.PolymorphicID) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		if polymorphicID == "" {
+			return db
+		}
+
+		return db.Where("subject = ?", string(polymorphicID))
+	}
+}
+
 func ByIdentity(polymorphicID uid.PolymorphicID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		if polymorphicID == "" {

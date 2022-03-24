@@ -45,6 +45,6 @@ func (m *Machine) FromAPI(from interface{}) error {
 	return fmt.Errorf("%w: unknown request", internal.ErrBadRequest)
 }
 
-func (m *Machine) PolymorphicIdentifier() uid.PolymorphicID {
+func (m *Machine) PolyID() uid.PolymorphicID {
 	return uid.NewMachinePolymorphicID(m.ID)
 }

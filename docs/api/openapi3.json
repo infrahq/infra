@@ -189,12 +189,14 @@
             "type": "integer"
           },
           "created_by": {
+            "description": "id of the identity that created the grant",
             "example": "4yJ3n3D8E2",
             "format": "uid",
             "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           },
           "expires_at": {
+            "description": "grant expires after this time",
             "format": "int64",
             "type": "integer"
           },
@@ -204,16 +206,19 @@
             "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           },
-          "identity": {
-            "example": "u:4yJ3n3D8E3",
-            "format": "poly-uid",
-            "pattern": "\\w:[\\da-zA-HJ-NP-Z]{1,11}",
-            "type": "string"
-          },
           "privilege": {
+            "description": "a role or permission",
             "type": "string"
           },
           "resource": {
+            "description": "a resource name in Infra's Universal Resource Notation",
+            "type": "string"
+          },
+          "subject": {
+            "description": "a polymorphic field primarily expecting an user, or group ID",
+            "example": "u:4yJ3n3D8E3",
+            "format": "poly-uid",
+            "pattern": "\\w:[\\da-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           },
           "updated": {
@@ -404,7 +409,7 @@
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
     "title": "Infra API",
-    "version": "2022-03-21"
+    "version": "2022-03-24"
   },
   "paths": {
     "/v1/access-keys": {
@@ -1182,7 +1187,7 @@
           {
             "example": "u:4yJ3n3D8E3",
             "in": "query",
-            "name": "identity",
+            "name": "subject",
             "schema": {
               "example": "u:4yJ3n3D8E3",
               "format": "poly-uid",
@@ -1287,25 +1292,28 @@
             "application/json": {
               "schema": {
                 "properties": {
-                  "identity": {
-                    "example": "u:4yJ3n3D8E3",
-                    "format": "poly-uid",
-                    "pattern": "\\w:[\\da-zA-HJ-NP-Z]{1,11}",
-                    "type": "string"
-                  },
                   "privilege": {
+                    "description": "a role or permission",
                     "example": "view",
                     "type": "string"
                   },
                   "resource": {
+                    "description": "a resource name in Infra's Universal Resource Notation",
                     "example": "kubernetes.production",
+                    "type": "string"
+                  },
+                  "subject": {
+                    "description": "a polymorphic field primarily expecting a user, machine, or group ID",
+                    "example": "u:4yJ3n3D8E3",
+                    "format": "poly-uid",
+                    "pattern": "\\w:[\\da-zA-HJ-NP-Z]{1,11}",
                     "type": "string"
                   }
                 },
                 "required": [
-                  "identity",
-                  "resource",
-                  "privilege"
+                  "subject",
+                  "privilege",
+                  "resource"
                 ],
                 "type": "object"
               }

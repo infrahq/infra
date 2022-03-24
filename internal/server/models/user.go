@@ -31,6 +31,7 @@ func (u *User) ToAPI() *api.User {
 	return result
 }
 
-func (u *User) PolymorphicIdentifier() uid.PolymorphicID {
+// PolyID is a polymorphic identifier that points to both a model type and an ID
+func (u *User) PolyID() uid.PolymorphicID {
 	return uid.NewUserPolymorphicID(u.ID)
 }

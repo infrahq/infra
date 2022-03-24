@@ -109,7 +109,7 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 
 		// by default the user role in infra can see all destinations
 		// #1084 - create grants for only destinations a user has access to
-		roleGrant := &models.Grant{Identity: user.PolymorphicIdentifier(), Privilege: models.InfraUserRole, Resource: "infra"}
+		roleGrant := &models.Grant{Subject: user.PolyID(), Privilege: models.InfraUserRole, Resource: "infra"}
 		if err := data.CreateGrant(db, roleGrant); err != nil {
 			return nil, "", fmt.Errorf("user role grant: %w", err)
 		}
@@ -166,7 +166,7 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 	}
 
 	key := &models.AccessKey{
-		IssuedFor: user.PolymorphicIdentifier(),
+		IssuedFor: user.PolyID(),
 		ExpiresAt: time.Now().Add(sessionDuration),
 	}
 

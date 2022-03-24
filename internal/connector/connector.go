@@ -267,13 +267,13 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 	for _, g := range grants {
 		var name, kind string
 
-		id, err := g.Identity.ID()
+		id, err := g.Subject.ID()
 		if err != nil {
 			return err
 		}
 
 		switch {
-		case g.Identity.IsGroup():
+		case g.Subject.IsGroup():
 			group, err := c.GetGroup(id)
 			if err != nil {
 				return err
@@ -282,7 +282,7 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 			name = group.Name
 			kind = rbacv1.GroupKind
 
-		case g.Identity.IsUser():
+		case g.Subject.IsUser():
 			user, err := c.GetUser(id)
 			if err != nil {
 				return err
@@ -298,7 +298,7 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 
 			name = provider.Name + ":" + name
 
-		case g.Identity.IsMachine():
+		case g.Subject.IsMachine():
 			machine, err := c.GetMachine(id)
 			if err != nil {
 				return err

@@ -99,10 +99,17 @@ server:
         role: edit                               # cluster_roles required
         resource: kubernetes.example-cluster.web # limit access to only the `web` namespace in the `example-cluster` Kubernetes cluster
 
-    # Example of granting access to a group the `view` role.
+    # Example of granting `view` access to a group.
       - group: Everyone
         role: view                           # cluster_roles required
         resource: kubernetes.example-cluster # limit access to the `example-cluster` Kubernetes cluster
+
+    # Example of granting `connect` access to a group. `connect` means the user can authenticate with the destination, but has no other specific permissions. This is useful when your permissions are handled outside of Infra. "role: connect" is the default role, so the following two grants are identical:
+      - group: Everyone
+        role: connect
+        resource: kubernetes.example-cluster
+      - group: Everyone
+        resource: kubernetes.example-cluster
 ```
 
 ### Step 3: Install Infra

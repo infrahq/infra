@@ -30,7 +30,7 @@ func CreateCredential(c *gin.Context, user models.User) (string, error) {
 	}
 
 	userCredential := &models.Credential{
-		Identity:            user.PolymorphicIdentifier(),
+		Identity:            user.PolyID(),
 		PasswordHash:        hash,
 		OneTimePassword:     true,
 		OneTimePasswordUsed: false,
@@ -64,7 +64,7 @@ func UpdateCredential(c *gin.Context, user *models.User, newPassword string) err
 		return fmt.Errorf("hash: %w", err)
 	}
 
-	userCredential, err := data.GetCredential(db, data.ByIdentity(user.PolymorphicIdentifier()))
+	userCredential, err := data.GetCredential(db, data.ByIdentity(user.PolyID()))
 	if err != nil {
 		return fmt.Errorf("existing credential: %w", err)
 	}
@@ -73,7 +73,7 @@ func UpdateCredential(c *gin.Context, user *models.User, newPassword string) err
 	userCredential.OneTimePassword = false
 	userCredential.OneTimePasswordUsed = false
 
-	if user.PolymorphicIdentifier() != getCurrentIdentity(c) {
+	if user.PolyID() != getCurrentIdentity(c) {
 		// an admin can only set a one time password for a user
 		userCredential.OneTimePassword = true
 		userCredential.OneTimePasswordUsed = false
@@ -106,7 +106,7 @@ func LoginWithUserCredential(c *gin.Context, email, password string, expiry time
 
 	// the password is valid
 	issuedAccessKey := &models.AccessKey{
-		IssuedFor: user.PolymorphicIdentifier(),
+		IssuedFor: user.PolyID(),
 		ExpiresAt: expiry,
 	}
 

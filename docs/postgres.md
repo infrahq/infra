@@ -16,6 +16,6 @@ server:
     dbHost: example.com
     dbPort: 5432
     dbName: myinfra
-    dbUser: myuser
+    dbUsername: myuser
     dbPassword: env:POSTGRES_DB_PASSWORD # the password can be populated from my-infrahq-secrets injected into the environment
 ```
