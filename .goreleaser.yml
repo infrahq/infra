@@ -60,7 +60,7 @@ archives:
 checksum:
   name_template: "{{ .ProjectName }}-checksums.txt"
 snapshot:
-  name_template: "{{ .Tag }}-next"
+  name_template: "{{ .Tag }}-devel"
 blobs:
   - provider: s3
     region: us-east-2

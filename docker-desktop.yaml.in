@@ -1,6 +1,6 @@
 global:
   image:
-    tag: $IMAGE_TAG
+    tag: build
     pullPolicy: Never
 
 server:
@@ -22,7 +22,3 @@ server:
 connector:
   config:
     name: docker-desktop
-
-  image:
-    tag: $IMAGE_TAG
-    pullPolicy: Never

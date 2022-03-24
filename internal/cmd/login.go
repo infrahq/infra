@@ -42,6 +42,10 @@ func relogin() error {
 		return err
 	}
 
+	if err := checkVersion(client); err != nil {
+		return err
+	}
+
 	if currentConfig.ProviderID == 0 {
 		return errors.New("can not renew login without provider")
 	}
@@ -133,6 +137,10 @@ func login(host string) error {
 
 	client, err := apiClient(host, "", skipTLSVerify)
 	if err != nil {
+		return err
+	}
+
+	if err := checkVersion(client); err != nil {
 		return err
 	}
 

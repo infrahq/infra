@@ -6,6 +6,10 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/muesli/termenv"
+	"golang.org/x/mod/semver"
+
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 )
@@ -38,6 +42,35 @@ func version() error {
 
 	fmt.Fprintln(w, "Server:\t", strings.TrimPrefix(version.Version, "v"))
 	fmt.Fprintln(w)
+
+	return nil
+}
+
+func checkVersion(client *api.Client) error {
+	version, err := client.GetVersion()
+	if err != nil {
+		return err
+	}
+
+	clientVersion := internal.Version
+	serverVersion := version.Version
+
+	if !strings.HasPrefix(clientVersion, "v") {
+		clientVersion = fmt.Sprintf("v%v", clientVersion)
+	}
+
+	if !strings.HasPrefix(serverVersion, "v") {
+		serverVersion = fmt.Sprintf("v%v", serverVersion)
+	}
+
+	if !semver.IsValid(clientVersion) || !semver.IsValid(serverVersion) {
+		// version is invalid so do not bother comparing
+		return nil
+	}
+
+	if semver.Compare(clientVersion, serverVersion) != 0 {
+		fmt.Fprintf(os.Stderr, "  %s: Version mismatch between Infra CLI (%v) and Infra (%v)\n", termenv.String("WARN").Bold().String(), clientVersion, serverVersion)
+	}
 
 	return nil
 }
