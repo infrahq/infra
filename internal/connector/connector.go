@@ -348,27 +348,36 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 }
 
 func Run(options Options) error {
-	hostTLSConfig := &tls.Config{MinVersion: tls.VersionTLS12}
+	clientTLSConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
 
 	if options.SkipTLSVerify {
-		// TODO (https://github.com/infrahq/infra/issues/174)
-		// Find a way to re-use the built-in TLS verification code vs
-		// this custom code based on the official go TLS example code
-		// which states this is approximately the same.
-		hostTLSConfig.InsecureSkipVerify = true
-		hostTLSConfig.VerifyConnection = func(cs tls.ConnectionState) error {
-			opts := x509.VerifyOptions{
-				DNSName:       cs.ServerName,
-				Intermediates: x509.NewCertPool(),
+		var opts x509.VerifyOptions
+
+		warned := false
+
+		clientTLSConfig.InsecureSkipVerify = options.SkipTLSVerify
+		clientTLSConfig.VerifyConnection = func(cs tls.ConnectionState) error {
+			if opts.DNSName == "" {
+				opts.DNSName = cs.ServerName
+				opts.Intermediates = x509.NewCertPool()
+
+				for _, cert := range cs.PeerCertificates[1:] {
+					opts.Intermediates.AddCert(cert)
+				}
 			}
 
-			for _, cert := range cs.PeerCertificates[1:] {
-				opts.Intermediates.AddCert(cert)
-			}
+			if _, err := cs.PeerCertificates[0].Verify(opts); err != nil {
+				var unknownAuthorityErr x509.UnknownAuthorityError
+				if !errors.As(err, &unknownAuthorityErr) {
+					return err
+				}
 
-			_, err := cs.PeerCertificates[0].Verify(opts)
-			if err != nil {
-				logging.S.Warnf("could not verify Infra TLS certificates: %s", err.Error())
+				if !warned {
+					logging.S.Warnf("could not verify Infra TLS certificates: %v", unknownAuthorityErr)
+					warned = true
+				}
 			}
 
 			return nil
@@ -382,7 +391,7 @@ func Run(options Options) error {
 
 	autoname, chksm, err := k8s.Name()
 	if err != nil {
-		logging.S.Errorf("k8s name error: %w", err)
+		logging.S.Errorf("k8s name error: %v", err)
 		return err
 	}
 
@@ -435,7 +444,7 @@ func Run(options Options) error {
 
 	u, err := urlx.Parse(options.Server)
 	if err != nil {
-		logging.S.Errorf("server: %w", err)
+		logging.S.Errorf("server: %v", err)
 	}
 
 	// server is localhost which should never be the case. try to infer the actual host
@@ -462,7 +471,7 @@ func Run(options Options) error {
 	repeat.Start(ctx, 5*time.Second, func(context.Context) {
 		accessKey, err := secrets.GetSecret(options.AccessKey, basicSecretStorage)
 		if err != nil {
-			logging.S.Infof("%w", err)
+			logging.S.Infof("%v", err)
 			return
 		}
 
@@ -471,7 +480,7 @@ func Run(options Options) error {
 			AccessKey: accessKey,
 			HTTP: http.Client{
 				Transport: &http.Transport{
-					TLSClientConfig: hostTLSConfig,
+					TLSClientConfig: clientTLSConfig,
 				},
 			},
 		}
@@ -489,7 +498,7 @@ func Run(options Options) error {
 
 		host, port, err := k8s.Endpoint()
 		if err != nil {
-			logging.S.Errorf("endpoint: %w", err)
+			logging.S.Errorf("endpoint: %v", err)
 			return
 		}
 
@@ -510,7 +519,7 @@ func Run(options Options) error {
 
 			isClusterIP, err := k8s.IsServiceTypeClusterIP()
 			if err != nil {
-				logging.S.Debugf("could not check destination service type: %w", err)
+				logging.S.Debugf("could not check destination service type: %v", err)
 			}
 
 			if isClusterIP {
@@ -519,7 +528,7 @@ func Run(options Options) error {
 
 			err = registerDestination(client, localDetails)
 			if err != nil {
-				logging.S.Errorf("initializing destination: %w", err)
+				logging.S.Errorf("initializing destination: %v", err)
 				return
 			}
 		} else if localDetails.endpoint != endpoint || localDetails.ca != string(caBytes) {
@@ -528,27 +537,27 @@ func Run(options Options) error {
 
 			err = refreshDestination(client, localDetails)
 			if err != nil {
-				logging.S.Errorf("initializing destination: %w", err)
+				logging.S.Errorf("initializing destination: %v", err)
 				return
 			}
 		}
 
 		grants, err := client.ListGrants(api.ListGrantsRequest{Resource: options.Name})
 		if err != nil {
-			logging.S.Errorf("error listing grants: %w", err)
+			logging.S.Errorf("error listing grants: %v", err)
 			return
 		}
 
 		namespaces, err := k8s.Namespaces()
 		if err != nil {
-			logging.S.Errorf("error listing namespaces: %w", err)
+			logging.S.Errorf("error listing namespaces: %v", err)
 			return
 		}
 
 		for _, n := range namespaces {
 			g, err := client.ListGrants(api.ListGrantsRequest{Resource: fmt.Sprintf("%s.%s", options.Name, n)})
 			if err != nil {
-				logging.S.Errorf("error listing grants: %w", err)
+				logging.S.Errorf("error listing grants: %v", err)
 				return
 			}
 
@@ -557,7 +566,7 @@ func Run(options Options) error {
 
 		err = updateRoles(client, k8s, grants)
 		if err != nil {
-			logging.S.Errorf("error updating grants: %w", err)
+			logging.S.Errorf("error updating grants: %v", err)
 			return
 		}
 	})
@@ -573,7 +582,7 @@ func Run(options Options) error {
 		client: &http.Client{
 			Transport: &BearerTransport{
 				Transport: &http.Transport{
-					TLSClientConfig: hostTLSConfig,
+					TLSClientConfig: clientTLSConfig,
 				},
 			},
 		},
@@ -624,7 +633,7 @@ func Run(options Options) error {
 
 	go func() {
 		if err := metricsServer.ListenAndServe(); err != nil {
-			logging.S.Errorf("server: %w", err)
+			logging.S.Errorf("server: %v", err)
 		}
 	}()
 
