@@ -176,10 +176,13 @@ func apiClient(host string, accessKey string, skipTLSVerify bool) (*api.Client, 
 
 func newLoginCmd() *cobra.Command {
 	type loginOptions struct {
-		Host string `mapstructure:"host"`
+		Server        string `mapstructure:"server"`
+		AccessKey     string `mapstructure:"key"`
+		Provider      string `mapstructure:"provider"`
+		SkipTLSVerify bool   `mapstructure:"skipTLSVerify"`
 	}
 
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:     "login [SERVER]",
 		Short:   "Login to Infra",
 		Example: "$ infra login",
@@ -187,17 +190,28 @@ func newLoginCmd() *cobra.Command {
 		Group:   "Core commands:",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var options loginOptions
+			strcase.ConfigureAcronym("skip-tls-verify", "skipTLSVerify")
+
 			if err := parseOptions(cmd, &options, "INFRA"); err != nil {
 				return err
 			}
 
 			if len(args) == 1 {
-				options.Host = args[0]
+				if options.Server != "" {
+					return errors.New("SERVER cannot be specified twice. Either run 'infra login SERVER' or 'infra login --server'")
+				}
+				options.Server = args[0]
 			}
 
-			return login(options.Host)
+			return login(options.Server, options.AccessKey, options.SkipTLSVerify, options.Provider)
 		},
 	}
+
+	cmd.Flags().String("key", "", "Signin with access key")
+	cmd.Flags().String("server", "", "Infra server to login to")
+	cmd.Flags().String("provider", "", "Signin with an identity provider")
+	cmd.Flags().Bool("skip-tls-verify", false, "Skip verifying server TLS certificates")
+	return cmd
 }
 
 func newLogoutCmd() *cobra.Command {

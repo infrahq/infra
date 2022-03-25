@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -28,6 +29,31 @@ type ClientHostConfig struct {
 
 func (c *ClientHostConfig) isLoggedIn() bool {
 	return c.AccessKey != ""
+}
+
+func (c ClientConfig) getHostsStr() []string {
+	var hosts []string
+	for _, h := range c.Hosts {
+		hosts = append(hosts, h.Host)
+	}
+	return hosts
+}
+
+func readOrCreateConfig() (*ClientConfig, error) {
+	config, err := readConfig()
+
+	if err != nil {
+		if errors.Is(err, ErrConfigNotFound) {
+			return NewClientConfig(), nil
+		}
+		return nil, err
+	}
+
+	if config == nil {
+		return NewClientConfig(), nil
+	}
+
+	return config, nil
 }
 
 func NewClientConfig() *ClientConfig {
