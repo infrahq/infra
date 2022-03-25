@@ -293,7 +293,6 @@ func runSetupForLogin(client *api.Client) (string, error) {
 
 func getAPIClient(host string, skipTLSVerify *bool) (*api.Client, error) {
 	if !*skipTLSVerify {
-		// Updates skipTLSVerify option if user decides to skip
 		if err := verifyTLS(host); err != nil {
 			if !errors.Is(err, ErrTLS) {
 				return nil, err
