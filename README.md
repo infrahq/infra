@@ -105,9 +105,10 @@ server:
         resource: kubernetes.example-cluster # limit access to the `example-cluster` Kubernetes cluster
 
     # Example of granting `connect` access to a group. `connect` means the user can authenticate with the destination, but has no other specific permissions. This is useful when your permissions are handled outside of Infra. "role: connect" is the default role, so the following two grants are identical:
-      - group: Everyone
+      - group: Engineering
         role: connect
         resource: kubernetes.example-cluster
+
       - group: Everyone
         resource: kubernetes.example-cluster
 ```
