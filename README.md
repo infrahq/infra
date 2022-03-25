@@ -81,25 +81,25 @@ This will output the Infra Access Key which you will use to login, please store 
 **LoadBalancer**
 
 ```bash
-kubectl -n infrahq patch service infra-server -p '{"spec": {"type": "LoadBalancer"}}'
+kubectl patch service infra-server -p '{"spec": {"type": "LoadBalancer"}}'
 ```
 
 Note: It may take a few minutes for the LoadBalancer endpoint to be assigned. You can watch the status of the service with:
 
 ```bash
-kubectl -n infrahq get service infra-server -w
+kubectl get service infra-server -w
 ```
 
 Once the endpoint is ready, get the Infra API server URL.
 
 ```bash
-kubectl -n infrahq get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}"
+kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}"
 ```
 
 **Ingress**
 
 ```bash
-kubectl -n infrahq get ingress infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}"
+kubectl get ingress infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}"
 ```
 
 </details>
