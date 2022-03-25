@@ -265,8 +265,8 @@ func (n *NativeCertificateProvider) SignCertificate(csr x509.CertificateRequest)
 		EmailAddresses:     csr.EmailAddresses,
 		Extensions:         csr.Extensions,      // TODO: security issue?
 		ExtraExtensions:    csr.ExtraExtensions, // TODO: security issue?
-		NotBefore:          time.Now().Add(-5 * time.Minute),
-		NotAfter:           time.Now().Add(24 * time.Hour),
+		NotBefore:          time.Now().Add(-5 * time.Minute).UTC(),
+		NotAfter:           time.Now().Add(24 * time.Hour).UTC(),
 		KeyUsage:           x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 		ExtKeyUsage:        []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 	}
@@ -341,8 +341,8 @@ func createCertSignedBy(signer, signee KeyPair, lifetime time.Duration) (*x509.C
 		SerialNumber:       serial,
 		Issuer:             pkix.Name{CommonName: rootCAName},
 		Subject:            pkix.Name{CommonName: rootCAName},
-		NotBefore:          time.Now().Add(-5 * time.Minute),
-		NotAfter:           time.Now().Add(lifetime),
+		NotBefore:          time.Now().Add(-5 * time.Minute).UTC(),
+		NotAfter:           time.Now().Add(lifetime).UTC(),
 		KeyUsage: x509.KeyUsageCertSign |
 			x509.KeyUsageDigitalSignature |
 			x509.KeyUsageCRLSign |

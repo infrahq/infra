@@ -15,16 +15,16 @@ import (
 )
 
 func CreateAccessKey(db *gorm.DB, accessKey *models.AccessKey) (body string, err error) {
-	if accessKey.Key == "" {
+	if accessKey.KeyID == "" {
 		key, err := generate.CryptoRandom(models.AccessKeyKeyLength)
 		if err != nil {
 			return "", err
 		}
 
-		accessKey.Key = key
+		accessKey.KeyID = key
 	}
 
-	if len(accessKey.Key) != models.AccessKeyKeyLength {
+	if len(accessKey.KeyID) != models.AccessKeyKeyLength {
 		return "", fmt.Errorf("invalid key length")
 	}
 
@@ -45,7 +45,7 @@ func CreateAccessKey(db *gorm.DB, accessKey *models.AccessKey) (body string, err
 	accessKey.SecretChecksum = chksm[:]
 
 	if accessKey.ExpiresAt.IsZero() {
-		accessKey.ExpiresAt = time.Now().Add(time.Hour * 12)
+		accessKey.ExpiresAt = time.Now().Add(time.Hour * 12).UTC()
 	}
 
 	if accessKey.Name == "" {
@@ -60,7 +60,7 @@ func CreateAccessKey(db *gorm.DB, accessKey *models.AccessKey) (body string, err
 		return "", err
 	}
 
-	return fmt.Sprintf("%s.%s", accessKey.Key, accessKey.Secret), nil
+	return fmt.Sprintf("%s.%s", accessKey.KeyID, accessKey.Secret), nil
 }
 
 func SaveAccessKey(db *gorm.DB, key *models.AccessKey) error {
@@ -99,7 +99,7 @@ func ValidateAccessKey(db *gorm.DB, authnKey string) (*models.AccessKey, error) 
 		return nil, fmt.Errorf("rejected access key format")
 	}
 
-	t, err := GetAccessKey(db, ByKey(parts[0]))
+	t, err := GetAccessKey(db, ByKeyID(parts[0]))
 	if err != nil {
 		return nil, fmt.Errorf("%w: could not get access key from database, it may not exist", err)
 	}
@@ -114,11 +114,11 @@ func ValidateAccessKey(db *gorm.DB, authnKey string) (*models.AccessKey, error) 
 	}
 
 	if !t.ExtensionDeadline.IsZero() {
-		if !time.Now().Before(t.ExtensionDeadline) {
+		if time.Now().After(t.ExtensionDeadline) {
 			return nil, fmt.Errorf("token extension deadline exceeded")
 		}
 
-		t.ExtensionDeadline = time.Now().Add(t.Extension)
+		t.ExtensionDeadline = time.Now().Add(t.Extension).UTC()
 		if err := SaveAccessKey(db, t); err != nil {
 			return nil, err
 		}

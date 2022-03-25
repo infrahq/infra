@@ -272,7 +272,7 @@ func (s *Server) loadCertificates() (err error) {
 
 func serve(server *http.Server) {
 	if err := server.ListenAndServe(); err != nil {
-		logging.S.Errorf("server: %w", err)
+		logging.S.Errorf("server: %s", err)
 	}
 }
 
@@ -613,7 +613,7 @@ func (s *Server) setupRequired() bool {
 
 	machines, err := data.ListMachines(s.db, data.ByName("admin"))
 	if err != nil {
-		logging.S.Errorf("machines: %w", err)
+		logging.S.Errorf("machines: %s", err)
 		return false
 	}
 

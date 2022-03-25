@@ -105,7 +105,7 @@ func newDestinationsAddCmd() *cobra.Command {
 			accessKey, err := client.CreateAccessKey(&api.CreateAccessKeyRequest{
 				MachineID: created.ID,
 				Name:      fmt.Sprintf("%s destination access key", args[0]),
-				TTL:       lifetime.String(),
+				TTL:       api.Duration(lifetime),
 			})
 			if err != nil {
 				return err

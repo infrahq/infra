@@ -50,8 +50,8 @@ func MakeUserCert(commonName string, lifetime time.Duration) (*KeyPair, error) {
 		PublicKey:          pub,
 		SerialNumber:       big.NewInt(rand.Int63()), //nolint:gosec
 		Subject:            pkix.Name{CommonName: commonName},
-		NotBefore:          time.Now().Add(-5 * time.Minute),
-		NotAfter:           time.Now().Add(lifetime),
+		NotBefore:          time.Now().Add(-5 * time.Minute).UTC(),
+		NotAfter:           time.Now().Add(lifetime).UTC(),
 		KeyUsage:           x509.KeyUsageDataEncipherment | x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:        []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 	}

@@ -18,8 +18,8 @@ type Group struct {
 func (g *Group) ToAPI() *api.Group {
 	return &api.Group{
 		ID:         g.ID,
-		Created:    g.CreatedAt.Unix(),
-		Updated:    g.UpdatedAt.Unix(),
+		Created:    api.Time(g.CreatedAt),
+		Updated:    api.Time(g.UpdatedAt),
 		Name:       g.Name,
 		ProviderID: g.ProviderID,
 	}

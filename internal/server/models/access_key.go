@@ -21,7 +21,7 @@ type AccessKey struct {
 	Extension         time.Duration // how long to increase the lifetime extension deadline by
 	ExtensionDeadline time.Time
 
-	Key            string `gorm:"<-;uniqueIndex:,where:deleted_at is NULL"`
+	KeyID          string `gorm:"<-;uniqueIndex:,where:deleted_at is NULL"`
 	Secret         string `gorm:"-"`
 	SecretChecksum []byte
 }

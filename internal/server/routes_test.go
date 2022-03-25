@@ -2,12 +2,14 @@ package server
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
@@ -124,4 +126,35 @@ func TestGetRoute(t *testing.T) {
 	}
 
 	require.EqualValues(t, http.StatusOK, w.Code)
+}
+
+func TestTimestampAndDurationSerialization(t *testing.T) {
+	c, _ := gin.CreateTestContext(nil)
+
+	uri, err := url.Parse("/foo")
+	require.NoError(t, err)
+
+	orig := `{"deadline":"2022-03-23T17:50:59Z","extension":"1h35m0s"}`
+	body := bytes.NewBufferString(orig)
+	c.Request = &http.Request{
+		URL:           uri,
+		Method:        "GET",
+		Body:          io.NopCloser(body),
+		ContentLength: int64(body.Len()),
+		Header:        http.Header{"Content-Type": []string{"application/json"}},
+	}
+	r := &struct {
+		Deadline  api.Time     `json:"deadline"`
+		Extension api.Duration `json:"extension"`
+	}{}
+	err = bind(c, r)
+	require.NoError(t, err)
+
+	require.EqualValues(t, time.Date(2022, 3, 23, 17, 50, 59, 0, time.UTC), r.Deadline)
+	require.EqualValues(t, 1*time.Hour+35*time.Minute, r.Extension)
+
+	result, err := json.Marshal(r)
+	require.NoError(t, err)
+
+	require.Equal(t, orig, string(result))
 }

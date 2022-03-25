@@ -26,6 +26,19 @@ func migrate(db *gorm.DB) error {
 				return tx.Migrator().RenameColumn(&models.Grant{}, "subject", "identity")
 			},
 		},
+		{
+			ID: "202203241643", // current date
+			Migrate: func(tx *gorm.DB) error {
+				if tx.Migrator().HasColumn(&models.AccessKey{}, "key") {
+					return tx.Migrator().RenameColumn(&models.AccessKey{}, "key", "key_id")
+				}
+
+				return nil
+			},
+			Rollback: func(tx *gorm.DB) error {
+				return tx.Migrator().RenameColumn(&models.AccessKey{}, "key_id", "key")
+			},
+		},
 		// next one here
 	})
 

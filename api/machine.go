@@ -1,15 +1,17 @@
 package api
 
-import "github.com/infrahq/infra/uid"
+import (
+	"github.com/infrahq/infra/uid"
+)
 
 // Machine struct for Machine Identities
 type Machine struct {
 	ID      uid.ID `json:"id"`
-	Created int64  `json:"created"`
+	Created Time   `json:"created"`
 	// updated time in seconds since 1970-01-01
-	Updated int64 `json:"updated"`
+	Updated Time `json:"updated"`
 	// timestamp of this machine's last interaction with Infra in seconds since 1970-01-01
-	LastSeenAt  int64  `json:"lastSeenAt"`
+	LastSeenAt  Time   `json:"lastSeenAt"`
 	Name        string `json:"name" validate:"max=256,required"`
 	Description string `json:"description"`
 }
