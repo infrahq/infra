@@ -403,7 +403,7 @@ func authenticationOptions(client *api.Client) ([]string, []api.Provider, uid.ID
 
 	if localUsersEnabled {
 		// this is separate so that it appears as the bottom of the list
-		options = append(options, "Email and Password")
+		options = append(options, "Login with Email and Password")
 	}
 
 	options = append(options, "Login with Access Key")
@@ -438,7 +438,7 @@ func checkDoSetup(client *api.Client) (string, error) {
 // setupAccessKeyExchangeLogin prompts for the access key to login to Infra
 func setupAccessKeyExchangeLogin(loginReq *api.LoginRequest, accessKey string) error {
 	if accessKey == "" {
-		if err := survey.AskOne(&survey.Password{Message: "Access Key:"}, &accessKey, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
+		if err := survey.AskOne(&survey.Password{Message: "Access Key:"}, &accessKey, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithValidator(survey.Required)); err != nil {
 			return err
 		}
 	}
@@ -460,12 +460,12 @@ func setupEmailAndPasswordLogin(loginReq *api.LoginRequest) error {
 	emailPassPrompt := []*survey.Question{
 		{
 			Name:     "Email",
-			Prompt:   &survey.Input{Message: "Email: "},
+			Prompt:   &survey.Input{Message: "Email:"},
 			Validate: survey.Required,
 		},
 		{
 			Name:     "Password",
-			Prompt:   &survey.Password{Message: "Password: "},
+			Prompt:   &survey.Password{Message: "Password:"},
 			Validate: survey.Required,
 		},
 	}
