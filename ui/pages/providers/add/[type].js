@@ -37,7 +37,7 @@ export const Footer = styled.section`
 `
 
 const Details = () => {
-  const { cookie, setNewProvider } = useContext(AuthContext)
+  const { setNewProvider } = useContext(AuthContext)
 
   const router = useRouter()
   const { type } = router.query
@@ -70,10 +70,9 @@ const Details = () => {
 
   const moveToNext = async () => {
     await axios.post('/v1/providers',
-      { name: value.name, url: value.domain, clientID: value.clientId, clientSecret: value.clientSecret },
-      { headers: { Authorization: `Bearer ${cookie.accessKey}` } })
+      { name: value.name, url: value.domain, clientID: value.clientId, clientSecret: value.clientSecret })
       .then((response) => {
-        setNewProvider(response.data)
+        setNewProvider([response.data])
         addAdmins()
       }).catch((error) => {
         console.log('error:', error)
@@ -87,7 +86,7 @@ const Details = () => {
           {content(type)}
         </AddContainerContent>
         <Nav>
-          <ExitButton />
+          <ExitButton previousPage='/providers' />
         </Nav>
       </AddContainer>
       <Footer>

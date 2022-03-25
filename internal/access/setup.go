@@ -52,7 +52,7 @@ func Setup(c *gin.Context) (string, *models.AccessKey, error) {
 
 	key := &models.AccessKey{
 		Name:      fmt.Sprintf("%s access key", name),
-		IssuedFor: machine.PolymorphicIdentifier(),
+		IssuedFor: machine.PolyID(),
 		ExpiresAt: time.Now().Add(math.MaxInt64),
 	}
 
@@ -62,7 +62,7 @@ func Setup(c *gin.Context) (string, *models.AccessKey, error) {
 	}
 
 	grant := &models.Grant{
-		Identity:  machine.PolymorphicIdentifier(),
+		Subject:   machine.PolyID(),
 		Privilege: models.InfraAdminRole,
 		Resource:  "infra",
 	}

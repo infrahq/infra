@@ -25,6 +25,6 @@ func (g *Group) ToAPI() *api.Group {
 	}
 }
 
-func (g *Group) PolymorphicIdentifier() uid.PolymorphicID {
+func (g *Group) PolyID() uid.PolymorphicID {
 	return uid.NewGroupPolymorphicID(g.ID)
 }

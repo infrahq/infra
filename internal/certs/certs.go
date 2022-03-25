@@ -89,7 +89,7 @@ func SelfSignedOrLetsEncryptCert(manager *autocert.Manager, serverName string) f
 			serverName = hello.Conn.LocalAddr().String()
 		}
 
-		certBytes, err := manager.Cache.Get(context.TODO(), serverName)
+		certBytes, err := manager.Cache.Get(context.TODO(), serverName+".crt")
 		if err != nil {
 			logging.S.Warnf("cert: %w", err)
 		}
@@ -99,13 +99,14 @@ func SelfSignedOrLetsEncryptCert(manager *autocert.Manager, serverName string) f
 			logging.S.Warnf("key: %w", err)
 		}
 
-		if certBytes == nil && keyBytes == nil {
+		// if either cert or key is missing, create it
+		if certBytes == nil || keyBytes == nil {
 			certBytes, keyBytes, err = SelfSignedCert([]string{serverName})
 			if err != nil {
 				return nil, err
 			}
 
-			if err := manager.Cache.Put(context.TODO(), serverName, certBytes); err != nil {
+			if err := manager.Cache.Put(context.TODO(), serverName+".crt", certBytes); err != nil {
 				return nil, err
 			}
 

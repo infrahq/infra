@@ -26,10 +26,10 @@ func TestLoginWithUserCredential(t *testing.T) {
 	err := data.CreateUser(db, admin)
 	require.NoError(t, err)
 
-	c.Set("identity", admin.PolymorphicIdentifier())
+	c.Set("identity", admin.PolyID())
 
 	adminGrant := &models.Grant{
-		Identity:  admin.PolymorphicIdentifier(),
+		Subject:   admin.PolyID(),
 		Privilege: models.InfraAdminRole,
 		Resource:  "infra",
 	}
@@ -92,7 +92,7 @@ func TestLoginWithUserCredential(t *testing.T) {
 				require.NoError(t, err)
 
 				userCredential := &models.Credential{
-					Identity:     user.PolymorphicIdentifier(),
+					Identity:     user.PolyID(),
 					PasswordHash: hash,
 				}
 
@@ -119,7 +119,7 @@ func TestLoginWithUserCredential(t *testing.T) {
 				require.NoError(t, err)
 
 				userCredential := &models.Credential{
-					Identity:     user.PolymorphicIdentifier(),
+					Identity:     user.PolyID(),
 					PasswordHash: hash,
 				}
 
@@ -149,7 +149,7 @@ func TestLoginWithUserCredential(t *testing.T) {
 				require.NoError(t, err)
 
 				userCredential := &models.Credential{
-					Identity:     user.PolymorphicIdentifier(),
+					Identity:     user.PolyID(),
 					PasswordHash: hash,
 				}
 
@@ -173,7 +173,7 @@ func TestLoginWithUserCredential(t *testing.T) {
 				require.NoError(t, err)
 
 				userCredential := &models.Credential{
-					Identity:     user.PolymorphicIdentifier(),
+					Identity:     user.PolyID(),
 					PasswordHash: hash,
 				}
 

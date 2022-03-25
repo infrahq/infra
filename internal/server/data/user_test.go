@@ -119,7 +119,7 @@ func TestDeleteUser(t *testing.T) {
 	err = DeleteUsers(db, ByEmail(bond.Email))
 	require.NoError(t, err)
 
-	// deleting an user should not delete unrelated users
+	// deleting a user should not delete unrelated users
 	_, err = GetUser(db, ByEmail(bourne.Email))
 	require.NoError(t, err)
 }

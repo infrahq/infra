@@ -13,13 +13,14 @@ import (
 	"gopkg.in/square/go-jose.v2/jwt"
 
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
 // UserInfo captures the fields from a user-info response that we care about
 type UserInfo struct {
-	Email  string   `json:"email"`
-	Groups []string `json:"groups"`
+	Email  string    `json:"email"`
+	Groups *[]string `json:"groups"`
 }
 
 type OIDC interface {
@@ -101,7 +102,8 @@ func (o *oidcImplementation) ExchangeAuthCodeForProviderTokens(code string) (raw
 
 	rawRefreshToken, ok = exchanged.Extra("refresh_token").(string)
 	if !ok {
-		return "", "", time.Time{}, "", errors.New("could not extract refresh token from oauth2")
+		// this probably means that the client does not have refresh tokens enabled
+		logging.S.Warnf("no refresh token returned from oidc client for %q, session lifetime will be reduced", o.Domain)
 	}
 
 	rawIDToken, ok := exchanged.Extra("id_token").(string)
@@ -184,6 +186,10 @@ func (o *oidcImplementation) GetUserInfo(providerTokens *models.ProviderToken) (
 	err = json.NewDecoder(resp.Body).Decode(info)
 	if err != nil {
 		return nil, fmt.Errorf("decode user info response: %w", err)
+	}
+
+	if info.Groups == nil {
+		logging.S.Warnf("no groups returned on user info from %q", o.Domain)
 	}
 
 	return info, nil

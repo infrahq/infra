@@ -72,6 +72,11 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 		return nil, err
 	}
 
+	defaultGrant := &models.Grant{Subject: user.PolyID(), Privilege: models.InfraUserRole, Resource: "infra"}
+	if err := access.CreateGrant(c, defaultGrant); err != nil {
+		return nil, err
+	}
+
 	var oneTimePassword string
 	if provider.Name == models.InternalInfraProviderName {
 		oneTimePassword, err = access.CreateCredential(c, *user)
@@ -500,7 +505,7 @@ func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*a
 }
 
 func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) ([]api.Grant, error) {
-	grants, err := access.ListGrants(c, r.Identity, r.Resource, r.Privilege)
+	grants, err := access.ListGrants(c, r.Subject, r.Resource, r.Privilege)
 	if err != nil {
 		return nil, err
 	}
@@ -528,7 +533,7 @@ func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.Grant
 	grant := &models.Grant{
 		Resource:  r.Resource,
 		Privilege: r.Privilege,
-		Identity:  r.Identity,
+		Subject:   r.Subject,
 	}
 
 	err := access.CreateGrant(c, grant)
@@ -594,12 +599,12 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 		setAuthCookie(c, key, a.server.options.SessionDuration)
 
 		if a.t != nil {
-			if err := a.t.Enqueue(analytics.Track{Event: "infra.login.oidc", UserId: user.PolymorphicIdentifier().String()}); err != nil {
+			if err := a.t.Enqueue(analytics.Track{Event: "infra.login.oidc", UserId: user.PolyID().String()}); err != nil {
 				logging.S.Debug(err)
 			}
 		}
 
-		return &api.LoginResponse{PolymorphicID: user.PolymorphicIdentifier(), Name: user.Email, AccessKey: key}, nil
+		return &api.LoginResponse{PolymorphicID: user.PolyID(), Name: user.Email, AccessKey: key}, nil
 	case r.AccessKey != "":
 		expires := time.Now().Add(a.server.options.SessionDuration)
 
@@ -611,12 +616,12 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 		setAuthCookie(c, key, a.server.options.SessionDuration)
 
 		if a.t != nil {
-			if err := a.t.Enqueue(analytics.Track{Event: "infra.login.exchange", UserId: machine.PolymorphicIdentifier().String()}); err != nil {
+			if err := a.t.Enqueue(analytics.Track{Event: "infra.login.exchange", UserId: machine.PolyID().String()}); err != nil {
 				logging.S.Debug(err)
 			}
 		}
 
-		return &api.LoginResponse{PolymorphicID: machine.PolymorphicIdentifier(), Name: machine.Name, AccessKey: key}, nil
+		return &api.LoginResponse{PolymorphicID: machine.PolyID(), Name: machine.Name, AccessKey: key}, nil
 	case r.PasswordCredentials != nil:
 		expires := time.Now().Add(a.server.options.SessionDuration)
 
@@ -628,12 +633,12 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 		setAuthCookie(c, key, a.server.options.SessionDuration)
 
 		if a.t != nil {
-			if err := a.t.Enqueue(analytics.Track{Event: "infra.login.credentials", UserId: user.PolymorphicIdentifier().String()}); err != nil {
+			if err := a.t.Enqueue(analytics.Track{Event: "infra.login.credentials", UserId: user.PolyID().String()}); err != nil {
 				logging.S.Debug(err)
 			}
 		}
 
-		return &api.LoginResponse{PolymorphicID: user.PolymorphicIdentifier(), Name: user.Email, AccessKey: key, PasswordUpdateRequired: requiresUpdate}, nil
+		return &api.LoginResponse{PolymorphicID: user.PolyID(), Name: user.Email, AccessKey: key, PasswordUpdateRequired: requiresUpdate}, nil
 	}
 
 	return nil, api.ErrBadRequest

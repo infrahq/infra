@@ -89,21 +89,25 @@ func UpdateUserInfo(c *gin.Context, info *authn.UserInfo, user *models.User, pro
 	// add user to groups they are currently in
 	var groups []models.Group
 
-	for _, name := range info.Groups {
-		group, err := data.GetGroup(db, data.ByName(name))
-		if err != nil {
-			if !errors.Is(err, internal.ErrNotFound) {
-				return fmt.Errorf("get group: %w", err)
+	if info.Groups != nil {
+		for i := range *info.Groups {
+			name := (*info.Groups)[i]
+
+			group, err := data.GetGroup(db, data.ByName(name))
+			if err != nil {
+				if !errors.Is(err, internal.ErrNotFound) {
+					return fmt.Errorf("get group: %w", err)
+				}
+
+				group = &models.Group{Name: name}
+
+				if err = data.CreateGroup(db, group); err != nil {
+					return fmt.Errorf("create group: %w", err)
+				}
 			}
 
-			group = &models.Group{Name: name}
-
-			if err = data.CreateGroup(db, group); err != nil {
-				return fmt.Errorf("create group: %w", err)
-			}
+			groups = append(groups, *group)
 		}
-
-		groups = append(groups, *group)
 	}
 
 	// remove user from groups they are no longer in

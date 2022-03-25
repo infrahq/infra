@@ -491,7 +491,7 @@ func (s *Server) importAccessKeys() error {
 
 		parts := strings.Split(raw, ".")
 		if len(parts) < 2 {
-			return fmt.Errorf("%s format: %w", k, err)
+			return fmt.Errorf("%s format: invalid token; expected two parts separated by a '.' character", k)
 		}
 
 		// create the machine identity if it doesn't exist
@@ -513,14 +513,14 @@ func (s *Server) importAccessKeys() error {
 			}
 
 			grant := &models.Grant{
-				Identity:  machine.PolymorphicIdentifier(),
+				Subject:   machine.PolyID(),
 				Privilege: v.Role,
 				Resource:  "infra",
 			}
 
 			err = data.CreateGrant(s.db, grant)
 			if err != nil {
-				return fmt.Errorf("create identity: %w", err)
+				return fmt.Errorf("create grant: %w", err)
 			}
 		}
 
@@ -537,7 +537,7 @@ func (s *Server) importAccessKeys() error {
 			sum := sha256.Sum256([]byte(parts[1]))
 
 			// if token name, key, and secret checksum match input, skip recreating the token
-			if accessKey.Name == name && subtle.ConstantTimeCompare([]byte(accessKey.Key), []byte(parts[0])) != 1 && subtle.ConstantTimeCompare(accessKey.SecretChecksum, sum[:]) != 1 {
+			if accessKey.Name == name && subtle.ConstantTimeCompare([]byte(accessKey.Key), []byte(parts[0])) == 1 && subtle.ConstantTimeCompare(accessKey.SecretChecksum, sum[:]) == 1 {
 				logging.S.Debugf("%s: skip recreating token", k)
 				continue
 			}
@@ -552,7 +552,7 @@ func (s *Server) importAccessKeys() error {
 			Name:      name,
 			Key:       parts[0],
 			Secret:    parts[1],
-			IssuedFor: machine.PolymorphicIdentifier(),
+			IssuedFor: machine.PolyID(),
 			ExpiresAt: time.Now().Add(math.MaxInt64),
 		}
 		if _, err := data.CreateAccessKey(s.db, accessKey); err != nil {
@@ -770,14 +770,18 @@ func loadGrant(db *gorm.DB, input Grant, providers map[string]uid.ID) (*models.G
 		return nil, errors.New("invalid grant: missing identity")
 	}
 
-	grant, err := data.GetGrant(db, data.ByIdentity(id), data.ByResource(input.Resource), data.ByPrivilege(input.Role))
+	if len(input.Role) == 0 {
+		input.Role = models.BasePermissionConnect
+	}
+
+	grant, err := data.GetGrant(db, data.BySubject(id), data.ByResource(input.Resource), data.ByPrivilege(input.Role))
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return nil, err
 		}
 
 		grant = &models.Grant{
-			Identity:  id,
+			Subject:   id,
 			Resource:  input.Resource,
 			Privilege: input.Role,
 			CreatedBy: models.CreatedByConfig,

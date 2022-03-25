@@ -7,25 +7,25 @@ import (
 type Grant struct {
 	ID uid.ID `json:"id"`
 
-	Created   int64  `json:"created"`    // created time in seconds since 1970-01-01 00:00:00 UTC
-	CreatedBy uid.ID `json:"created_by"` // id of user who created the grant
-	Updated   int64  `json:"updated"`    // updated time in seconds since 1970-01-01 00:00:00 UTC
+	Created   int64  `json:"created"` // created time in seconds since 1970-01-01 00:00:00 UTC
+	CreatedBy uid.ID `json:"created_by" note:"id of the identity that created the grant"`
+	Updated   int64  `json:"updated"` // updated time in seconds since 1970-01-01 00:00:00 UTC
 
-	Identity  uid.PolymorphicID `json:"identity"`
-	Privilege string            `json:"privilege"` // role or permission
-	Resource  string            `json:"resource"`  // Universal Resource Notation
+	Subject   uid.PolymorphicID `json:"subject" note:"a polymorphic field primarily expecting an user, or group ID"`
+	Privilege string            `json:"privilege" note:"a role or permission"`
+	Resource  string            `json:"resource" note:"a resource name in Infra's Universal Resource Notation"`
 
-	ExpiresAt *int64 `json:"expires_at"` // time this grant expires at in seconds since 1970-01-01 00:00:00 UTC
+	ExpiresAt *int64 `json:"expires_at" note:"grant expires after this time"`
 }
 
 type ListGrantsRequest struct {
-	Identity  uid.PolymorphicID `form:"identity"`
+	Subject   uid.PolymorphicID `form:"subject"`
 	Resource  string            `form:"resource" example:"kubernetes.production"`
 	Privilege string            `form:"privilege" example:"view"`
 }
 
 type CreateGrantRequest struct {
-	Identity  uid.PolymorphicID `json:"identity" validate:"required"`
-	Resource  string            `json:"resource" validate:"required" example:"kubernetes.production"`
-	Privilege string            `json:"privilege" validate:"required" example:"view"`
+	Subject   uid.PolymorphicID `json:"subject" validate:"required" note:"a polymorphic field primarily expecting a user, machine, or group ID"`
+	Privilege string            `json:"privilege" validate:"required" example:"view" note:"a role or permission"`
+	Resource  string            `json:"resource" validate:"required" example:"kubernetes.production" note:"a resource name in Infra's Universal Resource Notation"`
 }
