@@ -337,7 +337,7 @@ func verifyTLS(host string) error {
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		if !errors.As(err, &x509.UnknownAuthorityError{}) && !errors.As(err, &x509.HostnameError{}) && !strings.Contains(err.Error(), "certificate is not trusted") {
-			logging.S.Debug("Cannot validate TLS due to an unexpected error", err)
+			logging.S.Debugf("Cannot validate TLS due to an unexpected error: %v", err)
 			return err
 		}
 
