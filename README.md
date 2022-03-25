@@ -79,7 +79,7 @@ This will output the Infra Access Key which you will use to login, please store 
 ### 4. Connect the first Kubernetes cluster
 
 ```
-infra destinations add kubernetes example-name
+infra destinations add kubernetes.example-name
 ``` 
 
 ### 5. Create the first local user 
