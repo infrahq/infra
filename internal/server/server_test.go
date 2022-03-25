@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap/zaptest"
 
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/secrets"
 	"github.com/infrahq/infra/uid"
@@ -859,4 +860,8 @@ func TestImportAccessKeysUpdate(t *testing.T) {
 
 	err = s.importAccessKeys()
 	require.NoError(t, err)
+
+	accessKey, err := data.GetAccessKey(s.db, data.ByName("default admin access key"))
+	require.NoError(t, err)
+	require.Equal(t, accessKey.Key, "EKoHADINYX")
 }
