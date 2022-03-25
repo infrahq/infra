@@ -271,7 +271,7 @@ func checkNameOrEmail(s string) (string, string, error) {
 
 	address, err := mail.ParseAddress(s)
 	if err != nil {
-		return "", "", fmt.Errorf("invalid email: %s", s)
+		return "", "", fmt.Errorf("invalid email: %q", s)
 	}
 
 	return "", address.Address, nil
