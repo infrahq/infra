@@ -179,7 +179,7 @@ func newLoginCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "login [SERVER]",
 		Short:   "Login to Infra",
-		Example: "$ infra login",
+		Example: loginExample,
 		Args:    cobra.MaximumNArgs(1),
 		Group:   "Core commands:",
 		RunE: func(cmd *cobra.Command, args []string) error {

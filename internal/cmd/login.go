@@ -306,7 +306,7 @@ func getAPIClient(host string, skipTLSVerify *bool) (*api.Client, error) {
 			}
 
 			if isNonInteractiveMode() {
-				return nil, errors.New(ErrTLS.Error() + " To continue, run with '--skip-tls-verify'")
+				return nil, errors.New(ErrTLS.Error() + "\nTo continue with the insecure connection, run with '--skip-tls-verify'")
 			}
 
 			if err = promptSkipTLSVerify(); err != nil {
