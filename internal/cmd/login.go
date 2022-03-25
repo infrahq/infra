@@ -61,15 +61,18 @@ func login(host string, accessKey string, skipTLSVerify bool, providerName strin
 	loginReq := &api.LoginRequest{}
 	var provider api.Provider
 
-	if accessKey != "" {
+	switch {
+	case accessKey != "":
 		loginReq.AccessKey = accessKey
-	} else if providerName != "" {
+	case providerName != "":
 		provider, err := GetProviderByName(client, providerName)
 		if err != nil {
 			return err
 		}
-		loginToProvider(loginReq, *provider)
-	} else {
+		if err = loginToProvider(loginReq, *provider); err != nil {
+			return err
+		}
+	default:
 		if isNonInteractiveMode() {
 			return errors.New(`Non-interactive login requires key, instead run: 'infra login SERVER --key KEY'`)
 		}
@@ -290,7 +293,7 @@ func runSetupForLogin(client *api.Client) (string, error) {
 
 func getAPIClient(host string, skipTLSVerify *bool) (*api.Client, error) {
 	if !*skipTLSVerify {
-		//Updates skipTLSVerify option if user decides to skip
+		// Updates skipTLSVerify option if user decides to skip
 		if err := verifyTLS(host); err != nil {
 			if !errors.Is(err, ErrTLS) {
 				return nil, err
@@ -326,7 +329,6 @@ func verifyTLS(host string) error {
 	}
 
 	res, err := http.DefaultClient.Do(req)
-
 	if err != nil {
 		if !errors.As(err, &x509.UnknownAuthorityError{}) && !errors.As(err, &x509.HostnameError{}) && !strings.Contains(err.Error(), "certificate is not trusted") {
 			logging.S.Debug("Cannot validate TLS due to an unexpected error", err)
@@ -405,15 +407,16 @@ func promptLoginOptions(providers []api.Provider, loginReq *api.LoginRequest) (a
 		return provider, err
 	}
 
-	if option == len(providers) {
+	switch {
+	case option == len(providers):
 		if err = promptAccessKeyLogin(loginReq); err != nil {
 			return provider, err
 		}
-	} else if providers[option].Name == models.InternalInfraProviderName {
+	case providers[option].Name == models.InternalInfraProviderName:
 		if err = promptLocalLogin(loginReq); err != nil {
 			return provider, err
 		}
-	} else {
+	default:
 		if err = loginToProvider(loginReq, providers[option]); err != nil {
 			return provider, err
 		}
