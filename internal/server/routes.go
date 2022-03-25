@@ -18,7 +18,7 @@ type (
 	ReqResHandlerFunc[Req, Res any] func(c *gin.Context, req *Req) (Res, error)
 )
 
-func (a *API) registerRoutes(router *gin.RouterGroup) {
+func (a *API) registerRoutes(router *gin.Engine) {
 	router.Use(
 		sentrygin.New(sentrygin.Options{}),
 		metrics.Middleware(),
@@ -28,9 +28,8 @@ func (a *API) registerRoutes(router *gin.RouterGroup) {
 		DatabaseMiddleware(a.server.db),
 	)
 
-	authorized := router.Group("/",
-		AuthenticationMiddleware(),
-	)
+	v1 := router.Group("/v1")
+	authorized := v1.Group("/", AuthenticationMiddleware())
 
 	{
 		get(authorized, "/users", a.ListUsers)
@@ -79,7 +78,7 @@ func (a *API) registerRoutes(router *gin.RouterGroup) {
 	}
 
 	// these endpoints are left unauthenticated
-	unauthorized := router.Group("/")
+	unauthorized := v1.Group("/")
 
 	{
 		get(unauthorized, "/setup", a.SetupRequired)
@@ -92,6 +91,10 @@ func (a *API) registerRoutes(router *gin.RouterGroup) {
 
 		get(unauthorized, "/version", a.Version)
 	}
+
+	// pprof.Index does not work with a /v1 prefix
+	debug := router.Group("/debug/pprof", AuthenticationMiddleware())
+	debug.GET("/*profile", pprofHandler)
 }
 
 func get[Req, Res any](r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) {
