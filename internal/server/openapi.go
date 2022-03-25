@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -17,6 +16,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal"
 )
 
 var (
@@ -128,18 +128,16 @@ func getFuncName(i interface{}) string {
 	nameParts := strings.Split(name, ".")
 	name = nameParts[len(nameParts)-1]
 	name = strings.TrimSuffix(name, "-fm")
-
 	return name
 }
 
 func orderedTagNames() []string {
-	tagNames := []string{}
+	tagNames := make([]string, 0, len(funcPartialNameToTagNames))
 	for k := range funcPartialNameToTagNames {
 		tagNames = append(tagNames, k)
 	}
 
 	sort.Strings(tagNames)
-
 	return tagNames
 }
 
@@ -218,98 +216,36 @@ func buildProperty(f reflect.StructField, t, parent reflect.Type, parentSchema *
 	}
 }
 
-func isDev() bool {
-	dirs := []string{".git", "docs"}
-	for _, dir := range dirs {
-		info, err := os.Stat(dir)
-		if err != nil {
-			return false
-		}
-
-		if !info.IsDir() {
-			return false
-		}
-	}
-
-	return true
-}
-
-func generateOpenAPI() {
-	if !isDev() {
-		return
-	}
-
-	openAPISchema.OpenAPI = "3.0.0"
-	openAPISchema.Info = &openapi3.Info{
+func writeOpenAPISpec(spec openapi3.T, out io.Writer) error {
+	spec.OpenAPI = "3.0.0"
+	spec.Info = &openapi3.Info{
 		Title:       "Infra API",
-		Version:     time.Now().Format("2006-01-02"),
+		Version:     internal.Version,
 		Description: "Infra API",
 		License:     &openapi3.License{Name: "Apache 2.0", URL: "https://www.apache.org/licenses/LICENSE-2.0.html"},
 	}
-	openAPISchema.Servers = append(openAPISchema.Servers, &openapi3.Server{
-		URL: "https://api.infrahq.com",
-	})
-
-	if changedSinceLastRun() {
-		f2, err := os.Create("docs/api/openapi3.json")
-		if err != nil {
-			panic(err)
-		}
-		defer f2.Close()
-		enc2 := json.NewEncoder(f2)
-		enc2.SetIndent("", "  ")
-
-		if err := enc2.Encode(openAPISchema); err != nil {
-			panic(err)
-		}
+	spec.Servers = []*openapi3.Server{
+		{URL: "https://api.infrahq.com"},
 	}
+	encoder := json.NewEncoder(out)
+	encoder.SetIndent("", "  ")
+
+	if err := encoder.Encode(spec); err != nil {
+		return fmt.Errorf("failed to write schema: %w", err)
+	}
+	return nil
 }
 
-func changedSinceLastRun() bool {
-	origVersion := openAPISchema.Info.Version
-	defer func() {
-		openAPISchema.Info.Version = origVersion
-	}()
-
-	// read last file
-	f, err := os.Open("docs/api/openapi3.json")
+func WriteOpenAPISpecToFile(filename string) error {
+	fh, err := os.Create(filename)
 	if err != nil {
-		panic("expected docs/api/openapi3.json to exist but didn't find it: " + err.Error())
+		return err
 	}
-	defer f.Close()
-
-	oldOpenAPISchema := openapi3.T{}
-
-	err = json.NewDecoder(f).Decode(&oldOpenAPISchema)
-	if err != nil {
-		panic("couldn't parse last openapi schema: " + err.Error())
+	defer fh.Close()
+	if err := writeOpenAPISpec(openAPISchema, fh); err != nil {
+		return err
 	}
-
-	oldDate := oldOpenAPISchema.Info.Version
-
-	openAPISchema.Info.Version = oldDate
-
-	_, err = f.Seek(0, 0)
-	if err != nil {
-		panic(err)
-	}
-
-	bufLast := &bytes.Buffer{}
-
-	_, err = io.Copy(bufLast, f)
-	if err != nil {
-		panic("couldn't read file contents: " + err.Error())
-	}
-
-	bufTmp := &bytes.Buffer{}
-	enc2 := json.NewEncoder(bufTmp)
-	enc2.SetIndent("", "  ")
-
-	if err := enc2.Encode(openAPISchema); err != nil {
-		panic(err)
-	}
-
-	return !bytes.Equal(bufLast.Bytes(), bufTmp.Bytes())
+	return nil
 }
 
 func setTagInfo(f reflect.StructField, t, parent reflect.Type, schema, parentSchema *openapi3.Schema) {
@@ -319,6 +255,10 @@ func setTagInfo(f reflect.StructField, t, parent reflect.Type, schema, parentSch
 
 	if example, ok := f.Tag.Lookup("example"); ok {
 		schema.Example = example
+	}
+
+	if note, ok := f.Tag.Lookup("note"); ok {
+		schema.Description = note
 	}
 
 	if validate, ok := f.Tag.Lookup("validate"); ok {
@@ -533,6 +473,10 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 
 			if example, ok := f.Tag.Lookup("example"); ok {
 				p.Example = example
+			}
+
+			if note, ok := f.Tag.Lookup("note"); ok {
+				p.Description = note
 			}
 
 			if validate, ok := f.Tag.Lookup("validate"); ok {

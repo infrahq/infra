@@ -30,7 +30,7 @@ import (
 	"github.com/infrahq/infra/internal/claims"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/timer"
+	"github.com/infrahq/infra/internal/repeat"
 	"github.com/infrahq/infra/metrics"
 	"github.com/infrahq/infra/secrets"
 	"github.com/infrahq/infra/uid"
@@ -267,13 +267,13 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 	for _, g := range grants {
 		var name, kind string
 
-		id, err := g.Identity.ID()
+		id, err := g.Subject.ID()
 		if err != nil {
 			return err
 		}
 
 		switch {
-		case g.Identity.IsGroup():
+		case g.Subject.IsGroup():
 			group, err := c.GetGroup(id)
 			if err != nil {
 				return err
@@ -282,7 +282,7 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 			name = group.Name
 			kind = rbacv1.GroupKind
 
-		case g.Identity.IsUser():
+		case g.Subject.IsUser():
 			user, err := c.GetUser(id)
 			if err != nil {
 				return err
@@ -298,7 +298,7 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 
 			name = provider.Name + ":" + name
 
-		case g.Identity.IsMachine():
+		case g.Subject.IsMachine():
 			machine, err := c.GetMachine(id)
 			if err != nil {
 				return err
@@ -457,8 +457,9 @@ func Run(options Options) error {
 		chksm: chksm,
 	}
 
-	timer := timer.NewTimer()
-	timer.Start(5*time.Second, func() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	repeat.Start(ctx, 5*time.Second, func(context.Context) {
 		accessKey, err := secrets.GetSecret(options.AccessKey, basicSecretStorage)
 		if err != nil {
 			logging.S.Infof("%w", err)
@@ -560,8 +561,6 @@ func Run(options Options) error {
 			return
 		}
 	})
-
-	defer timer.Stop()
 
 	gin.SetMode(gin.ReleaseMode)
 

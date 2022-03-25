@@ -92,8 +92,6 @@ func (a *API) registerRoutes(router *gin.RouterGroup) {
 
 		get(unauthorized, "/version", a.Version)
 	}
-
-	generateOpenAPI()
 }
 
 func get[Req, Res any](r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) {

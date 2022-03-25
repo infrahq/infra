@@ -1,8 +1,10 @@
 package internal
 
 var (
-	Branch  = "main"
-	Version = "0.0.0-development"
-	Commit  = ""
-	Date    = ""
+	Branch = "main"
+	// {x-release-please-start-version}
+	Version = "0.6.1"
+	// {x-release-please-end}
+	Commit = ""
+	Date   = ""
 )

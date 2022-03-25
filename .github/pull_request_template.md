@@ -5,7 +5,7 @@
 ## Checklist
 
 <!-- 
-Checklists help us remember things.  Change [ ] to [x] to show completion.
+Checklists help us remember things. Change [ ] to [x] to show completion.
 -->
 
 - [ ] Wrote appropriate unit tests
@@ -15,11 +15,18 @@ Checklists help us remember things.  Change [ ] to [x] to show completion.
 - [ ] Change is backwards compatible if it needs to be (user can upgrade without manual steps?)
 - [ ] Nothing sensitive logged
 - [ ] Commit message conforms to [Conventional Commit][1]
+- [ ] GitHub Actions are passing
+
+[1]: https://www.conventionalcommits.org/en/v1.0.0/
 
 ## Related Issues
 
-<!-- Link any related issues using `Resolves #1234`. -->
+<!--
+Link any related issues. Each issue should be on
+its own line. For example:
+
+Resolves #1234
+Resolves #4321
+-->
 
 Resolves #
-
-[1]: https://www.conventionalcommits.org/en/v1.0.0/

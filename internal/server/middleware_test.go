@@ -48,7 +48,7 @@ func issueUserToken(t *testing.T, db *gorm.DB, email string, sessionDuration tim
 	require.NoError(t, err)
 
 	token := &models.AccessKey{
-		IssuedFor: user.PolymorphicIdentifier(),
+		IssuedFor: user.PolyID(),
 		ExpiresAt: time.Now().Add(sessionDuration),
 	}
 	body, err := data.CreateAccessKey(db, token)

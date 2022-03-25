@@ -67,7 +67,7 @@ const Select = () => {
         </IdentityProviderList>
       </ConnectProviderContent>
       <NavButton>
-        <ExitButton />
+        <ExitButton previousPage='/providers' />
       </NavButton>
     </ConnectProviderContainer>
   )

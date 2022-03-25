@@ -13,8 +13,7 @@ func (p PolymorphicID) String() string {
 }
 
 func (p PolymorphicID) ID() (ID, error) {
-	id := string(p)[2:]
-	return ParseString(id)
+	return ParseString(string(p)[2:])
 }
 
 func (p PolymorphicID) IsMachine() bool {

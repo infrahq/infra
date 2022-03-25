@@ -5,8 +5,9 @@ import Input from '../../components/Input'
 import ActionButton from '../../components/ActionButton'
 import AccountHeader from '../../components/AccountHeader'
 
-import AuthContext from '../../store/AuthContext'
 import { readyToRedirect } from './login'
+
+import AuthContext from '../../store/AuthContext'
 
 const RegisterContainer = styled.section`
   margin-left: auto;
