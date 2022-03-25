@@ -7,5 +7,5 @@ var (
 	ErrConfigNotFound    = errors.New(`Could not read local credentials. Are you logged in? Use "infra login" to login`)
 	ErrProviderNotUnique = errors.New(`more than one provider exists with this name`)
 	ErrUserNotFound      = errors.New(`no users found with this name`)
-	ErrTLS               = errors.New(`The authenticity of the host can't be established.`)
+	ErrTLSNotVerified    = errors.New(`The authenticity of the host can't be established.`)
 )

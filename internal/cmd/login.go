@@ -301,12 +301,12 @@ func runSetupForLogin(client *api.Client) (string, error) {
 func getAPIClient(host string, skipTLSVerify *bool) (*api.Client, error) {
 	if !*skipTLSVerify {
 		if err := verifyTLS(host); err != nil {
-			if !errors.Is(err, ErrTLS) {
+			if !errors.Is(err, ErrTLSNotVerified) {
 				return nil, err
 			}
 
 			if isNonInteractiveMode() {
-				return nil, errors.New(ErrTLS.Error() + "\nTo continue with the insecure connection, run with '--skip-tls-verify'")
+				return nil, errors.New(ErrTLSNotVerified.Error() + "\nTo continue with the insecure connection, run with '--skip-tls-verify'")
 			}
 
 			if err = promptSkipTLSVerify(); err != nil {
@@ -343,7 +343,7 @@ func verifyTLS(host string) error {
 
 		logging.S.Debug(err)
 
-		return ErrTLS
+		return ErrTLSNotVerified
 	}
 
 	defer res.Body.Close()
@@ -394,7 +394,7 @@ func promptLoginOptions(providers []api.Provider, loginReq *api.LoginRequest) (a
 
 	for _, p := range providers {
 		if p.Name == models.InternalInfraProviderName {
-			options = append(options, "Email and Password")
+			options = append(options, "Login as a local user")
 		} else {
 			options = append(options, fmt.Sprintf("%s (%s)", p.Name, p.URL))
 		}
@@ -434,7 +434,7 @@ func promptLoginOptions(providers []api.Provider, loginReq *api.LoginRequest) (a
 
 func promptSkipTLSVerify() error {
 	prompt := &survey.Confirm{
-		Message: ErrTLS.Error() + "\n  Are you sure you want to continue?",
+		Message: ErrTLSNotVerified.Error() + "\n  Are you sure you want to continue?",
 	}
 	proceed := false
 	if err := survey.AskOne(prompt, &proceed, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
@@ -442,7 +442,7 @@ func promptSkipTLSVerify() error {
 		return err
 	}
 	if !proceed {
-		return ErrTLS
+		return ErrTLSNotVerified
 	}
 	return nil
 }
