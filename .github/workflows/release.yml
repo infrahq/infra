@@ -30,7 +30,7 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           stable: false
-          go-version: '1.18'
+          go-version: "1.18"
       - uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -81,10 +81,25 @@ jobs:
           make helm tag=${{ needs.release-please.outputs.release_name }}
           aws s3 sync helm s3://helm.infrahq.com --exclude "*" --include "index.yaml" --include "*.tgz"
 
-  # readme:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: readmeio/rdme@7.0.0
-  #       with:
+  readme:
+    runs-on: ubuntu-latest
+    needs: [release-please]
+    if: needs.release-please.outputs.release_created
+    steps:
+      - uses: actions/checkout@v2
+      - uses: sirv/gh-action-sirv@main
+        name: Upload to Sirv
+        with:
+          clientId: ${{ secrets.SIRVCLIENTID }}
+          clientSecret: ${{ secrets.SIRVCLIENTSECRET}}
+          source_dir: "docs/images"
+          output_dir: "docs"
+      - uses: technovangelist/gh-rm-prepaction@main
+        with:
+          ignorelist: "images, api, archive"
+          docsdirectory: "docs"
+          readmeapikey: ${{ secrets.README_API_KEY }}
+          versionnumber: ${{ needs.release-please.outputs.release_name }}
+      # - uses: readmeio/rdme@7.0.0
+      #   with:
   #         rdme: openapi ./docs/api/openapi3.json --key=${{ secrets.README_API_KEY }} --id=6222ae0352ca1a0028faf020
