@@ -175,7 +175,6 @@ func apiClient(host string, accessKey string, skipTLSVerify bool) (*api.Client, 
 }
 
 func newLoginCmd() *cobra.Command {
-
 	cmd := &cobra.Command{
 		Use:     "login [SERVER]",
 		Short:   "Login to Infra",
