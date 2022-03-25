@@ -7,22 +7,43 @@ assignees: ''
 
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+## Describe the bug
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+<!-- A clear and concise description of what the bug is. -->
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+## Expected behavior
 
-**Environment**
-* Infra client and server versions (use `infra version`)
-* Kubernetes version (use `kubectl version`)
-* Where you are running Kubernetes (e.g. EKS, AKS, GKE, Docker Desktop, Minikube, etc.)
+<!-- A clear and concise description of what you expected to happen. -->
 
-**Relevant Infra Logs**
-Use `kubectl logs deployment/infra-connector` and `kubectl logs deployment/infra-server` and add any suspicious logs here (do not post any sensitive information, and only post small snippets!).
+## Screenshots
 
-**Additional context**
-Add any other context about the problem here.
+<!-- If applicable, add screenshots to help explain your problem. -->
+
+## Environment
+
+<!-- Infra client and server versions using `infra version` -->
+
+```
+$ infra version
+```
+
+<!-- Kubernetes version using `kubectl version` -->
+
+```
+$ kubectl version
+```
+
+<!-- Where you are running Kubernetes (e.g. EKS, AKS, GKE, Docker Desktop, Minikube, etc.) -->
+
+## Relevant Infra Logs
+
+<!--
+Use `kubectl logs deployment/infra-server` and `kubectl logs deployment/infra-connector` and
+add any suspicious logs here. Try to keep snippets short and concise.
+
+Sensitive information should be masked/redacted.
+-->
+
+## Additional context
+
+<!-- Add any other context about the problem here. -->
