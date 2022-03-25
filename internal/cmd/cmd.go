@@ -202,9 +202,9 @@ func newLoginCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().String("key", "", "Sign in with access key")
+	cmd.Flags().String("key", "", "Login with an access key")
 	cmd.Flags().String("server", "", "Infra server to login to")
-	cmd.Flags().String("provider", "", "Sign in with an identity provider")
+	cmd.Flags().String("provider", "", "Login with an identity provider")
 	cmd.Flags().Bool("skip-tls-verify", false, "Skip verifying server TLS certificates")
 	return cmd
 }
@@ -214,7 +214,7 @@ func newLogoutCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "logout",
-		Short:   "Logout of Infra",
+		Short:   "Log out of Infra",
 		Example: "$ infra logout",
 		Group:   "Core commands:",
 		RunE: func(cmd *cobra.Command, args []string) error {
