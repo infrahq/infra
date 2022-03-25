@@ -330,7 +330,7 @@ func verifyTLS(host string) error {
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, urlString, nil)
 	if err != nil {
-		logging.S.Debug("Cannot create request", err)
+		logging.S.Debugf("Cannot create request: %v", err)
 		return err
 	}
 
