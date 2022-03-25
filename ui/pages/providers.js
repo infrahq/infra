@@ -3,17 +3,18 @@ import { useContext, useEffect, useState } from 'react'
 import styled from 'styled-components'
 import axios from 'axios'
 
-import Navigation from '../components/nav/Navigation'
-import PageHeader from '../components/PageHeader'
-
-import AuthContext from '../store/AuthContext'
+import EmptyPageHeader from '../components/EmptyPageHeader'
 import FormattedTime from '../components/FormattedTime'
 import IdentityProvider from '../components/IdentityProvider'
-import EmptyPageHeader from '../components/EmptyPageHeader'
+import PageHeader from '../components/PageHeader'
+import Nav from '../components/nav/Nav'
 
-const ProvidersHeaderContainer = styled.div`
-  padding-top: 3rem;
-  padding-bottom: 3rem;
+import AuthContext from '../store/AuthContext'
+
+const Container = styled.section`
+  display: grid;
+  column-gap: 2rem;
+  grid-template-columns: 18% auto;
 `
 
 const TableHeader = styled.div`
@@ -81,12 +82,10 @@ const Providers = () => {
   }
 
   return (
-    <div>
-      <Navigation />
+    <Container>
+      <Nav />
       <div>
-        <ProvidersHeaderContainer>
-          <PageHeader iconPath='/identity-providers.svg' title='Identity Providers' />
-        </ProvidersHeaderContainer>
+        <PageHeader iconPath='/identity-providers.svg' title='Identity Providers' />
         <TableHeader>
           <TableHeaderTitle>Identity Provider</TableHeaderTitle>
           <TableHeaderTitle>Domain</TableHeaderTitle>
@@ -119,7 +118,7 @@ const Providers = () => {
               )}
         </div>
       </div>
-    </div>
+    </Container>
   )
 }
 

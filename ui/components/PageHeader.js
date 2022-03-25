@@ -5,6 +5,8 @@ const PageHeaderContainer = styled.section`
   display: flex;
   flex-direction: row;
   align-items: center;
+  padding-top: 3rem;
+  padding-bottom: 3rem;
 
   & > *:not(:first-child) {
     padding-left: 1.375rem;
