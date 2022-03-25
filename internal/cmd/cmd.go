@@ -202,9 +202,9 @@ func newLoginCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().String("key", "", "Signin with access key")
+	cmd.Flags().String("key", "", "Sign in with access key")
 	cmd.Flags().String("server", "", "Infra server to login to")
-	cmd.Flags().String("provider", "", "Signin with an identity provider")
+	cmd.Flags().String("provider", "", "Sign in with an identity provider")
 	cmd.Flags().Bool("skip-tls-verify", false, "Skip verifying server TLS certificates")
 	return cmd
 }
