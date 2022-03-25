@@ -120,7 +120,7 @@ func relogin() error {
 	}
 
 	if currentConfig.ProviderID == 0 {
-		return errors.New("can not renew login without provider")
+		return errors.New("Cannot renew login without provider")
 	}
 
 	provider, err := client.GetProvider(currentConfig.ProviderID)
