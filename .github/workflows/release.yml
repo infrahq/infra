@@ -89,7 +89,6 @@ jobs:
       - uses: actions/checkout@v2
       - uses: sirv/gh-action-sirv@main
         name: Upload to Sirv
-        id: Sirv
         with:
           clientId: ${{ secrets.SIRVCLIENTID }}
           clientSecret: ${{ secrets.SIRVCLIENTSECRET}}
