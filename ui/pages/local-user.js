@@ -9,15 +9,15 @@ const Container = styled.section`
   grid-template-columns: 18% auto;
 `
 
-const Infrastructure = () => {
+const LocalUser = () => {
   return (
     <Container>
       <Nav />
       <div>
-        <PageHeader iconPath='/infrastructure.svg' title='Infrastructure' />
+        <PageHeader iconPath='/local-users.svg' title='Local Users' />
       </div>
     </Container>
   )
 }
 
-export default Infrastructure
+export default LocalUser
