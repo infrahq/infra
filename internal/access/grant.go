@@ -19,13 +19,13 @@ func GetGrant(c *gin.Context, id uid.ID) (*models.Grant, error) {
 	return data.GetGrant(db, data.ByID(id), data.NotCreatedBy(models.CreatedBySystem))
 }
 
-func ListGrants(c *gin.Context, identity uid.PolymorphicID, resource string, privilege string) ([]models.Grant, error) {
+func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, privilege string) ([]models.Grant, error) {
 	db, err := requireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole)
 	if err != nil {
 		return nil, err
 	}
 
-	return data.ListGrants(db, data.ByIdentity(identity), data.ByResource(resource), data.ByPrivilege(privilege), data.NotCreatedBy(models.CreatedBySystem))
+	return data.ListGrants(db, data.BySubject(subject), data.ByResource(resource), data.ByPrivilege(privilege), data.NotCreatedBy(models.CreatedBySystem))
 }
 
 func ListUserGrants(c *gin.Context, userID uid.ID) ([]models.Grant, error) {

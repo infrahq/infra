@@ -50,22 +50,39 @@ func newDestinationsListCmd() *cobra.Command {
 
 func newDestinationsAddCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "add TYPE NAME",
-		Short: "Connect a destination",
-		Args:  cobra.ExactArgs(2),
+		Use:   "add DESTINATION",
+		Short: "Connect an infrastructure destination to Infra",
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if args[0] != "kubernetes" {
-				return fmt.Errorf("Supported types: `kubernetes`")
+			parts := strings.Split(args[0], ".")
+			if len(parts) != 2 {
+				return fmt.Errorf("invalid input for destination: expected \"<TYPE>.<NAME>\", got %q", args[0])
+			}
+
+			supportedTypes := []string{
+				"kubernetes",
+			}
+
+			supportedType := false
+			for _, t := range supportedTypes {
+				if parts[0] == t {
+					supportedType = true
+					break
+				}
+			}
+
+			if !supportedType {
+				return fmt.Errorf("unknown destination type: %q. supported types: %v", parts[0], supportedTypes)
+			}
+
+			destination := &api.CreateMachineRequest{
+				Name:        parts[1],
+				Description: fmt.Sprintf("%s destination", args[0]),
 			}
 
 			client, err := defaultAPIClient()
 			if err != nil {
 				return err
-			}
-
-			destination := &api.CreateMachineRequest{
-				Name:        args[1],
-				Description: fmt.Sprintf("%s %s destination", args[1], args[0]),
 			}
 
 			created, err := client.CreateMachine(destination)
@@ -74,7 +91,7 @@ func newDestinationsAddCmd() *cobra.Command {
 			}
 
 			destinationGrant := &api.CreateGrantRequest{
-				Identity:  uid.NewMachinePolymorphicID(created.ID),
+				Subject:   uid.NewMachinePolymorphicID(created.ID),
 				Privilege: models.InfraConnectorRole,
 				Resource:  "infra",
 			}
@@ -87,7 +104,7 @@ func newDestinationsAddCmd() *cobra.Command {
 			lifetime := time.Hour * 24 * 365
 			accessKey, err := client.CreateAccessKey(&api.CreateAccessKeyRequest{
 				MachineID: created.ID,
-				Name:      fmt.Sprintf("access key presented by %s %s destination", args[1], args[0]),
+				Name:      fmt.Sprintf("%s destination access key", args[0]),
 				TTL:       lifetime.String(),
 			})
 			if err != nil {
@@ -102,10 +119,7 @@ func newDestinationsAddCmd() *cobra.Command {
 			var sb strings.Builder
 			sb.WriteString("    helm install infra-connector infrahq/infra")
 
-			if len(args) > 1 {
-				fmt.Fprintf(&sb, " --set connector.config.name=%s", args[1])
-			}
-
+			fmt.Fprintf(&sb, " --set connector.config.name=%s", parts[1])
 			fmt.Fprintf(&sb, " --set connector.config.accessKey=%s", accessKey.AccessKey)
 			fmt.Fprintf(&sb, " --set connector.config.server=%s", config.Host)
 

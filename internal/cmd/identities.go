@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/mail"
 	"os"
+	"regexp"
 
 	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
@@ -22,30 +23,48 @@ type identityOptions struct {
 
 func newIdentitiesAddCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "add NAME",
-		Short: "Create an identity",
-		Args:  cobra.ExactArgs(1),
+		Use:   "add NAME|EMAIL",
+		Short: "Create an identity.",
+		Long: `Create a machine identity with NAME or a user identity with EMAIL.
+
+NAME must only contain alphanumeric characters ('a-z', 'A-Z', '0-9') or the
+special characters '-', '_', or '/' and has a maximum length of 256 characters.
+
+EMAIL must contain a valid email address in the form of "<local>@<domain>".
+		`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			name := args[0]
+			nameOrEmail := args[0]
 
 			var options identityOptions
 			if err := parseOptions(cmd, &options, ""); err != nil {
 				return err
 			}
 
-			if isUser(name) {
-				userCreateResp, err := createUser(name)
-				if err != nil {
-					return err
-				}
-				fmt.Println("user identity created")
-				fmt.Printf("one time password: %s \n", userCreateResp.OneTimePassword)
-			} else {
+			name, email, err := checkNameOrEmail(nameOrEmail)
+			if err != nil {
+				return err
+			}
+
+			if name != "" {
 				err := createMachine(name, &options)
 				if err != nil {
 					return err
 				}
-				fmt.Println("machine identity created")
+
+				fmt.Fprintf(os.Stderr, "Created machine identity.\n")
+				fmt.Printf("Name: %s\n", name)
+			}
+
+			if email != "" {
+				userCreateResp, err := createUser(email)
+				if err != nil {
+					return err
+				}
+
+				fmt.Fprintf(os.Stderr, "Created user identity.\n")
+				fmt.Printf("Username: %s\n", email)
+				fmt.Printf("Password: %s\n", userCreateResp.OneTimePassword)
 			}
 
 			return nil
@@ -63,14 +82,23 @@ func newIdentitiesEditCmd() *cobra.Command {
 		Short: "Update an identity",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			name := args[0]
+			nameOrEmail := args[0]
 
 			var options identityOptions
 			if err := parseOptions(cmd, &options, ""); err != nil {
 				return err
 			}
 
-			if isUser(name) {
+			name, email, err := checkNameOrEmail(nameOrEmail)
+			if err != nil {
+				return err
+			}
+
+			if name != "" {
+				fmt.Println("machine identities have no editable fields")
+			}
+
+			if email != "" {
 				if !options.Password {
 					return errors.New("specify the --password flag to update the password")
 				}
@@ -87,8 +115,6 @@ func newIdentitiesEditCmd() *cobra.Command {
 				}
 
 				fmt.Println("user identity updated")
-			} else {
-				fmt.Println("machine identities have no editable fields")
 			}
 
 			return nil
@@ -170,7 +196,7 @@ func newIdentitiesRemoveCmd() *cobra.Command {
 		Short: "Delete an identity",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			name := args[0]
+			nameOrEmail := args[0]
 
 			var options identityOptions
 			if err := parseOptions(cmd, &options, ""); err != nil {
@@ -182,19 +208,12 @@ func newIdentitiesRemoveCmd() *cobra.Command {
 				return err
 			}
 
-			if isUser(name) {
-				users, err := client.ListUsers(api.ListUsersRequest{Email: name})
-				if err != nil {
-					return err
-				}
+			name, email, err := checkNameOrEmail(nameOrEmail)
+			if err != nil {
+				return err
+			}
 
-				for _, u := range users {
-					err := client.DeleteUser(u.ID)
-					if err != nil {
-						return err
-					}
-				}
-			} else {
+			if name != "" {
 				machines, err := client.ListMachines(api.ListMachinesRequest{Name: name})
 				if err != nil {
 					return err
@@ -208,6 +227,20 @@ func newIdentitiesRemoveCmd() *cobra.Command {
 				}
 			}
 
+			if email != "" {
+				users, err := client.ListUsers(api.ListUsersRequest{Email: name})
+				if err != nil {
+					return err
+				}
+
+				for _, u := range users {
+					err := client.DeleteUser(u.ID)
+					if err != nil {
+						return err
+					}
+				}
+			}
+
 			return nil
 		},
 	}
@@ -215,15 +248,33 @@ func newIdentitiesRemoveCmd() *cobra.Command {
 	return cmd
 }
 
-func isUser(name string) bool {
-	// infer based on the name being an email
-	_, err := mail.ParseAddress(name)
-	if err != nil {
-		logging.S.Debug(err)
-		return false
+// checkNameOrEmail infers whether the input s specifies a user identity (email) or a machine
+// identity (name). The input is considered a name if it has the format `^[a-zA-Z0-9-_/]+$`.
+// All other input formats will be considered an email. If an email input fails validation,
+// return an error.
+func checkNameOrEmail(s string) (string, string, error) {
+	maybeName := regexp.MustCompile("^[a-zA-Z0-9-_/]+$")
+	if maybeName.MatchString(s) {
+		nameMinLength := 1
+		nameMaxLength := 256
+
+		if len(s) < nameMinLength {
+			return "", "", fmt.Errorf("invalid name: does not meet minimum length requirement of %d characters", nameMinLength)
+		}
+
+		if len(s) > nameMaxLength {
+			return "", "", fmt.Errorf("invalid name: exceed maximum length requirement of %d characters", nameMaxLength)
+		}
+
+		return s, "", nil
 	}
 
-	return true
+	address, err := mail.ParseAddress(s)
+	if err != nil {
+		return "", "", fmt.Errorf("invalid email: %s", s)
+	}
+
+	return "", address.Address, nil
 }
 
 func createMachine(name string, options *identityOptions) error {

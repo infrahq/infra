@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -119,7 +120,7 @@ $ infra grants add -u admin@acme.com -r admin infra
 			}
 
 			if options.Role == "" {
-				return errors.New("specify role with -r or --role")
+				options.Role = models.BasePermissionConnect
 			}
 
 			var id uid.PolymorphicID
@@ -190,7 +191,7 @@ $ infra grants add -u admin@acme.com -r admin infra
 			}
 
 			_, err = client.CreateGrant(&api.CreateGrantRequest{
-				Identity:  id,
+				Subject:   id,
 				Privilege: options.Role,
 				Resource:  args[0],
 			})
@@ -289,7 +290,7 @@ func newGrantRemoveCmd() *cobra.Command {
 			}
 
 			grants, err := client.ListGrants(api.ListGrantsRequest{
-				Identity:  id,
+				Subject:   id,
 				Privilege: options.Role,
 				Resource:  args[0],
 			})

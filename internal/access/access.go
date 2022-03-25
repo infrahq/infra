@@ -71,7 +71,7 @@ func requireInfraRole(c *gin.Context, oneOfRoles ...string) (*gorm.DB, error) {
 
 		for _, group := range groups {
 			for _, role := range oneOfRoles {
-				ok, err := Can(db, group.PolymorphicIdentifier(), role, "infra")
+				ok, err := Can(db, group.PolyID(), role, "infra")
 				if err != nil {
 					return nil, err
 				}
@@ -88,7 +88,7 @@ func requireInfraRole(c *gin.Context, oneOfRoles ...string) (*gorm.DB, error) {
 
 // Can checks if an identity has a privilege that means it can perform an action on a resource
 func Can(db *gorm.DB, identity uid.PolymorphicID, privilege, resource string) (bool, error) {
-	grants, err := data.ListGrants(db, data.ByIdentity(identity), data.ByPrivilege(privilege), data.ByResource(resource))
+	grants, err := data.ListGrants(db, data.BySubject(identity), data.ByPrivilege(privilege), data.ByResource(resource))
 	if err != nil {
 		return false, fmt.Errorf("has grants: %w", err)
 	}

@@ -1,47 +1,51 @@
 import styled from 'styled-components'
 import PropTypes from 'prop-types'
 
-const HeaderContainer = styled.div`
-  & > *:not(:first-child) {
-    padding-top: 1.5rem;
-  }
-`
-
 const LogoContainer = styled.div`
   text-align: center;
 `
 
 const StyledHeader = styled.div`
-  font-size: 1.375rem;
-  line-height: 1.7rem;
-  letter-spacing: -0.035em;
-  font-weight: 200;
+  font-weight: 400;
+  font-size: 22px;
+  line-height: 27px;
   text-align: center;
+  letter-spacing: -0.035em;
 `
 
 const StyledSubheader = styled.div`
-  font-weight: 100;
-  font-size: .6875rem;
+  font-weight: 400;
+  font-size: 11px;
   line-height: 156.52%;
   opacity: .5;
   text-align: center;
-  padding: 0 1rem;
+  padding: .5rem .5rem 1rem .5rem;
 `
 
-const AccountHeader = ({ header, subheader }) => {
+const StyledTitle = styled.div`
+  font-weight: 700;
+  font-size: 11px;
+  line-height: 156.52%;
+  text-align: center;
+  padding: 1rem .5rem 0rem;
+`
+
+const AccountHeader = ({ header, subheader, title }) => {
   return (
-    <HeaderContainer>
+    <>
       <LogoContainer>
         <img src='/infra-icon.svg' />
       </LogoContainer>
       <StyledHeader>{header}</StyledHeader>
+      {title && <StyledTitle>{title}</StyledTitle>}
       <StyledSubheader>{subheader}</StyledSubheader>
-    </HeaderContainer>
+    </>
   )
 }
 
 AccountHeader.prototype = {
   header: PropTypes.string,
+  title: PropTypes.string,
   subheader: PropTypes.string
 }
 

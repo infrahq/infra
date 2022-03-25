@@ -10,7 +10,7 @@ type Machine struct {
 	Updated int64 `json:"updated"`
 	// timestamp of this machine's last interaction with Infra in seconds since 1970-01-01
 	LastSeenAt  int64  `json:"lastSeenAt"`
-	Name        string `json:"name"`
+	Name        string `json:"name" validate:"max=256,required"`
 	Description string `json:"description"`
 }
 

@@ -73,10 +73,10 @@ func TestUsersGroupGrant(t *testing.T) {
 
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())
 	c.Set("db", db)
-	c.Set("identity", tom.PolymorphicIdentifier())
+	c.Set("identity", tom.PolyID())
 	c.Set("user", tom)
 
-	grant(t, db, tom, tomsGroup.PolymorphicIdentifier(), models.InfraUserRole, "infra")
+	grant(t, db, tom, tomsGroup.PolyID(), models.InfraUserRole, "infra")
 
 	authDB, err := requireInfraRole(c, models.InfraUserRole)
 	assert.NoError(t, err)
@@ -91,9 +91,9 @@ func TestUsersGroupGrant(t *testing.T) {
 	assert.NotNil(t, authDB)
 }
 
-func grant(t *testing.T, db *gorm.DB, currentUser *models.User, identity uid.PolymorphicID, privilege, resource string) {
+func grant(t *testing.T, db *gorm.DB, currentUser *models.User, subject uid.PolymorphicID, privilege, resource string) {
 	err := data.CreateGrant(db, &models.Grant{
-		Identity:  identity,
+		Subject:   subject,
 		Privilege: privilege,
 		Resource:  resource,
 		CreatedBy: currentUser.ID,
@@ -101,14 +101,14 @@ func grant(t *testing.T, db *gorm.DB, currentUser *models.User, identity uid.Pol
 	require.NoError(t, err)
 }
 
-func can(t *testing.T, db *gorm.DB, identity uid.PolymorphicID, privilege, resource string) {
-	canAccess, err := Can(db, identity, privilege, resource)
+func can(t *testing.T, db *gorm.DB, subject uid.PolymorphicID, privilege, resource string) {
+	canAccess, err := Can(db, subject, privilege, resource)
 	require.NoError(t, err)
 	require.True(t, canAccess)
 }
 
-func cant(t *testing.T, db *gorm.DB, identity uid.PolymorphicID, privilege, resource string) {
-	canAccess, err := Can(db, identity, privilege, resource)
+func cant(t *testing.T, db *gorm.DB, subject uid.PolymorphicID, privilege, resource string) {
+	canAccess, err := Can(db, subject, privilege, resource)
 	require.NoError(t, err)
 	require.False(t, canAccess)
 }
@@ -129,7 +129,7 @@ func (o *mockOIDCImplementation) RefreshAccessToken(providerTokens *models.Provi
 }
 
 func (m *mockOIDCImplementation) GetUserInfo(providerTokens *models.ProviderToken) (*authn.UserInfo, error) {
-	return &authn.UserInfo{Email: m.UserEmailResp, Groups: m.UserGroupsResp}, nil
+	return &authn.UserInfo{Email: m.UserEmailResp, Groups: &m.UserGroupsResp}, nil
 }
 
 func TestExchangeAuthCodeForProviderTokens(t *testing.T) {

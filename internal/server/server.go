@@ -4,6 +4,7 @@
 package server
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
@@ -31,9 +32,9 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/repeat"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	timer "github.com/infrahq/infra/internal/timer"
 	"github.com/infrahq/infra/pki"
 	"github.com/infrahq/infra/secrets"
 )
@@ -55,7 +56,7 @@ type Options struct {
 	DBHost                  string `mapstructure:"dbHost" `
 	DBPort                  int    `mapstructure:"dbPort"`
 	DBName                  string `mapstructure:"dbName"`
-	DBUser                  string `mapstructure:"dbUser"`
+	DBUser                  string `mapstructure:"dbUsername"`
 	DBPassword              string `mapstructure:"dbPassword"`
 	DBParameters            string `mapstructure:"dbParameters"`
 
@@ -169,8 +170,7 @@ func configureTelemetry(db *gorm.DB) error {
 		return err
 	}
 
-	telemetryTimer := timer.NewTimer()
-	telemetryTimer.Start(1*time.Hour, func() {
+	repeat.Start(context.TODO(), 1*time.Hour, func(context.Context) {
 		if err := tel.EnqueueHeartbeat(); err != nil {
 			logging.S.Debug(err)
 		}
@@ -458,8 +458,6 @@ func (s *Server) serverTLSConfig() (*tls.Config, error) {
 				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
 				tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
-				//nolint:gosec
-				tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
 			},
 		}, nil
 	default: // "none" or blank

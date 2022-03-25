@@ -9,19 +9,17 @@ import AddAdmin from '../../../components/providers/okta/AddAdmin'
 
 import AuthContext from '../../../store/AuthContext'
 
-const grantAdminAccess = async (userId, accesskey) => {
-  await axios.post('/v1/grants',
-    { identity: userId, resource: 'infra', privilege: 'admin' },
-    { headers: { Authorization: `Bearer ${accesskey}` } })
+const grantAdminAccess = async (userId) => {
+  await axios.post('/v1/grants', { identity: userId, resource: 'infra', privilege: 'admin' })
     .then(async () => {
-      await Router.push({ pathname: '/' }, undefined, { shallow: true })
+      await Router.push({ pathname: '/providers' }, undefined, { shallow: true })
     }).catch((error) => {
       console.log(error)
     })
 }
 
 const Admins = () => {
-  const { cookie, newestProvider } = useContext(AuthContext)
+  const { newestProvider } = useContext(AuthContext)
 
   const [adminEmail, setAdminEmail] = useState('')
 
@@ -36,19 +34,18 @@ const Admins = () => {
       provider_id: providerId
     }
 
-    await axios.get('/v1/users', { params, headers: { Authorization: `Bearer ${cookie.accessKey}` } })
+    await axios.get('/v1/users', { params })
       .then(async (response) => {
         if (response.data.length === 0) {
           await axios.post('/v1/users',
-            { email: adminEmail, providerID: providerId },
-            { headers: { Authorization: `Bearer ${cookie.accessKey}` } })
+            { email: adminEmail, providerID: providerId })
             .then(async (response) => {
-              await grantAdminAccess(response.data.id, cookie.accessKey)
+              await grantAdminAccess(response.data.id)
             }).catch((error) => {
               console.log(error)
             })
         } else {
-          grantAdminAccess(response.data[0].id, cookie.accessKey)
+          grantAdminAccess(response.data[0].id)
         }
       }).catch((error) => {
         console.log(error)
@@ -62,7 +59,7 @@ const Admins = () => {
           <AddAdmin email={adminEmail} parentCallback={updateEmail} />
         </AddContainerContent>
         <Nav>
-          <ExitButton />
+          <ExitButton previousPage='/providers' />
         </Nav>
       </AddContainer>
       <Footer>
