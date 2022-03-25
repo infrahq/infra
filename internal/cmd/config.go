@@ -41,7 +41,6 @@ func (c ClientConfig) getHostsStr() []string {
 
 func readOrCreateConfig() (*ClientConfig, error) {
 	config, err := readConfig()
-
 	if err != nil {
 		if errors.Is(err, ErrConfigNotFound) {
 			return NewClientConfig(), nil

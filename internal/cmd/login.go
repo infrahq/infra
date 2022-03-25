@@ -43,7 +43,7 @@ func login(host string, accessKey string, skipTLSVerify bool, providerName strin
 		return err
 	}
 
-	//Check if setup is required. If so, user will automatically be logged in with the setup accessKey.
+	// Check if setup is required. If so, user will automatically be logged in with the setup accessKey.
 	setupRequired, err := client.SetupRequired()
 	if err != nil {
 		return err
@@ -257,7 +257,7 @@ func updateUserPassword(client *api.Client, userPID uid.PolymorphicID) error {
 	return nil
 }
 
-//Directs user to OIDC login page, then saves the auth code (to later login to infra)
+// Directs user to OIDC login page, then saves the auth code (to later login to infra)
 func loginToProvider(loginReq *api.LoginRequest, provider api.Provider) error {
 	fmt.Fprintf(os.Stderr, "  Logging in with %s...\n", termenv.String(provider.Name).Bold().String())
 
@@ -438,7 +438,7 @@ func promptSkipTLSVerify() error {
 	return nil
 }
 
-//Returns the host address of the Infra server that user would like to log into
+// Returns the host address of the Infra server that user would like to log into
 func promptHost() (string, error) {
 	config, err := readOrCreateConfig()
 	if err != nil {
