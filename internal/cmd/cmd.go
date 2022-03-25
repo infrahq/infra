@@ -175,12 +175,6 @@ func apiClient(host string, accessKey string, skipTLSVerify bool) (*api.Client, 
 }
 
 func newLoginCmd() *cobra.Command {
-	type loginOptions struct {
-		Server        string `mapstructure:"server"`
-		AccessKey     string `mapstructure:"key"`
-		Provider      string `mapstructure:"provider"`
-		SkipTLSVerify bool   `mapstructure:"skipTLSVerify"`
-	}
 
 	cmd := &cobra.Command{
 		Use:     "login [SERVER]",
@@ -203,7 +197,8 @@ func newLoginCmd() *cobra.Command {
 				options.Server = args[0]
 			}
 
-			return login(options.Server, options.AccessKey, options.SkipTLSVerify, options.Provider)
+			return login(options)
+			// return login(options.Server, options.AccessKey, options.SkipTLSVerify, options.Provider)
 		},
 	}
 

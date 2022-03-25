@@ -24,21 +24,28 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+type loginOptions struct {
+	Server        string `mapstructure:"server"`
+	AccessKey     string `mapstructure:"key"`
+	Provider      string `mapstructure:"provider"`
+	SkipTLSVerify bool   `mapstructure:"skipTLSVerify"`
+}
+
 const cliLoginRedirectURL = "http://localhost:8301"
 
-func login(host string, accessKey string, skipTLSVerify bool, providerName string) error {
-	if host == "" {
+func login(options loginOptions) error {
+	if options.Server == "" {
 		if isNonInteractiveMode() {
 			return errors.New(`Non-interactive login requires the [SERVER] argument`)
 		}
 
 		var err error
-		if host, err = promptHost(); err != nil {
+		if options.Server, err = promptHost(); err != nil {
 			return err
 		}
 	}
 
-	client, err := getAPIClient(host, &skipTLSVerify)
+	client, err := getAPIClient(options.Server, &options.SkipTLSVerify)
 	if err != nil {
 		return err
 	}
@@ -49,10 +56,10 @@ func login(host string, accessKey string, skipTLSVerify bool, providerName strin
 		return err
 	}
 	if setupRequired.Required {
-		if accessKey != "" {
+		if options.AccessKey != "" {
 			return errors.New(`Infra has not been setup. To setup, run the following without any additional args: 'infra login [SERVER]'`)
 		}
-		if accessKey, err = runSetupForLogin(client); err != nil {
+		if options.AccessKey, err = runSetupForLogin(client); err != nil {
 			return err
 		}
 
@@ -62,10 +69,10 @@ func login(host string, accessKey string, skipTLSVerify bool, providerName strin
 	var provider api.Provider
 
 	switch {
-	case accessKey != "":
-		loginReq.AccessKey = accessKey
-	case providerName != "":
-		provider, err := GetProviderByName(client, providerName)
+	case options.AccessKey != "":
+		loginReq.AccessKey = options.AccessKey
+	case options.Provider != "":
+		provider, err := GetProviderByName(client, options.Provider)
 		if err != nil {
 			return err
 		}
@@ -93,7 +100,7 @@ func login(host string, accessKey string, skipTLSVerify bool, providerName strin
 		return err
 	}
 
-	return finishLogin(host, skipTLSVerify, provider.ID, loginRes)
+	return finishLogin(options.Server, options.SkipTLSVerify, provider.ID, loginRes)
 }
 
 func relogin() error {
