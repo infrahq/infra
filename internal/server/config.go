@@ -537,7 +537,7 @@ func (s *Server) importAccessKeys() error {
 			sum := sha256.Sum256([]byte(parts[1]))
 
 			// if token name, key, and secret checksum match input, skip recreating the token
-			if accessKey.Name == name && subtle.ConstantTimeCompare([]byte(accessKey.Key), []byte(parts[0])) != 1 && subtle.ConstantTimeCompare(accessKey.SecretChecksum, sum[:]) != 1 {
+			if accessKey.Name == name && subtle.ConstantTimeCompare([]byte(accessKey.Key), []byte(parts[0])) == 1 && subtle.ConstantTimeCompare(accessKey.SecretChecksum, sum[:]) == 1 {
 				logging.S.Debugf("%s: skip recreating token", k)
 				continue
 			}
