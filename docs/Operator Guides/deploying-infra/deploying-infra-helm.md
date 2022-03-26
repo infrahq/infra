@@ -47,7 +47,7 @@ grants:
 ```bash
 helm repo add infrahq https://helm.infrahq.com/
 helm repo update
-helm upgrade --install -n infrahq --create-namespace infra infrahq/infra --set-file server.config.import=infra.yaml
+helm upgrade --install infra infrahq/infra --set-file server.config.import=infra.yaml
 ```
 
 Infra can be configured using Helm values. To see the available configuration values, run:
@@ -65,7 +65,7 @@ Next, you'll need to find the URL of the Infra server to login to Infra.
 Kubernetes port forwarding can be used in access the API server.
 
 ```bash
-kubectl -n infrahq port-forward deployments/infra-server 8080:80 8443:443
+kubectl port-forward deployments/infra-server 8080:80 8443:443
 ```
 
 Infra API server can now be accessed on `localhost:8080` or `localhost:8443`
@@ -75,19 +75,19 @@ Infra API server can now be accessed on `localhost:8080` or `localhost:8443`
 Change the Infra server service type to `LoadBalancer`.
 
 ```bash
-kubectl -n infrahq patch service infra-server -p '{"spec": {"type": "LoadBalancer"}}'
+kubectl patch service infra-server -p '{"spec": {"type": "LoadBalancer"}}'
 ```
 
 Note: It may take a few minutes for the LoadBalancer endpoint to be assigned. You can watch the status of the service with:
 
 ```bash
-kubectl -n infrahq get service infra-server -w
+kubectl get service infra-server -w
 ```
 
 Once the endpoint is ready, get the Infra API server URL.
 
 ```bash
-kubectl -n infrahq get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}"
+kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}"
 ```
 
 #### Ingress
@@ -96,7 +96,7 @@ Follow the [Ingress documentation](./docs/helm.md#advanced-ingress-configuration
 Once configured, get the Infra API server URL.
 
 ```bash
-kubectl -n infrahq get ingress infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}"
+kubectl get ingress infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}"
 ```
 
 #### API Server Access Key
@@ -106,7 +106,7 @@ If not provided by the user during Helm install, the admin access key will be ra
 WARNING: This admin access key grants full access to Infra. Do not share it.
 
 ```bash
-kubectl -n infrahq get secret infra-admin-access-key -o jsonpath='{.data.access-key}' | base64 -d
+kubectl get secret infra-admin-access-key -o jsonpath='{.data.access-key}' | base64 -d
 ```
 
 Once you have access to the Infra API server and the access key, login to Infra from the terminal.
@@ -120,7 +120,7 @@ infra login <INFRA_API_SERVER>
 In order to get access to the cluster, the engine service must be accessible externally. The easiest way to achieve this is to use a LoadBalancer service.
 
 ```bash
-kubectl -n infrahq patch service infra-engine -p '{"spec": {"type": "LoadBalancer"}}'
+kubectl patch service infra-engine -p '{"spec": {"type": "LoadBalancer"}}'
 ```
 
 Switch to the cluster with Infra CLI.
@@ -151,5 +151,5 @@ helm upgrade --install infra-engine infrahq/engine --set config.accessKey=2pVqDS
 
 ```
 helm repo update
-helm upgrade -n infrahq --create-namespace infra infrahq/infra --set-file server.config.import=infra.yaml
+helm upgrade infra infrahq/infra --set-file server.config.import=infra.yaml
 ```
