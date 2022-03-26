@@ -30,7 +30,7 @@ type CreateAccessKeyResponse struct {
 	Created           Time              `json:"created"`
 	Name              string            `json:"name"`
 	IssuedFor         uid.PolymorphicID `json:"issuedFor"`
-	Expires           Time              `json:"expires"`           // after this deadline the key is no longer valid
-	ExtensionDeadline Time              `json:"extensionDeadline"` // the key must be used by this time to remain valid
+	Expires           Time              `json:"expires" note:"after this deadline the key is no longer valid"`
+	ExtensionDeadline Time              `json:"extensionDeadline" note:"the key must be used by this time to remain valid"`
 	AccessKey         string            `json:"accessKey"`
 }

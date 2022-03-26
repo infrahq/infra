@@ -299,7 +299,7 @@ func setTypeInfo(t reflect.Type, schema *openapi3.Schema) {
 		schema.Format = "date-time" // date-time is rfc3339
 		schema.Example = exampleTime
 		if len(schema.Description) == 0 {
-			schema.Description = "time is formatted with RFC3339"
+			schema.Description = "formatted as an RFC3339 date-time"
 		}
 
 		return

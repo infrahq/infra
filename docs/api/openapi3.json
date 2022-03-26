@@ -5,7 +5,7 @@
       "AccessKey": {
         "properties": {
           "created": {
-            "description": "time is formatted with RFC3339",
+            "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
@@ -45,19 +45,19 @@
             "type": "string"
           },
           "created": {
-            "description": "time is formatted with RFC3339",
+            "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
           },
           "expires": {
-            "description": "time is formatted with RFC3339",
+            "description": "after this deadline the key is no longer valid",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
           },
           "extensionDeadline": {
-            "description": "time is formatted with RFC3339",
+            "description": "the key must be used by this time to remain valid",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
@@ -82,7 +82,7 @@
       "CreateTokenResponse": {
         "properties": {
           "expires": {
-            "description": "time is formatted with RFC3339",
+            "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
@@ -138,7 +138,7 @@
             "type": "object"
           },
           "created": {
-            "description": "time is formatted with RFC3339",
+            "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
@@ -157,7 +157,7 @@
             "type": "string"
           },
           "updated": {
-            "description": "time is formatted with RFC3339",
+            "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
@@ -196,7 +196,7 @@
       "Grant": {
         "properties": {
           "created": {
-            "description": "time is formatted with RFC3339",
+            "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
@@ -236,7 +236,7 @@
             "type": "string"
           },
           "updated": {
-            "description": "time is formatted with RFC3339",
+            "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
@@ -246,7 +246,7 @@
       "Group": {
         "properties": {
           "created": {
-            "description": "time is formatted with RFC3339",
+            "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
@@ -267,7 +267,7 @@
             "type": "string"
           },
           "updated": {
-            "description": "time is formatted with RFC3339",
+            "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
@@ -312,7 +312,7 @@
       "Machine": {
         "properties": {
           "created": {
-            "description": "time is formatted with RFC3339",
+            "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
@@ -327,7 +327,7 @@
             "type": "string"
           },
           "lastSeenAt": {
-            "description": "time is formatted with RFC3339",
+            "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
@@ -336,7 +336,7 @@
             "type": "string"
           },
           "updated": {
-            "description": "time is formatted with RFC3339",
+            "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
@@ -353,7 +353,7 @@
             "type": "string"
           },
           "created": {
-            "description": "time is formatted with RFC3339",
+            "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
@@ -369,7 +369,7 @@
             "type": "string"
           },
           "updated": {
-            "description": "time is formatted with RFC3339",
+            "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
@@ -394,7 +394,7 @@
       "User": {
         "properties": {
           "created": {
-            "description": "time is formatted with RFC3339",
+            "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
@@ -410,7 +410,7 @@
             "type": "string"
           },
           "lastSeenAt": {
-            "description": "time is formatted with RFC3339",
+            "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
@@ -422,7 +422,7 @@
             "type": "string"
           },
           "updated": {
-            "description": "time is formatted with RFC3339",
+            "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"

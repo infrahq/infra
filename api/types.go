@@ -17,20 +17,28 @@ func (t *Time) MarshalJSON() ([]byte, error) {
 	if t == nil {
 		return []byte("null"), nil
 	}
-	// if time.Time(t).IsZero() {
-	// 	return []byte("null"), nil // not sure if we should be doing this.
-	// }
+	if time.Time(*t).IsZero() {
+		return []byte("null"), nil
+	}
 	s := time.Time(*t).UTC().Format(time.RFC3339)
 	return []byte(`"` + s + `"`), nil
 }
 
 func (t *Time) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		t = nil
+		return nil
+	}
+	if string(data) == `""` {
+		t = nil
+		return nil
+	}
 	s := strings.Trim(string(data), `"`)
 	tmp, err := time.Parse(time.RFC3339, s)
 	if err != nil {
 		return err
 	}
-	*t = Time(tmp)
+	*t = Time(tmp.UTC())
 	return nil
 }
 
