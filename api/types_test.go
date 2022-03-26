@@ -90,11 +90,10 @@ func TestDurationRoundTrip(t *testing.T) {
 			err := json.Unmarshal([]byte(test.input), &tm)
 
 			if test.err != "" {
-				require.Contains(t, err.Error(), test.err)
+				require.ErrorContains(t, err, test.err)
 				return
-			} else {
-				require.NoError(t, err)
 			}
+			require.NoError(t, err)
 
 			result, err := json.Marshal(tm)
 			require.NoError(t, err)

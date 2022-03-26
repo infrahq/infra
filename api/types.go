@@ -26,11 +26,9 @@ func (t *Time) MarshalJSON() ([]byte, error) {
 
 func (t *Time) UnmarshalJSON(data []byte) error {
 	if string(data) == "null" {
-		t = nil
 		return nil
 	}
 	if string(data) == `""` {
-		t = nil
 		return nil
 	}
 	s := strings.Trim(string(data), `"`)
