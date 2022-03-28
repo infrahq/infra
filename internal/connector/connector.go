@@ -430,6 +430,18 @@ func Run(options Options) error {
 		chksm: chksm,
 	}
 
+	// clone the default http transport which sets reasonable defaults
+	defaultHTTPTransport, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		return errors.New("unexpected type for http.DefaultTransport")
+	}
+
+	transport := defaultHTTPTransport.Clone()
+	transport.TLSClientConfig = &tls.Config{
+		//nolint:gosec // We may purposely set InsecureSkipVerify via a flag
+		InsecureSkipVerify: options.SkipTLSVerify,
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	repeat.Start(ctx, 5*time.Second, func(context.Context) {
@@ -443,12 +455,7 @@ func Run(options Options) error {
 			URL:       u.String(),
 			AccessKey: accessKey,
 			HTTP: http.Client{
-				Transport: &http.Transport{
-					TLSClientConfig: &tls.Config{
-						//nolint:gosec // We may purposely set insecureskipverify via a flag
-						InsecureSkipVerify: options.SkipTLSVerify,
-					},
-				},
+				Transport: transport,
 			},
 		}
 
@@ -548,12 +555,7 @@ func Run(options Options) error {
 	cache := jwkCache{
 		client: &http.Client{
 			Transport: &BearerTransport{
-				Transport: &http.Transport{
-					TLSClientConfig: &tls.Config{
-						//nolint:gosec // We may purposely set insecureskipverify via a flag
-						InsecureSkipVerify: options.SkipTLSVerify,
-					},
-				},
+				Transport: transport,
 			},
 		},
 		baseURL: u.String(),
@@ -571,18 +573,18 @@ func Run(options Options) error {
 
 	certPool := x509.NewCertPool()
 
-	ok := certPool.AppendCertsFromPEM(caCert)
-	if !ok {
+	if ok := certPool.AppendCertsFromPEM(caCert); !ok {
 		return errors.New("could not append CA to client cert bundle")
 	}
 
-	proxy := httputil.NewSingleHostReverseProxy(proxyHost)
-	proxy.Transport = &http.Transport{
-		TLSClientConfig: &tls.Config{
-			RootCAs:    certPool,
-			MinVersion: tls.VersionTLS12,
-		},
+	proxyTransport := defaultHTTPTransport.Clone()
+	proxyTransport.TLSClientConfig = &tls.Config{
+		RootCAs:    certPool,
+		MinVersion: tls.VersionTLS12,
 	}
+
+	proxy := httputil.NewSingleHostReverseProxy(proxyHost)
+	proxy.Transport = proxyTransport
 
 	router.Use(
 		metrics.Middleware(),
