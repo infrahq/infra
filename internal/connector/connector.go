@@ -348,33 +348,6 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 }
 
 func Run(options Options) error {
-	hostTLSConfig := &tls.Config{MinVersion: tls.VersionTLS12}
-
-	if options.SkipTLSVerify {
-		// TODO (https://github.com/infrahq/infra/issues/174)
-		// Find a way to re-use the built-in TLS verification code vs
-		// this custom code based on the official go TLS example code
-		// which states this is approximately the same.
-		hostTLSConfig.InsecureSkipVerify = true
-		hostTLSConfig.VerifyConnection = func(cs tls.ConnectionState) error {
-			opts := x509.VerifyOptions{
-				DNSName:       cs.ServerName,
-				Intermediates: x509.NewCertPool(),
-			}
-
-			for _, cert := range cs.PeerCertificates[1:] {
-				opts.Intermediates.AddCert(cert)
-			}
-
-			_, err := cs.PeerCertificates[0].Verify(opts)
-			if err != nil {
-				logging.S.Warnf("could not verify Infra TLS certificates: %s", err.Error())
-			}
-
-			return nil
-		}
-	}
-
 	k8s, err := kubernetes.NewKubernetes()
 	if err != nil {
 		return err
@@ -471,7 +444,10 @@ func Run(options Options) error {
 			AccessKey: accessKey,
 			HTTP: http.Client{
 				Transport: &http.Transport{
-					TLSClientConfig: hostTLSConfig,
+					TLSClientConfig: &tls.Config{
+						//nolint:gosec // We may purposely set insecureskipverify via a flag
+						InsecureSkipVerify: options.SkipTLSVerify,
+					},
 				},
 			},
 		}
@@ -573,7 +549,10 @@ func Run(options Options) error {
 		client: &http.Client{
 			Transport: &BearerTransport{
 				Transport: &http.Transport{
-					TLSClientConfig: hostTLSConfig,
+					TLSClientConfig: &tls.Config{
+						//nolint:gosec // We may purposely set insecureskipverify via a flag
+						InsecureSkipVerify: options.SkipTLSVerify,
+					},
 				},
 			},
 		},
