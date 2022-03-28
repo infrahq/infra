@@ -327,12 +327,13 @@
             "type": "string"
           },
           "lastSeenAt": {
-            "description": "formatted as an RFC3339 date-time",
+            "description": "timestamp of this machine's last interaction with Infra",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
           },
           "name": {
+            "minLength": 1,
             "type": "string"
           },
           "updated": {

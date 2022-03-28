@@ -5,12 +5,10 @@ import (
 )
 
 type Destination struct {
-	ID       uid.ID `json:"id"`
-	UniqueID string `json:"uniqueID" form:"uniqueID" example:"94c2c570a20311180ec325fd56"`
-	Name     string `json:"name" form:"name"`
-	// created time in seconds since 1970-01-01
-	Created Time `json:"created"`
-	// updated time in seconds since 1970-01-01
+	ID         uid.ID                `json:"id"`
+	UniqueID   string                `json:"uniqueID" form:"uniqueID" example:"94c2c570a20311180ec325fd56"`
+	Name       string                `json:"name" form:"name"`
+	Created    Time                  `json:"created"`
 	Updated    Time                  `json:"updated"`
 	Connection DestinationConnection `json:"connection"`
 }

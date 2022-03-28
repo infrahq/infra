@@ -7,9 +7,9 @@ import (
 type Grant struct {
 	ID uid.ID `json:"id"`
 
-	Created   Time   `json:"created"` // created time in seconds since 1970-01-01 00:00:00 UTC
+	Created   Time   `json:"created"`
 	CreatedBy uid.ID `json:"created_by" note:"id of the identity that created the grant"`
-	Updated   Time   `json:"updated"` // updated time in seconds since 1970-01-01 00:00:00 UTC
+	Updated   Time   `json:"updated"`
 
 	Subject   uid.PolymorphicID `json:"subject" note:"a polymorphic field primarily expecting an user, or group ID"`
 	Privilege string            `json:"privilege" note:"a role or permission"`
