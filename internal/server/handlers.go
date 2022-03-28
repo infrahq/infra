@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"regexp"
@@ -708,6 +709,10 @@ func (a *API) updateUserInfo(c *gin.Context) error {
 			}
 
 			deleteAuthCookie(c)
+		}
+
+		if errors.Is(err, context.DeadlineExceeded) {
+			return fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
 		}
 
 		return fmt.Errorf("update user info: %w", err)

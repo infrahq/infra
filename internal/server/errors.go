@@ -54,6 +54,10 @@ func sendAPIError(c *gin.Context, err error) {
 		resp.Code = http.StatusNotImplemented
 		resp.Message = internal.ErrNotImplemented.Error()
 		logging.WrappedSugarLogger(c).Debugw(err.Error(), "statusCode", resp.Code)
+	case errors.Is(err, internal.ErrBadGateway):
+		resp.Code = http.StatusBadGateway
+		resp.Message = err.Error()
+		logging.WrappedSugarLogger(c).Debugw(err.Error(), "statusCode", resp.Code)
 	case errors.Is(err, (*validator.InvalidValidationError)(nil)):
 		resp.Code = http.StatusBadRequest
 		resp.Message = err.Error()

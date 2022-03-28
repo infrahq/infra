@@ -17,6 +17,8 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
+const oidcProviderRequestTimeout = time.Second * 10
+
 // UserInfo captures the fields from a user-info response that we care about
 type UserInfo struct {
 	Email  string    `json:"email"`
@@ -83,7 +85,8 @@ func (o *oidcImplementation) tokenSource(providerTokens *models.ProviderToken) (
 }
 
 func (o *oidcImplementation) ExchangeAuthCodeForProviderTokens(code string) (rawAccessToken, rawRefreshToken string, accessTokenExpiry time.Time, email string, err error) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), oidcProviderRequestTimeout)
+	defer cancel()
 
 	conf, provider, err := o.clientConfig(ctx)
 	if err != nil {
@@ -153,7 +156,8 @@ func (o *oidcImplementation) RefreshAccessToken(providerTokens *models.ProviderT
 // GetUserInfo uses a provider token to get the current information about a user,
 // make sure an access token is valid (not expired) before using this
 func (o *oidcImplementation) GetUserInfo(providerTokens *models.ProviderToken) (*UserInfo, error) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), oidcProviderRequestTimeout)
+	defer cancel()
 
 	tokenSource, err := o.tokenSource(providerTokens)
 	if err != nil {

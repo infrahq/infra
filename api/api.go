@@ -15,6 +15,8 @@ var (
 	ErrUnauthorized = fmt.Errorf("unauthorized")
 	// ErrForbidden means you don't have permissions to the requested resource
 	ErrForbidden = fmt.Errorf("forbidden")
+	// ErrBadGateway means an invalid response was received from an upstream server (probably an OIDC provider)
+	ErrBadGateway = fmt.Errorf("bad gateway")
 
 	ErrDuplicate  = fmt.Errorf("duplicate record")
 	ErrNotFound   = fmt.Errorf("record not found")
