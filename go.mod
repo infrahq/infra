@@ -3,7 +3,7 @@ module github.com/infrahq/infra
 go 1.18
 
 require (
-	github.com/AlecAivazis/survey/v2 v2.3.3
+	github.com/AlecAivazis/survey/v2 v2.3.4
 	github.com/aws/aws-sdk-go v1.43.21
 	github.com/cli/browser v1.1.0
 	github.com/docker/docker v20.10.14+incompatible
