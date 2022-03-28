@@ -45,7 +45,7 @@ require (
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/coreos/go-oidc/v3 v3.1.0
 	github.com/deckarep/golang-set v1.8.0
-	github.com/getkin/kin-openapi v0.92.0
+	github.com/getkin/kin-openapi v0.93.0
 	github.com/gin-contrib/gzip v0.0.5
 	github.com/gin-contrib/static v0.0.1
 	github.com/go-gormigrate/gormigrate/v2 v2.0.0
