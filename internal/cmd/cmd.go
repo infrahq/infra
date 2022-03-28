@@ -201,7 +201,7 @@ func newLoginCmd() *cobra.Command {
 }
 
 func newLogoutCmd() *cobra.Command {
-	var force bool
+	var purge bool
 
 	cmd := &cobra.Command{
 		Use:     "logout",
@@ -209,11 +209,11 @@ func newLogoutCmd() *cobra.Command {
 		Example: "$ infra logout",
 		Group:   "Core commands:",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return logout(force)
+			return logout(purge)
 		},
 	}
 
-	cmd.Flags().BoolVar(&force, "force", false, "logout and remove context")
+	cmd.Flags().BoolVar(&purge, "purge", false, "remove Infra host from config")
 
 	return cmd
 }
