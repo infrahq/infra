@@ -332,7 +332,7 @@ func (c Client) Login(req *LoginRequest) (*LoginResponse, error) {
 }
 
 func (c Client) Logout() error {
-	_, err := post[EmptyRequest, EmptyResponse](c, "/v1/login", &EmptyRequest{})
+	_, err := post[EmptyRequest, EmptyResponse](c, "/v1/logout", &EmptyRequest{})
 	return err
 }
 

@@ -258,5 +258,9 @@ func clearKubeconfig() error {
 		delete(kubeConfig.AuthInfos, c)
 	}
 
+	kubeConfigFilename := defaultConfig.ConfigAccess().GetDefaultFilename()
+	if err := clientcmd.WriteToFile(kubeConfig, kubeConfigFilename); err != nil {
+		return err
+	}
 	return nil
 }

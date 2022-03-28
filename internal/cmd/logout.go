@@ -30,7 +30,9 @@ func logout(purge bool) error {
 			continue
 		}
 
-		_ = client.Logout()
+		if err := client.Logout(); err != nil {
+			logging.S.Warnf("failed to logout: %v", err)
+		}
 	}
 
 	return clearKubeconfig()
