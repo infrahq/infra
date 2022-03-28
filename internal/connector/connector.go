@@ -37,13 +37,14 @@ import (
 )
 
 type Options struct {
-	Server        string `mapstructure:"server"`
-	Name          string `mapstructure:"name"`
-	AccessKey     string `mapstructure:"accessKey"`
-	TLSCache      string `mapstructure:"tlsCache"`
-	TLSCert       string `mapstructure:"tlsCert"`
-	TLSKey        string `mapstructure:"tlsKey"`
-	SkipTLSVerify bool   `mapstructure:"skipTLSVerify"`
+	Server                    string `mapstructure:"server"`
+	Name                      string `mapstructure:"name"`
+	AccessKey                 string `mapstructure:"accessKey"`
+	TLSCache                  string `mapstructure:"tlsCache"`
+	TLSCert                   string `mapstructure:"tlsCert"`
+	TLSKey                    string `mapstructure:"tlsKey"`
+	SkipTLSVerify             bool   `mapstructure:"skipTLSVerify"`
+	DisableProviderNamePrefix bool   `mapstructure:"disableProviderNamePrefix"`
 }
 
 type jwkCache struct {
@@ -197,7 +198,7 @@ func jwtMiddleware(getJWK getJWKFunc) gin.HandlerFunc {
 	}
 }
 
-func proxyMiddleware(proxy *httputil.ReverseProxy, bearerToken string) gin.HandlerFunc {
+func proxyMiddleware(options Options, proxy *httputil.ReverseProxy, bearerToken string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		email, ok := c.MustGet("email").(string)
 		if !ok {
@@ -231,13 +232,13 @@ func proxyMiddleware(proxy *httputil.ReverseProxy, bearerToken string) gin.Handl
 			return
 		}
 
-		userParts := []string{email}
-		if len(provider) > 0 {
-			userParts = append([]string{provider}, userParts...)
-		}
-
 		switch {
 		case email != "":
+			userParts := []string{email}
+			if !options.DisableProviderNamePrefix && len(provider) > 0 {
+				userParts = append([]string{provider}, userParts...)
+			}
+
 			c.Request.Header.Set("Impersonate-User", strings.Join(userParts, ":"))
 		case machine != "":
 			c.Request.Header.Set("Impersonate-User", fmt.Sprintf("machine:%s", machine))
@@ -258,7 +259,7 @@ func proxyMiddleware(proxy *httputil.ReverseProxy, bearerToken string) gin.Handl
 }
 
 // UpdateRoles converts infra grants to role-bindings in the current cluster
-func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) error {
+func updateRoles(options Options, c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) error {
 	logging.L.Debug("syncing local grants from infra configuration")
 
 	crSubjects := make(map[string][]rbacv1.Subject)                           // cluster-role: subject
@@ -300,7 +301,9 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 				return err
 			}
 
-			name = provider.Name + ":" + name
+			if !options.DisableProviderNamePrefix {
+				name = provider.Name + ":" + name
+			}
 
 		case g.Subject.IsMachine():
 			machine, err := c.GetMachine(id)
@@ -535,7 +538,7 @@ func Run(options Options) error {
 			grants = append(grants, g...)
 		}
 
-		err = updateRoles(client, k8s, grants)
+		err = updateRoles(options, client, k8s, grants)
 		if err != nil {
 			logging.S.Errorf("error updating grants: %s", err)
 			return
@@ -591,7 +594,7 @@ func Run(options Options) error {
 	router.Use(
 		metrics.Middleware(),
 		jwtMiddleware(cache.getJWK),
-		proxyMiddleware(proxy, k8s.Config.BearerToken),
+		proxyMiddleware(options, proxy, k8s.Config.BearerToken),
 	)
 
 	metrics := gin.New()
