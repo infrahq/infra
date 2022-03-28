@@ -182,7 +182,7 @@ func newLoginCmd() *cobra.Command {
 		Args:    cobra.MaximumNArgs(1),
 		Group:   "Core commands:",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var options loginOptions
+			var options loginCmdOptions
 			strcase.ConfigureAcronym("skip-tls-verify", "skipTLSVerify")
 
 			if err := parseOptions(cmd, &options, "INFRA"); err != nil {
@@ -197,7 +197,6 @@ func newLoginCmd() *cobra.Command {
 			}
 
 			return login(options)
-			// return login(options.Server, options.AccessKey, options.SkipTLSVerify, options.Provider)
 		},
 	}
 

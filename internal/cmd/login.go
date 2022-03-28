@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -24,89 +25,96 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-type loginOptions struct {
+type loginCmdOptions struct {
 	Server        string `mapstructure:"server"`
 	AccessKey     string `mapstructure:"key"`
 	Provider      string `mapstructure:"provider"`
 	SkipTLSVerify bool   `mapstructure:"skipTLSVerify"`
 }
 
+type loginMethod int64
+
+const (
+	localLogin loginMethod = iota
+	accessKeyLogin
+	providerLogin
+)
+
 const cliLoginRedirectURL = "http://localhost:8301"
 
-func login(options loginOptions) error {
-	if options.Server == "" {
-		if isNonInteractiveMode() {
-			return errors.New(`Non-interactive login requires the [SERVER] argument`)
-		}
+func login(options loginCmdOptions) error {
+	var err error
 
-		var err error
-		if options.Server, err = promptHost(); err != nil {
+	if options.Server == "" {
+		options.Server, err = promptServer()
+		if err != nil {
 			return err
 		}
 	}
 
-	client, err := getAPIClient(options.Server, &options.SkipTLSVerify)
+	client, err := newAPIClient(options.Server, options.SkipTLSVerify)
 	if err != nil {
 		return err
 	}
 
-	// Check if setup is required. If so, user will automatically be logged in with the setup accessKey.
+	// If first-time setup needs to be run, accessKey is auto-populated
 	setupRequired, err := client.SetupRequired()
 	if err != nil {
 		return err
 	}
 	if setupRequired.Required {
 		if options.AccessKey != "" {
-			return errors.New(`Infra has not been setup. To setup, run the following without any additional args: 'infra login [SERVER]'`)
+			return fmt.Errorf(`Infra has not been setup. To setup, run the following without any additional args: 'infra login [SERVER]'`)
 		}
-		if options.AccessKey, err = runSetupForLogin(client); err != nil {
+		options.AccessKey, err = runSetupForLogin(client)
+		if err != nil {
 			return err
 		}
-
 	}
 
 	loginReq := &api.LoginRequest{}
-	var provider api.Provider
 
 	switch {
 	case options.AccessKey != "":
 		loginReq.AccessKey = options.AccessKey
 	case options.Provider != "":
-		provider, err := GetProviderByName(client, options.Provider)
+		loginReq.OIDC, err = loginToProviderN(client, options.Provider)
 		if err != nil {
-			return err
-		}
-		if err = loginToProvider(loginReq, *provider); err != nil {
 			return err
 		}
 	default:
-		if isNonInteractiveMode() {
-			return errors.New(`Non-interactive login requires key, instead run: 'infra login SERVER --key KEY'`)
-		}
-
-		providers, err := client.ListProviders("")
+		loginMethod, provider, err := promptLoginOptions(client)
 		if err != nil {
 			return err
 		}
 
-		provider, err = promptLoginOptions(providers, loginReq)
-		if err != nil {
-			return err
+		switch loginMethod {
+		case accessKeyLogin:
+			loginReq.AccessKey, err = promptAccessKeyLogin()
+			if err != nil {
+				return err
+			}
+		case localLogin:
+			loginReq.PasswordCredentials, err = promptLocalLogin()
+			if err != nil {
+				return err
+			}
+		case providerLogin:
+			loginReq.OIDC, err = loginToProvider(provider)
+			if err != nil {
+				return err
+			}
 		}
+
 	}
 
-	loginRes, err := client.Login(loginReq)
-	if err != nil {
-		return err
-	}
-
-	return finishLogin(options.Server, options.SkipTLSVerify, provider.ID, loginRes)
+	return loginToInfra(client, loginReq)
 }
 
 func relogin() error {
 	// TODO (https://github.com/infrahq/infra/issues/488): support non-interactive login
 	if isNonInteractiveMode() {
-		return errors.New("Non-interactive login is not supported")
+		return fmt.Errorf("Non-interactive login is not supported")
 	}
 
 	currentConfig, err := currentHostConfig()
@@ -120,7 +128,7 @@ func relogin() error {
 	}
 
 	if currentConfig.ProviderID == 0 {
-		return errors.New("Cannot renew login without provider")
+		return fmt.Errorf("Cannot renew login without provider")
 	}
 
 	provider, err := client.GetProvider(currentConfig.ProviderID)
@@ -147,6 +155,68 @@ func relogin() error {
 	}
 
 	return finishLogin(currentConfig.Host, currentConfig.SkipTLSVerify, provider.ID, loginRes)
+}
+
+func loginToInfra(client *api.Client, loginReq *api.LoginRequest) error {
+	loginRes, err := client.Login(loginReq)
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(os.Stderr, "  Logged in as %s\n", termenv.String(loginRes.Name).Bold().String())
+
+	if err := updateConfig(client, loginReq, loginRes); err != nil {
+		return err
+	}
+
+	if loginRes.PasswordUpdateRequired {
+		if err := updateUserPassword(client, loginRes.PolymorphicID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Updates all configs with the current logged in session
+func updateConfig(client *api.Client, loginReq *api.LoginRequest, loginRes *api.LoginResponse) error {
+	var ok bool
+
+	// Update local infra config
+	var clientHostConfig ClientHostConfig
+	clientHostConfig.PolymorphicID = loginRes.PolymorphicID
+	clientHostConfig.Current = true
+	clientHostConfig.Name = loginRes.Name
+	clientHostConfig.AccessKey = loginRes.AccessKey
+
+	t, ok := client.HTTP.Transport.(*http.Transport)
+	if !ok {
+		return fmt.Errorf("Could not update config due to an internal error")
+	}
+	clientHostConfig.SkipTLSVerify = t.TLSClientConfig.InsecureSkipVerify
+
+	if loginReq.OIDC != nil {
+		clientHostConfig.ProviderID = loginReq.OIDC.ProviderID
+	}
+	u, err := urlx.Parse(client.URL)
+	if err != nil {
+		return err
+	}
+	clientHostConfig.Host = u.Host
+
+	if err := saveHostConfig(clientHostConfig); err != nil {
+		return err
+	}
+
+	// Update kube config
+	kubeClient, err := apiClient(client.URL, loginRes.AccessKey, clientHostConfig.SkipTLSVerify)
+	if err != nil {
+		return err
+	}
+	if err := updateKubeconfig(kubeClient, loginRes.PolymorphicID); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func finishLogin(host string, skipTLSVerify bool, providerID uid.ID, loginRes *api.LoginResponse) error {
@@ -240,7 +310,7 @@ func oidcflow(host string, clientId string) (string, error) {
 
 	if state != recvstate {
 		//lint:ignore ST1005, user facing error
-		return "", errors.New("Login aborted, provider state did not match the expected state")
+		return "", fmt.Errorf("Login aborted, provider state did not match the expected state")
 	}
 
 	return code, nil
@@ -248,8 +318,10 @@ func oidcflow(host string, clientId string) (string, error) {
 
 // updateUserPassword sets the user password after a one time password is used to login
 func updateUserPassword(client *api.Client, userPID uid.PolymorphicID) error {
-	newPassword := ""
-	if err := survey.AskOne(&survey.Password{Message: "One time password used, please set a new password:"}, &newPassword, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
+	var newPassword string
+	passwordPrompt := &survey.Password{Message: "One time password used, please set a new password:"}
+
+	if err := survey.AskOne(passwordPrompt, &newPassword, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithValidator(survey.Required)); err != nil {
 		return err
 	}
 
@@ -267,21 +339,29 @@ func updateUserPassword(client *api.Client, userPID uid.PolymorphicID) error {
 	return nil
 }
 
-// Directs user to OIDC login page, then saves the auth code (to later login to infra)
-func loginToProvider(loginReq *api.LoginRequest, provider api.Provider) error {
+// Given the provider name, directs user to its OIDC login page, then saves the auth code (to later login to infra)
+func loginToProviderN(client *api.Client, providerName string) (*api.LoginRequestOIDC, error) {
+	provider, err := GetProviderByName(client, providerName)
+	if err != nil {
+		return nil, err
+	}
+	return loginToProvider(provider)
+}
+
+// Given the provider name, directs user to its OIDC login page, then saves the auth code (to later login to infra)
+func loginToProvider(provider *api.Provider) (*api.LoginRequestOIDC, error) {
 	fmt.Fprintf(os.Stderr, "  Logging in with %s...\n", termenv.String(provider.Name).Bold().String())
 
 	code, err := oidcflow(provider.URL, provider.ClientID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	loginReq.OIDC = &api.LoginRequestOIDC{
+	return &api.LoginRequestOIDC{
 		ProviderID:  provider.ID,
 		RedirectURL: cliLoginRedirectURL,
 		Code:        code,
-	}
-	return nil
+	}, nil
 }
 
 func runSetupForLogin(client *api.Client) (string, error) {
@@ -298,24 +378,27 @@ func runSetupForLogin(client *api.Client) (string, error) {
 	return setupRes.AccessKey, nil
 }
 
-func getAPIClient(host string, skipTLSVerify *bool) (*api.Client, error) {
-	if !*skipTLSVerify {
-		if err := verifyTLS(host); err != nil {
+func newAPIClient(server string, skipTLSVerify bool) (*api.Client, error) {
+	if !skipTLSVerify {
+		// Prompt user only if server fails the TLS verification
+		if err := verifyTLS(server); err != nil {
 			if !errors.Is(err, ErrTLSNotVerified) {
 				return nil, err
-			}
-
-			if isNonInteractiveMode() {
-				return nil, errors.New(ErrTLSNotVerified.Error() + "\nTo continue with the insecure connection, run with '--skip-tls-verify'")
 			}
 
 			if err = promptSkipTLSVerify(); err != nil {
 				return nil, err
 			}
-			*skipTLSVerify = true
+			skipTLSVerify = true
 		}
 	}
-	return apiClient(host, "", *skipTLSVerify)
+
+	client, err := apiClient(server, "", skipTLSVerify)
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
 }
 
 func verifyTLS(host string) error {
@@ -350,48 +433,79 @@ func verifyTLS(host string) error {
 	return nil
 }
 
-func promptLocalLogin(loginReq *api.LoginRequest) error {
+func promptLocalLogin() (*api.LoginRequestPasswordCredentials, error) {
 	var credentials struct {
 		Email    string
 		Password string
 	}
 
-	emailPassPrompt := []*survey.Question{
+	questionPrompt := []*survey.Question{
 		{
 			Name:     "Email",
-			Prompt:   &survey.Input{Message: "Email: "},
+			Prompt:   &survey.Input{Message: "Email:"},
 			Validate: survey.Required,
 		},
 		{
 			Name:     "Password",
-			Prompt:   &survey.Password{Message: "Password: "},
+			Prompt:   &survey.Password{Message: "Password:"},
 			Validate: survey.Required,
 		},
 	}
 
-	if err := survey.Ask(emailPassPrompt, &credentials, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
-		return err
+	if err := survey.Ask(questionPrompt, &credentials, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
+		return &api.LoginRequestPasswordCredentials{}, err
 	}
 
-	loginReq.PasswordCredentials = &api.LoginRequestPasswordCredentials{
+	// loginReq.PasswordCredentials =
+	return &api.LoginRequestPasswordCredentials{
 		Email:    credentials.Email,
 		Password: credentials.Password,
-	}
-
-	return nil
+	}, nil
 }
 
-func promptAccessKeyLogin(loginReq *api.LoginRequest) error {
-	if err := survey.AskOne(&survey.Password{Message: "Access Key:"}, &loginReq.AccessKey, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
-		return err
+func promptAccessKeyLogin() (string, error) {
+	var accessKey string
+	if err := survey.AskOne(&survey.Password{Message: "Access Key:"}, &accessKey, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithValidator(survey.Required)); err != nil {
+		return "", err
 	}
-	return nil
+	return accessKey, nil
 }
 
-func promptLoginOptions(providers []api.Provider, loginReq *api.LoginRequest) (api.Provider, error) {
+func listProviders(client *api.Client) ([]api.Provider, error) {
+	providers, err := client.ListProviders("")
+	if err != nil {
+		return nil, err
+	}
+
+	// Sort the providers by name
+	var localProvider api.Provider
+	for i, p := range providers {
+		if p.Name == models.InternalInfraProviderName {
+			localProvider = p
+			providers[i] = providers[len(providers)-1]
+			providers = providers[:len(providers)-1]
+			break
+		}
+	}
+	sort.Slice(providers, func(i, j int) bool {
+		return providers[i].Name < providers[j].Name
+	})
+	providers = append(providers, localProvider)
+
+	return providers, nil
+}
+
+func promptLoginOptions(client *api.Client) (loginMethod loginMethod, provider *api.Provider, err error) {
+	if isNonInteractiveMode() {
+		return 0, nil, fmt.Errorf("Non-interactive login requires key, instead run: 'infra login SERVER --non-interactive --key KEY")
+	}
+
+	providers, err := listProviders(client)
+	if err != nil {
+		return 0, nil, err
+	}
+
 	var options []string
-	var provider api.Provider
-
 	for _, p := range providers {
 		if p.Name == models.InternalInfraProviderName {
 			options = append(options, "Login as a local user")
@@ -399,57 +513,57 @@ func promptLoginOptions(providers []api.Provider, loginReq *api.LoginRequest) (a
 			options = append(options, fmt.Sprintf("%s (%s)", p.Name, p.URL))
 		}
 	}
+	options = append(options, "Login with an access key")
 
-	options = append(options, "Login with Access Key")
-
-	var option int
-	prompt := &survey.Select{
+	var i int
+	selectPrompt := &survey.Select{
 		Message: "Select a login method:",
 		Options: options,
 	}
-
-	err := survey.AskOne(prompt, &option, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
+	err = survey.AskOne(selectPrompt, &i, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
 	if errors.Is(err, terminal.InterruptErr) {
-		return provider, err
+		return 0, nil, err
 	}
 
 	switch {
-	case option == len(providers):
-		if err = promptAccessKeyLogin(loginReq); err != nil {
-			return provider, err
-		}
-	case providers[option].Name == models.InternalInfraProviderName:
-		if err = promptLocalLogin(loginReq); err != nil {
-			return provider, err
-		}
+	case i == len(providers):
+		return accessKeyLogin, nil, nil
+	case providers[i].Name == models.InternalInfraProviderName:
+		return localLogin, nil, nil
 	default:
-		if err = loginToProvider(loginReq, providers[option]); err != nil {
-			return provider, err
-		}
-		provider = providers[option]
+		return providerLogin, &providers[i], nil
 	}
-
-	return provider, nil
 }
 
+// Error out if it fails TLS verification and user does not want to connect.
 func promptSkipTLSVerify() error {
-	prompt := &survey.Confirm{
-		Message: ErrTLSNotVerified.Error() + "\n  Are you sure you want to continue?",
+	if isNonInteractiveMode() {
+		fmt.Fprintf(os.Stderr, "%s\n", ErrTLSNotVerified.Error())
+		return fmt.Errorf("Non-interactive login does not allow insecure connection by default,\n       unless overridden with  '--skip-tls-verify'.")
+	}
+
+	// Although the same error, format is a little different for interactive/non-interactive.
+	fmt.Fprintf(os.Stderr, "  %s\n", ErrTLSNotVerified.Error())
+	confirmPrompt := &survey.Confirm{
+		Message: "Are you sure you want to continue?",
 	}
 	proceed := false
-	if err := survey.AskOne(prompt, &proceed, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
-		logging.S.Debug(err)
+	if err := survey.AskOne(confirmPrompt, &proceed, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
 		return err
 	}
 	if !proceed {
-		return ErrTLSNotVerified
+		return terminal.InterruptErr
 	}
 	return nil
 }
 
 // Returns the host address of the Infra server that user would like to log into
-func promptHost() (string, error) {
-	config, err := readOrCreateConfig()
+func promptServer() (string, error) {
+	if isNonInteractiveMode() {
+		return "", fmt.Errorf("Non-interactive login requires the [SERVER] argument")
+	}
+
+	config, err := readOrCreateClientConfig()
 	if err != nil {
 		return "", err
 	}
@@ -465,14 +579,11 @@ func promptHost() (string, error) {
 
 func promptNewHost() (string, error) {
 	var host string
-	err := survey.AskOne(&survey.Input{Message: "Host:"}, &host, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
+	err := survey.AskOne(&survey.Input{Message: "Host:"}, &host, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithValidator(survey.Required))
 	if err != nil {
 		return "", err
 	}
 
-	if host == "" {
-		return "", errors.New("Host is required")
-	}
 	return host, nil
 }
 

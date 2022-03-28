@@ -39,7 +39,8 @@ func (c ClientConfig) getHostsStr() []string {
 	return hosts
 }
 
-func readOrCreateConfig() (*ClientConfig, error) {
+// Retrieves client config if it exists, else instances a new one.
+func readOrCreateClientConfig() (*ClientConfig, error) {
 	config, err := readConfig()
 	if err != nil && !errors.Is(err, ErrConfigNotFound) {
 		return nil, err
@@ -119,6 +120,34 @@ func writeConfig(config *ClientConfig) error {
 
 func currentHostConfig() (*ClientHostConfig, error) {
 	return readHostConfig("")
+}
+
+// Save (create or update) the current hostconfig
+func saveHostConfig(hostConfig ClientHostConfig) error {
+	config, err := readOrCreateClientConfig()
+	if err != nil {
+		return err
+	}
+
+	var found bool
+	for i, c := range config.Hosts {
+		if c.Host == hostConfig.Host {
+			config.Hosts[i] = hostConfig
+			found = true
+
+			continue
+		}
+		config.Hosts[i].Current = false
+	}
+	if !found {
+		config.Hosts = append(config.Hosts, hostConfig)
+	}
+
+	if err := writeConfig(config); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func readHostConfig(host string) (*ClientHostConfig, error) {
