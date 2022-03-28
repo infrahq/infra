@@ -86,6 +86,8 @@ func init() {
 }
 
 func Run(options Options) (err error) {
+	// nolint: errcheck // if logs won't sync there is no way to report this error
+	defer logging.L.Sync()
 	server := &Server{
 		options: options,
 	}
@@ -613,7 +615,7 @@ func (s *Server) setupRequired() bool {
 
 	machines, err := data.ListMachines(s.db, data.ByName("admin"))
 	if err != nil {
-		logging.S.Errorf("machines: %s", err)
+		logging.S.Errorf("failed to list machines: %v", err)
 		return false
 	}
 

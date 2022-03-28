@@ -67,7 +67,7 @@ func (j *jwkCache) getJWK() (*jose.JSONWebKey, error) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
 
-	if j.lastChecked != (time.Time{}) && time.Now().Before(j.lastChecked.Add(JWKCacheRefresh)) {
+	if !j.lastChecked.IsZero() && time.Now().Before(j.lastChecked.Add(JWKCacheRefresh)) {
 		return j.key, nil
 	}
 
@@ -137,7 +137,7 @@ func jwtMiddleware(getJWK getJWKFunc) gin.HandlerFunc {
 
 		tok, err := jwt.ParseSigned(raw)
 		if err != nil {
-			logging.L.Debug("invalid jwt signature")
+			logging.S.Debugf("invalid jwt signature: %v", err)
 			c.AbortWithStatus(http.StatusUnauthorized)
 
 			return
@@ -447,7 +447,7 @@ func Run(options Options) error {
 	repeat.Start(ctx, 5*time.Second, func(context.Context) {
 		accessKey, err := secrets.GetSecret(options.AccessKey, basicSecretStorage)
 		if err != nil {
-			logging.S.Infof("%s", err)
+			logging.S.Infof("failed to lookup access key from secret storage: %v", err)
 			return
 		}
 
@@ -462,17 +462,17 @@ func Run(options Options) error {
 		caBytes, err := manager.Cache.Get(context.TODO(), serverName)
 		if err != nil {
 			if errors.Is(err, autocert.ErrCacheMiss) {
-				logging.S.Debugf("failed loading CA: %s", err.Error())
+				logging.S.Debugf("failed loading CA: %v", err)
 				return
 			} else {
-				logging.S.Errorf("cache get: %s", err.Error())
+				logging.S.Errorf("cache get: %v", err)
 				return
 			}
 		}
 
 		host, port, err := k8s.Endpoint()
 		if err != nil {
-			logging.S.Errorf("endpoint: %s", err)
+			logging.S.Errorf("failed to lookup endpoint: %v", err)
 			return
 		}
 
@@ -493,7 +493,7 @@ func Run(options Options) error {
 
 			isClusterIP, err := k8s.IsServiceTypeClusterIP()
 			if err != nil {
-				logging.S.Debugf("could not check destination service type: %s", err)
+				logging.S.Debugf("could not check destination service type: %v", err)
 			}
 
 			if isClusterIP {
@@ -502,7 +502,7 @@ func Run(options Options) error {
 
 			err = registerDestination(client, localDetails)
 			if err != nil {
-				logging.S.Errorf("initializing destination: %s", err)
+				logging.S.Errorf("initializing destination: %v", err)
 				return
 			}
 		} else if localDetails.endpoint != endpoint || localDetails.ca != string(caBytes) {
@@ -511,27 +511,27 @@ func Run(options Options) error {
 
 			err = refreshDestination(client, localDetails)
 			if err != nil {
-				logging.S.Errorf("initializing destination: %s", err)
+				logging.S.Errorf("refreshing destination: %v", err)
 				return
 			}
 		}
 
 		grants, err := client.ListGrants(api.ListGrantsRequest{Resource: options.Name})
 		if err != nil {
-			logging.S.Errorf("error listing grants: %s", err)
+			logging.S.Errorf("error listing grants: %v", err)
 			return
 		}
 
 		namespaces, err := k8s.Namespaces()
 		if err != nil {
-			logging.S.Errorf("error listing namespaces: %s", err)
+			logging.S.Errorf("error listing namespaces: %v", err)
 			return
 		}
 
 		for _, n := range namespaces {
 			g, err := client.ListGrants(api.ListGrantsRequest{Resource: fmt.Sprintf("%s.%s", options.Name, n)})
 			if err != nil {
-				logging.S.Errorf("error listing grants: %s", err)
+				logging.S.Errorf("error listing grants: %v", err)
 				return
 			}
 
@@ -540,7 +540,7 @@ func Run(options Options) error {
 
 		err = updateRoles(client, k8s, grants)
 		if err != nil {
-			logging.S.Errorf("error updating grants: %s", err)
+			logging.S.Errorf("error updating grants: %v", err)
 			return
 		}
 	})
