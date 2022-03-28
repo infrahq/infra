@@ -66,9 +66,9 @@ func ByProviderID(id uid.ID) SelectorFunc {
 	}
 }
 
-func ByKey(key string) SelectorFunc {
+func ByKeyID(key string) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("key = ?", key)
+		return db.Where("key_id = ?", key)
 	}
 }
 

@@ -21,11 +21,11 @@ type User struct {
 func (u *User) ToAPI() *api.User {
 	result := &api.User{
 		ID:         u.ID,
-		Created:    u.CreatedAt.Unix(),
-		Updated:    u.UpdatedAt.Unix(),
+		Created:    api.Time(u.CreatedAt),
+		Updated:    api.Time(u.UpdatedAt),
 		Email:      u.Email,
 		ProviderID: u.ProviderID,
-		LastSeenAt: u.LastSeenAt.Unix(),
+		LastSeenAt: api.Time(u.LastSeenAt),
 	}
 
 	return result

@@ -504,7 +504,7 @@ func (s *Server) importAccessKeys() error {
 			machine = &models.Machine{
 				Name:        k,
 				Description: fmt.Sprintf("%s default infra server machine identity", k),
-				LastSeenAt:  time.Now(),
+				LastSeenAt:  time.Now().UTC(),
 			}
 
 			err = data.CreateMachine(s.db, machine)
@@ -537,7 +537,7 @@ func (s *Server) importAccessKeys() error {
 			sum := sha256.Sum256([]byte(parts[1]))
 
 			// if token name, key, and secret checksum match input, skip recreating the token
-			if accessKey.Name == name && subtle.ConstantTimeCompare([]byte(accessKey.Key), []byte(parts[0])) == 1 && subtle.ConstantTimeCompare(accessKey.SecretChecksum, sum[:]) == 1 {
+			if accessKey.Name == name && subtle.ConstantTimeCompare([]byte(accessKey.KeyID), []byte(parts[0])) == 1 && subtle.ConstantTimeCompare(accessKey.SecretChecksum, sum[:]) == 1 {
 				logging.S.Debugf("%s: skip recreating token", k)
 				continue
 			}
@@ -550,10 +550,10 @@ func (s *Server) importAccessKeys() error {
 
 		accessKey = &models.AccessKey{
 			Name:      name,
-			Key:       parts[0],
+			KeyID:     parts[0],
 			Secret:    parts[1],
 			IssuedFor: machine.PolyID(),
-			ExpiresAt: time.Now().Add(math.MaxInt64),
+			ExpiresAt: time.Now().Add(math.MaxInt64).UTC(),
 		}
 		if _, err := data.CreateAccessKey(s.db, accessKey); err != nil {
 			return fmt.Errorf("%s create: %w", k, err)

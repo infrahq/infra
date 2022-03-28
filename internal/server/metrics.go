@@ -30,7 +30,7 @@ func SetupMetrics(db *gorm.DB) error {
 	}, func() float64 {
 		count, err := data.Count[models.User](db)
 		if err != nil {
-			logging.S.Warnf("users: %w", err)
+			logging.S.Warnf("users: %s", err)
 			return 0
 		}
 
@@ -44,7 +44,7 @@ func SetupMetrics(db *gorm.DB) error {
 	}, func() float64 {
 		count, err := data.Count[models.Group](db)
 		if err != nil {
-			logging.S.Warnf("groups: %w", err)
+			logging.S.Warnf("groups: %s", err)
 			return 0
 		}
 
@@ -58,7 +58,7 @@ func SetupMetrics(db *gorm.DB) error {
 	}, func() float64 {
 		count, err := data.Count[models.Grant](db)
 		if err != nil {
-			logging.S.Warnf("grants: %w", err)
+			logging.S.Warnf("grants: %s", err)
 			return 0
 		}
 
@@ -72,7 +72,7 @@ func SetupMetrics(db *gorm.DB) error {
 	}, func() float64 {
 		count, err := data.Count[models.Provider](db)
 		if err != nil {
-			logging.S.Warnf("providers: %w", err)
+			logging.S.Warnf("providers: %s", err)
 			return 0
 		}
 
@@ -86,7 +86,7 @@ func SetupMetrics(db *gorm.DB) error {
 	}, func() float64 {
 		count, err := data.Count[models.Destination](db)
 		if err != nil {
-			logging.S.Warnf("destinations: %w", err)
+			logging.S.Warnf("destinations: %s", err)
 			return 0
 		}
 

@@ -20,7 +20,7 @@ var (
 )
 
 func setAuthCookie(c *gin.Context, key string, sessionDuration time.Duration) {
-	expires := time.Now().Add(sessionDuration)
+	expires := time.Now().Add(sessionDuration).UTC()
 
 	maxAge := int(time.Until(expires).Seconds())
 	if maxAge == CookieMaxAgeNoExpiry {

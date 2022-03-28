@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -41,7 +42,17 @@ infra keys create main wall-e 12h --extension-deadline=1h
 				return err
 			}
 
-			resp, err := client.CreateAccessKey(&api.CreateAccessKeyRequest{MachineID: machine.ID, Name: keyName, TTL: options.TTL, ExtensionDeadline: options.ExtensionDeadline})
+			deadline, err := time.ParseDuration(options.ExtensionDeadline)
+			if err != nil {
+				return err
+			}
+
+			ttl, err := time.ParseDuration(options.TTL)
+			if err != nil {
+				return fmt.Errorf("parsing ttl: %w", err)
+			}
+
+			resp, err := client.CreateAccessKey(&api.CreateAccessKeyRequest{MachineID: machine.ID, Name: keyName, TTL: api.Duration(ttl), ExtensionDeadline: api.Duration(deadline)})
 			if err != nil {
 				return err
 			}
@@ -147,7 +158,7 @@ func newKeysListCmd() *cobra.Command {
 					IssuedFor:         string(k.IssuedFor),
 					Created:           k.Created.String(),
 					Expires:           k.Expires.String(),
-					ExtensionDeadline: k.ExtensionDeadline.String(),
+					ExtensionDeadline: k.ExtensionDeadline.Format(time.RFC3339),
 				})
 			}
 

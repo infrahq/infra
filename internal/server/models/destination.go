@@ -17,8 +17,8 @@ type Destination struct {
 func (d *Destination) ToAPI() *api.Destination {
 	return &api.Destination{
 		ID:       d.ID,
-		Created:  d.CreatedAt.Unix(),
-		Updated:  d.UpdatedAt.Unix(),
+		Created:  api.Time(d.CreatedAt),
+		Updated:  api.Time(d.UpdatedAt),
 		Name:     d.Name,
 		UniqueID: d.UniqueID,
 		Connection: api.DestinationConnection{

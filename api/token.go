@@ -1,8 +1,6 @@
 package api
 
 import (
-	"time"
-
 	"github.com/infrahq/infra/uid"
 )
 
@@ -11,6 +9,6 @@ type CreateTokenRequest struct {
 }
 
 type CreateTokenResponse struct {
-	Expires time.Time `json:"expires"`
-	Token   string    `json:"token"`
+	Expires Time   `json:"expires"`
+	Token   string `json:"token"`
 }

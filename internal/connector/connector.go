@@ -100,7 +100,7 @@ func (j *jwkCache) getJWK() (*jose.JSONWebKey, error) {
 		return nil, errors.New("no jwks provided by infra")
 	}
 
-	j.lastChecked = time.Now()
+	j.lastChecked = time.Now().UTC()
 	j.key = &response.Keys[0]
 
 	return &response.Keys[0], nil
@@ -165,7 +165,7 @@ func jwtMiddleware(getJWK getJWKFunc) gin.HandlerFunc {
 		}
 
 		err = claims.Claims.Validate(jwt.Expected{
-			Time: time.Now(),
+			Time: time.Now().UTC(),
 		})
 
 		switch {
@@ -355,7 +355,7 @@ func Run(options Options) error {
 
 	autoname, chksm, err := k8s.Name()
 	if err != nil {
-		logging.S.Errorf("k8s name error: %w", err)
+		logging.S.Errorf("k8s name error: %s", err)
 		return err
 	}
 
@@ -408,7 +408,7 @@ func Run(options Options) error {
 
 	u, err := urlx.Parse(options.Server)
 	if err != nil {
-		logging.S.Errorf("server: %w", err)
+		logging.S.Errorf("server: %s", err)
 	}
 
 	// server is localhost which should never be the case. try to infer the actual host
@@ -435,7 +435,7 @@ func Run(options Options) error {
 	repeat.Start(ctx, 5*time.Second, func(context.Context) {
 		accessKey, err := secrets.GetSecret(options.AccessKey, basicSecretStorage)
 		if err != nil {
-			logging.S.Infof("%w", err)
+			logging.S.Infof("%s", err)
 			return
 		}
 
@@ -465,7 +465,7 @@ func Run(options Options) error {
 
 		host, port, err := k8s.Endpoint()
 		if err != nil {
-			logging.S.Errorf("endpoint: %w", err)
+			logging.S.Errorf("endpoint: %s", err)
 			return
 		}
 
@@ -486,7 +486,7 @@ func Run(options Options) error {
 
 			isClusterIP, err := k8s.IsServiceTypeClusterIP()
 			if err != nil {
-				logging.S.Debugf("could not check destination service type: %w", err)
+				logging.S.Debugf("could not check destination service type: %s", err)
 			}
 
 			if isClusterIP {
@@ -495,7 +495,7 @@ func Run(options Options) error {
 
 			err = registerDestination(client, localDetails)
 			if err != nil {
-				logging.S.Errorf("initializing destination: %w", err)
+				logging.S.Errorf("initializing destination: %s", err)
 				return
 			}
 		} else if localDetails.endpoint != endpoint || localDetails.ca != string(caBytes) {
@@ -504,27 +504,27 @@ func Run(options Options) error {
 
 			err = refreshDestination(client, localDetails)
 			if err != nil {
-				logging.S.Errorf("initializing destination: %w", err)
+				logging.S.Errorf("initializing destination: %s", err)
 				return
 			}
 		}
 
 		grants, err := client.ListGrants(api.ListGrantsRequest{Resource: options.Name})
 		if err != nil {
-			logging.S.Errorf("error listing grants: %w", err)
+			logging.S.Errorf("error listing grants: %s", err)
 			return
 		}
 
 		namespaces, err := k8s.Namespaces()
 		if err != nil {
-			logging.S.Errorf("error listing namespaces: %w", err)
+			logging.S.Errorf("error listing namespaces: %s", err)
 			return
 		}
 
 		for _, n := range namespaces {
 			g, err := client.ListGrants(api.ListGrantsRequest{Resource: fmt.Sprintf("%s.%s", options.Name, n)})
 			if err != nil {
-				logging.S.Errorf("error listing grants: %w", err)
+				logging.S.Errorf("error listing grants: %s", err)
 				return
 			}
 
@@ -533,7 +533,7 @@ func Run(options Options) error {
 
 		err = updateRoles(client, k8s, grants)
 		if err != nil {
-			logging.S.Errorf("error updating grants: %w", err)
+			logging.S.Errorf("error updating grants: %s", err)
 			return
 		}
 	})
@@ -603,7 +603,7 @@ func Run(options Options) error {
 
 	go func() {
 		if err := metricsServer.ListenAndServe(); err != nil {
-			logging.S.Errorf("server: %w", err)
+			logging.S.Errorf("server: %s", err)
 		}
 	}()
 

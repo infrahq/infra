@@ -140,7 +140,7 @@ func setUserContext(c *gin.Context, db *gorm.DB, id string) error {
 		return fmt.Errorf("user for token: %w", err)
 	}
 
-	user.LastSeenAt = time.Now()
+	user.LastSeenAt = time.Now().UTC()
 	if err = data.SaveUser(db, user); err != nil {
 		return fmt.Errorf("%w: user update fail: %s", internal.ErrUnauthorized, err)
 	}
@@ -161,7 +161,7 @@ func setMachineContext(c *gin.Context, db *gorm.DB, id string) error {
 		return fmt.Errorf("machine for token: %w", err)
 	}
 
-	machine.LastSeenAt = time.Now()
+	machine.LastSeenAt = time.Now().UTC()
 	if err = data.SaveMachine(db, machine); err != nil {
 		return fmt.Errorf("%w: machine update fail: %s", internal.ErrUnauthorized, err)
 	}

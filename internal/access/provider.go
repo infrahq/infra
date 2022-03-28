@@ -176,7 +176,7 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 
 	key := &models.AccessKey{
 		IssuedFor: user.PolyID(),
-		ExpiresAt: time.Now().Add(sessionDuration),
+		ExpiresAt: time.Now().Add(sessionDuration).UTC(),
 	}
 
 	body, err := data.CreateAccessKey(db, key)
@@ -184,7 +184,7 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 		return nil, body, fmt.Errorf("create access key: %w", err)
 	}
 
-	user.LastSeenAt = time.Now()
+	user.LastSeenAt = time.Now().UTC()
 	if err := data.SaveUser(db, user); err != nil {
 		return nil, "", fmt.Errorf("login update last seen: %w", err)
 	}

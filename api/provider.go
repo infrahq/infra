@@ -1,12 +1,14 @@
 package api
 
-import "github.com/infrahq/infra/uid"
+import (
+	"github.com/infrahq/infra/uid"
+)
 
 type Provider struct {
 	ID       uid.ID `json:"id"`
 	Name     string `json:"name" example:"okta"`
-	Created  int64  `json:"created"`
-	Updated  int64  `json:"updated"`
+	Created  Time   `json:"created"`
+	Updated  Time   `json:"updated"`
 	URL      string `json:"url" validate:"fqdn,required" example:"infrahq.okta.com"`
 	ClientID string `json:"clientID" validate:"required" example:"0oapn0qwiQPiMIyR35d6"`
 }

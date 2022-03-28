@@ -170,7 +170,7 @@ func newIdentitiesListCmd() *cobra.Command {
 				if providers[u.ProviderID] == "" {
 					p, err := client.GetProvider(u.ProviderID)
 					if err != nil {
-						logging.S.Debugf("unable to retrieve user provider: %w", err)
+						logging.S.Debugf("unable to retrieve user provider: %s", err)
 					} else {
 						providers[p.ID] = p.Name
 					}

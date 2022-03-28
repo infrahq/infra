@@ -55,18 +55,14 @@ type Grant struct {
 func (r *Grant) ToAPI() api.Grant {
 	result := api.Grant{
 		ID:        r.ID,
-		Created:   r.CreatedAt.Unix(),
-		Updated:   r.UpdatedAt.Unix(),
+		Created:   api.Time(r.CreatedAt),
+		Updated:   api.Time(r.UpdatedAt),
 		CreatedBy: r.CreatedBy,
 
 		Subject:   r.Subject,
 		Privilege: r.Privilege,
 		Resource:  r.Resource,
-	}
-
-	if r.ExpiresAt != nil {
-		u := r.ExpiresAt.Unix()
-		result.ExpiresAt = &u
+		ExpiresAt: (*api.Time)(r.ExpiresAt),
 	}
 
 	return result

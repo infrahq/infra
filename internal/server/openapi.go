@@ -294,10 +294,22 @@ var exampleTime = time.Date(2022, 3, 14, 9, 48, 0, 0, time.UTC).Format(time.RFC3
 // `format` has a few defined types, but can be anything. https://swagger.io/docs/specification/data-models/data-types/
 func setTypeInfo(t reflect.Type, schema *openapi3.Schema) {
 	switch structNameWithPkg(t) {
-	case "time.Time":
+	case "api.Time", "time.Time":
 		schema.Type = "string"
 		schema.Format = "date-time" // date-time is rfc3339
 		schema.Example = exampleTime
+		if len(schema.Description) == 0 {
+			schema.Description = "formatted as an RFC3339 date-time"
+		}
+
+		return
+	case "api.Duration", "time.Duration":
+		schema.Type = "string"
+		schema.Format = "duration"
+		schema.Example = "72h3m6.5s"
+		if len(schema.Description) == 0 {
+			schema.Description = "a duration of time supporting (h)ours, (m)inutes, and (s)econds"
+		}
 
 		return
 	case "uid.ID":
@@ -436,7 +448,7 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 				if jsonName != "-" {
 					prop := buildProperty(f, f.Type, r, schema)
 
-					schema.Properties[name] = prop
+					schema.Properties[jsonName] = prop
 
 					continue
 				}

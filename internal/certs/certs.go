@@ -36,8 +36,8 @@ func SelfSignedCert(hosts []string) ([]byte, []byte, error) {
 		Subject: pkix.Name{
 			Organization: []string{"Infra"},
 		},
-		NotBefore:             time.Now().Add(-5 * time.Minute),
-		NotAfter:              time.Now().AddDate(0, 0, 365),
+		NotBefore:             time.Now().Add(-5 * time.Minute).UTC(),
+		NotAfter:              time.Now().AddDate(0, 0, 365).UTC(),
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment | x509.KeyUsageCertSign,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
@@ -91,12 +91,12 @@ func SelfSignedOrLetsEncryptCert(manager *autocert.Manager, serverName string) f
 
 		certBytes, err := manager.Cache.Get(context.TODO(), serverName+".crt")
 		if err != nil {
-			logging.S.Warnf("cert: %w", err)
+			logging.S.Warnf("cert: %s", err)
 		}
 
 		keyBytes, err := manager.Cache.Get(context.TODO(), serverName+".key")
 		if err != nil {
-			logging.S.Warnf("key: %w", err)
+			logging.S.Warnf("key: %s", err)
 		}
 
 		// if either cert or key is missing, create it

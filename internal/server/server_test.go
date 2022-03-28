@@ -863,5 +863,5 @@ func TestImportAccessKeysUpdate(t *testing.T) {
 
 	accessKey, err := data.GetAccessKey(s.db, data.ByName("default admin access key"))
 	require.NoError(t, err)
-	require.Equal(t, accessKey.Key, "EKoHADINYX")
+	require.Equal(t, accessKey.KeyID, "EKoHADINYX")
 }
