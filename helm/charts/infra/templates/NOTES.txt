@@ -89,7 +89,8 @@
 
 {{- end }}
 
-  Check this cluster has been successfully registered with Infra:
+  Connector installed. It may take some time to initialize.
+  Once this cluster has been successfully registered with Infra it will appear in the output of the following command:
 
   $ infra destinations list | grep {{ .Values.connector.config.name | default "my-cluster" }}
 
