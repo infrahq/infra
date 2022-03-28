@@ -582,6 +582,7 @@ func Run(options Options) error {
 	}
 
 	proxyTransport := defaultHTTPTransport.Clone()
+	proxyTransport.ForceAttemptHTTP2 = false
 	proxyTransport.TLSClientConfig = &tls.Config{
 		RootCAs:    certPool,
 		MinVersion: tls.VersionTLS12,
