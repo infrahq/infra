@@ -50,7 +50,6 @@ require (
 	github.com/gin-contrib/static v0.0.1
 	github.com/go-gormigrate/gormigrate/v2 v2.0.0
 	github.com/iancoleman/strcase v0.2.0
-	github.com/mcuadros/go-defaults v1.2.0
 	github.com/mitchellh/mapstructure v1.4.3
 	github.com/spf13/afero v1.8.2
 	github.com/spf13/pflag v1.0.5
