@@ -31,7 +31,7 @@ func isUserInGroup(c *gin.Context, requestedResourceID uid.ID) (bool, error) {
 }
 
 func ListGroups(c *gin.Context, name string, providerID uid.ID) ([]models.Group, error) {
-	db, err := requireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole)
+	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +40,7 @@ func ListGroups(c *gin.Context, name string, providerID uid.ID) ([]models.Group,
 }
 
 func CreateGroup(c *gin.Context, group *models.Group) error {
-	db, err := requireInfraRole(c, models.InfraAdminRole)
+	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
 	}

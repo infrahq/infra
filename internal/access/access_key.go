@@ -22,7 +22,7 @@ func currentAccessKey(c *gin.Context) *models.AccessKey {
 }
 
 func ListAccessKeys(c *gin.Context, machineID uid.ID, name string) ([]models.AccessKey, error) {
-	db, err := requireInfraRole(c, models.InfraAdminRole)
+	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func ListAccessKeys(c *gin.Context, machineID uid.ID, name string) ([]models.Acc
 }
 
 func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey, machineID uid.ID) (body string, err error) {
-	db, err := requireInfraRole(c, models.InfraAdminRole)
+	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return "", err
 	}
@@ -50,7 +50,7 @@ func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey, machineID uid.
 }
 
 func DeleteAccessKey(c *gin.Context, id uid.ID) error {
-	db, err := requireInfraRole(c, models.InfraAdminRole)
+	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
 	}
