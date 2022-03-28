@@ -267,6 +267,10 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 	for _, g := range grants {
 		var name, kind string
 
+		if g.Privilege == "connect" {
+			continue
+		}
+
 		id, err := g.Subject.ID()
 		if err != nil {
 			return err
