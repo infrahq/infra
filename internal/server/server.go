@@ -359,7 +359,11 @@ func (s *Server) GenerateRoutes() *gin.Engine {
 	router.GET("/.well-known/jwks.json", s.wellKnownJWKsHandler)
 	router.GET("/healthz", s.healthHandler)
 
-	NewAPI(s, router.Group("/v1"))
+	a := API{
+		t:      s.tel,
+		server: s,
+	}
+	a.registerRoutes(router)
 
 	return router
 }

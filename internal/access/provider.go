@@ -26,7 +26,7 @@ func CurrentIdentityProvider(c *gin.Context) (*models.Provider, error) {
 }
 
 func CreateProvider(c *gin.Context, provider *models.Provider) error {
-	db, err := requireInfraRole(c, models.InfraAdminRole)
+	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
 	}
@@ -47,7 +47,7 @@ func ListProviders(c *gin.Context, name string) ([]models.Provider, error) {
 }
 
 func SaveProvider(c *gin.Context, provider *models.Provider) error {
-	db, err := requireInfraRole(c, models.InfraAdminRole)
+	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
 	}
@@ -56,7 +56,7 @@ func SaveProvider(c *gin.Context, provider *models.Provider) error {
 }
 
 func DeleteProvider(c *gin.Context, id uid.ID) error {
-	db, err := requireInfraRole(c, models.InfraAdminRole)
+	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
 	}

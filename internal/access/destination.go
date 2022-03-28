@@ -9,7 +9,7 @@ import (
 )
 
 func CreateDestination(c *gin.Context, destination *models.Destination) error {
-	db, err := requireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole)
+	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole)
 	if err != nil {
 		return err
 	}
@@ -18,7 +18,7 @@ func CreateDestination(c *gin.Context, destination *models.Destination) error {
 }
 
 func SaveDestination(c *gin.Context, destination *models.Destination) error {
-	db, err := requireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole)
+	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole)
 	if err != nil {
 		return err
 	}
@@ -27,7 +27,7 @@ func SaveDestination(c *gin.Context, destination *models.Destination) error {
 }
 
 func GetDestination(c *gin.Context, id uid.ID) (*models.Destination, error) {
-	db, err := requireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole, models.InfraUserRole)
+	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole, models.InfraUserRole)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func GetDestination(c *gin.Context, id uid.ID) (*models.Destination, error) {
 }
 
 func ListDestinations(c *gin.Context, uniqueID, name string) ([]models.Destination, error) {
-	db, err := requireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole, models.InfraUserRole)
+	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole, models.InfraUserRole)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func ListDestinations(c *gin.Context, uniqueID, name string) ([]models.Destinati
 }
 
 func DeleteDestination(c *gin.Context, id uid.ID) error {
-	db, err := requireInfraRole(c, models.InfraAdminRole)
+	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
 	}

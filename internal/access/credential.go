@@ -14,7 +14,7 @@ import (
 )
 
 func CreateCredential(c *gin.Context, user models.User) (string, error) {
-	db, err := requireInfraRole(c, models.InfraAdminRole)
+	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return "", err
 	}

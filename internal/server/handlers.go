@@ -26,15 +26,6 @@ type API struct {
 	server *Server
 }
 
-func NewAPI(server *Server, router *gin.RouterGroup) {
-	a := API{
-		t:      server.tel,
-		server: server,
-	}
-
-	a.registerRoutes(router)
-}
-
 func (a *API) ListUsers(c *gin.Context, r *api.ListUsersRequest) ([]api.User, error) {
 	users, err := access.ListUsers(c, r.Email, r.ProviderID)
 	if err != nil {
