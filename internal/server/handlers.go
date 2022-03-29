@@ -456,14 +456,12 @@ func (a *API) DeleteAccessKey(c *gin.Context, r *api.Resource) error {
 
 func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*api.CreateAccessKeyResponse, error) {
 	accessKey := &models.AccessKey{
-		IssuedFor: uid.NewMachinePolymorphicID(r.MachineID),
-		Name:      r.Name,
-		ExpiresAt: time.Now().Add(1 * time.Hour).UTC(),
+		IssuedFor:         uid.NewMachinePolymorphicID(r.MachineID),
+		Name:              r.Name,
+		ExpiresAt:         time.Now().Add(time.Duration(r.TTL)).UTC(),
+		Extension:         time.Duration(r.ExtensionDeadline),
+		ExtensionDeadline: time.Now().Add(time.Duration(r.ExtensionDeadline)).UTC(),
 	}
-
-	accessKey.ExpiresAt = time.Now().Add(time.Duration(r.TTL)).UTC()
-	accessKey.Extension = time.Duration(r.ExtensionDeadline)
-	accessKey.ExtensionDeadline = time.Now().Add(time.Duration(r.ExtensionDeadline)).UTC()
 
 	raw, err := access.CreateAccessKey(c, accessKey, r.MachineID)
 	if err != nil {
