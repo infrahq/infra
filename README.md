@@ -127,13 +127,13 @@ This creates a one-time password for the created user.
 ### 6. Grant Infra administrator privileges to the first user
 
 ``` 
-infra grants add -user name@example.com --role admin infra 
+infra grants add --user name@example.com --role admin infra 
 ``` 
 
 ### 7. Grant Kubernetes cluster administrator privileges to the first user 
 
 ```
-infra grants add -user name@example.com --role cluster-admin kubernetes.example-name
+infra grants add --user name@example.com --role cluster-admin kubernetes.example-name
 ```
 
 <details>
@@ -144,7 +144,7 @@ Infra supports cluster roles and roles within your Kubernetes environment includ
   
 **Example applying a cluster role to a namespace:** 
   ```
-  infra grants add -user name@example.com --role edit kubernetes.example-name.namespace
+  infra grants add --user name@example.com --role edit kubernetes.example-name.namespace
   ```
 **Default available Cluster roles within Kubernetes:**
 - **cluster-admin** <br /><br />
@@ -197,7 +197,7 @@ infra grants list
 Note: this requires the user to have either admin or view permissions to Infra. 
 
 An example to grant the permission:
-infra grants add -user name@example.com --role view infra 
+infra grants add --user name@example.com --role view infra 
 ```
 </details>
 
