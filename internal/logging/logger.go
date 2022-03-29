@@ -18,20 +18,41 @@ import (
 )
 
 var (
-	Level                                   = zap.NewAtomicLevel()
-	L, _                                    = NewLogger(Level)
-	S                   *zap.SugaredLogger  = L.Sugar()
-	defaultStderrWriter zapcore.WriteSyncer = os.Stderr
-	defaultStdoutWriter zapcore.WriteSyncer = os.Stdout
+	level                    = zap.NewAtomicLevel()
+	L                        = newLogger(level, os.Stderr)
+	S     *zap.SugaredLogger = L.Sugar()
 )
 
-func SetLevel(level string) error {
-	return Level.UnmarshalText([]byte(level))
+// SetLevel of the global loggers L and S.
+func SetLevel(l string) error {
+	return level.UnmarshalText([]byte(l))
 }
 
-func NewLogger(level zapcore.LevelEnabler) (*zap.Logger, error) {
+func newLogger(level zapcore.LevelEnabler, stderr zapcore.WriteSyncer) *zap.Logger {
+	writer := zapcore.Lock(filtered(stderr))
+	encoder := zapcore.NewConsoleEncoder(zapcore.EncoderConfig{
+		LevelKey:         "level",
+		EncodeLevel:      zapcore.CapitalColorLevelEncoder,
+		MessageKey:       "message",
+		ConsoleSeparator: "  ",
+	})
+	return zap.New(zapcore.NewCore(encoder, writer, level), zap.AddCaller())
+}
+
+// SetServerLogger changes L and S to a logger that is appropriate for long
+// running processes like the api server and connectors. The logger uses
+// json format and includes the function name and line number in the log message.
+//
+// SetServerLogger should not be called concurrently. It should be called
+// before any goroutines that may use the logger are started.
+func SetServerLogger() {
+	L = newServerLogger(level, os.Stdout, os.Stderr)
+	S = L.Sugar()
+}
+
+func newServerLogger(level zapcore.LevelEnabler, stdout, stderr zapcore.WriteSyncer) *zap.Logger {
 	if term.IsTerminal(int(os.Stdin.Fd())) {
-		writer := zapcore.Lock(filtered(defaultStderrWriter))
+		writer := zapcore.Lock(filtered(stderr))
 		encoder := zapcore.NewConsoleEncoder(zapcore.EncoderConfig{
 			MessageKey: "message",
 
@@ -45,17 +66,17 @@ func NewLogger(level zapcore.LevelEnabler) (*zap.Logger, error) {
 			EncodeCaller: zapcore.ShortCallerEncoder,
 		})
 
-		return zap.New(zapcore.NewCore(encoder, writer, level), zap.AddCaller()), nil
+		return zap.New(zapcore.NewCore(encoder, writer, level), zap.AddCaller())
 	}
 
 	return zap.New(
 		zapcore.NewCore(
 			zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
-			zapcore.Lock(filtered(defaultStdoutWriter)),
+			zapcore.Lock(filtered(stdout)),
 			level,
 		),
 		zap.AddCaller(),
-	), nil
+	)
 }
 
 func StandardErrorLog() *log.Logger {
