@@ -31,7 +31,7 @@ func (c *ClientHostConfig) isLoggedIn() bool {
 	return c.AccessKey != ""
 }
 
-func (c ClientConfig) getHostsStr() []string {
+func (c ClientConfig) HostNames() []string {
 	var hosts []string
 	for _, h := range c.Hosts {
 		hosts = append(hosts, h.Host)

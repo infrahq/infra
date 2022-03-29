@@ -46,6 +46,7 @@ func kubernetesSetContext(name string) error {
 	return nil
 }
 
+// TODO kubeconfig: revisit, since this should not take in a client but read from saved config
 func updateKubeconfig(client *api.Client, identityPolymorphicID uid.PolymorphicID) error {
 	destinations, err := client.ListDestinations(api.ListDestinationsRequest{})
 	if err != nil {
