@@ -90,8 +90,6 @@ func newDestinationsAddCmd() *cobra.Command {
 				return err
 			}
 
-			fmt.Println(created)
-
 			destinationGrant := &api.CreateGrantRequest{
 				Subject:   uid.NewMachinePolymorphicID(created.ID),
 				Privilege: models.InfraConnectorRole,
