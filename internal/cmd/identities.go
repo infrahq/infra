@@ -170,7 +170,7 @@ func newIdentitiesListCmd() *cobra.Command {
 				if providers[u.ProviderID] == "" {
 					p, err := client.GetProvider(u.ProviderID)
 					if err != nil {
-						logging.S.Debugf("unable to retrieve user provider: %w", err)
+						logging.S.Debugf("unable to retrieve user provider: %s", err)
 					} else {
 						providers[p.ID] = p.Name
 					}
@@ -271,7 +271,7 @@ func checkNameOrEmail(s string) (string, string, error) {
 
 	address, err := mail.ParseAddress(s)
 	if err != nil {
-		return "", "", fmt.Errorf("invalid email: %s", s)
+		return "", "", fmt.Errorf("invalid email: %q", s)
 	}
 
 	return "", address.Address, nil

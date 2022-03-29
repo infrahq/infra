@@ -20,15 +20,12 @@ type Machine struct {
 func (m *Machine) ToAPI() *api.Machine {
 	result := &api.Machine{
 		ID:      m.ID,
-		Created: m.CreatedAt.Unix(),
-		Updated: m.UpdatedAt.Unix(),
+		Created: api.Time(m.CreatedAt),
+		Updated: api.Time(m.UpdatedAt),
 
 		Name:        m.Name,
 		Description: m.Description,
-	}
-
-	if m.LastSeenAt.Unix() > 0 {
-		result.LastSeenAt = m.LastSeenAt.Unix()
+		LastSeenAt:  api.Time(m.LastSeenAt),
 	}
 
 	return result

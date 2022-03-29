@@ -16,6 +16,7 @@ Checklists help us remember things. Change [ ] to [x] to show completion.
 - [ ] Nothing sensitive logged
 - [ ] Commit message conforms to [Conventional Commit][1]
 - [ ] GitHub Actions are passing
+- [ ] Considered data migrations for smooth upgrades
 
 [1]: https://www.conventionalcommits.org/en/v1.0.0/
 

@@ -46,12 +46,12 @@ func createJWT(db *gorm.DB, user *models.User, machine *models.Machine, groups [
 		return "", err
 	}
 
-	now := time.Now()
+	now := time.Now().UTC()
 
 	claim := jwt.Claims{
 		NotBefore: jwt.NewNumericDate(now.Add(time.Minute * -5)), // adjust for clock drift
 		Expiry:    jwt.NewNumericDate(expires),
-		IssuedAt:  jwt.NewNumericDate(time.Now()),
+		IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
 	}
 
 	var custom claims.Custom
@@ -99,7 +99,7 @@ func CreateUserToken(db *gorm.DB, userID uid.ID) (token *models.Token, err error
 		groups = append(groups, g.Name)
 	}
 
-	expires := time.Now().Add(time.Minute * 5)
+	expires := time.Now().Add(time.Minute * 5).UTC()
 
 	jwt, err := createJWT(db, user, nil, groups, expires)
 	if err != nil {
@@ -115,7 +115,7 @@ func CreateMachineToken(db *gorm.DB, machineID uid.ID) (token *models.Token, err
 		return nil, err
 	}
 
-	expires := time.Now().Add(time.Minute * 5)
+	expires := time.Now().Add(time.Minute * 5).UTC()
 
 	jwt, err := createJWT(db, nil, machine, nil, expires)
 	if err != nil {

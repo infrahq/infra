@@ -11,7 +11,7 @@ func migrate(db *gorm.DB) error {
 	m := gormigrate.New(db, gormigrate.DefaultOptions, []*gormigrate.Migration{
 		// rename grants.identity -> grants.subject
 		{
-			ID: "202203231621", // current date
+			ID: "202203231621", // date the migration was created
 			Migrate: func(tx *gorm.DB) error {
 				// it's a good practice to copy any used structs inside the function,
 				// so side-effects are prevented if the original struct changes
@@ -24,6 +24,19 @@ func migrate(db *gorm.DB) error {
 			},
 			Rollback: func(tx *gorm.DB) error {
 				return tx.Migrator().RenameColumn(&models.Grant{}, "subject", "identity")
+			},
+		},
+		{
+			ID: "202203241643", // date the migration was created
+			Migrate: func(tx *gorm.DB) error {
+				if tx.Migrator().HasColumn(&models.AccessKey{}, "key") {
+					return tx.Migrator().RenameColumn(&models.AccessKey{}, "key", "key_id")
+				}
+
+				return nil
+			},
+			Rollback: func(tx *gorm.DB) error {
+				return tx.Migrator().RenameColumn(&models.AccessKey{}, "key_id", "key")
 			},
 		},
 		// next one here

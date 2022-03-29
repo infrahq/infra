@@ -16,7 +16,7 @@ var requestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
 	Buckets:   prometheus.ExponentialBuckets(0.001, 2, 15),
 }, []string{"host", "method", "path", "status"})
 
-// MetricsMiddleware wraps the request with a standard set of Prometheus metrics.
+// Middleware wraps the request with a standard set of Prometheus metrics.
 func Middleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		t := time.Now()

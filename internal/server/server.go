@@ -86,6 +86,8 @@ func init() {
 }
 
 func Run(options Options) (err error) {
+	// nolint: errcheck // if logs won't sync there is no way to report this error
+	defer logging.L.Sync()
 	server := &Server{
 		options: options,
 	}
@@ -272,7 +274,7 @@ func (s *Server) loadCertificates() (err error) {
 
 func serve(server *http.Server) {
 	if err := server.ListenAndServe(); err != nil {
-		logging.S.Errorf("server: %w", err)
+		logging.S.Errorf("server: %s", err)
 	}
 }
 
@@ -357,7 +359,11 @@ func (s *Server) GenerateRoutes() *gin.Engine {
 	router.GET("/.well-known/jwks.json", s.wellKnownJWKsHandler)
 	router.GET("/healthz", s.healthHandler)
 
-	NewAPI(s, router.Group("/v1"))
+	a := API{
+		t:      s.tel,
+		server: s,
+	}
+	a.registerRoutes(router)
 
 	return router
 }
@@ -613,7 +619,7 @@ func (s *Server) setupRequired() bool {
 
 	machines, err := data.ListMachines(s.db, data.ByName("admin"))
 	if err != nil {
-		logging.S.Errorf("machines: %w", err)
+		logging.S.Errorf("failed to list machines: %v", err)
 		return false
 	}
 

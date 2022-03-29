@@ -14,7 +14,6 @@ import (
 	"github.com/goware/urlx"
 	"github.com/iancoleman/strcase"
 	"github.com/lensesio/tableprinter"
-	"github.com/mcuadros/go-defaults"
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -97,8 +96,6 @@ func parseOptions(cmd *cobra.Command, options interface{}, envPrefix string) err
 
 		return errors.New(sb.String())
 	}
-
-	defaults.SetDefaults(options)
 
 	if err := v.ReadInConfig(); err != nil {
 		var errNotFound *viper.ConfigFileNotFoundError

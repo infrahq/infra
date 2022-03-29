@@ -37,7 +37,7 @@ func createAccessKeyWithExtensionDeadline(t *testing.T, db *gorm.DB, ttl, exensi
 	token := &models.AccessKey{
 		IssuedFor:         machine.PolyID(),
 		ExpiresAt:         time.Now().Add(ttl),
-		ExtensionDeadline: time.Now().Add(exensionDeadline),
+		ExtensionDeadline: time.Now().Add(exensionDeadline).UTC(),
 	}
 
 	body, err := CreateAccessKey(db, token)

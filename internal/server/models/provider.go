@@ -24,8 +24,8 @@ func (p *Provider) ToAPI() *api.Provider {
 	return &api.Provider{
 		Name:    p.Name,
 		ID:      p.ID,
-		Created: p.CreatedAt.Unix(),
-		Updated: p.UpdatedAt.Unix(),
+		Created: api.Time(p.CreatedAt),
+		Updated: api.Time(p.UpdatedAt),
 
 		URL:      p.URL,
 		ClientID: p.ClientID,

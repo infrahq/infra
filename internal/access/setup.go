@@ -31,7 +31,7 @@ func Setup(c *gin.Context) (string, *models.AccessKey, error) {
 
 	settings, err := data.GetSettings(db)
 	if err != nil {
-		logging.S.Errorf("settings: %w", err)
+		logging.S.Errorf("settings: %s", err)
 		return "", nil, internal.ErrForbidden
 	}
 
@@ -43,7 +43,7 @@ func Setup(c *gin.Context) (string, *models.AccessKey, error) {
 	machine := &models.Machine{
 		Name:        name,
 		Description: "Infra admin machine identity",
-		LastSeenAt:  time.Now(),
+		LastSeenAt:  time.Now().UTC(),
 	}
 
 	if err := data.CreateMachine(db, machine); err != nil {
@@ -53,7 +53,7 @@ func Setup(c *gin.Context) (string, *models.AccessKey, error) {
 	key := &models.AccessKey{
 		Name:      fmt.Sprintf("%s access key", name),
 		IssuedFor: machine.PolyID(),
-		ExpiresAt: time.Now().Add(math.MaxInt64),
+		ExpiresAt: time.Now().Add(math.MaxInt64).UTC(),
 	}
 
 	raw, err := data.CreateAccessKey(db, key)

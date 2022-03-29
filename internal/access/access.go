@@ -29,7 +29,7 @@ func getCurrentIdentity(c *gin.Context) uid.PolymorphicID {
 	return id
 }
 
-// hasAuthorization checks if a caller is the owner of a resource before checking if they have an approprite role to access it
+// hasAuthorization checks if a caller is the owner of a resource before checking if they have an appropriate role to access it
 func hasAuthorization(c *gin.Context, requestedResource uid.ID, isResourceOwner func(c *gin.Context, requestedResourceID uid.ID) (bool, error), oneOfRoles ...string) (*gorm.DB, error) {
 	owner, err := isResourceOwner(c, requestedResource)
 	if err != nil {
@@ -40,17 +40,19 @@ func hasAuthorization(c *gin.Context, requestedResource uid.ID, isResourceOwner 
 		return getDB(c), nil
 	}
 
-	return requireInfraRole(c, oneOfRoles...)
+	return RequireInfraRole(c, oneOfRoles...)
 }
 
-// requireInfraRole checks that the identity in the context can perform an action on a resource based on their granted roles
-func requireInfraRole(c *gin.Context, oneOfRoles ...string) (*gorm.DB, error) {
+const ResourceInfraAPI = "infra"
+
+// RequireInfraRole checks that the identity in the context can perform an action on a resource based on their granted roles
+func RequireInfraRole(c *gin.Context, oneOfRoles ...string) (*gorm.DB, error) {
 	db := getDB(c)
 
 	identity := getCurrentIdentity(c)
 
 	for _, role := range oneOfRoles {
-		ok, err := Can(db, identity, role, "infra")
+		ok, err := Can(db, identity, role, ResourceInfraAPI)
 		if err != nil {
 			return nil, err
 		}
@@ -71,7 +73,7 @@ func requireInfraRole(c *gin.Context, oneOfRoles ...string) (*gorm.DB, error) {
 
 		for _, group := range groups {
 			for _, role := range oneOfRoles {
-				ok, err := Can(db, group.PolyID(), role, "infra")
+				ok, err := Can(db, group.PolyID(), role, ResourceInfraAPI)
 				if err != nil {
 					return nil, err
 				}

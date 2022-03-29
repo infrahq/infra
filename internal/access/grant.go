@@ -11,7 +11,7 @@ import (
 )
 
 func GetGrant(c *gin.Context, id uid.ID) (*models.Grant, error) {
-	db, err := requireInfraRole(c, models.InfraAdminRole)
+	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return nil, err
 	}
@@ -20,7 +20,7 @@ func GetGrant(c *gin.Context, id uid.ID) (*models.Grant, error) {
 }
 
 func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, privilege string) ([]models.Grant, error) {
-	db, err := requireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole)
+	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func ListGroupGrants(c *gin.Context, groupID uid.ID) ([]models.Grant, error) {
 }
 
 func CreateGrant(c *gin.Context, grant *models.Grant) error {
-	db, err := requireInfraRole(c, models.InfraAdminRole)
+	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
 	}
@@ -74,7 +74,7 @@ func CreateGrant(c *gin.Context, grant *models.Grant) error {
 }
 
 func DeleteGrant(c *gin.Context, id uid.ID) error {
-	db, err := requireInfraRole(c, models.InfraAdminRole)
+	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
 	}

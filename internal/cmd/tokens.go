@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -75,7 +76,7 @@ func tokensCreate() error {
 		Spec: clientauthenticationv1beta1.ExecCredentialSpec{},
 		Status: &clientauthenticationv1beta1.ExecCredentialStatus{
 			Token:               token.Token,
-			ExpirationTimestamp: &metav1.Time{Time: token.Expires},
+			ExpirationTimestamp: &metav1.Time{Time: time.Time(token.Expires)},
 		},
 	}
 

@@ -5,16 +5,19 @@
       "AccessKey": {
         "properties": {
           "created": {
+            "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
           },
           "expires": {
+            "description": "key is no longer valid after this time",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
           },
           "extensionDeadline": {
+            "description": "key must be renewed after this time",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
@@ -42,16 +45,19 @@
             "type": "string"
           },
           "created": {
+            "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
           },
           "expires": {
+            "description": "after this deadline the key is no longer valid",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
           },
           "extensionDeadline": {
+            "description": "the key must be used by this time to remain valid",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
@@ -76,6 +82,7 @@
       "CreateTokenResponse": {
         "properties": {
           "expires": {
+            "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
@@ -131,8 +138,10 @@
             "type": "object"
           },
           "created": {
-            "format": "int64",
-            "type": "integer"
+            "description": "formatted as an RFC3339 date-time",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
           },
           "id": {
             "example": "4yJ3n3D8E2",
@@ -148,8 +157,10 @@
             "type": "string"
           },
           "updated": {
-            "format": "int64",
-            "type": "integer"
+            "description": "formatted as an RFC3339 date-time",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
           }
         }
       },
@@ -185,8 +196,10 @@
       "Grant": {
         "properties": {
           "created": {
-            "format": "int64",
-            "type": "integer"
+            "description": "formatted as an RFC3339 date-time",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
           },
           "created_by": {
             "description": "id of the identity that created the grant",
@@ -197,8 +210,9 @@
           },
           "expires_at": {
             "description": "grant expires after this time",
-            "format": "int64",
-            "type": "integer"
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
           },
           "id": {
             "example": "4yJ3n3D8E2",
@@ -222,16 +236,20 @@
             "type": "string"
           },
           "updated": {
-            "format": "int64",
-            "type": "integer"
+            "description": "formatted as an RFC3339 date-time",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
           }
         }
       },
       "Group": {
         "properties": {
           "created": {
-            "format": "int64",
-            "type": "integer"
+            "description": "formatted as an RFC3339 date-time",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
           },
           "id": {
             "example": "4yJ3n3D8E2",
@@ -249,8 +267,10 @@
             "type": "string"
           },
           "updated": {
-            "format": "int64",
-            "type": "integer"
+            "description": "formatted as an RFC3339 date-time",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
           }
         }
       },
@@ -292,8 +312,10 @@
       "Machine": {
         "properties": {
           "created": {
-            "format": "int64",
-            "type": "integer"
+            "description": "formatted as an RFC3339 date-time",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
           },
           "description": {
             "type": "string"
@@ -305,17 +327,25 @@
             "type": "string"
           },
           "lastSeenAt": {
-            "format": "int64",
-            "type": "integer"
+            "description": "timestamp of this machine's last interaction with Infra",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
           },
           "name": {
+            "minLength": 1,
             "type": "string"
           },
           "updated": {
-            "format": "int64",
-            "type": "integer"
+            "description": "formatted as an RFC3339 date-time",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
           }
-        }
+        },
+        "required": [
+          "name"
+        ]
       },
       "Provider": {
         "properties": {
@@ -324,8 +354,10 @@
             "type": "string"
           },
           "created": {
-            "format": "int64",
-            "type": "integer"
+            "description": "formatted as an RFC3339 date-time",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
           },
           "id": {
             "example": "4yJ3n3D8E2",
@@ -338,8 +370,10 @@
             "type": "string"
           },
           "updated": {
-            "format": "int64",
-            "type": "integer"
+            "description": "formatted as an RFC3339 date-time",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
           },
           "url": {
             "example": "infrahq.okta.com",
@@ -361,8 +395,10 @@
       "User": {
         "properties": {
           "created": {
-            "format": "int64",
-            "type": "integer"
+            "description": "formatted as an RFC3339 date-time",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
           },
           "email": {
             "example": "email@example.com",
@@ -375,8 +411,10 @@
             "type": "string"
           },
           "lastSeenAt": {
-            "format": "int64",
-            "type": "integer"
+            "description": "formatted as an RFC3339 date-time",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
           },
           "providerID": {
             "example": "4yJ3n3D8E2",
@@ -385,8 +423,10 @@
             "type": "string"
           },
           "updated": {
-            "format": "int64",
-            "type": "integer"
+            "description": "formatted as an RFC3339 date-time",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
           }
         },
         "required": [
@@ -514,7 +554,10 @@
             "application/json": {
               "schema": {
                 "properties": {
-                  "extensionDeadline,omitempty": {
+                  "extensionDeadline": {
+                    "description": "How long the key is active for before it needs to be renewed. The access key must be used within this amount of time to renew validity",
+                    "example": "72h3m6.5s",
+                    "format": "duration",
                     "type": "string"
                   },
                   "machineID": {
@@ -527,6 +570,9 @@
                     "type": "string"
                   },
                   "ttl": {
+                    "description": "maximum time valid",
+                    "example": "72h3m6.5s",
+                    "format": "duration",
                     "type": "string"
                   }
                 },

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"regexp"
@@ -23,15 +24,6 @@ import (
 type API struct {
 	t      *Telemetry
 	server *Server
-}
-
-func NewAPI(server *Server, router *gin.RouterGroup) {
-	a := API{
-		t:      server.tel,
-		server: server,
-	}
-
-	a.registerRoutes(router)
 }
 
 func (a *API) ListUsers(c *gin.Context, r *api.ListUsersRequest) ([]api.User, error) {
@@ -421,7 +413,7 @@ func (a *API) CreateToken(c *gin.Context, r *api.CreateTokenRequest) (*api.Creat
 			return nil, err
 		}
 
-		return &api.CreateTokenResponse{Token: token.Token, Expires: token.Expires}, nil
+		return &api.CreateTokenResponse{Token: token.Token, Expires: api.Time(token.Expires)}, nil
 	}
 
 	if access.CurrentMachine(c) != nil {
@@ -430,7 +422,7 @@ func (a *API) CreateToken(c *gin.Context, r *api.CreateTokenRequest) (*api.Creat
 			return nil, err
 		}
 
-		return &api.CreateTokenResponse{Token: token.Token, Expires: token.Expires}, nil
+		return &api.CreateTokenResponse{Token: token.Token, Expires: api.Time(token.Expires)}, nil
 	}
 
 	return nil, fmt.Errorf("no identity found in token: %w", internal.ErrUnauthorized)
@@ -448,10 +440,10 @@ func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) ([]ap
 		results[i] = api.AccessKey{
 			ID:                a.ID,
 			Name:              a.Name,
-			Created:           a.CreatedAt,
+			Created:           api.Time(a.CreatedAt),
 			IssuedFor:         a.IssuedFor,
-			Expires:           a.ExpiresAt,
-			ExtensionDeadline: a.ExtensionDeadline,
+			Expires:           api.Time(a.ExpiresAt),
+			ExtensionDeadline: api.Time(a.ExtensionDeadline),
 		}
 	}
 
@@ -466,27 +458,12 @@ func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*a
 	accessKey := &models.AccessKey{
 		IssuedFor: uid.NewMachinePolymorphicID(r.MachineID),
 		Name:      r.Name,
-		ExpiresAt: time.Now().Add(1 * time.Hour),
+		ExpiresAt: time.Now().Add(1 * time.Hour).UTC(),
 	}
 
-	if r.TTL != "" {
-		lifetime, err := time.ParseDuration(r.TTL)
-		if err != nil {
-			return nil, fmt.Errorf("invalid ttl: %w", err)
-		}
-
-		accessKey.ExpiresAt = time.Now().Add(lifetime)
-	}
-
-	if r.ExtensionDeadline != "" {
-		extension, err := time.ParseDuration(r.ExtensionDeadline)
-		if err != nil {
-			return nil, fmt.Errorf("invalid extension deadline: %w", err)
-		}
-
-		accessKey.Extension = extension
-		accessKey.ExtensionDeadline = time.Now().Add(extension)
-	}
+	accessKey.ExpiresAt = time.Now().Add(time.Duration(r.TTL)).UTC()
+	accessKey.Extension = time.Duration(r.ExtensionDeadline)
+	accessKey.ExtensionDeadline = time.Now().Add(time.Duration(r.ExtensionDeadline)).UTC()
 
 	raw, err := access.CreateAccessKey(c, accessKey, r.MachineID)
 	if err != nil {
@@ -495,11 +472,11 @@ func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*a
 
 	return &api.CreateAccessKeyResponse{
 		ID:                accessKey.ID,
-		Created:           accessKey.CreatedAt,
+		Created:           api.Time(accessKey.CreatedAt),
 		Name:              accessKey.Name,
 		IssuedFor:         accessKey.IssuedFor,
-		Expires:           accessKey.ExpiresAt,
-		ExtensionDeadline: accessKey.ExtensionDeadline,
+		Expires:           api.Time(accessKey.ExpiresAt),
+		ExtensionDeadline: api.Time(accessKey.ExtensionDeadline),
 		AccessKey:         raw,
 	}, nil
 }
@@ -569,11 +546,11 @@ func (a *API) Setup(c *gin.Context, _ *api.EmptyRequest) (*api.CreateAccessKeyRe
 
 	return &api.CreateAccessKeyResponse{
 		ID:                accessKey.ID,
-		Created:           accessKey.CreatedAt,
+		Created:           api.Time(accessKey.CreatedAt),
 		Name:              accessKey.Name,
 		IssuedFor:         accessKey.IssuedFor,
-		Expires:           accessKey.ExpiresAt,
-		ExtensionDeadline: accessKey.ExtensionDeadline,
+		Expires:           api.Time(accessKey.ExpiresAt),
+		ExtensionDeadline: api.Time(accessKey.ExtensionDeadline),
 		AccessKey:         raw,
 	}, nil
 }
@@ -606,7 +583,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 		return &api.LoginResponse{PolymorphicID: user.PolyID(), Name: user.Email, AccessKey: key}, nil
 	case r.AccessKey != "":
-		expires := time.Now().Add(a.server.options.SessionDuration)
+		expires := time.Now().Add(a.server.options.SessionDuration).UTC()
 
 		key, machine, err := access.ExchangeAccessKey(c, r.AccessKey, expires)
 		if err != nil {
@@ -623,7 +600,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 		return &api.LoginResponse{PolymorphicID: machine.PolyID(), Name: machine.Name, AccessKey: key}, nil
 	case r.PasswordCredentials != nil:
-		expires := time.Now().Add(a.server.options.SessionDuration)
+		expires := time.Now().Add(a.server.options.SessionDuration).UTC()
 
 		key, user, requiresUpdate, err := access.LoginWithUserCredential(c, r.PasswordCredentials.Email, r.PasswordCredentials.Password, expires)
 		if err != nil {
@@ -704,10 +681,14 @@ func (a *API) updateUserInfo(c *gin.Context) error {
 		if errors.Is(err, internal.ErrForbidden) {
 			err := access.DeleteAllUserAccessKeys(c)
 			if err != nil {
-				logging.S.Errorf("failed to revoke invalid user session: %w", err)
+				logging.S.Errorf("failed to revoke invalid user session: %s", err)
 			}
 
 			deleteAuthCookie(c)
+		}
+
+		if errors.Is(err, context.DeadlineExceeded) {
+			return fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
 		}
 
 		return fmt.Errorf("update user info: %w", err)
@@ -725,7 +706,7 @@ func (a *API) providerClient(c *gin.Context, provider *models.Provider, redirect
 
 	clientSecret, err := secrets.GetSecret(string(provider.ClientSecret), a.server.secrets)
 	if err != nil {
-		logging.S.Debugf("could not get client secret: %w", err)
+		logging.S.Debugf("could not get client secret: %s", err)
 		return nil, fmt.Errorf("error loading provider client")
 	}
 

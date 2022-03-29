@@ -1,6 +1,7 @@
 package access
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -25,7 +26,7 @@ func CurrentIdentityProvider(c *gin.Context) (*models.Provider, error) {
 }
 
 func CreateProvider(c *gin.Context, provider *models.Provider) error {
-	db, err := requireInfraRole(c, models.InfraAdminRole)
+	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
 	}
@@ -46,7 +47,7 @@ func ListProviders(c *gin.Context, name string) ([]models.Provider, error) {
 }
 
 func SaveProvider(c *gin.Context, provider *models.Provider) error {
-	db, err := requireInfraRole(c, models.InfraAdminRole)
+	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
 	}
@@ -55,7 +56,7 @@ func SaveProvider(c *gin.Context, provider *models.Provider) error {
 }
 
 func DeleteProvider(c *gin.Context, id uid.ID) error {
-	db, err := requireInfraRole(c, models.InfraAdminRole)
+	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
 	}
@@ -92,6 +93,10 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 	// exchange code for tokens from identity provider (these tokens are for the IDP, not Infra)
 	accessToken, refreshToken, expiry, email, err := oidc.ExchangeAuthCodeForProviderTokens(code)
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return nil, "", fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
+		}
+
 		return nil, "", fmt.Errorf("exhange code for tokens: %w", err)
 	}
 
@@ -157,6 +162,10 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 	// get current identity provider groups
 	info, err := oidc.GetUserInfo(provToken)
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return nil, "", fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
+		}
+
 		return nil, "", fmt.Errorf("login user info: %w", err)
 	}
 
@@ -167,7 +176,7 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 
 	key := &models.AccessKey{
 		IssuedFor: user.PolyID(),
-		ExpiresAt: time.Now().Add(sessionDuration),
+		ExpiresAt: time.Now().Add(sessionDuration).UTC(),
 	}
 
 	body, err := data.CreateAccessKey(db, key)
@@ -175,7 +184,7 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 		return nil, body, fmt.Errorf("create access key: %w", err)
 	}
 
-	user.LastSeenAt = time.Now()
+	user.LastSeenAt = time.Now().UTC()
 	if err := data.SaveUser(db, user); err != nil {
 		return nil, "", fmt.Errorf("login update last seen: %w", err)
 	}

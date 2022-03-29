@@ -67,7 +67,7 @@ func (j *jwkCache) getJWK() (*jose.JSONWebKey, error) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
 
-	if j.lastChecked != (time.Time{}) && time.Now().Before(j.lastChecked.Add(JWKCacheRefresh)) {
+	if !j.lastChecked.IsZero() && time.Now().Before(j.lastChecked.Add(JWKCacheRefresh)) {
 		return j.key, nil
 	}
 
@@ -100,7 +100,7 @@ func (j *jwkCache) getJWK() (*jose.JSONWebKey, error) {
 		return nil, errors.New("no jwks provided by infra")
 	}
 
-	j.lastChecked = time.Now()
+	j.lastChecked = time.Now().UTC()
 	j.key = &response.Keys[0]
 
 	return &response.Keys[0], nil
@@ -137,7 +137,7 @@ func jwtMiddleware(getJWK getJWKFunc) gin.HandlerFunc {
 
 		tok, err := jwt.ParseSigned(raw)
 		if err != nil {
-			logging.L.Debug("invalid jwt signature")
+			logging.S.Debugf("invalid jwt signature: %v", err)
 			c.AbortWithStatus(http.StatusUnauthorized)
 
 			return
@@ -165,7 +165,7 @@ func jwtMiddleware(getJWK getJWKFunc) gin.HandlerFunc {
 		}
 
 		err = claims.Claims.Validate(jwt.Expected{
-			Time: time.Now(),
+			Time: time.Now().UTC(),
 		})
 
 		switch {
@@ -267,6 +267,10 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 	for _, g := range grants {
 		var name, kind string
 
+		if g.Privilege == "connect" {
+			continue
+		}
+
 		id, err := g.Subject.ID()
 		if err != nil {
 			return err
@@ -348,33 +352,6 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 }
 
 func Run(options Options) error {
-	hostTLSConfig := &tls.Config{MinVersion: tls.VersionTLS12}
-
-	if options.SkipTLSVerify {
-		// TODO (https://github.com/infrahq/infra/issues/174)
-		// Find a way to re-use the built-in TLS verification code vs
-		// this custom code based on the official go TLS example code
-		// which states this is approximately the same.
-		hostTLSConfig.InsecureSkipVerify = true
-		hostTLSConfig.VerifyConnection = func(cs tls.ConnectionState) error {
-			opts := x509.VerifyOptions{
-				DNSName:       cs.ServerName,
-				Intermediates: x509.NewCertPool(),
-			}
-
-			for _, cert := range cs.PeerCertificates[1:] {
-				opts.Intermediates.AddCert(cert)
-			}
-
-			_, err := cs.PeerCertificates[0].Verify(opts)
-			if err != nil {
-				logging.S.Warnf("could not verify Infra TLS certificates: %s", err.Error())
-			}
-
-			return nil
-		}
-	}
-
 	k8s, err := kubernetes.NewKubernetes()
 	if err != nil {
 		return err
@@ -382,7 +359,7 @@ func Run(options Options) error {
 
 	autoname, chksm, err := k8s.Name()
 	if err != nil {
-		logging.S.Errorf("k8s name error: %w", err)
+		logging.S.Errorf("k8s name error: %s", err)
 		return err
 	}
 
@@ -435,7 +412,7 @@ func Run(options Options) error {
 
 	u, err := urlx.Parse(options.Server)
 	if err != nil {
-		logging.S.Errorf("server: %w", err)
+		logging.S.Errorf("server: %s", err)
 	}
 
 	// server is localhost which should never be the case. try to infer the actual host
@@ -457,12 +434,24 @@ func Run(options Options) error {
 		chksm: chksm,
 	}
 
+	// clone the default http transport which sets reasonable defaults
+	defaultHTTPTransport, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		return errors.New("unexpected type for http.DefaultTransport")
+	}
+
+	transport := defaultHTTPTransport.Clone()
+	transport.TLSClientConfig = &tls.Config{
+		//nolint:gosec // We may purposely set InsecureSkipVerify via a flag
+		InsecureSkipVerify: options.SkipTLSVerify,
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	repeat.Start(ctx, 5*time.Second, func(context.Context) {
 		accessKey, err := secrets.GetSecret(options.AccessKey, basicSecretStorage)
 		if err != nil {
-			logging.S.Infof("%w", err)
+			logging.S.Infof("failed to lookup access key from secret storage: %v", err)
 			return
 		}
 
@@ -470,26 +459,24 @@ func Run(options Options) error {
 			URL:       u.String(),
 			AccessKey: accessKey,
 			HTTP: http.Client{
-				Transport: &http.Transport{
-					TLSClientConfig: hostTLSConfig,
-				},
+				Transport: transport,
 			},
 		}
 
 		caBytes, err := manager.Cache.Get(context.TODO(), serverName)
 		if err != nil {
 			if errors.Is(err, autocert.ErrCacheMiss) {
-				logging.S.Debugf("failed loading CA: %s", err.Error())
+				logging.S.Debugf("failed loading CA: %v", err)
 				return
 			} else {
-				logging.S.Errorf("cache get: %s", err.Error())
+				logging.S.Errorf("cache get: %v", err)
 				return
 			}
 		}
 
 		host, port, err := k8s.Endpoint()
 		if err != nil {
-			logging.S.Errorf("endpoint: %w", err)
+			logging.S.Errorf("failed to lookup endpoint: %v", err)
 			return
 		}
 
@@ -510,7 +497,7 @@ func Run(options Options) error {
 
 			isClusterIP, err := k8s.IsServiceTypeClusterIP()
 			if err != nil {
-				logging.S.Debugf("could not check destination service type: %w", err)
+				logging.S.Debugf("could not check destination service type: %v", err)
 			}
 
 			if isClusterIP {
@@ -519,7 +506,7 @@ func Run(options Options) error {
 
 			err = registerDestination(client, localDetails)
 			if err != nil {
-				logging.S.Errorf("initializing destination: %w", err)
+				logging.S.Errorf("initializing destination: %v", err)
 				return
 			}
 		} else if localDetails.endpoint != endpoint || localDetails.ca != string(caBytes) {
@@ -528,27 +515,27 @@ func Run(options Options) error {
 
 			err = refreshDestination(client, localDetails)
 			if err != nil {
-				logging.S.Errorf("initializing destination: %w", err)
+				logging.S.Errorf("refreshing destination: %v", err)
 				return
 			}
 		}
 
 		grants, err := client.ListGrants(api.ListGrantsRequest{Resource: options.Name})
 		if err != nil {
-			logging.S.Errorf("error listing grants: %w", err)
+			logging.S.Errorf("error listing grants: %v", err)
 			return
 		}
 
 		namespaces, err := k8s.Namespaces()
 		if err != nil {
-			logging.S.Errorf("error listing namespaces: %w", err)
+			logging.S.Errorf("error listing namespaces: %v", err)
 			return
 		}
 
 		for _, n := range namespaces {
 			g, err := client.ListGrants(api.ListGrantsRequest{Resource: fmt.Sprintf("%s.%s", options.Name, n)})
 			if err != nil {
-				logging.S.Errorf("error listing grants: %w", err)
+				logging.S.Errorf("error listing grants: %v", err)
 				return
 			}
 
@@ -557,7 +544,7 @@ func Run(options Options) error {
 
 		err = updateRoles(client, k8s, grants)
 		if err != nil {
-			logging.S.Errorf("error updating grants: %w", err)
+			logging.S.Errorf("error updating grants: %v", err)
 			return
 		}
 	})
@@ -572,9 +559,7 @@ func Run(options Options) error {
 	cache := jwkCache{
 		client: &http.Client{
 			Transport: &BearerTransport{
-				Transport: &http.Transport{
-					TLSClientConfig: hostTLSConfig,
-				},
+				Transport: transport,
 			},
 		},
 		baseURL: u.String(),
@@ -592,18 +577,19 @@ func Run(options Options) error {
 
 	certPool := x509.NewCertPool()
 
-	ok := certPool.AppendCertsFromPEM(caCert)
-	if !ok {
+	if ok := certPool.AppendCertsFromPEM(caCert); !ok {
 		return errors.New("could not append CA to client cert bundle")
 	}
 
-	proxy := httputil.NewSingleHostReverseProxy(proxyHost)
-	proxy.Transport = &http.Transport{
-		TLSClientConfig: &tls.Config{
-			RootCAs:    certPool,
-			MinVersion: tls.VersionTLS12,
-		},
+	proxyTransport := defaultHTTPTransport.Clone()
+	proxyTransport.ForceAttemptHTTP2 = false
+	proxyTransport.TLSClientConfig = &tls.Config{
+		RootCAs:    certPool,
+		MinVersion: tls.VersionTLS12,
 	}
+
+	proxy := httputil.NewSingleHostReverseProxy(proxyHost)
+	proxy.Transport = proxyTransport
 
 	router.Use(
 		metrics.Middleware(),
@@ -624,7 +610,7 @@ func Run(options Options) error {
 
 	go func() {
 		if err := metricsServer.ListenAndServe(); err != nil {
-			logging.S.Errorf("server: %w", err)
+			logging.S.Errorf("server: %s", err)
 		}
 	}()
 

@@ -43,7 +43,7 @@ func GetUser(c *gin.Context, id uid.ID) (*models.User, error) {
 }
 
 func CreateUser(c *gin.Context, user *models.User) error {
-	db, err := requireInfraRole(c, models.InfraAdminRole)
+	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
 	}
@@ -52,7 +52,7 @@ func CreateUser(c *gin.Context, user *models.User) error {
 }
 
 func DeleteUser(c *gin.Context, id uid.ID) error {
-	db, err := requireInfraRole(c, models.InfraAdminRole)
+	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
 	}
@@ -74,7 +74,7 @@ func DeleteUser(c *gin.Context, id uid.ID) error {
 }
 
 func ListUsers(c *gin.Context, email string, providerID uid.ID) ([]models.User, error) {
-	db, err := requireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole)
+	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole)
 	if err != nil {
 		return nil, err
 	}
