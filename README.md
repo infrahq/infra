@@ -127,13 +127,13 @@ This creates a one-time password for the created user.
 ### 6. Grant Infra administrator privileges to the first user
 
 ``` 
-infra grants add -u name@example.com --role admin infra 
+infra grants add -user name@example.com --role admin infra 
 ``` 
 
 ### 7. Grant Kubernetes cluster administrator privileges to the first user 
 
 ```
-infra grants add -u name@example.com --role cluster-admin kubernetes.example-name
+infra grants add -user name@example.com --role cluster-admin kubernetes.example-name
 ```
 
 <details>
@@ -144,14 +144,14 @@ Infra supports cluster roles and roles within your Kubernetes environment includ
   
 **Example applying a cluster role to a namespace:** 
   ```
-  infra grants add -u name@example.com --role edit kubernetes.example-name.namespace
+  infra grants add -user name@example.com --role edit kubernetes.example-name.namespace
   ```
 **Default available Cluster roles within Kubernetes:**
 - **cluster-admin** <br /><br />
-  Allows super-user access to perform any action on any resource. When used in a ClusterRoleBinding, it gives full control over every resource in the cluster and in all namespaces. When used in a RoleBinding, it gives full control over every resource in the role binding's namespace, including the namespace itself. <br />
+  Allows super-user access to perform any action on any resource. When 'cluster-admin' role is granted without specifying a namespace, it gives full control over every resource in the cluster and in all namespaces. When it is granted with a specified namespace, it gives full control over every resource in the namespace, including the namespace itself.<br />
 - **admin** <br /><br />
-  Allows admin access, intended to be granted within a namespace using a RoleBinding.
-If used in a RoleBinding, allows read/write access to most resources in a namespace, including the ability to create roles and role bindings within the namespace. This role does not allow write access to resource quota or to the namespace itself. This role also does not allow write access to Endpoints in clusters created using Kubernetes v1.22+. <br /><br />
+  Allows admin access, intended to be granted within a namespace.
+The admin role allows read/write access to most resources in the specified namespace, including the ability to create roles and role bindings within the namespace. This role does not allow write access to resource quota or to the namespace itself. This role also does not allow write access to Endpoints in clusters created using Kubernetes v1.22+. <br /><br />
 - **edit** <br /><br />
   Allows read/write access to most objects in a namespace.
 This role does not allow viewing or modifying roles or role bindings. However, this role allows accessing Secrets and running Pods as any ServiceAccount in the namespace, so it can be used to gain the API access levels of any ServiceAccount in the namespace. This role also does not allow write access to Endpoints in clusters created using Kubernetes v1.22+. <br /><br />
@@ -182,11 +182,11 @@ infra use kubernetes.example-name
 <details>
   <summary><strong>Here are some other commands to get you started</strong></summary><br />
 
-See all the cluster(s) you have access to: 
+See the cluster(s) you have access to: 
 ```
 infra list
 ``` 
-See all the cluster(s) connected to Infra: 
+See the cluster(s) connected to Infra: 
 ```
 infra destinations list
 ```
@@ -197,7 +197,7 @@ infra grants list
 Note: this requires the user to have either admin or view permissions to Infra. 
 
 An example to grant the permission:
-infra grants add -u name@example.com --role view infra 
+infra grants add -user name@example.com --role view infra 
 ```
 </details>
 
