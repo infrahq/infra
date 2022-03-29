@@ -32,7 +32,7 @@ type loginCmdOptions struct {
 	SkipTLSVerify bool   `mapstructure:"skipTLSVerify"`
 }
 
-type loginMethod int64
+type loginMethod int8
 
 const (
 	localLogin loginMethod = iota
