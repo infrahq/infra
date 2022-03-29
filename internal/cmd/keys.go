@@ -42,14 +42,20 @@ infra keys create main wall-e 12h --extension-deadline=1h
 				return err
 			}
 
-			deadline, err := time.ParseDuration(options.ExtensionDeadline)
-			if err != nil {
-				return err
+			deadline := 1 * time.Hour
+			if options.ExtensionDeadline != "" {
+				deadline, err = time.ParseDuration(options.ExtensionDeadline)
+				if err != nil {
+					return err
+				}
 			}
 
-			ttl, err := time.ParseDuration(options.TTL)
-			if err != nil {
-				return fmt.Errorf("parsing ttl: %w", err)
+			ttl := 24 * time.Hour
+			if options.TTL != "" {
+				ttl, err = time.ParseDuration(options.TTL)
+				if err != nil {
+					return fmt.Errorf("parsing ttl: %w", err)
+				}
 			}
 
 			resp, err := client.CreateAccessKey(&api.CreateAccessKeyRequest{MachineID: machine.ID, Name: keyName, TTL: api.Duration(ttl), ExtensionDeadline: api.Duration(deadline)})

@@ -90,6 +90,8 @@ func newDestinationsAddCmd() *cobra.Command {
 				return err
 			}
 
+			fmt.Println(created)
+
 			destinationGrant := &api.CreateGrantRequest{
 				Subject:   uid.NewMachinePolymorphicID(created.ID),
 				Privilege: models.InfraConnectorRole,
@@ -102,10 +104,12 @@ func newDestinationsAddCmd() *cobra.Command {
 			}
 
 			lifetime := time.Hour * 24 * 365
+			extensionDeadline := time.Hour * 24
 			accessKey, err := client.CreateAccessKey(&api.CreateAccessKeyRequest{
-				MachineID: created.ID,
-				Name:      fmt.Sprintf("%s destination access key", args[0]),
-				TTL:       api.Duration(lifetime),
+				MachineID:         created.ID,
+				Name:              fmt.Sprintf("%s destination access key", args[0]),
+				TTL:               api.Duration(lifetime),
+				ExtensionDeadline: api.Duration(extensionDeadline),
 			})
 			if err != nil {
 				return err
