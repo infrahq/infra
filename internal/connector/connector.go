@@ -223,22 +223,9 @@ func proxyMiddleware(proxy *httputil.ReverseProxy, bearerToken string) gin.Handl
 			return
 		}
 
-		provider, ok := c.MustGet("provider").(string)
-		if !ok {
-			logging.S.Debug("required field 'provider' not found")
-			c.AbortWithStatus(http.StatusUnauthorized)
-
-			return
-		}
-
-		userParts := []string{email}
-		if len(provider) > 0 {
-			userParts = append([]string{provider}, userParts...)
-		}
-
 		switch {
 		case email != "":
-			c.Request.Header.Set("Impersonate-User", strings.Join(userParts, ":"))
+			c.Request.Header.Set("Impersonate-User", email)
 		case machine != "":
 			c.Request.Header.Set("Impersonate-User", fmt.Sprintf("machine:%s", machine))
 		default:
@@ -285,7 +272,6 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 
 			name = group.Name
 			kind = rbacv1.GroupKind
-
 		case g.Subject.IsUser():
 			user, err := c.GetUser(id)
 			if err != nil {
@@ -294,14 +280,6 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 
 			name = user.Email
 			kind = rbacv1.UserKind
-
-			provider, err := c.GetProvider(user.ProviderID)
-			if err != nil {
-				return err
-			}
-
-			name = provider.Name + ":" + name
-
 		case g.Subject.IsMachine():
 			machine, err := c.GetMachine(id)
 			if err != nil {
