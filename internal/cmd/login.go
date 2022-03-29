@@ -199,7 +199,7 @@ func updateConfig(client *api.Client, loginReq *api.LoginRequest, loginRes *api.
 	if loginReq.OIDC != nil {
 		clientHostConfig.ProviderID = loginReq.OIDC.ProviderID
 	} else {
-		// TODO 1380: Change this to a source of truth from request/response directly (https://github.com/infrahq/infra/issues/1380)
+		// TODO 1380: Change this to a source of truth (https://github.com/infrahq/infra/issues/1380)
 		clientHostConfig.ProviderID = providerID
 	}
 
@@ -221,6 +221,7 @@ func updateConfig(client *api.Client, loginReq *api.LoginRequest, loginRes *api.
 	return nil
 }
 
+// TODO kubeconfig
 func updateKubeConfigNew(pid uid.PolymorphicID) error {
 	client, err := defaultAPIClient()
 	if err != nil {
@@ -372,7 +373,7 @@ func loginToProviderN(client *api.Client, providerName string) (*api.LoginReques
 	return loginToProvider(provider)
 }
 
-// Given the provider name, directs user to its OIDC login page, then saves the auth code (to later login to infra)
+// Given the provider, directs user to its OIDC login page, then saves the auth code (to later login to infra)
 func loginToProvider(provider *api.Provider) (*api.LoginRequestOIDC, error) {
 	fmt.Fprintf(os.Stderr, "  Logging in with %s...\n", termenv.String(provider.Name).Bold().String())
 
@@ -395,14 +396,15 @@ func runSetupForLogin(client *api.Client) (string, error) {
 	}
 
 	fmt.Println()
-	fmt.Printf("  Congratulations, Infra has been successfully installed.\n\n")
+	fmt.Printf("  Congratulations, Infra has been successfully installed.\n")
+	fmt.Printf("  Running setup for the first time...\n\n")
 	fmt.Printf("  Access Key: %s\n", setupRes.AccessKey)
 	fmt.Printf(fmt.Sprintf("  %s", termenv.String("IMPORTANT: Store in a safe place. You will not see it again.\n\n").Bold().String()))
 
 	return setupRes.AccessKey, nil
 }
 
-// Only used when logging in, since user has no credentials. Otherwise, use defaultAPIClient().
+// Only used when logging in to a new session, since user has no credentials. Otherwise, use defaultAPIClient().
 func newAPIClient(server string, skipTLSVerify bool) (*api.Client, error) {
 	if !skipTLSVerify {
 		// Prompt user only if server fails the TLS verification
@@ -481,7 +483,6 @@ func promptLocalLogin() (*api.LoginRequestPasswordCredentials, error) {
 		return &api.LoginRequestPasswordCredentials{}, err
 	}
 
-	// loginReq.PasswordCredentials =
 	return &api.LoginRequestPasswordCredentials{
 		Email:    credentials.Email,
 		Password: credentials.Password,

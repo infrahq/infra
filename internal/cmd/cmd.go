@@ -177,20 +177,20 @@ func newLoginCmd() *cobra.Command {
 		Use:   "login [SERVER]",
 		Short: "Login to Infra",
 		Example: `
-#By default, login will prompt for all required information. 
+# By default, login will prompt for all required information. 
 $ infra login 
 
-#Login to a specified server
+# Login to a specified server
 $ infra login SERVER
 $ infra login --server SERVER
 
-#Login with an access key 
+# Login with an access key 
 $ infra login --key KEY 
 
-#Login with a specified provider
+# Login with a specified provider
 $ infra login --provider NAME
 
-#Use the '--non-interactive' flag to error out instead of prompting. 
+# Use the '--non-interactive' flag to error out instead of prompting. 
 `,
 		Args:  cobra.MaximumNArgs(1),
 		Group: "Core commands:",
