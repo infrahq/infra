@@ -69,8 +69,8 @@ infra keys create main wall-e 12h --extension-deadline=1h
 		},
 	}
 
-	cmd.Flags().String("ttl", "", "The total time that an access key will be valid for")
-	cmd.Flags().String("extension-deadline", "", "A specified deadline that an access key must be used within to remain valid")
+	cmd.Flags().String("ttl", "", "The total time that an access key will be valid for, defaults to 24h")
+	cmd.Flags().String("extension-deadline", "", "A specified deadline that an access key must be used within to remain valid, defaults to 1h")
 
 	return cmd
 }
