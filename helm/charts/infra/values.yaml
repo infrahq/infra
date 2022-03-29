@@ -713,6 +713,3 @@ connector:
 
   ## Skip verify server TLS certificate
   #   skipTLSVerify: true
-
-  ## Disable provider-name prefixing on matching kubernetes user emails.
-  #   disableProviderNamePrefix: false

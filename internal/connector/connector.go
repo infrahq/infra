@@ -37,14 +37,13 @@ import (
 )
 
 type Options struct {
-	Server                    string `mapstructure:"server"`
-	Name                      string `mapstructure:"name"`
-	AccessKey                 string `mapstructure:"accessKey"`
-	TLSCache                  string `mapstructure:"tlsCache"`
-	TLSCert                   string `mapstructure:"tlsCert"`
-	TLSKey                    string `mapstructure:"tlsKey"`
-	SkipTLSVerify             bool   `mapstructure:"skipTLSVerify"`
-	DisableProviderNamePrefix bool   `mapstructure:"disableProviderNamePrefix"`
+	Server        string `mapstructure:"server"`
+	Name          string `mapstructure:"name"`
+	AccessKey     string `mapstructure:"accessKey"`
+	TLSCache      string `mapstructure:"tlsCache"`
+	TLSCert       string `mapstructure:"tlsCert"`
+	TLSKey        string `mapstructure:"tlsKey"`
+	SkipTLSVerify bool   `mapstructure:"skipTLSVerify"`
 }
 
 type jwkCache struct {
@@ -198,7 +197,7 @@ func jwtMiddleware(getJWK getJWKFunc) gin.HandlerFunc {
 	}
 }
 
-func proxyMiddleware(options Options, proxy *httputil.ReverseProxy, bearerToken string) gin.HandlerFunc {
+func proxyMiddleware(proxy *httputil.ReverseProxy, bearerToken string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		email, ok := c.MustGet("email").(string)
 		if !ok {
@@ -224,22 +223,9 @@ func proxyMiddleware(options Options, proxy *httputil.ReverseProxy, bearerToken 
 			return
 		}
 
-		provider, ok := c.MustGet("provider").(string)
-		if !ok {
-			logging.S.Debug("required field 'provider' not found")
-			c.AbortWithStatus(http.StatusUnauthorized)
-
-			return
-		}
-
 		switch {
 		case email != "":
-			userParts := []string{email}
-			if !options.DisableProviderNamePrefix && len(provider) > 0 {
-				userParts = append([]string{provider}, userParts...)
-			}
-
-			c.Request.Header.Set("Impersonate-User", strings.Join(userParts, ":"))
+			c.Request.Header.Set("Impersonate-User", email)
 		case machine != "":
 			c.Request.Header.Set("Impersonate-User", fmt.Sprintf("machine:%s", machine))
 		default:
@@ -259,7 +245,7 @@ func proxyMiddleware(options Options, proxy *httputil.ReverseProxy, bearerToken 
 }
 
 // UpdateRoles converts infra grants to role-bindings in the current cluster
-func updateRoles(options Options, c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) error {
+func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) error {
 	logging.L.Debug("syncing local grants from infra configuration")
 
 	crSubjects := make(map[string][]rbacv1.Subject)                           // cluster-role: subject
@@ -282,7 +268,6 @@ func updateRoles(options Options, c *api.Client, k *kubernetes.Kubernetes, grant
 
 			name = group.Name
 			kind = rbacv1.GroupKind
-
 		case g.Subject.IsUser():
 			user, err := c.GetUser(id)
 			if err != nil {
@@ -291,16 +276,6 @@ func updateRoles(options Options, c *api.Client, k *kubernetes.Kubernetes, grant
 
 			name = user.Email
 			kind = rbacv1.UserKind
-
-			provider, err := c.GetProvider(user.ProviderID)
-			if err != nil {
-				return err
-			}
-
-			if !options.DisableProviderNamePrefix {
-				name = provider.Name + ":" + name
-			}
-
 		case g.Subject.IsMachine():
 			machine, err := c.GetMachine(id)
 			if err != nil {
@@ -534,7 +509,7 @@ func Run(options Options) error {
 			grants = append(grants, g...)
 		}
 
-		err = updateRoles(options, client, k8s, grants)
+		err = updateRoles(client, k8s, grants)
 		if err != nil {
 			logging.S.Errorf("error updating grants: %s", err)
 			return
@@ -590,7 +565,7 @@ func Run(options Options) error {
 	router.Use(
 		metrics.Middleware(),
 		jwtMiddleware(cache.getJWK),
-		proxyMiddleware(options, proxy, k8s.Config.BearerToken),
+		proxyMiddleware(proxy, k8s.Config.BearerToken),
 	)
 
 	metrics := gin.New()
