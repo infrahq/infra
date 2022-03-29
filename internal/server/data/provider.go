@@ -33,7 +33,7 @@ func DeleteProviders(db *gorm.DB, selectors ...SelectorFunc) error {
 	for _, p := range toDelete {
 		ids = append(ids, p.ID)
 
-		err := DeleteUsers(db, ByProviderID(p.ID))
+		err := DeleteIdentities(db, ByProviderID(p.ID))
 		if err != nil {
 			return err
 		}
@@ -47,7 +47,7 @@ func DeleteProviders(db *gorm.DB, selectors ...SelectorFunc) error {
 	return deleteAll[models.Provider](db, ByIDs(ids))
 }
 
-func AppendProviderUsers(db *gorm.DB, provider *models.Provider, user *models.User) error {
+func AppendProviderUsers(db *gorm.DB, provider *models.Provider, user *models.Identity) error {
 	return appendAssociation(db, provider, "Users", user)
 }
 

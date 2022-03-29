@@ -28,7 +28,7 @@ func SetupMetrics(db *gorm.DB) error {
 		Name:      "users",
 		Help:      "Number of users managed by Infra.",
 	}, func() float64 {
-		count, err := data.Count[models.User](db)
+		count, err := data.Count[models.Identity](db)
 		if err != nil {
 			logging.S.Warnf("users: %s", err)
 			return 0

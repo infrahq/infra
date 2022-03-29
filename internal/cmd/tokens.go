@@ -59,16 +59,12 @@ func tokensCreate() error {
 		return fmt.Errorf("no active identity")
 	}
 
-	if !id.IsUser() && !id.IsMachine() {
-		return fmt.Errorf("unsupported identity for operation: %s", id)
-	}
-
-	userID, err := id.ID()
+	identityID, err := id.ID()
 	if err != nil {
 		return err
 	}
 
-	token, err := client.CreateToken(&api.CreateTokenRequest{UserID: userID})
+	token, err := client.CreateToken(&api.CreateTokenRequest{UserID: identityID})
 	if err != nil {
 		if errors.Is(err, api.ErrForbidden) {
 			fmt.Fprintln(os.Stderr, "Session has expired.")

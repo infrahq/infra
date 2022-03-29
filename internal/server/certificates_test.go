@@ -32,9 +32,10 @@ func TestCertificateSigningWorks(t *testing.T) {
 	err = cp.RotateCA()
 	require.NoError(t, err)
 
-	user := &models.User{
+	user := &models.Identity{
 		Model: models.Model{ID: uid.New()},
-		Email: "joe@example.com",
+		Kind:  models.UserKind,
+		Name:  "joe@example.com",
 	}
 
 	keyPair, err := pki.MakeUserCert("User "+user.ID.String(), 24*time.Hour)

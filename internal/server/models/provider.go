@@ -17,7 +17,7 @@ type Provider struct {
 	ClientID     string
 	ClientSecret EncryptedAtRest
 
-	Users []User
+	Users []Identity
 }
 
 func (p *Provider) ToAPI() *api.Provider {

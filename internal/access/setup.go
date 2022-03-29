@@ -39,20 +39,26 @@ func Setup(c *gin.Context) (string, *models.AccessKey, error) {
 		return "", nil, internal.ErrForbidden
 	}
 
-	name := "admin"
-	machine := &models.Machine{
-		Name:        name,
-		Description: "Infra admin machine identity",
-		LastSeenAt:  time.Now().UTC(),
+	infraProvider, err := data.GetProvider(db, data.ByName(models.InternalInfraProviderName))
+	if err != nil {
+		return "", nil, fmt.Errorf("setup infra provider: %w", err)
 	}
 
-	if err := data.CreateMachine(db, machine); err != nil {
+	name := "admin"
+	identity := &models.Identity{
+		Name:       name,
+		Kind:       models.MachineKind,
+		LastSeenAt: time.Now().UTC(),
+		ProviderID: infraProvider.ID,
+	}
+
+	if err := data.CreateIdentity(db, identity); err != nil {
 		return "", nil, err
 	}
 
 	key := &models.AccessKey{
 		Name:      fmt.Sprintf("%s access key", name),
-		IssuedFor: machine.PolyID(),
+		IssuedFor: identity.ID,
 		ExpiresAt: time.Now().Add(math.MaxInt64).UTC(),
 	}
 
@@ -62,7 +68,7 @@ func Setup(c *gin.Context) (string, *models.AccessKey, error) {
 	}
 
 	grant := &models.Grant{
-		Subject:   machine.PolyID(),
+		Subject:   identity.PolyID(),
 		Privilege: models.InfraAdminRole,
 		Resource:  "infra",
 	}

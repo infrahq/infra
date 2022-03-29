@@ -81,7 +81,7 @@ func MakeUserCert(commonName string, lifetime time.Duration) (*KeyPair, error) {
 	return keyPair, nil
 }
 
-func SignUserCert(cp CertificateProvider, cert *x509.Certificate, user *models.User) (*x509.Certificate, []byte, error) {
+func SignUserCert(cp CertificateProvider, cert *x509.Certificate, user *models.Identity) (*x509.Certificate, []byte, error) {
 	if len(cert.Raw) == 0 {
 		panic("cert.Raw is missing")
 	}
@@ -97,7 +97,7 @@ func SignUserCert(cp CertificateProvider, cert *x509.Certificate, user *models.U
 		PublicKeyAlgorithm: cert.PublicKeyAlgorithm,
 		PublicKey:          cert.PublicKey,
 		Subject:            cert.Subject,
-		EmailAddresses:     []string{user.Email},
+		EmailAddresses:     []string{user.Name},
 		Extensions:         cert.Extensions,
 		ExtraExtensions:    cert.ExtraExtensions,
 		SignatureAlgorithm: x509.PureEd25519,

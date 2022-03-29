@@ -41,45 +41,28 @@ func list() error {
 		return fmt.Errorf("no active identity")
 	}
 
-	var grants []api.Grant
+	identityID, err := id.ID()
+	if err != nil {
+		return err
+	}
 
-	switch {
-	case id.IsUser():
-		userID, err := id.ID()
+	grants, err := client.ListIdentityGrants(identityID)
+	if err != nil {
+		return err
+	}
+
+	groups, err := client.ListIdentityGroups(identityID)
+	if err != nil {
+		return err
+	}
+
+	for _, g := range groups {
+		groupGrants, err := client.ListGroupGrants(g.ID)
 		if err != nil {
 			return err
 		}
 
-		grants, err = client.ListUserGrants(userID)
-		if err != nil {
-			return err
-		}
-
-		groups, err := client.ListUserGroups(userID)
-		if err != nil {
-			return err
-		}
-
-		for _, g := range groups {
-			groupGrants, err := client.ListGroupGrants(g.ID)
-			if err != nil {
-				return err
-			}
-
-			grants = append(grants, groupGrants...)
-		}
-	case id.IsMachine():
-		machineID, err := id.ID()
-		if err != nil {
-			return err
-		}
-
-		grants, err = client.ListMachineGrants(machineID)
-		if err != nil {
-			return err
-		}
-	default:
-		return fmt.Errorf("unsupported identity for operation: %s", id)
+		grants = append(grants, groupGrants...)
 	}
 
 	gs := make(map[string]mapset.Set)
@@ -133,33 +116,27 @@ func list() error {
 	return writeKubeconfig(destinations, grants)
 }
 
-func listInfo(client *api.Client, g api.Grant) (provider string, name string, err error) {
+func listInfo(client *api.Client, g api.Grant) (providerName string, identityName string, err error) {
 	id, err := g.Subject.ID()
 	if err != nil {
 		return "", "", err
 	}
 
-	switch {
-	case g.Subject.IsUser():
-		user, err := client.GetUser(id)
+	if g.Subject.IsIdentity() {
+		identity, err := client.GetIdentity(id)
 		if err != nil {
 			return "", "", err
 		}
 
-		provider, err := client.GetProvider(user.ProviderID)
+		provider, err := client.GetProvider(identity.ProviderID)
 		if err != nil {
 			return "", "", err
 		}
 
-		return provider.Name, user.Email, nil
-	case g.Subject.IsMachine():
-		machine, err := client.GetMachine(id)
-		if err != nil {
-			return "", "", err
-		}
+		return provider.Name, identity.Name, nil
+	}
 
-		return "", machine.Name, nil
-	default:
+	if g.Subject.IsGroup() {
 		group, err := client.GetGroup(id)
 		if err != nil {
 			return "", "", err
@@ -172,4 +149,6 @@ func listInfo(client *api.Client, g api.Grant) (provider string, name string, er
 
 		return provider.Name, group.Name, nil
 	}
+
+	return "", "", fmt.Errorf("unrecognized grant subject")
 }

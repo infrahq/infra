@@ -42,13 +42,13 @@ func setupDB(t *testing.T) *gorm.DB {
 }
 
 func issueUserToken(t *testing.T, db *gorm.DB, email string, sessionDuration time.Duration) string {
-	user := &models.User{Email: email}
+	user := &models.Identity{Name: email, Kind: models.UserKind}
 
-	err := data.CreateUser(db, user)
+	err := data.CreateIdentity(db, user)
 	require.NoError(t, err)
 
 	token := &models.AccessKey{
-		IssuedFor: user.PolyID(),
+		IssuedFor: user.ID,
 		ExpiresAt: time.Now().Add(sessionDuration).UTC(),
 	}
 	body, err := data.CreateAccessKey(db, token)

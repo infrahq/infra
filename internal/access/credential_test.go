@@ -22,11 +22,11 @@ func TestLoginWithUserCredential(t *testing.T) {
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())
 	c.Set("db", db)
 
-	admin := &models.User{Email: "admin@example.com"}
-	err := data.CreateUser(db, admin)
+	admin := &models.Identity{Name: "admin@example.com", Kind: models.UserKind}
+	err := data.CreateIdentity(db, admin)
 	require.NoError(t, err)
 
-	c.Set("identity", admin.PolyID())
+	c.Set("identity", admin)
 
 	adminGrant := &models.Grant{
 		Subject:   admin.PolyID(),
@@ -46,8 +46,8 @@ func TestLoginWithUserCredential(t *testing.T) {
 		"ValidEmailAndOneTimePasswordFirstUse": {
 			"setup": func(t *testing.T, c *gin.Context, db *gorm.DB) (string, string) {
 				email := "bruce@example.com"
-				user := &models.User{Email: email, ProviderID: provider.ID}
-				err := data.CreateUser(db, user)
+				user := &models.Identity{Name: email, ProviderID: provider.ID, Kind: models.UserKind}
+				err := data.CreateIdentity(db, user)
 				require.NoError(t, err)
 
 				oneTimePassword, err := CreateCredential(c, *user)
@@ -55,9 +55,9 @@ func TestLoginWithUserCredential(t *testing.T) {
 
 				return email, oneTimePassword
 			},
-			"verify": func(t *testing.T, secret string, user *models.User, requiresUpdate bool, err error) {
+			"verify": func(t *testing.T, secret string, user *models.Identity, requiresUpdate bool, err error) {
 				require.NoError(t, err)
-				require.Equal(t, "bruce@example.com", user.Email)
+				require.Equal(t, "bruce@example.com", user.Name)
 				require.NotEmpty(t, secret)
 				require.True(t, requiresUpdate)
 			},
@@ -65,8 +65,8 @@ func TestLoginWithUserCredential(t *testing.T) {
 		"ValidEmailAndOneTimePasswordFailsOnReuse": {
 			"setup": func(t *testing.T, c *gin.Context, db *gorm.DB) (string, string) {
 				email := "barbra@example.com"
-				user := &models.User{Email: email, ProviderID: provider.ID}
-				err := data.CreateUser(db, user)
+				user := &models.Identity{Name: email, ProviderID: provider.ID, Kind: models.UserKind}
+				err := data.CreateIdentity(db, user)
 				require.NoError(t, err)
 
 				oneTimePassword, err := CreateCredential(c, *user)
@@ -77,22 +77,22 @@ func TestLoginWithUserCredential(t *testing.T) {
 
 				return email, oneTimePassword
 			},
-			"verify": func(t *testing.T, secret string, user *models.User, requiresUpdate bool, err error) {
+			"verify": func(t *testing.T, secret string, user *models.Identity, requiresUpdate bool, err error) {
 				require.Error(t, err, "one time password cannot be used more than once")
 			},
 		},
 		"ValidEmailAndValidSpecifiedPassword": {
 			"setup": func(t *testing.T, c *gin.Context, db *gorm.DB) (string, string) {
 				email := "selina@example.com"
-				user := &models.User{Email: email, ProviderID: provider.ID}
-				err := data.CreateUser(db, user)
+				user := &models.Identity{Name: email, ProviderID: provider.ID, Kind: models.UserKind}
+				err := data.CreateIdentity(db, user)
 				require.NoError(t, err)
 
 				hash, err := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.MinCost)
 				require.NoError(t, err)
 
 				userCredential := &models.Credential{
-					Identity:     user.PolyID(),
+					IdentityID:   user.ID,
 					PasswordHash: hash,
 				}
 
@@ -101,9 +101,9 @@ func TestLoginWithUserCredential(t *testing.T) {
 
 				return email, "password"
 			},
-			"verify": func(t *testing.T, secret string, user *models.User, requiresUpdate bool, err error) {
+			"verify": func(t *testing.T, secret string, user *models.Identity, requiresUpdate bool, err error) {
 				require.NoError(t, err)
-				require.Equal(t, "selina@example.com", user.Email)
+				require.Equal(t, "selina@example.com", user.Name)
 				require.NotEmpty(t, secret)
 				require.False(t, requiresUpdate)
 			},
@@ -111,15 +111,15 @@ func TestLoginWithUserCredential(t *testing.T) {
 		"ValidEmailAndValidSpecifiedPasswordCanBeReused": {
 			"setup": func(t *testing.T, c *gin.Context, db *gorm.DB) (string, string) {
 				email := "penguin@example.com"
-				user := &models.User{Email: email, ProviderID: provider.ID}
-				err := data.CreateUser(db, user)
+				user := &models.Identity{Name: email, ProviderID: provider.ID, Kind: models.UserKind}
+				err := data.CreateIdentity(db, user)
 				require.NoError(t, err)
 
 				hash, err := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.MinCost)
 				require.NoError(t, err)
 
 				userCredential := &models.Credential{
-					Identity:     user.PolyID(),
+					IdentityID:   user.ID,
 					PasswordHash: hash,
 				}
 
@@ -131,9 +131,9 @@ func TestLoginWithUserCredential(t *testing.T) {
 
 				return email, "password"
 			},
-			"verify": func(t *testing.T, secret string, user *models.User, requiresUpdate bool, err error) {
+			"verify": func(t *testing.T, secret string, user *models.Identity, requiresUpdate bool, err error) {
 				require.NoError(t, err)
-				require.Equal(t, "penguin@example.com", user.Email)
+				require.Equal(t, "penguin@example.com", user.Name)
 				require.NotEmpty(t, secret)
 				require.False(t, requiresUpdate)
 			},
@@ -141,15 +141,15 @@ func TestLoginWithUserCredential(t *testing.T) {
 		"ValidEmailAndInvalidPasswordFails": {
 			"setup": func(t *testing.T, c *gin.Context, db *gorm.DB) (string, string) {
 				email := "gordon@example.com"
-				user := &models.User{Email: email, ProviderID: provider.ID}
-				err := data.CreateUser(db, user)
+				user := &models.Identity{Name: email, ProviderID: provider.ID, Kind: models.UserKind}
+				err := data.CreateIdentity(db, user)
 				require.NoError(t, err)
 
 				hash, err := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.MinCost)
 				require.NoError(t, err)
 
 				userCredential := &models.Credential{
-					Identity:     user.PolyID(),
+					IdentityID:   user.ID,
 					PasswordHash: hash,
 				}
 
@@ -158,22 +158,22 @@ func TestLoginWithUserCredential(t *testing.T) {
 
 				return email, "wrong_password"
 			},
-			"verify": func(t *testing.T, secret string, user *models.User, requiresUpdate bool, err error) {
+			"verify": func(t *testing.T, secret string, user *models.Identity, requiresUpdate bool, err error) {
 				require.Error(t, err, "password verify")
 			},
 		},
 		"ValidEmailAndNotInfraProviderFails": {
 			"setup": func(t *testing.T, c *gin.Context, db *gorm.DB) (string, string) {
 				email := "edward@example.com"
-				user := &models.User{Email: email, ProviderID: uid.New()}
-				err := data.CreateUser(db, user)
+				user := &models.Identity{Name: email, ProviderID: uid.New(), Kind: models.UserKind}
+				err := data.CreateIdentity(db, user)
 				require.NoError(t, err)
 
 				hash, err := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.MinCost)
 				require.NoError(t, err)
 
 				userCredential := &models.Credential{
-					Identity:     user.PolyID(),
+					IdentityID:   user.ID,
 					PasswordHash: hash,
 				}
 
@@ -183,20 +183,20 @@ func TestLoginWithUserCredential(t *testing.T) {
 
 				return email, "password"
 			},
-			"verify": func(t *testing.T, secret string, user *models.User, requiresUpdate bool, err error) {
+			"verify": func(t *testing.T, secret string, user *models.Identity, requiresUpdate bool, err error) {
 				require.Error(t, err, "record not found")
 			},
 		},
 		"ValidEmailAndNoCredentialsFails": {
 			"setup": func(t *testing.T, c *gin.Context, db *gorm.DB) (string, string) {
 				email := "edward@example.com"
-				user := &models.User{Email: email, ProviderID: uid.New()}
-				err := data.CreateUser(db, user)
+				user := &models.Identity{Name: email, ProviderID: uid.New(), Kind: models.UserKind}
+				err := data.CreateIdentity(db, user)
 				require.NoError(t, err)
 
 				return email, ""
 			},
-			"verify": func(t *testing.T, secret string, user *models.User, requiresUpdate bool, err error) {
+			"verify": func(t *testing.T, secret string, user *models.Identity, requiresUpdate bool, err error) {
 				require.Error(t, err, "record not found")
 			},
 		},
@@ -210,7 +210,7 @@ func TestLoginWithUserCredential(t *testing.T) {
 
 			secret, user, requiresUpdate, err := LoginWithUserCredential(c, email, password, time.Now().Add(time.Hour))
 
-			verifyFunc, ok := v["verify"].(func(*testing.T, string, *models.User, bool, error))
+			verifyFunc, ok := v["verify"].(func(*testing.T, string, *models.Identity, bool, error))
 			require.True(t, ok)
 
 			verifyFunc(t, secret, user, requiresUpdate, err)

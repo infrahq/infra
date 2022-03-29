@@ -7,8 +7,8 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func BindGroupUsers(db *gorm.DB, group *models.Group, users ...models.User) error {
-	if err := db.Model(group).Association("Users").Replace(users); err != nil {
+func BindGroupIdentities(db *gorm.DB, group *models.Group, identities ...models.Identity) error {
+	if err := db.Model(group).Association("Identities").Replace(identities); err != nil {
 		return err
 	}
 
@@ -27,8 +27,8 @@ func ListGroups(db *gorm.DB, selectors ...SelectorFunc) ([]models.Group, error) 
 	return list[models.Group](db, selectors...)
 }
 
-func ListUserGroups(db *gorm.DB, userID uid.ID) (result []models.Group, err error) {
-	user := &models.User{Model: models.Model{ID: userID}}
+func ListIdentityGroups(db *gorm.DB, userID uid.ID) (result []models.Group, err error) {
+	user := &models.Identity{Model: models.Model{ID: userID}, Kind: models.UserKind}
 
 	if err := db.Model(user).Association("Groups").Find(&result); err != nil {
 		return nil, err

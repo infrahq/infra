@@ -18,7 +18,7 @@ var signatureAlgorithmFromKeyAlgorithm = map[string]string{
 	"ED25519": "EdDSA", // elliptic curve 25519
 }
 
-func createJWT(db *gorm.DB, user *models.User, machine *models.Machine, groups []string, expires time.Time) (string, error) {
+func createJWT(db *gorm.DB, identity *models.Identity, groups []string, expires time.Time) (string, error) {
 	settings, err := GetSettings(db)
 	if err != nil {
 		return "", err
@@ -56,23 +56,16 @@ func createJWT(db *gorm.DB, user *models.User, machine *models.Machine, groups [
 
 	var custom claims.Custom
 
-	if machine != nil {
-		custom = claims.Custom{
-			Machine: machine.Name,
-			Nonce:   nonce,
-		}
-	} else {
-		p, err := GetProvider(db, ByID(user.ProviderID))
-		if err != nil {
-			return "", fmt.Errorf("get provider: %w", err)
-		}
+	p, err := GetProvider(db, ByID(identity.ProviderID))
+	if err != nil {
+		return "", fmt.Errorf("get provider: %w", err)
+	}
 
-		custom = claims.Custom{
-			Email:    user.Email,
-			Groups:   groups,
-			Nonce:    nonce,
-			Provider: p.Name,
-		}
+	custom = claims.Custom{
+		Name:     identity.Name,
+		Groups:   groups,
+		Nonce:    nonce,
+		Provider: p.Name,
 	}
 
 	raw, err := jwt.Signed(signer).Claims(claim).Claims(custom).CompactSerialize()
@@ -83,41 +76,25 @@ func createJWT(db *gorm.DB, user *models.User, machine *models.Machine, groups [
 	return raw, nil
 }
 
-func CreateUserToken(db *gorm.DB, userID uid.ID) (token *models.Token, err error) {
-	user, err := GetUser(db, ByID(userID))
+func CreateIdentityToken(db *gorm.DB, identityID uid.ID) (token *models.Token, err error) {
+	identity, err := GetIdentity(db, ByID(identityID))
 	if err != nil {
 		return nil, err
 	}
 
-	userGroups, err := ListUserGroups(db, userID)
+	identityGroups, err := ListIdentityGroups(db, identityID)
 	if err != nil {
 		return nil, err
 	}
 
 	var groups []string
-	for _, g := range userGroups {
+	for _, g := range identityGroups {
 		groups = append(groups, g.Name)
 	}
 
 	expires := time.Now().Add(time.Minute * 5).UTC()
 
-	jwt, err := createJWT(db, user, nil, groups, expires)
-	if err != nil {
-		return nil, err
-	}
-
-	return &models.Token{Token: jwt, Expires: expires}, nil
-}
-
-func CreateMachineToken(db *gorm.DB, machineID uid.ID) (token *models.Token, err error) {
-	machine, err := GetMachine(db, ByID(machineID))
-	if err != nil {
-		return nil, err
-	}
-
-	expires := time.Now().Add(time.Minute * 5).UTC()
-
-	jwt, err := createJWT(db, nil, machine, nil, expires)
+	jwt, err := createJWT(db, identity, groups, expires)
 	if err != nil {
 		return nil, err
 	}
