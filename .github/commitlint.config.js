@@ -10,6 +10,7 @@ module.exports = {
                 'improve',
                 'maintain',
             ]
-        ]
+        ],
+        'body-max-line-length': [0],
     }
 }
