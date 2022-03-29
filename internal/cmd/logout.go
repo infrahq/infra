@@ -18,10 +18,9 @@ func logout(purge bool) error {
 		return err
 	}
 
-	for _, hostConfig := range config.Hosts {
-		if err := removeHostConfig(hostConfig.Host, purge); err != nil {
-			logging.S.Warn(err.Error())
-			continue
+	for i, hostConfig := range config.Hosts {
+		if !purge {
+			config.Hosts[i].AccessKey = ""
 		}
 
 		client, err := apiClient(hostConfig.Host, hostConfig.AccessKey, hostConfig.SkipTLSVerify)
@@ -35,5 +34,11 @@ func logout(purge bool) error {
 		}
 	}
 
+	if purge {
+		config.Hosts = nil
+	}
+	if err := writeConfig(config); err != nil {
+		logging.S.Warnf("failed to write client host config: %v", err)
+	}
 	return clearKubeconfig()
 }
