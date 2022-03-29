@@ -73,7 +73,6 @@ func login(options loginCmdOptions) error {
 	}
 
 	loginReq := &api.LoginRequest{}
-	var providerID uid.ID // TODO 1380: remove providerID
 
 	switch {
 	case options.AccessKey != "":
@@ -96,7 +95,6 @@ func login(options loginCmdOptions) error {
 				return err
 			}
 		case localLogin:
-			providerID = provider.ID
 			loginReq.PasswordCredentials, err = promptLocalLogin()
 			if err != nil {
 				return err
@@ -110,7 +108,7 @@ func login(options loginCmdOptions) error {
 
 	}
 
-	return loginToInfra(client, loginReq, providerID)
+	return loginToInfra(client, loginReq)
 }
 
 func relogin() error {
@@ -159,8 +157,7 @@ func relogin() error {
 	return finishLogin(currentConfig.Host, currentConfig.SkipTLSVerify, provider.ID, loginRes)
 }
 
-// TODO 1380: remove provider arg
-func loginToInfra(client *api.Client, loginReq *api.LoginRequest, providerID uid.ID) error {
+func loginToInfra(client *api.Client, loginReq *api.LoginRequest) error {
 	loginRes, err := client.Login(loginReq)
 	if err != nil {
 		return err
@@ -168,12 +165,22 @@ func loginToInfra(client *api.Client, loginReq *api.LoginRequest, providerID uid
 
 	fmt.Fprintf(os.Stderr, "  Logged in as %s\n", termenv.String(loginRes.Name).Bold().String())
 
-	if err := updateConfig(client, loginReq, loginRes, providerID); err != nil {
+	if err := updateInfraConfig(client, loginReq, loginRes); err != nil {
+		return err
+	}
+
+	// Client needs to be refreshed from here onwards, based on the newly saved infra configuration.
+	client, err = defaultAPIClient()
+	if err != nil {
+		return err
+	}
+
+	if err := updateKubeconfig(client, loginRes.PolymorphicID); err != nil {
 		return err
 	}
 
 	if loginRes.PasswordUpdateRequired {
-		if err := updateUserPassword(loginRes.PolymorphicID); err != nil {
+		if err := updateUserPassword(client, loginRes.PolymorphicID); err != nil {
 			return err
 		}
 	}
@@ -181,9 +188,7 @@ func loginToInfra(client *api.Client, loginReq *api.LoginRequest, providerID uid
 }
 
 // Updates all configs with the current logged in session
-// TODO 1380: remove providerID arg
-func updateConfig(client *api.Client, loginReq *api.LoginRequest, loginRes *api.LoginResponse, providerID uid.ID) error {
-	// Update local infra config
+func updateInfraConfig(client *api.Client, loginReq *api.LoginRequest, loginRes *api.LoginResponse) error {
 	var clientHostConfig ClientHostConfig
 	clientHostConfig.PolymorphicID = loginRes.PolymorphicID
 	clientHostConfig.Current = true
@@ -199,8 +204,12 @@ func updateConfig(client *api.Client, loginReq *api.LoginRequest, loginRes *api.
 	if loginReq.OIDC != nil {
 		clientHostConfig.ProviderID = loginReq.OIDC.ProviderID
 	} else {
-		// TODO 1380: Change this to a source of truth (https://github.com/infrahq/infra/issues/1380)
-		clientHostConfig.ProviderID = providerID
+		// TODO 1380: this is temporary - infra providerID should be saved somewhere else, and not here (https://github.com/infrahq/infra/issues/1380)
+		p, err := GetProviderByName(client, models.InternalInfraProviderName)
+		if err != nil {
+			return err
+		}
+		clientHostConfig.ProviderID = p.ID
 	}
 
 	u, err := urlx.Parse(client.URL)
@@ -213,24 +222,6 @@ func updateConfig(client *api.Client, loginReq *api.LoginRequest, loginRes *api.
 		return err
 	}
 
-	// Update kube config
-	if err := updateKubeConfigNew(loginRes.PolymorphicID); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// TODO kubeconfig
-func updateKubeConfigNew(pid uid.PolymorphicID) error {
-	client, err := defaultAPIClient()
-	if err != nil {
-		return err
-	}
-
-	if err := updateKubeconfig(client, pid); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -289,7 +280,7 @@ func finishLogin(host string, skipTLSVerify bool, providerID uid.ID, loginRes *a
 	}
 
 	if loginRes.PasswordUpdateRequired {
-		if err := updateUserPassword(loginRes.PolymorphicID); err != nil {
+		if err := updateUserPassword(client, loginRes.PolymorphicID); err != nil {
 			return err
 		}
 	}
@@ -333,7 +324,7 @@ func oidcflow(host string, clientId string) (string, error) {
 }
 
 // Prompt user to change their preset password when loggin in for the first time
-func updateUserPassword(pid uid.PolymorphicID) error {
+func updateUserPassword(client *api.Client, pid uid.PolymorphicID) error {
 	var newPassword string
 	passwordPrompt := &survey.Password{Message: "One time password used, please set a new password:"}
 
@@ -348,11 +339,6 @@ func updateUserPassword(pid uid.PolymorphicID) error {
 	userID, err := pid.ID()
 	if err != nil {
 		return fmt.Errorf("update user id login: %w", err)
-	}
-
-	client, err := defaultAPIClient()
-	if err != nil {
-		return err
 	}
 
 	if _, err := client.UpdateUser(&api.UpdateUserRequest{ID: userID, Password: newPassword}); err != nil {
