@@ -117,29 +117,3 @@ func readHostConfig(host string) (*ClientHostConfig, error) {
 
 	return nil, ErrConfigNotFound
 }
-
-func removeHostConfig(host string, purge bool) error {
-	cfg, err := readConfig()
-	if err != nil {
-		return err
-	}
-
-	for i, c := range cfg.Hosts {
-		if c.Host == host {
-			if purge {
-				cfg.Hosts = append(cfg.Hosts[:i], cfg.Hosts[i+1:]...)
-			} else {
-				cfg.Hosts[i].AccessKey = ""
-			}
-
-			break
-		}
-	}
-
-	err = writeConfig(cfg)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
