@@ -28,6 +28,7 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/claims"
+	"github.com/infrahq/infra/internal/ginutil"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/repeat"
@@ -527,8 +528,7 @@ func Run(options Options) error {
 		}
 	})
 
-	gin.SetMode(gin.ReleaseMode)
-
+	ginutil.SetMode()
 	router := gin.New()
 	router.GET("/healthz", func(c *gin.Context) {
 		c.Status(http.StatusOK)

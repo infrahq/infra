@@ -20,10 +20,6 @@ import (
 	"github.com/infrahq/infra/internal/claims"
 )
 
-func init() {
-	gin.SetMode(gin.TestMode)
-}
-
 func TestJWTMiddlewareNoAuthHeader(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/apis", nil)
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())

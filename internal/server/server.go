@@ -31,6 +31,7 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/certs"
+	"github.com/infrahq/infra/internal/ginutil"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/repeat"
 	"github.com/infrahq/infra/internal/server/data"
@@ -79,10 +80,6 @@ type Server struct {
 	secrets             map[string]secrets.SecretStorage
 	keys                map[string]secrets.SymmetricKeyProvider
 	certificateProvider pki.CertificateProvider
-}
-
-func init() {
-	gin.SetMode(gin.ReleaseMode)
 }
 
 func Run(options Options) (err error) {
@@ -369,6 +366,7 @@ func (s *Server) GenerateRoutes() *gin.Engine {
 }
 
 func (s *Server) runServer() error {
+	ginutil.SetMode()
 	router := s.GenerateRoutes()
 
 	if err := s.ui(router); err != nil {
