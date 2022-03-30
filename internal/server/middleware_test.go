@@ -61,7 +61,6 @@ func TestRequestTimeoutError(t *testing.T) {
 	requestTimeout = 100 * time.Millisecond
 
 	router := gin.New()
-	gin.SetMode(gin.ReleaseMode)
 	router.Use(RequestTimeoutMiddleware())
 	router.GET("/", func(c *gin.Context) {
 		time.Sleep(110 * time.Millisecond)
@@ -77,7 +76,6 @@ func TestRequestTimeoutSuccess(t *testing.T) {
 	requestTimeout = 60 * time.Second
 
 	router := gin.New()
-	gin.SetMode(gin.ReleaseMode)
 	router.Use(RequestTimeoutMiddleware())
 	router.GET("/", func(c *gin.Context) {
 		require.NoError(t, c.Request.Context().Err())
@@ -88,8 +86,6 @@ func TestRequestTimeoutSuccess(t *testing.T) {
 }
 
 func TestRequireAuthentication(t *testing.T) {
-	gin.SetMode(gin.ReleaseMode)
-
 	cases := map[string]map[string]interface{}{
 		"AccessKeyValid": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {

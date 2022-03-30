@@ -18,10 +18,6 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func init() {
-	gin.SetMode(gin.TestMode)
-}
-
 func setupDB(t *testing.T) *gorm.DB {
 	driver, err := data.NewSQLiteDriver("file::memory:")
 	require.NoError(t, err)

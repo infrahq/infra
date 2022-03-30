@@ -14,8 +14,6 @@ import (
 )
 
 func TestSendAPIError(t *testing.T) {
-	gin.SetMode(gin.ReleaseMode)
-
 	tests := []struct {
 		err    error
 		result api.Error
