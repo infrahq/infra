@@ -1,25 +1,12 @@
 # Quickstart
 
-[block:image]
-{
-  "images": [
-    {
-      "image": [
-        "https://files.readme.io/81c1b84-QuickStartHeader.png",
-        "QuickStartHeader.png",
-        1610,
-        290,
-        "#1a1325"
-      ]
-    }
-  ]
-}
-[/block]
+![Header](../images/quickstart-QuickStartHeader.png)
 
-### Prerequisites: 
+
+### Prerequisites:
+
 - Helm (v3+)
-- Kubernetes cluster (v1.14+) (ie. Docker Desktop with Kubernetes or Minikube) 
-
+- Kubernetes cluster (v1.14+) (ie. Docker Desktop with Kubernetes or Minikube)
 
 ### 1. Install Infra
 
@@ -29,41 +16,43 @@ helm repo update
 helm install infra infrahq/infra
 ```
 
-### 2. Install Infra CLI 
+### 2. Install Infra CLI
 
 <details>
   <summary><strong>macOS</strong></summary>
 
-  ```bash
-  brew install infrahq/tap/infra
-  ```
+```bash
+brew install infrahq/tap/infra
+```
 
 </details>
 
 <details>
   <summary><strong>Windows</strong></summary>
 
-  ```powershell
-  scoop bucket add infrahq https://github.com/infrahq/scoop.git
-  scoop install infra
-  ```
+```powershell
+scoop bucket add infrahq https://github.com/infrahq/scoop.git
+scoop install infra
+```
 
 </details>
 
 <details>
   <summary><strong>Linux</strong></summary>
 
-  ```bash
-  # Ubuntu & Debian
-  sudo echo 'deb [trusted=yes] https://apt.fury.io/infrahq/ /' >/etc/apt/sources.list.d/infrahq.list
-  sudo apt update
-  sudo apt install infra
-  ```
-  ```bash
-  # Fedora & Red Hat Enterprise Linux
-  sudo dnf config-manager --add-repo https://yum.fury.io/infrahq/
-  sudo dnf install infra
-  ```
+```bash
+# Ubuntu & Debian
+sudo echo 'deb [trusted=yes] https://apt.fury.io/infrahq/ /' >/etc/apt/sources.list.d/infrahq.list
+sudo apt update
+sudo apt install infra
+```
+
+```bash
+# Fedora & Red Hat Enterprise Linux
+sudo dnf config-manager --add-repo https://yum.fury.io/infrahq/
+sudo dnf install infra
+```
+
 </details>
 
 ### 3. Login to Infra
@@ -74,33 +63,34 @@ infra login localhost
 
 This will output the Infra Access Key which you will use to login, please store this in a safe place as you will not see this again.
 
-
 ### 4. Connect the first Kubernetes cluster
 
 ```
 infra destinations add kubernetes example-name
-``` 
+```
 
-### 5. Create the first local user 
+### 5. Create the first local user
 
-``` 
-infra id add name@example.com 
+```
+infra id add name@example.com
 ```
 
 ### 6. Grant Infra administrator privileges to the first user
 
-``` 
-infra grants add -u name@example.com --role admin infra 
-``` 
+```
+infra grants add -u name@example.com --role admin infra
+```
 
-### 7. Grant Kubernetes cluster administrator privileges to the first user 
+### 7. Grant Kubernetes cluster administrator privileges to the first user
+
 ```
 infra grants add -u name@example.com --role cluster-admin kubernetes.example-name
 ```
 
-### 8. Login to Infra with the newly created user 
+### 8. Login to Infra with the newly created user
 
 ```
-infra login 
-``` 
+infra login
+```
+
 Select the Infra instance, and login with username / password

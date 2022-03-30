@@ -45,13 +45,7 @@ sudo dnf install infra
 infra login HOST
 ```
 
-[block:callout]
-{
-"type": "info",
-"body": "Ask your Infra administrator for the hostname that you should use to login.",
-"title": "Don't know your Infra host?"
-}
-[/block]
+> **Don't know your Infra host?<br>** Ask your Infra administrator for the hostname that you should use to login.
 
 ### 3. See what you can access
 
