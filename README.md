@@ -56,7 +56,7 @@ helm install infra infrahq/infra
 
   ```bash
   # Ubuntu & Debian
-  sudo echo 'deb [trusted=yes] https://apt.fury.io/infrahq/ /' >/etc/apt/sources.list.d/infrahq.list
+  echo 'deb [trusted=yes] https://apt.fury.io/infrahq/ /' | sudo tee /etc/apt/sources.list.d/infrahq.list
   sudo apt update
   sudo apt install infra
   ```
