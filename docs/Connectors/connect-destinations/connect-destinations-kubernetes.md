@@ -19,7 +19,7 @@ helm upgrade --install infra-engine infrahq/infra --set engine.config.accessKey=
 
 ## Grants
 
-Kubernetes Grants are built on top of Kubernetes RBAC which consists of `Role` and `ClusterRole` and `RoleBinding` and `ClusterRoleBinding`. For more detailed explanation of these concepts, checkout the official documentation:
+Kubernetes grants are built on top of Kubernetes RBAC which consists of `Role` and `ClusterRole` and `RoleBinding` and `ClusterRoleBinding`. For more detailed explanation of these concepts, checkout the official documentation:
 
 [Using RBAC Authorization](https://kubernetes.io/docs/reference/access-authn-authz/rbac/)
 

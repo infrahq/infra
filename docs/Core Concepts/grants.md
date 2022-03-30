@@ -1,20 +1,20 @@
 # Grants
 
-Infra Grants are based on the simple relationships between Subject (users, groups), Privilege (roles, permissions), and Resource. How grants are interpreted by the resource is an implementation detail of the specific connector. 
+Infra grants are based on the simple relationships between subject (users, groups, or machines), privilege (roles, permissions), and resource (Kubernetes clusters, etc.). How grants are interpreted by the resource is an implementation detail of the specific connector.
 
-For example, Kubernetes has an RBAC using ClusterRoles and Roles. Therefore, it is the job of the Infra Kubernetes Connector to translate Grants to Kubernetes ClusterRoles and ClusterRoleBindings, and Roles and RoleBindings. 
+For example, Kubernetes has an RBAC using ClusterRoles and Roles. Therefore, it is the job of the Infra Kubernetes Connector to translate grants to Kubernetes ClusterRoles and ClusterRoleBindings, and Roles and RoleBindings.
 
-Other integrations will have different authorization primitives and will therefore require different interpretations of Grants. Some integrations may not implement authorization at all or have a significantly different implementation so the connector will need to implement its own authorization using the grant primitives.
+Other integrations will have different authorization primitives and will therefore require different interpretations of grants. Some integrations may not implement authorization at all or have a significantly different implementation so the connector will need to implement its own authorization using the grant primitives.
 
-Grants are implemented in an additive model where the base configuration is to not provide any access. As Grants are applied to Infra, subjects will progressively gain access to Infra and connected destinations.
+Grants are implemented in an additive model where the base configuration is to not provide any access. As grants are applied to Infra, subjects will progressively gain access to Infra and connected destinations.
 
 ## Infra Grants
 
-Infra Grants are a special type of Grant where the resource is Infra itself. This model is used to give subjects access to the Infra API. The Privilege for Infra Grants currently comprise of three roles: `admin`, `user`, and `connector`. 
+Infra grants are a special type of Grant where the resource is Infra itself. This model is used to give subjects access to the Infra API. The privilege for Infra grants currently comprise of three roles: `admin`, `user`, and `connector`.
 
 Each authenticated API call will check the caller has a role required to access the requested resource. If the caller has the necessary role to access the resource, the request is fulfilled and the result is returned. If the caller does *not* have the necessary role to access the resource, the request is rejected and an error is returned.
 
-The `connector` role is special in that it is intended to be used solely by a connector and provides the necessary resource for the connector to configure itself. Users should *not* create Grants using this role.
+The `connector` role is special in that it is intended to be used solely by a connector and provides the necessary resource for the connector to configure itself. Users should *not* create grants using this role.
 
 ### Example: Grant user `admin@example.com` the admin role to Infra
 
@@ -34,4 +34,4 @@ infra grants add --user dev@example.com --role user infra
 
 ## Kubernetes Grants
 
-For details on Kubernetes Grants, see [Connect Destinations: Kubernetes](../Connectors/connect-destinations/connect-destinations-kubernetes.md#grants).
+For details on Kubernetes grants, see [Connect Destinations: Kubernetes](../Connectors/connect-destinations/connect-destinations-kubernetes.md#grants).
