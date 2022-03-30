@@ -140,6 +140,7 @@ func printTable(data interface{}) {
 	table.Print(data)
 }
 
+// Creates a new API Client from the current config
 func defaultAPIClient() (*api.Client, error) {
 	config, err := readHostConfig("")
 	if err != nil {
@@ -172,29 +173,51 @@ func apiClient(host string, accessKey string, skipTLSVerify bool) (*api.Client, 
 }
 
 func newLoginCmd() *cobra.Command {
-	type loginOptions struct {
-		Host string `mapstructure:"host"`
-	}
+	cmd := &cobra.Command{
+		Use:   "login [SERVER]",
+		Short: "Login to Infra",
+		Example: `
+# By default, login will prompt for all required information. 
+$ infra login 
 
-	return &cobra.Command{
-		Use:     "login [SERVER]",
-		Short:   "Login to Infra",
-		Example: "$ infra login",
-		Args:    cobra.MaximumNArgs(1),
-		Group:   "Core commands:",
+# Login to a specified server
+$ infra login SERVER
+$ infra login --server SERVER
+
+# Login with an access key 
+$ infra login --key KEY 
+
+# Login with a specified provider
+$ infra login --provider NAME
+
+# Use the '--non-interactive' flag to error out instead of prompting. 
+`,
+		Args:  cobra.MaximumNArgs(1),
+		Group: "Core commands:",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var options loginOptions
+			var options loginCmdOptions
+			strcase.ConfigureAcronym("skip-tls-verify", "skipTLSVerify")
+
 			if err := parseOptions(cmd, &options, "INFRA"); err != nil {
 				return err
 			}
 
 			if len(args) == 1 {
-				options.Host = args[0]
+				if options.Server != "" {
+					fmt.Fprintf(os.Stderr, "SERVER is specified twice. Ignoring --server and proceeding with %s\n", options.Server)
+				}
+				options.Server = args[0]
 			}
 
-			return login(options.Host)
+			return login(options)
 		},
 	}
+
+	cmd.Flags().String("key", "", "Login with an access key")
+	cmd.Flags().String("server", "", "Infra server to login to")
+	cmd.Flags().String("provider", "", "Login with an identity provider")
+	cmd.Flags().Bool("skip-tls-verify", false, "Skip verifying server TLS certificates")
+	return cmd
 }
 
 func newLogoutCmd() *cobra.Command {
@@ -202,7 +225,7 @@ func newLogoutCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "logout",
-		Short:   "Logout of Infra",
+		Short:   "Log out of Infra",
 		Example: "$ infra logout",
 		Group:   "Core commands:",
 		RunE: func(cmd *cobra.Command, args []string) error {
