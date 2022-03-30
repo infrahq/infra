@@ -5,8 +5,10 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -376,16 +378,31 @@ func loginToProvider(provider *api.Provider) (*api.LoginRequestOIDC, error) {
 }
 
 func runSetupForLogin(client *api.Client) (string, error) {
+	fmt.Println()
+	fmt.Printf("  Congratulations, Infra has been successfully installed.\n")
+
 	setupRes, err := client.Setup()
 	if err != nil {
 		return "", err
 	}
 
+	infraDir, err := infraHomeDir()
+	if err != nil {
+		return "", err
+	}
+
 	fmt.Println()
-	fmt.Printf("  Congratulations, Infra has been successfully installed.\n")
-	fmt.Printf("  Running setup for the first time...\n\n")
-	fmt.Printf("  Access Key: %s\n", setupRes.AccessKey)
-	fmt.Printf(fmt.Sprintf("  %s", termenv.String("IMPORTANT: Store in a safe place. You will not see it again.\n\n").Bold().String()))
+	fmt.Printf("  %s", termenv.String("IMPORTANT: An admin access key has been generated. Please store it in a safe place.\n").Bold().String())
+
+	accessKeyPath := filepath.Join(infraDir, "access-key")
+	if err := ioutil.WriteFile(accessKeyPath, []byte(setupRes.AccessKey), 0o600); err != nil {
+		fmt.Printf("  Could not write admin access key to file: %v\n", err)
+		fmt.Printf("  Admin access key: %q.\n", setupRes.AccessKey)
+	} else {
+		fmt.Printf("  Admin access key has been written to %q.\n", accessKeyPath)
+	}
+
+	fmt.Println()
 
 	return setupRes.AccessKey, nil
 }
