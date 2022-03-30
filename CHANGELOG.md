@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.8.0](https://github.com/infrahq/infra/compare/v0.7.0...v0.8.0) (2022-03-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* use consistent api time and duration types (#1344)
+
+### Features
+
+* add /debug/pprof handlers for debugging ([10e7ab0](https://github.com/infrahq/infra/commit/10e7ab05e92553cf7c9931a953de72a75c658b5a))
+* default grants with no role to "connect" permission ([#1309](https://github.com/infrahq/infra/issues/1309)) ([3c4a8a9](https://github.com/infrahq/infra/commit/3c4a8a92c5649745b839c5f0e8b1d7da9fa8cb66))
+* use consistent api time and duration types ([#1344](https://github.com/infrahq/infra/issues/1344)) ([4cd9c81](https://github.com/infrahq/infra/commit/4cd9c8119d9958b1da5443b4f5fd531c6203d3f3))
+
+
+### Bug Fixes
+
+* access key extension and deadline no longer optional ([#1386](https://github.com/infrahq/infra/issues/1386)) ([7d593c4](https://github.com/infrahq/infra/commit/7d593c4862a260980f15eef6c39d54065da53d0e))
+* cert generation ([9a543a8](https://github.com/infrahq/infra/commit/9a543a8bb4fd544c69bbdb862f21226504193db8))
+* **cli:** add test and fix bugs in logout ([e5c280f](https://github.com/infrahq/infra/commit/e5c280f44bcf49776209fc0b7cd1b69505b803ad))
+* **cmd:** check login access key is non-empty ([d1eacfc](https://github.com/infrahq/infra/commit/d1eacfc5b515e19b29efe183e2ac2e9b5b20d6ff))
+* **cmd:** email validation when adding ids ([506f2c6](https://github.com/infrahq/infra/commit/506f2c65faef9cbc2c581f8106a8f6e70919b68b))
+* do not force http on proxy transport ([1db5f25](https://github.com/infrahq/infra/commit/1db5f2579c39f4426175a7879390bd1a02f40a3c))
+* do not recreate connector cert if exists ([a1dc9cb](https://github.com/infrahq/infra/commit/a1dc9cbe208d72fca11c170350601fcb18e56429))
+* dont use custom tls verification logic in connector ([#1347](https://github.com/infrahq/infra/issues/1347)) ([e96b31c](https://github.com/infrahq/infra/commit/e96b31cd74d396fd5d1851ac5dbb5cd6f6ee2800))
+* generation of openapi spec when there are no changes ([#1304](https://github.com/infrahq/infra/issues/1304)) ([67d0240](https://github.com/infrahq/infra/commit/67d02408bb155d450e883b179d22f932bafae96c))
+* http.Transport not using reasonable defaults ([4405001](https://github.com/infrahq/infra/commit/4405001336ad032059e24ac2d1e623f6884596e2))
+* invalid name test failing randomly ([eb300ec](https://github.com/infrahq/infra/commit/eb300ec4e35281126e4da09225b552299e989ba1))
+* k8s connector should ignore "connect" grants ([#1363](https://github.com/infrahq/infra/issues/1363)) ([c170a09](https://github.com/infrahq/infra/commit/c170a095cb620e981a0ecaa63b26f3d1aa26ea13))
+* k8s connector: remove provider name prefix ([#1370](https://github.com/infrahq/infra/issues/1370)) ([28e404a](https://github.com/infrahq/infra/commit/28e404a3fd1cb3bfb3f6d4d38e63da238b92fc00))
+* note that connector takes time to initialize ([#1343](https://github.com/infrahq/infra/issues/1343)) ([#1358](https://github.com/infrahq/infra/issues/1358)) ([a89b79b](https://github.com/infrahq/infra/commit/a89b79b49275a90afe1ad42e574ce5ba49e9aeb6))
+* only init schema if it's never been done ([#1397](https://github.com/infrahq/infra/issues/1397)) ([0c863ee](https://github.com/infrahq/infra/commit/0c863eef8434efeb41b9e9f245be8281f483182e))
+* recreate access key if parts differ ([c6b50b7](https://github.com/infrahq/infra/commit/c6b50b76a5ab0c91773501f1c6da76984474e0b0))
+* rename force flag to purge ([9c5112c](https://github.com/infrahq/infra/commit/9c5112c5319fea0caf3584709e1efb03b5ac39df))
+* small godoc and logging fixes ([21e0b6e](https://github.com/infrahq/infra/commit/21e0b6ed788b41abb9cf65c2780c85ef4f5674f4))
+
 ## [0.7.0](https://github.com/infrahq/infra/compare/v0.6.1...v0.7.0) (2022-03-24)
 
 
