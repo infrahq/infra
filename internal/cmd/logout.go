@@ -6,7 +6,7 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 )
 
-func logout(force bool) error {
+func logout(purge bool) error {
 	config, err := readConfig()
 	if err != nil {
 		logging.S.Debug(err.Error())
@@ -18,10 +18,9 @@ func logout(force bool) error {
 		return err
 	}
 
-	for _, hostConfig := range config.Hosts {
-		if err := removeHostConfig(hostConfig.Host, force); err != nil {
-			logging.S.Warn(err.Error())
-			continue
+	for i, hostConfig := range config.Hosts {
+		if !purge {
+			config.Hosts[i].AccessKey = ""
 		}
 
 		client, err := apiClient(hostConfig.Host, hostConfig.AccessKey, hostConfig.SkipTLSVerify)
@@ -30,8 +29,16 @@ func logout(force bool) error {
 			continue
 		}
 
-		_ = client.Logout()
+		if err := client.Logout(); err != nil {
+			logging.S.Warnf("failed to logout: %v", err)
+		}
 	}
 
+	if purge {
+		config.Hosts = nil
+	}
+	if err := writeConfig(config); err != nil {
+		logging.S.Warnf("failed to write client host config: %v", err)
+	}
 	return clearKubeconfig()
 }

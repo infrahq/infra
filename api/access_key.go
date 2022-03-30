@@ -20,9 +20,9 @@ type ListAccessKeysRequest struct {
 
 type CreateAccessKeyRequest struct {
 	MachineID         uid.ID   `json:"machineID" validate:"required"`
-	Name              string   `json:"name"`
-	TTL               Duration `json:"ttl" note:"maximum time valid"`
-	ExtensionDeadline Duration `json:"extensionDeadline,omitempty" note:"How long the key is active for before it needs to be renewed. The access key must be used within this amount of time to renew validity"`
+	Name              string   `json:"name" validate:"required"`
+	TTL               Duration `json:"ttl" validate:"required" note:"maximum time valid"`
+	ExtensionDeadline Duration `json:"extensionDeadline,omitempty" validate:"required" note:"How long the key is active for before it needs to be renewed. The access key must be used within this amount of time to renew validity"`
 }
 
 type CreateAccessKeyResponse struct {

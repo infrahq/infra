@@ -22,7 +22,7 @@ Infra is **identity and access management** for your cloud infrastructure. It pu
 * Install [Kubernetes](https://kubernetes.io/) (v1.14+)
 
 
-### 1. Install Infra
+### 1. Self-Host Infra
 
 ```
 helm repo add infrahq https://helm.infrahq.com/
@@ -73,11 +73,11 @@ helm install infra infrahq/infra
 infra login localhost
 ```
 
-This will output the Infra Access Key which you will use to login, please store this in a safe place as you will not see this again.
+This will output the Infra Access Key which you will use to login in cases of emergency recovery. Please store this in a safe place as you will not see this again.
 
 <details>
-  <summary><strong>Find the login URL</strong></summary>
-
+  <summary><strong>Find the login URL if not using localhost</strong></summary><br />
+  
 **LoadBalancer**
 
 ```bash
@@ -107,9 +107,14 @@ kubectl get ingress infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['
 
 ### 4. Connect the first Kubernetes cluster
 
+This connects the first Kubernetes cluster to the self-hosted Infra. You can connect the same Kubernetes cluster that Infra is self-hosted on. 
+
 ```
 infra destinations add kubernetes.example-name
 ``` 
+
+Run the output helm command on the Kubernetes cluster you want to connect to Infra. 
+
 
 ### 5. Create the first local user 
 
@@ -117,22 +122,51 @@ infra destinations add kubernetes.example-name
 infra id add name@example.com 
 ```
 
+This creates a one-time password for the created user. 
+
 ### 6. Grant Infra administrator privileges to the first user
 
 ``` 
-infra grants add -u name@example.com --role admin infra 
+infra grants add --user name@example.com --role admin infra 
 ``` 
 
 ### 7. Grant Kubernetes cluster administrator privileges to the first user 
+
 ```
-infra grants add -u name@example.com --role cluster-admin kubernetes.example-name
+infra grants add --user name@example.com --role cluster-admin kubernetes.example-name
 ```
+
+<details>
+  <summary><strong>
+Supported roles/cluster roles</strong></summary><br />
+  
+Infra supports cluster roles and roles within your Kubernetes environment including custom ones. For simplicity, you can use cluster roles, and scope it to a particular namespace via Infra. 
+  
+**Example applying a cluster role to a namespace:** 
+  ```
+  infra grants add --user name@example.com --role edit kubernetes.example-name.namespace
+  ```
+**Default available Cluster roles within Kubernetes:**
+- **cluster-admin** <br /><br />
+  Allows super-user access to perform any action on any resource. When 'cluster-admin' role is granted without specifying a namespace, it gives full control over every resource in the cluster and in all namespaces. When it is granted with a specified namespace, it gives full control over every resource in the namespace, including the namespace itself.<br />
+- **admin** <br /><br />
+  Allows admin access, intended to be granted within a namespace.
+The admin role allows read/write access to most resources in the specified namespace, including the ability to create roles and role bindings within the namespace. This role does not allow write access to resource quota or to the namespace itself. This role also does not allow write access to Endpoints in clusters created using Kubernetes v1.22+. <br /><br />
+- **edit** <br /><br />
+  Allows read/write access to most objects in a namespace.
+This role does not allow viewing or modifying roles or role bindings. However, this role allows accessing Secrets and running Pods as any ServiceAccount in the namespace, so it can be used to gain the API access levels of any ServiceAccount in the namespace. This role also does not allow write access to Endpoints in clusters created using Kubernetes v1.22+. <br /><br />
+- **view** <br /><br />
+  Allows read-only access to see most objects in a namespace. It does not allow viewing roles or role bindings.
+This role does not allow viewing Secrets, since reading the contents of Secrets enables access to ServiceAccount credentials in the namespace, which would allow API access as any ServiceAccount in the namespace (a form of privilege escalation).
+</details>
+
 
 ### 8. Login to Infra with the newly created user 
 
 ```
 infra login 
 ``` 
+
 Select the Infra instance, and login with username / password
 
 ### 9. Use your Kubernetes clusters
@@ -142,8 +176,35 @@ You can now access the connected Kubernetes clusters via your favorite tools dir
 Alternatively, you can switch Kubernetes contexts by using the `infra use` command: 
 
 ```
-infra use cluster-name
+infra use kubernetes.example-name
 ```
+
+<details>
+  <summary><strong>Here are some other commands to get you started</strong></summary><br />
+
+See the cluster(s) you have access to: 
+```
+infra list
+``` 
+See the cluster(s) connected to Infra: 
+```
+infra destinations list
+```
+See who has access to what via Infra: 
+```
+infra grants list
+
+Note: this requires the user to have either admin or view permissions to Infra. 
+
+An example to grant the permission:
+infra grants add --user name@example.com --role view infra 
+```
+</details>
+
+### 10. Share the cluster(s) with other developers 
+
+To share access with Infra, developers will need to install Infra CLI, and be provided the login URL. If using local users, please share the one-time password. 
+
 
 ## [Security](./docs/security.md)
 
