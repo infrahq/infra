@@ -1,0 +1,87 @@
+# The labels in this file will be synced to Github by the Github workflow in
+# .github/workflows/manage-labels.yaml
+#
+# All labels are organized by category using a <category>/ prefix
+
+
+- name: "kind/bug"
+  color: "d73a4a"
+  description: A report or a fix for a problem with functional correctness.
+  from_name: "bug"
+- name: "kind/feature"
+  color: "a2eeef"
+  description: A request or change that improves functional suitability.
+  from_name: "enhancement"
+- name: "kind/improvement"
+  color: "d8d468"
+  description: A report of a quality problem, or a change that addresses a quality problem.
+- name: "kind/maintenance"
+  color: "605f11"
+  description: A change related to the maintenance of the project.
+  from_name: "tech debt"
+- name: "kind/question"
+  color: "d876e3"
+  description: A request for more information.
+  from_name: "question"
+
+
+- name: "area/documentation"
+  color: "0075ca"
+  description: Improvements or additions to documentation.
+  from_name: "documentation"
+- name: "area/api"
+  color: "11dd3d"
+  description: Issue or PR related to the Infra API.
+  from_name: "api"
+- name: "area/ui"
+  color: "0246D8"
+  from_name: "ui"
+- name: "area/deploy"
+  color: "BFA38D"
+  description: Issue or PR related to deploying Infra.
+  from_name: "helm"
+- name: "area/release"
+  color: "FBCA04"
+  from_name: "release"
+- name: "area/cli"
+  color: "ca10ac"
+  description: Issue or PR related to the command-line interface.
+  from_name: "cli"
+- name: "area/destinations"
+  color: "AC82DA"
+  from_name: "destinations"
+- name: "area/destinations/kubernetes"
+  color: "E2057A"
+  from_name: "kubernetes"
+- name: "area/providers"
+  color: "71EDD1"
+  from_name: "providers"
+- name: "area/providers/okta"
+  color: "07269E"
+  from_name: "okta"
+- name: "area/providers/infra"
+  color: "B3B781"
+- name: "area/ci"
+  color: "000000"
+  description: Issue or PR related to Github actions, and other CI automation.
+  from_name: "github_actions"
+- name: "area/observability"
+  color: "9CED24"
+  description: Issue or PR related to observability.
+  from_name: "observability"
+
+
+- name: "priority/high"
+  color: "d93f0b"
+  description: The issue is high priority.
+  from_name: "high"
+
+
+- name: "status/idea"
+  color: "ffffff"
+  description: The issue is an idea that may require more research.
+  from_name: "idea"
+- name: "status/blocked"
+  color: "B60205"
+  description: The issue is blocked on out-of-repository dependencies.
+  from_name: "blocked"
