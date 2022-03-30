@@ -6,7 +6,7 @@ infra providers add Okta \
   --client-id <your okta client id> \
   --client-secret <your okta client secret>
 ```
-> :exclamation: configuration file. In order for Infra to access this secret values it should be stored in a secret provider.
+> :exclamation: The Okta client secret is sensitive information which should not be stored in the Infra configuration file. In order for Infra to access this secret values it should be stored in a secret provider.
 
 <br/>
 

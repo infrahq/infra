@@ -1,10 +1,6 @@
 # Kubernetes (Helm)
 
-
-> Note: Infra uses [Secrets](./docs/secrets.md) to securely load secrets.
-> It is _not_ recommended to use plain text secrets. Considering using another supported secret type.
-
-> Please follow [Okta Configuration](./docs/providers/okta.md) to obtain `clientID` and `clientSecret` for connecting Okta to Infra.
+> Note: Infra uses [Secrets](./docs/secrets.md) to securely load secrets. It is _not_ recommended to use plain text secrets. Considering using another supported secret type. Please follow [Okta Configuration](./docs/providers/okta.md) to obtain `clientID` and `clientSecret` for connecting Okta to Infra.
 
 ```yaml
 # example infra.yaml
@@ -15,30 +11,30 @@ providers:
   - name: Okta
     url: example.okta.com
     clientID: example_jsldf08j23d081j2d12sd
-    clientSecret:  example_plain_secret #see note above
+    clientSecret: example_plain_secret #see note above
 
 grants:
-# 1. Grant user(s) or group(s) as Infra administrator
-# Setup an user as Infra administrator
+  # 1. Grant user(s) or group(s) as Infra administrator
+  # Setup an user as Infra administrator
   - user: you@example.com
     role: admin
     resource: infra
 
-# 2. Grant user(s) or group(s) access to a resources
-# Example of granting access to an individual user the `cluster-admin` role. The name of a resource is specified when installing the Infra Engine at that location.
+  # 2. Grant user(s) or group(s) access to a resources
+  # Example of granting access to an individual user the `cluster-admin` role. The name of a resource is specified when installing the Infra Engine at that location.
   - user: you@example.com
-    role: cluster-admin                  # cluster_roles required
+    role: cluster-admin # cluster_roles required
     resource: kubernetes.example-cluster # limit access to the `example-cluster` Kubernetes cluster
 
-# Example of granting access to an individual user through assigning them to the 'edit' role in the `web` namespace.
-# In this case, Infra will automatically scope the access to a namespace.
+  # Example of granting access to an individual user through assigning them to the 'edit' role in the `web` namespace.
+  # In this case, Infra will automatically scope the access to a namespace.
   - user: you@example.com
-    role: edit                               # cluster_roles required
+    role: edit # cluster_roles required
     resource: kubernetes.example-cluster.web # limit access to only the `web` namespace in the `example-cluster` Kubernetes cluster
 
-# Example of granting access to a group the `view` role.
+  # Example of granting access to a group the `view` role.
   - group: Everyone
-    role: view                           # cluster_roles required
+    role: view # cluster_roles required
     resource: kubernetes.example-cluster # limit access to the `example-cluster` Kubernetes cluster
 ```
 
@@ -136,6 +132,7 @@ infra use kubernetes.example_cluster
 Using Infra CLI:
 
 Generate the helm install command via
+
 ```
 infra destinations add kubernetes example-cluster
 ```
@@ -143,6 +140,7 @@ infra destinations add kubernetes example-cluster
 Run the output Helm command on the Kubernetes cluster to be added.
 
 Example:
+
 ```
 helm upgrade --install infra-engine infrahq/engine --set config.accessKey=2pVqDSdkTF.oSCEe6czoBWdgc6wRz0ywK8y --set config.name=kubernetes.example-cluster --set config.server=https://infra.acme.com
 ```
