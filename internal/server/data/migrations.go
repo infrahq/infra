@@ -42,7 +42,12 @@ func migrate(db *gorm.DB) error {
 		// next one here
 	})
 
-	m.InitSchema(automigrate)
+	m.InitSchema(func(db *gorm.DB) error {
+		if db.Migrator().HasTable("users") {
+			return nil
+		}
+		return automigrate(db)
+	})	
 
 	if err := m.Migrate(); err != nil {
 		return err
