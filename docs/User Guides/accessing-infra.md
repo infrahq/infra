@@ -7,6 +7,7 @@
 
 ```bash
 brew install infrahq/tap/infra
+brew link infrahq/tap/infra
 ```
 
 </details>
