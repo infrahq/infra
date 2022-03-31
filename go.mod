@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.4
-	github.com/aws/aws-sdk-go v1.43.26
+	github.com/aws/aws-sdk-go v1.43.29
 	github.com/cli/browser v1.1.0
 	github.com/docker/docker v20.10.14+incompatible
 	github.com/docker/go-connections v0.4.0
