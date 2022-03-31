@@ -14,7 +14,7 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 )
 
-func sendAPIError(c *gin.Context, err error) {
+func (a *API) sendAPIError(c *gin.Context, err error) {
 	resp := &api.Error{
 		Code:    http.StatusInternalServerError,
 		Message: "internal server error", // don't leak any info by default
@@ -65,6 +65,8 @@ func sendAPIError(c *gin.Context, err error) {
 	default:
 		logging.WrappedSugarLogger(c).Errorw(err.Error(), "statusCode", resp.Code)
 	}
+
+	a.t.Event(c, "error", Properties{"code": resp.Code})
 
 	c.JSON(int(resp.Code), resp)
 	c.Abort()

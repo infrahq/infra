@@ -28,7 +28,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
-	"gopkg.in/square/go-jose.v2"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
@@ -297,30 +296,6 @@ func (s *Server) loadCertificates() (err error) {
 	return nil
 }
 
-func (s *Server) wellKnownJWKsHandler(c *gin.Context) {
-	settings, err := data.GetSettings(s.db)
-	if err != nil {
-		sendAPIError(c, fmt.Errorf("could not get JWKs"))
-		return
-	}
-
-	var pubKey jose.JSONWebKey
-	if err := pubKey.UnmarshalJSON(settings.PublicJWK); err != nil {
-		sendAPIError(c, fmt.Errorf("could not get JWKs"))
-		return
-	}
-
-	c.JSON(http.StatusOK, struct {
-		Keys []jose.JSONWebKey `json:"keys"`
-	}{
-		[]jose.JSONWebKey{pubKey},
-	})
-}
-
-func (s *Server) healthHandler(c *gin.Context) {
-	c.Status(http.StatusOK)
-}
-
 func (s *Server) registerUIRoutes(router *gin.Engine) error {
 	if !s.options.EnableUI {
 		return nil
@@ -378,18 +353,11 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) (*gin.Engine
 	router := gin.New()
 
 	router.Use(gin.Recovery())
-	router.GET("/healthz", s.healthHandler)
-
-	router.Use(
-		logging.Middleware(),
-		RequestTimeoutMiddleware(),
-	)
-	router.GET("/.well-known/jwks.json", s.wellKnownJWKsHandler)
-
-	a := API{
+	a := &API{
 		t:      s.tel,
 		server: s,
 	}
+
 	a.registerRoutes(router.Group("/"), promRegistry)
 
 	if err := s.registerUIRoutes(router); err != nil {

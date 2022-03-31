@@ -115,7 +115,7 @@ func TestGetRoute(t *testing.T) {
 	}
 	r := e.Group("/")
 
-	get(r, "/", func(c *gin.Context, req *api.EmptyRequest) (*api.EmptyResponse, error) {
+	get(&API{}, r, "/", func(c *gin.Context, req *api.EmptyRequest) (*api.EmptyResponse, error) {
 		return &api.EmptyResponse{}, nil
 	})
 
