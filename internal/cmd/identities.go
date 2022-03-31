@@ -103,7 +103,7 @@ func newIdentitiesEditCmd() *cobra.Command {
 					return errors.New("specify the --password flag to update the password")
 				}
 
-				newPassword, err := PromptForPassword()
+				newPassword, err := promptUpdatePassword()
 				if err != nil {
 					return err
 				}
@@ -388,7 +388,7 @@ func getUserFromName(client *api.Client, name string, provider *api.Provider) (*
 	return &users[0], nil
 }
 
-func PromptForPassword() (string, error) {
+func promptUpdatePassword() (string, error) {
 PROMPT:
 	newPassword := ""
 	if err := survey.AskOne(&survey.Password{Message: "New Password:"}, &newPassword, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {

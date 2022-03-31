@@ -327,7 +327,7 @@ func oidcflow(host string, clientId string) (string, error) {
 func updateUserPassword(client *api.Client, pid uid.PolymorphicID) error {
 	fmt.Println("  One time password used, please set a new password.")
 
-	newPassword, err := PromptForPassword()
+	newPassword, err := promptUpdatePassword()
 	if err != nil {
 		return err
 	}
