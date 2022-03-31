@@ -390,7 +390,7 @@ func runSetupForLogin(client *api.Client) (string, error) {
 	return setupRes.AccessKey, nil
 }
 
-// Only used when logging in to a new session, since user has no credentials. Otherwise, use defaultAPIClient().
+// Only used when logging in or switching to a new session, since user has no credentials. Otherwise, use defaultAPIClient().
 func newAPIClient(server string, skipTLSVerify bool) (*api.Client, error) {
 	if !skipTLSVerify {
 		// Prompt user only if server fails the TLS verification

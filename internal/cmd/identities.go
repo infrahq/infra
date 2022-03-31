@@ -16,6 +16,25 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+func newIdentitiesCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "identities",
+		Aliases: []string{"id", "identity"},
+		Short:   "Manage identities (users & machines)",
+		Group:   "Management commands:",
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return mustBeLoggedIn()
+		},
+	}
+
+	cmd.AddCommand(newIdentitiesAddCmd())
+	cmd.AddCommand(newIdentitiesEditCmd())
+	cmd.AddCommand(newIdentitiesListCmd())
+	cmd.AddCommand(newIdentitiesRemoveCmd())
+
+	return cmd
+}
+
 type identityOptions struct {
 	Description string `mapstructure:"description"`
 	Password    bool   `mapstructure:"password"`
