@@ -32,7 +32,8 @@ documentation which describes how to:
   * [Contribute to projects](https://docs.github.com/en/get-started/quickstart/contributing-to-projects)
 
 When you are ready to commit your change, follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
-for your commit message.
+for your commit message. The type must be one of `fix`, `feat`, `improve`, or `maintain`. These types are
+documented in the [commitlint config file](.github/commitlint.config.js).
 
 
 

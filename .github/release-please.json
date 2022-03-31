@@ -1,6 +1,7 @@
 {
   "bump-minor-pre-major": true,
   "bump-patch-for-minor-pre-major": true,
+  "pull-request-title-pattern": "maintain${scope}: release${component} ${version}",
   "packages": {
     ".": {
       "release-type": "go",
