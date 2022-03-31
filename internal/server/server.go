@@ -143,7 +143,7 @@ func New(options Options) (*Server, error) {
 	}
 
 	if options.EnableTelemetry {
-		if err := configureTelemetry(server.db); err != nil {
+		if err := configureTelemetry(server); err != nil {
 			return nil, fmt.Errorf("configuring telemetry: %w", err)
 		}
 	}
@@ -192,16 +192,15 @@ func (s *Server) Run(ctx context.Context) error {
 	return group.Wait()
 }
 
-func configureTelemetry(db *gorm.DB) error {
-	tel, err := NewTelemetry(db)
+func configureTelemetry(server *Server) error {
+	tel, err := NewTelemetry(server.db)
 	if err != nil {
 		return err
 	}
+	server.tel = tel
 
 	repeat.Start(context.TODO(), 1*time.Hour, func(context.Context) {
-		if err := tel.EnqueueHeartbeat(); err != nil {
-			logging.S.Debug(err)
-		}
+		tel.EnqueueHeartbeat()
 	})
 
 	return nil
