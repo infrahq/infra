@@ -103,24 +103,12 @@ func newIdentitiesEditCmd() *cobra.Command {
 					return errors.New("specify the --password flag to update the password")
 				}
 
-				newPassword := ""
-				if err := survey.AskOne(&survey.Password{Message: "New Password:"}, &newPassword, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
-					return err
-				}
-
-			CONFIRM:
-				confirmNewPassword := ""
-				if err := survey.AskOne(&survey.Password{Message: "Confirm New Password:"}, &confirmNewPassword, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
-					return err
-				}
-
-				if confirmNewPassword != newPassword {
-					fmt.Println("  passwords do not match")
-					goto CONFIRM
-				}
-
-				err = updateUser(name, newPassword)
+				newPassword, err := PromptForPassword()
 				if err != nil {
+					return err
+				}
+
+				if err = updateUser(name, newPassword); err != nil {
 					return err
 				}
 
@@ -398,4 +386,24 @@ func getUserFromName(client *api.Client, name string, provider *api.Provider) (*
 	}
 
 	return &users[0], nil
+}
+
+func PromptForPassword() (string, error) {
+PROMPT:
+	newPassword := ""
+	if err := survey.AskOne(&survey.Password{Message: "New Password:"}, &newPassword, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
+		return "", err
+	}
+
+	confirmNewPassword := ""
+	if err := survey.AskOne(&survey.Password{Message: "Confirm New Password:"}, &confirmNewPassword, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
+		return "", err
+	}
+
+	if confirmNewPassword != newPassword {
+		fmt.Println("passwords do not match")
+		goto PROMPT
+	}
+
+	return newPassword, nil
 }

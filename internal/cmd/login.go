@@ -325,24 +325,11 @@ func oidcflow(host string, clientId string) (string, error) {
 
 // Prompt user to change their preset password when loggin in for the first time
 func updateUserPassword(client *api.Client, pid uid.PolymorphicID) error {
-	var newPassword string
-	passwordPrompt := &survey.Password{Message: "One time password used, please set a new password:"}
+	fmt.Println("  One time password used, please set a new password.")
 
-	if err := survey.AskOne(passwordPrompt, &newPassword, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithValidator(survey.Required)); err != nil {
+	newPassword, err := PromptForPassword()
+	if err != nil {
 		return err
-	}
-
-	var confirmPassword string
-	confirmPasswordPrompt := &survey.Password{Message: "Confirm your password:"}
-
-CONFIRM:
-	if err := survey.AskOne(confirmPasswordPrompt, &confirmPassword, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithValidator(survey.Required)); err != nil {
-		return err
-	}
-
-	if confirmPassword != newPassword {
-		fmt.Println("  passwords do not match")
-		goto CONFIRM
 	}
 
 	if !pid.IsUser() {
