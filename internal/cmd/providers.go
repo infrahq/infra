@@ -8,6 +8,24 @@ import (
 	"github.com/infrahq/infra/api"
 )
 
+func newProvidersCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "providers",
+		Short:   "Manage identity providers",
+		Aliases: []string{"provider"},
+		Group:   "Management commands:",
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return mustBeLoggedIn()
+		},
+	}
+
+	cmd.AddCommand(newProvidersListCmd())
+	cmd.AddCommand(newProvidersAddCmd())
+	cmd.AddCommand(newProvidersRemoveCmd())
+
+	return cmd
+}
+
 type providerOptions struct {
 	URL          string
 	ClientID     string `mapstructure:"client-id"`

@@ -14,6 +14,21 @@ import (
 	"github.com/infrahq/infra/api"
 )
 
+func newTokensCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:    "tokens",
+		Short:  "Create & manage tokens",
+		Hidden: true,
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return mustBeLoggedIn()
+		},
+	}
+
+	cmd.AddCommand(newTokensAddCmd())
+
+	return cmd
+}
+
 func newTokensAddCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "add",

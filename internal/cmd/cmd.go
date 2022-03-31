@@ -220,24 +220,6 @@ $ infra use kubernetes.development.kube-system
 	}
 }
 
-func newDestinationsCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:     "destinations",
-		Aliases: []string{"dst", "dest", "destination"},
-		Short:   "Manage destinations",
-		Group:   "Management commands:",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			return mustBeLoggedIn()
-		},
-	}
-
-	cmd.AddCommand(newDestinationsListCmd())
-	cmd.AddCommand(newDestinationsAddCmd())
-	cmd.AddCommand(newDestinationsRemoveCmd())
-
-	return cmd
-}
-
 func canonicalPath(in string) (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -361,64 +343,6 @@ func newConnectorCmd() *cobra.Command {
 	cmd.Flags().Bool("skip-tls-verify", false, "Skip verifying server TLS certificates")
 
 	return cmd
-}
-
-func newTokensCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:    "tokens",
-		Short:  "Create & manage tokens",
-		Hidden: true,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			return mustBeLoggedIn()
-		},
-	}
-
-	cmd.AddCommand(newTokensAddCmd())
-
-	return cmd
-}
-
-func newProvidersCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:     "providers",
-		Short:   "Manage identity providers",
-		Aliases: []string{"provider"},
-		Group:   "Management commands:",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			return mustBeLoggedIn()
-		},
-	}
-
-	cmd.AddCommand(newProvidersListCmd())
-	cmd.AddCommand(newProvidersAddCmd())
-	cmd.AddCommand(newProvidersRemoveCmd())
-
-	return cmd
-}
-
-func newInfoCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:    "info",
-		Short:  "Display the info about the current session",
-		Hidden: true,
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return mustBeLoggedIn()
-		},
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return info()
-		},
-	}
-}
-
-func newVersionCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:    "version",
-		Short:  "Display the Infra version",
-		Hidden: true,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return version()
-		},
-	}
 }
 
 var rootOptions struct {
