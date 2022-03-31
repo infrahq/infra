@@ -302,24 +302,6 @@ $ infra use kubernetes.development.kube-system
 	}
 }
 
-func newGrantsCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:     "grants",
-		Short:   "Manage access to destinations",
-		Aliases: []string{"grant"},
-		Group:   "Management commands:",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			return mustBeLoggedIn()
-		},
-	}
-
-	cmd.AddCommand(newGrantsListCmd())
-	cmd.AddCommand(newGrantAddCmd())
-	cmd.AddCommand(newGrantRemoveCmd())
-
-	return cmd
-}
-
 func newKeysCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "keys",
