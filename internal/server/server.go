@@ -51,7 +51,7 @@ type Options struct {
 	EnableSetup          bool          `mapstructure:"enableSetup"`
 	SessionDuration      time.Duration `mapstructure:"sessionDuration"`
 
-	DBFile                  string `mapstructure:"dbFile" `
+	DBFile                  string `mapstructure:"dbFile"`
 	DBEncryptionKey         string `mapstructure:"dbEncryptionKey"`
 	DBEncryptionKeyProvider string `mapstructure:"dbEncryptionKeyProvider"`
 	DBHost                  string `mapstructure:"dbHost" `
@@ -71,6 +71,14 @@ type Options struct {
 	InitialRootCACert           string `mapstructure:"initialRootCACert"`
 	InitialRootCAPublicKey      string `mapstructure:"initialRootCAPublicKey"`
 	FullKeyRotationInDays       int    `mapstructure:"fullKeyRotationInDays"` // 365 default
+
+	Addr ListenerOptions `mapstructure:"addr"`
+}
+
+type ListenerOptions struct {
+	HTTP    string
+	HTTPS   string
+	Metrics string
 }
 
 type Server struct {
@@ -379,7 +387,7 @@ func (s *Server) runServer() error {
 	})
 
 	metricsServer := &http.Server{
-		Addr:     ":9090",
+		Addr:     s.options.Addr.Metrics,
 		Handler:  metrics,
 		ErrorLog: logging.StandardErrorLog(),
 	}
@@ -387,7 +395,7 @@ func (s *Server) runServer() error {
 	go serve(metricsServer)
 
 	plaintextServer := &http.Server{
-		Addr:     ":80",
+		Addr:     s.options.Addr.HTTP,
 		Handler:  router,
 		ErrorLog: logging.StandardErrorLog(),
 	}
@@ -404,7 +412,7 @@ func (s *Server) runServer() error {
 	}
 
 	tlsServer := &http.Server{
-		Addr:      ":443",
+		Addr:      s.options.Addr.HTTPS,
 		TLSConfig: tlsConfig,
 		Handler:   router,
 		ErrorLog:  logging.StandardErrorLog(),

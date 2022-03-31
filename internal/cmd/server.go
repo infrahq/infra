@@ -22,7 +22,7 @@ func newServerCmd() *cobra.Command {
 			strcase.ConfigureAcronym("enable-ui", "enableUI")
 			strcase.ConfigureAcronym("ui-proxy-url", "uiProxyURL")
 
-			options := server.Options{}
+			options := defaultServerOptions()
 			if err := parseOptions(cmd, &options, "INFRA_SERVER"); err != nil {
 				return err
 			}
@@ -73,4 +73,14 @@ func newServerCmd() *cobra.Command {
 	cmd.Flags().Bool("enable-setup", true, "Enable one-time setup")
 
 	return cmd
+}
+
+func defaultServerOptions() server.Options {
+	return server.Options{
+		Addr: server.ListenerOptions{
+			HTTP:    ":80",
+			HTTPS:   ":443",
+			Metrics: ":9090",
+		},
+	}
 }
