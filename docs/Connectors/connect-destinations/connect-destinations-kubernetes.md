@@ -41,10 +41,8 @@ There are several default user-facing `Role` and `ClusterRole` defined in most c
 
 Infra does not differentiate between `Role` and `ClusterRole`. Instead, Infra will create the appropriate binding based on whether the Grant is defined for a specific namespace or for the entire cluster.
 
-<aside>
-💡 Infra does not currently manage `Role` or `ClusterRole`. However, any existing Kubernetes `ClusterRole` can be referenced in an Infra grant. Kubernetes `Role` are not supported.
+> :exclamation: Infra does not currently manage `Role` or `ClusterRole`. However, any existing Kubernetes `ClusterRole` can be referenced in an Infra grant. Kubernetes `Role` are not supported.
 
-</aside>
 
 ### Example: Grant group `Everyone` the `view` role to a cluster
 
@@ -64,10 +62,7 @@ infra grants add --group Core --role cluster-admin kubernetes.cluster.namespace
 
 ## Revoking Access
 
-<aside>
-💡 Grants are built with an additive model. There is no plan currently to define grants which reduce access.
-
-</aside>
+> :exclamation: Grants are built with an additive model. There is no plan currently to define grants which reduce access.
 
 To remove access to a resource, remove the grant providing access.
 
