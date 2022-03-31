@@ -332,6 +332,19 @@ func updateUserPassword(client *api.Client, pid uid.PolymorphicID) error {
 		return err
 	}
 
+	var confirmPassword string
+	confirmPasswordPrompt := &survey.Password{Message: "Confirm your password:"}
+
+CONFIRM:
+	if err := survey.AskOne(confirmPasswordPrompt, &confirmPassword, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithValidator(survey.Required)); err != nil {
+		return err
+	}
+
+	if confirmPassword != newPassword {
+		fmt.Println("  passwords do not match")
+		goto CONFIRM
+	}
+
 	if !pid.IsUser() {
 		panic("updateUserPassword called with a non-user PID")
 	}

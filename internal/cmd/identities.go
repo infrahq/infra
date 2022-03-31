@@ -104,9 +104,19 @@ func newIdentitiesEditCmd() *cobra.Command {
 				}
 
 				newPassword := ""
-				err := survey.AskOne(&survey.Password{Message: "New Password:"}, &newPassword, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
-				if err != nil {
+				if err := survey.AskOne(&survey.Password{Message: "New Password:"}, &newPassword, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
 					return err
+				}
+
+			CONFIRM:
+				confirmNewPassword := ""
+				if err := survey.AskOne(&survey.Password{Message: "Confirm New Password:"}, &confirmNewPassword, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
+					return err
+				}
+
+				if confirmNewPassword != newPassword {
+					fmt.Println("  passwords do not match")
+					goto CONFIRM
 				}
 
 				err = updateUser(name, newPassword)
