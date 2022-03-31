@@ -12,12 +12,30 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-type accessOptions struct {
+type grantsCmdOptions struct {
 	User     string `mapstructure:"user"`
 	Group    string `mapstructure:"group"`
 	Machine  string `mapstructure:"machine"`
 	Provider string `mapstructure:"provider"`
 	Role     string `mapstructure:"role"`
+}
+
+func newGrantsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "grants",
+		Short:   "Manage access to destinations",
+		Aliases: []string{"grant"},
+		Group:   "Management commands:",
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return mustBeLoggedIn()
+		},
+	}
+
+	cmd.AddCommand(newGrantsListCmd())
+	cmd.AddCommand(newGrantAddCmd())
+	cmd.AddCommand(newGrantRemoveCmd())
+
+	return cmd
 }
 
 func newGrantsListCmd() *cobra.Command {
@@ -91,7 +109,7 @@ $ infra grants add -u admin@acme.com -r admin infra
 `,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var options accessOptions
+			var options grantsCmdOptions
 			if err := parseOptions(cmd, &options, "INFRA_ACCESS"); err != nil {
 				return err
 			}
@@ -220,7 +238,7 @@ func newGrantRemoveCmd() *cobra.Command {
 		Short: "Revoke access to a destination",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var options accessOptions
+			var options grantsCmdOptions
 			if err := parseOptions(cmd, &options, "INFRA_ACCESS"); err != nil {
 				return err
 			}
