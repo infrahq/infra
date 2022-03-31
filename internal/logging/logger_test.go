@@ -28,22 +28,20 @@ func TestFiltersOutBearerTokenValue(t *testing.T) {
 		},
 	}
 	for _, testCase := range tests {
-		writeSyncer := &testWriterSyncer{}
-		defaultStdoutWriter = writeSyncer
-		defaultStderrWriter = writeSyncer
+		t.Run("", func(t *testing.T) {
+			writeSyncer := &testWriterSyncer{}
 
-		logger, err := NewLogger(zapcore.InfoLevel)
-		require.NoError(t, err)
+			logger := newServerLogger(zapcore.InfoLevel, writeSyncer, writeSyncer)
+			logger.Sugar().Info(testCase.Input)
 
-		logger.Sugar().Info(testCase.Input)
+			m := map[string]interface{}{}
+			err := json.Unmarshal(writeSyncer.data, &m)
+			require.NoError(t, err, string(writeSyncer.data))
 
-		m := map[string]interface{}{}
-		err = json.Unmarshal(writeSyncer.data, &m)
-		require.NoError(t, err)
-
-		msg, ok := m["msg"].(string)
-		require.True(t, ok)
-		require.Equal(t, testCase.Expected, msg)
+			msg, ok := m["msg"].(string)
+			require.True(t, ok)
+			require.Equal(t, testCase.Expected, msg)
+		})
 	}
 }
 

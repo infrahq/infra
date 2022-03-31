@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/goware/urlx"
 	"github.com/iancoleman/strcase"
 	"github.com/lensesio/tableprinter"
@@ -366,6 +365,8 @@ func newServerCmd() *cobra.Command {
 		Short:  "Start Infra server",
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			logging.SetServerLogger()
+
 			// override default strcase.ToLowerCamel behaviour
 			strcase.ConfigureAcronym("enable-ui", "enableUI")
 			strcase.ConfigureAcronym("ui-proxy-url", "uiProxyURL")
@@ -429,6 +430,8 @@ func newConnectorCmd() *cobra.Command {
 		Short:  "Start the Infra connector",
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			logging.SetServerLogger()
+
 			// override default strcase.ToLowerCamel behaviour
 			strcase.ConfigureAcronym("skip-tls-verify", "skipTLSVerify")
 
@@ -525,7 +528,7 @@ var rootOptions struct {
 	Version        bool   `mapstructure:"version"`
 }
 
-func NewRootCmd() (*cobra.Command, error) {
+func NewRootCmd() *cobra.Command {
 	cobra.EnableCommandSorting = false
 
 	rootCmd := &cobra.Command{
@@ -586,27 +589,7 @@ func NewRootCmd() (*cobra.Command, error) {
 
 	rootCmd.SetHelpCommandGroup("Other commands:")
 	rootCmd.SetUsageTemplate(usageTemplate())
-	return rootCmd, nil
-}
-
-func Run() error {
-	cmd, err := NewRootCmd()
-	if err != nil {
-		return err
-	}
-
-	err = cmd.Execute()
-	printError(err)
-
-	return err
-}
-
-func printError(err error) {
-	if err != nil {
-		if !errors.Is(err, terminal.InterruptErr) {
-			fmt.Fprintln(os.Stderr, "error: "+err.Error())
-		}
-	}
+	return rootCmd
 }
 
 func usageTemplate() string {
