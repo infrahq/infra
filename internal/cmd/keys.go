@@ -9,6 +9,25 @@ import (
 	"github.com/infrahq/infra/api"
 )
 
+func newKeysCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "keys",
+		Short:   "Manage access keys",
+		Long:    "Manage access keys for machine identities to authenticate with Infra and call the API",
+		Aliases: []string{"key"},
+		Group:   "Management commands:",
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return mustBeLoggedIn()
+		},
+	}
+
+	cmd.AddCommand(newKeysListCmd())
+	cmd.AddCommand(newKeysAddCmd())
+	cmd.AddCommand(newKeysRemoveCmd())
+
+	return cmd
+}
+
 type keyCreateOptions struct {
 	TTL               string `mapstructure:"ttl"`
 	ExtensionDeadline string `mapstructure:"extension-deadline"`

@@ -15,7 +15,9 @@ import (
 	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/cli/browser"
 	"github.com/goware/urlx"
+	"github.com/iancoleman/strcase"
 	"github.com/muesli/termenv"
+	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
 	"github.com/infrahq/infra/api"
@@ -41,6 +43,54 @@ const (
 )
 
 const cliLoginRedirectURL = "http://localhost:8301"
+
+func newLoginCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "login [SERVER]",
+		Short: "Login to Infra",
+		Example: `
+# By default, login will prompt for all required information.
+$ infra login
+
+# Login to a specified server
+$ infra login SERVER
+$ infra login --server SERVER
+
+# Login with an access key
+$ infra login --key KEY
+
+# Login with a specified provider
+$ infra login --provider NAME
+
+# Use the '--non-interactive' flag to error out instead of prompting.
+`,
+		Args:  cobra.MaximumNArgs(1),
+		Group: "Core commands:",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			var options loginCmdOptions
+			strcase.ConfigureAcronym("skip-tls-verify", "skipTLSVerify")
+
+			if err := parseOptions(cmd, &options, "INFRA"); err != nil {
+				return err
+			}
+
+			if len(args) == 1 {
+				if options.Server != "" {
+					fmt.Fprintf(os.Stderr, "SERVER is specified twice. Ignoring --server and proceeding with %s\n", options.Server)
+				}
+				options.Server = args[0]
+			}
+
+			return login(options)
+		},
+	}
+
+	cmd.Flags().String("key", "", "Login with an access key")
+	cmd.Flags().String("server", "", "Infra server to login to")
+	cmd.Flags().String("provider", "", "Login with an identity provider")
+	cmd.Flags().Bool("skip-tls-verify", false, "Skip verifying server TLS certificates")
+	return cmd
+}
 
 func login(options loginCmdOptions) error {
 	var err error

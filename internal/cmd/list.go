@@ -5,9 +5,25 @@ import (
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
+	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
 )
+
+func newListCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List accessible destinations",
+		Group:   "Core commands:",
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return mustBeLoggedIn()
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return list()
+		},
+	}
+}
 
 func list() error {
 	client, err := defaultAPIClient()
