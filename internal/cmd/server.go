@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"time"
 
 	"github.com/iancoleman/strcase"
@@ -48,7 +49,11 @@ func newServerCmd() *cobra.Command {
 
 			options.DBEncryptionKey = dbEncryptionKey
 
-			return server.Run(options)
+			srv, err := server.New(options)
+			if err != nil {
+				return err
+			}
+			return srv.Run(context.Background())
 		},
 	}
 
