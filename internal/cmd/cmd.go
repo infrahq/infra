@@ -525,25 +525,6 @@ func newInfoCmd() *cobra.Command {
 	}
 }
 
-func newIdentitiesCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:     "identities",
-		Aliases: []string{"id", "identity"},
-		Short:   "Manage identities (users & machines)",
-		Group:   "Management commands:",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			return mustBeLoggedIn()
-		},
-	}
-
-	cmd.AddCommand(newIdentitiesAddCmd())
-	cmd.AddCommand(newIdentitiesEditCmd())
-	cmd.AddCommand(newIdentitiesListCmd())
-	cmd.AddCommand(newIdentitiesRemoveCmd())
-
-	return cmd
-}
-
 func newVersionCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:    "version",
