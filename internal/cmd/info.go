@@ -5,7 +5,23 @@ import (
 	"os"
 	"strings"
 	"text/tabwriter"
+
+	"github.com/spf13/cobra"
 )
+
+func newInfoCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:    "info",
+		Short:  "Display the info about the current session",
+		Hidden: true,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return mustBeLoggedIn()
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return info()
+		},
+	}
+}
 
 func info() error {
 	config, err := currentHostConfig()

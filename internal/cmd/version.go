@@ -6,9 +6,22 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/spf13/cobra"
+
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 )
+
+func newVersionCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:    "version",
+		Short:  "Display the Infra version",
+		Hidden: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return version()
+		},
+	}
+}
 
 func version() error {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)

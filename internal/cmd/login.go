@@ -112,10 +112,7 @@ func login(options loginCmdOptions) error {
 	if err != nil {
 		return err
 	}
-	if setupRequired.Required {
-		if options.AccessKey != "" {
-			return fmt.Errorf(`Infra has not been setup. To setup, run the following without any additional args: 'infra login [SERVER]'`)
-		}
+	if setupRequired.Required && options.AccessKey == "" {
 		options.AccessKey, err = runSetupForLogin(client)
 		if err != nil {
 			return err
