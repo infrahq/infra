@@ -122,18 +122,14 @@ func newIdentitiesEditCmd() *cobra.Command {
 					return errors.New("specify the --password flag to update the password")
 				}
 
-				newPassword := ""
-				err := survey.AskOne(&survey.Password{Message: "New Password:"}, &newPassword, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
+				newPassword, err := promptUpdatePassword("")
 				if err != nil {
 					return err
 				}
 
-				err = updateUser(name, newPassword)
-				if err != nil {
+				if err = updateUser(name, newPassword); err != nil {
 					return err
 				}
-
-				fmt.Println("user identity updated")
 			}
 
 			return nil
@@ -365,7 +361,8 @@ func updateUser(name, newPassword string) error {
 			}
 			return err
 		}
-		fmt.Println("setting one time password")
+		// Todo otp: update term to temporary password (https://github.com/infrahq/infra/issues/1441)
+		fmt.Fprintf(os.Stderr, "  Updated one time password for user %s.\n", user.Email)
 	}
 
 	if _, err := client.UpdateUser(&api.UpdateUserRequest{ID: user.ID, Password: newPassword}); err != nil {
@@ -407,4 +404,41 @@ func getUserFromName(client *api.Client, name string, provider *api.Provider) (*
 	}
 
 	return &users[0], nil
+}
+
+func promptUpdatePassword(oldPassword string) (string, error) {
+	fmt.Fprintf(os.Stderr, "  Enter a new password (min length 8):\n")
+
+PROMPT:
+	newPassword := ""
+	if err := survey.AskOne(&survey.Password{Message: "New password:"}, &newPassword, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
+		return "", err
+	}
+
+	if err := checkPasswordRequirements(newPassword, oldPassword); err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		goto PROMPT
+	}
+
+	confirmNewPassword := ""
+	if err := survey.AskOne(&survey.Password{Message: "Re-enter new password:"}, &confirmNewPassword, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
+		return "", err
+	}
+
+	if confirmNewPassword != newPassword {
+		fmt.Println("  Passwords do not match.")
+		goto PROMPT
+	}
+
+	return newPassword, nil
+}
+
+func checkPasswordRequirements(newPassword string, oldPassword string) error {
+	if len(newPassword) < 8 {
+		return errors.New("  Password cannot be less than 8 characters.")
+	}
+	if newPassword == oldPassword {
+		return errors.New("  New password cannot be the same as your old password.")
+	}
+	return nil
 }

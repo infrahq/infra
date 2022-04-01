@@ -227,7 +227,7 @@ func loginToInfra(client *api.Client, loginReq *api.LoginRequest) error {
 	}
 
 	if loginRes.PasswordUpdateRequired {
-		if err := updateUserPassword(client, loginRes.PolymorphicID); err != nil {
+		if err := updateUserPassword(client, loginRes.PolymorphicID, loginReq.PasswordCredentials.Password); err != nil {
 			return err
 		}
 	}
@@ -326,12 +326,6 @@ func finishLogin(host string, skipTLSVerify bool, providerID uid.ID, loginRes *a
 		return err
 	}
 
-	if loginRes.PasswordUpdateRequired {
-		if err := updateUserPassword(client, loginRes.PolymorphicID); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
@@ -371,16 +365,17 @@ func oidcflow(host string, clientId string) (string, error) {
 }
 
 // Prompt user to change their preset password when loggin in for the first time
-func updateUserPassword(client *api.Client, pid uid.PolymorphicID) error {
-	var newPassword string
-	passwordPrompt := &survey.Password{Message: "One time password used, please set a new password:"}
-
-	if err := survey.AskOne(passwordPrompt, &newPassword, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithValidator(survey.Required)); err != nil {
-		return err
-	}
-
+func updateUserPassword(client *api.Client, pid uid.PolymorphicID, oldPassword string) error {
 	if !pid.IsUser() {
 		panic("updateUserPassword called with a non-user PID")
+	}
+
+	// Todo otp: update term to temporary password (https://github.com/infrahq/infra/issues/1441)
+	fmt.Println("\n  One time password was used.")
+
+	newPassword, err := promptUpdatePassword(oldPassword)
+	if err != nil {
+		return err
 	}
 
 	userID, err := pid.ID()
@@ -392,7 +387,7 @@ func updateUserPassword(client *api.Client, pid uid.PolymorphicID) error {
 		return fmt.Errorf("update user login: %w", err)
 	}
 
-	fmt.Println("  Password updated, you're all set")
+	fmt.Println("  Password updated.")
 
 	return nil
 }
