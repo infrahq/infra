@@ -615,11 +615,11 @@ func (s *Server) setupRequired() bool {
 		return false
 	}
 
-	machines, err := data.ListMachines(s.db, data.ByName("admin"))
+	identities, err := data.ListIdentities(s.db, data.ByName("admin"))
 	if err != nil {
-		logging.S.Errorf("failed to list machines: %v", err)
+		logging.S.Errorf("failed to list identities: %v", err)
 		return false
 	}
 
-	return len(machines) == 0
+	return len(identities) == 0
 }

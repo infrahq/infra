@@ -10,12 +10,12 @@ import (
 
 // isUserInGroup is used by authorization checks to see if the calling user is requesting their own attributes
 func isUserInGroup(c *gin.Context, requestedResourceID uid.ID) (bool, error) {
-	user := CurrentUser(c)
+	user := CurrentIdentity(c)
 
 	if user != nil {
 		lookupDB := getDB(c)
 
-		groups, err := data.ListUserGroups(lookupDB, user.ID)
+		groups, err := data.ListIdentityGroups(lookupDB, user.ID)
 		if err != nil {
 			return false, err
 		}
@@ -57,11 +57,11 @@ func GetGroup(c *gin.Context, id uid.ID) (*models.Group, error) {
 	return data.GetGroup(db, data.ByID(id))
 }
 
-func ListUserGroups(c *gin.Context, userID uid.ID) ([]models.Group, error) {
-	db, err := hasAuthorization(c, userID, isUserSelf, models.InfraAdminRole)
+func ListIdentityGroups(c *gin.Context, userID uid.ID) ([]models.Group, error) {
+	db, err := hasAuthorization(c, userID, isIdentitySelf, models.InfraAdminRole)
 	if err != nil {
 		return nil, err
 	}
 
-	return data.ListUserGroups(db, userID)
+	return data.ListIdentityGroups(db, userID)
 }

@@ -143,12 +143,12 @@ func TestSetupRequired(t *testing.T) {
 		EnableSetup: true,
 	}
 
-	err := db.Create(&models.Machine{Name: "non-admin"}).Error
+	err := db.Create(&models.Identity{Name: "non-admin"}).Error
 	require.NoError(t, err)
 
 	require.True(t, s.setupRequired())
 
-	err = db.Create(&models.Machine{Name: "admin"}).Error
+	err = db.Create(&models.Identity{Name: "admin"}).Error
 	require.NoError(t, err)
 
 	require.False(t, s.setupRequired())
@@ -337,13 +337,13 @@ func TestLoadConfigWithUserGrantsImplicitProvider(t *testing.T) {
 	err = db.Where("name = ?", models.InternalInfraProviderName).First(&provider).Error
 	require.NoError(t, err)
 
-	var user models.User
-	err = db.Where("email = ?", "test@example.com").First(&user).Error
+	var user models.Identity
+	err = db.Where("name = ?", "test@example.com").First(&user).Error
 	require.NoError(t, err)
 	require.Equal(t, provider.ID, user.ProviderID)
 
 	var grant models.Grant
-	err = db.Where("subject = ?", uid.NewUserPolymorphicID(user.ID)).First(&grant).Error
+	err = db.Where("subject = ?", uid.NewIdentityPolymorphicID(user.ID)).First(&grant).Error
 	require.NoError(t, err)
 	require.Equal(t, "admin", grant.Privilege)
 	require.Equal(t, "kubernetes.test-cluster", grant.Resource)
@@ -384,13 +384,13 @@ func TestLoadConfigWithUserGrantsExplicitProvider(t *testing.T) {
 	err = db.Where("name = ?", "atko").First(&provider).Error
 	require.NoError(t, err)
 
-	var user models.User
-	err = db.Where("email = ?", "test@example.com").First(&user).Error
+	var user models.Identity
+	err = db.Where("name = ?", "test@example.com").First(&user).Error
 	require.NoError(t, err)
 	require.Equal(t, provider.ID, user.ProviderID)
 
 	var grant models.Grant
-	err = db.Where("subject = ?", uid.NewUserPolymorphicID(user.ID)).First(&grant).Error
+	err = db.Where("subject = ?", uid.NewIdentityPolymorphicID(user.ID)).First(&grant).Error
 	require.NoError(t, err)
 	require.Equal(t, "admin", grant.Privilege)
 	require.Equal(t, "kubernetes.test-cluster", grant.Resource)
@@ -491,12 +491,12 @@ func TestLoadConfigWithMachineGrants(t *testing.T) {
 	err := loadConfig(db, config)
 	require.NoError(t, err)
 
-	var machine models.Machine
+	var machine models.Identity
 	err = db.Where("name = ?", "T-1000").First(&machine).Error
 	require.NoError(t, err)
 
 	var grant models.Grant
-	err = db.Where("subject = ?", uid.NewMachinePolymorphicID(machine.ID)).First(&grant).Error
+	err = db.Where("subject = ?", uid.NewIdentityPolymorphicID(machine.ID)).First(&grant).Error
 	require.NoError(t, err)
 	require.Equal(t, "admin", grant.Privilege)
 	require.Equal(t, "kubernetes.test-cluster", grant.Resource)
@@ -548,7 +548,7 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(3), grants)
 
-	err = db.Model(&models.User{}).Count(&users).Error
+	err = db.Model(&models.Identity{}).Where(models.Identity{Kind: models.UserKind}).Count(&users).Error
 	require.NoError(t, err)
 	require.Equal(t, int64(1), users)
 
@@ -556,7 +556,7 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(1), groups)
 
-	err = db.Model(&models.Machine{}).Count(&machines).Error
+	err = db.Model(&models.Identity{}).Where(models.Identity{Kind: models.MachineKind}).Count(&machines).Error
 	require.NoError(t, err)
 	require.Equal(t, int64(1), machines)
 
@@ -572,7 +572,7 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 	require.Equal(t, int64(0), grants)
 
 	// removing provider also removes users/groups
-	err = db.Model(&models.User{}).Count(&users).Error
+	err = db.Model(&models.Identity{}).Where(models.Identity{Kind: models.UserKind}).Count(&users).Error
 	require.NoError(t, err)
 	require.Equal(t, int64(0), users)
 
@@ -581,7 +581,7 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 	require.Equal(t, int64(0), groups)
 
 	// but not machines
-	err = db.Model(&models.Machine{}).Count(&machines).Error
+	err = db.Model(&models.Identity{}).Count(&machines).Error
 	require.NoError(t, err)
 	require.Equal(t, int64(1), machines)
 }
@@ -632,7 +632,7 @@ func TestLoadConfigPruneGrants(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(3), grants)
 
-	err = db.Model(&models.User{}).Count(&users).Error
+	err = db.Model(&models.Identity{}).Where(models.Identity{Kind: models.UserKind}).Count(&users).Error
 	require.NoError(t, err)
 	require.Equal(t, int64(1), users)
 
@@ -640,7 +640,7 @@ func TestLoadConfigPruneGrants(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(1), groups)
 
-	err = db.Model(&models.Machine{}).Count(&machines).Error
+	err = db.Model(&models.Identity{}).Where(models.Identity{Kind: models.MachineKind}).Count(&machines).Error
 	require.NoError(t, err)
 	require.Equal(t, int64(1), machines)
 
@@ -666,7 +666,7 @@ func TestLoadConfigPruneGrants(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(0), grants)
 
-	err = db.Model(&models.User{}).Count(&users).Error
+	err = db.Model(&models.Identity{}).Where(models.Identity{Kind: models.UserKind}).Count(&users).Error
 	require.NoError(t, err)
 	require.Equal(t, int64(1), users)
 
@@ -674,7 +674,7 @@ func TestLoadConfigPruneGrants(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(1), groups)
 
-	err = db.Model(&models.Machine{}).Count(&machines).Error
+	err = db.Model(&models.Identity{}).Where(models.Identity{Kind: models.MachineKind}).Count(&machines).Error
 	require.NoError(t, err)
 	require.Equal(t, int64(1), machines)
 }
@@ -729,7 +729,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 	require.Equal(t, "admin", grants[1].Privilege)
 	require.Equal(t, "admin", grants[2].Privilege)
 
-	err = db.Model(&models.User{}).Count(&users).Error
+	err = db.Model(&models.Identity{}).Where(models.Identity{Kind: models.UserKind}).Count(&users).Error
 	require.NoError(t, err)
 	require.Equal(t, int64(1), users)
 
@@ -737,7 +737,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(1), groups)
 
-	err = db.Model(&models.Machine{}).Count(&machines).Error
+	err = db.Model(&models.Identity{}).Where(models.Identity{Kind: models.MachineKind}).Count(&machines).Error
 	require.NoError(t, err)
 	require.Equal(t, int64(1), machines)
 
@@ -794,12 +794,12 @@ func TestLoadConfigUpdate(t *testing.T) {
 	require.Equal(t, "view", grants[1].Privilege)
 	require.Equal(t, "view", grants[2].Privilege)
 
-	err = db.Model(&models.User{}).Count(&users).Error
+	err = db.Model(&models.Identity{}).Where(models.Identity{Kind: models.UserKind}).Count(&users).Error
 	require.NoError(t, err)
 	require.Equal(t, int64(1), users)
 
-	var user models.User
-	err = db.Where("email = ?", "test@example.com").First(&user).Error
+	var user models.Identity
+	err = db.Where("name = ?", "test@example.com").First(&user).Error
 	require.NoError(t, err)
 	require.Equal(t, provider.ID, user.ProviderID)
 
@@ -812,11 +812,11 @@ func TestLoadConfigUpdate(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, provider.ID, group.ProviderID)
 
-	err = db.Model(&models.Machine{}).Count(&machines).Error
+	err = db.Model(&models.Identity{}).Where(models.Identity{Kind: models.MachineKind}).Count(&machines).Error
 	require.NoError(t, err)
 	require.Equal(t, int64(1), machines)
 
-	var machine models.Machine
+	var machine models.Identity
 	err = db.Where("name = ?", "T-1000").First(&machine).Error
 	require.NoError(t, err)
 }

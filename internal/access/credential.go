@@ -13,7 +13,7 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func CreateCredential(c *gin.Context, user models.User) (string, error) {
+func CreateCredential(c *gin.Context, user models.Identity) (string, error) {
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return "", err
@@ -30,7 +30,7 @@ func CreateCredential(c *gin.Context, user models.User) (string, error) {
 	}
 
 	userCredential := &models.Credential{
-		Identity:            user.PolyID(),
+		IdentityID:          user.ID,
 		PasswordHash:        hash,
 		OneTimePassword:     true,
 		OneTimePasswordUsed: false,
@@ -43,8 +43,8 @@ func CreateCredential(c *gin.Context, user models.User) (string, error) {
 	return oneTimePassword, nil
 }
 
-func UpdateCredential(c *gin.Context, user *models.User, newPassword string) error {
-	db, err := hasAuthorization(c, user.ID, isUserSelf, models.InfraAdminRole)
+func UpdateCredential(c *gin.Context, user *models.Identity, newPassword string) error {
+	db, err := hasAuthorization(c, user.ID, isIdentitySelf, models.InfraAdminRole)
 	if err != nil {
 		return err
 	}
@@ -64,7 +64,7 @@ func UpdateCredential(c *gin.Context, user *models.User, newPassword string) err
 		return fmt.Errorf("hash: %w", err)
 	}
 
-	userCredential, err := data.GetCredential(db, data.ByIdentity(user.PolyID()))
+	userCredential, err := data.GetCredential(db, data.ByIdentityID(user.ID))
 	if err != nil {
 		return fmt.Errorf("existing credential: %w", err)
 	}
@@ -73,7 +73,7 @@ func UpdateCredential(c *gin.Context, user *models.User, newPassword string) err
 	userCredential.OneTimePassword = false
 	userCredential.OneTimePasswordUsed = false
 
-	if user.PolyID() != getCurrentIdentity(c) {
+	if user.ID != CurrentIdentity(c).ID {
 		// an admin can only set a one time password for a user
 		userCredential.OneTimePassword = true
 		userCredential.OneTimePasswordUsed = false
@@ -86,7 +86,7 @@ func UpdateCredential(c *gin.Context, user *models.User, newPassword string) err
 	return nil
 }
 
-func LoginWithUserCredential(c *gin.Context, email, password string, expiry time.Time) (string, *models.User, bool, error) {
+func LoginWithUserCredential(c *gin.Context, email, password string, expiry time.Time) (string, *models.Identity, bool, error) {
 	db := getDB(c)
 
 	infraProvider, err := data.GetProvider(db, data.ByName(models.InternalInfraProviderName))
@@ -94,7 +94,7 @@ func LoginWithUserCredential(c *gin.Context, email, password string, expiry time
 		return "", nil, false, fmt.Errorf("%w: internal provider: %v", internal.ErrUnauthorized, err)
 	}
 
-	user, err := data.GetUser(db, data.ByEmail(email), data.ByProviderID(infraProvider.ID))
+	user, err := data.GetIdentity(db, data.ByName(email), data.ByProviderID(infraProvider.ID))
 	if err != nil {
 		return "", nil, false, fmt.Errorf("%w: credentials email: %v", internal.ErrUnauthorized, err)
 	}
@@ -106,7 +106,7 @@ func LoginWithUserCredential(c *gin.Context, email, password string, expiry time
 
 	// the password is valid
 	issuedAccessKey := &models.AccessKey{
-		IssuedFor: user.PolyID(),
+		IssuedFor: user.ID,
 		ExpiresAt: expiry,
 	}
 

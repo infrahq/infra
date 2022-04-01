@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -145,23 +146,24 @@ $ infra grants add -u admin@acme.com -r admin infra
 
 			if options.User != "" {
 				// create user if they don't exist
-				users, err := client.ListUsers(api.ListUsersRequest{Email: options.User, ProviderID: provider.ID})
+				users, err := client.ListIdentities(api.ListIdentitiesRequest{Name: options.User, ProviderID: provider.ID})
 				if err != nil {
 					return err
 				}
 
 				if len(users) == 0 {
-					newUser, err := client.CreateUser(&api.CreateUserRequest{
-						Email:      options.User,
+					newUser, err := client.CreateIdentity(&api.CreateIdentityRequest{
+						Name:       options.User,
+						Kind:       models.UserKind.String(),
 						ProviderID: provider.ID,
 					})
 					if err != nil {
 						return err
 					}
 
-					id = uid.NewUserPolymorphicID(newUser.ID)
+					id = uid.NewIdentityPolymorphicID(newUser.ID)
 				} else {
-					id = uid.NewUserPolymorphicID(users[0].ID)
+					id = uid.NewIdentityPolymorphicID(users[0].ID)
 				}
 			}
 
@@ -189,22 +191,30 @@ $ infra grants add -u admin@acme.com -r admin infra
 
 			if options.Machine != "" {
 				// create machine if they don't exist
-				machines, err := client.ListMachines(api.ListMachinesRequest{Name: options.Machine})
+				machines, err := client.ListIdentities(api.ListIdentitiesRequest{Name: options.Machine})
 				if err != nil {
 					return err
 				}
 
 				if len(machines) == 0 {
-					newMachine, err := client.CreateMachine(&api.CreateMachineRequest{
-						Name: options.Machine,
+					infraProvider, err := GetProviderByName(client, models.InternalInfraProviderName)
+					if err != nil {
+						logging.S.Debug(err)
+						return fmt.Errorf("no infra provider found, to manage local users create a local provider named 'infra'")
+					}
+
+					newMachine, err := client.CreateIdentity(&api.CreateIdentityRequest{
+						Name:       options.Machine,
+						Kind:       models.MachineKind.String(),
+						ProviderID: infraProvider.ID,
 					})
 					if err != nil {
 						return err
 					}
 
-					id = uid.NewMachinePolymorphicID(newMachine.ID)
+					id = uid.NewIdentityPolymorphicID(newMachine.ID)
 				} else {
-					id = uid.NewMachinePolymorphicID(machines[0].ID)
+					id = uid.NewIdentityPolymorphicID(machines[0].ID)
 				}
 			}
 
@@ -269,7 +279,7 @@ func newGrantRemoveCmd() *cobra.Command {
 			var id uid.PolymorphicID
 
 			if options.User != "" {
-				users, err := client.ListUsers(api.ListUsersRequest{Email: options.User, ProviderID: provider.ID})
+				users, err := client.ListIdentities(api.ListIdentitiesRequest{Name: options.User, ProviderID: provider.ID})
 				if err != nil {
 					return err
 				}
@@ -278,7 +288,7 @@ func newGrantRemoveCmd() *cobra.Command {
 					return errors.New("no such user")
 				}
 
-				id = uid.NewUserPolymorphicID(users[0].ID)
+				id = uid.NewIdentityPolymorphicID(users[0].ID)
 			}
 
 			if options.Group != "" {
@@ -295,7 +305,7 @@ func newGrantRemoveCmd() *cobra.Command {
 			}
 
 			if options.Machine != "" {
-				machines, err := client.ListMachines(api.ListMachinesRequest{Name: options.Machine})
+				machines, err := client.ListIdentities(api.ListIdentitiesRequest{Name: options.Machine})
 				if err != nil {
 					return err
 				}
@@ -304,7 +314,7 @@ func newGrantRemoveCmd() *cobra.Command {
 					return errors.New("no such machine")
 				}
 
-				id = uid.NewMachinePolymorphicID(machines[0].ID)
+				id = uid.NewIdentityPolymorphicID(machines[0].ID)
 			}
 
 			grants, err := client.ListGrants(api.ListGrantsRequest{

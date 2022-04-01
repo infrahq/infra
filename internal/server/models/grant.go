@@ -27,7 +27,7 @@ const BasePermissionConnect = "connect"
 //
 // Subject
 // 		Subject is mostly an Identity, which is a string specifying a user, group, the name of a role, or another grant
-// 			- a user:  			u:E97WmsYfvo   		 - a user reference
+// 			- an identity:  	i:E97WmsYfvo   		 - a user reference
 // 			- a group: 			g:CCoJ1ornpf   		 - a group reference
 // 			- a role:  			r:role-name   		 - a role definition
 // 			- a permission: p:permissionn-name - a permission definition

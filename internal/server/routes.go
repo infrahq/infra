@@ -32,19 +32,13 @@ func (a *API) registerRoutes(router *gin.Engine) {
 	authorized := v1.Group("/", AuthenticationMiddleware())
 
 	{
-		get(authorized, "/users", a.ListUsers)
-		post(authorized, "/users", a.CreateUser)
-		get(authorized, "/users/:id", a.GetUser)
-		put(authorized, "/users/:id", a.UpdateUser)
-		delete(authorized, "/users/:id", a.DeleteUser)
-		get(authorized, "/users/:id/groups", a.ListUserGroups)
-		get(authorized, "/users/:id/grants", a.ListUserGrants)
-
-		get(authorized, "/machines", a.ListMachines)
-		post(authorized, "/machines", a.CreateMachine)
-		get(authorized, "/machines/:id", a.GetMachine)
-		delete(authorized, "/machines/:id", a.DeleteMachine)
-		get(authorized, "/machines/:id/grants", a.ListMachineGrants)
+		get(authorized, "/identities", a.ListIdentities)
+		post(authorized, "/identities", a.CreateIdentity)
+		get(authorized, "/identities/:id", a.GetIdentity)
+		put(authorized, "/identities/:id", a.UpdateIdentity)
+		delete(authorized, "/identities/:id", a.DeleteIdentity)
+		get(authorized, "/identities/:id/groups", a.ListIdentityGroups)
+		get(authorized, "/identities/:id/grants", a.ListIdentityGrants)
 
 		get(authorized, "/access-keys", a.ListAccessKeys)
 		post(authorized, "/access-keys", a.CreateAccessKey)

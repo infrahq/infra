@@ -100,14 +100,14 @@ func responseBodyAPIErrorWithCode(code int32) func(t *testing.T, resp *httptest.
 	}
 }
 
-func createAccessKey(t *testing.T, db *gorm.DB, email string) (string, *models.User) {
+func createAccessKey(t *testing.T, db *gorm.DB, email string) (string, *models.Identity) {
 	t.Helper()
-	user := &models.User{Email: email}
-	err := data.CreateUser(db, user)
+	user := &models.Identity{Name: email, Kind: models.UserKind}
+	err := data.CreateIdentity(db, user)
 	require.NoError(t, err)
 
 	token := &models.AccessKey{
-		IssuedFor: user.PolyID(),
+		IssuedFor: user.ID,
 		ExpiresAt: time.Now().Add(10 * time.Second),
 	}
 

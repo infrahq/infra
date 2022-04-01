@@ -105,7 +105,7 @@ func TestListGroups(t *testing.T) {
 	require.Equal(t, 1, len(groups))
 }
 
-func TestGroupBindUsers(t *testing.T) {
+func TestGroupBindIdentities(t *testing.T) {
 	db := setup(t)
 
 	providerID := uid.New()
@@ -114,23 +114,23 @@ func TestGroupBindUsers(t *testing.T) {
 		everyone  = models.Group{Name: "Everyone", ProviderID: providerID}
 		engineers = models.Group{Name: "Engineering", ProviderID: providerID}
 		product   = models.Group{Name: "Product", ProviderID: providerID}
-		bond      = models.User{Email: "jbond@infrahq.com", ProviderID: providerID}
+		bond      = models.Identity{Name: "jbond@infrahq.com", ProviderID: providerID}
 	)
 
 	createGroups(t, db, everyone, engineers, product)
 
-	err := CreateUser(db, &bond)
+	err := CreateIdentity(db, &bond)
 	require.NoError(t, err)
 
 	groups, err := ListGroups(db)
 	require.NoError(t, err)
 
 	for i := range groups {
-		err := BindGroupUsers(db, &groups[i], bond)
+		err := BindGroupIdentities(db, &groups[i], bond)
 		require.NoError(t, err)
 	}
 
-	user, err := GetUser(db.Preload("Groups"), ByEmail(bond.Email))
+	user, err := GetIdentity(db.Preload("Groups"), ByName(bond.Name))
 	require.NoError(t, err)
 	require.Len(t, user.Groups, 3)
 	require.ElementsMatch(t, []string{
@@ -142,7 +142,7 @@ func TestGroupBindUsers(t *testing.T) {
 	})
 }
 
-func TestGroupBindMoreUsers(t *testing.T) {
+func TestGroupBindMoreIdentities(t *testing.T) {
 	db := setup(t)
 
 	providerID := uid.New()
@@ -151,38 +151,38 @@ func TestGroupBindMoreUsers(t *testing.T) {
 		everyone  = models.Group{Name: "Everyone", ProviderID: providerID}
 		engineers = models.Group{Name: "Engineering", ProviderID: providerID}
 		product   = models.Group{Name: "Product", ProviderID: providerID}
-		bond      = models.User{Email: "jbond@infrahq.com", ProviderID: providerID}
-		bourne    = models.User{Email: "jbourne@infrahq.com", ProviderID: providerID}
+		bond      = models.Identity{Name: "jbond@infrahq.com", ProviderID: providerID}
+		bourne    = models.Identity{Name: "jbourne@infrahq.com", ProviderID: providerID}
 	)
 
 	createGroups(t, db, everyone, engineers, product)
 
-	err := CreateUser(db, &bond)
+	err := CreateIdentity(db, &bond)
 	require.NoError(t, err)
 
-	group, err := GetGroup(db.Preload("Users"), ByName(everyone.Name))
+	group, err := GetGroup(db.Preload("Identities"), ByName(everyone.Name))
 	require.NoError(t, err)
-	require.Len(t, group.Users, 0)
+	require.Len(t, group.Identities, 0)
 
-	err = BindGroupUsers(db, group, bond)
-	require.NoError(t, err)
-
-	group, err = GetGroup(db.Preload("Users"), ByName(everyone.Name))
-	require.NoError(t, err)
-	require.Len(t, group.Users, 1)
-
-	err = CreateUser(db, &bourne)
+	err = BindGroupIdentities(db, group, bond)
 	require.NoError(t, err)
 
-	err = BindGroupUsers(db, group, bond, bourne)
+	group, err = GetGroup(db.Preload("Identities"), ByName(everyone.Name))
+	require.NoError(t, err)
+	require.Len(t, group.Identities, 1)
+
+	err = CreateIdentity(db, &bourne)
 	require.NoError(t, err)
 
-	group, err = GetGroup(db.Preload("Users"), ByName(everyone.Name))
+	err = BindGroupIdentities(db, group, bond, bourne)
 	require.NoError(t, err)
-	require.Len(t, group.Users, 2)
+
+	group, err = GetGroup(db.Preload("Identities"), ByName(everyone.Name))
+	require.NoError(t, err)
+	require.Len(t, group.Identities, 2)
 }
 
-func TestGroupBindLessUsers(t *testing.T) {
+func TestGroupBindLessIdentities(t *testing.T) {
 	db := setup(t)
 
 	providerID := uid.New()
@@ -191,35 +191,35 @@ func TestGroupBindLessUsers(t *testing.T) {
 		everyone  = models.Group{Name: "Everyone", ProviderID: providerID}
 		engineers = models.Group{Name: "Engineering", ProviderID: providerID}
 		product   = models.Group{Name: "Product", ProviderID: providerID}
-		bourne    = models.User{Email: "jbourne@infrahq.com", ProviderID: providerID}
-		bauer     = models.User{Email: "jbauer@infrahq.com", ProviderID: providerID}
+		bourne    = models.Identity{Name: "jbourne@infrahq.com", ProviderID: providerID}
+		bauer     = models.Identity{Name: "jbauer@infrahq.com", ProviderID: providerID}
 	)
 
 	createGroups(t, db, everyone, engineers, product)
 
-	err := CreateUser(db, &bourne)
+	err := CreateIdentity(db, &bourne)
 	require.NoError(t, err)
 
-	err = CreateUser(db, &bauer)
+	err = CreateIdentity(db, &bauer)
 	require.NoError(t, err)
 
-	group, err := GetGroup(db.Preload("Users"), ByName(everyone.Name))
+	group, err := GetGroup(db.Preload("Identities"), ByName(everyone.Name))
 	require.NoError(t, err)
-	require.Len(t, group.Users, 0)
+	require.Len(t, group.Identities, 0)
 
-	err = BindGroupUsers(db, group, bourne, bauer)
-	require.NoError(t, err)
-
-	group, err = GetGroup(db.Preload("Users"), ByName(everyone.Name))
-	require.NoError(t, err)
-	require.Len(t, group.Users, 2)
-
-	err = BindGroupUsers(db, group, bauer)
+	err = BindGroupIdentities(db, group, bourne, bauer)
 	require.NoError(t, err)
 
-	group, err = GetGroup(db.Preload("Users"), ByName(everyone.Name))
+	group, err = GetGroup(db.Preload("Identities"), ByName(everyone.Name))
 	require.NoError(t, err)
-	require.Len(t, group.Users, 1)
+	require.Len(t, group.Identities, 2)
+
+	err = BindGroupIdentities(db, group, bauer)
+	require.NoError(t, err)
+
+	group, err = GetGroup(db.Preload("Identities"), ByName(everyone.Name))
+	require.NoError(t, err)
+	require.Len(t, group.Identities, 1)
 }
 
 func TestDeleteGroup(t *testing.T) {

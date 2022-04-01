@@ -9,27 +9,14 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func CreateUserToken(c *gin.Context) (token *models.Token, err error) {
-	user := CurrentUser(c)
-	if user == nil {
-		return nil, fmt.Errorf("no active user")
+func CreateToken(c *gin.Context) (token *models.Token, err error) {
+	identity := CurrentIdentity(c)
+	if identity == nil {
+		return nil, fmt.Errorf("no active identity")
 	}
 
-	// does not need authorization check, limited to calling user
+	// does not need authorization check, limited to calling identity
 	db := getDB(c)
 
-	return data.CreateUserToken(db, user.ID)
-}
-
-func CreateMachineToken(c *gin.Context) (token *models.Token, err error) {
-	machine := CurrentMachine(c)
-
-	if machine == nil {
-		return nil, fmt.Errorf("no active machine")
-	}
-
-	// does not need authorization check, limited to calling machine
-	db := getDB(c)
-
-	return data.CreateMachineToken(db, machine.ID)
+	return data.CreateIdentityToken(db, identity.ID)
 }

@@ -30,13 +30,8 @@ func GetGrant(db *gorm.DB, selectors ...SelectorFunc) (*models.Grant, error) {
 	return get[models.Grant](db, selectors...)
 }
 
-func ListUserGrants(db *gorm.DB, userID uid.ID) (result []models.Grant, err error) {
-	polymorphicID := uid.NewUserPolymorphicID(userID)
-	return ListGrants(db, BySubject(polymorphicID), NotCreatedBy(models.CreatedBySystem))
-}
-
-func ListMachineGrants(db *gorm.DB, machineID uid.ID) (result []models.Grant, err error) {
-	polymorphicID := uid.NewMachinePolymorphicID(machineID)
+func ListIdentityGrants(db *gorm.DB, userID uid.ID) (result []models.Grant, err error) {
+	polymorphicID := uid.NewIdentityPolymorphicID(userID)
 	return ListGrants(db, BySubject(polymorphicID), NotCreatedBy(models.CreatedBySystem))
 }
 

@@ -12,7 +12,7 @@ type Group struct {
 
 	ProviderID uid.ID `gorm:"uniqueIndex:idx_groups_name_provider_id,where:deleted_at is NULL"`
 
-	Users []User `gorm:"many2many:users_groups"`
+	Identities []Identity `gorm:"many2many:identities_groups"`
 }
 
 func (g *Group) ToAPI() *api.Group {

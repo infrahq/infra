@@ -24,9 +24,8 @@ var (
 	pathIDReplacer            = regexp.MustCompile(`:\w+`)
 	funcPartialNameToTagNames = map[string]string{
 		"Grant":       "Grants",
-		"User":        "Users",
+		"Identity":    "Identities",
 		"Group":       "Groups",
-		"Machine":     "Machines",
 		"AccessKey":   "Authentication",
 		"Provider":    "Providers",
 		"Destination": "Destinations",
@@ -323,7 +322,7 @@ func setTypeInfo(t reflect.Type, schema *openapi3.Schema) {
 		schema.Type = "string"
 		schema.Format = "poly-uid"
 		schema.Pattern = `\w:[\da-zA-HJ-NP-Z]{1,11}`
-		schema.Example = "u:4yJ3n3D8E3"
+		schema.Example = "i:4yJ3n3D8E3"
 
 		return
 	}
@@ -548,7 +547,7 @@ func getDefaultExampleForType(t reflect.Type) string {
 	case "uid.ID":
 		return "4yJ3n3D8E2"
 	case "uid.PolymorphicID":
-		return "u:4yJ3n3D8E3"
+		return "i:4yJ3n3D8E3"
 	case "time.Time":
 		return exampleTime
 	default:

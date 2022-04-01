@@ -13,7 +13,6 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
-	"github.com/infrahq/infra/uid"
 )
 
 var requestTimeout = 60 * time.Second
@@ -107,66 +106,18 @@ func RequireAccessKey(c *gin.Context) error {
 	}
 
 	c.Set("key", accessKey)
-	c.Set("identity", accessKey.IssuedFor)
 
-	issID, err := accessKey.IssuedFor.ID()
+	identity, err := data.GetIdentity(db, data.ByID(accessKey.IssuedFor))
 	if err != nil {
-		return fmt.Errorf("%w: invalid token issue: %s", internal.ErrUnauthorized, err)
+		return fmt.Errorf("identity for token: %w", err)
 	}
 
-	if accessKey.IssuedFor.IsUser() {
-		if err := setUserContext(c, db, issID.String()); err != nil {
-			return fmt.Errorf("set user context: %w", err)
-		}
+	identity.LastSeenAt = time.Now().UTC()
+	if err = data.SaveIdentity(db, identity); err != nil {
+		return fmt.Errorf("%w: identity update fail: %s", internal.ErrUnauthorized, err)
 	}
 
-	if accessKey.IssuedFor.IsMachine() {
-		if err := setMachineContext(c, db, issID.String()); err != nil {
-			return fmt.Errorf("set machine context: %w", err)
-		}
-	}
-
-	return nil
-}
-
-func setUserContext(c *gin.Context, db *gorm.DB, id string) error {
-	userID, err := uid.ParseString(strings.TrimPrefix(id, "u:"))
-	if err != nil {
-		return fmt.Errorf("user id context: %w", err)
-	}
-
-	user, err := data.GetUser(db, data.ByID(userID))
-	if err != nil {
-		return fmt.Errorf("user for token: %w", err)
-	}
-
-	user.LastSeenAt = time.Now().UTC()
-	if err = data.SaveUser(db, user); err != nil {
-		return fmt.Errorf("%w: user update fail: %s", internal.ErrUnauthorized, err)
-	}
-
-	c.Set("user", user)
-
-	return nil
-}
-
-func setMachineContext(c *gin.Context, db *gorm.DB, id string) error {
-	machineID, err := uid.ParseString(strings.TrimPrefix(id, "m:"))
-	if err != nil {
-		return fmt.Errorf("machine id context: %w", err)
-	}
-
-	machine, err := data.GetMachine(db, data.ByID(machineID))
-	if err != nil {
-		return fmt.Errorf("machine for token: %w", err)
-	}
-
-	machine.LastSeenAt = time.Now().UTC()
-	if err = data.SaveMachine(db, machine); err != nil {
-		return fmt.Errorf("%w: machine update fail: %s", internal.ErrUnauthorized, err)
-	}
-
-	c.Set("machine", machine)
+	c.Set("identity", identity)
 
 	return nil
 }

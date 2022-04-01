@@ -7,6 +7,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/models"
 )
 
 func newKeysCmd() *cobra.Command {
@@ -56,7 +58,13 @@ infra keys create main wall-e 12h --extension-deadline=1h
 				return err
 			}
 
-			machine, err := getMachineFromName(client, machineName)
+			infraProvider, err := GetProviderByName(client, models.InternalInfraProviderName)
+			if err != nil {
+				logging.S.Debug(err)
+				return fmt.Errorf("no infra provider found, to manage local users create a local provider named 'infra'")
+			}
+
+			machine, err := GetIdentityFromName(client, machineName, infraProvider)
 			if err != nil {
 				return err
 			}
@@ -77,7 +85,7 @@ infra keys create main wall-e 12h --extension-deadline=1h
 				}
 			}
 
-			resp, err := client.CreateAccessKey(&api.CreateAccessKeyRequest{MachineID: machine.ID, Name: keyName, TTL: api.Duration(ttl), ExtensionDeadline: api.Duration(deadline)})
+			resp, err := client.CreateAccessKey(&api.CreateAccessKeyRequest{IdentityID: machine.ID, Name: keyName, TTL: api.Duration(ttl), ExtensionDeadline: api.Duration(deadline)})
 			if err != nil {
 				return err
 			}
@@ -150,12 +158,18 @@ func newKeysListCmd() *cobra.Command {
 
 			var keys []api.AccessKey
 			if options.MachineName != "" {
-				machine, err := getMachineFromName(client, options.MachineName)
+				infraProvider, err := GetProviderByName(client, models.InternalInfraProviderName)
+				if err != nil {
+					logging.S.Debug(err)
+					return fmt.Errorf("no infra provider found, to manage local users create a local provider named 'infra'")
+				}
+
+				machine, err := GetIdentityFromName(client, options.MachineName, infraProvider)
 				if err != nil {
 					return err
 				}
 
-				keys, err = client.ListAccessKeys(api.ListAccessKeysRequest{MachineID: machine.ID})
+				keys, err = client.ListAccessKeys(api.ListAccessKeysRequest{IdentityID: machine.ID})
 				if err != nil {
 					return err
 				}
@@ -180,7 +194,7 @@ func newKeysListCmd() *cobra.Command {
 				rows = append(rows, row{
 					ID:                k.ID.String(),
 					Name:              k.Name,
-					IssuedFor:         string(k.IssuedFor),
+					IssuedFor:         k.IssuedFor.String(),
 					Created:           k.Created.String(),
 					Expires:           k.Expires.String(),
 					ExtensionDeadline: k.ExtensionDeadline.Format(time.RFC3339),

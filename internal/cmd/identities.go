@@ -36,8 +36,7 @@ func newIdentitiesCmd() *cobra.Command {
 }
 
 type identityOptions struct {
-	Description string `mapstructure:"description"`
-	Password    bool   `mapstructure:"password"`
+	Password bool `mapstructure:"password"`
 }
 
 func newIdentitiesAddCmd() *cobra.Command {
@@ -53,44 +52,30 @@ EMAIL must contain a valid email address in the form of "<local>@<domain>".
 		`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			nameOrEmail := args[0]
+			name := args[0]
 
 			var options identityOptions
 			if err := parseOptions(cmd, &options, ""); err != nil {
 				return err
 			}
 
-			name, email, err := checkNameOrEmail(nameOrEmail)
+			createResp, err := CreateInfraIdentity(name)
 			if err != nil {
 				return err
 			}
 
-			if name != "" {
-				err := createMachine(name, &options)
-				if err != nil {
-					return err
-				}
-
-				fmt.Fprintf(os.Stderr, "Created machine identity.\n")
-				fmt.Printf("Name: %s\n", name)
-			}
-
-			if email != "" {
-				userCreateResp, err := createUser(email)
-				if err != nil {
-					return err
-				}
-
+			if createResp.OneTimePassword != "" {
 				fmt.Fprintf(os.Stderr, "Created user identity.\n")
-				fmt.Printf("Username: %s\n", email)
-				fmt.Printf("Password: %s\n", userCreateResp.OneTimePassword)
+				fmt.Printf("Email: %s\n", createResp.Name)
+				fmt.Printf("Password: %s\n", createResp.OneTimePassword)
+			} else {
+				fmt.Fprintf(os.Stderr, "Created machine identity.\n")
+				fmt.Printf("Name: %s\n", createResp.Name)
 			}
 
 			return nil
 		},
 	}
-
-	cmd.Flags().StringP("description", "d", "", "Description of a machine identity")
 
 	return cmd
 }
@@ -101,23 +86,23 @@ func newIdentitiesEditCmd() *cobra.Command {
 		Short: "Update an identity",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			nameOrEmail := args[0]
+			name := args[0]
 
 			var options identityOptions
 			if err := parseOptions(cmd, &options, ""); err != nil {
 				return err
 			}
 
-			name, email, err := checkNameOrEmail(nameOrEmail)
+			kind, err := checkUserOrMachine(name)
 			if err != nil {
 				return err
 			}
 
-			if name != "" {
+			if kind == models.MachineKind {
 				fmt.Println("machine identities have no editable fields")
 			}
 
-			if email != "" {
+			if kind == models.UserKind {
 				if !options.Password {
 					return errors.New("specify the --password flag to update the password")
 				}
@@ -127,7 +112,8 @@ func newIdentitiesEditCmd() *cobra.Command {
 					return err
 				}
 
-				if err = updateUser(name, newPassword); err != nil {
+				err = UpdateIdentity(name, newPassword)
+				if err != nil {
 					return err
 				}
 			}
@@ -153,48 +139,34 @@ func newIdentitiesListCmd() *cobra.Command {
 			}
 
 			type row struct {
-				Name        string `header:"Name"`
-				Type        string `header:"Type"`
-				Provider    string `header:"Provider"`
-				Description string `header:"Description"`
-			}
-
-			machines, err := client.ListMachines(api.ListMachinesRequest{})
-			if err != nil {
-				return err
+				Name     string `header:"Name"`
+				Type     string `header:"Type"`
+				Provider string `header:"Provider"`
 			}
 
 			var rows []row
 
-			for _, m := range machines {
-				rows = append(rows, row{
-					Name:        m.Name,
-					Type:        "machine",
-					Description: m.Description,
-				})
-			}
-
-			users, err := client.ListUsers(api.ListUsersRequest{})
+			identities, err := client.ListIdentities(api.ListIdentitiesRequest{})
 			if err != nil {
 				return err
 			}
 
 			providers := make(map[uid.ID]string)
 
-			for _, u := range users {
-				if providers[u.ProviderID] == "" {
-					p, err := client.GetProvider(u.ProviderID)
+			for _, identity := range identities {
+				if providers[identity.ProviderID] == "" {
+					p, err := client.GetProvider(identity.ProviderID)
 					if err != nil {
-						logging.S.Debugf("unable to retrieve user provider: %s", err)
+						logging.S.Debugf("unable to retrieve identity provider: %s", err)
 					} else {
 						providers[p.ID] = p.Name
 					}
 				}
 
 				rows = append(rows, row{
-					Name:     u.Email,
-					Type:     "user",
-					Provider: providers[u.ProviderID],
+					Name:     identity.Name,
+					Type:     identity.Kind,
+					Provider: providers[identity.ProviderID],
 				})
 			}
 
@@ -211,7 +183,7 @@ func newIdentitiesRemoveCmd() *cobra.Command {
 		Short: "Delete an identity",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			nameOrEmail := args[0]
+			name := args[0]
 
 			var options identityOptions
 			if err := parseOptions(cmd, &options, ""); err != nil {
@@ -223,36 +195,15 @@ func newIdentitiesRemoveCmd() *cobra.Command {
 				return err
 			}
 
-			name, email, err := checkNameOrEmail(nameOrEmail)
+			identities, err := client.ListIdentities(api.ListIdentitiesRequest{Name: name})
 			if err != nil {
 				return err
 			}
 
-			if name != "" {
-				machines, err := client.ListMachines(api.ListMachinesRequest{Name: name})
+			for _, identity := range identities {
+				err := client.DeleteIdentity(identity.ID)
 				if err != nil {
 					return err
-				}
-
-				for _, m := range machines {
-					err := client.DeleteMachine(m.ID)
-					if err != nil {
-						return err
-					}
-				}
-			}
-
-			if email != "" {
-				users, err := client.ListUsers(api.ListUsersRequest{Email: name})
-				if err != nil {
-					return err
-				}
-
-				for _, u := range users {
-					err := client.DeleteUser(u.ID)
-					if err != nil {
-						return err
-					}
 				}
 			}
 
@@ -263,51 +214,42 @@ func newIdentitiesRemoveCmd() *cobra.Command {
 	return cmd
 }
 
-// checkNameOrEmail infers whether the input s specifies a user identity (email) or a machine
+// checkUserOrMachine infers whether the input s specifies a user identity (email) or a machine
 // identity (name). The input is considered a name if it has the format `^[a-zA-Z0-9-_/]+$`.
 // All other input formats will be considered an email. If an email input fails validation,
 // return an error.
-func checkNameOrEmail(s string) (string, string, error) {
-	maybeName := regexp.MustCompile("^[a-zA-Z0-9-_/]+$")
+func checkUserOrMachine(s string) (models.IdentityKind, error) {
+	maybeName := regexp.MustCompile("^[a-zA-Z0-9-_./]+$")
 	if maybeName.MatchString(s) {
 		nameMinLength := 1
 		nameMaxLength := 256
 
 		if len(s) < nameMinLength {
-			return "", "", fmt.Errorf("invalid name: does not meet minimum length requirement of %d characters", nameMinLength)
+			return models.MachineKind, fmt.Errorf("invalid name: does not meet minimum length requirement of %d characters", nameMinLength)
 		}
 
 		if len(s) > nameMaxLength {
-			return "", "", fmt.Errorf("invalid name: exceed maximum length requirement of %d characters", nameMaxLength)
+			return models.MachineKind, fmt.Errorf("invalid name: exceed maximum length requirement of %d characters", nameMaxLength)
 		}
 
-		return s, "", nil
+		return models.MachineKind, nil
 	}
 
-	address, err := mail.ParseAddress(s)
+	_, err := mail.ParseAddress(s)
 	if err != nil {
-		return "", "", fmt.Errorf("invalid email: %q", s)
+		return models.UserKind, fmt.Errorf("invalid email: %q", s)
 	}
 
-	return "", address.Address, nil
+	return models.UserKind, nil
 }
 
-func createMachine(name string, options *identityOptions) error {
+func CreateInfraIdentity(name string) (*api.CreateIdentityResponse, error) {
 	client, err := defaultAPIClient()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	_, err = client.CreateMachine(&api.CreateMachineRequest{Name: name, Description: options.Description})
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func createUser(email string) (*api.CreateUserResponse, error) {
-	client, err := defaultAPIClient()
+	kind, err := checkUserOrMachine(name)
 	if err != nil {
 		return nil, err
 	}
@@ -315,10 +257,10 @@ func createUser(email string) (*api.CreateUserResponse, error) {
 	infraProvider, err := GetProviderByName(client, models.InternalInfraProviderName)
 	if err != nil {
 		logging.S.Debug(err)
-		return nil, fmt.Errorf("no infra provider found, to manage local user create a local provider named 'infra'")
+		return nil, fmt.Errorf("no infra provider found, to manage local identities create a local provider named 'infra'")
 	}
 
-	resp, err := client.CreateUser(&api.CreateUserRequest{Email: email, ProviderID: infraProvider.ID})
+	resp, err := client.CreateIdentity(&api.CreateIdentityRequest{Name: name, ProviderID: infraProvider.ID, Kind: kind.String()})
 	if err != nil {
 		return nil, err
 	}
@@ -326,7 +268,7 @@ func createUser(email string) (*api.CreateUserResponse, error) {
 	return resp, nil
 }
 
-func updateUser(name, newPassword string) error {
+func UpdateIdentity(name, newPassword string) error {
 	client, err := defaultAPIClient()
 	if err != nil {
 		return err
@@ -338,7 +280,7 @@ func updateUser(name, newPassword string) error {
 		return fmt.Errorf("no infra provider found, to manage local users create a local provider named 'infra'")
 	}
 
-	user := &api.User{}
+	user := &api.Identity{}
 
 	config, err := currentHostConfig()
 	if err != nil {
@@ -354,7 +296,7 @@ func updateUser(name, newPassword string) error {
 
 		user.ID = currentID
 	} else {
-		user, err = getUserFromName(client, name, infraProvider)
+		user, err = GetIdentityFromName(client, name, infraProvider)
 		if err != nil {
 			if errors.Is(err, ErrUserNotFound) {
 				return fmt.Errorf("the user being updated must exist in the local infra identity provider: %w", err)
@@ -362,35 +304,18 @@ func updateUser(name, newPassword string) error {
 			return err
 		}
 		// Todo otp: update term to temporary password (https://github.com/infrahq/infra/issues/1441)
-		fmt.Fprintf(os.Stderr, "  Updated one time password for user %s.\n", user.Email)
+		fmt.Fprintf(os.Stderr, "  Updated one time password for user %s.\n", user.Name)
 	}
 
-	if _, err := client.UpdateUser(&api.UpdateUserRequest{ID: user.ID, Password: newPassword}); err != nil {
+	if _, err := client.UpdateIdentity(&api.UpdateIdentityRequest{ID: user.ID, Password: newPassword}); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func getMachineFromName(client *api.Client, name string) (*api.Machine, error) {
-	machines, err := client.ListMachines(api.ListMachinesRequest{Name: name})
-	if err != nil {
-		return nil, err
-	}
-
-	if len(machines) == 0 {
-		return nil, fmt.Errorf("no machine found with this name")
-	}
-
-	if len(machines) != 1 {
-		return nil, fmt.Errorf("invalid machines response, there should only be one machine that matches a name, but multiple were found")
-	}
-
-	return &machines[0], nil
-}
-
-func getUserFromName(client *api.Client, name string, provider *api.Provider) (*api.User, error) {
-	users, err := client.ListUsers(api.ListUsersRequest{Email: name, ProviderID: provider.ID})
+func GetIdentityFromName(client *api.Client, name string, provider *api.Provider) (*api.Identity, error) {
+	users, err := client.ListIdentities(api.ListIdentitiesRequest{Name: name, ProviderID: provider.ID})
 	if err != nil {
 		return nil, err
 	}

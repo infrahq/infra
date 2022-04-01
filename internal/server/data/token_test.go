@@ -14,12 +14,12 @@ import (
 )
 
 func createAccessKey(t *testing.T, db *gorm.DB, sessionDuration time.Duration) (string, *models.AccessKey) {
-	user := &models.User{Email: "tmp@infrahq.com"}
-	err := CreateUser(db, user)
+	user := &models.Identity{Name: "tmp@infrahq.com", Kind: models.UserKind}
+	err := CreateIdentity(db, user)
 	require.NoError(t, err)
 
 	token := &models.AccessKey{
-		IssuedFor: user.PolyID(),
+		IssuedFor: user.ID,
 		ExpiresAt: time.Now().Add(sessionDuration),
 	}
 
@@ -30,12 +30,12 @@ func createAccessKey(t *testing.T, db *gorm.DB, sessionDuration time.Duration) (
 }
 
 func createAccessKeyWithExtensionDeadline(t *testing.T, db *gorm.DB, ttl, exensionDeadline time.Duration) (string, *models.AccessKey) {
-	machine := &models.Machine{Name: "Wall-E"}
-	err := CreateMachine(db, machine)
+	machine := &models.Identity{Name: "Wall-E", Kind: models.MachineKind}
+	err := CreateIdentity(db, machine)
 	require.NoError(t, err)
 
 	token := &models.AccessKey{
-		IssuedFor:         machine.PolyID(),
+		IssuedFor:         machine.ID,
 		ExpiresAt:         time.Now().Add(ttl),
 		ExtensionDeadline: time.Now().Add(exensionDeadline).UTC(),
 	}
