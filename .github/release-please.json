@@ -8,7 +8,7 @@
       "extra-files": [
         "helm/charts/infra/Chart.yaml",
         "internal/version.go",
-        "docs/Operator\ Guides/upgrading-infra.md"
+        "docs/Operator Guides/upgrading-infra.md"
       ]
     }
   }
