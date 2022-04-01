@@ -59,13 +59,3 @@ This Grant will provide the group `Core` super admin access into a namespace. Me
 ```bash
 infra grants add --group Core --role cluster-admin kubernetes.cluster.namespace
 ```
-
-## Revoking Access
-
-> :exclamation: Grants are built with an additive model. There is no plan currently to define grants which reduce access.
-
-To remove access to a resource, remove the grant providing access.
-
-```bash
-infra grants remove --group Core --role cluster-admin kubernetes.cluster.namespace
-```

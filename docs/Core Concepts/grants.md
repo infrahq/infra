@@ -35,3 +35,13 @@ infra grants add --user dev@example.com --role user infra
 ## Kubernetes Grants
 
 For details on Kubernetes grants, see [Connect Destinations: Kubernetes](../Connectors/connect-destinations/connect-destinations-kubernetes.md#grants).
+
+## Revoking Access
+
+> :exclamation: Grants are built with an additive model. There is no plan currently to define grants which reduce access.
+
+To remove access to a resource, remove the grant providing access.
+
+```bash
+infra grants remove --group Core --role cluster-admin kubernetes.cluster.namespace
+```
