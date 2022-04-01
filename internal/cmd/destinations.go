@@ -12,6 +12,24 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+func newDestinationsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "destinations",
+		Aliases: []string{"dst", "dest", "destination"},
+		Short:   "Manage destinations",
+		Group:   "Management commands:",
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return mustBeLoggedIn()
+		},
+	}
+
+	cmd.AddCommand(newDestinationsListCmd())
+	cmd.AddCommand(newDestinationsAddCmd())
+	cmd.AddCommand(newDestinationsRemoveCmd())
+
+	return cmd
+}
+
 func newDestinationsListCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "list",
