@@ -437,7 +437,7 @@ func checkPasswordRequirements(newPassword string, oldPassword string) error {
 		return errors.New("  Password cannot be less than 8 characters.")
 	}
 	if newPassword == oldPassword {
-		return errors.New("  New password cannot equal your old password.")
+		return errors.New("  New password cannot be the same as your old password.")
 	}
 	return nil
 }
