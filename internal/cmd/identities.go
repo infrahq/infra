@@ -361,7 +361,7 @@ func updateUser(name, newPassword string) error {
 			}
 			return err
 		}
-		fmt.Fprintf(os.Stderr, "  Updated one time password for user %s\n", user.Email)
+		fmt.Fprintf(os.Stderr, "  Updated one time password for user %s.\n", user.Email)
 	}
 
 	if _, err := client.UpdateUser(&api.UpdateUserRequest{ID: user.ID, Password: newPassword}); err != nil {
@@ -406,7 +406,7 @@ func getUserFromName(client *api.Client, name string, provider *api.Provider) (*
 }
 
 func promptUpdatePassword(oldPassword string) (string, error) {
-	fmt.Fprintf(os.Stderr, "Enter a new password (min 8 characters)")
+	fmt.Fprintf(os.Stderr, "  Enter a new password (min length 8):\n")
 
 PROMPT:
 	newPassword := ""
@@ -425,7 +425,7 @@ PROMPT:
 	}
 
 	if confirmNewPassword != newPassword {
-		fmt.Println("  Passwords do not match")
+		fmt.Println("  Passwords do not match.")
 		goto PROMPT
 	}
 
@@ -434,7 +434,7 @@ PROMPT:
 
 func checkPasswordRequirements(newPassword string, oldPassword string) error {
 	if len(newPassword) < 8 {
-		return errors.New("  Password cannot be less than 8 characters")
+		return errors.New("  Password cannot be less than 8 characters.")
 	}
 	if newPassword == oldPassword {
 		return errors.New("  New password cannot equal your old password.")
