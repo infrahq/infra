@@ -180,7 +180,7 @@ func loginToInfra(client *api.Client, loginReq *api.LoginRequest) error {
 	}
 
 	if loginRes.PasswordUpdateRequired {
-		if err := updateUserPassword(client, loginRes.PolymorphicID, loginReq.PasswordCredentials.Password); err != nil {
+		if err := updateUserPassword(client, loginRes.PolymorphicID); err != nil {
 			return err
 		}
 	}
@@ -279,6 +279,12 @@ func finishLogin(host string, skipTLSVerify bool, providerID uid.ID, loginRes *a
 		return err
 	}
 
+	if loginRes.PasswordUpdateRequired {
+		if err := updateUserPassword(client, loginRes.PolymorphicID); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -318,16 +324,16 @@ func oidcflow(host string, clientId string) (string, error) {
 }
 
 // Prompt user to change their preset password when loggin in for the first time
-func updateUserPassword(client *api.Client, pid uid.PolymorphicID, oldPassword string) error {
-	if !pid.IsUser() {
-		panic("updateUserPassword called with a non-user PID")
-	}
+func updateUserPassword(client *api.Client, pid uid.PolymorphicID) error {
+	fmt.Println("  One time password used, please set a new password.")
 
-	fmt.Println("\n  One time password was used. If you fail to set a new password, contact your admin to reset your password.")
-
-	newPassword, err := promptUpdatePassword(oldPassword)
+	newPassword, err := promptUpdatePassword()
 	if err != nil {
 		return err
+	}
+
+	if !pid.IsUser() {
+		panic("updateUserPassword called with a non-user PID")
 	}
 
 	userID, err := pid.ID()
@@ -339,7 +345,7 @@ func updateUserPassword(client *api.Client, pid uid.PolymorphicID, oldPassword s
 		return fmt.Errorf("update user login: %w", err)
 	}
 
-	fmt.Println("  Password updated.")
+	fmt.Println("  Password updated, you're all set")
 
 	return nil
 }
