@@ -370,7 +370,8 @@ func updateUserPassword(client *api.Client, pid uid.PolymorphicID, oldPassword s
 		panic("updateUserPassword called with a non-user PID")
 	}
 
-	fmt.Println("\n  One time password was used. If you fail to set a new password, contact your admin to reset your password.")
+	// Todo otp: update term to temporary password (https://github.com/infrahq/infra/issues/1441)
+	fmt.Println("\n  One time password was used.")
 
 	newPassword, err := promptUpdatePassword(oldPassword)
 	if err != nil {

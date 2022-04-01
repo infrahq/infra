@@ -361,6 +361,7 @@ func updateUser(name, newPassword string) error {
 			}
 			return err
 		}
+		// Todo otp: update term to temporary password (https://github.com/infrahq/infra/issues/1441)
 		fmt.Fprintf(os.Stderr, "  Updated one time password for user %s.\n", user.Email)
 	}
 
