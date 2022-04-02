@@ -94,7 +94,7 @@ jobs:
           path: web
       - run: |
           echo $(git rev-parse --short HEAD)  > ./web/docs-ref
-          git -C web add ./docs-ref
+          git -C web add ./web/docs-ref
           git -C web commit -m "maintain: update docs ref"
           git -C web push origin main
       - uses: readmeio/rdme@7.0.0
