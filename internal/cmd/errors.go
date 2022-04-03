@@ -28,7 +28,7 @@ func (e *FailedLoginError) Error() string {
 
 	switch e.LoginMethod {
 	case localLogin:
-		errorReason = "your username or password is incorrect"
+		errorReason = "your id or password is incorrect"
 	case accessKeyLogin:
 		errorReason = "your access key is not valid"
 	case OIDCLogin:
