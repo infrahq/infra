@@ -27,8 +27,25 @@ type ClientHostConfig struct {
 	Current       bool              `json:"current"`
 }
 
+// checks if user is logged in to the given session (ClientHostConfig)
 func (c *ClientHostConfig) isLoggedIn() bool {
 	return c.AccessKey != ""
+}
+
+// checks if user is logged in to the current session
+func isLoggedInCurrent() bool {
+	hostConfig, err := currentHostConfig()
+	return err == nil && hostConfig != nil && hostConfig.isLoggedIn()
+}
+
+// Retrieves current logged in user, empty if logged out
+func getLoggedInIdentityName() string {
+	hostConfig, err := currentHostConfig()
+	if err == nil && hostConfig != nil && hostConfig.isLoggedIn() {
+		return hostConfig.Name
+	}
+
+	return ""
 }
 
 func (c ClientConfig) HostNames() []string {
