@@ -16,6 +16,7 @@ type Provider struct {
 	URL          string
 	ClientID     string
 	ClientSecret EncryptedAtRest
+	CreatedBy    uid.ID
 
 	Users []Identity
 }

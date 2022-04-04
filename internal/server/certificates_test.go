@@ -19,7 +19,8 @@ import (
 )
 
 func TestCertificateSigningWorks(t *testing.T) {
-	db := setupDB(t)
+	db, err := setupDB(t)
+	require.NoError(t, err)
 
 	cp, err := pki.NewNativeCertificateProvider(db, pki.NativeCertificateProviderConfig{
 		FullKeyRotationDurationInDays: 2,

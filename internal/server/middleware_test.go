@@ -20,7 +20,7 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func setupDB(t *testing.T) *gorm.DB {
+func setupDB(t *testing.T) (*gorm.DB, error) {
 	driver, err := data.NewSQLiteDriver("file::memory:")
 	require.NoError(t, err)
 
@@ -38,7 +38,11 @@ func setupDB(t *testing.T) *gorm.DB {
 
 	models.SymmetricKey = key
 
-	return db
+	if err := data.CreateProvider(db, &models.Provider{Name: models.InternalInfraProviderName, CreatedBy: models.CreatedBySystem}); err != nil {
+		return nil, err
+	}
+
+	return db, nil
 }
 
 func issueUserToken(t *testing.T, db *gorm.DB, email string, sessionDuration time.Duration) string {
@@ -213,7 +217,8 @@ func TestRequireAuthentication(t *testing.T) {
 
 	for k, v := range cases {
 		t.Run(k, func(t *testing.T) {
-			db := setupDB(t)
+			db, err := setupDB(t)
+			require.NoError(t, err)
 
 			c, _ := gin.CreateTestContext(httptest.NewRecorder())
 			c.Set("db", db)
@@ -222,7 +227,7 @@ func TestRequireAuthentication(t *testing.T) {
 			require.True(t, ok)
 			authFunc(t, db, c)
 
-			err := RequireAccessKey(c)
+			err = RequireAccessKey(c)
 
 			verifyFunc, ok := v["verifyFunc"].(func(*testing.T, *gin.Context, error))
 			require.True(t, ok)

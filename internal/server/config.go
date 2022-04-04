@@ -464,7 +464,7 @@ func (s *Server) setupInfraIdentityProvider() error {
 			return fmt.Errorf("setup infra provider: %w", err)
 		}
 
-		if err := data.CreateProvider(s.db, &models.Provider{Name: models.InternalInfraProviderName}); err != nil {
+		if err := data.CreateProvider(s.db, &models.Provider{Name: models.InternalInfraProviderName, CreatedBy: models.CreatedBySystem}); err != nil {
 			return err
 		}
 	}
@@ -585,17 +585,7 @@ func (s *Server) importAccessKeys() error {
 	return nil
 }
 
-func isConfigEmpty(config Config) bool {
-	return len(config.Providers) == 0 && len(config.Grants) == 0
-}
-
 func loadConfig(db *gorm.DB, config Config) error {
-	if isConfigEmpty(config) {
-		// do not overwrite the local config
-		logging.S.Debug("no config applied, the current state will not be overwritten")
-		return nil
-	}
-
 	if err := validator.New().Struct(config); err != nil {
 		return err
 	}
@@ -614,9 +604,6 @@ func loadConfig(db *gorm.DB, config Config) error {
 }
 
 func loadProviders(db *gorm.DB, providers []Provider) error {
-	// need to keep the internal Infra identity provider
-	providers = append(providers, Provider{Name: models.InternalInfraProviderName})
-
 	toKeep := make([]uid.ID, 0)
 
 	for _, p := range providers {
@@ -628,8 +615,8 @@ func loadProviders(db *gorm.DB, providers []Provider) error {
 		toKeep = append(toKeep, provider.ID)
 	}
 
-	// remove _all_ providers not defined in config or internal
-	err := data.DeleteProviders(db, data.ByNotIDs(toKeep))
+	// remove _all_ providers previously loaded from config
+	err := data.DeleteProviders(db, data.ByNotIDs(toKeep), data.CreatedBy(models.CreatedByConfig))
 	if err != nil {
 		return err
 	}
@@ -649,6 +636,7 @@ func loadProvider(db *gorm.DB, input Provider) (*models.Provider, error) {
 			URL:          input.URL,
 			ClientID:     input.ClientID,
 			ClientSecret: models.EncryptedAtRest(input.ClientSecret),
+			CreatedBy:    models.CreatedByConfig,
 		}
 
 		if err := data.CreateProvider(db, provider); err != nil {
@@ -662,6 +650,7 @@ func loadProvider(db *gorm.DB, input Provider) (*models.Provider, error) {
 	provider.URL = input.URL
 	provider.ClientID = input.ClientID
 	provider.ClientSecret = models.EncryptedAtRest(input.ClientSecret)
+	provider.CreatedBy = models.CreatedByConfig
 
 	if err := data.SaveProvider(db, provider); err != nil {
 		return nil, err
@@ -692,8 +681,8 @@ func loadGrants(db *gorm.DB, grants []Grant) error {
 		toKeep = append(toKeep, grant.ID)
 	}
 
-	// remove _all_ grants not defined in config
-	err = data.DeleteGrants(db, data.ByNotIDs(toKeep), data.NotCreatedBy(models.CreatedBySystem))
+	// remove _all_ grants previously defined by config
+	err = data.DeleteGrants(db, data.ByNotIDs(toKeep), data.CreatedBy(models.CreatedByConfig))
 	if err != nil {
 		return err
 	}
