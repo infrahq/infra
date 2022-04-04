@@ -89,7 +89,7 @@ connector:
     securePort: 8443  # to avoid colliding with infra-server's securePort (443)
 ```
 
-See [Helm Chart reference](./helm.md) for a complete list of options configurable through Helm.
+See [Helm Chart reference](./operator-guides/helm.md) for a complete list of options configurable through Helm.
 
 ```bash
 export VALUES='infra.yaml docker-desktop.yaml'
