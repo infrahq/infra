@@ -207,12 +207,6 @@
             "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           },
-          "expires_at": {
-            "description": "grant expires after this time",
-            "example": "2022-03-14T09:48:00Z",
-            "format": "date-time",
-            "type": "string"
-          },
           "id": {
             "example": "4yJ3n3D8E2",
             "format": "uid",
@@ -338,6 +332,12 @@
           "accessKey": {
             "type": "string"
           },
+          "expires": {
+            "description": "formatted as an RFC3339 date-time",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -413,7 +413,7 @@
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
     "title": "Infra API",
-    "version": "0.6.1"
+    "version": "0.8.0"
   },
   "paths": {
     "/v1/access-keys": {

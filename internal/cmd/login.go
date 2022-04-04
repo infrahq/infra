@@ -231,16 +231,19 @@ func loginToInfra(client *api.Client, loginReq *api.LoginRequest) error {
 			return err
 		}
 	}
+
 	return nil
 }
 
 // Updates all configs with the current logged in session
 func updateInfraConfig(client *api.Client, loginReq *api.LoginRequest, loginRes *api.LoginResponse) error {
-	var clientHostConfig ClientHostConfig
-	clientHostConfig.PolymorphicID = loginRes.PolymorphicID
-	clientHostConfig.Current = true
-	clientHostConfig.Name = loginRes.Name
-	clientHostConfig.AccessKey = loginRes.AccessKey
+	clientHostConfig := ClientHostConfig{
+		Current:       true,
+		PolymorphicID: loginRes.PolymorphicID,
+		Name:          loginRes.Name,
+		AccessKey:     loginRes.AccessKey,
+		Expires:       loginRes.Expires,
+	}
 
 	t, ok := client.HTTP.Transport.(*http.Transport)
 	if !ok {

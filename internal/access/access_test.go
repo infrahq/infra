@@ -281,7 +281,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			require.True(t, ok)
 			mockOIDC := setupFunc(t, db)
 
-			u, sess, err := ExchangeAuthCodeForAccessKey(c, "123somecode", provider, mockOIDC, time.Minute, "example.com")
+			u, sess, err := ExchangeAuthCodeForAccessKey(c, "123somecode", provider, mockOIDC, time.Now().Add(time.Minute), "example.com")
 
 			verifyFunc, ok := v["verify"].(func(*testing.T, *models.Identity, string, error))
 			require.True(t, ok)
