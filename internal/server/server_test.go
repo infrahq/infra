@@ -584,7 +584,7 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(1), machines)
 
-	// previous config is preserved on empty config application
+	// previous config is cleared on new config application
 	newConfig := Config{
 		Providers: []Provider{
 			{
@@ -859,9 +859,6 @@ func TestImportAccessKeys(t *testing.T) {
 	err = s.importSecrets()
 	require.NoError(t, err)
 
-	err = s.setupInfraIdentityProvider()
-	require.NoError(t, err)
-
 	err = s.importAccessKeys()
 	require.NoError(t, err)
 }
@@ -878,9 +875,6 @@ func TestImportAccessKeysUpdate(t *testing.T) {
 	}
 
 	err = s.importSecrets()
-	require.NoError(t, err)
-
-	err = s.setupInfraIdentityProvider()
 	require.NoError(t, err)
 
 	err = s.importAccessKeys()
