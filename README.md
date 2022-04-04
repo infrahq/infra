@@ -15,6 +15,10 @@ Infra is **identity and access management** for your cloud infrastructure. It pu
 * Onboard and offboard users via Okta (Active Directory, Google, GitHub coming soon)
 * Audit logs for who did what, when (coming soon)
 
+<br /> 
+
+![infra architecture](https://user-images.githubusercontent.com/3325447/161590056-7876b513-999a-43ac-a43e-1117b30e7c8c.svg)
+
 ## Quickstart
 
 **Prerequisites:**
