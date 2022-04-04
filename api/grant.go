@@ -14,8 +14,6 @@ type Grant struct {
 	Subject   uid.PolymorphicID `json:"subject" note:"a polymorphic field primarily expecting an user, or group ID"`
 	Privilege string            `json:"privilege" note:"a role or permission"`
 	Resource  string            `json:"resource" note:"a resource name in Infra's Universal Resource Notation"`
-
-	ExpiresAt *Time `json:"expires_at" note:"grant expires after this time"`
 }
 
 type ListGrantsRequest struct {

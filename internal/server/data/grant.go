@@ -15,9 +15,7 @@ func CreateGrant(db *gorm.DB, grant *models.Grant) error {
 	}
 
 	for _, existingGrant := range grants {
-		if existingGrant.Privilege == grant.Privilege &&
-			existingGrant.ExpiresAfterUnused == grant.ExpiresAfterUnused &&
-			existingGrant.ExpiresAt == grant.ExpiresAt {
+		if existingGrant.Privilege == grant.Privilege {
 			// exact match exists, no need to store it twice.
 			return nil
 		}
