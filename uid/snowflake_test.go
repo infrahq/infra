@@ -2,11 +2,12 @@ package uid_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
-	"github.com/infrahq/infra/uid"
 	"gotest.tools/v3/assert"
-	is "gotest.tools/v3/assert/cmp"
+
+	"github.com/infrahq/infra/uid"
 )
 
 func TestJSONCanUnmarshal(t *testing.T) {
@@ -32,11 +33,11 @@ func TestBadIDs(t *testing.T) {
 
 	id, err := uid.Parse([]byte(ok))
 	assert.NilError(t, err)
-	assert.Equal(t, 0x7fffffffffffffff, id)
+	assert.Equal(t, uid.ID(0x7fffffffffffffff), id)
 
 	id, err = uid.Parse([]byte(bad1))
-	assert.Assert(t, is.ErrorContains(err, ""))
-	assert.Equal(t, 0, id)
+	assert.ErrorContains(t, err, fmt.Sprintf(`invalid id "%v"`, bad1))
+	assert.Equal(t, uid.ID(0), id)
 
 	// I think I need to fork snowflake to fix this.
 	// id, err = uid.Parse([]byte(bad2))
@@ -44,7 +45,6 @@ func TestBadIDs(t *testing.T) {
 	// require.EqualValues(t, 0, id)
 
 	id, err = uid.Parse([]byte(bad3))
-	t.Log(id)
-	assert.Assert(t, is.ErrorContains(err, ""))
-	assert.Equal(t, 0, id)
+	assert.ErrorContains(t, err, fmt.Sprintf(`invalid id "%v"`, bad3))
+	assert.Equal(t, uid.ID(0), id)
 }

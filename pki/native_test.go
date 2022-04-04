@@ -1,9 +1,11 @@
 package pki
 
 import (
+	"crypto/x509"
 	"os"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
@@ -57,8 +59,15 @@ func TestCertificateStorage(t *testing.T) {
 	reloadedActiveCAs := p.ActiveCAs()
 	assert.Assert(t, is.Len(reloadedActiveCAs, 2))
 
-	assert.DeepEqual(t, activeCAs, reloadedActiveCAs)
+	assert.DeepEqual(t, activeCAs, reloadedActiveCAs, cmpX509Certificate)
 }
+
+// cmpX509Certificate compares two x509.Certificate using the Equal method.
+// go-cmp is supposed to use an Equal method automatically, but I guess the
+// pointer receiver and pointer arg to Equal are preventing that.
+var cmpX509Certificate = cmp.Comparer(func(x, y x509.Certificate) bool {
+	return x.Equal(&y)
+})
 
 func TestTLSCertificates(t *testing.T) {
 	cfg := NativeCertificateProviderConfig{

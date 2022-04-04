@@ -99,7 +99,7 @@ func TestSendAPIError(t *testing.T) {
 
 			sendAPIError(c, test.err)
 
-			assert.Equal(t, test.result.Code, resp.Result().StatusCode)
+			assert.Equal(t, test.result.Code, int32(resp.Result().StatusCode))
 			actual := &api.Error{}
 			err := json.NewDecoder(resp.Body).Decode(actual)
 			assert.NilError(t, err)

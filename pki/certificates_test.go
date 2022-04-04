@@ -15,10 +15,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/infrahq/infra/testutil/docker"
-	"github.com/stretchr/testify/require"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
+	"gotest.tools/v3/assert/opt"
+
+	"github.com/infrahq/infra/testutil/docker"
 )
 
 func TestMain(m *testing.M) {
@@ -86,9 +87,10 @@ func TestCertificatesImplementations(t *testing.T) {
 		assert.NilError(t, err)
 
 		certs := p.ActiveCAs()
+		threshold := opt.DurationWithThreshold(time.Minute)
 		// should have two keys now
-		require.InDelta(t, 182*day, time.Until(certs[0].NotAfter), float64(1*day))
-		require.InDelta(t, 365*day, time.Until(certs[1].NotAfter), float64(1*day))
+		assert.DeepEqual(t, 182*day, time.Until(certs[0].NotAfter), threshold)
+		assert.DeepEqual(t, 365*day, time.Until(certs[1].NotAfter), threshold)
 
 		err = p.RotateCA()
 		assert.NilError(t, err)
@@ -100,7 +102,7 @@ func TestCertificatesImplementations(t *testing.T) {
 			t.Run("check cert "+strconv.Itoa(i), func(t *testing.T) {
 				assert.Assert(t, cert.IsCA)
 				assert.Assert(t, cert.NotBefore.Before(time.Now()))
-				require.InDelta(t, 365*day, time.Until(cert.NotAfter), float64(1*day))
+				assert.DeepEqual(t, 365*day, time.Until(cert.NotAfter), threshold)
 				assert.Equal(t, "Root Infra CA", cert.Subject.CommonName)
 			})
 		}

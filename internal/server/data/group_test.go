@@ -1,6 +1,7 @@
 package data
 
 import (
+	"sort"
 	"testing"
 
 	"gorm.io/gorm"
@@ -9,7 +10,6 @@ import (
 
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
-	"github.com/stretchr/testify/require"
 )
 
 func TestGroup(t *testing.T) {
@@ -107,7 +107,7 @@ func TestListGroups(t *testing.T) {
 	assert.Equal(t, 1, len(groups))
 }
 
-func TestGroupBindIdentities(t *testing.T) {
+func TestBindGroupIdentities(t *testing.T) {
 	db := setup(t)
 
 	providerID := uid.New()
@@ -134,14 +134,14 @@ func TestGroupBindIdentities(t *testing.T) {
 
 	user, err := GetIdentity(db.Preload("Groups"), ByName(bond.Name))
 	assert.NilError(t, err)
-	assert.Assert(t, is.Len(user.Groups, 3))
-	require.ElementsMatch(t, []string{
-		everyone.Name, engineers.Name, product.Name,
-	}, []string{
+	expected := []string{engineers.Name, everyone.Name, product.Name}
+	actual := []string{
 		user.Groups[0].Name,
 		user.Groups[1].Name,
 		user.Groups[2].Name,
-	})
+	}
+	sort.Strings(actual)
+	assert.DeepEqual(t, actual, expected)
 }
 
 func TestGroupBindMoreIdentities(t *testing.T) {

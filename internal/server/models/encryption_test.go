@@ -64,5 +64,5 @@ func TestEncryptedAtRest(t *testing.T) {
 	err = db.Find(m2, db.Where("id = ?", id)).Error
 	assert.NilError(t, err)
 
-	assert.Equal(t, "don't tell", m2.ASecret)
+	assert.Equal(t, "don't tell", string(m2.ASecret))
 }

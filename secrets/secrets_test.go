@@ -1,6 +1,7 @@
 package secrets
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/vault/api"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
@@ -276,7 +278,6 @@ func TestSaveAndLoadSecret(t *testing.T) {
 func TestSealAndUnseal(t *testing.T) {
 	if testing.Short() {
 		t.Skip("test skipped in short mode")
-		return
 	}
 
 	eachSymmetricKeyProvider(t, func(t *testing.T, p SymmetricKeyProvider) {
@@ -291,7 +292,7 @@ func TestSealAndUnseal(t *testing.T) {
 		key2, err := p.DecryptDataKey(key.RootKeyID, key.Encrypted)
 		assert.NilError(t, err)
 
-		assert.DeepEqual(t, key, key2)
+		assert.DeepEqual(t, key, key2, cmpSymmetricKey)
 
 		secretMessage := "Your scientists were so preoccupied with whether they could, they didn’t stop to think if they should"
 
@@ -304,6 +305,8 @@ func TestSealAndUnseal(t *testing.T) {
 		assert.DeepEqual(t, []byte(secretMessage), unsealed)
 	})
 }
+
+var cmpSymmetricKey = cmp.AllowUnexported(SymmetricKey{})
 
 func TestGeneratingASecondKeyFromARootKey(t *testing.T) {
 	if testing.Short() {
@@ -322,7 +325,7 @@ func TestGeneratingASecondKeyFromARootKey(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Assert(t, len(key.RootKeyID) != 0)
 		assert.Equal(t, key.RootKeyID, key2.RootKeyID)
-		assert.Assert(t, key.unencrypted != key2.unencrypted)
+		assert.Assert(t, !bytes.Equal(key.unencrypted, key2.unencrypted))
 	})
 }
 
@@ -344,7 +347,7 @@ func TestSealSize(t *testing.T) {
 
 	orig, err := Unseal(key, encrypted)
 	assert.NilError(t, err)
-	assert.Equal(t, secretMessage, orig)
+	assert.Equal(t, secretMessage, string(orig))
 
 	encrypted, err = SealRaw(key, []byte(secretMessage))
 	assert.NilError(t, err)
@@ -354,5 +357,5 @@ func TestSealSize(t *testing.T) {
 	orig, err = UnsealRaw(key, encrypted)
 	assert.NilError(t, err)
 
-	assert.Equal(t, secretMessage, orig)
+	assert.Equal(t, secretMessage, string(orig))
 }

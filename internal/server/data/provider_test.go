@@ -28,11 +28,9 @@ func TestCreateProviderOkta(t *testing.T) {
 	db := setup(t)
 
 	providerDevelop := models.Provider{Name: "okta-development", URL: "dev.okta.com"}
-
-	p := providerDevelop
-	err := CreateProvider(db, &p)
+	err := CreateProvider(db, &providerDevelop)
 	assert.NilError(t, err)
-	assert.Assert(t, 0 != providerDevelop.ID)
+	assert.Assert(t, providerDevelop.ID != 0)
 	assert.Equal(t, providerDevelop.URL, providerDevelop.URL)
 }
 

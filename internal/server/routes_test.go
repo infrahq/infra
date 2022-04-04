@@ -150,8 +150,9 @@ func TestTimestampAndDurationSerialization(t *testing.T) {
 	err = bind(c, r)
 	assert.NilError(t, err)
 
-	assert.DeepEqual(t, time.Date(2022, 3, 23, 17, 50, 59, 0, time.UTC), r.Deadline)
-	assert.Equal(t, 1*time.Hour+35*time.Minute, r.Extension)
+	expected := time.Date(2022, 3, 23, 17, 50, 59, 0, time.UTC)
+	assert.Equal(t, api.Time(expected), r.Deadline)
+	assert.Equal(t, api.Duration(1*time.Hour+35*time.Minute), r.Extension)
 
 	result, err := json.Marshal(r)
 	assert.NilError(t, err)

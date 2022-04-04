@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 )
@@ -24,7 +23,7 @@ func TestStart_StopsWithContextCancelled(t *testing.T) {
 	cancel()
 	<-done
 
-	require.Less(t, time.Since(start), time.Second)
+	assert.Assert(t, time.Since(start) < time.Second)
 }
 
 func TestStart_CallsToRunNeverOverlap(t *testing.T) {
@@ -68,5 +67,5 @@ func TestStart_SkipsRunWhenPreviousRunsLongerThanInterval(t *testing.T) {
 
 	<-done
 	// 30 * 5 + 10 = 160 Milliseconds
-	require.Greater(t, time.Since(start), 160*time.Millisecond)
+	assert.Assert(t, time.Since(start) > 160*time.Millisecond)
 }
