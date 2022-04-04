@@ -33,7 +33,9 @@ func (c *ClientHostConfig) isLoggedIn() bool {
 }
 
 // checks if user is logged in to the current session
-func isLoggedInCurrent() bool {
+	func isLoggedInCurrent() bool {
+	  return getLoggedInIdentityName() != ""
+	}
 	hostConfig, err := currentHostConfig()
 	return err == nil && hostConfig != nil && hostConfig.isLoggedIn()
 }
