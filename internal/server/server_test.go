@@ -77,8 +77,7 @@ func TestGetPostgresConnectionURL(t *testing.T) {
 }
 
 func TestSetupRequired(t *testing.T) {
-	db, err := setupDB(t)
-	require.NoError(t, err)
+	db := setupDB(t)
 
 	s := Server{db: db}
 
@@ -155,7 +154,7 @@ func TestSetupRequired(t *testing.T) {
 		EnableSetup: true,
 	}
 
-	err = db.Create(&models.Identity{Name: "non-admin"}).Error
+	err := db.Create(&models.Identity{Name: "non-admin"}).Error
 	require.NoError(t, err)
 
 	require.True(t, s.setupRequired())
@@ -167,10 +166,9 @@ func TestSetupRequired(t *testing.T) {
 }
 
 func TestLoadConfigEmpty(t *testing.T) {
-	db, err := setupDB(t)
-	require.NoError(t, err)
+	db := setupDB(t)
 
-	err = data.CreateGrant(db, &models.Grant{Subject: uid.PolymorphicID("i:1234"), Privilege: "view", Resource: "kubernetes.config-test"})
+	err := data.CreateGrant(db, &models.Grant{Subject: uid.PolymorphicID("i:1234"), Privilege: "view", Resource: "kubernetes.config-test"})
 	require.NoError(t, err)
 
 	err = loadConfig(db, Config{})
@@ -299,18 +297,16 @@ func TestLoadConfigInvalid(t *testing.T) {
 
 	for name, config := range cases {
 		t.Run(name, func(t *testing.T) {
-			db, err := setupDB(t)
-			require.NoError(t, err)
+			db := setupDB(t)
 
-			err = loadConfig(db, config)
+			err := loadConfig(db, config)
 			require.Error(t, err)
 		})
 	}
 }
 
 func TestLoadConfigWithProviders(t *testing.T) {
-	db, err := setupDB(t)
-	require.NoError(t, err)
+	db := setupDB(t)
 
 	config := Config{
 		Providers: []Provider{
@@ -323,7 +319,7 @@ func TestLoadConfigWithProviders(t *testing.T) {
 		},
 	}
 
-	err = loadConfig(db, config)
+	err := loadConfig(db, config)
 	require.NoError(t, err)
 
 	var provider models.Provider
@@ -336,8 +332,7 @@ func TestLoadConfigWithProviders(t *testing.T) {
 }
 
 func TestLoadConfigWithUserGrantsImplicitProvider(t *testing.T) {
-	db, err := setupDB(t)
-	require.NoError(t, err)
+	db := setupDB(t)
 
 	config := Config{
 		Grants: []Grant{
@@ -349,7 +344,7 @@ func TestLoadConfigWithUserGrantsImplicitProvider(t *testing.T) {
 		},
 	}
 
-	err = loadConfig(db, config)
+	err := loadConfig(db, config)
 	require.NoError(t, err)
 
 	var provider models.Provider
@@ -369,8 +364,7 @@ func TestLoadConfigWithUserGrantsImplicitProvider(t *testing.T) {
 }
 
 func TestLoadConfigWithUserGrantsExplicitProvider(t *testing.T) {
-	db, err := setupDB(t)
-	require.NoError(t, err)
+	db := setupDB(t)
 
 	config := Config{
 		Providers: []Provider{
@@ -397,7 +391,7 @@ func TestLoadConfigWithUserGrantsExplicitProvider(t *testing.T) {
 		},
 	}
 
-	err = loadConfig(db, config)
+	err := loadConfig(db, config)
 	require.NoError(t, err)
 
 	var provider models.Provider
@@ -417,8 +411,7 @@ func TestLoadConfigWithUserGrantsExplicitProvider(t *testing.T) {
 }
 
 func TestLoadConfigWithGroupGrantsImplicitProvider(t *testing.T) {
-	db, err := setupDB(t)
-	require.NoError(t, err)
+	db := setupDB(t)
 
 	config := Config{
 		Grants: []Grant{
@@ -430,7 +423,7 @@ func TestLoadConfigWithGroupGrantsImplicitProvider(t *testing.T) {
 		},
 	}
 
-	err = loadConfig(db, config)
+	err := loadConfig(db, config)
 	require.NoError(t, err)
 
 	var provider models.Provider
@@ -450,8 +443,7 @@ func TestLoadConfigWithGroupGrantsImplicitProvider(t *testing.T) {
 }
 
 func TestLoadConfigWithGroupGrantsExplicitProvider(t *testing.T) {
-	db, err := setupDB(t)
-	require.NoError(t, err)
+	db := setupDB(t)
 
 	config := Config{
 		Providers: []Provider{
@@ -478,7 +470,7 @@ func TestLoadConfigWithGroupGrantsExplicitProvider(t *testing.T) {
 		},
 	}
 
-	err = loadConfig(db, config)
+	err := loadConfig(db, config)
 	require.NoError(t, err)
 
 	var provider models.Provider
@@ -498,8 +490,7 @@ func TestLoadConfigWithGroupGrantsExplicitProvider(t *testing.T) {
 }
 
 func TestLoadConfigWithMachineGrants(t *testing.T) {
-	db, err := setupDB(t)
-	require.NoError(t, err)
+	db := setupDB(t)
 
 	config := Config{
 		Grants: []Grant{
@@ -511,7 +502,7 @@ func TestLoadConfigWithMachineGrants(t *testing.T) {
 		},
 	}
 
-	err = loadConfig(db, config)
+	err := loadConfig(db, config)
 	require.NoError(t, err)
 
 	var machine models.Identity
@@ -526,8 +517,7 @@ func TestLoadConfigWithMachineGrants(t *testing.T) {
 }
 
 func TestLoadConfigPruneConfig(t *testing.T) {
-	db, err := setupDB(t)
-	require.NoError(t, err)
+	db := setupDB(t)
 
 	config := Config{
 		Providers: []Provider{
@@ -559,7 +549,7 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 		},
 	}
 
-	err = loadConfig(db, config)
+	err := loadConfig(db, config)
 	require.NoError(t, err)
 
 	var providers, grants, users, groups, machines int64
@@ -609,8 +599,7 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 }
 
 func TestLoadConfigPruneGrants(t *testing.T) {
-	db, err := setupDB(t)
-	require.NoError(t, err)
+	db := setupDB(t)
 
 	config := Config{
 		Providers: []Provider{
@@ -642,7 +631,7 @@ func TestLoadConfigPruneGrants(t *testing.T) {
 		},
 	}
 
-	err = loadConfig(db, config)
+	err := loadConfig(db, config)
 	require.NoError(t, err)
 
 	var providers, grants, users, groups, machines int64
@@ -703,8 +692,7 @@ func TestLoadConfigPruneGrants(t *testing.T) {
 }
 
 func TestLoadConfigUpdate(t *testing.T) {
-	db, err := setupDB(t)
-	require.NoError(t, err)
+	db := setupDB(t)
 
 	config := Config{
 		Providers: []Provider{
@@ -736,7 +724,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 		},
 	}
 
-	err = loadConfig(db, config)
+	err := loadConfig(db, config)
 	require.NoError(t, err)
 
 	var providers, users, groups, machines int64
@@ -846,8 +834,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 }
 
 func TestImportAccessKeys(t *testing.T) {
-	db, err := setupDB(t)
-	require.NoError(t, err)
+	db := setupDB(t)
 
 	s := Server{db: db}
 
@@ -856,7 +843,7 @@ func TestImportAccessKeys(t *testing.T) {
 		AccessKey:      "tuogTmCFSk.FzoWHhNonnRztyRChPUiMqDx",
 	}
 
-	err = s.importSecrets()
+	err := s.importSecrets()
 	require.NoError(t, err)
 
 	err = s.importAccessKeys()
@@ -864,8 +851,7 @@ func TestImportAccessKeys(t *testing.T) {
 }
 
 func TestImportAccessKeysUpdate(t *testing.T) {
-	db, err := setupDB(t)
-	require.NoError(t, err)
+	db := setupDB(t)
 
 	s := Server{db: db}
 
@@ -874,7 +860,7 @@ func TestImportAccessKeysUpdate(t *testing.T) {
 		AccessKey:      "tuogTmCFSk.FzoWHhNonnRztyRChPUiMqDx",
 	}
 
-	err = s.importSecrets()
+	err := s.importSecrets()
 	require.NoError(t, err)
 
 	err = s.importAccessKeys()

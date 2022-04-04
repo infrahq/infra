@@ -24,8 +24,7 @@ func TestAPI_PProfHandler(t *testing.T) {
 		expectedResp func(t *testing.T, resp *httptest.ResponseRecorder)
 	}
 
-	db, err := setupDB(t)
-	require.NoError(t, err)
+	db := setupDB(t)
 
 	s := &Server{db: db}
 	routes := s.GenerateRoutes()
