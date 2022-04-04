@@ -97,6 +97,6 @@ jobs:
           git -C web add ./web/docs-ref
           git -C web commit -m "maintain: update docs ref"
           git -C web push origin main
-      - uses: readmeio/rdme@7.0.0
+      - uses: readmeio/rdme@7.0.3
         with:
           rdme: openapi ./docs/api/openapi3.json --key=${{ secrets.README_API_KEY }} --id=6222ae0352ca1a0028faf020
