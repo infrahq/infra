@@ -52,8 +52,8 @@ type Grant struct {
 	ExpiresAfterUnused time.Duration
 }
 
-func (r *Grant) ToAPI() api.Grant {
-	result := api.Grant{
+func (r *Grant) ToAPI() *api.Grant {
+	return &api.Grant{
 		ID:        r.ID,
 		Created:   api.Time(r.CreatedAt),
 		Updated:   api.Time(r.UpdatedAt),
@@ -64,6 +64,4 @@ func (r *Grant) ToAPI() api.Grant {
 		Resource:  r.Resource,
 		ExpiresAt: (*api.Time)(r.ExpiresAt),
 	}
-
-	return result
 }
