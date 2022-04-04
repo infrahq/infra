@@ -456,6 +456,22 @@ func (sp *SecretProvider) UnmarshalYAML(unmarshal func(interface{}) error) error
 	return nil
 }
 
+// setupInfraIdentityProvider creates the internal identity provider where local identities are stored
+func (s *Server) setupInfraIdentityProvider() error {
+	_, err := data.GetProvider(s.db, data.ByName(models.InternalInfraProviderName))
+	if err != nil {
+		if !errors.Is(err, internal.ErrNotFound) {
+			return fmt.Errorf("setup infra provider: %w", err)
+		}
+
+		if err := data.CreateProvider(s.db, &models.Provider{Name: models.InternalInfraProviderName}); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (s *Server) importAccessKeys() error {
 	type key struct {
 		Secret string
@@ -475,15 +491,7 @@ func (s *Server) importAccessKeys() error {
 
 	infraProvider, err := data.GetProvider(s.db, data.ByName(models.InternalInfraProviderName))
 	if err != nil {
-		if !errors.Is(err, internal.ErrNotFound) {
-			return fmt.Errorf("load provider start-up: %w", err)
-		}
-
-		infraProvider = &models.Provider{Name: models.InternalInfraProviderName}
-
-		if err := data.CreateProvider(s.db, infraProvider); err != nil {
-			return err
-		}
+		return err
 	}
 
 	for k, v := range keys {
@@ -577,15 +585,22 @@ func (s *Server) importAccessKeys() error {
 	return nil
 }
 
+func isConfigEmpty(config Config) bool {
+	return len(config.Providers) == 0 && len(config.Grants) == 0
+}
+
 func loadConfig(db *gorm.DB, config Config) error {
+	if isConfigEmpty(config) {
+		// do not overwrite the local config
+		logging.S.Debug("no config applied, the current state will not be overwritten")
+		return nil
+	}
+
 	if err := validator.New().Struct(config); err != nil {
 		return err
 	}
 
 	return db.Transaction(func(tx *gorm.DB) error {
-		// add the internal Infra identity store to providers
-		config.Providers = append(config.Providers, Provider{Name: models.InternalInfraProviderName})
-
 		if err := loadProviders(tx, config.Providers); err != nil {
 			return err
 		}
@@ -599,6 +614,9 @@ func loadConfig(db *gorm.DB, config Config) error {
 }
 
 func loadProviders(db *gorm.DB, providers []Provider) error {
+	// need to keep the internal Infra identity provider
+	providers = append(providers, Provider{Name: models.InternalInfraProviderName})
+
 	toKeep := make([]uid.ID, 0)
 
 	for _, p := range providers {

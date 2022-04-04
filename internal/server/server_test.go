@@ -167,18 +167,21 @@ func TestSetupRequired(t *testing.T) {
 func TestLoadConfigEmpty(t *testing.T) {
 	db := setupDB(t)
 
-	err := loadConfig(db, Config{})
+	err := data.CreateGrant(db, &models.Grant{Subject: uid.PolymorphicID("i:1234"), Privilege: "view", Resource: "kubernetes.config-test"})
+	require.NoError(t, err)
+
+	err = loadConfig(db, Config{})
 	require.NoError(t, err)
 
 	var providers, grants int64
 
 	err = db.Model(&models.Provider{}).Count(&providers).Error
 	require.NoError(t, err)
-	require.Equal(t, int64(1), providers) // just the infra provider
+	require.Equal(t, int64(0), providers) // no infra provider loaded in this test
 
 	err = db.Model(&models.Grant{}).Count(&grants).Error
 	require.NoError(t, err)
-	require.Equal(t, int64(0), grants)
+	require.Equal(t, int64(1), grants)
 }
 
 func TestLoadConfigInvalid(t *testing.T) {
@@ -570,30 +573,28 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(1), machines)
 
-	err = loadConfig(db, Config{})
+	// previous config is preserved on empty config application
+	newConfig := Config{
+		Providers: []Provider{
+			{
+				Name:         "okta",
+				URL:          "new-demo.okta.com",
+				ClientID:     "new-client-id",
+				ClientSecret: "new-client-secret",
+			},
+		},
+	}
+
+	err = loadConfig(db, newConfig)
 	require.NoError(t, err)
 
 	err = db.Model(&models.Provider{}).Count(&providers).Error
 	require.NoError(t, err)
-	require.Equal(t, int64(1), providers) // infra provider only
+	require.Equal(t, int64(2), providers) // infra and new okta
 
 	err = db.Model(&models.Grant{}).Count(&grants).Error
 	require.NoError(t, err)
 	require.Equal(t, int64(0), grants)
-
-	// removing provider also removes users/groups
-	err = db.Model(&models.Identity{}).Where(models.Identity{Kind: models.UserKind}).Count(&users).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(0), users)
-
-	err = db.Model(&models.Group{}).Count(&groups).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(0), groups)
-
-	// but not machines
-	err = db.Model(&models.Identity{}).Count(&machines).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(1), machines)
 }
 
 func TestLoadConfigPruneGrants(t *testing.T) {
@@ -844,6 +845,9 @@ func TestImportAccessKeys(t *testing.T) {
 	err := s.importSecrets()
 	require.NoError(t, err)
 
+	err = s.setupInfraIdentityProvider()
+	require.NoError(t, err)
+
 	err = s.importAccessKeys()
 	require.NoError(t, err)
 }
@@ -859,6 +863,9 @@ func TestImportAccessKeysUpdate(t *testing.T) {
 	}
 
 	err := s.importSecrets()
+	require.NoError(t, err)
+
+	err = s.setupInfraIdentityProvider()
 	require.NoError(t, err)
 
 	err = s.importAccessKeys()
