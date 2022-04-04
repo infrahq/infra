@@ -89,6 +89,20 @@ func (a *API) registerRoutes(router *gin.Engine) {
 	// pprof.Index does not work with a /v1 prefix
 	debug := router.Group("/debug/pprof", AuthenticationMiddleware())
 	debug.GET("/*profile", pprofHandler)
+
+	// TODO: remove after a couple version.
+	v1.GET("/users", removed("v0.9.0"))
+	v1.POST("/users", removed("v0.9.0"))
+	v1.GET("/users/:id", removed("v0.9.0"))
+	v1.PUT("/users/:id", removed("v0.9.0"))
+	v1.DELETE("/users/:id", removed("v0.9.0"))
+	v1.GET("/users/:id/groups", removed("v0.9.0"))
+	v1.GET("/users/:id/grants", removed("v0.9.0"))
+	v1.GET("/machines", removed("v0.9.0"))
+	v1.POST("/machines", removed("v0.9.0"))
+	v1.GET("/machines/:id", removed("v0.9.0"))
+	v1.DELETE("/machines/:id", removed("v0.9.0"))
+	v1.GET("/machines/:id/grants", removed("v0.9.0"))
 }
 
 func get[Req, Res any](r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) {
