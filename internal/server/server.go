@@ -151,10 +151,6 @@ func New(options Options) (*Server, error) {
 		return nil, fmt.Errorf("configuring metrics: %w", err)
 	}
 
-	if err := os.MkdirAll(server.options.TLSCache, os.ModePerm); err != nil {
-		return nil, fmt.Errorf("mkdir: %w", err)
-	}
-
 	if err := server.setupInfraIdentityProvider(); err != nil {
 		return nil, fmt.Errorf("setting up internal identity provider: %w", err)
 	}
