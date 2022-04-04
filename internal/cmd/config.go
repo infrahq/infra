@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/uid"
@@ -31,6 +32,10 @@ type ClientHostConfig struct {
 
 func (c *ClientHostConfig) isLoggedIn() bool {
 	return c.AccessKey != ""
+}
+
+func (c *ClientHostConfig) isExpired() bool {
+	return time.Now().After(time.Time(c.Expires))
 }
 
 func (c ClientConfig) HostNames() []string {
