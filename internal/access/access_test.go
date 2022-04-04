@@ -28,6 +28,36 @@ func setupDB(t *testing.T) *gorm.DB {
 	return db
 }
 
+func setupAccessTestContext(t *testing.T) (*gin.Context, *gorm.DB, *models.Provider) {
+	// setup db and context
+	db := setupDB(t)
+
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Set("db", db)
+
+	admin := &models.Identity{Name: "admin@example.com", Kind: models.UserKind}
+	err := data.CreateIdentity(db, admin)
+	require.NoError(t, err)
+
+	c.Set("identity", admin)
+
+	adminGrant := &models.Grant{
+		Subject:   admin.PolyID(),
+		Privilege: models.InfraAdminRole,
+		Resource:  "infra",
+	}
+	err = data.CreateGrant(db, adminGrant)
+	require.NoError(t, err)
+
+	SetupTestSecretProvider(t)
+
+	provider := &models.Provider{Name: models.InternalInfraProviderName}
+	err = data.CreateProvider(db, provider)
+	require.NoError(t, err)
+
+	return c, db, provider
+}
+
 var (
 	tom       = &models.Identity{Name: "tom@infrahq.com", Kind: models.UserKind}
 	tomsGroup = &models.Group{Name: "tom's group"}
