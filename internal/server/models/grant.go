@@ -1,8 +1,6 @@
 package models
 
 import (
-	"time"
-
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/uid"
 )
@@ -46,14 +44,10 @@ type Grant struct {
 	Resource  string            `validate:"required"` // Universal Resource Notation
 
 	CreatedBy uid.ID
-
-	ExpiresAt          *time.Time
-	LastUsedAt         *time.Time
-	ExpiresAfterUnused time.Duration
 }
 
-func (r *Grant) ToAPI() api.Grant {
-	result := api.Grant{
+func (r *Grant) ToAPI() *api.Grant {
+	return &api.Grant{
 		ID:        r.ID,
 		Created:   api.Time(r.CreatedAt),
 		Updated:   api.Time(r.UpdatedAt),
@@ -62,8 +56,5 @@ func (r *Grant) ToAPI() api.Grant {
 		Subject:   r.Subject,
 		Privilege: r.Privilege,
 		Resource:  r.Resource,
-		ExpiresAt: (*api.Time)(r.ExpiresAt),
 	}
-
-	return result
 }

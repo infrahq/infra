@@ -130,7 +130,7 @@ func (a *API) ListIdentityGrants(c *gin.Context, r *api.Resource) ([]api.Grant, 
 
 	results := make([]api.Grant, len(grants))
 	for i, g := range grants {
-		results[i] = g.ToAPI()
+		results[i] = *g.ToAPI()
 	}
 
 	return results, nil
@@ -195,7 +195,7 @@ func (a *API) ListGroupGrants(c *gin.Context, r *api.Resource) ([]api.Grant, err
 
 	results := make([]api.Grant, len(grants))
 	for i, d := range grants {
-		results[i] = d.ToAPI()
+		results[i] = *d.ToAPI()
 	}
 
 	return results, nil
@@ -252,9 +252,7 @@ func (a *API) CreateProvider(c *gin.Context, r *api.CreateProviderRequest) (*api
 		return nil, err
 	}
 
-	result := provider.ToAPI()
-
-	return result, nil
+	return provider.ToAPI(), nil
 }
 
 func (a *API) UpdateProvider(c *gin.Context, r *api.UpdateProviderRequest) (*api.Provider, error) {
@@ -435,7 +433,7 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) ([]api.Grant,
 
 	results := make([]api.Grant, len(grants))
 	for i, r := range grants {
-		results[i] = r.ToAPI()
+		results[i] = *r.ToAPI()
 	}
 
 	return results, nil
@@ -447,9 +445,7 @@ func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {
 		return nil, err
 	}
 
-	result := grant.ToAPI()
-
-	return &result, nil
+	return grant.ToAPI(), nil
 }
 
 func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.Grant, error) {
@@ -464,9 +460,7 @@ func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.Grant
 		return nil, err
 	}
 
-	result := grant.ToAPI()
-
-	return &result, nil
+	return grant.ToAPI(), nil
 }
 
 func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) error {
