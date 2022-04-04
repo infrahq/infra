@@ -3,12 +3,13 @@ package access
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+	"gotest.tools/v3/assert"
+
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/stretchr/testify/require"
-	"gotest.tools/v3/assert"
 )
 
 func TestDeleteIdentityCleansUpResources(t *testing.T) {
