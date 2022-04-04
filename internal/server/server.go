@@ -148,7 +148,7 @@ func New(options Options) (*Server, error) {
 		}
 	}
 
-	if err := server.setupInfraIdentityProvider(); err != nil {
+	if err := server.setupInternalInfraIdentityProvider(); err != nil {
 		return nil, fmt.Errorf("setting up internal identity provider: %w", err)
 	}
 
@@ -658,11 +658,21 @@ func (s *Server) setupRequired() bool {
 		return false
 	}
 
-	identities, err := data.ListIdentities(s.db, data.ByName("admin"))
+	admins, err := data.ListIdentities(s.db, data.ByName("admin"))
 	if err != nil {
 		logging.S.Errorf("failed to list identities: %v", err)
 		return false
 	}
 
-	return len(identities) == 0
+	if len(admins) == 0 {
+		return true
+	}
+
+	adminAccessKeys, err := data.ListAccessKeys(s.db, data.ByIssuedFor(admins[0].ID))
+	if err != nil {
+		logging.S.Errorf("failed to list access keys: %v", err)
+		return false
+	}
+
+	return len(adminAccessKeys) == 0
 }

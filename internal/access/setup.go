@@ -39,43 +39,22 @@ func Setup(c *gin.Context) (string, *models.AccessKey, error) {
 		return "", nil, internal.ErrForbidden
 	}
 
-	infraProvider, err := data.GetProvider(db, data.ByName(models.InternalInfraProviderName))
-	if err != nil {
-		return "", nil, fmt.Errorf("setup infra provider: %w", err)
-	}
-
 	name := "admin"
-	identity := &models.Identity{
-		Name:       name,
-		Kind:       models.MachineKind,
-		LastSeenAt: time.Now().UTC(),
-		ProviderID: infraProvider.ID,
-	}
 
-	if err := data.CreateIdentity(db, identity); err != nil {
+	admin, err := data.GetIdentity(db, data.ByName(name))
+	if err != nil {
 		return "", nil, err
 	}
 
 	key := &models.AccessKey{
 		Name:      fmt.Sprintf("%s-access-key", name),
-		IssuedFor: identity.ID,
+		IssuedFor: admin.ID,
 		ExpiresAt: time.Now().Add(math.MaxInt64).UTC(),
 	}
 
 	raw, err := data.CreateAccessKey(db, key)
 	if err != nil {
 		return "", nil, err
-	}
-
-	grant := &models.Grant{
-		Subject:   identity.PolyID(),
-		Privilege: models.InfraAdminRole,
-		Resource:  "infra",
-	}
-
-	err = data.CreateGrant(db, grant)
-	if err != nil {
-		return "", nil, fmt.Errorf("admin grant: %w", err)
 	}
 
 	settings.SetupRequired = false
