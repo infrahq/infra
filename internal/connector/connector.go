@@ -396,23 +396,25 @@ func Run(options Options) error {
 		InsecureSkipVerify: options.SkipTLSVerify,
 	}
 
+	accessKey, err := secrets.GetSecret(options.AccessKey, basicSecretStorage)
+	if err != nil {
+		return err
+	}
+
+	client := &api.Client{
+		URL:       u.String(),
+		AccessKey: accessKey,
+		HTTP: http.Client{
+			Transport: transport,
+		},
+	}
+
+	var expires time.Time
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
 	repeat.Start(ctx, 5*time.Second, func(context.Context) {
-		accessKey, err := secrets.GetSecret(options.AccessKey, basicSecretStorage)
-		if err != nil {
-			logging.S.Infof("failed to lookup access key from secret storage: %v", err)
-			return
-		}
-
-		client := &api.Client{
-			URL:       u.String(),
-			AccessKey: accessKey,
-			HTTP: http.Client{
-				Transport: transport,
-			},
-		}
-
 		caBytes, err := manager.Cache.Get(context.TODO(), serverName)
 		if err != nil {
 			if errors.Is(err, autocert.ErrCacheMiss) {
@@ -440,6 +442,29 @@ func Run(options Options) error {
 
 		endpoint := fmt.Sprintf("%s:%d", host, port)
 		logging.S.Debugf("connector serving on %s", endpoint)
+
+		requireLogin := time.Now().After(expires)
+
+		if _, err := client.Introspect(); err != nil {
+			if !errors.Is(err, api.ErrUnauthorized) {
+				logging.S.Errorf("unexpected error: %v", err)
+				return
+			}
+
+			requireLogin = requireLogin || true
+		}
+
+		if requireLogin {
+			resp, err := client.Login(&api.LoginRequest{
+				AccessKey: accessKey,
+			})
+			if err != nil {
+				return
+			}
+
+			client.AccessKey = resp.AccessKey
+			expires = time.Time(resp.Expires)
+		}
 
 		if destination.ID == 0 {
 			destination.Connection.CA = string(caBytes)
