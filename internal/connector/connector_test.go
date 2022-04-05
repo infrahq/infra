@@ -13,9 +13,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/require"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
+	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/claims"
 )
@@ -31,7 +31,7 @@ func TestJWTMiddlewareNoAuthHeader(t *testing.T) {
 
 	handler(c)
 
-	require.Equal(t, http.StatusUnauthorized, c.Writer.Status())
+	assert.Equal(t, http.StatusUnauthorized, c.Writer.Status())
 }
 
 func TestJWTMiddlewareNoToken(t *testing.T) {
@@ -47,7 +47,7 @@ func TestJWTMiddlewareNoToken(t *testing.T) {
 
 	handler(c)
 
-	require.Equal(t, http.StatusUnauthorized, c.Writer.Status())
+	assert.Equal(t, http.StatusUnauthorized, c.Writer.Status())
 }
 
 func TestJWTMiddlewareInvalidJWKs(t *testing.T) {
@@ -63,7 +63,7 @@ func TestJWTMiddlewareInvalidJWKs(t *testing.T) {
 
 	handler(c)
 
-	require.Equal(t, http.StatusUnauthorized, c.Writer.Status())
+	assert.Equal(t, http.StatusUnauthorized, c.Writer.Status())
 }
 
 func generateJWK() (pub *jose.JSONWebKey, priv *jose.JSONWebKey, err error) {
@@ -88,7 +88,7 @@ func generateJWK() (pub *jose.JSONWebKey, priv *jose.JSONWebKey, err error) {
 
 func TestJWTMiddlewareInvalidJWT(t *testing.T) {
 	pub, _, err := generateJWK()
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	r := httptest.NewRequest(http.MethodGet, "/apis", nil)
 	r.Header.Set("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZW1haWwiOiJ0ZXN0QHRlc3QuY29tIiwiaWF0IjoxNTE2MjM5MDIyfQ.j7o5o8GBkybaYXdFJIi8O6mPF50E-gJWZ3reLfMQD68")
@@ -102,7 +102,7 @@ func TestJWTMiddlewareInvalidJWT(t *testing.T) {
 
 	handler(c)
 
-	require.Equal(t, http.StatusUnauthorized, c.Writer.Status())
+	assert.Equal(t, http.StatusUnauthorized, c.Writer.Status())
 }
 
 func generateJWT(priv *jose.JSONWebKey, email, machineName string, expiry time.Time) (string, error) {
@@ -135,10 +135,10 @@ func generateJWT(priv *jose.JSONWebKey, email, machineName string, expiry time.T
 
 func TestJWTMiddlewareExpiredJWT(t *testing.T) {
 	pub, sec, err := generateJWK()
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	jwt, err := generateJWT(sec, "test@example.com", "", time.Now().Add(-1*time.Hour))
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	r := httptest.NewRequest(http.MethodGet, "/apis", nil)
 	r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", jwt))
@@ -152,15 +152,15 @@ func TestJWTMiddlewareExpiredJWT(t *testing.T) {
 
 	handler(c)
 
-	require.Equal(t, http.StatusUnauthorized, c.Writer.Status())
+	assert.Equal(t, http.StatusUnauthorized, c.Writer.Status())
 }
 
 func TestJWTMiddlewareValidJWT(t *testing.T) {
 	pub, sec, err := generateJWK()
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	jwt, err := generateJWT(sec, "test@example.com", "", time.Now().Add(1*time.Hour))
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	r := httptest.NewRequest(http.MethodGet, "/apis", nil)
 	r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", jwt))
@@ -174,13 +174,13 @@ func TestJWTMiddlewareValidJWT(t *testing.T) {
 
 	handler(c)
 
-	require.Equal(t, http.StatusOK, c.Writer.Status())
+	assert.Equal(t, http.StatusOK, c.Writer.Status())
 
 	name, nameExists := c.Get("name")
-	require.True(t, nameExists)
-	require.Equal(t, "test@example.com", name)
+	assert.Assert(t, nameExists)
+	assert.Equal(t, "test@example.com", name)
 
 	groups, groupsExists := c.Get("groups")
-	require.True(t, groupsExists)
-	require.Equal(t, []string{"developers"}, groups)
+	assert.Assert(t, groupsExists)
+	assert.DeepEqual(t, []string{"developers"}, groups)
 }

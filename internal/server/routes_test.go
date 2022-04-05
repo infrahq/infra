@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/require"
+	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/uid"
@@ -22,23 +22,23 @@ func TestBindsQuery(t *testing.T) {
 	c, _ := gin.CreateTestContext(nil)
 
 	uri, err := url.Parse("/foo?alpha=beta")
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	c.Request = &http.Request{URL: uri, Method: "GET"}
 	r := &struct {
 		Alpha string `form:"alpha"`
 	}{}
 	err = bind(c, r)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
-	require.EqualValues(t, "beta", r.Alpha)
+	assert.Equal(t, "beta", r.Alpha)
 }
 
 func TestBindsJSON(t *testing.T) {
 	c, _ := gin.CreateTestContext(nil)
 
 	uri, err := url.Parse("/foo")
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	body := bytes.NewBufferString(`{"alpha": "zeta"}`)
 	c.Request = &http.Request{
@@ -52,24 +52,24 @@ func TestBindsJSON(t *testing.T) {
 		Alpha string `json:"alpha"`
 	}{}
 	err = bind(c, r)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
-	require.EqualValues(t, "zeta", r.Alpha)
+	assert.Equal(t, "zeta", r.Alpha)
 }
 
 func TestBindsUUIDs(t *testing.T) {
 	c, _ := gin.CreateTestContext(nil)
 
 	uri, err := url.Parse("/foo/e4d97df2")
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	c.Request = &http.Request{URL: uri, Method: "GET"}
 	c.Params = append(c.Params, gin.Param{Key: "id", Value: "e4d97df2"})
 	r := &api.Resource{}
 	err = bind(c, r)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
-	require.EqualValues(t, "e4d97df2", r.ID.String())
+	assert.Equal(t, "e4d97df2", r.ID.String())
 }
 
 func TestBindsSnowflake(t *testing.T) {
@@ -79,7 +79,7 @@ func TestBindsSnowflake(t *testing.T) {
 	id2 := uid.New()
 
 	uri, err := url.Parse(fmt.Sprintf("/foo/%s?form_id=%s", id.String(), id2.String()))
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	c.Request = &http.Request{URL: uri, Method: "GET"}
 	c.Params = append(c.Params, gin.Param{Key: "id", Value: id.String()})
@@ -88,22 +88,22 @@ func TestBindsSnowflake(t *testing.T) {
 		FormID uid.ID `form:"form_id"`
 	}{}
 	err = bind(c, r)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
-	require.Equal(t, id, r.ID)
-	require.Equal(t, id2, r.FormID)
+	assert.Equal(t, id, r.ID)
+	assert.Equal(t, id2, r.FormID)
 }
 
 func TestBindsEmptyRequest(t *testing.T) {
 	c, _ := gin.CreateTestContext(nil)
 
 	uri, err := url.Parse("/foo")
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	c.Request = &http.Request{URL: uri, Method: "GET"}
 	r := &api.EmptyRequest{}
 	err = bind(c, r)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 }
 
 func TestGetRoute(t *testing.T) {
@@ -125,14 +125,14 @@ func TestGetRoute(t *testing.T) {
 		route.HandlerFunc(c)
 	}
 
-	require.EqualValues(t, http.StatusOK, w.Code)
+	assert.Equal(t, http.StatusOK, w.Code)
 }
 
 func TestTimestampAndDurationSerialization(t *testing.T) {
 	c, _ := gin.CreateTestContext(nil)
 
 	uri, err := url.Parse("/foo")
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	orig := `{"deadline":"2022-03-23T17:50:59Z","extension":"1h35m0s"}`
 	body := bytes.NewBufferString(orig)
@@ -148,13 +148,13 @@ func TestTimestampAndDurationSerialization(t *testing.T) {
 		Extension api.Duration `json:"extension"`
 	}{}
 	err = bind(c, r)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
-	require.EqualValues(t, time.Date(2022, 3, 23, 17, 50, 59, 0, time.UTC), r.Deadline)
-	require.EqualValues(t, 1*time.Hour+35*time.Minute, r.Extension)
+	assert.DeepEqual(t, time.Date(2022, 3, 23, 17, 50, 59, 0, time.UTC), r.Deadline)
+	assert.Equal(t, 1*time.Hour+35*time.Minute, r.Extension)
 
 	result, err := json.Marshal(r)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
-	require.Equal(t, orig, string(result))
+	assert.Equal(t, orig, string(result))
 }

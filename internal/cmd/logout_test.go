@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/stretchr/testify/require"
 	"gotest.tools/v3/assert"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -57,7 +56,7 @@ func TestLogout(t *testing.T) {
 			},
 		}
 		err := writeConfig(&cfg)
-		require.NoError(t, err)
+		assert.NilError(t, err)
 
 		kubeCfg := clientcmdapi.Config{
 			Clusters: map[string]*clientcmdapi.Cluster{
@@ -74,7 +73,7 @@ func TestLogout(t *testing.T) {
 			},
 		}
 		err = clientcmd.WriteToFile(kubeCfg, kubeConfigPath)
-		require.NoError(t, err)
+		assert.NilError(t, err)
 		return cfg, &count
 	}
 
@@ -93,20 +92,20 @@ func TestLogout(t *testing.T) {
 	t.Run("default", func(t *testing.T) {
 		cfg, count := setup(t)
 		err := newLogoutCmd().Execute()
-		require.NoError(t, err)
+		assert.NilError(t, err)
 
-		require.Equal(t, int32(2), atomic.LoadInt32(count), "calls to API")
+		assert.Equal(t, int32(2), atomic.LoadInt32(count), "calls to API")
 
 		updatedCfg, err := readConfig()
-		require.NoError(t, err)
+		assert.NilError(t, err)
 
 		expected := cfg
 		expected.Hosts[0].AccessKey = ""
 		expected.Hosts[1].AccessKey = ""
-		require.Equal(t, &expected, updatedCfg)
+		assert.DeepEqual(t, &expected, updatedCfg)
 
 		updatedKubeCfg, err := clientConfig().RawConfig()
-		require.NoError(t, err)
+		assert.NilError(t, err)
 		assert.DeepEqual(t, expectedKubeCfg, updatedKubeCfg, cmpopts.EquateEmpty())
 	})
 
@@ -115,18 +114,18 @@ func TestLogout(t *testing.T) {
 		cmd := newLogoutCmd()
 		cmd.SetArgs([]string{"--purge"})
 		err := cmd.Execute()
-		require.NoError(t, err)
+		assert.NilError(t, err)
 
-		require.Equal(t, int32(2), atomic.LoadInt32(count), "calls to API")
+		assert.Equal(t, int32(2), atomic.LoadInt32(count), "calls to API")
 
 		updatedCfg, err := readConfig()
-		require.NoError(t, err)
+		assert.NilError(t, err)
 
 		expected := ClientConfig{Version: "0.3"}
-		require.Equal(t, &expected, updatedCfg)
+		assert.DeepEqual(t, &expected, updatedCfg)
 
 		updatedKubeCfg, err := clientConfig().RawConfig()
-		require.NoError(t, err)
+		assert.NilError(t, err)
 		assert.DeepEqual(t, expectedKubeCfg, updatedKubeCfg, cmpopts.EquateEmpty())
 	})
 }

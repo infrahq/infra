@@ -11,11 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/pki"
 	"github.com/infrahq/infra/uid"
+	"gotest.tools/v3/assert"
 )
 
 func TestCertificateSigningWorks(t *testing.T) {
@@ -24,13 +23,13 @@ func TestCertificateSigningWorks(t *testing.T) {
 	cp, err := pki.NewNativeCertificateProvider(db, pki.NativeCertificateProviderConfig{
 		FullKeyRotationDurationInDays: 2,
 	})
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	err = cp.CreateCA()
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	err = cp.RotateCA()
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	user := &models.Identity{
 		Model: models.Model{ID: uid.New()},
@@ -39,11 +38,11 @@ func TestCertificateSigningWorks(t *testing.T) {
 	}
 
 	keyPair, err := pki.MakeUserCert("User "+user.ID.String(), 24*time.Hour)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	// happens on the server, needs to be a request for this.
 	signedCert, signedRaw, err := pki.SignUserCert(cp, keyPair.Cert, user)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	keyPair.SignedCert = signedCert
 	keyPair.SignedCertPEM = signedRaw
@@ -58,7 +57,7 @@ func requireMutualTLSWorks(t *testing.T, clientKeypair *pki.KeyPair, cp pki.Cert
 	}))
 
 	serverTLSCerts, err := cp.TLSCertificates()
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	caPool := x509.NewCertPool()
 
@@ -80,7 +79,7 @@ func requireMutualTLSWorks(t *testing.T, clientKeypair *pki.KeyPair, cp pki.Cert
 	// This will response with HTTP 200 OK and a body containing success!. We can now set up the client to trust the CA, and send a request to the server:
 
 	clientTLSCert, err := clientKeypair.TLSCertificate()
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
@@ -95,13 +94,13 @@ func requireMutualTLSWorks(t *testing.T, clientKeypair *pki.KeyPair, cp pki.Cert
 	}
 
 	resp, err := http.Get(server.URL)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	// If no errors occurred, we now have our success! response from the server, and can verify it:
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	body := strings.TrimSpace(string(respBodyBytes))
-	require.Equal(t, "success!", body)
+	assert.Equal(t, "success!", body)
 }

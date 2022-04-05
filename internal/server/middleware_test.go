@@ -10,8 +10,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
+	"gotest.tools/v3/assert"
+	is "gotest.tools/v3/assert/cmp"
 
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/data"
@@ -22,10 +23,10 @@ import (
 
 func setupDB(t *testing.T) *gorm.DB {
 	driver, err := data.NewSQLiteDriver("file::memory:")
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	db, err := data.NewDB(driver)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	fp := secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{
 		Path: os.TempDir(),
@@ -34,12 +35,12 @@ func setupDB(t *testing.T) *gorm.DB {
 	kp := secrets.NewNativeSecretProvider(fp)
 
 	key, err := kp.GenerateDataKey("")
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	models.SymmetricKey = key
 
 	err = data.CreateProvider(db, &models.Provider{Name: models.InternalInfraProviderName, CreatedBy: models.CreatedBySystem})
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	return db
 }
@@ -48,14 +49,14 @@ func issueUserToken(t *testing.T, db *gorm.DB, email string, sessionDuration tim
 	user := &models.Identity{Name: email, Kind: models.UserKind}
 
 	err := data.CreateIdentity(db, user)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	token := &models.AccessKey{
 		IssuedFor: user.ID,
 		ExpiresAt: time.Now().Add(sessionDuration).UTC(),
 	}
 	body, err := data.CreateAccessKey(db, token)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	return body
 }
@@ -68,7 +69,7 @@ func TestRequestTimeoutError(t *testing.T) {
 	router.GET("/", func(c *gin.Context) {
 		time.Sleep(110 * time.Millisecond)
 
-		require.Error(t, c.Request.Context().Err())
+		assert.Assert(t, is.ErrorContains(c.Request.Context().Err(), ""))
 
 		c.Status(200)
 	})
@@ -81,7 +82,7 @@ func TestRequestTimeoutSuccess(t *testing.T) {
 	router := gin.New()
 	router.Use(RequestTimeoutMiddleware())
 	router.GET("/", func(c *gin.Context) {
-		require.NoError(t, c.Request.Context().Err())
+		assert.NilError(t, c.Request.Context().Err())
 
 		c.Status(200)
 	})
@@ -98,7 +99,7 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.NoError(t, err)
+				assert.NilError(t, err)
 			},
 		},
 		"AccessKeyExpired": {
@@ -109,7 +110,7 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.Contains(t, err.Error(), "token expired")
+				assert.Assert(t, is.Contains(err.Error(), "token expired"))
 			},
 		},
 		"AccessKeyInvalidKey": {
@@ -122,7 +123,7 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.Contains(t, err.Error(), "record not found")
+				assert.Assert(t, is.Contains(err.Error(), "record not found"))
 			},
 		},
 		"AccessKeyNoMatch": {
@@ -133,7 +134,7 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.Contains(t, err.Error(), "record not found")
+				assert.Assert(t, is.Contains(err.Error(), "record not found"))
 			},
 		},
 		"AccessKeyInvalidSecret": {
@@ -145,19 +146,19 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.Contains(t, err.Error(), "access key invalid secret")
+				assert.Assert(t, is.Contains(err.Error(), "access key invalid secret"))
 			},
 		},
 		"UnknownAuthenticationMethod": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
 				authentication, err := generate.CryptoRandom(32)
-				require.NoError(t, err)
+				assert.NilError(t, err)
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "Bearer "+authentication)
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.Contains(t, err.Error(), "rejected access key format")
+				assert.Assert(t, is.Contains(err.Error(), "rejected access key format"))
 			},
 		},
 		"NoAuthentication": {
@@ -167,7 +168,7 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.Contains(t, err.Error(), "valid token not found in request")
+				assert.Assert(t, is.Contains(err.Error(), "valid token not found in request"))
 			},
 		},
 		"EmptyAuthentication": {
@@ -177,7 +178,7 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.Contains(t, err.Error(), "valid token not found in request")
+				assert.Assert(t, is.Contains(err.Error(), "valid token not found in request"))
 			},
 		},
 		"EmptySpaceAuthentication": {
@@ -187,7 +188,7 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.Contains(t, err.Error(), "valid token not found in request")
+				assert.Assert(t, is.Contains(err.Error(), "valid token not found in request"))
 			},
 		},
 		"EmptyCookieAuthentication": {
@@ -209,7 +210,7 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				require.Contains(t, err.Error(), "skipped validating empty token")
+				assert.Assert(t, is.Contains(err.Error(), "skipped validating empty token"))
 			},
 		},
 	}
@@ -222,13 +223,13 @@ func TestRequireAuthentication(t *testing.T) {
 			c.Set("db", db)
 
 			authFunc, ok := v["authFunc"].(func(*testing.T, *gorm.DB, *gin.Context))
-			require.True(t, ok)
+			assert.Assert(t, ok)
 			authFunc(t, db, c)
 
 			err := RequireAccessKey(c)
 
 			verifyFunc, ok := v["verifyFunc"].(func(*testing.T, *gin.Context, error))
-			require.True(t, ok)
+			assert.Assert(t, ok)
 
 			verifyFunc(t, c, err)
 		})

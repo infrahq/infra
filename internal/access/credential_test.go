@@ -5,9 +5,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+	"gotest.tools/v3/assert"
+	is "gotest.tools/v3/assert/cmp"
 
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -23,18 +24,18 @@ func TestLoginWithUserCredential(t *testing.T) {
 				email := "bruce@example.com"
 				user := &models.Identity{Name: email, ProviderID: provider.ID, Kind: models.UserKind}
 				err := data.CreateIdentity(db, user)
-				require.NoError(t, err)
+				assert.NilError(t, err)
 
 				oneTimePassword, err := CreateCredential(c, *user)
-				require.NoError(t, err)
+				assert.NilError(t, err)
 
 				return email, oneTimePassword
 			},
 			"verify": func(t *testing.T, secret string, user *models.Identity, requiresUpdate bool, err error) {
-				require.NoError(t, err)
-				require.Equal(t, "bruce@example.com", user.Name)
-				require.NotEmpty(t, secret)
-				require.True(t, requiresUpdate)
+				assert.NilError(t, err)
+				assert.Equal(t, "bruce@example.com", user.Name)
+				assert.Assert(t, len(secret) != 0)
+				assert.Assert(t, requiresUpdate)
 			},
 		},
 		"ValidEmailAndOneTimePasswordFailsOnReuse": {
@@ -42,18 +43,18 @@ func TestLoginWithUserCredential(t *testing.T) {
 				email := "barbra@example.com"
 				user := &models.Identity{Name: email, ProviderID: provider.ID, Kind: models.UserKind}
 				err := data.CreateIdentity(db, user)
-				require.NoError(t, err)
+				assert.NilError(t, err)
 
 				oneTimePassword, err := CreateCredential(c, *user)
-				require.NoError(t, err)
+				assert.NilError(t, err)
 
 				_, _, _, err = LoginWithUserCredential(c, email, oneTimePassword, time.Now().Add(time.Hour))
-				require.NoError(t, err)
+				assert.NilError(t, err)
 
 				return email, oneTimePassword
 			},
 			"verify": func(t *testing.T, secret string, user *models.Identity, requiresUpdate bool, err error) {
-				require.Error(t, err, "one time password cannot be used more than once")
+				assert.Assert(t, is.ErrorContains(err, ""), "one time password cannot be used more than once")
 			},
 		},
 		"ValidEmailAndValidSpecifiedPassword": {
@@ -61,10 +62,10 @@ func TestLoginWithUserCredential(t *testing.T) {
 				email := "selina@example.com"
 				user := &models.Identity{Name: email, ProviderID: provider.ID, Kind: models.UserKind}
 				err := data.CreateIdentity(db, user)
-				require.NoError(t, err)
+				assert.NilError(t, err)
 
 				hash, err := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.MinCost)
-				require.NoError(t, err)
+				assert.NilError(t, err)
 
 				userCredential := &models.Credential{
 					IdentityID:   user.ID,
@@ -72,15 +73,15 @@ func TestLoginWithUserCredential(t *testing.T) {
 				}
 
 				err = data.CreateCredential(db, userCredential)
-				require.NoError(t, err)
+				assert.NilError(t, err)
 
 				return email, "password"
 			},
 			"verify": func(t *testing.T, secret string, user *models.Identity, requiresUpdate bool, err error) {
-				require.NoError(t, err)
-				require.Equal(t, "selina@example.com", user.Name)
-				require.NotEmpty(t, secret)
-				require.False(t, requiresUpdate)
+				assert.NilError(t, err)
+				assert.Equal(t, "selina@example.com", user.Name)
+				assert.Assert(t, len(secret) != 0)
+				assert.Assert(t, !requiresUpdate)
 			},
 		},
 		"ValidEmailAndValidSpecifiedPasswordCanBeReused": {
@@ -88,10 +89,10 @@ func TestLoginWithUserCredential(t *testing.T) {
 				email := "penguin@example.com"
 				user := &models.Identity{Name: email, ProviderID: provider.ID, Kind: models.UserKind}
 				err := data.CreateIdentity(db, user)
-				require.NoError(t, err)
+				assert.NilError(t, err)
 
 				hash, err := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.MinCost)
-				require.NoError(t, err)
+				assert.NilError(t, err)
 
 				userCredential := &models.Credential{
 					IdentityID:   user.ID,
@@ -99,18 +100,18 @@ func TestLoginWithUserCredential(t *testing.T) {
 				}
 
 				err = data.CreateCredential(db, userCredential)
-				require.NoError(t, err)
+				assert.NilError(t, err)
 
 				_, _, _, err = LoginWithUserCredential(c, email, "password", time.Now().Add(time.Hour))
-				require.NoError(t, err)
+				assert.NilError(t, err)
 
 				return email, "password"
 			},
 			"verify": func(t *testing.T, secret string, user *models.Identity, requiresUpdate bool, err error) {
-				require.NoError(t, err)
-				require.Equal(t, "penguin@example.com", user.Name)
-				require.NotEmpty(t, secret)
-				require.False(t, requiresUpdate)
+				assert.NilError(t, err)
+				assert.Equal(t, "penguin@example.com", user.Name)
+				assert.Assert(t, len(secret) != 0)
+				assert.Assert(t, !requiresUpdate)
 			},
 		},
 		"ValidEmailAndInvalidPasswordFails": {
@@ -118,10 +119,10 @@ func TestLoginWithUserCredential(t *testing.T) {
 				email := "gordon@example.com"
 				user := &models.Identity{Name: email, ProviderID: provider.ID, Kind: models.UserKind}
 				err := data.CreateIdentity(db, user)
-				require.NoError(t, err)
+				assert.NilError(t, err)
 
 				hash, err := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.MinCost)
-				require.NoError(t, err)
+				assert.NilError(t, err)
 
 				userCredential := &models.Credential{
 					IdentityID:   user.ID,
@@ -129,12 +130,12 @@ func TestLoginWithUserCredential(t *testing.T) {
 				}
 
 				err = data.CreateCredential(db, userCredential)
-				require.NoError(t, err)
+				assert.NilError(t, err)
 
 				return email, "wrong_password"
 			},
 			"verify": func(t *testing.T, secret string, user *models.Identity, requiresUpdate bool, err error) {
-				require.Error(t, err, "password verify")
+				assert.Assert(t, is.ErrorContains(err, ""), "password verify")
 			},
 		},
 		"ValidEmailAndNotInfraProviderFails": {
@@ -142,10 +143,10 @@ func TestLoginWithUserCredential(t *testing.T) {
 				email := "edward@example.com"
 				user := &models.Identity{Name: email, ProviderID: uid.New(), Kind: models.UserKind}
 				err := data.CreateIdentity(db, user)
-				require.NoError(t, err)
+				assert.NilError(t, err)
 
 				hash, err := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.MinCost)
-				require.NoError(t, err)
+				assert.NilError(t, err)
 
 				userCredential := &models.Credential{
 					IdentityID:   user.ID,
@@ -154,12 +155,12 @@ func TestLoginWithUserCredential(t *testing.T) {
 
 				// this shouldnt be possible for non-infra providers
 				err = data.CreateCredential(db, userCredential)
-				require.NoError(t, err)
+				assert.NilError(t, err)
 
 				return email, "password"
 			},
 			"verify": func(t *testing.T, secret string, user *models.Identity, requiresUpdate bool, err error) {
-				require.Error(t, err, "record not found")
+				assert.Assert(t, is.ErrorContains(err, ""), "record not found")
 			},
 		},
 		"ValidEmailAndNoCredentialsFails": {
@@ -167,12 +168,12 @@ func TestLoginWithUserCredential(t *testing.T) {
 				email := "edward@example.com"
 				user := &models.Identity{Name: email, ProviderID: uid.New(), Kind: models.UserKind}
 				err := data.CreateIdentity(db, user)
-				require.NoError(t, err)
+				assert.NilError(t, err)
 
 				return email, ""
 			},
 			"verify": func(t *testing.T, secret string, user *models.Identity, requiresUpdate bool, err error) {
-				require.Error(t, err, "record not found")
+				assert.Assert(t, is.ErrorContains(err, ""), "record not found")
 			},
 		},
 	}
@@ -180,13 +181,13 @@ func TestLoginWithUserCredential(t *testing.T) {
 	for k, v := range cases {
 		t.Run(k, func(t *testing.T) {
 			setupFunc, ok := v["setup"].(func(*testing.T, *gin.Context, *gorm.DB) (string, string))
-			require.True(t, ok)
+			assert.Assert(t, ok)
 			email, password := setupFunc(t, c, db)
 
 			secret, user, requiresUpdate, err := LoginWithUserCredential(c, email, password, time.Now().Add(time.Hour))
 
 			verifyFunc, ok := v["verify"].(func(*testing.T, string, *models.Identity, bool, error))
-			require.True(t, ok)
+			assert.Assert(t, ok)
 
 			verifyFunc(t, secret, user, requiresUpdate, err)
 		})
