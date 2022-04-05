@@ -5,7 +5,7 @@ import axios from 'axios'
 
 import ExitButton from '../../../components/ExitButton'
 import ActionButton from '../../../components/ActionButton'
-import Setup from '../../../components/providers/okta/setup'
+import Setup from '../../../components/providers/okta/Setup'
 
 import AuthContext from '../../../store/AuthContext'
 
