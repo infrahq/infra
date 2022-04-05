@@ -8,7 +8,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
-	is "gotest.tools/v3/assert/cmp"
 
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -54,7 +53,7 @@ func TestLoginWithUserCredential(t *testing.T) {
 				return email, oneTimePassword
 			},
 			"verify": func(t *testing.T, secret string, user *models.Identity, requiresUpdate bool, err error) {
-				assert.Assert(t, is.ErrorContains(err, ""), "one time password cannot be used more than once")
+				assert.ErrorContains(t, err, "one time password cannot be used more than once")
 			},
 		},
 		"ValidEmailAndValidSpecifiedPassword": {
@@ -135,7 +134,7 @@ func TestLoginWithUserCredential(t *testing.T) {
 				return email, "wrong_password"
 			},
 			"verify": func(t *testing.T, secret string, user *models.Identity, requiresUpdate bool, err error) {
-				assert.Assert(t, is.ErrorContains(err, ""), "password verify")
+				assert.ErrorContains(t, err, "password verify")
 			},
 		},
 		"ValidEmailAndNotInfraProviderFails": {
@@ -160,7 +159,7 @@ func TestLoginWithUserCredential(t *testing.T) {
 				return email, "password"
 			},
 			"verify": func(t *testing.T, secret string, user *models.Identity, requiresUpdate bool, err error) {
-				assert.Assert(t, is.ErrorContains(err, ""), "record not found")
+				assert.ErrorContains(t, err, "record not found")
 			},
 		},
 		"ValidEmailAndNoCredentialsFails": {
@@ -173,7 +172,7 @@ func TestLoginWithUserCredential(t *testing.T) {
 				return email, ""
 			},
 			"verify": func(t *testing.T, secret string, user *models.Identity, requiresUpdate bool, err error) {
-				assert.Assert(t, is.ErrorContains(err, ""), "record not found")
+				assert.ErrorContains(t, err, "record not found")
 			},
 		},
 	}

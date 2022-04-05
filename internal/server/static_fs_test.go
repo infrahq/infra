@@ -5,7 +5,6 @@ import (
 
 	"github.com/spf13/afero"
 	"gotest.tools/v3/assert"
-	is "gotest.tools/v3/assert/cmp"
 )
 
 func TestStaticFileSystemOpensFile(t *testing.T) {
@@ -18,11 +17,11 @@ func TestStaticFileSystemOpensFile(t *testing.T) {
 	}
 
 	f, err := sfs.Open("dashboard.html")
-	assert.Check(t, is.DeepEqual(err, nil))
+	assert.NilError(t, err)
 
 	stat, err := f.Stat()
 	assert.NilError(t, err)
-	assert.Check(t, is.Equal(stat.Name(), "dashboard.html"))
+	assert.Equal(t, stat.Name(), "dashboard.html")
 }
 
 func TestStaticFileSystemAppendDotHtml(t *testing.T) {
@@ -35,9 +34,9 @@ func TestStaticFileSystemAppendDotHtml(t *testing.T) {
 	}
 
 	f, err := sfs.Open("dashboard")
-	assert.Check(t, is.DeepEqual(err, nil))
+	assert.NilError(t, err)
 
 	stat, err := f.Stat()
 	assert.NilError(t, err)
-	assert.Check(t, is.Equal(stat.Name(), "dashboard.html"))
+	assert.Equal(t, stat.Name(), "dashboard.html")
 }

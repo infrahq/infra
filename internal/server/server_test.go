@@ -301,7 +301,8 @@ func TestLoadConfigInvalid(t *testing.T) {
 			db := setupDB(t)
 
 			err := loadConfig(db, config)
-			assert.Assert(t, is.ErrorContains(err, ""))
+			// TODO: add expectedErr for each case
+			assert.ErrorContains(t, err, "") // could be any error
 		})
 	}
 }

@@ -5,19 +5,18 @@ import (
 	"testing"
 
 	"gotest.tools/v3/assert"
-	is "gotest.tools/v3/assert/cmp"
 )
 
 func TestCryptoRandomNegativeLen(t *testing.T) {
 	s, err := CryptoRandom(-1)
 	assert.NilError(t, err)
-	assert.Check(t, is.Equal(s, ""))
+	assert.Equal(t, s, "")
 }
 
 func TestCryptoRandomLen(t *testing.T) {
 	s, err := CryptoRandom(20)
 	assert.NilError(t, err)
-	assert.Check(t, is.Equal(len(s), 20))
+	assert.Equal(t, len(s), 20)
 }
 
 func TestCryptoRandomCanGenerateEdgeCharacters(t *testing.T) {

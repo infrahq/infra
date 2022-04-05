@@ -64,7 +64,7 @@ func TestCreateGroupDuplicate(t *testing.T) {
 	createGroups(t, db, everyone, engineers, product)
 
 	err := CreateGroup(db, &models.Group{Name: "Everyone", ProviderID: providerID})
-	assert.Assert(t, is.Contains(err.Error(), "duplicate record"))
+	assert.ErrorContains(t, err, "duplicate record")
 }
 
 func TestGetGroup(t *testing.T) {

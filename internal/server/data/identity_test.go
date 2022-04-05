@@ -5,7 +5,6 @@ import (
 
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
-	is "gotest.tools/v3/assert/cmp"
 
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -51,7 +50,7 @@ func TestCreateDuplicateUser(t *testing.T) {
 	b := bond
 	b.ID = 0
 	err := CreateIdentity(db, &b)
-	assert.Assert(t, is.Contains(err.Error(), "duplicate record"))
+	assert.ErrorContains(t, err, "duplicate record")
 }
 
 func TestGetIdentity(t *testing.T) {

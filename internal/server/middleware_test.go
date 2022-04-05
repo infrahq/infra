@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -12,7 +13,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
-	is "gotest.tools/v3/assert/cmp"
 
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/data"
@@ -69,7 +69,7 @@ func TestRequestTimeoutError(t *testing.T) {
 	router.GET("/", func(c *gin.Context) {
 		time.Sleep(110 * time.Millisecond)
 
-		assert.Assert(t, is.ErrorContains(c.Request.Context().Err(), ""))
+		assert.ErrorIs(t, c.Request.Context().Err(), context.DeadlineExceeded)
 
 		c.Status(200)
 	})
@@ -110,7 +110,7 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				assert.Assert(t, is.Contains(err.Error(), "token expired"))
+				assert.ErrorContains(t, err, "token expired")
 			},
 		},
 		"AccessKeyInvalidKey": {
@@ -123,7 +123,7 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				assert.Assert(t, is.Contains(err.Error(), "record not found"))
+				assert.ErrorContains(t, err, "record not found")
 			},
 		},
 		"AccessKeyNoMatch": {
@@ -134,7 +134,7 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				assert.Assert(t, is.Contains(err.Error(), "record not found"))
+				assert.ErrorContains(t, err, "record not found")
 			},
 		},
 		"AccessKeyInvalidSecret": {
@@ -146,7 +146,7 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				assert.Assert(t, is.Contains(err.Error(), "access key invalid secret"))
+				assert.ErrorContains(t, err, "access key invalid secret")
 			},
 		},
 		"UnknownAuthenticationMethod": {
@@ -158,7 +158,7 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				assert.Assert(t, is.Contains(err.Error(), "rejected access key format"))
+				assert.ErrorContains(t, err, "rejected access key format")
 			},
 		},
 		"NoAuthentication": {
@@ -168,7 +168,7 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				assert.Assert(t, is.Contains(err.Error(), "valid token not found in request"))
+				assert.ErrorContains(t, err, "valid token not found in request")
 			},
 		},
 		"EmptyAuthentication": {
@@ -178,7 +178,7 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				assert.Assert(t, is.Contains(err.Error(), "valid token not found in request"))
+				assert.ErrorContains(t, err, "valid token not found in request")
 			},
 		},
 		"EmptySpaceAuthentication": {
@@ -188,7 +188,7 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				assert.Assert(t, is.Contains(err.Error(), "valid token not found in request"))
+				assert.ErrorContains(t, err, "valid token not found in request")
 			},
 		},
 		"EmptyCookieAuthentication": {
@@ -210,7 +210,7 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				assert.Assert(t, is.Contains(err.Error(), "skipped validating empty token"))
+				assert.ErrorContains(t, err, "skipped validating empty token")
 			},
 		},
 	}

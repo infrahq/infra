@@ -11,6 +11,7 @@ import (
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/authn"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -105,16 +106,16 @@ func TestUsersGroupGrant(t *testing.T) {
 	grant(t, db, tom, tomsGroup.PolyID(), models.InfraUserRole, "infra")
 
 	authDB, err := RequireInfraRole(c, models.InfraUserRole)
-	assert.Check(t, err)
-	assert.Check(t, authDB != nil)
+	assert.NilError(t, err)
+	assert.Assert(t, authDB != nil)
 
 	authDB, err = RequireInfraRole(c, models.InfraAdminRole)
-	assert.Check(t, is.ErrorContains(err, ""))
-	assert.Check(t, is.Nil(authDB))
+	assert.ErrorIs(t, err, internal.ErrForbidden)
+	assert.Assert(t, authDB == nil)
 
 	authDB, err = RequireInfraRole(c, models.InfraAdminRole, models.InfraUserRole)
-	assert.Check(t, err)
-	assert.Check(t, authDB != nil)
+	assert.NilError(t, err)
+	assert.Assert(t, authDB != nil)
 }
 
 func grant(t *testing.T, db *gorm.DB, currentUser *models.Identity, subject uid.PolymorphicID, privilege, resource string) {
