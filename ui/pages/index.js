@@ -1,3 +1,4 @@
+import Head from 'next/head'
 import { useContext, useEffect, useState } from 'react'
 
 import Navigation from '../components/nav/Navigation'
@@ -16,6 +17,9 @@ export default function Index () {
 
   return (
     <div>
+      <Head>
+        <title>Infra - Grants</title>
+      </Head>
       <Navigation />
       {currentUser ? <p>{currentUser.name}</p> : <></>}
     </div>

@@ -1,5 +1,6 @@
 import { useCallback, useState, useContext } from 'react'
 import styled from 'styled-components'
+import Head from 'next/head'
 import Router, { useRouter } from 'next/router'
 import axios from 'axios'
 
@@ -81,6 +82,9 @@ const Details = () => {
 
   return (
     <>
+      <Head>
+        <title>Infra - Providers</title>
+      </Head>
       <AddContainer>
         <AddContainerContent>
           {content(type)}

@@ -1,6 +1,7 @@
 import { useCallback, useState, useContext } from 'react'
 import axios from 'axios'
 import Router from 'next/router'
+import Head from 'next/head'
 
 import { AddContainer, AddContainerContent, Nav, Footer } from './[type]'
 import ExitButton from '../../../components/ExitButton'
@@ -54,6 +55,9 @@ const Admins = () => {
 
   return (
     <>
+      <Head>
+        <title>Infra - Providers</title>
+      </Head>
       <AddContainer>
         <AddContainerContent>
           <AddAdmin email={adminEmail} parentCallback={updateEmail} />

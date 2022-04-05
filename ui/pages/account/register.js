@@ -1,5 +1,6 @@
 import { useContext, useEffect, useState } from 'react'
 import styled from 'styled-components'
+import Head from 'next/head'
 
 import Input from '../../components/Input'
 import ActionButton from '../../components/ActionButton'
@@ -45,26 +46,31 @@ const Register = () => {
   }
 
   return (
-    <RegisterContainer>
-      <Content>
-        <AccountHeader
-          header='Infra Admin API Access Key'
-          subheader='Securely manage access to your infrastructure. Take a moment to create your account and start managing access today.'
-        />
-        <AccessKeyInputContainer>
-          <Input
-            label='Admin API Access Key'
-            value={value}
-            onChange={e => setValue(e.target.value)}
-            showImage
-            type='password'
+    <>
+      <Head>
+        <title>Infra - Login</title>
+      </Head>
+      <RegisterContainer>
+        <Content>
+          <AccountHeader
+            header='Infra Admin API Access Key'
+            subheader='Securely manage access to your infrastructure. Take a moment to create your account and start managing access today.'
           />
-        </AccessKeyInputContainer>
-        <section>
-          <ActionButton onClick={handleLogin} value='Login' />
-        </section>
-      </Content>
-    </RegisterContainer>
+          <AccessKeyInputContainer>
+            <Input
+              label='Admin API Access Key'
+              value={value}
+              onChange={e => setValue(e.target.value)}
+              showImage
+              type='password'
+            />
+          </AccessKeyInputContainer>
+          <section>
+            <ActionButton onClick={handleLogin} value='Login' />
+          </section>
+        </Content>
+      </RegisterContainer>
+    </>
   )
 }
 
