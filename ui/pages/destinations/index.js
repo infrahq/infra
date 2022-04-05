@@ -1,4 +1,5 @@
 import Head from 'next/head'
+import Link from 'next/link'
 
 import Navigation from '../../components/nav/Navigation'
 
@@ -10,7 +11,9 @@ const Infrastructure = () => {
       </Head>
       <Navigation />
       <>this is destinations page</>
-      <a></a>
+      <Link href='/destinations/add/setup'>
+        <a>add destination</a>
+      </Link>
     </div>
   )
 }
