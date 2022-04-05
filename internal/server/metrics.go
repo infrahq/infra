@@ -9,10 +9,16 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/metrics"
 )
 
-func SetupMetrics(db *gorm.DB) error {
-	promauto.NewGaugeVec(prometheus.GaugeOpts{
+func SetupMetrics(db *gorm.DB) *prometheus.Registry {
+	reg := prometheus.NewRegistry()
+	factory := promauto.With(reg)
+
+	reg.MustRegister(metrics.RequestDuration)
+
+	factory.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "build",
 		Name:      "info",
 		Help:      "Build information about Infra Server.",
@@ -23,7 +29,7 @@ func SetupMetrics(db *gorm.DB) error {
 		"date":    internal.Date,
 	}).Set(1)
 
-	promauto.NewGaugeFunc(prometheus.GaugeOpts{
+	factory.NewGaugeFunc(prometheus.GaugeOpts{
 		Namespace: "infra",
 		Name:      "users",
 		Help:      "Number of users managed by Infra.",
@@ -37,7 +43,7 @@ func SetupMetrics(db *gorm.DB) error {
 		return float64(*count)
 	})
 
-	promauto.NewGaugeFunc(prometheus.GaugeOpts{
+	factory.NewGaugeFunc(prometheus.GaugeOpts{
 		Namespace: "infra",
 		Name:      "groups",
 		Help:      "Number of groups managed by Infra.",
@@ -51,7 +57,7 @@ func SetupMetrics(db *gorm.DB) error {
 		return float64(*count)
 	})
 
-	promauto.NewGaugeFunc(prometheus.GaugeOpts{
+	factory.NewGaugeFunc(prometheus.GaugeOpts{
 		Namespace: "infra",
 		Name:      "grants",
 		Help:      "Number of grants managed by Infra.",
@@ -65,7 +71,7 @@ func SetupMetrics(db *gorm.DB) error {
 		return float64(*count)
 	})
 
-	promauto.NewGaugeFunc(prometheus.GaugeOpts{
+	factory.NewGaugeFunc(prometheus.GaugeOpts{
 		Namespace: "infra",
 		Name:      "providers",
 		Help:      "Number of providers managed by Infra.",
@@ -79,7 +85,7 @@ func SetupMetrics(db *gorm.DB) error {
 		return float64(*count)
 	})
 
-	promauto.NewGaugeFunc(prometheus.GaugeOpts{
+	factory.NewGaugeFunc(prometheus.GaugeOpts{
 		Namespace: "infra",
 		Name:      "destinations",
 		Help:      "Number of destinations managed by Infra.",
@@ -93,7 +99,7 @@ func SetupMetrics(db *gorm.DB) error {
 		return float64(*count)
 	})
 
-	promauto.NewGaugeVec(prometheus.GaugeOpts{
+	factory.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "database",
 		Name:      "info",
 		Help:      "Information about configured database.",
@@ -101,7 +107,7 @@ func SetupMetrics(db *gorm.DB) error {
 		"name": db.Dialector.Name(),
 	}).Set(1)
 
-	promauto.NewGaugeFunc(prometheus.GaugeOpts{
+	factory.NewGaugeFunc(prometheus.GaugeOpts{
 		Namespace: "database",
 		Name:      "connected",
 		Help:      "Database connection status.",
@@ -120,5 +126,5 @@ func SetupMetrics(db *gorm.DB) error {
 		return 1
 	})
 
-	return nil
+	return reg
 }

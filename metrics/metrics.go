@@ -6,10 +6,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-var requestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
+var RequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 	Namespace: "http",
 	Name:      "request_duration_seconds",
 	Help:      "A histogram of duration, in seconds, handling HTTP requests.",
@@ -23,11 +23,24 @@ func Middleware() gin.HandlerFunc {
 
 		c.Next()
 
-		requestDuration.With(prometheus.Labels{
+		RequestDuration.With(prometheus.Labels{
 			"host":   c.Request.Host,
 			"method": c.Request.Method,
 			"path":   c.FullPath(),
 			"status": strconv.Itoa(c.Writer.Status()),
 		}).Observe(time.Since(t).Seconds())
 	}
+}
+
+// NewHandler creates a new gin.Engine, and adds a 'GET /metrics' handler to it.
+// The handler serves prometheus metrics from the promRegistry.
+func NewHandler(promRegistry *prometheus.Registry) *gin.Engine {
+	engine := gin.New()
+	engine.GET("/metrics", func(c *gin.Context) {
+		handler := promhttp.InstrumentMetricHandler(
+			promRegistry,
+			promhttp.HandlerFor(promRegistry, promhttp.HandlerOpts{}))
+		handler.ServeHTTP(c.Writer, c.Request)
+	})
+	return engine
 }

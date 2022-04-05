@@ -964,7 +964,7 @@ func TestServer_Run_UIProxy(t *testing.T) {
 		EnableSetup:             true,
 	}
 	srv, err := New(opts)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	go func() {
 		if err := srv.Run(ctx); err != nil {
@@ -974,25 +974,25 @@ func TestServer_Run_UIProxy(t *testing.T) {
 
 	t.Run("requests are proxied", func(t *testing.T) {
 		resp, err := http.Get("http://" + srv.Addrs.HTTP.String() + "/any-path")
-		require.NoError(t, err)
+		assert.NilError(t, err)
 		defer resp.Body.Close()
-		require.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 		body, err := ioutil.ReadAll(resp.Body)
-		require.NoError(t, err)
-		require.Equal(t, message, string(body))
+		assert.NilError(t, err)
+		assert.Equal(t, message, string(body))
 	})
 
 	t.Run("api routes are available", func(t *testing.T) {
 		resp, err := http.Get("http://" + srv.Addrs.HTTP.String() + "/v1/setup")
-		require.NoError(t, err)
+		assert.NilError(t, err)
 		defer resp.Body.Close()
-		require.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 		var body api.SetupRequiredResponse
 		err = json.NewDecoder(resp.Body).Decode(&body)
-		require.NoError(t, err)
+		assert.NilError(t, err)
 
-		require.True(t, body.Required, true)
+		assert.Assert(t, body.Required)
 	})
 }

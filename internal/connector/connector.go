@@ -18,7 +18,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/goware/urlx"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/crypto/acme/autocert"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
@@ -555,14 +555,11 @@ func Run(options Options) error {
 		proxyMiddleware(proxy, k8s.Config.BearerToken),
 	)
 
-	metrics := gin.New()
-	metrics.GET("/metrics", func(c *gin.Context) {
-		promhttp.Handler().ServeHTTP(c.Writer, c.Request)
-	})
-
+	promRegistry := prometheus.NewRegistry()
+	promRegistry.MustRegister(metrics.RequestDuration)
 	metricsServer := &http.Server{
 		Addr:     ":9090",
-		Handler:  metrics,
+		Handler:  metrics.NewHandler(promRegistry),
 		ErrorLog: logging.StandardErrorLog(),
 	}
 
