@@ -19,7 +19,9 @@ const StyledButton = styled.button`
 
 const ActionButton = ({ value, onClick, size = 'large' }) => {
   return (
-    <StyledButton onClick={onClick} size={size}>{value}</StyledButton>
+    <section>
+      <StyledButton onClick={onClick} size={size}>{value}</StyledButton>
+    </section>
   )
 }
 

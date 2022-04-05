@@ -18,7 +18,7 @@ const ConnectProviderContent = styled.section`
 
   & > *:not(:first-child) {
     padding-top: 1.75rem;
-  }  
+  }
 `
 
 const NavButton = styled.div`
