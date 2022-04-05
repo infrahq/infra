@@ -185,7 +185,7 @@ func newIdentitiesRemoveCmd() *cobra.Command {
 				return err
 			}
 
-			isSelf, err := isModifiedIdentitySelf(name, infraProvider)
+			isSelf, err := isIdentitySelf(name, infraProvider)
 			if err != nil {
 				return err
 			}
@@ -283,7 +283,7 @@ func UpdateIdentity(name, newPassword string) error {
 		return err
 	}
 
-	isSelf, err := isModifiedIdentitySelf(name, infraProvider)
+	isSelf, err := isIdentitySelf(name, infraProvider)
 	if err != nil {
 		return err
 	}
@@ -393,8 +393,8 @@ func getInfraProviderID() (uid.ID, error) {
 	return infraProvider.ID, nil
 }
 
-// isModifiedIdentitySelf checks if the caller is updating their current local user
-func isModifiedIdentitySelf(name string, infraProvider uid.ID) (bool, error) {
+// isIdentitySelf checks if the caller is updating their current local user
+func isIdentitySelf(name string, infraProvider uid.ID) (bool, error) {
 	config, err := currentHostConfig()
 	if err != nil {
 		return false, err
