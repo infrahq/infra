@@ -19,13 +19,11 @@ type (
 	ReqResHandlerFunc[Req, Res any] func(c *gin.Context, req *Req) (Res, error)
 )
 
-func (a *API) registerRoutes(router *gin.Engine, promRegistry prometheus.Registerer) {
+func (a *API) registerRoutes(router *gin.RouterGroup, promRegistry prometheus.Registerer) {
 	router.Use(
 		sentrygin.New(sentrygin.Options{}),
 		metrics.Middleware(promRegistry),
 		logging.IdentityAwareMiddleware(),
-		logging.Middleware(),
-		RequestTimeoutMiddleware(),
 		DatabaseMiddleware(a.server.db),
 	)
 
