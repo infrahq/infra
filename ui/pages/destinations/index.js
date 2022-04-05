@@ -28,6 +28,10 @@ const AddDestinationLink = styled.a`
   transition: all .2s ease-in;
   opacity: 1;
 
+  span {
+    margin-right: .25rem;
+  }
+
   :hover {
     opacity: .6;
   }
@@ -37,7 +41,7 @@ const TableHeader = styled.div`
   display: grid;
   opacity: 0.5;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  grid-template-columns: 75% 20% auto;
+  grid-template-columns: 80% 18% auto;
   align-items: center;
 `
 
@@ -51,7 +55,7 @@ const TableHeaderTitle = styled.p`
 
 const TableContent = styled.div`
   display: grid;
-  grid-template-columns: 75% 20% auto;
+  grid-template-columns: 80% 18% auto;
   align-items: center;
 `
 
@@ -59,6 +63,14 @@ const TableContentText = styled.div`
   font-weight: 300;
   font-size: 12px;
   line-height: 0px;
+
+  a {
+    cursor: pointer;
+
+    :hover {
+      opacity: .6;
+    }
+  }
 `
 
 const TableContentContainer = styled.div`
@@ -102,7 +114,7 @@ const Destinations = () => {
         <DestinationsHeaderContainer>
           <PageHeader iconPath='/destinations.svg' title='Destinations' />
           <Link href='/destinations/add/setup'>
-            <AddDestinationLink>Add Destination</AddDestinationLink>
+            <AddDestinationLink><span>&#43;</span>Add Destination</AddDestinationLink>
           </Link>
         </DestinationsHeaderContainer>
         <TableHeader>
@@ -121,7 +133,7 @@ const Destinations = () => {
                         <FormattedTime time={item.created} />
                       </TableContentText>
                       <TableContentText>
-                        <button onClick={() => handleRemove(item)}>remove</button>
+                        <a onClick={() => handleRemove(item)}>&#x2715;</a>
                       </TableContentText>
                     </TableContent>
                   )
