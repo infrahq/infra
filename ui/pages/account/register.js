@@ -65,9 +65,7 @@ const Register = () => {
               type='password'
             />
           </AccessKeyInputContainer>
-          <section>
-            <ActionButton onClick={handleLogin} value='Login' />
-          </section>
+          <ActionButton onClick={handleLogin} value='Login' />
         </Content>
       </RegisterContainer>
     </>
