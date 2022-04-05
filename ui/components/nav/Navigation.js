@@ -44,7 +44,7 @@ const NavItem = styled.a`
 `
 
 const Navigation = () => {
-  const page = Object.freeze({ access: '/', infrastructure: '/infrastructure', provider: '/providers' })
+  const page = Object.freeze({ access: '/', destinations: '/destinations', provider: '/providers' })
 
   const router = useRouter()
   const pathname = router.pathname
@@ -57,8 +57,8 @@ const Navigation = () => {
           <Link href='/'>
             <NavItem selected={pathname === page.access}>Access</NavItem>
           </Link>
-          <Link href='/infrastructure'>
-            <NavItem selected={pathname === page.infrastructure}>Infrastructure</NavItem>
+          <Link href='/destinations'>
+            <NavItem selected={pathname === page.destinations}>Destinations</NavItem>
           </Link>
           <Link href='/providers'>
             <NavItem selected={pathname === page.provider}>Identity providers</NavItem>

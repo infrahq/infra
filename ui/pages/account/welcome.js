@@ -1,5 +1,6 @@
 import styled from 'styled-components'
 import { useContext } from 'react'
+import Head from 'next/head'
 
 import AccountHeader from '../../components/AccountHeader'
 import ActionButton from '../../components/ActionButton'
@@ -29,19 +30,24 @@ const Welcome = () => {
   }
 
   return (
-    <WelcomeContainer>
-      <div>
-        <AccountHeader
-          header='Welcome to Infra'
-          subheader='Infra has been successfully installed. Please click Get Started below to obtain your Infra Access Key.'
-        />
-        <WelcomeImg src='/welcome.svg' />
-        <ActionButton
-          onClick={handleSetup}
-          value='Get Started'
-        />
-      </div>
-    </WelcomeContainer>
+    <>
+      <Head>
+        <title>Infra - Welcome</title>
+      </Head>
+      <WelcomeContainer>
+        <div>
+          <AccountHeader
+            header='Welcome to Infra'
+            subheader='Infra has been successfully installed. Please click Get Started below to obtain your Infra Access Key.'
+          />
+          <WelcomeImg src='/welcome.svg' />
+          <ActionButton
+            onClick={handleSetup}
+            value='Get Started'
+          />
+        </div>
+      </WelcomeContainer>
+    </>
   )
 }
 

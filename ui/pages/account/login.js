@@ -1,6 +1,7 @@
 import styled from 'styled-components'
 import Link from 'next/link'
 import Router from 'next/router'
+import Head from 'next/head'
 import { useContext, useEffect } from 'react'
 
 import AccountHeader from '../../components/AccountHeader'
@@ -80,28 +81,33 @@ const Login = () => {
   }, [])
 
   return (
-    <LoginContainer>
-      <Content>
-        {hasRedirected
-          ? (<></>)
-          : (
-            <>
-              <AccountHeader
-                header='Login to Infra'
-                subheader='Securely manage access to your infrastructure. Take a moment to create your account and start managing access today.'
-              />
-              <LoginIdentityProviderList>
-                <IdentityProviderButton providers={providerWithType} />
-              </LoginIdentityProviderList>
-              <HelpContainer>
-                <span>Having trouble logging in?</span>
-                <Link href='/account/register'>
-                  <a>Use API Access Key</a>
-                </Link>
-              </HelpContainer>
-            </>)}
-      </Content>
-    </LoginContainer>
+    <>
+      <Head>
+        <title>Infra - Login</title>
+      </Head>
+      <LoginContainer>
+        <Content>
+          {hasRedirected
+            ? (<></>)
+            : (
+              <>
+                <AccountHeader
+                  header='Login to Infra'
+                  subheader='Securely manage access to your infrastructure. Take a moment to create your account and start managing access today.'
+                />
+                <LoginIdentityProviderList>
+                  <IdentityProviderButton providers={providerWithType} />
+                </LoginIdentityProviderList>
+                <HelpContainer>
+                  <span>Having trouble logging in?</span>
+                  <Link href='/account/register'>
+                    <a>Use API Access Key</a>
+                  </Link>
+                </HelpContainer>
+              </>)}
+        </Content>
+      </LoginContainer>
+    </>
   )
 }
 

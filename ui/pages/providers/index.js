@@ -1,15 +1,16 @@
+import Head from 'next/head'
 import Router from 'next/router'
 import { useContext, useEffect, useState } from 'react'
 import styled from 'styled-components'
 import axios from 'axios'
 
-import Navigation from '../components/nav/Navigation'
-import PageHeader from '../components/PageHeader'
+import Navigation from '../../components/nav/Navigation'
+import PageHeader from '../../components/PageHeader'
 
-import AuthContext from '../store/AuthContext'
-import FormattedTime from '../components/FormattedTime'
-import IdentityProvider from '../components/IdentityProvider'
-import EmptyPageHeader from '../components/EmptyPageHeader'
+import AuthContext from '../../store/AuthContext'
+import FormattedTime from '../../components/FormattedTime'
+import IdentityProvider from '../../components/IdentityProvider'
+import EmptyPageHeader from '../../components/EmptyPageHeader'
 
 const ProvidersHeaderContainer = styled.div`
   padding-top: 3rem;
@@ -82,6 +83,9 @@ const Providers = () => {
 
   return (
     <div>
+      <Head>
+        <title>Infra - Providers</title>
+      </Head>
       <Navigation />
       <div>
         <ProvidersHeaderContainer>
