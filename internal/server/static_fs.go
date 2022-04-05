@@ -3,6 +3,7 @@ package server
 import (
 	"net/http"
 	"os"
+	"path"
 	"strings"
 )
 
@@ -11,6 +12,7 @@ type StaticFileSystem struct {
 }
 
 func (sfs StaticFileSystem) Open(name string) (http.File, error) {
+	name = path.Join("ui", name)
 	f, err := sfs.base.Open(name)
 	if err != nil && !os.IsNotExist(err) {
 		return nil, err

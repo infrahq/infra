@@ -9,7 +9,7 @@ import (
 
 func TestStaticFileSystemOpensFile(t *testing.T) {
 	fs := afero.NewHttpFs(afero.NewMemMapFs())
-	_, err := fs.Create("dashboard.html")
+	_, err := fs.Create("ui/dashboard.html")
 	assert.NilError(t, err)
 
 	sfs := &StaticFileSystem{
@@ -26,7 +26,7 @@ func TestStaticFileSystemOpensFile(t *testing.T) {
 
 func TestStaticFileSystemAppendDotHtml(t *testing.T) {
 	fs := afero.NewHttpFs(afero.NewMemMapFs())
-	_, err := fs.Create("dashboard.html")
+	_, err := fs.Create("ui/dashboard.html")
 	assert.NilError(t, err)
 
 	sfs := &StaticFileSystem{
