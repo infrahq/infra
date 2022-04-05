@@ -39,7 +39,7 @@ type loginMethod int8
 const (
 	localLogin loginMethod = iota
 	accessKeyLogin
-	providerLogin
+	oidcLogin
 )
 
 const cliLoginRedirectURL = "http://localhost:8301"
@@ -146,7 +146,7 @@ func login(options loginCmdOptions) error {
 			if err != nil {
 				return err
 			}
-		case providerLogin:
+		case oidcLogin:
 			loginReq.OIDC, err = loginToProvider(provider)
 			if err != nil {
 				return err
@@ -207,6 +207,16 @@ func relogin() error {
 func loginToInfra(client *api.Client, loginReq *api.LoginRequest) error {
 	loginRes, err := client.Login(loginReq)
 	if err != nil {
+		if errors.Is(err, api.ErrUnauthorized) {
+			switch {
+			case loginReq.AccessKey != "":
+				return &FailedLoginError{getLoggedInIdentityName(), accessKeyLogin}
+			case loginReq.PasswordCredentials != nil:
+				return &FailedLoginError{getLoggedInIdentityName(), localLogin}
+			case loginReq.OIDC != nil:
+				return &FailedLoginError{getLoggedInIdentityName(), oidcLogin}
+			}
+		}
 		return err
 	}
 
@@ -584,7 +594,7 @@ func promptLoginOptions(client *api.Client) (loginMethod loginMethod, provider *
 	case providers[i].Name == models.InternalInfraProviderName:
 		return localLogin, &providers[i], nil
 	default:
-		return providerLogin, &providers[i], nil
+		return oidcLogin, &providers[i], nil
 	}
 }
 
