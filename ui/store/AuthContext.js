@@ -82,7 +82,7 @@ export const AuthContextProvider = ({ children }) => {
 
   const redirectToDashboard = async (loginInfor) => {
     setUser({
-      id: loginInfor.polymorphicId,
+      id: loginInfor.polymorphicID,
       name: loginInfor.name
     })
     setAuthReady(true)

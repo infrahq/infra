@@ -206,7 +206,7 @@ func buildProperty(f reflect.StructField, t, parent reflect.Type, parentSchema *
 
 		for i := 0; i < t.NumField(); i++ {
 			f2 := t.Field(i)
-			s.Properties[f2.Name] = buildProperty(f2, f2.Type, t, s)
+			s.Properties[getFieldName(f2, t)] = buildProperty(f2, f2.Type, t, s)
 		}
 	}
 
