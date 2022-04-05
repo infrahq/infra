@@ -19,9 +19,7 @@ var (
 	CookieMaxAgeNoExpiry                  = int(0)  // zero has special meaning of "no expiry"
 )
 
-func setAuthCookie(c *gin.Context, key string, sessionDuration time.Duration) {
-	expires := time.Now().Add(sessionDuration).UTC()
-
+func setAuthCookie(c *gin.Context, key string, expires time.Time) {
 	maxAge := int(time.Until(expires).Seconds())
 	if maxAge == CookieMaxAgeNoExpiry {
 		maxAge = CookieMaxAgeDeleteImmediately

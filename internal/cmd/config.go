@@ -6,7 +6,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -24,11 +26,16 @@ type ClientHostConfig struct {
 	AccessKey     string            `json:"access-key,omitempty"`
 	SkipTLSVerify bool              `json:"skip-tls-verify"` // where is the other cert info stored?
 	ProviderID    uid.ID            `json:"provider-id"`
+	Expires       api.Time          `json:"expires"`
 	Current       bool              `json:"current"`
 }
 
 func (c *ClientHostConfig) isLoggedIn() bool {
 	return c.AccessKey != ""
+}
+
+func (c *ClientHostConfig) isExpired() bool {
+	return time.Now().After(time.Time(c.Expires))
 }
 
 func (c ClientConfig) HostNames() []string {

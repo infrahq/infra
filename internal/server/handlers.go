@@ -496,7 +496,39 @@ func (a *API) Setup(c *gin.Context, _ *api.EmptyRequest) (*api.CreateAccessKeyRe
 }
 
 func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, error) {
+	expires := time.Now().Add(a.server.options.SessionDuration)
+
 	switch {
+	case r.AccessKey != "":
+		key, identity, err := access.ExchangeAccessKey(c, r.AccessKey, expires)
+		if err != nil {
+			return nil, err
+		}
+
+		setAuthCookie(c, key, expires)
+
+		if a.t != nil {
+			if err := a.t.Enqueue(analytics.Track{Event: "infra.login.exchange", UserId: identity.ID.String()}); err != nil {
+				logging.S.Debug(err)
+			}
+		}
+
+		return &api.LoginResponse{PolymorphicID: identity.PolyID(), Name: identity.Name, AccessKey: key, Expires: api.Time(expires)}, nil
+	case r.PasswordCredentials != nil:
+		key, user, requiresUpdate, err := access.LoginWithUserCredential(c, r.PasswordCredentials.Email, r.PasswordCredentials.Password, expires)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %v", internal.ErrUnauthorized, err.Error())
+		}
+
+		setAuthCookie(c, key, expires)
+
+		if a.t != nil {
+			if err := a.t.Enqueue(analytics.Track{Event: "infra.login.credentials", UserId: user.ID.String()}); err != nil {
+				logging.S.Debug(err)
+			}
+		}
+
+		return &api.LoginResponse{PolymorphicID: user.PolyID(), Name: user.Name, AccessKey: key, Expires: api.Time(expires), PasswordUpdateRequired: requiresUpdate}, nil
 	case r.OIDC != nil:
 		provider, err := access.GetProvider(c, r.OIDC.ProviderID)
 		if err != nil {
@@ -508,12 +540,12 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 			return nil, err
 		}
 
-		user, key, err := access.ExchangeAuthCodeForAccessKey(c, r.OIDC.Code, provider, oidc, a.server.options.SessionDuration, r.OIDC.RedirectURL)
+		user, key, err := access.ExchangeAuthCodeForAccessKey(c, r.OIDC.Code, provider, oidc, expires, r.OIDC.RedirectURL)
 		if err != nil {
 			return nil, err
 		}
 
-		setAuthCookie(c, key, a.server.options.SessionDuration)
+		setAuthCookie(c, key, expires)
 
 		if a.t != nil {
 			if err := a.t.Enqueue(analytics.Track{Event: "infra.login.oidc", UserId: user.ID.String()}); err != nil {
@@ -521,41 +553,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 			}
 		}
 
-		return &api.LoginResponse{PolymorphicID: user.PolyID(), Name: user.Name, AccessKey: key}, nil
-	case r.AccessKey != "":
-		expires := time.Now().Add(a.server.options.SessionDuration).UTC()
-
-		key, identity, err := access.ExchangeAccessKey(c, r.AccessKey, expires)
-		if err != nil {
-			return nil, err
-		}
-
-		setAuthCookie(c, key, a.server.options.SessionDuration)
-
-		if a.t != nil {
-			if err := a.t.Enqueue(analytics.Track{Event: "infra.login.exchange", UserId: identity.ID.String()}); err != nil {
-				logging.S.Debug(err)
-			}
-		}
-
-		return &api.LoginResponse{PolymorphicID: identity.PolyID(), Name: identity.Name, AccessKey: key}, nil
-	case r.PasswordCredentials != nil:
-		expires := time.Now().Add(a.server.options.SessionDuration).UTC()
-
-		key, user, requiresUpdate, err := access.LoginWithUserCredential(c, r.PasswordCredentials.Email, r.PasswordCredentials.Password, expires)
-		if err != nil {
-			return nil, fmt.Errorf("%w: %v", internal.ErrUnauthorized, err.Error())
-		}
-
-		setAuthCookie(c, key, a.server.options.SessionDuration)
-
-		if a.t != nil {
-			if err := a.t.Enqueue(analytics.Track{Event: "infra.login.credentials", UserId: user.ID.String()}); err != nil {
-				logging.S.Debug(err)
-			}
-		}
-
-		return &api.LoginResponse{PolymorphicID: user.PolyID(), Name: user.Name, AccessKey: key, PasswordUpdateRequired: requiresUpdate}, nil
+		return &api.LoginResponse{PolymorphicID: user.PolyID(), Name: user.Name, AccessKey: key, Expires: api.Time(expires)}, nil
 	}
 
 	return nil, api.ErrBadRequest

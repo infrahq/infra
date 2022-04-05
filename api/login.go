@@ -24,4 +24,5 @@ type LoginResponse struct {
 	Name                   string            `json:"name"`
 	AccessKey              string            `json:"accessKey"`
 	PasswordUpdateRequired bool              `json:"passwordUpdateRequired,omitempty"`
+	Expires                Time              `json:"expires"`
 }
