@@ -67,7 +67,7 @@ func newGrantAddCmd() *cobra.Command {
 
 			if len(args) == 1 {
 				if options.Identity != "" {
-					fmt.Fprintf(os.Stderr, fmt.Sprintf(CmdOptionOverlapMsg, "Identity", "--identity", args[0]))
+					fmt.Fprintf(os.Stderr, CmdOptionOverlapMsg, "Identity", "--identity", args[0])
 				}
 				options.Identity = args[0]
 			} else if len(args) == 0 && options.Identity == "" {
@@ -141,7 +141,7 @@ func addGrant(cmdOptions grantsCmdOptionsNew) error {
 		}
 	case models.MachineKind:
 		if cmdOptions.Provider != "" {
-			logging.S.Debug("machine must be a local identity; overwriting --provider with %s", models.InternalInfraProviderName)
+			logging.S.Debugf("machine must be a local identity; overwriting --provider with %s", models.InternalInfraProviderName)
 		}
 
 		providers, err := client.ListProviders(models.InternalInfraProviderName)
@@ -201,7 +201,7 @@ func addGrant(cmdOptions grantsCmdOptionsNew) error {
 		case 1:
 			id = uid.NewIdentityPolymorphicID(identities[0].ID)
 		case 2:
-			panic(fmt.Sprintf(fmt.Sprintf(DuplicateEntryPanic, "identity", cmdOptions.Identity)))
+			panic(fmt.Sprintf(DuplicateEntryPanic, "identity", cmdOptions.Identity))
 		}
 	default:
 		panic("kind must be either user, machine, or group")
