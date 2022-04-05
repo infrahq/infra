@@ -3,9 +3,10 @@ package data
 import (
 	"testing"
 
-	"github.com/infrahq/infra/internal/server/models"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
+
+	"github.com/infrahq/infra/internal/server/models"
 )
 
 func TestDuplicateGrant(t *testing.T) {

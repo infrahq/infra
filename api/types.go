@@ -48,6 +48,10 @@ func (t Time) Format(layout string) string {
 	return time.Time(t).Format(layout)
 }
 
+func (t Time) Equal(other Time) bool {
+	return time.Time(t).Equal(time.Time(other))
+}
+
 type Duration time.Duration
 
 func (d Duration) MarshalJSON() ([]byte, error) {

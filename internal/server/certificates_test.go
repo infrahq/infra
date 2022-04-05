@@ -11,10 +11,11 @@ import (
 	"testing"
 	"time"
 
+	"gotest.tools/v3/assert"
+
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/pki"
 	"github.com/infrahq/infra/uid"
-	"gotest.tools/v3/assert"
 )
 
 func TestCertificateSigningWorks(t *testing.T) {

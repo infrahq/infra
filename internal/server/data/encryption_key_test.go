@@ -3,8 +3,9 @@ package data
 import (
 	"testing"
 
-	"github.com/infrahq/infra/internal/server/models"
 	"gotest.tools/v3/assert"
+
+	"github.com/infrahq/infra/internal/server/models"
 )
 
 func TestEncryptionKeys(t *testing.T) {
