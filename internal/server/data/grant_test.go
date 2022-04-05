@@ -11,7 +11,7 @@ import (
 func TestDuplicateGrant(t *testing.T) {
 	db := setup(t)
 	g := models.Grant{
-		Subject:   "u:1234567",
+		Subject:   "i:1234567",
 		Privilege: "view",
 		Resource:  "infra",
 	}
@@ -23,7 +23,7 @@ func TestDuplicateGrant(t *testing.T) {
 	err = CreateGrant(db, &g2)
 	require.NoError(t, err)
 
-	grants, err := ListGrants(db, BySubject("u:1234567"), ByResource("infra"))
+	grants, err := ListGrants(db, BySubject("i:1234567"), ByResource("infra"))
 	require.NoError(t, err)
 	require.Len(t, grants, 1)
 }

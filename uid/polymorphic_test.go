@@ -7,15 +7,15 @@ import (
 )
 
 func TestPolyMorphicIDToSnowflakeID(t *testing.T) {
-	mID := New()
-	mPID := NewMachinePolymorphicID(mID)
-	fromMachinePID, err := mPID.ID()
+	id := New()
+	iPID := NewIdentityPolymorphicID(id)
+	fromIdentityPID, err := iPID.ID()
 	assert.NoError(t, err)
 
-	assert.Equal(t, mID, fromMachinePID)
+	assert.Equal(t, id, fromIdentityPID)
 
 	uID := New()
-	uPID := NewUserPolymorphicID(uID)
+	uPID := NewIdentityPolymorphicID(uID)
 	fromUserPID, err := uPID.ID()
 	assert.NoError(t, err)
 

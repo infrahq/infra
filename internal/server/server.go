@@ -12,6 +12,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"os"
@@ -26,6 +27,7 @@ import (
 	"github.com/goware/urlx"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/crypto/acme/autocert"
+	"golang.org/x/sync/errgroup"
 	"gopkg.in/square/go-jose.v2"
 	"gorm.io/gorm"
 
@@ -51,7 +53,7 @@ type Options struct {
 	EnableSetup          bool          `mapstructure:"enableSetup"`
 	SessionDuration      time.Duration `mapstructure:"sessionDuration"`
 
-	DBFile                  string `mapstructure:"dbFile" `
+	DBFile                  string `mapstructure:"dbFile"`
 	DBEncryptionKey         string `mapstructure:"dbEncryptionKey"`
 	DBEncryptionKeyProvider string `mapstructure:"dbEncryptionKeyProvider"`
 	DBHost                  string `mapstructure:"dbHost" `
@@ -71,6 +73,14 @@ type Options struct {
 	InitialRootCACert           string `mapstructure:"initialRootCACert"`
 	InitialRootCAPublicKey      string `mapstructure:"initialRootCAPublicKey"`
 	FullKeyRotationInDays       int    `mapstructure:"fullKeyRotationInDays"` // 365 default
+
+	Addr ListenerOptions `mapstructure:"addr"`
+}
+
+type ListenerOptions struct {
+	HTTP    string
+	HTTPS   string
+	Metrics string
 }
 
 type Server struct {
@@ -80,72 +90,74 @@ type Server struct {
 	secrets             map[string]secrets.SecretStorage
 	keys                map[string]secrets.SymmetricKeyProvider
 	certificateProvider pki.CertificateProvider
+	Addrs               Addrs
+	routines            []func() error
 }
 
-func Run(options Options) (err error) {
-	// nolint: errcheck // if logs won't sync there is no way to report this error
-	defer logging.L.Sync()
+type Addrs struct {
+	HTTP    net.Addr
+	HTTPS   net.Addr
+	Metrics net.Addr
+}
+
+func New(options Options) (*Server, error) {
 	server := &Server{
 		options: options,
 	}
 
 	if err := validate.Struct(options); err != nil {
-		return fmt.Errorf("invalid options: %w", err)
+		return nil, fmt.Errorf("invalid options: %w", err)
 	}
 
 	if err, ok := server.configureSentry(); ok {
 		defer recoverWithSentryHub(sentry.CurrentHub())
 	} else if err != nil {
-		return fmt.Errorf("configure sentry: %w", err)
+		return nil, fmt.Errorf("configure sentry: %w", err)
 	}
 
 	if err := server.importSecrets(); err != nil {
-		return fmt.Errorf("secrets config: %w", err)
+		return nil, fmt.Errorf("secrets config: %w", err)
 	}
 
 	if err := server.importSecretKeys(); err != nil {
-		return fmt.Errorf("key config: %w", err)
+		return nil, fmt.Errorf("key config: %w", err)
 	}
 
 	driver, err := server.getDatabaseDriver()
 	if err != nil {
-		return fmt.Errorf("driver: %w", err)
+		return nil, fmt.Errorf("driver: %w", err)
 	}
 
 	server.db, err = data.NewDB(driver)
 	if err != nil {
-		return fmt.Errorf("db: %w", err)
+		return nil, fmt.Errorf("db: %w", err)
 	}
 
 	if err = server.loadDBKey(); err != nil {
-		return fmt.Errorf("loading database key: %w", err)
+		return nil, fmt.Errorf("loading database key: %w", err)
 	}
 
 	if err = server.loadCertificates(); err != nil {
-		return fmt.Errorf("loading certificate provider: %w", err)
+		return nil, fmt.Errorf("loading certificate provider: %w", err)
 	}
 
 	if options.EnableTelemetry {
 		if err := configureTelemetry(server.db); err != nil {
-			return fmt.Errorf("configuring telemetry: %w", err)
+			return nil, fmt.Errorf("configuring telemetry: %w", err)
 		}
 	}
 
 	if err := SetupMetrics(server.db); err != nil {
-		return fmt.Errorf("configuring metrics: %w", err)
-	}
-
-	if err := os.MkdirAll(server.options.TLSCache, os.ModePerm); err != nil {
-		return fmt.Errorf("mkdir: %w", err)
+		return nil, fmt.Errorf("configuring metrics: %w", err)
 	}
 
 	if err := server.importAccessKeys(); err != nil {
-		return fmt.Errorf("importing access keys: %w", err)
+		return nil, fmt.Errorf("importing access keys: %w", err)
 	}
 
 	settings, err := data.InitializeSettings(server.db, server.setupRequired())
 	if err != nil {
-		return fmt.Errorf("settings: %w", err)
+		return nil, fmt.Errorf("settings: %w", err)
 	}
 
 	sentry.ConfigureScope(func(scope *sentry.Scope) {
@@ -153,14 +165,30 @@ func Run(options Options) (err error) {
 	})
 
 	if err := loadConfig(server.db, server.options.Config); err != nil {
-		return fmt.Errorf("configs: %w", err)
+		return nil, fmt.Errorf("configs: %w", err)
 	}
 
-	if err := server.runServer(); err != nil {
-		return fmt.Errorf("running server: %w", err)
+	if err := server.listen(); err != nil {
+		return nil, fmt.Errorf("listening: %w", err)
+	}
+	return server, nil
+}
+
+func (s *Server) Run(ctx context.Context) error {
+	// nolint: errcheck // if logs won't sync there is no way to report this error
+	defer logging.L.Sync()
+
+	// TODO: start telemetry goroutine here as well
+
+	group, _ := errgroup.WithContext(ctx)
+	for i := range s.routines {
+		group.Go(s.routines[i])
 	}
 
-	return logging.L.Sync()
+	logging.S.Infof("starting infra (%s) - http:%s https:%s metrics:%s",
+		internal.Version, s.Addrs.HTTP, s.Addrs.HTTPS, s.Addrs.Metrics)
+
+	return group.Wait()
 }
 
 func configureTelemetry(db *gorm.DB) error {
@@ -269,12 +297,6 @@ func (s *Server) loadCertificates() (err error) {
 	return nil
 }
 
-func serve(server *http.Server) {
-	if err := server.ListenAndServe(); err != nil {
-		logging.S.Errorf("server: %s", err)
-	}
-}
-
 func (s *Server) wellKnownJWKsHandler(c *gin.Context) {
 	settings, err := data.GetSettings(s.db)
 	if err != nil {
@@ -365,7 +387,7 @@ func (s *Server) GenerateRoutes() *gin.Engine {
 	return router
 }
 
-func (s *Server) runServer() error {
+func (s *Server) listen() error {
 	ginutil.SetMode()
 	router := s.GenerateRoutes()
 
@@ -379,23 +401,25 @@ func (s *Server) runServer() error {
 	})
 
 	metricsServer := &http.Server{
-		Addr:     ":9090",
+		Addr:     s.options.Addr.Metrics,
 		Handler:  metrics,
 		ErrorLog: logging.StandardErrorLog(),
 	}
 
-	go serve(metricsServer)
+	var err error
+	s.Addrs.Metrics, err = s.setupServer(metricsServer)
+	if err != nil {
+		return err
+	}
 
 	plaintextServer := &http.Server{
-		Addr:     ":80",
+		Addr:     s.options.Addr.HTTP,
 		Handler:  router,
 		ErrorLog: logging.StandardErrorLog(),
 	}
-
-	go serve(plaintextServer)
-
-	if err := os.MkdirAll(s.options.TLSCache, os.ModePerm); err != nil {
-		return fmt.Errorf("create tls cache: %w", err)
+	s.Addrs.HTTP, err = s.setupServer(plaintextServer)
+	if err != nil {
+		return err
 	}
 
 	tlsConfig, err := s.serverTLSConfig()
@@ -404,19 +428,37 @@ func (s *Server) runServer() error {
 	}
 
 	tlsServer := &http.Server{
-		Addr:      ":443",
+		Addr:      s.options.Addr.HTTPS,
 		TLSConfig: tlsConfig,
 		Handler:   router,
 		ErrorLog:  logging.StandardErrorLog(),
 	}
-
-	logging.S.Infof("starting infra (%s) - http:%s https:%s metrics:%s", internal.Version, plaintextServer.Addr, tlsServer.Addr, metricsServer.Addr)
-
-	if err := tlsServer.ListenAndServeTLS("", ""); err != nil {
+	s.Addrs.HTTPS, err = s.setupServer(tlsServer)
+	if err != nil {
 		return err
 	}
-
 	return nil
+}
+
+func (s *Server) setupServer(server *http.Server) (net.Addr, error) {
+	l, err := net.Listen("tcp", server.Addr)
+	if err != nil {
+		return nil, err
+	}
+
+	s.routines = append(s.routines, func() error {
+		var err error
+		if server.TLSConfig == nil {
+			err = server.Serve(l)
+		} else {
+			err = server.ServeTLS(l, "", "")
+		}
+		if !errors.Is(err, http.ErrServerClosed) {
+			return err
+		}
+		return nil
+	})
+	return l.Addr(), nil
 }
 
 func (s *Server) serverTLSConfig() (*tls.Config, error) {
@@ -465,6 +507,10 @@ func (s *Server) serverTLSConfig() (*tls.Config, error) {
 			},
 		}, nil
 	default: // "none" or blank
+		if err := os.MkdirAll(s.options.TLSCache, 0o700); err != nil {
+			return nil, fmt.Errorf("create tls cache: %w", err)
+		}
+
 		manager := &autocert.Manager{
 			Prompt: autocert.AcceptTOS,
 			Cache:  autocert.DirCache(s.options.TLSCache),
@@ -615,11 +661,11 @@ func (s *Server) setupRequired() bool {
 		return false
 	}
 
-	machines, err := data.ListMachines(s.db, data.ByName("admin"))
+	identities, err := data.ListIdentities(s.db, data.ByName("admin"))
 	if err != nil {
-		logging.S.Errorf("failed to list machines: %v", err)
+		logging.S.Errorf("failed to list identities: %v", err)
 		return false
 	}
 
-	return len(machines) == 0
+	return len(identities) == 0
 }

@@ -3,6 +3,7 @@ package data
 import (
 	"gorm.io/gorm"
 
+	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -46,16 +47,6 @@ func ByUniqueID(nodeID string) SelectorFunc {
 	}
 }
 
-func ByEmail(email string) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		if len(email) > 0 {
-			return db.Where("email = ?", email)
-		}
-
-		return db
-	}
-}
-
 func ByProviderID(id uid.ID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		if id == 0 {
@@ -92,42 +83,30 @@ func BySubject(polymorphicID uid.PolymorphicID) SelectorFunc {
 	}
 }
 
-func ByIdentity(polymorphicID uid.PolymorphicID) SelectorFunc {
+func ByIssuedFor(id uid.ID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
-		if polymorphicID == "" {
+		if id == 0 {
 			return db
 		}
 
-		return db.Where("identity = ?", string(polymorphicID))
+		return db.Where("issued_for = ?", id)
 	}
 }
 
-func ByMachineIDIssuedFor(machineID uid.ID) SelectorFunc {
+func ByIdentityID(identityID uid.ID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
-		if machineID == 0 {
-			return db
-		}
-
-		return db.Where("issued_for = ?", uid.NewMachinePolymorphicID(machineID))
+		return db.Where("identity_id = ?", identityID)
 	}
 }
 
-func ByUserIDIssuedFor(userID uid.ID) SelectorFunc {
+func ByIdentityKind(kind models.IdentityKind) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
-		if userID == 0 {
-			return db
-		}
-
-		return db.Where("issued_for = ?", uid.NewUserPolymorphicID(userID))
+		return db.Where("identity_kind = ?", kind)
 	}
 }
 
 func ByUserID(userID uid.ID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
-		if userID == 0 {
-			return db
-		}
-
 		return db.Where("user_id = ?", userID)
 	}
 }

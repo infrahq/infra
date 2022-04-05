@@ -4,33 +4,35 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-type User struct {
+type Identity struct {
 	ID         uid.ID `json:"id"`
-	Email      string `json:"email" validate:"email,required"`
 	Created    Time   `json:"created"`
 	Updated    Time   `json:"updated"`
 	LastSeenAt Time   `json:"lastSeenAt"`
+	Name       string `json:"name" validate:"required"`
+	Kind       string `json:"kind" validate:"required"`
 	ProviderID uid.ID `json:"providerID"`
 }
 
-type ListUsersRequest struct {
-	Email      string `form:"email"`
+type ListIdentitiesRequest struct {
+	Name       string `form:"name"`
 	ProviderID uid.ID `form:"provider_id"`
 }
 
-type CreateUserRequest struct {
-	Email      string `json:"email" validate:"email,required"`
+type CreateIdentityRequest struct {
+	Name       string `json:"name" validate:"required"`
+	Kind       string `json:"kind" validate:"required,oneof=user machine"`
 	ProviderID uid.ID `json:"providerID" validate:"required"`
 }
 
-type UpdateUserRequest struct {
+type UpdateIdentityRequest struct {
 	ID       uid.ID `uri:"id" json:"-" validate:"required"`
 	Password string `json:"password" validate:"required,min=8"`
 }
 
-type CreateUserResponse struct {
+type CreateIdentityResponse struct {
 	ID              uid.ID `json:"id"`
-	Email           string `json:"email" validate:"email,required"`
+	Name            string `json:"name" validate:"required"`
 	ProviderID      uid.ID `json:"providerID" validate:"required"`
 	OneTimePassword string `json:"oneTimePassword,omitempty"`
 }

@@ -2,12 +2,15 @@
   "bump-minor-pre-major": true,
   "bump-patch-for-minor-pre-major": true,
   "pull-request-title-pattern": "maintain${scope}: release${component} ${version}",
+  "label": "autorelease/pending",
+  "release-label": "autorelease/tagged",
   "packages": {
     ".": {
       "release-type": "go",
       "extra-files": [
         "helm/charts/infra/Chart.yaml",
-        "internal/version.go"
+        "internal/version.go",
+        "docs/Operator Guides/upgrading-infra.md"
       ]
     }
   }

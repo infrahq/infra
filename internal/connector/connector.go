@@ -189,8 +189,7 @@ func jwtMiddleware(getJWK getJWKFunc) gin.HandlerFunc {
 			return
 		}
 
-		c.Set("email", claims.Email)
-		c.Set("machine", claims.Machine)
+		c.Set("name", claims.Name)
 		c.Set("groups", claims.Groups)
 		c.Set("provider", claims.Provider)
 
@@ -200,17 +199,9 @@ func jwtMiddleware(getJWK getJWKFunc) gin.HandlerFunc {
 
 func proxyMiddleware(proxy *httputil.ReverseProxy, bearerToken string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		email, ok := c.MustGet("email").(string)
+		name, ok := c.MustGet("name").(string)
 		if !ok {
-			logging.S.Debug("required field 'email' not found")
-			c.AbortWithStatus(http.StatusUnauthorized)
-
-			return
-		}
-
-		machine, ok := c.MustGet("machine").(string)
-		if !ok {
-			logging.S.Debug("required field 'machine' not found")
+			logging.S.Debug("required field 'name' not found")
 			c.AbortWithStatus(http.StatusUnauthorized)
 
 			return
@@ -224,12 +215,9 @@ func proxyMiddleware(proxy *httputil.ReverseProxy, bearerToken string) gin.Handl
 			return
 		}
 
-		switch {
-		case email != "":
-			c.Request.Header.Set("Impersonate-User", email)
-		case machine != "":
-			c.Request.Header.Set("Impersonate-User", fmt.Sprintf("machine:%s", machine))
-		default:
+		if name != "" {
+			c.Request.Header.Set("Impersonate-User", name)
+		} else {
 			logging.S.Debug("unable to determine identity")
 			c.AbortWithStatus(http.StatusUnauthorized)
 
@@ -273,21 +261,13 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 
 			name = group.Name
 			kind = rbacv1.GroupKind
-		case g.Subject.IsUser():
-			user, err := c.GetUser(id)
+		case g.Subject.IsIdentity():
+			identity, err := c.GetIdentity(id)
 			if err != nil {
 				return err
 			}
 
-			name = user.Email
-			kind = rbacv1.UserKind
-		case g.Subject.IsMachine():
-			machine, err := c.GetMachine(id)
-			if err != nil {
-				return err
-			}
-
-			name = fmt.Sprintf("machine:%s", machine.Name)
+			name = identity.Name
 			kind = rbacv1.UserKind
 		}
 

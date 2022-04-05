@@ -26,8 +26,8 @@ func DeleteCredential(db *gorm.DB, id uid.ID) error {
 	return delete[models.Credential](db, id)
 }
 
-func ValidateCredential(db *gorm.DB, user *models.User, password string) (bool, error) {
-	userCredential, err := GetCredential(db, ByIdentity(user.PolyID()))
+func ValidateCredential(db *gorm.DB, user *models.Identity, password string) (bool, error) {
+	userCredential, err := GetCredential(db, ByIdentityID(user.ID))
 	if err != nil {
 		return false, fmt.Errorf("validate creds get user: %w", err)
 	}

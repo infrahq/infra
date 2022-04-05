@@ -32,19 +32,13 @@ func (a *API) registerRoutes(router *gin.Engine) {
 	authorized := v1.Group("/", AuthenticationMiddleware())
 
 	{
-		get(authorized, "/users", a.ListUsers)
-		post(authorized, "/users", a.CreateUser)
-		get(authorized, "/users/:id", a.GetUser)
-		put(authorized, "/users/:id", a.UpdateUser)
-		delete(authorized, "/users/:id", a.DeleteUser)
-		get(authorized, "/users/:id/groups", a.ListUserGroups)
-		get(authorized, "/users/:id/grants", a.ListUserGrants)
-
-		get(authorized, "/machines", a.ListMachines)
-		post(authorized, "/machines", a.CreateMachine)
-		get(authorized, "/machines/:id", a.GetMachine)
-		delete(authorized, "/machines/:id", a.DeleteMachine)
-		get(authorized, "/machines/:id/grants", a.ListMachineGrants)
+		get(authorized, "/identities", a.ListIdentities)
+		post(authorized, "/identities", a.CreateIdentity)
+		get(authorized, "/identities/:id", a.GetIdentity)
+		put(authorized, "/identities/:id", a.UpdateIdentity)
+		delete(authorized, "/identities/:id", a.DeleteIdentity)
+		get(authorized, "/identities/:id/groups", a.ListIdentityGroups)
+		get(authorized, "/identities/:id/grants", a.ListIdentityGrants)
 
 		get(authorized, "/access-keys", a.ListAccessKeys)
 		post(authorized, "/access-keys", a.CreateAccessKey)
@@ -95,6 +89,20 @@ func (a *API) registerRoutes(router *gin.Engine) {
 	// pprof.Index does not work with a /v1 prefix
 	debug := router.Group("/debug/pprof", AuthenticationMiddleware())
 	debug.GET("/*profile", pprofHandler)
+
+	// TODO: remove after a couple version.
+	v1.GET("/users", removed("v0.9.0"))
+	v1.POST("/users", removed("v0.9.0"))
+	v1.GET("/users/:id", removed("v0.9.0"))
+	v1.PUT("/users/:id", removed("v0.9.0"))
+	v1.DELETE("/users/:id", removed("v0.9.0"))
+	v1.GET("/users/:id/groups", removed("v0.9.0"))
+	v1.GET("/users/:id/grants", removed("v0.9.0"))
+	v1.GET("/machines", removed("v0.9.0"))
+	v1.POST("/machines", removed("v0.9.0"))
+	v1.GET("/machines/:id", removed("v0.9.0"))
+	v1.DELETE("/machines/:id", removed("v0.9.0"))
+	v1.GET("/machines/:id/grants", removed("v0.9.0"))
 }
 
 func get[Req, Res any](r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) {

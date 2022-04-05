@@ -28,48 +28,78 @@ func setupDB(t *testing.T) *gorm.DB {
 	return db
 }
 
+func setupAccessTestContext(t *testing.T) (*gin.Context, *gorm.DB, *models.Provider) {
+	// setup db and context
+	db := setupDB(t)
+
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Set("db", db)
+
+	admin := &models.Identity{Name: "admin@example.com", Kind: models.UserKind}
+	err := data.CreateIdentity(db, admin)
+	require.NoError(t, err)
+
+	c.Set("identity", admin)
+
+	adminGrant := &models.Grant{
+		Subject:   admin.PolyID(),
+		Privilege: models.InfraAdminRole,
+		Resource:  "infra",
+	}
+	err = data.CreateGrant(db, adminGrant)
+	require.NoError(t, err)
+
+	SetupTestSecretProvider(t)
+
+	provider := &models.Provider{Name: models.InternalInfraProviderName}
+	err = data.CreateProvider(db, provider)
+	require.NoError(t, err)
+
+	return c, db, provider
+}
+
 var (
-	tom       = &models.User{Email: "tom@infrahq.com"}
+	tom       = &models.Identity{Name: "tom@infrahq.com", Kind: models.UserKind}
 	tomsGroup = &models.Group{Name: "tom's group"}
 )
 
 func TestBasicGrant(t *testing.T) {
 	db := setupDB(t)
-	err := data.CreateUser(db, tom)
+	err := data.CreateIdentity(db, tom)
 	require.NoError(t, err)
 
-	grant(t, db, tom, "u:steven", "read", "infra.groups.1")
-	can(t, db, "u:steven", "read", "infra.groups.1")
-	cant(t, db, "u:steven", "read", "infra.groups")
-	cant(t, db, "u:steven", "read", "infra.groups.2")
-	cant(t, db, "u:steven", "write", "infra.groups.1")
+	grant(t, db, tom, "i:steven", "read", "infra.groups.1")
+	can(t, db, "i:steven", "read", "infra.groups.1")
+	cant(t, db, "i:steven", "read", "infra.groups")
+	cant(t, db, "i:steven", "read", "infra.groups.2")
+	cant(t, db, "i:steven", "write", "infra.groups.1")
 
-	grant(t, db, tom, "u:bob", "read", "infra.groups")
-	can(t, db, "u:bob", "read", "infra.groups")
-	cant(t, db, "u:bob", "read", "infra.groups.1") // currently we check for exact grant match, this may change as grants evolve
-	cant(t, db, "u:bob", "write", "infra.groups")
+	grant(t, db, tom, "i:bob", "read", "infra.groups")
+	can(t, db, "i:bob", "read", "infra.groups")
+	cant(t, db, "i:bob", "read", "infra.groups.1") // currently we check for exact grant match, this may change as grants evolve
+	cant(t, db, "i:bob", "write", "infra.groups")
 
-	grant(t, db, tom, "u:alice", "read", "infra.machines")
-	can(t, db, "u:alice", "read", "infra.machines")
-	cant(t, db, "u:alice", "read", "infra")
-	cant(t, db, "u:alice", "read", "infra.machines.1")
-	cant(t, db, "u:alice", "write", "infra.machines")
+	grant(t, db, tom, "i:alice", "read", "infra.machines")
+	can(t, db, "i:alice", "read", "infra.machines")
+	cant(t, db, "i:alice", "read", "infra")
+	cant(t, db, "i:alice", "read", "infra.machines.1")
+	cant(t, db, "i:alice", "write", "infra.machines")
 }
 
 func TestUsersGroupGrant(t *testing.T) {
 	db := setupDB(t)
-	err := data.CreateUser(db, tom)
+	err := data.CreateIdentity(db, tom)
 	require.NoError(t, err)
 
 	err = data.CreateGroup(db, tomsGroup)
 	require.NoError(t, err)
 
-	err = data.BindGroupUsers(db, tomsGroup, *tom)
+	err = data.BindGroupIdentities(db, tomsGroup, *tom)
 	require.NoError(t, err)
 
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())
 	c.Set("db", db)
-	c.Set("identity", tom.PolyID())
+	c.Set("identity", tom)
 	c.Set("user", tom)
 
 	grant(t, db, tom, tomsGroup.PolyID(), models.InfraUserRole, "infra")
@@ -87,7 +117,7 @@ func TestUsersGroupGrant(t *testing.T) {
 	assert.NotNil(t, authDB)
 }
 
-func grant(t *testing.T, db *gorm.DB, currentUser *models.User, subject uid.PolymorphicID, privilege, resource string) {
+func grant(t *testing.T, db *gorm.DB, currentUser *models.Identity, subject uid.PolymorphicID, privilege, resource string) {
 	err := data.CreateGrant(db, &models.Grant{
 		Subject:   subject,
 		Privilege: privilege,
@@ -137,9 +167,9 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 					UserGroupsResp: []string{"Everyone", "developers"},
 				}
 			},
-			"verify": func(t *testing.T, user *models.User, sessToken string, err error) {
+			"verify": func(t *testing.T, user *models.Identity, sessToken string, err error) {
 				require.NoError(t, err)
-				require.Equal(t, "newusernewgroups@example.com", user.Email)
+				require.Equal(t, "newusernewgroups@example.com", user.Name)
 				require.NotEmpty(t, sessToken)
 			},
 		},
@@ -159,9 +189,9 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 					UserGroupsResp: []string{"existing1", "existing2"},
 				}
 			},
-			"verify": func(t *testing.T, user *models.User, sessToken string, err error) {
+			"verify": func(t *testing.T, user *models.Identity, sessToken string, err error) {
 				require.NoError(t, err)
-				require.Equal(t, "newuserexistinggroups@example.com", user.Email)
+				require.Equal(t, "newuserexistinggroups@example.com", user.Name)
 				require.NotEmpty(t, sessToken)
 
 				require.Len(t, user.Groups, 2)
@@ -176,7 +206,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 		},
 		"ExistingUserNewGroups": {
 			"setup": func(t *testing.T, db *gorm.DB) authn.OIDC {
-				err := data.CreateUser(db, &models.User{Email: "existingusernewgroups@example.com"})
+				err := data.CreateIdentity(db, &models.Identity{Name: "existingusernewgroups@example.com", Kind: models.UserKind})
 				require.NoError(t, err)
 
 				return &mockOIDCImplementation{
@@ -184,9 +214,9 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 					UserGroupsResp: []string{"existingusernewgroups1", "existingusernewgroups2"},
 				}
 			},
-			"verify": func(t *testing.T, user *models.User, sessToken string, err error) {
+			"verify": func(t *testing.T, user *models.Identity, sessToken string, err error) {
 				require.NoError(t, err)
-				require.Equal(t, "existingusernewgroups@example.com", user.Email)
+				require.Equal(t, "existingusernewgroups@example.com", user.Name)
 				require.NotEmpty(t, sessToken)
 
 				require.Len(t, user.Groups, 2)
@@ -201,7 +231,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 		},
 		"ExistingUserExistingGroups": {
 			"setup": func(t *testing.T, db *gorm.DB) authn.OIDC {
-				err := data.CreateUser(db, &models.User{Email: "existinguserexistinggroups@example.com"})
+				err := data.CreateIdentity(db, &models.Identity{Name: "existinguserexistinggroups@example.com", Kind: models.UserKind})
 				require.NoError(t, err)
 
 				err = data.CreateGroup(db, &models.Group{Name: "existinguserexistinggroups1"})
@@ -215,9 +245,9 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 					UserGroupsResp: []string{"existinguserexistinggroups1", "existinguserexistinggroups2"},
 				}
 			},
-			"verify": func(t *testing.T, user *models.User, sessToken string, err error) {
+			"verify": func(t *testing.T, user *models.Identity, sessToken string, err error) {
 				require.NoError(t, err)
-				require.Equal(t, "existinguserexistinggroups@example.com", user.Email)
+				require.Equal(t, "existinguserexistinggroups@example.com", user.Name)
 				require.NotEmpty(t, sessToken)
 
 				require.Len(t, user.Groups, 2)
@@ -251,9 +281,9 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			require.True(t, ok)
 			mockOIDC := setupFunc(t, db)
 
-			u, sess, err := ExchangeAuthCodeForAccessKey(c, "123somecode", provider, mockOIDC, time.Minute, "example.com")
+			u, sess, err := ExchangeAuthCodeForAccessKey(c, "123somecode", provider, mockOIDC, time.Now().Add(time.Minute), "example.com")
 
-			verifyFunc, ok := v["verify"].(func(*testing.T, *models.User, string, error))
+			verifyFunc, ok := v["verify"].(func(*testing.T, *models.Identity, string, error))
 			require.True(t, ok)
 
 			verifyFunc(t, u, sess, err)

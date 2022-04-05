@@ -18,7 +18,6 @@ import (
 	"github.com/infrahq/infra/internal/server/authn"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/secrets"
-	"github.com/infrahq/infra/uid"
 )
 
 type API struct {
@@ -26,32 +25,38 @@ type API struct {
 	server *Server
 }
 
-func (a *API) ListUsers(c *gin.Context, r *api.ListUsersRequest) ([]api.User, error) {
-	users, err := access.ListUsers(c, r.Email, r.ProviderID)
+func (a *API) ListIdentities(c *gin.Context, r *api.ListIdentitiesRequest) ([]api.Identity, error) {
+	identities, err := access.ListIdentities(c, r.Name, r.ProviderID)
 	if err != nil {
 		return nil, err
 	}
 
-	results := make([]api.User, len(users))
-	for i, u := range users {
-		results[i] = *u.ToAPI()
+	results := make([]api.Identity, len(identities))
+	for i, identity := range identities {
+		results[i] = *identity.ToAPI()
 	}
 
 	return results, nil
 }
 
-func (a *API) GetUser(c *gin.Context, r *api.Resource) (*api.User, error) {
-	user, err := access.GetUser(c, r.ID)
+func (a *API) GetIdentity(c *gin.Context, r *api.Resource) (*api.Identity, error) {
+	identity, err := access.GetIdentity(c, r.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	return user.ToAPI(), nil
+	return identity.ToAPI(), nil
 }
 
-func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateUserResponse, error) {
-	user := &models.User{
-		Email:      r.Email,
+func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api.CreateIdentityResponse, error) {
+	kind, err := models.ParseIdentityKind(r.Kind)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", internal.ErrBadRequest, err)
+	}
+
+	identity := &models.Identity{
+		Name:       r.Name,
+		Kind:       kind,
 		ProviderID: r.ProviderID,
 	}
 
@@ -60,66 +65,79 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 		return nil, err
 	}
 
-	if err := access.CreateUser(c, user); err != nil {
+	if provider.Name != models.InternalInfraProviderName && identity.Kind == models.MachineKind {
+		return nil, fmt.Errorf("%w: cannot create a machine for this identity provider", internal.ErrBadRequest)
+	}
+
+	if err := access.CreateIdentity(c, identity); err != nil {
 		return nil, err
 	}
 
-	defaultGrant := &models.Grant{Subject: user.PolyID(), Privilege: models.InfraUserRole, Resource: "infra"}
+	defaultGrant := &models.Grant{Subject: identity.PolyID(), Privilege: models.InfraUserRole, Resource: access.ResourceInfraAPI}
 	if err := access.CreateGrant(c, defaultGrant); err != nil {
 		return nil, err
 	}
 
-	var oneTimePassword string
-	if provider.Name == models.InternalInfraProviderName {
-		oneTimePassword, err = access.CreateCredential(c, *user)
-		if err != nil {
-			return nil, err
+	resp := &api.CreateIdentityResponse{
+		ID:         identity.ID,
+		Name:       identity.Name,
+		ProviderID: identity.ProviderID,
+	}
+
+	if identity.Kind == models.UserKind {
+		var oneTimePassword string
+		if provider.Name == models.InternalInfraProviderName {
+			oneTimePassword, err = access.CreateCredential(c, *identity)
+			if err != nil {
+				return nil, err
+			}
 		}
+
+		resp.OneTimePassword = oneTimePassword
 	}
 
-	return &api.CreateUserResponse{
-		ID:              user.ID,
-		Email:           user.Email,
-		ProviderID:      user.ProviderID,
-		OneTimePassword: oneTimePassword,
-	}, nil
+	return resp, nil
 }
 
-func (a *API) UpdateUser(c *gin.Context, r *api.UpdateUserRequest) (*api.User, error) {
-	// right now this endpoint can only update a user's credentials, so get the user
-	user, err := access.GetUser(c, r.ID)
+func (a *API) UpdateIdentity(c *gin.Context, r *api.UpdateIdentityRequest) (*api.Identity, error) {
+	// right now this endpoint can only update a user's credentials, so get the user identity
+	identity, err := access.GetIdentity(c, r.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	err = access.UpdateCredential(c, user, r.Password)
+	if identity.Kind != models.UserKind {
+		return nil, fmt.Errorf("%w: machine identity has no password to update", internal.ErrBadRequest)
+	}
+
+	err = access.UpdateCredential(c, identity, r.Password)
 	if err != nil {
 		return nil, err
 	}
 
-	return user.ToAPI(), nil
+	return identity.ToAPI(), nil
 }
 
-func (a *API) DeleteUser(c *gin.Context, r *api.Resource) error {
-	return access.DeleteUser(c, r.ID)
+func (a *API) DeleteIdentity(c *gin.Context, r *api.Resource) error {
+	return access.DeleteIdentity(c, r.ID)
 }
 
-func (a *API) ListUserGrants(c *gin.Context, r *api.Resource) ([]api.Grant, error) {
-	grants, err := access.ListUserGrants(c, r.ID)
+func (a *API) ListIdentityGrants(c *gin.Context, r *api.Resource) ([]api.Grant, error) {
+	grants, err := access.ListIdentityGrants(c, r.ID)
 	if err != nil {
 		return nil, err
 	}
 
 	results := make([]api.Grant, len(grants))
 	for i, g := range grants {
-		results[i] = g.ToAPI()
+		results[i] = *g.ToAPI()
 	}
 
 	return results, nil
 }
 
-func (a *API) ListUserGroups(c *gin.Context, r *api.Resource) ([]api.Group, error) {
-	groups, err := access.ListUserGroups(c, r.ID)
+func (a *API) ListIdentityGroups(c *gin.Context, r *api.Resource) ([]api.Group, error) {
+	groups, err := access.ListIdentityGroups(c, r.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +195,7 @@ func (a *API) ListGroupGrants(c *gin.Context, r *api.Resource) ([]api.Grant, err
 
 	results := make([]api.Grant, len(grants))
 	for i, d := range grants {
-		results[i] = d.ToAPI()
+		results[i] = *d.ToAPI()
 	}
 
 	return results, nil
@@ -234,9 +252,7 @@ func (a *API) CreateProvider(c *gin.Context, r *api.CreateProviderRequest) (*api
 		return nil, err
 	}
 
-	result := provider.ToAPI()
-
-	return result, nil
+	return provider.ToAPI(), nil
 }
 
 func (a *API) UpdateProvider(c *gin.Context, r *api.UpdateProviderRequest) (*api.Provider, error) {
@@ -276,72 +292,11 @@ func (a *API) ListDestinations(c *gin.Context, r *api.ListDestinationsRequest) (
 	return results, nil
 }
 
-func (a *API) CreateMachine(c *gin.Context, r *api.CreateMachineRequest) (*api.Machine, error) {
-	machine := &models.Machine{}
-	if err := machine.FromAPI(r); err != nil {
-		return nil, err
-	}
-
-	err := access.CreateMachine(c, machine)
-	if err != nil {
-		return nil, err
-	}
-
-	return machine.ToAPI(), nil
-}
-
-func (a *API) ListMachines(c *gin.Context, r *api.ListMachinesRequest) ([]api.Machine, error) {
-	machines, err := access.ListMachines(c, r.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	results := make([]api.Machine, len(machines))
-
-	for i, k := range machines {
-		results[i] = *(k.ToAPI())
-	}
-
-	return results, nil
-}
-
-func (a *API) GetMachine(c *gin.Context, r *api.Resource) (*api.Machine, error) {
-	machine, err := access.GetMachine(c, r.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	return machine.ToAPI(), nil
-}
-
-func (a *API) DeleteMachine(c *gin.Context, r *api.Resource) error {
-	return access.DeleteMachine(c, r.ID)
-}
-
-func (a *API) ListMachineGrants(c *gin.Context, r *api.Resource) ([]api.Grant, error) {
-	grants, err := access.ListMachineGrants(c, r.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	results := make([]api.Grant, len(grants))
-	for i, g := range grants {
-		results[i] = g.ToAPI()
-	}
-
-	return results, nil
-}
-
 // Introspect is used by clients to get info about the token they are using
 func (a *API) Introspect(c *gin.Context, r *api.EmptyRequest) (*api.Introspect, error) {
-	user := access.CurrentUser(c)
-	if user != nil {
-		return &api.Introspect{ID: user.ID, Name: user.Email, IdentityType: "user"}, nil
-	}
-
-	machine := access.CurrentMachine(c)
-	if machine != nil {
-		return &api.Introspect{ID: machine.ID, Name: machine.Name, IdentityType: "machine"}, nil
+	identity := access.CurrentIdentity(c)
+	if identity != nil {
+		return &api.Introspect{ID: identity.ID, Name: identity.Name, IdentityType: identity.Kind.String()}, nil
 	}
 
 	return nil, fmt.Errorf("no identity context found for token")
@@ -395,20 +350,20 @@ func (a *API) DeleteDestination(c *gin.Context, r *api.Resource) error {
 }
 
 func (a *API) CreateToken(c *gin.Context, r *api.CreateTokenRequest) (*api.CreateTokenResponse, error) {
-	if access.CurrentUser(c) != nil {
+	if access.CurrentIdentity(c) != nil {
 		currentIDP, err := access.CurrentIdentityProvider(c)
 		if err != nil {
-			return nil, fmt.Errorf("token user IDP: %w", err)
+			return nil, fmt.Errorf("token identity IDP: %w", err)
 		}
 
 		if currentIDP.Name != models.InternalInfraProviderName {
-			err := a.updateUserInfo(c)
+			err := a.UpdateIdentityInfo(c)
 			if err != nil {
 				return nil, err
 			}
 		}
 
-		token, err := access.CreateUserToken(c)
+		token, err := access.CreateToken(c)
 		if err != nil {
 			return nil, err
 		}
@@ -416,20 +371,11 @@ func (a *API) CreateToken(c *gin.Context, r *api.CreateTokenRequest) (*api.Creat
 		return &api.CreateTokenResponse{Token: token.Token, Expires: api.Time(token.Expires)}, nil
 	}
 
-	if access.CurrentMachine(c) != nil {
-		token, err := access.CreateMachineToken(c)
-		if err != nil {
-			return nil, err
-		}
-
-		return &api.CreateTokenResponse{Token: token.Token, Expires: api.Time(token.Expires)}, nil
-	}
-
-	return nil, fmt.Errorf("no identity found in token: %w", internal.ErrUnauthorized)
+	return nil, fmt.Errorf("no identity found in access key: %w", internal.ErrUnauthorized)
 }
 
 func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) ([]api.AccessKey, error) {
-	accessKeys, err := access.ListAccessKeys(c, r.MachineID, r.Name)
+	accessKeys, err := access.ListAccessKeys(c, r.IdentityID, r.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -456,14 +402,14 @@ func (a *API) DeleteAccessKey(c *gin.Context, r *api.Resource) error {
 
 func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*api.CreateAccessKeyResponse, error) {
 	accessKey := &models.AccessKey{
-		IssuedFor:         uid.NewMachinePolymorphicID(r.MachineID),
+		IssuedFor:         r.IdentityID,
 		Name:              r.Name,
 		ExpiresAt:         time.Now().Add(time.Duration(r.TTL)).UTC(),
 		Extension:         time.Duration(r.ExtensionDeadline),
 		ExtensionDeadline: time.Now().Add(time.Duration(r.ExtensionDeadline)).UTC(),
 	}
 
-	raw, err := access.CreateAccessKey(c, accessKey, r.MachineID)
+	raw, err := access.CreateAccessKey(c, accessKey, r.IdentityID)
 	if err != nil {
 		return nil, err
 	}
@@ -487,7 +433,7 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) ([]api.Grant,
 
 	results := make([]api.Grant, len(grants))
 	for i, r := range grants {
-		results[i] = r.ToAPI()
+		results[i] = *r.ToAPI()
 	}
 
 	return results, nil
@@ -499,9 +445,7 @@ func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {
 		return nil, err
 	}
 
-	result := grant.ToAPI()
-
-	return &result, nil
+	return grant.ToAPI(), nil
 }
 
 func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.Grant, error) {
@@ -516,9 +460,7 @@ func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.Grant
 		return nil, err
 	}
 
-	result := grant.ToAPI()
-
-	return &result, nil
+	return grant.ToAPI(), nil
 }
 
 func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) error {
@@ -554,7 +496,39 @@ func (a *API) Setup(c *gin.Context, _ *api.EmptyRequest) (*api.CreateAccessKeyRe
 }
 
 func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, error) {
+	expires := time.Now().Add(a.server.options.SessionDuration)
+
 	switch {
+	case r.AccessKey != "":
+		key, identity, err := access.ExchangeAccessKey(c, r.AccessKey, expires)
+		if err != nil {
+			return nil, err
+		}
+
+		setAuthCookie(c, key, expires)
+
+		if a.t != nil {
+			if err := a.t.Enqueue(analytics.Track{Event: "infra.login.exchange", UserId: identity.ID.String()}); err != nil {
+				logging.S.Debug(err)
+			}
+		}
+
+		return &api.LoginResponse{PolymorphicID: identity.PolyID(), Name: identity.Name, AccessKey: key, Expires: api.Time(expires)}, nil
+	case r.PasswordCredentials != nil:
+		key, user, requiresUpdate, err := access.LoginWithUserCredential(c, r.PasswordCredentials.Email, r.PasswordCredentials.Password, expires)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %v", internal.ErrUnauthorized, err.Error())
+		}
+
+		setAuthCookie(c, key, expires)
+
+		if a.t != nil {
+			if err := a.t.Enqueue(analytics.Track{Event: "infra.login.credentials", UserId: user.ID.String()}); err != nil {
+				logging.S.Debug(err)
+			}
+		}
+
+		return &api.LoginResponse{PolymorphicID: user.PolyID(), Name: user.Name, AccessKey: key, Expires: api.Time(expires), PasswordUpdateRequired: requiresUpdate}, nil
 	case r.OIDC != nil:
 		provider, err := access.GetProvider(c, r.OIDC.ProviderID)
 		if err != nil {
@@ -566,54 +540,20 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 			return nil, err
 		}
 
-		user, key, err := access.ExchangeAuthCodeForAccessKey(c, r.OIDC.Code, provider, oidc, a.server.options.SessionDuration, r.OIDC.RedirectURL)
+		user, key, err := access.ExchangeAuthCodeForAccessKey(c, r.OIDC.Code, provider, oidc, expires, r.OIDC.RedirectURL)
 		if err != nil {
 			return nil, err
 		}
 
-		setAuthCookie(c, key, a.server.options.SessionDuration)
+		setAuthCookie(c, key, expires)
 
 		if a.t != nil {
-			if err := a.t.Enqueue(analytics.Track{Event: "infra.login.oidc", UserId: user.PolyID().String()}); err != nil {
+			if err := a.t.Enqueue(analytics.Track{Event: "infra.login.oidc", UserId: user.ID.String()}); err != nil {
 				logging.S.Debug(err)
 			}
 		}
 
-		return &api.LoginResponse{PolymorphicID: user.PolyID(), Name: user.Email, AccessKey: key}, nil
-	case r.AccessKey != "":
-		expires := time.Now().Add(a.server.options.SessionDuration).UTC()
-
-		key, machine, err := access.ExchangeAccessKey(c, r.AccessKey, expires)
-		if err != nil {
-			return nil, err
-		}
-
-		setAuthCookie(c, key, a.server.options.SessionDuration)
-
-		if a.t != nil {
-			if err := a.t.Enqueue(analytics.Track{Event: "infra.login.exchange", UserId: machine.PolyID().String()}); err != nil {
-				logging.S.Debug(err)
-			}
-		}
-
-		return &api.LoginResponse{PolymorphicID: machine.PolyID(), Name: machine.Name, AccessKey: key}, nil
-	case r.PasswordCredentials != nil:
-		expires := time.Now().Add(a.server.options.SessionDuration).UTC()
-
-		key, user, requiresUpdate, err := access.LoginWithUserCredential(c, r.PasswordCredentials.Email, r.PasswordCredentials.Password, expires)
-		if err != nil {
-			return nil, fmt.Errorf("%w: %v", internal.ErrUnauthorized, err.Error())
-		}
-
-		setAuthCookie(c, key, a.server.options.SessionDuration)
-
-		if a.t != nil {
-			if err := a.t.Enqueue(analytics.Track{Event: "infra.login.credentials", UserId: user.PolyID().String()}); err != nil {
-				logging.S.Debug(err)
-			}
-		}
-
-		return &api.LoginResponse{PolymorphicID: user.PolyID(), Name: user.Email, AccessKey: key, PasswordUpdateRequired: requiresUpdate}, nil
+		return &api.LoginResponse{PolymorphicID: user.PolyID(), Name: user.Name, AccessKey: key, Expires: api.Time(expires)}, nil
 	}
 
 	return nil, api.ErrBadRequest
@@ -634,9 +574,9 @@ func (a *API) Version(c *gin.Context, r *api.EmptyRequest) (*api.Version, error)
 	return &api.Version{Version: internal.Version}, nil
 }
 
-// updateUserInfo calls the identity provider used to authenticate this user session to update their current information
-func (a *API) updateUserInfo(c *gin.Context) error {
-	user := access.CurrentUser(c)
+// UpdateIdentityInfo calls the identity provider used to authenticate this user session to update their current information
+func (a *API) UpdateIdentityInfo(c *gin.Context) error {
+	user := access.CurrentIdentity(c)
 	if user == nil {
 		return nil
 	}
@@ -677,7 +617,7 @@ func (a *API) updateUserInfo(c *gin.Context) error {
 	info, err := oidc.GetUserInfo(providerTokens)
 	if err != nil {
 		if errors.Is(err, internal.ErrForbidden) {
-			err := access.DeleteAllUserAccessKeys(c)
+			err := access.DeleteAllIdentityAccessKeys(c)
 			if err != nil {
 				logging.S.Errorf("failed to revoke invalid user session: %s", err)
 			}

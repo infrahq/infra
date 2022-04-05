@@ -1,8 +1,6 @@
 package access
 
 import (
-	"fmt"
-
 	"github.com/gin-gonic/gin"
 
 	"github.com/infrahq/infra/internal/server/data"
@@ -28,22 +26,13 @@ func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, priv
 	return data.ListGrants(db, data.BySubject(subject), data.ByResource(resource), data.ByPrivilege(privilege), data.NotCreatedBy(models.CreatedBySystem))
 }
 
-func ListUserGrants(c *gin.Context, userID uid.ID) ([]models.Grant, error) {
-	db, err := hasAuthorization(c, userID, isUserSelf, models.InfraAdminRole)
+func ListIdentityGrants(c *gin.Context, identityID uid.ID) ([]models.Grant, error) {
+	db, err := hasAuthorization(c, identityID, isIdentitySelf, models.InfraAdminRole)
 	if err != nil {
 		return nil, err
 	}
 
-	return data.ListUserGrants(db, userID)
-}
-
-func ListMachineGrants(c *gin.Context, machineID uid.ID) ([]models.Grant, error) {
-	db, err := hasAuthorization(c, machineID, isMachineSelf, models.InfraAdminRole)
-	if err != nil {
-		return nil, err
-	}
-
-	return data.ListMachineGrants(db, machineID)
+	return data.ListIdentityGrants(db, identityID)
 }
 
 func ListGroupGrants(c *gin.Context, groupID uid.ID) ([]models.Grant, error) {
@@ -61,14 +50,9 @@ func CreateGrant(c *gin.Context, grant *models.Grant) error {
 		return err
 	}
 
-	creator := getCurrentIdentity(c)
+	creator := CurrentIdentity(c)
 
-	creatorID, err := creator.ID()
-	if err != nil {
-		return fmt.Errorf("set id from context: %w", err)
-	}
-
-	grant.CreatedBy = creatorID
+	grant.CreatedBy = creator.ID
 
 	return data.CreateGrant(db, grant)
 }

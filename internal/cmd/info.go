@@ -7,6 +7,8 @@ import (
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
+
+	"github.com/infrahq/infra/internal/server/models"
 )
 
 func newInfoCmd() *cobra.Command {
@@ -42,24 +44,28 @@ func info() error {
 		return fmt.Errorf("no active identity")
 	}
 
-	switch {
-	case id.IsUser():
-		userID, err := id.ID()
-		if err != nil {
-			return err
-		}
+	identityID, err := id.ID()
+	if err != nil {
+		return err
+	}
 
-		provider, err := client.GetProvider(config.ProviderID)
-		if err != nil {
-			return err
-		}
+	provider, err := client.GetProvider(config.ProviderID)
+	if err != nil {
+		return err
+	}
 
-		user, err := client.GetUser(userID)
-		if err != nil {
-			return err
-		}
+	identity, err := client.GetIdentity(identityID)
+	if err != nil {
+		return err
+	}
 
-		userGroups, err := client.ListUserGroups(userID)
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "Server:\t", config.Host)
+	fmt.Fprintf(w, "Identity Provider:\t %s (%s)\n", provider.Name, provider.URL)
+	fmt.Fprintln(w, "Identity:\t", identity.Name)
+
+	if identity.Kind == models.UserKind.String() {
+		userGroups, err := client.ListIdentityGroups(identityID)
 		if err != nil {
 			return err
 		}
@@ -69,31 +75,10 @@ func info() error {
 			groups = append(groups, g.Name)
 		}
 
-		fmt.Fprintln(w)
-		fmt.Fprintln(w, "Server:\t", config.Host)
-		fmt.Fprintf(w, "Identity Provider:\t %s (%s)\n", provider.Name, provider.URL)
-		fmt.Fprintln(w, "User:\t", user.Email)
 		fmt.Fprintln(w, "Groups:\t", strings.Join(groups, ", "))
-		fmt.Fprintln(w)
-	case id.IsMachine():
-		machineID, err := id.ID()
-		if err != nil {
-			return err
-		}
-
-		machine, err := client.GetMachine(machineID)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "6.3")
-			return err
-		}
-
-		fmt.Fprintln(w)
-		fmt.Fprintln(w, "Server:\t", config.Host)
-		fmt.Fprintln(w, "Machine User:\t", machine.Name)
-		fmt.Fprintln(w)
-	default:
-		return fmt.Errorf("unsupported identity for operation: %s", id)
 	}
+
+	fmt.Fprintln(w)
 
 	return nil
 }

@@ -20,16 +20,7 @@ func getDB(c *gin.Context) *gorm.DB {
 	return db
 }
 
-func getCurrentIdentity(c *gin.Context) uid.PolymorphicID {
-	id, ok := c.MustGet("identity").(uid.PolymorphicID)
-	if !ok {
-		return ""
-	}
-
-	return id
-}
-
-// hasAuthorization checks if a caller is the owner of a resource before checking if they have an appropriate role to access it
+// hasAuthorization checks if a caller is the owner of a resource before checking if they have an approprite role to access it
 func hasAuthorization(c *gin.Context, requestedResource uid.ID, isResourceOwner func(c *gin.Context, requestedResourceID uid.ID) (bool, error), oneOfRoles ...string) (*gorm.DB, error) {
 	owner, err := isResourceOwner(c, requestedResource)
 	if err != nil {
@@ -49,10 +40,13 @@ const ResourceInfraAPI = "infra"
 func RequireInfraRole(c *gin.Context, oneOfRoles ...string) (*gorm.DB, error) {
 	db := getDB(c)
 
-	identity := getCurrentIdentity(c)
+	identity := CurrentIdentity(c)
+	if identity == nil {
+		return nil, fmt.Errorf("no active identity")
+	}
 
 	for _, role := range oneOfRoles {
-		ok, err := Can(db, identity, role, ResourceInfraAPI)
+		ok, err := Can(db, identity.PolyID(), role, ResourceInfraAPI)
 		if err != nil {
 			return nil, err
 		}
@@ -62,25 +56,21 @@ func RequireInfraRole(c *gin.Context, oneOfRoles ...string) (*gorm.DB, error) {
 		}
 	}
 
-	user := CurrentUser(c)
+	// check if they belong to a group that is authorized
+	groups, err := data.ListIdentityGroups(db, identity.ID)
+	if err != nil {
+		return nil, fmt.Errorf("auth user groups: %w", err)
+	}
 
-	if user != nil {
-		// check if they belong to a group that is authorized
-		groups, err := data.ListUserGroups(db, user.ID)
-		if err != nil {
-			return nil, fmt.Errorf("auth user groups: %w", err)
-		}
+	for _, group := range groups {
+		for _, role := range oneOfRoles {
+			ok, err := Can(db, group.PolyID(), role, ResourceInfraAPI)
+			if err != nil {
+				return nil, err
+			}
 
-		for _, group := range groups {
-			for _, role := range oneOfRoles {
-				ok, err := Can(db, group.PolyID(), role, ResourceInfraAPI)
-				if err != nil {
-					return nil, err
-				}
-
-				if ok {
-					return db, nil
-				}
+			if ok {
+				return db, nil
 			}
 		}
 	}

@@ -1,8 +1,6 @@
 package models
 
 import (
-	"time"
-
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/uid"
 )
@@ -27,7 +25,7 @@ const BasePermissionConnect = "connect"
 //
 // Subject
 // 		Subject is mostly an Identity, which is a string specifying a user, group, the name of a role, or another grant
-// 			- a user:  			u:E97WmsYfvo   		 - a user reference
+// 			- an identity:  	i:E97WmsYfvo   		 - a user reference
 // 			- a group: 			g:CCoJ1ornpf   		 - a group reference
 // 			- a role:  			r:role-name   		 - a role definition
 // 			- a permission: p:permissionn-name - a permission definition
@@ -46,14 +44,10 @@ type Grant struct {
 	Resource  string            `validate:"required"` // Universal Resource Notation
 
 	CreatedBy uid.ID
-
-	ExpiresAt          *time.Time
-	LastUsedAt         *time.Time
-	ExpiresAfterUnused time.Duration
 }
 
-func (r *Grant) ToAPI() api.Grant {
-	result := api.Grant{
+func (r *Grant) ToAPI() *api.Grant {
+	return &api.Grant{
 		ID:        r.ID,
 		Created:   api.Time(r.CreatedAt),
 		Updated:   api.Time(r.UpdatedAt),
@@ -62,8 +56,5 @@ func (r *Grant) ToAPI() api.Grant {
 		Subject:   r.Subject,
 		Privilege: r.Privilege,
 		Resource:  r.Resource,
-		ExpiresAt: (*api.Time)(r.ExpiresAt),
 	}
-
-	return result
 }

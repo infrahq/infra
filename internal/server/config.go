@@ -473,6 +473,19 @@ func (s *Server) importAccessKeys() error {
 		},
 	}
 
+	infraProvider, err := data.GetProvider(s.db, data.ByName(models.InternalInfraProviderName))
+	if err != nil {
+		if !errors.Is(err, internal.ErrNotFound) {
+			return fmt.Errorf("load provider start-up: %w", err)
+		}
+
+		infraProvider = &models.Provider{Name: models.InternalInfraProviderName}
+
+		if err := data.CreateProvider(s.db, infraProvider); err != nil {
+			return err
+		}
+	}
+
 	for k, v := range keys {
 		if v.Secret == "" {
 			logging.S.Debugf("%s: secret not set; skipping", k)
@@ -495,19 +508,20 @@ func (s *Server) importAccessKeys() error {
 		}
 
 		// create the machine identity if it doesn't exist
-		machine, err := data.GetMachine(s.db, data.ByName(k))
+		machine, err := data.GetIdentity(s.db, data.ByName(k))
 		if err != nil {
 			if !errors.Is(err, internal.ErrNotFound) {
 				return fmt.Errorf("get identity: %w", err)
 			}
 
-			machine = &models.Machine{
-				Name:        k,
-				Description: fmt.Sprintf("%s default infra server machine identity", k),
-				LastSeenAt:  time.Now().UTC(),
+			machine = &models.Identity{
+				Name:       k,
+				Kind:       models.MachineKind,
+				ProviderID: infraProvider.ID,
+				LastSeenAt: time.Now().UTC(),
 			}
 
-			err = data.CreateMachine(s.db, machine)
+			err = data.CreateIdentity(s.db, machine)
 			if err != nil {
 				return fmt.Errorf("create identity: %w", err)
 			}
@@ -526,7 +540,7 @@ func (s *Server) importAccessKeys() error {
 
 		name := fmt.Sprintf("default %s access key", k)
 
-		accessKey, err := data.GetAccessKey(s.db, data.ByMachineIDIssuedFor(machine.ID))
+		accessKey, err := data.GetAccessKey(s.db, data.ByIssuedFor(machine.ID))
 		if err != nil {
 			if !errors.Is(err, internal.ErrNotFound) {
 				return err
@@ -552,7 +566,7 @@ func (s *Server) importAccessKeys() error {
 			Name:      name,
 			KeyID:     parts[0],
 			Secret:    parts[1],
-			IssuedFor: machine.PolyID(),
+			IssuedFor: machine.ID,
 			ExpiresAt: time.Now().Add(math.MaxInt64).UTC(),
 		}
 		if _, err := data.CreateAccessKey(s.db, accessKey); err != nil {
@@ -702,7 +716,7 @@ func loadGrant(db *gorm.DB, input Grant, providers map[string]uid.ID) (*models.G
 
 	switch {
 	case input.User != "":
-		user, err := data.GetUser(db, data.ByEmail(input.User))
+		user, err := data.GetIdentity(db, data.ByName(input.User))
 		if err != nil {
 			if !errors.Is(err, internal.ErrNotFound) {
 				return nil, err
@@ -711,17 +725,18 @@ func loadGrant(db *gorm.DB, input Grant, providers map[string]uid.ID) (*models.G
 			logging.S.Debugf("creating placeholder user %q", input.User)
 
 			// user does not exist yet, create a placeholder
-			user = &models.User{
-				Email:      input.User,
+			user = &models.Identity{
+				Name:       input.User,
 				ProviderID: providerID,
+				Kind:       models.UserKind,
 			}
 
-			if err := data.CreateUser(db, user); err != nil {
+			if err := data.CreateIdentity(db, user); err != nil {
 				return nil, err
 			}
 		}
 
-		id = uid.NewUserPolymorphicID(user.ID)
+		id = uid.NewIdentityPolymorphicID(user.ID)
 
 	case input.Group != "":
 		group, err := data.GetGroup(db, data.ByName(input.Group))
@@ -746,7 +761,7 @@ func loadGrant(db *gorm.DB, input Grant, providers map[string]uid.ID) (*models.G
 		id = uid.NewGroupPolymorphicID(group.ID)
 
 	case input.Machine != "":
-		machine, err := data.GetMachine(db, data.ByName(input.Machine))
+		machine, err := data.GetIdentity(db, data.ByName(input.Machine))
 		if err != nil {
 			if !errors.Is(err, internal.ErrNotFound) {
 				return nil, err
@@ -754,17 +769,24 @@ func loadGrant(db *gorm.DB, input Grant, providers map[string]uid.ID) (*models.G
 
 			logging.S.Debugf("creating machine %q", input.Machine)
 
-			// machine does not exist, create it
-			machine = &models.Machine{
-				Name: input.Machine,
+			infraProvider, err := data.GetProvider(db, data.ByName(models.InternalInfraProviderName))
+			if err != nil {
+				return nil, fmt.Errorf("machine internal provider: %w", err)
 			}
 
-			if err := data.CreateMachine(db, machine); err != nil {
+			// machine does not exist, create it
+			machine = &models.Identity{
+				Name:       input.Machine,
+				Kind:       models.MachineKind,
+				ProviderID: infraProvider.ID,
+			}
+
+			if err := data.CreateIdentity(db, machine); err != nil {
 				return nil, err
 			}
 		}
 
-		id = uid.NewMachinePolymorphicID(machine.ID)
+		id = uid.NewIdentityPolymorphicID(machine.ID)
 
 	default:
 		return nil, errors.New("invalid grant: missing identity")

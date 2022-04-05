@@ -17,12 +17,12 @@ import (
 
 // CurrentIdentityProvider returns the provider for the current identity in the request context
 func CurrentIdentityProvider(c *gin.Context) (*models.Provider, error) {
-	u, ok := c.MustGet("user").(*models.User)
-	if !ok {
-		return nil, fmt.Errorf("no user in request context")
+	identity := CurrentIdentity(c)
+	if identity == nil {
+		return nil, fmt.Errorf("no identity for provider in context")
 	}
 
-	return GetProvider(c, u.ProviderID)
+	return GetProvider(c, identity.ProviderID)
 }
 
 func CreateProvider(c *gin.Context, provider *models.Provider) error {
@@ -67,15 +67,15 @@ func DeleteProvider(c *gin.Context, id uid.ID) error {
 // RetrieveUserProviderTokens gets the provider tokens that the current session token was created for
 func RetrieveUserProviderTokens(c *gin.Context) (*models.ProviderToken, error) {
 	// added by the authentication middleware
-	user, ok := c.MustGet("user").(*models.User)
-	if !ok {
+	identity := CurrentIdentity(c)
+	if identity == nil {
 		return nil, errors.New("no provider token context user")
 	}
 
 	// does not need authorization check, this action is limited to the calling user
 	db := getDB(c)
 
-	return data.GetProviderToken(db, data.ByUserID(user.ID))
+	return data.GetProviderToken(db, data.ByUserID(identity.ID))
 }
 
 // UpdateProviderToken overwrites an existing set of provider tokens
@@ -86,7 +86,7 @@ func UpdateProviderToken(c *gin.Context, providerToken *models.ProviderToken) er
 	return data.UpdateProviderToken(db, providerToken)
 }
 
-func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.Provider, oidc authn.OIDC, sessionDuration time.Duration, redirectURL string) (*models.User, string, error) {
+func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.Provider, oidc authn.OIDC, expires time.Time, redirectURL string) (*models.Identity, string, error) {
 	// does not need authorization check, this function should only be called internally
 	db := getDB(c)
 
@@ -100,15 +100,15 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 		return nil, "", fmt.Errorf("exhange code for tokens: %w", err)
 	}
 
-	user, err := data.GetUser(db, data.ByEmail(email))
+	user, err := data.GetIdentity(db, data.ByName(email))
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return nil, "", fmt.Errorf("get user: %w", err)
 		}
 
-		user = &models.User{Email: email}
+		user = &models.Identity{Name: email, Kind: models.UserKind}
 
-		if err := data.CreateUser(db, user); err != nil {
+		if err := data.CreateIdentity(db, user); err != nil {
 			return nil, "", fmt.Errorf("create user: %w", err)
 		}
 
@@ -175,8 +175,8 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 	}
 
 	key := &models.AccessKey{
-		IssuedFor: user.PolyID(),
-		ExpiresAt: time.Now().Add(sessionDuration).UTC(),
+		IssuedFor: user.ID,
+		ExpiresAt: expires,
 	}
 
 	body, err := data.CreateAccessKey(db, key)
@@ -185,7 +185,7 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 	}
 
 	user.LastSeenAt = time.Now().UTC()
-	if err := data.SaveUser(db, user); err != nil {
+	if err := data.SaveIdentity(db, user); err != nil {
 		return nil, "", fmt.Errorf("login update last seen: %w", err)
 	}
 

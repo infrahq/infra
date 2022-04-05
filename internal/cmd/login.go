@@ -241,16 +241,19 @@ func loginToInfra(client *api.Client, loginReq *api.LoginRequest) error {
 			return err
 		}
 	}
+
 	return nil
 }
 
 // Updates all configs with the current logged in session
 func updateInfraConfig(client *api.Client, loginReq *api.LoginRequest, loginRes *api.LoginResponse) error {
-	var clientHostConfig ClientHostConfig
-	clientHostConfig.PolymorphicID = loginRes.PolymorphicID
-	clientHostConfig.Current = true
-	clientHostConfig.Name = loginRes.Name
-	clientHostConfig.AccessKey = loginRes.AccessKey
+	clientHostConfig := ClientHostConfig{
+		Current:       true,
+		PolymorphicID: loginRes.PolymorphicID,
+		Name:          loginRes.Name,
+		AccessKey:     loginRes.AccessKey,
+		Expires:       loginRes.Expires,
+	}
 
 	t, ok := client.HTTP.Transport.(*http.Transport)
 	if !ok {
@@ -376,10 +379,6 @@ func oidcflow(host string, clientId string) (string, error) {
 
 // Prompt user to change their preset password when loggin in for the first time
 func updateUserPassword(client *api.Client, pid uid.PolymorphicID, oldPassword string) error {
-	if !pid.IsUser() {
-		panic("updateUserPassword called with a non-user PID")
-	}
-
 	// Todo otp: update term to temporary password (https://github.com/infrahq/infra/issues/1441)
 	fmt.Println("\n  One time password was used.")
 
@@ -393,7 +392,7 @@ func updateUserPassword(client *api.Client, pid uid.PolymorphicID, oldPassword s
 		return fmt.Errorf("update user id login: %w", err)
 	}
 
-	if _, err := client.UpdateUser(&api.UpdateUserRequest{ID: userID, Password: newPassword}); err != nil {
+	if _, err := client.UpdateIdentity(&api.UpdateIdentityRequest{ID: userID, Password: newPassword}); err != nil {
 		return fmt.Errorf("update user login: %w", err)
 	}
 

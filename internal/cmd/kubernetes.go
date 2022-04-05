@@ -57,32 +57,23 @@ func updateKubeconfig(client *api.Client, identityPolymorphicID uid.PolymorphicI
 		return err
 	}
 
-	var grants []api.Grant
-	if identityPolymorphicID.IsUser() {
-		grants, err = client.ListUserGrants(id)
+	grants, err := client.ListIdentityGrants(id)
+	if err != nil {
+		return err
+	}
+
+	groups, err := client.ListIdentityGroups(id)
+	if err != nil {
+		return err
+	}
+
+	for _, g := range groups {
+		groupGrants, err := client.ListGroupGrants(g.ID)
 		if err != nil {
 			return err
 		}
 
-		groups, err := client.ListUserGroups(id)
-		if err != nil {
-			return err
-		}
-
-		for _, g := range groups {
-			groupGrants, err := client.ListGroupGrants(g.ID)
-			if err != nil {
-				return err
-			}
-
-			grants = append(grants, groupGrants...)
-		}
-	} else {
-		// infer that this is a machine
-		grants, err = client.ListMachineGrants(id)
-		if err != nil {
-			return err
-		}
+		grants = append(grants, groupGrants...)
 	}
 
 	return writeKubeconfig(destinations, grants)

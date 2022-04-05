@@ -54,12 +54,12 @@ func (t *Telemetry) Close() {
 }
 
 func (t *Telemetry) EnqueueHeartbeat() error {
-	users, err := data.Count[models.User](t.db)
+	users, err := data.Count[models.Identity](t.db)
 	if err != nil {
 		return err
 	}
 
-	groups, err := data.Count[models.User](t.db)
+	groups, err := data.Count[models.Group](t.db)
 	if err != nil {
 		return err
 	}

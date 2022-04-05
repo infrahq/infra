@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/infrahq/infra/internal/server/models"
 )
 
 func random(n int) string {
@@ -33,45 +35,41 @@ func random(n int) string {
 	return b.String()
 }
 
-func TestCheckNameOrEmail(t *testing.T) {
-	name, email, err := checkNameOrEmail("alice")
+func TestCheckUserOrMachine(t *testing.T) {
+	kind, err := checkUserOrMachine("alice")
 	require.NoError(t, err)
-	require.Equal(t, "alice", name)
-	require.Empty(t, email)
+	require.Equal(t, models.MachineKind, kind)
 
-	name, email, err = checkNameOrEmail("alice@example.com")
+	kind, err = checkUserOrMachine("alice@example.com")
 	require.NoError(t, err)
-	require.Empty(t, name)
-	require.Equal(t, "alice@example.com", email)
+	require.Equal(t, models.UserKind, kind)
 
-	name, email, err = checkNameOrEmail("Alice <alice@example.com>")
+	kind, err = checkUserOrMachine("Alice <alice@example.com>")
 	require.NoError(t, err)
-	require.Empty(t, name)
-	require.Equal(t, "alice@example.com", email)
+	require.Equal(t, models.UserKind, kind)
 
-	name, email, err = checkNameOrEmail("<alice@example.com>")
+	kind, err = checkUserOrMachine("<alice@example.com>")
 	require.NoError(t, err)
-	require.Empty(t, name)
-	require.Equal(t, "alice@example.com", email)
+	require.Equal(t, models.UserKind, kind)
 }
 
-func TestCheckNameOrEmailInvalidName(t *testing.T) {
-	_, _, err := checkNameOrEmail(random(257))
+func TestCheckUserOrMachineInvalidName(t *testing.T) {
+	_, err := checkUserOrMachine(random(257))
 	require.ErrorContains(t, err, "invalid name: exceed maximum length requirement of 256 characters")
 
 	// inputs with illegal runes are _not_ considered a name so it will
 	// be passed to email validation instead
-	illegalRunes := []rune("!@#$%^&*()=+[]{}\\|;:'\",.<>?")
+	illegalRunes := []rune("!@#$%^&*()=+[]{}\\|;:'\",<>?")
 	for _, r := range illegalRunes {
-		_, _, err = checkNameOrEmail(string(r))
+		_, err = checkUserOrMachine(string(r))
 		require.ErrorContains(t, err, fmt.Sprintf("invalid email: %q", string(r)))
 	}
 }
 
-func TestCheckNameOrEmailInvalidEmail(t *testing.T) {
-	_, _, err := checkNameOrEmail("@example.com")
+func TestCheckUserOrMachineInvalidEmail(t *testing.T) {
+	_, err := checkUserOrMachine("@example.com")
 	require.ErrorContains(t, err, "invalid email: \"@example.com\"")
 
-	_, _, err = checkNameOrEmail("alice@")
+	_, err = checkUserOrMachine("alice@")
 	require.ErrorContains(t, err, "invalid email: \"alice@\"")
 }

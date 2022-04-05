@@ -15,9 +15,7 @@ func CreateGrant(db *gorm.DB, grant *models.Grant) error {
 	}
 
 	for _, existingGrant := range grants {
-		if existingGrant.Privilege == grant.Privilege &&
-			existingGrant.ExpiresAfterUnused == grant.ExpiresAfterUnused &&
-			existingGrant.ExpiresAt == grant.ExpiresAt {
+		if existingGrant.Privilege == grant.Privilege {
 			// exact match exists, no need to store it twice.
 			return nil
 		}
@@ -30,13 +28,8 @@ func GetGrant(db *gorm.DB, selectors ...SelectorFunc) (*models.Grant, error) {
 	return get[models.Grant](db, selectors...)
 }
 
-func ListUserGrants(db *gorm.DB, userID uid.ID) (result []models.Grant, err error) {
-	polymorphicID := uid.NewUserPolymorphicID(userID)
-	return ListGrants(db, BySubject(polymorphicID), NotCreatedBy(models.CreatedBySystem))
-}
-
-func ListMachineGrants(db *gorm.DB, machineID uid.ID) (result []models.Grant, err error) {
-	polymorphicID := uid.NewMachinePolymorphicID(machineID)
+func ListIdentityGrants(db *gorm.DB, userID uid.ID) (result []models.Grant, err error) {
+	polymorphicID := uid.NewIdentityPolymorphicID(userID)
 	return ListGrants(db, BySubject(polymorphicID), NotCreatedBy(models.CreatedBySystem))
 }
 

@@ -93,9 +93,9 @@ func newDestinationsAddCmd() *cobra.Command {
 				return fmt.Errorf("unknown destination type: %q. supported types: %v", parts[0], supportedTypes)
 			}
 
-			destination := &api.CreateMachineRequest{
-				Name:        parts[1],
-				Description: fmt.Sprintf("%s destination", args[0]),
+			created, err := CreateInfraIdentity(args[0])
+			if err != nil {
+				return err
 			}
 
 			client, err := defaultAPIClient()
@@ -103,13 +103,8 @@ func newDestinationsAddCmd() *cobra.Command {
 				return err
 			}
 
-			created, err := client.CreateMachine(destination)
-			if err != nil {
-				return err
-			}
-
 			destinationGrant := &api.CreateGrantRequest{
-				Subject:   uid.NewMachinePolymorphicID(created.ID),
+				Subject:   uid.NewIdentityPolymorphicID(created.ID),
 				Privilege: models.InfraConnectorRole,
 				Resource:  "infra",
 			}
@@ -122,7 +117,7 @@ func newDestinationsAddCmd() *cobra.Command {
 			lifetime := time.Hour * 24 * 365
 			extensionDeadline := time.Hour * 24
 			accessKey, err := client.CreateAccessKey(&api.CreateAccessKeyRequest{
-				MachineID:         created.ID,
+				IdentityID:        created.ID,
 				Name:              fmt.Sprintf("%s destination access key", args[0]),
 				TTL:               api.Duration(lifetime),
 				ExtensionDeadline: api.Duration(extensionDeadline),

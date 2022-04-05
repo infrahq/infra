@@ -1,12 +1,9 @@
 # Quickstart
 
-![Header](../images/quickstart-QuickStartHeader.png)
-
-
 ### Prerequisites:
 
-- Helm (v3+)
-- Kubernetes cluster (v1.14+) (ie. Docker Desktop with Kubernetes or Minikube)
+- [Helm](https://helm.sh/) (v3+)
+- [Kubernetes](https://kubernetes.io/) (v1.14+ – ie. Docker Desktop with Kubernetes)
 
 ### 1. Install Infra
 
@@ -31,7 +28,7 @@ brew link infrahq/tap/infra
 <details>
   <summary><strong>Windows</strong></summary>
 
-```powershell
+```bash
 scoop bucket add infrahq https://github.com/infrahq/scoop.git
 scoop install infra
 ```

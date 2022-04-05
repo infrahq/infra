@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// PolymorphicID is a reference of the format "u:<idstr>" for users, "m:<idstr>" for machines, and "g:<idstr>" for groups
+// PolymorphicID is a reference of the format "i:<idstr>" for identities and "g:<idstr>" for groups
 type PolymorphicID string
 
 func (p PolymorphicID) String() string {
@@ -19,24 +19,16 @@ func (p PolymorphicID) ID() (ID, error) {
 	return ParseString(string(p)[2:])
 }
 
-func (p PolymorphicID) IsMachine() bool {
-	return strings.HasPrefix(string(p), "m:")
-}
-
-func (p PolymorphicID) IsUser() bool {
-	return strings.HasPrefix(string(p), "u:")
+func (p PolymorphicID) IsIdentity() bool {
+	return strings.HasPrefix(string(p), "i:")
 }
 
 func (p PolymorphicID) IsGroup() bool {
 	return strings.HasPrefix(string(p), "g:")
 }
 
-func NewMachinePolymorphicID(id ID) PolymorphicID {
-	return newPolymorphicID("m", id)
-}
-
-func NewUserPolymorphicID(id ID) PolymorphicID {
-	return newPolymorphicID("u", id)
+func NewIdentityPolymorphicID(id ID) PolymorphicID {
+	return newPolymorphicID("i", id)
 }
 
 func NewGroupPolymorphicID(id ID) PolymorphicID {
