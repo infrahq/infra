@@ -122,11 +122,11 @@
         "properties": {
           "connection": {
             "properties": {
-              "CA": {
+              "ca": {
                 "example": "-----BEGIN CERTIFICATE-----\nMIIDNTCCAh2gAwIBAgIRALRetnpcTo9O3V2fAK3ix+c\n-----END CERTIFICATE-----\n",
                 "type": "string"
               },
-              "URL": {
+              "url": {
                 "example": "aa60eexample.us-west-2.elb.amazonaws.com",
                 "type": "string"
               }
@@ -173,13 +173,13 @@
           "fieldErrors": {
             "items": {
               "properties": {
-                "Errors": {
+                "errors": {
                   "items": {
                     "type": "string"
                   },
                   "type": "array"
                 },
-                "FieldName": {
+                "fieldName": {
                   "type": "string"
                 }
               },
@@ -344,7 +344,7 @@
           "passwordUpdateRequired": {
             "type": "boolean"
           },
-          "polymorphicId": {
+          "polymorphicID": {
             "example": "i:4yJ3n3D8E3",
             "format": "poly-uid",
             "pattern": "\\w:[\\da-zA-HJ-NP-Z]{1,11}",
@@ -805,11 +805,11 @@
                 "properties": {
                   "connection": {
                     "properties": {
-                      "CA": {
+                      "ca": {
                         "example": "-----BEGIN CERTIFICATE-----\nMIIDNTCCAh2gAwIBAgIRALRetnpcTo9O3V2fAK3ix+c\n-----END CERTIFICATE-----\n",
                         "type": "string"
                       },
-                      "URL": {
+                      "url": {
                         "example": "aa60eexample.us-west-2.elb.amazonaws.com",
                         "type": "string"
                       }
@@ -1095,11 +1095,11 @@
                 "properties": {
                   "connection": {
                     "properties": {
-                      "CA": {
+                      "ca": {
                         "example": "-----BEGIN CERTIFICATE-----\nMIIDNTCCAh2gAwIBAgIRALRetnpcTo9O3V2fAK3ix+c\n-----END CERTIFICATE-----\n",
                         "type": "string"
                       },
-                      "URL": {
+                      "url": {
                         "example": "aa60eexample.us-west-2.elb.amazonaws.com",
                         "type": "string"
                       }
@@ -2667,16 +2667,16 @@
                   },
                   "oidc": {
                     "properties": {
-                      "Code": {
+                      "code": {
                         "type": "string"
                       },
-                      "ProviderID": {
+                      "providerID": {
                         "example": "4yJ3n3D8E2",
                         "format": "uid",
                         "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
                         "type": "string"
                       },
-                      "RedirectURL": {
+                      "redirectURL": {
                         "type": "string"
                       }
                     },
@@ -2689,10 +2689,10 @@
                   },
                   "passwordCredentials": {
                     "properties": {
-                      "Email": {
+                      "email": {
                         "type": "string"
                       },
-                      "Password": {
+                      "password": {
                         "type": "string"
                       }
                     },
