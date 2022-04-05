@@ -3,8 +3,10 @@ package server
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 	"path/filepath"
 	"testing"
 
@@ -12,6 +14,7 @@ import (
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -936,5 +939,60 @@ func TestServer_Run(t *testing.T) {
 		assert.NilError(t, err)
 		defer resp.Body.Close()
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
+	})
+}
+
+func TestServer_Run_UIProxy(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	message := `message through the proxy`
+	uiSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(message))
+	}))
+	t.Cleanup(uiSrv.Close)
+
+	dir := t.TempDir()
+	opts := Options{
+		DBEncryptionKeyProvider: "native",
+		DBEncryptionKey:         filepath.Join(dir, "sqlite3.db.key"),
+		TLSCache:                filepath.Join(dir, "tlscache"),
+		DBFile:                  filepath.Join(dir, "sqlite3.db"),
+		EnableUI:                true,
+		UIProxyURL:              uiSrv.URL,
+		EnableSetup:             true,
+	}
+	srv, err := New(opts)
+	require.NoError(t, err)
+
+	go func() {
+		if err := srv.Run(ctx); err != nil {
+			t.Errorf("server errored: %v", err)
+		}
+	}()
+
+	t.Run("requests are proxied", func(t *testing.T) {
+		resp, err := http.Get("http://" + srv.Addrs.HTTP.String() + "/any-path")
+		require.NoError(t, err)
+		defer resp.Body.Close()
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+
+		body, err := ioutil.ReadAll(resp.Body)
+		require.NoError(t, err)
+		require.Equal(t, message, string(body))
+	})
+
+	t.Run("api routes are available", func(t *testing.T) {
+		resp, err := http.Get("http://" + srv.Addrs.HTTP.String() + "/v1/setup")
+		require.NoError(t, err)
+		defer resp.Body.Close()
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var body api.SetupRequiredResponse
+		err = json.NewDecoder(resp.Body).Decode(&body)
+		require.NoError(t, err)
+
+		require.True(t, body.Required, true)
 	})
 }
