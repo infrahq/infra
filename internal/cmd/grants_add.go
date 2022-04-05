@@ -179,7 +179,7 @@ func addGrant(cmdOptions grantsCmdOptionsNew) error {
 		case 1:
 			id = uid.NewGroupPolymorphicID(groups[0].ID)
 		case 2:
-			panic(fmt.Sprintf(fmt.Sprintf(DuplicateEntryPanic, "group", cmdOptions.Identity)))
+			panic(fmt.Sprintf(DuplicateEntryPanic, "group", cmdOptions.Identity))
 		}
 	case models.UserKind, models.MachineKind:
 		identities, err := client.ListIdentities(api.ListIdentitiesRequest{Name: cmdOptions.Identity, ProviderID: provider.ID})
