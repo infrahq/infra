@@ -59,7 +59,7 @@ EMAIL must contain a valid email address in the form of "<local>@<domain>".
 				return err
 			}
 
-			createResp, err := CreateInfraIdentity(name)
+			createResp, err := CreateLocalIdentity(name)
 			if err != nil {
 				return err
 			}
@@ -243,7 +243,8 @@ func checkUserOrMachine(s string) (models.IdentityKind, error) {
 	return models.UserKind, nil
 }
 
-func CreateInfraIdentity(name string) (*api.CreateIdentityResponse, error) {
+// Creates a user for the local identity provider
+func CreateLocalIdentity(name string) (*api.CreateIdentityResponse, error) {
 	client, err := defaultAPIClient()
 	if err != nil {
 		return nil, err
@@ -298,8 +299,8 @@ func UpdateIdentity(name, newPassword string) error {
 	} else {
 		user, err = GetIdentityFromName(client, name, infraProvider)
 		if err != nil {
-			if errors.Is(err, ErrUserNotFound) {
-				return fmt.Errorf("the user being updated must exist in the local infra identity provider: %w", err)
+			if errors.Is(err, ErrIdentityNotFound) {
+				return fmt.Errorf("Identity %s not found in local provider; only local identities can be edited", name)
 			}
 			return err
 		}
@@ -321,7 +322,7 @@ func GetIdentityFromName(client *api.Client, name string, provider *api.Provider
 	}
 
 	if len(users) == 0 {
-		return nil, ErrUserNotFound
+		return nil, ErrIdentityNotFound
 	}
 
 	if len(users) != 1 {

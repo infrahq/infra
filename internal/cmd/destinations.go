@@ -93,7 +93,7 @@ func newDestinationsAddCmd() *cobra.Command {
 				return fmt.Errorf("unknown destination type: %q. supported types: %v", parts[0], supportedTypes)
 			}
 
-			created, err := CreateInfraIdentity(args[0])
+			created, err := CreateLocalIdentity(args[0])
 			if err != nil {
 				return err
 			}
