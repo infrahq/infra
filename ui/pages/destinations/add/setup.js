@@ -1,7 +1,6 @@
 import Head from "next/head"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import styled from 'styled-components'
-import axios from 'axios'
 
 import ActionButton from "../../../components/ActionButton"
 import ExitButton from "../../../components/ExitButton"
@@ -31,27 +30,12 @@ const SetupDestinationContent = styled.div`
 
 const Setup = () => {
   const [name, setName] = useState('')
-  const [destinationsList, setDestinationList] = useState(null)
 
   const handleSetup = () => {
     const type = 'kubernetes'
     const destinationName = type + '.' + name
-    // setName(destinationName)
     console.log(destinationName)
   }
-
-  useEffect(() => {
-    const source = axios.CancelToken.source()
-
-    if (destinationsList === null) {
-      axios.get('/v1/destinations').then((response) => {
-        setDestinationList(response.data)
-      })
-    }
-    return function () {
-      source.cancel('Cancelling in cleanup')
-    }
-  }, [])
 
   return (
     <>
