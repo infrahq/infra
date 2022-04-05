@@ -31,7 +31,7 @@ func (e *FailedLoginError) Error() string {
 		errorReason = "your id or password may be incorrect"
 	case accessKeyLogin:
 		errorReason = "your access key is may not be valid"
-	case OIDCLogin:
+	case oidcLogin:
 		errorReason = "could not login to infra through this connected identity provider"
 	}
 
