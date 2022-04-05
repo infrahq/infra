@@ -141,7 +141,7 @@ func addGrant(cmdOptions grantsCmdOptionsNew) error {
 		}
 	case models.MachineKind:
 		if cmdOptions.Provider != "" {
-			logging.S.Debug("machine must be a local identity; overwriting --provider with %s", models.InternalInfraProviderName)
+			logging.S.Debugf("machine must be a local identity; overwriting --provider with %s", models.InternalInfraProviderName)
 		}
 
 		providers, err := client.ListProviders(models.InternalInfraProviderName)
