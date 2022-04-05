@@ -86,7 +86,7 @@ func UpdateProviderToken(c *gin.Context, providerToken *models.ProviderToken) er
 	return data.UpdateProviderToken(db, providerToken)
 }
 
-func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.Provider, oidc authn.OIDC, sessionDuration time.Duration, redirectURL string) (*models.Identity, string, error) {
+func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.Provider, oidc authn.OIDC, expires time.Time, redirectURL string) (*models.Identity, string, error) {
 	// does not need authorization check, this function should only be called internally
 	db := getDB(c)
 
@@ -176,7 +176,7 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 
 	key := &models.AccessKey{
 		IssuedFor: user.ID,
-		ExpiresAt: time.Now().Add(sessionDuration).UTC(),
+		ExpiresAt: expires,
 	}
 
 	body, err := data.CreateAccessKey(db, key)

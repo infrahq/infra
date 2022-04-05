@@ -151,10 +151,6 @@ func New(options Options) (*Server, error) {
 		return nil, fmt.Errorf("configuring metrics: %w", err)
 	}
 
-	if err := os.MkdirAll(server.options.TLSCache, os.ModePerm); err != nil {
-		return nil, fmt.Errorf("mkdir: %w", err)
-	}
-
 	if err := server.importAccessKeys(); err != nil {
 		return nil, fmt.Errorf("importing access keys: %w", err)
 	}
@@ -426,10 +422,6 @@ func (s *Server) listen() error {
 		return err
 	}
 
-	if err := os.MkdirAll(s.options.TLSCache, os.ModePerm); err != nil {
-		return fmt.Errorf("create tls cache: %w", err)
-	}
-
 	tlsConfig, err := s.serverTLSConfig()
 	if err != nil {
 		return fmt.Errorf("tls config: %w", err)
@@ -515,6 +507,10 @@ func (s *Server) serverTLSConfig() (*tls.Config, error) {
 			},
 		}, nil
 	default: // "none" or blank
+		if err := os.MkdirAll(s.options.TLSCache, 0o700); err != nil {
+			return nil, fmt.Errorf("create tls cache: %w", err)
+		}
+
 		manager := &autocert.Manager{
 			Prompt: autocert.AcceptTOS,
 			Cache:  autocert.DirCache(s.options.TLSCache),

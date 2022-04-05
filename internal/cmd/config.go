@@ -6,7 +6,10 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 
+	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -24,11 +27,40 @@ type ClientHostConfig struct {
 	AccessKey     string            `json:"access-key,omitempty"`
 	SkipTLSVerify bool              `json:"skip-tls-verify"` // where is the other cert info stored?
 	ProviderID    uid.ID            `json:"provider-id"`
+	Expires       api.Time          `json:"expires"`
 	Current       bool              `json:"current"`
 }
 
+// checks if user is logged in to the given session (ClientHostConfig)
 func (c *ClientHostConfig) isLoggedIn() bool {
 	return c.AccessKey != ""
+}
+
+// checks if user is logged in to the current session
+func isLoggedInCurrent() bool {
+	return getLoggedInIdentityName() != ""
+}
+
+// Retrieves current logged in user, empty if logged out
+func getLoggedInIdentityName() string {
+	hostConfig, err := currentHostConfig()
+	if err != nil {
+		logging.S.Debug(err)
+		return ""
+	}
+	if hostConfig == nil {
+		logging.S.Debug("No saved sessions found.")
+		return ""
+	}
+	if !hostConfig.isLoggedIn() {
+		logging.S.Debug("User is not logged in.")
+		return ""
+	}
+	return hostConfig.Name
+}
+
+func (c *ClientHostConfig) isExpired() bool {
+	return time.Now().After(time.Time(c.Expires))
 }
 
 func (c ClientConfig) HostNames() []string {

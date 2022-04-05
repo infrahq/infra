@@ -1,6 +1,11 @@
 package server
 
 import (
+	"context"
+	"crypto/tls"
+	"io/ioutil"
+	"net/http"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -14,8 +19,13 @@ import (
 )
 
 func setupLogging(t *testing.T) {
+	origL := logging.L
 	logging.L = zaptest.NewLogger(t)
 	logging.S = logging.L.Sugar()
+	t.Cleanup(func() {
+		logging.L = origL
+		logging.S = logging.L.Sugar()
+	})
 }
 
 func TestGetPostgresConnectionURL(t *testing.T) {
@@ -864,4 +874,63 @@ func TestImportAccessKeysUpdate(t *testing.T) {
 	accessKey, err := data.GetAccessKey(s.db, data.ByName("default admin access key"))
 	require.NoError(t, err)
 	require.Equal(t, accessKey.KeyID, "EKoHADINYX")
+}
+
+func TestServer_Run(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	dir := t.TempDir()
+	opts := Options{
+		DBEncryptionKeyProvider: "native",
+		DBEncryptionKey:         filepath.Join(dir, "sqlite3.db.key"),
+		TLSCache:                filepath.Join(dir, "tlscache"),
+		DBFile:                  filepath.Join(dir, "sqlite3.db"),
+	}
+	srv, err := New(opts)
+	require.NoError(t, err)
+
+	go func() {
+		if err := srv.Run(ctx); err != nil {
+			t.Errorf("server errored: %v", err)
+		}
+	}()
+
+	t.Run("metrics server started", func(t *testing.T) {
+		resp, err := http.Get("http://" + srv.Addrs.Metrics.String() + "/metrics")
+		require.NoError(t, err)
+		defer resp.Body.Close()
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+
+		body, err := ioutil.ReadAll(resp.Body)
+		require.NoError(t, err)
+		require.Contains(t, string(body), "# HELP")
+		require.Contains(t, string(body), "# TYPE")
+	})
+
+	t.Run("http server started", func(t *testing.T) {
+		resp, err := http.Get("http://" + srv.Addrs.HTTP.String() + "/healthz")
+		require.NoError(t, err)
+		defer resp.Body.Close()
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+	})
+
+	t.Run("https server started", func(t *testing.T) {
+		tr := &http.Transport{}
+		tr.TLSClientConfig = &tls.Config{
+			// TODO: use the actual certs when that is possible
+			//nolint:gosec
+			InsecureSkipVerify: true,
+		}
+		client := &http.Client{Transport: tr}
+
+		url := "https://" + srv.Addrs.HTTPS.String() + "/healthz"
+		req, err := http.NewRequest(http.MethodGet, url, nil)
+		require.NoError(t, err)
+
+		resp, err := client.Do(req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+	})
 }

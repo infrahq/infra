@@ -21,7 +21,7 @@ helm upgrade --install infra-engine infrahq/infra --set engine.config.accessKey=
 
 ## Upgrade with Helm
 
-See [Upgrading Infra Kubernetes Connector](../../Operator%20Guides/upgrading-infra.md).
+See [Upgrading Infra Kubernetes Connector](../../operator-guides/upgrading-infra.md).
 
 ## Grants
 

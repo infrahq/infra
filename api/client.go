@@ -42,6 +42,8 @@ func checkError(status int, body []byte) error {
 		return fmt.Errorf(apiError.Message)
 	case http.StatusInternalServerError:
 		return ErrInternal
+	case http.StatusGone:
+		return fmt.Errorf(apiError.Message)
 	}
 
 	if status >= 400 {

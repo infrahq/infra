@@ -15,7 +15,7 @@ brew link infrahq/tap/infra
 <details>
   <summary><strong>Windows</strong></summary>
 
-```powershell
+```
 scoop bucket add infrahq https://github.com/infrahq/scoop.git
 scoop install infra
 ```
@@ -46,7 +46,7 @@ sudo dnf install infra
 infra login HOST
 ```
 
-> **Don't know your Infra host?<br>** Ask your Infra administrator for the hostname that you should use to login.
+> **Don't know your Infra host?<br />** Ask your Infra administrator for the hostname that you should use to login.
 
 ### 3. See what you can access
 

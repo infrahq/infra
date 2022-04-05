@@ -34,7 +34,7 @@ infra grants add --user dev@example.com --role user infra
 
 ## Kubernetes Grants
 
-For details on Kubernetes grants, see [Connect Destinations: Kubernetes](../Connectors/connect-destinations/connect-destinations-kubernetes.md#grants).
+For details on Kubernetes grants, see [Connect Destinations: Kubernetes](../connectors/destinations/kubernetes.md#grants).
 
 ## Revoking Access
 

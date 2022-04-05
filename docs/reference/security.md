@@ -5,7 +5,7 @@ If you have found a security vulnerability please disclose it privately to us by
 
 ## General Security
 ### HTTPS
-By default Infra and Infra connector communicate via encrypted HTTPS connections with validated certificates. When using self-signed certificates, an error will be printed in the logs. Certificate validation can be strongly enforced using the `--force-tls-verify` flag.
+By default Infra and Infra connector communicate via encrypted HTTPS connections with validated certificates.
 
 ### Authentication
 When users login to Infra as a valid user they are issued a session token with a 24 character secret that is randomly generated. The SHA256 hash of this token is stored server-side for token validation. This session token is stored locally under `~/.infra`.
@@ -27,4 +27,4 @@ The client secret is loaded server-side from the specified Kubernetes secret onl
 
 ## Encrypted At Rest
 
-Sensitive data is always encrypted at rest. See [Keys](./keys.md) for more information.
+Sensitive data is always encrypted at rest. See [Keys](../operator-guides/configure/encryption.md) for more information.

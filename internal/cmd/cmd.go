@@ -32,6 +32,10 @@ func mustBeLoggedIn() error {
 		return fmt.Errorf("Not logged in. Run 'infra login' before running this command.")
 	}
 
+	if config.isExpired() {
+		return fmt.Errorf("Session expired. Run 'infra login' to start a new session.")
+	}
+
 	return nil
 }
 
