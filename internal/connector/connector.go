@@ -409,8 +409,6 @@ func Run(options Options) error {
 		},
 	}
 
-	var expires time.Time
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -442,29 +440,6 @@ func Run(options Options) error {
 
 		endpoint := fmt.Sprintf("%s:%d", host, port)
 		logging.S.Debugf("connector serving on %s", endpoint)
-
-		requireLogin := time.Now().After(expires)
-
-		if _, err := client.Introspect(); err != nil {
-			if !errors.Is(err, api.ErrUnauthorized) {
-				logging.S.Errorf("unexpected error: %v", err)
-				return
-			}
-
-			requireLogin = requireLogin || true
-		}
-
-		if requireLogin {
-			resp, err := client.Login(&api.LoginRequest{
-				AccessKey: accessKey,
-			})
-			if err != nil {
-				return
-			}
-
-			client.AccessKey = resp.AccessKey
-			expires = time.Time(resp.Expires)
-		}
 
 		if destination.ID == 0 {
 			destination.Connection.CA = string(caBytes)
