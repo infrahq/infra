@@ -48,6 +48,18 @@ jobs:
         if: steps.cache-commitlint.cache-hit != true
       - run: ./node_modules/.bin/commitlint --from origin/$GITHUB_BASE_REF --to @ --verbose --config .github/commitlint.config.js
 
+  check-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '1.18'
+      - run: |
+          go run ./internal/docgen
+          go run ./internal/openapigen docs/api/openapi3.json
+          git diff --exit-code
+
   docker:
     if: startsWith(github.head_ref, 'release-please-') == true
     runs-on: ubuntu-latest
