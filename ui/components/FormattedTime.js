@@ -13,7 +13,11 @@ const FormattedTime = ({ time }) => {
   ]
 
   function timeSince (date) {
-    const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
+    console.log(date)
+    const seconds = Math.floor((Date.now() - date) / 1000)
+    console.log(seconds)
+    console.log(Date.now())
+    console.log(Date.parse(date))
     const interval = intervals.find(i => i.seconds < seconds)
     const count = Math.floor(seconds / interval.seconds)
     return `${count} ${interval.label}${count !== 1 ? 's' : ''} ago`

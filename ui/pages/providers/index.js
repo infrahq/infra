@@ -31,11 +31,6 @@ const TableHeaderTitle = styled.p`
   font-size: 11px;
   line-height: 0%;
   text-transform: uppercase;
-
-  img {
-    width: 15px;
-    height: 15px;
-  }
 `
 
 const TableContentContainer = styled.div`
