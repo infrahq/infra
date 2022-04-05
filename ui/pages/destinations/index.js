@@ -118,7 +118,7 @@ const Destinations = () => {
                     <TableContent key={item.id}>
                       <TableContentText>{item.name}</TableContentText>
                       <TableContentText>
-                        {item.created}
+                        <FormattedTime time={item.created} />
                       </TableContentText>
                       <TableContentText>
                         <button onClick={() => handleRemove(item)}>remove</button>
