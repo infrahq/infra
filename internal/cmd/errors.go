@@ -28,11 +28,11 @@ func (e *FailedLoginError) Error() string {
 
 	switch e.LoginMethod {
 	case localLogin:
-		errorReason = "your id or password is incorrect"
+		errorReason = "your id or password may be incorrect"
 	case accessKeyLogin:
-		errorReason = "your access key is not valid"
+		errorReason = "your access key is may not be valid"
 	case OIDCLogin:
-		errorReason = "could not login to infra through this provider"
+		errorReason = "could not login to infra through this connected identity provider"
 	}
 
 	msg := fmt.Sprintf("Login failed: %s.", errorReason)

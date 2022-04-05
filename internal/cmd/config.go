@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -40,11 +41,19 @@ func isLoggedInCurrent() bool {
 // Retrieves current logged in user, empty if logged out
 func getLoggedInIdentityName() string {
 	hostConfig, err := currentHostConfig()
-	if err == nil && hostConfig != nil && hostConfig.isLoggedIn() {
-		return hostConfig.Name
+	if err != nil {
+		logging.S.Debug(err)
+		return ""
 	}
-
-	return ""
+	if hostConfig == nil {
+		logging.S.Debug("No saved sessions found.")
+		return ""
+	}
+	if !hostConfig.isLoggedIn() {
+		logging.S.Debug("User is not logged in.")
+		return ""
+	}
+	return hostConfig.Name
 }
 
 func (c ClientConfig) HostNames() []string {
