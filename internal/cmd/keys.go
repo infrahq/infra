@@ -64,7 +64,7 @@ infra keys create main wall-e 12h --extension-deadline=1h
 				return fmt.Errorf("no infra provider found, to manage local users create a local provider named 'infra'")
 			}
 
-			machine, err := GetIdentityFromName(client, machineName, infraProvider)
+			machine, err := GetIdentityFromName(client, machineName, infraProvider.ID)
 			if err != nil {
 				return err
 			}
@@ -164,7 +164,7 @@ func newKeysListCmd() *cobra.Command {
 					return fmt.Errorf("no infra provider found, to manage local users create a local provider named 'infra'")
 				}
 
-				machine, err := GetIdentityFromName(client, options.MachineName, infraProvider)
+				machine, err := GetIdentityFromName(client, options.MachineName, infraProvider.ID)
 				if err != nil {
 					return err
 				}
