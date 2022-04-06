@@ -1,11 +1,13 @@
 import Head from "next/head"
-import { useState } from "react"
+import { useContext, useState } from "react"
 import styled from 'styled-components'
 
 import ActionButton from "../../../components/ActionButton"
 import ExitButton from "../../../components/ExitButton"
 import Header from "../../../components/Header"
 import Input from "../../../components/Input"
+import WarningContainer from "../../../components/WarningContainer"
+import DestinationsContext, { DestinationsContextProvider } from "../../../store/DestinationsContext"
 
 const SetupDestinationContainer = styled.section`
   position: relative;
@@ -29,16 +31,24 @@ const SetupDestinationContent = styled.div`
 `
 
 const Setup = () => {
+  const { destinations } = useContext(DestinationsContext)
   const [name, setName] = useState('')
+  const [isDuplicated, setIsDuplicated] = useState(false)
 
   const handleSetup = () => {
     const type = 'kubernetes'
     const destinationName = type + '.' + name
+    setIsDuplicated(!isUnique(destinationName))
+
     console.log(destinationName)
   }
 
+  const isUnique = (currentDestinationName) => {
+    return destinations.filter((item) => item.name === currentDestinationName).length === 0
+  }
+
   return (
-    <>
+    <DestinationsContextProvider>
       <Head>
         <title>Infra - Destinations</title>
       </Head>
@@ -55,13 +65,16 @@ const Setup = () => {
               onChange={e => setName(e.target.value)}
             />
           </div>
+          { isDuplicated && 
+            <WarningContainer text='the clouster already exists, please provide a different name' />
+          }
           <ActionButton onClick={handleSetup} value='Next' />
         </SetupDestinationContent>      
         <NavButton>
           <ExitButton previousPage='/destinations' />
         </NavButton>
       </SetupDestinationContainer>
-    </>
+    </DestinationsContextProvider>
   )
 }
 
