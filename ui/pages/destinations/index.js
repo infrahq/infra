@@ -1,15 +1,11 @@
-import Router from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
-import { useContext, useEffect, useState } from "react"
-import axios from 'axios'
 import styled from 'styled-components'
 
 import Navigation from '../../components/nav/Navigation'
 import PageHeader from '../../components/PageHeader'
-import FormattedTime from '../../components/FormattedTime'
-import EmptyPageHeader from '../../components/EmptyPageHeader'
-import DestinationsContext, { DestinationsContextProvider } from '../../store/DestinationsContext'
+import { DestinationsContextProvider } from '../../store/DestinationsContext'
+import Dashboard from '../../components/destinations/Dashboard'
 
 const DestinationsHeaderContainer = styled.div`
   padding-top: 3rem;
@@ -54,68 +50,7 @@ const TableHeaderTitle = styled.p`
   text-transform: uppercase;
 `
 
-const TableContent = styled.div`
-  display: grid;
-  grid-template-columns: 80% 18% auto;
-  align-items: center;
-`
-
-const TableContentText = styled.div`
-  font-weight: 300;
-  font-size: 12px;
-  line-height: 0px;
-
-  a {
-    cursor: pointer;
-
-    :hover {
-      opacity: .6;
-    }
-  }
-`
-
-const TableContentContainer = styled.div`
-  padding-top: 1rem;
-`
-
 const Destinations = () => {
-  const { destinations, updateDestinationsList } = useContext(DestinationsContext);
-  const [destinationsList, setDestinationList] = useState([])
-
-  console.log(destinationsList)
-
-  useEffect(() => {
-    if (destinations.length === 0) {
-      axios.get('/v1/destinations')
-			.then((response) => {
-				console.log(response)
-        const list = response.data
-				setDestinationList(response.data)
-        updateDestinationsList(list)
-			})
-			.catch((error) => {
-				console.log(error)
-			})
-    } else {
-      setDestinationList(destinations)
-    }
-  }, [])
-
-  const handleAddDestination = async () => {
-    await Router.push({
-      pathname: '/destinations/add/setup'
-    }, undefined, { shallow: true })
-  }
-
-  const handleRemove = (destination) => {
-    // TODO: need to test this
-    console.log('deleting: ', destination)
-    axios.delete('/v1/destinations/${destination.id}')
-      .then((response) => {
-        console.log(response)
-      })
-  }
-
   return (
     <DestinationsContextProvider>
       <Head>
@@ -125,7 +60,7 @@ const Destinations = () => {
         <div>
           <DestinationsHeaderContainer>
             <PageHeader iconPath='/destinations.svg' title='Destinations' />
-            <Link href='/destinations/add/setup'>
+            <Link href='/destinations/add/connect'>
               <AddDestinationLink><span>&#43;</span>Add Destination</AddDestinationLink>
             </Link>
           </DestinationsHeaderContainer>
@@ -133,35 +68,7 @@ const Destinations = () => {
             <TableHeaderTitle>Name</TableHeaderTitle>
             <TableHeaderTitle>Added</TableHeaderTitle>
           </TableHeader>
-          <div>
-            {destinationsList.length > 0
-              ? (
-                <TableContentContainer>
-                  {destinationsList.map((item) => {
-                    return (
-                      <TableContent key={item.id}>
-                        <TableContentText>{item.name}</TableContentText>
-                        <TableContentText>
-                          <FormattedTime time={item.created} />
-                        </TableContentText>
-                        <TableContentText>
-                          <a onClick={() => handleRemove(item)}>&#x2715;</a>
-                        </TableContentText>
-                      </TableContent>
-                    )
-                  })}
-                </TableContentContainer>
-              )
-            : (
-              <EmptyPageHeader
-                header='Destinations'
-                subheader='No destinations connected.'
-                actionButtonHeader='Add Destinations'
-                onClickActionButton={() => handleAddDestination()}
-              />
-            )
-            }
-          </div>
+          <Dashboard />
         </div>
     </DestinationsContextProvider>
   )
