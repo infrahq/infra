@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.9.0](https://github.com/infrahq/infra/compare/v0.8.0...v0.9.0) (2022-04-06)
+
+
+### ⚠ BREAKING CHANGES
+
+* change LoginResponse polymorphicId to polymorphicID
+* **api:** replaces /v1/user and /v1/machines with /v1/identities
+
+### Features
+
+* add expiry to login response ([484021b](https://github.com/infrahq/infra/commit/484021b26c231c1aac0923cadc6ffb7cb2453239))
+* **cli:** check expiry for authenticated commands ([a9c23ef](https://github.com/infrahq/infra/commit/a9c23ef224c2577dd5be4c4ca9abb62672ad6d0e))
+
+
+### Bug Fixes
+
+* bump openapi to appropriate version ([c99fc3d](https://github.com/infrahq/infra/commit/c99fc3df8e309ab4aea131fda3ac6c5eeffc29ff))
+* **cli:** check min requirement for new password ([#1435](https://github.com/infrahq/infra/issues/1435)) ([4777b9e](https://github.com/infrahq/infra/commit/4777b9ed2de14e948c8fcacc010a118dcc3fbc85))
+* delete grants on user delete ([#1447](https://github.com/infrahq/infra/issues/1447)) ([26cb088](https://github.com/infrahq/infra/commit/26cb08898c69a3c4a5ef001d17cec9b6c63fa167))
+* do not allow users to delete themselves ([#1473](https://github.com/infrahq/infra/issues/1473)) ([4de92e4](https://github.com/infrahq/infra/commit/4de92e45fec7186ee8ba55820cb1324dbb955014))
+
+
+### improve
+
+* **api:** unify users and machine ([c76073d](https://github.com/infrahq/infra/commit/c76073dc6fced90595ffc86aaf85b3582eac657a))
+
+
+### maintain
+
+* use json tag for property names ([5fa6413](https://github.com/infrahq/infra/commit/5fa64136da43045b84a8593d24b927cdf588f1fd))
+
 ## [0.8.0](https://github.com/infrahq/infra/compare/v0.7.0...v0.8.0) (2022-03-30)
 
 
