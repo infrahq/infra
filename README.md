@@ -204,7 +204,7 @@ infra grants add --user name@example.com --role view infra
 
 ### 10. Share the cluster(s) with other developers 
 
-To share access with Infra, developers will need to install Infra CLI, and be provided the login URL. If using local users, please share the one-time password. 
+To share access with Infra, developers will need to install Infra CLI, and be provided the login URL. If using local users, please share the one-time password.
 
 
 ## [Security](./docs/security.md)
