@@ -4,6 +4,12 @@
   "pull-request-title-pattern": "maintain${scope}: release${component} ${version}",
   "label": "autorelease/pending",
   "release-label": "autorelease/tagged",
+  "changelog-sections": [
+    { "type": "feat", "section": "Features" },
+    { "type": "fix", "section": "Bug Fixes" },
+    { "type": "improve", "section": "Improvement", "hidden": true },
+    { "type": "maintain", "section": "Maintenance", "hidden": true }
+  ],
   "packages": {
     ".": {
       "release-type": "go",
