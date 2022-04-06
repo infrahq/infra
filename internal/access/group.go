@@ -36,7 +36,7 @@ func ListGroups(c *gin.Context, name string) ([]models.Group, error) {
 		return nil, err
 	}
 
-	return data.ListGroups(db, data.ByName(name))
+	return data.ListGroups(db, data.ByOptionalName(name))
 }
 
 func CreateGroup(c *gin.Context, group *models.Group) error {

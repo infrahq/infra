@@ -41,7 +41,7 @@ func ListDestinations(c *gin.Context, uniqueID, name string) ([]models.Destinati
 		return nil, err
 	}
 
-	return data.ListDestinations(db, data.ByUniqueID(uniqueID), data.ByName(name))
+	return data.ListDestinations(db, data.ByOptionalUniqueID(uniqueID), data.ByOptionalName(name))
 }
 
 func DeleteDestination(c *gin.Context, id uid.ID) error {

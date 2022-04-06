@@ -27,7 +27,7 @@ func ByNotIDs(ids []uid.ID) SelectorFunc {
 	}
 }
 
-func ByName(name string) SelectorFunc {
+func ByOptionalName(name string) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		if len(name) > 0 {
 			return db.Where("name = ?", name)
@@ -37,7 +37,13 @@ func ByName(name string) SelectorFunc {
 	}
 }
 
-func ByUniqueID(nodeID string) SelectorFunc {
+func ByName(name string) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("name = ?", name)
+	}
+}
+
+func ByOptionalUniqueID(nodeID string) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		if len(nodeID) > 0 {
 			return db.Where("unique_id = ?", nodeID)
@@ -49,10 +55,6 @@ func ByUniqueID(nodeID string) SelectorFunc {
 
 func ByProviderID(id uid.ID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
-		if id == 0 {
-			return db
-		}
-
 		return db.Where("provider_id = ?", id)
 	}
 }
@@ -63,17 +65,7 @@ func ByKeyID(key string) SelectorFunc {
 	}
 }
 
-func ByURL(url string) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		if len(url) == 0 {
-			return db
-		}
-
-		return db.Where("url = ?", url)
-	}
-}
-
-func BySubject(polymorphicID uid.PolymorphicID) SelectorFunc {
+func ByOptionalSubject(polymorphicID uid.PolymorphicID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		if polymorphicID == "" {
 			return db
@@ -83,12 +75,24 @@ func BySubject(polymorphicID uid.PolymorphicID) SelectorFunc {
 	}
 }
 
-func ByIssuedFor(id uid.ID) SelectorFunc {
+func BySubject(polymorphicID uid.PolymorphicID) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("subject = ?", string(polymorphicID))
+	}
+}
+
+func ByOptionalIssuedFor(id uid.ID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		if id == 0 {
 			return db
 		}
 
+		return db.Where("issued_for = ?", id)
+	}
+}
+
+func ByIssuedFor(id uid.ID) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("issued_for = ?", id)
 	}
 }
