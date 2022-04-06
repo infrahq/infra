@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
@@ -18,6 +20,7 @@ func newDestinationsCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(newDestinationsListCmd())
+	cmd.AddCommand(newDestinationsRemoveCmd())
 
 	return cmd
 }
@@ -52,6 +55,39 @@ func newDestinationsListCmd() *cobra.Command {
 			}
 
 			printTable(rows)
+
+			return nil
+		},
+	}
+}
+
+func newDestinationsRemoveCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:     "remove DESTINATION",
+		Aliases: []string{"rm"},
+		Short:   "Disconnect a destination",
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client, err := defaultAPIClient()
+			if err != nil {
+				return err
+			}
+
+			destinations, err := client.ListDestinations(api.ListDestinationsRequest{Name: args[0]})
+			if err != nil {
+				return err
+			}
+
+			if len(destinations) == 0 {
+				return fmt.Errorf("no destinations named %s", args[0])
+			}
+
+			for _, d := range destinations {
+				err := client.DeleteDestination(d.ID)
+				if err != nil {
+					return err
+				}
+			}
 
 			return nil
 		},
