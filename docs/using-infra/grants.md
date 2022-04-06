@@ -10,7 +10,7 @@ Grants are implemented in an additive model where the base configuration is to n
 
 ## Infra Grants
 
-Infra grants are a special type of Grant where the resource is Infra itself. This model is used to give subjects access to the Infra API. The privilege for Infra grants currently comprise three roles: `admin`, `user`, and `connector`.
+Infra grants are a special type of grant where the resource is Infra itself. This model is used to give subjects access to the Infra API. The privilege for Infra grants currently comprise three roles: `admin`, `user`, and `connector`.
 
 Each authenticated API call will check the caller has a role required to access the requested resource. If the caller has the necessary role to access the resource, the request is fulfilled and the result is returned. If the caller does *not* have the necessary role to access the resource, the request is rejected and an error is returned.
 
@@ -26,7 +26,7 @@ infra grants add --user admin@example.com --role admin infra
 
 ### Example: Grant user `dev@example.com` the user role to Infra
 
-This Grant will provide `dev@example.com` *some* access to the Infra API, including logging in and using a destination they have been granted access to, listing destinations, and updating their own user. It does *not* include access to creating additional grants, managing identity providers, managing destinations, or managing other users.
+This grant will provide `dev@example.com` *some* access to the Infra API, including logging in and using a destination they have been granted access to, listing destinations, and updating their own user. It does *not* include access to creating additional grants, managing identity providers, managing destinations, or managing other users.
 
 ```bash
 infra grants add --user dev@example.com --role user infra
