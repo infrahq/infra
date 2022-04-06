@@ -25,7 +25,7 @@ import (
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/goware/urlx"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
 	"gopkg.in/square/go-jose.v2"
@@ -38,6 +38,7 @@ import (
 	"github.com/infrahq/infra/internal/repeat"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/metrics"
 	"github.com/infrahq/infra/pki"
 	"github.com/infrahq/infra/secrets"
 )
@@ -145,10 +146,6 @@ func New(options Options) (*Server, error) {
 		if err := configureTelemetry(server.db); err != nil {
 			return nil, fmt.Errorf("configuring telemetry: %w", err)
 		}
-	}
-
-	if err := SetupMetrics(server.db); err != nil {
-		return nil, fmt.Errorf("configuring metrics: %w", err)
 	}
 
 	if err := server.setupInfraIdentityProvider(); err != nil {
@@ -375,7 +372,7 @@ func (s *Server) ui(router *gin.Engine) error {
 	return nil
 }
 
-func (s *Server) GenerateRoutes() *gin.Engine {
+func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) *gin.Engine {
 	router := gin.New()
 
 	router.Use(gin.Recovery())
@@ -386,27 +383,23 @@ func (s *Server) GenerateRoutes() *gin.Engine {
 		t:      s.tel,
 		server: s,
 	}
-	a.registerRoutes(router)
+	a.registerRoutes(router, promRegistry)
 
 	return router
 }
 
 func (s *Server) listen() error {
 	ginutil.SetMode()
-	router := s.GenerateRoutes()
+	promRegistry := SetupMetrics(s.db)
+	router := s.GenerateRoutes(promRegistry)
 
 	if err := s.ui(router); err != nil {
 		return err
 	}
 
-	metrics := gin.New()
-	metrics.GET("/metrics", func(c *gin.Context) {
-		promhttp.Handler().ServeHTTP(c.Writer, c.Request)
-	})
-
 	metricsServer := &http.Server{
 		Addr:     s.options.Addr.Metrics,
-		Handler:  metrics,
+		Handler:  metrics.NewHandler(promRegistry),
 		ErrorLog: logging.StandardErrorLog(),
 	}
 

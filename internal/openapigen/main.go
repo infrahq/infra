@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/infrahq/infra/internal/server"
 )
 
@@ -21,7 +23,7 @@ func run(args []string) error {
 	filename := args[0]
 
 	s := server.Server{}
-	s.GenerateRoutes()
+	s.GenerateRoutes(prometheus.NewRegistry())
 
 	return server.WriteOpenAPISpecToFile(filename)
 }
