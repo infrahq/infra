@@ -456,6 +456,22 @@ func (sp *SecretProvider) UnmarshalYAML(unmarshal func(interface{}) error) error
 	return nil
 }
 
+// setupInfraIdentityProvider creates the internal identity provider where local identities are stored
+func (s *Server) setupInfraIdentityProvider() error {
+	_, err := data.GetProvider(s.db, data.ByName(models.InternalInfraProviderName))
+	if err != nil {
+		if !errors.Is(err, internal.ErrNotFound) {
+			return fmt.Errorf("setup infra provider: %w", err)
+		}
+
+		if err := data.CreateProvider(s.db, &models.Provider{Name: models.InternalInfraProviderName, CreatedBy: models.CreatedBySystem}); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (s *Server) importAccessKeys() error {
 	type key struct {
 		Secret string
@@ -475,15 +491,7 @@ func (s *Server) importAccessKeys() error {
 
 	infraProvider, err := data.GetProvider(s.db, data.ByName(models.InternalInfraProviderName))
 	if err != nil {
-		if !errors.Is(err, internal.ErrNotFound) {
-			return fmt.Errorf("load provider start-up: %w", err)
-		}
-
-		infraProvider = &models.Provider{Name: models.InternalInfraProviderName}
-
-		if err := data.CreateProvider(s.db, infraProvider); err != nil {
-			return err
-		}
+		return err
 	}
 
 	for k, v := range keys {
@@ -583,9 +591,6 @@ func loadConfig(db *gorm.DB, config Config) error {
 	}
 
 	return db.Transaction(func(tx *gorm.DB) error {
-		// add the internal Infra identity store to providers
-		config.Providers = append(config.Providers, Provider{Name: models.InternalInfraProviderName})
-
 		if err := loadProviders(tx, config.Providers); err != nil {
 			return err
 		}
@@ -610,8 +615,8 @@ func loadProviders(db *gorm.DB, providers []Provider) error {
 		toKeep = append(toKeep, provider.ID)
 	}
 
-	// remove _all_ providers not defined in config or internal
-	err := data.DeleteProviders(db, data.ByNotIDs(toKeep))
+	// remove _all_ providers previously loaded from config
+	err := data.DeleteProviders(db, data.ByNotIDs(toKeep), data.CreatedBy(models.CreatedByConfig))
 	if err != nil {
 		return err
 	}
@@ -631,6 +636,7 @@ func loadProvider(db *gorm.DB, input Provider) (*models.Provider, error) {
 			URL:          input.URL,
 			ClientID:     input.ClientID,
 			ClientSecret: models.EncryptedAtRest(input.ClientSecret),
+			CreatedBy:    models.CreatedByConfig,
 		}
 
 		if err := data.CreateProvider(db, provider); err != nil {
@@ -644,6 +650,7 @@ func loadProvider(db *gorm.DB, input Provider) (*models.Provider, error) {
 	provider.URL = input.URL
 	provider.ClientID = input.ClientID
 	provider.ClientSecret = models.EncryptedAtRest(input.ClientSecret)
+	provider.CreatedBy = models.CreatedByConfig
 
 	if err := data.SaveProvider(db, provider); err != nil {
 		return nil, err
@@ -674,8 +681,8 @@ func loadGrants(db *gorm.DB, grants []Grant) error {
 		toKeep = append(toKeep, grant.ID)
 	}
 
-	// remove _all_ grants not defined in config
-	err = data.DeleteGrants(db, data.ByNotIDs(toKeep), data.NotCreatedBy(models.CreatedBySystem))
+	// remove _all_ grants previously defined by config
+	err = data.DeleteGrants(db, data.ByNotIDs(toKeep), data.CreatedBy(models.CreatedByConfig))
 	if err != nil {
 		return err
 	}
