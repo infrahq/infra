@@ -3,11 +3,17 @@ import axios from 'axios'
 
 const DestinationsContext = createContext({
 	destinations: [],
-	updateDestinationsList: () => {}
+	currentDestinationName: null,
+	accessKey: null,
+	updateDestinationsList: () => {},
+	updateCurrentDestinationName: () => {},
+	updateAccessKey: () => {}
 })
 
 export const DestinationsContextProvider = ({ children }) => {
 	const [destinations, setDestinations] = useState([])
+	const [currentDestinationName, setCurrentDestinationName] = useState(null)
+	const [accessKey, setAccessKey] = useState(null)
 
 	useEffect(() => {
     const source = axios.CancelToken.source()
@@ -28,9 +34,21 @@ export const DestinationsContextProvider = ({ children }) => {
 		setDestinations(list)
 	}
 
+	const updateCurrentDestinationName = (name) => {
+		setCurrentDestinationName(name)
+	}
+
+	const updateAccessKey = (key) => {
+		setAccessKey(key)
+	}
+
 	const context = {
 		destinations,
-		updateDestinationsList
+		currentDestinationName,
+		accessKey,
+		updateDestinationsList,
+		updateCurrentDestinationName,
+		updateAccessKey
 	}
 
 	return (
