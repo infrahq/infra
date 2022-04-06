@@ -413,7 +413,7 @@
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
     "title": "Infra API",
-    "version": "0.8.0"
+    "version": "0.9.0"
   },
   "paths": {
     "/v1/access-keys": {
