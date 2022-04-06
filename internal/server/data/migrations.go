@@ -293,17 +293,19 @@ func migrate(db *gorm.DB) error {
 		{
 			ID: "202204061643",
 			Migrate: func(tx *gorm.DB) error {
-				keys, err := ListAccessKeys(db)
-				if err != nil {
-					return err
-				}
+				if tx.Migrator().HasTable("access_keys") {
+					keys, err := ListAccessKeys(db)
+					if err != nil {
+						return err
+					}
 
-				for i := range keys {
-					if strings.Contains(keys[i].Name, " ") {
-						keys[i].Name = strings.ReplaceAll(keys[i].Name, " ", "-")
-						err := SaveAccessKey(db, &keys[i])
-						if err != nil {
-							return err
+					for i := range keys {
+						if strings.Contains(keys[i].Name, " ") {
+							keys[i].Name = strings.ReplaceAll(keys[i].Name, " ", "-")
+							err := SaveAccessKey(db, &keys[i])
+							if err != nil {
+								return err
+							}
 						}
 					}
 				}
