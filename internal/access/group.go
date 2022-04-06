@@ -30,13 +30,13 @@ func isUserInGroup(c *gin.Context, requestedResourceID uid.ID) (bool, error) {
 	return false, nil
 }
 
-func ListGroups(c *gin.Context, name string, providerID uid.ID) ([]models.Group, error) {
+func ListGroups(c *gin.Context, name string) ([]models.Group, error) {
 	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole)
 	if err != nil {
 		return nil, err
 	}
 
-	return data.ListGroups(db, data.ByName(name), data.ByProviderID(providerID))
+	return data.ListGroups(db, data.ByName(name))
 }
 
 func CreateGroup(c *gin.Context, group *models.Group) error {

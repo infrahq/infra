@@ -13,16 +13,16 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
 func NewDB(connection gorm.Dialector) (*gorm.DB, error) {
 	db, err := gorm.Open(connection, &gorm.Config{
-		Logger: logger.Discard,
+		Logger: logging.ToGormLogger(logging.S),
 	})
 	if err != nil {
 		return nil, err
@@ -167,22 +167,4 @@ func Count[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (*int64, 
 	}
 
 	return &count, nil
-}
-
-// bindAssociations replaces the association (U) of the entity (T)
-func bindAssociations[T models.Modelable, U models.Modelable](db *gorm.DB, model *T, association string, replacements []U) error {
-	if err := db.Model(model).Association(association).Replace(replacements); err != nil {
-		return fmt.Errorf("bind: %w", err)
-	}
-
-	return nil
-}
-
-// appendAssociation adds an association (U) to the associations for the entity (T)
-func appendAssociation[T models.Modelable, U models.Modelable](db *gorm.DB, model *T, association string, associatedEntity *U) error {
-	if err := db.Model(model).Association(association).Append(associatedEntity); err != nil {
-		return fmt.Errorf("append: %w", err)
-	}
-
-	return nil
 }

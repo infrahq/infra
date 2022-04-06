@@ -26,7 +26,7 @@ type API struct {
 }
 
 func (a *API) ListIdentities(c *gin.Context, r *api.ListIdentitiesRequest) ([]api.Identity, error) {
-	identities, err := access.ListIdentities(c, r.Name, r.ProviderID)
+	identities, err := access.ListIdentities(c, r.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -55,18 +55,8 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 	}
 
 	identity := &models.Identity{
-		Name:       r.Name,
-		Kind:       kind,
-		ProviderID: r.ProviderID,
-	}
-
-	provider, err := access.GetProvider(c, r.ProviderID)
-	if err != nil {
-		return nil, err
-	}
-
-	if provider.Name != models.InternalInfraProviderName && identity.Kind == models.MachineKind {
-		return nil, fmt.Errorf("%w: cannot create a machine for this identity provider", internal.ErrBadRequest)
+		Name: r.Name,
+		Kind: kind,
 	}
 
 	if err := access.CreateIdentity(c, identity); err != nil {
@@ -81,16 +71,13 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 	resp := &api.CreateIdentityResponse{
 		ID:         identity.ID,
 		Name:       identity.Name,
-		ProviderID: identity.ProviderID,
+		ProviderID: access.InfraProvider(c).ID,
 	}
 
 	if identity.Kind == models.UserKind {
-		var oneTimePassword string
-		if provider.Name == models.InternalInfraProviderName {
-			oneTimePassword, err = access.CreateCredential(c, *identity)
-			if err != nil {
-				return nil, err
-			}
+		oneTimePassword, err := access.CreateCredential(c, *identity)
+		if err != nil {
+			return nil, err
 		}
 
 		resp.OneTimePassword = oneTimePassword
@@ -151,7 +138,7 @@ func (a *API) ListIdentityGroups(c *gin.Context, r *api.Resource) ([]api.Group, 
 }
 
 func (a *API) ListGroups(c *gin.Context, r *api.ListGroupsRequest) ([]api.Group, error) {
-	groups, err := access.ListGroups(c, r.Name, r.ProviderID)
+	groups, err := access.ListGroups(c, r.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -175,8 +162,7 @@ func (a *API) GetGroup(c *gin.Context, r *api.Resource) (*api.Group, error) {
 
 func (a *API) CreateGroup(c *gin.Context, r *api.CreateGroupRequest) (*api.Group, error) {
 	group := &models.Group{
-		Name:       r.Name,
-		ProviderID: r.ProviderID,
+		Name: r.Name,
 	}
 
 	err := access.CreateGroup(c, group)
@@ -351,16 +337,9 @@ func (a *API) DeleteDestination(c *gin.Context, r *api.Resource) error {
 
 func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateTokenResponse, error) {
 	if access.CurrentIdentity(c) != nil {
-		currentIDP, err := access.CurrentIdentityProvider(c)
+		err := a.UpdateIdentityInfoFromProvider(c)
 		if err != nil {
-			return nil, fmt.Errorf("token identity IDP: %w", err)
-		}
-
-		if currentIDP.Name != models.InternalInfraProviderName {
-			err := a.UpdateIdentityInfo(c)
-			if err != nil {
-				return nil, err
-			}
+			return nil, err
 		}
 
 		token, err := access.CreateToken(c)
@@ -574,8 +553,8 @@ func (a *API) Version(c *gin.Context, r *api.EmptyRequest) (*api.Version, error)
 	return &api.Version{Version: internal.Version}, nil
 }
 
-// UpdateIdentityInfo calls the identity provider used to authenticate this user session to update their current information
-func (a *API) UpdateIdentityInfo(c *gin.Context) error {
+// UpdateIdentityInfoFromProvider calls the identity provider used to authenticate this user session to update their current information
+func (a *API) UpdateIdentityInfoFromProvider(c *gin.Context) error {
 	user := access.CurrentIdentity(c)
 	if user == nil {
 		return nil
@@ -632,7 +611,7 @@ func (a *API) UpdateIdentityInfo(c *gin.Context) error {
 		return fmt.Errorf("update user info: %w", err)
 	}
 
-	return access.UpdateUserInfo(c, info, user, provider)
+	return access.UpdateUserInfoFromProvider(c, info, user, provider)
 }
 
 func (a *API) providerClient(c *gin.Context, provider *models.Provider, redirectURL string) (authn.OIDC, error) {

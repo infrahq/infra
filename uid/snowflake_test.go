@@ -42,7 +42,7 @@ func TestBadIDs(t *testing.T) {
 	// I think I need to fork snowflake to fix this.
 	// id, err = uid.Parse([]byte(bad2))
 	// require.Error(t, err)
-	// require.EqualValues(t, 0, id)
+	// assert.EqualValues(t, 0, id)
 
 	id, err = uid.Parse([]byte(bad3))
 	assert.ErrorContains(t, err, fmt.Sprintf(`invalid id "%v"`, bad3))

@@ -182,7 +182,6 @@ func jwtMiddleware(getJWK getJWKFunc) gin.HandlerFunc {
 
 		c.Set("name", claims.Name)
 		c.Set("groups", claims.Groups)
-		c.Set("provider", claims.Provider)
 
 		c.Next()
 	}

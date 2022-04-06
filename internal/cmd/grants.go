@@ -12,11 +12,10 @@ import (
 )
 
 type grantsCmdOptions struct {
-	User     string `mapstructure:"user"`
-	Group    string `mapstructure:"group"`
-	Machine  string `mapstructure:"machine"`
-	Provider string `mapstructure:"provider"`
-	Role     string `mapstructure:"role"`
+	User    string `mapstructure:"user"`
+	Group   string `mapstructure:"group"`
+	Machine string `mapstructure:"machine"`
+	Role    string `mapstructure:"role"`
 }
 
 func newGrantsCmd() *cobra.Command {
@@ -60,7 +59,6 @@ func newGrantsListCmd() *cobra.Command {
 			}
 
 			type row struct {
-				Provider string `header:"PROVIDER"`
 				Identity string `header:"IDENTITY"`
 				Access   string `header:"ACCESS"`
 				Resource string `header:"RESOURCE"`
@@ -72,13 +70,12 @@ func newGrantsListCmd() *cobra.Command {
 					continue
 				}
 
-				provider, identity, err := listInfo(client, g)
+				identity, err := subjectNameFromGrant(client, g)
 				if err != nil {
 					return err
 				}
 
 				rows = append(rows, row{
-					Provider: provider,
 					Identity: identity,
 					Access:   g.Privilege,
 					Resource: g.Resource,
@@ -113,17 +110,7 @@ func newGrantRemoveCmd() *cobra.Command {
 				return err
 			}
 
-			var provider *api.Provider
-
 			if options.Machine == "" {
-				provider, err = GetProviderByName(client, options.Provider)
-				if err != nil {
-					if errors.Is(err, ErrProviderNotUnique) {
-						return fmt.Errorf("specify provider with -p or --provider: %w", err)
-					}
-					return err
-				}
-
 				if options.User != "" && options.Group != "" {
 					return errors.New("only allowed one of --user or --group")
 				}
@@ -134,7 +121,7 @@ func newGrantRemoveCmd() *cobra.Command {
 			var id uid.PolymorphicID
 
 			if options.User != "" {
-				users, err := client.ListIdentities(api.ListIdentitiesRequest{Name: options.User, ProviderID: provider.ID})
+				users, err := client.ListIdentities(api.ListIdentitiesRequest{Name: options.User})
 				if err != nil {
 					return err
 				}
@@ -147,7 +134,7 @@ func newGrantRemoveCmd() *cobra.Command {
 			}
 
 			if options.Group != "" {
-				groups, err := client.ListGroups(api.ListGroupsRequest{Name: options.Group, ProviderID: provider.ID})
+				groups, err := client.ListGroups(api.ListGroupsRequest{Name: options.Group})
 				if err != nil {
 					return err
 				}
@@ -197,7 +184,6 @@ func newGrantRemoveCmd() *cobra.Command {
 	cmd.Flags().StringP("user", "u", "", "User to revoke access from")
 	cmd.Flags().StringP("group", "g", "", "Group to revoke access from")
 	cmd.Flags().StringP("machine", "m", "", "Machine to revoke access from")
-	cmd.Flags().StringP("provider", "p", "", "Provider from which to revoke access from")
 	cmd.Flags().StringP("role", "r", "", "Role to revoke")
 
 	return cmd

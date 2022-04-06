@@ -15,16 +15,6 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-// CurrentIdentityProvider returns the provider for the current identity in the request context
-func CurrentIdentityProvider(c *gin.Context) (*models.Provider, error) {
-	identity := CurrentIdentity(c)
-	if identity == nil {
-		return nil, fmt.Errorf("no identity for provider in context")
-	}
-
-	return GetProvider(c, identity.ProviderID)
-}
-
 func CreateProvider(c *gin.Context, provider *models.Provider) error {
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
@@ -86,6 +76,12 @@ func UpdateProviderToken(c *gin.Context, providerToken *models.ProviderToken) er
 	return data.UpdateProviderToken(db, providerToken)
 }
 
+func InfraProvider(c *gin.Context) *models.Provider {
+	db := getDB(c)
+
+	return data.InfraProvider(db)
+}
+
 func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.Provider, oidc authn.OIDC, expires time.Time, redirectURL string) (*models.Identity, string, error) {
 	// does not need authorization check, this function should only be called internally
 	db := getDB(c)
@@ -100,7 +96,7 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 		return nil, "", fmt.Errorf("exhange code for tokens: %w", err)
 	}
 
-	user, err := data.GetIdentity(db, data.ByName(email))
+	user, err := data.GetIdentity(db.Preload("Groups"), data.ByName(email))
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return nil, "", fmt.Errorf("get user: %w", err)
@@ -120,7 +116,7 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 		}
 	}
 
-	err = data.AppendProviderUsers(db, provider, user)
+	_, err = data.CreateProviderUser(db, provider, user)
 	if err != nil {
 		return nil, "", fmt.Errorf("add user for provider login: %w", err)
 	}
@@ -169,7 +165,7 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 		return nil, "", fmt.Errorf("login user info: %w", err)
 	}
 
-	err = UpdateUserInfo(c, info, user, provider)
+	err = UpdateUserInfoFromProvider(c, info, user, provider)
 	if err != nil {
 		return nil, "", fmt.Errorf("update info on login: %w", err)
 	}

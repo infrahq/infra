@@ -9,15 +9,12 @@ import (
 	is "gotest.tools/v3/assert/cmp"
 
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/uid"
 )
 
 func TestGroup(t *testing.T) {
 	db := setup(t)
 
-	providerID := uid.New()
-
-	everyone := models.Group{Name: "Everyone", ProviderID: providerID}
+	everyone := models.Group{Name: "Everyone"}
 
 	err := db.Create(&everyone).Error
 	assert.NilError(t, err)
@@ -32,9 +29,7 @@ func TestGroup(t *testing.T) {
 func TestCreateGroup(t *testing.T) {
 	db := setup(t)
 
-	providerID := uid.New()
-
-	everyone := models.Group{Name: "Everyone", ProviderID: providerID}
+	everyone := models.Group{Name: "Everyone"}
 
 	err := CreateGroup(db, &everyone)
 	assert.NilError(t, err)
@@ -52,30 +47,27 @@ func createGroups(t *testing.T, db *gorm.DB, groups ...models.Group) {
 }
 
 func TestCreateGroupDuplicate(t *testing.T) {
-	providerID := uid.New()
 
 	var (
-		everyone  = models.Group{Name: "Everyone", ProviderID: providerID}
-		engineers = models.Group{Name: "Engineering", ProviderID: providerID}
-		product   = models.Group{Name: "Product", ProviderID: providerID}
+		everyone  = models.Group{Name: "Everyone"}
+		engineers = models.Group{Name: "Engineering"}
+		product   = models.Group{Name: "Product"}
 	)
 
 	db := setup(t)
 	createGroups(t, db, everyone, engineers, product)
 
-	err := CreateGroup(db, &models.Group{Name: "Everyone", ProviderID: providerID})
+	err := CreateGroup(db, &models.Group{Name: "Everyone"})
 	assert.ErrorContains(t, err, "duplicate record")
 }
 
 func TestGetGroup(t *testing.T) {
 	db := setup(t)
 
-	providerID := uid.New()
-
 	var (
-		everyone  = models.Group{Name: "Everyone", ProviderID: providerID}
-		engineers = models.Group{Name: "Engineering", ProviderID: providerID}
-		product   = models.Group{Name: "Product", ProviderID: providerID}
+		everyone  = models.Group{Name: "Everyone"}
+		engineers = models.Group{Name: "Engineering"}
+		product   = models.Group{Name: "Product"}
 	)
 
 	createGroups(t, db, everyone, engineers, product)
@@ -88,12 +80,10 @@ func TestGetGroup(t *testing.T) {
 func TestListGroups(t *testing.T) {
 	db := setup(t)
 
-	providerID := uid.New()
-
 	var (
-		everyone  = models.Group{Name: "Everyone", ProviderID: providerID}
-		engineers = models.Group{Name: "Engineering", ProviderID: providerID}
-		product   = models.Group{Name: "Product", ProviderID: providerID}
+		everyone  = models.Group{Name: "Everyone"}
+		engineers = models.Group{Name: "Engineering"}
+		product   = models.Group{Name: "Product"}
 	)
 
 	createGroups(t, db, everyone, engineers, product)
@@ -110,13 +100,11 @@ func TestListGroups(t *testing.T) {
 func TestBindGroupIdentities(t *testing.T) {
 	db := setup(t)
 
-	providerID := uid.New()
-
 	var (
-		everyone  = models.Group{Name: "Everyone", ProviderID: providerID}
-		engineers = models.Group{Name: "Engineering", ProviderID: providerID}
-		product   = models.Group{Name: "Product", ProviderID: providerID}
-		bond      = models.Identity{Name: "jbond@infrahq.com", ProviderID: providerID}
+		everyone  = models.Group{Name: "Everyone"}
+		engineers = models.Group{Name: "Engineering"}
+		product   = models.Group{Name: "Product"}
+		bond      = models.Identity{Name: "jbond@infrahq.com"}
 	)
 
 	createGroups(t, db, everyone, engineers, product)
@@ -147,14 +135,12 @@ func TestBindGroupIdentities(t *testing.T) {
 func TestGroupBindMoreIdentities(t *testing.T) {
 	db := setup(t)
 
-	providerID := uid.New()
-
 	var (
-		everyone  = models.Group{Name: "Everyone", ProviderID: providerID}
-		engineers = models.Group{Name: "Engineering", ProviderID: providerID}
-		product   = models.Group{Name: "Product", ProviderID: providerID}
-		bond      = models.Identity{Name: "jbond@infrahq.com", ProviderID: providerID}
-		bourne    = models.Identity{Name: "jbourne@infrahq.com", ProviderID: providerID}
+		everyone  = models.Group{Name: "Everyone"}
+		engineers = models.Group{Name: "Engineering"}
+		product   = models.Group{Name: "Product"}
+		bond      = models.Identity{Name: "jbond@infrahq.com"}
+		bourne    = models.Identity{Name: "jbourne@infrahq.com"}
 	)
 
 	createGroups(t, db, everyone, engineers, product)
@@ -187,14 +173,12 @@ func TestGroupBindMoreIdentities(t *testing.T) {
 func TestGroupBindLessIdentities(t *testing.T) {
 	db := setup(t)
 
-	providerID := uid.New()
-
 	var (
-		everyone  = models.Group{Name: "Everyone", ProviderID: providerID}
-		engineers = models.Group{Name: "Engineering", ProviderID: providerID}
-		product   = models.Group{Name: "Product", ProviderID: providerID}
-		bourne    = models.Identity{Name: "jbourne@infrahq.com", ProviderID: providerID}
-		bauer     = models.Identity{Name: "jbauer@infrahq.com", ProviderID: providerID}
+		everyone  = models.Group{Name: "Everyone"}
+		engineers = models.Group{Name: "Engineering"}
+		product   = models.Group{Name: "Product"}
+		bourne    = models.Identity{Name: "jbourne@infrahq.com"}
+		bauer     = models.Identity{Name: "jbauer@infrahq.com"}
 	)
 
 	createGroups(t, db, everyone, engineers, product)
@@ -227,12 +211,10 @@ func TestGroupBindLessIdentities(t *testing.T) {
 func TestDeleteGroup(t *testing.T) {
 	db := setup(t)
 
-	providerID := uid.New()
-
 	var (
-		everyone  = models.Group{Name: "Everyone", ProviderID: providerID}
-		engineers = models.Group{Name: "Engineering", ProviderID: providerID}
-		product   = models.Group{Name: "Product", ProviderID: providerID}
+		everyone  = models.Group{Name: "Everyone"}
+		engineers = models.Group{Name: "Engineering"}
+		product   = models.Group{Name: "Product"}
 	)
 
 	createGroups(t, db, everyone, engineers, product)
@@ -258,12 +240,10 @@ func TestDeleteGroup(t *testing.T) {
 func TestRecreateGroupSameName(t *testing.T) {
 	db := setup(t)
 
-	providerID := uid.New()
-
 	var (
-		everyone  = models.Group{Name: "Everyone", ProviderID: providerID}
-		engineers = models.Group{Name: "Engineering", ProviderID: providerID}
-		product   = models.Group{Name: "Product", ProviderID: providerID}
+		everyone  = models.Group{Name: "Everyone"}
+		engineers = models.Group{Name: "Engineering"}
+		product   = models.Group{Name: "Product"}
 	)
 
 	createGroups(t, db, everyone, engineers, product)

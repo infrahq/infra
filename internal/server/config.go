@@ -33,7 +33,6 @@ type Grant struct {
 	User     string `mapstructure:"user" validate:"excluded_with=Group,excluded_with=Machine"`
 	Group    string `mapstructure:"group" validate:"excluded_with=User,excluded_with=Machine"`
 	Machine  string `mapstructure:"machine" validate:"excluded_with=User,excluded_with=Group"`
-	Provider string `mapstructure:"provider"`
 	Role     string `mapstructure:"role" validate:"required"`
 	Resource string `mapstructure:"resource" validate:"required"`
 }
@@ -473,7 +472,7 @@ func (s *Server) setupInternalInfraIdentityProvider() error {
 }
 
 // setupInternalIdentity creates built-in identites for the internal identity provider
-func (s *Server) setupBuiltinIdentity(providerID uid.ID, name, role string) (*models.Identity, error) {
+func (s *Server) setupBuiltinIdentity(name, role string) (*models.Identity, error) {
 	id, err := data.GetIdentity(s.db, data.ByName(name))
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
@@ -483,7 +482,6 @@ func (s *Server) setupBuiltinIdentity(providerID uid.ID, name, role string) (*mo
 		id = &models.Identity{
 			Name:       name,
 			Kind:       models.MachineKind,
-			ProviderID: providerID,
 			LastSeenAt: time.Now().UTC(),
 		}
 
@@ -524,13 +522,8 @@ func (s *Server) importAccessKeys() error {
 		},
 	}
 
-	infraProvider, err := data.GetProvider(s.db, data.ByName(models.InternalInfraProviderName))
-	if err != nil {
-		return err
-	}
-
 	for k, v := range keys {
-		id, err := s.setupBuiltinIdentity(infraProvider.ID, k, v.Role)
+		id, err := s.setupBuiltinIdentity(k, v.Role)
 		if err != nil {
 			return fmt.Errorf("setup built-in: %w", err)
 		}
@@ -671,18 +664,8 @@ func loadProvider(db *gorm.DB, input Provider) (*models.Provider, error) {
 func loadGrants(db *gorm.DB, grants []Grant) error {
 	toKeep := make([]uid.ID, 0)
 
-	providers, err := data.ListProviders(db)
-	if err != nil {
-		return err
-	}
-
-	providersMap := make(map[string]uid.ID)
-	for _, provider := range providers {
-		providersMap[provider.Name] = provider.ID
-	}
-
 	for _, g := range grants {
-		grant, err := loadGrant(db, g, providersMap)
+		grant, err := loadGrant(db, g)
 		if err != nil {
 			return err
 		}
@@ -691,7 +674,7 @@ func loadGrants(db *gorm.DB, grants []Grant) error {
 	}
 
 	// remove _all_ grants previously defined by config
-	err = data.DeleteGrants(db, data.ByNotIDs(toKeep), data.CreatedBy(models.CreatedByConfig))
+	err := data.DeleteGrants(db, data.ByNotIDs(toKeep), data.CreatedBy(models.CreatedByConfig))
 	if err != nil {
 		return err
 	}
@@ -699,36 +682,8 @@ func loadGrants(db *gorm.DB, grants []Grant) error {
 	return nil
 }
 
-func loadGrant(db *gorm.DB, input Grant, providers map[string]uid.ID) (*models.Grant, error) {
-	var (
-		id         uid.PolymorphicID
-		providerID uid.ID
-	)
-
-	if input.User != "" || input.Group != "" {
-		// user/group grants require additional input validation
-		if len(providers) < 1 {
-			return nil, errors.New("no providers configured")
-		}
-
-		if len(providers) > 1 && input.Provider == "" {
-			return nil, errors.New("grant provider must be specified")
-		}
-
-		provider := input.Provider
-		if provider == "" {
-			for key := range providers {
-				provider = key
-			}
-		}
-
-		var ok bool
-
-		providerID, ok = providers[provider]
-		if !ok {
-			return nil, fmt.Errorf("unknown provider: %s", provider)
-		}
-	}
+func loadGrant(db *gorm.DB, input Grant) (*models.Grant, error) {
+	var id uid.PolymorphicID
 
 	switch {
 	case input.User != "":
@@ -742,9 +697,8 @@ func loadGrant(db *gorm.DB, input Grant, providers map[string]uid.ID) (*models.G
 
 			// user does not exist yet, create a placeholder
 			user = &models.Identity{
-				Name:       input.User,
-				ProviderID: providerID,
-				Kind:       models.UserKind,
+				Name: input.User,
+				Kind: models.UserKind,
 			}
 
 			if err := data.CreateIdentity(db, user); err != nil {
@@ -765,8 +719,7 @@ func loadGrant(db *gorm.DB, input Grant, providers map[string]uid.ID) (*models.G
 
 			// group does not exist yet, create a placeholder
 			group = &models.Group{
-				Name:       input.Group,
-				ProviderID: providerID,
+				Name: input.Group,
 			}
 
 			if err := data.CreateGroup(db, group); err != nil {
@@ -785,16 +738,10 @@ func loadGrant(db *gorm.DB, input Grant, providers map[string]uid.ID) (*models.G
 
 			logging.S.Debugf("creating machine %q", input.Machine)
 
-			infraProvider, err := data.GetProvider(db, data.ByName(models.InternalInfraProviderName))
-			if err != nil {
-				return nil, fmt.Errorf("machine internal provider: %w", err)
-			}
-
 			// machine does not exist, create it
 			machine = &models.Identity{
-				Name:       input.Machine,
-				Kind:       models.MachineKind,
-				ProviderID: infraProvider.ID,
+				Name: input.Machine,
+				Kind: models.MachineKind,
 			}
 
 			if err := data.CreateIdentity(db, machine); err != nil {

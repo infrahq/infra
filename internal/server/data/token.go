@@ -56,16 +56,10 @@ func createJWT(db *gorm.DB, identity *models.Identity, groups []string, expires 
 
 	var custom claims.Custom
 
-	p, err := GetProvider(db, ByID(identity.ProviderID))
-	if err != nil {
-		return "", fmt.Errorf("get provider: %w", err)
-	}
-
 	custom = claims.Custom{
-		Name:     identity.Name,
-		Groups:   groups,
-		Nonce:    nonce,
-		Provider: p.Name,
+		Name:   identity.Name,
+		Groups: groups,
+		Nonce:  nonce,
 	}
 
 	raw, err := jwt.Signed(signer).Claims(claim).Claims(custom).CompactSerialize()

@@ -49,16 +49,6 @@ func UpdateCredential(c *gin.Context, user *models.Identity, newPassword string)
 		return err
 	}
 
-	provider, err := data.GetProvider(db, data.ByID(user.ProviderID))
-	if err != nil {
-		return fmt.Errorf("creds user provider: %w", err)
-	}
-
-	// only internal Infra users can have username/password authentication
-	if provider.Name != models.InternalInfraProviderName {
-		return fmt.Errorf("%w: cannot set user passwords in this provider", internal.ErrBadRequest)
-	}
-
 	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return fmt.Errorf("hash: %w", err)
@@ -89,12 +79,7 @@ func UpdateCredential(c *gin.Context, user *models.Identity, newPassword string)
 func LoginWithUserCredential(c *gin.Context, email, password string, expiry time.Time) (string, *models.Identity, bool, error) {
 	db := getDB(c)
 
-	infraProvider, err := data.GetProvider(db, data.ByName(models.InternalInfraProviderName))
-	if err != nil {
-		return "", nil, false, fmt.Errorf("%w: internal provider: %v", internal.ErrUnauthorized, err)
-	}
-
-	user, err := data.GetIdentity(db, data.ByName(email), data.ByProviderID(infraProvider.ID))
+	user, err := data.GetIdentity(db, data.ByName(email))
 	if err != nil {
 		return "", nil, false, fmt.Errorf("%w: credentials email: %v", internal.ErrUnauthorized, err)
 	}

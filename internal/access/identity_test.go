@@ -13,12 +13,11 @@ import (
 
 func TestDeleteIdentityCleansUpResources(t *testing.T) {
 	// create the identity
-	c, db, provider := setupAccessTestContext(t)
+	c, db, _ := setupAccessTestContext(t)
 
 	identity := &models.Identity{
-		Kind:       models.UserKind,
-		Name:       "to-be-deleted",
-		ProviderID: provider.ID,
+		Kind: models.UserKind,
+		Name: "to-be-deleted",
 	}
 
 	err := data.CreateIdentity(db, identity)

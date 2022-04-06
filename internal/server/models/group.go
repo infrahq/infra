@@ -10,18 +10,15 @@ type Group struct {
 
 	Name string `gorm:"uniqueIndex:idx_groups_name_provider_id,where:deleted_at is NULL"`
 
-	ProviderID uid.ID `gorm:"uniqueIndex:idx_groups_name_provider_id,where:deleted_at is NULL"`
-
 	Identities []Identity `gorm:"many2many:identities_groups"`
 }
 
 func (g *Group) ToAPI() *api.Group {
 	return &api.Group{
-		ID:         g.ID,
-		Created:    api.Time(g.CreatedAt),
-		Updated:    api.Time(g.UpdatedAt),
-		Name:       g.Name,
-		ProviderID: g.ProviderID,
+		ID:      g.ID,
+		Created: api.Time(g.CreatedAt),
+		Updated: api.Time(g.UpdatedAt),
+		Name:    g.Name,
 	}
 }
 

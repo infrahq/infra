@@ -119,10 +119,9 @@ func generateJWT(priv *jose.JSONWebKey, email, machineName string, expiry time.T
 
 	var custom claims.Custom
 	custom = claims.Custom{
-		Name:     email,
-		Groups:   []string{"developers"},
-		Nonce:    "randomstring",
-		Provider: "okta",
+		Name:   email,
+		Groups: []string{"developers"},
+		Nonce:  "randomstring",
 	}
 
 	raw, err := jwt.Signed(signer).Claims(cl).Claims(custom).CompactSerialize()

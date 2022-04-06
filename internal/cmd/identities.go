@@ -11,9 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
-	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/uid"
 )
 
 func newIdentitiesCmd() *cobra.Command {
@@ -150,22 +148,10 @@ func newIdentitiesListCmd() *cobra.Command {
 				return err
 			}
 
-			providers := make(map[uid.ID]string)
-
 			for _, identity := range identities {
-				if providers[identity.ProviderID] == "" {
-					p, err := client.GetProvider(identity.ProviderID)
-					if err != nil {
-						logging.S.Debugf("unable to retrieve identity provider: %s", err)
-					} else {
-						providers[p.ID] = p.Name
-					}
-				}
-
 				rows = append(rows, row{
-					Name:     identity.Name,
-					Type:     identity.Kind,
-					Provider: providers[identity.ProviderID],
+					Name: identity.Name,
+					Type: identity.Kind,
 				})
 			}
 
@@ -189,12 +175,7 @@ func newIdentitiesRemoveCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
-			infraProvider, err := getInfraProviderID()
-			if err != nil {
-				return err
-			}
-
-			isSelf, err := isIdentitySelf(name, infraProvider)
+			isSelf, err := isIdentitySelf(name)
 			if err != nil {
 				return err
 			}
@@ -268,13 +249,7 @@ func CreateLocalIdentity(name string) (*api.CreateIdentityResponse, error) {
 		return nil, err
 	}
 
-	infraProvider, err := GetProviderByName(client, models.InternalInfraProviderName)
-	if err != nil {
-		logging.S.Debug(err)
-		return nil, fmt.Errorf("no infra provider found, to manage local identities create a local provider named 'infra'")
-	}
-
-	resp, err := client.CreateIdentity(&api.CreateIdentityRequest{Name: name, ProviderID: infraProvider.ID, Kind: kind.String()})
+	resp, err := client.CreateIdentity(&api.CreateIdentityRequest{Name: name, Kind: kind.String()})
 	if err != nil {
 		return nil, err
 	}
@@ -288,14 +263,9 @@ func UpdateIdentity(name string, cmdOptions identityCmdOptions) error {
 		return err
 	}
 
-	infraProvider, err := getInfraProviderID()
-	if err != nil {
-		return err
-	}
-
 	req := &api.UpdateIdentityRequest{}
 
-	isSelf, err := isIdentitySelf(name, infraProvider)
+	isSelf, err := isIdentitySelf(name)
 	if err != nil {
 		return err
 	}
@@ -310,7 +280,7 @@ func UpdateIdentity(name string, cmdOptions identityCmdOptions) error {
 			return err
 		}
 	} else {
-		user, err := GetIdentityFromName(client, name, infraProvider)
+		user, err := GetIdentityFromName(client, name)
 		if err != nil {
 			if errors.Is(err, ErrIdentityNotFound) {
 				return fmt.Errorf("Identity %s not found in local provider; only local identities can be edited", name)
@@ -340,8 +310,8 @@ func UpdateIdentity(name string, cmdOptions identityCmdOptions) error {
 	return nil
 }
 
-func GetIdentityFromName(client *api.Client, name string, providerID uid.ID) (*api.Identity, error) {
-	users, err := client.ListIdentities(api.ListIdentitiesRequest{Name: name, ProviderID: providerID})
+func GetIdentityFromName(client *api.Client, name string) (*api.Identity, error) {
+	users, err := client.ListIdentities(api.ListIdentitiesRequest{Name: name})
 	if err != nil {
 		return nil, err
 	}
@@ -394,28 +364,12 @@ func checkPasswordRequirements(newPassword string, oldPassword string) error {
 	return nil
 }
 
-// getInfraProviderID gets the ID of the internal infra server identity provider
-func getInfraProviderID() (uid.ID, error) {
-	client, err := defaultAPIClient()
-	if err != nil {
-		return -1, err
-	}
-
-	infraProvider, err := GetProviderByName(client, models.InternalInfraProviderName)
-	if err != nil {
-		logging.S.Debug(err)
-		return -1, fmt.Errorf("no infra provider found, to manage local users create a local provider named 'infra'")
-	}
-
-	return infraProvider.ID, nil
-}
-
 // isIdentitySelf checks if the caller is updating their current local user
-func isIdentitySelf(name string, infraProvider uid.ID) (bool, error) {
+func isIdentitySelf(name string) (bool, error) {
 	config, err := currentHostConfig()
 	if err != nil {
 		return false, err
 	}
 
-	return config.ProviderID == infraProvider && config.Name == name, nil
+	return config.Name == name, nil
 }

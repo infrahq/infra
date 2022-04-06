@@ -347,6 +347,7 @@ func automigrate(db *gorm.DB) error {
 		&models.TrustedCertificate{},
 		&models.RootCertificate{},
 		&models.Credential{},
+		&models.ProviderUser{},
 	}
 
 	for _, table := range tables {

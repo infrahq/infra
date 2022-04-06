@@ -1,8 +1,12 @@
 package data
 
 import (
+	"errors"
+
 	"gorm.io/gorm"
 
+	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -33,22 +37,13 @@ func DeleteProviders(db *gorm.DB, selectors ...SelectorFunc) error {
 	for _, p := range toDelete {
 		ids = append(ids, p.ID)
 
-		err := DeleteIdentities(db, ByProviderID(p.ID))
-		if err != nil {
-			return err
-		}
-
-		err = DeleteGroups(db, ByProviderID(p.ID))
+		err := DeleteProviderUsers(db, ByProviderID(p.ID))
 		if err != nil {
 			return err
 		}
 	}
 
 	return deleteAll[models.Provider](db, ByIDs(ids))
-}
-
-func AppendProviderUsers(db *gorm.DB, provider *models.Provider, user *models.Identity) error {
-	return appendAssociation(db, provider, "Users", user)
 }
 
 func CreateProviderToken(db *gorm.DB, token *models.ProviderToken) error {
@@ -61,4 +56,32 @@ func UpdateProviderToken(db *gorm.DB, token *models.ProviderToken) error {
 
 func GetProviderToken(db *gorm.DB, selector SelectorFunc) (*models.ProviderToken, error) {
 	return get[models.ProviderToken](db, selector)
+}
+
+var infraProviderCache *models.Provider
+
+// InfraProvider is a lazy-loaded cached reference to the infra provider, since it's used in a lot of places
+func InfraProvider(db *gorm.DB) *models.Provider {
+	if infraProviderCache != nil {
+		return infraProviderCache
+	}
+
+	infra, err := get[models.Provider](db, ByName("infra"))
+	if err != nil {
+		if !errors.Is(err, internal.ErrNotFound) {
+			logging.S.Panic(err)
+			return nil
+		}
+
+		// create the infra provider since it doesn't exist.
+		infra = &models.Provider{Name: "infra"}
+		err = add(db, infra)
+		if err != nil {
+			logging.S.Error(err)
+			return nil
+		}
+	}
+
+	infraProviderCache = infra
+	return infra
 }

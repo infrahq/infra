@@ -21,7 +21,7 @@ type ClientConfig struct {
 
 // current: v0.3
 type ClientHostConfig struct {
-	PolymorphicID uid.PolymorphicID `json:"polymorphic-id"`
+	PolymorphicID uid.PolymorphicID `json:"polymorphic-id"` // TODO: name this. what's it an ID of?
 	Name          string            `json:"name"`
 	Host          string            `json:"host"`
 	AccessKey     string            `json:"access-key,omitempty"`
