@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -52,6 +53,10 @@ infra keys create main wall-e 12h --extension-deadline=1h
 
 			keyName := args[0]
 			machineName := args[1]
+
+			if strings.Contains(keyName, " ") {
+				return fmt.Errorf("key name cannot contain spaces")
+			}
 
 			client, err := defaultAPIClient()
 			if err != nil {
