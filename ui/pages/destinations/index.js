@@ -1,7 +1,7 @@
 import Router from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
-import { useEffect, useState } from "react"
+import { useContext, useEffect, useState } from "react"
 import axios from 'axios'
 import styled from 'styled-components'
 
@@ -9,6 +9,7 @@ import Navigation from '../../components/nav/Navigation'
 import PageHeader from '../../components/PageHeader'
 import FormattedTime from '../../components/FormattedTime'
 import EmptyPageHeader from '../../components/EmptyPageHeader'
+import DestinationsContext, { DestinationsContextProvider } from '../../store/DestinationsContext'
 
 const DestinationsHeaderContainer = styled.div`
   padding-top: 3rem;
@@ -78,19 +79,24 @@ const TableContentContainer = styled.div`
 `
 
 const Destinations = () => {
+  const { destinations } = useContext(DestinationsContext);
   const [destinationsList, setDestinationList] = useState([])
 
-  useEffect(() => {
-    const source = axios.CancelToken.source()
+  console.log(destinationsList)
 
-    if (destinationsList.length === 0) {
-      axios.get('/v1/destinations').then((response) => {
-        setDestinationList(response.data)
-        console.log(response)
-      })
-    }
-    return function () {
-      source.cancel('Cancelling in cleanup')
+  useEffect(() => {
+    if (destinations.length === 0) {
+      axios.get('/v1/destinations')
+			.then((response) => {
+				console.log(response)
+				const destinationsList = response.data
+				setDestinationList(destinationsList)
+			})
+			.catch((error) => {
+				console.log(error)
+			})
+    } else {
+      setDestinationList(destinations)
     }
   }, [])
 
@@ -105,53 +111,53 @@ const Destinations = () => {
   }
 
   return (
-    <div>
+    <DestinationsContextProvider>
       <Head>
         <title>Infra - Destinations</title>
       </Head>
       <Navigation />
-      <div>
-        <DestinationsHeaderContainer>
-          <PageHeader iconPath='/destinations.svg' title='Destinations' />
-          <Link href='/destinations/add/setup'>
-            <AddDestinationLink><span>&#43;</span>Add Destination</AddDestinationLink>
-          </Link>
-        </DestinationsHeaderContainer>
-        <TableHeader>
-          <TableHeaderTitle>Name</TableHeaderTitle>
-          <TableHeaderTitle>Added</TableHeaderTitle>
-        </TableHeader>
         <div>
-          {destinationsList.length > 0
-            ? (
-              <TableContentContainer>
-                {destinationsList.map((item) => {
-                  return (
-                    <TableContent key={item.id}>
-                      <TableContentText>{item.name}</TableContentText>
-                      <TableContentText>
-                        <FormattedTime time={item.created} />
-                      </TableContentText>
-                      <TableContentText>
-                        <a onClick={() => handleRemove(item)}>&#x2715;</a>
-                      </TableContentText>
-                    </TableContent>
-                  )
-                })}
-              </TableContentContainer>
+          <DestinationsHeaderContainer>
+            <PageHeader iconPath='/destinations.svg' title='Destinations' />
+            <Link href='/destinations/add/setup'>
+              <AddDestinationLink><span>&#43;</span>Add Destination</AddDestinationLink>
+            </Link>
+          </DestinationsHeaderContainer>
+          <TableHeader>
+            <TableHeaderTitle>Name</TableHeaderTitle>
+            <TableHeaderTitle>Added</TableHeaderTitle>
+          </TableHeader>
+          <div>
+            {destinationsList.length > 0
+              ? (
+                <TableContentContainer>
+                  {destinationsList.map((item) => {
+                    return (
+                      <TableContent key={item.id}>
+                        <TableContentText>{item.name}</TableContentText>
+                        <TableContentText>
+                          <FormattedTime time={item.created} />
+                        </TableContentText>
+                        <TableContentText>
+                          <a onClick={() => handleRemove(item)}>&#x2715;</a>
+                        </TableContentText>
+                      </TableContent>
+                    )
+                  })}
+                </TableContentContainer>
+              )
+            : (
+              <EmptyPageHeader
+                header='Destinations'
+                subheader='No destinations connected.'
+                actionButtonHeader='Add Destinations'
+                onClickActionButton={() => handleAddDestination()}
+              />
             )
-          : (
-            <EmptyPageHeader
-              header='Destinations'
-              subheader='No destinations connected.'
-              actionButtonHeader='Add Destinations'
-              onClickActionButton={() => handleAddDestination()}
-            />
-          )
-          }
+            }
+          </div>
         </div>
-      </div>
-    </div>
+    </DestinationsContextProvider>
   )
 }
 
