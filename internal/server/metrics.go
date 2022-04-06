@@ -9,14 +9,11 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/metrics"
 )
 
 func SetupMetrics(db *gorm.DB) *prometheus.Registry {
 	reg := prometheus.NewRegistry()
 	factory := promauto.With(reg)
-
-	reg.MustRegister(metrics.RequestDuration)
 
 	factory.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "build",

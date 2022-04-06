@@ -3,6 +3,7 @@ package server
 import (
 	"testing"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"gotest.tools/v3/assert"
 )
 
@@ -12,7 +13,7 @@ import (
 // file in git matches the source code.
 func TestWriteOpenAPISpec(t *testing.T) {
 	s := Server{}
-	s.GenerateRoutes()
+	s.GenerateRoutes(prometheus.NewRegistry())
 
 	filename := "../../docs/api/openapi3.json"
 	err := WriteOpenAPISpecToFile(filename)

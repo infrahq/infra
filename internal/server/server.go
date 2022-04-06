@@ -25,6 +25,7 @@ import (
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/goware/urlx"
+	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
 	"gopkg.in/square/go-jose.v2"
@@ -371,7 +372,7 @@ func (s *Server) ui(router *gin.Engine) error {
 	return nil
 }
 
-func (s *Server) GenerateRoutes() *gin.Engine {
+func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) *gin.Engine {
 	router := gin.New()
 
 	router.Use(gin.Recovery())
@@ -382,20 +383,20 @@ func (s *Server) GenerateRoutes() *gin.Engine {
 		t:      s.tel,
 		server: s,
 	}
-	a.registerRoutes(router)
+	a.registerRoutes(router, promRegistry)
 
 	return router
 }
 
 func (s *Server) listen() error {
 	ginutil.SetMode()
-	router := s.GenerateRoutes()
+	promRegistry := SetupMetrics(s.db)
+	router := s.GenerateRoutes(promRegistry)
 
 	if err := s.ui(router); err != nil {
 		return err
 	}
 
-	promRegistry := SetupMetrics(s.db)
 	metricsServer := &http.Server{
 		Addr:     s.options.Addr.Metrics,
 		Handler:  metrics.NewHandler(promRegistry),

@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
@@ -26,7 +27,7 @@ func TestAPI_PProfHandler(t *testing.T) {
 	}
 
 	s := &Server{db: setupDB(t)}
-	routes := s.GenerateRoutes()
+	routes := s.GenerateRoutes(prometheus.NewRegistry())
 
 	run := func(t *testing.T, tc testCase) {
 		req, err := http.NewRequest(http.MethodGet, "/debug/pprof/heap?debug=1", nil)

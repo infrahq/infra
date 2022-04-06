@@ -549,14 +549,7 @@ func Run(options Options) error {
 	proxy := httputil.NewSingleHostReverseProxy(proxyHost)
 	proxy.Transport = proxyTransport
 
-	router.Use(
-		metrics.Middleware(),
-		jwtMiddleware(cache.getJWK),
-		proxyMiddleware(proxy, k8s.Config.BearerToken),
-	)
-
 	promRegistry := prometheus.NewRegistry()
-	promRegistry.MustRegister(metrics.RequestDuration)
 	metricsServer := &http.Server{
 		Addr:     ":9090",
 		Handler:  metrics.NewHandler(promRegistry),
@@ -569,6 +562,11 @@ func Run(options Options) error {
 		}
 	}()
 
+	router.Use(
+		metrics.Middleware(promRegistry),
+		jwtMiddleware(cache.getJWK),
+		proxyMiddleware(proxy, k8s.Config.BearerToken),
+	)
 	tlsServer := &http.Server{
 		Addr:      ":443",
 		TLSConfig: tlsConfig,

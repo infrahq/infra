@@ -9,21 +9,23 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-var RequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+var requestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 	Namespace: "http",
 	Name:      "request_duration_seconds",
 	Help:      "A histogram of duration, in seconds, handling HTTP requests.",
 	Buckets:   prometheus.ExponentialBuckets(0.001, 2, 15),
 }, []string{"host", "method", "path", "status"})
 
-// Middleware wraps the request with a standard set of Prometheus metrics.
-func Middleware() gin.HandlerFunc {
+// Middleware registers a request_duration_seconds metric with promRegistry
+// and returns a middleware that emits the metric on every request.
+func Middleware(promRegistry prometheus.Registerer) gin.HandlerFunc {
+	promRegistry.MustRegister(requestDuration)
 	return func(c *gin.Context) {
 		t := time.Now()
 
 		c.Next()
 
-		RequestDuration.With(prometheus.Labels{
+		requestDuration.With(prometheus.Labels{
 			"host":   c.Request.Host,
 			"method": c.Request.Method,
 			"path":   c.FullPath(),
