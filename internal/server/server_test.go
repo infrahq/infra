@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"go.uber.org/zap/zaptest"
 	"gotest.tools/v3/assert"
@@ -163,7 +164,11 @@ func TestSetupRequired(t *testing.T) {
 
 	assert.Assert(t, s.setupRequired())
 
-	err = db.Create(&models.Identity{Name: "admin"}).Error
+	id := uid.New()
+	err = db.Create(&models.Identity{Model: models.Model{ID: id}, Name: "admin"}).Error
+	assert.NilError(t, err)
+
+	err = db.Create(&models.AccessKey{Name: "admin", IssuedFor: id, ExpiresAt: time.Now()}).Error
 	assert.NilError(t, err)
 
 	assert.Assert(t, !s.setupRequired())

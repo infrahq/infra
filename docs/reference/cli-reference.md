@@ -7,7 +7,6 @@
 * [infra list](#infra-list)
 * [infra use](#infra-use)
 * [infra destinations list](#infra-destinations-list)
-* [infra destinations add](#infra-destinations-add)
 * [infra destinations remove](#infra-destinations-remove)
 * [infra grants list](#infra-grants-list)
 * [infra grants add](#infra-grants-add)
@@ -148,22 +147,6 @@ List connected destinations
 
 ```
 infra destinations list [flags]
-```
-
-### Options inherited from parent commands
-
-```
-      --help               Display help
-      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
-```
-
-## `infra destinations add`
-
-Connect an infrastructure destination to Infra
-
-```
-infra destinations add DESTINATION [flags]
 ```
 
 ### Options inherited from parent commands
