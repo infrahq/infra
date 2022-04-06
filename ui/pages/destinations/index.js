@@ -79,7 +79,7 @@ const TableContentContainer = styled.div`
 `
 
 const Destinations = () => {
-  const { destinations } = useContext(DestinationsContext);
+  const { destinations, updateDestinationsList } = useContext(DestinationsContext);
   const [destinationsList, setDestinationList] = useState([])
 
   console.log(destinationsList)
@@ -89,8 +89,9 @@ const Destinations = () => {
       axios.get('/v1/destinations')
 			.then((response) => {
 				console.log(response)
-				const destinationsList = response.data
-				setDestinationList(destinationsList)
+        const list = response.data
+				setDestinationList(response.data)
+        updateDestinationsList(list)
 			})
 			.catch((error) => {
 				console.log(error)
@@ -107,7 +108,12 @@ const Destinations = () => {
   }
 
   const handleRemove = (destination) => {
+    // TODO: need to test this
     console.log('deleting: ', destination)
+    axios.delete('/v1/destinations/${destination.id}')
+      .then((response) => {
+        console.log(response)
+      })
   }
 
   return (
