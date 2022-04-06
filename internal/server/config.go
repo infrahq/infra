@@ -546,7 +546,7 @@ func (s *Server) importAccessKeys() error {
 			}
 		}
 
-		name := fmt.Sprintf("default %s access key", k)
+		name := fmt.Sprintf("default-%s-access-key", k)
 
 		accessKey, err := data.GetAccessKey(s.db, data.ByIssuedFor(machine.ID))
 		if err != nil {

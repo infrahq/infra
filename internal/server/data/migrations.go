@@ -289,6 +289,31 @@ func migrate(db *gorm.DB) error {
 			},
 			// this change cannot be rolled back
 		},
+		// #1449: access key name can't have whitespace
+		{
+			ID: "202204061643",
+			Migrate: func(tx *gorm.DB) error {
+				if tx.Migrator().HasTable("access_keys") {
+					keys, err := ListAccessKeys(db)
+					if err != nil {
+						return err
+					}
+
+					for i := range keys {
+						if strings.Contains(keys[i].Name, " ") {
+							keys[i].Name = strings.ReplaceAll(keys[i].Name, " ", "-")
+							err := SaveAccessKey(db, &keys[i])
+							if err != nil {
+								return err
+							}
+						}
+					}
+				}
+
+				return nil
+			},
+			// context lost, cannot roll back
+		},
 		// next one here
 	})
 

@@ -14,7 +14,7 @@ var (
 // AccessKey is a session token presented to the Infra server as proof of authentication
 type AccessKey struct {
 	Model
-	Name      string `gorm:"uniqueIndex:,where:deleted_at is NULL"`
+	Name      string `gorm:"uniqueIndex:,where:deleted_at is NULL" validate:"excludes= "`
 	IssuedFor uid.ID `validate:"required"`
 
 	ExpiresAt         time.Time     `validate:"required"`

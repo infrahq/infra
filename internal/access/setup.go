@@ -57,7 +57,7 @@ func Setup(c *gin.Context) (string, *models.AccessKey, error) {
 	}
 
 	key := &models.AccessKey{
-		Name:      fmt.Sprintf("%s access key", name),
+		Name:      fmt.Sprintf("%s-access-key", name),
 		IssuedFor: identity.ID,
 		ExpiresAt: time.Now().Add(math.MaxInt64).UTC(),
 	}
