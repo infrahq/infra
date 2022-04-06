@@ -3462,26 +3462,6 @@
       "post": {
         "description": "CreateToken",
         "operationId": "CreateToken",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "userID": {
-                    "example": "4yJ3n3D8E2",
-                    "format": "uid",
-                    "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "userID"
-                ],
-                "type": "object"
-              }
-            }
-          }
-        },
         "responses": {
           "400": {
             "content": {
