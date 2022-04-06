@@ -875,7 +875,7 @@ func TestImportAccessKeysUpdate(t *testing.T) {
 	err = s.importAccessKeys()
 	assert.NilError(t, err)
 
-	accessKey, err := data.GetAccessKey(s.db, data.ByName("default admin access key"))
+	accessKey, err := data.GetAccessKey(s.db, data.ByName("default-admin-access-key"))
 	assert.NilError(t, err)
 	assert.Equal(t, accessKey.KeyID, "EKoHADINYX")
 }
