@@ -3,7 +3,8 @@ package data
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"gotest.tools/v3/assert"
+	is "gotest.tools/v3/assert/cmp"
 
 	"github.com/infrahq/infra/internal/server/models"
 )
@@ -18,12 +19,12 @@ func TestDuplicateGrant(t *testing.T) {
 	g2 := g
 
 	err := CreateGrant(db, &g)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	err = CreateGrant(db, &g2)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	grants, err := ListGrants(db, BySubject("i:1234567"), ByResource("infra"))
-	require.NoError(t, err)
-	require.Len(t, grants, 1)
+	assert.NilError(t, err)
+	assert.Assert(t, is.Len(grants, 1))
 }

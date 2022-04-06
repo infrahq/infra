@@ -7,8 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
+	"gotest.tools/v3/assert"
+	is "gotest.tools/v3/assert/cmp"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/access"
@@ -29,7 +30,7 @@ func TestAPI_PProfHandler(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		req, err := http.NewRequest(http.MethodGet, "/debug/pprof/heap?debug=1", nil)
-		require.NoError(t, err)
+		assert.NilError(t, err)
 
 		if tc.setupRequest != nil {
 			tc.setupRequest(t, req)
@@ -38,7 +39,7 @@ func TestAPI_PProfHandler(t *testing.T) {
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
 
-		require.Equal(t, tc.expectedCode, resp.Code, resp.Body.String())
+		assert.Equal(t, tc.expectedCode, resp.Code, resp.Body.String())
 		if tc.expectedResp != nil {
 			tc.expectedResp(t, resp)
 		}
@@ -70,13 +71,13 @@ func TestAPI_PProfHandler(t *testing.T) {
 					Resource:  access.ResourceInfraAPI,
 					CreatedBy: user.ID,
 				})
-				require.NoError(t, err)
+				assert.NilError(t, err)
 
 				req.Header.Add("Authorization", "Bearer "+key)
 			},
 			expectedResp: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				require.Equal(t, "text/plain; charset=utf-8", resp.Header().Get("Content-Type"))
-				require.Contains(t, resp.Body.String(), "heap profile:")
+				assert.Equal(t, "text/plain; charset=utf-8", resp.Header().Get("Content-Type"))
+				assert.Assert(t, is.Contains(resp.Body.String(), "heap profile:"))
 			},
 		},
 	}
@@ -95,8 +96,8 @@ func responseBodyAPIErrorWithCode(code int32) func(t *testing.T, resp *httptest.
 		var apiError api.Error
 
 		err := json.Unmarshal(resp.Body.Bytes(), &apiError)
-		require.NoError(t, err)
-		require.Equal(t, apiError.Code, code)
+		assert.NilError(t, err)
+		assert.Equal(t, apiError.Code, code)
 	}
 }
 
@@ -104,7 +105,7 @@ func createAccessKey(t *testing.T, db *gorm.DB, email string) (string, *models.I
 	t.Helper()
 	user := &models.Identity{Name: email, Kind: models.UserKind}
 	err := data.CreateIdentity(db, user)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	token := &models.AccessKey{
 		IssuedFor: user.ID,
@@ -112,7 +113,7 @@ func createAccessKey(t *testing.T, db *gorm.DB, email string) (string, *models.I
 	}
 
 	body, err := data.CreateAccessKey(db, token)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	return body, user
 }

@@ -1,6 +1,7 @@
 package secrets
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"os"
@@ -12,8 +13,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/vault/api"
-	"github.com/stretchr/testify/require"
+	"gotest.tools/v3/assert"
+	is "gotest.tools/v3/assert/cmp"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -139,7 +142,7 @@ func eachProvider(t *testing.T, eachFunc func(t *testing.T, p interface{})) {
 
 	// add AWS KMS
 	k, err := NewAWSKMSSecretProvider(awskms)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	providers["awskms"] = k
 
@@ -160,7 +163,7 @@ func eachProvider(t *testing.T, eachFunc func(t *testing.T, p interface{})) {
 
 	// add vault
 	v, err := NewVaultSecretProvider("http://localhost:8200", "root", "")
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	waitForVaultReady(t, v)
 
@@ -171,7 +174,7 @@ func eachProvider(t *testing.T, eachFunc func(t *testing.T, p interface{})) {
 
 	// add k8s
 	clientset, err := kubernetes.NewForConfig(kubeConfig(t))
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	k8s := NewKubernetesSecretProvider(clientset, "default")
 
@@ -211,7 +214,7 @@ func kubeConfig(t *testing.T) *rest.Config {
 	)
 
 	restConfig, err := config.ClientConfig()
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	return restConfig
 }
@@ -225,49 +228,49 @@ func TestSaveAndLoadSecret(t *testing.T) {
 	eachSecretStorageProvider(t, func(t *testing.T, storage SecretStorage) {
 		t.Run("getting a secret that doesn't exist should error", func(t *testing.T) {
 			_, err := storage.GetSecret("doesnt/exist")
-			require.ErrorIs(t, err, ErrNotFound)
+			assert.ErrorIs(t, err, ErrNotFound)
 		})
 
 		t.Run("can set and get a secret", func(t *testing.T) {
 			err := storage.SetSecret("foo/bar:secret", []byte("secret token"))
-			require.NoError(t, err)
+			assert.NilError(t, err)
 
 			r, err := storage.GetSecret("foo/bar:secret")
-			require.NoError(t, err)
+			assert.NilError(t, err)
 
-			require.Equal(t, []byte("secret token"), r)
+			assert.DeepEqual(t, []byte("secret token"), r)
 		})
 
 		t.Run("adding a new secret doesn't break past secret at same path", func(t *testing.T) {
 			secret1 := []byte("secret token")
 			secret2 := []byte("secret token 2")
 			err := storage.SetSecret("foo2/bar", secret1)
-			require.NoError(t, err)
+			assert.NilError(t, err)
 
 			err = storage.SetSecret("foo2/bar2", secret2)
-			require.NoError(t, err)
+			assert.NilError(t, err)
 
 			r1, err := storage.GetSecret("foo2/bar")
-			require.NoError(t, err)
+			assert.NilError(t, err)
 
 			r2, err := storage.GetSecret("foo2/bar2")
-			require.NoError(t, err)
+			assert.NilError(t, err)
 
-			require.Equal(t, secret1, r1)
-			require.Equal(t, secret2, r2)
+			assert.DeepEqual(t, secret1, r1)
+			assert.DeepEqual(t, secret2, r2)
 		})
 
 		t.Run("can set the same secret twice", func(t *testing.T) {
 			err := storage.SetSecret("foo3/bar:secret", []byte("secret token"))
-			require.NoError(t, err)
+			assert.NilError(t, err)
 
 			err = storage.SetSecret("foo3/bar:secret", []byte("new secret token"))
-			require.NoError(t, err)
+			assert.NilError(t, err)
 
 			r, err := storage.GetSecret("foo3/bar:secret")
-			require.NoError(t, err)
+			assert.NilError(t, err)
 
-			require.Equal(t, []byte("new secret token"), r)
+			assert.DeepEqual(t, []byte("new secret token"), r)
 		})
 	})
 }
@@ -275,34 +278,35 @@ func TestSaveAndLoadSecret(t *testing.T) {
 func TestSealAndUnseal(t *testing.T) {
 	if testing.Short() {
 		t.Skip("test skipped in short mode")
-		return
 	}
 
 	eachSymmetricKeyProvider(t, func(t *testing.T, p SymmetricKeyProvider) {
 		noRootKeyYet := ""
 
 		key, err := p.GenerateDataKey(noRootKeyYet)
-		require.NoError(t, err)
-		require.NotEmpty(t, key.RootKeyID)
+		assert.NilError(t, err)
+		assert.Assert(t, len(key.RootKeyID) != 0)
 
-		require.Len(t, key.unencrypted, 32) // 256 bit keys should be used.
+		assert.Assert(t, is.Len(key.unencrypted, 32)) // 256 bit keys should be used.
 
 		key2, err := p.DecryptDataKey(key.RootKeyID, key.Encrypted)
-		require.NoError(t, err)
+		assert.NilError(t, err)
 
-		require.Equal(t, key, key2)
+		assert.DeepEqual(t, key, key2, cmpSymmetricKey)
 
 		secretMessage := "Your scientists were so preoccupied with whether they could, they didn’t stop to think if they should"
 
 		encrypted, err := Seal(key, []byte(secretMessage))
-		require.NoError(t, err)
+		assert.NilError(t, err)
 
 		unsealed, err := Unseal(key, encrypted)
-		require.NoError(t, err)
+		assert.NilError(t, err)
 
-		require.Equal(t, []byte(secretMessage), unsealed)
+		assert.DeepEqual(t, []byte(secretMessage), unsealed)
 	})
 }
+
+var cmpSymmetricKey = cmp.AllowUnexported(SymmetricKey{})
 
 func TestGeneratingASecondKeyFromARootKey(t *testing.T) {
 	if testing.Short() {
@@ -314,14 +318,14 @@ func TestGeneratingASecondKeyFromARootKey(t *testing.T) {
 		noRootKeyYet := ""
 
 		key, err := p.GenerateDataKey(noRootKeyYet)
-		require.NoError(t, err)
-		require.NotEmpty(t, key.RootKeyID)
+		assert.NilError(t, err)
+		assert.Assert(t, len(key.RootKeyID) != 0)
 
 		key2, err := p.GenerateDataKey(key.RootKeyID)
-		require.NoError(t, err)
-		require.NotEmpty(t, key.RootKeyID)
-		require.Equal(t, key.RootKeyID, key2.RootKeyID)
-		require.NotEqual(t, key.unencrypted, key2.unencrypted)
+		assert.NilError(t, err)
+		assert.Assert(t, len(key.RootKeyID) != 0)
+		assert.Equal(t, key.RootKeyID, key2.RootKeyID)
+		assert.Assert(t, !bytes.Equal(key.unencrypted, key2.unencrypted))
 	})
 }
 
@@ -331,27 +335,27 @@ func TestSealSize(t *testing.T) {
 	}))
 
 	key, err := p.GenerateDataKey("one")
-	require.NoError(t, err)
-	require.NotEmpty(t, key.RootKeyID)
+	assert.NilError(t, err)
+	assert.Assert(t, len(key.RootKeyID) != 0)
 
 	secretMessage := "toast"
 
 	encrypted, err := Seal(key, []byte(secretMessage))
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
-	require.Len(t, encrypted, 72)
+	assert.Assert(t, is.Len(encrypted, 72))
 
 	orig, err := Unseal(key, encrypted)
-	require.NoError(t, err)
-	require.EqualValues(t, secretMessage, orig)
+	assert.NilError(t, err)
+	assert.Equal(t, secretMessage, string(orig))
 
 	encrypted, err = SealRaw(key, []byte(secretMessage))
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
-	require.Len(t, encrypted, 54)
+	assert.Assert(t, is.Len(encrypted, 54))
 
 	orig, err = UnsealRaw(key, encrypted)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
-	require.EqualValues(t, secretMessage, orig)
+	assert.Equal(t, secretMessage, string(orig))
 }

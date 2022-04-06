@@ -4,7 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"gotest.tools/v3/assert"
+	is "gotest.tools/v3/assert/cmp"
 
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -27,19 +28,19 @@ func TestEncryptedAtRest(t *testing.T) {
 	rootKey := "db_at_rest"
 	symmetricKeyProvider := secrets.NewNativeSecretProvider(sp)
 	symmetricKey, err := symmetricKeyProvider.GenerateDataKey(rootKey)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	models.SymmetricKey = symmetricKey
 
 	// test
 	driver, err := data.NewSQLiteDriver("file::memory:")
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	db, err := data.NewDB(driver)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	err = db.AutoMigrate(&StructForTesting{})
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	id := uid.New()
 
@@ -49,20 +50,20 @@ func TestEncryptedAtRest(t *testing.T) {
 	}
 
 	err = db.Save(m).Error
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	var result string
 	err = db.Raw("select a_secret from struct_for_testings where id = ?", id).Scan(&result).Error
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
-	require.NotEqual(t, "don't tell", result)
-	require.NotEqual(t, "", result)
-	require.Len(t, result, 88) // encrypts to this many bytes
+	assert.Assert(t, "don't tell" != result)
+	assert.Assert(t, "" != result)
+	assert.Assert(t, is.Len(result, 88)) // encrypts to this many bytes
 
 	m2 := &StructForTesting{}
 
 	err = db.Find(m2, db.Where("id = ?", id)).Error
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
-	require.EqualValues(t, "don't tell", m2.ASecret)
+	assert.Equal(t, "don't tell", string(m2.ASecret))
 }

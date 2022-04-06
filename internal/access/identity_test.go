@@ -3,7 +3,6 @@ package access
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal"
@@ -23,20 +22,20 @@ func TestDeleteIdentityCleansUpResources(t *testing.T) {
 	}
 
 	err := data.CreateIdentity(db, identity)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	// create some resources for this identity
 
 	keyID := generate.MathRandom(models.AccessKeyKeyLength)
 	_, err = data.CreateAccessKey(db, &models.AccessKey{KeyID: keyID, IssuedFor: identity.ID})
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	creds := &models.Credential{
 		IdentityID:   identity.ID,
 		PasswordHash: []byte("some password"),
 	}
 	err = data.CreateCredential(db, creds)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	grantInfra := &models.Grant{
 		Subject:   identity.PolyID(),
@@ -44,7 +43,7 @@ func TestDeleteIdentityCleansUpResources(t *testing.T) {
 		Privilege: "admin",
 	}
 	err = data.CreateGrant(db, grantInfra)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	grantDestination := &models.Grant{
 		Subject:   identity.PolyID(),
@@ -52,11 +51,11 @@ func TestDeleteIdentityCleansUpResources(t *testing.T) {
 		Privilege: "cluster-admin",
 	}
 	err = data.CreateGrant(db, grantDestination)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	// delete the identity, and make sure all their resources are gone
 	err = DeleteIdentity(c, identity.ID)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	_, err = data.GetIdentity(db, data.ByID(identity.ID))
 	assert.ErrorIs(t, err, internal.ErrNotFound)
@@ -68,6 +67,6 @@ func TestDeleteIdentityCleansUpResources(t *testing.T) {
 	assert.ErrorIs(t, err, internal.ErrNotFound)
 
 	grants, err := data.ListGrants(db, data.BySubject(identity.PolyID()))
-	require.NoError(t, err)
+	assert.NilError(t, err)
 	assert.Equal(t, len(grants), 0)
 }

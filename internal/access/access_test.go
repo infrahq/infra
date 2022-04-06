@@ -7,10 +7,11 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
+	"gotest.tools/v3/assert"
+	is "gotest.tools/v3/assert/cmp"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/authn"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -20,10 +21,10 @@ import (
 
 func setupDB(t *testing.T) *gorm.DB {
 	driver, err := data.NewSQLiteDriver("file::memory:")
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	db, err := data.NewDB(driver)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	return db
 }
@@ -37,7 +38,7 @@ func setupAccessTestContext(t *testing.T) (*gin.Context, *gorm.DB, *models.Provi
 
 	admin := &models.Identity{Name: "admin@example.com", Kind: models.UserKind}
 	err := data.CreateIdentity(db, admin)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	c.Set("identity", admin)
 
@@ -47,13 +48,13 @@ func setupAccessTestContext(t *testing.T) (*gin.Context, *gorm.DB, *models.Provi
 		Resource:  "infra",
 	}
 	err = data.CreateGrant(db, adminGrant)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	SetupTestSecretProvider(t)
 
 	provider := &models.Provider{Name: models.InternalInfraProviderName}
 	err = data.CreateProvider(db, provider)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	return c, db, provider
 }
@@ -66,7 +67,7 @@ var (
 func TestBasicGrant(t *testing.T) {
 	db := setupDB(t)
 	err := data.CreateIdentity(db, tom)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	grant(t, db, tom, "i:steven", "read", "infra.groups.1")
 	can(t, db, "i:steven", "read", "infra.groups.1")
@@ -89,13 +90,13 @@ func TestBasicGrant(t *testing.T) {
 func TestUsersGroupGrant(t *testing.T) {
 	db := setupDB(t)
 	err := data.CreateIdentity(db, tom)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	err = data.CreateGroup(db, tomsGroup)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	err = data.BindGroupIdentities(db, tomsGroup, *tom)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())
 	c.Set("db", db)
@@ -105,16 +106,16 @@ func TestUsersGroupGrant(t *testing.T) {
 	grant(t, db, tom, tomsGroup.PolyID(), models.InfraUserRole, "infra")
 
 	authDB, err := RequireInfraRole(c, models.InfraUserRole)
-	assert.NoError(t, err)
-	assert.NotNil(t, authDB)
+	assert.NilError(t, err)
+	assert.Assert(t, authDB != nil)
 
 	authDB, err = RequireInfraRole(c, models.InfraAdminRole)
-	assert.Error(t, err)
-	assert.Nil(t, authDB)
+	assert.ErrorIs(t, err, internal.ErrForbidden)
+	assert.Assert(t, authDB == nil)
 
 	authDB, err = RequireInfraRole(c, models.InfraAdminRole, models.InfraUserRole)
-	assert.NoError(t, err)
-	assert.NotNil(t, authDB)
+	assert.NilError(t, err)
+	assert.Assert(t, authDB != nil)
 }
 
 func grant(t *testing.T, db *gorm.DB, currentUser *models.Identity, subject uid.PolymorphicID, privilege, resource string) {
@@ -124,19 +125,19 @@ func grant(t *testing.T, db *gorm.DB, currentUser *models.Identity, subject uid.
 		Resource:  resource,
 		CreatedBy: currentUser.ID,
 	})
-	require.NoError(t, err)
+	assert.NilError(t, err)
 }
 
 func can(t *testing.T, db *gorm.DB, subject uid.PolymorphicID, privilege, resource string) {
 	canAccess, err := Can(db, subject, privilege, resource)
-	require.NoError(t, err)
-	require.True(t, canAccess)
+	assert.NilError(t, err)
+	assert.Assert(t, canAccess)
 }
 
 func cant(t *testing.T, db *gorm.DB, subject uid.PolymorphicID, privilege, resource string) {
 	canAccess, err := Can(db, subject, privilege, resource)
-	require.NoError(t, err)
-	require.False(t, canAccess)
+	assert.NilError(t, err)
+	assert.Assert(t, !canAccess)
 }
 
 // mockOIDC is a mock oidc identity provider
@@ -168,9 +169,9 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 				}
 			},
 			"verify": func(t *testing.T, user *models.Identity, sessToken string, err error) {
-				require.NoError(t, err)
-				require.Equal(t, "newusernewgroups@example.com", user.Name)
-				require.NotEmpty(t, sessToken)
+				assert.NilError(t, err)
+				assert.Equal(t, "newusernewgroups@example.com", user.Name)
+				assert.Assert(t, len(sessToken) != 0)
 			},
 		},
 		"NewUserExistingGroups": {
@@ -179,10 +180,10 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 				existingGroup2 := &models.Group{Name: "existing2"}
 
 				err := data.CreateGroup(db, existingGroup1)
-				require.NoError(t, err)
+				assert.NilError(t, err)
 
 				err = data.CreateGroup(db, existingGroup2)
-				require.NoError(t, err)
+				assert.NilError(t, err)
 
 				return &mockOIDCImplementation{
 					UserEmailResp:  "newuserexistinggroups@example.com",
@@ -190,24 +191,24 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 				}
 			},
 			"verify": func(t *testing.T, user *models.Identity, sessToken string, err error) {
-				require.NoError(t, err)
-				require.Equal(t, "newuserexistinggroups@example.com", user.Name)
-				require.NotEmpty(t, sessToken)
+				assert.NilError(t, err)
+				assert.Equal(t, "newuserexistinggroups@example.com", user.Name)
+				assert.Assert(t, len(sessToken) != 0)
 
-				require.Len(t, user.Groups, 2)
+				assert.Assert(t, is.Len(user.Groups, 2))
 
 				var groupNames []string
 				for _, g := range user.Groups {
 					groupNames = append(groupNames, g.Name)
 				}
-				require.Contains(t, groupNames, "existing1")
-				require.Contains(t, groupNames, "existing2")
+				assert.Assert(t, is.Contains(groupNames, "existing1"))
+				assert.Assert(t, is.Contains(groupNames, "existing2"))
 			},
 		},
 		"ExistingUserNewGroups": {
 			"setup": func(t *testing.T, db *gorm.DB) authn.OIDC {
 				err := data.CreateIdentity(db, &models.Identity{Name: "existingusernewgroups@example.com", Kind: models.UserKind})
-				require.NoError(t, err)
+				assert.NilError(t, err)
 
 				return &mockOIDCImplementation{
 					UserEmailResp:  "existingusernewgroups@example.com",
@@ -215,30 +216,30 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 				}
 			},
 			"verify": func(t *testing.T, user *models.Identity, sessToken string, err error) {
-				require.NoError(t, err)
-				require.Equal(t, "existingusernewgroups@example.com", user.Name)
-				require.NotEmpty(t, sessToken)
+				assert.NilError(t, err)
+				assert.Equal(t, "existingusernewgroups@example.com", user.Name)
+				assert.Assert(t, len(sessToken) != 0)
 
-				require.Len(t, user.Groups, 2)
+				assert.Assert(t, is.Len(user.Groups, 2))
 
 				var groupNames []string
 				for _, g := range user.Groups {
 					groupNames = append(groupNames, g.Name)
 				}
-				require.Contains(t, groupNames, "existingusernewgroups1")
-				require.Contains(t, groupNames, "existingusernewgroups2")
+				assert.Assert(t, is.Contains(groupNames, "existingusernewgroups1"))
+				assert.Assert(t, is.Contains(groupNames, "existingusernewgroups2"))
 			},
 		},
 		"ExistingUserExistingGroups": {
 			"setup": func(t *testing.T, db *gorm.DB) authn.OIDC {
 				err := data.CreateIdentity(db, &models.Identity{Name: "existinguserexistinggroups@example.com", Kind: models.UserKind})
-				require.NoError(t, err)
+				assert.NilError(t, err)
 
 				err = data.CreateGroup(db, &models.Group{Name: "existinguserexistinggroups1"})
-				require.NoError(t, err)
+				assert.NilError(t, err)
 
 				err = data.CreateGroup(db, &models.Group{Name: "existinguserexistinggroups2"})
-				require.NoError(t, err)
+				assert.NilError(t, err)
 
 				return &mockOIDCImplementation{
 					UserEmailResp:  "existinguserexistinggroups@example.com",
@@ -246,18 +247,18 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 				}
 			},
 			"verify": func(t *testing.T, user *models.Identity, sessToken string, err error) {
-				require.NoError(t, err)
-				require.Equal(t, "existinguserexistinggroups@example.com", user.Name)
-				require.NotEmpty(t, sessToken)
+				assert.NilError(t, err)
+				assert.Equal(t, "existinguserexistinggroups@example.com", user.Name)
+				assert.Assert(t, len(sessToken) != 0)
 
-				require.Len(t, user.Groups, 2)
+				assert.Assert(t, is.Len(user.Groups, 2))
 
 				var groupNames []string
 				for _, g := range user.Groups {
 					groupNames = append(groupNames, g.Name)
 				}
-				require.Contains(t, groupNames, "existinguserexistinggroups1")
-				require.Contains(t, groupNames, "existinguserexistinggroups2")
+				assert.Assert(t, is.Contains(groupNames, "existinguserexistinggroups1"))
+				assert.Assert(t, is.Contains(groupNames, "existinguserexistinggroups2"))
 			},
 		},
 	}
@@ -274,17 +275,17 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 		// setup fake identity provider
 		provider := &models.Provider{Name: "mockoidc", URL: "mockOIDC.example.com"}
 		err := data.CreateProvider(db, provider)
-		require.NoError(t, err)
+		assert.NilError(t, err)
 
 		t.Run(k, func(t *testing.T) {
 			setupFunc, ok := v["setup"].(func(*testing.T, *gorm.DB) authn.OIDC)
-			require.True(t, ok)
+			assert.Assert(t, ok)
 			mockOIDC := setupFunc(t, db)
 
 			u, sess, err := ExchangeAuthCodeForAccessKey(c, "123somecode", provider, mockOIDC, time.Now().Add(time.Minute), "example.com")
 
 			verifyFunc, ok := v["verify"].(func(*testing.T, *models.Identity, string, error))
-			require.True(t, ok)
+			assert.Assert(t, ok)
 
 			verifyFunc(t, u, sess, err)
 		})
@@ -299,7 +300,7 @@ func SetupTestSecretProvider(t *testing.T) {
 	rootKey := "db_at_rest"
 	symmetricKeyProvider := secrets.NewNativeSecretProvider(sp)
 	symmetricKey, err := symmetricKeyProvider.GenerateDataKey(rootKey)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	models.SymmetricKey = symmetricKey
 }

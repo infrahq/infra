@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	"gorm.io/gorm"
+	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
@@ -16,10 +16,10 @@ import (
 
 func setup(t *testing.T) *gorm.DB {
 	driver, err := NewSQLiteDriver("file::memory:")
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	db, err := NewDB(driver)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	fp := secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{
 		Path: os.TempDir(),
@@ -28,7 +28,7 @@ func setup(t *testing.T) *gorm.DB {
 	kp := secrets.NewNativeSecretProvider(fp)
 
 	key, err := kp.GenerateDataKey("")
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	models.SymmetricKey = key
 
@@ -44,16 +44,16 @@ func TestSnowflakeIDSerialization(t *testing.T) {
 	id := uid.New()
 	g := &models.Group{Model: models.Model{ID: id}, Name: "Foo"}
 	err := db.Create(g).Error
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	var group models.Group
 	err = db.First(&group, &models.Group{Name: "Foo"}).Error
-	require.NoError(t, err)
-	require.NotEqual(t, 0, group.ID)
+	assert.NilError(t, err)
+	assert.Assert(t, 0 != group.ID)
 
 	var intID int64
 	err = db.Select("id").Table("groups").Scan(&intID).Error
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
-	require.Equal(t, int64(id), intID)
+	assert.Equal(t, int64(id), intID)
 }

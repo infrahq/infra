@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
+	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/models"
@@ -16,7 +16,7 @@ import (
 func createAccessKey(t *testing.T, db *gorm.DB, sessionDuration time.Duration) (string, *models.AccessKey) {
 	user := &models.Identity{Name: "tmp@infrahq.com", Kind: models.UserKind}
 	err := CreateIdentity(db, user)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	token := &models.AccessKey{
 		IssuedFor: user.ID,
@@ -24,7 +24,7 @@ func createAccessKey(t *testing.T, db *gorm.DB, sessionDuration time.Duration) (
 	}
 
 	body, err := CreateAccessKey(db, token)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	return body, token
 }
@@ -32,7 +32,7 @@ func createAccessKey(t *testing.T, db *gorm.DB, sessionDuration time.Duration) (
 func createAccessKeyWithExtensionDeadline(t *testing.T, db *gorm.DB, ttl, exensionDeadline time.Duration) (string, *models.AccessKey) {
 	machine := &models.Identity{Name: "Wall-E", Kind: models.MachineKind}
 	err := CreateIdentity(db, machine)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	token := &models.AccessKey{
 		IssuedFor:         machine.ID,
@@ -41,7 +41,7 @@ func createAccessKeyWithExtensionDeadline(t *testing.T, db *gorm.DB, ttl, exensi
 	}
 
 	body, err := CreateAccessKey(db, token)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	return body, token
 }
@@ -51,13 +51,13 @@ func TestCheckAccessKeySecret(t *testing.T) {
 	body, _ := createAccessKey(t, db, time.Hour*5)
 
 	_, err := ValidateAccessKey(db, body)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	random := generate.MathRandom(models.AccessKeySecretLength)
 	authorization := fmt.Sprintf("%s.%s", strings.Split(body, ".")[0], random)
 
 	_, err = ValidateAccessKey(db, authorization)
-	require.EqualError(t, err, "access key invalid secret")
+	assert.Error(t, err, "access key invalid secret")
 }
 
 func TestDeleteAccessKey(t *testing.T) {
@@ -65,16 +65,16 @@ func TestDeleteAccessKey(t *testing.T) {
 	_, token := createAccessKey(t, db, time.Minute*5)
 
 	_, err := GetAccessKey(db, ByID(token.ID))
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	err = DeleteAccessKey(db, token.ID)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	_, err = GetAccessKey(db, ByID(token.ID))
-	require.EqualError(t, err, "record not found")
+	assert.Error(t, err, "record not found")
 
 	err = DeleteAccessKeys(db, ByID(token.ID))
-	require.NoError(t, err)
+	assert.NilError(t, err)
 }
 
 func TestCheckAccessKeyExpired(t *testing.T) {
@@ -82,7 +82,7 @@ func TestCheckAccessKeyExpired(t *testing.T) {
 	body, _ := createAccessKey(t, db, -1*time.Hour)
 
 	_, err := ValidateAccessKey(db, body)
-	require.EqualError(t, err, "token expired")
+	assert.Error(t, err, "token expired")
 }
 
 func TestCheckAccessKeyPastExtensionDeadline(t *testing.T) {
@@ -90,5 +90,5 @@ func TestCheckAccessKeyPastExtensionDeadline(t *testing.T) {
 	body, _ := createAccessKeyWithExtensionDeadline(t, db, 1*time.Hour, -1*time.Hour)
 
 	_, err := ValidateAccessKey(db, body)
-	require.EqualError(t, err, "token extension deadline exceeded")
+	assert.Error(t, err, "token extension deadline exceeded")
 }
