@@ -10,7 +10,12 @@
       "extra-files": [
         "helm/charts/infra/Chart.yaml",
         "internal/version.go",
-        "docs/Operator Guides/upgrading-infra.md"
+        "docs/operator-guide/upgrading-infra.md",
+        {
+          "type": "json",
+          "path": "docs/api/openapi3.json",
+          "jsonpath": "$.info.version"
+        }
       ]
     }
   }
