@@ -3,28 +3,34 @@ import axios from 'axios'
 
 const DestinationsContext = createContext({
 	destinations: [],
-	getDestinations: () => {}
+	updateDestinationsList: () => {}
 })
 
 export const DestinationsContextProvider = ({ children }) => {
 	const [destinations, setDestinations] = useState([])
 
-	const getDestinations = () => {
-		axios.get('/v1/destinations')
+	useEffect(() => {
+    const source = axios.CancelToken.source()
+    axios.get('/v1/destinations')
 			.then((response) => {
 				console.log(response)
-				const destinationsList = response.data
-				setDestinations(destinationsList)
-				return destinationsList
+				setDestinations(response.data)
 			})
 			.catch((error) => {
 				console.log(error)
 			})
+    return function () {
+      source.cancel('Cancelling in cleanup')
+    }
+  }, [])
+
+	const updateDestinationsList = (list) => {
+		setDestinations(list)
 	}
 
 	const context = {
 		destinations,
-		getDestinations
+		updateDestinationsList
 	}
 
 	return (
