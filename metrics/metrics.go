@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -16,10 +17,18 @@ var requestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 	Buckets:   prometheus.ExponentialBuckets(0.001, 2, 15),
 }, []string{"host", "method", "path", "status"})
 
-// Middleware registers a request_duration_seconds metric with promRegistry
-// and returns a middleware that emits the metric on every request.
+// Middleware registers metrics with promRegistry and returns a middleware that
+// emits a request_duration_seconds metric on every request.
+//
+// The metrics registered with the registry include:
+//   * the standard process metrics
+//   * the standard go metrics
+//   * the request_duration_seconds metric emitted by the middleware
 func Middleware(promRegistry prometheus.Registerer) gin.HandlerFunc {
 	promRegistry.MustRegister(requestDuration)
+	promRegistry.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	promRegistry.MustRegister(collectors.NewGoCollector())
+
 	return func(c *gin.Context) {
 		t := time.Now()
 

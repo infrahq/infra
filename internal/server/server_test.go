@@ -911,8 +911,12 @@ func TestServer_Run(t *testing.T) {
 
 		body, err := ioutil.ReadAll(resp.Body)
 		assert.NilError(t, err)
-		assert.Assert(t, is.Contains(string(body), "# HELP"))
-		assert.Assert(t, is.Contains(string(body), "# TYPE"))
+		// the infra http request metric
+		assert.Assert(t, is.Contains(string(body), "# HELP http_request_duration_seconds"))
+		// standard go metrics
+		assert.Assert(t, is.Contains(string(body), "# HELP go_threads"))
+		// standard process metrics
+		assert.Assert(t, is.Contains(string(body), "# HELP process_open_fds"))
 	})
 
 	t.Run("http server started", func(t *testing.T) {
