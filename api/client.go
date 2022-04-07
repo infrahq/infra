@@ -301,8 +301,8 @@ func (c Client) DeleteAccessKey(id uid.ID) error {
 	return delete(c, fmt.Sprintf("/v1/access-keys/%s", id))
 }
 
-func (c Client) CreateToken(req *CreateTokenRequest) (*CreateTokenResponse, error) {
-	return post[CreateTokenRequest, CreateTokenResponse](c, "/v1/tokens", req)
+func (c Client) CreateToken() (*CreateTokenResponse, error) {
+	return post[EmptyRequest, CreateTokenResponse](c, "/v1/tokens", &EmptyRequest{})
 }
 
 func (c Client) Introspect() (*Introspect, error) {
