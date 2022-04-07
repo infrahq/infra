@@ -35,7 +35,8 @@ func TestCommaSeparatedStringsScan(t *testing.T) {
 	}
 	for _, test := range tests {
 		s := CommaSeparatedStrings([]string{})
-		s.Scan(test.input)
+		err := s.Scan(test.input)
+		assert.NilError(t, err)
 		assert.DeepEqual(t, test.expected, ([]string)(s))
 	}
 }

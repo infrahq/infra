@@ -3,11 +3,11 @@ package data
 import (
 	"fmt"
 
+	"github.com/ssoroka/slice"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
-	"github.com/ssoroka/slice"
 )
 
 func AssignIdentityToGroups(db *gorm.DB, user *models.Identity, provider *models.Provider, newGroups []string) error {

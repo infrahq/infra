@@ -37,7 +37,11 @@ func (s CommaSeparatedStrings) Value() (driver.Value, error) {
 }
 
 func (s *CommaSeparatedStrings) Scan(v interface{}) error {
-	parts := strings.Split(v.(string), ",")
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("expected string type for %v", v)
+	}
+	parts := strings.Split(str, ",")
 
 	if len(parts) > 0 && parts[0] == "" {
 		parts = parts[1:]

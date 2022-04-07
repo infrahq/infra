@@ -47,7 +47,6 @@ func createGroups(t *testing.T, db *gorm.DB, groups ...models.Group) {
 }
 
 func TestCreateGroupDuplicate(t *testing.T) {
-
 	var (
 		everyone  = models.Group{Name: "Everyone"}
 		engineers = models.Group{Name: "Engineering"}

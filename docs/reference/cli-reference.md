@@ -221,7 +221,6 @@ infra grants add IDENTITY DESTINATION [flags]
 
 ```
   -g, --group             Marks identity as type 'group'
-      --provider string   Name of identity provider
       --role string       Type of access that identity will be given (default "connect")
 ```
 
@@ -244,11 +243,10 @@ infra grants remove DESTINATION [flags]
 ### Options
 
 ```
-  -g, --group string      Group to revoke access from
-  -m, --machine string    Machine to revoke access from
-  -p, --provider string   Provider from which to revoke access from
-  -r, --role string       Role to revoke
-  -u, --user string       User to revoke access from
+  -g, --group string     Group to revoke access from
+  -m, --machine string   Machine to revoke access from
+  -r, --role string      Role to revoke
+  -u, --user string      User to revoke access from
 ```
 
 ### Options inherited from parent commands
