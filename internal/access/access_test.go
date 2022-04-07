@@ -1,6 +1,7 @@
 package access
 
 import (
+	"fmt"
 	"net/http/httptest"
 	"os"
 	"testing"
