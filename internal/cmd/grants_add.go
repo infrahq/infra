@@ -14,27 +14,23 @@ import (
 )
 
 type grantsCmdOptionsNew struct {
-	Identity    string `mapstructure:"identity"`
-	IsGroup     bool   `mapstructure:"group"`
-	Role        string `mapstructure:"role"`
-	Provider    string `mapstructure:"provider"`
-	Destination string `mapstructure:"destination"`
+	Identity string `mapstructure:"identity"`
+	IsGroup  bool   `mapstructure:"group"`
+	Role     string `mapstructure:"role"`
+	Provider string `mapstructure:"provider"`
+	Resource string `mapstructure:"resource"`
 }
 
 func newGrantAddCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add [IDENTITY]",
-		Short: "Grant access to a destination",
-		Long: `Grant an IDENTITY an access level of ROLE to a DESTINATION. 
+		Short: "Grant access to a resource",
+		Long: `Grant one or more identities an access level of role to a resource. 
 
-[--destination] is required:
-  # Grant identity access to a cluster 
+[--resource] is required:
+  # Grant identity access to a cluster, namespace, or infra
   $ infra grants add johndoe@acme.com -d kubernetes.prod
-  
-  # Grant identity access to a namespace 
   $ infra grants add johndoe@acme.com -d kubernetes.production.default
-  
-  # Grant identity access to Infra
   $ infra grants add johndoe@acme.com -d infra
 
 [IDENTITY] or [--identity] is required; [IDENTITY] will take precedence
@@ -45,13 +41,11 @@ func newGrantAddCmd() *cobra.Command {
   # Grant machine access
   $ infra grants add janeDoeMachine ...
 
-[--group] is required if identity is of type 'group'
-  # Grant group access
-  $ infra grants add devGroup -g ...
-  $ infra grants add dev@acme.com -g ...
+[--group] is required when granting access to a group of identities
+  $ infra grants add devAdmins@acme.com -g ...
+  $ infra grants add devMachines -g ...
 
 [--provider] is required if identity is of type 'user' or 'group', and more than two identity providers are connected
-  $ Grant access to identity from 'okta' 
   $ infra grants add johndoe@acme.com -p oktaDev ...
   $ infra grants add devGroup -g -p oktaProd ...
 
@@ -78,15 +72,15 @@ For full documentation on grants, see  https://github.com/infrahq/infra/blob/mai
 			return addGrant(options)
 		},
 	}
-	cmd.Flags().StringP("destination", "d", "", "[required] Name of destination that identity be given access to")
+	cmd.Flags().StringP("resource", "r", "", "[required] Name of resource that identity be given access to")
 	cmd.Flags().BoolP("group", "g", false, "Marks identity as type 'group'")
 	cmd.Flags().StringP("identity", "i", "", "Name of identity")
 	cmd.Flags().StringP("role", "r", models.BasePermissionConnect, "Type of access that identity will be given")
 	cmd.Flags().StringP("provider", "p", "", "Name of identity provider")
 
 	cmd.Flags().SortFlags = false
-	if err := cmd.MarkFlagRequired("destination"); err != nil {
-		panic("cannot mark flag --destination as required")
+	if err := cmd.MarkFlagRequired("resource"); err != nil {
+		panic("cannot mark flag --resource as required")
 	}
 	return cmd
 }
@@ -212,7 +206,7 @@ func addGrant(cmdOptions grantsCmdOptionsNew) error {
 	_, err = client.CreateGrant(&api.CreateGrantRequest{
 		Subject:   id,
 		Privilege: cmdOptions.Role,
-		Resource:  cmdOptions.Destination,
+		Resource:  cmdOptions.Resource,
 	})
 	if err != nil {
 		return err
