@@ -34,7 +34,7 @@ nfpms:
     vendor: Infra Technologies, Inc.
     homepage: https://infrahq.com
     maintainer: Infra Technologies, Inc. <contact@infrahq.com>
-    license: Apache 2.0
+    license: Elastic License v2.0
     formats:
       - deb
       - rpm

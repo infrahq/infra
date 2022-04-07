@@ -409,8 +409,8 @@
   "info": {
     "description": "Infra API",
     "license": {
-      "name": "Apache 2.0",
-      "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
+      "name": "Elastic License v2.0",
+      "url": "https://www.elastic.co/licensing/elastic-license"
     },
     "title": "Infra API",
     "version": "0.10.0"
