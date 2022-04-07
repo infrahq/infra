@@ -99,6 +99,8 @@ CLIENT_SECRET: The Infra application OpenID Connect client secret
 				return err
 			}
 
+			fmt.Printf("%s provider added\n", args[0])
+
 			return nil
 		},
 	}
