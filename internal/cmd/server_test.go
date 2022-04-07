@@ -40,7 +40,7 @@ func TestParseOptions_WithServerOptions(t *testing.T) {
 		assert.DeepEqual(t, expected, options)
 	}
 
-	var testCases = []testCase{
+	testCases := []testCase{
 		{
 			name: "secret providers",
 			setup: func(t *testing.T, cmd *cobra.Command) {

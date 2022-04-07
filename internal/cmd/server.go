@@ -91,7 +91,7 @@ func defaultServerOptions() server.Options {
 	}
 }
 
-// shim for testing
+// runServer is a shim for testing.
 var runServer = func(ctx context.Context, srv *server.Server) error {
 	return srv.Run(ctx)
 }

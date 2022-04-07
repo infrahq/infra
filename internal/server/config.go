@@ -123,6 +123,7 @@ func (s *Server) importSecretKeys() error {
 	return nil
 }
 
+// TODO: no longer works because mapstructure decodes
 func (sp *KeyProvider) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	tmp := &simpleConfigSecretProvider{}
 
@@ -166,14 +167,15 @@ func (sp *KeyProvider) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 type SecretProvider struct {
-	Kind   string      `yaml:"kind" validate:"required"`
-	Name   string      `yaml:"name"` // optional
+	Kind   string      `mapstructure:"kind"`
+	Name   string      `mapstructure:"name"`
 	Config interface{} // contains secret-provider-specific config
 }
 
+// TODO: Remove
 type simpleConfigSecretProvider struct {
-	Kind string `yaml:"kind"`
-	Name string `yaml:"name"`
+	Kind string `mapstructure:"kind"`
+	Name string `mapstructure:"name"`
 }
 
 var baseSecretStorageKinds = []string{
@@ -372,83 +374,48 @@ func loadDefaultSecretConfig(storage map[string]secrets.SecretStorage) error {
 	return nil
 }
 
-func (sp *SecretProvider) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	tmp := &simpleConfigSecretProvider{}
-
-	if err := unmarshal(&tmp); err != nil {
-		return fmt.Errorf("unmarshalling secret provider: %w", err)
-	}
-
-	sp.Kind = tmp.Kind
-	sp.Name = tmp.Name
-
-	switch tmp.Kind {
+// PrepareForDecode prepares the SecretProvider for mapstructure.Decode by
+// setting a concrete type for the config based on the kind. Failures to decode
+// will be handled by mapstructure, or by importSecrets.
+func (sp *SecretProvider) PrepareForDecode(data interface{}) error {
+	kind := getKindFromUnstructured(data)
+	switch kind {
 	case "vault":
-		p := secrets.NewVaultConfig()
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
+		sp.Config = secrets.NewVaultConfig()
 	case "awsssm":
-		p := secrets.AWSSSMConfig{}
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		if err := unmarshal(&p.AWSConfig); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
+		sp.Config = secrets.AWSSSMConfig{}
 	case "awssecretsmanager":
-		p := secrets.AWSSecretsManagerConfig{}
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		if err := unmarshal(&p.AWSConfig); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
+		sp.Config = secrets.AWSSecretsManagerConfig{}
 	case "kubernetes":
-		p := secrets.NewKubernetesConfig()
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
+		sp.Config = secrets.NewKubernetesConfig()
 	case "env":
-		p := secrets.GenericConfig{}
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
+		sp.Config = secrets.GenericConfig{}
 	case "file":
-		p := secrets.FileConfig{}
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		if err := unmarshal(&p.GenericConfig); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
+		sp.Config = secrets.FileConfig{}
 	case "plaintext", "":
-		p := secrets.GenericConfig{}
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
+		sp.Kind = "plaintext"
+		sp.Config = secrets.GenericConfig{}
 	default:
-		return fmt.Errorf("unknown secret provider type %q, expected one of %q", tmp.Kind, secrets.SecretStorageProviderKinds)
+		// unknown kind error is handled by importSecrets
 	}
 
 	return nil
+}
+
+func getKindFromUnstructured(data interface{}) string {
+	switch raw := data.(type) {
+	case map[string]interface{}:
+		if v, ok := raw["kind"].(string); ok {
+			return v
+		}
+	case map[interface{}]interface{}:
+		if v, ok := raw["kind"].(string); ok {
+			return v
+		}
+	case *SecretProvider:
+		return raw.Kind
+	}
+	return ""
 }
 
 // setupInternalInfraIdentityProvider creates the internal identity provider where local identities are stored
