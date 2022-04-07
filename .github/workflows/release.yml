@@ -103,6 +103,7 @@ jobs:
       - run: |
           echo $GITHUB_REF  > ./docs-ref
           git add ./docs-ref
+          git config user.name infrahq-ci
+          git config user.email contact@infrahq.com
           git commit -m "maintain: update docs ref"
           git push origin main
-
