@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -121,4 +122,39 @@ func serverOptionsWithDefaults() server.Options {
 	o.SessionDuration = 12 * time.Hour
 	o.EnableSetup = true
 	return o
+}
+
+func TestServerCmd_WithSecretsConfig(t *testing.T) {
+	patchRunServer(t, noServerRun)
+
+	content := `
+      addr:
+        http: "127.0.0.1:0"
+        https: "127.0.0.1:0"
+        metrics: "127.0.0.1:0"
+      secrets:
+        - kind: env
+          name: base64env
+          config:
+            base64: true`
+
+	dir := fs.NewDir(t, t.Name(), fs.WithFile("cfg.yaml", content))
+
+	// TODO: change to Run(ctx, args) once that is merged
+	cmd := newServerCmd()
+	cmd.SetArgs([]string{"--config-file", dir.Join("cfg.yaml")})
+	err := cmd.Execute()
+	assert.NilError(t, err)
+}
+
+func patchRunServer(t *testing.T, fn func(context.Context, *server.Server) error) {
+	orig := runServer
+	runServer = fn
+	t.Cleanup(func() {
+		runServer = orig
+	})
+}
+
+func noServerRun(context.Context, *server.Server) error {
+	return nil
 }
