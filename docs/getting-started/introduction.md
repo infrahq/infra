@@ -6,7 +6,6 @@
 
 Infra is an open-source identity management & authentication service that manages secure access to Kubernetes, Databases and internal admin tooling.
 
-Today, teams are between a rock and a hard place when it comes to managing access to their infrastructure.
 
 ## Key Ideas
 
