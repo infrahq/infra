@@ -5,15 +5,21 @@ const DestinationsContext = createContext({
 	destinations: [],
 	currentDestinationName: null,
 	accessKey: null,
+	connected: false,
+	enabledCommandInput: false,
 	updateDestinationsList: () => {},
 	updateCurrentDestinationName: () => {},
-	updateAccessKey: () => {}
+	updateAccessKey: () => {},
+	updateConnected: () => {},
+	updateEnabledCommandInput: () => {}
 })
 
 export const DestinationsContextProvider = ({ children }) => {
 	const [destinations, setDestinations] = useState([])
 	const [currentDestinationName, setCurrentDestinationName] = useState(null)
 	const [accessKey, setAccessKey] = useState(null)
+	const [connected, setConnected] = useState(false)
+	const [enabledCommandInput, setEnabledCommandInput] = useState(false)
 
 	useEffect(() => {
     const source = axios.CancelToken.source()
@@ -42,13 +48,25 @@ export const DestinationsContextProvider = ({ children }) => {
 		setAccessKey(key)
 	}
 
+	const updateConnected = (isConnected) => {
+		setConnected(isConnected)
+	}
+
+	const updateEnabledCommandInput = (enabled) => {
+		setEnabledCommandInput(enabled)
+	}
+
 	const context = {
 		destinations,
 		currentDestinationName,
 		accessKey,
+		connected,
+		enabledCommandInput,
 		updateDestinationsList,
 		updateCurrentDestinationName,
-		updateAccessKey
+		updateAccessKey,
+		updateConnected,
+		updateEnabledCommandInput
 	}
 
 	return (
