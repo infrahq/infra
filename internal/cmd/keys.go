@@ -12,7 +12,7 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-const THIRTY_DAYS = 30 * (24 * time.Hour)
+const ThirtyDays = 30 * (24 * time.Hour)
 
 func newKeysCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -76,7 +76,7 @@ infra keys add first-key bot --ttl=12h --extension-deadline=1h
 				return err
 			}
 
-			deadline := THIRTY_DAYS
+			deadline := ThirtyDays
 			if options.ExtensionDeadline != "" {
 				deadline, err = time.ParseDuration(options.ExtensionDeadline)
 				if err != nil {
@@ -84,7 +84,7 @@ infra keys add first-key bot --ttl=12h --extension-deadline=1h
 				}
 			}
 
-			ttl := THIRTY_DAYS
+			ttl := ThirtyDays
 			if options.TTL != "" {
 				ttl, err = time.ParseDuration(options.TTL)
 				if err != nil {
