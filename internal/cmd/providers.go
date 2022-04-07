@@ -58,7 +58,11 @@ func newProvidersListCmd() *cobra.Command {
 				rows = append(rows, row{Name: p.Name, URL: p.URL})
 			}
 
-			printTable(rows)
+			if len(rows) > 0 {
+				printTable(rows)
+			} else {
+				fmt.Println("No providers found")
+			}
 
 			return nil
 		},

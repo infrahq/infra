@@ -206,7 +206,11 @@ func newKeysListCmd() *cobra.Command {
 				})
 			}
 
-			printTable(rows)
+			if len(rows) > 0 {
+				printTable(rows)
+			} else {
+				fmt.Println("No access keys found")
+			}
 
 			return nil
 		},
