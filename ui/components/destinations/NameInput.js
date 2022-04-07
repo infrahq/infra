@@ -27,7 +27,7 @@ const NextButton = styled.button`
 `
 
 const NameInput = () => {
-  const { updateCurrentDestinationName, updateEnabledCommandInput } = useContext(DestinationsContext)
+  const { updateCurrentDestinationName, updateEnabledCommandInput, updateAccessKey } = useContext(DestinationsContext)
   const [name, setName] = useState('')
 
   const handleNext = () => {
@@ -39,9 +39,21 @@ const NameInput = () => {
     updateEnabledCommandInput(name.length > 0)
     
 
-    axios.get('/v1/identities')
+    axios.get('/v1/identities?name=connector')
       .then((response) => {
-        console.log(response)
+        const { id } = response.data[0]
+        const keyName = name + '-' + [...Array(10)].map(() => (~~(Math.random() * 36)).toString(36)).join('')
+
+        return { identityID: id, name: keyName, ttl: '87600h', extensionDeadline: '720h'}
+      })
+      .then((config) => {
+        return axios.post('/v1/access-keys', config)
+      })
+      .then((accessKeyInfo) => {
+        updateAccessKey(accessKeyInfo.data.accessKey)
+      })
+      .catch((error) => {
+        console.log(error)
       })
   }
 
@@ -54,7 +66,7 @@ const NameInput = () => {
           onChange={e => setName(e.target.value)}
         />
       </InputContainer>
-      <NextButton onClick={() => handleNext()}>Next</NextButton>
+      <NextButton disabled={name.length === 0} onClick={() => handleNext()}>Next</NextButton>
     </NameContainer>
   ) 
 }

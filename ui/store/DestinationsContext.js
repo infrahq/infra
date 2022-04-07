@@ -46,6 +46,7 @@ export const DestinationsContextProvider = ({ children }) => {
 
 	const updateAccessKey = (key) => {
 		setAccessKey(key)
+		console.log('update key:', key)
 	}
 
 	const updateConnected = (isConnected) => {
