@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.10.0](https://github.com/infrahq/infra/compare/v0.9.0...v0.10.0) (2022-04-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove ununsed create token body (#1216) (#1497)
+* remove destinations add/remove commands
+
+### Features
+
+* add back infra destinations remove ([19ee32f](https://github.com/infrahq/infra/commit/19ee32f3498e408b6153c52f8a24bad06da39070))
+* always create admin/connector identities ([92fbff3](https://github.com/infrahq/infra/commit/92fbff33d10ccc350ebf29161d9689721b740faf))
+* infra view role ([#1507](https://github.com/infrahq/infra/issues/1507)) ([00a47e1](https://github.com/infrahq/infra/commit/00a47e196f9279446ab0a0e8744bdab3eb887d5b))
+* login connector to exchange access key ([bbd4f00](https://github.com/infrahq/infra/commit/bbd4f002d2f329e0382ec03f3a23bd6112796300))
+* print no resource found for list commands ([97e73ee](https://github.com/infrahq/infra/commit/97e73ee9fc756d0b0eae05bfac49afa1daa49f70))
+
+
+### Bug Fixes
+
+* **api:** scope api middleware to api routes ([5ac180e](https://github.com/infrahq/infra/commit/5ac180e8f03cf8eff00cafa3ea558d55676e4969))
+* do not clear config on empty config file ([#1456](https://github.com/infrahq/infra/issues/1456)) ([e38dcc1](https://github.com/infrahq/infra/commit/e38dcc1aa3fbcaeb01c4c902ef05c774c4afc329))
+* remove destinations add/remove commands ([1f391b2](https://github.com/infrahq/infra/commit/1f391b24237a556dbe29733d5e7f1bc32df3a969))
+* seperate docs action with correct commands ([2c8b501](https://github.com/infrahq/infra/commit/2c8b5013a8b33f07ddc53467ca941c1d4573f7b3))
+* unit test ([9570413](https://github.com/infrahq/infra/commit/95704133b1fc560c924592f6416b71bf88cfd5fb))
+* validate key names dont have spaces ([#1449](https://github.com/infrahq/infra/issues/1449)) ([#1490](https://github.com/infrahq/infra/issues/1490)) ([b080ca2](https://github.com/infrahq/infra/commit/b080ca206999d489dbcf0517cdb67552a44c5522))
+
+
+### Maintenance
+
+* remove ununsed create token body ([#1216](https://github.com/infrahq/infra/issues/1216)) ([#1497](https://github.com/infrahq/infra/issues/1497)) ([ac3c509](https://github.com/infrahq/infra/commit/ac3c50989d266faa5100b0d885fe7ff662c26fa0))
+
 ## [0.9.0](https://github.com/infrahq/infra/compare/v0.8.0...v0.9.0) (2022-04-06)
 
 
