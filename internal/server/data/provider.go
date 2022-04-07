@@ -66,7 +66,7 @@ func InfraProvider(db *gorm.DB) *models.Provider {
 		return infraProviderCache
 	}
 
-	infra, err := get[models.Provider](db, ByName("infra"))
+	infra, err := get[models.Provider](db, ByName(models.InternalInfraProviderName))
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			logging.S.Panic(err)
@@ -74,7 +74,7 @@ func InfraProvider(db *gorm.DB) *models.Provider {
 		}
 
 		// create the infra provider since it doesn't exist.
-		infra = &models.Provider{Name: "infra"}
+		infra = &models.Provider{Name: models.InternalInfraProviderName}
 		err = add(db, infra)
 		if err != nil {
 			logging.S.Error(err)
