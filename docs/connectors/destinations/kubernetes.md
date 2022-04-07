@@ -5,21 +5,21 @@
 ### 1. Install the connector via `helm`:
 
 ```
-infra destinations add
+infra destinations add kubernetes.example
 ```
 
 Run the output `helm` command on the Kubernetes cluster you want to connect to Infra.
 
 ## Granting access
 
-Once you've connected a cluster, you can grant access via `infra grant <identity> <kubernetes.name>`:
+Once you've connected a cluster, you can grant access via `infra grants add`:
 
 ```
 # grant access to a user
-infra grants add fisher@example.com kubernetes.development --role admin
+infra grants add fisher@example.com kubernetes.example --role admin
 
 # grant access to a group
-infra grants add engineering kubernetes.production --role view
+infra grants add engineering kubernetes.example --role view
 ```
 
 ### Supported roles
@@ -55,3 +55,11 @@ This command will remove the `admin` role, granted in the previous example, from
 infra grants remove --user ops@example.com --role cluster-admin kubernetes.cluster.namespace
 ```
 
+### Roles
+
+| Role | Access level |
+| --- | --- |
+| cluster-admin | Grants access to any resource |
+| admin | Grants access to most resources in the namespace, including roles and role bindings, but does not grant access to the namespace itself nor does it grant access to cluster roles or cluster role bindings |
+| edit | Grants access to most resources in the namespace but does not grant access to roles or role bindings
+| view | Grants access to read most resources in the namespace but does not grant write access nor does it grant read access to secrets |
