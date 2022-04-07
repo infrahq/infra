@@ -53,6 +53,7 @@ export const DestinationsContextProvider = ({ children }) => {
 	}
 
 	const updateEnabledCommandInput = (enabled) => {
+		console.log('enabled:', enabled)
 		setEnabledCommandInput(enabled)
 	}
 

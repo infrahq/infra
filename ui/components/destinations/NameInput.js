@@ -27,7 +27,7 @@ const NextButton = styled.button`
 `
 
 const NameInput = () => {
-  const { updateCurrentDestinationName } = useContext(DestinationsContext)
+  const { updateCurrentDestinationName, updateEnabledCommandInput } = useContext(DestinationsContext)
   const [name, setName] = useState('')
 
   const handleNext = () => {
@@ -36,6 +36,8 @@ const NameInput = () => {
 
 		console.log(destinationName)
 		updateCurrentDestinationName(name)
+    updateEnabledCommandInput(name.length > 0)
+    
 
     axios.get('/v1/identities')
       .then((response) => {

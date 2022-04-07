@@ -5,9 +5,10 @@ import styled from 'styled-components'
 
 import ActionButton from "../../../components/ActionButton"
 import NameInput from "../../../components/destinations/NameInput"
+import CommandInput from "../../../components/destinations/CommandInput"
 import ExitButton from "../../../components/ExitButton"
 import Header from "../../../components/Header"
-import Input from "../../../components/Input"
+
 import { DestinationsContextProvider } from "../../../store/DestinationsContext"
 
 const ConnectContainer = styled.section`
@@ -53,6 +54,7 @@ const Connect = () => {
             subheader='Run the following command to connect your cluster'
           />
           <NameInput />
+          <CommandInput />
 					{/* <ActionButton disabled={!enabled && !connected} onClick={() => handleFinish()} value='Finish' /> */}
         </SetupDestinationContent>      
         <NavButton>
