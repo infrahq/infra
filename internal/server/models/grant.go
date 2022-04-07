@@ -7,6 +7,7 @@ import (
 
 const (
 	InfraAdminRole     = "admin"
+	InfraViewRole      = "view"
 	InfraUserRole      = "user"
 	InfraConnectorRole = "connector"
 )

@@ -31,7 +31,7 @@ func isUserInGroup(c *gin.Context, requestedResourceID uid.ID) (bool, error) {
 }
 
 func ListGroups(c *gin.Context, name string, providerID uid.ID) ([]models.Group, error) {
-	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole)
+	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func CreateGroup(c *gin.Context, group *models.Group) error {
 }
 
 func GetGroup(c *gin.Context, id uid.ID) (*models.Group, error) {
-	db, err := hasAuthorization(c, id, isUserInGroup, models.InfraAdminRole, models.InfraConnectorRole)
+	db, err := hasAuthorization(c, id, isUserInGroup, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func GetGroup(c *gin.Context, id uid.ID) (*models.Group, error) {
 }
 
 func ListIdentityGroups(c *gin.Context, userID uid.ID) ([]models.Group, error) {
-	db, err := hasAuthorization(c, userID, isIdentitySelf, models.InfraAdminRole)
+	db, err := hasAuthorization(c, userID, isIdentitySelf, models.InfraAdminRole, models.InfraViewRole)
 	if err != nil {
 		return nil, err
 	}

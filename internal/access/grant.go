@@ -18,7 +18,7 @@ func GetGrant(c *gin.Context, id uid.ID) (*models.Grant, error) {
 }
 
 func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, privilege string) ([]models.Grant, error) {
-	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole)
+	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole)
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +27,7 @@ func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, priv
 }
 
 func ListIdentityGrants(c *gin.Context, identityID uid.ID) ([]models.Grant, error) {
-	db, err := hasAuthorization(c, identityID, isIdentitySelf, models.InfraAdminRole)
+	db, err := hasAuthorization(c, identityID, isIdentitySelf, models.InfraAdminRole, models.InfraViewRole)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func ListIdentityGrants(c *gin.Context, identityID uid.ID) ([]models.Grant, erro
 }
 
 func ListGroupGrants(c *gin.Context, groupID uid.ID) ([]models.Grant, error) {
-	db, err := hasAuthorization(c, groupID, isUserInGroup, models.InfraAdminRole)
+	db, err := hasAuthorization(c, groupID, isUserInGroup, models.InfraAdminRole, models.InfraViewRole)
 	if err != nil {
 		return nil, err
 	}

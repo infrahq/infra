@@ -1,6 +1,7 @@
 package access
 
 import (
+	"fmt"
 	"net/http/httptest"
 	"os"
 	"testing"
@@ -45,7 +46,7 @@ func setupAccessTestContext(t *testing.T) (*gin.Context, *gorm.DB, *models.Provi
 	adminGrant := &models.Grant{
 		Subject:   admin.PolyID(),
 		Privilege: models.InfraAdminRole,
-		Resource:  "infra",
+		Resource:  ResourceInfraAPI,
 	}
 	err = data.CreateGrant(db, adminGrant)
 	assert.NilError(t, err)
@@ -101,7 +102,6 @@ func TestUsersGroupGrant(t *testing.T) {
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())
 	c.Set("db", db)
 	c.Set("identity", tom)
-	c.Set("user", tom)
 
 	grant(t, db, tom, tomsGroup.PolyID(), models.InfraUserRole, "infra")
 
@@ -116,6 +116,58 @@ func TestUsersGroupGrant(t *testing.T) {
 	authDB, err = RequireInfraRole(c, models.InfraAdminRole, models.InfraUserRole)
 	assert.NilError(t, err)
 	assert.Assert(t, authDB != nil)
+}
+
+func TestInfraRequireInfraRole(t *testing.T) {
+	db := setupDB(t)
+
+	setup := func(t *testing.T, infraRole string) *gin.Context {
+		testIdentity := &models.Identity{Name: fmt.Sprintf("infra-%s-%s", infraRole, time.Now()), Kind: models.MachineKind}
+
+		err := data.CreateIdentity(db, testIdentity)
+		assert.NilError(t, err)
+
+		err = data.CreateGrant(db, &models.Grant{Subject: testIdentity.PolyID(), Privilege: infraRole, Resource: ResourceInfraAPI})
+		assert.NilError(t, err)
+
+		c, _ := gin.CreateTestContext(httptest.NewRecorder())
+		c.Set("db", db)
+		c.Set("identity", testIdentity)
+
+		return c
+	}
+
+	t.Run("has specific required role", func(t *testing.T) {
+		c := setup(t, models.InfraAdminRole)
+
+		authDB, err := RequireInfraRole(c, models.InfraAdminRole)
+		assert.NilError(t, err)
+		assert.Assert(t, authDB != nil)
+	})
+
+	t.Run("does not have specific required role", func(t *testing.T) {
+		c := setup(t, models.InfraViewRole)
+
+		authDB, err := RequireInfraRole(c, models.InfraAdminRole)
+		assert.Error(t, err, "forbidden: requestor does not have required grant")
+		assert.Assert(t, authDB == nil)
+	})
+
+	t.Run("has required role in list", func(t *testing.T) {
+		c := setup(t, models.InfraViewRole)
+
+		authDB, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole)
+		assert.NilError(t, err)
+		assert.Assert(t, authDB != nil)
+	})
+
+	t.Run("does not have required role in list", func(t *testing.T) {
+		c := setup(t, models.InfraViewRole)
+
+		authDB, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole)
+		assert.Error(t, err, "forbidden: requestor does not have required grant")
+		assert.Assert(t, authDB == nil)
+	})
 }
 
 func grant(t *testing.T, db *gorm.DB, currentUser *models.Identity, subject uid.PolymorphicID, privilege, resource string) {
