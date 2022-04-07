@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/require"
+	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
@@ -99,15 +99,15 @@ func TestSendAPIError(t *testing.T) {
 
 			sendAPIError(c, test.err)
 
-			require.EqualValues(t, test.result.Code, resp.Result().StatusCode)
+			assert.Equal(t, test.result.Code, int32(resp.Result().StatusCode))
 			actual := &api.Error{}
 			err := json.NewDecoder(resp.Body).Decode(actual)
-			require.NoError(t, err)
+			assert.NilError(t, err)
 
-			require.Equal(t, test.result.Code, actual.Code)
-			require.Equal(t, test.result.Message, actual.Message)
+			assert.Equal(t, test.result.Code, actual.Code)
+			assert.Equal(t, test.result.Message, actual.Message)
 
-			require.Equal(t, test.result.FieldErrors, actual.FieldErrors)
+			assert.DeepEqual(t, test.result.FieldErrors, actual.FieldErrors)
 		})
 	}
 }

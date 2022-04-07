@@ -170,7 +170,11 @@ func newIdentitiesListCmd() *cobra.Command {
 				})
 			}
 
-			printTable(rows)
+			if len(rows) > 0 {
+				printTable(rows)
+			} else {
+				fmt.Println("No identities found")
+			}
 
 			return nil
 		},
@@ -185,9 +189,18 @@ func newIdentitiesRemoveCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
-			var options identityOptions
-			if err := parseOptions(cmd, &options, ""); err != nil {
+			infraProvider, err := getInfraProviderID()
+			if err != nil {
 				return err
+			}
+
+			isSelf, err := isIdentitySelf(name, infraProvider)
+			if err != nil {
+				return err
+			}
+
+			if isSelf {
+				return fmt.Errorf("users cannot delete themselves")
 			}
 
 			client, err := defaultAPIClient()
@@ -275,48 +288,53 @@ func UpdateIdentity(name, newPassword string) error {
 		return err
 	}
 
-	infraProvider, err := GetProviderByName(client, models.InternalInfraProviderName)
-	if err != nil {
-		logging.S.Debug(err)
-		return fmt.Errorf("no infra provider found, to manage local users create a local provider named 'infra'")
-	}
-
-	user := &api.Identity{}
-
-	config, err := currentHostConfig()
+	infraProvider, err := getInfraProviderID()
 	if err != nil {
 		return err
 	}
 
-	if config.ProviderID == infraProvider.ID && config.Name == name {
-		// this is a user updating their own password
-		currentID, err := config.PolymorphicID.ID()
+	isSelf, err := isIdentitySelf(name, infraProvider)
+	if err != nil {
+		return err
+	}
+
+	var userID uid.ID
+
+	if isSelf {
+		config, err := currentHostConfig()
 		if err != nil {
 			return err
 		}
 
-		user.ID = currentID
+		if userID, err = config.PolymorphicID.ID(); err != nil {
+			return err
+		}
 	} else {
-		user, err = GetIdentityFromName(client, name, infraProvider)
+		user, err := GetIdentityFromName(client, name, infraProvider)
 		if err != nil {
 			if errors.Is(err, ErrIdentityNotFound) {
 				return fmt.Errorf("Identity %s not found in local provider; only local identities can be edited", name)
 			}
 			return err
 		}
-		// Todo otp: update term to temporary password (https://github.com/infrahq/infra/issues/1441)
-		fmt.Fprintf(os.Stderr, "  Updated one time password for user %s.\n", user.Name)
+
+		userID = user.ID
 	}
 
-	if _, err := client.UpdateIdentity(&api.UpdateIdentityRequest{ID: user.ID, Password: newPassword}); err != nil {
+	if _, err := client.UpdateIdentity(&api.UpdateIdentityRequest{ID: userID, Password: newPassword}); err != nil {
 		return err
+	}
+
+	if !isSelf {
+		// Todo otp: update term to temporary password (https://github.com/infrahq/infra/issues/1441)
+		fmt.Fprintf(os.Stderr, "  Updated one time password for user.\n")
 	}
 
 	return nil
 }
 
-func GetIdentityFromName(client *api.Client, name string, provider *api.Provider) (*api.Identity, error) {
-	users, err := client.ListIdentities(api.ListIdentitiesRequest{Name: name, ProviderID: provider.ID})
+func GetIdentityFromName(client *api.Client, name string, providerID uid.ID) (*api.Identity, error) {
+	users, err := client.ListIdentities(api.ListIdentitiesRequest{Name: name, ProviderID: providerID})
 	if err != nil {
 		return nil, err
 	}
@@ -367,4 +385,30 @@ func checkPasswordRequirements(newPassword string, oldPassword string) error {
 		return errors.New("  New password cannot be the same as your old password.")
 	}
 	return nil
+}
+
+// getInfraProviderID gets the ID of the internal infra server identity provider
+func getInfraProviderID() (uid.ID, error) {
+	client, err := defaultAPIClient()
+	if err != nil {
+		return -1, err
+	}
+
+	infraProvider, err := GetProviderByName(client, models.InternalInfraProviderName)
+	if err != nil {
+		logging.S.Debug(err)
+		return -1, fmt.Errorf("no infra provider found, to manage local users create a local provider named 'infra'")
+	}
+
+	return infraProvider.ID, nil
+}
+
+// isIdentitySelf checks if the caller is updating their current local user
+func isIdentitySelf(name string, infraProvider uid.ID) (bool, error) {
+	config, err := currentHostConfig()
+	if err != nil {
+		return false, err
+	}
+
+	return config.ProviderID == infraProvider && config.Name == name, nil
 }

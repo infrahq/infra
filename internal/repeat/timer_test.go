@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"gotest.tools/v3/assert"
+	is "gotest.tools/v3/assert/cmp"
 )
 
 func TestStart_StopsWithContextCancelled(t *testing.T) {
@@ -23,7 +23,7 @@ func TestStart_StopsWithContextCancelled(t *testing.T) {
 	cancel()
 	<-done
 
-	require.Less(t, time.Since(start), time.Second)
+	assert.Assert(t, time.Since(start) < time.Second)
 }
 
 func TestStart_CallsToRunNeverOverlap(t *testing.T) {
@@ -36,7 +36,7 @@ func TestStart_CallsToRunNeverOverlap(t *testing.T) {
 	Start(ctx, time.Millisecond, func(ctx2 context.Context) {
 		value := atomic.AddInt32(&overlap, 1)
 		// value should only be 1 if the calls never overlap
-		assert.Equal(t, int32(1), value)
+		assert.Check(t, is.Equal(int32(1), value))
 
 		time.Sleep(10 * time.Millisecond)
 		atomic.AddInt32(&overlap, -1)
@@ -67,5 +67,5 @@ func TestStart_SkipsRunWhenPreviousRunsLongerThanInterval(t *testing.T) {
 
 	<-done
 	// 30 * 5 + 10 = 160 Milliseconds
-	require.Greater(t, time.Since(start), 160*time.Millisecond)
+	assert.Assert(t, time.Since(start) > 160*time.Millisecond)
 }

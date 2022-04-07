@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -53,6 +54,10 @@ infra keys create main wall-e 12h --extension-deadline=1h
 			keyName := args[0]
 			machineName := args[1]
 
+			if strings.Contains(keyName, " ") {
+				return fmt.Errorf("key name cannot contain spaces")
+			}
+
 			client, err := defaultAPIClient()
 			if err != nil {
 				return err
@@ -64,7 +69,7 @@ infra keys create main wall-e 12h --extension-deadline=1h
 				return fmt.Errorf("no infra provider found, to manage local users create a local provider named 'infra'")
 			}
 
-			machine, err := GetIdentityFromName(client, machineName, infraProvider)
+			machine, err := GetIdentityFromName(client, machineName, infraProvider.ID)
 			if err != nil {
 				return err
 			}
@@ -164,7 +169,7 @@ func newKeysListCmd() *cobra.Command {
 					return fmt.Errorf("no infra provider found, to manage local users create a local provider named 'infra'")
 				}
 
-				machine, err := GetIdentityFromName(client, options.MachineName, infraProvider)
+				machine, err := GetIdentityFromName(client, options.MachineName, infraProvider.ID)
 				if err != nil {
 					return err
 				}
@@ -201,7 +206,11 @@ func newKeysListCmd() *cobra.Command {
 				})
 			}
 
-			printTable(rows)
+			if len(rows) > 0 {
+				printTable(rows)
+			} else {
+				fmt.Println("No access keys found")
+			}
 
 			return nil
 		},

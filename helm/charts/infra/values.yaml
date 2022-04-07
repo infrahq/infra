@@ -414,23 +414,83 @@ server:
   ## Duration of a user session
   #   sessionDuration: 12h0m0s
 
+  ## Additional secret providers to configure
+  additionalSecrets: []
+  # - kind: ""  # required, kind of secret provider. one of ['plaintext', 'env', 'file', 'kubernetes', 'vault', 'awssecretmanager', 'awsssm']
+  #   name: ""  # optional, to be referenced when accessing secrets. defaults to 'kind'
+  #   ...:      # additional configuration options are available and may be required for certain secret providers, e.g. 'vault'. see below.
+
+  ## Example
+  # Configure Kubernetes as a secret provider
+  # - name: kubernetes                      # optional, used when referencing secrets, e.g. kubernetes:infra/secret, where 'infra' is the name of the secret in Kubernetes and `secret` is the field in that secret
+  #   kind: kubernetes                      # required
+  #   namespace: ""                         # required if secret exists in a namespace separate from the one infra is deployed to
+
+  # Configure Vault as a secret provider
+  # - name: vault                           # optional, used when referencing secrets, e.g. vault:infra-secret, where 'infra-secret' is the name of the secret in Vault
+  #   kind: vault                           # required
+  #   address: https://vault.example.com    # required
+  #   token: env:VAULT_TOKEN                # required
+  #   namespace: ""                         # optional
+  #   transitMount: ""                      # optional, default '/transit'
+  #   secretMount: ""                       # optional, default '/secret'
+
+  # Configure AWS Secret Manager as a secret provider
+  # - name: awssm                                               # optional, used when referencing secrets, e.g. awssm:infra-secret, where 'infra-secret' is the name of the secret in AWS Secret Manager
+  #   kind: awssecretmanager                                    # required
+  #   endpoint: https://secretsmanager.us-east-2.amazonaws.com  # required
+  #   region: us-east-2                                         # required
+  #   accessKeyID: env:AWS_ACCESS_KEY_ID                        # required
+  #   secretAccessKey: env:AWS_SECRET_ACCESS_KEY                # required
+
+  # Configure AWS Systems Manager Parameter Store as a secret provider
+  # - name: awsssm                                  # optional, used when referencing secrets, e.g. awsssm:infra-secret, where 'infra-secret' is the name of the secret in AWS SSM
+  #   kind: awsssm                                  # required
+  #   endpoint: https://ssm.us-east-2.amazonaws.com # required
+  #   region: us-east-2                             # required
+  #   accessKeyID: env:AWS_ACCESS_KEY_ID            # required
+  #   secretAccessKey: env:AWS_SECRET_ACCESS_KEY    # required
+  #   keyID: ""                                     # optional, if set, this key will be used for decryption
+
+  # Configure base64-encoded environment variable as a secret provider
+  # - name: based64env  # required to differentiate betweent built-in plaintext 'env' secret provider
+  #   kind: env         # required
+  #   base64: true      # required
+
   ## Additional identity providers to configure
   additionalProviders: []
-  # - name: ""
-  #   url: ""
-  #   clientID: ""
-  #   clientSecret: ""
+  # - name: ""          # required, to be referenced when creating grants
+  #   url: ""           # required
+  #   clientID: ""      # required
+  #   clientSecret: ""  # required
+
+  ## Example
+  # Configure Okta as an identity provider
+  # - name: Okta
+  #   url: example.okta.com
+  #   clientID: myoktaclientid
+  #   clientSecret: env:OKTA_CLIENT_SECRET
 
   ## Additional grants to configure
   additionalGrants: []
+  # - user: ""      # one of ['user', 'group', 'machine'] is required
+  #   group: ""     # one of ['user', 'group', 'machine'] is required
+  #   machine: ""   # one of ['user', 'group', 'machine'] is required
+  #   resource: ""  # required, resource being granted access
+  #   provider: ""  # required, references the name given to the provider
+  #   role: ""      # optional, if omitted, Infra will only grant authentication to the resource
+
+  ## Example
   # Grant user 'admin@example.com' Infra admin
   # - user: admin@example.com
   #   role: admin
   #   resource: infra
+
   # Grant user 'admin@example.com' edit to Kubernetes cluster 'docker-desktop'
   # - user: admin@example.com
   #   role: edit
   #   resource: kubernetes.docker-desktop
+
   # Grant group 'Everyone' view to Kubernetes cluster 'docker-desktop', namespace 'default'
   # - group: Everyone
   #   role: view

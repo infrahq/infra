@@ -4,19 +4,18 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"gotest.tools/v3/assert"
 )
 
 func TestCryptoRandomNegativeLen(t *testing.T) {
 	s, err := CryptoRandom(-1)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 	assert.Equal(t, s, "")
 }
 
 func TestCryptoRandomLen(t *testing.T) {
 	s, err := CryptoRandom(20)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 	assert.Equal(t, len(s), 20)
 }
 
@@ -27,7 +26,7 @@ func TestCryptoRandomCanGenerateEdgeCharacters(t *testing.T) {
 	testForCharacters := []byte{alphanum[0], alphanum[len(alphanum)-1]}
 	for _, char := range testForCharacters {
 		s, err := CryptoRandom(50)
-		require.NoError(t, err)
+		assert.NilError(t, err)
 
 		if strings.Contains(s, string(char)) {
 			continue // found it we're good.
@@ -38,5 +37,5 @@ func TestCryptoRandomCanGenerateEdgeCharacters(t *testing.T) {
 func TestSeedHasBeenInitialized(t *testing.T) {
 	s := MathRandom(10)
 	// the default seed of 1 will always generate RFbD56TI2s.
-	require.NotEqual(t, "RFbD56TI2s", s)
+	assert.Assert(t, "RFbD56TI2s" != s)
 }

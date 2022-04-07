@@ -349,7 +349,7 @@ func (a *API) DeleteDestination(c *gin.Context, r *api.Resource) error {
 	return access.DeleteDestination(c, r.ID)
 }
 
-func (a *API) CreateToken(c *gin.Context, r *api.CreateTokenRequest) (*api.CreateTokenResponse, error) {
+func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateTokenResponse, error) {
 	if access.CurrentIdentity(c) != nil {
 		currentIDP, err := access.CurrentIdentityProvider(c)
 		if err != nil {

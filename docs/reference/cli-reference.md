@@ -2,35 +2,30 @@
 
 ## Commands
 
-- [infra login](#infra-login)
-- [infra logout](#infra-logout)
-- [infra list](#infra-list)
-- [infra use](#infra-use)
-- [infra grants list](#infra-grants-list)
-- [infra grants add](#infra-grants-add)
-- [infra grants revoke](#infra-grants-revoke)
-- [infra keys list](#infra-keys-list)
-- [infra keys create](#infra-keys-create)
-- [infra keys delete](#infra-keys-delete)
-- [infra destinations list](#infra-destinations-list)
-- [infra destinations add](#infra-destinations-add)
-- [infra destinations remove](#infra-destinations-remove)
-- [infra providers list](#infra-providers-list)
-- [infra providers add](#infra-providers-add)
-- [infra providers remove](#infra-providers-remove)
-- [infra machines create](#infra-machines-create)
-- [infra machines list](#infra-machines-list)
-- [infra machines remove](#infra-machines-remove)
-- [infra tokens create](#infra-tokens-create)
-- [infra import](#infra-import)
-- [infra info](#infra-info)
-- [infra server](#infra-server)
-- [infra engine](#infra-engine)
-- [infra version](#infra-version)
+* [infra login](#infra-login)
+* [infra logout](#infra-logout)
+* [infra list](#infra-list)
+* [infra use](#infra-use)
+* [infra destinations list](#infra-destinations-list)
+* [infra destinations remove](#infra-destinations-remove)
+* [infra grants list](#infra-grants-list)
+* [infra grants add](#infra-grants-add)
+* [infra grants remove](#infra-grants-remove)
+* [infra identities add](#infra-identities-add)
+* [infra identities edit](#infra-identities-edit)
+* [infra identities list](#infra-identities-list)
+* [infra identities remove](#infra-identities-remove)
+* [infra keys list](#infra-keys-list)
+* [infra keys add](#infra-keys-add)
+* [infra keys remove](#infra-keys-remove)
+* [infra providers list](#infra-providers-list)
+* [infra providers add](#infra-providers-add)
+* [infra providers remove](#infra-providers-remove)
+
 
 ## `infra login`
 
-Login to Infra server
+Login to Infra
 
 ```
 infra login [SERVER] [flags]
@@ -39,24 +34,44 @@ infra login [SERVER] [flags]
 ### Examples
 
 ```
+
+# By default, login will prompt for all required information.
 $ infra login
+
+# Login to a specified server
+$ infra login SERVER
+$ infra login --server SERVER
+
+# Login with an access key
+$ infra login --key KEY
+
+# Login with a specified provider
+$ infra login --provider NAME
+
+# Use the '--non-interactive' flag to error out instead of prompting.
+
 ```
 
 ### Options
 
 ```
-  -h, --help   help for login
+      --key string        Login with an access key
+      --provider string   Login with an identity provider
+      --server string     Infra server to login to
+      --skip-tls-verify   Skip verifying server TLS certificates
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra logout`
 
-Logout of Infra
+Log out of Infra
 
 ```
 infra logout [flags]
@@ -71,39 +86,36 @@ $ infra logout
 ### Options
 
 ```
-  -f, --force   logout and remove context
-  -h, --help    help for logout
+      --purge   remove Infra host from config
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra list`
 
-List destinations and your access
+List accessible destinations
 
 ```
 infra list [flags]
 ```
 
-### Options
-
-```
-  -h, --help   help for list
-```
-
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra use`
 
-Connect to a destination
+Access a destination
 
 ```
 infra use DESTINATION [flags]
@@ -118,44 +130,68 @@ $ infra use kubernetes.development
 
 # Connect to a Kubernetes namespace
 $ infra use kubernetes.development.kube-system
-
-```
-
-### Options
-
-```
-  -h, --help   help for use
+		
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+      --non-interactive    Disable all prompts for input
+```
+
+## `infra destinations list`
+
+List connected destinations
+
+```
+infra destinations list [flags]
+```
+
+### Options inherited from parent commands
+
+```
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+      --non-interactive    Disable all prompts for input
+```
+
+## `infra destinations remove`
+
+Disconnect a destination
+
+```
+infra destinations remove DESTINATION [flags]
+```
+
+### Options inherited from parent commands
+
+```
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra grants list`
 
-List access
+List grants
 
 ```
 infra grants list [DESTINATION] [flags]
 ```
 
-### Options
-
-```
-  -h, --help   help for list
-```
-
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra grants add`
 
-Grant access
+Grant access to a destination
 
 ```
 infra grants add DESTINATION [flags]
@@ -180,7 +216,6 @@ $ infra grants add -u admin@acme.com -r admin infra
 
 ```
   -g, --group string      Group to grant access to
-  -h, --help              help for grant
   -m, --machine string    Machine to grant access to
   -p, --provider string   Provider from which to grant user access to
   -r, --role string       Role to grant
@@ -190,12 +225,14 @@ $ infra grants add -u admin@acme.com -r admin infra
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra grants remove`
 
-Revoke access
+Revoke access to a destination
 
 ```
 infra grants remove DESTINATION [flags]
@@ -205,7 +242,6 @@ infra grants remove DESTINATION [flags]
 
 ```
   -g, --group string      Group to revoke access from
-  -h, --help              help for revoke
   -m, --machine string    Machine to revoke access from
   -p, --provider string   Provider from which to revoke access from
   -r, --role string       Role to revoke
@@ -215,7 +251,89 @@ infra grants remove DESTINATION [flags]
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+      --non-interactive    Disable all prompts for input
+```
+
+## `infra identities add`
+
+Create an identity.
+
+### Synopsis
+
+Create a machine identity with NAME or a user identity with EMAIL.
+
+NAME must only contain alphanumeric characters ('a-z', 'A-Z', '0-9') or the
+special characters '-', '_', or '/' and has a maximum length of 256 characters.
+
+EMAIL must contain a valid email address in the form of "<local>@<domain>".
+		
+
+```
+infra identities add NAME|EMAIL [flags]
+```
+
+### Options inherited from parent commands
+
+```
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+      --non-interactive    Disable all prompts for input
+```
+
+## `infra identities edit`
+
+Update an identity
+
+```
+infra identities edit NAME [flags]
+```
+
+### Options
+
+```
+  -p, --password   Prompt to update a local user's password
+```
+
+### Options inherited from parent commands
+
+```
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+      --non-interactive    Disable all prompts for input
+```
+
+## `infra identities list`
+
+List all identities
+
+```
+infra identities list [flags]
+```
+
+### Options inherited from parent commands
+
+```
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+      --non-interactive    Disable all prompts for input
+```
+
+## `infra identities remove`
+
+Delete an identity
+
+```
+infra identities remove NAME [flags]
+```
+
+### Options inherited from parent commands
+
+```
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra keys list`
@@ -229,22 +347,23 @@ infra keys list [flags]
 ### Options
 
 ```
-  -h, --help             help for list
   -m, --machine string   The name of a machine to list access keys for
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+      --non-interactive    Disable all prompts for input
 ```
 
-## `infra keys create`
+## `infra keys add`
 
 Create an access key for authentication
 
 ```
-infra keys create ACCESS_KEY_NAME MACHINE_NAME [flags]
+infra keys add ACCESS_KEY_NAME MACHINE_NAME [flags]
 ```
 
 ### Examples
@@ -259,122 +378,56 @@ infra keys create main wall-e 12h --extension-deadline=1h
 ### Options
 
 ```
-  -e, --extension-deadline string   A specified deadline that an access key must be used within to remain valid
-  -h, --help                        help for create
-  -t, --ttl string                  The total time that an access key will be valid for
+      --extension-deadline string   A specified deadline that an access key must be used within to remain valid, defaults to 1h
+      --ttl string                  The total time that an access key will be valid for, defaults to 24h
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+      --non-interactive    Disable all prompts for input
 ```
 
-## `infra keys delete`
+## `infra keys remove`
 
-Delete access keys
-
-```
-infra keys delete ACCESS_KEY_NAME [flags]
-```
-
-### Options
+Delete an access key
 
 ```
-  -h, --help   help for delete
+infra keys remove ACCESS_KEY_NAME [flags]
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
-```
-
-## `infra destinations list`
-
-List connected destinations
-
-```
-infra destinations list [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for list
-```
-
-### Options inherited from parent commands
-
-```
-      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
-```
-
-## `infra destinations add`
-
-Connect a destination
-
-```
-infra destinations add TYPE NAME [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for add
-```
-
-### Options inherited from parent commands
-
-```
-      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
-```
-
-## `infra destinations remove`
-
-Disconnect a destination
-
-```
-infra destinations remove DESTINATION [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for remove
-```
-
-### Options inherited from parent commands
-
-```
-      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra providers list`
 
-List identity providers
+List connected identity providers
 
 ```
 infra providers list [flags]
 ```
 
-### Options
-
-```
-  -h, --help   help for list
-```
-
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra providers add`
 
-Add an identity provider
+Connect an identity provider
 
 ### Synopsis
+
 
 Add an identity provider for users to authenticate.
 
@@ -382,21 +435,18 @@ NAME: The name of the identity provider (e.g. okta)
 URL: The base URL of the domain used to login with the identity provider (e.g. acme.okta.com)
 CLIENT_ID: The Infra application OpenID Connect client ID
 CLIENT_SECRET: The Infra application OpenID Connect client secret
+		
 
 ```
 infra providers add NAME URL CLIENT_ID CLIENT_SECRET [flags]
 ```
 
-### Options
-
-```
-  -h, --help   help for add
-```
-
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra providers remove`
@@ -407,221 +457,11 @@ Disconnect an identity provider
 infra providers remove PROVIDER [flags]
 ```
 
-### Options
-
-```
-  -h, --help   help for remove
-```
-
 ### Options inherited from parent commands
 
 ```
-      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+      --non-interactive    Disable all prompts for input
 ```
 
-## `infra machines create`
-
-Create a machine identity, e.g. a service that needs to access infrastructure
-
-```
-infra machines create NAME [flags]
-```
-
-### Options
-
-```
-  -d, --description string   Description of the machine identity
-  -h, --help                 help for create
-  -p, --permissions string   Permissions of the machine identity
-```
-
-### Options inherited from parent commands
-
-```
-      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
-```
-
-## `infra machines list`
-
-List machines
-
-```
-infra machines list [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for list
-```
-
-### Options inherited from parent commands
-
-```
-      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
-```
-
-## `infra machines remove`
-
-Remove a machine identity
-
-```
-infra machines remove MACHINE [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for remove
-```
-
-### Options inherited from parent commands
-
-```
-      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
-```
-
-## `infra tokens create`
-
-Create a token
-
-```
-infra tokens create [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for create
-```
-
-### Options inherited from parent commands
-
-```
-      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
-```
-
-## `infra import`
-
-Import an Infra server configuration
-
-```
-infra import FILE [flags]
-```
-
-### Options
-
-```
-  -h, --help      help for import
-      --replace   replace any existing configuration
-```
-
-### Options inherited from parent commands
-
-```
-      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
-```
-
-## `infra info`
-
-Display the info about the current session
-
-```
-infra info [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for info
-```
-
-### Options inherited from parent commands
-
-```
-      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
-```
-
-## `infra server`
-
-Start Infra server
-
-```
-infra server [flags]
-```
-
-### Options
-
-```
-      --access-key string                   Access key (secret)
-      --admin-access-key string             Admin access key (secret)
-  -f, --config-file string                  Server configuration file
-      --db-encryption-key string            Database encryption key (default "$HOME/.infra/sqlite3.db.key")
-      --db-encryption-key-provider string   Database encryption key provider (default "native")
-      --db-file string                      Path to SQLite 3 database (default "$HOME/.infra/sqlite3.db")
-      --db-host string                      Database host
-      --db-name string                      Database name
-      --db-parameters string                Database additional connection parameters
-      --db-password string                  Database password (secret)
-      --db-port int                         Database port
-      --db-username string                  Database username
-      --enable-crash-reporting              Enable crash reporting (default true)
-      --enable-telemetry                    Enable telemetry (default true)
-      --enable-ui                           Enable Infra server UI
-  -h, --help                                help for server
-  -d, --session-duration duration           User session duration (default 12h0m0s)
-      --tls-cache string                    Directory to cache TLS certificates (default "$HOME/.infra/cache")
-      --ui-proxy-url string                 Proxy upstream UI requests to this url
-```
-
-### Options inherited from parent commands
-
-```
-      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
-```
-
-## `infra engine`
-
-Start Infra Engine
-
-```
-infra engine [flags]
-```
-
-### Options
-
-```
-  -a, --access-key string    Infra access key (use file:// to load from a file)
-  -f, --config-file string   Engine config file
-  -h, --help                 help for engine
-  -n, --name string          Destination name
-  -s, --server string        Infra server hostname
-      --skip-tls-verify      Skip verifying server TLS certificates
-      --tls-cache string     Directory to cache TLS certificates (default "$HOME/.infra/cache")
-```
-
-### Options inherited from parent commands
-
-```
-      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
-```
-
-## `infra version`
-
-Display the Infra version
-
-```
-infra version [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for version
-```
-
-### Options inherited from parent commands
-
-```
-      --log-level string   Set the log level. One of error, warn, info, or debug (default "info")
-```

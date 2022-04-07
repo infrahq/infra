@@ -2,9 +2,10 @@ package uid_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/uid"
 )
@@ -19,9 +20,9 @@ func TestJSONCanUnmarshal(t *testing.T) {
 	source := []byte(`{"id": "` + newID.String() + `"}`)
 
 	err := json.Unmarshal(source, &obj)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
-	require.Equal(t, newID, obj.ID)
+	assert.Equal(t, newID, obj.ID)
 }
 
 func TestBadIDs(t *testing.T) {
@@ -31,12 +32,12 @@ func TestBadIDs(t *testing.T) {
 	bad3 := "JPwcyDCgEuqJPwcyDCgEuq"
 
 	id, err := uid.Parse([]byte(ok))
-	require.NoError(t, err)
-	require.EqualValues(t, 0x7fffffffffffffff, id)
+	assert.NilError(t, err)
+	assert.Equal(t, uid.ID(0x7fffffffffffffff), id)
 
 	id, err = uid.Parse([]byte(bad1))
-	require.Error(t, err)
-	require.EqualValues(t, 0, id)
+	assert.ErrorContains(t, err, fmt.Sprintf(`invalid id "%v"`, bad1))
+	assert.Equal(t, uid.ID(0), id)
 
 	// I think I need to fork snowflake to fix this.
 	// id, err = uid.Parse([]byte(bad2))
@@ -44,7 +45,6 @@ func TestBadIDs(t *testing.T) {
 	// require.EqualValues(t, 0, id)
 
 	id, err = uid.Parse([]byte(bad3))
-	t.Log(id)
-	require.Error(t, err)
-	require.EqualValues(t, 0, id)
+	assert.ErrorContains(t, err, fmt.Sprintf(`invalid id "%v"`, bad3))
+	assert.Equal(t, uid.ID(0), id)
 }

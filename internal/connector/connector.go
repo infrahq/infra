@@ -18,7 +18,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/goware/urlx"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/crypto/acme/autocert"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
@@ -34,7 +34,6 @@ import (
 	"github.com/infrahq/infra/internal/repeat"
 	"github.com/infrahq/infra/metrics"
 	"github.com/infrahq/infra/secrets"
-	"github.com/infrahq/infra/uid"
 )
 
 type Options struct {
@@ -54,14 +53,6 @@ type jwkCache struct {
 
 	client  *http.Client
 	baseURL string
-}
-
-type localDetails struct {
-	endpoint      string
-	ca            string
-	name          string
-	chksm         string
-	destinationID uid.ID
 }
 
 func (j *jwkCache) getJWK() (*jose.JSONWebKey, error) {
@@ -388,9 +379,9 @@ func Run(options Options) error {
 
 	u.Scheme = "https"
 
-	localDetails := &localDetails{
-		name:  options.Name,
-		chksm: chksm,
+	destination := &api.Destination{
+		Name:     options.Name,
+		UniqueID: chksm,
 	}
 
 	// clone the default http transport which sets reasonable defaults
@@ -405,23 +396,23 @@ func Run(options Options) error {
 		InsecureSkipVerify: options.SkipTLSVerify,
 	}
 
+	accessKey, err := secrets.GetSecret(options.AccessKey, basicSecretStorage)
+	if err != nil {
+		return err
+	}
+
+	client := &api.Client{
+		URL:       u.String(),
+		AccessKey: accessKey,
+		HTTP: http.Client{
+			Transport: transport,
+		},
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
 	repeat.Start(ctx, 5*time.Second, func(context.Context) {
-		accessKey, err := secrets.GetSecret(options.AccessKey, basicSecretStorage)
-		if err != nil {
-			logging.S.Infof("failed to lookup access key from secret storage: %v", err)
-			return
-		}
-
-		client := &api.Client{
-			URL:       u.String(),
-			AccessKey: accessKey,
-			HTTP: http.Client{
-				Transport: transport,
-			},
-		}
-
 		caBytes, err := manager.Cache.Get(context.TODO(), serverName)
 		if err != nil {
 			if errors.Is(err, autocert.ErrCacheMiss) {
@@ -450,9 +441,9 @@ func Run(options Options) error {
 		endpoint := fmt.Sprintf("%s:%d", host, port)
 		logging.S.Debugf("connector serving on %s", endpoint)
 
-		if localDetails.destinationID == 0 {
-			localDetails.ca = string(caBytes)
-			localDetails.endpoint = endpoint
+		if destination.ID == 0 {
+			destination.Connection.CA = string(caBytes)
+			destination.Connection.URL = endpoint
 
 			isClusterIP, err := k8s.IsServiceTypeClusterIP()
 			if err != nil {
@@ -463,16 +454,16 @@ func Run(options Options) error {
 				logging.S.Warn("registering with cluster IP, it may not be externally accessible without an ingress or load balancer")
 			}
 
-			err = registerDestination(client, localDetails)
+			err = createDestination(client, destination)
 			if err != nil {
 				logging.S.Errorf("initializing destination: %v", err)
 				return
 			}
-		} else if localDetails.endpoint != endpoint || localDetails.ca != string(caBytes) {
-			localDetails.ca = string(caBytes)
-			localDetails.endpoint = endpoint
+		} else if destination.Connection.URL != endpoint || destination.Connection.CA != string(caBytes) {
+			destination.Connection.CA = string(caBytes)
+			destination.Connection.URL = endpoint
 
-			err = refreshDestination(client, localDetails)
+			err = updateDestination(client, destination)
 			if err != nil {
 				logging.S.Errorf("refreshing destination: %v", err)
 				return
@@ -549,20 +540,10 @@ func Run(options Options) error {
 	proxy := httputil.NewSingleHostReverseProxy(proxyHost)
 	proxy.Transport = proxyTransport
 
-	router.Use(
-		metrics.Middleware(),
-		jwtMiddleware(cache.getJWK),
-		proxyMiddleware(proxy, k8s.Config.BearerToken),
-	)
-
-	metrics := gin.New()
-	metrics.GET("/metrics", func(c *gin.Context) {
-		promhttp.Handler().ServeHTTP(c.Writer, c.Request)
-	})
-
+	promRegistry := prometheus.NewRegistry()
 	metricsServer := &http.Server{
 		Addr:     ":9090",
-		Handler:  metrics,
+		Handler:  metrics.NewHandler(promRegistry),
 		ErrorLog: logging.StandardErrorLog(),
 	}
 
@@ -572,6 +553,11 @@ func Run(options Options) error {
 		}
 	}()
 
+	router.Use(
+		metrics.Middleware(promRegistry),
+		jwtMiddleware(cache.getJWK),
+		proxyMiddleware(proxy, k8s.Config.BearerToken),
+	)
 	tlsServer := &http.Server{
 		Addr:      ":443",
 		TLSConfig: tlsConfig,
@@ -584,48 +570,41 @@ func Run(options Options) error {
 	return tlsServer.ListenAndServeTLS("", "")
 }
 
-// registerDestination creates a destination in the infra server if it does not exist
-func registerDestination(client *api.Client, local *localDetails) error {
-	destinations, err := client.ListDestinations(api.ListDestinationsRequest{Name: "", UniqueID: local.chksm})
+// createDestination creates a destination in the infra server if it does not exist
+func createDestination(client *api.Client, local *api.Destination) error {
+	destinations, err := client.ListDestinations(api.ListDestinationsRequest{UniqueID: local.UniqueID})
 	if err != nil {
 		return fmt.Errorf("error listing destinations: %w", err)
 	}
 
-	if len(destinations) == 0 {
-		request := &api.CreateDestinationRequest{
-			Name:     local.name,
-			UniqueID: local.chksm,
-			Connection: api.DestinationConnection{
-				CA:  local.ca,
-				URL: local.endpoint,
-			},
-		}
-
-		destination, err := client.CreateDestination(request)
-		if err != nil {
-			return fmt.Errorf("error creating destination: %w", err)
-		}
-
-		local.destinationID = destination.ID
-	} else {
-		local.destinationID = destinations[0].ID
-		return refreshDestination(client, local)
+	if len(destinations) > 0 {
+		local.ID = destinations[0].ID
+		return updateDestination(client, local)
 	}
 
+	request := &api.CreateDestinationRequest{
+		Name:       local.Name,
+		UniqueID:   local.UniqueID,
+		Connection: local.Connection,
+	}
+
+	destination, err := client.CreateDestination(request)
+	if err != nil {
+		return fmt.Errorf("error creating destination: %w", err)
+	}
+
+	local.ID = destination.ID
 	return nil
 }
 
-func refreshDestination(client *api.Client, local *localDetails) error {
+func updateDestination(client *api.Client, local *api.Destination) error {
 	logging.S.Debug("updating information at server")
 
 	request := api.UpdateDestinationRequest{
-		ID:       local.destinationID,
-		Name:     local.name,
-		UniqueID: local.chksm,
-		Connection: api.DestinationConnection{
-			CA:  local.ca,
-			URL: local.endpoint,
-		},
+		ID:         local.ID,
+		Name:       local.Name,
+		UniqueID:   local.UniqueID,
+		Connection: local.Connection,
 	}
 
 	if _, err := client.UpdateDestination(request); err != nil {

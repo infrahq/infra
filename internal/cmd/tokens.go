@@ -49,22 +49,7 @@ func tokensCreate() error {
 		return err
 	}
 
-	config, err := currentHostConfig()
-	if err != nil {
-		return err
-	}
-
-	id := config.PolymorphicID
-	if id == "" {
-		return fmt.Errorf("no active identity")
-	}
-
-	identityID, err := id.ID()
-	if err != nil {
-		return err
-	}
-
-	token, err := client.CreateToken(&api.CreateTokenRequest{UserID: identityID})
+	token, err := client.CreateToken()
 	if err != nil {
 		if errors.Is(err, api.ErrForbidden) {
 			fmt.Fprintln(os.Stderr, "Session has expired.")

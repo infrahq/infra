@@ -3,7 +3,8 @@ package server
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/prometheus/client_golang/prometheus"
+	"gotest.tools/v3/assert"
 )
 
 // TestWriteOpenAPISpec is not really a test. It's a way of ensuring the openapi
@@ -12,9 +13,9 @@ import (
 // file in git matches the source code.
 func TestWriteOpenAPISpec(t *testing.T) {
 	s := Server{}
-	s.GenerateRoutes()
+	_, _ = s.GenerateRoutes(prometheus.NewRegistry())
 
 	filename := "../../docs/api/openapi3.json"
 	err := WriteOpenAPISpecToFile(filename)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 }

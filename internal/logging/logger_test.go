@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zapcore"
+	"gotest.tools/v3/assert"
 )
 
 func TestFiltersOutBearerTokenValue(t *testing.T) {
@@ -36,11 +36,11 @@ func TestFiltersOutBearerTokenValue(t *testing.T) {
 
 			m := map[string]interface{}{}
 			err := json.Unmarshal(writeSyncer.data, &m)
-			require.NoError(t, err, string(writeSyncer.data))
+			assert.NilError(t, err, string(writeSyncer.data))
 
 			msg, ok := m["msg"].(string)
-			require.True(t, ok)
-			require.Equal(t, testCase.Expected, msg)
+			assert.Assert(t, ok)
+			assert.Equal(t, testCase.Expected, msg)
 		})
 	}
 }

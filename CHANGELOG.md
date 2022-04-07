@@ -1,5 +1,67 @@
 # Changelog
 
+## [0.10.0](https://github.com/infrahq/infra/compare/v0.9.0...v0.10.0) (2022-04-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove ununsed create token body (#1216) (#1497)
+* remove destinations add/remove commands
+
+### Features
+
+* add back infra destinations remove ([19ee32f](https://github.com/infrahq/infra/commit/19ee32f3498e408b6153c52f8a24bad06da39070))
+* always create admin/connector identities ([92fbff3](https://github.com/infrahq/infra/commit/92fbff33d10ccc350ebf29161d9689721b740faf))
+* infra view role ([#1507](https://github.com/infrahq/infra/issues/1507)) ([00a47e1](https://github.com/infrahq/infra/commit/00a47e196f9279446ab0a0e8744bdab3eb887d5b))
+* login connector to exchange access key ([bbd4f00](https://github.com/infrahq/infra/commit/bbd4f002d2f329e0382ec03f3a23bd6112796300))
+* print no resource found for list commands ([97e73ee](https://github.com/infrahq/infra/commit/97e73ee9fc756d0b0eae05bfac49afa1daa49f70))
+
+
+### Bug Fixes
+
+* **api:** scope api middleware to api routes ([5ac180e](https://github.com/infrahq/infra/commit/5ac180e8f03cf8eff00cafa3ea558d55676e4969))
+* do not clear config on empty config file ([#1456](https://github.com/infrahq/infra/issues/1456)) ([e38dcc1](https://github.com/infrahq/infra/commit/e38dcc1aa3fbcaeb01c4c902ef05c774c4afc329))
+* remove destinations add/remove commands ([1f391b2](https://github.com/infrahq/infra/commit/1f391b24237a556dbe29733d5e7f1bc32df3a969))
+* seperate docs action with correct commands ([2c8b501](https://github.com/infrahq/infra/commit/2c8b5013a8b33f07ddc53467ca941c1d4573f7b3))
+* unit test ([9570413](https://github.com/infrahq/infra/commit/95704133b1fc560c924592f6416b71bf88cfd5fb))
+* validate key names dont have spaces ([#1449](https://github.com/infrahq/infra/issues/1449)) ([#1490](https://github.com/infrahq/infra/issues/1490)) ([b080ca2](https://github.com/infrahq/infra/commit/b080ca206999d489dbcf0517cdb67552a44c5522))
+
+
+### Maintenance
+
+* remove ununsed create token body ([#1216](https://github.com/infrahq/infra/issues/1216)) ([#1497](https://github.com/infrahq/infra/issues/1497)) ([ac3c509](https://github.com/infrahq/infra/commit/ac3c50989d266faa5100b0d885fe7ff662c26fa0))
+
+## [0.9.0](https://github.com/infrahq/infra/compare/v0.8.0...v0.9.0) (2022-04-06)
+
+
+### ⚠ BREAKING CHANGES
+
+* change LoginResponse polymorphicId to polymorphicID
+* **api:** replaces /v1/user and /v1/machines with /v1/identities
+
+### Features
+
+* add expiry to login response ([484021b](https://github.com/infrahq/infra/commit/484021b26c231c1aac0923cadc6ffb7cb2453239))
+* **cli:** check expiry for authenticated commands ([a9c23ef](https://github.com/infrahq/infra/commit/a9c23ef224c2577dd5be4c4ca9abb62672ad6d0e))
+
+
+### Bug Fixes
+
+* bump openapi to appropriate version ([c99fc3d](https://github.com/infrahq/infra/commit/c99fc3df8e309ab4aea131fda3ac6c5eeffc29ff))
+* **cli:** check min requirement for new password ([#1435](https://github.com/infrahq/infra/issues/1435)) ([4777b9e](https://github.com/infrahq/infra/commit/4777b9ed2de14e948c8fcacc010a118dcc3fbc85))
+* delete grants on user delete ([#1447](https://github.com/infrahq/infra/issues/1447)) ([26cb088](https://github.com/infrahq/infra/commit/26cb08898c69a3c4a5ef001d17cec9b6c63fa167))
+* do not allow users to delete themselves ([#1473](https://github.com/infrahq/infra/issues/1473)) ([4de92e4](https://github.com/infrahq/infra/commit/4de92e45fec7186ee8ba55820cb1324dbb955014))
+
+
+### improve
+
+* **api:** unify users and machine ([c76073d](https://github.com/infrahq/infra/commit/c76073dc6fced90595ffc86aaf85b3582eac657a))
+
+
+### maintain
+
+* use json tag for property names ([5fa6413](https://github.com/infrahq/infra/commit/5fa64136da43045b84a8593d24b927cdf588f1fd))
+
 ## [0.8.0](https://github.com/infrahq/infra/compare/v0.7.0...v0.8.0) (2022-03-30)
 
 

@@ -57,4 +57,7 @@ data:
 {{- .Values.server.config.providers | default list | concat .Values.server.additionalProviders | uniq | toYaml | nindent 6 }}
     grants:
 {{- .Values.server.config.grants | default list | concat .Values.server.additionalGrants | uniq | toYaml | nindent 6 }}
+
+    secrets:
+{{- .Values.server.config.secrets | default list | concat .Values.server.additionalSecrets | uniq | toYaml | nindent 6 }}
 {{- end }}

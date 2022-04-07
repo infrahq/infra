@@ -4,13 +4,24 @@
   "pull-request-title-pattern": "maintain${scope}: release${component} ${version}",
   "label": "autorelease/pending",
   "release-label": "autorelease/tagged",
+  "changelog-sections": [
+    { "type": "feat", "section": "Features" },
+    { "type": "fix", "section": "Bug Fixes" },
+    { "type": "improve", "section": "Improvement", "hidden": true },
+    { "type": "maintain", "section": "Maintenance", "hidden": true }
+  ],
   "packages": {
     ".": {
       "release-type": "go",
       "extra-files": [
         "helm/charts/infra/Chart.yaml",
         "internal/version.go",
-        "docs/Operator Guides/upgrading-infra.md"
+        "docs/operator-guides/upgrading-infra.md",
+        {
+          "type": "json",
+          "path": "docs/api/openapi3.json",
+          "jsonpath": "$.info.version"
+        }
       ]
     }
   }

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"gotest.tools/v3/assert"
 )
 
 func TestTimeRoundTrip(t *testing.T) {
@@ -42,12 +42,12 @@ func TestTimeRoundTrip(t *testing.T) {
 				T2 *Time
 			}{}
 			err := json.Unmarshal([]byte(test.input), &tm)
-			require.NoError(t, err)
+			assert.NilError(t, err)
 
 			result, err := json.Marshal(tm)
-			require.NoError(t, err)
+			assert.NilError(t, err)
 
-			require.EqualValues(t, test.expected, string(result))
+			assert.Equal(t, test.expected, string(result))
 		})
 	}
 }
@@ -90,15 +90,15 @@ func TestDurationRoundTrip(t *testing.T) {
 			err := json.Unmarshal([]byte(test.input), &tm)
 
 			if test.err != "" {
-				require.ErrorContains(t, err, test.err)
+				assert.ErrorContains(t, err, test.err)
 				return
 			}
-			require.NoError(t, err)
+			assert.NilError(t, err)
 
 			result, err := json.Marshal(tm)
-			require.NoError(t, err)
+			assert.NilError(t, err)
 
-			require.EqualValues(t, test.expected, string(result))
+			assert.Equal(t, test.expected, string(result))
 		})
 	}
 }

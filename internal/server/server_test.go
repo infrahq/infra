@@ -3,14 +3,19 @@ package server
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 	"path/filepath"
 	"testing"
+	"time"
 
-	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
+	"gotest.tools/v3/assert"
+	is "gotest.tools/v3/assert/cmp"
 
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -37,47 +42,48 @@ func TestGetPostgresConnectionURL(t *testing.T) {
 	r.secrets["plaintext"] = f
 
 	url, err := r.getPostgresConnectionString()
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
-	require.Empty(t, url)
+	assert.Assert(t, is.Len(url, 0))
 
 	r.options.DBHost = "localhost"
 
 	url, err = r.getPostgresConnectionString()
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
-	require.Equal(t, "host=localhost", url)
+	assert.Equal(t, "host=localhost", url)
 
 	r.options.DBPort = 5432
 
 	url, err = r.getPostgresConnectionString()
-	require.NoError(t, err)
-	require.Equal(t, "host=localhost port=5432", url)
+	assert.NilError(t, err)
+	assert.Equal(t, "host=localhost port=5432", url)
 
 	r.options.DBUser = "user"
 
 	url, err = r.getPostgresConnectionString()
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
-	require.Equal(t, "host=localhost user=user port=5432", url)
+	assert.Equal(t, "host=localhost user=user port=5432", url)
 
 	r.options.DBPassword = "plaintext:secret"
 
 	url, err = r.getPostgresConnectionString()
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
-	require.Equal(t, "host=localhost user=user password=secret port=5432", url)
+	assert.Equal(t, "host=localhost user=user password=secret port=5432", url)
 
 	r.options.DBName = "postgres"
 
 	url, err = r.getPostgresConnectionString()
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
-	require.Equal(t, "host=localhost user=user password=secret port=5432 dbname=postgres", url)
+	assert.Equal(t, "host=localhost user=user password=secret port=5432 dbname=postgres", url)
 }
 
 func TestSetupRequired(t *testing.T) {
 	db := setupDB(t)
+
 	s := Server{db: db}
 
 	// cases where setup is enabled
@@ -102,7 +108,7 @@ func TestSetupRequired(t *testing.T) {
 	for name, options := range cases {
 		t.Run(name, func(t *testing.T) {
 			s.options = options
-			require.True(t, s.setupRequired())
+			assert.Assert(t, s.setupRequired())
 		})
 	}
 
@@ -144,7 +150,7 @@ func TestSetupRequired(t *testing.T) {
 	for name, options := range cases {
 		t.Run(name, func(t *testing.T) {
 			s.options = options
-			require.False(t, s.setupRequired())
+			assert.Assert(t, !s.setupRequired())
 		})
 	}
 
@@ -154,31 +160,38 @@ func TestSetupRequired(t *testing.T) {
 	}
 
 	err := db.Create(&models.Identity{Name: "non-admin"}).Error
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
-	require.True(t, s.setupRequired())
+	assert.Assert(t, s.setupRequired())
 
-	err = db.Create(&models.Identity{Name: "admin"}).Error
-	require.NoError(t, err)
+	id := uid.New()
+	err = db.Create(&models.Identity{Model: models.Model{ID: id}, Name: "admin"}).Error
+	assert.NilError(t, err)
 
-	require.False(t, s.setupRequired())
+	err = db.Create(&models.AccessKey{Name: "admin", IssuedFor: id, ExpiresAt: time.Now()}).Error
+	assert.NilError(t, err)
+
+	assert.Assert(t, !s.setupRequired())
 }
 
 func TestLoadConfigEmpty(t *testing.T) {
 	db := setupDB(t)
 
-	err := loadConfig(db, Config{})
-	require.NoError(t, err)
+	err := data.CreateGrant(db, &models.Grant{Subject: uid.PolymorphicID("i:1234"), Privilege: "view", Resource: "kubernetes.config-test"})
+	assert.NilError(t, err)
+
+	err = loadConfig(db, Config{})
+	assert.NilError(t, err)
 
 	var providers, grants int64
 
 	err = db.Model(&models.Provider{}).Count(&providers).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(1), providers) // just the infra provider
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), providers) // internal infra provider only
 
 	err = db.Model(&models.Grant{}).Count(&grants).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(0), grants)
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), grants)
 }
 
 func TestLoadConfigInvalid(t *testing.T) {
@@ -296,7 +309,8 @@ func TestLoadConfigInvalid(t *testing.T) {
 			db := setupDB(t)
 
 			err := loadConfig(db, config)
-			require.Error(t, err)
+			// TODO: add expectedErr for each case
+			assert.ErrorContains(t, err, "") // could be any error
 		})
 	}
 }
@@ -316,15 +330,15 @@ func TestLoadConfigWithProviders(t *testing.T) {
 	}
 
 	err := loadConfig(db, config)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	var provider models.Provider
 	err = db.Where("name = ?", "okta").First(&provider).Error
-	require.NoError(t, err)
-	require.Equal(t, "okta", provider.Name)
-	require.Equal(t, "demo.okta.com", provider.URL)
-	require.Equal(t, "client-id", provider.ClientID)
-	require.Equal(t, models.EncryptedAtRest("client-secret"), provider.ClientSecret)
+	assert.NilError(t, err)
+	assert.Equal(t, "okta", provider.Name)
+	assert.Equal(t, "demo.okta.com", provider.URL)
+	assert.Equal(t, "client-id", provider.ClientID)
+	assert.Equal(t, models.EncryptedAtRest("client-secret"), provider.ClientSecret)
 }
 
 func TestLoadConfigWithUserGrantsImplicitProvider(t *testing.T) {
@@ -341,22 +355,22 @@ func TestLoadConfigWithUserGrantsImplicitProvider(t *testing.T) {
 	}
 
 	err := loadConfig(db, config)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	var provider models.Provider
 	err = db.Where("name = ?", models.InternalInfraProviderName).First(&provider).Error
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	var user models.Identity
 	err = db.Where("name = ?", "test@example.com").First(&user).Error
-	require.NoError(t, err)
-	require.Equal(t, provider.ID, user.ProviderID)
+	assert.NilError(t, err)
+	assert.Equal(t, provider.ID, user.ProviderID)
 
 	var grant models.Grant
 	err = db.Where("subject = ?", uid.NewIdentityPolymorphicID(user.ID)).First(&grant).Error
-	require.NoError(t, err)
-	require.Equal(t, "admin", grant.Privilege)
-	require.Equal(t, "kubernetes.test-cluster", grant.Resource)
+	assert.NilError(t, err)
+	assert.Equal(t, "admin", grant.Privilege)
+	assert.Equal(t, "kubernetes.test-cluster", grant.Resource)
 }
 
 func TestLoadConfigWithUserGrantsExplicitProvider(t *testing.T) {
@@ -388,22 +402,22 @@ func TestLoadConfigWithUserGrantsExplicitProvider(t *testing.T) {
 	}
 
 	err := loadConfig(db, config)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	var provider models.Provider
 	err = db.Where("name = ?", "atko").First(&provider).Error
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	var user models.Identity
 	err = db.Where("name = ?", "test@example.com").First(&user).Error
-	require.NoError(t, err)
-	require.Equal(t, provider.ID, user.ProviderID)
+	assert.NilError(t, err)
+	assert.Equal(t, provider.ID, user.ProviderID)
 
 	var grant models.Grant
 	err = db.Where("subject = ?", uid.NewIdentityPolymorphicID(user.ID)).First(&grant).Error
-	require.NoError(t, err)
-	require.Equal(t, "admin", grant.Privilege)
-	require.Equal(t, "kubernetes.test-cluster", grant.Resource)
+	assert.NilError(t, err)
+	assert.Equal(t, "admin", grant.Privilege)
+	assert.Equal(t, "kubernetes.test-cluster", grant.Resource)
 }
 
 func TestLoadConfigWithGroupGrantsImplicitProvider(t *testing.T) {
@@ -420,22 +434,22 @@ func TestLoadConfigWithGroupGrantsImplicitProvider(t *testing.T) {
 	}
 
 	err := loadConfig(db, config)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	var provider models.Provider
 	err = db.Where("name = ?", models.InternalInfraProviderName).First(&provider).Error
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	var group models.Group
 	err = db.Where("name = ?", "Everyone").First(&group).Error
-	require.NoError(t, err)
-	require.Equal(t, provider.ID, group.ProviderID)
+	assert.NilError(t, err)
+	assert.Equal(t, provider.ID, group.ProviderID)
 
 	var grant models.Grant
 	err = db.Where("subject = ?", uid.NewGroupPolymorphicID(group.ID)).First(&grant).Error
-	require.NoError(t, err)
-	require.Equal(t, "admin", grant.Privilege)
-	require.Equal(t, "kubernetes.test-cluster", grant.Resource)
+	assert.NilError(t, err)
+	assert.Equal(t, "admin", grant.Privilege)
+	assert.Equal(t, "kubernetes.test-cluster", grant.Resource)
 }
 
 func TestLoadConfigWithGroupGrantsExplicitProvider(t *testing.T) {
@@ -467,22 +481,22 @@ func TestLoadConfigWithGroupGrantsExplicitProvider(t *testing.T) {
 	}
 
 	err := loadConfig(db, config)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	var provider models.Provider
 	err = db.Where("name = ?", "atko").First(&provider).Error
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	var group models.Group
 	err = db.Where("name = ?", "Everyone").First(&group).Error
-	require.NoError(t, err)
-	require.Equal(t, provider.ID, group.ProviderID)
+	assert.NilError(t, err)
+	assert.Equal(t, provider.ID, group.ProviderID)
 
 	var grant models.Grant
 	err = db.Where("subject = ?", uid.NewGroupPolymorphicID(group.ID)).First(&grant).Error
-	require.NoError(t, err)
-	require.Equal(t, "admin", grant.Privilege)
-	require.Equal(t, "kubernetes.test-cluster", grant.Resource)
+	assert.NilError(t, err)
+	assert.Equal(t, "admin", grant.Privilege)
+	assert.Equal(t, "kubernetes.test-cluster", grant.Resource)
 }
 
 func TestLoadConfigWithMachineGrants(t *testing.T) {
@@ -499,17 +513,17 @@ func TestLoadConfigWithMachineGrants(t *testing.T) {
 	}
 
 	err := loadConfig(db, config)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	var machine models.Identity
 	err = db.Where("name = ?", "T-1000").First(&machine).Error
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	var grant models.Grant
 	err = db.Where("subject = ?", uid.NewIdentityPolymorphicID(machine.ID)).First(&grant).Error
-	require.NoError(t, err)
-	require.Equal(t, "admin", grant.Privilege)
-	require.Equal(t, "kubernetes.test-cluster", grant.Resource)
+	assert.NilError(t, err)
+	assert.Equal(t, "admin", grant.Privilege)
+	assert.Equal(t, "kubernetes.test-cluster", grant.Resource)
 }
 
 func TestLoadConfigPruneConfig(t *testing.T) {
@@ -546,54 +560,52 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 	}
 
 	err := loadConfig(db, config)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	var providers, grants, users, groups, machines int64
 
 	err = db.Model(&models.Provider{}).Count(&providers).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(2), providers) // okta and infra providers
+	assert.NilError(t, err)
+	assert.Equal(t, int64(2), providers) // okta and infra providers
 
 	err = db.Model(&models.Grant{}).Count(&grants).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(3), grants)
+	assert.NilError(t, err)
+	assert.Equal(t, int64(3), grants)
 
 	err = db.Model(&models.Identity{}).Where(models.Identity{Kind: models.UserKind}).Count(&users).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(1), users)
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), users)
 
 	err = db.Model(&models.Group{}).Count(&groups).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(1), groups)
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), groups)
 
 	err = db.Model(&models.Identity{}).Where(models.Identity{Kind: models.MachineKind}).Count(&machines).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(1), machines)
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), machines)
 
-	err = loadConfig(db, Config{})
-	require.NoError(t, err)
+	// previous config is cleared on new config application
+	newConfig := Config{
+		Providers: []Provider{
+			{
+				Name:         "okta",
+				URL:          "new-demo.okta.com",
+				ClientID:     "new-client-id",
+				ClientSecret: "new-client-secret",
+			},
+		},
+	}
+
+	err = loadConfig(db, newConfig)
+	assert.NilError(t, err)
 
 	err = db.Model(&models.Provider{}).Count(&providers).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(1), providers) // infra provider only
+	assert.NilError(t, err)
+	assert.Equal(t, int64(2), providers) // infra and new okta
 
 	err = db.Model(&models.Grant{}).Count(&grants).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(0), grants)
-
-	// removing provider also removes users/groups
-	err = db.Model(&models.Identity{}).Where(models.Identity{Kind: models.UserKind}).Count(&users).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(0), users)
-
-	err = db.Model(&models.Group{}).Count(&groups).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(0), groups)
-
-	// but not machines
-	err = db.Model(&models.Identity{}).Count(&machines).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(1), machines)
+	assert.NilError(t, err)
+	assert.Equal(t, int64(0), grants)
 }
 
 func TestLoadConfigPruneGrants(t *testing.T) {
@@ -630,29 +642,29 @@ func TestLoadConfigPruneGrants(t *testing.T) {
 	}
 
 	err := loadConfig(db, config)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	var providers, grants, users, groups, machines int64
 
 	err = db.Model(&models.Provider{}).Count(&providers).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(2), providers) // infra and okta
+	assert.NilError(t, err)
+	assert.Equal(t, int64(2), providers) // infra and okta
 
 	err = db.Model(&models.Grant{}).Count(&grants).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(3), grants)
+	assert.NilError(t, err)
+	assert.Equal(t, int64(3), grants)
 
 	err = db.Model(&models.Identity{}).Where(models.Identity{Kind: models.UserKind}).Count(&users).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(1), users)
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), users)
 
 	err = db.Model(&models.Group{}).Count(&groups).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(1), groups)
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), groups)
 
 	err = db.Model(&models.Identity{}).Where(models.Identity{Kind: models.MachineKind}).Count(&machines).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(1), machines)
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), machines)
 
 	providersOnly := Config{
 		Providers: []Provider{
@@ -666,27 +678,27 @@ func TestLoadConfigPruneGrants(t *testing.T) {
 	}
 
 	err = loadConfig(db, providersOnly)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	err = db.Model(&models.Provider{}).Count(&providers).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(2), providers) // infra and okta
+	assert.NilError(t, err)
+	assert.Equal(t, int64(2), providers) // infra and okta
 
 	err = db.Model(&models.Grant{}).Count(&grants).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(0), grants)
+	assert.NilError(t, err)
+	assert.Equal(t, int64(0), grants)
 
 	err = db.Model(&models.Identity{}).Where(models.Identity{Kind: models.UserKind}).Count(&users).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(1), users)
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), users)
 
 	err = db.Model(&models.Group{}).Count(&groups).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(1), groups)
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), groups)
 
 	err = db.Model(&models.Identity{}).Where(models.Identity{Kind: models.MachineKind}).Count(&machines).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(1), machines)
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), machines)
 }
 
 func TestLoadConfigUpdate(t *testing.T) {
@@ -723,33 +735,33 @@ func TestLoadConfigUpdate(t *testing.T) {
 	}
 
 	err := loadConfig(db, config)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	var providers, users, groups, machines int64
 
 	err = db.Model(&models.Provider{}).Count(&providers).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(2), providers) // infra and okta
+	assert.NilError(t, err)
+	assert.Equal(t, int64(2), providers) // infra and okta
 
 	grants := make([]models.Grant, 0)
 	err = db.Find(&grants).Error
-	require.NoError(t, err)
-	require.Len(t, grants, 3)
-	require.Equal(t, "admin", grants[0].Privilege)
-	require.Equal(t, "admin", grants[1].Privilege)
-	require.Equal(t, "admin", grants[2].Privilege)
+	assert.NilError(t, err)
+	assert.Assert(t, is.Len(grants, 3))
+	assert.Equal(t, "admin", grants[0].Privilege)
+	assert.Equal(t, "admin", grants[1].Privilege)
+	assert.Equal(t, "admin", grants[2].Privilege)
 
 	err = db.Model(&models.Identity{}).Where(models.Identity{Kind: models.UserKind}).Count(&users).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(1), users)
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), users)
 
 	err = db.Model(&models.Group{}).Count(&groups).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(1), groups)
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), groups)
 
 	err = db.Model(&models.Identity{}).Where(models.Identity{Kind: models.MachineKind}).Count(&machines).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(1), machines)
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), machines)
 
 	updatedConfig := Config{
 		Providers: []Provider{
@@ -782,53 +794,53 @@ func TestLoadConfigUpdate(t *testing.T) {
 	}
 
 	err = loadConfig(db, updatedConfig)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	err = db.Model(&models.Provider{}).Count(&providers).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(2), providers) // infra and atko
+	assert.NilError(t, err)
+	assert.Equal(t, int64(2), providers) // infra and atko
 
 	var provider models.Provider
 	err = db.Where("name = ?", "atko").First(&provider).Error
-	require.NoError(t, err)
-	require.Equal(t, "atko", provider.Name)
-	require.Equal(t, "demo.atko.com", provider.URL)
-	require.Equal(t, "client-id-2", provider.ClientID)
-	require.Equal(t, models.EncryptedAtRest("client-secret-2"), provider.ClientSecret)
+	assert.NilError(t, err)
+	assert.Equal(t, "atko", provider.Name)
+	assert.Equal(t, "demo.atko.com", provider.URL)
+	assert.Equal(t, "client-id-2", provider.ClientID)
+	assert.Equal(t, models.EncryptedAtRest("client-secret-2"), provider.ClientSecret)
 
 	grants = make([]models.Grant, 0)
 	err = db.Find(&grants).Error
-	require.NoError(t, err)
-	require.Len(t, grants, 3)
-	require.Equal(t, "view", grants[0].Privilege)
-	require.Equal(t, "view", grants[1].Privilege)
-	require.Equal(t, "view", grants[2].Privilege)
+	assert.NilError(t, err)
+	assert.Assert(t, is.Len(grants, 3))
+	assert.Equal(t, "view", grants[0].Privilege)
+	assert.Equal(t, "view", grants[1].Privilege)
+	assert.Equal(t, "view", grants[2].Privilege)
 
 	err = db.Model(&models.Identity{}).Where(models.Identity{Kind: models.UserKind}).Count(&users).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(1), users)
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), users)
 
 	var user models.Identity
 	err = db.Where("name = ?", "test@example.com").First(&user).Error
-	require.NoError(t, err)
-	require.Equal(t, provider.ID, user.ProviderID)
+	assert.NilError(t, err)
+	assert.Equal(t, provider.ID, user.ProviderID)
 
 	err = db.Model(&models.Group{}).Count(&groups).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(1), groups)
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), groups)
 
 	var group models.Group
 	err = db.Where("name = ?", "Everyone").First(&group).Error
-	require.NoError(t, err)
-	require.Equal(t, provider.ID, group.ProviderID)
+	assert.NilError(t, err)
+	assert.Equal(t, provider.ID, group.ProviderID)
 
 	err = db.Model(&models.Identity{}).Where(models.Identity{Kind: models.MachineKind}).Count(&machines).Error
-	require.NoError(t, err)
-	require.Equal(t, int64(1), machines)
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), machines)
 
 	var machine models.Identity
 	err = db.Where("name = ?", "T-1000").First(&machine).Error
-	require.NoError(t, err)
+	assert.NilError(t, err)
 }
 
 func TestImportAccessKeys(t *testing.T) {
@@ -842,10 +854,10 @@ func TestImportAccessKeys(t *testing.T) {
 	}
 
 	err := s.importSecrets()
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	err = s.importAccessKeys()
-	require.NoError(t, err)
+	assert.NilError(t, err)
 }
 
 func TestImportAccessKeysUpdate(t *testing.T) {
@@ -859,21 +871,21 @@ func TestImportAccessKeysUpdate(t *testing.T) {
 	}
 
 	err := s.importSecrets()
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	err = s.importAccessKeys()
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	s.options = Options{
 		AdminAccessKey: "EKoHADINYX.NfhgLRqggYgdQiQXoxrNwgOe",
 	}
 
 	err = s.importAccessKeys()
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
-	accessKey, err := data.GetAccessKey(s.db, data.ByName("default admin access key"))
-	require.NoError(t, err)
-	require.Equal(t, accessKey.KeyID, "EKoHADINYX")
+	accessKey, err := data.GetAccessKey(s.db, data.ByName("default-admin-access-key"))
+	assert.NilError(t, err)
+	assert.Equal(t, accessKey.KeyID, "EKoHADINYX")
 }
 
 func TestServer_Run(t *testing.T) {
@@ -888,7 +900,7 @@ func TestServer_Run(t *testing.T) {
 		DBFile:                  filepath.Join(dir, "sqlite3.db"),
 	}
 	srv, err := New(opts)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	go func() {
 		if err := srv.Run(ctx); err != nil {
@@ -898,21 +910,25 @@ func TestServer_Run(t *testing.T) {
 
 	t.Run("metrics server started", func(t *testing.T) {
 		resp, err := http.Get("http://" + srv.Addrs.Metrics.String() + "/metrics")
-		require.NoError(t, err)
+		assert.NilError(t, err)
 		defer resp.Body.Close()
-		require.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 		body, err := ioutil.ReadAll(resp.Body)
-		require.NoError(t, err)
-		require.Contains(t, string(body), "# HELP")
-		require.Contains(t, string(body), "# TYPE")
+		assert.NilError(t, err)
+		// the infra http request metric
+		assert.Assert(t, is.Contains(string(body), "# HELP http_request_duration_seconds"))
+		// standard go metrics
+		assert.Assert(t, is.Contains(string(body), "# HELP go_threads"))
+		// standard process metrics
+		assert.Assert(t, is.Contains(string(body), "# HELP process_open_fds"))
 	})
 
 	t.Run("http server started", func(t *testing.T) {
 		resp, err := http.Get("http://" + srv.Addrs.HTTP.String() + "/healthz")
-		require.NoError(t, err)
+		assert.NilError(t, err)
 		defer resp.Body.Close()
-		require.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
 	})
 
 	t.Run("https server started", func(t *testing.T) {
@@ -926,11 +942,66 @@ func TestServer_Run(t *testing.T) {
 
 		url := "https://" + srv.Addrs.HTTPS.String() + "/healthz"
 		req, err := http.NewRequest(http.MethodGet, url, nil)
-		require.NoError(t, err)
+		assert.NilError(t, err)
 
 		resp, err := client.Do(req)
-		require.NoError(t, err)
+		assert.NilError(t, err)
 		defer resp.Body.Close()
-		require.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+	})
+}
+
+func TestServer_Run_UIProxy(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	message := `message through the proxy`
+	uiSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(message))
+	}))
+	t.Cleanup(uiSrv.Close)
+
+	dir := t.TempDir()
+	opts := Options{
+		DBEncryptionKeyProvider: "native",
+		DBEncryptionKey:         filepath.Join(dir, "sqlite3.db.key"),
+		TLSCache:                filepath.Join(dir, "tlscache"),
+		DBFile:                  filepath.Join(dir, "sqlite3.db"),
+		EnableUI:                true,
+		UIProxyURL:              uiSrv.URL,
+		EnableSetup:             true,
+	}
+	srv, err := New(opts)
+	assert.NilError(t, err)
+
+	go func() {
+		if err := srv.Run(ctx); err != nil {
+			t.Errorf("server errored: %v", err)
+		}
+	}()
+
+	t.Run("requests are proxied", func(t *testing.T) {
+		resp, err := http.Get("http://" + srv.Addrs.HTTP.String() + "/any-path")
+		assert.NilError(t, err)
+		defer resp.Body.Close()
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		body, err := ioutil.ReadAll(resp.Body)
+		assert.NilError(t, err)
+		assert.Equal(t, message, string(body))
+	})
+
+	t.Run("api routes are available", func(t *testing.T) {
+		resp, err := http.Get("http://" + srv.Addrs.HTTP.String() + "/v1/setup")
+		assert.NilError(t, err)
+		defer resp.Body.Close()
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var body api.SetupRequiredResponse
+		err = json.NewDecoder(resp.Body).Decode(&body)
+		assert.NilError(t, err)
+
+		assert.Assert(t, body.Required)
 	})
 }

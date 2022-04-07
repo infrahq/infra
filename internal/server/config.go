@@ -456,6 +456,57 @@ func (sp *SecretProvider) UnmarshalYAML(unmarshal func(interface{}) error) error
 	return nil
 }
 
+// setupInternalInfraIdentityProvider creates the internal identity provider where local identities are stored
+func (s *Server) setupInternalInfraIdentityProvider() error {
+	_, err := data.GetProvider(s.db, data.ByName(models.InternalInfraProviderName))
+	if err != nil {
+		if !errors.Is(err, internal.ErrNotFound) {
+			return fmt.Errorf("setup infra provider: %w", err)
+		}
+
+		if err := data.CreateProvider(s.db, &models.Provider{Name: models.InternalInfraProviderName, CreatedBy: models.CreatedBySystem}); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// setupInternalIdentity creates built-in identites for the internal identity provider
+func (s *Server) setupBuiltinIdentity(providerID uid.ID, name, role string) (*models.Identity, error) {
+	id, err := data.GetIdentity(s.db, data.ByName(name))
+	if err != nil {
+		if !errors.Is(err, internal.ErrNotFound) {
+			return nil, fmt.Errorf("get identity: %w", err)
+		}
+
+		id = &models.Identity{
+			Name:       name,
+			Kind:       models.MachineKind,
+			ProviderID: providerID,
+			LastSeenAt: time.Now().UTC(),
+		}
+
+		err = data.CreateIdentity(s.db, id)
+		if err != nil {
+			return nil, fmt.Errorf("create identity: %w", err)
+		}
+
+		grant := &models.Grant{
+			Subject:   id.PolyID(),
+			Privilege: role,
+			Resource:  models.InternalInfraProviderName,
+		}
+
+		err = data.CreateGrant(s.db, grant)
+		if err != nil {
+			return nil, fmt.Errorf("create grant: %w", err)
+		}
+	}
+
+	return id, nil
+}
+
 func (s *Server) importAccessKeys() error {
 	type key struct {
 		Secret string
@@ -475,18 +526,15 @@ func (s *Server) importAccessKeys() error {
 
 	infraProvider, err := data.GetProvider(s.db, data.ByName(models.InternalInfraProviderName))
 	if err != nil {
-		if !errors.Is(err, internal.ErrNotFound) {
-			return fmt.Errorf("load provider start-up: %w", err)
-		}
-
-		infraProvider = &models.Provider{Name: models.InternalInfraProviderName}
-
-		if err := data.CreateProvider(s.db, infraProvider); err != nil {
-			return err
-		}
+		return err
 	}
 
 	for k, v := range keys {
+		id, err := s.setupBuiltinIdentity(infraProvider.ID, k, v.Role)
+		if err != nil {
+			return fmt.Errorf("setup built-in: %w", err)
+		}
+
 		if v.Secret == "" {
 			logging.S.Debugf("%s: secret not set; skipping", k)
 			continue
@@ -507,40 +555,9 @@ func (s *Server) importAccessKeys() error {
 			return fmt.Errorf("%s format: invalid token; expected two parts separated by a '.' character", k)
 		}
 
-		// create the machine identity if it doesn't exist
-		machine, err := data.GetIdentity(s.db, data.ByName(k))
-		if err != nil {
-			if !errors.Is(err, internal.ErrNotFound) {
-				return fmt.Errorf("get identity: %w", err)
-			}
+		name := fmt.Sprintf("default-%s-access-key", k)
 
-			machine = &models.Identity{
-				Name:       k,
-				Kind:       models.MachineKind,
-				ProviderID: infraProvider.ID,
-				LastSeenAt: time.Now().UTC(),
-			}
-
-			err = data.CreateIdentity(s.db, machine)
-			if err != nil {
-				return fmt.Errorf("create identity: %w", err)
-			}
-
-			grant := &models.Grant{
-				Subject:   machine.PolyID(),
-				Privilege: v.Role,
-				Resource:  "infra",
-			}
-
-			err = data.CreateGrant(s.db, grant)
-			if err != nil {
-				return fmt.Errorf("create grant: %w", err)
-			}
-		}
-
-		name := fmt.Sprintf("default %s access key", k)
-
-		accessKey, err := data.GetAccessKey(s.db, data.ByIssuedFor(machine.ID))
+		accessKey, err := data.GetAccessKey(s.db, data.ByIssuedFor(id.ID))
 		if err != nil {
 			if !errors.Is(err, internal.ErrNotFound) {
 				return err
@@ -566,7 +583,7 @@ func (s *Server) importAccessKeys() error {
 			Name:      name,
 			KeyID:     parts[0],
 			Secret:    parts[1],
-			IssuedFor: machine.ID,
+			IssuedFor: id.ID,
 			ExpiresAt: time.Now().Add(math.MaxInt64).UTC(),
 		}
 		if _, err := data.CreateAccessKey(s.db, accessKey); err != nil {
@@ -583,9 +600,6 @@ func loadConfig(db *gorm.DB, config Config) error {
 	}
 
 	return db.Transaction(func(tx *gorm.DB) error {
-		// add the internal Infra identity store to providers
-		config.Providers = append(config.Providers, Provider{Name: models.InternalInfraProviderName})
-
 		if err := loadProviders(tx, config.Providers); err != nil {
 			return err
 		}
@@ -610,8 +624,8 @@ func loadProviders(db *gorm.DB, providers []Provider) error {
 		toKeep = append(toKeep, provider.ID)
 	}
 
-	// remove _all_ providers not defined in config or internal
-	err := data.DeleteProviders(db, data.ByNotIDs(toKeep))
+	// remove _all_ providers previously loaded from config
+	err := data.DeleteProviders(db, data.ByNotIDs(toKeep), data.CreatedBy(models.CreatedByConfig))
 	if err != nil {
 		return err
 	}
@@ -631,6 +645,7 @@ func loadProvider(db *gorm.DB, input Provider) (*models.Provider, error) {
 			URL:          input.URL,
 			ClientID:     input.ClientID,
 			ClientSecret: models.EncryptedAtRest(input.ClientSecret),
+			CreatedBy:    models.CreatedByConfig,
 		}
 
 		if err := data.CreateProvider(db, provider); err != nil {
@@ -644,6 +659,7 @@ func loadProvider(db *gorm.DB, input Provider) (*models.Provider, error) {
 	provider.URL = input.URL
 	provider.ClientID = input.ClientID
 	provider.ClientSecret = models.EncryptedAtRest(input.ClientSecret)
+	provider.CreatedBy = models.CreatedByConfig
 
 	if err := data.SaveProvider(db, provider); err != nil {
 		return nil, err
@@ -674,8 +690,8 @@ func loadGrants(db *gorm.DB, grants []Grant) error {
 		toKeep = append(toKeep, grant.ID)
 	}
 
-	// remove _all_ grants not defined in config
-	err = data.DeleteGrants(db, data.ByNotIDs(toKeep), data.NotCreatedBy(models.CreatedBySystem))
+	// remove _all_ grants previously defined by config
+	err = data.DeleteGrants(db, data.ByNotIDs(toKeep), data.CreatedBy(models.CreatedByConfig))
 	if err != nil {
 		return err
 	}

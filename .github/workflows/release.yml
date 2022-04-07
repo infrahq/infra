@@ -81,22 +81,28 @@ jobs:
           make helm tag=${{ needs.release-please.outputs.release_name }}
           aws s3 sync helm s3://helm.infrahq.com --exclude "*" --include "index.yaml" --include "*.tgz"
 
+  readme:
+    runs-on: ubuntu-latest
+    needs: [release-please]
+    if: needs.release-please.outputs.release_created
+    steps:
+      - uses: actions/checkout@v3
+      - uses: readmeio/rdme@7.0.3
+        with:
+          rdme: openapi ./docs/api/openapi3.json --key=${{ secrets.README_API_KEY }} --id=6222ae0352ca1a0028faf020
+
   docs:
     runs-on: ubuntu-latest
     needs: [release-please]
     if: needs.release-please.outputs.release_created
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/checkout@v3
         with:
           repository: infrahq/web
           token: ${{ secrets.DOCS_TOKEN }}
-          path: web
       - run: |
-          echo $(git rev-parse --short HEAD)  > ./web/docs-ref
-          git -C web add ./web/docs-ref
-          git -C web commit -m "maintain: update docs ref"
-          git -C web push origin main
-      - uses: readmeio/rdme@7.0.3
-        with:
-          rdme: openapi ./docs/api/openapi3.json --key=${{ secrets.README_API_KEY }} --id=6222ae0352ca1a0028faf020
+          echo $GITHUB_REF  > ./docs-ref
+          git add ./docs-ref
+          git commit -m "maintain: update docs ref"
+          git push origin main
+

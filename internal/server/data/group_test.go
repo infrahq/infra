@@ -1,10 +1,12 @@
 package data
 
 import (
+	"sort"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
+	"gotest.tools/v3/assert"
+	is "gotest.tools/v3/assert/cmp"
 
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -18,13 +20,13 @@ func TestGroup(t *testing.T) {
 	everyone := models.Group{Name: "Everyone", ProviderID: providerID}
 
 	err := db.Create(&everyone).Error
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	var group models.Group
 	err = db.First(&group, &models.Group{Name: everyone.Name}).Error
-	require.NoError(t, err)
-	require.NotEqual(t, 0, group.ID)
-	require.Equal(t, everyone.Name, group.Name)
+	assert.NilError(t, err)
+	assert.Assert(t, 0 != group.ID)
+	assert.Equal(t, everyone.Name, group.Name)
 }
 
 func TestCreateGroup(t *testing.T) {
@@ -35,17 +37,17 @@ func TestCreateGroup(t *testing.T) {
 	everyone := models.Group{Name: "Everyone", ProviderID: providerID}
 
 	err := CreateGroup(db, &everyone)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	group := everyone
-	require.NotEqual(t, 0, group.ID)
-	require.Equal(t, everyone.Name, group.Name)
+	assert.Assert(t, 0 != group.ID)
+	assert.Equal(t, everyone.Name, group.Name)
 }
 
 func createGroups(t *testing.T, db *gorm.DB, groups ...models.Group) {
 	for i := range groups {
 		err := CreateGroup(db, &groups[i])
-		require.NoError(t, err)
+		assert.NilError(t, err)
 	}
 }
 
@@ -62,7 +64,7 @@ func TestCreateGroupDuplicate(t *testing.T) {
 	createGroups(t, db, everyone, engineers, product)
 
 	err := CreateGroup(db, &models.Group{Name: "Everyone", ProviderID: providerID})
-	require.Contains(t, err.Error(), "duplicate record")
+	assert.ErrorContains(t, err, "duplicate record")
 }
 
 func TestGetGroup(t *testing.T) {
@@ -79,8 +81,8 @@ func TestGetGroup(t *testing.T) {
 	createGroups(t, db, everyone, engineers, product)
 
 	group, err := GetGroup(db, ByName(everyone.Name))
-	require.NoError(t, err)
-	require.NotEqual(t, 0, group.ID)
+	assert.NilError(t, err)
+	assert.Assert(t, 0 != group.ID)
 }
 
 func TestListGroups(t *testing.T) {
@@ -97,15 +99,15 @@ func TestListGroups(t *testing.T) {
 	createGroups(t, db, everyone, engineers, product)
 
 	groups, err := ListGroups(db)
-	require.NoError(t, err)
-	require.Equal(t, 3, len(groups))
+	assert.NilError(t, err)
+	assert.Equal(t, 3, len(groups))
 
 	groups, err = ListGroups(db, ByName(engineers.Name))
-	require.NoError(t, err)
-	require.Equal(t, 1, len(groups))
+	assert.NilError(t, err)
+	assert.Equal(t, 1, len(groups))
 }
 
-func TestGroupBindIdentities(t *testing.T) {
+func TestBindGroupIdentities(t *testing.T) {
 	db := setup(t)
 
 	providerID := uid.New()
@@ -120,26 +122,26 @@ func TestGroupBindIdentities(t *testing.T) {
 	createGroups(t, db, everyone, engineers, product)
 
 	err := CreateIdentity(db, &bond)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	groups, err := ListGroups(db)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	for i := range groups {
 		err := BindGroupIdentities(db, &groups[i], bond)
-		require.NoError(t, err)
+		assert.NilError(t, err)
 	}
 
 	user, err := GetIdentity(db.Preload("Groups"), ByName(bond.Name))
-	require.NoError(t, err)
-	require.Len(t, user.Groups, 3)
-	require.ElementsMatch(t, []string{
-		everyone.Name, engineers.Name, product.Name,
-	}, []string{
+	assert.NilError(t, err)
+	expected := []string{engineers.Name, everyone.Name, product.Name}
+	actual := []string{
 		user.Groups[0].Name,
 		user.Groups[1].Name,
 		user.Groups[2].Name,
-	})
+	}
+	sort.Strings(actual)
+	assert.DeepEqual(t, actual, expected)
 }
 
 func TestGroupBindMoreIdentities(t *testing.T) {
@@ -158,28 +160,28 @@ func TestGroupBindMoreIdentities(t *testing.T) {
 	createGroups(t, db, everyone, engineers, product)
 
 	err := CreateIdentity(db, &bond)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	group, err := GetGroup(db.Preload("Identities"), ByName(everyone.Name))
-	require.NoError(t, err)
-	require.Len(t, group.Identities, 0)
+	assert.NilError(t, err)
+	assert.Assert(t, is.Len(group.Identities, 0))
 
 	err = BindGroupIdentities(db, group, bond)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	group, err = GetGroup(db.Preload("Identities"), ByName(everyone.Name))
-	require.NoError(t, err)
-	require.Len(t, group.Identities, 1)
+	assert.NilError(t, err)
+	assert.Assert(t, is.Len(group.Identities, 1))
 
 	err = CreateIdentity(db, &bourne)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	err = BindGroupIdentities(db, group, bond, bourne)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	group, err = GetGroup(db.Preload("Identities"), ByName(everyone.Name))
-	require.NoError(t, err)
-	require.Len(t, group.Identities, 2)
+	assert.NilError(t, err)
+	assert.Assert(t, is.Len(group.Identities, 2))
 }
 
 func TestGroupBindLessIdentities(t *testing.T) {
@@ -198,28 +200,28 @@ func TestGroupBindLessIdentities(t *testing.T) {
 	createGroups(t, db, everyone, engineers, product)
 
 	err := CreateIdentity(db, &bourne)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	err = CreateIdentity(db, &bauer)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	group, err := GetGroup(db.Preload("Identities"), ByName(everyone.Name))
-	require.NoError(t, err)
-	require.Len(t, group.Identities, 0)
+	assert.NilError(t, err)
+	assert.Assert(t, is.Len(group.Identities, 0))
 
 	err = BindGroupIdentities(db, group, bourne, bauer)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	group, err = GetGroup(db.Preload("Identities"), ByName(everyone.Name))
-	require.NoError(t, err)
-	require.Len(t, group.Identities, 2)
+	assert.NilError(t, err)
+	assert.Assert(t, is.Len(group.Identities, 2))
 
 	err = BindGroupIdentities(db, group, bauer)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	group, err = GetGroup(db.Preload("Identities"), ByName(everyone.Name))
-	require.NoError(t, err)
-	require.Len(t, group.Identities, 1)
+	assert.NilError(t, err)
+	assert.Assert(t, is.Len(group.Identities, 1))
 }
 
 func TestDeleteGroup(t *testing.T) {
@@ -236,21 +238,21 @@ func TestDeleteGroup(t *testing.T) {
 	createGroups(t, db, everyone, engineers, product)
 
 	_, err := GetGroup(db, ByName(everyone.Name))
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	err = DeleteGroups(db, ByName(everyone.Name))
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	_, err = GetGroup(db, ByName(everyone.Name))
-	require.EqualError(t, err, "record not found")
+	assert.Error(t, err, "record not found")
 
 	// deleting a nonexistent group should not fail
 	err = DeleteGroups(db, ByName(everyone.Name))
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	// deleting an group should not delete unrelated groups
 	_, err = GetGroup(db, ByName(engineers.Name))
-	require.NoError(t, err)
+	assert.NilError(t, err)
 }
 
 func TestRecreateGroupSameName(t *testing.T) {
@@ -267,8 +269,8 @@ func TestRecreateGroupSameName(t *testing.T) {
 	createGroups(t, db, everyone, engineers, product)
 
 	err := DeleteGroups(db, ByName(everyone.Name))
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	err = CreateGroup(db, &models.Group{Name: everyone.Name})
-	require.NoError(t, err)
+	assert.NilError(t, err)
 }

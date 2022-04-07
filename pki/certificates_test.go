@@ -15,7 +15,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
+	"gotest.tools/v3/assert"
+	is "gotest.tools/v3/assert/cmp"
+	"gotest.tools/v3/assert/opt"
 
 	"github.com/infrahq/infra/testutil/docker"
 )
@@ -61,14 +63,14 @@ func eachProvider(t *testing.T, eachFunc func(t *testing.T, p CertificateProvide
 	providers := map[string]CertificateProvider{}
 
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "certificates")
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	defer os.RemoveAll(tmpDir)
 
 	db := setupDB(t)
 
 	p, err := NewNativeCertificateProvider(db, NativeCertificateProviderConfig{})
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	providers["native"] = p
 
@@ -82,31 +84,32 @@ func eachProvider(t *testing.T, eachFunc func(t *testing.T, p CertificateProvide
 func TestCertificatesImplementations(t *testing.T) {
 	eachProvider(t, func(t *testing.T, p CertificateProvider) {
 		err := p.CreateCA()
-		require.NoError(t, err)
+		assert.NilError(t, err)
 
 		certs := p.ActiveCAs()
+		threshold := opt.DurationWithThreshold(time.Minute)
 		// should have two keys now
-		require.InDelta(t, 182*day, time.Until(certs[0].NotAfter), float64(1*day))
-		require.InDelta(t, 365*day, time.Until(certs[1].NotAfter), float64(1*day))
+		assert.DeepEqual(t, 182*day, time.Until(certs[0].NotAfter), threshold)
+		assert.DeepEqual(t, 365*day, time.Until(certs[1].NotAfter), threshold)
 
 		err = p.RotateCA()
-		require.NoError(t, err)
+		assert.NilError(t, err)
 
 		certs = p.ActiveCAs()
 
 		for i, cert := range certs {
 			cert := cert
 			t.Run("check cert "+strconv.Itoa(i), func(t *testing.T) {
-				require.True(t, cert.IsCA)
-				require.True(t, cert.NotBefore.Before(time.Now()))
-				require.InDelta(t, 365*day, time.Until(cert.NotAfter), float64(1*day))
-				require.Equal(t, "Root Infra CA", cert.Subject.CommonName)
+				assert.Assert(t, cert.IsCA)
+				assert.Assert(t, cert.NotBefore.Before(time.Now()))
+				assert.DeepEqual(t, 365*day, time.Until(cert.NotAfter), threshold)
+				assert.Equal(t, "Root Infra CA", cert.Subject.CommonName)
 			})
 		}
 
 		t.Run("signing Cert Signing Requests", func(t *testing.T) {
 			cert, err := generateClientCertificate("Connector")
-			require.NoError(t, err)
+			assert.NilError(t, err)
 
 			csr := x509.CertificateRequest{
 				PublicKeyAlgorithm: cert.PublicKeyAlgorithm,
@@ -119,18 +122,18 @@ func TestCertificatesImplementations(t *testing.T) {
 			}
 
 			pemBytes, err := p.SignCertificate(csr)
-			require.NoError(t, err)
+			assert.NilError(t, err)
 
 			block, rest := pem.Decode(pemBytes)
-			require.Len(t, rest, 0)
+			assert.Assert(t, is.Len(rest, 0))
 
 			cert, err = x509.ParseCertificate(block.Bytes)
-			require.NoError(t, err)
+			assert.NilError(t, err)
 
 			parent := p.ActiveCAs()[1]
 
 			err = parent.CheckSignature(cert.SignatureAlgorithm, cert.RawTBSCertificate, cert.Signature)
-			require.NoError(t, err)
+			assert.NilError(t, err)
 		})
 	})
 }

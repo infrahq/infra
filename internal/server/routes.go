@@ -6,6 +6,7 @@ import (
 
 	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
@@ -18,13 +19,11 @@ type (
 	ReqResHandlerFunc[Req, Res any] func(c *gin.Context, req *Req) (Res, error)
 )
 
-func (a *API) registerRoutes(router *gin.Engine) {
+func (a *API) registerRoutes(router *gin.RouterGroup, promRegistry prometheus.Registerer) {
 	router.Use(
 		sentrygin.New(sentrygin.Options{}),
-		metrics.Middleware(),
+		metrics.Middleware(promRegistry),
 		logging.IdentityAwareMiddleware(),
-		logging.Middleware(),
-		RequestTimeoutMiddleware(),
 		DatabaseMiddleware(a.server.db),
 	)
 

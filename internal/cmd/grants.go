@@ -85,7 +85,11 @@ func newGrantsListCmd() *cobra.Command {
 				})
 			}
 
-			printTable(rows)
+			if len(rows) > 0 {
+				printTable(rows)
+			} else {
+				fmt.Println("No grants found")
+			}
 
 			return nil
 		},

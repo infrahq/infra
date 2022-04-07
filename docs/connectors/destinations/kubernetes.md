@@ -47,7 +47,7 @@ There are several default user-facing `Role` and `ClusterRole` objects that are 
 
 Infra will translate Kubernetes grants to a `ClusterRoleBinding`. If a grant is defined for a specific namespace, the `ClusterRoleBinding` will be defined for that namespace. Otherwise, it is applied to the entire cluster.
 
-> :exclamation: Infra does not currently manage `Role` or `ClusterRole` objects. However, existing Kubernetes `ClusterRole` objects can be referenced in an Infra grant. Kubernetes `Role` objects are not supported.
+> Infra does not currently manage `Role` or `ClusterRole` objects. However, existing Kubernetes `ClusterRole` objects can be referenced in an Infra grant. Kubernetes `Role` objects are not supported.
 
 ### Example: Grant user `dev@example.com` the `view` role to a cluster
 

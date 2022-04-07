@@ -3,8 +3,8 @@ package data
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
+	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/models"
@@ -16,30 +16,28 @@ func TestProvider(t *testing.T) {
 	providerDevelop := models.Provider{Name: "okta-development", URL: "dev.okta.com"}
 
 	err := db.Create(&providerDevelop).Error
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	var provider models.Provider
 	err = db.First(&provider, &models.Provider{}).Error
-	require.NoError(t, err)
-	require.Equal(t, "dev.okta.com", provider.URL)
+	assert.NilError(t, err)
+	assert.Equal(t, "dev.okta.com", provider.URL)
 }
 
 func TestCreateProviderOkta(t *testing.T) {
 	db := setup(t)
 
 	providerDevelop := models.Provider{Name: "okta-development", URL: "dev.okta.com"}
-
-	p := providerDevelop
-	err := CreateProvider(db, &p)
-	require.NoError(t, err)
-	require.NotEqual(t, 0, providerDevelop.ID)
-	require.Equal(t, providerDevelop.URL, providerDevelop.URL)
+	err := CreateProvider(db, &providerDevelop)
+	assert.NilError(t, err)
+	assert.Assert(t, providerDevelop.ID != 0)
+	assert.Equal(t, providerDevelop.URL, providerDevelop.URL)
 }
 
 func createProviders(t *testing.T, db *gorm.DB, providers ...models.Provider) {
 	for i := range providers {
 		err := CreateProvider(db, &providers[i])
-		require.NoError(t, err)
+		assert.NilError(t, err)
 	}
 }
 
@@ -54,7 +52,7 @@ func TestCreateProviderDuplicate(t *testing.T) {
 	createProviders(t, db, providerDevelop, providerProduction)
 
 	err := CreateProvider(db, &providerDevelop)
-	require.ErrorIs(t, err, internal.ErrDuplicate)
+	assert.ErrorIs(t, err, internal.ErrDuplicate)
 }
 
 func TestGetProvider(t *testing.T) {
@@ -68,9 +66,9 @@ func TestGetProvider(t *testing.T) {
 	createProviders(t, db, providerDevelop, providerProduction)
 
 	provider, err := GetProvider(db)
-	require.NoError(t, err)
-	require.NotEqual(t, 0, provider.ID)
-	require.Equal(t, providerDevelop.URL, provider.URL)
+	assert.NilError(t, err)
+	assert.Assert(t, 0 != provider.ID)
+	assert.Equal(t, providerDevelop.URL, provider.URL)
 }
 
 func TestListProviders(t *testing.T) {
@@ -84,12 +82,12 @@ func TestListProviders(t *testing.T) {
 	createProviders(t, db, providerDevelop, providerProduction)
 
 	providers, err := ListProviders(db)
-	require.NoError(t, err)
-	require.Equal(t, 2, len(providers))
+	assert.NilError(t, err)
+	assert.Equal(t, 2, len(providers))
 
 	providers, err = ListProviders(db, ByURL("dev.okta.com"))
-	require.NoError(t, err)
-	require.Equal(t, 1, len(providers))
+	assert.NilError(t, err)
+	assert.Equal(t, 1, len(providers))
 }
 
 func TestDeleteProviders(t *testing.T) {
@@ -103,14 +101,14 @@ func TestDeleteProviders(t *testing.T) {
 	createProviders(t, db, providerDevelop, providerProduction)
 
 	providers, err := ListProviders(db)
-	require.NoError(t, err)
-	require.Equal(t, 2, len(providers))
+	assert.NilError(t, err)
+	assert.Equal(t, 2, len(providers))
 
 	err = DeleteProviders(db, ByURL("dev.okta.com"))
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	_, err = GetProvider(db, ByURL("dev.okta.com"))
-	require.EqualError(t, err, "record not found")
+	assert.Error(t, err, "record not found")
 }
 
 func TestRecreateProviderSameDomain(t *testing.T) {
@@ -126,8 +124,8 @@ func TestRecreateProviderSameDomain(t *testing.T) {
 	err := DeleteProviders(db, func(db *gorm.DB) *gorm.DB {
 		return db.Where(&models.Provider{Name: "okta-development", URL: "dev.okta.com"})
 	})
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	err = CreateProvider(db, &models.Provider{Name: "okta-development", URL: "dev.okta.com"})
-	require.NoError(t, err)
+	assert.NilError(t, err)
 }
