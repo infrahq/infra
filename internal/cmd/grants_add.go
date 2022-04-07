@@ -14,7 +14,7 @@ import (
 )
 
 type grantsCmdOptionsNew struct {
-	Identity    string `mapstructure:"identity"`
+	Subject    string `mapstructure:"subject"`
 	IsGroup     bool   `mapstructure:"group"`
 	Role        string `mapstructure:"role"`
 	Provider    string `mapstructure:"provider"`
