@@ -1,4 +1,4 @@
-# Accessing Infra
+# Logging In
 
 ### 1. Install Infra CLI
 
@@ -40,13 +40,13 @@ sudo dnf install infra
 
 </details>
 
-### 2. Login to your Infra host
+### 2. Login to Infra
 
 ```
-infra login HOST
+infra login SERVER
 ```
 
-> **Don't know your Infra host?<br />** Ask your Infra administrator for the hostname that you should use to login.
+> **Don't know your Infra server?<br />** Ask your Infra team for the hostname that you should use to login.
 
 ### 3. See what you can access
 

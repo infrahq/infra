@@ -1,13 +1,18 @@
 # Okta
 
+## Connecting Okta
+
+To connect Okta, run the following command:
+
 ```bash
-infra providers add Okta \
+infra providers add okta \
   --url <your okta url (or domain)> \
   --client-id <your okta client id> \
   --client-secret <your okta client secret>
 ```
 
-**To find the above values:**
+
+## Finding required values
 
 1. Login to the Okta dashboard.
 2. Under the left menu click **Applications > Applications**.  
