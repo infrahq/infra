@@ -57,6 +57,8 @@ func newGrantAddCmd() *cobra.Command {
 
 [--role] is optional; use if further fine grained permissions are needed
   $ infra grants add janedoe -r admin ...
+
+For full documentation on grants, see  https://github.com/infrahq/infra/blob/main/docs/using-infra/grants.md 
 `,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
