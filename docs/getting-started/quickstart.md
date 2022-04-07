@@ -60,7 +60,7 @@ helm install infra infrahq/infra
 infra login localhost
 ```
 
-This will output the Infra Access Key which you will use to login in cases of emergency recovery. Please store this in a safe place as you will not see this again.
+This will output the Infra access key which you will use to login in cases of emergency recovery. Please store this in a safe place as you will not see this again.
 
 <details>
   <summary><strong>Find the login URL if not using localhost</strong></summary><br />
@@ -125,23 +125,23 @@ infra grants add --user name@example.com --role cluster-admin kubernetes.example
 
 <details>
   <summary><strong>
-Supported roles/cluster roles</strong></summary><br />
+Supported Kubernetes cluster roles</strong></summary><br />
   
-Infra supports cluster roles and roles within your Kubernetes environment including custom ones. For simplicity, you can use cluster roles, and scope it to a particular namespace via Infra. 
+Infra supports any cluster roles within your Kubernetes environment, including custom ones. For simplicity, you can use cluster roles, and scope it to a particular namespace via Infra. 
   
 **Example applying a cluster role to a namespace:** 
   ```
   infra grants add --user name@example.com --role edit kubernetes.example-name.namespace
   ```
-**Default available Cluster roles within Kubernetes:**
+**Default cluster roles within Kubernetes:**
 - **cluster-admin** <br /><br />
-  Allows super-user access to perform any action on any resource. When 'cluster-admin' role is granted without specifying a namespace, it gives full control over every resource in the cluster and in all namespaces. When it is granted with a specified namespace, it gives full control over every resource in the namespace, including the namespace itself.<br />
+  Allows super-user access to perform any action on any resource. When the 'cluster-admin' role is granted without specifying a namespace, it gives full control over every resource in the cluster and in all namespaces. When it is granted with a specified namespace, it gives full control over every resource in the namespace, including the namespace itself.<br /><br />
 - **admin** <br /><br />
   Allows admin access, intended to be granted within a namespace.
-The admin role allows read/write access to most resources in the specified namespace, including the ability to create roles and role bindings within the namespace. This role does not allow write access to resource quota or to the namespace itself. This role also does not allow write access to Endpoints in clusters created using Kubernetes v1.22+. <br /><br />
+The admin role allows read/write access to most resources in the specified namespace, including the ability to create roles and role bindings within the namespace. This role does not allow write access to resource quota or to the namespace itself.<br /><br />
 - **edit** <br /><br />
   Allows read/write access to most objects in a namespace.
-This role does not allow viewing or modifying roles or role bindings. However, this role allows accessing Secrets and running Pods as any ServiceAccount in the namespace, so it can be used to gain the API access levels of any ServiceAccount in the namespace. This role also does not allow write access to Endpoints in clusters created using Kubernetes v1.22+. <br /><br />
+This role does not allow viewing or modifying roles or role bindings. However, this role allows accessing Secrets and running Pods as any ServiceAccount in the namespace, so it can be used to gain the API access levels of any ServiceAccount in the namespace.<br /><br />
 - **view** <br /><br />
   Allows read-only access to see most objects in a namespace. It does not allow viewing roles or role bindings.
 This role does not allow viewing Secrets, since reading the contents of Secrets enables access to ServiceAccount credentials in the namespace, which would allow API access as any ServiceAccount in the namespace (a form of privilege escalation).
@@ -154,7 +154,7 @@ This role does not allow viewing Secrets, since reading the contents of Secrets 
 infra login 
 ``` 
 
-Select the Infra instance, and login with username / password
+Select the Infra instance, and login with username/password.
 
 ### 9. Use your Kubernetes clusters
 
@@ -181,10 +181,10 @@ See who has access to what via Infra:
 ```
 infra grants list
 
-Note: this requires the user to have either admin or view permissions to Infra. 
+Note: this requires the user to have the admin role within Infra. 
 
 An example to grant the permission:
-infra grants add --user name@example.com --role view infra 
+infra grants add --user name@example.com --role admin infra 
 ```
 </details>
 
