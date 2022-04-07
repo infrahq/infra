@@ -94,14 +94,23 @@ kubectl get ingress infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['
 
 ### 4. Connect your first Kubernetes cluster
 
-This connects the first Kubernetes cluster to the self-hosted Infra. You can connect the same Kubernetes cluster that Infra is self-hosted on. 
+In order to add connectors to Infra, you will need to generate an access key.
 
+> Using the Infra access key from 3 is _not_ recommended as it provides more privileges than is necessary for a connector and may pose a security risk.
+
+```bash
+infra keys add <keyName> connector
 ```
-infra destinations add kubernetes.example-name
-``` 
 
-Run the output helm command on the Kubernetes cluster you want to connect to Infra. 
+Once you have a connector access key, install Infra into your Kubernetes cluster.
 
+```bash
+helm upgrade --install infra-connector infrahq/infra --set connector.config.name=<clusterName> --set connector.config.server=<serverAddress> --set connector.config.accessKey=<accessKey>
+```
+
+> If the connector will live in the same cluster and namespace as the server, you can set `connector.config.server=localhost`.
+
+> You may also need to set `connector.config.skipTLSVerify=true` if the server is using a self-signed certificate.
 
 ### 5. Create the first local user 
 
