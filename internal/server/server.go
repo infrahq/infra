@@ -105,6 +105,7 @@ type Addrs struct {
 func New(options Options) (*Server, error) {
 	server := &Server{
 		options: options,
+		secrets: map[string]secrets.SecretStorage{},
 	}
 
 	if err := validate.Struct(options); err != nil {
@@ -117,7 +118,7 @@ func New(options Options) (*Server, error) {
 		return nil, fmt.Errorf("configure sentry: %w", err)
 	}
 
-	if err := server.importSecrets(); err != nil {
+	if err := importSecrets(options.Secrets, server.secrets); err != nil {
 		return nil, fmt.Errorf("secrets config: %w", err)
 	}
 

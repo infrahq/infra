@@ -193,18 +193,14 @@ func isABaseSecretStorageKind(s string) bool {
 	return false
 }
 
-func (s *Server) importSecrets() error {
-	if s.secrets == nil {
-		s.secrets = map[string]secrets.SecretStorage{}
-	}
-
+func importSecrets(cfg []SecretProvider, storage map[string]secrets.SecretStorage) error {
 	loadSecretConfig := func(secret SecretProvider) (err error) {
 		name := secret.Name
 		if len(name) == 0 {
 			name = secret.Kind
 		}
 
-		if _, found := s.secrets[name]; found {
+		if _, found := storage[name]; found {
 			return fmt.Errorf("duplicate secret configuration for %q, please provide a unique name for this secret configuration", name)
 		}
 
@@ -215,7 +211,7 @@ func (s *Server) importSecrets() error {
 				return fmt.Errorf("expected secret config to be VaultConfig, but was %t", secret.Config)
 			}
 
-			cfg.Token, err = secrets.GetSecret(cfg.Token, s.secrets)
+			cfg.Token, err = secrets.GetSecret(cfg.Token, storage)
 			if err != nil {
 				return err
 			}
@@ -225,19 +221,19 @@ func (s *Server) importSecrets() error {
 				return fmt.Errorf("creating vault provider: %w", err)
 			}
 
-			s.secrets[name] = vault
+			storage[name] = vault
 		case "awsssm":
 			cfg, ok := secret.Config.(secrets.AWSSSMConfig)
 			if !ok {
 				return fmt.Errorf("expected secret config to be AWSSSMConfig, but was %t", secret.Config)
 			}
 
-			cfg.AccessKeyID, err = secrets.GetSecret(cfg.AccessKeyID, s.secrets)
+			cfg.AccessKeyID, err = secrets.GetSecret(cfg.AccessKeyID, storage)
 			if err != nil {
 				return err
 			}
 
-			cfg.SecretAccessKey, err = secrets.GetSecret(cfg.SecretAccessKey, s.secrets)
+			cfg.SecretAccessKey, err = secrets.GetSecret(cfg.SecretAccessKey, storage)
 			if err != nil {
 				return err
 			}
@@ -247,19 +243,19 @@ func (s *Server) importSecrets() error {
 				return fmt.Errorf("creating aws ssm: %w", err)
 			}
 
-			s.secrets[name] = ssm
+			storage[name] = ssm
 		case "awssecretsmanager":
 			cfg, ok := secret.Config.(secrets.AWSSecretsManagerConfig)
 			if !ok {
 				return fmt.Errorf("expected secret config to be AWSSecretsManagerConfig, but was %t", secret.Config)
 			}
 
-			cfg.AccessKeyID, err = secrets.GetSecret(cfg.AccessKeyID, s.secrets)
+			cfg.AccessKeyID, err = secrets.GetSecret(cfg.AccessKeyID, storage)
 			if err != nil {
 				return err
 			}
 
-			cfg.SecretAccessKey, err = secrets.GetSecret(cfg.SecretAccessKey, s.secrets)
+			cfg.SecretAccessKey, err = secrets.GetSecret(cfg.SecretAccessKey, storage)
 			if err != nil {
 				return err
 			}
@@ -269,7 +265,7 @@ func (s *Server) importSecrets() error {
 				return fmt.Errorf("creating aws sm: %w", err)
 			}
 
-			s.secrets[name] = sm
+			storage[name] = sm
 		case "kubernetes":
 			cfg, ok := secret.Config.(secrets.KubernetesConfig)
 			if !ok {
@@ -281,7 +277,7 @@ func (s *Server) importSecrets() error {
 				return fmt.Errorf("creating k8s secret provider: %w", err)
 			}
 
-			s.secrets[name] = k8s
+			storage[name] = k8s
 		case "env":
 			cfg, ok := secret.Config.(secrets.GenericConfig)
 			if !ok {
@@ -289,7 +285,7 @@ func (s *Server) importSecrets() error {
 			}
 
 			f := secrets.NewEnvSecretProviderFromConfig(cfg)
-			s.secrets[name] = f
+			storage[name] = f
 		case "file":
 			cfg, ok := secret.Config.(secrets.FileConfig)
 			if !ok {
@@ -297,7 +293,7 @@ func (s *Server) importSecrets() error {
 			}
 
 			f := secrets.NewFileSecretProviderFromConfig(cfg)
-			s.secrets[name] = f
+			storage[name] = f
 		case "plaintext", "":
 			cfg, ok := secret.Config.(secrets.GenericConfig)
 			if !ok {
@@ -305,7 +301,7 @@ func (s *Server) importSecrets() error {
 			}
 
 			f := secrets.NewPlainSecretProviderFromConfig(cfg)
-			s.secrets[name] = f
+			storage[name] = f
 		default:
 			return fmt.Errorf("unknown secret provider type %q", secret.Kind)
 		}
@@ -314,7 +310,7 @@ func (s *Server) importSecrets() error {
 	}
 
 	// check all base types first
-	for _, secret := range s.options.Secrets {
+	for _, secret := range cfg {
 		if !isABaseSecretStorageKind(secret.Kind) {
 			continue
 		}
@@ -324,12 +320,12 @@ func (s *Server) importSecrets() error {
 		}
 	}
 
-	if err := s.loadDefaultSecretConfig(); err != nil {
+	if err := loadDefaultSecretConfig(storage); err != nil {
 		return err
 	}
 
 	// now load non-base types which might depend on them.
-	for _, secret := range s.options.Secrets {
+	for _, secret := range cfg {
 		if isABaseSecretStorageKind(secret.Kind) {
 			continue
 		}
@@ -344,24 +340,24 @@ func (s *Server) importSecrets() error {
 
 // loadDefaultSecretConfig loads configuration for types that should be available,
 // assuming the user didn't override the configuration for them.
-func (s *Server) loadDefaultSecretConfig() error {
+func loadDefaultSecretConfig(storage map[string]secrets.SecretStorage) error {
 	// set up the default supported types
-	if _, found := s.secrets["env"]; !found {
+	if _, found := storage["env"]; !found {
 		f := secrets.NewEnvSecretProviderFromConfig(secrets.GenericConfig{})
-		s.secrets["env"] = f
+		storage["env"] = f
 	}
 
-	if _, found := s.secrets["file"]; !found {
+	if _, found := storage["file"]; !found {
 		f := secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{})
-		s.secrets["file"] = f
+		storage["file"] = f
 	}
 
-	if _, found := s.secrets["plaintext"]; !found {
+	if _, found := storage["plaintext"]; !found {
 		f := secrets.NewPlainSecretProviderFromConfig(secrets.GenericConfig{})
-		s.secrets["plaintext"] = f
+		storage["plaintext"] = f
 	}
 
-	if _, found := s.secrets["kubernetes"]; !found {
+	if _, found := storage["kubernetes"]; !found {
 		// only setup k8s automatically if KUBERNETES_SERVICE_HOST is defined; ie, we are in the clustes.
 		if _, ok := os.LookupEnv("KUBERNETES_SERVICE_HOST"); ok {
 			k8s, err := secrets.NewKubernetesSecretProviderFromConfig(secrets.NewKubernetesConfig())
@@ -369,7 +365,7 @@ func (s *Server) loadDefaultSecretConfig() error {
 				return fmt.Errorf("creating k8s secret provider: %w", err)
 			}
 
-			s.secrets["kubernetes"] = k8s
+			storage["kubernetes"] = k8s
 		}
 	}
 
