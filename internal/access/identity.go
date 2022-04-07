@@ -29,7 +29,7 @@ func CurrentIdentity(c *gin.Context) *models.Identity {
 }
 
 func GetIdentity(c *gin.Context, id uid.ID) (*models.Identity, error) {
-	db, err := hasAuthorization(c, id, isIdentitySelf, models.InfraAdminRole, models.InfraConnectorRole)
+	db, err := hasAuthorization(c, id, isIdentitySelf, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func DeleteIdentity(c *gin.Context, id uid.ID) error {
 }
 
 func ListIdentities(c *gin.Context, email string, providerID uid.ID) ([]models.Identity, error) {
-	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole)
+	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole)
 	if err != nil {
 		return nil, err
 	}

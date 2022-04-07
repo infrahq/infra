@@ -22,7 +22,7 @@ func currentAccessKey(c *gin.Context) *models.AccessKey {
 }
 
 func ListAccessKeys(c *gin.Context, identityID uid.ID, name string) ([]models.AccessKey, error) {
-	db, err := RequireInfraRole(c, models.InfraAdminRole)
+	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole)
 	if err != nil {
 		return nil, err
 	}
