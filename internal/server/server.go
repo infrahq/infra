@@ -322,78 +322,89 @@ func (s *Server) healthHandler(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (s *Server) ui(router *gin.Engine) error {
-	if s.options.EnableUI {
-		if s.options.UIProxyURL != "" {
-			remote, err := urlx.Parse(s.options.UIProxyURL)
-			if err != nil {
-				return err
-			}
-
-			proxy := httputil.NewSingleHostReverseProxy(remote)
-			proxy.Director = func(req *http.Request) {
-				req.Host = remote.Host
-				req.URL.Scheme = remote.Scheme
-				req.URL.Host = remote.Host
-			}
-
-			router.Use(func(c *gin.Context) {
-				proxy.ServeHTTP(c.Writer, c.Request)
-			})
-		} else {
-			assetFS := &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo}
-			staticFS := &StaticFileSystem{base: assetFS}
-			router.Use(gzip.Gzip(gzip.DefaultCompression), static.Serve("/", staticFS))
-
-			// 404
-			router.NoRoute(func(c *gin.Context) {
-				if strings.HasPrefix(c.Request.URL.Path, "/v1") {
-					c.Status(404)
-					c.Writer.WriteHeaderNow()
-					return
-				}
-
-				c.Status(http.StatusNotFound)
-				buf, err := assetFS.Asset("404.html")
-				if err != nil {
-					logging.S.Error(err)
-				}
-
-				_, err = c.Writer.Write(buf)
-				if err != nil {
-					logging.S.Error(err)
-				}
-
-				c.Status(http.StatusNotFound)
-			})
-		}
+func (s *Server) registerUIRoutes(router *gin.Engine) error {
+	if !s.options.EnableUI {
+		return nil
 	}
+
+	// Proxy requests to an upstream ui server
+	if s.options.UIProxyURL != "" {
+		remote, err := urlx.Parse(s.options.UIProxyURL)
+		if err != nil {
+			return fmt.Errorf("failed to parse UI proxy URL: %w", err)
+		}
+
+		proxy := httputil.NewSingleHostReverseProxy(remote)
+		proxy.Director = func(req *http.Request) {
+			req.Host = remote.Host
+			req.URL.Scheme = remote.Scheme
+			req.URL.Host = remote.Host
+		}
+
+		router.Use(func(c *gin.Context) {
+			proxy.ServeHTTP(c.Writer, c.Request)
+		})
+
+		return nil
+	}
+
+	assetFS := &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo}
+	staticFS := &StaticFileSystem{base: assetFS}
+	router.Use(gzip.Gzip(gzip.DefaultCompression), static.Serve("/", staticFS))
+
+	// 404
+	router.NoRoute(func(c *gin.Context) {
+		if strings.HasPrefix(c.Request.URL.Path, "/v1") {
+			c.Status(404)
+			c.Writer.WriteHeaderNow()
+			return
+		}
+
+		c.Status(http.StatusNotFound)
+		buf, err := assetFS.Asset("404.html")
+		if err != nil {
+			logging.S.Error(err)
+		}
+
+		_, err = c.Writer.Write(buf)
+		if err != nil {
+			logging.S.Error(err)
+		}
+	})
 
 	return nil
 }
 
-func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) *gin.Engine {
+func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) (*gin.Engine, error) {
 	router := gin.New()
 
 	router.Use(gin.Recovery())
-	router.GET("/.well-known/jwks.json", s.wellKnownJWKsHandler)
 	router.GET("/healthz", s.healthHandler)
+
+	router.Use(
+		logging.Middleware(),
+		RequestTimeoutMiddleware(),
+	)
+	router.GET("/.well-known/jwks.json", s.wellKnownJWKsHandler)
 
 	a := API{
 		t:      s.tel,
 		server: s,
 	}
-	a.registerRoutes(router, promRegistry)
+	a.registerRoutes(router.Group("/"), promRegistry)
 
-	return router
+	if err := s.registerUIRoutes(router); err != nil {
+		return nil, err
+	}
+
+	return router, nil
 }
 
 func (s *Server) listen() error {
 	ginutil.SetMode()
 	promRegistry := SetupMetrics(s.db)
-	router := s.GenerateRoutes(promRegistry)
-
-	if err := s.ui(router); err != nil {
+	router, err := s.GenerateRoutes(promRegistry)
+	if err != nil {
 		return err
 	}
 
@@ -403,7 +414,6 @@ func (s *Server) listen() error {
 		ErrorLog: logging.StandardErrorLog(),
 	}
 
-	var err error
 	s.Addrs.Metrics, err = s.setupServer(metricsServer)
 	if err != nil {
 		return err
