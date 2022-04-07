@@ -15,7 +15,6 @@ type IdentityKind string
 const (
 	UserKind    IdentityKind = "user"
 	MachineKind IdentityKind = "machine"
-	GroupKind   IdentityKind = "group"
 )
 
 func (ik IdentityKind) String() string {

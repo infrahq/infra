@@ -76,7 +76,7 @@ $ infra login --provider NAME
 
 			if len(args) == 1 {
 				if options.Server != "" {
-					fmt.Fprintf(os.Stderr, CmdOptionOverlapMsg, "Server", "--server", args[0])
+					fmt.Fprintf(os.Stderr, "Server is specified twice. Ignoring flag [--server] and proceeding with %s", options.Server)
 				}
 				options.Server = args[0]
 			}

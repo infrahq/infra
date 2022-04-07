@@ -20,9 +20,8 @@ var (
 
 // User facing messages: to let user know the state they are in
 var (
-	CmdOptionOverlapMsg = "%s is specified twice. Ignoring %s and proceeding with '%s'"
-	NoProviderFoundMsg  = "No provider found with name %s"
-	NoIdentityFoundMsg  = "No identity found with name %s"
+	NoProviderFoundMsg = "No provider found with name %s"
+	NoIdentityFoundMsg = "No identity found with name %s"
 )
 
 // User facing constant errors: to let user know why their command failed. Not meant for a stack trace, but a readable output of the reason for failure.

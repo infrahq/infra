@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
-	"os"
+	"net/mail"
+	"regexp"
 
 	"github.com/spf13/cobra"
 
@@ -14,74 +14,50 @@ import (
 )
 
 type grantsCmdOptionsNew struct {
-	Identity string `mapstructure:"identity"`
-	IsGroup  bool   `mapstructure:"group"`
-	Role     string `mapstructure:"role"`
-	Provider string `mapstructure:"provider"`
-	Resource string `mapstructure:"resource"`
+	Identity    string `mapstructure:"identity"`
+	Destination string `mapstructure:"destination"`
+	IsGroup     bool   `mapstructure:"group"`
+	Role        string `mapstructure:"role"`
+	Provider    string `mapstructure:"provider"`
 }
 
 func newGrantAddCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "add [IDENTITY]",
-		Short: "Grant access to a resource",
-		Long: `Grant one or more identities an access level of role to a resource. 
+		Use:   "add IDENTITY DESTINATION",
+		Short: "Grant access to a destination",
+		Long: `Grant one or more identities access to a destination. 
 
-[--resource] is required:
-  # Grant identity access to a cluster, namespace, or infra
-  $ infra grants add johndoe@acme.com -d kubernetes.prod
-  $ infra grants add johndoe@acme.com -d kubernetes.production.default
-  $ infra grants add johndoe@acme.com -d infra
+IDENTITY is one that is being given access.
+DESTINATION is what the identity will gain access to. 
 
-[IDENTITY] or [--identity] is required; [IDENTITY] will take precedence
-  # Grant user access 
-  $ infra grants add johndoe@acme.com ...
-  $ infra grants add -i johndoe@acme.com ...
+Use [--role] if further fine grained permissions are needed. If not specified, user will gain the permission 'connect' to the destination. 
+$ infra grants add janedoe -r admin ...
 
-  # Grant machine access
-  $ infra grants add janeDoeMachine ...
+Use flag [-g] if identity is of type group. 
+$ infra grants add dev -g ...
 
-[--group] is required when granting access to a group of identities
-  $ infra grants add devAdmins@acme.com -g ...
-  $ infra grants add devMachines -g ...
-
-[--provider] is required if identity is of type 'user' or 'group', and more than two identity providers are connected
-  $ infra grants add johndoe@acme.com -p oktaDev ...
-  $ infra grants add devGroup -g -p oktaProd ...
-
-[--role] is optional; use if further fine grained permissions are needed
-  $ infra grants add janedoe -r admin ...
+Use flag arg [-p] if more than one identity providers are connected. 
+$ infra grants add johndoe@acme.com -p oktaDev ...
 
 For full documentation on grants, see  https://github.com/infrahq/infra/blob/main/docs/using-infra/grants.md 
 `,
-		Args: cobra.MaximumNArgs(1),
+		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var options grantsCmdOptionsNew
 			if err := parseOptions(cmd, &options, "INFRA_ACCESS"); err != nil {
 				return err
 			}
 
-			if len(args) == 1 {
-				if options.Identity != "" {
-					fmt.Fprintf(os.Stderr, CmdOptionOverlapMsg, "Identity", "--identity", args[0])
-				}
-				options.Identity = args[0]
-			} else if len(args) == 0 && options.Identity == "" {
-				return errors.New("IDENTITY is a required field")
-			}
+			options.Identity = args[0]
+			options.Destination = args[1]
+
 			return addGrant(options)
 		},
 	}
-	cmd.Flags().StringP("resource", "r", "", "[required] Name of resource that identity be given access to")
-	cmd.Flags().BoolP("group", "g", false, "Marks identity as type 'group'")
-	cmd.Flags().StringP("identity", "i", "", "Name of identity")
-	cmd.Flags().StringP("role", "r", models.BasePermissionConnect, "Type of access that identity will be given")
-	cmd.Flags().StringP("provider", "p", "", "Name of identity provider")
 
-	cmd.Flags().SortFlags = false
-	if err := cmd.MarkFlagRequired("resource"); err != nil {
-		panic("cannot mark flag --resource as required")
-	}
+	cmd.Flags().BoolP("group", "g", false, "Marks identity as type 'group'")
+	cmd.Flags().String("role", models.BasePermissionConnect, "Type of access that identity will be given")
+	cmd.Flags().String("provider", "", "Name of identity provider")
 	return cmd
 }
 
@@ -100,26 +76,21 @@ func addGrant(cmdOptions grantsCmdOptionsNew) error {
 		return err
 	}
 
-	var identityKind models.IdentityKind
-	if cmdOptions.IsGroup {
-		identityKind = models.GroupKind
-	} else {
-		identityKind, err = checkUserOrMachine(cmdOptions.Identity)
-		if err != nil {
-			return err
-		}
+	identityType, err := getIdentityType(cmdOptions.Identity, cmdOptions.IsGroup)
+	if err != nil {
+		return err
 	}
 
 	var provider api.Provider
-	switch identityKind {
-	case models.GroupKind, models.UserKind:
+	switch identityType {
+	case groupType, userType:
 		if cmdOptions.Provider == "" {
 			multipleProvidersConnected, err := multipleProvidersConnected(client)
 			if err != nil {
 				return err
 			}
 			if multipleProvidersConnected {
-				return fmt.Errorf("More than one provider is connected to this server. For %s identity type, please specify provider with -p or --provider.", identityKind.String())
+				return fmt.Errorf("More than one provider is connected to this server. Please specify one with -p or --provider.")
 			}
 		} else {
 			providers, err := client.ListProviders(cmdOptions.Provider)
@@ -135,7 +106,7 @@ func addGrant(cmdOptions grantsCmdOptionsNew) error {
 
 			provider = providers[0]
 		}
-	case models.MachineKind:
+	case machineType:
 		if cmdOptions.Provider != "" {
 			logging.S.Debugf("machine must be a local identity; overwriting --provider with %s", models.InternalInfraProviderName)
 		}
@@ -154,8 +125,8 @@ func addGrant(cmdOptions grantsCmdOptionsNew) error {
 	}
 
 	var id uid.PolymorphicID
-	switch identityKind {
-	case models.GroupKind:
+	switch identityType {
+	case groupType:
 		groups, err := client.ListGroups(api.ListGroupsRequest{Name: cmdOptions.Identity, ProviderID: provider.ID})
 		if err != nil {
 			return err
@@ -163,21 +134,13 @@ func addGrant(cmdOptions grantsCmdOptionsNew) error {
 
 		switch len(groups) {
 		case 0:
-			newGroup, err := client.CreateGroup(&api.CreateGroupRequest{
-				Name:       cmdOptions.Identity,
-				ProviderID: provider.ID,
-			})
-			if err != nil {
-				return err
-			}
-
-			id = uid.NewGroupPolymorphicID(newGroup.ID)
+			return fmt.Errorf("No group of name %s exists in provider %s", cmdOptions.Identity, provider.ID)
 		case 1:
 			id = uid.NewGroupPolymorphicID(groups[0].ID)
 		case 2:
 			panic(fmt.Sprintf(DuplicateEntryPanic, "group", cmdOptions.Identity))
 		}
-	case models.UserKind, models.MachineKind:
+	case userType, machineType:
 		identities, err := client.ListIdentities(api.ListIdentitiesRequest{Name: cmdOptions.Identity, ProviderID: provider.ID})
 		if err != nil {
 			return err
@@ -185,15 +148,7 @@ func addGrant(cmdOptions grantsCmdOptionsNew) error {
 
 		switch len(identities) {
 		case 0:
-			response, err := client.CreateIdentity(&api.CreateIdentityRequest{
-				Name:       cmdOptions.Identity,
-				Kind:       identityKind.String(),
-				ProviderID: provider.ID,
-			})
-			if err != nil {
-				return err
-			}
-			id = uid.NewIdentityPolymorphicID(response.ID)
+			return fmt.Errorf("No identity of name %s exists in provider %s", cmdOptions.Identity, provider.ID)
 		case 1:
 			id = uid.NewIdentityPolymorphicID(identities[0].ID)
 		case 2:
@@ -206,7 +161,7 @@ func addGrant(cmdOptions grantsCmdOptionsNew) error {
 	_, err = client.CreateGrant(&api.CreateGrantRequest{
 		Subject:   id,
 		Privilege: cmdOptions.Role,
-		Resource:  cmdOptions.Resource,
+		Resource:  cmdOptions.Destination,
 	})
 	if err != nil {
 		return err
@@ -215,4 +170,42 @@ func addGrant(cmdOptions grantsCmdOptionsNew) error {
 	fmt.Println("Access granted!")
 
 	return nil
+}
+
+type identityType int8
+
+const (
+	userType identityType = iota
+	machineType
+	groupType
+)
+
+// Unless explicitly specified as a group, identity will be a user if email, machine if not.
+func getIdentityType(s string, isGroup bool) (identityType, error) {
+	if isGroup {
+		return groupType, nil
+	}
+
+	maybeName := regexp.MustCompile("^[a-zA-Z0-9-_./]+$")
+	if maybeName.MatchString(s) {
+		nameMinLength := 1
+		nameMaxLength := 256
+
+		if len(s) < nameMinLength {
+			return machineType, fmt.Errorf("invalid name: does not meet minimum length requirement of %d characters", nameMinLength)
+		}
+
+		if len(s) > nameMaxLength {
+			return machineType, fmt.Errorf("invalid name: exceed maximum length requirement of %d characters", nameMaxLength)
+		}
+
+		return machineType, nil
+	}
+
+	_, err := mail.ParseAddress(s)
+	if err != nil {
+		return userType, fmt.Errorf("invalid email: %q", s)
+	}
+
+	return userType, nil
 }
