@@ -1,7 +1,6 @@
 package access
 
 import (
-	"fmt"
 	"net/http/httptest"
 	"os"
 	"testing"
@@ -394,18 +393,6 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			verifyFunc(t, u, sess, err)
 
 			if err == nil {
-				rows, err := db.Raw("SELECT sql FROM sqlite_schema WHERE name = 'identities_groups'; ").Rows()
-				assert.NilError(t, err)
-				cols, err := rows.Columns()
-				assert.NilError(t, err)
-				fmt.Println(cols)
-				for rows.Next() {
-					dst := ""
-					err = rows.Scan(&dst)
-					assert.NilError(t, err)
-					fmt.Println(dst)
-				}
-
 				// make sure the associations are still set when you reload the object.
 				u, err = data.GetIdentity(db.Preload("Groups"), data.ByID(u.ID))
 				assert.NilError(t, err)
