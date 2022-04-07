@@ -54,7 +54,11 @@ func newDestinationsListCmd() *cobra.Command {
 				})
 			}
 
-			printTable(rows)
+			if len(rows) > 0 {
+				printTable(rows)
+			} else {
+				fmt.Println("No destinations found")
+			}
 
 			return nil
 		},

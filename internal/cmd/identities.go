@@ -165,7 +165,11 @@ func newIdentitiesListCmd() *cobra.Command {
 				})
 			}
 
-			printTable(rows)
+			if len(rows) > 0 {
+				printTable(rows)
+			} else {
+				fmt.Println("No identities found")
+			}
 
 			return nil
 		},
