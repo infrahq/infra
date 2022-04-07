@@ -73,7 +73,7 @@ type Options struct {
 	InitialRootCAPublicKey      string `mapstructure:"initialRootCAPublicKey"`
 	FullKeyRotationInDays       int    `mapstructure:"fullKeyRotationInDays"` // 365 default
 
-	Addr ListenerOptions `mapstructure:"addr"`
+	Addr ListenerOptions
 }
 
 type ListenerOptions struct {
