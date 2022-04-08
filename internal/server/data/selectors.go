@@ -103,9 +103,9 @@ func ByIdentityID(identityID uid.ID) SelectorFunc {
 	}
 }
 
-func ByIdentityKind(kind models.IdentityKind) SelectorFunc {
+func ByKind(kind models.IdentityKind) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("identity_kind = ?", kind)
+		return db.Where("kind = ?", kind)
 	}
 }
 

@@ -247,7 +247,7 @@ func migrate(db *gorm.DB) error {
 				return nil
 			},
 			Rollback: func(tx *gorm.DB) error {
-				return DeleteIdentities(db, ByIdentityKind(models.MachineKind))
+				return DeleteIdentities(db, ByKind(models.MachineKind))
 			},
 		},
 		// #1284: migrate identity grants
