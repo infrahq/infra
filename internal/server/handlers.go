@@ -268,11 +268,7 @@ func (a *API) UpdateProvider(c *gin.Context, r *api.UpdateProviderRequest) (*api
 }
 
 func (a *API) DeleteProvider(c *gin.Context, r *api.Resource) error {
-	if err := access.DeleteProvider(c, r.ID); err != nil {
-		return err
-	}
-
-	return nil
+	return access.DeleteProvider(c, r.ID)
 }
 
 func (a *API) ListDestinations(c *gin.Context, r *api.ListDestinationsRequest) ([]api.Destination, error) {
@@ -343,11 +339,7 @@ func (a *API) UpdateDestination(c *gin.Context, r *api.UpdateDestinationRequest)
 }
 
 func (a *API) DeleteDestination(c *gin.Context, r *api.Resource) error {
-	if err := access.DeleteDestination(c, r.ID); err != nil {
-		return err
-	}
-
-	return nil
+	return access.DeleteDestination(c, r.ID)
 }
 
 func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateTokenResponse, error) {
@@ -391,11 +383,7 @@ func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) ([]ap
 }
 
 func (a *API) DeleteAccessKey(c *gin.Context, r *api.Resource) error {
-	if err := access.DeleteAccessKey(c, r.ID); err != nil {
-		return err
-	}
-
-	return nil
+	return access.DeleteAccessKey(c, r.ID)
 }
 
 func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*api.CreateAccessKeyResponse, error) {
@@ -462,11 +450,7 @@ func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.Grant
 }
 
 func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) error {
-	if err := access.DeleteGrant(c, r.ID); err != nil {
-		return err
-	}
-
-	return nil
+	return access.DeleteGrant(c, r.ID)
 }
 
 func (a *API) SetupRequired(c *gin.Context, _ *api.EmptyRequest) (*api.SetupRequiredResponse, error) {
