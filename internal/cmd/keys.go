@@ -43,7 +43,7 @@ func newKeysAddCmd() *cobra.Command {
 		Use:   "add ACCESS_KEY_NAME MACHINE_NAME",
 		Short: "Create an access key for authentication",
 		Example: `
-# Add an access key for the machine "bot" called "first-key" that expires in 12 hours and must be used every hour to remain valid
+# Create an access key for the machine "bot" called "first-key" that expires in 12 hours and must be used every hour to remain valid
 infra keys add first-key bot --ttl=12h --extension-deadline=1h
 `,
 		Args: cobra.ExactArgs(2),
