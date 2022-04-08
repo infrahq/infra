@@ -77,7 +77,7 @@ This will output the admin access key which you can use to login in cases of eme
 
 In order to add connectors to Infra, you will need to set three pieces of information:
 
-* `connector.config.name` is a name you give to identity this cluster. For the purposes of this Quickstart, the name will be `example-name`
+* `connector.config.name` is a name you give to identify this cluster. For the purposes of this Quickstart, the name will be `example-name`
 * `connector.config.server` is the value in the previous step used to login to Infra
 * `connector.config.accessKey` is the access key the connector will use to communicate with the server. You can use an existing access key or generate a new access key with `infra keys add KEY_NAME connector`
 
