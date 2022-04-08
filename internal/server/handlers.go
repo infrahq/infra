@@ -88,7 +88,7 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 		resp.OneTimePassword = oneTimePassword
 	}
 
-	a.t.User(user)
+	a.t.User(identity)
 
 	return resp, nil
 }

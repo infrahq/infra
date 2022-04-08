@@ -4,10 +4,10 @@ import (
 	"errors"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"gopkg.in/segmentio/analytics-go.v3"
 	"gorm.io/gorm"
 
-	"github.com/gin-gonic/gin"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
@@ -113,20 +113,19 @@ func (t *Telemetry) Event(c *gin.Context, event string, properties ...map[string
 	if t == nil {
 		return
 	}
-	var userIDStr string
-	if c != nil {
-		if user, ok := c.Get("user"); ok {
-			if u, ok := user.(*models.User); ok {
-				userIDStr = u.ID.String()
-			}
-		}
-	}
 	track := analytics.Track{
 		AnonymousId: "system",
 		Timestamp:   time.Now().UTC(),
 		Event:       "server:" + event,
-		UserId:      userIDStr,
 		Properties:  analytics.Properties{},
+	}
+	if c != nil {
+		if user, ok := c.Get("identity"); ok {
+			if u, ok := user.(*models.Identity); ok {
+				track.UserId = u.ID.String()
+				track.Properties["type"] = u.Kind.String()
+			}
+		}
 	}
 
 	if len(properties) > 0 {
@@ -140,7 +139,7 @@ func (t *Telemetry) Event(c *gin.Context, event string, properties ...map[string
 	}
 }
 
-func (t *Telemetry) User(user *models.User) {
+func (t *Telemetry) User(user *models.Identity) {
 	if t == nil {
 		return
 	}
@@ -148,7 +147,7 @@ func (t *Telemetry) User(user *models.User) {
 		UserId:    user.ID.String(),
 		Timestamp: time.Now().UTC(),
 		Traits: analytics.Traits{
-			"userType": user.Kind,
+			"type": user.Kind,
 		},
 	})
 	if err != nil {
