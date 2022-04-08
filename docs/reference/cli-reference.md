@@ -193,33 +193,36 @@ infra grants list [DESTINATION] [flags]
 
 Grant access to a destination
 
+### Synopsis
+
+Grant one or more identities access to a destination. 
+
+IDENTITY is one that is being given access.
+DESTINATION is what the identity will gain access to. 
+
+Use [--role] if further fine grained permissions are needed. If not specified, user will gain the permission 'connect' to the destination. 
+$ infra grants add ... -role admin ...
+
+Use [--group] or [-g] if identity is of type group. 
+$ infra grants add devGroup -group ...
+$ infra grants add devGroup -g ...
+
+Use [--provider] if more than one identity providers are connected. 
+$ infra grants add johndoe@acme.com --provider oktaDev ...
+
+For full documentation on grants, see  https://github.com/infrahq/infra/blob/main/docs/using-infra/grants.md 
+
+
 ```
-infra grants add DESTINATION [flags]
-```
-
-### Examples
-
-```
-
-# Grant user admin access to a cluster
-$ infra grants add -u suzie@acme.com -r admin kubernetes.production
-
-# Grant group admin access to a namespace
-$ infra grants add -g Engineering -r admin kubernetes.production.default
-
-# Grant user admin access to infra itself
-$ infra grants add -u admin@acme.com -r admin infra
-
+infra grants add IDENTITY DESTINATION [flags]
 ```
 
 ### Options
 
 ```
-  -g, --group string      Group to grant access to
-  -m, --machine string    Machine to grant access to
-  -p, --provider string   Provider from which to grant user access to
-  -r, --role string       Role to grant
-  -u, --user string       User to grant access to
+  -g, --group             Marks identity as type 'group'
+      --provider string   Name of identity provider
+      --role string       Type of access that identity will be given (default "connect")
 ```
 
 ### Options inherited from parent commands
