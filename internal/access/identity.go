@@ -47,6 +47,15 @@ func CreateIdentity(c *gin.Context, identity *models.Identity) error {
 }
 
 func DeleteIdentity(c *gin.Context, id uid.ID) error {
+	self, err := isIdentitySelf(c, id)
+	if err != nil {
+		return err
+	}
+
+	if self {
+		return fmt.Errorf("cannot delete self: %w", internal.ErrForbidden)
+	}
+
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err

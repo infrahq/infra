@@ -15,6 +15,9 @@ type IdentityKind string
 const (
 	UserKind    IdentityKind = "user"
 	MachineKind IdentityKind = "machine"
+
+	InternalInfraAdminIdentityName     = "admin"
+	InternalInfraConnectorIdentityName = "connector"
 )
 
 func (ik IdentityKind) String() string {
