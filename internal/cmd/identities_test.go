@@ -216,12 +216,4 @@ func TestIdentities(t *testing.T) {
 
 		assert.Equal(t, len(*modifiedIdentities), 1)
 	})
-
-	t.Run("user cannot delete the currently active identity", func(t *testing.T) {
-		setup(t)
-		cmd := newIdentitiesRemoveCmd()
-		cmd.SetArgs([]string{"self@example.com"})
-		err := cmd.Execute()
-		assert.ErrorContains(t, err, "users cannot delete themselves")
-	})
 }

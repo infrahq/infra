@@ -24,6 +24,30 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+func setupServer(t *testing.T) *Server {
+	db := setupDB(t)
+
+	s := &Server{db: db}
+
+	err := s.setupInternalInfraIdentityProvider()
+	assert.NilError(t, err)
+
+	internalIdentities := map[string]string{
+		models.InternalInfraAdminIdentityName:     models.InfraAdminRole,
+		models.InternalInfraConnectorIdentityName: models.InfraConnectorRole,
+	}
+
+	for name, role := range internalIdentities {
+		_, err = s.setupInternalInfraIdentity(name, role)
+		assert.NilError(t, err)
+	}
+
+	err = s.importSecrets()
+	assert.NilError(t, err)
+
+	return s
+}
+
 func setupLogging(t *testing.T) {
 	origL := logging.L
 	logging.L = zaptest.NewLogger(t)
@@ -777,36 +801,26 @@ func TestLoadConfigUpdate(t *testing.T) {
 }
 
 func TestImportAccessKeys(t *testing.T) {
-	db := setupDB(t)
-
-	s := Server{db: db}
+	s := setupServer(t)
 
 	s.options = Options{
 		AdminAccessKey: "BlgpvURSGF.NdcemBdzxLTGIcjPXwPoZNrb",
 		AccessKey:      "tuogTmCFSk.FzoWHhNonnRztyRChPUiMqDx",
 	}
 
-	err := s.importSecrets()
-	assert.NilError(t, err)
-
-	err = s.importAccessKeys()
+	err := s.importAccessKeys()
 	assert.NilError(t, err)
 }
 
 func TestImportAccessKeysUpdate(t *testing.T) {
-	db := setupDB(t)
-
-	s := Server{db: db}
+	s := setupServer(t)
 
 	s.options = Options{
 		AdminAccessKey: "BlgpvURSGF.NdcemBdzxLTGIcjPXwPoZNrb",
 		AccessKey:      "tuogTmCFSk.FzoWHhNonnRztyRChPUiMqDx",
 	}
 
-	err := s.importSecrets()
-	assert.NilError(t, err)
-
-	err = s.importAccessKeys()
+	err := s.importAccessKeys()
 	assert.NilError(t, err)
 
 	s.options = Options{
