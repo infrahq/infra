@@ -3,7 +3,6 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -66,10 +65,6 @@ func newGrantsListCmd() *cobra.Command {
 
 			var rows []row
 			for _, g := range grants {
-				if strings.HasPrefix(g.Resource, "infra") {
-					continue
-				}
-
 				identity, err := subjectNameFromGrant(client, g)
 				if err != nil {
 					return err
