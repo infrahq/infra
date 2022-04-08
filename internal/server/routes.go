@@ -110,8 +110,9 @@ func (a *API) registerRoutes(router *gin.RouterGroup, promRegistry prometheus.Re
 
 func get[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) {
 	register("GET", r.BasePath(), path, handler)
-	eventName := fullPath(r, path)
+	fullPathStr := fullPath(r, path)
 	r.GET(path, func(c *gin.Context) {
+		c.Set("path", fullPathStr)
 		req := new(Req)
 		if err := bind(c, req); err != nil {
 			a.sendAPIError(c, err)
@@ -124,7 +125,7 @@ func get[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResHa
 			return
 		}
 
-		a.t.Event(c, eventName, Properties{"method": "get"})
+		a.t.Event(c, fullPathStr, Properties{"method": "get"})
 
 		c.JSON(http.StatusOK, resp)
 	})
@@ -132,9 +133,10 @@ func get[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResHa
 
 func post[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) {
 	register("POST", r.BasePath(), path, handler)
-	eventName := fullPath(r, path)
+	fullPathStr := fullPath(r, path)
 
 	r.POST(path, func(c *gin.Context) {
+		c.Set("path", fullPathStr)
 		req := new(Req)
 		if err := bind(c, req); err != nil {
 			a.sendAPIError(c, err)
@@ -147,7 +149,7 @@ func post[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResH
 			return
 		}
 
-		a.t.Event(c, eventName, Properties{"method": "post"})
+		a.t.Event(c, fullPathStr, Properties{"method": "post"})
 
 		c.JSON(http.StatusCreated, resp)
 	})
@@ -156,9 +158,10 @@ func post[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResH
 func put[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) {
 	register("PUT", r.BasePath(), path, handler)
 
-	eventName := fullPath(r, path)
+	fullPathStr := fullPath(r, path)
 
 	r.PUT(path, func(c *gin.Context) {
+		c.Set("path", fullPathStr)
 		req := new(Req)
 		if err := bind(c, req); err != nil {
 			a.sendAPIError(c, err)
@@ -171,7 +174,7 @@ func put[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResHa
 			return
 		}
 
-		a.t.Event(c, eventName, Properties{"method": "put"})
+		a.t.Event(c, fullPathStr, Properties{"method": "put"})
 
 		c.JSON(http.StatusOK, resp)
 	})
@@ -180,9 +183,10 @@ func put[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResHa
 func delete[Req any](a *API, r *gin.RouterGroup, path string, handler ReqHandlerFunc[Req]) {
 	registerReq("DELETE", r.BasePath(), path, handler)
 
-	eventName := fullPath(r, path)
+	fullPathStr := fullPath(r, path)
 
 	r.DELETE(path, func(c *gin.Context) {
+		c.Set("path", fullPathStr)
 		req := new(Req)
 		if err := bind(c, req); err != nil {
 			a.sendAPIError(c, err)
@@ -195,7 +199,7 @@ func delete[Req any](a *API, r *gin.RouterGroup, path string, handler ReqHandler
 			return
 		}
 
-		a.t.Event(c, eventName, Properties{"method": "delete"})
+		a.t.Event(c, fullPathStr, Properties{"method": "delete"})
 
 		c.Status(http.StatusNoContent)
 		c.Writer.WriteHeaderNow()
