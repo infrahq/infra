@@ -221,7 +221,7 @@ func writeOpenAPISpec(spec openapi3.T, out io.Writer) error {
 		Title:       "Infra API",
 		Version:     internal.Version,
 		Description: "Infra API",
-		License:     &openapi3.License{Name: "Apache 2.0", URL: "https://www.apache.org/licenses/LICENSE-2.0.html"},
+		License:     &openapi3.License{Name: "Elastic License v2.0", URL: "https://www.elastic.co/licensing/elastic-license"},
 	}
 	spec.Servers = []*openapi3.Server{
 		{URL: "https://api.infrahq.com"},
