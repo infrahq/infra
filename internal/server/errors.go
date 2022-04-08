@@ -66,10 +66,12 @@ func (a *API) sendAPIError(c *gin.Context, err error) {
 		logging.WrappedSugarLogger(c).Errorw(err.Error(), "statusCode", resp.Code)
 	}
 
-	a.t.Event(c, "error", Properties{
-		"code": resp.Code,
-		"path": c.GetString("path"),
-	})
+	if resp.Code >= 500 {
+		a.t.Event(c, "error", Properties{
+			"code": resp.Code,
+			"path": c.GetString("path"),
+		})
+	}
 
 	c.JSON(int(resp.Code), resp)
 	c.Abort()
