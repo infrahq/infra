@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -21,6 +22,14 @@ import (
 	"github.com/infrahq/infra/internal/connector"
 	"github.com/infrahq/infra/internal/logging"
 )
+
+// Run the main CLI command with the given args. The args should not contain
+// the name of the binary (ex: os.Args[1:]).
+func Run(ctx context.Context, args ...string) error {
+	cmd := NewRootCmd()
+	cmd.SetArgs(args)
+	return cmd.ExecuteContext(ctx)
+}
 
 func mustBeLoggedIn() error {
 	config, err := currentHostConfig()
@@ -263,7 +272,7 @@ func newConnectorCmd() *cobra.Command {
 
 			options.TLSCache = tlsCache
 
-			return connector.Run(options)
+			return connector.Run(cmd.Context(), options)
 		},
 	}
 

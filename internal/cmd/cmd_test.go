@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -130,12 +131,9 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 	}
 
 	t.Run("UseClusterWithoutPrefix", func(t *testing.T) {
-		_ = setup(t)
+		setup(t)
 
-		useCmd := newUseCmd()
-		useCmd.SetArgs([]string{"cluster"})
-
-		err := useCmd.Execute()
+		err := Run(context.Background(), "use", "cluster")
 		assert.NilError(t, err)
 
 		kubeconfig, err := clientConfig().RawConfig()
@@ -148,12 +146,9 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 	})
 
 	t.Run("UseClusterWithPrefix", func(t *testing.T) {
-		_ = setup(t)
+		setup(t)
 
-		useCmd := newUseCmd()
-		useCmd.SetArgs([]string{"kubernetes.cluster"})
-
-		err := useCmd.Execute()
+		err := Run(context.Background(), "use", "kubernetes.cluster")
 		assert.NilError(t, err)
 
 		kubeconfig, err := clientConfig().RawConfig()
@@ -166,12 +161,9 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 	})
 
 	t.Run("UseNamespaceWithoutPrefix", func(t *testing.T) {
-		_ = setup(t)
+		setup(t)
 
-		useCmd := newUseCmd()
-		useCmd.SetArgs([]string{"cluster.namespace"})
-
-		err := useCmd.Execute()
+		err := Run(context.Background(), "use", "cluster.namespace")
 		assert.NilError(t, err)
 
 		kubeconfig, err := clientConfig().RawConfig()
@@ -184,12 +176,9 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 	})
 
 	t.Run("UseNamespaceWithPrefix", func(t *testing.T) {
-		_ = setup(t)
+		setup(t)
 
-		useCmd := newUseCmd()
-		useCmd.SetArgs([]string{"kubernetes.cluster.namespace"})
-
-		err := useCmd.Execute()
+		err := Run(context.Background(), "use", "kubernetes.cluster.namespace")
 		assert.NilError(t, err)
 
 		kubeconfig, err := clientConfig().RawConfig()
@@ -202,12 +191,9 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 	})
 
 	t.Run("UseUnknown", func(t *testing.T) {
-		_ = setup(t)
+		setup(t)
 
-		useCmd := newUseCmd()
-		useCmd.SetArgs([]string{"unknown"})
-
-		err := useCmd.Execute()
+		err := Run(context.Background(), "use", "unknown")
 		assert.ErrorContains(t, err, "context not found")
 	})
 }

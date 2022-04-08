@@ -364,7 +364,7 @@ func verifyTLS(host string) error {
 	url.Scheme = "https"
 	urlString := url.String()
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, urlString, nil)
+	req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, urlString, nil)
 	if err != nil {
 		logging.S.Debugf("Cannot create request: %v", err)
 		return err
