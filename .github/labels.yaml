@@ -69,10 +69,22 @@
   color: "b60205"
   description: The issue is blocked on out-of-repository dependencies.
 
+# we could remove status/wip when we have access to draft PRs
+- name: "status/wip"
+  color: "dddddd"
+  description: The pull request is a work in progress.
+  from_name: "wip"
+
 - name: "autorelease/pending"
   color: "dddddd"
   description: Used by release-please to mark a pending release PR.
 - name: "autorelease/tagged"
   color: "dddddd"
   description: Used by release-please to mark a PR that has been released.
-
+- name: "status/stale"
+  description: Used by actions/stale to mark an issue or PR as stale.
+  color: "dddddd"
+  from_name: "Stale"
+- name: "status/never-stale"
+  color: "dddddd"
+  description: Indicates to actions/stale that the issue or PR should never be marked stale.

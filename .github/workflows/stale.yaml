@@ -10,12 +10,22 @@ jobs:
     steps:
       - uses: actions/stale@v4
         with:
-          stale-issue-message: Message to comment on stale issues. If none provided, will not mark issues stale.
-          stale-pr-message: Message to comment on stale PRs. If none provided, will not mark PRs stale.
-          close-issue-message: This issue was closed because it has been stalled for 5 days with no activity.
-          close-pr-message: This PR was closed because it has been stalled for 10 days with no activity.
+          stale-issue-message: |
+            This issue has not seen any activity in a while. Add a comment if this issue is still relevant,
+            otherwise it will be closed in 7 days.
+          stale-pr-message: |
+            This pull request has not seen any activity in a while. Add a comment if this pull request is
+            relevant, otherwise it will be closed in 14 days.
+          close-issue-message: |
+            This issue was closed because it is inactive.
+          close-pr-message: |
+            This pull request was closed because it is inactive.
           days-before-issue-stale: 60
           days-before-issue-close: 7
           days-before-pr-stale: 90
           days-before-pr-close: 14
           exempt-all-pr-assignees: true
+          stale-issue-label: status/stale
+          stale-pr-label: status/stale
+          exempt-issue-labels: status/never-stale
+          exempt-pr-labels: status/never-stale
