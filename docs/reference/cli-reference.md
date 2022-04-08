@@ -207,9 +207,6 @@ Use [--group] or [-g] if identity is of type group.
 $ infra grants add devGroup -group ...
 $ infra grants add devGroup -g ...
 
-Use [--provider] if more than one identity providers are connected. 
-$ infra grants add johndoe@acme.com --provider oktaDev ...
-
 For full documentation on grants, see  https://github.com/infrahq/infra/blob/main/docs/using-infra/grants.md 
 
 
@@ -220,8 +217,8 @@ infra grants add IDENTITY DESTINATION [flags]
 ### Options
 
 ```
-  -g, --group             Marks identity as type 'group'
-      --role string       Type of access that identity will be given (default "connect")
+  -g, --group         Marks identity as type 'group'
+      --role string   Type of access that identity will be given (default "connect")
 ```
 
 ### Options inherited from parent commands
