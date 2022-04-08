@@ -6,7 +6,7 @@
 
   Login to this cluster with infra-cli:
 
-    https://github.com/infrahq/infra#2-install-infra-cli
+    https://github.com/infrahq/infra#1-install-infra-cli
 
 {{- if .Values.server.ingress.enabled }}
 {{- with first .Values.server.ingress.hosts }}
