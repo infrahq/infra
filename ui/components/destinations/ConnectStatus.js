@@ -1,6 +1,8 @@
 import { useContext } from "react"
 import styled, { keyframes } from "styled-components"
 
+import ActionButton from "../ActionButton"
+
 import DestinationsContext from "../../store/DestinationsContext"
 
 const spinner = keyframes`
@@ -64,6 +66,7 @@ const ConnectStatus = () => {
               }
             </div>
           </ConnectStatusContentContainer>
+          <ActionButton disabled={!enabledCommandInput && !connected} onClick={() => handleFinish()} value='Finish' />
         </>
       }
     </div>
