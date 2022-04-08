@@ -13,7 +13,7 @@ helm repo update
 helm install infra infrahq/infra
 ```
 
-### 2. Install Infra CLI 
+### 2. Install Infra CLI
 
 <details>
   <summary><strong>macOS</strong></summary>
@@ -57,76 +57,49 @@ helm install infra infrahq/infra
 ### 3. Login to Infra
 
 ```
-infra login localhost
+infra login INFRA_URL --skip-tls-verify
 ```
 
-This will output the Infra access key which you will use to login in cases of emergency recovery. Please store this in a safe place as you will not see this again.
+Use the following command to find the Infra login URL. If you are not using a `LoadBalancer` service type, see the [Deploy Kubernetes guide](../operator-guides/deploy/kubernetes.md) for more information.
 
-<details>
-  <summary><strong>Find the login URL if not using localhost</strong></summary><br />
-  
-**LoadBalancer**
-
-```bash
-kubectl patch service infra-server -p '{"spec": {"type": "LoadBalancer"}}'
-```
-
-Note: It may take a few minutes for the LoadBalancer endpoint to be assigned. You can watch the status of the service with:
-
-```bash
-kubectl get service infra-server -w
-```
-
-Once the endpoint is ready, get the Infra API server URL.
+> Note: It may take a few minutes for the LoadBalancer endpoint to be assigned. You can watch the status of the service with:
+> ```bash
+> kubectl get service infra-server -w
+> ```
 
 ```bash
 kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}"
 ```
 
-**Ingress**
-
-```bash
-kubectl get ingress infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}"
-```
-
-</details>
-
+This will output the admin access key which you can use to login in cases of emergency recovery. Please store this in a safe place as you will not see this again.
 
 ### 4. Connect your first Kubernetes cluster
 
-In order to add connectors to Infra, you will need to generate an access key.
+In order to add connectors to Infra, you will need to set three pieces of information:
 
-> Using the Infra access key from 3 is _not_ recommended as it provides more privileges than is necessary for a connector and may pose a security risk.
-
-```bash
-infra keys add <keyName> connector
-```
-
-Once you have a connector access key, install Infra into your Kubernetes cluster.
+* `connector.config.name` is a name you give to identity this cluster. For the purposes of this Quickstart, the name will be `example-name`
+* `connector.config.server` is the value in the previous step used to login to Infra
+* `connector.config.accessKey` is the access key the connector will use to communicate with the server. You can use an existing access key or generate a new access key with `infra keys add KEY_NAME connector`
 
 ```bash
-helm upgrade --install infra-connector infrahq/infra --set connector.config.name=<clusterName> --set connector.config.server=<serverAddress> --set connector.config.accessKey=<accessKey>
+helm upgrade --install infra-connector infrahq/infra --set connector.config.server=INFRA_URL --set connector.config.accessKey=ACCESS_KEY --set connector.config.name=example-name --set connector.config.skipTLSVerify=true
 ```
 
-> If the connector will live in the same cluster and namespace as the server, you can set `connector.config.server=localhost`.
+### 5. Create the first local user
 
-> You may also need to set `connector.config.skipTLSVerify=true` if the server is using a self-signed certificate.
-
-### 5. Create the first local user 
-
-``` 
-infra id add name@example.com 
+```
+infra id add name@example.com
 ```
 
-This creates a one-time password for the created user. 
+This creates a one-time password for the created user.
 
 ### 6. Grant Infra administrator privileges to the first user
 
-``` 
-infra grants add --user name@example.com --role admin infra 
-``` 
+```
+infra grants add --user name@example.com --role admin infra
+```
 
-### 7. Grant Kubernetes cluster administrator privileges to the first user 
+### 7. Grant Kubernetes cluster administrator privileges to the first user
 
 ```
 infra grants add --user name@example.com --role cluster-admin kubernetes.example-name
@@ -135,10 +108,10 @@ infra grants add --user name@example.com --role cluster-admin kubernetes.example
 <details>
   <summary><strong>
 Supported Kubernetes cluster roles</strong></summary><br />
-  
-Infra supports any cluster roles within your Kubernetes environment, including custom ones. For simplicity, you can use cluster roles, and scope it to a particular namespace via Infra. 
-  
-**Example applying a cluster role to a namespace:** 
+
+Infra supports any cluster roles within your Kubernetes environment, including custom ones. For simplicity, you can use cluster roles, and scope it to a particular namespace via Infra.
+
+**Example applying a cluster role to a namespace:**
   ```
   infra grants add --user name@example.com --role edit kubernetes.example-name.namespace
   ```
@@ -157,19 +130,19 @@ This role does not allow viewing Secrets, since reading the contents of Secrets 
 </details>
 
 
-### 8. Login to Infra with the newly created user 
+### 8. Login to Infra with the newly created user
 
 ```
-infra login 
-``` 
+infra login
+```
 
 Select the Infra instance, and login with username/password.
 
 ### 9. Use your Kubernetes clusters
 
-You can now access the connected Kubernetes clusters via your favorite tools directly. Infra in the background automatically synchronizes your Kubernetes configuration file (kubeconfig). 
+You can now access the connected Kubernetes clusters via your favorite tools directly. Infra in the background automatically synchronizes your Kubernetes configuration file (kubeconfig).
 
-Alternatively, you can switch Kubernetes contexts by using the `infra use` command: 
+Alternatively, you can switch Kubernetes contexts by using the `infra use` command:
 
 ```
 infra use kubernetes.example-name
@@ -178,25 +151,25 @@ infra use kubernetes.example-name
 <details>
   <summary><strong>Here are some other commands to get you started</strong></summary><br />
 
-See the cluster(s) you have access to: 
+See the cluster(s) you have access to:
 ```
 infra list
-``` 
-See the cluster(s) connected to Infra: 
+```
+See the cluster(s) connected to Infra:
 ```
 infra destinations list
 ```
-See who has access to what via Infra: 
+See who has access to what via Infra:
 ```
 infra grants list
 
-Note: this requires the user to have the admin role within Infra. 
+Note: this requires the user to have the admin role within Infra.
 
 An example to grant the permission:
-infra grants add --user name@example.com --role admin infra 
+infra grants add --user name@example.com --role admin infra
 ```
 </details>
 
-### 10. Share the cluster(s) with other developers 
+### 10. Share the cluster(s) with other developers
 
-To share access with Infra, developers will need to install Infra CLI, and be provided the login URL. If using local users, please share the one-time password. 
+To share access with Infra, developers will need to install Infra CLI, and be provided the login URL. If using local users, please share the one-time password.
