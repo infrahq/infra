@@ -434,14 +434,19 @@ Connect an identity provider
 
 Add an identity provider for users to authenticate.
 
-NAME: The name of the identity provider (e.g. okta)
-URL: The base URL of the domain used to login with the identity provider (e.g. acme.okta.com)
-CLIENT_ID: The Infra application OpenID Connect client ID
-CLIENT_SECRET: The Infra application OpenID Connect client secret
+PROVIDER is a short unique name of the identity provider bieng added (eg. okta) 
 		
 
 ```
-infra providers add NAME URL CLIENT_ID CLIENT_SECRET [flags]
+infra providers add PROVIDER [flags]
+```
+
+### Options
+
+```
+      --client-id string       OIDC client ID
+      --client-secret string   OIDC client secret
+      --url string             Base URL of the domain of the OIDC identity provider (eg. acme.okta.com)
 ```
 
 ### Options inherited from parent commands
