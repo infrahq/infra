@@ -36,8 +36,6 @@ func (a *API) ListIdentities(c *gin.Context, r *api.ListIdentitiesRequest) ([]ap
 		results[i] = *identity.ToAPI()
 	}
 
-	a.t.Event(c, "users.list")
-
 	return results, nil
 }
 
@@ -90,6 +88,8 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 		resp.OneTimePassword = oneTimePassword
 	}
 
+	a.t.User(user)
+
 	return resp, nil
 }
 
@@ -127,8 +127,6 @@ func (a *API) ListIdentityGrants(c *gin.Context, r *api.Resource) ([]api.Grant, 
 		results[i] = *g.ToAPI()
 	}
 
-	a.t.Event(c, "user.grants.list", Properties{"id": r.ID.String()})
-
 	return results, nil
 }
 
@@ -142,8 +140,6 @@ func (a *API) ListIdentityGroups(c *gin.Context, r *api.Resource) ([]api.Group, 
 	for i, g := range groups {
 		results[i] = *g.ToAPI()
 	}
-
-	a.t.Event(c, "user.groups.list", Properties{"id": r.ID.String()})
 
 	return results, nil
 }
@@ -159,8 +155,6 @@ func (a *API) ListGroups(c *gin.Context, r *api.ListGroupsRequest) ([]api.Group,
 		results[i] = *g.ToAPI()
 	}
 
-	a.t.Event(c, "groups.list")
-
 	return results, nil
 }
 
@@ -169,8 +163,6 @@ func (a *API) GetGroup(c *gin.Context, r *api.Resource) (*api.Group, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	a.t.Event(c, "group.get", Properties{"id": r.ID.String()})
 
 	return group.ToAPI(), nil
 }
@@ -185,8 +177,6 @@ func (a *API) CreateGroup(c *gin.Context, r *api.CreateGroupRequest) (*api.Group
 		return nil, err
 	}
 
-	a.t.Event(c, "group.create", Properties{"id": group.ID.String()})
-
 	return group.ToAPI(), nil
 }
 
@@ -200,8 +190,6 @@ func (a *API) ListGroupGrants(c *gin.Context, r *api.Resource) ([]api.Grant, err
 	for i, d := range grants {
 		results[i] = *d.ToAPI()
 	}
-
-	a.t.Event(c, "group.grants.list", Properties{"id": r.ID.String()})
 
 	return results, nil
 }
@@ -218,8 +206,6 @@ func (a *API) ListProviders(c *gin.Context, r *api.ListProvidersRequest) ([]api.
 		results[i] = *p.ToAPI()
 	}
 
-	a.t.Event(c, "providers.list")
-
 	return results, nil
 }
 
@@ -229,8 +215,6 @@ func (a *API) GetProvider(c *gin.Context, r *api.Resource) (*api.Provider, error
 	if err != nil {
 		return nil, err
 	}
-
-	a.t.Event(c, "provider.get")
 
 	return provider.ToAPI(), nil
 }
@@ -280,8 +264,6 @@ func (a *API) UpdateProvider(c *gin.Context, r *api.UpdateProviderRequest) (*api
 		return nil, err
 	}
 
-	a.t.Event(c, "provider.update", Properties{"id": provider.ID.String()})
-
 	return provider.ToAPI(), nil
 }
 
@@ -289,8 +271,6 @@ func (a *API) DeleteProvider(c *gin.Context, r *api.Resource) error {
 	if err := access.DeleteProvider(c, r.ID); err != nil {
 		return err
 	}
-
-	a.t.Event(c, "provider.delete", Properties{"id": r.ID.String()})
 
 	return nil
 }
@@ -306,8 +286,6 @@ func (a *API) ListDestinations(c *gin.Context, r *api.ListDestinationsRequest) (
 		results[i] = *d.ToAPI()
 	}
 
-	a.t.Event(c, "destinations.list")
-
 	return results, nil
 }
 
@@ -318,8 +296,6 @@ func (a *API) Introspect(c *gin.Context, r *api.EmptyRequest) (*api.Introspect, 
 		return &api.Introspect{ID: identity.ID, Name: identity.Name, IdentityType: identity.Kind.String()}, nil
 	}
 
-	a.t.Event(c, "introspect")
-
 	return nil, fmt.Errorf("no identity context found for token")
 }
 
@@ -328,8 +304,6 @@ func (a *API) GetDestination(c *gin.Context, r *api.Resource) (*api.Destination,
 	if err != nil {
 		return nil, err
 	}
-
-	a.t.Event(c, "destination.get", Properties{"id": r.ID.String()})
 
 	return destination.ToAPI(), nil
 }
@@ -346,8 +320,6 @@ func (a *API) CreateDestination(c *gin.Context, r *api.CreateDestinationRequest)
 	if err != nil {
 		return nil, fmt.Errorf("create destination: %w", err)
 	}
-
-	a.t.Event(c, "destination.create", Properties{"id": destination.ID.String()})
 
 	return destination.ToAPI(), nil
 }
@@ -367,8 +339,6 @@ func (a *API) UpdateDestination(c *gin.Context, r *api.UpdateDestinationRequest)
 		return nil, fmt.Errorf("update destination: %w", err)
 	}
 
-	a.t.Event(c, "destination.update", Properties{"id": destination.ID.String()})
-
 	return destination.ToAPI(), nil
 }
 
@@ -376,8 +346,6 @@ func (a *API) DeleteDestination(c *gin.Context, r *api.Resource) error {
 	if err := access.DeleteDestination(c, r.ID); err != nil {
 		return err
 	}
-
-	a.t.Event(c, "destination.delete", Properties{"id": r.ID.String()})
 
 	return nil
 }
@@ -419,8 +387,6 @@ func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) ([]ap
 		}
 	}
 
-	a.t.Event(c, "accesskeys.list")
-
 	return results, nil
 }
 
@@ -428,8 +394,6 @@ func (a *API) DeleteAccessKey(c *gin.Context, r *api.Resource) error {
 	if err := access.DeleteAccessKey(c, r.ID); err != nil {
 		return err
 	}
-
-	a.t.Event(c, "accesskey.delete")
 
 	return nil
 }
@@ -447,8 +411,6 @@ func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*a
 	if err != nil {
 		return nil, err
 	}
-
-	a.t.Event(c, "accesskey.create")
 
 	return &api.CreateAccessKeyResponse{
 		ID:                accessKey.ID,
@@ -471,8 +433,6 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) ([]api.Grant,
 	for i, r := range grants {
 		results[i] = *r.ToAPI()
 	}
-
-	a.t.Event(c, "grants.list")
 
 	return results, nil
 }
@@ -506,8 +466,6 @@ func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) error {
 		return err
 	}
 
-	a.t.Event(c, "grant.delete")
-
 	return nil
 }
 
@@ -516,8 +474,6 @@ func (a *API) SetupRequired(c *gin.Context, _ *api.EmptyRequest) (*api.SetupRequ
 	if err != nil {
 		return nil, err
 	}
-
-	a.t.Event(c, "setuprequired")
 
 	return &api.SetupRequiredResponse{
 		Required: setupRequired,
@@ -529,8 +485,6 @@ func (a *API) Setup(c *gin.Context, _ *api.EmptyRequest) (*api.CreateAccessKeyRe
 	if err != nil {
 		return nil, err
 	}
-
-	a.t.Event(c, "setup")
 
 	return &api.CreateAccessKeyResponse{
 		ID:                accessKey.ID,
@@ -606,8 +560,6 @@ func (a *API) Logout(c *gin.Context, r *api.EmptyRequest) (*api.EmptyResponse, e
 	}
 
 	deleteAuthCookie(c)
-
-	a.t.Event(c, "logout")
 
 	return nil, nil
 }

@@ -124,7 +124,7 @@ func (t *Telemetry) Event(c *gin.Context, event string, properties ...map[string
 	track := analytics.Track{
 		AnonymousId: "system",
 		Timestamp:   time.Now().UTC(),
-		Event:       "server." + event,
+		Event:       "server:" + event,
 		UserId:      userIDStr,
 		Properties:  analytics.Properties{},
 	}
@@ -140,15 +140,15 @@ func (t *Telemetry) Event(c *gin.Context, event string, properties ...map[string
 	}
 }
 
-func (t *Telemetry) User(id uid.ID) {
+func (t *Telemetry) User(user *models.User) {
 	if t == nil {
 		return
 	}
 	err := t.Enqueue(analytics.Identify{
-		UserId:    id.String(),
+		UserId:    user.ID.String(),
 		Timestamp: time.Now().UTC(),
 		Traits: analytics.Traits{
-			"userType": "user", // or machine when bruce's changes are in
+			"userType": user.Kind,
 		},
 	})
 	if err != nil {

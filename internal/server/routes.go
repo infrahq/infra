@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
@@ -109,6 +110,7 @@ func (a *API) registerRoutes(router *gin.RouterGroup, promRegistry prometheus.Re
 
 func get[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) {
 	register("GET", r.BasePath(), path, handler)
+	eventName := fullPath(r, path)
 	r.GET(path, func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
@@ -122,12 +124,16 @@ func get[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResHa
 			return
 		}
 
+		a.t.Event(c, eventName, Properties{"method": "get"})
+
 		c.JSON(http.StatusOK, resp)
 	})
 }
 
 func post[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) {
 	register("POST", r.BasePath(), path, handler)
+	eventName := fullPath(r, path)
+
 	r.POST(path, func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
@@ -141,12 +147,17 @@ func post[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResH
 			return
 		}
 
+		a.t.Event(c, eventName, Properties{"method": "post"})
+
 		c.JSON(http.StatusCreated, resp)
 	})
 }
 
 func put[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) {
 	register("PUT", r.BasePath(), path, handler)
+
+	eventName := fullPath(r, path)
+
 	r.PUT(path, func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
@@ -160,12 +171,17 @@ func put[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResHa
 			return
 		}
 
+		a.t.Event(c, eventName, Properties{"method": "put"})
+
 		c.JSON(http.StatusOK, resp)
 	})
 }
 
 func delete[Req any](a *API, r *gin.RouterGroup, path string, handler ReqHandlerFunc[Req]) {
 	registerReq("DELETE", r.BasePath(), path, handler)
+
+	eventName := fullPath(r, path)
+
 	r.DELETE(path, func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
@@ -179,9 +195,15 @@ func delete[Req any](a *API, r *gin.RouterGroup, path string, handler ReqHandler
 			return
 		}
 
+		a.t.Event(c, eventName, Properties{"method": "delete"})
+
 		c.Status(http.StatusNoContent)
 		c.Writer.WriteHeaderNow()
 	})
+}
+
+func fullPath(r *gin.RouterGroup, path string) string {
+	return strings.TrimRight(r.BasePath(), "/") + "/" + strings.TrimLeft(path, "/")
 }
 
 func bind(c *gin.Context, req interface{}) error {
