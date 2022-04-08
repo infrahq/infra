@@ -554,7 +554,7 @@ func promptLoginOptions(client *api.Client) (loginMethod loginMethod, provider *
 		options = append(options, fmt.Sprintf("%s (%s)", p.Name, p.URL))
 	}
 
-	options = append(options, "Login as a local user")
+	options = append(options, "Login with email and password")
 	options = append(options, "Login with an access key")
 
 	var i int
