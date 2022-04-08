@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/ssoroka/slice"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
@@ -202,12 +203,12 @@ func (m *mockOIDCImplementation) ExchangeAuthCodeForProviderTokens(code string) 
 	return "acc", "ref", exp, m.UserEmailResp, nil
 }
 
-func (o *mockOIDCImplementation) RefreshAccessToken(providerTokens *models.ProviderToken) (accessToken string, expiry *time.Time, err error) {
+func (o *mockOIDCImplementation) RefreshAccessToken(providerUser *models.ProviderUser) (accessToken string, expiry *time.Time, err error) {
 	// never update
-	return string(providerTokens.AccessToken), &providerTokens.ExpiresAt, nil
+	return string(providerUser.AccessToken), &providerUser.ExpiresAt, nil
 }
 
-func (m *mockOIDCImplementation) GetUserInfo(providerTokens *models.ProviderToken) (*authn.UserInfo, error) {
+func (m *mockOIDCImplementation) GetUserInfo(providerUser *models.ProviderUser) (*authn.UserInfo, error) {
 	return &authn.UserInfo{Email: m.UserEmailResp, Groups: &m.UserGroupsResp}, nil
 }
 
@@ -313,6 +314,57 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 				assert.Assert(t, is.Contains(groupNames, "existinguserexistinggroups2"))
 			},
 		},
+		"ExistingUserGroupsWithNewGroups": {
+			"setup": func(t *testing.T, db *gorm.DB) authn.OIDC {
+				user := &models.Identity{Name: "eugwnw@example.com"}
+				err := data.CreateIdentity(db, user)
+				assert.NilError(t, err)
+				err = db.Model(user).Association("Groups").Append([]models.Group{{Name: "Foo"}, {Name: "existing3"}})
+				assert.NilError(t, err)
+				assert.Assert(t, len(user.Groups) == 2)
+
+				err = data.SaveIdentity(db, user)
+				assert.NilError(t, err)
+				g, err := data.GetGroup(db, data.ByName("Foo"))
+				assert.NilError(t, err)
+				assert.Assert(t, g != nil)
+
+				user, err = data.GetIdentity(db.Preload("Groups"), data.ByID(user.ID))
+				assert.NilError(t, err)
+				assert.Assert(t, user != nil)
+				assert.Assert(t, len(user.Groups) == 2)
+
+				p, err := data.GetProvider(db, data.ByName("mockoidc"))
+				assert.NilError(t, err)
+
+				pu, err := data.CreateProviderUser(db, p, user)
+				assert.NilError(t, err)
+
+				pu.Groups = []string{"existing3"}
+				err = db.Save(pu).Error
+				assert.NilError(t, err)
+
+				return &mockOIDCImplementation{
+					UserEmailResp:  "eugwnw@example.com",
+					UserGroupsResp: []string{"existinguserexistinggroups1", "existinguserexistinggroups2"},
+				}
+			},
+			"verify": func(t *testing.T, user *models.Identity, sessToken string, err error) {
+				assert.NilError(t, err)
+				assert.Equal(t, "eugwnw@example.com", user.Name)
+				assert.Assert(t, sessToken != "")
+
+				assert.Assert(t, len(user.Groups) == 3)
+
+				var groupNames []string
+				for _, g := range user.Groups {
+					groupNames = append(groupNames, g.Name)
+				}
+				assert.Assert(t, slice.Contains(groupNames, "Foo"))
+				assert.Assert(t, slice.Contains(groupNames, "existinguserexistinggroups1"))
+				assert.Assert(t, slice.Contains(groupNames, "existinguserexistinggroups2"))
+			},
+		},
 	}
 
 	for k, v := range cases {
@@ -340,6 +392,14 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			assert.Assert(t, ok)
 
 			verifyFunc(t, u, sess, err)
+
+			if err == nil {
+				// make sure the associations are still set when you reload the object.
+				u, err = data.GetIdentity(db.Preload("Groups"), data.ByID(u.ID))
+				assert.NilError(t, err)
+
+				verifyFunc(t, u, sess, err)
+			}
 		})
 	}
 }

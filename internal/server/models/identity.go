@@ -46,8 +46,6 @@ type Identity struct {
 	Name       string    `gorm:"uniqueIndex:idx_identities_name_provider_id,where:deleted_at is NULL"`
 	LastSeenAt time.Time // updated on when an identity uses a session token
 
-	ProviderID uid.ID `gorm:"uniqueIndex:idx_identities_name_provider_id,where:deleted_at is NULL"`
-
 	Groups []Group `gorm:"many2many:identities_groups"`
 }
 
@@ -59,7 +57,6 @@ func (i *Identity) ToAPI() *api.Identity {
 		LastSeenAt: api.Time(i.LastSeenAt),
 		Name:       i.Name,
 		Kind:       i.Kind.String(),
-		ProviderID: i.ProviderID,
 	}
 }
 

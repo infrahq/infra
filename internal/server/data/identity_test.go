@@ -7,15 +7,12 @@ import (
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/uid"
 )
 
 func TestUser(t *testing.T) {
 	db := setup(t)
 
-	providerID := uid.New()
-
-	bond := models.Identity{Name: "jbond@infrahq.com", ProviderID: providerID, Kind: models.UserKind}
+	bond := models.Identity{Name: "jbond@infrahq.com", Kind: models.UserKind}
 
 	err := db.Create(&bond).Error
 	assert.NilError(t, err)
@@ -37,12 +34,10 @@ func CreateIdentitys(t *testing.T, db *gorm.DB, users ...models.Identity) {
 func TestCreateDuplicateUser(t *testing.T) {
 	db := setup(t)
 
-	providerID := uid.New()
-
 	var (
-		bond   = models.Identity{Name: "jbond@infrahq.com", ProviderID: providerID}
-		bourne = models.Identity{Name: "jbourne@infrahq.com", ProviderID: providerID}
-		bauer  = models.Identity{Name: "jbauer@infrahq.com", ProviderID: providerID}
+		bond   = models.Identity{Name: "jbond@infrahq.com"}
+		bourne = models.Identity{Name: "jbourne@infrahq.com"}
+		bauer  = models.Identity{Name: "jbauer@infrahq.com"}
 	)
 
 	CreateIdentitys(t, db, bond, bourne, bauer)
@@ -56,12 +51,10 @@ func TestCreateDuplicateUser(t *testing.T) {
 func TestGetIdentity(t *testing.T) {
 	db := setup(t)
 
-	providerID := uid.New()
-
 	var (
-		bond   = models.Identity{Name: "jbond@infrahq.com", ProviderID: providerID}
-		bourne = models.Identity{Name: "jbourne@infrahq.com", ProviderID: providerID}
-		bauer  = models.Identity{Name: "jbauer@infrahq.com", ProviderID: providerID}
+		bond   = models.Identity{Name: "jbond@infrahq.com"}
+		bourne = models.Identity{Name: "jbourne@infrahq.com"}
+		bauer  = models.Identity{Name: "jbauer@infrahq.com"}
 	)
 
 	CreateIdentitys(t, db, bond, bourne, bauer)
@@ -74,12 +67,10 @@ func TestGetIdentity(t *testing.T) {
 func TestListIdentities(t *testing.T) {
 	db := setup(t)
 
-	providerID := uid.New()
-
 	var (
-		bond   = models.Identity{Name: "jbond@infrahq.com", ProviderID: providerID}
-		bourne = models.Identity{Name: "jbourne@infrahq.com", ProviderID: providerID}
-		bauer  = models.Identity{Name: "jbauer@infrahq.com", ProviderID: providerID}
+		bond   = models.Identity{Name: "jbond@infrahq.com"}
+		bourne = models.Identity{Name: "jbourne@infrahq.com"}
+		bauer  = models.Identity{Name: "jbauer@infrahq.com"}
 	)
 
 	CreateIdentitys(t, db, bond, bourne, bauer)
@@ -96,12 +87,10 @@ func TestListIdentities(t *testing.T) {
 func TestDeleteIdentity(t *testing.T) {
 	db := setup(t)
 
-	providerID := uid.New()
-
 	var (
-		bond   = models.Identity{Name: "jbond@infrahq.com", ProviderID: providerID}
-		bourne = models.Identity{Name: "jbourne@infrahq.com", ProviderID: providerID}
-		bauer  = models.Identity{Name: "jbauer@infrahq.com", ProviderID: providerID}
+		bond   = models.Identity{Name: "jbond@infrahq.com"}
+		bourne = models.Identity{Name: "jbourne@infrahq.com"}
+		bauer  = models.Identity{Name: "jbauer@infrahq.com"}
 	)
 
 	CreateIdentitys(t, db, bond, bourne, bauer)
@@ -127,12 +116,10 @@ func TestDeleteIdentity(t *testing.T) {
 func TestReCreateIdentitySameEmail(t *testing.T) {
 	db := setup(t)
 
-	providerID := uid.New()
-
 	var (
-		bond   = models.Identity{Name: "jbond@infrahq.com", ProviderID: providerID, Kind: models.UserKind}
-		bourne = models.Identity{Name: "jbourne@infrahq.com", ProviderID: providerID, Kind: models.UserKind}
-		bauer  = models.Identity{Name: "jbauer@infrahq.com", ProviderID: providerID, Kind: models.UserKind}
+		bond   = models.Identity{Name: "jbond@infrahq.com", Kind: models.UserKind}
+		bourne = models.Identity{Name: "jbourne@infrahq.com", Kind: models.UserKind}
+		bauer  = models.Identity{Name: "jbauer@infrahq.com", Kind: models.UserKind}
 	)
 
 	CreateIdentitys(t, db, bond, bourne, bauer)

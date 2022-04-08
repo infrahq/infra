@@ -12,7 +12,6 @@ server:
 
   additionalGrants:
     - group: Everyone
-      provider: okta
       role: cluster-admin
       resource: kubernetes.docker-desktop
     - machine: admin

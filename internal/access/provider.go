@@ -15,16 +15,6 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-// CurrentIdentityProvider returns the provider for the current identity in the request context
-func CurrentIdentityProvider(c *gin.Context) (*models.Provider, error) {
-	identity := CurrentIdentity(c)
-	if identity == nil {
-		return nil, fmt.Errorf("no identity for provider in context")
-	}
-
-	return GetProvider(c, identity.ProviderID)
-}
-
 func CreateProvider(c *gin.Context, provider *models.Provider) error {
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
@@ -64,8 +54,8 @@ func DeleteProvider(c *gin.Context, id uid.ID) error {
 	return data.DeleteProviders(db, data.ByID(id))
 }
 
-// RetrieveUserProviderTokens gets the provider tokens that the current session token was created for
-func RetrieveUserProviderTokens(c *gin.Context) (*models.ProviderToken, error) {
+// RetrieveUserProviderTokens gets the providerUser for the current session token was created for
+func RetrieveUserProviderTokens(c *gin.Context) (*models.ProviderUser, error) {
 	// added by the authentication middleware
 	identity := CurrentIdentity(c)
 	if identity == nil {
@@ -75,15 +65,15 @@ func RetrieveUserProviderTokens(c *gin.Context) (*models.ProviderToken, error) {
 	// does not need authorization check, this action is limited to the calling user
 	db := getDB(c)
 
-	return data.GetProviderToken(db, data.ByUserID(identity.ID))
+	accessKey := currentAccessKey(c)
+
+	return data.GetProviderUser(db, accessKey.ProviderID, identity.ID)
 }
 
-// UpdateProviderToken overwrites an existing set of provider tokens
-func UpdateProviderToken(c *gin.Context, providerToken *models.ProviderToken) error {
-	// does not need authorization check, this function should only be called internally
+func InfraProvider(c *gin.Context) *models.Provider {
 	db := getDB(c)
 
-	return data.UpdateProviderToken(db, providerToken)
+	return data.InfraProvider(db)
 }
 
 func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.Provider, oidc authn.OIDC, expires time.Time, redirectURL string) (*models.Identity, string, error) {
@@ -100,7 +90,7 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 		return nil, "", fmt.Errorf("exhange code for tokens: %w", err)
 	}
 
-	user, err := data.GetIdentity(db, data.ByName(email))
+	user, err := data.GetIdentity(db.Preload("Groups"), data.ByName(email))
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return nil, "", fmt.Errorf("get user: %w", err)
@@ -120,47 +110,22 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 		}
 	}
 
-	err = data.AppendProviderUsers(db, provider, user)
+	providerUser, err := data.CreateProviderUser(db, provider, user)
 	if err != nil {
 		return nil, "", fmt.Errorf("add user for provider login: %w", err)
 	}
 
-	provToken := &models.ProviderToken{
-		UserID:       user.ID,
-		ProviderID:   provider.ID,
-		RedirectURL:  redirectURL,
-		AccessToken:  models.EncryptedAtRest(accessToken),
-		RefreshToken: models.EncryptedAtRest(refreshToken),
-		ExpiresAt:    expiry,
-	}
-
-	// create or update the provider token for this user, one set of tokens/user for each provider
-	existing, err := data.GetProviderToken(db, data.ByUserID(user.ID))
+	providerUser.RedirectURL = redirectURL
+	providerUser.AccessToken = models.EncryptedAtRest(accessToken)
+	providerUser.RefreshToken = models.EncryptedAtRest(refreshToken)
+	providerUser.ExpiresAt = expiry
+	err = data.UpdateProviderUser(db, providerUser)
 	if err != nil {
-		if !errors.Is(err, internal.ErrNotFound) {
-			return nil, "", fmt.Errorf("existing provider token: %w", err)
-		}
-
-		if err := data.CreateProviderToken(db, provToken); err != nil {
-			return nil, "", fmt.Errorf("create provider tokens: %w", err)
-		}
-	} else {
-		if existing.ProviderID != provToken.ProviderID {
-			// revoke the users current session token, their grants may be about to change
-			if err := data.DeleteAccessKeys(db, data.ByUserID(user.ID)); err != nil && !errors.Is(err, internal.ErrNotFound) {
-				return nil, "", fmt.Errorf("revoke old session token: %w", err)
-			}
-		}
-
-		provToken.ID = existing.ID
-
-		if err := data.UpdateProviderToken(db, provToken); err != nil {
-			return nil, "", fmt.Errorf("update provider token: %w", err)
-		}
+		return nil, "", err
 	}
 
 	// get current identity provider groups
-	info, err := oidc.GetUserInfo(provToken)
+	info, err := oidc.GetUserInfo(providerUser)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			return nil, "", fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
@@ -169,14 +134,15 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 		return nil, "", fmt.Errorf("login user info: %w", err)
 	}
 
-	err = UpdateUserInfo(c, info, user, provider)
+	err = UpdateUserInfoFromProvider(c, info, user, provider)
 	if err != nil {
 		return nil, "", fmt.Errorf("update info on login: %w", err)
 	}
 
 	key := &models.AccessKey{
-		IssuedFor: user.ID,
-		ExpiresAt: expires,
+		IssuedFor:  user.ID,
+		ProviderID: provider.ID,
+		ExpiresAt:  expires,
 	}
 
 	body, err := data.CreateAccessKey(db, key)

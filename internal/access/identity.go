@@ -77,44 +77,29 @@ func DeleteIdentity(c *gin.Context, id uid.ID) error {
 	return data.DeleteIdentity(db, id)
 }
 
-func ListIdentities(c *gin.Context, email string, providerID uid.ID) ([]models.Identity, error) {
+func ListIdentities(c *gin.Context, email string) ([]models.Identity, error) {
 	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole)
 	if err != nil {
 		return nil, err
 	}
 
-	return data.ListIdentities(db, data.ByName(email), data.ByProviderID(providerID))
+	return data.ListIdentities(db, data.ByName(email))
 }
 
-// UpdateUserInfo calls the user info endpoint of an external identity provider to see a user's current attributes
-func UpdateUserInfo(c *gin.Context, info *authn.UserInfo, user *models.Identity, provider *models.Provider) error {
+// UpdateUserInfoFromProvider calls the user info endpoint of an external identity provider to see a user's current attributes
+func UpdateUserInfoFromProvider(c *gin.Context, info *authn.UserInfo, user *models.Identity, provider *models.Provider) error {
 	// no auth, this is not publically exposed
 	db := getDB(c)
 
 	// add user to groups they are currently in
-	var groups []models.Group
+	var groups []string
 
 	if info.Groups != nil {
 		for i := range *info.Groups {
 			name := (*info.Groups)[i]
-
-			group, err := data.GetGroup(db, data.ByName(name))
-			if err != nil {
-				if !errors.Is(err, internal.ErrNotFound) {
-					return fmt.Errorf("get group: %w", err)
-				}
-
-				group = &models.Group{Name: name}
-
-				if err = data.CreateGroup(db, group); err != nil {
-					return fmt.Errorf("create group: %w", err)
-				}
-			}
-
-			groups = append(groups, *group)
+			groups = append(groups, name)
 		}
 	}
 
-	// remove user from groups they are no longer in
-	return data.BindIdentityGroups(db, user, groups...)
+	return data.AssignIdentityToGroups(db, user, provider, groups)
 }

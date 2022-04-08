@@ -11,17 +11,16 @@ import (
 
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/uid"
 )
 
 func TestLoginWithUserCredential(t *testing.T) {
-	c, db, provider := setupAccessTestContext(t)
+	c, db, _ := setupAccessTestContext(t)
 
 	cases := map[string]map[string]interface{}{
 		"ValidEmailAndOneTimePasswordFirstUse": {
 			"setup": func(t *testing.T, c *gin.Context, db *gorm.DB) (string, string) {
 				email := "bruce@example.com"
-				user := &models.Identity{Name: email, ProviderID: provider.ID, Kind: models.UserKind}
+				user := &models.Identity{Name: email, Kind: models.UserKind}
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
 
@@ -40,7 +39,7 @@ func TestLoginWithUserCredential(t *testing.T) {
 		"ValidEmailAndOneTimePasswordFailsOnReuse": {
 			"setup": func(t *testing.T, c *gin.Context, db *gorm.DB) (string, string) {
 				email := "barbra@example.com"
-				user := &models.Identity{Name: email, ProviderID: provider.ID, Kind: models.UserKind}
+				user := &models.Identity{Name: email, Kind: models.UserKind}
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
 
@@ -59,7 +58,7 @@ func TestLoginWithUserCredential(t *testing.T) {
 		"ValidEmailAndValidSpecifiedPassword": {
 			"setup": func(t *testing.T, c *gin.Context, db *gorm.DB) (string, string) {
 				email := "selina@example.com"
-				user := &models.Identity{Name: email, ProviderID: provider.ID, Kind: models.UserKind}
+				user := &models.Identity{Name: email, Kind: models.UserKind}
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
 
@@ -86,7 +85,7 @@ func TestLoginWithUserCredential(t *testing.T) {
 		"ValidEmailAndValidSpecifiedPasswordCanBeReused": {
 			"setup": func(t *testing.T, c *gin.Context, db *gorm.DB) (string, string) {
 				email := "penguin@example.com"
-				user := &models.Identity{Name: email, ProviderID: provider.ID, Kind: models.UserKind}
+				user := &models.Identity{Name: email, Kind: models.UserKind}
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
 
@@ -116,7 +115,7 @@ func TestLoginWithUserCredential(t *testing.T) {
 		"ValidEmailAndInvalidPasswordFails": {
 			"setup": func(t *testing.T, c *gin.Context, db *gorm.DB) (string, string) {
 				email := "gordon@example.com"
-				user := &models.Identity{Name: email, ProviderID: provider.ID, Kind: models.UserKind}
+				user := &models.Identity{Name: email, Kind: models.UserKind}
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
 
@@ -137,35 +136,10 @@ func TestLoginWithUserCredential(t *testing.T) {
 				assert.ErrorContains(t, err, "password verify")
 			},
 		},
-		"ValidEmailAndNotInfraProviderFails": {
-			"setup": func(t *testing.T, c *gin.Context, db *gorm.DB) (string, string) {
-				email := "edward@example.com"
-				user := &models.Identity{Name: email, ProviderID: uid.New(), Kind: models.UserKind}
-				err := data.CreateIdentity(db, user)
-				assert.NilError(t, err)
-
-				hash, err := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.MinCost)
-				assert.NilError(t, err)
-
-				userCredential := &models.Credential{
-					IdentityID:   user.ID,
-					PasswordHash: hash,
-				}
-
-				// this shouldnt be possible for non-infra providers
-				err = data.CreateCredential(db, userCredential)
-				assert.NilError(t, err)
-
-				return email, "password"
-			},
-			"verify": func(t *testing.T, secret string, user *models.Identity, requiresUpdate bool, err error) {
-				assert.ErrorContains(t, err, "record not found")
-			},
-		},
 		"ValidEmailAndNoCredentialsFails": {
 			"setup": func(t *testing.T, c *gin.Context, db *gorm.DB) (string, string) {
 				email := "edward@example.com"
-				user := &models.Identity{Name: email, ProviderID: uid.New(), Kind: models.UserKind}
+				user := &models.Identity{Name: email, Kind: models.UserKind}
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
 

@@ -5,19 +5,16 @@ import (
 )
 
 type Group struct {
-	ID         uid.ID `json:"id"`
-	Name       string `json:"name"`
-	Created    Time   `json:"created"`
-	Updated    Time   `json:"updated"`
-	ProviderID uid.ID `json:"providerID"`
+	ID      uid.ID `json:"id"`
+	Name    string `json:"name"`
+	Created Time   `json:"created"`
+	Updated Time   `json:"updated"`
 }
 
 type ListGroupsRequest struct {
-	Name       string `form:"name"`
-	ProviderID uid.ID `form:"provider_id"`
+	Name string `form:"name"`
 }
 
 type CreateGroupRequest struct {
-	Name       string `json:"name" validate:"required"`
-	ProviderID uid.ID `json:"providerID" validate:"required"`
+	Name string `json:"name" validate:"required"`
 }

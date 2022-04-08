@@ -1,8 +1,6 @@
 package models
 
 import (
-	"time"
-
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/uid"
 )
@@ -17,8 +15,6 @@ type Provider struct {
 	ClientID     string
 	ClientSecret EncryptedAtRest
 	CreatedBy    uid.ID
-
-	Users []Identity
 }
 
 func (p *Provider) ToAPI() *api.Provider {
@@ -31,17 +27,4 @@ func (p *Provider) ToAPI() *api.Provider {
 		URL:      p.URL,
 		ClientID: p.ClientID,
 	}
-}
-
-// ProviderToken tracks the access and refresh tokens from an identity provider associated with a user
-type ProviderToken struct {
-	Model
-
-	UserID      uid.ID
-	ProviderID  uid.ID
-	RedirectURL string `validate:"required"` // needs to match the redirect URL specified when the token was issued for refreshing
-
-	AccessToken  EncryptedAtRest
-	RefreshToken EncryptedAtRest
-	ExpiresAt    time.Time
 }

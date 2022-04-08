@@ -51,9 +51,12 @@ func issueUserToken(t *testing.T, db *gorm.DB, email string, sessionDuration tim
 	err := data.CreateIdentity(db, user)
 	assert.NilError(t, err)
 
+	provider := data.InfraProvider(db)
+
 	token := &models.AccessKey{
-		IssuedFor: user.ID,
-		ExpiresAt: time.Now().Add(sessionDuration).UTC(),
+		IssuedFor:  user.ID,
+		ProviderID: provider.ID,
+		ExpiresAt:  time.Now().Add(sessionDuration).UTC(),
 	}
 	body, err := data.CreateAccessKey(db, token)
 	assert.NilError(t, err)

@@ -9,6 +9,7 @@ type AccessKey struct {
 	Created           Time   `json:"created"`
 	Name              string `json:"name"`
 	IssuedFor         uid.ID `json:"issuedFor"`
+	ProviderID        uid.ID `json:"providerID"`
 	Expires           Time   `json:"expires,omitempty" note:"key is no longer valid after this time"`
 	ExtensionDeadline Time   `json:"extensionDeadline" note:"key must be renewed after this time"`
 }
@@ -30,6 +31,7 @@ type CreateAccessKeyResponse struct {
 	Created           Time   `json:"created"`
 	Name              string `json:"name"`
 	IssuedFor         uid.ID `json:"issuedFor"`
+	ProviderID        uid.ID `json:"providerID"`
 	Expires           Time   `json:"expires" note:"after this deadline the key is no longer valid"`
 	ExtensionDeadline Time   `json:"extensionDeadline" note:"the key must be used by this time to remain valid"`
 	AccessKey         string `json:"accessKey"`

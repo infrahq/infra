@@ -11,18 +11,15 @@ type Identity struct {
 	LastSeenAt Time   `json:"lastSeenAt"`
 	Name       string `json:"name" validate:"required"`
 	Kind       string `json:"kind" validate:"required"`
-	ProviderID uid.ID `json:"providerID"`
 }
 
 type ListIdentitiesRequest struct {
-	Name       string `form:"name"`
-	ProviderID uid.ID `form:"provider_id"`
+	Name string `form:"name"`
 }
 
 type CreateIdentityRequest struct {
-	Name       string `json:"name" validate:"required"`
-	Kind       string `json:"kind" validate:"required,oneof=user machine"`
-	ProviderID uid.ID `json:"providerID" validate:"required"`
+	Name string `json:"name" validate:"required"`
+	Kind string `json:"kind" validate:"required,oneof=user machine"`
 }
 
 type UpdateIdentityRequest struct {

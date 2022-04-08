@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -256,52 +257,6 @@ func TestLoadConfigInvalid(t *testing.T) {
 				},
 			},
 		},
-		"UserGrantWithMultipleProviders": {
-			Providers: []Provider{
-				{
-					Name:         "okta",
-					URL:          "demo.okta.com",
-					ClientID:     "client-id",
-					ClientSecret: "client-secret",
-				},
-				{
-					Name:         "atko",
-					URL:          "demo.atko.com",
-					ClientID:     "client-id",
-					ClientSecret: "client-secret",
-				},
-			},
-			Grants: []Grant{
-				{
-					User:     "test@example.com",
-					Role:     "admin",
-					Resource: "kubernetes.test-cluster",
-				},
-			},
-		},
-		"GroupGrantWithMultipleProviders": {
-			Providers: []Provider{
-				{
-					Name:         "okta",
-					URL:          "demo.okta.com",
-					ClientID:     "client-id",
-					ClientSecret: "client-secret",
-				},
-				{
-					Name:         "atko",
-					URL:          "demo.atko.com",
-					ClientID:     "client-id",
-					ClientSecret: "client-secret",
-				},
-			},
-			Grants: []Grant{
-				{
-					Group:    "Everyone",
-					Role:     "admin",
-					Resource: "kubernetes.test-cluster",
-				},
-			},
-		},
 	}
 
 	for name, config := range cases {
@@ -364,7 +319,6 @@ func TestLoadConfigWithUserGrantsImplicitProvider(t *testing.T) {
 	var user models.Identity
 	err = db.Where("name = ?", "test@example.com").First(&user).Error
 	assert.NilError(t, err)
-	assert.Equal(t, provider.ID, user.ProviderID)
 
 	var grant models.Grant
 	err = db.Where("subject = ?", uid.NewIdentityPolymorphicID(user.ID)).First(&grant).Error
@@ -396,7 +350,6 @@ func TestLoadConfigWithUserGrantsExplicitProvider(t *testing.T) {
 				User:     "test@example.com",
 				Role:     "admin",
 				Resource: "kubernetes.test-cluster",
-				Provider: "atko",
 			},
 		},
 	}
@@ -404,14 +357,9 @@ func TestLoadConfigWithUserGrantsExplicitProvider(t *testing.T) {
 	err := loadConfig(db, config)
 	assert.NilError(t, err)
 
-	var provider models.Provider
-	err = db.Where("name = ?", "atko").First(&provider).Error
-	assert.NilError(t, err)
-
 	var user models.Identity
 	err = db.Where("name = ?", "test@example.com").First(&user).Error
 	assert.NilError(t, err)
-	assert.Equal(t, provider.ID, user.ProviderID)
 
 	var grant models.Grant
 	err = db.Where("subject = ?", uid.NewIdentityPolymorphicID(user.ID)).First(&grant).Error
@@ -436,14 +384,9 @@ func TestLoadConfigWithGroupGrantsImplicitProvider(t *testing.T) {
 	err := loadConfig(db, config)
 	assert.NilError(t, err)
 
-	var provider models.Provider
-	err = db.Where("name = ?", models.InternalInfraProviderName).First(&provider).Error
-	assert.NilError(t, err)
-
 	var group models.Group
 	err = db.Where("name = ?", "Everyone").First(&group).Error
 	assert.NilError(t, err)
-	assert.Equal(t, provider.ID, group.ProviderID)
 
 	var grant models.Grant
 	err = db.Where("subject = ?", uid.NewGroupPolymorphicID(group.ID)).First(&grant).Error
@@ -475,7 +418,6 @@ func TestLoadConfigWithGroupGrantsExplicitProvider(t *testing.T) {
 				Group:    "Everyone",
 				Role:     "admin",
 				Resource: "kubernetes.test-cluster",
-				Provider: "atko",
 			},
 		},
 	}
@@ -483,14 +425,9 @@ func TestLoadConfigWithGroupGrantsExplicitProvider(t *testing.T) {
 	err := loadConfig(db, config)
 	assert.NilError(t, err)
 
-	var provider models.Provider
-	err = db.Where("name = ?", "atko").First(&provider).Error
-	assert.NilError(t, err)
-
 	var group models.Group
 	err = db.Where("name = ?", "Everyone").First(&group).Error
 	assert.NilError(t, err)
-	assert.Equal(t, provider.ID, group.ProviderID)
 
 	var grant models.Grant
 	err = db.Where("subject = ?", uid.NewGroupPolymorphicID(group.ID)).First(&grant).Error
@@ -541,13 +478,11 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 		Grants: []Grant{
 			{
 				User:     "test@example.com",
-				Provider: "okta",
 				Role:     "admin",
 				Resource: "kubernetes.test-cluster",
 			},
 			{
 				Group:    "Everyone",
-				Provider: "okta",
 				Role:     "admin",
 				Resource: "kubernetes.test-cluster",
 			},
@@ -606,6 +541,12 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 	err = db.Model(&models.Grant{}).Count(&grants).Error
 	assert.NilError(t, err)
 	assert.Equal(t, int64(0), grants)
+
+	// removing provider also removes ProviderUser
+	var count int64
+	err = db.Model(&models.ProviderUser{}).Count(&count).Error
+	assert.NilError(t, err)
+	assert.Equal(t, int64(0), count)
 }
 
 func TestLoadConfigPruneGrants(t *testing.T) {
@@ -623,13 +564,11 @@ func TestLoadConfigPruneGrants(t *testing.T) {
 		Grants: []Grant{
 			{
 				User:     "test@example.com",
-				Provider: "okta",
 				Role:     "admin",
 				Resource: "kubernetes.test-cluster",
 			},
 			{
 				Group:    "Everyone",
-				Provider: "okta",
 				Role:     "admin",
 				Resource: "kubernetes.test-cluster",
 			},
@@ -716,13 +655,11 @@ func TestLoadConfigUpdate(t *testing.T) {
 		Grants: []Grant{
 			{
 				User:     "test@example.com",
-				Provider: "okta",
 				Role:     "admin",
 				Resource: "kubernetes.test-cluster",
 			},
 			{
 				Group:    "Everyone",
-				Provider: "okta",
 				Role:     "admin",
 				Resource: "kubernetes.test-cluster",
 			},
@@ -775,13 +712,11 @@ func TestLoadConfigUpdate(t *testing.T) {
 		Grants: []Grant{
 			{
 				User:     "test@example.com",
-				Provider: "atko",
 				Role:     "view",
 				Resource: "kubernetes.test-cluster",
 			},
 			{
 				Group:    "Everyone",
-				Provider: "atko",
 				Role:     "view",
 				Resource: "kubernetes.test-cluster",
 			},
@@ -823,7 +758,6 @@ func TestLoadConfigUpdate(t *testing.T) {
 	var user models.Identity
 	err = db.Where("name = ?", "test@example.com").First(&user).Error
 	assert.NilError(t, err)
-	assert.Equal(t, provider.ID, user.ProviderID)
 
 	err = db.Model(&models.Group{}).Count(&groups).Error
 	assert.NilError(t, err)
@@ -832,7 +766,6 @@ func TestLoadConfigUpdate(t *testing.T) {
 	var group models.Group
 	err = db.Where("name = ?", "Everyone").First(&group).Error
 	assert.NilError(t, err)
-	assert.Equal(t, provider.ID, group.ProviderID)
 
 	err = db.Model(&models.Identity{}).Where(models.Identity{Kind: models.MachineKind}).Count(&machines).Error
 	assert.NilError(t, err)
@@ -921,7 +854,9 @@ func TestServer_Run(t *testing.T) {
 		// standard go metrics
 		assert.Assert(t, is.Contains(string(body), "# HELP go_threads"))
 		// standard process metrics
-		assert.Assert(t, is.Contains(string(body), "# HELP process_open_fds"))
+		if runtime.GOOS == "linux" {
+			assert.Assert(t, is.Contains(string(body), "# HELP process_open_fds"))
+		}
 	})
 
 	t.Run("http server started", func(t *testing.T) {

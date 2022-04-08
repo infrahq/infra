@@ -126,14 +126,14 @@ func TestIdentities(t *testing.T) {
 						respBody.OneTimePassword = "abc"
 					}
 
-					modifiedIdentities = append(modifiedIdentities, models.Identity{Kind: kind, Name: createIdentityReq.Name, ProviderID: providerID})
+					modifiedIdentities = append(modifiedIdentities, models.Identity{Kind: kind, Name: createIdentityReq.Name})
 
 					b, err := json.Marshal(&respBody)
 					assert.NilError(t, err)
 					_, _ = resp.Write(b)
 					return
 				case http.MethodGet:
-					b, err := json.Marshal([]models.Identity{{Model: models.Model{ID: uid.New()}, Name: "to-delete-user@example.com", Kind: models.UserKind, ProviderID: providerID}})
+					b, err := json.Marshal([]models.Identity{{Model: models.Model{ID: uid.New()}, Name: "to-delete-user@example.com", Kind: models.UserKind}})
 					assert.NilError(t, err)
 					_, _ = resp.Write(b)
 					return

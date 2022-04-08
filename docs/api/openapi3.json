@@ -36,6 +36,12 @@
           },
           "name": {
             "type": "string"
+          },
+          "providerID": {
+            "example": "4yJ3n3D8E2",
+            "format": "uid",
+            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+            "type": "string"
           }
         }
       },
@@ -75,6 +81,12 @@
             "type": "string"
           },
           "name": {
+            "type": "string"
+          },
+          "providerID": {
+            "example": "4yJ3n3D8E2",
+            "format": "uid",
+            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           }
         }
@@ -253,12 +265,6 @@
           "name": {
             "type": "string"
           },
-          "providerID": {
-            "example": "4yJ3n3D8E2",
-            "format": "uid",
-            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-            "type": "string"
-          },
           "updated": {
             "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",
@@ -291,12 +297,6 @@
             "type": "string"
           },
           "name": {
-            "type": "string"
-          },
-          "providerID": {
-            "example": "4yJ3n3D8E2",
-            "format": "uid",
-            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           },
           "updated": {
@@ -1582,17 +1582,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "example": "4yJ3n3D8E2",
-            "in": "query",
-            "name": "provider_id",
-            "schema": {
-              "example": "4yJ3n3D8E2",
-              "format": "uid",
-              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -1675,17 +1664,10 @@
                 "properties": {
                   "name": {
                     "type": "string"
-                  },
-                  "providerID": {
-                    "example": "4yJ3n3D8E2",
-                    "format": "uid",
-                    "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-                    "type": "string"
                   }
                 },
                 "required": [
-                  "name",
-                  "providerID"
+                  "name"
                 ],
                 "type": "object"
               }
@@ -1947,17 +1929,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "example": "4yJ3n3D8E2",
-            "in": "query",
-            "name": "provider_id",
-            "schema": {
-              "example": "4yJ3n3D8E2",
-              "format": "uid",
-              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -2043,18 +2014,11 @@
                   },
                   "name": {
                     "type": "string"
-                  },
-                  "providerID": {
-                    "example": "4yJ3n3D8E2",
-                    "format": "uid",
-                    "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-                    "type": "string"
                   }
                 },
                 "required": [
                   "name",
-                  "kind",
-                  "providerID"
+                  "kind"
                 ],
                 "type": "object"
               }

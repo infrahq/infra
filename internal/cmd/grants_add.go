@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
-	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -18,7 +17,6 @@ type grantsCmdOptionsNew struct {
 	Destination string `mapstructure:"destination"`
 	IsGroup     bool   `mapstructure:"group"`
 	Role        string `mapstructure:"role"`
-	Provider    string `mapstructure:"provider"`
 }
 
 func newGrantAddCmd() *cobra.Command {
@@ -36,9 +34,6 @@ $ infra grants add ... -role admin ...
 Use [--group] or [-g] if identity is of type group. 
 $ infra grants add devGroup -group ...
 $ infra grants add devGroup -g ...
-
-Use [--provider] if more than one identity providers are connected. 
-$ infra grants add johndoe@acme.com --provider oktaDev ...
 
 For full documentation on grants, see  https://github.com/infrahq/infra/blob/main/docs/using-infra/grants.md 
 `,
@@ -58,17 +53,7 @@ For full documentation on grants, see  https://github.com/infrahq/infra/blob/mai
 
 	cmd.Flags().BoolP("group", "g", false, "Marks identity as type 'group'")
 	cmd.Flags().String("role", models.BasePermissionConnect, "Type of access that identity will be given")
-	cmd.Flags().String("provider", "", "Name of identity provider")
 	return cmd
-}
-
-func multipleProvidersConnected(client *api.Client) (bool, error) {
-	providers, err := client.ListProviders("")
-	if err != nil {
-		return false, err
-	}
-
-	return len(providers) >= 2, nil
 }
 
 func addGrant(cmdOptions grantsCmdOptionsNew) error {
@@ -82,74 +67,31 @@ func addGrant(cmdOptions grantsCmdOptionsNew) error {
 		return err
 	}
 
-	var provider api.Provider
-	switch identityType {
-	case groupType, userType:
-		if cmdOptions.Provider == "" {
-			multipleProvidersConnected, err := multipleProvidersConnected(client)
-			if err != nil {
-				return err
-			}
-			if multipleProvidersConnected {
-				return fmt.Errorf("More than one provider is connected to this server. Please specify one with -p or --provider.")
-			}
-		} else {
-			providers, err := client.ListProviders(cmdOptions.Provider)
-			if err != nil {
-				return err
-			}
-
-			if len(providers) == 0 {
-				return fmt.Errorf("No provider found with name %s", cmdOptions.Provider)
-			} else if len(providers) > 2 {
-				panic(fmt.Sprintf(DuplicateEntryPanic, "provider", cmdOptions.Provider))
-			}
-
-			provider = providers[0]
-		}
-	case machineType:
-		if cmdOptions.Provider != "" {
-			logging.S.Debugf("machine must be a local identity; overwriting --provider with %s", models.InternalInfraProviderName)
-		}
-
-		providers, err := client.ListProviders(models.InternalInfraProviderName)
-		if err != nil {
-			return err
-		}
-
-		if len(providers) == 0 {
-			return fmt.Errorf("No local provider found. To enable local users, create a local provider named 'infra'")
-		} else if len(providers) > 2 {
-			panic(fmt.Sprintf(DuplicateEntryPanic, "provider", models.InternalInfraProviderName))
-		}
-		provider = providers[0]
-	}
-
 	var id uid.PolymorphicID
 	switch identityType {
 	case groupType:
-		groups, err := client.ListGroups(api.ListGroupsRequest{Name: cmdOptions.Identity, ProviderID: provider.ID})
+		groups, err := client.ListGroups(api.ListGroupsRequest{Name: cmdOptions.Identity})
 		if err != nil {
 			return err
 		}
 
 		switch len(groups) {
 		case 0:
-			return fmt.Errorf("No group of name %s exists in provider %s", cmdOptions.Identity, provider.ID)
+			return fmt.Errorf("No group of name %s exists", cmdOptions.Identity)
 		case 1:
 			id = uid.NewGroupPolymorphicID(groups[0].ID)
 		case 2:
 			panic(fmt.Sprintf(DuplicateEntryPanic, "group", cmdOptions.Identity))
 		}
 	case userType, machineType:
-		identities, err := client.ListIdentities(api.ListIdentitiesRequest{Name: cmdOptions.Identity, ProviderID: provider.ID})
+		identities, err := client.ListIdentities(api.ListIdentitiesRequest{Name: cmdOptions.Identity})
 		if err != nil {
 			return err
 		}
 
 		switch len(identities) {
 		case 0:
-			return fmt.Errorf("No identity of name %s exists in provider %s", cmdOptions.Identity, provider.ID)
+			return fmt.Errorf("No identity of name %s exists", cmdOptions.Identity)
 		case 1:
 			id = uid.NewIdentityPolymorphicID(identities[0].ID)
 		case 2:

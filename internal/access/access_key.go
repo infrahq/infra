@@ -108,8 +108,9 @@ func ExchangeAccessKey(c *gin.Context, requestingAccessKey string, expiry time.T
 	}
 
 	exchangedAccessKey := &models.AccessKey{
-		IssuedFor: validatedRequestKey.IssuedFor,
-		ExpiresAt: expiry,
+		IssuedFor:  validatedRequestKey.IssuedFor,
+		ProviderID: validatedRequestKey.ProviderID,
+		ExpiresAt:  expiry,
 	}
 
 	secret, err := data.CreateAccessKey(db, exchangedAccessKey)

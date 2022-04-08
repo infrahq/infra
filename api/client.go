@@ -198,7 +198,7 @@ func delete(client Client, path string) error {
 }
 
 func (c Client) ListIdentities(req ListIdentitiesRequest) ([]Identity, error) {
-	return list[Identity](c, "/v1/identities", map[string]string{"name": req.Name, "provider_id": req.ProviderID.String()})
+	return list[Identity](c, "/v1/identities", map[string]string{"name": req.Name})
 }
 
 func (c Client) GetIdentity(id uid.ID) (*Identity, error) {
@@ -226,7 +226,7 @@ func (c Client) ListIdentityGroups(id uid.ID) ([]Group, error) {
 }
 
 func (c Client) ListGroups(req ListGroupsRequest) ([]Group, error) {
-	return list[Group](c, "/v1/groups", map[string]string{"name": req.Name, "provider_id": req.ProviderID.String()})
+	return list[Group](c, "/v1/groups", map[string]string{"name": req.Name})
 }
 
 func (c Client) GetGroup(id uid.ID) (*Group, error) {

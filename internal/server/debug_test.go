@@ -109,9 +109,12 @@ func createAccessKey(t *testing.T, db *gorm.DB, email string) (string, *models.I
 	err := data.CreateIdentity(db, user)
 	assert.NilError(t, err)
 
+	provider := data.InfraProvider(db)
+
 	token := &models.AccessKey{
-		IssuedFor: user.ID,
-		ExpiresAt: time.Now().Add(10 * time.Second),
+		IssuedFor:  user.ID,
+		ProviderID: provider.ID,
+		ExpiresAt:  time.Now().Add(10 * time.Second),
 	}
 
 	body, err := data.CreateAccessKey(db, token)

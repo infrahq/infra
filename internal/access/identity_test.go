@@ -13,12 +13,11 @@ import (
 
 func TestDeleteIdentityCleansUpResources(t *testing.T) {
 	// create the identity
-	c, db, provider := setupAccessTestContext(t)
+	c, db, infraProvider := setupAccessTestContext(t)
 
 	identity := &models.Identity{
-		Kind:       models.UserKind,
-		Name:       "to-be-deleted",
-		ProviderID: provider.ID,
+		Kind: models.UserKind,
+		Name: "to-be-deleted",
 	}
 
 	err := data.CreateIdentity(db, identity)
@@ -27,7 +26,7 @@ func TestDeleteIdentityCleansUpResources(t *testing.T) {
 	// create some resources for this identity
 
 	keyID := generate.MathRandom(models.AccessKeyKeyLength)
-	_, err = data.CreateAccessKey(db, &models.AccessKey{KeyID: keyID, IssuedFor: identity.ID})
+	_, err = data.CreateAccessKey(db, &models.AccessKey{KeyID: keyID, IssuedFor: identity.ID, ProviderID: infraProvider.ID})
 	assert.NilError(t, err)
 
 	creds := &models.Credential{

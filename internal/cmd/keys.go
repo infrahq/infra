@@ -8,8 +8,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
-	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/server/models"
 )
 
 const ThirtyDays = 30 * (24 * time.Hour)
@@ -65,13 +63,7 @@ infra keys add first-key bot --ttl=12h --extension-deadline=1h
 				return err
 			}
 
-			infraProvider, err := GetProviderByName(client, models.InternalInfraProviderName)
-			if err != nil {
-				logging.S.Debug(err)
-				return fmt.Errorf("no infra provider found, to manage local users create a local provider named 'infra'")
-			}
-
-			machine, err := GetIdentityFromName(client, machineName, infraProvider.ID)
+			machine, err := GetIdentityFromName(client, machineName)
 			if err != nil {
 				return err
 			}
@@ -166,13 +158,7 @@ func newKeysListCmd() *cobra.Command {
 
 			var keys []api.AccessKey
 			if options.MachineName != "" {
-				infraProvider, err := GetProviderByName(client, models.InternalInfraProviderName)
-				if err != nil {
-					logging.S.Debug(err)
-					return fmt.Errorf("no infra provider found, to manage local users create a local provider named 'infra'")
-				}
-
-				machine, err := GetIdentityFromName(client, options.MachineName, infraProvider.ID)
+				machine, err := GetIdentityFromName(client, options.MachineName)
 				if err != nil {
 					return err
 				}

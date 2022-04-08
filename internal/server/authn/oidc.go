@@ -27,8 +27,8 @@ type UserInfo struct {
 
 type OIDC interface {
 	ExchangeAuthCodeForProviderTokens(code string) (accessToken, refreshToken string, accessTokenExpiry time.Time, email string, err error)
-	RefreshAccessToken(providerToken *models.ProviderToken) (accessToken string, expiry *time.Time, err error)
-	GetUserInfo(providerToken *models.ProviderToken) (*UserInfo, error)
+	RefreshAccessToken(providerUser *models.ProviderUser) (accessToken string, expiry *time.Time, err error)
+	GetUserInfo(providerUser *models.ProviderUser) (*UserInfo, error)
 }
 
 type oidcImplementation struct {
@@ -67,7 +67,7 @@ func (o *oidcImplementation) clientConfig(ctx context.Context) (*oauth2.Config, 
 }
 
 // tokenSource is used to call an identity provider with the specified provider tokens
-func (o *oidcImplementation) tokenSource(providerTokens *models.ProviderToken) (oauth2.TokenSource, error) {
+func (o *oidcImplementation) tokenSource(providerTokens *models.ProviderUser) (oauth2.TokenSource, error) {
 	ctx := context.Background()
 
 	conf, _, err := o.clientConfig(ctx)
@@ -139,8 +139,8 @@ func (o *oidcImplementation) ExchangeAuthCodeForProviderTokens(code string) (raw
 }
 
 // RefreshAccessToken uses the refresh token to get a new access token if it is expired
-func (o *oidcImplementation) RefreshAccessToken(providerTokens *models.ProviderToken) (accessToken string, expiry *time.Time, err error) {
-	tokenSource, err := o.tokenSource(providerTokens)
+func (o *oidcImplementation) RefreshAccessToken(providerUser *models.ProviderUser) (accessToken string, expiry *time.Time, err error) {
+	tokenSource, err := o.tokenSource(providerUser)
 	if err != nil {
 		return "", nil, fmt.Errorf("ref token source: %w", err)
 	}
@@ -155,11 +155,11 @@ func (o *oidcImplementation) RefreshAccessToken(providerTokens *models.ProviderT
 
 // GetUserInfo uses a provider token to get the current information about a user,
 // make sure an access token is valid (not expired) before using this
-func (o *oidcImplementation) GetUserInfo(providerTokens *models.ProviderToken) (*UserInfo, error) {
+func (o *oidcImplementation) GetUserInfo(providerUser *models.ProviderUser) (*UserInfo, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), oidcProviderRequestTimeout)
 	defer cancel()
 
-	tokenSource, err := o.tokenSource(providerTokens)
+	tokenSource, err := o.tokenSource(providerUser)
 	if err != nil {
 		return nil, fmt.Errorf("info token source: %w", err)
 	}
@@ -173,7 +173,7 @@ func (o *oidcImplementation) GetUserInfo(providerTokens *models.ProviderToken) (
 		return nil, fmt.Errorf("userinfo request %w", err)
 	}
 
-	req.Header.Set("Authorization", "Bearer "+string(providerTokens.AccessToken))
+	req.Header.Set("Authorization", "Bearer "+string(providerUser.AccessToken))
 
 	resp, err := client.Do(req)
 	if err != nil {
