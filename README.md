@@ -132,13 +132,13 @@ This creates a one-time password for the created user.
 ### 6. Grant Infra administrator privileges to the first user
 
 ``` 
-infra grants add --user name@example.com --role admin infra 
+infra grants add name@example.com infra --role admin
 ``` 
 
 ### 7. Grant Kubernetes cluster administrator privileges to the first user 
 
 ```
-infra grants add --user name@example.com --role cluster-admin kubernetes.example-name
+infra grants add name@example.com kubernetes.example-name --role cluster-admin
 ```
 
 <details>
