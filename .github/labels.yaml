@@ -5,57 +5,56 @@
 
 
 - name: "kind/bug"
-  color: "d73a4a"
+  color: "D4C5F9"
   description: A report or a fix for a problem with functional correctness.
 - name: "kind/feature"
-  color: "a2eeef"
+  color: "D4C5F9"
   description: A request or change that improves functional suitability.
 - name: "kind/improvement"
-  color: "d8d468"
+  color: "D4C5F9"
   description: A report of a quality problem, or a change that addresses a quality problem.
 - name: "kind/maintenance"
-  color: "605f11"
+  color: "D4C5F9"
   description: A change related to the maintenance of the project.
 - name: "kind/question"
-  color: "d876e3"
+  color: "D4C5F9"
   description: A request for more information.
 
 
 - name: "area/documentation"
-  color: "0075ca"
+  color: "F9D0C4"
   description: Improvements or additions to documentation.
 - name: "area/api"
-  color: "11dd3d"
+  color: "F9D0C4"
   description: Issue or PR related to the Infra API.
 - name: "area/ui"
-  color: "0246d8"
+  color: "F9D0C4"
 - name: "area/deploy"
-  color: "BFA38D"
+  color: "F9D0C4"
   description: Issue or PR related to deploying Infra.
 - name: "area/release"
-  color: "fbca04"
+  color: "F9D0C4"
 - name: "area/cli"
-  color: "ca10ac"
+  color: "F9D0C4"
   description: Issue or PR related to the command-line interface.
 - name: "area/destinations"
-  color: "ac82da"
+  color: "F9D0C4"
 - name: "area/destinations/kubernetes"
-  color: "e2057a"
+  color: "F9D0C4"
 - name: "area/providers"
-  color: "71edd1"
+  color: "F9D0C4"
 - name: "area/providers/okta"
-  color: "07269e"
+  color: "F9D0C4"
 - name: "area/providers/infra"
-  color: "b3b781"
+  color: "F9D0C4"
 - name: "area/ci"
-  color: "000000"
+  color: "F9D0C4"
   description: Issue or PR related to Github actions, and other CI automation.
 - name: "area/observability"
-  color: "9ced24"
+  color: "F9D0C4"
   description: Issue or PR related to observability.
 - name: "area/secrets"
-  color: "d5bad1"
-  from_name: "secrets"
+  color: "F9D0C4"
 
 
 - name: "priority/high"
@@ -69,3 +68,11 @@
 - name: "status/blocked"
   color: "b60205"
   description: The issue is blocked on out-of-repository dependencies.
+
+- name: "autorelease/pending"
+  color: "dddddd"
+  description: Used by release-please to mark a pending release PR.
+- name: "autorelease/tagged"
+  color: "dddddd"
+  description: Used by release-please to mark a PR that has been released.
+
