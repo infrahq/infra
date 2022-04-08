@@ -274,7 +274,7 @@ EMAIL must contain a valid email address in the form of "local@domain".
 		
 
 ```
-infra identities add NAME|EMAIL [flags]
+infra identities add IDENTITY [flags]
 ```
 
 ### Options inherited from parent commands
@@ -290,13 +290,13 @@ infra identities add NAME|EMAIL [flags]
 Update an identity
 
 ```
-infra identities edit NAME [flags]
+infra identities edit IDENTITY [flags]
 ```
 
 ### Options
 
 ```
-  -p, --password   Prompt to update a local user's password
+  -p, --password   Update password field
 ```
 
 ### Options inherited from parent commands
