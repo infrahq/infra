@@ -1,4 +1,4 @@
-import { useContext, useState } from "react"
+import { useContext, useState, useEffect } from "react"
 import styled from 'styled-components'
 
 import Input from "../Input"
@@ -17,18 +17,47 @@ const InputContainer = styled.div`
 `
 
 const NextButton = styled.button`
-	  background-color: transparent;
-    cursor: pointer;
-    color: white;
-    border: 1px solid rgba(255,255,255,0.25);
-    box-sizing: border-box;
-    border-radius: 1px;
-    width: 20%;
+  background-color: transparent;
+  cursor: pointer;
+  color: white;
+  border: 1px solid rgba(255,255,255,0.25);
+  box-sizing: border-box;
+  border-radius: 1px;
+  width: 20%;
 `
 
 const NameInput = () => {
-  const { updateCurrentDestinationName, updateEnabledCommandInput, updateAccessKey } = useContext(DestinationsContext)
+  const { connected, destinations, accessKey, updateCurrentDestinationName, updateEnabledCommandInput, updateAccessKey, updateConnected } = useContext(DestinationsContext)
   const [name, setName] = useState('')
+  const [numDestinations, setNumDestinations] = useState(0)
+
+  useEffect(() => {
+    const handleDestinationConnection = () => {
+      if(accessKey && name.length > 0) {
+        axios.get(`/v1/destinations?name=${name}`)
+          .then((response) => {
+            if (!connected) {
+              if (response.data.length === numDestinations) {
+                pollingTimeout = setTimeout(handleDestinationConnection, 5000)
+              } else {
+                updateConnected(true)
+                clearTimeout(pollingTimeout)
+              }
+            } 
+          })
+          .catch((error) => {
+            console.log(error)
+            clearTimeout(pollingTimeout)
+          })
+      }
+    }
+
+    const pollingTimeout = setTimeout(handleDestinationConnection, 5000)
+
+    return () => {
+      clearTimeout(pollingTimeout)
+    };
+  }, [accessKey]);
 
   const handleNext = () => {
     const type = 'kubernetes'
@@ -37,8 +66,9 @@ const NameInput = () => {
 		console.log(destinationName)
 		updateCurrentDestinationName(name)
     updateEnabledCommandInput(name.length > 0)
-    
 
+    setNumDestinations(destinations.filter((item) => item.name === name).length)
+    
     axios.get('/v1/identities?name=connector')
       .then((response) => {
         const { id } = response.data[0]

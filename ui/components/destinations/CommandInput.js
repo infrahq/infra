@@ -20,8 +20,8 @@ const CommandInput = () => {
   const { enabledCommandInput, accessKey, currentDestinationName } = useContext(DestinationsContext)
 
   const value = enabledCommandInput ? `helm install infra-connector infrahq/infra \\
-  --set connector.config.accessKey=${accessKey}
-  --set connector.config.server=${window.location.host}
+  --set connector.config.accessKey=${accessKey} \\
+  --set connector.config.server=${window.location.host} \\
   --set connector.config.name=${currentDestinationName}` : ''
 
   return (
