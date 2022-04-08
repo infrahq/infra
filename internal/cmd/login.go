@@ -498,7 +498,7 @@ func promptLocalLogin() (*api.LoginRequestPasswordCredentials, error) {
 	questionPrompt := []*survey.Question{
 		{
 			Name:     "Email",
-			Prompt:   &survey.Input{Message: "Email:"},
+			Prompt:   &survey.Input{Message: "   Email:"},
 			Validate: survey.Required,
 		},
 		{

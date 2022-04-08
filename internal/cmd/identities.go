@@ -322,7 +322,7 @@ func promptUpdatePassword(oldPassword string) (string, error) {
 
 PROMPT:
 	newPassword := ""
-	if err := survey.AskOne(&survey.Password{Message: "New password:"}, &newPassword, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
+	if err := survey.AskOne(&survey.Password{Message: "    New password:"}, &newPassword, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
 		return "", err
 	}
 
@@ -332,7 +332,7 @@ PROMPT:
 	}
 
 	confirmNewPassword := ""
-	if err := survey.AskOne(&survey.Password{Message: "Re-enter new password:"}, &confirmNewPassword, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
+	if err := survey.AskOne(&survey.Password{Message: "Confirm password:"}, &confirmNewPassword, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
 		return "", err
 	}
 
