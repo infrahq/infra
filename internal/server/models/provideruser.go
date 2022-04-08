@@ -16,4 +16,10 @@ type ProviderUser struct {
 	Email      string `validate:"required"`
 	Groups     CommaSeparatedStrings
 	LastUpdate time.Time `validate:"required"`
+
+	RedirectURL string // needs to match the redirect URL specified when the token was issued for refreshing
+
+	AccessToken  EncryptedAtRest
+	RefreshToken EncryptedAtRest
+	ExpiresAt    time.Time
 }

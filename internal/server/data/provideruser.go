@@ -34,6 +34,10 @@ func CreateProviderUser(db *gorm.DB, provider *models.Provider, ident *models.Id
 	return pu, nil
 }
 
+func UpdateProviderUser(db *gorm.DB, providerUser *models.ProviderUser) error {
+	return save(db, providerUser)
+}
+
 func DeleteProviderUsers(db *gorm.DB, selector SelectorFunc) error {
 	return deleteAll[models.ProviderUser](db, selector)
 }

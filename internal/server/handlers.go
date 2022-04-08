@@ -63,6 +63,11 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 		return nil, err
 	}
 
+	_, err = access.CreateProviderUser(c, access.InfraProvider(c), identity)
+	if err != nil {
+		return nil, err
+	}
+
 	defaultGrant := &models.Grant{Subject: identity.PolyID(), Privilege: models.InfraUserRole, Resource: access.ResourceInfraAPI}
 	if err := access.CreateGrant(c, defaultGrant); err != nil {
 		return nil, err
@@ -339,7 +344,7 @@ func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateToken
 	if access.CurrentIdentity(c) != nil {
 		err := a.UpdateIdentityInfoFromProvider(c)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("update ident info from provider: %w", err)
 		}
 
 		token, err := access.CreateToken(c)
@@ -560,40 +565,44 @@ func (a *API) UpdateIdentityInfoFromProvider(c *gin.Context) error {
 		return nil
 	}
 
-	providerTokens, err := access.RetrieveUserProviderTokens(c)
+	providerUser, err := access.RetrieveUserProviderTokens(c)
 	if err != nil {
 		return err
 	}
 
-	provider, err := access.GetProvider(c, providerTokens.ProviderID)
+	provider, err := access.GetProvider(c, providerUser.ProviderID)
 	if err != nil {
 		return fmt.Errorf("user info provider: %w", err)
 	}
 
-	oidc, err := a.providerClient(c, provider, providerTokens.RedirectURL)
+	if provider.Name == models.InternalInfraProviderName {
+		return nil
+	}
+
+	oidc, err := a.providerClient(c, provider, providerUser.RedirectURL)
 	if err != nil {
 		return fmt.Errorf("update provider client: %w", err)
 	}
 
 	// check if the access token needs to be refreshed
-	newAccessToken, newExpiry, err := oidc.RefreshAccessToken(providerTokens)
+	newAccessToken, newExpiry, err := oidc.RefreshAccessToken(providerUser)
 	if err != nil {
 		return fmt.Errorf("refresh provider access: %w", err)
 	}
 
-	if newAccessToken != string(providerTokens.AccessToken) {
-		logging.S.Debugf("access token for user at provider %s was refreshed", providerTokens.ProviderID)
+	if newAccessToken != string(providerUser.AccessToken) {
+		logging.S.Debugf("access token for user at provider %s was refreshed", providerUser.ProviderID)
 
-		providerTokens.AccessToken = models.EncryptedAtRest(newAccessToken)
-		providerTokens.ExpiresAt = *newExpiry
+		providerUser.AccessToken = models.EncryptedAtRest(newAccessToken)
+		providerUser.ExpiresAt = *newExpiry
 
-		if err := access.UpdateProviderToken(c, providerTokens); err != nil {
+		if err := access.UpdateProviderUser(c, providerUser); err != nil {
 			return fmt.Errorf("update access token before JWT: %w", err)
 		}
 	}
 
 	// get current identity provider groups
-	info, err := oidc.GetUserInfo(providerTokens)
+	info, err := oidc.GetUserInfo(providerUser)
 	if err != nil {
 		if errors.Is(err, internal.ErrForbidden) {
 			err := access.DeleteAllIdentityAccessKeys(c)

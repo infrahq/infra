@@ -573,11 +573,12 @@ func (s *Server) importAccessKeys() error {
 		}
 
 		accessKey = &models.AccessKey{
-			Name:      name,
-			KeyID:     parts[0],
-			Secret:    parts[1],
-			IssuedFor: id.ID,
-			ExpiresAt: time.Now().Add(math.MaxInt64).UTC(),
+			Name:       name,
+			KeyID:      parts[0],
+			Secret:     parts[1],
+			IssuedFor:  id.ID,
+			ProviderID: data.InfraProvider(s.db).ID,
+			ExpiresAt:  time.Now().Add(math.MaxInt64).UTC(),
 		}
 		if _, err := data.CreateAccessKey(s.db, accessKey); err != nil {
 			return fmt.Errorf("%s create: %w", k, err)

@@ -91,8 +91,9 @@ func LoginWithUserCredential(c *gin.Context, email, password string, expiry time
 
 	// the password is valid
 	issuedAccessKey := &models.AccessKey{
-		IssuedFor: user.ID,
-		ExpiresAt: expiry,
+		IssuedFor:  user.ID,
+		ProviderID: InfraProvider(c).ID,
+		ExpiresAt:  expiry,
 	}
 
 	secret, err := data.CreateAccessKey(db, issuedAccessKey)

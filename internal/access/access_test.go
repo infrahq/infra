@@ -203,12 +203,12 @@ func (m *mockOIDCImplementation) ExchangeAuthCodeForProviderTokens(code string) 
 	return "acc", "ref", exp, m.UserEmailResp, nil
 }
 
-func (o *mockOIDCImplementation) RefreshAccessToken(providerTokens *models.ProviderToken) (accessToken string, expiry *time.Time, err error) {
+func (o *mockOIDCImplementation) RefreshAccessToken(providerUser *models.ProviderUser) (accessToken string, expiry *time.Time, err error) {
 	// never update
-	return string(providerTokens.AccessToken), &providerTokens.ExpiresAt, nil
+	return string(providerUser.AccessToken), &providerUser.ExpiresAt, nil
 }
 
-func (m *mockOIDCImplementation) GetUserInfo(providerTokens *models.ProviderToken) (*authn.UserInfo, error) {
+func (m *mockOIDCImplementation) GetUserInfo(providerUser *models.ProviderUser) (*authn.UserInfo, error) {
 	return &authn.UserInfo{Email: m.UserEmailResp, Groups: &m.UserGroupsResp}, nil
 }
 

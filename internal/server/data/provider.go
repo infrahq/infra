@@ -46,18 +46,6 @@ func DeleteProviders(db *gorm.DB, selectors ...SelectorFunc) error {
 	return deleteAll[models.Provider](db, ByIDs(ids))
 }
 
-func CreateProviderToken(db *gorm.DB, token *models.ProviderToken) error {
-	return add(db, token)
-}
-
-func UpdateProviderToken(db *gorm.DB, token *models.ProviderToken) error {
-	return save(db, token)
-}
-
-func GetProviderToken(db *gorm.DB, selector SelectorFunc) (*models.ProviderToken, error) {
-	return get[models.ProviderToken](db, selector)
-}
-
 var infraProviderCache *models.Provider
 
 // InfraProvider is a lazy-loaded cached reference to the infra provider, since it's used in a lot of places

@@ -19,8 +19,9 @@ func createAccessKey(t *testing.T, db *gorm.DB, sessionDuration time.Duration) (
 	assert.NilError(t, err)
 
 	token := &models.AccessKey{
-		IssuedFor: user.ID,
-		ExpiresAt: time.Now().Add(sessionDuration),
+		IssuedFor:  user.ID,
+		ProviderID: InfraProvider(db).ID,
+		ExpiresAt:  time.Now().Add(sessionDuration),
 	}
 
 	body, err := CreateAccessKey(db, token)
@@ -36,6 +37,7 @@ func createAccessKeyWithExtensionDeadline(t *testing.T, db *gorm.DB, ttl, exensi
 
 	token := &models.AccessKey{
 		IssuedFor:         machine.ID,
+		ProviderID:        InfraProvider(db).ID,
 		ExpiresAt:         time.Now().Add(ttl),
 		ExtensionDeadline: time.Now().Add(exensionDeadline).UTC(),
 	}

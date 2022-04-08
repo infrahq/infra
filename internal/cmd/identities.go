@@ -136,9 +136,8 @@ func newIdentitiesListCmd() *cobra.Command {
 			}
 
 			type row struct {
-				Name     string `header:"Name"`
-				Type     string `header:"Type"`
-				Provider string `header:"Provider"`
+				Name string `header:"Name"`
+				Type string `header:"Type"`
 			}
 
 			var rows []row
