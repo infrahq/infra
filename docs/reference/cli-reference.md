@@ -267,7 +267,7 @@ Create a machine identity with NAME or a user identity with EMAIL.
 NAME must only contain alphanumeric characters ('a-z', 'A-Z', '0-9') or the
 special characters '-', '_', or '/' and has a maximum length of 256 characters.
 
-EMAIL must contain a valid email address in the form of "<local>@<domain>".
+EMAIL must contain a valid email address in the form of "local@domain".
 		
 
 ```
