@@ -8,6 +8,7 @@ import NameInput from "../../../components/destinations/NameInput"
 import CommandInput from "../../../components/destinations/CommandInput"
 import ExitButton from "../../../components/ExitButton"
 import Header from "../../../components/Header"
+import ConnectStatus from "../../../components/destinations/ConnectStatus"
 
 import { DestinationsContextProvider } from "../../../store/DestinationsContext"
 
@@ -55,6 +56,7 @@ const Connect = () => {
           />
           <NameInput />
           <CommandInput />
+          <ConnectStatus />
 					{/* <ActionButton disabled={!enabled && !connected} onClick={() => handleFinish()} value='Finish' /> */}
         </SetupDestinationContent>      
         <NavButton>
