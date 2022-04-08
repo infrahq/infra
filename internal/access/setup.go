@@ -39,17 +39,21 @@ func Setup(c *gin.Context) (string, *models.AccessKey, error) {
 		return "", nil, internal.ErrForbidden
 	}
 
-	name := "admin"
+	infraProvider, err := data.GetProvider(db, data.ByName(models.InternalInfraProviderName))
+	if err != nil {
+		return "", nil, err
+	}
 
-	admin, err := data.GetIdentity(db, data.ByName(name))
+	admin, err := data.GetIdentity(db, data.ByName(models.InternalInfraAdminIdentityName))
 	if err != nil {
 		return "", nil, err
 	}
 
 	key := &models.AccessKey{
-		Name:      fmt.Sprintf("%s-access-key", name),
-		IssuedFor: admin.ID,
-		ExpiresAt: time.Now().Add(math.MaxInt64).UTC(),
+		Name:       fmt.Sprintf("%s-access-key", models.InternalInfraAdminIdentityName),
+		IssuedFor:  admin.ID,
+		ExpiresAt:  time.Now().Add(math.MaxInt64).UTC(),
+		ProviderID: infraProvider.ID,
 	}
 
 	raw, err := data.CreateAccessKey(db, key)
