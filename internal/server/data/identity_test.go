@@ -24,7 +24,7 @@ func TestUser(t *testing.T) {
 	assert.Equal(t, bond.Name, user.Name)
 }
 
-func CreateIdentitys(t *testing.T, db *gorm.DB, users ...models.Identity) {
+func createIdentities(t *testing.T, db *gorm.DB, users ...models.Identity) {
 	for i := range users {
 		err := CreateIdentity(db, &users[i])
 		assert.NilError(t, err)
@@ -40,7 +40,7 @@ func TestCreateDuplicateUser(t *testing.T) {
 		bauer  = models.Identity{Name: "jbauer@infrahq.com"}
 	)
 
-	CreateIdentitys(t, db, bond, bourne, bauer)
+	createIdentities(t, db, bond, bourne, bauer)
 
 	b := bond
 	b.ID = 0
@@ -57,7 +57,7 @@ func TestGetIdentity(t *testing.T) {
 		bauer  = models.Identity{Name: "jbauer@infrahq.com"}
 	)
 
-	CreateIdentitys(t, db, bond, bourne, bauer)
+	createIdentities(t, db, bond, bourne, bauer)
 
 	user, err := GetIdentity(db, ByName(bond.Name))
 	assert.NilError(t, err)
@@ -73,7 +73,7 @@ func TestListIdentities(t *testing.T) {
 		bauer  = models.Identity{Name: "jbauer@infrahq.com"}
 	)
 
-	CreateIdentitys(t, db, bond, bourne, bauer)
+	createIdentities(t, db, bond, bourne, bauer)
 
 	users, err := ListIdentities(db)
 	assert.NilError(t, err)
@@ -93,7 +93,7 @@ func TestDeleteIdentity(t *testing.T) {
 		bauer  = models.Identity{Name: "jbauer@infrahq.com"}
 	)
 
-	CreateIdentitys(t, db, bond, bourne, bauer)
+	createIdentities(t, db, bond, bourne, bauer)
 
 	_, err := GetIdentity(db, ByName(bond.Name))
 	assert.NilError(t, err)
@@ -122,7 +122,7 @@ func TestReCreateIdentitySameEmail(t *testing.T) {
 		bauer  = models.Identity{Name: "jbauer@infrahq.com", Kind: models.UserKind}
 	)
 
-	CreateIdentitys(t, db, bond, bourne, bauer)
+	createIdentities(t, db, bond, bourne, bauer)
 
 	err := DeleteIdentities(db, ByName(bond.Name))
 	assert.NilError(t, err)

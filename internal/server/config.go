@@ -457,22 +457,29 @@ func (sp *SecretProvider) UnmarshalYAML(unmarshal func(interface{}) error) error
 
 // setupInternalInfraIdentityProvider creates the internal identity provider where local identities are stored
 func (s *Server) setupInternalInfraIdentityProvider() error {
-	_, err := data.GetProvider(s.db, data.ByName(models.InternalInfraProviderName))
+	provider, err := data.GetProvider(s.db, data.ByName(models.InternalInfraProviderName))
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return fmt.Errorf("setup infra provider: %w", err)
 		}
 
-		if err := data.CreateProvider(s.db, &models.Provider{Name: models.InternalInfraProviderName, CreatedBy: models.CreatedBySystem}); err != nil {
+		provider = &models.Provider{
+			Name:      models.InternalInfraProviderName,
+			CreatedBy: models.CreatedBySystem,
+		}
+
+		if err := data.CreateProvider(s.db, provider); err != nil {
 			return err
 		}
 	}
+
+	s.InternalProvider = provider
 
 	return nil
 }
 
 // setupInternalIdentity creates built-in identites for the internal identity provider
-func (s *Server) setupBuiltinIdentity(name, role string) (*models.Identity, error) {
+func (s *Server) setupInternalInfraIdentity(name, role string) (*models.Identity, error) {
 	id, err := data.GetIdentity(s.db, data.ByName(name))
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
@@ -507,6 +514,12 @@ func (s *Server) setupBuiltinIdentity(name, role string) (*models.Identity, erro
 		}
 	}
 
+	if s.InternalIdentities == nil {
+		s.InternalIdentities = make(map[string]*models.Identity)
+	}
+
+	s.InternalIdentities[name] = id
+
 	return id, nil
 }
 
@@ -517,18 +530,18 @@ func (s *Server) importAccessKeys() error {
 	}
 
 	keys := map[string]key{
-		"admin": {
+		models.InternalInfraAdminIdentityName: {
 			Secret: s.options.AdminAccessKey,
 			Role:   models.InfraAdminRole,
 		},
-		"connector": {
+		models.InternalInfraConnectorIdentityName: {
 			Secret: s.options.AccessKey,
 			Role:   models.InfraConnectorRole,
 		},
 	}
 
 	for k, v := range keys {
-		id, err := s.setupBuiltinIdentity(k, v.Role)
+		id, err := s.setupInternalInfraIdentity(k, v.Role)
 		if err != nil {
 			return fmt.Errorf("setup built-in: %w", err)
 		}

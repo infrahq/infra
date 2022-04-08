@@ -92,6 +92,9 @@ type Server struct {
 	certificateProvider pki.CertificateProvider
 	Addrs               Addrs
 	routines            []func() error
+
+	InternalProvider   *models.Provider
+	InternalIdentities map[string]*models.Identity
 }
 
 type Addrs struct {

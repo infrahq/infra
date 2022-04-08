@@ -174,15 +174,6 @@ func newIdentitiesRemoveCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
-			isSelf, err := isIdentitySelf(name)
-			if err != nil {
-				return err
-			}
-
-			if isSelf {
-				return fmt.Errorf("users cannot delete themselves")
-			}
-
 			client, err := defaultAPIClient()
 			if err != nil {
 				return err
