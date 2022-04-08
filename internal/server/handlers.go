@@ -88,6 +88,8 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 		resp.OneTimePassword = oneTimePassword
 	}
 
+	a.t.User(identity)
+
 	return resp, nil
 }
 
@@ -507,11 +509,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 		setAuthCookie(c, key, expires)
 
-		if a.t != nil {
-			if err := a.t.Enqueue(analytics.Track{Event: "infra.login.credentials", UserId: user.ID.String()}); err != nil {
-				logging.S.Debug(err)
-			}
-		}
+		a.t.Event(c, "login", Properties{"method": "credentials"})
 
 		return &api.LoginResponse{PolymorphicID: user.PolyID(), Name: user.Name, AccessKey: key, Expires: api.Time(expires), PasswordUpdateRequired: requiresUpdate}, nil
 	case r.OIDC != nil:
@@ -532,11 +530,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 		setAuthCookie(c, key, expires)
 
-		if a.t != nil {
-			if err := a.t.Enqueue(analytics.Track{Event: "infra.login.oidc", UserId: user.ID.String()}); err != nil {
-				logging.S.Debug(err)
-			}
-		}
+		a.t.Event(c, "login", Properties{"method": "oidc"})
 
 		return &api.LoginResponse{PolymorphicID: user.PolyID(), Name: user.Name, AccessKey: key, Expires: api.Time(expires)}, nil
 	}

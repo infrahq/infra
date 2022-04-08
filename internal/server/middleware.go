@@ -57,12 +57,10 @@ func DatabaseMiddleware(db *gorm.DB) gin.HandlerFunc {
 }
 
 // AuthenticationMiddleware validates the incoming token
-func AuthenticationMiddleware() gin.HandlerFunc {
+func AuthenticationMiddleware(a *API) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if err := RequireAccessKey(c); err != nil {
-			logging.S.Debug(err.Error())
-			// IMPORTANT: do not return errors encountered during token validation, always return generic unauthorized message
-			sendAPIError(c, internal.ErrUnauthorized)
+			a.sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrUnauthorized, err))
 
 			return
 		}
