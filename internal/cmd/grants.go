@@ -98,9 +98,10 @@ func newGrantsListCmd() *cobra.Command {
 
 func newGrantRemoveCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "remove DESTINATION",
-		Short: "Revoke access to a destination",
-		Args:  cobra.ExactArgs(1),
+		Use:     "remove DESTINATION",
+		Aliases: []string{"rm"},
+		Short:   "Revoke access to a destination",
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var options grantsCmdOptions
 			if err := parseOptions(cmd, &options, "INFRA_ACCESS"); err != nil {

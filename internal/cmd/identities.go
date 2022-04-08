@@ -35,13 +35,13 @@ func newIdentitiesCmd() *cobra.Command {
 	return cmd
 }
 
-type identityOptions struct {
+type identityCmdOptions struct {
 	Password bool `mapstructure:"password"`
 }
 
 func newIdentitiesAddCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "add NAME|EMAIL",
+		Use:   "add IDENTITY",
 		Short: "Create an identity.",
 		Long: `Create a machine identity with NAME or a user identity with EMAIL.
 
@@ -54,7 +54,7 @@ EMAIL must contain a valid email address in the form of "local@domain".
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
-			var options identityOptions
+			var options identityCmdOptions
 			if err := parseOptions(cmd, &options, ""); err != nil {
 				return err
 			}
@@ -82,13 +82,13 @@ EMAIL must contain a valid email address in the form of "local@domain".
 
 func newIdentitiesEditCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "edit NAME",
+		Use:   "edit IDENTITY",
 		Short: "Update an identity",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
-			var options identityOptions
+			var options identityCmdOptions
 			if err := parseOptions(cmd, &options, ""); err != nil {
 				return err
 			}
@@ -104,15 +104,14 @@ func newIdentitiesEditCmd() *cobra.Command {
 
 			if kind == models.UserKind {
 				if !options.Password {
-					return errors.New("specify the --password flag to update the password")
+					return errors.New("Specify a field to update")
 				}
 
-				newPassword, err := promptUpdatePassword("")
-				if err != nil {
-					return err
+				if options.Password && rootOptions.NonInteractive {
+					return errors.New("Non-interactive mode is not supported to edit sensitive fields")
 				}
 
-				err = UpdateIdentity(name, newPassword)
+				err = UpdateIdentity(name, options)
 				if err != nil {
 					return err
 				}
@@ -122,7 +121,7 @@ func newIdentitiesEditCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolP("password", "p", false, "Prompt to update a local user's password")
+	cmd.Flags().BoolP("password", "p", false, "Update password field")
 
 	return cmd
 }
@@ -183,9 +182,10 @@ func newIdentitiesListCmd() *cobra.Command {
 
 func newIdentitiesRemoveCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "remove NAME",
-		Short: "Delete an identity",
-		Args:  cobra.ExactArgs(1),
+		Use:     "remove NAME",
+		Aliases: []string{"rm"},
+		Short:   "Delete an identity",
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
@@ -282,7 +282,7 @@ func CreateLocalIdentity(name string) (*api.CreateIdentityResponse, error) {
 	return resp, nil
 }
 
-func UpdateIdentity(name, newPassword string) error {
+func UpdateIdentity(name string, cmdOptions identityCmdOptions) error {
 	client, err := defaultAPIClient()
 	if err != nil {
 		return err
@@ -293,12 +293,12 @@ func UpdateIdentity(name, newPassword string) error {
 		return err
 	}
 
+	req := &api.UpdateIdentityRequest{}
+
 	isSelf, err := isIdentitySelf(name, infraProvider)
 	if err != nil {
 		return err
 	}
-
-	var userID uid.ID
 
 	if isSelf {
 		config, err := currentHostConfig()
@@ -306,7 +306,7 @@ func UpdateIdentity(name, newPassword string) error {
 			return err
 		}
 
-		if userID, err = config.PolymorphicID.ID(); err != nil {
+		if req.ID, err = config.PolymorphicID.ID(); err != nil {
 			return err
 		}
 	} else {
@@ -318,10 +318,17 @@ func UpdateIdentity(name, newPassword string) error {
 			return err
 		}
 
-		userID = user.ID
+		req.ID = user.ID
 	}
 
-	if _, err := client.UpdateIdentity(&api.UpdateIdentityRequest{ID: userID, Password: newPassword}); err != nil {
+	if cmdOptions.Password {
+		req.Password, err = promptUpdatePassword("")
+		if err != nil {
+			return err
+		}
+	}
+
+	if _, err := client.UpdateIdentity(req); err != nil {
 		return err
 	}
 

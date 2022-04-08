@@ -204,7 +204,7 @@ func TestIdentities(t *testing.T) {
 		cmd.SetArgs([]string{"new-user@example.com"})
 		err := cmd.Execute()
 
-		assert.ErrorContains(t, err, "specify the --password flag")
+		assert.ErrorContains(t, err, "Specify a field to update")
 	})
 
 	t.Run("removes only the specified identity", func(t *testing.T) {

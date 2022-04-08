@@ -111,9 +111,10 @@ infra keys add first-key bot --ttl=12h --extension-deadline=1h
 
 func newKeysRemoveCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "remove ACCESS_KEY_NAME",
-		Short: "Delete an access key",
-		Args:  cobra.ExactArgs(1),
+		Use:     "remove ACCESS_KEY_NAME",
+		Aliases: []string{"rm"},
+		Short:   "Delete an access key",
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := defaultAPIClient()
 			if err != nil {
