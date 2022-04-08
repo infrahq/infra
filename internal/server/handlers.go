@@ -388,6 +388,7 @@ func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*a
 	accessKey := &models.AccessKey{
 		IssuedFor:         r.IdentityID,
 		Name:              r.Name,
+		ProviderID:        access.InfraProvider(c).ID,
 		ExpiresAt:         time.Now().Add(time.Duration(r.TTL)).UTC(),
 		Extension:         time.Duration(r.ExtensionDeadline),
 		ExtensionDeadline: time.Now().Add(time.Duration(r.ExtensionDeadline)).UTC(),

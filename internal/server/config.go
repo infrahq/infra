@@ -490,6 +490,11 @@ func (s *Server) setupBuiltinIdentity(name, role string) (*models.Identity, erro
 			return nil, fmt.Errorf("create identity: %w", err)
 		}
 
+		_, err = data.CreateProviderUser(s.db, data.InfraProvider(s.db), id)
+		if err != nil {
+			return nil, fmt.Errorf("create identity: %w", err)
+		}
+
 		grant := &models.Grant{
 			Subject:   id.PolyID(),
 			Privilege: role,
