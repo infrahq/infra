@@ -195,14 +195,11 @@ See the cluster(s) connected to Infra:
 ```
 infra destinations list
 ```
-See who has access to what via Infra: 
+See who has access to what via Infra (requires admin or view role on Infra) 
 ```
 infra grants list
 
-Note: this requires the user to have either admin or view permissions to Infra. 
-
-An example to grant the permission:
-infra grants add --user name@example.com --role view infra 
+To grant user access to this command, run 'infra grants add name@example infra --role view'
 ```
 </details>
 
