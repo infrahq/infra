@@ -26,8 +26,8 @@ func newProvidersCmd() *cobra.Command {
 	return cmd
 }
 
-type providerOptions struct {
-	URL          string
+type providerCmdOptions struct {
+	URL          string `mapstructure:"url"`
 	ClientID     string `mapstructure:"client-id"`
 	ClientSecret string `mapstructure:"client-secret"`
 }
@@ -71,19 +71,17 @@ func newProvidersListCmd() *cobra.Command {
 
 func newProvidersAddCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "add NAME URL CLIENT_ID CLIENT_SECRET",
+		Use:   "add PROVIDER",
 		Short: "Connect an identity provider",
 		Long: `
 Add an identity provider for users to authenticate.
 
-NAME: The name of the identity provider (e.g. okta)
-URL: The base URL of the domain used to login with the identity provider (e.g. acme.okta.com)
-CLIENT_ID: The Infra application OpenID Connect client ID
-CLIENT_SECRET: The Infra application OpenID Connect client secret
+PROVIDER is a short unique name of the identity provider bieng added (eg. okta) 
 		`,
-		Args: cobra.ExactArgs(4),
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var options providerOptions
+			var options providerCmdOptions
+
 			if err := parseOptions(cmd, &options, "INFRA_PROVIDER"); err != nil {
 				return err
 			}
@@ -95,9 +93,9 @@ CLIENT_SECRET: The Infra application OpenID Connect client secret
 
 			_, err = client.CreateProvider(&api.CreateProviderRequest{
 				Name:         args[0],
-				URL:          args[1],
-				ClientID:     args[2],
-				ClientSecret: args[3],
+				URL:          options.URL,
+				ClientID:     options.ClientID,
+				ClientSecret: options.ClientSecret,
 			})
 			if err != nil {
 				return err
@@ -105,6 +103,20 @@ CLIENT_SECRET: The Infra application OpenID Connect client secret
 
 			return nil
 		},
+	}
+
+	cmd.Flags().String("url", "", "Base URL of the domain of the OIDC identity provider (eg. acme.okta.com)")
+	cmd.Flags().String("client-id", "", "OIDC client ID")
+	cmd.Flags().String("client-secret", "", "OIDC client secret")
+
+	if err := cmd.MarkFlagRequired("url"); err != nil {
+		panic("cannot set flag [--url] as required")
+	}
+	if err := cmd.MarkFlagRequired("client-id"); err != nil {
+		panic("cannot set flag [--client-id] as required")
+	}
+	if err := cmd.MarkFlagRequired("client-secret"); err != nil {
+		panic("cannot set flag [--client-secret] as required")
 	}
 
 	return cmd
