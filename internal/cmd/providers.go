@@ -101,6 +101,8 @@ PROVIDER is a short unique name of the identity provider bieng added (eg. okta)
 				return err
 			}
 
+			fmt.Printf("%s provider added\n", args[0])
+
 			return nil
 		},
 	}
