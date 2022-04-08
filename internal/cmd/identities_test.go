@@ -205,6 +205,7 @@ func TestIdentities(t *testing.T) {
 		err := cmd.Execute()
 
 		assert.ErrorContains(t, err, "Specify a field to update")
+	})
 
 	t.Run("removes only the specified identity", func(t *testing.T) {
 		modifiedIdentities := setup(t)
