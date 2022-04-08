@@ -42,13 +42,6 @@ func mustBeLoggedIn() error {
 func parseOptions(cmd *cobra.Command, options interface{}, envPrefix string) error {
 	v := viper.New()
 
-	v.SetConfigName("infra")
-	v.SetConfigType("yaml")
-
-	v.AddConfigPath("/etc/infrahq")
-	v.AddConfigPath("$HOME/.infra")
-	v.AddConfigPath(".")
-
 	if configFileFlag := cmd.Flags().Lookup("config-file"); configFileFlag != nil {
 		if configFile := configFileFlag.Value.String(); configFile != "" {
 			v.SetConfigFile(configFile)
