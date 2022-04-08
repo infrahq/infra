@@ -21,7 +21,7 @@ If you don't have an identity provider, Infra supports local users for you to ge
   <img alt="product screenshot" src="https://user-images.githubusercontent.com/3325447/162065853-0073e6f2-8094-42f4-b88b-1bf03b2264e0.png"  />
 </p>
 
-## Getting Started 
+## Documentation
 
-* [Quickstart documentation](./docs/getting-started/quickstart.md)
-* [Security](https://infrahq.com/docs/reference/security)
+* [Quickstart](./docs/getting-started/quickstart.md)
+* [Security](./docs/reference/security.md)
