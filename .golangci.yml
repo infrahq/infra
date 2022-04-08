@@ -9,7 +9,7 @@ linters-settings:
   revive:
     rules:
       - name: var-naming
-        arguments: [[ ID, API, HTTP ], []]
+        arguments: [[ID, API, HTTP], []]
   gci:
     sections:
       - standard
@@ -32,7 +32,6 @@ linters:
     - gci
     - gocritic
     - gofmt
-    - gofumpt
     - gosec
     - gosimple
     - govet
