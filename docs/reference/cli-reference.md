@@ -373,16 +373,16 @@ infra keys add ACCESS_KEY_NAME MACHINE_NAME [flags]
 
 ```
 
-# Create an access key for the machine "wall-e" called main that expires in 12 hours and must be used every hour to remain valid
-infra keys create main wall-e 12h --extension-deadline=1h
+# Create an access key for the machine "bot" called "first-key" that expires in 12 hours and must be used every hour to remain valid
+infra keys add first-key bot --ttl=12h --extension-deadline=1h
 
 ```
 
 ### Options
 
 ```
-      --extension-deadline string   A specified deadline that an access key must be used within to remain valid, defaults to 1h
-      --ttl string                  The total time that an access key will be valid for, defaults to 24h
+      --extension-deadline string   A specified deadline that an access key must be used within to remain valid, defaults to 30 days
+      --ttl string                  The total time that an access key will be valid for, defaults to 30 days
 ```
 
 ### Options inherited from parent commands

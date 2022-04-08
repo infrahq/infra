@@ -12,6 +12,8 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
+const ThirtyDays = 30 * (24 * time.Hour)
+
 func newKeysCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "keys",
@@ -41,8 +43,8 @@ func newKeysAddCmd() *cobra.Command {
 		Use:   "add ACCESS_KEY_NAME MACHINE_NAME",
 		Short: "Create an access key for authentication",
 		Example: `
-# Create an access key for the machine "wall-e" called main that expires in 12 hours and must be used every hour to remain valid
-infra keys create main wall-e 12h --extension-deadline=1h
+# Create an access key for the machine "bot" called "first-key" that expires in 12 hours and must be used every hour to remain valid
+infra keys add first-key bot --ttl=12h --extension-deadline=1h
 `,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -74,7 +76,7 @@ infra keys create main wall-e 12h --extension-deadline=1h
 				return err
 			}
 
-			deadline := 1 * time.Hour
+			deadline := ThirtyDays
 			if options.ExtensionDeadline != "" {
 				deadline, err = time.ParseDuration(options.ExtensionDeadline)
 				if err != nil {
@@ -82,7 +84,7 @@ infra keys create main wall-e 12h --extension-deadline=1h
 				}
 			}
 
-			ttl := 24 * time.Hour
+			ttl := ThirtyDays
 			if options.TTL != "" {
 				ttl, err = time.ParseDuration(options.TTL)
 				if err != nil {
@@ -101,8 +103,8 @@ infra keys create main wall-e 12h --extension-deadline=1h
 		},
 	}
 
-	cmd.Flags().String("ttl", "", "The total time that an access key will be valid for, defaults to 24h")
-	cmd.Flags().String("extension-deadline", "", "A specified deadline that an access key must be used within to remain valid, defaults to 1h")
+	cmd.Flags().String("ttl", "", "The total time that an access key will be valid for, defaults to 30 days")
+	cmd.Flags().String("extension-deadline", "", "A specified deadline that an access key must be used within to remain valid, defaults to 30 days")
 
 	return cmd
 }
