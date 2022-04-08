@@ -33,7 +33,7 @@ func GetProvider(c *gin.Context, id uid.ID) (*models.Provider, error) {
 func ListProviders(c *gin.Context, name string) ([]models.Provider, error) {
 	db := getDB(c)
 
-	return data.ListProviders(db, data.ByName(name))
+	return data.ListProviders(db, data.ByOptionalName(name))
 }
 
 func SaveProvider(c *gin.Context, provider *models.Provider) error {

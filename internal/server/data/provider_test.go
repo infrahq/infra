@@ -85,7 +85,7 @@ func TestListProviders(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, 2, len(providers))
 
-	providers, err = ListProviders(db, ByURL("dev.okta.com"))
+	providers, err = ListProviders(db, ByOptionalName("okta-development"))
 	assert.NilError(t, err)
 	assert.Equal(t, 1, len(providers))
 }
@@ -104,10 +104,10 @@ func TestDeleteProviders(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, 2, len(providers))
 
-	err = DeleteProviders(db, ByURL("dev.okta.com"))
+	err = DeleteProviders(db, ByOptionalName("okta-development"))
 	assert.NilError(t, err)
 
-	_, err = GetProvider(db, ByURL("dev.okta.com"))
+	_, err = GetProvider(db, ByOptionalName("okta-development"))
 	assert.Error(t, err, "record not found")
 }
 

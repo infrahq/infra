@@ -30,12 +30,12 @@ func GetGrant(db *gorm.DB, selectors ...SelectorFunc) (*models.Grant, error) {
 
 func ListIdentityGrants(db *gorm.DB, userID uid.ID) (result []models.Grant, err error) {
 	polymorphicID := uid.NewIdentityPolymorphicID(userID)
-	return ListGrants(db, BySubject(polymorphicID), NotCreatedBy(models.CreatedBySystem))
+	return ListGrants(db, ByOptionalSubject(polymorphicID), NotCreatedBy(models.CreatedBySystem))
 }
 
 func ListGroupGrants(db *gorm.DB, groupID uid.ID) (result []models.Grant, err error) {
 	polymorphicID := uid.NewGroupPolymorphicID(groupID)
-	return ListGrants(db, BySubject(polymorphicID), NotCreatedBy(models.CreatedBySystem))
+	return ListGrants(db, ByOptionalSubject(polymorphicID), NotCreatedBy(models.CreatedBySystem))
 }
 
 func ListGrants(db *gorm.DB, selectors ...SelectorFunc) ([]models.Grant, error) {
@@ -56,7 +56,7 @@ func DeleteGrants(db *gorm.DB, selectors ...SelectorFunc) error {
 	return deleteAll[models.Grant](db, ByIDs(ids))
 }
 
-func ByPrivilege(s string) SelectorFunc {
+func ByOptionalPrivilege(s string) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		if s == "" {
 			return db
@@ -66,12 +66,24 @@ func ByPrivilege(s string) SelectorFunc {
 	}
 }
 
-func ByResource(s string) SelectorFunc {
+func ByPrivilege(s string) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("privilege = ?", s)
+	}
+}
+
+func ByOptionalResource(s string) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		if s == "" {
 			return db
 		}
 
+		return db.Where("resource = ?", s)
+	}
+}
+
+func ByResource(s string) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("resource = ?", s)
 	}
 }
