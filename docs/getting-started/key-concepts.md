@@ -19,8 +19,9 @@ The `infra` CLI is the primary way to access infrastructure. It's also used for 
 Infra works by connecting identities to specific destinations via _connectors_. Users log in via the `infra` CLI, configure access, and finally install connectors. Once set up, anyone on the team can run `infra login` to get access to the infrastructure they need:
 
 <br />
-<br />
+
 ![architecture](../images/architecture.svg)
+
 <br />
 
 ## Core API Resources
