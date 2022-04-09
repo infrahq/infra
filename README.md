@@ -2,13 +2,13 @@
   <img alt="logo" src="https://user-images.githubusercontent.com/3325447/162053538-b497fc85-11d8-4fb2-b43e-11db2fd0829a.png" />
 </p>
 
-## Infra
+# Infra
 
 Infra enables you to **discover and access** infrastructure (e.g. Kubernetes, databases). We help you connect an identity provider such as Okta or Azure active directory, and map users/groups with the permissions you set to your infrastructure. 
 
 If you don't have an identity provider, Infra supports local users for you to get started before connecting an identity provider. 
 
-### Features
+## Features
 
 * Single-command to discover & access all your infrastructure (as an example, for Kubernetes, Infra automatically creates and syncs your kubeconfig locally after `infra login` and gets out of your way so you can use your favorite tools to access it) 
 * No more out-of-sync user configurations no matter where your clusters are hosted 
