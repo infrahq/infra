@@ -74,7 +74,7 @@ Once the Infra server is deployed, login to the server to complete the setup.
 infra login INFRA_URL --skip-tls-verify
 ```
 
-Use the following command to find the Infra login URL. If you are not using a `LoadBalancer` service type, see the [Deploy Kubernetes guide](../operator-guides/deploy/kubernetes.md) for more information.
+Use the following command to find the Infra login URL. If you are not using a `LoadBalancer` service type, see the [Install on Kubernetes Guide](../install/kubernetes.md) for more information.
 
 > Note: It may take a few minutes for the LoadBalancer endpoint to be assigned. You can watch the status of the service with:
 > ```bash

@@ -36,4 +36,4 @@ sudo dnf install infra
 
 ## Upgrading
 
-See [Upgrading Infra CLI](../operator-guides/upgrading-infra.md#upgrading-infra-cli)
+See [Upgrading Infra CLI](../install/upgrading.md#upgrading-infra-cli)

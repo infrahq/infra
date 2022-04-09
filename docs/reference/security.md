@@ -27,4 +27,4 @@ The client secret is loaded server-side from the specified Kubernetes secret onl
 
 ## Encrypted At Rest
 
-Sensitive data is always encrypted at rest. See [Keys](../operator-guides/configure/encryption.md) for more information.
+Sensitive data is always encrypted at rest. See [Keys](../configure-infra/encryption.md) for more information.

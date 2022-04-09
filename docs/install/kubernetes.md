@@ -15,7 +15,7 @@ helm show values infrahq/infra
 > Note: Infra uses [Secrets](../configure/secrets.md) to securely load secrets.
 > It is _not_ recommended to use plain text secrets. Considering using another supported secret type.
 
-> Please follow [Okta Configuration](../../connectors/providers/okta.md) to obtain `clientID` and `clientSecret` for connecting Okta to Infra.
+> Please follow [Okta Configuration](../guides/identity-providers/okta.md) to obtain `clientID` and `clientSecret` for connecting Okta to Infra.
 
 ```yaml
 # example values.yaml
@@ -98,7 +98,7 @@ kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['
 
 #### Ingress
 
-Follow the [Ingress documentation](../helm.md#advanced-ingress-configuration) to configure your Infra server with a Kubernetes ingress.
+Follow the [Ingress documentation](../reference/helm-chart.md#advanced-ingress-configuration) to configure your Infra server with a Kubernetes ingress.
 Once configured, get the Infra API server URL.
 
 ```bash
@@ -135,4 +135,4 @@ helm upgrade --install infra-connector infrahq/infra --set connector.config.name
 
 ## Upgrade Infra
 
-See [Upgrading Infra](../operator-guides/upgrading-infra.md) and [Upgrading Infra Connector](../operator-guides/upgrading-infra.md#upgrading-infra-kubernetes-connector).
+See [Upgrading Infra](./upgrading.md)
