@@ -1,5 +1,11 @@
 # Granting Access
 
+## Roles
+
+Infra allows granting different levels of access via **roles**, such as `view`, `edit` or `admin`. Each connector has different roles that can be used:
+
+- [Kubernetes Roles](../connectors/kubernetes.md#roles)
+
 ## Grant access
 
 To grant access, use `infra grants add`:

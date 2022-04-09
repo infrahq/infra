@@ -22,7 +22,7 @@ infra grants add fisher@example.com kubernetes.example --role admin
 infra grants add engineering kubernetes.example --role view
 ```
 
-### Supported roles
+### Roles
 
 | Role | Access level |
 | --- | --- |
