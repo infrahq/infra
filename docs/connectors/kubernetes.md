@@ -27,7 +27,7 @@ infra grants add engineering kubernetes.example --role view
 | Role | Access level |
 | --- | --- |
 | cluster-admin | Grants access to any resource |
-| admin | Grants access to most resources in the namespace, including roles and role bindings, but does not grant access to the namespace itself nor does it grant access to cluster roles or cluster role bindings |
+| admin | Grants access to most resources, including roles and role bindings, but does not grant access to cluster-level resources such as cluster roles or cluster role bindings |
 | edit | Grants access to most resources in the namespace but does not grant access to roles or role bindings
 | view | Grants access to read most resources in the namespace but does not grant write access nor does it grant read access to secrets |
 
@@ -54,3 +54,7 @@ This command will remove the `admin` role, granted in the previous example, from
 ```bash
 infra grants remove --user ops@example.com --role cluster-admin kubernetes.cluster.namespace
 ```
+
+## Additional Information
+
+- [Kubernetes RBAC](https://kubernetes.io/docs/reference/access-authn-authz/rbac/)

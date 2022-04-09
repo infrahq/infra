@@ -53,9 +53,11 @@ Destinations are infrastructure resources that can be accessed via Infra. Some e
 
 `infra grants` – `/v1/grants`
 
-Grants tie identities (or groups) to destinations with a specific role. In other words, a grant decides **who can access what, with what level of access (often called role)**.
+Grants are based on the simple relationships between users, groups, or machines (i.e. _subjects_), roles or permissions (i.e. _privileges_), and Kubernetes clusters or namespaces (referred to as _resources_)
 
-Examples of granting `fisher@infrahq.com` `admin` access to the `production` kubernetes cluster:
+Grants are implemented in an additive model where the base configuration is to not provide any access. As grants are applied to Infra, subjects will progressively gain access to Infra and connected destinations.
+
+Grants tie identities (or groups) to destinations with a specific role. In other words, a grant decides **who can access what, with what level of access (often called role)**.
 
 ### Providers
 
