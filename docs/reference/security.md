@@ -17,7 +17,7 @@ When deploying Infra, we recommend Infra be deployed in its own namespace to min
 
 ## Sensitive Information
 
-These secrets can be stored in a variety of [secret storage backends](secrets.md), including Kubernetes secrets, Vault, AWS Secrets Manager, AWS SSM (Systems Manager Parameter Store), and some simple options exist for loading secrets from the OS or container, such as: loading secrets from environment variables, loading secrets from files on the file system, and even plaintext secrets directly in the configuration file (though this is not recommended). With all types except for `plaintext`, the respective secret object names are specified in the configuration file and the actual secret is never persisted in Infra's storage. In the case of all secret types (including `plaintext`), the secret data is [encrypted at rest in the db](#Encrypted_At_Rest).
+These secrets can be stored in a variety of [secret storage backends](../install/configure/secrets.md), including Kubernetes secrets, Vault, AWS Secrets Manager, AWS SSM (Systems Manager Parameter Store), and some simple options exist for loading secrets from the OS or container, such as: loading secrets from environment variables, loading secrets from files on the file system, and even plaintext secrets directly in the configuration file (though this is not recommended). With all types except for `plaintext`, the respective secret object names are specified in the configuration file and the actual secret is never persisted in Infra's storage. In the case of all secret types (including `plaintext`), the secret data is [encrypted at rest in the db](#Encrypted_At_Rest).
 
 ### Okta secrets
 Infra uses an Okta application client secret in order to allow users to authenticate via an OpenID Connect (OIDC) authorization code flow.
@@ -27,4 +27,4 @@ The client secret is loaded server-side from the specified Kubernetes secret onl
 
 ## Encrypted At Rest
 
-Sensitive data is always encrypted at rest. See [Keys](../configure-infra/encryption.md) for more information.
+Sensitive data is always encrypted at rest. See [Keys](../install/configure/encryption.md) for more information.
