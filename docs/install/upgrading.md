@@ -84,26 +84,22 @@ You can also download the [latest Infra release][1] directly from the repository
 
 ### Windows
 
-1. Upgrade Infra CLI
-
-    ```powershell
-    scoop update infra
-    ```
+```powershell
+scoop update infra
+```
 
 ### Linux
 
-1. Update and upgrade Infra CLI
+```bash
+# Ubuntu & Debian
+sudo apt update
+sudo apt upgrade infra
+```
 
-   ```bash
-   # Ubuntu & Debian
-   sudo apt update
-   sudo apt upgrade infra
-   ```
-
-   ```bash
-   # Fedora & Red Hat Enterprise Linux
-   sudo dnf update infra
-   ```
+```bash
+# Fedora & Red Hat Enterprise Linux
+sudo dnf update infra
+```
 
 ### Other Distributions
 
