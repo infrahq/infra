@@ -63,7 +63,7 @@ No more manual wiki pages, onboarding tickets or slowing down while access is ma
 
 Infra includes a growing set of rich connectors for popular infrastructure tools:
 
-* [Kubernetes](../connectors/destinations/kubernetes.md)
+* [Kubernetes](../connectors/kubernetes.md)
 * Databases (coming soon)
 * SSH (coming soon)
 * Kafka (coming soon)

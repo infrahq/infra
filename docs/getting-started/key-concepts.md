@@ -4,11 +4,11 @@
 
 ### Infra Server
 
-The Infra Server is the main component of Infra. It provides an API for managing identities, groups, and their access in a single place.
+The Infra Server is the main component of Infra. It provides an API for managing identities, groups, and their access in a single location.
 
 ### Connectors
 
-Connectors are responsible for authenticating and provisioning users' permissions in destinations such as a Kubernetes cluster or database.
+Connectors are responsible for authenticating and provisioning user access in destinations such as a Kubernetes cluster or database.
 
 ### Infra CLI
 
@@ -53,7 +53,7 @@ Destinations are infrastructure resources that can be accessed via Infra. Some e
 
 `infra grants` – `/v1/grants`
 
-Grants tie identities (or groups) to destinations with a specific role. In other words, a grant decides **who can access what, with what role**.
+Grants tie identities (or groups) to destinations with a specific role. In other words, a grant decides **who can access what, with what level of access (often called role)**.
 
 Examples of granting `fisher@infrahq.com` `admin` access to the `production` kubernetes cluster:
 

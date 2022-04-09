@@ -1,6 +1,6 @@
 # Quickstart
 
-In this quickstart we'll set up Infra to manage access to Kubernetes.
+In this quickstart we'll set up Infra to manage single sign-on to Kubernetes.
 
 Follow these steps to install and setup Infra on Kubernetes.
 
