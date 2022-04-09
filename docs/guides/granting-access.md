@@ -17,7 +17,7 @@ infra grants add user@example.com kubernetes.staging --role edit
 Note: the same command can be used to grant access to a group using the boolean [--group] flag, for example:
 
 ```
-infra grants add engineering --group kubernetes.staging --role=edit
+infra grants add --group engineering kubernetes.staging --role edit
 ```
 
 ## Revoking access
