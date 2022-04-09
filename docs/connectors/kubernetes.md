@@ -2,13 +2,33 @@
 
 ## Installing the connector
 
-### 1. Install the connector via `helm`:
+### Install the connector via `helm`:
+
+In order to add connectors to Infra, you will need to set three pieces of information:
+
+* `connector.config.name` is a name you give to identify this cluster
+* `connector.config.server` is the hostname or IP address the connector will use to communicate with the Infra server.
+* `connector.config.accessKey` is the access key the connector will use to communicate with the server.
+
+First, generate an access key:
 
 ```
-infra destinations add kubernetes.example
+infra keys add KEY_NAME connector
 ```
 
-Run the output `helm` command on the Kubernetes cluster you want to connect to Infra.
+Next, use this access key to connect your cluster:
+
+```bash
+helm upgrade --install infra-connector infrahq/infra \
+    --set connector.config.server=INFRA_URL \
+    --set connector.config.accessKey=ACCESS_KEY \
+    --set connector.config.name=example-name \
+
+    # only include this if you have not yet configured certificates or
+    # a custom domain for Infra server
+    --set connector.config.skipTLSVerify=true
+```
+
 
 ## Granting access
 

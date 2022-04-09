@@ -108,28 +108,7 @@ Grant the user Kubernetes cluster administrator privileges.
 infra grants add --user name@example.com --role cluster-admin kubernetes.example-name
 ```
 
-<details>
-  <summary><strong>Supported Kubernetes cluster roles</strong></summary><br />
-  
-Infra supports any cluster roles within your Kubernetes environment, including custom ones. For simplicity, you can use cluster roles, and scope it to a particular namespace via Infra. 
-  
-**Example applying a cluster role to a namespace:** 
-  ```
-  infra grants add --user name@example.com --role edit kubernetes.example-name.namespace
-  ```
-**Default cluster roles within Kubernetes:**
-- **cluster-admin** <br /><br />
-  Allows super-user access to perform any action on any resource. When the 'cluster-admin' role is granted without specifying a namespace, it gives full control over every resource in the cluster and in all namespaces. When it is granted with a specified namespace, it gives full control over every resource in the namespace, including the namespace itself.<br /><br />
-- **admin** <br /><br />
-  Allows admin access, intended to be granted within a namespace.
-The admin role allows read/write access to most resources in the specified namespace, including the ability to create roles and role bindings within the namespace. This role does not allow write access to resource quota or to the namespace itself.<br /><br />
-- **edit** <br /><br />
-  Allows read/write access to most objects in a namespace.
-This role does not allow viewing or modifying roles or role bindings. However, this role allows accessing Secrets and running Pods as any ServiceAccount in the namespace, so it can be used to gain the API access levels of any ServiceAccount in the namespace.<br /><br />
-- **view** <br /><br />
-  Allows read-only access to see most objects in a namespace. It does not allow viewing roles or role bindings.
-This role does not allow viewing Secrets, since reading the contents of Secrets enables access to ServiceAccount credentials in the namespace, which would allow API access as any ServiceAccount in the namespace (a form of privilege escalation).
-</details>
+> To view different roles allowed for Kubernetes clusters, see [Kubernetes Roles](../connectors/kubernetes.md#roles)
 
 
 ### 4. Login to Infra with the newly created user
@@ -149,10 +128,22 @@ In order to add connectors to Infra, you will need to set three pieces of inform
 
 * `connector.config.name` is a name you give to identify this cluster. For the purposes of this Quickstart, the name will be `example-name`
 * `connector.config.server` is the hostname or IP address the connector will use to communicate with the Infra server. This will be the same INFRA_URL value from step 2.
-* `connector.config.accessKey` is the access key the connector will use to communicate with the server. You can use an existing access key or generate a new access key with `infra keys add KEY_NAME connector`
+* `connector.config.accessKey` is the access key the connector will use to communicate with the server. You can use an existing access key or generate a new access key as shown below:
+
+Generate an access key:
+
+```
+infra keys add KEY_NAME connector
+```
+
+Next, use this access key to connect your first cluster:
 
 ```bash
-helm upgrade --install infra-connector infrahq/infra --set connector.config.server=INFRA_URL --set connector.config.accessKey=ACCESS_KEY --set connector.config.name=example-name --set connector.config.skipTLSVerify=true
+helm upgrade --install infra-connector infrahq/infra \
+  --set connector.config.server=INFRA_URL \
+  --set connector.config.accessKey=ACCESS_KEY \
+  --set connector.config.name=example-name \
+  --set connector.config.skipTLSVerify=true
 ```
 
 
