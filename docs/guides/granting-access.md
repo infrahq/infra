@@ -1,11 +1,17 @@
 # Granting Access
 
+## Roles
+
+Infra allows granting different levels of access via **roles**, such as `view`, `edit` or `admin`. Each connector has different roles that can be used:
+
+- [Kubernetes Roles](../connectors/kubernetes.md#roles)
+
 ## Grant access
 
 To grant access, use `infra grants add`:
 
 ```
-infra grants add user@example.com kubernetes.staging --role=edit
+infra grants add user@example.com kubernetes.staging --role edit
 ```
 
 Note: the same command can be used to grant access to a group using the boolean [--group] flag, for example:
@@ -19,7 +25,7 @@ infra grants add engineering --group kubernetes.staging --role=edit
 Access is revoked via `infra grants remove`:
 
 ```
-infra grants remove user@example.com kubernetes.staging --role=edit
+infra grants remove user@example.com kubernetes.staging --role edit
 ```
 
 ## Viewing access

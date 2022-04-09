@@ -12,7 +12,7 @@ helm show values infrahq/infra
 
 ### Step 1: Configure the Infra Chart
 
-> Note: Infra uses [Secrets](../configure/secrets.md) to securely load secrets.
+> Note: Infra uses [Secrets](./configure/secrets.md) to securely load secrets.
 > It is _not_ recommended to use plain text secrets. Considering using another supported secret type.
 
 > Please follow [Okta Configuration](../guides/identity-providers/okta.md) to obtain `clientID` and `clientSecret` for connecting Okta to Infra.
