@@ -1,4 +1,6 @@
-## Quickstart
+# Quickstart
+
+In this quickstart we'll set up Infra to manage single sign-on to Kubernetes.
 
 Follow these steps to install and setup Infra on Kubernetes.
 
@@ -107,12 +109,11 @@ infra grants add --user name@example.com --role cluster-admin kubernetes.example
 ```
 
 <details>
-  <summary><strong>
-Supported Kubernetes cluster roles</strong></summary><br />
-
-Infra supports any cluster roles within your Kubernetes environment, including custom ones. For simplicity, you can use cluster roles, and scope it to a particular namespace via Infra.
-
-**Example applying a cluster role to a namespace:**
+  <summary><strong>Supported Kubernetes cluster roles</strong></summary><br />
+  
+Infra supports any cluster roles within your Kubernetes environment, including custom ones. For simplicity, you can use cluster roles, and scope it to a particular namespace via Infra. 
+  
+**Example applying a cluster role to a namespace:** 
   ```
   infra grants add --user name@example.com --role edit kubernetes.example-name.namespace
   ```
