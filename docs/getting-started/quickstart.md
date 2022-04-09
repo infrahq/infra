@@ -99,13 +99,13 @@ infra id add name@example.com
 Grant the user Infra administrator privileges.
 
 ```
-infra grants add --user name@example.com --role admin infra
+infra grants add name@example.com infra --role admin
 ```
 
 Grant the user Kubernetes cluster administrator privileges.
 
 ```
-infra grants add --user name@example.com --role cluster-admin kubernetes.example-name
+infra grants add name@example.com kubernetes.example-name --role cluster-admin 
 ```
 
 <details>
@@ -115,7 +115,7 @@ Infra supports any cluster roles within your Kubernetes environment, including c
   
 **Example applying a cluster role to a namespace:** 
   ```
-  infra grants add --user name@example.com --role edit kubernetes.example-name.namespace
+  infra grants add name@example.com kubernetes.example-name.namespace --role edit 
   ```
 **Default cluster roles within Kubernetes:**
 - **cluster-admin** <br /><br />
@@ -184,7 +184,7 @@ infra grants list
 Note: this requires the user to have the admin role within Infra.
 
 An example to grant the permission:
-infra grants add --user name@example.com --role admin infra
+infra grants add name@example.com infra --role admin
 ```
 </details>
 

@@ -1,20 +1,22 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
+	"net/mail"
+	"regexp"
 
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
 type grantsCmdOptions struct {
-	User    string `mapstructure:"user"`
-	Group   string `mapstructure:"group"`
-	Machine string `mapstructure:"machine"`
-	Role    string `mapstructure:"role"`
+	Identity    string `mapstructure:"identity"`
+	Destination string `mapstructure:"destination"`
+	IsGroup     bool   `mapstructure:"group"`
+	Role        string `mapstructure:"role"`
 }
 
 func newGrantsCmd() *cobra.Command {
@@ -36,15 +38,15 @@ func newGrantsCmd() *cobra.Command {
 }
 
 func newGrantsListCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:     "list [DESTINATION]",
+	cmd := &cobra.Command{
+		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List grants",
-		Args:    cobra.RangeArgs(0, 1),
+		Args:    cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var resource string
-			if len(args) > 0 {
-				resource = args[0]
+			var options grantsCmdOptions
+			if err := parseOptions(cmd, &options, "INFRA_ACCESS"); err != nil {
+				return err
 			}
 
 			client, err := defaultAPIClient()
@@ -52,7 +54,7 @@ func newGrantsListCmd() *cobra.Command {
 				return err
 			}
 
-			grants, err := client.ListGrants(api.ListGrantsRequest{Resource: resource})
+			grants, err := client.ListGrants(api.ListGrantsRequest{Resource: options.Destination})
 			if err != nil {
 				return err
 			}
@@ -60,7 +62,7 @@ func newGrantsListCmd() *cobra.Command {
 			type row struct {
 				Identity string `header:"IDENTITY"`
 				Access   string `header:"ACCESS"`
-				Resource string `header:"RESOURCE"`
+				Resource string `header:"DESTINATION"`
 			}
 
 			var rows []row
@@ -86,100 +88,224 @@ func newGrantsListCmd() *cobra.Command {
 			return nil
 		},
 	}
+
+	cmd.Flags().String("destination", "", "Filter by destination")
+	return cmd
 }
 
 func newGrantRemoveCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "remove DESTINATION",
+		Use:     "remove IDENTITY DESTINATION",
 		Aliases: []string{"rm"},
 		Short:   "Revoke access to a destination",
-		Args:    cobra.ExactArgs(1),
+		Long: `Revokes access that user has to the destination.
+
+IDENTITY is one that was being given access.
+DESTINATION is what the identity will lose access to. 
+
+Use [--role] to specify the exact grant being deleted. 
+If not specified, it will revoke all roles for that user within the destination. 
+
+Use [--group] or [-g] if identity is of type group. 
+$ infra grants remove devGroup -g ...
+`,
+		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var options grantsCmdOptions
 			if err := parseOptions(cmd, &options, "INFRA_ACCESS"); err != nil {
 				return err
 			}
 
-			client, err := defaultAPIClient()
-			if err != nil {
-				return err
-			}
+			options.Identity = args[0]
+			options.Destination = args[1]
 
-			if options.Machine == "" {
-				if options.User != "" && options.Group != "" {
-					return errors.New("only allowed one of --user or --group")
-				}
-			} else if options.User != "" || options.Group != "" {
-				return errors.New("cannot specify --user or --group with --machine")
-			}
-
-			var id uid.PolymorphicID
-
-			if options.User != "" {
-				users, err := client.ListIdentities(api.ListIdentitiesRequest{Name: options.User})
-				if err != nil {
-					return err
-				}
-
-				if len(users) == 0 {
-					return errors.New("no such user")
-				}
-
-				id = uid.NewIdentityPolymorphicID(users[0].ID)
-			}
-
-			if options.Group != "" {
-				groups, err := client.ListGroups(api.ListGroupsRequest{Name: options.Group})
-				if err != nil {
-					return err
-				}
-
-				if len(groups) == 0 {
-					return errors.New("no such group")
-				}
-
-				id = uid.NewGroupPolymorphicID(groups[0].ID)
-			}
-
-			if options.Machine != "" {
-				machines, err := client.ListIdentities(api.ListIdentitiesRequest{Name: options.Machine})
-				if err != nil {
-					return err
-				}
-
-				if len(machines) == 0 {
-					return errors.New("no such machine")
-				}
-
-				id = uid.NewIdentityPolymorphicID(machines[0].ID)
-			}
-
-			grants, err := client.ListGrants(api.ListGrantsRequest{
-				Subject:   id,
-				Privilege: options.Role,
-				Resource:  args[0],
-			})
-			if err != nil {
-				return err
-			}
-
-			for _, g := range grants {
-				err := client.DeleteGrant(g.ID)
-				if err != nil {
-					return err
-				}
-			}
-
-			fmt.Println("Access revoked!")
-
-			return nil
+			return removeGrant(options)
 		},
 	}
 
-	cmd.Flags().StringP("user", "u", "", "User to revoke access from")
-	cmd.Flags().StringP("group", "g", "", "Group to revoke access from")
-	cmd.Flags().StringP("machine", "m", "", "Machine to revoke access from")
-	cmd.Flags().StringP("role", "r", "", "Role to revoke")
+	cmd.Flags().BoolP("group", "g", false, "Group to revoke access from")
+	cmd.Flags().String("role", "", "Role to revoke")
 
 	return cmd
+}
+
+func removeGrant(cmdOptions grantsCmdOptions) error {
+	client, err := defaultAPIClient()
+	if err != nil {
+		return err
+	}
+
+	identityType, err := getIdentityType(cmdOptions.Identity, cmdOptions.IsGroup)
+	if err != nil {
+		return err
+	}
+
+	id, err := getIDByName(client, cmdOptions.Identity, identityType)
+	if err != nil {
+		return err
+	}
+
+	grants, err := client.ListGrants(api.ListGrantsRequest{
+		Subject:   id,
+		Privilege: cmdOptions.Role,
+		Resource:  cmdOptions.Destination,
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, g := range grants {
+		err := client.DeleteGrant(g.ID)
+		if err != nil {
+			return err
+		}
+	}
+
+	fmt.Println("Access revoked!")
+
+	return nil
+}
+
+func newGrantAddCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "add IDENTITY DESTINATION",
+		Short: "Grant access to a destination",
+		Long: `Grant one or more identities access to a destination. 
+
+IDENTITY is one that is being given access.
+DESTINATION is what the identity will gain access to. 
+
+Use [--role] if further fine grained permissions are needed. If not specified, user will gain the permission 'connect' to the destination. 
+$ infra grants add ... -role admin ...
+
+Use [--group] or [-g] if identity is of type group. 
+$ infra grants add devGroup -group ...
+$ infra grants add devGroup -g ...
+
+For full documentation on grants with more examples, see: 
+  https://github.com/infrahq/infra/blob/main/docs/guides
+`,
+		Args: cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			var options grantsCmdOptions
+			if err := parseOptions(cmd, &options, "INFRA_ACCESS"); err != nil {
+				return err
+			}
+
+			options.Identity = args[0]
+			options.Destination = args[1]
+
+			return addGrant(options)
+		},
+	}
+
+	cmd.Flags().BoolP("group", "g", false, "Required if identity is of type 'group'")
+	cmd.Flags().String("role", models.BasePermissionConnect, "Type of access that identity will be given")
+	return cmd
+}
+
+func addGrant(cmdOptions grantsCmdOptions) error {
+	client, err := defaultAPIClient()
+	if err != nil {
+		return err
+	}
+
+	identityType, err := getIdentityType(cmdOptions.Identity, cmdOptions.IsGroup)
+	if err != nil {
+		return err
+	}
+
+	id, err := getIDByName(client, cmdOptions.Identity, identityType)
+	if err != nil {
+		return err
+	}
+
+	_, err = client.CreateGrant(&api.CreateGrantRequest{
+		Subject:   id,
+		Privilege: cmdOptions.Role,
+		Resource:  cmdOptions.Destination,
+	})
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Access granted!")
+
+	return nil
+}
+
+type identityType int8
+
+const (
+	userType identityType = iota
+	machineType
+	groupType
+)
+
+// Unless explicitly specified as a group, identity will be a user if email, machine if not.
+func getIdentityType(s string, isGroup bool) (identityType, error) {
+	if isGroup {
+		return groupType, nil
+	}
+
+	maybeName := regexp.MustCompile("^[a-zA-Z0-9-_./]+$")
+	if maybeName.MatchString(s) {
+		nameMinLength := 1
+		nameMaxLength := 256
+
+		if len(s) < nameMinLength {
+			return machineType, fmt.Errorf("invalid name: does not meet minimum length requirement of %d characters", nameMinLength)
+		}
+
+		if len(s) > nameMaxLength {
+			return machineType, fmt.Errorf("invalid name: exceed maximum length requirement of %d characters", nameMaxLength)
+		}
+
+		return machineType, nil
+	}
+
+	_, err := mail.ParseAddress(s)
+	if err != nil {
+		return userType, fmt.Errorf("invalid email: %q", s)
+	}
+
+	return userType, nil
+}
+
+func getIDByName(client *api.Client, name string, identityType identityType) (uid.PolymorphicID, error) {
+	var id uid.PolymorphicID
+	switch identityType {
+	case groupType:
+		groups, err := client.ListGroups(api.ListGroupsRequest{Name: name})
+		if err != nil {
+			return "", err
+		}
+
+		switch len(groups) {
+		case 0:
+			return "", fmt.Errorf("No group of name %s exists", name)
+		case 1:
+			id = uid.NewGroupPolymorphicID(groups[0].ID)
+		default:
+			panic(fmt.Sprintf(DuplicateEntryPanic, "group", name))
+		}
+	case userType, machineType:
+		identities, err := client.ListIdentities(api.ListIdentitiesRequest{Name: name})
+		if err != nil {
+			return "", err
+		}
+
+		switch len(identities) {
+		case 0:
+			return "", fmt.Errorf("No identity of name %s exists", name)
+		case 1:
+			id = uid.NewIdentityPolymorphicID(identities[0].ID)
+		default:
+			panic(fmt.Sprintf(DuplicateEntryPanic, "identity", name))
+		}
+	default:
+		panic("identity must be either user, machine, or group")
+	}
+
+	return id, nil
 }

@@ -178,7 +178,13 @@ infra destinations remove DESTINATION [flags]
 List grants
 
 ```
-infra grants list [DESTINATION] [flags]
+infra grants list [flags]
+```
+
+### Options
+
+```
+      --destination string   Filter by destination
 ```
 
 ### Options inherited from parent commands
@@ -207,7 +213,8 @@ Use [--group] or [-g] if identity is of type group.
 $ infra grants add devGroup -group ...
 $ infra grants add devGroup -g ...
 
-For full documentation on grants, see  https://github.com/infrahq/infra/blob/main/docs/using-infra/grants.md 
+For full documentation on grants with more examples, see: 
+  https://github.com/infrahq/infra/blob/main/docs/guides
 
 
 ```
@@ -217,7 +224,7 @@ infra grants add IDENTITY DESTINATION [flags]
 ### Options
 
 ```
-  -g, --group         Marks identity as type 'group'
+  -g, --group         Required if identity is of type 'group'
       --role string   Type of access that identity will be given (default "connect")
 ```
 
@@ -233,17 +240,28 @@ infra grants add IDENTITY DESTINATION [flags]
 
 Revoke access to a destination
 
+### Synopsis
+
+Revokes access that user has to the destination.
+IDENTITY is one that was being given access.
+DESTINATION is what the identity will lose access to. 
+
+Use [--role] to specify the exact grant being deleted. 
+If not specified, it will revoke all roles for that user within the destination. 
+
+Use [--group] or [-g] if identity is of type group. 
+$ infra grants remove devGroup -g ...
+
+
 ```
-infra grants remove DESTINATION [flags]
+infra grants remove IDENTITY DESTINATION [flags]
 ```
 
 ### Options
 
 ```
-  -g, --group string     Group to revoke access from
-  -m, --machine string   Machine to revoke access from
-  -r, --role string      Role to revoke
-  -u, --user string      User to revoke access from
+  -g, --group         Group to revoke access from
+      --role string   Role to revoke
 ```
 
 ### Options inherited from parent commands
