@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/uid"
 )
 
 const ThirtyDays = 30 * (24 * time.Hour)
@@ -174,6 +175,16 @@ func newKeysListCmd() *cobra.Command {
 				}
 			}
 
+			machines, err := client.ListIdentities(api.ListIdentitiesRequest{})
+			if err != nil {
+				return err
+			}
+
+			machineNames := make(map[uid.ID]string)
+			for _, m := range machines {
+				machineNames[m.ID] = m.Name
+			}
+
 			type row struct {
 				ID                string `header:"ID"`
 				Name              string `header:"NAME"`
@@ -188,7 +199,7 @@ func newKeysListCmd() *cobra.Command {
 				rows = append(rows, row{
 					ID:                k.ID.String(),
 					Name:              k.Name,
-					IssuedFor:         k.IssuedFor.String(),
+					IssuedFor:         machineNames[k.IssuedFor],
 					Created:           k.Created.String(),
 					Expires:           k.Expires.String(),
 					ExtensionDeadline: k.ExtensionDeadline.Format(time.RFC3339),
