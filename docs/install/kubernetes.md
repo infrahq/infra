@@ -1,6 +1,4 @@
-# Kubernetes (Helm)
-
-Infra can be installed into Kubernetes using Helm.
+# Install Infra on Kubernetes
 
 **Prerequisites:**
 * Install [Helm](https://helm.sh/) (v3+)
@@ -12,7 +10,7 @@ To see the available Helm configuration values, use:
 helm show values infrahq/infra
 ```
 
-### Step 1: Configure Infra Chart
+### Step 1: Configure the Infra Chart
 
 > Note: Infra uses [Secrets](../configure/secrets.md) to securely load secrets.
 > It is _not_ recommended to use plain text secrets. Considering using another supported secret type.
@@ -137,4 +135,4 @@ helm upgrade --install infra-connector infrahq/infra --set connector.config.name
 
 ## Upgrade Infra
 
-See [Upgrading Infra](../operator-guides/upgrading-infra.md#upgrading-infra-kubernetes-connector) and [Upgrading Infra Connector](../operator-guides/upgrading-infra.md#upgrading-infra-kubernetes-connector).
+See [Upgrading Infra](../operator-guides/upgrading-infra.md) and [Upgrading Infra Connector](../operator-guides/upgrading-infra.md#upgrading-infra-kubernetes-connector).
