@@ -243,6 +243,7 @@ Revoke access to a destination
 ### Synopsis
 
 Revokes access that user has to the destination.
+
 IDENTITY is one that was being given access.
 DESTINATION is what the identity will lose access to. 
 
