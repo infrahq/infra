@@ -190,7 +190,7 @@ func newKeysListCmd() *cobra.Command {
 					IssuedFor:         k.IssuedFor.String(),
 					Created:           prettytime.Format(time.Time(k.Created)),
 					Expires:           prettytime.Format(time.Time(k.Expires)),
-					ExtensionDeadline: prettytime.Format(time.Time(k.ExtensionDeadline)),
+					ExtensionDeadline: k.ExtensionDeadline.Format(time.RFC3339),
 				})
 			}
 
