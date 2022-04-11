@@ -498,7 +498,7 @@ func promptLocalLogin() (*api.LoginRequestPasswordCredentials, error) {
 	questionPrompt := []*survey.Question{
 		{
 			Name:     "Email",
-			Prompt:   &survey.Input{Message: "Email:"},
+			Prompt:   &survey.Input{Message: "   Email:"},
 			Validate: survey.Required,
 		},
 		{
@@ -554,7 +554,7 @@ func promptLoginOptions(client *api.Client) (loginMethod loginMethod, provider *
 		options = append(options, fmt.Sprintf("%s (%s)", p.Name, p.URL))
 	}
 
-	options = append(options, "Login as a local user")
+	options = append(options, "Login with email and password")
 	options = append(options, "Login with an access key")
 
 	var i int
