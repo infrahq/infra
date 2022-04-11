@@ -25,7 +25,7 @@ type API struct {
 }
 
 func (a *API) ListIdentities(c *gin.Context, r *api.ListIdentitiesRequest) ([]api.Identity, error) {
-	identities, err := access.ListIdentities(c, r.Name, r.ShowInactive)
+	identities, err := access.ListIdentities(c, r.Name, r.IncludeUnlinked)
 	if err != nil {
 		return nil, err
 	}

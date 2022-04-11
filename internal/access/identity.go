@@ -86,7 +86,7 @@ func DeleteIdentity(c *gin.Context, id uid.ID) error {
 	return data.DeleteIdentity(db, id)
 }
 
-func ListIdentities(c *gin.Context, name string, showInactive bool) ([]models.Identity, error) {
+func ListIdentities(c *gin.Context, name string, includeUnlinked bool) ([]models.Identity, error) {
 	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole)
 	if err != nil {
 		return nil, err
@@ -97,7 +97,7 @@ func ListIdentities(c *gin.Context, name string, showInactive bool) ([]models.Id
 		return nil, err
 	}
 
-	if showInactive {
+	if includeUnlinked {
 		return identities, nil
 	}
 

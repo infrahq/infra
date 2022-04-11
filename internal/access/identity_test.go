@@ -26,12 +26,12 @@ func TestListIdentities(t *testing.T) {
 	_, err = data.CreateProviderUser(db, infraProvider, activeIdentity)
 	assert.NilError(t, err)
 
-	inactiveIdentity := &models.Identity{
+	unlinkedIdentity := &models.Identity{
 		Kind: models.UserKind,
-		Name: "inactive-list-hide-id",
+		Name: "unlinked-list-hide-id",
 	}
 
-	err = data.CreateIdentity(db, inactiveIdentity)
+	err = data.CreateIdentity(db, unlinkedIdentity)
 	assert.NilError(t, err)
 
 	// test fetch only active identities
@@ -53,7 +53,7 @@ func TestListIdentities(t *testing.T) {
 	}
 	assert.Equal(t, returnedNames["admin@example.com"], true)
 	assert.Equal(t, returnedNames["active-list-hide-id"], true)
-	assert.Equal(t, returnedNames["inactive-list-hide-id"], true)
+	assert.Equal(t, returnedNames["unlinked-list-hide-id"], true)
 }
 
 func TestDeleteIdentityCleansUpResources(t *testing.T) {

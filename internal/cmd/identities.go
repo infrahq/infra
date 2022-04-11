@@ -34,8 +34,8 @@ func newIdentitiesCmd() *cobra.Command {
 }
 
 type identityCmdOptions struct {
-	Password     bool `mapstructure:"password"`
-	ShowInactive bool `mapstructure:"inactive"`
+	Password        bool `mapstructure:"password"`
+	includeUnlinked bool `mapstructure:"unlinked"`
 }
 
 func newIdentitiesAddCmd() *cobra.Command {
@@ -154,7 +154,7 @@ func newIdentitiesListCmd() *cobra.Command {
 
 			var rows []row
 
-			identities, err := client.ListIdentities(api.ListIdentitiesRequest{ShowInactive: options.ShowInactive})
+			identities, err := client.ListIdentities(api.ListIdentitiesRequest{IncludeUnlinked: options.includeUnlinked})
 			if err != nil {
 				return err
 			}
@@ -176,7 +176,7 @@ func newIdentitiesListCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().Bool("inactive", false, "Show inactive identities")
+	cmd.Flags().Bool("unlinked", false, "Show identities that exist in grants but are not linked to an identity provider")
 	return cmd
 }
 

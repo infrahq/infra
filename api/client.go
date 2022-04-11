@@ -199,7 +199,7 @@ func delete(client Client, path string) error {
 }
 
 func (c Client) ListIdentities(req ListIdentitiesRequest) ([]Identity, error) {
-	return list[Identity](c, "/v1/identities", map[string]string{"name": req.Name, "showInactive": strconv.FormatBool(req.ShowInactive)})
+	return list[Identity](c, "/v1/identities", map[string]string{"name": req.Name, "includeUnlinked": strconv.FormatBool(req.IncludeUnlinked)})
 }
 
 func (c Client) GetIdentity(id uid.ID) (*Identity, error) {

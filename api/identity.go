@@ -14,8 +14,8 @@ type Identity struct {
 }
 
 type ListIdentitiesRequest struct {
-	Name         string `form:"name"`
-	ShowInactive bool   `form:"showInactive"`
+	Name            string `form:"name"`
+	IncludeUnlinked bool   `form:"includeUnlinked" note:"Show identities that exist in grants but are not linked to an identity provider"`
 }
 
 type CreateIdentityRequest struct {
