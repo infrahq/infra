@@ -125,12 +125,11 @@ infra use DESTINATION [flags]
 
 ```
 
-# Connect to a Kubernetes cluster
-$ infra use kubernetes.development
+# Use a Kubernetes context
+$ infra use development
 
-# Connect to a Kubernetes namespace
-$ infra use kubernetes.development.kube-system
-		
+# Use a Kubernetes namespace context
+$ infra use development.kube-system
 ```
 
 ### Options inherited from parent commands
