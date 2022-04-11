@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"gotest.tools/v3/assert"
 
@@ -110,6 +111,90 @@ func TestDeleteProvider_NoDeleteInternalProvider(t *testing.T) {
 	routes.ServeHTTP(resp, req)
 
 	assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
+}
+
+func TestCreateIdentity(t *testing.T) {
+	s := setupServer(t)
+
+	admin := &models.Identity{Name: "admin@example.com", Kind: models.UserKind}
+	err := data.CreateIdentity(s.db, admin)
+	assert.NilError(t, err)
+
+	adminGrant := &models.Grant{
+		Subject:   admin.PolyID(),
+		Privilege: models.InfraAdminRole,
+		Resource:  "infra",
+	}
+	err = data.CreateGrant(s.db, adminGrant)
+	assert.NilError(t, err)
+
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Set("db", s.db)
+	c.Set("identity", admin)
+
+	handler := API{
+		server: s,
+	}
+
+	t.Run("new unlinked user", func(t *testing.T) {
+		req := &api.CreateIdentityRequest{
+			Name: "test-create-identity@example.com",
+			Kind: "user",
+		}
+
+		resp, err := handler.CreateIdentity(c, req)
+
+		assert.NilError(t, err)
+		assert.Equal(t, "test-create-identity@example.com", resp.Name)
+		assert.Check(t, resp.OneTimePassword == "")
+		assert.Check(t, resp.ProviderID.String() == "1")
+	})
+
+	t.Run("new infra user gets one time password", func(t *testing.T) {
+		idp, err := data.GetProvider(s.db, data.ByName(models.InternalInfraProviderName))
+		assert.NilError(t, err)
+
+		req := &api.CreateIdentityRequest{
+			Name:       "test-infra-identity@example.com",
+			Kind:       "user",
+			ProviderID: &idp.ID,
+		}
+
+		resp, err := handler.CreateIdentity(c, req)
+		assert.NilError(t, err)
+
+		assert.NilError(t, err)
+		assert.Equal(t, "test-infra-identity@example.com", resp.Name)
+		assert.Check(t, resp.OneTimePassword != "")
+		assert.Equal(t, resp.ProviderID, idp.ID)
+	})
+
+	t.Run("existing unlinked user to identity provider", func(t *testing.T) {
+		req := &api.CreateIdentityRequest{
+			Name: "test-link-identity@example.com",
+			Kind: "user",
+		}
+
+		_, err := handler.CreateIdentity(c, req)
+		assert.NilError(t, err)
+
+		idp, err := data.GetProvider(s.db, data.ByName(models.InternalInfraProviderName))
+		assert.NilError(t, err)
+
+		req = &api.CreateIdentityRequest{
+			Name:       "test-link-identity@example.com",
+			Kind:       "user",
+			ProviderID: &idp.ID,
+		}
+
+		resp, err := handler.CreateIdentity(c, req)
+		assert.NilError(t, err)
+
+		assert.NilError(t, err)
+		assert.Equal(t, "test-link-identity@example.com", resp.Name)
+		assert.Check(t, resp.OneTimePassword != "")
+		assert.Equal(t, resp.ProviderID, idp.ID)
+	})
 }
 
 func TestDeleteIdentity(t *testing.T) {
