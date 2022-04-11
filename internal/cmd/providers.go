@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 
@@ -101,7 +102,7 @@ PROVIDER is a short unique name of the identity provider bieng added (eg. okta)
 				return err
 			}
 
-			fmt.Printf("%s provider added\n", args[0])
+			fmt.Printf("Provider %s added\n", args[0])
 
 			return nil
 		},
@@ -136,16 +137,24 @@ func newProvidersRemoveCmd() *cobra.Command {
 				return err
 			}
 
-			providers, err := client.ListProviders(args[0])
+			providerName := args[0]
+
+			providers, err := client.ListProviders(providerName)
 			if err != nil {
 				return err
 			}
 
-			for _, p := range providers {
-				err := client.DeleteProvider(p.ID)
-				if err != nil {
+			switch len(providers) {
+			case 0:
+				return fmt.Errorf("Cannot remove provider %s: not found", providerName)
+			case 1:
+				if err := client.DeleteProvider(providers[0].ID); err != nil {
 					return err
 				}
+
+				fmt.Fprintf(os.Stderr, "Provider %s removed\n", providerName)
+			default:
+				panic(fmt.Sprintf(DuplicateEntryPanic, "provider", providerName))
 			}
 
 			return nil
