@@ -22,7 +22,7 @@ func AssignIdentityToGroups(db *gorm.DB, user *models.Identity, provider *models
 
 	pu.Groups = newGroups
 	if err := save(db, pu); err != nil {
-		return err
+		return fmt.Errorf("save: %w", err)
 	}
 
 	// remove user from groups
@@ -47,7 +47,7 @@ func AssignIdentityToGroups(db *gorm.DB, user *models.Identity, provider *models
 	}
 	err = db.Table("groups").Select("id, name").Where("name in (?)", groupsToBeAdded).Scan(&addIDs).Error
 	if err != nil {
-		return err
+		return fmt.Errorf("group ids: %w", err)
 	}
 
 	for _, name := range groupsToBeAdded {
@@ -73,8 +73,11 @@ func AssignIdentityToGroups(db *gorm.DB, user *models.Identity, provider *models
 		// add user to group
 		err = db.Exec("insert into identities_groups (identity_id, group_id) values (?, ?)", user.ID, groupID).Error
 		if err != nil {
-			return err
+			if !isUniqueConstraintViolation(err) {
+				return fmt.Errorf("insert: %w", err)
+			}
 		}
+
 		user.Groups = append(user.Groups, models.Group{Model: models.Model{ID: groupID}, Name: name})
 	}
 

@@ -129,7 +129,7 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 	providerUser.ExpiresAt = expiry
 	err = data.UpdateProviderUser(db, providerUser)
 	if err != nil {
-		return nil, "", err
+		return nil, "", fmt.Errorf("UpdateProviderUser: %w", err)
 	}
 
 	// get current identity provider groups
