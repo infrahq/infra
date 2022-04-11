@@ -92,7 +92,7 @@ func ListIdentities(c *gin.Context, name string) ([]models.Identity, error) {
 		return nil, err
 	}
 
-	return data.ListIdentities(db, data.ByName(name))
+	return data.ListIdentities(db, data.ByOptionalName(name))
 }
 
 // UpdateUserInfoFromProvider calls the user info endpoint of an external identity provider to see a user's current attributes
