@@ -44,7 +44,7 @@ func newGrantsListCmd() *cobra.Command {
 		Short:   "List grants",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var options grantsCmdOptions
-			if err := parseOptions(cmd, &options, "INFRA_ACCESS"); err != nil {
+			if err := parseOptions(cmd, &options, "INFRA_GRANTS"); err != nil {
 				return err
 			}
 
@@ -111,7 +111,7 @@ $ infra grants remove devGroup -g ...
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var options grantsCmdOptions
-			if err := parseOptions(cmd, &options, "INFRA_ACCESS"); err != nil {
+			if err := parseOptions(cmd, &options, "INFRA_GRANTS"); err != nil {
 				return err
 			}
 
@@ -187,7 +187,7 @@ For full documentation on grants with more examples, see:
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var options grantsCmdOptions
-			if err := parseOptions(cmd, &options, "INFRA_ACCESS"); err != nil {
+			if err := parseOptions(cmd, &options, "INFRA_GRANTS"); err != nil {
 				return err
 			}
 
