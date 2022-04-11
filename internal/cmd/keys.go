@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-	prettytime "github.com/andanhm/go-prettytime"
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
@@ -188,9 +187,9 @@ func newKeysListCmd() *cobra.Command {
 				rows = append(rows, row{
 					Name:              k.Name,
 					IssuedFor:         k.IssuedFor.String(),
-					Created:           prettytime.Format(time.Time(k.Created)),
-					Expires:           prettytime.Format(time.Time(k.Expires)),
-					ExtensionDeadline: k.ExtensionDeadline.Format(time.RFC3339),
+					Created:           k.Created.ToPrettytime(),
+					Expires:           k.Expires.ToPrettytime(),
+					ExtensionDeadline: k.ExtensionDeadline.ToPrettytime(),
 				})
 			}
 

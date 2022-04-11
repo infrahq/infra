@@ -4,6 +4,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/andanhm/go-prettytime"
+
 	"github.com/infrahq/infra/uid"
 )
 
@@ -50,6 +52,16 @@ func (t Time) Format(layout string) string {
 
 func (t Time) Equal(other Time) bool {
 	return time.Time(t).Equal(time.Time(other))
+}
+
+func (t Time) ToPrettytime() string {
+	time := time.Time(t)
+
+	if time.IsZero() {
+		return "never"
+	}
+
+	return prettytime.Format(time)
 }
 
 type Duration time.Duration
