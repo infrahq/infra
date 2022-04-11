@@ -8,6 +8,7 @@ import (
 	"github.com/go-gormigrate/gormigrate/v2"
 	"gorm.io/gorm"
 
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -319,10 +320,16 @@ func migrate(db *gorm.DB) error {
 			ID: "202204111503",
 			Migrate: func(tx *gorm.DB) error {
 				identityTable := &models.Identity{}
+				logging.S.Info("starting migration")
 				if tx.Migrator().HasIndex(identityTable, "idx_identities_name_provider_id") {
-					tx.Migrator().DropIndex(identityTable, "idx_identities_name_provider_id")
+					logging.S.Info("has idx_identities_name_provider_id index")
+					err := tx.Migrator().DropIndex(identityTable, "idx_identities_name_provider_id")
+					if err != nil {
+						return err
+					}
 
 					if tx.Migrator().HasColumn(identityTable, "provider_id") {
+						logging.S.Info("has provider_id column")
 						infraProvider, err := GetProvider(tx, ByName("infra"))
 						if err != nil {
 							return err
@@ -336,6 +343,7 @@ func migrate(db *gorm.DB) error {
 						}
 
 						for _, user := range users {
+							logging.S.Infof("migrating user %s", user.ID.String())
 							newUser, err := GetIdentity(db, ByName(user.Name), func(db *gorm.DB) *gorm.DB {
 								return db.Where("provider_id = ?", infraProvider.ID)
 							})
@@ -343,12 +351,14 @@ func migrate(db *gorm.DB) error {
 								return err
 							}
 
+							logging.S.Infof("updating grants for user %s", user.ID.String())
 							// update all grants to point to the new user
 							err = tx.Exec("update grants set subject = ? where subject = ?", newUser.PolyID(), user.PolyID()).Error
 							if err != nil {
 								return err
 							}
 
+							logging.S.Infof("deleting user %s", user.ID.String())
 							// delete the duplicate user
 							err = tx.Exec("delete from identities where id = ?", user.ID).Error
 							if err != nil {
@@ -357,6 +367,7 @@ func migrate(db *gorm.DB) error {
 						}
 
 						// remove provider_id field
+						logging.S.Info("removing provider_id field")
 						return tx.Migrator().DropColumn(identityTable, "provider_id")
 					}
 				}
