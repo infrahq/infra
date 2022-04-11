@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap/zaptest"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
@@ -953,4 +954,128 @@ func TestServer_Run_UIProxy(t *testing.T) {
 
 		assert.Assert(t, body.Required)
 	})
+}
+
+func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
+	type testCase struct {
+		name     string
+		path     string
+		expected func(t *testing.T, resp *httptest.ResponseRecorder)
+	}
+
+	s := &Server{options: Options{EnableUI: true}}
+	router, err := s.GenerateRoutes(prometheus.NewRegistry())
+	assert.NilError(t, err)
+
+	run := func(t *testing.T, tc testCase) {
+		req := httptest.NewRequest(http.MethodGet, tc.path, nil)
+		resp := httptest.NewRecorder()
+		router.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Code, http.StatusNotFound)
+		if tc.expected != nil {
+			tc.expected(t, resp)
+		}
+	}
+
+	testCases := []testCase{
+		{
+			name: "/v1 path prefix",
+			path: "/v1/not/found",
+			// TODO: should have a JSON response body
+		},
+		{
+			name: "ui path",
+			path: "/not/found",
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				// response should have an html body
+				title := "<title>404: This page could not be found</title>"
+				assert.Assert(t, is.Contains(resp.Body.String(), title))
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestServer_GenerateRoutes_UI(t *testing.T) {
+	type testCase struct {
+		name         string
+		path         string
+		expectedCode int
+		expected     func(t *testing.T, resp *httptest.ResponseRecorder)
+	}
+
+	s := &Server{options: Options{EnableUI: true}}
+	router, err := s.GenerateRoutes(prometheus.NewRegistry())
+	assert.NilError(t, err)
+
+	run := func(t *testing.T, tc testCase) {
+		req := httptest.NewRequest(http.MethodGet, tc.path, nil)
+		resp := httptest.NewRecorder()
+		router.ServeHTTP(resp, req)
+
+		assert.Check(t, is.Equal(resp.Code, tc.expectedCode))
+		if tc.expected != nil {
+			tc.expected(t, resp)
+		}
+	}
+
+	testCases := []testCase{
+		{
+			name:         "default index",
+			path:         "/",
+			expectedCode: http.StatusOK,
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				actual := resp.Header().Get("Content-Type")
+				assert.Equal(t, actual, "text/html; charset=utf-8")
+			},
+		},
+		{
+			name:         "index page redirects",
+			path:         "/index.html",
+			expectedCode: http.StatusMovedPermanently,
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				actual := resp.Header().Get("Location")
+				assert.Equal(t, actual, "./")
+			},
+		},
+		{
+			name:         "page with a path",
+			path:         "/providers/add/admins.html",
+			expectedCode: http.StatusOK,
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				actual := resp.Header().Get("Content-Type")
+				assert.Equal(t, actual, "text/html; charset=utf-8")
+			},
+		},
+		{
+			name:         "image",
+			path:         "/icon.svg",
+			expectedCode: http.StatusOK,
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				actual := resp.Header().Get("Content-Type")
+				assert.Equal(t, actual, "image/svg+xml")
+			},
+		},
+		{
+			name:         "page without .html suffix",
+			path:         "/providers",
+			expectedCode: http.StatusOK,
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				actual := resp.Header().Get("Content-Type")
+				assert.Equal(t, actual, "text/html; charset=utf-8")
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 }
