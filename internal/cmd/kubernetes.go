@@ -23,7 +23,7 @@ func clientConfig() clientcmd.ClientConfig {
 	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
 }
 
-func kubernetesSetContext(name string) error {
+func kubernetesSetContext(cluster, namespace string) error {
 	config := clientConfig()
 
 	kubeconfig, err := config.RawConfig()
@@ -31,17 +31,27 @@ func kubernetesSetContext(name string) error {
 		return err
 	}
 
-	if _, ok := kubeconfig.Contexts[name]; !ok {
-		return fmt.Errorf("kubecontext %s not found", name)
+	name := cluster
+
+	if namespace != "" {
+		name = fmt.Sprintf("%s:%s", cluster, namespace)
 	}
 
-	kubeconfig.CurrentContext = name
+	// set friendly name based on user input rather than internal format
+	friendlyName := strings.ReplaceAll(name, ":", ".")
+
+	context := fmt.Sprintf("infra:%s", name)
+	if _, ok := kubeconfig.Contexts[context]; !ok {
+		return fmt.Errorf("context not found: %v", friendlyName)
+	}
+
+	kubeconfig.CurrentContext = context
 
 	if err := clientcmd.WriteToFile(kubeconfig, config.ConfigAccess().GetDefaultFilename()); err != nil {
 		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "Switched to context %q.\n", kubeconfig.CurrentContext)
+	fmt.Fprintf(os.Stderr, "Switched to context %q.\n", friendlyName)
 
 	return nil
 }

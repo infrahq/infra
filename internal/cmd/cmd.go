@@ -171,19 +171,18 @@ func newUseCmd() *cobra.Command {
 		Use:   "use DESTINATION",
 		Short: "Access a destination",
 		Example: `
-# Connect to a Kubernetes cluster
-$ infra use kubernetes.development
+# Use a Kubernetes context
+$ infra use development
 
-# Connect to a Kubernetes namespace
-$ infra use kubernetes.development.kube-system
-		`,
+# Use a Kubernetes namespace context
+$ infra use development.kube-system`,
 		Args:  cobra.ExactArgs(1),
 		Group: "Core commands:",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			return mustBeLoggedIn()
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			name := args[0]
+			destination := args[0]
 
 			client, err := defaultAPIClient()
 			if err != nil {
@@ -200,17 +199,22 @@ $ infra use kubernetes.development.kube-system
 				return err
 			}
 
-			parts := strings.Split(name, ".")
+			parts := strings.Split(destination, ".")
 
-			if len(parts) < 2 {
-				return errors.New("invalid argument")
+			if parts[0] == "kubernetes" {
+				if len(parts) > 2 {
+					return kubernetesSetContext(parts[1], parts[2])
+				}
+
+				return kubernetesSetContext(parts[1], "")
 			}
 
-			if len(parts) <= 2 || parts[2] == "default" {
-				return kubernetesSetContext("infra:" + parts[1])
+			// no type specifier, guess at user intent
+			if len(parts) == 1 {
+				return kubernetesSetContext(destination, "")
 			}
 
-			return kubernetesSetContext("infra:" + parts[1] + ":" + parts[2])
+			return kubernetesSetContext(parts[0], parts[1])
 		},
 	}
 }
