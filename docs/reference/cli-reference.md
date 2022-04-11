@@ -203,7 +203,7 @@ Grant access to a destination
 
 Grant one or more identities access to a destination. 
 
-IDENTITY is one that is being given access.
+IDENTITY is the subject that is being given access.
 DESTINATION is what the identity will gain access to. 
 
 Use [--role] if further fine grained permissions are needed. If not specified, user will gain the permission 'connect' to the destination. 
@@ -244,7 +244,7 @@ Revoke access to a destination
 
 Revokes access that user has to the destination.
 
-IDENTITY is the subject that was granted access.
+IDENTITY is one that was being given access.
 DESTINATION is what the identity will lose access to. 
 
 Use [--role] to specify the exact grant being deleted. 
