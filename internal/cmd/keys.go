@@ -187,9 +187,9 @@ func newKeysListCmd() *cobra.Command {
 				rows = append(rows, row{
 					Name:              k.Name,
 					IssuedFor:         k.IssuedFor.String(),
-					Created:           k.Created.ToPrettytime(),
-					Expires:           k.Expires.ToPrettytime(),
-					ExtensionDeadline: k.ExtensionDeadline.ToPrettytime(),
+					Created:           k.Created.Relative("never"),
+					Expires:           k.Expires.Relative("never"),
+					ExtensionDeadline: k.ExtensionDeadline.Relative("never"),
 				})
 			}
 

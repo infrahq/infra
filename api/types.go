@@ -54,11 +54,14 @@ func (t Time) Equal(other Time) bool {
 	return time.Time(t).Equal(time.Time(other))
 }
 
-func (t Time) ToPrettytime() string {
+func (t Time) Relative(zeroName ...string) string {
 	time := time.Time(t)
 
 	if time.IsZero() {
-		return "never"
+		if len(zeroName) == 0 {
+			return "none"
+		}
+		return zeroName[0]
 	}
 
 	return prettytime.Format(time)
