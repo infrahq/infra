@@ -2,7 +2,6 @@ package data
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/ssoroka/slice"
 	"gorm.io/gorm"
@@ -74,7 +73,7 @@ func AssignIdentityToGroups(db *gorm.DB, user *models.Identity, provider *models
 		// add user to group
 		err = db.Exec("insert into identities_groups (identity_id, group_id) values (?, ?)", user.ID, groupID).Error
 		if err != nil {
-			if !strings.Contains(strings.ToLower(err.Error()), "unique") {
+			if !isUniqueConstraintViolation(err) {
 				return fmt.Errorf("insert: %w", err)
 			}
 		}
