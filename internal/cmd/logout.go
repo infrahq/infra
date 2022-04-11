@@ -29,8 +29,6 @@ func newLogoutCmd() *cobra.Command {
 func logout(purge bool) error {
 	config, err := readConfig()
 	if err != nil {
-		logging.S.Debug(err.Error())
-
 		if errors.Is(err, ErrConfigNotFound) {
 			return nil
 		}
@@ -39,9 +37,7 @@ func logout(purge bool) error {
 	}
 
 	for i, hostConfig := range config.Hosts {
-		if !purge {
-			config.Hosts[i].AccessKey = ""
-		}
+		config.Hosts[i].AccessKey = ""
 
 		client, err := apiClient(hostConfig.Host, hostConfig.AccessKey, hostConfig.SkipTLSVerify)
 		if err != nil {
@@ -49,16 +45,20 @@ func logout(purge bool) error {
 			continue
 		}
 
-		if err := client.Logout(); err != nil {
-			logging.S.Warnf("failed to logout: %v", err)
-		}
+		_ = client.Logout()
 	}
 
 	if purge {
 		config.Hosts = nil
 	}
-	if err := writeConfig(config); err != nil {
-		logging.S.Warnf("failed to write client host config: %v", err)
+
+	if err := clearKubeconfig(); err != nil {
+		return err
 	}
-	return clearKubeconfig()
+
+	if err := writeConfig(config); err != nil {
+		return err
+	}
+
+	return nil
 }
