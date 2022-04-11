@@ -15,6 +15,12 @@ helm repo update
 helm upgrade --install infra infrahq/infra
 ```
 
+## Configuration Reference
+
+```bash
+helm show values infrahq/infra
+```
+
 ## Advanced Service Account Configuration
 
 ```yaml
@@ -152,12 +158,6 @@ kubectl delete secret/infra-okta
 
 # Remove rolebindings & clusterrolebindings created by Infra connector
 kubectl delete clusterrolebindings,rolebindings -l app.kubernetes.io/managed-by=infra --all-namespaces
-```
-
-## Configuration Reference
-
-```bash
-helm show values infrahq/infra
 ```
 
 [1]: configuration.md

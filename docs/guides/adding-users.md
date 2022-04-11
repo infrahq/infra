@@ -18,16 +18,16 @@ infra id remove example@acme.com
 
 ## Listing users
 
-To see all users being managed by Infra, use `infra list`:
+To see all users being managed by Infra, use `infra id list`:
 
 ```
-infra list
+infra id list
 ```
 
 You'll see the resulting list of users:
 
 ```
-NAME (9)                   TYPE       PROVIDER
+NAME                       TYPE       PROVIDER
 fisher@infrahq.com         user       okta
 jeff@infrahq.com           user       okta
 matt.williams@infrahq.com  user       okta

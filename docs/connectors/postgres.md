@@ -1,3 +1,3 @@
 # Postgres (Coming Soon)
 
-The Postgres connector is coming soon
+The Postgres connector is coming soon.
