@@ -1,5 +1,4 @@
-//go:generate npm run export --silent --prefix ../../ui
-//go:generate go-bindata -pkg server -nocompress -o ./bindata_ui.go -prefix "../../ui/out/" ../../ui/out/...
+//go:generate ./generate-ui.sh
 
 package server
 
@@ -7,6 +6,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"embed"
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
@@ -19,7 +19,6 @@ import (
 	"strings"
 	"time"
 
-	assetfs "github.com/elazarl/go-bindata-assetfs"
 	"github.com/getsentry/sentry-go"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-contrib/static"
@@ -299,6 +298,9 @@ func (s *Server) loadCertificates() (err error) {
 	return nil
 }
 
+//go:embed all:ui/*
+var assetFS embed.FS
+
 func (s *Server) registerUIRoutes(router *gin.Engine) error {
 	if !s.options.EnableUI {
 		return nil
@@ -325,8 +327,7 @@ func (s *Server) registerUIRoutes(router *gin.Engine) error {
 		return nil
 	}
 
-	assetFS := &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo}
-	staticFS := &StaticFileSystem{base: assetFS}
+	staticFS := &StaticFileSystem{base: http.FS(assetFS)}
 	router.Use(gzip.Gzip(gzip.DefaultCompression), static.Serve("/", staticFS))
 
 	// 404
@@ -338,7 +339,7 @@ func (s *Server) registerUIRoutes(router *gin.Engine) error {
 		}
 
 		c.Status(http.StatusNotFound)
-		buf, err := assetFS.Asset("404.html")
+		buf, err := assetFS.ReadFile("ui/404.html")
 		if err != nil {
 			logging.S.Error(err)
 		}

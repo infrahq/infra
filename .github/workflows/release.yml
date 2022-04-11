@@ -41,8 +41,8 @@ jobs:
           path: /root/.cache/
           key: ${{ runner.os }}-go-build
       - run: |
-          go get
-          make tools release tag=${{ needs.release-please.outputs.release_name }}
+          go install github.com/goreleaser/goreleaser@v1.7.0
+          make release tag=${{ needs.release-please.outputs.release_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GORELEASER_GITHUB_TOKEN }}
           GEMFURY_TOKEN: ${{ secrets.GORELEASER_GEMFURY_TOKEN }}
