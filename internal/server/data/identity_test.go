@@ -1,12 +1,15 @@
 package data
 
 import (
+	"fmt"
 	"testing"
 
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/ssoroka/slice"
 )
 
 func TestUser(t *testing.T) {
@@ -129,4 +132,77 @@ func TestReCreateIdentitySameEmail(t *testing.T) {
 
 	err = CreateIdentity(db, &models.Identity{Name: bond.Name, Kind: models.UserKind})
 	assert.NilError(t, err)
+}
+
+func TestAssignIdentityToGroups(t *testing.T) {
+	tests := []struct {
+		Name           string
+		StartingGroups []string // groups user starts with
+		ExistingGroups []string // groups from last provider sync
+		IncomingGroups []string // groups from this provider sync
+		ExpectedGroups []string // groups user should have at end
+	}{
+		{
+			Name:           "test where the provider is trying to add a group the user doesn't have elsewhere",
+			StartingGroups: []string{"foo"},
+			ExistingGroups: []string{},
+			IncomingGroups: []string{"foo2"},
+			ExpectedGroups: []string{"foo", "foo2"},
+		},
+		{
+			Name:           "test where the provider is trying to add a group the user has from elsewhere",
+			StartingGroups: []string{"foo"},
+			ExistingGroups: []string{},
+			IncomingGroups: []string{"foo", "foo2"},
+			ExpectedGroups: []string{"foo", "foo2"},
+		},
+	}
+
+	db := setup(t)
+
+	for i, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			// setup user
+			user := &models.Identity{
+				Name: fmt.Sprintf("foo+%d@example.com", i),
+				Kind: models.UserKind,
+			}
+			err := CreateIdentity(db, user)
+			assert.NilError(t, err)
+
+			// setup user's groups
+			for _, gn := range test.StartingGroups {
+				g, err := GetGroup(db, ByName(gn))
+				if err == internal.ErrNotFound {
+					g = &models.Group{Name: gn}
+					err = CreateGroup(db, g)
+				}
+				assert.NilError(t, err)
+				user.Groups = append(user.Groups, *g)
+			}
+			err = SaveIdentity(db, user)
+			assert.NilError(t, err)
+
+			//setup provuderUser record
+			provider := InfraProvider(db)
+			pu, err := CreateProviderUser(db, provider, user)
+			assert.NilError(t, err)
+
+			pu.Groups = test.ExistingGroups
+			err = UpdateProviderUser(db, pu)
+			assert.NilError(t, err)
+
+			err = AssignIdentityToGroups(db, user, provider, test.IncomingGroups)
+			assert.NilError(t, err)
+
+			// reload user and check groups
+			id, err := GetIdentity(db.Preload("Groups"), ByID(user.ID))
+			assert.NilError(t, err)
+			groupNames := slice.Map[models.Group, string](id.Groups, func(g models.Group) string {
+				return g.Name
+			})
+
+			assert.DeepEqual(t, slice.Sort(groupNames), slice.Sort(test.ExpectedGroups))
+		})
+	}
 }

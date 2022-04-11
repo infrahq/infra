@@ -101,5 +101,9 @@ func UpdateUserInfoFromProvider(c *gin.Context, info *authn.UserInfo, user *mode
 		}
 	}
 
-	return data.AssignIdentityToGroups(db, user, provider, groups)
+	if err := data.AssignIdentityToGroups(db, user, provider, groups); err != nil {
+		return fmt.Errorf("assign identity to groups: %w", err)
+	}
+
+	return nil
 }
