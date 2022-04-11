@@ -314,6 +314,57 @@ func migrate(db *gorm.DB) error {
 			},
 			// context lost, cannot roll back
 		},
+		// unify users
+		{
+			ID: "202204111503",
+			Migrate: func(tx *gorm.DB) error {
+				identityTable := &models.Identity{}
+				if tx.Migrator().HasIndex(identityTable, "idx_identities_name_provider_id") {
+					tx.Migrator().DropIndex(identityTable, "idx_identities_name_provider_id")
+
+					if tx.Migrator().HasColumn(identityTable, "provider_id") {
+						infraProvider, err := GetProvider(tx, ByName("infra"))
+						if err != nil {
+							return err
+						}
+
+						users, err := ListIdentities(db, func(db *gorm.DB) *gorm.DB {
+							return db.Where("provider_id != ?", infraProvider.ID)
+						})
+						if err != nil {
+							return err
+						}
+
+						for _, user := range users {
+							newUser, err := GetIdentity(db, ByName(user.Name), func(db *gorm.DB) *gorm.DB {
+								return db.Where("provider_id = ?", infraProvider.ID)
+							})
+							if err != nil {
+								return err
+							}
+
+							// update all grants to point to the new user
+							err = tx.Exec("update grants set subject = ? where subject = ?", newUser.PolyID(), user.PolyID()).Error
+							if err != nil {
+								return err
+							}
+
+							// delete the duplicate user
+							err = tx.Exec("delete from identities where id = ?", user.ID).Error
+							if err != nil {
+								return err
+							}
+						}
+
+						// remove provider_id field
+						return tx.Migrator().DropColumn(identityTable, "provider_id")
+					}
+				}
+
+				return nil
+			},
+			// context lost, cannot roll back
+		},
 		// next one here
 	})
 
