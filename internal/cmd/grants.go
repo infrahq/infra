@@ -42,7 +42,6 @@ func newGrantsListCmd() *cobra.Command {
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List grants",
-		Args:    cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var options grantsCmdOptions
 			if err := parseOptions(cmd, &options, "INFRA_ACCESS"); err != nil {
