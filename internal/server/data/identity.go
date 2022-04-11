@@ -74,7 +74,7 @@ func AssignIdentityToGroups(db *gorm.DB, user *models.Identity, provider *models
 		// add user to group
 		err = db.Exec("insert into identities_groups (identity_id, group_id) values (?, ?)", user.ID, groupID).Error
 		if err != nil {
-			if !strings.Contains(err.Error(), "UNIQUE") {
+			if !strings.Contains(strings.ToLower(err.Error()), "unique") {
 				return fmt.Errorf("insert: %w", err)
 			}
 		}
