@@ -172,7 +172,7 @@ func newGrantAddCmd() *cobra.Command {
 		Short: "Grant access to a destination",
 		Long: `Grant one or more identities access to a destination. 
 
-IDENTITY is one that is being given access.
+IDENTITY is the subject that is being given access.
 DESTINATION is what the identity will gain access to. 
 
 Use [--role] if further fine grained permissions are needed. If not specified, user will gain the permission 'connect' to the destination. 
