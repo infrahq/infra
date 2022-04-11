@@ -244,7 +244,7 @@ Revoke access to a destination
 
 Revokes access that user has to the destination.
 
-IDENTITY is one that was being given access.
+IDENTITY is the subject that was granted access.
 DESTINATION is what the identity will lose access to. 
 
 Use [--role] to specify the exact grant being deleted. 
