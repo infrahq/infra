@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -10,9 +11,51 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"gotest.tools/v3/assert"
 
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 )
+
+func TestListProviders(t *testing.T) {
+	s := setupServer(t)
+
+	adminAccessKey := "BlgpvURSGF.NdcemBdzxLTGIcjPXwPoZNrb"
+	s.options = Options{AdminAccessKey: adminAccessKey}
+
+	err := s.importAccessKeys()
+	assert.NilError(t, err)
+
+	routes, err := s.GenerateRoutes(prometheus.NewRegistry())
+	assert.NilError(t, err)
+
+	testProvider := &models.Provider{
+		Name: "mokta",
+	}
+
+	err = data.CreateProvider(s.db, testProvider)
+	assert.NilError(t, err)
+
+	dbProviders, err := data.ListProviders(s.db)
+	assert.NilError(t, err)
+	assert.Equal(t, len(dbProviders), 2)
+
+	req, err := http.NewRequest(http.MethodGet, "/v1/providers", nil)
+	assert.NilError(t, err)
+
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", adminAccessKey))
+
+	resp := httptest.NewRecorder()
+	routes.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code, resp.Body.String())
+
+	apiProviders := make([]api.Provider, 0)
+	err = json.Unmarshal(resp.Body.Bytes(), &apiProviders)
+	assert.NilError(t, err)
+
+	assert.Equal(t, len(apiProviders), 1)
+	assert.Equal(t, apiProviders[0].Name, "mokta")
+}
 
 func TestDeleteProvider(t *testing.T) {
 	s := setupServer(t)

@@ -128,3 +128,9 @@ func NotCreatedBy(id uid.ID) SelectorFunc {
 		return db.Where("created_by != ?", id)
 	}
 }
+
+func NotName(name string) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Not("name = ?", name)
+	}
+}
