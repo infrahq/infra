@@ -86,13 +86,47 @@ func DeleteIdentity(c *gin.Context, id uid.ID) error {
 	return data.DeleteIdentity(db, id)
 }
 
-func ListIdentities(c *gin.Context, name string) ([]models.Identity, error) {
+func ListIdentities(c *gin.Context, name string, showInactive bool) ([]models.Identity, error) {
 	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole)
 	if err != nil {
 		return nil, err
 	}
 
-	return data.ListIdentities(db, data.ByOptionalName(name))
+	identities, err := data.ListIdentities(db, data.ByOptionalName(name))
+	if err != nil {
+		return nil, err
+	}
+
+	if showInactive {
+		return identities, nil
+	}
+
+	// filter out identities that do not have a linked provider
+
+	providerIdentities, err := data.ListProviderUsers(db)
+	if err != nil {
+		return nil, err
+	}
+
+	// map identity ID of providerIdentity to an identity
+	idToIdentity := make(map[uid.ID]*models.Identity)
+	for i := range identities {
+		idToIdentity[identities[i].ID] = &identities[i]
+	}
+
+	var activeIdentities []models.Identity
+
+	for _, active := range providerIdentities {
+		activeIdentity := idToIdentity[active.IdentityID]
+		if activeIdentity != nil {
+			activeIdentities = append(activeIdentities, *activeIdentity)
+
+			// remove from the map so we don't add identities multiple times
+			idToIdentity[active.IdentityID] = nil
+		}
+	}
+
+	return activeIdentities, nil
 }
 
 // UpdateUserInfoFromProvider calls the user info endpoint of an external identity provider to see a user's current attributes

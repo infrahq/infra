@@ -34,7 +34,8 @@ func newIdentitiesCmd() *cobra.Command {
 }
 
 type identityCmdOptions struct {
-	Password bool `mapstructure:"password"`
+	Password     bool `mapstructure:"password"`
+	ShowInactive bool `mapstructure:"inactive"`
 }
 
 func newIdentitiesAddCmd() *cobra.Command {
@@ -57,7 +58,13 @@ EMAIL must contain a valid email address in the form of "local@domain".
 				return err
 			}
 
-			createResp, err := CreateLocalIdentity(name)
+			// an identity created with this command always exists in the local infra provider
+			infraProvider, err := GetInfraProvider()
+			if err != nil {
+				return err
+			}
+
+			createResp, err := CreateProviderIdentity(name, infraProvider)
 			if err != nil {
 				return err
 			}
@@ -125,11 +132,16 @@ func newIdentitiesEditCmd() *cobra.Command {
 }
 
 func newIdentitiesListCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List all identities",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			var options identityCmdOptions
+			if err := parseOptions(cmd, &options, ""); err != nil {
+				return err
+			}
+
 			client, err := defaultAPIClient()
 			if err != nil {
 				return err
@@ -142,7 +154,7 @@ func newIdentitiesListCmd() *cobra.Command {
 
 			var rows []row
 
-			identities, err := client.ListIdentities(api.ListIdentitiesRequest{})
+			identities, err := client.ListIdentities(api.ListIdentitiesRequest{ShowInactive: options.ShowInactive})
 			if err != nil {
 				return err
 			}
@@ -163,6 +175,9 @@ func newIdentitiesListCmd() *cobra.Command {
 			return nil
 		},
 	}
+
+	cmd.Flags().Bool("inactive", false, "Show inactive identities")
+	return cmd
 }
 
 func newIdentitiesRemoveCmd() *cobra.Command {
@@ -227,8 +242,13 @@ func checkUserOrMachine(s string) (models.IdentityKind, error) {
 	return models.UserKind, nil
 }
 
-// Creates a user for the local identity provider
-func CreateLocalIdentity(name string) (*api.CreateIdentityResponse, error) {
+// CreateIdentity creates an identity within Infra that is not associated with any provider
+func CreateIdentity(name string) (*api.CreateIdentityResponse, error) {
+	return CreateProviderIdentity(name, nil)
+}
+
+// CreateProviderIdentity creates an identity within infra, if a provider is specified it also associated with that provider
+func CreateProviderIdentity(name string, provider *api.Provider) (*api.CreateIdentityResponse, error) {
 	client, err := defaultAPIClient()
 	if err != nil {
 		return nil, err
@@ -239,7 +259,16 @@ func CreateLocalIdentity(name string) (*api.CreateIdentityResponse, error) {
 		return nil, err
 	}
 
-	resp, err := client.CreateIdentity(&api.CreateIdentityRequest{Name: name, Kind: kind.String()})
+	req := &api.CreateIdentityRequest{
+		Name: name,
+		Kind: kind.String(),
+	}
+
+	if provider != nil {
+		req.ProviderID = &provider.ID
+	}
+
+	resp, err := client.CreateIdentity(req)
 	if err != nil {
 		return nil, err
 	}

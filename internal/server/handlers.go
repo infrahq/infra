@@ -25,7 +25,7 @@ type API struct {
 }
 
 func (a *API) ListIdentities(c *gin.Context, r *api.ListIdentitiesRequest) ([]api.Identity, error) {
-	identities, err := access.ListIdentities(c, r.Name)
+	identities, err := access.ListIdentities(c, r.Name, r.ShowInactive)
 	if err != nil {
 		return nil, err
 	}
@@ -58,28 +58,56 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 		Kind: kind,
 	}
 
-	if err := access.CreateIdentity(c, identity); err != nil {
-		return nil, err
-	}
-
-	_, err = access.CreateProviderUser(c, access.InfraProvider(c), identity)
-	if err != nil {
-		return nil, err
-	}
-
-	resp := &api.CreateIdentityResponse{
-		ID:         identity.ID,
-		Name:       identity.Name,
-		ProviderID: access.InfraProvider(c).ID,
-	}
-
-	if identity.Kind == models.UserKind {
-		oneTimePassword, err := access.CreateCredential(c, *identity)
+	// identity creation linked to a provider should be attempted even if an identity is already known
+	if r.ProviderID != nil {
+		identities, err := access.ListIdentities(c, identity.Name, true)
 		if err != nil {
 			return nil, err
 		}
 
-		resp.OneTimePassword = oneTimePassword
+		switch len(identities) {
+		case 0:
+			if err := access.CreateIdentity(c, identity); err != nil {
+				return nil, err
+			}
+		case 1:
+			identity.ID = identities[0].ID
+		default:
+			return nil, fmt.Errorf("multiple identities match specified name")
+		}
+	} else {
+		if err := access.CreateIdentity(c, identity); err != nil {
+			return nil, err
+		}
+	}
+
+	resp := &api.CreateIdentityResponse{
+		ID:   identity.ID,
+		Name: identity.Name,
+	}
+
+	if r.ProviderID != nil {
+		// this is a placeholder for when the user logs in using this provider
+		providerIdentity, err := access.CreateProviderUser(c, access.InfraProvider(c), identity)
+		if err != nil {
+			return nil, err
+		}
+
+		resp.ProviderID = providerIdentity.ProviderID
+
+		if (identity.Kind == models.UserKind) && (access.InfraProvider(c).ID == providerIdentity.ProviderID) {
+			oneTimePassword, err := access.CreateCredential(c, *identity)
+			if err != nil {
+				return nil, err
+			}
+
+			resp.OneTimePassword = oneTimePassword
+		}
+	}
+
+	defaultGrant := &models.Grant{Subject: identity.PolyID(), Privilege: models.InfraUserRole, Resource: access.ResourceInfraAPI}
+	if err := access.CreateGrant(c, defaultGrant); err != nil {
+		return nil, err
 	}
 
 	a.t.User(identity)
@@ -388,6 +416,7 @@ func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) ([]ap
 			Name:              a.Name,
 			Created:           api.Time(a.CreatedAt),
 			IssuedFor:         a.IssuedFor,
+			ProviderID:        a.ProviderID,
 			Expires:           api.Time(a.ExpiresAt),
 			ExtensionDeadline: api.Time(a.ExtensionDeadline),
 		}

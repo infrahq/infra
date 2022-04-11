@@ -328,6 +328,12 @@ List all identities
 infra identities list [flags]
 ```
 
+### Options
+
+```
+      --inactive   Show inactive identities
+```
+
 ### Options inherited from parent commands
 
 ```

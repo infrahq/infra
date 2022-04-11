@@ -14,12 +14,14 @@ type Identity struct {
 }
 
 type ListIdentitiesRequest struct {
-	Name string `form:"name"`
+	Name         string `form:"name"`
+	ShowInactive bool   `form:"showInactive"`
 }
 
 type CreateIdentityRequest struct {
-	Name string `json:"name" validate:"required"`
-	Kind string `json:"kind" validate:"required,oneof=user machine"`
+	Name       string  `json:"name" validate:"required"`
+	Kind       string  `json:"kind" validate:"required,oneof=user machine"`
+	ProviderID *uid.ID `json:"providerID"`
 }
 
 type UpdateIdentityRequest struct {
@@ -30,6 +32,6 @@ type UpdateIdentityRequest struct {
 type CreateIdentityResponse struct {
 	ID              uid.ID `json:"id"`
 	Name            string `json:"name" validate:"required"`
-	ProviderID      uid.ID `json:"providerID" validate:"required"`
+	ProviderID      uid.ID `json:"providerID,omitempty" `
 	OneTimePassword string `json:"oneTimePassword,omitempty"`
 }
