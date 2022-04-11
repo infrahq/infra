@@ -208,7 +208,8 @@ func (a *API) ListGroupGrants(c *gin.Context, r *api.Resource) ([]api.Grant, err
 
 // caution: this endpoint is unauthenticated, do not return sensitive info
 func (a *API) ListProviders(c *gin.Context, r *api.ListProvidersRequest) ([]api.Provider, error) {
-	providers, err := access.ListProviders(c, r.Name)
+	exclude := []string{models.InternalInfraProviderName}
+	providers, err := access.ListProviders(c, r.Name, exclude)
 	if err != nil {
 		return nil, err
 	}

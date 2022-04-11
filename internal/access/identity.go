@@ -92,7 +92,7 @@ func ListIdentities(c *gin.Context, name string) ([]models.Identity, error) {
 		return nil, err
 	}
 
-	return data.ListIdentities(db, data.ByName(name))
+	return data.ListIdentities(db, data.ByOptionalName(name))
 }
 
 // UpdateUserInfoFromProvider calls the user info endpoint of an external identity provider to see a user's current attributes
@@ -110,5 +110,9 @@ func UpdateUserInfoFromProvider(c *gin.Context, info *authn.UserInfo, user *mode
 		}
 	}
 
-	return data.AssignIdentityToGroups(db, user, provider, groups)
+	if err := data.AssignIdentityToGroups(db, user, provider, groups); err != nil {
+		return fmt.Errorf("assign identity to groups: %w", err)
+	}
+
+	return nil
 }

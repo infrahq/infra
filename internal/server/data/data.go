@@ -123,23 +123,27 @@ func add[T models.Modelable](db *gorm.DB, model *T) error {
 	}
 
 	if err := db.Create(model).Error; err != nil {
-		// HACK: Compare error string instead of checking sqlite3.Error which requires
-		//       possibly cross-compiling go-sqlite3. Not worth.
-		if strings.HasPrefix(err.Error(), "UNIQUE constraint failed:") {
+		if isUniqueConstraintViolation(err) {
 			return fmt.Errorf("%w: %s", internal.ErrDuplicate, err)
-		}
-
-		var pgerr *pgconn.PgError
-		if errors.As(err, &pgerr) {
-			if pgerr.Code == pgerrcode.UniqueViolation {
-				return fmt.Errorf("%w: %s", internal.ErrDuplicate, err)
-			}
 		}
 
 		return err
 	}
 
 	return nil
+}
+
+func isUniqueConstraintViolation(err error) bool {
+	var pgerr *pgconn.PgError
+	if errors.As(err, &pgerr) {
+		return pgerr.Code == pgerrcode.UniqueViolation
+	}
+
+	if strings.HasPrefix(err.Error(), "UNIQUE constraint failed:") {
+		return true
+	}
+
+	return false
 }
 
 func delete[T models.Modelable](db *gorm.DB, id uid.ID) error {

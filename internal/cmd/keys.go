@@ -186,7 +186,6 @@ func newKeysListCmd() *cobra.Command {
 			}
 
 			type row struct {
-				ID                string `header:"ID"`
 				Name              string `header:"NAME"`
 				IssuedFor         string `header:"ISSUED FOR"`
 				Created           string `header:"CREATED"`
@@ -197,12 +196,11 @@ func newKeysListCmd() *cobra.Command {
 			var rows []row
 			for _, k := range keys {
 				rows = append(rows, row{
-					ID:                k.ID.String(),
 					Name:              k.Name,
 					IssuedFor:         machineNames[k.IssuedFor],
-					Created:           k.Created.String(),
-					Expires:           k.Expires.String(),
-					ExtensionDeadline: k.ExtensionDeadline.Format(time.RFC3339),
+					Created:           k.Created.Relative("never"),
+					Expires:           k.Expires.Relative("never"),
+					ExtensionDeadline: k.ExtensionDeadline.Relative("never"),
 				})
 			}
 

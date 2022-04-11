@@ -23,7 +23,6 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -263,13 +262,6 @@ func updateInfraConfig(client *api.Client, loginReq *api.LoginRequest, loginRes 
 
 	if loginReq.OIDC != nil {
 		clientHostConfig.ProviderID = loginReq.OIDC.ProviderID
-	} else {
-		// TODO 1380: this is temporary - infra providerID should be saved somewhere else, and not here (https://github.com/infrahq/infra/issues/1380)
-		p, err := GetProviderByName(client, models.InternalInfraProviderName)
-		if err != nil {
-			return err
-		}
-		clientHostConfig.ProviderID = p.ID
 	}
 
 	u, err := urlx.Parse(client.URL)
@@ -506,7 +498,7 @@ func promptLocalLogin() (*api.LoginRequestPasswordCredentials, error) {
 	questionPrompt := []*survey.Question{
 		{
 			Name:     "Email",
-			Prompt:   &survey.Input{Message: "Email:"},
+			Prompt:   &survey.Input{Message: "   Email:"},
 			Validate: survey.Required,
 		},
 		{
@@ -540,20 +532,9 @@ func listProviders(client *api.Client) ([]api.Provider, error) {
 		return nil, err
 	}
 
-	// Sort the providers by name
-	var localProvider api.Provider
-	for i, p := range providers {
-		if p.Name == models.InternalInfraProviderName {
-			localProvider = p
-			providers[i] = providers[len(providers)-1]
-			providers = providers[:len(providers)-1]
-			break
-		}
-	}
 	sort.Slice(providers, func(i, j int) bool {
 		return providers[i].Name < providers[j].Name
 	})
-	providers = append(providers, localProvider)
 
 	return providers, nil
 }
@@ -570,12 +551,10 @@ func promptLoginOptions(client *api.Client) (loginMethod loginMethod, provider *
 
 	var options []string
 	for _, p := range providers {
-		if p.Name == models.InternalInfraProviderName {
-			options = append(options, "Login as a local user")
-		} else {
-			options = append(options, fmt.Sprintf("%s (%s)", p.Name, p.URL))
-		}
+		options = append(options, fmt.Sprintf("%s (%s)", p.Name, p.URL))
 	}
+
+	options = append(options, "Login with email and password")
 	options = append(options, "Login with an access key")
 
 	var i int
@@ -588,11 +567,11 @@ func promptLoginOptions(client *api.Client) (loginMethod loginMethod, provider *
 		return 0, nil, err
 	}
 
-	switch {
-	case i == len(providers):
+	switch i {
+	case len(options) - 1: // last option: accessKeyLogin
 		return accessKeyLogin, nil, nil
-	case providers[i].Name == models.InternalInfraProviderName:
-		return localLogin, &providers[i], nil
+	case len(options) - 2: // second last option: localLogin
+		return localLogin, nil, nil
 	default:
 		return oidcLogin, &providers[i], nil
 	}

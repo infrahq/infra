@@ -30,10 +30,18 @@ func GetProvider(c *gin.Context, id uid.ID) (*models.Provider, error) {
 	return data.GetProvider(db, data.ByID(id))
 }
 
-func ListProviders(c *gin.Context, name string) ([]models.Provider, error) {
+func ListProviders(c *gin.Context, name string, excludeByName []string) ([]models.Provider, error) {
 	db := getDB(c)
 
-	return data.ListProviders(db, data.ByOptionalName(name))
+	selectors := []data.SelectorFunc{
+		data.ByOptionalName(name),
+	}
+
+	for _, exclude := range excludeByName {
+		selectors = append(selectors, data.NotName(exclude))
+	}
+
+	return data.ListProviders(db, selectors...)
 }
 
 func SaveProvider(c *gin.Context, provider *models.Provider) error {
@@ -121,7 +129,7 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 	providerUser.ExpiresAt = expiry
 	err = data.UpdateProviderUser(db, providerUser)
 	if err != nil {
-		return nil, "", err
+		return nil, "", fmt.Errorf("UpdateProviderUser: %w", err)
 	}
 
 	// get current identity provider groups
