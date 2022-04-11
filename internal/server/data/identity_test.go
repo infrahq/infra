@@ -1,15 +1,16 @@
 package data
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
+	"github.com/ssoroka/slice"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/ssoroka/slice"
 )
 
 func TestUser(t *testing.T) {
@@ -173,7 +174,7 @@ func TestAssignIdentityToGroups(t *testing.T) {
 			// setup user's groups
 			for _, gn := range test.StartingGroups {
 				g, err := GetGroup(db, ByName(gn))
-				if err == internal.ErrNotFound {
+				if errors.Is(err, internal.ErrNotFound) {
 					g = &models.Group{Name: gn}
 					err = CreateGroup(db, g)
 				}
@@ -183,7 +184,7 @@ func TestAssignIdentityToGroups(t *testing.T) {
 			err = SaveIdentity(db, user)
 			assert.NilError(t, err)
 
-			//setup provuderUser record
+			// setup provuderUser record
 			provider := InfraProvider(db)
 			pu, err := CreateProviderUser(db, provider, user)
 			assert.NilError(t, err)
