@@ -21,6 +21,7 @@
 * [infra providers list](#infra-providers-list)
 * [infra providers add](#infra-providers-add)
 * [infra providers remove](#infra-providers-remove)
+* [infra about](#infra-about)
 
 
 ## `infra login`
@@ -476,6 +477,22 @@ Disconnect an identity provider
 
 ```
 infra providers remove PROVIDER [flags]
+```
+
+### Options inherited from parent commands
+
+```
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+      --non-interactive    Disable all prompts for input
+```
+
+## `infra about`
+
+Display information about Infra
+
+```
+infra about [flags]
 ```
 
 ### Options inherited from parent commands
