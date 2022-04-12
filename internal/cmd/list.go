@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -86,13 +87,13 @@ func list() error {
 
 	var rows []row
 
-	for k, v := range gs {
+	keys := make([]string, 0, len(gs))
+	for k := range gs {
 		if strings.HasPrefix(k, "infra") {
 			continue
 		}
 
 		var exists bool
-
 		for _, d := range destinations {
 			if strings.HasPrefix(k, d.Name) {
 				exists = true
@@ -102,6 +103,18 @@ func list() error {
 
 		if !exists {
 			continue
+		}
+
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		v, ok := gs[k]
+		if !ok {
+			// should not be possible
+			return fmt.Errorf("unexpected value in grants: %s", k)
 		}
 
 		access := make([]string, 0, len(v))
