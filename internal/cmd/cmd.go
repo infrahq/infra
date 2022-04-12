@@ -311,6 +311,7 @@ func NewRootCmd() *cobra.Command {
 				if err := info(); err != nil {
 					return fmt.Errorf("info: %w", err)
 				}
+				return nil
 			}
 			return cmd.Help()
 		},
