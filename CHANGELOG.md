@@ -1,5 +1,40 @@
 # Changelog
 
+### [0.10.1](https://github.com/infrahq/infra/compare/v0.10.0...v0.10.1) (2022-04-12)
+
+
+### Features
+
+* set telemetry events ([#1421](https://github.com/infrahq/infra/issues/1421)) ([264cf85](https://github.com/infrahq/infra/commit/264cf85a9801989bb577f8178fe741be882e6844))
+
+
+### Bug Fixes
+
+* architecture image not rendering in docs on GitHub ([bc00aac](https://github.com/infrahq/infra/commit/bc00aac6f156dbf9218e6656252a008b980ec4dc))
+* bring back roles in grant docs ([ccf34a8](https://github.com/infrahq/infra/commit/ccf34a8f6c019d3a5e24181c64be370902f9688b))
+* broken doc links ([d9ea9a6](https://github.com/infrahq/infra/commit/d9ea9a68e198ec7e5dfa496f7bfa94d2c5abfcd9))
+* ByIdentityKind uses non-existent column ([45ce7a7](https://github.com/infrahq/infra/commit/45ce7a7106e8db913ea112bafcef1b6b4715b9ca))
+* cli example breaking docs ([06cae72](https://github.com/infrahq/infra/commit/06cae729dd1a48acaa6bde0e9b51749d2f991883))
+* **cli:** edit providers add cmd from args to flags ([#1528](https://github.com/infrahq/infra/issues/1528)) ([12e7953](https://github.com/infrahq/infra/commit/12e79530d5a7bd23ac7738752e645e6eead58781))
+* **cli:** updates 'grants add' command ([#1474](https://github.com/infrahq/infra/issues/1474)) ([bca65bf](https://github.com/infrahq/infra/commit/bca65bfb977485676836c3c6b9af3c312343e22a))
+* do not display internal provider ([497d095](https://github.com/infrahq/infra/commit/497d095284bfc9224f45a7f7963689be9384779d))
+* do not fail if group-user membership already exists ([#1567](https://github.com/infrahq/infra/issues/1567)) ([e50b45c](https://github.com/infrahq/infra/commit/e50b45ca39d969c83de11248362c88fd9926e02c))
+* docs build ([4a18611](https://github.com/infrahq/infra/commit/4a186113efdf5da2e50f112a4ffe522424893488))
+* **docs:** binary distribution links ([9787613](https://github.com/infrahq/infra/commit/9787613014c8ac7b203b9f301871e5ab091ae1e9))
+* headings ([0d3101d](https://github.com/infrahq/infra/commit/0d3101dde98f3269ebcdeca6090e095a9fdca257))
+* ids not showing up for infra ids list ([#1568](https://github.com/infrahq/infra/issues/1568)) ([4a339a9](https://github.com/infrahq/infra/commit/4a339a9e7053c8d8c3b392e35a2a325fc338bc43))
+* infra keys command details ([#1501](https://github.com/infrahq/infra/issues/1501)) ([#1502](https://github.com/infrahq/infra/issues/1502)) ([#1506](https://github.com/infrahq/infra/issues/1506)) ([99fc0e8](https://github.com/infrahq/infra/commit/99fc0e807ee8d0bba06ac40d9b4586eb97c9491b))
+* introduction.md ([#1578](https://github.com/infrahq/infra/issues/1578)) ([b4ee514](https://github.com/infrahq/infra/commit/b4ee51448709ce12cd03524c3940b6de285500b7))
+* no error if failed to logout ([8e5dc57](https://github.com/infrahq/infra/commit/8e5dc5766c759fb4143439779f95b73e13a28907))
+* prevent users from removing internal providers/identities ([df1e5ae](https://github.com/infrahq/infra/commit/df1e5ae51d46f02ffd319452d55d10789072b2e8))
+* remove documentation for infra destinations add ([92b10cf](https://github.com/infrahq/infra/commit/92b10cf79ae887fa3a32414ec9101de4a76867a6))
+* remove unneeded ol from docs ([2021904](https://github.com/infrahq/infra/commit/202190464b14b7d8296c4b5337d8c24578d79fbb))
+* resolve issue with ambiguous optional selectors ([#1495](https://github.com/infrahq/infra/issues/1495)) ([b30c8ac](https://github.com/infrahq/infra/commit/b30c8ac20fb04c3d91f287ea82576b9416dcf567))
+* set infra provider on created access key ([#1535](https://github.com/infrahq/infra/issues/1535)) ([a81fc05](https://github.com/infrahq/infra/commit/a81fc0532db33d890407412a5a0039cb41419f26))
+* setup access key missing provider ID ([0a240ae](https://github.com/infrahq/infra/commit/0a240ae823c71ecae44cdf195abaea24717abdc2))
+* show infra grants in list ([#1515](https://github.com/infrahq/infra/issues/1515)) ([#1533](https://github.com/infrahq/infra/issues/1533)) ([62147b2](https://github.com/infrahq/infra/commit/62147b263059c93893348cd5cd71a61f61134341))
+* updates grant remove and list for launch ([#1547](https://github.com/infrahq/infra/issues/1547)) ([bfb0c64](https://github.com/infrahq/infra/commit/bfb0c6427473e37ff1b3cfc28a05d6c16b7801e6))
+
 ## [0.10.0](https://github.com/infrahq/infra/compare/v0.9.0...v0.10.0) (2022-04-07)
 
 
