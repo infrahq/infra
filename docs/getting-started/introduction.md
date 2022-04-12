@@ -40,8 +40,8 @@ $ infra list
 
 # You can switch clusters using your existing tools
 # Infra also includes a CLI command for switching clusters
-$ infra use kubernetes.production.web
-Switched to context "infra:production:web".
+$ infra use production.web
+Switched to context "production.web".
 
 $ kubectl get pods
 NAME                  READY   STATUS    RESTARTS   AGE
@@ -89,4 +89,4 @@ Data stored and transmitted by Infra is always encrypted. Read more about our [s
 
 ## What's next
 
-Get up and running with the [Quickstart](./quickstart.md) guide or read about the [Key concepts](./key-concepts.md).
+Get up and running with the [Quickstart](./quickstart.md) guide or read about the [Key Concepts](./key-concepts.md).
