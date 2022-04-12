@@ -20,6 +20,8 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+// NewDB creates a new database connection and runs any required database migrations
+// before returning the connection.
 func NewDB(connection gorm.Dialector) (*gorm.DB, error) {
 	db, err := newRawDB(connection)
 	if err != nil {
