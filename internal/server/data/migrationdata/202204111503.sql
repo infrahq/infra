@@ -26,7 +26,7 @@ INSERT INTO grants VALUES(36547838294171648,'2022-04-11 20:28:03.680813086+00:00
 INSERT INTO grants VALUES(36548620389261312,'2022-04-11 20:31:10.152810048+00:00','2022-04-11 20:31:10.152810048+00:00',NULL,'i:5VozJLKzWH','admin','infra',36547838281588736);
 CREATE TABLE `providers` (`id` integer,`created_at` datetime,`updated_at` datetime,`deleted_at` datetime,`name` text,`url` text,`client_id` text,`client_secret` text,PRIMARY KEY (`id`));
 INSERT INTO providers VALUES(36544743090757632,'2022-04-11 20:15:45.721963717+00:00','2022-04-11 20:15:45.763277384+00:00',NULL,'infra','','','');
-INSERT INTO providers VALUES(36544743262724096,'2022-04-11 20:15:45.762991842+00:00','2022-04-11 20:28:03.681333795+00:00',NULL,'okta','dev-02708987.okta.com','0oapn0qwiQPiMIyR35d6','');
+INSERT INTO providers VALUES(36544743262724096,'2022-04-11 20:15:45.762991842+00:00','2022-04-11 20:28:03.681333795+00:00',NULL,'okta','dev.okta.com','','');
 CREATE TABLE `provider_tokens` (`id` integer,`created_at` datetime,`updated_at` datetime,`deleted_at` datetime,`user_id` integer,`provider_id` integer,`redirect_url` text,`access_token` text,`refresh_token` text,`expires_at` datetime,PRIMARY KEY (`id`));
 CREATE TABLE `destinations` (`id` integer,`created_at` datetime,`updated_at` datetime,`deleted_at` datetime,`name` text,`unique_id` text,`connection_url` text,`connection_ca` text,PRIMARY KEY (`id`));
 CREATE TABLE `access_keys` (`id` integer,`created_at` datetime,`updated_at` datetime,`deleted_at` datetime,`name` text,`issued_for` integer,`expires_at` datetime,`extension` integer,`extension_deadline` datetime,`key_id` text,`secret_checksum` blob,PRIMARY KEY (`id`));
@@ -37,8 +37,8 @@ CREATE TABLE `root_certificates` (`id` integer,`created_at` datetime,`updated_at
 CREATE TABLE `credentials` (`id` integer,`created_at` datetime,`updated_at` datetime,`deleted_at` datetime,`identity_id` integer,`password_hash` blob,`one_time_password` numeric,`one_time_password_used` numeric,PRIMARY KEY (`id`));
 CREATE TABLE IF NOT EXISTS "identities" (`id` integer,`created_at` datetime,`updated_at` datetime,`deleted_at` datetime,`kind` text,`name` text,`last_seen_at` datetime,`provider_id` integer,PRIMARY KEY (`id`),CONSTRAINT `fk_providers_users` FOREIGN KEY (`provider_id`) REFERENCES `providers`(`id`));
 INSERT INTO identities VALUES(36544743279501312,'2022-04-11 20:15:45.766136925+00:00','2022-04-11 20:15:45.766136925+00:00',NULL,'machine','admin','0001-01-01 00:00:00+00:00',36544743090757632);
-INSERT INTO identities VALUES(36547838281588736,'2022-04-11 20:28:03.677883545+00:00','2022-04-11 20:31:34.288667837+00:00',NULL,'user','steven.soroka@infrahq.com','2022-04-11 20:31:34.287892045+00:00',36544743262724096);
-INSERT INTO identities VALUES(36547838281588737,NULL,NULL,NULL,'user','steven.soroka@infrahq.com',NULL,36544743090757632);
+INSERT INTO identities VALUES(36547838281588736,'2022-04-11 20:28:03.677883545+00:00','2022-04-11 20:31:34.288667837+00:00',NULL,'user','steven@example.com','2022-04-11 20:31:34.287892045+00:00',36544743262724096);
+INSERT INTO identities VALUES(36547838281588737,NULL,NULL,NULL,'user','steven@example.com',NULL,36544743090757632);
 CREATE UNIQUE INDEX `idx_groups_name_provider_id` ON `groups`(`name`,`provider_id`) WHERE deleted_at is NULL;
 CREATE UNIQUE INDEX `idx_providers_name` ON `providers`(`name`) WHERE deleted_at is NULL;
 CREATE UNIQUE INDEX `idx_destinations_unique_id` ON `destinations`(`unique_id`) WHERE deleted_at is NULL;

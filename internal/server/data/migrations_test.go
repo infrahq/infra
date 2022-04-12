@@ -19,7 +19,7 @@ func Test202204111503(t *testing.T) {
 	err := migrate(db)
 	assert.NilError(t, err)
 
-	ids, err := ListIdentities(db, ByName("steven.soroka@infrahq.com"))
+	ids, err := ListIdentities(db, ByName("steven@example.com"))
 	assert.NilError(t, err)
 
 	assert.Assert(t, len(ids) == 1)
@@ -39,7 +39,13 @@ func Test202204111503(t *testing.T) {
 //
 // 3. write the migration and test that it does what you expect. It can be helpful to put any necessary guards in place to make sure the database is in the state you expect. sometimes failed migrations leave it in a broken state, and might run when you don't expect, so defensive programming is helpful here.
 //
-// 4. ideally, remove any SQL records that aren't relevant to the test and make sure everything still works.
+// 4. go back to the sql file:
+//   - remove any SQL records that aren't relevant to the test
+//   - blank out provider client ids and name
+//   - remove any email addresses and replace with @example.com
+//   - remove any provider_users redirect urls
+// any other sensitive fields are encrypted and the key isn't included in the database.
+// Make sure the test still passes.
 func loadSQL(t *testing.T, db *gorm.DB, filename string) {
 	f, err := os.Open("migrationdata/" + filename + ".sql")
 	assert.NilError(t, err)
@@ -61,16 +67,6 @@ func setupWithNoMigrations(t *testing.T, f func(db *gorm.DB)) *gorm.DB {
 	f(db)
 
 	models.SkipSymmetricKey = true
-	// keyRec, err := GetEncryptionKey(db, ByName("dbkey"))
-	// assert.NilError(t, err)
-
-	// fp := secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{})
-
-	// kp := secrets.NewNativeSecretProvider(fp)
-	// key, err := kp.DecryptDataKey("migrationdata/202204111503.key", keyRec.Encrypted)
-	// assert.NilError(t, err)
-
-	// models.SymmetricKey = key
 
 	setupLogging(t)
 
