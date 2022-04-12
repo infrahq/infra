@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"gopkg.in/segmentio/analytics-go.v3"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
@@ -514,11 +513,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 		setAuthCookie(c, key, expires)
 
-		if a.t != nil {
-			if err := a.t.Enqueue(analytics.Track{Event: "infra.login.exchange", UserId: identity.ID.String()}); err != nil {
-				logging.S.Debug(err)
-			}
-		}
+		a.t.Event(c, "login", Properties{"method": "exchange"})
 
 		return &api.LoginResponse{PolymorphicID: identity.PolyID(), Name: identity.Name, AccessKey: key, Expires: api.Time(expires)}, nil
 	case r.PasswordCredentials != nil:
