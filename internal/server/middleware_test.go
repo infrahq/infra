@@ -88,6 +88,35 @@ func TestRequestTimeoutSuccess(t *testing.T) {
 	router.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "/", nil))
 }
 
+func TestDBTimeout(t *testing.T) {
+	db := setupDB(t)
+	var ctx context.Context
+	var cancel context.CancelFunc
+
+	router := gin.New()
+	router.Use(
+		func(c *gin.Context) {
+			// this is a custom copy of the timeout middleware so I can grab and control the cancel() func. Otherwise the test is too flakey with timing race conditions.
+			ctx, cancel = context.WithTimeout(c, 100*time.Millisecond)
+			defer cancel()
+
+			c.Request = c.Request.WithContext(ctx)
+			c.Set("ctx", ctx)
+			c.Next()
+		},
+		DatabaseMiddleware(db),
+	)
+	router.GET("/", func(c *gin.Context) {
+		db := c.MustGet("db").(*gorm.DB)
+		cancel()
+		err := db.Exec("select 1;").Error
+		assert.Error(t, err, "context canceled")
+
+		c.Status(200)
+	})
+	router.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "/", nil))
+}
+
 func TestRequireAuthentication(t *testing.T) {
 	cases := map[string]map[string]interface{}{
 		"AccessKeyValid": {
