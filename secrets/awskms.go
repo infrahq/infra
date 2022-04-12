@@ -20,9 +20,9 @@ type AWSKMSSecretProvider struct {
 }
 
 type AWSKMSConfig struct {
-	AWSConfig
+	AWSConfig `mapstructure:",squash"`
 
-	EncryptionAlgorithm string `yaml:"encryptionAlgorithm"`
+	EncryptionAlgorithm string `mapstructure:"encryptionAlgorithm"`
 	// aws tags?
 }
 

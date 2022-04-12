@@ -1,8 +1,8 @@
 package secrets
 
 type AWSConfig struct {
-	Endpoint        string `yaml:"endpoint" validate:"required"`
-	Region          string `yaml:"region" validate:"required"`
-	AccessKeyID     string `yaml:"accessKeyID" validate:"required"`
-	SecretAccessKey string `yaml:"secretAccessKey" validate:"required"`
+	Endpoint        string `mapstructure:"endpoint" validate:"required"`
+	Region          string `mapstructure:"region" validate:"required"`
+	AccessKeyID     string `mapstructure:"accessKeyID" validate:"required"`
+	SecretAccessKey string `mapstructure:"secretAccessKey" validate:"required"`
 }

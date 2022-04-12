@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
-	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
@@ -43,14 +42,12 @@ type Config struct {
 }
 
 type KeyProvider struct {
-	Kind   string      `yaml:"kind" validate:"required"`
+	Kind   string      `mapstructure:"kind" validate:"required"`
 	Config interface{} // contains secret-provider-specific config
 }
 
-var _ yaml.Unmarshaler = &KeyProvider{}
-
 type nativeSecretProviderConfig struct {
-	SecretStorageName string `yaml:"secretProvider"`
+	SecretProvider string `mapstructure:"secretProvider"`
 }
 
 func importKeyProviders(
@@ -71,9 +68,9 @@ func importKeyProviders(
 				return fmt.Errorf("expected key config to be NativeSecretProviderConfig, but was %t", keyConfig.Config)
 			}
 
-			storageProvider, found := storage[cfg.SecretStorageName]
+			storageProvider, found := storage[cfg.SecretProvider]
 			if !found {
-				return fmt.Errorf("secret storage name %q not found", cfg.SecretStorageName)
+				return fmt.Errorf("secret storage name %q not found", cfg.SecretProvider)
 			}
 
 			sp := secrets.NewNativeSecretProvider(storageProvider)
@@ -123,44 +120,17 @@ func importKeyProviders(
 	return nil
 }
 
-// TODO: no longer works because mapstructure decodes
-func (sp *KeyProvider) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	tmp := &simpleConfigSecretProvider{}
-
-	if err := unmarshal(&tmp); err != nil {
-		return fmt.Errorf("unmarshalling secret provider: %w", err)
-	}
-
-	sp.Kind = tmp.Kind
-
-	switch sp.Kind {
+func (kp *KeyProvider) PrepareForDecode(data interface{}) error {
+	kind := getKindFromUnstructured(data)
+	switch kind {
 	case "vault":
-		p := secrets.NewVaultConfig()
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
+		kp.Config = secrets.NewVaultConfig()
 	case "awskms":
-		p := secrets.NewAWSKMSConfig()
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		if err := unmarshal(&p.AWSConfig); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
+		kp.Config = secrets.NewAWSKMSConfig()
 	case "native":
-		p := nativeSecretProviderConfig{}
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
+		kp.Config = nativeSecretProviderConfig{}
 	default:
-		return fmt.Errorf("unknown key provider type %q, expected one of %q", sp.Kind, secrets.SymmetricKeyProviderKinds)
+		// unknown kind error is handled by import importKeyProviders
 	}
 
 	return nil
@@ -170,12 +140,6 @@ type SecretProvider struct {
 	Kind   string      `mapstructure:"kind"`
 	Name   string      `mapstructure:"name"`
 	Config interface{} // contains secret-provider-specific config
-}
-
-// TODO: Remove
-type simpleConfigSecretProvider struct {
-	Kind string `mapstructure:"kind"`
-	Name string `mapstructure:"name"`
 }
 
 var baseSecretStorageKinds = []string{
