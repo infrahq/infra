@@ -67,11 +67,6 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 		return nil, err
 	}
 
-	defaultGrant := &models.Grant{Subject: identity.PolyID(), Privilege: models.InfraUserRole, Resource: access.ResourceInfraAPI}
-	if err := access.CreateGrant(c, defaultGrant); err != nil {
-		return nil, err
-	}
-
 	resp := &api.CreateIdentityResponse{
 		ID:         identity.ID,
 		Name:       identity.Name,

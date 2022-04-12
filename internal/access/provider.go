@@ -109,13 +109,6 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 		if err := data.CreateIdentity(db, user); err != nil {
 			return nil, "", fmt.Errorf("create user: %w", err)
 		}
-
-		// by default the user role in infra can see all destinations
-		// #1084 - create grants for only destinations a user has access to
-		roleGrant := &models.Grant{Subject: user.PolyID(), Privilege: models.InfraUserRole, Resource: "infra"}
-		if err := data.CreateGrant(db, roleGrant); err != nil {
-			return nil, "", fmt.Errorf("user role grant: %w", err)
-		}
 	}
 
 	providerUser, err := data.CreateProviderUser(db, provider, user)
