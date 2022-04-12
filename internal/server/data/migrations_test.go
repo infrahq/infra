@@ -5,9 +5,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/infrahq/infra/internal/server/models"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
+
+	"github.com/infrahq/infra/internal/server/models"
 )
 
 // see loadSQL for setting up your own migration test
@@ -35,7 +36,7 @@ func Test202204111503(t *testing.T) {
 //   kubectl exec -it deployment/infra-server -- /usr/bin/sqlite3 /var/lib/infrahq/server/sqlite3.db
 // at the prompt, do:
 //   .dump
-// and copy the results. Copy them to a file with the same name of the migration and a .sql extention in the migrationdata/ folder.
+// and copy the results. Copy them to a file with the same name of the migration and a .sql extension in the migrationdata/ folder.
 //
 // 3. write the migration and test that it does what you expect. It can be helpful to put any necessary guards in place to make sure the database is in the state you expect. sometimes failed migrations leave it in a broken state, and might run when you don't expect, so defensive programming is helpful here.
 //

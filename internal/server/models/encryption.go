@@ -35,18 +35,18 @@ func (s EncryptedAtRest) Value() (driver.Value, error) {
 }
 
 func (s *EncryptedAtRest) Scan(v interface{}) error {
+	vStr, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("unsupported type: %T", v)
+	}
+
 	if SkipSymmetricKey {
-		*s = EncryptedAtRest(v.(string))
+		*s = EncryptedAtRest(vStr)
 		return nil
 	}
 
 	if SymmetricKey == nil {
 		return fmt.Errorf("models.SymmetricKey is not set")
-	}
-
-	vStr, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("unsupported type: %T", v)
 	}
 
 	b, err := secrets.Unseal(SymmetricKey, []byte(vStr))
