@@ -18,3 +18,17 @@ jobs:
           config-file: .github/codeql-config.yaml
       - run: go build github.com/$GITHUB_REPOSITORY
       - uses: github/codeql-action/analyze@v2
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/setup-buildx-action@v1
+      - uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - run: make docker tag=next
+        env:
+          TELEMETRY_WRITE_KEY: ${{ secrets.TELEMETRY_WRITE_KEY }}
+          CRASH_REPORTING_DSN: ${{ secrets.CRASH_REPORTING_DSN }}
