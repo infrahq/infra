@@ -47,6 +47,6 @@ func (l *gormLogger) Error(ctx context.Context, s string, args ...interface{}) {
 }
 
 func (l *gormLogger) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
-	// don't log traces for now
-	_, _ = fc()
+	sql, rows := fc()
+	l.l.Debugf("SQL (%d rows, %s): %s", rows, time.Since(begin).String(), sql)
 }
