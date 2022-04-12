@@ -39,6 +39,9 @@ func info() error {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
 	defer w.Flush()
 
+	fmt.Fprintln(w)
+	fmt.Fprintf(w, "Server:\t %s\n", config.Host)
+
 	id := config.PolymorphicID
 	if id == "" {
 		return fmt.Errorf("no active identity")
@@ -49,20 +52,21 @@ func info() error {
 		return err
 	}
 
-	provider, err := client.GetProvider(config.ProviderID)
-	if err != nil {
-		return err
-	}
-
 	identity, err := client.GetIdentity(identityID)
 	if err != nil {
 		return err
 	}
 
-	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Server:\t", config.Host)
-	fmt.Fprintf(w, "Identity Provider:\t %s (%s)\n", provider.Name, provider.URL)
-	fmt.Fprintln(w, "Identity:\t", identity.Name)
+	fmt.Fprintf(w, "Identity:\t %s\n", identity.Name)
+
+	if config.ProviderID != 0 {
+		provider, err := client.GetProvider(config.ProviderID)
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintf(w, "Identity Provider:\t %s (%s)\n", provider.Name, provider.URL)
+	}
 
 	if identity.Kind == models.UserKind.String() {
 		userGroups, err := client.ListIdentityGroups(identityID)
@@ -70,12 +74,19 @@ func info() error {
 			return err
 		}
 
-		groups := make([]string, 0)
-		for _, g := range userGroups {
-			groups = append(groups, g.Name)
+		groups := "(none)"
+
+		if len(userGroups) > 0 {
+			g := make([]string, 0, len(userGroups))
+			for _, userGroup := range userGroups {
+				g = append(g, userGroup.Name)
+			}
+
+			groups = strings.Join(g, ", ")
+
 		}
 
-		fmt.Fprintln(w, "Groups:\t", strings.Join(groups, ", "))
+		fmt.Fprintf(w, "Groups:\t %s\n", groups)
 	}
 
 	fmt.Fprintln(w)
