@@ -27,11 +27,11 @@ infra id list
 You'll see the resulting list of users:
 
 ```
-NAME                       TYPE       PROVIDER
-fisher@infrahq.com         user       okta
-jeff@infrahq.com           user       okta
-matt.williams@infrahq.com  user       okta
-michael@infrahq.com        user       infra
-bot                        machine    infra
-connector                  machine    infra
+NAME                       TYPE
+fisher@infrahq.com         user
+jeff@infrahq.com           user
+matt.williams@infrahq.com  user
+michael@infrahq.com        user
+bot                        machine
+connector                  machine
 ```
