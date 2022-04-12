@@ -29,7 +29,7 @@ $ infra login infra.acme.dev
 # Discover what you can access via `infra list`
 # In the example below, 3 Kubernetes clusters are connected to Infra. 
 # Infra has already synchronized the kubeconfig file so the 
-# user can use his or her tool of choice right away (i.e. kubectl)
+# user can use their tool of choice right away (i.e. kubectl)
 
 $ infra list
   RESOURCE                           ACCESS
