@@ -39,7 +39,7 @@ const TableHeader = styled.div`
   display: grid;
   opacity: 0.5;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  grid-template-columns: 80% 18% auto;
+  grid-template-columns: 80% 20%;
   align-items: center;
 `
 

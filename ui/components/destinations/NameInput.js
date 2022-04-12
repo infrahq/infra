@@ -29,12 +29,13 @@ const NextButton = styled.button`
 const NameInput = () => {
   const { connected, destinations, accessKey, updateCurrentDestinationName, updateEnabledCommandInput, updateAccessKey, updateConnected } = useContext(DestinationsContext)
   const [name, setName] = useState('')
+  const [connectorFullName, setConnectorFullName] = useState('')
   const [numDestinations, setNumDestinations] = useState(0)
 
   useEffect(() => {
     const handleDestinationConnection = () => {
       if(accessKey && name.length > 0) {
-        axios.get(`/v1/destinations?name=${name}`)
+        axios.get(`/v1/destinations?name=${connectorFullName}`)
           .then((response) => {
             if (!connected) {
               if (response.data.length === numDestinations) {
@@ -64,6 +65,7 @@ const NameInput = () => {
     const destinationName = type + '.' + name
 
 		console.log(destinationName)
+    setConnectorFullName(destinationName)
 		updateCurrentDestinationName(name)
     updateEnabledCommandInput(name.length > 0)
 

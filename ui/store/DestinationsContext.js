@@ -46,7 +46,6 @@ export const DestinationsContextProvider = ({ children }) => {
 
 	const updateAccessKey = (key) => {
 		setAccessKey(key)
-		console.log('update key:', key)
 	}
 
 	const updateConnected = (isConnected) => {
@@ -54,7 +53,6 @@ export const DestinationsContextProvider = ({ children }) => {
 	}
 
 	const updateEnabledCommandInput = (enabled) => {
-		console.log('enabled:', enabled)
 		setEnabledCommandInput(enabled)
 	}
 

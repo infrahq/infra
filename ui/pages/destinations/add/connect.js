@@ -34,15 +34,6 @@ const SetupDestinationContent = styled.div`
 `
 
 const Connect = () => {
-	const [enabled, setEnabled] = useState(false)
-	const [connected, setConnected] = useState(false)
-
-	const handleFinish = async () => {
-		await Router.push({
-      pathname: '/destinations/'
-    }, undefined, { shallow: true })
-	}
-
   return (
     <DestinationsContextProvider>
       <Head>
@@ -57,7 +48,6 @@ const Connect = () => {
           <NameInput />
           <CommandInput />
           <ConnectStatus />
-					{/* <ActionButton disabled={!enabled && !connected} onClick={() => handleFinish()} value='Finish' /> */}
         </SetupDestinationContent>      
         <NavButton>
           <ExitButton previousPage='/destinations' />
