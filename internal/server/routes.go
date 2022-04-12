@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
@@ -36,14 +37,14 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) *gin.Engine 
 	// This group of middleware will apply to everything, including the UI
 	router.Use(
 		logging.Middleware(),
-		RequestTimeoutMiddleware(),
+		TimeoutMiddleware(1*time.Minute),
 	)
 
 	// This group of middleware only applies to non-ui routes
 	api := router.Group("/",
 		sentrygin.New(sentrygin.Options{}),
 		metrics.Middleware(promRegistry),
-		DatabaseMiddleware(a.server.db),
+		DatabaseMiddleware(a.server.db), // must be after TimeoutMiddleware to time out db queries.
 	)
 	api.GET("/.well-known/jwks.json", a.wellKnownJWKsHandler)
 

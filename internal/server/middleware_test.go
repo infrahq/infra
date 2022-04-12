@@ -65,10 +65,8 @@ func issueUserToken(t *testing.T, db *gorm.DB, email string, sessionDuration tim
 }
 
 func TestRequestTimeoutError(t *testing.T) {
-	requestTimeout = 100 * time.Millisecond
-
 	router := gin.New()
-	router.Use(RequestTimeoutMiddleware())
+	router.Use(TimeoutMiddleware(100 * time.Millisecond))
 	router.GET("/", func(c *gin.Context) {
 		time.Sleep(110 * time.Millisecond)
 
@@ -80,10 +78,8 @@ func TestRequestTimeoutError(t *testing.T) {
 }
 
 func TestRequestTimeoutSuccess(t *testing.T) {
-	requestTimeout = 60 * time.Second
-
 	router := gin.New()
-	router.Use(RequestTimeoutMiddleware())
+	router.Use(TimeoutMiddleware(60 * time.Second))
 	router.GET("/", func(c *gin.Context) {
 		assert.NilError(t, c.Request.Context().Err())
 

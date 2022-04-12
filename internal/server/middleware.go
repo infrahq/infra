@@ -15,9 +15,7 @@ import (
 	"github.com/infrahq/infra/internal/server/data"
 )
 
-var requestTimeout = 60 * time.Second
-
-// RequestTimeoutMiddleware adds a timeout to the request context within the Gin context.
+// TimeoutMiddleware adds a timeout to the request context within the Gin context.
 // To correctly abort long-running requests, this depends on the users of the context to
 // stop working when the context cancels.
 // Note: The goroutine for the request is never halted; if the context is not
@@ -25,18 +23,19 @@ var requestTimeout = 60 * time.Second
 // magically stop working on the request. No effort should be made to write
 // an early http response here; it's up to the users of the context to watch for
 // c.Request.Context().Err() or <-c.Request.Context().Done()
-func RequestTimeoutMiddleware() gin.HandlerFunc {
+func TimeoutMiddleware(timeout time.Duration) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		ctx, cancel := context.WithTimeout(c.Request.Context(), requestTimeout)
+		ctx, cancel := context.WithTimeout(c, timeout)
 		defer cancel()
 
 		c.Request = c.Request.WithContext(ctx)
 
 		start := time.Now()
 
+		c.Set("ctx", ctx)
 		c.Next()
 
-		if elapsed := time.Since(start); elapsed > requestTimeout {
+		if elapsed := time.Since(start); elapsed > timeout {
 			logging.L.Sugar().Warnf("Request to %q took %s and may have timed out", c.Request.URL.Path, elapsed)
 		}
 	}
@@ -45,7 +44,15 @@ func RequestTimeoutMiddleware() gin.HandlerFunc {
 // DatabaseMiddleware injects a `db` object into the Gin context.
 func DatabaseMiddleware(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		err := db.Transaction(func(tx *gorm.DB) error {
+		ctx := context.Background()
+
+		if ctxIntf, ok := c.Get("ctx"); ok {
+			if existingCtx, ok := ctxIntf.(context.Context); ok {
+				ctx = existingCtx
+			}
+		}
+
+		err := db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 			c.Set("db", tx)
 			c.Next()
 			return nil
