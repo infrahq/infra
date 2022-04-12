@@ -3,6 +3,6 @@ name: infra
 description: A Helm chart for Infra
 type: application
 ## {x-release-please-start-version}
-version: 0.10.1
-appVersion: 0.10.1
+version: 0.10.2
+appVersion: 0.10.2
 ## {x-release-please-end}

@@ -1,5 +1,13 @@
 # Changelog
 
+### [0.10.2](https://github.com/infrahq/infra/compare/v0.10.1...v0.10.2) (2022-04-12)
+
+
+### Bug Fixes
+
+* db locking issue ([#1583](https://github.com/infrahq/infra/issues/1583)) ([fbafdbd](https://github.com/infrahq/infra/commit/fbafdbdb08be2dd37e574ee05ae8fb25493c237a))
+* update docs for latest provider changes ([54a1af1](https://github.com/infrahq/infra/commit/54a1af1efe12ef242dd960af4777c6434ea39e23))
+
 ### [0.10.1](https://github.com/infrahq/infra/compare/v0.10.0...v0.10.1) (2022-04-12)
 
 
