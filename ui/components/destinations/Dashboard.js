@@ -10,7 +10,7 @@ import DestinationsContext from "../../store/DestinationsContext"
 
 const TableContent = styled.div`
   display: grid;
-  grid-template-columns: 80% 18% auto;
+  grid-template-columns: 80% 20%;
   align-items: center;
 `
 
@@ -33,22 +33,12 @@ const TableContentContainer = styled.div`
 `
 
 const Dashboard = () => {
-	const { destinations, updateDestinationsList } = useContext(DestinationsContext);
+	const { destinations } = useContext(DestinationsContext);
 
   const handleAddDestination = async () => {
     await Router.push({
       pathname: '/destinations/add/connect'
     }, undefined, { shallow: true })
-  }
-
-  const handleRemove = (destination) => {
-    // TODO: need to test this
-    console.log('deleting: ', destination)
-    axios.delete(`/v1/destinations/${destination.id}`)
-      .then((response) => {
-				updateDestinationsList(response.data)
-        console.log(response)
-      })
   }
 
 	return (
@@ -62,9 +52,6 @@ const Dashboard = () => {
 									<TableContentText>{item.name}</TableContentText>
 									<TableContentText>
 										<FormattedTime time={item.created} />
-									</TableContentText>
-									<TableContentText>
-										<a onClick={() => handleRemove(item)}>&#x2715;</a>
 									</TableContentText>
 								</TableContent>
 							)

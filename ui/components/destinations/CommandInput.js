@@ -18,11 +18,17 @@ const CommandInputTextAreaContainer = styled.textarea`
 
 const CommandInput = () => {
   const { enabledCommandInput, accessKey, currentDestinationName } = useContext(DestinationsContext)
-
-  const value = enabledCommandInput ? `helm install infra-connector infrahq/infra \\
+  const server = window.location.host;
+  const isHttps = window.location.origin.includes('https')
+  const defaultValue = `helm install infra-connector infrahq/infra \\
   --set connector.config.accessKey=${accessKey} \\
-  --set connector.config.server=${window.location.host} \\
-  --set connector.config.name=${currentDestinationName}` : ''
+  --set connector.config.server=${server} \\
+  --set connector.config.name=${currentDestinationName}`
+
+  const commandValue = isHttps ? defaultValue : defaultValue + ` \\
+  --set connector.config.skipTLSVerify=true`
+
+  const value = enabledCommandInput ? commandValue : ''
 
   return (
     <section>

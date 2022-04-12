@@ -1,3 +1,4 @@
+import Router from "next/router"
 import { useContext } from "react"
 import styled, { keyframes } from "styled-components"
 
@@ -45,6 +46,13 @@ const SpinIcon = styled.div`
 
 const ConnectStatus = () => {
   const { enabledCommandInput, connected } = useContext(DestinationsContext)
+
+  const handleFinish = async () => {
+		await Router.push({
+      pathname: '/destinations/'
+    }, undefined, { shallow: true })
+	}
+
 
   return (
     <div>
