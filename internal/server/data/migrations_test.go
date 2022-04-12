@@ -68,6 +68,9 @@ func setupWithNoMigrations(t *testing.T, f func(db *gorm.DB)) *gorm.DB {
 	f(db)
 
 	models.SkipSymmetricKey = true
+	t.Cleanup(func() {
+		models.SkipSymmetricKey = false
+	})
 
 	setupLogging(t)
 
