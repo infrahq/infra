@@ -53,17 +53,17 @@ type nativeSecretProviderConfig struct {
 	SecretStorageName string `yaml:"secretProvider"`
 }
 
-func (s *Server) importSecretKeys() error {
+func importKeyProviders(
+	cfg []KeyProvider,
+	storage map[string]secrets.SecretStorage,
+	keys map[string]secrets.SymmetricKeyProvider,
+) error {
 	var err error
 
-	if s.keys == nil {
-		s.keys = map[string]secrets.SymmetricKeyProvider{}
-	}
-
 	// default to file-based native secret provider
-	s.keys["native"] = secrets.NewNativeSecretProvider(s.secrets["file"])
+	keys["native"] = secrets.NewNativeSecretProvider(storage["file"])
 
-	for _, keyConfig := range s.options.Keys {
+	for _, keyConfig := range cfg {
 		switch keyConfig.Kind {
 		case "native":
 			cfg, ok := keyConfig.Config.(nativeSecretProviderConfig)
@@ -71,25 +71,25 @@ func (s *Server) importSecretKeys() error {
 				return fmt.Errorf("expected key config to be NativeSecretProviderConfig, but was %t", keyConfig.Config)
 			}
 
-			storageProvider, found := s.secrets[cfg.SecretStorageName]
+			storageProvider, found := storage[cfg.SecretStorageName]
 			if !found {
 				return fmt.Errorf("secret storage name %q not found", cfg.SecretStorageName)
 			}
 
 			sp := secrets.NewNativeSecretProvider(storageProvider)
-			s.keys[keyConfig.Kind] = sp
+			keys[keyConfig.Kind] = sp
 		case "awskms":
 			cfg, ok := keyConfig.Config.(secrets.AWSKMSConfig)
 			if !ok {
 				return fmt.Errorf("expected key config to be AWSKMSConfig, but was %t", keyConfig.Config)
 			}
 
-			cfg.AccessKeyID, err = secrets.GetSecret(cfg.AccessKeyID, s.secrets)
+			cfg.AccessKeyID, err = secrets.GetSecret(cfg.AccessKeyID, storage)
 			if err != nil {
 				return fmt.Errorf("getting secret for awskms accessKeyID: %w", err)
 			}
 
-			cfg.SecretAccessKey, err = secrets.GetSecret(cfg.SecretAccessKey, s.secrets)
+			cfg.SecretAccessKey, err = secrets.GetSecret(cfg.SecretAccessKey, storage)
 			if err != nil {
 				return fmt.Errorf("getting secret for awskms secretAccessKey: %w", err)
 			}
@@ -99,14 +99,14 @@ func (s *Server) importSecretKeys() error {
 				return err
 			}
 
-			s.keys[keyConfig.Kind] = sp
+			keys[keyConfig.Kind] = sp
 		case "vault":
 			cfg, ok := keyConfig.Config.(secrets.VaultConfig)
 			if !ok {
 				return fmt.Errorf("expected key config to be VaultConfig, but was %t", keyConfig.Config)
 			}
 
-			cfg.Token, err = secrets.GetSecret(cfg.Token, s.secrets)
+			cfg.Token, err = secrets.GetSecret(cfg.Token, storage)
 			if err != nil {
 				return err
 			}
@@ -116,7 +116,7 @@ func (s *Server) importSecretKeys() error {
 				return err
 			}
 
-			s.keys[keyConfig.Kind] = sp
+			keys[keyConfig.Kind] = sp
 		}
 	}
 

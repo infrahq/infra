@@ -26,12 +26,8 @@ import (
 )
 
 func setupServer(t *testing.T) *Server {
-	db := setupDB(t)
-
-	s := &Server{
-		db:      db,
-		secrets: map[string]secrets.SecretStorage{},
-	}
+	s := newServer(Options{})
+	s.db = setupDB(t)
 
 	err := s.setupInternalInfraIdentityProvider()
 	assert.NilError(t, err)
@@ -65,7 +61,7 @@ func setupLogging(t *testing.T) {
 func TestGetPostgresConnectionURL(t *testing.T) {
 	setupLogging(t)
 
-	r := &Server{options: Options{}, secrets: make(map[string]secrets.SecretStorage)}
+	r := newServer(Options{})
 
 	f := secrets.NewPlainSecretProviderFromConfig(secrets.GenericConfig{})
 	r.secrets["plaintext"] = f

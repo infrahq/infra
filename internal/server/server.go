@@ -102,11 +102,18 @@ type Addrs struct {
 	Metrics net.Addr
 }
 
-func New(options Options) (*Server, error) {
-	server := &Server{
+// newServer creates a Server with base dependencies initialized to zero values.
+func newServer(options Options) *Server {
+	return &Server{
 		options: options,
 		secrets: map[string]secrets.SecretStorage{},
+		keys:    map[string]secrets.SymmetricKeyProvider{},
 	}
+}
+
+// New creates a Server, and initializes it. The returned Server is ready to run.
+func New(options Options) (*Server, error) {
+	server := newServer(options)
 
 	if err := validate.Struct(options); err != nil {
 		return nil, fmt.Errorf("invalid options: %w", err)
@@ -122,7 +129,7 @@ func New(options Options) (*Server, error) {
 		return nil, fmt.Errorf("secrets config: %w", err)
 	}
 
-	if err := server.importSecretKeys(); err != nil {
+	if err := importKeyProviders(options.Keys, server.secrets, server.keys); err != nil {
 		return nil, fmt.Errorf("key config: %w", err)
 	}
 
