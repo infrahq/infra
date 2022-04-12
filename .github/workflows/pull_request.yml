@@ -31,23 +31,6 @@ jobs:
       - uses: Azure/setup-helm@v1
       - run: make helm/lint tag=0.0.0-development
 
-  commit-lint:
-    if: startsWith(github.head_ref, 'dependabot/') != true
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@v3
-      - id: cache-commitlint
-        uses: actions/cache@v3
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-commitlint
-      - run: npm install @commitlint/{config-conventional,cli}
-        if: steps.cache-commitlint.cache-hit != true
-      - run: ./node_modules/.bin/commitlint --from origin/$GITHUB_BASE_REF --to @ --verbose --config .github/commitlint.config.js
-
   check-generated:
     runs-on: ubuntu-latest
     steps:
