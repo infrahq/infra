@@ -46,7 +46,7 @@ type Identity struct {
 	Model
 
 	Kind       IdentityKind
-	Name       string    `gorm:"uniqueIndex:idx_identities_name_provider_id,where:deleted_at is NULL"`
+	Name       string    `gorm:"uniqueIndex:idx_identities_name,where:deleted_at is NULL"`
 	LastSeenAt time.Time // updated on when an identity uses a session token
 
 	Groups []Group `gorm:"many2many:identities_groups"`

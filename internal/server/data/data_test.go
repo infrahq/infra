@@ -32,10 +32,19 @@ func setup(t *testing.T) *gorm.DB {
 
 	models.SymmetricKey = key
 
-	logging.L = zaptest.NewLogger(t)
-	logging.S = logging.L.Sugar()
+	setupLogging(t)
 
 	return db
+}
+
+func setupLogging(t *testing.T) {
+	origL := logging.L
+	logging.L = zaptest.NewLogger(t)
+	logging.S = logging.L.Sugar()
+	t.Cleanup(func() {
+		logging.L = origL
+		logging.S = logging.L.Sugar()
+	})
 }
 
 func TestSnowflakeIDSerialization(t *testing.T) {

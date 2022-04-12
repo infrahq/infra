@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/iancoleman/strcase"
@@ -51,7 +52,7 @@ func newServerCmd() *cobra.Command {
 
 			srv, err := server.New(options)
 			if err != nil {
-				return err
+				return fmt.Errorf("creating server: %w", err)
 			}
 			return srv.Run(context.Background())
 		},
