@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"golang.org/x/term"
 
-	"github.com/infrahq/infra/uid"
+	"github.com/infrahq/infra/internal/server/models"
 )
 
 var (
@@ -148,25 +148,6 @@ func (w *filteredWriterSyncer) Sync() error {
 	return w.dest.Sync()
 }
 
-// UserAwareLoggerMiddleware saves a request-specific logger to the context
-func IdentityAwareMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		if val, ok := c.Get("identity"); ok {
-			if id, ok := val.(uid.PolymorphicID); ok {
-				logger := L.With(
-					zapcore.Field{
-						Key:    "id",
-						Type:   zapcore.StringType,
-						String: id.String(),
-					})
-				c.Set("logger", logger)
-			}
-		}
-
-		c.Next()
-	}
-}
-
 // Logger gets the request-specific logger from the context
 // If a request-specific logger cannot be found, use the default logger
 func Logger(c *gin.Context) *zap.Logger {
@@ -212,7 +193,14 @@ func Middleware() gin.HandlerFunc {
 			c.Request.ContentLength,
 		)
 
-		SugarLogger(c).Infow(
+		logger := SugarLogger(c)
+		if raw, ok := c.Get("identity"); ok {
+			if identity, ok := raw.(*models.Identity); ok {
+				logger = logger.With("identity", identity.ID.String())
+			}
+		}
+
+		logger.Infow(
 			msg,
 			"method", c.Request.Method,
 			"path", c.Request.URL.Path,
