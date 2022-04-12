@@ -107,7 +107,8 @@ func TestDBTimeout(t *testing.T) {
 		DatabaseMiddleware(db),
 	)
 	router.GET("/", func(c *gin.Context) {
-		db := c.MustGet("db").(*gorm.DB)
+		db, ok := c.MustGet("db").(*gorm.DB)
+		assert.Check(t, ok)
 		cancel()
 		err := db.Exec("select 1;").Error
 		assert.Error(t, err, "context canceled")
