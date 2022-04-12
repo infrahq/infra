@@ -288,6 +288,10 @@
             "type": "string"
           },
           "kind": {
+            "enum": [
+              "user",
+              "machine"
+            ],
             "type": "string"
           },
           "lastSeenAt": {
@@ -1998,7 +2002,7 @@
         },
         "summary": "ListIdentities",
         "tags": [
-          "Misc"
+          "Identities"
         ]
       },
       "post": {
@@ -2010,6 +2014,10 @@
               "schema": {
                 "properties": {
                   "kind": {
+                    "enum": [
+                      "user",
+                      "machine"
+                    ],
                     "type": "string"
                   },
                   "name": {

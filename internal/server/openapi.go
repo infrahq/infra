@@ -24,6 +24,7 @@ var (
 	pathIDReplacer            = regexp.MustCompile(`:\w+`)
 	funcPartialNameToTagNames = map[string]string{
 		"Grant":       "Grants",
+		"Identities":  "Identities",
 		"Identity":    "Identities",
 		"Group":       "Groups",
 		"AccessKey":   "Authentication",
@@ -194,8 +195,8 @@ func buildProperty(f reflect.StructField, t, parent reflect.Type, parentSchema *
 	}
 
 	s := &openapi3.Schema{}
-	setTypeInfo(t, s)
 	setTagInfo(f, t, parent, s, parentSchema)
+	setTypeInfo(t, s)
 
 	if s.Type == "array" {
 		s.Items = buildProperty(f, t.Elem(), parent, parentSchema)
@@ -267,17 +268,11 @@ func setTagInfo(f reflect.StructField, t, parent reflect.Type, schema, parentSch
 			}
 
 			if strings.HasPrefix(val, "min=") {
-				minLength := strings.Split(val, "min=")
-				if len(minLength) != 2 {
-					panic("min length tag does not match expected format")
-				}
+				schema.MinLength = parseMinLength(val)
+			}
 
-				len, err := strconv.ParseUint(minLength[1], 10, 64)
-				if err != nil {
-					panic("unexpected min length: " + err.Error())
-				}
-
-				schema.MinLength = len
+			if strings.HasPrefix(val, "oneof=") {
+				schema.Enum = parseOneOf(val)
 			}
 
 			if val == "email" {
@@ -497,17 +492,11 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 					}
 
 					if strings.HasPrefix(val, "min=") {
-						minLength := strings.Split(val, "min=")
-						if len(minLength) != 2 {
-							panic("min length tag does not match expected format")
-						}
+						p.Schema.Value.MinLength = parseMinLength(val)
+					}
 
-						len, err := strconv.ParseUint(minLength[1], 10, 64)
-						if err != nil {
-							panic("unexpected min length: " + err.Error())
-						}
-
-						p.Schema.Value.MinLength = len
+					if strings.HasPrefix(val, "oneof=") {
+						schema.Enum = parseOneOf(val)
 					}
 
 					if val == "email" {
@@ -582,4 +571,35 @@ func getFieldName(f reflect.StructField, parent reflect.Type) string {
 	}
 
 	panic(fmt.Sprintf("field %q of struct %q must have a tag (json, form, or uri) with a name or '-'", f.Name, parent.Name()))
+}
+
+func parseMinLength(tag string) uint64 {
+	minLength := strings.Split(tag, "min=")
+	if len(minLength) != 2 {
+		panic("min length tag does not match expected format")
+	}
+
+	len, err := strconv.ParseUint(minLength[1], 10, 64)
+	if err != nil {
+		panic("unexpected min length: " + err.Error())
+	}
+
+	return len
+}
+
+func parseOneOf(tag string) []interface{} {
+	oneof := strings.Split(tag, "oneof=")
+	if len(oneof) != 2 {
+		panic("oneof tag does not match expected format")
+	}
+
+	values := strings.Split(oneof[1], " ")
+
+	// convert to a slice of interfaces to assign to the schema
+	enumInterface := make([]interface{}, len(values))
+	for i := range values {
+		enumInterface[i] = values[i]
+	}
+
+	return enumInterface
 }

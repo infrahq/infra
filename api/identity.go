@@ -10,7 +10,7 @@ type Identity struct {
 	Updated    Time   `json:"updated"`
 	LastSeenAt Time   `json:"lastSeenAt"`
 	Name       string `json:"name" validate:"required"`
-	Kind       string `json:"kind" validate:"required"`
+	Kind       string `json:"kind" validate:"required,oneof=user machine"`
 }
 
 type ListIdentitiesRequest struct {
