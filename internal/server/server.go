@@ -143,12 +143,6 @@ func New(options Options) (*Server, error) {
 		return nil, fmt.Errorf("loading certificate provider: %w", err)
 	}
 
-	if options.EnableTelemetry {
-		if err := configureTelemetry(server); err != nil {
-			return nil, fmt.Errorf("configuring telemetry: %w", err)
-		}
-	}
-
 	if err := server.setupInternalInfraIdentityProvider(); err != nil {
 		return nil, fmt.Errorf("setting up internal identity provider: %w", err)
 	}
@@ -160,6 +154,12 @@ func New(options Options) (*Server, error) {
 	settings, err := data.InitializeSettings(server.db, server.setupRequired())
 	if err != nil {
 		return nil, fmt.Errorf("settings: %w", err)
+	}
+
+	if options.EnableTelemetry {
+		if err := configureTelemetry(server); err != nil {
+			return nil, fmt.Errorf("configuring telemetry: %w", err)
+		}
 	}
 
 	sentry.ConfigureScope(func(scope *sentry.Scope) {
