@@ -308,3 +308,30 @@ func getIDByName(client *api.Client, name string, identityType identityType) (ui
 
 	return id, nil
 }
+
+func subjectNameFromGrant(client *api.Client, g api.Grant) (name string, err error) {
+	id, err := g.Subject.ID()
+	if err != nil {
+		return "", err
+	}
+
+	if g.Subject.IsIdentity() {
+		identity, err := client.GetIdentity(id)
+		if err != nil {
+			return "", err
+		}
+
+		return identity.Name, nil
+	}
+
+	if g.Subject.IsGroup() {
+		group, err := client.GetGroup(id)
+		if err != nil {
+			return "", err
+		}
+
+		return group.Name, nil
+	}
+
+	return "", fmt.Errorf("unrecognized grant subject")
+}
