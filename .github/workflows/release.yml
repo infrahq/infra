@@ -87,7 +87,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: readmeio/rdme@7.0.3
         with:
-          rdme: openapi ./docs/api/openapi3.json --key=${{ secrets.README_API_KEY }} --id=6222ae0352ca1a0028faf020
+          rdme: openapi ./docs/api/openapi3.json --key=${{ secrets.README_API_KEY }} --id=624662df6803f800981a5464
 
   docs:
     runs-on: ubuntu-latest
@@ -99,7 +99,7 @@ jobs:
           repository: infrahq/web
           token: ${{ secrets.DOCS_TOKEN }}
       - run: |
-          echo $GITHUB_REF  > ./docs-ref
+          echo $GITHUB_SHA  > ./docs-ref
           git add ./docs-ref
           git config user.name infrahq-ci
           git config user.email contact@infrahq.com
