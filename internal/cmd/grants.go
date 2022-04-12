@@ -282,7 +282,13 @@ func getIDByName(client *api.Client, name string, identityType identityType) (ui
 
 		switch len(groups) {
 		case 0:
-			return "", fmt.Errorf("No group of name %s exists", name)
+			created, err := client.CreateGroup(&api.CreateGroupRequest{Name: name})
+			if err != nil {
+				return "", err
+			}
+			fmt.Printf("New group %q added to Infra\n", name)
+
+			id = uid.NewGroupPolymorphicID(created.ID)
 		case 1:
 			id = uid.NewGroupPolymorphicID(groups[0].ID)
 		default:
@@ -296,7 +302,13 @@ func getIDByName(client *api.Client, name string, identityType identityType) (ui
 
 		switch len(identities) {
 		case 0:
-			return "", fmt.Errorf("No identity of name %s exists", name)
+			created, err := CreateIdentity(name)
+			if err != nil {
+				return "", err
+			}
+			fmt.Printf("New unlinked identity %q added to Infra\n", name)
+
+			id = uid.NewIdentityPolymorphicID(created.ID)
 		case 1:
 			id = uid.NewIdentityPolymorphicID(identities[0].ID)
 		default:
