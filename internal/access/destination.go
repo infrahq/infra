@@ -27,20 +27,12 @@ func SaveDestination(c *gin.Context, destination *models.Destination) error {
 }
 
 func GetDestination(c *gin.Context, id uid.ID) (*models.Destination, error) {
-	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole, models.InfraUserRole)
-	if err != nil {
-		return nil, err
-	}
-
+	db := getDB(c)
 	return data.GetDestination(db, data.ByID(id))
 }
 
 func ListDestinations(c *gin.Context, uniqueID, name string) ([]models.Destination, error) {
-	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole, models.InfraUserRole)
-	if err != nil {
-		return nil, err
-	}
-
+	db := getDB(c)
 	return data.ListDestinations(db, data.ByOptionalUniqueID(uniqueID), data.ByOptionalName(name))
 }
 
