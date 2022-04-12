@@ -136,6 +136,9 @@ func TestCreateIdentity(t *testing.T) {
 		server: s,
 	}
 
+	idp, err := data.GetProvider(s.db, data.ByName(models.InternalInfraProviderName))
+	assert.NilError(t, err)
+
 	t.Run("new unlinked user", func(t *testing.T) {
 		req := &api.CreateIdentityRequest{
 			Name: "test-create-identity@example.com",
@@ -151,9 +154,6 @@ func TestCreateIdentity(t *testing.T) {
 	})
 
 	t.Run("new infra user gets one time password", func(t *testing.T) {
-		idp, err := data.GetProvider(s.db, data.ByName(models.InternalInfraProviderName))
-		assert.NilError(t, err)
-
 		req := &api.CreateIdentityRequest{
 			Name:       "test-infra-identity@example.com",
 			Kind:       "user",
@@ -176,9 +176,6 @@ func TestCreateIdentity(t *testing.T) {
 		}
 
 		_, err := handler.CreateIdentity(c, req)
-		assert.NilError(t, err)
-
-		idp, err := data.GetProvider(s.db, data.ByName(models.InternalInfraProviderName))
 		assert.NilError(t, err)
 
 		req = &api.CreateIdentityRequest{

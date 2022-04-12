@@ -62,13 +62,13 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 	if r.ProviderID != nil {
 		identities, err := access.ListIdentities(c, identity.Name, true)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("list identities: %w", err)
 		}
 
 		switch len(identities) {
 		case 0:
 			if err := access.CreateIdentity(c, identity); err != nil {
-				return nil, err
+				return nil, fmt.Errorf("create identity: %w", err)
 			}
 		case 1:
 			identity.ID = identities[0].ID
@@ -77,7 +77,7 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 		}
 	} else {
 		if err := access.CreateIdentity(c, identity); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("create identity: %w", err)
 		}
 	}
 
@@ -87,18 +87,23 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 	}
 
 	if r.ProviderID != nil {
-		// this is a placeholder for when the user logs in using this provider
-		providerIdentity, err := access.CreateProviderUser(c, access.InfraProvider(c), identity)
+		provider, err := access.GetProvider(c, *r.ProviderID)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("get provider: %w", err)
 		}
 
-		resp.ProviderID = providerIdentity.ProviderID
+		// this is a placeholder for when the user logs in using this provider
+		_, err = access.CreateProviderUser(c, provider, identity)
+		if err != nil {
+			return nil, fmt.Errorf("create provider user")
+		}
 
-		if (identity.Kind == models.UserKind) && (access.InfraProvider(c).ID == providerIdentity.ProviderID) {
+		resp.ProviderID = provider.ID
+
+		if (identity.Kind == models.UserKind) && (models.InternalInfraProviderName == provider.Name) {
 			oneTimePassword, err := access.CreateCredential(c, *identity)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("create credential: %w", err)
 			}
 
 			resp.OneTimePassword = oneTimePassword
