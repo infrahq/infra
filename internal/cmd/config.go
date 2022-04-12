@@ -26,7 +26,7 @@ type ClientHostConfig struct {
 	Host          string            `json:"host"`
 	AccessKey     string            `json:"access-key,omitempty"`
 	SkipTLSVerify bool              `json:"skip-tls-verify"` // where is the other cert info stored?
-	ProviderID    uid.ID            `json:"provider-id"`
+	ProviderID    uid.ID            `json:"provider-id,omitempty"`
 	Expires       api.Time          `json:"expires"`
 	Current       bool              `json:"current"`
 }
