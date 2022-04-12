@@ -2,16 +2,12 @@ package cmd
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientauthenticationv1beta1 "k8s.io/client-go/pkg/apis/clientauthentication/v1beta1"
-
-	"github.com/infrahq/infra/api"
 )
 
 func newTokensCmd() *cobra.Command {
@@ -51,16 +47,6 @@ func tokensCreate() error {
 
 	token, err := client.CreateToken()
 	if err != nil {
-		if errors.Is(err, api.ErrForbidden) {
-			fmt.Fprintln(os.Stderr, "Session has expired.")
-
-			if err = relogin(); err != nil {
-				return err
-			}
-
-			return tokensCreate()
-		}
-
 		return err
 	}
 
