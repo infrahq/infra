@@ -59,7 +59,7 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 	}
 
 	// identity creation linked to a provider should be attempted even if an identity is already known
-	if r.ProviderID != nil {
+	if r.ProviderName != "" {
 		identities, err := access.ListIdentities(c, identity.Name, true)
 		if err != nil {
 			return nil, fmt.Errorf("list identities: %w", err)
@@ -86,21 +86,26 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 		Name: identity.Name,
 	}
 
-	if r.ProviderID != nil {
-		provider, err := access.GetProvider(c, *r.ProviderID)
+	if r.ProviderName != "" {
+		providers, err := access.ListProviders(c, r.ProviderName, []string{})
 		if err != nil {
-			return nil, fmt.Errorf("get provider: %w", err)
+			return nil, fmt.Errorf("list providers: %w", err)
+		}
+
+		if len(providers) != 1 {
+			// should not happen
+			return nil, fmt.Errorf("multiple providers match the specified name")
 		}
 
 		// this is a placeholder for when the user logs in using this provider
-		_, err = access.CreateProviderUser(c, provider, identity)
+		_, err = access.CreateProviderUser(c, &providers[0], identity)
 		if err != nil {
 			return nil, fmt.Errorf("create provider user")
 		}
 
-		resp.ProviderID = provider.ID
+		resp.ProviderName = providers[0].Name
 
-		if (identity.Kind == models.UserKind) && (models.InternalInfraProviderName == provider.Name) {
+		if (identity.Kind == models.UserKind) && (models.InternalInfraProviderName == providers[0].Name) {
 			oneTimePassword, err := access.CreateCredential(c, *identity)
 			if err != nil {
 				return nil, fmt.Errorf("create credential: %w", err)
