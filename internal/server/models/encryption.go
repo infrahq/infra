@@ -14,7 +14,14 @@ type EncryptedAtRest string
 // SymmetricKey is the key used to encrypt and decrypt this field.
 var SymmetricKey *secrets.SymmetricKey
 
+// SkipSymmetricKey is used for tests that specifically want to avoid field encryption
+var SkipSymmetricKey bool
+
 func (s EncryptedAtRest) Value() (driver.Value, error) {
+	if SkipSymmetricKey {
+		return string(s), nil
+	}
+
 	if SymmetricKey == nil {
 		return nil, fmt.Errorf("models.SymmetricKey is not set")
 	}
@@ -28,6 +35,11 @@ func (s EncryptedAtRest) Value() (driver.Value, error) {
 }
 
 func (s *EncryptedAtRest) Scan(v interface{}) error {
+	if SkipSymmetricKey {
+		*s = EncryptedAtRest(v.(string))
+		return nil
+	}
+
 	if SymmetricKey == nil {
 		return fmt.Errorf("models.SymmetricKey is not set")
 	}

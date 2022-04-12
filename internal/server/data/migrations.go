@@ -19,6 +19,7 @@ func migrate(db *gorm.DB) error {
 		{
 			ID: "202203231621", // date the migration was created
 			Migrate: func(tx *gorm.DB) error {
+				logging.S.Info("running migration 202203231621")
 				// it's a good practice to copy any used structs inside the function,
 				// so side-effects are prevented if the original struct changes
 
@@ -35,6 +36,7 @@ func migrate(db *gorm.DB) error {
 		{
 			ID: "202203241643", // date the migration was created
 			Migrate: func(tx *gorm.DB) error {
+				logging.S.Info("running migration 202203241643")
 				if tx.Migrator().HasColumn(&models.AccessKey{}, "key") {
 					return tx.Migrator().RenameColumn(&models.AccessKey{}, "key", "key_id")
 				}
@@ -50,6 +52,7 @@ func migrate(db *gorm.DB) error {
 		{
 			ID: "202203301642",
 			Migrate: func(tx *gorm.DB) error {
+				logging.S.Info("running migration 202203301642")
 				type AccessKey struct {
 					models.Model
 					Name      string `gorm:"uniqueIndex:,where:deleted_at is NULL"`
@@ -115,6 +118,7 @@ func migrate(db *gorm.DB) error {
 		{
 			ID: "202203301652",
 			Migrate: func(tx *gorm.DB) error {
+				logging.S.Info("running migration 202203301652")
 				type Credential struct {
 					models.Model
 
@@ -170,6 +174,7 @@ func migrate(db *gorm.DB) error {
 		{
 			ID: "202203301643",
 			Migrate: func(tx *gorm.DB) error {
+				logging.S.Info("running migration 202203301643")
 				if tx.Migrator().HasTable("users") {
 					return tx.Migrator().RenameTable("users", "identities")
 				}
@@ -184,6 +189,7 @@ func migrate(db *gorm.DB) error {
 		{
 			ID: "202203301644",
 			Migrate: func(tx *gorm.DB) error {
+				logging.S.Info("running migration 202203301644")
 				if tx.Migrator().HasColumn(&models.Identity{}, "email") {
 					if err := tx.Migrator().AddColumn(&models.Identity{}, "kind"); err != nil {
 						return err
@@ -202,6 +208,7 @@ func migrate(db *gorm.DB) error {
 		{
 			ID: "202203301645",
 			Migrate: func(tx *gorm.DB) error {
+				logging.S.Info("running migration 202203301645")
 				if tx.Migrator().HasColumn(&models.Identity{}, "email") {
 					return tx.Migrator().RenameColumn(&models.Identity{}, "email", "name")
 				}
@@ -216,6 +223,7 @@ func migrate(db *gorm.DB) error {
 		{
 			ID: "202203301646",
 			Migrate: func(tx *gorm.DB) error {
+				logging.S.Info("running migration 202203301646")
 				if tx.Migrator().HasTable("machines") {
 					type Machine struct {
 						models.Model
@@ -255,6 +263,7 @@ func migrate(db *gorm.DB) error {
 		{
 			ID: "202203301647",
 			Migrate: func(tx *gorm.DB) error {
+				logging.S.Info("running migration 202203301647")
 				if tx.Migrator().HasTable("machines") {
 					grants, err := ListGrants(db)
 					if err != nil {
@@ -281,6 +290,7 @@ func migrate(db *gorm.DB) error {
 		{
 			ID: "202203301648",
 			Migrate: func(tx *gorm.DB) error {
+				logging.S.Info("running migration 202203301648")
 				if tx.Migrator().HasTable("machines") {
 					if err := tx.Migrator().DropTable("machines"); err != nil {
 						return err
@@ -294,6 +304,7 @@ func migrate(db *gorm.DB) error {
 		{
 			ID: "202204061643",
 			Migrate: func(tx *gorm.DB) error {
+				logging.S.Info("running migration 202204061643")
 				if tx.Migrator().HasTable("access_keys") {
 					keys, err := ListAccessKeys(db)
 					if err != nil {
@@ -319,56 +330,75 @@ func migrate(db *gorm.DB) error {
 		{
 			ID: "202204111503",
 			Migrate: func(tx *gorm.DB) error {
-				identityTable := &models.Identity{}
-				logging.S.Info("starting migration")
+				logging.S.Info("running migration 202204111503")
+
+				type Identity struct {
+					models.Model
+
+					ProviderID uid.ID
+					Kind       models.IdentityKind
+					Name       string `gorm:"uniqueIndex:idx_identities_name_provider_id,where:deleted_at is NULL"`
+				}
+				identityTable := &Identity{}
+				logging.S.Debug("starting migration")
 				if tx.Migrator().HasIndex(identityTable, "idx_identities_name_provider_id") {
-					logging.S.Info("has idx_identities_name_provider_id index")
+					logging.S.Debug("has idx_identities_name_provider_id index")
 					err := tx.Migrator().DropIndex(identityTable, "idx_identities_name_provider_id")
 					if err != nil {
 						return err
 					}
+				}
 
-					if tx.Migrator().HasColumn(identityTable, "provider_id") {
-						logging.S.Info("has provider_id column")
-						infraProvider, err := GetProvider(tx, ByName("infra"))
-						if err != nil {
-							return err
-						}
+				logging.S.Debug("checking provider_id column")
+				if tx.Migrator().HasColumn(identityTable, "provider_id") {
+					logging.S.Debug("has provider_id column")
+					infraProvider, err := GetProvider(tx, ByName("infra"))
+					if err != nil {
+						return err
+					}
 
-						users, err := ListIdentities(db, func(db *gorm.DB) *gorm.DB {
-							return db.Where("provider_id != ?", infraProvider.ID)
+					users, err := ListIdentities(db, func(db *gorm.DB) *gorm.DB {
+						return db.Where("provider_id != ?", infraProvider.ID)
+					})
+					if err != nil {
+						return err
+					}
+
+					for _, user := range users {
+						logging.S.Debugf("migrating user %s", user.ID.String())
+						newUser, err := GetIdentity(db, ByName(user.Name), func(db *gorm.DB) *gorm.DB {
+							return db.Where("provider_id = ?", infraProvider.ID)
 						})
 						if err != nil {
 							return err
 						}
 
-						for _, user := range users {
-							logging.S.Infof("migrating user %s", user.ID.String())
-							newUser, err := GetIdentity(db, ByName(user.Name), func(db *gorm.DB) *gorm.DB {
-								return db.Where("provider_id = ?", infraProvider.ID)
-							})
-							if err != nil {
-								return err
-							}
-
-							logging.S.Infof("updating grants for user %s", user.ID.String())
-							// update all grants to point to the new user
-							err = tx.Exec("update grants set subject = ? where subject = ?", newUser.PolyID(), user.PolyID()).Error
-							if err != nil {
-								return err
-							}
-
-							logging.S.Infof("deleting user %s", user.ID.String())
-							// delete the duplicate user
-							err = tx.Exec("delete from identities where id = ?", user.ID).Error
-							if err != nil {
-								return err
-							}
+						logging.S.Debugf("updating grants for user %s", user.ID.String())
+						// update all grants to point to the new user
+						err = tx.Exec("update grants set subject = ? where subject = ?", newUser.PolyID(), user.PolyID()).Error
+						if err != nil {
+							return err
 						}
 
-						// remove provider_id field
-						logging.S.Info("removing provider_id field")
-						return tx.Migrator().DropColumn(identityTable, "provider_id")
+						logging.S.Debugf("deleting user %s", user.ID.String())
+						// delete the duplicate user
+						err = tx.Exec("delete from identities where id = ?", user.ID).Error
+						if err != nil {
+							return err
+						}
+					}
+
+					// remove provider_id field
+					logging.S.Debug("removing provider_id foreign key")
+					err = tx.Migrator().DropConstraint(identityTable, "fk_providers_users")
+					if err != nil {
+						return err
+					}
+
+					logging.S.Debug("removing provider_id field")
+					err = tx.Migrator().DropColumn(identityTable, "provider_id")
+					if err != nil {
+						return err
 					}
 				}
 

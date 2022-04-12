@@ -25,7 +25,7 @@ import (
 func mustBeLoggedIn() error {
 	config, err := currentHostConfig()
 	if err != nil {
-		return err
+		return fmt.Errorf("getting host config: %w", err)
 	}
 
 	if !config.isLoggedIn() {
@@ -306,9 +306,11 @@ func NewRootCmd() *cobra.Command {
 			}
 			if rootOptions.Info {
 				if err := mustBeLoggedIn(); err != nil {
-					return err
+					return fmt.Errorf("login check: %w", err)
 				}
-				return info()
+				if err := info(); err != nil {
+					return fmt.Errorf("info: %w", err)
+				}
 			}
 			return cmd.Help()
 		},

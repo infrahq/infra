@@ -21,6 +21,19 @@ import (
 )
 
 func NewDB(connection gorm.Dialector) (*gorm.DB, error) {
+	db, err := newRawDB(connection)
+	if err != nil {
+		return nil, fmt.Errorf("db conn: %w", err)
+	}
+
+	if err = migrate(db); err != nil {
+		return nil, fmt.Errorf("migration failed: %w", err)
+	}
+
+	return db, nil
+}
+
+func newRawDB(connection gorm.Dialector) (*gorm.DB, error) {
 	db, err := gorm.Open(connection, &gorm.Config{
 		Logger: logging.ToGormLogger(logging.S),
 	})
@@ -37,10 +50,6 @@ func NewDB(connection gorm.Dialector) (*gorm.DB, error) {
 		}
 
 		db2.SetMaxOpenConns(1)
-	}
-
-	if err = migrate(db); err != nil {
-		return nil, fmt.Errorf("migration failed: %w", err)
 	}
 
 	return db, nil
