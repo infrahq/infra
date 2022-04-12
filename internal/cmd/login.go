@@ -157,52 +157,6 @@ func login(options loginCmdOptions) error {
 	return loginToInfra(client, loginReq)
 }
 
-func relogin() error {
-	// TODO (https://github.com/infrahq/infra/issues/488): support non-interactive login
-	if isNonInteractiveMode() {
-		return fmt.Errorf("Non-interactive login is not supported")
-	}
-
-	currentConfig, err := currentHostConfig()
-	if err != nil {
-		return err
-	}
-
-	client, err := apiClient(currentConfig.Host, "", currentConfig.SkipTLSVerify)
-	if err != nil {
-		return err
-	}
-
-	if currentConfig.ProviderID == 0 {
-		return fmt.Errorf("Cannot renew login without provider")
-	}
-
-	provider, err := client.GetProvider(currentConfig.ProviderID)
-	if err != nil {
-		return err
-	}
-
-	code, err := oidcflow(provider.URL, provider.ClientID)
-	if err != nil {
-		return err
-	}
-
-	loginReq := &api.LoginRequest{
-		OIDC: &api.LoginRequestOIDC{
-			ProviderID:  provider.ID,
-			RedirectURL: cliLoginRedirectURL,
-			Code:        code,
-		},
-	}
-
-	loginRes, err := client.Login(loginReq)
-	if err != nil {
-		return err
-	}
-
-	return finishLogin(currentConfig.Host, currentConfig.SkipTLSVerify, provider.ID, loginRes)
-}
-
 func loginToInfra(client *api.Client, loginReq *api.LoginRequest) error {
 	loginRes, err := client.Login(loginReq)
 	if err != nil {
@@ -271,63 +225,6 @@ func updateInfraConfig(client *api.Client, loginReq *api.LoginRequest, loginRes 
 	clientHostConfig.Host = u.Host
 
 	if err := saveHostConfig(clientHostConfig); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// TODO relogin(): Once relogin is revisited, delete finishLogin and use loginToInfra() instead
-func finishLogin(host string, skipTLSVerify bool, providerID uid.ID, loginRes *api.LoginResponse) error {
-	fmt.Fprintf(os.Stderr, "  Logged in as %s\n", termenv.String(loginRes.Name).Bold().String())
-
-	config, err := readConfig()
-	if err != nil && !errors.Is(err, ErrConfigNotFound) {
-		return err
-	}
-
-	if config == nil {
-		config = NewClientConfig()
-	}
-
-	var hostConfig ClientHostConfig
-
-	hostConfig.PolymorphicID = loginRes.PolymorphicID
-	hostConfig.Current = true
-	hostConfig.Host = host
-	hostConfig.Name = loginRes.Name
-	hostConfig.ProviderID = providerID
-	hostConfig.AccessKey = loginRes.AccessKey
-	hostConfig.SkipTLSVerify = skipTLSVerify
-
-	var found bool
-
-	for i, c := range config.Hosts {
-		if c.Host == host {
-			config.Hosts[i] = hostConfig
-			found = true
-
-			continue
-		}
-
-		config.Hosts[i].Current = false
-	}
-
-	if !found {
-		config.Hosts = append(config.Hosts, hostConfig)
-	}
-
-	err = writeConfig(config)
-	if err != nil {
-		return err
-	}
-
-	client, err := apiClient(host, loginRes.AccessKey, skipTLSVerify)
-	if err != nil {
-		return err
-	}
-
-	if err := updateKubeconfig(client, loginRes.PolymorphicID); err != nil {
 		return err
 	}
 
