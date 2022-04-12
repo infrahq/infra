@@ -1,6 +1,7 @@
 package data
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -8,6 +9,7 @@ import (
 	"github.com/go-gormigrate/gormigrate/v2"
 	"gorm.io/gorm"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -52,6 +54,10 @@ func migrate(db *gorm.DB) error {
 		{
 			ID: "202203301642",
 			Migrate: func(tx *gorm.DB) error {
+				if tx.Migrator().HasColumn(&models.AccessKey{}, "provider_id") {
+					return nil
+				}
+
 				logging.S.Info("running migration 202203301642")
 				type AccessKey struct {
 					models.Model
@@ -352,13 +358,24 @@ func migrate(db *gorm.DB) error {
 				logging.S.Debug("checking provider_id column")
 				if tx.Migrator().HasColumn(identityTable, "provider_id") {
 					logging.S.Debug("has provider_id column")
-					infraProvider, err := GetProvider(tx, ByName("infra"))
+
+					// need to select only these fields from the providers
+					// we dont have the database encryption key for the client secret at this point
+					var providers []models.Provider
+					err := tx.Select("id", "name").Find(&providers).Error
 					if err != nil {
 						return err
 					}
 
+					providerIDs := make(map[string]uid.ID)
+					for _, provider := range providers {
+						providerIDs[provider.Name] = provider.ID
+					}
+
+					infraProviderID := providerIDs["infra"]
+
 					users, err := ListIdentities(db, func(db *gorm.DB) *gorm.DB {
-						return db.Where("provider_id != ?", infraProvider.ID)
+						return db.Where("provider_id != ?", infraProviderID)
 					})
 					if err != nil {
 						return err
@@ -367,9 +384,13 @@ func migrate(db *gorm.DB) error {
 					for _, user := range users {
 						logging.S.Debugf("migrating user %s", user.ID.String())
 						newUser, err := GetIdentity(db, ByName(user.Name), func(db *gorm.DB) *gorm.DB {
-							return db.Where("provider_id = ?", infraProvider.ID)
+							return db.Where("provider_id = ?", infraProviderID)
 						})
 						if err != nil {
+							if errors.Is(err, internal.ErrNotFound) {
+								logging.S.Debugf("skipping user migration for user not in infra provider")
+								continue
+							}
 							return err
 						}
 
