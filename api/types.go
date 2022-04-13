@@ -50,10 +50,6 @@ func (t Time) Format(layout string) string {
 	return time.Time(t).Format(layout)
 }
 
-func (t Time) After(other Time) bool {
-	return time.Time(t).After(time.Time(other))
-}
-
 func (t Time) Equal(other Time) bool {
 	return time.Time(t).Equal(time.Time(other))
 }

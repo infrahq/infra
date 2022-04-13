@@ -6,7 +6,6 @@ import (
 	"net/mail"
 	"os"
 	"regexp"
-	"sort"
 
 	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
@@ -152,10 +151,6 @@ func newIdentitiesListCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-
-			sort.Slice(identities, func(i, j int) bool {
-				return identities[i].LastSeenAt.After(identities[j].LastSeenAt)
-			})
 
 			for _, identity := range identities {
 				rows = append(rows, row{
