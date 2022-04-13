@@ -103,12 +103,6 @@ func ByIdentityID(identityID uid.ID) SelectorFunc {
 	}
 }
 
-func ByIdentityIDs(identityIDs []uid.ID) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("identity_id in (?)", identityIDs)
-	}
-}
-
 func ByKind(kind models.IdentityKind) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("kind = ?", kind)
