@@ -12,7 +12,7 @@ If you don't have an identity provider, Infra supports local users for you to ge
 ### Features
 
 * Easy-to-use CLI: **discover & login** to infrastructure in one command
-* **No more out of sync** credentials or configurations (e.g. Kubeconfig)
+* **No more out-of-sync** credentials or configurations (e.g. Kubeconfig)
 * **Onboard and offboard users & groups** via existing identity providers (e.g. Okta, Google)
 * Integrate with native **RBAC** authorization systems (e.g. Kubernetes roles)
 * Workflow for **dynamically requesting & granting access** to users (coming soon)
