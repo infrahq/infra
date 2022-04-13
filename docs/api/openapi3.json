@@ -105,7 +105,10 @@
           "oneTimePassword": {
             "type": "string"
           },
-          "providerName": {
+          "providerID": {
+            "example": "4yJ3n3D8E2",
+            "format": "uid",
+            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           }
         },
@@ -2028,7 +2031,10 @@
                   "name": {
                     "type": "string"
                   },
-                  "providerName": {
+                  "providerID": {
+                    "example": "4yJ3n3D8E2",
+                    "format": "uid",
+                    "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
                     "type": "string"
                   }
                 },

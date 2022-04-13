@@ -58,7 +58,13 @@ EMAIL must contain a valid email address in the form of "local@domain".
 				return err
 			}
 
-			createResp, err := CreateProviderIdentity(name, "infra")
+			// an identity created with this command always exists in the local infra provider
+			infraProvider, err := GetInfraProvider()
+			if err != nil {
+				return err
+			}
+
+			createResp, err := CreateProviderIdentity(name, infraProvider)
 			if err != nil {
 				return err
 			}
@@ -238,28 +244,28 @@ func checkUserOrMachine(s string) (models.IdentityKind, error) {
 
 // CreateIdentity creates an identity within Infra that is not associated with any provider
 func CreateIdentity(name string) (*api.CreateIdentityResponse, error) {
-	return CreateProviderIdentity(name, "")
+	return CreateProviderIdentity(name, nil)
 }
 
 // CreateProviderIdentity creates an identity within infra, if a provider is specified it also associated with that provider
-func CreateProviderIdentity(identityName, providerName string) (*api.CreateIdentityResponse, error) {
+func CreateProviderIdentity(name string, provider *api.Provider) (*api.CreateIdentityResponse, error) {
 	client, err := defaultAPIClient()
 	if err != nil {
 		return nil, err
 	}
 
-	kind, err := checkUserOrMachine(identityName)
+	kind, err := checkUserOrMachine(name)
 	if err != nil {
 		return nil, err
 	}
 
 	req := &api.CreateIdentityRequest{
-		Name: identityName,
+		Name: name,
 		Kind: kind.String(),
 	}
 
-	if providerName != "" {
-		req.ProviderName = providerName
+	if provider != nil {
+		req.ProviderID = &provider.ID
 	}
 
 	resp, err := client.CreateIdentity(req)

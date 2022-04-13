@@ -150,14 +150,14 @@ func TestCreateIdentity(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Equal(t, "test-create-identity@example.com", resp.Name)
 		assert.Check(t, resp.OneTimePassword == "")
-		assert.Check(t, resp.ProviderName == "")
+		assert.Check(t, resp.ProviderID.String() == "1")
 	})
 
 	t.Run("new infra user gets one time password", func(t *testing.T) {
 		req := &api.CreateIdentityRequest{
-			Name:         "test-infra-identity@example.com",
-			Kind:         "user",
-			ProviderName: idp.Name,
+			Name:       "test-infra-identity@example.com",
+			Kind:       "user",
+			ProviderID: &idp.ID,
 		}
 
 		resp, err := handler.CreateIdentity(c, req)
@@ -166,7 +166,7 @@ func TestCreateIdentity(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Equal(t, "test-infra-identity@example.com", resp.Name)
 		assert.Check(t, resp.OneTimePassword != "")
-		assert.Equal(t, resp.ProviderName, idp.Name)
+		assert.Equal(t, resp.ProviderID, idp.ID)
 	})
 
 	t.Run("existing unlinked user to identity provider", func(t *testing.T) {
@@ -179,9 +179,9 @@ func TestCreateIdentity(t *testing.T) {
 		assert.NilError(t, err)
 
 		req = &api.CreateIdentityRequest{
-			Name:         "test-link-identity@example.com",
-			Kind:         "user",
-			ProviderName: idp.Name,
+			Name:       "test-link-identity@example.com",
+			Kind:       "user",
+			ProviderID: &idp.ID,
 		}
 
 		resp, err := handler.CreateIdentity(c, req)
@@ -190,7 +190,7 @@ func TestCreateIdentity(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Equal(t, "test-link-identity@example.com", resp.Name)
 		assert.Check(t, resp.OneTimePassword != "")
-		assert.Equal(t, resp.ProviderName, idp.Name)
+		assert.Equal(t, resp.ProviderID, idp.ID)
 	})
 }
 
