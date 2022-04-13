@@ -4,13 +4,13 @@ import styled from 'styled-components'
 import Input from '../Input'
 
 const NameContainer = styled.div`
-	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
 `
 
 const InputContainer = styled.div`
-	width: 78%;
+  width: 78%;
 `
 
 const NextButton = styled.button`
@@ -23,14 +23,15 @@ const NextButton = styled.button`
   width: 20%;
 `
 
-const NameInput = ({ 
+const NameInput = ({
   accessKey,
   connected,
   destinations,
   updateAccessKey,
   updateCurrentDestinationName,
   updateEnabledCommandInputStatus,
-  updateConnectedStatus }) => {
+  updateConnectedStatus
+}) => {
   const [name, setName] = useState('')
   const [connectorFullName, setConnectorFullName] = useState('')
   const [numDestinations, setNumDestinations] = useState(0)
@@ -39,25 +40,25 @@ const NameInput = ({
     const handleDestinationConnection = () => {
       if (accessKey && name.length > 0) {
         fetch(`/v1/destinations?name=${connectorFullName}`)
-        .then((response) => response.json())
-        .then((data) => {
-          if (!connected) {
-            if (data.length === numDestinations) {
-              pollingTimeout = setTimeout(handleDestinationConnection, 5000)
-            } else {
-              updateConnectedStatus(true)
-              clearTimeout(pollingTimeout)
+          .then((response) => response.json())
+          .then((data) => {
+            if (!connected) {
+              if (data.length === numDestinations) {
+                pollingTimeout = setTimeout(handleDestinationConnection, 5000)
+              } else {
+                updateConnectedStatus(true)
+                clearTimeout(pollingTimeout)
+              }
             }
-          }
-        })
-        .catch((error) => {
-          console.log(error)
-          clearTimeout(pollingTimeout)
-        })
+          })
+          .catch((error) => {
+            console.log(error)
+            clearTimeout(pollingTimeout)
+          })
       }
     }
 
-    const pollingTimeout = setTimeout(handleDestinationConnection, 5000)
+    let pollingTimeout = setTimeout(handleDestinationConnection, 5000)
 
     return () => {
       clearTimeout(pollingTimeout)
