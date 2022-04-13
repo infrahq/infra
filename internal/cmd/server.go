@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -54,7 +53,7 @@ func newServerCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("creating server: %w", err)
 			}
-			return srv.Run(context.Background())
+			return srv.Run(cmd.Context())
 		},
 	}
 

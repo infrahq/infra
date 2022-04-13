@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -79,7 +80,7 @@ func TestCheckUserOrMachineInvalidEmail(t *testing.T) {
 	assert.ErrorContains(t, err, "invalid email: \"alice@\"")
 }
 
-func TestIdentities(t *testing.T) {
+func TestIdentitiesCmd(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
 	t.Setenv("USERPROFILE", homeDir) // for windows
@@ -167,6 +168,7 @@ func TestIdentities(t *testing.T) {
 					Current:       true,
 					AccessKey:     "the-access-key",
 					SkipTLSVerify: true,
+					Expires:       api.Time(time.Now().Add(time.Minute)),
 				},
 			},
 		}
@@ -178,9 +180,7 @@ func TestIdentities(t *testing.T) {
 
 	t.Run("add machine identity", func(t *testing.T) {
 		modifiedIdentities := setup(t)
-		cmd := newIdentitiesAddCmd()
-		cmd.SetArgs([]string{"new-user"})
-		err := cmd.Execute()
+		err := Run(context.Background(), "id", "add", "new-user")
 		assert.NilError(t, err)
 
 		assert.Equal(t, len(*modifiedIdentities), 1)
@@ -189,9 +189,7 @@ func TestIdentities(t *testing.T) {
 
 	t.Run("add user identity", func(t *testing.T) {
 		modifiedIdentities := setup(t)
-		cmd := newIdentitiesAddCmd()
-		cmd.SetArgs([]string{"new-user@example.com"})
-		err := cmd.Execute()
+		err := Run(context.Background(), "id", "add", "new-user@example.com")
 		assert.NilError(t, err)
 
 		assert.Equal(t, len(*modifiedIdentities), 1)
@@ -200,18 +198,14 @@ func TestIdentities(t *testing.T) {
 
 	t.Run("edit user identity no password flag", func(t *testing.T) {
 		setup(t)
-		cmd := newIdentitiesEditCmd()
-		cmd.SetArgs([]string{"new-user@example.com"})
-		err := cmd.Execute()
-
+		err := Run(context.Background(), "id", "edit", "new-user@example.com")
 		assert.ErrorContains(t, err, "Specify a field to update")
 	})
 
 	t.Run("removes only the specified identity", func(t *testing.T) {
 		modifiedIdentities := setup(t)
-		cmd := newIdentitiesRemoveCmd()
-		cmd.SetArgs([]string{"to-delete-user@example.com"})
-		err := cmd.Execute()
+		ctx := context.Background()
+		err := Run(ctx, "id", "remove", "to-delete-user@example.com")
 		assert.NilError(t, err)
 
 		assert.Equal(t, len(*modifiedIdentities), 1)

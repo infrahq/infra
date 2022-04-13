@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"os"
 
@@ -11,7 +12,7 @@ import (
 )
 
 func main() {
-	if err := cmd.NewRootCmd().Execute(); err != nil {
+	if err := cmd.Run(context.Background(), os.Args[1:]...); err != nil {
 		if !errors.Is(err, terminal.InterruptErr) {
 			logging.S.Error(err.Error())
 		}
