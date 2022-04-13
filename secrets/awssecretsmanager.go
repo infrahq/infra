@@ -22,9 +22,9 @@ type AWSSecretsManager struct {
 }
 
 type AWSSecretsManagerConfig struct {
-	AWSConfig
+	AWSConfig `mapstructure:",squash"`
 
-	UseSecretMaps bool `yaml:"useSecretMaps"` // TODO: support storing to json maps if this is enabled.
+	UseSecretMaps bool `mapstructure:"useSecretMaps"` // TODO: support storing to json maps if this is enabled.
 }
 
 func NewAWSSecretsManagerFromConfig(cfg AWSSecretsManagerConfig) (*AWSSecretsManager, error) {

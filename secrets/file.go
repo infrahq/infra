@@ -11,14 +11,14 @@ import (
 // implements file storage for secret config
 
 type GenericConfig struct {
-	Base64           bool `yaml:"base64"`
-	Base64URLEncoded bool `yaml:"base64UrlEncoded"`
-	Base64Raw        bool `yaml:"base64Raw"`
+	Base64           bool `mapstructure:"base64"`
+	Base64URLEncoded bool `mapstructure:"base64UrlEncoded"`
+	Base64Raw        bool `mapstructure:"base64Raw"`
 }
 
 type FileConfig struct {
-	GenericConfig
-	Path string `yaml:"path" validate:"required"`
+	GenericConfig `mapstructure:",squash"`
+	Path          string `mapstructure:"path" validate:"required"`
 }
 
 type FileSecretProvider struct {

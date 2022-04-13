@@ -28,7 +28,10 @@ import (
 func setupServer(t *testing.T) *Server {
 	db := setupDB(t)
 
-	s := &Server{db: db}
+	s := &Server{
+		db:      db,
+		secrets: map[string]secrets.SecretStorage{},
+	}
 
 	err := s.setupInternalInfraIdentityProvider()
 	assert.NilError(t, err)
@@ -43,7 +46,7 @@ func setupServer(t *testing.T) *Server {
 		assert.NilError(t, err)
 	}
 
-	err = s.importSecrets()
+	err = loadDefaultSecretConfig(s.secrets)
 	assert.NilError(t, err)
 
 	return s

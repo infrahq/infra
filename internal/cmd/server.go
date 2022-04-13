@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -53,7 +54,7 @@ func newServerCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("creating server: %w", err)
 			}
-			return srv.Run(cmd.Context())
+			return runServer(cmd.Context(), srv)
 		},
 	}
 
@@ -88,4 +89,9 @@ func defaultServerOptions() server.Options {
 			Metrics: ":9090",
 		},
 	}
+}
+
+// runServer is a shim for testing.
+var runServer = func(ctx context.Context, srv *server.Server) error {
+	return srv.Run(ctx)
 }

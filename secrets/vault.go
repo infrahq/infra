@@ -22,11 +22,11 @@ type VaultSecretProvider struct {
 }
 
 type VaultConfig struct {
-	TransitMount string `yaml:"transitMount"`              // mounting point. defaults to /transit
-	SecretMount  string `yaml:"secretMount"`               // mounting point. defaults to /secret
-	Token        string `yaml:"token" validate:"required"` // vault token... should authenticate as machine to vault instead?
-	Namespace    string `yaml:"namespace"`
-	Address      string `yaml:"address" validate:"required"`
+	TransitMount string `mapstructure:"transitMount"`              // mounting point. defaults to /transit
+	SecretMount  string `mapstructure:"secretMount"`               // mounting point. defaults to /secret
+	Token        string `mapstructure:"token" validate:"required"` // vault token... should authenticate as machine to vault instead?
+	Namespace    string `mapstructure:"namespace"`
+	Address      string `mapstructure:"address" validate:"required"`
 }
 
 func NewVaultConfig() VaultConfig {

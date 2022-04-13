@@ -20,6 +20,7 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/connector"
+	"github.com/infrahq/infra/internal/decode"
 	"github.com/infrahq/infra/internal/logging"
 )
 
@@ -107,7 +108,12 @@ func parseOptions(cmd *cobra.Command, options interface{}, envPrefix string) err
 		}
 	}
 
-	return v.Unmarshal(options)
+	hooks := mapstructure.ComposeDecodeHookFunc(
+		mapstructure.StringToTimeDurationHookFunc(),
+		mapstructure.StringToSliceHookFunc(","),
+		decode.HookPrepareForDecode,
+	)
+	return v.Unmarshal(options, viper.DecodeHook(hooks))
 }
 
 func infraHomeDir() (string, error) {

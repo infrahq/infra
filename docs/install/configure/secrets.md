@@ -30,7 +30,8 @@ Kubernetes takes configuration, like so:
 secrets:
   - name: kubernetes # can optionally provide a custom name
     kind: kubernetes
-    namespace: mynamespace
+    config:
+      namespace: mynamespace
 ```
 
 namespace defaults to whatever is defined in `/var/run/secrets/kubernetes.io/serviceaccount/namespace`, or the `default` namespace.
@@ -49,11 +50,12 @@ Vault takes configuration, like so:
 secrets:
   - name: vault # can optionally provide a custom name
     kind: vault
-    transitMount: /transit
-    secretMount: /secret
-    token: env:VAULT_TOKEN # secret config can even reference other built-in secret types, like env
-    namespace: mynamespace
-    address: https://vault
+    config:
+      transitMount: /transit
+      secretMount: /secret
+      token: env:VAULT_TOKEN # secret config can even reference other built-in secret types, like env
+      namespace: mynamespace
+      address: https://vault
 ```
 
 ### AWS Secrets Manager
@@ -68,10 +70,11 @@ Secrets Manager takes configuration, like so:
 secrets:
   - name: awssm # can optionally provide a custom name
     kind: awssecretsmanager
-    endpoint: https://kms.endpoint
-    region: us-west-2
-    accessKeyID: env:AWS_ACCESS_KEY_ID # secret config can even reference other built-in secret types, like env
-    secretAccessKey: env:AWS_SECRET_ACCESS_KEY
+    config:
+      endpoint: https://kms.endpoint
+      region: us-west-2
+      accessKeyID: env:AWS_ACCESS_KEY_ID # secret config can even reference other built-in secret types, like env
+      secretAccessKey: env:AWS_SECRET_ACCESS_KEY
 ```
 
 ### AWS SSM (Systems Manager Parameter Store)
@@ -86,11 +89,12 @@ SSM takes configuration, like so:
 secrets:
   - name: awsssm # can optionally provide a custom name
     kind: awsssm
-    keyID: 1234abcd-12ab-34cd-56ef-1234567890ab # optional, if set it's the KMS key that should be used for decryption
-    endpoint: https://kms.endpoint
-    region: us-west-2
-    accessKeyID: env:AWS_ACCESS_KEY_ID # secret config can even reference other built-in secret types, like env
-    secretAccessKey: env:AWS_SECRET_ACCESS_KEY
+    config:
+      keyID: 1234abcd-12ab-34cd-56ef-1234567890ab # optional, if set it's the KMS key that should be used for decryption
+      endpoint: https://kms.endpoint
+      region: us-west-2
+      accessKeyID: env:AWS_ACCESS_KEY_ID # secret config can even reference other built-in secret types, like env
+      secretAccessKey: env:AWS_SECRET_ACCESS_KEY
 ```
 
 ### Environment variables
@@ -105,9 +109,10 @@ secrets:
 secrets:
   - name: base64env
     kind: env
-    base64: true
-    base64UrlEncoded: false
-    base64Raw: false
+    config:
+      base64: true
+      base64UrlEncoded: false
+      base64Raw: false
 ```
 
 which you would then use like this. First create the environment variable:
@@ -136,10 +141,11 @@ It's a common pattern to write secrets to a set of files on disk and then have a
 secrets:
   - name: base64file
     kind: file
-    base64: true
-    base64UrlEncoded: false
-    base64Raw: false
-    path: /var/secrets # optional: assume all files mentioned are in this root directory
+    config:
+      base64: true
+      base64UrlEncoded: false
+      base64Raw: false
+      path: /var/secrets # optional: assume all files mentioned are in this root directory
 ```
 
 which you would then use as follows. First base64 encode a string and write it to a file:
@@ -174,9 +180,10 @@ Optionally for plaintext secrets, you can leave off the secret back-end name:
 secrets:
   - name: base64text
     kind: plain
-    base64: true
-    base64UrlEncoded: false
-    base64Raw: false
+    config:
+      base64: true
+      base64UrlEncoded: false
+      base64Raw: false
 ```
 
 Which you would then use in the `infra.yaml` file as shown:
