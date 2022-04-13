@@ -1,10 +1,9 @@
-import { useContext, useState, useEffect } from "react"
+import { useState, useEffect } from 'react'
 import styled from 'styled-components'
 
-import Input from "../Input"
+import Input from '../Input'
 
-import DestinationsContext from "../../store/DestinationsContext"
-import axios from "axios"
+import axios from 'axios'
 
 const NameContainer = styled.div`
 	display: flex;
@@ -26,25 +25,33 @@ const NextButton = styled.button`
   width: 20%;
 `
 
-const NameInput = () => {
-  const { connected, destinations, accessKey, updateCurrentDestinationName, updateEnabledCommandInput, updateAccessKey, updateConnected } = useContext(DestinationsContext)
+const NameInput = ({ 
+  accessKey,
+  connected,
+  destinations,
+  updateAccessKey,
+  updateCurrentDestinationName,
+  updateEnabledCommandInputStatus,
+  updateConnectedStatus }) => {
   const [name, setName] = useState('')
   const [connectorFullName, setConnectorFullName] = useState('')
   const [numDestinations, setNumDestinations] = useState(0)
 
   useEffect(() => {
     const handleDestinationConnection = () => {
-      if(accessKey && name.length > 0) {
+      if (accessKey && name.length > 0) {
         axios.get(`/v1/destinations?name=${connectorFullName}`)
           .then((response) => {
+            console.log(numDestinations)
+            console.log('response: '. response)
             if (!connected) {
               if (response.data.length === numDestinations) {
                 pollingTimeout = setTimeout(handleDestinationConnection, 5000)
               } else {
-                updateConnected(true)
+                updateConnectedStatus(true)
                 clearTimeout(pollingTimeout)
               }
-            } 
+            }
           })
           .catch((error) => {
             console.log(error)
@@ -57,26 +64,24 @@ const NameInput = () => {
 
     return () => {
       clearTimeout(pollingTimeout)
-    };
-  }, [accessKey]);
+    }
+  }, [accessKey])
 
   const handleNext = () => {
     const type = 'kubernetes'
     const destinationName = type + '.' + name
 
-		console.log(destinationName)
+    updateCurrentDestinationName(name)
+    updateEnabledCommandInputStatus(name.length > 0)
     setConnectorFullName(destinationName)
-		updateCurrentDestinationName(name)
-    updateEnabledCommandInput(name.length > 0)
-
     setNumDestinations(destinations.filter((item) => item.name === name).length)
-    
+
     axios.get('/v1/identities?name=connector')
       .then((response) => {
         const { id } = response.data[0]
         const keyName = name + '-' + [...Array(10)].map(() => (~~(Math.random() * 36)).toString(36)).join('')
 
-        return { identityID: id, name: keyName, ttl: '87600h', extensionDeadline: '720h'}
+        return { identityID: id, name: keyName, ttl: '87600h', extensionDeadline: '720h' }
       })
       .then((config) => {
         return axios.post('/v1/access-keys', config)
@@ -92,7 +97,7 @@ const NameInput = () => {
   return (
     <NameContainer>
       <InputContainer>
-        <Input 
+        <Input
           label='Provide a name for your cluster'
           value={name}
           onChange={e => setName(e.target.value)}
@@ -100,7 +105,7 @@ const NameInput = () => {
       </InputContainer>
       <NextButton disabled={name.length === 0} onClick={() => handleNext()}>Next</NextButton>
     </NameContainer>
-  ) 
+  )
 }
 
 export default NameInput

@@ -1,16 +1,15 @@
-import Head from "next/head"
+import Head from 'next/head'
 import Router from 'next/router'
-import { useState } from "react"
+import { useCallback, useState } from 'react'
 import styled from 'styled-components'
+import useSWR from 'swr'
 
-import ActionButton from "../../../components/ActionButton"
-import NameInput from "../../../components/destinations/NameInput"
-import CommandInput from "../../../components/destinations/CommandInput"
-import ExitButton from "../../../components/ExitButton"
-import Header from "../../../components/Header"
-import ConnectStatus from "../../../components/destinations/ConnectStatus"
-
-import { DestinationsContextProvider } from "../../../store/DestinationsContext"
+import ActionButton from '../../../components/ActionButton'
+import NameInput from '../../../components/destinations/NameInput'
+import CommandInput from '../../../components/destinations/CommandInput'
+import ExitButton from '../../../components/ExitButton'
+import Header from '../../../components/Header'
+import ConnectStatus from '../../../components/destinations/ConnectStatus'
 
 const ConnectContainer = styled.section`
   position: relative;
@@ -34,26 +33,78 @@ const SetupDestinationContent = styled.div`
 `
 
 const Connect = () => {
+  const [connected, setConnected] = useState(false)
+  const [enabledCommandInput, setEnabledCommandInput] = useState(false)
+  const [accessKey, setAccessKey] = useState('')
+  const [currentDestinationName, setCurrentDestinationName] = useState('')
+
+  const getDestinationsList = '/v1/destinations'
+  const getDestinations = url => fetch(url).then(response => response.json())
+  const { data: destinations, error } = useSWR(getDestinationsList, getDestinations)
+
+
+  const updateConnectedStatus = useCallback((value) => {
+    console.log('updating connected status')
+    setConnected(value)
+  })
+
+  const updateAccessKey = useCallback((key) => {
+    console.log('updating connected key')
+    setAccessKey(key)
+  })
+
+  const updateCurrentDestinationName = useCallback((name) => {
+    console.log('updating connected name')
+    setCurrentDestinationName(name)
+  })
+
+  const updateEnabledCommandInputStatus = useCallback((status) => {
+    console.log('updating enabled command input:', status)
+    setEnabledCommandInput(status)
+  })
+
+  const handleFinish = () => {
+    Router.push({
+      pathname: '/destinations/'
+    }, undefined, { shallow: true })
+  }
+
   return (
-    <DestinationsContextProvider>
+    <div>
       <Head>
         <title>Infra - Destinations</title>
       </Head>
       <ConnectContainer>
         <SetupDestinationContent>
-          <Header 
+          <Header
             header='Connect Your Kubernetes Cluster'
             subheader='Run the following command to connect your cluster'
           />
-          <NameInput />
-          <CommandInput />
-          <ConnectStatus />
-        </SetupDestinationContent>      
+          <NameInput 
+            accessKey={accessKey} 
+            connected={connected}
+            destinations={destinations}
+            updateAccessKey={updateAccessKey} 
+            updateCurrentDestinationName={updateCurrentDestinationName}
+            updateEnabledCommandInputStatus={updateEnabledCommandInputStatus}
+            updateConnectedStatus={updateConnectedStatus}
+          />
+          <CommandInput 
+            enabledCommandInput={enabledCommandInput}
+            accessKey={accessKey}
+            currentDestinationName={currentDestinationName}
+          />
+          <ConnectStatus 
+            enabledCommandInput={enabledCommandInput}
+            connected={connected}
+          />
+          { enabledCommandInput && <ActionButton disabled={!enabledCommandInput && !connected} onClick={() => handleFinish()} value='Finish' /> }
+        </SetupDestinationContent>
         <NavButton>
           <ExitButton previousPage='/destinations' />
         </NavButton>
       </ConnectContainer>
-    </DestinationsContextProvider>
+    </div>
   )
 }
 

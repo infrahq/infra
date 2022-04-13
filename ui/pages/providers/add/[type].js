@@ -1,14 +1,11 @@
-import { useCallback, useState, useContext } from 'react'
+import { useCallback, useState } from 'react'
 import styled from 'styled-components'
 import Head from 'next/head'
 import Router, { useRouter } from 'next/router'
-import axios from 'axios'
 
 import ExitButton from '../../../components/ExitButton'
 import ActionButton from '../../../components/ActionButton'
 import Setup from '../../../components/providers/okta/Setup'
-
-import AuthContext from '../../../store/AuthContext'
 
 export const AddContainer = styled.section`
   position: relative;
@@ -38,13 +35,10 @@ export const Footer = styled.section`
 `
 
 const Details = () => {
-  const { setNewProvider } = useContext(AuthContext)
-
   const router = useRouter()
   const { type } = router.query
 
   const [value, setValue] = useState({
-    name: 'okta',
     domain: '',
     clientId: '',
     clientSecret: ''
@@ -69,15 +63,18 @@ const Details = () => {
     }, undefined, { shallow: true })
   }
 
-  const moveToNext = async () => {
-    await axios.post('/v1/providers',
-      { name: value.name, url: value.domain, clientID: value.clientId, clientSecret: value.clientSecret })
-      .then((response) => {
-        setNewProvider([response.data])
-        addAdmins()
-      }).catch((error) => {
-        console.log('error:', error)
-      })
+  const moveToNext = () => {
+    const name = type + '-' + value.domain
+    
+    fetch('/v1/providers',{
+      method: 'POST',
+      body: JSON.stringify({ name, url: value.domain, clientID: value.clientId, clientSecret: value.clientSecret })
+    })
+    .then(() => {
+      addAdmins()
+    }).catch((error) => {
+      console.log('error:', error)
+    })
   }
 
   return (

@@ -8,15 +8,12 @@ const AuthContext = createContext({
   loginError: false,
   providers: [],
   user: null,
-  newestProvider: null,
   accessKey: null,
   loginCallback: async (code, providerID, redirectURL) => {},
   login: (selectedIdp) => {},
   logout: async () => {},
   setup: async () => {},
   register: async (key) => {},
-  setNewProvider: (provider) => {},
-  updateProviders: () => {}
 })
 
 // TODO: need to revisit this - when refresh the page, this get call
@@ -40,7 +37,6 @@ export const AuthContextProvider = ({ children }) => {
 
   const [providers, setProviders] = useState([])
 
-  const [newestProvider, setNewestProvider] = useState(null)
   const [accessKey, setAccessKey] = useState(null)
 
   useEffect(() => {
@@ -69,15 +65,6 @@ export const AuthContextProvider = ({ children }) => {
       .catch(() => {
         setLoginError(true)
       })
-  }
-
-  const setNewProvider = (provider) => {
-    updateProviders(provider)
-    setNewestProvider(provider)
-  }
-
-  const updateProviders = (providers) => {
-    setProviders(currentProviders => [].concat(currentProviders, providers))
   }
 
   const redirectToDashboard = async (loginInfor) => {
@@ -155,15 +142,12 @@ export const AuthContextProvider = ({ children }) => {
     loginError,
     providers,
     user,
-    newestProvider,
     accessKey,
     loginCallback,
     login,
     logout,
     setup,
     register,
-    setNewProvider,
-    updateProviders
   }
 
   return (
