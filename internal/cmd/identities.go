@@ -41,10 +41,6 @@ type editIdentityCmdOptions struct {
 	Password bool `mapstructure:"password"`
 }
 
-type listIdentityCmdOptions struct {
-	All bool `mapstructure:"all"`
-}
-
 func newIdentitiesAddCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add IDENTITY",
@@ -133,16 +129,11 @@ func newIdentitiesEditCmd() *cobra.Command {
 }
 
 func newIdentitiesListCmd() *cobra.Command {
-	cmd := &cobra.Command{
+	return &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List all identities",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var options listIdentityCmdOptions
-			if err := parseOptions(cmd, &options, ""); err != nil {
-				return err
-			}
-
 			client, err := defaultAPIClient()
 			if err != nil {
 				return err
@@ -155,7 +146,7 @@ func newIdentitiesListCmd() *cobra.Command {
 
 			var rows []row
 
-			identities, err := client.ListIdentities(api.ListIdentitiesRequest{All: options.All})
+			identities, err := client.ListIdentities(api.ListIdentitiesRequest{})
 			if err != nil {
 				return err
 			}
@@ -176,9 +167,6 @@ func newIdentitiesListCmd() *cobra.Command {
 			return nil
 		},
 	}
-
-	cmd.Flags().Bool("all", false, "Include identities that exist in grants but are not linked to an identity provider")
-	return cmd
 }
 
 func newIdentitiesRemoveCmd() *cobra.Command {

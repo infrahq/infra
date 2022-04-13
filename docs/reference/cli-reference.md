@@ -328,12 +328,6 @@ List all identities
 infra identities list [flags]
 ```
 
-### Options
-
-```
-      --all   Include identities that exist in grants but are not linked to an identity provider
-```
-
 ### Options inherited from parent commands
 
 ```

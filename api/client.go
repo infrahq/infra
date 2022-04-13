@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 
 	"github.com/infrahq/infra/uid"
 )
@@ -199,7 +198,7 @@ func delete(client Client, path string) error {
 }
 
 func (c Client) ListIdentities(req ListIdentitiesRequest) ([]Identity, error) {
-	return list[Identity](c, "/v1/identities", map[string]string{"name": req.Name, "all": strconv.FormatBool(req.All)})
+	return list[Identity](c, "/v1/identities", map[string]string{"name": req.Name})
 }
 
 func (c Client) GetIdentity(id uid.ID) (*Identity, error) {

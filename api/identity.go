@@ -15,7 +15,6 @@ type Identity struct {
 
 type ListIdentitiesRequest struct {
 	Name string `form:"name"`
-	All  bool   `form:"all" note:"Include identities that exist in grants but are not linked to an identity provider"`
 }
 
 type CreateIdentityRequest struct {

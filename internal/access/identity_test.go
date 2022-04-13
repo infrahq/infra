@@ -34,15 +34,8 @@ func TestListIdentities(t *testing.T) {
 	err = data.CreateIdentity(db, unlinkedIdentity)
 	assert.NilError(t, err)
 
-	// test fetch only active identities
-	ids, err := ListIdentities(c, "", false)
-	assert.NilError(t, err)
-
-	assert.Equal(t, len(ids), 1)
-	assert.Equal(t, ids[0].Name, "active-list-hide-id")
-
 	// test fetch all identities
-	ids, err = ListIdentities(c, "", true)
+	ids, err := ListIdentities(c, "")
 	assert.NilError(t, err)
 
 	assert.Equal(t, len(ids), 3) // the two identities created, and the admin one used to call these access functions

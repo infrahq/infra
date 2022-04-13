@@ -86,7 +86,7 @@ func DeleteIdentity(c *gin.Context, id uid.ID) error {
 	return data.DeleteIdentity(db, id)
 }
 
-func ListIdentities(c *gin.Context, name string, all bool) ([]models.Identity, error) {
+func ListIdentities(c *gin.Context, name string) ([]models.Identity, error) {
 	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole)
 	if err != nil {
 		return nil, err
@@ -97,39 +97,7 @@ func ListIdentities(c *gin.Context, name string, all bool) ([]models.Identity, e
 		return nil, err
 	}
 
-	if all {
-		return identities, nil
-	}
-
-	// filter out identities that do not have a linked provider
-
-	var identityIDs []uid.ID
-
-	for _, identity := range identities {
-		identityIDs = append(identityIDs, identity.ID)
-	}
-
-	providerIdentities, err := data.ListProviderUsers(db, data.ByIdentityIDs(identityIDs))
-	if err != nil {
-		return nil, err
-	}
-
-	// map identity ID of providerIdentity to an identity
-	activeIdentities := make(map[uid.ID]bool)
-
-	for _, active := range providerIdentities {
-		activeIdentities[active.IdentityID] = true
-	}
-
-	var result []models.Identity
-
-	for _, identity := range identities {
-		if activeIdentities[identity.ID] {
-			result = append(result, identity)
-		}
-	}
-
-	return result, nil
+	return identities, nil
 }
 
 // UpdateUserInfoFromProvider calls the user info endpoint of an external identity provider to see a user's current attributes

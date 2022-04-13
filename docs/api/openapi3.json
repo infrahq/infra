@@ -1926,15 +1926,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "description": "Include identities that exist in grants but are not linked to an identity provider",
-            "in": "query",
-            "name": "all",
-            "schema": {
-              "description": "Include identities that exist in grants but are not linked to an identity provider",
-              "type": "boolean"
-            }
           }
         ],
         "responses": {
