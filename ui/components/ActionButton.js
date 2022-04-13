@@ -8,10 +8,10 @@ const StyledButton = styled.button`
   border-radius: 2px;
   border: none;
   color: #ffffff;
-  cursor: ${props => !!props.disabled ? 'not-allowed' : 'pointer'};
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
   font-size: 10px;
   font-weight: 100;
-  opacity: ${props => !!props.disabled ? .5 : 1};
+  opacity: ${props => props.disabled ? 0.5 : 1};
 
   ${props => !props.disabled && css`  
     &:hover {

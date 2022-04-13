@@ -1,12 +1,13 @@
-import Router from 'next/router'
+import useSWR from 'swr'
 import Head from 'next/head'
 import Link from 'next/link'
 import styled from 'styled-components'
+import Router from 'next/router'
 
 import Navigation from '../../components/nav/Navigation'
 import PageHeader from '../../components/PageHeader'
-import { DestinationsContextProvider } from '../../store/DestinationsContext'
-import Dashboard from '../../components/destinations/Dashboard'
+import FormattedTime from '../../components/FormattedTime'
+import EmptyPageHeader from '../../components/EmptyPageHeader'
 
 const DestinationsHeaderContainer = styled.div`
   padding-top: 3rem;
@@ -51,27 +52,85 @@ const TableHeaderTitle = styled.p`
   text-transform: uppercase;
 `
 
+const TableContent = styled.div`
+  display: grid;
+  grid-template-columns: 80% 20%;
+  align-items: center;
+`
+
+const TableContentText = styled.div`
+  font-weight: 300;
+  font-size: 12px;
+  line-height: 0px;
+
+  a {
+    cursor: pointer;
+
+    :hover {
+      opacity: .6;
+    }
+  }
+`
+
+const TableContentContainer = styled.div`
+  padding-top: 1rem;
+`
+
 const Destinations = () => {
+  const getDestinationsList = '/v1/destinations'
+  const getDestinations = url => fetch(url).then(response => response.json())
+  const { data, error } = useSWR(getDestinationsList, getDestinations)
+
+  const handleAddDestination = () => {
+    Router.push({
+      pathname: '/destinations/add/connect'
+    }, undefined, { shallow: true })
+  }
+
   return (
-    <DestinationsContextProvider>
+    <div>
       <Head>
         <title>Infra - Destinations</title>
       </Head>
       <Navigation />
+      <div>
+        <DestinationsHeaderContainer>
+          <PageHeader iconPath='/destinations.svg' title='Destinations' />
+          <Link href='/destinations/add/connect'>
+            <AddDestinationLink><span>&#43;</span>Add Destination</AddDestinationLink>
+          </Link>
+        </DestinationsHeaderContainer>
+        <TableHeader>
+          <TableHeaderTitle>Name</TableHeaderTitle>
+          <TableHeaderTitle>Added</TableHeaderTitle>
+        </TableHeader>
         <div>
-          <DestinationsHeaderContainer>
-            <PageHeader iconPath='/destinations.svg' title='Destinations' />
-            <Link href='/destinations/add/connect'>
-              <AddDestinationLink><span>&#43;</span>Add Destination</AddDestinationLink>
-            </Link>
-          </DestinationsHeaderContainer>
-          <TableHeader>
-            <TableHeaderTitle>Name</TableHeaderTitle>
-            <TableHeaderTitle>Added</TableHeaderTitle>
-          </TableHeader>
-          <Dashboard />
-        </div>
-    </DestinationsContextProvider>
+          {data && data.length > 0
+          ? (
+            <TableContentContainer>
+              {data.map((item) => {
+                        return (
+            <TableContent key={item.id}>
+              <TableContentText>{item.name}</TableContentText>
+              <TableContentText>
+                <FormattedTime time={item.created} />
+              </TableContentText>
+            </TableContent>
+                        )
+              })}
+            </TableContentContainer>
+            )
+          : (
+            <EmptyPageHeader
+              header='Destinations'
+              subheader='No destinations connected.'
+              actionButtonHeader='Add Destinations'
+              onClickActionButton={() => handleAddDestination()}
+            />
+            )}
+          </div>
+      </div>
+    </div>
   )
 }
 

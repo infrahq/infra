@@ -1,5 +1,4 @@
-import { useCallback, useState, useContext } from 'react'
-import axios from 'axios'
+import { useCallback, useState } from 'react'
 import Router from 'next/router'
 import Head from 'next/head'
 
@@ -8,20 +7,19 @@ import ExitButton from '../../../components/ExitButton'
 import ActionButton from '../../../components/ActionButton'
 import AddAdmin from '../../../components/providers/okta/AddAdmin'
 
-import AuthContext from '../../../store/AuthContext'
-
-const grantAdminAccess = async (userId) => {
-  await axios.post('/v1/grants', { subject: userId, resource: 'infra', privilege: 'admin' })
-    .then(async () => {
-      await Router.push({ pathname: '/providers' }, undefined, { shallow: true })
-    }).catch((error) => {
-      console.log(error)
-    })
+const grantAdminAccess = (userId) => {
+  fetch('/v1/grants', {
+    method: 'POST',
+    body: JSON.stringify({ subject: userId, resource: 'infra', privilege: 'admin' })
+  })
+  .then(() => {
+    Router.push({ pathname: '/providers' }, undefined, { shallow: true })
+  }).catch((error) => {
+    console.log(error)
+  })
 }
 
 const Admins = () => {
-  const { newestProvider } = useContext(AuthContext)
-
   const [adminEmail, setAdminEmail] = useState('')
 
   const updateEmail = useCallback((email) => {
@@ -29,26 +27,29 @@ const Admins = () => {
   })
 
   const moveToNext = async () => {
-    const providerId = newestProvider && newestProvider.id
-
-    await axios.get(`/v1/identities?name=${adminEmail}`)
-      .then(async (response) => {
-        console.log('response:', response)
-        if (response.data.length === 0) {
-          await axios.post('/v1/identities',
-            { name: adminEmail, providerID: providerId, kind: 'user' })
-            .then(async (response) => {
-              console.log('response when post: ', response)
-              await grantAdminAccess(response.data.id)
-            }).catch((error) => {
-              console.log(error)
-            })
-        } else {
-          grantAdminAccess(response.data[0].id)
-        }
-      }).catch((error) => {
-        console.log(error)
-      })
+    fetch(`/v1/identities?name=${adminEmail}`)
+    .then((response) => {
+      return response.json();
+    })
+    .then((data) => {
+      if(data.length === 0) {
+        fetch('/v1/identities', {
+          method: 'POST',
+          body: JSON.stringify({ name: adminEmail, kind: 'user' })
+        })
+        .then((response) => {
+         return response.json()
+        })
+        .then((user) => {
+          grantAdminAccess(user.id)
+        })
+        .catch((error) => {
+          console.log(error)
+        })
+      } else {
+        grantAdminAccess(data[0].id)
+      }
+    })
   }
 
   return (

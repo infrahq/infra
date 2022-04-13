@@ -1,10 +1,4 @@
-import Router from "next/router"
-import { useContext } from "react"
-import styled, { keyframes } from "styled-components"
-
-import ActionButton from "../ActionButton"
-
-import DestinationsContext from "../../store/DestinationsContext"
+import styled, { keyframes } from 'styled-components'
 
 const spinner = keyframes`
   0% { transform: rotate(0deg); }
@@ -43,40 +37,26 @@ const SpinIcon = styled.div`
   animation: ${spinner} 4s linear infinite;
 `
 
-
-const ConnectStatus = () => {
-  const { enabledCommandInput, connected } = useContext(DestinationsContext)
-
-  const handleFinish = async () => {
-		await Router.push({
-      pathname: '/destinations/'
-    }, undefined, { shallow: true })
-	}
-
-
+const ConnectStatus = ({ enabledCommandInput, connected }) => {
   return (
     <div>
       <p>Once you have successfully installed infra we will be able to detect the connection</p>
-      {enabledCommandInput && 
+      {enabledCommandInput &&
         <>
           <h1>Connection Status</h1>
           <ConnectStatusContentContainer>
             <div>
-              {connected ? 
-              <ConnectedIcon></ConnectedIcon> : 
-              <SpinIcon></SpinIcon>
-              }
+              {connected
+                ? <ConnectedIcon />
+                : <SpinIcon />}
             </div>
             <div>
-              {connected ? 
-                <p>Connected</p> : 
-                <p>No connection detected...</p>
-              }
+              {connected
+                ? <p>Connected</p>
+                : <p>No connection detected...</p>}
             </div>
           </ConnectStatusContentContainer>
-          <ActionButton disabled={!enabledCommandInput && !connected} onClick={() => handleFinish()} value='Finish' />
-        </>
-      }
+        </>}
     </div>
   )
 }

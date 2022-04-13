@@ -1,7 +1,4 @@
-import { useContext } from "react"
-import styled from "styled-components"
-
-import DestinationsContext from "../../store/DestinationsContext"
+import styled from 'styled-components'
 
 const CommandInputTextAreaContainer = styled.textarea`
   width: 24rem;
@@ -16,16 +13,17 @@ const CommandInputTextAreaContainer = styled.textarea`
   white-space: pre;
 `
 
-const CommandInput = () => {
-  const { enabledCommandInput, accessKey, currentDestinationName } = useContext(DestinationsContext)
-  const server = window.location.host;
+const CommandInput = ({ enabledCommandInput, accessKey, currentDestinationName }) => {
+  const server = window.location.host
   const isHttps = window.location.origin.includes('https')
   const defaultValue = `helm install infra-connector infrahq/infra \\
   --set connector.config.accessKey=${accessKey} \\
   --set connector.config.server=${server} \\
   --set connector.config.name=${currentDestinationName}`
 
-  const commandValue = isHttps ? defaultValue : defaultValue + ` \\
+  const commandValue = isHttps
+    ? defaultValue
+    : defaultValue + ` \\
   --set connector.config.skipTLSVerify=true`
 
   const value = enabledCommandInput ? commandValue : ''

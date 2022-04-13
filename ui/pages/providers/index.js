@@ -1,16 +1,11 @@
-import useSWR from "swr";
-
+import useSWR, { useSWRConfig } from "swr"
 import Head from 'next/head'
 import Router from 'next/router'
-import { useContext, useEffect, useState } from 'react'
 import styled from 'styled-components'
-import axios from 'axios'
 import Link from 'next/link'
 
 import Navigation from '../../components/nav/Navigation'
 import PageHeader from '../../components/PageHeader'
-
-import AuthContext from '../../store/AuthContext'
 import FormattedTime from '../../components/FormattedTime'
 import IdentityProvider from '../../components/IdentityProvider'
 import EmptyPageHeader from '../../components/EmptyPageHeader'
@@ -78,52 +73,11 @@ const ProviderRemoveButton = styled.a`
 
 `
 
-const Providers = () => {  
-  // const getProvidersList = '/v1/providers'
-  // const getProviders = async (url) => await axios.get(url).then((response) => { console.log(response); response.dara })
-  const { providers, updateProviders } = useContext(AuthContext)
-  const [currentProviders, setCurrentProviders] = useState([])
-  // const { data, error } = useSWR(getProvidersList, getProviders)
-  
-
-  useEffect(() => {
-    if (providers.length === 0) {
-      axios.get('/v1/providers')
-        .then((response) => {
-          const idpList = response.data.filter((item) => item.name !== 'infra')
-          setCurrentProviders(idpList)
-          updateProviders(idpList)
-        })
-        .catch((error) => {
-          console.log(error)
-        })
-    } else {
-      setCurrentProviders(providers)
-    }
-  }, [])
-
-  // if (error) return <div>Failed to load</div>
-  // if (!providers) return <div>Loading...</div>
-
-  // return (
-  //   <>
-  //     <Navigation />
-  //     {data ? <>
-  //       {data.map((item) => {
-  //         return (
-  //           <TableContent key={item.id}>
-  //             <IdentityProvider type='okta' name={item.name} />
-  //             <TableContentText>{item.url}</TableContentText>
-  //             <TableContentText>
-  //               <FormattedTime time={item.created} />
-  //             </TableContentText>
-  //           </TableContent>
-  //         )
-  //       })}
-  //     </>
-  //     : <div>Loading...</div>}
-  //   </>
-  // )
+const Providers = () => {
+  const getProvidersList = '/v1/providers'
+  const getProviders = url => fetch(url).then(response => response.json())
+  const { data, error } = useSWR(getProvidersList, getProviders)
+  const { mutate } = useSWRConfig()
 
   const handleConnectProviders = async () => {
     await Router.push({
@@ -131,15 +85,16 @@ const Providers = () => {
     }, undefined, { shallow: true })
   }
 
-  // TODO: /v1/providers is 404?!!@@
   const handleRemoveProvider = (providerId) => {
-    axios.delete('/v1/providers', { data: { id: providerId } })
-      .then((response) => {
-        console.log(response)
-      })
-      .catch((error) => {
-        console.log(error)
-      })
+    fetch(`/v1/providers/${providerId}`, {
+      method: 'DELETE'
+    })
+    .then(() => {
+      mutate(getProvidersList)
+    })
+    .catch((error) => {
+      console.log(error)
+    })
   }
 
   return (
@@ -159,13 +114,13 @@ const Providers = () => {
           <TableHeaderTitle>Identity Provider</TableHeaderTitle>
           <TableHeaderTitle>Domain</TableHeaderTitle>
           <TableHeaderTitle>Added</TableHeaderTitle>
-          <TableHeaderTitle></TableHeaderTitle>
+          <TableHeaderTitle />
         </TableHeader>
         <div>
-          {currentProviders && currentProviders.length > 0
+          {data && data.length > 0
             ? (
               <TableContentContainer>
-                {currentProviders.map((item) => {
+                {data.map((item) => {
                   return (
                     <TableContent key={item.id}>
                       <IdentityProvider type='okta' name={item.name} />
