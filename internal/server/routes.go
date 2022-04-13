@@ -16,9 +16,23 @@ import (
 	"github.com/infrahq/infra/metrics"
 )
 
-type ReqHandlerFunc[Req any] func(c *gin.Context, req *Req) error
-type ResHandlerFunc[Res any] func(c *gin.Context) (Res, error)
-type ReqResHandlerFunc[Req, Res any] func(c *gin.Context, req *Req) (Res, error)
+func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) (*gin.Engine, error) {
+	router := gin.New()
+
+	router.Use(gin.Recovery())
+	a := &API{
+		t:      s.tel,
+		server: s,
+	}
+
+	a.registerRoutes(router.Group("/"), promRegistry)
+
+	if err := s.registerUIRoutes(router); err != nil {
+		return nil, err
+	}
+
+	return router, nil
+}
 
 func (a *API) registerRoutes(router *gin.RouterGroup, promRegistry prometheus.Registerer) {
 	router.GET("/healthz", a.healthHandler)
@@ -111,6 +125,10 @@ func (a *API) registerRoutes(router *gin.RouterGroup, promRegistry prometheus.Re
 	v1.DELETE("/machines/:id", removed("v0.9.0"))
 	v1.GET("/machines/:id/grants", removed("v0.9.0"))
 }
+
+type ReqHandlerFunc[Req any] func(c *gin.Context, req *Req) error
+type ResHandlerFunc[Res any] func(c *gin.Context) (Res, error)
+type ReqResHandlerFunc[Req, Res any] func(c *gin.Context, req *Req) (Res, error)
 
 func get[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) {
 	register("GET", r.BasePath(), path, handler)

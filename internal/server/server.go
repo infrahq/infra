@@ -24,7 +24,6 @@ import (
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/goware/urlx"
-	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
 	"gorm.io/gorm"
@@ -359,24 +358,6 @@ func (s *Server) registerUIRoutes(router *gin.Engine) error {
 	})
 
 	return nil
-}
-
-func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) (*gin.Engine, error) {
-	router := gin.New()
-
-	router.Use(gin.Recovery())
-	a := &API{
-		t:      s.tel,
-		server: s,
-	}
-
-	a.registerRoutes(router.Group("/"), promRegistry)
-
-	if err := s.registerUIRoutes(router); err != nil {
-		return nil, err
-	}
-
-	return router, nil
 }
 
 func (s *Server) listen() error {
