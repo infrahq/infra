@@ -42,7 +42,7 @@ type editIdentityCmdOptions struct {
 }
 
 type listIdentityCmdOptions struct {
-	includeUnlinked bool `mapstructure:"unlinked"`
+	All bool `mapstructure:"all"`
 }
 
 func newIdentitiesAddCmd() *cobra.Command {
@@ -155,7 +155,7 @@ func newIdentitiesListCmd() *cobra.Command {
 
 			var rows []row
 
-			identities, err := client.ListIdentities(api.ListIdentitiesRequest{All: options.includeUnlinked})
+			identities, err := client.ListIdentities(api.ListIdentitiesRequest{All: options.All})
 			if err != nil {
 				return err
 			}
