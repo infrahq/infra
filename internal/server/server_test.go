@@ -917,8 +917,7 @@ func TestServer_Run_UIProxy(t *testing.T) {
 		DBEncryptionKey:         filepath.Join(dir, "sqlite3.db.key"),
 		TLSCache:                filepath.Join(dir, "tlscache"),
 		DBFile:                  filepath.Join(dir, "sqlite3.db"),
-		EnableUI:                true,
-		UIProxyURL:              uiSrv.URL,
+		UI:                      UIOptions{Enabled: true, ProxyURL: uiSrv.URL},
 		EnableSetup:             true,
 	}
 	srv, err := New(opts)
@@ -962,7 +961,7 @@ func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
 		expected func(t *testing.T, resp *httptest.ResponseRecorder)
 	}
 
-	s := &Server{options: Options{EnableUI: true}}
+	s := &Server{options: Options{UI: UIOptions{Enabled: true}}}
 	router, err := s.GenerateRoutes(prometheus.NewRegistry())
 	assert.NilError(t, err)
 
@@ -1013,7 +1012,7 @@ func TestServer_GenerateRoutes_UI(t *testing.T) {
 		expected     func(t *testing.T, resp *httptest.ResponseRecorder)
 	}
 
-	s := &Server{options: Options{EnableUI: true}}
+	s := &Server{options: Options{UI: UIOptions{Enabled: true}}}
 	router, err := s.GenerateRoutes(prometheus.NewRegistry())
 	assert.NilError(t, err)
 

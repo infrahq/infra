@@ -117,7 +117,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) (*gin.Engine
 	// UI middleware unnecessarily.
 	// This is a limitation because we serve the UI from / instead of a specific
 	// path prefix.
-	if err := s.registerUIRoutes(router); err != nil {
+	if err := registerUIRoutes(router, s.options.UI); err != nil {
 		return nil, err
 	}
 	return router, nil

@@ -46,8 +46,6 @@ type Options struct {
 	AccessKey            string        `mapstructure:"accessKey"`
 	EnableTelemetry      bool          `mapstructure:"enableTelemetry"`
 	EnableCrashReporting bool          `mapstructure:"enableCrashReporting"`
-	EnableUI             bool          `mapstructure:"enableUI"`
-	UIProxyURL           string        `mapstructure:"uiProxyURL"`
 	EnableSetup          bool          `mapstructure:"enableSetup"`
 	SessionDuration      time.Duration `mapstructure:"sessionDuration"`
 
@@ -73,12 +71,18 @@ type Options struct {
 	FullKeyRotationInDays       int    `mapstructure:"fullKeyRotationInDays"` // 365 default
 
 	Addr ListenerOptions
+	UI   UIOptions
 }
 
 type ListenerOptions struct {
 	HTTP    string
 	HTTPS   string
 	Metrics string
+}
+
+type UIOptions struct {
+	Enabled  bool
+	ProxyURL string
 }
 
 type Server struct {
@@ -308,14 +312,14 @@ func (s *Server) loadCertificates() (err error) {
 //go:embed all:ui/*
 var assetFS embed.FS
 
-func (s *Server) registerUIRoutes(router *gin.Engine) error {
-	if !s.options.EnableUI {
+func registerUIRoutes(router *gin.Engine, opts UIOptions) error {
+	if !opts.Enabled {
 		return nil
 	}
 
 	// Proxy requests to an upstream ui server
-	if s.options.UIProxyURL != "" {
-		remote, err := urlx.Parse(s.options.UIProxyURL)
+	if opts.ProxyURL != "" {
+		remote, err := urlx.Parse(opts.ProxyURL)
 		if err != nil {
 			return fmt.Errorf("failed to parse UI proxy URL: %w", err)
 		}
