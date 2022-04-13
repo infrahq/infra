@@ -22,12 +22,17 @@ type ReqResHandlerFunc[Req, Res any] func(c *gin.Context, req *Req) (Res, error)
 
 func (a *API) registerRoutes(router *gin.RouterGroup, promRegistry prometheus.Registerer) {
 	router.GET("/healthz", a.healthHandler)
+
+	router.Use(
+		logging.Middleware(),
+		RequestTimeoutMiddleware(),
+	)
+
 	router.GET("/.well-known/jwks.json", DatabaseMiddleware(a.server.db), a.wellKnownJWKsHandler)
 
 	router.Use(
 		sentrygin.New(sentrygin.Options{}),
 		metrics.Middleware(promRegistry),
-		logging.IdentityAwareMiddleware(),
 		DatabaseMiddleware(a.server.db),
 	)
 
