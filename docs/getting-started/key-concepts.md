@@ -2,10 +2,12 @@
 
 ## Architecture
 
+<br />
 
 ![architecture](../images/architecture.svg)
 
 <br />
+
 
 ### 1. Infra Server
 
@@ -13,11 +15,11 @@ The Infra Server is the main component of Infra. It provides an API for managing
 
 ### 2. Infra CLI
 
-The `infra` CLI is the primary way to access infrastructure. It's also used for managing identities, groups and more.
+The Infra CLI is the primary way to access infrastructure. It's also used for managing identities, groups and more.
 
 ### 3. Infra Login
 
-Once you install Infra and the Infra CLI you can login to Infra and start connecting identities, infrastructure, and granting access to your team.
+Once you install Infra and the Infra CLI, you can login to Infra and start connecting identities, infrastructure, and granting access to your team.
 
 ### 4. Identities
 
@@ -29,7 +31,7 @@ Connectors are responsible for authenticating and provisioning user access in de
 
 ### Putting it all together
 
-Infra works by connecting identities to specific destinations via _connectors_. Users log in via the `infra` CLI, configure access, and finally install connectors. Once set up, anyone on the team can run `infra login` to get access to the infrastructure they need:
+Infra works by connecting identities to specific destinations via _connectors_. Users log in via the Infra CLI, configure access, and finally install connectors. Once set up, anyone on the team can run `infra login` to get access to the infrastructure they need:
 
 <br />
 
