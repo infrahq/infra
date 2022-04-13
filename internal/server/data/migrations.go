@@ -347,13 +347,6 @@ func migrate(db *gorm.DB) error {
 				}
 				identityTable := &Identity{}
 				logging.S.Debug("starting migration")
-				if tx.Migrator().HasIndex(identityTable, "idx_identities_name_provider_id") {
-					logging.S.Debug("has idx_identities_name_provider_id index")
-					err := tx.Migrator().DropIndex(identityTable, "idx_identities_name_provider_id")
-					if err != nil {
-						return err
-					}
-				}
 
 				logging.S.Debug("checking provider_id column")
 				if tx.Migrator().HasColumn(identityTable, "provider_id") {
@@ -420,6 +413,14 @@ func migrate(db *gorm.DB) error {
 					err = tx.Migrator().DropColumn(identityTable, "provider_id")
 					if err != nil {
 						return err
+					}
+				}
+
+				if tx.Migrator().HasIndex(identityTable, "idx_identities_name_provider_id") {
+					logging.S.Debug("has idx_identities_name_provider_id index")
+					err := tx.Migrator().DropIndex(identityTable, "idx_identities_name_provider_id")
+					if err != nil {
+						return fmt.Errorf("migrate identity index: %w", err)
 					}
 				}
 
