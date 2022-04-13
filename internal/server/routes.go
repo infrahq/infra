@@ -89,8 +89,7 @@ func (a *API) registerRoutes(router *gin.RouterGroup, promRegistry prometheus.Re
 		get(a, unauthorized, "/version", a.Version)
 	}
 
-	// pprof.Index does not work with a /v1 prefix
-	debug := router.Group("/debug/pprof", AuthenticationMiddleware(a))
+	debug := v1.Group("/debug/pprof", AuthenticationMiddleware(a))
 	debug.GET("/*profile", a.pprofHandler)
 
 	// TODO: remove after a couple version.

@@ -31,7 +31,7 @@ func TestAPI_PProfHandler(t *testing.T) {
 	assert.NilError(t, err)
 
 	run := func(t *testing.T, tc testCase) {
-		req, err := http.NewRequest(http.MethodGet, "/debug/pprof/heap?debug=1", nil)
+		req, err := http.NewRequest(http.MethodGet, "/v1/debug/pprof/heap?debug=1", nil)
 		assert.NilError(t, err)
 
 		if tc.setupRequest != nil {
