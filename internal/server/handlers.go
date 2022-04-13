@@ -58,25 +58,43 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 		Kind: kind,
 	}
 
-	if err := access.CreateIdentity(c, identity); err != nil {
-		return nil, err
-	}
+	// infra identity creation should be attempted even if an identity is already known
+	if r.SetOneTimePassword {
+		identities, err := access.ListIdentities(c, identity.Name)
+		if err != nil {
+			return nil, fmt.Errorf("list identities: %w", err)
+		}
 
-	_, err = access.CreateProviderUser(c, access.InfraProvider(c), identity)
-	if err != nil {
-		return nil, err
+		switch len(identities) {
+		case 0:
+			if err := access.CreateIdentity(c, identity); err != nil {
+				return nil, fmt.Errorf("create identity: %w", err)
+			}
+		case 1:
+			identity.ID = identities[0].ID
+		default:
+			return nil, fmt.Errorf("multiple identities match specified name")
+		}
+	} else {
+		if err := access.CreateIdentity(c, identity); err != nil {
+			return nil, fmt.Errorf("create identity: %w", err)
+		}
 	}
 
 	resp := &api.CreateIdentityResponse{
-		ID:         identity.ID,
-		Name:       identity.Name,
-		ProviderID: access.InfraProvider(c).ID,
+		ID:   identity.ID,
+		Name: identity.Name,
 	}
 
-	if identity.Kind == models.UserKind {
+	if r.SetOneTimePassword {
+		_, err = access.CreateProviderUser(c, access.InfraProvider(c), identity)
+		if err != nil {
+			return nil, fmt.Errorf("create provider user")
+		}
+
 		oneTimePassword, err := access.CreateCredential(c, *identity)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("create credential: %w", err)
 		}
 
 		resp.OneTimePassword = oneTimePassword
@@ -388,6 +406,7 @@ func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) ([]ap
 			Name:              a.Name,
 			Created:           api.Time(a.CreatedAt),
 			IssuedFor:         a.IssuedFor,
+			ProviderID:        a.ProviderID,
 			Expires:           api.Time(a.ExpiresAt),
 			ExtensionDeadline: api.Time(a.ExtensionDeadline),
 		}

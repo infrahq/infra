@@ -33,7 +33,11 @@ func newIdentitiesCmd() *cobra.Command {
 	return cmd
 }
 
-type identityCmdOptions struct {
+type addIdentityCmdOptions struct {
+	Password bool `mapstructure:"password"`
+}
+
+type editIdentityCmdOptions struct {
 	Password bool `mapstructure:"password"`
 }
 
@@ -52,12 +56,12 @@ EMAIL must contain a valid email address in the form of "local@domain".
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
-			var options identityCmdOptions
+			var options addIdentityCmdOptions
 			if err := parseOptions(cmd, &options, ""); err != nil {
 				return err
 			}
 
-			createResp, err := CreateLocalIdentity(name)
+			createResp, err := CreateIdentity(&api.CreateIdentityRequest{Name: name, SetOneTimePassword: true})
 			if err != nil {
 				return err
 			}
@@ -86,7 +90,7 @@ func newIdentitiesEditCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
-			var options identityCmdOptions
+			var options editIdentityCmdOptions
 			if err := parseOptions(cmd, &options, ""); err != nil {
 				return err
 			}
@@ -136,8 +140,9 @@ func newIdentitiesListCmd() *cobra.Command {
 			}
 
 			type row struct {
-				Name string `header:"Name"`
-				Type string `header:"Type"`
+				Name       string `header:"Name"`
+				Type       string `header:"Type"`
+				LastSeenAt string `header:"Last Seen"`
 			}
 
 			var rows []row
@@ -149,8 +154,9 @@ func newIdentitiesListCmd() *cobra.Command {
 
 			for _, identity := range identities {
 				rows = append(rows, row{
-					Name: identity.Name,
-					Type: identity.Kind,
+					Name:       identity.Name,
+					Type:       identity.Kind,
+					LastSeenAt: identity.LastSeenAt.Relative("never"),
 				})
 			}
 
@@ -227,19 +233,21 @@ func checkUserOrMachine(s string) (models.IdentityKind, error) {
 	return models.UserKind, nil
 }
 
-// Creates a user for the local identity provider
-func CreateLocalIdentity(name string) (*api.CreateIdentityResponse, error) {
+// CreateIdentity creates an identity within infra
+func CreateIdentity(req *api.CreateIdentityRequest) (*api.CreateIdentityResponse, error) {
 	client, err := defaultAPIClient()
 	if err != nil {
 		return nil, err
 	}
 
-	kind, err := checkUserOrMachine(name)
+	kind, err := checkUserOrMachine(req.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := client.CreateIdentity(&api.CreateIdentityRequest{Name: name, Kind: kind.String()})
+	req.Kind = kind.String()
+
+	resp, err := client.CreateIdentity(req)
 	if err != nil {
 		return nil, err
 	}
@@ -247,7 +255,7 @@ func CreateLocalIdentity(name string) (*api.CreateIdentityResponse, error) {
 	return resp, nil
 }
 
-func UpdateIdentity(name string, cmdOptions identityCmdOptions) error {
+func UpdateIdentity(name string, cmdOptions editIdentityCmdOptions) error {
 	client, err := defaultAPIClient()
 	if err != nil {
 		return err

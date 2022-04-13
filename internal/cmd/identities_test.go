@@ -118,9 +118,8 @@ func TestIdentitiesCmd(t *testing.T) {
 					assert.NilError(t, err)
 
 					respBody := api.CreateIdentityResponse{
-						ID:         uid.New(),
-						Name:       createIdentityReq.Name,
-						ProviderID: providerID,
+						ID:   uid.New(),
+						Name: createIdentityReq.Name,
 					}
 
 					if kind == models.UserKind {

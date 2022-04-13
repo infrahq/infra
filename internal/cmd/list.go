@@ -131,7 +131,7 @@ func list() error {
 	if len(rows) > 0 {
 		printTable(rows)
 	} else {
-		fmt.Printf("No grants found for user %q\n", config.Name)
+		fmt.Println("You have not been granted access to any active destinations")
 	}
 
 	return writeKubeconfig(destinations, grants)

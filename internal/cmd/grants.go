@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"net/mail"
 	"regexp"
@@ -216,7 +217,13 @@ func addGrant(cmdOptions grantsCmdOptions) error {
 
 	id, err := getIDByName(client, cmdOptions.Identity, identityType)
 	if err != nil {
-		return err
+		if !errors.Is(err, ErrIdentityNotFound) {
+			return err
+		}
+		id, err = addGrantIdentity(client, cmdOptions.Identity, identityType)
+		if err != nil {
+			return err
+		}
 	}
 
 	_, err = client.CreateGrant(&api.CreateGrantRequest{
@@ -282,7 +289,7 @@ func getIDByName(client *api.Client, name string, identityType identityType) (ui
 
 		switch len(groups) {
 		case 0:
-			return "", fmt.Errorf("No group of name %s exists", name)
+			return "", ErrIdentityNotFound
 		case 1:
 			id = uid.NewGroupPolymorphicID(groups[0].ID)
 		default:
@@ -296,7 +303,7 @@ func getIDByName(client *api.Client, name string, identityType identityType) (ui
 
 		switch len(identities) {
 		case 0:
-			return "", fmt.Errorf("No identity of name %s exists", name)
+			return "", ErrIdentityNotFound
 		case 1:
 			id = uid.NewIdentityPolymorphicID(identities[0].ID)
 		default:
@@ -334,4 +341,29 @@ func subjectNameFromGrant(client *api.Client, g api.Grant) (name string, err err
 	}
 
 	return "", fmt.Errorf("unrecognized grant subject")
+}
+
+func addGrantIdentity(client *api.Client, name string, identityType identityType) (uid.PolymorphicID, error) {
+	var id uid.PolymorphicID
+	switch identityType {
+	case groupType:
+		created, err := client.CreateGroup(&api.CreateGroupRequest{Name: name})
+		if err != nil {
+			return "", err
+		}
+		fmt.Printf("New group %q added to Infra\n", name)
+		id = uid.NewGroupPolymorphicID(created.ID)
+	case userType, machineType:
+		created, err := CreateIdentity(&api.CreateIdentityRequest{Name: name})
+		if err != nil {
+			return "", err
+		}
+		fmt.Printf("New unlinked identity %q added to Infra\n", name)
+
+		id = uid.NewIdentityPolymorphicID(created.ID)
+	default:
+		panic("identity must be either user, machine, or group")
+	}
+
+	return id, nil
 }
