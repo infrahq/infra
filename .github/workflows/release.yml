@@ -99,7 +99,7 @@ jobs:
           repository: infrahq/web
           token: ${{ secrets.DOCS_TOKEN }}
       - run: |
-          echo $GITHUB_SHA  > ./docs-ref
+          echo $GITHUB_SHA  | tee ./docs-ref
           git add ./docs-ref
           git config user.name infrahq-ci
           git config user.email contact@infrahq.com
