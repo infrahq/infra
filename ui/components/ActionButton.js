@@ -1,4 +1,4 @@
-import styled, { css } from 'styled-components'
+import styled from 'styled-components'
 import PropTypes from 'prop-types'
 
 const StyledButton = styled.button`
@@ -13,26 +13,21 @@ const StyledButton = styled.button`
   font-weight: 100;
   opacity: ${props => props.disabled ? 0.5 : 1};
 
-  ${props => !props.disabled && css`  
-    &:hover {
-      opacity: .95;
-    }
-  `}
+  &:hover {
+    opacity: .95;
+  }
 `
 
-const ActionButton = ({ value, onClick, size = 'large', disabled = false }) => {
+const ActionButton = ({ value, onClick, size = 'large' }) => {
   return (
-    <section>
-      <StyledButton disabled={disabled} onClick={onClick} size={size}>{value}</StyledButton>
-    </section>
+    <StyledButton onClick={onClick} size={size}>{value}</StyledButton>
   )
 }
 
 ActionButton.prototype = {
   value: PropTypes.string.isRequired,
   onClick: PropTypes.func.isRequired,
-  size: PropTypes.oneOf(['large', 'small']),
-  disabled: PropTypes.bool
+  size: PropTypes.oneOf(['large', 'small'])
 }
 
 export default ActionButton

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import styled from 'styled-components'
 import Router from 'next/router'
 
-import Navigation from '../../components/nav/Navigation'
+import Dashboard from '../../components/dashboard'
 import PageHeader from '../../components/PageHeader'
 import FormattedTime from '../../components/FormattedTime'
 import EmptyPageHeader from '../../components/EmptyPageHeader'
@@ -112,11 +112,10 @@ const Destinations = () => {
   }
 
   return (
-    <div>
+    <Dashboard>
       <Head>
-        <title>Infra - Destinations</title>
+        <title>Destinations - Infra</title>
       </Head>
-      <Navigation />
       <div>
         <DestinationsHeaderContainer>
           <PageHeader iconPath='/destinations.svg' title='Destinations' />
@@ -154,8 +153,6 @@ const Destinations = () => {
             )}
           </div>
       </div>
-    </div>
+    </Dashboard>
   )
 }
-
-export default Destinations

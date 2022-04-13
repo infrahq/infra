@@ -1,5 +1,4 @@
 import Router from 'next/router'
-import Head from 'next/head'
 import styled from 'styled-components'
 
 import ExitButton from '../../../components/ExitButton'
@@ -18,7 +17,7 @@ const ConnectProviderContent = styled.section`
 
   & > *:not(:first-child) {
     padding-top: 1.75rem;
-  }
+  }  
 `
 
 const NavButton = styled.div`
@@ -47,35 +46,30 @@ const avaliableProviderList = [{
 
 const Select = () => {
   return (
-    <>
-      <Head>
-        <title>Infra - Providers</title>
-      </Head>
-      <ConnectProviderContainer>
-        <ConnectProviderContent>
-          <Header
-            header='Connect Identity Providers'
-            subheader='People, Groups and Machines'
-          />
-          <Header
-            header='Choose an Identity Provider'
-            subheader={
-              <>Currently there are no identity providers connected to Infra. <br />
-                Choose your IdP source below and get connected.
-              </>
-            }
-          />
-          <IdentityProviderList>
-            <div>
-              <IdentityProviderButton providers={avaliableProviderList} />
-            </div>
-          </IdentityProviderList>
-        </ConnectProviderContent>
-        <NavButton>
-          <ExitButton previousPage='/providers' />
-        </NavButton>
-      </ConnectProviderContainer>
-    </>
+    <ConnectProviderContainer>
+      <ConnectProviderContent>
+        <Header
+          header='Connect Identity Providers'
+          subheader='People, Groups and Machines'
+        />
+        <Header
+          header='Choose an Identity Provider'
+          subheader={
+            <>Currently there are no identity providers connected to Infra. <br />
+              Choose your IdP source below and get connected.
+            </>
+          }
+        />
+        <IdentityProviderList>
+          <div>
+            <IdentityProviderButton providers={avaliableProviderList} />
+          </div>
+        </IdentityProviderList>
+      </ConnectProviderContent>
+      <NavButton>
+        <ExitButton previousPage='/providers' />
+      </NavButton>
+    </ConnectProviderContainer>
   )
 }
 

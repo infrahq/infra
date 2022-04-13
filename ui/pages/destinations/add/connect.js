@@ -40,8 +40,7 @@ const Connect = () => {
 
   const getDestinationsList = '/v1/destinations'
   const getDestinations = url => fetch(url).then(response => response.json())
-  const { data: destinations, error } = useSWR(getDestinationsList, getDestinations)
-
+  const { data: destinations } = useSWR(getDestinationsList, getDestinations)
 
   const updateConnectedStatus = useCallback((value) => {
     setConnected(value)
@@ -76,25 +75,25 @@ const Connect = () => {
             header='Connect Your Kubernetes Cluster'
             subheader='Run the following command to connect your cluster'
           />
-          <NameInput 
-            accessKey={accessKey} 
+          <NameInput
+            accessKey={accessKey}
             connected={connected}
             destinations={destinations}
-            updateAccessKey={updateAccessKey} 
+            updateAccessKey={updateAccessKey}
             updateCurrentDestinationName={updateCurrentDestinationName}
             updateEnabledCommandInputStatus={updateEnabledCommandInputStatus}
             updateConnectedStatus={updateConnectedStatus}
           />
-          <CommandInput 
+          <CommandInput
             enabledCommandInput={enabledCommandInput}
             accessKey={accessKey}
             currentDestinationName={currentDestinationName}
           />
-          <ConnectStatus 
+          <ConnectStatus
             enabledCommandInput={enabledCommandInput}
             connected={connected}
           />
-          { enabledCommandInput && <ActionButton disabled={!enabledCommandInput && !connected} onClick={() => handleFinish()} value='Finish' /> }
+          {enabledCommandInput && <ActionButton disabled={!enabledCommandInput && !connected} onClick={() => handleFinish()} value='Finish' />}
         </SetupDestinationContent>
         <NavButton>
           <ExitButton previousPage='/destinations' />

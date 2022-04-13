@@ -1,11 +1,10 @@
 import { useCallback, useState } from 'react'
 import styled from 'styled-components'
-import Head from 'next/head'
 import Router, { useRouter } from 'next/router'
 
 import ExitButton from '../../../components/ExitButton'
 import ActionButton from '../../../components/ActionButton'
-import Setup from '../../../components/providers/okta/Setup'
+import Setup from '../../../components/providers/okta/setup'
 
 export const AddContainer = styled.section`
   position: relative;
@@ -65,23 +64,20 @@ const Details = () => {
 
   const moveToNext = () => {
     const name = type + '-' + value.domain
-    
-    fetch('/v1/providers',{
+
+    fetch('/v1/providers', {
       method: 'POST',
       body: JSON.stringify({ name, url: value.domain, clientID: value.clientId, clientSecret: value.clientSecret })
     })
-    .then(() => {
-      addAdmins()
-    }).catch((error) => {
-      console.log('error:', error)
-    })
+      .then(() => {
+        addAdmins()
+      }).catch((error) => {
+        console.log('error:', error)
+      })
   }
 
   return (
     <>
-      <Head>
-        <title>Infra - Providers</title>
-      </Head>
       <AddContainer>
         <AddContainerContent>
           {content(type)}

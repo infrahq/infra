@@ -1,10 +1,10 @@
-html, body, #__next {
-  height: 98%;
-  font-family: 'SF Pro Text', BlinkMacSystemFont, Segoe UI, Ubuntu, sans-serif;
-  color: #FFFFFF;
-  background: #0A0E12;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-body {
-  margin: 0 .75rem;
+html, body, #__next {
+  @apply h-full;
+  @apply text-white;
+  @apply bg-black;
+  @apply antialiased;
 }

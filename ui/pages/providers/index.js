@@ -1,10 +1,10 @@
-import useSWR, { useSWRConfig } from "swr"
+import useSWR, { useSWRConfig } from 'swr'
 import Head from 'next/head'
 import Router from 'next/router'
 import styled from 'styled-components'
 import Link from 'next/link'
 
-import Navigation from '../../components/nav/Navigation'
+import Dashboard from '../../components/dashboard'
 import PageHeader from '../../components/PageHeader'
 import FormattedTime from '../../components/FormattedTime'
 import IdentityProvider from '../../components/IdentityProvider'
@@ -73,10 +73,10 @@ const ProviderRemoveButton = styled.a`
 
 `
 
-const Providers = () => {
+export default function () {
   const getProvidersList = '/v1/providers'
   const getProviders = url => fetch(url).then(response => response.json())
-  const { data, error } = useSWR(getProvidersList, getProviders)
+  const { data } = useSWR(getProvidersList, getProviders)
   const { mutate } = useSWRConfig()
 
   const handleConnectProviders = async () => {
@@ -89,20 +89,19 @@ const Providers = () => {
     fetch(`/v1/providers/${providerId}`, {
       method: 'DELETE'
     })
-    .then(() => {
-      mutate(getProvidersList)
-    })
-    .catch((error) => {
-      console.log(error)
-    })
+      .then(() => {
+        mutate(getProvidersList)
+      })
+      .catch((error) => {
+        console.log(error)
+      })
   }
 
   return (
-    <div>
+    <Dashboard>
       <Head>
-        <title>Infra - Providers</title>
+        <title>Providers - Infra</title>
       </Head>
-      <Navigation />
       <div>
         <ProvidersHeaderContainer>
           <PageHeader iconPath='/identity-providers.svg' title='Identity Providers' />
@@ -146,8 +145,6 @@ const Providers = () => {
               )}
         </div>
       </div>
-    </div>
+    </Dashboard>
   )
 }
-
-export default Providers

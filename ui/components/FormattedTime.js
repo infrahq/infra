@@ -12,7 +12,7 @@ const FormattedTime = ({ time }) => {
   ]
 
   function timeSince (date) {
-    const seconds = Math.floor((Date.now() - date) / 1000)
+    const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
     const interval = intervals.find(i => i.seconds < seconds)
     const count = Math.floor(seconds / interval.seconds)
     return `${count} ${interval.label}${count !== 1 ? 's' : ''} ago`
@@ -24,7 +24,7 @@ const FormattedTime = ({ time }) => {
 }
 
 FormattedTime.prototype = {
-  time: PropTypes.string.isRequired
+  time: PropTypes.number.isRequired
 }
 
 export default FormattedTime
