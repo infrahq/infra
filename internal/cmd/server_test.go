@@ -136,9 +136,15 @@ func TestServerCmd_WithSecretsConfig(t *testing.T) {
         - kind: env
           name: base64env
           config:
-            base64: true`
+            base64: true
+      keys:
+        - kind: native
+          config:
+            secretProvider: env
+`
 
 	dir := fs.NewDir(t, t.Name(), fs.WithFile("cfg.yaml", content))
+	t.Setenv("HOME", dir.Path())
 
 	// TODO: change to Run(ctx, args) once that is merged
 	cmd := newServerCmd()

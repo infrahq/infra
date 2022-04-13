@@ -11,6 +11,67 @@ import (
 	"github.com/infrahq/infra/secrets"
 )
 
+func TestKeyProvider_PrepareForDecode_IntegrationWithDecode_FullConfig(t *testing.T) {
+	content := `
+keys:
+  - kind: vault
+    config:
+      token: the-token
+      namespace: the-namespace
+      secretMount: secret-mount
+      address: https://vault:12345
+  - kind: awskms
+    config:
+      encryptionAlgorithm: aes_512
+      endpoint: /endpoint
+      region: the-region
+      accessKeyID: the-key-id
+  - kind: native
+    config:
+      secretProvider: the-storage
+`
+	raw := map[string]interface{}{}
+	err := yaml.Unmarshal([]byte(content), &raw)
+	assert.NilError(t, err)
+
+	actual := Options{}
+	err = decodeConfig(&actual, raw)
+	assert.NilError(t, err)
+
+	expected := Options{
+		Keys: []KeyProvider{
+			{
+				Kind: "vault",
+				Config: secrets.VaultConfig{
+					TransitMount: "/transit",
+					SecretMount:  "secret-mount",
+					Token:        "the-token",
+					Namespace:    "the-namespace",
+					Address:      "https://vault:12345",
+				},
+			},
+			{
+				Kind: "awskms",
+				Config: secrets.AWSKMSConfig{
+					AWSConfig: secrets.AWSConfig{
+						Endpoint:    "/endpoint",
+						Region:      "the-region",
+						AccessKeyID: "the-key-id",
+					},
+					EncryptionAlgorithm: "aes_512",
+				},
+			},
+			{
+				Kind: "native",
+				Config: nativeSecretProviderConfig{
+					SecretProvider: "the-storage",
+				},
+			},
+		},
+	}
+	assert.DeepEqual(t, expected, actual)
+}
+
 func TestSecretProvider_PrepareForDecode_IntegrationWithDecode_FullConfig(t *testing.T) {
 	content := `
 secrets:
