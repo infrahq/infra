@@ -87,7 +87,6 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 	}
 
 	if r.SetOneTimePassword {
-		// this is a placeholder for when the user logs in using this provider
 		_, err = access.CreateProviderUser(c, access.InfraProvider(c), identity)
 		if err != nil {
 			return nil, fmt.Errorf("create provider user")

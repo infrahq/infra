@@ -177,7 +177,7 @@ func newIdentitiesListCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().Bool("all", false, "Show identities that exist in grants but are not linked to an identity provider")
+	cmd.Flags().Bool("all", false, "Include identities that exist in grants but are not linked to an identity provider")
 	return cmd
 }
 

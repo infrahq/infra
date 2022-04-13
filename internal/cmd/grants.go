@@ -303,13 +303,7 @@ func getIDByName(client *api.Client, name string, identityType identityType) (ui
 
 		switch len(identities) {
 		case 0:
-			created, err := CreateIdentity(&api.CreateIdentityRequest{Name: name})
-			if err != nil {
-				return "", err
-			}
-			fmt.Printf("New unlinked identity %q added to Infra\n", name)
-
-			id = uid.NewIdentityPolymorphicID(created.ID)
+			return "", ErrIdentityNotFound
 		case 1:
 			id = uid.NewIdentityPolymorphicID(identities[0].ID)
 		default:

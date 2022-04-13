@@ -86,7 +86,7 @@ func DeleteIdentity(c *gin.Context, id uid.ID) error {
 	return data.DeleteIdentity(db, id)
 }
 
-func ListIdentities(c *gin.Context, name string, includeUnlinked bool) ([]models.Identity, error) {
+func ListIdentities(c *gin.Context, name string, all bool) ([]models.Identity, error) {
 	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole)
 	if err != nil {
 		return nil, err
@@ -97,7 +97,7 @@ func ListIdentities(c *gin.Context, name string, includeUnlinked bool) ([]models
 		return nil, err
 	}
 
-	if includeUnlinked {
+	if all {
 		return identities, nil
 	}
 
@@ -116,11 +116,12 @@ func ListIdentities(c *gin.Context, name string, includeUnlinked bool) ([]models
 
 	// map identity ID of providerIdentity to an identity
 	activeIdentities := make(map[uid.ID]bool)
-	var result []models.Identity
 
 	for _, active := range providerIdentities {
 		activeIdentities[active.IdentityID] = true
 	}
+
+	var result []models.Identity
 
 	for _, identity := range identities {
 		if activeIdentities[identity.ID] {
