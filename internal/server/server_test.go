@@ -981,7 +981,11 @@ func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
 		{
 			name: "/v1 path prefix",
 			path: "/v1/not/found",
-			// TODO: should have a JSON response body
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				contentType := resp.Header().Get("Content-Type")
+				expected := "application/json; charset=utf-8"
+				assert.Equal(t, contentType, expected)
+			},
 		},
 		{
 			name: "ui path",

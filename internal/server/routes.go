@@ -16,114 +16,111 @@ import (
 	"github.com/infrahq/infra/metrics"
 )
 
+// GenerateRoutes constructs a http.Handler for the primary http and https servers.
+// The handler includes gin middleware, API routes, UI routes, and others.
+//
+// As a side effect of building the handler all API endpoints are registered in
+// the global openAPISchema.
+//
+// The order of routes in this function is important! Gin saves a route along
+// with all the middleware that will apply to the route when the
+// Router.{GET,POST,etc} method is called.
 func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) (*gin.Engine, error) {
+	a := &API{t: s.tel, server: s}
 	router := gin.New()
+	router.NoRoute(a.notFoundHandler)
 
 	router.Use(gin.Recovery())
-	a := &API{
-		t:      s.tel,
-		server: s,
-	}
+	router.GET("/healthz", healthHandler)
 
-	a.registerRoutes(router.Group("/"), promRegistry)
-
-	if err := s.registerUIRoutes(router); err != nil {
-		return nil, err
-	}
-
-	return router, nil
-}
-
-func (a *API) registerRoutes(router *gin.RouterGroup, promRegistry prometheus.Registerer) {
-	router.GET("/healthz", a.healthHandler)
-
+	// This group of middleware will apply to everything, including the UI
 	router.Use(
 		logging.Middleware(),
 		RequestTimeoutMiddleware(),
 	)
 
-	router.GET("/.well-known/jwks.json", DatabaseMiddleware(a.server.db), a.wellKnownJWKsHandler)
-
-	router.Use(
+	// This group of middleware only applies to non-ui routes
+	api := router.Group("/",
 		sentrygin.New(sentrygin.Options{}),
 		metrics.Middleware(promRegistry),
 		DatabaseMiddleware(a.server.db),
 	)
+	api.GET("/.well-known/jwks.json", a.wellKnownJWKsHandler)
 
-	v1 := router.Group("/v1")
-	authorized := v1.Group("/", AuthenticationMiddleware(a))
+	authn := api.Group("/", AuthenticationMiddleware(a))
+	get(a, authn, "/v1/identities", a.ListIdentities)
+	post(a, authn, "/v1/identities", a.CreateIdentity)
+	get(a, authn, "/v1/identities/:id", a.GetIdentity)
+	put(a, authn, "/v1/identities/:id", a.UpdateIdentity)
+	delete(a, authn, "/v1/identities/:id", a.DeleteIdentity)
+	get(a, authn, "/v1/identities/:id/groups", a.ListIdentityGroups)
+	get(a, authn, "/v1/identities/:id/grants", a.ListIdentityGrants)
 
-	{
-		get(a, authorized, "/identities", a.ListIdentities)
-		post(a, authorized, "/identities", a.CreateIdentity)
-		get(a, authorized, "/identities/:id", a.GetIdentity)
-		put(a, authorized, "/identities/:id", a.UpdateIdentity)
-		delete(a, authorized, "/identities/:id", a.DeleteIdentity)
-		get(a, authorized, "/identities/:id/groups", a.ListIdentityGroups)
-		get(a, authorized, "/identities/:id/grants", a.ListIdentityGrants)
+	get(a, authn, "/v1/access-keys", a.ListAccessKeys)
+	post(a, authn, "/v1/access-keys", a.CreateAccessKey)
+	delete(a, authn, "/v1/access-keys/:id", a.DeleteAccessKey)
 
-		get(a, authorized, "/access-keys", a.ListAccessKeys)
-		post(a, authorized, "/access-keys", a.CreateAccessKey)
-		delete(a, authorized, "/access-keys/:id", a.DeleteAccessKey)
+	get(a, authn, "/v1/groups", a.ListGroups)
+	post(a, authn, "/v1/groups", a.CreateGroup)
+	get(a, authn, "/v1/groups/:id", a.GetGroup)
+	get(a, authn, "/v1/groups/:id/grants", a.ListGroupGrants)
 
-		get(a, authorized, "/introspect", a.Introspect)
+	get(a, authn, "/v1/grants", a.ListGrants)
+	get(a, authn, "/v1/grants/:id", a.GetGrant)
+	post(a, authn, "/v1/grants", a.CreateGrant)
+	delete(a, authn, "/v1/grants/:id", a.DeleteGrant)
 
-		get(a, authorized, "/groups", a.ListGroups)
-		post(a, authorized, "/groups", a.CreateGroup)
-		get(a, authorized, "/groups/:id", a.GetGroup)
-		get(a, authorized, "/groups/:id/grants", a.ListGroupGrants)
+	post(a, authn, "/v1/providers", a.CreateProvider)
+	put(a, authn, "/v1/providers/:id", a.UpdateProvider)
+	delete(a, authn, "/v1/providers/:id", a.DeleteProvider)
 
-		get(a, authorized, "/grants", a.ListGrants)
-		get(a, authorized, "/grants/:id", a.GetGrant)
-		post(a, authorized, "/grants", a.CreateGrant)
-		delete(a, authorized, "/grants/:id", a.DeleteGrant)
+	get(a, authn, "/v1/destinations", a.ListDestinations)
+	get(a, authn, "/v1/destinations/:id", a.GetDestination)
+	post(a, authn, "/v1/destinations", a.CreateDestination)
+	put(a, authn, "/v1/destinations/:id", a.UpdateDestination)
+	delete(a, authn, "/v1/destinations/:id", a.DeleteDestination)
 
-		post(a, authorized, "/providers", a.CreateProvider)
-		put(a, authorized, "/providers/:id", a.UpdateProvider)
-		delete(a, authorized, "/providers/:id", a.DeleteProvider)
+	get(a, authn, "/v1/introspect", a.Introspect)
+	post(a, authn, "/v1/tokens", a.CreateToken)
+	post(a, authn, "/v1/logout", a.Logout)
 
-		get(a, authorized, "/destinations", a.ListDestinations)
-		get(a, authorized, "/destinations/:id", a.GetDestination)
-		post(a, authorized, "/destinations", a.CreateDestination)
-		put(a, authorized, "/destinations/:id", a.UpdateDestination)
-		delete(a, authorized, "/destinations/:id", a.DeleteDestination)
+	authn.GET("/v1/debug/pprof/*profile", a.pprofHandler)
 
-		post(a, authorized, "/tokens", a.CreateToken)
+	// these endpoints do not require authentication
+	noAuthn := api.Group("/")
+	get(a, noAuthn, "/v1/setup", a.SetupRequired)
+	post(a, noAuthn, "/v1/setup", a.Setup)
 
-		post(a, authorized, "/logout", a.Logout)
-	}
+	post(a, noAuthn, "/v1/login", a.Login)
 
-	// these endpoints are left unauthenticated
-	unauthorized := v1.Group("/")
+	get(a, noAuthn, "/v1/providers", a.ListProviders)
+	get(a, noAuthn, "/v1/providers/:id", a.GetProvider)
 
-	{
-		get(a, unauthorized, "/setup", a.SetupRequired)
-		post(a, unauthorized, "/setup", a.Setup)
-
-		post(a, unauthorized, "/login", a.Login)
-
-		get(a, unauthorized, "/providers", a.ListProviders)
-		get(a, unauthorized, "/providers/:id", a.GetProvider)
-
-		get(a, unauthorized, "/version", a.Version)
-	}
-
-	debug := v1.Group("/debug/pprof", AuthenticationMiddleware(a))
-	debug.GET("/*profile", a.pprofHandler)
+	get(a, noAuthn, "/v1/version", a.Version)
 
 	// TODO: remove after a couple version.
-	v1.GET("/users", removed("v0.9.0"))
-	v1.POST("/users", removed("v0.9.0"))
-	v1.GET("/users/:id", removed("v0.9.0"))
-	v1.PUT("/users/:id", removed("v0.9.0"))
-	v1.DELETE("/users/:id", removed("v0.9.0"))
-	v1.GET("/users/:id/groups", removed("v0.9.0"))
-	v1.GET("/users/:id/grants", removed("v0.9.0"))
-	v1.GET("/machines", removed("v0.9.0"))
-	v1.POST("/machines", removed("v0.9.0"))
-	v1.GET("/machines/:id", removed("v0.9.0"))
-	v1.DELETE("/machines/:id", removed("v0.9.0"))
-	v1.GET("/machines/:id/grants", removed("v0.9.0"))
+	noAuthn.GET("/v1/users", removed("v0.9.0"))
+	noAuthn.POST("/v1/users", removed("v0.9.0"))
+	noAuthn.GET("/v1/users/:id", removed("v0.9.0"))
+	noAuthn.PUT("/v1/users/:id", removed("v0.9.0"))
+	noAuthn.DELETE("/v1/users/:id", removed("v0.9.0"))
+	noAuthn.GET("/v1/users/:id/groups", removed("v0.9.0"))
+	noAuthn.GET("/v1/users/:id/grants", removed("v0.9.0"))
+	noAuthn.GET("/v1/machines", removed("v0.9.0"))
+	noAuthn.POST("/v1/machines", removed("v0.9.0"))
+	noAuthn.GET("/v1/machines/:id", removed("v0.9.0"))
+	noAuthn.DELETE("/v1/machines/:id", removed("v0.9.0"))
+	noAuthn.GET("/v1/machines/:id/grants", removed("v0.9.0"))
+
+	// registerUIRoutes must happen last because it uses catch-all middleware
+	// with no handlers. Any route added after the UI will end up using the
+	// UI middleware unnecessarily.
+	// This is a limitation because we serve the UI from / instead of a specific
+	// path prefix.
+	if err := s.registerUIRoutes(router); err != nil {
+		return nil, err
+	}
+	return router, nil
 }
 
 type ReqHandlerFunc[Req any] func(c *gin.Context, req *Req) error
@@ -274,6 +271,26 @@ func (a *API) wellKnownJWKsHandler(c *gin.Context) {
 	})
 }
 
-func (a *API) healthHandler(c *gin.Context) {
+func healthHandler(c *gin.Context) {
 	c.Status(http.StatusOK)
+}
+
+// TODO: use the HTTP Accept header instead of the path to determine the
+// format of the response body. https://github.com/infrahq/infra/issues/1610
+func (a *API) notFoundHandler(c *gin.Context) {
+	if strings.HasPrefix(c.Request.URL.Path, "/v1") {
+		a.sendAPIError(c, internal.ErrNotFound)
+		return
+	}
+
+	c.Status(http.StatusNotFound)
+	buf, err := assetFS.ReadFile("ui/404.html")
+	if err != nil {
+		logging.S.Error(err)
+	}
+
+	_, err = c.Writer.Write(buf)
+	if err != nil {
+		logging.S.Error(err)
+	}
 }

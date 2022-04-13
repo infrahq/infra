@@ -336,27 +336,6 @@ func (s *Server) registerUIRoutes(router *gin.Engine) error {
 
 	staticFS := &StaticFileSystem{base: http.FS(assetFS)}
 	router.Use(gzip.Gzip(gzip.DefaultCompression), static.Serve("/", staticFS))
-
-	// 404
-	router.NoRoute(func(c *gin.Context) {
-		if strings.HasPrefix(c.Request.URL.Path, "/v1") {
-			c.Status(404)
-			c.Writer.WriteHeaderNow()
-			return
-		}
-
-		c.Status(http.StatusNotFound)
-		buf, err := assetFS.ReadFile("ui/404.html")
-		if err != nil {
-			logging.S.Error(err)
-		}
-
-		_, err = c.Writer.Write(buf)
-		if err != nil {
-			logging.S.Error(err)
-		}
-	})
-
 	return nil
 }
 
