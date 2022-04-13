@@ -25,7 +25,7 @@ func TestListProviders(t *testing.T) {
 	err := s.importAccessKeys()
 	assert.NilError(t, err)
 
-	routes, err := s.GenerateRoutes(prometheus.NewRegistry())
+	routes := s.GenerateRoutes(prometheus.NewRegistry())
 	assert.NilError(t, err)
 
 	testProvider := &models.Provider{
@@ -66,7 +66,7 @@ func TestDeleteProvider(t *testing.T) {
 	err := s.importAccessKeys()
 	assert.NilError(t, err)
 
-	routes, err := s.GenerateRoutes(prometheus.NewRegistry())
+	routes := s.GenerateRoutes(prometheus.NewRegistry())
 	assert.NilError(t, err)
 
 	testProvider := &models.Provider{
@@ -97,7 +97,7 @@ func TestDeleteProvider_NoDeleteInternalProvider(t *testing.T) {
 	err := s.importAccessKeys()
 	assert.NilError(t, err)
 
-	routes, err := s.GenerateRoutes(prometheus.NewRegistry())
+	routes := s.GenerateRoutes(prometheus.NewRegistry())
 	assert.NilError(t, err)
 
 	route := fmt.Sprintf("/v1/providers/%s", s.InternalProvider.ID)
@@ -121,7 +121,7 @@ func TestDeleteIdentity(t *testing.T) {
 	err := s.importAccessKeys()
 	assert.NilError(t, err)
 
-	routes, err := s.GenerateRoutes(prometheus.NewRegistry())
+	routes := s.GenerateRoutes(prometheus.NewRegistry())
 	assert.NilError(t, err)
 
 	testUser := &models.Identity{
@@ -153,7 +153,7 @@ func TestDeleteIdentity_NoDeleteInternalIdentities(t *testing.T) {
 	err := s.importAccessKeys()
 	assert.NilError(t, err)
 
-	routes, err := s.GenerateRoutes(prometheus.NewRegistry())
+	routes := s.GenerateRoutes(prometheus.NewRegistry())
 	assert.NilError(t, err)
 
 	for name := range s.InternalIdentities {
@@ -175,15 +175,14 @@ func TestDeleteIdentity_NoDeleteInternalIdentities(t *testing.T) {
 func TestDeleteIdentity_NoDeleteSelf(t *testing.T) {
 	s := setupServer(t)
 
-	routes, err := s.GenerateRoutes(prometheus.NewRegistry())
-	assert.NilError(t, err)
+	routes := s.GenerateRoutes(prometheus.NewRegistry())
 
 	testUser := &models.Identity{
 		Name: "test",
 		Kind: models.UserKind,
 	}
 
-	err = data.CreateIdentity(s.db, testUser)
+	err := data.CreateIdentity(s.db, testUser)
 	assert.NilError(t, err)
 
 	testAccessKey, err := data.CreateAccessKey(s.db, &models.AccessKey{Name: "test", IssuedFor: testUser.ID, ExpiresAt: time.Now().Add(time.Hour), ProviderID: s.InternalProvider.ID})

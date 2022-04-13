@@ -917,9 +917,11 @@ func TestServer_Run_UIProxy(t *testing.T) {
 		DBEncryptionKey:         filepath.Join(dir, "sqlite3.db.key"),
 		TLSCache:                filepath.Join(dir, "tlscache"),
 		DBFile:                  filepath.Join(dir, "sqlite3.db"),
-		UI:                      UIOptions{Enabled: true, ProxyURL: uiSrv.URL},
+		UI:                      UIOptions{Enabled: true},
 		EnableSetup:             true,
 	}
+	assert.NilError(t, opts.UI.ProxyURL.Set(uiSrv.URL))
+
 	srv, err := New(opts)
 	assert.NilError(t, err)
 
@@ -962,8 +964,7 @@ func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
 	}
 
 	s := &Server{options: Options{UI: UIOptions{Enabled: true}}}
-	router, err := s.GenerateRoutes(prometheus.NewRegistry())
-	assert.NilError(t, err)
+	router := s.GenerateRoutes(prometheus.NewRegistry())
 
 	run := func(t *testing.T, tc testCase) {
 		req := httptest.NewRequest(http.MethodGet, tc.path, nil)
@@ -1013,8 +1014,7 @@ func TestServer_GenerateRoutes_UI(t *testing.T) {
 	}
 
 	s := &Server{options: Options{UI: UIOptions{Enabled: true}}}
-	router, err := s.GenerateRoutes(prometheus.NewRegistry())
-	assert.NilError(t, err)
+	router := s.GenerateRoutes(prometheus.NewRegistry())
 
 	run := func(t *testing.T, tc testCase) {
 		req := httptest.NewRequest(http.MethodGet, tc.path, nil)

@@ -45,7 +45,7 @@ func newServerCmd() *cobra.Command {
 
 			options.DBEncryptionKey = dbEncryptionKey
 
-			srv, err := server.New(options)
+			srv, err := newServer(options)
 			if err != nil {
 				return fmt.Errorf("creating server: %w", err)
 			}
@@ -69,7 +69,7 @@ func newServerCmd() *cobra.Command {
 	cmd.Flags().Bool("enable-telemetry", true, "Enable telemetry")
 	cmd.Flags().Bool("enable-crash-reporting", true, "Enable crash reporting")
 	cmd.Flags().BoolVar(&options.UI.Enabled, "enable-ui", false, "Enable Infra server UI")
-	cmd.Flags().StringVar(&options.UI.ProxyURL, "ui-proxy-url", "", "Proxy upstream UI requests to this url")
+	cmd.Flags().Var(&options.UI.ProxyURL, "ui-proxy-url", "Proxy upstream UI requests to this url")
 	cmd.Flags().Duration("session-duration", time.Hour*12, "User session duration")
 	cmd.Flags().Bool("enable-setup", true, "Enable one-time setup")
 
@@ -90,3 +90,6 @@ func defaultServerOptions() server.Options {
 var runServer = func(ctx context.Context, srv *server.Server) error {
 	return srv.Run(ctx)
 }
+
+// newServer is a shim for testing.
+var newServer = server.New
