@@ -82,7 +82,7 @@ type ListenerOptions struct {
 
 type UIOptions struct {
 	Enabled  bool
-	ProxyURL types.URL
+	ProxyURL types.URL `mapstructure:"proxyURL"`
 }
 
 type Server struct {

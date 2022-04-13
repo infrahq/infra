@@ -117,6 +117,28 @@ func TestServerCmd_ParseOptions(t *testing.T) {
 				return expected
 			},
 		},
+		{
+			name: "parse ui-proxy-url from config file",
+			setup: func(t *testing.T, cmd *cobra.Command) {
+				content := `
+                  ui:
+                    enabled: true
+                    proxyURL: https://127.0.1.2:34567
+`
+				dir := fs.NewDir(t, t.Name(),
+					fs.WithFile("cfg.yaml", content))
+				cmd.SetArgs([]string{"--config-file", dir.Join("cfg.yaml")})
+			},
+			expected: func(t *testing.T) server.Options {
+				expected := serverOptionsWithDefaults()
+				expected.UI.ProxyURL = types.URL{
+					Scheme: "https",
+					Host:   "127.0.1.2:34567",
+				}
+				expected.UI.Enabled = true
+				return expected
+			},
+		},
 	}
 
 	for _, tc := range testCases {
