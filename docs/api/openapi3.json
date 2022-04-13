@@ -104,12 +104,6 @@
           },
           "oneTimePassword": {
             "type": "string"
-          },
-          "providerID": {
-            "example": "4yJ3n3D8E2",
-            "format": "uid",
-            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-            "type": "string"
           }
         },
         "required": [
@@ -1936,7 +1930,7 @@
           {
             "description": "Show identities that exist in grants but are not linked to an identity provider",
             "in": "query",
-            "name": "includeUnlinked",
+            "name": "all",
             "schema": {
               "description": "Show identities that exist in grants but are not linked to an identity provider",
               "type": "boolean"
@@ -2031,11 +2025,8 @@
                   "name": {
                     "type": "string"
                   },
-                  "providerID": {
-                    "example": "4yJ3n3D8E2",
-                    "format": "uid",
-                    "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-                    "type": "string"
+                  "setOneTimePassword": {
+                    "type": "boolean"
                   }
                 },
                 "required": [

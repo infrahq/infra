@@ -331,7 +331,7 @@ infra identities list [flags]
 ### Options
 
 ```
-      --unlinked   Show identities that exist in grants but are not linked to an identity provider
+      --all   Show identities that exist in grants but are not linked to an identity provider
 ```
 
 ### Options inherited from parent commands

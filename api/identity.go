@@ -14,14 +14,14 @@ type Identity struct {
 }
 
 type ListIdentitiesRequest struct {
-	Name            string `form:"name"`
-	IncludeUnlinked bool   `form:"includeUnlinked" note:"Show identities that exist in grants but are not linked to an identity provider"`
+	Name string `form:"name"`
+	All  bool   `form:"all" note:"Show identities that exist in grants but are not linked to an identity provider"`
 }
 
 type CreateIdentityRequest struct {
-	Name       string  `json:"name" validate:"required"`
-	Kind       string  `json:"kind" validate:"required,oneof=user machine"`
-	ProviderID *uid.ID `json:"providerID"`
+	Name               string `json:"name" validate:"required"`
+	Kind               string `json:"kind" validate:"required,oneof=user machine"`
+	SetOneTimePassword bool   `json:"setOneTimePassword"`
 }
 
 type UpdateIdentityRequest struct {
@@ -32,6 +32,5 @@ type UpdateIdentityRequest struct {
 type CreateIdentityResponse struct {
 	ID              uid.ID `json:"id"`
 	Name            string `json:"name" validate:"required"`
-	ProviderID      uid.ID `json:"providerID,omitempty" `
 	OneTimePassword string `json:"oneTimePassword,omitempty"`
 }

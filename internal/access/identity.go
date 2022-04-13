@@ -103,30 +103,32 @@ func ListIdentities(c *gin.Context, name string, includeUnlinked bool) ([]models
 
 	// filter out identities that do not have a linked provider
 
-	providerIdentities, err := data.ListProviderUsers(db)
+	var identityIDs []uid.ID
+
+	for _, identity := range identities {
+		identityIDs = append(identityIDs, identity.ID)
+	}
+
+	providerIdentities, err := data.ListProviderUsers(db, data.ByIdentityIDs(identityIDs))
 	if err != nil {
 		return nil, err
 	}
 
 	// map identity ID of providerIdentity to an identity
-	idToIdentity := make(map[uid.ID]*models.Identity)
-	for i := range identities {
-		idToIdentity[identities[i].ID] = &identities[i]
-	}
-
-	var activeIdentities []models.Identity
+	activeIdentities := make(map[uid.ID]bool)
+	var result []models.Identity
 
 	for _, active := range providerIdentities {
-		activeIdentity := idToIdentity[active.IdentityID]
-		if activeIdentity != nil {
-			activeIdentities = append(activeIdentities, *activeIdentity)
+		activeIdentities[active.IdentityID] = true
+	}
 
-			// remove from the map so we don't add identities multiple times
-			idToIdentity[active.IdentityID] = nil
+	for _, identity := range identities {
+		if activeIdentities[identity.ID] {
+			result = append(result, identity)
 		}
 	}
 
-	return activeIdentities, nil
+	return result, nil
 }
 
 // UpdateUserInfoFromProvider calls the user info endpoint of an external identity provider to see a user's current attributes

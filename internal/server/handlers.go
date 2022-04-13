@@ -25,7 +25,7 @@ type API struct {
 }
 
 func (a *API) ListIdentities(c *gin.Context, r *api.ListIdentitiesRequest) ([]api.Identity, error) {
-	identities, err := access.ListIdentities(c, r.Name, r.IncludeUnlinked)
+	identities, err := access.ListIdentities(c, r.Name, r.All)
 	if err != nil {
 		return nil, err
 	}
@@ -58,8 +58,8 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 		Kind: kind,
 	}
 
-	// identity creation linked to a provider should be attempted even if an identity is already known
-	if r.ProviderID != nil {
+	// infra identity creation should be attempted even if an identity is already known
+	if r.SetOneTimePassword {
 		identities, err := access.ListIdentities(c, identity.Name, true)
 		if err != nil {
 			return nil, fmt.Errorf("list identities: %w", err)
@@ -86,28 +86,19 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 		Name: identity.Name,
 	}
 
-	if r.ProviderID != nil {
-		provider, err := access.GetProvider(c, *r.ProviderID)
-		if err != nil {
-			return nil, fmt.Errorf("get provider: %w", err)
-		}
-
+	if r.SetOneTimePassword {
 		// this is a placeholder for when the user logs in using this provider
-		_, err = access.CreateProviderUser(c, provider, identity)
+		_, err = access.CreateProviderUser(c, access.InfraProvider(c), identity)
 		if err != nil {
 			return nil, fmt.Errorf("create provider user")
 		}
 
-		resp.ProviderID = provider.ID
-
-		if (identity.Kind == models.UserKind) && (models.InternalInfraProviderName == provider.Name) {
-			oneTimePassword, err := access.CreateCredential(c, *identity)
-			if err != nil {
-				return nil, fmt.Errorf("create credential: %w", err)
-			}
-
-			resp.OneTimePassword = oneTimePassword
+		oneTimePassword, err := access.CreateCredential(c, *identity)
+		if err != nil {
+			return nil, fmt.Errorf("create credential: %w", err)
 		}
+
+		resp.OneTimePassword = oneTimePassword
 	}
 
 	defaultGrant := &models.Grant{Subject: identity.PolyID(), Privilege: models.InfraUserRole, Resource: access.ResourceInfraAPI}

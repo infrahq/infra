@@ -33,8 +33,15 @@ func newIdentitiesCmd() *cobra.Command {
 	return cmd
 }
 
-type identityCmdOptions struct {
-	Password        bool `mapstructure:"password"`
+type addIdentityCmdOptions struct {
+	Password bool `mapstructure:"password"`
+}
+
+type editIdentityCmdOptions struct {
+	Password bool `mapstructure:"password"`
+}
+
+type listIdentityCmdOptions struct {
 	includeUnlinked bool `mapstructure:"unlinked"`
 }
 
@@ -53,18 +60,12 @@ EMAIL must contain a valid email address in the form of "local@domain".
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
-			var options identityCmdOptions
+			var options addIdentityCmdOptions
 			if err := parseOptions(cmd, &options, ""); err != nil {
 				return err
 			}
 
-			// an identity created with this command always exists in the local infra provider
-			infraProvider, err := GetInfraProvider()
-			if err != nil {
-				return err
-			}
-
-			createResp, err := CreateProviderIdentity(name, infraProvider)
+			createResp, err := CreateIdentity(&api.CreateIdentityRequest{Name: name, SetOneTimePassword: true})
 			if err != nil {
 				return err
 			}
@@ -93,7 +94,7 @@ func newIdentitiesEditCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
-			var options identityCmdOptions
+			var options editIdentityCmdOptions
 			if err := parseOptions(cmd, &options, ""); err != nil {
 				return err
 			}
@@ -137,7 +138,7 @@ func newIdentitiesListCmd() *cobra.Command {
 		Aliases: []string{"ls"},
 		Short:   "List all identities",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var options identityCmdOptions
+			var options listIdentityCmdOptions
 			if err := parseOptions(cmd, &options, ""); err != nil {
 				return err
 			}
@@ -154,7 +155,7 @@ func newIdentitiesListCmd() *cobra.Command {
 
 			var rows []row
 
-			identities, err := client.ListIdentities(api.ListIdentitiesRequest{IncludeUnlinked: options.includeUnlinked})
+			identities, err := client.ListIdentities(api.ListIdentitiesRequest{All: options.includeUnlinked})
 			if err != nil {
 				return err
 			}
@@ -176,7 +177,7 @@ func newIdentitiesListCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().Bool("unlinked", false, "Show identities that exist in grants but are not linked to an identity provider")
+	cmd.Flags().Bool("all", false, "Show identities that exist in grants but are not linked to an identity provider")
 	return cmd
 }
 
@@ -242,31 +243,19 @@ func checkUserOrMachine(s string) (models.IdentityKind, error) {
 	return models.UserKind, nil
 }
 
-// CreateIdentity creates an identity within Infra that is not associated with any provider
-func CreateIdentity(name string) (*api.CreateIdentityResponse, error) {
-	return CreateProviderIdentity(name, nil)
-}
-
-// CreateProviderIdentity creates an identity within infra, if a provider is specified it also associated with that provider
-func CreateProviderIdentity(name string, provider *api.Provider) (*api.CreateIdentityResponse, error) {
+// CreateIdentity creates an identity within infra
+func CreateIdentity(req *api.CreateIdentityRequest) (*api.CreateIdentityResponse, error) {
 	client, err := defaultAPIClient()
 	if err != nil {
 		return nil, err
 	}
 
-	kind, err := checkUserOrMachine(name)
+	kind, err := checkUserOrMachine(req.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	req := &api.CreateIdentityRequest{
-		Name: name,
-		Kind: kind.String(),
-	}
-
-	if provider != nil {
-		req.ProviderID = &provider.ID
-	}
+	req.Kind = kind.String()
 
 	resp, err := client.CreateIdentity(req)
 	if err != nil {
@@ -276,7 +265,7 @@ func CreateProviderIdentity(name string, provider *api.Provider) (*api.CreateIde
 	return resp, nil
 }
 
-func UpdateIdentity(name string, cmdOptions identityCmdOptions) error {
+func UpdateIdentity(name string, cmdOptions editIdentityCmdOptions) error {
 	client, err := defaultAPIClient()
 	if err != nil {
 		return err
