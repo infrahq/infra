@@ -6,6 +6,7 @@ import (
 	"net/mail"
 	"os"
 	"regexp"
+	"sort"
 
 	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
@@ -140,8 +141,9 @@ func newIdentitiesListCmd() *cobra.Command {
 			}
 
 			type row struct {
-				Name string `header:"Name"`
-				Type string `header:"Type"`
+				Name       string `header:"Name"`
+				Type       string `header:"Type"`
+				LastSeenAt string `header:"Last Seen"`
 			}
 
 			var rows []row
@@ -151,10 +153,15 @@ func newIdentitiesListCmd() *cobra.Command {
 				return err
 			}
 
+			sort.Slice(identities, func(i, j int) bool {
+				return identities[i].LastSeenAt.After(identities[j].LastSeenAt)
+			})
+
 			for _, identity := range identities {
 				rows = append(rows, row{
-					Name: identity.Name,
-					Type: identity.Kind,
+					Name:       identity.Name,
+					Type:       identity.Kind,
+					LastSeenAt: identity.LastSeenAt.Relative("never"),
 				})
 			}
 
