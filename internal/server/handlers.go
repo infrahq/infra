@@ -101,11 +101,6 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 		resp.OneTimePassword = oneTimePassword
 	}
 
-	defaultGrant := &models.Grant{Subject: identity.PolyID(), Privilege: models.InfraUserRole, Resource: access.ResourceInfraAPI}
-	if err := access.CreateGrant(c, defaultGrant); err != nil {
-		return nil, err
-	}
-
 	a.t.User(identity)
 
 	return resp, nil
