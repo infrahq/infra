@@ -3,21 +3,6 @@ global:
     tag: $IMAGE_TAG
     pullPolicy: Never
 
-server:
-  additionalProviders:
-    - name: okta
-      url: $OKTA_DOMAIN
-      clientID: $OKTA_CLIENT_ID
-      clientSecret: $OKTA_CLIENT_SECRET
-
-  additionalGrants:
-    - group: Everyone
-      role: cluster-admin
-      resource: kubernetes.docker-desktop
-    - machine: admin
-      role: cluster-admin
-      resource: kubernetes.docker-desktop
-
 connector:
   config:
     name: docker-desktop

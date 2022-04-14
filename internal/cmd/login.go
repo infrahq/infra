@@ -27,7 +27,7 @@ import (
 )
 
 type loginCmdOptions struct {
-	Server        string `mapstructure:"server"`
+	URL           string `mapstructure:"url"`
 	AccessKey     string `mapstructure:"key"`
 	Provider      string `mapstructure:"provider"`
 	SkipTLSVerify bool   `mapstructure:"skipTLSVerify"`
@@ -45,24 +45,21 @@ const cliLoginRedirectURL = "http://localhost:8301"
 
 func newLoginCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "login [SERVER]",
+		Use:   "login [URL]",
 		Short: "Login to Infra",
 		Example: `
 # By default, login will prompt for all required information.
 $ infra login
 
-# Login to a specified server
-$ infra login SERVER
-$ infra login --server SERVER
+# Login to a specific server
+$ infra login infraexampleserver.com
+$ infra login --url infraexampleserver.com
+
+# Login with a specific identity provider
+$ infra login --provider okta
 
 # Login with an access key
-$ infra login --key KEY
-
-# Login with a specified provider
-$ infra login --provider NAME
-
-# Use the '--non-interactive' flag to error out instead of prompting.
-`,
+$ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy`,
 		Args:  cobra.MaximumNArgs(1),
 		Group: "Core commands:",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -74,10 +71,10 @@ $ infra login --provider NAME
 			}
 
 			if len(args) == 1 {
-				if options.Server != "" {
-					fmt.Fprintf(os.Stderr, "Server is specified twice. Ignoring flag [--server] and proceeding with %s", options.Server)
+				if options.URL != "" {
+					fmt.Fprintf(os.Stderr, "Server is specified twice. Ignoring flag [--url] and logging in to server %s", options.URL)
 				}
-				options.Server = args[0]
+				options.URL = args[0]
 			}
 
 			return login(options)
@@ -85,7 +82,7 @@ $ infra login --provider NAME
 	}
 
 	cmd.Flags().String("key", "", "Login with an access key")
-	cmd.Flags().String("server", "", "Infra server to login to")
+	cmd.Flags().String("url", "", "Infra server URL")
 	cmd.Flags().String("provider", "", "Login with an identity provider")
 	cmd.Flags().Bool("skip-tls-verify", false, "Skip verifying server TLS certificates")
 	return cmd
@@ -94,14 +91,14 @@ $ infra login --provider NAME
 func login(options loginCmdOptions) error {
 	var err error
 
-	if options.Server == "" {
-		options.Server, err = promptServer()
+	if options.URL == "" {
+		options.URL, err = promptServer()
 		if err != nil {
 			return err
 		}
 	}
 
-	client, err := newAPIClient(options.Server, options.SkipTLSVerify)
+	client, err := newAPIClient(options.URL, options.SkipTLSVerify)
 	if err != nil {
 		return err
 	}
@@ -438,7 +435,7 @@ func listProviders(client *api.Client) ([]api.Provider, error) {
 
 func promptLoginOptions(client *api.Client) (loginMethod loginMethod, provider *api.Provider, err error) {
 	if isNonInteractiveMode() {
-		return 0, nil, fmt.Errorf("Non-interactive login requires key, instead run: 'infra login SERVER --non-interactive --key KEY")
+		return 0, nil, fmt.Errorf("Non-interactive login requires key, instead run: 'infra login URL --non-interactive --key KEY")
 	}
 
 	providers, err := listProviders(client)
@@ -499,7 +496,7 @@ func promptSkipTLSVerify() error {
 // Returns the host address of the Infra server that user would like to log into
 func promptServer() (string, error) {
 	if isNonInteractiveMode() {
-		return "", fmt.Errorf("Non-interactive login requires the [SERVER] argument")
+		return "", fmt.Errorf("Non-interactive login requires the [URL] argument")
 	}
 
 	config, err := readOrCreateClientConfig()
@@ -507,32 +504,50 @@ func promptServer() (string, error) {
 		return "", err
 	}
 
-	hosts := config.HostNames()
+	servers := config.Hosts
 
-	if len(hosts) == 0 {
-		return promptNewHost()
+	if len(servers) == 0 {
+		return promptNewServer()
 	}
 
-	return promptExistingHosts(hosts)
+	return promptExistingServers(servers)
 }
 
-func promptNewHost() (string, error) {
-	var host string
-	err := survey.AskOne(&survey.Input{Message: "Host:"}, &host, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithValidator(survey.Required))
+func promptNewServer() (string, error) {
+	var url string
+	err := survey.AskOne(&survey.Input{Message: "Server URL:"}, &url, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithValidator(survey.Required))
 	if err != nil {
 		return "", err
 	}
 
-	return host, nil
+	return url, nil
 }
 
-func promptExistingHosts(hosts []string) (string, error) {
-	const defaultOption string = "Connect to a different host"
-	hosts = append(hosts, defaultOption)
+func promptExistingServers(servers []ClientHostConfig) (string, error) {
+	var promptOptions []string
+
+	for _, server := range servers {
+		promptOption := server.Host
+
+		if server.isLoggedIn() {
+			if server.Current {
+				promptOption += " (logged in, current)"
+			} else {
+				promptOption += " (logged in)"
+			}
+		} else if server.isExpired() && server.Current {
+			promptOption += " (expired, current)"
+		}
+
+		promptOptions = append(promptOptions, promptOption)
+	}
+
+	const defaultOption string = "Connect to a new server"
+	promptOptions = append(promptOptions, "Connect to a new server")
 
 	prompt := &survey.Select{
 		Message: "Select a server:",
-		Options: hosts,
+		Options: promptOptions,
 	}
 
 	filter := func(filterValue string, optValue string, optIndex int) bool {
@@ -544,9 +559,9 @@ func promptExistingHosts(hosts []string) (string, error) {
 		return "", err
 	}
 
-	if hosts[i] == defaultOption {
-		return promptNewHost()
+	if promptOptions[i] == defaultOption {
+		return promptNewServer()
 	}
 
-	return hosts[i], nil
+	return servers[i].Host, nil
 }
