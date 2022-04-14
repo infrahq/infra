@@ -43,15 +43,17 @@ func TestLogout(t *testing.T) {
 			Version: "0.3",
 			Hosts: []ClientHostConfig{
 				{
-					Name:          "host1",
+					Name:          "user1",
 					Host:          srv.Listener.Addr().String(),
 					AccessKey:     "the-access-key",
+					PolymorphicID: "pid1",
 					SkipTLSVerify: true,
 				},
 				{
-					Name:          "host2",
+					Name:          "user2",
 					Host:          srv2.Listener.Addr().String(),
 					AccessKey:     "the-access-key",
+					PolymorphicID: "pid12",
 					SkipTLSVerify: true,
 				},
 			},
