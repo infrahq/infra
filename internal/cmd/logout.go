@@ -42,7 +42,7 @@ $ infra logout --all --clear`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 1 {
 				if all {
-					fmt.Fprintf(os.Stderr, "Server is specified. Ignoring flag [--all] and logging out of server %s", args[1])
+					fmt.Fprintf(os.Stderr, "Server is specified. Ignoring flag [--all] and logging out of server %s.", args[1])
 				}
 				url = args[0]
 			}
@@ -76,15 +76,40 @@ func logout(clear bool, url string, all bool) error {
 		return err
 	}
 
+	//To do : output change of state
+
 	// Log out of server(s)
+	stateChanged := false
 	for i, hostConfig := range config.Hosts {
-		if all || url == hostConfig.Host || url == "" && hostConfig.Current {
+		if all || (url == hostConfig.Host) || (url == "" && hostConfig.Current) {
 			logoutOfServer(hostConfig)
 
+			// Clear user information
 			config.Hosts[i].AccessKey = ""
 			config.Hosts[i].PolymorphicID = ""
 			config.Hosts[i].Name = ""
+
+			if !all {
+				fmt.Fprintf(os.Stderr, "  Logged out of server %s.\n", config.Hosts[i].Host)
+			}
+			stateChanged = true
 		}
+	}
+
+	if !stateChanged {
+		switch {
+		case url == "":
+			fmt.Fprintf(os.Stderr, "  No current session to log out from.\n")
+		case all:
+			fmt.Fprintf(os.Stderr, "  Not logged in to any server.\n")
+		default:
+			fmt.Fprintf(os.Stderr, "  Not logged in to server %s.\n", url)
+		}
+		return nil
+	}
+
+	if all {
+		fmt.Fprintf(os.Stderr, "  Logged out of all servers.\n")
 	}
 
 	// Clear from list of saved servers
@@ -92,13 +117,11 @@ func logout(clear bool, url string, all bool) error {
 	if clear {
 		if all {
 			config.Hosts = nil
+			fmt.Fprintf(os.Stderr, "  Cleared list of all servers\n")
 		} else {
 			for i := range config.Hosts {
-				if url == "" && config.Hosts[i].Current {
-					continue
-				}
-
-				if url != "" && url == config.Hosts[i].Name {
+				if (url == config.Hosts[i].Host) || (url == "" && config.Hosts[i].Current) {
+					fmt.Fprintf(os.Stderr, "  Cleared [%s] from list of servers\n", config.Hosts[i].Host)
 					continue
 				}
 

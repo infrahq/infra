@@ -526,19 +526,7 @@ func promptExistingServers(servers []ClientHostConfig) (string, error) {
 	var promptOptions []string
 
 	for _, server := range servers {
-		promptOption := server.Host
-
-		if server.isLoggedIn() {
-			if server.Current {
-				promptOption += " (logged in, current)"
-			} else {
-				promptOption += " (logged in)"
-			}
-		} else if server.isExpired() && server.Current {
-			promptOption += " (expired, current)"
-		}
-
-		promptOptions = append(promptOptions, promptOption)
+		promptOptions = append(promptOptions, server.Host)
 	}
 
 	const defaultOption string = "Connect to a new server"
