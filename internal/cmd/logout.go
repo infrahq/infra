@@ -18,11 +18,27 @@ func newLogoutCmd() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:     "logout [URL]",
-		Short:   "Log out of Infra",
-		Example: "$ infra logout",
-		Args:    cobra.MaximumNArgs(1),
-		Group:   "Core commands:",
+		Use:   "logout [URL]",
+		Short: "Log out of Infra",
+		Example: `# Log out of current server
+$ infra logout
+		
+# Log out of a specific server
+$ infra logout INFRA_URL
+		
+# Logout of all servers
+$ infra logout --all 
+		
+# Log out of current server and clear from list 
+$ infra logout --clear
+		
+# Log out of a specific server and clear from list
+$ infra logout URL --clear 
+		
+# Logout and clear list of all servers 
+$ infra logout --all --clear`,
+		Args:  cobra.MaximumNArgs(1),
+		Group: "Core commands:",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 1 {
 				if all {

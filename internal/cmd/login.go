@@ -47,8 +47,7 @@ func newLoginCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "login [URL]",
 		Short: "Login to Infra",
-		Example: `
-# By default, login will prompt for all required information.
+		Example: `# By default, login will prompt for all required information.
 $ infra login
 
 # Login to a specific server
