@@ -44,22 +44,18 @@ const Connect = () => {
 
 
   const updateConnectedStatus = useCallback((value) => {
-    console.log('updating connected status')
     setConnected(value)
   })
 
   const updateAccessKey = useCallback((key) => {
-    console.log('updating connected key')
     setAccessKey(key)
   })
 
   const updateCurrentDestinationName = useCallback((name) => {
-    console.log('updating connected name')
     setCurrentDestinationName(name)
   })
 
   const updateEnabledCommandInputStatus = useCallback((status) => {
-    console.log('updating enabled command input:', status)
     setEnabledCommandInput(status)
   })
 
