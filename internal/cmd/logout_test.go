@@ -53,7 +53,7 @@ func TestLogout(t *testing.T) {
 					Name:          "user2",
 					Host:          srv2.Listener.Addr().String(),
 					AccessKey:     "the-access-key",
-					PolymorphicID: "pid12",
+					PolymorphicID: "pid2",
 					SkipTLSVerify: true,
 				},
 			},
@@ -104,7 +104,11 @@ func TestLogout(t *testing.T) {
 
 		expected := cfg
 		expected.Hosts[0].AccessKey = ""
+		expected.Hosts[0].Name = ""
+		expected.Hosts[0].PolymorphicID = ""
 		expected.Hosts[1].AccessKey = ""
+		expected.Hosts[1].Name = ""
+		expected.Hosts[1].PolymorphicID = ""
 		assert.DeepEqual(t, &expected, updatedCfg)
 
 		updatedKubeCfg, err := clientConfig().RawConfig()
