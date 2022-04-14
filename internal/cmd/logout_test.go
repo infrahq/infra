@@ -110,9 +110,9 @@ func TestLogout(t *testing.T) {
 		assert.DeepEqual(t, expectedKubeCfg, updatedKubeCfg, cmpopts.EquateEmpty())
 	})
 
-	t.Run("with purge", func(t *testing.T) {
+	t.Run("with clear", func(t *testing.T) {
 		_, count := setup(t)
-		err := Run(context.Background(), "logout", "--purge")
+		err := Run(context.Background(), "logout", "--clear")
 		assert.NilError(t, err)
 
 		assert.Equal(t, int32(2), atomic.LoadInt32(count), "calls to API")
