@@ -25,24 +25,23 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func setupServer(t *testing.T) *Server {
-	s := newServer(Options{})
+func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
+	t.Helper()
+	options := Options{}
+	for _, op := range ops {
+		op(t, &options)
+	}
+	s := newServer(options)
 	s.db = setupDB(t)
 
-	err := s.setupInternalInfraIdentityProvider()
+	// TODO: share more of this with Server.New
+	err := loadDefaultSecretConfig(s.secrets)
 	assert.NilError(t, err)
 
-	internalIdentities := map[string]string{
-		models.InternalInfraAdminIdentityName:     models.InfraAdminRole,
-		models.InternalInfraConnectorIdentityName: models.InfraConnectorRole,
-	}
+	err = s.setupInternalInfraIdentityProvider()
+	assert.NilError(t, err)
 
-	for name, role := range internalIdentities {
-		_, err = s.setupInternalInfraIdentity(name, role)
-		assert.NilError(t, err)
-	}
-
-	err = loadDefaultSecretConfig(s.secrets)
+	err = s.importAccessKeys()
 	assert.NilError(t, err)
 
 	return s
