@@ -4,19 +4,19 @@ global:
     pullPolicy: Never
 
 server:
-   additionalProviders:
-     - name: okta
-       url: $OKTA_DOMAIN
-       clientID: $OKTA_CLIENT_ID
-       clientSecret: $OKTA_CLIENT_SECRET
+  additionalProviders:
+    - name: okta
+      url: $OKTA_DOMAIN
+      clientID: $OKTA_CLIENT_ID
+      clientSecret: $OKTA_CLIENT_SECRET
 
-   additionalGrants:
-     - group: Everyone
-       role: cluster-admin
-       resource: kubernetes.docker-desktop
-     - machine: admin
-       role: cluster-admin
-       resource: kubernetes.docker-desktop
+  additionalGrants:
+    - group: Everyone
+      role: cluster-admin
+      resource: kubernetes.docker-desktop
+    - machine: admin
+      role: cluster-admin
+      resource: kubernetes.docker-desktop
 
 connector:
   config:
