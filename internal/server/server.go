@@ -24,7 +24,6 @@ import (
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/goware/urlx"
-	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
 	"gorm.io/gorm"
@@ -337,46 +336,7 @@ func (s *Server) registerUIRoutes(router *gin.Engine) error {
 
 	staticFS := &StaticFileSystem{base: http.FS(assetFS)}
 	router.Use(gzip.Gzip(gzip.DefaultCompression), static.Serve("/", staticFS))
-
-	// 404
-	router.NoRoute(func(c *gin.Context) {
-		if strings.HasPrefix(c.Request.URL.Path, "/v1") {
-			c.Status(404)
-			c.Writer.WriteHeaderNow()
-			return
-		}
-
-		c.Status(http.StatusNotFound)
-		buf, err := assetFS.ReadFile("ui/404.html")
-		if err != nil {
-			logging.S.Error(err)
-		}
-
-		_, err = c.Writer.Write(buf)
-		if err != nil {
-			logging.S.Error(err)
-		}
-	})
-
 	return nil
-}
-
-func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) (*gin.Engine, error) {
-	router := gin.New()
-
-	router.Use(gin.Recovery())
-	a := &API{
-		t:      s.tel,
-		server: s,
-	}
-
-	a.registerRoutes(router.Group("/"), promRegistry)
-
-	if err := s.registerUIRoutes(router); err != nil {
-		return nil, err
-	}
-
-	return router, nil
 }
 
 func (s *Server) listen() error {
