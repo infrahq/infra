@@ -29,28 +29,24 @@
 Login to Infra
 
 ```
-infra login [SERVER] [flags]
+infra login [URL] [flags]
 ```
 
 ### Examples
 
 ```
-
 # By default, login will prompt for all required information.
 $ infra login
 
-# Login to a specified server
-$ infra login SERVER
-$ infra login --server SERVER
+# Login to a specific server
+$ infra login infraexampleserver.com
+$ infra login --url infraexampleserver.com
+
+# Login with a specific identity provider
+$ infra login --provider okta
 
 # Login with an access key
-$ infra login --key KEY
-
-# Login with a specified provider
-$ infra login --provider NAME
-
-# Use the '--non-interactive' flag to error out instead of prompting.
-
+$ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy
 ```
 
 ### Options
@@ -58,8 +54,8 @@ $ infra login --provider NAME
 ```
       --key string        Login with an access key
       --provider string   Login with an identity provider
-      --server string     Infra server to login to
       --skip-tls-verify   Skip verifying server TLS certificates
+      --url string        Infra server URL
 ```
 
 ### Options inherited from parent commands
@@ -75,19 +71,36 @@ $ infra login --provider NAME
 Log out of Infra
 
 ```
-infra logout [flags]
+infra logout [URL] [flags]
 ```
 
 ### Examples
 
 ```
+# Log out of current server
 $ infra logout
+		
+# Log out of a specific server
+$ infra logout INFRA_URL
+		
+# Logout of all servers
+$ infra logout --all 
+		
+# Log out of current server and clear from list 
+$ infra logout --clear
+		
+# Log out of a specific server and clear from list
+$ infra logout URL --clear 
+		
+# Logout and clear list of all servers 
+$ infra logout --all --clear
 ```
 
 ### Options
 
 ```
-      --purge   remove Infra host from config
+      --all     logout of all servers
+      --clear   clear from list of servers
 ```
 
 ### Options inherited from parent commands

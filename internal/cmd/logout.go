@@ -122,6 +122,7 @@ func logout(clear bool, url string, all bool) error {
 			if clear {
 				var newHostConfigs []ClientHostConfig
 
+				// New slice of hosts except the one to clear
 				for i := range config.Hosts {
 					if config.Hosts[i].Current {
 						fmt.Fprintf(os.Stderr, "  Cleared [%s] from list of servers\n", config.Hosts[i].Host)
@@ -146,6 +147,7 @@ func logout(clear bool, url string, all bool) error {
 				} else {
 					fmt.Fprintf(os.Stderr, "  Not logged in to server %s.\n", url)
 				}
+				break
 			}
 		}
 
@@ -153,6 +155,7 @@ func logout(clear bool, url string, all bool) error {
 			if clear {
 				var newHostConfigs []ClientHostConfig
 
+				// New slice of hosts except the one to clear
 				for i := range config.Hosts {
 					if url == config.Hosts[i].Host {
 						fmt.Fprintf(os.Stderr, "  Cleared %s from list of servers.\n", config.Hosts[i].Host)
