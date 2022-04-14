@@ -56,6 +56,13 @@ const TableContent = styled.div`
   display: grid;
   grid-template-columns: 80% 20%;
   align-items: center;
+  height: 2rem;
+  cursor: pointer;
+`
+
+const TableContentLink = styled.button`
+  border: none;
+  cursor: pointer;
 `
 
 const TableContentText = styled.div`
@@ -76,15 +83,32 @@ const TableContentContainer = styled.div`
   padding-top: 1rem;
 `
 
-const Destinations = () => {
+export const getDestinationsList = () => {
   const getDestinationsList = '/v1/destinations'
   const getDestinations = url => fetch(url).then(response => response.json())
   const { data, error } = useSWR(getDestinationsList, getDestinations)
+  
+  return {
+    destinations: data,
+    isLoading: !error && !data,
+    isError: error
+  }
+}
+
+const Destinations = () => {
+  const { destinations, isLoading, isError } = getDestinationsList()
 
   const handleAddDestination = () => {
     Router.push({
       pathname: '/destinations/add/connect'
     }, undefined, { shallow: true })
+  }
+
+  const handleDestinationDetail = (id) => {
+    console.log('id:', id)
+    Router.push({
+      pathname: `/destinations/details/${id}`
+    }, undefined, {shallow: true})
   }
 
   return (
@@ -105,18 +129,18 @@ const Destinations = () => {
           <TableHeaderTitle>Added</TableHeaderTitle>
         </TableHeader>
         <div>
-          {data && data.length > 0
+          {destinations && destinations.length > 0
           ? (
             <TableContentContainer>
-              {data.map((item) => {
-                        return (
-            <TableContent key={item.id}>
-              <TableContentText>{item.name}</TableContentText>
-              <TableContentText>
-                <FormattedTime time={item.created} />
-              </TableContentText>
-            </TableContent>
-                        )
+              {destinations.map((item) => {
+              return (
+                <TableContent key={item.id}  onClick={() => handleDestinationDetail(item.id)}>
+                    <TableContentText>{item.name}</TableContentText>
+                    <TableContentText>
+                      <FormattedTime time={item.created} />
+                    </TableContentText>
+                </TableContent>
+              )
               })}
             </TableContentContainer>
             )
