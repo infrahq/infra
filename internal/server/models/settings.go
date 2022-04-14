@@ -6,5 +6,5 @@ type Settings struct {
 	PrivateJWK []byte
 	PublicJWK  []byte
 
-	SetupRequired bool
+	SignupEnabled bool
 }

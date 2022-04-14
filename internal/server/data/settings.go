@@ -12,7 +12,7 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func InitializeSettings(db *gorm.DB, setupRequired bool) (*models.Settings, error) {
+func InitializeSettings(db *gorm.DB, signupEnabled bool) (*models.Settings, error) {
 	pubkey, seckey, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		return nil, err
@@ -40,7 +40,7 @@ func InitializeSettings(db *gorm.DB, setupRequired bool) (*models.Settings, erro
 	}
 
 	defaults := models.Settings{
-		SetupRequired: setupRequired,
+		SignupEnabled: signupEnabled,
 	}
 
 	settings := models.Settings{

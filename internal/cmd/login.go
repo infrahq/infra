@@ -107,12 +107,12 @@ func login(options loginCmdOptions) error {
 	}
 
 	// If first-time setup needs to be run, accessKey is auto-populated
-	setupRequired, err := client.SetupRequired()
+	signupEnabled, err := client.SignupEnabled()
 	if err != nil {
 		return err
 	}
-	if setupRequired.Required && options.AccessKey == "" {
-		options.AccessKey, err = runSetupForLogin(client)
+	if signupEnabled.Enabled && options.AccessKey == "" {
+		options.AccessKey, err = runSignupForLogin(client)
 		if err != nil {
 			return err
 		}
@@ -315,8 +315,8 @@ func loginToProvider(provider *api.Provider) (*api.LoginRequestOIDC, error) {
 	}, nil
 }
 
-func runSetupForLogin(client *api.Client) (string, error) {
-	setupRes, err := client.Setup()
+func runSignupForLogin(client *api.Client) (string, error) {
+	signupRes, err := client.Signup()
 	if err != nil {
 		return "", err
 	}
@@ -324,10 +324,10 @@ func runSetupForLogin(client *api.Client) (string, error) {
 	fmt.Println()
 	fmt.Printf("  Congratulations, Infra has been successfully installed.\n")
 	fmt.Printf("  Running setup for the first time...\n\n")
-	fmt.Printf("  Access Key: %s\n", setupRes.AccessKey)
+	fmt.Printf("  Access Key: %s\n", signupRes.AccessKey)
 	fmt.Printf(fmt.Sprintf("  %s", termenv.String("IMPORTANT: Store in a safe place. You will not see it again.\n\n").Bold().String()))
 
-	return setupRes.AccessKey, nil
+	return signupRes.AccessKey, nil
 }
 
 // Only used when logging in or switching to a new session, since user has no credentials. Otherwise, use defaultAPIClient().

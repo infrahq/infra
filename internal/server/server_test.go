@@ -105,24 +105,24 @@ func TestGetPostgresConnectionURL(t *testing.T) {
 	assert.Equal(t, "host=localhost user=user password=secret port=5432 dbname=postgres", url)
 }
 
-func TestSetupRequired(t *testing.T) {
+func TestSignupEnabled(t *testing.T) {
 	db := setupDB(t)
 
 	s := Server{db: db}
 
 	// cases where setup is enabled
 	cases := map[string]Options{
-		"EnableSetup": {
-			EnableSetup: true,
+		"EnableSignup": {
+			EnableSignup: true,
 		},
 		"NoImportProviders": {
-			EnableSetup: true,
+			EnableSignup: true,
 			Config: Config{
 				Providers: []Provider{},
 			},
 		},
 		"NoImportGrants": {
-			EnableSetup: true,
+			EnableSignup: true,
 			Config: Config{
 				Grants: []Grant{},
 			},
@@ -132,25 +132,25 @@ func TestSetupRequired(t *testing.T) {
 	for name, options := range cases {
 		t.Run(name, func(t *testing.T) {
 			s.options = options
-			assert.Assert(t, s.setupRequired())
+			assert.Assert(t, s.signupEnabled())
 		})
 	}
 
 	// cases where setup is disabled through configs
 	cases = map[string]Options{
 		"DisableSetup": {
-			EnableSetup: false,
+			EnableSignup: false,
 		},
 		"AdminAccessKey": {
-			EnableSetup:    true,
+			EnableSignup:   true,
 			AdminAccessKey: "admin-access-key",
 		},
 		"AccessKey": {
-			EnableSetup: true,
-			AccessKey:   "access-key",
+			EnableSignup: true,
+			AccessKey:    "access-key",
 		},
 		"ImportProviders": {
-			EnableSetup: true,
+			EnableSignup: true,
 			Config: Config{
 				Providers: []Provider{
 					{
@@ -160,7 +160,7 @@ func TestSetupRequired(t *testing.T) {
 			},
 		},
 		"ImportGrants": {
-			EnableSetup: true,
+			EnableSignup: true,
 			Config: Config{
 				Grants: []Grant{
 					{
@@ -174,19 +174,19 @@ func TestSetupRequired(t *testing.T) {
 	for name, options := range cases {
 		t.Run(name, func(t *testing.T) {
 			s.options = options
-			assert.Assert(t, !s.setupRequired())
+			assert.Assert(t, !s.signupEnabled())
 		})
 	}
 
 	// reset options
 	s.options = Options{
-		EnableSetup: true,
+		EnableSignup: true,
 	}
 
 	err := db.Create(&models.Identity{Name: "non-admin"}).Error
 	assert.NilError(t, err)
 
-	assert.Assert(t, s.setupRequired())
+	assert.Assert(t, s.signupEnabled())
 
 	id := uid.New()
 	err = db.Create(&models.Identity{Model: models.Model{ID: id}, Name: "admin"}).Error
@@ -195,7 +195,7 @@ func TestSetupRequired(t *testing.T) {
 	err = db.Create(&models.AccessKey{Name: "admin", IssuedFor: id, ExpiresAt: time.Now()}).Error
 	assert.NilError(t, err)
 
-	assert.Assert(t, !s.setupRequired())
+	assert.Assert(t, !s.signupEnabled())
 }
 
 func TestLoadConfigEmpty(t *testing.T) {
@@ -917,7 +917,7 @@ func TestServer_Run_UIProxy(t *testing.T) {
 		TLSCache:                filepath.Join(dir, "tlscache"),
 		DBFile:                  filepath.Join(dir, "sqlite3.db"),
 		UI:                      UIOptions{Enabled: true},
-		EnableSetup:             true,
+		EnableSignup:            true,
 	}
 	assert.NilError(t, opts.UI.ProxyURL.Set(uiSrv.URL))
 
@@ -942,16 +942,16 @@ func TestServer_Run_UIProxy(t *testing.T) {
 	})
 
 	t.Run("api routes are available", func(t *testing.T) {
-		resp, err := http.Get("http://" + srv.Addrs.HTTP.String() + "/v1/setup")
+		resp, err := http.Get("http://" + srv.Addrs.HTTP.String() + "/v1/signup")
 		assert.NilError(t, err)
 		defer resp.Body.Close()
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-		var body api.SetupRequiredResponse
+		var body api.SignupEnabledResponse
 		err = json.NewDecoder(resp.Body).Decode(&body)
 		assert.NilError(t, err)
 
-		assert.Assert(t, body.Required)
+		assert.Assert(t, body.Enabled)
 	})
 }
 

@@ -318,12 +318,12 @@ func (c Client) Logout() error {
 	return err
 }
 
-func (c Client) SetupRequired() (*SetupRequiredResponse, error) {
-	return get[SetupRequiredResponse](c, "/v1/setup")
+func (c Client) SignupEnabled() (*SignupEnabledResponse, error) {
+	return get[SignupEnabledResponse](c, "/v1/signup")
 }
 
-func (c Client) Setup() (*CreateAccessKeyResponse, error) {
-	return post[EmptyRequest, CreateAccessKeyResponse](c, "/v1/setup", &EmptyRequest{})
+func (c Client) Signup() (*CreateAccessKeyResponse, error) {
+	return post[EmptyRequest, CreateAccessKeyResponse](c, "/v1/signup", &EmptyRequest{})
 }
 
 func (c Client) GetVersion() (*Version, error) {

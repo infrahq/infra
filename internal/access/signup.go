@@ -13,7 +13,7 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func SetupRequired(c *gin.Context) (bool, error) {
+func SignupEnabled(c *gin.Context) (bool, error) {
 	// no authorization is setup yet
 	db := getDB(c)
 
@@ -22,10 +22,10 @@ func SetupRequired(c *gin.Context) (bool, error) {
 		return false, err
 	}
 
-	return settings.SetupRequired, nil
+	return settings.SignupEnabled, nil
 }
 
-func Setup(c *gin.Context) (string, *models.AccessKey, error) {
+func Signup(c *gin.Context) (string, *models.AccessKey, error) {
 	// no authorization is setup yet
 	db := getDB(c)
 
@@ -35,7 +35,7 @@ func Setup(c *gin.Context) (string, *models.AccessKey, error) {
 		return "", nil, internal.ErrForbidden
 	}
 
-	if !settings.SetupRequired {
+	if !settings.SignupEnabled {
 		return "", nil, internal.ErrForbidden
 	}
 
@@ -61,7 +61,7 @@ func Setup(c *gin.Context) (string, *models.AccessKey, error) {
 		return "", nil, err
 	}
 
-	settings.SetupRequired = false
+	settings.SignupEnabled = false
 	if err := data.SaveSettings(db, settings); err != nil {
 		return "", nil, err
 	}
