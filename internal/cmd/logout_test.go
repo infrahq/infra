@@ -116,7 +116,7 @@ func TestLogout(t *testing.T) {
 		assert.DeepEqual(t, expectedKubeCfg, updatedKubeCfg, cmpopts.EquateEmpty())
 	})
 
-	t.Run("with clear", func(t *testing.T) {
+	t.Run("with clear all", func(t *testing.T) {
 		_, count := setup(t)
 		err := Run(context.Background(), "logout", "--clear", "--all")
 		assert.NilError(t, err)
