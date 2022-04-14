@@ -104,11 +104,9 @@ func UpdateUserInfoFromProvider(c *gin.Context, info *authn.UserInfo, user *mode
 	// add user to groups they are currently in
 	var groups []string
 
-	if info.Groups != nil {
-		for i := range *info.Groups {
-			name := (*info.Groups)[i]
-			groups = append(groups, name)
-		}
+	for i := range info.Groups {
+		name := info.Groups[i]
+		groups = append(groups, name)
 	}
 
 	logging.S.Debugf("%s user authenticated with %q groups", provider.Name, groups)

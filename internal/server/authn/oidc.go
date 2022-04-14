@@ -21,8 +21,8 @@ const oidcProviderRequestTimeout = time.Second * 10
 
 // UserInfo captures the fields from a user-info response that we care about
 type UserInfo struct {
-	Email  string    `json:"email"`
-	Groups *[]string `json:"groups"`
+	Email  string   `json:"email"`
+	Groups []string `json:"groups"`
 }
 
 type OIDC interface {
@@ -192,7 +192,7 @@ func (o *oidcImplementation) GetUserInfo(providerUser *models.ProviderUser) (*Us
 		return nil, fmt.Errorf("decode user info response: %w", err)
 	}
 
-	if info.Groups == nil || len(*info.Groups) == 0 {
+	if len(info.Groups) == 0 {
 		logging.S.Warnf("no groups returned on user info from %q", o.Domain)
 	}
 
