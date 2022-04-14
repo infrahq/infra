@@ -3215,6 +3215,7 @@
                 },
                 "required": [
                   "name",
+                  "url",
                   "clientID",
                   "clientSecret"
                 ],
