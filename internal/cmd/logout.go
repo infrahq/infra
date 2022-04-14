@@ -24,7 +24,7 @@ func newLogoutCmd() *cobra.Command {
 $ infra logout
 		
 # Log out of a specific server
-$ infra logout INFRA_URL
+$ infra logout infraexampleserver.com
 		
 # Logout of all servers
 $ infra logout --all 
