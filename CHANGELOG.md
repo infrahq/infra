@@ -1,5 +1,29 @@
 # Changelog
 
+### [0.10.3](https://github.com/infrahq/infra/compare/v0.10.2...v0.10.3) (2022-04-14)
+
+
+### Features
+
+* add about command ([#1573](https://github.com/infrahq/infra/issues/1573)) ([66063c4](https://github.com/infrahq/infra/commit/66063c4eb17a88bcad034bf64f9f230c30f1ee53))
+* grants for inactive identities ([#1536](https://github.com/infrahq/infra/issues/1536)) ([#1564](https://github.com/infrahq/infra/issues/1564)) ([#1565](https://github.com/infrahq/infra/issues/1565)) ([5b98143](https://github.com/infrahq/infra/commit/5b98143614265f28faf5dc21974a1bec1795ea2d))
+
+
+### Bug Fixes
+
+* allow use by name alone ([5ef685a](https://github.com/infrahq/infra/commit/5ef685acc9ad1f0fba8e4cff74c4adc0cd50af21))
+* docs build ([#1586](https://github.com/infrahq/infra/issues/1586)) ([3f7eebf](https://github.com/infrahq/infra/commit/3f7eebf4b5db32d00ce2b2a7b0bd8139453f24c9))
+* fix examples of additionaSecrets ([d22c768](https://github.com/infrahq/infra/commit/d22c768cd8c2ec7582e32b3ac70a53a8304d274f))
+* infra providers add set client ID/secret ([39228f8](https://github.com/infrahq/infra/commit/39228f8371a1c5de3ba7a8ee60553afec8e1a04f))
+* loading of key providers from config ([8502dad](https://github.com/infrahq/infra/commit/8502dad963fd4348441df3aec62e38833ba37c9e))
+* migrate identity provider_id with tests ([#1569](https://github.com/infrahq/infra/issues/1569)) ([709a37b](https://github.com/infrahq/infra/commit/709a37b3fc5bc81db706307cb7e5aaeccdf25675))
+* Moved graphic to the top of page ([44ffe41](https://github.com/infrahq/infra/commit/44ffe416636fabdb77b110d42aee5e86b231b7fc))
+* no provider lookup if zero ([ec5ffb2](https://github.com/infrahq/infra/commit/ec5ffb2b4d7c81ad1e3a6f5e82f3d959afde444d))
+* not logging api calls ([ec220ff](https://github.com/infrahq/infra/commit/ec220ff680a80e379d7d590ef72315e073594392))
+* re-index identities after de-duplication ([c46aa3e](https://github.com/infrahq/infra/commit/c46aa3e3aa15b33c3225c3b4ade8f313b448fc6f))
+* **server:** use mapstructure to decode secrets config ([4053ccb](https://github.com/infrahq/infra/commit/4053ccbe8b4dbff1824c19bf12687153cfe15f88))
+* version bump path ([d137a0d](https://github.com/infrahq/infra/commit/d137a0d2c9f8af6b62d94ad3d66511d4eca646e1))
+
 ### [0.10.2](https://github.com/infrahq/infra/compare/v0.10.1...v0.10.2) (2022-04-12)
 
 

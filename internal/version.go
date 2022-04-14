@@ -3,7 +3,7 @@ package internal
 var (
 	Branch = "main"
 	// {x-release-please-start-version}
-	Version = "0.10.2"
+	Version = "0.10.3"
 	// {x-release-please-end}
 	Commit = ""
 	Date   = ""
