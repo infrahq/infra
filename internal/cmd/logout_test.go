@@ -90,9 +90,9 @@ func TestLogout(t *testing.T) {
 		},
 	}
 
-	t.Run("default", func(t *testing.T) {
+	t.Run("with all", func(t *testing.T) {
 		cfg, count := setup(t)
-		err := Run(context.Background(), "logout")
+		err := Run(context.Background(), "logout", "--all")
 		assert.NilError(t, err)
 
 		assert.Equal(t, int32(2), atomic.LoadInt32(count), "calls to API")
@@ -112,7 +112,7 @@ func TestLogout(t *testing.T) {
 
 	t.Run("with clear", func(t *testing.T) {
 		_, count := setup(t)
-		err := Run(context.Background(), "logout", "--clear")
+		err := Run(context.Background(), "logout", "--clear", "--all")
 		assert.NilError(t, err)
 
 		assert.Equal(t, int32(2), atomic.LoadInt32(count), "calls to API")
