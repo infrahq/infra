@@ -3,8 +3,6 @@ import styled from 'styled-components'
 
 import Input from '../Input'
 
-import axios from 'axios'
-
 const NameContainer = styled.div`
 	display: flex;
 	flex-direction: row;
@@ -40,23 +38,22 @@ const NameInput = ({
   useEffect(() => {
     const handleDestinationConnection = () => {
       if (accessKey && name.length > 0) {
-        axios.get(`/v1/destinations?name=${connectorFullName}`)
-          .then((response) => {
-            console.log(numDestinations)
-            console.log('response: '. response)
-            if (!connected) {
-              if (response.data.length === numDestinations) {
-                pollingTimeout = setTimeout(handleDestinationConnection, 5000)
-              } else {
-                updateConnectedStatus(true)
-                clearTimeout(pollingTimeout)
-              }
+        fetch(`/v1/destinations?name=${connectorFullName}`)
+        .then((response) => response.json())
+        .then((data) => {
+          if (!connected) {
+            if (data.length === numDestinations) {
+              pollingTimeout = setTimeout(handleDestinationConnection, 5000)
+            } else {
+              updateConnectedStatus(true)
+              clearTimeout(pollingTimeout)
             }
-          })
-          .catch((error) => {
-            console.log(error)
-            clearTimeout(pollingTimeout)
-          })
+          }
+        })
+        .catch((error) => {
+          console.log(error)
+          clearTimeout(pollingTimeout)
+        })
       }
     }
 
@@ -76,22 +73,25 @@ const NameInput = ({
     setConnectorFullName(destinationName)
     setNumDestinations(destinations.filter((item) => item.name === name).length)
 
-    axios.get('/v1/identities?name=connector')
-      .then((response) => {
-        const { id } = response.data[0]
+    fetch('/v1/identities?name=connector')
+      .then((response) => response.json())
+      .then((data) => {
+        const { id } = data[0]
         const keyName = name + '-' + [...Array(10)].map(() => (~~(Math.random() * 36)).toString(36)).join('')
 
         return { identityID: id, name: keyName, ttl: '87600h', extensionDeadline: '720h' }
       })
       .then((config) => {
-        return axios.post('/v1/access-keys', config)
+        return fetch('/v1/access-keys', {
+          method: 'POST',
+          body: JSON.stringify(config)
+        })
       })
+      .then((response) => response.json())
       .then((accessKeyInfo) => {
-        updateAccessKey(accessKeyInfo.data.accessKey)
+        updateAccessKey(accessKeyInfo.accessKey)
       })
-      .catch((error) => {
-        console.log(error)
-      })
+      .catch((error) => console.log(error))
   }
 
   return (
