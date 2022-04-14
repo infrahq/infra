@@ -14,7 +14,6 @@ type triangle struct {
 	B     *point3D
 	C     *point3D
 	Color rune
-	surf  *sprite.Surface
 }
 
 func newAboutCmd() *cobra.Command {

@@ -219,6 +219,7 @@ func decodeConfig(target interface{}, source interface{}) error {
 			mapstructure.StringToTimeDurationHookFunc(),
 			mapstructure.StringToSliceHookFunc(","),
 			decode.HookPrepareForDecode,
+			decode.HookSetFromString,
 		),
 	}
 

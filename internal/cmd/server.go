@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/iancoleman/strcase"
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/internal/logging"
@@ -13,6 +12,7 @@ import (
 )
 
 func newServerCmd() *cobra.Command {
+	options := defaultServerOptions()
 	cmd := &cobra.Command{
 		Use:    "server",
 		Short:  "Start Infra server",
@@ -20,11 +20,6 @@ func newServerCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			logging.SetServerLogger()
 
-			// override default strcase.ToLowerCamel behaviour
-			strcase.ConfigureAcronym("enable-ui", "enableUI")
-			strcase.ConfigureAcronym("ui-proxy-url", "uiProxyURL")
-
-			options := defaultServerOptions()
 			if err := parseOptions(cmd, &options, "INFRA_SERVER"); err != nil {
 				return err
 			}
@@ -50,7 +45,7 @@ func newServerCmd() *cobra.Command {
 
 			options.DBEncryptionKey = dbEncryptionKey
 
-			srv, err := server.New(options)
+			srv, err := newServer(options)
 			if err != nil {
 				return fmt.Errorf("creating server: %w", err)
 			}
@@ -73,8 +68,8 @@ func newServerCmd() *cobra.Command {
 	cmd.Flags().String("db-encryption-key-provider", "native", "Database encryption key provider")
 	cmd.Flags().Bool("enable-telemetry", true, "Enable telemetry")
 	cmd.Flags().Bool("enable-crash-reporting", true, "Enable crash reporting")
-	cmd.Flags().Bool("enable-ui", false, "Enable Infra server UI")
-	cmd.Flags().String("ui-proxy-url", "", "Proxy upstream UI requests to this url")
+	cmd.Flags().BoolVar(&options.UI.Enabled, "enable-ui", false, "Enable Infra server UI")
+	cmd.Flags().Var(&options.UI.ProxyURL, "ui-proxy-url", "Proxy upstream UI requests to this url")
 	cmd.Flags().Duration("session-duration", time.Hour*12, "User session duration")
 	cmd.Flags().Bool("enable-setup", true, "Enable one-time setup")
 
@@ -95,3 +90,6 @@ func defaultServerOptions() server.Options {
 var runServer = func(ctx context.Context, srv *server.Server) error {
 	return srv.Run(ctx)
 }
+
+// newServer is a shim for testing.
+var newServer = server.New

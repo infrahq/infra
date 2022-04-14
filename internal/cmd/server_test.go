@@ -9,11 +9,12 @@ import (
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/fs"
 
+	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/server"
 	"github.com/infrahq/infra/secrets"
 )
 
-func TestParseOptions_WithServerOptions(t *testing.T) {
+func TestServerCmd_ParseOptions(t *testing.T) {
 	type testCase struct {
 		name        string
 		setup       func(t *testing.T, cmd *cobra.Command)
@@ -22,14 +23,18 @@ func TestParseOptions_WithServerOptions(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		cmd := newServerCmd()
+		patchRunServer(t, noServerRun)
+		var actual server.Options
+		patchNewServer(t, &actual)
+		t.Setenv("HOME", "/home/user")
+		t.Setenv("USERPROFILE", "/home/user") // Windows
 
+		cmd := newServerCmd()
 		if tc.setup != nil {
 			tc.setup(t, cmd)
 		}
 
-		options := defaultServerOptions()
-		err := parseOptions(cmd, &options, "INFRA_SERVER")
+		err := cmd.Execute()
 		if tc.expectedErr != "" {
 			assert.ErrorContains(t, err, tc.expectedErr)
 			return
@@ -37,7 +42,7 @@ func TestParseOptions_WithServerOptions(t *testing.T) {
 
 		assert.NilError(t, err)
 		expected := tc.expected(t)
-		assert.DeepEqual(t, expected, options)
+		assert.DeepEqual(t, expected, actual)
 	}
 
 	testCases := []testCase{
@@ -53,8 +58,7 @@ func TestParseOptions_WithServerOptions(t *testing.T) {
 
 				dir := fs.NewDir(t, t.Name(),
 					fs.WithFile("cfg.yaml", content))
-				err := cmd.Flags().Set("config-file", dir.Join("cfg.yaml"))
-				assert.NilError(t, err)
+				cmd.SetArgs([]string{"--config-file", dir.Join("cfg.yaml")})
 			},
 			expected: func(t *testing.T) server.Options {
 				expected := serverOptionsWithDefaults()
@@ -99,6 +103,42 @@ func TestParseOptions_WithServerOptions(t *testing.T) {
 				return expected
 			},
 		},
+		{
+			name: "parse ui-proxy-url from command line flag",
+			setup: func(t *testing.T, cmd *cobra.Command) {
+				cmd.SetArgs([]string{"--ui-proxy-url", "https://127.0.1.2:34567"})
+			},
+			expected: func(t *testing.T) server.Options {
+				expected := serverOptionsWithDefaults()
+				expected.UI.ProxyURL = types.URL{
+					Scheme: "https",
+					Host:   "127.0.1.2:34567",
+				}
+				return expected
+			},
+		},
+		{
+			name: "parse ui-proxy-url from config file",
+			setup: func(t *testing.T, cmd *cobra.Command) {
+				content := `
+                  ui:
+                    enabled: true
+                    proxyURL: https://127.0.1.2:34567
+`
+				dir := fs.NewDir(t, t.Name(),
+					fs.WithFile("cfg.yaml", content))
+				cmd.SetArgs([]string{"--config-file", dir.Join("cfg.yaml")})
+			},
+			expected: func(t *testing.T) server.Options {
+				expected := serverOptionsWithDefaults()
+				expected.UI.ProxyURL = types.URL{
+					Scheme: "https",
+					Host:   "127.0.1.2:34567",
+				}
+				expected.UI.Enabled = true
+				return expected
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -113,9 +153,9 @@ func TestParseOptions_WithServerOptions(t *testing.T) {
 // specifying them again here.
 func serverOptionsWithDefaults() server.Options {
 	o := defaultServerOptions()
-	o.TLSCache = "$HOME/.infra/cache"
-	o.DBFile = "$HOME/.infra/sqlite3.db"
-	o.DBEncryptionKey = "$HOME/.infra/sqlite3.db.key"
+	o.TLSCache = "/home/user/.infra/cache"
+	o.DBFile = "/home/user/.infra/sqlite3.db"
+	o.DBEncryptionKey = "/home/user/.infra/sqlite3.db.key"
 	o.DBEncryptionKeyProvider = "native"
 	o.EnableTelemetry = true
 	o.EnableCrashReporting = true
@@ -146,10 +186,8 @@ func TestServerCmd_WithSecretsConfig(t *testing.T) {
 	dir := fs.NewDir(t, t.Name(), fs.WithFile("cfg.yaml", content))
 	t.Setenv("HOME", dir.Path())
 
-	// TODO: change to Run(ctx, args) once that is merged
-	cmd := newServerCmd()
-	cmd.SetArgs([]string{"--config-file", dir.Join("cfg.yaml")})
-	err := cmd.Execute()
+	ctx := context.Background()
+	err := Run(ctx, "server", "--config-file", dir.Join("cfg.yaml"))
 	assert.NilError(t, err)
 }
 
@@ -163,4 +201,16 @@ func patchRunServer(t *testing.T, fn func(context.Context, *server.Server) error
 
 func noServerRun(context.Context, *server.Server) error {
 	return nil
+}
+
+func patchNewServer(t *testing.T, target *server.Options) {
+	orig := newServer
+	t.Cleanup(func() {
+		newServer = orig
+	})
+
+	newServer = func(options server.Options) (*server.Server, error) {
+		*target = options
+		return &server.Server{}, nil
+	}
 }

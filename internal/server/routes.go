@@ -25,7 +25,7 @@ import (
 // The order of routes in this function is important! Gin saves a route along
 // with all the middleware that will apply to the route when the
 // Router.{GET,POST,etc} method is called.
-func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) (*gin.Engine, error) {
+func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) *gin.Engine {
 	a := &API{t: s.tel, server: s}
 	router := gin.New()
 	router.NoRoute(a.notFoundHandler)
@@ -117,10 +117,8 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) (*gin.Engine
 	// UI middleware unnecessarily.
 	// This is a limitation because we serve the UI from / instead of a specific
 	// path prefix.
-	if err := s.registerUIRoutes(router); err != nil {
-		return nil, err
-	}
-	return router, nil
+	registerUIRoutes(router, s.options.UI)
+	return router
 }
 
 type ReqHandlerFunc[Req any] func(c *gin.Context, req *Req) error

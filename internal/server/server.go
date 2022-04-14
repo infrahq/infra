@@ -23,13 +23,13 @@ import (
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
-	"github.com/goware/urlx"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/certs"
+	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/ginutil"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/repeat"
@@ -46,8 +46,6 @@ type Options struct {
 	AccessKey            string        `mapstructure:"accessKey"`
 	EnableTelemetry      bool          `mapstructure:"enableTelemetry"`
 	EnableCrashReporting bool          `mapstructure:"enableCrashReporting"`
-	EnableUI             bool          `mapstructure:"enableUI"`
-	UIProxyURL           string        `mapstructure:"uiProxyURL"`
 	EnableSetup          bool          `mapstructure:"enableSetup"`
 	SessionDuration      time.Duration `mapstructure:"sessionDuration"`
 
@@ -73,12 +71,18 @@ type Options struct {
 	FullKeyRotationInDays       int    `mapstructure:"fullKeyRotationInDays"` // 365 default
 
 	Addr ListenerOptions
+	UI   UIOptions
 }
 
 type ListenerOptions struct {
 	HTTP    string
 	HTTPS   string
 	Metrics string
+}
+
+type UIOptions struct {
+	Enabled  bool
+	ProxyURL types.URL `mapstructure:"proxyURL"`
 }
 
 type Server struct {
@@ -308,18 +312,14 @@ func (s *Server) loadCertificates() (err error) {
 //go:embed all:ui/*
 var assetFS embed.FS
 
-func (s *Server) registerUIRoutes(router *gin.Engine) error {
-	if !s.options.EnableUI {
-		return nil
+func registerUIRoutes(router *gin.Engine, opts UIOptions) {
+	if !opts.Enabled {
+		return
 	}
 
 	// Proxy requests to an upstream ui server
-	if s.options.UIProxyURL != "" {
-		remote, err := urlx.Parse(s.options.UIProxyURL)
-		if err != nil {
-			return fmt.Errorf("failed to parse UI proxy URL: %w", err)
-		}
-
+	if opts.ProxyURL.Host != "" {
+		remote := opts.ProxyURL.Value()
 		proxy := httputil.NewSingleHostReverseProxy(remote)
 		proxy.Director = func(req *http.Request) {
 			req.Host = remote.Host
@@ -330,22 +330,17 @@ func (s *Server) registerUIRoutes(router *gin.Engine) error {
 		router.Use(func(c *gin.Context) {
 			proxy.ServeHTTP(c.Writer, c.Request)
 		})
-
-		return nil
+		return
 	}
 
 	staticFS := &StaticFileSystem{base: http.FS(assetFS)}
 	router.Use(gzip.Gzip(gzip.DefaultCompression), static.Serve("/", staticFS))
-	return nil
 }
 
 func (s *Server) listen() error {
 	ginutil.SetMode()
 	promRegistry := SetupMetrics(s.db)
-	router, err := s.GenerateRoutes(promRegistry)
-	if err != nil {
-		return err
-	}
+	router := s.GenerateRoutes(promRegistry)
 
 	metricsServer := &http.Server{
 		Addr:     s.options.Addr.Metrics,
@@ -353,6 +348,7 @@ func (s *Server) listen() error {
 		ErrorLog: logging.StandardErrorLog(),
 	}
 
+	var err error
 	s.Addrs.Metrics, err = s.setupServer(metricsServer)
 	if err != nil {
 		return err
