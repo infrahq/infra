@@ -58,8 +58,10 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 		Kind: kind,
 	}
 
+	setOTP := r.SetOneTimePassword && (identity.Kind == models.UserKind)
+
 	// infra identity creation should be attempted even if an identity is already known
-	if r.SetOneTimePassword {
+	if setOTP {
 		identities, err := access.ListIdentities(c, identity.Name, nil)
 		if err != nil {
 			return nil, fmt.Errorf("list identities: %w", err)
@@ -86,7 +88,7 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 		Name: identity.Name,
 	}
 
-	if r.SetOneTimePassword {
+	if setOTP {
 		_, err = access.CreateProviderUser(c, access.InfraProvider(c), identity)
 		if err != nil {
 			return nil, fmt.Errorf("create provider user")
