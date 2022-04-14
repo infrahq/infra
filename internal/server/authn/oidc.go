@@ -192,7 +192,7 @@ func (o *oidcImplementation) GetUserInfo(providerUser *models.ProviderUser) (*Us
 		return nil, fmt.Errorf("decode user info response: %w", err)
 	}
 
-	if info.Groups == nil {
+	if info.Groups == nil || len(*info.Groups) == 0 {
 		logging.S.Warnf("no groups returned on user info from %q", o.Domain)
 	}
 
