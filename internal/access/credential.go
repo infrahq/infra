@@ -63,7 +63,7 @@ func UpdateCredential(c *gin.Context, user *models.Identity, newPassword string)
 	userCredential.OneTimePassword = false
 	userCredential.OneTimePasswordUsed = false
 
-	if user.ID != CurrentIdentity(c).ID {
+	if user.ID != AuthenticatedIdentity(c).ID {
 		// an admin can only set a one time password for a user
 		userCredential.OneTimePassword = true
 		userCredential.OneTimePasswordUsed = false

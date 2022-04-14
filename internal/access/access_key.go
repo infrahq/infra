@@ -74,7 +74,7 @@ func DeleteRequestAccessKey(c *gin.Context) error {
 
 func DeleteAllIdentityAccessKeys(c *gin.Context) error {
 	// does not need authorization check, this action is limited to the calling user
-	identity := CurrentIdentity(c)
+	identity := AuthenticatedIdentity(c)
 	if identity == nil {
 		return fmt.Errorf("no active identity")
 	}

@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -118,11 +119,9 @@ func (t *Telemetry) Event(c *gin.Context, event string, properties ...map[string
 		Properties:  analytics.Properties{},
 	}
 	if c != nil {
-		if user, ok := c.Get("identity"); ok {
-			if u, ok := user.(*models.Identity); ok {
-				track.UserId = u.ID.String()
-				track.Properties["type"] = u.Kind.String()
-			}
+		if u := access.AuthenticatedIdentity(c); u != nil {
+			track.UserId = u.ID.String()
+			track.Properties["type"] = u.Kind.String()
 		}
 	}
 
