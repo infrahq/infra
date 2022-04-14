@@ -15,14 +15,11 @@ type Resource struct {
 
 type Time time.Time
 
-func (t *Time) MarshalJSON() ([]byte, error) {
-	if t == nil {
+func (t Time) MarshalJSON() ([]byte, error) {
+	if time.Time(t).IsZero() {
 		return []byte("null"), nil
 	}
-	if time.Time(*t).IsZero() {
-		return []byte("null"), nil
-	}
-	s := time.Time(*t).UTC().Format(time.RFC3339)
+	s := time.Time(t).UTC().Format(time.RFC3339)
 	return []byte(`"` + s + `"`), nil
 }
 
