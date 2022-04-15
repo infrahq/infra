@@ -11,6 +11,9 @@ module.exports = {
       transitionProperty: {
         size: 'height, padding, background'
       },
+      animation: {
+        'spin-fast': 'spin 0.75s linear infinite'
+      },
       fontFamily: {
         sans: ['SF Pro Text', 'BlinkMacSystemFont', 'Segoe UI', 'Ubuntu', 'sans-serif'],
         mono: ['SF Mono', 'monospace']

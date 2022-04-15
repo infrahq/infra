@@ -46,26 +46,29 @@ export default function () {
       <img className='text-white w-10 h-10' src='/infra-icon.svg' />
       <h1 className='my-5 text-3xl font-light tracking-tight'>Login to Infra</h1>
 
-      <div className='w-full mt-8'>
-        {providers.map(p => (
-          <button
-            onClick={() => oidcLogin(p)}
-            key={p.id}
-            className='w-full flex items-center justify-center border border-gray-600 hover:border-gray-500 py-3.5 rounded-md'
-          >
-            <img className='h-4' src='/okta.svg' />
-          </button>
-        ))}
-      </div>
-
-      <div className='w-full my-6 relative'>
-        <div className='absolute inset-0 flex items-center' aria-hidden='true'>
-          <div className='w-full border-t border-gray-800' />
-        </div>
-        <div className='relative flex justify-center text-sm'>
-          <span className='px-8 bg-black text-gray-500'>or login with</span>
-        </div>
-      </div>
+      {providers.length > 0 && (
+        <>
+          <div className='w-full mt-8'>
+            {providers.map(p => (
+              <button
+                onClick={() => oidcLogin(p)}
+                key={p.id}
+                className='w-full flex items-center justify-center border border-gray-600 hover:border-gray-500 py-3.5 rounded-md'
+              >
+                <img className='h-4' src='/okta.svg' />
+              </button>
+            ))}
+          </div>
+          <div className='w-full my-6 relative'>
+            <div className='absolute inset-0 flex items-center' aria-hidden='true'>
+              <div className='w-full border-t border-gray-800' />
+            </div>
+            <div className='relative flex justify-center text-sm'>
+              <span className='px-8 bg-black text-gray-500'>or login with</span>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* login form */}
       <form

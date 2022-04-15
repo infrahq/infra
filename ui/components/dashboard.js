@@ -27,8 +27,7 @@ export default function ({ children }) {
 
   return (
     <div className='flex h-full relative'>
-      {/* sidebar */}
-      <div className='flex-none flex w-72 flex-col inset-y-0 px-2 overflow-y-auto'>
+      <nav className='flex-none flex w-72 flex-col inset-y-0 px-2 overflow-y-auto'>
         <div className='flex-shrink-0 flex items-center my-12 px-6'>
           <Link href='/'>
             <a>
@@ -40,7 +39,7 @@ export default function ({ children }) {
             </a>
           </Link>
         </div>
-        <nav className='flex-1 space-y-1 px-4'>
+        <div className='flex-1 space-y-1 px-4'>
           {navigation.map(item => (
             <Link key={item.name} href={item.href}>
               <a
@@ -62,7 +61,7 @@ export default function ({ children }) {
               </a>
             </Link>
           ))}
-        </nav>
+        </div>
         <div className='relative group mx-2 my-5 h-16 hover:h-28 hover:bg-purple-100/5 transition-height transition-size px-4 duration-300 ease-in-out rounded-xl overflow-hidden'>
           <div className='flex items-center space-x-4 my-4'>
             <div className='bg-purple-100/10 flex-none flex items-center justify-center w-9 h-9 py-1.5 rounded-lg capitalize font-bold select-none'>{auth?.name?.[0]}</div>
@@ -74,12 +73,10 @@ export default function ({ children }) {
             </div>
           </div>
         </div>
-      </div>
-      <div className='flex-1 overflow-y-scroll'>
-        <main className='flex-1 mx-auto xl:max-w-4xl 2xl:max-w-5xl'>
-          {children}
-        </main>
-      </div>
+      </nav>
+      <main className='w-full mx-auto xl:max-w-4xl 2xl:max-w-5xl overflow-y-scroll'>
+        {children}
+      </main>
     </div>
   )
 }

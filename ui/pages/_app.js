@@ -49,8 +49,6 @@ function App ({ Component, pageProps }) {
   const { data: setup } = useSWRImmutable('/v1/setup', fetcher)
   const router = useRouter()
 
-  console.log(auth, setup)
-
   if (!auth && !setup) {
     return null
   }
