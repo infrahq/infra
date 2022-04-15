@@ -37,5 +37,9 @@ export default function () {
     }
   }, [])
 
-  return null
+  return (
+    <div className='flex items-center justify-center w-full h-full'>
+      <img className='w-40 h-40 animate-spin-fast' src='/spinner.svg' />
+    </div>
+  )
 }
