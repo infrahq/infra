@@ -45,14 +45,16 @@ func newIdentitiesAddCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add IDENTITY",
 		Short: "Create an identity.",
-		Long: `Create a machine identity with NAME or a user identity with EMAIL.
+		Long: `Create an identity.
 
-NAME must only contain alphanumeric characters ('a-z', 'A-Z', '0-9') or the
-special characters '-', '_', or '/' and has a maximum length of 256 characters.
-
-EMAIL must contain a valid email address in the form of "local@domain".
-		`,
+If an email is provided, a user is created; otherwise, a machine is created.
+A new user must change their one time password before further usage.`,
 		Args: cobra.ExactArgs(1),
+		Example: `# Create a local user
+$ infra identities add johndoe@example.com
+
+# Create a machine
+$ infra identities add machineA`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
@@ -86,7 +88,9 @@ func newIdentitiesEditCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "edit IDENTITY",
 		Short: "Update an identity",
-		Args:  cobra.ExactArgs(1),
+		Example: `# Set a new one time password for a local user
+$ infra identities edit janedoe@example.com --password`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
@@ -101,16 +105,16 @@ func newIdentitiesEditCmd() *cobra.Command {
 			}
 
 			if kind == models.MachineKind {
-				fmt.Println("machine identities have no editable fields")
+				fmt.Println("Machine identities cannot be edited.")
 			}
 
 			if kind == models.UserKind {
 				if !options.Password {
-					return errors.New("Specify a field to update")
+					return errors.New("Please specify a field to update. For options, run 'infra identities edit --help'")
 				}
 
 				if options.Password && rootOptions.NonInteractive {
-					return errors.New("Non-interactive mode is not supported to edit sensitive fields")
+					return errors.New("Non-interactive mode is not supported to edit sensitive fields.")
 				}
 
 				err = UpdateIdentity(name, options)
@@ -123,7 +127,7 @@ func newIdentitiesEditCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolP("password", "p", false, "Update password field")
+	cmd.Flags().BoolP("password", "p", false, "Set a new one time password")
 
 	return cmd
 }
@@ -132,7 +136,7 @@ func newIdentitiesListCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
-		Short:   "List all identities",
+		Short:   "List identities",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := defaultAPIClient()
 			if err != nil {
@@ -173,10 +177,15 @@ func newIdentitiesListCmd() *cobra.Command {
 
 func newIdentitiesRemoveCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "remove NAME",
+		Use:     "remove IDENTITY",
 		Aliases: []string{"rm"},
 		Short:   "Delete an identity",
-		Args:    cobra.ExactArgs(1),
+		Example: `# Delete a local user
+$ infra identities remove janedoe@example.com
+
+# Delete a machine
+$ infra identities remove machineA`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
@@ -326,11 +335,11 @@ func GetIdentityFromName(client *api.Client, name string) (*api.Identity, error)
 }
 
 func promptUpdatePassword(oldPassword string) (string, error) {
-	fmt.Fprintf(os.Stderr, "  Enter a new password (min length 8):\n")
+	fmt.Fprintf(os.Stderr, "  Enter a new one time password (min length 8):\n")
 
 PROMPT:
 	newPassword := ""
-	if err := survey.AskOne(&survey.Password{Message: "    New password:"}, &newPassword, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
+	if err := survey.AskOne(&survey.Password{Message: "New password:"}, &newPassword, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
 		return "", err
 	}
 
