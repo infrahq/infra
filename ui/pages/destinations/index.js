@@ -83,20 +83,9 @@ const TableContentContainer = styled.div`
   padding-top: 1rem;
 `
 
-export const getDestinationsList = () => {
-  const getDestinationsList = '/v1/destinations'
-  const getDestinations = url => fetch(url).then(response => response.json())
-  const { data, error } = useSWR(getDestinationsList, getDestinations)
-  
-  return {
-    destinations: data,
-    isLoading: !error && !data,
-    isError: error
-  }
-}
 
-const Destinations = () => {
-  const { destinations, isLoading, isError } = getDestinationsList()
+export default function () {
+  const { data: destinations  } = useSWR('/v1/destinations')
 
   const handleAddDestination = () => {
     Router.push({
@@ -107,7 +96,7 @@ const Destinations = () => {
   const handleDestinationDetail = (id) => {
     console.log('id:', id)
     Router.push({
-      pathname: `/destinations/details/${id}`
+      pathname: `/destinations/${id}`
     }, undefined, {shallow: true})
   }
 

@@ -74,9 +74,7 @@ const ProviderRemoveButton = styled.a`
 `
 
 export default function () {
-  const getProvidersList = '/v1/providers'
-  const getProviders = url => fetch(url).then(response => response.json())
-  const { data } = useSWR(getProvidersList, getProviders)
+  const { data } = useSWR(() => '/v1/providers')
   const { mutate } = useSWRConfig()
 
   const handleConnectProviders = async () => {
@@ -90,7 +88,7 @@ export default function () {
       method: 'DELETE'
     })
       .then(() => {
-        mutate(getProvidersList)
+        mutate('/v1/providers')
       })
       .catch((error) => {
         console.log(error)
