@@ -180,7 +180,7 @@ func TestServerCmd_WithSecretsConfig(t *testing.T) {
       keys:
         - kind: native
           config:
-            secretProvider: env
+            secretProvider: base64env
 `
 
 	dir := fs.NewDir(t, t.Name(), fs.WithFile("cfg.yaml", content))
