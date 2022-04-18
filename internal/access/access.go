@@ -40,7 +40,7 @@ const ResourceInfraAPI = "infra"
 func RequireInfraRole(c *gin.Context, oneOfRoles ...string) (*gorm.DB, error) {
 	db := getDB(c)
 
-	identity := CurrentIdentity(c)
+	identity := AuthenticatedIdentity(c)
 	if identity == nil {
 		return nil, fmt.Errorf("no active identity")
 	}

@@ -166,6 +166,7 @@ func Middleware() gin.HandlerFunc {
 		)
 
 		logger := L
+		// TODO: use access.GetAuthenticatedIdentity, requires refactor
 		if raw, ok := c.Get("identity"); ok {
 			if identity, ok := raw.(*models.Identity); ok {
 				logger = logger.With(zap.Stringer("identity", identity.ID))

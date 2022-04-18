@@ -10,7 +10,7 @@ import (
 
 // isUserInGroup is used by authorization checks to see if the calling user is requesting their own attributes
 func isUserInGroup(c *gin.Context, requestedResourceID uid.ID) (bool, error) {
-	user := CurrentIdentity(c)
+	user := AuthenticatedIdentity(c)
 
 	if user != nil {
 		lookupDB := getDB(c)
