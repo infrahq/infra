@@ -12,19 +12,19 @@ import (
 
 func newLogoutCmd() *cobra.Command {
 	var (
-		clear bool
-		url   string
-		all   bool
+		clear  bool
+		server string
+		all    bool
 	)
 
 	cmd := &cobra.Command{
-		Use:   "logout [URL]",
+		Use:   "logout [SERVER]",
 		Short: "Log out of Infra",
 		Example: `# Log out of current server
 $ infra logout
 		
 # Log out of a specific server
-$ infra logout INFRA_URL
+$ infra logout infraexampleserver.com
 		
 # Logout of all servers
 $ infra logout --all 
@@ -33,7 +33,7 @@ $ infra logout --all
 $ infra logout --clear
 		
 # Log out of a specific server and clear from list
-$ infra logout URL --clear 
+$ infra logout infraexampleserver.com --clear 
 		
 # Logout and clear list of all servers 
 $ infra logout --all --clear`,
@@ -45,9 +45,9 @@ $ infra logout --all --clear`,
 					fmt.Fprintf(os.Stderr, "  Server is already specified. Ignoring flag [--all] and logging out of server %s.\n", args[0])
 					all = false
 				}
-				url = args[0]
+				server = args[0]
 			}
-			return logout(clear, url, all)
+			return logout(clear, server, all)
 		},
 	}
 
@@ -71,7 +71,7 @@ func logoutOfServer(hostConfig *ClientHostConfig) {
 
 }
 
-func logout(clear bool, url string, all bool) error {
+func logout(clear bool, server string, all bool) error {
 	config, err := readConfig()
 	if err != nil {
 		if errors.Is(err, ErrConfigNotFound) {
@@ -104,7 +104,7 @@ func logout(clear bool, url string, all bool) error {
 				fmt.Fprintf(os.Stderr, "  No servers to clear.\n")
 			}
 		}
-	case url == "":
+	case server == "":
 		serverFound := false
 		for i := range config.Hosts {
 			if config.Hosts[i].Current {
@@ -136,16 +136,16 @@ func logout(clear bool, url string, all bool) error {
 		} else {
 			fmt.Fprintf(os.Stderr, "  No current session to log out from.\n")
 		}
-	case url != "":
+	case server != "":
 		serverFound := false
 		for i := range config.Hosts {
-			if url == config.Hosts[i].Host {
+			if server == config.Hosts[i].Host {
 				serverFound = true
 				if config.Hosts[i].isLoggedIn() {
 					logoutOfServer(&config.Hosts[i])
 					fmt.Fprintf(os.Stderr, "  Logged out of server %s.\n", config.Hosts[i].Host)
 				} else {
-					fmt.Fprintf(os.Stderr, "  Not logged in to server %s.\n", url)
+					fmt.Fprintf(os.Stderr, "  Not logged in to server %s.\n", server)
 				}
 				break
 			}
@@ -157,7 +157,7 @@ func logout(clear bool, url string, all bool) error {
 
 				// New slice of hosts except the one to clear
 				for i := range config.Hosts {
-					if url == config.Hosts[i].Host {
+					if server == config.Hosts[i].Host {
 						fmt.Fprintf(os.Stderr, "  Cleared %s from list of servers.\n", config.Hosts[i].Host)
 						continue
 					}
@@ -167,7 +167,7 @@ func logout(clear bool, url string, all bool) error {
 				config.Hosts = newHostConfigs
 			}
 		} else {
-			fmt.Fprintf(os.Stderr, "  No server with url %s found.\n", url)
+			fmt.Fprintf(os.Stderr, "  Server %s not found.\n", server)
 		}
 	}
 

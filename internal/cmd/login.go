@@ -27,7 +27,7 @@ import (
 )
 
 type loginCmdOptions struct {
-	URL           string `mapstructure:"url"`
+	SERVER        string `mapstructure:"server"`
 	AccessKey     string `mapstructure:"key"`
 	Provider      string `mapstructure:"provider"`
 	SkipTLSVerify bool   `mapstructure:"skipTLSVerify"`
@@ -45,14 +45,13 @@ const cliLoginRedirectURL = "http://localhost:8301"
 
 func newLoginCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "login [URL]",
+		Use:   "login [SERVER]",
 		Short: "Login to Infra",
 		Example: `# By default, login will prompt for all required information.
 $ infra login
 
 # Login to a specific server
 $ infra login infraexampleserver.com
-$ infra login --url infraexampleserver.com
 
 # Login with a specific identity provider
 $ infra login --provider okta
@@ -70,10 +69,7 @@ $ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy`,
 			}
 
 			if len(args) == 1 {
-				if options.URL != "" {
-					fmt.Fprintf(os.Stderr, "Server is specified twice. Ignoring flag [--url] and logging in to server %s", options.URL)
-				}
-				options.URL = args[0]
+				options.SERVER = args[0]
 			}
 
 			return login(options)
@@ -81,7 +77,6 @@ $ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy`,
 	}
 
 	cmd.Flags().String("key", "", "Login with an access key")
-	cmd.Flags().String("url", "", "Infra server URL")
 	cmd.Flags().String("provider", "", "Login with an identity provider")
 	cmd.Flags().Bool("skip-tls-verify", false, "Skip verifying server TLS certificates")
 	return cmd
@@ -90,14 +85,14 @@ $ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy`,
 func login(options loginCmdOptions) error {
 	var err error
 
-	if options.URL == "" {
-		options.URL, err = promptServer()
+	if options.SERVER == "" {
+		options.SERVER, err = promptServer()
 		if err != nil {
 			return err
 		}
 	}
 
-	client, err := newAPIClient(options.URL, options.SkipTLSVerify)
+	client, err := newAPIClient(options.SERVER, options.SkipTLSVerify)
 	if err != nil {
 		return err
 	}
@@ -495,7 +490,7 @@ func promptSkipTLSVerify() error {
 // Returns the host address of the Infra server that user would like to log into
 func promptServer() (string, error) {
 	if isNonInteractiveMode() {
-		return "", fmt.Errorf("Non-interactive login requires the [URL] argument")
+		return "", fmt.Errorf("Non-interactive login requires the [SERVER] argument")
 	}
 
 	config, err := readOrCreateClientConfig()
@@ -514,7 +509,7 @@ func promptServer() (string, error) {
 
 func promptNewServer() (string, error) {
 	var url string
-	err := survey.AskOne(&survey.Input{Message: "Server URL:"}, &url, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithValidator(survey.Required))
+	err := survey.AskOne(&survey.Input{Message: "Server:"}, &url, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithValidator(survey.Required))
 	if err != nil {
 		return "", err
 	}
