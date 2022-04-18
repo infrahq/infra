@@ -36,7 +36,7 @@ Once you've connected a cluster, you can grant access via `infra grants add`:
 infra grants add fisher@example.com kubernetes.example --role admin
 
 # grant access to a group
-infra grants add engineering kubernetes.example --role view
+infra grants add -g engineering kubernetes.example --role view
 ```
 
 ### Roles

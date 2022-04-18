@@ -75,7 +75,7 @@ server:
       service.beta.kubernetes.io/azure-load-balancer-health-probe-request-path: healthz  # Kubernetes 1.20+
 
       # If using Digital Ocean
-      service.beta.kubernetes.io/do-loadbalancer-healthcheck-protocol: http
+      service.beta.kubernetes.io/do-loadbalancer-healthcheck-protocol: https
       service.beta.kubernetes.io/do-loadbalancer-healthcheck-path: /healthz
 ```
 
