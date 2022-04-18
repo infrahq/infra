@@ -15,7 +15,7 @@
     "babel-plugin-styled-components": "^2.0.7",
     "html2canvas": "^1.4.1",
     "jspdf": "^2.5.1",
-    "next": "^12.1.4",
+    "next": "^12.1.5",
     "react": "18.0.0",
     "react-cookie": "^4.1.1",
     "react-dom": "18.0.0",
