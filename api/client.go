@@ -322,8 +322,8 @@ func (c Client) SignupEnabled() (*SignupEnabledResponse, error) {
 	return get[SignupEnabledResponse](c, "/v1/signup")
 }
 
-func (c Client) Signup() (*CreateAccessKeyResponse, error) {
-	return post[EmptyRequest, CreateAccessKeyResponse](c, "/v1/signup", &EmptyRequest{})
+func (c Client) Signup(req *SignupRequest) (*CreateAccessKeyResponse, error) {
+	return post[SignupRequest, CreateAccessKeyResponse](c, "/v1/signup", req)
 }
 
 func (c Client) GetVersion() (*Version, error) {

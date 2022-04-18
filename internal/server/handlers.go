@@ -498,21 +498,13 @@ func (a *API) SignupEnabled(c *gin.Context, _ *api.EmptyRequest) (*api.SignupEna
 	}, nil
 }
 
-func (a *API) Signup(c *gin.Context, _ *api.EmptyRequest) (*api.CreateAccessKeyResponse, error) {
-	raw, accessKey, err := access.Signup(c)
+func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.Identity, error) {
+	identity, err := access.Signup(c, r.Name, r.Password)
 	if err != nil {
 		return nil, err
 	}
 
-	return &api.CreateAccessKeyResponse{
-		ID:                accessKey.ID,
-		Created:           api.Time(accessKey.CreatedAt),
-		Name:              accessKey.Name,
-		IssuedFor:         accessKey.IssuedFor,
-		Expires:           api.Time(accessKey.ExpiresAt),
-		ExtensionDeadline: api.Time(accessKey.ExtensionDeadline),
-		AccessKey:         raw,
-	}, nil
+	return identity.ToAPI(), nil
 }
 
 func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, error) {
