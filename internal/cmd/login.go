@@ -27,7 +27,7 @@ import (
 )
 
 type loginCmdOptions struct {
-	SERVER        string `mapstructure:"server"`
+	Server        string `mapstructure:"server"`
 	AccessKey     string `mapstructure:"key"`
 	Provider      string `mapstructure:"provider"`
 	SkipTLSVerify bool   `mapstructure:"skipTLSVerify"`
@@ -69,7 +69,7 @@ $ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy`,
 			}
 
 			if len(args) == 1 {
-				options.SERVER = args[0]
+				options.Server = args[0]
 			}
 
 			return login(options)
@@ -85,14 +85,14 @@ $ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy`,
 func login(options loginCmdOptions) error {
 	var err error
 
-	if options.SERVER == "" {
-		options.SERVER, err = promptServer()
+	if options.Server == "" {
+		options.Server, err = promptServer()
 		if err != nil {
 			return err
 		}
 	}
 
-	client, err := newAPIClient(options.SERVER, options.SkipTLSVerify)
+	client, err := newAPIClient(options.Server, options.SkipTLSVerify)
 	if err != nil {
 		return err
 	}
