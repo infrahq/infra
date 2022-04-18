@@ -429,7 +429,7 @@ func listProviders(client *api.Client) ([]api.Provider, error) {
 
 func promptLoginOptions(client *api.Client) (loginMethod loginMethod, provider *api.Provider, err error) {
 	if isNonInteractiveMode() {
-		return 0, nil, fmt.Errorf("Non-interactive login requires key, instead run: 'infra login URL --non-interactive --key KEY")
+		return 0, nil, fmt.Errorf("Non-interactive login requires key, instead run: 'infra login SERVER --non-interactive --key KEY")
 	}
 
 	providers, err := listProviders(client)
@@ -508,13 +508,13 @@ func promptServer() (string, error) {
 }
 
 func promptNewServer() (string, error) {
-	var url string
-	err := survey.AskOne(&survey.Input{Message: "Server:"}, &url, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithValidator(survey.Required))
+	var server string
+	err := survey.AskOne(&survey.Input{Message: "Server:"}, &server, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithValidator(survey.Required))
 	if err != nil {
 		return "", err
 	}
 
-	return url, nil
+	return server, nil
 }
 
 func promptExistingServers(servers []ClientHostConfig) (string, error) {

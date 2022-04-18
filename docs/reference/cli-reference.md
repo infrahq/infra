@@ -29,7 +29,7 @@
 Login to Infra
 
 ```
-infra login [URL] [flags]
+infra login [SERVER] [flags]
 ```
 
 ### Examples
@@ -40,7 +40,6 @@ $ infra login
 
 # Login to a specific server
 $ infra login infraexampleserver.com
-$ infra login --url infraexampleserver.com
 
 # Login with a specific identity provider
 $ infra login --provider okta
@@ -55,7 +54,6 @@ $ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy
       --key string        Login with an access key
       --provider string   Login with an identity provider
       --skip-tls-verify   Skip verifying server TLS certificates
-      --url string        Infra server URL
 ```
 
 ### Options inherited from parent commands
@@ -71,7 +69,7 @@ $ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy
 Log out of Infra
 
 ```
-infra logout [URL] [flags]
+infra logout [SERVER] [flags]
 ```
 
 ### Examples
@@ -90,7 +88,7 @@ $ infra logout --all
 $ infra logout --clear
 		
 # Log out of a specific server and clear from list
-$ infra logout URL --clear 
+$ infra logout infraexampleserver.com --clear 
 		
 # Logout and clear list of all servers 
 $ infra logout --all --clear
