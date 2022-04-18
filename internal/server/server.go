@@ -191,7 +191,11 @@ func (s *Server) Run(ctx context.Context) error {
 	// nolint: errcheck // if logs won't sync there is no way to report this error
 	defer logging.L.Sync()
 
-	// TODO: start telemetry goroutine here as well
+	if s.tel != nil {
+		repeat.Start(context.TODO(), 1*time.Hour, func(context.Context) {
+			s.tel.EnqueueHeartbeat()
+		})
+	}
 
 	group, _ := errgroup.WithContext(ctx)
 	for i := range s.routines {
@@ -210,10 +214,6 @@ func configureTelemetry(server *Server) error {
 		return err
 	}
 	server.tel = tel
-
-	repeat.Start(context.TODO(), 1*time.Hour, func(context.Context) {
-		tel.EnqueueHeartbeat()
-	})
 
 	return nil
 }

@@ -432,10 +432,11 @@ func migrate(db *gorm.DB) error {
 	})
 
 	m.InitSchema(func(db *gorm.DB) error {
-		// TODO: can optionally remove this skip after any existing users have migrated.
 		if db.Migrator().HasTable("providers") {
+			// don't pre-auto-mgirate if tables already exist.
 			return nil
 		}
+
 		return automigrate(db)
 	})
 
