@@ -47,8 +47,10 @@ func newIdentitiesAddCmd() *cobra.Command {
 		Short: "Create an identity.",
 		Long: `Create an identity.
 
-If an email is provided, a user is created; otherwise, a machine is created.
-A new user must change their one time password before further usage.`,
+If a valid email is detected, a user identity is created. 
+If a username is detected, a machine identity is created.
+
+A new user identity must change their one time password before further usage.`,
 		Args: cobra.ExactArgs(1),
 		Example: `# Create a local user
 $ infra identities add johndoe@example.com
