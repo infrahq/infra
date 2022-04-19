@@ -15,7 +15,10 @@ func newProvidersCmd() *cobra.Command {
 		Short:   "Manage identity providers",
 		Aliases: []string{"provider"},
 		Group:   "Management commands:",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			if err := rootPreRun(cmd.Flags()); err != nil {
+				return err
+			}
 			return mustBeLoggedIn()
 		},
 	}

@@ -206,7 +206,10 @@ $ infra use development
 $ infra use development.kube-system`,
 		Args:  cobra.ExactArgs(1),
 		Group: "Core commands:",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			if err := rootPreRun(cmd.Flags()); err != nil {
+				return err
+			}
 			return mustBeLoggedIn()
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -310,9 +313,8 @@ func newConnectorCmd() *cobra.Command {
 // rootOptions are options specified by users on the command line that are
 // used by the root command.
 type rootOptions struct {
-	LogLevel string
-	Info     bool
-	Version  bool
+	Info    bool
+	Version bool
 }
 
 func NewRootCmd() *cobra.Command {
@@ -324,15 +326,8 @@ func NewRootCmd() *cobra.Command {
 		CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: true},
 		SilenceUsage:      true,
 		SilenceErrors:     true,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			if err := cliopts.DefaultsFromEnv("INFRA", cmd.Flags()); err != nil {
-				return err
-			}
-			if err := logging.SetLevel(rootOpts.LogLevel); err != nil {
-				return err
-			}
-
-			return nil
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			return rootPreRun(cmd.Flags())
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if rootOpts.Version {
@@ -374,13 +369,27 @@ func NewRootCmd() *cobra.Command {
 	rootCmd.Flags().BoolVar(&rootOpts.Version, "version", false, "Display Infra version")
 	rootCmd.Flags().BoolVar(&rootOpts.Info, "info", false, "Display info about the current logged in session")
 
-	rootCmd.PersistentFlags().StringVar(&rootOpts.LogLevel, "log-level", "info", "Show logs when running the command [error, warn, info, debug]")
+	rootCmd.PersistentFlags().String("log-level", "info", "Show logs when running the command [error, warn, info, debug]")
 	rootCmd.PersistentFlags().Bool("help", false, "Display help")
 
 	rootCmd.SetHelpCommandGroup("Other commands:")
 	rootCmd.AddCommand(newAboutCmd())
 	rootCmd.SetUsageTemplate(usageTemplate())
 	return rootCmd
+}
+
+func rootPreRun(flags *pflag.FlagSet) error {
+	if err := cliopts.DefaultsFromEnv("INFRA", flags); err != nil {
+		return err
+	}
+	logLevel, err := flags.GetString("log-level")
+	if err != nil {
+		return err
+	}
+	if err := logging.SetLevel(logLevel); err != nil {
+		return err
+	}
+	return nil
 }
 
 func addNonInteractiveFlag(flags *pflag.FlagSet, bind *bool) {
