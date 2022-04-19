@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/go-cmp/cmp"
 	"github.com/prometheus/client_golang/prometheus"
 	"gotest.tools/v3/assert"
 
@@ -16,6 +18,116 @@ import (
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 )
+
+func TestAPI_ListIdentities(t *testing.T) {
+	srv := setupServer(t, withDefaultAdminAccessKey)
+	adminAccessKey := srv.options.AdminAccessKey
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	createID := func(t *testing.T, name string, kind string) {
+		t.Helper()
+		var buf bytes.Buffer
+		body := api.CreateIdentityRequest{Name: name, Kind: kind}
+		err := json.NewEncoder(&buf).Encode(body)
+		assert.NilError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/v1/identities", &buf)
+		assert.NilError(t, err)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey)
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
+	}
+	createID(t, "me@example.com", "user")
+	createID(t, "other@example.com", "user")
+	createID(t, "HAL", "machine")
+	createID(t, "other-HAL", "machine")
+
+	type testCase struct {
+		urlPath  string
+		setup    func(t *testing.T, req *http.Request)
+		expected func(t *testing.T, resp *httptest.ResponseRecorder)
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		req, err := http.NewRequest(http.MethodGet, tc.urlPath, nil)
+		assert.NilError(t, err)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey)
+
+		if tc.setup != nil {
+			tc.setup(t, req)
+		}
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		tc.expected(t, resp)
+	}
+
+	testCases := map[string]testCase{
+		"no name match": {
+			urlPath: "/v1/identities?name=doesnotmatch",
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK)
+				assert.Equal(t, resp.Body.String(), `[]`)
+			},
+		},
+		"name match": {
+			urlPath: "/v1/identities?name=me@example.com",
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK)
+
+				var actual []api.Identity
+				err := json.NewDecoder(resp.Body).Decode(&actual)
+				assert.NilError(t, err)
+				expected := []api.Identity{
+					{Name: "me@example.com", Kind: "user"},
+				}
+				assert.DeepEqual(t, actual, expected, cmpAPIIdentityShallow)
+			},
+		},
+		"no filter": {
+			urlPath: "/v1/identities",
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK)
+
+				var actual []api.Identity
+				err := json.NewDecoder(resp.Body).Decode(&actual)
+				assert.NilError(t, err)
+				expected := []api.Identity{
+					{Name: "HAL", Kind: "machine"},
+					{Name: "admin", Kind: "machine"},
+					{Name: "connector", Kind: "machine"},
+					{Name: "me@example.com", Kind: "user"},
+					{Name: "other-HAL", Kind: "machine"},
+					{Name: "other@example.com", Kind: "user"},
+				}
+				assert.DeepEqual(t, actual, expected, cmpAPIIdentityShallow)
+			},
+		},
+		"no authorization": {
+			urlPath: "/v1/identities",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Del("Authorization")
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusUnauthorized)
+			},
+		},
+		// TODO: assert full JSON response
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+var cmpAPIIdentityShallow = cmp.Comparer(func(x, y api.Identity) bool {
+	return x.Name == y.Name && x.Kind == y.Kind
+})
 
 func TestListProviders(t *testing.T) {
 	s := setupServer(t, withDefaultAdminAccessKey)
