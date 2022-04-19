@@ -52,6 +52,7 @@ $ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy
 
 ```
       --key string        Login with an access key
+      --non-interactive   Disable all prompts for input
       --provider string   Login with an identity provider
       --skip-tls-verify   Skip verifying server TLS certificates
 ```
@@ -61,7 +62,6 @@ $ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra logout`
@@ -111,7 +111,6 @@ $ infra logout --all --clear
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra list`
@@ -127,7 +126,6 @@ infra list [flags]
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra use`
@@ -154,7 +152,6 @@ $ infra use development.kube-system
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra destinations list`
@@ -170,7 +167,6 @@ infra destinations list [flags]
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra destinations remove`
@@ -186,7 +182,6 @@ infra destinations remove DESTINATION [flags]
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra grants list`
@@ -208,7 +203,6 @@ infra grants list [flags]
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra grants add`
@@ -249,7 +243,6 @@ infra grants add IDENTITY DESTINATION [flags]
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra grants remove`
@@ -286,7 +279,6 @@ infra grants remove IDENTITY DESTINATION [flags]
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra identities add`
@@ -312,7 +304,6 @@ infra identities add IDENTITY [flags]
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra identities edit`
@@ -326,7 +317,8 @@ infra identities edit IDENTITY [flags]
 ### Options
 
 ```
-  -p, --password   Update password field
+      --non-interactive   Disable all prompts for input
+  -p, --password          Update password field
 ```
 
 ### Options inherited from parent commands
@@ -334,7 +326,6 @@ infra identities edit IDENTITY [flags]
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra identities list`
@@ -350,7 +341,6 @@ infra identities list [flags]
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra identities remove`
@@ -366,7 +356,6 @@ infra identities remove NAME [flags]
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra keys list`
@@ -388,7 +377,6 @@ infra keys list [flags]
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra keys add`
@@ -420,7 +408,6 @@ infra keys add first-key bot --ttl=12h --extension-deadline=1h
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra keys remove`
@@ -436,7 +423,6 @@ infra keys remove ACCESS_KEY_NAME [flags]
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra providers list`
@@ -452,7 +438,6 @@ infra providers list [flags]
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra providers add`
@@ -484,7 +469,6 @@ infra providers add PROVIDER [flags]
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra providers remove`
@@ -500,7 +484,6 @@ infra providers remove PROVIDER [flags]
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra about`
@@ -516,6 +499,5 @@ infra about [flags]
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
