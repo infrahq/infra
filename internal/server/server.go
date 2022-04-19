@@ -23,6 +23,7 @@ import (
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
+	"github.com/infrahq/secrets"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
 	"gorm.io/gorm"
@@ -37,7 +38,6 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/metrics"
 	"github.com/infrahq/infra/pki"
-	"github.com/infrahq/secrets"
 )
 
 type Options struct {

@@ -39,8 +39,6 @@ func TestMain(m *testing.M) {
 	os.Exit(result)
 }
 
-var containerIDs []string
-
 func setup() {
 	if testing.Short() {
 		return

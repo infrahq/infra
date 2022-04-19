@@ -4,13 +4,13 @@ import (
 	"os"
 	"testing"
 
+	"github.com/infrahq/secrets"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
-	"github.com/infrahq/secrets"
 )
 
 type StructForTesting struct {

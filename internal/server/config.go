@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/infrahq/secrets"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
@@ -18,7 +19,6 @@ import (
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
-	"github.com/infrahq/secrets"
 )
 
 type Provider struct {

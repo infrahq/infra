@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/infrahq/secrets"
 	"go.uber.org/zap/zaptest"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
@@ -11,7 +12,6 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
-	"github.com/infrahq/secrets"
 )
 
 func setup(t *testing.T) *gorm.DB {
