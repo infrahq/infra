@@ -524,7 +524,7 @@ func promptExistingServers(servers []ClientHostConfig) (string, error) {
 	}
 
 	const defaultOption string = "Connect to a new server"
-	promptOptions = append(promptOptions, "Connect to a new server")
+	promptOptions = append(promptOptions, defaultOption)
 
 	prompt := &survey.Select{
 		Message: "Select a server:",
