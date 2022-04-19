@@ -65,7 +65,7 @@ func DeleteProvider(c *gin.Context, id uid.ID) error {
 // RetrieveUserProviderTokens gets the providerUser for the current session token was created for
 func RetrieveUserProviderTokens(c *gin.Context) (*models.ProviderUser, error) {
 	// added by the authentication middleware
-	identity := CurrentIdentity(c)
+	identity := AuthenticatedIdentity(c)
 	if identity == nil {
 		return nil, errors.New("no provider token context user")
 	}
