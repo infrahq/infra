@@ -11,7 +11,6 @@ import (
 
 	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/server"
-	"github.com/infrahq/infra/secrets"
 )
 
 func TestServerCmd_ParseOptions(t *testing.T) {
@@ -66,7 +65,7 @@ func TestServerCmd_ParseOptions(t *testing.T) {
 					{
 						Kind:   "env",
 						Name:   "base64env",
-						Config: secrets.GenericConfig{Base64: true},
+						Config: server.GenericConfig{Base64: true},
 					},
 				}
 				return expected

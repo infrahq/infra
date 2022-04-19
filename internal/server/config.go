@@ -17,8 +17,8 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/secrets"
 	"github.com/infrahq/infra/uid"
+	"github.com/infrahq/secrets"
 )
 
 type Provider struct {
@@ -46,8 +46,56 @@ type KeyProvider struct {
 	Config interface{} // contains secret-provider-specific config
 }
 
-type nativeSecretProviderConfig struct {
+type nativeKeyProviderConfig struct {
 	SecretProvider string `mapstructure:"secretProvider"`
+}
+
+type AWSConfig struct {
+	Endpoint        string `mapstructure:"endpoint" validate:"required"`
+	Region          string `mapstructure:"region" validate:"required"`
+	AccessKeyID     string `mapstructure:"accessKeyID" validate:"required"`
+	SecretAccessKey string `mapstructure:"secretAccessKey" validate:"required"`
+}
+
+type AWSKMSConfig struct {
+	AWSConfig `mapstructure:",squash"`
+
+	EncryptionAlgorithm string `mapstructure:"encryptionAlgorithm"`
+	// aws tags?
+}
+
+type AWSSecretsManagerConfig struct {
+	AWSConfig `mapstructure:",squash"`
+
+	UseSecretMaps bool `mapstructure:"useSecretMaps"`
+}
+
+type AWSSSMConfig struct {
+	AWSConfig `mapstructure:",squash"`
+	KeyID     string `mapstructure:"keyID" validate:"required"` // KMS key to use for decryption
+}
+
+type GenericConfig struct {
+	Base64           bool `mapstructure:"base64"`
+	Base64URLEncoded bool `mapstructure:"base64UrlEncoded"`
+	Base64Raw        bool `mapstructure:"base64Raw"`
+}
+
+type FileConfig struct {
+	GenericConfig `mapstructure:",squash"`
+	Path          string `mapstructure:"path" validate:"required"`
+}
+
+type KubernetesConfig struct {
+	Namespace string `mapstructure:"namespace"`
+}
+
+type VaultConfig struct {
+	TransitMount string `mapstructure:"transitMount"`              // mounting point. defaults to /transit
+	SecretMount  string `mapstructure:"secretMount"`               // mounting point. defaults to /secret
+	Token        string `mapstructure:"token" validate:"required"` // vault token... should authenticate as machine to vault instead?
+	Namespace    string `mapstructure:"namespace"`
+	Address      string `mapstructure:"address" validate:"required"`
 }
 
 func importKeyProviders(
@@ -58,14 +106,14 @@ func importKeyProviders(
 	var err error
 
 	// default to file-based native secret provider
-	keys["native"] = secrets.NewNativeSecretProvider(storage["file"])
+	keys["native"] = secrets.NewNativeKeyProvider(storage["file"])
 
 	for _, keyConfig := range cfg {
 		switch keyConfig.Kind {
 		case "native":
-			cfg, ok := keyConfig.Config.(nativeSecretProviderConfig)
+			cfg, ok := keyConfig.Config.(nativeKeyProviderConfig)
 			if !ok {
-				return fmt.Errorf("expected key config to be NativeSecretProviderConfig, but was %t", keyConfig.Config)
+				return fmt.Errorf("expected key config to be nativeKeyProviderConfig, but was %t", keyConfig.Config)
 			}
 
 			storageProvider, found := storage[cfg.SecretProvider]
@@ -73,10 +121,10 @@ func importKeyProviders(
 				return fmt.Errorf("secret storage name %q not found", cfg.SecretProvider)
 			}
 
-			sp := secrets.NewNativeSecretProvider(storageProvider)
+			sp := secrets.NewNativeKeyProvider(storageProvider)
 			keys[keyConfig.Kind] = sp
 		case "awskms":
-			cfg, ok := keyConfig.Config.(secrets.AWSKMSConfig)
+			cfg, ok := keyConfig.Config.(AWSKMSConfig)
 			if !ok {
 				return fmt.Errorf("expected key config to be AWSKMSConfig, but was %t", keyConfig.Config)
 			}
@@ -91,14 +139,23 @@ func importKeyProviders(
 				return fmt.Errorf("getting secret for awskms secretAccessKey: %w", err)
 			}
 
-			sp, err := secrets.NewAWSKMSSecretProviderFromConfig(cfg)
+			kmsCfg := secrets.NewAWSKMSConfig()
+			kmsCfg.AWSConfig.AccessKeyID = cfg.AccessKeyID
+			kmsCfg.AWSConfig.Endpoint = cfg.Endpoint
+			kmsCfg.AWSConfig.Region = cfg.Region
+			kmsCfg.AWSConfig.SecretAccessKey = cfg.SecretAccessKey
+			if len(cfg.EncryptionAlgorithm) > 0 {
+				kmsCfg.EncryptionAlgorithm = cfg.EncryptionAlgorithm
+			}
+
+			sp, err := secrets.NewAWSKMSSecretProviderFromConfig(kmsCfg)
 			if err != nil {
 				return err
 			}
 
 			keys[keyConfig.Kind] = sp
 		case "vault":
-			cfg, ok := keyConfig.Config.(secrets.VaultConfig)
+			cfg, ok := keyConfig.Config.(VaultConfig)
 			if !ok {
 				return fmt.Errorf("expected key config to be VaultConfig, but was %t", keyConfig.Config)
 			}
@@ -108,7 +165,20 @@ func importKeyProviders(
 				return err
 			}
 
-			sp, err := secrets.NewVaultSecretProviderFromConfig(cfg)
+			vcfg := secrets.NewVaultConfig()
+			if len(cfg.TransitMount) > 0 {
+				vcfg.TransitMount = cfg.TransitMount
+			}
+			if len(cfg.SecretMount) > 0 {
+				vcfg.SecretMount = cfg.SecretMount
+			}
+			if len(cfg.Address) > 0 {
+				vcfg.Address = cfg.Address
+			}
+			vcfg.Token = cfg.Token
+			vcfg.Namespace = cfg.Namespace
+
+			sp, err := secrets.NewVaultSecretProviderFromConfig(vcfg)
 			if err != nil {
 				return err
 			}
@@ -124,11 +194,11 @@ func (kp *KeyProvider) PrepareForDecode(data interface{}) error {
 	kind := getKindFromUnstructured(data)
 	switch kind {
 	case "vault":
-		kp.Config = secrets.NewVaultConfig()
+		kp.Config = VaultConfig{}
 	case "awskms":
-		kp.Config = secrets.NewAWSKMSConfig()
+		kp.Config = AWSKMSConfig{}
 	case "native":
-		kp.Config = nativeSecretProviderConfig{}
+		kp.Config = nativeKeyProviderConfig{}
 	default:
 		// unknown kind error is handled by import importKeyProviders
 	}
@@ -172,7 +242,7 @@ func importSecrets(cfg []SecretProvider, storage map[string]secrets.SecretStorag
 
 		switch secret.Kind {
 		case "vault":
-			cfg, ok := secret.Config.(secrets.VaultConfig)
+			cfg, ok := secret.Config.(VaultConfig)
 			if !ok {
 				return fmt.Errorf("expected secret config to be VaultConfig, but was %t", secret.Config)
 			}
@@ -182,14 +252,27 @@ func importSecrets(cfg []SecretProvider, storage map[string]secrets.SecretStorag
 				return err
 			}
 
-			vault, err := secrets.NewVaultSecretProviderFromConfig(cfg)
+			vcfg := secrets.NewVaultConfig()
+			if len(cfg.TransitMount) > 0 {
+				vcfg.TransitMount = cfg.TransitMount
+			}
+			if len(cfg.SecretMount) > 0 {
+				vcfg.SecretMount = cfg.SecretMount
+			}
+			if len(cfg.Address) > 0 {
+				vcfg.Address = cfg.Address
+			}
+			vcfg.Token = cfg.Token
+			vcfg.Namespace = cfg.Namespace
+
+			vault, err := secrets.NewVaultSecretProviderFromConfig(vcfg)
 			if err != nil {
 				return fmt.Errorf("creating vault provider: %w", err)
 			}
 
 			storage[name] = vault
 		case "awsssm":
-			cfg, ok := secret.Config.(secrets.AWSSSMConfig)
+			cfg, ok := secret.Config.(AWSSSMConfig)
 			if !ok {
 				return fmt.Errorf("expected secret config to be AWSSSMConfig, but was %t", secret.Config)
 			}
@@ -204,14 +287,24 @@ func importSecrets(cfg []SecretProvider, storage map[string]secrets.SecretStorag
 				return err
 			}
 
-			ssm, err := secrets.NewAWSSSMSecretProviderFromConfig(cfg)
+			ssmcfg := secrets.AWSSSMConfig{
+				AWSConfig: secrets.AWSConfig{
+					Endpoint:        cfg.Endpoint,
+					Region:          cfg.Region,
+					AccessKeyID:     cfg.AccessKeyID,
+					SecretAccessKey: cfg.SecretAccessKey,
+				},
+				KeyID: cfg.KeyID,
+			}
+
+			ssm, err := secrets.NewAWSSSMSecretProviderFromConfig(ssmcfg)
 			if err != nil {
 				return fmt.Errorf("creating aws ssm: %w", err)
 			}
 
 			storage[name] = ssm
 		case "awssecretsmanager":
-			cfg, ok := secret.Config.(secrets.AWSSecretsManagerConfig)
+			cfg, ok := secret.Config.(AWSSecretsManagerConfig)
 			if !ok {
 				return fmt.Errorf("expected secret config to be AWSSecretsManagerConfig, but was %t", secret.Config)
 			}
@@ -226,47 +319,83 @@ func importSecrets(cfg []SecretProvider, storage map[string]secrets.SecretStorag
 				return err
 			}
 
-			sm, err := secrets.NewAWSSecretsManagerFromConfig(cfg)
+			smCfg := secrets.AWSSecretsManagerConfig{
+				AWSConfig: secrets.AWSConfig{
+					Endpoint:        cfg.Endpoint,
+					Region:          cfg.Region,
+					AccessKeyID:     cfg.AccessKeyID,
+					SecretAccessKey: cfg.SecretAccessKey,
+				},
+				UseSecretMaps: cfg.UseSecretMaps,
+			}
+
+			sm, err := secrets.NewAWSSecretsManagerFromConfig(smCfg)
 			if err != nil {
 				return fmt.Errorf("creating aws sm: %w", err)
 			}
 
 			storage[name] = sm
 		case "kubernetes":
-			cfg, ok := secret.Config.(secrets.KubernetesConfig)
+			cfg, ok := secret.Config.(KubernetesConfig)
 			if !ok {
 				return fmt.Errorf("expected secret config to be KubernetesConfig, but was %t", secret.Config)
 			}
 
-			k8s, err := secrets.NewKubernetesSecretProviderFromConfig(cfg)
+			kcfg := secrets.NewKubernetesConfig()
+			if len(cfg.Namespace) > 0 {
+				kcfg.Namespace = cfg.Namespace
+			}
+
+			k8s, err := secrets.NewKubernetesSecretProviderFromConfig(kcfg)
 			if err != nil {
 				return fmt.Errorf("creating k8s secret provider: %w", err)
 			}
 
 			storage[name] = k8s
 		case "env":
-			cfg, ok := secret.Config.(secrets.GenericConfig)
+			cfg, ok := secret.Config.(GenericConfig)
 			if !ok {
 				return fmt.Errorf("expected secret config to be GenericConfig, but was %t", secret.Config)
 			}
 
-			f := secrets.NewEnvSecretProviderFromConfig(cfg)
+			gcfg := secrets.GenericConfig{
+				Base64:           cfg.Base64,
+				Base64URLEncoded: cfg.Base64URLEncoded,
+				Base64Raw:        cfg.Base64Raw,
+			}
+
+			f := secrets.NewEnvSecretProviderFromConfig(gcfg)
 			storage[name] = f
 		case "file":
-			cfg, ok := secret.Config.(secrets.FileConfig)
+			cfg, ok := secret.Config.(FileConfig)
 			if !ok {
 				return fmt.Errorf("expected secret config to be FileConfig, but was %t", secret.Config)
 			}
 
-			f := secrets.NewFileSecretProviderFromConfig(cfg)
+			fcfg := secrets.FileConfig{
+				GenericConfig: secrets.GenericConfig{
+					Base64:           cfg.Base64,
+					Base64URLEncoded: cfg.Base64URLEncoded,
+					Base64Raw:        cfg.Base64Raw,
+				},
+				Path: cfg.Path,
+			}
+
+			f := secrets.NewFileSecretProviderFromConfig(fcfg)
 			storage[name] = f
 		case "plaintext", "":
-			cfg, ok := secret.Config.(secrets.GenericConfig)
+			cfg, ok := secret.Config.(GenericConfig)
 			if !ok {
 				return fmt.Errorf("expected secret config to be GenericConfig, but was %t", secret.Config)
 			}
 
-			f := secrets.NewPlainSecretProviderFromConfig(cfg)
+			gcfg := secrets.GenericConfig{
+				Base64:           cfg.Base64,
+				Base64URLEncoded: cfg.Base64URLEncoded,
+				Base64Raw:        cfg.Base64Raw,
+			}
+
+			f := secrets.NewPlainSecretProviderFromConfig(gcfg)
 			storage[name] = f
 		default:
 			return fmt.Errorf("unknown secret provider type %q", secret.Kind)
@@ -345,20 +474,20 @@ func (sp *SecretProvider) PrepareForDecode(data interface{}) error {
 	kind := getKindFromUnstructured(data)
 	switch kind {
 	case "vault":
-		sp.Config = secrets.NewVaultConfig()
+		sp.Config = VaultConfig{}
 	case "awsssm":
-		sp.Config = secrets.AWSSSMConfig{}
+		sp.Config = AWSSSMConfig{}
 	case "awssecretsmanager":
-		sp.Config = secrets.AWSSecretsManagerConfig{}
+		sp.Config = AWSSecretsManagerConfig{}
 	case "kubernetes":
-		sp.Config = secrets.NewKubernetesConfig()
+		sp.Config = KubernetesConfig{}
 	case "env":
-		sp.Config = secrets.GenericConfig{}
+		sp.Config = GenericConfig{}
 	case "file":
-		sp.Config = secrets.FileConfig{}
+		sp.Config = FileConfig{}
 	case "plaintext", "":
 		sp.Kind = "plaintext"
-		sp.Config = secrets.GenericConfig{}
+		sp.Config = GenericConfig{}
 	default:
 		// unknown kind error is handled by importSecrets
 	}

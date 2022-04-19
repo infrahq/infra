@@ -33,7 +33,7 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/repeat"
 	"github.com/infrahq/infra/metrics"
-	"github.com/infrahq/infra/secrets"
+	"github.com/infrahq/secrets"
 )
 
 type Options struct {

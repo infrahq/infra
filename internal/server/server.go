@@ -37,7 +37,7 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/metrics"
 	"github.com/infrahq/infra/pki"
-	"github.com/infrahq/infra/secrets"
+	"github.com/infrahq/secrets"
 )
 
 type Options struct {

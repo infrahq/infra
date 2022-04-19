@@ -21,8 +21,8 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/secrets"
 	"github.com/infrahq/infra/uid"
+	"github.com/infrahq/secrets"
 )
 
 func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {

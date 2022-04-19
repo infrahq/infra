@@ -10,8 +10,8 @@ import (
 
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/secrets"
 	"github.com/infrahq/infra/uid"
+	"github.com/infrahq/secrets"
 )
 
 func setup(t *testing.T) *gorm.DB {
@@ -25,7 +25,7 @@ func setup(t *testing.T) *gorm.DB {
 		Path: os.TempDir(),
 	})
 
-	kp := secrets.NewNativeSecretProvider(fp)
+	kp := secrets.NewNativeKeyProvider(fp)
 
 	key, err := kp.GenerateDataKey("")
 	assert.NilError(t, err)

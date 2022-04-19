@@ -25,7 +25,7 @@ import (
 	rest "k8s.io/client-go/rest"
 
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/secrets"
+	"github.com/infrahq/secrets"
 )
 
 const (

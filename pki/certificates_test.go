@@ -18,8 +18,6 @@ import (
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 	"gotest.tools/v3/assert/opt"
-
-	"github.com/infrahq/infra/testutil/docker"
 )
 
 func TestMain(m *testing.M) {
@@ -52,10 +50,6 @@ func setup() {
 func teardown() {
 	if testing.Short() {
 		return
-	}
-
-	for _, containerID := range containerIDs {
-		docker.KillContainer(containerID)
 	}
 }
 

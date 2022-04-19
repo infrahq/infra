@@ -9,8 +9,8 @@ import (
 
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/secrets"
 	"github.com/infrahq/infra/uid"
+	"github.com/infrahq/secrets"
 )
 
 type StructForTesting struct {
@@ -26,7 +26,7 @@ func TestEncryptedAtRest(t *testing.T) {
 	})
 
 	rootKey := "db_at_rest"
-	symmetricKeyProvider := secrets.NewNativeSecretProvider(sp)
+	symmetricKeyProvider := secrets.NewNativeKeyProvider(sp)
 	symmetricKey, err := symmetricKeyProvider.GenerateDataKey(rootKey)
 	assert.NilError(t, err)
 
