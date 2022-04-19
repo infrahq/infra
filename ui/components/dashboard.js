@@ -1,6 +1,7 @@
 import Link from 'next/link'
-import { useRouter } from 'next/router'
+import Router, { useRouter } from 'next/router'
 import useSWR, { useSWRConfig } from 'swr'
+
 
 const navigation = [
   { name: 'Infrastructure', href: '/destinations', icon: '/infrastructure.svg' },
@@ -23,6 +24,12 @@ export default function ({ children }) {
     })
     mutate('/v1/introspect', undefined)
     router.replace('/')
+  }
+
+  function settings () {
+    Router.push({
+      pathname: '/settings'
+    }, undefined, { shallow: true })
   }
 
   return (
@@ -65,7 +72,7 @@ export default function ({ children }) {
         <div className='relative group mx-2 my-5 h-16 hover:h-28 hover:bg-purple-100/5 transition-height transition-size px-4 duration-300 ease-in-out rounded-xl overflow-hidden'>
           <div className='flex items-center space-x-4 my-4'>
             <div className='bg-purple-100/10 flex-none flex items-center justify-center w-9 h-9 py-1.5 rounded-lg capitalize font-bold select-none'>{auth?.name?.[0]}</div>
-            <div className='text-gray-300 text-sm font-medium overflow-hidden overflow-ellipsis'>{auth?.name}</div>
+            <div onClick={() => settings()} className='text-gray-300 text-sm font-medium overflow-hidden overflow-ellipsis cursor-pointer'>{auth?.name}</div>
           </div>
           <div className='absolute group w-full px-2 flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-sm'>
             <div onClick={() => logout()} className='w-full flex opacity-50 hover:opacity-75 py-2 cursor-pointer'>

@@ -3,6 +3,7 @@ export default function InputDropdown({
   type,
   value,
   placeholder,
+  hasDropdownSelection = true,
   optionType,
   options,
   handleInputChange,
@@ -21,6 +22,7 @@ export default function InputDropdown({
             placeholder={placeholder}
             onChange={handleInputChange}
           />
+          {hasDropdownSelection &&
           <div className="absolute inset-y-0 right-2 flex items-center">
           <label htmlFor={optionType} className="sr-only">
             {optionType}
@@ -35,7 +37,7 @@ export default function InputDropdown({
               <option key={option} value={option}>{option}</option>
             ))}
           </select>
-        </div>
+        </div>}
       </div>
     </div>
   )
