@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/authn"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -107,12 +108,12 @@ func UpdateUserInfoFromProvider(c *gin.Context, info *authn.UserInfo, user *mode
 	// add user to groups they are currently in
 	var groups []string
 
-	if info.Groups != nil {
-		for i := range *info.Groups {
-			name := (*info.Groups)[i]
-			groups = append(groups, name)
-		}
+	for i := range info.Groups {
+		name := info.Groups[i]
+		groups = append(groups, name)
 	}
+
+	logging.S.Debugf("%s user authenticated with %q groups", provider.Name, groups)
 
 	if err := data.AssignIdentityToGroups(db, user, provider, groups); err != nil {
 		return fmt.Errorf("assign identity to groups: %w", err)
