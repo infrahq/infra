@@ -25,24 +25,23 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func setupServer(t *testing.T) *Server {
-	s := newServer(Options{})
+func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
+	t.Helper()
+	options := Options{}
+	for _, op := range ops {
+		op(t, &options)
+	}
+	s := newServer(options)
 	s.db = setupDB(t)
 
-	err := s.setupInternalInfraIdentityProvider()
+	// TODO: share more of this with Server.New
+	err := loadDefaultSecretConfig(s.secrets)
 	assert.NilError(t, err)
 
-	internalIdentities := map[string]string{
-		models.InternalInfraAdminIdentityName:     models.InfraAdminRole,
-		models.InternalInfraConnectorIdentityName: models.InfraConnectorRole,
-	}
+	err = s.setupInternalInfraIdentityProvider()
+	assert.NilError(t, err)
 
-	for name, role := range internalIdentities {
-		_, err = s.setupInternalInfraIdentity(name, role)
-		assert.NilError(t, err)
-	}
-
-	err = loadDefaultSecretConfig(s.secrets)
+	err = s.importAccessKeys()
 	assert.NilError(t, err)
 
 	return s
@@ -917,10 +916,11 @@ func TestServer_Run_UIProxy(t *testing.T) {
 		DBEncryptionKey:         filepath.Join(dir, "sqlite3.db.key"),
 		TLSCache:                filepath.Join(dir, "tlscache"),
 		DBFile:                  filepath.Join(dir, "sqlite3.db"),
-		EnableUI:                true,
-		UIProxyURL:              uiSrv.URL,
+		UI:                      UIOptions{Enabled: true},
 		EnableSetup:             true,
 	}
+	assert.NilError(t, opts.UI.ProxyURL.Set(uiSrv.URL))
+
 	srv, err := New(opts)
 	assert.NilError(t, err)
 
@@ -962,9 +962,8 @@ func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
 		expected func(t *testing.T, resp *httptest.ResponseRecorder)
 	}
 
-	s := &Server{options: Options{EnableUI: true}}
-	router, err := s.GenerateRoutes(prometheus.NewRegistry())
-	assert.NilError(t, err)
+	s := &Server{options: Options{UI: UIOptions{Enabled: true}}}
+	router := s.GenerateRoutes(prometheus.NewRegistry())
 
 	run := func(t *testing.T, tc testCase) {
 		req := httptest.NewRequest(http.MethodGet, tc.path, nil)
@@ -981,7 +980,11 @@ func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
 		{
 			name: "/v1 path prefix",
 			path: "/v1/not/found",
-			// TODO: should have a JSON response body
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				contentType := resp.Header().Get("Content-Type")
+				expected := "application/json; charset=utf-8"
+				assert.Equal(t, contentType, expected)
+			},
 		},
 		{
 			name: "ui path",
@@ -1009,9 +1012,8 @@ func TestServer_GenerateRoutes_UI(t *testing.T) {
 		expected     func(t *testing.T, resp *httptest.ResponseRecorder)
 	}
 
-	s := &Server{options: Options{EnableUI: true}}
-	router, err := s.GenerateRoutes(prometheus.NewRegistry())
-	assert.NilError(t, err)
+	s := &Server{options: Options{UI: UIOptions{Enabled: true}}}
+	router := s.GenerateRoutes(prometheus.NewRegistry())
 
 	run := func(t *testing.T, tc testCase) {
 		req := httptest.NewRequest(http.MethodGet, tc.path, nil)

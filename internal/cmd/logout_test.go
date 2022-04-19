@@ -14,6 +14,8 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
+var srvURL string
+
 func TestLogout(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
@@ -35,6 +37,7 @@ func TestLogout(t *testing.T) {
 		}
 
 		srv := httptest.NewTLSServer(http.HandlerFunc(handler))
+		srvURL = srv.Listener.Addr().String()
 		t.Cleanup(srv.Close)
 		srv2 := httptest.NewTLSServer(http.HandlerFunc(handler))
 		t.Cleanup(srv2.Close)
@@ -48,6 +51,7 @@ func TestLogout(t *testing.T) {
 					AccessKey:     "the-access-key",
 					PolymorphicID: "pid1",
 					SkipTLSVerify: true,
+					Current:       true,
 				},
 				{
 					Name:          "user2",
@@ -92,6 +96,46 @@ func TestLogout(t *testing.T) {
 		},
 	}
 
+	t.Run("default", func(t *testing.T) {
+		cfg, count := setup(t)
+		err := Run(context.Background(), "logout")
+		assert.NilError(t, err)
+
+		assert.Equal(t, int32(1), atomic.LoadInt32(count), "calls to API")
+
+		updatedCfg, err := readConfig()
+		assert.NilError(t, err)
+
+		expected := cfg
+		expected.Hosts[0].AccessKey = ""
+		expected.Hosts[0].Name = ""
+		expected.Hosts[0].PolymorphicID = ""
+		assert.DeepEqual(t, &expected, updatedCfg)
+
+		updatedKubeCfg, err := clientConfig().RawConfig()
+		assert.NilError(t, err)
+		assert.DeepEqual(t, expectedKubeCfg, updatedKubeCfg, cmpopts.EquateEmpty())
+	})
+
+	t.Run("with clear", func(t *testing.T) {
+		cfg, count := setup(t)
+		err := Run(context.Background(), "logout", "--clear")
+		assert.NilError(t, err)
+
+		assert.Equal(t, int32(1), atomic.LoadInt32(count), "calls to API")
+
+		updatedCfg, err := readConfig()
+		assert.NilError(t, err)
+
+		assert.Equal(t, int32(1), int32(len(updatedCfg.Hosts)))
+		assert.DeepEqual(t, cfg.Hosts[1], updatedCfg.Hosts[0])
+		// assert.DeepEqual(t, &expected, updatedCfg)
+
+		updatedKubeCfg, err := clientConfig().RawConfig()
+		assert.NilError(t, err)
+		assert.DeepEqual(t, expectedKubeCfg, updatedKubeCfg, cmpopts.EquateEmpty())
+	})
+
 	t.Run("with all", func(t *testing.T) {
 		cfg, count := setup(t)
 		err := Run(context.Background(), "logout", "--all")
@@ -132,5 +176,17 @@ func TestLogout(t *testing.T) {
 		updatedKubeCfg, err := clientConfig().RawConfig()
 		assert.NilError(t, err)
 		assert.DeepEqual(t, expectedKubeCfg, updatedKubeCfg, cmpopts.EquateEmpty())
+	})
+
+	t.Run("with one and all", func(t *testing.T) {
+		cfg, count := setup(t)
+		err := Run(context.Background(), "logout", srvURL, "--all")
+		assert.Error(t, err, "Argument [SERVER] and flag [--all] cannot be both specified.")
+
+		assert.Equal(t, int32(0), atomic.LoadInt32(count), "calls to API")
+
+		updatedCfg, err := readConfig()
+		assert.NilError(t, err)
+		assert.DeepEqual(t, &cfg, updatedCfg)
 	})
 }

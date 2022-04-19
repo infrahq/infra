@@ -50,7 +50,7 @@ func CreateGrant(c *gin.Context, grant *models.Grant) error {
 		return err
 	}
 
-	creator := CurrentIdentity(c)
+	creator := AuthenticatedIdentity(c)
 
 	grant.CreatedBy = creator.ID
 

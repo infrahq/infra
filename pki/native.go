@@ -263,8 +263,6 @@ func (n *NativeCertificateProvider) SignCertificate(csr x509.CertificateRequest)
 		Issuer:             n.activeKeypair.SignedCert.Subject,
 		Subject:            csr.Subject,
 		EmailAddresses:     csr.EmailAddresses,
-		Extensions:         csr.Extensions,      // TODO: security issue?
-		ExtraExtensions:    csr.ExtraExtensions, // TODO: security issue?
 		NotBefore:          time.Now().Add(-5 * time.Minute).UTC(),
 		NotAfter:           time.Now().Add(24 * time.Hour).UTC(),
 		KeyUsage:           x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,

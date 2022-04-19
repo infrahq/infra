@@ -2928,7 +2928,9 @@
                 },
                 "required": [
                   "name",
-                  "url"
+                  "url",
+                  "clientID",
+                  "clientSecret"
                 ],
                 "type": "object"
               }
@@ -3211,6 +3213,12 @@
                     "type": "string"
                   }
                 },
+                "required": [
+                  "name",
+                  "url",
+                  "clientID",
+                  "clientSecret"
+                ],
                 "type": "object"
               }
             }

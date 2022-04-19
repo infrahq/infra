@@ -13,7 +13,7 @@ import (
 // file in git matches the source code.
 func TestWriteOpenAPISpec(t *testing.T) {
 	s := Server{}
-	_, _ = s.GenerateRoutes(prometheus.NewRegistry())
+	s.GenerateRoutes(prometheus.NewRegistry())
 
 	filename := "../../docs/api/openapi3.json"
 	err := WriteOpenAPISpecToFile(filename)

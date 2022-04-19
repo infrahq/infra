@@ -27,8 +27,7 @@ func TestAPI_PProfHandler(t *testing.T) {
 	}
 
 	s := &Server{db: setupDB(t)}
-	routes, err := s.GenerateRoutes(prometheus.NewRegistry())
-	assert.NilError(t, err)
+	routes := s.GenerateRoutes(prometheus.NewRegistry())
 
 	run := func(t *testing.T, tc testCase) {
 		req, err := http.NewRequest(http.MethodGet, "/v1/debug/pprof/heap?debug=1", nil)

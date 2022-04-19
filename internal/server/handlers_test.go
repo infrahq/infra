@@ -18,22 +18,12 @@ import (
 )
 
 func TestListProviders(t *testing.T) {
-	s := setupServer(t)
+	s := setupServer(t, withDefaultAdminAccessKey)
+	routes := s.GenerateRoutes(prometheus.NewRegistry())
 
-	adminAccessKey := "BlgpvURSGF.NdcemBdzxLTGIcjPXwPoZNrb"
-	s.options = Options{AdminAccessKey: adminAccessKey}
+	testProvider := &models.Provider{Name: "mokta"}
 
-	err := s.importAccessKeys()
-	assert.NilError(t, err)
-
-	routes, err := s.GenerateRoutes(prometheus.NewRegistry())
-	assert.NilError(t, err)
-
-	testProvider := &models.Provider{
-		Name: "mokta",
-	}
-
-	err = data.CreateProvider(s.db, testProvider)
+	err := data.CreateProvider(s.db, testProvider)
 	assert.NilError(t, err)
 
 	dbProviders, err := data.ListProviders(s.db)
@@ -43,7 +33,7 @@ func TestListProviders(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, "/v1/providers", nil)
 	assert.NilError(t, err)
 
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", adminAccessKey))
+	req.Header.Add("Authorization", "Bearer "+s.options.AdminAccessKey)
 
 	resp := httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
@@ -59,29 +49,22 @@ func TestListProviders(t *testing.T) {
 }
 
 func TestDeleteProvider(t *testing.T) {
-	s := setupServer(t)
+	s := setupServer(t, withDefaultAdminAccessKey)
 
-	adminAccessKey := "BlgpvURSGF.NdcemBdzxLTGIcjPXwPoZNrb"
-	s.options = Options{AdminAccessKey: adminAccessKey}
-
-	err := s.importAccessKeys()
-	assert.NilError(t, err)
-
-	routes, err := s.GenerateRoutes(prometheus.NewRegistry())
-	assert.NilError(t, err)
+	routes := s.GenerateRoutes(prometheus.NewRegistry())
 
 	testProvider := &models.Provider{
 		Name: "mokta",
 	}
 
-	err = data.CreateProvider(s.db, testProvider)
+	err := data.CreateProvider(s.db, testProvider)
 	assert.NilError(t, err)
 
 	route := fmt.Sprintf("/v1/providers/%s", testProvider.ID)
 	req, err := http.NewRequest(http.MethodDelete, route, nil)
 	assert.NilError(t, err)
 
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", adminAccessKey))
+	req.Header.Add("Authorization", "Bearer "+s.options.AdminAccessKey)
 
 	resp := httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
@@ -89,23 +72,23 @@ func TestDeleteProvider(t *testing.T) {
 	assert.Equal(t, http.StatusNoContent, resp.Code, resp.Body.String())
 }
 
+// withDefaultAdminAccessKey may be used with setupServer to setup the server
+// with a default AdminAccessKey. The value for the key can be retrieved from
+// server.options.AdminAccessKey.
+func withDefaultAdminAccessKey(_ *testing.T, opts *Options) {
+	opts.AdminAccessKey = "BlgpvURSGF.NdcemBdzxLTGIcjPXwPoZNrb"
+}
+
 func TestDeleteProvider_NoDeleteInternalProvider(t *testing.T) {
-	s := setupServer(t)
+	s := setupServer(t, withDefaultAdminAccessKey)
 
-	adminAccessKey := "BlgpvURSGF.NdcemBdzxLTGIcjPXwPoZNrb"
-	s.options = Options{AdminAccessKey: adminAccessKey}
-
-	err := s.importAccessKeys()
-	assert.NilError(t, err)
-
-	routes, err := s.GenerateRoutes(prometheus.NewRegistry())
-	assert.NilError(t, err)
+	routes := s.GenerateRoutes(prometheus.NewRegistry())
 
 	route := fmt.Sprintf("/v1/providers/%s", s.InternalProvider.ID)
 	req, err := http.NewRequest(http.MethodDelete, route, nil)
 	assert.NilError(t, err)
 
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", adminAccessKey))
+	req.Header.Add("Authorization", "Bearer "+s.options.AdminAccessKey)
 
 	resp := httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
@@ -189,30 +172,23 @@ func TestCreateIdentity(t *testing.T) {
 }
 
 func TestDeleteIdentity(t *testing.T) {
-	s := setupServer(t)
+	s := setupServer(t, withDefaultAdminAccessKey)
 
-	adminAccessKey := "BlgpvURSGF.NdcemBdzxLTGIcjPXwPoZNrb"
-	s.options = Options{AdminAccessKey: adminAccessKey}
-
-	err := s.importAccessKeys()
-	assert.NilError(t, err)
-
-	routes, err := s.GenerateRoutes(prometheus.NewRegistry())
-	assert.NilError(t, err)
+	routes := s.GenerateRoutes(prometheus.NewRegistry())
 
 	testUser := &models.Identity{
 		Name: "test",
 		Kind: models.UserKind,
 	}
 
-	err = data.CreateIdentity(s.db, testUser)
+	err := data.CreateIdentity(s.db, testUser)
 	assert.NilError(t, err)
 
 	route := fmt.Sprintf("/v1/identities/%s", testUser.ID)
 	req, err := http.NewRequest(http.MethodDelete, route, nil)
 	assert.NilError(t, err)
 
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", adminAccessKey))
+	req.Header.Add("Authorization", "Bearer "+s.options.AdminAccessKey)
 
 	resp := httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
@@ -221,16 +197,9 @@ func TestDeleteIdentity(t *testing.T) {
 }
 
 func TestDeleteIdentity_NoDeleteInternalIdentities(t *testing.T) {
-	s := setupServer(t)
+	s := setupServer(t, withDefaultAdminAccessKey)
 
-	adminAccessKey := "BlgpvURSGF.NdcemBdzxLTGIcjPXwPoZNrb"
-	s.options = Options{AdminAccessKey: adminAccessKey}
-
-	err := s.importAccessKeys()
-	assert.NilError(t, err)
-
-	routes, err := s.GenerateRoutes(prometheus.NewRegistry())
-	assert.NilError(t, err)
+	routes := s.GenerateRoutes(prometheus.NewRegistry())
 
 	for name := range s.InternalIdentities {
 		t.Run(name, func(t *testing.T) {
@@ -238,7 +207,7 @@ func TestDeleteIdentity_NoDeleteInternalIdentities(t *testing.T) {
 			req, err := http.NewRequest(http.MethodDelete, route, nil)
 			assert.NilError(t, err)
 
-			req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", adminAccessKey))
+			req.Header.Add("Authorization", "Bearer "+s.options.AdminAccessKey)
 
 			resp := httptest.NewRecorder()
 			routes.ServeHTTP(resp, req)
@@ -251,18 +220,22 @@ func TestDeleteIdentity_NoDeleteInternalIdentities(t *testing.T) {
 func TestDeleteIdentity_NoDeleteSelf(t *testing.T) {
 	s := setupServer(t)
 
-	routes, err := s.GenerateRoutes(prometheus.NewRegistry())
-	assert.NilError(t, err)
+	routes := s.GenerateRoutes(prometheus.NewRegistry())
 
 	testUser := &models.Identity{
 		Name: "test",
 		Kind: models.UserKind,
 	}
 
-	err = data.CreateIdentity(s.db, testUser)
+	err := data.CreateIdentity(s.db, testUser)
 	assert.NilError(t, err)
 
-	testAccessKey, err := data.CreateAccessKey(s.db, &models.AccessKey{Name: "test", IssuedFor: testUser.ID, ExpiresAt: time.Now().Add(time.Hour), ProviderID: s.InternalProvider.ID})
+	testAccessKey, err := data.CreateAccessKey(s.db, &models.AccessKey{
+		Name:       "test",
+		IssuedFor:  testUser.ID,
+		ExpiresAt:  time.Now().Add(time.Hour),
+		ProviderID: s.InternalProvider.ID,
+	})
 	assert.NilError(t, err)
 
 	route := fmt.Sprintf("/v1/identities/%s", testUser.ID)

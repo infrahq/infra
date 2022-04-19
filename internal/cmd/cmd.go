@@ -115,6 +115,7 @@ func parseOptions(cmd *cobra.Command, options interface{}, envPrefix string) err
 		mapstructure.StringToTimeDurationHookFunc(),
 		mapstructure.StringToSliceHookFunc(","),
 		decode.HookPrepareForDecode,
+		decode.HookSetFromString,
 	)
 	return v.Unmarshal(options, viper.DecodeHook(hooks))
 }

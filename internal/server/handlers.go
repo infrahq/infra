@@ -319,7 +319,7 @@ func (a *API) ListDestinations(c *gin.Context, r *api.ListDestinationsRequest) (
 
 // Introspect is used by clients to get info about the token they are using
 func (a *API) Introspect(c *gin.Context, r *api.EmptyRequest) (*api.Introspect, error) {
-	identity := access.CurrentIdentity(c)
+	identity := access.AuthenticatedIdentity(c)
 	if identity != nil {
 		return &api.Introspect{ID: identity.ID, Name: identity.Name, IdentityType: identity.Kind.String()}, nil
 	}
@@ -375,7 +375,7 @@ func (a *API) DeleteDestination(c *gin.Context, r *api.Resource) error {
 }
 
 func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateTokenResponse, error) {
-	if access.CurrentIdentity(c) != nil {
+	if access.AuthenticatedIdentity(c) != nil {
 		err := a.UpdateIdentityInfoFromProvider(c)
 		if err != nil {
 			return nil, fmt.Errorf("update ident info from provider: %w", err)
@@ -584,7 +584,7 @@ func (a *API) Version(c *gin.Context, r *api.EmptyRequest) (*api.Version, error)
 
 // UpdateIdentityInfoFromProvider calls the identity provider used to authenticate this user session to update their current information
 func (a *API) UpdateIdentityInfoFromProvider(c *gin.Context) error {
-	user := access.CurrentIdentity(c)
+	user := access.AuthenticatedIdentity(c)
 	if user == nil {
 		return nil
 	}

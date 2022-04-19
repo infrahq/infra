@@ -68,6 +68,11 @@ $ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy
 
 Log out of Infra
 
+### Synopsis
+
+Log out of Infra
+Note: [SERVER] and [--all] cannot be both specified. Choose either one or all servers.
+
 ```
 infra logout [SERVER] [flags]
 ```
@@ -444,8 +449,8 @@ $ infra keys add key1 machineA --ttl=12h
 ### Options
 
 ```
-      --extension-deadline string   A specified deadline that an access key must be used within to remain valid, defaults to 30 days
-      --ttl string                  The total time that an access key will be valid for, defaults to 30 days
+      --extension-deadline duration   A specified deadline that an access key must be used within to remain valid (default 720h0m0s)
+      --ttl duration                  The total time that an access key will be valid for (default 720h0m0s)
 ```
 
 ### Options inherited from parent commands

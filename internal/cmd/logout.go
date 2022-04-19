@@ -20,6 +20,8 @@ func newLogoutCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "logout [SERVER]",
 		Short: "Log out of Infra",
+		Long: `Log out of Infra
+Note: [SERVER] and [--all] cannot be both specified. Choose either one or all servers.`,
 		Example: `# Log out of current server
 $ infra logout
 		
@@ -42,10 +44,16 @@ $ infra logout --all --clear`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 1 {
 				if all {
-					fmt.Fprintf(os.Stderr, "  Server is already specified. Ignoring flag [--all] and logging out of server %s.\n", args[0])
-					all = false
+					return fmt.Errorf("Argument [SERVER] and flag [--all] cannot be both specified.")
 				}
 				server = args[0]
+			}
+			logging.S.Debugf("flags set:")
+			if clear {
+				logging.S.Debug(" --clear")
+			}
+			if all {
+				logging.S.Debug(" --all")
 			}
 			return logout(clear, server, all)
 		},
@@ -57,7 +65,12 @@ $ infra logout --all --clear`,
 	return cmd
 }
 
-func logoutOfServer(hostConfig *ClientHostConfig) {
+func logoutOfServer(hostConfig *ClientHostConfig) bool {
+	if !hostConfig.isLoggedIn() {
+		logging.S.Debugf("requested but not logged in to server [%s]", hostConfig.Host)
+		return false
+	}
+
 	client, err := apiClient(hostConfig.Host, hostConfig.AccessKey, hostConfig.SkipTLSVerify)
 	if err != nil {
 		logging.S.Warn(err.Error())
@@ -69,6 +82,8 @@ func logoutOfServer(hostConfig *ClientHostConfig) {
 
 	_ = client.Logout()
 
+	logging.S.Debugf("logged out of server [%s]", hostConfig.Host)
+	return true
 }
 
 func logout(clear bool, server string, all bool) error {
@@ -83,91 +98,42 @@ func logout(clear bool, server string, all bool) error {
 
 	switch {
 	case all:
-		stateChanged := false
-		for i := range config.Hosts {
-			if config.Hosts[i].isLoggedIn() {
-				logoutOfServer(&config.Hosts[i])
-				stateChanged = true
-			}
-		}
-		if stateChanged {
-			fmt.Fprintf(os.Stderr, "  Logged out of all servers.\n")
-		} else {
-			fmt.Fprintf(os.Stderr, "  Not logged in to any servers.\n")
-		}
-
-		if clear {
-			if config.Hosts != nil {
-				config.Hosts = nil
-				fmt.Fprintf(os.Stderr, "  Cleared list of all servers\n")
-			} else {
-				fmt.Fprintf(os.Stderr, "  No servers to clear.\n")
-			}
-		}
+		logging.S.Debug("logging out of all servers\n")
 	case server == "":
-		serverFound := false
+		logging.S.Debug("logging out of current server\n")
+	default:
+		logging.S.Debugf("logging out of server [%s]\n", server)
+	}
+
+	if all {
 		for i := range config.Hosts {
-			if config.Hosts[i].Current {
-				serverFound = true
-				if config.Hosts[i].isLoggedIn() {
-					logoutOfServer(&config.Hosts[i])
-					fmt.Fprintf(os.Stderr, "  Logged out of server %s.\n", config.Hosts[i].Host)
-				} else {
-					fmt.Fprintf(os.Stderr, "  Not logged in to server %s.\n", config.Hosts[i].Host)
+			logoutOfServer(&config.Hosts[i])
+		}
+		fmt.Fprintf(os.Stderr, "Logged out of all servers.\n")
+		if clear {
+			config.Hosts = nil
+			logging.S.Debug("cleared all servers from login list\n")
+		}
+	} else {
+		for i := range config.Hosts {
+			if (server == "" && config.Hosts[i].Current) || (server == config.Hosts[i].Host) {
+				success := logoutOfServer(&config.Hosts[i])
+				if success {
+					logging.S.Debugf("Logged out of server %s", config.Hosts[i].Host)
+				}
+
+				if clear {
+					serverURL := config.Hosts[i].Host
+					if len(config.Hosts) < 2 {
+						config.Hosts = nil
+					} else {
+						config.Hosts[i] = config.Hosts[len(config.Hosts)-1]
+						config.Hosts = config.Hosts[:len(config.Hosts)-1]
+					}
+					logging.S.Debugf("cleared server [%s]\n", serverURL)
 				}
 				break
 			}
-		}
-		if serverFound {
-			if clear {
-				var newHostConfigs []ClientHostConfig
-
-				// New slice of hosts except the one to clear
-				for i := range config.Hosts {
-					if config.Hosts[i].Current {
-						fmt.Fprintf(os.Stderr, "  Cleared [%s] from list of servers\n", config.Hosts[i].Host)
-						continue
-					}
-
-					newHostConfigs = append(newHostConfigs, config.Hosts[i])
-				}
-				config.Hosts = newHostConfigs
-			}
-		} else {
-			fmt.Fprintf(os.Stderr, "  No current session to log out from.\n")
-		}
-	case server != "":
-		serverFound := false
-		for i := range config.Hosts {
-			if server == config.Hosts[i].Host {
-				serverFound = true
-				if config.Hosts[i].isLoggedIn() {
-					logoutOfServer(&config.Hosts[i])
-					fmt.Fprintf(os.Stderr, "  Logged out of server %s.\n", config.Hosts[i].Host)
-				} else {
-					fmt.Fprintf(os.Stderr, "  Not logged in to server %s.\n", server)
-				}
-				break
-			}
-		}
-
-		if serverFound {
-			if clear {
-				var newHostConfigs []ClientHostConfig
-
-				// New slice of hosts except the one to clear
-				for i := range config.Hosts {
-					if server == config.Hosts[i].Host {
-						fmt.Fprintf(os.Stderr, "  Cleared %s from list of servers.\n", config.Hosts[i].Host)
-						continue
-					}
-
-					newHostConfigs = append(newHostConfigs, config.Hosts[i])
-				}
-				config.Hosts = newHostConfigs
-			}
-		} else {
-			fmt.Fprintf(os.Stderr, "  Server %s not found.\n", server)
 		}
 	}
 

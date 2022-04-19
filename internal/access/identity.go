@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/authn"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -15,17 +16,21 @@ import (
 
 // isIdentitySelf is used by authorization checks to see if the calling identity is requesting their own attributes
 func isIdentitySelf(c *gin.Context, requestedResourceID uid.ID) (bool, error) {
-	identity := CurrentIdentity(c)
+	identity := AuthenticatedIdentity(c)
 	return identity != nil && identity.ID == requestedResourceID, nil
 }
 
-func CurrentIdentity(c *gin.Context) *models.Identity {
-	identity, ok := c.MustGet("identity").(*models.Identity)
-	if !ok {
-		return nil
+// AuthenticatedIdentity returns the identity that is associated with the access key
+// that was used to authenticate the request.
+// Returns nil if there is no identity in the context, which likely means the
+// request was not authenticated.
+func AuthenticatedIdentity(c *gin.Context) *models.Identity {
+	if raw, ok := c.Get("identity"); ok {
+		if identity, ok := raw.(*models.Identity); ok {
+			return identity
+		}
 	}
-
-	return identity
+	return nil
 }
 
 func GetIdentity(c *gin.Context, id uid.ID) (*models.Identity, error) {
@@ -103,12 +108,12 @@ func UpdateUserInfoFromProvider(c *gin.Context, info *authn.UserInfo, user *mode
 	// add user to groups they are currently in
 	var groups []string
 
-	if info.Groups != nil {
-		for i := range *info.Groups {
-			name := (*info.Groups)[i]
-			groups = append(groups, name)
-		}
+	for i := range info.Groups {
+		name := info.Groups[i]
+		groups = append(groups, name)
 	}
+
+	logging.S.Debugf("%s user authenticated with %q groups", provider.Name, groups)
 
 	if err := data.AssignIdentityToGroups(db, user, provider, groups); err != nil {
 		return fmt.Errorf("assign identity to groups: %w", err)

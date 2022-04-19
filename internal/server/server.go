@@ -23,14 +23,13 @@ import (
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
-	"github.com/goware/urlx"
-	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/certs"
+	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/ginutil"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/repeat"
@@ -47,8 +46,6 @@ type Options struct {
 	AccessKey            string        `mapstructure:"accessKey"`
 	EnableTelemetry      bool          `mapstructure:"enableTelemetry"`
 	EnableCrashReporting bool          `mapstructure:"enableCrashReporting"`
-	EnableUI             bool          `mapstructure:"enableUI"`
-	UIProxyURL           string        `mapstructure:"uiProxyURL"`
 	EnableSetup          bool          `mapstructure:"enableSetup"`
 	SessionDuration      time.Duration `mapstructure:"sessionDuration"`
 
@@ -74,12 +71,18 @@ type Options struct {
 	FullKeyRotationInDays       int    `mapstructure:"fullKeyRotationInDays"` // 365 default
 
 	Addr ListenerOptions
+	UI   UIOptions
 }
 
 type ListenerOptions struct {
 	HTTP    string
 	HTTPS   string
 	Metrics string
+}
+
+type UIOptions struct {
+	Enabled  bool
+	ProxyURL types.URL `mapstructure:"proxyURL"`
 }
 
 type Server struct {
@@ -188,7 +191,11 @@ func (s *Server) Run(ctx context.Context) error {
 	// nolint: errcheck // if logs won't sync there is no way to report this error
 	defer logging.L.Sync()
 
-	// TODO: start telemetry goroutine here as well
+	if s.tel != nil {
+		repeat.Start(context.TODO(), 1*time.Hour, func(context.Context) {
+			s.tel.EnqueueHeartbeat()
+		})
+	}
 
 	group, _ := errgroup.WithContext(ctx)
 	for i := range s.routines {
@@ -207,10 +214,6 @@ func configureTelemetry(server *Server) error {
 		return err
 	}
 	server.tel = tel
-
-	repeat.Start(context.TODO(), 1*time.Hour, func(context.Context) {
-		tel.EnqueueHeartbeat()
-	})
 
 	return nil
 }
@@ -309,18 +312,14 @@ func (s *Server) loadCertificates() (err error) {
 //go:embed all:ui/*
 var assetFS embed.FS
 
-func (s *Server) registerUIRoutes(router *gin.Engine) error {
-	if !s.options.EnableUI {
-		return nil
+func registerUIRoutes(router *gin.Engine, opts UIOptions) {
+	if !opts.Enabled {
+		return
 	}
 
 	// Proxy requests to an upstream ui server
-	if s.options.UIProxyURL != "" {
-		remote, err := urlx.Parse(s.options.UIProxyURL)
-		if err != nil {
-			return fmt.Errorf("failed to parse UI proxy URL: %w", err)
-		}
-
+	if opts.ProxyURL.Host != "" {
+		remote := opts.ProxyURL.Value()
 		proxy := httputil.NewSingleHostReverseProxy(remote)
 		proxy.Director = func(req *http.Request) {
 			req.Host = remote.Host
@@ -331,61 +330,17 @@ func (s *Server) registerUIRoutes(router *gin.Engine) error {
 		router.Use(func(c *gin.Context) {
 			proxy.ServeHTTP(c.Writer, c.Request)
 		})
-
-		return nil
+		return
 	}
 
 	staticFS := &StaticFileSystem{base: http.FS(assetFS)}
 	router.Use(gzip.Gzip(gzip.DefaultCompression), static.Serve("/", staticFS))
-
-	// 404
-	router.NoRoute(func(c *gin.Context) {
-		if strings.HasPrefix(c.Request.URL.Path, "/v1") {
-			c.Status(404)
-			c.Writer.WriteHeaderNow()
-			return
-		}
-
-		c.Status(http.StatusNotFound)
-		buf, err := assetFS.ReadFile("ui/404.html")
-		if err != nil {
-			logging.S.Error(err)
-		}
-
-		_, err = c.Writer.Write(buf)
-		if err != nil {
-			logging.S.Error(err)
-		}
-	})
-
-	return nil
-}
-
-func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) (*gin.Engine, error) {
-	router := gin.New()
-
-	router.Use(gin.Recovery())
-	a := &API{
-		t:      s.tel,
-		server: s,
-	}
-
-	a.registerRoutes(router.Group("/"), promRegistry)
-
-	if err := s.registerUIRoutes(router); err != nil {
-		return nil, err
-	}
-
-	return router, nil
 }
 
 func (s *Server) listen() error {
 	ginutil.SetMode()
 	promRegistry := SetupMetrics(s.db)
-	router, err := s.GenerateRoutes(promRegistry)
-	if err != nil {
-		return err
-	}
+	router := s.GenerateRoutes(promRegistry)
 
 	metricsServer := &http.Server{
 		Addr:     s.options.Addr.Metrics,
@@ -393,6 +348,7 @@ func (s *Server) listen() error {
 		ErrorLog: logging.StandardErrorLog(),
 	}
 
+	var err error
 	s.Addrs.Metrics, err = s.setupServer(metricsServer)
 	if err != nil {
 		return err
