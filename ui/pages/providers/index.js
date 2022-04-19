@@ -1,147 +1,86 @@
-import useSWR, { useSWRConfig } from 'swr'
+import useSWR from 'swr'
+import { useState } from 'react'
 import Head from 'next/head'
-import Router from 'next/router'
-import styled from 'styled-components'
 import Link from 'next/link'
+import { useTable } from 'react-table'
+import { XIcon, PlusIcon } from '@heroicons/react/outline'
 
 import Dashboard from '../../components/dashboard'
-import PageHeader from '../../components/PageHeader'
-import FormattedTime from '../../components/FormattedTime'
-import IdentityProvider from '../../components/IdentityProvider'
-import EmptyPageHeader from '../../components/EmptyPageHeader'
+import Table from '../../components/table'
 
-const ProvidersHeaderContainer = styled.div`
-  padding-top: 3rem;
-  padding-bottom: 3rem;
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-`
-
-const AddProviderLink = styled.a`
-  font-style: normal;
-  font-weight: 400;
-  font-size: 11px;
-  line-height: 0%;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: all .2s ease-in;
-  opacity: 1;
-
-  span {
-    margin-right: .25rem;
+const columns = [
+  {
+    Header: 'Name',
+    accessor: 'name',
+    Cell: ({ value }) => (
+      <div className='flex items-center'>
+        <div className='w-12 h-12 mr-4 bg-purple-100/10 font-bold rounded-xl flex items-center justify-center'><img className='h-3' src='/okta.svg' /></div>
+        <div>{value}</div>
+      </div>
+    )
+  },
+  {
+    accessor: 'url', // accessor is the "key" in the data,
+    Header: () => (
+      <div className='text-right'>
+        URL
+      </div>
+    ),
+    Cell: ({ value }) => (
+      <div className='text-right'>
+        {value}
+      </div>
+    )
+  }, {
+    id: 'delete',
+    accessor: (r) => r,
+    Cell: ({ value: provider }) => {
+      const [open, setOpen] = useState(false)
+      return (
+        <div className='opacity-0 group-hover:opacity-100 flex justify-end text-right'>
+          <button onClick={() => setOpen(true)} className='p-2 -mr-2 cursor-pointer'>
+            <XIcon className='w-5 h-5 text-gray-500' />
+          </button>
+          <DeleteModal
+            open={open}
+            setOpen={setOpen}
+            title='Delete Identity Provider'
+            message={(<>Are you sure you want to delete <span className='font-bold'>{provider.name}</span>? This action cannot be undone.</>)}
+          />
+        </div>
+      )
+    }
   }
-
-  :hover {
-    opacity: .6;
-  }
-`
-
-const TableHeader = styled.div`
-  display: grid;
-  opacity: 0.5;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  grid-template-columns: 25% auto 10% 5%;
-  align-items: center;
-`
-
-const TableHeaderTitle = styled.p`
-  font-style: normal;
-  font-weight: 400;
-  font-size: 11px;
-  line-height: 0%;
-  text-transform: uppercase;
-`
-
-const TableContentContainer = styled.div`
-  padding-top: 1rem;
-`
-
-const TableContent = styled.div`
-  display: grid;
-  grid-template-columns: 25% auto 10% 5%;
-  align-items: center;
-`
-
-const TableContentText = styled.div`
-  font-weight: 300;
-  font-size: 12px;
-  line-height: 0px;
-`
-
-const ProviderRemoveButton = styled.a`
-
-`
+]
 
 export default function () {
-  const { data } = useSWR(() => '/v1/providers')
-  const { mutate } = useSWRConfig()
+  const { data, error } = useSWR('/v1/providers', { fallbackData: [] })
 
-  const handleConnectProviders = async () => {
-    await Router.push({
-      pathname: '/providers/add/select'
-    }, undefined, { shallow: true })
-  }
-
-  const handleRemoveProvider = (providerId) => {
-    fetch(`/v1/providers/${providerId}`, {
-      method: 'DELETE'
-    })
-      .then(() => {
-        mutate('/v1/providers')
-      })
-      .catch((error) => {
-        console.log(error)
-      })
-  }
+  const table = useTable({ columns, data })
 
   return (
     <Dashboard>
       <Head>
-        <title>Providers - Infra</title>
+        <title>Identity Providers - Infra</title>
       </Head>
-      <div>
-        <ProvidersHeaderContainer>
-          <PageHeader iconPath='/identity-providers.svg' title='Identity Providers' />
-          <Link href='/providers/add/select'>
-            <AddProviderLink><span>&#43;</span>Add Provider</AddProviderLink>
-          </Link>
-        </ProvidersHeaderContainer>
-        <TableHeader>
-          <TableHeaderTitle>Identity Provider</TableHeaderTitle>
-          <TableHeaderTitle>Domain</TableHeaderTitle>
-          <TableHeaderTitle>Added</TableHeaderTitle>
-          <TableHeaderTitle />
-        </TableHeader>
-        <div>
-          {data && data.length > 0
+      <div className='flex flex-col my-20'>
+        <h1 className='text-4xl font-bold my-8'>Identity Providers</h1>
+        {error?.status
+          ? <div className='my-20 text-center font-light text-gray-400 text-2xl'>{error?.info?.message}</div>
+          : data.length === 0
             ? (
-              <TableContentContainer>
-                {data.map((item) => {
-                  return (
-                    <TableContent key={item.id}>
-                      <IdentityProvider type='okta' name={item.name} />
-                      <TableContentText>{item.url}</TableContentText>
-                      <TableContentText>
-                        <FormattedTime time={item.created} />
-                      </TableContentText>
-                      <TableContentText>
-                        <ProviderRemoveButton onClick={() => handleRemoveProvider(item.id)}>&#10005;</ProviderRemoveButton>
-                      </TableContentText>
-                    </TableContent>
-                  )
-                })}
-              </TableContentContainer>
+              <div className='text-center my-20'>
+                <p className='text-gray-400 mb-4 text-2xl'>No Identity Providers</p>
+                <Link href='/providers/add'>
+                  <button className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 my-2'>
+                    <div className='bg-black rounded-full flex items-center tracking-tight px-4 py-2 '>
+                      <PlusIcon className='w-5 h-5 mr-2' />Add Identity Provider
+                    </div>
+                  </button>
+                </Link>
+              </div>
               )
-            : (
-              <EmptyPageHeader
-                header='Identity Providers'
-                subheader='No identity providers connected.'
-                actionButtonHeader='Connect Identity Providers'
-                onClickActionButton={() => handleConnectProviders()}
-              />
-              )}
-        </div>
+            : <Table {...table} />}
       </div>
     </Dashboard>
   )

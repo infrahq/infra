@@ -19,11 +19,12 @@ function Finish ({ accessKey }) {
 
   async function login () {
     // log in
-    await fetch('/v1/login', {
+    const res = await fetch('/v1/login', {
       method: 'POST',
       body: JSON.stringify({ accessKey })
     })
-    await mutate('/v1/introspect')
+    const { name } = await res.json()
+    mutate('/v1/introspect', { optimisticData: { name } })
     mutate('/v1/setup', { optimisticData: { required: false } })
     router.replace('/')
   }
