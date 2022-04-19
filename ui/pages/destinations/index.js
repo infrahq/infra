@@ -2,7 +2,7 @@ import useSWR from 'swr'
 import Head from 'next/head'
 import Link from 'next/link'
 import styled from 'styled-components'
-import Router, { useRouter } from 'next/router'
+import { useRouter } from 'next/router'
 import { useState } from 'react'
 
 import Dashboard from '../../components/dashboard'
@@ -81,15 +81,13 @@ const TableContentContainer = styled.div`
   padding-top: 1rem;
 `
 
-
 export default function () {
   const router = useRouter()
 
-  const { data: destinations  } = useSWR('/v1/destinations')
+  const { data: destinations } = useSWR('/v1/destinations')
 
   const [modalOpen, setModalOpen] = useState(false)
   const [SelectedId, setSelectedId] = useState(null)
-
 
   const handleAddDestination = () => {
     router.push('/destinations/add/connect')
@@ -118,34 +116,34 @@ export default function () {
         </TableHeader>
         <div>
           {destinations && destinations.length > 0
-          ? (
-            <TableContentContainer>
-              {destinations.map((item) => {
-              return (
-                <TableContent key={item.id}  onClick={() => handleDestinationDetail(item.id)}>
-                    <TableContentText>{item.name}</TableContentText>
-                    <TableContentText>
-                      <FormattedTime time={item.created} />
-                    </TableContentText>
-                </TableContent>
+            ? (
+              <TableContentContainer>
+                {destinations.map((item) => {
+                  return (
+                    <TableContent key={item.id} onClick={() => handleDestinationDetail(item.id)}>
+                      <TableContentText>{item.name}</TableContentText>
+                      <TableContentText>
+                        <FormattedTime time={item.created} />
+                      </TableContentText>
+                    </TableContent>
+                  )
+                })}
+              </TableContentContainer>
               )
-              })}
-            </TableContentContainer>
-            )
-          : (
-            <EmptyPageHeader
-              header='Destinations'
-              subheader='No destinations connected.'
-              actionButtonHeader='Add Destinations'
-              onClickActionButton={() => handleAddDestination()}
-            />
-            )}
+            : (
+              <EmptyPageHeader
+                header='Destinations'
+                subheader='No destinations connected.'
+                actionButtonHeader='Add Destinations'
+                onClickActionButton={() => handleAddDestination()}
+              />
+              )}
         </div>
-        {modalOpen && (
-          <Modal header='Grant' handleCloseModal={() => setModalOpen(false)}>
-            <GrantAccessContent id={SelectedId} />
-          </Modal>
-        )}
+        {/* {modalOpen && ( */}
+        <Modal header='Grant' handleCloseModal={() => setModalOpen(false)} modalOpen={modalOpen}>
+          <GrantAccessContent id={SelectedId} />
+        </Modal>
+        {/* )} */}
       </div>
     </Dashboard>
   )

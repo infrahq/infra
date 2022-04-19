@@ -2,7 +2,6 @@ import Link from 'next/link'
 import Router, { useRouter } from 'next/router'
 import useSWR, { useSWRConfig } from 'swr'
 
-
 const navigation = [
   { name: 'Infrastructure', href: '/destinations', icon: '/infrastructure.svg' },
   { name: 'Identities', href: '/identities', icon: '/identities.svg' },
