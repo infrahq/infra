@@ -1,9 +1,9 @@
-export default function GrantSelectionDropdown({
+export default ({
   optionType,
   options,
   handleChangeSelection,
   selectedValue
-}) {
+}) => {
   return (
     <select
       id={optionType}

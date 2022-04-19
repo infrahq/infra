@@ -2,12 +2,15 @@ import useSWR from 'swr'
 import Head from 'next/head'
 import Link from 'next/link'
 import styled from 'styled-components'
-import Router from 'next/router'
+import Router, { useRouter } from 'next/router'
+import { useState } from 'react'
 
 import Dashboard from '../../components/dashboard'
 import PageHeader from '../../components/PageHeader'
 import FormattedTime from '../../components/FormattedTime'
 import EmptyPageHeader from '../../components/EmptyPageHeader'
+import Modal from '../../components/modal'
+import GrantAccessContent from '../../components/grantAccessContent'
 
 const DestinationsHeaderContainer = styled.div`
   padding-top: 3rem;
@@ -60,11 +63,6 @@ const TableContent = styled.div`
   cursor: pointer;
 `
 
-const TableContentLink = styled.button`
-  border: none;
-  cursor: pointer;
-`
-
 const TableContentText = styled.div`
   font-weight: 300;
   font-size: 12px;
@@ -85,19 +83,21 @@ const TableContentContainer = styled.div`
 
 
 export default function () {
+  const router = useRouter()
+
   const { data: destinations  } = useSWR('/v1/destinations')
 
+  const [modalOpen, setModalOpen] = useState(false)
+  const [SelectedId, setSelectedId] = useState(null)
+
+
   const handleAddDestination = () => {
-    Router.push({
-      pathname: '/destinations/add/connect'
-    }, undefined, { shallow: true })
+    router.push('/destinations/add/connect')
   }
 
   const handleDestinationDetail = (id) => {
-    console.log('id:', id)
-    Router.push({
-      pathname: `/destinations/${id}`
-    }, undefined, {shallow: true})
+    setSelectedId(id)
+    setModalOpen(true)
   }
 
   return (
@@ -140,7 +140,12 @@ export default function () {
               onClickActionButton={() => handleAddDestination()}
             />
             )}
-          </div>
+        </div>
+        {modalOpen && (
+          <Modal header='Grant' handleCloseModal={() => setModalOpen(false)}>
+            <GrantAccessContent id={SelectedId} />
+          </Modal>
+        )}
       </div>
     </Dashboard>
   )
