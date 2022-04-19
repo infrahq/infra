@@ -1,14 +1,9 @@
 package server
 
 import (
-	"crypto/sha256"
-	"crypto/subtle"
 	"errors"
 	"fmt"
-	"math"
 	"os"
-	"strings"
-	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/infrahq/secrets"
@@ -527,135 +522,6 @@ func (s *Server) setupInternalInfraIdentityProvider() error {
 	}
 
 	s.InternalProvider = provider
-
-	return nil
-}
-
-// setupInternalIdentity creates built-in identites for the internal identity provider
-func (s *Server) setupInternalInfraIdentity(name, role string) (*models.Identity, error) {
-	id, err := data.GetIdentity(s.db, data.ByName(name))
-	if err != nil {
-		if !errors.Is(err, internal.ErrNotFound) {
-			return nil, fmt.Errorf("get identity: %w", err)
-		}
-
-		id = &models.Identity{
-			Name:       name,
-			Kind:       models.MachineKind,
-			LastSeenAt: time.Now().UTC(),
-		}
-
-		err = data.CreateIdentity(s.db, id)
-		if err != nil {
-			return nil, fmt.Errorf("create identity: %w", err)
-		}
-
-		_, err = data.CreateProviderUser(s.db, data.InfraProvider(s.db), id)
-		if err != nil {
-			return nil, fmt.Errorf("create identity: %w", err)
-		}
-
-		grant := &models.Grant{
-			Subject:   id.PolyID(),
-			Privilege: role,
-			Resource:  models.InternalInfraProviderName,
-			CreatedBy: models.CreatedBySystem,
-		}
-
-		err = data.CreateGrant(s.db, grant)
-		if err != nil {
-			return nil, fmt.Errorf("create grant: %w", err)
-		}
-	}
-
-	if s.InternalIdentities == nil {
-		s.InternalIdentities = make(map[string]*models.Identity)
-	}
-
-	s.InternalIdentities[name] = id
-
-	return id, nil
-}
-
-func (s *Server) importAccessKeys() error {
-	type key struct {
-		Secret string
-		Role   string
-	}
-
-	keys := map[string]key{
-		models.InternalInfraAdminIdentityName: {
-			Secret: s.options.AdminAccessKey,
-			Role:   models.InfraAdminRole,
-		},
-		models.InternalInfraConnectorIdentityName: {
-			Secret: s.options.AccessKey,
-			Role:   models.InfraConnectorRole,
-		},
-	}
-
-	for k, v := range keys {
-		id, err := s.setupInternalInfraIdentity(k, v.Role)
-		if err != nil {
-			return fmt.Errorf("setup built-in: %w", err)
-		}
-
-		if v.Secret == "" {
-			logging.S.Debugf("%s: secret not set; skipping", k)
-			continue
-		}
-
-		raw, err := secrets.GetSecret(v.Secret, s.secrets)
-		if err != nil && !errors.Is(err, secrets.ErrNotFound) {
-			return fmt.Errorf("%s secret: %w", k, err)
-		}
-
-		if raw == "" {
-			logging.S.Debugf("%s: secret value not set; skipping", k)
-			continue
-		}
-
-		parts := strings.Split(raw, ".")
-		if len(parts) < 2 {
-			return fmt.Errorf("%s format: invalid token; expected two parts separated by a '.' character", k)
-		}
-
-		name := fmt.Sprintf("default-%s-access-key", k)
-
-		accessKey, err := data.GetAccessKey(s.db, data.ByIssuedFor(id.ID))
-		if err != nil {
-			if !errors.Is(err, internal.ErrNotFound) {
-				return err
-			}
-		}
-
-		if accessKey != nil {
-			sum := sha256.Sum256([]byte(parts[1]))
-
-			// if token name, key, and secret checksum match input, skip recreating the token
-			if accessKey.Name == name && subtle.ConstantTimeCompare([]byte(accessKey.KeyID), []byte(parts[0])) == 1 && subtle.ConstantTimeCompare(accessKey.SecretChecksum, sum[:]) == 1 {
-				logging.S.Debugf("%s: skip recreating token", k)
-				continue
-			}
-
-			err = data.DeleteAccessKeys(s.db, data.ByName(name))
-			if err != nil {
-				return fmt.Errorf("%s delete: %w", k, err)
-			}
-		}
-
-		accessKey = &models.AccessKey{
-			Name:       name,
-			KeyID:      parts[0],
-			Secret:     parts[1],
-			IssuedFor:  id.ID,
-			ProviderID: data.InfraProvider(s.db).ID,
-			ExpiresAt:  time.Now().Add(math.MaxInt64).UTC(),
-		}
-		if _, err := data.CreateAccessKey(s.db, accessKey); err != nil {
-			return fmt.Errorf("%s create: %w", k, err)
-		}
-	}
 
 	return nil
 }

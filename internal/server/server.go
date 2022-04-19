@@ -42,8 +42,6 @@ import (
 
 type Options struct {
 	TLSCache             string        `mapstructure:"tlsCache"`
-	AdminAccessKey       string        `mapstructure:"adminAccessKey"`
-	AccessKey            string        `mapstructure:"accessKey"`
 	EnableTelemetry      bool          `mapstructure:"enableTelemetry"`
 	EnableCrashReporting bool          `mapstructure:"enableCrashReporting"`
 	EnableSignup         bool          `mapstructure:"enableSignup"`
@@ -164,10 +162,6 @@ func New(options Options) (*Server, error) {
 
 	if err := server.setupInternalInfraIdentityProvider(); err != nil {
 		return nil, fmt.Errorf("setting up internal identity provider: %w", err)
-	}
-
-	if err := server.importAccessKeys(); err != nil {
-		return nil, fmt.Errorf("importing access keys: %w", err)
 	}
 
 	settings, err := data.InitializeSettings(server.db, server.signupEnabled())
@@ -601,10 +595,6 @@ func (s *Server) createDBKey(provider secrets.SymmetricKeyProvider, rootKeyId st
 
 func (s *Server) signupEnabled() bool {
 	if !s.options.EnableSignup {
-		return false
-	}
-
-	if s.options.AdminAccessKey != "" || s.options.AccessKey != "" {
 		return false
 	}
 
