@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/ssoroka/slice"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
@@ -70,7 +71,6 @@ func TestGetIdentity(t *testing.T) {
 
 func TestListIdentities(t *testing.T) {
 	db := setup(t)
-
 	var (
 		bond   = models.Identity{Name: "jbond@infrahq.com"}
 		bourne = models.Identity{Name: "jbourne@infrahq.com"}
@@ -79,14 +79,24 @@ func TestListIdentities(t *testing.T) {
 
 	createIdentities(t, db, bond, bourne, bauer)
 
-	users, err := ListIdentities(db)
-	assert.NilError(t, err)
-	assert.Equal(t, 3, len(users))
+	t.Run("list all", func(t *testing.T) {
+		users, err := ListIdentities(db)
+		assert.NilError(t, err)
+		expected := []models.Identity{bauer, bond, bourne}
+		assert.DeepEqual(t, users, expected, cmpModelsIdentityShallow)
+	})
 
-	users, err = ListIdentities(db, ByName(bourne.Name))
-	assert.NilError(t, err)
-	assert.Equal(t, 1, len(users))
+	t.Run("filter by name", func(t *testing.T) {
+		users, err := ListIdentities(db, ByName(bourne.Name))
+		assert.NilError(t, err)
+		expected := []models.Identity{bourne}
+		assert.DeepEqual(t, users, expected, cmpModelsIdentityShallow)
+	})
 }
+
+var cmpModelsIdentityShallow = cmp.Comparer(func(x, y models.Identity) bool {
+	return x.Name == y.Name && x.Kind == y.Kind
+})
 
 func TestDeleteIdentity(t *testing.T) {
 	db := setup(t)

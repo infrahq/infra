@@ -93,6 +93,7 @@ func GetIdentity(db *gorm.DB, selectors ...SelectorFunc) (*models.Identity, erro
 }
 
 func ListIdentities(db *gorm.DB, selectors ...SelectorFunc) ([]models.Identity, error) {
+	db = db.Order("name ASC")
 	return list[models.Identity](db, selectors...)
 }
 
