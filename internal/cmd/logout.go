@@ -123,14 +123,14 @@ func logout(clear bool, server string, all bool) error {
 				}
 
 				if clear {
-					serverUrl := config.Hosts[i].Host
+					serverURL := config.Hosts[i].Host
 					if len(config.Hosts) < 2 {
 						config.Hosts = nil
 					} else {
 						config.Hosts[i] = config.Hosts[len(config.Hosts)-1]
 						config.Hosts = config.Hosts[:len(config.Hosts)-1]
 					}
-					logging.S.Debugf("cleared server [%s]\n", serverUrl)
+					logging.S.Debugf("cleared server [%s]\n", serverURL)
 				}
 				break
 			}
