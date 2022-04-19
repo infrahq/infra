@@ -3,16 +3,17 @@ import { useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 
 import Dashboard from "../../components/dashboard";
-import InputDropdown from "../../components/InputDropdown";
+import InputDropdown from "../../components/inputDropdown";
 
 
 const AddAdminContainer = styled.div`
 	display: grid;
   align-items: center;
-  grid-template-columns: 1fr min-content;
+  grid-template-columns: 85% auto;
+  gap: 5px;
   box-sizing: border-box;
 
-  max-width: 40rem;
+  max-width: 30rem;
 `
 
 const AdminItem = styled.div`
@@ -21,7 +22,17 @@ const AdminItem = styled.div`
   grid-template-columns: 1fr min-content;
   box-sizing: border-box;
 
-  max-width: 38rem;
+  max-width: 27rem;
+`
+
+const AdminList = styled.div`
+  & > *:first-child {
+    padding-top: 2rem;
+  }
+
+  & > *:not(:first-child) {
+    padding-top: 1rem;
+  }
 `
 
 const AdminName = ({ id }) => {
@@ -45,9 +56,16 @@ export default function () {
     })
     .then(() => {
       mutate('/v1/grants?resource=infra')
+      setAdminEmail('')
     }).catch((error) => {
       console.log(error)
     })
+  }
+
+  const handleKeyDownEvent = (key) => {
+    if (key === 'Enter' && adminEmail.length > 0) {
+      handleAddAdmin()
+    }
   }
 
   const handleAddAdmin = () => {
@@ -80,7 +98,6 @@ export default function () {
     .catch((error) => {
       console.log(error)
     })
-
   }
   
   return (
@@ -94,28 +111,27 @@ export default function () {
           placeholder='email'
           hasDropdownSelection={false}
           handleInputChange={e => setAdminEmail(e.target.value)}
+          handleKeyDown={(e) => handleKeyDownEvent(e.key)}
         />
-        <div className='rounded overflow-hidden bg-gradient-to-tr from-cyan-100 to-pink-300 ml-2'>
-          <button
+       <button
           onClick={() => handleAddAdmin()}
           disabled={adminEmail.length === 0}
           type="button"
-          className="flex items-center m-px px-2 py-1 rounded bg-black hover:bg-gray-900 transition-all duration-200 disabled:opacity-90"
-          >
+          className='mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-black text-white font-medium hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm'
+        >
           Add
-          </button>
-        </div>
+        </button>
       </AddAdminContainer>
-      {adminList && adminList.length > 0 && <div>
+      {adminList && adminList.length > 0 && <AdminList>
         {adminList.map((admin) => (
-          <>
-            <AdminItem key={admin.id}>
+          <div key={admin.id}>
+            <AdminItem>
               <AdminName id={admin.subject} />
-              <div onClick={() => handleDeleteAdmin(admin.id)}>&#10005;</div>
+              <div className='cursor-pointer' onClick={() => handleDeleteAdmin(admin.id)}>&#10005;</div>
             </AdminItem>
-          </>
+          </div>
         ))}
-        </div>}
+        </AdminList>}
     </Dashboard>
   )
 }

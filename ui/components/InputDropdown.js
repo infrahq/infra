@@ -7,7 +7,8 @@ export default function InputDropdown({
   optionType,
   options,
   handleInputChange,
-  handleSelectOption
+  handleSelectOption,
+  handleKeyDown
 }) {
   return (
     <div>
@@ -21,6 +22,7 @@ export default function InputDropdown({
             className="block w-full px-4 py-2 sm:text-sm border border-gray-500 rounded bg-transparent required:border-red-500 focus:outline-none"
             placeholder={placeholder}
             onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
           />
           {hasDropdownSelection &&
           <div className="absolute inset-y-0 right-2 flex items-center">

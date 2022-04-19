@@ -5,8 +5,8 @@ import { useState } from "react"
 import styled from "styled-components"
 
 import ExitButton from "../../components/ExitButton"
-import InputDropdown from '../../components/InputDropdown'
-import GrantSelectionDropdown from '../../components/GrantSelectionDropdown'
+import InputDropdown from '../../components/inputDropdown'
+import GrantSelectionDropdown from '../../components/grantSelectionDropdown'
 
 const DetailsContainer = styled.div`
 	position: relative;
@@ -60,6 +60,8 @@ const Grant = ({ id }) => {
 const DestinationDetails = () => {
   const router = useRouter()
 	const { id } = router.query
+  
+  const options = ['view', 'edit', 'admin', 'remove']
 	
 	const { data: destination } = useSWR(`/v1/destinations/${id}`)
 	const { data: list } = useSWR(() => `/v1/grants?resource=${destination.name}`)
@@ -68,7 +70,6 @@ const DestinationDetails = () => {
 	const [grantNewEmail, setGrantNewEmail] = useState('')
   const [role, setRole] = useState('view')
 
-  const options = ['view', 'edit', 'admin', 'remove']
 
   const grantPrivilege = (id, privilege = role) => {
     fetch('/v1/grants', {
