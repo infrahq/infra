@@ -1,5 +1,6 @@
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/router'
+import Head from 'next/head'
 import useSWRImmutable from 'swr/immutable'
 import { SWRConfig } from 'swr'
 import relativeTime from 'dayjs/plugin/relativeTime'
@@ -45,11 +46,14 @@ const fetcher = async (resource, init) => {
 }
 
 function App ({ Component, pageProps }) {
-  const { data: auth } = useSWRImmutable('/v1/introspect', fetcher)
-  const { data: setup } = useSWRImmutable('/v1/setup', fetcher)
+  const { data: auth, error: authError } = useSWRImmutable('/v1/introspect', fetcher)
+  const { data: setup, error: setupError } = useSWRImmutable('/v1/setup', fetcher)
   const router = useRouter()
 
-  if (!auth && !setup) {
+  const authLoading = !auth && !authError
+  const setupLoading = !setup && !setupError
+
+  if (authLoading || setupLoading) {
     return null
   }
 
@@ -77,6 +81,10 @@ function App ({ Component, pageProps }) {
       revalidateOnReconnect: false
     }}
     >
+      <Head>
+        <link rel='icon' type='image/png' sizes='32x32' href='/favicon-32x32.png' />
+        <link rel='icon' type='image/png' sizes='16x16' href='/favicon-16x16.png' />
+      </Head>
       <Component {...pageProps} />
     </SWRConfig>
   )

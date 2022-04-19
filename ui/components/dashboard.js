@@ -80,7 +80,7 @@ export default function ({ children }) {
           </div>
         </div>
       </nav>
-      <main className='w-full mx-auto xl:max-w-4xl 2xl:max-w-5xl overflow-y-scroll'>
+      <main className='w-full mx-auto xl:max-w-4xl 2xl:max-w-5xl overflow-x-hidden overflow-y-scroll'>
         {children}
       </main>
     </div>
