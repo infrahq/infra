@@ -8,13 +8,13 @@ export default function ({ children, closeHref, backHref }) {
         {backHref && (
           <Link href={backHref || '/'}>
             <a className='flex items-center text-gray-400 px-4'>
-              <ArrowLeftIcon className='w-3 h-3 mr-1' /><p className='text-sm'>Back</p>
+              <ArrowLeftIcon className='w-3 h-3 mr-1' /><div className='text-sm text-gray-400 mr-2'>Back</div>
             </a>
           </Link>
         )}
         <Link href={closeHref || '/'}>
-          <a>
-            <XIcon className='w-14 h-14 p-4 text-gray-500' />
+          <a className='flex items-center p-4'>
+            <div className='text-sm text-gray-400 mr-2'>Close</div><XIcon className='w-6 h-6 text-white' />
           </a>
         </Link>
       </div>

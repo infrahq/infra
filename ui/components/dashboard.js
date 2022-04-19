@@ -14,7 +14,7 @@ function classNames (...classes) {
 
 export default function ({ children }) {
   const router = useRouter()
-  const { data: auth } = useSWR('/v1/introspect', url => fetch(url).then(r => r.json()))
+  const { data: auth } = useSWR('/v1/introspect')
   const { mutate } = useSWRConfig()
 
   async function logout () {
@@ -33,7 +33,7 @@ export default function ({ children }) {
 
   return (
     <div className='flex h-full relative'>
-      <nav className='flex-none flex w-72 flex-col inset-y-0 px-2 overflow-y-auto'>
+      <nav className='flex-none flex w-64 lg:w-72 flex-col inset-y-0 px-2 overflow-y-auto'>
         <div className='flex-shrink-0 flex items-center my-12 px-6'>
           <Link href='/'>
             <a>
@@ -80,7 +80,7 @@ export default function ({ children }) {
           </div>
         </div>
       </nav>
-      <main className='w-full mx-auto xl:max-w-4xl 2xl:max-w-5xl overflow-x-hidden overflow-y-scroll'>
+      <main className='w-full px-4 mx-auto xl:max-w-4xl 2xl:max-w-5xl overflow-x-hidden overflow-y-scroll'>
         {children}
       </main>
     </div>
