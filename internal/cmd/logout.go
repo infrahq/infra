@@ -20,6 +20,8 @@ func newLogoutCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "logout [SERVER]",
 		Short: "Log out of Infra",
+		Long: `Log out of Infra
+Note: [SERVER] and [--all] cannot be both specified. Choose either one or all servers.`,
 		Example: `# Log out of current server
 $ infra logout
 		
@@ -42,8 +44,7 @@ $ infra logout --all --clear`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 1 {
 				if all {
-					fmt.Fprintf(os.Stderr, "  Server is already specified. Ignoring flag [--all] and logging out of server %s.\n", args[0])
-					all = false
+					return fmt.Errorf("Argument [SERVER] and flag [--all] cannot be both specified.")
 				}
 				server = args[0]
 			}
