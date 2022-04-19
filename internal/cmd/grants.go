@@ -97,17 +97,19 @@ func newGrantRemoveCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "remove IDENTITY DESTINATION",
 		Aliases: []string{"rm"},
-		Short:   "Revoke access to a destination",
-		Long: `Revokes access that user has to the destination.
+		Short:   "Revoke an identity's access from a destination",
+		Example: `# Remove all grants of an identity in a destination
+$ infra grants remove janedoe@example.com kubernetes.docker-desktop 
+$ infra grants remove machineA kubernetes.docker-desktop
 
-IDENTITY is one that was being given access.
-DESTINATION is what the identity will lose access to. 
+# Remove all grants of a group in a destination
+$ infra grants remove groupA kubernetes.staging --group
 
-Use [--role] to specify the exact grant being deleted. 
-If not specified, it will revoke all roles for that user within the destination. 
+# Remove a specific grant 
+$ infra grants remove janedoe@example.com kubernetes.staging --role viewer
 
-Use [--group] or [-g] if identity is of type group. 
-$ infra grants remove devGroup -g ...
+# Remove access to infra 
+$ infra grants remove janedoe@example.com infra --role admin
 `,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -169,21 +171,19 @@ func removeGrant(cmdOptions grantsCmdOptions) error {
 func newGrantAddCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add IDENTITY DESTINATION",
-		Short: "Grant access to a destination",
-		Long: `Grant one or more identities access to a destination. 
+		Short: "Grant an identity access to a destination",
+		Example: `# Grant an identity access to a destination
+$ infra grants add johndoe@example.com kubernetes.docker-desktop 
+$ infra grants add machineA kubernetes.docker-desktop
 
-IDENTITY is the subject that is being given access.
-DESTINATION is what the identity will gain access to. 
+# Grant a group access to a destination 
+$ infra grants add groupA kubernetes.staging --group
 
-Use [--role] if further fine grained permissions are needed. If not specified, user will gain the permission 'connect' to the destination. 
-$ infra grants add ... -role admin ...
+# Grant access with fine-grained permissions
+$ infra grants add johndoe@example.com kubernetes.staging --role viewer
 
-Use [--group] or [-g] if identity is of type group. 
-$ infra grants add devGroup -group ...
-$ infra grants add devGroup -g ...
-
-For full documentation on grants with more examples, see: 
-  https://github.com/infrahq/infra/blob/main/docs/guides
+# Assign a user a role within Infra
+$ infra grants add johndoe@example.com infra --role admin
 `,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
