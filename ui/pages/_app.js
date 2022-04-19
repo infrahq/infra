@@ -71,11 +71,12 @@ function App ({ Component, pageProps }) {
   }
 
   return (
-    <SWRConfig value={{ 
-      fetcher: (resource, init) => fetcher(resource, init), 
+    <SWRConfig value={{
+      fetcher: (resource, init) => fetcher(resource, init),
       revalidateOnFocus: false,
-      revalidateOnReconnect: false 
-    }}>
+      revalidateOnReconnect: false
+    }}
+    >
       <Component {...pageProps} />
     </SWRConfig>
   )

@@ -63,13 +63,13 @@ const Details = () => {
       method: 'POST',
       body: JSON.stringify({ name, url: value.domain, clientID: value.clientId, clientSecret: value.clientSecret })
     })
-    .then(() => {
-      Router.push({
-        pathname: '/providers'
-      }, undefined, { shallow: true })
-    }).catch((error) => {
-      console.log('error:', error)
-    })
+      .then(() => {
+        Router.push({
+          pathname: '/providers'
+        }, undefined, { shallow: true })
+      }).catch((error) => {
+        console.log('error:', error)
+      })
   }
 
   return (
