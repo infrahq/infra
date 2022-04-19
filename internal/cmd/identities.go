@@ -101,7 +101,7 @@ func newIdentitiesEditCmd() *cobra.Command {
 			}
 
 			if kind == models.MachineKind {
-				fmt.Println("machine identities have no editable fields")
+				return fmt.Errorf("machine identities have no editable fields")
 			}
 
 			if kind == models.UserKind {
@@ -110,7 +110,7 @@ func newIdentitiesEditCmd() *cobra.Command {
 				}
 
 				if opts.Password && opts.NonInteractive {
-					return errors.New("Non-interactive mode is not supported to edit sensitive fields")
+					return errors.New("Interactive mode is required to edit sensitive fields")
 				}
 
 				if err = UpdateIdentity(name, opts); err != nil {

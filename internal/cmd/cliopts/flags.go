@@ -24,7 +24,7 @@ type FlagSet interface {
 // are used.
 func DefaultsFromEnv(prefix string, flags FlagSet) error {
 	replacer := strings.NewReplacer("-", "_")
-	prefix = prefix + "_"
+	prefix += "_"
 
 	var errs []error
 	flags.VisitAll(func(flag *pflag.Flag) {

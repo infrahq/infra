@@ -19,10 +19,9 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
-	"github.com/infrahq/infra/internal/cmd/cliopts"
-
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/cmd/cliopts"
 	"github.com/infrahq/infra/internal/connector"
 	"github.com/infrahq/infra/internal/decode"
 	"github.com/infrahq/infra/internal/logging"

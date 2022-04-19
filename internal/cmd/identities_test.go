@@ -224,10 +224,24 @@ func TestIdentitiesCmd(t *testing.T) {
 		assert.Equal(t, models.UserKind, (*modifiedIdentities)[0].Kind)
 	})
 
+	t.Run("edit machine identity fails", func(t *testing.T) {
+		setup(t)
+		err := Run(context.Background(), "id", "edit", "HAL")
+		assert.ErrorContains(t, err, "machine identities have no editable fields")
+	})
+
 	t.Run("edit user identity no password flag", func(t *testing.T) {
 		setup(t)
 		err := Run(context.Background(), "id", "edit", "new-user@example.com")
 		assert.ErrorContains(t, err, "Specify a field to update")
+	})
+
+	t.Run("edit user identity interactive with password", func(t *testing.T) {
+		setup(t)
+		t.Setenv("INFRA_PASSWORD", "true")
+		t.Setenv("INFRA_NON_INTERACTIVE", "true")
+		err := Run(context.Background(), "id", "edit", "new-user@example.com")
+		assert.ErrorContains(t, err, "Interactive mode is required to edit sensitive fields")
 	})
 
 	t.Run("removes only the specified identity", func(t *testing.T) {
