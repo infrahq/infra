@@ -97,7 +97,7 @@ func newGrantRemoveCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "remove IDENTITY DESTINATION",
 		Aliases: []string{"rm"},
-		Short:   "Revoke access from a destination",
+		Short:   "Revoke an identity's access from a destination",
 		Example: `# Remove all grants of an identity in a destination
 $ infra grants remove janedoe@example.com kubernetes.docker-desktop 
 $ infra grants remove machineA kubernetes.docker-desktop
@@ -171,7 +171,7 @@ func removeGrant(cmdOptions grantsCmdOptions) error {
 func newGrantAddCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add IDENTITY DESTINATION",
-		Short: "Grant access to a destination",
+		Short: "Grant an identity access to a destination",
 		Example: `# Grant an identity access to a destination
 $ infra grants add johndoe@example.com kubernetes.docker-desktop 
 $ infra grants add machineA kubernetes.docker-desktop
