@@ -3,37 +3,34 @@ import { useState } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useTable } from 'react-table'
-import { XIcon, PlusIcon } from '@heroicons/react/outline'
+import { XIcon } from '@heroicons/react/outline'
+import dayjs from 'dayjs'
 
+import DeleteModal from '../../components/modals/delete'
 import Dashboard from '../../components/dashboard'
 import Table from '../../components/table'
 
 const columns = [
   {
-    Header: 'Name',
-    accessor: 'name',
+    Header: 'Identity Provider',
+    accessor: i => i,
     Cell: ({ value }) => (
       <div className='flex items-center'>
-        <div className='w-12 h-12 mr-4 bg-purple-100/10 font-bold rounded-xl flex items-center justify-center'><img className='h-3' src='/okta.svg' /></div>
-        <div>{value}</div>
-      </div>
-    )
-  },
-  {
-    accessor: 'url', // accessor is the "key" in the data,
-    Header: () => (
-      <div className='text-right'>
-        URL
-      </div>
-    ),
-    Cell: ({ value }) => (
-      <div className='text-right'>
-        {value}
+        <div className='w-10 h-10 mr-4 bg-purple-100/10 font-bold rounded-lg flex items-center justify-center'><img className='h-2.5' src='/okta.svg' /></div>
+        <div className='flex flex-col leading-tight'>
+          <div className='font-medium'>{value.name}</div>
+          <div className='text-gray-400 text-xs'>{value.url}</div>
+        </div>
       </div>
     )
   }, {
+    Header: 'Added',
+    accessor: i => {
+      return dayjs(i.created).fromNow()
+    }
+  }, {
     id: 'delete',
-    accessor: (r) => r,
+    accessor: i => i,
     Cell: ({ value: provider }) => {
       const [open, setOpen] = useState(false)
       return (
@@ -44,8 +41,8 @@ const columns = [
           <DeleteModal
             open={open}
             setOpen={setOpen}
-            title='Delete Identity Provider'
-            message={(<>Are you sure you want to delete <span className='font-bold'>{provider.name}</span>? This action cannot be undone.</>)}
+            title='Remove Identity Provider'
+            message={(<>Are you sure you want to remove <span className='font-bold'>{provider.name}</span>? This action cannot be undone.</>)}
           />
         </div>
       )
@@ -54,34 +51,69 @@ const columns = [
 ]
 
 export default function () {
-  const { data, error } = useSWR('/v1/providers', { fallbackData: [] })
+  const { data, error } = useSWR('/v1/providers')
+  const table = useTable({ columns, data: data || [] })
 
-  const table = useTable({ columns, data })
+  const loading = !data && !error
 
   return (
     <Dashboard>
       <Head>
         <title>Identity Providers - Infra</title>
       </Head>
-      <div className='flex flex-col my-20'>
-        <h1 className='text-4xl font-bold my-8'>Identity Providers</h1>
-        {error?.status
-          ? <div className='my-20 text-center font-light text-gray-400 text-2xl'>{error?.info?.message}</div>
-          : data.length === 0
-            ? (
-              <div className='text-center my-20'>
-                <p className='text-gray-400 mb-4 text-2xl'>No Identity Providers</p>
-                <Link href='/providers/add'>
-                  <button className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 my-2'>
-                    <div className='bg-black rounded-full flex items-center tracking-tight px-4 py-2 '>
-                      <PlusIcon className='w-5 h-5 mr-2' />Add Identity Provider
-                    </div>
-                  </button>
-                </Link>
+      {loading
+        ? (
+          <div className='h-full -mt-20 flex items-center justify-center'>
+            <img className='w-20 h-20 animate-spin-fast' src='/spinner.svg' />
+          </div>
+          )
+        : (
+          <div className='flex flex-row mt-10 lg:mt-20'>
+            {data?.length > 0 && (
+              <div className='hidden lg:flex self-start mt-4 mr-8 bg-gradient-to-br from-violet-400/30 to-pink-200/30 items-center justify-center rounded-full'>
+                <div className='flex bg-black items-center justify-center rounded-full w-16 h-16 m-0.5'>
+                  <img className='w-8 h-8' src='/providers-color.svg' />
+                </div>
               </div>
-              )
-            : <Table {...table} />}
-      </div>
+            )}
+            <div className='flex-1 flex flex-col space-y-4'>
+              {data?.length > 0 && (
+                <div className='flex justify-between items-center'>
+                  <h1 className='text-2xl font-bold my-4'>Identity Providers</h1>
+                  <Link href='/providers/add'>
+                    <button className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 my-2'>
+                      <div className='bg-black rounded-full flex items-center text-sm px-4 py-1.5 '>
+                        Add Identity Provider
+                      </div>
+                    </button>
+                  </Link>
+                </div>
+              )}
+              {error?.status
+                ? <div className='my-20 text-center font-light text-gray-400 text-2xl'>{error?.info?.message}</div>
+                : data.length === 0
+                  ? (
+                    <div className='flex flex-col text-center my-24'>
+                      <div className='flex bg-gradient-to-br from-violet-400/30 to-pink-200/30 items-center justify-center rounded-full mx-auto my-4'>
+                        <div className='flex bg-black items-center justify-center rounded-full w-16 h-16 m-0.5'>
+                          <img className='w-8 h-8' src='/providers-color.svg' />
+                        </div>
+                      </div>
+                      <h1 className='text-white text-lg font-bold mb-2'>There are no identity providers</h1>
+                      <h2 className='text-gray-300 mb-4 text-sm max-w-xs mx-auto'>Identity providers allow you to connect your existing users &amp; groups to Infra.</h2>
+                      <Link href='/providers/add'>
+                        <button className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 my-2 mx-auto'>
+                          <div className='bg-black rounded-full flex items-center tracking-tight text-sm px-6 py-3 '>
+                            Add Identity Provider
+                          </div>
+                        </button>
+                      </Link>
+                    </div>
+                    )
+                  : <Table {...table} />}
+            </div>
+          </div>
+          )}
     </Dashboard>
   )
 }
