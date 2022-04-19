@@ -68,6 +68,11 @@ $ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy
 
 Log out of Infra
 
+### Synopsis
+
+Log out of Infra
+Note: [SERVER] and [--all] cannot be both specified. Choose either one or all servers.
+
 ```
 infra logout [SERVER] [flags]
 ```
