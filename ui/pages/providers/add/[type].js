@@ -56,12 +56,6 @@ const Details = () => {
     }))
   }, [])
 
-  const addAdmins = async () => {
-    await Router.push({
-      pathname: '/providers/add/admins'
-    }, undefined, { shallow: true })
-  }
-
   const moveToNext = () => {
     const name = type + '-' + value.domain
 
@@ -69,11 +63,13 @@ const Details = () => {
       method: 'POST',
       body: JSON.stringify({ name, url: value.domain, clientID: value.clientId, clientSecret: value.clientSecret })
     })
-      .then(() => {
-        addAdmins()
-      }).catch((error) => {
-        console.log('error:', error)
-      })
+    .then(() => {
+      Router.push({
+        pathname: '/providers'
+      }, undefined, { shallow: true })
+    }).catch((error) => {
+      console.log('error:', error)
+    })
   }
 
   return (

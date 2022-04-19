@@ -1,5 +1,4 @@
 import useSWR, { useSWRConfig } from 'swr'
-import useSWRImmutable from 'swr/immutable'
 import Head from "next/head"
 import { useRouter } from "next/router"
 import { useState } from "react"
@@ -69,7 +68,7 @@ const DestinationDetails = () => {
 	const [grantNewEmail, setGrantNewEmail] = useState('')
   const [role, setRole] = useState('view')
 
-  const options = ['view', 'edit', 'admin']
+  const options = ['view', 'edit', 'admin', 'remove']
 
   const grantPrivilege = (id, privilege = role) => {
     fetch('/v1/grants', {
@@ -81,10 +80,13 @@ const DestinationDetails = () => {
       console.log('data:', data)
       mutate(`/v1/grants?resource=${destination.name}`)
     })
+    .finally(() => {
+      setGrantNewEmail('')
+      setRole('view')
+    })
   }
 
 	const handleShareGrant = () => {
-		console.log('email:', grantNewEmail, 'role:', role)
     fetch(`/v1/identities?name=${grantNewEmail}`)
     .then((response) => response.json())
     .then((data) => {
@@ -96,6 +98,8 @@ const DestinationDetails = () => {
         .then((response) => response.json())
         .then((user) => {
           grantPrivilege(user.id)
+        })
+        .finally(() => {
           setGrantNewEmail('')
           setRole('view')
         })
@@ -108,7 +112,11 @@ const DestinationDetails = () => {
   const handleUpdateGrant = (privilege, grantId, userId) => {
     fetch(`/v1/grants/${grantId}`, { method: 'DELETE' })
     .then(() => {
-      grantPrivilege(userId, privilege)
+      if (privilege === 'remove') {
+        mutate(`/v1/grants?resource=${destination.name}`)
+      } else {
+        grantPrivilege(userId, privilege)
+      }
     })
   }
 
@@ -127,7 +135,7 @@ const DestinationDetails = () => {
                   value={grantNewEmail}
                   placeholder='email'
                   optionType='role'
-                  options={options}
+                  options={options.filter((item) => item !== 'remove')}
                   handleInputChange={e => setGrantNewEmail(e.target.value)}
                   handleSelectOption={e => setRole(e.target.value)}
                 />
