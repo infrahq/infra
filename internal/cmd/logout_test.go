@@ -14,7 +14,10 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
-var srvURL string
+var (
+	srvURL             string
+	unauthorizedSrvURL string
+)
 
 func TestLogout(t *testing.T) {
 	homeDir := t.TempDir()
@@ -59,6 +62,57 @@ func TestLogout(t *testing.T) {
 					AccessKey:     "the-access-key",
 					PolymorphicID: "pid2",
 					SkipTLSVerify: true,
+				},
+			},
+		}
+		err := writeConfig(&cfg)
+		assert.NilError(t, err)
+
+		kubeCfg := clientcmdapi.Config{
+			Clusters: map[string]*clientcmdapi.Cluster{
+				"keep:not-infra": {Server: "https://keep:8080"},
+				"infra:prod":     {Server: "https://infraprod:8080"},
+			},
+			Contexts: map[string]*clientcmdapi.Context{
+				"keep:not-infra": {Cluster: "keep:not-infra"},
+				"infra:prod":     {Cluster: "infra:prod"},
+			},
+			AuthInfos: map[string]*clientcmdapi.AuthInfo{
+				"keep:not-infra": {Token: "keep-token"},
+				"infra:prod":     {Token: "infra-token"},
+			},
+		}
+		err = clientcmd.WriteToFile(kubeCfg, kubeConfigPath)
+		assert.NilError(t, err)
+		return cfg, &count
+	}
+
+	setupUnauthorized := func(t *testing.T) (ClientConfig, *int32) {
+		var count int32
+		handler := func(resp http.ResponseWriter, req *http.Request) {
+			if req.URL.Path != "/v1/logout" {
+				resp.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			atomic.AddInt32(&count, 1)
+			resp.WriteHeader(http.StatusUnauthorized)
+			_, _ = resp.Write([]byte(`{}`)) // API client requires a JSON response
+		}
+
+		srv := httptest.NewTLSServer(http.HandlerFunc(handler))
+		unauthorizedSrvURL = srv.Listener.Addr().String()
+		t.Cleanup(srv.Close)
+
+		cfg := ClientConfig{
+			Version: "0.3",
+			Hosts: []ClientHostConfig{
+				{
+					Name:          "user1",
+					Host:          srv.Listener.Addr().String(),
+					AccessKey:     "the-access-key",
+					PolymorphicID: "pid1",
+					SkipTLSVerify: true,
+					Current:       true,
 				},
 			},
 		}
@@ -188,5 +242,22 @@ func TestLogout(t *testing.T) {
 		updatedCfg, err := readConfig()
 		assert.NilError(t, err)
 		assert.DeepEqual(t, &cfg, updatedCfg)
+	})
+
+	t.Run("unauthorized", func(t *testing.T) {
+		cfg, count := setupUnauthorized(t)
+		err := Run(context.Background(), "logout", unauthorizedSrvURL)
+		assert.NilError(t, err)
+
+		assert.Equal(t, int32(1), atomic.LoadInt32(count), "calls to API")
+
+		updatedCfg, err := readConfig()
+		assert.NilError(t, err)
+
+		expected := cfg
+		expected.Hosts[0].AccessKey = ""
+		expected.Hosts[0].Name = ""
+		expected.Hosts[0].PolymorphicID = ""
+		assert.DeepEqual(t, &expected, updatedCfg)
 	})
 }
