@@ -55,6 +55,8 @@ func TestKeysAddCmd(t *testing.T) {
 			Hosts: []ClientHostConfig{
 				{
 					AccessKey:     "the-access-key",
+					Name:          "user1",
+					PolymorphicID: "pid1",
 					Host:          srv.Listener.Addr().String(),
 					Current:       true,
 					SkipTLSVerify: true,

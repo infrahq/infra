@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/logging"
 )
 
@@ -65,14 +66,18 @@ $ infra logout --all --clear`,
 	return cmd
 }
 
-func logoutOfServer(hostConfig *ClientHostConfig) bool {
+func logoutOfServer(hostConfig *ClientHostConfig) (bool, error) {
 	if !hostConfig.isLoggedIn() {
 		logging.S.Debugf("requested but not logged in to server [%s]", hostConfig.Host)
-		return false
+		return false, nil
 	}
 
 	client, err := apiClient(hostConfig.Host, hostConfig.AccessKey, hostConfig.SkipTLSVerify)
 	if err != nil {
+		if !errors.Is(err, api.ErrUnauthorized) {
+			logging.S.Debug(err)
+			return false, err
+		}
 		logging.S.Warn(err.Error())
 	}
 
@@ -83,7 +88,7 @@ func logoutOfServer(hostConfig *ClientHostConfig) bool {
 	_ = client.Logout()
 
 	logging.S.Debugf("logged out of server [%s]", hostConfig.Host)
-	return true
+	return true, nil
 }
 
 func logout(clear bool, server string, all bool) error {
@@ -106,9 +111,16 @@ func logout(clear bool, server string, all bool) error {
 	}
 
 	if all {
+		var logoutErr error
 		for i := range config.Hosts {
-			logoutOfServer(&config.Hosts[i])
+			if _, err = logoutOfServer(&config.Hosts[i]); err != nil {
+				logoutErr = err
+			}
 		}
+		if logoutErr != nil {
+			return errors.New("Failed to logout of all servers due to an internal error. Run with '--log-level=debug' for more info.")
+		}
+
 		fmt.Fprintf(os.Stderr, "Logged out of all servers.\n")
 		if clear {
 			config.Hosts = nil
@@ -117,7 +129,10 @@ func logout(clear bool, server string, all bool) error {
 	} else {
 		for i := range config.Hosts {
 			if (server == "" && config.Hosts[i].Current) || (server == config.Hosts[i].Host) {
-				success := logoutOfServer(&config.Hosts[i])
+				success, err := logoutOfServer(&config.Hosts[i])
+				if err != nil {
+					return fmt.Errorf("Failed to logout of server %s due to an internal error. Run with '--log-level=debug' for more info.", config.Hosts[i].Host)
+				}
 				if success {
 					logging.S.Debugf("Logged out of server %s", config.Hosts[i].Host)
 				}
