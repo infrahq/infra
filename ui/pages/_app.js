@@ -45,27 +45,26 @@ const fetcher = async (resource, init) => {
 
 function App ({ Component, pageProps }) {
   const { data: auth, error: authError } = useSWRImmutable('/v1/introspect', fetcher)
-  const { data: setup, error: setupError } = useSWRImmutable('/v1/setup', fetcher)
-  const { data: grants, error: grantsError } = useSWRImmutable(() => `/v1/identities/${auth.id}/grants?resource=infra`, fetcher)
+  const { data: signup, error: signupError } = useSWRImmutable('/v1/signup', fetcher)
   const router = useRouter()
 
   const authLoading = !auth && !authError
-  const setupLoading = !setup && !setupError
+  const signupLoading = !signup && !signupError
 
-  console.log(grants, grantsError)
-
-  if (authLoading || setupLoading) {
+  if (authLoading || signupLoading) {
     return null
   }
 
   // redirect to signup if required
-  if (setup?.required && !router.asPath.startsWith('/signup')) {
+  if (signup?.enabled && !router.asPath.startsWith('/signup')) {
     router.replace('/signup')
     return null
   }
 
+  console.log(signup?.enabled, auth)
+
   // redirect to login if required
-  if (!setup?.required && !auth && !router.asPath.startsWith('/login') && !router.asPath.startsWith('/signup')) {
+  if (!signup?.enabled && !auth && !router.asPath.startsWith('/login')) {
     router.replace('/login')
     return null
   }
