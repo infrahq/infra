@@ -96,7 +96,7 @@ export default function () {
                   <h1 className='text-2xl font-bold my-4'>Identity Providers</h1>
                   <Link href='/providers/add'>
                     <button className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 my-2'>
-                      <div className='bg-black rounded-full flex items-center text-sm px-4 py-1.5 '>
+                      <div className='bg-black rounded-full flex items-center text-sm px-4 py-1.5'>
                         Add Identity Provider
                       </div>
                     </button>

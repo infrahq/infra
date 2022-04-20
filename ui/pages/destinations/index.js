@@ -101,7 +101,7 @@ export default function () {
                     })}
                   />}
             </div>
-            <Modal header='Grant' handleCloseModal={() => setModalOpen(false)} modalOpen={modalOpen}>
+            <Modal header='Grant' handleCloseModal={() => setModalOpen(false)} modalOpen={modalOpen} iconPath='/grant-access-color.svg'>
               <GrantAccessContent id={SelectedId} />
             </Modal>
           </div>
