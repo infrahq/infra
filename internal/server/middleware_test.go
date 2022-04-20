@@ -65,10 +65,8 @@ func issueUserToken(t *testing.T, db *gorm.DB, email string, sessionDuration tim
 }
 
 func TestRequestTimeoutError(t *testing.T) {
-	requestTimeout = 100 * time.Millisecond
-
 	router := gin.New()
-	router.Use(RequestTimeoutMiddleware())
+	router.Use(TimeoutMiddleware(100 * time.Millisecond))
 	router.GET("/", func(c *gin.Context) {
 		time.Sleep(110 * time.Millisecond)
 
@@ -80,12 +78,40 @@ func TestRequestTimeoutError(t *testing.T) {
 }
 
 func TestRequestTimeoutSuccess(t *testing.T) {
-	requestTimeout = 60 * time.Second
-
 	router := gin.New()
-	router.Use(RequestTimeoutMiddleware())
+	router.Use(TimeoutMiddleware(60 * time.Second))
 	router.GET("/", func(c *gin.Context) {
 		assert.NilError(t, c.Request.Context().Err())
+
+		c.Status(200)
+	})
+	router.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "/", nil))
+}
+
+func TestDBTimeout(t *testing.T) {
+	db := setupDB(t)
+	var ctx context.Context
+	var cancel context.CancelFunc
+
+	router := gin.New()
+	router.Use(
+		func(c *gin.Context) {
+			// this is a custom copy of the timeout middleware so I can grab and control the cancel() func. Otherwise the test is too flakey with timing race conditions.
+			ctx, cancel = context.WithTimeout(c, 100*time.Millisecond)
+			defer cancel()
+
+			c.Request = c.Request.WithContext(ctx)
+			c.Set("ctx", ctx)
+			c.Next()
+		},
+		DatabaseMiddleware(db),
+	)
+	router.GET("/", func(c *gin.Context) {
+		db, ok := c.MustGet("db").(*gorm.DB)
+		assert.Check(t, ok)
+		cancel()
+		err := db.Exec("select 1;").Error
+		assert.Error(t, err, "context canceled")
 
 		c.Status(200)
 	})
