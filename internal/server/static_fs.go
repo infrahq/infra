@@ -39,7 +39,7 @@ func (sfs StaticFileSystem) Exists(prefix string, filepath string) bool {
 			return true
 		}
 
-		if _, err := sfs.base.Open(path.Join(uiFilePathPrefix+".html", p)); err == nil {
+		if _, err := sfs.base.Open(path.Join(uiFilePathPrefix, p+".html")); err == nil {
 			return true
 		}
 	}
