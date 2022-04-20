@@ -35,8 +35,13 @@ const uiFilePathPrefix = "ui"
 
 func (sfs StaticFileSystem) Exists(prefix string, filepath string) bool {
 	if p := strings.TrimPrefix(filepath, prefix); len(p) < len(filepath) {
-		_, err := sfs.base.Open(path.Join(uiFilePathPrefix, p))
-		return err == nil
+		if _, err := sfs.base.Open(path.Join(uiFilePathPrefix, p)); err == nil {
+			return true
+		}
+
+		if _, err := sfs.base.Open(path.Join(uiFilePathPrefix, p+".html")); err == nil {
+			return true
+		}
 	}
 
 	return false

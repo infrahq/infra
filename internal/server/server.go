@@ -329,6 +329,7 @@ func registerUIRoutes(router *gin.Engine, opts UIOptions) {
 
 		router.Use(func(c *gin.Context) {
 			proxy.ServeHTTP(c.Writer, c.Request)
+			c.Abort()
 		})
 		return
 	}

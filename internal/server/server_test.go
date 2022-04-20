@@ -1065,7 +1065,7 @@ func TestServer_GenerateRoutes_UI(t *testing.T) {
 		},
 		{
 			name:         "page without .html suffix",
-			path:         "/providers",
+			path:         "/providers/add/admins",
 			expectedCode: http.StatusOK,
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				actual := resp.Header().Get("Content-Type")
