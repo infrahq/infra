@@ -6,7 +6,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"errors"
-	"flag"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -19,37 +18,6 @@ import (
 	is "gotest.tools/v3/assert/cmp"
 	"gotest.tools/v3/assert/opt"
 )
-
-func TestMain(m *testing.M) {
-	defer func() {
-		if r := recover(); r != nil {
-			teardown()
-			fmt.Println(r)
-			os.Exit(1)
-		}
-	}()
-
-	flag.Parse()
-	setup()
-
-	result := m.Run()
-
-	teardown()
-	// nolint
-	os.Exit(result)
-}
-
-func setup() {
-	if testing.Short() {
-		return
-	}
-}
-
-func teardown() {
-	if testing.Short() {
-		return
-	}
-}
 
 func eachProvider(t *testing.T, eachFunc func(t *testing.T, p CertificateProvider)) {
 	providers := map[string]CertificateProvider{}

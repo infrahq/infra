@@ -66,8 +66,6 @@ type AWSKMSConfig struct {
 
 type AWSSecretsManagerConfig struct {
 	AWSConfig `mapstructure:",squash"`
-
-	UseSecretMaps bool `mapstructure:"useSecretMaps"`
 }
 
 type AWSSSMConfig struct {
@@ -326,7 +324,6 @@ func importSecrets(cfg []SecretProvider, storage map[string]secrets.SecretStorag
 					AccessKeyID:     cfg.AccessKeyID,
 					SecretAccessKey: cfg.SecretAccessKey,
 				},
-				UseSecretMaps: cfg.UseSecretMaps,
 			}
 
 			sm, err := secrets.NewAWSSecretsManagerFromConfig(smCfg)

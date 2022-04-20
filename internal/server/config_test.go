@@ -95,7 +95,6 @@ secrets:
   - name: aws-2
     kind: awssecretsmanager
     config:
-      useSecretMaps: true
       endpoint: the-endpoint-2
       region: the-region-2
       accessKeyID: the-access-key-2
@@ -162,7 +161,6 @@ secrets:
 				Kind: "awssecretsmanager",
 				Name: "aws-2",
 				Config: AWSSecretsManagerConfig{
-					UseSecretMaps: true,
 					AWSConfig: AWSConfig{
 						Endpoint:        "the-endpoint-2",
 						Region:          "the-region-2",
