@@ -34,7 +34,7 @@ export default function ({ children }) {
   return (
     <div className='flex h-full relative'>
       <nav className='flex-none flex w-64 lg:w-72 flex-col inset-y-0 px-2 overflow-y-auto'>
-        <div className='flex-shrink-0 flex items-center my-12 px-6'>
+        <div className='flex-shrink-0 flex items-center my-12 lg:my-18 px-6'>
           <Link href='/'>
             <a>
               <img

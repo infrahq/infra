@@ -48,9 +48,9 @@ export default function () {
       {loading
         ? ( <Loader /> )
         : (
-          <div className='flex flex-row mt-10 lg:mt-20'>
+          <div className='flex flex-row mt-4 lg:mt-6'>
           {destinations?.length > 0 && (
-            <div className='hidden lg:flex self-start mt-4 mr-8 bg-gradient-to-br from-violet-400/30 to-pink-200/30 items-center justify-center rounded-full'>
+            <div className='hidden lg:flex self-start mt-2 mr-8 bg-gradient-to-br from-violet-400/30 to-pink-200/30 items-center justify-center rounded-full'>
               <div className='flex bg-black items-center justify-center rounded-full w-16 h-16 m-0.5'>
                 <img className='w-8 h-8' src='/destinations-color.svg' />
               </div>
@@ -59,7 +59,7 @@ export default function () {
           <div className='flex-1 flex flex-col space-y-4'>
             {destinations?.length > 0 && (
               <div className='flex justify-between items-center'>
-                <h1 className='text-2xl font-bold my-4'>Destinations</h1>
+                <h1 className='text-2xl font-bold mt-6 mb-4'>Destinations</h1>
                 <Link href='/destinations/add/connect'>
                   <button className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 my-2'>
                     <div className='bg-black rounded-full flex items-center text-sm px-4 py-1.5 '>
