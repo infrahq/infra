@@ -89,8 +89,8 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) *gin.Engine 
 
 	// these endpoints do not require authentication
 	noAuthn := api.Group("/")
-	get(a, noAuthn, "/v1/setup", a.SetupRequired)
-	post(a, noAuthn, "/v1/setup", a.Setup)
+	get(a, noAuthn, "/v1/signup", a.SignupEnabled)
+	post(a, noAuthn, "/v1/signup", a.Signup)
 
 	post(a, noAuthn, "/v1/login", a.Login)
 
@@ -112,6 +112,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) *gin.Engine 
 	noAuthn.GET("/v1/machines/:id", removed("v0.9.0"))
 	noAuthn.DELETE("/v1/machines/:id", removed("v0.9.0"))
 	noAuthn.GET("/v1/machines/:id/grants", removed("v0.9.0"))
+	noAuthn.GET("/v1/setup", removed("v0.11.0"))
 
 	// registerUIRoutes must happen last because it uses catch-all middleware
 	// with no handlers. Any route added after the UI will end up using the

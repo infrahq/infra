@@ -46,7 +46,7 @@ type Options struct {
 	AccessKey            string        `mapstructure:"accessKey"`
 	EnableTelemetry      bool          `mapstructure:"enableTelemetry"`
 	EnableCrashReporting bool          `mapstructure:"enableCrashReporting"`
-	EnableSetup          bool          `mapstructure:"enableSetup"`
+	EnableSignup         bool          `mapstructure:"enableSignup"`
 	SessionDuration      time.Duration `mapstructure:"sessionDuration"`
 
 	DBFile                  string `mapstructure:"dbFile"`
@@ -162,7 +162,7 @@ func New(options Options) (*Server, error) {
 		return nil, fmt.Errorf("importing access keys: %w", err)
 	}
 
-	settings, err := data.InitializeSettings(server.db, server.setupRequired())
+	settings, err := data.InitializeSettings(server.db, server.signupEnabled())
 	if err != nil {
 		return nil, fmt.Errorf("settings: %w", err)
 	}
@@ -590,8 +590,8 @@ func (s *Server) createDBKey(provider secrets.SymmetricKeyProvider, rootKeyId st
 	return nil
 }
 
-func (s *Server) setupRequired() bool {
-	if !s.options.EnableSetup {
+func (s *Server) signupEnabled() bool {
+	if !s.options.EnableSignup {
 		return false
 	}
 
