@@ -21,7 +21,7 @@ func TestDefaultsFromEnv(t *testing.T) {
 		flags.Int("count", 12, "")
 		flags.String("two-parts", "", "")
 		flags.StringVar(&tg.OneMore, "one-more-extra-long", "", "")
-		flags.Int32Var(&tg.Next, "next", 0, "")
+		flags.Int32Var(&tg.Next, "next", 222, "")
 		flags.StringSliceVar(&tg.Many, "many", nil, "")
 		flags.StringSlice("many-others", nil, "")
 		return flags
@@ -87,7 +87,7 @@ func TestDefaultsFromEnv(t *testing.T) {
 		err = DefaultsFromEnv("MYAPP", flags)
 		assert.NilError(t, err)
 
-		expected := target{}
+		expected := target{Next: 222}
 		assert.DeepEqual(t, tg, expected)
 
 		v, err := flags.GetString("word")
