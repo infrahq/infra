@@ -4,10 +4,10 @@ import Head from 'next/head'
 import FullscreenModal from '../../../components/modals/fullscreen'
 import { providers } from '../../../lib/providers'
 
-function Provider ({ icon, name, available }) {
+function Provider ({ kind, name, available }) {
   return (
     <div className={`rounded-xl px-6 py-4 flex items-center select-none bg-purple-100/5 ${available ? 'hover:bg-purple-100/10 cursor-pointer' : 'opacity-50 grayscale select-none'}`}>
-      <img className='flex-none w-8 mr-4' src={icon} />
+      <img className='flex-none w-8 mr-4' src={`/providers/${kind}.svg`} />
       <div>
         <h3 className='flex-1 font-medium'>{name}</h3>
         <h4 className='text-sm text-gray-400'>{available ? 'Identity Provider' : 'Coming Soon'}</h4>
@@ -34,7 +34,7 @@ export default function () {
           {providers.map(p => (
             p.available
               ? (
-                <Link key={p.name} href={`/providers/add/${p.name.toLowerCase()}`}>
+                <Link key={p.name} href={`/providers/add/details?kind=${p.kind}`}>
                   <a>
                     <Provider {...p} />
                   </a>

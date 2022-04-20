@@ -1,20 +1,28 @@
 export const providers = [{
   name: 'Okta',
-  icon: '/okta.svg',
+  kind: 'okta',
   available: true
 }, {
   name: 'Google',
-  icon: '/google.svg'
+  kind: 'google'
 }, {
   name: 'Azure Active Directory',
-  icon: '/azure.svg'
+  kind: 'azure-ad'
 }, {
   name: 'GitHub',
-  icon: '/github.svg'
+  kind: 'github'
 }, {
   name: 'GitLab',
-  icon: '/gitlab.svg'
+  kind: 'gitlab'
 }, {
   name: 'OpenID',
-  icon: '/openid.svg'
+  kind: 'openid'
 }]
+
+export function kind (url) {
+  if (url?.endsWith('.okta.com')) {
+    return 'okta'
+  }
+
+  return ''
+}

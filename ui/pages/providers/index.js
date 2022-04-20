@@ -9,15 +9,7 @@ import dayjs from 'dayjs'
 import DeleteModal from '../../components/modals/delete'
 import Dashboard from '../../components/dashboard'
 import Table from '../../components/table'
-import Loader from '../../components/loader'
-
-function kind (url) {
-  if (url?.endsWith('.okta.com')) {
-    return 'okta'
-  }
-
-  return ''
-}
+import { kind } from '../../lib/providers'
 
 const columns = [{
   Header: 'Identity Provider',
@@ -27,7 +19,7 @@ const columns = [{
       <div className='w-10 h-10 mr-4 bg-purple-100/10 font-bold rounded-lg flex items-center justify-center'>
         {kind(provider.url)
           ? (
-            <img className='h-2.5' src={`/${kind(provider.url)}.svg`} />
+            <img className='h-2.5' src={`/providers/${kind(provider.url)}.svg`} />
             )
           : (
               provider.name[0].toUpperCase()
