@@ -32,7 +32,6 @@ func TimeoutMiddleware(timeout time.Duration) gin.HandlerFunc {
 
 		start := time.Now()
 
-		c.Set("ctx", ctx)
 		c.Next()
 
 		if elapsed := time.Since(start); elapsed > timeout {
@@ -44,15 +43,7 @@ func TimeoutMiddleware(timeout time.Duration) gin.HandlerFunc {
 // DatabaseMiddleware injects a `db` object into the Gin context.
 func DatabaseMiddleware(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		ctx := context.Background()
-
-		if ctxIntf, ok := c.Get("ctx"); ok {
-			if existingCtx, ok := ctxIntf.(context.Context); ok {
-				ctx = existingCtx
-			}
-		}
-
-		err := db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		err := db.WithContext(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
 			c.Set("db", tx)
 			c.Next()
 			return nil
