@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .page-header {
+    @apply text-2xl font-bold mt-6 mb-4
+  }
+}

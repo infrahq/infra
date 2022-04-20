@@ -16,11 +16,12 @@ function oidcLogin ({ id, url, clientID }) {
 
 export default function () {
   const { data: providers } = useSWR('/v1/providers', { fallbackData: [] })
+  const { mutate } = useSWRConfig()
+  
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const router = useRouter()
-  const { mutate } = useSWRConfig()
 
   async function login () {
     try {
@@ -55,7 +56,7 @@ export default function () {
                 key={p.id}
                 className='w-full flex items-center justify-center border border-gray-600 hover:border-gray-500 py-3.5 rounded-md'
               >
-                <img className='h-4' src='/okta.svg' />
+                <img className='h-4' src='/providers/okta.svg' />
               </button>
             ))}
           </div>

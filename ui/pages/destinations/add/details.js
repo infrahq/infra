@@ -8,7 +8,6 @@ import ActionButton from '../../../components/ActionButton'
 import NameInput from '../../../components/destinations/NameInput'
 import CommandInput from '../../../components/destinations/CommandInput'
 import ExitButton from '../../../components/ExitButton'
-import Header from '../../../components/Header'
 import ConnectStatus from '../../../components/destinations/ConnectStatus'
 
 const ConnectContainer = styled.section`
@@ -32,7 +31,7 @@ const SetupDestinationContent = styled.div`
   }
 `
 
-const Connect = () => {
+export default function () {
   const [connected, setConnected] = useState(false)
   const [enabledCommandInput, setEnabledCommandInput] = useState(false)
   const [accessKey, setAccessKey] = useState('')
@@ -71,10 +70,8 @@ const Connect = () => {
       </Head>
       <ConnectContainer>
         <SetupDestinationContent>
-          <Header
-            header='Connect Your Kubernetes Cluster'
-            subheader='Run the following command to connect your cluster'
-          />
+          <p>Connect Your Kubernetes Cluster</p>
+          <p>Run the following command to connect your cluster</p>
           <NameInput
             accessKey={accessKey}
             connected={connected}
@@ -102,5 +99,3 @@ const Connect = () => {
     </div>
   )
 }
-
-export default Connect

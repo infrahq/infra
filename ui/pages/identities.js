@@ -5,7 +5,7 @@ import dayjs from 'dayjs'
 import { Dialog, Transition } from '@headlessui/react'
 import { XIcon, PlusIcon } from '@heroicons/react/outline'
 
-import Dashboard from '../components/dashboard'
+import Dashboard from '../components/dashboard/dashboard'
 import Table from '../components/table'
 import DeleteModal from '../components/modals/delete'
 

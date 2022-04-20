@@ -8,6 +8,9 @@ import updateLocale from 'dayjs/plugin/updateLocale'
 import dayjs from 'dayjs'
 
 import '../styles/globals.css'
+import '../styles/typography.css'
+import '../styles/buttons.css'
+
 
 dayjs.extend(relativeTime)
 dayjs.extend(updateLocale)

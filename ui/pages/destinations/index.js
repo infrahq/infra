@@ -4,11 +4,13 @@ import Link from 'next/link'
 import { useState } from 'react'
 import dayjs from 'dayjs'
 
-import Dashboard from '../../components/dashboard'
-import Modal from '../../components/modal'
-import GrantAccessContent from '../../components/grantAccessContent'
+import Dashboard from '../../components/dashboard/dashboard'
+import InfoModal from '../../components/modals/infoModal'
+import GrantAccessContent from './grantAccessContent'
 import Loader from '../../components/loader'
 import Table from '../../components/table'
+import EmptyTable from '../../components/emptyTable'
+import HeaderIcon from '../../components/dashboard/headerIcon'
 
 const columns = [
   {
@@ -50,17 +52,13 @@ export default function () {
         : (
           <div className='flex flex-row mt-4 lg:mt-6'>
           {destinations?.length > 0 && (
-            <div className='hidden lg:flex self-start mt-2 mr-8 bg-gradient-to-br from-violet-400/30 to-pink-200/30 items-center justify-center rounded-full'>
-              <div className='flex bg-black items-center justify-center rounded-full w-16 h-16 m-0.5'>
-                <img className='w-8 h-8' src='/destinations-color.svg' />
-              </div>
-            </div>
+            <HeaderIcon iconPath='/destinations-color.svg' />
           )}
           <div className='flex-1 flex flex-col space-y-4'>
             {destinations?.length > 0 && (
               <div className='flex justify-between items-center'>
                 <h1 className='text-2xl font-bold mt-6 mb-4'>Destinations</h1>
-                <Link href='/destinations/add/connect'>
+                <Link href='/destinations/add/details'>
                   <button className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 my-2'>
                     <div className='bg-black rounded-full flex items-center text-sm px-4 py-1.5 '>
                       Add Destination
@@ -72,24 +70,13 @@ export default function () {
             {error?.status
               ? <div className='my-20 text-center font-light text-gray-400 text-2xl'>{error?.info?.message}</div>
               : destinations.length === 0
-                ? (
-                  <div className='flex flex-col text-center my-24'>
-                    <div className='flex bg-gradient-to-br from-violet-400/30 to-pink-200/30 items-center justify-center rounded-full mx-auto my-4'>
-                      <div className='flex bg-black items-center justify-center rounded-full w-16 h-16 m-0.5'>
-                        <img className='w-8 h-8' src='/destinations-color.svg' />
-                      </div>
-                    </div>
-                    <h1 className='text-white text-lg font-bold mb-2'>There are no destination connected</h1>
-                    <h2 className='text-gray-300 mb-4 text-sm max-w-xs mx-auto'>TODO: WE NEED TEXT HERE</h2>
-                    <Link href='/destinations/add/connect'>
-                      <button className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 my-2 mx-auto'>
-                        <div className='bg-black rounded-full flex items-center tracking-tight text-sm px-6 py-3'>
-                          Add Destination
-                        </div>
-                      </button>
-                    </Link>
-                  </div>
-                  )
+                ? <EmptyTable
+                    title='There are no destinations'
+                    subtitle='TODO TODO'
+                    iconPath='/destinations-color.svg'
+                    buttonHref='/destinations/add/details'
+                    buttonText='Add Destination'
+                  />
                 : <Table
                     columns={columns}
                     data={destinations || []}
@@ -101,9 +88,9 @@ export default function () {
                     })}
                   />}
             </div>
-            <Modal header='Grant' handleCloseModal={() => setModalOpen(false)} modalOpen={modalOpen} iconPath='/grant-access-color.svg'>
+            <InfoModal header='Grant' handleCloseModal={() => setModalOpen(false)} modalOpen={modalOpen} iconPath='/grant-access-color.svg'>
               <GrantAccessContent id={SelectedId} />
-            </Modal>
+            </InfoModal>
           </div>
       )}
     </Dashboard>
