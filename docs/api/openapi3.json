@@ -3371,13 +3371,18 @@
             "application/json": {
               "schema": {
                 "properties": {
-                  "name": {
+                  "email": {
+                    "example": "email@example.com",
                     "type": "string"
                   },
                   "password": {
                     "type": "string"
                   }
                 },
+                "required": [
+                  "email",
+                  "password"
+                ],
                 "type": "object"
               }
             }
