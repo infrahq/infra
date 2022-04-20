@@ -6,17 +6,19 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/go-cmp/cmp"
+	gocmp "github.com/google/go-cmp/cmp"
 	"github.com/prometheus/client_golang/prometheus"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
 func TestAPI_ListIdentities(t *testing.T) {
@@ -125,7 +127,7 @@ func TestAPI_ListIdentities(t *testing.T) {
 	}
 }
 
-var cmpAPIIdentityShallow = cmp.Comparer(func(x, y api.Identity) bool {
+var cmpAPIIdentityShallow = gocmp.Comparer(func(x, y api.Identity) bool {
 	return x.Name == y.Name && x.Kind == y.Kind
 })
 
@@ -360,4 +362,142 @@ func TestDeleteIdentity_NoDeleteSelf(t *testing.T) {
 	routes.ServeHTTP(resp, req)
 
 	assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
+}
+
+func TestAPI_CreateGrant_Success(t *testing.T) {
+	srv := setupServer(t, withDefaultAdminAccessKey)
+	adminAccessKey := srv.options.AdminAccessKey
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	reqBody := strings.NewReader(`
+		{
+		  "subject": "i:12345",
+		  "privilege": "admin-role",
+		  "resource": "kubernetes.some-cluster"
+		}`)
+
+	resp := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodPost, "/v1/grants", reqBody)
+	assert.NilError(t, err)
+	req.Header.Add("Authorization", "Bearer "+adminAccessKey)
+
+	accessKey, err := data.ValidateAccessKey(srv.db, adminAccessKey)
+	assert.NilError(t, err)
+
+	runStep(t, "response is ok", func(t *testing.T) {
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusCreated)
+
+		expected := jsonUnmarshal(t, fmt.Sprintf(`
+		{
+		  "id": "<any-valid-uid>",
+		  "created_by": "%[1]v",
+		  "privilege": "admin-role",
+		  "resource": "kubernetes.some-cluster",
+		  "subject": "i:12345",
+		  "created": "%[2]v",
+		  "updated": "%[2]v"
+		}`,
+			accessKey.IssuedFor,
+			time.Now().UTC().Format(time.RFC3339),
+		))
+		actual := jsonUnmarshal(t, resp.Body.String())
+		assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
+	})
+
+	var newGrant api.Grant
+	err = json.NewDecoder(resp.Body).Decode(&newGrant)
+	assert.NilError(t, err)
+
+	runStep(t, "grant exists", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/v1/grants/"+newGrant.ID.String(), nil)
+		assert.NilError(t, err)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey)
+
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusOK)
+
+		var getGrant api.Grant
+		err = json.NewDecoder(resp.Body).Decode(&getGrant)
+		assert.NilError(t, err)
+		assert.DeepEqual(t, getGrant, newGrant)
+	})
+}
+
+var cmpAPIGrantJSON = gocmp.Options{
+	gocmp.FilterPath(pathMapKey(`created`, `updated`), cmpApproximateTime),
+	gocmp.FilterPath(pathMapKey(`id`), cmpAnyValidUID),
+}
+
+// cmpApproximateTime is a gocmp.Option that compares a time formatted as an
+// RFC3339 string. The times may be up to 2 seconds different from each other,
+// to account for the runtime of a test.
+// cmpApproximateTime accepts interface{} instead of time.Time because it is
+// intended to be used to compare times in API responses that were decoded
+// into an interface{}.
+var cmpApproximateTime = gocmp.Comparer(func(x, y interface{}) bool {
+	xs, _ := x.(string)
+	xd, _ := time.Parse(time.RFC3339, xs)
+
+	ys, _ := y.(string)
+	yd, _ := time.Parse(time.RFC3339, ys)
+
+	if xd.After(yd) {
+		xd, yd = yd, xd
+	}
+	return yd.Sub(xd) < 2*time.Second
+})
+
+// cmpAnyValidUID is a gocmp.Option that allows a field to match any valid uid.ID,
+// as long as the expected value is the literal string "<any-valid-uid>".
+// cmpAnyValidUID accepts interface{} instead of string because it is intended
+// to be used to compare a UID.ID in API responses that were decoded
+// into an interface{}.
+var cmpAnyValidUID = gocmp.Comparer(func(x, y interface{}) bool {
+	xs, _ := x.(string)
+	ys, _ := y.(string)
+
+	if xs == "<any-valid-uid>" {
+		_, err := uid.Parse([]byte(ys))
+		return err == nil
+	}
+	if ys == "<any-valid-uid>" {
+		_, err := uid.Parse([]byte(xs))
+		return err == nil
+	}
+	return xs == ys
+})
+
+// pathMapKey is a gocmp.FilerPath filter that matches map entries with any
+// of the keys.
+// TODO: allow dotted identifier for keys in nested maps.
+func pathMapKey(keys ...string) func(path gocmp.Path) bool {
+	return func(path gocmp.Path) bool {
+		mapIndex, ok := path.Last().(gocmp.MapIndex)
+		if !ok {
+			return false
+		}
+
+		for _, key := range keys {
+			if mapIndex.Key().Interface() == key {
+				return true
+			}
+		}
+		return false
+	}
+}
+
+func jsonUnmarshal(t *testing.T, raw string) interface{} {
+	t.Helper()
+	var out interface{}
+	err := json.Unmarshal([]byte(raw), &out)
+	assert.NilError(t, err, "failed to decode JSON")
+	return out
+}
+
+func runStep(t *testing.T, name string, fn func(t *testing.T)) {
+	if !t.Run(name, fn) {
+		t.FailNow()
+	}
 }
