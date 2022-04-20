@@ -52,7 +52,9 @@ export default function () {
         : (
           <div className='flex flex-row mt-4 lg:mt-6'>
           {destinations?.length > 0 && (
-            <HeaderIcon iconPath='/destinations-color.svg' />
+            <div className='mt-2 mr-8'>
+              <HeaderIcon iconPath='/destinations-color.svg' />
+            </div>
           )}
           <div className='flex-1 flex flex-col space-y-4'>
             {destinations?.length > 0 && (

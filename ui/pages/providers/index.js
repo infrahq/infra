@@ -83,11 +83,13 @@ export default function () {
         <title>Identity Providers - Infra</title>
       </Head>
       {loading
-        ? ( <Loader /> )
+        ? (<Loader />)
         : (
           <div className='flex flex-row mt-4 lg:mt-20'>
             {data?.length > 0 && (
-              <HeaderIcon iconPath='/providers-color.svg' />
+              <div className='mt-2 mr-8'>
+                <HeaderIcon iconPath='/providers-color.svg' />
+              </div>
             )}
             <div className='flex-1 flex flex-col space-y-4'>
               {data?.length > 0 && (

@@ -1,70 +1,76 @@
 import { useState } from 'react'
-import axios from 'axios'
 import Link from 'next/link'
 import { useSWRConfig } from 'swr'
 import { useRouter } from 'next/router'
 
-function Welcome ({ signup }) {
-  return (
-    <>
-      <h2 className='text-center my-4'>Infra has been successfully installed.</h2>
-      <button className='w-full my-3 bg-zinc-500/20 hover:bg-gray-500/25 py-2.5 rounded-md text-white text-md hover:cursor-pointer' onClick={() => signup()}>Next</button>
-    </>
-  )
-}
+import HeaderIcon from '../../components/dashboard/headerIcon'
 
-function Finish ({ accessKey }) {
+export default function () {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [errors, setErrors] = useState({})
   const { mutate } = useSWRConfig()
   const router = useRouter()
 
-  async function login () {
-    // log in
-    const res = await fetch('/v1/login', {
-      method: 'POST',
-      body: JSON.stringify({ accessKey })
-    })
-    const { name } = await res.json()
-    mutate('/v1/introspect', { optimisticData: { name } })
-    mutate('/v1/setup', { optimisticData: { required: false } })
-    router.replace('/')
-  }
+  async function onSubmit (e) {
+    e.preventDefault()
 
-  return (
-    <>
-      <h2 className='text-center text-gray-400 mt-12'>This is your admin key. Please back it up in a safe place.</h2>
-      <h3 className='font-mono text-2xl text-white mt-4 mb-12'>{accessKey}</h3>
-      <Link href='/'>
-        <a className='self-stretch'>
-          <button
-            className='w-full my-3 bg-zinc-500/20 hover:bg-gray-500/25 py-2.5 rounded-md text-white text-md hover:cursor-pointer'
-            onClick={() => login()}
-          >
-            Get Started
-          </button>
-        </a>
-      </Link>
-    </>
-  )
-}
-
-export default function () {
-  const [accessKey, setAccessKey] = useState('')
-
-  async function signup () {
     try {
-      const { data: { accessKey } } = await axios.post('/v1/setup')
+      // signup
+      let res = await fetch('/v1/signup', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: email,
+          password
+        })
+      })
 
-      setAccessKey(accessKey)
+      if (!res.ok) {
+        throw await res.json()
+      }
+
+      // login
+      console.log(email, password)
+      res = await fetch('/v1/login', {
+        method: 'POST',
+        body: JSON.stringify({
+          passwordCredentials: {
+            email,
+            password
+          }
+        })
+      })
+
+      if (!res.ok) {
+        throw await res.json()
+      }
+
+      mutate('/v1/introspect', { optimisticData: { name: email } })
+      mutate('/v1/signup', { optimisticData: { enabled: false } })
+      router.replace('/')
     } catch (e) {
       console.log(e)
     }
+
+    return false
   }
 
   return (
     <div className='flex flex-col justify-center items-center h-full w-full max-w-md mx-auto mb-48'>
-      <img className='text-white w-10 h-10' src='/infra-icon.svg' />
-      <h1 className='my-5 text-3xl font-light tracking-tight'>Welcome to Infra</h1>
-      {accessKey ? <Finish accessKey={accessKey} /> : <Welcome signup={signup} />}
+      <HeaderIcon width={12} iconPath='/infra-color.svg' />
+      <h1 className='mt-5 text-md font-bold'>Welcome to Infra</h1>
+      <h2 className='text-sm text-center max-w-xs my-2 text-gray-400'>You've successfully installed Infra.<br />Set up your admin user to get started</h2>
+      <form onSubmit={onSubmit} className='flex flex-col w-full max-w-sm my-8'>
+        <input required autoFocus type="email" placeholder='Email' onChange={e => setEmail(e.target.value)} className={`bg-purple-100/5 border border-zinc-800 text-sm px-5 mt-2 py-3 rounded-full focus:outline-none focus:ring focus:ring-cyan-600 ${errors.name ? 'border-pink-500' : ''}`} />
+        {errors.name && <p className='px-4 mb-1 text-sm text-pink-500'>{errors.name}</p>}
+        <input required type='password' placeholder='Password' onChange={e => setPassword(e.target.value)} className={`bg-purple-100/5 border border-zinc-800 text-sm px-5 mt-2 py-3 rounded-full focus:outline-none focus:ring focus:ring-cyan-600 ${errors.name ? 'border-pink-500' : ''}`} />
+        {errors.name && <p className='px-4 mb-1 text-sm text-pink-500'>{errors.name}</p>}
+        <button className='bg-gradient-to-tr mt-5 from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 my-2'>
+          <div className='bg-black rounded-full text-sm px-4 py-3'>
+            Get Started
+          </div>
+        </button>
+      </form>
     </div>
   )
 }
