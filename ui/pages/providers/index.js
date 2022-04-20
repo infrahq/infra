@@ -1,4 +1,4 @@
-import useSWR from 'swr'
+import useSWR, { useSWRConfig } from 'swr'
 import { useState } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
@@ -11,45 +11,70 @@ import Dashboard from '../../components/dashboard'
 import Table from '../../components/table'
 import Loader from '../../components/loader'
 
-const columns = [
-  {
-    Header: 'Identity Provider',
-    accessor: i => i,
-    Cell: ({ value }) => (
-      <div className='flex items-center'>
-        <div className='w-10 h-10 mr-4 bg-purple-100/10 font-bold rounded-lg flex items-center justify-center'><img className='h-2.5' src='/okta.svg' /></div>
-        <div className='flex flex-col leading-tight'>
-          <div className='font-medium'>{value.name}</div>
-          <div className='text-gray-400 text-xs'>{value.url}</div>
-        </div>
+function kind (url) {
+  if (url?.endsWith('.okta.com')) {
+    return 'okta'
+  }
+
+  return ''
+}
+
+const columns = [{
+  Header: 'Identity Provider',
+  accessor: p => p,
+  Cell: ({ value: provider }) => (
+    <div className='flex items-center'>
+      <div className='w-10 h-10 mr-4 bg-purple-100/10 font-bold rounded-lg flex items-center justify-center'>
+        {kind(provider.url)
+          ? (
+            <img className='h-2.5' src={`/${kind(provider.url)}.svg`} />
+            )
+          : (
+              provider.name[0].toUpperCase()
+            )}
+      </div>
+      <div className='flex flex-col leading-tight'>
+        <div className='font-medium'>{provider.name}</div>
+        <div className='text-gray-400 text-xs'>{provider.url}</div>
+      </div>
+    </div>
+  )
+}, {
+  Header: 'Added',
+  accessor: p => {
+    return dayjs(p.created).fromNow()
+  }
+}, {
+  id: 'delete',
+  accessor: p => p,
+  Cell: ({ value: provider, rows }) => {
+    const { mutate } = useSWRConfig()
+    const [open, setOpen] = useState(false)
+    console.log(rows)
+    return (
+      <div className='opacity-0 group-hover:opacity-100 flex justify-end text-right'>
+        <button onClick={() => setOpen(true)} className='p-2 -mr-2 cursor-pointer'>
+          <XIcon className='w-5 h-5 text-gray-500' />
+        </button>
+        <DeleteModal
+          open={open}
+          setOpen={setOpen}
+          onSubmit={() => {
+            mutate('/v1/providers', async providers => {
+              await fetch(`/v1/providers/${provider.id}`, {
+                method: 'DELETE'
+              })
+
+              return providers.filter(p => p?.id !== provider.id)
+            }, { optimisticData: rows.map(r => r.original).filter(p => p?.id !== provider.id) })
+          }}
+          title='Delete Identity Provider'
+          message={(<>Are you sure you want to delete <span className='font-bold text-white'>{provider.name}</span>? This action cannot be undone.</>)}
+        />
       </div>
     )
-  }, {
-    Header: 'Added',
-    accessor: i => {
-      return dayjs(i.created).fromNow()
-    }
-  }, {
-    id: 'delete',
-    accessor: i => i,
-    Cell: ({ value: provider }) => {
-      const [open, setOpen] = useState(false)
-      return (
-        <div className='opacity-0 group-hover:opacity-100 flex justify-end text-right'>
-          <button onClick={() => setOpen(true)} className='p-2 -mr-2 cursor-pointer'>
-            <XIcon className='w-5 h-5 text-gray-500' />
-          </button>
-          <DeleteModal
-            open={open}
-            setOpen={setOpen}
-            title='Remove Identity Provider'
-            message={(<>Are you sure you want to remove <span className='font-bold'>{provider.name}</span>? This action cannot be undone.</>)}
-          />
-        </div>
-      )
-    }
   }
-]
+}]
 
 export default function () {
   const { data, error } = useSWR('/v1/providers')
