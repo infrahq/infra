@@ -49,13 +49,6 @@ $ infra logout --all --clear`,
 				}
 				server = args[0]
 			}
-			logging.S.Debugf("flags set:")
-			if clear {
-				logging.S.Debug(" --clear")
-			}
-			if all {
-				logging.S.Debug(" --all")
-			}
 			return logout(clear, server, all)
 		},
 	}
