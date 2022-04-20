@@ -8,15 +8,17 @@ import GrantSelectionDropdown from './grantSelectionDropdown'
 const GrantNewContainer = styled.div`
   display: grid;
   align-items: center;
-  grid-template-columns: 85% auto;
-  gap: 5px;
+  grid-template-columns: 80% auto;
+  gap: .5rem;
   box-sizing: border-box;
-  padding-bottom: 2rem;
+  padding: 0 2rem 1.75rem 0;
 `
 
 const GrantList = styled.section`
   max-height: 20rem;
   overflow: auto;
+  width: 95%;
+  padding: 0 1.25rem;
 `
 
 const GrantListItem = styled.div`
@@ -118,9 +120,11 @@ export default ({ id }) => {
             onClick={() => handleShareGrant()}
             disabled={grantNewEmail.length === 0}
             type='button'
-            className='mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-black text-white font-medium hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm'
+            className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 p-0.5 my-2 mx-auto'
           >
-            Share
+            <div className='bg-black flex items-center text-sm px-6 py-2'>
+              Share
+            </div>
           </button>
         </GrantNewContainer>
       </div>

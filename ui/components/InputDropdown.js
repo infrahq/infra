@@ -16,11 +16,11 @@ export default function InputDropdown ({
         <label htmlFor='price' className='block text-sm font-medium text-white'>
           {label}
         </label>}
-      <div className='relative rounded shadow-sm w-3/4'>
+      <div className='relative rounded shadow-sm'>
         <input
           type={type}
           value={value}
-          className='block w-full px-4 py-2 sm:text-sm border border-gray-500 bg-transparent required:border-red-500 focus:outline-none'
+          className='block w-full px-4 py-2 sm:text-sm border border-gray-500 bg-transparent focus:outline-none focus:ring focus:ring-cyan-600'
           placeholder={placeholder}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
@@ -34,7 +34,7 @@ export default function InputDropdown ({
               id={optionType}
               name={optionType}
               onChange={handleSelectOption}
-              className='focus:outline-none h-full py-0 pl-2 pr-1 border-transparent bg-transparent text-gray-500 sm:text-sm rounded-md'
+              className='h-full py-0 pl-2 border-transparent bg-transparent text-gray-500 text-sm focus:outline-none'
             >
               {options.map((option) => (
                 <option key={option} value={option}>{option}</option>
