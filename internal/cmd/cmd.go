@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/goware/urlx"
@@ -19,6 +20,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/connector"
 	"github.com/infrahq/infra/internal/decode"
 	"github.com/infrahq/infra/internal/logging"
@@ -168,6 +170,10 @@ func apiClient(host string, accessKey string, skipTLSVerify bool) (*api.Client, 
 
 	u.Scheme = "https"
 
+	headers := http.Header{}
+	ua := fmt.Sprintf("Infra CLI/%v (%v/%v)", internal.Version, runtime.GOOS, runtime.GOARCH)
+	headers.Add("User-Agent", ua)
+
 	return &api.Client{
 		URL:       fmt.Sprintf("%s://%s", u.Scheme, u.Host),
 		AccessKey: accessKey,
@@ -179,6 +185,7 @@ func apiClient(host string, accessKey string, skipTLSVerify bool) (*api.Client, 
 				},
 			},
 		},
+		Headers: headers,
 	}, nil
 }
 
