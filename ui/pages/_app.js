@@ -31,27 +31,25 @@ dayjs.updateLocale('en', {
 
 const fetcher = async (resource, init) => {
   const res = await fetch(resource, init)
+  const data = await res.json()
 
-  // If the status code is not in the range 200-299,
-  // we still try to parse and throw it.
   if (!res.ok) {
-    const error = new Error('An error occurred while fetching the data.')
-    // Attach extra info to the error object.
-    error.info = await res.json()
-    error.status = res.status
-    throw error
+    throw data
   }
 
-  return res.json()
+  return data
 }
 
 function App ({ Component, pageProps }) {
   const { data: auth, error: authError } = useSWRImmutable('/v1/introspect', fetcher)
   const { data: setup, error: setupError } = useSWRImmutable('/v1/setup', fetcher)
+  const { data: grants, error: grantsError } = useSWRImmutable(() => `/v1/identities/${auth.id}/grants?resource=infra`, fetcher)
   const router = useRouter()
 
   const authLoading = !auth && !authError
   const setupLoading = !setup && !setupError
+
+  console.log(grants, grantsError)
 
   if (authLoading || setupLoading) {
     return null
