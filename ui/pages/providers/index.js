@@ -6,11 +6,12 @@ import { useTable } from 'react-table'
 import { XIcon } from '@heroicons/react/outline'
 import dayjs from 'dayjs'
 
-import { kind } from '../../lib/providers'
-
 import DeleteModal from '../../components/modals/delete'
 import Dashboard from '../../components/dashboard/dashboard'
 import Table from '../../components/table'
+import Loader from '../../components/loader'
+import EmptyTable from '../../components/emptyTable'
+import HeaderIcon from '../../components/dashboard/headerIcon'
 import { kind } from '../../lib/providers'
 
 const columns = [{
@@ -84,7 +85,7 @@ export default function () {
       {loading
         ? ( <Loader /> )
         : (
-          <div className='flex flex-row mt-4 lg:mt-6'>
+          <div className='flex flex-row mt-4 lg:mt-20'>
             {data?.length > 0 && (
               <HeaderIcon iconPath='/providers-color.svg' />
             )}
