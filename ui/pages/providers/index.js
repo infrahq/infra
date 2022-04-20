@@ -6,8 +6,10 @@ import { useTable } from 'react-table'
 import { XIcon } from '@heroicons/react/outline'
 import dayjs from 'dayjs'
 
+import { kind } from '../../lib/providers'
+
 import DeleteModal from '../../components/modals/delete'
-import Dashboard from '../../components/dashboard'
+import Dashboard from '../../components/dashboard/dashboard'
 import Table from '../../components/table'
 import { kind } from '../../lib/providers'
 
@@ -84,11 +86,7 @@ export default function () {
         : (
           <div className='flex flex-row mt-4 lg:mt-6'>
             {data?.length > 0 && (
-              <div className='hidden lg:flex self-start mt-2 mr-8 bg-gradient-to-br from-violet-400/30 to-pink-200/30 items-center justify-center rounded-full'>
-                <div className='flex bg-black items-center justify-center rounded-full w-16 h-16 m-0.5'>
-                  <img className='w-8 h-8' src='/providers-color.svg' />
-                </div>
-              </div>
+              <HeaderIcon iconPath='/providers-color.svg' />
             )}
             <div className='flex-1 flex flex-col space-y-4'>
               {data?.length > 0 && (
@@ -107,22 +105,13 @@ export default function () {
                 ? <div className='my-20 text-center font-light text-gray-400 text-2xl'>{error?.info?.message}</div>
                 : data.length === 0
                   ? (
-                    <div className='flex flex-col text-center my-24'>
-                      <div className='flex bg-gradient-to-br from-violet-400/30 to-pink-200/30 items-center justify-center rounded-full mx-auto my-4'>
-                        <div className='flex bg-black items-center justify-center rounded-full w-16 h-16 m-0.5'>
-                          <img className='w-8 h-8' src='/providers-color.svg' />
-                        </div>
-                      </div>
-                      <h1 className='text-white text-lg font-bold mb-2'>There are no identity providers</h1>
-                      <h2 className='text-gray-300 mb-4 text-sm max-w-xs mx-auto'>Identity providers allow you to connect your existing users &amp; groups to Infra.</h2>
-                      <Link href='/providers/add'>
-                        <button className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 my-2 mx-auto'>
-                          <div className='bg-black rounded-full flex items-center tracking-tight text-sm px-6 py-3 '>
-                            Add Identity Provider
-                          </div>
-                        </button>
-                      </Link>
-                    </div>
+                    <EmptyTable
+                      title='There are no identity providers'
+                      subtitle={<>Identity providers allow you to connect your existing users &amp; groups to Infra.</>}
+                      iconPath='/providers-color.svg'
+                      buttonHref='/providers/add'
+                      buttonText='Add Identity Provider'
+                    />
                     )
                   : <Table {...table} />}
             </div>

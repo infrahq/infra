@@ -2,8 +2,7 @@ import useSWR, { useSWRConfig } from 'swr'
 import { useState } from 'react'
 import styled from 'styled-components'
 
-import InputDropdown from './inputDropdown'
-import GrantSelectionDropdown from './grantSelectionDropdown'
+import InputDropdown from '../../components/inputDropdown'
 
 const GrantNewContainer = styled.div`
   display: grid;
@@ -89,9 +88,13 @@ export default ({ id }) => {
           grantPrivilege(data[0].id)
         }
       })
+      .catch((error) => {
+        console.log(error)
+      })
   }
 
   const handleUpdateGrant = (privilege, grantId, userId) => {
+    console.log({privilege, grantId, userId})
     fetch(`/v1/grants/${grantId}`, { method: 'DELETE' })
       .then(() => {
         if (privilege === 'remove') {
@@ -134,12 +137,17 @@ export default ({ id }) => {
             <GrantListItem key={item.id}>
               <Grant id={item.subject} />
               <div>
-                <GrantSelectionDropdown
-                  optionType='role'
-                  options={options}
-                  selectedValue={item.privilege}
-                  handleChangeSelection={e => handleUpdateGrant(e.target.value, item.id, item.subject)}
-                />
+                <select
+                  id='role'
+                  name='role'
+                  className='w-full pl-3 pr-1 py-2 border-gray-300 focus:outline-none sm:text-sm bg-transparent'
+                  defaultValue={item.privilege}
+                  onChange={e => handleUpdateGrant(e.target.value, item.id, item.subject)}
+                >
+                  {options.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
               </div>
             </GrantListItem>
           ))}
