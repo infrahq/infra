@@ -40,7 +40,8 @@ jobs:
           go-version: '1.18'
       - name: Check generated docs are updated
         run: |
-          go run ./internal/docgen
+          # fake a terminal to get the right defaults for non-interactive
+          script -e -q -c "go run ./internal/docgen"
           go run ./internal/openapigen docs/api/openapi3.json
           git diff --exit-code
       - name: Check go mod is tidy

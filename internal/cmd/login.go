@@ -17,7 +17,6 @@ import (
 	"github.com/goware/urlx"
 	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
-	"golang.org/x/term"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/generate"
@@ -120,7 +119,7 @@ func login(options loginCmdOptions) error {
 			return err
 		}
 	default:
-		if options.isNonInteractiveMode() {
+		if options.NonInteractive {
 			return fmt.Errorf("Non-interactive login requires key, instead run: 'infra login SERVER --non-interactive --key KEY")
 		}
 		loginMethod, provider, err := promptLoginOptions(client)
@@ -223,10 +222,6 @@ func updateInfraConfig(client *api.Client, loginReq *api.LoginRequest, loginRes 
 	}
 
 	return nil
-}
-
-func (o loginCmdOptions) isNonInteractiveMode() bool {
-	return o.NonInteractive || os.Stdin == nil || !term.IsTerminal(int(os.Stdin.Fd()))
 }
 
 func oidcflow(host string, clientId string) (string, error) {
@@ -342,7 +337,7 @@ func newAPIClient(options loginCmdOptions) (*api.Client, error) {
 				return nil, err
 			}
 
-			if options.isNonInteractiveMode() {
+			if options.NonInteractive {
 				fmt.Fprintf(os.Stderr, "%s\n", ErrTLSNotVerified.Error())
 				return nil, fmt.Errorf("Non-interactive login does not allow insecure connection by default,\n       unless overridden with  '--skip-tls-verify'.")
 			}
@@ -497,7 +492,7 @@ func promptSkipTLSVerify() error {
 
 // Returns the host address of the Infra server that user would like to log into
 func promptServer(options loginCmdOptions) (string, error) {
-	if options.isNonInteractiveMode() {
+	if options.NonInteractive {
 		return "", fmt.Errorf("Non-interactive login requires the [SERVER] argument")
 	}
 

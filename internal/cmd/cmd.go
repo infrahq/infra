@@ -18,6 +18,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"golang.org/x/term"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
@@ -392,7 +393,8 @@ func rootPreRun(flags *pflag.FlagSet) error {
 }
 
 func addNonInteractiveFlag(flags *pflag.FlagSet, bind *bool) {
-	flags.BoolVar(bind, "non-interactive", false, "Disable all prompts for input")
+	isNonInteractiveMode := os.Stdin == nil || !term.IsTerminal(int(os.Stdin.Fd()))
+	flags.BoolVar(bind, "non-interactive", isNonInteractiveMode, "Disable all prompts for input")
 }
 
 func usageTemplate() string {
