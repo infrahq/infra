@@ -16,11 +16,11 @@ export default function InputDropdown ({
         <label htmlFor='price' className='block text-sm font-medium text-white'>
           {label}
         </label>}
-      <div className='relative rounded-md shadow-sm'>
+      <div className='relative rounded shadow-sm w-3/4'>
         <input
           type={type}
           value={value}
-          className='block w-full px-4 py-2 sm:text-sm border border-gray-500 rounded bg-transparent required:border-red-500 focus:outline-none'
+          className='block w-full px-4 py-2 sm:text-sm border border-gray-500 bg-transparent required:border-red-500 focus:outline-none'
           placeholder={placeholder}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}

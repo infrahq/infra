@@ -9,6 +9,7 @@ import dayjs from 'dayjs'
 import DeleteModal from '../../components/modals/delete'
 import Dashboard from '../../components/dashboard'
 import Table from '../../components/table'
+import Loader from '../../components/loader'
 
 const columns = [
   {
@@ -62,11 +63,7 @@ export default function () {
         <title>Identity Providers - Infra</title>
       </Head>
       {loading
-        ? (
-          <div className='h-full -mt-20 flex items-center justify-center'>
-            <img className='w-20 h-20 animate-spin-fast' src='/spinner.svg' />
-          </div>
-          )
+        ? ( <Loader /> )
         : (
           <div className='flex flex-row mt-10 lg:mt-20'>
             {data?.length > 0 && (
