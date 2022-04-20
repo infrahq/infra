@@ -1,11 +1,10 @@
-export default function (props) {
-  const {
-    getTableProps,
-    getTableBodyProps,
-    headerGroups,
-    rows,
-    prepareRow
-  } = props
+import { useTable } from 'react-table'
+
+export default function ({ columns, data, getRowProps = () => ({}) }) {
+  const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } = useTable({
+    columns,
+    data
+  });
 
   return (
     <table className='w-full table-auto' {...getTableProps()}>
@@ -24,7 +23,7 @@ export default function (props) {
         {rows.map(row => {
           prepareRow(row)
           return (
-            <tr className='text-sm group' key={row.id} {...row.getRowProps()}>
+            <tr className='text-sm group' key={row.id} {...row.getRowProps(getRowProps(row))}>
               {row.cells.map(cell => {
                 return (
                   <td key={cell.id} className='py-1 group-first:pt-3' {...cell.getCellProps()}>
