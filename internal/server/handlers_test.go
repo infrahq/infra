@@ -151,6 +151,46 @@ var cmpAPIIdentityShallow = gocmp.Comparer(func(x, y api.Identity) bool {
 	return x.Name == y.Name && x.Kind == y.Kind
 })
 
+func TestListKeys(t *testing.T) {
+	db := setupDB(t)
+	s := &Server{
+		db: db,
+	}
+	handlers := &API{
+		server: s,
+	}
+
+	user := &models.Identity{Model: models.Model{ID: uid.New()}, Name: "foo@example.com", Kind: "user"}
+	err := data.CreateIdentity(db, user)
+	assert.NilError(t, err)
+	provider := data.InfraProvider(db)
+	err = data.CreateGrant(db, &models.Grant{
+		Subject:   user.PolyID(),
+		Privilege: "admin",
+		Resource:  "infra",
+	})
+	assert.NilError(t, err)
+
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Set("db", db)
+	c.Set("identity", user)
+
+	_, err = data.CreateAccessKey(db, &models.AccessKey{
+		Name:       "foo",
+		IssuedFor:  user.ID,
+		ProviderID: provider.ID,
+		ExpiresAt:  time.Now().Add(5 * time.Minute),
+	})
+	assert.NilError(t, err)
+
+	keys, err := handlers.ListAccessKeys(c, &api.ListAccessKeysRequest{})
+	assert.NilError(t, err)
+
+	assert.Assert(t, len(keys) > 0)
+
+	assert.Equal(t, keys[0].IssuedForName, "foo@example.com")
+}
+
 func TestListProviders(t *testing.T) {
 	s := setupServer(t, withDefaultAdminAccessKey)
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
