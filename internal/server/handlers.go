@@ -401,11 +401,18 @@ func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) ([]ap
 	results := make([]api.AccessKey, len(accessKeys))
 
 	for i, a := range accessKeys {
+		// TODO: this would be better as a JOIN query
+		identity, err := access.GetIdentity(c, a.IssuedFor)
+		if err != nil {
+			return nil, err
+		}
+
 		results[i] = api.AccessKey{
 			ID:                a.ID,
 			Name:              a.Name,
 			Created:           api.Time(a.CreatedAt),
 			IssuedFor:         a.IssuedFor,
+			IssuedForName:     identity.Name,
 			ProviderID:        a.ProviderID,
 			Expires:           api.Time(a.ExpiresAt),
 			ExtensionDeadline: api.Time(a.ExtensionDeadline),

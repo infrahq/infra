@@ -171,7 +171,7 @@ func newKeysListCmd() *cobra.Command {
 			for _, k := range keys {
 				rows = append(rows, row{
 					Name:              k.Name,
-					IssuedFor:         k.IssuedFor.String(),
+					IssuedFor:         k.IssuedForName,
 					Created:           k.Created.Relative("never"),
 					Expires:           k.Expires.Relative("never"),
 					ExtensionDeadline: k.ExtensionDeadline.Relative("never"),
