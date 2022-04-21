@@ -255,7 +255,7 @@ func TestLogout(t *testing.T) {
 	t.Run("error", func(t *testing.T) {
 		testFields := setupError(t)
 		err := Run(context.Background(), "logout", testFields.serverURLs[0])
-		assert.Error(t, err, fmt.Sprintf(`Failed to logout of server %s due to an internal error: POST "/v1/logout" responded 500: Internal Server Error.`, testFields.serverURLs[0]))
+		assert.ErrorContains(t, err, "Failed to logout of server "+testFields.serverURLs[0])
 
 		assert.Equal(t, int32(1), atomic.LoadInt32(testFields.count), "calls to API")
 
