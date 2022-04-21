@@ -517,7 +517,7 @@ func promptServer() (string, error) {
 		return promptNewServer()
 	}
 
-	return promptExistingServers(servers)
+	return promptServerList(servers)
 }
 
 func promptNewServer() (string, error) {
@@ -530,7 +530,7 @@ func promptNewServer() (string, error) {
 	return server, nil
 }
 
-func promptExistingServers(servers []ClientHostConfig) (string, error) {
+func promptServerList(servers []ClientHostConfig) (string, error) {
 	var promptOptions []string
 	for _, server := range servers {
 		promptOptions = append(promptOptions, server.Host)
