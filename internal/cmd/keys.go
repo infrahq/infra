@@ -160,14 +160,13 @@ func newKeysListCmd() *cobra.Command {
 				}
 			}
 
-			machines, err := client.ListIdentities(api.ListIdentitiesRequest{})
-			if err != nil {
-				return err
-			}
-
 			machineNames := make(map[uid.ID]string)
-			for _, m := range machines {
-				machineNames[m.ID] = m.Name
+			for _, key := range keys {
+				machineRes, err := client.GetIdentity(key.IssuedFor)
+				if err != nil {
+					return err
+				}
+				machineNames[key.IssuedFor] = machineRes.Name
 			}
 
 			type row struct {
