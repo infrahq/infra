@@ -45,7 +45,6 @@ const columns = [{
   Cell: ({ value: provider, rows }) => {
     const { mutate } = useSWRConfig()
     const [open, setOpen] = useState(false)
-    console.log(rows)
     return (
       <div className='opacity-0 group-hover:opacity-100 flex justify-end text-right'>
         <button onClick={() => setOpen(true)} className='p-2 -mr-2 cursor-pointer'>
@@ -62,6 +61,8 @@ const columns = [{
 
               return providers.filter(p => p?.id !== provider.id)
             }, { optimisticData: rows.map(r => r.original).filter(p => p?.id !== provider.id) })
+
+            setOpen(false)
           }}
           title='Delete Identity Provider'
           message={(<>Are you sure you want to delete <span className='font-bold text-white'>{provider.name}</span>? This action cannot be undone.</>)}
