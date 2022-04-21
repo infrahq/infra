@@ -58,7 +58,7 @@ func (a *API) sendAPIError(c *gin.Context, err error) {
 		resp.Code = http.StatusBadRequest
 		resp.Message = err.Error()
 	case errors.Is(err, context.DeadlineExceeded):
-		resp.Code = http.StatusBadGateway // not ideal, but StatusRequestTimeout isn't intended for this.
+		resp.Code = http.StatusGatewayTimeout // not ideal, but StatusRequestTimeout isn't intended for this.
 		resp.Message = "request timed out"
 	default:
 		log = logging.L.WithOptions(zap.AddCallerSkip(1)).Error
