@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/infrahq/secrets"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
@@ -24,6 +25,48 @@ func Test202204111503(t *testing.T) {
 	assert.NilError(t, err)
 
 	assert.Assert(t, len(ids) == 1)
+}
+
+func Test202204211705(t *testing.T) {
+	db := setupWithNoMigrations(t, func(db *gorm.DB) {
+		loadSQL(t, db, "202204211705")
+	})
+
+	key, err := tmpSymmetricKey()
+	assert.NilError(t, err)
+
+	models.SymmetricKey = key
+
+	err = migrate(db)
+	assert.NilError(t, err)
+
+	// check it still works
+	settings, err := GetSettings(db)
+	assert.NilError(t, err)
+
+	assert.Assert(t, settings != nil)
+	assert.Assert(t, settings.PrivateJWK[0] == '{') // unencrypted type is json string.
+
+	// check the storage data
+	type Settings struct {
+		models.Model
+		PrivateJWK []byte
+	}
+	rawSettings := Settings{}
+	err = db.Model(rawSettings).Where("id = ?", settings.ID).First(&rawSettings).Error
+	assert.NilError(t, err)
+
+	assert.Assert(t, rawSettings.PrivateJWK[0] != '{')
+}
+
+func tmpSymmetricKey() (*secrets.SymmetricKey, error) {
+	sp := secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{
+		Path: os.TempDir(),
+	})
+
+	rootKey := "db_at_rest"
+	symmetricKeyProvider := secrets.NewNativeKeyProvider(sp)
+	return symmetricKeyProvider.GenerateDataKey(rootKey)
 }
 
 // loadSQL loads a sql file from disk by a file name matching the migration it's meant to test.
@@ -62,7 +105,7 @@ func setupWithNoMigrations(t *testing.T, f func(db *gorm.DB)) *gorm.DB {
 	driver, err := NewSQLiteDriver("file::memory:")
 	assert.NilError(t, err)
 
-	db, err := newRawDB(driver)
+	db, err := NewRawDB(driver)
 	assert.NilError(t, err)
 
 	f(db)

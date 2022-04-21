@@ -58,3 +58,49 @@ func (s *EncryptedAtRest) Scan(v interface{}) error {
 
 	return nil
 }
+
+// EncryptedAtRestBytes defines a field that knows how to encrypt and decrypt itself with Gorm
+// it depends on the SymmetricKey being set for this package.
+type EncryptedAtRestBytes []byte
+
+func (b EncryptedAtRestBytes) Value() (driver.Value, error) {
+	if SkipSymmetricKey {
+		return []byte(b), nil
+	}
+
+	if SymmetricKey == nil {
+		return nil, fmt.Errorf("models.SymmetricKey is not set")
+	}
+
+	be, err := secrets.Seal(SymmetricKey, b)
+	if err != nil {
+		return nil, fmt.Errorf("sealing secret field: %w", err)
+	}
+
+	return be, err
+}
+
+func (b *EncryptedAtRestBytes) Scan(v interface{}) error {
+	vBytes, ok := v.([]byte)
+	if !ok {
+		return fmt.Errorf("unsupported type: %T", v)
+	}
+
+	if SkipSymmetricKey {
+		*b = EncryptedAtRestBytes(vBytes)
+		return nil
+	}
+
+	if SymmetricKey == nil {
+		return fmt.Errorf("models.SymmetricKey is not set")
+	}
+
+	plain, err := secrets.Unseal(SymmetricKey, vBytes)
+	if err != nil {
+		return fmt.Errorf("unsealing secret field: %w", err)
+	}
+
+	*b = EncryptedAtRestBytes(plain)
+
+	return nil
+}
