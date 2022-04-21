@@ -20,7 +20,7 @@ export default function () {
       let res = await fetch('/v1/signup', {
         method: 'POST',
         body: JSON.stringify({
-          name: email,
+          email,
           password
         })
       })
