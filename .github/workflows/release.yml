@@ -85,7 +85,7 @@ jobs:
     if: needs.release-please.outputs.release_created
     steps:
       - uses: actions/checkout@v3
-      - uses: readmeio/rdme@7.1.1
+      - uses: readmeio/rdme@7.2.0
         with:
           rdme: openapi ./docs/api/openapi3.json --key=${{ secrets.README_API_KEY }} --id=624662df6803f800981a5464
 
