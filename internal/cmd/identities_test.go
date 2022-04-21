@@ -199,21 +199,7 @@ func TestIdentitiesCmd(t *testing.T) {
 		srv := httptest.NewTLSServer(http.HandlerFunc(handler))
 		t.Cleanup(srv.Close)
 
-		cfg := ClientConfig{
-			Version: "0.3",
-			Hosts: []ClientHostConfig{
-				{
-					PolymorphicID: "i:1234",
-					Name:          "self@example.com",
-					ProviderID:    providerID,
-					Host:          srv.Listener.Addr().String(),
-					Current:       true,
-					AccessKey:     "the-access-key",
-					SkipTLSVerify: true,
-					Expires:       api.Time(time.Now().Add(time.Minute)),
-				},
-			},
-		}
+		cfg := newTestClientConfig(srv, api.Identity{})
 		err := writeConfig(&cfg)
 		assert.NilError(t, err)
 
