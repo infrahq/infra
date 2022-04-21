@@ -22,10 +22,10 @@ export default ({ header, children, handleCloseModal, modalOpen, iconPath }) => 
                   </div>
                 </div>
                 <div className='flex-1 flex flex-col space-y-4'>
-                  <Dialog.Title as='h3' className='text-lg leading-6 font-bold text-white pt-6 pl-3'>
+                  <Dialog.Title as='h1' className='text-2xl leading-6 font-bold text-white pt-6 pl-3'>
                     {header}
                   </Dialog.Title>
-                  <div className='pb-6 pr-6 sm:pb-12 sm:pr-12'>
+                  <div className='pb-3 pr-3 sm:pb-6 sm:pr-6'>
                     {children}
                   </div>
                 </div>

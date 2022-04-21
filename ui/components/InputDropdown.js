@@ -34,7 +34,7 @@ export default function InputDropdown ({
               id={optionType}
               name={optionType}
               onChange={handleSelectOption}
-              className='h-full py-0 pl-2 border-transparent bg-transparent text-gray-500 text-sm focus:outline-none'
+              className='h-full py-0 pl-2 border-transparent bg-transparent text-white text-sm focus:outline-none'
             >
               {options.map((option) => (
                 <option key={option} value={option}>{option}</option>
