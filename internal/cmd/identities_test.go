@@ -241,7 +241,7 @@ func TestIdentitiesCmd(t *testing.T) {
 	t.Run("edit user identity no password flag", func(t *testing.T) {
 		setup(t)
 		err := Run(context.Background(), "id", "edit", "new-user@example.com")
-		assert.ErrorContains(t, err, "Please specify a field to update. For options, run 'infra identities edit --help'")
+		assert.ErrorContains(t, err, "Specify a field to update")
 	})
 
 	t.Run("removes only the specified identity", func(t *testing.T) {
