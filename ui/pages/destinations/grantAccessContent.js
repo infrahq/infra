@@ -7,10 +7,10 @@ import InputDropdown from '../../components/inputDropdown'
 const GrantNewContainer = styled.div`
   display: grid;
   align-items: center;
-  grid-template-columns: 80% auto;
+  grid-template-columns: 70% auto;
   gap: .5rem;
   box-sizing: border-box;
-  padding: 0 2rem 1.75rem 0;
+  padding: 0 1rem 1.75rem 0;
 `
 
 const GrantList = styled.section`
@@ -107,30 +107,28 @@ export default ({ id }) => {
 
   return (
     <>
-      <div>
-        <GrantNewContainer>
-          <InputDropdown
-            type='email'
-            value={grantNewEmail}
-            placeholder='email'
-            optionType='role'
-            options={options.filter((item) => item !== 'remove')}
-            handleInputChange={e => setGrantNewEmail(e.target.value)}
-            handleSelectOption={e => setRole(e.target.value)}
-            handleKeyDown={(e) => handleKeyDownEvent(e.key)}
-          />
-          <button
-            onClick={() => handleShareGrant()}
-            disabled={grantNewEmail.length === 0}
-            type='button'
-            className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 p-0.5 my-2 mx-auto'
-          >
-            <div className='bg-black flex items-center text-sm px-6 py-2'>
-              Share
-            </div>
-          </button>
-        </GrantNewContainer>
-      </div>
+      <GrantNewContainer>
+        <InputDropdown
+          type='email'
+          value={grantNewEmail}
+          placeholder='email'
+          optionType='role'
+          options={options.filter((item) => item !== 'remove')}
+          handleInputChange={e => setGrantNewEmail(e.target.value)}
+          handleSelectOption={e => setRole(e.target.value)}
+          handleKeyDown={(e) => handleKeyDownEvent(e.key)}
+        />
+        <button
+          onClick={() => handleShareGrant()}
+          disabled={grantNewEmail.length === 0}
+          type='button'
+          className='bg-gradient-to-tr from-indigo-300 to-pink-100 rounded-full hover:from-indigo-200 hover:to-pink-50 p-0.5 my-2 mx-auto'
+        >
+          <div className='bg-black flex items-center text-sm rounded-full px-12 py-3'>
+            Share
+          </div>
+        </button>
+      </GrantNewContainer>
       {list && list.length > 0 &&
         <GrantList>
           {list.map((item) => (
