@@ -191,7 +191,6 @@ func TestLogout(t *testing.T) {
 
 		assert.Equal(t, int32(1), int32(len(updatedCfg.Hosts)))
 		assert.DeepEqual(t, testFields.config.Hosts[1], updatedCfg.Hosts[0])
-		// assert.DeepEqual(t, &expected, updatedCfg)
 
 		updatedKubeCfg, err := clientConfig().RawConfig()
 		assert.NilError(t, err)
