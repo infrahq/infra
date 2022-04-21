@@ -125,20 +125,17 @@ func newKeysRemoveCmd() *cobra.Command {
 }
 
 type keyListOptions struct {
-	MachineName string `mapstructure:"machine"`
+	MachineName string
 }
 
 func newKeysListCmd() *cobra.Command {
+	var options keyListOptions
+
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List access keys",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var options keyListOptions
-			if err := parseOptions(cmd, &options, "INFRA_KEYS"); err != nil {
-				return err
-			}
-
 			client, err := defaultAPIClient()
 			if err != nil {
 				return err
@@ -195,7 +192,7 @@ func newKeysListCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringP("machine", "m", "", "The name of a machine to list access keys for")
+	cmd.Flags().StringVarP(&options.MachineName, "machine", "m", "", "The name of a machine to list access keys for")
 
 	return cmd
 }
