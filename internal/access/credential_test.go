@@ -62,7 +62,7 @@ func TestLoginWithUserCredential(t *testing.T) {
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
 
-				hash, err := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.MinCost)
+				hash, err := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
 				assert.NilError(t, err)
 
 				userCredential := &models.Credential{
@@ -89,7 +89,7 @@ func TestLoginWithUserCredential(t *testing.T) {
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
 
-				hash, err := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.MinCost)
+				hash, err := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
 				assert.NilError(t, err)
 
 				userCredential := &models.Credential{
@@ -119,7 +119,7 @@ func TestLoginWithUserCredential(t *testing.T) {
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
 
-				hash, err := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.MinCost)
+				hash, err := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
 				assert.NilError(t, err)
 
 				userCredential := &models.Credential{

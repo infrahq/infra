@@ -33,11 +33,13 @@ func newKeysCmd() *cobra.Command {
 }
 
 type keyCreateOptions struct {
-	TTL               string `mapstructure:"ttl"`
-	ExtensionDeadline string `mapstructure:"extension-deadline"`
+	TTL               time.Duration
+	ExtensionDeadline time.Duration
 }
 
 func newKeysAddCmd() *cobra.Command {
+	var options keyCreateOptions
+
 	cmd := &cobra.Command{
 		Use:   "add ACCESS_KEY_NAME MACHINE_NAME",
 		Short: "Create an access key for authentication",
@@ -47,11 +49,6 @@ infra keys add first-key bot --ttl=12h --extension-deadline=1h
 `,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var options keyCreateOptions
-			if err := parseOptions(cmd, &options, "INFRA_KEYS"); err != nil {
-				return err
-			}
-
 			keyName := args[0]
 			machineName := args[1]
 
@@ -69,35 +66,23 @@ infra keys add first-key bot --ttl=12h --extension-deadline=1h
 				return err
 			}
 
-			deadline := ThirtyDays
-			if options.ExtensionDeadline != "" {
-				deadline, err = time.ParseDuration(options.ExtensionDeadline)
-				if err != nil {
-					return err
-				}
-			}
-
-			ttl := ThirtyDays
-			if options.TTL != "" {
-				ttl, err = time.ParseDuration(options.TTL)
-				if err != nil {
-					return fmt.Errorf("parsing ttl: %w", err)
-				}
-			}
-
-			resp, err := client.CreateAccessKey(&api.CreateAccessKeyRequest{IdentityID: machine.ID, Name: keyName, TTL: api.Duration(ttl), ExtensionDeadline: api.Duration(deadline)})
+			resp, err := client.CreateAccessKey(&api.CreateAccessKeyRequest{
+				IdentityID:        machine.ID,
+				Name:              keyName,
+				TTL:               api.Duration(options.TTL),
+				ExtensionDeadline: api.Duration(options.ExtensionDeadline),
+			})
 			if err != nil {
 				return err
 			}
 
 			fmt.Printf("key: %s \n", resp.AccessKey)
-
 			return nil
 		},
 	}
 
-	cmd.Flags().String("ttl", "", "The total time that an access key will be valid for, defaults to 30 days")
-	cmd.Flags().String("extension-deadline", "", "A specified deadline that an access key must be used within to remain valid, defaults to 30 days")
+	cmd.Flags().DurationVar(&options.TTL, "ttl", ThirtyDays, "The total time that an access key will be valid for")
+	cmd.Flags().DurationVar(&options.ExtensionDeadline, "extension-deadline", ThirtyDays, "A specified deadline that an access key must be used within to remain valid")
 
 	return cmd
 }

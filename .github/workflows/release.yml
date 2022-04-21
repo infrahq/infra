@@ -41,8 +41,8 @@ jobs:
           path: /root/.cache/
           key: ${{ runner.os }}-go-build
       - run: |
-          go get
-          make tools release tag=${{ needs.release-please.outputs.release_name }}
+          go install github.com/goreleaser/goreleaser@v1.7.0
+          make release tag=${{ needs.release-please.outputs.release_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GORELEASER_GITHUB_TOKEN }}
           GEMFURY_TOKEN: ${{ secrets.GORELEASER_GEMFURY_TOKEN }}
@@ -85,9 +85,9 @@ jobs:
     if: needs.release-please.outputs.release_created
     steps:
       - uses: actions/checkout@v3
-      - uses: readmeio/rdme@7.0.3
+      - uses: readmeio/rdme@7.1.1
         with:
-          rdme: openapi ./docs/api/openapi3.json --key=${{ secrets.README_API_KEY }} --id=6222ae0352ca1a0028faf020
+          rdme: openapi ./docs/api/openapi3.json --key=${{ secrets.README_API_KEY }} --id=624662df6803f800981a5464
 
   docs:
     runs-on: ubuntu-latest
@@ -99,7 +99,7 @@ jobs:
           repository: infrahq/web
           token: ${{ secrets.DOCS_TOKEN }}
       - run: |
-          echo $GITHUB_REF  > ./docs-ref
+          echo $GITHUB_SHA  | tee ./docs-ref
           git add ./docs-ref
           git config user.name infrahq-ci
           git config user.email contact@infrahq.com

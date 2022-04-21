@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"golang.org/x/term"
 
-	"github.com/infrahq/infra/uid"
+	"github.com/infrahq/infra/internal/server/models"
 )
 
 var (
@@ -148,54 +148,7 @@ func (w *filteredWriterSyncer) Sync() error {
 	return w.dest.Sync()
 }
 
-// UserAwareLoggerMiddleware saves a request-specific logger to the context
-func IdentityAwareMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		if val, ok := c.Get("identity"); ok {
-			if id, ok := val.(uid.PolymorphicID); ok {
-				logger := L.With(
-					zapcore.Field{
-						Key:    "id",
-						Type:   zapcore.StringType,
-						String: id.String(),
-					})
-				c.Set("logger", logger)
-			}
-		}
-
-		c.Next()
-	}
-}
-
-// Logger gets the request-specific logger from the context
-// If a request-specific logger cannot be found, use the default logger
-func Logger(c *gin.Context) *zap.Logger {
-	if loggerInf, ok := c.Get("logger"); ok {
-		if logger, ok := loggerInf.(*zap.Logger); ok {
-			return logger
-		}
-	}
-
-	return L
-}
-
-// Sugared variant of Logger
-func SugarLogger(c *gin.Context) *zap.SugaredLogger {
-	return Logger(c).Sugar()
-}
-
-// WrappedLogger skips the most recent caller
-// Useful for functions that logs for callers
-func WrappedLogger(c *gin.Context) *zap.Logger {
-	return Logger(c).WithOptions(zap.AddCallerSkip(1))
-}
-
-// Sugared variant of WrappedLogger
-func WrappedSugarLogger(c *gin.Context) *zap.SugaredLogger {
-	return WrappedLogger(c).Sugar()
-}
-
-// Middleware logs incoming requests using configured logger
+// Middleware logs incoming requests using configured logger.
 func Middleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Next()
@@ -212,12 +165,20 @@ func Middleware() gin.HandlerFunc {
 			c.Request.ContentLength,
 		)
 
-		SugarLogger(c).Infow(
+		logger := L
+		// TODO: use access.GetAuthenticatedIdentity, requires refactor
+		if raw, ok := c.Get("identity"); ok {
+			if identity, ok := raw.(*models.Identity); ok {
+				logger = logger.With(zap.Stringer("identity", identity.ID))
+			}
+		}
+
+		logger.Info(
 			msg,
-			"method", c.Request.Method,
-			"path", c.Request.URL.Path,
-			"statusCode", c.Writer.Status(),
-			"remoteAddr", c.Request.RemoteAddr,
+			zap.String("method", c.Request.Method),
+			zap.String("path", c.Request.URL.Path),
+			zap.Int("statusCode", c.Writer.Status()),
+			zap.String("remoteAddr", c.Request.RemoteAddr),
 		)
 	}
 }

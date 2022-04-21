@@ -104,17 +104,10 @@
           },
           "oneTimePassword": {
             "type": "string"
-          },
-          "providerID": {
-            "example": "4yJ3n3D8E2",
-            "format": "uid",
-            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-            "type": "string"
           }
         },
         "required": [
-          "name",
-          "providerID"
+          "name"
         ]
       },
       "CreateTokenResponse": {
@@ -288,6 +281,10 @@
             "type": "string"
           },
           "kind": {
+            "enum": [
+              "user",
+              "machine"
+            ],
             "type": "string"
           },
           "lastSeenAt": {
@@ -390,9 +387,9 @@
           "clientID"
         ]
       },
-      "SetupRequiredResponse": {
+      "SignupEnabledResponse": {
         "properties": {
-          "required": {
+          "enabled": {
             "type": "boolean"
           }
         }
@@ -413,7 +410,7 @@
       "url": "https://www.elastic.co/licensing/elastic-license"
     },
     "title": "Infra API",
-    "version": "0.10.0"
+    "version": "0.10.3"
   },
   "paths": {
     "/v1/access-keys": {
@@ -1998,7 +1995,7 @@
         },
         "summary": "ListIdentities",
         "tags": [
-          "Misc"
+          "Identities"
         ]
       },
       "post": {
@@ -2010,10 +2007,17 @@
               "schema": {
                 "properties": {
                   "kind": {
+                    "enum": [
+                      "user",
+                      "machine"
+                    ],
                     "type": "string"
                   },
                   "name": {
                     "type": "string"
+                  },
+                  "setOneTimePassword": {
+                    "type": "boolean"
                   }
                 },
                 "required": [
@@ -2924,7 +2928,9 @@
                 },
                 "required": [
                   "name",
-                  "url"
+                  "url",
+                  "clientID",
+                  "clientSecret"
                 ],
                 "type": "object"
               }
@@ -3207,6 +3213,12 @@
                     "type": "string"
                   }
                 },
+                "required": [
+                  "name",
+                  "url",
+                  "clientID",
+                  "clientSecret"
+                ],
                 "type": "object"
               }
             }
@@ -3280,10 +3292,10 @@
         ]
       }
     },
-    "/v1/setup": {
+    "/v1/signup": {
       "get": {
-        "description": "SetupRequired",
-        "operationId": "SetupRequired",
+        "description": "SignupEnabled",
+        "operationId": "SignupEnabled",
         "responses": {
           "400": {
             "content": {
@@ -3339,21 +3351,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SetupRequiredResponse"
+                  "$ref": "#/components/schemas/SignupEnabledResponse"
                 }
               }
             },
             "description": "Success"
           }
         },
-        "summary": "SetupRequired",
+        "summary": "SignupEnabled",
         "tags": [
           "Misc"
         ]
       },
       "post": {
-        "description": "Setup",
-        "operationId": "Setup",
+        "description": "Signup",
+        "operationId": "Signup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "email": {
+                    "example": "email@example.com",
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "email",
+                  "password"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
         "responses": {
           "400": {
             "content": {
@@ -3409,14 +3443,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CreateAccessKeyResponse"
+                  "$ref": "#/components/schemas/Identity"
                 }
               }
             },
             "description": "Success"
           }
         },
-        "summary": "Setup",
+        "summary": "Signup",
         "tags": [
           "Misc"
         ]

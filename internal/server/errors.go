@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"go.uber.org/zap"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
@@ -22,49 +23,45 @@ func (a *API) sendAPIError(c *gin.Context, err error) {
 
 	validationErrors := &validator.ValidationErrors{}
 
+	log := logging.L.WithOptions(zap.AddCallerSkip(1)).Debug
+
 	switch {
 	case errors.Is(err, internal.ErrUnauthorized):
 		resp.Code = http.StatusUnauthorized
 		resp.Message = "unauthorized"
-		logging.WrappedSugarLogger(c).Debugw(err.Error(), "statusCode", resp.Code)
 	case errors.Is(err, internal.ErrForbidden):
 		resp.Code = http.StatusForbidden
 		resp.Message = "forbidden"
-		logging.WrappedSugarLogger(c).Debugw(err.Error(), "statusCode", resp.Code)
 	case errors.Is(err, internal.ErrDuplicate):
 		resp.Code = http.StatusConflict
 		resp.Message = err.Error()
-		logging.WrappedSugarLogger(c).Debugw(err.Error(), "statusCode", resp.Code)
 	case errors.Is(err, internal.ErrNotFound):
 		resp.Code = http.StatusNotFound
 		resp.Message = err.Error()
-		logging.WrappedSugarLogger(c).Debugw(err.Error(), "statusCode", resp.Code)
 	case errors.As(err, validationErrors):
 		resp.Code = http.StatusBadRequest
 		resp.Message = err.Error()
 
 		parseFieldErrors(resp, validationErrors)
 
-		logging.WrappedSugarLogger(c).Debugw(err.Error(), "statusCode", resp.Code)
 	case errors.Is(err, internal.ErrBadRequest):
 		resp.Code = http.StatusBadRequest
 		resp.Message = err.Error()
-		logging.WrappedSugarLogger(c).Debugw(err.Error(), "statusCode", resp.Code)
 	case errors.Is(err, internal.ErrNotImplemented):
 		resp.Code = http.StatusNotImplemented
 		resp.Message = internal.ErrNotImplemented.Error()
-		logging.WrappedSugarLogger(c).Debugw(err.Error(), "statusCode", resp.Code)
 	case errors.Is(err, internal.ErrBadGateway):
 		resp.Code = http.StatusBadGateway
 		resp.Message = err.Error()
-		logging.WrappedSugarLogger(c).Debugw(err.Error(), "statusCode", resp.Code)
 	case errors.Is(err, (*validator.InvalidValidationError)(nil)):
 		resp.Code = http.StatusBadRequest
 		resp.Message = err.Error()
-		logging.WrappedSugarLogger(c).Debugw(err.Error(), "statusCode", resp.Code)
+
 	default:
-		logging.WrappedSugarLogger(c).Errorw(err.Error(), "statusCode", resp.Code)
+		log = logging.L.WithOptions(zap.AddCallerSkip(1)).Error
 	}
+
+	log("api request error", zap.Error(err), zap.Int32("statusCode", resp.Code))
 
 	if resp.Code >= 500 {
 		a.t.Event(c, "error", Properties{

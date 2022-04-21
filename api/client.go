@@ -15,6 +15,8 @@ type Client struct {
 	URL       string
 	AccessKey string
 	HTTP      http.Client
+	// Headers are HTTP headers that will be added to every request made by the Client.
+	Headers http.Header
 }
 
 func checkError(status int, body []byte) error {
@@ -59,6 +61,7 @@ func get[Res any](client Client, path string) (*Res, error) {
 		return nil, err
 	}
 
+	addHeaders(req, client.Headers)
 	req.Header.Add("Authorization", "Bearer "+client.AccessKey)
 
 	resp, err := client.HTTP.Do(req)
@@ -91,6 +94,7 @@ func list[Res any](client Client, path string, query map[string]string) ([]Res, 
 		return nil, err
 	}
 
+	addHeaders(req, client.Headers)
 	req.Header.Add("Authorization", "Bearer "+client.AccessKey)
 
 	q := req.URL.Query()
@@ -135,6 +139,7 @@ func request[Req, Res any](client Client, method string, path string, req *Req) 
 		return nil, err
 	}
 
+	addHeaders(httpReq, client.Headers)
 	httpReq.Header.Add("Authorization", "Bearer "+client.AccessKey)
 	httpReq.Header.Set("Content-Type", "application/json")
 
@@ -195,6 +200,12 @@ func delete(client Client, path string) error {
 	}
 
 	return nil
+}
+
+func addHeaders(req *http.Request, headers http.Header) {
+	for key, values := range headers {
+		req.Header[key] = values
+	}
 }
 
 func (c Client) ListIdentities(req ListIdentitiesRequest) ([]Identity, error) {
@@ -318,12 +329,12 @@ func (c Client) Logout() error {
 	return err
 }
 
-func (c Client) SetupRequired() (*SetupRequiredResponse, error) {
-	return get[SetupRequiredResponse](c, "/v1/setup")
+func (c Client) SignupEnabled() (*SignupEnabledResponse, error) {
+	return get[SignupEnabledResponse](c, "/v1/signup")
 }
 
-func (c Client) Setup() (*CreateAccessKeyResponse, error) {
-	return post[EmptyRequest, CreateAccessKeyResponse](c, "/v1/setup", &EmptyRequest{})
+func (c Client) Signup(req *SignupRequest) (*CreateAccessKeyResponse, error) {
+	return post[SignupRequest, CreateAccessKeyResponse](c, "/v1/signup", req)
 }
 
 func (c Client) GetVersion() (*Version, error) {

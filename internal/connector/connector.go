@@ -63,7 +63,7 @@ func (j *jwkCache) getJWK() (*jose.JSONWebKey, error) {
 		return j.key, nil
 	}
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, fmt.Sprintf("%s/.well-known/jwks.json", j.baseURL), nil)
+	req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, fmt.Sprintf("%s/.well-known/jwks.json", j.baseURL), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -300,7 +300,7 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 	return nil
 }
 
-func Run(options Options) error {
+func Run(ctx context.Context, options Options) error {
 	k8s, err := kubernetes.NewKubernetes()
 	if err != nil {
 		return err
@@ -408,7 +408,7 @@ func Run(options Options) error {
 		},
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	repeat.Start(ctx, 5*time.Second, func(context.Context) {

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -91,7 +92,7 @@ func TestLogout(t *testing.T) {
 
 	t.Run("default", func(t *testing.T) {
 		cfg, count := setup(t)
-		err := newLogoutCmd().Execute()
+		err := Run(context.Background(), "logout")
 		assert.NilError(t, err)
 
 		assert.Equal(t, int32(2), atomic.LoadInt32(count), "calls to API")
@@ -111,9 +112,7 @@ func TestLogout(t *testing.T) {
 
 	t.Run("with purge", func(t *testing.T) {
 		_, count := setup(t)
-		cmd := newLogoutCmd()
-		cmd.SetArgs([]string{"--purge"})
-		err := cmd.Execute()
+		err := Run(context.Background(), "logout", "--purge")
 		assert.NilError(t, err)
 
 		assert.Equal(t, int32(2), atomic.LoadInt32(count), "calls to API")

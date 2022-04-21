@@ -4,10 +4,6 @@ version := $(tag:v%=%)
 generate:
 	go generate ./...
 
-.PHONY: tools
-tools:
-	go generate -tags tools tools/tools.go
-
 test:
 	go test -short ./...
 

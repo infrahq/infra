@@ -9,7 +9,7 @@ import (
 
 func TestStaticFileSystemOpensFile(t *testing.T) {
 	fs := afero.NewHttpFs(afero.NewMemMapFs())
-	_, err := fs.Create("dashboard.html")
+	_, err := fs.Create("ui/dashboard.html")
 	assert.NilError(t, err)
 
 	sfs := &StaticFileSystem{
@@ -26,7 +26,7 @@ func TestStaticFileSystemOpensFile(t *testing.T) {
 
 func TestStaticFileSystemAppendDotHtml(t *testing.T) {
 	fs := afero.NewHttpFs(afero.NewMemMapFs())
-	_, err := fs.Create("dashboard.html")
+	_, err := fs.Create("ui/dashboard.html")
 	assert.NilError(t, err)
 
 	sfs := &StaticFileSystem{
@@ -39,4 +39,30 @@ func TestStaticFileSystemAppendDotHtml(t *testing.T) {
 	stat, err := f.Stat()
 	assert.NilError(t, err)
 	assert.Equal(t, stat.Name(), "dashboard.html")
+}
+
+func TestStaticFileSystemExists(t *testing.T) {
+	fs := afero.NewHttpFs(afero.NewMemMapFs())
+	_, err := fs.Create("ui/dashboard/foo")
+	assert.NilError(t, err)
+
+	sfs := &StaticFileSystem{
+		base: fs,
+	}
+
+	exists := sfs.Exists("/", "/dashboard")
+	assert.Equal(t, exists, true)
+}
+
+func TestStaticFileSystemExistsAppendDotHtml(t *testing.T) {
+	fs := afero.NewHttpFs(afero.NewMemMapFs())
+	_, err := fs.Create("ui/dashboard/foo.html")
+	assert.NilError(t, err)
+
+	sfs := &StaticFileSystem{
+		base: fs,
+	}
+
+	exists := sfs.Exists("/", "/dashboard/foo")
+	assert.Equal(t, exists, true)
 }

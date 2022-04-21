@@ -10,13 +10,6 @@
     cd infra
     ```
 
-1. Install tools
-
-    ```bash
-    go get
-    make tools
-    ```
-
 ## Run locally
 
 ```bash

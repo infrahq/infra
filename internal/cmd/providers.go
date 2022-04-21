@@ -29,8 +29,8 @@ func newProvidersCmd() *cobra.Command {
 
 type providerCmdOptions struct {
 	URL          string `mapstructure:"url"`
-	ClientID     string `mapstructure:"client-id"`
-	ClientSecret string `mapstructure:"client-secret"`
+	ClientID     string `mapstructure:"clientID"`
+	ClientSecret string `mapstructure:"clientSecret"`
 }
 
 func newProvidersListCmd() *cobra.Command {

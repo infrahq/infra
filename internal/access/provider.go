@@ -65,7 +65,7 @@ func DeleteProvider(c *gin.Context, id uid.ID) error {
 // RetrieveUserProviderTokens gets the providerUser for the current session token was created for
 func RetrieveUserProviderTokens(c *gin.Context) (*models.ProviderUser, error) {
 	// added by the authentication middleware
-	identity := CurrentIdentity(c)
+	identity := AuthenticatedIdentity(c)
 	if identity == nil {
 		return nil, errors.New("no provider token context user")
 	}
@@ -108,13 +108,6 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 
 		if err := data.CreateIdentity(db, user); err != nil {
 			return nil, "", fmt.Errorf("create user: %w", err)
-		}
-
-		// by default the user role in infra can see all destinations
-		// #1084 - create grants for only destinations a user has access to
-		roleGrant := &models.Grant{Subject: user.PolyID(), Privilege: models.InfraUserRole, Resource: "infra"}
-		if err := data.CreateGrant(db, roleGrant); err != nil {
-			return nil, "", fmt.Errorf("user role grant: %w", err)
 		}
 	}
 

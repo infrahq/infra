@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
-	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
@@ -43,27 +42,25 @@ type Config struct {
 }
 
 type KeyProvider struct {
-	Kind   string      `yaml:"kind" validate:"required"`
+	Kind   string      `mapstructure:"kind" validate:"required"`
 	Config interface{} // contains secret-provider-specific config
 }
 
-var _ yaml.Unmarshaler = &KeyProvider{}
-
 type nativeSecretProviderConfig struct {
-	SecretStorageName string `yaml:"secretProvider"`
+	SecretProvider string `mapstructure:"secretProvider"`
 }
 
-func (s *Server) importSecretKeys() error {
+func importKeyProviders(
+	cfg []KeyProvider,
+	storage map[string]secrets.SecretStorage,
+	keys map[string]secrets.SymmetricKeyProvider,
+) error {
 	var err error
 
-	if s.keys == nil {
-		s.keys = map[string]secrets.SymmetricKeyProvider{}
-	}
-
 	// default to file-based native secret provider
-	s.keys["native"] = secrets.NewNativeSecretProvider(s.secrets["file"])
+	keys["native"] = secrets.NewNativeSecretProvider(storage["file"])
 
-	for _, keyConfig := range s.options.Keys {
+	for _, keyConfig := range cfg {
 		switch keyConfig.Kind {
 		case "native":
 			cfg, ok := keyConfig.Config.(nativeSecretProviderConfig)
@@ -71,25 +68,25 @@ func (s *Server) importSecretKeys() error {
 				return fmt.Errorf("expected key config to be NativeSecretProviderConfig, but was %t", keyConfig.Config)
 			}
 
-			storageProvider, found := s.secrets[cfg.SecretStorageName]
+			storageProvider, found := storage[cfg.SecretProvider]
 			if !found {
-				return fmt.Errorf("secret storage name %q not found", cfg.SecretStorageName)
+				return fmt.Errorf("secret storage name %q not found", cfg.SecretProvider)
 			}
 
 			sp := secrets.NewNativeSecretProvider(storageProvider)
-			s.keys[keyConfig.Kind] = sp
+			keys[keyConfig.Kind] = sp
 		case "awskms":
 			cfg, ok := keyConfig.Config.(secrets.AWSKMSConfig)
 			if !ok {
 				return fmt.Errorf("expected key config to be AWSKMSConfig, but was %t", keyConfig.Config)
 			}
 
-			cfg.AccessKeyID, err = secrets.GetSecret(cfg.AccessKeyID, s.secrets)
+			cfg.AccessKeyID, err = secrets.GetSecret(cfg.AccessKeyID, storage)
 			if err != nil {
 				return fmt.Errorf("getting secret for awskms accessKeyID: %w", err)
 			}
 
-			cfg.SecretAccessKey, err = secrets.GetSecret(cfg.SecretAccessKey, s.secrets)
+			cfg.SecretAccessKey, err = secrets.GetSecret(cfg.SecretAccessKey, storage)
 			if err != nil {
 				return fmt.Errorf("getting secret for awskms secretAccessKey: %w", err)
 			}
@@ -99,14 +96,14 @@ func (s *Server) importSecretKeys() error {
 				return err
 			}
 
-			s.keys[keyConfig.Kind] = sp
+			keys[keyConfig.Kind] = sp
 		case "vault":
 			cfg, ok := keyConfig.Config.(secrets.VaultConfig)
 			if !ok {
 				return fmt.Errorf("expected key config to be VaultConfig, but was %t", keyConfig.Config)
 			}
 
-			cfg.Token, err = secrets.GetSecret(cfg.Token, s.secrets)
+			cfg.Token, err = secrets.GetSecret(cfg.Token, storage)
 			if err != nil {
 				return err
 			}
@@ -116,64 +113,33 @@ func (s *Server) importSecretKeys() error {
 				return err
 			}
 
-			s.keys[keyConfig.Kind] = sp
+			keys[keyConfig.Kind] = sp
 		}
 	}
 
 	return nil
 }
 
-func (sp *KeyProvider) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	tmp := &simpleConfigSecretProvider{}
-
-	if err := unmarshal(&tmp); err != nil {
-		return fmt.Errorf("unmarshalling secret provider: %w", err)
-	}
-
-	sp.Kind = tmp.Kind
-
-	switch sp.Kind {
+func (kp *KeyProvider) PrepareForDecode(data interface{}) error {
+	kind := getKindFromUnstructured(data)
+	switch kind {
 	case "vault":
-		p := secrets.NewVaultConfig()
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
+		kp.Config = secrets.NewVaultConfig()
 	case "awskms":
-		p := secrets.NewAWSKMSConfig()
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		if err := unmarshal(&p.AWSConfig); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
+		kp.Config = secrets.NewAWSKMSConfig()
 	case "native":
-		p := nativeSecretProviderConfig{}
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
+		kp.Config = nativeSecretProviderConfig{}
 	default:
-		return fmt.Errorf("unknown key provider type %q, expected one of %q", sp.Kind, secrets.SymmetricKeyProviderKinds)
+		// unknown kind error is handled by import importKeyProviders
 	}
 
 	return nil
 }
 
 type SecretProvider struct {
-	Kind   string      `yaml:"kind" validate:"required"`
-	Name   string      `yaml:"name"` // optional
+	Kind   string      `mapstructure:"kind"`
+	Name   string      `mapstructure:"name"`
 	Config interface{} // contains secret-provider-specific config
-}
-
-type simpleConfigSecretProvider struct {
-	Kind string `yaml:"kind"`
-	Name string `yaml:"name"`
 }
 
 var baseSecretStorageKinds = []string{
@@ -193,18 +159,14 @@ func isABaseSecretStorageKind(s string) bool {
 	return false
 }
 
-func (s *Server) importSecrets() error {
-	if s.secrets == nil {
-		s.secrets = map[string]secrets.SecretStorage{}
-	}
-
+func importSecrets(cfg []SecretProvider, storage map[string]secrets.SecretStorage) error {
 	loadSecretConfig := func(secret SecretProvider) (err error) {
 		name := secret.Name
 		if len(name) == 0 {
 			name = secret.Kind
 		}
 
-		if _, found := s.secrets[name]; found {
+		if _, found := storage[name]; found {
 			return fmt.Errorf("duplicate secret configuration for %q, please provide a unique name for this secret configuration", name)
 		}
 
@@ -215,7 +177,7 @@ func (s *Server) importSecrets() error {
 				return fmt.Errorf("expected secret config to be VaultConfig, but was %t", secret.Config)
 			}
 
-			cfg.Token, err = secrets.GetSecret(cfg.Token, s.secrets)
+			cfg.Token, err = secrets.GetSecret(cfg.Token, storage)
 			if err != nil {
 				return err
 			}
@@ -225,19 +187,19 @@ func (s *Server) importSecrets() error {
 				return fmt.Errorf("creating vault provider: %w", err)
 			}
 
-			s.secrets[name] = vault
+			storage[name] = vault
 		case "awsssm":
 			cfg, ok := secret.Config.(secrets.AWSSSMConfig)
 			if !ok {
 				return fmt.Errorf("expected secret config to be AWSSSMConfig, but was %t", secret.Config)
 			}
 
-			cfg.AccessKeyID, err = secrets.GetSecret(cfg.AccessKeyID, s.secrets)
+			cfg.AccessKeyID, err = secrets.GetSecret(cfg.AccessKeyID, storage)
 			if err != nil {
 				return err
 			}
 
-			cfg.SecretAccessKey, err = secrets.GetSecret(cfg.SecretAccessKey, s.secrets)
+			cfg.SecretAccessKey, err = secrets.GetSecret(cfg.SecretAccessKey, storage)
 			if err != nil {
 				return err
 			}
@@ -247,19 +209,19 @@ func (s *Server) importSecrets() error {
 				return fmt.Errorf("creating aws ssm: %w", err)
 			}
 
-			s.secrets[name] = ssm
+			storage[name] = ssm
 		case "awssecretsmanager":
 			cfg, ok := secret.Config.(secrets.AWSSecretsManagerConfig)
 			if !ok {
 				return fmt.Errorf("expected secret config to be AWSSecretsManagerConfig, but was %t", secret.Config)
 			}
 
-			cfg.AccessKeyID, err = secrets.GetSecret(cfg.AccessKeyID, s.secrets)
+			cfg.AccessKeyID, err = secrets.GetSecret(cfg.AccessKeyID, storage)
 			if err != nil {
 				return err
 			}
 
-			cfg.SecretAccessKey, err = secrets.GetSecret(cfg.SecretAccessKey, s.secrets)
+			cfg.SecretAccessKey, err = secrets.GetSecret(cfg.SecretAccessKey, storage)
 			if err != nil {
 				return err
 			}
@@ -269,7 +231,7 @@ func (s *Server) importSecrets() error {
 				return fmt.Errorf("creating aws sm: %w", err)
 			}
 
-			s.secrets[name] = sm
+			storage[name] = sm
 		case "kubernetes":
 			cfg, ok := secret.Config.(secrets.KubernetesConfig)
 			if !ok {
@@ -281,7 +243,7 @@ func (s *Server) importSecrets() error {
 				return fmt.Errorf("creating k8s secret provider: %w", err)
 			}
 
-			s.secrets[name] = k8s
+			storage[name] = k8s
 		case "env":
 			cfg, ok := secret.Config.(secrets.GenericConfig)
 			if !ok {
@@ -289,7 +251,7 @@ func (s *Server) importSecrets() error {
 			}
 
 			f := secrets.NewEnvSecretProviderFromConfig(cfg)
-			s.secrets[name] = f
+			storage[name] = f
 		case "file":
 			cfg, ok := secret.Config.(secrets.FileConfig)
 			if !ok {
@@ -297,7 +259,7 @@ func (s *Server) importSecrets() error {
 			}
 
 			f := secrets.NewFileSecretProviderFromConfig(cfg)
-			s.secrets[name] = f
+			storage[name] = f
 		case "plaintext", "":
 			cfg, ok := secret.Config.(secrets.GenericConfig)
 			if !ok {
@@ -305,7 +267,7 @@ func (s *Server) importSecrets() error {
 			}
 
 			f := secrets.NewPlainSecretProviderFromConfig(cfg)
-			s.secrets[name] = f
+			storage[name] = f
 		default:
 			return fmt.Errorf("unknown secret provider type %q", secret.Kind)
 		}
@@ -314,7 +276,7 @@ func (s *Server) importSecrets() error {
 	}
 
 	// check all base types first
-	for _, secret := range s.options.Secrets {
+	for _, secret := range cfg {
 		if !isABaseSecretStorageKind(secret.Kind) {
 			continue
 		}
@@ -324,12 +286,12 @@ func (s *Server) importSecrets() error {
 		}
 	}
 
-	if err := s.loadDefaultSecretConfig(); err != nil {
+	if err := loadDefaultSecretConfig(storage); err != nil {
 		return err
 	}
 
 	// now load non-base types which might depend on them.
-	for _, secret := range s.options.Secrets {
+	for _, secret := range cfg {
 		if isABaseSecretStorageKind(secret.Kind) {
 			continue
 		}
@@ -344,24 +306,24 @@ func (s *Server) importSecrets() error {
 
 // loadDefaultSecretConfig loads configuration for types that should be available,
 // assuming the user didn't override the configuration for them.
-func (s *Server) loadDefaultSecretConfig() error {
+func loadDefaultSecretConfig(storage map[string]secrets.SecretStorage) error {
 	// set up the default supported types
-	if _, found := s.secrets["env"]; !found {
+	if _, found := storage["env"]; !found {
 		f := secrets.NewEnvSecretProviderFromConfig(secrets.GenericConfig{})
-		s.secrets["env"] = f
+		storage["env"] = f
 	}
 
-	if _, found := s.secrets["file"]; !found {
+	if _, found := storage["file"]; !found {
 		f := secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{})
-		s.secrets["file"] = f
+		storage["file"] = f
 	}
 
-	if _, found := s.secrets["plaintext"]; !found {
+	if _, found := storage["plaintext"]; !found {
 		f := secrets.NewPlainSecretProviderFromConfig(secrets.GenericConfig{})
-		s.secrets["plaintext"] = f
+		storage["plaintext"] = f
 	}
 
-	if _, found := s.secrets["kubernetes"]; !found {
+	if _, found := storage["kubernetes"]; !found {
 		// only setup k8s automatically if KUBERNETES_SERVICE_HOST is defined; ie, we are in the clustes.
 		if _, ok := os.LookupEnv("KUBERNETES_SERVICE_HOST"); ok {
 			k8s, err := secrets.NewKubernetesSecretProviderFromConfig(secrets.NewKubernetesConfig())
@@ -369,90 +331,55 @@ func (s *Server) loadDefaultSecretConfig() error {
 				return fmt.Errorf("creating k8s secret provider: %w", err)
 			}
 
-			s.secrets["kubernetes"] = k8s
+			storage["kubernetes"] = k8s
 		}
 	}
 
 	return nil
 }
 
-func (sp *SecretProvider) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	tmp := &simpleConfigSecretProvider{}
-
-	if err := unmarshal(&tmp); err != nil {
-		return fmt.Errorf("unmarshalling secret provider: %w", err)
-	}
-
-	sp.Kind = tmp.Kind
-	sp.Name = tmp.Name
-
-	switch tmp.Kind {
+// PrepareForDecode prepares the SecretProvider for mapstructure.Decode by
+// setting a concrete type for the config based on the kind. Failures to decode
+// will be handled by mapstructure, or by importSecrets.
+func (sp *SecretProvider) PrepareForDecode(data interface{}) error {
+	kind := getKindFromUnstructured(data)
+	switch kind {
 	case "vault":
-		p := secrets.NewVaultConfig()
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
+		sp.Config = secrets.NewVaultConfig()
 	case "awsssm":
-		p := secrets.AWSSSMConfig{}
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		if err := unmarshal(&p.AWSConfig); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
+		sp.Config = secrets.AWSSSMConfig{}
 	case "awssecretsmanager":
-		p := secrets.AWSSecretsManagerConfig{}
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		if err := unmarshal(&p.AWSConfig); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
+		sp.Config = secrets.AWSSecretsManagerConfig{}
 	case "kubernetes":
-		p := secrets.NewKubernetesConfig()
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
+		sp.Config = secrets.NewKubernetesConfig()
 	case "env":
-		p := secrets.GenericConfig{}
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
+		sp.Config = secrets.GenericConfig{}
 	case "file":
-		p := secrets.FileConfig{}
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		if err := unmarshal(&p.GenericConfig); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
+		sp.Config = secrets.FileConfig{}
 	case "plaintext", "":
-		p := secrets.GenericConfig{}
-		if err := unmarshal(&p); err != nil {
-			return fmt.Errorf("unmarshal yaml: %w", err)
-		}
-
-		sp.Config = p
+		sp.Kind = "plaintext"
+		sp.Config = secrets.GenericConfig{}
 	default:
-		return fmt.Errorf("unknown secret provider type %q, expected one of %q", tmp.Kind, secrets.SecretStorageProviderKinds)
+		// unknown kind error is handled by importSecrets
 	}
 
 	return nil
+}
+
+func getKindFromUnstructured(data interface{}) string {
+	switch raw := data.(type) {
+	case map[string]interface{}:
+		if v, ok := raw["kind"].(string); ok {
+			return v
+		}
+	case map[interface{}]interface{}:
+		if v, ok := raw["kind"].(string); ok {
+			return v
+		}
+	case *SecretProvider:
+		return raw.Kind
+	}
+	return ""
 }
 
 // setupInternalInfraIdentityProvider creates the internal identity provider where local identities are stored

@@ -10,7 +10,7 @@ import (
 )
 
 func CreateToken(c *gin.Context) (token *models.Token, err error) {
-	identity := CurrentIdentity(c)
+	identity := AuthenticatedIdentity(c)
 	if identity == nil {
 		return nil, fmt.Errorf("no active identity")
 	}

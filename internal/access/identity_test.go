@@ -11,6 +11,44 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
+func TestListIdentities(t *testing.T) {
+	// create the identity
+	c, db, infraProvider := setupAccessTestContext(t)
+
+	activeIdentity := &models.Identity{
+		Kind: models.UserKind,
+		Name: "active-list-hide-id",
+	}
+
+	err := data.CreateIdentity(db, activeIdentity)
+	assert.NilError(t, err)
+
+	_, err = data.CreateProviderUser(db, infraProvider, activeIdentity)
+	assert.NilError(t, err)
+
+	unlinkedIdentity := &models.Identity{
+		Kind: models.UserKind,
+		Name: "unlinked-list-hide-id",
+	}
+
+	err = data.CreateIdentity(db, unlinkedIdentity)
+	assert.NilError(t, err)
+
+	// test fetch all identities
+	ids, err := ListIdentities(c, "")
+	assert.NilError(t, err)
+
+	assert.Equal(t, len(ids), 3) // the two identities created, and the admin one used to call these access functions
+	// make sure both names are seen
+	returnedNames := make(map[string]bool)
+	for _, id := range ids {
+		returnedNames[id.Name] = true
+	}
+	assert.Equal(t, returnedNames["admin@example.com"], true)
+	assert.Equal(t, returnedNames["active-list-hide-id"], true)
+	assert.Equal(t, returnedNames["unlinked-list-hide-id"], true)
+}
+
 func TestDeleteIdentityCleansUpResources(t *testing.T) {
 	// create the identity
 	c, db, infraProvider := setupAccessTestContext(t)

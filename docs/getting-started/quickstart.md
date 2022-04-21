@@ -85,44 +85,10 @@ Use the following command to find the Infra login URL. If you are not using a `L
 kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}"
 ```
 
-This will output the admin access key which you can use to login in cases of emergency recovery. Please store this in a safe place as you will not see this again.
+Follow the instructions to create an admin account using email and password login.
 
 
-### 3. Setup a local user
-
-Now that the Infra server is setup you can create a user.  The `infra id add` command creates a one-time password for the user.
-
-```
-infra id add name@example.com
-```
-
-Grant the user Infra administrator privileges.
-
-```
-infra grants add name@example.com infra --role admin
-```
-
-Grant the user Kubernetes cluster administrator privileges.
-
-```
-infra grants add name@example.com kubernetes.example-name --role cluster-admin 
-```
-
-> To view different roles allowed for Kubernetes clusters, see [Kubernetes Roles](../connectors/kubernetes.md#roles)
-
-
-### 4. Login to Infra with the newly created user
-
-Login again to switch from admin to your newly created user.
-
-```
-infra login
-```
-
-Select the Infra instance, and login with username `name@example.com`, and the password
-from the previous step.
-
-### 5. Connect your first Kubernetes cluster
+### 3. Connect your first Kubernetes cluster
 
 In order to add connectors to Infra, you will need to set three pieces of information:
 
@@ -147,7 +113,15 @@ helm upgrade --install infra-connector infrahq/infra \
 ```
 
 
-### 6. Use your Kubernetes clusters
+### 4. Use your Kubernetes clusters
+
+Grant the user Kubernetes cluster administrator privileges.
+
+```
+infra grants add name@example.com kubernetes.example-name --role cluster-admin
+```
+
+> To view different roles allowed for Kubernetes clusters, see [Kubernetes Roles](../connectors/kubernetes.md#roles)
 
 You can now access the connected Kubernetes clusters via your favorite tools directly. Infra in the background automatically synchronizes your Kubernetes configuration file (kubeconfig).
 
@@ -179,6 +153,6 @@ infra grants add name@example.com infra --role admin
 ```
 </details>
 
-### 7. Share the cluster(s) with other developers
+### 5. Share the cluster(s) with other developers
 
 To share access with Infra, developers will need to install Infra CLI, and be provided the login URL. If using local users, please share the one-time password.

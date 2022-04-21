@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"gopkg.in/segmentio/analytics-go.v3"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
@@ -59,30 +58,43 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 		Kind: kind,
 	}
 
-	if err := access.CreateIdentity(c, identity); err != nil {
-		return nil, err
-	}
+	// infra identity creation should be attempted even if an identity is already known
+	if r.SetOneTimePassword {
+		identities, err := access.ListIdentities(c, identity.Name)
+		if err != nil {
+			return nil, fmt.Errorf("list identities: %w", err)
+		}
 
-	_, err = access.CreateProviderUser(c, access.InfraProvider(c), identity)
-	if err != nil {
-		return nil, err
-	}
-
-	defaultGrant := &models.Grant{Subject: identity.PolyID(), Privilege: models.InfraUserRole, Resource: access.ResourceInfraAPI}
-	if err := access.CreateGrant(c, defaultGrant); err != nil {
-		return nil, err
+		switch len(identities) {
+		case 0:
+			if err := access.CreateIdentity(c, identity); err != nil {
+				return nil, fmt.Errorf("create identity: %w", err)
+			}
+		case 1:
+			identity.ID = identities[0].ID
+		default:
+			return nil, fmt.Errorf("multiple identities match specified name")
+		}
+	} else {
+		if err := access.CreateIdentity(c, identity); err != nil {
+			return nil, fmt.Errorf("create identity: %w", err)
+		}
 	}
 
 	resp := &api.CreateIdentityResponse{
-		ID:         identity.ID,
-		Name:       identity.Name,
-		ProviderID: access.InfraProvider(c).ID,
+		ID:   identity.ID,
+		Name: identity.Name,
 	}
 
-	if identity.Kind == models.UserKind {
+	if r.SetOneTimePassword {
+		_, err = access.CreateProviderUser(c, access.InfraProvider(c), identity)
+		if err != nil {
+			return nil, fmt.Errorf("create provider user")
+		}
+
 		oneTimePassword, err := access.CreateCredential(c, *identity)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("create credential: %w", err)
 		}
 
 		resp.OneTimePassword = oneTimePassword
@@ -307,7 +319,7 @@ func (a *API) ListDestinations(c *gin.Context, r *api.ListDestinationsRequest) (
 
 // Introspect is used by clients to get info about the token they are using
 func (a *API) Introspect(c *gin.Context, r *api.EmptyRequest) (*api.Introspect, error) {
-	identity := access.CurrentIdentity(c)
+	identity := access.AuthenticatedIdentity(c)
 	if identity != nil {
 		return &api.Introspect{ID: identity.ID, Name: identity.Name, IdentityType: identity.Kind.String()}, nil
 	}
@@ -363,7 +375,7 @@ func (a *API) DeleteDestination(c *gin.Context, r *api.Resource) error {
 }
 
 func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateTokenResponse, error) {
-	if access.CurrentIdentity(c) != nil {
+	if access.AuthenticatedIdentity(c) != nil {
 		err := a.UpdateIdentityInfoFromProvider(c)
 		if err != nil {
 			return nil, fmt.Errorf("update ident info from provider: %w", err)
@@ -394,6 +406,7 @@ func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) ([]ap
 			Name:              a.Name,
 			Created:           api.Time(a.CreatedAt),
 			IssuedFor:         a.IssuedFor,
+			ProviderID:        a.ProviderID,
 			Expires:           api.Time(a.ExpiresAt),
 			ExtensionDeadline: api.Time(a.ExtensionDeadline),
 		}
@@ -474,32 +487,24 @@ func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) error {
 	return access.DeleteGrant(c, r.ID)
 }
 
-func (a *API) SetupRequired(c *gin.Context, _ *api.EmptyRequest) (*api.SetupRequiredResponse, error) {
-	setupRequired, err := access.SetupRequired(c)
+func (a *API) SignupEnabled(c *gin.Context, _ *api.EmptyRequest) (*api.SignupEnabledResponse, error) {
+	signupEnabled, err := access.SignupEnabled(c)
 	if err != nil {
 		return nil, err
 	}
 
-	return &api.SetupRequiredResponse{
-		Required: setupRequired,
+	return &api.SignupEnabledResponse{
+		Enabled: signupEnabled,
 	}, nil
 }
 
-func (a *API) Setup(c *gin.Context, _ *api.EmptyRequest) (*api.CreateAccessKeyResponse, error) {
-	raw, accessKey, err := access.Setup(c)
+func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.Identity, error) {
+	identity, err := access.Signup(c, r.Email, r.Password)
 	if err != nil {
 		return nil, err
 	}
 
-	return &api.CreateAccessKeyResponse{
-		ID:                accessKey.ID,
-		Created:           api.Time(accessKey.CreatedAt),
-		Name:              accessKey.Name,
-		IssuedFor:         accessKey.IssuedFor,
-		Expires:           api.Time(accessKey.ExpiresAt),
-		ExtensionDeadline: api.Time(accessKey.ExtensionDeadline),
-		AccessKey:         raw,
-	}, nil
+	return identity.ToAPI(), nil
 }
 
 func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, error) {
@@ -514,11 +519,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 		setAuthCookie(c, key, expires)
 
-		if a.t != nil {
-			if err := a.t.Enqueue(analytics.Track{Event: "infra.login.exchange", UserId: identity.ID.String()}); err != nil {
-				logging.S.Debug(err)
-			}
-		}
+		a.t.Event(c, "login", Properties{"method": "exchange"})
 
 		return &api.LoginResponse{PolymorphicID: identity.PolyID(), Name: identity.Name, AccessKey: key, Expires: api.Time(expires)}, nil
 	case r.PasswordCredentials != nil:
@@ -575,7 +576,7 @@ func (a *API) Version(c *gin.Context, r *api.EmptyRequest) (*api.Version, error)
 
 // UpdateIdentityInfoFromProvider calls the identity provider used to authenticate this user session to update their current information
 func (a *API) UpdateIdentityInfoFromProvider(c *gin.Context) error {
-	user := access.CurrentIdentity(c)
+	user := access.AuthenticatedIdentity(c)
 	if user == nil {
 		return nil
 	}

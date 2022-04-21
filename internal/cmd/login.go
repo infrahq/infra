@@ -106,19 +106,23 @@ func login(options loginCmdOptions) error {
 		return err
 	}
 
-	// If first-time setup needs to be run, accessKey is auto-populated
-	setupRequired, err := client.SetupRequired()
+	loginReq := &api.LoginRequest{}
+
+	// if signup is required, use it to create an admin account
+	// and use those credentials for subsequent requests
+	signupEnabled, err := client.SignupEnabled()
 	if err != nil {
 		return err
 	}
-	if setupRequired.Required && options.AccessKey == "" {
-		options.AccessKey, err = runSetupForLogin(client)
+
+	if signupEnabled.Enabled {
+		loginReq.PasswordCredentials, err = runSignupForLogin(client)
 		if err != nil {
 			return err
 		}
-	}
 
-	loginReq := &api.LoginRequest{}
+		return loginToInfra(client, loginReq)
+	}
 
 	switch {
 	case options.AccessKey != "":
@@ -155,52 +159,6 @@ func login(options loginCmdOptions) error {
 	}
 
 	return loginToInfra(client, loginReq)
-}
-
-func relogin() error {
-	// TODO (https://github.com/infrahq/infra/issues/488): support non-interactive login
-	if isNonInteractiveMode() {
-		return fmt.Errorf("Non-interactive login is not supported")
-	}
-
-	currentConfig, err := currentHostConfig()
-	if err != nil {
-		return err
-	}
-
-	client, err := apiClient(currentConfig.Host, "", currentConfig.SkipTLSVerify)
-	if err != nil {
-		return err
-	}
-
-	if currentConfig.ProviderID == 0 {
-		return fmt.Errorf("Cannot renew login without provider")
-	}
-
-	provider, err := client.GetProvider(currentConfig.ProviderID)
-	if err != nil {
-		return err
-	}
-
-	code, err := oidcflow(provider.URL, provider.ClientID)
-	if err != nil {
-		return err
-	}
-
-	loginReq := &api.LoginRequest{
-		OIDC: &api.LoginRequestOIDC{
-			ProviderID:  provider.ID,
-			RedirectURL: cliLoginRedirectURL,
-			Code:        code,
-		},
-	}
-
-	loginRes, err := client.Login(loginReq)
-	if err != nil {
-		return err
-	}
-
-	return finishLogin(currentConfig.Host, currentConfig.SkipTLSVerify, provider.ID, loginRes)
 }
 
 func loginToInfra(client *api.Client, loginReq *api.LoginRequest) error {
@@ -271,63 +229,6 @@ func updateInfraConfig(client *api.Client, loginReq *api.LoginRequest, loginRes 
 	clientHostConfig.Host = u.Host
 
 	if err := saveHostConfig(clientHostConfig); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// TODO relogin(): Once relogin is revisited, delete finishLogin and use loginToInfra() instead
-func finishLogin(host string, skipTLSVerify bool, providerID uid.ID, loginRes *api.LoginResponse) error {
-	fmt.Fprintf(os.Stderr, "  Logged in as %s\n", termenv.String(loginRes.Name).Bold().String())
-
-	config, err := readConfig()
-	if err != nil && !errors.Is(err, ErrConfigNotFound) {
-		return err
-	}
-
-	if config == nil {
-		config = NewClientConfig()
-	}
-
-	var hostConfig ClientHostConfig
-
-	hostConfig.PolymorphicID = loginRes.PolymorphicID
-	hostConfig.Current = true
-	hostConfig.Host = host
-	hostConfig.Name = loginRes.Name
-	hostConfig.ProviderID = providerID
-	hostConfig.AccessKey = loginRes.AccessKey
-	hostConfig.SkipTLSVerify = skipTLSVerify
-
-	var found bool
-
-	for i, c := range config.Hosts {
-		if c.Host == host {
-			config.Hosts[i] = hostConfig
-			found = true
-
-			continue
-		}
-
-		config.Hosts[i].Current = false
-	}
-
-	if !found {
-		config.Hosts = append(config.Hosts, hostConfig)
-	}
-
-	err = writeConfig(config)
-	if err != nil {
-		return err
-	}
-
-	client, err := apiClient(host, loginRes.AccessKey, skipTLSVerify)
-	if err != nil {
-		return err
-	}
-
-	if err := updateKubeconfig(client, loginRes.PolymorphicID); err != nil {
 		return err
 	}
 
@@ -418,19 +319,28 @@ func loginToProvider(provider *api.Provider) (*api.LoginRequestOIDC, error) {
 	}, nil
 }
 
-func runSetupForLogin(client *api.Client) (string, error) {
-	setupRes, err := client.Setup()
-	if err != nil {
-		return "", err
+func runSignupForLogin(client *api.Client) (*api.LoginRequestPasswordCredentials, error) {
+	fmt.Fprintln(os.Stderr, "  Welcome to Infra. Set up your admin user:")
+
+	email := ""
+	if err := survey.AskOne(&survey.Input{Message: "Email:"}, &email, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithValidator(checkEmailRequirements)); err != nil {
+		return nil, err
 	}
 
-	fmt.Println()
-	fmt.Printf("  Congratulations, Infra has been successfully installed.\n")
-	fmt.Printf("  Running setup for the first time...\n\n")
-	fmt.Printf("  Access Key: %s\n", setupRes.AccessKey)
-	fmt.Printf(fmt.Sprintf("  %s", termenv.String("IMPORTANT: Store in a safe place. You will not see it again.\n\n").Bold().String()))
+	password, err := promptPasswordConfirm("")
+	if err != nil {
+		return nil, err
+	}
 
-	return setupRes.AccessKey, nil
+	_, err = client.Signup(&api.SignupRequest{Email: email, Password: password})
+	if err != nil {
+		return nil, err
+	}
+
+	return &api.LoginRequestPasswordCredentials{
+		Email:    email,
+		Password: password,
+	}, nil
 }
 
 // Only used when logging in or switching to a new session, since user has no credentials. Otherwise, use defaultAPIClient().
@@ -467,7 +377,7 @@ func verifyTLS(host string) error {
 	url.Scheme = "https"
 	urlString := url.String()
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, urlString, nil)
+	req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, urlString, nil)
 	if err != nil {
 		logging.S.Debugf("Cannot create request: %v", err)
 		return err
@@ -498,7 +408,7 @@ func promptLocalLogin() (*api.LoginRequestPasswordCredentials, error) {
 	questionPrompt := []*survey.Question{
 		{
 			Name:     "Email",
-			Prompt:   &survey.Input{Message: "   Email:"},
+			Prompt:   &survey.Input{Message: "Email:"},
 			Validate: survey.Required,
 		},
 		{

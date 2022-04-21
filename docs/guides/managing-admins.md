@@ -6,6 +6,7 @@
 Infra has built-in roles for promoting users to manage Infra.
 
 * **admin**: Full admin access to Infra
+* **view**: Read-only access to Infra
 * **user**: List and access infrastructure
 
 ## Promoting a user to an Infra admin

@@ -1,8 +1,5 @@
 run:
   go: 1.18
-  skip-files:
-    - internal/server/bindata_ui.go
-
   timeout: 5m
 
 linters-settings:

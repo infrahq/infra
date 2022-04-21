@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap/zaptest"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
@@ -24,25 +25,23 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func setupServer(t *testing.T) *Server {
-	db := setupDB(t)
+func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
+	t.Helper()
+	options := Options{}
+	for _, op := range ops {
+		op(t, &options)
+	}
+	s := newServer(options)
+	s.db = setupDB(t)
 
-	s := &Server{db: db}
-
-	err := s.setupInternalInfraIdentityProvider()
+	// TODO: share more of this with Server.New
+	err := loadDefaultSecretConfig(s.secrets)
 	assert.NilError(t, err)
 
-	internalIdentities := map[string]string{
-		models.InternalInfraAdminIdentityName:     models.InfraAdminRole,
-		models.InternalInfraConnectorIdentityName: models.InfraConnectorRole,
-	}
+	err = s.setupInternalInfraIdentityProvider()
+	assert.NilError(t, err)
 
-	for name, role := range internalIdentities {
-		_, err = s.setupInternalInfraIdentity(name, role)
-		assert.NilError(t, err)
-	}
-
-	err = s.importSecrets()
+	err = s.importAccessKeys()
 	assert.NilError(t, err)
 
 	return s
@@ -61,7 +60,7 @@ func setupLogging(t *testing.T) {
 func TestGetPostgresConnectionURL(t *testing.T) {
 	setupLogging(t)
 
-	r := &Server{options: Options{}, secrets: make(map[string]secrets.SecretStorage)}
+	r := newServer(Options{})
 
 	f := secrets.NewPlainSecretProviderFromConfig(secrets.GenericConfig{})
 	r.secrets["plaintext"] = f
@@ -106,24 +105,24 @@ func TestGetPostgresConnectionURL(t *testing.T) {
 	assert.Equal(t, "host=localhost user=user password=secret port=5432 dbname=postgres", url)
 }
 
-func TestSetupRequired(t *testing.T) {
+func TestSignupEnabled(t *testing.T) {
 	db := setupDB(t)
 
 	s := Server{db: db}
 
 	// cases where setup is enabled
 	cases := map[string]Options{
-		"EnableSetup": {
-			EnableSetup: true,
+		"EnableSignup": {
+			EnableSignup: true,
 		},
 		"NoImportProviders": {
-			EnableSetup: true,
+			EnableSignup: true,
 			Config: Config{
 				Providers: []Provider{},
 			},
 		},
 		"NoImportGrants": {
-			EnableSetup: true,
+			EnableSignup: true,
 			Config: Config{
 				Grants: []Grant{},
 			},
@@ -133,25 +132,25 @@ func TestSetupRequired(t *testing.T) {
 	for name, options := range cases {
 		t.Run(name, func(t *testing.T) {
 			s.options = options
-			assert.Assert(t, s.setupRequired())
+			assert.Assert(t, s.signupEnabled())
 		})
 	}
 
 	// cases where setup is disabled through configs
 	cases = map[string]Options{
 		"DisableSetup": {
-			EnableSetup: false,
+			EnableSignup: false,
 		},
 		"AdminAccessKey": {
-			EnableSetup:    true,
+			EnableSignup:   true,
 			AdminAccessKey: "admin-access-key",
 		},
 		"AccessKey": {
-			EnableSetup: true,
-			AccessKey:   "access-key",
+			EnableSignup: true,
+			AccessKey:    "access-key",
 		},
 		"ImportProviders": {
-			EnableSetup: true,
+			EnableSignup: true,
 			Config: Config{
 				Providers: []Provider{
 					{
@@ -161,7 +160,7 @@ func TestSetupRequired(t *testing.T) {
 			},
 		},
 		"ImportGrants": {
-			EnableSetup: true,
+			EnableSignup: true,
 			Config: Config{
 				Grants: []Grant{
 					{
@@ -175,19 +174,19 @@ func TestSetupRequired(t *testing.T) {
 	for name, options := range cases {
 		t.Run(name, func(t *testing.T) {
 			s.options = options
-			assert.Assert(t, !s.setupRequired())
+			assert.Assert(t, !s.signupEnabled())
 		})
 	}
 
 	// reset options
 	s.options = Options{
-		EnableSetup: true,
+		EnableSignup: true,
 	}
 
 	err := db.Create(&models.Identity{Name: "non-admin"}).Error
 	assert.NilError(t, err)
 
-	assert.Assert(t, s.setupRequired())
+	assert.Assert(t, s.signupEnabled())
 
 	id := uid.New()
 	err = db.Create(&models.Identity{Model: models.Model{ID: id}, Name: "admin"}).Error
@@ -196,7 +195,7 @@ func TestSetupRequired(t *testing.T) {
 	err = db.Create(&models.AccessKey{Name: "admin", IssuedFor: id, ExpiresAt: time.Now()}).Error
 	assert.NilError(t, err)
 
-	assert.Assert(t, !s.setupRequired())
+	assert.Assert(t, !s.signupEnabled())
 }
 
 func TestLoadConfigEmpty(t *testing.T) {
@@ -917,10 +916,11 @@ func TestServer_Run_UIProxy(t *testing.T) {
 		DBEncryptionKey:         filepath.Join(dir, "sqlite3.db.key"),
 		TLSCache:                filepath.Join(dir, "tlscache"),
 		DBFile:                  filepath.Join(dir, "sqlite3.db"),
-		EnableUI:                true,
-		UIProxyURL:              uiSrv.URL,
-		EnableSetup:             true,
+		UI:                      UIOptions{Enabled: true},
+		EnableSignup:            true,
 	}
+	assert.NilError(t, opts.UI.ProxyURL.Set(uiSrv.URL))
+
 	srv, err := New(opts)
 	assert.NilError(t, err)
 
@@ -942,15 +942,141 @@ func TestServer_Run_UIProxy(t *testing.T) {
 	})
 
 	t.Run("api routes are available", func(t *testing.T) {
-		resp, err := http.Get("http://" + srv.Addrs.HTTP.String() + "/v1/setup")
+		resp, err := http.Get("http://" + srv.Addrs.HTTP.String() + "/v1/signup")
 		assert.NilError(t, err)
 		defer resp.Body.Close()
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-		var body api.SetupRequiredResponse
+		var body api.SignupEnabledResponse
 		err = json.NewDecoder(resp.Body).Decode(&body)
 		assert.NilError(t, err)
 
-		assert.Assert(t, body.Required)
+		assert.Assert(t, body.Enabled)
 	})
+}
+
+func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
+	type testCase struct {
+		name     string
+		path     string
+		expected func(t *testing.T, resp *httptest.ResponseRecorder)
+	}
+
+	s := &Server{options: Options{UI: UIOptions{Enabled: true}}}
+	router := s.GenerateRoutes(prometheus.NewRegistry())
+
+	run := func(t *testing.T, tc testCase) {
+		req := httptest.NewRequest(http.MethodGet, tc.path, nil)
+		resp := httptest.NewRecorder()
+		router.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Code, http.StatusNotFound)
+		if tc.expected != nil {
+			tc.expected(t, resp)
+		}
+	}
+
+	testCases := []testCase{
+		{
+			name: "/v1 path prefix",
+			path: "/v1/not/found",
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				contentType := resp.Header().Get("Content-Type")
+				expected := "application/json; charset=utf-8"
+				assert.Equal(t, contentType, expected)
+			},
+		},
+		{
+			name: "ui path",
+			path: "/not/found",
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				// response should have an html body
+				title := "<title>404: This page could not be found</title>"
+				assert.Assert(t, is.Contains(resp.Body.String(), title))
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestServer_GenerateRoutes_UI(t *testing.T) {
+	type testCase struct {
+		name         string
+		path         string
+		expectedCode int
+		expected     func(t *testing.T, resp *httptest.ResponseRecorder)
+	}
+
+	s := &Server{options: Options{UI: UIOptions{Enabled: true}}}
+	router := s.GenerateRoutes(prometheus.NewRegistry())
+
+	run := func(t *testing.T, tc testCase) {
+		req := httptest.NewRequest(http.MethodGet, tc.path, nil)
+		resp := httptest.NewRecorder()
+		router.ServeHTTP(resp, req)
+
+		assert.Check(t, is.Equal(resp.Code, tc.expectedCode))
+		if tc.expected != nil {
+			tc.expected(t, resp)
+		}
+	}
+
+	testCases := []testCase{
+		{
+			name:         "default index",
+			path:         "/",
+			expectedCode: http.StatusOK,
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				actual := resp.Header().Get("Content-Type")
+				assert.Equal(t, actual, "text/html; charset=utf-8")
+			},
+		},
+		{
+			name:         "index page redirects",
+			path:         "/index.html",
+			expectedCode: http.StatusMovedPermanently,
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				actual := resp.Header().Get("Location")
+				assert.Equal(t, actual, "./")
+			},
+		},
+		{
+			name:         "page with a path",
+			path:         "/providers/add/admins.html",
+			expectedCode: http.StatusOK,
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				actual := resp.Header().Get("Content-Type")
+				assert.Equal(t, actual, "text/html; charset=utf-8")
+			},
+		},
+		{
+			name:         "image",
+			path:         "/icon.svg",
+			expectedCode: http.StatusOK,
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				actual := resp.Header().Get("Content-Type")
+				assert.Equal(t, actual, "image/svg+xml")
+			},
+		},
+		{
+			name:         "page without .html suffix",
+			path:         "/providers/add/admins",
+			expectedCode: http.StatusOK,
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				actual := resp.Header().Get("Content-Type")
+				assert.Equal(t, actual, "text/html; charset=utf-8")
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 }

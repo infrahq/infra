@@ -1,12 +1,14 @@
 package cmd
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/goware/urlx"
@@ -18,14 +20,24 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/connector"
+	"github.com/infrahq/infra/internal/decode"
 	"github.com/infrahq/infra/internal/logging"
 )
+
+// Run the main CLI command with the given args. The args should not contain
+// the name of the binary (ex: os.Args[1:]).
+func Run(ctx context.Context, args ...string) error {
+	cmd := NewRootCmd()
+	cmd.SetArgs(args)
+	return cmd.ExecuteContext(ctx)
+}
 
 func mustBeLoggedIn() error {
 	config, err := currentHostConfig()
 	if err != nil {
-		return err
+		return fmt.Errorf("getting host config: %w", err)
 	}
 
 	if !config.isLoggedIn() {
@@ -98,7 +110,13 @@ func parseOptions(cmd *cobra.Command, options interface{}, envPrefix string) err
 		}
 	}
 
-	return v.Unmarshal(options)
+	hooks := mapstructure.ComposeDecodeHookFunc(
+		mapstructure.StringToTimeDurationHookFunc(),
+		mapstructure.StringToSliceHookFunc(","),
+		decode.HookPrepareForDecode,
+		decode.HookSetFromString,
+	)
+	return v.Unmarshal(options, viper.DecodeHook(hooks))
 }
 
 func infraHomeDir() (string, error) {
@@ -152,6 +170,10 @@ func apiClient(host string, accessKey string, skipTLSVerify bool) (*api.Client, 
 
 	u.Scheme = "https"
 
+	headers := http.Header{}
+	ua := fmt.Sprintf("Infra CLI/%v (%v/%v)", internal.Version, runtime.GOOS, runtime.GOARCH)
+	headers.Add("User-Agent", ua)
+
 	return &api.Client{
 		URL:       fmt.Sprintf("%s://%s", u.Scheme, u.Host),
 		AccessKey: accessKey,
@@ -163,6 +185,7 @@ func apiClient(host string, accessKey string, skipTLSVerify bool) (*api.Client, 
 				},
 			},
 		},
+		Headers: headers,
 	}, nil
 }
 
@@ -171,19 +194,18 @@ func newUseCmd() *cobra.Command {
 		Use:   "use DESTINATION",
 		Short: "Access a destination",
 		Example: `
-# Connect to a Kubernetes cluster
-$ infra use kubernetes.development
+# Use a Kubernetes context
+$ infra use development
 
-# Connect to a Kubernetes namespace
-$ infra use kubernetes.development.kube-system
-		`,
+# Use a Kubernetes namespace context
+$ infra use development.kube-system`,
 		Args:  cobra.ExactArgs(1),
 		Group: "Core commands:",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			return mustBeLoggedIn()
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			name := args[0]
+			destination := args[0]
 
 			client, err := defaultAPIClient()
 			if err != nil {
@@ -200,17 +222,22 @@ $ infra use kubernetes.development.kube-system
 				return err
 			}
 
-			parts := strings.Split(name, ".")
+			parts := strings.Split(destination, ".")
 
-			if len(parts) < 2 {
-				return errors.New("invalid argument")
+			if parts[0] == "kubernetes" {
+				if len(parts) > 2 {
+					return kubernetesSetContext(parts[1], parts[2])
+				}
+
+				return kubernetesSetContext(parts[1], "")
 			}
 
-			if len(parts) <= 2 || parts[2] == "default" {
-				return kubernetesSetContext("infra:" + parts[1])
+			// no type specifier, guess at user intent
+			if len(parts) == 1 {
+				return kubernetesSetContext(destination, "")
 			}
 
-			return kubernetesSetContext("infra:" + parts[1] + ":" + parts[2])
+			return kubernetesSetContext(parts[0], parts[1])
 		},
 	}
 }
@@ -259,7 +286,7 @@ func newConnectorCmd() *cobra.Command {
 
 			options.TLSCache = tlsCache
 
-			return connector.Run(options)
+			return connector.Run(cmd.Context(), options)
 		},
 	}
 
@@ -306,9 +333,12 @@ func NewRootCmd() *cobra.Command {
 			}
 			if rootOptions.Info {
 				if err := mustBeLoggedIn(); err != nil {
-					return err
+					return fmt.Errorf("login check: %w", err)
 				}
-				return info()
+				if err := info(); err != nil {
+					return fmt.Errorf("info: %w", err)
+				}
+				return nil
 			}
 			return cmd.Help()
 		},
@@ -342,6 +372,7 @@ func NewRootCmd() *cobra.Command {
 	rootCmd.PersistentFlags().Bool("help", false, "Display help")
 
 	rootCmd.SetHelpCommandGroup("Other commands:")
+	rootCmd.AddCommand(newAboutCmd())
 	rootCmd.SetUsageTemplate(usageTemplate())
 	return rootCmd
 }

@@ -1,5 +1,4 @@
-//go:generate npm run export --silent --prefix ../../ui
-//go:generate go-bindata -pkg server -nocompress -o ./bindata_ui.go -prefix "../../ui/out/" ../../ui/out/...
+//go:generate ./generate-ui.sh
 
 package server
 
@@ -7,6 +6,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"embed"
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
@@ -19,19 +19,17 @@ import (
 	"strings"
 	"time"
 
-	assetfs "github.com/elazarl/go-bindata-assetfs"
 	"github.com/getsentry/sentry-go"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
-	"github.com/goware/urlx"
-	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/certs"
+	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/ginutil"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/repeat"
@@ -48,9 +46,7 @@ type Options struct {
 	AccessKey            string        `mapstructure:"accessKey"`
 	EnableTelemetry      bool          `mapstructure:"enableTelemetry"`
 	EnableCrashReporting bool          `mapstructure:"enableCrashReporting"`
-	EnableUI             bool          `mapstructure:"enableUI"`
-	UIProxyURL           string        `mapstructure:"uiProxyURL"`
-	EnableSetup          bool          `mapstructure:"enableSetup"`
+	EnableSignup         bool          `mapstructure:"enableSignup"`
 	SessionDuration      time.Duration `mapstructure:"sessionDuration"`
 
 	DBFile                  string `mapstructure:"dbFile"`
@@ -74,13 +70,19 @@ type Options struct {
 	InitialRootCAPublicKey      string `mapstructure:"initialRootCAPublicKey"`
 	FullKeyRotationInDays       int    `mapstructure:"fullKeyRotationInDays"` // 365 default
 
-	Addr ListenerOptions `mapstructure:"addr"`
+	Addr ListenerOptions
+	UI   UIOptions
 }
 
 type ListenerOptions struct {
 	HTTP    string
 	HTTPS   string
 	Metrics string
+}
+
+type UIOptions struct {
+	Enabled  bool
+	ProxyURL types.URL `mapstructure:"proxyURL"`
 }
 
 type Server struct {
@@ -103,10 +105,18 @@ type Addrs struct {
 	Metrics net.Addr
 }
 
-func New(options Options) (*Server, error) {
-	server := &Server{
+// newServer creates a Server with base dependencies initialized to zero values.
+func newServer(options Options) *Server {
+	return &Server{
 		options: options,
+		secrets: map[string]secrets.SecretStorage{},
+		keys:    map[string]secrets.SymmetricKeyProvider{},
 	}
+}
+
+// New creates a Server, and initializes it. The returned Server is ready to run.
+func New(options Options) (*Server, error) {
+	server := newServer(options)
 
 	if err := validate.Struct(options); err != nil {
 		return nil, fmt.Errorf("invalid options: %w", err)
@@ -118,11 +128,11 @@ func New(options Options) (*Server, error) {
 		return nil, fmt.Errorf("configure sentry: %w", err)
 	}
 
-	if err := server.importSecrets(); err != nil {
+	if err := importSecrets(options.Secrets, server.secrets); err != nil {
 		return nil, fmt.Errorf("secrets config: %w", err)
 	}
 
-	if err := server.importSecretKeys(); err != nil {
+	if err := importKeyProviders(options.Keys, server.secrets, server.keys); err != nil {
 		return nil, fmt.Errorf("key config: %w", err)
 	}
 
@@ -144,12 +154,6 @@ func New(options Options) (*Server, error) {
 		return nil, fmt.Errorf("loading certificate provider: %w", err)
 	}
 
-	if options.EnableTelemetry {
-		if err := configureTelemetry(server); err != nil {
-			return nil, fmt.Errorf("configuring telemetry: %w", err)
-		}
-	}
-
 	if err := server.setupInternalInfraIdentityProvider(); err != nil {
 		return nil, fmt.Errorf("setting up internal identity provider: %w", err)
 	}
@@ -158,9 +162,15 @@ func New(options Options) (*Server, error) {
 		return nil, fmt.Errorf("importing access keys: %w", err)
 	}
 
-	settings, err := data.InitializeSettings(server.db, server.setupRequired())
+	settings, err := data.InitializeSettings(server.db, server.signupEnabled())
 	if err != nil {
 		return nil, fmt.Errorf("settings: %w", err)
+	}
+
+	if options.EnableTelemetry {
+		if err := configureTelemetry(server); err != nil {
+			return nil, fmt.Errorf("configuring telemetry: %w", err)
+		}
 	}
 
 	sentry.ConfigureScope(func(scope *sentry.Scope) {
@@ -181,7 +191,11 @@ func (s *Server) Run(ctx context.Context) error {
 	// nolint: errcheck // if logs won't sync there is no way to report this error
 	defer logging.L.Sync()
 
-	// TODO: start telemetry goroutine here as well
+	if s.tel != nil {
+		repeat.Start(context.TODO(), 1*time.Hour, func(context.Context) {
+			s.tel.EnqueueHeartbeat()
+		})
+	}
 
 	group, _ := errgroup.WithContext(ctx)
 	for i := range s.routines {
@@ -200,10 +214,6 @@ func configureTelemetry(server *Server) error {
 		return err
 	}
 	server.tel = tel
-
-	repeat.Start(context.TODO(), 1*time.Hour, func(context.Context) {
-		tel.EnqueueHeartbeat()
-	})
 
 	return nil
 }
@@ -299,18 +309,17 @@ func (s *Server) loadCertificates() (err error) {
 	return nil
 }
 
-func (s *Server) registerUIRoutes(router *gin.Engine) error {
-	if !s.options.EnableUI {
-		return nil
+//go:embed all:ui/*
+var assetFS embed.FS
+
+func registerUIRoutes(router *gin.Engine, opts UIOptions) {
+	if !opts.Enabled {
+		return
 	}
 
 	// Proxy requests to an upstream ui server
-	if s.options.UIProxyURL != "" {
-		remote, err := urlx.Parse(s.options.UIProxyURL)
-		if err != nil {
-			return fmt.Errorf("failed to parse UI proxy URL: %w", err)
-		}
-
+	if opts.ProxyURL.Host != "" {
+		remote := opts.ProxyURL.Value()
 		proxy := httputil.NewSingleHostReverseProxy(remote)
 		proxy.Director = func(req *http.Request) {
 			req.Host = remote.Host
@@ -320,63 +329,19 @@ func (s *Server) registerUIRoutes(router *gin.Engine) error {
 
 		router.Use(func(c *gin.Context) {
 			proxy.ServeHTTP(c.Writer, c.Request)
+			c.Abort()
 		})
-
-		return nil
+		return
 	}
 
-	assetFS := &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo}
-	staticFS := &StaticFileSystem{base: assetFS}
+	staticFS := &StaticFileSystem{base: http.FS(assetFS)}
 	router.Use(gzip.Gzip(gzip.DefaultCompression), static.Serve("/", staticFS))
-
-	// 404
-	router.NoRoute(func(c *gin.Context) {
-		if strings.HasPrefix(c.Request.URL.Path, "/v1") {
-			c.Status(404)
-			c.Writer.WriteHeaderNow()
-			return
-		}
-
-		c.Status(http.StatusNotFound)
-		buf, err := assetFS.Asset("404.html")
-		if err != nil {
-			logging.S.Error(err)
-		}
-
-		_, err = c.Writer.Write(buf)
-		if err != nil {
-			logging.S.Error(err)
-		}
-	})
-
-	return nil
-}
-
-func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) (*gin.Engine, error) {
-	router := gin.New()
-
-	router.Use(gin.Recovery())
-	a := &API{
-		t:      s.tel,
-		server: s,
-	}
-
-	a.registerRoutes(router.Group("/"), promRegistry)
-
-	if err := s.registerUIRoutes(router); err != nil {
-		return nil, err
-	}
-
-	return router, nil
 }
 
 func (s *Server) listen() error {
 	ginutil.SetMode()
 	promRegistry := SetupMetrics(s.db)
-	router, err := s.GenerateRoutes(promRegistry)
-	if err != nil {
-		return err
-	}
+	router := s.GenerateRoutes(promRegistry)
 
 	metricsServer := &http.Server{
 		Addr:     s.options.Addr.Metrics,
@@ -384,6 +349,7 @@ func (s *Server) listen() error {
 		ErrorLog: logging.StandardErrorLog(),
 	}
 
+	var err error
 	s.Addrs.Metrics, err = s.setupServer(metricsServer)
 	if err != nil {
 		return err
@@ -625,8 +591,8 @@ func (s *Server) createDBKey(provider secrets.SymmetricKeyProvider, rootKeyId st
 	return nil
 }
 
-func (s *Server) setupRequired() bool {
-	if !s.options.EnableSetup {
+func (s *Server) signupEnabled() bool {
+	if !s.options.EnableSignup {
 		return false
 	}
 

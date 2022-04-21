@@ -21,6 +21,7 @@
 * [infra providers list](#infra-providers-list)
 * [infra providers add](#infra-providers-add)
 * [infra providers remove](#infra-providers-remove)
+* [infra about](#infra-about)
 
 
 ## `infra login`
@@ -125,12 +126,11 @@ infra use DESTINATION [flags]
 
 ```
 
-# Connect to a Kubernetes cluster
-$ infra use kubernetes.development
+# Use a Kubernetes context
+$ infra use development
 
-# Connect to a Kubernetes namespace
-$ infra use kubernetes.development.kube-system
-		
+# Use a Kubernetes namespace context
+$ infra use development.kube-system
 ```
 
 ### Options inherited from parent commands
@@ -395,8 +395,8 @@ infra keys add first-key bot --ttl=12h --extension-deadline=1h
 ### Options
 
 ```
-      --extension-deadline string   A specified deadline that an access key must be used within to remain valid, defaults to 30 days
-      --ttl string                  The total time that an access key will be valid for, defaults to 30 days
+      --extension-deadline duration   A specified deadline that an access key must be used within to remain valid (default 720h0m0s)
+      --ttl duration                  The total time that an access key will be valid for (default 720h0m0s)
 ```
 
 ### Options inherited from parent commands
@@ -477,6 +477,22 @@ Disconnect an identity provider
 
 ```
 infra providers remove PROVIDER [flags]
+```
+
+### Options inherited from parent commands
+
+```
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+      --non-interactive    Disable all prompts for input
+```
+
+## `infra about`
+
+Display information about Infra
+
+```
+infra about [flags]
 ```
 
 ### Options inherited from parent commands

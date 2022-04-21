@@ -3,11 +3,12 @@ package api
 import (
 	"encoding/json"
 	"testing"
+	"time"
 
 	"gotest.tools/v3/assert"
 )
 
-func TestTimeRoundTrip(t *testing.T) {
+func TestTime_MarshalJSON_RoundTripProperty(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
@@ -52,7 +53,87 @@ func TestTimeRoundTrip(t *testing.T) {
 	}
 }
 
-func TestDurationRoundTrip(t *testing.T) {
+func TestTime_MarshalJSON(t *testing.T) {
+	type testCase struct {
+		name     string
+		source   interface{}
+		expected string
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		actual, err := json.Marshal(tc.source)
+		assert.NilError(t, err)
+		assert.Equal(t, tc.expected, string(actual))
+	}
+
+	td := time.Date(2020, 1, 2, 3, 4, 5, 6, time.UTC)
+
+	type Container struct {
+		Time Time
+	}
+	type PtrContainer struct {
+		Time *Time
+	}
+	type OmitEmpty struct {
+		Time *Time `json:",omitempty"`
+	}
+
+	testCases := []testCase{
+		{
+			name:     "from value",
+			source:   Time(td),
+			expected: `"2020-01-02T03:04:05Z"`,
+		},
+		{
+			name:     "from pointer",
+			source:   (*Time)(&td),
+			expected: `"2020-01-02T03:04:05Z"`,
+		},
+		{
+			name:     "from value in struct",
+			source:   Container{Time: Time(td)},
+			expected: `{"Time":"2020-01-02T03:04:05Z"}`,
+		},
+		{
+			name:     "from value in pointer to struct",
+			source:   &Container{Time: Time(td)},
+			expected: `{"Time":"2020-01-02T03:04:05Z"}`,
+		},
+		{
+			name:     "from pointer in pointer to struct",
+			source:   &PtrContainer{Time: (*Time)(&td)},
+			expected: `{"Time":"2020-01-02T03:04:05Z"}`,
+		},
+		{
+			name:     "nil pointer",
+			source:   (*Time)(nil),
+			expected: `null`,
+		},
+		{
+			name:     "nil pointer in struct",
+			source:   &PtrContainer{},
+			expected: `{"Time":null}`,
+		},
+		{
+			name:     "nil pointer in struct with omitempty",
+			source:   &OmitEmpty{},
+			expected: `{}`,
+		},
+		{
+			name:     "with non-UTC location",
+			source:   Time(time.Date(2020, 1, 2, 3, 4, 5, 6, time.FixedZone("ET", -5))),
+			expected: `"2020-01-02T03:04:10Z"`,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestDuration_MarshalJSON_RoundTripProperty(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
