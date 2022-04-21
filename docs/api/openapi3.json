@@ -34,6 +34,9 @@
             "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           },
+          "issuedForName": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
