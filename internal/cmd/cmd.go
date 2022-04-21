@@ -37,6 +37,9 @@ func Run(ctx context.Context, args ...string) error {
 func mustBeLoggedIn() error {
 	config, err := currentHostConfig()
 	if err != nil {
+		if errors.Is(err, ErrConfigNotFound) {
+			return fmt.Errorf("Not logged in. Run 'infra login' before running this command.")
+		}
 		return fmt.Errorf("getting host config: %w", err)
 	}
 
