@@ -77,7 +77,7 @@ func newProvidersAddCmd() *cobra.Command {
 		Long: `Add an identity provider for users to authenticate.
 PROVIDER is a short unique name of the identity provider being added (eg. okta)`,
 		Example: `# Connect okta to infra
-$ infra providers add oktaDev --client-id abc --client-secret efg --url oktadev@example.com`,
+$ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var options providerCmdOptions
