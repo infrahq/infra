@@ -97,19 +97,23 @@ func login(options loginCmdOptions) error {
 		return err
 	}
 
-	// If first-time setup needs to be run, accessKey is auto-populated
-	setupRequired, err := client.SetupRequired()
+	loginReq := &api.LoginRequest{}
+
+	// if signup is required, use it to create an admin account
+	// and use those credentials for subsequent requests
+	signupEnabled, err := client.SignupEnabled()
 	if err != nil {
 		return err
 	}
-	if setupRequired.Required && options.AccessKey == "" {
-		options.AccessKey, err = runSetupForLogin(client)
+
+	if signupEnabled.Enabled {
+		loginReq.PasswordCredentials, err = runSignupForLogin(client)
 		if err != nil {
 			return err
 		}
-	}
 
-	loginReq := &api.LoginRequest{}
+		return loginToInfra(client, loginReq)
+	}
 
 	switch {
 	case options.AccessKey != "":
@@ -306,19 +310,28 @@ func loginToProvider(provider *api.Provider) (*api.LoginRequestOIDC, error) {
 	}, nil
 }
 
-func runSetupForLogin(client *api.Client) (string, error) {
-	setupRes, err := client.Setup()
-	if err != nil {
-		return "", err
+func runSignupForLogin(client *api.Client) (*api.LoginRequestPasswordCredentials, error) {
+	fmt.Fprintln(os.Stderr, "  Welcome to Infra. Set up your admin user:")
+
+	email := ""
+	if err := survey.AskOne(&survey.Input{Message: "Email:"}, &email, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithValidator(checkEmailRequirements)); err != nil {
+		return nil, err
 	}
 
-	fmt.Println()
-	fmt.Printf("  Congratulations, Infra has been successfully installed.\n")
-	fmt.Printf("  Running setup for the first time...\n\n")
-	fmt.Printf("  Access Key: %s\n", setupRes.AccessKey)
-	fmt.Printf(fmt.Sprintf("  %s", termenv.String("IMPORTANT: Store in a safe place. You will not see it again.\n\n").Bold().String()))
+	password, err := promptPasswordConfirm("")
+	if err != nil {
+		return nil, err
+	}
 
-	return setupRes.AccessKey, nil
+	_, err = client.Signup(&api.SignupRequest{Email: email, Password: password})
+	if err != nil {
+		return nil, err
+	}
+
+	return &api.LoginRequestPasswordCredentials{
+		Email:    email,
+		Password: password,
+	}, nil
 }
 
 // Only used when logging in or switching to a new session, since user has no credentials. Otherwise, use defaultAPIClient().
@@ -386,7 +399,7 @@ func promptLocalLogin() (*api.LoginRequestPasswordCredentials, error) {
 	questionPrompt := []*survey.Question{
 		{
 			Name:     "Email",
-			Prompt:   &survey.Input{Message: "   Email:"},
+			Prompt:   &survey.Input{Message: "Email:"},
 			Validate: survey.Required,
 		},
 		{

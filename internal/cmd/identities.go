@@ -236,9 +236,8 @@ func checkUserOrMachine(s string) (models.IdentityKind, error) {
 		return models.MachineKind, nil
 	}
 
-	_, err := mail.ParseAddress(s)
-	if err != nil {
-		return models.UserKind, fmt.Errorf("invalid email: %q", s)
+	if err := checkEmailRequirements(s); err != nil {
+		return models.MachineKind, err
 	}
 
 	return models.UserKind, nil
@@ -339,38 +338,85 @@ func GetIdentityFromName(client *api.Client, name string) (*api.Identity, error)
 func promptUpdatePassword(oldPassword string) (string, error) {
 	fmt.Fprintf(os.Stderr, "  Enter a new one time password (min length 8):\n")
 
-PROMPT:
-	newPassword := ""
-	if err := survey.AskOne(&survey.Password{Message: "New password:"}, &newPassword, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
+	newPassword, err := promptPasswordConfirm(oldPassword)
+	if err != nil {
 		return "", err
-	}
-
-	if err := checkPasswordRequirements(newPassword, oldPassword); err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
-		goto PROMPT
-	}
-
-	confirmNewPassword := ""
-	if err := survey.AskOne(&survey.Password{Message: "Confirm password:"}, &confirmNewPassword, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
-		return "", err
-	}
-
-	if confirmNewPassword != newPassword {
-		fmt.Println("  Passwords do not match.")
-		goto PROMPT
 	}
 
 	return newPassword, nil
 }
 
-func checkPasswordRequirements(newPassword string, oldPassword string) error {
-	if len(newPassword) < 8 {
-		return errors.New("  Password cannot be less than 8 characters.")
+func promptPasswordConfirm(oldPassword string) (string, error) {
+	var passwordConfirm struct {
+		Password string
+		Confirm  string
 	}
-	if newPassword == oldPassword {
-		return errors.New("  New password cannot be the same as your old password.")
+
+	prompts := []*survey.Question{
+		{
+			Name:     "Password",
+			Prompt:   &survey.Password{Message: "Password:"},
+			Validate: checkPasswordRequirements(oldPassword),
+		},
+		{
+			Name:     "Confirm",
+			Prompt:   &survey.Password{Message: "Confirm Password:"},
+			Validate: checkConfirmPassword(&passwordConfirm.Password),
+		},
 	}
+
+	if err := survey.Ask(prompts, &passwordConfirm, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
+		return "", err
+	}
+
+	return passwordConfirm.Password, nil
+}
+
+func checkEmailRequirements(val interface{}) error {
+	email, ok := val.(string)
+	if !ok {
+		return fmt.Errorf("unexpected type for email: %T", val)
+	}
+
+	if _, err := mail.ParseAddress(email); err != nil {
+		return fmt.Errorf("input must be a valid email")
+	}
+
 	return nil
+}
+
+func checkPasswordRequirements(oldPassword string) survey.Validator {
+	return func(val interface{}) error {
+		newPassword, ok := val.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type for password: %T", val)
+		}
+
+		if len(newPassword) < 8 {
+			return fmt.Errorf("input must be at least 8 characters long")
+		}
+
+		if newPassword == oldPassword {
+			return fmt.Errorf("input must be different than the current password")
+		}
+
+		return nil
+	}
+}
+
+func checkConfirmPassword(password *string) survey.Validator {
+	return func(val interface{}) error {
+		confirm, ok := val.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type for password: %T", val)
+		}
+
+		if *password != confirm {
+			return fmt.Errorf("input must match the new password")
+		}
+
+		return nil
+	}
 }
 
 // isIdentitySelf checks if the caller is updating their current local user

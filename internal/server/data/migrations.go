@@ -428,6 +428,16 @@ func migrate(db *gorm.DB) error {
 			},
 			// context lost, cannot roll back
 		},
+		// #1518: rename models.Settings.SetupRequired to models.Settings.SignupRequired
+		{
+			ID: "202204181613",
+			Migrate: func(tx *gorm.DB) error {
+				return tx.Migrator().RenameColumn(&models.Settings{}, "setup_required", "signup_required")
+			},
+			Rollback: func(tx *gorm.DB) error {
+				return tx.Migrator().RenameColumn(&models.Settings{}, "signup_required", "setup_required")
+			},
+		},
 		// next one here
 	})
 

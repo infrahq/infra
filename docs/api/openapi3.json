@@ -387,9 +387,9 @@
           "clientID"
         ]
       },
-      "SetupRequiredResponse": {
+      "SignupEnabledResponse": {
         "properties": {
-          "required": {
+          "enabled": {
             "type": "boolean"
           }
         }
@@ -3292,10 +3292,10 @@
         ]
       }
     },
-    "/v1/setup": {
+    "/v1/signup": {
       "get": {
-        "description": "SetupRequired",
-        "operationId": "SetupRequired",
+        "description": "SignupEnabled",
+        "operationId": "SignupEnabled",
         "responses": {
           "400": {
             "content": {
@@ -3351,21 +3351,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SetupRequiredResponse"
+                  "$ref": "#/components/schemas/SignupEnabledResponse"
                 }
               }
             },
             "description": "Success"
           }
         },
-        "summary": "SetupRequired",
+        "summary": "SignupEnabled",
         "tags": [
           "Misc"
         ]
       },
       "post": {
-        "description": "Setup",
-        "operationId": "Setup",
+        "description": "Signup",
+        "operationId": "Signup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "email": {
+                    "example": "email@example.com",
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "email",
+                  "password"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
         "responses": {
           "400": {
             "content": {
@@ -3421,14 +3443,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CreateAccessKeyResponse"
+                  "$ref": "#/components/schemas/Identity"
                 }
               }
             },
             "description": "Success"
           }
         },
-        "summary": "Setup",
+        "summary": "Signup",
         "tags": [
           "Misc"
         ]

@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
@@ -68,16 +67,60 @@ func TestCheckUserOrMachineInvalidName(t *testing.T) {
 	illegalRunes := []rune("!@#$%^&*()=+[]{}\\|;:'\",<>?")
 	for _, r := range illegalRunes {
 		_, err = checkUserOrMachine(string(r))
-		assert.ErrorContains(t, err, fmt.Sprintf("invalid email: %q", string(r)))
+		assert.ErrorContains(t, err, "input must be a valid email")
 	}
 }
 
 func TestCheckUserOrMachineInvalidEmail(t *testing.T) {
 	_, err := checkUserOrMachine("@example.com")
-	assert.ErrorContains(t, err, "invalid email: \"@example.com\"")
+	assert.ErrorContains(t, err, "input must be a valid email")
 
 	_, err = checkUserOrMachine("alice@")
-	assert.ErrorContains(t, err, "invalid email: \"alice@\"")
+	assert.ErrorContains(t, err, "input must be a valid email")
+}
+
+func TestCheckEmailRequirements(t *testing.T) {
+	err := checkEmailRequirements("valid@email")
+	assert.NilError(t, err)
+
+	err = checkEmailRequirements("invalid")
+	assert.ErrorContains(t, err, "input must be a valid email")
+
+	err = checkEmailRequirements("invalid@")
+	assert.ErrorContains(t, err, "input must be a valid email")
+
+	err = checkEmailRequirements("@invalid")
+	assert.ErrorContains(t, err, "input must be a valid email")
+
+	err = checkEmailRequirements(nil)
+	assert.ErrorContains(t, err, "unexpected type for email")
+}
+
+func TestCheckPasswordRequirements(t *testing.T) {
+	err := checkPasswordRequirements("")("password")
+	assert.NilError(t, err)
+
+	err = checkPasswordRequirements("")("passwor")
+	assert.ErrorContains(t, err, "input must be at least 8 characters long")
+
+	err = checkPasswordRequirements("password")("password")
+	assert.ErrorContains(t, err, "input must be different than the current password")
+
+	err = checkPasswordRequirements("password")(nil)
+	assert.ErrorContains(t, err, "unexpected type for password")
+}
+
+func TestCheckConfirmPassword(t *testing.T) {
+	password := "password"
+
+	err := checkConfirmPassword(&password)("password")
+	assert.NilError(t, err)
+
+	err = checkConfirmPassword(&password)("drowssap")
+	assert.ErrorContains(t, err, "input must match the new password")
+
+	err = checkConfirmPassword(&password)(nil)
+	assert.ErrorContains(t, err, "unexpected type for password")
 }
 
 func TestIdentitiesCmd(t *testing.T) {

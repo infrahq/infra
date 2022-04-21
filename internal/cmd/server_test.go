@@ -160,7 +160,7 @@ func serverOptionsWithDefaults() server.Options {
 	o.EnableTelemetry = true
 	o.EnableCrashReporting = true
 	o.SessionDuration = 12 * time.Hour
-	o.EnableSetup = true
+	o.EnableSignup = true
 	return o
 }
 

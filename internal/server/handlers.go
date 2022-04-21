@@ -487,32 +487,24 @@ func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) error {
 	return access.DeleteGrant(c, r.ID)
 }
 
-func (a *API) SetupRequired(c *gin.Context, _ *api.EmptyRequest) (*api.SetupRequiredResponse, error) {
-	setupRequired, err := access.SetupRequired(c)
+func (a *API) SignupEnabled(c *gin.Context, _ *api.EmptyRequest) (*api.SignupEnabledResponse, error) {
+	signupEnabled, err := access.SignupEnabled(c)
 	if err != nil {
 		return nil, err
 	}
 
-	return &api.SetupRequiredResponse{
-		Required: setupRequired,
+	return &api.SignupEnabledResponse{
+		Enabled: signupEnabled,
 	}, nil
 }
 
-func (a *API) Setup(c *gin.Context, _ *api.EmptyRequest) (*api.CreateAccessKeyResponse, error) {
-	raw, accessKey, err := access.Setup(c)
+func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.Identity, error) {
+	identity, err := access.Signup(c, r.Email, r.Password)
 	if err != nil {
 		return nil, err
 	}
 
-	return &api.CreateAccessKeyResponse{
-		ID:                accessKey.ID,
-		Created:           api.Time(accessKey.CreatedAt),
-		Name:              accessKey.Name,
-		IssuedFor:         accessKey.IssuedFor,
-		Expires:           api.Time(accessKey.ExpiresAt),
-		ExtensionDeadline: api.Time(accessKey.ExtensionDeadline),
-		AccessKey:         raw,
-	}, nil
+	return identity.ToAPI(), nil
 }
 
 func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, error) {

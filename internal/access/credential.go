@@ -24,7 +24,7 @@ func CreateCredential(c *gin.Context, user models.Identity) (string, error) {
 		return "", fmt.Errorf("generate: %w", err)
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(oneTimePassword), bcrypt.MinCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(oneTimePassword), bcrypt.DefaultCost)
 	if err != nil {
 		return "", fmt.Errorf("hash: %w", err)
 	}
