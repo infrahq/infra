@@ -499,7 +499,7 @@ func (a *API) SignupEnabled(c *gin.Context, _ *api.EmptyRequest) (*api.SignupEna
 }
 
 func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.Identity, error) {
-	identity, err := access.Signup(c, r.Name, r.Password)
+	identity, err := access.Signup(c, r.Email, r.Password)
 	if err != nil {
 		return nil, err
 	}

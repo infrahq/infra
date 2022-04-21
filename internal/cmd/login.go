@@ -332,7 +332,7 @@ func runSignupForLogin(client *api.Client) (*api.LoginRequestPasswordCredentials
 		return nil, err
 	}
 
-	_, err = client.Signup(&api.SignupRequest{Name: email, Password: password})
+	_, err = client.Signup(&api.SignupRequest{Email: email, Password: password})
 	if err != nil {
 		return nil, err
 	}

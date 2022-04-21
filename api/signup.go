@@ -5,6 +5,6 @@ type SignupEnabledResponse struct {
 }
 
 type SignupRequest struct {
-	Name     string `json:"name"`
-	Password string `json:"password"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required"`
 }
