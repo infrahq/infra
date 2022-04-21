@@ -59,7 +59,7 @@ $ infra logout --all --clear`,
 	return cmd
 }
 
-func logoutOfServer(hostConfig *ClientHostConfig) (bool, error) {
+func logoutOfServer(hostConfig *ClientHostConfig) (success bool, err error) {
 	if !hostConfig.isLoggedIn() {
 		logging.S.Debugf("requested but not logged in to server [%s]", hostConfig.Host)
 		return false, nil
@@ -67,33 +67,28 @@ func logoutOfServer(hostConfig *ClientHostConfig) (bool, error) {
 
 	client, err := apiClient(hostConfig.Host, hostConfig.AccessKey, hostConfig.SkipTLSVerify)
 	if err != nil {
-		if !errors.Is(err, api.ErrUnauthorized) {
-			logging.S.Debug(err)
-			return false, err
-		}
-		logging.S.Warn(err.Error())
+		return false, err
 	}
 
 	hostConfig.AccessKey = ""
 	hostConfig.PolymorphicID = ""
 	hostConfig.Name = ""
 
-	_ = client.Logout()
+	err = client.Logout()
+	if err != nil {
+		if errors.Is(err, api.ErrUnauthorized) {
+			logging.S.Warn(err.Error())
+			return false, nil
+		}
+
+		return false, err
+	}
 
 	logging.S.Debugf("logged out of server [%s]", hostConfig.Host)
 	return true, nil
 }
 
 func logout(clear bool, server string, all bool) error {
-	config, err := readConfig()
-	if err != nil {
-		if errors.Is(err, ErrConfigNotFound) {
-			return nil
-		}
-
-		return err
-	}
-
 	switch {
 	case all:
 		logging.S.Debug("logging out of all servers\n")
@@ -104,45 +99,36 @@ func logout(clear bool, server string, all bool) error {
 	}
 
 	if all {
-		var logoutErr error
-		for i := range config.Hosts {
-			if _, err = logoutOfServer(&config.Hosts[i]); err != nil {
-				logoutErr = err
-			}
-		}
-		if logoutErr != nil {
-			return errors.New("Failed to logout of all servers due to an internal error. Run with '--log-level=debug' for more info.")
+		return logoutAll(clear)
+	}
+
+	return logoutOne(clear, server)
+}
+
+func logoutAll(clear bool) error {
+	config, err := readConfig()
+	if err != nil {
+		if errors.Is(err, ErrConfigNotFound) {
+			return nil
 		}
 
-		fmt.Fprintf(os.Stderr, "Logged out of all servers.\n")
-		if clear {
-			config.Hosts = nil
-			logging.S.Debug("cleared all servers from login list\n")
-		}
-	} else {
-		for i := range config.Hosts {
-			if (server == "" && config.Hosts[i].Current) || (server == config.Hosts[i].Host) {
-				success, err := logoutOfServer(&config.Hosts[i])
-				if err != nil {
-					return fmt.Errorf("Failed to logout of server %s due to an internal error. Run with '--log-level=debug' for more info.", config.Hosts[i].Host)
-				}
-				if success {
-					logging.S.Debugf("Logged out of server %s", config.Hosts[i].Host)
-				}
+		return err
+	}
 
-				if clear {
-					serverURL := config.Hosts[i].Host
-					if len(config.Hosts) < 2 {
-						config.Hosts = nil
-					} else {
-						config.Hosts[i] = config.Hosts[len(config.Hosts)-1]
-						config.Hosts = config.Hosts[:len(config.Hosts)-1]
-					}
-					logging.S.Debugf("cleared server [%s]\n", serverURL)
-				}
-				break
-			}
+	var logoutErr error
+	for i := range config.Hosts {
+		if _, err = logoutOfServer(&config.Hosts[i]); err != nil {
+			logoutErr = err
 		}
+	}
+	if logoutErr != nil {
+		return logoutErr
+	}
+
+	fmt.Fprintf(os.Stderr, "Logged out of all servers.\n")
+	if clear {
+		config.Hosts = nil
+		logging.S.Debug("cleared all servers from login list\n")
 	}
 
 	if err := clearKubeconfig(); err != nil {
@@ -154,4 +140,55 @@ func logout(clear bool, server string, all bool) error {
 	}
 
 	return nil
+}
+
+func logoutOne(clear bool, server string) error {
+	config, err := readConfig()
+	if err != nil {
+		if errors.Is(err, ErrConfigNotFound) {
+			return nil
+		}
+
+		return err
+	}
+
+	host, idx := findClientConfigHost(config, server)
+
+	if host == nil {
+		return nil
+	}
+
+	success, err := logoutOfServer(host)
+	if err != nil {
+		return fmt.Errorf("Failed to logout of server %s due to an internal error: %w.", host.Host, err)
+	}
+	if success {
+		logging.S.Debugf("Logged out of server %s", host)
+	}
+
+	if clear {
+		serverURL := host.Host
+		config.Hosts[idx] = config.Hosts[len(config.Hosts)-1]
+		config.Hosts = config.Hosts[:len(config.Hosts)-1]
+		logging.S.Debugf("cleared server [%s]\n", serverURL)
+	}
+
+	if err := clearKubeconfig(); err != nil {
+		return err
+	}
+
+	if err := writeConfig(config); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func findClientConfigHost(config *ClientConfig, server string) (*ClientHostConfig, int) {
+	for i := range config.Hosts {
+		if (server == "" && config.Hosts[i].Current) || (server == config.Hosts[i].Host) {
+			return &config.Hosts[i], i
+		}
+	}
+	return nil, -1
 }

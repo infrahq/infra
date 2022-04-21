@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -14,10 +15,11 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
-var (
-	srvURL             string
-	unauthorizedSrvURL string
-)
+type testFields struct {
+	config     ClientConfig
+	count      *int32
+	serverURLs []string
+}
 
 func TestLogout(t *testing.T) {
 	homeDir := t.TempDir()
@@ -27,7 +29,7 @@ func TestLogout(t *testing.T) {
 	kubeConfigPath := filepath.Join(homeDir, "kube.config")
 	t.Setenv("KUBECONFIG", kubeConfigPath)
 
-	setup := func(t *testing.T) (ClientConfig, *int32) {
+	setup := func(t *testing.T) testFields {
 		var count int32
 		handler := func(resp http.ResponseWriter, req *http.Request) {
 			if req.URL.Path != "/v1/logout" {
@@ -40,7 +42,6 @@ func TestLogout(t *testing.T) {
 		}
 
 		srv := httptest.NewTLSServer(http.HandlerFunc(handler))
-		srvURL = srv.Listener.Addr().String()
 		t.Cleanup(srv.Close)
 		srv2 := httptest.NewTLSServer(http.HandlerFunc(handler))
 		t.Cleanup(srv2.Close)
@@ -84,10 +85,14 @@ func TestLogout(t *testing.T) {
 		}
 		err = clientcmd.WriteToFile(kubeCfg, kubeConfigPath)
 		assert.NilError(t, err)
-		return cfg, &count
+		return testFields{
+			config:     cfg,
+			count:      &count,
+			serverURLs: []string{srv.Listener.Addr().String(), srv2.Listener.Addr().String()},
+		}
 	}
 
-	setupUnauthorized := func(t *testing.T) (ClientConfig, *int32) {
+	setupError := func(t *testing.T) testFields {
 		var count int32
 		handler := func(resp http.ResponseWriter, req *http.Request) {
 			if req.URL.Path != "/v1/logout" {
@@ -95,12 +100,11 @@ func TestLogout(t *testing.T) {
 				return
 			}
 			atomic.AddInt32(&count, 1)
-			resp.WriteHeader(http.StatusUnauthorized)
+			resp.WriteHeader(http.StatusInternalServerError)
 			_, _ = resp.Write([]byte(`{}`)) // API client requires a JSON response
 		}
 
 		srv := httptest.NewTLSServer(http.HandlerFunc(handler))
-		unauthorizedSrvURL = srv.Listener.Addr().String()
 		t.Cleanup(srv.Close)
 
 		cfg := ClientConfig{
@@ -135,7 +139,11 @@ func TestLogout(t *testing.T) {
 		}
 		err = clientcmd.WriteToFile(kubeCfg, kubeConfigPath)
 		assert.NilError(t, err)
-		return cfg, &count
+		return testFields{
+			config:     cfg,
+			count:      &count,
+			serverURLs: []string{srv.Listener.Addr().String()},
+		}
 	}
 
 	expectedKubeCfg := clientcmdapi.Config{
@@ -151,16 +159,16 @@ func TestLogout(t *testing.T) {
 	}
 
 	t.Run("default", func(t *testing.T) {
-		cfg, count := setup(t)
+		testFields := setup(t)
 		err := Run(context.Background(), "logout")
 		assert.NilError(t, err)
 
-		assert.Equal(t, int32(1), atomic.LoadInt32(count), "calls to API")
+		assert.Equal(t, int32(1), atomic.LoadInt32(testFields.count), "calls to API")
 
 		updatedCfg, err := readConfig()
 		assert.NilError(t, err)
 
-		expected := cfg
+		expected := testFields.config
 		expected.Hosts[0].AccessKey = ""
 		expected.Hosts[0].Name = ""
 		expected.Hosts[0].PolymorphicID = ""
@@ -172,17 +180,17 @@ func TestLogout(t *testing.T) {
 	})
 
 	t.Run("with clear", func(t *testing.T) {
-		cfg, count := setup(t)
+		testFields := setup(t)
 		err := Run(context.Background(), "logout", "--clear")
 		assert.NilError(t, err)
 
-		assert.Equal(t, int32(1), atomic.LoadInt32(count), "calls to API")
+		assert.Equal(t, int32(1), atomic.LoadInt32(testFields.count), "calls to API")
 
 		updatedCfg, err := readConfig()
 		assert.NilError(t, err)
 
 		assert.Equal(t, int32(1), int32(len(updatedCfg.Hosts)))
-		assert.DeepEqual(t, cfg.Hosts[1], updatedCfg.Hosts[0])
+		assert.DeepEqual(t, testFields.config.Hosts[1], updatedCfg.Hosts[0])
 		// assert.DeepEqual(t, &expected, updatedCfg)
 
 		updatedKubeCfg, err := clientConfig().RawConfig()
@@ -191,16 +199,16 @@ func TestLogout(t *testing.T) {
 	})
 
 	t.Run("with all", func(t *testing.T) {
-		cfg, count := setup(t)
+		testFields := setup(t)
 		err := Run(context.Background(), "logout", "--all")
 		assert.NilError(t, err)
 
-		assert.Equal(t, int32(2), atomic.LoadInt32(count), "calls to API")
+		assert.Equal(t, int32(2), atomic.LoadInt32(testFields.count), "calls to API")
 
 		updatedCfg, err := readConfig()
 		assert.NilError(t, err)
 
-		expected := cfg
+		expected := testFields.config
 		expected.Hosts[0].AccessKey = ""
 		expected.Hosts[0].Name = ""
 		expected.Hosts[0].PolymorphicID = ""
@@ -215,11 +223,11 @@ func TestLogout(t *testing.T) {
 	})
 
 	t.Run("with clear all", func(t *testing.T) {
-		_, count := setup(t)
+		testFields := setup(t)
 		err := Run(context.Background(), "logout", "--clear", "--all")
 		assert.NilError(t, err)
 
-		assert.Equal(t, int32(2), atomic.LoadInt32(count), "calls to API")
+		assert.Equal(t, int32(2), atomic.LoadInt32(testFields.count), "calls to API")
 
 		updatedCfg, err := readConfig()
 		assert.NilError(t, err)
@@ -233,31 +241,28 @@ func TestLogout(t *testing.T) {
 	})
 
 	t.Run("with one and all", func(t *testing.T) {
-		cfg, count := setup(t)
-		err := Run(context.Background(), "logout", srvURL, "--all")
+		testFields := setup(t)
+		err := Run(context.Background(), "logout", testFields.serverURLs[0], "--all")
 		assert.Error(t, err, "Argument [SERVER] and flag [--all] cannot be both specified.")
 
-		assert.Equal(t, int32(0), atomic.LoadInt32(count), "calls to API")
+		assert.Equal(t, int32(0), atomic.LoadInt32(testFields.count), "calls to API")
 
 		updatedCfg, err := readConfig()
 		assert.NilError(t, err)
-		assert.DeepEqual(t, &cfg, updatedCfg)
+		assert.DeepEqual(t, &testFields.config, updatedCfg)
 	})
 
-	t.Run("unauthorized", func(t *testing.T) {
-		cfg, count := setupUnauthorized(t)
-		err := Run(context.Background(), "logout", unauthorizedSrvURL)
-		assert.NilError(t, err)
+	t.Run("error", func(t *testing.T) {
+		testFields := setupError(t)
+		err := Run(context.Background(), "logout", testFields.serverURLs[0])
+		assert.Error(t, err, fmt.Sprintf(`Failed to logout of server %s due to an internal error: POST "/v1/logout" responded 500: Internal Server Error.`, testFields.serverURLs[0]))
 
-		assert.Equal(t, int32(1), atomic.LoadInt32(count), "calls to API")
+		assert.Equal(t, int32(1), atomic.LoadInt32(testFields.count), "calls to API")
 
 		updatedCfg, err := readConfig()
 		assert.NilError(t, err)
 
-		expected := cfg
-		expected.Hosts[0].AccessKey = ""
-		expected.Hosts[0].Name = ""
-		expected.Hosts[0].PolymorphicID = ""
+		expected := testFields.config
 		assert.DeepEqual(t, &expected, updatedCfg)
 	})
 }
