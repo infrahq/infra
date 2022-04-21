@@ -15,7 +15,9 @@ const columns = [
     accessor: 'name',
     Cell: ({ value }) => (
       <div className='flex items-center'>
-        <div className='w-9 h-9 mr-4 bg-purple-100/10 font-bold rounded-lg flex items-center justify-center'>{value[0]?.toUpperCase()}</div>
+        <div className='w-9 h-9 mr-4 bg-purple-100/10 font-bold rounded-lg flex items-center justify-center'>
+          {value[0]?.toUpperCase()}
+        </div>
         <div>{value}</div>
       </div>
     )
@@ -75,8 +77,6 @@ function AddModal ({ open, setOpen }) {
           name
         })
       })
-
-      console.log(res)
 
       return false
     }
