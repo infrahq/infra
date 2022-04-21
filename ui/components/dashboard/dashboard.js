@@ -26,9 +26,7 @@ export default function ({ children }) {
   }
 
   function settings () {
-    Router.push({
-      pathname: '/settings'
-    }, undefined, { shallow: true })
+    router.replace('/settings')
   }
 
   return (

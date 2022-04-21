@@ -40,7 +40,6 @@ const SpinIcon = styled.div`
 const ConnectStatus = ({ enabledCommandInput, connected }) => {
   return (
     <div>
-      <p>Once you have successfully installed infra we will be able to detect the connection</p>
       {enabledCommandInput &&
         <>
           <h1>Connection Status</h1>

@@ -1,13 +1,11 @@
 import Link from 'next/link'
 
+import HeaderIcon from './dashboard/headerIcon'
+
 export default function ({ title, subtitle, iconPath, buttonText, buttonHref }) {
   return (
     <div className='flex flex-col text-center my-24'>
-      <div className='flex bg-gradient-to-br from-violet-400/30 to-pink-200/30 items-center justify-center rounded-full mx-auto my-4'>
-        <div className='flex bg-black items-center justify-center rounded-full w-16 h-16 m-0.5'>
-          <img className='w-8 h-8' src={iconPath} />
-        </div>
-      </div>
+      <HeaderIcon iconPath={iconPath} position='center' />
       <h1 className='text-white text-lg font-bold mb-2'>{title}</h1>
       <h2 className='text-gray-300 mb-4 text-sm max-w-xs mx-auto'>{subtitle}</h2>
       <Link href={buttonHref}>
