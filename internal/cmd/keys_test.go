@@ -50,20 +50,7 @@ func TestKeysAddCmd(t *testing.T) {
 		srv := httptest.NewTLSServer(http.HandlerFunc(handler))
 		t.Cleanup(srv.Close)
 
-		cfg := ClientConfig{
-			Version: "0.3",
-			Hosts: []ClientHostConfig{
-				{
-					AccessKey:     "the-access-key",
-					Name:          "user1",
-					PolymorphicID: "pid1",
-					Host:          srv.Listener.Addr().String(),
-					Current:       true,
-					SkipTLSVerify: true,
-					Expires:       api.Time(time.Now().Add(time.Minute)),
-				},
-			},
-		}
+		cfg := newTestClientConfig(srv, api.Identity{})
 		err := writeConfig(&cfg)
 		assert.NilError(t, err)
 

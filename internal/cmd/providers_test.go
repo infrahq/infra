@@ -19,27 +19,11 @@ func TestProviders(t *testing.T) {
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 
-	id := uid.New()
-
 	setup := func(t *testing.T, handler func(http.ResponseWriter, *http.Request)) {
-		svc := httptest.NewTLSServer(http.HandlerFunc(handler))
-		t.Cleanup(svc.Close)
+		srv := httptest.NewTLSServer(http.HandlerFunc(handler))
+		t.Cleanup(srv.Close)
 
-		cfg := ClientConfig{
-			Version: "0.3",
-			Hosts: []ClientHostConfig{
-				{
-					PolymorphicID: uid.NewIdentityPolymorphicID(id),
-					Name:          "test",
-					Host:          svc.Listener.Addr().String(),
-					SkipTLSVerify: true,
-					AccessKey:     "access-key",
-					Expires:       api.Time(time.Now().Add(time.Hour)),
-					Current:       true,
-				},
-			},
-		}
-
+		cfg := newTestClientConfig(srv, api.Identity{})
 		err := writeConfig(&cfg)
 		assert.NilError(t, err)
 	}
