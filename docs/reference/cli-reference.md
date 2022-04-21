@@ -214,10 +214,10 @@ infra grants add IDENTITY DESTINATION [flags]
 ```
 # Grant an identity access to a destination
 $ infra grants add johndoe@example.com kubernetes.docker-desktop 
-$ infra grants add machineA kubernetes.docker-desktop
+$ infra grants add machine-a kubernetes.docker-desktop
 
 # Grant a group access to a destination 
-$ infra grants add groupA kubernetes.staging --group
+$ infra grants add group-a kubernetes.staging --group
 
 # Grant access with fine-grained permissions
 $ infra grants add johndoe@example.com kubernetes.staging --role viewer
@@ -255,10 +255,10 @@ infra grants remove IDENTITY DESTINATION [flags]
 ```
 # Remove all grants of an identity in a destination
 $ infra grants remove janedoe@example.com kubernetes.docker-desktop 
-$ infra grants remove machineA kubernetes.docker-desktop
+$ infra grants remove machine-a kubernetes.docker-desktop
 
 # Remove all grants of a group in a destination
-$ infra grants remove groupA kubernetes.staging --group
+$ infra grants remove group-a kubernetes.staging --group
 
 # Remove a specific grant 
 $ infra grants remove janedoe@example.com kubernetes.staging --role viewer
@@ -427,8 +427,8 @@ infra keys add KEY IDENTITY [flags]
 
 ```
 
-# Create an access key named 'key1' that expires in 12 hrs
-$ infra keys add key1 machineA --ttl=12h
+# Create an access key named 'example-key' that expires in 12 hrs
+$ infra keys add example-key machine-a --ttl=12h
 
 ```
 
@@ -496,7 +496,7 @@ infra providers add PROVIDER [flags]
 
 ```
 # Connect okta to infra
-$ infra providers add oktaDev --client-id abc --client-secret efg --url oktadev@example.com
+$ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN
 ```
 
 ### Options
@@ -526,7 +526,7 @@ infra providers remove PROVIDER [flags]
 ### Examples
 
 ```
-$ infra providers remove oktaDev
+$ infra providers remove okta
 ```
 
 ### Options inherited from parent commands

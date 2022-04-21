@@ -43,8 +43,8 @@ func newKeysAddCmd() *cobra.Command {
 		Short: "Create an access key",
 		Long:  `Create an access key. Only machine identities are supported at this time.`,
 		Example: `
-# Create an access key named 'key1' that expires in 12 hrs
-$ infra keys add key1 machineA --ttl=12h
+# Create an access key named 'example-key' that expires in 12 hrs
+$ infra keys add example-key machine-a --ttl=12h
 `,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {

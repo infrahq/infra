@@ -100,10 +100,10 @@ func newGrantRemoveCmd() *cobra.Command {
 		Short:   "Revoke an identity's access from a destination",
 		Example: `# Remove all grants of an identity in a destination
 $ infra grants remove janedoe@example.com kubernetes.docker-desktop 
-$ infra grants remove machineA kubernetes.docker-desktop
+$ infra grants remove machine-a kubernetes.docker-desktop
 
 # Remove all grants of a group in a destination
-$ infra grants remove groupA kubernetes.staging --group
+$ infra grants remove group-a kubernetes.staging --group
 
 # Remove a specific grant 
 $ infra grants remove janedoe@example.com kubernetes.staging --role viewer
@@ -174,10 +174,10 @@ func newGrantAddCmd() *cobra.Command {
 		Short: "Grant an identity access to a destination",
 		Example: `# Grant an identity access to a destination
 $ infra grants add johndoe@example.com kubernetes.docker-desktop 
-$ infra grants add machineA kubernetes.docker-desktop
+$ infra grants add machine-a kubernetes.docker-desktop
 
 # Grant a group access to a destination 
-$ infra grants add groupA kubernetes.staging --group
+$ infra grants add group-a kubernetes.staging --group
 
 # Grant access with fine-grained permissions
 $ infra grants add johndoe@example.com kubernetes.staging --role viewer

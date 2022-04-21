@@ -129,7 +129,7 @@ func newProvidersRemoveCmd() *cobra.Command {
 		Use:     "remove PROVIDER",
 		Aliases: []string{"rm"},
 		Short:   "Disconnect an identity provider",
-		Example: "$ infra providers remove oktaDev",
+		Example: "$ infra providers remove okta",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := defaultAPIClient()
