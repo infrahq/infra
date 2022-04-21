@@ -20,7 +20,7 @@ export default function InputDropdown ({
         <input
           type={type}
           value={value}
-          className='block w-full px-4 py-3 sm:text-sm border border-gray-600 bg-transparent rounded-full focus:outline-none focus:ring focus:ring-cyan-600'
+          className='block w-full px-4 py-3 sm:text-sm border-2 border-gray-800 bg-transparent rounded-full focus:outline-none focus:ring focus:ring-cyan-600'
           placeholder={placeholder}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}

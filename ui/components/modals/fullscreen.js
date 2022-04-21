@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { XIcon, ArrowLeftIcon } from '@heroicons/react/outline'
 
-export default function ({ children, closeHref, backHref }) {
+export default function ({ children, closeHref, backHref, verticalCenteredContent = true }) {
   return (
     <div className='flex flex-col w-full h-full'>
       <div className={`flex flex-none text-right ${backHref ? 'justify-between' : 'justify-end'}`}>
@@ -18,7 +18,7 @@ export default function ({ children, closeHref, backHref }) {
           </a>
         </Link>
       </div>
-      <div className='flex-1 flex justify-center items-center'>
+      <div className={`flex-1 flex justify-center ${verticalCenteredContent ? 'items-center' : ''}`}>
         {children}
       </div>
     </div>
