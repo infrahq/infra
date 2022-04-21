@@ -34,6 +34,7 @@ func TestKeysAddCmd(t *testing.T) {
 				return
 			}
 
+			defer close(requestCh)
 			var createRequest api.CreateAccessKeyRequest
 			err := json.NewDecoder(req.Body).Decode(&createRequest)
 			assert.Check(t, err)
@@ -44,7 +45,6 @@ func TestKeysAddCmd(t *testing.T) {
 			})
 			assert.Check(t, err)
 			requestCh <- createRequest
-			close(requestCh)
 		}
 
 		srv := httptest.NewTLSServer(http.HandlerFunc(handler))
