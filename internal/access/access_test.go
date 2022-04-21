@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/infrahq/secrets"
 	"github.com/ssoroka/slice"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
@@ -17,7 +18,6 @@ import (
 	"github.com/infrahq/infra/internal/server/authn"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/secrets"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -406,7 +406,7 @@ func SetupTestSecretProvider(t *testing.T) {
 	})
 
 	rootKey := "db_at_rest"
-	symmetricKeyProvider := secrets.NewNativeSecretProvider(sp)
+	symmetricKeyProvider := secrets.NewNativeKeyProvider(sp)
 	symmetricKey, err := symmetricKeyProvider.GenerateDataKey(rootKey)
 	assert.NilError(t, err)
 

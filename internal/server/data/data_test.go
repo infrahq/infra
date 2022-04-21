@@ -4,13 +4,13 @@ import (
 	"os"
 	"testing"
 
+	"github.com/infrahq/secrets"
 	"go.uber.org/zap/zaptest"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/secrets"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -25,7 +25,7 @@ func setup(t *testing.T) *gorm.DB {
 		Path: os.TempDir(),
 	})
 
-	kp := secrets.NewNativeSecretProvider(fp)
+	kp := secrets.NewNativeKeyProvider(fp)
 
 	key, err := kp.GenerateDataKey("")
 	assert.NilError(t, err)

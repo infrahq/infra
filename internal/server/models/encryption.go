@@ -4,7 +4,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 
-	"github.com/infrahq/infra/secrets"
+	"github.com/infrahq/secrets"
 )
 
 // EncryptedAtRest defines a field that knows how to encrypt and decrypt itself with Gorm
