@@ -27,7 +27,7 @@ func ListAccessKeys(c *gin.Context, identityID uid.ID, name string) ([]models.Ac
 		return nil, err
 	}
 
-	return data.ListAccessKeys(db, data.ByOptionalIssuedFor(identityID), data.ByOptionalName(name))
+	return data.ListAccessKeys(db.Preload("IssuedForIdentity"), data.ByOptionalIssuedFor(identityID), data.ByOptionalName(name))
 }
 
 func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey, identityID uid.ID) (body string, err error) {

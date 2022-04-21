@@ -57,7 +57,7 @@ func info() error {
 		return err
 	}
 
-	fmt.Fprintf(w, "Identity:\t %s\n", identity.Name)
+	fmt.Fprintf(w, "Identity:\t %s (%s)\n", identity.Name, identity.ID)
 
 	if config.ProviderID != 0 {
 		provider, err := client.GetProvider(config.ProviderID)

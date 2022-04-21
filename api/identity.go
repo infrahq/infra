@@ -14,7 +14,8 @@ type Identity struct {
 }
 
 type ListIdentitiesRequest struct {
-	Name string `form:"name"`
+	Name string   `form:"name"`
+	IDs  []uid.ID `form:"ids"`
 }
 
 type CreateIdentityRequest struct {
