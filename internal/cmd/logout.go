@@ -11,12 +11,14 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 )
 
+type logoutCmdOptions struct {
+	clear  bool
+	server string
+	all    bool
+}
+
 func newLogoutCmd() *cobra.Command {
-	var (
-		clear  bool
-		server string
-		all    bool
-	)
+	var options logoutCmdOptions
 
 	cmd := &cobra.Command{
 		Use:   "logout [SERVER]",
@@ -44,17 +46,17 @@ $ infra logout --all --clear`,
 		Group: "Core commands:",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 1 {
-				if all {
+				if options.all {
 					return fmt.Errorf("Argument [SERVER] and flag [--all] cannot be both specified.")
 				}
-				server = args[0]
+				options.server = args[0]
 			}
-			return logout(clear, server, all)
+			return logout(options.clear, options.server, options.all)
 		},
 	}
 
-	cmd.Flags().BoolVar(&clear, "clear", false, "clear from list of servers")
-	cmd.Flags().BoolVar(&all, "all", false, "logout of all servers")
+	cmd.Flags().BoolVar(&options.clear, "clear", false, "clear from list of servers")
+	cmd.Flags().BoolVar(&options.all, "all", false, "logout of all servers")
 
 	return cmd
 }
