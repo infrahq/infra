@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -56,7 +57,9 @@ func (a *API) sendAPIError(c *gin.Context, err error) {
 	case errors.Is(err, (*validator.InvalidValidationError)(nil)):
 		resp.Code = http.StatusBadRequest
 		resp.Message = err.Error()
-
+	case errors.Is(err, context.DeadlineExceeded):
+		resp.Code = http.StatusBadGateway // not ideal, but StatusRequestTimeout isn't intended for this.
+		resp.Message = "request timed out"
 	default:
 		log = logging.L.WithOptions(zap.AddCallerSkip(1)).Error
 	}

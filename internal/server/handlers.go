@@ -25,7 +25,7 @@ type API struct {
 }
 
 func (a *API) ListIdentities(c *gin.Context, r *api.ListIdentitiesRequest) ([]api.Identity, error) {
-	identities, err := access.ListIdentities(c, r.Name)
+	identities, err := access.ListIdentities(c, r.Name, r.IDs)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 
 	// infra identity creation should be attempted even if an identity is already known
 	if r.SetOneTimePassword {
-		identities, err := access.ListIdentities(c, identity.Name)
+		identities, err := access.ListIdentities(c, identity.Name, nil)
 		if err != nil {
 			return nil, fmt.Errorf("list identities: %w", err)
 		}

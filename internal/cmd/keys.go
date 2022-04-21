@@ -6,8 +6,10 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/ssoroka/slice"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/uid"
 )
 
 const ThirtyDays = 30 * (24 * time.Hour)
@@ -159,6 +161,29 @@ func newKeysListCmd() *cobra.Command {
 				}
 			}
 
+			// loop through access keys, make list of identity ids
+			identityIDs := []uid.ID{}
+
+			for _, key := range keys {
+				identityIDs = append(identityIDs, key.IssuedFor)
+			}
+
+			identityIDs = slice.Unique(identityIDs)
+
+			// query ListIdentities for all identities at once
+			identities, err := client.ListIdentities(api.ListIdentitiesRequest{
+				IDs: identityIDs,
+			})
+			if err != nil {
+				return fmt.Errorf("listing identities: %w", err)
+			}
+
+			// build a map of identities by id
+			identityLookup := map[uid.ID]api.Identity{}
+			for _, ident := range identities {
+				identityLookup[ident.ID] = ident
+			}
+
 			type row struct {
 				Name              string `header:"NAME"`
 				IssuedFor         string `header:"ISSUED FOR"`
@@ -169,9 +194,13 @@ func newKeysListCmd() *cobra.Command {
 
 			var rows []row
 			for _, k := range keys {
+				name := k.IssuedFor.String()
+				if ident, ok := identityLookup[k.IssuedFor]; ok {
+					name = ident.Name
+				}
 				rows = append(rows, row{
 					Name:              k.Name,
-					IssuedFor:         k.IssuedFor.String(),
+					IssuedFor:         name,
 					Created:           k.Created.Relative("never"),
 					Expires:           k.Expires.Relative("never"),
 					ExtensionDeadline: k.ExtensionDeadline.Relative("never"),

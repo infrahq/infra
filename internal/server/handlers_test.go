@@ -26,7 +26,7 @@ func TestAPI_ListIdentities(t *testing.T) {
 	adminAccessKey := srv.options.AdminAccessKey
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
-	createID := func(t *testing.T, name string, kind string) {
+	createID := func(t *testing.T, name string, kind string) uid.ID {
 		t.Helper()
 		var buf bytes.Buffer
 		body := api.CreateIdentityRequest{Name: name, Kind: kind}
@@ -40,11 +40,15 @@ func TestAPI_ListIdentities(t *testing.T) {
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
 		assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
+		respObj := &api.CreateIdentityResponse{}
+		err = json.Unmarshal(resp.Body.Bytes(), respObj)
+		assert.NilError(t, err)
+		return respObj.ID
 	}
-	createID(t, "me@example.com", "user")
-	createID(t, "other@example.com", "user")
-	createID(t, "HAL", "machine")
-	createID(t, "other-HAL", "machine")
+	id1 := createID(t, "me@example.com", "user")
+	id2 := createID(t, "other@example.com", "user")
+	id3 := createID(t, "HAL", "machine")
+	_ = createID(t, "other-HAL", "machine")
 
 	type testCase struct {
 		urlPath  string
@@ -85,6 +89,22 @@ func TestAPI_ListIdentities(t *testing.T) {
 				assert.NilError(t, err)
 				expected := []api.Identity{
 					{Name: "me@example.com", Kind: "user"},
+				}
+				assert.DeepEqual(t, actual, expected, cmpAPIIdentityShallow)
+			},
+		},
+		"filter by ids": {
+			urlPath: fmt.Sprintf("/v1/identities?ids=%s&ids=%s&ids=%s", id1, id2, id3),
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK)
+
+				var actual []api.Identity
+				err := json.NewDecoder(resp.Body).Decode(&actual)
+				assert.NilError(t, err)
+				expected := []api.Identity{
+					{Name: "HAL", Kind: "machine"},
+					{Name: "me@example.com", Kind: "user"},
+					{Name: "other@example.com", Kind: "user"},
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIIdentityShallow)
 			},
