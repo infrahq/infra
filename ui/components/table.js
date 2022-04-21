@@ -1,6 +1,6 @@
 import { useTable } from 'react-table'
 
-export default function ({ columns, data, getRowProps = () => ({}) }) {
+export default function ({ columns, data, getRowProps = () => ({}), showHeader = true }) {
   const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } = useTable({
     columns,
     data
@@ -8,7 +8,7 @@ export default function ({ columns, data, getRowProps = () => ({}) }) {
 
   return (
     <table className='w-full table-auto' {...getTableProps()}>
-      <thead className='border-b border-zinc-800'>
+      {showHeader && <thead className='border-b border-zinc-800'>
         {headerGroups.map(headerGroup => (
           <tr key={headerGroup.id} {...headerGroup.getHeaderGroupProps()}>
             {headerGroup.headers.map(column => (
@@ -18,7 +18,7 @@ export default function ({ columns, data, getRowProps = () => ({}) }) {
             ))}
           </tr>
         ))}
-      </thead>
+      </thead>}
       <tbody {...getTableBodyProps()}>
         {rows.map(row => {
           prepareRow(row)
