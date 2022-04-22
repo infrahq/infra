@@ -79,7 +79,7 @@ export default ({ id }) => {
               .then((response) => response.json())
               .then((user) => {
                 console.log('user id:', user.id)
-                console.log('i:'+ user.id)
+                console.log('i:' + user.id)
                 grantPrivilege('i:' + user.id)
               })
               .finally(() => {
@@ -98,7 +98,7 @@ export default ({ id }) => {
   }
 
   const handleUpdateGrant = (privilege, grantId, userId) => {
-    console.log('handle grant update:' , userId)
+    console.log('handle grant update:', userId)
     fetch(`/v1/grants/${grantId}`, { method: 'DELETE' })
       .then(() => {
         if (privilege === 'remove') {

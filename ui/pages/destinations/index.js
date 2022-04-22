@@ -48,12 +48,12 @@ const columns = [
               open={open}
               setOpen={setOpen}
               onSubmit={() => {
-               fetch(`/v1/destinations/${id}`, { method: 'DELETE' })
-                .then(() => setOpen(false))
-                .finally(() => mutate('/v1/destinations'))
-                .catch((error) => {
-                console.log(error)
-                })
+                fetch(`/v1/destinations/${id}`, { method: 'DELETE' })
+                  .then(() => setOpen(false))
+                  .finally(() => mutate('/v1/destinations'))
+                  .catch((error) => {
+                    console.log(error)
+                  })
               }}
               title='Remove Cluster'
               message={name}
@@ -128,8 +128,7 @@ export default function () {
                       buttonHref='/destinations/add/details'
                       buttonText='Add Clusters'
                     />
-                  : <Table {...table} />
-              }
+                  : <Table {...table} />}
             </div>
           </div>
           )}
