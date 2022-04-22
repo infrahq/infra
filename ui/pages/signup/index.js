@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import Link from 'next/link'
 import { useSWRConfig } from 'swr'
 import { useRouter } from 'next/router'
 
@@ -73,7 +72,7 @@ export default function () {
       <h1 className='mt-5 text-md font-bold'>Welcome to Infra</h1>
       <h2 className='text-sm text-center max-w-xs my-2 text-gray-400'>You've successfully installed Infra.<br />Set up your admin user to get started.</h2>
       <form onSubmit={onSubmit} className='flex flex-col w-full max-w-sm my-8'>
-        <input autoFocus type="email" placeholder='Email' onChange={e => setEmail(e.target.value)} className={`bg-purple-100/5 border border-zinc-800 text-sm px-5 mt-2 py-3 rounded-full focus:outline-none focus:ring focus:ring-cyan-600 ${errors.email ? 'border-pink-500' : ''}`} />
+        <input autoFocus type='email' placeholder='Email' onChange={e => setEmail(e.target.value)} className={`bg-purple-100/5 border border-zinc-800 text-sm px-5 mt-2 py-3 rounded-full focus:outline-none focus:ring focus:ring-cyan-600 ${errors.email ? 'border-pink-500' : ''}`} />
         {errors.email && <p className='px-4 mb-1 text-sm text-pink-500'>{errors.email}</p>}
         <input type='password' placeholder='Password' onChange={e => setPassword(e.target.value)} className={`bg-purple-100/5 border border-zinc-800 text-sm px-5 mt-2 py-3 rounded-full focus:outline-none focus:ring focus:ring-cyan-600 ${errors.password ? 'border-pink-500' : ''}`} />
         {errors.password && <p className='px-4 mb-1 text-sm text-pink-500'>{errors.password}</p>}

@@ -20,7 +20,7 @@ function oidcLogin ({ id, url, clientID }) {
 export default function () {
   const { data: providers } = useSWR('/v1/providers', { fallbackData: [] })
   const { mutate } = useSWRConfig()
-  
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -54,7 +54,7 @@ export default function () {
         return
       }
 
-      mutate('/v1/introspect', { optimisticData: { name: email }})
+      mutate('/v1/introspect', { optimisticData: { name: email } })
 
       router.replace('/')
     } catch (e) {
@@ -64,7 +64,6 @@ export default function () {
 
     return false
   }
-
 
   const kindCount = providers.map(p => kind(p.url)).reduce((p, c) => {
     p[c] = (p[c] || 0) + 1
@@ -103,7 +102,7 @@ export default function () {
       )}
 
       <form onSubmit={onSubmit} className='flex flex-col w-full max-w-sm relative'>
-        <input required autoFocus type="email" placeholder='Email' onChange={e => setEmail(e.target.value)} className='bg-purple-100/5 border border-zinc-800 text-sm px-5 mt-2 py-3 rounded-full focus:outline-none focus:ring focus:ring-cyan-600' />
+        <input required autoFocus type='email' placeholder='Email' onChange={e => setEmail(e.target.value)} className='bg-purple-100/5 border border-zinc-800 text-sm px-5 mt-2 py-3 rounded-full focus:outline-none focus:ring focus:ring-cyan-600' />
         <input required type='password' placeholder='Password' onChange={e => setPassword(e.target.value)} className='bg-purple-100/5 border border-zinc-800 text-sm px-5 mt-2 py-3 rounded-full focus:outline-none focus:ring focus:ring-cyan-600' />
         <button disabled={!email} className='bg-gradient-to-tr mt-5 from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 my-2 disabled:opacity-30'>
           <div className='bg-black rounded-full text-sm px-4 py-3'>

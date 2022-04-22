@@ -16,19 +16,19 @@ export default ({ header, children, handleCloseModal, modalOpen, iconPath }) => 
         <div className='relative inline-block align-bottom bg-gradient-to-br from-violet-400/30 to-pink-200/30 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:align-middle sm:w-3/4 lg:w-1/2'>
           <div className='items-center justify-center bg-black rounded-xl m-0.5'>
             <div className='flex flex-row p-4'>
-                <div className='hidden lg:flex self-start mr-4 bg-gradient-to-br from-violet-400/30 to-pink-200/30 rounded-full'>
-                  <div className='flex bg-black items-center justify-center rounded-full w-16 h-16 m-0.5'>
-                    <img className='w-8 h-8' src={iconPath} />
-                  </div>
+              <div className='hidden lg:flex self-start mr-4 bg-gradient-to-br from-violet-400/30 to-pink-200/30 rounded-full'>
+                <div className='flex bg-black items-center justify-center rounded-full w-16 h-16 m-0.5'>
+                  <img className='w-8 h-8' src={iconPath} />
                 </div>
-                <div className='flex-1 flex flex-col space-y-4'>
-                  <Dialog.Title as='h1' className='text-2xl leading-6 font-bold text-white pt-6 pl-3'>
-                    {header}
-                  </Dialog.Title>
-                  <div className='pb-3 pr-3 sm:pb-6 sm:pr-6'>
-                    {children}
-                  </div>
+              </div>
+              <div className='flex-1 flex flex-col space-y-4'>
+                <Dialog.Title as='h1' className='text-2xl leading-6 font-bold text-white pt-6 pl-3'>
+                  {header}
+                </Dialog.Title>
+                <div className='pb-3 pr-3 sm:pb-6 sm:pr-6'>
+                  {children}
                 </div>
+              </div>
             </div>
           </div>
         </div>

@@ -10,9 +10,8 @@ export default function () {
       <Head>
         <title>Settings - Infra</title>
       </Head>
-      <div className='flex flex-row mt-4 lg:mt-6'>
+      <div className='flex flex-row mt-4 mb-4 lg:mt-6'>
         <div className='mt-2 mr-6'>
-          {/* todo: broken image */}
           <HeaderIcon iconPath='/settings-color.svg' />
         </div>
         <div className='flex-1 flex flex-col space-y-4'>
@@ -22,6 +21,6 @@ export default function () {
           </div>
         </div>
       </div>
-    </Dashboard>   
+    </Dashboard>
   )
 }

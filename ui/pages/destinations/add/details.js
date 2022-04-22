@@ -23,12 +23,12 @@ const CommandInput = ({ enabledCommandInput, accessKey, currentDestinationName }
   const value = enabledCommandInput ? commandValue : ''
 
   return (
-    <div className="border-2 border-gray-800 rounded-lg shadow-sm overflow-hidden my-5">
+    <div className='border-2 border-gray-800 rounded-lg shadow-sm overflow-hidden my-5'>
       <textarea
         rows={5}
-        name="commandInput"
-        id="commandInput"
-        className="block w-full py-3 pl-3 border-0 resize-none sm:text-sm bg-black focus:outline-none whitespace-pre"
+        name='commandInput'
+        id='commandInput'
+        className='block w-full py-3 pl-3 border-0 resize-none sm:text-sm bg-black focus:outline-none whitespace-pre'
         value={value}
         readOnly
       />
@@ -118,68 +118,68 @@ export default function () {
   }
 
   return (
-    <Fullscreen closeHref={'/destinations'} verticalCenteredContent={false}>
+    <Fullscreen closeHref='/destinations' verticalCenteredContent={false}>
       <Head>
         <title>Infra - Destinations</title>
       </Head>
-        <div className='flex flex-col mb-10 w-full max-w-md'>
-          <HeaderIcon iconPath='/destinations-color.svg' position='center'/>
-          <h1 className='text-xl font-bold tracking-tight text-center'>Connect a Kubernetes Cluster</h1>
-          <h2 className='mt-3 mb-5 text-gray-500 text-center'>
-            For more info on destinations, check out our <a className='text-cyan-400 underline' target='_blank' href='https://infrahq.com/docs/connectors/kubernetes' rel='noreferrer'>docs</a>
-          </h2>
-          <div className='flex gap-1 mb-5'>
-            <div className='flex-1 w-full'>
-              <InputDropdown
-                type='text'
-                value={name}
-                placeholder='Name your cluster'
-                hasDropdownSelection={false}
-                handleInputChange={e => setName(e.target.value)}
-                handleKeyDown={(e) => handleKeyDownEvent(e.key)}
-              />
-            </div>
-            <button
-              onClick={() => handleNext()}
-              disabled={name.length === 0}
-              type='button'
-              className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 p-0.5 mx-auto rounded-full'
-            >
-              <div className='bg-black flex items-center text-sm px-12 py-3 rounded-full'>
-                Next
-              </div>
-            </button>
+      <div className='flex flex-col mb-10 w-full max-w-md'>
+        <HeaderIcon iconPath='/destinations-color.svg' position='center' />
+        <h1 className='text-xl font-bold tracking-tight text-center'>Connect a Kubernetes Cluster</h1>
+        <h2 className='mt-3 mb-5 text-gray-500 text-center'>
+          For more info on destinations, check out our <a className='text-cyan-400 underline' target='_blank' href='https://infrahq.com/docs/connectors/kubernetes' rel='noreferrer'>docs</a>
+        </h2>
+        <div className='flex gap-1 mb-5'>
+          <div className='flex-1 w-full'>
+            <InputDropdown
+              type='text'
+              value={name}
+              placeholder='Name your cluster'
+              hasDropdownSelection={false}
+              handleInputChange={e => setName(e.target.value)}
+              handleKeyDown={(e) => handleKeyDownEvent(e.key)}
+            />
           </div>
-          <h2 className='text-gray-500 text-center px-2'>
-            After you name your cluster, run the output of this command to connect.
-          </h2>
-          <CommandInput
-            enabledCommandInput={enabledCommandInput}
-            accessKey={accessKey}
-            currentDestinationName={currentDestinationName}
-          />
-          <h2 className='text-gray-500 text-center px-2 mb-2'>
-            Once you have successfully installed Infra, we will be able to detect the connection.
-          </h2>
-          {enabledCommandInput && <div className='border-2 border-dashed border-pink-300 opacity-60 rounded-lg shadow-sm overflow-hidden my-5 px-5 py-3'>
+          <button
+            onClick={() => handleNext()}
+            disabled={name.length === 0}
+            type='button'
+            className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 p-0.5 mx-auto rounded-full'
+          >
+            <div className='bg-black flex items-center text-sm px-12 py-3 rounded-full'>
+              Next
+            </div>
+          </button>
+        </div>
+        <h2 className='text-gray-500 text-center px-2'>
+          After you name your cluster, run the output of this command to connect.
+        </h2>
+        <CommandInput
+          enabledCommandInput={enabledCommandInput}
+          accessKey={accessKey}
+          currentDestinationName={currentDestinationName}
+        />
+        <h2 className='text-gray-500 text-center px-2 mb-2'>
+          Once you have successfully installed Infra, we will be able to detect the connection.
+        </h2>
+        {enabledCommandInput &&
+          <div className='border-2 border-dashed border-pink-300 opacity-60 rounded-lg shadow-sm overflow-hidden my-5 px-5 py-3'>
             <div className='flex items-center justify-center p-0.5 w-full'>
               <img className={connected ? 'w-8 h-8 animate-pulse' : 'w-8 h-8 animate-spin-fast'} src={connected ? '/connected-icon.svg' : '/connecting-spinner.svg'} />
               <p className='text-pink-500 text-sm px-2 py-3'>{connected ? 'Connected!' : 'Connecting...'}</p>
             </div>
           </div>}
-          {connected && 
-            <button
-              onClick={() => handleFinished()}
-              disabled={name.length === 0}
-              type='button'
-              className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 w-full mt-6 text-center'
-            >
-              <div className='bg-black rounded-full tracking-tight text-sm px-6 py-3'>
-                Finished
-              </div>
-            </button>
-          }
-        </div>
+        {connected &&
+          <button
+            onClick={() => handleFinished()}
+            disabled={name.length === 0}
+            type='button'
+            className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 w-full mt-6 text-center'
+          >
+            <div className='bg-black rounded-full tracking-tight text-sm px-6 py-3'>
+              Finished
+            </div>
+          </button>}
+      </div>
     </Fullscreen>
   )
 }

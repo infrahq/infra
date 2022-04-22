@@ -11,7 +11,6 @@ import '../styles/globals.css'
 import '../styles/typography.css'
 import '../styles/buttons.css'
 
-
 dayjs.extend(relativeTime)
 dayjs.extend(updateLocale)
 dayjs.updateLocale('en', {
