@@ -37,7 +37,8 @@ func newProvidersListCmd() *cobra.Command {
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List connected identity providers",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		Args:    NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			client, err := defaultAPIClient()
 			if err != nil {
 				return err

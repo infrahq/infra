@@ -20,9 +20,10 @@ func newAboutCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:    "about",
 		Short:  "Display information about Infra",
+		Args:   NoArgs,
 		Group:  "Other commands:",
 		Hidden: false,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			return about()
 		},
 	}

@@ -47,3 +47,16 @@ func MaxArgs(max int) cobra.PositionalArgs {
 			cmd.UseLine())
 	}
 }
+
+// NoArgs validates that a cobra command is executed with no arguments, otherwise
+// it returns an error that includes the usage string.
+func NoArgs(cmd *cobra.Command, args []string) error {
+	if len(args) == 0 {
+		return nil
+	}
+	return fmt.Errorf(
+		"%q accepts no arguments.\nSee \"%s --help\".\n\nUsage:  %s\n",
+		cmd.CommandPath(),
+		cmd.CommandPath(),
+		cmd.UseLine())
+}
