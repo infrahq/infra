@@ -46,7 +46,7 @@ func newKeysAddCmd() *cobra.Command {
 		Short: "Create an access key",
 		Long:  `Create an access key. Only machine identities are supported at this time.`,
 		Example: `
-# Create an access key named 'example-key' that expires in 12 hrs
+# Create an access key named 'example-key' that expires in 12 hours
 $ infra keys add example-key machine-a --ttl=12h
 `,
 		Args: ExactArgs(2),

@@ -431,7 +431,7 @@ infra keys add KEY IDENTITY [flags]
 
 ```
 
-# Create an access key named 'example-key' that expires in 12 hrs
+# Create an access key named 'example-key' that expires in 12 hours
 $ infra keys add example-key machine-a --ttl=12h
 
 ```
