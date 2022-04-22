@@ -124,11 +124,8 @@ export default function () {
       </Head>
       <div className='flex flex-col mb-10 w-full max-w-md'>
         <HeaderIcon iconPath='/destinations-color.svg' position='center' />
-        <h1 className='text-xl font-bold tracking-tight text-center'>Connect a Kubernetes Cluster</h1>
-        <h2 className='mt-3 mb-5 text-gray-500 text-center'>
-          For more info on destinations, check out our <a className='text-cyan-400 underline' target='_blank' href='https://infrahq.com/docs/connectors/kubernetes' rel='noreferrer'>docs</a>
-        </h2>
-        <div className='flex gap-1 mb-5'>
+        <h1 className='text-xl font-bold tracking-tight text-center'>Connect a Cluster</h1>
+        <div className='flex gap-1 mt-8 mb-5'>
           <div className='flex-1 w-full'>
             <InputDropdown
               type='text'

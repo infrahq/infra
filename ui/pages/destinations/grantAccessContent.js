@@ -20,6 +20,8 @@ const GrantListItem = styled.div`
 `
 
 const Grant = ({ id }) => {
+  console.log('id:', id)
+  console.log(id.replace('i:', ''))
   const { data: user } = useSWR(`/v1/identities/${id.replace('i:', '')}`, { fallbackData: { name: '' } })
 
   return (
@@ -41,7 +43,7 @@ export default ({ id }) => {
   const grantPrivilege = (id, privilege = role) => {
     fetch('/v1/grants', {
       method: 'POST',
-      body: JSON.stringify({ subject: 'i:' + id, resource: destination.name, privilege })
+      body: JSON.stringify({ subject: id, resource: destination.name, privilege })
     })
       .then((response) => response.json())
       .then(() => {
@@ -76,7 +78,9 @@ export default ({ id }) => {
             })
               .then((response) => response.json())
               .then((user) => {
-                grantPrivilege(user.id)
+                console.log('user id:', user.id)
+                console.log('i:'+ user.id)
+                grantPrivilege('i:' + user.id)
               })
               .finally(() => {
                 setEmail('')
@@ -94,6 +98,7 @@ export default ({ id }) => {
   }
 
   const handleUpdateGrant = (privilege, grantId, userId) => {
+    console.log('handle grant update:' , userId)
     fetch(`/v1/grants/${grantId}`, { method: 'DELETE' })
       .then(() => {
         if (privilege === 'remove') {
