@@ -307,7 +307,7 @@ infra identities add IDENTITY [flags]
 $ infra identities add johndoe@example.com
 
 # Create a machine
-$ infra identities add machineA
+$ infra identities add machine-a
 ```
 
 ### Options inherited from parent commands
@@ -378,7 +378,7 @@ infra identities remove IDENTITY [flags]
 $ infra identities remove janedoe@example.com
 
 # Delete a machine
-$ infra identities remove machineA
+$ infra identities remove machine-a
 ```
 
 ### Options inherited from parent commands

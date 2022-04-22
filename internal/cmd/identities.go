@@ -56,7 +56,7 @@ A new user identity must change their one time password before further usage.`,
 $ infra identities add johndoe@example.com
 
 # Create a machine
-$ infra identities add machineA`,
+$ infra identities add machine-a`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
@@ -186,7 +186,7 @@ func newIdentitiesRemoveCmd() *cobra.Command {
 $ infra identities remove janedoe@example.com
 
 # Delete a machine
-$ infra identities remove machineA`,
+$ infra identities remove machine-a`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
