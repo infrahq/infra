@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -15,6 +16,15 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/uid"
 )
+
+func TestMain(m *testing.M) {
+	// Many tests in this package will modify the home directory. Every test
+	// should call t.Setenv, but as a safeguard setup some env vars.
+	_ = os.Setenv("HOME", "/this test forgot to t.SetEnv(HOME, ...)")
+	_ = os.Setenv("USERPROFILE", "/this test forgot to t.SetEnv(USERPROFILE, ...)")
+	_ = os.Setenv("KUBECONFIG", "/this test forgot to t.SetEnv(KUBECONFIG, ...)")
+	os.Exit(m.Run())
+}
 
 func TestUse(t *testing.T) {
 	home := t.TempDir()

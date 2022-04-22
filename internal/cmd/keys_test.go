@@ -15,6 +15,10 @@ import (
 )
 
 func TestKeysAddCmd(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home) // for windows
+
 	setup := func(t *testing.T) chan api.CreateAccessKeyRequest {
 		requestCh := make(chan api.CreateAccessKeyRequest, 1)
 
