@@ -3,7 +3,7 @@ package models
 type Settings struct {
 	Model
 
-	PrivateJWK []byte
+	PrivateJWK EncryptedAtRestBytes
 	PublicJWK  []byte
 
 	SignupEnabled bool

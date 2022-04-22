@@ -23,7 +23,7 @@ import (
 // NewDB creates a new database connection and runs any required database migrations
 // before returning the connection.
 func NewDB(connection gorm.Dialector) (*gorm.DB, error) {
-	db, err := newRawDB(connection)
+	db, err := NewRawDB(connection)
 	if err != nil {
 		return nil, fmt.Errorf("db conn: %w", err)
 	}
@@ -35,7 +35,16 @@ func NewDB(connection gorm.Dialector) (*gorm.DB, error) {
 	return db, nil
 }
 
-func newRawDB(connection gorm.Dialector) (*gorm.DB, error) {
+func PreMigrate(db *gorm.DB) error {
+	return premigrate(db)
+}
+
+func Migrate(db *gorm.DB) error {
+	return migrate(db)
+}
+
+// NewRawDB creates a new database connection without running migrations
+func NewRawDB(connection gorm.Dialector) (*gorm.DB, error) {
 	db, err := gorm.Open(connection, &gorm.Config{
 		Logger: logging.ToGormLogger(logging.S),
 	})

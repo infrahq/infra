@@ -141,13 +141,21 @@ func New(options Options) (*Server, error) {
 		return nil, fmt.Errorf("driver: %w", err)
 	}
 
-	server.db, err = data.NewDB(driver)
+	server.db, err = data.NewRawDB(driver)
 	if err != nil {
 		return nil, fmt.Errorf("db: %w", err)
 	}
 
+	if err := data.PreMigrate(server.db); err != nil {
+		return nil, err
+	}
+
 	if err = server.loadDBKey(); err != nil {
 		return nil, fmt.Errorf("loading database key: %w", err)
+	}
+
+	if err := data.Migrate(server.db); err != nil {
+		return nil, err
 	}
 
 	if err = server.loadCertificates(); err != nil {

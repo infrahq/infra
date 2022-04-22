@@ -438,23 +438,53 @@ func migrate(db *gorm.DB) error {
 				return tx.Migrator().RenameColumn(&models.Settings{}, "signup_required", "setup_required")
 			},
 		},
+		// make Settings use EncryptedAtRest fields
+		{
+			ID: "202204211705",
+			Migrate: func(tx *gorm.DB) error {
+				type Settings struct {
+					models.Model
+					PrivateJWK models.EncryptedAtRestBytes
+				}
+
+				// to convert the plaintext field to encrypted, load it with SkipSymmetricKey, then save without it.
+				models.SkipSymmetricKey = true
+				settings := []Settings{}
+				err := db.Model(Settings{}).Find(&settings).Error
+				if err != nil {
+					models.SkipSymmetricKey = false
+					return err
+				}
+
+				models.SkipSymmetricKey = false
+				for _, setting := range settings {
+					if err := db.Save(setting).Error; err != nil {
+						return err
+					}
+				}
+
+				return nil
+			},
+		},
 		// next one here
 	})
 
-	m.InitSchema(func(db *gorm.DB) error {
-		if db.Migrator().HasTable("providers") {
-			// don't pre-auto-mgirate if tables already exist.
-			return nil
-		}
-
-		return automigrate(db)
-	})
+	m.InitSchema(premigrate)
 
 	if err := m.Migrate(); err != nil {
 		return err
 	}
 
 	// automigrate again, so that for simple things like adding db fields we don't necessarily need to do a migration
+	return automigrate(db)
+}
+
+func premigrate(db *gorm.DB) error {
+	if db.Migrator().HasTable("providers") {
+		// don't pre-auto-mgirate if tables already exist.
+		return nil
+	}
+
 	return automigrate(db)
 }
 
