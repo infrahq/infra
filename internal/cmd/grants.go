@@ -14,10 +14,10 @@ import (
 )
 
 type grantsCmdOptions struct {
-	Identity    string `mapstructure:"identity"`
-	Destination string `mapstructure:"destination"`
-	IsGroup     bool   `mapstructure:"group"`
-	Role        string `mapstructure:"role"`
+	Identity    string
+	Destination string
+	IsGroup     bool
+	Role        string
 }
 
 func newGrantsCmd() *cobra.Command {
@@ -42,16 +42,13 @@ func newGrantsCmd() *cobra.Command {
 }
 
 func newGrantsListCmd() *cobra.Command {
+	var options grantsCmdOptions
+
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List grants",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var options grantsCmdOptions
-			if err := parseOptions(cmd, &options, "INFRA_GRANTS"); err != nil {
-				return err
-			}
-
 			client, err := defaultAPIClient()
 			if err != nil {
 				return err
@@ -92,11 +89,13 @@ func newGrantsListCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().String("destination", "", "Filter by destination")
+	cmd.Flags().StringVar(&options.Destination, "destination", "", "Filter by destination")
 	return cmd
 }
 
 func newGrantRemoveCmd() *cobra.Command {
+	var options grantsCmdOptions
+
 	cmd := &cobra.Command{
 		Use:     "remove IDENTITY DESTINATION",
 		Aliases: []string{"rm"},
@@ -114,21 +113,14 @@ $ infra grants remove devGroup -g ...
 `,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var options grantsCmdOptions
-			if err := parseOptions(cmd, &options, "INFRA_GRANTS"); err != nil {
-				return err
-			}
-
 			options.Identity = args[0]
 			options.Destination = args[1]
-
 			return removeGrant(options)
 		},
 	}
 
-	cmd.Flags().BoolP("group", "g", false, "Group to revoke access from")
-	cmd.Flags().String("role", "", "Role to revoke")
-
+	cmd.Flags().BoolVarP(&options.IsGroup, "group", "g", false, "Group to revoke access from")
+	cmd.Flags().StringVar(&options.Role, "role", "", "Role to revoke")
 	return cmd
 }
 
@@ -170,6 +162,8 @@ func removeGrant(cmdOptions grantsCmdOptions) error {
 }
 
 func newGrantAddCmd() *cobra.Command {
+	var options grantsCmdOptions
+
 	cmd := &cobra.Command{
 		Use:   "add IDENTITY DESTINATION",
 		Short: "Grant access to a destination",
@@ -190,20 +184,14 @@ For full documentation on grants with more examples, see:
 `,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var options grantsCmdOptions
-			if err := parseOptions(cmd, &options, "INFRA_GRANTS"); err != nil {
-				return err
-			}
-
 			options.Identity = args[0]
 			options.Destination = args[1]
-
 			return addGrant(options)
 		},
 	}
 
-	cmd.Flags().BoolP("group", "g", false, "Required if identity is of type 'group'")
-	cmd.Flags().String("role", models.BasePermissionConnect, "Type of access that identity will be given")
+	cmd.Flags().BoolVarP(&options.IsGroup, "group", "g", false, "Required if identity is of type 'group'")
+	cmd.Flags().StringVar(&options.Role, "role", models.BasePermissionConnect, "Type of access that identity will be given")
 	return cmd
 }
 

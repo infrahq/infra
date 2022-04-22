@@ -36,10 +36,6 @@ func newIdentitiesCmd() *cobra.Command {
 	return cmd
 }
 
-type addIdentityCmdOptions struct {
-	Password bool `mapstructure:"password"`
-}
-
 func newIdentitiesAddCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add IDENTITY",
@@ -54,11 +50,6 @@ EMAIL must contain a valid email address in the form of "local@domain".
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
-
-			var options addIdentityCmdOptions
-			if err := parseOptions(cmd, &options, ""); err != nil {
-				return err
-			}
 
 			createResp, err := CreateIdentity(&api.CreateIdentityRequest{Name: name, SetOneTimePassword: true})
 			if err != nil {

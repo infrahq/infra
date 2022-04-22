@@ -68,6 +68,7 @@ func (u *ID) UnmarshalText(b []byte) error {
 	return nil
 }
 
-func (u *ID) MarshalText() ([]byte, error) {
+// TODO: test cases
+func (u ID) MarshalText() ([]byte, error) {
 	return []byte(u.String()), nil
 }
