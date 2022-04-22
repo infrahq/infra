@@ -34,7 +34,7 @@ type Options struct {
 //   // environment variable
 //   PREFIX_ADDR_HTTPS=value
 //   // command line flag
-//   flags.String(&target.Addr.HTTPS, ...)
+//   flags.String("addr-https", ...)
 //
 func Load(target interface{}, opts Options) error {
 	if opts.FieldTagName == "" {
@@ -82,6 +82,12 @@ func decode(target interface{}, raw map[string]interface{}, opts Options) error 
 		MatchName: func(key string, fieldName string) bool {
 			return strings.EqualFold(key, fieldName)
 		},
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			mapstructure.StringToTimeDurationHookFunc(),
+			mapstructure.StringToSliceHookFunc(","),
+			HookPrepareForDecode,
+			HookSetFromString,
+		),
 	}
 	decoder, err := mapstructure.NewDecoder(&cfg)
 	if err != nil {
