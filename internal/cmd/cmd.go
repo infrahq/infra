@@ -18,9 +18,11 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"golang.org/x/term"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/cmd/cliopts"
 	"github.com/infrahq/infra/internal/connector"
 	"github.com/infrahq/infra/internal/decode"
 	"github.com/infrahq/infra/internal/logging"
@@ -204,7 +206,10 @@ $ infra use development
 $ infra use development.kube-system`,
 		Args:  cobra.ExactArgs(1),
 		Group: "Core commands:",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			if err := rootPreRun(cmd.Flags()); err != nil {
+				return err
+			}
 			return mustBeLoggedIn()
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -305,36 +310,30 @@ func newConnectorCmd() *cobra.Command {
 	return cmd
 }
 
-var rootOptions struct {
-	LogLevel       string `mapstructure:"logLevel"`
-	NonInteractive bool   `mapstructure:"nonInteractive"`
-	Info           bool   `mapstructure:"info"`
-	Version        bool   `mapstructure:"version"`
+// rootOptions are options specified by users on the command line that are
+// used by the root command.
+type rootOptions struct {
+	Info    bool
+	Version bool
 }
 
 func NewRootCmd() *cobra.Command {
 	cobra.EnableCommandSorting = false
+	var rootOpts rootOptions
 
 	rootCmd := &cobra.Command{
 		Use:               "infra",
 		CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: true},
 		SilenceUsage:      true,
 		SilenceErrors:     true,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			if err := parseOptions(cmd, &rootOptions, "INFRA"); err != nil {
-				return err
-			}
-			if err := logging.SetLevel(rootOptions.LogLevel); err != nil {
-				return err
-			}
-
-			return nil
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			return rootPreRun(cmd.Flags())
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if rootOptions.Version {
+			if rootOpts.Version {
 				return version()
 			}
-			if rootOptions.Info {
+			if rootOpts.Info {
 				if err := mustBeLoggedIn(); err != nil {
 					return fmt.Errorf("login check: %w", err)
 				}
@@ -367,17 +366,35 @@ func NewRootCmd() *cobra.Command {
 	rootCmd.AddCommand(newConnectorCmd())
 	rootCmd.AddCommand(newVersionCmd())
 
-	rootCmd.Flags().Bool("version", false, "Display Infra version")
-	rootCmd.Flags().Bool("info", false, "Display info about the current logged in session")
+	rootCmd.Flags().BoolVar(&rootOpts.Version, "version", false, "Display Infra version")
+	rootCmd.Flags().BoolVar(&rootOpts.Info, "info", false, "Display info about the current logged in session")
 
 	rootCmd.PersistentFlags().String("log-level", "info", "Show logs when running the command [error, warn, info, debug]")
-	rootCmd.PersistentFlags().Bool("non-interactive", false, "Disable all prompts for input")
 	rootCmd.PersistentFlags().Bool("help", false, "Display help")
 
 	rootCmd.SetHelpCommandGroup("Other commands:")
 	rootCmd.AddCommand(newAboutCmd())
 	rootCmd.SetUsageTemplate(usageTemplate())
 	return rootCmd
+}
+
+func rootPreRun(flags *pflag.FlagSet) error {
+	if err := cliopts.DefaultsFromEnv("INFRA", flags); err != nil {
+		return err
+	}
+	logLevel, err := flags.GetString("log-level")
+	if err != nil {
+		return err
+	}
+	if err := logging.SetLevel(logLevel); err != nil {
+		return err
+	}
+	return nil
+}
+
+func addNonInteractiveFlag(flags *pflag.FlagSet, bind *bool) {
+	isNonInteractiveMode := os.Stdin == nil || !term.IsTerminal(int(os.Stdin.Fd()))
+	flags.BoolVar(bind, "non-interactive", isNonInteractiveMode, "Disable all prompts for input")
 }
 
 func usageTemplate() string {

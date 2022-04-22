@@ -14,7 +14,10 @@ func newDestinationsCmd() *cobra.Command {
 		Aliases: []string{"dst", "dest", "destination"},
 		Short:   "Manage destinations",
 		Group:   "Management commands:",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			if err := rootPreRun(cmd.Flags()); err != nil {
+				return err
+			}
 			return mustBeLoggedIn()
 		},
 	}

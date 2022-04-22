@@ -19,7 +19,10 @@ func newKeysCmd() *cobra.Command {
 		Long:    "Manage access keys for machine identities to authenticate with Infra and call the API",
 		Aliases: []string{"key"},
 		Group:   "Management commands:",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			if err := rootPreRun(cmd.Flags()); err != nil {
+				return err
+			}
 			return mustBeLoggedIn()
 		},
 	}

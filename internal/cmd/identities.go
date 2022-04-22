@@ -20,7 +20,10 @@ func newIdentitiesCmd() *cobra.Command {
 		Aliases: []string{"id", "identity"},
 		Short:   "Manage identities (users & machines)",
 		Group:   "Management commands:",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			if err := rootPreRun(cmd.Flags()); err != nil {
+				return err
+			}
 			return mustBeLoggedIn()
 		},
 	}
@@ -34,10 +37,6 @@ func newIdentitiesCmd() *cobra.Command {
 }
 
 type addIdentityCmdOptions struct {
-	Password bool `mapstructure:"password"`
-}
-
-type editIdentityCmdOptions struct {
 	Password bool `mapstructure:"password"`
 }
 
@@ -82,7 +81,13 @@ EMAIL must contain a valid email address in the form of "local@domain".
 	return cmd
 }
 
+type editIdentityCmdOptions struct {
+	Password       bool
+	NonInteractive bool
+}
+
 func newIdentitiesEditCmd() *cobra.Command {
+	var opts editIdentityCmdOptions
 	cmd := &cobra.Command{
 		Use:   "edit IDENTITY",
 		Short: "Update an identity",
@@ -90,31 +95,25 @@ func newIdentitiesEditCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
-			var options editIdentityCmdOptions
-			if err := parseOptions(cmd, &options, ""); err != nil {
-				return err
-			}
-
 			kind, err := checkUserOrMachine(name)
 			if err != nil {
 				return err
 			}
 
 			if kind == models.MachineKind {
-				fmt.Println("machine identities have no editable fields")
+				return fmt.Errorf("machine identities have no editable fields")
 			}
 
 			if kind == models.UserKind {
-				if !options.Password {
+				if !opts.Password {
 					return errors.New("Specify a field to update")
 				}
 
-				if options.Password && rootOptions.NonInteractive {
-					return errors.New("Non-interactive mode is not supported to edit sensitive fields")
+				if opts.Password && opts.NonInteractive {
+					return errors.New("Interactive mode is required to edit sensitive fields")
 				}
 
-				err = UpdateIdentity(name, options)
-				if err != nil {
+				if err = UpdateIdentity(name, opts); err != nil {
 					return err
 				}
 			}
@@ -123,7 +122,8 @@ func newIdentitiesEditCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolP("password", "p", false, "Update password field")
+	cmd.Flags().BoolVarP(&opts.Password, "password", "p", false, "Update password field")
+	addNonInteractiveFlag(cmd.Flags(), &opts.NonInteractive)
 
 	return cmd
 }

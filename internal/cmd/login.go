@@ -15,10 +15,8 @@ import (
 	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/cli/browser"
 	"github.com/goware/urlx"
-	"github.com/iancoleman/strcase"
 	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
-	"golang.org/x/term"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/generate"
@@ -27,10 +25,11 @@ import (
 )
 
 type loginCmdOptions struct {
-	Server        string `mapstructure:"server"`
-	AccessKey     string `mapstructure:"key"`
-	Provider      string `mapstructure:"provider"`
-	SkipTLSVerify bool   `mapstructure:"skipTLSVerify"`
+	Server         string
+	AccessKey      string
+	Provider       string
+	SkipTLSVerify  bool
+	NonInteractive bool
 }
 
 type loginMethod int8
@@ -44,6 +43,8 @@ const (
 const cliLoginRedirectURL = "http://localhost:8301"
 
 func newLoginCmd() *cobra.Command {
+	var options loginCmdOptions
+
 	cmd := &cobra.Command{
 		Use:   "login [SERVER]",
 		Short: "Login to Infra",
@@ -61,13 +62,6 @@ $ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy`,
 		Args:  cobra.MaximumNArgs(1),
 		Group: "Core commands:",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var options loginCmdOptions
-			strcase.ConfigureAcronym("skip-tls-verify", "skipTLSVerify")
-
-			if err := parseOptions(cmd, &options, "INFRA"); err != nil {
-				return err
-			}
-
 			if len(args) == 1 {
 				options.Server = args[0]
 			}
@@ -76,9 +70,10 @@ $ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy`,
 		},
 	}
 
-	cmd.Flags().String("key", "", "Login with an access key")
-	cmd.Flags().String("provider", "", "Login with an identity provider")
-	cmd.Flags().Bool("skip-tls-verify", false, "Skip verifying server TLS certificates")
+	cmd.Flags().StringVar(&options.AccessKey, "key", "", "Login with an access key")
+	cmd.Flags().StringVar(&options.Provider, "provider", "", "Login with an identity provider")
+	cmd.Flags().BoolVar(&options.SkipTLSVerify, "skip-tls-verify", false, "Skip verifying server TLS certificates")
+	addNonInteractiveFlag(cmd.Flags(), &options.NonInteractive)
 	return cmd
 }
 
@@ -86,13 +81,13 @@ func login(options loginCmdOptions) error {
 	var err error
 
 	if options.Server == "" {
-		options.Server, err = promptServer()
+		options.Server, err = promptServer(options)
 		if err != nil {
 			return err
 		}
 	}
 
-	client, err := newAPIClient(options.Server, options.SkipTLSVerify)
+	client, err := newAPIClient(options)
 	if err != nil {
 		return err
 	}
@@ -124,6 +119,9 @@ func login(options loginCmdOptions) error {
 			return err
 		}
 	default:
+		if options.NonInteractive {
+			return fmt.Errorf("Non-interactive login requires key, instead run: 'infra login SERVER --non-interactive --key KEY")
+		}
 		loginMethod, provider, err := promptLoginOptions(client)
 		if err != nil {
 			return err
@@ -224,10 +222,6 @@ func updateInfraConfig(client *api.Client, loginReq *api.LoginRequest, loginRes 
 	}
 
 	return nil
-}
-
-func isNonInteractiveMode() bool {
-	return rootOptions.NonInteractive || os.Stdin == nil || !term.IsTerminal(int(os.Stdin.Fd()))
 }
 
 func oidcflow(host string, clientId string) (string, error) {
@@ -335,22 +329,27 @@ func runSignupForLogin(client *api.Client) (*api.LoginRequestPasswordCredentials
 }
 
 // Only used when logging in or switching to a new session, since user has no credentials. Otherwise, use defaultAPIClient().
-func newAPIClient(server string, skipTLSVerify bool) (*api.Client, error) {
-	if !skipTLSVerify {
+func newAPIClient(options loginCmdOptions) (*api.Client, error) {
+	if !options.SkipTLSVerify {
 		// Prompt user only if server fails the TLS verification
-		if err := verifyTLS(server); err != nil {
+		if err := verifyTLS(options.Server); err != nil {
 			if !errors.Is(err, ErrTLSNotVerified) {
 				return nil, err
+			}
+
+			if options.NonInteractive {
+				fmt.Fprintf(os.Stderr, "%s\n", ErrTLSNotVerified.Error())
+				return nil, fmt.Errorf("Non-interactive login does not allow insecure connection by default,\n       unless overridden with  '--skip-tls-verify'.")
 			}
 
 			if err = promptSkipTLSVerify(); err != nil {
 				return nil, err
 			}
-			skipTLSVerify = true
+			options.SkipTLSVerify = true
 		}
 	}
 
-	client, err := apiClient(server, "", skipTLSVerify)
+	client, err := apiClient(options.Server, "", options.SkipTLSVerify)
 	if err != nil {
 		return nil, err
 	}
@@ -441,10 +440,6 @@ func listProviders(client *api.Client) ([]api.Provider, error) {
 }
 
 func promptLoginOptions(client *api.Client) (loginMethod loginMethod, provider *api.Provider, err error) {
-	if isNonInteractiveMode() {
-		return 0, nil, fmt.Errorf("Non-interactive login requires key, instead run: 'infra login SERVER --non-interactive --key KEY")
-	}
-
 	providers, err := listProviders(client)
 	if err != nil {
 		return 0, nil, err
@@ -480,11 +475,6 @@ func promptLoginOptions(client *api.Client) (loginMethod loginMethod, provider *
 
 // Error out if it fails TLS verification and user does not want to connect.
 func promptSkipTLSVerify() error {
-	if isNonInteractiveMode() {
-		fmt.Fprintf(os.Stderr, "%s\n", ErrTLSNotVerified.Error())
-		return fmt.Errorf("Non-interactive login does not allow insecure connection by default,\n       unless overridden with  '--skip-tls-verify'.")
-	}
-
 	// Although the same error, format is a little different for interactive/non-interactive.
 	fmt.Fprintf(os.Stderr, "  %s\n", ErrTLSNotVerified.Error())
 	confirmPrompt := &survey.Confirm{
@@ -501,8 +491,8 @@ func promptSkipTLSVerify() error {
 }
 
 // Returns the host address of the Infra server that user would like to log into
-func promptServer() (string, error) {
-	if isNonInteractiveMode() {
+func promptServer(options loginCmdOptions) (string, error) {
+	if options.NonInteractive {
 		return "", fmt.Errorf("Non-interactive login requires the [SERVER] argument")
 	}
 
