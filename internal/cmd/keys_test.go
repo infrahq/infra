@@ -81,7 +81,7 @@ func TestKeysAddCmd(t *testing.T) {
 	t.Run("without required arguments", func(t *testing.T) {
 		err := Run(context.Background(), "keys", "add")
 		assert.ErrorContains(t, err, `"infra keys add" requires exactly 2 arguments`)
-		assert.ErrorContains(t, err, `Usage:  infra keys add ACCESS_KEY_NAME MACHINE_NAME`)
+		assert.ErrorContains(t, err, `Usage:  infra keys add KEY IDENTITY`)
 	})
 }
 

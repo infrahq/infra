@@ -99,11 +99,10 @@ func newProvidersAddCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add PROVIDER",
 		Short: "Connect an identity provider",
-		Long: `
-Add an identity provider for users to authenticate.
-
-PROVIDER is a short unique name of the identity provider bieng added (eg. okta) 
-		`,
+		Long: `Add an identity provider for users to authenticate.
+PROVIDER is a short unique name of the identity provider being added (eg. okta)`,
+		Example: `# Connect okta to infra
+$ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN`,
 		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := cliopts.DefaultsFromEnv("INFRA_PROVIDER", cmd.Flags()); err != nil {
@@ -145,6 +144,7 @@ func newProvidersRemoveCmd() *cobra.Command {
 		Use:     "remove PROVIDER",
 		Aliases: []string{"rm"},
 		Short:   "Disconnect an identity provider",
+		Example: "$ infra providers remove okta",
 		Args:    ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := defaultAPIClient()

@@ -165,7 +165,7 @@ func logoutOne(clear bool, server string) error {
 		return fmt.Errorf("Failed to logout of server %s due to an internal error: %w.", host.Host, err)
 	}
 	if success {
-		logging.S.Debugf("Logged out of server %s", host)
+		fmt.Fprintf(os.Stderr, "Logged out of server %s", host.Host)
 	}
 
 	if clear {
