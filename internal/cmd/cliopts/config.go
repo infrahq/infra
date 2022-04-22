@@ -76,12 +76,10 @@ func loadFromFile(target interface{}, opts Options) error {
 
 func decode(target interface{}, raw map[string]interface{}, opts Options) error {
 	cfg := mapstructure.DecoderConfig{
-		Squash:  true,
-		Result:  target,
-		TagName: opts.FieldTagName,
-		MatchName: func(key string, fieldName string) bool {
-			return strings.EqualFold(key, fieldName)
-		},
+		Squash:    true,
+		Result:    target,
+		TagName:   opts.FieldTagName,
+		MatchName: strings.EqualFold,
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(
 			mapstructure.StringToTimeDurationHookFunc(),
 			mapstructure.StringToSliceHookFunc(","),

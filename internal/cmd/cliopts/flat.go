@@ -67,6 +67,10 @@ func (w *flatSourceWalker) Exit(loc reflectwalk.Location) error {
 }
 
 func (w *flatSourceWalker) Struct(value reflect.Value) error {
+	if !value.CanAddr() {
+		// TODO: what is this case?
+		return nil
+	}
 	cfg := mapstructure.DecoderConfig{
 		Result:           value.Addr().Interface(),
 		TagName:          w.opts.FieldTagName,

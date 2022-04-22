@@ -3,16 +3,20 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/spf13/cobra"
 
+	"github.com/infrahq/infra/internal/cmd/cliopts"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server"
 )
 
 func newServerCmd() *cobra.Command {
 	options := defaultServerOptions()
+	var configFilename string
+
 	cmd := &cobra.Command{
 		Use:    "server",
 		Short:  "Start Infra server",
@@ -21,7 +25,16 @@ func newServerCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			logging.SetServerLogger()
 
-			if err := parseOptions(cmd, &options, "INFRA_SERVER"); err != nil {
+			if configFilename == "" {
+				configFilename = os.Getenv("INFRA_SERVER_CONFIG_FILE")
+			}
+
+			err := cliopts.Load(&options, cliopts.Options{
+				Filename:  configFilename,
+				EnvPrefix: "INFRA_SERVER",
+				Flags:     cmd.Flags(),
+			})
+			if err != nil {
 				return err
 			}
 
@@ -54,7 +67,7 @@ func newServerCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringP("config-file", "f", "", "Server configuration file")
+	cmd.Flags().StringVarP(&configFilename, "config-file", "f", "", "Server configuration file")
 	cmd.Flags().String("tls-cache", "$HOME/.infra/cache", "Directory to cache TLS certificates")
 	cmd.Flags().String("db-file", "$HOME/.infra/sqlite3.db", "Path to SQLite 3 database")
 	cmd.Flags().String("db-name", "", "Database name")
