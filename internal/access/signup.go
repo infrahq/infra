@@ -1,6 +1,8 @@
 package access
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 
@@ -49,6 +51,11 @@ func Signup(c *gin.Context, name, password string) (*models.Identity, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err
+	}
+
+	_, err = CreateProviderUser(c, InfraProvider(c), identity)
+	if err != nil {
+		return nil, fmt.Errorf("create provider user")
 	}
 
 	credential := &models.Credential{
