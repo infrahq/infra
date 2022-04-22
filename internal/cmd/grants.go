@@ -111,7 +111,7 @@ If not specified, it will revoke all roles for that user within the destination.
 Use [--group] or [-g] if identity is of type group. 
 $ infra grants remove devGroup -g ...
 `,
-		Args: cobra.ExactArgs(2),
+		Args: ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.Identity = args[0]
 			options.Destination = args[1]
@@ -182,7 +182,7 @@ $ infra grants add devGroup -g ...
 For full documentation on grants with more examples, see: 
   https://github.com/infrahq/infra/blob/main/docs/guides
 `,
-		Args: cobra.ExactArgs(2),
+		Args: ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.Identity = args[0]
 			options.Destination = args[1]

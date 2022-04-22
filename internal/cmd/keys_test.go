@@ -73,6 +73,12 @@ func TestKeysAddCmd(t *testing.T) {
 		}
 		assert.DeepEqual(t, expected, req)
 	})
+
+	t.Run("without required arguments", func(t *testing.T) {
+		err := Run(context.Background(), "keys", "add")
+		assert.ErrorContains(t, err, `"infra keys add" requires exactly 2 arguments`)
+		assert.ErrorContains(t, err, `Usage:  infra keys add ACCESS_KEY_NAME MACHINE_NAME`)
+	})
 }
 
 func requestMatches(req *http.Request, method string, path string) bool {

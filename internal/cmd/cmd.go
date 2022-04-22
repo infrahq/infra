@@ -204,7 +204,7 @@ $ infra use development
 
 # Use a Kubernetes namespace context
 $ infra use development.kube-system`,
-		Args:  cobra.ExactArgs(1),
+		Args:  ExactArgs(1),
 		Group: "Core commands:",
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			if err := rootPreRun(cmd.Flags()); err != nil {

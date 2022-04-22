@@ -47,7 +47,7 @@ special characters '-', '_', or '/' and has a maximum length of 256 characters.
 
 EMAIL must contain a valid email address in the form of "local@domain".
 		`,
-		Args: cobra.ExactArgs(1),
+		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
@@ -82,7 +82,7 @@ func newIdentitiesEditCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "edit IDENTITY",
 		Short: "Update an identity",
-		Args:  cobra.ExactArgs(1),
+		Args:  ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
@@ -164,10 +164,10 @@ func newIdentitiesListCmd() *cobra.Command {
 
 func newIdentitiesRemoveCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "remove NAME",
+		Use:     "remove IDENTITY",
 		Aliases: []string{"rm"},
 		Short:   "Delete an identity",
-		Args:    cobra.ExactArgs(1),
+		Args:    ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 

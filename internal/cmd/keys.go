@@ -49,7 +49,7 @@ func newKeysAddCmd() *cobra.Command {
 # Create an access key for the machine "bot" called "first-key" that expires in 12 hours and must be used every hour to remain valid
 infra keys add first-key bot --ttl=12h --extension-deadline=1h
 `,
-		Args: cobra.ExactArgs(2),
+		Args: ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			keyName := args[0]
 			machineName := args[1]
@@ -94,7 +94,7 @@ func newKeysRemoveCmd() *cobra.Command {
 		Use:     "remove ACCESS_KEY_NAME",
 		Aliases: []string{"rm"},
 		Short:   "Delete an access key",
-		Args:    cobra.ExactArgs(1),
+		Args:    ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := defaultAPIClient()
 			if err != nil {

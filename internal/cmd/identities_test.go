@@ -224,6 +224,12 @@ func TestIdentitiesCmd(t *testing.T) {
 		assert.Equal(t, models.UserKind, (*modifiedIdentities)[0].Kind)
 	})
 
+	t.Run("add without required argument", func(t *testing.T) {
+		err := Run(context.Background(), "id", "add")
+		assert.ErrorContains(t, err, `"infra identities add" requires exactly 1 argument`)
+		assert.ErrorContains(t, err, `Usage:  infra identities add IDENTITY`)
+	})
+
 	t.Run("edit machine identity fails", func(t *testing.T) {
 		setup(t)
 		err := Run(context.Background(), "id", "edit", "HAL")
@@ -244,6 +250,12 @@ func TestIdentitiesCmd(t *testing.T) {
 		assert.ErrorContains(t, err, "Interactive mode is required to edit sensitive fields")
 	})
 
+	t.Run("edit without required argument", func(t *testing.T) {
+		err := Run(context.Background(), "id", "edit")
+		assert.ErrorContains(t, err, `"infra identities edit" requires exactly 1 argument`)
+		assert.ErrorContains(t, err, `Usage:  infra identities edit IDENTITY`)
+	})
+
 	t.Run("removes only the specified identity", func(t *testing.T) {
 		modifiedIdentities := setup(t)
 		ctx := context.Background()
@@ -251,5 +263,11 @@ func TestIdentitiesCmd(t *testing.T) {
 		assert.NilError(t, err)
 
 		assert.Equal(t, len(*modifiedIdentities), 1)
+	})
+
+	t.Run("remove without required argument", func(t *testing.T) {
+		err := Run(context.Background(), "id", "remove")
+		assert.ErrorContains(t, err, `"infra identities remove" requires exactly 1 argument`)
+		assert.ErrorContains(t, err, `Usage:  infra identities remove IDENTITY`)
 	})
 }
