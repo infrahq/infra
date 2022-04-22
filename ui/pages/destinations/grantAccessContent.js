@@ -3,15 +3,7 @@ import { useState } from 'react'
 import styled from 'styled-components'
 
 import InputDropdown from '../../components/inputDropdown'
-
-const GrantNewContainer = styled.div`
-  display: grid;
-  align-items: center;
-  grid-template-columns: 70% auto;
-  gap: .5rem;
-  box-sizing: border-box;
-  padding: 0 1rem 1.75rem 0;
-`
+import { validateEmail } from '../../lib/email'
 
 const GrantList = styled.section`
   max-height: 20rem;
@@ -28,7 +20,7 @@ const GrantListItem = styled.div`
 `
 
 const Grant = ({ id }) => {
-  const { data: user } = useSWR(`/v1/identities/${id}`, { fallbackData: { name: '' } })
+  const { data: user } = useSWR(`/v1/identities/${id.replace('i:', '')}`, { fallbackData: { name: '' } })
 
   return (
     <p>{user.name}</p>
@@ -42,59 +34,66 @@ export default ({ id }) => {
   const { data: list } = useSWR(() => `/v1/grants?resource=${destination.name}`)
   const { mutate } = useSWRConfig()
 
-  const [grantNewEmail, setGrantNewEmail] = useState('')
+  const [email, setEmail] = useState('')
   const [role, setRole] = useState('view')
+  const [error, setError] = useState('')
 
   const grantPrivilege = (id, privilege = role) => {
     fetch('/v1/grants', {
       method: 'POST',
-      body: JSON.stringify({ subject: id, resource: destination.name, privilege })
+      body: JSON.stringify({ subject: 'i:' + id, resource: destination.name, privilege })
     })
       .then((response) => response.json())
-      .then((data) => {
-        console.log('data:', data)
+      .then(() => {
         mutate(`/v1/grants?resource=${destination.name}`)
       })
       .finally(() => {
-        setGrantNewEmail('')
-      // setRole('view')
+        setEmail('')
       })
   }
 
+  const handleInputChang = (value) => {
+    setEmail(value)
+    setError('')
+  }
+
   const handleKeyDownEvent = (key) => {
-    if (key === 'Enter' && grantNewEmail.length > 0) {
+    if (key === 'Enter' && email.length > 0) {
       handleShareGrant()
     }
   }
 
   const handleShareGrant = () => {
-    fetch(`/v1/identities?name=${grantNewEmail}`)
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.length === 0) {
-          fetch('/v1/identities', {
-            method: 'POST',
-            body: JSON.stringify({ name: grantNewEmail, kind: 'user' })
-          })
-            .then((response) => response.json())
-            .then((user) => {
-              grantPrivilege(user.id)
+    if (validateEmail(email)) {
+      setError('')
+      fetch(`/v1/identities?name=${email}`)
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.length === 0) {
+            fetch('/v1/identities', {
+              method: 'POST',
+              body: JSON.stringify({ name: email, kind: 'user' })
             })
-            .finally(() => {
-              setGrantNewEmail('')
-              // setRole('view')
-            })
-        } else {
-          grantPrivilege(data[0].id)
-        }
-      })
-      .catch((error) => {
-        console.log(error)
-      })
+              .then((response) => response.json())
+              .then((user) => {
+                grantPrivilege(user.id)
+              })
+              .finally(() => {
+                setEmail('')
+              })
+          } else {
+            grantPrivilege(data[0].id)
+          }
+        })
+        .catch((error) => {
+          console.log(error)
+        })
+    } else {
+      setError('Invalid email')
+    }
   }
 
   const handleUpdateGrant = (privilege, grantId, userId) => {
-    console.log({privilege, grantId, userId})
     fetch(`/v1/grants/${grantId}`, { method: 'DELETE' })
       .then(() => {
         if (privilege === 'remove') {
@@ -107,28 +106,31 @@ export default ({ id }) => {
 
   return (
     <>
-      <GrantNewContainer>
-        <InputDropdown
-          type='email'
-          value={grantNewEmail}
-          placeholder='email'
-          optionType='role'
-          options={options.filter((item) => item !== 'remove')}
-          handleInputChange={e => setGrantNewEmail(e.target.value)}
-          handleSelectOption={e => setRole(e.target.value)}
-          handleKeyDown={(e) => handleKeyDownEvent(e.key)}
-        />
+      <div className={`flex gap-1 mt-3 ${error ? 'mb-2' : 'mb-8'}`}>
+        <div className='flex-2 w-full'>
+          <InputDropdown
+            type='email'
+            value={email}
+            placeholder='email'
+            optionType='role'
+            options={options.filter((item) => item !== 'remove')}
+            handleInputChange={e => handleInputChang(e.target.value)}
+            handleSelectOption={e => setRole(e.target.value)}
+            handleKeyDown={(e) => handleKeyDownEvent(e.key)}
+          />
+        </div>
         <button
           onClick={() => handleShareGrant()}
-          disabled={grantNewEmail.length === 0}
+          disabled={email.length === 0}
           type='button'
-          className='bg-gradient-to-tr from-indigo-300 to-pink-100 rounded-full hover:from-indigo-200 hover:to-pink-50 p-0.5 my-2 mx-auto'
+          className='bg-gradient-to-tr from-indigo-300 to-pink-100 rounded-full hover:from-indigo-200 hover:to-pink-50 p-0.5 mx-auto'
         >
           <div className='bg-black flex items-center text-sm rounded-full px-12 py-3'>
             Share
           </div>
         </button>
-      </GrantNewContainer>
+      </div>
+      {error && <p className='text-sm text-pink-500'>{error}</p>}
       {list && list.length > 0 &&
         <GrantList>
           {list.map((item) => (

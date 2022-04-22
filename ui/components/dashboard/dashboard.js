@@ -1,10 +1,9 @@
 import Link from 'next/link'
-import Router, { useRouter } from 'next/router'
+import { useRouter } from 'next/router'
 import useSWR, { useSWRConfig } from 'swr'
 
 const navigation = [
   { name: 'Infrastructure', href: '/destinations', icon: '/infrastructure.svg' },
-  { name: 'Identities', href: '/identities', icon: '/identities.svg' },
   { name: 'Identity Providers', href: '/providers', icon: '/providers.svg' }
 ]
 
@@ -66,12 +65,15 @@ export default function ({ children }) {
             </Link>
           ))}
         </div>
-        <div className='relative group mx-2 my-5 h-16 hover:h-28 hover:bg-purple-100/5 transition-height transition-size px-4 duration-300 ease-in-out rounded-xl overflow-hidden'>
+        <div className='relative group mx-2 my-5 h-16 hover:h-40 hover:bg-purple-100/5 transition-height transition-size px-4 duration-300 ease-in-out rounded-xl overflow-hidden'>
           <div className='flex items-center space-x-4 my-4'>
             <div className='bg-purple-100/10 flex-none flex items-center justify-center w-9 h-9 py-1.5 rounded-lg capitalize font-bold select-none'>{auth?.name?.[0]}</div>
-            <div onClick={() => settings()} className='text-gray-300 text-sm font-medium overflow-hidden overflow-ellipsis cursor-pointer'>{auth?.name}</div>
+            <div className='text-gray-300 text-sm font-medium overflow-hidden overflow-ellipsis'>{auth?.name}</div>
           </div>
-          <div className='absolute group w-full px-2 flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-sm'>
+          <div className='absolute w-full px-2 items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-sm'>
+            <div onClick={() => settings()} className='w-full -ml-2 flex opacity-50 hover:opacity-75 py-2 cursor-pointer'>
+              <img src='/settings.svg' className='opacity-50 group-hover:opacity-75 mr-3 w-5 h-5' /><div className='text-purple-50/40 group-hover:text-purple-50'>Settings</div>
+            </div>
             <div onClick={() => logout()} className='w-full flex opacity-50 hover:opacity-75 py-2 cursor-pointer'>
               <img src='/signout.svg' className='opacity-50 group-hover:opacity-75 mr-3' /><div className='text-purple-50/40 group-hover:text-purple-50'>Logout</div>
             </div>

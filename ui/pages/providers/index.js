@@ -86,7 +86,7 @@ export default function () {
       {loading
         ? (<Loader />)
         : (
-          <div className='flex flex-row mt-4 lg:mt-20'>
+          <div className='flex flex-row mt-4 lg:mt-6'>
             {data?.length > 0 && (
               <div className='mt-2 mr-8'>
                 <HeaderIcon iconPath='/providers-color.svg' />

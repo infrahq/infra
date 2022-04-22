@@ -4,21 +4,22 @@ export default function ({ columns, data, getRowProps = () => ({}), showHeader =
   const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } = useTable({
     columns,
     data
-  });
+  })
 
   return (
     <table className='w-full table-auto' {...getTableProps()}>
-      {showHeader && <thead className='border-b border-zinc-800'>
-        {headerGroups.map(headerGroup => (
-          <tr key={headerGroup.id} {...headerGroup.getHeaderGroupProps()}>
-            {headerGroup.headers.map(column => (
-              <th key={column.id} className='text-left uppercase py-2 font-normal text-sm text-gray-400' {...column.getHeaderProps()}>
-                {column.render('Header')}
-              </th>
-            ))}
-          </tr>
-        ))}
-      </thead>}
+      {showHeader &&
+        <thead className='border-b border-zinc-800'>
+          {headerGroups.map(headerGroup => (
+            <tr key={headerGroup.id} {...headerGroup.getHeaderGroupProps()}>
+              {headerGroup.headers.map(column => (
+                <th key={column.id} className='text-left uppercase py-2 font-normal text-sm text-gray-400' {...column.getHeaderProps()}>
+                  {column.render('Header')}
+                </th>
+              ))}
+            </tr>
+          ))}
+        </thead>}
       <tbody {...getTableBodyProps()}>
         {rows.map(row => {
           prepareRow(row)
