@@ -1,8 +1,23 @@
-package decode
+package cliopts
 
 import (
 	"reflect"
 )
+
+type flagValueSlice interface {
+	GetSlice() []string
+}
+
+// hookFlagValueSlice allows for decoding from pflag.SliceValue types into a
+// slice in the target.
+func hookFlagValueSlice(from reflect.Value, to reflect.Value) (interface{}, error) {
+	source := from.Interface()
+	v, ok := source.(flagValueSlice)
+	if !ok {
+		return source, nil
+	}
+	return v.GetSlice(), nil
+}
 
 type Decoder func(target interface{}, source interface{}) error
 

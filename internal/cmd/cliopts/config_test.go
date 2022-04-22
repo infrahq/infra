@@ -27,7 +27,10 @@ type Example struct {
 
 	Nested
 
-	// TODO: slice, and map
+	ManyThings  []string
+	ManyNumbers []int
+
+	// TODO: and map
 	// TODO: type that defines Unmarshal/Decode method
 }
 
@@ -62,6 +65,8 @@ nestPtr:
     ratio: 3.15
 
 two: "from-file-3"
+manyThings: [one, two]
+manyNumbers: [1,2,3]
 `
 	f := fs.NewFile(t, t.Name(), fs.WithContent(content))
 
@@ -121,6 +126,8 @@ two: "from-file-3"
 			Two:   "from-file-3",
 			Twine: "from-env-4",
 		},
+		ManyThings:  []string{"one", "two"},
+		ManyNumbers: []int{1, 2, 3},
 	}
 	assert.DeepEqual(t, target, expected)
 }
@@ -177,6 +184,8 @@ two: "from-file-3"
 	flags.String("nest-twine", "", "")
 	flags.String("two", "", "")
 	flags.Bool("nest-ptr-flag", false, "")
+	flags.StringSlice("many-things", nil, "")
+	flags.IntSlice("many-numbers", nil, "")
 
 	err := flags.Parse([]string{
 		"--string-field=from-flag-1",
@@ -185,6 +194,11 @@ two: "from-file-3"
 		"--nest-twine=from-flag-2",
 		"--two=from-flag-3",
 		"--nest-ptr-flag",
+		"--many-things=first",
+		"--many-things=second",
+		"--many-numbers=9",
+		"--many-numbers=10",
+		"--many-numbers=11",
 	})
 	assert.NilError(t, err)
 
@@ -224,6 +238,8 @@ two: "from-file-3"
 			Two:   "from-flag-3",
 			Twine: "from-env-4",
 		},
+		ManyThings:  []string{"first", "second"},
+		ManyNumbers: []int{9, 10, 11},
 	}
 	assert.DeepEqual(t, target, expected)
 }

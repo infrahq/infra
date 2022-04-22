@@ -30,11 +30,9 @@ func loadFromEnv(target interface{}, opts Options) error {
 }
 
 func loadFromFlags(target interface{}, opts Options) error {
-	source := map[string]string{}
+	source := map[string]interface{}{}
 	opts.Flags.VisitAll(func(flag *pflag.Flag) {
-		// TODO: a better way to get values out of flags...
-		// TODO: will not work for some flag types.
-		source[flag.Name] = flag.Value.String()
+		source[flag.Name] = flag.Value
 	})
 
 	walker := &flatSourceWalker{
@@ -52,7 +50,7 @@ func loadFromFlags(target interface{}, opts Options) error {
 type flatSourceWalker struct {
 	opts            Options
 	location        []string
-	source          map[string]string
+	source          map[string]interface{}
 	fieldNameFormat func(string) string
 	fieldSeparator  string
 }
@@ -74,6 +72,11 @@ func (w *flatSourceWalker) Struct(value reflect.Value) error {
 		TagName:          w.opts.FieldTagName,
 		WeaklyTypedInput: true,
 		MatchName:        w.matchName,
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			mapstructure.StringToTimeDurationHookFunc(),
+			mapstructure.StringToSliceHookFunc(","),
+			hookFlagValueSlice,
+		),
 	}
 	decoder, err := mapstructure.NewDecoder(&cfg)
 	if err != nil {
@@ -117,8 +120,8 @@ func isPtrToStruct(value reflect.Value) bool {
 // The environment slice is filtered to only include keys that match the prefix
 // because mapstructure iterates over this map, and any keys that do not match
 // the prefix will never be used.
-func toMap(prefix string, env []string) map[string]string {
-	result := map[string]string{}
+func toMap(prefix string, env []string) map[string]interface{} {
+	result := map[string]interface{}{}
 	for _, raw := range env {
 		key, value := getParts(raw)
 		if strings.HasPrefix(key, prefix) {

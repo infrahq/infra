@@ -8,7 +8,7 @@ import (
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 
-	"github.com/infrahq/infra/internal/decode"
+	"github.com/infrahq/infra/internal/cmd/cliopts"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -218,8 +218,8 @@ func decodeConfig(target interface{}, source interface{}) error {
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(
 			mapstructure.StringToTimeDurationHookFunc(),
 			mapstructure.StringToSliceHookFunc(","),
-			decode.HookPrepareForDecode,
-			decode.HookSetFromString,
+			cliopts.HookPrepareForDecode,
+			cliopts.HookSetFromString,
 		),
 	}
 

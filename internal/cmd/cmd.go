@@ -25,7 +25,6 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/cmd/cliopts"
 	"github.com/infrahq/infra/internal/connector"
-	"github.com/infrahq/infra/internal/decode"
 	"github.com/infrahq/infra/internal/logging"
 )
 
@@ -120,8 +119,8 @@ func parseOptions(cmd *cobra.Command, options interface{}, envPrefix string) err
 	hooks := mapstructure.ComposeDecodeHookFunc(
 		mapstructure.StringToTimeDurationHookFunc(),
 		mapstructure.StringToSliceHookFunc(","),
-		decode.HookPrepareForDecode,
-		decode.HookSetFromString,
+		cliopts.HookPrepareForDecode,
+		cliopts.HookSetFromString,
 	)
 	return v.Unmarshal(options, viper.DecodeHook(hooks))
 }
