@@ -32,7 +32,8 @@ func newTokensAddCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "add",
 		Short: "Create a token",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		Args:  NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			if err := tokensCreate(); err != nil {
 				return err
 			}
