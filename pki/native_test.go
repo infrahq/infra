@@ -6,13 +6,13 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/infrahq/secrets"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/secrets"
 )
 
 func setupDB(t *testing.T) *gorm.DB {
@@ -26,7 +26,7 @@ func setupDB(t *testing.T) *gorm.DB {
 		Path: os.TempDir(),
 	})
 
-	kp := secrets.NewNativeSecretProvider(fp)
+	kp := secrets.NewNativeKeyProvider(fp)
 
 	key, err := kp.GenerateDataKey("")
 	assert.NilError(t, err)

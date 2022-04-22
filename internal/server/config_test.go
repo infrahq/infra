@@ -8,7 +8,6 @@ import (
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/decode"
-	"github.com/infrahq/infra/secrets"
 )
 
 func TestKeyProvider_PrepareForDecode_IntegrationWithDecode_FullConfig(t *testing.T) {
@@ -42,8 +41,8 @@ keys:
 		Keys: []KeyProvider{
 			{
 				Kind: "vault",
-				Config: secrets.VaultConfig{
-					TransitMount: "/transit",
+				Config: VaultConfig{
+					TransitMount: "",
 					SecretMount:  "secret-mount",
 					Token:        "the-token",
 					Namespace:    "the-namespace",
@@ -52,8 +51,8 @@ keys:
 			},
 			{
 				Kind: "awskms",
-				Config: secrets.AWSKMSConfig{
-					AWSConfig: secrets.AWSConfig{
+				Config: AWSKMSConfig{
+					AWSConfig: AWSConfig{
 						Endpoint:    "/endpoint",
 						Region:      "the-region",
 						AccessKeyID: "the-key-id",
@@ -63,7 +62,7 @@ keys:
 			},
 			{
 				Kind: "native",
-				Config: nativeSecretProviderConfig{
+				Config: nativeKeyProviderConfig{
 					SecretProvider: "the-storage",
 				},
 			},
@@ -96,7 +95,6 @@ secrets:
   - name: aws-2
     kind: awssecretsmanager
     config:
-      useSecretMaps: true
       endpoint: the-endpoint-2
       region: the-region-2
       accessKeyID: the-access-key-2
@@ -138,8 +136,8 @@ secrets:
 			{
 				Kind: "vault",
 				Name: "the-vault",
-				Config: secrets.VaultConfig{
-					TransitMount: "/transit",
+				Config: VaultConfig{
+					TransitMount: "",
 					SecretMount:  "secret-mount",
 					Token:        "the-token",
 					Namespace:    "the-namespace",
@@ -149,9 +147,9 @@ secrets:
 			{
 				Kind: "awsssm",
 				Name: "the-aws",
-				Config: secrets.AWSSSMConfig{
+				Config: AWSSSMConfig{
 					KeyID: "the-key-id",
-					AWSConfig: secrets.AWSConfig{
+					AWSConfig: AWSConfig{
 						Endpoint:        "the-endpoint",
 						Region:          "the-region",
 						AccessKeyID:     "the-access-key",
@@ -162,9 +160,8 @@ secrets:
 			{
 				Kind: "awssecretsmanager",
 				Name: "aws-2",
-				Config: secrets.AWSSecretsManagerConfig{
-					UseSecretMaps: true,
-					AWSConfig: secrets.AWSConfig{
+				Config: AWSSecretsManagerConfig{
+					AWSConfig: AWSConfig{
 						Endpoint:        "the-endpoint-2",
 						Region:          "the-region-2",
 						AccessKeyID:     "the-access-key-2",
@@ -175,14 +172,14 @@ secrets:
 			{
 				Kind: "kubernetes",
 				Name: "the-kubes",
-				Config: secrets.KubernetesConfig{
+				Config: KubernetesConfig{
 					Namespace: "the-namespace",
 				},
 			},
 			{
 				Kind: "env",
 				Name: "the-env",
-				Config: secrets.GenericConfig{
+				Config: GenericConfig{
 					Base64:           true,
 					Base64URLEncoded: true,
 					Base64Raw:        true,
@@ -191,9 +188,9 @@ secrets:
 			{
 				Kind: "file",
 				Name: "the-file",
-				Config: secrets.FileConfig{
+				Config: FileConfig{
 					Path: "/the-path",
-					GenericConfig: secrets.GenericConfig{
+					GenericConfig: GenericConfig{
 						Base64: true,
 					},
 				},
@@ -201,7 +198,7 @@ secrets:
 			{
 				Kind: "plaintext",
 				Name: "the-plaintext",
-				Config: secrets.GenericConfig{
+				Config: GenericConfig{
 					Base64Raw: true,
 				},
 			},
@@ -257,7 +254,7 @@ func TestSecretProvider_PrepareForDecode_IntegrationWithDecode(t *testing.T) {
 			name: "minimal config",
 			expected: SecretProvider{
 				Kind:   "plaintext",
-				Config: secrets.GenericConfig{},
+				Config: GenericConfig{},
 			},
 		},
 		{
@@ -266,7 +263,7 @@ func TestSecretProvider_PrepareForDecode_IntegrationWithDecode(t *testing.T) {
 			expected: SecretProvider{
 				Kind:   "plaintext",
 				Name:   "custom",
-				Config: secrets.GenericConfig{},
+				Config: GenericConfig{},
 			},
 		},
 		{

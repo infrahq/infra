@@ -8,6 +8,7 @@ type AccessKey struct {
 	ID                uid.ID `json:"id"`
 	Created           Time   `json:"created"`
 	Name              string `json:"name"`
+	IssuedForName     string `json:"issuedForName"`
 	IssuedFor         uid.ID `json:"issuedFor"`
 	ProviderID        uid.ID `json:"providerID"`
 	Expires           Time   `json:"expires,omitempty" note:"key is no longer valid after this time"`

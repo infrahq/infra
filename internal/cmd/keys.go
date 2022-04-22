@@ -169,9 +169,13 @@ func newKeysListCmd() *cobra.Command {
 
 			var rows []row
 			for _, k := range keys {
+				name := k.IssuedFor.String()
+				if k.IssuedForName != "" {
+					name = k.IssuedForName
+				}
 				rows = append(rows, row{
 					Name:              k.Name,
-					IssuedFor:         k.IssuedFor.String(),
+					IssuedFor:         name,
 					Created:           k.Created.Relative("never"),
 					Expires:           k.Expires.Relative("never"),
 					ExtensionDeadline: k.ExtensionDeadline.Relative("never"),

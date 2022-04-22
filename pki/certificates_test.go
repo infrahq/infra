@@ -6,7 +6,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"errors"
-	"flag"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -18,46 +17,7 @@ import (
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 	"gotest.tools/v3/assert/opt"
-
-	"github.com/infrahq/infra/testutil/docker"
 )
-
-func TestMain(m *testing.M) {
-	defer func() {
-		if r := recover(); r != nil {
-			teardown()
-			fmt.Println(r)
-			os.Exit(1)
-		}
-	}()
-
-	flag.Parse()
-	setup()
-
-	result := m.Run()
-
-	teardown()
-	// nolint
-	os.Exit(result)
-}
-
-var containerIDs []string
-
-func setup() {
-	if testing.Short() {
-		return
-	}
-}
-
-func teardown() {
-	if testing.Short() {
-		return
-	}
-
-	for _, containerID := range containerIDs {
-		docker.KillContainer(containerID)
-	}
-}
 
 func eachProvider(t *testing.T, eachFunc func(t *testing.T, p CertificateProvider)) {
 	providers := map[string]CertificateProvider{}
