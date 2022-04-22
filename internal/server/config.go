@@ -559,6 +559,7 @@ func (s *Server) setupInternalInfraIdentity(name, role string) (*models.Identity
 			Subject:   id.PolyID(),
 			Privilege: role,
 			Resource:  models.InternalInfraProviderName,
+			CreatedBy: models.CreatedBySystem,
 		}
 
 		err = data.CreateGrant(s.db, grant)
