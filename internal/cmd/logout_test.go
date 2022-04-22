@@ -263,4 +263,10 @@ func TestLogout(t *testing.T) {
 		expected := testFields.config
 		assert.DeepEqual(t, &expected, updatedCfg)
 	})
+
+	t.Run("with too many arguments", func(t *testing.T) {
+		err := Run(context.Background(), "logout", "too", "many")
+		assert.ErrorContains(t, err, `"infra logout" accepts at most 1 argument`)
+		assert.ErrorContains(t, err, `Usage:  infra logout [SERVER]`)
+	})
 }

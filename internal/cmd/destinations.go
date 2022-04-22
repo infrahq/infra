@@ -73,7 +73,7 @@ func newDestinationsRemoveCmd() *cobra.Command {
 		Use:     "remove DESTINATION",
 		Aliases: []string{"rm"},
 		Short:   "Disconnect a destination",
-		Args:    cobra.ExactArgs(1),
+		Args:    ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := defaultAPIClient()
 			if err != nil {

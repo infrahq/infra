@@ -103,7 +103,7 @@ Add an identity provider for users to authenticate.
 
 PROVIDER is a short unique name of the identity provider bieng added (eg. okta) 
 		`,
-		Args: cobra.ExactArgs(1),
+		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := cliopts.DefaultsFromEnv("INFRA_PROVIDER", cmd.Flags()); err != nil {
 				return err
@@ -144,7 +144,7 @@ func newProvidersRemoveCmd() *cobra.Command {
 		Use:     "remove PROVIDER",
 		Aliases: []string{"rm"},
 		Short:   "Disconnect an identity provider",
-		Args:    cobra.ExactArgs(1),
+		Args:    ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := defaultAPIClient()
 			if err != nil {

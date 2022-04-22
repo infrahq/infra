@@ -348,7 +348,7 @@ infra identities list [flags]
 Delete an identity
 
 ```
-infra identities remove NAME [flags]
+infra identities remove IDENTITY [flags]
 ```
 
 ### Options inherited from parent commands

@@ -182,6 +182,12 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 		err := Run(context.Background(), "use", "unknown")
 		assert.ErrorContains(t, err, "context not found")
 	})
+
+	t.Run("missing argument", func(t *testing.T) {
+		err := Run(context.Background(), "use")
+		assert.ErrorContains(t, err, `"infra use" requires exactly 1 argument`)
+		assert.ErrorContains(t, err, `Usage:  infra use`)
+	})
 }
 
 // newTestClientConfig returns a ClientConfig that can be used to test CLI

@@ -59,7 +59,7 @@ $ infra login --provider okta
 
 # Login with an access key
 $ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy`,
-		Args:  cobra.MaximumNArgs(1),
+		Args:  MaxArgs(1),
 		Group: "Core commands:",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 1 {
