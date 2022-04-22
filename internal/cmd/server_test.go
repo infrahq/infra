@@ -74,7 +74,6 @@ func TestServerCmd_ParseOptions(t *testing.T) {
 		{
 			name: "config filename specified as env var",
 			setup: func(t *testing.T, cmd *cobra.Command) {
-				t.Skip("does not work yet")
 				content := `
                     addr:
                       http: "127.0.0.1:1455"`
@@ -93,7 +92,6 @@ func TestServerCmd_ParseOptions(t *testing.T) {
 		{
 			name: "env var can set a value outside of the top level",
 			setup: func(t *testing.T, cmd *cobra.Command) {
-				t.Skip("does not work yet")
 				t.Setenv("INFRA_SERVER_ADDR_HTTP", "127.0.0.1:1455")
 			},
 			expected: func(t *testing.T) server.Options {
