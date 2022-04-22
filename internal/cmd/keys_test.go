@@ -34,6 +34,7 @@ func TestKeysAddCmd(t *testing.T) {
 				return
 			}
 
+			defer close(requestCh)
 			var createRequest api.CreateAccessKeyRequest
 			err := json.NewDecoder(req.Body).Decode(&createRequest)
 			assert.Check(t, err)
@@ -44,24 +45,12 @@ func TestKeysAddCmd(t *testing.T) {
 			})
 			assert.Check(t, err)
 			requestCh <- createRequest
-			close(requestCh)
 		}
 
 		srv := httptest.NewTLSServer(http.HandlerFunc(handler))
 		t.Cleanup(srv.Close)
 
-		cfg := ClientConfig{
-			Version: "0.3",
-			Hosts: []ClientHostConfig{
-				{
-					AccessKey:     "the-access-key",
-					Host:          srv.Listener.Addr().String(),
-					Current:       true,
-					SkipTLSVerify: true,
-					Expires:       api.Time(time.Now().Add(time.Minute)),
-				},
-			},
-		}
+		cfg := newTestClientConfig(srv, api.Identity{})
 		err := writeConfig(&cfg)
 		assert.NilError(t, err)
 
@@ -83,6 +72,12 @@ func TestKeysAddCmd(t *testing.T) {
 			ExtensionDeadline: api.Duration(5 * time.Hour),
 		}
 		assert.DeepEqual(t, expected, req)
+	})
+
+	t.Run("without required arguments", func(t *testing.T) {
+		err := Run(context.Background(), "keys", "add")
+		assert.ErrorContains(t, err, `"infra keys add" requires exactly 2 arguments`)
+		assert.ErrorContains(t, err, `Usage:  infra keys add ACCESS_KEY_NAME MACHINE_NAME`)
 	})
 }
 

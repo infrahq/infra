@@ -48,6 +48,11 @@ func TestSignup(t *testing.T) {
 		assert.DeepEqual(t, identity, identity2)
 		assert.Equal(t, requireUpdate, false)
 
+		c.Set("identity", identity2)
+
+		// check "admin" can create token
+		_, err = CreateToken(c)
+		assert.NilError(t, err)
 	})
 
 	t.Run("NotEnabled", func(t *testing.T) {

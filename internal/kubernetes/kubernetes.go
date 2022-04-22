@@ -16,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/infrahq/secrets"
 	"github.com/jessevdk/go-flags"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -25,7 +26,6 @@ import (
 	rest "k8s.io/client-go/rest"
 
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/secrets"
 )
 
 const (

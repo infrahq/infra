@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/infrahq/secrets"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
@@ -16,7 +17,6 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/authn"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/secrets"
 )
 
 type API struct {
@@ -25,7 +25,7 @@ type API struct {
 }
 
 func (a *API) ListIdentities(c *gin.Context, r *api.ListIdentitiesRequest) ([]api.Identity, error) {
-	identities, err := access.ListIdentities(c, r.Name)
+	identities, err := access.ListIdentities(c, r.Name, r.IDs)
 	if err != nil {
 		return nil, err
 	}
@@ -58,9 +58,11 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 		Kind: kind,
 	}
 
+	setOTP := r.SetOneTimePassword && (identity.Kind == models.UserKind)
+
 	// infra identity creation should be attempted even if an identity is already known
-	if r.SetOneTimePassword {
-		identities, err := access.ListIdentities(c, identity.Name)
+	if setOTP {
+		identities, err := access.ListIdentities(c, identity.Name, nil)
 		if err != nil {
 			return nil, fmt.Errorf("list identities: %w", err)
 		}
@@ -86,7 +88,7 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 		Name: identity.Name,
 	}
 
-	if r.SetOneTimePassword {
+	if setOTP {
 		_, err = access.CreateProviderUser(c, access.InfraProvider(c), identity)
 		if err != nil {
 			return nil, fmt.Errorf("create provider user")
@@ -406,6 +408,7 @@ func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) ([]ap
 			Name:              a.Name,
 			Created:           api.Time(a.CreatedAt),
 			IssuedFor:         a.IssuedFor,
+			IssuedForName:     a.IssuedForIdentity.Name,
 			ProviderID:        a.ProviderID,
 			Expires:           api.Time(a.ExpiresAt),
 			ExtensionDeadline: api.Time(a.ExtensionDeadline),

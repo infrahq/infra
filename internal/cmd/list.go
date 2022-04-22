@@ -15,8 +15,12 @@ func newListCmd() *cobra.Command {
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List accessible destinations",
+		Args:    NoArgs,
 		Group:   "Core commands:",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			if err := rootPreRun(cmd.Flags()); err != nil {
+				return err
+			}
 			return mustBeLoggedIn()
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {

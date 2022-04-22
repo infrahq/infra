@@ -37,6 +37,16 @@ func ByOptionalName(name string) SelectorFunc {
 	}
 }
 
+func ByOptionalIDs(ids []uid.ID) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		if len(ids) > 0 {
+			return db.Where("id in (?)", ids)
+		}
+
+		return db
+	}
+}
+
 func ByName(name string) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("name = ?", name)

@@ -6,13 +6,11 @@ require (
 	github.com/AlecAivazis/survey/v2 v2.3.4
 	github.com/aws/aws-sdk-go v1.43.41
 	github.com/cli/browser v1.1.0
-	github.com/docker/docker v20.10.14+incompatible
-	github.com/docker/go-connections v0.4.0
 	github.com/getsentry/sentry-go v0.13.0
 	github.com/gin-gonic/gin v1.7.7
 	github.com/go-playground/validator/v10 v10.10.1
 	github.com/goware/urlx v0.3.1
-	github.com/hashicorp/vault/api v1.5.0
+	github.com/hashicorp/vault/api v1.5.0 // indirect
 	github.com/jackc/pgconn v1.11.0
 	github.com/jackc/pgerrcode v0.0.0-20201024163028-a0d42d470451
 	github.com/jessevdk/go-flags v1.5.0
@@ -46,6 +44,7 @@ require (
 	github.com/go-gormigrate/gormigrate/v2 v2.0.0
 	github.com/google/go-cmp v0.5.7
 	github.com/iancoleman/strcase v0.2.0
+	github.com/infrahq/secrets v0.0.0-20220419190655-ce9f012a8941
 	github.com/mitchellh/mapstructure v1.4.3
 	github.com/pdevine/go-asciisprite v0.1.6
 	github.com/spf13/afero v1.8.2
@@ -57,7 +56,6 @@ require (
 )
 
 require (
-	github.com/Microsoft/go-winio v0.5.1 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/armon/go-metrics v0.3.10 // indirect
@@ -67,11 +65,8 @@ require (
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/cenkalti/backoff/v3 v3.0.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
-	github.com/containerd/containerd v1.3.4 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/denisenkom/go-mssqldb v0.9.0 // indirect
-	github.com/docker/distribution v2.7.1+incompatible // indirect
-	github.com/docker/go-units v0.4.0 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
@@ -85,7 +80,6 @@ require (
 	github.com/go-playground/locales v0.14.0 // indirect
 	github.com/go-playground/universal-translator v0.18.0 // indirect
 	github.com/go-sql-driver/mysql v1.6.0 // indirect
-	github.com/go-test/deep v1.0.4 // indirect
 	github.com/goccy/go-json v0.9.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
@@ -139,13 +133,9 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/go-testing-interface v1.0.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
-	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
-	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/oklog/run v1.0.0 // indirect
-	github.com/opencontainers/go-digest v1.0.0 // indirect
-	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.0-beta.8 // indirect
 	github.com/pierrec/lz4 v2.5.2+incompatible // indirect
@@ -155,7 +145,6 @@ require (
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
-	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/cast v1.4.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
@@ -175,7 +164,6 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.66.4 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
-	gotest.tools v2.2.0+incompatible // indirect
 	k8s.io/klog/v2 v2.30.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20211115234752-e816edb12b65 // indirect
 	k8s.io/utils v0.0.0-20211116205334-6203023598ed // indirect
@@ -184,6 +172,11 @@ require (
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
 
+// switch back to main repo when https://github.com/gin-gonic/gin/pull/3045 is merged
 replace github.com/gin-gonic/gin => github.com/infrahq/gin v1.7.2-0.20220120203023-0eaa562f3a8a
 
+// switch back to main repo when https://github.com/spf13/cobra/pull/1003 is merged
 replace github.com/spf13/cobra => github.com/infrahq/cobra v1.4.0-groups
+
+// switch back to main repo when https://github.com/go-gorm/gorm/pull/5288 is merged
+replace gorm.io/gorm => github.com/infrahq/gorm v1.23.5-0.20220422194753-04115485c083

@@ -3,10 +3,12 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/cmd/cliopts"
 )
 
 func newProvidersCmd() *cobra.Command {
@@ -15,7 +17,10 @@ func newProvidersCmd() *cobra.Command {
 		Short:   "Manage identity providers",
 		Aliases: []string{"provider"},
 		Group:   "Management commands:",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			if err := rootPreRun(cmd.Flags()); err != nil {
+				return err
+			}
 			return mustBeLoggedIn()
 		},
 	}
@@ -27,18 +32,13 @@ func newProvidersCmd() *cobra.Command {
 	return cmd
 }
 
-type providerCmdOptions struct {
-	URL          string `mapstructure:"url"`
-	ClientID     string `mapstructure:"clientID"`
-	ClientSecret string `mapstructure:"clientSecret"`
-}
-
 func newProvidersListCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List connected identity providers",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		Args:    NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			client, err := defaultAPIClient()
 			if err != nil {
 				return err
@@ -70,7 +70,32 @@ func newProvidersListCmd() *cobra.Command {
 	}
 }
 
+type providerAddOptions struct {
+	URL          string
+	ClientID     string
+	ClientSecret string
+}
+
+func (o providerAddOptions) Validate() error {
+	var missing []string
+	if o.URL == "" {
+		missing = append(missing, "url")
+	}
+	if o.ClientID == "" {
+		missing = append(missing, "client-id")
+	}
+	if o.ClientSecret == "" {
+		missing = append(missing, "client-secret")
+	}
+	if len(missing) > 0 {
+		return fmt.Errorf("missing value for required flags: %v", strings.Join(missing, ", "))
+	}
+	return nil
+}
+
 func newProvidersAddCmd() *cobra.Command {
+	var opts providerAddOptions
+
 	cmd := &cobra.Command{
 		Use:   "add PROVIDER",
 		Short: "Connect an identity provider",
@@ -78,11 +103,13 @@ func newProvidersAddCmd() *cobra.Command {
 PROVIDER is a short unique name of the identity provider being added (eg. okta)`,
 		Example: `# Connect okta to infra
 $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN`,
-		Args: cobra.ExactArgs(1),
+		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var options providerCmdOptions
+			if err := cliopts.DefaultsFromEnv("INFRA_PROVIDER", cmd.Flags()); err != nil {
+				return err
+			}
 
-			if err := parseOptions(cmd, &options, "INFRA_PROVIDER"); err != nil {
+			if err := opts.Validate(); err != nil {
 				return err
 			}
 
@@ -93,34 +120,22 @@ $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5
 
 			_, err = client.CreateProvider(&api.CreateProviderRequest{
 				Name:         args[0],
-				URL:          options.URL,
-				ClientID:     options.ClientID,
-				ClientSecret: options.ClientSecret,
+				URL:          opts.URL,
+				ClientID:     opts.ClientID,
+				ClientSecret: opts.ClientSecret,
 			})
 			if err != nil {
 				return err
 			}
 
 			fmt.Printf("Provider %s added\n", args[0])
-
 			return nil
 		},
 	}
 
-	cmd.Flags().String("url", "", "Base URL of the domain of the OIDC identity provider (eg. acme.okta.com)")
-	cmd.Flags().String("client-id", "", "OIDC client ID")
-	cmd.Flags().String("client-secret", "", "OIDC client secret")
-
-	if err := cmd.MarkFlagRequired("url"); err != nil {
-		panic("cannot set flag [--url] as required")
-	}
-	if err := cmd.MarkFlagRequired("client-id"); err != nil {
-		panic("cannot set flag [--client-id] as required")
-	}
-	if err := cmd.MarkFlagRequired("client-secret"); err != nil {
-		panic("cannot set flag [--client-secret] as required")
-	}
-
+	cmd.Flags().StringVar(&opts.URL, "url", "", "Base URL of the domain of the OIDC identity provider (eg. acme.okta.com)")
+	cmd.Flags().StringVar(&opts.ClientID, "client-id", "", "OIDC client ID")
+	cmd.Flags().StringVar(&opts.ClientSecret, "client-secret", "", "OIDC client secret")
 	return cmd
 }
 
@@ -130,7 +145,7 @@ func newProvidersRemoveCmd() *cobra.Command {
 		Aliases: []string{"rm"},
 		Short:   "Disconnect an identity provider",
 		Example: "$ infra providers remove okta",
-		Args:    cobra.ExactArgs(1),
+		Args:    ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := defaultAPIClient()
 			if err != nil {

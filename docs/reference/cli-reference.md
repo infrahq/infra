@@ -35,30 +35,25 @@ infra login [SERVER] [flags]
 ### Examples
 
 ```
-
 # By default, login will prompt for all required information.
 $ infra login
 
-# Login to a specified server
-$ infra login SERVER
-$ infra login --server SERVER
+# Login to a specific server
+$ infra login infraexampleserver.com
+
+# Login with a specific identity provider
+$ infra login --provider okta
 
 # Login with an access key
-$ infra login --key KEY
-
-# Login with a specified provider
-$ infra login --provider NAME
-
-# Use the '--non-interactive' flag to error out instead of prompting.
-
+$ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy
 ```
 
 ### Options
 
 ```
       --key string        Login with an access key
+      --non-interactive   Disable all prompts for input
       --provider string   Login with an identity provider
-      --server string     Infra server to login to
       --skip-tls-verify   Skip verifying server TLS certificates
 ```
 
@@ -67,27 +62,48 @@ $ infra login --provider NAME
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra logout`
 
 Log out of Infra
 
+### Synopsis
+
+Log out of Infra
+Note: [SERVER] and [--all] cannot be both specified. Choose either one or all servers.
+
 ```
-infra logout [flags]
+infra logout [SERVER] [flags]
 ```
 
 ### Examples
 
 ```
+# Log out of current server
 $ infra logout
+		
+# Log out of a specific server
+$ infra logout infraexampleserver.com
+		
+# Logout of all servers
+$ infra logout --all 
+		
+# Log out of current server and clear from list 
+$ infra logout --clear
+		
+# Log out of a specific server and clear from list
+$ infra logout infraexampleserver.com --clear 
+		
+# Logout and clear list of all servers 
+$ infra logout --all --clear
 ```
 
 ### Options
 
 ```
-      --purge   remove Infra host from config
+      --all     logout of all servers
+      --clear   clear from list of servers
 ```
 
 ### Options inherited from parent commands
@@ -95,7 +111,6 @@ $ infra logout
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra list`
@@ -111,7 +126,6 @@ infra list [flags]
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra use`
@@ -138,7 +152,6 @@ $ infra use development.kube-system
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra destinations list`
@@ -154,7 +167,6 @@ infra destinations list [flags]
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra destinations remove`
@@ -176,7 +188,6 @@ $ infra destinations remove kubernetes.docker-desktop
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra grants list`
@@ -198,7 +209,6 @@ infra grants list [flags]
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra grants add`
@@ -239,7 +249,6 @@ $ infra grants add johndoe@example.com infra --role admin
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra grants remove`
@@ -280,7 +289,6 @@ $ infra grants remove janedoe@example.com infra --role admin
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra identities add`
@@ -315,7 +323,6 @@ $ infra identities add machine-a
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra identities edit`
@@ -336,7 +343,8 @@ $ infra identities edit janedoe@example.com --password
 ### Options
 
 ```
-  -p, --password   Set a new one time password
+      --non-interactive   Disable all prompts for input
+  -p, --password          Set a new one time password
 ```
 
 ### Options inherited from parent commands
@@ -344,7 +352,6 @@ $ infra identities edit janedoe@example.com --password
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra identities list`
@@ -360,7 +367,6 @@ infra identities list [flags]
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra identities remove`
@@ -386,7 +392,6 @@ $ infra identities remove machine-a
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra keys list`
@@ -408,7 +413,6 @@ infra keys list [flags]
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra keys add`
@@ -444,7 +448,6 @@ $ infra keys add example-key machine-a --ttl=12h
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra keys remove`
@@ -460,7 +463,6 @@ infra keys remove KEY [flags]
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra providers list`
@@ -476,7 +478,6 @@ infra providers list [flags]
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra providers add`
@@ -512,7 +513,6 @@ $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra providers remove`
@@ -534,7 +534,6 @@ $ infra providers remove okta
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 
 ## `infra about`
@@ -550,6 +549,5 @@ infra about [flags]
 ```
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
-      --non-interactive    Disable all prompts for input
 ```
 

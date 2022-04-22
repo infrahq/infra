@@ -103,24 +103,10 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 			}
 		}
 
-		svc := httptest.NewTLSServer(http.HandlerFunc(handler))
-		t.Cleanup(svc.Close)
+		srv := httptest.NewTLSServer(http.HandlerFunc(handler))
+		t.Cleanup(srv.Close)
 
-		cfg := ClientConfig{
-			Version: "0.3",
-			Hosts: []ClientHostConfig{
-				{
-					PolymorphicID: uid.NewIdentityPolymorphicID(userID),
-					Name:          "test",
-					Host:          svc.Listener.Addr().String(),
-					SkipTLSVerify: true,
-					AccessKey:     "access-key",
-					Expires:       api.Time(time.Now().Add(time.Hour)),
-					Current:       true,
-				},
-			},
-		}
-
+		cfg := newTestClientConfig(srv, api.Identity{ID: userID})
 		err := writeConfig(&cfg)
 		assert.NilError(t, err)
 
@@ -196,4 +182,40 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 		err := Run(context.Background(), "use", "unknown")
 		assert.ErrorContains(t, err, "context not found")
 	})
+
+	t.Run("missing argument", func(t *testing.T) {
+		err := Run(context.Background(), "use")
+		assert.ErrorContains(t, err, `"infra use" requires exactly 1 argument`)
+		assert.ErrorContains(t, err, `Usage:  infra use`)
+	})
+}
+
+// newTestClientConfig returns a ClientConfig that can be used to test CLI
+// commands. Most CLI commands require a login first, which saves a ClientConfig
+// to a file.
+// newTestClientConfig provides a reasonable default for most cases, removing
+// the need to perform a full login. The returned value may be modified, and then
+// should be saved to a file with writeConfig.
+// If any fields in identity are not set, they will be set to default values.
+func newTestClientConfig(srv *httptest.Server, identity api.Identity) ClientConfig {
+	if identity.Name == "" {
+		identity.Name = "testuser@example.com"
+	}
+	if identity.ID == 0 {
+		identity.ID = uid.New()
+	}
+	return ClientConfig{
+		Version: "0.3",
+		Hosts: []ClientHostConfig{
+			{
+				PolymorphicID: uid.NewIdentityPolymorphicID(identity.ID),
+				Name:          identity.Name,
+				Host:          srv.Listener.Addr().String(),
+				SkipTLSVerify: true,
+				AccessKey:     "the-access-key",
+				Expires:       api.Time(time.Now().Add(time.Hour)),
+				Current:       true,
+			},
+		},
+	}
 }

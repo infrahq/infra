@@ -18,7 +18,10 @@ func newKeysCmd() *cobra.Command {
 		Short:   "Manage access keys",
 		Aliases: []string{"key"},
 		Group:   "Management commands:",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			if err := rootPreRun(cmd.Flags()); err != nil {
+				return err
+			}
 			return mustBeLoggedIn()
 		},
 	}
@@ -46,7 +49,7 @@ func newKeysAddCmd() *cobra.Command {
 # Create an access key named 'example-key' that expires in 12 hrs
 $ infra keys add example-key machine-a --ttl=12h
 `,
-		Args: cobra.ExactArgs(2),
+		Args: ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			keyName := args[0]
 			machineName := args[1]
@@ -91,7 +94,7 @@ func newKeysRemoveCmd() *cobra.Command {
 		Use:     "remove KEY",
 		Aliases: []string{"rm"},
 		Short:   "Delete an access key",
-		Args:    cobra.ExactArgs(1),
+		Args:    ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := defaultAPIClient()
 			if err != nil {
@@ -122,20 +125,18 @@ func newKeysRemoveCmd() *cobra.Command {
 }
 
 type keyListOptions struct {
-	MachineName string `mapstructure:"machine"`
+	MachineName string
 }
 
 func newKeysListCmd() *cobra.Command {
+	var options keyListOptions
+
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List access keys",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			var options keyListOptions
-			if err := parseOptions(cmd, &options, "INFRA_KEYS"); err != nil {
-				return err
-			}
-
+		Args:    NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			client, err := defaultAPIClient()
 			if err != nil {
 				return err
@@ -169,9 +170,13 @@ func newKeysListCmd() *cobra.Command {
 
 			var rows []row
 			for _, k := range keys {
+				name := k.IssuedFor.String()
+				if k.IssuedForName != "" {
+					name = k.IssuedForName
+				}
 				rows = append(rows, row{
 					Name:              k.Name,
-					IssuedFor:         k.IssuedFor.String(),
+					IssuedFor:         name,
 					Created:           k.Created.Relative("never"),
 					Expires:           k.Expires.Relative("never"),
 					ExtensionDeadline: k.ExtensionDeadline.Relative("never"),
@@ -188,7 +193,7 @@ func newKeysListCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringP("machine", "m", "", "The name of a machine to list access keys for")
+	cmd.Flags().StringVarP(&options.MachineName, "machine", "m", "", "The name of a machine to list access keys for")
 
 	return cmd
 }

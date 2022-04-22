@@ -14,7 +14,10 @@ func newDestinationsCmd() *cobra.Command {
 		Aliases: []string{"dst", "dest", "destination"},
 		Short:   "Manage destinations",
 		Group:   "Management commands:",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			if err := rootPreRun(cmd.Flags()); err != nil {
+				return err
+			}
 			return mustBeLoggedIn()
 		},
 	}
@@ -30,7 +33,8 @@ func newDestinationsListCmd() *cobra.Command {
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List connected destinations",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		Args:    NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			client, err := defaultAPIClient()
 			if err != nil {
 				return err
@@ -71,7 +75,7 @@ func newDestinationsRemoveCmd() *cobra.Command {
 		Aliases: []string{"rm"},
 		Short:   "Disconnect a destination",
 		Example: "$ infra destinations remove kubernetes.docker-desktop",
-		Args:    cobra.ExactArgs(1),
+		Args:    ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := defaultAPIClient()
 			if err != nil {

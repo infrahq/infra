@@ -15,7 +15,10 @@ func newTokensCmd() *cobra.Command {
 		Use:    "tokens",
 		Short:  "Create & manage tokens",
 		Hidden: true,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			if err := rootPreRun(cmd.Flags()); err != nil {
+				return err
+			}
 			return mustBeLoggedIn()
 		},
 	}
@@ -29,7 +32,8 @@ func newTokensAddCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "add",
 		Short: "Create a token",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		Args:  NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			if err := tokensCreate(); err != nil {
 				return err
 			}

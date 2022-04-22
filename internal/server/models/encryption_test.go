@@ -4,12 +4,12 @@ import (
 	"os"
 	"testing"
 
+	"github.com/infrahq/secrets"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/secrets"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -26,7 +26,7 @@ func TestEncryptedAtRest(t *testing.T) {
 	})
 
 	rootKey := "db_at_rest"
-	symmetricKeyProvider := secrets.NewNativeSecretProvider(sp)
+	symmetricKeyProvider := secrets.NewNativeKeyProvider(sp)
 	symmetricKey, err := symmetricKeyProvider.GenerateDataKey(rootKey)
 	assert.NilError(t, err)
 

@@ -23,6 +23,7 @@ import (
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
+	"github.com/infrahq/secrets"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
 	"gorm.io/gorm"
@@ -37,7 +38,6 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/metrics"
 	"github.com/infrahq/infra/pki"
-	"github.com/infrahq/infra/secrets"
 )
 
 type Options struct {
@@ -141,13 +141,21 @@ func New(options Options) (*Server, error) {
 		return nil, fmt.Errorf("driver: %w", err)
 	}
 
-	server.db, err = data.NewDB(driver)
+	server.db, err = data.NewRawDB(driver)
 	if err != nil {
 		return nil, fmt.Errorf("db: %w", err)
 	}
 
+	if err := data.PreMigrate(server.db); err != nil {
+		return nil, err
+	}
+
 	if err = server.loadDBKey(); err != nil {
 		return nil, fmt.Errorf("loading database key: %w", err)
+	}
+
+	if err := data.Migrate(server.db); err != nil {
+		return nil, err
 	}
 
 	if err = server.loadCertificates(); err != nil {

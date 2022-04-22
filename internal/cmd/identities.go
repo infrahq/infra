@@ -20,7 +20,10 @@ func newIdentitiesCmd() *cobra.Command {
 		Aliases: []string{"id", "identity"},
 		Short:   "Manage identities (users & machines)",
 		Group:   "Management commands:",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			if err := rootPreRun(cmd.Flags()); err != nil {
+				return err
+			}
 			return mustBeLoggedIn()
 		},
 	}
@@ -33,14 +36,6 @@ func newIdentitiesCmd() *cobra.Command {
 	return cmd
 }
 
-type addIdentityCmdOptions struct {
-	Password bool `mapstructure:"password"`
-}
-
-type editIdentityCmdOptions struct {
-	Password bool `mapstructure:"password"`
-}
-
 func newIdentitiesAddCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add IDENTITY",
@@ -51,7 +46,7 @@ If a valid email is detected, a user identity is created.
 If a username is detected, a machine identity is created.
 
 A new user identity must change their one time password before further usage.`,
-		Args: cobra.ExactArgs(1),
+		Args: ExactArgs(1),
 		Example: `# Create a local user
 $ infra identities add johndoe@example.com
 
@@ -59,11 +54,6 @@ $ infra identities add johndoe@example.com
 $ infra identities add machine-a`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
-
-			var options addIdentityCmdOptions
-			if err := parseOptions(cmd, &options, ""); err != nil {
-				return err
-			}
 
 			createResp, err := CreateIdentity(&api.CreateIdentityRequest{Name: name, SetOneTimePassword: true})
 			if err != nil {
@@ -86,20 +76,21 @@ $ infra identities add machine-a`,
 	return cmd
 }
 
+type editIdentityCmdOptions struct {
+	Password       bool
+	NonInteractive bool
+}
+
 func newIdentitiesEditCmd() *cobra.Command {
+	var opts editIdentityCmdOptions
 	cmd := &cobra.Command{
 		Use:   "edit IDENTITY",
 		Short: "Update an identity",
 		Example: `# Set a new one time password for a local user
 $ infra identities edit janedoe@example.com --password`,
-		Args: cobra.ExactArgs(1),
+		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
-
-			var options editIdentityCmdOptions
-			if err := parseOptions(cmd, &options, ""); err != nil {
-				return err
-			}
 
 			kind, err := checkUserOrMachine(name)
 			if err != nil {
@@ -107,20 +98,19 @@ $ infra identities edit janedoe@example.com --password`,
 			}
 
 			if kind == models.MachineKind {
-				fmt.Println("Machine identities cannot be edited.")
+				return fmt.Errorf("Machine identities cannot be edited.")
 			}
 
 			if kind == models.UserKind {
-				if !options.Password {
+				if !opts.Password {
 					return errors.New("Please specify a field to update. For options, run 'infra identities edit --help'")
 				}
 
-				if options.Password && rootOptions.NonInteractive {
+				if opts.Password && opts.NonInteractive {
 					return errors.New("Non-interactive mode is not supported to edit sensitive fields.")
 				}
 
-				err = UpdateIdentity(name, options)
-				if err != nil {
+				if err = UpdateIdentity(name, opts); err != nil {
 					return err
 				}
 			}
@@ -129,7 +119,8 @@ $ infra identities edit janedoe@example.com --password`,
 		},
 	}
 
-	cmd.Flags().BoolP("password", "p", false, "Set a new one time password")
+	cmd.Flags().BoolVarP(&opts.Password, "password", "p", false, "Set a new one time password")
+	addNonInteractiveFlag(cmd.Flags(), &opts.NonInteractive)
 
 	return cmd
 }
@@ -139,7 +130,8 @@ func newIdentitiesListCmd() *cobra.Command {
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List identities",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		Args:    NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			client, err := defaultAPIClient()
 			if err != nil {
 				return err
@@ -187,7 +179,7 @@ $ infra identities remove janedoe@example.com
 
 # Delete a machine
 $ infra identities remove machine-a`,
-		Args: cobra.ExactArgs(1),
+		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 

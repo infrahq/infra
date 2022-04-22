@@ -15,11 +15,12 @@ func newInfoCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:    "info",
 		Short:  "Display the info about the current session",
+		Args:   NoArgs,
 		Hidden: true,
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return mustBeLoggedIn()
-		},
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			if err := mustBeLoggedIn(); err != nil {
+				return err
+			}
 			return info()
 		},
 	}
@@ -57,7 +58,7 @@ func info() error {
 		return err
 	}
 
-	fmt.Fprintf(w, "Identity:\t %s\n", identity.Name)
+	fmt.Fprintf(w, "Identity:\t %s (%s)\n", identity.Name, identity.ID)
 
 	if config.ProviderID != 0 {
 		provider, err := client.GetProvider(config.ProviderID)

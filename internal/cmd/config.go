@@ -21,8 +21,8 @@ type ClientConfig struct {
 
 // current: v0.3
 type ClientHostConfig struct {
-	PolymorphicID uid.PolymorphicID `json:"polymorphic-id"` // TODO: name this. what's it an ID of?
-	Name          string            `json:"name"`
+	PolymorphicID uid.PolymorphicID `json:"polymorphic-id"` // identity pid TODO: name this. what's it an ID of?
+	Name          string            `json:"name"`           // identity name
 	Host          string            `json:"host"`
 	AccessKey     string            `json:"access-key,omitempty"`
 	SkipTLSVerify bool              `json:"skip-tls-verify"` // where is the other cert info stored?
@@ -33,7 +33,7 @@ type ClientHostConfig struct {
 
 // checks if user is logged in to the given session (ClientHostConfig)
 func (c *ClientHostConfig) isLoggedIn() bool {
-	return c.AccessKey != ""
+	return c.AccessKey != "" && c.Name != "" && c.PolymorphicID != ""
 }
 
 // checks if user is logged in to the current session
@@ -61,14 +61,6 @@ func getLoggedInIdentityName() string {
 
 func (c *ClientHostConfig) isExpired() bool {
 	return time.Now().After(time.Time(c.Expires))
-}
-
-func (c ClientConfig) HostNames() []string {
-	var hosts []string
-	for _, h := range c.Hosts {
-		hosts = append(hosts, h.Host)
-	}
-	return hosts
 }
 
 // Retrieves client config if it exists, else instances a new one.

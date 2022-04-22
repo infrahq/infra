@@ -35,7 +35,7 @@ func TestListIdentities(t *testing.T) {
 	assert.NilError(t, err)
 
 	// test fetch all identities
-	ids, err := ListIdentities(c, "")
+	ids, err := ListIdentities(c, "", nil)
 	assert.NilError(t, err)
 
 	assert.Equal(t, len(ids), 3) // the two identities created, and the admin one used to call these access functions

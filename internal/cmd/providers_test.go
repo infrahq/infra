@@ -6,75 +6,89 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
-	"github.com/infrahq/infra/uid"
 )
 
-func TestProviders(t *testing.T) {
+func TestProvidersAddCmd(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 
-	id := uid.New()
+	setup := func(t *testing.T) chan api.CreateProviderRequest {
+		requestCh := make(chan api.CreateProviderRequest, 1)
 
-	setup := func(t *testing.T, handler func(http.ResponseWriter, *http.Request)) {
-		svc := httptest.NewTLSServer(http.HandlerFunc(handler))
-		t.Cleanup(svc.Close)
+		handler := func(resp http.ResponseWriter, req *http.Request) {
+			defer close(requestCh)
+			if !requestMatches(req, http.MethodPost, "/v1/providers") {
+				resp.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 
-		cfg := ClientConfig{
-			Version: "0.3",
-			Hosts: []ClientHostConfig{
-				{
-					PolymorphicID: uid.NewIdentityPolymorphicID(id),
-					Name:          "test",
-					Host:          svc.Listener.Addr().String(),
-					SkipTLSVerify: true,
-					AccessKey:     "access-key",
-					Expires:       api.Time(time.Now().Add(time.Hour)),
-					Current:       true,
-				},
-			},
+			var createRequest api.CreateProviderRequest
+			err := json.NewDecoder(req.Body).Decode(&createRequest)
+			assert.Check(t, err)
+
+			requestCh <- createRequest
+
+			_, _ = resp.Write([]byte(`{}`))
 		}
+		srv := httptest.NewTLSServer(http.HandlerFunc(handler))
+		t.Cleanup(srv.Close)
 
+		cfg := newTestClientConfig(srv, api.Identity{})
 		err := writeConfig(&cfg)
 		assert.NilError(t, err)
+		return requestCh
 	}
 
-	t.Run("AddOktaProvider", func(t *testing.T) {
-		setup(t, func(resp http.ResponseWriter, req *http.Request) {
-			if req.Method == http.MethodPost && req.URL.Path == "/v1/providers" {
-				var createProviderRequest api.CreateProviderRequest
+	t.Run("okta provider with flags", func(t *testing.T) {
+		ch := setup(t)
 
-				err := json.NewDecoder(req.Body).Decode(&createProviderRequest)
-				assert.NilError(t, err)
-
-				assert.Check(t, "okta" == createProviderRequest.Name)
-				assert.Check(t, "okta-url" == createProviderRequest.URL)
-				assert.Check(t, "okta-client-id" == createProviderRequest.ClientID)
-				assert.Check(t, "okta-client-secret" == createProviderRequest.ClientSecret)
-
-				provider := api.Provider{
-					ID:       uid.New(),
-					Name:     createProviderRequest.Name,
-					Created:  api.Time(time.Now()),
-					Updated:  api.Time(time.Now()),
-					URL:      createProviderRequest.URL,
-					ClientID: createProviderRequest.ClientID,
-				}
-
-				bytes, err := json.Marshal(&provider)
-				assert.NilError(t, err)
-
-				_, err = resp.Write(bytes)
-				assert.NilError(t, err)
-			}
-		})
-
-		err := Run(context.Background(), "providers", "add", "okta", "--url", "okta-url", "--client-id", "okta-client-id", "--client-secret", "okta-client-secret")
+		err := Run(context.Background(),
+			"providers", "add", "okta",
+			"--url", "https://okta.com/path",
+			"--client-id", "okta-client-id",
+			"--client-secret", "okta-client-secret",
+		)
 		assert.NilError(t, err)
+
+		createProviderRequest := <-ch
+
+		expected := api.CreateProviderRequest{
+			Name:         "okta",
+			URL:          "https://okta.com/path",
+			ClientID:     "okta-client-id",
+			ClientSecret: "okta-client-secret",
+		}
+		assert.DeepEqual(t, createProviderRequest, expected)
+	})
+
+	t.Run("okta provider with env vars", func(t *testing.T) {
+		ch := setup(t)
+
+		t.Setenv("INFRA_PROVIDER_URL", "https://okta.com/path")
+		t.Setenv("INFRA_PROVIDER_CLIENT_ID", "okta-client-id")
+		t.Setenv("INFRA_PROVIDER_CLIENT_SECRET", "okta-client-secret")
+
+		err := Run(context.Background(), "providers", "add", "okta")
+		assert.NilError(t, err)
+
+		createProviderRequest := <-ch
+
+		expected := api.CreateProviderRequest{
+			Name:         "okta",
+			URL:          "https://okta.com/path",
+			ClientID:     "okta-client-id",
+			ClientSecret: "okta-client-secret",
+		}
+		assert.DeepEqual(t, createProviderRequest, expected)
+	})
+
+	t.Run("missing require flags", func(t *testing.T) {
+		err := Run(context.Background(), "providers", "add", "okta")
+		assert.ErrorContains(t, err, "missing value for required flags: url, client-id, client-secret")
 	})
 }

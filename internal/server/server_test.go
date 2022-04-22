@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/infrahq/secrets"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap/zaptest"
 	"gotest.tools/v3/assert"
@@ -21,7 +22,6 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/secrets"
 	"github.com/infrahq/infra/uid"
 )
 
