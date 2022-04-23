@@ -1,7 +1,7 @@
 import Head from 'next/head'
 
-import Dashboard from '../../components/dashboard/dashboard'
-import HeaderIcon from '../../components/dashboard/headerIcon'
+import Dashboard from '../../components/dashboard'
+import HeaderIcon from '../../components/header-icon'
 import Admin from './admin'
 
 export default function () {

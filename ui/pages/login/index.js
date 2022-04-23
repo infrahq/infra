@@ -2,7 +2,7 @@ import { useRouter } from 'next/router'
 import { useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
 
-import HeaderIcon from '../../components/dashboard/headerIcon'
+import HeaderIcon from '../../components/header-icon'
 import { kind } from '../../lib/providers'
 
 function oidcLogin ({ id, url, clientID }) {

@@ -7,11 +7,11 @@ import { XIcon } from '@heroicons/react/outline'
 import dayjs from 'dayjs'
 
 import DeleteModal from '../../components/modals/delete'
-import Dashboard from '../../components/dashboard/dashboard'
+import Dashboard from '../../components/dashboard'
 import Table from '../../components/table'
 import Loader from '../../components/loader'
-import EmptyTable from '../../components/emptyTable'
-import HeaderIcon from '../../components/dashboard/headerIcon'
+import EmptyTable from '../../components/empty-table'
+import HeaderIcon from '../../components/header-icon'
 import { kind } from '../../lib/providers'
 
 const columns = [{

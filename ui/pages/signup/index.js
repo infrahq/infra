@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useSWRConfig } from 'swr'
 import { useRouter } from 'next/router'
 
-import HeaderIcon from '../../components/dashboard/headerIcon'
+import HeaderIcon from '../../components/header-icon'
 
 export default function () {
   const [email, setEmail] = useState('')

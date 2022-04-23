@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react'
 import useSWR from 'swr'
 
 import Fullscreen from '../../../components/modals/fullscreen'
-import HeaderIcon from '../../../components/dashboard/headerIcon'
-import InputDropdown from '../../../components/inputDropdown'
+import HeaderIcon from '../../../components/header-icon'
+import InputDropdown from '../../../components/input-dropdown'
 
 const CommandInput = ({ enabledCommandInput, accessKey, currentDestinationName }) => {
   const server = window.location.host

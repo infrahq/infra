@@ -2,7 +2,7 @@ import useSWR, { useSWRConfig } from 'swr'
 import { useState } from 'react'
 import styled from 'styled-components'
 
-import InputDropdown from '../../components/inputDropdown'
+import InputDropdown from '../../components/input-dropdown'
 import { validateEmail } from '../../lib/email'
 
 const GrantList = styled.section`

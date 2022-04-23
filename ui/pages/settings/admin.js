@@ -2,7 +2,7 @@ import { useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
 import { useTable } from 'react-table'
 
-import InputDropdown from '../../components/inputDropdown'
+import InputDropdown from '../../components/input-dropdown'
 import Table from '../../components/table'
 import DeleteModal from '../../components/modals/delete'
 import { validateEmail } from '../../lib/email'

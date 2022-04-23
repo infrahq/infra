@@ -6,13 +6,13 @@ import { useTable } from 'react-table'
 import dayjs from 'dayjs'
 import { ShareIcon } from '@heroicons/react/outline'
 
-import Dashboard from '../../components/dashboard/dashboard'
-import InfoModal from '../../components/modals/infoModal'
+import Dashboard from '../../components/dashboard'
+import InfoModal from '../../components/modals/info'
 import GrantAccessContent from './grantAccessContent'
 import Loader from '../../components/loader'
 import Table from '../../components/table'
-import EmptyTable from '../../components/emptyTable'
-import HeaderIcon from '../../components/dashboard/headerIcon'
+import EmptyTable from '../../components/empty-table'
+import HeaderIcon from '../../components/header-icon'
 import DeleteModal from '../../components/modals/delete'
 
 const columns = [

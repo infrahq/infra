@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-import HeaderIcon from './dashboard/headerIcon'
+import HeaderIcon from './header-icon'
 
 export default function ({ title, subtitle, iconPath, buttonText, buttonHref }) {
   return (
