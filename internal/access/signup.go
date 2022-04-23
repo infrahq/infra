@@ -1,6 +1,8 @@
 package access
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 
@@ -51,6 +53,11 @@ func Signup(c *gin.Context, name, password string) (*models.Identity, error) {
 		return nil, err
 	}
 
+	_, err = CreateProviderUser(c, InfraProvider(c), identity)
+	if err != nil {
+		return nil, fmt.Errorf("create provider user")
+	}
+
 	credential := &models.Credential{
 		IdentityID:   identity.ID,
 		PasswordHash: hash,
@@ -64,6 +71,7 @@ func Signup(c *gin.Context, name, password string) (*models.Identity, error) {
 		Subject:   uid.NewIdentityPolymorphicID(identity.ID),
 		Privilege: models.InfraAdminRole,
 		Resource:  "infra",
+		CreatedBy: models.CreatedBySystem,
 	}
 
 	if err := data.CreateGrant(db, grant); err != nil {

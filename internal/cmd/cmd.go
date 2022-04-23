@@ -204,7 +204,7 @@ $ infra use development
 
 # Use a Kubernetes namespace context
 $ infra use development.kube-system`,
-		Args:  cobra.ExactArgs(1),
+		Args:  ExactArgs(1),
 		Group: "Core commands:",
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			if err := rootPreRun(cmd.Flags()); err != nil {
@@ -275,8 +275,9 @@ func newConnectorCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:    "connector",
 		Short:  "Start the Infra connector",
+		Args:   NoArgs,
 		Hidden: true,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			logging.SetServerLogger()
 
 			// override default strcase.ToLowerCamel behaviour

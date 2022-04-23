@@ -33,7 +33,8 @@ func newDestinationsListCmd() *cobra.Command {
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List connected destinations",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		Args:    NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			client, err := defaultAPIClient()
 			if err != nil {
 				return err
@@ -73,7 +74,8 @@ func newDestinationsRemoveCmd() *cobra.Command {
 		Use:     "remove DESTINATION",
 		Aliases: []string{"rm"},
 		Short:   "Disconnect a destination",
-		Args:    cobra.ExactArgs(1),
+		Example: "$ infra destinations remove kubernetes.docker-desktop",
+		Args:    ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := defaultAPIClient()
 			if err != nil {
@@ -86,7 +88,7 @@ func newDestinationsRemoveCmd() *cobra.Command {
 			}
 
 			if len(destinations) == 0 {
-				return fmt.Errorf("no destinations named %s", args[0])
+				return fmt.Errorf("no destinations named %s.", args[0])
 			}
 
 			for _, d := range destinations {

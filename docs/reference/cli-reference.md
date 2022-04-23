@@ -177,6 +177,12 @@ Disconnect a destination
 infra destinations remove DESTINATION [flags]
 ```
 
+### Examples
+
+```
+$ infra destinations remove kubernetes.docker-desktop
+```
+
 ### Options inherited from parent commands
 
 ```
@@ -207,28 +213,28 @@ infra grants list [flags]
 
 ## `infra grants add`
 
-Grant access to a destination
-
-### Synopsis
-
-Grant one or more identities access to a destination. 
-
-IDENTITY is the subject that is being given access.
-DESTINATION is what the identity will gain access to. 
-
-Use [--role] if further fine grained permissions are needed. If not specified, user will gain the permission 'connect' to the destination. 
-$ infra grants add ... -role admin ...
-
-Use [--group] or [-g] if identity is of type group. 
-$ infra grants add devGroup -group ...
-$ infra grants add devGroup -g ...
-
-For full documentation on grants with more examples, see: 
-  https://github.com/infrahq/infra/blob/main/docs/guides
-
+Grant an identity access to a destination
 
 ```
 infra grants add IDENTITY DESTINATION [flags]
+```
+
+### Examples
+
+```
+# Grant an identity access to a destination
+$ infra grants add johndoe@example.com kubernetes.docker-desktop 
+$ infra grants add machine-a kubernetes.docker-desktop
+
+# Grant a group access to a destination 
+$ infra grants add group-a kubernetes.staging --group
+
+# Grant access with fine-grained permissions
+$ infra grants add johndoe@example.com kubernetes.staging --role viewer
+
+# Assign a user a role within Infra
+$ infra grants add johndoe@example.com infra --role admin
+
 ```
 
 ### Options
@@ -247,24 +253,28 @@ infra grants add IDENTITY DESTINATION [flags]
 
 ## `infra grants remove`
 
-Revoke access to a destination
-
-### Synopsis
-
-Revokes access that user has to the destination.
-
-IDENTITY is one that was being given access.
-DESTINATION is what the identity will lose access to. 
-
-Use [--role] to specify the exact grant being deleted. 
-If not specified, it will revoke all roles for that user within the destination. 
-
-Use [--group] or [-g] if identity is of type group. 
-$ infra grants remove devGroup -g ...
-
+Revoke an identity's access from a destination
 
 ```
 infra grants remove IDENTITY DESTINATION [flags]
+```
+
+### Examples
+
+```
+# Remove all grants of an identity in a destination
+$ infra grants remove janedoe@example.com kubernetes.docker-desktop 
+$ infra grants remove machine-a kubernetes.docker-desktop
+
+# Remove all grants of a group in a destination
+$ infra grants remove group-a kubernetes.staging --group
+
+# Remove a specific grant 
+$ infra grants remove janedoe@example.com kubernetes.staging --role viewer
+
+# Remove access to infra 
+$ infra grants remove janedoe@example.com infra --role admin
+
 ```
 
 ### Options
@@ -287,16 +297,25 @@ Create an identity.
 
 ### Synopsis
 
-Create a machine identity with NAME or a user identity with EMAIL.
+Create an identity.
 
-NAME must only contain alphanumeric characters ('a-z', 'A-Z', '0-9') or the
-special characters '-', '_', or '/' and has a maximum length of 256 characters.
+If a valid email is detected, a user identity is created. 
+If a username is detected, a machine identity is created.
 
-EMAIL must contain a valid email address in the form of "local@domain".
-		
+A new user identity must change their one time password before further usage.
 
 ```
 infra identities add IDENTITY [flags]
+```
+
+### Examples
+
+```
+# Create a local user
+$ infra identities add johndoe@example.com
+
+# Create a machine
+$ infra identities add machine-a
 ```
 
 ### Options inherited from parent commands
@@ -314,11 +333,18 @@ Update an identity
 infra identities edit IDENTITY [flags]
 ```
 
+### Examples
+
+```
+# Set a new one time password for a local user
+$ infra identities edit janedoe@example.com --password
+```
+
 ### Options
 
 ```
       --non-interactive   Disable all prompts for input
-  -p, --password          Update password field
+  -p, --password          Set a new one time password
 ```
 
 ### Options inherited from parent commands
@@ -330,7 +356,7 @@ infra identities edit IDENTITY [flags]
 
 ## `infra identities list`
 
-List all identities
+List identities
 
 ```
 infra identities list [flags]
@@ -348,7 +374,17 @@ infra identities list [flags]
 Delete an identity
 
 ```
-infra identities remove NAME [flags]
+infra identities remove IDENTITY [flags]
+```
+
+### Examples
+
+```
+# Delete a local user
+$ infra identities remove janedoe@example.com
+
+# Delete a machine
+$ infra identities remove machine-a
 ```
 
 ### Options inherited from parent commands
@@ -381,18 +417,22 @@ infra keys list [flags]
 
 ## `infra keys add`
 
-Create an access key for authentication
+Create an access key
+
+### Synopsis
+
+Create an access key. Only machine identities are supported at this time.
 
 ```
-infra keys add ACCESS_KEY_NAME MACHINE_NAME [flags]
+infra keys add KEY IDENTITY [flags]
 ```
 
 ### Examples
 
 ```
 
-# Create an access key for the machine "bot" called "first-key" that expires in 12 hours and must be used every hour to remain valid
-infra keys add first-key bot --ttl=12h --extension-deadline=1h
+# Create an access key named 'example-key' that expires in 12 hours
+$ infra keys add example-key machine-a --ttl=12h
 
 ```
 
@@ -415,7 +455,7 @@ infra keys add first-key bot --ttl=12h --extension-deadline=1h
 Delete an access key
 
 ```
-infra keys remove ACCESS_KEY_NAME [flags]
+infra keys remove KEY [flags]
 ```
 
 ### Options inherited from parent commands
@@ -446,14 +486,18 @@ Connect an identity provider
 
 ### Synopsis
 
-
 Add an identity provider for users to authenticate.
-
-PROVIDER is a short unique name of the identity provider bieng added (eg. okta) 
-		
+PROVIDER is a short unique name of the identity provider being added (eg. okta)
 
 ```
 infra providers add PROVIDER [flags]
+```
+
+### Examples
+
+```
+# Connect okta to infra
+$ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN
 ```
 
 ### Options
@@ -477,6 +521,12 @@ Disconnect an identity provider
 
 ```
 infra providers remove PROVIDER [flags]
+```
+
+### Examples
+
+```
+$ infra providers remove okta
 ```
 
 ### Options inherited from parent commands

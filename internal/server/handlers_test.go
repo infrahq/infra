@@ -343,6 +343,21 @@ func TestCreateIdentity(t *testing.T) {
 		assert.Equal(t, "test-link-identity@example.com", resp.Name)
 		assert.Check(t, resp.OneTimePassword != "")
 	})
+
+	t.Run("new machine identities do not get one time password", func(t *testing.T) {
+		req := &api.CreateIdentityRequest{
+			Name:               "test-infra-machine-otp",
+			Kind:               "machine",
+			SetOneTimePassword: true,
+		}
+
+		resp, err := handler.CreateIdentity(c, req)
+		assert.NilError(t, err)
+
+		assert.NilError(t, err)
+		assert.Equal(t, "test-infra-machine-otp", resp.Name)
+		assert.Check(t, resp.OneTimePassword == "")
+	})
 }
 
 func TestDeleteIdentity(t *testing.T) {

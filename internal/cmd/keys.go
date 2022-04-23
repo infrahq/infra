@@ -16,7 +16,6 @@ func newKeysCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "keys",
 		Short:   "Manage access keys",
-		Long:    "Manage access keys for machine identities to authenticate with Infra and call the API",
 		Aliases: []string{"key"},
 		Group:   "Management commands:",
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
@@ -43,13 +42,14 @@ func newKeysAddCmd() *cobra.Command {
 	var options keyCreateOptions
 
 	cmd := &cobra.Command{
-		Use:   "add ACCESS_KEY_NAME MACHINE_NAME",
-		Short: "Create an access key for authentication",
+		Use:   "add KEY IDENTITY",
+		Short: "Create an access key",
+		Long:  `Create an access key. Only machine identities are supported at this time.`,
 		Example: `
-# Create an access key for the machine "bot" called "first-key" that expires in 12 hours and must be used every hour to remain valid
-infra keys add first-key bot --ttl=12h --extension-deadline=1h
+# Create an access key named 'example-key' that expires in 12 hours
+$ infra keys add example-key machine-a --ttl=12h
 `,
-		Args: cobra.ExactArgs(2),
+		Args: ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			keyName := args[0]
 			machineName := args[1]
@@ -91,10 +91,10 @@ infra keys add first-key bot --ttl=12h --extension-deadline=1h
 
 func newKeysRemoveCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:     "remove ACCESS_KEY_NAME",
+		Use:     "remove KEY",
 		Aliases: []string{"rm"},
 		Short:   "Delete an access key",
-		Args:    cobra.ExactArgs(1),
+		Args:    ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := defaultAPIClient()
 			if err != nil {
@@ -135,7 +135,8 @@ func newKeysListCmd() *cobra.Command {
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List access keys",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		Args:    NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			client, err := defaultAPIClient()
 			if err != nil {
 				return err

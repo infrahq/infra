@@ -172,6 +172,11 @@ require (
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
 
+// switch back to main repo when https://github.com/gin-gonic/gin/pull/3045 is merged
 replace github.com/gin-gonic/gin => github.com/infrahq/gin v1.7.2-0.20220120203023-0eaa562f3a8a
 
+// switch back to main repo when https://github.com/spf13/cobra/pull/1003 is merged
 replace github.com/spf13/cobra => github.com/infrahq/cobra v1.4.0-groups
+
+// switch back to main repo when https://github.com/go-gorm/gorm/pull/5288 is merged
+replace gorm.io/gorm => github.com/infrahq/gorm v1.23.5-0.20220422194753-04115485c083

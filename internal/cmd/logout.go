@@ -42,7 +42,7 @@ $ infra logout infraexampleserver.com --clear
 		
 # Logout and clear list of all servers 
 $ infra logout --all --clear`,
-		Args:  cobra.MaximumNArgs(1),
+		Args:  MaxArgs(1),
 		Group: "Core commands:",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 1 {
@@ -165,7 +165,7 @@ func logoutOne(clear bool, server string) error {
 		return fmt.Errorf("Failed to logout of server %s due to an internal error: %w.", host.Host, err)
 	}
 	if success {
-		logging.S.Debugf("Logged out of server %s", host)
+		fmt.Fprintf(os.Stderr, "Logged out of server %s", host.Host)
 	}
 
 	if clear {

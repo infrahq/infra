@@ -15,6 +15,10 @@ import (
 )
 
 func TestKeysAddCmd(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home) // for windows
+
 	setup := func(t *testing.T) chan api.CreateAccessKeyRequest {
 		requestCh := make(chan api.CreateAccessKeyRequest, 1)
 
@@ -72,6 +76,12 @@ func TestKeysAddCmd(t *testing.T) {
 			ExtensionDeadline: api.Duration(5 * time.Hour),
 		}
 		assert.DeepEqual(t, expected, req)
+	})
+
+	t.Run("without required arguments", func(t *testing.T) {
+		err := Run(context.Background(), "keys", "add")
+		assert.ErrorContains(t, err, `"infra keys add" requires exactly 2 arguments`)
+		assert.ErrorContains(t, err, `Usage:  infra keys add KEY IDENTITY`)
 	})
 }
 
