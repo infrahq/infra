@@ -24,10 +24,6 @@ export default function ({ children }) {
     router.replace('/')
   }
 
-  function settings () {
-    router.replace('/settings')
-  }
-
   return (
     <div className='flex h-full relative'>
       <nav className='flex-none flex w-64 lg:w-72 flex-col inset-y-0 px-2 overflow-y-auto'>
@@ -71,9 +67,13 @@ export default function ({ children }) {
             <div className='text-gray-300 text-sm font-medium overflow-hidden overflow-ellipsis'>{auth?.name}</div>
           </div>
           <div className='absolute w-full px-2 items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-sm'>
-            <div onClick={() => settings()} className='w-full -ml-2 flex opacity-50 hover:opacity-75 py-2 cursor-pointer'>
-              <img src='/settings.svg' className='opacity-50 group-hover:opacity-75 mr-3 w-5 h-5' /><div className='text-purple-50/40 group-hover:text-purple-50'>Settings</div>
-            </div>
+            <Link href='/settings'>
+              <a>
+                <div className='w-full flex -ml-1 opacity-50 hover:opacity-75 py-2'>
+                  <img src='/settings.svg' className='opacity-50 group-hover:opacity-75 mr-3 w-5 h-5' /><div className='text-purple-50/40 group-hover:text-purple-50'>Settings</div>
+                </div>
+              </a>
+            </Link>
             <div onClick={() => logout()} className='w-full flex opacity-50 hover:opacity-75 py-2 cursor-pointer'>
               <img src='/signout.svg' className='opacity-50 group-hover:opacity-75 mr-3' /><div className='text-purple-50/40 group-hover:text-purple-50'>Logout</div>
             </div>
