@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 html, body, #__next {
-  @apply h-full;
+  @apply h-screen;
   @apply text-white;
   @apply bg-black;
   @apply antialiased;
