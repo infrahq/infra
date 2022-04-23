@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "concurrently 'npm run dev:ui' 'npm run dev:server'",
+    "dev:ui": "next dev",
+    "dev:server": "go run .. server --enable-ui --ui-proxy-url http://localhost:3000",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -32,6 +34,7 @@
     "@types/react": "17.0.43",
     "@types/styled-components": "^5.1.24",
     "autoprefixer": "^10.4.4",
+    "concurrently": "^7.1.0",
     "eslint": "^8.12.0",
     "eslint-config-next": "^12.1.4",
     "postcss": "^8.4.12",
