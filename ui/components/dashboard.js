@@ -11,6 +11,7 @@ const navigation = [
 export default function ({ children }) {
   const router = useRouter()
   const { data: auth } = useSWR('/v1/introspect')
+  const { data: version } = useSWR('/v1/version')
   const { mutate } = useSWRConfig()
 
   async function logout () {
@@ -58,12 +59,12 @@ export default function ({ children }) {
             </Link>
           ))}
         </div>
-        <div className='relative group mx-2 my-5 h-16 hover:h-40 hover:bg-purple-100/5 transition-height transition-size px-4 duration-300 ease-in-out rounded-xl overflow-hidden'>
-          <div className='flex items-center space-x-4 my-4'>
+        <div className='relative group mx-2 my-5 h-16 hover:h-[178px] hover:bg-purple-100/5 transition-height transition-size px-4 duration-300 ease-in-out rounded-xl overflow-hidden'>
+          <div className='flex items-center space-x-4 mt-4 mb-2'>
             <div className='bg-purple-100/10 flex-none flex items-center justify-center w-9 h-9 py-1.5 rounded-lg capitalize font-bold select-none'>{auth?.name?.[0]}</div>
             <div className='text-gray-300 text-sm font-medium overflow-hidden overflow-ellipsis'>{auth?.name}</div>
           </div>
-          <div className='absolute w-full px-2 items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-sm'>
+          <div className='w-full px-2 py-1 items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 select-none text-sm'>
             <Link href='/settings'>
               <a>
                 <div className='w-full flex -ml-1 opacity-50 hover:opacity-75 py-2'>
@@ -76,6 +77,9 @@ export default function ({ children }) {
               <img src='/signout.svg' className='opacity-50 group-hover:opacity-75 h-3 mr-3' />
               <div className='text-purple-50/40 group-hover:text-purple-50'>Logout</div>
             </div>
+          </div>
+          <div className='px-2 pt-1 pb-3 text-xs text-purple-50/30'>
+            Infra version {version?.version}
           </div>
         </div>
       </nav>
