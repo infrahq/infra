@@ -36,8 +36,6 @@ function App ({ Component, pageProps }) {
     return null
   }
 
-  console.log(signup?.enabled, auth)
-
   // redirect to login if required
   if (!signup?.enabled && !auth && !router.asPath.startsWith('/login')) {
     router.replace('/login')
