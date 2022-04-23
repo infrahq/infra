@@ -1,15 +1,12 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import useSWR, { useSWRConfig } from 'swr'
+import classNames from 'classnames'
 
 const navigation = [
   { name: 'Clusters', href: '/destinations', icon: '/infrastructure.svg' },
   { name: 'Identity Providers', href: '/providers', icon: '/providers.svg' }
 ]
-
-function classNames (...classes) {
-  return classes.filter(Boolean).join(' ')
-}
 
 export default function ({ children }) {
   const router = useRouter()
