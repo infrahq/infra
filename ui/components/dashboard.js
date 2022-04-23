@@ -28,21 +28,21 @@ export default function ({ children }) {
           <Link href='/'>
             <a>
               <img
-                className='h-4 w-auto'
+                className='h-[18px] w-auto'
                 src='infra.svg'
                 alt='Infra'
               />
             </a>
           </Link>
         </div>
-        <div className='flex-1 space-y-1 px-4'>
+        <div className='flex-1 space-y-1.5 px-3 select-none'>
           {navigation.map(item => (
             <Link key={item.name} href={item.href}>
               <a
                 href={item.href}
                 className={classNames(
-                  router.asPath.startsWith(item.href) ? 'bg-purple-200/20 text-purple-100 font-bold' : 'text-gray-400 hover:bg-zinc-900 hover:text-gray-300',
-                  'group rounded-md py-[7px] px-2 flex items-center text-sm font-medium'
+                  router.asPath.startsWith(item.href) ? 'bg-purple-200/10 text-white' : 'text-gray-500 hover:bg-purple-200/5',
+                  'group rounded-md py-2 px-3 flex items-center text-sm font-medium transition-colors duration-200'
                 )}
               >
                 <img
