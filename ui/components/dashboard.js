@@ -42,7 +42,7 @@ export default function ({ children }) {
                 href={item.href}
                 className={classNames(
                   router.asPath.startsWith(item.href) ? 'bg-purple-200/10 text-white' : 'text-gray-500 hover:bg-purple-200/5',
-                  'group rounded-md py-2 px-3 flex items-center text-sm font-medium transition-colors duration-200'
+                  'group rounded-lg py-2 px-3 flex items-center text-sm font-medium transition-colors duration-200'
                 )}
               >
                 <img
