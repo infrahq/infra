@@ -109,7 +109,7 @@ export default function () {
               {destinations?.length > 0 && (
                 <div className='flex justify-between items-center'>
                   <h1 className='text-2xl font-bold mt-6 mb-4'>Clusters</h1>
-                  <Link href='/destinations/add/details'>
+                  <Link href='/destinations/add'>
                     <button className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 my-2'>
                       <div className='bg-black rounded-full flex items-center text-sm px-4 py-1.5 '>
                         Add Clusters
@@ -125,7 +125,7 @@ export default function () {
                       title='There are currently no clusters'
                       subtitle='There are currently no clusters'
                       iconPath='/destinations-color.svg'
-                      buttonHref='/destinations/add/details'
+                      buttonHref='/destinations/add'
                       buttonText='Add Clusters'
                     />
                   : <Table {...table} />}
