@@ -6,8 +6,6 @@ import { SWRConfig } from 'swr'
 
 import '../lib/dayjs'
 import '../styles/globals.css'
-import '../styles/typography.css'
-import '../styles/buttons.css'
 
 const fetcher = async (resource, init) => {
   const res = await fetch(resource, init)
