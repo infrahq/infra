@@ -3,33 +3,11 @@ import { useRouter } from 'next/router'
 import Head from 'next/head'
 import useSWRImmutable from 'swr/immutable'
 import { SWRConfig } from 'swr'
-import relativeTime from 'dayjs/plugin/relativeTime'
-import updateLocale from 'dayjs/plugin/updateLocale'
-import dayjs from 'dayjs'
 
+import '../lib/dayjs'
 import '../styles/globals.css'
 import '../styles/typography.css'
 import '../styles/buttons.css'
-
-dayjs.extend(relativeTime)
-dayjs.extend(updateLocale)
-dayjs.updateLocale('en', {
-  relativeTime: {
-    future: 'in %s',
-    past: '%s',
-    s: 'just now',
-    m: 'a minute ago',
-    mm: '%d minutes ago',
-    h: 'an hour ago',
-    hh: '%d hours ago',
-    d: 'a day ago',
-    dd: '%d days ago',
-    M: 'a month ago',
-    MM: '%d months ago',
-    y: 'a year ago',
-    yy: '%d years ago'
-  }
-})
 
 const fetcher = async (resource, init) => {
   const res = await fetch(resource, init)
