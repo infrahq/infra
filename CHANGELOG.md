@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.11.0](https://github.com/infrahq/infra/compare/v0.10.3...v0.11.0) (2022-04-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* refactor setup to signup
+* the UI fields in the server config file have changed.
+
+### Features
+
+* add request timeouts ([#1594](https://github.com/infrahq/infra/issues/1594)) ([c744d1b](https://github.com/infrahq/infra/commit/c744d1b35764ecdb57f324b2f94e7480f5784fea))
+* change signup request endpoint to use email ([#1662](https://github.com/infrahq/infra/issues/1662)) ([10c487e](https://github.com/infrahq/infra/commit/10c487ee1ac55319aa0ab16c075fafccdfa01d72))
+* create admin user on first login ([a95e006](https://github.com/infrahq/infra/commit/a95e006b2cb7a8b6b3778b6a7788b03214293a86))
+* format infra keys list with user name ([#1666](https://github.com/infrahq/infra/issues/1666)) ([5b87585](https://github.com/infrahq/infra/commit/5b8758582951f4f7b668d24291db14fa05d18065))
+* login and logout of current or all servers, also affects clear ([#1633](https://github.com/infrahq/infra/issues/1633)) ([bd62622](https://github.com/infrahq/infra/commit/bd626220fc2c55fe51fc9c19e6ea22339282308a))
+
+
+### Bug Fixes
+
+* **api:** fix marshalling of api.Time values ([0299e4c](https://github.com/infrahq/infra/commit/0299e4cff9ff9026e0e930d6249cb1311b5f1564))
+* **ci:** actions not running correctly ([ac5536b](https://github.com/infrahq/infra/commit/ac5536b5c28459433deaa6f73e5da160a269df89))
+* cli log level and reading from env vars ([3947a69](https://github.com/infrahq/infra/commit/3947a69bc791100b986acf091d65993a47c6d0f5))
+* **cli:** fix the extension-deadline flag ([d417c56](https://github.com/infrahq/infra/commit/d417c56a478c4e4dc87a05a0f3eea070b7550681))
+* create provider user for signup user ([d53e508](https://github.com/infrahq/infra/commit/d53e5085ad8bd55b102c462d6ff578872fe6dbc4))
+* do not set a otp on machine identities ([#1624](https://github.com/infrahq/infra/issues/1624)) ([e52b819](https://github.com/infrahq/infra/commit/e52b819be9333f5b601185459772cff5ebc7e146))
+* fix 404 and proxy ui routes ([#1661](https://github.com/infrahq/infra/issues/1661)) ([5d59787](https://github.com/infrahq/infra/commit/5d59787dded278302f9e18dd879f4591646d9e8e))
+* flakey test fix ([#1650](https://github.com/infrahq/infra/issues/1650)) ([5ce7dba](https://github.com/infrahq/infra/commit/5ce7dbafc1c6294ceacf5773dbde003c866df808))
+* help prevent bad provider config ([#1630](https://github.com/infrahq/infra/issues/1630)) ([79bfca4](https://github.com/infrahq/infra/commit/79bfca4ae97f06b6a8899222f63e72293cb5d72e))
+
+
+### Improvement
+
+* refactor setup to signup ([adf34cf](https://github.com/infrahq/infra/commit/adf34cf04488671f0b2b51d6d0fadd3617851d44))
+* structure the UI config ([b257bc9](https://github.com/infrahq/infra/commit/b257bc927b47bd53611fa34db1cd07a810d7880f))
+
 ### [0.10.3](https://github.com/infrahq/infra/compare/v0.10.2...v0.10.3) (2022-04-14)
 
 
