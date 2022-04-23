@@ -81,18 +81,45 @@ export default function () {
           <img className='h-4' src={`/providers/${kind}.svg`} /><SwitchHorizontalIcon className='w-4 h-4 text-gray-500' /><img src='/icon-light.svg' />
         </div>
         <form onSubmit={onSubmit} className='flex flex-col my-12'>
-          <label className='text-xs' htmlFor='name'>Choose a name</label>
-          <input required autoFocus placeholder='Name' onChange={e => setName(e.target.value)} className={`bg-purple-100/5 border border-zinc-800 text-sm px-4 mt-2 py-2.5 rounded-lg focus:outline-none focus:ring focus:ring-cyan-600 ${errors.name ? 'border-pink-500' : ''}`} />
+          <label className='text-xs'>Choose a name</label>
+          <input
+            required
+            autoFocus
+            placeholder='Name'
+            onChange={e => setName(e.target.value)}
+            className={`bg-purple-100/5 border border-zinc-800 text-sm px-5 mt-2 py-2.5 rounded-full focus:outline-none focus:ring focus:ring-cyan-600 ${errors.name ? 'border-pink-500' : ''}`}
+          />
           {errors.name && <p className='px-4 mb-1 text-sm text-pink-500'>{errors.name}</p>}
 
-          <label className='text-xs mt-4' htmlFor='name'>Additional details (<a className='text-cyan-400 underline' target='_blank' href='https://infrahq.com/docs/guides/identity-providers/okta' rel='noreferrer'>learn more</a>) </label>
-          <input required placeholder='URL (Domain)' value={url} onChange={e => setURL(e.target.value)} className={`bg-purple-100/5 border border-zinc-800 text-sm px-4 mt-2 py-2.5 rounded-lg focus:outline-none focus:ring focus:ring-cyan-600 ${errors.url ? 'border-pink-500' : ''}`} />
+          <label className='text-xs mt-4'>
+            Additional details (<a className='text-cyan-400 underline' target='_blank' href='https://infrahq.com/docs/guides/identity-providers/okta' rel='noreferrer'>learn more</a>)
+          </label>
+          <input
+            required
+            placeholder='URL (Domain)'
+            value={url}
+            onChange={e => setURL(e.target.value)}
+            className={`bg-purple-100/5 border border-zinc-800 text-sm px-5 mt-2 py-2.5 rounded-full focus:outline-none focus:ring focus:ring-cyan-600 ${errors.url ? 'border-pink-500' : ''}`}
+          />
           {errors.url && <p className='px-4 mb-1 text-sm text-pink-500'>{errors.url}</p>}
 
-          <input required placeholder='Client ID' value={clientID} onChange={e => setClientID(e.target.value)} className={`bg-purple-100/5 border border-zinc-800 text-sm px-4 mt-2 py-2.5 rounded-lg focus:outline-none focus:ring focus:ring-cyan-600 ${errors.clientid ? 'border-pink-500' : ''}`} />
+          <input
+            required
+            placeholder='Client ID'
+            value={clientID}
+            onChange={e => setClientID(e.target.value)}
+            className={`bg-purple-100/5 border border-zinc-800 text-sm px-5 mt-2 py-2.5 rounded-full focus:outline-none focus:ring focus:ring-cyan-600 ${errors.clientid ? 'border-pink-500' : ''}`}
+          />
           {errors.clientid && <p className='px-4 mb-1 text-sm text-pink-500'>{errors.clientid}</p>}
 
-          <input required type='password' value={clientSecret} onChange={e => setClientSecret(e.target.value)} placeholder='Client Secret' className={`bg-purple-100/5 border border-zinc-800 text-sm px-4 mt-2 py-2.5 rounded-lg focus:outline-none focus:ring focus:ring-cyan-600 ${errors.clientsecret ? 'border-pink-500' : ''}`} />
+          <input
+            required
+            type='password'
+            placeholder='Client Secret'
+            value={clientSecret}
+            onChange={e => setClientSecret(e.target.value)}
+            className={`bg-purple-100/5 border border-zinc-800 text-sm px-5 mt-2 py-2.5 rounded-full focus:outline-none focus:ring focus:ring-cyan-600 ${errors.clientsecret ? 'border-pink-500' : ''}`}
+          />
           {errors.clientsecret && <p className='px-4 mb-1 text-sm text-pink-500'>{errors.clientsecret}</p>}
 
           <button type='submit' className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 w-full mt-6 text-center'>
