@@ -67,12 +67,14 @@ export default function ({ children }) {
             <Link href='/settings'>
               <a>
                 <div className='w-full flex -ml-1 opacity-50 hover:opacity-75 py-2'>
-                  <img src='/settings.svg' className='opacity-50 group-hover:opacity-75 mr-3 w-5 h-5' /><div className='text-purple-50/40 group-hover:text-purple-50'>Settings</div>
+                  <img src='/settings.svg' className='opacity-50 group-hover:opacity-75 mr-3 w-5 h-5' />
+                  <div className='text-purple-50/40 group-hover:text-purple-50'>Settings</div>
                 </div>
               </a>
             </Link>
-            <div onClick={() => logout()} className='w-full flex opacity-50 hover:opacity-75 py-2 cursor-pointer'>
-              <img src='/signout.svg' className='opacity-50 group-hover:opacity-75 mr-3' /><div className='text-purple-50/40 group-hover:text-purple-50'>Logout</div>
+            <div onClick={() => logout()} className='w-full flex items-center opacity-50 hover:opacity-75 py-2 cursor-pointer'>
+              <img src='/signout.svg' className='opacity-50 group-hover:opacity-75 h-3 mr-3' />
+              <div className='text-purple-50/40 group-hover:text-purple-50'>Logout</div>
             </div>
           </div>
         </div>
