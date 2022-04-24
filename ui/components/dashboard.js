@@ -25,7 +25,7 @@ export default function ({ children }) {
   }
 
   const navigation = [
-    { name: 'Clusters', href: '/destinations', icon: '/infrastructure.svg' },
+    { name: 'Clusters', href: '/destinations', icon: '/destinations.svg' },
     { name: 'Identity Providers', href: '/providers', icon: '/providers.svg', admin: true }
   ]
 
