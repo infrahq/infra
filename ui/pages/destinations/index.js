@@ -181,7 +181,7 @@ export default function Destinations () {
                       subtitle='There are currently no clusters connected to Infra. Get started by connecting one.'
                       iconPath='/destinations-color.svg'
                       buttonHref={admin && '/destinations/add'}
-                      buttonText='Add Clusters'
+                      buttonText='Add Cluster'
                     />
                   : <Table {...table} />}
             </div>
