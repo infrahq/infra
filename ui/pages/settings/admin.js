@@ -23,8 +23,8 @@ const columns = [{
 
     return (
       <div className='opacity-0 group-hover:opacity-100 flex justify-end text-right'>
-        <button onClick={() => setOpen(true)} className='p-2 -mr-2 cursor-pointer'>
-          <p className='text-gray-500'>revoke admin</p>
+        <button onClick={() => setOpen(true)} className='p-2 -mr-2 cursor-pointer text-gray-500'>
+          Revoke
         </button>
         <DeleteModal
           open={open}
@@ -51,7 +51,6 @@ const columns = [{
 
 const AdminName = ({ id }) => {
   const { data: user } = useSWR(`/v1/identities/${id.replace('i:', '')}`, { fallbackData: { name: '', kind: '' } })
-  console.log(user)
   return (
     <div className='flex items-center'>
       <div className='w-10 h-10 mr-4 bg-purple-100/10 font-bold rounded-lg flex items-center justify-center'>
