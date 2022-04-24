@@ -40,9 +40,6 @@ data:
 {{- end }}
 
 {{- if .Values.server.persistence.enabled }}
-{{- if not (hasKey .Values.server.config "tlsCache") }}
-    tlsCache: /var/lib/infrahq/server/tls.cache
-{{- end }}
 
 {{- if not (hasKey .Values.server.config "dbFile") }}
     dbFile: /var/lib/infrahq/server/sqlite3.db
