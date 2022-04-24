@@ -1,8 +1,7 @@
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
-import useSWRImmutable from 'swr/immutable'
-import { SWRConfig } from 'swr'
+import useSWR, { SWRConfig } from 'swr'
 
 import '../lib/dayjs'
 import '../styles/globals.css'
@@ -19,8 +18,8 @@ const fetcher = async (resource, init) => {
 }
 
 function App ({ Component, pageProps }) {
-  const { data: auth, error: authError } = useSWRImmutable('/v1/introspect', fetcher)
-  const { data: signup, error: signupError } = useSWRImmutable('/v1/signup', fetcher)
+  const { data: auth, error: authError } = useSWR('/v1/introspect', fetcher)
+  const { data: signup, error: signupError } = useSWR('/v1/signup', fetcher)
   const router = useRouter()
 
   const authLoading = !auth && !authError
@@ -42,9 +41,10 @@ function App ({ Component, pageProps }) {
     return null
   }
 
-  // redirect to dashboard
+  // redirect to dashboard if logged in
   if (auth?.id && (router.asPath.startsWith('/login') || router.asPath.startsWith('/signup'))) {
     router.replace('/')
+    return null
   }
 
   return (

@@ -67,7 +67,7 @@ const AdminName = ({ id }) => {
 
 export default function () {
   const { mutate } = useSWRConfig()
-  const { data: adminList } = useSWR(() => '/v1/grants?resource=infra', { fallbackData: [] })
+  const { data: adminList } = useSWR(() => '/v1/grants?resource=infra&privilege=admin', { fallbackData: [] })
   const table = useTable({ columns, data: adminList || [] })
 
   const [adminEmail, setAdminEmail] = useState('')
