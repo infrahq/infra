@@ -100,7 +100,7 @@ function columns (admin) {
     ...admin ? [{
       id: 'remove',
       accessor: d => d,
-      Cell: ({ value: { id, name } }) => {
+      Cell: ({ rows, value: { id, name } }) => {
         const [open, setOpen] = useState(false)
         const { mutate } = useSWRConfig()
 
@@ -124,7 +124,7 @@ function columns (admin) {
                     })
 
                     return destinations.filter(d => d?.id !== id)
-                  }, { optimisticData: rows.map(r => r.original).filter(d => d?.id !== destination.id) })
+                  }, { optimisticData: rows.map(r => r.original).filter(d => d?.id !== id) })
 
                   setOpen(false)
                 }}
