@@ -47,6 +47,8 @@ function App ({ Component, pageProps }) {
     return null
   }
 
+  const layout = Component.layout || (page => page)
+
   return (
     <SWRConfig value={{
       fetcher: (resource, init) => fetcher(resource, init),
@@ -59,7 +61,7 @@ function App ({ Component, pageProps }) {
         <link rel='icon' type='image/png' sizes='16x16' href='/favicon-16x16.png' />
         <title>Infra</title>
       </Head>
-      <Component {...pageProps} />
+      {layout(<Component {...pageProps} />)}
     </SWRConfig>
   )
 }

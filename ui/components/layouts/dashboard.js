@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import useSWR, { useSWRConfig } from 'swr'
 import classNames from 'classnames'
 
-import { useAdmin } from '../lib/admin'
+import { useAdmin } from '../../lib/admin'
 
 export default function ({ children }) {
   const router = useRouter()

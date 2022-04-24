@@ -6,8 +6,8 @@ import { useTable } from 'react-table'
 import { XIcon } from '@heroicons/react/outline'
 import dayjs from 'dayjs'
 
+import Dashboard from '../../components/layouts/dashboard'
 import DeleteModal from '../../components/modals/delete'
-import Dashboard from '../../components/dashboard'
 import Table from '../../components/table'
 import Loader from '../../components/loader'
 import EmptyTable from '../../components/empty-table'
@@ -72,14 +72,14 @@ const columns = [{
   }
 }]
 
-export default function () {
+export default function Providers () {
   const { data, error } = useSWR('/v1/providers')
   const table = useTable({ columns, data: data || [] })
 
   const loading = !data && !error
 
   return (
-    <Dashboard>
+    <>
       <Head>
         <title>Identity Providers - Infra</title>
       </Head>
@@ -121,6 +121,14 @@ export default function () {
             </div>
           </div>
           )}
+    </>
+  )
+}
+
+Providers.layout = function (page) {
+  return (
+    <Dashboard>
+      {page}
     </Dashboard>
   )
 }

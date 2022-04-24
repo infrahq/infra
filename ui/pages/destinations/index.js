@@ -7,7 +7,7 @@ import dayjs from 'dayjs'
 import { ShareIcon } from '@heroicons/react/outline'
 import { XIcon } from '@heroicons/react/outline'
 
-import Dashboard from '../../components/dashboard'
+import Dashboard from '../../components/layouts/dashboard'
 import InfoModal from '../../components/modals/info'
 import GrantAccessContent from './grantAccessContent'
 import Loader from '../../components/loader'
@@ -138,14 +138,14 @@ function columns (admin) {
   ]
 }
 
-export default function () {
+export default function Destinations () {
   const { data: destinations, error } = useSWR('/v1/destinations')
   const { admin, loading: adminLoading } = useAdmin()
   const table = useTable({ columns: useMemo(() => columns(admin), [admin]), data: destinations || [] })
   const loading = adminLoading || (!destinations && !error)
 
   return (
-    <Dashboard>
+    <>
       <Head>
         <title>Destinations - Infra</title>
       </Head>
@@ -187,6 +187,14 @@ export default function () {
             </div>
           </div>
           )}
+    </>
+  )
+}
+
+Destinations.layout = function (page) {
+  return (
+    <Dashboard>
+      {page}
     </Dashboard>
   )
 }
