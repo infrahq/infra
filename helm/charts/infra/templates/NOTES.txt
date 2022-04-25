@@ -43,11 +43,26 @@
 
 ################################# WARNING ######################################
 
-   Server persistence is not enabled. Data will be lost on pod restart
-   Enable persistence or connect an external datastore for data integrity.
+  Server persistence is not enabled. Data will be lost on pod restart
+  Enable persistence or connect an external datastore for data integrity.
 
 {{- end }}
 {{- end }}
+
+{{- if .Values.server.config.adminAccessKey }}
+
+################################# WARNING ######################################
+
+  server.config.adminAccessKey is deprecated and will be removed in a
+  future update. Please migrate to server.additionalIdentities:
+
+  server:
+    additionalIdentities:
+      - name: admin
+        accessKey: {{ .Values.server.config.adminAccessKey }}
+
+{{- end }}
+
 {{- else if include "connector.enabled" . | eq "true" }}
 
 {{- if not .Values.connector.config.name }}
@@ -90,7 +105,7 @@
 {{- end }}
 
   Connector installed. It may take some time to initialize.
-  
+
   Once this cluster has been successfully registered with Infra
   it will appear in the output of the following command:
 
