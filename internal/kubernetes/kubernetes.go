@@ -460,41 +460,44 @@ func (k *Kubernetes) kubeControllerManagerClusterName() (string, error) {
 	return opts.ClusterName, nil
 }
 
-func (k *Kubernetes) Name() (string, string, error) {
+func (k *Kubernetes) Checksum() (string, error) {
 	ca, err := CA()
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 
 	h := sha256.New()
 	h.Write(ca)
 	hash := h.Sum(nil)
-	chksm := hex.EncodeToString(hash)
+	return hex.EncodeToString(hash), nil
+}
+
+func (k *Kubernetes) Name(chksm string) (string, error) {
 	name := chksm[:12]
 
 	// 169.254.169.254 is an address used by cloud platforms for instance metadata
 	if _, err := net.DialTimeout("tcp", "169.254.169.254:80", 1*time.Second); err == nil {
 		if name, err := k.ec2ClusterName(); err == nil {
-			return name, chksm, nil
+			return name, nil
 		}
 
 		if name, err := k.gkeClusterName(); err == nil {
-			return name, chksm, nil
+			return name, nil
 		}
 
 		if name, err := k.aksClusterName(); err == nil {
-			return name, chksm, nil
+			return name, nil
 		}
 	}
 
 	if name, err := k.kubeControllerManagerClusterName(); err == nil {
-		return name, chksm, nil
+		return name, nil
 	}
 
 	// truncated checksum will be used as default name if one could not be found
 	logging.L.Debug("could not fetch cluster name, resorting to hashed cluster CA")
 
-	return name, chksm, nil
+	return name, nil
 }
 
 func Namespace() (string, error) {

@@ -306,13 +306,18 @@ func Run(ctx context.Context, options Options) error {
 		return err
 	}
 
-	autoname, chksm, err := k8s.Name()
+	chksm, err := k8s.Checksum()
 	if err != nil {
-		logging.S.Errorf("k8s name error: %s", err)
+		logging.S.Errorf("k8s checksum error: %s", err)
 		return err
 	}
 
 	if options.Name == "" {
+		autoname, err := k8s.Name(chksm)
+		if err != nil {
+			logging.S.Errorf("k8s name error: %s", err)
+			return err
+		}
 		options.Name = autoname
 	}
 
