@@ -124,15 +124,16 @@ export default function () {
           />
           {errors.clientsecret && <ErrorMessage message={errors.clientsecret} />}
 
-          <button 
-            type='submit' 
+          <button
+            type='submit'
             disabled={!name || !url || !clientID || !clientSecret}
-            className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 w-full mt-6 text-center disabled:opacity-30'>
+            className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 w-full mt-6 text-center disabled:opacity-30'
+          >
             <div className='bg-black rounded-full tracking-tight text-sm px-6 py-3 '>
               Add Identity Provider
             </div>
           </button>
-          {error && <ErrorMessage message={error} center/>}
+          {error && <ErrorMessage message={error} center />}
         </form>
       </div>
     </FullscreenModal>

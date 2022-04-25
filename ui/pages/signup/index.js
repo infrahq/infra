@@ -83,7 +83,7 @@ export default function () {
           <div className='bg-black rounded-full text-sm px-4 py-3'>
             Get Started
           </div>
-          {error && <ErrorMessage message={error} center/>}
+          {error && <ErrorMessage message={error} center />}
         </button>
       </form>
     </div>
