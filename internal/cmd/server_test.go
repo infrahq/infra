@@ -136,6 +136,31 @@ func TestServerCmd_LoadOptions(t *testing.T) {
 				return expected
 			},
 		},
+		{
+			name: "options from all flags",
+			setup: func(t *testing.T, cmd *cobra.Command) {
+				cmd.SetArgs([]string{
+					"--db-name", "database-name",
+					"--db-file", "$HOME/database-filename",
+					"--db-port", "12345",
+					"--db-host", "thehostname",
+					"--enable-telemetry=false",
+					"--session-duration", "3m",
+					"--enable-signup=false",
+				})
+			},
+			expected: func(t *testing.T) server.Options {
+				expected := serverOptionsWithDefaults()
+				expected.DBName = "database-name"
+				expected.DBFile = "/home/user/database-filename"
+				expected.DBHost = "thehostname"
+				expected.DBPort = 12345
+				expected.EnableTelemetry = false
+				expected.SessionDuration = 3 * time.Minute
+				expected.EnableSignup = false
+				return expected
+			},
+		},
 	}
 
 	for _, tc := range testCases {

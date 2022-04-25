@@ -82,7 +82,7 @@ func newServerCmd() *cobra.Command {
 	cmd.Flags().Bool("enable-crash-reporting", true, "Enable crash reporting")
 	cmd.Flags().BoolVar(&options.UI.Enabled, "enable-ui", false, "Enable Infra server UI")
 	cmd.Flags().Var(&options.UI.ProxyURL, "ui-proxy-url", "Proxy upstream UI requests to this url")
-	cmd.Flags().Duration("session-duration", time.Hour*12, "User session duration")
+	cmd.Flags().Duration("session-duration", 12*time.Hour, "User session duration")
 	cmd.Flags().Bool("enable-signup", true, "Enable one-time admin signup")
 
 	return cmd

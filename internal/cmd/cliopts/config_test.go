@@ -21,6 +21,7 @@ type Example struct {
 	BoolFromEnv   bool
 	UintFromEnv   uint
 	NetIPFromEnv  string
+	SkipTLSVerify bool
 
 	Nest    Nested
 	NestPtr *Nested
@@ -186,6 +187,7 @@ two: "from-file-3"
 	flags.Bool("nest-ptr-flag", false, "")
 	flags.StringSlice("many-things", nil, "")
 	flags.IntSlice("many-numbers", nil, "")
+	flags.Bool("skip-tls-verify", false, "")
 
 	err := flags.Parse([]string{
 		"--string-field=from-flag-1",
@@ -199,6 +201,7 @@ two: "from-file-3"
 		"--many-numbers=9",
 		"--many-numbers=10",
 		"--many-numbers=11",
+		"--skip-tls-verify",
 	})
 	assert.NilError(t, err)
 
@@ -220,6 +223,7 @@ two: "from-file-3"
 		BoolFromEnv:   true,
 		UintFromEnv:   412,
 		NetIPFromEnv:  "0.0.0.0",
+		SkipTLSVerify: true,
 		More:          "not-this-either",
 		Nest: Nested{
 			Two:     "left-as-default-2",
