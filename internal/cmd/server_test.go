@@ -13,7 +13,7 @@ import (
 	"github.com/infrahq/infra/internal/server"
 )
 
-func TestServerCmd_ParseOptions(t *testing.T) {
+func TestServerCmd_LoadOptions(t *testing.T) {
 	type testCase struct {
 		name        string
 		setup       func(t *testing.T, cmd *cobra.Command)

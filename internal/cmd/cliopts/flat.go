@@ -71,17 +71,10 @@ func (w *flatSourceWalker) Struct(value reflect.Value) error {
 		// TODO: what is this case?
 		return nil
 	}
-	cfg := mapstructure.DecoderConfig{
-		Result:           value.Addr().Interface(),
-		TagName:          w.opts.FieldTagName,
-		WeaklyTypedInput: true,
-		MatchName:        w.matchName,
-		DecodeHook: mapstructure.ComposeDecodeHookFunc(
-			mapstructure.StringToTimeDurationHookFunc(),
-			mapstructure.StringToSliceHookFunc(","),
-			hookFlagValueSlice,
-		),
-	}
+	cfg := DecodeConfig(value.Addr().Interface())
+	cfg.WeaklyTypedInput = true
+	cfg.MatchName = w.matchName
+
 	decoder, err := mapstructure.NewDecoder(&cfg)
 	if err != nil {
 		return fmt.Errorf("failed to create decoder for struct: %w", err)
