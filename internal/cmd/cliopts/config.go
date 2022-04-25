@@ -76,7 +76,8 @@ func loadFromFile(target interface{}, opts Options) error {
 
 const fieldTagName = "config"
 
-// DecodeConfig returns the default configured used by Load.
+// DecodeConfig returns the default DecoderConfig used by Load. This config
+// can be used by tests in other packages to simulate a call to Load.
 func DecodeConfig(target interface{}) mapstructure.DecoderConfig {
 	return mapstructure.DecoderConfig{
 		Squash:  true,
@@ -86,8 +87,8 @@ func DecodeConfig(target interface{}) mapstructure.DecoderConfig {
 			mapstructure.StringToTimeDurationHookFunc(),
 			mapstructure.StringToSliceHookFunc(","),
 			hookFlagValueSlice,
-			HookPrepareForDecode,
-			HookSetFromString,
+			hookPrepareForDecode,
+			hookSetFromString,
 		),
 	}
 }

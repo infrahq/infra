@@ -48,7 +48,6 @@ func loadFromFlags(target interface{}, opts Options) error {
 }
 
 type flatSourceWalker struct {
-	opts            Options
 	location        []string
 	source          map[string]interface{}
 	fieldNameFormat func(string) string
