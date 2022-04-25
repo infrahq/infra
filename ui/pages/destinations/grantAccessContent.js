@@ -5,6 +5,7 @@ import styled from 'styled-components'
 import { validateEmail } from '../../lib/email'
 
 import InputDropdown from '../../components/input-dropdown'
+import ErrorMessage from '../../components/error-message'
 
 const GrantList = styled.section`
   max-height: 20rem;
@@ -108,6 +109,7 @@ export default ({ id }) => {
             handleInputChange={e => handleInputChang(e.target.value)}
             handleSelectOption={e => setRole(e.target.value)}
             handleKeyDown={(e) => handleKeyDownEvent(e.key)}
+            error={error}
           />
         </div>
         <button
@@ -121,7 +123,8 @@ export default ({ id }) => {
           </div>
         </button>
       </div>
-      {error && <p className='text-sm text-pink-500'>{error}</p>}
+      {error && <ErrorMessage message={error} />}
+
       {list && list.length > 0 &&
         <GrantList>
           {list.map((item) => (

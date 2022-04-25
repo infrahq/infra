@@ -111,10 +111,8 @@ function columns (admin) {
 
             return (
               <div className='flex justify-end w-6 ml-auto opacity-0 group-hover:opacity-100'>
-                <button onClick={() => setOpen(true)} className='cursor-pointer'>
-                  <div className='flex items-center py-1 px-2 -mr-2 text-gray-500 hover:text-white'>
-                    <XIcon className='w-5 h-5 text-gray-500' />
-                  </div>
+                <button onClick={() => setOpen(true)} className='py-1 px-2 -mr-2 cursor-pointer'>
+                  <XIcon className='w-5 h-5 text-gray-500 hover:text-white' />
                 </button>
 
                 {/* delete modal */}

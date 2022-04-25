@@ -7,6 +7,7 @@ import { useSWRConfig } from 'swr'
 import { providers } from '../../../lib/providers'
 
 import FullscreenModal from '../../../components/modals/fullscreen'
+import ErrorMessage from '../../../components/error-message'
 
 export default function () {
   const router = useRouter()
@@ -90,7 +91,7 @@ export default function () {
             onChange={e => setName(e.target.value)}
             className={`bg-purple-100/5 border border-zinc-800 text-sm px-5 mt-2 py-2.5 rounded-full focus:outline-none focus:ring focus:ring-cyan-600 ${errors.name ? 'border-pink-500' : ''}`}
           />
-          {errors.name && <p className='px-4 mb-1 text-sm text-pink-500'>{errors.name}</p>}
+          {errors.name && <ErrorMessage message={errors.name} />}
 
           <label className='text-xs mt-4'>
             Additional details (<a className='text-cyan-400 underline' target='_blank' href='https://infrahq.com/docs/guides/identity-providers/okta' rel='noreferrer'>learn more</a>)
@@ -102,7 +103,7 @@ export default function () {
             onChange={e => setURL(e.target.value)}
             className={`bg-purple-100/5 border border-zinc-800 text-sm px-5 mt-2 py-2.5 rounded-full focus:outline-none focus:ring focus:ring-cyan-600 ${errors.url ? 'border-pink-500' : ''}`}
           />
-          {errors.url && <p className='px-4 mb-1 text-sm text-pink-500'>{errors.url}</p>}
+          {errors.url && <ErrorMessage message={errors.url} />}
 
           <input
             required
@@ -111,7 +112,7 @@ export default function () {
             onChange={e => setClientID(e.target.value)}
             className={`bg-purple-100/5 border border-zinc-800 text-sm px-5 mt-2 py-2.5 rounded-full focus:outline-none focus:ring focus:ring-cyan-600 ${errors.clientid ? 'border-pink-500' : ''}`}
           />
-          {errors.clientid && <p className='px-4 mb-1 text-sm text-pink-500'>{errors.clientid}</p>}
+          {errors.clientid && <ErrorMessage message={errors.clientid} />}
 
           <input
             required
@@ -121,14 +122,17 @@ export default function () {
             onChange={e => setClientSecret(e.target.value)}
             className={`bg-purple-100/5 border border-zinc-800 text-sm px-5 mt-2 py-2.5 rounded-full focus:outline-none focus:ring focus:ring-cyan-600 ${errors.clientsecret ? 'border-pink-500' : ''}`}
           />
-          {errors.clientsecret && <p className='px-4 mb-1 text-sm text-pink-500'>{errors.clientsecret}</p>}
+          {errors.clientsecret && <ErrorMessage message={errors.clientsecret} />}
 
-          <button type='submit' className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 w-full mt-6 text-center'>
+          <button 
+            type='submit' 
+            disabled={!name || !url || !clientID || !clientSecret}
+            className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 w-full mt-6 text-center disabled:opacity-30'>
             <div className='bg-black rounded-full tracking-tight text-sm px-6 py-3 '>
               Add Identity Provider
             </div>
           </button>
-          {error && <p className='mt-2 text-sm text-pink-500 text-center'>{error}</p>}
+          {error && <ErrorMessage message={error} center/>}
         </form>
       </div>
     </FullscreenModal>

@@ -7,6 +7,7 @@ import { validateEmail } from '../../lib/email'
 import InputDropdown from '../../components/input-dropdown'
 import Table from '../../components/table'
 import DeleteModal from '../../components/modals/delete'
+import ErrorMessage from '../../components/error-message'
 
 const columns = [{
   id: 'name',
@@ -25,7 +26,7 @@ const columns = [{
 
     return (
       <div className='opacity-0 group-hover:opacity-100 flex justify-end text-right'>
-        <button onClick={() => setOpen(true)} className='p-2 -mr-2 cursor-pointer text-gray-500'>
+        <button onClick={() => setOpen(true)} className='p-2 -mr-2 cursor-pointer text-gray-500 hover:text-white'>
           Revoke
         </button>
         <DeleteModal
@@ -34,7 +35,7 @@ const columns = [{
           onSubmit={() => {
             fetch(`/v1/grants/${admin.id}`, { method: 'DELETE' })
               .then(() => setOpen(false))
-              .finally(() => mutate('/v1/grants?resource=infra'))
+              .finally(() => mutate('/v1/grants?resource=infra&privilege=admin'))
               .catch((error) => {
                 console.error(error)
               })
@@ -77,7 +78,7 @@ export default function () {
       body: JSON.stringify({ subject: 'i:' + id, resource: 'infra', privilege: 'admin' })
     })
       .then(() => {
-        mutate('/v1/grants?resource=infra')
+        mutate('/v1/grants?resource=infra&privilege=admin')
         setAdminEmail('')
       }).catch((e) => setError(e.message || 'something went wrong, please try again later.'))
   }
@@ -130,6 +131,7 @@ export default function () {
             hasDropdownSelection={false}
             handleInputChange={e => handleInputChang(e.target.value)}
             handleKeyDown={(e) => handleKeyDownEvent(e.key)}
+            error={error}
           />
         </div>
         <button
@@ -143,7 +145,8 @@ export default function () {
           </div>
         </button>
       </div>
-      {error && <p className='text-sm text-pink-500'>{error}</p>}
+      {error && <ErrorMessage message={error} />}
+
       <h4 className='text-gray-400 my-3 text-sm'>These  users have full administration privileges</h4>
       {adminList && adminList.length > 0 &&
         <div className='w-3/4'>

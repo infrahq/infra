@@ -3,12 +3,13 @@ export default function InputDropdown ({
   type,
   value,
   placeholder,
+  error,
   hasDropdownSelection = true,
   optionType,
   options,
   handleInputChange,
   handleSelectOption,
-  handleKeyDown
+  handleKeyDown,
 }) {
   return (
     <div>
@@ -20,7 +21,7 @@ export default function InputDropdown ({
         <input
           type={type}
           value={value}
-          className='block w-full px-4 py-3 sm:text-sm border-2 border-gray-800 bg-transparent rounded-full focus:outline-none focus:ring focus:ring-cyan-600'
+          className={`block w-full px-4 py-3 sm:text-sm border-2 bg-transparent rounded-full focus:outline-none focus:ring focus:ring-cyan-600 ${error ? 'border-pink-500' : 'border-gray-800'}`}
           placeholder={placeholder}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
