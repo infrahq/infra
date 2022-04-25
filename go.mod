@@ -45,7 +45,7 @@ require (
 	github.com/google/go-cmp v0.5.7
 	github.com/iancoleman/strcase v0.2.0
 	github.com/infrahq/secrets v0.0.0-20220419190655-ce9f012a8941
-	github.com/mitchellh/mapstructure v1.4.3
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/pdevine/go-asciisprite v0.1.6
 	github.com/spf13/afero v1.8.2
 	github.com/spf13/pflag v1.0.5
