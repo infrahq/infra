@@ -114,12 +114,6 @@ func (a *API) UpdateIdentity(c *gin.Context, r *api.UpdateIdentityRequest) (*api
 		return nil, err
 	}
 
-	for _, v := range a.server.InternalIdentities {
-		if v.ID == identity.ID {
-			return nil, internal.ErrForbidden
-		}
-	}
-
 	if identity.Kind != models.UserKind {
 		return nil, fmt.Errorf("%w: machine identity has no password to update", internal.ErrBadRequest)
 	}
@@ -133,12 +127,6 @@ func (a *API) UpdateIdentity(c *gin.Context, r *api.UpdateIdentityRequest) (*api
 }
 
 func (a *API) DeleteIdentity(c *gin.Context, r *api.Resource) error {
-	for _, v := range a.server.InternalIdentities {
-		if v.ID == r.ID {
-			return internal.ErrForbidden
-		}
-	}
-
 	return access.DeleteIdentity(c, r.ID)
 }
 
@@ -276,10 +264,6 @@ func (a *API) CreateProvider(c *gin.Context, r *api.CreateProviderRequest) (*api
 }
 
 func (a *API) UpdateProvider(c *gin.Context, r *api.UpdateProviderRequest) (*api.Provider, error) {
-	if r.ID == a.server.InternalProvider.ID {
-		return nil, internal.ErrForbidden
-	}
-
 	provider := &models.Provider{
 		Model: models.Model{
 			ID: r.ID,
@@ -298,10 +282,6 @@ func (a *API) UpdateProvider(c *gin.Context, r *api.UpdateProviderRequest) (*api
 }
 
 func (a *API) DeleteProvider(c *gin.Context, r *api.Resource) error {
-	if r.ID == a.server.InternalProvider.ID {
-		return internal.ErrForbidden
-	}
-
 	return access.DeleteProvider(c, r.ID)
 }
 

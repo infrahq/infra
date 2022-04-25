@@ -62,9 +62,12 @@ func InfraProvider(db *gorm.DB) *models.Provider {
 		}
 
 		// create the infra provider since it doesn't exist.
-		infra = &models.Provider{Name: models.InternalInfraProviderName}
-		err = add(db, infra)
-		if err != nil {
+		infra = &models.Provider{
+			Name:      models.InternalInfraProviderName,
+			CreatedBy: models.CreatedBySystem,
+		}
+
+		if err := CreateProvider(db, infra); err != nil {
 			logging.S.Error(err)
 			return nil
 		}

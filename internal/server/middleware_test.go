@@ -39,7 +39,10 @@ func setupDB(t *testing.T) *gorm.DB {
 
 	models.SymmetricKey = key
 
-	err = data.CreateProvider(db, &models.Provider{Name: models.InternalInfraProviderName, CreatedBy: models.CreatedBySystem})
+	err = data.CreateProvider(db, &models.Provider{
+		Name:      models.InternalInfraProviderName,
+		CreatedBy: models.CreatedBySystem,
+	})
 	assert.NilError(t, err)
 
 	return db
@@ -187,7 +190,7 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				assert.ErrorContains(t, err, "rejected access key format")
+				assert.ErrorContains(t, err, "invalid access key format")
 			},
 		},
 		"NoAuthentication": {

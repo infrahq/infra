@@ -14,6 +14,11 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+func secretChecksum(secret string) []byte {
+	chksm := sha256.Sum256([]byte(secret))
+	return chksm[:]
+}
+
 func CreateAccessKey(db *gorm.DB, accessKey *models.AccessKey) (body string, err error) {
 	if accessKey.KeyID == "" {
 		key, err := generate.CryptoRandom(models.AccessKeyKeyLength)
@@ -41,8 +46,7 @@ func CreateAccessKey(db *gorm.DB, accessKey *models.AccessKey) (body string, err
 		return "", fmt.Errorf("invalid secret length")
 	}
 
-	chksm := sha256.Sum256([]byte(accessKey.Secret))
-	accessKey.SecretChecksum = chksm[:]
+	accessKey.SecretChecksum = secretChecksum(accessKey.Secret)
 
 	if accessKey.ExpiresAt.IsZero() {
 		accessKey.ExpiresAt = time.Now().Add(time.Hour * 12).UTC()
@@ -64,6 +68,10 @@ func CreateAccessKey(db *gorm.DB, accessKey *models.AccessKey) (body string, err
 }
 
 func SaveAccessKey(db *gorm.DB, key *models.AccessKey) error {
+	if key.Secret != "" {
+		key.SecretChecksum = secretChecksum(key.Secret)
+	}
+
 	return save(db, key)
 }
 
@@ -94,18 +102,19 @@ func DeleteAccessKeys(db *gorm.DB, selectors ...SelectorFunc) error {
 }
 
 func ValidateAccessKey(db *gorm.DB, authnKey string) (*models.AccessKey, error) {
-	parts := strings.Split(authnKey, ".")
-	if len(parts) < 2 {
-		return nil, fmt.Errorf("rejected access key format")
+	keyID, secret, ok := strings.Cut(authnKey, ".")
+	if !ok {
+		return nil, fmt.Errorf("invalid access key format")
 	}
 
-	t, err := GetAccessKey(db, ByKeyID(parts[0]))
+	t, err := GetAccessKey(db, ByKeyID(keyID))
 	if err != nil {
 		return nil, fmt.Errorf("%w: could not get access key from database, it may not exist", err)
 	}
 
-	sum := sha256.Sum256([]byte(parts[1]))
-	if subtle.ConstantTimeCompare(t.SecretChecksum, sum[:]) != 1 {
+	sum := secretChecksum(secret)
+
+	if subtle.ConstantTimeCompare(t.SecretChecksum, sum) != 1 {
 		return nil, fmt.Errorf("access key invalid secret")
 	}
 

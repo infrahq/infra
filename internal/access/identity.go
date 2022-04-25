@@ -51,6 +51,10 @@ func CreateIdentity(c *gin.Context, identity *models.Identity) error {
 	return data.CreateIdentity(db, identity)
 }
 
+func InfraConnectorIdentity(c *gin.Context) *models.Identity {
+	return data.InfraConnectorIdentity(getDB(c))
+}
+
 func DeleteIdentity(c *gin.Context, id uid.ID) error {
 	self, err := isIdentitySelf(c, id)
 	if err != nil {
@@ -59,6 +63,10 @@ func DeleteIdentity(c *gin.Context, id uid.ID) error {
 
 	if self {
 		return fmt.Errorf("cannot delete self: %w", internal.ErrForbidden)
+	}
+
+	if InfraConnectorIdentity(c).ID == id {
+		return internal.ErrForbidden
 	}
 
 	db, err := RequireInfraRole(c, models.InfraAdminRole)

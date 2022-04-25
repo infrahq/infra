@@ -4,9 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/infrahq/secrets"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
@@ -31,9 +34,18 @@ type Grant struct {
 	Resource string `mapstructure:"resource" validate:"required"`
 }
 
+type Identity struct {
+	Name      string `mapstructure:"name" validate:"excluded_with=Email,excluded_with=Password"`
+	AccessKey string `mapstructure:"accessKey" validate:"excluded_with=Email,excluded_with=Password"`
+
+	Email    string `mapstructure:"email" validate:"excluded_with=Name,excluded_with=AccessKey"`
+	Password string `mapstructure:"password" validate:"excluded_with=Name,excluded_with=AccessKey"`
+}
+
 type Config struct {
-	Providers []Provider `mapstructure:"providers" validate:"dive"`
-	Grants    []Grant    `mapstructure:"grants" validate:"dive"`
+	Providers  []Provider `mapstructure:"providers" validate:"dive"`
+	Grants     []Grant    `mapstructure:"grants" validate:"dive"`
+	Identities []Identity `mapstructure:"identities" validate:"dive"`
 }
 
 type KeyProvider struct {
@@ -503,40 +515,46 @@ func getKindFromUnstructured(data interface{}) string {
 	return ""
 }
 
-// setupInternalInfraIdentityProvider creates the internal identity provider where local identities are stored
-func (s *Server) setupInternalInfraIdentityProvider() error {
-	provider, err := data.GetProvider(s.db, data.ByName(models.InternalInfraProviderName))
-	if err != nil {
-		if !errors.Is(err, internal.ErrNotFound) {
-			return fmt.Errorf("setup infra provider: %w", err)
-		}
-
-		provider = &models.Provider{
-			Name:      models.InternalInfraProviderName,
-			CreatedBy: models.CreatedBySystem,
-		}
-
-		if err := data.CreateProvider(s.db, provider); err != nil {
-			return err
-		}
-	}
-
-	s.InternalProvider = provider
-
-	return nil
-}
-
-func loadConfig(db *gorm.DB, config Config) error {
+func (s Server) loadConfig(config Config) error {
 	if err := validator.New().Struct(config); err != nil {
 		return err
 	}
 
-	return db.Transaction(func(tx *gorm.DB) error {
-		if err := loadProviders(tx, config.Providers); err != nil {
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		// inject internal infra provider
+		config.Providers = append(config.Providers, Provider{
+			Name: models.InternalInfraProviderName,
+		})
+
+		config.Identities = append(config.Identities, Identity{
+			Name: models.InternalInfraConnectorIdentityName,
+		})
+
+		config.Grants = append(config.Grants, Grant{
+			Machine:  models.InternalInfraConnectorIdentityName,
+			Role:     models.InfraConnectorRole,
+			Resource: "infra",
+		})
+
+		if err := s.loadProviders(tx, config.Providers); err != nil {
 			return err
 		}
 
-		if err := loadGrants(tx, config.Grants); err != nil {
+		// extract identities from grants and add them to identities
+		for _, g := range config.Grants {
+			switch {
+			case g.User != "":
+				config.Identities = append(config.Identities, Identity{Email: g.User})
+			case g.Machine != "":
+				config.Identities = append(config.Identities, Identity{Name: g.Machine})
+			}
+		}
+
+		if err := s.loadIdentities(tx, config.Identities); err != nil {
+			return err
+		}
+
+		if err := s.loadGrants(tx, config.Grants); err != nil {
 			return err
 		}
 
@@ -544,28 +562,27 @@ func loadConfig(db *gorm.DB, config Config) error {
 	})
 }
 
-func loadProviders(db *gorm.DB, providers []Provider) error {
-	toKeep := make([]uid.ID, 0)
+func (s Server) loadProviders(db *gorm.DB, providers []Provider) error {
+	keep := make([]uid.ID, 0, len(providers))
 
 	for _, p := range providers {
-		provider, err := loadProvider(db, p)
+		provider, err := s.loadProvider(db, p)
 		if err != nil {
 			return err
 		}
 
-		toKeep = append(toKeep, provider.ID)
+		keep = append(keep, provider.ID)
 	}
 
-	// remove _all_ providers previously loaded from config
-	err := data.DeleteProviders(db, data.ByNotIDs(toKeep), data.CreatedBy(models.CreatedByConfig))
-	if err != nil {
+	// remove any provider previously defined by config
+	if err := data.DeleteProviders(db, data.NotIDs(keep), data.CreatedBy(models.CreatedBySystem)); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func loadProvider(db *gorm.DB, input Provider) (*models.Provider, error) {
+func (Server) loadProvider(db *gorm.DB, input Provider) (*models.Provider, error) {
 	provider, err := data.GetProvider(db, data.ByName(input.Name))
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
@@ -577,7 +594,7 @@ func loadProvider(db *gorm.DB, input Provider) (*models.Provider, error) {
 			URL:          input.URL,
 			ClientID:     input.ClientID,
 			ClientSecret: models.EncryptedAtRest(input.ClientSecret),
-			CreatedBy:    models.CreatedByConfig,
+			CreatedBy:    models.CreatedBySystem,
 		}
 
 		if err := data.CreateProvider(db, provider); err != nil {
@@ -591,7 +608,6 @@ func loadProvider(db *gorm.DB, input Provider) (*models.Provider, error) {
 	provider.URL = input.URL
 	provider.ClientID = input.ClientID
 	provider.ClientSecret = models.EncryptedAtRest(input.ClientSecret)
-	provider.CreatedBy = models.CreatedByConfig
 
 	if err := data.SaveProvider(db, provider); err != nil {
 		return nil, err
@@ -600,49 +616,34 @@ func loadProvider(db *gorm.DB, input Provider) (*models.Provider, error) {
 	return provider, nil
 }
 
-func loadGrants(db *gorm.DB, grants []Grant) error {
-	toKeep := make([]uid.ID, 0)
+func (s Server) loadGrants(db *gorm.DB, grants []Grant) error {
+	keep := make([]uid.ID, 0, len(grants))
 
 	for _, g := range grants {
-		grant, err := loadGrant(db, g)
+		grant, err := s.loadGrant(db, g)
 		if err != nil {
 			return err
 		}
 
-		toKeep = append(toKeep, grant.ID)
+		keep = append(keep, grant.ID)
 	}
 
-	// remove _all_ grants previously defined by config
-	err := data.DeleteGrants(db, data.ByNotIDs(toKeep), data.CreatedBy(models.CreatedByConfig))
-	if err != nil {
+	// remove any grant previously defined by config
+	if err := data.DeleteGrants(db, data.NotIDs(keep), data.CreatedBy(models.CreatedBySystem)); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func loadGrant(db *gorm.DB, input Grant) (*models.Grant, error) {
+func (Server) loadGrant(db *gorm.DB, input Grant) (*models.Grant, error) {
 	var id uid.PolymorphicID
 
 	switch {
 	case input.User != "":
 		user, err := data.GetIdentity(db, data.ByName(input.User))
 		if err != nil {
-			if !errors.Is(err, internal.ErrNotFound) {
-				return nil, err
-			}
-
-			logging.S.Debugf("creating placeholder user %q", input.User)
-
-			// user does not exist yet, create a placeholder
-			user = &models.Identity{
-				Name: input.User,
-				Kind: models.UserKind,
-			}
-
-			if err := data.CreateIdentity(db, user); err != nil {
-				return nil, err
-			}
+			return nil, err
 		}
 
 		id = uid.NewIdentityPolymorphicID(user.ID)
@@ -658,7 +659,8 @@ func loadGrant(db *gorm.DB, input Grant) (*models.Grant, error) {
 
 			// group does not exist yet, create a placeholder
 			group = &models.Group{
-				Name: input.Group,
+				Name:      input.Group,
+				CreatedBy: models.CreatedBySystem,
 			}
 
 			if err := data.CreateGroup(db, group); err != nil {
@@ -671,21 +673,7 @@ func loadGrant(db *gorm.DB, input Grant) (*models.Grant, error) {
 	case input.Machine != "":
 		machine, err := data.GetIdentity(db, data.ByName(input.Machine))
 		if err != nil {
-			if !errors.Is(err, internal.ErrNotFound) {
-				return nil, err
-			}
-
-			logging.S.Debugf("creating machine %q", input.Machine)
-
-			// machine does not exist, create it
-			machine = &models.Identity{
-				Name: input.Machine,
-				Kind: models.MachineKind,
-			}
-
-			if err := data.CreateIdentity(db, machine); err != nil {
-				return nil, err
-			}
+			return nil, err
 		}
 
 		id = uid.NewIdentityPolymorphicID(machine.ID)
@@ -708,7 +696,7 @@ func loadGrant(db *gorm.DB, input Grant) (*models.Grant, error) {
 			Subject:   id,
 			Resource:  input.Resource,
 			Privilege: input.Role,
-			CreatedBy: models.CreatedByConfig,
+			CreatedBy: models.CreatedBySystem,
 		}
 
 		if err := data.CreateGrant(db, grant); err != nil {
@@ -717,4 +705,161 @@ func loadGrant(db *gorm.DB, input Grant) (*models.Grant, error) {
 	}
 
 	return grant, nil
+}
+
+func (s Server) loadIdentities(db *gorm.DB, identities []Identity) error {
+	keep := make([]uid.ID, 0, len(identities)+1)
+
+	internalProvider, err := data.GetProvider(db, data.ByName(models.InternalInfraProviderName))
+	if err != nil {
+		return err
+	}
+
+	for _, i := range identities {
+		identity, err := s.loadIdentity(db, i, internalProvider)
+		if err != nil {
+			return err
+		}
+
+		keep = append(keep, identity.ID)
+	}
+
+	// remove any provider previously defined by config
+	if err := data.DeleteIdentities(db, data.NotIDs(keep), data.CreatedBy(models.CreatedBySystem)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s Server) loadIdentity(db *gorm.DB, input Identity, provider *models.Provider) (*models.Identity, error) {
+	name := input.Name
+	kind := models.MachineKind
+	if input.Email != "" {
+		name = input.Email
+		kind = models.UserKind
+	}
+
+	identity, err := data.GetIdentity(db, data.ByName(name))
+	if err != nil {
+		if !errors.Is(err, internal.ErrNotFound) {
+			return nil, err
+		}
+
+		identity = &models.Identity{
+			Name:      name,
+			Kind:      kind,
+			CreatedBy: models.CreatedBySystem,
+		}
+
+		if err := data.CreateIdentity(db, identity); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := s.loadCredential(db, identity, provider, input.Password); err != nil {
+		return nil, err
+	}
+
+	if err := s.loadAccessKey(db, identity, provider, input.AccessKey); err != nil {
+		return nil, err
+	}
+
+	return identity, nil
+}
+
+func (s Server) loadCredential(db *gorm.DB, identity *models.Identity, provider *models.Provider, password string) error {
+	if password == "" {
+		return nil
+	}
+
+	password, err := secrets.GetSecret(password, s.secrets)
+	if err != nil {
+		return err
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	credential, err := data.GetCredential(db, data.ByIdentityID(identity.ID))
+	if err != nil {
+		if !errors.Is(err, internal.ErrNotFound) {
+			return err
+		}
+
+		credential := &models.Credential{
+			IdentityID:   identity.ID,
+			PasswordHash: hash,
+		}
+
+		if err := data.CreateCredential(db, credential); err != nil {
+			return err
+		}
+
+		if _, err := data.CreateProviderUser(db, provider, identity); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	credential.PasswordHash = hash
+
+	if err := data.SaveCredential(db, credential); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s Server) loadAccessKey(db *gorm.DB, identity *models.Identity, provider *models.Provider, key string) error {
+	if key == "" {
+		return nil
+	}
+
+	key, err := secrets.GetSecret(key, s.secrets)
+	if err != nil {
+		return err
+	}
+
+	keyID, secret, ok := strings.Cut(key, ".")
+	if !ok {
+		return fmt.Errorf("invalid access key format")
+	}
+
+	accessKey, err := data.GetAccessKey(db, data.ByKeyID(keyID))
+	if err != nil {
+		if !errors.Is(err, internal.ErrNotFound) {
+			return err
+		}
+
+		accessKey := &models.AccessKey{
+			Name:       fmt.Sprintf("%s-%s", identity.Name, time.Now().Format("20060102150405")),
+			IssuedFor:  identity.ID,
+			ExpiresAt:  time.Now().AddDate(10, 0, 0),
+			KeyID:      keyID,
+			Secret:     secret,
+			ProviderID: provider.ID,
+		}
+
+		if _, err := data.CreateAccessKey(db, accessKey); err != nil {
+			return err
+		}
+
+		if _, err := data.CreateProviderUser(db, provider, identity); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	accessKey.Secret = secret
+
+	if err := data.SaveAccessKey(db, accessKey); err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -21,9 +21,18 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+func adminAccessKey(s *Server) string {
+	for _, id := range s.options.Identities {
+		if id.Name == "admin" {
+			return id.AccessKey
+		}
+	}
+
+	return ""
+}
+
 func TestAPI_ListIdentities(t *testing.T) {
-	srv := setupServer(t, withDefaultAdminAccessKey)
-	adminAccessKey := srv.options.AdminAccessKey
+	srv := setupServer(t, withAdminIdentity)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
 	createID := func(t *testing.T, name string, kind string) uid.ID {
@@ -35,7 +44,7 @@ func TestAPI_ListIdentities(t *testing.T) {
 
 		req, err := http.NewRequest(http.MethodPost, "/v1/identities", &buf)
 		assert.NilError(t, err)
-		req.Header.Add("Authorization", "Bearer "+adminAccessKey)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
@@ -59,7 +68,7 @@ func TestAPI_ListIdentities(t *testing.T) {
 	run := func(t *testing.T, tc testCase) {
 		req, err := http.NewRequest(http.MethodGet, tc.urlPath, nil)
 		assert.NilError(t, err)
-		req.Header.Add("Authorization", "Bearer "+adminAccessKey)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 
 		if tc.setup != nil {
 			tc.setup(t, req)
@@ -192,7 +201,7 @@ func TestListKeys(t *testing.T) {
 }
 
 func TestListProviders(t *testing.T) {
-	s := setupServer(t, withDefaultAdminAccessKey)
+	s := setupServer(t, withAdminIdentity)
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
 
 	testProvider := &models.Provider{Name: "mokta"}
@@ -207,7 +216,7 @@ func TestListProviders(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, "/v1/providers", nil)
 	assert.NilError(t, err)
 
-	req.Header.Add("Authorization", "Bearer "+s.options.AdminAccessKey)
+	req.Header.Add("Authorization", "Bearer "+adminAccessKey(s))
 
 	resp := httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
@@ -223,7 +232,7 @@ func TestListProviders(t *testing.T) {
 }
 
 func TestDeleteProvider(t *testing.T) {
-	s := setupServer(t, withDefaultAdminAccessKey)
+	s := setupServer(t, withAdminIdentity)
 
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
 
@@ -238,7 +247,7 @@ func TestDeleteProvider(t *testing.T) {
 	req, err := http.NewRequest(http.MethodDelete, route, nil)
 	assert.NilError(t, err)
 
-	req.Header.Add("Authorization", "Bearer "+s.options.AdminAccessKey)
+	req.Header.Add("Authorization", "Bearer "+adminAccessKey(s))
 
 	resp := httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
@@ -246,23 +255,31 @@ func TestDeleteProvider(t *testing.T) {
 	assert.Equal(t, http.StatusNoContent, resp.Code, resp.Body.String())
 }
 
-// withDefaultAdminAccessKey may be used with setupServer to setup the server
-// with a default AdminAccessKey. The value for the key can be retrieved from
-// server.options.AdminAccessKey.
-func withDefaultAdminAccessKey(_ *testing.T, opts *Options) {
-	opts.AdminAccessKey = "BlgpvURSGF.NdcemBdzxLTGIcjPXwPoZNrb"
+// withAdminIdentity may be used with setupServer to setup the server
+// with an admin machine identity and access key
+func withAdminIdentity(_ *testing.T, opts *Options) {
+	opts.Identities = append(opts.Identities, Identity{
+		Name:      "admin",
+		AccessKey: "BlgpvURSGF.NdcemBdzxLTGIcjPXwPoZNrb",
+	})
+	opts.Grants = append(opts.Grants, Grant{
+		Machine:  "admin",
+		Role:     "admin",
+		Resource: "infra",
+	})
 }
 
 func TestDeleteProvider_NoDeleteInternalProvider(t *testing.T) {
-	s := setupServer(t, withDefaultAdminAccessKey)
+	s := setupServer(t, withAdminIdentity)
 
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
+	internalProvider := data.InfraProvider(s.db)
 
-	route := fmt.Sprintf("/v1/providers/%s", s.InternalProvider.ID)
+	route := fmt.Sprintf("/v1/providers/%s", internalProvider.ID)
 	req, err := http.NewRequest(http.MethodDelete, route, nil)
 	assert.NilError(t, err)
 
-	req.Header.Add("Authorization", "Bearer "+s.options.AdminAccessKey)
+	req.Header.Add("Authorization", "Bearer "+adminAccessKey(s))
 
 	resp := httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
@@ -361,7 +378,7 @@ func TestCreateIdentity(t *testing.T) {
 }
 
 func TestDeleteIdentity(t *testing.T) {
-	s := setupServer(t, withDefaultAdminAccessKey)
+	s := setupServer(t, withAdminIdentity)
 
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
 
@@ -377,7 +394,7 @@ func TestDeleteIdentity(t *testing.T) {
 	req, err := http.NewRequest(http.MethodDelete, route, nil)
 	assert.NilError(t, err)
 
-	req.Header.Add("Authorization", "Bearer "+s.options.AdminAccessKey)
+	req.Header.Add("Authorization", "Bearer "+adminAccessKey(s))
 
 	resp := httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
@@ -386,24 +403,21 @@ func TestDeleteIdentity(t *testing.T) {
 }
 
 func TestDeleteIdentity_NoDeleteInternalIdentities(t *testing.T) {
-	s := setupServer(t, withDefaultAdminAccessKey)
+	s := setupServer(t, withAdminIdentity)
 
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
+	connector := data.InfraConnectorIdentity(s.db)
 
-	for name := range s.InternalIdentities {
-		t.Run(name, func(t *testing.T) {
-			route := fmt.Sprintf("/v1/identities/%s", s.InternalIdentities["admin"].ID)
-			req, err := http.NewRequest(http.MethodDelete, route, nil)
-			assert.NilError(t, err)
+	route := fmt.Sprintf("/v1/identities/%s", connector.ID)
+	req, err := http.NewRequest(http.MethodDelete, route, nil)
+	assert.NilError(t, err)
 
-			req.Header.Add("Authorization", "Bearer "+s.options.AdminAccessKey)
+	req.Header.Add("Authorization", "Bearer "+adminAccessKey(s))
 
-			resp := httptest.NewRecorder()
-			routes.ServeHTTP(resp, req)
+	resp := httptest.NewRecorder()
+	routes.ServeHTTP(resp, req)
 
-			assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
-		})
-	}
+	assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
 }
 
 func TestDeleteIdentity_NoDeleteSelf(t *testing.T) {
@@ -419,11 +433,14 @@ func TestDeleteIdentity_NoDeleteSelf(t *testing.T) {
 	err := data.CreateIdentity(s.db, testUser)
 	assert.NilError(t, err)
 
+	internalProvider, err := data.GetProvider(s.db, data.ByName(models.InternalInfraProviderName))
+	assert.NilError(t, err)
+
 	testAccessKey, err := data.CreateAccessKey(s.db, &models.AccessKey{
 		Name:       "test",
 		IssuedFor:  testUser.ID,
 		ExpiresAt:  time.Now().Add(time.Hour),
-		ProviderID: s.InternalProvider.ID,
+		ProviderID: internalProvider.ID,
 	})
 	assert.NilError(t, err)
 
@@ -440,8 +457,7 @@ func TestDeleteIdentity_NoDeleteSelf(t *testing.T) {
 }
 
 func TestAPI_CreateGrant_Success(t *testing.T) {
-	srv := setupServer(t, withDefaultAdminAccessKey)
-	adminAccessKey := srv.options.AdminAccessKey
+	srv := setupServer(t, withAdminIdentity)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
 	reqBody := strings.NewReader(`
@@ -454,9 +470,9 @@ func TestAPI_CreateGrant_Success(t *testing.T) {
 	resp := httptest.NewRecorder()
 	req, err := http.NewRequest(http.MethodPost, "/v1/grants", reqBody)
 	assert.NilError(t, err)
-	req.Header.Add("Authorization", "Bearer "+adminAccessKey)
+	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 
-	accessKey, err := data.ValidateAccessKey(srv.db, adminAccessKey)
+	accessKey, err := data.ValidateAccessKey(srv.db, adminAccessKey(srv))
 	assert.NilError(t, err)
 
 	runStep(t, "response is ok", func(t *testing.T) {
@@ -488,7 +504,7 @@ func TestAPI_CreateGrant_Success(t *testing.T) {
 		resp := httptest.NewRecorder()
 		req, err := http.NewRequest(http.MethodGet, "/v1/grants/"+newGrant.ID.String(), nil)
 		assert.NilError(t, err)
-		req.Header.Add("Authorization", "Bearer "+adminAccessKey)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 
 		routes.ServeHTTP(resp, req)
 		assert.Equal(t, resp.Code, http.StatusOK)

@@ -92,9 +92,6 @@ type Server struct {
 	certificateProvider pki.CertificateProvider
 	Addrs               Addrs
 	routines            []func() error
-
-	InternalProvider   *models.Provider
-	InternalIdentities map[string]*models.Identity
 }
 
 type Addrs struct {
@@ -160,10 +157,6 @@ func New(options Options) (*Server, error) {
 		return nil, fmt.Errorf("loading certificate provider: %w", err)
 	}
 
-	if err := server.setupInternalInfraIdentityProvider(); err != nil {
-		return nil, fmt.Errorf("setting up internal identity provider: %w", err)
-	}
-
 	settings, err := data.InitializeSettings(server.db, server.signupEnabled())
 	if err != nil {
 		return nil, fmt.Errorf("settings: %w", err)
@@ -179,7 +172,7 @@ func New(options Options) (*Server, error) {
 		scope.SetContext("serverId", settings.ID)
 	})
 
-	if err := loadConfig(server.db, server.options.Config); err != nil {
+	if err := server.loadConfig(server.options.Config); err != nil {
 		return nil, fmt.Errorf("configs: %w", err)
 	}
 
@@ -598,7 +591,7 @@ func (s *Server) signupEnabled() bool {
 		return false
 	}
 
-	if len(s.options.Config.Providers) != 0 || len(s.options.Config.Grants) != 0 {
+	if len(s.options.Config.Providers) != 0 || len(s.options.Config.Grants) != 0 || len(s.options.Config.Identities) != 0 {
 		return false
 	}
 

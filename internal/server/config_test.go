@@ -6,8 +6,11 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"gopkg.in/yaml.v2"
 	"gotest.tools/v3/assert"
+	is "gotest.tools/v3/assert/cmp"
 
 	"github.com/infrahq/infra/internal/decode"
+	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
 func TestKeyProvider_PrepareForDecode_IntegrationWithDecode_FullConfig(t *testing.T) {
@@ -288,4 +291,485 @@ func TestSecretProvider_PrepareForDecode_IntegrationWithDecode(t *testing.T) {
 			run(t, tc)
 		})
 	}
+}
+
+func TestLoadConfigEmpty(t *testing.T) {
+	s := setupServer(t)
+
+	err := s.loadConfig(Config{})
+	assert.NilError(t, err)
+
+	var providers, grants int64
+
+	err = s.db.Model(&models.Provider{}).Count(&providers).Error
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), providers) // internal infra provider only
+
+	err = s.db.Model(&models.Grant{}).Count(&grants).Error
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), grants)
+}
+
+func TestLoadConfigInvalid(t *testing.T) {
+	cases := map[string]Config{
+		"MissingProviderName": {
+			Providers: []Provider{
+				{
+					URL:          "demo.okta.com",
+					ClientID:     "client-id",
+					ClientSecret: "client-secret",
+				},
+			},
+		},
+		"MissingProviderURL": {
+			Providers: []Provider{
+				{
+					Name:         "okta",
+					ClientID:     "client-id",
+					ClientSecret: "client-secret",
+				},
+			},
+		},
+		"MissingProviderClientID": {
+			Providers: []Provider{
+				{
+					Name:         "okta",
+					URL:          "demo.okta.com",
+					ClientSecret: "client-secret",
+				},
+			},
+		},
+		"MissingProviderClientSecret": {
+			Providers: []Provider{
+				{
+					Name:     "okta",
+					URL:      "demo.okta.com",
+					ClientID: "client-id",
+				},
+			},
+		},
+		"MissingGrantIdentity": {
+			Grants: []Grant{
+				{
+					Role:     "admin",
+					Resource: "kubernetes.test-cluster",
+				},
+			},
+		},
+		"MissingGrantRole": {
+			Grants: []Grant{
+				{
+					Machine:  "T-1000",
+					Resource: "kubernetes.test-cluster",
+				},
+			},
+		},
+		"MissingGrantResource": {
+			Grants: []Grant{
+				{
+					Machine: "T-1000",
+					Role:    "admin",
+				},
+			},
+		},
+	}
+
+	for name, config := range cases {
+		t.Run(name, func(t *testing.T) {
+			s := setupServer(t)
+
+			err := s.loadConfig(config)
+			// TODO: add expectedErr for each case
+			assert.ErrorContains(t, err, "") // could be any error
+		})
+	}
+}
+
+func TestLoadConfigWithProviders(t *testing.T) {
+	s := setupServer(t)
+
+	config := Config{
+		Providers: []Provider{
+			{
+				Name:         "okta",
+				URL:          "demo.okta.com",
+				ClientID:     "client-id",
+				ClientSecret: "client-secret",
+			},
+		},
+	}
+
+	err := s.loadConfig(config)
+	assert.NilError(t, err)
+
+	var provider models.Provider
+	err = s.db.Where("name = ?", "okta").First(&provider).Error
+	assert.NilError(t, err)
+	assert.Equal(t, "okta", provider.Name)
+	assert.Equal(t, "demo.okta.com", provider.URL)
+	assert.Equal(t, "client-id", provider.ClientID)
+	assert.Equal(t, models.EncryptedAtRest("client-secret"), provider.ClientSecret)
+}
+
+func TestLoadConfigWithUserGrants(t *testing.T) {
+	s := setupServer(t)
+
+	config := Config{
+		Grants: []Grant{
+			{
+				User:     "test@example.com",
+				Role:     "admin",
+				Resource: "kubernetes.test-cluster",
+			},
+		},
+	}
+
+	err := s.loadConfig(config)
+	assert.NilError(t, err)
+
+	var provider models.Provider
+	err = s.db.Where("name = ?", models.InternalInfraProviderName).First(&provider).Error
+	assert.NilError(t, err)
+
+	var user models.Identity
+	err = s.db.Where("name = ?", "test@example.com").First(&user).Error
+	assert.NilError(t, err)
+
+	var grant models.Grant
+	err = s.db.Where("subject = ?", uid.NewIdentityPolymorphicID(user.ID)).First(&grant).Error
+	assert.NilError(t, err)
+	assert.Equal(t, "admin", grant.Privilege)
+	assert.Equal(t, "kubernetes.test-cluster", grant.Resource)
+}
+
+func TestLoadConfigWithGroupGrants(t *testing.T) {
+	s := setupServer(t)
+
+	config := Config{
+		Grants: []Grant{
+			{
+				Group:    "Everyone",
+				Role:     "admin",
+				Resource: "kubernetes.test-cluster",
+			},
+		},
+	}
+
+	err := s.loadConfig(config)
+	assert.NilError(t, err)
+
+	var group models.Group
+	err = s.db.Where("name = ?", "Everyone").First(&group).Error
+	assert.NilError(t, err)
+
+	var grant models.Grant
+	err = s.db.Where("subject = ?", uid.NewGroupPolymorphicID(group.ID)).First(&grant).Error
+	assert.NilError(t, err)
+	assert.Equal(t, "admin", grant.Privilege)
+	assert.Equal(t, "kubernetes.test-cluster", grant.Resource)
+}
+
+func TestLoadConfigWithMachineGrants(t *testing.T) {
+	s := setupServer(t)
+
+	config := Config{
+		Grants: []Grant{
+			{
+				Machine:  "T-1000",
+				Role:     "admin",
+				Resource: "kubernetes.test-cluster",
+			},
+		},
+	}
+
+	err := s.loadConfig(config)
+	assert.NilError(t, err)
+
+	var machine models.Identity
+	err = s.db.Where("name = ?", "T-1000").First(&machine).Error
+	assert.NilError(t, err)
+
+	var grant models.Grant
+	err = s.db.Where("subject = ?", uid.NewIdentityPolymorphicID(machine.ID)).First(&grant).Error
+	assert.NilError(t, err)
+	assert.Equal(t, "admin", grant.Privilege)
+	assert.Equal(t, "kubernetes.test-cluster", grant.Resource)
+}
+
+func TestLoadConfigPruneConfig(t *testing.T) {
+	s := setupServer(t)
+
+	config := Config{
+		Providers: []Provider{
+			{
+				Name:         "okta",
+				URL:          "demo.okta.com",
+				ClientID:     "client-id",
+				ClientSecret: "client-secret",
+			},
+		},
+		Grants: []Grant{
+			{
+				User:     "test@example.com",
+				Role:     "admin",
+				Resource: "kubernetes.test-cluster",
+			},
+			{
+				Group:    "Everyone",
+				Role:     "admin",
+				Resource: "kubernetes.test-cluster",
+			},
+			{
+				Machine:  "T-1000",
+				Role:     "admin",
+				Resource: "kubernetes.test-cluster",
+			},
+		},
+	}
+
+	err := s.loadConfig(config)
+	assert.NilError(t, err)
+
+	var providers, grants, users, groups, machines, providerUsers int64
+
+	err = s.db.Model(&models.Provider{}).Count(&providers).Error
+	assert.NilError(t, err)
+	assert.Equal(t, int64(2), providers) // okta and infra providers
+
+	err = s.db.Model(&models.Grant{}).Count(&grants).Error
+	assert.NilError(t, err)
+	assert.Equal(t, int64(4), grants) // 3 from config, 1 internal connector
+
+	err = s.db.Model(&models.Identity{}).Where(models.Identity{Kind: models.UserKind}).Count(&users).Error
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), users)
+
+	err = s.db.Model(&models.Group{}).Count(&groups).Error
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), groups)
+
+	err = s.db.Model(&models.Identity{}).Where(models.Identity{Kind: models.MachineKind}).Count(&machines).Error
+	assert.NilError(t, err)
+	assert.Equal(t, int64(2), machines) // 1 from config, 1 internal connector
+
+	err = s.db.Model(&models.ProviderUser{}).Count(&providerUsers).Error
+	assert.NilError(t, err)
+	assert.Equal(t, int64(0), providerUsers)
+
+	// previous config is cleared on new config application
+	newConfig := Config{
+		Providers: []Provider{
+			{
+				Name:         "okta",
+				URL:          "new-demo.okta.com",
+				ClientID:     "new-client-id",
+				ClientSecret: "new-client-secret",
+			},
+		},
+	}
+
+	err = s.loadConfig(newConfig)
+	assert.NilError(t, err)
+
+	err = s.db.Model(&models.Provider{}).Count(&providers).Error
+	assert.NilError(t, err)
+	assert.Equal(t, int64(2), providers) // infra and new okta
+
+	err = s.db.Model(&models.Grant{}).Count(&grants).Error
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), grants) // connector
+
+	err = s.db.Model(&models.Identity{}).Where(models.Identity{Kind: models.UserKind}).Count(&users).Error
+	assert.NilError(t, err)
+	assert.Equal(t, int64(0), users)
+
+	err = s.db.Model(&models.Group{}).Count(&groups).Error
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), groups)
+
+	err = s.db.Model(&models.Identity{}).Where(models.Identity{Kind: models.MachineKind}).Count(&machines).Error
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), machines)
+}
+
+func TestLoadConfigUpdate(t *testing.T) {
+	s := setupServer(t)
+
+	config := Config{
+		Providers: []Provider{
+			{
+				Name:         "okta",
+				URL:          "demo.okta.com",
+				ClientID:     "client-id",
+				ClientSecret: "client-secret",
+			},
+		},
+		Identities: []Identity{
+			{
+				Name: "r2d2",
+			},
+			{
+				Name:      "c3po",
+				AccessKey: "TllVlekkUz.NFnxSlaPQLosgkNsyzaMttfC",
+			},
+			{
+				Email: "john@email.com",
+			},
+			{
+				Email:    "sarah@email.com",
+				Password: "supersecret",
+			},
+		},
+		Grants: []Grant{
+			{
+				User:     "test@example.com",
+				Role:     "admin",
+				Resource: "kubernetes.test-cluster",
+			},
+			{
+				Group:    "Everyone",
+				Role:     "admin",
+				Resource: "kubernetes.test-cluster",
+			},
+			{
+				Machine:  "T-1000",
+				Role:     "admin",
+				Resource: "kubernetes.test-cluster",
+			},
+		},
+	}
+
+	err := s.loadConfig(config)
+	assert.NilError(t, err)
+
+	var providers, users, groups, machines, credentials, accessKeys int64
+
+	err = s.db.Model(&models.Provider{}).Count(&providers).Error
+	assert.NilError(t, err)
+	assert.Equal(t, int64(2), providers) // infra and okta
+
+	grants := make([]models.Grant, 0)
+	err = s.db.Find(&grants).Error
+	assert.NilError(t, err)
+	assert.Assert(t, is.Len(grants, 4)) // 3 from config, 1 internal connector
+
+	privileges := map[string]int{
+		"admin":     0,
+		"view":      0,
+		"connector": 0,
+	}
+
+	for _, v := range grants {
+		privileges[v.Privilege]++
+	}
+
+	assert.Equal(t, privileges["admin"], 3)
+	assert.Equal(t, privileges["view"], 0)
+	assert.Equal(t, privileges["connector"], 1)
+
+	err = s.db.Model(&models.Identity{}).Where(models.Identity{Kind: models.UserKind}).Count(&users).Error
+	assert.NilError(t, err)
+	assert.Equal(t, int64(3), users) // john@example.com, sarah@example.com, test@example.com
+
+	err = s.db.Model(&models.Group{}).Count(&groups).Error
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), groups) // Everyone
+
+	err = s.db.Model(&models.Identity{}).Where(models.Identity{Kind: models.MachineKind}).Count(&machines).Error
+	assert.NilError(t, err)
+	assert.Equal(t, int64(4), machines) // connector, r2d2, c3po, T-1000
+
+	err = s.db.Model(&models.Credential{}).Count(&credentials).Error
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), credentials) // sarah@example.com
+
+	err = s.db.Model(&models.AccessKey{}).Count(&accessKeys).Error
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), accessKeys) // c3po
+
+	updatedConfig := Config{
+		Providers: []Provider{
+			{
+				Name:         "atko",
+				URL:          "demo.atko.com",
+				ClientID:     "client-id-2",
+				ClientSecret: "client-secret-2",
+			},
+		},
+		Grants: []Grant{
+			{
+				User:     "test@example.com",
+				Role:     "view",
+				Resource: "kubernetes.test-cluster",
+			},
+			{
+				Group:    "Everyone",
+				Role:     "view",
+				Resource: "kubernetes.test-cluster",
+			},
+			{
+				Machine:  "T-1000",
+				Role:     "view",
+				Resource: "kubernetes.test-cluster",
+			},
+		},
+	}
+
+	err = s.loadConfig(updatedConfig)
+	assert.NilError(t, err)
+
+	err = s.db.Model(&models.Provider{}).Count(&providers).Error
+	assert.NilError(t, err)
+	assert.Equal(t, int64(2), providers) // infra and atko
+
+	var provider models.Provider
+	err = s.db.Where("name = ?", "atko").First(&provider).Error
+	assert.NilError(t, err)
+	assert.Equal(t, "atko", provider.Name)
+	assert.Equal(t, "demo.atko.com", provider.URL)
+	assert.Equal(t, "client-id-2", provider.ClientID)
+	assert.Equal(t, models.EncryptedAtRest("client-secret-2"), provider.ClientSecret)
+
+	grants = make([]models.Grant, 0)
+	err = s.db.Find(&grants).Error
+	assert.NilError(t, err)
+	assert.Assert(t, is.Len(grants, 4))
+
+	privileges = map[string]int{
+		"admin":     0,
+		"view":      0,
+		"connector": 0,
+	}
+
+	for _, v := range grants {
+		privileges[v.Privilege]++
+	}
+
+	assert.Equal(t, privileges["admin"], 0)
+	assert.Equal(t, privileges["view"], 3)
+	assert.Equal(t, privileges["connector"], 1)
+
+	err = s.db.Model(&models.Identity{}).Where(models.Identity{Kind: models.UserKind}).Count(&users).Error
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), users)
+
+	var user models.Identity
+	err = s.db.Where("name = ?", "test@example.com").First(&user).Error
+	assert.NilError(t, err)
+
+	err = s.db.Model(&models.Group{}).Count(&groups).Error
+	assert.NilError(t, err)
+	assert.Equal(t, int64(1), groups)
+
+	var group models.Group
+	err = s.db.Where("name = ?", "Everyone").First(&group).Error
+	assert.NilError(t, err)
+
+	err = s.db.Model(&models.Identity{}).Where(models.Identity{Kind: models.MachineKind}).Count(&machines).Error
+	assert.NilError(t, err)
+	assert.Equal(t, int64(2), machines)
+
+	var machine models.Identity
+	err = s.db.Where("name = ?", "T-1000").First(&machine).Error
+	assert.NilError(t, err)
 }

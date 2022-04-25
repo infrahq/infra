@@ -21,7 +21,7 @@ func ByIDs(ids []uid.ID) SelectorFunc {
 	}
 }
 
-func ByNotIDs(ids []uid.ID) SelectorFunc {
+func NotIDs(ids []uid.ID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Not(ids)
 	}
