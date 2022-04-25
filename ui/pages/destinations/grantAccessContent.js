@@ -4,7 +4,7 @@ import styled from 'styled-components'
 
 import { validateEmail } from '../../lib/email'
 
-import InputDropdown from '../../components/input-dropdown'
+import InputDropdown from '../../components/input'
 import ErrorMessage from '../../components/error-message'
 
 const GrantList = styled.section`

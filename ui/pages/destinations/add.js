@@ -5,7 +5,7 @@ import useSWR from 'swr'
 
 import Fullscreen from '../../components/modals/fullscreen'
 import HeaderIcon from '../../components/header-icon'
-import InputDropdown from '../../components/input-dropdown'
+import InputDropdown from '../../components/input'
 
 const CommandInput = ({ enabledCommandInput, accessKey, currentDestinationName }) => {
   const server = window.location.host

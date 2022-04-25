@@ -4,7 +4,7 @@ import { useTable } from 'react-table'
 
 import { validateEmail } from '../../lib/email'
 
-import InputDropdown from '../../components/input-dropdown'
+import InputDropdown from '../../components/input'
 import Table from '../../components/table'
 import DeleteModal from '../../components/modals/delete'
 import ErrorMessage from '../../components/error-message'
