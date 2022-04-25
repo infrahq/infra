@@ -37,16 +37,15 @@ const CommandInput = ({ enabledCommandInput, accessKey, currentDestinationName }
 }
 
 export default function () {
-  const [connected, setConnected] = useState(false)
-  const [enabledCommandInput, setEnabledCommandInput] = useState(false)
-  const [name, setName] = useState('')
-  const [connectorFullName, setConnectorFullName] = useState('')
-  const [numDestinations, setNumDestinations] = useState(0)
+  const { data: destinations } = useSWR('/v1/destinations')
 
   const [accessKey, setAccessKey] = useState('')
+  const [name, setName] = useState('')
+  const [connectorFullName, setConnectorFullName] = useState('')
   const [currentDestinationName, setCurrentDestinationName] = useState('')
-
-  const { data: destinations } = useSWR('/v1/destinations')
+  const [connected, setConnected] = useState(false)
+  const [enabledCommandInput, setEnabledCommandInput] = useState(false)
+  const [numDestinations, setNumDestinations] = useState(0)
 
   useEffect(() => {
     const handleDestinationConnection = () => {
@@ -64,7 +63,7 @@ export default function () {
             }
           })
           .catch((error) => {
-            console.log(error)
+            console.error(error)
             clearTimeout(pollingTimeout)
           })
       }
@@ -108,7 +107,7 @@ export default function () {
       .then((accessKeyInfo) => {
         setAccessKey(accessKeyInfo.accessKey)
       })
-      .catch((error) => console.log(error))
+      .catch((error) => console.error(error))
   }
 
   const handleKeyDownEvent = (key) => {
@@ -140,7 +139,7 @@ export default function () {
             onClick={() => handleNext()}
             disabled={name.length === 0}
             type='button'
-            className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 p-0.5 mx-auto rounded-full'
+            className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 p-0.5 mx-auto rounded-full disabled:opacity-30'
           >
             <div className='bg-black flex items-center text-sm px-12 py-3 rounded-full'>
               Next

@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useRouter } from 'next/router'
-import { SwitchHorizontalIcon } from '@heroicons/react/outline'
 import Head from 'next/head'
+import { SwitchHorizontalIcon } from '@heroicons/react/outline'
 import { useSWRConfig } from 'swr'
 
-import FullscreenModal from '../../../components/modals/fullscreen'
 import { providers } from '../../../lib/providers'
+
+import FullscreenModal from '../../../components/modals/fullscreen'
 
 export default function () {
   const router = useRouter()
@@ -13,12 +14,12 @@ export default function () {
 
   const { mutate } = useSWRConfig()
 
-  const [name, setName] = useState(kind)
   const [url, setURL] = useState('')
   const [clientID, setClientID] = useState('')
   const [clientSecret, setClientSecret] = useState('')
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
+  const [name, setName] = useState(kind)
 
   if (!providers.find(p => p.name.toLowerCase() === kind)) {
     router.replace('/providers/add')

@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import Head from 'next/head'
 
-import FullscreenModal from '../../../components/modals/fullscreen'
 import { providers } from '../../../lib/providers'
+
+import FullscreenModal from '../../../components/modals/fullscreen'
 
 function Provider ({ kind, name, available }) {
   return (

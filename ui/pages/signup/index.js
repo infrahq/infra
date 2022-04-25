@@ -5,12 +5,13 @@ import { useRouter } from 'next/router'
 import HeaderIcon from '../../components/header-icon'
 
 export default function () {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [errors, setErrors] = useState({})
-  const [error, setError] = useState('')
   const { mutate } = useSWRConfig()
   const router = useRouter()
+
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [errors, setErrors] = useState({})
 
   async function onSubmit (e) {
     e.preventDefault()
@@ -33,7 +34,6 @@ export default function () {
       }
 
       // login
-      console.log(email, password)
       res = await fetch('/v1/login', {
         method: 'POST',
         body: JSON.stringify({
@@ -68,7 +68,7 @@ export default function () {
 
   return (
     <div className='flex flex-col justify-center items-center h-full w-full max-w-md mx-auto mb-48'>
-      <HeaderIcon width={12} iconPath='/infra-color.svg' />
+      <HeaderIcon size={12} iconPath='/infra-color.svg' />
       <h1 className='mt-5 text-md font-bold'>Welcome to Infra</h1>
       <h2 className='text-sm text-center max-w-xs my-2 text-gray-400'>You've successfully installed Infra.<br />Set up your admin user to get started.</h2>
       <form onSubmit={onSubmit} className='flex flex-col w-full max-w-sm my-8'>

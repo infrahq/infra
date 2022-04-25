@@ -2,10 +2,11 @@ import { useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
 import { useTable } from 'react-table'
 
+import { validateEmail } from '../../lib/email'
+
 import InputDropdown from '../../components/input-dropdown'
 import Table from '../../components/table'
 import DeleteModal from '../../components/modals/delete'
-import { validateEmail } from '../../lib/email'
 
 const columns = [{
   id: 'name',
@@ -18,8 +19,9 @@ const columns = [{
   accessor: a => a,
   Cell: ({ value: admin }) => {
     const { data: user } = useSWR(`/v1/identities/${admin.subject.replace('i:', '')}`, { fallbackData: { name: '', kind: '' } })
-    const [open, setOpen] = useState(false)
     const { mutate } = useSWRConfig()
+
+    const [open, setOpen] = useState(false)
 
     return (
       <div className='opacity-0 group-hover:opacity-100 flex justify-end text-right'>
@@ -31,14 +33,10 @@ const columns = [{
           setOpen={setOpen}
           onSubmit={() => {
             fetch(`/v1/grants/${admin.id}`, { method: 'DELETE' })
-              .then(() => {
-                setOpen(false)
-              })
-              .finally(() => {
-                mutate('/v1/grants?resource=infra')
-              })
+              .then(() => setOpen(false))
+              .finally(() => mutate('/v1/grants?resource=infra'))
               .catch((error) => {
-                console.log(error)
+                console.error(error)
               })
           }}
           title='Delete Admin'
@@ -65,8 +63,9 @@ const AdminName = ({ id }) => {
 }
 
 export default function () {
-  const { mutate } = useSWRConfig()
   const { data: adminList } = useSWR(() => '/v1/grants?resource=infra&privilege=admin', { fallbackData: [] })
+  const { mutate } = useSWRConfig()
+
   const table = useTable({ columns, data: adminList || [] })
 
   const [adminEmail, setAdminEmail] = useState('')
@@ -80,9 +79,7 @@ export default function () {
       .then(() => {
         mutate('/v1/grants?resource=infra')
         setAdminEmail('')
-      }).catch((error) => {
-        console.log(error)
-      })
+      }).catch((e) => setError(e.message || 'something went wrong, please try again later.'))
   }
 
   const handleInputChang = (value) => {
@@ -109,12 +106,8 @@ export default function () {
               body: JSON.stringify({ name: adminEmail, kind: 'user' })
             })
               .then((response) => response.json())
-              .then((user) => {
-                grantAdminAccess(user.id)
-              })
-              .catch((error) => {
-                console.log(error)
-              })
+              .then((user) => grantAdminAccess(user.id))
+              .catch((error) => console.error(error))
           } else {
             grantAdminAccess(data[0].id)
           }

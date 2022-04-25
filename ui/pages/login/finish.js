@@ -4,6 +4,7 @@ import { useSWRConfig } from 'swr'
 
 export default function () {
   const router = useRouter()
+
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const { mutate } = useSWRConfig()

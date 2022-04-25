@@ -2,8 +2,9 @@ import useSWR, { useSWRConfig } from 'swr'
 import { useState } from 'react'
 import styled from 'styled-components'
 
-import InputDropdown from '../../components/input-dropdown'
 import { validateEmail } from '../../lib/email'
+
+import InputDropdown from '../../components/input-dropdown'
 
 const GrantList = styled.section`
   max-height: 20rem;
@@ -20,8 +21,6 @@ const GrantListItem = styled.div`
 `
 
 const Grant = ({ id }) => {
-  console.log('id:', id)
-  console.log(id.replace('i:', ''))
   const { data: user } = useSWR(`/v1/identities/${id.replace('i:', '')}`, { fallbackData: { name: '' } })
 
   return (
@@ -30,15 +29,15 @@ const Grant = ({ id }) => {
 }
 
 export default ({ id }) => {
-  const options = ['view', 'edit', 'admin', 'remove']
-
   const { data: destination } = useSWR(`/v1/destinations/${id}`)
   const { data: list } = useSWR(() => `/v1/grants?resource=${destination.name}`)
   const { mutate } = useSWRConfig()
 
   const [email, setEmail] = useState('')
-  const [role, setRole] = useState('view')
   const [error, setError] = useState('')
+  const [role, setRole] = useState('view')
+
+  const options = ['view', 'edit', 'admin', 'remove']
 
   const grantPrivilege = (id, privilege = role) => {
     fetch('/v1/grants', {
@@ -46,12 +45,8 @@ export default ({ id }) => {
       body: JSON.stringify({ subject: id, resource: destination.name, privilege })
     })
       .then((response) => response.json())
-      .then(() => {
-        mutate(`/v1/grants?resource=${destination.name}`)
-      })
-      .finally(() => {
-        setEmail('')
-      })
+      .then(() => mutate(`/v1/grants?resource=${destination.name}`))
+      .finally(() => setEmail(''))
   }
 
   const handleInputChang = (value) => {
@@ -77,28 +72,19 @@ export default ({ id }) => {
               body: JSON.stringify({ name: email, kind: 'user' })
             })
               .then((response) => response.json())
-              .then((user) => {
-                console.log('user id:', user.id)
-                console.log('i:' + user.id)
-                grantPrivilege('i:' + user.id)
-              })
-              .finally(() => {
-                setEmail('')
-              })
+              .then((user) => grantPrivilege('i:' + user.id))
+              .finally(() => setEmail(''))
           } else {
             grantPrivilege(data[0].id)
           }
         })
-        .catch((error) => {
-          console.log(error)
-        })
+        .catch((error) => console.error(error))
     } else {
       setError('Invalid email')
     }
   }
 
   const handleUpdateGrant = (privilege, grantId, userId) => {
-    console.log('handle grant update:', userId)
     fetch(`/v1/grants/${grantId}`, { method: 'DELETE' })
       .then(() => {
         if (privilege === 'remove') {
@@ -128,7 +114,7 @@ export default ({ id }) => {
           onClick={() => handleShareGrant()}
           disabled={email.length === 0}
           type='button'
-          className='bg-gradient-to-tr from-indigo-300 to-pink-100 rounded-full hover:from-indigo-200 hover:to-pink-50 p-0.5 mx-auto'
+          className='bg-gradient-to-tr from-indigo-300 to-pink-100 rounded-full hover:from-indigo-200 hover:to-pink-50 p-0.5 mx-auto disabled:opacity-30'
         >
           <div className='bg-black flex items-center text-sm rounded-full px-12 py-3'>
             Share

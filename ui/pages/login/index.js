@@ -2,8 +2,9 @@ import { useRouter } from 'next/router'
 import { useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
 
-import HeaderIcon from '../../components/header-icon'
 import { kind } from '../../lib/providers'
+
+import HeaderIcon from '../../components/header-icon'
 
 function oidcLogin ({ id, url, clientID }) {
   window.localStorage.setItem('providerId', id)
@@ -20,11 +21,11 @@ function oidcLogin ({ id, url, clientID }) {
 export default function () {
   const { data: providers } = useSWR('/v1/providers', { fallbackData: [] })
   const { mutate } = useSWRConfig()
+  const router = useRouter()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const router = useRouter()
 
   async function onSubmit (e) {
     e.preventDefault()
@@ -58,7 +59,7 @@ export default function () {
 
       router.replace('/')
     } catch (e) {
-      console.log(e)
+      console.error(e)
       setError('Invalid credentials')
     }
 
@@ -72,7 +73,7 @@ export default function () {
 
   return (
     <div className='flex flex-col justify-center items-center h-full w-full max-w-md mx-auto mb-48'>
-      <HeaderIcon width={12} iconPath='/infra-color.svg' />
+      <HeaderIcon size={12} iconPath='/infra-color.svg' />
       <h1 className='mt-5 text-md font-bold'>Login to Infra</h1>
       <h2 className='text-sm text-center max-w-xs my-2 text-gray-400'>Welcome back. Login with your credentials {providers.length > 0 && 'or via your identity provider.'}</h2>
 

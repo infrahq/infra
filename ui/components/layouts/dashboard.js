@@ -30,7 +30,7 @@ export default function ({ children }) {
   ]
 
   const subNavigation = [
-    { name: 'Settings', href: '/settings', icon: '/settings.svg', admin: true},
+    { name: 'Settings', href: '/settings', icon: '/settings.svg', admin: true }
   ]
 
   // redirect non-admin routes if user isn't admin

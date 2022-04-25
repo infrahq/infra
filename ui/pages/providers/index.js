@@ -6,13 +6,14 @@ import { useTable } from 'react-table'
 import { XIcon } from '@heroicons/react/outline'
 import dayjs from 'dayjs'
 
+import { kind } from '../../lib/providers'
+
 import Dashboard from '../../components/layouts/dashboard'
 import DeleteModal from '../../components/modals/delete'
 import Table from '../../components/table'
 import Loader from '../../components/loader'
 import EmptyTable from '../../components/empty-table'
 import HeaderIcon from '../../components/header-icon'
-import { kind } from '../../lib/providers'
 
 const columns = [{
   Header: 'Identity Provider',
@@ -44,7 +45,9 @@ const columns = [{
   accessor: p => p,
   Cell: ({ value: provider, rows }) => {
     const { mutate } = useSWRConfig()
+
     const [open, setOpen] = useState(false)
+
     return (
       <div className='opacity-0 group-hover:opacity-100 flex justify-end text-right'>
         <button onClick={() => setOpen(true)} className='p-2 -mr-2 cursor-pointer'>
@@ -74,6 +77,7 @@ const columns = [{
 
 export default function Providers () {
   const { data, error } = useSWR('/v1/providers')
+
   const table = useTable({ columns, data: data || [] })
 
   const loading = !data && !error

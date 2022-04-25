@@ -24,7 +24,7 @@ export default function () {
   useEffect(() => {
     const urlSearchParams = new URLSearchParams(window.location.search)
     const params = Object.fromEntries(urlSearchParams.entries())
-    console.log(params)
+
     if (params.state === window.localStorage.getItem('state')) {
       login({
         providerID: window.localStorage.getItem('providerId'),
