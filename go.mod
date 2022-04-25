@@ -29,9 +29,9 @@ require (
 	gorm.io/driver/postgres v1.3.4
 	gorm.io/driver/sqlite v1.3.1
 	gorm.io/gorm v1.23.4
-	k8s.io/api v0.23.5
-	k8s.io/apimachinery v0.23.5
-	k8s.io/client-go v0.23.5
+	k8s.io/api v0.23.6
+	k8s.io/apimachinery v0.23.6
+	k8s.io/client-go v0.23.6
 )
 
 require (
@@ -52,7 +52,7 @@ require (
 	github.com/spf13/viper v1.11.0
 	github.com/ssoroka/slice v0.0.0-20220402005549-78f0cea3df8b
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	gotest.tools/v3 v3.1.0
+	gotest.tools/v3 v3.2.0
 )
 
 require (
@@ -139,7 +139,6 @@ require (
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.0-beta.8 // indirect
 	github.com/pierrec/lz4 v2.5.2+incompatible // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.32.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
