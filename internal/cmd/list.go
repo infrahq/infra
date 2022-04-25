@@ -133,7 +133,7 @@ func list() error {
 	}
 
 	if len(rows) > 0 {
-		printTable(rows)
+		printTable(rows, TODO)
 	} else {
 		fmt.Println("You have not been granted access to any active destinations")
 	}

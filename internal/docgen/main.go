@@ -15,7 +15,7 @@ func main() {
 	}
 	defer f.Close()
 
-	rootCmd := cmd.NewRootCmd()
+	rootCmd := cmd.NewRootCmd(nil)
 	err = GenMarkdownFile(rootCmd, f)
 	if err != nil {
 		log.Println(err.Error())
