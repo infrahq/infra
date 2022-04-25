@@ -3,17 +3,15 @@ package cliopts
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/mitchellh/mapstructure"
 	"gopkg.in/yaml.v2"
 )
 
 type Options struct {
-	FieldTagName string
-	Filename     string
-	EnvPrefix    string
-	Flags        FlagSet
+	Filename  string
+	EnvPrefix string
+	Flags     FlagSet
 }
 
 // Load configuration into target. Configuration may come from multiple sources.
@@ -37,9 +35,6 @@ type Options struct {
 //   flags.String("addr-https", ...)
 //
 func Load(target interface{}, opts Options) error {
-	if opts.FieldTagName == "" {
-		opts.FieldTagName = "config"
-	}
 	if opts.Filename != "" {
 		if err := loadFromFile(target, opts); err != nil {
 			return err
@@ -68,28 +63,31 @@ func loadFromFile(target interface{}, opts Options) error {
 		return fmt.Errorf("failed to decode yaml from %s: %w", opts.Filename, err)
 	}
 
-	if err := decode(target, raw, opts); err != nil {
+	cfg := DecodeConfig(target)
+	decoder, err := mapstructure.NewDecoder(&cfg)
+	if err != nil {
+		return err
+	}
+	if err := decoder.Decode(raw); err != nil {
 		return fmt.Errorf("failed to decode from %s: %w", opts.Filename, err)
 	}
 	return nil
 }
 
-func decode(target interface{}, raw map[string]interface{}, opts Options) error {
-	cfg := mapstructure.DecoderConfig{
-		Squash:    true,
-		Result:    target,
-		TagName:   opts.FieldTagName,
-		MatchName: strings.EqualFold,
+const fieldTagName = "config"
+
+// DecodeConfig returns the default configured used by Load.
+func DecodeConfig(target interface{}) mapstructure.DecoderConfig {
+	return mapstructure.DecoderConfig{
+		Squash:  true,
+		Result:  target,
+		TagName: fieldTagName,
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(
 			mapstructure.StringToTimeDurationHookFunc(),
 			mapstructure.StringToSliceHookFunc(","),
+			hookFlagValueSlice,
 			HookPrepareForDecode,
 			HookSetFromString,
 		),
 	}
-	decoder, err := mapstructure.NewDecoder(&cfg)
-	if err != nil {
-		return err
-	}
-	return decoder.Decode(raw)
 }

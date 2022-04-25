@@ -211,19 +211,8 @@ secrets:
 }
 
 func decodeConfig(target interface{}, source interface{}) error {
-	// Copied from viper defaultDecoderConfig
-	config := &mapstructure.DecoderConfig{
-		Result:           target,
-		WeaklyTypedInput: true,
-		DecodeHook: mapstructure.ComposeDecodeHookFunc(
-			mapstructure.StringToTimeDurationHookFunc(),
-			mapstructure.StringToSliceHookFunc(","),
-			cliopts.HookPrepareForDecode,
-			cliopts.HookSetFromString,
-		),
-	}
-
-	decoder, err := mapstructure.NewDecoder(config)
+	cfg := cliopts.DecodeConfig(target)
+	decoder, err := mapstructure.NewDecoder(&cfg)
 	if err != nil {
 		return err
 	}
