@@ -70,7 +70,7 @@ func TestKeysAddCmd(t *testing.T) {
 		ch := setup(t)
 
 		ctx := context.Background()
-		err := Run(ctx, "keys", "add", "--ttl=400h", "--extension-deadline=5h", "the-name", "my-machine")
+		err := Run(ctx, "keys", "add", "--ttl=400h", "--extension-deadline=5h", "--name=the-name", "my-machine")
 		assert.NilError(t, err)
 
 		req := <-ch
@@ -83,10 +83,21 @@ func TestKeysAddCmd(t *testing.T) {
 		assert.DeepEqual(t, expected, req)
 	})
 
+	t.Run("automatic name", func(t *testing.T) {
+		ch := setup(t)
+
+		ctx := context.Background()
+		err := Run(ctx, "keys", "add", "--ttl=400h", "--extension-deadline=5h", "my-machine")
+		assert.NilError(t, err)
+
+		req := <-ch
+		assert.Equal(t, req.Name, "") // filled by server
+	})
+
 	t.Run("without required arguments", func(t *testing.T) {
 		err := Run(context.Background(), "keys", "add")
-		assert.ErrorContains(t, err, `"infra keys add" requires exactly 2 arguments`)
-		assert.ErrorContains(t, err, `Usage:  infra keys add KEY IDENTITY`)
+		assert.ErrorContains(t, err, `"infra keys add" requires exactly 1 argument`)
+		assert.ErrorContains(t, err, `Usage:  infra keys add IDENTITY`)
 	})
 }
 

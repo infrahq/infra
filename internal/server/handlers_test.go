@@ -837,3 +837,54 @@ var cmpAPIIdentityJSON = gocmp.Options{
 	gocmp.FilterPath(pathMapKey(`created`, `updated`, `lastSeenAt`), cmpApproximateTime),
 	gocmp.FilterPath(pathMapKey(`id`), cmpAnyValidUID),
 }
+
+func TestAPI_CreateAccessKey(t *testing.T) {
+	srv := setupServer(t, withAdminIdentity)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	connector := data.InfraConnectorIdentity(srv.db)
+
+	run := func(body api.CreateAccessKeyRequest) *api.CreateAccessKeyResponse {
+		var buf bytes.Buffer
+		err := json.NewEncoder(&buf).Encode(body)
+		assert.NilError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/v1/access-keys", &buf)
+		assert.NilError(t, err)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
+
+		respBody := &api.CreateAccessKeyResponse{}
+		err = json.Unmarshal(resp.Body.Bytes(), respBody)
+		assert.NilError(t, err)
+
+		return respBody
+	}
+
+	t.Run("AutomaticName", func(t *testing.T) {
+		req := api.CreateAccessKeyRequest{
+			IdentityID:        connector.ID,
+			TTL:               api.Duration(time.Minute),
+			ExtensionDeadline: api.Duration(time.Minute),
+		}
+
+		resp := run(req)
+		assert.Assert(t, strings.HasPrefix(resp.Name, "connector-"))
+	})
+
+	t.Run("UserProvidedName", func(t *testing.T) {
+		req := api.CreateAccessKeyRequest{
+			IdentityID:        connector.ID,
+			Name:              "mysupersecretaccesskey",
+			TTL:               api.Duration(time.Minute),
+			ExtensionDeadline: api.Duration(time.Minute),
+		}
+
+		resp := run(req)
+		assert.Equal(t, resp.Name, "mysupersecretaccesskey")
+	})
+}

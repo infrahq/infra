@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -34,6 +35,7 @@ func newKeysCmd(cli *CLI) *cobra.Command {
 }
 
 type keyCreateOptions struct {
+	Name              string
 	TTL               time.Duration
 	ExtensionDeadline time.Duration
 }
@@ -42,20 +44,21 @@ func newKeysAddCmd(cli *CLI) *cobra.Command {
 	var options keyCreateOptions
 
 	cmd := &cobra.Command{
-		Use:   "add KEY IDENTITY",
+		Use:   "add IDENTITY",
 		Short: "Create an access key",
 		Long:  `Create an access key. Only machine identities are supported at this time.`,
 		Example: `
 # Create an access key named 'example-key' that expires in 12 hours
 $ infra keys add example-key machine-a --ttl=12h
 `,
-		Args: ExactArgs(2),
+		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			keyName := args[0]
-			machineName := args[1]
+			machineName := args[0]
 
-			if strings.Contains(keyName, " ") {
-				return fmt.Errorf("key name cannot contain spaces")
+			if options.Name != "" {
+				if strings.Contains(options.Name, " ") {
+					return fmt.Errorf("key name cannot contain spaces")
+				}
 			}
 
 			client, err := defaultAPIClient()
@@ -70,7 +73,7 @@ $ infra keys add example-key machine-a --ttl=12h
 
 			resp, err := client.CreateAccessKey(&api.CreateAccessKeyRequest{
 				IdentityID:        machine.ID,
-				Name:              keyName,
+				Name:              options.Name,
 				TTL:               api.Duration(options.TTL),
 				ExtensionDeadline: api.Duration(options.ExtensionDeadline),
 			})
@@ -78,13 +81,16 @@ $ infra keys add example-key machine-a --ttl=12h
 				return err
 			}
 
-			cli.Output("key: %s", resp.AccessKey)
+			fmt.Fprintf(cli.Stderr, "Created access key for %q\n", machineName)
+			cli.Output("Name: %s", resp.Name)
+			cli.Output("Key: %s", resp.AccessKey)
 			return nil
 		},
 	}
 
-	cmd.Flags().DurationVar(&options.TTL, "ttl", ThirtyDays, "The total time that an access key will be valid for")
-	cmd.Flags().DurationVar(&options.ExtensionDeadline, "extension-deadline", ThirtyDays, "A specified deadline that an access key must be used within to remain valid")
+	cmd.Flags().StringVar(&options.Name, "name", "", "The name of the access key")
+	cmd.Flags().DurationVar(&options.TTL, "ttl", ThirtyDays, "The total time that the access key will be valid for")
+	cmd.Flags().DurationVar(&options.ExtensionDeadline, "extension-deadline", ThirtyDays, "A specified deadline that the access key must be used within to remain valid")
 
 	return cmd
 }
@@ -114,10 +120,19 @@ func newKeysRemoveCmd() *cobra.Command {
 				return fmt.Errorf("invalid access key response, there should only be one access key that matches a name, but multiple were found")
 			}
 
-			err = client.DeleteAccessKey(keys[0].ID)
+			key := keys[0]
+
+			err = client.DeleteAccessKey(key.ID)
 			if err != nil {
 				return err
 			}
+
+			issuedFor := key.IssuedForName
+			if issuedFor == "" {
+				issuedFor = key.IssuedFor.String()
+			}
+
+			fmt.Fprintf(os.Stderr, "Deleted access key %q issued for %q\n", key.Name, issuedFor)
 
 			return nil
 		},
