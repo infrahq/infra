@@ -320,94 +320,115 @@ func withAdminIdentity(_ *testing.T, opts *Options) {
 	})
 }
 
-func TestCreateIdentity(t *testing.T) {
-	s := setupServer(t)
+func TestAPI_CreateIdentity(t *testing.T) {
+	srv := setupServer(t, withAdminIdentity)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
-	admin := &models.Identity{Name: "admin@example.com", Kind: models.UserKind}
-	err := data.CreateIdentity(s.db, admin)
+	existing := &models.Identity{Name: "existing@example.com", Kind: models.UserKind}
+	err := data.CreateIdentity(srv.db, existing)
 	assert.NilError(t, err)
 
-	adminGrant := &models.Grant{
-		Subject:   admin.PolyID(),
-		Privilege: models.InfraAdminRole,
-		Resource:  "infra",
+	type testCase struct {
+		body     api.CreateIdentityRequest
+		setup    func(t *testing.T, req *http.Request)
+		expected func(t *testing.T, resp *httptest.ResponseRecorder)
 	}
-	err = data.CreateGrant(s.db, adminGrant)
+
+	run := func(t *testing.T, tc testCase) {
+		body := jsonBody(t, tc.body)
+		req, err := http.NewRequest(http.MethodPost, "/v1/identities", body)
+		assert.NilError(t, err)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+
+		if tc.setup != nil {
+			tc.setup(t, req)
+		}
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		tc.expected(t, resp)
+	}
+
+	testCases := map[string]testCase{
+		"create new unlinked user": {
+			body: api.CreateIdentityRequest{
+				Name: "test-create-identity@example.com",
+				Kind: "user",
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusCreated, resp.Code, resp.Body.String())
+
+				var id api.CreateIdentityResponse
+				err := json.NewDecoder(resp.Body).Decode(&id)
+				assert.NilError(t, err)
+				assert.Equal(t, "test-create-identity@example.com", id.Name)
+				assert.Assert(t, id.OneTimePassword == "")
+			},
+		},
+		"new infra user gets one time password": {
+			body: api.CreateIdentityRequest{
+				Name:               "test-infra-identity@example.com",
+				Kind:               "user",
+				SetOneTimePassword: true,
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusCreated, resp.Code, resp.Body.String())
+
+				var id api.CreateIdentityResponse
+				err := json.NewDecoder(resp.Body).Decode(&id)
+				assert.NilError(t, err)
+				assert.Equal(t, "test-infra-identity@example.com", id.Name)
+				assert.Assert(t, id.OneTimePassword != "")
+			},
+		},
+		"existing unlinked user gets password": {
+			body: api.CreateIdentityRequest{
+				Name:               "existing@example.com",
+				Kind:               "user",
+				SetOneTimePassword: true,
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusCreated, resp.Code, resp.Body.String())
+
+				var id api.CreateIdentityResponse
+				err := json.NewDecoder(resp.Body).Decode(&id)
+				assert.NilError(t, err)
+				assert.Equal(t, "existing@example.com", id.Name)
+				assert.Assert(t, id.OneTimePassword != "")
+			},
+		},
+		"new machine identities do not get one time password": {
+			body: api.CreateIdentityRequest{
+				Name:               "test-infra-machine-otp",
+				Kind:               "machine",
+				SetOneTimePassword: true,
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusCreated, resp.Code, resp.Body.String())
+
+				var id api.CreateIdentityResponse
+				err := json.NewDecoder(resp.Body).Decode(&id)
+				assert.NilError(t, err)
+				assert.Equal(t, "test-infra-machine-otp", id.Name)
+				assert.Assert(t, id.OneTimePassword == "")
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func jsonBody(t *testing.T, body interface{}) *bytes.Buffer {
+	t.Helper()
+	buf := new(bytes.Buffer)
+	err := json.NewEncoder(buf).Encode(body)
 	assert.NilError(t, err)
-
-	c, _ := gin.CreateTestContext(httptest.NewRecorder())
-	c.Set("db", s.db)
-	c.Set("identity", admin)
-
-	handler := API{
-		server: s,
-	}
-
-	t.Run("new unlinked user", func(t *testing.T) {
-		req := &api.CreateIdentityRequest{
-			Name: "test-create-identity@example.com",
-			Kind: "user",
-		}
-
-		resp, err := handler.CreateIdentity(c, req)
-
-		assert.NilError(t, err)
-		assert.Equal(t, "test-create-identity@example.com", resp.Name)
-		assert.Check(t, resp.OneTimePassword == "")
-	})
-
-	t.Run("new infra user gets one time password", func(t *testing.T) {
-		req := &api.CreateIdentityRequest{
-			Name:               "test-infra-identity@example.com",
-			Kind:               "user",
-			SetOneTimePassword: true,
-		}
-
-		resp, err := handler.CreateIdentity(c, req)
-		assert.NilError(t, err)
-
-		assert.NilError(t, err)
-		assert.Equal(t, "test-infra-identity@example.com", resp.Name)
-		assert.Check(t, resp.OneTimePassword != "")
-	})
-
-	t.Run("existing unlinked user gets password", func(t *testing.T) {
-		req := &api.CreateIdentityRequest{
-			Name: "test-link-identity@example.com",
-			Kind: "user",
-		}
-
-		_, err := handler.CreateIdentity(c, req)
-		assert.NilError(t, err)
-
-		req = &api.CreateIdentityRequest{
-			Name:               "test-link-identity@example.com",
-			Kind:               "user",
-			SetOneTimePassword: true,
-		}
-
-		resp, err := handler.CreateIdentity(c, req)
-		assert.NilError(t, err)
-
-		assert.NilError(t, err)
-		assert.Equal(t, "test-link-identity@example.com", resp.Name)
-		assert.Check(t, resp.OneTimePassword != "")
-	})
-
-	t.Run("new machine identities do not get one time password", func(t *testing.T) {
-		req := &api.CreateIdentityRequest{
-			Name:               "test-infra-machine-otp",
-			Kind:               "machine",
-			SetOneTimePassword: true,
-		}
-
-		resp, err := handler.CreateIdentity(c, req)
-		assert.NilError(t, err)
-
-		assert.NilError(t, err)
-		assert.Equal(t, "test-infra-machine-otp", resp.Name)
-		assert.Check(t, resp.OneTimePassword == "")
-	})
+	return buf
 }
 
 func TestDeleteIdentity(t *testing.T) {
