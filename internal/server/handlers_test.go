@@ -351,6 +351,38 @@ func TestAPI_CreateIdentity(t *testing.T) {
 	}
 
 	testCases := map[string]testCase{
+		"not authenticated": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Del("Authorization")
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusUnauthorized)
+			},
+		},
+		"not authorized": {
+			body: api.CreateIdentityRequest{
+				Name: "noone@example.com",
+				Kind: "user",
+			},
+			setup: func(t *testing.T, req *http.Request) {
+				key, _ := createAccessKey(t, srv.db, "someonenew@example.com")
+				req.Header.Set("Authorization", "Bearer "+key)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusForbidden, resp.Body.String())
+			},
+		},
+		"missing required field": {
+			body: api.CreateIdentityRequest{Kind: "user"},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+
+				var apiError api.Error
+				err := json.NewDecoder(resp.Body).Decode(&apiError)
+				assert.NilError(t, err)
+				assert.Equal(t, apiError.Message, "Name: is required")
+			},
+		},
 		"create new unlinked user": {
 			body: api.CreateIdentityRequest{
 				Name: "test-create-identity@example.com",
