@@ -315,7 +315,7 @@ func setTypeInfo(t reflect.Type, schema *openapi3.Schema) {
 
 	case "api.IDOrSelf":
 		schema.Type = "string"
-		schema.Format = "uid"
+		schema.Format = "uid|self"
 		schema.Pattern = `[\da-zA-HJ-NP-Z]{1,11}|self`
 		schema.Example = "4yJ3n3D8E2"
 		schema.Description = "a uid or the literal self"

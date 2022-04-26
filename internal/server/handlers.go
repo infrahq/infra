@@ -306,16 +306,6 @@ func (a *API) ListDestinations(c *gin.Context, r *api.ListDestinationsRequest) (
 	return results, nil
 }
 
-// Introspect is used by clients to get info about the token they are using
-func (a *API) Introspect(c *gin.Context, r *api.EmptyRequest) (*api.Introspect, error) {
-	identity := access.AuthenticatedIdentity(c)
-	if identity != nil {
-		return &api.Introspect{ID: identity.ID, Name: identity.Name, IdentityType: identity.Kind.String()}, nil
-	}
-
-	return nil, fmt.Errorf("no identity context found for token")
-}
-
 func (a *API) GetDestination(c *gin.Context, r *api.Resource) (*api.Destination, error) {
 	destination, err := access.GetDestination(c, r.ID)
 	if err != nil {

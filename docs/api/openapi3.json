@@ -311,22 +311,6 @@
           "kind"
         ]
       },
-      "Introspect": {
-        "properties": {
-          "id": {
-            "example": "4yJ3n3D8E2",
-            "format": "uid",
-            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-            "type": "string"
-          },
-          "identityType": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          }
-        }
-      },
       "LoginResponse": {
         "properties": {
           "accessKey": {
@@ -2209,7 +2193,7 @@
             "schema": {
               "description": "a uid or the literal self",
               "example": "4yJ3n3D8E2",
-              "format": "uid",
+              "format": "uid|self",
               "pattern": "[\\da-zA-HJ-NP-Z]{1,11}|self",
               "type": "string"
             }
@@ -2562,78 +2546,6 @@
         "tags": [
           "Groups",
           "Identities"
-        ]
-      }
-    },
-    "/v1/introspect": {
-      "get": {
-        "description": "Introspect",
-        "operationId": "Introspect",
-        "responses": {
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Bad Request"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Unauthorized: Requestor is not authenticated"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Forbidden: Requestor does not have the right permissions"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Not Found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Duplicate Record"
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Introspect"
-                }
-              }
-            },
-            "description": "Success"
-          }
-        },
-        "summary": "Introspect",
-        "tags": [
-          "Misc"
         ]
       }
     },
