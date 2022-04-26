@@ -34,16 +34,16 @@ func (u ID) String() string {
 
 func Parse(b []byte) (ID, error) {
 	if len(b) > 11 {
-		return ID(0), fmt.Errorf("invalid id %q", string(b))
+		return ID(0), fmt.Errorf("invalid base58 id %q", string(b))
 	}
 
 	id, err := snowflake.ParseBase58(b)
 	if err != nil {
-		return ID(0), err
+		return ID(0), fmt.Errorf("invalid base58 id %q", string(b))
 	}
 
 	if id < 0 {
-		return ID(0), fmt.Errorf("invalid id %q", string(b))
+		return ID(0), fmt.Errorf("invalid base58 id %q", string(b))
 	}
 
 	return ID(id), nil
@@ -51,10 +51,6 @@ func Parse(b []byte) (ID, error) {
 
 func ParseString(s string) (ID, error) {
 	return Parse([]byte(s))
-}
-
-func ParsePolymorphicID(pid PolymorphicID) (ID, error) {
-	return ParseString(string(pid))
 }
 
 func (u *ID) UnmarshalText(b []byte) error {
