@@ -255,8 +255,11 @@ func (a *API) CreateProvider(c *gin.Context, r *api.CreateProviderRequest) (*api
 		ClientSecret: models.EncryptedAtRest(r.ClientSecret),
 	}
 
-	err := access.CreateProvider(c, provider)
-	if err != nil {
+	if err := a.validateProvider(c, provider); err != nil {
+		return nil, err
+	}
+
+	if err := access.CreateProvider(c, provider); err != nil {
 		return nil, err
 	}
 
@@ -272,6 +275,10 @@ func (a *API) UpdateProvider(c *gin.Context, r *api.UpdateProviderRequest) (*api
 		URL:          cleanupURL(r.URL),
 		ClientID:     r.ClientID,
 		ClientSecret: models.EncryptedAtRest(r.ClientSecret),
+	}
+
+	if err := a.validateProvider(c, provider); err != nil {
+		return nil, err
 	}
 
 	if err := access.SaveProvider(c, provider); err != nil {
@@ -619,6 +626,39 @@ func (a *API) UpdateIdentityInfoFromProvider(c *gin.Context) error {
 	return access.UpdateUserInfoFromProvider(c, info, user, provider)
 }
 
+// validateProvider checks that a provider being modified is valid
+func (a *API) validateProvider(c *gin.Context, provider *models.Provider) error {
+	oidc, err := a.providerClient(c, provider, "http://localhost:8301")
+	if err != nil {
+		return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
+	}
+
+	if err := oidc.Validate(); err != nil {
+		logging.S.Debugf("could not validate provider: %s", err)
+
+		var msg strings.Builder
+		msg.WriteString("invalid identity provider")
+
+		// remove the error message trace for display
+		if errors.Is(err, authn.ErrInvalidProviderURL) {
+			msg.WriteString(": ")
+			msg.WriteString(authn.ErrInvalidProviderURL.Error())
+		}
+		if errors.Is(err, authn.ErrInvalidProviderClientID) {
+			msg.WriteString(": ")
+			msg.WriteString(authn.ErrInvalidProviderClientID.Error())
+		}
+		if errors.Is(err, authn.ErrInvalidProviderClientSecret) {
+			msg.WriteString(": ")
+			msg.WriteString(authn.ErrInvalidProviderClientSecret.Error())
+		}
+
+		return fmt.Errorf("%w: %s", internal.ErrBadRequest, &msg)
+	}
+
+	return nil
+}
+
 func (a *API) providerClient(c *gin.Context, provider *models.Provider, redirectURL string) (authn.OIDC, error) {
 	if val, ok := c.Get("oidc"); ok {
 		// oidc is added to the context during unit tests
@@ -629,7 +669,7 @@ func (a *API) providerClient(c *gin.Context, provider *models.Provider, redirect
 	clientSecret, err := secrets.GetSecret(string(provider.ClientSecret), a.server.secrets)
 	if err != nil {
 		logging.S.Debugf("could not get client secret: %s", err)
-		return nil, fmt.Errorf("error loading provider client")
+		return nil, fmt.Errorf("client secret not found")
 	}
 
 	return authn.NewOIDC(provider.URL, provider.ClientID, clientSecret, redirectURL), nil

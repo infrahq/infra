@@ -41,10 +41,9 @@ func (a *API) sendAPIError(c *gin.Context, err error) {
 		resp.Message = err.Error()
 	case errors.As(err, validationErrors):
 		resp.Code = http.StatusBadRequest
-		resp.Message = err.Error()
+		resp.Message = fmt.Sprintf("%s: %s", internal.ErrBadRequest, err)
 
 		parseFieldErrors(resp, validationErrors)
-
 	case errors.Is(err, internal.ErrBadRequest):
 		resp.Code = http.StatusBadRequest
 		resp.Message = err.Error()

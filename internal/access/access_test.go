@@ -199,6 +199,10 @@ type mockOIDCImplementation struct {
 	UserGroupsResp []string
 }
 
+func (m *mockOIDCImplementation) Validate() error {
+	return nil
+}
+
 func (m *mockOIDCImplementation) ExchangeAuthCodeForProviderTokens(code string) (acc, ref string, exp time.Time, email string, err error) {
 	return "acc", "ref", exp, m.UserEmailResp, nil
 }

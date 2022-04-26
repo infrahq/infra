@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -22,6 +23,7 @@ type InfoClaims struct {
 }
 
 type OIDC interface {
+	Validate() error
 	ExchangeAuthCodeForProviderTokens(code string) (accessToken, refreshToken string, accessTokenExpiry time.Time, email string, err error)
 	RefreshAccessToken(providerUser *models.ProviderUser) (accessToken string, expiry *time.Time, err error)
 	GetUserInfo(providerUser *models.ProviderUser) (*InfoClaims, error)
@@ -41,6 +43,28 @@ func NewOIDC(domain, clientID, clientSecret, redirectURL string) OIDC {
 		ClientSecret: clientSecret,
 		RedirectURL:  redirectURL,
 	}
+}
+
+// Validate tests if an identity provider has valid attributes to support user login
+func (o *oidcImplementation) Validate() error {
+	ctx := context.Background()
+	conf, _, err := o.clientConfig(ctx)
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrInvalidProviderURL, err)
+	}
+
+	_, err = conf.Exchange(ctx, "test-code") // 'test-code' is a placeholder for a valid authorization code, it will always fail
+	if err != nil {
+		if strings.Contains(err.Error(), "client_id") || strings.Contains(err.Error(), "client id") {
+			return fmt.Errorf("%w: %s", ErrInvalidProviderClientID, err)
+		}
+
+		if strings.Contains(err.Error(), "secret") {
+			return fmt.Errorf("%w: %s", ErrInvalidProviderClientSecret, err)
+		}
+	}
+
+	return nil
 }
 
 // clientConfig returns the OAuth client configuration needed to interact with an identity provider

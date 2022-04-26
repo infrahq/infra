@@ -41,9 +41,9 @@ func checkError(status int, body []byte) error {
 	case http.StatusNotFound:
 		return ErrNotFound
 	case http.StatusBadRequest:
-		return fmt.Errorf("%w: %s", ErrBadRequest, apiError.Message)
+		return fmt.Errorf(apiError.Message)
 	case http.StatusBadGateway:
-		// this errror should be displayed to the user so they can see its an external problem
+		// this error should be displayed to the user so they can see its an external problem
 		return fmt.Errorf(apiError.Message)
 	case http.StatusInternalServerError:
 		return ErrInternal
