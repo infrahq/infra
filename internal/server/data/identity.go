@@ -1,13 +1,11 @@
 package data
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/ssoroka/slice"
 	"gorm.io/gorm"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -133,21 +131,8 @@ func InfraConnectorIdentity(db *gorm.DB) *models.Identity {
 	if infraConnectorCache == nil {
 		connector, err := GetIdentity(db, ByName(models.InternalInfraConnectorIdentityName))
 		if err != nil {
-			if !errors.Is(err, internal.ErrNotFound) {
-				logging.S.Panic(err)
-				return nil
-			}
-
-			connector = &models.Identity{
-				Name:      models.InternalInfraConnectorIdentityName,
-				Kind:      models.MachineKind,
-				CreatedBy: models.CreatedBySystem,
-			}
-
-			if err := CreateIdentity(db, connector); err != nil {
-				logging.S.Panic(err)
-				return nil
-			}
+			logging.S.Panic(err)
+			return nil
 		}
 
 		infraConnectorCache = connector

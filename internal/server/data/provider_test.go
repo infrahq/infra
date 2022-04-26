@@ -19,19 +19,9 @@ func TestProvider(t *testing.T) {
 	assert.NilError(t, err)
 
 	var provider models.Provider
-	err = db.First(&provider, &models.Provider{}).Error
+	err = db.Not("name = ?", models.InternalInfraProviderName).First(&provider).Error
 	assert.NilError(t, err)
 	assert.Equal(t, "dev.okta.com", provider.URL)
-}
-
-func TestCreateProviderOkta(t *testing.T) {
-	db := setup(t)
-
-	providerDevelop := models.Provider{Name: "okta-development", URL: "dev.okta.com"}
-	err := CreateProvider(db, &providerDevelop)
-	assert.NilError(t, err)
-	assert.Assert(t, providerDevelop.ID != 0)
-	assert.Equal(t, providerDevelop.URL, providerDevelop.URL)
 }
 
 func createProviders(t *testing.T, db *gorm.DB, providers ...models.Provider) {
@@ -65,7 +55,7 @@ func TestGetProvider(t *testing.T) {
 
 	createProviders(t, db, providerDevelop, providerProduction)
 
-	provider, err := GetProvider(db)
+	provider, err := GetProvider(db, ByName("okta-development"))
 	assert.NilError(t, err)
 	assert.Assert(t, 0 != provider.ID)
 	assert.Equal(t, providerDevelop.URL, provider.URL)
@@ -81,7 +71,7 @@ func TestListProviders(t *testing.T) {
 
 	createProviders(t, db, providerDevelop, providerProduction)
 
-	providers, err := ListProviders(db)
+	providers, err := ListProviders(db, NotName(models.InternalInfraProviderName))
 	assert.NilError(t, err)
 	assert.Equal(t, 2, len(providers))
 
@@ -100,7 +90,7 @@ func TestDeleteProviders(t *testing.T) {
 
 	createProviders(t, db, providerDevelop, providerProduction)
 
-	providers, err := ListProviders(db)
+	providers, err := ListProviders(db, NotName(models.InternalInfraProviderName))
 	assert.NilError(t, err)
 	assert.Equal(t, 2, len(providers))
 

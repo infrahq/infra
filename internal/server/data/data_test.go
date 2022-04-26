@@ -32,6 +32,9 @@ func setup(t *testing.T) *gorm.DB {
 
 	models.SymmetricKey = key
 
+	err = db.Create(&models.Provider{Name: models.InternalInfraProviderName}).Error
+	assert.NilError(t, err)
+
 	setupLogging(t)
 
 	return db
