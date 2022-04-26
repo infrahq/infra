@@ -149,7 +149,7 @@ export default function () {
         {enabledCommandInput &&
           <>
             <h2 className='text-gray-500 text-center px-2 mt-4'>
-              Next, deploy the Infra Connector to the cluster via <span className='font-mono font-medium'>helm:</span>
+              Next, deploy the Infra Connector to your cluster via <span className='font-mono font-medium'>helm:</span>
             </h2>
             <CommandInput
               enabledCommandInput={enabledCommandInput}
@@ -157,7 +157,7 @@ export default function () {
               currentDestinationName={currentDestinationName}
             />
             <h2 className='text-gray-500 text-center px-2 mb-2 mt-4'>
-              The cluster will be detected automatically
+              Your cluster will be detected automatically. This may take a few minutes.
             </h2>
               <div className='border-2 border-dashed border-pink-300 opacity-60 rounded-lg shadow-sm overflow-hidden my-5 px-5 py-3'>
                 <div className='flex items-center justify-center p-0.5 w-full'>
