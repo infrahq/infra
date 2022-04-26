@@ -1,10 +1,11 @@
 import useSWR, { useSWRConfig } from 'swr'
 import { useState } from 'react'
 
-import { validateEmail } from '../../lib/email'
+import { validateEmail } from '../lib/email'
 
-import InputDropdown from '../../components/input'
-import ErrorMessage from '../../components/error-message'
+import InputDropdown from '../components/input'
+import ErrorMessage from '../components/error-message'
+import InfoModal from './modals/info'
 
 function Grant ({ id }) {
   const { data: user } = useSWR(`/v1/identities/${id.replace('i:', '')}`, { fallbackData: { name: '' } })
@@ -14,7 +15,7 @@ function Grant ({ id }) {
   )
 }
 
-export default ({ id }) => {
+export default function ({ id, modalOpen, handleCloseModal }) {
   const { data: destination } = useSWR(`/v1/destinations/${id}`)
   const { data: list } = useSWR(() => `/v1/grants?resource=${destination.name}`)
   const { mutate } = useSWRConfig()
@@ -26,16 +27,19 @@ export default ({ id }) => {
   const options = ['view', 'edit', 'admin', 'remove']
 
   const grantPrivilege = (id, privilege = role) => {
-    fetch('/v1/grants', {
-      method: 'POST',
-      body: JSON.stringify({ subject: id, resource: destination.name, privilege })
-    })
-      .then((response) => response.json())
-      .then(() => mutate(`/v1/grants?resource=${destination.name}`))
-      .finally(() => setEmail(''))
+    mutate(`/v1/grants?resource=${destination.name}`, async grants => {
+      await fetch('/v1/grants', {
+        method: 'POST',
+        body: JSON.stringify({ subject: id, resource: destination.name, privilege })
+      })
+
+      return grants.filter(g => g?.id !== id)
+    }, { optimisticData: list })
+
+    setEmail('')
   }
 
-  const handleInputChang = (value) => {
+  const handleInputChang = value => {
     setEmail(value)
     setError('')
   }
@@ -46,14 +50,14 @@ export default ({ id }) => {
     }
   }
 
-  const handleShareGrant = () => {
+  const handleShareGrant = async () => {
     if (validateEmail(email)) {
       setError('')
-      fetch(`/v1/identities?name=${email}`)
+      await fetch(`/v1/identities?name=${email}`)
         .then((response) => response.json())
-        .then((data) => {
+        .then(async (data) => {
           if (data.length === 0) {
-            fetch('/v1/identities', {
+            await fetch('/v1/identities', {
               method: 'POST',
               body: JSON.stringify({ name: email, kind: 'user' })
             })
@@ -71,18 +75,25 @@ export default ({ id }) => {
   }
 
   const handleUpdateGrant = (privilege, grantId, userId) => {
-    fetch(`/v1/grants/${grantId}`, { method: 'DELETE' })
-      .then(() => {
-        if (privilege === 'remove') {
-          mutate(`/v1/grants?resource=${destination.name}`)
-        } else {
-          grantPrivilege(userId, privilege)
-        }
-      })
+    if (privilege === 'remove') {
+      mutate(`/v1/grants?resource=${destination.name}`, async grants => {
+        await fetch(`/v1/grants/${grantId}`, { method: 'DELETE' })
+  
+        return grants.filter(g => g?.id !== id)
+      }, { optimisticData: list })
+    } else {
+      grantPrivilege(userId, privilege)
+    }
   }
 
   return (
     <>
+    <InfoModal
+      header='Grant'
+      handleCloseModal={handleCloseModal}
+      modalOpen={modalOpen}
+      iconPath='/grant-access-color.svg'
+    >
       <div className={`flex gap-1 mt-3 ${error ? 'mb-2' : 'mb-8'}`}>
         <div className='flex-2 w-full'>
           <InputDropdown
@@ -130,7 +141,8 @@ export default ({ id }) => {
               </div>
             </div>
           ))}
-        </section>}
+        </section>}            
+    </InfoModal>
     </>
   )
 }

@@ -9,13 +9,12 @@ import { ShareIcon, XIcon } from '@heroicons/react/outline'
 import { useAdmin } from '../../lib/admin'
 
 import Dashboard from '../../components/layouts/dashboard'
-import InfoModal from '../../components/modals/info'
-import GrantAccessContent from './grantAccessContent'
 import Loader from '../../components/loader'
 import Table from '../../components/table'
 import EmptyTable from '../../components/empty-table'
 import HeaderIcon from '../../components/header-icon'
 import DeleteModal from '../../components/modals/delete'
+import Grant from '../../components/grant'
 
 function columns (admin) {
   return [
@@ -86,14 +85,11 @@ function columns (admin) {
                   </button>
 
                   {/* grant modal */}
-                  <InfoModal
-                    header='Grant'
-                    handleCloseModal={() => setShareOpen(false)}
+                  <Grant
+                    id={row.original.id}
                     modalOpen={shareOpen}
-                    iconPath='/grant-access-color.svg'
-                  >
-                    <GrantAccessContent id={row.original.id} />
-                  </InfoModal>
+                    handleCloseModal={() => setShareOpen(false)}
+                  />
                 </div>
               </div>
             )
@@ -132,7 +128,7 @@ function columns (admin) {
                     setOpen(false)
                   }}
                   title='Delete Cluster'
-                  message={<>Are you sure you want to delete cluster <span className='text-white font-bold'>{name.replace('kubernetes.', '')}?</span></>}
+                  message={<>Are you sure you want to disconnect <span className='text-white font-bold'>{name.replace('kubernetes.', '')}?</span><br />Note: you must also uninstall the Infra Connector from this cluster.</>}
                 />
               </div>
             )

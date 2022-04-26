@@ -7,7 +7,7 @@ import Fullscreen from '../../components/modals/fullscreen'
 import HeaderIcon from '../../components/header-icon'
 import InputDropdown from '../../components/input'
 
-const CommandInput = ({ enabledCommandInput, accessKey, currentDestinationName }) => {
+function CommandInput ({ enabledCommandInput, accessKey, currentDestinationName }) {
   const server = window.location.host
   const isHttps = window.location.origin.includes('https')
   const defaultValue = `helm install infra-connector infrahq/infra \\
