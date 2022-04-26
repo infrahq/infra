@@ -170,17 +170,8 @@ func writeKubeconfig(destinations []api.Destination, grants []api.Grant) error {
 			return fmt.Errorf("no certficates found")
 		}
 
-		tlsServerName := ""
-		switch {
-		case len(certs[0].DNSNames) > 0:
-			tlsServerName = certs[0].DNSNames[0]
-		case len(certs[0].IPAddresses) > 0:
-			tlsServerName = certs[0].IPAddresses[0].String()
-		}
-
 		kubeConfig.Clusters[context] = &clientcmdapi.Cluster{
 			Server:                   u.String(),
-			TLSServerName:            tlsServerName,
 			CertificateAuthorityData: []byte(ca),
 		}
 

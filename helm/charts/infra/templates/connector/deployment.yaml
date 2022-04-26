@@ -40,9 +40,9 @@ spec:
             - name: conf
               mountPath: /etc/infrahq
               readOnly: true
-{{- if and (not .Values.connector.config.tlsCert) (not .Values.connector.config.tlsKey) }}
-            - name: tls
-              mountPath: /var/run/secrets/infrahq.com/tls
+{{- if and (not .Values.connector.config.caCert) (not .Values.connector.config.caKey) }}
+            - name: ca
+              mountPath: /var/run/secrets/infrahq.com/ca
 {{- end }}
             - name: access-key
               mountPath: /var/run/secrets/infrahq.com/access-key
@@ -82,10 +82,10 @@ spec:
         - name: conf
           configMap:
             name: {{ include "connector.fullname" . }}
-{{- if and (not .Values.connector.config.tlsCert) (not .Values.connector.config.tlsKey) }}
-        - name: tls
+{{- if and (not .Values.connector.config.caCert) (not .Values.connector.config.caKey) }}
+        - name: ca
           secret:
-            secretName: {{ include "connector.fullname" . }}-tls
+            secretName: {{ include "connector.fullname" . }}-ca
 {{- end }}
         - name: access-key
           secret:
