@@ -85,7 +85,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
           setEmail('')
           setRole('view')
         } else {
-          grantPrivilege(data[0].id)
+          grantPrivilege('i:' + data[0].id)
         }
       } catch(e) {
         setGrantError(e.message || 'something went wrong, please try again later.')
