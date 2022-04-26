@@ -208,8 +208,8 @@ func (o *mockOIDCImplementation) RefreshAccessToken(providerUser *models.Provide
 	return string(providerUser.AccessToken), &providerUser.ExpiresAt, nil
 }
 
-func (m *mockOIDCImplementation) GetUserInfo(providerUser *models.ProviderUser) (*authn.UserInfo, error) {
-	return &authn.UserInfo{Email: m.UserEmailResp, Groups: m.UserGroupsResp}, nil
+func (m *mockOIDCImplementation) GetUserInfo(providerUser *models.ProviderUser) (*authn.InfoClaims, error) {
+	return &authn.InfoClaims{Email: m.UserEmailResp, Groups: m.UserGroupsResp}, nil
 }
 
 func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
