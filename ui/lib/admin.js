@@ -6,7 +6,6 @@ export function useAdmin () {
 
   return {
     loading: !grants && !grantsError,
-    admin: !!grants?.find(g => g.privilege === 'admin'),
-    auth: auth
+    admin: !!grants?.find(g => g.privilege === 'admin')
   }
 }

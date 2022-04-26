@@ -3,7 +3,6 @@ import useSWR, { useSWRConfig } from 'swr'
 import { useTable } from 'react-table'
 
 import { validateEmail } from '../../lib/email'
-import { useAdmin } from '../../lib/admin'
 
 import InputDropdown from '../../components/input'
 import Table from '../../components/table'
@@ -21,8 +20,9 @@ const columns = [{
   accessor: a => a,
   Cell: ({ value: admin, rows }) => {
     const { data: user } = useSWR(`/v1/identities/${admin.subject.replace('i:', '')}`, { fallbackData: { name: '', kind: '' } })
+    const { data: auth } = useSWR('/v1/introspect')
     const { mutate } = useSWRConfig()
-    const { auth } = useAdmin()
+
 
     const [open, setOpen] = useState(false)
     
