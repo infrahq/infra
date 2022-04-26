@@ -8,7 +8,7 @@ import (
 	"github.com/infrahq/infra/api"
 )
 
-func newDestinationsCmd() *cobra.Command {
+func newDestinationsCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "destinations",
 		Aliases: []string{"dst", "dest", "destination"},
@@ -22,13 +22,13 @@ func newDestinationsCmd() *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(newDestinationsListCmd())
+	cmd.AddCommand(newDestinationsListCmd(cli))
 	cmd.AddCommand(newDestinationsRemoveCmd())
 
 	return cmd
 }
 
-func newDestinationsListCmd() *cobra.Command {
+func newDestinationsListCmd(cli *CLI) *cobra.Command {
 	return &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
@@ -59,9 +59,9 @@ func newDestinationsListCmd() *cobra.Command {
 			}
 
 			if len(rows) > 0 {
-				printTable(rows, TODO)
+				printTable(rows, cli.Stdout)
 			} else {
-				fmt.Println("No destinations found")
+				cli.Output("No destinations found")
 			}
 
 			return nil

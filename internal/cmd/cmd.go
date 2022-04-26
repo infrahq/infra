@@ -344,15 +344,15 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 	// Core commands:
 	rootCmd.AddCommand(newLoginCmd())
 	rootCmd.AddCommand(newLogoutCmd())
-	rootCmd.AddCommand(newListCmd())
+	rootCmd.AddCommand(newListCmd(cli))
 	rootCmd.AddCommand(newUseCmd())
 
 	// Management commands:
-	rootCmd.AddCommand(newDestinationsCmd())
-	rootCmd.AddCommand(newGrantsCmd())
-	rootCmd.AddCommand(newIdentitiesCmd())
+	rootCmd.AddCommand(newDestinationsCmd(cli))
+	rootCmd.AddCommand(newGrantsCmd(cli))
+	rootCmd.AddCommand(newIdentitiesCmd(cli))
 	rootCmd.AddCommand(newKeysCmd(cli))
-	rootCmd.AddCommand(newProvidersCmd())
+	rootCmd.AddCommand(newProvidersCmd(cli))
 
 	// Hidden
 	rootCmd.AddCommand(newTokensCmd())

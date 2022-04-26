@@ -14,7 +14,7 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func newIdentitiesCmd() *cobra.Command {
+func newIdentitiesCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "identities",
 		Aliases: []string{"id", "identity"},
@@ -30,7 +30,7 @@ func newIdentitiesCmd() *cobra.Command {
 
 	cmd.AddCommand(newIdentitiesAddCmd())
 	cmd.AddCommand(newIdentitiesEditCmd())
-	cmd.AddCommand(newIdentitiesListCmd())
+	cmd.AddCommand(newIdentitiesListCmd(cli))
 	cmd.AddCommand(newIdentitiesRemoveCmd())
 
 	return cmd
@@ -125,7 +125,7 @@ $ infra identities edit janedoe@example.com --password`,
 	return cmd
 }
 
-func newIdentitiesListCmd() *cobra.Command {
+func newIdentitiesListCmd(cli *CLI) *cobra.Command {
 	return &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
@@ -159,9 +159,9 @@ func newIdentitiesListCmd() *cobra.Command {
 			}
 
 			if len(rows) > 0 {
-				printTable(rows, TODO)
+				printTable(rows, cli.Stdout)
 			} else {
-				fmt.Println("No identities found")
+				cli.Output("No identities found")
 			}
 
 			return nil

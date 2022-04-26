@@ -20,7 +20,7 @@ type grantsCmdOptions struct {
 	Role        string
 }
 
-func newGrantsCmd() *cobra.Command {
+func newGrantsCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "grants",
 		Short:   "Manage access to destinations",
@@ -34,14 +34,14 @@ func newGrantsCmd() *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(newGrantsListCmd())
+	cmd.AddCommand(newGrantsListCmd(cli))
 	cmd.AddCommand(newGrantAddCmd())
 	cmd.AddCommand(newGrantRemoveCmd())
 
 	return cmd
 }
 
-func newGrantsListCmd() *cobra.Command {
+func newGrantsListCmd(cli *CLI) *cobra.Command {
 	var options grantsCmdOptions
 
 	cmd := &cobra.Command{
@@ -81,9 +81,9 @@ func newGrantsListCmd() *cobra.Command {
 			}
 
 			if len(rows) > 0 {
-				printTable(rows, TODO)
+				printTable(rows, cli.Stdout)
 			} else {
-				fmt.Println("No grants found")
+				cli.Output("No grants found")
 			}
 
 			return nil
