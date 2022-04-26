@@ -27,7 +27,7 @@ export default function ({
           onKeyDown={handleKeyDown}
         />
         {hasDropdownSelection &&
-          <div className='absolute inset-y-0 right-2 flex items-center'>
+          <div className='absolute inset-y-0 right-6 flex items-center'>
             <label htmlFor={optionType} className='sr-only'>
               {optionType}
             </label>
