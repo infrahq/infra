@@ -231,28 +231,79 @@ func TestListProviders(t *testing.T) {
 	assert.Equal(t, apiProviders[0].Name, "mokta")
 }
 
-func TestDeleteProvider(t *testing.T) {
-	s := setupServer(t, withAdminIdentity)
+func TestAPI_DeleteProvider(t *testing.T) {
+	srv := setupServer(t, withAdminIdentity)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
-	routes := s.GenerateRoutes(prometheus.NewRegistry())
-
-	testProvider := &models.Provider{
-		Name: "mokta",
+	createProvider := func(t *testing.T) *models.Provider {
+		t.Helper()
+		p := &models.Provider{Name: "mokta"}
+		err := data.CreateProvider(srv.db, p)
+		assert.NilError(t, err)
+		return p
 	}
 
-	err := data.CreateProvider(s.db, testProvider)
-	assert.NilError(t, err)
+	provider1 := createProvider(t)
 
-	route := fmt.Sprintf("/v1/providers/%s", testProvider.ID)
-	req, err := http.NewRequest(http.MethodDelete, route, nil)
-	assert.NilError(t, err)
+	type testCase struct {
+		urlPath  string
+		setup    func(t *testing.T, req *http.Request)
+		expected func(t *testing.T, resp *httptest.ResponseRecorder)
+	}
 
-	req.Header.Add("Authorization", "Bearer "+adminAccessKey(s))
+	run := func(t *testing.T, tc testCase) {
+		req, err := http.NewRequest(http.MethodDelete, tc.urlPath, nil)
+		assert.NilError(t, err)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 
-	resp := httptest.NewRecorder()
-	routes.ServeHTTP(resp, req)
+		if tc.setup != nil {
+			tc.setup(t, req)
+		}
 
-	assert.Equal(t, http.StatusNoContent, resp.Code, resp.Body.String())
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+		tc.expected(t, resp)
+	}
+
+	testCases := map[string]testCase{
+		"not authenticated": {
+			urlPath: "/v1/providers/1234",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Del("Authorization")
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusUnauthorized, resp.Code, resp.Body.String())
+			},
+		},
+		"not authorized": {
+			urlPath: "/v1/providers/1234",
+			setup: func(t *testing.T, req *http.Request) {
+				key, _ := createAccessKey(t, srv.db, "someonenew@example.com")
+				req.Header.Set("Authorization", "Bearer "+key)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
+			},
+		},
+		"successful delete": {
+			urlPath: "/v1/providers/" + provider1.ID.String(),
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusNoContent, resp.Code, resp.Body.String())
+			},
+		},
+		"infra provider can not be deleted": {
+			urlPath: "/v1/providers/" + data.InfraProvider(srv.db).ID.String(),
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 }
 
 // withAdminIdentity may be used with setupServer to setup the server
@@ -267,24 +318,6 @@ func withAdminIdentity(_ *testing.T, opts *Options) {
 		Role:     "admin",
 		Resource: "infra",
 	})
-}
-
-func TestDeleteProvider_NoDeleteInternalProvider(t *testing.T) {
-	s := setupServer(t, withAdminIdentity)
-
-	routes := s.GenerateRoutes(prometheus.NewRegistry())
-	internalProvider := data.InfraProvider(s.db)
-
-	route := fmt.Sprintf("/v1/providers/%s", internalProvider.ID)
-	req, err := http.NewRequest(http.MethodDelete, route, nil)
-	assert.NilError(t, err)
-
-	req.Header.Add("Authorization", "Bearer "+adminAccessKey(s))
-
-	resp := httptest.NewRecorder()
-	routes.ServeHTTP(resp, req)
-
-	assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
 }
 
 func TestCreateIdentity(t *testing.T) {
