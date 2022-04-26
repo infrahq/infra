@@ -42,7 +42,7 @@ const (
 
 const cliLoginRedirectURL = "http://localhost:8301"
 
-func newLoginCmd() *cobra.Command {
+func newLoginCmd(_ *CLI) *cobra.Command {
 	var options loginCmdOptions
 
 	cmd := &cobra.Command{

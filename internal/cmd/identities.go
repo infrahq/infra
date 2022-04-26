@@ -28,7 +28,7 @@ func newIdentitiesCmd(cli *CLI) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(newIdentitiesAddCmd())
+	cmd.AddCommand(newIdentitiesAddCmd(cli))
 	cmd.AddCommand(newIdentitiesEditCmd())
 	cmd.AddCommand(newIdentitiesListCmd(cli))
 	cmd.AddCommand(newIdentitiesRemoveCmd())
@@ -36,7 +36,7 @@ func newIdentitiesCmd(cli *CLI) *cobra.Command {
 	return cmd
 }
 
-func newIdentitiesAddCmd() *cobra.Command {
+func newIdentitiesAddCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add IDENTITY",
 		Short: "Create an identity.",
@@ -61,12 +61,12 @@ $ infra identities add machine-a`,
 			}
 
 			if createResp.OneTimePassword != "" {
-				fmt.Fprintf(os.Stderr, "Created user identity.\n")
-				fmt.Printf("Email: %s\n", createResp.Name)
-				fmt.Printf("Password: %s\n", createResp.OneTimePassword)
+				fmt.Fprintf(cli.Stderr, "Created user identity.\n")
+				cli.Output("Email: %s", createResp.Name)
+				cli.Output("Password: %s", createResp.OneTimePassword)
 			} else {
-				fmt.Fprintf(os.Stderr, "Created machine identity.\n")
-				fmt.Printf("Name: %s\n", createResp.Name)
+				fmt.Fprintf(cli.Stderr, "Created machine identity.\n")
+				cli.Output("Name: %s", createResp.Name)
 			}
 
 			return nil

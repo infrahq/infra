@@ -26,7 +26,7 @@ func newProvidersCmd(cli *CLI) *cobra.Command {
 	}
 
 	cmd.AddCommand(newProvidersListCmd(cli))
-	cmd.AddCommand(newProvidersAddCmd())
+	cmd.AddCommand(newProvidersAddCmd(cli))
 	cmd.AddCommand(newProvidersRemoveCmd())
 
 	return cmd
@@ -93,7 +93,7 @@ func (o providerAddOptions) Validate() error {
 	return nil
 }
 
-func newProvidersAddCmd() *cobra.Command {
+func newProvidersAddCmd(cli *CLI) *cobra.Command {
 	var opts providerAddOptions
 
 	cmd := &cobra.Command{
@@ -128,7 +128,7 @@ $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5
 				return err
 			}
 
-			fmt.Printf("Provider %s added\n", args[0])
+			cli.Output("Provider %s added", args[0])
 			return nil
 		},
 	}

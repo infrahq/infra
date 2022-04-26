@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"text/tabwriter"
 
@@ -12,20 +11,20 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 )
 
-func newVersionCmd() *cobra.Command {
+func newVersionCmd(cli *CLI) *cobra.Command {
 	return &cobra.Command{
 		Use:    "version",
 		Short:  "Display the Infra version",
 		Hidden: true,
 		Args:   NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return version()
+			return version(cli)
 		},
 	}
 }
 
-func version() error {
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
+func version(cli *CLI) error {
+	w := tabwriter.NewWriter(cli.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
 	defer w.Flush()
 
 	fmt.Fprintln(w)

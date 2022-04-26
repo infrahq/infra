@@ -196,7 +196,7 @@ func apiClient(host string, accessKey string, skipTLSVerify bool) (*api.Client, 
 	}, nil
 }
 
-func newUseCmd() *cobra.Command {
+func newUseCmd(_ *CLI) *cobra.Command {
 	return &cobra.Command{
 		Use:   "use DESTINATION",
 		Short: "Access a destination",
@@ -326,13 +326,13 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if rootOpts.Version {
-				return version()
+				return version(cli)
 			}
 			if rootOpts.Info {
 				if err := mustBeLoggedIn(); err != nil {
 					return fmt.Errorf("login check: %w", err)
 				}
-				if err := info(); err != nil {
+				if err := info(cli); err != nil {
 					return fmt.Errorf("info: %w", err)
 				}
 				return nil
@@ -342,10 +342,10 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 	}
 
 	// Core commands:
-	rootCmd.AddCommand(newLoginCmd())
-	rootCmd.AddCommand(newLogoutCmd())
+	rootCmd.AddCommand(newLoginCmd(cli))
+	rootCmd.AddCommand(newLogoutCmd(cli))
 	rootCmd.AddCommand(newListCmd(cli))
-	rootCmd.AddCommand(newUseCmd())
+	rootCmd.AddCommand(newUseCmd(cli))
 
 	// Management commands:
 	rootCmd.AddCommand(newDestinationsCmd(cli))
@@ -355,11 +355,11 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 	rootCmd.AddCommand(newProvidersCmd(cli))
 
 	// Hidden
-	rootCmd.AddCommand(newTokensCmd())
-	rootCmd.AddCommand(newInfoCmd())
+	rootCmd.AddCommand(newTokensCmd(cli))
+	rootCmd.AddCommand(newInfoCmd(cli))
 	rootCmd.AddCommand(newServerCmd())
 	rootCmd.AddCommand(newConnectorCmd())
-	rootCmd.AddCommand(newVersionCmd())
+	rootCmd.AddCommand(newVersionCmd(cli))
 
 	rootCmd.Flags().BoolVar(&rootOpts.Version, "version", false, "Display Infra version")
 	rootCmd.Flags().BoolVar(&rootOpts.Info, "info", false, "Display info about the current logged in session")

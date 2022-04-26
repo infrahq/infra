@@ -17,7 +17,7 @@ type logoutCmdOptions struct {
 	all    bool
 }
 
-func newLogoutCmd() *cobra.Command {
+func newLogoutCmd(_ *CLI) *cobra.Command {
 	var options logoutCmdOptions
 
 	cmd := &cobra.Command{

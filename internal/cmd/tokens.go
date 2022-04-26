@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -10,7 +9,7 @@ import (
 	clientauthenticationv1beta1 "k8s.io/client-go/pkg/apis/clientauthentication/v1beta1"
 )
 
-func newTokensCmd() *cobra.Command {
+func newTokensCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:    "tokens",
 		Short:  "Create & manage tokens",
@@ -23,27 +22,23 @@ func newTokensCmd() *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(newTokensAddCmd())
+	cmd.AddCommand(newTokensAddCmd(cli))
 
 	return cmd
 }
 
-func newTokensAddCmd() *cobra.Command {
+func newTokensAddCmd(cli *CLI) *cobra.Command {
 	return &cobra.Command{
 		Use:   "add",
 		Short: "Create a token",
 		Args:  NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if err := tokensCreate(); err != nil {
-				return err
-			}
-
-			return nil
+			return tokensCreate(cli)
 		},
 	}
 }
 
-func tokensCreate() error {
+func tokensCreate(cli *CLI) error {
 	client, err := defaultAPIClient()
 	if err != nil {
 		return err
@@ -71,7 +66,7 @@ func tokensCreate() error {
 		return err
 	}
 
-	fmt.Println(string(bts))
+	cli.Output(string(bts))
 
 	return nil
 }
