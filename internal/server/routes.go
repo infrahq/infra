@@ -131,7 +131,6 @@ func get[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResHa
 	register("GET", r.BasePath(), path, handler)
 	fullPathStr := fullPath(r, path)
 	r.GET(path, func(c *gin.Context) {
-		c.Set("path", fullPathStr)
 		req := new(Req)
 		if err := bind(c, req); err != nil {
 			a.sendAPIError(c, err)
@@ -155,7 +154,6 @@ func post[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResH
 	fullPathStr := fullPath(r, path)
 
 	r.POST(path, func(c *gin.Context) {
-		c.Set("path", fullPathStr)
 		req := new(Req)
 		if err := bind(c, req); err != nil {
 			a.sendAPIError(c, err)
@@ -180,7 +178,6 @@ func put[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResHa
 	fullPathStr := fullPath(r, path)
 
 	r.PUT(path, func(c *gin.Context) {
-		c.Set("path", fullPathStr)
 		req := new(Req)
 		if err := bind(c, req); err != nil {
 			a.sendAPIError(c, err)
@@ -205,7 +202,6 @@ func delete[Req any](a *API, r *gin.RouterGroup, path string, handler ReqHandler
 	fullPathStr := fullPath(r, path)
 
 	r.DELETE(path, func(c *gin.Context) {
-		c.Set("path", fullPathStr)
 		req := new(Req)
 		if err := bind(c, req); err != nil {
 			a.sendAPIError(c, err)
