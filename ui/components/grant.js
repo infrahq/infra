@@ -105,6 +105,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
     }, { optimisticData: list.filter(item => item?.id !== grantId) })
   }
 
+
   return (
     <InfoModal
       header='Share'
