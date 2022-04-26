@@ -71,7 +71,10 @@ export default function ({ id, modalOpen, handleCloseModal }) {
             })
               .then((response) => response.json())
               .then((user) => grantPrivilege('i:' + user.id))
-              .finally(() => setEmail(''))
+              .finally(() => {
+                setEmail('')
+                setRole('view')
+              })
           } else {
             grantPrivilege(data[0].id)
           }
@@ -107,12 +110,13 @@ export default function ({ id, modalOpen, handleCloseModal }) {
             type='email'
             value={email}
             placeholder='email'
+            error={error}
             optionType='role'
             options={options.filter((item) => item !== 'remove')}
             handleInputChange={e => handleInputChang(e.target.value)}
             handleSelectOption={e => setRole(e.target.value)}
             handleKeyDown={(e) => handleKeyDownEvent(e.key)}
-            error={error}
+            selectedItem={role}
           />
         </div>
         <button
