@@ -36,10 +36,11 @@ export default function ({
               id={optionType}
               name={optionType}
               onChange={handleSelectOption}
+              value={selectedItem}
               className='h-full py-0 pl-2 border-transparent bg-transparent text-white text-sm focus:outline-none'
             >
               {options.map((option) => (
-                <option key={option} value={option} selected={selectedItem === option}>{option}</option>
+                <option key={option} value={option}>{option}</option>
               ))}
             </select>
           </div>}
