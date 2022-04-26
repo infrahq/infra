@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -31,7 +32,8 @@ import (
 // Run the main CLI command with the given args. The args should not contain
 // the name of the binary (ex: os.Args[1:]).
 func Run(ctx context.Context, args ...string) error {
-	cmd := NewRootCmd()
+	cli := newCLI(ctx)
+	cmd := NewRootCmd(cli)
 	cmd.SetArgs(args)
 	return cmd.ExecuteContext(ctx)
 }
@@ -140,8 +142,8 @@ func infraHomeDir() (string, error) {
 	return infraDir, nil
 }
 
-func printTable(data interface{}) {
-	table := tableprinter.New(os.Stdout)
+func printTable(data interface{}, out io.Writer) {
+	table := tableprinter.New(out)
 
 	table.HeaderAlignment = tableprinter.AlignLeft
 	table.AutoWrapText = false
@@ -310,7 +312,7 @@ type rootOptions struct {
 	Version bool
 }
 
-func NewRootCmd() *cobra.Command {
+func NewRootCmd(cli *CLI) *cobra.Command {
 	cobra.EnableCommandSorting = false
 	var rootOpts rootOptions
 
@@ -349,7 +351,7 @@ func NewRootCmd() *cobra.Command {
 	rootCmd.AddCommand(newDestinationsCmd())
 	rootCmd.AddCommand(newGrantsCmd())
 	rootCmd.AddCommand(newIdentitiesCmd())
-	rootCmd.AddCommand(newKeysCmd())
+	rootCmd.AddCommand(newKeysCmd(cli))
 	rootCmd.AddCommand(newProvidersCmd())
 
 	// Hidden

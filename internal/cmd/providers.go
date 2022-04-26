@@ -60,7 +60,7 @@ func newProvidersListCmd() *cobra.Command {
 			}
 
 			if len(rows) > 0 {
-				printTable(rows)
+				printTable(rows, TODO)
 			} else {
 				fmt.Println("No providers found")
 			}
