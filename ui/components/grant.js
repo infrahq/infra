@@ -27,16 +27,13 @@ export default function ({ id, modalOpen, handleCloseModal }) {
   const options = ['view', 'edit', 'admin', 'remove']
 
   const grantPrivilege = (id, privilege = role) => {
-    mutate(`/v1/grants?resource=${destination.name}`, async grants => {
-      await fetch('/v1/grants', {
-        method: 'POST',
-        body: JSON.stringify({ subject: id, resource: destination.name, privilege })
-      })
-
-      return grants.filter(g => g?.id !== id)
-    }, { optimisticData: list })
-
-    setEmail('')
+    fetch('/v1/grants', {
+      method: 'POST',
+      body: JSON.stringify({ subject: id, resource: destination.name, privilege })
+    })
+      .then((response) => response.json())
+      .then(() => mutate(`/v1/grants?resource=${destination.name}`))
+      .finally(() => setEmail(''))
   }
 
   const handleInputChang = value => {
@@ -75,15 +72,14 @@ export default function ({ id, modalOpen, handleCloseModal }) {
   }
 
   const handleUpdateGrant = (privilege, grantId, userId) => {
-    if (privilege === 'remove') {
-      mutate(`/v1/grants?resource=${destination.name}`, async grants => {
-        await fetch(`/v1/grants/${grantId}`, { method: 'DELETE' })
-  
-        return grants.filter(g => g?.id !== id)
-      }, { optimisticData: list })
-    } else {
-      grantPrivilege(userId, privilege)
-    }
+    fetch(`/v1/grants/${grantId}`, { method: 'DELETE' })
+      .then(() => {
+        if (privilege === 'remove') {
+          mutate(`/v1/grants?resource=${destination.name}`)
+        } else {
+          grantPrivilege(userId, privilege)
+        }
+      })
   }
 
   return (
