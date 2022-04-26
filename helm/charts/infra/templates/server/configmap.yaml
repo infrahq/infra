@@ -51,7 +51,7 @@ data:
 {{- $identities = append $identities (dict "name" "admin" "accessKey" $adminAccessKey) }}
 {{- end }}
 
-{{- if include "connector.enabled" . }}
+{{- if include "connector.enabled" . | eq "true" }}
 {{- $accessKey := default "" .Values.connector.config.accessKey -}}
 {{- if or (not $accessKey) (and (not (hasPrefix "file:" $accessKey)) (not (hasPrefix "env:" $accessKey))) }}
 {{- $accessKey = "env:CONNECTOR_ACCESS_KEY" }}

@@ -153,7 +153,7 @@ Server 'env' values. Merges global and local values.
 {{- end }}
 {{- end }}
 
-{{- if include "connector.enabled" . -}}
+{{- if include "connector.enabled" . | eq "true" -}}
 {{- $accessKey := default "" .Values.connector.config.accessKey -}}
 {{- if or (not $accessKey) (and (not (hasPrefix "file:" $accessKey)) (not (hasPrefix "env:" $accessKey))) }}
 {{- $env = append $env (dict "name" "CONNECTOR_ACCESS_KEY" "valueFrom" (dict "secretKeyRef" (dict "name" (printf "%s-access-key" .Release.Name) "key" "access-key"))) }}
