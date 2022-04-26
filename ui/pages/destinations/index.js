@@ -80,7 +80,7 @@ function columns (admin) {
                 <div className='group-hover:flex space-x-1 hidden'>
                   <button onClick={() => setShareOpen(true)} className='cursor-pointer bg-zinc-900 rounded-lg'>
                     <div className='flex items-center py-1 px-3 text-gray-500 hover:text-white'>
-                      <ShareIcon className='w-4 h-4 ' /><div className='text-sm ml-1'>Grant</div>
+                      <ShareIcon className='w-4 h-4 ' /><div className='text-sm ml-1'>Share</div>
                     </div>
                   </button>
 

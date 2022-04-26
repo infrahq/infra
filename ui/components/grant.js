@@ -107,9 +107,10 @@ export default function ({ id, modalOpen, handleCloseModal }) {
     }, { optimisticData: list.filter(item => item?.id !== grantId) })
   }
 
+
   return (
     <InfoModal
-      header='Grant'
+      header='Share'
       handleCloseModal={handleCloseModal}
       modalOpen={modalOpen}
       iconPath='/grant-access-color.svg'
