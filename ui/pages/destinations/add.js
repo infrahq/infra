@@ -159,12 +159,12 @@ export default function () {
             <h2 className='text-gray-500 text-center px-2 mb-2 mt-4'>
               Your cluster will be detected automatically. This may take a few minutes.
             </h2>
-              <div className='border-2 border-dashed border-pink-300 opacity-60 rounded-lg shadow-sm overflow-hidden my-5 px-5 py-3'>
-                <div className='flex items-center justify-center p-0.5 w-full'>
-                  <img className={connected ? 'w-8 h-8 animate-pulse' : 'w-8 h-8 animate-spin-fast'} src={connected ? '/connected-icon.svg' : '/connecting-spinner.svg'} />
-                  <p className='text-pink-500 text-sm px-2 py-3'>{connected ? 'Connected!' : 'Waiting for connection...'}</p>
-                </div>
+            <div className='border-2 border-dashed border-pink-300 opacity-60 rounded-lg shadow-sm overflow-hidden my-5 px-5 py-3'>
+              <div className='flex items-center justify-center p-0.5 w-full'>
+                <img className={connected ? 'w-8 h-8 animate-pulse' : 'w-8 h-8 animate-spin-fast'} src={connected ? '/connected-icon.svg' : '/connecting-spinner.svg'} />
+                <p className='text-pink-500 text-sm px-2 py-3'>{connected ? 'Connected!' : 'Waiting for connection...'}</p>
               </div>
+            </div>
             {connected &&
               <button
                 onClick={() => handleFinished()}
@@ -175,8 +175,7 @@ export default function () {
                 <div className='bg-black rounded-full tracking-tight text-sm px-6 py-3'>
                   Finished
                 </div>
-              </button>
-            }
+              </button>}
           </>}
       </div>
     </Fullscreen>

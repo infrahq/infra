@@ -18,7 +18,7 @@ const columns = [{
 }, {
   id: 'delete',
   accessor: a => a,
-  Cell: ({ value: admin }) => {
+  Cell: ({ value: admin, rows }) => {
     const { data: user } = useSWR(`/v1/identities/${admin.subject.replace('i:', '')}`, { fallbackData: { name: '', kind: '' } })
     const { mutate } = useSWRConfig()
 
@@ -33,12 +33,13 @@ const columns = [{
           open={open}
           setOpen={setOpen}
           onSubmit={() => {
-            fetch(`/v1/grants/${admin.id}`, { method: 'DELETE' })
-              .then(() => setOpen(false))
-              .finally(() => mutate('/v1/grants?resource=infra&privilege=admin'))
-              .catch((error) => {
-                console.error(error)
-              })
+            mutate('/v1/grants?resource=infra&privilege=admin', async admins => {
+              await fetch(`/v1/grants/${admin.id}`, { method: 'DELETE' })
+
+              return admins.filter(a => a?.id !== admin.id)
+            }, { optimisticData: rows.map(r => r.original).filter(a => a?.id !== admin.id) })
+
+            setOpen(false)
           }}
           title='Delete Admin'
           message={(<>Are you sure you want to delete <span className='font-bold text-white'>{user.name}</span>? This action cannot be undone.</>)}

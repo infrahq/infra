@@ -26,14 +26,25 @@ export default function ({ id, modalOpen, handleCloseModal }) {
 
   const options = ['view', 'edit', 'admin', 'remove']
 
-  const grantPrivilege = (id, privilege = role) => {
-    fetch('/v1/grants', {
-      method: 'POST',
-      body: JSON.stringify({ subject: id, resource: destination.name, privilege })
+  const grantPrivilege = async (id, privilege = role) => {
+    // TODO: THIS IS CREATING EXTRA ENTRY EVERYTIME UPDATES
+    mutate(`/v1/grants?resource=${destination.name}`, async grants => {
+      const res = await fetch('/v1/grants', {
+        method: 'POST',
+        body: JSON.stringify({ subject: id, resource: destination.name, privilege })
+      })
+      const data = await res.json()
+
+      setEmail('')
+
+      console.log('id:', id)
+      console.log('grants:', grants)
+      console.log('data:', data)
+      console.log('filter:', (grants || []).filter(grant => grant?.subject !== id))
+      console.log('return data:', [...(grants || []).filter(grant => grant?.subject !== id), data])
+
+      return [...(grants || []).filter(grant => grant?.subject !== id), data]
     })
-      .then((response) => response.json())
-      .then(() => mutate(`/v1/grants?resource=${destination.name}`))
-      .finally(() => setEmail(''))
   }
 
   const handleInputChang = value => {
@@ -41,7 +52,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
     setError('')
   }
 
-  const handleKeyDownEvent = (key) => {
+  const handleKeyDownEvent = key => {
     if (key === 'Enter' && email.length > 0) {
       handleShareGrant()
     }
@@ -72,18 +83,18 @@ export default function ({ id, modalOpen, handleCloseModal }) {
   }
 
   const handleUpdateGrant = (privilege, grantId, userId) => {
-    fetch(`/v1/grants/${grantId}`, { method: 'DELETE' })
-      .then(() => {
-        if (privilege === 'remove') {
-          mutate(`/v1/grants?resource=${destination.name}`)
-        } else {
-          grantPrivilege(userId, privilege)
-        }
-      })
+    if (privilege !== 'remove') {
+      return grantPrivilege(userId, privilege)
+    }
+
+    mutate(`/v1/grants?resource=${destination.name}`, async grants => {
+      await fetch(`/v1/grants/${grantId}`, { method: 'DELETE' })
+
+      return grants.filter(item => item?.id !== grantId)
+    }, { optimisticData: list.filter(item => item?.id !== grantId) })
   }
 
   return (
-    <>
     <InfoModal
       header='Grant'
       handleCloseModal={handleCloseModal}
@@ -137,8 +148,8 @@ export default function ({ id, modalOpen, handleCloseModal }) {
               </div>
             </div>
           ))}
-        </section>}            
+        </section>}
+
     </InfoModal>
-    </>
   )
 }
