@@ -197,6 +197,9 @@ func TestSignupEnabled(t *testing.T) {
 }
 
 func TestServer_Run(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for short run")
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
