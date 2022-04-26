@@ -405,11 +405,9 @@ server:
   ## Enable service crash reporting
   #   enableCrashReporting: true
 
-  ## Enable server UI
-  #   enableUI: false
-
-  ## Infra server UI proxy URL
-  #   uiProxyURL: ""
+  ## Enable Server UI
+  #   ui:
+  #     enabled: false
 
   ## Duration of a user session
   #   sessionDuration: 12h0m0s
