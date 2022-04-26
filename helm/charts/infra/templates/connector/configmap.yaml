@@ -39,8 +39,8 @@ data:
 {{- end }}
 {{- end }}
 
-{{- if and (not .Values.connector.config.tlsCert) (not .Values.connector.config.tlsKey) }}
-    tlsCert: /var/run/secrets/infrahq.com/tls/tls.crt
-    tlsKey: /var/run/secrets/infrahq.com/tls/tls.key
+{{- if and (not .Values.connector.config.caCert) (not .Values.connector.config.caKey) }}
+    caCert: /var/run/secrets/infrahq.com/ca/ca.crt
+    caKey: /var/run/secrets/infrahq.com/ca/ca.key
 {{- end }}
 {{- end }}

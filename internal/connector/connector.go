@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -20,7 +21,6 @@ import (
 	"github.com/goware/urlx"
 	"github.com/infrahq/secrets"
 	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/crypto/acme/autocert"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -40,9 +40,8 @@ type Options struct {
 	Server        string `mapstructure:"server"`
 	Name          string `mapstructure:"name"`
 	AccessKey     string `mapstructure:"accessKey"`
-	TLSCache      string `mapstructure:"tlsCache"`
-	TLSCert       string `mapstructure:"tlsCert"`
-	TLSKey        string `mapstructure:"tlsKey"`
+	CACert        string `mapstructure:"caCert"`
+	CAKey         string `mapstructure:"caKey"`
 	SkipTLSVerify bool   `mapstructure:"skipTLSVerify"`
 }
 
@@ -300,6 +299,70 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 	return nil
 }
 
+type CertCache struct {
+	mu     sync.Mutex
+	caCert []byte
+	caKey  []byte
+	hosts  []string
+	cert   *tls.Certificate
+}
+
+func (c *CertCache) AddHost(host string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	for _, h := range c.hosts {
+		if h == host {
+			return nil
+		}
+	}
+
+	c.hosts = append(c.hosts, host)
+
+	logging.S.Debug("generating certificate for: %v", c.hosts)
+
+	ca, err := tls.X509KeyPair(c.caCert, c.caKey)
+	if err != nil {
+		return err
+	}
+
+	caCert, err := x509.ParseCertificate(ca.Certificate[0])
+	if err != nil {
+		return err
+	}
+
+	certPEM, keyPEM, err := certs.GenerateCertificate(c.hosts, caCert, ca.PrivateKey)
+	if err != nil {
+		return err
+	}
+
+	tlsCert, err := tls.X509KeyPair(certPEM, keyPEM)
+	if err != nil {
+		return err
+	}
+
+	c.cert = &tlsCert
+
+	return nil
+}
+
+func (c *CertCache) Certificate() (*tls.Certificate, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.cert == nil {
+		if err := c.AddHost(""); err != nil {
+			return nil, err
+		}
+	}
+
+	return c.cert, nil
+}
+
+func NewCertCache(caCertPEM []byte, caKeyPem []byte) *CertCache {
+	return &CertCache{caCert: caCertPEM, caKey: caKeyPem}
+}
+
 func Run(ctx context.Context, options Options) error {
 	k8s, err := kubernetes.NewKubernetes()
 	if err != nil {
@@ -325,37 +388,23 @@ func Run(ctx context.Context, options Options) error {
 		options.Name = fmt.Sprintf("kubernetes.%s", options.Name)
 	}
 
-	serverName := "infra-connector"
-
-	manager := &autocert.Manager{
-		Prompt: autocert.AcceptTOS,
-		Cache:  autocert.DirCache(options.TLSCache),
+	caCertPEM, err := os.ReadFile(options.CACert)
+	if err != nil {
+		return err
 	}
 
-	var tlsConfig *tls.Config
+	caKeyPEM, err := os.ReadFile(options.CAKey)
+	if err != nil {
+		return err
+	}
 
-	if options.TLSCert != "" || options.TLSKey != "" {
-		certBytes, err := ioutil.ReadFile(options.TLSCert)
-		if err != nil {
-			return err
-		}
+	certCache := NewCertCache(caCertPEM, caKeyPEM)
 
-		keypair, err := tls.LoadX509KeyPair(options.TLSCert, options.TLSKey)
-		if err != nil {
-			return err
-		}
-
-		tlsConfig = &tls.Config{
-			MinVersion:   tls.VersionTLS12,
-			Certificates: []tls.Certificate{keypair},
-		}
-
-		if err := manager.Cache.Put(context.TODO(), serverName, certBytes); err != nil {
-			return err
-		}
-	} else {
-		tlsConfig := manager.TLSConfig()
-		tlsConfig.GetCertificate = certs.SelfSignedOrLetsEncryptCert(manager, serverName)
+	// Generate TLS certificates on the fly for clients
+	// GenerateCertificate caches certificates
+	tlsConfig := &tls.Config{MinVersion: tls.VersionTLS12}
+	tlsConfig.GetCertificate = func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+		return certCache.Certificate()
 	}
 
 	basicSecretStorage := map[string]secrets.SecretStorage{
@@ -417,17 +466,6 @@ func Run(ctx context.Context, options Options) error {
 	defer cancel()
 
 	repeat.Start(ctx, 5*time.Second, func(context.Context) {
-		caBytes, err := manager.Cache.Get(context.TODO(), serverName)
-		if err != nil {
-			if errors.Is(err, autocert.ErrCacheMiss) {
-				logging.S.Debugf("failed loading CA: %v", err)
-				return
-			} else {
-				logging.S.Errorf("cache get: %v", err)
-				return
-			}
-		}
-
 		host, port, err := k8s.Endpoint()
 		if err != nil {
 			logging.S.Errorf("failed to lookup endpoint: %v", err)
@@ -442,11 +480,18 @@ func Run(ctx context.Context, options Options) error {
 			}
 		}
 
+		// update certificates if the host changed
+		err = certCache.AddHost(host)
+		if err != nil {
+			logging.L.Error("could not update self-signed certificates")
+			return
+		}
+
 		endpoint := fmt.Sprintf("%s:%d", host, port)
 		logging.S.Debugf("connector serving on %s", endpoint)
 
 		if destination.ID == 0 {
-			destination.Connection.CA = string(caBytes)
+			destination.Connection.CA = string(caCertPEM)
 			destination.Connection.URL = endpoint
 
 			isClusterIP, err := k8s.IsServiceTypeClusterIP()
@@ -463,8 +508,8 @@ func Run(ctx context.Context, options Options) error {
 				logging.S.Errorf("initializing destination: %v", err)
 				return
 			}
-		} else if destination.Connection.URL != endpoint || destination.Connection.CA != string(caBytes) {
-			destination.Connection.CA = string(caBytes)
+		} else if destination.Connection.URL != endpoint || destination.Connection.CA != string(caCertPEM) {
+			destination.Connection.CA = string(caCertPEM)
 			destination.Connection.URL = endpoint
 
 			err = updateDestination(client, destination)
@@ -523,14 +568,14 @@ func Run(ctx context.Context, options Options) error {
 		return fmt.Errorf("parsing host config: %w", err)
 	}
 
-	caCert, err := kubernetes.CA()
+	clusterCACert, err := kubernetes.CA()
 	if err != nil {
 		return fmt.Errorf("reading CA file: %w", err)
 	}
 
 	certPool := x509.NewCertPool()
 
-	if ok := certPool.AppendCertsFromPEM(caCert); !ok {
+	if ok := certPool.AppendCertsFromPEM(clusterCACert); !ok {
 		return errors.New("could not append CA to client cert bundle")
 	}
 
