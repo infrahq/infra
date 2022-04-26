@@ -26,25 +26,25 @@ export default function ({ id, modalOpen, handleCloseModal }) {
 
   const options = ['view', 'edit', 'admin', 'remove']
 
-  const grantPrivilege = async (id, privilege = role) => {
-    // TODO: THIS IS CREATING EXTRA ENTRY EVERYTIME UPDATES
+  const grantPrivilege = async (id, privilege = role, exist = false, deleteGrantId) => {
+    const newGrant = { ...list.filter(item => item?.subject === id)[0], privilege }
+
     mutate(`/v1/grants?resource=${destination.name}`, async grants => {
       const res = await fetch('/v1/grants', {
         method: 'POST',
         body: JSON.stringify({ subject: id, resource: destination.name, privilege })
       })
+      
       const data = await res.json()
+
+      if(exist) {
+        await fetch(`/v1/grants/${deleteGrantId}`, { method: 'DELETE' })
+      }
 
       setEmail('')
 
-      console.log('id:', id)
-      console.log('grants:', grants)
-      console.log('data:', data)
-      console.log('filter:', (grants || []).filter(grant => grant?.subject !== id))
-      console.log('return data:', [...(grants || []).filter(grant => grant?.subject !== id), data])
-
       return [...(grants || []).filter(grant => grant?.subject !== id), data]
-    })
+    }, { optimisticData: [...list.filter(item => item?.subject !== id), newGrant]})
   }
 
   const handleInputChang = value => {
@@ -84,7 +84,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
 
   const handleUpdateGrant = (privilege, grantId, userId) => {
     if (privilege !== 'remove') {
-      return grantPrivilege(userId, privilege)
+      return grantPrivilege(userId, privilege, true, grantId)
     }
 
     mutate(`/v1/grants?resource=${destination.name}`, async grants => {
