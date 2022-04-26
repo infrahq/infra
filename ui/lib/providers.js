@@ -1,7 +1,16 @@
 export const providers = [{
   name: 'Okta',
   kind: 'okta',
-  available: true
+  available: true,
+  validate: {
+    url: url => {
+      if (!url.endsWith('okta.com')) {
+        return false
+      }
+
+      return true
+    }
+  }
 }, {
   name: 'Google',
   kind: 'google'
