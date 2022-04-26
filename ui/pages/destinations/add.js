@@ -161,7 +161,7 @@ export default function () {
             </h2>
             <div className='border-2 border-dashed border-pink-300 opacity-60 rounded-lg shadow-sm overflow-hidden my-5 px-5 py-3'>
               <div className='flex items-center justify-center p-0.5 w-full'>
-                <img className={connected ? 'w-8 h-8 animate-pulse' : 'w-8 h-8 animate-spin-fast'} src={connected ? '/connected-icon.svg' : '/connecting-spinner.svg'} />
+                <img className={`w-8 h-8' ${connected ? '' : 'animate-pulse'}`} src='/connected-icon.svg' />
                 <p className='text-pink-500 text-sm px-2 py-3'>{connected ? 'Connected!' : 'Waiting for connection...'}</p>
               </div>
             </div>
