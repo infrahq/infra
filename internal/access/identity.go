@@ -101,7 +101,7 @@ func ListIdentities(c *gin.Context, name string, ids []uid.ID) ([]models.Identit
 }
 
 // UpdateUserInfoFromProvider calls the user info endpoint of an external identity provider to see a user's current attributes
-func UpdateUserInfoFromProvider(c *gin.Context, info *authn.UserInfo, user *models.Identity, provider *models.Provider) error {
+func UpdateUserInfoFromProvider(c *gin.Context, info *authn.InfoClaims, user *models.Identity, provider *models.Provider) error {
 	// no auth, this is not publically exposed
 	db := getDB(c)
 

@@ -380,7 +380,7 @@ func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateToken
 	if access.AuthenticatedIdentity(c) != nil {
 		err := a.UpdateIdentityInfoFromProvider(c)
 		if err != nil {
-			return nil, fmt.Errorf("update ident info from provider: %w", err)
+			return nil, fmt.Errorf("%w: update ident info from provider: %s", internal.ErrForbidden, err)
 		}
 
 		token, err := access.CreateToken(c)
@@ -623,20 +623,17 @@ func (a *API) UpdateIdentityInfoFromProvider(c *gin.Context) error {
 	// get current identity provider groups
 	info, err := oidc.GetUserInfo(providerUser)
 	if err != nil {
-		if errors.Is(err, internal.ErrForbidden) {
-			err := access.DeleteAllIdentityAccessKeys(c)
-			if err != nil {
-				logging.S.Errorf("failed to revoke invalid user session: %s", err)
-			}
-
-			deleteAuthCookie(c)
-		}
-
 		if errors.Is(err, context.DeadlineExceeded) {
 			return fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
 		}
 
-		return fmt.Errorf("update user info: %w", err)
+		if nestedErr := access.DeleteAllIdentityAccessKeys(c); nestedErr != nil {
+			logging.S.Errorf("failed to revoke invalid user session: %s", nestedErr)
+		}
+
+		deleteAuthCookie(c)
+
+		return fmt.Errorf("get user info: %w", err)
 	}
 
 	return access.UpdateUserInfoFromProvider(c, info, user, provider)

@@ -85,7 +85,7 @@ func InfraProvider(c *gin.Context) *models.Provider {
 }
 
 func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.Provider, oidc authn.OIDC, expires time.Time, redirectURL string) (*models.Identity, string, error) {
-	// does not need authorization check, this function should only be called internally
+	// does not need authorization check, this function should only be called internally during login (login is a public endpoint)
 	db := getDB(c)
 
 	// exchange code for tokens from identity provider (these tokens are for the IDP, not Infra)

@@ -14,6 +14,7 @@ import (
 	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/cli/browser"
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/goware/urlx"
 	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
@@ -225,13 +226,44 @@ func updateInfraConfig(client *api.Client, loginReq *api.LoginRequest, loginRes 
 }
 
 func oidcflow(host string, clientId string) (string, error) {
+	// find out what the authorization endpoint is
+	provider, err := oidc.NewProvider(context.Background(), fmt.Sprintf("https://%s", host))
+	if err != nil {
+		return "", fmt.Errorf("get provider oidc info: %w", err)
+	}
+
+	// claims are the attributes of the user we want to know from the identity provider
+	var claims struct {
+		ScopesSupported []string `json:"scopes_supported"`
+	}
+
+	if err := provider.Claims(&claims); err != nil {
+		return "", fmt.Errorf("parsing claims: %w", err)
+	}
+
+	scopes := []string{"openid", "email"} // openid and email are required scopes for login to work
+
+	// we want to be able to use these scopes to access groups, but they are not needed
+	wantScope := map[string]bool{
+		"groups":         true,
+		"offline_access": true,
+	}
+
+	for _, scope := range claims.ScopesSupported {
+		if wantScope[scope] {
+			scopes = append(scopes, scope)
+		}
+	}
+
+	// the state makes sure we are getting the correct response for our request
 	state, err := generate.CryptoRandom(12)
 	if err != nil {
 		return "", err
 	}
 
-	authorizeURL := fmt.Sprintf("https://%s/oauth2/v1/authorize?redirect_uri=http://localhost:8301&client_id=%s&response_type=code&scope=openid+email+groups+offline_access&state=%s", host, clientId, state)
+	authorizeURL := fmt.Sprintf("%s?redirect_uri=http://localhost:8301&client_id=%s&response_type=code&scope=%s&state=%s", provider.Endpoint().AuthURL, clientId, strings.Join(scopes, "+"), state)
 
+	// the local server receives the response from the identity provider and sends it along to the infra server
 	ls, err := newLocalServer()
 	if err != nil {
 		return "", err
