@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
-	"time"
 
 	"github.com/infrahq/secrets"
 	"github.com/prometheus/client_golang/prometheus"
@@ -20,8 +19,6 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/uid"
 )
 
 func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
@@ -99,101 +96,6 @@ func TestGetPostgresConnectionURL(t *testing.T) {
 	assert.NilError(t, err)
 
 	assert.Equal(t, "host=localhost user=user password=secret port=5432 dbname=postgres", url)
-}
-
-func TestSignupEnabled(t *testing.T) {
-	db := setupDB(t)
-
-	s := Server{db: db}
-
-	// cases where setup is enabled
-	cases := map[string]Options{
-		"EnableSignup": {
-			EnableSignup: true,
-		},
-		"NoImportProviders": {
-			EnableSignup: true,
-			Config: Config{
-				Providers: []Provider{},
-			},
-		},
-		"NoImportGrants": {
-			EnableSignup: true,
-			Config: Config{
-				Grants: []Grant{},
-			},
-		},
-	}
-
-	for name, options := range cases {
-		t.Run(name, func(t *testing.T) {
-			s.options = options
-			assert.Assert(t, s.signupEnabled())
-		})
-	}
-
-	// cases where setup is disabled through configs
-	cases = map[string]Options{
-		"DisableSetup": {
-			EnableSignup: false,
-		},
-		"ImportProviders": {
-			EnableSignup: true,
-			Config: Config{
-				Providers: []Provider{
-					{
-						Name: "provider",
-					},
-				},
-			},
-		},
-		"ImportGrants": {
-			EnableSignup: true,
-			Config: Config{
-				Grants: []Grant{
-					{
-						Role: "admin",
-					},
-				},
-			},
-		},
-		"ImportIdentities": {
-			EnableSignup: true,
-			Config: Config{
-				Identities: []Identity{
-					{
-						Name: "admin",
-					},
-				},
-			},
-		},
-	}
-
-	for name, options := range cases {
-		t.Run(name, func(t *testing.T) {
-			s.options = options
-			assert.Assert(t, !s.signupEnabled())
-		})
-	}
-
-	// reset options
-	s.options = Options{
-		EnableSignup: true,
-	}
-
-	err := s.db.Create(&models.Identity{Name: "non-admin"}).Error
-	assert.NilError(t, err)
-
-	assert.Assert(t, s.signupEnabled())
-
-	id := uid.New()
-	err = s.db.Create(&models.Identity{Model: models.Model{ID: id}, Name: "admin"}).Error
-	assert.NilError(t, err)
-
-	err = s.db.Create(&models.AccessKey{Name: "admin", IssuedFor: id, ExpiresAt: time.Now()}).Error
-	assert.NilError(t, err)
-
-	assert.Assert(t, !s.signupEnabled())
 }
 
 func TestServer_Run(t *testing.T) {

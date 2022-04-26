@@ -37,7 +37,7 @@ func SetupMetrics(db *gorm.DB) *prometheus.Registry {
 			return 0
 		}
 
-		return float64(*count)
+		return float64(count)
 	})
 
 	factory.NewGaugeFunc(prometheus.GaugeOpts{
@@ -51,7 +51,7 @@ func SetupMetrics(db *gorm.DB) *prometheus.Registry {
 			return 0
 		}
 
-		return float64(*count)
+		return float64(count)
 	})
 
 	factory.NewGaugeFunc(prometheus.GaugeOpts{
@@ -65,7 +65,7 @@ func SetupMetrics(db *gorm.DB) *prometheus.Registry {
 			return 0
 		}
 
-		return float64(*count)
+		return float64(count)
 	})
 
 	factory.NewGaugeFunc(prometheus.GaugeOpts{
@@ -79,7 +79,7 @@ func SetupMetrics(db *gorm.DB) *prometheus.Registry {
 			return 0
 		}
 
-		return float64(*count)
+		return float64(count)
 	})
 
 	factory.NewGaugeFunc(prometheus.GaugeOpts{
@@ -93,7 +93,7 @@ func SetupMetrics(db *gorm.DB) *prometheus.Registry {
 			return 0
 		}
 
-		return float64(*count)
+		return float64(count)
 	})
 
 	factory.NewGaugeVec(prometheus.GaugeOpts{

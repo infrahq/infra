@@ -144,3 +144,9 @@ func NotName(name string) SelectorFunc {
 		return db.Not("name = ?", name)
 	}
 }
+
+func NotPrivilege(privilege string) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Not("privilege = ?", privilege)
+	}
+}

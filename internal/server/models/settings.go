@@ -5,6 +5,4 @@ type Settings struct {
 
 	PrivateJWK EncryptedAtRestBytes
 	PublicJWK  []byte
-
-	SignupEnabled bool
 }
