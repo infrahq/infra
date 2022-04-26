@@ -8,6 +8,10 @@ import ErrorMessage from '../components/error-message'
 import InfoModal from './modals/info'
 
 function Grant ({ id }) {
+  if (!id) {
+    return null
+  }
+
   const { data: user } = useSWR(`/v1/identities/${id.replace('i:', '')}`, { fallbackData: { name: '' } })
 
   return (
@@ -22,6 +26,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
 
   const [email, setEmail] = useState('')
   const [error, setError] = useState('')
+  const [grantError, setGrantError] = useState('')
   const [role, setRole] = useState('view')
 
   const options = ['view', 'edit', 'admin', 'remove']
@@ -61,25 +66,30 @@ export default function ({ id, modalOpen, handleCloseModal }) {
   const handleShareGrant = async () => {
     if (validateEmail(email)) {
       setError('')
-      await fetch(`/v1/identities?name=${email}`)
-        .then((response) => response.json())
-        .then(async (data) => {
-          if (data.length === 0) {
-            await fetch('/v1/identities', {
-              method: 'POST',
-              body: JSON.stringify({ name: email, kind: 'user' })
-            })
-              .then((response) => response.json())
-              .then((user) => grantPrivilege('i:' + user.id))
-              .finally(() => {
-                setEmail('')
-                setRole('view')
-              })
-          } else {
-            grantPrivilege(data[0].id)
-          }
-        })
-        .catch((error) => console.error(error))
+      try {
+        let res = await fetch(`/v1/identities?name=${email}`)
+        const data = await res.json()
+
+        if(!res.ok) {
+          throw data
+        }
+
+        if (data.length === 0) {
+          res = await fetch('/v1/identities', {
+                  method: 'POST',
+                  body: JSON.stringify({ name: email, kind: 'user' })
+                })
+          const user = await res.json()
+
+          await grantPrivilege('i:' + user.id)
+          setEmail('')
+          setRole('view')
+        } else {
+          grantPrivilege(data[0].id)
+        }
+      } catch(e) {
+        setGrantError(e.message || 'something went wrong, please try again later.')
+      }
     } else {
       setError('Invalid email')
     }
@@ -135,7 +145,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
       {list && list.length > 0 &&
         <section className='py-2'>
           {list.map((item) => (
-            <div className='flex justify-between items-center px-4' key={item.id}>
+            <div className='flex justify-between items-center px-4' key={item.id + item.subject}>
               <Grant id={item.subject} />
               <div>
                 <select
@@ -153,6 +163,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
             </div>
           ))}
         </section>}
+        {grantError && <ErrorMessage message={grantError} />}
 
     </InfoModal>
   )
