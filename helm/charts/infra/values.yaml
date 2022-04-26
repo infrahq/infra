@@ -35,6 +35,20 @@ global:
   ## Global values will be merged into local values
   podAnnotations: {}
 
+  ## Environment variables to pass to both the server and connector container
+  env: []
+  # - name: "INFRA_LOG_LEVEL"
+  #   value: "info"
+
+  ## ConfigMap or Secret references containing environment variables to pass to both the
+  ## server and connector container
+  ## Ref: https://kubernetes.io/docs/tasks/inject-data-application/define-environment-variable-container/
+  envFrom: []
+  # - configMapRef:
+  #     name: configmap-name
+  # - secretRef:
+  #     name: secret-name
+
 # Default server configurations
 # Ref: https://github.com/infrahq/infra/blob/main/helm/charts/infra/charts/server/README.md
 
@@ -373,7 +387,7 @@ server:
   ## Ref: https://github.com/infrahq/infra/blob/main/docs/cli.md#infra-server
   config: {}
 
-  ## Infra server admin access key
+  ## (DEPRECATED) Infra server admin access key. Use server.config.additionalIdentities instead.
   #   adminAccessKey: ""
 
   ## Database name
@@ -499,6 +513,33 @@ server:
   # - group: Everyone
   #   role: view
   #   resource: kubernetes.docker-desktop.default
+
+  ## Additional identities to configure
+  additionalIdentities: []
+  # Configure a machine identity
+  # - name: ""      # required
+  #   accessKey: "" # optional, can be specified as a secret. must be in the form of XXXXXXXXXX.YYYYYYYYYYYYYYYYYYYYYYYY (<10 character ascii key>.<24 character ascii secret>)
+
+  # Configure a user identity
+  # - email: ""    # required
+  #   password: "" # optional, can be specified as a secret
+
+  ## Example
+  # Create an "admin" machine identity
+  # - name: admin
+
+  # Create an "admin" machine identity and seed an access key passed in as an environment variable.
+  # The environment variable will need to be injected into the pod using `env` or `envFrom`.
+  # - name: admin
+  #   accessKey: env:ADMIN_ACCESS_KEY
+
+  # Create a "dev@example.com" user identity
+  # - email: dev@example.com
+
+  # Create a "dev@example.com" user identity and set a password passed in as a file. The file will need
+  # to be mounted into the pod using `volumes` and `volumeMounts`.
+  # - email: dev@example.com
+  #   password: file:/var/run/secrets/dev@example.com
 
 ## Default connector configurations
 ## Ref: https://github.com/infrahq/infra/blob/main/helm/charts/infra/charts/connector/README.md

@@ -7,7 +7,7 @@ metadata:
 {{- include "server.labels" . | nindent 4 }}
 data:
   infra.yaml: |
-{{- range $key, $val := omit .Values.server.config "providers" "grants" "adminAccessKey" "accessKey" }}
+{{- range $key, $val := omit .Values.server.config "providers" "grants" "identities" "secrets" "keys" }}
 {{- if kindIs "invalid" $val }}
     # skipping invalid value: {{ $val }} ({{ kindOf $val }})
 {{- else if kindIs "map" $val }}
@@ -20,22 +20,6 @@ data:
     {{ $key }}: {{ tpl $val $ }}
 {{- else }}
     {{ $key }}: {{ $val }}
-{{- end }}
-{{- end }}
-
-{{- $adminAccessKey := default "" .Values.server.config.adminAccessKey }}
-{{- if and $adminAccessKey (not (hasPrefix "file:" $adminAccessKey)) (not (hasPrefix "env:" $adminAccessKey)) }}
-    adminAccessKey: file:/var/run/secrets/infrahq.com/admin-access-key/access-key
-{{- else if $adminAccessKey }}
-    adminAccessKey: {{ $adminAccessKey }}
-{{- end }}
-
-{{- if include "connector.enabled" . | eq "true" }}
-{{- $accessKey := default "" .Values.connector.config.accessKey }}
-{{- if and $accessKey (or (hasPrefix "file:" $accessKey) (hasPrefix "env:" $accessKey)) }}
-    accessKey: {{ $accessKey }}
-{{- else }}
-    accessKey: file:/var/run/secrets/infrahq.com/access-key/access-key
 {{- end }}
 {{- end }}
 
@@ -52,8 +36,30 @@ data:
 
     providers:
 {{- .Values.server.config.providers | default list | concat .Values.server.additionalProviders | uniq | toYaml | nindent 6 }}
+
     grants:
 {{- .Values.server.config.grants | default list | concat .Values.server.additionalGrants | uniq | toYaml | nindent 6 }}
+
+    identities:
+{{- $identities := .Values.server.config.identities | default list | concat .Values.server.additionalIdentities }}
+
+{{- if .Values.server.config.adminAccessKey }}
+{{- $adminAccessKey := .Values.server.config.adminAccessKey -}}
+{{- if and (not (hasPrefix "file:" $adminAccessKey)) (not (hasPrefix "env:" $adminAccessKey)) }}
+{{- $adminAccessKey = "env:ADMIN_ACCESS_KEY" }}
+{{- end }}
+{{- $identities = append $identities (dict "name" "admin" "accessKey" $adminAccessKey) }}
+{{- end }}
+
+{{- if include "connector.enabled" . }}
+{{- $accessKey := default "" .Values.connector.config.accessKey -}}
+{{- if or (not $accessKey) (and (not (hasPrefix "file:" $accessKey)) (not (hasPrefix "env:" $accessKey))) }}
+{{- $accessKey = "env:CONNECTOR_ACCESS_KEY" }}
+{{- end }}
+{{- $identities = append $identities (dict "name" "connector" "accessKey" $accessKey) }}
+{{- end }}
+
+{{- $identities | uniq | toYaml | nindent 6 }}
 
     secrets:
 {{- .Values.server.config.secrets | default list | concat .Values.server.additionalSecrets | uniq | toYaml | nindent 6 }}

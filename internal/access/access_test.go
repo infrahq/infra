@@ -58,6 +58,10 @@ func setupAccessTestContext(t *testing.T) (*gin.Context, *gorm.DB, *models.Provi
 	err = data.CreateProvider(db, provider)
 	assert.NilError(t, err)
 
+	identity := &models.Identity{Name: models.InternalInfraConnectorIdentityName}
+	err = data.CreateIdentity(db, identity)
+	assert.NilError(t, err)
+
 	return c, db, provider
 }
 

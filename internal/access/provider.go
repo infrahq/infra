@@ -45,6 +45,10 @@ func ListProviders(c *gin.Context, name string, excludeByName []string) ([]model
 }
 
 func SaveProvider(c *gin.Context, provider *models.Provider) error {
+	if InfraProvider(c).ID == provider.ID {
+		return internal.ErrForbidden
+	}
+
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
@@ -54,6 +58,10 @@ func SaveProvider(c *gin.Context, provider *models.Provider) error {
 }
 
 func DeleteProvider(c *gin.Context, id uid.ID) error {
+	if InfraProvider(c).ID == id {
+		return internal.ErrForbidden
+	}
+
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err

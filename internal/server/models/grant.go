@@ -11,11 +11,6 @@ const (
 	InfraConnectorRole = "connector"
 )
 
-const (
-	CreatedBySystem = 0
-	CreatedByConfig = 1
-)
-
 // BasePermissionConnect is the first-principle permission that all other permissions are defined from.
 // This permission gives you permission to authenticate with a destination
 const BasePermissionConnect = "connect"
@@ -42,7 +37,6 @@ type Grant struct {
 	Subject   uid.PolymorphicID `validate:"required"` // usually an identity, but could be a role definition
 	Privilege string            `validate:"required"` // role or permission
 	Resource  string            `validate:"required"` // Universal Resource Notation
-
 	CreatedBy uid.ID
 }
 

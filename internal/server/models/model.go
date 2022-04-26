@@ -13,12 +13,14 @@ type Modelable interface {
 	IsAModel() // there's nothing specific about this function except that all Model structs will have it.
 }
 
+const CreatedBySystem = 1
+
 type Model struct {
 	ID uid.ID
 	// CreatedAt is set by GORM to time.Now when a record is first created.
 	// See https://gorm.io/docs/conventions.html#Timestamp-Tracking
 	CreatedAt time.Time
-	// CreatedAt is set by GORM to time.Now when a record is updated.
+	// UpdatedAt is set by GORM to time.Now() when a record is updated.
 	// See https://gorm.io/docs/conventions.html#Timestamp-Tracking
 	UpdatedAt time.Time
 	DeletedAt gorm.DeletedAt
