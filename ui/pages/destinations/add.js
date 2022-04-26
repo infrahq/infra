@@ -149,7 +149,7 @@ export default function () {
         {enabledCommandInput &&
           <>
             <h2 className='text-gray-500 text-center px-2 mt-4'>
-              Next, deploy the Infra Connector via <span className='font-mono font-medium'>helm:</span>
+              Next, deploy the Infra Connector to the cluster via <span className='font-mono font-medium'>helm:</span>
             </h2>
             <CommandInput
               enabledCommandInput={enabledCommandInput}
