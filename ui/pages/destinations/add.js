@@ -28,7 +28,7 @@ const CommandInput = ({ enabledCommandInput, accessKey, currentDestinationName }
         rows={5}
         name='commandInput'
         id='commandInput'
-        className='block w-full py-3 pl-3 border-0 resize-none sm:text-sm bg-black focus:outline-none whitespace-pre'
+        className='block w-full px-5 py-4 border-0 resize-none sm:text-sm bg-black focus:outline-none whitespace-pre font-mono'
         value={value}
         readOnly
       />
@@ -129,7 +129,7 @@ export default function () {
             <InputDropdown
               type='text'
               value={name}
-              placeholder='Name your cluster'
+              placeholder='Choose a name for your cluster'
               hasDropdownSelection={false}
               handleInputChange={e => setName(e.target.value)}
               handleKeyDown={(e) => handleKeyDownEvent(e.key)}
@@ -146,35 +146,38 @@ export default function () {
             </div>
           </button>
         </div>
-        <h2 className='text-gray-500 text-center px-2'>
-          After you name your cluster, run the output of this command to connect.
-        </h2>
-        <CommandInput
-          enabledCommandInput={enabledCommandInput}
-          accessKey={accessKey}
-          currentDestinationName={currentDestinationName}
-        />
-        <h2 className='text-gray-500 text-center px-2 mb-2'>
-          Once you have successfully installed Infra, we will be able to detect the connection.
-        </h2>
         {enabledCommandInput &&
-          <div className='border-2 border-dashed border-pink-300 opacity-60 rounded-lg shadow-sm overflow-hidden my-5 px-5 py-3'>
-            <div className='flex items-center justify-center p-0.5 w-full'>
-              <img className={connected ? 'w-8 h-8 animate-pulse' : 'w-8 h-8 animate-spin-fast'} src={connected ? '/connected-icon.svg' : '/connecting-spinner.svg'} />
-              <p className='text-pink-500 text-sm px-2 py-3'>{connected ? 'Connected!' : 'Connecting...'}</p>
-            </div>
-          </div>}
-        {connected &&
-          <button
-            onClick={() => handleFinished()}
-            disabled={name.length === 0}
-            type='button'
-            className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 w-full mt-6 text-center'
-          >
-            <div className='bg-black rounded-full tracking-tight text-sm px-6 py-3'>
-              Finished
-            </div>
-          </button>}
+          <>
+            <h2 className='text-gray-500 text-center px-2 mt-4'>
+              Next, deploy the Infra Connector via <span className='font-mono font-medium'>helm:</span>
+            </h2>
+            <CommandInput
+              enabledCommandInput={enabledCommandInput}
+              accessKey={accessKey}
+              currentDestinationName={currentDestinationName}
+            />
+            <h2 className='text-gray-500 text-center px-2 mb-2 mt-4'>
+              The cluster will be detected automatically
+            </h2>
+              <div className='border-2 border-dashed border-pink-300 opacity-60 rounded-lg shadow-sm overflow-hidden my-5 px-5 py-3'>
+                <div className='flex items-center justify-center p-0.5 w-full'>
+                  <img className={connected ? 'w-8 h-8 animate-pulse' : 'w-8 h-8 animate-spin-fast'} src={connected ? '/connected-icon.svg' : '/connecting-spinner.svg'} />
+                  <p className='text-pink-500 text-sm px-2 py-3'>{connected ? 'Connected!' : 'Waiting for connection...'}</p>
+                </div>
+              </div>
+            {connected &&
+              <button
+                onClick={() => handleFinished()}
+                disabled={name.length === 0}
+                type='button'
+                className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 w-full mt-6 text-center'
+              >
+                <div className='bg-black rounded-full tracking-tight text-sm px-6 py-3'>
+                  Finished
+                </div>
+              </button>
+            }
+          </>}
       </div>
     </Fullscreen>
   )

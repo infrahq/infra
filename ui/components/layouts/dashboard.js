@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import useSWR, { useSWRConfig } from 'swr'
-import classNames from 'classnames'
 
 import { useAdmin } from '../../lib/admin'
 
@@ -68,10 +67,7 @@ export default function ({ children }) {
               >
                 <img
                   src={n.icon}
-                  className={classNames(
-                    router.asPath.startsWith(n.href) ? '' : 'opacity-30',
-                    'mr-3 flex-shrink-0 h-5 w-5'
-                  )}
+                  className={`${router.asPath.startsWith(n.href) ? '' : 'opacity-30'} mr-3 flex-shrink-0 h-5 w-5`}
                 />
                 {n.name}
               </a>

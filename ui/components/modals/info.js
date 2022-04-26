@@ -13,7 +13,7 @@ export default ({ header, children, handleCloseModal, modalOpen, iconPath }) => 
         <span className='hidden sm:inline-block sm:align-middle sm:h-screen' aria-hidden='true'>
           &#8203;
         </span>
-        <div className='relative inline-block align-bottom bg-gradient-to-br from-violet-400/30 to-pink-200/30 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:align-middle sm:w-3/4 lg:w-1/2'>
+        <div className='relative inline-block align-bottom bg-gradient-to-br from-violet-400/30 to-pink-200/30 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:align-middle w-full max-w-3xl'>
           <div className='items-center justify-center bg-black rounded-xl m-0.5'>
             <div className='flex flex-row p-4'>
               <div className='hidden lg:flex self-start mr-4 bg-gradient-to-br from-violet-400/30 to-pink-200/30 rounded-full'>

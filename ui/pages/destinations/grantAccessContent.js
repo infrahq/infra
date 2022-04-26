@@ -1,27 +1,12 @@
 import useSWR, { useSWRConfig } from 'swr'
 import { useState } from 'react'
-import styled from 'styled-components'
 
 import { validateEmail } from '../../lib/email'
 
 import InputDropdown from '../../components/input'
 import ErrorMessage from '../../components/error-message'
 
-const GrantList = styled.section`
-  max-height: 20rem;
-  overflow: auto;
-  width: 95%;
-  padding: 0 1.25rem;
-`
-
-const GrantListItem = styled.div`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-`
-
-const Grant = ({ id }) => {
+function Grant ({ id }) {
   const { data: user } = useSWR(`/v1/identities/${id.replace('i:', '')}`, { fallbackData: { name: '' } })
 
   return (
@@ -126,9 +111,9 @@ export default ({ id }) => {
       {error && <ErrorMessage message={error} />}
 
       {list && list.length > 0 &&
-        <GrantList>
+        <section className='py-2'>
           {list.map((item) => (
-            <GrantListItem key={item.id}>
+            <div className='flex justify-between items-center px-4' key={item.id}>
               <Grant id={item.subject} />
               <div>
                 <select
@@ -143,9 +128,9 @@ export default ({ id }) => {
                   ))}
                 </select>
               </div>
-            </GrantListItem>
+            </div>
           ))}
-        </GrantList>}
+        </section>}
     </>
   )
 }
