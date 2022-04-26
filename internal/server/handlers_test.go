@@ -706,7 +706,7 @@ func TestAPI_GetIdentity(t *testing.T) {
 				req.Header.Set("Authorization", "Bearer "+key)
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				assert.Equal(t, resp.Code, http.StatusOK)
+				assert.Equal(t, resp.Code, http.StatusOK, resp.Body)
 
 				idResponse := api.Identity{}
 				err := json.NewDecoder(resp.Body).Decode(&idResponse)

@@ -38,8 +38,15 @@ func (a *API) ListIdentities(c *gin.Context, r *api.ListIdentitiesRequest) ([]ap
 	return results, nil
 }
 
-func (a *API) GetIdentity(c *gin.Context, r *api.Resource) (*api.Identity, error) {
-	identity, err := access.GetIdentity(c, r.ID)
+func (a *API) GetIdentity(c *gin.Context, r *api.GetIdentityRequest) (*api.Identity, error) {
+	if r.ID.IsSelf {
+		iden := access.AuthenticatedIdentity(c)
+		if iden == nil {
+			return nil, internal.ErrUnauthorized
+		}
+		r.ID.ID = iden.ID
+	}
+	identity, err := access.GetIdentity(c, r.ID.ID)
 	if err != nil {
 		return nil, err
 	}
