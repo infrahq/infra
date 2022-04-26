@@ -22,7 +22,9 @@ export default function () {
   const [errors, setErrors] = useState({})
   const [name, setName] = useState(kind)
 
-  if (!providers.find(p => p.name.toLowerCase() === kind)) {
+  const provider = providers.find(p => p.name.toLowerCase() === kind)
+
+  if (!provider) {
     router.replace('/providers/add')
     return null
   }
@@ -30,9 +32,15 @@ export default function () {
   async function onSubmit (e) {
     e.preventDefault()
 
+    if (!provider.validate.url(url)) {
+      setErrors({ url: 'invalid url' })
+      return false
+    }
+
+    setErrors({})
+    setError('')
+
     try {
-      setErrors({})
-      setError('')
       await mutate('/v1/providers', async providers => {
         const res = await fetch('/v1/providers', {
           method: 'POST',
