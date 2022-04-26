@@ -9,7 +9,8 @@ export default function ({
   options,
   handleInputChange,
   handleSelectOption,
-  handleKeyDown
+  handleKeyDown, 
+  selectedItem
 }) {
   return (
     <div>
@@ -38,7 +39,7 @@ export default function ({
               className='h-full py-0 pl-2 border-transparent bg-transparent text-white text-sm focus:outline-none'
             >
               {options.map((option) => (
-                <option key={option} value={option}>{option}</option>
+                <option key={option} value={option} selected={selectedItem === option}>{option}</option>
               ))}
             </select>
           </div>}
