@@ -4,6 +4,10 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+type GetIdentityRequest struct {
+	ID IDOrSelf `uri:"id" validate:"required"`
+}
+
 type Identity struct {
 	ID         uid.ID `json:"id"`
 	Created    Time   `json:"created"`

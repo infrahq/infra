@@ -19,7 +19,7 @@ export default function () {
   async function finish () {
     try {
       await fetch(`/v1/identities/${id}`, { method: 'PUT', body: JSON.stringify({ password }) })
-      await mutate('/v1/introspect')
+      await mutate('/v1/identities/self')
       router.replace('/')
     } catch (e) {
       setError(e.message || 'invalid password')

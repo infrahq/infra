@@ -17,7 +17,7 @@ export default function () {
         }
       })
     })
-    await mutate('/v1/introspect')
+    await mutate('/v1/identities/self')
     router.replace('/')
   }
 

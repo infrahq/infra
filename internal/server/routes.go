@@ -81,7 +81,6 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) *gin.Engine 
 	put(a, authn, "/v1/destinations/:id", a.UpdateDestination)
 	delete(a, authn, "/v1/destinations/:id", a.DeleteDestination)
 
-	get(a, authn, "/v1/introspect", a.Introspect)
 	post(a, authn, "/v1/tokens", a.CreateToken)
 	post(a, authn, "/v1/logout", a.Logout)
 
@@ -113,6 +112,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) *gin.Engine 
 	noAuthn.DELETE("/v1/machines/:id", removed("v0.9.0"))
 	noAuthn.GET("/v1/machines/:id/grants", removed("v0.9.0"))
 	noAuthn.GET("/v1/setup", removed("v0.11.0"))
+	noAuthn.GET("/v1/introspect", removed("v0.12.0"))
 
 	// registerUIRoutes must happen last because it uses catch-all middleware
 	// with no handlers. Any route added after the UI will end up using the
