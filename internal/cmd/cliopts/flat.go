@@ -32,7 +32,9 @@ func loadFromEnv(target interface{}, opts Options) error {
 func loadFromFlags(target interface{}, opts Options) error {
 	source := map[string]interface{}{}
 	opts.Flags.VisitAll(func(flag *pflag.Flag) {
-		source[flag.Name] = flag.Value
+		if flag.Changed {
+			source[flag.Name] = flag.Value
+		}
 	})
 
 	walker := &flatSourceWalker{
