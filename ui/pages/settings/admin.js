@@ -20,7 +20,7 @@ const columns = [{
   accessor: a => a,
   Cell: ({ value: admin, rows }) => {
     const { data: user } = useSWR(`/v1/identities/${admin.subject.replace('i:', '')}`, { fallbackData: { name: '', kind: '' } })
-    const { data: auth } = useSWR('/v1/introspect')
+    const { data: auth } = useSWR('/v1/identities/self')
     const { mutate } = useSWRConfig()
 
 

@@ -19,7 +19,7 @@ const fetcher = async (resource, init) => {
 }
 
 function App ({ Component, pageProps }) {
-  const { data: auth, error: authError } = useSWRImmutable('/v1/introspect', fetcher)
+  const { data: auth, error: authError } = useSWRImmutable('/v1/identities/self', fetcher)
   const { data: signup, error: signupError } = useSWRImmutable('/v1/signup', fetcher)
   const router = useRouter()
 
