@@ -13,19 +13,15 @@ import (
 	"strings"
 
 	"github.com/goware/urlx"
-	"github.com/iancoleman/strcase"
 	"github.com/lensesio/tableprinter"
-	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 	"golang.org/x/term"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/cmd/cliopts"
 	"github.com/infrahq/infra/internal/connector"
-	"github.com/infrahq/infra/internal/decode"
 	"github.com/infrahq/infra/internal/logging"
 )
 
@@ -56,74 +52,6 @@ func mustBeLoggedIn() error {
 	}
 
 	return nil
-}
-
-func parseOptions(cmd *cobra.Command, options interface{}, envPrefix string) error {
-	v := viper.New()
-
-	if configFileFlag := cmd.Flags().Lookup("config-file"); configFileFlag != nil {
-		if configFile := configFileFlag.Value.String(); configFile != "" {
-			v.SetConfigFile(configFile)
-		}
-	}
-
-	if envPrefix != "" {
-		v.SetEnvPrefix(envPrefix)
-		v.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
-		v.AutomaticEnv()
-
-		// workaround for viper not correctly binding env vars
-		// https://github.com/spf13/viper/issues/761
-		envKeys := make(map[string]interface{})
-		if err := mapstructure.Decode(options, &envKeys); err != nil {
-			return err
-		}
-
-		// bind file options (lower camel case) to environment options (envPrefix + upper snake case)
-		// e.g. accessKey -> INFRA_CONNECTOR_ACCESS_KEY
-		for envKey := range envKeys {
-			fullEnvKey := fmt.Sprintf("%s_%s", envPrefix, envKey)
-			if err := v.BindEnv(envKey, strcase.ToScreamingSnake(fullEnvKey)); err != nil {
-				return err
-			}
-		}
-	}
-
-	errs := make([]error, 0)
-	// bind command line options (lower snake case) to file options (lower camel case)
-	// e.g. access-key -> accessKey
-	cmd.Flags().VisitAll(func(f *pflag.Flag) {
-		if err := v.BindPFlag(strcase.ToLowerCamel(f.Name), f); err != nil {
-			errs = append(errs, err)
-		}
-	})
-
-	if len(errs) > 0 {
-		var sb strings.Builder
-
-		sb.WriteString("multiple errors seen while binding flags:\n\n")
-
-		for _, err := range errs {
-			fmt.Fprintf(&sb, "* %s\n", err)
-		}
-
-		return errors.New(sb.String())
-	}
-
-	if err := v.ReadInConfig(); err != nil {
-		var errNotFound *viper.ConfigFileNotFoundError
-		if errors.As(err, &errNotFound) {
-			return err
-		}
-	}
-
-	hooks := mapstructure.ComposeDecodeHookFunc(
-		mapstructure.StringToTimeDurationHookFunc(),
-		mapstructure.StringToSliceHookFunc(","),
-		decode.HookPrepareForDecode,
-		decode.HookSetFromString,
-	)
-	return v.Unmarshal(options, viper.DecodeHook(hooks))
 }
 
 func infraHomeDir() (string, error) {
@@ -274,6 +202,8 @@ func canonicalPath(in string) (string, error) {
 }
 
 func newConnectorCmd() *cobra.Command {
+	var configFilename string
+
 	cmd := &cobra.Command{
 		Use:    "connector",
 		Short:  "Start the Infra connector",
@@ -282,11 +212,13 @@ func newConnectorCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			logging.SetServerLogger()
 
-			// override default strcase.ToLowerCamel behaviour
-			strcase.ConfigureAcronym("skip-tls-verify", "skipTLSVerify")
-
 			var options connector.Options
-			if err := parseOptions(cmd, &options, "INFRA_CONNECTOR"); err != nil {
+			err := cliopts.Load(&options, cliopts.Options{
+				Filename:  configFilename,
+				EnvPrefix: "INFRA_CONNECTOR",
+				Flags:     cmd.Flags(),
+			})
+			if err != nil {
 				return err
 			}
 
@@ -294,7 +226,7 @@ func newConnectorCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringP("config-file", "f", "", "Connector config file")
+	cmd.Flags().StringVarP(&configFilename, "config-file", "f", "", "Connector config file")
 	cmd.Flags().StringP("server", "s", "", "Infra server hostname")
 	cmd.Flags().StringP("access-key", "a", "", "Infra access key (use file:// to load from a file)")
 	cmd.Flags().StringP("name", "n", "", "Destination name")
