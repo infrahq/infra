@@ -13,8 +13,6 @@ In this quickstart we'll set up Infra to manage single sign-on to Kubernetes:
 
 ### 1. Install Infra CLI
 
-The Infra CLI is used to connect to the Infra server.
-
 <details>
   <summary><strong>macOS</strong></summary>
 
@@ -55,9 +53,9 @@ The Infra CLI is used to connect to the Infra server.
 </details>
 
 
-### 2. Setup an Infra server
+### 2. Deploy Infra
 
-Deploy an Infra server to kubernetes using helm.
+Deploy an Infra to your Kubernetes cluster via `helm`:
 
 ```
 helm repo add infrahq https://helm.infrahq.com/
@@ -65,10 +63,10 @@ helm repo update
 helm install infra infrahq/infra
 ```
 
-Once the Infra server is deployed, login to the server to complete the setup. Start by finding the hostname for the Infra Server you just deployed:
+Once Infra is deployed, login to the server to complete the setup. Start by finding the hostname for Infra server you just deployed:
 
 ```
-# Find your Infra Server hostname
+# Find your Infra server hostname
 kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}"
 ```
 
@@ -77,7 +75,7 @@ kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['
 > kubectl get service infra-server -w
 > ```
 
-Login to the Infra Server and follow the instructions to create your admin account:
+Login to the Infra server and follow the instructions to create your admin account:
 
 ```
 infra login <INFRA_SERVER_HOSTNAME> --skip-tls-verify
@@ -92,12 +90,15 @@ Generate an access key named `key` to connect Kubernetes clusters:
 infra keys add connector-key connector
 ```
 
-Next, use this access key to connect your first cluster via `helm`. **Note:** this can be the same cluster used to install Infra Server in step 2.
+Next, use this access key to connect your first cluster via `helm`. **Note:** this can be the same cluster used to install Infra in step 2.
+
+Prepare your values:
 
 * `connector.config.name`: choose a name for this cluster
 * `connector.config.server`: the same hostname used for `infra login`
 * `connector.config.accessKey`: the key created above via `infra keys add`
 
+Install the Infra connector via `helm`:
 
 ```
 helm upgrade --install infra-connector infrahq/infra \
@@ -117,7 +118,7 @@ Next, add a user:
 infra id add user@example.com
 ```
 
-| Note: Infra will provide you a one-time password to use in step 5.
+| Note: Infra will provide you a one-time password. Please note this password for step 5.
 
 Grant this user read-only access to the Kubernetes cluster you just connected to Infra:
 
@@ -125,7 +126,7 @@ Grant this user read-only access to the Kubernetes cluster you just connected to
 infra grants add user@example.com kubernetes.example --role view
 ```
 
-### 5. Login as the example user:
+### 5. Login as the example user and access the cluster:
 
 Use the one-time password in the previous step to log in as the user. You'll be prompted to change the user's password since it's this new user's first time logging in.
 
@@ -146,6 +147,8 @@ Lastly, connect to the Kubernetes cluster and access it:
 ```
 infra use kubernetes.example
 ```
+
+Verify the user's access:
 
 ```
 # Works since the user has view access
