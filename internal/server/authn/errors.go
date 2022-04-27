@@ -1,9 +1,13 @@
 package authn
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/infrahq/infra/internal"
+)
 
 var (
-	ErrInvalidProviderURL          = fmt.Errorf("invalid provider url")
-	ErrInvalidProviderClientID     = fmt.Errorf("invalid client id")
-	ErrInvalidProviderClientSecret = fmt.Errorf("invalid client secret")
+	ErrInvalidProviderURL          = fmt.Errorf("%w: %s", internal.ErrBadRequest, "invalid provider url")
+	ErrInvalidProviderClientID     = fmt.Errorf("%w: %s", internal.ErrBadRequest, "invalid provider client id")
+	ErrInvalidProviderClientSecret = fmt.Errorf("%w: %s", internal.ErrBadRequest, "invalid provider client secret")
 )

@@ -50,17 +50,20 @@ func (o *oidcImplementation) Validate() error {
 	ctx := context.Background()
 	conf, _, err := o.clientConfig(ctx)
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrInvalidProviderURL, err)
+		logging.S.Debugf("error validating oidc provider: %s", err)
+		return ErrInvalidProviderURL
 	}
 
 	_, err = conf.Exchange(ctx, "test-code") // 'test-code' is a placeholder for a valid authorization code, it will always fail
 	if err != nil {
 		if strings.Contains(err.Error(), "client_id") || strings.Contains(err.Error(), "client id") {
-			return fmt.Errorf("%w: %s", ErrInvalidProviderClientID, err)
+			logging.S.Debugf("error validating oidc provider client: %s", err)
+			return ErrInvalidProviderClientID
 		}
 
 		if strings.Contains(err.Error(), "secret") {
-			return fmt.Errorf("%w: %s", ErrInvalidProviderClientSecret, err)
+			logging.S.Debugf("error validating oidc provider client: %s", err)
+			return ErrInvalidProviderClientSecret
 		}
 	}
 

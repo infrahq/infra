@@ -633,30 +633,7 @@ func (a *API) validateProvider(c *gin.Context, provider *models.Provider) error 
 		return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
 	}
 
-	if err := oidc.Validate(); err != nil {
-		logging.S.Debugf("could not validate provider: %s", err)
-
-		var msg strings.Builder
-		msg.WriteString("invalid identity provider")
-
-		// remove the error message trace for display
-		if errors.Is(err, authn.ErrInvalidProviderURL) {
-			msg.WriteString(": ")
-			msg.WriteString(authn.ErrInvalidProviderURL.Error())
-		}
-		if errors.Is(err, authn.ErrInvalidProviderClientID) {
-			msg.WriteString(": ")
-			msg.WriteString(authn.ErrInvalidProviderClientID.Error())
-		}
-		if errors.Is(err, authn.ErrInvalidProviderClientSecret) {
-			msg.WriteString(": ")
-			msg.WriteString(authn.ErrInvalidProviderClientSecret.Error())
-		}
-
-		return fmt.Errorf("%w: %s", internal.ErrBadRequest, &msg)
-	}
-
-	return nil
+	return oidc.Validate()
 }
 
 func (a *API) providerClient(c *gin.Context, provider *models.Provider, redirectURL string) (authn.OIDC, error) {
