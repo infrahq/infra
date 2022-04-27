@@ -196,10 +196,6 @@ func importKeyProviders(
 }
 
 func (kp *KeyProvider) PrepareForDecode(data interface{}) error {
-	if kp.Kind != "" {
-		// this instance was already prepared from a previous call
-		return nil
-	}
 	kind := getKindFromUnstructured(data)
 	switch kind {
 	case "vault":
@@ -216,8 +212,8 @@ func (kp *KeyProvider) PrepareForDecode(data interface{}) error {
 }
 
 type SecretProvider struct {
-	Kind   string      `config:"kind"`
-	Name   string      `config:"name"`
+	Kind   string      `mapstructure:"kind"`
+	Name   string      `mapstructure:"name"`
 	Config interface{} // contains secret-provider-specific config
 }
 
@@ -479,10 +475,6 @@ func loadDefaultSecretConfig(storage map[string]secrets.SecretStorage) error {
 // setting a concrete type for the config based on the kind. Failures to decode
 // will be handled by mapstructure, or by importSecrets.
 func (sp *SecretProvider) PrepareForDecode(data interface{}) error {
-	if sp.Kind != "" {
-		// this instance was already prepared from a previous call
-		return nil
-	}
 	kind := getKindFromUnstructured(data)
 	switch kind {
 	case "vault":

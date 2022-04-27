@@ -8,7 +8,7 @@ import (
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 
-	"github.com/infrahq/infra/internal/cmd/cliopts"
+	"github.com/infrahq/infra/internal/decode"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -211,8 +211,19 @@ secrets:
 }
 
 func decodeConfig(target interface{}, source interface{}) error {
-	cfg := cliopts.DecodeConfig(target)
-	decoder, err := mapstructure.NewDecoder(&cfg)
+	// Copied from viper defaultDecoderConfig
+	config := &mapstructure.DecoderConfig{
+		Result:           target,
+		WeaklyTypedInput: true,
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			mapstructure.StringToTimeDurationHookFunc(),
+			mapstructure.StringToSliceHookFunc(","),
+			decode.HookPrepareForDecode,
+			decode.HookSetFromString,
+		),
+	}
+
+	decoder, err := mapstructure.NewDecoder(config)
 	if err != nil {
 		return err
 	}
