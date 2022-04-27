@@ -222,7 +222,7 @@ func newConnectorCmd() *cobra.Command {
 				return err
 			}
 
-			return connector.Run(cmd.Context(), options)
+			return runConnector(cmd.Context(), options)
 		},
 	}
 
@@ -236,6 +236,9 @@ func newConnectorCmd() *cobra.Command {
 
 	return cmd
 }
+
+// runConnector is a shim for testing
+var runConnector = connector.Run
 
 // rootOptions are options specified by users on the command line that are
 // used by the root command.

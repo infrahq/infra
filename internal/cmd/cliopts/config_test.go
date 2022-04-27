@@ -179,6 +179,7 @@ two: "from-file-3"
 	}
 
 	flags := pflag.NewFlagSet("any", pflag.ContinueOnError)
+	flags.String("one", "not-the-real-default", "")
 	flags.String("string-field", "", "")
 	flags.Int32("int-32-field", 0, "")
 	flags.Bool("bool-field", false, "")

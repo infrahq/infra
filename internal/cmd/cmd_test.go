@@ -12,8 +12,10 @@ import (
 	"time"
 
 	"gotest.tools/v3/assert"
+	"gotest.tools/v3/fs"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/connector"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -228,4 +230,40 @@ func newTestClientConfig(srv *httptest.Server, identity api.Identity) ClientConf
 			},
 		},
 	}
+}
+
+func TestConnectorCmd(t *testing.T) {
+	var actual connector.Options
+	patchRunConnector(t, func(ctx context.Context, options connector.Options) error {
+		actual = options
+		return nil
+	})
+
+	content := `
+name: the-name
+accessKey: file:/var/run/secrets/key
+server: the-server
+`
+
+	dir := fs.NewDir(t, t.Name(),
+		fs.WithFile("config.yaml", content))
+
+	ctx := context.Background()
+	err := Run(ctx, "connector", "-f", dir.Join("config.yaml"))
+	assert.NilError(t, err)
+
+	expected := connector.Options{
+		Name:      "the-name",
+		Server:    "the-server",
+		AccessKey: "file:/var/run/secrets/key",
+	}
+	assert.DeepEqual(t, actual, expected)
+}
+
+func patchRunConnector(t *testing.T, fn func(context.Context, connector.Options) error) {
+	orig := runConnector
+	runConnector = fn
+	t.Cleanup(func() {
+		runConnector = orig
+	})
 }
