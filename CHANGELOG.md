@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.12.0](https://github.com/infrahq/infra/compare/v0.11.1...v0.12.0) (2022-04-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* removes the GET /v1/introspect endpoint. Use /v1/identities/self
+
+### Bug Fixes
+
+* revert pull request [#1682](https://github.com/infrahq/infra/issues/1682) from infrahq/dnephin/replace-viper ([c1cf195](https://github.com/infrahq/infra/commit/c1cf195c7607e4513231f4d856768b9dee8b2af8))
+* update endpoints in ui ([61940a5](https://github.com/infrahq/infra/commit/61940a5a3231e4acb1816ee35c9d878837fed8f6))
+
+
+### Improvement
+
+* remove the /v1/introspect endpoint ([1c81e26](https://github.com/infrahq/infra/commit/1c81e26c1172128c2e141bfecb2cb51b0afb1a12))
+
 ### [0.11.1](https://github.com/infrahq/infra/compare/v0.11.0...v0.11.1) (2022-04-27)
 
 
