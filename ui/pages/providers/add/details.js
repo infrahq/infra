@@ -32,11 +32,6 @@ export default function () {
   async function onSubmit (e) {
     e.preventDefault()
 
-    if (!provider.validate.url(url)) {
-      setErrors({ url: 'invalid url' })
-      return false
-    }
-
     setErrors({})
     setError('')
 
