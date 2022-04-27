@@ -116,7 +116,6 @@ function columns (admin) {
                   open={open}
                   setOpen={setOpen}
                   onSubmit={async () => {
-                    await fetch(`/v1/destinations/${id}`, { method: 'DELETE' })
                     mutate('/v1/destinations', async destinations => {
                       await fetch(`/v1/destinations/${id}`, {
                         method: 'DELETE'
