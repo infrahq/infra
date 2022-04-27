@@ -1,18 +1,15 @@
 # Quickstart
 
-In this quickstart we'll set up Infra to manage single sign-on to Kubernetes.
-
-Follow these steps to install and setup Infra on Kubernetes.
+In this quickstart we'll set up Infra to manage single sign-on to Kubernetes:
+* Install Infra CLI & Infra Server
+* Connect a Kubernetes cluster
+* Create a user and grant them view (read-only) access to the cluster
 
 ### Prerequisites
 
-To use this quickstart guide you will need `helm` and `kubectl` installed.
-
 * Install [helm](https://helm.sh/docs/intro/install/) (v3+)
 * Install Kubernetes [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl) (v1.14+)
-
-You will also need a Kubernetes cluster.
-
+* A Kubernetes cluster. For local testing we recommend [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
 ### 1. Install Infra CLI
 
@@ -68,91 +65,105 @@ helm repo update
 helm install infra infrahq/infra
 ```
 
-Once the Infra server is deployed, login to the server to complete the setup.
+Once the Infra server is deployed, login to the server to complete the setup. Start by finding the hostname for the Infra Server you just deployed:
 
 ```
-infra login INFRA_URL --skip-tls-verify
+# Find your Infra Server hostname
+kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}"
 ```
-
-Use the following command to find the Infra login URL. If you are not using a `LoadBalancer` service type, see the [Install on Kubernetes Guide](../install/kubernetes.md) for more information.
 
 > Note: It may take a few minutes for the LoadBalancer endpoint to be assigned. You can watch the status of the service with:
 > ```bash
 > kubectl get service infra-server -w
 > ```
 
-```bash
-kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}"
-```
+Login to the Infra Server and follow the instructions to create your admin account:
 
-Follow the instructions to create an admin account using email and password login.
+```
+infra login <INFRA_SERVER_HOSTNAME> --skip-tls-verify
+```
 
 
 ### 3. Connect your first Kubernetes cluster
 
-In order to add connectors to Infra, you will need to set three pieces of information:
-
-* `connector.config.name` is a name you give to identify this cluster. For the purposes of this Quickstart, the name will be `example-name`
-* `connector.config.server` is the hostname or IP address the connector will use to communicate with the Infra server. This will be the same INFRA_URL value from step 2.
-* `connector.config.accessKey` is the access key the connector will use to communicate with the server. You can use an existing access key or generate a new access key as shown below:
-
-Generate an access key:
+Generate an access key named `key` to connect Kubernetes clusters:
 
 ```
-infra keys add KEY_NAME connector
+infra keys add connector-key connector
 ```
 
-Next, use this access key to connect your first cluster:
+Next, use this access key to connect your first cluster via `helm`. **Note:** this can be the same cluster used to install Infra Server in step 2.
 
-```bash
+* `connector.config.name`: choose a name for this cluster
+* `connector.config.server`: the same hostname used for `infra login`
+* `connector.config.accessKey`: the key created above via `infra keys add`
+
+
+```
 helm upgrade --install infra-connector infrahq/infra \
-  --set connector.config.server=INFRA_URL \
-  --set connector.config.accessKey=ACCESS_KEY \
-  --set connector.config.name=example-name \
+  --set connector.config.name=example \
+  --set connector.config.server=<INFRA_SERVER_HOSTNAME> \
+  --set connector.config.accessKey=<ACCESS_KEY> \
   --set connector.config.skipTLSVerify=true
 ```
 
+| Note: it may take a few minutes for the cluster to connect. You can verify the connection by running `infra destinations list`
 
-### 4. Use your Kubernetes clusters
+### 4. Add a user and grant access to the cluster
 
-Grant the user Kubernetes cluster administrator privileges.
-
-```
-infra grants add name@example.com kubernetes.example-name --role cluster-admin
-```
-
-> To view different roles allowed for Kubernetes clusters, see [Kubernetes Roles](../connectors/kubernetes.md#roles)
-
-You can now access the connected Kubernetes clusters via your favorite tools directly. Infra in the background automatically synchronizes your Kubernetes configuration file (kubeconfig).
-
-Alternatively, you can switch Kubernetes contexts by using the `infra use` command:
+Next, add a user:
 
 ```
-infra use kubernetes.example-name
+infra id add user@example.com
 ```
 
-<details>
-  <summary><strong>Here are some other commands to get you started</strong></summary><br />
+| Note: Infra will provide you a one-time password to use in step 5.
 
-See the cluster(s) you have access to:
+Grant this user read-only access to the Kubernetes cluster you just connected to Infra:
+
+```
+infra grants add user@example.com kubernetes.example --role view
+```
+
+### 5. Login as the example user:
+
+Use the one-time password in the previous step to log in as the user. You'll be prompted to change the user's password since it's this new user's first time logging in.
+
+```
+infra login <INFRA_SERVER_HOSTNAME> --skip-tls-verify
+```
+
+Next, view this user's cluster access:
+
 ```
 infra list
 ```
-See the cluster(s) connected to Infra:
-```
-infra destinations list
-```
-See who has access to what via Infra:
-```
-infra grants list
 
-Note: this requires the user to have the admin role within Infra.
+You should see the user has `view` access to the `example` cluster connected above.
 
-An example to grant the permission:
-infra grants add name@example.com infra --role admin
+Lastly, connect to the Kubernetes cluster and access it:
+
 ```
-</details>
+infra use kubernetes.example
+```
 
-### 5. Share the cluster(s) with other developers
+```
+# Works since the user has view access
+kubectl get pods -A
 
-To share access with Infra, developers will need to install Infra CLI, and be provided the login URL. If using local users, please share the one-time password.
+# Does not work
+kubectl create namespace test-namespace
+```
+
+Congratulations, you've:
+* Installed Infra
+* Connected your first cluster
+* Created a user and granted them `view` access to the cluster
+
+### Next Steps
+
+* [Connect Okta](../guides/identity-providers/okta.md) to onboard & offboard your team automatically
+* [Manage & revoke access](../guides/granting-access.md) to users or groups
+* [Understand Kubernetes roles](../connectors/kubernetes.md#roles) for understand different access levels Infra supports for Kubernetes
+* [Customize your install](../install/install-on-kubernetes.md)
+
