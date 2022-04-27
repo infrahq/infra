@@ -63,19 +63,15 @@ helm repo update
 helm install infra infrahq/infra
 ```
 
-Once Infra is deployed, login to the server to complete the setup. Start by finding the hostname for Infra server you just deployed:
+Next, find the hostname for Infra server you just deployed:
 
 ```
-# Find your Infra server hostname
-kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}"
+kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}" -w
 ```
 
-> Note: It may take a few minutes for the LoadBalancer endpoint to be assigned. You can watch the status of the service with:
-> ```bash
-> kubectl get service infra-server -w
-> ```
+> Note: It may take a few minutes for the LoadBalancer to be provisioned for the Infra server
 
-Login to the Infra server and follow the instructions to create your admin account:
+Login to the Infra server using the hostname above and follow the prompt to create your admin account:
 
 ```
 infra login <INFRA_SERVER_HOSTNAME> --skip-tls-verify
