@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"path"
 	"strings"
 	"time"
 
@@ -129,7 +130,7 @@ type ReqResHandlerFunc[Req, Res any] func(c *gin.Context, req *Req) (Res, error)
 
 func get[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) {
 	register("GET", r.BasePath(), path, handler)
-	fullPathStr := fullPath(r, path)
+	fullPathStr := fullPath(r.BasePath(), path)
 	r.GET(path, func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
@@ -151,7 +152,7 @@ func get[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResHa
 
 func post[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) {
 	register("POST", r.BasePath(), path, handler)
-	fullPathStr := fullPath(r, path)
+	fullPathStr := fullPath(r.BasePath(), path)
 
 	r.POST(path, func(c *gin.Context) {
 		req := new(Req)
@@ -175,7 +176,7 @@ func post[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResH
 func put[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) {
 	register("PUT", r.BasePath(), path, handler)
 
-	fullPathStr := fullPath(r, path)
+	fullPathStr := fullPath(r.BasePath(), path)
 
 	r.PUT(path, func(c *gin.Context) {
 		req := new(Req)
@@ -199,7 +200,7 @@ func put[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResHa
 func delete[Req any](a *API, r *gin.RouterGroup, path string, handler ReqHandlerFunc[Req]) {
 	registerReq("DELETE", r.BasePath(), path, handler)
 
-	fullPathStr := fullPath(r, path)
+	fullPathStr := fullPath(r.BasePath(), path)
 
 	r.DELETE(path, func(c *gin.Context) {
 		req := new(Req)
@@ -221,8 +222,8 @@ func delete[Req any](a *API, r *gin.RouterGroup, path string, handler ReqHandler
 	})
 }
 
-func fullPath(r *gin.RouterGroup, path string) string {
-	return strings.TrimRight(r.BasePath(), "/") + "/" + strings.TrimLeft(path, "/")
+func fullPath(basePath, p string) string {
+	return path.Join(basePath, p)
 }
 
 func bind(c *gin.Context, req interface{}) error {
