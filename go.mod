@@ -36,7 +36,7 @@ require (
 
 require (
 	github.com/andanhm/go-prettytime v1.1.0
-	github.com/bwmarrin/snowflake v0.3.0
+	github.com/bwmarrin/snowflake v0.3.1-0.20210825212239-3cf6d89d1fe9
 	github.com/coreos/go-oidc/v3 v3.1.0
 	github.com/getkin/kin-openapi v0.94.0
 	github.com/gin-contrib/gzip v0.0.5
