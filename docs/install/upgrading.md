@@ -110,7 +110,7 @@ Binary releases can be downloaded and installed directly from the repository.
 
 <!-- {x-release-please-start-version} -->
   ```bash
-  LATEST=0.11.0
+  LATEST=0.11.1
   curl -sSL https://github.com/infrahq/infra/releases/download/v$LATEST/infra_${LATEST}_linux_x86_64.zip
   unzip -d /usr/local/bin infra_${LATEST}_linux_x86_64.zip
   ```
@@ -122,7 +122,7 @@ Binary releases can be downloaded and installed directly from the repository.
 
 <!-- {x-release-please-start-version} -->
   ```bash
-  LATEST=0.11.0
+  LATEST=0.11.1
   curl -sSL https://github.com/infrahq/infra/releases/download/v$LATEST/infra_${LATEST}_linux_arm64.zip
   unzip -d /usr/local/bin infra_${LATEST}_linux_arm64.zip
   ```
