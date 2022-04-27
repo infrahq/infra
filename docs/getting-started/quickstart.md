@@ -1,7 +1,8 @@
 # Quickstart
 
 In this quickstart we'll set up Infra to manage single sign-on to Kubernetes:
-* Install Infra CLI & Infra Server
+* Install Infra CLI
+* Deploy Infra
 * Connect a Kubernetes cluster
 * Create a user and grant them view (read-only) access to the cluster
 
