@@ -32,8 +32,6 @@ export default function ({ id, modalOpen, handleCloseModal }) {
   const options = ['view', 'edit', 'admin', 'remove']
 
   const grantPrivilege = async (id, privilege = role, exist = false, deleteGrantId) => {
-    const newGrant = { ...list.filter(item => item?.subject === id)[0], privilege }
-
     mutate(`/v1/grants?resource=${destination.name}`, async grants => {
       const res = await fetch('/v1/grants', {
         method: 'POST',
@@ -49,7 +47,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
       setEmail('')
 
       return [...(grants || []).filter(grant => grant?.subject !== id), data]
-    }, { optimisticData: [...list.filter(item => item?.subject !== id), newGrant]})
+    })
   }
 
   const handleInputChang = value => {
@@ -107,9 +105,10 @@ export default function ({ id, modalOpen, handleCloseModal }) {
     }, { optimisticData: list.filter(item => item?.id !== grantId) })
   }
 
+
   return (
     <InfoModal
-      header='Grant'
+      header='Share'
       handleCloseModal={handleCloseModal}
       modalOpen={modalOpen}
       iconPath='/grant-access-color.svg'
@@ -141,11 +140,10 @@ export default function ({ id, modalOpen, handleCloseModal }) {
         </button>
       </div>
       {error && <ErrorMessage message={error} />}
-
       {list && list.length > 0 &&
         <section className='py-2'>
-          {list.map((item) => (
-            <div className='flex justify-between items-center px-4' key={item.id + item.subject}>
+          {list.sort((a, b) => (a.subject).localeCompare(b.subject)).map((item) => (
+            <div className='flex justify-between items-center px-4' key={item.id}>
               <Grant id={item.subject} />
               <div>
                 <select
