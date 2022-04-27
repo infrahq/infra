@@ -20,20 +20,26 @@ infra providers add okta \
 ![Create Application](../../images/connect-users-okta-okta1.png)
 
 3. Create an Okta App:
-   a. Click **Create App Integration**.
-   b. Select **OIDC – OpenID Connect** and **Web Application**.
-   c. Click **Next**.
+  - Click **Create App Integration**.
+  - Select **OIDC – OpenID Connect** and **Web Application**.
+  - Click **Next**.
 
 ![App Type](../../images/connect-users-okta-okta2.png)
 
 4. Configure your new Okta App:
   - For **App integration name** write **Infra**.
   - Under **General Settings** > **Grant type** select **Authorization Code** and **Refresh Token**.
-  - For **Sign-in redirect URIs** write:
-    - `http://localhost:8301` (for CLI login)
-    - `<your infra host>/login/callback` (for Dashboard login). Examples:
-      - `https://infra.company.internal/login/callback` (hosting infra at `infra.company.internal`)
-      - `http://localhost/login/callback` trying out Infra locally
+  - For **Sign-in redirect URIs** add `http://localhost:8301`
+
+<details>
+  <summary><strong>(Optional) Configure Okta for Infra Dashboard Login</strong></summary>
+
+Add an additional redirect URI: `<your infra host>/login/callback`. Examples:
+  - `https://infra.company.internal/login/callback` (If infra is hosted at `infra.company.internal`)
+  - `http://localhost/login/callback` if trying out Infra locally
+
+</details>
+<br />
 
 5. For **Assignments** select the groups which will have access through Infra.
 
