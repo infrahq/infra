@@ -11,7 +11,7 @@ import (
 	"github.com/infrahq/infra/internal/cmd/cliopts"
 )
 
-func newProvidersCmd() *cobra.Command {
+func newProvidersCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "providers",
 		Short:   "Manage identity providers",
@@ -25,14 +25,14 @@ func newProvidersCmd() *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(newProvidersListCmd())
-	cmd.AddCommand(newProvidersAddCmd())
+	cmd.AddCommand(newProvidersListCmd(cli))
+	cmd.AddCommand(newProvidersAddCmd(cli))
 	cmd.AddCommand(newProvidersRemoveCmd())
 
 	return cmd
 }
 
-func newProvidersListCmd() *cobra.Command {
+func newProvidersListCmd(cli *CLI) *cobra.Command {
 	return &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
@@ -60,9 +60,9 @@ func newProvidersListCmd() *cobra.Command {
 			}
 
 			if len(rows) > 0 {
-				printTable(rows, TODO)
+				printTable(rows, cli.Stdout)
 			} else {
-				fmt.Println("No providers found")
+				cli.Output("No providers found")
 			}
 
 			return nil
@@ -93,7 +93,7 @@ func (o providerAddOptions) Validate() error {
 	return nil
 }
 
-func newProvidersAddCmd() *cobra.Command {
+func newProvidersAddCmd(cli *CLI) *cobra.Command {
 	var opts providerAddOptions
 
 	cmd := &cobra.Command{
@@ -128,7 +128,7 @@ $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5
 				return err
 			}
 
-			fmt.Printf("Provider %s added\n", args[0])
+			cli.Output("Provider %s added", args[0])
 			return nil
 		},
 	}
