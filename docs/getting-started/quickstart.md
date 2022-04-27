@@ -130,23 +130,17 @@ Use the one-time password in the previous step to log in as the user. You'll be 
 infra login <INFRA_SERVER_HOSTNAME> --skip-tls-verify
 ```
 
-Next, view this user's cluster access:
+Next, view this user's cluster access. You should see the user has `view` access to the `example` cluster connected above:
 
 ```
 infra list
 ```
 
-You should see the user has `view` access to the `example` cluster connected above.
-
-Lastly, connect to the Kubernetes cluster and access it:
+Lastly, switch to this Kubernetes cluster and verify the user's access:
 
 ```
 infra use kubernetes.example
-```
 
-Verify the user's access:
-
-```
 # Works since the user has view access
 kubectl get pods -A
 
