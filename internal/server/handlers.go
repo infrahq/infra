@@ -114,12 +114,6 @@ func (a *API) UpdateIdentity(c *gin.Context, r *api.UpdateIdentityRequest) (*api
 		return nil, err
 	}
 
-	for _, v := range a.server.InternalIdentities {
-		if v.ID == identity.ID {
-			return nil, internal.ErrForbidden
-		}
-	}
-
 	if identity.Kind != models.UserKind {
 		return nil, fmt.Errorf("%w: machine identity has no password to update", internal.ErrBadRequest)
 	}
@@ -133,12 +127,6 @@ func (a *API) UpdateIdentity(c *gin.Context, r *api.UpdateIdentityRequest) (*api
 }
 
 func (a *API) DeleteIdentity(c *gin.Context, r *api.Resource) error {
-	for _, v := range a.server.InternalIdentities {
-		if v.ID == r.ID {
-			return internal.ErrForbidden
-		}
-	}
-
 	return access.DeleteIdentity(c, r.ID)
 }
 
@@ -276,10 +264,6 @@ func (a *API) CreateProvider(c *gin.Context, r *api.CreateProviderRequest) (*api
 }
 
 func (a *API) UpdateProvider(c *gin.Context, r *api.UpdateProviderRequest) (*api.Provider, error) {
-	if r.ID == a.server.InternalProvider.ID {
-		return nil, internal.ErrForbidden
-	}
-
 	provider := &models.Provider{
 		Model: models.Model{
 			ID: r.ID,
@@ -298,10 +282,6 @@ func (a *API) UpdateProvider(c *gin.Context, r *api.UpdateProviderRequest) (*api
 }
 
 func (a *API) DeleteProvider(c *gin.Context, r *api.Resource) error {
-	if r.ID == a.server.InternalProvider.ID {
-		return internal.ErrForbidden
-	}
-
 	return access.DeleteProvider(c, r.ID)
 }
 
@@ -380,7 +360,7 @@ func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateToken
 	if access.AuthenticatedIdentity(c) != nil {
 		err := a.UpdateIdentityInfoFromProvider(c)
 		if err != nil {
-			return nil, fmt.Errorf("update ident info from provider: %w", err)
+			return nil, fmt.Errorf("%w: update ident info from provider: %s", internal.ErrForbidden, err)
 		}
 
 		token, err := access.CreateToken(c)
@@ -623,20 +603,17 @@ func (a *API) UpdateIdentityInfoFromProvider(c *gin.Context) error {
 	// get current identity provider groups
 	info, err := oidc.GetUserInfo(providerUser)
 	if err != nil {
-		if errors.Is(err, internal.ErrForbidden) {
-			err := access.DeleteAllIdentityAccessKeys(c)
-			if err != nil {
-				logging.S.Errorf("failed to revoke invalid user session: %s", err)
-			}
-
-			deleteAuthCookie(c)
-		}
-
 		if errors.Is(err, context.DeadlineExceeded) {
 			return fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
 		}
 
-		return fmt.Errorf("update user info: %w", err)
+		if nestedErr := access.DeleteAllIdentityAccessKeys(c); nestedErr != nil {
+			logging.S.Errorf("failed to revoke invalid user session: %s", nestedErr)
+		}
+
+		deleteAuthCookie(c)
+
+		return fmt.Errorf("get user info: %w", err)
 	}
 
 	return access.UpdateUserInfoFromProvider(c, info, user, provider)

@@ -45,6 +45,10 @@ func ListProviders(c *gin.Context, name string, excludeByName []string) ([]model
 }
 
 func SaveProvider(c *gin.Context, provider *models.Provider) error {
+	if InfraProvider(c).ID == provider.ID {
+		return internal.ErrForbidden
+	}
+
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
@@ -54,6 +58,10 @@ func SaveProvider(c *gin.Context, provider *models.Provider) error {
 }
 
 func DeleteProvider(c *gin.Context, id uid.ID) error {
+	if InfraProvider(c).ID == id {
+		return internal.ErrForbidden
+	}
+
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
@@ -85,7 +93,7 @@ func InfraProvider(c *gin.Context) *models.Provider {
 }
 
 func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.Provider, oidc authn.OIDC, expires time.Time, redirectURL string) (*models.Identity, string, error) {
-	// does not need authorization check, this function should only be called internally
+	// does not need authorization check, this function should only be called internally during login (login is a public endpoint)
 	db := getDB(c)
 
 	// exchange code for tokens from identity provider (these tokens are for the IDP, not Infra)

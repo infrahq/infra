@@ -6,6 +6,7 @@ import (
 	"github.com/ssoroka/slice"
 	"gorm.io/gorm"
 
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -122,4 +123,20 @@ func DeleteIdentities(db *gorm.DB, selectors ...SelectorFunc) error {
 
 func SaveIdentity(db *gorm.DB, identity *models.Identity) error {
 	return save(db, identity)
+}
+
+var infraConnectorCache *models.Identity
+
+func InfraConnectorIdentity(db *gorm.DB) *models.Identity {
+	if infraConnectorCache == nil {
+		connector, err := GetIdentity(db, ByName(models.InternalInfraConnectorIdentityName))
+		if err != nil {
+			logging.S.Panic(err)
+			return nil
+		}
+
+		infraConnectorCache = connector
+	}
+
+	return infraConnectorCache
 }

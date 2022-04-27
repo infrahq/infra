@@ -30,9 +30,13 @@ func SetLevel(l string) error {
 
 func newLogger(level zapcore.LevelEnabler, stderr zapcore.WriteSyncer) *zap.Logger {
 	writer := zapcore.Lock(filtered(stderr))
+	levelEncoder := zapcore.CapitalLevelEncoder
+	if term.IsTerminal(int(os.Stdin.Fd())) {
+		levelEncoder = zapcore.CapitalColorLevelEncoder
+	}
 	encoder := zapcore.NewConsoleEncoder(zapcore.EncoderConfig{
 		LevelKey:         "level",
-		EncodeLevel:      zapcore.CapitalColorLevelEncoder,
+		EncodeLevel:      levelEncoder,
 		MessageKey:       "message",
 		ConsoleSeparator: "  ",
 	})

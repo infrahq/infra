@@ -96,7 +96,7 @@ Create the name of the service account to use
 {{- end }}
 
 {{/*
-Infra server image repository.
+Server image repository.
 If global value is present, use global value. Otherwise, use local value.
 */}}
 {{- define "server.image.repository" -}}
@@ -108,7 +108,7 @@ If global value is present, use global value. Otherwise, use local value.
 {{- end }}
 
 {{/*
-Infra server image tag.
+Server image tag.
 If a local override exists, use the local override. Otherwise, if a global
 override exists, use the global override.  If `image.tag` does not exist,
 use AppVersion defined in Chart.
@@ -122,7 +122,7 @@ use AppVersion defined in Chart.
 {{- end }}
 
 {{/*
-Infra server image pull policy.
+Server image pull policy.
 If global value is present, use global value. Otherwise, use local value.
 */}}
 {{- define "server.image.pullPolicy" -}}
@@ -134,15 +134,44 @@ If global value is present, use global value. Otherwise, use local value.
 {{- end }}
 
 {{/*
-Infra server image pull secrets.
-If global value is present, use global value. Otherwise, use local value.
+Server image pull secrets. Merges global and local values.
 */}}
 {{- define "server.imagePullSecrets" -}}
 {{ concat .Values.server.imagePullSecrets .Values.global.imagePullSecrets | uniq | toYaml }}
 {{- end }}
 
 {{/*
-Infer whether Infra server should be deployed based on server.enabled and connector.config.server.
+Server 'env' values. Merges global and local values.
+*/}}
+{{- define "server.env" -}}
+{{- $env := concat .Values.server.env .Values.global.env }}
+
+{{- if .Values.server.config.adminAccessKey -}}
+{{- $adminAccessKey := .Values.server.config.adminAccessKey -}}
+{{- if and (not (hasPrefix "file:" $adminAccessKey)) (not (hasPrefix "env:" $adminAccessKey)) }}
+{{- $env = append $env (dict "name" "ADMIN_ACCESS_KEY" "valueFrom" (dict "secretKeyRef" (dict "name" (printf "%s-admin-access-key" .Release.Name) "key" "access-key"))) }}
+{{- end }}
+{{- end }}
+
+{{- if include "connector.enabled" . | eq "true" -}}
+{{- $accessKey := default "" .Values.connector.config.accessKey -}}
+{{- if or (not $accessKey) (and (not (hasPrefix "file:" $accessKey)) (not (hasPrefix "env:" $accessKey))) }}
+{{- $env = append $env (dict "name" "CONNECTOR_ACCESS_KEY" "valueFrom" (dict "secretKeyRef" (dict "name" (printf "%s-access-key" .Release.Name) "key" "access-key"))) }}
+{{- end }}
+{{- end }}
+
+{{- concat $env | uniq | toYaml }}
+{{- end }}
+
+{{/*
+Server 'envFrom' values. Merges global and local values.
+*/}}
+{{- define "server.envFrom" -}}
+{{- concat .Values.server.envFrom .Values.global.envFrom | uniq | toYaml }}
+{{- end }}
+
+{{/*
+Infer whether Server should be deployed based on server.enabled and connector.config.server.
 */}}
 {{- define "server.enabled" -}}
 {{- and .Values.server.enabled (not .Values.connector.config.server) }}

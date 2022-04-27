@@ -12,7 +12,7 @@ import (
 
 const ThirtyDays = 30 * (24 * time.Hour)
 
-func newKeysCmd() *cobra.Command {
+func newKeysCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "keys",
 		Short:   "Manage access keys",
@@ -26,7 +26,7 @@ func newKeysCmd() *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(newKeysListCmd())
+	cmd.AddCommand(newKeysListCmd(cli))
 	cmd.AddCommand(newKeysAddCmd())
 	cmd.AddCommand(newKeysRemoveCmd())
 
@@ -128,7 +128,7 @@ type keyListOptions struct {
 	MachineName string
 }
 
-func newKeysListCmd() *cobra.Command {
+func newKeysListCmd(cli *CLI) *cobra.Command {
 	var options keyListOptions
 
 	cmd := &cobra.Command{
@@ -184,9 +184,9 @@ func newKeysListCmd() *cobra.Command {
 			}
 
 			if len(rows) > 0 {
-				printTable(rows)
+				printTable(rows, cli.Stdout)
 			} else {
-				fmt.Println("No access keys found")
+				cli.Output("No access keys found")
 			}
 
 			return nil

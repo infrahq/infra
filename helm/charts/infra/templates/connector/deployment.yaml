@@ -33,9 +33,9 @@ spec:
           imagePullPolicy: {{ include "connector.image.pullPolicy" . }}
           args: ["connector", "-f", "/etc/infrahq/infra.yaml"]
           env:
-{{- toYaml .Values.connector.env | nindent 12 }}
+{{- include "connector.env" . | nindent 12 }}
           envFrom:
-{{- toYaml .Values.connector.envFrom | nindent 12 }}
+{{- include "connector.envFrom" . | nindent 12 }}
           volumeMounts:
             - name: conf
               mountPath: /etc/infrahq

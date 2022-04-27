@@ -134,8 +134,7 @@ If global value is present, use global value. Otherwise, use local value.
 {{- end }}
 
 {{/*
-Connector image pull secrets.
-If global value is present, use global value. Otherwise, use local value.
+Connector image pull secrets. Merges global and local values.
 */}}
 {{- define "connector.imagePullSecrets" -}}
 {{ concat .Values.connector.imagePullSecrets .Values.global.imagePullSecrets | uniq | toYaml }}
@@ -156,6 +155,20 @@ existing secret and use its password. If the secret does not exist, randomly gen
 {{- randAlphaNum 10 }}.{{ randAlphaNum 24 }}
 {{- end }}
 {{- end }}
+{{- end }}
+
+{{/*
+Infra connector 'env' values. Merges global and local values.
+*/}}
+{{- define "connector.env" -}}
+{{- concat .Values.connector.env .Values.global.env | uniq | toYaml }}
+{{- end }}
+
+{{/*
+Infra connector 'envFrom' values. Merges global and local values.
+*/}}
+{{- define "connector.envFrom" -}}
+{{- concat .Values.connector.envFrom .Values.global.envFrom | uniq | toYaml }}
 {{- end }}
 
 {{/*

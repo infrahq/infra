@@ -38,7 +38,7 @@ func TestListIdentities(t *testing.T) {
 	ids, err := ListIdentities(c, "", nil)
 	assert.NilError(t, err)
 
-	assert.Equal(t, len(ids), 3) // the two identities created, and the admin one used to call these access functions
+	assert.Equal(t, len(ids), 4) // the two identities created, the admin one used to call these access functions, and the internal connector identity
 	// make sure both names are seen
 	returnedNames := make(map[string]bool)
 	for _, id := range ids {
