@@ -2,10 +2,12 @@ package cmd
 
 import (
 	"context"
+	"reflect"
 	"testing"
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/fs"
 
@@ -170,19 +172,15 @@ func TestServerCmd_LoadOptions(t *testing.T) {
 	}
 }
 
-// serverOptionsWithDefaults returns all the default values. Many defaults are
-// specified in command line flags, which makes them difficult to access without
-// specifying them again here.
+// serverOptionsWithDefaults returns all the default values. Some default values
+// include placeholders for environment variables that will be resolved by the
+// command.
+// TODO: resolve the path in defaultServerOptions instead, and remove this function
 func serverOptionsWithDefaults() server.Options {
 	o := defaultServerOptions()
 	o.TLSCache = "/home/user/.infra/cache"
 	o.DBFile = "/home/user/.infra/sqlite3.db"
 	o.DBEncryptionKey = "/home/user/.infra/sqlite3.db.key"
-	o.DBEncryptionKeyProvider = "native"
-	o.EnableTelemetry = true
-	o.EnableCrashReporting = true
-	o.SessionDuration = 12 * time.Hour
-	o.EnableSignup = true
 	return o
 }
 
@@ -235,4 +233,27 @@ func patchNewServer(t *testing.T, target *server.Options) {
 		*target = options
 		return &server.Server{}, nil
 	}
+}
+
+func TestServerCmd_NoFlagDefaults(t *testing.T) {
+	cmd := newServerCmd()
+	flags := cmd.Flags()
+	err := flags.Parse(nil)
+	assert.NilError(t, err)
+
+	msg := "The default value of flags on the 'infra server' command will be ignored. " +
+		"Set a default value in defaultServerOptions instead."
+	flags.VisitAll(func(flag *pflag.Flag) {
+		if sv, ok := flag.Value.(pflag.SliceValue); ok {
+			if len(sv.GetSlice()) > 0 {
+				t.Fatalf("Flag --%v uses non-zero value %v. %v", flag.Name, flag.Value, msg)
+			}
+			return
+		}
+
+		v := reflect.Indirect(reflect.ValueOf(flag.Value))
+		if !v.IsZero() {
+			t.Fatalf("Flag --%v uses non-zero value %v. %v", flag.Name, flag.Value, msg)
+		}
+	})
 }

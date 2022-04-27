@@ -205,7 +205,7 @@ func newConnectorCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			logging.SetServerLogger()
 
-			var options connector.Options
+			options := defaultConnectorOptions()
 			err := cliopts.Load(&options, cliopts.Options{
 				Filename:  configFilename,
 				EnvPrefix: "INFRA_CONNECTOR",
@@ -232,6 +232,12 @@ func newConnectorCmd() *cobra.Command {
 
 // runConnector is a shim for testing
 var runConnector = connector.Run
+
+// defaultConnectorOptions is empty for now. It exists so that it can be
+// referenced by a test.
+func defaultConnectorOptions() connector.Options {
+	return connector.Options{}
+}
 
 // rootOptions are options specified by users on the command line that are
 // used by the root command.

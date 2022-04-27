@@ -8,9 +8,11 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 
+	"github.com/spf13/pflag"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/env"
 	"gotest.tools/v3/fs"
@@ -307,5 +309,28 @@ func patchRunConnector(t *testing.T, fn func(context.Context, connector.Options)
 	runConnector = fn
 	t.Cleanup(func() {
 		runConnector = orig
+	})
+}
+
+func TestConnectorCmd_NoFlagDefaults(t *testing.T) {
+	cmd := newConnectorCmd()
+	flags := cmd.Flags()
+	err := flags.Parse(nil)
+	assert.NilError(t, err)
+
+	msg := "The default value of flags on the 'infra connector' command will be ignored. " +
+		"Set a default value in defaultConnectorOptions instead."
+	flags.VisitAll(func(flag *pflag.Flag) {
+		if sv, ok := flag.Value.(pflag.SliceValue); ok {
+			if len(sv.GetSlice()) > 0 {
+				t.Fatalf("Flag --%v uses non-zero value %v. %v", flag.Name, flag.Value, msg)
+			}
+			return
+		}
+
+		v := reflect.Indirect(reflect.ValueOf(flag.Value))
+		if !v.IsZero() {
+			t.Fatalf("Flag --%v uses non-zero value %v. %v", flag.Name, flag.Value, msg)
+		}
 	})
 }
