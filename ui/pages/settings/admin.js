@@ -20,15 +20,19 @@ const columns = [{
   accessor: a => a,
   Cell: ({ value: admin, rows }) => {
     const { data: user } = useSWR(`/v1/identities/${admin.subject.replace('i:', '')}`, { fallbackData: { name: '', kind: '' } })
+    const { data: auth } = useSWR('/v1/introspect')
     const { mutate } = useSWRConfig()
 
+
     const [open, setOpen] = useState(false)
+    
+    const isSelf = admin.subject.replace('i:', '') === auth.id
 
     return (
       <div className='opacity-0 group-hover:opacity-100 flex justify-end text-right'>
-        <button onClick={() => setOpen(true)} className='p-2 -mr-2 cursor-pointer text-gray-500 hover:text-white'>
+        {!isSelf && <button onClick={() => setOpen(true)} className='p-2 -mr-2 cursor-pointer text-gray-500 hover:text-white'>
           Revoke
-        </button>
+        </button>}
         <DeleteModal
           open={open}
           setOpen={setOpen}
@@ -139,7 +143,7 @@ export default function () {
           onSubmit={() => handleAddAdmin()}
           disabled={adminEmail.length === 0}
           type='submit'
-          className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 p-0.5 mx-auto rounded-full'
+          className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 p-0.5 mx-auto rounded-full disabled:opacity-30'
         >
           <div className='bg-black flex items-center text-sm px-14 py-3 rounded-full'>
             Add
