@@ -16,12 +16,20 @@ var (
 	ErrNotFound   = fmt.Errorf("record not found")
 	ErrBadRequest = fmt.Errorf("bad request")
 	ErrInternal   = fmt.Errorf("internal error")
+	ErrUnexpected = fmt.Errorf("unexpected error")
 )
 
+// Error is used as the response body for failed API requests. It is also
+// used by the Client to return errors to callers.
 type Error struct {
 	Code        int32        `json:"code"` // should be a repeat of the http response status code
 	Message     string       `json:"message"`
 	FieldErrors []FieldError `json:"fieldErrors,omitempty"`
+}
+
+func (e Error) Error() string {
+	// TODO: include fields in the message
+	return fmt.Sprintf("api error: %d %v", e.Code, e.Message)
 }
 
 type FieldError struct {

@@ -172,7 +172,11 @@ func defaultAPIClient() (*api.Client, error) {
 func apiClient(host string, accessKey string, skipTLSVerify bool) (*api.Client, error) {
 	u, err := urlx.Parse(host)
 	if err != nil {
-		return nil, err
+		return nil, UserFacingError{
+			UserFacingMessage: fmt.Sprintf("Could not reach %s. Please check server hostname.", host),
+			Underlying:        err,
+			ShowUnderlying:    true,
+		}
 	}
 
 	u.Scheme = "https"

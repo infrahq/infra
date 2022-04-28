@@ -3,7 +3,6 @@ package api
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -25,6 +24,7 @@ type Client struct {
 func checkError(status int, body []byte) error {
 	var apiError Error
 
+	// TODO: check Content-Type header is correct before attempting unmarshal
 	err := json.Unmarshal(body, &apiError)
 	if err != nil {
 		apiError.Message = string(body)
@@ -52,7 +52,7 @@ func checkError(status int, body []byte) error {
 	}
 
 	if status >= 400 {
-		return errors.New(http.StatusText(status))
+		return fmt.Errorf("%w: %s: %s", ErrUnexpected, http.StatusText(status), apiError.Message)
 	}
 
 	return nil

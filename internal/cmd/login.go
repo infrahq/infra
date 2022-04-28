@@ -43,6 +43,8 @@ const (
 
 const cliLoginRedirectURL = "http://localhost:8301"
 
+var errMessageLogin = "Could not login at this time."
+
 func newLoginCmd() *cobra.Command {
 	var options loginCmdOptions
 
@@ -99,7 +101,11 @@ func login(options loginCmdOptions) error {
 	// and use those credentials for subsequent requests
 	signupEnabled, err := client.SignupEnabled()
 	if err != nil {
-		return err
+		return UserFacingError{
+			Underlying:        err,
+			UserFacingMessage: errMessageLogin,
+			ShowUnderlying:    true,
+		}
 	}
 
 	if signupEnabled.Enabled {
@@ -121,11 +127,15 @@ func login(options loginCmdOptions) error {
 		}
 	default:
 		if options.NonInteractive {
-			return fmt.Errorf("Non-interactive login requires key, instead run: 'infra login SERVER --non-interactive --key KEY")
+			return UserFacingError{
+				UserFacingMessage: "Non-interactive login requires key, instead run: 'infra login SERVER --non-interactive --key KEY",
+			}
 		}
 		loginMethod, provider, err := promptLoginOptions(client)
 		if err != nil {
-			return err
+			return UserFacingError{
+				Underlying: err,
+			}
 		}
 
 		switch loginMethod {
@@ -155,22 +165,36 @@ func loginToInfra(client *api.Client, loginReq *api.LoginRequest) error {
 	loginRes, err := client.Login(loginReq)
 	if err != nil {
 		if errors.Is(err, api.ErrUnauthorized) {
+			msg := "Login failed: "
 			switch {
 			case loginReq.AccessKey != "":
-				return &FailedLoginError{getLoggedInIdentityName(), accessKeyLogin}
+				msg += "your access key may not be valid."
 			case loginReq.PasswordCredentials != nil:
-				return &FailedLoginError{getLoggedInIdentityName(), localLogin}
+				msg += "your id or password may be incorrect."
 			case loginReq.OIDC != nil:
-				return &FailedLoginError{getLoggedInIdentityName(), oidcLogin}
+				msg += "could not login to infra through this connected identity provider."
+			}
+			if isLoggedInCurrent() {
+				msg += fmt.Sprintf(" Your existing session as [%s] is still active.", getLoggedInIdentityName())
+			}
+
+			return UserFacingError{
+				UserFacingMessage: msg,
 			}
 		}
-		return err
+		return UserFacingError{
+			Underlying: err,
+		}
 	}
 
-	fmt.Fprintf(os.Stderr, "  Logged in as %s\n", termenv.String(loginRes.Name).Bold().String())
+	fmt.Fprintf(os.Stderr, "  Logged in as [%s]\n", termenv.String(loginRes.Name).Bold().String())
 
 	if err := updateInfraConfig(client, loginReq, loginRes); err != nil {
-		return err
+		return UserFacingError{
+			UserFacingMessage: "Could not update some configurations",
+			Underlying:        err,
+			ShowUnderlying:    true,
+		}
 	}
 
 	// Client needs to be refreshed from here onwards, based on the newly saved infra configuration.
@@ -180,12 +204,21 @@ func loginToInfra(client *api.Client, loginReq *api.LoginRequest) error {
 	}
 
 	if err := updateKubeconfig(client, loginRes.PolymorphicID); err != nil {
-		return err
+
+		return UserFacingError{
+			UserFacingMessage: "Could not update some configurations",
+			Underlying:        err,
+			ShowUnderlying:    true,
+		}
 	}
 
 	if loginRes.PasswordUpdateRequired {
 		if err := updateUserPassword(client, loginRes.PolymorphicID, loginReq.PasswordCredentials.Password); err != nil {
-			return err
+			return UserFacingError{
+				UserFacingMessage: "Error while updating user",
+				Underlying:        err,
+				ShowUnderlying:    true,
+			}
 		}
 	}
 
@@ -227,9 +260,14 @@ func updateInfraConfig(client *api.Client, loginReq *api.LoginRequest, loginRes 
 
 func oidcflow(host string, clientId string) (string, error) {
 	// find out what the authorization endpoint is
+	logging.S.Debug("setting up oauth request to provider")
 	provider, err := oidc.NewProvider(context.Background(), fmt.Sprintf("https://%s", host))
 	if err != nil {
-		return "", fmt.Errorf("get provider oidc info: %w", err)
+		return "", UserFacingError{
+			UserFacingMessage: errMessageLogin,
+			Underlying:        fmt.Errorf("error while redirecting to provider: get provider oidc info: %w", err),
+			ShowUnderlying:    true,
+		}
 	}
 
 	// claims are the attributes of the user we want to know from the identity provider
@@ -238,7 +276,11 @@ func oidcflow(host string, clientId string) (string, error) {
 	}
 
 	if err := provider.Claims(&claims); err != nil {
-		return "", fmt.Errorf("parsing claims: %w", err)
+		return "", UserFacingError{
+			UserFacingMessage: errMessageLogin,
+			Underlying:        fmt.Errorf("error while redirecting to provider: parsing claims: %w", err),
+			ShowUnderlying:    true,
+		}
 	}
 
 	scopes := []string{"openid", "email"} // openid and email are required scopes for login to work
@@ -258,7 +300,11 @@ func oidcflow(host string, clientId string) (string, error) {
 	// the state makes sure we are getting the correct response for our request
 	state, err := generate.CryptoRandom(12)
 	if err != nil {
-		return "", err
+		return "", UserFacingError{
+			UserFacingMessage: errMessageLogin,
+			Underlying:        fmt.Errorf("error while redirecting to provider: %w", err),
+			ShowUnderlying:    true,
+		}
 	}
 
 	authorizeURL := fmt.Sprintf("%s?redirect_uri=http://localhost:8301&client_id=%s&response_type=code&scope=%s&state=%s", provider.Endpoint().AuthURL, clientId, strings.Join(scopes, "+"), state)
@@ -266,22 +312,38 @@ func oidcflow(host string, clientId string) (string, error) {
 	// the local server receives the response from the identity provider and sends it along to the infra server
 	ls, err := newLocalServer()
 	if err != nil {
-		return "", err
+		return "", UserFacingError{
+			UserFacingMessage: errMessageLogin,
+			Underlying:        fmt.Errorf("error while redirecting to provider: %w", err),
+			ShowUnderlying:    true,
+		}
 	}
 
 	err = browser.OpenURL(authorizeURL)
 	if err != nil {
-		return "", err
+		return "", UserFacingError{
+			UserFacingMessage: errMessageLogin,
+			Underlying:        fmt.Errorf("error while redirecting to provider: %w", err),
+			ShowUnderlying:    true,
+		}
 	}
 
 	code, recvstate, err := ls.wait(time.Minute * 5)
 	if err != nil {
-		return "", err
+		return "", UserFacingError{
+			UserFacingMessage: errMessageLogin,
+			Underlying:        fmt.Errorf("error while authenticating with provider: %w", err),
+			ShowUnderlying:    true,
+		}
 	}
 
 	if state != recvstate {
 		//lint:ignore ST1005, user facing error
-		return "", fmt.Errorf("Login aborted, provider state did not match the expected state")
+		return "", UserFacingError{
+			UserFacingMessage: errMessageLogin,
+			Underlying:        fmt.Errorf("error while logging in with provider: login aborted, provider state did not match the expected state"),
+			ShowUnderlying:    true,
+		}
 	}
 
 	return code, nil
@@ -315,7 +377,9 @@ func updateUserPassword(client *api.Client, pid uid.PolymorphicID, oldPassword s
 func loginToProviderN(client *api.Client, providerName string) (*api.LoginRequestOIDC, error) {
 	provider, err := GetProviderByName(client, providerName)
 	if err != nil {
-		return nil, err
+		return nil, UserFacingError{
+			Underlying: err,
+		}
 	}
 	return loginToProvider(provider)
 }
@@ -371,7 +435,9 @@ func newAPIClient(options loginCmdOptions) (*api.Client, error) {
 
 			if options.NonInteractive {
 				fmt.Fprintf(os.Stderr, "%s\n", ErrTLSNotVerified.Error())
-				return nil, fmt.Errorf("Non-interactive login does not allow insecure connection by default,\n       unless overridden with  '--skip-tls-verify'.")
+				return nil, UserFacingError{
+					UserFacingMessage: "Non-interactive login does not allow insecure connection by default,\n       unless overridden with  '--skip-tls-verify'.",
+				}
 			}
 
 			if err = promptSkipTLSVerify(); err != nil {
@@ -392,32 +458,41 @@ func newAPIClient(options loginCmdOptions) (*api.Client, error) {
 func verifyTLS(host string) error {
 	url, err := urlx.Parse(host)
 	if err != nil {
-		logging.S.Debug("Cannot parse host", host, err)
-		logging.S.Error("Could not login. Please check the server hostname")
-		return err
+		return UserFacingError{
+			UserFacingMessage: fmt.Sprintf("Could not reach server [%s]. Please check server hostname.", host),
+			Underlying:        err,
+			ShowUnderlying:    true,
+		}
 	}
 	url.Scheme = "https"
 	urlString := url.String()
 
+	logging.S.Debug("creating request to verify tls")
 	req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, urlString, nil)
 	if err != nil {
-		logging.S.Debugf("Cannot create request: %v", err)
-		return err
+		return UserFacingError{
+			Underlying: err,
+		}
 	}
 
+	logging.S.Debug("verifying TLS")
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		if !errors.As(err, &x509.UnknownAuthorityError{}) && !errors.As(err, &x509.HostnameError{}) && !strings.Contains(err.Error(), "certificate is not trusted") {
-			logging.S.Debugf("Cannot validate TLS due to an unexpected error: %v", err)
-			return err
+			// Unexpected error, that is not caused by insecure tls
+			return UserFacingError{
+				UserFacingMessage: fmt.Sprintf("Could not reach server [%s]. Please check server hostname.", host),
+				Underlying:        err,
+				ShowUnderlying:    true,
+			}
 		}
 
 		logging.S.Debug(err)
-
 		return ErrTLSNotVerified
 	}
 
 	defer res.Body.Close()
+	logging.S.Debug("tls check passed")
 	return nil
 }
 
@@ -525,12 +600,16 @@ func promptSkipTLSVerify() error {
 // Returns the host address of the Infra server that user would like to log into
 func promptServer(options loginCmdOptions) (string, error) {
 	if options.NonInteractive {
-		return "", fmt.Errorf("Non-interactive login requires the [SERVER] argument")
+		return "", UserFacingError{
+			UserFacingMessage: "Non-interactive login requires the [SERVER] argument.",
+		}
 	}
 
 	config, err := readOrCreateClientConfig()
 	if err != nil {
-		return "", err
+		return "", UserFacingError{
+			Underlying: err,
+		}
 	}
 
 	servers := config.Hosts
