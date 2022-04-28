@@ -4,6 +4,7 @@ module.exports = {
     if (process.env.NEXT_BUILD_ID) {
       return process.env.NEXT_BUILD_ID
     }
-    return null // generates a random ID
+
+    return 'embed'
   }
 }
