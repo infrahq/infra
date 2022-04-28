@@ -628,7 +628,7 @@ func (a *API) UpdateIdentityInfoFromProvider(c *gin.Context) error {
 
 // validateProvider checks that a provider being modified is valid
 func (a *API) validateProvider(c *gin.Context, provider *models.Provider) error {
-	oidc, err := a.providerClient(c, provider, "http://localhost:8301")
+	oidc, err := a.providerClient(c, provider, "") // redirect URL is not used during validation
 	if err != nil {
 		return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
 	}

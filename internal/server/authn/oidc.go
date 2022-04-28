@@ -56,15 +56,19 @@ func (o *oidcImplementation) Validate() error {
 
 	_, err = conf.Exchange(ctx, "test-code") // 'test-code' is a placeholder for a valid authorization code, it will always fail
 	if err != nil {
-		if strings.Contains(err.Error(), "client_id") || strings.Contains(err.Error(), "client id") {
-			logging.S.Debugf("error validating oidc provider client: %s", err)
-			return ErrInvalidProviderClientID
-		}
+		var errRetrieve *oauth2.RetrieveError
+		if errors.As(err, &errRetrieve) {
+			if strings.Contains(string(errRetrieve.Body), "client_id") || strings.Contains(string(errRetrieve.Body), "client id") {
+				logging.S.Debugf("error validating oidc provider client: %s", err)
+				return ErrInvalidProviderClientID
+			}
 
-		if strings.Contains(err.Error(), "secret") {
-			logging.S.Debugf("error validating oidc provider client: %s", err)
-			return ErrInvalidProviderClientSecret
+			if strings.Contains(string(errRetrieve.Body), "secret") {
+				logging.S.Debugf("error validating oidc provider client: %s", err)
+				return ErrInvalidProviderClientSecret
+			}
 		}
+		logging.S.Debug(err)
 	}
 
 	return nil

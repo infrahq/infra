@@ -2,12 +2,11 @@ package authn
 
 import (
 	"fmt"
-
-	"github.com/infrahq/infra/internal"
 )
 
 var (
-	ErrInvalidProviderURL          = fmt.Errorf("%w: %s", internal.ErrBadRequest, "invalid provider url")
-	ErrInvalidProviderClientID     = fmt.Errorf("%w: %s", internal.ErrBadRequest, "invalid provider client id")
-	ErrInvalidProviderClientSecret = fmt.Errorf("%w: %s", internal.ErrBadRequest, "invalid provider client secret")
+	ErrValidation                  = fmt.Errorf("validation failed")
+	ErrInvalidProviderURL          = fmt.Errorf("%w: invalid provider url", ErrValidation)
+	ErrInvalidProviderClientID     = fmt.Errorf("%w: invalid provider client id", ErrValidation)
+	ErrInvalidProviderClientSecret = fmt.Errorf("%w: invalid provider client secret", ErrValidation)
 )

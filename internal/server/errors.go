@@ -14,6 +14,7 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/authn"
 )
 
 func (a *API) sendAPIError(c *gin.Context, err error) {
@@ -41,10 +42,10 @@ func (a *API) sendAPIError(c *gin.Context, err error) {
 		resp.Message = err.Error()
 	case errors.As(err, validationErrors):
 		resp.Code = http.StatusBadRequest
-		resp.Message = fmt.Sprintf("%s: %s", internal.ErrBadRequest, err)
+		resp.Message = err.Error()
 
 		parseFieldErrors(resp, validationErrors)
-	case errors.Is(err, internal.ErrBadRequest):
+	case errors.Is(err, internal.ErrBadRequest), errors.Is(err, authn.ErrValidation):
 		resp.Code = http.StatusBadRequest
 		resp.Message = err.Error()
 	case errors.Is(err, internal.ErrNotImplemented):
