@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -19,46 +20,50 @@ func TestSendAPIError(t *testing.T) {
 		result api.Error
 	}{
 		{
-			err: internal.ErrBadRequest,
+			err:    internal.ErrBadRequest,
+			result: api.Error{Code: http.StatusBadRequest, Message: "bad request"},
+		},
+		{
+			err: fmt.Errorf("not right: %w", internal.ErrBadRequest),
 			result: api.Error{
-				Code:    400,
-				Message: "bad request",
+				Code:    http.StatusBadRequest,
+				Message: "not right: bad request",
 			},
 		},
 		{
-			err: internal.ErrUnauthorized,
-			result: api.Error{
-				Code:    http.StatusUnauthorized,
-				Message: "unauthorized",
-			},
+			err:    internal.ErrUnauthorized,
+			result: api.Error{Code: http.StatusUnauthorized, Message: "unauthorized"},
 		},
 		{
-			err: internal.ErrForbidden,
-			result: api.Error{
-				Code:    http.StatusForbidden,
-				Message: "forbidden",
-			},
+			err:    fmt.Errorf("hide this: %w", internal.ErrUnauthorized),
+			result: api.Error{Code: http.StatusUnauthorized, Message: "unauthorized"},
 		},
 		{
-			err: internal.ErrDuplicate,
+			err:    internal.ErrForbidden,
+			result: api.Error{Code: http.StatusForbidden, Message: "forbidden"},
+		},
+		{
+			err:    fmt.Errorf("hide this: %w", internal.ErrForbidden),
+			result: api.Error{Code: http.StatusForbidden, Message: "forbidden"},
+		},
+		{
+			err:    internal.ErrDuplicate,
+			result: api.Error{Code: http.StatusConflict, Message: "duplicate record"},
+		},
+		{
+			err: fmt.Errorf("%w: nope too many", internal.ErrDuplicate),
 			result: api.Error{
 				Code:    http.StatusConflict,
-				Message: "duplicate record",
+				Message: "duplicate record: nope too many",
 			},
 		},
 		{
-			err: internal.ErrNotFound,
-			result: api.Error{
-				Code:    http.StatusNotFound,
-				Message: "record not found",
-			},
+			err:    internal.ErrNotFound,
+			result: api.Error{Code: http.StatusNotFound, Message: "record not found"},
 		},
 		{
-			err: internal.ErrNotImplemented,
-			result: api.Error{
-				Code:    http.StatusNotImplemented,
-				Message: "not implemented",
-			},
+			err:    internal.ErrNotImplemented,
+			result: api.Error{Code: http.StatusNotImplemented, Message: "not implemented"},
 		},
 		{
 			err: validate.Struct(struct {

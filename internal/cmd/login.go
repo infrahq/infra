@@ -153,17 +153,17 @@ func login(options loginCmdOptions) error {
 
 func loginToInfra(client *api.Client, loginReq *api.LoginRequest) error {
 	loginRes, err := client.Login(loginReq)
-	if err != nil {
-		if errors.Is(err, api.ErrUnauthorized) {
-			switch {
-			case loginReq.AccessKey != "":
-				return &FailedLoginError{getLoggedInIdentityName(), accessKeyLogin}
-			case loginReq.PasswordCredentials != nil:
-				return &FailedLoginError{getLoggedInIdentityName(), localLogin}
-			case loginReq.OIDC != nil:
-				return &FailedLoginError{getLoggedInIdentityName(), oidcLogin}
-			}
+	if api.ErrorStatusCode(err) == http.StatusUnauthorized {
+		switch {
+		case loginReq.AccessKey != "":
+			return &FailedLoginError{getLoggedInIdentityName(), accessKeyLogin}
+		case loginReq.PasswordCredentials != nil:
+			return &FailedLoginError{getLoggedInIdentityName(), localLogin}
+		case loginReq.OIDC != nil:
+			return &FailedLoginError{getLoggedInIdentityName(), oidcLogin}
 		}
+	}
+	if err != nil {
 		return err
 	}
 

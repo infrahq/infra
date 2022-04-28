@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -77,12 +78,11 @@ func logoutOfServer(hostConfig *ClientHostConfig) (success bool, err error) {
 	hostConfig.Name = ""
 
 	err = client.Logout()
-	if err != nil {
-		if errors.Is(err, api.ErrUnauthorized) {
-			logging.S.Warn(err.Error())
-			return false, nil
-		}
-
+	switch {
+	case api.ErrorStatusCode(err) == http.StatusUnauthorized:
+		logging.S.Warn(err.Error())
+		return false, nil
+	case err != nil:
 		return false, err
 	}
 

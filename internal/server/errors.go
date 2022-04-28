@@ -17,6 +17,9 @@ import (
 	"github.com/infrahq/infra/internal/server/authn"
 )
 
+// sendAPIError translates err into the appropriate HTTP status code, builds a
+// response body using api.Error, then sends both as a response to the active
+// request.
 func (a *API) sendAPIError(c *gin.Context, err error) {
 	resp := &api.Error{
 		Code:    http.StatusInternalServerError,
@@ -30,9 +33,11 @@ func (a *API) sendAPIError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, internal.ErrUnauthorized):
 		resp.Code = http.StatusUnauthorized
+		// hide the error text, it may contain sensitive information
 		resp.Message = "unauthorized"
 	case errors.Is(err, internal.ErrForbidden):
 		resp.Code = http.StatusForbidden
+		// hide the error text, it may contain sensitive information
 		resp.Message = "forbidden"
 	case errors.Is(err, internal.ErrDuplicate):
 		resp.Code = http.StatusConflict
