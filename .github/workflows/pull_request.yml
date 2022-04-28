@@ -51,3 +51,4 @@ jobs:
       - name: Check generated code is updated
         run: |
           go generate ./...
+          git diff --exit-code
