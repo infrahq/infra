@@ -252,25 +252,18 @@ $ infra use development.kube-system`,
 	}
 }
 
-func canonicalPath(in string) (string, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
+func canonicalPath(path string) (string, error) {
+	path = os.ExpandEnv(path)
+
+	if strings.HasPrefix(path, "~/") {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+		path = strings.Replace(path, "~", homeDir, 1)
 	}
 
-	out := in
-	if strings.HasPrefix(in, "$HOME") {
-		out = strings.Replace(in, "$HOME", homeDir, 1)
-	} else if strings.HasPrefix(in, "~") {
-		out = strings.Replace(in, "~", homeDir, 1)
-	}
-
-	abs, err := filepath.Abs(out)
-	if err != nil {
-		return "", err
-	}
-
-	return abs, nil
+	return filepath.Abs(path)
 }
 
 func newConnectorCmd() *cobra.Command {
