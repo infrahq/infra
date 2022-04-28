@@ -1,4 +1,10 @@
 module.exports = {
   reactStrictMode: true,
-  generateBuildId: async () => 'embed'
+  generateBuildId: async () => {
+    if (process.env.NEXT_BUILD_ID) {
+      return process.env.NEXT_BUILD_ID
+    }
+
+    return null
+  }
 }
