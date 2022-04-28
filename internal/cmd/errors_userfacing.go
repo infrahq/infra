@@ -27,7 +27,7 @@ func (u UserFacingError) Error() string {
 
 	if u.ShowUnderlying {
 		// Strip '.' at the end when printing underlying error
-		if string(u.UserFacingMessage[len(u.UserFacingMessage)-1]) == "." {
+		if len(u.UserFacingMessage) > 0 && string(u.UserFacingMessage[len(u.UserFacingMessage)-1]) == "." {
 			u.UserFacingMessage = u.UserFacingMessage[:len(u.UserFacingMessage)-1]
 		}
 		return fmt.Sprintf("%v:\n       %v", u.UserFacingMessage, u.Underlying)
