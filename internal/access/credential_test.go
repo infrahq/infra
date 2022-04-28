@@ -17,17 +17,17 @@ func TestLoginWithUserCredential(t *testing.T) {
 	c, db, _ := setupAccessTestContext(t)
 
 	cases := map[string]map[string]interface{}{
-		"ValidEmailAndOneTimePasswordFirstUse": {
+		"ValidUsernameAndOneTimePasswordFirstUse": {
 			"setup": func(t *testing.T, c *gin.Context, db *gorm.DB) (string, string) {
-				email := "bruce@example.com"
-				user := &models.Identity{Name: email, Kind: models.UserKind}
+				username := "bruce@example.com"
+				user := &models.Identity{Name: username}
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
 
 				oneTimePassword, err := CreateCredential(c, *user)
 				assert.NilError(t, err)
 
-				return email, oneTimePassword
+				return username, oneTimePassword
 			},
 			"verify": func(t *testing.T, secret string, user *models.Identity, requiresUpdate bool, err error) {
 				assert.NilError(t, err)
@@ -36,29 +36,29 @@ func TestLoginWithUserCredential(t *testing.T) {
 				assert.Assert(t, requiresUpdate)
 			},
 		},
-		"ValidEmailAndOneTimePasswordFailsOnReuse": {
+		"ValidUsernameAndOneTimePasswordFailsOnReuse": {
 			"setup": func(t *testing.T, c *gin.Context, db *gorm.DB) (string, string) {
-				email := "barbra@example.com"
-				user := &models.Identity{Name: email, Kind: models.UserKind}
+				username := "barbra@example.com"
+				user := &models.Identity{Name: username}
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
 
 				oneTimePassword, err := CreateCredential(c, *user)
 				assert.NilError(t, err)
 
-				_, _, _, err = LoginWithUserCredential(c, email, oneTimePassword, time.Now().Add(time.Hour))
+				_, _, _, err = LoginWithPasswordCredential(c, username, oneTimePassword, time.Now().Add(time.Hour))
 				assert.NilError(t, err)
 
-				return email, oneTimePassword
+				return username, oneTimePassword
 			},
 			"verify": func(t *testing.T, secret string, user *models.Identity, requiresUpdate bool, err error) {
 				assert.ErrorContains(t, err, "one time password cannot be used more than once")
 			},
 		},
-		"ValidEmailAndValidSpecifiedPassword": {
+		"ValidUsernameAndValidSpecifiedPassword": {
 			"setup": func(t *testing.T, c *gin.Context, db *gorm.DB) (string, string) {
-				email := "selina@example.com"
-				user := &models.Identity{Name: email, Kind: models.UserKind}
+				username := "selina@example.com"
+				user := &models.Identity{Name: username}
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
 
@@ -73,7 +73,7 @@ func TestLoginWithUserCredential(t *testing.T) {
 				err = data.CreateCredential(db, userCredential)
 				assert.NilError(t, err)
 
-				return email, "password"
+				return username, "password"
 			},
 			"verify": func(t *testing.T, secret string, user *models.Identity, requiresUpdate bool, err error) {
 				assert.NilError(t, err)
@@ -82,10 +82,10 @@ func TestLoginWithUserCredential(t *testing.T) {
 				assert.Assert(t, !requiresUpdate)
 			},
 		},
-		"ValidEmailAndValidSpecifiedPasswordCanBeReused": {
+		"ValidUsernameAndValidSpecifiedPasswordCanBeReused": {
 			"setup": func(t *testing.T, c *gin.Context, db *gorm.DB) (string, string) {
-				email := "penguin@example.com"
-				user := &models.Identity{Name: email, Kind: models.UserKind}
+				username := "penguin@example.com"
+				user := &models.Identity{Name: username}
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
 
@@ -100,10 +100,10 @@ func TestLoginWithUserCredential(t *testing.T) {
 				err = data.CreateCredential(db, userCredential)
 				assert.NilError(t, err)
 
-				_, _, _, err = LoginWithUserCredential(c, email, "password", time.Now().Add(time.Hour))
+				_, _, _, err = LoginWithPasswordCredential(c, username, "password", time.Now().Add(time.Hour))
 				assert.NilError(t, err)
 
-				return email, "password"
+				return username, "password"
 			},
 			"verify": func(t *testing.T, secret string, user *models.Identity, requiresUpdate bool, err error) {
 				assert.NilError(t, err)
@@ -112,10 +112,10 @@ func TestLoginWithUserCredential(t *testing.T) {
 				assert.Assert(t, !requiresUpdate)
 			},
 		},
-		"ValidEmailAndInvalidPasswordFails": {
+		"ValidUsernameAndInvalidPasswordFails": {
 			"setup": func(t *testing.T, c *gin.Context, db *gorm.DB) (string, string) {
-				email := "gordon@example.com"
-				user := &models.Identity{Name: email, Kind: models.UserKind}
+				username := "gordon@example.com"
+				user := &models.Identity{Name: username}
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
 
@@ -130,20 +130,20 @@ func TestLoginWithUserCredential(t *testing.T) {
 				err = data.CreateCredential(db, userCredential)
 				assert.NilError(t, err)
 
-				return email, "wrong_password"
+				return username, "wrong_password"
 			},
 			"verify": func(t *testing.T, secret string, user *models.Identity, requiresUpdate bool, err error) {
 				assert.ErrorContains(t, err, "password verify")
 			},
 		},
-		"ValidEmailAndNoCredentialsFails": {
+		"ValidUsernameAndNoCredentialsFails": {
 			"setup": func(t *testing.T, c *gin.Context, db *gorm.DB) (string, string) {
-				email := "edward@example.com"
-				user := &models.Identity{Name: email, Kind: models.UserKind}
+				username := "edward@example.com"
+				user := &models.Identity{Name: username}
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
 
-				return email, ""
+				return username, ""
 			},
 			"verify": func(t *testing.T, secret string, user *models.Identity, requiresUpdate bool, err error) {
 				assert.ErrorContains(t, err, "record not found")
@@ -155,9 +155,9 @@ func TestLoginWithUserCredential(t *testing.T) {
 		t.Run(k, func(t *testing.T) {
 			setupFunc, ok := v["setup"].(func(*testing.T, *gin.Context, *gorm.DB) (string, string))
 			assert.Assert(t, ok)
-			email, password := setupFunc(t, c, db)
+			username, password := setupFunc(t, c, db)
 
-			secret, user, requiresUpdate, err := LoginWithUserCredential(c, email, password, time.Now().Add(time.Hour))
+			secret, user, requiresUpdate, err := LoginWithPasswordCredential(c, username, password, time.Now().Add(time.Hour))
 
 			verifyFunc, ok := v["verify"].(func(*testing.T, string, *models.Identity, bool, error))
 			assert.Assert(t, ok)

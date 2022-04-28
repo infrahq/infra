@@ -6,8 +6,6 @@ import (
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
-
-	"github.com/infrahq/infra/internal/server/models"
 )
 
 func newInfoCmd(cli *CLI) *cobra.Command {
@@ -68,26 +66,24 @@ func info(cli *CLI) error {
 		fmt.Fprintf(w, "Identity Provider:\t %s (%s)\n", provider.Name, provider.URL)
 	}
 
-	if identity.Kind == models.UserKind.String() {
-		userGroups, err := client.ListIdentityGroups(identityID)
-		if err != nil {
-			return err
-		}
-
-		groups := "(none)"
-
-		if len(userGroups) > 0 {
-			g := make([]string, 0, len(userGroups))
-			for _, userGroup := range userGroups {
-				g = append(g, userGroup.Name)
-			}
-
-			groups = strings.Join(g, ", ")
-
-		}
-
-		fmt.Fprintf(w, "Groups:\t %s\n", groups)
+	identityGroups, err := client.ListIdentityGroups(identityID)
+	if err != nil {
+		return err
 	}
+
+	groups := "(none)"
+
+	if len(identityGroups) > 0 {
+		g := make([]string, 0, len(identityGroups))
+		for _, identityGroup := range identityGroups {
+			g = append(g, identityGroup.Name)
+		}
+
+		groups = strings.Join(g, ", ")
+
+	}
+
+	fmt.Fprintf(w, "Groups:\t %s\n", groups)
 
 	fmt.Fprintln(w)
 

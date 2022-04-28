@@ -230,7 +230,7 @@
             "type": "string"
           },
           "subject": {
-            "description": "a polymorphic field primarily expecting an user, or group ID",
+            "description": "a polymorphic field expecting an identity or group ID",
             "example": "i:4yJ3n3D8E3",
             "format": "poly-uid",
             "pattern": "\\w:[\\da-zA-HJ-NP-Z]{1,11}",
@@ -283,13 +283,6 @@
             "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           },
-          "kind": {
-            "enum": [
-              "user",
-              "machine"
-            ],
-            "type": "string"
-          },
           "lastSeenAt": {
             "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",
@@ -307,8 +300,7 @@
           }
         },
         "required": [
-          "name",
-          "kind"
+          "name"
         ]
       },
       "LoginResponse": {
@@ -1299,7 +1291,7 @@
                     "type": "string"
                   },
                   "subject": {
-                    "description": "a polymorphic field primarily expecting a user, machine, or group ID",
+                    "description": "a polymorphic field expecting an identity or group ID",
                     "example": "i:4yJ3n3D8E3",
                     "format": "poly-uid",
                     "pattern": "\\w:[\\da-zA-HJ-NP-Z]{1,11}",
@@ -2005,13 +1997,6 @@
             "application/json": {
               "schema": {
                 "properties": {
-                  "kind": {
-                    "enum": [
-                      "user",
-                      "machine"
-                    ],
-                    "type": "string"
-                  },
                   "name": {
                     "type": "string"
                   },
@@ -2020,8 +2005,7 @@
                   }
                 },
                 "required": [
-                  "name",
-                  "kind"
+                  "name"
                 ],
                 "type": "object"
               }
@@ -2584,7 +2568,7 @@
                   },
                   "passwordCredentials": {
                     "properties": {
-                      "email": {
+                      "name": {
                         "type": "string"
                       },
                       "password": {
@@ -2592,7 +2576,7 @@
                       }
                     },
                     "required": [
-                      "email",
+                      "name",
                       "password"
                     ],
                     "type": "object"
@@ -3298,8 +3282,7 @@
             "application/json": {
               "schema": {
                 "properties": {
-                  "email": {
-                    "example": "email@example.com",
+                  "name": {
                     "type": "string"
                   },
                   "password": {
@@ -3307,7 +3290,7 @@
                   }
                 },
                 "required": [
-                  "email",
+                  "name",
                   "password"
                 ],
                 "type": "object"

@@ -38,7 +38,7 @@ func setupAccessTestContext(t *testing.T) (*gin.Context, *gorm.DB, *models.Provi
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())
 	c.Set("db", db)
 
-	admin := &models.Identity{Name: "admin@example.com", Kind: models.UserKind}
+	admin := &models.Identity{Name: "admin@example.com"}
 	err := data.CreateIdentity(db, admin)
 	assert.NilError(t, err)
 
@@ -66,7 +66,7 @@ func setupAccessTestContext(t *testing.T) (*gin.Context, *gorm.DB, *models.Provi
 }
 
 var (
-	tom       = &models.Identity{Name: "tom@infrahq.com", Kind: models.UserKind}
+	tom       = &models.Identity{Name: "tom@infrahq.com"}
 	tomsGroup = &models.Group{Name: "tom's group"}
 )
 
@@ -123,7 +123,7 @@ func TestInfraRequireInfraRole(t *testing.T) {
 	db := setupDB(t)
 
 	setup := func(t *testing.T, infraRole string) *gin.Context {
-		testIdentity := &models.Identity{Name: fmt.Sprintf("infra-%s-%s", infraRole, time.Now()), Kind: models.MachineKind}
+		testIdentity := &models.Identity{Name: fmt.Sprintf("infra-%s-%s", infraRole, time.Now())}
 
 		err := data.CreateIdentity(db, testIdentity)
 		assert.NilError(t, err)
@@ -264,7 +264,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 		},
 		"ExistingUserNewGroups": {
 			"setup": func(t *testing.T, db *gorm.DB) authn.OIDC {
-				err := data.CreateIdentity(db, &models.Identity{Name: "existingusernewgroups@example.com", Kind: models.UserKind})
+				err := data.CreateIdentity(db, &models.Identity{Name: "existingusernewgroups@example.com"})
 				assert.NilError(t, err)
 
 				return &mockOIDCImplementation{
@@ -289,7 +289,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 		},
 		"ExistingUserExistingGroups": {
 			"setup": func(t *testing.T, db *gorm.DB) authn.OIDC {
-				err := data.CreateIdentity(db, &models.Identity{Name: "existinguserexistinggroups@example.com", Kind: models.UserKind})
+				err := data.CreateIdentity(db, &models.Identity{Name: "existinguserexistinggroups@example.com"})
 				assert.NilError(t, err)
 
 				err = data.CreateGroup(db, &models.Group{Name: "existinguserexistinggroups1"})

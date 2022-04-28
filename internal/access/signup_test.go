@@ -83,7 +83,7 @@ func TestSignupEnabled(t *testing.T) {
 		assert.Equal(t, enabled, false)
 
 		// check "admin" user can login
-		_, identity2, requireUpdate, err := LoginWithUserCredential(c, user, pass, time.Now().Add(time.Hour))
+		_, identity2, requireUpdate, err := LoginWithPasswordCredential(c, user, pass, time.Now().Add(time.Hour))
 		assert.NilError(t, err)
 		assert.DeepEqual(t, identity, identity2)
 		assert.Equal(t, requireUpdate, false)

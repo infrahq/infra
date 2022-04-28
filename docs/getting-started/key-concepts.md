@@ -65,7 +65,7 @@ Destinations are infrastructure resources that can be accessed via Infra. Some e
 
 `infra grants` – `/v1/grants`
 
-Grants are based on the simple relationships between users, groups, or machines (i.e. _subjects_), roles or permissions (i.e. _privileges_), and Kubernetes clusters or namespaces (referred to as _resources_)
+Grants are based on the simple relationships between identities/groups (i.e. _subjects_), roles/permissions (i.e. _privileges_), and Kubernetes clusters or namespaces (referred to as _resources_)
 
 Grants are implemented in an additive model where the base configuration is to not provide any access. As grants are applied to Infra, subjects will progressively gain access to Infra and connected destinations.
 

@@ -76,22 +76,22 @@ func UpdateCredential(c *gin.Context, user *models.Identity, newPassword string)
 	return nil
 }
 
-func LoginWithUserCredential(c *gin.Context, email, password string, expiry time.Time) (string, *models.Identity, bool, error) {
+func LoginWithPasswordCredential(c *gin.Context, name, password string, expiry time.Time) (string, *models.Identity, bool, error) {
 	db := getDB(c)
 
-	user, err := data.GetIdentity(db, data.ByName(email))
+	identity, err := data.GetIdentity(db, data.ByName(name))
 	if err != nil {
-		return "", nil, false, fmt.Errorf("%w: credentials email: %v", internal.ErrUnauthorized, err)
+		return "", nil, false, fmt.Errorf("%w: credentials name: %v", internal.ErrUnauthorized, err)
 	}
 
-	requiresUpdate, err := data.ValidateCredential(db, user, password)
+	requiresUpdate, err := data.ValidateCredential(db, identity, password)
 	if err != nil {
 		return "", nil, false, fmt.Errorf("%w: validate password: %v", internal.ErrUnauthorized, err)
 	}
 
 	// the password is valid
 	issuedAccessKey := &models.AccessKey{
-		IssuedFor:  user.ID,
+		IssuedFor:  identity.ID,
 		ProviderID: InfraProvider(c).ID,
 		ExpiresAt:  expiry,
 	}
@@ -101,5 +101,5 @@ func LoginWithUserCredential(c *gin.Context, email, password string, expiry time
 		return "", nil, false, fmt.Errorf("create token for creds: %w", err)
 	}
 
-	return secret, user, requiresUpdate, nil
+	return secret, identity, requiresUpdate, nil
 }

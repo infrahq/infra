@@ -10,6 +10,10 @@ test:
 test-all:
 	go test ./...
 
+# update the expected command output file
+test/update:
+	go test ./internal/cmd -test.update-golden
+
 .PHONY: helm
 helm:
 	helm package -d $@ helm/charts/* --version $(version) --app-version $(version)

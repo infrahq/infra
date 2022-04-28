@@ -14,7 +14,7 @@ server:
     - group: Everyone
       role: cluster-admin
       resource: kubernetes.docker-desktop
-    - machine: admin
+    - user: admin
       role: cluster-admin
       resource: kubernetes.docker-desktop
 

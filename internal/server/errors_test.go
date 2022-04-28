@@ -60,36 +60,6 @@ func TestSendAPIError(t *testing.T) {
 				Message: "not implemented",
 			},
 		},
-		{
-			err: validate.Struct(struct {
-				Email string `validate:"required,email" json:"email"`
-			}{}),
-			result: api.Error{
-				Code:    http.StatusBadRequest,
-				Message: "Email: is required",
-				FieldErrors: []api.FieldError{
-					{
-						FieldName: "Email",
-						Errors:    []string{"is required"},
-					},
-				},
-			},
-		},
-		{
-			err: validate.Struct(struct {
-				Email string `validate:"required,email" json:"email"`
-			}{Email: "foo#example!com"}),
-			result: api.Error{
-				Code:    http.StatusBadRequest,
-				Message: `Email: failed the "email" check`,
-				FieldErrors: []api.FieldError{
-					{
-						FieldName: "Email",
-						Errors:    []string{`failed the "email" check`},
-					},
-				},
-			},
-		},
 	}
 
 	for _, test := range tests {

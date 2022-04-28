@@ -274,10 +274,6 @@ func setTagInfo(f reflect.StructField, t, parent reflect.Type, schema, parentSch
 			if strings.HasPrefix(val, "oneof=") {
 				schema.Enum = parseOneOf(val)
 			}
-
-			if val == "email" {
-				schema.Example = "email@example.com"
-			}
 		}
 	}
 }
@@ -505,10 +501,6 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 
 					if strings.HasPrefix(val, "oneof=") {
 						schema.Enum = parseOneOf(val)
-					}
-
-					if val == "email" {
-						p.Example = "email@example.com"
 					}
 				}
 			}

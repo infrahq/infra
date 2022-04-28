@@ -24,9 +24,9 @@ func TestKeysAddCmd(t *testing.T) {
 		requestCh := make(chan api.CreateAccessKeyRequest, 1)
 
 		handler := func(resp http.ResponseWriter, req *http.Request) {
-			// the command does a lookup for machine ID
+			// the command does a lookup for identity ID
 			if requestMatches(req, http.MethodGet, "/v1/identities") {
-				if req.URL.Query().Get("name") != "my-machine" {
+				if req.URL.Query().Get("name") != "my-user" {
 					resp.WriteHeader(http.StatusBadRequest)
 					return
 				}
@@ -70,7 +70,7 @@ func TestKeysAddCmd(t *testing.T) {
 		ch := setup(t)
 
 		ctx := context.Background()
-		err := Run(ctx, "keys", "add", "--ttl=400h", "--extension-deadline=5h", "--name=the-name", "my-machine")
+		err := Run(ctx, "keys", "add", "--ttl=400h", "--extension-deadline=5h", "--name=the-name", "my-user")
 		assert.NilError(t, err)
 
 		req := <-ch
@@ -116,9 +116,9 @@ func TestKeysListCmd(t *testing.T) {
 		handler := func(resp http.ResponseWriter, req *http.Request) {
 			query := req.URL.Query()
 
-			// the command does a lookup for machine ID
+			// the command does a lookup for identity ID
 			if requestMatches(req, http.MethodGet, "/v1/identities") {
-				if query.Get("name") != "my-machine" {
+				if query.Get("name") != "my-user" {
 					resp.WriteHeader(http.StatusBadRequest)
 					return
 				}
@@ -139,9 +139,9 @@ func TestKeysListCmd(t *testing.T) {
 			if query.Get("identity_id") == uid.ID(12345678).String() {
 				err := json.NewEncoder(resp).Encode([]api.AccessKey{
 					{
-						Name:          "machine-key",
+						Name:          "user-key",
 						IssuedFor:     uid.ID(12345678),
-						IssuedForName: "my-machine",
+						IssuedForName: "my-user",
 						Created:       api.Time(base.Add(5 * time.Minute)),
 						Expires:       api.Time(base.Add(30 * time.Hour)),
 					},
@@ -193,11 +193,11 @@ func TestKeysListCmd(t *testing.T) {
 		golden.Assert(t, bufs.Stdout.String(), t.Name())
 	})
 
-	t.Run("filter by machine name", func(t *testing.T) {
+	t.Run("filter by identity name", func(t *testing.T) {
 		setup(t)
 		ctx, bufs := PatchCLI(context.Background())
 
-		err := Run(ctx, "keys", "list", "--machine", "my-machine")
+		err := Run(ctx, "keys", "list", "--identity", "my-user")
 		assert.NilError(t, err)
 
 		golden.Assert(t, bufs.Stdout.String(), t.Name())

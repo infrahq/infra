@@ -3,7 +3,6 @@ package data
 import (
 	"gorm.io/gorm"
 
-	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -110,12 +109,6 @@ func ByIssuedFor(id uid.ID) SelectorFunc {
 func ByIdentityID(identityID uid.ID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("identity_id = ?", identityID)
-	}
-}
-
-func ByKind(kind models.IdentityKind) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("kind = ?", kind)
 	}
 }
 

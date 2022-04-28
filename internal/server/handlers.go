@@ -55,17 +55,9 @@ func (a *API) GetIdentity(c *gin.Context, r *api.GetIdentityRequest) (*api.Ident
 }
 
 func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api.CreateIdentityResponse, error) {
-	kind, err := models.ParseIdentityKind(r.Kind)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %v", internal.ErrBadRequest, err)
-	}
+	identity := &models.Identity{Name: r.Name}
 
-	identity := &models.Identity{
-		Name: r.Name,
-		Kind: kind,
-	}
-
-	setOTP := r.SetOneTimePassword && (identity.Kind == models.UserKind)
+	setOTP := r.SetOneTimePassword
 
 	// infra identity creation should be attempted even if an identity is already known
 	if setOTP {
@@ -82,7 +74,7 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 		case 1:
 			identity.ID = identities[0].ID
 		default:
-			return nil, fmt.Errorf("multiple identities match specified name")
+			return nil, fmt.Errorf("multiple identities match specified name") // should not happen
 		}
 	} else {
 		if err := access.CreateIdentity(c, identity); err != nil {
@@ -96,7 +88,7 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 	}
 
 	if setOTP {
-		_, err = access.CreateProviderUser(c, access.InfraProvider(c), identity)
+		_, err := access.CreateProviderUser(c, access.InfraProvider(c), identity)
 		if err != nil {
 			return nil, fmt.Errorf("create provider user")
 		}
@@ -119,10 +111,6 @@ func (a *API) UpdateIdentity(c *gin.Context, r *api.UpdateIdentityRequest) (*api
 	identity, err := access.GetIdentity(c, r.ID)
 	if err != nil {
 		return nil, err
-	}
-
-	if identity.Kind != models.UserKind {
-		return nil, fmt.Errorf("%w: machine identity has no password to update", internal.ErrBadRequest)
 	}
 
 	err = access.UpdateCredential(c, identity, r.Password)
@@ -519,7 +507,7 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.Identity, error
 		return nil, internal.ErrForbidden
 	}
 
-	identity, err := access.Signup(c, r.Email, r.Password)
+	identity, err := access.Signup(c, r.Name, r.Password)
 	if err != nil {
 		return nil, err
 	}
@@ -543,7 +531,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 		return &api.LoginResponse{PolymorphicID: identity.PolyID(), Name: identity.Name, AccessKey: key, Expires: api.Time(expires)}, nil
 	case r.PasswordCredentials != nil:
-		key, user, requiresUpdate, err := access.LoginWithUserCredential(c, r.PasswordCredentials.Email, r.PasswordCredentials.Password, expires)
+		key, user, requiresUpdate, err := access.LoginWithPasswordCredential(c, r.PasswordCredentials.Name, r.PasswordCredentials.Password, expires)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %v", internal.ErrUnauthorized, err.Error())
 		}

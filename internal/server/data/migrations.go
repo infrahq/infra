@@ -191,25 +191,6 @@ func migrate(db *gorm.DB) error {
 				return tx.Migrator().RenameTable("identities", "users")
 			},
 		},
-		// #1284: set identity user kind
-		{
-			ID: "202203301644",
-			Migrate: func(tx *gorm.DB) error {
-				logging.S.Info("running migration 202203301644")
-				if tx.Migrator().HasColumn(&models.Identity{}, "email") {
-					if err := tx.Migrator().AddColumn(&models.Identity{}, "kind"); err != nil {
-						return err
-					}
-					// everything in the identity table should be a user at this point
-					return db.Model(&models.Identity{}).Where("1 = 1").Update("kind", "user").Error
-				}
-
-				return nil
-			},
-			Rollback: func(tx *gorm.DB) error {
-				return tx.Migrator().DropColumn(&models.Identity{}, "kind")
-			},
-		},
 		// #1284: set identity user from email
 		{
 			ID: "202203301645",
@@ -248,7 +229,6 @@ func migrate(db *gorm.DB) error {
 					for _, machine := range machines {
 						identity := &models.Identity{
 							Model:      machine.Model,
-							Kind:       models.MachineKind,
 							Name:       machine.Name,
 							LastSeenAt: machine.LastSeenAt,
 						}
@@ -261,9 +241,7 @@ func migrate(db *gorm.DB) error {
 
 				return nil
 			},
-			Rollback: func(tx *gorm.DB) error {
-				return DeleteIdentities(db, ByKind(models.MachineKind))
-			},
+			// unable to rollback, context is lost
 		},
 		// #1284: migrate identity grants
 		{
@@ -342,7 +320,6 @@ func migrate(db *gorm.DB) error {
 					models.Model
 
 					ProviderID uid.ID
-					Kind       models.IdentityKind
 					Name       string `gorm:"uniqueIndex:idx_identities_name_provider_id,where:deleted_at is NULL"`
 				}
 				identityTable := &Identity{}
@@ -471,6 +448,19 @@ func migrate(db *gorm.DB) error {
 			ID: "202204281130",
 			Migrate: func(tx *gorm.DB) error {
 				return tx.Migrator().DropColumn(&models.Settings{}, "signup_enabled")
+			},
+		},
+		// #1657: get rid of identity kind
+		{
+			ID: "202204291613",
+			Migrate: func(tx *gorm.DB) error {
+				if tx.Migrator().HasColumn(&models.Identity{}, "kind") {
+					if err := tx.Migrator().DropColumn(&models.Identity{}, "kind"); err != nil {
+						return err
+					}
+				}
+
+				return nil
 			},
 		},
 		// next one here

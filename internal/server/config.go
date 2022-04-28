@@ -29,17 +29,17 @@ type Provider struct {
 type Grant struct {
 	User     string `mapstructure:"user" validate:"excluded_with=Group,excluded_with=Machine"`
 	Group    string `mapstructure:"group" validate:"excluded_with=User,excluded_with=Machine"`
-	Machine  string `mapstructure:"machine" validate:"excluded_with=User,excluded_with=Group"`
+	Machine  string `mapstructure:"machine" validate:"excluded_with=User,excluded_with=Group"` // deprecated
 	Role     string `mapstructure:"role" validate:"required"`
 	Resource string `mapstructure:"resource" validate:"required"`
 }
 
 type Identity struct {
-	Name      string `mapstructure:"name" validate:"excluded_with=Email,excluded_with=Password"`
-	AccessKey string `mapstructure:"accessKey" validate:"excluded_with=Email,excluded_with=Password"`
+	Name      string `mapstructure:"name" validate:"excluded_with=Email"`
+	AccessKey string `mapstructure:"accessKey" validate:"excluded_with=Password"`
 
-	Email    string `mapstructure:"email" validate:"excluded_with=Name,excluded_with=AccessKey"`
-	Password string `mapstructure:"password" validate:"excluded_with=Name,excluded_with=AccessKey"`
+	Email    string `mapstructure:"email" validate:"excluded_with=Name"`
+	Password string `mapstructure:"password" validate:"excluded_with=AccessKey"`
 }
 
 type Config struct {
@@ -98,7 +98,7 @@ type KubernetesConfig struct {
 type VaultConfig struct {
 	TransitMount string `mapstructure:"transitMount"`              // mounting point. defaults to /transit
 	SecretMount  string `mapstructure:"secretMount"`               // mounting point. defaults to /secret
-	Token        string `mapstructure:"token" validate:"required"` // vault token... should authenticate as machine to vault instead?
+	Token        string `mapstructure:"token" validate:"required"` // vault token
 	Namespace    string `mapstructure:"namespace"`
 	Address      string `mapstructure:"address" validate:"required"`
 }
@@ -539,31 +539,32 @@ func (s Server) loadConfig(config Config) error {
 		})
 
 		config.Grants = append(config.Grants, Grant{
-			Machine:  models.InternalInfraConnectorIdentityName,
+			User:     models.InternalInfraConnectorIdentityName,
 			Role:     models.InfraConnectorRole,
 			Resource: "infra",
 		})
 
 		if err := s.loadProviders(tx, config.Providers); err != nil {
-			return err
+			return fmt.Errorf("load providers: %w", err)
 		}
 
 		// extract identities from grants and add them to identities
 		for _, g := range config.Grants {
 			switch {
 			case g.User != "":
-				config.Identities = append(config.Identities, Identity{Email: g.User})
+				config.Identities = append(config.Identities, Identity{Name: g.User})
 			case g.Machine != "":
+				logging.S.Warn("please update 'machine' grant to 'user', the 'machine' grant type will be deprecated in a future release")
 				config.Identities = append(config.Identities, Identity{Name: g.Machine})
 			}
 		}
 
 		if err := s.loadIdentities(tx, config.Identities); err != nil {
-			return err
+			return fmt.Errorf("load identities: %w", err)
 		}
 
 		if err := s.loadGrants(tx, config.Grants); err != nil {
-			return err
+			return fmt.Errorf("load grants: %w", err)
 		}
 
 		return nil
@@ -678,6 +679,7 @@ func (Server) loadGrant(db *gorm.DB, input Grant) (*models.Grant, error) {
 
 		id = uid.NewGroupPolymorphicID(group.ID)
 
+	// TODO: this gotta go
 	case input.Machine != "":
 		machine, err := data.GetIdentity(db, data.ByName(input.Machine))
 		if err != nil {
@@ -742,10 +744,11 @@ func (s Server) loadIdentities(db *gorm.DB, identities []Identity) error {
 
 func (s Server) loadIdentity(db *gorm.DB, input Identity, provider *models.Provider) (*models.Identity, error) {
 	name := input.Name
-	kind := models.MachineKind
-	if input.Email != "" {
-		name = input.Email
-		kind = models.UserKind
+	if name == "" {
+		if input.Email != "" {
+			logging.S.Warn("please update 'email' config identity to 'name', the 'email' identity label will be deprecated in a future release")
+			name = input.Email
+		}
 	}
 
 	identity, err := data.GetIdentity(db, data.ByName(name))
@@ -756,7 +759,6 @@ func (s Server) loadIdentity(db *gorm.DB, input Identity, provider *models.Provi
 
 		identity = &models.Identity{
 			Name:      name,
-			Kind:      kind,
 			CreatedBy: models.CreatedBySystem,
 		}
 
