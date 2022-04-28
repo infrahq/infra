@@ -50,7 +50,7 @@ func info(cli *CLI) error {
 		return err
 	}
 
-	identity, err := client.GetIdentity(identityID)
+	identity, err := client.GetUser(identityID)
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func info(cli *CLI) error {
 		fmt.Fprintf(w, "Identity Provider:\t %s (%s)\n", provider.Name, provider.URL)
 	}
 
-	identityGroups, err := client.ListIdentityGroups(identityID)
+	identityGroups, err := client.ListUserGroups(identityID)
 	if err != nil {
 		return err
 	}

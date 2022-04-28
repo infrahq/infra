@@ -297,7 +297,7 @@ func updateUserPassword(client *api.Client, id uid.ID, oldPassword string) error
 		return err
 	}
 
-	if _, err := client.UpdateIdentity(&api.UpdateIdentityRequest{ID: id, Password: newPassword}); err != nil {
+	if _, err := client.UpdateUser(&api.UpdateUserRequest{ID: id, Password: newPassword}); err != nil {
 		return fmt.Errorf("update user login: %w", err)
 	}
 

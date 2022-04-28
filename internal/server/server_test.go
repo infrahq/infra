@@ -380,7 +380,7 @@ func TestServer_PersistSignupUser(t *testing.T) {
 	routes.ServeHTTP(resp, req)
 	assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
 
-	signupResp := &api.CreateIdentityResponse{}
+	signupResp := &api.CreateUserResponse{}
 	err = json.Unmarshal(resp.Body.Bytes(), signupResp)
 	assert.NilError(t, err)
 
@@ -399,7 +399,7 @@ func TestServer_PersistSignupUser(t *testing.T) {
 	assert.NilError(t, err)
 
 	checkAuthenticated := func() {
-		req = httptest.NewRequest(http.MethodGet, "/v1/identities", nil)
+		req = httptest.NewRequest(http.MethodGet, "/v1/users", nil)
 		req.Header.Set("Authorization", "Bearer "+loginResp.AccessKey)
 		resp = httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)

@@ -17,7 +17,7 @@ export default function () {
         }
       })
     })
-    await mutate('/v1/identities/self')
+    await mutate('/v1/users/self')
     router.replace('/')
   }
 

@@ -7,7 +7,7 @@ metadata:
 {{- include "server.labels" . | nindent 4 }}
 data:
   infra.yaml: |
-{{- range $key, $val := omit .Values.server.config "providers" "grants" "identities" "secrets" "keys" }}
+{{- range $key, $val := omit .Values.server.config "providers" "grants" "users" "identities" "secrets" "keys" }}
 {{- if kindIs "invalid" $val }}
     # skipping invalid value: {{ $val }} ({{ kindOf $val }})
 {{- else if kindIs "map" $val }}
@@ -22,6 +22,8 @@ data:
     {{ $key }}: {{ $val }}
 {{- end }}
 {{- end }}
+
+    version: 0.2
 
 {{- if .Values.server.persistence.enabled }}
 
@@ -40,15 +42,16 @@ data:
     grants:
 {{- .Values.server.config.grants | default list | concat .Values.server.additionalGrants | uniq | toYaml | nindent 6 }}
 
-    identities:
-{{- $identities := .Values.server.config.identities | default list | concat .Values.server.additionalIdentities }}
+    users:
+{{- $identities := .Values.server.config.identities | default list }}
+{{- $users := .Values.server.config.users | default list | concat .Values.server.additionalUsers .Values.server.additionalIdentities $identities}}
 
 {{- if .Values.server.config.adminAccessKey }}
 {{- $adminAccessKey := .Values.server.config.adminAccessKey -}}
 {{- if and (not (hasPrefix "file:" $adminAccessKey)) (not (hasPrefix "env:" $adminAccessKey)) }}
 {{- $adminAccessKey = "env:ADMIN_ACCESS_KEY" }}
 {{- end }}
-{{- $identities = append $identities (dict "name" "admin" "accessKey" $adminAccessKey) }}
+{{- $users = append $users (dict "name" "admin" "accessKey" $adminAccessKey) }}
 {{- end }}
 
 {{- if include "connector.enabled" . | eq "true" }}
@@ -56,10 +59,10 @@ data:
 {{- if or (not $accessKey) (and (not (hasPrefix "file:" $accessKey)) (not (hasPrefix "env:" $accessKey))) }}
 {{- $accessKey = "env:CONNECTOR_ACCESS_KEY" }}
 {{- end }}
-{{- $identities = append $identities (dict "name" "connector" "accessKey" $accessKey) }}
+{{- $users = append $users (dict "name" "connector" "accessKey" $accessKey) }}
 {{- end }}
 
-{{- $identities | uniq | toYaml | nindent 6 }}
+{{- $users | uniq | toYaml | nindent 6 }}
 
     secrets:
 {{- .Values.server.config.secrets | default list | concat .Values.server.additionalSecrets | uniq | toYaml | nindent 6 }}

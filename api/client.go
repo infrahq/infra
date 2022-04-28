@@ -203,36 +203,36 @@ func addHeaders(req *http.Request, headers http.Header) {
 	}
 }
 
-func (c Client) ListIdentities(req ListIdentitiesRequest) (*ListResponse[Identity], error) {
+func (c Client) ListUsers(req ListUsersRequest) (*ListResponse[User], error) {
 	ids := slice.Map[uid.ID, string](req.IDs, func(id uid.ID) string {
 		return id.String()
 	})
-	return list[ListResponse[Identity]](c, "/v1/identities", map[string][]string{"name": {req.Name}, "ids": ids})
+	return list[ListResponse[User]](c, "/v1/users", map[string][]string{"name": {req.Name}, "ids": ids})
 }
 
-func (c Client) GetIdentity(id uid.ID) (*Identity, error) {
-	return get[Identity](c, fmt.Sprintf("/v1/identities/%s", id))
+func (c Client) GetUser(id uid.ID) (*User, error) {
+	return get[User](c, fmt.Sprintf("/v1/users/%s", id))
 }
 
-func (c Client) CreateIdentity(req *CreateIdentityRequest) (*CreateIdentityResponse, error) {
-	return post[CreateIdentityRequest, CreateIdentityResponse](c, "/v1/identities", req)
+func (c Client) CreateUser(req *CreateUserRequest) (*CreateUserResponse, error) {
+	return post[CreateUserRequest, CreateUserResponse](c, "/v1/users", req)
 }
 
-func (c Client) UpdateIdentity(req *UpdateIdentityRequest) (*Identity, error) {
-	return put[UpdateIdentityRequest, Identity](c, fmt.Sprintf("/v1/identities/%s", req.ID.String()), req)
+func (c Client) UpdateUser(req *UpdateUserRequest) (*User, error) {
+	return put[UpdateUserRequest, User](c, fmt.Sprintf("/v1/users/%s", req.ID.String()), req)
 }
 
-func (c Client) DeleteIdentity(id uid.ID) error {
-	return delete(c, fmt.Sprintf("/v1/identities/%s", id))
+func (c Client) DeleteUser(id uid.ID) error {
+	return delete(c, fmt.Sprintf("/v1/users/%s", id))
 }
 
 // Deprecated: use ListGrants
-func (c Client) ListIdentityGrants(id uid.ID) (*ListResponse[Grant], error) {
-	return list[ListResponse[Grant]](c, fmt.Sprintf("/v1/identities/%s/grants", id), nil)
+func (c Client) ListUserGrants(id uid.ID) (*ListResponse[Grant], error) {
+	return list[ListResponse[Grant]](c, fmt.Sprintf("/v1/users/%s/grants", id), nil)
 }
 
-func (c Client) ListIdentityGroups(id uid.ID) (*ListResponse[Group], error) {
-	return list[ListResponse[Group]](c, fmt.Sprintf("/v1/identities/%s/groups", id), nil)
+func (c Client) ListUserGroups(id uid.ID) (*ListResponse[Group], error) {
+	return list[ListResponse[Group]](c, fmt.Sprintf("/v1/users/%s/groups", id), nil)
 }
 
 func (c Client) ListGroups(req ListGroupsRequest) (*ListResponse[Group], error) {
@@ -274,7 +274,7 @@ func (c Client) DeleteProvider(id uid.ID) error {
 
 func (c Client) ListGrants(req ListGrantsRequest) (*ListResponse[Grant], error) {
 	return list[ListResponse[Grant]](c, "/v1/grants", map[string][]string{
-		"identity":  {req.Identity.String()},
+		"identity":  {req.User.String()},
 		"group":     {req.Group.String()},
 		"resource":  {req.Resource},
 		"privilege": {req.Privilege},
@@ -310,8 +310,8 @@ func (c Client) DeleteDestination(id uid.ID) error {
 
 func (c Client) ListAccessKeys(req ListAccessKeysRequest) (*ListResponse[AccessKey], error) {
 	return list[ListResponse[AccessKey]](c, "/v1/access-keys", map[string][]string{
-		"identity_id": {req.IdentityID.String()},
-		"name":        {req.Name},
+		"user_id": {req.UserID.String()},
+		"name":    {req.Name},
 	})
 }
 

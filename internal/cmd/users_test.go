@@ -29,7 +29,7 @@ func TestCheckPasswordRequirements(t *testing.T) {
 	assert.ErrorContains(t, err, "unexpected type for password")
 }
 
-func TestIdentitiesCmd(t *testing.T) {
+func TestUsersCmd(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
 	t.Setenv("USERPROFILE", homeDir) // for windows
@@ -37,7 +37,7 @@ func TestIdentitiesCmd(t *testing.T) {
 	providerID := uid.New()
 
 	setup := func(t *testing.T) *[]models.Identity {
-		modifiedIdentities := []models.Identity{}
+		modifiedUsers := []models.Identity{}
 
 		handler := func(resp http.ResponseWriter, req *http.Request) {
 			if strings.Contains(req.URL.Path, "/v1/providers") {
@@ -55,43 +55,37 @@ func TestIdentitiesCmd(t *testing.T) {
 				return
 			}
 
-			if strings.Contains(req.URL.Path, "/v1/identities") {
+			if strings.Contains(req.URL.Path, "/v1/users") {
 				switch req.Method {
 				case http.MethodPost:
-					createIdentityReq := api.CreateIdentityRequest{}
+					createUserReq := api.CreateUserRequest{}
 
-					err := json.NewDecoder(req.Body).Decode(&createIdentityReq)
+					err := json.NewDecoder(req.Body).Decode(&createUserReq)
 					assert.NilError(t, err)
 
-					respBody := api.CreateIdentityResponse{
+					respBody := api.CreateUserResponse{
 						ID:   uid.New(),
-						Name: createIdentityReq.Name,
+						Name: createUserReq.Name,
 					}
 
-					modifiedIdentities = append(modifiedIdentities, models.Identity{Name: createIdentityReq.Name})
+					modifiedUsers = append(modifiedUsers, models.Identity{Name: createUserReq.Name})
 
 					b, err := json.Marshal(&respBody)
 					assert.NilError(t, err)
 					_, _ = resp.Write(b)
 					return
 				case http.MethodGet:
-					b, err := json.Marshal(api.ListResponse[api.Identity]{
-						Items: []api.Identity{
-							{
-								ID: uid.New(), Name: "to-delete-user@example.com",
-							},
-						},
-					})
+					b, err := json.Marshal(api.ListResponse[api.User]{Items: []api.User{{Name: "to-delete-user@example.com"}}})
 					assert.NilError(t, err)
 					_, _ = resp.Write(b)
 					return
 				case http.MethodDelete:
-					id := req.URL.Path[len("/v1/identities/"):]
+					id := req.URL.Path[len("/v1/users/"):]
 
 					uid, err := uid.Parse([]byte(id))
 					assert.NilError(t, err)
 
-					modifiedIdentities = append(modifiedIdentities, models.Identity{Model: models.Model{ID: uid}})
+					modifiedUsers = append(modifiedUsers, models.Identity{Model: models.Model{ID: uid}})
 
 					resp.WriteHeader(http.StatusNoContent)
 					return
@@ -104,59 +98,59 @@ func TestIdentitiesCmd(t *testing.T) {
 		srv := httptest.NewTLSServer(http.HandlerFunc(handler))
 		t.Cleanup(srv.Close)
 
-		cfg := newTestClientConfig(srv, api.Identity{})
+		cfg := newTestClientConfig(srv, api.User{})
 		err := writeConfig(&cfg)
 		assert.NilError(t, err)
 
-		return &modifiedIdentities
+		return &modifiedUsers
 	}
 
-	t.Run("add identity", func(t *testing.T) {
-		modifiedIdentities := setup(t)
-		err := Run(context.Background(), "id", "add", "new-user@example.com")
+	t.Run("add user", func(t *testing.T) {
+		modifiedUsers := setup(t)
+		err := Run(context.Background(), "users", "add", "new-user@example.com")
 		assert.NilError(t, err)
 
-		assert.Equal(t, len(*modifiedIdentities), 1)
+		assert.Equal(t, len(*modifiedUsers), 1)
 	})
 
 	t.Run("add without required argument", func(t *testing.T) {
-		err := Run(context.Background(), "id", "add")
-		assert.ErrorContains(t, err, `"infra identities add" requires exactly 1 argument`)
-		assert.ErrorContains(t, err, `Usage:  infra identities add IDENTITY`)
+		err := Run(context.Background(), "users", "add")
+		assert.ErrorContains(t, err, `"infra users add" requires exactly 1 argument`)
+		assert.ErrorContains(t, err, `Usage:  infra users add USER`)
 	})
 
-	t.Run("edit identity no password flag", func(t *testing.T) {
+	t.Run("edit user no password flag", func(t *testing.T) {
 		setup(t)
-		err := Run(context.Background(), "id", "edit", "new-user@example.com")
-		assert.ErrorContains(t, err, "Please specify a field to update. For options, run 'infra identities edit --help'")
+		err := Run(context.Background(), "users", "edit", "new-user@example.com")
+		assert.ErrorContains(t, err, "Please specify a field to update. For options, run 'infra users edit --help'")
 	})
 
-	t.Run("edit identity interactive with password", func(t *testing.T) {
+	t.Run("edit user interactive with password", func(t *testing.T) {
 		setup(t)
 		t.Setenv("INFRA_PASSWORD", "true")
 		t.Setenv("INFRA_NON_INTERACTIVE", "true")
-		err := Run(context.Background(), "id", "edit", "new-user@example.com")
+		err := Run(context.Background(), "users", "edit", "new-user@example.com")
 		assert.ErrorContains(t, err, "Non-interactive mode is not supported to edit sensitive fields.")
 	})
 
 	t.Run("edit without required argument", func(t *testing.T) {
-		err := Run(context.Background(), "id", "edit")
-		assert.ErrorContains(t, err, `"infra identities edit" requires exactly 1 argument`)
-		assert.ErrorContains(t, err, `Usage:  infra identities edit IDENTITY`)
+		err := Run(context.Background(), "users", "edit")
+		assert.ErrorContains(t, err, `"infra users edit" requires exactly 1 argument`)
+		assert.ErrorContains(t, err, `Usage:  infra users edit USER`)
 	})
 
-	t.Run("removes only the specified identity", func(t *testing.T) {
-		modifiedIdentities := setup(t)
+	t.Run("removes only the specified user", func(t *testing.T) {
+		modifiedUsers := setup(t)
 		ctx := context.Background()
-		err := Run(ctx, "id", "remove", "to-delete-user@example.com")
+		err := Run(ctx, "users", "remove", "to-delete-user@example.com")
 		assert.NilError(t, err)
 
-		assert.Equal(t, len(*modifiedIdentities), 1)
+		assert.Equal(t, len(*modifiedUsers), 1)
 	})
 
 	t.Run("remove without required argument", func(t *testing.T) {
-		err := Run(context.Background(), "id", "remove")
-		assert.ErrorContains(t, err, `"infra identities remove" requires exactly 1 argument`)
-		assert.ErrorContains(t, err, `Usage:  infra identities remove IDENTITY`)
+		err := Run(context.Background(), "users", "remove")
+		assert.ErrorContains(t, err, `"infra users remove" requires exactly 1 argument`)
+		assert.ErrorContains(t, err, `Usage:  infra users remove USER`)
 	})
 }

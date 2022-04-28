@@ -22,8 +22,8 @@ type Identity struct {
 	Groups []Group `gorm:"many2many:identities_groups"`
 }
 
-func (i *Identity) ToAPI() *api.Identity {
-	return &api.Identity{
+func (i *Identity) ToAPI() *api.User {
+	return &api.User{
 		ID:         i.ID,
 		Created:    api.Time(i.CreatedAt),
 		Updated:    api.Time(i.UpdatedAt),

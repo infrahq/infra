@@ -70,8 +70,8 @@ API tend to be very flat. Some examples include:
 | :------------------ | :----------------------------- |
 | /v1/destinations    | Kubernetes resources           |
 | /v1/users           | Users                          |
-| /v1/users/%s/grants | Grants for a specific identity |
-| /v1/users/%s/groups | Groups for a specific identity |
+| /v1/users/%s/grants | Grants for a specific user     |
+| /v1/users/%s/groups | Groups for a specific user     |
 | /v1/grants          | Authorization grants           |
 | /v1/groups          | Groups and group membership    |
 | /v1/providers       | Identity providers             |

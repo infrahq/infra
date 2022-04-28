@@ -12,7 +12,7 @@ function Grant ({ id }) {
     return null
   }
 
-  const { data: user } = useSWR(`/v1/identities/${id.replace('i:', '')}`, { fallbackData: { name: '' } })
+  const { data: user } = useSWR(`/v1/users/${id.replace('i:', '')}`, { fallbackData: { name: '' } })
 
   return (
     <p className='text-sm'>{user.name}</p>
@@ -65,7 +65,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
     if (validateEmail(email)) {
       setError('')
       try {
-        let res = await fetch(`/v1/identities?name=${email}`)
+        let res = await fetch(`/v1/users?name=${email}`)
         const data = await res.json()
 
         if(!res.ok) {
@@ -73,9 +73,9 @@ export default function ({ id, modalOpen, handleCloseModal }) {
         }
 
         if (data.length === 0) {
-          res = await fetch('/v1/identities', {
+          res = await fetch('/v1/users', {
                   method: 'POST',
-                  body: JSON.stringify({ name: email, kind: 'user' })
+                  body: JSON.stringify({ name: email })
                 })
           const user = await res.json()
 

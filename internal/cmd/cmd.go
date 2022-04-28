@@ -260,7 +260,7 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 	// Management commands:
 	rootCmd.AddCommand(newDestinationsCmd(cli))
 	rootCmd.AddCommand(newGrantsCmd(cli))
-	rootCmd.AddCommand(newIdentitiesCmd(cli))
+	rootCmd.AddCommand(newUsersCmd(cli))
 	rootCmd.AddCommand(newKeysCmd(cli))
 	rootCmd.AddCommand(newProvidersCmd(cli))
 

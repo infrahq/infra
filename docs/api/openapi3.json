@@ -48,7 +48,20 @@
           }
         }
       },
-      "CreateIdentityResponse": {
+      "CreateTokenResponse": {
+        "properties": {
+          "expires": {
+            "description": "formatted as an RFC3339 date-time",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateUserResponse": {
         "properties": {
           "id": {
             "example": "4yJ3n3D8E2",
@@ -66,19 +79,6 @@
         "required": [
           "name"
         ]
-      },
-      "CreateTokenResponse": {
-        "properties": {
-          "expires": {
-            "description": "formatted as an RFC3339 date-time",
-            "example": "2022-03-14T09:48:00Z",
-            "format": "date-time",
-            "type": "string"
-          },
-          "token": {
-            "type": "string"
-          }
-        }
       },
       "Destination": {
         "properties": {
@@ -163,7 +163,7 @@
             "type": "string"
           },
           "created_by": {
-            "description": "id of the identity that created the grant",
+            "description": "id of the user that created the grant",
             "example": "4yJ3n3D8E2",
             "format": "uid",
             "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
@@ -181,12 +181,6 @@
             "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           },
-          "identity": {
-            "example": "4yJ3n3D8E2",
-            "format": "uid",
-            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-            "type": "string"
-          },
           "privilege": {
             "description": "a role or permission",
             "type": "string"
@@ -199,6 +193,12 @@
             "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
+            "type": "string"
+          },
+          "user": {
+            "example": "4yJ3n3D8E2",
+            "format": "uid",
+            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           }
         }
@@ -227,40 +227,6 @@
             "type": "string"
           }
         }
-      },
-      "Identity": {
-        "properties": {
-          "created": {
-            "description": "formatted as an RFC3339 date-time",
-            "example": "2022-03-14T09:48:00Z",
-            "format": "date-time",
-            "type": "string"
-          },
-          "id": {
-            "example": "4yJ3n3D8E2",
-            "format": "uid",
-            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-            "type": "string"
-          },
-          "lastSeenAt": {
-            "description": "formatted as an RFC3339 date-time",
-            "example": "2022-03-14T09:48:00Z",
-            "format": "date-time",
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "updated": {
-            "description": "formatted as an RFC3339 date-time",
-            "example": "2022-03-14T09:48:00Z",
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "name"
-        ]
       },
       "ListResponse[AccessKey]": {
         "properties": {
@@ -393,7 +359,7 @@
                   "type": "string"
                 },
                 "created_by": {
-                  "description": "id of the identity that created the grant",
+                  "description": "id of the user that created the grant",
                   "example": "4yJ3n3D8E2",
                   "format": "uid",
                   "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
@@ -411,12 +377,6 @@
                   "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
                   "type": "string"
                 },
-                "identity": {
-                  "example": "4yJ3n3D8E2",
-                  "format": "uid",
-                  "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-                  "type": "string"
-                },
                 "privilege": {
                   "description": "a role or permission",
                   "type": "string"
@@ -429,6 +389,12 @@
                   "description": "formatted as an RFC3339 date-time",
                   "example": "2022-03-14T09:48:00Z",
                   "format": "date-time",
+                  "type": "string"
+                },
+                "user": {
+                  "example": "4yJ3n3D8E2",
+                  "format": "uid",
+                  "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
                   "type": "string"
                 }
               },
@@ -469,52 +435,6 @@
                   "type": "string"
                 }
               },
-              "type": "object"
-            },
-            "type": "array"
-          }
-        }
-      },
-      "ListResponse[Identity]": {
-        "properties": {
-          "count": {
-            "format": "int",
-            "type": "integer"
-          },
-          "items": {
-            "items": {
-              "properties": {
-                "created": {
-                  "description": "formatted as an RFC3339 date-time",
-                  "example": "2022-03-14T09:48:00Z",
-                  "format": "date-time",
-                  "type": "string"
-                },
-                "id": {
-                  "example": "4yJ3n3D8E2",
-                  "format": "uid",
-                  "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-                  "type": "string"
-                },
-                "lastSeenAt": {
-                  "description": "formatted as an RFC3339 date-time",
-                  "example": "2022-03-14T09:48:00Z",
-                  "format": "date-time",
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "updated": {
-                  "description": "formatted as an RFC3339 date-time",
-                  "example": "2022-03-14T09:48:00Z",
-                  "format": "date-time",
-                  "type": "string"
-                }
-              },
-              "required": [
-                "name"
-              ],
               "type": "object"
             },
             "type": "array"
@@ -564,6 +484,52 @@
               "required": [
                 "url",
                 "clientID"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        }
+      },
+      "ListResponse[User]": {
+        "properties": {
+          "count": {
+            "format": "int",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "properties": {
+                "created": {
+                  "description": "formatted as an RFC3339 date-time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "id": {
+                  "example": "4yJ3n3D8E2",
+                  "format": "uid",
+                  "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                  "type": "string"
+                },
+                "lastSeenAt": {
+                  "description": "formatted as an RFC3339 date-time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "updated": {
+                  "description": "formatted as an RFC3339 date-time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name"
               ],
               "type": "object"
             },
@@ -641,6 +607,40 @@
           }
         }
       },
+      "User": {
+        "properties": {
+          "created": {
+            "description": "formatted as an RFC3339 date-time",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "example": "4yJ3n3D8E2",
+            "format": "uid",
+            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+            "type": "string"
+          },
+          "lastSeenAt": {
+            "description": "formatted as an RFC3339 date-time",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "updated": {
+            "description": "formatted as an RFC3339 date-time",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
       "Version": {
         "properties": {
           "version": {
@@ -660,6 +660,170 @@
     "version": "0.12.2"
   },
   "paths": {
+    "/supertest": {
+      "get": {
+        "description": "func1",
+        "operationId": "func1",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "vegetableCount",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized: Requestor is not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden: Requestor does not have the right permissions"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Duplicate Record"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyResponse"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "func1",
+        "tags": [
+          "Misc"
+        ]
+      }
+    },
+    "/test": {
+      "get": {
+        "description": "func2",
+        "operationId": "func2",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "vegetableCount",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized: Requestor is not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden: Requestor does not have the right permissions"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Duplicate Record"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyResponse"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "func2",
+        "tags": [
+          "Misc"
+        ]
+      }
+    },
     "/v1/access-keys": {
       "get": {
         "description": "ListAccessKeys",
@@ -668,7 +832,7 @@
           {
             "example": "4yJ3n3D8E2",
             "in": "query",
-            "name": "identity_id",
+            "name": "user_id",
             "schema": {
               "example": "4yJ3n3D8E2",
               "format": "uid",
@@ -765,12 +929,6 @@
                     "format": "duration",
                     "type": "string"
                   },
-                  "identityID": {
-                    "example": "4yJ3n3D8E2",
-                    "format": "uid",
-                    "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-                    "type": "string"
-                  },
                   "name": {
                     "type": "string"
                   },
@@ -779,10 +937,16 @@
                     "example": "72h3m6.5s",
                     "format": "duration",
                     "type": "string"
+                  },
+                  "userID": {
+                    "example": "4yJ3n3D8E2",
+                    "format": "uid",
+                    "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                    "type": "string"
                   }
                 },
                 "required": [
-                  "identityID",
+                  "userID",
                   "ttl",
                   "extensionDeadline"
                 ],
@@ -1437,7 +1601,7 @@
           {
             "example": "4yJ3n3D8E2",
             "in": "query",
-            "name": "identity",
+            "name": "user",
             "schema": {
               "example": "4yJ3n3D8E2",
               "format": "uid",
@@ -1556,12 +1720,6 @@
                     "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
                     "type": "string"
                   },
-                  "identity": {
-                    "example": "4yJ3n3D8E2",
-                    "format": "uid",
-                    "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-                    "type": "string"
-                  },
                   "privilege": {
                     "description": "a role or permission",
                     "example": "view",
@@ -1570,6 +1728,12 @@
                   "resource": {
                     "description": "a resource name in Infra's Universal Resource Notation",
                     "example": "production",
+                    "type": "string"
+                  },
+                  "user": {
+                    "example": "4yJ3n3D8E2",
+                    "format": "uid",
+                    "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
                     "type": "string"
                   }
                 },
@@ -2158,636 +2322,6 @@
         "tags": [
           "Grants",
           "Groups"
-        ]
-      }
-    },
-    "/v1/identities": {
-      "get": {
-        "description": "ListIdentities",
-        "operationId": "ListIdentities",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "name",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "ids",
-            "schema": {
-              "items": {
-                "example": "4yJ3n3D8E2",
-                "format": "uid",
-                "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-                "type": "string"
-              },
-              "type": "array"
-            }
-          }
-        ],
-        "responses": {
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Bad Request"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Unauthorized: Requestor is not authenticated"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Forbidden: Requestor does not have the right permissions"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Not Found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Duplicate Record"
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ListResponse[Identity]"
-                }
-              }
-            },
-            "description": "Success"
-          }
-        },
-        "summary": "ListIdentities",
-        "tags": [
-          "Identities"
-        ]
-      },
-      "post": {
-        "description": "CreateIdentity",
-        "operationId": "CreateIdentity",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  },
-                  "setOneTimePassword": {
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "name"
-                ],
-                "type": "object"
-              }
-            }
-          }
-        },
-        "responses": {
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Bad Request"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Unauthorized: Requestor is not authenticated"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Forbidden: Requestor does not have the right permissions"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Not Found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Duplicate Record"
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CreateIdentityResponse"
-                }
-              }
-            },
-            "description": "Success"
-          }
-        },
-        "summary": "CreateIdentity",
-        "tags": [
-          "Identities"
-        ]
-      }
-    },
-    "/v1/identities/{id}": {
-      "delete": {
-        "description": "DeleteIdentity",
-        "operationId": "DeleteIdentity",
-        "parameters": [
-          {
-            "example": "4yJ3n3D8E2",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "example": "4yJ3n3D8E2",
-              "format": "uid",
-              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Bad Request"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Unauthorized: Requestor is not authenticated"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Forbidden: Requestor does not have the right permissions"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Not Found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Duplicate Record"
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Success"
-          }
-        },
-        "summary": "DeleteIdentity",
-        "tags": [
-          "Identities"
-        ]
-      },
-      "get": {
-        "description": "GetIdentity",
-        "operationId": "GetIdentity",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "description": "a uid or the literal self",
-              "example": "4yJ3n3D8E2",
-              "format": "uid|self",
-              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}|self",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Bad Request"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Unauthorized: Requestor is not authenticated"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Forbidden: Requestor does not have the right permissions"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Not Found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Duplicate Record"
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Identity"
-                }
-              }
-            },
-            "description": "Success"
-          }
-        },
-        "summary": "GetIdentity",
-        "tags": [
-          "Identities"
-        ]
-      },
-      "put": {
-        "description": "UpdateIdentity",
-        "operationId": "UpdateIdentity",
-        "parameters": [
-          {
-            "example": "4yJ3n3D8E2",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "example": "4yJ3n3D8E2",
-              "format": "uid",
-              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "password": {
-                    "minLength": 8,
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "password"
-                ],
-                "type": "object"
-              }
-            }
-          }
-        },
-        "responses": {
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Bad Request"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Unauthorized: Requestor is not authenticated"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Forbidden: Requestor does not have the right permissions"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Not Found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Duplicate Record"
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Identity"
-                }
-              }
-            },
-            "description": "Success"
-          }
-        },
-        "summary": "UpdateIdentity",
-        "tags": [
-          "Identities"
-        ]
-      }
-    },
-    "/v1/identities/{id}/grants": {
-      "get": {
-        "description": "ListIdentityGrants",
-        "operationId": "ListIdentityGrants",
-        "parameters": [
-          {
-            "example": "4yJ3n3D8E2",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "example": "4yJ3n3D8E2",
-              "format": "uid",
-              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Bad Request"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Unauthorized: Requestor is not authenticated"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Forbidden: Requestor does not have the right permissions"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Not Found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Duplicate Record"
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ListResponse[Grant]"
-                }
-              }
-            },
-            "description": "Success"
-          }
-        },
-        "summary": "ListIdentityGrants",
-        "tags": [
-          "Grants",
-          "Identities"
-        ]
-      }
-    },
-    "/v1/identities/{id}/groups": {
-      "get": {
-        "description": "ListIdentityGroups",
-        "operationId": "ListIdentityGroups",
-        "parameters": [
-          {
-            "example": "4yJ3n3D8E2",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "example": "4yJ3n3D8E2",
-              "format": "uid",
-              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Bad Request"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Unauthorized: Requestor is not authenticated"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Forbidden: Requestor does not have the right permissions"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Not Found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Duplicate Record"
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ListResponse[Group]"
-                }
-              }
-            },
-            "description": "Success"
-          }
-        },
-        "summary": "ListIdentityGroups",
-        "tags": [
-          "Groups",
-          "Identities"
         ]
       }
     },
@@ -3613,7 +3147,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Identity"
+                  "$ref": "#/components/schemas/User"
                 }
               }
             },
@@ -3695,6 +3229,634 @@
         "summary": "CreateToken",
         "tags": [
           "Destinations"
+        ]
+      }
+    },
+    "/v1/users": {
+      "get": {
+        "description": "ListUsers",
+        "operationId": "ListUsers",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ids",
+            "schema": {
+              "items": {
+                "example": "4yJ3n3D8E2",
+                "format": "uid",
+                "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                "type": "string"
+              },
+              "type": "array"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized: Requestor is not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden: Requestor does not have the right permissions"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Duplicate Record"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListResponse[User]"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "ListUsers",
+        "tags": [
+          "Misc"
+        ]
+      },
+      "post": {
+        "description": "CreateUser",
+        "operationId": "CreateUser",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "setOneTimePassword": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized: Requestor is not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden: Requestor does not have the right permissions"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Duplicate Record"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateUserResponse"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "CreateUser",
+        "tags": [
+          "Misc"
+        ]
+      }
+    },
+    "/v1/users/{id}": {
+      "delete": {
+        "description": "DeleteUser",
+        "operationId": "DeleteUser",
+        "parameters": [
+          {
+            "example": "4yJ3n3D8E2",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "example": "4yJ3n3D8E2",
+              "format": "uid",
+              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized: Requestor is not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden: Requestor does not have the right permissions"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Duplicate Record"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "DeleteUser",
+        "tags": [
+          "Misc"
+        ]
+      },
+      "get": {
+        "description": "GetUser",
+        "operationId": "GetUser",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "a uid or the literal self",
+              "example": "4yJ3n3D8E2",
+              "format": "uid|self",
+              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}|self",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized: Requestor is not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden: Requestor does not have the right permissions"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Duplicate Record"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "GetUser",
+        "tags": [
+          "Misc"
+        ]
+      },
+      "put": {
+        "description": "UpdateUser",
+        "operationId": "UpdateUser",
+        "parameters": [
+          {
+            "example": "4yJ3n3D8E2",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "example": "4yJ3n3D8E2",
+              "format": "uid",
+              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "password": {
+                    "minLength": 8,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "password"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized: Requestor is not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden: Requestor does not have the right permissions"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Duplicate Record"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "UpdateUser",
+        "tags": [
+          "Misc"
+        ]
+      }
+    },
+    "/v1/users/{id}/grants": {
+      "get": {
+        "description": "ListUserGrants",
+        "operationId": "ListUserGrants",
+        "parameters": [
+          {
+            "example": "4yJ3n3D8E2",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "example": "4yJ3n3D8E2",
+              "format": "uid",
+              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized: Requestor is not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden: Requestor does not have the right permissions"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Duplicate Record"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListResponse[Grant]"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "ListUserGrants",
+        "tags": [
+          "Grants"
+        ]
+      }
+    },
+    "/v1/users/{id}/groups": {
+      "get": {
+        "description": "ListUserGroups",
+        "operationId": "ListUserGroups",
+        "parameters": [
+          {
+            "example": "4yJ3n3D8E2",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "example": "4yJ3n3D8E2",
+              "format": "uid",
+              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized: Requestor is not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden: Requestor does not have the right permissions"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Duplicate Record"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListResponse[Group]"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "ListUserGroups",
+        "tags": [
+          "Groups"
         ]
       }
     },

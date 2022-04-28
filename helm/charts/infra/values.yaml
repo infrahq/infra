@@ -384,7 +384,7 @@ server:
   ## Primary server configuration
   config: {}
 
-  ## (DEPRECATED) Infra server admin access key. Use server.config.additionalIdentities instead.
+  ## (DEPRECATED) Infra server admin access key. Use server.config.additionalUsers instead.
   #   adminAccessKey: ""
 
   ## Database name
@@ -507,29 +507,32 @@ server:
   #   role: view
   #   resource: kubernetes.docker-desktop.default
 
-  ## Additional identities to configure
-  additionalIdentities: []
-  # Configure an identity with an access key
+  ## Additional users to configure
+  additionalUsers: []
+  # Configure a user with an access key
   # - name: ""      # required
   #   accessKey: "" # optional, can be specified as a secret. must be in the form of XXXXXXXXXX.YYYYYYYYYYYYYYYYYYYYYYYY (<10 character ascii key>.<24 character ascii secret>)
   #   password: ""  # optional, can be specified as a secret
 
   ## Example
-  # Create an "admin" identity
+  # Create an "admin" user
   # - name: admin
 
-  # Create an "admin" identity and seed an access key passed in as an environment variable.
+  # Create an "admin" user and seed an access key passed in as an environment variable.
   # The environment variable will need to be injected into the pod using `env` or `envFrom`.
   # - name: admin
   #   accessKey: env:ADMIN_ACCESS_KEY
 
-  # Create a "dev@example.com" identity
+  # Create a "dev@example.com" user
   # - name: dev@example.com
 
-  # Create a "dev@example.com" identity and set a password passed in as a file. The file will need
+  # Create a "dev@example.com" user and set a password passed in as a file. The file will need
   # to be mounted into the pod using `volumes` and `volumeMounts`.
   # - name: dev@example.com
   #   password: file:/var/run/secrets/dev@example.com
+    
+  ## Deprecated: use additionalUsers
+  additionalIdentities: []
 
 ## Default connector configurations
 connector:

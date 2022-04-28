@@ -22,7 +22,7 @@ type upgradedTestRequest struct {
 }
 
 func TestAddRequestRewrite(t *testing.T) {
-	srv := setupServer(t, withAdminIdentity)
+	srv := setupServer(t, withAdminUser)
 
 	a := &API{server: srv, disableOpenAPIGeneration: true}
 	router := gin.New()
@@ -76,7 +76,7 @@ func TestStackedAddRequestRewrite(t *testing.T) {
 }
 
 func TestRedirect(t *testing.T) {
-	srv := setupServer(t, withAdminIdentity)
+	srv := setupServer(t, withAdminUser)
 
 	a := &API{server: srv, disableOpenAPIGeneration: true}
 	router := gin.New()

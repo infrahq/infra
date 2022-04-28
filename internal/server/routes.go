@@ -41,6 +41,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) *gin.Engine 
 	)
 
 	a.addRewrites()
+	a.addRedirects()
 
 	// This group of middleware only applies to non-ui routes
 	api := router.Group("/",
@@ -50,12 +51,13 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) *gin.Engine 
 	api.GET("/.well-known/jwks.json", a.wellKnownJWKsHandler)
 
 	authn := api.Group("/", AuthenticationMiddleware(a))
-	get(a, authn, "/v1/identities", a.ListIdentities)
-	post(a, authn, "/v1/identities", a.CreateIdentity)
-	get(a, authn, "/v1/identities/:id", a.GetIdentity)
-	put(a, authn, "/v1/identities/:id", a.UpdateIdentity)
-	delete(a, authn, "/v1/identities/:id", a.DeleteIdentity)
-	get(a, authn, "/v1/identities/:id/groups", a.ListIdentityGroups)
+
+	get(a, authn, "/v1/users", a.ListUsers)
+	post(a, authn, "/v1/users", a.CreateUser)
+	get(a, authn, "/v1/users/:id", a.GetUser)
+	put(a, authn, "/v1/users/:id", a.UpdateUser)
+	delete(a, authn, "/v1/users/:id", a.DeleteUser)
+	get(a, authn, "/v1/users/:id/groups", a.ListUserGroups)
 
 	get(a, authn, "/v1/access-keys", a.ListAccessKeys)
 	post(a, authn, "/v1/access-keys", a.CreateAccessKey)
@@ -99,17 +101,9 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) *gin.Engine 
 
 	// Deprecated in 0.12
 	// TODO: remove after a couple versions
-	get(a, authn, "/v1/identities/:id/grants", a.ListIdentityGrants)
+	get(a, authn, "/v1/users/:id/grants", a.ListUserGrants)
 	get(a, authn, "/v1/groups/:id/grants", a.ListGroupGrants)
 
-	// TODO: remove after a couple versions
-	noAuthn.GET("/v1/users", removed("v0.9.0"))
-	noAuthn.POST("/v1/users", removed("v0.9.0"))
-	noAuthn.GET("/v1/users/:id", removed("v0.9.0"))
-	noAuthn.PUT("/v1/users/:id", removed("v0.9.0"))
-	noAuthn.DELETE("/v1/users/:id", removed("v0.9.0"))
-	noAuthn.GET("/v1/users/:id/groups", removed("v0.9.0"))
-	noAuthn.GET("/v1/users/:id/grants", removed("v0.9.0"))
 	noAuthn.GET("/v1/machines", removed("v0.9.0"))
 	noAuthn.POST("/v1/machines", removed("v0.9.0"))
 	noAuthn.GET("/v1/machines/:id", removed("v0.9.0"))

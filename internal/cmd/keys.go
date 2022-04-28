@@ -44,16 +44,16 @@ func newKeysAddCmd(cli *CLI) *cobra.Command {
 	var options keyCreateOptions
 
 	cmd := &cobra.Command{
-		Use:   "add IDENTITY",
+		Use:   "add USER",
 		Short: "Create an access key",
-		Long:  `Create an access key for an identity.`,
+		Long:  `Create an access key for a user.`,
 		Example: `
 # Create an access key named 'example-key' that expires in 12 hours
 $ infra keys add example-key identity@example.com --ttl=12h
 `,
 		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			identityName := args[0]
+			userName := args[0]
 
 			if options.Name != "" {
 				if strings.Contains(options.Name, " ") {
@@ -66,13 +66,13 @@ $ infra keys add example-key identity@example.com --ttl=12h
 				return err
 			}
 
-			identity, err := GetIdentityByName(client, identityName)
+			user, err := GetUserByName(client, userName)
 			if err != nil {
 				return err
 			}
 
 			resp, err := client.CreateAccessKey(&api.CreateAccessKeyRequest{
-				IdentityID:        identity.ID,
+				UserID:            user.ID,
 				Name:              options.Name,
 				TTL:               api.Duration(options.TTL),
 				ExtensionDeadline: api.Duration(options.ExtensionDeadline),
@@ -81,7 +81,7 @@ $ infra keys add example-key identity@example.com --ttl=12h
 				return err
 			}
 
-			fmt.Fprintf(cli.Stderr, "Created access key for %q\n", identityName)
+			fmt.Fprintf(cli.Stderr, "Created access key for %q\n", userName)
 			cli.Output("Name: %s", resp.Name)
 			cli.Output("Key: %s", resp.AccessKey)
 			return nil
@@ -140,7 +140,7 @@ func newKeysRemoveCmd() *cobra.Command {
 }
 
 type keyListOptions struct {
-	IdentityName string
+	UserName string
 }
 
 func newKeysListCmd(cli *CLI) *cobra.Command {
@@ -158,13 +158,13 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 			}
 
 			var keys *api.ListResponse[api.AccessKey]
-			if options.IdentityName != "" {
-				identity, err := GetIdentityByName(client, options.IdentityName)
+			if options.UserName != "" {
+				user, err := GetUserByName(client, options.UserName)
 				if err != nil {
 					return err
 				}
 
-				keys, err = client.ListAccessKeys(api.ListAccessKeysRequest{IdentityID: identity.ID})
+				keys, err = client.ListAccessKeys(api.ListAccessKeysRequest{UserID: user.ID})
 				if err != nil {
 					return err
 				}
@@ -208,7 +208,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&options.IdentityName, "identity", "i", "", "The name of a identity to list access keys for")
+	cmd.Flags().StringVar(&options.UserName, "user", "", "The name of a user to list access keys for")
 
 	return cmd
 }

@@ -40,6 +40,7 @@ import (
 )
 
 type Options struct {
+	Version         float64       `mapstructure:"version"`
 	TLSCache        string        `mapstructure:"tlsCache"`
 	EnableTelemetry bool          `mapstructure:"enableTelemetry"`
 	EnableSignup    bool          `mapstructure:"enableSignup"`
