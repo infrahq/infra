@@ -21,11 +21,6 @@ func (c *CLI) Output(format string, args ...interface{}) {
 	fmt.Fprintf(c.Stdout, format+"\n", args...)
 }
 
-// TODO indicates a place where os.Stdout is being used instead of CLI.Stdout.
-// It is temporary, and can be removed once everything is ported to use CLI
-// for output.
-var TODO = os.Stdout
-
 // key is a type to ensure no other package can access the CLI value in context.
 type key struct{}
 

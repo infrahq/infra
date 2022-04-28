@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"strings"
 	"time"
 
@@ -11,6 +12,23 @@ import (
 
 type Resource struct {
 	ID uid.ID `uri:"id" validate:"required"`
+}
+
+// IDOrSelf is a union type that may represent either a uid.ID or the literal
+// string "self".
+type IDOrSelf struct {
+	ID     uid.ID
+	IsSelf bool
+}
+
+func (i *IDOrSelf) UnmarshalText(b []byte) error {
+	if bytes.Equal(b, []byte("self")) {
+		i.IsSelf = true
+		return nil
+	}
+	var err error
+	i.ID, err = uid.Parse(b)
+	return err
 }
 
 type Time time.Time

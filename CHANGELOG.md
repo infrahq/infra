@@ -1,5 +1,41 @@
 # Changelog
 
+## [0.12.0](https://github.com/infrahq/infra/compare/v0.11.1...v0.12.0) (2022-04-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* removes the GET /v1/introspect endpoint. Use /v1/identities/self
+
+### Bug Fixes
+
+* revert pull request [#1682](https://github.com/infrahq/infra/issues/1682) from infrahq/dnephin/replace-viper ([c1cf195](https://github.com/infrahq/infra/commit/c1cf195c7607e4513231f4d856768b9dee8b2af8))
+* update endpoints in ui ([61940a5](https://github.com/infrahq/infra/commit/61940a5a3231e4acb1816ee35c9d878837fed8f6))
+
+
+### Improvement
+
+* remove the /v1/introspect endpoint ([1c81e26](https://github.com/infrahq/infra/commit/1c81e26c1172128c2e141bfecb2cb51b0afb1a12))
+
+### [0.11.1](https://github.com/infrahq/infra/compare/v0.11.0...v0.11.1) (2022-04-27)
+
+
+### Features
+
+* import identities through config ([8990200](https://github.com/infrahq/infra/commit/899020095ab0100cade1a6565149dea1d8703662))
+* remove admin access key config ([d72ee95](https://github.com/infrahq/infra/commit/d72ee957eac6b0c0fc5fe2e12147518dedd07015))
+* User interface refresh ([#1704](https://github.com/infrahq/infra/issues/1704)) ([4826baf](https://github.com/infrahq/infra/commit/4826bafedb1d8db140d72c500d80da454a503015))
+
+
+### Bug Fixes
+
+* add back local users to quickstart ([#1748](https://github.com/infrahq/infra/issues/1748)) ([5278f2f](https://github.com/infrahq/infra/commit/5278f2f01c4e1f5692df62779811b6667c5ef226))
+* connector access key not found when connector is disabled ([51609b7](https://github.com/infrahq/infra/commit/51609b747bb7c6c440ad61cf31be08c7079330c6))
+* do not look up k8s name when provided ([#1702](https://github.com/infrahq/infra/issues/1702)) ([95c8eff](https://github.com/infrahq/infra/commit/95c8effd7532e2f0d6bf3527d1bae2b09c989ccd))
+* helm chart values.yaml for ui ([#1712](https://github.com/infrahq/infra/issues/1712)) ([1c63c03](https://github.com/infrahq/infra/commit/1c63c039713207297930443a322a85b513f2c0b4))
+* only use color logging with a terminal ([d8d9a4d](https://github.com/infrahq/infra/commit/d8d9a4d58b4263befd6e9b53f7a32d156668cc71))
+* use common ca instead of sni to generate connector certificates ([#1687](https://github.com/infrahq/infra/issues/1687)) ([43d4c3f](https://github.com/infrahq/infra/commit/43d4c3f710a8e6a3f2190d15bee2521d82da01bf))
+
 ## [0.11.0](https://github.com/infrahq/infra/compare/v0.10.3...v0.11.0) (2022-04-22)
 
 

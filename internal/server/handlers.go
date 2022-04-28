@@ -38,8 +38,15 @@ func (a *API) ListIdentities(c *gin.Context, r *api.ListIdentitiesRequest) ([]ap
 	return results, nil
 }
 
-func (a *API) GetIdentity(c *gin.Context, r *api.Resource) (*api.Identity, error) {
-	identity, err := access.GetIdentity(c, r.ID)
+func (a *API) GetIdentity(c *gin.Context, r *api.GetIdentityRequest) (*api.Identity, error) {
+	if r.ID.IsSelf {
+		iden := access.AuthenticatedIdentity(c)
+		if iden == nil {
+			return nil, internal.ErrUnauthorized
+		}
+		r.ID.ID = iden.ID
+	}
+	identity, err := access.GetIdentity(c, r.ID.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -297,16 +304,6 @@ func (a *API) ListDestinations(c *gin.Context, r *api.ListDestinationsRequest) (
 	}
 
 	return results, nil
-}
-
-// Introspect is used by clients to get info about the token they are using
-func (a *API) Introspect(c *gin.Context, r *api.EmptyRequest) (*api.Introspect, error) {
-	identity := access.AuthenticatedIdentity(c)
-	if identity != nil {
-		return &api.Introspect{ID: identity.ID, Name: identity.Name, IdentityType: identity.Kind.String()}, nil
-	}
-
-	return nil, fmt.Errorf("no identity context found for token")
 }
 
 func (a *API) GetDestination(c *gin.Context, r *api.Resource) (*api.Destination, error) {

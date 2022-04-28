@@ -592,3 +592,162 @@ func runStep(t *testing.T, name string, fn func(t *testing.T)) {
 		t.FailNow()
 	}
 }
+
+func TestAPI_GetIdentity(t *testing.T) {
+	srv := setupServer(t, withAdminIdentity)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	createID := func(t *testing.T, name string, kind string) uid.ID {
+		t.Helper()
+		var buf bytes.Buffer
+		body := api.CreateIdentityRequest{Name: name, Kind: kind}
+		err := json.NewEncoder(&buf).Encode(body)
+		assert.NilError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/v1/identities", &buf)
+		assert.NilError(t, err)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
+		respObj := &api.CreateIdentityResponse{}
+		err = json.Unmarshal(resp.Body.Bytes(), respObj)
+		assert.NilError(t, err)
+		return respObj.ID
+	}
+	id1 := createID(t, "me@example.com", "user")
+	id2 := createID(t, "HAL", "machine")
+
+	type testCase struct {
+		urlPath  string
+		setup    func(t *testing.T, req *http.Request)
+		expected func(t *testing.T, resp *httptest.ResponseRecorder)
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		req, err := http.NewRequest(http.MethodGet, tc.urlPath, nil)
+		assert.NilError(t, err)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+
+		if tc.setup != nil {
+			tc.setup(t, req)
+		}
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		tc.expected(t, resp)
+	}
+
+	testCases := map[string]testCase{
+		"not authenticated": {
+			urlPath: "/v1/identities/" + id1.String(),
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Del("Authorization")
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusUnauthorized)
+			},
+		},
+		"not authorized": {
+			urlPath: "/v1/identities/" + id2.String(),
+			setup: func(t *testing.T, req *http.Request) {
+				key, _ := createAccessKey(t, srv.db, "someonenew@example.com")
+
+				req.Header.Set("Authorization", "Bearer "+key)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusForbidden)
+			},
+		},
+		"identity not found": {
+			urlPath: "/v1/identities/1234",
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusNotFound)
+			},
+		},
+		"identity by ID for self": {
+			urlPath: "/v1/identities/" + id1.String(),
+			setup: func(t *testing.T, req *http.Request) {
+				token := &models.AccessKey{
+					IssuedFor:  id1,
+					ProviderID: data.InfraProvider(srv.db).ID,
+					ExpiresAt:  time.Now().Add(10 * time.Second),
+				}
+
+				key, err := data.CreateAccessKey(srv.db, token)
+				assert.NilError(t, err)
+
+				req.Header.Set("Authorization", "Bearer "+key)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK)
+			},
+		},
+		"identity by ID for someone else": {
+			urlPath: "/v1/identities/" + id1.String(),
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK)
+			},
+		},
+		"identity by self": {
+			urlPath: "/v1/identities/self",
+			setup: func(t *testing.T, req *http.Request) {
+				token := &models.AccessKey{
+					IssuedFor:  id1,
+					ProviderID: data.InfraProvider(srv.db).ID,
+					ExpiresAt:  time.Now().Add(10 * time.Second),
+				}
+
+				key, err := data.CreateAccessKey(srv.db, token)
+				assert.NilError(t, err)
+
+				req.Header.Set("Authorization", "Bearer "+key)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, resp.Body)
+
+				idResponse := api.Identity{}
+				err := json.NewDecoder(resp.Body).Decode(&idResponse)
+				assert.NilError(t, err)
+				assert.Equal(t, idResponse.ID, id1)
+			},
+		},
+		"full json response": {
+			urlPath: "/v1/identities/" + id1.String(),
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK)
+
+				expected := jsonUnmarshal(t, fmt.Sprintf(`
+					{
+					  "id": "%[1]v",
+					  "kind": "user",
+					  "name": "me@example.com",
+					  "lastSeenAt": "%[2]v",
+					  "created": "%[2]v",
+					  "updated": "%[2]v"
+					}`,
+					id1.String(),
+					time.Now().UTC().Format(time.RFC3339),
+				))
+				actual := jsonUnmarshal(t, resp.Body.String())
+				assert.DeepEqual(t, actual, expected, cmpAPIIdentityJSON)
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+var cmpAPIIdentityJSON = gocmp.Options{
+	gocmp.FilterPath(pathMapKey(`created`, `updated`, `lastSeenAt`), cmpApproximateTime),
+	gocmp.FilterPath(pathMapKey(`id`), cmpAnyValidUID),
+}

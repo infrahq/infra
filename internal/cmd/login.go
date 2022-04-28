@@ -45,7 +45,7 @@ const cliLoginRedirectURL = "http://localhost:8301"
 
 var errMessageLogin = "Could not login at this time."
 
-func newLoginCmd() *cobra.Command {
+func newLoginCmd(_ *CLI) *cobra.Command {
 	var options loginCmdOptions
 
 	cmd := &cobra.Command{

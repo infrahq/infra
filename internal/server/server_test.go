@@ -197,6 +197,9 @@ func TestSignupEnabled(t *testing.T) {
 }
 
 func TestServer_Run(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for short run")
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
@@ -353,8 +356,7 @@ func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
 			path: "/not/found",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				// response should have an html body
-				title := "<title>404: This page could not be found</title>"
-				assert.Assert(t, is.Contains(resp.Body.String(), title))
+				assert.Assert(t, is.Contains(resp.Body.String(), "404"))
 			},
 		},
 	}
@@ -409,7 +411,7 @@ func TestServer_GenerateRoutes_UI(t *testing.T) {
 		},
 		{
 			name:         "page with a path",
-			path:         "/providers/add/admins.html",
+			path:         "/providers/add/details.html",
 			expectedCode: http.StatusOK,
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				actual := resp.Header().Get("Content-Type")
@@ -427,7 +429,7 @@ func TestServer_GenerateRoutes_UI(t *testing.T) {
 		},
 		{
 			name:         "page without .html suffix",
-			path:         "/providers/add/admins",
+			path:         "/providers/add/details",
 			expectedCode: http.StatusOK,
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				actual := resp.Header().Get("Content-Type")

@@ -327,10 +327,6 @@ func (c Client) CreateToken() (*CreateTokenResponse, error) {
 	return post[EmptyRequest, CreateTokenResponse](c, "/v1/tokens", &EmptyRequest{})
 }
 
-func (c Client) Introspect() (*Introspect, error) {
-	return get[Introspect](c, "/v1/introspect")
-}
-
 func (c Client) Login(req *LoginRequest) (*LoginResponse, error) {
 	return post[LoginRequest, LoginResponse](c, "/v1/login", req)
 }

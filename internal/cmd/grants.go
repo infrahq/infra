@@ -20,7 +20,7 @@ type grantsCmdOptions struct {
 	Role        string
 }
 
-func newGrantsCmd() *cobra.Command {
+func newGrantsCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "grants",
 		Short:   "Manage access to destinations",
@@ -34,14 +34,14 @@ func newGrantsCmd() *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(newGrantsListCmd())
-	cmd.AddCommand(newGrantAddCmd())
-	cmd.AddCommand(newGrantRemoveCmd())
+	cmd.AddCommand(newGrantsListCmd(cli))
+	cmd.AddCommand(newGrantAddCmd(cli))
+	cmd.AddCommand(newGrantRemoveCmd(cli))
 
 	return cmd
 }
 
-func newGrantsListCmd() *cobra.Command {
+func newGrantsListCmd(cli *CLI) *cobra.Command {
 	var options grantsCmdOptions
 
 	cmd := &cobra.Command{
@@ -81,9 +81,9 @@ func newGrantsListCmd() *cobra.Command {
 			}
 
 			if len(rows) > 0 {
-				printTable(rows, TODO)
+				printTable(rows, cli.Stdout)
 			} else {
-				fmt.Println("No grants found")
+				cli.Output("No grants found")
 			}
 
 			return nil
@@ -94,7 +94,7 @@ func newGrantsListCmd() *cobra.Command {
 	return cmd
 }
 
-func newGrantRemoveCmd() *cobra.Command {
+func newGrantRemoveCmd(cli *CLI) *cobra.Command {
 	var options grantsCmdOptions
 
 	cmd := &cobra.Command{
@@ -118,7 +118,7 @@ $ infra grants remove janedoe@example.com infra --role admin
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.Identity = args[0]
 			options.Destination = args[1]
-			return removeGrant(options)
+			return removeGrant(cli, options)
 		},
 	}
 
@@ -127,7 +127,7 @@ $ infra grants remove janedoe@example.com infra --role admin
 	return cmd
 }
 
-func removeGrant(cmdOptions grantsCmdOptions) error {
+func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 	client, err := defaultAPIClient()
 	if err != nil {
 		return err
@@ -159,12 +159,12 @@ func removeGrant(cmdOptions grantsCmdOptions) error {
 		}
 	}
 
-	fmt.Println("Access revoked!")
+	cli.Output("Access revoked!")
 
 	return nil
 }
 
-func newGrantAddCmd() *cobra.Command {
+func newGrantAddCmd(cli *CLI) *cobra.Command {
 	var options grantsCmdOptions
 
 	cmd := &cobra.Command{
@@ -187,7 +187,7 @@ $ infra grants add johndoe@example.com infra --role admin
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.Identity = args[0]
 			options.Destination = args[1]
-			return addGrant(options)
+			return addGrant(cli, options)
 		},
 	}
 
@@ -196,7 +196,7 @@ $ infra grants add johndoe@example.com infra --role admin
 	return cmd
 }
 
-func addGrant(cmdOptions grantsCmdOptions) error {
+func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 	client, err := defaultAPIClient()
 	if err != nil {
 		return err
@@ -227,7 +227,7 @@ func addGrant(cmdOptions grantsCmdOptions) error {
 		return err
 	}
 
-	fmt.Println("Access granted!")
+	cli.Output("Access granted!")
 
 	return nil
 }

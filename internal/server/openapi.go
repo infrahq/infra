@@ -295,8 +295,8 @@ func setTypeInfo(t reflect.Type, schema *openapi3.Schema) {
 		if len(schema.Description) == 0 {
 			schema.Description = "formatted as an RFC3339 date-time"
 		}
-
 		return
+
 	case "api.Duration", "time.Duration":
 		schema.Type = "string"
 		schema.Format = "duration"
@@ -304,15 +304,23 @@ func setTypeInfo(t reflect.Type, schema *openapi3.Schema) {
 		if len(schema.Description) == 0 {
 			schema.Description = "a duration of time supporting (h)ours, (m)inutes, and (s)econds"
 		}
-
 		return
+
 	case "uid.ID":
 		schema.Type = "string"
 		schema.Format = "uid"
 		schema.Pattern = `[\da-zA-HJ-NP-Z]{1,11}`
 		schema.Example = "4yJ3n3D8E2"
-
 		return
+
+	case "api.IDOrSelf":
+		schema.Type = "string"
+		schema.Format = "uid|self"
+		schema.Pattern = `[\da-zA-HJ-NP-Z]{1,11}|self`
+		schema.Example = "4yJ3n3D8E2"
+		schema.Description = "a uid or the literal self"
+		return
+
 	case "uid.PolymorphicID":
 		schema.Type = "string"
 		schema.Format = "poly-uid"

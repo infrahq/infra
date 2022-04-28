@@ -27,7 +27,7 @@ func newKeysCmd(cli *CLI) *cobra.Command {
 	}
 
 	cmd.AddCommand(newKeysListCmd(cli))
-	cmd.AddCommand(newKeysAddCmd())
+	cmd.AddCommand(newKeysAddCmd(cli))
 	cmd.AddCommand(newKeysRemoveCmd())
 
 	return cmd
@@ -38,7 +38,7 @@ type keyCreateOptions struct {
 	ExtensionDeadline time.Duration
 }
 
-func newKeysAddCmd() *cobra.Command {
+func newKeysAddCmd(cli *CLI) *cobra.Command {
 	var options keyCreateOptions
 
 	cmd := &cobra.Command{
@@ -78,7 +78,7 @@ $ infra keys add example-key machine-a --ttl=12h
 				return err
 			}
 
-			fmt.Printf("key: %s \n", resp.AccessKey)
+			cli.Output("key: %s", resp.AccessKey)
 			return nil
 		},
 	}

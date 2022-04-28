@@ -10,7 +10,7 @@ import (
 	"github.com/infrahq/infra/api"
 )
 
-func newListCmd() *cobra.Command {
+func newListCmd(cli *CLI) *cobra.Command {
 	return &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
@@ -24,12 +24,12 @@ func newListCmd() *cobra.Command {
 			return mustBeLoggedIn()
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return list()
+			return list(cli)
 		},
 	}
 }
 
-func list() error {
+func list(cli *CLI) error {
 	client, err := defaultAPIClient()
 	if err != nil {
 		return err
@@ -133,9 +133,9 @@ func list() error {
 	}
 
 	if len(rows) > 0 {
-		printTable(rows, TODO)
+		printTable(rows, cli.Stdout)
 	} else {
-		fmt.Println("You have not been granted access to any active destinations")
+		cli.Output("You have not been granted access to any active destinations")
 	}
 
 	return writeKubeconfig(destinations, grants)

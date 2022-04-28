@@ -1,23 +1,7 @@
-import { useContext, useEffect, useState } from 'react'
+import { useRouter } from 'next/router'
 
-import Navigation from '../components/nav/Navigation'
+export default function () {
+  useRouter().replace('/destinations')
 
-import AuthContext from '../store/AuthContext'
-
-export default function Index () {
-  const { user } = useContext(AuthContext)
-  const [currentUser, setCurrentUser] = useState(null)
-
-  useEffect(() => {
-    if (user != null) {
-      setCurrentUser(user)
-    }
-  }, [])
-
-  return (
-    <div>
-      <Navigation />
-      {currentUser ? <p>{currentUser.name}</p> : <></>}
-    </div>
-  )
+  return null
 }

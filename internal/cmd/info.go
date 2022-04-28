@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"text/tabwriter"
 
@@ -11,7 +10,7 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func newInfoCmd() *cobra.Command {
+func newInfoCmd(cli *CLI) *cobra.Command {
 	return &cobra.Command{
 		Use:    "info",
 		Short:  "Display the info about the current session",
@@ -21,12 +20,12 @@ func newInfoCmd() *cobra.Command {
 			if err := mustBeLoggedIn(); err != nil {
 				return err
 			}
-			return info()
+			return info(cli)
 		},
 	}
 }
 
-func info() error {
+func info(cli *CLI) error {
 	config, err := currentHostConfig()
 	if err != nil {
 		return err
@@ -37,7 +36,7 @@ func info() error {
 		return err
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
+	w := tabwriter.NewWriter(cli.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
 	defer w.Flush()
 
 	fmt.Fprintln(w)
