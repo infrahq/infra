@@ -23,7 +23,7 @@ function CommandInput ({ enabledCommandInput, accessKey, currentDestinationName 
   const value = enabledCommandInput ? commandValue : ''
 
   return (
-    <div className='border-2 border-gray-800 rounded-lg shadow-sm overflow-hidden my-5'>
+    <div className='border border-gray-800 rounded-lg shadow-sm overflow-hidden my-5'>
       <textarea
         rows={5}
         name='commandInput'
@@ -45,6 +45,7 @@ export default function () {
   const [currentDestinationName, setCurrentDestinationName] = useState('')
   const [connected, setConnected] = useState(false)
   const [enabledCommandInput, setEnabledCommandInput] = useState(false)
+  const [disabledInput, setDisabledInput] = useState(false)
   const [numDestinations, setNumDestinations] = useState(0)
 
   useEffect(() => {
@@ -84,6 +85,7 @@ export default function () {
     const type = 'kubernetes'
     const destinationName = type + '.' + name
 
+    setDisabledInput(true)
     setCurrentDestinationName(name)
     setEnabledCommandInput(name.length > 0)
     setConnectorFullName(destinationName)
@@ -133,11 +135,12 @@ export default function () {
               hasDropdownSelection={false}
               handleInputChange={e => setName(e.target.value)}
               handleKeyDown={(e) => handleKeyDownEvent(e.key)}
+              disabled={disabledInput}
             />
           </div>
           <button
             onClick={() => handleNext()}
-            disabled={name.length === 0}
+            disabled={name.length === 0 || disabledInput}
             type='button'
             className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 p-0.5 mx-auto rounded-full disabled:opacity-30'
           >
@@ -159,10 +162,10 @@ export default function () {
             <h2 className='text-gray-500 text-center px-2 mb-2 mt-4'>
               Your cluster will be detected automatically. This may take a few minutes.
             </h2>
-            <div className='border-2 border-dashed border-pink-300 opacity-60 rounded-lg shadow-sm overflow-hidden my-5 px-5 py-3'>
+            <div className='border border-dashed border-pink-light/20 rounded-lg shadow-sm overflow-hidden my-5 px-5 py-3'>
               <div className='flex items-center justify-center p-0.5 w-full'>
                 <img className={`w-8 h-8' ${connected ? '' : 'animate-pulse'}`} src='/connected-icon.svg' />
-                <p className='text-pink-500 text-sm px-2 py-3'>{connected ? 'Connected!' : 'Waiting for connection...'}</p>
+                <p className='text-pink-dark text-sm px-2 py-3'>{connected ? 'Connected!' : 'Waiting for connection...'}</p>
               </div>
             </div>
             {connected &&

@@ -3,13 +3,14 @@ export default function ({
   type,
   value,
   placeholder,
+  handleInputChange,
+  handleKeyDown,
+  disabled = false,
   error,
   hasDropdownSelection = true,
   optionType,
   options,
-  handleInputChange,
   handleSelectOption,
-  handleKeyDown, 
   selectedItem
 }) {
   return (
@@ -20,12 +21,14 @@ export default function ({
         </label>}
       <div className='relative rounded shadow-sm'>
         <input
+          autoFocus
           type={type}
           value={value}
-          className={`block w-full px-4 py-3 sm:text-sm border-2 bg-transparent rounded-full focus:outline-none focus:ring focus:ring-cyan-600 ${error ? 'border-pink-500' : 'border-gray-800'}`}
+          className={`block w-full px-4 py-3 sm:text-sm border bg-transparent rounded-full focus:outline-none focus:ring focus:ring-cyan-600 disabled:opacity-30 ${error ? 'border-pink-500' : 'border-gray-800'}`}
           placeholder={placeholder}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
+          disabled={disabled}
         />
         {hasDropdownSelection &&
           <div className='absolute inset-y-0 right-6 flex items-center'>
