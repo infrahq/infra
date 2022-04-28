@@ -157,7 +157,7 @@ func New(options Options) (*Server, error) {
 		return nil, fmt.Errorf("loading certificate provider: %w", err)
 	}
 
-	settings, err := data.InitializeSettings(server.db, server.signupEnabled())
+	settings, err := data.InitializeSettings(server.db)
 	if err != nil {
 		return nil, fmt.Errorf("settings: %w", err)
 	}
@@ -584,32 +584,4 @@ func (s *Server) createDBKey(provider secrets.SymmetricKeyProvider, rootKeyId st
 	models.SymmetricKey = sKey
 
 	return nil
-}
-
-func (s *Server) signupEnabled() bool {
-	if !s.options.EnableSignup {
-		return false
-	}
-
-	if len(s.options.Config.Providers) != 0 || len(s.options.Config.Grants) != 0 || len(s.options.Config.Identities) != 0 {
-		return false
-	}
-
-	admins, err := data.ListIdentities(s.db, data.ByName("admin"))
-	if err != nil {
-		logging.S.Errorf("failed to list identities: %v", err)
-		return false
-	}
-
-	if len(admins) == 0 {
-		return true
-	}
-
-	adminAccessKeys, err := data.ListAccessKeys(s.db, data.ByIssuedFor(admins[0].ID))
-	if err != nil {
-		logging.S.Errorf("failed to list access keys: %v", err)
-		return false
-	}
-
-	return len(adminAccessKeys) == 0
 }

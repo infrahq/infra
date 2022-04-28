@@ -179,16 +179,16 @@ func deleteAll[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) error
 	return db2.Delete(new(T)).Error
 }
 
-func Count[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (*int64, error) {
+func Count[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (int64, error) {
 	db2 := db
 	for _, selector := range selectors {
 		db2 = selector(db2)
 	}
 
 	var count int64
-	if err := db.Model((*T)(nil)).Count(&count).Error; err != nil {
-		return nil, err
+	if err := db2.Model((*T)(nil)).Count(&count).Error; err != nil {
+		return -1, err
 	}
 
-	return &count, nil
+	return count, nil
 }

@@ -466,6 +466,13 @@ func migrate(db *gorm.DB) error {
 				return nil
 			},
 		},
+		// drop Settings SignupEnabled column
+		{
+			ID: "202204281130",
+			Migrate: func(tx *gorm.DB) error {
+				return tx.Migrator().DropColumn(&models.Settings{}, "signup_enabled")
+			},
+		},
 		// next one here
 	})
 

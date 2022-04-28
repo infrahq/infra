@@ -6,38 +6,43 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
+// SignupEnabled queries the current state of the service and returns whether
+// or not to allow unauthenticated signup. Signup is enabled if and only if
+// the configuration flag 'enableSignup' is set and no identities, providers,
+// or grants have been configured, both currently and previously.
 func SignupEnabled(c *gin.Context) (bool, error) {
 	// no authorization is setup yet
 	db := getDB(c)
 
-	settings, err := data.GetSettings(db)
+	// use Unscoped because deleting identities, providers or grants should not re-enable signup
+	identities, err := data.Count[models.Identity](db.Unscoped(), data.NotName(models.InternalInfraConnectorIdentityName))
 	if err != nil {
 		return false, err
 	}
 
-	return settings.SignupEnabled, nil
+	providers, err := data.Count[models.Provider](db.Unscoped(), data.NotName(models.InternalInfraProviderName))
+	if err != nil {
+		return false, err
+	}
+
+	grants, err := data.Count[models.Grant](db.Unscoped(), data.NotPrivilege(models.InfraConnectorRole))
+	if err != nil {
+		return false, err
+	}
+
+	return identities+providers+grants == int64(0), nil
 }
 
+// Signup creates a user identity using the supplied name and password and
+// grants the identity "admin" access to Infra.
 func Signup(c *gin.Context, name, password string) (*models.Identity, error) {
 	// no authorization is setup yet
 	db := getDB(c)
-
-	settings, err := data.GetSettings(db)
-	if err != nil {
-		logging.S.Errorf("settings: %s", err)
-		return nil, internal.ErrForbidden
-	}
-
-	if !settings.SignupEnabled {
-		return nil, internal.ErrForbidden
-	}
 
 	identity := &models.Identity{
 		Name: name,
@@ -75,11 +80,6 @@ func Signup(c *gin.Context, name, password string) (*models.Identity, error) {
 	}
 
 	if err := data.CreateGrant(db, grant); err != nil {
-		return nil, err
-	}
-
-	settings.SignupEnabled = false
-	if err := data.SaveSettings(db, settings); err != nil {
 		return nil, err
 	}
 

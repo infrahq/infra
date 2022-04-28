@@ -6,41 +6,81 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/models"
 )
 
-func TestSignup(t *testing.T) {
-	setup := func(t *testing.T, signupEnabled bool) *gin.Context {
+func TestSignupEnabled(t *testing.T) {
+	setup := func(t *testing.T) (*gin.Context, *gorm.DB) {
 		db := setupDB(t)
-
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
 		c.Set("db", db)
+		_, err := data.InitializeSettings(db)
+		assert.NilError(t, err)
+		return c, db
+	}
 
-		_, err := data.InitializeSettings(db, signupEnabled)
+	t.Run("Enabled", func(t *testing.T) {
+		c, _ := setup(t)
+
+		enabled, err := SignupEnabled(c)
+		assert.NilError(t, err)
+		assert.Assert(t, enabled)
+	})
+
+	t.Run("DisabledByResources", func(t *testing.T) {
+		c, db := setup(t)
+
+		err := data.CreateIdentity(db, &models.Identity{Name: "test"})
 		assert.NilError(t, err)
 
-		return c
-	}
+		enabled, err := SignupEnabled(c)
+		assert.NilError(t, err)
+		assert.Assert(t, !enabled)
+	})
+
+	t.Run("DisabledByDeletedResources", func(t *testing.T) {
+		c, db := setup(t)
+
+		enabled, err := SignupEnabled(c)
+		assert.NilError(t, err)
+		assert.Assert(t, enabled)
+
+		err = data.CreateIdentity(db, &models.Identity{Name: "test"})
+		assert.NilError(t, err)
+
+		enabled, err = SignupEnabled(c)
+		assert.NilError(t, err)
+		assert.Assert(t, !enabled)
+
+		err = data.DeleteIdentities(db, data.ByName("test"))
+		assert.NilError(t, err)
+
+		enabled, err = SignupEnabled(c)
+		assert.NilError(t, err)
+		assert.Assert(t, !enabled)
+	})
 
 	user := "admin@infrahq.com"
 	pass := "password"
 
-	t.Run("Enabled", func(t *testing.T) {
-		c := setup(t, true)
+	t.Run("SignupUser", func(t *testing.T) {
+		c, _ := setup(t)
 
-		required, err := SignupEnabled(c)
+		enabled, err := SignupEnabled(c)
 		assert.NilError(t, err)
-		assert.Equal(t, required, true)
+		assert.Equal(t, enabled, true)
 
 		identity, err := Signup(c, user, pass)
 		assert.NilError(t, err)
 		assert.Equal(t, identity.Name, user)
 
-		// check "signupEnabled" flag gets flipped
-		_, err = Signup(c, user, pass)
-		assert.ErrorContains(t, err, "forbidden")
+		enabled, err = SignupEnabled(c)
+		assert.NilError(t, err)
+		assert.Equal(t, enabled, false)
 
 		// check "admin" user can login
 		_, identity2, requireUpdate, err := LoginWithUserCredential(c, user, pass, time.Now().Add(time.Hour))
@@ -53,16 +93,5 @@ func TestSignup(t *testing.T) {
 		// check "admin" can create token
 		_, err = CreateToken(c)
 		assert.NilError(t, err)
-	})
-
-	t.Run("NotEnabled", func(t *testing.T) {
-		c := setup(t, false)
-
-		required, err := SignupEnabled(c)
-		assert.NilError(t, err)
-		assert.Equal(t, required, false)
-
-		_, err = Signup(c, user, pass)
-		assert.ErrorContains(t, err, "forbidden")
 	})
 }

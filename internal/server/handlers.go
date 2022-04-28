@@ -468,6 +468,10 @@ func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) error {
 }
 
 func (a *API) SignupEnabled(c *gin.Context, _ *api.EmptyRequest) (*api.SignupEnabledResponse, error) {
+	if !a.server.options.EnableSignup {
+		return nil, internal.ErrForbidden
+	}
+
 	signupEnabled, err := access.SignupEnabled(c)
 	if err != nil {
 		return nil, err
@@ -479,6 +483,19 @@ func (a *API) SignupEnabled(c *gin.Context, _ *api.EmptyRequest) (*api.SignupEna
 }
 
 func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.Identity, error) {
+	if !a.server.options.EnableSignup {
+		return nil, internal.ErrForbidden
+	}
+
+	signupEnabled, err := access.SignupEnabled(c)
+	if err != nil {
+		return nil, err
+	}
+
+	if !signupEnabled {
+		return nil, internal.ErrForbidden
+	}
+
 	identity, err := access.Signup(c, r.Email, r.Password)
 	if err != nil {
 		return nil, err
