@@ -60,7 +60,7 @@ export default function ({ children }) {
               <a
                 href={n.href}
                 className={`
-                  ${router.asPath.startsWith(n.href) ? 'bg-purple-200/10 text-white' : 'text-gray-500 hover:bg-purple-200/5 hover:text-gray-300'}
+                  ${router.asPath.startsWith(n.href) ? 'bg-purple-200/10 text-primary' : 'text-secondary hover:bg-purple-200/5 hover:text-hover-link'}
                   rounded-lg py-2 px-3 flex items-center text-sm font-medium transition-colors duration-100
                   ${n.admin && !admin ? 'opacity-30 pointer-events-none' : ''}
                 `}
@@ -78,25 +78,25 @@ export default function ({ children }) {
           <div className='flex items-center space-x-4 mt-4 mb-2'>
             <div className='bg-purple-100/10 flex-none flex items-center justify-center w-9 h-9 py-1.5 rounded-lg capitalize font-bold select-none'>{auth?.name?.[0]}</div>
             <div>
-              <div className='text-gray-300 text-sm font-medium overflow-hidden overflow-ellipsis leading-none'>{auth?.name}</div>
-              {admin && <div className='text-gray-400 text-xs leading-none my-1 capitalize'>Admin</div>}
+              <div className='text-secondary text-sm font-medium overflow-hidden overflow-ellipsis leading-none'>{auth?.name}</div>
+              {admin && <div className='text-secondary text-xs leading-none my-1 capitalize'>Admin</div>}
             </div>
           </div>
           <div className='w-full px-2 py-1 items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 select-none text-sm'>
             <div onClick={() => logout()} className='w-full flex items-center opacity-50 hover:opacity-75 py-2 cursor-pointer'>
               <img src='/signout.svg' className='opacity-50 group-hover:opacity-75 h-3 mr-3' />
-              <div className='text-purple-50/40 group-hover:text-purple-50'>Logout</div>
+              <div className='text-secondary group-hover:text-hover-link'>Logout</div>
             </div>
             {subNavigation.map(s => (
               <Link key={s.name} href={s.href}>
                 <a className={`w-full flex -ml-1 opacity-50 hover:opacity-75 py-2 ${s.admin && !admin ? 'pointer-events-none opacity-20' : ''}`}>
                   <img src={s.icon} className='opacity-50 group-hover:opacity-75 mr-3 w-5 h-5' />
-                  <div className='text-purple-50/40 group-hover:text-purple-50'>{s.name}</div>
+                  <div className='text-secondary group-hover:text-hover-link'>{s.name}</div>
                 </a>
               </Link>
             ))}
           </div>
-          <div className='px-2 pt-1 pb-3 text-xs text-purple-50/30'>
+          <div className='px-2 pt-1 pb-3 text-xs text-secondary'>
             Infra version {version?.version}
           </div>
         </div>

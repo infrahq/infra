@@ -15,13 +15,15 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        primary: '#FFFFFF',
+        secondary: '#B2B2B2',
+        hover: {
+          link: '#FFFFFF'
+        },
         black: '#0A0E12',
         pink: {
           'light': withOpacityValue('228 64 255'),
           dark: '#CB2EEC'
-        },
-        gray: {
-          light: '#B2B2B2'
         }
       },
       transitionProperty: {

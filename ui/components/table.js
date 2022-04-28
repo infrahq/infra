@@ -13,7 +13,7 @@ export default function ({ columns, data, getRowProps = () => ({}), showHeader =
           {headerGroups.map(headerGroup => (
             <tr key={headerGroup.id} {...headerGroup.getHeaderGroupProps()}>
               {headerGroup.headers.map(column => (
-                <th key={column.id} className='text-left uppercase py-2 font-normal text-sm text-gray-400' {...column.getHeaderProps()}>
+                <th key={column.id} className='text-left uppercase py-2 font-normal text-xs text-secondary' {...column.getHeaderProps()}>
                   {column.render('Header')}
                 </th>
               ))}
@@ -24,7 +24,7 @@ export default function ({ columns, data, getRowProps = () => ({}), showHeader =
         {rows.map(row => {
           prepareRow(row)
           return (
-            <tr className='text-sm group' key={row.id} {...row.getRowProps(getRowProps(row))}>
+            <tr className='text-xs group' key={row.id} {...row.getRowProps(getRowProps(row))}>
               {row.cells.map(cell => {
                 return (
                   <td key={cell.id} className='py-1 group-first:pt-3' {...cell.getCellProps()}>

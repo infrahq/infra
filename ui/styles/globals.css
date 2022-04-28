@@ -4,7 +4,8 @@
 
 html, body, #__next {
   @apply h-screen;
-  @apply text-white;
+  @apply text-primary;
   @apply bg-black;
   @apply antialiased;
+  @apply font-normal;
 }

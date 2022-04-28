@@ -81,7 +81,7 @@ export default function () {
       </Head>
       <div className='flex flex-col mb-10 w-full max-w-sm'>
         <h1 className='text-xl font-bold tracking-tight text-center'>Add Identity Provider</h1>
-        <h2 className='mt-1 mb-10 text-gray-300 text-center'>Provide your identity provider's details.</h2>
+        <h2 className='mt-1 mb-10 text-secondary text-center'>Provide your identity provider's details.</h2>
         <div className='flex items-center space-x-4 mx-auto select-none'>
           <img className='h-4' src={`/providers/${kind}.svg`} /><SwitchHorizontalIcon className='w-4 h-4 text-gray-500' /><img src='/icon-light.svg' />
         </div>

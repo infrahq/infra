@@ -85,7 +85,7 @@ export default function () {
                 <div className='w-full flex flex-col items-center justify-center bg-black rounded-full text-sm px-4 py-4'>
                   {kind(p.url) ? <img className='h-4' src={`/providers/${kind(p.url)}.svg`} /> : <p className='font-bold h-4 m-1'>SSO</p>}
                   {kindCount[kind(p.url)] > 1 && (
-                    <div className='text-[10px] -mb-2 text-gray-400'>{p.url}</div>
+                    <div className='text-[10px] -mb-2 text-secondary'>{p.url}</div>
                   )}
                 </div>
               </button>
@@ -96,7 +96,7 @@ export default function () {
               <div className='w-full border-t border-gray-800' />
             </div>
             <div className='relative flex justify-center text-sm'>
-              <span className='px-8 bg-black text-gray-500'>OR</span>
+              <span className='px-8 bg-black text-secondary'>OR</span>
             </div>
           </div>
         </>

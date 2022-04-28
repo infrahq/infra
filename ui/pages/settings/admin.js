@@ -66,8 +66,8 @@ const AdminName = ({ id }) => {
         {user.name && user.name[0].toUpperCase()}
       </div>
       <div className='flex flex-col leading-tight'>
-        <div className='font-medium'>{user.name}</div>
-        <div className='text-gray-400 text-xs'>{user.kind}</div>
+        <div>{user.name}</div>
+        <div className='text-secondary text-xs'>{user.kind}</div>
       </div>
     </div>
   )
@@ -131,9 +131,9 @@ export default function () {
   return (
     <>
       <h3 className='text-lg font-bold mb-4'>Admins</h3>
-      <h4 className='text-gray-300 mb-4 text-sm w-3/4'>Infra admins have full access to the Infra API, including creating additional grants, managing identity providers, managing destinations, and managing other users.</h4>
-      <div className={`flex gap-1 ${error ? 'mt-10 mb-2' : 'my-10'} my-10 w-3/4`}>
-        <div className='flex-1 w-full'>
+      <h4 className='text-secondary mb-4 text-sm w-3/4'>Infra admins have full access to the Infra API, including creating additional grants, managing identity providers, managing destinations, and managing other users.</h4>
+      <div className={`flex gap-1 ${error ? 'mt-10 mb-2' : 'my-10'} my-10 w-9/12`}>
+        <div className='flex-1'>
           <InputDropdown
             type='email'
             value={adminEmail}
@@ -150,14 +150,14 @@ export default function () {
           type='button'
           className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 p-0.5 mx-auto rounded-full disabled:opacity-30'
         >
-          <div className='bg-black flex items-center text-sm px-14 py-3 rounded-full'>
+          <div className='bg-black flex items-center text-sm px-12 py-2.5 rounded-full'>
             Add
           </div>
         </button>
       </div>
       {error && <ErrorMessage message={error} />}
 
-      <h4 className='text-gray-400 my-3 text-sm'>These  users have full administration privileges</h4>
+      <h4 className='text-secondary my-3 text-sm'>These users have full administration privileges</h4>
       {adminList && adminList.length > 0 &&
         <div className='w-3/4'>
           <Table {...table} showHeader={false} />

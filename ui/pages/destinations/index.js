@@ -51,7 +51,7 @@ function columns (admin) {
             return (
               <div className='flex text-right justify-end w-24 h-8 ml-auto'>
                 {grants && (
-                  <div className='group-hover:hidden flex justify-center items-center text-gray-300'>
+                  <div className='group-hover:hidden flex justify-center items-center text-secondary'>
                     {users === 0 && groups === 0
                       ? (
                         <div>
@@ -79,7 +79,7 @@ function columns (admin) {
                 )}
                 <div className='group-hover:flex space-x-1 hidden'>
                   <button onClick={() => setShareOpen(true)} className='cursor-pointer bg-zinc-900 rounded-lg'>
-                    <div className='flex items-center py-1 px-3 text-gray-500 hover:text-white'>
+                    <div className='flex items-center py-1 px-3 text-secondary hover:text-hover-link'>
                       <ShareIcon className='w-4 h-4 ' /><div className='text-sm ml-1'>Share</div>
                     </div>
                   </button>
@@ -108,7 +108,7 @@ function columns (admin) {
             return (
               <div className='flex justify-end w-6 ml-auto opacity-0 group-hover:opacity-100'>
                 <button onClick={() => setOpen(true)} className='py-1 px-2 -mr-2 cursor-pointer'>
-                  <XIcon className='w-5 h-5 text-gray-500 hover:text-white' />
+                  <XIcon className='w-5 h-5 text-gray-500 hover:text-hover-link' />
                 </button>
 
                 {/* delete modal */}
@@ -161,7 +161,7 @@ export default function Destinations () {
             <div className='flex-1 flex flex-col space-y-4'>
               {destinations?.length > 0 && (
                 <div className='flex justify-between items-center'>
-                  <h1 className='text-2xl font-bold mt-6 mb-4'>Clusters</h1>
+                  <h1 className='text-base font-bold mt-6 mb-4'>Clusters</h1>
                   {admin && (
                     <Link href='/destinations/add'>
                       <button className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 my-2'>
