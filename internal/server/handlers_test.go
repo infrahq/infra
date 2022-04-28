@@ -231,28 +231,79 @@ func TestListProviders(t *testing.T) {
 	assert.Equal(t, apiProviders[0].Name, "mokta")
 }
 
-func TestDeleteProvider(t *testing.T) {
-	s := setupServer(t, withAdminIdentity)
+func TestAPI_DeleteProvider(t *testing.T) {
+	srv := setupServer(t, withAdminIdentity)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
-	routes := s.GenerateRoutes(prometheus.NewRegistry())
-
-	testProvider := &models.Provider{
-		Name: "mokta",
+	createProvider := func(t *testing.T) *models.Provider {
+		t.Helper()
+		p := &models.Provider{Name: "mokta"}
+		err := data.CreateProvider(srv.db, p)
+		assert.NilError(t, err)
+		return p
 	}
 
-	err := data.CreateProvider(s.db, testProvider)
-	assert.NilError(t, err)
+	provider1 := createProvider(t)
 
-	route := fmt.Sprintf("/v1/providers/%s", testProvider.ID)
-	req, err := http.NewRequest(http.MethodDelete, route, nil)
-	assert.NilError(t, err)
+	type testCase struct {
+		urlPath  string
+		setup    func(t *testing.T, req *http.Request)
+		expected func(t *testing.T, resp *httptest.ResponseRecorder)
+	}
 
-	req.Header.Add("Authorization", "Bearer "+adminAccessKey(s))
+	run := func(t *testing.T, tc testCase) {
+		req, err := http.NewRequest(http.MethodDelete, tc.urlPath, nil)
+		assert.NilError(t, err)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 
-	resp := httptest.NewRecorder()
-	routes.ServeHTTP(resp, req)
+		if tc.setup != nil {
+			tc.setup(t, req)
+		}
 
-	assert.Equal(t, http.StatusNoContent, resp.Code, resp.Body.String())
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+		tc.expected(t, resp)
+	}
+
+	testCases := map[string]testCase{
+		"not authenticated": {
+			urlPath: "/v1/providers/1234",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Del("Authorization")
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusUnauthorized, resp.Code, resp.Body.String())
+			},
+		},
+		"not authorized": {
+			urlPath: "/v1/providers/1234",
+			setup: func(t *testing.T, req *http.Request) {
+				key, _ := createAccessKey(t, srv.db, "someonenew@example.com")
+				req.Header.Set("Authorization", "Bearer "+key)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
+			},
+		},
+		"successful delete": {
+			urlPath: "/v1/providers/" + provider1.ID.String(),
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusNoContent, resp.Code, resp.Body.String())
+			},
+		},
+		"infra provider can not be deleted": {
+			urlPath: "/v1/providers/" + data.InfraProvider(srv.db).ID.String(),
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 }
 
 // withAdminIdentity may be used with setupServer to setup the server
@@ -269,112 +320,147 @@ func withAdminIdentity(_ *testing.T, opts *Options) {
 	})
 }
 
-func TestDeleteProvider_NoDeleteInternalProvider(t *testing.T) {
-	s := setupServer(t, withAdminIdentity)
+func TestAPI_CreateIdentity(t *testing.T) {
+	srv := setupServer(t, withAdminIdentity)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
-	routes := s.GenerateRoutes(prometheus.NewRegistry())
-	internalProvider := data.InfraProvider(s.db)
-
-	route := fmt.Sprintf("/v1/providers/%s", internalProvider.ID)
-	req, err := http.NewRequest(http.MethodDelete, route, nil)
+	existing := &models.Identity{Name: "existing@example.com", Kind: models.UserKind}
+	err := data.CreateIdentity(srv.db, existing)
 	assert.NilError(t, err)
 
-	req.Header.Add("Authorization", "Bearer "+adminAccessKey(s))
+	type testCase struct {
+		body     api.CreateIdentityRequest
+		setup    func(t *testing.T, req *http.Request)
+		expected func(t *testing.T, resp *httptest.ResponseRecorder)
+	}
 
-	resp := httptest.NewRecorder()
-	routes.ServeHTTP(resp, req)
+	run := func(t *testing.T, tc testCase) {
+		body := jsonBody(t, tc.body)
+		req, err := http.NewRequest(http.MethodPost, "/v1/identities", body)
+		assert.NilError(t, err)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 
-	assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
+		if tc.setup != nil {
+			tc.setup(t, req)
+		}
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		tc.expected(t, resp)
+	}
+
+	testCases := map[string]testCase{
+		"not authenticated": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Del("Authorization")
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusUnauthorized)
+			},
+		},
+		"not authorized": {
+			body: api.CreateIdentityRequest{
+				Name: "noone@example.com",
+				Kind: "user",
+			},
+			setup: func(t *testing.T, req *http.Request) {
+				key, _ := createAccessKey(t, srv.db, "someonenew@example.com")
+				req.Header.Set("Authorization", "Bearer "+key)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusForbidden, resp.Body.String())
+			},
+		},
+		"missing required field": {
+			body: api.CreateIdentityRequest{Kind: "user"},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+
+				var apiError api.Error
+				err := json.NewDecoder(resp.Body).Decode(&apiError)
+				assert.NilError(t, err)
+				assert.Equal(t, apiError.Message, "Name: is required")
+			},
+		},
+		"create new unlinked user": {
+			body: api.CreateIdentityRequest{
+				Name: "test-create-identity@example.com",
+				Kind: "user",
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusCreated, resp.Code, resp.Body.String())
+
+				var id api.CreateIdentityResponse
+				err := json.NewDecoder(resp.Body).Decode(&id)
+				assert.NilError(t, err)
+				assert.Equal(t, "test-create-identity@example.com", id.Name)
+				assert.Assert(t, id.OneTimePassword == "")
+			},
+		},
+		"new infra user gets one time password": {
+			body: api.CreateIdentityRequest{
+				Name:               "test-infra-identity@example.com",
+				Kind:               "user",
+				SetOneTimePassword: true,
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusCreated, resp.Code, resp.Body.String())
+
+				var id api.CreateIdentityResponse
+				err := json.NewDecoder(resp.Body).Decode(&id)
+				assert.NilError(t, err)
+				assert.Equal(t, "test-infra-identity@example.com", id.Name)
+				assert.Assert(t, id.OneTimePassword != "")
+			},
+		},
+		"existing unlinked user gets password": {
+			body: api.CreateIdentityRequest{
+				Name:               "existing@example.com",
+				Kind:               "user",
+				SetOneTimePassword: true,
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusCreated, resp.Code, resp.Body.String())
+
+				var id api.CreateIdentityResponse
+				err := json.NewDecoder(resp.Body).Decode(&id)
+				assert.NilError(t, err)
+				assert.Equal(t, "existing@example.com", id.Name)
+				assert.Assert(t, id.OneTimePassword != "")
+			},
+		},
+		"new machine identities do not get one time password": {
+			body: api.CreateIdentityRequest{
+				Name:               "test-infra-machine-otp",
+				Kind:               "machine",
+				SetOneTimePassword: true,
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusCreated, resp.Code, resp.Body.String())
+
+				var id api.CreateIdentityResponse
+				err := json.NewDecoder(resp.Body).Decode(&id)
+				assert.NilError(t, err)
+				assert.Equal(t, "test-infra-machine-otp", id.Name)
+				assert.Assert(t, id.OneTimePassword == "")
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 }
 
-func TestCreateIdentity(t *testing.T) {
-	s := setupServer(t)
-
-	admin := &models.Identity{Name: "admin@example.com", Kind: models.UserKind}
-	err := data.CreateIdentity(s.db, admin)
+func jsonBody(t *testing.T, body interface{}) *bytes.Buffer {
+	t.Helper()
+	buf := new(bytes.Buffer)
+	err := json.NewEncoder(buf).Encode(body)
 	assert.NilError(t, err)
-
-	adminGrant := &models.Grant{
-		Subject:   admin.PolyID(),
-		Privilege: models.InfraAdminRole,
-		Resource:  "infra",
-	}
-	err = data.CreateGrant(s.db, adminGrant)
-	assert.NilError(t, err)
-
-	c, _ := gin.CreateTestContext(httptest.NewRecorder())
-	c.Set("db", s.db)
-	c.Set("identity", admin)
-
-	handler := API{
-		server: s,
-	}
-
-	t.Run("new unlinked user", func(t *testing.T) {
-		req := &api.CreateIdentityRequest{
-			Name: "test-create-identity@example.com",
-			Kind: "user",
-		}
-
-		resp, err := handler.CreateIdentity(c, req)
-
-		assert.NilError(t, err)
-		assert.Equal(t, "test-create-identity@example.com", resp.Name)
-		assert.Check(t, resp.OneTimePassword == "")
-	})
-
-	t.Run("new infra user gets one time password", func(t *testing.T) {
-		req := &api.CreateIdentityRequest{
-			Name:               "test-infra-identity@example.com",
-			Kind:               "user",
-			SetOneTimePassword: true,
-		}
-
-		resp, err := handler.CreateIdentity(c, req)
-		assert.NilError(t, err)
-
-		assert.NilError(t, err)
-		assert.Equal(t, "test-infra-identity@example.com", resp.Name)
-		assert.Check(t, resp.OneTimePassword != "")
-	})
-
-	t.Run("existing unlinked user gets password", func(t *testing.T) {
-		req := &api.CreateIdentityRequest{
-			Name: "test-link-identity@example.com",
-			Kind: "user",
-		}
-
-		_, err := handler.CreateIdentity(c, req)
-		assert.NilError(t, err)
-
-		req = &api.CreateIdentityRequest{
-			Name:               "test-link-identity@example.com",
-			Kind:               "user",
-			SetOneTimePassword: true,
-		}
-
-		resp, err := handler.CreateIdentity(c, req)
-		assert.NilError(t, err)
-
-		assert.NilError(t, err)
-		assert.Equal(t, "test-link-identity@example.com", resp.Name)
-		assert.Check(t, resp.OneTimePassword != "")
-	})
-
-	t.Run("new machine identities do not get one time password", func(t *testing.T) {
-		req := &api.CreateIdentityRequest{
-			Name:               "test-infra-machine-otp",
-			Kind:               "machine",
-			SetOneTimePassword: true,
-		}
-
-		resp, err := handler.CreateIdentity(c, req)
-		assert.NilError(t, err)
-
-		assert.NilError(t, err)
-		assert.Equal(t, "test-infra-machine-otp", resp.Name)
-		assert.Check(t, resp.OneTimePassword == "")
-	})
+	return buf
 }
 
 func TestDeleteIdentity(t *testing.T) {
