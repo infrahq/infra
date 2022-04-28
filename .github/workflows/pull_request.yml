@@ -48,3 +48,6 @@ jobs:
         run: |
           go mod tidy
           git diff --exit-code go.mod go.sum
+      - name: Check generated code is updated
+        run: |
+          go generate ./...
