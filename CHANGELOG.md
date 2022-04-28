@@ -1,5 +1,13 @@
 # Changelog
 
+### [0.12.1](https://github.com/infrahq/infra/compare/v0.12.0...v0.12.1) (2022-04-28)
+
+
+### Bug Fixes
+
+* destinaion page ui bugs fixed ([#1747](https://github.com/infrahq/infra/issues/1747)) ([7239349](https://github.com/infrahq/infra/commit/723934993ae8eeb8e933c72340692d5262895f58))
+* make generate ui ([#1759](https://github.com/infrahq/infra/issues/1759)) ([b7bd65a](https://github.com/infrahq/infra/commit/b7bd65afd054d32ecfaac3f6710aeed6cb1415a7))
+
 ## [0.12.0](https://github.com/infrahq/infra/compare/v0.11.1...v0.12.0) (2022-04-27)
 
 
