@@ -5,13 +5,13 @@ import "fmt"
 // CLI Errors are user facing errors that are formatted.
 // Should be used for communication, rather than a stacktrace.
 type Error struct {
-	// Error that is caused by the system, used for debugging
-	// Only set this if you need it to be printed as part of the message
+	// OriginalError is an error that is caused by the system, used for logging/debugging
+	// Only set this if you need it to be printed as part of the user facing 'Message'.
 	OriginalError error
 
-	// Human readable error message that user will read on the CLI.
+	// Message is a human readable error message that user will read on the CLI.
 	// These should be full sentences, rather than a stack trace.
-	// May include suggestions.
+	// Consider including suggestions to resolve the error.
 	Message string
 }
 
