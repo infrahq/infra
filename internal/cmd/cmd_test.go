@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"testing"
 	"time"
 
@@ -35,6 +36,12 @@ func TestCanonicalPath(t *testing.T) {
 	t.Setenv("HOME", "/home/user")
 	t.Setenv("USERPROFILE", "/home/user")
 	wd := t.TempDir()
+
+	if runtime.GOOS == "darwin" {
+		// macs append this symlink
+		wd = "/private" + wd
+	}
+
 	env.ChangeWorkingDir(t, wd)
 
 	type testCase struct {
