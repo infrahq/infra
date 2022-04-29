@@ -35,7 +35,8 @@ func ListIdentityGrants(c *gin.Context, identityID uid.ID) ([]models.Grant, erro
 		return nil, err
 	}
 
-	return data.ListIdentityGrants(db, identityID)
+	polymorphicID := uid.NewIdentityPolymorphicID(identityID)
+	return data.ListGrants(db, data.BySubject(polymorphicID))
 }
 
 func ListGroupGrants(c *gin.Context, groupID uid.ID) ([]models.Grant, error) {
@@ -44,7 +45,8 @@ func ListGroupGrants(c *gin.Context, groupID uid.ID) ([]models.Grant, error) {
 		return nil, err
 	}
 
-	return data.ListGroupGrants(db, groupID)
+	polymorphicID := uid.NewGroupPolymorphicID(groupID)
+	return data.ListGrants(db, data.BySubject(polymorphicID))
 }
 
 func CreateGrant(c *gin.Context, grant *models.Grant) error {
