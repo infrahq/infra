@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"testing"
 	"time"
 
@@ -35,12 +34,8 @@ func TestMain(m *testing.M) {
 func TestCanonicalPath(t *testing.T) {
 	t.Setenv("HOME", "/home/user")
 	t.Setenv("USERPROFILE", "/home/user")
-	wd := t.TempDir()
-
-	if runtime.GOOS == "darwin" {
-		// macs append this symlink
-		wd = "/private" + wd
-	}
+	wd, err := filepath.EvalSymlinks(t.TempDir())
+	assert.NilError(t, err)
 
 	env.ChangeWorkingDir(t, wd)
 
