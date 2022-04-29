@@ -371,7 +371,7 @@ func TestServer_PersistSignupUser(t *testing.T) {
 	passwd := "supersecretpassword"
 
 	// run signup for "admin@email.com"
-	signupReq := api.SignupRequest{Email: email, Password: passwd}
+	signupReq := api.SignupRequest{Name: email, Password: passwd}
 	err := json.NewEncoder(&buf).Encode(signupReq)
 	assert.NilError(t, err)
 
@@ -385,7 +385,7 @@ func TestServer_PersistSignupUser(t *testing.T) {
 	assert.NilError(t, err)
 
 	// login with "admin@email.com" to get an access key
-	loginReq := api.LoginRequest{PasswordCredentials: &api.LoginRequestPasswordCredentials{Email: email, Password: passwd}}
+	loginReq := api.LoginRequest{PasswordCredentials: &api.LoginRequestPasswordCredentials{Name: email, Password: passwd}}
 	err = json.NewEncoder(&buf).Encode(loginReq)
 	assert.NilError(t, err)
 

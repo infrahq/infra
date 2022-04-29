@@ -87,7 +87,7 @@ func TestKeysAddCmd(t *testing.T) {
 		ch := setup(t)
 
 		ctx := context.Background()
-		err := Run(ctx, "keys", "add", "--ttl=400h", "--extension-deadline=5h", "my-machine")
+		err := Run(ctx, "keys", "add", "--ttl=400h", "--extension-deadline=5h", "my-user")
 		assert.NilError(t, err)
 
 		req := <-ch
