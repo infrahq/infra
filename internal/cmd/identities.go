@@ -31,7 +31,7 @@ func newIdentitiesCmd(cli *CLI) *cobra.Command {
 	cmd.AddCommand(newIdentitiesAddCmd(cli))
 	cmd.AddCommand(newIdentitiesEditCmd())
 	cmd.AddCommand(newIdentitiesListCmd(cli))
-	cmd.AddCommand(newIdentitiesRemoveCmd())
+	cmd.AddCommand(newIdentitiesRemoveCmd(cli))
 
 	return cmd
 }
@@ -169,7 +169,7 @@ func newIdentitiesListCmd(cli *CLI) *cobra.Command {
 	}
 }
 
-func newIdentitiesRemoveCmd() *cobra.Command {
+func newIdentitiesRemoveCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "remove IDENTITY",
 		Aliases: []string{"rm"},
@@ -199,6 +199,8 @@ $ infra identities remove machine-a`,
 					return err
 				}
 			}
+
+			fmt.Fprintf(cli.Stderr, "Deleted identity %q\n", name)
 
 			return nil
 		},

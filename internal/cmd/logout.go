@@ -165,14 +165,14 @@ func logoutOne(clear bool, server string) error {
 		return fmt.Errorf("Failed to logout of server %s due to an internal error: %w.", host.Host, err)
 	}
 	if success {
-		fmt.Fprintf(os.Stderr, "Logged out of server %s", host.Host)
+		fmt.Fprintf(os.Stderr, "Logged out of server %s\n", host.Host)
 	}
 
 	if clear {
 		serverURL := host.Host
 		config.Hosts[idx] = config.Hosts[len(config.Hosts)-1]
 		config.Hosts = config.Hosts[:len(config.Hosts)-1]
-		logging.S.Debugf("cleared server [%s]\n", serverURL)
+		logging.S.Debugf("cleared server [%s]", serverURL)
 	}
 
 	if err := clearKubeconfig(); err != nil {
