@@ -76,7 +76,7 @@ func Signup(c *gin.Context, name, password string) (*models.Identity, error) {
 		Subject:   uid.NewIdentityPolymorphicID(identity.ID),
 		Privilege: models.InfraAdminRole,
 		Resource:  "infra",
-		CreatedBy: models.CreatedBySystem,
+		CreatedBy: identity.ID,
 	}
 
 	if err := data.CreateGrant(db, grant); err != nil {
