@@ -702,8 +702,17 @@ func TestAPI_GetIdentity(t *testing.T) {
 		assert.NilError(t, err)
 		return respObj.ID
 	}
-	id1 := createID(t, "me@example.com", "user")
-	id2 := createID(t, "HAL", "machine")
+	idMe := createID(t, "me@example.com", "user")
+	idHal := createID(t, "HAL", "machine")
+
+	token := &models.AccessKey{
+		IssuedFor:  idMe,
+		ProviderID: data.InfraProvider(srv.db).ID,
+		ExpiresAt:  time.Now().Add(10 * time.Second),
+	}
+
+	accessKeyMe, err := data.CreateAccessKey(srv.db, token)
+	assert.NilError(t, err)
 
 	type testCase struct {
 		urlPath  string
@@ -728,7 +737,7 @@ func TestAPI_GetIdentity(t *testing.T) {
 
 	testCases := map[string]testCase{
 		"not authenticated": {
-			urlPath: "/v1/identities/" + id1.String(),
+			urlPath: "/v1/identities/" + idMe.String(),
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Del("Authorization")
 			},
@@ -737,7 +746,7 @@ func TestAPI_GetIdentity(t *testing.T) {
 			},
 		},
 		"not authorized": {
-			urlPath: "/v1/identities/" + id2.String(),
+			urlPath: "/v1/identities/" + idHal.String(),
 			setup: func(t *testing.T, req *http.Request) {
 				key, _ := createAccessKey(t, srv.db, "someonenew@example.com")
 
@@ -754,25 +763,16 @@ func TestAPI_GetIdentity(t *testing.T) {
 			},
 		},
 		"identity by ID for self": {
-			urlPath: "/v1/identities/" + id1.String(),
+			urlPath: "/v1/identities/" + idMe.String(),
 			setup: func(t *testing.T, req *http.Request) {
-				token := &models.AccessKey{
-					IssuedFor:  id1,
-					ProviderID: data.InfraProvider(srv.db).ID,
-					ExpiresAt:  time.Now().Add(10 * time.Second),
-				}
-
-				key, err := data.CreateAccessKey(srv.db, token)
-				assert.NilError(t, err)
-
-				req.Header.Set("Authorization", "Bearer "+key)
+				req.Header.Set("Authorization", "Bearer "+accessKeyMe)
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
 			},
 		},
 		"identity by ID for someone else": {
-			urlPath: "/v1/identities/" + id1.String(),
+			urlPath: "/v1/identities/" + idMe.String(),
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
 			},
@@ -781,7 +781,7 @@ func TestAPI_GetIdentity(t *testing.T) {
 			urlPath: "/v1/identities/self",
 			setup: func(t *testing.T, req *http.Request) {
 				token := &models.AccessKey{
-					IssuedFor:  id1,
+					IssuedFor:  idMe,
 					ProviderID: data.InfraProvider(srv.db).ID,
 					ExpiresAt:  time.Now().Add(10 * time.Second),
 				}
@@ -797,13 +797,13 @@ func TestAPI_GetIdentity(t *testing.T) {
 				idResponse := api.Identity{}
 				err := json.NewDecoder(resp.Body).Decode(&idResponse)
 				assert.NilError(t, err)
-				assert.Equal(t, idResponse.ID, id1)
+				assert.Equal(t, idResponse.ID, idMe)
 			},
 		},
 		"full json response": {
-			urlPath: "/v1/identities/" + id1.String(),
+			urlPath: "/v1/identities/" + idMe.String(),
 			setup: func(t *testing.T, req *http.Request) {
-				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+				req.Header.Set("Authorization", "Bearer "+accessKeyMe)
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
@@ -817,7 +817,7 @@ func TestAPI_GetIdentity(t *testing.T) {
 					  "created": "%[2]v",
 					  "updated": "%[2]v"
 					}`,
-					id1.String(),
+					idMe.String(),
 					time.Now().UTC().Format(time.RFC3339),
 				))
 				actual := jsonUnmarshal(t, resp.Body.String())
