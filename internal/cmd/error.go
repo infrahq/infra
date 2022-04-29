@@ -6,7 +6,7 @@ import "fmt"
 // Should be used for communication, rather than a stacktrace.
 type Error struct {
 	// Error that is caused by the system, used for debugging
-	// Only set this if you need it to be printed as part of the messsage
+	// Only set this if you need it to be printed as part of the message
 	OriginalError error
 
 	// Human readable error message that user will read on the CLI.
