@@ -23,7 +23,7 @@ function columns (admin) {
       accessor: i => i,
       Cell: ({ value }) => (
         <div className='flex items-center'>
-          <div className='font-medium py-2'>{value.name.replace('kubernetes.', '')}</div>
+          <div className='py-2'>{value.name.replace('kubernetes.', '')}</div>
         </div>
       )
     }, {
@@ -174,7 +174,7 @@ export default function Destinations () {
                 </div>
               )}
               {error?.status
-                ? <div className='my-20 text-center font-light text-gray-400 text-2xl'>{error?.info?.message}</div>
+                ? <div className='my-20 text-center font-light text-gray-400 text-sm'>{error?.info?.message}</div>
                 : destinations?.length === 0
                   ? <EmptyTable
                       title='There are no clusters'

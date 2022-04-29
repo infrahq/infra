@@ -24,7 +24,7 @@ export default function ({ columns, data, getRowProps = () => ({}), showHeader =
         {rows.map(row => {
           prepareRow(row)
           return (
-            <tr className='text-xs group' key={row.id} {...row.getRowProps(getRowProps(row))}>
+            <tr className='text-sm group' key={row.id} {...row.getRowProps(getRowProps(row))}>
               {row.cells.map(cell => {
                 return (
                   <td key={cell.id} className='py-1 group-first:pt-3' {...cell.getCellProps()}>

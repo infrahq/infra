@@ -74,7 +74,7 @@ export default function () {
   return (
     <div className='flex flex-col justify-center items-center h-full w-full max-w-md mx-auto mb-48'>
       <HeaderIcon size={12} iconPath='/infra-color.svg' />
-      <h1 className='mt-5 text-md font-bold'>Login to Infra</h1>
+      <h1 className='mt-5 text-base font-bold'>Login to Infra</h1>
       <h2 className='text-sm text-center max-w-xs my-2 text-gray-400'>Welcome back. Login with your credentials {providers?.length > 0 && 'or via your identity provider.'}</h2>
 
       {providers?.length > 0 && (

@@ -126,7 +126,7 @@ export default function () {
       </Head>
       <div className='flex flex-col mb-10 w-full max-w-md'>
         <HeaderIcon iconPath='/destinations-color.svg' position='center' />
-        <h1 className='text-xl font-bold tracking-tight text-center'>Connect a Cluster</h1>
+        <h1 className='text-base font-bold tracking-tight text-center'>Connect a Cluster</h1>
         <div className='flex gap-1 mt-8 mb-5'>
           <div className='flex-1'>
             <InputDropdown
@@ -143,7 +143,7 @@ export default function () {
             onClick={() => handleNext()}
             disabled={name.length === 0 || disabledInput}
             type='button'
-            className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 p-0.5 rounded-full disabled:opacity-30'
+            className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 p-0.5 ml-2 rounded-full disabled:opacity-30'
           >
             <div className='bg-black flex items-center text-sm px-12 py-2.5 rounded-full'>
               Next
@@ -153,7 +153,7 @@ export default function () {
         {enabledCommandInput &&
           <>
             <h2 className='text-secondary text-center px-2 mt-4'>
-              Next, deploy the Infra Connector to your cluster via <span className='font-mono font-medium'>helm:</span>
+              Next, deploy the Infra Connector to your cluster via <span className='font-mono'>helm:</span>
             </h2>
             <CommandInput
               enabledCommandInput={enabledCommandInput}

@@ -36,7 +36,7 @@ export default function ({ open, setOpen, onSubmit, title, message }) {
             <div className='mt-8 text-sm flex flex-row-reverse'>
               <button
                 type='button'
-                className='w-auto inline-flex justify-center rounded-full bg-gradient-to-tr from-[#B06363] to-[#FF00C7] font-medium focus:outline-none focus:ring-2 focus:ring-[#FF00C7] ml-3'
+                className='w-auto inline-flex justify-center rounded-full bg-gradient-to-tr from-[#B06363] to-[#FF00C7] focus:outline-none focus:ring-2 focus:ring-[#FF00C7] ml-3'
                 onClick={() => onSubmit()}
               >
                 <div className='bg-black  px-10 py-3.5 rounded-full m-0.5'>
@@ -45,7 +45,7 @@ export default function ({ open, setOpen, onSubmit, title, message }) {
               </button>
               <button
                 type='button'
-                className='w-auto inline-flex items-center justify-center rounded-full px-10 py-3.5 bg-black hover:opacity-75 font-medium focus:outline-none focus:ring-2 focus:ring-zinc-600'
+                className='w-auto inline-flex items-center justify-center rounded-full px-10 py-3.5 bg-black hover:opacity-75 focus:outline-none focus:ring-2 focus:ring-zinc-600'
                 onClick={() => setOpen(false)}
                 ref={cancelButtonRef}
               >

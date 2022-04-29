@@ -61,7 +61,7 @@ export default function ({ children }) {
                 href={n.href}
                 className={`
                   ${router.asPath.startsWith(n.href) ? 'bg-purple-200/10 text-primary' : 'text-secondary hover:bg-purple-200/5 hover:text-hover-link'}
-                  rounded-lg py-2 px-3 flex items-center text-sm font-medium transition-colors duration-100
+                  rounded-lg py-2 px-3 flex items-center text-sm transition-colors duration-100
                   ${n.admin && !admin ? 'opacity-30 pointer-events-none' : ''}
                 `}
               >
@@ -78,7 +78,7 @@ export default function ({ children }) {
           <div className='flex items-center space-x-4 mt-4 mb-2'>
             <div className='bg-purple-100/10 flex-none flex items-center justify-center w-9 h-9 py-1.5 rounded-lg capitalize font-bold select-none'>{auth?.name?.[0]}</div>
             <div>
-              <div className='text-secondary text-sm font-medium overflow-hidden overflow-ellipsis leading-none'>{auth?.name}</div>
+              <div className='text-secondary text-sm overflow-hidden overflow-ellipsis leading-none'>{auth?.name}</div>
               {admin && <div className='text-secondary text-xs leading-none my-1 capitalize'>Admin</div>}
             </div>
           </div>

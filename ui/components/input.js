@@ -1,5 +1,4 @@
 export default function ({
-  label,
   type,
   value,
   placeholder,

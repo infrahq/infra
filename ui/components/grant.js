@@ -132,7 +132,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
           onClick={() => handleShareGrant()}
           disabled={email.length === 0}
           type='button'
-          className='bg-gradient-to-tr from-indigo-300 to-pink-100 rounded-full hover:from-indigo-200 hover:to-pink-50 p-0.5 ml-2 disabled:opacity-30'
+          className='bg-gradient-to-tr from-indigo-300 to-pink-100 rounded-full hover:from-indigo-200 hover:to-pink-50 p-0.5 ml-4 disabled:opacity-30'
         >
           <div className='bg-black flex items-center text-sm rounded-full px-12 py-2.5'>
             Share

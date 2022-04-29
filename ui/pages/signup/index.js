@@ -70,7 +70,7 @@ export default function () {
   return (
     <div className='flex flex-col justify-center items-center h-full w-full max-w-md mx-auto mb-48'>
       <HeaderIcon size={12} iconPath='/infra-color.svg' />
-      <h1 className='mt-5 text-md font-bold'>Welcome to Infra</h1>
+      <h1 className='mt-5 text-base font-bold'>Welcome to Infra</h1>
       <h2 className='text-sm text-center max-w-xs my-2 text-secondary'>You've successfully installed Infra.<br />Set up your admin user to get started.</h2>
       <form onSubmit={onSubmit} className='flex flex-col w-full max-w-sm my-8'>
         <input autoFocus type='email' placeholder='Email' onChange={e => setEmail(e.target.value)} className={`bg-purple-100/5 border border-zinc-800 text-sm px-5 mt-2 py-3 rounded-full focus:outline-none focus:ring focus:ring-cyan-600 ${errors.email ? 'border-pink-500' : ''}`} />

@@ -15,7 +15,7 @@ export default function Settings() {
           <HeaderIcon iconPath='/settings-color.svg' />
         </div>
         <div className='flex-1 flex flex-col space-y-4'>
-          <h1 className='text-2xl font-bold mt-6 mb-4'>Settings</h1>
+          <h1 className='text-base font-bold mt-6 mb-4'>Settings</h1>
           <div className='pt-3'>
             <Admin />
           </div>

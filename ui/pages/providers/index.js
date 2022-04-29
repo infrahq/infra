@@ -30,7 +30,7 @@ const columns = [{
             )}
       </div>
       <div className='flex flex-col leading-tight'>
-        <div className='font-medium'>{provider.name}</div>
+        <div>{provider.name}</div>
         <div className='text-secondary text-xs'>{provider.url}</div>
       </div>
     </div>
@@ -99,7 +99,7 @@ export default function Providers () {
             <div className='flex-1 flex flex-col space-y-4'>
               {data?.length > 0 && (
                 <div className='flex justify-between items-center'>
-                  <h1 className='text-2xl font-bold mt-6 mb-4'>Identity Providers</h1>
+                  <h1 className='text-base font-bold mt-6 mb-4'>Identity Providers</h1>
                   <Link href='/providers/add'>
                     <button className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 my-2'>
                       <div className='bg-black rounded-full flex items-center text-sm px-4 py-1.5'>
@@ -110,7 +110,7 @@ export default function Providers () {
                 </div>
               )}
               {error?.status
-                ? <div className='my-20 text-center font-light text-secondary text-2xl'>{error?.info?.message}</div>
+                ? <div className='my-20 text-center font-light text-secondary text-sm'>{error?.info?.message}</div>
                 : data.length === 0
                   ? (
                     <EmptyTable
