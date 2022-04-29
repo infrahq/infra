@@ -2,10 +2,12 @@ package cmd
 
 import (
 	"context"
+	"reflect"
 	"testing"
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/fs"
 
@@ -13,7 +15,7 @@ import (
 	"github.com/infrahq/infra/internal/server"
 )
 
-func TestServerCmd_ParseOptions(t *testing.T) {
+func TestServerCmd_LoadOptions(t *testing.T) {
 	type testCase struct {
 		name        string
 		setup       func(t *testing.T, cmd *cobra.Command)
@@ -74,7 +76,6 @@ func TestServerCmd_ParseOptions(t *testing.T) {
 		{
 			name: "config filename specified as env var",
 			setup: func(t *testing.T, cmd *cobra.Command) {
-				t.Skip("does not work yet")
 				content := `
                     addr:
                       http: "127.0.0.1:1455"`
@@ -93,7 +94,6 @@ func TestServerCmd_ParseOptions(t *testing.T) {
 		{
 			name: "env var can set a value outside of the top level",
 			setup: func(t *testing.T, cmd *cobra.Command) {
-				t.Skip("does not work yet")
 				t.Setenv("INFRA_SERVER_ADDR_HTTP", "127.0.0.1:1455")
 			},
 			expected: func(t *testing.T) server.Options {
@@ -138,6 +138,31 @@ func TestServerCmd_ParseOptions(t *testing.T) {
 				return expected
 			},
 		},
+		{
+			name: "options from all flags",
+			setup: func(t *testing.T, cmd *cobra.Command) {
+				cmd.SetArgs([]string{
+					"--db-name", "database-name",
+					"--db-file", "$HOME/database-filename",
+					"--db-port", "12345",
+					"--db-host", "thehostname",
+					"--enable-telemetry=false",
+					"--session-duration", "3m",
+					"--enable-signup=false",
+				})
+			},
+			expected: func(t *testing.T) server.Options {
+				expected := serverOptionsWithDefaults()
+				expected.DBName = "database-name"
+				expected.DBFile = "/home/user/database-filename"
+				expected.DBHost = "thehostname"
+				expected.DBPort = 12345
+				expected.EnableTelemetry = false
+				expected.SessionDuration = 3 * time.Minute
+				expected.EnableSignup = false
+				return expected
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -147,19 +172,15 @@ func TestServerCmd_ParseOptions(t *testing.T) {
 	}
 }
 
-// serverOptionsWithDefaults returns all the default values. Many defaults are
-// specified in command line flags, which makes them difficult to access without
-// specifying them again here.
+// serverOptionsWithDefaults returns all the default values. Some default values
+// include placeholders for environment variables that will be resolved by the
+// command.
+// TODO: resolve the path in defaultServerOptions instead, and remove this function
 func serverOptionsWithDefaults() server.Options {
 	o := defaultServerOptions()
 	o.TLSCache = "/home/user/.infra/cache"
 	o.DBFile = "/home/user/.infra/sqlite3.db"
 	o.DBEncryptionKey = "/home/user/.infra/sqlite3.db.key"
-	o.DBEncryptionKeyProvider = "native"
-	o.EnableTelemetry = true
-	o.EnableCrashReporting = true
-	o.SessionDuration = 12 * time.Hour
-	o.EnableSignup = true
 	return o
 }
 
@@ -212,4 +233,27 @@ func patchNewServer(t *testing.T, target *server.Options) {
 		*target = options
 		return &server.Server{}, nil
 	}
+}
+
+func TestServerCmd_NoFlagDefaults(t *testing.T) {
+	cmd := newServerCmd()
+	flags := cmd.Flags()
+	err := flags.Parse(nil)
+	assert.NilError(t, err)
+
+	msg := "The default value of flags on the 'infra server' command will be ignored. " +
+		"Set a default value in defaultServerOptions instead."
+	flags.VisitAll(func(flag *pflag.Flag) {
+		if sv, ok := flag.Value.(pflag.SliceValue); ok {
+			if len(sv.GetSlice()) > 0 {
+				t.Fatalf("Flag --%v uses non-zero value %v. %v", flag.Name, flag.Value, msg)
+			}
+			return
+		}
+
+		v := reflect.Indirect(reflect.ValueOf(flag.Value))
+		if !v.IsZero() {
+			t.Fatalf("Flag --%v uses non-zero value %v. %v", flag.Name, flag.Value, msg)
+		}
+	})
 }

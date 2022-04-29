@@ -3,16 +3,20 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/spf13/cobra"
 
+	"github.com/infrahq/infra/internal/cmd/cliopts"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server"
 )
 
 func newServerCmd() *cobra.Command {
 	options := defaultServerOptions()
+	var configFilename string
+
 	cmd := &cobra.Command{
 		Use:    "server",
 		Short:  "Start Infra server",
@@ -21,7 +25,16 @@ func newServerCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			logging.SetServerLogger()
 
-			if err := parseOptions(cmd, &options, "INFRA_SERVER"); err != nil {
+			if configFilename == "" {
+				configFilename = os.Getenv("INFRA_SERVER_CONFIG_FILE")
+			}
+
+			err := cliopts.Load(&options, cliopts.Options{
+				Filename:  configFilename,
+				EnvPrefix: "INFRA_SERVER",
+				Flags:     cmd.Flags(),
+			})
+			if err != nil {
 				return err
 			}
 
@@ -54,29 +67,38 @@ func newServerCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringP("config-file", "f", "", "Server configuration file")
-	cmd.Flags().String("tls-cache", "$HOME/.infra/cache", "Directory to cache TLS certificates")
-	cmd.Flags().String("db-file", "$HOME/.infra/sqlite3.db", "Path to SQLite 3 database")
+	cmd.Flags().StringVarP(&configFilename, "config-file", "f", "", "Server configuration file")
+	cmd.Flags().String("tls-cache", "", "Directory to cache TLS certificates")
+	cmd.Flags().String("db-file", "", "Path to SQLite 3 database")
 	cmd.Flags().String("db-name", "", "Database name")
 	cmd.Flags().String("db-host", "", "Database host")
 	cmd.Flags().Int("db-port", 0, "Database port")
 	cmd.Flags().String("db-username", "", "Database username")
 	cmd.Flags().String("db-password", "", "Database password (secret)")
 	cmd.Flags().String("db-parameters", "", "Database additional connection parameters")
-	cmd.Flags().String("db-encryption-key", "$HOME/.infra/sqlite3.db.key", "Database encryption key")
-	cmd.Flags().String("db-encryption-key-provider", "native", "Database encryption key provider")
-	cmd.Flags().Bool("enable-telemetry", true, "Enable telemetry")
-	cmd.Flags().Bool("enable-crash-reporting", true, "Enable crash reporting")
+	cmd.Flags().String("db-encryption-key", "", "Database encryption key")
+	cmd.Flags().String("db-encryption-key-provider", "", "Database encryption key provider")
+	cmd.Flags().Bool("enable-telemetry", false, "Enable telemetry")
+	cmd.Flags().Bool("enable-crash-reporting", false, "Enable crash reporting")
 	cmd.Flags().BoolVar(&options.UI.Enabled, "enable-ui", false, "Enable Infra server UI")
 	cmd.Flags().Var(&options.UI.ProxyURL, "ui-proxy-url", "Proxy upstream UI requests to this url")
-	cmd.Flags().Duration("session-duration", time.Hour*12, "User session duration")
-	cmd.Flags().Bool("enable-signup", true, "Enable one-time admin signup")
+	cmd.Flags().Duration("session-duration", 0, "User session duration")
+	cmd.Flags().Bool("enable-signup", false, "Enable one-time admin signup")
 
 	return cmd
 }
 
 func defaultServerOptions() server.Options {
 	return server.Options{
+		TLSCache:                "$HOME/.infra/cache",
+		DBFile:                  "$HOME/.infra/sqlite3.db",
+		DBEncryptionKey:         "$HOME/.infra/sqlite3.db.key",
+		DBEncryptionKeyProvider: "native",
+		EnableTelemetry:         true,
+		EnableCrashReporting:    true,
+		SessionDuration:         12 * time.Hour,
+		EnableSignup:            true,
+
 		Addr: server.ListenerOptions{
 			HTTP:    ":80",
 			HTTPS:   ":443",
