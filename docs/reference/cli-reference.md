@@ -424,7 +424,7 @@ Create an access key
 Create an access key. Only machine identities are supported at this time.
 
 ```
-infra keys add KEY IDENTITY [flags]
+infra keys add IDENTITY [flags]
 ```
 
 ### Examples
@@ -439,8 +439,9 @@ $ infra keys add example-key machine-a --ttl=12h
 ### Options
 
 ```
-      --extension-deadline duration   A specified deadline that an access key must be used within to remain valid (default 720h0m0s)
-      --ttl duration                  The total time that an access key will be valid for (default 720h0m0s)
+      --extension-deadline duration   A specified deadline that the access key must be used within to remain valid (default 720h0m0s)
+      --name string                   The name of the access key
+      --ttl duration                  The total time that the access key will be valid for (default 720h0m0s)
 ```
 
 ### Options inherited from parent commands

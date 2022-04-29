@@ -41,6 +41,10 @@ func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey, identityID uid
 		return "", fmt.Errorf("get access key identity: %w", err)
 	}
 
+	if accessKey.Name == "" {
+		accessKey.Name = fmt.Sprintf("%s-%s", identity.Name, time.Now().UTC().Format("2006-01-02T15:04:05.000000"))
+	}
+
 	if identity.Kind != models.MachineKind {
 		// direct access key creation isn't supported for user identities yet
 		return "", internal.ErrNotImplemented

@@ -22,7 +22,7 @@ type ListAccessKeysRequest struct {
 
 type CreateAccessKeyRequest struct {
 	IdentityID        uid.ID   `json:"identityID" validate:"required"`
-	Name              string   `json:"name" validate:"required,excludes= "`
+	Name              string   `json:"name" validate:"excludes= "`
 	TTL               Duration `json:"ttl" validate:"required" note:"maximum time valid"`
 	ExtensionDeadline Duration `json:"extensionDeadline,omitempty" validate:"required" note:"How long the key is active for before it needs to be renewed. The access key must be used within this amount of time to renew validity"`
 }

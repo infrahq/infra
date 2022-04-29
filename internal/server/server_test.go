@@ -19,6 +19,7 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/data"
 )
 
 func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
@@ -36,6 +37,9 @@ func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
 
 	err = s.loadConfig(s.options.Config)
 	assert.NilError(t, err)
+
+	data.InvalidateCache()
+	t.Cleanup(data.InvalidateCache)
 
 	return s
 }

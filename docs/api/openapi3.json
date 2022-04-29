@@ -526,7 +526,6 @@
                 },
                 "required": [
                   "identityID",
-                  "name",
                   "ttl",
                   "extensionDeadline"
                 ],

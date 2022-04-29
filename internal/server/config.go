@@ -844,7 +844,7 @@ func (s Server) loadAccessKey(db *gorm.DB, identity *models.Identity, provider *
 		}
 
 		accessKey := &models.AccessKey{
-			Name:       fmt.Sprintf("%s-%s", identity.Name, time.Now().Format("20060102150405")),
+			Name:       fmt.Sprintf("%s-%s", identity.Name, time.Now().UTC().Format("2006-01-02T15:04:05.000000")),
 			IssuedFor:  identity.ID,
 			ExpiresAt:  time.Now().AddDate(10, 0, 0),
 			KeyID:      keyID,
