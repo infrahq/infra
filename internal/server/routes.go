@@ -42,7 +42,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) *gin.Engine 
 
 	// This group of middleware only applies to non-ui routes
 	api := router.Group("/",
-		sentrygin.New(sentrygin.Options{}),
+		sentrygin.New(sentrygin.Options{Repanic: true}),
 		metrics.Middleware(promRegistry),
 		DatabaseMiddleware(a.server.db), // must be after TimeoutMiddleware to time out db queries.
 	)
