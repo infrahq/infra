@@ -123,19 +123,6 @@ func (a *API) DeleteIdentity(c *gin.Context, r *api.Resource) error {
 	return access.DeleteIdentity(c, r.ID)
 }
 
-func (a *API) ListIdentityGrants(c *gin.Context, r *api.Resource) (*api.ListResponse[api.Grant], error) {
-	grants, err := access.ListIdentityGrants(c, r.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	result := api.NewListResponse(grants, func(grant models.Grant) api.Grant {
-		return *grant.ToAPI()
-	})
-
-	return result, nil
-}
-
 func (a *API) ListIdentityGroups(c *gin.Context, r *api.Resource) (*api.ListResponse[api.Group], error) {
 	groups, err := access.ListIdentityGroups(c, r.ID)
 	if err != nil {
@@ -182,19 +169,6 @@ func (a *API) CreateGroup(c *gin.Context, r *api.CreateGroupRequest) (*api.Group
 	}
 
 	return group.ToAPI(), nil
-}
-
-func (a *API) ListGroupGrants(c *gin.Context, r *api.Resource) (*api.ListResponse[api.Grant], error) {
-	grants, err := access.ListGroupGrants(c, r.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	result := api.NewListResponse(grants, func(grant models.Grant) api.Grant {
-		return *grant.ToAPI()
-	})
-
-	return result, nil
 }
 
 // caution: this endpoint is unauthenticated, do not return sensitive info
@@ -430,6 +404,16 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 	})
 
 	return result, nil
+}
+
+// TODO: remove after deprecation period
+func (a *API) ListIdentityGrants(c *gin.Context, r *api.Resource) (*api.ListResponse[api.Grant], error) {
+	return a.ListGrants(c, &api.ListGrantsRequest{Identity: r.ID})
+}
+
+// TODO: remove after deprecation period
+func (a *API) ListGroupGrants(c *gin.Context, r *api.Resource) (*api.ListResponse[api.Grant], error) {
+	return a.ListGrants(c, &api.ListGrantsRequest{Group: r.ID})
 }
 
 func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {

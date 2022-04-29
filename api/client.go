@@ -224,6 +224,7 @@ func (c Client) DeleteIdentity(id uid.ID) error {
 	return delete(c, fmt.Sprintf("/v1/identities/%s", id))
 }
 
+// Deprecated: use ListGrants
 func (c Client) ListIdentityGrants(id uid.ID) (*ListResponse[Grant], error) {
 	return list[ListResponse[Grant]](c, fmt.Sprintf("/v1/identities/%s/grants", id), nil)
 }
@@ -244,6 +245,7 @@ func (c Client) CreateGroup(req *CreateGroupRequest) (*Group, error) {
 	return post[CreateGroupRequest, Group](c, "/v1/groups", req)
 }
 
+// Deprecated: use ListGrants
 func (c Client) ListGroupGrants(id uid.ID) (*ListResponse[Grant], error) {
 	return list[ListResponse[Grant]](c, fmt.Sprintf("/v1/groups/%s/grants", id), nil)
 }
