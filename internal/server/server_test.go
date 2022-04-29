@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
@@ -10,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/infrahq/secrets"
 	"github.com/prometheus/client_golang/prometheus"
@@ -355,4 +357,62 @@ func TestServer_GenerateRoutes_UI(t *testing.T) {
 			run(t, tc)
 		})
 	}
+}
+
+func TestServer_PersistSignupUser(t *testing.T) {
+	s := setupServer(t, func(_ *testing.T, opts *Options) {
+		opts.EnableSignup = true
+		opts.SessionDuration = time.Minute
+	})
+	routes := s.GenerateRoutes(prometheus.NewRegistry())
+
+	var buf bytes.Buffer
+	email := "admin@email.com"
+	passwd := "supersecretpassword"
+
+	// run signup for "admin@email.com"
+	signupReq := api.SignupRequest{Email: email, Password: passwd}
+	err := json.NewEncoder(&buf).Encode(signupReq)
+	assert.NilError(t, err)
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/signup", &buf)
+	resp := httptest.NewRecorder()
+	routes.ServeHTTP(resp, req)
+	assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
+
+	signupResp := &api.CreateIdentityResponse{}
+	err = json.Unmarshal(resp.Body.Bytes(), signupResp)
+	assert.NilError(t, err)
+
+	// login with "admin@email.com" to get an access key
+	loginReq := api.LoginRequest{PasswordCredentials: &api.LoginRequestPasswordCredentials{Email: email, Password: passwd}}
+	err = json.NewEncoder(&buf).Encode(loginReq)
+	assert.NilError(t, err)
+
+	req = httptest.NewRequest(http.MethodPost, "/v1/login", &buf)
+	resp = httptest.NewRecorder()
+	routes.ServeHTTP(resp, req)
+	assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
+
+	loginResp := &api.LoginResponse{}
+	err = json.Unmarshal(resp.Body.Bytes(), loginResp)
+	assert.NilError(t, err)
+
+	checkAuthenticated := func() {
+		req = httptest.NewRequest(http.MethodGet, "/v1/identities", nil)
+		req.Header.Set("Authorization", "Bearer "+loginResp.AccessKey)
+		resp = httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusOK)
+	}
+
+	// try an authenticated endpoint with the access key
+	checkAuthenticated()
+
+	// reload server config
+	err = s.loadConfig(s.options.Config)
+	assert.NilError(t, err)
+
+	// retry the authenticated endpoint
+	checkAuthenticated()
 }
