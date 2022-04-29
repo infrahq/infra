@@ -122,7 +122,13 @@ func TestServer_Run(t *testing.T) {
 	}()
 
 	t.Run("metrics server started", func(t *testing.T) {
-		resp, err := http.Get("http://" + srv.Addrs.Metrics.String() + "/metrics")
+		// perform one API call to populate metrics
+		resp, err := http.Get("http://" + srv.Addrs.HTTP.String() + "/v1/version")
+		assert.NilError(t, err)
+		defer resp.Body.Close()
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		resp, err = http.Get("http://" + srv.Addrs.Metrics.String() + "/metrics")
 		assert.NilError(t, err)
 		defer resp.Body.Close()
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
