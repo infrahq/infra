@@ -34,7 +34,9 @@ func TestMain(m *testing.M) {
 func TestCanonicalPath(t *testing.T) {
 	t.Setenv("HOME", "/home/user")
 	t.Setenv("USERPROFILE", "/home/user")
-	wd := t.TempDir()
+	wd, err := filepath.EvalSymlinks(t.TempDir())
+	assert.NilError(t, err)
+
 	env.ChangeWorkingDir(t, wd)
 
 	type testCase struct {
