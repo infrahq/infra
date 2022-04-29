@@ -1,5 +1,20 @@
 # Changelog
 
+### [0.12.2](https://github.com/infrahq/infra/compare/v0.12.1...v0.12.2) (2022-04-29)
+
+
+### Features
+
+* **cmd:** optional access key name ([56de3d1](https://github.com/infrahq/infra/commit/56de3d107c8250d6db9017fc2378ea24d9b41a7f))
+
+
+### Bug Fixes
+
+* block removing last infra admin ([ddf29a7](https://github.com/infrahq/infra/commit/ddf29a7647dcc225e18a936ab828f694ec003e26))
+* do not label signup user grant as created by system ([5b900f4](https://github.com/infrahq/infra/commit/5b900f44752d28244c0d2ba5f24c4f678bc122d2))
+* loading connector.Options ([a992e94](https://github.com/infrahq/infra/commit/a992e942495c56d052ee6e064c198df9983c2c3f))
+* mac os uses symlink for canonical path ([#1792](https://github.com/infrahq/infra/issues/1792)) ([1c128c3](https://github.com/infrahq/infra/commit/1c128c31a6459865eb48aaf599e101ca2500cd13))
+
 ### [0.12.1](https://github.com/infrahq/infra/compare/v0.12.0...v0.12.1) (2022-04-28)
 
 

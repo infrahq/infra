@@ -397,7 +397,7 @@
       "url": "https://www.elastic.co/licensing/elastic-license"
     },
     "title": "Infra API",
-    "version": "0.12.1"
+    "version": "0.12.2"
   },
   "paths": {
     "/v1/access-keys": {
