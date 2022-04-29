@@ -66,5 +66,5 @@ func DeleteGrant(c *gin.Context, id uid.ID) error {
 		return err
 	}
 
-	return data.DeleteGrants(db, data.ByID(id), data.NotCreatedBy(models.CreatedBySystem))
+	return data.DeleteGrants(db, data.ByID(id))
 }
