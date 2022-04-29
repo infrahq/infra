@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"gotest.tools/v3/assert"
+	"gotest.tools/v3/env"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/uid"
@@ -24,6 +25,42 @@ func TestMain(m *testing.M) {
 	_ = os.Setenv("USERPROFILE", "/this test forgot to t.SetEnv(USERPROFILE, ...)")
 	_ = os.Setenv("KUBECONFIG", "/this test forgot to t.SetEnv(KUBECONFIG, ...)")
 	os.Exit(m.Run())
+}
+
+func TestCanonicalPath(t *testing.T) {
+	t.Setenv("HOME", "/home/user")
+	t.Setenv("USERPROFILE", "/home/user")
+	wd := t.TempDir()
+	env.ChangeWorkingDir(t, wd)
+
+	type testCase struct {
+		path     string
+		expected string
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		actual, err := canonicalPath(tc.path)
+		assert.NilError(t, err)
+		assert.Equal(t, tc.expected, actual)
+	}
+
+	testCases := []testCase{
+		{path: "/already/abs", expected: "/already/abs"},
+		{path: "relative/no/dot", expected: wd + "/relative/no/dot"},
+		{path: "./relative/dot", expected: wd + "/relative/dot"},
+		{path: "$HOME/dir", expected: "/home/user/dir"},
+		{path: "${HOME}/dir", expected: "/home/user/dir"},
+		{path: "/not/$HOMEFOO/dir", expected: "/not/dir"},
+		{path: "$HOMEFOO/dir", expected: "/dir"},
+		{path: "~/config", expected: "/home/user/config"},
+		{path: "~user/config", expected: wd + "/~user/config"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("in=%v out=%v", tc.path, tc.expected), func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 }
 
 func TestUse(t *testing.T) {
