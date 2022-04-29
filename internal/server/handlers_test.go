@@ -542,7 +542,7 @@ func TestAPI_CreateGrant_Success(t *testing.T) {
 	accessKey, err := data.ValidateAccessKey(srv.db, adminAccessKey(srv))
 	assert.NilError(t, err)
 
-	runStep(t, "response is ok", func(t *testing.T) {
+	runStep(t, "full JSON response", func(t *testing.T) {
 		routes.ServeHTTP(resp, req)
 		assert.Equal(t, resp.Code, http.StatusCreated)
 
@@ -581,11 +581,6 @@ func TestAPI_CreateGrant_Success(t *testing.T) {
 		assert.NilError(t, err)
 		assert.DeepEqual(t, getGrant, newGrant)
 	})
-}
-
-var cmpAPIGrantJSON = gocmp.Options{
-	gocmp.FilterPath(pathMapKey(`created`, `updated`), cmpApproximateTime),
-	gocmp.FilterPath(pathMapKey(`id`), cmpAnyValidUID),
 }
 
 // cmpApproximateTime is a gocmp.Option that compares a time formatted as an
@@ -781,7 +776,7 @@ func TestAPI_GetIdentity(t *testing.T) {
 				assert.Equal(t, idResponse.ID, idMe)
 			},
 		},
-		"full json response": {
+		"full JSON response": {
 			urlPath: "/v1/identities/" + idMe.String(),
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+accessKeyMe)

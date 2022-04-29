@@ -35,6 +35,7 @@ func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, priv
 
 	if errors.Is(err, internal.ErrForbidden) {
 		// Allow an authenticated identity to view their own grants
+		db := getDB(c)
 		subjectID, _ := subject.ID()
 		identity := AuthenticatedIdentity(c)
 		switch {
