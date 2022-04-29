@@ -52,7 +52,7 @@ func TestGet(t *testing.T) {
 
 	t.Run("failed request", func(t *testing.T) {
 		_, err := get[stubResponse](c, "/bad")
-		assert.ErrorContains(t, err, `responded 400: bad request`)
+		assert.ErrorContains(t, err, `responded 400`)
 		req := <-requestCh
 		assert.Equal(t, req.Method, http.MethodGet)
 		assert.Equal(t, req.URL.Path, "/bad")
