@@ -2,7 +2,7 @@ package cmd
 
 import "fmt"
 
-// CLI Errors are user facing errors that is formatted.
+// CLI Errors are user facing errors that are formatted.
 // Should be used for communication, rather than a stacktrace.
 type Error struct {
 	// Error that is caused by the system, used for debugging
