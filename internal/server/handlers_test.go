@@ -888,3 +888,84 @@ func TestAPI_CreateAccessKey(t *testing.T) {
 		assert.Equal(t, resp.Name, "mysupersecretaccesskey")
 	})
 }
+
+func TestAPI_DeleteGrant(t *testing.T) {
+	srv := setupServer(t, withAdminIdentity)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	user := &models.Identity{Name: "non-admin"}
+
+	err := data.CreateIdentity(srv.db, user)
+	assert.NilError(t, err)
+
+	t.Run("last infra admin is deleted", func(t *testing.T) {
+		infraAdminGrants, err := data.ListGrants(srv.db, data.ByPrivilege(models.InfraAdminRole), data.ByResource("infra"))
+		assert.NilError(t, err)
+		assert.Assert(t, len(infraAdminGrants) == 1)
+
+		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/grants/%s", infraAdminGrants[0].ID), nil)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Code, http.StatusForbidden, resp.Body.String())
+	})
+
+	t.Run("not last infra admin is deleted", func(t *testing.T) {
+		grant2 := &models.Grant{
+			Subject:   uid.NewIdentityPolymorphicID(user.ID),
+			Privilege: models.InfraAdminRole,
+			Resource:  "infra",
+		}
+
+		err := data.CreateGrant(srv.db, grant2)
+		assert.NilError(t, err)
+
+		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/grants/%s", grant2.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Code, http.StatusNoContent, resp.Body.String())
+	})
+
+	t.Run("last infra non-admin is deleted", func(t *testing.T) {
+		grant2 := &models.Grant{
+			Subject:   uid.NewIdentityPolymorphicID(user.ID),
+			Privilege: models.InfraViewRole,
+			Resource:  "infra",
+		}
+
+		err := data.CreateGrant(srv.db, grant2)
+		assert.NilError(t, err)
+
+		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/grants/%s", grant2.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Code, http.StatusNoContent, resp.Body.String())
+	})
+
+	t.Run("last non-infra admin is deleted", func(t *testing.T) {
+		grant2 := &models.Grant{
+			Subject:   uid.NewIdentityPolymorphicID(user.ID),
+			Privilege: "admin",
+			Resource:  "kubernetes.example",
+		}
+
+		err := data.CreateGrant(srv.db, grant2)
+		assert.NilError(t, err)
+
+		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/grants/%s", grant2.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Code, http.StatusNoContent, resp.Body.String())
+	})
+}

@@ -471,6 +471,22 @@ func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.Grant
 }
 
 func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) error {
+	grant, err := access.GetGrant(c, r.ID)
+	if err != nil {
+		return err
+	}
+
+	if grant.Resource == access.ResourceInfraAPI && grant.Privilege == models.InfraAdminRole {
+		infraAdminGrants, err := access.ListGrants(c, "", grant.Resource, grant.Privilege)
+		if err != nil {
+			return err
+		}
+
+		if len(infraAdminGrants) == 1 {
+			return fmt.Errorf("%w: cannot remove the last infra admin", internal.ErrForbidden)
+		}
+	}
+
 	return access.DeleteGrant(c, r.ID)
 }
 
