@@ -19,7 +19,7 @@ export default function ({ children }) {
     fetch('/v1/logout', {
       method: 'POST'
     })
-    mutate('/v1/identities/self', undefined)
+    await mutate('/v1/identities/self', async () => undefined)
     router.replace('/login')
   }
 

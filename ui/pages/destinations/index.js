@@ -175,7 +175,7 @@ export default function Destinations () {
               )}
               {error?.status
                 ? <div className='my-20 text-center font-light text-gray-400 text-2xl'>{error?.info?.message}</div>
-                : destinations.length === 0
+                : destinations?.length === 0
                   ? <EmptyTable
                       title='There are no clusters'
                       subtitle='There are currently no clusters connected to Infra. Get started by connecting one.'
