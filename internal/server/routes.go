@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"gopkg.in/square/go-jose.v2"
@@ -42,7 +41,6 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) *gin.Engine 
 
 	// This group of middleware only applies to non-ui routes
 	api := router.Group("/",
-		sentrygin.New(sentrygin.Options{}),
 		metrics.Middleware(promRegistry),
 		DatabaseMiddleware(a.server.db), // must be after TimeoutMiddleware to time out db queries.
 	)

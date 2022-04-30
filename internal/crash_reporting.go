@@ -1,3 +1,0 @@
-package internal
-
-var CrashReportingDSN = ""

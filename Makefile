@@ -38,7 +38,7 @@ build: goreleaser
 export IMAGE_TAG=0.0.0-development
 
 build/docker:
-	docker build --build-arg TELEMETRY_WRITE_KEY=${TELEMETRY_WRITE_KEY} --build-arg CRASH_REPORTING_DSN=${CRASH_REPORTING_DSN} . -t infrahq/infra:$(IMAGE_TAG)
+	docker build --build-arg TELEMETRY_WRITE_KEY=${TELEMETRY_WRITE_KEY} . -t infrahq/infra:$(IMAGE_TAG)
 
 export OKTA_SECRET=infra-okta
 
@@ -69,13 +69,13 @@ dev/clean:
 	helm $(NS) uninstall infra || true
 
 docker:
-	docker buildx build --push --platform linux/amd64,linux/arm64 --build-arg BUILDVERSION=$(version) --build-arg TELEMETRY_WRITE_KEY=${TELEMETRY_WRITE_KEY} --build-arg CRASH_REPORTING_DSN=${CRASH_REPORTING_DSN} . -t infrahq/infra:$(version)
+	docker buildx build --push --platform linux/amd64,linux/arm64 --build-arg BUILDVERSION=$(version) --build-arg TELEMETRY_WRITE_KEY=${TELEMETRY_WRITE_KEY} . -t infrahq/infra:$(version)
 
 release: goreleaser
 	goreleaser release -f .goreleaser.yml --rm-dist
 
 release/docker:
-	docker buildx build --push --platform linux/amd64,linux/arm64 --build-arg BUILDVERSION=$(version) --build-arg TELEMETRY_WRITE_KEY=${TELEMETRY_WRITE_KEY} --build-arg CRASH_REPORTING_DSN=${CRASH_REPORTING_DSN} . -t infrahq/infra:$(version) -t infrahq/infra
+	docker buildx build --push --platform linux/amd64,linux/arm64 --build-arg BUILDVERSION=$(version) --build-arg TELEMETRY_WRITE_KEY=${TELEMETRY_WRITE_KEY} . -t infrahq/infra:$(version) -t infrahq/infra
 
 release/helm: helm
 	aws s3 --region us-east-2 sync helm s3://helm.infrahq.com --exclude "*" --include "index.yaml" --include "*.tgz"

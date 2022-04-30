@@ -31,4 +31,3 @@ jobs:
       - run: make docker tag=next
         env:
           TELEMETRY_WRITE_KEY: ${{ secrets.TELEMETRY_WRITE_KEY }}
-          CRASH_REPORTING_DSN: ${{ secrets.CRASH_REPORTING_DSN }}

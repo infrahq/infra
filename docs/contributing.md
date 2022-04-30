@@ -56,7 +56,7 @@ server:
     enabled: false
 ```
 
-* Disabling telemetry and crash reporting
+* Disabling telemetry
 
 ```yaml
 # example infra.yaml
@@ -64,7 +64,6 @@ server:
 server:
   config:
     enable-telemetry: false
-    enable-crash-reporting: false
 ```
 
 * Enabling Kubernetes LoadBalancer
