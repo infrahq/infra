@@ -176,7 +176,6 @@ func grant(t *testing.T, db *gorm.DB, currentUser *models.Identity, subject uid.
 		Subject:   subject,
 		Privilege: privilege,
 		Resource:  resource,
-		CreatedBy: currentUser.ID,
 	})
 	assert.NilError(t, err)
 }

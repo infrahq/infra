@@ -40,8 +40,7 @@ func setupDB(t *testing.T) *gorm.DB {
 	models.SymmetricKey = key
 
 	err = data.CreateProvider(db, &models.Provider{
-		Name:      models.InternalInfraProviderName,
-		CreatedBy: models.CreatedBySystem,
+		Name: models.InternalInfraProviderName,
 	})
 	assert.NilError(t, err)
 

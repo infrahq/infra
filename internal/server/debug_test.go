@@ -70,7 +70,6 @@ func TestAPI_PProfHandler(t *testing.T) {
 					Subject:   user.PolyID(),
 					Privilege: models.InfraAdminRole,
 					Resource:  access.ResourceInfraAPI,
-					CreatedBy: user.ID,
 				})
 				assert.NilError(t, err)
 

@@ -118,20 +118,6 @@ func ByUserID(userID uid.ID) SelectorFunc {
 	}
 }
 
-func CreatedBy(id uid.ID) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("created_by = ?", id)
-	}
-}
-
-// NotCreatedBy filters out entities not created by the passed in ID
-func NotCreatedBy(id uid.ID) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		// the created_by field is default 0 when not set by default
-		return db.Where("created_by != ?", id)
-	}
-}
-
 func NotName(name string) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Not("name = ?", name)

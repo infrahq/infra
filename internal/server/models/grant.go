@@ -37,7 +37,6 @@ type Grant struct {
 	Subject   uid.PolymorphicID `validate:"required"` // usually an identity, but could be a role definition
 	Privilege string            `validate:"required"` // role or permission
 	Resource  string            `validate:"required"` // Universal Resource Notation
-	CreatedBy uid.ID
 }
 
 func (r *Grant) ToAPI() *api.Grant {
@@ -45,7 +44,6 @@ func (r *Grant) ToAPI() *api.Grant {
 		ID:        r.ID,
 		Created:   api.Time(r.CreatedAt),
 		Updated:   api.Time(r.UpdatedAt),
-		CreatedBy: r.CreatedBy,
 		Privilege: r.Privilege,
 		Resource:  r.Resource,
 	}

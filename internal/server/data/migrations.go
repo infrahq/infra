@@ -463,6 +463,22 @@ func Migrate(db *gorm.DB) error {
 				return nil
 			},
 		},
+		// drop CreatedBy column
+		{
+			ID: "202205011454",
+			Migrate: func(tx *gorm.DB) error {
+				if err := tx.Migrator().DropColumn(&models.Provider{}, "created_by"); err != nil {
+					return err
+				}
+				if err := tx.Migrator().DropColumn(&models.Identity{}, "created_by"); err != nil {
+					return err
+				}
+				if err := tx.Migrator().DropColumn(&models.Group{}, "created_by"); err != nil {
+					return err
+				}
+				return tx.Migrator().DropColumn(&models.Grant{}, "created_by")
+			},
+		},
 		// next one here
 	})
 

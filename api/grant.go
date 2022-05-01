@@ -7,9 +7,8 @@ import (
 type Grant struct {
 	ID uid.ID `json:"id"`
 
-	Created   Time   `json:"created"`
-	CreatedBy uid.ID `json:"created_by" note:"id of the identity that created the grant"`
-	Updated   Time   `json:"updated"`
+	Created Time `json:"created"`
+	Updated Time `json:"updated"`
 
 	Identity  uid.ID `json:"identity,omitempty"`
 	Group     uid.ID `json:"group,omitempty"`

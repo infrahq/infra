@@ -160,8 +160,8 @@ func New(options Options) (*Server, error) {
 		}
 	}
 
-	if err := server.loadConfig(server.options.Config); err != nil {
-		return nil, fmt.Errorf("configs: %w", err)
+	if err := server.loadConfig(); err != nil {
+		return nil, fmt.Errorf("loading config: %w", err)
 	}
 
 	if err := server.listen(); err != nil {

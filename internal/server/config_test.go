@@ -286,7 +286,7 @@ func TestSecretProvider_PrepareForDecode_IntegrationWithDecode(t *testing.T) {
 func TestLoadConfigEmpty(t *testing.T) {
 	s := setupServer(t)
 
-	err := s.loadConfig(Config{})
+	err := s.loadConfig()
 	assert.NilError(t, err)
 
 	var providers, grants int64
@@ -351,8 +351,9 @@ func TestLoadConfigInvalid(t *testing.T) {
 	for name, config := range cases {
 		t.Run(name, func(t *testing.T) {
 			s := setupServer(t)
+			s.options.Config = config
 
-			err := s.loadConfig(config)
+			err := s.loadConfig()
 			// TODO: add expectedErr for each case
 			assert.ErrorContains(t, err, "") // could be any error
 		})
@@ -362,7 +363,7 @@ func TestLoadConfigInvalid(t *testing.T) {
 func TestLoadConfigWithProviders(t *testing.T) {
 	s := setupServer(t)
 
-	config := Config{
+	s.options.Config = Config{
 		Providers: []Provider{
 			{
 				Name:         "okta",
@@ -373,7 +374,7 @@ func TestLoadConfigWithProviders(t *testing.T) {
 		},
 	}
 
-	err := s.loadConfig(config)
+	err := s.loadConfig()
 	assert.NilError(t, err)
 
 	var provider models.Provider
@@ -388,7 +389,7 @@ func TestLoadConfigWithProviders(t *testing.T) {
 func TestLoadConfigWithUserGrants(t *testing.T) {
 	s := setupServer(t)
 
-	config := Config{
+	s.options.Config = Config{
 		Grants: []Grant{
 			{
 				User:     "test@example.com",
@@ -398,7 +399,7 @@ func TestLoadConfigWithUserGrants(t *testing.T) {
 		},
 	}
 
-	err := s.loadConfig(config)
+	err := s.loadConfig()
 	assert.NilError(t, err)
 
 	var provider models.Provider
@@ -419,7 +420,7 @@ func TestLoadConfigWithUserGrants(t *testing.T) {
 func TestLoadConfigWithGroupGrants(t *testing.T) {
 	s := setupServer(t)
 
-	config := Config{
+	s.options.Config = Config{
 		Grants: []Grant{
 			{
 				Group:    "Everyone",
@@ -429,7 +430,7 @@ func TestLoadConfigWithGroupGrants(t *testing.T) {
 		},
 	}
 
-	err := s.loadConfig(config)
+	err := s.loadConfig()
 	assert.NilError(t, err)
 
 	var group models.Group
@@ -445,7 +446,7 @@ func TestLoadConfigWithGroupGrants(t *testing.T) {
 func TestLoadConfigPruneConfig(t *testing.T) {
 	s := setupServer(t)
 
-	config := Config{
+	s.options.Config = Config{
 		Providers: []Provider{
 			{
 				Name:         "okta",
@@ -468,7 +469,7 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 		},
 	}
 
-	err := s.loadConfig(config)
+	err := s.loadConfig()
 	assert.NilError(t, err)
 
 	var providers, grants, groups, providerUsers int64
@@ -494,7 +495,7 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 	assert.Equal(t, int64(0), providerUsers)
 
 	// previous config is cleared on new config application
-	newConfig := Config{
+	s.options.Config = Config{
 		Providers: []Provider{
 			{
 				Name:         "okta",
@@ -503,9 +504,11 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 				ClientSecret: "new-client-secret",
 			},
 		},
+		Grants:     []Grant{},
+		Identities: []Identity{},
 	}
 
-	err = s.loadConfig(newConfig)
+	err = s.loadConfig()
 	assert.NilError(t, err)
 
 	err = s.db.Model(&models.Provider{}).Count(&providers).Error
@@ -528,7 +531,7 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 func TestLoadConfigUpdate(t *testing.T) {
 	s := setupServer(t)
 
-	config := Config{
+	s.options.Config = Config{
 		Providers: []Provider{
 			{
 				Name:         "okta",
@@ -567,7 +570,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 		},
 	}
 
-	err := s.loadConfig(config)
+	err := s.loadConfig()
 	assert.NilError(t, err)
 
 	var providers, groups, credentials, accessKeys int64
@@ -611,7 +614,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, int64(1), accessKeys) // c3po
 
-	updatedConfig := Config{
+	s.options.Config = Config{
 		Providers: []Provider{
 			{
 				Name:         "atko",
@@ -632,9 +635,10 @@ func TestLoadConfigUpdate(t *testing.T) {
 				Resource: "test-cluster",
 			},
 		},
+		Identities: []Identity{},
 	}
 
-	err = s.loadConfig(updatedConfig)
+	err = s.loadConfig()
 	assert.NilError(t, err)
 
 	err = s.db.Model(&models.Provider{}).Count(&providers).Error

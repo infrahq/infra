@@ -53,10 +53,6 @@ func CreateGrant(c *gin.Context, grant *models.Grant) error {
 		return err
 	}
 
-	creator := AuthenticatedIdentity(c)
-
-	grant.CreatedBy = creator.ID
-
 	return data.CreateGrant(db, grant)
 }
 

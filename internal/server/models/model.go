@@ -13,8 +13,6 @@ type Modelable interface {
 	IsAModel() // there's nothing specific about this function except that all Model structs will have it.
 }
 
-const CreatedBySystem = 1
-
 type Model struct {
 	ID uid.ID
 	// CreatedAt is set by GORM to time.Now when a record is first created.

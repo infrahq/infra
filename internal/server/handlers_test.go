@@ -22,7 +22,7 @@ import (
 )
 
 func adminAccessKey(s *Server) string {
-	for _, id := range s.options.Identities {
+	for _, id := range s.options.Config.Identities {
 		if id.Name == "admin" {
 			return id.AccessKey
 		}
@@ -318,11 +318,12 @@ func TestAPI_DeleteProvider(t *testing.T) {
 // withAdminIdentity may be used with setupServer to setup the server
 // with an admin identity and access key
 func withAdminIdentity(_ *testing.T, opts *Options) {
-	opts.Identities = append(opts.Identities, Identity{
+	opts.Config.Identities = append(opts.Config.Identities, Identity{
 		Name:      "admin",
 		AccessKey: "BlgpvURSGF.NdcemBdzxLTGIcjPXwPoZNrb",
 	})
-	opts.Grants = append(opts.Grants, Grant{
+
+	opts.Config.Grants = append(opts.Config.Grants, Grant{
 		User:     "admin",
 		Role:     "admin",
 		Resource: "infra",
@@ -549,7 +550,6 @@ func TestAPI_CreateGrant_Success(t *testing.T) {
 		expected := jsonUnmarshal(t, fmt.Sprintf(`
 		{
 		  "id": "<any-valid-uid>",
-		  "created_by": "%[1]v",
 		  "privilege": "admin-role",
 		  "resource": "some-cluster",
 		  "identity": "TJ",

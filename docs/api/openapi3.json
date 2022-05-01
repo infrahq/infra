@@ -162,6 +162,7 @@
             "format": "date-time",
             "type": "string"
           },
+<<<<<<< HEAD
           "created_by": {
             "description": "id of the identity that created the grant",
             "example": "4yJ3n3D8E2",
@@ -175,6 +176,8 @@
             "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           },
+=======
+>>>>>>> 2315de4d (improve: remove CreatedBy field and only replace configuration if provided in code)
           "id": {
             "example": "4yJ3n3D8E2",
             "format": "uid",

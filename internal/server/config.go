@@ -523,57 +523,86 @@ func getKindFromUnstructured(data interface{}) string {
 	return ""
 }
 
-func (s Server) loadConfig(config Config) error {
-	if err := validator.New().Struct(config); err != nil {
-		return err
-	}
-
+func (s Server) loadConfig() error {
 	return s.db.Transaction(func(tx *gorm.DB) error {
-		// inject internal infra provider
-		config.Providers = append(config.Providers, Provider{
-			Name: models.InternalInfraProviderName,
-		})
+		// load default infra provider
+		provider, err := s.loadProvider(tx, Provider{Name: models.InternalInfraProviderName})
+		if err != nil {
+			return err
+		}
 
-		config.Identities = append(config.Identities, Identity{
-			Name: models.InternalInfraConnectorIdentityName,
-		})
+		// load default connector identity
+		connector, err := s.loadIdentity(tx, Identity{Name: models.InternalInfraConnectorIdentityName}, provider)
+		if err != nil {
+			return err
+		}
 
-		config.Grants = append(config.Grants, Grant{
+		// load default connector grant
+		connectorGrant, err := s.loadGrant(tx, Grant{
 			User:     models.InternalInfraConnectorIdentityName,
 			Role:     models.InfraConnectorRole,
 			Resource: "infra",
 		})
-
-		if err := s.loadProviders(tx, config.Providers); err != nil {
-			return fmt.Errorf("load providers: %w", err)
+		if err != nil {
+			return err
 		}
 
-		// extract identities from grants and add them to identities
-		for _, g := range config.Grants {
-			switch {
-			case g.User != "":
-				config.Identities = append(config.Identities, Identity{Name: g.User})
-			case g.Machine != "":
-				logging.S.Warn("please update 'machine' grant to 'user', the 'machine' grant type is deprecated and will be removed in a future release")
-				config.Identities = append(config.Identities, Identity{Name: g.Machine})
+		if err := validator.New().Struct(s.options.Config); err != nil {
+			return err
+		}
+
+		// load and replace providers if specified in the config
+		if len(s.options.Config.Providers) > 0 {
+			if err := s.loadProviders(tx, s.options.Config.Providers, []uid.ID{provider.ID}); err != nil {
+				return err
 			}
 		}
 
-		if err := s.loadIdentities(tx, config.Identities); err != nil {
-			return fmt.Errorf("load identities: %w", err)
+		var ids []uid.ID
+
+		// load and replace grants if specified in the config
+		if len(s.options.Config.Grants) > 0 {
+			for _, g := range s.options.Config.Grants {
+				if g.Group != "" {
+					continue
+				}
+
+				// create placeholder identities for users declared in grants
+				var id *models.Identity
+				var err error
+
+				switch {
+				case g.User != "":
+					id, err = s.loadIdentity(tx, Identity{Name: g.User}, provider)
+				}
+
+				if err != nil {
+					return err
+				}
+
+				if id != nil {
+					ids = append(ids, id.ID)
+				}
+			}
+
+			if err := s.loadGrants(tx, s.options.Config.Grants, []uid.ID{connectorGrant.ID}); err != nil {
+				return err
+			}
 		}
 
-		if err := s.loadGrants(tx, config.Grants); err != nil {
-			return fmt.Errorf("load grants: %w", err)
+		// load and replace identities if specified in the config
+		// note: also keep identities created by grants above
+		if len(s.options.Config.Identities) > 0 {
+			if err := s.loadIdentities(tx, s.options.Config.Identities, append(ids, connector.ID)); err != nil {
+				return err
+			}
 		}
 
 		return nil
 	})
 }
 
-func (s Server) loadProviders(db *gorm.DB, providers []Provider) error {
-	keep := make([]uid.ID, 0, len(providers))
-
+func (s Server) loadProviders(db *gorm.DB, providers []Provider, keep []uid.ID) error {
 	for _, p := range providers {
 		provider, err := s.loadProvider(db, p)
 		if err != nil {
@@ -583,8 +612,7 @@ func (s Server) loadProviders(db *gorm.DB, providers []Provider) error {
 		keep = append(keep, provider.ID)
 	}
 
-	// remove any provider previously defined by config
-	if err := data.DeleteProviders(db, data.NotIDs(keep), data.CreatedBy(models.CreatedBySystem)); err != nil {
+	if err := data.DeleteProviders(db, data.NotIDs(keep)); err != nil {
 		return err
 	}
 
@@ -603,7 +631,6 @@ func (Server) loadProvider(db *gorm.DB, input Provider) (*models.Provider, error
 			URL:          input.URL,
 			ClientID:     input.ClientID,
 			ClientSecret: models.EncryptedAtRest(input.ClientSecret),
-			CreatedBy:    models.CreatedBySystem,
 		}
 
 		if err := data.CreateProvider(db, provider); err != nil {
@@ -625,9 +652,7 @@ func (Server) loadProvider(db *gorm.DB, input Provider) (*models.Provider, error
 	return provider, nil
 }
 
-func (s Server) loadGrants(db *gorm.DB, grants []Grant) error {
-	keep := make([]uid.ID, 0, len(grants))
-
+func (s Server) loadGrants(db *gorm.DB, grants []Grant, keep []uid.ID) error {
 	for _, g := range grants {
 		grant, err := s.loadGrant(db, g)
 		if err != nil {
@@ -637,8 +662,7 @@ func (s Server) loadGrants(db *gorm.DB, grants []Grant) error {
 		keep = append(keep, grant.ID)
 	}
 
-	// remove any grant previously defined by config
-	if err := data.DeleteGrants(db, data.NotIDs(keep), data.CreatedBy(models.CreatedBySystem)); err != nil {
+	if err := data.DeleteGrants(db, data.NotIDs(keep)); err != nil {
 		return err
 	}
 
@@ -667,10 +691,7 @@ func (Server) loadGrant(db *gorm.DB, input Grant) (*models.Grant, error) {
 			logging.S.Debugf("creating placeholder group %q", input.Group)
 
 			// group does not exist yet, create a placeholder
-			group = &models.Group{
-				Name:      input.Group,
-				CreatedBy: models.CreatedBySystem,
-			}
+			group = &models.Group{Name: input.Group}
 
 			if err := data.CreateGroup(db, group); err != nil {
 				return nil, err
@@ -706,7 +727,6 @@ func (Server) loadGrant(db *gorm.DB, input Grant) (*models.Grant, error) {
 			Subject:   id,
 			Resource:  input.Resource,
 			Privilege: input.Role,
-			CreatedBy: models.CreatedBySystem,
 		}
 
 		if err := data.CreateGrant(db, grant); err != nil {
@@ -717,9 +737,7 @@ func (Server) loadGrant(db *gorm.DB, input Grant) (*models.Grant, error) {
 	return grant, nil
 }
 
-func (s Server) loadIdentities(db *gorm.DB, identities []Identity) error {
-	keep := make([]uid.ID, 0, len(identities)+1)
-
+func (s Server) loadIdentities(db *gorm.DB, identities []Identity, keep []uid.ID) error {
 	internalProvider, err := data.GetProvider(db, data.ByName(models.InternalInfraProviderName))
 	if err != nil {
 		return err
@@ -734,8 +752,7 @@ func (s Server) loadIdentities(db *gorm.DB, identities []Identity) error {
 		keep = append(keep, identity.ID)
 	}
 
-	// remove any provider previously defined by config
-	if err := data.DeleteIdentities(db, data.NotIDs(keep), data.CreatedBy(models.CreatedBySystem)); err != nil {
+	if err := data.DeleteIdentities(db, data.NotIDs(keep)); err != nil {
 		return err
 	}
 
@@ -758,8 +775,7 @@ func (s Server) loadIdentity(db *gorm.DB, input Identity, provider *models.Provi
 		}
 
 		identity = &models.Identity{
-			Name:      name,
-			CreatedBy: models.CreatedBySystem,
+			Name: name,
 		}
 
 		if err := data.CreateIdentity(db, identity); err != nil {

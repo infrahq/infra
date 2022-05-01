@@ -17,7 +17,6 @@ type Identity struct {
 
 	Name       string    `gorm:"uniqueIndex:idx_identities_name,where:deleted_at is NULL"`
 	LastSeenAt time.Time // updated on when an identity uses a session token
-	CreatedBy  uid.ID
 
 	Groups []Group `gorm:"many2many:identities_groups"`
 }

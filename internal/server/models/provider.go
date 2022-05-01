@@ -2,7 +2,6 @@ package models
 
 import (
 	"github.com/infrahq/infra/api"
-	"github.com/infrahq/infra/uid"
 )
 
 const InternalInfraProviderName = "infra"
@@ -14,7 +13,6 @@ type Provider struct {
 	URL          string
 	ClientID     string
 	ClientSecret EncryptedAtRest
-	CreatedBy    uid.ID
 }
 
 func (p *Provider) ToAPI() *api.Provider {
