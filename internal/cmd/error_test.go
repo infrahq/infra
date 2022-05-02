@@ -8,18 +8,61 @@ import (
 	"gotest.tools/v3/assert"
 )
 
-func TestUserFacingError(t *testing.T) {
-	var err error = Error{
-		OriginalError: fmt.Errorf("underlying"),
-		Message:       "failed to logout",
-	}
+func TestCLIError(t *testing.T) {
 
-	var e Error
-	ok := errors.As(err, &e)
-	assert.Assert(t, ok)
-	assert.Equal(t, e.Message, "failed to logout")
+	t.Run("only OriginalError", func(t *testing.T) {
+		var err error = Error{
+			OriginalError: fmt.Errorf("failed, original error"),
+		}
 
-	// // err != UserFacingError{} -> false
-	// ok = errors.Is(err, UserFacingError{})
-	// assert.Assert(t, ok)
+		assert.Error(t, err, "Internal error:\nfailed, original error")
+	})
+
+	t.Run("only message", func(t *testing.T) {
+		var err error = Error{
+			Message: "failed, message",
+		}
+
+		assert.Error(t, err, "failed, message")
+	})
+
+	t.Run("message and error", func(t *testing.T) {
+		var err error = Error{
+			OriginalError: fmt.Errorf("failed, original error"),
+			Message:       "failed, message",
+		}
+
+		assert.Error(t, err, "failed, message:\nfailed, original error")
+	})
+
+	t.Run("message and error, message needs formatting", func(t *testing.T) {
+		var err error = Error{
+			OriginalError: fmt.Errorf("failed, original error"),
+			Message:       "failed, message.",
+		}
+
+		assert.Error(t, err, "failed, message:\nfailed, original error")
+	})
+
+	t.Run("message and error, message needs formatting", func(t *testing.T) {
+
+		var err error = Error{
+			OriginalError: fmt.Errorf("failed, original error"),
+			Message:       "failed, message.",
+		}
+
+		assert.Error(t, err, "failed, message:\nfailed, original error")
+	})
+
+	t.Run("unwrap", func(t *testing.T) {
+		var originalError = fmt.Errorf("failed, original error")
+
+		var err error = Error{
+			OriginalError: originalError,
+			Message:       "failed, message",
+		}
+
+		ok := errors.Is(err, originalError)
+		assert.Assert(t, ok)
+	})
 }

@@ -25,7 +25,7 @@ func (e Error) Error() string {
 		if string(e.Message[len(e.Message)-1]) == "." {
 			e.Message = e.Message[:len(e.Message)-1]
 		}
-		return fmt.Sprintf("%v:\n       %v", e.Message, e.OriginalError)
+		return fmt.Sprintf("%v:\n%v", e.Message, e.OriginalError)
 	}
 
 	return e.Message
