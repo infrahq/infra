@@ -30,11 +30,11 @@ func TestGrantsAddCmd(t *testing.T) {
 				resp.WriteHeader(http.StatusOK)
 				switch query.Get("name") {
 				case "existing@example.com":
-					writeResponse(t, resp, []api.Identity{{ID: 3000}})
+					writeResponse(t, resp, api.ListResponse[api.Identity]{Count: 1, Items: []api.Identity{{ID: 3000}}})
 				case "existingMachine":
-					writeResponse(t, resp, []api.Identity{{ID: 3001}})
+					writeResponse(t, resp, api.ListResponse[api.Identity]{Count: 1, Items: []api.Identity{{ID: 3001}}})
 				default:
-					writeResponse(t, resp, map[string]interface{}{})
+					writeResponse(t, resp, &api.ListResponse[api.Identity]{})
 				}
 				return
 			}
@@ -42,10 +42,10 @@ func TestGrantsAddCmd(t *testing.T) {
 			if requestMatches(req, http.MethodGet, "/v1/groups") {
 				resp.WriteHeader(http.StatusOK)
 				if query.Get("name") == "existingGroup" {
-					writeResponse(t, resp, []api.Group{{ID: 4000}})
+					writeResponse(t, resp, api.ListResponse[api.Group]{Count: 1, Items: []api.Group{{ID: 4000}}})
 					return
 				}
-				writeResponse(t, resp, map[string]interface{}{})
+				writeResponse(t, resp, &api.ListResponse[api.Group]{})
 				return
 			}
 
@@ -137,7 +137,7 @@ func TestGrantRemoveCmd(t *testing.T) {
 			if requestMatches(req, http.MethodGet, "/v1/identities") {
 				resp.WriteHeader(http.StatusOK)
 				if query.Get("name") == "existing@example.com" {
-					writeResponse(t, resp, []api.Identity{{ID: 3000}})
+					writeResponse(t, resp, api.ListResponse[api.Identity]{Count: 1, Items: []api.Identity{{ID: 3000}}})
 				} else {
 					writeResponse(t, resp, []api.Identity{})
 				}
@@ -147,44 +147,44 @@ func TestGrantRemoveCmd(t *testing.T) {
 			if requestMatches(req, http.MethodGet, "/v1/groups") {
 				resp.WriteHeader(http.StatusOK)
 				if query.Get("name") == "existingGroup" {
-					writeResponse(t, resp, []api.Group{{ID: 4000}})
+					writeResponse(t, resp, api.ListResponse[api.Group]{Count: 1, Items: []api.Group{{ID: 4000}}})
 					return
 				}
-				writeResponse(t, resp, map[string]interface{}{})
+				writeResponse(t, resp, &api.ListResponse[api.Group]{})
 				return
 			}
 
 			if requestMatches(req, http.MethodGet, "/v1/grants") {
 				resp.WriteHeader(http.StatusOK)
 				if query.Get("resource") != "the-destination" {
-					writeResponse(t, resp, []api.Grant{})
+					writeResponse(t, resp, api.ListResponse[api.Grant]{})
 					return
 				}
 
 				if query.Get("privilege") == "custom" {
 					switch query.Get("subject") {
 					case "i:TK": // ID=3001
-						writeResponse(t, resp, []api.Grant{{ID: 6001}, {ID: 6002}})
+						writeResponse(t, resp, api.ListResponse[api.Grant]{Count: 1, Items: []api.Grant{{ID: 6001}, {ID: 6002}}})
 					case "g:2bY": // ID=4000
-						writeResponse(t, resp, []api.Grant{{ID: 9001}, {ID: 9002}})
+						writeResponse(t, resp, api.ListResponse[api.Grant]{Count: 1, Items: []api.Grant{{ID: 9001}, {ID: 9002}}})
 					default:
-						writeResponse(t, resp, []api.Grant{})
+						writeResponse(t, resp, api.ListResponse[api.Grant]{})
 					}
 					return
 				}
 
 				if query.Get("privilege") != "" {
-					writeResponse(t, resp, []api.Grant{})
+					writeResponse(t, resp, api.ListResponse[api.Grant]{})
 					return
 				}
 
 				switch query.Get("subject") {
 				case "i:TJ": // ID=3000
-					writeResponse(t, resp, []api.Grant{{ID: 5001}, {ID: 5002}, {ID: 5003}})
+					writeResponse(t, resp, api.ListResponse[api.Grant]{Count: 1, Items: []api.Grant{{ID: 5001}, {ID: 5002}, {ID: 5003}}})
 				case "g:2bY": // ID=4000
-					writeResponse(t, resp, []api.Grant{{ID: 7001}, {ID: 7002}})
+					writeResponse(t, resp, api.ListResponse[api.Grant]{Count: 1, Items: []api.Grant{{ID: 7001}, {ID: 7002}}})
 				default:
-					writeResponse(t, resp, []api.Grant{})
+					writeResponse(t, resp, api.ListResponse[api.Grant]{})
 				}
 				return
 			}
