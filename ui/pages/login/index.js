@@ -81,9 +81,9 @@ export default function () {
         <>
           <div className='w-full max-w-sm mt-8'>
             {providers.map(p => (
-              <button onClick={() => oidcLogin(p)} key={p.id} className='h-12 w-full bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 my-1.5'>
-                <div className='w-full flex flex-col items-center justify-center bg-black rounded-full text-sm px-4 py-3.5'>
-                  {kind(p.url) ? <img className='h-4' src={`/providers/${kind(p.url)}.svg`} /> : <p className='font-bold h-4'>SSO</p>}
+              <button onClick={() => oidcLogin(p)} key={p.id} className='w-full bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 my-1.5'>
+                <div className='w-full flex flex-col items-center justify-center bg-black rounded-full text-sm px-4 py-4'>
+                  {kind(p.url) ? <img className='h-4' src={`/providers/${kind(p.url)}.svg`} /> : <p className='font-bold h-4 m-1'>SSO</p>}
                   {kindCount[kind(p.url)] > 1 && (
                     <div className='text-[10px] -mb-2 text-gray-400'>{p.url}</div>
                   )}
