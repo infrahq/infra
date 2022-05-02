@@ -212,7 +212,7 @@ other that ASCII a-z and A-Z inside of the field name.
 
 When returning a resource, avoid using a sequential ID in the ID field. Using sequential IDs allows
 callers to potentially guess a particular resource which can lead to leaking information. We
-have a Polymorphic ID in our `infrahq/infra/api` package which you should use instead.
+use ["Snowflake IDs"](https://en.wikipedia.org/wiki/Snowflake_ID) in our `infrahq/infra/api` package which you should use instead.
 
 ### Payload Structure
 
