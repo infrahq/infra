@@ -7,18 +7,6 @@ import InputDropdown from '../components/input'
 import ErrorMessage from '../components/error-message'
 import InfoModal from './modals/info'
 
-function Grant ({ id }) {
-  if (!id) {
-    return null
-  }
-
-  const { data: user } = useSWR(`/v1/identities/${id.replace('i:', '')}`, { fallbackData: { name: '' } })
-
-  return (
-    <p>{user.name}</p>
-  )
-}
-
 export default function ({ id, modalOpen, handleCloseModal }) {
   const { data: destination } = useSWR(`/v1/destinations/${id}`)
   const { data: list } = useSWR(() => `/v1/grants?resource=${destination.name}`)
@@ -30,6 +18,23 @@ export default function ({ id, modalOpen, handleCloseModal }) {
   const [role, setRole] = useState('view')
 
   const options = ['view', 'edit', 'admin', 'remove']
+  const emailList = [];
+
+  const Grant =  ({ id }) => {
+    if (!id) {
+      return null
+    }
+  
+    const { data: user } = useSWR(`/v1/identities/${id.replace('i:', '')}`, { fallbackData: { name: '' } })
+
+    if (user.name && !emailList.includes(user.name)) {
+      emailList.push(user.name)
+    }
+  
+    return (
+      <p>{user.name}</p>
+    )
+  }
 
   const grantPrivilege = async (id, privilege = role, exist = false, deleteGrantId) => {
     mutate(`/v1/grants?resource=${destination.name}`, async grants => {
@@ -83,7 +88,18 @@ export default function ({ id, modalOpen, handleCloseModal }) {
           setEmail('')
           setRole('view')
         } else {
-          grantPrivilege('i:' + data[0].id)
+          const item = list.filter((l => l?.subject.replace('i:', '') === data[0].id))[0];
+          if (emailList.includes(email)) {
+            if (item.privilege !== role) {
+              const deletedId = item.id
+              await grantPrivilege(data[0].id, role, true, deletedId)
+            } else {
+              setEmail('')
+              setRole('view')  
+            }
+          } else {
+            await grantPrivilege('i:' + data[0].id)
+          }
         }
       } catch(e) {
         setGrantError(e.message || 'something went wrong, please try again later.')
