@@ -202,6 +202,10 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		return err
 	}
 
+	if err := checkRole(cmdOptions.Role, cmdOptions.Destination); err != nil {
+		return err
+	}
+
 	identityType, err := getIdentityType(cmdOptions.Identity, cmdOptions.IsGroup)
 	if err != nil {
 		return err
@@ -358,4 +362,32 @@ func addGrantIdentity(client *api.Client, name string, identityType identityType
 	}
 
 	return id, nil
+}
+
+func checkRole(role string, destination string) error {
+	if destination == "infra" {
+		switch role {
+		case "admin":
+			fallthrough
+		case "view":
+			fallthrough
+		case "connector":
+			return nil
+		default:
+			return fmt.Errorf("[%s] is not a valid role for infra", role)
+		}
+	}
+
+	switch role {
+	case "cluster-admin":
+		fallthrough
+	case "admin":
+		fallthrough
+	case "edit":
+		fallthrough
+	case "view":
+		return nil
+	default:
+		return fmt.Errorf("[%s] is not a valid role for a kubernetes destination", role)
+	}
 }
