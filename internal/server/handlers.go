@@ -507,6 +507,11 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.Identity, error
 		return nil, internal.ErrForbidden
 	}
 
+	if r.Name == "" {
+		// #1825: remove, this is for migration
+		r.Name = r.Email
+	}
+
 	identity, err := access.Signup(c, r.Name, r.Password)
 	if err != nil {
 		return nil, err
@@ -531,6 +536,10 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 		return &api.LoginResponse{PolymorphicID: identity.PolyID(), Name: identity.Name, AccessKey: key, Expires: api.Time(expires)}, nil
 	case r.PasswordCredentials != nil:
+		if r.PasswordCredentials.Name == "" {
+			// #1825: remove, this is for migration
+			r.PasswordCredentials.Name = r.PasswordCredentials.Email
+		}
 		key, user, requiresUpdate, err := access.LoginWithPasswordCredential(c, r.PasswordCredentials.Name, r.PasswordCredentials.Password, expires)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %v", internal.ErrUnauthorized, err.Error())
