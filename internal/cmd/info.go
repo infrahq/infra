@@ -73,9 +73,9 @@ func info(cli *CLI) error {
 
 	groups := "(none)"
 
-	if len(identityGroups) > 0 {
-		g := make([]string, 0, len(identityGroups))
-		for _, identityGroup := range identityGroups {
+	if identityGroups.Count > 0 {
+		g := make([]string, 0, identityGroups.Count)
+		for _, identityGroup := range identityGroups.Items {
 			g = append(g, identityGroup.Name)
 		}
 

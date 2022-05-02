@@ -55,7 +55,7 @@ func newProvidersListCmd(cli *CLI) *cobra.Command {
 			}
 
 			var rows []row
-			for _, p := range providers {
+			for _, p := range providers.Items {
 				rows = append(rows, row{Name: p.Name, URL: p.URL})
 			}
 
@@ -159,11 +159,11 @@ func newProvidersRemoveCmd() *cobra.Command {
 				return err
 			}
 
-			switch len(providers) {
+			switch providers.Count {
 			case 0:
 				return fmt.Errorf("Cannot remove provider %s: not found", providerName)
 			case 1:
-				if err := client.DeleteProvider(providers[0].ID); err != nil {
+				if err := client.DeleteProvider(providers.Items[0].ID); err != nil {
 					return err
 				}
 
@@ -183,9 +183,9 @@ func GetProviderByName(client *api.Client, name string) (*api.Provider, error) {
 		return nil, err
 	}
 
-	if len(providers) == 0 {
+	if providers.Count == 0 {
 		return nil, fmt.Errorf("no identity providers connected with the name %s", name)
 	}
 
-	return &providers[0], nil
+	return &providers.Items[0], nil
 }

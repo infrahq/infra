@@ -65,17 +65,17 @@ func list(cli *CLI) error {
 		return err
 	}
 
-	for _, g := range groups {
+	for _, g := range groups.Items {
 		groupGrants, err := client.ListGroupGrants(g.ID)
 		if err != nil {
 			return err
 		}
 
-		grants = append(grants, groupGrants...)
+		grants.Items = append(grants.Items, groupGrants.Items...)
 	}
 
 	gs := make(map[string]map[string]struct{})
-	for _, g := range grants {
+	for _, g := range grants.Items {
 		// aggregate privileges
 		if gs[g.Resource] == nil {
 			gs[g.Resource] = make(map[string]struct{})
@@ -103,7 +103,7 @@ func list(cli *CLI) error {
 		}
 
 		var exists bool
-		for _, d := range destinations {
+		for _, d := range destinations.Items {
 			if strings.HasPrefix(k, d.Name) {
 				exists = true
 				break
@@ -143,5 +143,5 @@ func list(cli *CLI) error {
 		cli.Output("You have not been granted access to any active destinations")
 	}
 
-	return writeKubeconfig(identity, destinations, grants)
+	return writeKubeconfig(identity, destinations.Items, grants.Items)
 }

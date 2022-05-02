@@ -464,11 +464,11 @@ func listProviders(client *api.Client) ([]api.Provider, error) {
 		return nil, err
 	}
 
-	sort.Slice(providers, func(i, j int) bool {
-		return providers[i].Name < providers[j].Name
+	sort.Slice(providers.Items, func(i, j int) bool {
+		return providers.Items[i].Name < providers.Items[j].Name
 	})
 
-	return providers, nil
+	return providers.Items, nil
 }
 
 func promptLoginOptions(client *api.Client) (loginMethod loginMethod, provider *api.Provider, err error) {

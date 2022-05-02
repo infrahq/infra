@@ -82,16 +82,16 @@ func updateKubeconfig(client *api.Client, identityPolymorphicID uid.PolymorphicI
 		return err
 	}
 
-	for _, g := range groups {
+	for _, g := range groups.Items {
 		groupGrants, err := client.ListGroupGrants(g.ID)
 		if err != nil {
 			return err
 		}
 
-		grants = append(grants, groupGrants...)
+		grants.Items = append(grants.Items, groupGrants.Items...)
 	}
 
-	return writeKubeconfig(identity, destinations, grants)
+	return writeKubeconfig(identity, destinations.Items, grants.Items)
 }
 
 func writeKubeconfig(identity *api.Identity, destinations []api.Destination, grants []api.Grant) error {

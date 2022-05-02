@@ -51,7 +51,7 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 			}
 
 			var rows []row
-			for _, d := range destinations {
+			for _, d := range destinations.Items {
 				rows = append(rows, row{
 					Name: d.Name,
 					URL:  d.Connection.URL,
@@ -87,11 +87,11 @@ func newDestinationsRemoveCmd() *cobra.Command {
 				return err
 			}
 
-			if len(destinations) == 0 {
+			if destinations.Count == 0 {
 				return fmt.Errorf("no destinations named %s.", args[0])
 			}
 
-			for _, d := range destinations {
+			for _, d := range destinations.Items {
 				err := client.DeleteDestination(d.ID)
 				if err != nil {
 					return err
