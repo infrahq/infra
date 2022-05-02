@@ -225,7 +225,7 @@ timestamp from UTC to local time.
 
 Timestamp fields follow the form:
 
-```YYYY-MM-DDThh:mm:ss.SSSZ```
+`YYYY-MM-DDThh:mm:ss.SSSZ`
 
 
 Date Format:
