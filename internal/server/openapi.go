@@ -36,7 +36,7 @@ var (
 	}
 )
 
-func register[Req, Res any](method, basePath, path string, handler ReqResHandlerFunc[Req, Res]) {
+func register[Req, Res any](method, path string, handler ReqResHandlerFunc[Req, Res]) {
 	funcName := getFuncName(handler)
 
 	//nolint:gocritic
@@ -44,21 +44,20 @@ func register[Req, Res any](method, basePath, path string, handler ReqResHandler
 	//nolint:gocritic
 	rst := reflect.TypeOf(*new(Res))
 
-	reg(method, basePath, path, funcName, rqt, rst)
+	reg(method, path, funcName, rqt, rst)
 }
 
-func registerReq[Req any](method, basePath, path string, handler ReqHandlerFunc[Req]) {
+func registerReq[Req any](method, path string, handler ReqHandlerFunc[Req]) {
 	funcName := getFuncName(handler)
 
 	//nolint:gocritic
 	rqt := reflect.TypeOf(*new(Req))
 	rst := reflect.TypeOf(nil)
 
-	reg(method, basePath, path, funcName, rqt, rst)
+	reg(method, path, funcName, rqt, rst)
 }
 
-func reg(method, basePath, path, funcName string, rqt, rst reflect.Type) {
-	path = strings.TrimRight(basePath, "/") + "/" + strings.TrimLeft(path, "/")
+func reg(method, path, funcName string, rqt, rst reflect.Type) {
 	path = pathIDReplacer.ReplaceAllStringFunc(path, func(s string) string {
 		return "{" + strings.TrimLeft(s, ":") + "}"
 	})

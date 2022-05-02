@@ -69,7 +69,7 @@ func (a *API) sendAPIError(c *gin.Context, err error) {
 	if resp.Code >= 500 {
 		a.t.Event(c, "error", Properties{
 			"code": resp.Code,
-			"path": c.GetString("path"),
+			"path": c.FullPath(),
 		})
 	}
 

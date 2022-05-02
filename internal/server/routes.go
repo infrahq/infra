@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"path"
 	"strings"
 	"time"
 
@@ -127,11 +128,10 @@ type ReqHandlerFunc[Req any] func(c *gin.Context, req *Req) error
 type ResHandlerFunc[Res any] func(c *gin.Context) (Res, error)
 type ReqResHandlerFunc[Req, Res any] func(c *gin.Context, req *Req) (Res, error)
 
-func get[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) {
-	register("GET", r.BasePath(), path, handler)
-	fullPathStr := fullPath(r, path)
-	r.GET(path, func(c *gin.Context) {
-		c.Set("path", fullPathStr)
+func get[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqResHandlerFunc[Req, Res]) {
+	fullPath := path.Join(r.BasePath(), route)
+	register("GET", fullPath, handler)
+	r.GET(route, func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
 			a.sendAPIError(c, err)
@@ -144,18 +144,17 @@ func get[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResHa
 			return
 		}
 
-		a.t.Event(c, fullPathStr, Properties{"method": "get"})
+		a.t.Event(c, fullPath, Properties{"method": "get"})
 
 		c.JSON(http.StatusOK, resp)
 	})
 }
 
-func post[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) {
-	register("POST", r.BasePath(), path, handler)
-	fullPathStr := fullPath(r, path)
+func post[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqResHandlerFunc[Req, Res]) {
+	fullPath := path.Join(r.BasePath(), route)
+	register("POST", fullPath, handler)
 
-	r.POST(path, func(c *gin.Context) {
-		c.Set("path", fullPathStr)
+	r.POST(route, func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
 			a.sendAPIError(c, err)
@@ -168,19 +167,17 @@ func post[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResH
 			return
 		}
 
-		a.t.Event(c, fullPathStr, Properties{"method": "post"})
+		a.t.Event(c, fullPath, Properties{"method": "post"})
 
 		c.JSON(http.StatusCreated, resp)
 	})
 }
 
-func put[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResHandlerFunc[Req, Res]) {
-	register("PUT", r.BasePath(), path, handler)
+func put[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqResHandlerFunc[Req, Res]) {
+	fullPath := path.Join(r.BasePath(), route)
+	register("PUT", fullPath, handler)
 
-	fullPathStr := fullPath(r, path)
-
-	r.PUT(path, func(c *gin.Context) {
-		c.Set("path", fullPathStr)
+	r.PUT(route, func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
 			a.sendAPIError(c, err)
@@ -193,19 +190,17 @@ func put[Req, Res any](a *API, r *gin.RouterGroup, path string, handler ReqResHa
 			return
 		}
 
-		a.t.Event(c, fullPathStr, Properties{"method": "put"})
+		a.t.Event(c, fullPath, Properties{"method": "put"})
 
 		c.JSON(http.StatusOK, resp)
 	})
 }
 
-func delete[Req any](a *API, r *gin.RouterGroup, path string, handler ReqHandlerFunc[Req]) {
-	registerReq("DELETE", r.BasePath(), path, handler)
+func delete[Req any](a *API, r *gin.RouterGroup, route string, handler ReqHandlerFunc[Req]) {
+	fullPath := path.Join(r.BasePath(), route)
+	registerReq("DELETE", fullPath, handler)
 
-	fullPathStr := fullPath(r, path)
-
-	r.DELETE(path, func(c *gin.Context) {
-		c.Set("path", fullPathStr)
+	r.DELETE(route, func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
 			a.sendAPIError(c, err)
@@ -218,15 +213,11 @@ func delete[Req any](a *API, r *gin.RouterGroup, path string, handler ReqHandler
 			return
 		}
 
-		a.t.Event(c, fullPathStr, Properties{"method": "delete"})
+		a.t.Event(c, fullPath, Properties{"method": "delete"})
 
 		c.Status(http.StatusNoContent)
 		c.Writer.WriteHeaderNow()
 	})
-}
-
-func fullPath(r *gin.RouterGroup, path string) string {
-	return strings.TrimRight(r.BasePath(), "/") + "/" + strings.TrimLeft(path, "/")
 }
 
 func bind(c *gin.Context, req interface{}) error {
