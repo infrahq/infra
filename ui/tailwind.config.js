@@ -15,8 +15,6 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: '#FFFFFF',
-        secondary: '#B2B2B2',
         hover: {
           link: '#FFFFFF'
         },
@@ -24,6 +22,9 @@ module.exports = {
         pink: {
           'light': withOpacityValue('228 64 255'),
           dark: '#CB2EEC'
+        },
+        gray: {
+          300: '#B2B2B2'
         }
       },
       transitionProperty: {

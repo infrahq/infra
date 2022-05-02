@@ -11,7 +11,7 @@ function Provider ({ kind, name, available }) {
       <img className='flex-none w-8 mr-4' src={`/providers/${kind}.svg`} />
       <div>
         <h3 className='flex-1'>{name}</h3>
-        <h4 className='text-sm text-secondary'>{available ? 'Identity Provider' : 'Coming Soon'}</h4>
+        <h4 className='text-sm text-gray-300'>{available ? 'Identity Provider' : 'Coming Soon'}</h4>
       </div>
     </div>
   )
@@ -30,7 +30,7 @@ export default function () {
           </div>
         </div>
         <h1 className='text-base font-bold mb-1 text-center'>Add Identity Provider</h1>
-        <h2 className='text-secondary mb-4 text-sm max-w-xs mx-auto text-center'>Select an identity provider to continue</h2>
+        <h2 className='text-gray-300 mb-4 text-sm max-w-xs mx-auto text-center'>Select an identity provider to continue</h2>
         <div className='grid grid-cols-2 lg:grid-cols-3 gap-1 my-8'>
           {providers.map(p => (
             p.available

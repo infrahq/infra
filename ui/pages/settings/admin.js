@@ -67,7 +67,7 @@ const AdminName = ({ id }) => {
       </div>
       <div className='flex flex-col leading-tight'>
         <div>{user.name}</div>
-        <div className='text-secondary text-xs'>{user.kind}</div>
+        <div className='text-gray-300 text-xs'>{user.kind}</div>
       </div>
     </div>
   )
@@ -131,7 +131,7 @@ export default function () {
   return (
     <>
       <h3 className='text-sm font-bold mb-4'>Admins</h3>
-      <h4 className='text-secondary mb-4 text-xs w-3/4'>Infra admins have full access to the Infra API, including creating additional grants, managing identity providers, managing destinations, and managing other users.</h4>
+      <h4 className='text-gray-300 mb-4 text-xs w-3/4'>Infra admins have full access to the Infra API, including creating additional grants, managing identity providers, managing destinations, and managing other users.</h4>
       <div className={`flex gap-1 ${error ? 'mt-10 mb-2' : 'my-10'} my-10 w-9/12`}>
         <div className='flex-1'>
           <InputDropdown
@@ -157,7 +157,7 @@ export default function () {
       </div>
       {error && <ErrorMessage message={error} />}
 
-      <h4 className='text-secondary my-3 text-xs'>These users have full administration privileges</h4>
+      <h4 className='text-gray-300 my-3 text-xs'>These users have full administration privileges</h4>
       {adminList && adminList.length > 0 &&
         <div className='w-3/4'>
           <Table {...table} showHeader={false} />

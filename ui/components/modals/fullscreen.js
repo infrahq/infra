@@ -7,13 +7,13 @@ export default function ({ children, closeHref, backHref, verticalCenteredConten
       <div className={`flex flex-none text-right ${backHref ? 'justify-between' : 'justify-end'}`}>
         {backHref && (
           <Link href={backHref || '/'}>
-            <a className='flex items-center px-4 text-secondary hover:text-hover-link'>
+            <a className='flex items-center px-4 text-gray-300 hover:text-hover-link'>
               <ArrowLeftIcon className='w-4 h-4' /><div className='text-sm ml-2'>Back</div>
             </a>
           </Link>
         )}
         <Link href={closeHref || '/'}>
-          <a className='flex items-center p-4 text-secondary hover:text-hover-link'>
+          <a className='flex items-center p-4 text-gray-300 hover:text-hover-link'>
             <div className='text-sm mr-2'>Close</div><XIcon className='w-5 h-5' />
           </a>
         </Link>

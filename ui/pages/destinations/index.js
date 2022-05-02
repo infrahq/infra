@@ -51,7 +51,7 @@ function columns (admin) {
             return (
               <div className='flex text-right justify-end w-24 h-8 ml-auto'>
                 {grants && (
-                  <div className='group-hover:hidden flex justify-center items-center text-secondary'>
+                  <div className='group-hover:hidden flex justify-center items-center text-gray-300'>
                     {users === 0 && groups === 0
                       ? (
                         <div>
@@ -79,7 +79,7 @@ function columns (admin) {
                 )}
                 <div className='group-hover:flex space-x-1 hidden'>
                   <button onClick={() => setShareOpen(true)} className='cursor-pointer bg-zinc-900 rounded-lg'>
-                    <div className='flex items-center py-1 px-3 text-secondary hover:text-hover-link'>
+                    <div className='flex items-center py-1 px-3 text-gray-300 hover:text-hover-link'>
                       <ShareIcon className='w-4 h-4 ' /><div className='text-sm ml-1'>Share</div>
                     </div>
                   </button>
@@ -174,8 +174,8 @@ export default function Destinations () {
                 </div>
               )}
               {error?.status
-                ? <div className='my-20 text-center font-light text-gray-400 text-sm'>{error?.info?.message}</div>
-                : destinations?.length === 0
+                ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
+                : destinations.length === 0
                   ? <EmptyTable
                       title='There are no clusters'
                       subtitle='There are currently no clusters connected to Infra. Get started by connecting one.'

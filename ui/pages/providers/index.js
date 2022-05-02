@@ -31,7 +31,7 @@ const columns = [{
       </div>
       <div className='flex flex-col leading-tight'>
         <div>{provider.name}</div>
-        <div className='text-secondary text-xs'>{provider.url}</div>
+        <div className='text-gray-300 text-xs'>{provider.url}</div>
       </div>
     </div>
   )
@@ -51,7 +51,7 @@ const columns = [{
     return (
       <div className='opacity-0 group-hover:opacity-100 flex justify-end text-right'>
         <button onClick={() => setOpen(true)} className='p-2 -mr-2 cursor-pointer'>
-          <XIcon className='w-5 h-5 text-secondary hover:text-hover-link' />
+          <XIcon className='w-5 h-5 text-gray-300 hover:text-hover-link' />
         </button>
         <DeleteModal
           open={open}
@@ -110,7 +110,7 @@ export default function Providers () {
                 </div>
               )}
               {error?.status
-                ? <div className='my-20 text-center font-light text-secondary text-sm'>{error?.info?.message}</div>
+                ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
                 : data.length === 0
                   ? (
                     <EmptyTable

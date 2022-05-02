@@ -26,7 +26,7 @@ export default function ({ open, setOpen, onSubmit, title, message }) {
                 <Dialog.Title as='h3' className='text-base leading-6 font-bold'>
                   {title}
                 </Dialog.Title>
-                <p className='text-sm text-secondary my-0.5'>
+                <p className='text-sm text-gray-300 my-0.5'>
                   {message}
                 </p>
               </div>
