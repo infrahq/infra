@@ -2568,6 +2568,9 @@
                   },
                   "passwordCredentials": {
                     "properties": {
+                      "email": {
+                        "type": "string"
+                      },
                       "name": {
                         "type": "string"
                       },
@@ -2576,7 +2579,6 @@
                       }
                     },
                     "required": [
-                      "name",
                       "password"
                     ],
                     "type": "object"
@@ -3282,6 +3284,9 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "email": {
+                    "type": "string"
+                  },
                   "name": {
                     "type": "string"
                   },
@@ -3290,7 +3295,6 @@
                   }
                 },
                 "required": [
-                  "name",
                   "password"
                 ],
                 "type": "object"
