@@ -8,7 +8,7 @@ require (
 	github.com/cli/browser v1.1.0
 	github.com/getsentry/sentry-go v0.13.0
 	github.com/gin-gonic/gin v1.7.7
-	github.com/go-playground/validator/v10 v10.10.1
+	github.com/go-playground/validator/v10 v10.11.0
 	github.com/goware/urlx v0.3.1
 	github.com/hashicorp/vault/api v1.5.0 // indirect
 	github.com/jackc/pgconn v1.12.0
