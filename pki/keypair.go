@@ -21,8 +21,8 @@ type KeyPair struct {
 	SigningAlgorithm string
 	PublicKey        ed25519.PublicKey
 	PrivateKey       ed25519.PrivateKey `json:",omitempty"`
-	CertPEM          []byte             `json:",omitempty"` // pem encoded
-	SignedCertPEM    []byte             `json:",omitempty"` // pem encoded
+	CertPEM          []byte             `json:",omitempty"` // pem encoded, does not contain private key
+	SignedCertPEM    []byte             `json:",omitempty"` // pem encoded, does not contain private key
 	Cert             *x509.Certificate  `json:"-"`
 	SignedCert       *x509.Certificate  `json:"-"`
 }

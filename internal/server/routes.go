@@ -97,6 +97,8 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) *gin.Engine 
 	get(a, noAuthn, "/v1/providers", a.ListProviders)
 	get(a, noAuthn, "/v1/providers/:id", a.GetProvider)
 
+	post(a, noAuthn, "/v1/certificates/sign", a.SignCertificate)
+
 	get(a, noAuthn, "/v1/version", a.Version)
 
 	// TODO: remove after a couple version.

@@ -341,6 +341,10 @@ func setTypeInfo(t reflect.Type, schema *openapi3.Schema) {
 		schema.Type = "string"
 	case reflect.Slice:
 		schema.Type = "array"
+		if t.String() == "[]uint8" { // []byte
+			schema.Type = "string"
+			schema.Format = "binary"
+		}
 	case reflect.Struct:
 		schema.Type = "object"
 	default:

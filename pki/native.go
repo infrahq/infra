@@ -63,6 +63,14 @@ func NewNativeCertificateProvider(db *gorm.DB, cfg NativeCertificateProviderConf
 		cfg.FullKeyRotationDurationInDays = 365
 	}
 
+	if len(cfg.KeyAlgorithm) == 0 {
+		cfg.KeyAlgorithm = x509.PureEd25519.String()
+	}
+
+	if len(cfg.SigningAlgorithm) == 0 {
+		cfg.SigningAlgorithm = x509.Ed25519.String()
+	}
+
 	p := &NativeCertificateProvider{
 		NativeCertificateProviderConfig: cfg,
 		db:                              db,
@@ -238,12 +246,12 @@ func (n *NativeCertificateProvider) SignCertificate(csr x509.CertificateRequest)
 	switch {
 	case csr.Subject.CommonName == rootCAName:
 		return nil, fmt.Errorf("cannot sign cert pretending to be the root CA")
-	case strings.HasPrefix(csr.Subject.CommonName, "Connector"):
-	case strings.HasPrefix(csr.Subject.CommonName, "Infra Server"):
-	case strings.HasPrefix(csr.Subject.CommonName, "User"):
-		// these are ok.
+	case len(csr.DNSNames) > 0:
+		// ok.
+	case len(csr.EmailAddresses) > 0:
+		// ok.
 	default:
-		return nil, fmt.Errorf("invalid Subject name %q", csr.Subject.CommonName)
+		return nil, fmt.Errorf("missing subject alternate name")
 	}
 
 	if !isAllowedSignatureAlgorithm(csr.SignatureAlgorithm) {

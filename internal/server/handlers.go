@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"regexp"
@@ -17,6 +19,7 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/authn"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/pki"
 )
 
 type API struct {
@@ -640,6 +643,38 @@ func (a *API) UpdateIdentityInfoFromProvider(c *gin.Context) error {
 	}
 
 	return access.UpdateUserInfoFromProvider(c, info, user, provider)
+}
+
+func (a *API) SignCertificate(c *gin.Context, certReq *api.CertificateSigningRequest) (*api.CertificateSigningResponse, error) {
+	// TODO: check to see if this cert is on the list of approved certs. Until then this function signs any cert.
+
+	// read the cert
+	certBytes, rest := pem.Decode(certReq.CertificatePEM)
+	if len(rest) > 0 {
+		return nil, fmt.Errorf("%w: sent multiple pem blocks", internal.ErrBadRequest)
+	}
+
+	cert, err := x509.ParseCertificate(certBytes.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("%w: can't read certificate: %s", internal.ErrBadRequest, err)
+	}
+
+	cp := a.server.certificateProvider
+	cas := cp.ActiveCAs()
+	_, raw, err := pki.SignConnectorCert(cp, cert)
+	if err != nil {
+		return nil, fmt.Errorf("signing cert: %w", err)
+	}
+	activeCACert := cas[1]
+	caPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: activeCACert.Raw,
+	})
+
+	return &api.CertificateSigningResponse{
+		SignedCertificatePEM:    raw,
+		CertificateAuthorityPEM: caPEM,
+	}, nil
 }
 
 func (a *API) providerClient(c *gin.Context, provider *models.Provider, redirectURL string) (authn.OIDC, error) {

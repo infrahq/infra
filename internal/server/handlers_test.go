@@ -2,8 +2,11 @@ package server
 
 import (
 	"bytes"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -13,11 +16,13 @@ import (
 	"github.com/gin-gonic/gin"
 	gocmp "github.com/google/go-cmp/cmp"
 	"github.com/prometheus/client_golang/prometheus"
+	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/pki"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -152,30 +157,11 @@ var cmpAPIIdentityShallow = gocmp.Comparer(func(x, y api.Identity) bool {
 })
 
 func TestListKeys(t *testing.T) {
-	db := setupDB(t)
-	s := &Server{
-		db: db,
-	}
-	handlers := &API{
-		server: s,
-	}
+	c, a, db, user := setupLoggedinAdminUser(t)
 
-	user := &models.Identity{Model: models.Model{ID: uid.New()}, Name: "foo@example.com", Kind: "user"}
-	err := data.CreateIdentity(db, user)
-	assert.NilError(t, err)
 	provider := data.InfraProvider(db)
-	err = data.CreateGrant(db, &models.Grant{
-		Subject:   user.PolyID(),
-		Privilege: "admin",
-		Resource:  "infra",
-	})
-	assert.NilError(t, err)
 
-	c, _ := gin.CreateTestContext(httptest.NewRecorder())
-	c.Set("db", db)
-	c.Set("identity", user)
-
-	_, err = data.CreateAccessKey(db, &models.AccessKey{
+	_, err := data.CreateAccessKey(db, &models.AccessKey{
 		Name:       "foo",
 		IssuedFor:  user.ID,
 		ProviderID: provider.ID,
@@ -183,14 +169,13 @@ func TestListKeys(t *testing.T) {
 	})
 	assert.NilError(t, err)
 
-	keys, err := handlers.ListAccessKeys(c, &api.ListAccessKeysRequest{})
+	keys, err := a.ListAccessKeys(c, &api.ListAccessKeysRequest{})
 	assert.NilError(t, err)
 
 	assert.Assert(t, len(keys) > 0)
 
-	assert.Equal(t, keys[0].IssuedForName, "foo@example.com")
+	assert.Equal(t, keys[0].IssuedForName, user.Name)
 }
-
 func TestListProviders(t *testing.T) {
 	s := setupServer(t, withDefaultAdminAccessKey)
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
@@ -498,6 +483,72 @@ func TestAPI_CreateGrant_Success(t *testing.T) {
 		assert.NilError(t, err)
 		assert.DeepEqual(t, getGrant, newGrant)
 	})
+}
+
+func setupLoggedinAdminUser(t *testing.T) (*gin.Context, *API, *gorm.DB, *models.Identity) {
+	db := setupDB(t)
+	s := &Server{db: db}
+	a := &API{server: s}
+
+	user := &models.Identity{
+		Model: models.Model{ID: uid.New()},
+		Name:  fmt.Sprintf("foo+%d@example.com", rand.Int63()), //nolint:gosec
+		Kind:  "user",
+	}
+	err := data.CreateIdentity(db, user)
+	assert.NilError(t, err)
+
+	err = data.CreateGrant(db, &models.Grant{
+		Subject:   user.PolyID(),
+		Privilege: "admin",
+		Resource:  "infra",
+	})
+	assert.NilError(t, err)
+
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Set("db", db)
+	c.Set("identity", user)
+
+	return c, a, db, user
+}
+
+func TestSigningRequest(t *testing.T) {
+	c, a, db, _ := setupLoggedinAdminUser(t)
+
+	// setup a cert provider
+	var err error
+	a.server.certificateProvider, err = pki.NewNativeCertificateProvider(db, pki.NativeCertificateProviderConfig{})
+	assert.NilError(t, err)
+	err = a.server.certificateProvider.CreateCA()
+	assert.NilError(t, err)
+	err = a.server.certificateProvider.RotateCA()
+	assert.NilError(t, err)
+
+	// "generate" a client cert
+	kp, err := pki.MakeConnectorCert([]string{"localhost"}, 10*time.Minute)
+	assert.NilError(t, err)
+
+	// TODO: add to the list of approved certs
+
+	// ask the server to sign it
+	resp, err := a.SignCertificate(c, &api.CertificateSigningRequest{
+		CertificatePEM: kp.CertPEM,
+	})
+	assert.NilError(t, err)
+
+	blk, rest := pem.Decode(resp.SignedCertificatePEM)
+	assert.Assert(t, len(rest) == 0)
+
+	newCert, err := x509.ParseCertificate(blk.Bytes)
+	assert.NilError(t, err)
+
+	assert.Assert(t, !newCert.IsCA)
+	assert.Assert(t, strings.Contains(string(resp.CertificateAuthorityPEM), "CERTIFICATE"))
+	assert.Assert(t, strings.Contains(string(resp.SignedCertificatePEM), "CERTIFICATE"))
+
+	ca := a.server.certificateProvider.ActiveCAs()[1]
+	err = newCert.CheckSignatureFrom(&ca)
+	assert.NilError(t, err)
 }
 
 var cmpAPIGrantJSON = gocmp.Options{

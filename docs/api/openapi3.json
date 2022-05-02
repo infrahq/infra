@@ -48,6 +48,20 @@
           }
         }
       },
+      "CertificateSigningResponse": {
+        "properties": {
+          "certificateAuthorityPEM": {
+            "description": "the pem-encoded CA public certificate",
+            "format": "binary",
+            "type": "string"
+          },
+          "signedCertificatePEM": {
+            "description": "the pem-encoded signed certificate",
+            "format": "binary",
+            "type": "string"
+          }
+        }
+      },
       "CreateAccessKeyResponse": {
         "properties": {
           "accessKey": {
@@ -702,6 +716,97 @@
         "summary": "DeleteAccessKey",
         "tags": [
           "Authentication"
+        ]
+      }
+    },
+    "/v1/certificates/sign": {
+      "post": {
+        "description": "SignCertificate",
+        "operationId": "SignCertificate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "certificatePEM": {
+                    "description": "The PEM-encoded certificate to be signed, not including the private key.",
+                    "format": "binary",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "certificatePEM"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized: Requestor is not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden: Requestor does not have the right permissions"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Duplicate Record"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateSigningResponse"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "SignCertificate",
+        "tags": [
+          "Misc"
         ]
       }
     },

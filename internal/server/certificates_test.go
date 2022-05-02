@@ -38,7 +38,7 @@ func TestCertificateSigningWorks(t *testing.T) {
 		Name:  "joe@example.com",
 	}
 
-	keyPair, err := pki.MakeUserCert("User "+user.ID.String(), 24*time.Hour)
+	keyPair, err := pki.MakeUserCert(user.Name, 24*time.Hour)
 	assert.NilError(t, err)
 
 	// happens on the server, needs to be a request for this.

@@ -74,7 +74,7 @@ func TestCertificatesImplementations(t *testing.T) {
 			csr := x509.CertificateRequest{
 				PublicKeyAlgorithm: cert.PublicKeyAlgorithm,
 				PublicKey:          cert.PublicKey,
-
+				DNSNames:           []string{"localhost"},
 				Signature:          cert.Signature,
 				SignatureAlgorithm: cert.SignatureAlgorithm,
 				Subject:            cert.Subject,
