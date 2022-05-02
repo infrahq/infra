@@ -54,7 +54,12 @@ const columns = [{
 }]
 
 const AdminName = ({ id }) => {
+  if (!id) {
+    return null
+  }
+
   const { data: user } = useSWR(`/v1/identities/${id.replace('i:', '')}`, { fallbackData: { name: '', kind: '' } })
+  
   return (
     <div className='flex items-center'>
       <div className='w-10 h-10 mr-4 bg-purple-100/10 font-bold rounded-lg flex items-center justify-center'>
@@ -140,9 +145,9 @@ export default function () {
           />
         </div>
         <button
-          onSubmit={() => handleAddAdmin()}
+          onClick={() => handleAddAdmin()}
           disabled={adminEmail.length === 0}
-          type='submit'
+          type='button'
           className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 p-0.5 mx-auto rounded-full disabled:opacity-30'
         >
           <div className='bg-black flex items-center text-sm px-14 py-3 rounded-full'>
