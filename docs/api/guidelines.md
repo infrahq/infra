@@ -13,11 +13,6 @@ into other software. Resource based APIs are defined by _endpoints_ (resources)
 which comprise the _nouns_ of the API, and _methods_ (such as GET, PUT, POST,
 etc.) which define the _verbs_.
 
-This guide only covers REST based APIs, however, there are times when it may be
-necessary to define a different type of API.  Although REST APIs can be easy to
-consume, they aren't necessarily performant. Consider using gRPC and Protobufs
-when you need more speed.
-
 ## Creating a new API
 
 Any good API requires a lot of thought and consideration. Good APIs stick
@@ -71,15 +66,15 @@ When you have determined what resources you will use, you will need to also
 determine the paths on which they get exposed. The paths for our current
 API tend to be very flat. Some examples include:
 
-| Path                     | Description                    |
-| :----------------------- | :----------------------------- |
-| /v1/destinations         | Kubernetes resources           |
-| /v1/identities           | Users and machines             |
-| /v1/identities/%s/grants | Grants for a specific identity |
-| /v1/identities/%s/groups | Groups for a specific identity |
-| /v1/grants               | Authorization grants           |
-| /v1/groups               | Groups and group membership    |
-| /v1/providers            | Identity providers             |
+| Path                | Description                    |
+| :------------------ | :----------------------------- |
+| /v1/destinations    | Kubernetes resources           |
+| /v1/users           | Users                          |
+| /v1/users/%s/grants | Grants for a specific identity |
+| /v1/users/%s/groups | Groups for a specific identity |
+| /v1/grants          | Authorization grants           |
+| /v1/groups          | Groups and group membership    |
+| /v1/providers       | Identity providers             |
 
 Try to keep your pathnames flat. Good APIs provide a simple list of base
 resources which do not have deep, nested hierarchies. As a rule of thumb,
@@ -271,17 +266,6 @@ We currently use the following status codes when the API returns:
 | 500    | Internal server error |
 | 502    | Bad gateway           |
 
-
-Currently unused status codes include:
-
-| Status | Type                  |
-| :----- | :---                  |
-| 409    | Conflict              |
-| 429    | Too many requests     |
-| 503    | Service unavilable    |
-| 504    | Gateway timeout       | 
-
-
 We use a standard format for returning an error:
  
 ```
@@ -296,14 +280,6 @@ We use a standard format for returning an error:
 }
 ```
 
-### Returning a 404 or 403
-
-If a client isn't authenticated or doesn't have access to a particular resource, be careful about returning a
-```403 Forbidden``` error as it may leak information about a resource. Instead, consider returning a
-```404 Not found``` error so that the caller can't make intentional calls to the API to determine the existance
-of a particular resource.
-
-
 ## Documenting the API
   * Make sure you document your API.
   * Ask for help if you need it
@@ -316,9 +292,9 @@ An API is a form of contract between you and the users and clients that are usin
 API, you are effectively breaking the contract, and can cause clients to no longer work. It's important that you
 think about how your API will evolve over time, and to plan for future changes which won't break existing clients.
 
-Not all types of changes will break changes, consider:
+There are different types of changes which can have different impacts on the API.
 
-#### Generally OK changes
+#### Generally OK
   * Adding a new method to an endpoint
   * Adding a new resource or collection type
 
@@ -330,6 +306,7 @@ Not all types of changes will break changes, consider:
   * Removing a field from a resource
   * Modifying the behaviour of a method
   * Modifying the order of array elements
+
 
 ## Versioning
 
