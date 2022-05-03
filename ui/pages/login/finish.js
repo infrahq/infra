@@ -31,7 +31,7 @@ export default function () {
     <div className='flex flex-col justify-center items-center h-full w-full max-w-sm mx-auto mb-48'>
       <img className='text-white w-10 h-10' src='/infra-icon.svg' />
       <h1 className='my-5 text-3xl font-light tracking-tight'>Login to Infra</h1>
-      <h2 className='text-center mt-4'>You've used a one time password.<br />Set your password to continue.</h2>
+      <h2 className='text-center mt-4 text-gray-300'>You've used a one time password.<br />Set your password to continue.</h2>
       <form
         className='w-full flex flex-col max-w-sm my-6 relative'
         onSubmit={e => {

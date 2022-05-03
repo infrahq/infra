@@ -30,8 +30,8 @@ const columns = [{
             )}
       </div>
       <div className='flex flex-col leading-tight'>
-        <div className='font-medium'>{provider.name}</div>
-        <div className='text-gray-400 text-xs'>{provider.url}</div>
+        <div>{provider.name}</div>
+        <div className='text-gray-300 text-xs'>{provider.url}</div>
       </div>
     </div>
   )
@@ -51,7 +51,7 @@ const columns = [{
     return (
       <div className='opacity-0 group-hover:opacity-100 flex justify-end text-right'>
         <button onClick={() => setOpen(true)} className='p-2 -mr-2 cursor-pointer'>
-          <XIcon className='w-5 h-5 text-gray-500 hover:text-white' />
+          <XIcon className='w-5 h-5 text-gray-300 hover:text-white' />
         </button>
         <DeleteModal
           open={open}
@@ -99,7 +99,7 @@ export default function Providers () {
             <div className='flex-1 flex flex-col space-y-4'>
               {data?.length > 0 && (
                 <div className='flex justify-between items-center'>
-                  <h1 className='text-2xl font-bold mt-6 mb-4'>Identity Providers</h1>
+                  <h1 className='text-base font-bold mt-6 mb-4'>Identity Providers</h1>
                   <Link href='/providers/add'>
                     <button className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 my-2'>
                       <div className='bg-black rounded-full flex items-center text-sm px-4 py-1.5'>
@@ -110,7 +110,7 @@ export default function Providers () {
                 </div>
               )}
               {error?.status
-                ? <div className='my-20 text-center font-light text-gray-400 text-2xl'>{error?.info?.message}</div>
+                ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
                 : data.length === 0
                   ? (
                     <EmptyTable

@@ -23,7 +23,7 @@ function columns (admin) {
       accessor: i => i,
       Cell: ({ value }) => (
         <div className='flex items-center'>
-          <div className='font-medium py-2'>{value.name.replace('kubernetes.', '')}</div>
+          <div className='py-2'>{value.name.replace('kubernetes.', '')}</div>
         </div>
       )
     }, {
@@ -79,7 +79,7 @@ function columns (admin) {
                 )}
                 <div className='group-hover:flex space-x-1 hidden'>
                   <button onClick={() => setShareOpen(true)} className='cursor-pointer bg-zinc-900 rounded-lg'>
-                    <div className='flex items-center py-1 px-3 text-gray-500 hover:text-white'>
+                    <div className='flex items-center py-1 px-3 text-gray-300 hover:text-white'>
                       <ShareIcon className='w-4 h-4 ' /><div className='text-sm ml-1'>Share</div>
                     </div>
                   </button>
@@ -161,7 +161,7 @@ export default function Destinations () {
             <div className='flex-1 flex flex-col space-y-4'>
               {destinations?.length > 0 && (
                 <div className='flex justify-between items-center'>
-                  <h1 className='text-2xl font-bold mt-6 mb-4'>Clusters</h1>
+                  <h1 className='text-base font-bold mt-6 mb-4'>Clusters</h1>
                   {admin && (
                     <Link href='/destinations/add'>
                       <button className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 my-2'>
@@ -174,8 +174,8 @@ export default function Destinations () {
                 </div>
               )}
               {error?.status
-                ? <div className='my-20 text-center font-light text-gray-400 text-2xl'>{error?.info?.message}</div>
-                : destinations?.length === 0
+                ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
+                : destinations.length === 0
                   ? <EmptyTable
                       title='There are no clusters'
                       subtitle='There are currently no clusters connected to Infra. Get started by connecting one.'

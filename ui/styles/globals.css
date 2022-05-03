@@ -7,4 +7,5 @@ html, body, #__next {
   @apply text-white;
   @apply bg-black;
   @apply antialiased;
+  @apply font-normal;
 }

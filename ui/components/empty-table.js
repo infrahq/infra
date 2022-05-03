@@ -6,7 +6,7 @@ export default function ({ title, subtitle, iconPath, buttonText, buttonHref }) 
   return (
     <div className='flex flex-col text-center my-24'>
       <HeaderIcon iconPath={iconPath} position='center' />
-      <h1 className='text-white text-lg font-bold mb-2'>{title}</h1>
+      <h1 className='text-base font-bold mb-2'>{title}</h1>
       <h2 className='text-gray-300 mb-4 text-sm max-w-xs mx-auto'>{subtitle}</h2>
       {buttonHref && (
         <Link href={buttonHref}>

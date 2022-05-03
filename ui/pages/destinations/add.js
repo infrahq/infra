@@ -126,9 +126,9 @@ export default function () {
       </Head>
       <div className='flex flex-col mb-10 w-full max-w-md'>
         <HeaderIcon iconPath='/destinations-color.svg' position='center' />
-        <h1 className='text-xl font-bold tracking-tight text-center'>Connect a Cluster</h1>
+        <h1 className='text-base font-bold tracking-tight text-center'>Connect a Cluster</h1>
         <div className='flex gap-1 mt-8 mb-5'>
-          <div className='flex-1 w-full'>
+          <div className='flex-1'>
             <InputDropdown
               type='text'
               value={name}
@@ -143,24 +143,24 @@ export default function () {
             onClick={() => handleNext()}
             disabled={name.length === 0 || disabledInput}
             type='button'
-            className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 p-0.5 mx-auto rounded-full disabled:opacity-30'
+            className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 p-0.5 ml-2 rounded-full disabled:opacity-30'
           >
-            <div className='bg-black flex items-center text-sm px-12 py-3 rounded-full'>
+            <div className='bg-black flex items-center text-sm px-12 py-2.5 rounded-full'>
               Next
             </div>
           </button>
         </div>
         {enabledCommandInput &&
           <>
-            <h2 className='text-gray-500 text-center px-2 mt-4'>
-              Next, deploy the Infra Connector to your cluster via <span className='font-mono font-medium'>helm:</span>
+            <h2 className='text-gray-300 text-center px-2 mt-4'>
+              Next, deploy the Infra Connector to your cluster via <span className='font-mono'>helm:</span>
             </h2>
             <CommandInput
               enabledCommandInput={enabledCommandInput}
               accessKey={accessKey}
               currentDestinationName={currentDestinationName}
             />
-            <h2 className='text-gray-500 text-center px-2 mb-2 mt-4'>
+            <h2 className='text-gray-300 text-center px-2 mb-2 mt-4'>
               Your cluster will be detected automatically. This may take a few minutes.
             </h2>
             <div className='border border-dashed border-pink-light/20 rounded-lg shadow-sm overflow-hidden my-5 px-5 py-3'>

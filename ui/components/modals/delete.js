@@ -23,10 +23,10 @@ export default function ({ open, setOpen, onSubmit, title, message }) {
                 </div>
               </div>
               <div className='mt-1 ml-5 text-left'>
-                <Dialog.Title as='h3' className='text-base leading-6 font-bold text-white'>
+                <Dialog.Title as='h3' className='text-base leading-6 font-bold'>
                   {title}
                 </Dialog.Title>
-                <p className='text-sm text-gray-400 my-0.5'>
+                <p className='text-sm text-gray-300 my-0.5'>
                   {message}
                 </p>
               </div>
@@ -36,7 +36,7 @@ export default function ({ open, setOpen, onSubmit, title, message }) {
             <div className='mt-8 text-sm flex flex-row-reverse'>
               <button
                 type='button'
-                className='w-auto inline-flex justify-center rounded-full bg-gradient-to-tr from-[#B06363] to-[#FF00C7] font-medium text-white focus:outline-none focus:ring-2 focus:ring-[#FF00C7] ml-3'
+                className='w-auto inline-flex justify-center rounded-full bg-gradient-to-tr from-[#B06363] to-[#FF00C7] focus:outline-none focus:ring-2 focus:ring-[#FF00C7] ml-3'
                 onClick={() => onSubmit()}
               >
                 <div className='bg-black  px-10 py-3.5 rounded-full m-0.5'>
@@ -45,7 +45,7 @@ export default function ({ open, setOpen, onSubmit, title, message }) {
               </button>
               <button
                 type='button'
-                className='w-auto inline-flex items-center justify-center rounded-full px-10 py-3.5 bg-black hover:opacity-75 font-medium text-white focus:outline-none focus:ring-2 focus:ring-zinc-600'
+                className='w-auto inline-flex items-center justify-center rounded-full px-10 py-3.5 bg-black hover:opacity-75 focus:outline-none focus:ring-2 focus:ring-zinc-600'
                 onClick={() => setOpen(false)}
                 ref={cancelButtonRef}
               >

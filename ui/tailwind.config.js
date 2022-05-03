@@ -21,7 +21,7 @@ module.exports = {
           dark: '#CB2EEC'
         },
         gray: {
-          light: '#B2B2B2'
+          300: '#B2B2B2'
         }
       },
       transitionProperty: {

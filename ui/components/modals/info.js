@@ -22,7 +22,7 @@ export default ({ header, children, handleCloseModal, modalOpen, iconPath }) => 
                 </div>
               </div>
               <div className='flex-1 flex flex-col space-y-4'>
-                <Dialog.Title as='h1' className='text-2xl leading-6 font-bold text-white pt-6 pl-3'>
+                <Dialog.Title as='h1' className='text-base leading-6 font-bold pt-6 pl-3'>
                   {header}
                 </Dialog.Title>
                 <div className='pb-3 pr-3 sm:pb-6 sm:pr-6'>

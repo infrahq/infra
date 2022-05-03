@@ -15,7 +15,7 @@ function Grant ({ id }) {
   const { data: user } = useSWR(`/v1/identities/${id.replace('i:', '')}`, { fallbackData: { name: '' } })
 
   return (
-    <p>{user.name}</p>
+    <p className='text-sm'>{user.name}</p>
   )
 }
 
@@ -113,8 +113,8 @@ export default function ({ id, modalOpen, handleCloseModal }) {
       modalOpen={modalOpen}
       iconPath='/grant-access-color.svg'
     >
-      <div className={`flex gap-1 mt-3 ${error ? 'mb-2' : 'mb-8'}`}>
-        <div className='flex-2 w-full'>
+      <div className={`flex gap-1 mt-3 ${error ? 'mb-2' : 'mb-6'}`}>
+        <div className='flex-1'>
           <InputDropdown
             type='email'
             value={email}
@@ -132,16 +132,16 @@ export default function ({ id, modalOpen, handleCloseModal }) {
           onClick={() => handleShareGrant()}
           disabled={email.length === 0}
           type='button'
-          className='bg-gradient-to-tr from-indigo-300 to-pink-100 rounded-full hover:from-indigo-200 hover:to-pink-50 p-0.5 mx-auto disabled:opacity-30'
+          className='bg-gradient-to-tr from-indigo-300 to-pink-100 rounded-full hover:from-indigo-200 hover:to-pink-50 p-0.5 ml-4 disabled:opacity-30'
         >
-          <div className='bg-black flex items-center text-sm rounded-full px-12 py-3'>
+          <div className='bg-black flex items-center text-sm rounded-full px-12 py-2.5'>
             Share
           </div>
         </button>
       </div>
       {error && <ErrorMessage message={error} />}
       {list && list.length > 0 &&
-        <section className='py-2'>
+        <div className='py-2 max-h-48 sm:max-h-80 overflow-y-auto'>
           {list.sort((a, b) => (a.subject).localeCompare(b.subject)).map((item) => (
             <div className='flex justify-between items-center px-4' key={item.id}>
               <Grant id={item.subject} />
@@ -160,7 +160,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
               </div>
             </div>
           ))}
-        </section>}
+        </div>}
         {grantError && <ErrorMessage message={grantError} />}
 
     </InfoModal>

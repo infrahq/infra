@@ -13,7 +13,7 @@ export default function ({ columns, data, getRowProps = () => ({}), showHeader =
           {headerGroups.map(headerGroup => (
             <tr key={headerGroup.id} {...headerGroup.getHeaderGroupProps()}>
               {headerGroup.headers.map(column => (
-                <th key={column.id} className='text-left uppercase py-2 font-normal text-sm text-gray-400' {...column.getHeaderProps()}>
+                <th key={column.id} className='text-left uppercase py-2 font-normal text-xs text-gray-300' {...column.getHeaderProps()}>
                   {column.render('Header')}
                 </th>
               ))}

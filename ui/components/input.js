@@ -1,5 +1,4 @@
 export default function ({
-  label,
   type,
   value,
   placeholder,
@@ -15,10 +14,6 @@ export default function ({
 }) {
   return (
     <div>
-      {label &&
-        <label htmlFor='price' className='block text-sm font-medium'>
-          {label}
-        </label>}
       <div className={`relative w-full px-4 py-3  border bg-transparent rounded-full focus:outline-none focus:ring focus:ring-cyan-600 disabled:opacity-30 ${error ? 'border-pink-500' : 'border-gray-800'}`}>
         <input
           autoFocus
