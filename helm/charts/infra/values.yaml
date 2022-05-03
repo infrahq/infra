@@ -416,9 +416,6 @@ server:
   ## Enable service telemetry
   #   enableTelemetry: true
 
-  ## Enable service crash reporting
-  #   enableCrashReporting: true
-
   ## Enable Server UI
   #   ui:
   #     enabled: false

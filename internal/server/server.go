@@ -19,7 +19,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getsentry/sentry-go"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
@@ -41,11 +40,10 @@ import (
 )
 
 type Options struct {
-	TLSCache             string        `mapstructure:"tlsCache"`
-	EnableTelemetry      bool          `mapstructure:"enableTelemetry"`
-	EnableCrashReporting bool          `mapstructure:"enableCrashReporting"`
-	EnableSignup         bool          `mapstructure:"enableSignup"`
-	SessionDuration      time.Duration `mapstructure:"sessionDuration"`
+	TLSCache        string        `mapstructure:"tlsCache"`
+	EnableTelemetry bool          `mapstructure:"enableTelemetry"`
+	EnableSignup    bool          `mapstructure:"enableSignup"`
+	SessionDuration time.Duration `mapstructure:"sessionDuration"`
 
 	DBFile                  string `mapstructure:"dbFile"`
 	DBEncryptionKey         string `mapstructure:"dbEncryptionKey"`
@@ -117,12 +115,6 @@ func New(options Options) (*Server, error) {
 		return nil, fmt.Errorf("invalid options: %w", err)
 	}
 
-	if err, ok := server.configureSentry(); ok {
-		defer recoverWithSentryHub(sentry.CurrentHub())
-	} else if err != nil {
-		return nil, fmt.Errorf("configure sentry: %w", err)
-	}
-
 	if err := importSecrets(options.Secrets, server.secrets); err != nil {
 		return nil, fmt.Errorf("secrets config: %w", err)
 	}
@@ -157,7 +149,7 @@ func New(options Options) (*Server, error) {
 		return nil, fmt.Errorf("loading certificate provider: %w", err)
 	}
 
-	settings, err := data.InitializeSettings(server.db)
+	_, err = data.InitializeSettings(server.db)
 	if err != nil {
 		return nil, fmt.Errorf("settings: %w", err)
 	}
@@ -167,10 +159,6 @@ func New(options Options) (*Server, error) {
 			return nil, fmt.Errorf("configuring telemetry: %w", err)
 		}
 	}
-
-	sentry.ConfigureScope(func(scope *sentry.Scope) {
-		scope.SetContext("serverId", settings.ID)
-	})
 
 	if err := server.loadConfig(server.options.Config); err != nil {
 		return nil, fmt.Errorf("configs: %w", err)
@@ -458,30 +446,6 @@ func (s *Server) serverTLSConfig() (*tls.Config, error) {
 
 		return tlsConfig, nil
 	}
-}
-
-// configureSentry returns ok:true when sentry is configured and initialized, or false otherwise. It can be used to know if `defer recoverWithSentryHub(sentry.CurrentHub())` can be called
-func (s *Server) configureSentry() (err error, ok bool) {
-	if s.options.EnableCrashReporting && internal.CrashReportingDSN != "" {
-		err := sentry.Init(sentry.ClientOptions{
-			Dsn:              internal.CrashReportingDSN,
-			AttachStacktrace: true,
-			Release:          internal.Version,
-			BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
-				event.ServerName = ""
-				event.Request = nil
-				hint.Request = nil
-				return event
-			},
-		})
-		if err != nil {
-			return err, false
-		}
-
-		return nil, true
-	}
-
-	return nil, false
 }
 
 func (s *Server) getDatabaseDriver() (gorm.Dialector, error) {

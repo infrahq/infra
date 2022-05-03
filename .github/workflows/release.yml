@@ -61,7 +61,6 @@ jobs:
       - run: make release/docker tag=${{ needs.release-please.outputs.release_name }}
         env:
           TELEMETRY_WRITE_KEY: ${{ secrets.TELEMETRY_WRITE_KEY }}
-          CRASH_REPORTING_DSN: ${{ secrets.CRASH_REPORTING_DSN }}
 
   helm:
     needs: [release-please, docker]

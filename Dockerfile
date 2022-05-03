@@ -10,7 +10,6 @@ RUN CGO_ENABLED=0 GOOS=linux go install -v -installsuffix cgo -a std
 ARG TARGETARCH
 ARG BUILDVERSION=0.0.0-development
 ARG TELEMETRY_WRITE_KEY
-ARG CRASH_REPORTING_DSN
 WORKDIR /go/src/github.com/infrahq/infra
 
 # get deps first so it's cached
@@ -27,7 +26,7 @@ RUN --mount=type=cache,id=gomod,target=/go/pkg/mod \
     CGO_ENABLED=1 GOOS=linux GOARCH=$TARGETARCH \
     CC=$TARGETARCH-linux-gnu-gcc \
     go build \
-    -ldflags '-s -X github.com/infrahq/infra/internal.Version='"$BUILDVERSION"' -X github.com/infrahq/infra/internal.TelemetryWriteKey='"$TELEMETRY_WRITE_KEY"' -X github.com/infrahq/infra/internal.CrashReportingDSN='"$CRASH_REPORTING_DSN"' -linkmode external -extldflags "-static"' \
+    -ldflags '-s -X github.com/infrahq/infra/internal.Version='"$BUILDVERSION"' -X github.com/infrahq/infra/internal.TelemetryWriteKey='"$TELEMETRY_WRITE_KEY"' -linkmode external -extldflags "-static"' \
     .
 
 FROM alpine

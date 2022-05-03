@@ -79,7 +79,6 @@ func newServerCmd() *cobra.Command {
 	cmd.Flags().String("db-encryption-key", "", "Database encryption key")
 	cmd.Flags().String("db-encryption-key-provider", "", "Database encryption key provider")
 	cmd.Flags().Bool("enable-telemetry", false, "Enable telemetry")
-	cmd.Flags().Bool("enable-crash-reporting", false, "Enable crash reporting")
 	cmd.Flags().BoolVar(&options.UI.Enabled, "enable-ui", false, "Enable Infra server UI")
 	cmd.Flags().Var(&options.UI.ProxyURL, "ui-proxy-url", "Proxy upstream UI requests to this url")
 	cmd.Flags().Duration("session-duration", 0, "User session duration")
@@ -95,7 +94,6 @@ func defaultServerOptions() server.Options {
 		DBEncryptionKey:         "$HOME/.infra/sqlite3.db.key",
 		DBEncryptionKeyProvider: "native",
 		EnableTelemetry:         true,
-		EnableCrashReporting:    true,
 		SessionDuration:         12 * time.Hour,
 		EnableSignup:            true,
 
