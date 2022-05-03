@@ -17,6 +17,7 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/authn"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
 type API struct {
@@ -410,7 +411,16 @@ func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*a
 }
 
 func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListResponse[api.Grant], error) {
-	grants, err := access.ListGrants(c, r.Subject, r.Resource, r.Privilege)
+	var subject uid.PolymorphicID
+
+	switch {
+	case r.Identity != 0:
+		subject = uid.NewIdentityPolymorphicID(r.Identity)
+	case r.Group != 0:
+		subject = uid.NewGroupPolymorphicID(r.Group)
+	}
+
+	grants, err := access.ListGrants(c, subject, r.Resource, r.Privilege)
 	if err != nil {
 		return nil, err
 	}
@@ -432,10 +442,19 @@ func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {
 }
 
 func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.Grant, error) {
+	var subject uid.PolymorphicID
+
+	switch {
+	case r.Identity != 0:
+		subject = uid.NewIdentityPolymorphicID(r.Identity)
+	case r.Group != 0:
+		subject = uid.NewGroupPolymorphicID(r.Group)
+	}
+
 	grant := &models.Grant{
+		Subject:   subject,
 		Resource:  r.Resource,
 		Privilege: r.Privilege,
-		Subject:   r.Subject,
 	}
 
 	err := access.CreateGrant(c, grant)

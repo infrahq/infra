@@ -11,19 +11,22 @@ type Grant struct {
 	CreatedBy uid.ID `json:"created_by" note:"id of the identity that created the grant"`
 	Updated   Time   `json:"updated"`
 
-	Subject   uid.PolymorphicID `json:"subject" note:"a polymorphic field expecting an identity or group ID"`
-	Privilege string            `json:"privilege" note:"a role or permission"`
-	Resource  string            `json:"resource" note:"a resource name in Infra's Universal Resource Notation"`
+	Identity  uid.ID `json:"identity,omitempty"`
+	Group     uid.ID `json:"group,omitempty"`
+	Privilege string `json:"privilege" note:"a role or permission"`
+	Resource  string `json:"resource" note:"a resource name in Infra's Universal Resource Notation"`
 }
 
 type ListGrantsRequest struct {
-	Subject   uid.PolymorphicID `form:"subject"`
-	Resource  string            `form:"resource" example:"production"`
-	Privilege string            `form:"privilege" example:"view"`
+	Identity  uid.ID `form:"identity" validate:"excluded_with=Group"`
+	Group     uid.ID `form:"group" validate:"excluded_with=Identity"`
+	Resource  string `form:"resource" example:"production"`
+	Privilege string `form:"privilege" example:"view"`
 }
 
 type CreateGrantRequest struct {
-	Subject   uid.PolymorphicID `json:"subject" validate:"required" note:"a polymorphic field expecting an identity or group ID"`
-	Privilege string            `json:"privilege" validate:"required" example:"view" note:"a role or permission"`
-	Resource  string            `json:"resource" validate:"required" example:"production" note:"a resource name in Infra's Universal Resource Notation"`
+	Identity  uid.ID `json:"identity" validate:"required_without=Group"`
+	Group     uid.ID `json:"group" validate:"required_without=Identity"`
+	Privilege string `json:"privilege" validate:"required" example:"view" note:"a role or permission"`
+	Resource  string `json:"resource" validate:"required" example:"production" note:"a resource name in Infra's Universal Resource Notation"`
 }
