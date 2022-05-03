@@ -79,7 +79,7 @@ function columns (admin) {
                 )}
                 <div className='group-hover:flex space-x-1 hidden'>
                   <button onClick={() => setShareOpen(true)} className='cursor-pointer bg-zinc-900 rounded-lg'>
-                    <div className='flex items-center py-1 px-3 text-gray-300 hover:text-hover-link'>
+                    <div className='flex items-center py-1 px-3 text-gray-300 hover:text-white'>
                       <ShareIcon className='w-4 h-4 ' /><div className='text-sm ml-1'>Share</div>
                     </div>
                   </button>
@@ -108,7 +108,7 @@ function columns (admin) {
             return (
               <div className='flex justify-end w-6 ml-auto opacity-0 group-hover:opacity-100'>
                 <button onClick={() => setOpen(true)} className='py-1 px-2 -mr-2 cursor-pointer'>
-                  <XIcon className='w-5 h-5 text-gray-500 hover:text-hover-link' />
+                  <XIcon className='w-5 h-5 text-gray-500 hover:text-white' />
                 </button>
 
                 {/* delete modal */}

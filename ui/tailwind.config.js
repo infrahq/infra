@@ -15,9 +15,6 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        hover: {
-          link: '#FFFFFF'
-        },
         black: '#0A0E12',
         pink: {
           'light': withOpacityValue('228 64 255'),

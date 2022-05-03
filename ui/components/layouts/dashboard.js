@@ -60,7 +60,7 @@ export default function ({ children }) {
               <a
                 href={n.href}
                 className={`
-                  ${router.asPath.startsWith(n.href) ? 'bg-purple-200/10 text-white' : 'text-gray-300 hover:bg-purple-200/5 hover:text-hover-link'}
+                  ${router.asPath.startsWith(n.href) ? 'bg-purple-200/10 text-white' : 'text-gray-300 hover:bg-purple-200/5 hover:text-white'}
                   rounded-lg py-2 px-3 flex items-center text-sm transition-colors duration-100
                   ${n.admin && !admin ? 'opacity-30 pointer-events-none' : ''}
                 `}
@@ -85,13 +85,13 @@ export default function ({ children }) {
           <div className='w-full px-2 py-1 items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 select-none text-sm'>
             <div onClick={() => logout()} className='w-full flex items-center opacity-50 hover:opacity-75 py-2 cursor-pointer'>
               <img src='/signout.svg' className='opacity-50 group-hover:opacity-75 h-3 mr-3' />
-              <div className='text-gray-300 group-hover:text-hover-link'>Logout</div>
+              <div className='text-gray-300 group-hover:text-white'>Logout</div>
             </div>
             {subNavigation.map(s => (
               <Link key={s.name} href={s.href}>
                 <a className={`w-full flex -ml-1 opacity-50 hover:opacity-75 py-2 ${s.admin && !admin ? 'pointer-events-none opacity-20' : ''}`}>
                   <img src={s.icon} className='opacity-50 group-hover:opacity-75 mr-3 w-5 h-5' />
-                  <div className='text-gray-300 group-hover:text-hover-link'>{s.name}</div>
+                  <div className='text-gray-300 group-hover:text-white'>{s.name}</div>
                 </a>
               </Link>
             ))}
