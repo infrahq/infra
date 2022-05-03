@@ -35,10 +35,10 @@ func TestAPI_ListIdentities(t *testing.T) {
 	srv := setupServer(t, withAdminIdentity)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
-	createID := func(t *testing.T, name string, kind string) uid.ID {
+	createID := func(t *testing.T, name string) uid.ID {
 		t.Helper()
 		var buf bytes.Buffer
-		body := api.CreateIdentityRequest{Name: name, Kind: kind}
+		body := api.CreateIdentityRequest{Name: name}
 		err := json.NewEncoder(&buf).Encode(body)
 		assert.NilError(t, err)
 
@@ -54,10 +54,10 @@ func TestAPI_ListIdentities(t *testing.T) {
 		assert.NilError(t, err)
 		return respObj.ID
 	}
-	id1 := createID(t, "me@example.com", "user")
-	id2 := createID(t, "other@example.com", "user")
-	id3 := createID(t, "HAL", "machine")
-	_ = createID(t, "other-HAL", "machine")
+	id1 := createID(t, "me@example.com")
+	id2 := createID(t, "other@example.com")
+	id3 := createID(t, "HAL")
+	_ = createID(t, "other-HAL")
 
 	type testCase struct {
 		urlPath  string
@@ -97,7 +97,7 @@ func TestAPI_ListIdentities(t *testing.T) {
 				err := json.NewDecoder(resp.Body).Decode(&actual)
 				assert.NilError(t, err)
 				expected := []api.Identity{
-					{Name: "me@example.com", Kind: "user"},
+					{Name: "me@example.com"},
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIIdentityShallow)
 			},
@@ -111,9 +111,9 @@ func TestAPI_ListIdentities(t *testing.T) {
 				err := json.NewDecoder(resp.Body).Decode(&actual)
 				assert.NilError(t, err)
 				expected := []api.Identity{
-					{Name: "HAL", Kind: "machine"},
-					{Name: "me@example.com", Kind: "user"},
-					{Name: "other@example.com", Kind: "user"},
+					{Name: "HAL"},
+					{Name: "me@example.com"},
+					{Name: "other@example.com"},
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIIdentityShallow)
 			},
@@ -127,12 +127,12 @@ func TestAPI_ListIdentities(t *testing.T) {
 				err := json.NewDecoder(resp.Body).Decode(&actual)
 				assert.NilError(t, err)
 				expected := []api.Identity{
-					{Name: "HAL", Kind: "machine"},
-					{Name: "admin", Kind: "machine"},
-					{Name: "connector", Kind: "machine"},
-					{Name: "me@example.com", Kind: "user"},
-					{Name: "other-HAL", Kind: "machine"},
-					{Name: "other@example.com", Kind: "user"},
+					{Name: "HAL"},
+					{Name: "admin"},
+					{Name: "connector"},
+					{Name: "me@example.com"},
+					{Name: "other-HAL"},
+					{Name: "other@example.com"},
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIIdentityShallow)
 			},
@@ -157,7 +157,7 @@ func TestAPI_ListIdentities(t *testing.T) {
 }
 
 var cmpAPIIdentityShallow = gocmp.Comparer(func(x, y api.Identity) bool {
-	return x.Name == y.Name && x.Kind == y.Kind
+	return x.Name == y.Name
 })
 
 func TestListKeys(t *testing.T) {
@@ -169,7 +169,7 @@ func TestListKeys(t *testing.T) {
 		server: s,
 	}
 
-	user := &models.Identity{Model: models.Model{ID: uid.New()}, Name: "foo@example.com", Kind: "user"}
+	user := &models.Identity{Model: models.Model{ID: uid.New()}, Name: "foo@example.com"}
 	err := data.CreateIdentity(db, user)
 	assert.NilError(t, err)
 	provider := data.InfraProvider(db)
@@ -307,24 +307,42 @@ func TestAPI_DeleteProvider(t *testing.T) {
 }
 
 // withAdminIdentity may be used with setupServer to setup the server
-// with an admin machine identity and access key
+// with an admin identity and access key
 func withAdminIdentity(_ *testing.T, opts *Options) {
 	opts.Identities = append(opts.Identities, Identity{
 		Name:      "admin",
 		AccessKey: "BlgpvURSGF.NdcemBdzxLTGIcjPXwPoZNrb",
 	})
 	opts.Grants = append(opts.Grants, Grant{
-		Machine:  "admin",
+		User:     "admin",
 		Role:     "admin",
 		Resource: "infra",
 	})
 }
 
-func TestAPI_CreateIdentity(t *testing.T) {
+func TestDeleteProvider_NoDeleteInternalProvider(t *testing.T) {
+	s := setupServer(t, withAdminIdentity)
+
+	routes := s.GenerateRoutes(prometheus.NewRegistry())
+	internalProvider := data.InfraProvider(s.db)
+
+	route := fmt.Sprintf("/v1/providers/%s", internalProvider.ID)
+	req, err := http.NewRequest(http.MethodDelete, route, nil)
+	assert.NilError(t, err)
+
+	req.Header.Add("Authorization", "Bearer "+adminAccessKey(s))
+
+	resp := httptest.NewRecorder()
+	routes.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
+}
+
+func TestCreateIdentity(t *testing.T) {
 	srv := setupServer(t, withAdminIdentity)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
-	existing := &models.Identity{Name: "existing@example.com", Kind: models.UserKind}
+	existing := &models.Identity{Name: "existing@example.com"}
 	err := data.CreateIdentity(srv.db, existing)
 	assert.NilError(t, err)
 
@@ -362,7 +380,6 @@ func TestAPI_CreateIdentity(t *testing.T) {
 		"not authorized": {
 			body: api.CreateIdentityRequest{
 				Name: "noone@example.com",
-				Kind: "user",
 			},
 			setup: func(t *testing.T, req *http.Request) {
 				key, _ := createAccessKey(t, srv.db, "someonenew@example.com")
@@ -372,8 +389,8 @@ func TestAPI_CreateIdentity(t *testing.T) {
 				assert.Equal(t, resp.Code, http.StatusForbidden, resp.Body.String())
 			},
 		},
-		"missing required field": {
-			body: api.CreateIdentityRequest{Kind: "user"},
+		"missing required fields": {
+			body: api.CreateIdentityRequest{},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
 
@@ -384,10 +401,7 @@ func TestAPI_CreateIdentity(t *testing.T) {
 			},
 		},
 		"create new unlinked user": {
-			body: api.CreateIdentityRequest{
-				Name: "test-create-identity@example.com",
-				Kind: "user",
-			},
+			body: api.CreateIdentityRequest{Name: "test-create-identity@example.com"},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusCreated, resp.Code, resp.Body.String())
 
@@ -401,7 +415,6 @@ func TestAPI_CreateIdentity(t *testing.T) {
 		"new infra user gets one time password": {
 			body: api.CreateIdentityRequest{
 				Name:               "test-infra-identity@example.com",
-				Kind:               "user",
 				SetOneTimePassword: true,
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
@@ -417,7 +430,6 @@ func TestAPI_CreateIdentity(t *testing.T) {
 		"existing unlinked user gets password": {
 			body: api.CreateIdentityRequest{
 				Name:               "existing@example.com",
-				Kind:               "user",
 				SetOneTimePassword: true,
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
@@ -428,22 +440,6 @@ func TestAPI_CreateIdentity(t *testing.T) {
 				assert.NilError(t, err)
 				assert.Equal(t, "existing@example.com", id.Name)
 				assert.Assert(t, id.OneTimePassword != "")
-			},
-		},
-		"new machine identities do not get one time password": {
-			body: api.CreateIdentityRequest{
-				Name:               "test-infra-machine-otp",
-				Kind:               "machine",
-				SetOneTimePassword: true,
-			},
-			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusCreated, resp.Code, resp.Body.String())
-
-				var id api.CreateIdentityResponse
-				err := json.NewDecoder(resp.Body).Decode(&id)
-				assert.NilError(t, err)
-				assert.Equal(t, "test-infra-machine-otp", id.Name)
-				assert.Assert(t, id.OneTimePassword == "")
 			},
 		},
 	}
@@ -468,10 +464,7 @@ func TestDeleteIdentity(t *testing.T) {
 
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
 
-	testUser := &models.Identity{
-		Name: "test",
-		Kind: models.UserKind,
-	}
+	testUser := &models.Identity{Name: "test"}
 
 	err := data.CreateIdentity(s.db, testUser)
 	assert.NilError(t, err)
@@ -511,10 +504,7 @@ func TestDeleteIdentity_NoDeleteSelf(t *testing.T) {
 
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
 
-	testUser := &models.Identity{
-		Name: "test",
-		Kind: models.UserKind,
-	}
+	testUser := &models.Identity{Name: "test"}
 
 	err := data.CreateIdentity(s.db, testUser)
 	assert.NilError(t, err)
@@ -683,10 +673,10 @@ func TestAPI_GetIdentity(t *testing.T) {
 	srv := setupServer(t, withAdminIdentity)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
-	createID := func(t *testing.T, name string, kind string) uid.ID {
+	createID := func(t *testing.T, name string) uid.ID {
 		t.Helper()
 		var buf bytes.Buffer
-		body := api.CreateIdentityRequest{Name: name, Kind: kind}
+		body := api.CreateIdentityRequest{Name: name}
 		err := json.NewEncoder(&buf).Encode(body)
 		assert.NilError(t, err)
 
@@ -702,8 +692,8 @@ func TestAPI_GetIdentity(t *testing.T) {
 		assert.NilError(t, err)
 		return respObj.ID
 	}
-	idMe := createID(t, "me@example.com", "user")
-	idHal := createID(t, "HAL", "machine")
+	idMe := createID(t, "me@example.com")
+	idHal := createID(t, "HAL")
 
 	token := &models.AccessKey{
 		IssuedFor:  idMe,
@@ -811,7 +801,6 @@ func TestAPI_GetIdentity(t *testing.T) {
 				expected := jsonUnmarshal(t, fmt.Sprintf(`
 					{
 					  "id": "%[1]v",
-					  "kind": "user",
 					  "name": "me@example.com",
 					  "lastSeenAt": "%[2]v",
 					  "created": "%[2]v",

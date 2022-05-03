@@ -15,10 +15,7 @@ func TestListIdentities(t *testing.T) {
 	// create the identity
 	c, db, infraProvider := setupAccessTestContext(t)
 
-	activeIdentity := &models.Identity{
-		Kind: models.UserKind,
-		Name: "active-list-hide-id",
-	}
+	activeIdentity := &models.Identity{Name: "active-list-hide-id"}
 
 	err := data.CreateIdentity(db, activeIdentity)
 	assert.NilError(t, err)
@@ -26,10 +23,7 @@ func TestListIdentities(t *testing.T) {
 	_, err = data.CreateProviderUser(db, infraProvider, activeIdentity)
 	assert.NilError(t, err)
 
-	unlinkedIdentity := &models.Identity{
-		Kind: models.UserKind,
-		Name: "unlinked-list-hide-id",
-	}
+	unlinkedIdentity := &models.Identity{Name: "unlinked-list-hide-id"}
 
 	err = data.CreateIdentity(db, unlinkedIdentity)
 	assert.NilError(t, err)
@@ -53,10 +47,7 @@ func TestDeleteIdentityCleansUpResources(t *testing.T) {
 	// create the identity
 	c, db, infraProvider := setupAccessTestContext(t)
 
-	identity := &models.Identity{
-		Kind: models.UserKind,
-		Name: "to-be-deleted",
-	}
+	identity := &models.Identity{Name: "to-be-deleted"}
 
 	err := data.CreateIdentity(db, identity)
 	assert.NilError(t, err)

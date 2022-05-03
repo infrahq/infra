@@ -45,11 +45,6 @@ func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey, identityID uid
 		accessKey.Name = fmt.Sprintf("%s-%s", identity.Name, time.Now().UTC().Format("2006-01-02T15:04:05.000000"))
 	}
 
-	if identity.Kind != models.MachineKind {
-		// direct access key creation isn't supported for user identities yet
-		return "", internal.ErrNotImplemented
-	}
-
 	body, err = data.CreateAccessKey(db, accessKey)
 	if err != nil {
 		return "", fmt.Errorf("create token: %w", err)
@@ -104,11 +99,6 @@ func ExchangeAccessKey(c *gin.Context, requestingAccessKey string, expiry time.T
 	identity, err := data.GetIdentity(db, data.ByID(validatedRequestKey.IssuedFor))
 	if err != nil {
 		return "", nil, fmt.Errorf("get identity exchange: %w", err)
-	}
-
-	if identity.Kind != models.MachineKind {
-		// this flow isn't supported for user identities yet
-		return "", nil, internal.ErrNotImplemented
 	}
 
 	exchangedAccessKey := &models.AccessKey{

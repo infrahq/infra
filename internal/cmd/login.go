@@ -339,8 +339,8 @@ func loginToProvider(provider *api.Provider) (*api.LoginRequestOIDC, error) {
 func runSignupForLogin(client *api.Client) (*api.LoginRequestPasswordCredentials, error) {
 	fmt.Fprintln(os.Stderr, "  Welcome to Infra. Set up your admin user:")
 
-	email := ""
-	if err := survey.AskOne(&survey.Input{Message: "Email:"}, &email, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithValidator(checkEmailRequirements)); err != nil {
+	username := ""
+	if err := survey.AskOne(&survey.Input{Message: "Username:"}, &username, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithValidator(survey.Required)); err != nil {
 		return nil, err
 	}
 
@@ -349,13 +349,13 @@ func runSignupForLogin(client *api.Client) (*api.LoginRequestPasswordCredentials
 		return nil, err
 	}
 
-	_, err = client.Signup(&api.SignupRequest{Email: email, Password: password})
+	_, err = client.Signup(&api.SignupRequest{Name: username, Password: password})
 	if err != nil {
 		return nil, err
 	}
 
 	return &api.LoginRequestPasswordCredentials{
-		Email:    email,
+		Name:     username,
 		Password: password,
 	}, nil
 }
@@ -423,14 +423,14 @@ func verifyTLS(host string) error {
 
 func promptLocalLogin() (*api.LoginRequestPasswordCredentials, error) {
 	var credentials struct {
-		Email    string
+		Username string
 		Password string
 	}
 
 	questionPrompt := []*survey.Question{
 		{
-			Name:     "Email",
-			Prompt:   &survey.Input{Message: "Email:"},
+			Name:     "Username",
+			Prompt:   &survey.Input{Message: "Username:"},
 			Validate: survey.Required,
 		},
 		{
@@ -445,7 +445,7 @@ func promptLocalLogin() (*api.LoginRequestPasswordCredentials, error) {
 	}
 
 	return &api.LoginRequestPasswordCredentials{
-		Email:    credentials.Email,
+		Name:     credentials.Username,
 		Password: credentials.Password,
 	}, nil
 }
@@ -482,7 +482,7 @@ func promptLoginOptions(client *api.Client) (loginMethod loginMethod, provider *
 		options = append(options, fmt.Sprintf("%s (%s)", p.Name, p.URL))
 	}
 
-	options = append(options, "Login with email and password")
+	options = append(options, "Login with username and password")
 	options = append(options, "Login with an access key")
 
 	var i int

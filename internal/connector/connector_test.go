@@ -105,7 +105,7 @@ func TestJWTMiddlewareInvalidJWT(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, c.Writer.Status())
 }
 
-func generateJWT(priv *jose.JSONWebKey, email, machineName string, expiry time.Time) (string, error) {
+func generateJWT(priv *jose.JSONWebKey, email string, expiry time.Time) (string, error) {
 	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.EdDSA, Key: priv}, (&jose.SignerOptions{}).WithType("JWT"))
 	if err != nil {
 		return "", err
@@ -136,7 +136,7 @@ func TestJWTMiddlewareExpiredJWT(t *testing.T) {
 	pub, sec, err := generateJWK()
 	assert.NilError(t, err)
 
-	jwt, err := generateJWT(sec, "test@example.com", "", time.Now().Add(-1*time.Hour))
+	jwt, err := generateJWT(sec, "test@example.com", time.Now().Add(-1*time.Hour))
 	assert.NilError(t, err)
 
 	r := httptest.NewRequest(http.MethodGet, "/apis", nil)
@@ -158,7 +158,7 @@ func TestJWTMiddlewareValidJWT(t *testing.T) {
 	pub, sec, err := generateJWK()
 	assert.NilError(t, err)
 
-	jwt, err := generateJWT(sec, "test@example.com", "", time.Now().Add(1*time.Hour))
+	jwt, err := generateJWT(sec, "test@example.com", time.Now().Add(1*time.Hour))
 	assert.NilError(t, err)
 
 	r := httptest.NewRequest(http.MethodGet, "/apis", nil)

@@ -224,7 +224,6 @@ infra grants add IDENTITY DESTINATION [flags]
 ```
 # Grant an identity access to a destination
 $ infra grants add johndoe@example.com kubernetes.docker-desktop 
-$ infra grants add machine-a kubernetes.docker-desktop
 
 # Grant a group access to a destination 
 $ infra grants add group-a kubernetes.staging --group
@@ -264,7 +263,6 @@ infra grants remove IDENTITY DESTINATION [flags]
 ```
 # Remove all grants of an identity in a destination
 $ infra grants remove janedoe@example.com kubernetes.docker-desktop 
-$ infra grants remove machine-a kubernetes.docker-desktop
 
 # Remove all grants of a group in a destination
 $ infra grants remove group-a kubernetes.staging --group
@@ -299,9 +297,6 @@ Create an identity.
 
 Create an identity.
 
-If a valid email is detected, a user identity is created. 
-If a username is detected, a machine identity is created.
-
 A new user identity must change their one time password before further usage.
 
 ```
@@ -311,11 +306,8 @@ infra identities add IDENTITY [flags]
 ### Examples
 
 ```
-# Create a local user
+# Create a user
 $ infra identities add johndoe@example.com
-
-# Create a machine
-$ infra identities add machine-a
 ```
 
 ### Options inherited from parent commands
@@ -336,7 +328,7 @@ infra identities edit IDENTITY [flags]
 ### Examples
 
 ```
-# Set a new one time password for a local user
+# Set a new one time password for an identity
 $ infra identities edit janedoe@example.com --password
 ```
 
@@ -380,11 +372,8 @@ infra identities remove IDENTITY [flags]
 ### Examples
 
 ```
-# Delete a local user
+# Delete an identity
 $ infra identities remove janedoe@example.com
-
-# Delete a machine
-$ infra identities remove machine-a
 ```
 
 ### Options inherited from parent commands
@@ -405,7 +394,7 @@ infra keys list [flags]
 ### Options
 
 ```
-  -m, --machine string   The name of a machine to list access keys for
+  -i, --identity string   The name of a identity to list access keys for
 ```
 
 ### Options inherited from parent commands
@@ -421,7 +410,7 @@ Create an access key
 
 ### Synopsis
 
-Create an access key. Only machine identities are supported at this time.
+Create an access key for an identity.
 
 ```
 infra keys add IDENTITY [flags]
@@ -432,7 +421,7 @@ infra keys add IDENTITY [flags]
 ```
 
 # Create an access key named 'example-key' that expires in 12 hours
-$ infra keys add example-key machine-a --ttl=12h
+$ infra keys add example-key identity@example.com --ttl=12h
 
 ```
 

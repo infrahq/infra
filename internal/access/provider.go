@@ -112,7 +112,7 @@ func ExchangeAuthCodeForAccessKey(c *gin.Context, code string, provider *models.
 			return nil, "", fmt.Errorf("get user: %w", err)
 		}
 
-		user = &models.Identity{Name: email, Kind: models.UserKind}
+		user = &models.Identity{Name: email}
 
 		if err := data.CreateIdentity(db, user); err != nil {
 			return nil, "", fmt.Errorf("create user: %w", err)

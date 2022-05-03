@@ -121,7 +121,6 @@ func (t *Telemetry) Event(c *gin.Context, event string, properties ...map[string
 	if c != nil {
 		if u := access.AuthenticatedIdentity(c); u != nil {
 			track.UserId = u.ID.String()
-			track.Properties["type"] = u.Kind.String()
 		}
 	}
 
@@ -143,9 +142,6 @@ func (t *Telemetry) User(user *models.Identity) {
 	err := t.Enqueue(analytics.Identify{
 		UserId:    user.ID.String(),
 		Timestamp: time.Now().UTC(),
-		Traits: analytics.Traits{
-			"type": user.Kind,
-		},
 	})
 	if err != nil {
 		logging.S.Debug(err)

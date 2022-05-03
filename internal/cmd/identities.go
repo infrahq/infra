@@ -3,22 +3,19 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"net/mail"
 	"os"
-	"regexp"
 
 	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
-	"github.com/infrahq/infra/internal/server/models"
 )
 
 func newIdentitiesCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "identities",
 		Aliases: []string{"id", "identity"},
-		Short:   "Manage identities (users & machines)",
+		Short:   "Manage user identities",
 		Group:   "Management commands:",
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			if err := rootPreRun(cmd.Flags()); err != nil {
@@ -42,16 +39,10 @@ func newIdentitiesAddCmd(cli *CLI) *cobra.Command {
 		Short: "Create an identity.",
 		Long: `Create an identity.
 
-If a valid email is detected, a user identity is created. 
-If a username is detected, a machine identity is created.
-
 A new user identity must change their one time password before further usage.`,
 		Args: ExactArgs(1),
-		Example: `# Create a local user
-$ infra identities add johndoe@example.com
-
-# Create a machine
-$ infra identities add machine-a`,
+		Example: `# Create a user
+$ infra identities add johndoe@example.com`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
@@ -60,13 +51,11 @@ $ infra identities add machine-a`,
 				return err
 			}
 
+			fmt.Fprintf(cli.Stderr, "Identity created.\n")
+			cli.Output("Name: %s", createResp.Name)
+
 			if createResp.OneTimePassword != "" {
-				fmt.Fprintf(cli.Stderr, "Created user identity.\n")
-				cli.Output("Email: %s", createResp.Name)
 				cli.Output("Password: %s", createResp.OneTimePassword)
-			} else {
-				fmt.Fprintf(cli.Stderr, "Created machine identity.\n")
-				cli.Output("Name: %s", createResp.Name)
 			}
 
 			return nil
@@ -86,36 +75,21 @@ func newIdentitiesEditCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "edit IDENTITY",
 		Short: "Update an identity",
-		Example: `# Set a new one time password for a local user
+		Example: `# Set a new one time password for an identity
 $ infra identities edit janedoe@example.com --password`,
 		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
-			kind, err := checkUserOrMachine(name)
-			if err != nil {
-				return err
+			if !opts.Password {
+				return errors.New("Please specify a field to update. For options, run 'infra identities edit --help'")
 			}
 
-			if kind == models.MachineKind {
-				return fmt.Errorf("Machine identities cannot be edited.")
+			if opts.Password && opts.NonInteractive {
+				return errors.New("Non-interactive mode is not supported to edit sensitive fields.")
 			}
 
-			if kind == models.UserKind {
-				if !opts.Password {
-					return errors.New("Please specify a field to update. For options, run 'infra identities edit --help'")
-				}
-
-				if opts.Password && opts.NonInteractive {
-					return errors.New("Non-interactive mode is not supported to edit sensitive fields.")
-				}
-
-				if err = UpdateIdentity(name, opts); err != nil {
-					return err
-				}
-			}
-
-			return nil
+			return UpdateIdentity(name, opts)
 		},
 	}
 
@@ -139,7 +113,6 @@ func newIdentitiesListCmd(cli *CLI) *cobra.Command {
 
 			type row struct {
 				Name       string `header:"Name"`
-				Type       string `header:"Type"`
 				LastSeenAt string `header:"Last Seen"`
 			}
 
@@ -153,7 +126,6 @@ func newIdentitiesListCmd(cli *CLI) *cobra.Command {
 			for _, identity := range identities {
 				rows = append(rows, row{
 					Name:       identity.Name,
-					Type:       identity.Kind,
 					LastSeenAt: identity.LastSeenAt.Relative("never"),
 				})
 			}
@@ -174,11 +146,8 @@ func newIdentitiesRemoveCmd(cli *CLI) *cobra.Command {
 		Use:     "remove IDENTITY",
 		Aliases: []string{"rm"},
 		Short:   "Delete an identity",
-		Example: `# Delete a local user
-$ infra identities remove janedoe@example.com
-
-# Delete a machine
-$ infra identities remove machine-a`,
+		Example: `# Delete an identity
+$ infra identities remove janedoe@example.com`,
 		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
@@ -209,47 +178,12 @@ $ infra identities remove machine-a`,
 	return cmd
 }
 
-// checkUserOrMachine infers whether the input s specifies a user identity (email) or a machine
-// identity (name). The input is considered a name if it has the format `^[a-zA-Z0-9-_/]+$`.
-// All other input formats will be considered an email. If an email input fails validation,
-// return an error.
-func checkUserOrMachine(s string) (models.IdentityKind, error) {
-	maybeName := regexp.MustCompile("^[a-zA-Z0-9-_./]+$")
-	if maybeName.MatchString(s) {
-		nameMinLength := 1
-		nameMaxLength := 256
-
-		if len(s) < nameMinLength {
-			return models.MachineKind, fmt.Errorf("invalid name: does not meet minimum length requirement of %d characters", nameMinLength)
-		}
-
-		if len(s) > nameMaxLength {
-			return models.MachineKind, fmt.Errorf("invalid name: exceed maximum length requirement of %d characters", nameMaxLength)
-		}
-
-		return models.MachineKind, nil
-	}
-
-	if err := checkEmailRequirements(s); err != nil {
-		return models.MachineKind, err
-	}
-
-	return models.UserKind, nil
-}
-
 // CreateIdentity creates an identity within infra
 func CreateIdentity(req *api.CreateIdentityRequest) (*api.CreateIdentityResponse, error) {
 	client, err := defaultAPIClient()
 	if err != nil {
 		return nil, err
 	}
-
-	kind, err := checkUserOrMachine(req.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Kind = kind.String()
 
 	resp, err := client.CreateIdentity(req)
 	if err != nil {
@@ -282,7 +216,7 @@ func UpdateIdentity(name string, cmdOptions editIdentityCmdOptions) error {
 			return err
 		}
 	} else {
-		user, err := GetIdentityFromName(client, name)
+		user, err := GetIdentityByName(client, name)
 		if err != nil {
 			if errors.Is(err, ErrIdentityNotFound) {
 				return fmt.Errorf("Identity %s not found in local provider; only local identities can be edited", name)
@@ -306,13 +240,13 @@ func UpdateIdentity(name string, cmdOptions editIdentityCmdOptions) error {
 
 	if !isSelf {
 		// Todo otp: update term to temporary password (https://github.com/infrahq/infra/issues/1441)
-		fmt.Fprintf(os.Stderr, "  Updated one time password for user.\n")
+		fmt.Fprintf(os.Stderr, "  Updated one time password for identity.\n")
 	}
 
 	return nil
 }
 
-func GetIdentityFromName(client *api.Client, name string) (*api.Identity, error) {
+func GetIdentityByName(client *api.Client, name string) (*api.Identity, error) {
 	users, err := client.ListIdentities(api.ListIdentitiesRequest{Name: name})
 	if err != nil {
 		return nil, err
@@ -323,7 +257,7 @@ func GetIdentityFromName(client *api.Client, name string) (*api.Identity, error)
 	}
 
 	if len(users) != 1 {
-		return nil, fmt.Errorf("invalid users response, there should only be one user that matches a name, but multiple were found")
+		return nil, fmt.Errorf("invalid identities response, there should only be one identity that matches a name, but multiple were found")
 	}
 
 	return &users[0], nil
@@ -364,19 +298,6 @@ func promptPasswordConfirm(oldPassword string) (string, error) {
 	}
 
 	return passwordConfirm.Password, nil
-}
-
-func checkEmailRequirements(val interface{}) error {
-	email, ok := val.(string)
-	if !ok {
-		return fmt.Errorf("unexpected type for email: %T", val)
-	}
-
-	if _, err := mail.ParseAddress(email); err != nil {
-		return fmt.Errorf("input must be a valid email")
-	}
-
-	return nil
 }
 
 func checkPasswordRequirements(oldPassword string) survey.Validator {

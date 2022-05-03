@@ -99,20 +99,6 @@ func TestGrantsAddCmd(t *testing.T) {
 		}
 		assert.DeepEqual(t, createReq, expected)
 	})
-	t.Run("add role to existing machine identity", func(t *testing.T) {
-		ch := setup(t)
-		ctx := context.Background()
-		err := Run(ctx, "grants", "add", "existingMachine", "the-destination", "--role", "role")
-		assert.NilError(t, err)
-
-		createReq := <-ch
-		expected := api.CreateGrantRequest{
-			Subject:   "i:TK",
-			Privilege: "role",
-			Resource:  "the-destination",
-		}
-		assert.DeepEqual(t, createReq, expected)
-	})
 	t.Run("add role to existing group", func(t *testing.T) {
 		ch := setup(t)
 		ctx := context.Background()
@@ -150,12 +136,9 @@ func TestGrantRemoveCmd(t *testing.T) {
 
 			if requestMatches(req, http.MethodGet, "/v1/identities") {
 				resp.WriteHeader(http.StatusOK)
-				switch query.Get("name") {
-				case "existing@example.com":
+				if query.Get("name") == "existing@example.com" {
 					writeResponse(t, resp, []api.Identity{{ID: 3000}})
-				case "existingMachine":
-					writeResponse(t, resp, []api.Identity{{ID: 3001}})
-				default:
+				} else {
 					writeResponse(t, resp, []api.Identity{})
 				}
 				return
@@ -233,16 +216,6 @@ func TestGrantRemoveCmd(t *testing.T) {
 
 		reqIDs := readChan(ch)
 		expected := []string{"2ue", "2uf", "2ug"}
-		assert.DeepEqual(t, reqIDs, expected)
-	})
-	t.Run("remove grant from identity", func(t *testing.T) {
-		ch := setup(t)
-		ctx := context.Background()
-		err := Run(ctx, "grants", "remove", "existingMachine", "the-destination", "--role", "custom")
-		assert.NilError(t, err)
-
-		reqIDs := readChan(ch)
-		expected := []string{"2Mt", "2Mu"}
 		assert.DeepEqual(t, reqIDs, expected)
 	})
 	t.Run("remove grant from group", func(t *testing.T) {

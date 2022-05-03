@@ -48,8 +48,8 @@ func setupDB(t *testing.T) *gorm.DB {
 	return db
 }
 
-func issueUserToken(t *testing.T, db *gorm.DB, email string, sessionDuration time.Duration) string {
-	user := &models.Identity{Name: email, Kind: models.UserKind}
+func issueToken(t *testing.T, db *gorm.DB, identityName string, sessionDuration time.Duration) string {
+	user := &models.Identity{Name: identityName}
 
 	err := data.CreateIdentity(db, user)
 	assert.NilError(t, err)
@@ -125,7 +125,7 @@ func TestRequireAuthentication(t *testing.T) {
 	cases := map[string]map[string]interface{}{
 		"AccessKeyValid": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				authentication := issueUserToken(t, db, "existing@infrahq.com", time.Minute*1)
+				authentication := issueToken(t, db, "existing@infrahq.com", time.Minute*1)
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "Bearer "+authentication)
 				c.Request = r
@@ -136,7 +136,7 @@ func TestRequireAuthentication(t *testing.T) {
 		},
 		"AccessKeyExpired": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				authentication := issueUserToken(t, db, "existing@infrahq.com", time.Minute*-1)
+				authentication := issueToken(t, db, "existing@infrahq.com", time.Minute*-1)
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "Bearer "+authentication)
 				c.Request = r
@@ -147,7 +147,7 @@ func TestRequireAuthentication(t *testing.T) {
 		},
 		"AccessKeyInvalidKey": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				token := issueUserToken(t, db, "existing@infrahq.com", time.Minute*1)
+				token := issueToken(t, db, "existing@infrahq.com", time.Minute*1)
 				secret := token[:models.AccessKeySecretLength]
 				authentication := fmt.Sprintf("%s.%s", uid.New().String(), secret)
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -171,7 +171,7 @@ func TestRequireAuthentication(t *testing.T) {
 		},
 		"AccessKeyInvalidSecret": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
-				token := issueUserToken(t, db, "existing@infrahq.com", time.Minute*1)
+				token := issueToken(t, db, "existing@infrahq.com", time.Minute*1)
 				authentication := fmt.Sprintf("%s.%s", strings.Split(token, ".")[0], generate.MathRandom(models.AccessKeySecretLength))
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "Bearer "+authentication)

@@ -14,24 +14,24 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func TestUser(t *testing.T) {
+func TestIdentity(t *testing.T) {
 	db := setup(t)
 
-	bond := models.Identity{Name: "jbond@infrahq.com", Kind: models.UserKind}
+	bond := models.Identity{Name: "jbond@infrahq.com"}
 
 	err := db.Create(&bond).Error
 	assert.NilError(t, err)
 
-	var user models.Identity
-	err = db.First(&user, &models.Identity{Name: bond.Name, Kind: models.UserKind}).Error
+	var identity models.Identity
+	err = db.First(&identity, &models.Identity{Name: bond.Name}).Error
 	assert.NilError(t, err)
-	assert.Assert(t, 0 != user.ID)
-	assert.Equal(t, bond.Name, user.Name)
+	assert.Assert(t, 0 != identity.ID)
+	assert.Equal(t, bond.Name, identity.Name)
 }
 
-func createIdentities(t *testing.T, db *gorm.DB, users ...models.Identity) {
-	for i := range users {
-		err := CreateIdentity(db, &users[i])
+func createIdentities(t *testing.T, db *gorm.DB, identities ...models.Identity) {
+	for i := range identities {
+		err := CreateIdentity(db, &identities[i])
 		assert.NilError(t, err)
 	}
 }
@@ -64,9 +64,9 @@ func TestGetIdentity(t *testing.T) {
 
 	createIdentities(t, db, bond, bourne, bauer)
 
-	user, err := GetIdentity(db, ByName(bond.Name))
+	identity, err := GetIdentity(db, ByName(bond.Name))
 	assert.NilError(t, err)
-	assert.Assert(t, 0 != user.ID)
+	assert.Assert(t, 0 != identity.ID)
 }
 
 func TestListIdentities(t *testing.T) {
@@ -80,22 +80,22 @@ func TestListIdentities(t *testing.T) {
 	createIdentities(t, db, bond, bourne, bauer)
 
 	t.Run("list all", func(t *testing.T) {
-		users, err := ListIdentities(db)
+		identities, err := ListIdentities(db)
 		assert.NilError(t, err)
 		expected := []models.Identity{bauer, bond, bourne}
-		assert.DeepEqual(t, users, expected, cmpModelsIdentityShallow)
+		assert.DeepEqual(t, identities, expected, cmpModelsIdentityShallow)
 	})
 
 	t.Run("filter by name", func(t *testing.T) {
-		users, err := ListIdentities(db, ByName(bourne.Name))
+		identities, err := ListIdentities(db, ByName(bourne.Name))
 		assert.NilError(t, err)
 		expected := []models.Identity{bourne}
-		assert.DeepEqual(t, users, expected, cmpModelsIdentityShallow)
+		assert.DeepEqual(t, identities, expected, cmpModelsIdentityShallow)
 	})
 }
 
 var cmpModelsIdentityShallow = cmp.Comparer(func(x, y models.Identity) bool {
-	return x.Name == y.Name && x.Kind == y.Kind
+	return x.Name == y.Name
 })
 
 func TestDeleteIdentity(t *testing.T) {
@@ -118,22 +118,22 @@ func TestDeleteIdentity(t *testing.T) {
 	_, err = GetIdentity(db, ByName(bond.Name))
 	assert.Error(t, err, "record not found")
 
-	// deleting a nonexistent user should not fail
+	// deleting a nonexistent identity should not fail
 	err = DeleteIdentities(db, ByName(bond.Name))
 	assert.NilError(t, err)
 
-	// deleting a user should not delete unrelated users
+	// deleting a identity should not delete unrelated identities
 	_, err = GetIdentity(db, ByName(bourne.Name))
 	assert.NilError(t, err)
 }
 
-func TestReCreateIdentitySameEmail(t *testing.T) {
+func TestReCreateIdentitySameName(t *testing.T) {
 	db := setup(t)
 
 	var (
-		bond   = models.Identity{Name: "jbond@infrahq.com", Kind: models.UserKind}
-		bourne = models.Identity{Name: "jbourne@infrahq.com", Kind: models.UserKind}
-		bauer  = models.Identity{Name: "jbauer@infrahq.com", Kind: models.UserKind}
+		bond   = models.Identity{Name: "jbond@infrahq.com"}
+		bourne = models.Identity{Name: "jbourne@infrahq.com"}
+		bauer  = models.Identity{Name: "jbauer@infrahq.com"}
 	)
 
 	createIdentities(t, db, bond, bourne, bauer)
@@ -141,27 +141,27 @@ func TestReCreateIdentitySameEmail(t *testing.T) {
 	err := DeleteIdentities(db, ByName(bond.Name))
 	assert.NilError(t, err)
 
-	err = CreateIdentity(db, &models.Identity{Name: bond.Name, Kind: models.UserKind})
+	err = CreateIdentity(db, &models.Identity{Name: bond.Name})
 	assert.NilError(t, err)
 }
 
 func TestAssignIdentityToGroups(t *testing.T) {
 	tests := []struct {
 		Name           string
-		StartingGroups []string // groups user starts with
+		StartingGroups []string // groups identity starts with
 		ExistingGroups []string // groups from last provider sync
 		IncomingGroups []string // groups from this provider sync
-		ExpectedGroups []string // groups user should have at end
+		ExpectedGroups []string // groups identity should have at end
 	}{
 		{
-			Name:           "test where the provider is trying to add a group the user doesn't have elsewhere",
+			Name:           "test where the provider is trying to add a group the identity doesn't have elsewhere",
 			StartingGroups: []string{"foo"},
 			ExistingGroups: []string{},
 			IncomingGroups: []string{"foo2"},
 			ExpectedGroups: []string{"foo", "foo2"},
 		},
 		{
-			Name:           "test where the provider is trying to add a group the user has from elsewhere",
+			Name:           "test where the provider is trying to add a group the identity has from elsewhere",
 			StartingGroups: []string{"foo"},
 			ExistingGroups: []string{},
 			IncomingGroups: []string{"foo", "foo2"},
@@ -173,15 +173,12 @@ func TestAssignIdentityToGroups(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			// setup user
-			user := &models.Identity{
-				Name: fmt.Sprintf("foo+%d@example.com", i),
-				Kind: models.UserKind,
-			}
-			err := CreateIdentity(db, user)
+			// setup identity
+			identity := &models.Identity{Name: fmt.Sprintf("foo+%d@example.com", i)}
+			err := CreateIdentity(db, identity)
 			assert.NilError(t, err)
 
-			// setup user's groups
+			// setup identity's groups
 			for _, gn := range test.StartingGroups {
 				g, err := GetGroup(db, ByName(gn))
 				if errors.Is(err, internal.ErrNotFound) {
@@ -189,25 +186,25 @@ func TestAssignIdentityToGroups(t *testing.T) {
 					err = CreateGroup(db, g)
 				}
 				assert.NilError(t, err)
-				user.Groups = append(user.Groups, *g)
+				identity.Groups = append(identity.Groups, *g)
 			}
-			err = SaveIdentity(db, user)
+			err = SaveIdentity(db, identity)
 			assert.NilError(t, err)
 
 			// setup provuderUser record
 			provider := InfraProvider(db)
-			pu, err := CreateProviderUser(db, provider, user)
+			pu, err := CreateProviderUser(db, provider, identity)
 			assert.NilError(t, err)
 
 			pu.Groups = test.ExistingGroups
 			err = UpdateProviderUser(db, pu)
 			assert.NilError(t, err)
 
-			err = AssignIdentityToGroups(db, user, provider, test.IncomingGroups)
+			err = AssignIdentityToGroups(db, identity, provider, test.IncomingGroups)
 			assert.NilError(t, err)
 
-			// reload user and check groups
-			id, err := GetIdentity(db.Preload("Groups"), ByID(user.ID))
+			// reload identity and check groups
+			id, err := GetIdentity(db.Preload("Groups"), ByID(identity.ID))
 			assert.NilError(t, err)
 			groupNames := slice.Map[models.Group, string](id.Groups, func(g models.Group) string {
 				return g.Name

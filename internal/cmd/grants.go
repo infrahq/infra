@@ -3,8 +3,6 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"net/mail"
-	"regexp"
 
 	"github.com/spf13/cobra"
 
@@ -103,7 +101,6 @@ func newGrantRemoveCmd(cli *CLI) *cobra.Command {
 		Short:   "Revoke an identity's access from a destination",
 		Example: `# Remove all grants of an identity in a destination
 $ infra grants remove janedoe@example.com kubernetes.docker-desktop 
-$ infra grants remove machine-a kubernetes.docker-desktop
 
 # Remove all grants of a group in a destination
 $ infra grants remove group-a kubernetes.staging --group
@@ -133,18 +130,13 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		return err
 	}
 
-	identityType, err := getIdentityType(cmdOptions.Identity, cmdOptions.IsGroup)
-	if err != nil {
-		return err
-	}
-
-	id, err := getIDByName(client, cmdOptions.Identity, identityType)
+	pid, err := getSubjectPolymorphicID(client, cmdOptions.Identity, cmdOptions.IsGroup)
 	if err != nil {
 		return err
 	}
 
 	grants, err := client.ListGrants(api.ListGrantsRequest{
-		Subject:   id,
+		Subject:   pid,
 		Privilege: cmdOptions.Role,
 		Resource:  cmdOptions.Destination,
 	})
@@ -172,7 +164,6 @@ func newGrantAddCmd(cli *CLI) *cobra.Command {
 		Short: "Grant an identity access to a destination",
 		Example: `# Grant an identity access to a destination
 $ infra grants add johndoe@example.com kubernetes.docker-desktop 
-$ infra grants add machine-a kubernetes.docker-desktop
 
 # Grant a group access to a destination 
 $ infra grants add group-a kubernetes.staging --group
@@ -202,24 +193,26 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		return err
 	}
 
-	identityType, err := getIdentityType(cmdOptions.Identity, cmdOptions.IsGroup)
-	if err != nil {
-		return err
-	}
-
-	id, err := getIDByName(client, cmdOptions.Identity, identityType)
+	pid, err := getSubjectPolymorphicID(client, cmdOptions.Identity, cmdOptions.IsGroup)
 	if err != nil {
 		if !errors.Is(err, ErrIdentityNotFound) {
 			return err
 		}
-		id, err = addGrantIdentity(client, cmdOptions.Identity, identityType)
-		if err != nil {
-			return err
+		if cmdOptions.IsGroup {
+			pid, err = addGrantGroup(client, cmdOptions.Identity)
+			if err != nil {
+				return err
+			}
+		} else {
+			pid, err = addGrantIdentity(client, cmdOptions.Identity)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	_, err = client.CreateGrant(&api.CreateGrantRequest{
-		Subject:   id,
+		Subject:   pid,
 		Privilege: cmdOptions.Role,
 		Resource:  cmdOptions.Destination,
 	})
@@ -232,80 +225,38 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 	return nil
 }
 
-type identityType int8
-
-const (
-	userType identityType = iota
-	machineType
-	groupType
-)
-
-// Unless explicitly specified as a group, identity will be a user if email, machine if not.
-func getIdentityType(s string, isGroup bool) (identityType, error) {
+// getSubjectPolymorphicID gets the ID for either the group or identity in the subject of a grant
+func getSubjectPolymorphicID(client *api.Client, subject string, isGroup bool) (uid.PolymorphicID, error) {
 	if isGroup {
-		return groupType, nil
+		identity, err := GetGroupByName(client, subject)
+		if err != nil {
+			return "", err
+		}
+		return uid.NewGroupPolymorphicID(identity.ID), nil
 	}
 
-	maybeName := regexp.MustCompile("^[a-zA-Z0-9-_./]+$")
-	if maybeName.MatchString(s) {
-		nameMinLength := 1
-		nameMaxLength := 256
-
-		if len(s) < nameMinLength {
-			return machineType, fmt.Errorf("invalid name: does not meet minimum length requirement of %d characters", nameMinLength)
-		}
-
-		if len(s) > nameMaxLength {
-			return machineType, fmt.Errorf("invalid name: exceed maximum length requirement of %d characters", nameMaxLength)
-		}
-
-		return machineType, nil
-	}
-
-	_, err := mail.ParseAddress(s)
+	identity, err := GetIdentityByName(client, subject)
 	if err != nil {
-		return userType, fmt.Errorf("invalid email: %q", s)
+		return "", err
 	}
-
-	return userType, nil
+	return uid.NewIdentityPolymorphicID(identity.ID), nil
 }
 
-func getIDByName(client *api.Client, name string, identityType identityType) (uid.PolymorphicID, error) {
-	var id uid.PolymorphicID
-	switch identityType {
-	case groupType:
-		groups, err := client.ListGroups(api.ListGroupsRequest{Name: name})
-		if err != nil {
-			return "", err
-		}
-
-		switch len(groups) {
-		case 0:
-			return "", ErrIdentityNotFound
-		case 1:
-			id = uid.NewGroupPolymorphicID(groups[0].ID)
-		default:
-			panic(fmt.Sprintf(DuplicateEntryPanic, "group", name))
-		}
-	case userType, machineType:
-		identities, err := client.ListIdentities(api.ListIdentitiesRequest{Name: name})
-		if err != nil {
-			return "", err
-		}
-
-		switch len(identities) {
-		case 0:
-			return "", ErrIdentityNotFound
-		case 1:
-			id = uid.NewIdentityPolymorphicID(identities[0].ID)
-		default:
-			panic(fmt.Sprintf(DuplicateEntryPanic, "identity", name))
-		}
-	default:
-		panic("identity must be either user, machine, or group")
+func GetGroupByName(client *api.Client, name string) (*api.Group, error) {
+	groups, err := client.ListGroups(api.ListGroupsRequest{Name: name})
+	if err != nil {
+		return nil, err
 	}
 
-	return id, nil
+	if len(groups) == 0 {
+		return nil, ErrIdentityNotFound
+	}
+
+	if len(groups) != 1 {
+		return nil, fmt.Errorf("invalid groups response, there should only be one group that matches a name, but multiple were found")
+	}
+
+	return &groups[0], nil
 }
 
 func subjectNameFromGrant(client *api.Client, g api.Grant) (name string, err error) {
@@ -335,27 +286,21 @@ func subjectNameFromGrant(client *api.Client, g api.Grant) (name string, err err
 	return "", fmt.Errorf("unrecognized grant subject")
 }
 
-func addGrantIdentity(client *api.Client, name string, identityType identityType) (uid.PolymorphicID, error) {
-	var id uid.PolymorphicID
-	switch identityType {
-	case groupType:
-		created, err := client.CreateGroup(&api.CreateGroupRequest{Name: name})
-		if err != nil {
-			return "", err
-		}
-		fmt.Printf("New group %q added to Infra\n", name)
-		id = uid.NewGroupPolymorphicID(created.ID)
-	case userType, machineType:
-		created, err := CreateIdentity(&api.CreateIdentityRequest{Name: name})
-		if err != nil {
-			return "", err
-		}
-		fmt.Printf("New unlinked identity %q added to Infra\n", name)
-
-		id = uid.NewIdentityPolymorphicID(created.ID)
-	default:
-		panic("identity must be either user, machine, or group")
+func addGrantIdentity(client *api.Client, name string) (uid.PolymorphicID, error) {
+	created, err := CreateIdentity(&api.CreateIdentityRequest{Name: name})
+	if err != nil {
+		return "", err
 	}
+	fmt.Printf("New unlinked identity %q added to Infra\n", name)
 
-	return id, nil
+	return uid.NewIdentityPolymorphicID(created.ID), nil
+}
+
+func addGrantGroup(client *api.Client, name string) (uid.PolymorphicID, error) {
+	created, err := client.CreateGroup(&api.CreateGroupRequest{Name: name})
+	if err != nil {
+		return "", err
+	}
+	fmt.Printf("New group %q added to Infra\n", name)
+	return uid.NewGroupPolymorphicID(created.ID), nil
 }

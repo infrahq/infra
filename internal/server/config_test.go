@@ -9,6 +9,7 @@ import (
 	is "gotest.tools/v3/assert/cmp"
 
 	"github.com/infrahq/infra/internal/cmd/cliopts"
+	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -345,22 +346,6 @@ func TestLoadConfigInvalid(t *testing.T) {
 				},
 			},
 		},
-		"MissingGrantRole": {
-			Grants: []Grant{
-				{
-					Machine:  "T-1000",
-					Resource: "kubernetes.test-cluster",
-				},
-			},
-		},
-		"MissingGrantResource": {
-			Grants: []Grant{
-				{
-					Machine: "T-1000",
-					Role:    "admin",
-				},
-			},
-		},
 	}
 
 	for name, config := range cases {
@@ -458,33 +443,6 @@ func TestLoadConfigWithGroupGrants(t *testing.T) {
 	assert.Equal(t, "kubernetes.test-cluster", grant.Resource)
 }
 
-func TestLoadConfigWithMachineGrants(t *testing.T) {
-	s := setupServer(t)
-
-	config := Config{
-		Grants: []Grant{
-			{
-				Machine:  "T-1000",
-				Role:     "admin",
-				Resource: "kubernetes.test-cluster",
-			},
-		},
-	}
-
-	err := s.loadConfig(config)
-	assert.NilError(t, err)
-
-	var machine models.Identity
-	err = s.db.Where("name = ?", "T-1000").First(&machine).Error
-	assert.NilError(t, err)
-
-	var grant models.Grant
-	err = s.db.Where("subject = ?", uid.NewIdentityPolymorphicID(machine.ID)).First(&grant).Error
-	assert.NilError(t, err)
-	assert.Equal(t, "admin", grant.Privilege)
-	assert.Equal(t, "kubernetes.test-cluster", grant.Resource)
-}
-
 func TestLoadConfigPruneConfig(t *testing.T) {
 	s := setupServer(t)
 
@@ -508,18 +466,13 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 				Role:     "admin",
 				Resource: "kubernetes.test-cluster",
 			},
-			{
-				Machine:  "T-1000",
-				Role:     "admin",
-				Resource: "kubernetes.test-cluster",
-			},
 		},
 	}
 
 	err := s.loadConfig(config)
 	assert.NilError(t, err)
 
-	var providers, grants, users, groups, machines, providerUsers int64
+	var providers, grants, groups, providerUsers int64
 
 	err = s.db.Model(&models.Provider{}).Count(&providers).Error
 	assert.NilError(t, err)
@@ -527,19 +480,15 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 
 	err = s.db.Model(&models.Grant{}).Count(&grants).Error
 	assert.NilError(t, err)
-	assert.Equal(t, int64(4), grants) // 3 from config, 1 internal connector
+	assert.Equal(t, int64(3), grants) // 2 from config, 1 internal connector
 
-	err = s.db.Model(&models.Identity{}).Where(models.Identity{Kind: models.UserKind}).Count(&users).Error
+	identities, err := data.ListIdentities(s.db)
 	assert.NilError(t, err)
-	assert.Equal(t, int64(1), users)
+	assert.Equal(t, 2, len(identities))
 
 	err = s.db.Model(&models.Group{}).Count(&groups).Error
 	assert.NilError(t, err)
 	assert.Equal(t, int64(1), groups)
-
-	err = s.db.Model(&models.Identity{}).Where(models.Identity{Kind: models.MachineKind}).Count(&machines).Error
-	assert.NilError(t, err)
-	assert.Equal(t, int64(2), machines) // 1 from config, 1 internal connector
 
 	err = s.db.Model(&models.ProviderUser{}).Count(&providerUsers).Error
 	assert.NilError(t, err)
@@ -568,17 +517,13 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, int64(1), grants) // connector
 
-	err = s.db.Model(&models.Identity{}).Where(models.Identity{Kind: models.UserKind}).Count(&users).Error
+	identities, err = data.ListIdentities(s.db)
 	assert.NilError(t, err)
-	assert.Equal(t, int64(0), users)
+	assert.Equal(t, 1, len(identities))
 
 	err = s.db.Model(&models.Group{}).Count(&groups).Error
 	assert.NilError(t, err)
 	assert.Equal(t, int64(1), groups)
-
-	err = s.db.Model(&models.Identity{}).Where(models.Identity{Kind: models.MachineKind}).Count(&machines).Error
-	assert.NilError(t, err)
-	assert.Equal(t, int64(1), machines)
 }
 
 func TestLoadConfigUpdate(t *testing.T) {
@@ -620,18 +565,13 @@ func TestLoadConfigUpdate(t *testing.T) {
 				Role:     "admin",
 				Resource: "kubernetes.test-cluster",
 			},
-			{
-				Machine:  "T-1000",
-				Role:     "admin",
-				Resource: "kubernetes.test-cluster",
-			},
 		},
 	}
 
 	err := s.loadConfig(config)
 	assert.NilError(t, err)
 
-	var providers, users, groups, machines, credentials, accessKeys int64
+	var providers, groups, credentials, accessKeys int64
 
 	err = s.db.Model(&models.Provider{}).Count(&providers).Error
 	assert.NilError(t, err)
@@ -640,7 +580,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 	grants := make([]models.Grant, 0)
 	err = s.db.Find(&grants).Error
 	assert.NilError(t, err)
-	assert.Assert(t, is.Len(grants, 4)) // 3 from config, 1 internal connector
+	assert.Assert(t, is.Len(grants, 3)) // 2 from config, 1 internal connector
 
 	privileges := map[string]int{
 		"admin":     0,
@@ -652,21 +592,17 @@ func TestLoadConfigUpdate(t *testing.T) {
 		privileges[v.Privilege]++
 	}
 
-	assert.Equal(t, privileges["admin"], 3)
+	assert.Equal(t, privileges["admin"], 2)
 	assert.Equal(t, privileges["view"], 0)
 	assert.Equal(t, privileges["connector"], 1)
 
-	err = s.db.Model(&models.Identity{}).Where(models.Identity{Kind: models.UserKind}).Count(&users).Error
+	identities, err := data.ListIdentities(s.db)
 	assert.NilError(t, err)
-	assert.Equal(t, int64(3), users) // john@example.com, sarah@example.com, test@example.com
+	assert.Equal(t, 6, len(identities)) // john@example.com, sarah@example.com, test@example.com, connector, r2d2, c3po
 
 	err = s.db.Model(&models.Group{}).Count(&groups).Error
 	assert.NilError(t, err)
 	assert.Equal(t, int64(1), groups) // Everyone
-
-	err = s.db.Model(&models.Identity{}).Where(models.Identity{Kind: models.MachineKind}).Count(&machines).Error
-	assert.NilError(t, err)
-	assert.Equal(t, int64(4), machines) // connector, r2d2, c3po, T-1000
 
 	err = s.db.Model(&models.Credential{}).Count(&credentials).Error
 	assert.NilError(t, err)
@@ -696,11 +632,6 @@ func TestLoadConfigUpdate(t *testing.T) {
 				Role:     "view",
 				Resource: "kubernetes.test-cluster",
 			},
-			{
-				Machine:  "T-1000",
-				Role:     "view",
-				Resource: "kubernetes.test-cluster",
-			},
 		},
 	}
 
@@ -722,7 +653,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 	grants = make([]models.Grant, 0)
 	err = s.db.Find(&grants).Error
 	assert.NilError(t, err)
-	assert.Assert(t, is.Len(grants, 4))
+	assert.Assert(t, is.Len(grants, 3))
 
 	privileges = map[string]int{
 		"admin":     0,
@@ -735,12 +666,12 @@ func TestLoadConfigUpdate(t *testing.T) {
 	}
 
 	assert.Equal(t, privileges["admin"], 0)
-	assert.Equal(t, privileges["view"], 3)
+	assert.Equal(t, privileges["view"], 2)
 	assert.Equal(t, privileges["connector"], 1)
 
-	err = s.db.Model(&models.Identity{}).Where(models.Identity{Kind: models.UserKind}).Count(&users).Error
+	identities, err = data.ListIdentities(s.db)
 	assert.NilError(t, err)
-	assert.Equal(t, int64(1), users)
+	assert.Equal(t, 2, len(identities))
 
 	var user models.Identity
 	err = s.db.Where("name = ?", "test@example.com").First(&user).Error
@@ -752,13 +683,5 @@ func TestLoadConfigUpdate(t *testing.T) {
 
 	var group models.Group
 	err = s.db.Where("name = ?", "Everyone").First(&group).Error
-	assert.NilError(t, err)
-
-	err = s.db.Model(&models.Identity{}).Where(models.Identity{Kind: models.MachineKind}).Count(&machines).Error
-	assert.NilError(t, err)
-	assert.Equal(t, int64(2), machines)
-
-	var machine models.Identity
-	err = s.db.Where("name = ?", "T-1000").First(&machine).Error
 	assert.NilError(t, err)
 }

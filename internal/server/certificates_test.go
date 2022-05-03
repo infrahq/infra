@@ -34,7 +34,6 @@ func TestCertificateSigningWorks(t *testing.T) {
 
 	user := &models.Identity{
 		Model: models.Model{ID: uid.New()},
-		Kind:  models.UserKind,
 		Name:  "joe@example.com",
 	}
 

@@ -27,10 +27,8 @@ func ListGroups(db *gorm.DB, selectors ...SelectorFunc) ([]models.Group, error) 
 	return list[models.Group](db, selectors...)
 }
 
-func ListIdentityGroups(db *gorm.DB, userID uid.ID) (result []models.Group, err error) {
-	user := &models.Identity{Model: models.Model{ID: userID}, Kind: models.UserKind}
-
-	if err := db.Model(user).Association("Groups").Find(&result); err != nil {
+func ListIdentityGroups(db *gorm.DB, identityID uid.ID) (result []models.Group, err error) {
+	if err := db.Model(&models.Identity{Model: models.Model{ID: identityID}}).Association("Groups").Find(&result); err != nil {
 		return nil, err
 	}
 
