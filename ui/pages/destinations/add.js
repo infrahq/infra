@@ -25,6 +25,7 @@ function CommandInput ({ enabledCommandInput, accessKey, currentDestinationName 
   return (
     <div className='border border-gray-800 rounded-lg shadow-sm overflow-hidden my-5'>
       <textarea
+        spellcheck="false"
         rows={5}
         name='commandInput'
         id='commandInput'
