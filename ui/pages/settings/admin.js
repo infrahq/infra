@@ -25,7 +25,7 @@ const columns = [{
 
 
     const [open, setOpen] = useState(false)
-    
+
     const isSelf = admin.subject.replace('i:', '') === auth.id
 
     return (
@@ -40,7 +40,7 @@ const columns = [{
             mutate('/v1/grants?resource=infra&privilege=admin', async admins => {
               await fetch(`/v1/grants/${admin.id}`, { method: 'DELETE' })
 
-              return admins.filter(a => a?.id !== admin.id)
+              return admins?.items?.filter(a => a?.id !== admin.id)
             }, { optimisticData: rows.map(r => r.original).filter(a => a?.id !== admin.id) })
 
             setOpen(false)
@@ -77,7 +77,7 @@ export default function () {
   const { data: adminList } = useSWR(() => '/v1/grants?resource=infra&privilege=admin', { fallbackData: [] })
   const { mutate } = useSWRConfig()
 
-  const table = useTable({ columns, data: adminList || [] })
+  const table = useTable({ columns, data: adminList?.items || [] })
 
   const [adminEmail, setAdminEmail] = useState('')
   const [error, setError] = useState('')
@@ -111,7 +111,7 @@ export default function () {
       fetch(`/v1/identities?name=${adminEmail}`)
         .then((response) => response.json())
         .then((data) => {
-          if (data.length === 0) {
+          if (data.count === 0) {
             fetch('/v1/identities', {
               method: 'POST',
               body: JSON.stringify({ name: adminEmail, kind: 'user' })
@@ -120,7 +120,7 @@ export default function () {
               .then((user) => grantAdminAccess(user.id))
               .catch((error) => console.error(error))
           } else {
-            grantAdminAccess(data[0].id)
+            grantAdminAccess(data.items[0].id)
           }
         })
     } else {
@@ -158,7 +158,7 @@ export default function () {
       {error && <ErrorMessage message={error} />}
 
       <h4 className='text-gray-300 my-3 text-xs'>These users have full administration privileges</h4>
-      {adminList && adminList.length > 0 &&
+      {adminList?.count > 0 &&
         <div className='w-3/4'>
           <Table {...table} showHeader={false} />
         </div>}

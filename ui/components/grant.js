@@ -37,7 +37,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
         method: 'POST',
         body: JSON.stringify({ subject: id, resource: destination.name, privilege })
       })
-      
+
       const data = await res.json()
 
       if(exist) {
@@ -46,7 +46,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
 
       setEmail('')
 
-      return [...(grants || []).filter(grant => grant?.subject !== id), data]
+      return [...(grants?.items || []).filter(grant => grant?.subject !== id), data]
     })
   }
 
@@ -72,7 +72,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
           throw data
         }
 
-        if (data.length === 0) {
+        if (data.count === 0) {
           res = await fetch('/v1/identities', {
                   method: 'POST',
                   body: JSON.stringify({ name: email, kind: 'user' })
@@ -83,7 +83,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
           setEmail('')
           setRole('view')
         } else {
-          grantPrivilege('i:' + data[0].id)
+          grantPrivilege('i:' + data.items[0].id)
         }
       } catch(e) {
         setGrantError(e.message || 'something went wrong, please try again later.')
@@ -101,8 +101,8 @@ export default function ({ id, modalOpen, handleCloseModal }) {
     mutate(`/v1/grants?resource=${destination.name}`, async grants => {
       await fetch(`/v1/grants/${grantId}`, { method: 'DELETE' })
 
-      return grants.filter(item => item?.id !== grantId)
-    }, { optimisticData: list.filter(item => item?.id !== grantId) })
+      return grants?.items?.filter(item => item?.id !== grantId)
+    }, { optimisticData: list?.items?.filter(item => item?.id !== grantId) })
   }
 
 
@@ -140,9 +140,9 @@ export default function ({ id, modalOpen, handleCloseModal }) {
         </button>
       </div>
       {error && <ErrorMessage message={error} />}
-      {list && list.length > 0 &&
+      {list?.count > 0 &&
         <div className='py-2 max-h-48 sm:max-h-80 overflow-y-auto'>
-          {list.sort((a, b) => (a.subject).localeCompare(b.subject)).map((item) => (
+          {list?.items?.sort((a, b) => (a.subject).localeCompare(b.subject)).map((item) => (
             <div className='flex justify-between items-center px-4' key={item.id}>
               <Grant id={item.subject} />
               <div>
