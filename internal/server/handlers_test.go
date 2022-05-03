@@ -320,24 +320,6 @@ func withAdminIdentity(_ *testing.T, opts *Options) {
 	})
 }
 
-func TestDeleteProvider_NoDeleteInternalProvider(t *testing.T) {
-	s := setupServer(t, withAdminIdentity)
-
-	routes := s.GenerateRoutes(prometheus.NewRegistry())
-	internalProvider := data.InfraProvider(s.db)
-
-	route := fmt.Sprintf("/v1/providers/%s", internalProvider.ID)
-	req, err := http.NewRequest(http.MethodDelete, route, nil)
-	assert.NilError(t, err)
-
-	req.Header.Add("Authorization", "Bearer "+adminAccessKey(s))
-
-	resp := httptest.NewRecorder()
-	routes.ServeHTTP(resp, req)
-
-	assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
-}
-
 func TestCreateIdentity(t *testing.T) {
 	srv := setupServer(t, withAdminIdentity)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
