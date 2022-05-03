@@ -64,6 +64,34 @@ func TestSignupEnabled(t *testing.T) {
 		assert.Assert(t, !enabled)
 	})
 
+	t.Run("DisabledByInClusterConnector", func(t *testing.T) {
+		c, db := setup(t)
+
+		// emulate an in-cluster connector by installing a connector access key
+		identity := models.Identity{Name: models.InternalInfraConnectorIdentityName}
+
+		err := data.CreateIdentity(db, &identity)
+		assert.NilError(t, err)
+
+		provider := models.Provider{Name: models.InternalInfraProviderName}
+
+		err = data.CreateProvider(db, &provider)
+		assert.NilError(t, err)
+
+		accessKey := models.AccessKey{
+			IssuedFor:  identity.ID,
+			ProviderID: provider.ID,
+			ExpiresAt:  time.Now().Add(time.Minute),
+		}
+
+		_, err = data.CreateAccessKey(db, &accessKey)
+		assert.NilError(t, err)
+
+		enabled, err := SignupEnabled(c)
+		assert.NilError(t, err)
+		assert.Assert(t, !enabled)
+	})
+
 	user := "admin@infrahq.com"
 	pass := "password"
 
