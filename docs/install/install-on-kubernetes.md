@@ -23,35 +23,35 @@ helm show values infrahq/infra
 server:
   # Add an Identity Provider
   # Only Okta is supported currently
-  additionalProviders:
-    - name: Okta
-      url: example.okta.com
-      clientID: example_jsldf08j23d081j2d12sd
-      clientSecret:  example_plain_secret #see note above
+  # additionalProviders:
+  #   - name: Okta
+  #     url: example.okta.com
+  #     clientID: example_jsldf08j23d081j2d12sd
+  #     clientSecret:  example_plain_secret # see note above
+
+  # Add an admin user
+  additionalIdentities:
+    - name: admin
+      password: password
 
   additionalGrants:
   # 1. Grant user(s) or group(s) as Infra administrator
   # Setup an user as Infra administrator
-    - user: you@example.com
+    - user: admin
       role: admin
       resource: infra
 
   # 2. Grant user(s) or group(s) access to a resources
   # Example of granting access to an individual user the `cluster-admin` role. The name of a resource is specified when installing the Infra Engine at that location.
-    - user: you@example.com
+    - user: admin
       role: cluster-admin                  # cluster_roles required
       resource: kubernetes.example-cluster # limit access to the `example-cluster` Kubernetes cluster
 
   # Example of granting access to an individual user through assigning them to the 'edit' role in the `web` namespace.
   # In this case, Infra will automatically scope the access to a namespace.
-    - user: you@example.com
+    - user: admin
       role: edit                               # cluster_roles required
       resource: kubernetes.example-cluster.web # limit access to only the `web` namespace in the `example-cluster` Kubernetes cluster
-
-  # Example of granting access to a group the `view` role.
-    - group: Everyone
-      role: view                           # cluster_roles required
-      resource: kubernetes.example-cluster # limit access to the `example-cluster` Kubernetes cluster
 ```
 
 ### Step 2: Install Infra
