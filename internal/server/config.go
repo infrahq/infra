@@ -679,7 +679,7 @@ func (Server) loadGrant(db *gorm.DB, input Grant) (*models.Grant, error) {
 
 		id = uid.NewGroupPolymorphicID(group.ID)
 
-	// TODO: this gotta go
+	// TODO: remove this when deprecated machines in config are removed
 	case input.Machine != "":
 		machine, err := data.GetIdentity(db, data.ByName(input.Machine))
 		if err != nil {
