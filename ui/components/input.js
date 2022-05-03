@@ -16,15 +16,16 @@ export default function ({
   return (
     <div>
       {label &&
-        <label htmlFor='price' className='block text-sm font-medium text-white'>
+        <label htmlFor='price' className='block text-sm font-medium'>
           {label}
         </label>}
-      <div className='relative rounded shadow-sm'>
+      <div className={`relative w-full px-4 py-3  border bg-transparent rounded-full focus:outline-none focus:ring focus:ring-cyan-600 disabled:opacity-30 ${error ? 'border-pink-500' : 'border-gray-800'}`}>
         <input
           autoFocus
+          spellCheck="false"
           type={type}
           value={value}
-          className={`block w-full px-4 py-3 sm:text-sm border bg-transparent rounded-full focus:outline-none focus:ring focus:ring-cyan-600 disabled:opacity-30 ${error ? 'border-pink-500' : 'border-gray-800'}`}
+          className={`block ${hasDropdownSelection ? 'w-10/12' : 'w-full'} sm:text-sm bg-transparent focus:outline-none`}
           placeholder={placeholder}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
@@ -40,7 +41,7 @@ export default function ({
               name={optionType}
               onChange={handleSelectOption}
               value={selectedItem}
-              className='h-full py-0 pl-2 border-transparent bg-transparent text-white text-sm focus:outline-none'
+              className='h-full py-0 pl-2 border-transparent bg-transparent text-sm focus:outline-none'
             >
               {options.map((option) => (
                 <option key={option} value={option}>{option}</option>
