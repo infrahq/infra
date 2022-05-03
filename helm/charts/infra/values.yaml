@@ -515,10 +515,7 @@ server:
   # Configure an identity with an access key
   # - name: ""      # required
   #   accessKey: "" # optional, can be specified as a secret. must be in the form of XXXXXXXXXX.YYYYYYYYYYYYYYYYYYYYYYYY (<10 character ascii key>.<24 character ascii secret>)
-
-  # Configure an identity with a password
-  # - name: ""    # required
-  #   password: "" # optional, can be specified as a secret
+  #   password: ""  # optional, can be specified as a secret
 
   ## Example
   # Create an "admin" identity
