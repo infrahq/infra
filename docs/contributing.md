@@ -46,7 +46,7 @@ If further customization is required, additional values files can be supplied to
 
 Some common configurations for local development include:
 
-* Disabling persistence
+* Disable persistence
 
 ```yaml
 # example infra.yaml
@@ -56,7 +56,7 @@ server:
     enabled: false
 ```
 
-* Disabling telemetry
+* Disable telemetry
 
 ```yaml
 # example infra.yaml
@@ -66,19 +66,25 @@ server:
     enable-telemetry: false
 ```
 
-* Enabling Kubernetes LoadBalancer
+* Enable in-cluster connector
+
+> Note: enabling in-cluster connector disables first-time user signup and requires an admin user to be created by Helm
 
 ```yaml
-# example infra.yaml
 ---
+# example infra.yaml
 server:
-  service:
-    type: LoadBalancer
+  additionalIdentities:
+    - name: admin
+      password: PASSWORD
+
+  additionalGrants:
+    - user: admin
+      role: admin
+      resource: infra
 
 connector:
-  service:
-    type: LoadBalancer
-    securePort: 8443  # to avoid colliding with infra-server's securePort (443)
+  enabled: true
 ```
 
 See [Helm Chart reference](./reference/helm-chart.md) for a complete list of options configurable through Helm.
