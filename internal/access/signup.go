@@ -35,7 +35,12 @@ func SignupEnabled(c *gin.Context) (bool, error) {
 		return false, err
 	}
 
-	return identities+providers+grants == int64(0), nil
+	accessKeys, err := data.Count[models.AccessKey](db.Unscoped())
+	if err != nil {
+		return false, err
+	}
+
+	return identities+providers+grants+accessKeys == 0, nil
 }
 
 // Signup creates a user identity using the supplied name and password and
