@@ -573,7 +573,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 		return &api.LoginResponse{PolymorphicID: user.PolyID(), Name: user.Name, AccessKey: key, Expires: api.Time(expires)}, nil
 	}
 
-	return nil, api.ErrBadRequest
+	return nil, fmt.Errorf("%w: missing login credentials", internal.ErrBadRequest)
 }
 
 func (a *API) Logout(c *gin.Context, r *api.EmptyRequest) (*api.EmptyResponse, error) {

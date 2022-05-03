@@ -22,40 +22,35 @@ type Client struct {
 	Headers http.Header
 }
 
-func checkError(status int, body []byte) error {
-	var apiError Error
+// checkError checks the resp for an error code, and returns an api.Error with
+// details about the error. Returns nil if the status code is 2xx.
+//
+// 3xx codes are considered an error because redirects should have already
+// been followed before calling checkError.
+func checkError(resp *http.Response, body []byte) error {
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		return nil
+	}
 
+	var apiError Error
 	err := json.Unmarshal(body, &apiError)
 	if err != nil {
+		// Use the full body as the message if we fail to decode a response.
 		apiError.Message = string(body)
-		apiError.Code = int32(status)
+		apiError.Code = int32(resp.StatusCode)
 	}
 
-	switch apiError.Code {
-	case http.StatusUnauthorized:
-		return ErrUnauthorized
-	case http.StatusForbidden:
-		return ErrForbidden
-	case http.StatusConflict:
-		return ErrDuplicate
-	case http.StatusNotFound:
-		return ErrNotFound
-	case http.StatusBadRequest:
-		return fmt.Errorf(apiError.Message)
-	case http.StatusBadGateway:
-		// this error should be displayed to the user so they can see its an external problem
-		return fmt.Errorf(apiError.Message)
-	case http.StatusInternalServerError:
-		return ErrInternal
-	case http.StatusGone:
-		return fmt.Errorf(apiError.Message)
-	}
+	return apiError
+}
 
-	if status >= 400 {
-		return errors.New(http.StatusText(status))
+// ErrorStatusCode returns the http status code from the error.
+// Returns 0 if the error is nil, or if the error is not of type Error.
+func ErrorStatusCode(err error) int32 {
+	var apiError Error
+	if errors.As(err, &apiError) {
+		return apiError.Code
 	}
-
-	return nil
+	return 0
 }
 
 func get[Res any](client Client, path string) (*Res, error) {
@@ -78,9 +73,9 @@ func get[Res any](client Client, path string) (*Res, error) {
 		return nil, fmt.Errorf("reading response: %w", err)
 	}
 
-	err = checkError(resp.StatusCode, body)
+	err = checkError(resp, body)
 	if err != nil {
-		return nil, fmt.Errorf("GET %q responded %d: %w", path, resp.StatusCode, err)
+		return nil, fmt.Errorf("GET %v failed: %w", path, err)
 	}
 
 	var res Res
@@ -113,9 +108,9 @@ func list[Res any](client Client, path string, query map[string][]string) ([]Res
 		return nil, fmt.Errorf("reading response: %w", err)
 	}
 
-	err = checkError(resp.StatusCode, body)
+	err = checkError(resp, body)
 	if err != nil {
-		return nil, fmt.Errorf("GET %q responded %d: %w", path, resp.StatusCode, err)
+		return nil, fmt.Errorf("GET %v failed: %w", path, err)
 	}
 
 	var res []Res
@@ -152,9 +147,9 @@ func request[Req, Res any](client Client, method string, path string, req *Req) 
 		return nil, fmt.Errorf("reading response: %w", err)
 	}
 
-	err = checkError(resp.StatusCode, body)
+	err = checkError(resp, body)
 	if err != nil {
-		return nil, fmt.Errorf("%s %q responded %d: %w", method, path, resp.StatusCode, err)
+		return nil, fmt.Errorf("%s %v failed: %w", method, path, err)
 	}
 
 	var res Res
@@ -192,9 +187,9 @@ func delete(client Client, path string) error {
 		return fmt.Errorf("reading response: %w", err)
 	}
 
-	err = checkError(resp.StatusCode, body)
+	err = checkError(resp, body)
 	if err != nil {
-		return fmt.Errorf("DELETE %q responded %d: %w", path, resp.StatusCode, err)
+		return fmt.Errorf("DELETE %v failed: %w", path, err)
 	}
 
 	return nil
