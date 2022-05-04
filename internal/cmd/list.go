@@ -50,6 +50,11 @@ func list(cli *CLI) error {
 		return err
 	}
 
+	identity, err := client.GetIdentity(identityID)
+	if err != nil {
+		return err
+	}
+
 	grants, err := client.ListIdentityGrants(identityID)
 	if err != nil {
 		return err
@@ -138,5 +143,5 @@ func list(cli *CLI) error {
 		cli.Output("You have not been granted access to any active destinations")
 	}
 
-	return writeKubeconfig(destinations, grants)
+	return writeKubeconfig(identity, destinations, grants)
 }

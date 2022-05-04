@@ -67,6 +67,11 @@ func updateKubeconfig(client *api.Client, identityPolymorphicID uid.PolymorphicI
 		return err
 	}
 
+	identity, err := client.GetIdentity(id)
+	if err != nil {
+		return err
+	}
+
 	grants, err := client.ListIdentityGrants(id)
 	if err != nil {
 		return err
@@ -86,10 +91,10 @@ func updateKubeconfig(client *api.Client, identityPolymorphicID uid.PolymorphicI
 		grants = append(grants, groupGrants...)
 	}
 
-	return writeKubeconfig(destinations, grants)
+	return writeKubeconfig(identity, destinations, grants)
 }
 
-func writeKubeconfig(destinations []api.Destination, grants []api.Grant) error {
+func writeKubeconfig(identity *api.Identity, destinations []api.Destination, grants []api.Grant) error {
 	defaultConfig := clientConfig()
 
 	kubeConfig, err := defaultConfig.RawConfig()
@@ -177,7 +182,7 @@ func writeKubeconfig(destinations []api.Destination, grants []api.Grant) error {
 
 		kubeConfig.Contexts[context] = &clientcmdapi.Context{
 			Cluster:   context,
-			AuthInfo:  context,
+			AuthInfo:  identity.Name,
 			Namespace: namespace,
 		}
 
@@ -186,7 +191,7 @@ func writeKubeconfig(destinations []api.Destination, grants []api.Grant) error {
 			return err
 		}
 
-		kubeConfig.AuthInfos[context] = &clientcmdapi.AuthInfo{
+		kubeConfig.AuthInfos[identity.Name] = &clientcmdapi.AuthInfo{
 			Exec: &clientcmdapi.ExecConfig{
 				Command:         executable,
 				Args:            []string{"tokens", "add"},
