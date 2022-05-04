@@ -21,6 +21,8 @@
 * [infra providers list](#infra-providers-list)
 * [infra providers add](#infra-providers-add)
 * [infra providers remove](#infra-providers-remove)
+* [infra info](#infra-info)
+* [infra version](#infra-version)
 * [infra about](#infra-about)
 
 
@@ -517,6 +519,36 @@ infra providers remove PROVIDER [flags]
 
 ```
 $ infra providers remove okta
+```
+
+### Options inherited from parent commands
+
+```
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+```
+
+## `infra info`
+
+Display the info about the current session
+
+```
+infra info [flags]
+```
+
+### Options inherited from parent commands
+
+```
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+```
+
+## `infra version`
+
+Display the Infra version
+
+```
+infra version [flags]
 ```
 
 ### Options inherited from parent commands
