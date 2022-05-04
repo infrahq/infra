@@ -16,7 +16,7 @@ func (p PolymorphicID) ID() (ID, error) {
 	if len(p) < 2 {
 		return ID(0), fmt.Errorf("invalid polymorphic ID encountered: %v", p)
 	}
-	return ParseString(string(p)[2:])
+	return Parse([]byte(string(p)[2:]))
 }
 
 func (p PolymorphicID) IsIdentity() bool {
