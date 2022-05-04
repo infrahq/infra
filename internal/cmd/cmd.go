@@ -239,16 +239,8 @@ func defaultConnectorOptions() connector.Options {
 	return connector.Options{}
 }
 
-// rootOptions are options specified by users on the command line that are
-// used by the root command.
-type rootOptions struct {
-	Info    bool
-	Version bool
-}
-
 func NewRootCmd(cli *CLI) *cobra.Command {
 	cobra.EnableCommandSorting = false
-	var rootOpts rootOptions
 
 	rootCmd := &cobra.Command{
 		Use:               "infra",
@@ -259,18 +251,6 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 			return rootPreRun(cmd.Flags())
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if rootOpts.Version {
-				return version(cli)
-			}
-			if rootOpts.Info {
-				if err := mustBeLoggedIn(); err != nil {
-					return fmt.Errorf("login check: %w", err)
-				}
-				if err := info(cli); err != nil {
-					return fmt.Errorf("info: %w", err)
-				}
-				return nil
-			}
 			return cmd.Help()
 		},
 	}
