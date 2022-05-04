@@ -50,8 +50,6 @@ global:
   #     name: secret-name
 
 # Default server configurations
-# Ref: https://github.com/infrahq/infra/blob/main/helm/charts/infra/charts/server/README.md
-
 server:
 
   ## Deploy the server
@@ -384,7 +382,6 @@ server:
   affinity: {}
 
   ## Primary server configuration
-  ## Ref: https://github.com/infrahq/infra/blob/main/docs/cli.md#infra-server
   config: {}
 
   ## (DEPRECATED) Infra server admin access key. Use server.config.additionalIdentities instead.
@@ -403,7 +400,7 @@ server:
   #   dbUsername: ""
 
   ## Database password. Use `file:` or `env:` to reference a file or environment variable
-  ## Ref: https://github.com/infrahq/infra/blob/main/docs/secrets.md
+  ## Ref: https://github.com/infrahq/infra/blob/main/docs/install/configure/secrets.md
   #   dbPassword: ""
 
   ## Extra database parameters
@@ -535,8 +532,6 @@ server:
   #   password: file:/var/run/secrets/dev@example.com
 
 ## Default connector configurations
-## Ref: https://github.com/infrahq/infra/blob/main/helm/charts/infra/charts/connector/README.md
-
 connector:
 
   ## Deploy the connector
@@ -798,7 +793,6 @@ connector:
   affinity: {}
 
   ## Primary connector configuration
-  ## Ref: https://github.com/infrahq/infra/blob/main/docs/cli.md#infra-connector
   config: {}
   ## Infra server access key
   #   accessKey: ""
