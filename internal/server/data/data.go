@@ -55,12 +55,12 @@ func NewRawDB(connection gorm.Dialector) (*gorm.DB, error) {
 	if connection.Name() == "sqlite" {
 		// avoid issues with concurrent writes by telling gorm
 		// not to open multiple connections in the connection pool
-		db2, err := db.DB()
+		sqlDB, err := db.DB()
 		if err != nil {
 			return nil, fmt.Errorf("getting db driver: %w", err)
 		}
 
-		db2.SetMaxOpenConns(1)
+		sqlDB.SetMaxOpenConns(1)
 	}
 
 	return db, nil
