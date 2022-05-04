@@ -11,6 +11,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
+	"github.com/mattn/go-sqlite3"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -128,22 +129,8 @@ func save[T models.Modelable](db *gorm.DB, model *T) error {
 		return err
 	}
 
-	if err := db.Save(model).Error; err != nil {
-		if strings.HasPrefix(err.Error(), "UNIQUE constraint failed:") {
-			return fmt.Errorf("%w: %s", internal.ErrDuplicate, err)
-		}
-
-		var pgerr *pgconn.PgError
-		if errors.As(err, &pgerr) {
-			if pgerr.Code == pgerrcode.UniqueViolation {
-				return fmt.Errorf("%w: %s", internal.ErrDuplicate, err)
-			}
-		}
-
-		return err
-	}
-
-	return nil
+	err := db.Save(model).Error
+	return handleError(err)
 }
 
 func add[T models.Modelable](db *gorm.DB, model *T) error {
@@ -152,28 +139,52 @@ func add[T models.Modelable](db *gorm.DB, model *T) error {
 		return err
 	}
 
-	if err := db.Create(model).Error; err != nil {
-		if isUniqueConstraintViolation(err) {
-			return fmt.Errorf("%w: %s", internal.ErrDuplicate, err)
-		}
-
-		return err
-	}
-
-	return nil
+	err := db.Create(model).Error
+	return handleError(err)
 }
 
-func isUniqueConstraintViolation(err error) bool {
-	var pgerr *pgconn.PgError
-	if errors.As(err, &pgerr) {
-		return pgerr.Code == pgerrcode.UniqueViolation
+type UniqueConstraintError struct {
+	Field string
+}
+
+func (d UniqueConstraintError) Error() string {
+	return fmt.Sprintf("value for field already exists: %v", d.Field)
+}
+
+func (d UniqueConstraintError) Is(target error) bool {
+	return d == target || target == internal.ErrDuplicate
+}
+
+// handleError looks for well known DB errors. If the error is recognized it
+// is translated into a UniqueConstraintError so that calling code can
+// inspect the error.
+func handleError(err error) error {
+	if err == nil {
+		return nil
 	}
 
-	if strings.HasPrefix(err.Error(), "UNIQUE constraint failed:") {
-		return true
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		switch pgErr.Code {
+		case pgerrcode.UniqueViolation:
+			// TODO: test with postgresql
+			return UniqueConstraintError{Field: pgErr.ColumnName}
+		}
 	}
 
-	return false
+	fmt.Println("here")
+
+	var liteErr sqlite3.Error
+	if errors.As(err, &liteErr) {
+		fmt.Printf("sqlite3 error: %v\n", liteErr.Error())
+		switch liteErr.ExtendedCode {
+		case sqlite3.ErrConstraintUnique:
+			// TODO: set field
+			return UniqueConstraintError{}
+		}
+	}
+
+	return err
 }
 
 func delete[T models.Modelable](db *gorm.DB, id uid.ID) error {

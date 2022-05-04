@@ -73,9 +73,7 @@ func AssignIdentityToGroups(db *gorm.DB, user *models.Identity, provider *models
 		// add user to group
 		err = db.Exec("insert into identities_groups (identity_id, group_id) values (?, ?)", user.ID, groupID).Error
 		if err != nil {
-			if !isUniqueConstraintViolation(err) {
-				return fmt.Errorf("insert: %w", err)
-			}
+			return fmt.Errorf("insert: %w", handleError(err))
 		}
 
 		user.Groups = append(user.Groups, models.Group{Model: models.Model{ID: groupID}, Name: name})
