@@ -14,6 +14,7 @@ import (
 
 	"github.com/spf13/pflag"
 	"gotest.tools/v3/assert"
+	is "gotest.tools/v3/assert/cmp"
 	"gotest.tools/v3/env"
 	"gotest.tools/v3/fs"
 
@@ -151,6 +152,17 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 
 				_, err = resp.Write(bytes)
 				assert.NilError(t, err)
+			case req.URL.Path == fmt.Sprintf("/v1/identities/%s", userID):
+				identity := api.Identity{
+					ID:   userID,
+					Name: "testuser@example.com",
+				}
+
+				bytes, err := json.Marshal(identity)
+				assert.NilError(t, err)
+
+				_, err = resp.Write(bytes)
+				assert.NilError(t, err)
 			default:
 				resp.WriteHeader(http.StatusBadRequest)
 			}
@@ -180,8 +192,9 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 
 		assert.Equal(t, len(kubeconfig.Clusters), 2)
 		assert.Equal(t, len(kubeconfig.Contexts), 2)
-		assert.Equal(t, len(kubeconfig.AuthInfos), 2)
+		assert.Equal(t, len(kubeconfig.AuthInfos), 1)
 		assert.Equal(t, kubeconfig.CurrentContext, "infra:cluster")
+		assert.Assert(t, is.Contains(kubeconfig.AuthInfos, "testuser@example.com"))
 	})
 
 	t.Run("UseClusterWithPrefix", func(t *testing.T) {
@@ -195,8 +208,9 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 
 		assert.Equal(t, len(kubeconfig.Clusters), 2)
 		assert.Equal(t, len(kubeconfig.Contexts), 2)
-		assert.Equal(t, len(kubeconfig.AuthInfos), 2)
+		assert.Equal(t, len(kubeconfig.AuthInfos), 1)
 		assert.Equal(t, kubeconfig.CurrentContext, "infra:cluster")
+		assert.Assert(t, is.Contains(kubeconfig.AuthInfos, "testuser@example.com"))
 	})
 
 	t.Run("UseNamespaceWithoutPrefix", func(t *testing.T) {
@@ -210,8 +224,9 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 
 		assert.Equal(t, len(kubeconfig.Clusters), 2)
 		assert.Equal(t, len(kubeconfig.Contexts), 2)
-		assert.Equal(t, len(kubeconfig.AuthInfos), 2)
+		assert.Equal(t, len(kubeconfig.AuthInfos), 1)
 		assert.Equal(t, kubeconfig.CurrentContext, "infra:cluster:namespace")
+		assert.Assert(t, is.Contains(kubeconfig.AuthInfos, "testuser@example.com"))
 	})
 
 	t.Run("UseNamespaceWithPrefix", func(t *testing.T) {
@@ -225,8 +240,9 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 
 		assert.Equal(t, len(kubeconfig.Clusters), 2)
 		assert.Equal(t, len(kubeconfig.Contexts), 2)
-		assert.Equal(t, len(kubeconfig.AuthInfos), 2)
+		assert.Equal(t, len(kubeconfig.AuthInfos), 1)
 		assert.Equal(t, kubeconfig.CurrentContext, "infra:cluster:namespace")
+		assert.Assert(t, is.Contains(kubeconfig.AuthInfos, "testuser@example.com"))
 	})
 
 	t.Run("UseUnknown", func(t *testing.T) {
