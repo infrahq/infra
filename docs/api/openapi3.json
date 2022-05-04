@@ -169,7 +169,19 @@
             "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           },
+          "group": {
+            "example": "4yJ3n3D8E2",
+            "format": "uid",
+            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+            "type": "string"
+          },
           "id": {
+            "example": "4yJ3n3D8E2",
+            "format": "uid",
+            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+            "type": "string"
+          },
+          "identity": {
             "example": "4yJ3n3D8E2",
             "format": "uid",
             "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
@@ -181,13 +193,6 @@
           },
           "resource": {
             "description": "a resource name in Infra's Universal Resource Notation",
-            "type": "string"
-          },
-          "subject": {
-            "description": "a polymorphic field expecting an identity or group ID",
-            "example": "i:4yJ3n3D8E3",
-            "format": "poly-uid",
-            "pattern": "\\w:[\\da-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           },
           "updated": {
@@ -394,7 +399,19 @@
                   "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
                   "type": "string"
                 },
+                "group": {
+                  "example": "4yJ3n3D8E2",
+                  "format": "uid",
+                  "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                  "type": "string"
+                },
                 "id": {
+                  "example": "4yJ3n3D8E2",
+                  "format": "uid",
+                  "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                  "type": "string"
+                },
+                "identity": {
                   "example": "4yJ3n3D8E2",
                   "format": "uid",
                   "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
@@ -406,13 +423,6 @@
                 },
                 "resource": {
                   "description": "a resource name in Infra's Universal Resource Notation",
-                  "type": "string"
-                },
-                "subject": {
-                  "description": "a polymorphic field expecting an identity or group ID",
-                  "example": "i:4yJ3n3D8E3",
-                  "format": "poly-uid",
-                  "pattern": "\\w:[\\da-zA-HJ-NP-Z]{1,11}",
                   "type": "string"
                 },
                 "updated": {
@@ -1425,13 +1435,24 @@
         "operationId": "ListGrants",
         "parameters": [
           {
-            "example": "i:4yJ3n3D8E3",
+            "example": "4yJ3n3D8E2",
             "in": "query",
-            "name": "subject",
+            "name": "identity",
             "schema": {
-              "example": "i:4yJ3n3D8E3",
-              "format": "poly-uid",
-              "pattern": "\\w:[\\da-zA-HJ-NP-Z]{1,11}",
+              "example": "4yJ3n3D8E2",
+              "format": "uid",
+              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+              "type": "string"
+            }
+          },
+          {
+            "example": "4yJ3n3D8E2",
+            "in": "query",
+            "name": "group",
+            "schema": {
+              "example": "4yJ3n3D8E2",
+              "format": "uid",
+              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
               "type": "string"
             }
           },
@@ -1529,6 +1550,18 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "group": {
+                    "example": "4yJ3n3D8E2",
+                    "format": "uid",
+                    "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                    "type": "string"
+                  },
+                  "identity": {
+                    "example": "4yJ3n3D8E2",
+                    "format": "uid",
+                    "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                    "type": "string"
+                  },
                   "privilege": {
                     "description": "a role or permission",
                     "example": "view",
@@ -1538,17 +1571,9 @@
                     "description": "a resource name in Infra's Universal Resource Notation",
                     "example": "production",
                     "type": "string"
-                  },
-                  "subject": {
-                    "description": "a polymorphic field expecting an identity or group ID",
-                    "example": "i:4yJ3n3D8E3",
-                    "format": "poly-uid",
-                    "pattern": "\\w:[\\da-zA-HJ-NP-Z]{1,11}",
-                    "type": "string"
                   }
                 },
                 "required": [
-                  "subject",
                   "privilege",
                   "resource"
                 ],

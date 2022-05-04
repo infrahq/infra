@@ -272,7 +272,7 @@ $ infra grants remove group-a staging --group
 # Remove a specific grant
 $ infra grants remove janedoe@example.com staging --role viewer
 
-# Remove access to infra
+# Remove adminaccess to infra
 $ infra grants remove janedoe@example.com infra --role admin
 
 ```
