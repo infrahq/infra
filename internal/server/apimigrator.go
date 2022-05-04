@@ -25,7 +25,7 @@ func addResponseRewrite[newResp any, oldResp any](method, path, version string, 
 		path:    path,
 		version: version,
 		responseRewrite: func(c *gin.Context) {
-			reqVer := NewVersion(c.Request.Header.Get("VERSION"))
+			reqVer := NewVersion(c.Request.Header.Get("Infra-Version"))
 			if reqVer.GreaterThanStr(version) {
 				c.Next()
 				return

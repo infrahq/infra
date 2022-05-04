@@ -69,6 +69,7 @@ func TestAPI_ListIdentities(t *testing.T) {
 		req, err := http.NewRequest(http.MethodGet, tc.urlPath, nil)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Add("Infra-Version", "0.12.0")
 
 		if tc.setup != nil {
 			tc.setup(t, req)
@@ -217,7 +218,7 @@ func TestListKeys(t *testing.T) {
 		req, err := http.NewRequest(http.MethodGet, "/v1/access-keys", nil)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
-		req.Header.Add("VERSION", "0.12.0")
+		req.Header.Add("Infra-Version", "0.12.0")
 
 		routes.ServeHTTP(resp, req)
 		assert.Equal(t, resp.Code, http.StatusOK)
@@ -229,12 +230,28 @@ func TestListKeys(t *testing.T) {
 		assert.Assert(t, len(resp1.Items) > 0)
 	})
 
+	t.Run("no version header", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/v1/access-keys", nil)
+		assert.NilError(t, err)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusOK)
+
+		resp1 := []api.AccessKey{}
+		err = json.Unmarshal(resp.Body.Bytes(), &resp1)
+		assert.NilError(t, err)
+
+		assert.Assert(t, len(resp1) > 0)
+	})
+
 	t.Run("old version upgrades", func(t *testing.T) {
 		resp := httptest.NewRecorder()
 		req, err := http.NewRequest(http.MethodGet, "/v1/access-keys", nil)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
-		req.Header.Add("VERSION", "0.11.0")
+		req.Header.Add("Infra-Version", "0.11.0")
 
 		routes.ServeHTTP(resp, req)
 		assert.Equal(t, resp.Code, http.StatusOK)
@@ -265,6 +282,7 @@ func TestListProviders(t *testing.T) {
 	assert.NilError(t, err)
 
 	req.Header.Add("Authorization", "Bearer "+adminAccessKey(s))
+	req.Header.Add("Infra-Version", "0.12.0")
 
 	resp := httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)

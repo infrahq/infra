@@ -31,7 +31,7 @@ func parseuint8(s string) uint8 {
 	return uint8(i)
 }
 
-func (v *Version) GreaterThan(ver Version) bool {
+func (v Version) GreaterThan(ver Version) bool {
 	if v.Major < ver.Major {
 		return false
 	}
@@ -53,6 +53,6 @@ func (v *Version) GreaterThan(ver Version) bool {
 	return false
 }
 
-func (v *Version) GreaterThanStr(ver string) bool {
+func (v Version) GreaterThanStr(ver string) bool {
 	return v.GreaterThan(NewVersion(ver))
 }
