@@ -10,10 +10,10 @@ import (
 
 func newInfoCmd(cli *CLI) *cobra.Command {
 	return &cobra.Command{
-		Use:    "info",
-		Short:  "Display the info about the current session",
-		Args:   NoArgs,
-		Hidden: true,
+		Use:   "info",
+		Short: "Display the info about the current session",
+		Args:  NoArgs,
+		Group: "Other commands:",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if err := mustBeLoggedIn(); err != nil {
 				return err

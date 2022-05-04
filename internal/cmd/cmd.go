@@ -288,15 +288,14 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 	rootCmd.AddCommand(newKeysCmd(cli))
 	rootCmd.AddCommand(newProvidersCmd(cli))
 
-	// Hidden
-	rootCmd.AddCommand(newTokensCmd(cli))
+	// Other commands:
 	rootCmd.AddCommand(newInfoCmd(cli))
-	rootCmd.AddCommand(newServerCmd())
-	rootCmd.AddCommand(newConnectorCmd())
 	rootCmd.AddCommand(newVersionCmd(cli))
 
-	rootCmd.Flags().BoolVar(&rootOpts.Version, "version", false, "Display Infra version")
-	rootCmd.Flags().BoolVar(&rootOpts.Info, "info", false, "Display info about the current logged in session")
+	// Hidden
+	rootCmd.AddCommand(newTokensCmd(cli))
+	rootCmd.AddCommand(newServerCmd())
+	rootCmd.AddCommand(newConnectorCmd())
 
 	rootCmd.PersistentFlags().String("log-level", "info", "Show logs when running the command [error, warn, info, debug]")
 	rootCmd.PersistentFlags().Bool("help", false, "Display help")
