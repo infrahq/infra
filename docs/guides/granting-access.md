@@ -2,7 +2,7 @@
 
 ## Roles
 
-Infra allows granting different levels of access via **roles**, such as `view`, `edit` or `admin`. Each connector has different roles that can be used:
+Infra allows granting different levels of access via **roles**, such as `view`, `connector` or `admin`. Each connector has different roles that can be used:
 
 - [Kubernetes Roles](../connectors/kubernetes.md#roles)
 

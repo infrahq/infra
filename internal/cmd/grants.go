@@ -222,6 +222,15 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 
 	cli.Output("Access granted!")
 
+	// Warn user if destination is kubernetes that role is not validated
+	if cmdOptions.Destination != models.InternalInfraProviderName {
+		switch cmdOptions.Role {
+		case "cluster-admin", "admin", "edit", "view":
+			cli.Output("\nFor more information on default roles, see\nhttps://github.com/infrahq/infra/blob/main/docs/connectors/kubernetes.md#roles")
+		default:
+			cli.Output("\n[%s] is not a default kubernetes user facing role. For more information, see\nhttps://kubernetes.io/docs/reference/access-authn-authz/rbac/#default-roles-and-role-bindings", cmdOptions.Role)
+		}
+	}
 	return nil
 }
 

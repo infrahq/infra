@@ -1,8 +1,11 @@
 package access
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -48,6 +51,10 @@ func ListGroupGrants(c *gin.Context, groupID uid.ID) ([]models.Grant, error) {
 }
 
 func CreateGrant(c *gin.Context, grant *models.Grant) error {
+	if err := checkRole(grant.Privilege, grant.Resource); err != nil {
+		return err
+	}
+
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return err
@@ -67,4 +74,16 @@ func DeleteGrant(c *gin.Context, id uid.ID) error {
 	}
 
 	return data.DeleteGrants(db, data.ByID(id))
+}
+
+func checkRole(role, resource string) error {
+	if resource == models.InternalInfraProviderName {
+		switch role {
+		case models.InfraAdminRole, models.InfraConnectorRole, models.InfraViewRole:
+			return nil
+		default:
+			return fmt.Errorf("%w: [%s] is not a valid role for infra", internal.ErrBadRequest, role)
+		}
+	}
+	return nil
 }
