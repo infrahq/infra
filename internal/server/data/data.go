@@ -28,19 +28,11 @@ func NewDB(connection gorm.Dialector) (*gorm.DB, error) {
 		return nil, fmt.Errorf("db conn: %w", err)
 	}
 
-	if err = migrate(db); err != nil {
+	if err = Migrate(db); err != nil {
 		return nil, fmt.Errorf("migration failed: %w", err)
 	}
 
 	return db, nil
-}
-
-func PreMigrate(db *gorm.DB) error {
-	return premigrate(db)
-}
-
-func Migrate(db *gorm.DB) error {
-	return migrate(db)
 }
 
 // NewRawDB creates a new database connection without running migrations
