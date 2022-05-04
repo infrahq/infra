@@ -40,6 +40,8 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) *gin.Engine 
 		TimeoutMiddleware(1*time.Minute),
 	)
 
+	addRewrites()
+
 	// This group of middleware only applies to non-ui routes
 	api := router.Group("/",
 		metrics.Middleware(promRegistry),
@@ -129,7 +131,7 @@ type ReqResHandlerFunc[Req, Res any] func(c *gin.Context, req *Req) (Res, error)
 func get[Req, Res any](_ *API, r *gin.RouterGroup, route string, handler ReqResHandlerFunc[Req, Res]) {
 	fullPath := path.Join(r.BasePath(), route)
 	register("GET", fullPath, handler)
-	r.GET(route, func(c *gin.Context) {
+	r.GET(route, includeRewritesFor("GET", fullPath, func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
 			sendAPIError(c, err)
@@ -143,7 +145,27 @@ func get[Req, Res any](_ *API, r *gin.RouterGroup, route string, handler ReqResH
 		}
 
 		c.JSON(http.StatusOK, resp)
-	})
+	})...)
+}
+
+func includeRewritesFor(method, path string, handler gin.HandlerFunc) gin.HandlersChain {
+	result := []gin.HandlerFunc{}
+	for _, migration := range migrations {
+		if strings.ToUpper(migration.method) != method {
+			continue
+		}
+		if migration.path != path {
+			continue
+		}
+		if migration.requestRewrite != nil {
+			result = append(result, migration.requestRewrite)
+		}
+		if migration.responseRewrite != nil {
+			result = append(result, migration.responseRewrite)
+		}
+	}
+	result = append(result, handler)
+	return result
 }
 
 func post[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqResHandlerFunc[Req, Res]) {

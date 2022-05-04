@@ -201,12 +201,51 @@ func TestListKeys(t *testing.T) {
 	})
 	assert.NilError(t, err)
 
-	keys, err := handlers.ListAccessKeys(c, &api.ListAccessKeysRequest{})
+	resp, err := handlers.ListAccessKeys(c, &api.ListAccessKeysRequest{})
 	assert.NilError(t, err)
 
-	assert.Assert(t, len(keys.Items) > 0)
+	assert.Assert(t, len(resp.Items) > 0)
+	assert.Equal(t, resp.Count, len(resp.Items))
 
-	assert.Equal(t, keys.Items[0].IssuedForName, "foo@example.com")
+	assert.Equal(t, resp.Items[0].IssuedForName, user.Name)
+
+	srv := setupServer(t, withAdminIdentity)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	t.Run("latest", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/v1/access-keys", nil)
+		assert.NilError(t, err)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Add("VERSION", "0.12.0")
+
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusOK)
+
+		resp1 := &api.ListResponse[api.AccessKey]{}
+		err = json.Unmarshal(resp.Body.Bytes(), resp1)
+		assert.NilError(t, err)
+
+		assert.Assert(t, len(resp1.Items) > 0)
+	})
+
+	t.Run("old version upgrades", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/v1/access-keys", nil)
+		assert.NilError(t, err)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Add("VERSION", "0.11.0")
+
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusOK)
+
+		resp2 := []api.AccessKey{}
+		err = json.Unmarshal(resp.Body.Bytes(), &resp2)
+		t.Log(resp.Body.String())
+		assert.NilError(t, err)
+
+		assert.Assert(t, len(resp2) > 0)
+	})
 }
 
 func TestListProviders(t *testing.T) {
