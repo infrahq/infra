@@ -35,11 +35,11 @@ type Grant struct {
 }
 
 type Identity struct {
-	Name      string `mapstructure:"name" validate:"excluded_with=Email"`
-	AccessKey string `mapstructure:"accessKey" validate:"excluded_with=Password"`
+	Name      string `mapstructure:"name" validate:"required_without=Email"`
+	AccessKey string `mapstructure:"accessKey"`
+	Password  string `mapstructure:"password"`
 
-	Email    string `mapstructure:"email" validate:"excluded_with=Name"`
-	Password string `mapstructure:"password" validate:"excluded_with=AccessKey"`
+	Email string `mapstructure:"email"`
 }
 
 type Config struct {
@@ -554,7 +554,7 @@ func (s Server) loadConfig(config Config) error {
 			case g.User != "":
 				config.Identities = append(config.Identities, Identity{Name: g.User})
 			case g.Machine != "":
-				logging.S.Warn("please update 'machine' grant to 'user', the 'machine' grant type will be deprecated in a future release")
+				logging.S.Warn("please update 'machine' grant to 'user', the 'machine' grant type is deprecated and will be removed in a future release")
 				config.Identities = append(config.Identities, Identity{Name: g.Machine})
 			}
 		}
@@ -746,7 +746,7 @@ func (s Server) loadIdentity(db *gorm.DB, input Identity, provider *models.Provi
 	name := input.Name
 	if name == "" {
 		if input.Email != "" {
-			logging.S.Warn("please update 'email' config identity to 'name', the 'email' identity label will be deprecated in a future release")
+			logging.S.Warn("please update 'email' config identity to 'name', the 'email' identity label is deprecated and will be removed in a future release")
 			name = input.Email
 		}
 	}
