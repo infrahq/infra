@@ -23,10 +23,8 @@ type apiMigration struct {
 	responseRewrite func(c *gin.Context)
 }
 
-var migrations = []apiMigration{}
-
 func addRedirect(a *API, method, path, newPath, version string) {
-	migrations = append(migrations, apiMigration{
+	a.migrations = append(a.migrations, apiMigration{
 		method:   method,
 		path:     path,
 		version:  version,
@@ -35,7 +33,7 @@ func addRedirect(a *API, method, path, newPath, version string) {
 }
 
 func addRequestRewrite[oldReq any, newReq any](a *API, method, path, version string, f func(oldReq) newReq) {
-	migrations = append(migrations, apiMigration{
+	a.migrations = append(a.migrations, apiMigration{
 		method:  method,
 		path:    path,
 		version: version,
@@ -50,7 +48,7 @@ func addRequestRewrite[oldReq any, newReq any](a *API, method, path, version str
 
 			err := bind(c, oldReqObj)
 			if err != nil {
-				a.sendAPIError(c, err)
+				sendAPIError(c, err)
 				return
 			}
 
@@ -108,14 +106,15 @@ func rebuildRequest(c *gin.Context, newReqObj interface{}) {
 	if c.Request.Method != http.MethodGet {
 		bodyJSON, err := json.Marshal(body)
 		if err != nil {
-			panic(err) // sendAPIError and return
+			sendAPIError(c, err)
+			return
 		}
 		c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(bodyJSON))
 	}
 }
 
 func addResponseRewrite[newResp any, oldResp any](a *API, method, path, version string, f func(newResp) oldResp) {
-	migrations = append(migrations, apiMigration{
+	a.migrations = append(a.migrations, apiMigration{
 		method:  method,
 		path:    path,
 		version: version,
@@ -134,7 +133,7 @@ func addResponseRewrite[newResp any, oldResp any](a *API, method, path, version 
 			newRespObj := new(newResp)
 			err := json.Unmarshal(w.body, newRespObj)
 			if err != nil {
-				a.sendAPIError(c, err)
+				sendAPIError(c, err)
 				return
 			}
 
@@ -142,7 +141,7 @@ func addResponseRewrite[newResp any, oldResp any](a *API, method, path, version 
 
 			b, err := json.Marshal(oldRespObj)
 			if err != nil {
-				a.sendAPIError(c, err)
+				sendAPIError(c, err)
 				return
 			}
 
@@ -150,7 +149,7 @@ func addResponseRewrite[newResp any, oldResp any](a *API, method, path, version 
 			w.Flush()
 
 			if w.flushErr != nil {
-				a.sendAPIError(c, w.flushErr)
+				sendAPIError(c, w.flushErr)
 			}
 		},
 	})
