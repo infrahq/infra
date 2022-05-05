@@ -286,7 +286,7 @@ func TestSecretProvider_PrepareForDecode_IntegrationWithDecode(t *testing.T) {
 func TestLoadConfigEmpty(t *testing.T) {
 	s := setupServer(t)
 
-	err := s.loadConfig()
+	err := s.loadConfig(s.db, Config{})
 	assert.NilError(t, err)
 
 	var providers, grants int64
@@ -351,9 +351,8 @@ func TestLoadConfigInvalid(t *testing.T) {
 	for name, config := range cases {
 		t.Run(name, func(t *testing.T) {
 			s := setupServer(t)
-			s.options.Config = config
 
-			err := s.loadConfig()
+			err := s.loadConfig(s.db, config)
 			// TODO: add expectedErr for each case
 			assert.ErrorContains(t, err, "") // could be any error
 		})
@@ -363,7 +362,7 @@ func TestLoadConfigInvalid(t *testing.T) {
 func TestLoadConfigWithProviders(t *testing.T) {
 	s := setupServer(t)
 
-	s.options.Config = Config{
+	config := Config{
 		Providers: []Provider{
 			{
 				Name:         "okta",
@@ -374,7 +373,7 @@ func TestLoadConfigWithProviders(t *testing.T) {
 		},
 	}
 
-	err := s.loadConfig()
+	err := s.loadConfig(s.db, config)
 	assert.NilError(t, err)
 
 	var provider models.Provider
@@ -389,7 +388,7 @@ func TestLoadConfigWithProviders(t *testing.T) {
 func TestLoadConfigWithUserGrants(t *testing.T) {
 	s := setupServer(t)
 
-	s.options.Config = Config{
+	config := Config{
 		Grants: []Grant{
 			{
 				User:     "test@example.com",
@@ -399,7 +398,7 @@ func TestLoadConfigWithUserGrants(t *testing.T) {
 		},
 	}
 
-	err := s.loadConfig()
+	err := s.loadConfig(s.db, config)
 	assert.NilError(t, err)
 
 	var provider models.Provider
@@ -420,7 +419,7 @@ func TestLoadConfigWithUserGrants(t *testing.T) {
 func TestLoadConfigWithGroupGrants(t *testing.T) {
 	s := setupServer(t)
 
-	s.options.Config = Config{
+	config := Config{
 		Grants: []Grant{
 			{
 				Group:    "Everyone",
@@ -430,7 +429,7 @@ func TestLoadConfigWithGroupGrants(t *testing.T) {
 		},
 	}
 
-	err := s.loadConfig()
+	err := s.loadConfig(s.db, config)
 	assert.NilError(t, err)
 
 	var group models.Group
@@ -446,7 +445,7 @@ func TestLoadConfigWithGroupGrants(t *testing.T) {
 func TestLoadConfigPruneConfig(t *testing.T) {
 	s := setupServer(t)
 
-	s.options.Config = Config{
+	config := Config{
 		Providers: []Provider{
 			{
 				Name:         "okta",
@@ -469,7 +468,7 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 		},
 	}
 
-	err := s.loadConfig()
+	err := s.loadConfig(s.db, config)
 	assert.NilError(t, err)
 
 	var providers, grants, groups, providerUsers int64
@@ -495,7 +494,7 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 	assert.Equal(t, int64(0), providerUsers)
 
 	// previous config is cleared on new config application
-	s.options.Config = Config{
+	config = Config{
 		Providers: []Provider{
 			{
 				Name:         "okta",
@@ -508,7 +507,7 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 		Identities: []Identity{},
 	}
 
-	err = s.loadConfig()
+	err = s.loadConfig(s.db, config)
 	assert.NilError(t, err)
 
 	err = s.db.Model(&models.Provider{}).Count(&providers).Error
@@ -517,11 +516,11 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 
 	err = s.db.Model(&models.Grant{}).Count(&grants).Error
 	assert.NilError(t, err)
-	assert.Equal(t, int64(1), grants) // connector
+	assert.Equal(t, int64(3), grants) // connector
 
 	identities, err = data.ListIdentities(s.db)
 	assert.NilError(t, err)
-	assert.Equal(t, 1, len(identities))
+	assert.Equal(t, 2, len(identities))
 
 	err = s.db.Model(&models.Group{}).Count(&groups).Error
 	assert.NilError(t, err)
@@ -531,7 +530,7 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 func TestLoadConfigUpdate(t *testing.T) {
 	s := setupServer(t)
 
-	s.options.Config = Config{
+	config := Config{
 		Providers: []Provider{
 			{
 				Name:         "okta",
@@ -552,6 +551,9 @@ func TestLoadConfigUpdate(t *testing.T) {
 				Email: "john@email.com",
 			},
 			{
+				Email: "test@example.com",
+			},
+			{
 				Email:    "sarah@email.com",
 				Password: "supersecret",
 			},
@@ -570,7 +572,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 		},
 	}
 
-	err := s.loadConfig()
+	err := s.loadConfig(s.db, config)
 	assert.NilError(t, err)
 
 	var providers, groups, credentials, accessKeys int64
@@ -614,7 +616,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, int64(1), accessKeys) // c3po
 
-	s.options.Config = Config{
+	config = Config{
 		Providers: []Provider{
 			{
 				Name:         "atko",
@@ -638,7 +640,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 		Identities: []Identity{},
 	}
 
-	err = s.loadConfig()
+	err = s.loadConfig(s.db, config)
 	assert.NilError(t, err)
 
 	err = s.db.Model(&models.Provider{}).Count(&providers).Error
@@ -674,7 +676,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 
 	identities, err = data.ListIdentities(s.db)
 	assert.NilError(t, err)
-	assert.Equal(t, 2, len(identities))
+	assert.Equal(t, 6, len(identities))
 
 	var user models.Identity
 	err = s.db.Where("name = ?", "test@example.com").First(&user).Error

@@ -523,8 +523,12 @@ func getKindFromUnstructured(data interface{}) string {
 	return ""
 }
 
-func (s Server) loadConfig() error {
-	return s.db.Transaction(func(tx *gorm.DB) error {
+func (s *Server) loadConfig(db *gorm.DB, config Config) error {
+	if err := validator.New().Struct(config); err != nil {
+		return err
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
 		// load default infra provider
 		provider, err := s.loadProvider(tx, Provider{Name: models.InternalInfraProviderName})
 		if err != nil {
@@ -547,13 +551,9 @@ func (s Server) loadConfig() error {
 			return err
 		}
 
-		if err := validator.New().Struct(s.options.Config); err != nil {
-			return err
-		}
-
 		// load and replace providers if specified in the config
-		if len(s.options.Config.Providers) > 0 {
-			if err := s.loadProviders(tx, s.options.Config.Providers, []uid.ID{provider.ID}); err != nil {
+		if len(config.Providers) > 0 {
+			if err := s.loadProviders(tx, config.Providers, []uid.ID{provider.ID}); err != nil {
 				return err
 			}
 		}
@@ -561,23 +561,15 @@ func (s Server) loadConfig() error {
 		var ids []uid.ID
 
 		// load and replace grants if specified in the config
-		if len(s.options.Config.Grants) > 0 {
-			for _, g := range s.options.Config.Grants {
-				if g.Group != "" {
+		if len(config.Grants) > 0 {
+			for _, g := range config.Grants {
+				if g.Group != "" || g.User == "" {
 					continue
 				}
 
-				// create placeholder identities for users declared in grants
-				var id *models.Identity
-				var err error
-
-				switch {
-				case g.User != "":
-					id, err = s.loadIdentity(tx, Identity{Name: g.User}, provider)
-				}
-
+				id, err := s.loadIdentity(tx, Identity{Name: g.User}, provider)
 				if err != nil {
-					return err
+					return fmt.Errorf("failed to load user with name %v: %w", g.User, err)
 				}
 
 				if id != nil {
@@ -585,15 +577,15 @@ func (s Server) loadConfig() error {
 				}
 			}
 
-			if err := s.loadGrants(tx, s.options.Config.Grants, []uid.ID{connectorGrant.ID}); err != nil {
+			if err := s.loadGrants(tx, config.Grants, []uid.ID{connectorGrant.ID}); err != nil {
 				return err
 			}
 		}
 
 		// load and replace identities if specified in the config
 		// note: also keep identities created by grants above
-		if len(s.options.Config.Identities) > 0 {
-			if err := s.loadIdentities(tx, s.options.Config.Identities, append(ids, connector.ID)); err != nil {
+		if len(config.Identities) > 0 {
+			if err := s.loadIdentities(tx, config.Identities, append(ids, connector.ID)); err != nil {
 				return err
 			}
 		}

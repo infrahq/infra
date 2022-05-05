@@ -540,9 +540,6 @@ func TestAPI_CreateGrant_Success(t *testing.T) {
 	assert.NilError(t, err)
 	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 
-	accessKey, err := data.ValidateAccessKey(srv.db, adminAccessKey(srv))
-	assert.NilError(t, err)
-
 	runStep(t, "response is ok", func(t *testing.T) {
 		routes.ServeHTTP(resp, req)
 		assert.Equal(t, resp.Code, http.StatusCreated)
@@ -551,12 +548,11 @@ func TestAPI_CreateGrant_Success(t *testing.T) {
 		{
 		  "id": "<any-valid-uid>",
 		  "privilege": "admin-role",
-		  "resource": "some-cluster",
+          "resource": "some-cluster",
 		  "identity": "TJ",
-		  "created": "%[2]v",
-		  "updated": "%[2]v"
+		  "created": "%[1]v",
+		  "updated": "%[1]v"
 		}`,
-			accessKey.IssuedFor,
 			time.Now().UTC().Format(time.RFC3339),
 		))
 		actual := jsonUnmarshal(t, resp.Body.String())

@@ -37,7 +37,7 @@ func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
 	err := loadDefaultSecretConfig(s.secrets)
 	assert.NilError(t, err)
 
-	err = s.loadConfig()
+	err = s.loadConfig(s.db, s.options.Config)
 	assert.NilError(t, err)
 
 	data.InvalidateCache()
@@ -410,7 +410,7 @@ func TestServer_PersistSignupUser(t *testing.T) {
 	checkAuthenticated()
 
 	// reload server config
-	err = s.loadConfig()
+	err = s.loadConfig(s.db, Config{})
 	assert.NilError(t, err)
 
 	// retry the authenticated endpoint
