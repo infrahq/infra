@@ -153,6 +153,94 @@ func get[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqResH
 	}
 }
 
+func post[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqResHandlerFunc[Req, Res]) {
+	fullPath := path.Join(r.BasePath(), route)
+	register(http.MethodPost, fullPath, handler)
+
+	handlers := includeRewritesFor(a, http.MethodPost, fullPath, func(c *gin.Context) {
+		req := new(Req)
+		if err := bind(c, req); err != nil {
+			sendAPIError(c, err)
+			return
+		}
+
+		resp, err := handler(c, req)
+		if err != nil {
+			sendAPIError(c, err)
+			return
+		}
+
+		a.t.RouteEvent(c, fullPath, Properties{"method": "post"})
+
+		c.JSON(http.StatusCreated, resp)
+	})
+
+	r.POST(route, handlers...)
+	for _, migration := range redirectsFor(a, http.MethodPost, fullPath) {
+		handlers = append([]gin.HandlerFunc{migration.RedirectHandler()}, handlers...)
+		r.POST(migration.path, handlers...)
+	}
+}
+
+func put[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqResHandlerFunc[Req, Res]) {
+	fullPath := path.Join(r.BasePath(), route)
+	register(http.MethodPut, fullPath, handler)
+
+	handlers := includeRewritesFor(a, http.MethodPut, fullPath, func(c *gin.Context) {
+		req := new(Req)
+		if err := bind(c, req); err != nil {
+			sendAPIError(c, err)
+			return
+		}
+
+		resp, err := handler(c, req)
+		if err != nil {
+			sendAPIError(c, err)
+			return
+		}
+
+		a.t.RouteEvent(c, fullPath, Properties{"method": "put"})
+
+		c.JSON(http.StatusOK, resp)
+	})
+
+	r.PUT(route, handlers...)
+	for _, migration := range redirectsFor(a, http.MethodPut, fullPath) {
+		handlers = append([]gin.HandlerFunc{migration.RedirectHandler()}, handlers...)
+		r.PUT(migration.path, handlers...)
+	}
+}
+
+func delete[Req any](a *API, r *gin.RouterGroup, route string, handler ReqHandlerFunc[Req]) {
+	fullPath := path.Join(r.BasePath(), route)
+	registerReq(http.MethodDelete, fullPath, handler)
+
+	handlers := includeRewritesFor(a, http.MethodDelete, fullPath, func(c *gin.Context) {
+		req := new(Req)
+		if err := bind(c, req); err != nil {
+			sendAPIError(c, err)
+			return
+		}
+
+		err := handler(c, req)
+		if err != nil {
+			sendAPIError(c, err)
+			return
+		}
+
+		a.t.RouteEvent(c, fullPath, Properties{"method": "delete"})
+
+		c.Status(http.StatusNoContent)
+		c.Writer.WriteHeaderNow()
+	})
+
+	r.DELETE(route, handlers...)
+	for _, migration := range redirectsFor(a, http.MethodDelete, fullPath) {
+		handlers = append([]gin.HandlerFunc{migration.RedirectHandler()}, handlers...)
+		r.DELETE(migration.path, handlers...)
+	}
+}
+
 func redirectsFor(a *API, method, path string) []apiMigration {
 	redirectPaths := []apiMigration{}
 	for _, migration := range a.migrations {
@@ -187,94 +275,6 @@ func includeRewritesFor(a *API, method, path string, handler gin.HandlerFunc) gi
 	}
 	result = append(result, handler)
 	return result
-}
-
-func post[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqResHandlerFunc[Req, Res]) {
-	fullPath := path.Join(r.BasePath(), route)
-	register("POST", fullPath, handler)
-
-	handlers := includeRewritesFor(a, http.MethodPost, fullPath, func(c *gin.Context) {
-		req := new(Req)
-		if err := bind(c, req); err != nil {
-			sendAPIError(c, err)
-			return
-		}
-
-		resp, err := handler(c, req)
-		if err != nil {
-			sendAPIError(c, err)
-			return
-		}
-
-		a.t.RouteEvent(c, fullPath, Properties{"method": "post"})
-
-		c.JSON(http.StatusCreated, resp)
-	})
-
-	r.POST(route, handlers...)
-	for _, migration := range redirectsFor(a, http.MethodPost, fullPath) {
-		handlers = append([]gin.HandlerFunc{migration.RedirectHandler()}, handlers...)
-		r.POST(migration.path, handlers...)
-	}
-}
-
-func put[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqResHandlerFunc[Req, Res]) {
-	fullPath := path.Join(r.BasePath(), route)
-	register("PUT", fullPath, handler)
-
-	handlers := includeRewritesFor(a, http.MethodPut, fullPath, func(c *gin.Context) {
-		req := new(Req)
-		if err := bind(c, req); err != nil {
-			sendAPIError(c, err)
-			return
-		}
-
-		resp, err := handler(c, req)
-		if err != nil {
-			sendAPIError(c, err)
-			return
-		}
-
-		a.t.RouteEvent(c, fullPath, Properties{"method": "put"})
-
-		c.JSON(http.StatusOK, resp)
-	})
-
-	r.PUT(route, handlers...)
-	for _, migration := range redirectsFor(a, http.MethodGet, fullPath) {
-		handlers = append([]gin.HandlerFunc{migration.RedirectHandler()}, handlers...)
-		r.PUT(migration.path, handlers...)
-	}
-}
-
-func delete[Req any](a *API, r *gin.RouterGroup, route string, handler ReqHandlerFunc[Req]) {
-	fullPath := path.Join(r.BasePath(), route)
-	registerReq("DELETE", fullPath, handler)
-
-	handlers := includeRewritesFor(a, http.MethodGet, fullPath, func(c *gin.Context) {
-		req := new(Req)
-		if err := bind(c, req); err != nil {
-			sendAPIError(c, err)
-			return
-		}
-
-		err := handler(c, req)
-		if err != nil {
-			sendAPIError(c, err)
-			return
-		}
-
-		a.t.RouteEvent(c, fullPath, Properties{"method": "delete"})
-
-		c.Status(http.StatusNoContent)
-		c.Writer.WriteHeaderNow()
-	})
-
-	r.DELETE(route, handlers...)
-	for _, migration := range redirectsFor(a, http.MethodGet, fullPath) {
-		handlers = append([]gin.HandlerFunc{migration.RedirectHandler()}, handlers...)
-		r.DELETE(migration.path, handlers...)
-	}
 }
 
 func bind(c *gin.Context, req interface{}) error {
