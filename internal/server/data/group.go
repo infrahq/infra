@@ -7,14 +7,6 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func BindGroupIdentities(db *gorm.DB, group *models.Group, identities ...models.Identity) error {
-	if err := db.Model(group).Association("Identities").Replace(identities); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func CreateGroup(db *gorm.DB, group *models.Group) error {
 	return add(db, group)
 }
