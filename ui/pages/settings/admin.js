@@ -58,9 +58,15 @@ const AdminName = ({ id }) => {
   const { data: user } = useSWR(`/v1/identities/${id.replace('i:', '')}`, { fallbackData: { name: '', kind: '' } })
 
   return (
-    <div className='flex items-center'>
-      <div className='w-10 h-10 mr-4 bg-purple-100/10 font-bold rounded-lg flex items-center justify-center'>
-        {user.name && user.name[0].toUpperCase()}
+    <div className='flex items-center space-x-4'>
+      <div className='bg-gradient-to-tr from-indigo-300/40 to-pink-100/40 rounded-lg p-[1px]'>
+        <div className='bg-black flex-none flex items-center justify-center w-10 h-10 rounded-lg'>
+          <div className='bg-gradient-to-tr from-indigo-300 to-pink-100 rounded-[4px] p-[1px]'>
+            <div className='bg-black flex-none flex justify-center items-center pb-[3px] w-8 h-8 font-bold rounded-[4px]'>
+              {user?.name?.[0]}
+            </div>
+          </div>
+        </div>
       </div>
       <div className='flex flex-col leading-tight'>
         <div>{user.name}</div>
@@ -127,8 +133,8 @@ export default function () {
 
   return (
     <>
-      <h3 className='text-sm font-bold mb-4'>Admins</h3>
-      <h4 className='text-gray-300 mb-4 text-xs w-3/4'>Infra admins have full access to the Infra API, including creating additional grants, managing identity providers, managing destinations, and managing other users.</h4>
+      <div className='text-name'>Admins</div>
+      <h4 className='text-gray-300 text-xs w-3/4'>Infra admins have full access to the Infra API, including creating additional grants, managing identity providers, managing destinations, and managing other users.</h4>
       <div className={`flex gap-1 ${error ? 'mt-10 mb-2' : 'my-10'} my-10 w-9/12`}>
         <div className='flex-1'>
           <InputDropdown
@@ -141,16 +147,20 @@ export default function () {
             error={error}
           />
         </div>
-        <button
-          onClick={() => handleAddAdmin()}
-          disabled={adminEmail.length === 0}
-          type='button'
-          className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 p-0.5 ml-2 rounded-full disabled:opacity-30'
-        >
-          <div className='bg-black flex items-center text-sm px-12 py-2.5 rounded-full'>
-            Add
+        <div className='bg-gradient-to-tr from-indigo-300/40 to-pink-100/40 rounded-full p-[1px]'>
+          <div className='bg-black flex-none flex items-center justify-center px-[3px] py-[2px] rounded-full'>
+            <button
+              onClick={() => handleAddAdmin()}
+              disabled={adminEmail.length === 0}
+              type='button'
+              className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 p-[1px] rounded-full disabled:opacity-30'
+            >
+              <div className='bg-black flex items-center text-sm px-[60px] py-[12px] rounded-full'>
+                Add
+              </div>
+            </button>
           </div>
-        </button>
+        </div>
       </div>
       {error && <ErrorMessage message={error} />}
 

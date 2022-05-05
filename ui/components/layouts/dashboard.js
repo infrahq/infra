@@ -61,7 +61,7 @@ export default function ({ children }) {
                 href={n.href}
                 className={`
                   ${router.asPath.startsWith(n.href) ? 'text-purple-50/90' : 'text-purple-50/40'}
-                  rounded-lg py-2 px-3 flex items-center text-nav transition-colors duration-100 
+                  rounded-lg py-2 px-3 flex items-center text-title transition-colors duration-100 
                   ${n.admin && !admin ? 'opacity-30 pointer-events-none' : ''}
                 `}
               >
@@ -93,12 +93,12 @@ export default function ({ children }) {
             {subNavigation.map(s => (
               <Link key={s.name} href={s.href}>
                 <a className={`w-full flex py-2 ${s.admin && !admin ? 'pointer-events-none opacity-20' : ''}`}>
-                  <div className='text-purple-50/90 text-nav hover:text-purple-50'>{s.name}</div>
+                  <div className='text-purple-50/90 text-title hover:text-purple-50'>{s.name}</div>
                 </a>
               </Link>
             ))}
             <div onClick={() => logout()} className='w-full flex items-center py-2 cursor-pointer'>
-              <div className='text-purple-50/90 text-nav hover:text-purple-50'>Sign Out</div>
+              <div className='text-purple-50/90 text-title hover:text-purple-50'>Sign Out</div>
             </div>
           </div>
           <div className='px-8 pt-2 pb-4 text-note text-purple-50/40'>

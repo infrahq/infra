@@ -24,6 +24,7 @@ module.exports = {
         gray: {
           200: '#78828A',
           300: '#B2B2B2',
+          350: '#2A2D34',
           950: '#292E33'
         },
         purple: {
@@ -37,7 +38,7 @@ module.exports = {
         note: ['10px', '12px'],
         name: ['12px', '15px'],
         icon: ['12px', '0px'],
-        nav: ['13px', '16px']
+        title: ['13px', '16px']
       },
       transitionProperty: {
         size: 'height, padding, background'
