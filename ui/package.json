@@ -6,6 +6,7 @@
     "dev": "concurrently 'npm run dev:ui' 'npm run dev:server'",
     "dev:ui": "next dev",
     "dev:server": "go run .. server --enable-ui --ui-proxy-url http://localhost:3000",
+    "test": "jest --ci",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -30,6 +31,7 @@
     "concurrently": "^7.1.0",
     "eslint": "^8.14.0",
     "eslint-config-next": "^12.1.4",
+    "jest": "^28.0.3",
     "postcss": "^8.4.13",
     "standard": "^16.0.4",
     "tailwindcss": "^3.0.23"
@@ -38,5 +40,9 @@
     "globals": [
       "fetch"
     ]
+  },
+  "engines": {
+    "node": ">=17.8.0",
+    "npm": ">=8.5.5"
   }
 }
