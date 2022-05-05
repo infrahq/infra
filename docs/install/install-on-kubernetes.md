@@ -45,13 +45,18 @@ server:
   # Example of granting access to an individual user the `cluster-admin` role. The name of a resource is specified when installing the Infra Engine at that location.
     - user: admin
       role: cluster-admin                  # cluster_roles required
-      resource: kubernetes.example-cluster # limit access to the `example-cluster` Kubernetes cluster
+      resource: example-cluster            # limit access to the `example-cluster` Kubernetes cluster
 
   # Example of granting access to an individual user through assigning them to the 'edit' role in the `web` namespace.
   # In this case, Infra will automatically scope the access to a namespace.
     - user: admin
-      role: edit                               # cluster_roles required
-      resource: kubernetes.example-cluster.web # limit access to only the `web` namespace in the `example-cluster` Kubernetes cluster
+      role: edit                            # cluster_roles required
+      resource: example-cluster.web         # limit access to only the `web` namespace in the `example-cluster` Kubernetes cluster
+
+  # Example of granting access to a group the `view` role.
+    - group: Everyone
+      role: view                           # cluster_roles required
+      resource: example-cluster            # limit access to the `example-cluster` Kubernetes cluster
 ```
 
 ### Step 2: Install Infra

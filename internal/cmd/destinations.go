@@ -74,7 +74,7 @@ func newDestinationsRemoveCmd() *cobra.Command {
 		Use:     "remove DESTINATION",
 		Aliases: []string{"rm"},
 		Short:   "Disconnect a destination",
-		Example: "$ infra destinations remove kubernetes.docker-desktop",
+		Example: "$ infra destinations remove docker-desktop",
 		Args:    ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := defaultAPIClient()

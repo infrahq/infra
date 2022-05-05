@@ -18,12 +18,12 @@ type Grant struct {
 
 type ListGrantsRequest struct {
 	Subject   uid.PolymorphicID `form:"subject"`
-	Resource  string            `form:"resource" example:"kubernetes.production"`
+	Resource  string            `form:"resource" example:"production"`
 	Privilege string            `form:"privilege" example:"view"`
 }
 
 type CreateGrantRequest struct {
 	Subject   uid.PolymorphicID `json:"subject" validate:"required" note:"a polymorphic field expecting an identity or group ID"`
 	Privilege string            `json:"privilege" validate:"required" example:"view" note:"a role or permission"`
-	Resource  string            `json:"resource" validate:"required" example:"kubernetes.production" note:"a resource name in Infra's Universal Resource Notation"`
+	Resource  string            `json:"resource" validate:"required" example:"production" note:"a resource name in Infra's Universal Resource Notation"`
 }

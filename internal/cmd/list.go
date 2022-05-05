@@ -90,7 +90,7 @@ func list(cli *CLI) error {
 	}
 
 	type row struct {
-		Name   string `header:"RESOURCE"`
+		Name   string `header:"NAME"`
 		Access string `header:"ACCESS"`
 	}
 

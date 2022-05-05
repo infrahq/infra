@@ -99,7 +99,7 @@ Install the Infra connector via `helm`:
 
 ```
 helm upgrade --install infra-connector infrahq/infra \
-  --set connector.config.name=example \
+  --set connector.config.name=example-cluster \
   --set connector.config.server=<INFRA_SERVER_HOSTNAME> \
   --set connector.config.accessKey=<ACCESS_KEY> \
   --set connector.config.skipTLSVerify=true
@@ -120,7 +120,7 @@ infra id add user@example.com
 Grant this user read-only access to the Kubernetes cluster you just connected to Infra:
 
 ```
-infra grants add user@example.com kubernetes.example --role view
+infra grants add user@example.com example-cluster --role view
 ```
 
 ### 5. Login as the example user and access the cluster:
@@ -131,7 +131,7 @@ Use the one-time password in the previous step to log in as the user. You'll be 
 infra login <INFRA_SERVER_HOSTNAME> --skip-tls-verify
 ```
 
-Next, view this user's cluster access. You should see the user has `view` access to the `example` cluster connected above:
+Next, view this user's cluster access. You should see the user has `view` access to the `example-cluster` cluster connected above:
 
 ```
 infra list
@@ -140,7 +140,7 @@ infra list
 Lastly, switch to this Kubernetes cluster and verify the user's access:
 
 ```
-infra use kubernetes.example
+infra use example-cluster
 
 # Works since the user has view access
 kubectl get pods -A

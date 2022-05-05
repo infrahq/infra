@@ -20,10 +20,10 @@ function columns (admin) {
   return [
     {
       Header: 'Cluster',
-      accessor: i => i,
+      accessor: 'name',
       Cell: ({ value }) => (
         <div className='flex items-center'>
-          <div className='py-2'>{value.name.replace('kubernetes.', '')}</div>
+          <div className='py-2'>{value}</div>
         </div>
       )
     }, {
@@ -127,7 +127,7 @@ function columns (admin) {
                     setOpen(false)
                   }}
                   title='Delete Cluster'
-                  message={<>Are you sure you want to disconnect <span className='text-white font-bold'>{name.replace('kubernetes.', '')}?</span><br />Note: you must also uninstall the Infra Connector from this cluster.</>}
+                  message={<>Are you sure you want to disconnect <span className='text-white font-bold'>{name}?</span><br />Note: you must also uninstall the Infra Connector from this cluster.</>}
                 />
               </div>
             )

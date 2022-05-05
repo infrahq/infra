@@ -271,13 +271,13 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 		var crn kubernetes.ClusterRoleNamespace
 
 		switch len(parts) {
-		// kubernetes.<cluster>
-		case 2:
+		// <cluster>
+		case 1:
 			crn.ClusterRole = g.Privilege
 			crSubjects[g.Privilege] = append(crSubjects[g.Privilege], subj)
 
-		// kubernetes.<cluster>.<namespace>
-		case 3:
+		// <cluster>.<namespace>
+		case 2:
 			crn.ClusterRole = g.Privilege
 			crn.Namespace = parts[2]
 			crnSubjects[crn] = append(crnSubjects[crn], subj)
@@ -382,10 +382,6 @@ func Run(ctx context.Context, options Options) error {
 			return err
 		}
 		options.Name = autoname
-	}
-
-	if !strings.HasPrefix(options.Name, "kubernetes.") {
-		options.Name = fmt.Sprintf("kubernetes.%s", options.Name)
 	}
 
 	caCertPEM, err := os.ReadFile(options.CACert)
