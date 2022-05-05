@@ -32,9 +32,12 @@ module.exports = {
       },
       fontSize: {
         label: ['11px', '0px'],
-        name: ['12px', '15px'],
         title: ['13px', '16px'],
-        header: ['16px', '19px']
+        header: ['16px', '19px'],
+        note: ['10px', '12px'],
+        name: ['12px', '15px'],
+        icon: ['12px', '0px'],
+        nav: ['13px', '16px']
       },
       transitionProperty: {
         size: 'height, padding, background'
