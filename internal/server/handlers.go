@@ -544,7 +544,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 		a.t.Event("login", identity.ID.String(), Properties{"method": "exchange"})
 
-		return &api.LoginResponse{PolymorphicID: identity.PolyID(), Name: identity.Name, AccessKey: key, Expires: api.Time(expires)}, nil
+		return &api.LoginResponse{ID: identity.ID, Name: identity.Name, AccessKey: key, Expires: api.Time(expires)}, nil
 	case r.PasswordCredentials != nil:
 		if r.PasswordCredentials.Name == "" {
 			// #1825: remove, this is for migration
@@ -559,7 +559,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 		a.t.Event("login", user.ID.String(), Properties{"method": "credentials"})
 
-		return &api.LoginResponse{PolymorphicID: user.PolyID(), Name: user.Name, AccessKey: key, Expires: api.Time(expires), PasswordUpdateRequired: requiresUpdate}, nil
+		return &api.LoginResponse{ID: user.ID, Name: user.Name, AccessKey: key, Expires: api.Time(expires), PasswordUpdateRequired: requiresUpdate}, nil
 	case r.OIDC != nil:
 		provider, err := access.GetProvider(c, r.OIDC.ProviderID)
 		if err != nil {
@@ -580,7 +580,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 		a.t.Event("login", user.ID.String(), Properties{"method": "oidc"})
 
-		return &api.LoginResponse{PolymorphicID: user.PolyID(), Name: user.Name, AccessKey: key, Expires: api.Time(expires)}, nil
+		return &api.LoginResponse{ID: user.ID, Name: user.Name, AccessKey: key, Expires: api.Time(expires)}, nil
 	}
 
 	return nil, fmt.Errorf("%w: missing login credentials", internal.ErrBadRequest)

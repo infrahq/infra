@@ -56,15 +56,10 @@ func kubernetesSetContext(cluster, namespace string) error {
 	return nil
 }
 
-func updateKubeconfig(client *api.Client, identityPolymorphicID uid.PolymorphicID) error {
+func updateKubeconfig(client *api.Client, id uid.ID) error {
 	destinations, err := client.ListDestinations(api.ListDestinationsRequest{})
 	if err != nil {
 		return nil
-	}
-
-	id, err := identityPolymorphicID.ID()
-	if err != nil {
-		return err
 	}
 
 	identity, err := client.GetIdentity(id)

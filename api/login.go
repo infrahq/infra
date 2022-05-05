@@ -21,9 +21,9 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	PolymorphicID          uid.PolymorphicID `json:"polymorphicID"`
-	Name                   string            `json:"name"`
-	AccessKey              string            `json:"accessKey"`
-	PasswordUpdateRequired bool              `json:"passwordUpdateRequired,omitempty"`
-	Expires                Time              `json:"expires"`
+	ID                     uid.ID `json:"id"`
+	Name                   string `json:"name"`
+	AccessKey              string `json:"accessKey"`
+	PasswordUpdateRequired bool   `json:"passwordUpdateRequired,omitempty"`
+	Expires                Time   `json:"expires"`
 }

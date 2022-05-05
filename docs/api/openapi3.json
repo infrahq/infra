@@ -582,17 +582,17 @@
             "format": "date-time",
             "type": "string"
           },
+          "id": {
+            "example": "4yJ3n3D8E2",
+            "format": "uid",
+            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
           "passwordUpdateRequired": {
             "type": "boolean"
-          },
-          "polymorphicID": {
-            "example": "i:4yJ3n3D8E3",
-            "format": "poly-uid",
-            "pattern": "\\w:[\\da-zA-HJ-NP-Z]{1,11}",
-            "type": "string"
           }
         }
       },
