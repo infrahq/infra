@@ -13,7 +13,6 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/uid"
 )
 
 type Properties = analytics.Properties
@@ -150,21 +149,6 @@ func (t *Telemetry) User(id string, name string) {
 		UserId:    id,
 		Traits:    analytics.NewTraits().SetEmail(name),
 		Timestamp: time.Now().UTC(),
-	})
-	if err != nil {
-		logging.S.Debug(err)
-	}
-}
-
-func (t *Telemetry) Group(identityID, groupID uid.ID, traits map[string]interface{}) {
-	if t == nil {
-		return
-	}
-	err := t.Enqueue(analytics.Group{
-		UserId:    identityID.String(),
-		GroupId:   groupID.String(),
-		Timestamp: time.Now().UTC(),
-		Traits:    traits,
 	})
 	if err != nil {
 		logging.S.Debug(err)

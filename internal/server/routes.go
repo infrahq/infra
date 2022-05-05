@@ -126,19 +126,19 @@ type ReqHandlerFunc[Req any] func(c *gin.Context, req *Req) error
 type ResHandlerFunc[Res any] func(c *gin.Context) (Res, error)
 type ReqResHandlerFunc[Req, Res any] func(c *gin.Context, req *Req) (Res, error)
 
-func get[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqResHandlerFunc[Req, Res]) {
+func get[Req, Res any](_ *API, r *gin.RouterGroup, route string, handler ReqResHandlerFunc[Req, Res]) {
 	fullPath := path.Join(r.BasePath(), route)
 	register("GET", fullPath, handler)
 	r.GET(route, func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
-			a.sendAPIError(c, err)
+			sendAPIError(c, err)
 			return
 		}
 
 		resp, err := handler(c, req)
 		if err != nil {
-			a.sendAPIError(c, err)
+			sendAPIError(c, err)
 			return
 		}
 
@@ -153,13 +153,13 @@ func post[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqRes
 	r.POST(route, func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
-			a.sendAPIError(c, err)
+			sendAPIError(c, err)
 			return
 		}
 
 		resp, err := handler(c, req)
 		if err != nil {
-			a.sendAPIError(c, err)
+			sendAPIError(c, err)
 			return
 		}
 
@@ -176,13 +176,13 @@ func put[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqResH
 	r.PUT(route, func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
-			a.sendAPIError(c, err)
+			sendAPIError(c, err)
 			return
 		}
 
 		resp, err := handler(c, req)
 		if err != nil {
-			a.sendAPIError(c, err)
+			sendAPIError(c, err)
 			return
 		}
 
@@ -199,13 +199,13 @@ func delete[Req any](a *API, r *gin.RouterGroup, route string, handler ReqHandle
 	r.DELETE(route, func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
-			a.sendAPIError(c, err)
+			sendAPIError(c, err)
 			return
 		}
 
 		err := handler(c, req)
 		if err != nil {
-			a.sendAPIError(c, err)
+			sendAPIError(c, err)
 			return
 		}
 
@@ -249,7 +249,7 @@ type WellKnownJWKResponse struct {
 func (a *API) wellKnownJWKsHandler(c *gin.Context) {
 	keys, err := access.GetPublicJWK(c)
 	if err != nil {
-		a.sendAPIError(c, err)
+		sendAPIError(c, err)
 		return
 	}
 
@@ -266,7 +266,7 @@ func healthHandler(c *gin.Context) {
 // format of the response body. https://github.com/infrahq/infra/issues/1610
 func (a *API) notFoundHandler(c *gin.Context) {
 	if strings.HasPrefix(c.Request.URL.Path, "/v1") {
-		a.sendAPIError(c, internal.ErrNotFound)
+		sendAPIError(c, internal.ErrNotFound)
 		return
 	}
 
