@@ -59,7 +59,7 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 			}
 
 			if len(rows) > 0 {
-				printTable(rows, cli.Stdout)
+				cli.Table(rows)
 			} else {
 				cli.Output("No destinations found")
 			}

@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -13,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/goware/urlx"
-	"github.com/lensesio/tableprinter"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"golang.org/x/term"
@@ -68,23 +66,6 @@ func infraHomeDir() (string, error) {
 	}
 
 	return infraDir, nil
-}
-
-func printTable(data interface{}, out io.Writer) {
-	table := tableprinter.New(out)
-
-	table.HeaderAlignment = tableprinter.AlignLeft
-	table.AutoWrapText = false
-	table.DefaultAlignment = tableprinter.AlignLeft
-	table.CenterSeparator = ""
-	table.ColumnSeparator = ""
-	table.RowSeparator = ""
-	table.HeaderLine = false
-	table.BorderBottom = false
-	table.BorderLeft = false
-	table.BorderRight = false
-	table.BorderTop = false
-	table.Print(data)
 }
 
 // Creates a new API Client from the current config

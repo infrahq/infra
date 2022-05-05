@@ -138,7 +138,7 @@ func list(cli *CLI) error {
 	}
 
 	if len(rows) > 0 {
-		printTable(rows, cli.Stdout)
+		cli.Table(rows)
 	} else {
 		cli.Output("You have not been granted access to any active destinations")
 	}
