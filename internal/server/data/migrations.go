@@ -94,7 +94,7 @@ func Migrate(db *gorm.DB) error {
 					key.IssuedFor = strings.TrimPrefix(key.IssuedFor, "u:")
 					key.IssuedFor = strings.TrimPrefix(key.IssuedFor, "m:")
 
-					iss, err := uid.ParseString(key.IssuedFor)
+					iss, err := uid.Parse([]byte(key.IssuedFor))
 					if err != nil {
 						return fmt.Errorf("converting access keys: %w", err)
 					}
@@ -154,7 +154,7 @@ func Migrate(db *gorm.DB) error {
 					cred.Identity = strings.TrimPrefix(cred.Identity, "u:")
 					cred.Identity = strings.TrimPrefix(cred.Identity, "m:")
 
-					identityID, err := uid.ParseString(cred.Identity)
+					identityID, err := uid.Parse([]byte(cred.Identity))
 					if err != nil {
 						return fmt.Errorf("converting credential identity: %w", err)
 					}

@@ -285,7 +285,7 @@ func TestAPI_DeleteProvider(t *testing.T) {
 			},
 		},
 		"not authorized": {
-			urlPath: "/v1/providers/1234",
+			urlPath: "/v1/providers/2341",
 			setup: func(t *testing.T, req *http.Request) {
 				key, _ := createAccessKey(t, srv.db, "someonenew@example.com")
 				req.Header.Set("Authorization", "Bearer "+key)
@@ -738,7 +738,7 @@ func TestAPI_GetIdentity(t *testing.T) {
 			},
 		},
 		"identity not found": {
-			urlPath: "/v1/identities/1234",
+			urlPath: "/v1/identities/2341",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusNotFound)
 			},

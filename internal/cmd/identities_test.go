@@ -101,7 +101,7 @@ func TestIdentitiesCmd(t *testing.T) {
 				case http.MethodDelete:
 					id := req.URL.Path[len("/v1/identities/"):]
 
-					uid, err := uid.ParseString(id)
+					uid, err := uid.Parse([]byte(id))
 					assert.NilError(t, err)
 
 					modifiedIdentities = append(modifiedIdentities, models.Identity{Model: models.Model{ID: uid}})
