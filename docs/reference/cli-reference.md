@@ -182,7 +182,7 @@ infra destinations remove DESTINATION [flags]
 ### Examples
 
 ```
-$ infra destinations remove kubernetes.docker-desktop
+$ infra destinations remove docker-desktop
 ```
 
 ### Options inherited from parent commands
@@ -225,13 +225,13 @@ infra grants add IDENTITY DESTINATION [flags]
 
 ```
 # Grant an identity access to a destination
-$ infra grants add johndoe@example.com kubernetes.docker-desktop 
+$ infra grants add johndoe@example.com docker-desktop
 
-# Grant a group access to a destination 
-$ infra grants add group-a kubernetes.staging --group
+# Grant a group access to a destination
+$ infra grants add group-a staging --group
 
 # Grant access with fine-grained permissions
-$ infra grants add johndoe@example.com kubernetes.staging --role viewer
+$ infra grants add johndoe@example.com staging --role viewer
 
 # Assign a user a role within Infra
 $ infra grants add johndoe@example.com infra --role admin
@@ -264,15 +264,15 @@ infra grants remove IDENTITY DESTINATION [flags]
 
 ```
 # Remove all grants of an identity in a destination
-$ infra grants remove janedoe@example.com kubernetes.docker-desktop 
+$ infra grants remove janedoe@example.com docker-desktop
 
 # Remove all grants of a group in a destination
-$ infra grants remove group-a kubernetes.staging --group
+$ infra grants remove group-a staging --group
 
-# Remove a specific grant 
-$ infra grants remove janedoe@example.com kubernetes.staging --role viewer
+# Remove a specific grant
+$ infra grants remove janedoe@example.com staging --role viewer
 
-# Remove access to infra 
+# Remove access to infra
 $ infra grants remove janedoe@example.com infra --role admin
 
 ```

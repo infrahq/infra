@@ -120,7 +120,7 @@ infra id add user@example.com
 Grant this user read-only access to the Kubernetes cluster you just connected to Infra:
 
 ```
-infra grants add user@example.com kubernetes.example --role view
+infra grants add user@example.com example --role view
 ```
 
 ### 5. Login as the example user and access the cluster:
@@ -140,7 +140,7 @@ infra list
 Lastly, switch to this Kubernetes cluster and verify the user's access:
 
 ```
-infra use kubernetes.example
+infra use example
 
 # Works since the user has view access
 kubectl get pods -A

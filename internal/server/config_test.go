@@ -342,7 +342,7 @@ func TestLoadConfigInvalid(t *testing.T) {
 			Grants: []Grant{
 				{
 					Role:     "admin",
-					Resource: "kubernetes.test-cluster",
+					Resource: "test-cluster",
 				},
 			},
 		},
@@ -393,7 +393,7 @@ func TestLoadConfigWithUserGrants(t *testing.T) {
 			{
 				User:     "test@example.com",
 				Role:     "admin",
-				Resource: "kubernetes.test-cluster",
+				Resource: "test-cluster",
 			},
 		},
 	}
@@ -413,7 +413,7 @@ func TestLoadConfigWithUserGrants(t *testing.T) {
 	err = s.db.Where("subject = ?", uid.NewIdentityPolymorphicID(user.ID)).First(&grant).Error
 	assert.NilError(t, err)
 	assert.Equal(t, "admin", grant.Privilege)
-	assert.Equal(t, "kubernetes.test-cluster", grant.Resource)
+	assert.Equal(t, "test-cluster", grant.Resource)
 }
 
 func TestLoadConfigWithGroupGrants(t *testing.T) {
@@ -424,7 +424,7 @@ func TestLoadConfigWithGroupGrants(t *testing.T) {
 			{
 				Group:    "Everyone",
 				Role:     "admin",
-				Resource: "kubernetes.test-cluster",
+				Resource: "test-cluster",
 			},
 		},
 	}
@@ -440,9 +440,8 @@ func TestLoadConfigWithGroupGrants(t *testing.T) {
 	err = s.db.Where("subject = ?", uid.NewGroupPolymorphicID(group.ID)).First(&grant).Error
 	assert.NilError(t, err)
 	assert.Equal(t, "admin", grant.Privilege)
-	assert.Equal(t, "kubernetes.test-cluster", grant.Resource)
+	assert.Equal(t, "test-cluster", grant.Resource)
 }
-
 func TestLoadConfigPruneConfig(t *testing.T) {
 	s := setupServer(t)
 
@@ -459,12 +458,12 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 			{
 				User:     "test@example.com",
 				Role:     "admin",
-				Resource: "kubernetes.test-cluster",
+				Resource: "test-cluster",
 			},
 			{
 				Group:    "Everyone",
 				Role:     "admin",
-				Resource: "kubernetes.test-cluster",
+				Resource: "test-cluster",
 			},
 		},
 	}
@@ -558,12 +557,12 @@ func TestLoadConfigUpdate(t *testing.T) {
 			{
 				User:     "test@example.com",
 				Role:     "admin",
-				Resource: "kubernetes.test-cluster",
+				Resource: "test-cluster",
 			},
 			{
 				Group:    "Everyone",
 				Role:     "admin",
-				Resource: "kubernetes.test-cluster",
+				Resource: "test-cluster",
 			},
 		},
 	}
@@ -625,12 +624,12 @@ func TestLoadConfigUpdate(t *testing.T) {
 			{
 				User:     "test@example.com",
 				Role:     "view",
-				Resource: "kubernetes.test-cluster",
+				Resource: "test-cluster",
 			},
 			{
 				Group:    "Everyone",
 				Role:     "view",
-				Resource: "kubernetes.test-cluster",
+				Resource: "test-cluster",
 			},
 		},
 	}

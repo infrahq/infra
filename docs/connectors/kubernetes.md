@@ -33,10 +33,10 @@ Once you've connected a cluster, you can grant access via `infra grants add`:
 
 ```
 # grant access to a user
-infra grants add fisher@example.com kubernetes.example --role admin
+infra grants add fisher@example.com example --role admin
 
 # grant access to a group
-infra grants add -g engineering kubernetes.example --role view
+infra grants add -g engineering example --role view
 ```
 
 ### Roles
@@ -53,7 +53,7 @@ infra grants add -g engineering kubernetes.example --role view
 This command will grant the user `dev@example.com` read-only access into a cluster, giving that user the privileges to query Kubernetes resources but not modify any resources.
 
 ```bash
-infra grants add dev@example.com kubernetes.cluster --role view
+infra grants add dev@example.com cluster --role view
 ```
 
 ### Example: Grant user `ops@example.com` the `admin` role to a namespace
@@ -61,7 +61,7 @@ infra grants add dev@example.com kubernetes.cluster --role view
 This command will grant the user `ops@example.com` admin access into a namespace, giving that user the privileges to create, update, and delete any resource so long as the resources they’re modifying exist in the namespace.
 
 ```bash
-infra grants add ops@example.com kubernetes.cluster.namespace --role admin
+infra grants add ops@example.com cluster.namespace --role admin
 ```
 
 ### Example: Revoke from the user `ops@example.com` the `admin` role to a namespace
@@ -69,7 +69,7 @@ infra grants add ops@example.com kubernetes.cluster.namespace --role admin
 This command will remove the `admin` role, granted in the previous example, from `ops@example.com`.
 
 ```bash
-infra grants remove ops@example.com kubernetes.cluster.namespace --role cluster-admin
+infra grants remove ops@example.com cluster.namespace --role cluster-admin
 ```
 
 ## Additional Information

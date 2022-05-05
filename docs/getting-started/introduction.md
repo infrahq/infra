@@ -27,16 +27,16 @@ $ infra login infra.acme.dev
   ... logged in as henry@acme.com
 
 # Discover what you can access via `infra list`
-# In the example below, 3 Kubernetes clusters are connected to Infra. 
-# Infra has already synchronized the kubeconfig file so the 
+# In the example below, 3 Kubernetes clusters are connected to Infra.
+# Infra has already synchronized the kubeconfig file so the
 # user can use their tool of choice right away (i.e. kubectl)
 
 $ infra list
-  RESOURCE                           ACCESS
-  kubernetes.production              view
-  kubernetes.production.web          edit
-  kubernetes.staging                 edit
-  kubernetes.development             edit
+  NAME                           ACCESS
+  production                     view
+  production.web                 edit
+  staging                        edit
+  development                    edit
 
 # You can switch clusters using your existing tools
 # Infra also includes a CLI command for switching clusters

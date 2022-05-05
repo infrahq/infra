@@ -531,7 +531,7 @@ func TestAPI_CreateGrant_Success(t *testing.T) {
 		{
 		  "subject": "i:12345",
 		  "privilege": "admin-role",
-		  "resource": "kubernetes.some-cluster"
+		  "resource": "some-cluster"
 		}`)
 
 	resp := httptest.NewRecorder()
@@ -551,7 +551,7 @@ func TestAPI_CreateGrant_Success(t *testing.T) {
 		  "id": "<any-valid-uid>",
 		  "created_by": "%[1]v",
 		  "privilege": "admin-role",
-		  "resource": "kubernetes.some-cluster",
+		  "resource": "some-cluster",
 		  "subject": "i:12345",
 		  "created": "%[2]v",
 		  "updated": "%[2]v"
@@ -934,7 +934,7 @@ func TestAPI_DeleteGrant(t *testing.T) {
 		grant2 := &models.Grant{
 			Subject:   uid.NewIdentityPolymorphicID(user.ID),
 			Privilege: "admin",
-			Resource:  "kubernetes.example",
+			Resource:  "example",
 		}
 
 		err := data.CreateGrant(srv.db, grant2)

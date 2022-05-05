@@ -55,8 +55,8 @@ Groups are sets of identities (usually representing a team or organization) that
 
 Destinations are infrastructure resources that can be accessed via Infra. Some examples of destinations include:
 
-* Kubernetes cluster (e.g. `kubernetes.production`)
-* Kubernetes namespace (e.g. `kubernetes.production.web`)
+* Kubernetes cluster (e.g. `production`)
+* Kubernetes namespace (e.g. `production.web`)
 * Database (e.g. `postgres.production`)
 * Database Table (e.g. `postgres.production.orders`)
 * SSH Server (e.g. `ssh.staging-1`)

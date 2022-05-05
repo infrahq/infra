@@ -42,7 +42,6 @@ export default function () {
 
   const [accessKey, setAccessKey] = useState('')
   const [name, setName] = useState('')
-  const [connectorFullName, setConnectorFullName] = useState('')
   const [currentDestinationName, setCurrentDestinationName] = useState('')
   const [connected, setConnected] = useState(false)
   const [enabledCommandInput, setEnabledCommandInput] = useState(false)
@@ -52,7 +51,7 @@ export default function () {
   useEffect(() => {
     const handleDestinationConnection = () => {
       if (accessKey && name.length > 0) {
-        fetch(`/v1/destinations?name=${connectorFullName}`)
+        fetch(`/v1/destinations?name=${name}`)
           .then((response) => response.json())
           .then((data) => {
             if (!connected) {
@@ -83,9 +82,6 @@ export default function () {
   }
 
   const handleNext = () => {
-    const type = 'kubernetes'
-    const destinationName = type + '.' + name
-
     setDisabledInput(true)
     setCurrentDestinationName(name)
     setEnabledCommandInput(name.length > 0)

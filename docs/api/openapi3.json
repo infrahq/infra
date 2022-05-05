@@ -1436,11 +1436,11 @@
             }
           },
           {
-            "example": "kubernetes.production",
+            "example": "production",
             "in": "query",
             "name": "resource",
             "schema": {
-              "example": "kubernetes.production",
+              "example": "production",
               "type": "string"
             }
           },
@@ -1536,7 +1536,7 @@
                   },
                   "resource": {
                     "description": "a resource name in Infra's Universal Resource Notation",
-                    "example": "kubernetes.production",
+                    "example": "production",
                     "type": "string"
                   },
                   "subject": {

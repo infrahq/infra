@@ -107,21 +107,11 @@ func writeKubeconfig(identity *api.Identity, destinations []api.Destination, gra
 	for _, g := range grants {
 		parts := strings.Split(g.Resource, ".")
 
-		kind := parts[0]
-
-		if kind != "kubernetes" {
-			continue
-		}
-
-		if len(parts) < 2 {
-			continue
-		}
-
-		cluster := parts[1]
+		cluster := parts[0]
 
 		var namespace string
-		if len(parts) > 2 {
-			namespace = parts[2]
+		if len(parts) > 1 {
+			namespace = parts[1]
 		}
 
 		context := "infra:" + cluster
@@ -136,8 +126,8 @@ func writeKubeconfig(identity *api.Identity, destinations []api.Destination, gra
 		)
 
 		for _, d := range destinations {
-			// eg resource:  "kubernetes.foo.bar"
-			// eg dest name: "kubernetes.foo"
+			// eg resource:  "foo.bar"
+			// eg dest name: "foo"
 			if strings.HasPrefix(g.Resource, d.Name) {
 				url = d.Connection.URL
 				ca = d.Connection.CA
