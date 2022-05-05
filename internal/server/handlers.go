@@ -101,8 +101,6 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 		resp.OneTimePassword = oneTimePassword
 	}
 
-	a.t.User(identity)
-
 	return resp, nil
 }
 
@@ -517,6 +515,9 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.Identity, error
 		return nil, err
 	}
 
+	a.t.User(identity.ID.String(), r.Name)
+	a.t.Event("signup", identity.ID.String(), Properties{})
+
 	return identity.ToAPI(), nil
 }
 
@@ -532,7 +533,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 		setAuthCookie(c, key, expires)
 
-		a.t.Event(c, "login", Properties{"method": "exchange"})
+		a.t.Event("login", identity.ID.String(), Properties{"method": "exchange"})
 
 		return &api.LoginResponse{PolymorphicID: identity.PolyID(), Name: identity.Name, AccessKey: key, Expires: api.Time(expires)}, nil
 	case r.PasswordCredentials != nil:
@@ -547,7 +548,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 		setAuthCookie(c, key, expires)
 
-		a.t.Event(c, "login", Properties{"method": "credentials"})
+		a.t.Event("login", user.ID.String(), Properties{"method": "credentials"})
 
 		return &api.LoginResponse{PolymorphicID: user.PolyID(), Name: user.Name, AccessKey: key, Expires: api.Time(expires), PasswordUpdateRequired: requiresUpdate}, nil
 	case r.OIDC != nil:
@@ -568,7 +569,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 		setAuthCookie(c, key, expires)
 
-		a.t.Event(c, "login", Properties{"method": "oidc"})
+		a.t.Event("login", user.ID.String(), Properties{"method": "oidc"})
 
 		return &api.LoginResponse{PolymorphicID: user.PolyID(), Name: user.Name, AccessKey: key, Expires: api.Time(expires)}, nil
 	}

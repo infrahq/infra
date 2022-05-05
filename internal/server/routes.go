@@ -142,8 +142,6 @@ func get[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqResH
 			return
 		}
 
-		a.t.Event(c, fullPath, Properties{"method": "get"})
-
 		c.JSON(http.StatusOK, resp)
 	})
 }
@@ -165,7 +163,7 @@ func post[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqRes
 			return
 		}
 
-		a.t.Event(c, fullPath, Properties{"method": "post"})
+		a.t.RouteEvent(c, fullPath, Properties{"method": "post"})
 
 		c.JSON(http.StatusCreated, resp)
 	})
@@ -188,7 +186,7 @@ func put[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqResH
 			return
 		}
 
-		a.t.Event(c, fullPath, Properties{"method": "put"})
+		a.t.RouteEvent(c, fullPath, Properties{"method": "put"})
 
 		c.JSON(http.StatusOK, resp)
 	})
@@ -211,7 +209,7 @@ func delete[Req any](a *API, r *gin.RouterGroup, route string, handler ReqHandle
 			return
 		}
 
-		a.t.Event(c, fullPath, Properties{"method": "delete"})
+		a.t.RouteEvent(c, fullPath, Properties{"method": "delete"})
 
 		c.Status(http.StatusNoContent)
 		c.Writer.WriteHeaderNow()

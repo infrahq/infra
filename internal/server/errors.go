@@ -71,13 +71,6 @@ func (a *API) sendAPIError(c *gin.Context, err error) {
 
 	log("api request error", zap.Error(err), zap.Int32("statusCode", resp.Code))
 
-	if resp.Code >= 500 {
-		a.t.Event(c, "error", Properties{
-			"code": resp.Code,
-			"path": c.FullPath(),
-		})
-	}
-
 	c.JSON(int(resp.Code), resp)
 	c.Abort()
 }
