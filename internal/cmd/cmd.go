@@ -162,14 +162,6 @@ $ infra use development.kube-system`,
 
 			parts := strings.Split(destination, ".")
 
-			if parts[0] == "kubernetes" {
-				if len(parts) > 1 {
-					return kubernetesSetContext(parts[0], parts[1])
-				}
-
-				return kubernetesSetContext(parts[0], "")
-			}
-
 			if len(parts) == 1 {
 				return kubernetesSetContext(destination, "")
 			}
