@@ -538,10 +538,10 @@ func Run(ctx context.Context, options Options) error {
 				return
 			}
 
-			grants = append(grants, g...)
+			grants.Items = append(grants.Items, g.Items...)
 		}
 
-		err = updateRoles(client, k8s, grants)
+		err = updateRoles(client, k8s, grants.Items)
 		if err != nil {
 			logging.S.Errorf("error updating grants: %v", err)
 			return
@@ -626,8 +626,8 @@ func createDestination(client *api.Client, local *api.Destination) error {
 		return fmt.Errorf("error listing destinations: %w", err)
 	}
 
-	if len(destinations) > 0 {
-		local.ID = destinations[0].ID
+	if destinations.Count > 0 {
+		local.ID = destinations.Items[0].ID
 		return updateDestination(client, local)
 	}
 

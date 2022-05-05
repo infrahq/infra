@@ -106,14 +106,16 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 		handler := func(resp http.ResponseWriter, req *http.Request) {
 			switch {
 			case req.URL.Path == "/v1/destinations":
-				destinations := []api.Destination{
-					{
-						ID:       destinationID,
-						UniqueID: "uniqueID",
-						Name:     "kubernetes.cluster",
-						Connection: api.DestinationConnection{
-							URL: "kubernetes.docker.local",
-							CA:  ca,
+				destinations := api.ListResponse[api.Destination]{
+					Items: []api.Destination{
+						{
+							ID:       destinationID,
+							UniqueID: "uniqueID",
+							Name:     "kubernetes.cluster",
+							Connection: api.DestinationConnection{
+								URL: "kubernetes.docker.local",
+								CA:  ca,
+							},
 						},
 					},
 				}
@@ -124,18 +126,20 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 				_, err = resp.Write(bytes)
 				assert.NilError(t, err)
 			case req.URL.Path == fmt.Sprintf("/v1/identities/%s/grants", userID):
-				grants := []api.Grant{
-					{
-						ID:        uid.New(),
-						Subject:   uid.NewIdentityPolymorphicID(userID),
-						Resource:  "kubernetes.cluster",
-						Privilege: "admin",
-					},
-					{
-						ID:        uid.New(),
-						Subject:   uid.NewIdentityPolymorphicID(userID),
-						Resource:  "kubernetes.cluster.namespace",
-						Privilege: "admin",
+				grants := api.ListResponse[api.Grant]{
+					Items: []api.Grant{
+						{
+							ID:        uid.New(),
+							Subject:   uid.NewIdentityPolymorphicID(userID),
+							Resource:  "kubernetes.cluster",
+							Privilege: "admin",
+						},
+						{
+							ID:        uid.New(),
+							Subject:   uid.NewIdentityPolymorphicID(userID),
+							Resource:  "kubernetes.cluster.namespace",
+							Privilege: "admin",
+						},
 					},
 				}
 
@@ -145,8 +149,7 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 				_, err = resp.Write(bytes)
 				assert.NilError(t, err)
 			case req.URL.Path == fmt.Sprintf("/v1/identities/%s/groups", userID):
-				groups := []api.Group{}
-
+				groups := api.ListResponse[api.Group]{}
 				bytes, err := json.Marshal(groups)
 				assert.NilError(t, err)
 

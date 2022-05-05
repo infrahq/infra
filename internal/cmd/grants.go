@@ -65,7 +65,7 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 			}
 
 			var rows []row
-			for _, g := range grants {
+			for _, g := range grants.Items {
 				identity, err := subjectNameFromGrant(client, g)
 				if err != nil {
 					return err
@@ -144,7 +144,7 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		return err
 	}
 
-	for _, g := range grants {
+	for _, g := range grants.Items {
 		err := client.DeleteGrant(g.ID)
 		if err != nil {
 			return err
@@ -248,15 +248,15 @@ func GetGroupByName(client *api.Client, name string) (*api.Group, error) {
 		return nil, err
 	}
 
-	if len(groups) == 0 {
+	if groups.Count == 0 {
 		return nil, ErrIdentityNotFound
 	}
 
-	if len(groups) != 1 {
+	if groups.Count != 1 {
 		return nil, fmt.Errorf("invalid groups response, there should only be one group that matches a name, but multiple were found")
 	}
 
-	return &groups[0], nil
+	return &groups.Items[0], nil
 }
 
 func subjectNameFromGrant(client *api.Client, g api.Grant) (name string, err error) {

@@ -85,7 +85,7 @@ func TestAPI_ListIdentities(t *testing.T) {
 			urlPath: "/v1/identities?name=doesnotmatch",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
-				assert.Equal(t, resp.Body.String(), `[]`)
+				assert.Equal(t, resp.Body.String(), `{"items":[],"count":0}`)
 			},
 		},
 		"name match": {
@@ -93,11 +93,14 @@ func TestAPI_ListIdentities(t *testing.T) {
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
 
-				var actual []api.Identity
+				var actual api.ListResponse[api.Identity]
 				err := json.NewDecoder(resp.Body).Decode(&actual)
 				assert.NilError(t, err)
-				expected := []api.Identity{
-					{Name: "me@example.com"},
+				expected := api.ListResponse[api.Identity]{
+					Count: 1,
+					Items: []api.Identity{
+						{Name: "me@example.com"},
+					},
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIIdentityShallow)
 			},
@@ -107,13 +110,16 @@ func TestAPI_ListIdentities(t *testing.T) {
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
 
-				var actual []api.Identity
+				var actual api.ListResponse[api.Identity]
 				err := json.NewDecoder(resp.Body).Decode(&actual)
 				assert.NilError(t, err)
-				expected := []api.Identity{
-					{Name: "HAL"},
-					{Name: "me@example.com"},
-					{Name: "other@example.com"},
+				expected := api.ListResponse[api.Identity]{
+					Count: 3,
+					Items: []api.Identity{
+						{Name: "HAL"},
+						{Name: "me@example.com"},
+						{Name: "other@example.com"},
+					},
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIIdentityShallow)
 			},
@@ -123,16 +129,19 @@ func TestAPI_ListIdentities(t *testing.T) {
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
 
-				var actual []api.Identity
+				var actual api.ListResponse[api.Identity]
 				err := json.NewDecoder(resp.Body).Decode(&actual)
 				assert.NilError(t, err)
-				expected := []api.Identity{
-					{Name: "HAL"},
-					{Name: "admin"},
-					{Name: "connector"},
-					{Name: "me@example.com"},
-					{Name: "other-HAL"},
-					{Name: "other@example.com"},
+				expected := api.ListResponse[api.Identity]{
+					Count: 6,
+					Items: []api.Identity{
+						{Name: "HAL"},
+						{Name: "admin"},
+						{Name: "connector"},
+						{Name: "me@example.com"},
+						{Name: "other-HAL"},
+						{Name: "other@example.com"},
+					},
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIIdentityShallow)
 			},
@@ -195,9 +204,9 @@ func TestListKeys(t *testing.T) {
 	keys, err := handlers.ListAccessKeys(c, &api.ListAccessKeysRequest{})
 	assert.NilError(t, err)
 
-	assert.Assert(t, len(keys) > 0)
+	assert.Assert(t, len(keys.Items) > 0)
 
-	assert.Equal(t, keys[0].IssuedForName, "foo@example.com")
+	assert.Equal(t, keys.Items[0].IssuedForName, "foo@example.com")
 }
 
 func TestListProviders(t *testing.T) {
@@ -223,12 +232,12 @@ func TestListProviders(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, resp.Code, resp.Body.String())
 
-	apiProviders := make([]api.Provider, 0)
+	var apiProviders api.ListResponse[Provider]
 	err = json.Unmarshal(resp.Body.Bytes(), &apiProviders)
 	assert.NilError(t, err)
 
-	assert.Equal(t, len(apiProviders), 1)
-	assert.Equal(t, apiProviders[0].Name, "mokta")
+	assert.Equal(t, len(apiProviders.Items), 1)
+	assert.Equal(t, apiProviders.Items[0].Name, "mokta")
 }
 
 func TestAPI_DeleteProvider(t *testing.T) {
