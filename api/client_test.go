@@ -90,6 +90,7 @@ func TestGet(t *testing.T) {
 	expectedHeaders := http.Header{
 		"User-Agent":      []string{"testing"},
 		"X-Custom":        []string{"custom"},
+		"Infra-Version":   []string{"0.12.2"},
 		"Accept-Encoding": []string{"gzip"},
 		"Authorization":   []string{"Bearer the-access-key"},
 	}

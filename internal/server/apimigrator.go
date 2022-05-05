@@ -2,9 +2,14 @@ package server
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
+	"reflect"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,13 +18,103 @@ type apiMigration struct {
 	method          string
 	path            string
 	version         string
+	redirect        string
 	requestRewrite  func(c *gin.Context)
 	responseRewrite func(c *gin.Context)
 }
 
 var migrations = []apiMigration{}
 
-func addResponseRewrite[newResp any, oldResp any](method, path, version string, f func(newResp) oldResp) {
+func addRedirect(a *API, method, path, newPath, version string) {
+	migrations = append(migrations, apiMigration{
+		method:   method,
+		path:     path,
+		version:  version,
+		redirect: newPath,
+	})
+}
+
+func addRequestRewrite[oldReq any, newReq any](a *API, method, path, version string, f func(oldReq) newReq) {
+	migrations = append(migrations, apiMigration{
+		method:  method,
+		path:    path,
+		version: version,
+		requestRewrite: func(c *gin.Context) {
+			reqVer := NewVersion(c.Request.Header.Get("VERSION"))
+			if reqVer.GreaterThanStr(version) {
+				c.Next()
+				return
+			}
+
+			oldReqObj := new(oldReq)
+
+			err := bind(c, oldReqObj)
+			if err != nil {
+				a.sendAPIError(c, err)
+				return
+			}
+
+			newReqObj := f(*oldReqObj)
+
+			rebuildRequest(c, newReqObj)
+
+			c.Next()
+		},
+	})
+}
+
+func rebuildRequest(c *gin.Context, newReqObj interface{}) {
+	query := url.Values{}
+	body := map[string]interface{}{}
+	r := reflect.ValueOf(newReqObj)
+	t := r.Type()
+	for i := 0; i < r.NumField(); i++ {
+		f := r.Field(i)
+		if fieldName, ok := t.Field(i).Tag.Lookup("form"); ok {
+			if f.Type().Name() == "uid.ID" {
+				query.Add(fieldName, f.String())
+				continue
+			}
+
+			// this list only needs to handle types we use with the "form" tag
+			// nolint:exhaustive
+			switch f.Kind() {
+			case reflect.String:
+				query.Add(fieldName, f.String())
+			case reflect.Slice:
+				// only type that does this is []uid.ID
+				switch f.Elem().Type().Name() {
+				case "uid.ID":
+					for j := 0; j < f.Len(); j++ {
+						query.Add(fieldName, f.Index(j).String())
+					}
+				default:
+					panic("unexpected type " + f.Elem().Type().Name())
+				}
+			case reflect.Int, reflect.Int64:
+				query.Add(fieldName, fmt.Sprintf("%d", f.Int()))
+			case reflect.Uint, reflect.Uint64:
+				query.Add(fieldName, fmt.Sprintf("%d", f.Int()))
+			default:
+				panic("unhandled reflection kind " + f.Kind().String())
+			}
+		}
+		if fieldname, ok := t.Field(i).Tag.Lookup("json"); ok {
+			body[fieldname] = f.Interface()
+		}
+	}
+	c.Request.URL.RawQuery = query.Encode()
+
+	if c.Request.Method != http.MethodGet {
+		bodyJSON, err := json.Marshal(body)
+		if err != nil {
+			panic(err) // sendAPIError and return
+		}
+		c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(bodyJSON))
+	}
+}
+
+func addResponseRewrite[newResp any, oldResp any](a *API, method, path, version string, f func(newResp) oldResp) {
 	migrations = append(migrations, apiMigration{
 		method:  method,
 		path:    path,
@@ -39,26 +134,36 @@ func addResponseRewrite[newResp any, oldResp any](method, path, version string, 
 			newRespObj := new(newResp)
 			err := json.Unmarshal(w.body, newRespObj)
 			if err != nil {
-				panic(err)
+				a.sendAPIError(c, err)
+				return
 			}
 
 			oldRespObj := f(*newRespObj)
 
 			b, err := json.Marshal(oldRespObj)
 			if err != nil {
-				panic(err)
+				a.sendAPIError(c, err)
+				return
 			}
 
 			w.body = b
 			w.Flush()
 
 			if w.flushErr != nil {
-				panic(w.flushErr)
+				a.sendAPIError(c, w.flushErr)
 			}
 		},
 	})
 }
 
+func (m *apiMigration) RedirectHandler() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Request.URL.Path = m.redirect
+		c.Next()
+	}
+}
+
+// responseWriter is made to satisfy gin.ResponseWriter, which is rather greedy with its interface demands
 type responseWriter struct {
 	http.ResponseWriter
 	body     []byte
