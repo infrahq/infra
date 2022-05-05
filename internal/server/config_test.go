@@ -514,9 +514,15 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, int64(2), providers) // infra and new okta
 
+	var provider models.Provider
+	err = s.db.Where("name = ?", "okta").First(&provider).Error
+	assert.NilError(t, err)
+	assert.Equal(t, provider.URL, "new-demo.okta.com")
+	assert.Equal(t, provider.ClientID, "new-client-id")
+
 	err = s.db.Model(&models.Grant{}).Count(&grants).Error
 	assert.NilError(t, err)
-	assert.Equal(t, int64(3), grants) // connector
+	assert.Equal(t, int64(3), grants)
 
 	identities, err = data.ListIdentities(s.db)
 	assert.NilError(t, err)
@@ -548,13 +554,13 @@ func TestLoadConfigUpdate(t *testing.T) {
 				AccessKey: "TllVlekkUz.NFnxSlaPQLosgkNsyzaMttfC",
 			},
 			{
-				Email: "john@email.com",
+				Name: "john@example.com",
 			},
 			{
-				Email: "test@example.com",
+				Name: "test@example.com",
 			},
 			{
-				Email:    "sarah@email.com",
+				Name:     "sarah@email.com",
 				Password: "supersecret",
 			},
 		},
@@ -637,7 +643,11 @@ func TestLoadConfigUpdate(t *testing.T) {
 				Resource: "test-cluster",
 			},
 		},
-		Identities: []Identity{},
+		Identities: []Identity{
+			{
+				Name: "john@example.com",
+			},
+		},
 	}
 
 	err = s.loadConfig(s.db, config)
@@ -676,10 +686,13 @@ func TestLoadConfigUpdate(t *testing.T) {
 
 	identities, err = data.ListIdentities(s.db)
 	assert.NilError(t, err)
-	assert.Equal(t, 6, len(identities))
+	assert.Equal(t, 3, len(identities))
 
 	var user models.Identity
 	err = s.db.Where("name = ?", "test@example.com").First(&user).Error
+	assert.NilError(t, err)
+
+	err = s.db.Where("name = ?", "john@example.com").First(&models.Identity{}).Error
 	assert.NilError(t, err)
 
 	err = s.db.Model(&models.Group{}).Count(&groups).Error
