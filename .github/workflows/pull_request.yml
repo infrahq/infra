@@ -22,10 +22,10 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 17
-      - run: npm install
-        working-directory: ui
-      - run: npm test
-        working-directory: ui
+      - working-directory: ui
+        run: |
+          npm install
+          npm test
 
   go-lint:
     runs-on: ubuntu-latest
