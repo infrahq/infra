@@ -1879,6 +1879,17 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "example": "4yJ3n3D8E2",
+            "in": "query",
+            "name": "identity-id",
+            "schema": {
+              "example": "4yJ3n3D8E2",
+              "format": "uid",
+              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -3481,93 +3492,6 @@
         },
         "summary": "UpdateUser",
         "tags": [
-          "Users"
-        ]
-      }
-    },
-    "/api/users/{id}/groups": {
-      "get": {
-        "description": "ListUserGroups",
-        "operationId": "ListUserGroups",
-        "parameters": [
-          {
-            "example": "4yJ3n3D8E2",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "example": "4yJ3n3D8E2",
-              "format": "uid",
-              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Bad Request"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Unauthorized: Requestor is not authenticated"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Forbidden: Requestor does not have the right permissions"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Not Found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Duplicate Record"
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ListResponse_Group"
-                }
-              }
-            },
-            "description": "Success"
-          }
-        },
-        "summary": "ListUserGroups",
-        "tags": [
-          "Groups",
           "Users"
         ]
       }

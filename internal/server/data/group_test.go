@@ -1,8 +1,10 @@
 package data
 
 import (
+	"fmt"
 	"testing"
 
+	gocmp "github.com/google/go-cmp/cmp"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
@@ -37,10 +39,11 @@ func TestCreateGroup(t *testing.T) {
 	})
 }
 
-func createGroups(t *testing.T, db *gorm.DB, groups ...models.Group) {
+func createGroups(t *testing.T, db *gorm.DB, groups ...*models.Group) {
+	t.Helper()
 	for i := range groups {
-		err := CreateGroup(db, &groups[i])
-		assert.NilError(t, err)
+		err := CreateGroup(db, groups[i])
+		assert.NilError(t, err, groups[i].Name)
 	}
 }
 
@@ -52,7 +55,7 @@ func TestCreateGroupDuplicate(t *testing.T) {
 			product   = models.Group{Name: "Product"}
 		)
 
-		createGroups(t, db, everyone, engineers, product)
+		createGroups(t, db, &everyone, &engineers, &product)
 
 		err := CreateGroup(db, &models.Group{Name: "Everyone"})
 		assert.ErrorContains(t, err, "duplicate record")
@@ -67,7 +70,7 @@ func TestGetGroup(t *testing.T) {
 			product   = models.Group{Name: "Product"}
 		)
 
-		createGroups(t, db, everyone, engineers, product)
+		createGroups(t, db, &everyone, &engineers, &product)
 
 		group, err := GetGroup(db, ByName(everyone.Name))
 		assert.NilError(t, err)
@@ -83,17 +86,57 @@ func TestListGroups(t *testing.T) {
 			product   = models.Group{Name: "Product"}
 		)
 
-		createGroups(t, db, everyone, engineers, product)
+		createGroups(t, db, &everyone, &engineers, &product)
 
-		groups, err := ListGroups(db)
-		assert.NilError(t, err)
-		assert.Equal(t, 3, len(groups))
+		firstUser := models.Identity{
+			Name:   "firstly",
+			Groups: []models.Group{everyone, engineers},
+		}
+		secondUser := models.Identity{
+			Name:   "secondarly",
+			Groups: []models.Group{everyone, product},
+		}
+		createIdentities(t, db, &firstUser, &secondUser)
 
-		groups, err = ListGroups(db, ByName(engineers.Name))
-		assert.NilError(t, err)
-		assert.Equal(t, 1, len(groups))
+		t.Run("all", func(t *testing.T) {
+			actual, err := ListGroups(db)
+			assert.NilError(t, err)
+			expected := []models.Group{
+				{Name: "Engineering"},
+				{Name: "Everyone"},
+				{Name: "Product"},
+			}
+			assert.DeepEqual(t, actual, expected, cmpGroupShallow)
+		})
+
+		t.Run("filter by name", func(t *testing.T) {
+			actual, err := ListGroups(db, ByName(engineers.Name))
+			assert.NilError(t, err)
+			expected := []models.Group{
+				{Name: "Engineering"},
+			}
+			assert.DeepEqual(t, actual, expected, cmpGroupShallow)
+		})
+
+		t.Run("filter by identity membership", func(t *testing.T) {
+			fetched, err := GetIdentity(db, ByID(firstUser.ID))
+			assert.NilError(t, err)
+			fmt.Println(fetched.Groups)
+
+			actual, err := ListGroups(db, WhereGroupIncludesUser(firstUser.ID))
+			assert.NilError(t, err)
+			expected := []models.Group{
+				{Name: "Everyone"},
+				{Name: "Engineering"},
+			}
+			assert.DeepEqual(t, actual, expected, cmpGroupShallow)
+		})
 	})
 }
+
+var cmpGroupShallow = gocmp.Comparer(func(x, y models.Group) bool {
+	return x.Name == y.Name
+})
 
 func TestDeleteGroup(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *gorm.DB) {
@@ -103,7 +146,7 @@ func TestDeleteGroup(t *testing.T) {
 			product   = models.Group{Name: "Product"}
 		)
 
-		createGroups(t, db, everyone, engineers, product)
+		createGroups(t, db, &everyone, &engineers, &product)
 
 		_, err := GetGroup(db, ByName(everyone.Name))
 		assert.NilError(t, err)
@@ -132,7 +175,7 @@ func TestRecreateGroupSameName(t *testing.T) {
 			product   = models.Group{Name: "Product"}
 		)
 
-		createGroups(t, db, everyone, engineers, product)
+		createGroups(t, db, &everyone, &engineers, &product)
 
 		err := DeleteGroups(db, ByName(everyone.Name))
 		assert.NilError(t, err)

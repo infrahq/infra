@@ -6,6 +6,8 @@ import (
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
+
+	"github.com/infrahq/infra/api"
 )
 
 func newInfoCmd(cli *CLI) *cobra.Command {
@@ -66,7 +68,7 @@ func info(cli *CLI) error {
 		fmt.Fprintf(w, "Identity Provider:\t %s (%s)\n", provider.Name, provider.URL)
 	}
 
-	identityGroups, err := client.ListUserGroups(identityID)
+	identityGroups, err := client.ListGroups(api.ListGroupsRequest{UserID: identityID})
 	if err != nil {
 		return err
 	}

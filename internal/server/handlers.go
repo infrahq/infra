@@ -126,21 +126,13 @@ func (a *API) DeleteUser(c *gin.Context, r *api.Resource) (*api.EmptyResponse, e
 	return nil, access.DeleteIdentity(c, r.ID)
 }
 
+// TODO: remove after deprecation period
 func (a *API) ListUserGroups(c *gin.Context, r *api.Resource) (*api.ListResponse[api.Group], error) {
-	groups, err := access.ListIdentityGroups(c, r.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	result := api.NewListResponse(groups, func(group models.Group) api.Group {
-		return *group.ToAPI()
-	})
-
-	return result, nil
+	return a.ListGroups(c, &api.ListGroupsRequest{UserID: r.ID})
 }
 
 func (a *API) ListGroups(c *gin.Context, r *api.ListGroupsRequest) (*api.ListResponse[api.Group], error) {
-	groups, err := access.ListGroups(c, r.Name)
+	groups, err := access.ListGroups(c, r.Name, r.UserID)
 	if err != nil {
 		return nil, err
 	}
