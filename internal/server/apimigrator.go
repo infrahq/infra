@@ -124,11 +124,13 @@ func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	if w.size < 0 {
 		w.size = 0
 	}
+	//nolint:forcetypeassert
 	return w.ResponseWriter.(http.Hijacker).Hijack()
 }
 
 // CloseNotify implements the http.CloseNotify interface.
 func (w *responseWriter) CloseNotify() <-chan bool {
+	//nolint:forcetypeassert
 	return w.ResponseWriter.(http.CloseNotifier).CloseNotify()
 }
 
@@ -145,6 +147,7 @@ func (w *responseWriter) Flush() {
 		bytesToFlush -= bytesFlushed
 		w.body = w.body[bytesFlushed:]
 	}
+	//nolint:forcetypeassert
 	w.ResponseWriter.(http.Flusher).Flush()
 	w.flushErr = nil
 }
