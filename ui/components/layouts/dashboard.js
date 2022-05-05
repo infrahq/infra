@@ -74,20 +74,18 @@ export default function ({ children }) {
             </Link>
           )}
         </div>
-        <div className='relative group mx-2 my-5 h-16 hover:h-[150px] transition-height transition-size px-4 duration-300 ease-in-out rounded-xl overflow-hidden'>
+        <div className='relative group mx-2 my-5 h-16 hover:h-[150px] transition-height transition-size px-6 duration-300 ease-in-out rounded-xl overflow-hidden bg-transparent hover:bg-gray-900 shadow hover:shadow-lg'>
           <div className='flex items-center space-x-2 mt-4 mb-2'>
-            <div className='bg-gradient-to-tr from-indigo-300/40 to-pink-100/40 rounded-[4px] p-[1px]'>
-              <div className='bg-black flex-none flex items-center justify-center w-[23px] h-[23px] rounded-[4px]'>
-                <div className='bg-gradient-to-tr from-indigo-300 to-pink-100 rounded-sm p-[1px]'>
-                  <div className='bg-black flex-none flex justify-center items-center pb-[3px] w-[17px] h-[17px] text-icon font-bold select-none rounded-sm'>
+            <div className='bg-gradient-to-tr from-indigo-300/40 to-pink-100/40 rounded-[4px] p-px'>
+              <div className='bg-black flex-none flex items-center justify-center w-6 h-6 rounded-[4px]'>
+                <div className='bg-gradient-to-tr from-indigo-300 to-pink-100 rounded-sm p-px'>
+                  <div className='bg-black flex-none flex justify-center items-center w-4 h-4 text-icon font-bold select-none rounded-sm'>
                     {auth?.name?.[0]}
                   </div>
                 </div>
               </div>
             </div>
-            <div>
-              <div className='text-purple-50/90 hover:text-purple-50 text-name overflow-hidden overflow-ellipsis leading-none'>{auth?.name}</div>
-            </div>
+            <div className='text-purple-50/90 hover:text-purple-50 text-name leading-none truncate'>{auth?.name}</div>
           </div>
           <div className='w-full px-8 items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 select-none text-sm'>
             {subNavigation.map(s => (

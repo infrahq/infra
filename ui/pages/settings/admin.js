@@ -59,9 +59,9 @@ const AdminName = ({ id }) => {
 
   return (
     <div className='flex items-center space-x-4'>
-      <div className='bg-gradient-to-tr from-indigo-300/40 to-pink-100/40 rounded-lg p-[1px]'>
+      <div className='bg-gradient-to-tr from-indigo-300/40 to-pink-100/40 rounded-lg p-px'>
         <div className='bg-black flex-none flex items-center justify-center w-10 h-10 rounded-lg'>
-          <div className='bg-gradient-to-tr from-indigo-300 to-pink-100 rounded-[4px] p-[1px]'>
+          <div className='bg-gradient-to-tr from-indigo-300 to-pink-100 rounded-[4px] p-px'>
             <div className='bg-black flex-none flex justify-center items-center pb-[3px] w-8 h-8 font-bold rounded-[4px]'>
               {user?.name?.[0]}
             </div>
@@ -147,13 +147,13 @@ export default function () {
             error={error}
           />
         </div>
-        <div className='bg-gradient-to-tr from-indigo-300/40 to-pink-100/40 rounded-full p-[1px]'>
+        <div className='bg-gradient-to-tr from-indigo-300/40 to-pink-100/40 rounded-full p-px'>
           <div className='bg-black flex-none flex items-center justify-center px-[3px] py-[2px] rounded-full'>
             <button
               onClick={() => handleAddAdmin()}
               disabled={adminEmail.length === 0}
               type='button'
-              className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 p-[1px] rounded-full disabled:opacity-30'
+              className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 p-px rounded-full disabled:opacity-30'
             >
               <div className='bg-black flex items-center text-sm px-[60px] py-[12px] rounded-full'>
                 Add
