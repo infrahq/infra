@@ -28,19 +28,11 @@ func NewDB(connection gorm.Dialector) (*gorm.DB, error) {
 		return nil, fmt.Errorf("db conn: %w", err)
 	}
 
-	if err = migrate(db); err != nil {
+	if err = Migrate(db); err != nil {
 		return nil, fmt.Errorf("migration failed: %w", err)
 	}
 
 	return db, nil
-}
-
-func PreMigrate(db *gorm.DB) error {
-	return premigrate(db)
-}
-
-func Migrate(db *gorm.DB) error {
-	return migrate(db)
 }
 
 // NewRawDB creates a new database connection without running migrations
@@ -55,12 +47,12 @@ func NewRawDB(connection gorm.Dialector) (*gorm.DB, error) {
 	if connection.Name() == "sqlite" {
 		// avoid issues with concurrent writes by telling gorm
 		// not to open multiple connections in the connection pool
-		db2, err := db.DB()
+		sqlDB, err := db.DB()
 		if err != nil {
 			return nil, fmt.Errorf("getting db driver: %w", err)
 		}
 
-		db2.SetMaxOpenConns(1)
+		sqlDB.SetMaxOpenConns(1)
 	}
 
 	return db, nil
@@ -81,13 +73,12 @@ func NewPostgresDriver(connection string) (gorm.Dialector, error) {
 }
 
 func get[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (*T, error) {
-	db2 := db
 	for _, selector := range selectors {
-		db2 = selector(db2)
+		db = selector(db)
 	}
 
-	model := new(T)
-	if err := db2.Model((*T)(nil)).First(model).Error; err != nil {
+	result := new(T)
+	if err := db.Model((*T)(nil)).First(result).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, internal.ErrNotFound
 		}
@@ -95,21 +86,20 @@ func get[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (*T, error)
 		return nil, err
 	}
 
-	return model, nil
+	return result, nil
 }
 
 func list[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) ([]T, error) {
-	db2 := db
 	for _, selector := range selectors {
-		db2 = selector(db2)
+		db = selector(db)
 	}
 
-	models := make([]T, 0)
-	if err := db2.Model((*T)(nil)).Find(&models).Error; err != nil {
+	result := make([]T, 0)
+	if err := db.Model((*T)(nil)).Find(&result).Error; err != nil {
 		return nil, err
 	}
 
-	return models, nil
+	return result, nil
 }
 
 func save[T models.Modelable](db *gorm.DB, model *T) error {
@@ -171,22 +161,20 @@ func delete[T models.Modelable](db *gorm.DB, id uid.ID) error {
 }
 
 func deleteAll[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) error {
-	db2 := db
 	for _, selector := range selectors {
-		db2 = selector(db2)
+		db = selector(db)
 	}
 
-	return db2.Delete(new(T)).Error
+	return db.Delete(new(T)).Error
 }
 
 func Count[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (int64, error) {
-	db2 := db
 	for _, selector := range selectors {
-		db2 = selector(db2)
+		db = selector(db)
 	}
 
 	var count int64
-	if err := db2.Model((*T)(nil)).Count(&count).Error; err != nil {
+	if err := db.Model((*T)(nil)).Count(&count).Error; err != nil {
 		return -1, err
 	}
 
