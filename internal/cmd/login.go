@@ -179,12 +179,12 @@ func loginToInfra(client *api.Client, loginReq *api.LoginRequest) error {
 		return err
 	}
 
-	if err := updateKubeconfig(client, loginRes.PolymorphicID); err != nil {
+	if err := updateKubeconfig(client, loginRes.ID); err != nil {
 		return err
 	}
 
 	if loginRes.PasswordUpdateRequired {
-		if err := updateUserPassword(client, loginRes.PolymorphicID, loginReq.PasswordCredentials.Password); err != nil {
+		if err := updateUserPassword(client, loginRes.ID, loginReq.PasswordCredentials.Password); err != nil {
 			return err
 		}
 	}
@@ -196,7 +196,7 @@ func loginToInfra(client *api.Client, loginReq *api.LoginRequest) error {
 func updateInfraConfig(client *api.Client, loginReq *api.LoginRequest, loginRes *api.LoginResponse) error {
 	clientHostConfig := ClientHostConfig{
 		Current:       true,
-		PolymorphicID: loginRes.PolymorphicID,
+		PolymorphicID: uid.NewIdentityPolymorphicID(loginRes.ID),
 		Name:          loginRes.Name,
 		AccessKey:     loginRes.AccessKey,
 		Expires:       loginRes.Expires,
@@ -288,7 +288,7 @@ func oidcflow(host string, clientId string) (string, error) {
 }
 
 // Prompt user to change their preset password when loggin in for the first time
-func updateUserPassword(client *api.Client, pid uid.PolymorphicID, oldPassword string) error {
+func updateUserPassword(client *api.Client, id uid.ID, oldPassword string) error {
 	// Todo otp: update term to temporary password (https://github.com/infrahq/infra/issues/1441)
 	fmt.Println("\n  One time password was used.")
 
@@ -297,12 +297,7 @@ func updateUserPassword(client *api.Client, pid uid.PolymorphicID, oldPassword s
 		return err
 	}
 
-	userID, err := pid.ID()
-	if err != nil {
-		return fmt.Errorf("update user id login: %w", err)
-	}
-
-	if _, err := client.UpdateIdentity(&api.UpdateIdentityRequest{ID: userID, Password: newPassword}); err != nil {
+	if _, err := client.UpdateIdentity(&api.UpdateIdentityRequest{ID: id, Password: newPassword}); err != nil {
 		return fmt.Errorf("update user login: %w", err)
 	}
 

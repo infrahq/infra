@@ -79,7 +79,7 @@ func TestGrantsAddCmd(t *testing.T) {
 
 		createReq := <-ch
 		expected := api.CreateGrantRequest{
-			Subject:   "i:TJ",
+			Identity:  3000,
 			Privilege: "connect",
 			Resource:  "the-destination",
 		}
@@ -93,7 +93,7 @@ func TestGrantsAddCmd(t *testing.T) {
 
 		createReq := <-ch
 		expected := api.CreateGrantRequest{
-			Subject:   "i:TJ",
+			Identity:  3000,
 			Privilege: "role",
 			Resource:  "the-destination",
 		}
@@ -109,7 +109,7 @@ func TestGrantsAddCmd(t *testing.T) {
 
 		createReq := <-ch
 		expected := api.CreateGrantRequest{
-			Subject:   "g:2bY",
+			Group:     4000,
 			Privilege: "role",
 			Resource:  "the-destination",
 		}
@@ -162,14 +162,17 @@ func TestGrantRemoveCmd(t *testing.T) {
 				}
 
 				if query.Get("privilege") == "custom" {
-					switch query.Get("subject") {
-					case "i:TK": // ID=3001
+					if query.Get("identity") == "TK" { // ID=3001
 						writeResponse(t, resp, api.ListResponse[api.Grant]{Count: 1, Items: []api.Grant{{ID: 6001}, {ID: 6002}}})
-					case "g:2bY": // ID=4000
-						writeResponse(t, resp, api.ListResponse[api.Grant]{Count: 1, Items: []api.Grant{{ID: 9001}, {ID: 9002}}})
-					default:
-						writeResponse(t, resp, api.ListResponse[api.Grant]{})
+						return
 					}
+
+					if query.Get("group") == "2bY" { // ID=4000
+						writeResponse(t, resp, api.ListResponse[api.Grant]{Count: 1, Items: []api.Grant{{ID: 9001}, {ID: 9002}}})
+						return
+					}
+
+					writeResponse(t, resp, api.ListResponse[api.Grant]{})
 					return
 				}
 
@@ -178,14 +181,17 @@ func TestGrantRemoveCmd(t *testing.T) {
 					return
 				}
 
-				switch query.Get("subject") {
-				case "i:TJ": // ID=3000
+				if query.Get("identity") == "TJ" { // ID=3000
 					writeResponse(t, resp, api.ListResponse[api.Grant]{Count: 1, Items: []api.Grant{{ID: 5001}, {ID: 5002}, {ID: 5003}}})
-				case "g:2bY": // ID=4000
-					writeResponse(t, resp, api.ListResponse[api.Grant]{Count: 1, Items: []api.Grant{{ID: 7001}, {ID: 7002}}})
-				default:
-					writeResponse(t, resp, api.ListResponse[api.Grant]{})
+					return
 				}
+
+				if query.Get("group") == "2bY" { // ID=4000
+					writeResponse(t, resp, api.ListResponse[api.Grant]{Count: 1, Items: []api.Grant{{ID: 7001}, {ID: 7002}}})
+					return
+				}
+
+				writeResponse(t, resp, api.ListResponse[api.Grant]{})
 				return
 			}
 

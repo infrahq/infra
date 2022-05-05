@@ -130,13 +130,13 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 					Items: []api.Grant{
 						{
 							ID:        uid.New(),
-							Subject:   uid.NewIdentityPolymorphicID(userID),
+							Identity:  userID,
 							Resource:  "cluster",
 							Privilege: "admin",
 						},
 						{
 							ID:        uid.New(),
-							Subject:   uid.NewIdentityPolymorphicID(userID),
+							Identity:  userID,
 							Resource:  "cluster.namespace",
 							Privilege: "admin",
 						},

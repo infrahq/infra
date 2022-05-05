@@ -29,12 +29,20 @@ func New() ID {
 }
 
 func (u ID) String() string {
+	if u == 0 {
+		return ""
+	}
+
 	return snowflake.ID(u).Base58()
 }
 
 func Parse(b []byte) (ID, error) {
 	if len(b) > 11 {
 		return ID(0), fmt.Errorf("invalid base58 id %q", string(b))
+	}
+
+	if len(b) == 0 {
+		return ID(0), nil
 	}
 
 	id, err := snowflake.ParseBase58(b)

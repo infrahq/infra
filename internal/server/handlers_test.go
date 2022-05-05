@@ -529,7 +529,7 @@ func TestAPI_CreateGrant_Success(t *testing.T) {
 
 	reqBody := strings.NewReader(`
 		{
-		  "subject": "i:12345",
+		  "identity": "TJ",
 		  "privilege": "admin-role",
 		  "resource": "some-cluster"
 		}`)
@@ -552,7 +552,7 @@ func TestAPI_CreateGrant_Success(t *testing.T) {
 		  "created_by": "%[1]v",
 		  "privilege": "admin-role",
 		  "resource": "some-cluster",
-		  "subject": "i:12345",
+		  "identity": "TJ",
 		  "created": "%[2]v",
 		  "updated": "%[2]v"
 		}`,
