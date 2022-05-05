@@ -23,9 +23,9 @@ If you don't have an identity provider, Infra supports local users for you to ge
 
 ## Get Started
 
-* [Quickstart](./docs/getting-started/quickstart.md)
+* [Quickstart](https://infrahq.com/docs/getting-started/quickstart)
 
 ## Learn More 
-* [Why Infra](./docs/getting-started/introduction.md)
-* [Key concepts](./docs/getting-started/key-concepts.md)
-* [Security](./docs/reference/security.md)
+* [Why Infra](https://infrahq.com/docs/getting-started/introduction)
+* [Key concepts](https://infrahq.com/docs/getting-started/key-concepts)
+* [Security](https://infrahq.com/docs/reference/security)
