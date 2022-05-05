@@ -25,10 +25,16 @@ func setAuthCookie(c *gin.Context, key string, expires time.Time) {
 		maxAge = CookieMaxAgeDeleteImmediately
 	}
 
+	secure := CookieSecureHTTPSOnly
+	if c.Request.TLS == nil {
+		// if the request came over HTTP, then the cookie will need to be sent unsecured
+		secure = false
+	}
+
 	c.SetSameSite(http.SameSiteStrictMode)
 
-	c.SetCookie(CookieAuthorizationName, key, maxAge, CookiePath, CookieDomain, CookieSecureHTTPSOnly, CookieHTTPOnlyNotJavascriptAccessible)
-	c.SetCookie(CookieLoginName, "1", maxAge, CookiePath, CookieDomain, CookieSecureHTTPSOnly, CookieHTTPOnlyNotJavascriptAccessible)
+	c.SetCookie(CookieAuthorizationName, key, maxAge, CookiePath, CookieDomain, secure, CookieHTTPOnlyNotJavascriptAccessible)
+	c.SetCookie(CookieLoginName, "1", maxAge, CookiePath, CookieDomain, secure, CookieHTTPOnlyNotJavascriptAccessible)
 }
 
 func deleteAuthCookie(c *gin.Context) {
