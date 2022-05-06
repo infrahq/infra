@@ -43,11 +43,11 @@ func TestAPI_ListGrants(t *testing.T) {
 		return respObj.ID
 	}
 
-	createGrant := func(t *testing.T, subject uid.PolymorphicID, privilege string) {
+	createGrant := func(t *testing.T, user uid.ID, privilege string) {
 		t.Helper()
 		var buf bytes.Buffer
 		body := api.CreateGrantRequest{
-			Subject:   subject,
+			Identity:  user,
 			Privilege: privilege,
 			Resource:  "res1",
 		}
@@ -79,8 +79,8 @@ func TestAPI_ListGrants(t *testing.T) {
 	idInGroup := createID(t, "inagroup@example.com")
 	idOther := createID(t, "other@example.com")
 
-	createGrant(t, uid.NewIdentityPolymorphicID(idInGroup), "custom1")
-	createGrant(t, uid.NewIdentityPolymorphicID(idOther), "custom2")
+	createGrant(t, idInGroup, "custom1")
+	createGrant(t, idOther, "custom2")
 
 	groupID := createGroup(t, "humans", idInGroup)
 
@@ -152,39 +152,39 @@ func TestAPI_ListGrants(t *testing.T) {
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
-				var grants []api.Grant
+				var grants api.ListResponse[api.Grant]
 				err := json.NewDecoder(resp.Body).Decode(&grants)
 				assert.NilError(t, err)
-				assert.Equal(t, len(grants), 0) // no grants for this resource
+				assert.Equal(t, len(grants.Items), 0) // no grants for this resource
 
 			},
 		},
 		"authorized by identity matching subject": {
-			urlPath: "/v1/grants?subject=i:" + idInGroup.String(),
+			urlPath: "/v1/grants?identity=" + idInGroup.String(),
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
-				var grants []api.Grant
+				var grants api.ListResponse[api.Grant]
 				err := json.NewDecoder(resp.Body).Decode(&grants)
 				assert.NilError(t, err)
 				expected := []api.Grant{
 					{
-						Subject:   uid.NewIdentityPolymorphicID(idInGroup),
+						Identity:  idInGroup,
 						Privilege: "custom1",
 						Resource:  "res1",
 					},
 				}
-				assert.DeepEqual(t, grants, expected, cmpAPIGrantShallow)
+				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
 			},
 		},
 		"authorized by group matching subject": {
-			urlPath: "/v1/grants?subject=g:" + groupID.String(),
+			urlPath: "/v1/grants?group=" + groupID.String(),
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
-				var grants []api.Grant
+				var grants api.ListResponse[api.Grant]
 				err := json.NewDecoder(resp.Body).Decode(&grants)
 				assert.NilError(t, err)
 				// no grants for this group
-				assert.Equal(t, len(grants), 0)
+				assert.Equal(t, len(grants.Items), 0)
 			},
 		},
 		"no filters": {
@@ -197,33 +197,33 @@ func TestAPI_ListGrants(t *testing.T) {
 				assert.NilError(t, err)
 
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
-				var grants []api.Grant
+				var grants api.ListResponse[api.Grant]
 				err = json.NewDecoder(resp.Body).Decode(&grants)
 				assert.NilError(t, err)
 
 				expected := []api.Grant{
 					{
-						Subject:   uid.NewIdentityPolymorphicID(admin.ID),
+						Identity:  admin.ID,
 						Privilege: "admin",
 						Resource:  "infra",
 					},
 					{
-						Subject:   uid.NewIdentityPolymorphicID(connector.ID),
+						Identity:  connector.ID,
 						Privilege: "connector",
 						Resource:  "infra",
 					},
 					{
-						Subject:   uid.NewIdentityPolymorphicID(idInGroup),
+						Identity:  idInGroup,
 						Privilege: "custom1",
 						Resource:  "res1",
 					},
 					{
-						Subject:   uid.NewIdentityPolymorphicID(idOther),
+						Identity:  idOther,
 						Privilege: "custom2",
 						Resource:  "res1",
 					},
 				}
-				assert.DeepEqual(t, grants, expected, cmpAPIGrantShallow)
+				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
 			},
 		},
 		"filter by resource": {
@@ -233,23 +233,23 @@ func TestAPI_ListGrants(t *testing.T) {
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
-				var grants []api.Grant
+				var grants api.ListResponse[api.Grant]
 				err = json.NewDecoder(resp.Body).Decode(&grants)
 				assert.NilError(t, err)
 
 				expected := []api.Grant{
 					{
-						Subject:   uid.NewIdentityPolymorphicID(idInGroup),
+						Identity:  idInGroup,
 						Privilege: "custom1",
 						Resource:  "res1",
 					},
 					{
-						Subject:   uid.NewIdentityPolymorphicID(idOther),
+						Identity:  idOther,
 						Privilege: "custom2",
 						Resource:  "res1",
 					},
 				}
-				assert.DeepEqual(t, grants, expected, cmpAPIGrantShallow)
+				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
 			},
 		},
 		"filter by resource and privilege": {
@@ -259,35 +259,38 @@ func TestAPI_ListGrants(t *testing.T) {
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
-				var grants []api.Grant
+				var grants api.ListResponse[api.Grant]
 				err = json.NewDecoder(resp.Body).Decode(&grants)
 				assert.NilError(t, err)
 
 				expected := []api.Grant{
 					{
-						Subject:   uid.NewIdentityPolymorphicID(idInGroup),
+						Identity:  idInGroup,
 						Privilege: "custom1",
 						Resource:  "res1",
 					},
 				}
-				assert.DeepEqual(t, grants, expected, cmpAPIGrantShallow)
+				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
 			},
 		},
 		"full JSON response": {
-			urlPath: "/v1/grants?subject=i:" + idInGroup.String(),
+			urlPath: "/v1/grants?identity=" + idInGroup.String(),
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
 
 				expected := jsonUnmarshal(t, fmt.Sprintf(`
-					[{
-				      "id": "<any-valid-uid>",
-				      "created_by": "%[1]v",
-				      "privilege": "custom1",
-				      "resource": "res1",
-				      "subject": "i:%[2]v",
-				      "created": "%[3]v",
-				      "updated": "%[3]v"
-					}]`,
+{
+	"count": 1,
+	"items": [{
+		"id": "<any-valid-uid>",
+		"created_by": "%[1]v",
+		"privilege": "custom1",
+		"resource": "res1",
+		"identity": "%[2]v",
+		"created": "%[3]v",
+		"updated": "%[3]v"
+	}]
+}`,
 					admin.ID,
 					idInGroup.String(),
 					time.Now().UTC().Format(time.RFC3339),
@@ -305,7 +308,7 @@ func TestAPI_ListGrants(t *testing.T) {
 }
 
 var cmpAPIGrantShallow = gocmp.Comparer(func(x, y api.Grant) bool {
-	return x.Subject == y.Subject && x.Privilege == y.Privilege && x.Resource == y.Resource
+	return x.Identity == y.Identity && x.Privilege == y.Privilege && x.Resource == y.Resource
 })
 
 var cmpAPIGrantJSON = gocmp.Options{
