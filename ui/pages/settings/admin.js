@@ -62,7 +62,7 @@ const AdminName = ({ id }) => {
       <div className='bg-gradient-to-tr from-indigo-300/40 to-pink-100/40 rounded-lg p-px'>
         <div className='bg-black flex-none flex items-center justify-center w-10 h-10 rounded-lg'>
           <div className='bg-gradient-to-tr from-indigo-300 to-pink-100 rounded-[4px] p-px'>
-            <div className='bg-black flex-none flex justify-center items-center pb-[3px] w-8 h-8 font-bold rounded-[4px]'>
+            <div className='bg-black flex-none flex justify-center items-center w-8 h-8 font-bold rounded-[4px]'>
               {user?.name?.[0]}
             </div>
           </div>
