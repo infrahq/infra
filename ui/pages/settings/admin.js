@@ -13,20 +13,20 @@ const columns = [{
   id: 'name',
   accessor: a => a,
   Cell: ({ value: admin }) => (
-    <AdminName id={admin.subject} />
+    <AdminName id={admin.identity} />
   )
 }, {
   id: 'delete',
   accessor: a => a,
   Cell: ({ value: admin, rows }) => {
-    const { data: user } = useSWR(`/v1/identities/${admin.subject.replace('i:', '')}`, { fallbackData: { name: '', kind: '' } })
+    const { data: user } = useSWR(`/v1/identities/${admin.identity}`, { fallbackData: { name: '', kind: '' } })
     const { data: auth } = useSWR('/v1/identities/self')
     const { mutate } = useSWRConfig()
 
 
     const [open, setOpen] = useState(false)
 
-    const isSelf = admin.subject.replace('i:', '') === auth.id
+    const isSelf = admin.identity === auth.id
 
     return (
       <div className='opacity-0 group-hover:opacity-100 flex justify-end text-right'>
@@ -85,7 +85,7 @@ export default function () {
   const grantAdminAccess = (id) => {
     fetch('/v1/grants', {
       method: 'POST',
-      body: JSON.stringify({ subject: 'i:' + id, resource: 'infra', privilege: 'admin' })
+      body: JSON.stringify({ identity: id, resource: 'infra', privilege: 'admin' })
     })
       .then(() => {
         mutate('/v1/grants?resource=infra&privilege=admin')
