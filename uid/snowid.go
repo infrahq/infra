@@ -11,7 +11,7 @@ import (
 
 var (
 	// epoch is the baseline date used for generating IDs.
-	epoch = time.Date(2022, 1, 1, 0, 0, 0, 0, time.UTC).UnixMilli()
+	epoch = time.Date(2022, 1, 1, 0, 0, 0, 0, time.UTC)
 
 	// nodeBits holds the number of bits to use for Node
 	// Remember, you have a total 22 bits to share between Node/Step
@@ -74,7 +74,7 @@ func NewNode(node int64) (*Node, error) {
 
 	var curTime = time.Now()
 	// add time.Duration to curTime to make sure we use the monotonic clock if available
-	n.epoch = curTime.Add(time.Unix(epoch/1000, (epoch%1000)*1000000).Sub(curTime))
+	n.epoch = curTime.Add(epoch.Sub(curTime))
 
 	return &n, nil
 }
