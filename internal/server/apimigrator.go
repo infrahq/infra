@@ -38,7 +38,7 @@ func addRequestRewrite[oldReq any, newReq any](a *API, method, path, version str
 		path:    path,
 		version: version,
 		requestRewrite: func(c *gin.Context) {
-			reqVer := NewVersion(c.Request.Header.Get("VERSION"))
+			reqVer := NewVersion(c.Request.Header.Get("Infra-Version"))
 			if reqVer.GreaterThanStr(version) {
 				c.Next()
 				return
@@ -103,7 +103,8 @@ func rebuildRequest(c *gin.Context, newReqObj interface{}) {
 	}
 	c.Request.URL.RawQuery = query.Encode()
 
-	if c.Request.Method != http.MethodGet {
+	switch c.Request.Method {
+	case http.MethodPost, http.MethodPut, http.MethodPatch:
 		bodyJSON, err := json.Marshal(body)
 		if err != nil {
 			sendAPIError(c, err)
@@ -130,22 +131,24 @@ func addResponseRewrite[newResp any, oldResp any](a *API, method, path, version 
 
 			c.Next()
 
-			newRespObj := new(newResp)
-			err := json.Unmarshal(w.body, newRespObj)
-			if err != nil {
-				sendAPIError(c, err)
-				return
+			if w.status < 300 && len(w.body) > 0 {
+				newRespObj := new(newResp)
+				err := json.Unmarshal(w.body, newRespObj)
+				if err != nil {
+					sendAPIError(c, err)
+					return
+				}
+
+				oldRespObj := f(*newRespObj)
+
+				b, err := json.Marshal(oldRespObj)
+				if err != nil {
+					sendAPIError(c, err)
+					return
+				}
+
+				w.body = b
 			}
-
-			oldRespObj := f(*newRespObj)
-
-			b, err := json.Marshal(oldRespObj)
-			if err != nil {
-				sendAPIError(c, err)
-				return
-			}
-
-			w.body = b
 			w.Flush()
 
 			if w.flushErr != nil {
@@ -191,23 +194,16 @@ func (w *responseWriter) WriteHeader(code int) {
 }
 
 func (w *responseWriter) WriteHeaderNow() {
-	if !w.Written() {
-		w.size = 0
-		w.ResponseWriter.WriteHeader(w.status)
-	}
+	w.ResponseWriter.WriteHeader(w.status)
 }
 
 func (w *responseWriter) Write(data []byte) (n int, err error) {
-	w.WriteHeaderNow()
 	w.body = append(w.body, data...)
-	w.size += len(data)
 	return len(data), nil
 }
 
 func (w *responseWriter) WriteString(s string) (n int, err error) {
-	w.WriteHeaderNow()
 	w.body = append(w.body, s...)
-	w.size += len(s)
 	return len(s), nil
 }
 
@@ -242,6 +238,7 @@ func (w *responseWriter) CloseNotify() <-chan bool {
 func (w *responseWriter) Flush() {
 	w.WriteHeaderNow()
 	bytesToFlush := len(w.body)
+	w.size = bytesToFlush
 	for bytesToFlush > 0 {
 		bytesFlushed, err := w.ResponseWriter.Write(w.body)
 		if err != nil {

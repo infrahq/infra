@@ -32,10 +32,8 @@ func TestAddRequestRewrite(t *testing.T) {
 		}
 	})
 
-	hit := false
 	get(a, router.Group("/"), "/test", func(c *gin.Context, req *upgradedTestRequest) (*api.EmptyResponse, error) {
 		assert.Assert(t, req.VegetableCount == 12)
-		hit = true
 		return nil, nil
 	})
 
@@ -44,7 +42,6 @@ func TestAddRequestRewrite(t *testing.T) {
 	router.ServeHTTP(resp, req)
 
 	assert.Assert(t, resp.Result().StatusCode == 200)
-	assert.Assert(t, hit)
 }
 
 func TestRedirect(t *testing.T) {
@@ -55,10 +52,8 @@ func TestRedirect(t *testing.T) {
 
 	addRedirect(a, http.MethodGet, "/test", "/supertest", "0.1.0")
 
-	hit := false
 	get(a, router.Group("/"), "/supertest", func(c *gin.Context, req *upgradedTestRequest) (*api.EmptyResponse, error) {
 		assert.Assert(t, req.VegetableCount == 17)
-		hit = true
 		return nil, nil
 	})
 
@@ -67,5 +62,4 @@ func TestRedirect(t *testing.T) {
 	router.ServeHTTP(resp, req)
 
 	assert.Assert(t, resp.Result().StatusCode == 200)
-	assert.Assert(t, hit)
 }
