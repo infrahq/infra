@@ -21,8 +21,9 @@ import (
 )
 
 type API struct {
-	t      *Telemetry
-	server *Server
+	t          *Telemetry
+	server     *Server
+	migrations []apiMigration
 }
 
 func (a *API) ListIdentities(c *gin.Context, r *api.ListIdentitiesRequest) (*api.ListResponse[api.Identity], error) {
