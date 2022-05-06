@@ -1,12 +1,10 @@
 package data
 
 import (
-	"sort"
 	"testing"
 
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
-	is "gotest.tools/v3/assert/cmp"
 
 	"github.com/infrahq/infra/internal/server/models"
 )
@@ -94,117 +92,6 @@ func TestListGroups(t *testing.T) {
 	groups, err = ListGroups(db, ByName(engineers.Name))
 	assert.NilError(t, err)
 	assert.Equal(t, 1, len(groups))
-}
-
-func TestBindGroupIdentities(t *testing.T) {
-	db := setup(t)
-
-	var (
-		everyone  = models.Group{Name: "Everyone"}
-		engineers = models.Group{Name: "Engineering"}
-		product   = models.Group{Name: "Product"}
-		bond      = models.Identity{Name: "jbond@infrahq.com"}
-	)
-
-	createGroups(t, db, everyone, engineers, product)
-
-	err := CreateIdentity(db, &bond)
-	assert.NilError(t, err)
-
-	groups, err := ListGroups(db)
-	assert.NilError(t, err)
-
-	for i := range groups {
-		err := BindGroupIdentities(db, &groups[i], bond)
-		assert.NilError(t, err)
-	}
-
-	user, err := GetIdentity(db.Preload("Groups"), ByName(bond.Name))
-	assert.NilError(t, err)
-	expected := []string{engineers.Name, everyone.Name, product.Name}
-	actual := []string{
-		user.Groups[0].Name,
-		user.Groups[1].Name,
-		user.Groups[2].Name,
-	}
-	sort.Strings(actual)
-	assert.DeepEqual(t, actual, expected)
-}
-
-func TestGroupBindMoreIdentities(t *testing.T) {
-	db := setup(t)
-
-	var (
-		everyone  = models.Group{Name: "Everyone"}
-		engineers = models.Group{Name: "Engineering"}
-		product   = models.Group{Name: "Product"}
-		bond      = models.Identity{Name: "jbond@infrahq.com"}
-		bourne    = models.Identity{Name: "jbourne@infrahq.com"}
-	)
-
-	createGroups(t, db, everyone, engineers, product)
-
-	err := CreateIdentity(db, &bond)
-	assert.NilError(t, err)
-
-	group, err := GetGroup(db.Preload("Identities"), ByName(everyone.Name))
-	assert.NilError(t, err)
-	assert.Assert(t, is.Len(group.Identities, 0))
-
-	err = BindGroupIdentities(db, group, bond)
-	assert.NilError(t, err)
-
-	group, err = GetGroup(db.Preload("Identities"), ByName(everyone.Name))
-	assert.NilError(t, err)
-	assert.Assert(t, is.Len(group.Identities, 1))
-
-	err = CreateIdentity(db, &bourne)
-	assert.NilError(t, err)
-
-	err = BindGroupIdentities(db, group, bond, bourne)
-	assert.NilError(t, err)
-
-	group, err = GetGroup(db.Preload("Identities"), ByName(everyone.Name))
-	assert.NilError(t, err)
-	assert.Assert(t, is.Len(group.Identities, 2))
-}
-
-func TestGroupBindLessIdentities(t *testing.T) {
-	db := setup(t)
-
-	var (
-		everyone  = models.Group{Name: "Everyone"}
-		engineers = models.Group{Name: "Engineering"}
-		product   = models.Group{Name: "Product"}
-		bourne    = models.Identity{Name: "jbourne@infrahq.com"}
-		bauer     = models.Identity{Name: "jbauer@infrahq.com"}
-	)
-
-	createGroups(t, db, everyone, engineers, product)
-
-	err := CreateIdentity(db, &bourne)
-	assert.NilError(t, err)
-
-	err = CreateIdentity(db, &bauer)
-	assert.NilError(t, err)
-
-	group, err := GetGroup(db.Preload("Identities"), ByName(everyone.Name))
-	assert.NilError(t, err)
-	assert.Assert(t, is.Len(group.Identities, 0))
-
-	err = BindGroupIdentities(db, group, bourne, bauer)
-	assert.NilError(t, err)
-
-	group, err = GetGroup(db.Preload("Identities"), ByName(everyone.Name))
-	assert.NilError(t, err)
-	assert.Assert(t, is.Len(group.Identities, 2))
-
-	err = BindGroupIdentities(db, group, bauer)
-	assert.NilError(t, err)
-
-	group, err = GetGroup(db.Preload("Identities"), ByName(everyone.Name))
-	assert.NilError(t, err)
-	assert.Assert(t, is.Len(group.Identities, 1))
 }
 
 func TestDeleteGroup(t *testing.T) {
