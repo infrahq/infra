@@ -13,7 +13,7 @@ export default function ({
   selectedItem
 }) {
   return (
-    <div className={`border rounded-full px-[3px] py-[2px] ${error ? 'border-pink-500/40' : 'border-purple-50/20'}`}>
+    <div className={`border rounded-full px-[3px] py-0.5 ${error ? 'border-pink-500/40' : 'border-purple-50/20'}`}>
       <div className={`relative w-full px-4 py-3 border bg-transparent rounded-full focus:outline-none focus:ring focus:ring-cyan-600 disabled:opacity-30 ${error ? 'border-pink-500' : 'border-purple-50/40'}`}>
         <input
           autoFocus

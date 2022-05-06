@@ -148,7 +148,7 @@ export default function () {
           />
         </div>
         <div className='bg-gradient-to-tr from-indigo-300/40 to-pink-100/40 rounded-full p-px'>
-          <div className='bg-black flex-none flex items-center justify-center px-[3px] py-[2px] rounded-full'>
+          <div className='bg-black flex-none flex items-center justify-center px-[3px] py-0.5 rounded-full'>
             <button
               onClick={() => handleAddAdmin()}
               disabled={adminEmail.length === 0}
