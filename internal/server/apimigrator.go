@@ -12,6 +12,8 @@ import (
 	"reflect"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/infrahq/infra/uid"
 )
 
 type apiMigration struct {
@@ -69,8 +71,8 @@ func rebuildRequest(c *gin.Context, newReqObj interface{}) {
 	for i := 0; i < r.NumField(); i++ {
 		f := r.Field(i)
 		if fieldName, ok := t.Field(i).Tag.Lookup("form"); ok {
-			if f.Type().Name() == "uid.ID" {
-				query.Add(fieldName, f.String())
+			if structNameWithPkg(f.Type()) == "uid.ID" {
+				query.Add(fieldName, uid.ID(f.Int()).String())
 				continue
 			}
 
@@ -81,10 +83,10 @@ func rebuildRequest(c *gin.Context, newReqObj interface{}) {
 				query.Add(fieldName, f.String())
 			case reflect.Slice:
 				// only type that does this is []uid.ID
-				switch f.Elem().Type().Name() {
+				switch structNameWithPkg(f.Type()) {
 				case "uid.ID":
 					for j := 0; j < f.Len(); j++ {
-						query.Add(fieldName, f.Index(j).String())
+						query.Add(fieldName, uid.ID(f.Index(j).Int()).String())
 					}
 				default:
 					panic("unexpected type " + f.Elem().Type().Name())
