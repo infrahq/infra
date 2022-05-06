@@ -67,7 +67,7 @@ func updateKubeconfig(client *api.Client, id uid.ID) error {
 		return err
 	}
 
-	grants, err := client.ListIdentityGrants(id)
+	grants, err := client.ListGrants(api.ListGrantsRequest{Identity: id})
 	if err != nil {
 		return err
 	}
@@ -78,7 +78,7 @@ func updateKubeconfig(client *api.Client, id uid.ID) error {
 	}
 
 	for _, g := range groups.Items {
-		groupGrants, err := client.ListGroupGrants(g.ID)
+		groupGrants, err := client.ListGrants(api.ListGrantsRequest{Group: g.ID})
 		if err != nil {
 			return err
 		}

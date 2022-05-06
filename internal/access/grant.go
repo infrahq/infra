@@ -1,8 +1,12 @@
 package access
 
 import (
-	"github.com/gin-gonic/gin"
+	"errors"
 
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -18,33 +22,49 @@ func GetGrant(c *gin.Context, id uid.ID) (*models.Grant, error) {
 }
 
 func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, privilege string) ([]models.Grant, error) {
-	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole)
-	if err != nil {
-		return nil, err
-	}
-
-	return data.ListGrants(db,
-		data.ByOptionalSubject(subject),
+	selectors := []data.SelectorFunc{
 		data.ByOptionalResource(resource),
-		data.ByOptionalPrivilege(privilege))
-}
-
-func ListIdentityGrants(c *gin.Context, identityID uid.ID) ([]models.Grant, error) {
-	db, err := hasAuthorization(c, identityID, isIdentitySelf, models.InfraAdminRole, models.InfraViewRole)
-	if err != nil {
-		return nil, err
+		data.ByOptionalPrivilege(privilege),
 	}
 
-	return data.ListIdentityGrants(db, identityID)
-}
-
-func ListGroupGrants(c *gin.Context, groupID uid.ID) ([]models.Grant, error) {
-	db, err := hasAuthorization(c, groupID, isUserInGroup, models.InfraAdminRole, models.InfraViewRole)
-	if err != nil {
-		return nil, err
+	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole)
+	if err == nil {
+		selectors = append(selectors, data.ByOptionalSubject(subject))
+		return data.ListGrants(db, selectors...)
 	}
 
-	return data.ListGroupGrants(db, groupID)
+	if errors.Is(err, internal.ErrForbidden) {
+		// Allow an authenticated identity to view their own grants
+		db := getDB(c)
+		subjectID, _ := subject.ID()
+		identity := AuthenticatedIdentity(c)
+		switch {
+		case identity == nil:
+			return nil, err
+		case subject.IsIdentity() && identity.ID == subjectID:
+			selectors = append(selectors, data.BySubject(subject))
+			return data.ListGrants(db, selectors...)
+		case subject.IsGroup() && userInGroup(db, identity.ID, subjectID):
+			selectors = append(selectors, data.BySubject(subject))
+			return data.ListGrants(db, selectors...)
+		}
+	}
+
+	return nil, err
+}
+
+func userInGroup(db *gorm.DB, authnUserID uid.ID, groupID uid.ID) bool {
+	groups, err := data.ListIdentityGroups(db, authnUserID)
+	if err != nil {
+		return false
+	}
+
+	for _, g := range groups {
+		if g.ID == groupID {
+			return true
+		}
+	}
+	return false
 }
 
 func CreateGrant(c *gin.Context, grant *models.Grant) error {

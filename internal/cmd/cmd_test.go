@@ -125,7 +125,7 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 
 				_, err = resp.Write(bytes)
 				assert.NilError(t, err)
-			case req.URL.Path == fmt.Sprintf("/v1/identities/%s/grants", userID):
+			case req.URL.Path == "/v1/grants":
 				grants := api.ListResponse[api.Grant]{
 					Items: []api.Grant{
 						{

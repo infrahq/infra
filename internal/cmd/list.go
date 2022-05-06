@@ -55,7 +55,7 @@ func list(cli *CLI) error {
 		return err
 	}
 
-	grants, err := client.ListIdentityGrants(identityID)
+	grants, err := client.ListGrants(api.ListGrantsRequest{Identity: identityID})
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func list(cli *CLI) error {
 	}
 
 	for _, g := range groups.Items {
-		groupGrants, err := client.ListGroupGrants(g.ID)
+		groupGrants, err := client.ListGrants(api.ListGrantsRequest{Group: g.ID})
 		if err != nil {
 			return err
 		}

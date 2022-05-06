@@ -56,7 +56,6 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) *gin.Engine 
 	put(a, authn, "/v1/identities/:id", a.UpdateIdentity)
 	delete(a, authn, "/v1/identities/:id", a.DeleteIdentity)
 	get(a, authn, "/v1/identities/:id/groups", a.ListIdentityGroups)
-	get(a, authn, "/v1/identities/:id/grants", a.ListIdentityGrants)
 
 	get(a, authn, "/v1/access-keys", a.ListAccessKeys)
 	post(a, authn, "/v1/access-keys", a.CreateAccessKey)
@@ -65,7 +64,6 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) *gin.Engine 
 	get(a, authn, "/v1/groups", a.ListGroups)
 	post(a, authn, "/v1/groups", a.CreateGroup)
 	get(a, authn, "/v1/groups/:id", a.GetGroup)
-	get(a, authn, "/v1/groups/:id/grants", a.ListGroupGrants)
 
 	get(a, authn, "/v1/grants", a.ListGrants)
 	get(a, authn, "/v1/grants/:id", a.GetGrant)
@@ -99,7 +97,12 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) *gin.Engine 
 
 	get(a, noAuthn, "/v1/version", a.Version)
 
-	// TODO: remove after a couple version.
+	// Deprecated in 0.12
+	// TODO: remove after a couple versions
+	get(a, authn, "/v1/identities/:id/grants", a.ListIdentityGrants)
+	get(a, authn, "/v1/groups/:id/grants", a.ListGroupGrants)
+
+	// TODO: remove after a couple versions
 	noAuthn.GET("/v1/users", removed("v0.9.0"))
 	noAuthn.POST("/v1/users", removed("v0.9.0"))
 	noAuthn.GET("/v1/users/:id", removed("v0.9.0"))
