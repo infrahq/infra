@@ -35,7 +35,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
     mutate(`/v1/grants?resource=${destination.name}`, async grants => {
       const res = await fetch('/v1/grants', {
         method: 'POST',
-        body: JSON.stringify({ subject: id, resource: destination.name, privilege })
+        body: JSON.stringify({ identity: id, resource: destination.name, privilege })
       })
 
       const data = await res.json()
@@ -46,7 +46,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
 
       setEmail('')
 
-      return [...(grants?.items || []).filter(grant => grant?.subject !== id), data]
+      return [...(grants?.items || []).filter(grant => grant?.identity !== id), data]
     })
   }
 
@@ -142,16 +142,16 @@ export default function ({ id, modalOpen, handleCloseModal }) {
       {error && <ErrorMessage message={error} />}
       {list?.count > 0 &&
         <div className='py-2 max-h-48 sm:max-h-80 overflow-y-auto'>
-          {list?.items?.sort((a, b) => (a.subject).localeCompare(b.subject)).map((item) => (
+          {list?.items?.sort((a, b) => (a.identity).localeCompare(b.identity)).map((item) => (
             <div className='flex justify-between items-center px-4' key={item.id}>
-              <Grant id={item.subject} />
+              <Grant id={item.identity} />
               <div>
                 <select
                   id='role'
                   name='role'
                   className='w-full pl-3 pr-1 py-2 border-gray-300 focus:outline-none sm:text-sm bg-transparent'
                   defaultValue={item.privilege}
-                  onChange={e => handleUpdateGrant(e.target.value, item.id, item.subject)}
+                  onChange={e => handleUpdateGrant(e.target.value, item.id, item.identity)}
                 >
                   {options.map((option) => (
                     <option key={option} value={option}>{option}</option>

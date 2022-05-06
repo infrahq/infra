@@ -85,7 +85,6 @@ export default function () {
     setDisabledInput(true)
     setCurrentDestinationName(name)
     setEnabledCommandInput(name.length > 0)
-    setConnectorFullName(destinationName)
     setNumDestinations(destinations?.items?.filter((item) => item.name === name).length)
 
     fetch('/v1/identities?name=connector')
