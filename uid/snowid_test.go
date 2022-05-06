@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 	"gotest.tools/v3/assert"
@@ -46,12 +47,16 @@ func TestNode_Generate_ConcurrencyAndUniqueness(t *testing.T) {
 	}
 
 	// Pick a random set of unique node IDs each time
-	nodeMax := -1 ^ (-1 << nodeBits)
+	nodeMax := -1 ^ (-1 << nodeBits) // modeMax=1024
 	nodeIDs := make([]int64, nodeMax)
 	for n := 0; n < nodeMax; n++ {
 		nodeIDs[n] = int64(n)
 	}
-	rand.Shuffle(nodeMax, func(i, j int) {
+	seed := time.Now().UnixNano()
+	t.Log("seed", seed)
+	// nolint: gosec // does not need to be cryptographically secure
+	r := rand.New(rand.NewSource(seed))
+	r.Shuffle(nodeMax, func(i, j int) {
 		nodeIDs[i], nodeIDs[j] = nodeIDs[j], nodeIDs[i]
 	})
 
@@ -95,21 +100,14 @@ func TestBase58(t *testing.T) {
 	assert.Equal(t, len(encodeBase58Map), 58)
 
 	node, err := NewNode(0)
-	if err != nil {
-		t.Fatalf("error creating NewNode, %s", err)
-	}
+	assert.NilError(t, err)
 
 	for i := 0; i < 10; i++ {
-
-		sf := node.Generate()
-		b58 := sf.String()
-		psf, err := Parse([]byte(b58))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if sf != psf {
-			t.Fatal("Parsed does not match String.")
-		}
+		id := node.Generate()
+		base58 := id.String()
+		parsed, err := Parse([]byte(base58))
+		assert.NilError(t, err)
+		assert.Equal(t, id, parsed)
 	}
 }
 
@@ -201,6 +199,14 @@ func TestParse(t *testing.T) {
 
 	testCases := []testCase{
 		{
+			base58:   "",
+			expected: ID(0),
+		},
+		{
+			base58:   "TX",
+			expected: ID(0xbc5),
+		},
+		{
 			base58:   "npL6MjP8Qfc", // 0x7fffffffffffffff
 			expected: ID(0x7fffffffffffffff),
 		},
@@ -241,7 +247,7 @@ func TestParse(t *testing.T) {
 	}
 }
 
-func FuzzParse_NoPanic(f *testing.F) {
+func FuzzID_Parse_NoPanic(f *testing.F) {
 	testCases := []string{
 		"self",
 		"abcdefghi",
@@ -263,14 +269,13 @@ func FuzzParse_NoPanic(f *testing.F) {
 	})
 }
 
-func FuzzParse_RoundTrip_FromInt64(f *testing.F) {
+func FuzzID_MarshalText_RoundTrip_FromInt64(f *testing.F) {
 	testCases := []int64{
 		-1, 0, 1, 2, 10,
 		math.MaxInt8, math.MinInt8,
 		math.MaxInt16, math.MinInt16,
 		math.MaxInt32, math.MinInt32,
-		math.MaxInt64,
-		math.MinInt64,
+		math.MaxInt64, math.MinInt64,
 	}
 	for _, tc := range testCases {
 		f.Add(tc)
@@ -292,7 +297,7 @@ func FuzzParse_RoundTrip_FromInt64(f *testing.F) {
 	})
 }
 
-func FuzzParse_RoundTrip_FromString(f *testing.F) {
+func FuzzID_Parse_RoundTrip_FromString(f *testing.F) {
 	testCases := []string{
 		"self",
 		"abcdefghi",
