@@ -4,8 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/infrahq/infra/internal/server/models"
 	"gotest.tools/v3/assert"
+
+	"github.com/infrahq/infra/internal/server/models"
 )
 
 func TestDestinationSaveCreatedPersists(t *testing.T) {
