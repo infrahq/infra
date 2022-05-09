@@ -181,12 +181,6 @@ const (
 
 var _ gin.ResponseWriter = &responseWriter{}
 
-func (w *responseWriter) reset(writer http.ResponseWriter) {
-	w.ResponseWriter = writer
-	w.size = noWritten
-	w.status = defaultStatus
-}
-
 func (w *responseWriter) WriteHeader(code int) {
 	if code > 0 && w.status != code {
 		w.status = code
@@ -231,6 +225,7 @@ func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 // CloseNotify implements the http.CloseNotify interface.
 func (w *responseWriter) CloseNotify() <-chan bool {
 	//nolint:forcetypeassert
+	//nolint:staticcheck
 	return w.ResponseWriter.(http.CloseNotifier).CloseNotify()
 }
 
